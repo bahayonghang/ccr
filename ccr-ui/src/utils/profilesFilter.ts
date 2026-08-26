@@ -11,7 +11,7 @@ export type ProfilesSortBy = 'recent' | 'name' | 'requests' | 'enabled'
 export interface ProfileLike {
   name: string
   enabled?: boolean | null
-  tags?: string[] | null
+  tags?: readonly string[] | null
   usage_count?: number | null
   provider?: string | null
   /** 运行时去重审计（base_url + 主模型）所需 */

@@ -165,27 +165,31 @@ describe('profiles shared layer (React)', () => {
     expect(screen.getByText('card')).toBeTruthy()
   })
 
-  it('maps ProfilesStatStrip health click', () => {
-    const onHealthClick = vi.fn()
+  it('maps ProfilesStatStrip four cards', () => {
     render(
       <ProfilesStatStrip
         current="alpha"
-        total={3}
-        labels={{
-          current: 'Current',
-          notSet: 'None',
-          currentHint: 'hint-current',
-          total: 'Total',
-          totalHint: 'hint-total',
+        stats={{
+          total: 3,
+          vendorCount: 2,
+          tagCounts: { prod: 2 },
+          authCounts: { api_key: 3 },
         }}
-        secondary={{ icon: 'Key', title: 'Auth', value: '2 / 1', hint: 'hint-auth', mono: true }}
-        health={{ title: 'Health', value: '0', hint: 'clean' }}
-        onHealthClick={onHealthClick}
+        labels={{
+          total: 'Total',
+          vendors: '2 vendors',
+          running: 'Running',
+          runningHint: 'hint-running',
+          notApplied: 'None',
+          tags: 'Tags',
+          auth: 'Auth',
+        }}
       />,
     )
+    expect(screen.getByTestId('profiles-stat-total').textContent).toBe('3')
+    expect(screen.getByTestId('profiles-stat-vendors').textContent).toBe('2 vendors')
     expect(screen.getByText('alpha')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: /Health/ }))
-    expect(onHealthClick).toHaveBeenCalledOnce()
+    expect(screen.getByText('#prod')).toBeTruthy()
   })
 
   it('maps ProfilesHeader overflow actions and optional palette', () => {

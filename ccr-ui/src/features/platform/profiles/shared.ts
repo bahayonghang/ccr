@@ -1,13 +1,25 @@
 export {
+  ProfileCardGrid,
+  ProfileDiffRows,
   ProfileListRow,
+  ProfileTable,
+  ProfilesCommandPalette,
+  ProfilesEmptyState,
   ProfilesHeader,
+  ProfilesInspector,
+  ProfilesOffBanner,
+  ProfilesPageHeader,
+  ProfilesQuickRail,
+  ProfilesRawEditorPanel,
   ProfilesSection,
   ProfilesStatStrip,
   ProfilesToolbar,
 } from '@/components/profiles'
 export type {
   ProfileListRowProps,
+  ProfilesCommandPaletteAction,
   ProfilesHeaderProps,
   ProfilesStatStripProps,
+  ProfilesToolbarHandle,
   ProfilesToolbarProps,
 } from '@/components/profiles'

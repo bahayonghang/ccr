@@ -1,5 +1,10 @@
+import { CLAUDE_SECRET_KEYS, CODEX_SECRET_KEYS, stripCredentials } from '@/configs/profileCredentials'
+import {
+  claudeProfilePresentation,
+  codexProfilePresentation,
+  type AntigravityProfileRecord,
+} from '@/configs/profilePresentation'
 import type { ClaudeProfile, CodexProfile, GrokProfileDto } from '@/types'
-import type { AntigravityProfileRecord } from '@/configs/profilePresentation'
 
 const LONG_DESCRIPTION = 'd'.repeat(120)
 
@@ -297,3 +302,15 @@ export const antigravityProfileFixtures: AntigravityProfileRecord[] = [
 ]
 
 export const LONG_PROFILE_DESCRIPTION = LONG_DESCRIPTION
+
+export const claudeDisplayRecords = claudeProfileFixtures.map((record) =>
+  claudeProfilePresentation.project(stripCredentials(record, CLAUDE_SECRET_KEYS), {
+    current: 'claude-current',
+  }),
+)
+
+export const codexDisplayRecords = codexProfileFixtures.map((record) =>
+  codexProfilePresentation.project(stripCredentials(record, CODEX_SECRET_KEYS), {
+    current: 'codex-current',
+  }),
+)

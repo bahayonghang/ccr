@@ -8,7 +8,7 @@ export interface ProfileRowProfile {
   name: string
   description?: string | null
   enabled?: boolean | null
-  tags?: string[] | null
+  tags?: readonly string[] | null
 }
 
 /** 平台注入的行渲染策略：解析展示字段 + 操作文案 + 编辑图标 */
@@ -28,7 +28,7 @@ export interface ProfileRowDescriptor<P> {
 export interface ProfilesInspectorProfile {
   name: string
   description?: string | null
-  tags?: string[] | null
+  tags?: readonly string[] | null
 }
 
 /** 预览面板的单个字段（平台决定字段集合/顺序/样式） */

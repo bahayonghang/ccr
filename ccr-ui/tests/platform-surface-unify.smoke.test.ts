@@ -76,10 +76,16 @@ describe('platform unify', () => {
   it('forbids platform name branches in features/platform', () => {
     const files = walk(join(SRC, 'features/platform')).filter((file) => {
       const name = file.split(/[/\\]/).pop() ?? ''
-      return name.startsWith('Base') || name.endsWith('-model.ts') || file.includes(`${join('platform', 'settings')}`)
+      return (
+        name.startsWith('Base') ||
+        name.endsWith('-model.ts') ||
+        file.includes(`${join('platform', 'settings')}`) ||
+        file.includes(`${join('platform', 'profiles')}`)
+      )
     })
+    const componentFiles = walk(join(SRC, 'components', 'profiles'))
     const hits: string[] = []
-    for (const file of files) {
+    for (const file of [...files, ...componentFiles]) {
       const text = readFileSync(file, 'utf8')
       if (PLATFORM_COMPARE.test(text)) hits.push(file.split('\\').join('/'))
     }

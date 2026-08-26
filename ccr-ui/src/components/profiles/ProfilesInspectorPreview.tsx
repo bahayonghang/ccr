@@ -14,7 +14,7 @@ interface ProfilesInspectorPreviewProps<T extends ProfilesInspectorProfile> {
   previewProfile: T | null
   isPreviewingCurrent: boolean
   previewFields: ProfilesInspectorField[]
-  previewTags: string[]
+  previewTags: readonly string[]
   diffRows: ProfileDiffRow[]
   sessionWriteAt: string | null
   editIcon: ProfilesInspectorDescriptor<T>['editIcon']

@@ -144,11 +144,12 @@ openai_login_method: authModeToLoginMethod(form.auth_mode) ?? null,
 ### Convention：平台页只注入策略，不重写骨架
 
 **What**：Claude Code 与 Codex 两个 Profiles 页面消费同一套 `components/profiles/*` 组件族，
-布局骨架必须完全一致：`ProfilesHeader`（`actions-menu`）→ 可选 Off 横幅 → `ProfilesStatStrip`（四槽）→
-`ProfilesQuickRail` → `ProfilesToolbar`（`compact-filters`）→ 主列表 → `ProfilesInspector` 右栏。
-平台差异只允许出现在三个地方：StatStrip 的**特色槽**、字段集、i18n 前缀。
-Off 横幅仅在后端 `can_off === true` 时出现，放在 Header 与 StatStrip 之间；确认框 `type=warning`。
+布局骨架必须完全一致：`ProfilesPageHeader`（或过渡期 `ProfilesHeader`）→ 可选 Off 横幅 → `ProfilesStatStrip`（四卡：总数 / 运行中 / 标签 / 认证方式）→
+`ProfilesQuickRail` → `ProfilesToolbar`（搜索 + 标签 pill + 视图切换；Filters 弹层保留 provider 与排序）→ 主列表（卡片或表格）→ `ProfilesInspector` 右栏。
+平台差异只允许出现在三个地方：`ProfilePresentation` 注入的字段集、认证分布（第四卡）、i18n 前缀。
+Off 横幅仅在 `canOff === true` 时出现，放在 Header 与 StatStrip 之间；确认框 `type=warning`。
 命令面板可加 `__off`，不得把 Off 放进 Header 溢出菜单。
+source mode 入口在页头次按钮组，由 raw-source capability 控制；capability 缺席时不渲染。
 
 **Why**：两页此前各自演化出不同的信息架构与视觉语言，是 Profiles 重构要解决的核心问题。
 骨架同构是可验证的验收标准，不是审美偏好。
@@ -157,10 +158,10 @@ Off 横幅仅在后端 `can_off === true` 时出现，放在 Header 与 StatStri
 
 | 维度 | Claude Code | Codex |
 | --- | --- | --- |
-| StatStrip 特色槽 | Auth 分布（订阅/API Key 计数） | Config mode（official / custom relay） |
-| Filters 弹层内容 | 标签 + provider + 排序 | 标签 + 排序（无 provider 维度） |
-| 卡片额外操作 | 无 | env-export 复制图标按钮 |
-| 卡片额外字段 | 多模型回退链 | `auth_source` / `env_key` / `openai_login_method` 徽章 |
+| StatStrip 认证方式卡 | `authKey` 分布（订阅 / API Key 等） | `authKey` 分布（official / openai / env_key 等） |
+| Filters 弹层内容 | 标签 + provider + 排序 | 标签 + 排序（无 provider 维度，或 vendorKey 为空时隐藏下拉） |
+| 卡片额外操作 | 无 | env-export 复制图标按钮（仍由 rollout 接线保留） |
+| 卡片额外字段 | `presentation.fieldSlots` 第四槽（provider） | `presentation.fieldSlots` 第四槽（wire_api） |
 
 **策略注入位置**：行/检查器/diff 描述符统一由 `utils/{platform}Profiles.ts` 组装并注入组件，
 不在组件内写平台分支。表单序列化留在 `utils/{platform}ProfileEditor.ts`，与展示策略分文件。

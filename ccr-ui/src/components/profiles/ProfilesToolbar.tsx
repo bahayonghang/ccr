@@ -11,9 +11,10 @@ import {
 import { useShellT } from '@/shell/i18n'
 import { SIcon } from '@/ui'
 import type { ProfilesSortBy, ProfilesStatusFilter, ProviderOption } from '@/utils/profilesFilter'
+import { FiltersPop, TagPills, ViewSegment, type ProfilesViewMode } from './ProfilesToolbarControls'
 import './profiles-shared.css'
 
-export type ProfilesViewMode = 'card' | 'list'
+export type { ProfilesViewMode } from './ProfilesToolbarControls'
 
 export interface ProfilesToolbarProps {
   query: string
@@ -29,6 +30,8 @@ export interface ProfilesToolbarProps {
   /** provider 维度（Claude 用，Codex 省略 → 不渲染 provider 下拉） */
   providerFilter?: string | null
   allProviders?: ProviderOption[]
+  /** 为真时第二段控件写入 table 而非 list */
+  tableView?: boolean
   onUpdateQuery: (value: string) => void
   onUpdateStatusFilter: (value: ProfilesStatusFilter) => void
   onUpdateTagFilter: (value: string | null) => void
@@ -88,6 +91,7 @@ export const ProfilesToolbar = forwardRef<ProfilesToolbarHandle, ProfilesToolbar
       i18nPrefix,
       providerFilter = null,
       allProviders,
+      tableView = false,
       onUpdateQuery,
       onUpdateStatusFilter,
       onUpdateTagFilter,
@@ -167,7 +171,7 @@ export const ProfilesToolbar = forwardRef<ProfilesToolbarHandle, ProfilesToolbar
       activeFilterCount > 0 || filtersOpen ? 'cp-pill cp-filters__trigger cp-pill--active' : 'cp-pill cp-filters__trigger'
 
     return (
-      <div className="cp-toolbar surface-workspace">
+      <div className="cp-toolbar surface-workspace" data-testid="profiles-toolbar">
         <div className="cp-search">
           <SIcon name="Search" size="w-3.5 h-3.5" className="cp-search__icon" />
           <input
@@ -179,6 +183,24 @@ export const ProfilesToolbar = forwardRef<ProfilesToolbarHandle, ProfilesToolbar
             onInput={onQueryInput}
           />
           <kbd className="cp-search__kbd">/</kbd>
+        </div>
+
+        <span className="cp-toolbar__sep" />
+
+        <div className="cp-pill-row" role="group" aria-label={t(`${i18nPrefix}.tagGroupLabel`)}>
+          <button
+            type="button"
+            className={tagFilter === null ? 'cp-pill cp-pill--active' : 'cp-pill'}
+            aria-pressed={tagFilter === null}
+            onClick={() => onUpdateTagFilter(null)}
+          >
+            {t('profilesSurface.allTags', { count: total })}
+          </button>
+          <TagPills
+            allTags={allTags}
+            tagFilter={tagFilter}
+            onUpdateTagFilter={onUpdateTagFilter}
+          />
         </div>
 
         <span className="cp-toolbar__sep" />
@@ -215,77 +237,23 @@ export const ProfilesToolbar = forwardRef<ProfilesToolbarHandle, ProfilesToolbar
           </button>
 
           {filtersOpen ? (
-            <div
-              ref={filtersPopRef}
-              className="cp-filters__pop"
-              role="dialog"
-              aria-label={t(`${i18nPrefix}.filtersButton`)}
+            <FiltersPop
+              i18nPrefix={i18nPrefix}
+              allTags={allTags}
+              tagFilter={tagFilter}
+              sortBy={sortBy}
+              providerFilter={providerFilter}
+              allProviders={allProviders}
+              showProvider={showProvider}
+              activeFilterCount={activeFilterCount}
+              t={t}
+              popRef={filtersPopRef}
               onKeyDown={onFiltersKeydown}
-            >
-              {allTags.length > 0 ? (
-                <div className="cp-filters__section">
-                  <div className="cp-filters__label">{t(`${i18nPrefix}.tagGroupLabel`)}</div>
-                  <div className="cp-pill-row" role="group" aria-label={t(`${i18nPrefix}.tagGroupLabel`)}>
-                    {allTags.map((tag) => (
-                      <button
-                        key={tag}
-                        type="button"
-                        className={tagFilter === tag ? 'cp-pill cp-pill--active' : 'cp-pill'}
-                        aria-pressed={tagFilter === tag}
-                        onClick={() => onUpdateTagFilter(tagFilter === tag ? null : tag)}
-                      >
-                        #{tag}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              {showProvider ? (
-                <div className="cp-filters__section">
-                  <div className="cp-filters__label">{t(`${i18nPrefix}.providerLabel`)}</div>
-                  <select
-                    value={providerFilter ?? ''}
-                    className="cp-toolbar__sort cp-filters__select"
-                    aria-label={t(`${i18nPrefix}.providerLabel`)}
-                    onChange={(event) => onUpdateProviderFilter(event.currentTarget.value || null)}
-                  >
-                    <option value="">{t(`${i18nPrefix}.providerAll`)}</option>
-                    {allProviders?.map((provider) => (
-                      <option key={provider.key} value={provider.key}>
-                        {provider.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : null}
-
-              <div className="cp-filters__section">
-                <div className="cp-filters__label">{t(`${i18nPrefix}.sortLabel`)}</div>
-                <select
-                  value={sortBy}
-                  className="cp-toolbar__sort cp-filters__select"
-                  aria-label={t(`${i18nPrefix}.sortLabel`)}
-                  onChange={(event) => onUpdateSortBy(event.currentTarget.value as ProfilesSortBy)}
-                >
-                  <option value="recent">{t(`${i18nPrefix}.sortRecent`)}</option>
-                  <option value="name">{t(`${i18nPrefix}.sortName`)}</option>
-                  <option value="requests">{t(`${i18nPrefix}.sortRequests`)}</option>
-                  <option value="enabled">{t(`${i18nPrefix}.sortEnabled`)}</option>
-                </select>
-              </div>
-
-              <div className="cp-filters__foot">
-                <button
-                  type="button"
-                  className="cp-pill"
-                  disabled={activeFilterCount === 0}
-                  onClick={clearAllFilters}
-                >
-                  {t(`${i18nPrefix}.clearAll`)}
-                </button>
-              </div>
-            </div>
+              onUpdateTagFilter={onUpdateTagFilter}
+              onUpdateProviderFilter={onUpdateProviderFilter}
+              onUpdateSortBy={onUpdateSortBy}
+              onClear={clearAllFilters}
+            />
           ) : null}
         </div>
 
@@ -294,26 +262,13 @@ export const ProfilesToolbar = forwardRef<ProfilesToolbarHandle, ProfilesToolbar
             {resultCount}/{total}
           </span>
 
-          <div className="cp-seg" role="group" aria-label={t(`${i18nPrefix}.viewLabel`)}>
-            <button
-              type="button"
-              className={viewMode === 'card' ? 'cp-seg__btn cp-seg__btn--active' : 'cp-seg__btn'}
-              title={t(`${i18nPrefix}.viewCard`)}
-              aria-pressed={viewMode === 'card'}
-              onClick={() => onUpdateViewMode('card')}
-            >
-              <SIcon name="Layers" size="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              className={viewMode === 'list' ? 'cp-seg__btn cp-seg__btn--active' : 'cp-seg__btn'}
-              title={t(`${i18nPrefix}.viewList`)}
-              aria-pressed={viewMode === 'list'}
-              onClick={() => onUpdateViewMode('list')}
-            >
-              <SIcon name="List" size="w-3.5 h-3.5" />
-            </button>
-          </div>
+          <ViewSegment
+            viewMode={viewMode}
+            tableView={tableView}
+            i18nPrefix={i18nPrefix}
+            t={t}
+            onUpdateViewMode={onUpdateViewMode}
+          />
         </div>
       </div>
     )

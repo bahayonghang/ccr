@@ -1,4 +1,6 @@
 export { ProfileDiffRows, type ProfileDiffRowsProps } from './ProfileDiffRows'
+export { ProfileCardGrid, type ProfileCardGridProps } from './ProfileCardGrid'
+export { ProfileTable, type ProfileTableProps } from './ProfileTable'
 export {
   ProfileListRow,
   type ProfileListRowProps,
@@ -11,6 +13,7 @@ export {
   type ProfilesCommandPaletteDescriptor,
   type ProfilesCommandPaletteProps,
 } from './ProfilesCommandPalette'
+export { ProfilesEmptyState, type ProfilesEmptyStateProps } from './ProfilesEmptyState'
 export {
   ProfilesHeader,
   type ProfilesHeaderLabels,
@@ -24,6 +27,8 @@ export {
   type ProfilesInspectorProfile,
   type ProfilesInspectorProps,
 } from './ProfilesInspector'
+export { ProfilesOffBanner, type ProfilesOffBannerProps } from './ProfilesOffBanner'
+export { ProfilesPageHeader, type ProfilesPageHeaderProps } from './ProfilesPageHeader'
 export {
   ProfilesQuickRail,
   type ProfilesQuickRailProps,
@@ -38,10 +43,9 @@ export {
 export { ProfilesSection, type ProfilesSectionProps } from './ProfilesSection'
 export {
   ProfilesStatStrip,
-  type ProfilesStatStripHealth,
   type ProfilesStatStripLabels,
   type ProfilesStatStripProps,
-  type ProfilesStatStripSecondary,
+  type ProfilesStatStripStats,
 } from './ProfilesStatStrip'
 export {
   ProfilesToolbar,

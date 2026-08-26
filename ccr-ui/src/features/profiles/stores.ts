@@ -22,6 +22,9 @@ const RECENT_CAP = 16
 
 const PINNED_KEY_PREFIX = 'ccr:profiles:pinned:'
 const RECENT_KEY_PREFIX = 'ccr:profiles:recent:'
+const VIEW_KEY_PREFIX = 'ccr:profiles:view:'
+
+export type ProfilesSurfaceViewMode = 'card' | 'table'
 
 const pinnedKeyOf = (platform: string) => `${PINNED_KEY_PREFIX}${platform}`
 const recentKeyOf = (platform: string) => `${RECENT_KEY_PREFIX}${platform}`
@@ -87,6 +90,57 @@ interface ProfilesQuickSwitchState {
    */
   cleanupStale: (platform: string, profileNames: string[] | null) => void
 }
+
+const readViewMode = (raw: string | null): ProfilesSurfaceViewMode | null => {
+  if (raw === 'card' || raw === 'table') return raw
+  return null
+}
+
+const writeViewMode = (platform: string, mode: ProfilesSurfaceViewMode) => {
+  try {
+    localStorage.setItem(`${VIEW_KEY_PREFIX}${platform}`, mode)
+  } catch {
+    // storage 不可用时降级为纯内存
+  }
+}
+
+const hydrateViewKey = (
+  key: string | null,
+  viewByPlatform: Record<string, ProfilesSurfaceViewMode>,
+) => {
+  if (!key?.startsWith(VIEW_KEY_PREFIX)) return
+  const mode = readViewMode(localStorage.getItem(key))
+  if (!mode) return
+  viewByPlatform[key.slice(VIEW_KEY_PREFIX.length)] = mode
+}
+
+const readPersistedViews = (): Record<string, ProfilesSurfaceViewMode> => {
+  const viewByPlatform: Record<string, ProfilesSurfaceViewMode> = {}
+  if (typeof window === 'undefined') return viewByPlatform
+  try {
+    for (let i = 0; i < localStorage.length; i += 1) {
+      hydrateViewKey(localStorage.key(i), viewByPlatform)
+    }
+  } catch {
+    return viewByPlatform
+  }
+  return viewByPlatform
+}
+
+interface ProfilesViewState {
+  viewByPlatform: Record<string, ProfilesSurfaceViewMode>
+  setView: (platform: string, mode: ProfilesSurfaceViewMode) => void
+}
+
+export const useProfilesViewStore = create<ProfilesViewState>()((set) => ({
+  viewByPlatform: readPersistedViews(),
+  setView: (platform, mode) => {
+    set((state) => ({
+      viewByPlatform: { ...state.viewByPlatform, [platform]: mode },
+    }))
+    writeViewMode(platform, mode)
+  },
+}))
 
 export const useProfilesQuickSwitchStore = create<ProfilesQuickSwitchState>()((set, get) => ({
   pinnedByPlatform: persisted.pinnedByPlatform,

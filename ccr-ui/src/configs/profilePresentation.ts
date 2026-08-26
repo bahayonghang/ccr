@@ -24,6 +24,9 @@ export interface ProfilePresentation<TRecord = unknown> {
   project: (record: TRecord, ctx: { current: string | null }) => ProfileDisplayRecord
 }
 
+/** 列表呈现层只读元数据；不含 `project`，因此可接受任意平台 presentation。 */
+export type ProfilePresentationView = Omit<ProfilePresentation, 'project'>
+
 /** antigravity 尚无 typed DTO；层二注册用结构占位，不进入路由。 */
 export interface AntigravityProfileRecord {
   name: string
