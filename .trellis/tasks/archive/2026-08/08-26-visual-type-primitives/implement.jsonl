@@ -1,0 +1,6 @@
+{"file": ".trellis/tasks/08-26-profile-visual-types/research/visual-language.md", "reason": "原语变体、尺寸、减动效、UrlText 展示规则"}
+{"file": ".trellis/tasks/08-26-profile-visual-types/design.md", "reason": "Button/Badge API 与 buttonClass、禁止 asChild"}
+{"file": ".trellis/tasks/08-26-visual-type-primitives/prd.md", "reason": "本子任务范围：只写 src/ui"}
+{"file": ".trellis/spec/ccr-ui/frontend/layering-contracts.md", "reason": "ui-primitive 依赖方向"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "token 名冻结；0.75rem 下限"}
+{"file": ".trellis/spec/ccr-ui/frontend/confirm-interaction-contracts.md", "reason": "ConfirmModal 改 Button 时保持确认语义"}

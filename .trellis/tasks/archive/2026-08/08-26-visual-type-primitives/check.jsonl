@@ -1,0 +1,4 @@
+{"file": ".trellis/tasks/08-26-visual-type-primitives/prd.md", "reason": "AC：导出、变体、static cursor、UrlText title、EmptyState/ConfirmModal"}
+{"file": ".trellis/tasks/08-26-profile-visual-types/research/visual-language.md", "reason": "视觉类型对照"}
+{"file": ".trellis/spec/ccr-ui/frontend/layering-contracts.md", "reason": "新文件不得导入 features"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "无新 token；无 hex"}
