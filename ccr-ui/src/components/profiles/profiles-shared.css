@@ -92,65 +92,7 @@
 
 .cp-header__back { display: inline-flex; }
 
-/* 共享按钮样式：靠 --cp-* 令牌着色，每个视图各自设定 accent（Claude 暖中性次色 / Codex 主色） */
-.cp-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
-  border-radius: 7px;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  font-family: inherit;
-  background: var(--cp-bg-2);
-  border: 1px solid var(--cp-line-2);
-  color: var(--cp-ink-1);
-  cursor: pointer;
-  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
-}
-
-.cp-btn:hover:not(:disabled) {
-  background: var(--cp-bg-3);
-  color: var(--cp-ink-0);
-}
-
-.cp-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.cp-btn--ghost {
-  background: transparent;
-  border-color: var(--cp-line);
-  color: var(--cp-ink-2);
-}
-
-.cp-btn--palette-open {
-  background: var(--cp-accent-soft);
-  border-color: var(--cp-accent-line);
-  color: var(--cp-accent);
-  box-shadow: inset 0 0 0 1px var(--cp-accent-line);
-}
-
-.cp-btn--palette-open .cp-btn__kbd {
-  border-color: var(--cp-accent-line);
-  color: var(--cp-accent);
-  background: rgb(var(--color-accent-primary-rgb) / 10%);
-}
-
-.cp-btn--primary {
-  background: var(--cp-accent);
-  border-color: var(--cp-accent);
-  color: var(--cp-on-accent);
-  font-weight: 600;
-}
-
-.cp-btn--primary:hover:not(:disabled) {
-  background: var(--cp-accent-hover);
-  border-color: var(--cp-accent-hover);
-}
-
-.cp-btn__kbd {
+.cp-header__kbd {
   margin-left: 4px;
   padding: 1px 5px;
   font-family: var(--cp-mono);
@@ -159,6 +101,12 @@
   background: var(--cp-bg-0);
   border: 1px solid var(--cp-line-2);
   border-radius: 3px;
+}
+
+.cp-header__palette-open .cp-header__kbd {
+  border-color: var(--cp-accent-line);
+  color: var(--cp-accent);
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
 }
 
 /* Overflow menu popover anchored to its trigger. */
@@ -218,7 +166,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cp-btn, .cp-menu__item { transition: none; }
+  .ui-btn, .cp-menu__item { transition: none; }
 }
 
 /* --- ProfilesSection --- */
@@ -1786,9 +1734,9 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid var(--color-warning);
   border-radius: 0.5rem;
-  background: var(--color-bg-elevated);
+  background: var(--color-warning-tint);
   font-size: 0.8125rem;
 }
 
@@ -1802,12 +1750,6 @@
   flex-wrap: wrap;
   gap: 0.375rem;
   margin-top: 0.375rem;
-}
-
-.cp-btn--accent-soft {
-  color: var(--color-accent-primary);
-  background: rgb(var(--color-accent-primary-rgb) / 14%);
-  border-color: rgb(var(--color-accent-primary-rgb) / 35%);
 }
 
 .cp-label {
@@ -1889,18 +1831,6 @@
   white-space: nowrap;
 }
 
-.cp-card__badge {
-  padding: 0.125rem 0.5rem;
-  border-radius: 999px;
-  background: var(--color-bg-elevated);
-  font-size: 0.75rem;
-}
-
-.cp-card__badge--accent {
-  color: var(--color-accent-primary);
-  background: rgb(var(--color-accent-primary-rgb) / 16%);
-}
-
 .cp-card__badges,
 .cp-card__tags {
   display: flex;
@@ -1915,16 +1845,13 @@
   margin: 0;
 }
 
-.cp-card__field dt {
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-text-ghost);
+.cp-card__field {
+  min-width: 0;
 }
 
 .cp-card__field dd {
   margin: 0.125rem 0 0;
+  min-width: 0;
   overflow: hidden;
   font-family: var(--font-mono);
   font-size: 0.75rem;
@@ -2085,7 +2012,7 @@
 @media (prefers-reduced-motion: reduce) {
   .cp-card,
   .cp-table__row,
-  .cp-btn,
+  .ui-btn,
   .cp-pill {
     transition: none;
   }

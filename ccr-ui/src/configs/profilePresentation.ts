@@ -1,12 +1,16 @@
 import { toVendorKey, type ProfileDisplayRecord } from '@/configs/profileDisplayRecord'
 import type { ClaudeProfile, CodexProfile, GrokProfileDto } from '@/types'
 
+export type ProfileFieldKind = 'text' | 'url' | 'chip'
+
 export interface ProfileFieldSlot {
   /** 列头与卡片字段的 label i18n key */
   labelKey: string
   /** 表格列宽 */
   columnWidth: string
-  /** 表格中是否渲染为 chip */
+  /** 字段呈现类型 */
+  kind?: ProfileFieldKind
+  /** 兼容 Inspector 等仍读 chip 的消费方；kind 为 chip 时为 true */
   chip?: boolean
 }
 
@@ -81,10 +85,10 @@ export const claudeProfilePresentation: ProfilePresentation<ClaudeProfile> = {
   configFile: 'profiles.toml',
   configPathKey: 'profilePresentation.configPath.claude',
   fieldSlots: [
-    { labelKey: 'profilePresentation.fields.baseUrl', columnWidth: '13.5rem' },
-    { labelKey: 'profilePresentation.fields.model', columnWidth: '11rem' },
-    { labelKey: 'profilePresentation.fields.authMode', columnWidth: '6.5rem', chip: true },
-    { labelKey: 'profilePresentation.fields.provider', columnWidth: '8.5rem' },
+    { labelKey: 'profilePresentation.fields.baseUrl', columnWidth: '13.5rem', kind: 'url' },
+    { labelKey: 'profilePresentation.fields.model', columnWidth: '11rem', kind: 'text' },
+    { labelKey: 'profilePresentation.fields.authMode', columnWidth: '6.5rem', kind: 'chip', chip: true },
+    { labelKey: 'profilePresentation.fields.provider', columnWidth: '8.5rem', kind: 'chip', chip: true },
   ],
   project: (record, ctx) => {
     const tags = tagsOf(record.tags)
@@ -118,10 +122,10 @@ export const codexProfilePresentation: ProfilePresentation<CodexProfile> = {
   configFile: 'CCR Unified',
   configPathKey: 'profilePresentation.configPath.codex',
   fieldSlots: [
-    { labelKey: 'profilePresentation.fields.baseUrl', columnWidth: '13.5rem' },
-    { labelKey: 'profilePresentation.fields.model', columnWidth: '11rem' },
-    { labelKey: 'profilePresentation.fields.authMode', columnWidth: '6.5rem', chip: true },
-    { labelKey: 'profilePresentation.fields.wireApi', columnWidth: '8.5rem' },
+    { labelKey: 'profilePresentation.fields.baseUrl', columnWidth: '13.5rem', kind: 'url' },
+    { labelKey: 'profilePresentation.fields.model', columnWidth: '11rem', kind: 'text' },
+    { labelKey: 'profilePresentation.fields.authMode', columnWidth: '6.5rem', kind: 'chip', chip: true },
+    { labelKey: 'profilePresentation.fields.wireApi', columnWidth: '8.5rem', kind: 'text' },
   ],
   project: (record, ctx) => {
     const tags = tagsOf(record.tags)
@@ -164,10 +168,10 @@ export const grokProfilePresentation: ProfilePresentation<GrokProfileDto> = {
   configFile: 'grok.toml',
   configPathKey: 'profilePresentation.configPath.grok',
   fieldSlots: [
-    { labelKey: 'profilePresentation.fields.baseUrl', columnWidth: '13.5rem' },
-    { labelKey: 'profilePresentation.fields.model', columnWidth: '11rem' },
-    { labelKey: 'profilePresentation.fields.authMode', columnWidth: '6.5rem', chip: true },
-    { labelKey: 'profilePresentation.fields.reasoningEffort', columnWidth: '8.5rem' },
+    { labelKey: 'profilePresentation.fields.baseUrl', columnWidth: '13.5rem', kind: 'url' },
+    { labelKey: 'profilePresentation.fields.model', columnWidth: '11rem', kind: 'text' },
+    { labelKey: 'profilePresentation.fields.authMode', columnWidth: '6.5rem', kind: 'chip', chip: true },
+    { labelKey: 'profilePresentation.fields.reasoningEffort', columnWidth: '8.5rem', kind: 'text' },
   ],
   project: (record, ctx) => {
     const tags = tagsOf(record.tags)
@@ -215,10 +219,10 @@ export const antigravityProfilePresentation: ProfilePresentation<AntigravityProf
   configFile: 'antigravity.toml',
   configPathKey: 'profilePresentation.configPath.antigravity',
   fieldSlots: [
-    { labelKey: 'profilePresentation.fields.baseUrl', columnWidth: '13.5rem' },
-    { labelKey: 'profilePresentation.fields.model', columnWidth: '11rem' },
-    { labelKey: 'profilePresentation.fields.authMode', columnWidth: '6.5rem', chip: true },
-    { labelKey: 'profilePresentation.fields.region', columnWidth: '8.5rem' },
+    { labelKey: 'profilePresentation.fields.baseUrl', columnWidth: '13.5rem', kind: 'url' },
+    { labelKey: 'profilePresentation.fields.model', columnWidth: '11rem', kind: 'text' },
+    { labelKey: 'profilePresentation.fields.authMode', columnWidth: '6.5rem', kind: 'chip', chip: true },
+    { labelKey: 'profilePresentation.fields.region', columnWidth: '8.5rem', kind: 'text' },
   ],
   project: (record, ctx) => {
     const tags = tagsOf(record.tags)

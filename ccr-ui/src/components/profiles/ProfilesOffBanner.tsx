@@ -1,5 +1,6 @@
 import { surfaceNotify } from '@/configs/surfaceNotify'
 import { useShellT } from '@/shell/i18n'
+import { Button } from '@/ui'
 import './profiles-shared.css'
 
 export interface ProfilesOffBannerProps {
@@ -29,9 +30,9 @@ export function ProfilesOffBanner({ canOff, currentName, onOff }: ProfilesOffBan
   return (
     <div className="cp-off-banner" data-testid="profiles-off-banner">
       <span>{t('profilesSurface.offMessage', { name: currentName ?? '' })}</span>
-      <button type="button" className="cp-btn cp-btn--ghost" onClick={onClick}>
+      <Button variant="warning" size="md" onClick={onClick}>
         {t('profilesSurface.offAction')}
-      </button>
+      </Button>
     </div>
   )
 }

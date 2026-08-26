@@ -163,6 +163,8 @@ source mode 入口在页头次按钮组，由 raw-source capability 控制；cap
 | 卡片额外操作 | 无 | env-export 复制图标按钮（仍由 rollout 接线保留） |
 | 卡片额外字段 | `presentation.fieldSlots` 第四槽（provider） | `presentation.fieldSlots` 第四槽（wire_api） |
 
+**字段呈现**：`ProfileFieldSlot.kind` 为 `'text' | 'url' | 'chip'`（主契约）。卡片 `dt` 用 `FieldLabel`；`url` 用 `UrlText`；`chip` 用 `Badge mode="static"`。表格只渲染 `slots[0..2]`，不渲染第四字段列。页头/Off/空态/编辑器脚动作用 `@/ui` `Button`；禁止再写 `.cp-btn` / `.pe-btn`（含 alias）。`chip?: boolean` 仅作 Inspector 兼容，不得作为新代码的判断条件。
+
 **策略注入位置**：行/检查器/diff 描述符统一由 `utils/{platform}Profiles.ts` 组装并注入组件，
 不在组件内写平台分支。表单序列化留在 `utils/{platform}ProfileEditor.ts`，与展示策略分文件。
 

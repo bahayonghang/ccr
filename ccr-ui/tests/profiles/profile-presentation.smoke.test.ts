@@ -34,7 +34,16 @@ describe('ProfilePresentation 结构', () => {
       expect(presentation.configFile.length).toBeGreaterThan(0)
       expect(presentation.configPathKey.length).toBeGreaterThan(0)
       expect(presentation.fieldSlots).toHaveLength(4)
+      expect(presentation.fieldSlots[0].kind).toBe('url')
+      expect(presentation.fieldSlots[1].kind).toBe('text')
+      expect(presentation.fieldSlots[2].kind).toBe('chip')
+      for (const slot of presentation.fieldSlots) {
+        if (slot.kind === 'chip') expect(slot.chip).toBe(true)
+        else expect(slot.chip).toBeFalsy()
+      }
     }
+    expect(claudeProfilePresentation.fieldSlots[3].kind).toBe('chip')
+    expect(claudeProfilePresentation.fieldSlots[3].chip).toBe(true)
   })
 })
 

@@ -186,45 +186,6 @@
   border-top: 1px solid var(--cp-line, var(--color-border-subtle));
 }
 
-.pe-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.4375rem 0.75rem;
-  border-radius: 8px;
-  border: 1px solid var(--cp-line-2, var(--color-border-default));
-  background: var(--cp-bg-2, var(--color-bg-surface));
-  color: var(--cp-ink-1, var(--color-text-secondary));
-  font-family: inherit;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
-}
-
-.pe-btn:hover:not(:disabled) {
-  background: var(--cp-bg-3, var(--color-bg-overlay));
-  color: var(--cp-ink-0, var(--color-text-primary));
-}
-
-.pe-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.pe-btn--primary {
-  background: var(--cp-accent, var(--color-accent-primary));
-  border-color: var(--cp-accent, var(--color-accent-primary));
-  color: var(--cp-on-accent, var(--color-text-inverted));
-  font-weight: 600;
-}
-
-.pe-btn--primary:hover:not(:disabled) {
-  background: var(--cp-accent-hover, var(--color-accent-primary-hover));
-  border-color: var(--cp-accent-hover, var(--color-accent-primary-hover));
-  color: var(--cp-on-accent, var(--color-text-inverted));
-}
-
 /* ==========================================================================
    模态外壳皮肤：由 BaseModal contentClass 与编辑器分段组件共同消费。
    替代旧 --editor-* 体系（平行令牌 + !important + 硬编码 light RGBA）。
@@ -405,7 +366,7 @@
   .pe-input,
   .pe-textarea,
   .pe-select,
-  .pe-btn,
+  .ui-btn,
   .pe-icon-btn {
     transition: none;
   }

@@ -1,4 +1,4 @@
-import { SIcon } from '@/ui'
+import { Button, SIcon } from '@/ui'
 import type { ProfilePresentationView } from '@/configs/profilePresentation'
 import { useShellT } from '@/shell/i18n'
 import './profiles-shared.css'
@@ -62,44 +62,29 @@ export function ProfilesPageHeader({
           </div>
         </div>
         <div className="cp-page-header__actions">
-          <button
-            type="button"
-            className="cp-btn cp-btn--ghost"
-            disabled={loading}
-            onClick={onReload}
-          >
+          <Button variant="ghost" size="md" disabled={loading} onClick={onReload}>
             {t('profilesSurface.reload')}
-          </button>
+          </Button>
           {onExport ? (
-            <button
-              type="button"
-              className="cp-btn cp-btn--ghost"
-              disabled={loading}
-              onClick={onExport}
-            >
+            <Button variant="ghost" size="md" disabled={loading} onClick={onExport}>
               {t('profilesSurface.export')}
-            </button>
+            </Button>
           ) : null}
           {onEditSource ? (
-            <button
-              type="button"
-              className="cp-btn cp-btn--ghost"
+            <Button
+              variant="ghost"
+              size="md"
               data-testid="profiles-edit-source"
               disabled={loading}
               onClick={onEditSource}
             >
               {t('profilesSurface.editSource')}
-            </button>
+            </Button>
           ) : null}
-          <button
-            type="button"
-            className="cp-btn cp-btn--primary"
-            disabled={loading}
-            onClick={onAdd}
-          >
+          <Button variant="primary" size="md" disabled={loading} onClick={onAdd}>
             <SIcon name="Plus" size="w-3.5 h-3.5" />
             {t('profilesSurface.newProfile')}
-          </button>
+          </Button>
         </div>
       </div>
     </header>

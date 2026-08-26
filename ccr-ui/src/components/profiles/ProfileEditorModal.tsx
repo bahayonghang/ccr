@@ -3,7 +3,7 @@ import type { ProfileEditorAdapter, ProfileWriteOutcome } from '@/configs/profil
 import type { ProfilePresentationView } from '@/configs/profilePresentation'
 import { useProfileEditor } from '@/features/platform/profiles/useProfileEditor'
 import { useAppT } from '@/i18n'
-import { BaseModal, Spinner } from '@/ui'
+import { BaseModal, Button, Spinner } from '@/ui'
 import { ProfileEditorFields } from './ProfileEditorFields'
 import './profile-editor-shell.css'
 import './profiles-shared.css'
@@ -108,34 +108,34 @@ export function ProfileEditorModal<TForm, TRecord>(props: ProfileEditorModalProp
             {hint}
           </p>
           <div className="pe-footer__actions">
-            <button
-              type="button"
-              className="cp-btn cp-btn--ghost"
+            <Button
+              variant="ghost"
+              size="md"
               disabled={editor.saving}
               data-testid="profile-editor-cancel"
               onClick={onClose}
             >
               {t('common.cancel')}
-            </button>
-            <button
-              type="button"
-              className="cp-btn cp-btn--ghost"
+            </Button>
+            <Button
+              variant="ghost"
+              size="md"
               disabled={editor.saving}
               data-testid="profile-editor-save"
               onClick={onSave}
             >
               {t('profileEditor.save')}
-            </button>
-            <button
-              type="button"
-              className="cp-btn cp-btn--primary"
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
               disabled={editor.saving}
               data-testid="profile-editor-save-apply"
               onClick={onSaveApply}
             >
               {editor.saving ? <Spinner size="sm" /> : null}
               {editor.saving ? t('profileEditor.saving') : t('profileEditor.saveAndApply')}
-            </button>
+            </Button>
           </div>
         </div>
       }
@@ -192,15 +192,15 @@ export function ProfileEditorModal<TForm, TRecord>(props: ProfileEditorModalProp
           ))}
           {advancedSections.length > 0 ? (
             <div className="pe-advanced" data-testid="profile-editor-advanced">
-              <button
-                type="button"
-                className="cp-btn cp-btn--ghost"
+              <Button
+                variant="ghost"
+                size="md"
                 aria-expanded={advancedOpen}
                 data-testid="profile-editor-advanced-toggle"
                 onClick={() => setAdvancedOpen((expanded) => !expanded)}
               >
                 {t('profileEditor.advanced')}
-              </button>
+              </Button>
               {advancedOpen
                 ? advancedSections.map((section) => (
                     <section

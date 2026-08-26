@@ -3,6 +3,8 @@ import type { ProfileDisplayRecord } from '@/configs/profileDisplayRecord'
 import type { ProfilePresentationView } from '@/configs/profilePresentation'
 import { resolveRowState } from '@/utils/resolveProfileRowState'
 import { useShellT } from '@/shell/i18n'
+import { Badge, Button } from '@/ui'
+import { ProfileFieldValue } from './ProfileFieldValue'
 import { ProfileOverflowMenu } from './ProfileOverflowMenu'
 import './profiles-shared.css'
 
@@ -44,14 +46,13 @@ function ProfileTableRow({
 }: ProfileTableRowProps) {
   const t = useShellT()
   const state = resolveRowState(record, presentation)
+  const placeholder = t('profilesSurface.placeholder')
   const rowClass = state.emphasized ? 'cp-table__row cp-table__row--running' : 'cp-table__row'
-  const applyClass =
-    state.applyTone === 'accent-soft' ? 'cp-btn cp-btn--accent-soft' : 'cp-btn cp-btn--ghost'
+  const applyVariant = state.applyTone === 'accent-soft' ? 'accent-soft' : 'ghost'
   const onRowClick = () => onSelect(record.name)
   const onEditClick = stopAnd(() => onEdit(record.name))
   const onApplyClick = stopAnd(() => onApply(record.name))
-  const col3 = record.slots[1] || t('profilesSurface.placeholder')
-  const col4 = record.slots[2] || t('profilesSurface.placeholder')
+  const authSlot = presentation.fieldSlots[2]
   const onToggleRecord = onToggle
     ? (enabled: boolean) => onToggle(record.name, enabled)
     : undefined
@@ -67,17 +68,35 @@ function ProfileTableRow({
         />
         <span>
           <span className="cp-card__name">{record.name}</span>
-          <span className="cp-card__desc">{record.description || t('profilesSurface.placeholder')}</span>
+          <span className="cp-card__desc">{record.description || placeholder}</span>
         </span>
       </div>
-      <div className="cp-table__mono">{record.slots[0] || t('profilesSurface.placeholder')}</div>
-      <div className="cp-table__mono">{col3}</div>
-      <div>{presentation.fieldSlots[2]?.chip ? <span className="cp-chip">{col4}</span> : col4}</div>
+      <div className="cp-table__mono">
+        <ProfileFieldValue
+          kind={presentation.fieldSlots[0]?.kind ?? 'url'}
+          value={record.slots[0]}
+          placeholder={placeholder}
+        />
+      </div>
+      <div className="cp-table__mono">
+        <ProfileFieldValue
+          kind={presentation.fieldSlots[1]?.kind ?? 'text'}
+          value={record.slots[1]}
+          placeholder={placeholder}
+        />
+      </div>
+      <div>
+        <ProfileFieldValue
+          kind={authSlot?.kind === 'chip' ? 'chip' : 'text'}
+          value={record.slots[2]}
+          placeholder={placeholder}
+        />
+      </div>
       <div className="cp-card__tags">
         {record.tags.map((tag) => (
-          <span key={tag} className="cp-chip">
+          <Badge key={tag} mode="static" tone="neutral">
             #{tag}
-          </span>
+          </Badge>
         ))}
       </div>
       <div className="cp-table__actions">
@@ -87,12 +106,12 @@ function ProfileTableRow({
           onToggle={onToggleRecord}
           onDelete={onDeleteRecord}
         />
-        <button type="button" className="cp-btn cp-btn--ghost" onClick={onEditClick}>
+        <Button variant="quiet" size="sm" onClick={onEditClick}>
           {t('profilesSurface.edit')}
-        </button>
-        <button type="button" className={applyClass} onClick={onApplyClick}>
+        </Button>
+        <Button variant={applyVariant} size="sm" onClick={onApplyClick}>
           {t(state.applyLabelKey)}
-        </button>
+        </Button>
       </div>
     </div>
   )

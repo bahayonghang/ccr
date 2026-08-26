@@ -1,4 +1,5 @@
 import { useShellT } from '@/shell/i18n'
+import { Button } from '@/ui'
 import './profiles-shared.css'
 
 export interface ProfilesEmptyStateProps {
@@ -12,7 +13,7 @@ export interface ProfilesEmptyStateProps {
 
 const filterHint = (query: string, tagFilter: string | null, providerFilter: string | null) => {
   const parts: string[] = []
-  if (query) parts.push(`“${query}”`)
+  if (query) parts.push(`"${query}"`)
   if (tagFilter) parts.push(`#${tagFilter}`)
   if (providerFilter) parts.push(providerFilter)
   return parts.join(' ')
@@ -45,18 +46,18 @@ export function ProfilesEmptyState({
       </p>
       <div className="cp-empty__actions">
         {isEmpty ? null : (
-          <button
-            type="button"
-            className="cp-btn cp-btn--ghost"
+          <Button
+            variant="ghost"
+            size="md"
             data-testid="profiles-clear-filters"
             onClick={onClear}
           >
             {t('profilesSurface.empty.clearFilters')}
-          </button>
+          </Button>
         )}
-        <button type="button" className="cp-btn cp-btn--primary" onClick={onAdd}>
+        <Button variant="primary" size="md" onClick={onAdd}>
           {t('profilesSurface.newProfile')}
-        </button>
+        </Button>
       </div>
     </div>
   )

@@ -1,3 +1,4 @@
+import { Button } from '@/ui'
 import './profiles-shared.css'
 
 export interface ProfilesNoticeProps {
@@ -14,9 +15,9 @@ export function ProfilesNotice({ tone, message, actionLabel, onAction }: Profile
     <div className={toneClass} data-testid="profiles-notice" data-tone={tone}>
       <p className="cp-notice__message">{message}</p>
       {actionLabel && onAction ? (
-        <button type="button" className="cp-btn cp-btn--ghost" onClick={onAction}>
+        <Button variant="ghost" size="md" onClick={onAction}>
           {actionLabel}
-        </button>
+        </Button>
       ) : null}
     </div>
   )

@@ -1,5 +1,5 @@
 import { useCallback, useState, type MouseEvent } from 'react'
-import { SIcon } from '@/ui'
+import { Button, SIcon } from '@/ui'
 import { useShellT } from '@/shell/i18n'
 
 export interface ProfileOverflowMenuProps {
@@ -34,9 +34,9 @@ export function ProfileOverflowMenu({
 
   return (
     <div className="cp-menu" onClick={stop}>
-      <button
-        type="button"
-        className="cp-btn cp-btn--ghost"
+      <Button
+        variant="quiet"
+        size="sm"
         data-testid="profile-overflow"
         aria-expanded={open}
         aria-haspopup="menu"
@@ -45,7 +45,7 @@ export function ProfileOverflowMenu({
         onClick={onMenuClick}
       >
         <SIcon name="MenuDots" size="w-3.5 h-3.5" />
-      </button>
+      </Button>
       {open ? (
         <div className="cp-menu__pop" role="menu" aria-label={t('profilesSurface.overflow')}>
           <button type="button" role="menuitem" className="cp-menu__item" onClick={closeAnd(onEdit)}>

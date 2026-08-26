@@ -3,6 +3,8 @@ import type { ProfileDisplayRecord } from '@/configs/profileDisplayRecord'
 import type { ProfilePresentationView } from '@/configs/profilePresentation'
 import { resolveRowState } from '@/utils/resolveProfileRowState'
 import { useShellT } from '@/shell/i18n'
+import { Badge, Button, FieldLabel } from '@/ui'
+import { ProfileFieldValue } from './ProfileFieldValue'
 import { ProfileOverflowMenu } from './ProfileOverflowMenu'
 import './profiles-shared.css'
 
@@ -45,11 +47,10 @@ function ProfileCard({
 }: ProfileCardProps) {
   const t = useShellT()
   const state = resolveRowState(record, presentation)
+  const placeholder = t('profilesSurface.placeholder')
   const cardClass = state.emphasized ? 'cp-card cp-card--running' : 'cp-card'
-  const badgeClass =
-    state.badge.tone === 'accent' ? 'cp-card__badge cp-card__badge--accent' : 'cp-card__badge'
-  const applyClass =
-    state.applyTone === 'accent-soft' ? 'cp-btn cp-btn--accent-soft' : 'cp-btn cp-btn--ghost'
+  const statusTone = state.badge.tone === 'accent' ? 'accent' : 'neutral'
+  const applyVariant = state.applyTone === 'accent-soft' ? 'accent-soft' : 'ghost'
   const onCardClick = () => onSelect(record.name)
   const onEditClick = stopAnd(() => onEdit(record.name))
   const onApplyClick = stopAnd(() => onApply(record.name))
@@ -67,22 +68,28 @@ function ProfileCard({
           }
         />
         <span className="cp-card__name">{record.name}</span>
-        <span className="cp-card__desc">{record.description || t('profilesSurface.placeholder')}</span>
-        <span className={badgeClass}>{t(state.badge.textKey)}</span>
+        <span className="cp-card__desc">{record.description || placeholder}</span>
+        <Badge mode="static" tone={statusTone} data-testid="profile-row-status-badge">
+          {t(state.badge.textKey)}
+        </Badge>
       </div>
       <div className="cp-card__badges">
         {record.badges.map((badge) => (
-          <span key={badge.labelKey} className="cp-chip">
+          <Badge key={badge.labelKey} mode="static" tone={badge.tone} data-testid="profile-record-badge">
             {t(badge.labelKey)}
-          </span>
+          </Badge>
         ))}
       </div>
       <dl className="cp-card__fields">
         {presentation.fieldSlots.map((slot, index) => (
           <div key={slot.labelKey} className="cp-card__field">
-            <dt>{t(slot.labelKey)}</dt>
-            <dd className={slot.chip ? 'cp-chip' : undefined}>
-              {record.slots[index] || t('profilesSurface.placeholder')}
+            <FieldLabel as="dt">{t(slot.labelKey)}</FieldLabel>
+            <dd>
+              <ProfileFieldValue
+                kind={slot.kind}
+                value={record.slots[index]}
+                placeholder={placeholder}
+              />
             </dd>
           </div>
         ))}
@@ -90,9 +97,9 @@ function ProfileCard({
       <div className="cp-card__foot">
         <div className="cp-card__tags">
           {record.tags.map((tag) => (
-            <span key={tag} className="cp-chip">
+            <Badge key={tag} mode="static" tone="neutral">
               #{tag}
-            </span>
+            </Badge>
           ))}
         </div>
         <ProfileOverflowMenu
@@ -101,12 +108,12 @@ function ProfileCard({
           onToggle={onToggleRecord}
           onDelete={onDeleteRecord}
         />
-        <button type="button" className="cp-btn cp-btn--ghost" onClick={onEditClick}>
+        <Button variant="quiet" size="sm" onClick={onEditClick}>
           {t('profilesSurface.edit')}
-        </button>
-        <button type="button" className={applyClass} onClick={onApplyClick}>
+        </Button>
+        <Button variant={applyVariant} size="sm" onClick={onApplyClick}>
           {t(state.applyLabelKey)}
-        </button>
+        </Button>
       </div>
     </article>
   )
