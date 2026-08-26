@@ -1993,7 +1993,17 @@
   display: flex;
   gap: 0.5rem;
   min-width: 0;
+  max-width: 100%;
   align-items: center;
+  overflow: hidden;
+}
+
+.cp-table__name > span {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .cp-table__mono {
