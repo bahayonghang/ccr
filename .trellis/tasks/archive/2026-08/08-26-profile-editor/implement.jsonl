@@ -1,0 +1,7 @@
+{"file": ".trellis/tasks/08-26-profile-design-language/research/design-source.md", "reason": "表单弹窗的分区顺序、字段、提示文案与校验行为"}
+{"file": ".trellis/tasks/08-26-profile-design-language/design.md", "reason": "ProfileEditorAdapter / ProfileEditorIssue / ProfileWriteOutcome 契约与凭据剥离边界"}
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "Codex 五种 auth mode 的条件必填矩阵与派生字段序列化、Grok write-only patch 与凭据动作互斥、pe-shell/pe-scroll 限高约定"}
+{"file": ".trellis/spec/ccr-ui/frontend/confirm-interaction-contracts.md", "reason": "模态与确认交互的既有约定"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "遮罩与阴影走 token，禁止 rgba 字面量"}
+{"file": ".trellis/spec/ccr-ui/frontend/layering-contracts.md", "reason": "adapter 归 features、外壳归 components、类型归 configs 的依赖方向"}
+{"file": ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md", "reason": "编辑器外壳不得比较平台名字面量"}

@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "逐行核对 Codex 条件必填矩阵与 Grok 凭据动作、patch 语义"}
+{"file": ".trellis/spec/ccr-ui/frontend/confirm-interaction-contracts.md", "reason": "核对模态交互与限高滚动根约定"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "核对无硬编码 hex 与 rgba"}
+{"file": ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md", "reason": "核对外壳无平台名字面量分支"}
+{"file": ".trellis/tasks/08-26-profile-design-language/design.md", "reason": "核对 adapter 三份实现与契约三一致、凭据剥离前提正确"}
