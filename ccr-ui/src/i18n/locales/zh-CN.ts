@@ -5371,6 +5371,8 @@ export default {
     apply: '应用',
     edit: '编辑',
     stop: '停用',
+    enable: '启用',
+    delete: '删除',
     placeholder: '—',
     statusActive: '运行中',
     statusIdle: '闲置',

@@ -1,5 +1,5 @@
-import { GrokProfilesPage } from './profiles/GrokProfilesPage'
+import { GrokProfilesScreen } from './profiles/GrokProfilesScreen'
 
 export function GrokProfilesView() {
-  return <GrokProfilesPage />
+  return <GrokProfilesScreen />
 }

@@ -14,7 +14,7 @@ import zh from '../src/i18n/locales/zh-CN.ts'
 import whitelist from './i18n-key-whitelist.json'
 import { leafKeys } from './i18n-utils.mjs'
 
-const EXPECTED_LEAF_COUNT = 4325
+const EXPECTED_LEAF_COUNT = 4327
 const here = dirname(fileURLToPath(import.meta.url))
 const srcRoot = join(here, '../src')
 

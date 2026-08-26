@@ -225,8 +225,26 @@ export const codexProfilesConfig: ProfilesConfig = {
   },
 }
 
+export const antigravityProfilesConfig: ProfilesConfig = {
+  cacheKey: 'profiles-antigravity',
+  homePath: '/antigravity/profiles',
+  module: 'gemini',
+  i18nPrefix: 'profilesSurface',
+  titleKey: 'profilePresentation.name.antigravity',
+  subtitleKey: 'profilePresentation.configPath.antigravity',
+  icon: 'Layers',
+  backTo: '/antigravity',
+  editIcon: 'Pencil',
+  features: {},
+  notify: surfaceNotify,
+  list: async () => ({ profiles: [], current: null }),
+  apply: async () => undefined,
+  remove: async () => undefined,
+}
+
 export const profilesConfigs = {
   claude: claudeProfilesConfig,
   grok: grokProfilesConfig,
   codex: codexProfilesConfig,
+  antigravity: antigravityProfilesConfig,
 } as const

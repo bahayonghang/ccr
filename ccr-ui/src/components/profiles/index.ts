@@ -14,6 +14,7 @@ export {
   type ProfilesCommandPaletteProps,
 } from './ProfilesCommandPalette'
 export { ProfilesEmptyState, type ProfilesEmptyStateProps } from './ProfilesEmptyState'
+export { ProfilesNotice, type ProfilesNoticeProps } from './ProfilesNotice'
 export {
   ProfilesHeader,
   type ProfilesHeaderLabels,

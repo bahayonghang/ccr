@@ -1,6 +1,5 @@
-import { claudeProfilesConfig } from '@/configs/profiles'
-import { BaseProfiles } from '@/features/platform'
+import { ClaudeProfilesScreen } from './profiles/ClaudeProfilesScreen'
 
 export function ClaudeProfilesView() {
-  return <BaseProfiles config={claudeProfilesConfig} />
+  return <ClaudeProfilesScreen />
 }

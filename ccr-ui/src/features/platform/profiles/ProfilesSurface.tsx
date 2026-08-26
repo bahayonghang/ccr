@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { RawFileGetResult, RawProfilesSaveResult } from '@/api/domains/configRawTypes'
 import type { ProfileDisplayRecord } from '@/configs/profileDisplayRecord'
 import type { ProfilePresentationView } from '@/configs/profilePresentation'
@@ -8,11 +8,7 @@ import {
 } from '@/configs/profilesSurfaceRuntime'
 import { surfaceNotify } from '@/configs/surfaceNotify'
 import {
-  ProfileCardGrid,
-  ProfileTable,
   ProfilesCommandPalette,
-  ProfilesEmptyState,
-  ProfilesInspector,
   ProfilesOffBanner,
   ProfilesPageHeader,
   ProfilesQuickRail,
@@ -22,8 +18,8 @@ import {
   type ProfilesCommandPaletteAction,
   type ProfilesToolbarHandle,
 } from '@/features/platform/profiles/shared'
+import { ProfilesSurfaceRecords } from './ProfilesSurfaceRecords'
 import { useAppT } from '@/i18n'
-import { makeDisplayInspectorDescriptor } from '@/utils/displayProfileInspector'
 import type { ProfilesSortBy } from '@/utils/profilesFilter'
 import { useProfilesSurface } from './useProfilesSurface'
 
@@ -53,6 +49,9 @@ export interface ProfilesSurfaceProps {
   onOff: () => Promise<void>
   onReload: () => void
   onExport?: () => void
+  onToggle?: (name: string, enabled: boolean) => void
+  onDelete?: (name: string) => void
+  notice?: ReactNode
   rawSource?: ProfilesSurfaceRawSource
 }
 
@@ -83,6 +82,9 @@ export function ProfilesSurface(props: ProfilesSurfaceProps) {
     onOff,
     onReload,
     onExport,
+    onToggle,
+    onDelete,
+    notice,
     rawSource,
   } = props
   const t = useAppT()
@@ -151,10 +153,6 @@ export function ProfilesSurface(props: ProfilesSurfaceProps) {
     onApply: applyAndRecord,
   })
 
-  const inspectorDescriptor = useMemo(
-    () => makeDisplayInspectorDescriptor(presentation, t),
-    [presentation, t],
-  )
   const paletteDescriptor = useMemo(
     () => ({
       isEnabled: (record: ProfileDisplayRecord) => record.enabled,
@@ -239,8 +237,6 @@ export function ProfilesSurface(props: ProfilesSurfaceProps) {
     [stats.vendorCount, t],
   )
 
-  const emptyVariant = records.length === 0 ? 'no-profiles' : 'no-results'
-  const showEmpty = filtered.length === 0
   const moreCount = Math.max(
     0,
     records.length - railShownCount(quickSwitch.pinned.length, quickSwitch.recentNotPinned.length),
@@ -261,7 +257,12 @@ export function ProfilesSurface(props: ProfilesSurfaceProps) {
   }
 
   return (
-    <div className="cp-surface" data-testid="profiles-surface" data-platform={presentation.key}>
+    <div
+      className="cp-surface"
+      data-testid="profiles-surface"
+      data-platform={presentation.key}
+      data-can-off={canOff ? 'true' : 'false'}
+    >
       <ProfilesPageHeader
         presentation={presentation}
         environmentLabel={environmentLabel}
@@ -272,6 +273,7 @@ export function ProfilesSurface(props: ProfilesSurfaceProps) {
         onExport={onExport}
         onEditSource={rawSource ? enterSource : undefined}
       />
+      {notice}
       <ProfilesOffBanner canOff={canOff} currentName={current} onOff={onOff} />
       <ProfilesStatStrip current={current} stats={stats} labels={statLabels} />
       <div data-testid="profiles-quick-rail">
@@ -306,54 +308,27 @@ export function ProfilesSurface(props: ProfilesSurfaceProps) {
         onUpdateSortBy={onUpdateSortBy}
         onUpdateViewMode={onUpdateViewMode}
       />
-      <div className="cp-surface__body">
-        <div className="cp-surface__list" data-testid="profiles-list">
-          {showEmpty ? (
-            <ProfilesEmptyState
-              variant={emptyVariant}
-              query={query}
-              tagFilter={tagFilter}
-              providerFilter={providerFilter}
-              onClear={clearFilters}
-              onAdd={onAdd}
-            />
-          ) : null}
-          {!showEmpty && viewMode === 'table' ? (
-            <ProfileTable
-              records={filtered}
-              presentation={presentation}
-              onSelect={setFocusedName}
-              onEdit={onEdit}
-              onApply={applyAndRecord}
-            />
-          ) : null}
-          {!showEmpty && viewMode !== 'table' ? (
-            <ProfileCardGrid
-              records={filtered}
-              presentation={presentation}
-              inspectorOpen={inspectorOpen}
-              onSelect={setFocusedName}
-              onEdit={onEdit}
-              onApply={applyAndRecord}
-            />
-          ) : null}
-        </div>
-        {inspectorOpen ? (
-          <div data-testid="profiles-inspector">
-            <ProfilesInspector
-              profiles={[...records]}
-              previewProfile={previewRecord}
-              currentProfile={currentRecord}
-              i18nPrefix="profilesSurface.inspector"
-              descriptor={inspectorDescriptor}
-              selectedTag={tagFilter}
-              onEdit={onEdit}
-              onLocate={setFocusedName}
-              onTagSelect={setTagFilter}
-            />
-          </div>
-        ) : null}
-      </div>
+      <ProfilesSurfaceRecords
+        records={records}
+        filtered={filtered}
+        presentation={presentation}
+        viewMode={viewMode}
+        inspectorOpen={inspectorOpen}
+        query={query}
+        tagFilter={tagFilter}
+        providerFilter={providerFilter}
+        previewRecord={previewRecord}
+        currentRecord={currentRecord}
+        t={t}
+        onAdd={onAdd}
+        onEdit={onEdit}
+        onApply={applyAndRecord}
+        onToggle={onToggle}
+        onDelete={onDelete}
+        onSelect={setFocusedName}
+        onClearFilters={clearFilters}
+        onTagSelect={setTagFilter}
+      />
       <button
         type="button"
         className="cp-inspector-toggle"

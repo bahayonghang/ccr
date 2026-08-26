@@ -1,26 +1,17 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useForm } from 'react-hook-form'
 import { grokApi } from '@/api'
+import { GROK_SECRET_KEYS, stripCredentials } from '@/configs/profileCredentials'
+import type { ProfileWriteOutcome } from '@/configs/profileEditorAdapter'
+import { grokProfilePresentation } from '@/configs/profilePresentation'
 import { surfaceNotify } from '@/configs/surfaceNotify'
 import type { GrokActivationDto, GrokProfileActionResponse, GrokProfileDto } from '@/types'
 import { getErrorMessage } from '@/types/api'
 import { downloadTextFile } from '@/utils/download'
-import {
-  buildGrokCreateRequest,
-  buildGrokPatch,
-  createEmptyGrokForm,
-  fillGrokForm,
-  type GrokProfileDirtyField,
-  type GrokProfileEditorForm,
-} from '@/utils/grokProfileEditor'
 import { fetchGrokEnvironment, grokKeys } from '../queries'
 import { t } from '../locale'
 
-const dirtyKeysOf = (fields: object): Set<GrokProfileDirtyField> =>
-  new Set(Object.keys(fields) as GrokProfileDirtyField[])
-
-function readProfilesSnapshot(list: Awaited<ReturnType<typeof grokApi.listGrokProfiles>> | undefined) {
+export function readProfilesSnapshot(list: Awaited<ReturnType<typeof grokApi.listGrokProfiles>> | undefined) {
   if (!list) {
     return {
       unsupported: false,
@@ -40,7 +31,7 @@ function readProfilesSnapshot(list: Awaited<ReturnType<typeof grokApi.listGrokPr
   }
 }
 
-async function runProfileRecovery(pending: {
+export async function runProfileRecovery(pending: {
   status: 'rename_apply_failed' | 'rename_cleanup_failed'
   oldName: string
   newName: string
@@ -70,8 +61,6 @@ export function useGrokProfilesPage() {
     enabled: probeQuery.isSuccess && !localOnly,
   })
 
-  const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [editingName, setEditingName] = useState<string | null>(null)
   const [editingProfile, setEditingProfile] = useState<GrokProfileDto | null>(null)
@@ -81,11 +70,20 @@ export function useGrokProfilesPage() {
     newName: string
     message: string
   } | null>(null)
-  const form = useForm<GrokProfileEditorForm>({ defaultValues: createEmptyGrokForm() })
 
   const list = listQuery.data
   const snapshot = useMemo(() => readProfilesSnapshot(list), [list])
   const { unsupported, profiles, currentProfile, activation } = snapshot
+  const records = useMemo(() => {
+    const stripped = profiles.map((item) => stripCredentials(item, GROK_SECRET_KEYS))
+    return stripped.map((item) => grokProfilePresentation.project(item, { current: currentProfile }))
+  }, [currentProfile, profiles])
+  const existingNames = useMemo(() => records.map((item) => item.name), [records])
+  const unavailable = localOnly || Boolean(unsupported)
+  const environmentOk = !unavailable
+  const environmentLabel = t(
+    environmentOk ? 'profilesSurface.environmentLocal' : 'profilesSurface.environmentRemote',
+  )
 
   const actionUnsupported = useCallback((response: GrokProfileActionResponse) => {
     return response.status === 'unsupported_environment'
@@ -99,67 +97,52 @@ export function useGrokProfilesPage() {
     setShowForm(false)
     setEditingName(null)
     setEditingProfile(null)
-    setSaveError(null)
-    form.reset(createEmptyGrokForm())
-  }, [form])
+  }, [])
 
   const handleAdd = useCallback(() => {
     if (localOnly) return
-    form.reset(createEmptyGrokForm())
     setEditingName(null)
     setEditingProfile(null)
-    setSaveError(null)
     setShowForm(true)
-  }, [form, localOnly])
+  }, [localOnly])
 
   const handleEdit = useCallback(
     (name: string) => {
       if (localOnly) return
       const profile = profiles.find((item) => item.name === name)
       if (!profile) return
-      form.reset(fillGrokForm(profile))
       setEditingName(name)
       setEditingProfile(profile)
-      setSaveError(null)
       setShowForm(true)
     },
-    [form, localOnly, profiles],
+    [localOnly, profiles],
   )
 
-  const handleSave = useCallback(async () => {
-    setSaving(true)
-    setSaveError(null)
-    const values = form.getValues()
-    const previousName = editingName
-    try {
-      const response = previousName
-        ? await grokApi.updateGrokProfile(previousName, buildGrokPatch(values, dirtyKeysOf(form.formState.dirtyFields)))
-        : await grokApi.addGrokProfile(buildGrokCreateRequest(values))
-      if (actionUnsupported(response)) return
-      if (response.status === 'rename_apply_failed' || response.status === 'rename_cleanup_failed') {
+  const handleEditorDone = useCallback(
+    (outcome: ProfileWriteOutcome) => {
+      if (outcome.status === 'recovery') {
+        if (outcome.kind !== 'rename_apply_failed' && outcome.kind !== 'rename_cleanup_failed') return
+        if (!outcome.oldName || !outcome.newName) return
         setRecovery({
-          status: response.status,
-          oldName: response.old_name,
-          newName: response.new_name,
-          message: response.message,
+          status: outcome.kind,
+          oldName: outcome.oldName,
+          newName: outcome.newName,
+          message: outcome.message,
         })
-        surfaceNotify.warning(response.message)
-      } else if (response.status !== 'created' && response.status !== 'updated' && response.status !== 'renamed') {
-        throw new Error(t('grok.profiles.messages.unexpectedResponse'))
-      } else {
-        setRecovery(null)
-        surfaceNotify.success(
-          previousName ? t('grok.profiles.messages.updateSuccess') : t('grok.profiles.messages.createSuccess'),
-        )
+        surfaceNotify.warning(outcome.message)
+        closeForm()
+        void reload()
+        return
       }
-      closeForm()
-      await reload()
-    } catch (error) {
-      setSaveError(getErrorMessage(error, t('grok.profiles.messages.saveFailed')))
-    } finally {
-      setSaving(false)
-    }
-  }, [actionUnsupported, closeForm, editingName, form, reload])
+      if (outcome.status !== 'ok') return
+      setRecovery(null)
+      surfaceNotify.success(
+        editingName ? t('grok.profiles.messages.updateSuccess') : t('grok.profiles.messages.createSuccess'),
+      )
+      void reload()
+    },
+    [closeForm, editingName, reload],
+  )
 
   const handleApply = useCallback(
     async (name: string) => {
@@ -220,6 +203,7 @@ export function useGrokProfilesPage() {
       }
       if (response.status !== 'blocked') throw new Error(t('grok.profiles.messages.unexpectedResponse'))
       if (force) throw new Error(response.message)
+      if (response.reason === 'unsafe_missing_entry_state') throw new Error(response.message)
       const confirmed = await surfaceNotify.confirm({
         title: t('grok.profiles.confirm.forceDeleteTitle'),
         message: t('grok.profiles.confirm.forceDeleteMessage', { name }),
@@ -294,30 +278,51 @@ export function useGrokProfilesPage() {
     }
   }, [recovery, reload])
 
+  const onReload = useCallback(() => {
+    void reload()
+  }, [reload])
+
   return {
-    localOnly: localOnly || Boolean(unsupported),
+    localOnly: unavailable,
     localOnlyEnvType: unsupported && list && 'env_type' in list ? list.env_type : localOnlyEnvType,
     loading: probeQuery.isPending || listQuery.isPending,
+    error: null as string | null,
+    unavailable,
     profiles,
+    records,
     currentProfile,
+    current: currentProfile,
+    canOff: activation !== 'inactive',
     activation,
-    saving,
-    saveError,
+    environmentLabel,
+    environmentOk,
     showForm,
+    editorOpen: showForm,
     editingName,
+    originalName: editingName,
     editingProfile,
+    editorTarget: editingProfile,
+    existingNames,
     recovery,
-    form,
     handleAdd,
+    onAdd: handleAdd,
     handleEdit,
-    handleSave,
+    onEdit: handleEdit,
+    handleEditorDone,
     handleApply,
+    onApply: handleApply,
     handleOff,
+    onOff: handleOff,
     handleDelete,
+    onDelete: handleDelete,
     handleToggle,
+    onToggle: handleToggle,
     handleExport,
+    onExport: handleExport,
     closeForm,
+    closeEditor: closeForm,
     runRecovery,
     reload,
+    onReload,
   }
 }

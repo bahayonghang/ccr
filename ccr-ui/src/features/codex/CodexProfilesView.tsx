@@ -1,6 +1,5 @@
-import { codexProfilesConfig } from '@/configs/profiles'
-import { BaseProfiles } from '@/features/platform'
+import { CodexProfilesScreen } from './profiles/CodexProfilesScreen'
 
 export function CodexProfilesView() {
-  return <BaseProfiles config={codexProfilesConfig} />
+  return <CodexProfilesScreen />
 }

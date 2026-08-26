@@ -5,6 +5,7 @@ export interface SurfacePageProps {
   title: string
   description?: string
   actions?: ReactNode
+  subnav?: ReactNode
   state?: AsyncPanelState | null
   stateTitle?: string
   stateDescription?: string
@@ -12,11 +13,23 @@ export interface SurfacePageProps {
   children?: ReactNode
 }
 
+export const surfaceStateOf = (input: {
+  unavailable: boolean
+  loading: boolean
+  error: string | null
+}): AsyncPanelState | null => {
+  if (input.unavailable) return 'runtime-unavailable'
+  if (input.loading) return 'loading'
+  if (input.error) return 'error'
+  return null
+}
+
 /** 功能面页壳：header + 异步态 + 内容。不含平台名分支。 */
 export function SurfacePage({
   title,
   description,
   actions,
+  subnav,
   state,
   stateTitle,
   stateDescription,
@@ -30,6 +43,7 @@ export function SurfacePage({
       header={
         <PageHeader title={title} description={description} actions={actions} />
       }
+      subnav={subnav}
     >
       {showPanel && state ? (
         <AsyncStatePanel

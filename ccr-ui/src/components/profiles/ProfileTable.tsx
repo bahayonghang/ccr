@@ -1,7 +1,9 @@
+import type { MouseEvent } from 'react'
 import type { ProfileDisplayRecord } from '@/configs/profileDisplayRecord'
 import type { ProfilePresentationView } from '@/configs/profilePresentation'
 import { resolveRowState } from '@/utils/resolveProfileRowState'
 import { useShellT } from '@/shell/i18n'
+import { ProfileOverflowMenu } from './ProfileOverflowMenu'
 import './profiles-shared.css'
 
 export interface ProfileTableProps {
@@ -10,6 +12,8 @@ export interface ProfileTableProps {
   onSelect: (name: string) => void
   onEdit: (name: string) => void
   onApply: (name: string) => void
+  onToggle?: (name: string, enabled: boolean) => void
+  onDelete?: (name: string) => void
 }
 
 interface ProfileTableRowProps {
@@ -18,6 +22,15 @@ interface ProfileTableRowProps {
   onSelect: (name: string) => void
   onEdit: (name: string) => void
   onApply: (name: string) => void
+  onToggle?: (name: string, enabled: boolean) => void
+  onDelete?: (name: string) => void
+}
+
+function stopAnd(run: () => void) {
+  return (event: MouseEvent) => {
+    event.stopPropagation()
+    run()
+  }
 }
 
 function ProfileTableRow({
@@ -26,6 +39,8 @@ function ProfileTableRow({
   onSelect,
   onEdit,
   onApply,
+  onToggle,
+  onDelete,
 }: ProfileTableRowProps) {
   const t = useShellT()
   const state = resolveRowState(record, presentation)
@@ -33,10 +48,14 @@ function ProfileTableRow({
   const applyClass =
     state.applyTone === 'accent-soft' ? 'cp-btn cp-btn--accent-soft' : 'cp-btn cp-btn--ghost'
   const onRowClick = () => onSelect(record.name)
-  const onEditClick = () => onEdit(record.name)
-  const onApplyClick = () => onApply(record.name)
+  const onEditClick = stopAnd(() => onEdit(record.name))
+  const onApplyClick = stopAnd(() => onApply(record.name))
   const col3 = record.slots[1] || t('profilesSurface.placeholder')
   const col4 = record.slots[2] || t('profilesSurface.placeholder')
+  const onToggleRecord = onToggle
+    ? (enabled: boolean) => onToggle(record.name, enabled)
+    : undefined
+  const onDeleteRecord = onDelete ? () => onDelete(record.name) : undefined
 
   return (
     <div className={rowClass} data-name={record.name} onClick={onRowClick}>
@@ -62,6 +81,12 @@ function ProfileTableRow({
         ))}
       </div>
       <div className="cp-table__actions">
+        <ProfileOverflowMenu
+          enabled={record.enabled}
+          onEdit={() => onEdit(record.name)}
+          onToggle={onToggleRecord}
+          onDelete={onDeleteRecord}
+        />
         <button type="button" className="cp-btn cp-btn--ghost" onClick={onEditClick}>
           {t('profilesSurface.edit')}
         </button>
@@ -74,7 +99,15 @@ function ProfileTableRow({
 }
 
 /** 六列固定网格表格；外层横向滚动，最小宽度走 CSS `--breakpoint-lg`。 */
-export function ProfileTable({ records, presentation, onSelect, onEdit, onApply }: ProfileTableProps) {
+export function ProfileTable({
+  records,
+  presentation,
+  onSelect,
+  onEdit,
+  onApply,
+  onToggle,
+  onDelete,
+}: ProfileTableProps) {
   const t = useShellT()
   return (
     <div className="cp-table-scroll" data-testid="profiles-table-scroll">
@@ -95,6 +128,8 @@ export function ProfileTable({ records, presentation, onSelect, onEdit, onApply 
             onSelect={onSelect}
             onEdit={onEdit}
             onApply={onApply}
+            onToggle={onToggle}
+            onDelete={onDelete}
           />
         ))}
       </div>

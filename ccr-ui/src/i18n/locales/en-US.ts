@@ -5527,6 +5527,8 @@ export default {
     apply: 'Apply',
     edit: 'Edit',
     stop: 'Stop',
+    enable: 'Enable',
+    delete: 'Delete',
     placeholder: '—',
     statusActive: 'Running',
     statusIdle: 'Idle',

@@ -34,7 +34,13 @@ export const mapGrokProfileWriteOutcome = (
       return { status: 'ok', appliedName: appliedNameOf(response) }
     case 'rename_apply_failed':
     case 'rename_cleanup_failed':
-      return { status: 'recovery', kind: response.status, message: response.message }
+      return {
+        status: 'recovery',
+        kind: response.status,
+        message: response.message,
+        oldName: response.old_name,
+        newName: response.new_name,
+      }
     case 'blocked':
       return {
         status: 'blocked',

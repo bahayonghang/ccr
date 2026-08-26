@@ -1,7 +1,9 @@
+import type { MouseEvent } from 'react'
 import type { ProfileDisplayRecord } from '@/configs/profileDisplayRecord'
 import type { ProfilePresentationView } from '@/configs/profilePresentation'
 import { resolveRowState } from '@/utils/resolveProfileRowState'
 import { useShellT } from '@/shell/i18n'
+import { ProfileOverflowMenu } from './ProfileOverflowMenu'
 import './profiles-shared.css'
 
 export interface ProfileCardGridProps {
@@ -11,6 +13,8 @@ export interface ProfileCardGridProps {
   onSelect: (name: string) => void
   onEdit: (name: string) => void
   onApply: (name: string) => void
+  onToggle?: (name: string, enabled: boolean) => void
+  onDelete?: (name: string) => void
 }
 
 interface ProfileCardProps {
@@ -19,9 +23,26 @@ interface ProfileCardProps {
   onSelect: (name: string) => void
   onEdit: (name: string) => void
   onApply: (name: string) => void
+  onToggle?: (name: string, enabled: boolean) => void
+  onDelete?: (name: string) => void
 }
 
-function ProfileCard({ record, presentation, onSelect, onEdit, onApply }: ProfileCardProps) {
+function stopAnd(run: () => void) {
+  return (event: MouseEvent) => {
+    event.stopPropagation()
+    run()
+  }
+}
+
+function ProfileCard({
+  record,
+  presentation,
+  onSelect,
+  onEdit,
+  onApply,
+  onToggle,
+  onDelete,
+}: ProfileCardProps) {
   const t = useShellT()
   const state = resolveRowState(record, presentation)
   const cardClass = state.emphasized ? 'cp-card cp-card--running' : 'cp-card'
@@ -30,8 +51,12 @@ function ProfileCard({ record, presentation, onSelect, onEdit, onApply }: Profil
   const applyClass =
     state.applyTone === 'accent-soft' ? 'cp-btn cp-btn--accent-soft' : 'cp-btn cp-btn--ghost'
   const onCardClick = () => onSelect(record.name)
-  const onEditClick = () => onEdit(record.name)
-  const onApplyClick = () => onApply(record.name)
+  const onEditClick = stopAnd(() => onEdit(record.name))
+  const onApplyClick = stopAnd(() => onApply(record.name))
+  const onToggleRecord = onToggle
+    ? (enabled: boolean) => onToggle(record.name, enabled)
+    : undefined
+  const onDeleteRecord = onDelete ? () => onDelete(record.name) : undefined
 
   return (
     <article className={cardClass} data-name={record.name} onClick={onCardClick}>
@@ -70,6 +95,12 @@ function ProfileCard({ record, presentation, onSelect, onEdit, onApply }: Profil
             </span>
           ))}
         </div>
+        <ProfileOverflowMenu
+          enabled={record.enabled}
+          onEdit={() => onEdit(record.name)}
+          onToggle={onToggleRecord}
+          onDelete={onDeleteRecord}
+        />
         <button type="button" className="cp-btn cp-btn--ghost" onClick={onEditClick}>
           {t('profilesSurface.edit')}
         </button>
@@ -89,6 +120,8 @@ export function ProfileCardGrid({
   onSelect,
   onEdit,
   onApply,
+  onToggle,
+  onDelete,
 }: ProfileCardGridProps) {
   const gridClass = inspectorOpen ? 'cp-card-grid cp-card-grid--inspector' : 'cp-card-grid'
   return (
@@ -101,6 +134,8 @@ export function ProfileCardGrid({
           onSelect={onSelect}
           onEdit={onEdit}
           onApply={onApply}
+          onToggle={onToggle}
+          onDelete={onDelete}
         />
       ))}
     </div>
