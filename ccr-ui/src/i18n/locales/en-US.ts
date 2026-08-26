@@ -5627,4 +5627,26 @@ export default {
       actionOff: 'Turn profile off',
     },
   },
+
+  profileEditor: {
+    createTitle: 'New {platform} profile',
+    editTitle: 'Edit {name}',
+    appendHint: 'Will append to {file}',
+    overwriteHint: 'Will overwrite [{name}] in {file}',
+    save: 'Save',
+    saveAndApply: 'Save and apply',
+    saving: 'Saving…',
+    advanced: 'Advanced',
+    issuesTitle: 'Fix these issues first',
+    jump: 'Jump',
+    secretLeaveEmpty: 'Leave empty to keep the stored secret',
+    choiceFilter: 'Or type a custom value',
+    addValue: 'Press Enter to add',
+    validation: {
+      nameRequired: 'Profile name is required',
+      nameDuplicate: 'This name is already used by another profile',
+      baseUrlRequired: 'Base URL is required',
+      authTokenRequired: 'Auth token is required',
+    },
+  },
 }

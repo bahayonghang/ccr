@@ -5471,4 +5471,26 @@ export default {
       actionOff: '退出 Profile',
     },
   },
+
+  profileEditor: {
+    createTitle: '新建 {platform} Profile',
+    editTitle: '编辑 {name}',
+    appendHint: '将追加到 {file}',
+    overwriteHint: '将覆盖 {file} 中的 [{name}]',
+    save: '保存',
+    saveAndApply: '保存并应用',
+    saving: '保存中…',
+    advanced: '高级选项',
+    issuesTitle: '请先处理以下问题',
+    jump: '定位',
+    secretLeaveEmpty: '留空表示不修改已保存的密钥',
+    choiceFilter: '或输入自定义值',
+    addValue: '输入后按 Enter 添加',
+    validation: {
+      nameRequired: '请填写 Profile 名称',
+      nameDuplicate: '该名称已被其它 Profile 占用',
+      baseUrlRequired: '请填写 Base URL',
+      authTokenRequired: '请填写 Auth Token',
+    },
+  },
 }

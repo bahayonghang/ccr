@@ -82,6 +82,7 @@
 }
 
 .pe-section__title {
+  grid-column: 1 / -1;
   margin: 0;
   font-size: 0.8125rem;
   font-weight: 600;
@@ -177,8 +178,10 @@
 /* 底部操作区 */
 .pe-footer {
   display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
   padding-top: 0.75rem;
   border-top: 1px solid var(--cp-line, var(--color-border-subtle));
 }
@@ -228,6 +231,7 @@
    ========================================================================== */
 
 .pe-modal {
+  width: min(45rem, calc(100vw - 2rem));
   max-height: 90vh;
   background: var(--material-glass-floating-bg);
   border: 1px solid var(--material-glass-floating-border);
@@ -278,6 +282,9 @@
   min-height: 0;
   flex: 1;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
   padding-right: 0.25rem;
   scrollbar-color: var(--cp-accent-line, rgb(var(--color-accent-primary-rgb) / 35%)) transparent;
 }
@@ -403,3 +410,71 @@
     transition: none;
   }
 }
+
+/* 统一外壳（08-26-profile-editor）：分区布局与页脚动作 */
+.pe-section--grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.75rem 1rem;
+}
+
+.pe-section--row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pe-section--group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-elevated);
+}
+
+.pe-field--switch {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.pe-input--mono {
+  font-family: var(--font-mono);
+}
+
+.pe-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.pe-required {
+  color: var(--color-danger);
+}
+
+.pe-advanced {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pe-footer__hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.pe-footer__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.pe-summary ul {
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
+}
+
+

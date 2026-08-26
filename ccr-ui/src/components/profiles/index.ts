@@ -53,3 +53,5 @@ export {
   type ProfilesToolbarProps,
   type ProfilesViewMode,
 } from './ProfilesToolbar'
+export { ProfileEditorFields, type ProfileEditorFieldsProps } from './ProfileEditorFields'
+export { ProfileEditorModal, type ProfileEditorModalProps } from './ProfileEditorModal'

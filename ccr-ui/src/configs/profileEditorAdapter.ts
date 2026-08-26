@@ -16,6 +16,7 @@ export interface ProfileEditorFieldSpec {
   /** 由平台按当前表单值决定是否渲染 / 是否必填 */
   visible?: (form: unknown) => boolean
   required?: (form: unknown) => boolean
+  readOnly?: boolean
 }
 
 export interface ProfileEditorSection {
@@ -61,6 +62,11 @@ export interface ProfileEditorAdapter<TForm = unknown, TRecord = unknown> {
   /** 平台内部自行组装 create / patch，含 dirty 字段与 credential action */
   submit(
     form: TForm,
-    ctx: { isEditing: boolean; originalName: string | null; apply: boolean },
+    ctx: {
+      isEditing: boolean
+      originalName: string | null
+      apply: boolean
+      dirtyFields: ReadonlySet<string>
+    },
   ): Promise<ProfileWriteOutcome>
 }
