@@ -21,7 +21,7 @@ import { isTauriRuntime } from '@/utils/tauriRuntime'
 // 取消协议：`listen()` 返回 Promise<UnlistenFn>，cleanup 可能先于 resolve 执行
 // （StrictMode 挂载→卸载→再挂载、快速路由切换）。cleanup 已跑过时迟到的
 // unlisten 立即调用，不入数组——否则监听器永久泄漏。泄漏断言见批次 6 的
-// `tests/event-bridge-leak.smoke.test.tsx`（三用例，含延迟 resolve）。
+// `tests/event-bridge-leak`（三用例，含延迟 resolve）。
 //
 // 接线：挂在应用外壳（08-22-shell-port）；本文件只提供桥接组件与原语。
 

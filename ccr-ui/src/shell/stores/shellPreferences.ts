@@ -46,7 +46,7 @@ import {
 // 持久化偏差记录：不用 zustand/persist 中间件。原实现的持久化按 key 分散在
 // themeBootstrap / fontPreferences 工具内（ccr-theme / ccr-flavor / ccr-accent /
 // ccr-font-* / ccr-sidebar-width），且首帧 IIFE 与迁移表和这些 key 逐字节对齐
-// （theme-bootstrap.smoke.test.ts 行为锁）。换 persist 中间件的单一 blob 会改变
+// （tests/theme-bootstrap 行为锁）。换 persist 中间件的单一 blob 会改变
 // key 布局并破坏该契约，故持久化继续经原工具函数逐 key 写入——「存储键不变」
 // 以原语义满足。
 
