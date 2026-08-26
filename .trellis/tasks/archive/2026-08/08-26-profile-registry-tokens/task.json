@@ -1,0 +1,28 @@
+{
+  "id": "profile-registry-tokens",
+  "name": "profile-registry-tokens",
+  "title": "Profile registry 元数据与平台色 token",
+  "description": "",
+  "status": "completed",
+  "dev_type": "frontend",
+  "scope": "ccr-ui",
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-08-26",
+  "completedAt": "2026-08-26",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "08-26-profile-design-language",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "description": "新增 ProfilePresentation registry 与平台色 token 四角色，供三平台 Profile 页面复用"
+  }
+}
