@@ -59,7 +59,7 @@ type LocalOnlyOverviewResponse<T> =
 - Seed a successful overview/version, reject forced overview refresh, and assert stale overview plus `refreshError`.
 - Seed a successful version, reject forced version refresh, and assert the confirmed version remains visible plus `refreshError`.
 - Reject the environment lookup after seeding a shared overview; assert the mounted view clears it and does not call overview/version APIs.
-- Run `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/grok-dashboard.smoke.test.tsx` and `just frontend-check-quick`.
+- Run `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/platforms/grok-dashboard.smoke.test.tsx` and `just frontend-check-quick`.
 
 ### 7. Wrong vs Correct
 

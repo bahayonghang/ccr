@@ -37,7 +37,7 @@
 
 ### 6. Tests Required
 
-- `cd ccr-ui && bun run test:smoke -- tests/checkin-balance-queue.smoke.test.ts`
+- `cd ccr-ui && bun run test:smoke -- tests/checkin/checkin-balance-queue.smoke.test.ts`
 
 ### 7. Wrong vs Correct
 
@@ -86,7 +86,7 @@ await runPerKeySequential(
 
 ### 6. Tests Required
 
-- `cd ccr-ui && bun run test:smoke -- tests/checkin-waf-event-wait.smoke.test.ts tests/checkin-state.smoke.test.ts tests/checkin-progress-modal.smoke.test.tsx`
+- `cd ccr-ui && bun run test:smoke -- tests/checkin/checkin-waf-event-wait.smoke.test.ts tests/checkin/checkin-state.smoke.test.ts tests/checkin/checkin-progress-modal.smoke.test.tsx`
 
 ### 7. Wrong vs Correct
 
@@ -140,6 +140,6 @@ settle(await getCheckinJobStatus(jobId)); // 一次对账，覆盖事件先于�
 
 ### 6. Tests Required
 
-- `cd ccr-ui && bun run test:smoke -- tests/checkin-cookie-fix.smoke.test.tsx tests/checkin-accounts-tab.smoke.test.tsx`
+- `cd ccr-ui && bun run test:smoke -- tests/checkin/checkin-cookie-fix.smoke.test.tsx tests/checkin/checkin-accounts-tab.smoke.test.tsx`
 - `cd ccr-ui && bun run test:i18n`
 - `rg -n "alert\(" ccr-ui/src/features/checkin` must return nothing.

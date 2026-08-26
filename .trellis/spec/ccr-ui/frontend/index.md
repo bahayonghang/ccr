@@ -54,20 +54,20 @@ The Environment-Scoped Dashboard Contracts file lives in this directory (per-env
 ## Quality Check
 
 - Run the focused smoke guard when touching `src/api/tauri.ts` or `src/api/domains/*`:
-  - `cd ccr-ui && bun run test:smoke -- tests/api-facade-boundary.smoke.test.ts`
+  - `cd ccr-ui && bun run test:smoke -- tests/api/api-facade-boundary.smoke.test.ts`
 - Run `cd ccr-ui && bun run type-check` and `cd ccr-ui && bun run lint` for frontend API changes.
 - Run the backend and frontend focused checks from [Raw Config Editor Contracts](./raw-config-editor-contracts.md) when changing source editors or raw-file commands.
-- Run `cd ccr-ui && bun run test:smoke -- tests/provider-template-selector.smoke.test.tsx tests/providers-catalog.smoke.test.ts tests/state-store-actions.smoke.test.ts` when changing provider template data, custom template persistence, selectors, or platform mappers.
+- Run `cd ccr-ui && bun run test:smoke -- tests/configs/provider-template-selector.smoke.test.tsx tests/configs/providers-catalog.smoke.test.ts tests/state/state-store-actions.smoke.test.ts` when changing provider template data, custom template persistence, selectors, or platform mappers.
 - Run the targeted theme smoke checks when changing theme/flavor/accent tokens:
-  - `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/apple-glass-surface-contract.smoke.test.ts tests/theme-bootstrap.smoke.test.ts tests/app-settings-view.smoke.test.tsx tests/theme-contrast-contract.smoke.test.ts`
+  - `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/theme/apple-glass-surface-contract.smoke.test.ts tests/theme/theme-bootstrap.smoke.test.ts tests/configs/app-settings-view.smoke.test.tsx tests/theme/theme-contrast-contract.smoke.test.ts`
 - Additionally run the font-preference guard and i18n compile when changing font tracks, `fontPreferences.ts`, or the font controls/copy:
-  - `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/font-preferences.smoke.test.ts` and `cd ccr-ui && bun run test:i18n`
+  - `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/theme/font-preferences.smoke.test.ts` and `cd ccr-ui && bun run test:i18n`
 - Run `cd ccr-ui && bun run icons:generate && bun run icons:ensure && bun run build` for brand-source or renderer changes, then verify deterministic hashes and generated image formats per the brand asset contract.
 - Run the focused Tauri sync tests plus frontend type-check, lint, and smoke tests from [Sync Security Contracts](./sync-security-contracts.md) for sync contract changes.
-- Run `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/dev-tooling-resource.smoke.test.ts` for development resource tooling changes.
+- Run `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/quality/dev-tooling-resource.smoke.test.ts` for development resource tooling changes.
 - Run the focused Profiles smoke set from [Profiles Page Contracts](./profiles-page-contracts.md) when changing Profiles pages, shared profile components, or profile form serialization.
-- Run `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/grok-dashboard.smoke.test.tsx` when changing Local-only dashboard refresh ordering or cache behavior.
+- Run `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/platforms/grok-dashboard.smoke.test.tsx` when changing Local-only dashboard refresh ordering or cache behavior.
 - Run the focused frontend/Tauri checks from [Grok Settings Contracts](./grok-settings-contracts.md) when changing Grok Settings typed or raw-source behavior.
-- Run `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/apexcharts-style-contract.smoke.test.ts tests/usage-chart-stability.smoke.test.tsx` and a production build when changing `apexChartsCore.ts`, ApexCharts versions, or chart style delivery. Confirm the complete CSS remains a lazy preload dependency and is not linked directly from `index.html`.
-- Run `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/platform-usage-trend-chart.smoke.test.ts tests/usage-chart-diagnostics.smoke.test.ts` when changing platform homepage trend charts or `formatTrendAxisLabel` / `parseUtcDate`.
-- Run `cd ccr-ui && bun run test:smoke -- tests/confirm-interaction.smoke.test.tsx` when changing confirmation dialogs.
+- Run `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/usage/apexcharts-style-contract.smoke.test.ts tests/usage/usage-chart-stability.smoke.test.tsx` and a production build when changing `apexChartsCore.ts`, ApexCharts versions, or chart style delivery. Confirm the complete CSS remains a lazy preload dependency and is not linked directly from `index.html`.
+- Run `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/usage/platform-usage-trend-chart.smoke.test.ts tests/usage/usage-chart-diagnostics.smoke.test.ts` when changing platform homepage trend charts or `formatTrendAxisLabel` / `parseUtcDate`.
+- Run `cd ccr-ui && bun run test:smoke -- tests/ui/confirm-interaction.smoke.test.tsx` when changing confirmation dialogs.

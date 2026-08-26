@@ -60,6 +60,6 @@
 ## 6. Tests Required
 
 - `rg "\b(confirm|alert)\(" ccr-ui/src --glob '!**/*.test.*'` 零实弹。
-- `cd ccr-ui && bun run test:smoke -- tests/confirm-interaction.smoke.test.tsx`。
+- `cd ccr-ui && bun run test:smoke -- tests/ui/confirm-interaction.smoke.test.tsx`。
 - `cd ccr-ui && bun run type-check && bun run lint`。
 - 手测:确认对话框 danger/warning 语义正确、取消不执行、toast 出现。

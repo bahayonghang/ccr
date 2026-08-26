@@ -82,7 +82,7 @@ The contract prevents Vite from watching Rust build output, avoids duplicate sta
 
   ```powershell
   cd ccr-ui
-  bunx vitest run --config vitest.smoke.config.ts tests/dev-tooling-resource.smoke.test.ts
+  bunx vitest run --config vitest.smoke.config.ts tests/quality/dev-tooling-resource.smoke.test.ts
   bun run type-check
   bun run lint
   cd ..

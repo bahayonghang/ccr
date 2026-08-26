@@ -78,7 +78,7 @@
 - `just tauri-bindings-check` (drift; also part of `just ci`).
 - Service unit tests without a Tauri app: src-tauri `cargo test services -- --test-threads=1` (fixture DB via `ccr_usage::fixtures`, temp ccr-db pool via `create_pool` + `run_all_migrations`; no real home-dir access — FS probes like `has_any_raw_sessions` are passed in as booleans by the command layer).
 - `cd ccr-ui && bun run type-check` (generated types + consumers).
-- `cd ccr-ui && bun run test:smoke -- tests/api-facade-boundary.smoke.test.ts tests/typed-json-boundary.smoke.test.ts tests/typed-command-boundary.smoke.test.ts` (generated-client ownership + JSON input boundary + zero raw-`Value` command returns).
+- `cd ccr-ui && bun run test:smoke -- tests/api/api-facade-boundary.smoke.test.ts tests/api/typed-json-boundary.smoke.test.ts tests/api/typed-command-boundary.smoke.test.ts` (generated-client ownership + JSON input boundary + zero raw-`Value` command returns).
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry -- --nocapture` (counts unchanged).
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::wire::tests -- --test-threads=1` (whole f64 → integer Number; fraction stays float).
 
@@ -185,7 +185,7 @@ Whole f64 values become integer JSON numbers so `as_u64()` / `as_i64()` work.
 - `cargo test -p ccr-cli install -- --test-threads=1`: assert hostile/modified payload fields are absent, closed action mappings are fixed, TTL/unknown/reuse/host mismatch errors are stable, cleanup prunes expired entries, and concurrent consumption has one winner.
 - `cargo test -p ccr-cli --features ts export_bindings -- --test-threads=1`: export every install DTO, including UUID string aliases.
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml install -- --test-threads=1`: compile and exercise the desktop command surface.
-- `cd ccr-ui && bun run test:smoke -- tests/install-opaque-handle.smoke.test.ts`: assert execute sends only `{ planId }` and the generated plan view has no `command`, `args`, or `envs`.
+- `cd ccr-ui && bun run test:smoke -- tests/shell/install-opaque-handle.smoke.test.ts`: assert execute sends only `{ planId }` and the generated plan view has no `command`, `args`, or `envs`.
 - Run `cd ccr-ui && bun run type-check`, `just frontend-check-quick`, `just lint-strict`, and `just test`.
 - After the generated baseline is committed, run `just tauri-bindings-check`; intended new generated files make the HEAD-based drift guard red before that baseline exists.
 

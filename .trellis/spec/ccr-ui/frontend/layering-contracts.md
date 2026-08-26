@@ -59,13 +59,13 @@ Allowed edges (mirrors `boundaryPolicies`):
 | Violation | Mechanism | Rule ID / command | Level |
 | --- | --- | --- | --- |
 | Cross-layer import, reverse dependency, feature cross-domain direct | `eslint-plugin-boundaries` | `boundaries/dependencies` in `app/arch-boundaries` | error |
-| Facade consumer-side bypass (direct `src/api/tauri.ts` import) | ESLint core | `no-restricted-imports` in `app/custom-rules`, sole whitelist `app/facade-coverage-test-whitelist` (`tests/api-facade-coverage.smoke.test.ts`) | error |
-| Facade definition-side (new wrapper added to `tauri.ts`) | smoke freeze test (not lint) | `freezes legacy direct invoke calls in tauri.ts` in `tests/api-facade-boundary.smoke.test.ts` | test fail |
+| Facade consumer-side bypass (direct `src/api/tauri.ts` import) | ESLint core | `no-restricted-imports` in `app/custom-rules`, sole whitelist `app/facade-coverage-test-whitelist` (`tests/api/api-facade-coverage.smoke.test.ts`) | error |
+| Facade definition-side (new wrapper added to `tauri.ts`) | smoke freeze test (not lint) | `freezes legacy direct invoke calls in tauri.ts` in `tests/api/api-facade-boundary.smoke.test.ts` | test fail |
 | Circular imports | dpdm standalone script | `bun run check:cycles` (CI + `just frontend-check`) | exit ≠ 0 |
 | Boundary rule self-check | fixture lint | `bun run check:arch-boundaries` (4 fixtures) | exit ≠ 0 |
 
 Facade division of labor (explicit; do not merge the two sides):
-- **Lint freezes only the consumer side.** `no-restricted-imports` with patterns `['**/api/tauri', '**/api/tauri.*']` forbids importing `src/api/tauri.ts` directly. The sole whitelist file is `tests/api-facade-coverage.smoke.test.ts` (the facade-coverage assertion itself), registered as `app/facade-coverage-test-whitelist`. Inside `src/api/**`, relative imports are naturally unaffected; every other consumer must import from `@/api` or `@/api/domains/<domain>`.
+- **Lint freezes only the consumer side.** `no-restricted-imports` with patterns `['**/api/tauri', '**/api/tauri.*']` forbids importing `src/api/tauri.ts` directly. The sole whitelist file is `tests/api/api-facade-coverage.smoke.test.ts` (the facade-coverage assertion itself), registered as `app/facade-coverage-test-whitelist`. Inside `src/api/**`, relative imports are naturally unaffected; every other consumer must import from `@/api` or `@/api/domains/<domain>`.
 - **Lint cannot freeze the definition side.** `src/api/index.ts` re-exports `tauri.ts` (`export * from './tauri'`), so a new wrapper added to `tauri.ts` and consumed through `@/api` passes every import rule. The definition side is frozen by the existing smoke test `freezes legacy direct invoke calls in tauri.ts`, which asserts the `invoke()` command sequence in `tauri.ts` equals exactly the 9-command `ALLOWED_TAURI_FACADE_COMMANDS` allowlist. Adding a command there fails the smoke test.
 - The sibling contract `api-facade-boundary.md` covers the facade's behavioral contracts (domain wrappers, generated clients, manifest-typed commands, `INVOKE_ALLOWED_PATHS`). This document covers only the enforcement graph and layering; see the sibling for facade API semantics.
 
@@ -99,4 +99,4 @@ Primitive (`src/ui/`) → composite → domain component → page.
 - `cd ccr-ui && bun run check:cycles` → exit 0 (217 files, no cycles).
 - `cd ccr-ui && bun ./scripts/check-cycles.mjs --self-check` → exit 0 (detects exactly the 1 cycle-a ↔ cycle-b fixture).
 - `cd ccr-ui && bun run lint:ci` → exit 0.
-- `cd ccr-ui && bun run test:smoke -- tests/api-facade-boundary.smoke.test.ts` → definition-side freeze.
+- `cd ccr-ui && bun run test:smoke -- tests/api/api-facade-boundary.smoke.test.ts` → definition-side freeze.

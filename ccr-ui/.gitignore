@@ -71,6 +71,8 @@ storybook-static
 skills_response.json
 
 tests/artifacts
+# Local walkthrough screenshots; not CI artifacts
+tests/__screenshots__/
 
 .planning/
 .plannings/

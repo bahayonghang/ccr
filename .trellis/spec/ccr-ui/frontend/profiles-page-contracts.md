@@ -321,8 +321,8 @@ DTO authority: `GrokProfileDto` exposes `profile_kind`, `base_url_display`,
 
 ### 6. Tests Required
 
-- `tests/grok-profile-editor.smoke.test.ts`: reasoning-only patch exclusion, display URL non-serialization, credential action field exclusivity, official-only controls, and explicit model clear.
-- `tests/grok-profiles-view.smoke.test.ts`: Local-only fail-closed/pin preservation, delete blocked/force branches, no force loop, rename recovery pin timing, and enabled/total health summary.
+- `tests/profiles/grok-profile-editor.smoke.test.ts`: reasoning-only patch exclusion, display URL non-serialization, credential action field exclusivity, official-only controls, and explicit model clear.
+- `tests/profiles/grok-profiles-view.smoke.test.tsx`: Local-only fail-closed/pin preservation, delete blocked/force branches, no force loop, rename recovery pin timing, and enabled/total health summary.
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::grok::tests -- --test-threads=1`: Tauri patch/status/redaction/local-only contracts.
 - Run the shared Profiles matrix, `bun run type-check`, `bun run lint`, `node scripts/check-i18n.mjs`, `just tauri-bindings-check`, and `just frontend-check-quick`.
 
@@ -350,10 +350,9 @@ const patch = buildGrokPatch(form, dirtyFields)
 改动本文件覆盖的范围后运行：
 
 ```bash
-cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/codex-profiles-view.smoke.test.ts tests/codex-profile-editor.smoke.test.ts tests/claude-profiles-view.smoke.test.ts tests/profiles-quick-switch.smoke.test.ts tests/profiles-quick-rail.smoke.test.ts tests/profiles-hotkeys.smoke.test.ts tests/profiles-toolbar.smoke.test.ts tests/profile-diff.smoke.test.ts
+cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/profiles
 ```
 
 再跑 `cd ccr-ui && bun run type-check`、`bun run lint`、`bun run test:i18n`（改动 i18n 键时）。
 
-Grok Profiles 改动还必须把 `tests/grok-profile-editor.smoke.test.ts` 与
-`tests/grok-profiles-view.smoke.test.ts` 加入同一次矩阵。
+Grok Profiles 改动覆盖同一目录下的 `grok-profile-editor` 与 `grok-profiles-view` 用例。

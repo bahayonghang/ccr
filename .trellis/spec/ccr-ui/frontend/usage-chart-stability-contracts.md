@@ -112,7 +112,7 @@ the global SVG reset, or only add marker width/height. Those leave static
 placeholders, wrong tooltip layout, or upgrade drift.
 
 On a dependency upgrade or assembly-entry change,
-`tests/apexcharts-style-contract.smoke.test.ts` must still assert:
+`tests/usage/apexcharts-style-contract.smoke.test.ts` must still assert:
 
 - `react-apexcharts/core` wrapper and every used module registration stay unique;
 - the complete CSS import stays unique;
@@ -152,10 +152,10 @@ daily trend must use `xaxis.type: 'datetime'`. Labels go through
 - A second month/day formatter. Locale short form is already covered by
   `formatTrendAxisLabel` (en-US `Jul 22`, zh-CN `7月22日`).
 
-`tests/platform-usage-trend-chart.smoke.test.ts` freezes datetime, `trim: false`,
-and `redrawOnParentResize: false`. `tests/usage-chart-diagnostics.smoke.test.ts`
+`tests/usage/platform-usage-trend-chart.smoke.test.ts` freezes datetime, `trim: false`,
+and `redrawOnParentResize: false`. `tests/usage/usage-chart-diagnostics.smoke.test.ts`
 freezes `parseUtcDate` and the daily label copy.
-`tests/usage-chart-stability.smoke.test.tsx` freezes the chart controller mount
+`tests/usage/usage-chart-stability.smoke.test.tsx` freezes the chart controller mount
 path.
 
 ## Known deviations (accepted; fold in when touching the area)

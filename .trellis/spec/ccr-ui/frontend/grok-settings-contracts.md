@@ -56,9 +56,9 @@ return <BaseSettings config={grokSettingsConfig} />
 
 ### 4. Tests Required
 
-- `tests/platform-base-settings.smoke.test.tsx`: one `BaseSettings` rendered
+- `tests/platforms/platform-base-settings.smoke.test.tsx`: one `BaseSettings` rendered
   with two configs.
-- `tests/platform-surface-unify.smoke.test.ts`: no platform-name branch
+- `tests/platforms/platform-surface-unify.smoke.test.ts`: no platform-name branch
   in Base files; `visibleSettingsFields` / `saveSettingsValues` stay the single
   settings implementation.
 
@@ -152,8 +152,8 @@ Backend commands are `grok_get_settings`, `grok_update_settings`,
 
 ### 6. Tests Required
 
-- `tests/grok-settings-api.smoke.test.ts`: generated-client forwarding, raw unsupported normalization, tokens, invalid markers, and unknown-status rejection.
-- `tests/code-source-editor.smoke.test.tsx`: shared editor mount and CSP nonce; default consumers remain unchanged.
+- `tests/platforms/grok-settings-api.smoke.test.ts`: generated-client forwarding, raw unsupported normalization, tokens, invalid markers, and unknown-status rejection.
+- `tests/ui/code-source-editor.smoke.test.tsx`: shared editor mount and CSP nonce; default consumers remain unchanged.
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::grok::tests -- --test-threads=1`: whitelist/value validation, unknown-key preservation, CAS retry/conflict, activation recheck, raw invalid/stale behavior, and no-backup policy.
 - Run `just tauri-bindings-check` before `just frontend-check-quick`, sequentially. The bindings command regenerates/moves `src/types/generated`; running `tsc` concurrently can observe a transient missing tree.
 - For source-mode changes, also run the CodeMirror CSP smoke and the production checks from `raw-config-editor-contracts.md`.

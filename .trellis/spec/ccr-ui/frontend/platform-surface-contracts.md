@@ -62,8 +62,8 @@ Per-surface config: one module per surface, one export per platform. Config obje
 
 ### 6. Tests Required
 
-- `tests/platform-surface-unify.smoke.test.ts`: 75 paths, descriptor roots, no platform-name branch in Base files, thin shells ≤100 lines, `visibleSettingsFields` / `saveSettingsValues` as the single settings implementation.
-- `tests/platform-base-settings.smoke.test.tsx`: one `BaseSettings` rendered with two configs.
+- `tests/platforms/platform-surface-unify.smoke.test.ts`: 75 paths, descriptor roots, no platform-name branch in Base files, thin shells ≤100 lines, `visibleSettingsFields` / `saveSettingsValues` as the single settings implementation.
+- `tests/platforms/platform-base-settings.smoke.test.tsx`: one `BaseSettings` rendered with two configs.
 - `bun run type-check` and `bun run lint:ci`.
 
 ### 7. Change cost

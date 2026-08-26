@@ -20,7 +20,7 @@ Navigation map for `ccr-ui/**`. Behavioral rules stay in `./AGENTS.md`; use this
 | State and data | `src/stores/`, `src/api/`, `src/composables/` | Pinia state, Tauri/backend API wrappers, streaming hooks, reusable view logic. |
 | Shared frontend contracts | `src/types/`, `src/utils/`, `src/config/`, `src/configs/`, `src/i18n/`, `src/styles/` | DTOs, presentation helpers, static config, localization, theme/style primitives. |
 | Tauri backend | `src-tauri/src/` | Rust commands, app state, monitoring/events, background jobs, platform integrations, and desktop shell behavior. |
-| Tests | `tests/` | Vitest smoke/i18n tests and helpers. Prefer focused `*.smoke.test.ts` updates beside the changed UI behavior. |
+| Tests | `tests/` | Vitest smoke tests grouped by domain (`api/`, `profiles/`, `usage/`, …), plus `setup/`, `helpers/`, `fixtures/`, and `i18n.test.cjs`. Prefer focused `*.smoke.test.ts` updates in the matching domain folder. |
 | Tooling/scripts | `scripts/` | Dev-server warm start, route snapshots, bundle checks, icon generation, release-window verification. |
 
 ## Frontend route map
@@ -57,7 +57,7 @@ Navigation map for `ccr-ui/**`. Behavioral rules stay in `./AGENTS.md`; use this
 
 ## Safety and generated-output boundaries
 
-- Do not commit generated or local runtime output from `dist/`, `src-tauri/target/`, `storybook-static/`, `test-results/`, `logs/`, `.tmp/`, `.omx/`, `.omc/`, or `node_modules/`.
+- Do not commit generated or local runtime output from `dist/`, `src-tauri/target/`, `storybook-static/`, `test-results/`, `tests/__screenshots__/`, `logs/`, `.tmp/`, `.omx/`, `.omc/`, or `node_modules/`.
 - Tauri commands may read or write real user tool config under `.ccr`, `.claude`, `.codex`, `.gemini`, OpenCode, WSL, SSH, or sync paths; preserve masking, backup, atomic-write, and confirmation behavior.
 - Web-mode browser validation cannot exercise every Tauri `invoke()` path; distinguish browser-runtime limitations from product regressions.
 - `src-tauri/src/llmusage_adapter/` shields the app from upstream schema drift; do not bypass it for direct transcript or usage parsing.

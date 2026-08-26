@@ -335,7 +335,7 @@ export default [
       // 门面消费侧边界（08-22-arch-quality-perf 批次 2）：src/api/tauri.ts 为只读冻结门面，
       // 消费方一律从 '@/api' 或 '@/api/domains/<domain>' 导入；定义侧由 api-facade-boundary smoke 冻结。
       // 白名单（既有导入点，逐文件登记）：src/api/** 内部相对导入（规则天然不命中）、
-      // tests/api-facade-coverage.smoke.test.ts（门面覆盖断言本体，见 app/tests 白名单块）。
+      // tests/api/api-facade-coverage.smoke.test.ts（门面覆盖断言本体，见 app/tests 白名单块）。
       'no-restricted-imports': [
         'error',
         {
@@ -493,7 +493,7 @@ export default [
   {
     // 门面覆盖断言测试是唯一允许直接导入 tauri.ts 的消费点（白名单逐文件登记，layering-contracts.md）
     name: 'app/facade-coverage-test-whitelist',
-    files: ['tests/api-facade-coverage.smoke.test.ts'],
+    files: ['tests/api/api-facade-coverage.smoke.test.ts'],
     rules: {
       'no-restricted-imports': 'off',
     },

@@ -30,4 +30,4 @@
 ## Scenario: Frontend IPC
 
 - `sanitize_frontend_log` is the server boundary. Batch 32. See parent design IPC table.
-- Tests: `ccr-ui/src-tauri/src/log_sanitize.rs`, `ccr-ui/tests/logger.smoke.test.ts`.
+- Tests: `ccr-ui/src-tauri/src/log_sanitize.rs`, `ccr-ui/tests/shell/logger.smoke.test.ts`.

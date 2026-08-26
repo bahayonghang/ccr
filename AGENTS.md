@@ -26,7 +26,7 @@ Rust code must stay `cargo fmt` and clippy clean. Prefer `Result`-based error ha
 Frontend and extension code use 2-space indentation, single quotes, and no semicolons. Vue components use `PascalCase.vue`. Follow existing store, service, and component patterns before adding new abstractions.
 
 ## Testing Guidelines
-Keep Rust integration tests under `crates/*/tests` and group them by feature area. UI smoke tests belong in `ccr-ui/tests/*.smoke.test.ts`. VS Code tests live beside source as `*.test.ts`. Start with the narrowest relevant check, then escalate by impact scope: subsystem checks for local changes, `just frontend-check` or `just vscode-ci` for full frontend/extension coverage, and `just ci` for cross-module changes or delivery-ready validation.
+Keep Rust integration tests under `crates/*/tests` and group them by feature area. UI smoke tests belong in `ccr-ui/tests/**/*.smoke.test.ts`. VS Code tests live beside source as `*.test.ts`. Start with the narrowest relevant check, then escalate by impact scope: subsystem checks for local changes, `just frontend-check` or `just vscode-ci` for full frontend/extension coverage, and `just ci` for cross-module changes or delivery-ready validation.
 
 Project-local Codex skills live under `.codex/skills/`; prefer the narrowest failing gate first before escalating to full `just ci`.
 

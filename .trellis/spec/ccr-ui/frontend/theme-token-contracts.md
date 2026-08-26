@@ -49,7 +49,7 @@
 
 ### 5. Tests Required
 
-- `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/theme-switch.smoke.test.tsx tests/token-single-point.smoke.test.tsx tests/theme-domain-extension.smoke.test.tsx`
+- `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/theme/theme-switch.smoke.test.tsx tests/theme/token-single-point.smoke.test.tsx tests/theme/theme-domain-extension.smoke.test.tsx`
 
 ---
 
@@ -104,7 +104,7 @@
 ### 6. Tests Required
 
 - `cd ccr-ui && bun run type-check && bun run lint:ci`
-- `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/apple-glass-surface-contract.smoke.test.ts tests/theme-bootstrap.smoke.test.ts tests/theme-contrast-contract.smoke.test.ts tests/theme-domain-extension.smoke.test.tsx`
+- `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/theme/apple-glass-surface-contract.smoke.test.ts tests/theme/theme-bootstrap.smoke.test.ts tests/theme/theme-contrast-contract.smoke.test.ts tests/theme/theme-domain-extension.smoke.test.tsx`
 - For visual work, inspect the web preview or a static build in a real browser and record the route, viewport, document dataset values, and key computed tokens.
 
 ### 7. Wrong vs Correct
@@ -170,7 +170,7 @@ Pair the override with a smoke assertion that extracts this exact block and chec
 
 ### 6. Tests Required
 
-- `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/theme-bootstrap.smoke.test.ts`
+- `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/theme/theme-bootstrap.smoke.test.ts`
 - Migration coverage must include every map entry, the unknown-value fallback, write-back semantics, and the empty-storage no-seeding case.
 
 ---
@@ -188,7 +188,7 @@ Pair the override with a smoke assertion that extracts this exact block and chec
 - Font tracks in `tokens.css`: `--font-{sans,brand,mono}-base` hold the built-in stacks; `--font-{sans,brand,mono}` default to `var(--font-*-base)`.
 - First paint: `ccr-ui/index.html` boot IIFE.
 - Storage keys: `ccr-font-ui`, `ccr-font-code`.
-- Guards: `ccr-ui/tests/font-preferences.smoke.test.ts`, `ccr-ui/tests/theme-bootstrap.smoke.test.ts`, `ccr-ui/tests/apple-glass-surface-contract.smoke.test.ts`.
+- Guards: `ccr-ui/tests/theme/font-preferences.smoke.test.ts`, `ccr-ui/tests/theme/theme-bootstrap.smoke.test.ts`, `ccr-ui/tests/theme/apple-glass-surface-contract.smoke.test.ts`.
 
 ### 3. Contracts
 
@@ -214,7 +214,7 @@ Pair the override with a smoke assertion that extracts this exact block and chec
 
 - `cd ccr-ui && bun run type-check && bun run lint:ci`
 - `cd ccr-ui && bun run test:i18n`
-- `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/font-preferences.smoke.test.ts tests/theme-bootstrap.smoke.test.ts tests/apple-glass-surface-contract.smoke.test.ts`
+- `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/theme/font-preferences.smoke.test.ts tests/theme/theme-bootstrap.smoke.test.ts tests/theme/apple-glass-surface-contract.smoke.test.ts`
 - For visual work: pick a present font (applies), a missing font (falls back, no tofu), and system default (restores); confirm no first-paint flash.
 
 ### 6. Wrong vs Correct
@@ -268,7 +268,7 @@ root.style.removeProperty('--font-sans')
 
 ### 5. Tests Required
 
-- `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/apple-glass-surface-contract.smoke.test.ts tests/overlay-single-implementation.smoke.test.ts`
+- `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/theme/apple-glass-surface-contract.smoke.test.ts tests/quality/overlay-single-implementation.smoke.test.ts`
 - Manual/DevTools: emulate `prefers-reduced-transparency: reduce` and confirm all glass surfaces on the route go opaque.
 
 ---
@@ -356,5 +356,5 @@ root.style.removeProperty('--font-sans')
 
 ### 4. Tests Required
 
-- `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/reduced-motion.smoke.test.tsx`
+- `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/theme/reduced-motion.smoke.test.tsx`
 - Manual/DevTools: emulate `prefers-reduced-motion: reduce` and confirm degradation + attribute flip.

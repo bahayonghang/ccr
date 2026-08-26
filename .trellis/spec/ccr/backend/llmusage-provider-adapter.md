@@ -167,8 +167,8 @@
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml services::usage::service_tests -- --nocapture --test-threads=1`
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry -- --nocapture`
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml --test llmusage_no_crate_guard -- --nocapture`
-- `cd ccr-ui && bun run test:smoke -- tests/usage-dashboard-payload.smoke.test.ts tests/usage-dashboard-toolbar.smoke.test.ts tests/usage-source-summary-card.smoke.test.ts tests/home-usage-overview.store.smoke.test.ts`
-- `cd ccr-ui && bun run test:smoke -- tests/api-facade-boundary.smoke.test.ts`
+- `cd ccr-ui && bun run test:smoke -- tests/usage/usage-dashboard-payload.smoke.test.ts tests/usage-dashboard-toolbar.smoke.test.ts tests/usage-source-summary-card.smoke.test.ts tests/home-usage-overview.store.smoke.test.ts`
+- `cd ccr-ui && bun run test:smoke -- tests/api/api-facade-boundary.smoke.test.ts`
 - `cd ccr-ui && bun run type-check`
 - `cd ccr-ui && bun run lint`
 

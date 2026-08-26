@@ -35,7 +35,7 @@
 
 ### 6. Tests Required
 
-- `ccr-ui/tests/dashboard-presentation.smoke.test.ts` — extend the existing `logs`-based test case (`createLog` helper) if adding a new channel or counting path; the current suite's `createLog` defaults to `channel: 'usage'` (a core channel) specifically so the frontend-exclusion logic isn't accidentally exercised by unrelated tests.
+- `ccr-ui/tests/dashboard/dashboard-presentation.smoke.test.ts` — extend the existing `logs`-based test case (`createLog` helper) if adding a new channel or counting path; the current suite's `createLog` defaults to `channel: 'usage'` (a core channel) specifically so the frontend-exclusion logic isn't accidentally exercised by unrelated tests.
 
 ### 7. Wrong vs Correct
 
@@ -81,7 +81,7 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 ### 4. Validation & Error Matrix
 
 - Adding a reason without a paired `ok` boolean -> TypeScript error (`DashboardReadinessReason` requires both fields) — this is intentionally not optional.
-- Renaming/removing a reason key -> update `ccr-ui/tests/dashboard-presentation.smoke.test.ts`'s assertion (`presentation.readiness.reasons.map(r => r.key)).toContain(...)`).
+- Renaming/removing a reason key -> update `ccr-ui/tests/dashboard/dashboard-presentation.smoke.test.ts`'s assertion (`presentation.readiness.reasons.map(r => r.key)).toContain(...)`).
 
 ### 5. Good/Base/Bad Cases
 
@@ -159,9 +159,9 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 
 ### 4. Tests Required
 
-- `ccr-ui/tests/ui-primitives.smoke.test.tsx` — bare tile without `tone`; `tone: 'success'` has `data-tone`, the badge class, no `ui-card`, and source still contains `tabular-nums`.
-- `ccr-ui/tests/dashboard-presentation.smoke.test.ts` — existing judgment expectations stay green.
-- `ccr-ui/tests/react-shell.smoke.test.tsx` — root route mounts `DashboardView` (`.dashboard-view`).
+- `ccr-ui/tests/ui/ui-primitives.smoke.test.tsx` — bare tile without `tone`; `tone: 'success'` has `data-tone`, the badge class, no `ui-card`, and source still contains `tabular-nums`.
+- `ccr-ui/tests/dashboard/dashboard-presentation.smoke.test.ts` — existing judgment expectations stay green.
+- `ccr-ui/tests/shell/react-shell.smoke.test.tsx` — root route mounts `DashboardView` (`.dashboard-view`).
 
 ---
 
@@ -185,5 +185,5 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 
 ### 4. Tests Required
 
-- `ccr-ui/tests/dashboard-presentation.smoke.test.ts` — date-order sparkline; `gemini` → `antigravity`; `overview == null` / empty `series` → `undefined`; all-zero series with empty `source_health` is not missing.
-- `ccr-ui/tests/dashboard-platform-matrix.smoke.test.tsx` — `state: 'missing'` shows the placeholder; all-zero series does not.
+- `ccr-ui/tests/dashboard/dashboard-presentation.smoke.test.ts` — date-order sparkline; `gemini` → `antigravity`; `overview == null` / empty `series` → `undefined`; all-zero series with empty `source_health` is not missing.
+- `ccr-ui/tests/dashboard/dashboard-platform-matrix.smoke.test.tsx` — `state: 'missing'` shows the placeholder; all-zero series does not.

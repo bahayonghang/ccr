@@ -2,7 +2,7 @@
 
 > `08-22-test-contract-rebuild` 批次 1。合并 `event-adjudication.md` 全局部分、`TAURI_GLOBAL_EVENTS`、高频事件，以及 CheckIn 局部事件（协同点 M）。
 >
-> **新增局部事件须同时登记到本文件**，否则下一次新增会再次绕过 `tests/tauri-event-inventory.smoke.test.ts` 的断言。
+> **新增局部事件须同时登记到本文件**，否则下一次新增会再次绕过 `tests/api/tauri-event-inventory.smoke.test.ts` 的断言。
 
 断言口径：
 

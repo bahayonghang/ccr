@@ -15,7 +15,7 @@
 - Compatibility facade: `ccr-ui/src/api/tauri.ts`
 - Domain modules: `ccr-ui/src/api/domains/<domain>.ts`
 - Public frontend entry: `ccr-ui/src/api/index.ts`
-- Guard test: `ccr-ui/tests/api-facade-boundary.smoke.test.ts`
+- Guard test: `ccr-ui/tests/api/api-facade-boundary.smoke.test.ts`
 
 ### 3. Contracts
 - New business API wrappers must live in `src/api/domains/*` or a generated typed client.
@@ -40,7 +40,7 @@
 - Bad: update the allowlist without documenting why the command cannot live in a domain module.
 
 ### 6. Tests Required
-- `cd ccr-ui && bun run test:smoke -- tests/api-facade-boundary.smoke.test.ts`
+- `cd ccr-ui && bun run test:smoke -- tests/api/api-facade-boundary.smoke.test.ts`
 - `cd ccr-ui && bun run type-check`
 - `cd ccr-ui && bun run lint`
 - For broad API changes, also run `cd ccr-ui && bun run test`.
@@ -109,7 +109,7 @@ Only `src/api/invokeRuntime.ts` may import core `invoke`; domain wrappers and ge
 
 ### 6. Tests Required
 
-- `cd ccr-ui && bun run test:smoke -- tests/command-runtime-policy.smoke.test.ts tests/api-facade-boundary.smoke.test.ts`.
+- `cd ccr-ui && bun run test:smoke -- tests/api/command-runtime-policy.smoke.test.ts tests/api/api-facade-boundary.smoke.test.ts`.
 - `cd ccr-ui && bun run type-check`.
 - Search `src/api/**` and assert `invokeRuntime.ts` is the only core invoke import.
 - For broad generated-client changes, run `just frontend-check`.

@@ -67,10 +67,10 @@
 
 ### 6. Tests Required
 
-- `cd ccr-ui && bun run test:smoke -- tests/provider-template-selector.smoke.test.tsx tests/state-store-actions.smoke.test.ts`
+- `cd ccr-ui && bun run test:smoke -- tests/configs/provider-template-selector.smoke.test.tsx tests/state/state-store-actions.smoke.test.ts`
   - Assert the selector opens and exposes a manual row.
   - Assert custom template persistence strips sensitive fields across all platform overrides.
-- `cd ccr-ui && bun run test:smoke -- tests/providers-catalog.smoke.test.ts` when changing the catalog JSON, its projection, or builtin provider lookups.
+- `cd ccr-ui && bun run test:smoke -- tests/configs/providers-catalog.smoke.test.ts` when changing the catalog JSON, its projection, or builtin provider lookups.
   - Assert schemaVersion mismatch raises an explicit error.
   - Assert projected templates and their mapper patches contain no secret fields.
   - Assert `BuiltinProvider` mirror fields stay consistent with the catalog `checkin` block.

@@ -5,7 +5,7 @@
 // 断言每个夹具被预期规则报错。规则单源：复用 eslint.config.js 具名导出的
 // boundaryElements / boundaryPolicies，仅追加夹具目录的元素映射。
 // 定义面冻结用例不在本脚本内：tauri.ts 新增 invoke() 由
-// tests/api-facade-boundary.smoke.test.ts 的冻结用例拦截（见 layering-contracts.md）。
+// tests/api/api-facade-boundary.smoke.test.ts 的冻结用例拦截（见 layering-contracts.md）。
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
