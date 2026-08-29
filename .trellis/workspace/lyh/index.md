@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 100
-- **Last Active**: 2026-08-27
+- **Total Sessions**: 101
+- **Last Active**: 2026-08-29
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1435 | Active |
+| `journal-2.md` | ~1457 | Active |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 101 | 2026-08-29 | 实现八类 Agent 会话浏览页面 | `f1e9b873`, `3a46ee61` | `dev` |
 | 100 | 2026-08-27 | Usage 表格扫读与日柱窗口 | `04536d90` | `dev` |
 | 99 | 2026-08-25 | React 首页 1b/1c 重设计 | `0ebc75a0`, `1147e6ac`, `a6c22e40`, `00e6704f`, `8c71743a`, `3d467d44` | `dev` |
 | 98 | 2026-08-22 | Codex 首页趋势图横轴标签与图标优化 | `fcf30d0a` | `dev` |

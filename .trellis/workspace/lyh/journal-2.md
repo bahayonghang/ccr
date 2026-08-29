@@ -1433,3 +1433,25 @@ Usage 子页从粘连文本改成操作员 ledger，并修好 Last 30 Days 日�
 ### Next Steps
 
 - 桌面壳走查 AC10（web 预览无法加载用量）；未要求则不要 push。
+
+
+## Session 101: 实现八类 Agent 会话浏览页面
+
+**Date**: 2026-08-29
+**Task**: 实现八类 Agent 会话浏览页面
+**Branch**: `dev`
+
+### Summary
+
+新增 Grok、Claude、Codex、OpenCode、Pi、OMP、Antigravity、Kimi 的本地会话发现、增量归档、Typed IPC 与独立 React 页面；完成有界分页、虚拟化、环境隔离、跨层规范及完整 CI 验证。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f1e9b873` | (see git log) |
+| `3a46ee61` | (see git log) |
+
+### Status
+
+[OK] **Completed**
