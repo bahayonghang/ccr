@@ -326,20 +326,54 @@ fn archive_entry_from_session(
     platform_label: &str,
     session: &ccr_store::sessions::Session,
 ) -> ccr_db::database::repositories::usage_repo::UsageSessionArchiveEntry {
+    let file_path = session.file_path.display().to_string();
+    let source_variant = match platform_label {
+        "claude" => "claude-jsonl",
+        "codex"
+            if session
+                .file_path
+                .components()
+                .any(|part| part.as_os_str() == "archived_sessions") =>
+        {
+            "codex-archived"
+        }
+        "codex" => "codex-live",
+        "gemini" => "gemini-jsonl",
+        _ => "legacy-jsonl",
+    };
     ccr_db::database::repositories::usage_repo::UsageSessionArchiveEntry {
-        archive_id: format!(
-            "{}:{}:{}",
+        archive_id: ccr_db::database::repositories::usage_repo::agent_session_archive_id(
             platform_label,
-            session.id,
-            session.file_path.display()
+            &file_path,
+            "",
         ),
         session_id: session.id.clone(),
         platform: platform_label.to_string(),
         title: session.title.clone(),
         cwd: session.cwd.display().to_string(),
-        file_path: session.file_path.display().to_string(),
+        file_path,
         file_hash: Some(session.file_hash.clone()),
+        source_variant: source_variant.to_string(),
+        source_kind: "file".to_string(),
+        source_member_id: String::new(),
+        source_size: session
+            .file_path
+            .metadata()
+            .ok()
+            .and_then(|metadata| i64::try_from(metadata.len()).ok()),
+        source_mtime_ns: session
+            .file_path
+            .metadata()
+            .ok()
+            .and_then(|metadata| metadata.modified().ok())
+            .and_then(|value| value.duration_since(std::time::UNIX_EPOCH).ok())
+            .and_then(|value| i64::try_from(value.as_nanos()).ok()),
+        source_stat_hash: Some(session.file_hash.clone()),
         message_count: i64::from(session.message_count),
+        user_message_count: i64::from(session.user_message_count),
+        assistant_message_count: i64::from(session.assistant_message_count),
+        tool_use_count: i64::from(session.tool_use_count),
+        source_fidelity: "full".to_string(),
         created_at: session.created_at,
         updated_at: session.updated_at,
         source_state: ccr_db::database::repositories::usage_repo::UsageSourceState::Live,

@@ -9,6 +9,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use tracing::{debug, error, info, warn};
 
+use crate::database::repositories::usage_repo::agent_session_archive_id;
 use crate::database::repositories::{checkin_repo, ui_state_repo};
 use crate::database::schema::{CREATE_TABLES_SQL, INSERT_MIGRATION_SQL};
 use crate::models::checkin::balance::BalanceSnapshot;
@@ -1575,6 +1576,147 @@ pub fn run_migration_v16(conn: &Connection) -> MigrationResult<()> {
     Ok(())
 }
 
+/// Run migration v17: add provider-owned Agent Session source identity and state.
+pub fn run_migration_v17(conn: &Connection) -> MigrationResult<()> {
+    if is_migration_applied(conn, 17)?
+        && table_has_column(conn, "usage_session_archive", "source_member_id")?
+        && table_exists(conn, "usage_session_source_state")?
+    {
+        debug!("Migration v17 already applied, skipping");
+        return Ok(());
+    }
+
+    info!("Running migration v17: agent session source identity");
+    let tx = conn
+        .unchecked_transaction()
+        .map_err(|error| MigrationError::Database(error.to_string()))?;
+    for (column, sql) in [
+        (
+            "source_variant",
+            "ALTER TABLE usage_session_archive ADD COLUMN source_variant TEXT NOT NULL DEFAULT ''",
+        ),
+        (
+            "source_kind",
+            "ALTER TABLE usage_session_archive ADD COLUMN source_kind TEXT NOT NULL DEFAULT 'file'",
+        ),
+        (
+            "source_member_id",
+            "ALTER TABLE usage_session_archive ADD COLUMN source_member_id TEXT NOT NULL DEFAULT ''",
+        ),
+        (
+            "source_size",
+            "ALTER TABLE usage_session_archive ADD COLUMN source_size INTEGER",
+        ),
+        (
+            "source_mtime_ns",
+            "ALTER TABLE usage_session_archive ADD COLUMN source_mtime_ns INTEGER",
+        ),
+        (
+            "source_stat_hash",
+            "ALTER TABLE usage_session_archive ADD COLUMN source_stat_hash TEXT",
+        ),
+        (
+            "user_message_count",
+            "ALTER TABLE usage_session_archive ADD COLUMN user_message_count INTEGER NOT NULL DEFAULT 0",
+        ),
+        (
+            "assistant_message_count",
+            "ALTER TABLE usage_session_archive ADD COLUMN assistant_message_count INTEGER NOT NULL DEFAULT 0",
+        ),
+        (
+            "tool_use_count",
+            "ALTER TABLE usage_session_archive ADD COLUMN tool_use_count INTEGER NOT NULL DEFAULT 0",
+        ),
+        (
+            "source_fidelity",
+            "ALTER TABLE usage_session_archive ADD COLUMN source_fidelity TEXT NOT NULL DEFAULT 'full'",
+        ),
+    ] {
+        if !table_has_column(&tx, "usage_session_archive", column)? {
+            tx.execute(sql, [])
+                .map_err(|error| MigrationError::Database(error.to_string()))?;
+        }
+    }
+    let legacy_archive_rows = {
+        let mut stmt = tx
+            .prepare(
+                "SELECT archive_id, platform, file_path, source_member_id, source_variant
+                 FROM usage_session_archive",
+            )
+            .map_err(|error| MigrationError::Database(error.to_string()))?;
+        stmt.query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+            ))
+        })
+        .map_err(|error| MigrationError::Database(error.to_string()))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| MigrationError::Database(error.to_string()))?
+    };
+    for (legacy_id, platform, file_path, member_id, source_variant) in legacy_archive_rows {
+        let archive_id = if legacy_id.starts_with("as-") {
+            legacy_id.clone()
+        } else {
+            agent_session_archive_id(&platform, &file_path, &member_id)
+        };
+        let source_variant = if source_variant.is_empty() {
+            legacy_session_source_variant(&platform, &file_path).to_string()
+        } else {
+            source_variant
+        };
+        tx.execute(
+            "UPDATE usage_session_archive
+             SET archive_id = ?1, source_variant = ?2,
+                 source_stat_hash = COALESCE(source_stat_hash, file_hash)
+             WHERE archive_id = ?3",
+            params![archive_id, source_variant, legacy_id],
+        )
+        .map_err(|error| MigrationError::Database(error.to_string()))?;
+    }
+    tx.execute_batch(
+        "DROP INDEX IF EXISTS idx_usage_session_archive_file_path;
+         CREATE UNIQUE INDEX IF NOT EXISTS idx_usage_session_archive_source_identity
+             ON usage_session_archive (platform, file_path, source_member_id);
+         CREATE INDEX IF NOT EXISTS idx_usage_session_archive_agent_page
+             ON usage_session_archive (platform, source_state, updated_at DESC, archive_id DESC);
+         CREATE TABLE IF NOT EXISTS usage_session_source_state (
+             platform TEXT NOT NULL,
+             source_path TEXT NOT NULL,
+             source_kind TEXT NOT NULL,
+             source_size INTEGER,
+             source_mtime_ns INTEGER,
+             source_stat_hash TEXT NOT NULL,
+             last_success_at TEXT,
+             last_error_code TEXT,
+             PRIMARY KEY (platform, source_path, source_kind)
+         );",
+    )
+    .map_err(|error| MigrationError::Database(error.to_string()))?;
+    tx.execute(
+        INSERT_MIGRATION_SQL,
+        params![17, "agent_session_source_identity", Utc::now().to_rfc3339()],
+    )
+    .map_err(|error| MigrationError::Database(error.to_string()))?;
+    tx.commit()
+        .map_err(|error| MigrationError::Database(error.to_string()))?;
+    info!("Migration v17 completed successfully");
+    Ok(())
+}
+
+fn legacy_session_source_variant(platform: &str, file_path: &str) -> &'static str {
+    match platform {
+        "claude" => "claude-jsonl",
+        "codex" if file_path.contains("archived_sessions") => "codex-archived",
+        "codex" => "codex-live",
+        "gemini" => "gemini-jsonl",
+        _ => "legacy-jsonl",
+    }
+}
+
 fn create_verified_migration_backup(
     conn: &Connection,
     version: i32,
@@ -1711,6 +1853,9 @@ pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult
 
     // Step 3: Repair historical v3 backfill gaps after legacy rows are present.
     run_migration_v16(conn)?;
+
+    // Step 3.5: Add Agent Sessions provider/source identity.
+    run_migration_v17(conn)?;
 
     // Step 4: Recalculate usage costs after all legacy/live rows are present.
     run_migration_v13(conn)?;
@@ -1975,19 +2120,25 @@ pub fn migrate_usage_archive_from_legacy_dbs(
                         None
                     };
 
+                    let archive_id = agent_session_archive_id(&platform, &file_path, "");
+                    let source_variant = legacy_session_source_variant(&platform, &file_path);
                     tx.execute(
                         "INSERT OR IGNORE INTO usage_session_archive (
                             archive_id, session_id, platform, title, cwd, file_path, file_hash,
-                            message_count, created_at, updated_at, source_state, last_seen_at, raw_deleted_at, archived_at
-                         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+                            source_variant, source_kind, source_member_id, source_stat_hash,
+                            message_count, source_fidelity, created_at, updated_at, source_state,
+                            last_seen_at, raw_deleted_at, archived_at
+                         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'file', '', ?7,
+                                   ?9, 'full', ?10, ?11, ?12, ?13, ?14, ?15)",
                         params![
-                            format!("{platform}:{session_id}:{file_path}"),
+                            archive_id,
                             session_id,
                             platform,
                             title,
                             cwd,
                             file_path,
                             file_hash,
+                            source_variant,
                             message_count,
                             created_at,
                             updated_at,
@@ -2255,6 +2406,92 @@ mod tests {
             marker,
             "repair_usage_v3_backfill[processed=2,repaired=1,rejected=1]"
         );
+    }
+
+    #[test]
+    fn test_migration_v17_preserves_legacy_rows_and_allows_shared_containers() {
+        let conn = Connection::open_in_memory().unwrap();
+        run_initial_migration(&conn).unwrap();
+        conn.execute_batch(
+            "DROP TABLE usage_session_archive;
+             CREATE TABLE usage_session_archive (
+                 archive_id TEXT PRIMARY KEY,
+                 session_id TEXT NOT NULL,
+                 platform TEXT NOT NULL,
+                 title TEXT,
+                 cwd TEXT NOT NULL,
+                 file_path TEXT NOT NULL,
+                 file_hash TEXT,
+                 message_count INTEGER NOT NULL DEFAULT 0,
+                 created_at TEXT NOT NULL,
+                 updated_at TEXT NOT NULL,
+                 source_state TEXT NOT NULL DEFAULT 'live',
+                 last_seen_at TEXT,
+                 raw_deleted_at TEXT,
+                 archived_at TEXT NOT NULL
+             );
+             CREATE UNIQUE INDEX idx_usage_session_archive_file_path
+                 ON usage_session_archive(file_path);",
+        )
+        .unwrap();
+        let now = Utc::now().to_rfc3339();
+        conn.execute(
+            "INSERT INTO usage_session_archive (
+                 archive_id, session_id, platform, cwd, file_path, created_at,
+                 updated_at, archived_at
+             ) VALUES ('legacy', 'legacy-session', 'codex', '/work', '/data/source.jsonl', ?1, ?1, ?1)",
+            [&now],
+        )
+        .unwrap();
+
+        run_migration_v17(&conn).unwrap();
+        run_migration_v17(&conn).unwrap();
+
+        let (legacy_archive_id, legacy_member): (String, String) = conn
+            .query_row(
+                "SELECT archive_id, source_member_id FROM usage_session_archive WHERE session_id = 'legacy-session'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert!(legacy_archive_id.starts_with("as-"));
+        assert!(!legacy_archive_id.contains("/data/source.jsonl"));
+        assert!(legacy_member.is_empty());
+        let legacy_variant: String = conn
+            .query_row(
+                "SELECT source_variant FROM usage_session_archive WHERE session_id = 'legacy-session'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(legacy_variant, "codex-live");
+        conn.execute(
+            "INSERT INTO usage_session_archive (
+                 archive_id, session_id, platform, cwd, file_path, source_variant,
+                 source_kind, source_member_id, created_at, updated_at, archived_at
+             ) VALUES ('member-a', 'a', 'opencode', '/work', '/data/opencode.db',
+                 'opencode-sqlite', 'sqlite_member', 'a', ?1, ?1, ?1)",
+            [&now],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO usage_session_archive (
+                 archive_id, session_id, platform, cwd, file_path, source_variant,
+                 source_kind, source_member_id, created_at, updated_at, archived_at
+             ) VALUES ('member-b', 'b', 'opencode', '/work', '/data/opencode.db',
+                 'opencode-sqlite', 'sqlite_member', 'b', ?1, ?1, ?1)",
+            [&now],
+        )
+        .unwrap();
+        let count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM usage_session_archive WHERE file_path = '/data/opencode.db'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 2);
+        assert!(table_exists(&conn, "usage_session_source_state").unwrap());
     }
 
     #[test]

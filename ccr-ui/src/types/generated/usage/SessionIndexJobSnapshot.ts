@@ -2,4 +2,4 @@
 import type { SessionIndexJobStage } from "./SessionIndexJobStage";
 import type { SessionIndexJobStatus } from "./SessionIndexJobStatus";
 
-export type SessionIndexJobSnapshot = { job_id: string, status: SessionIndexJobStatus, stage: SessionIndexJobStage, platforms_total: number, platforms_completed: number, files_total: number, files_scanned: number, sessions_added: number, sessions_updated: number, errors: number, started_at: string, updated_at: string, finished_at?: string, current_platform?: string, warnings: Array<string>, error?: string, };
+export type SessionIndexJobSnapshot = { job_id: string, status: SessionIndexJobStatus, stage: SessionIndexJobStage, platforms_total: number, platforms_completed: number, files_total: number, files_scanned: number, sessions_added: number, sessions_updated: number, errors: number, discovered: number, unchanged: number, fingerprinted: number, parsed: number, upserted: number, partial: number, locked: number, started_at: string, updated_at: string, finished_at?: string, current_platform?: string, warnings: Array<string>, error?: string, };

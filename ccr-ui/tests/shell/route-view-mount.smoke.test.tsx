@@ -311,8 +311,8 @@ describe('findLeakedKeys fixtures', () => {
 })
 
 describe('catalog route view mount', () => {
-  it('locks flattenCatalog at 75 records', () => {
-    expect(catalogRoutes).toHaveLength(75)
+  it('locks flattenCatalog at 76 records', () => {
+    expect(catalogRoutes).toHaveLength(76)
   })
 
   it('mounts each catalog path in zh-CN without leaked i18n keys', async () => {

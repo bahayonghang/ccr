@@ -14,7 +14,7 @@ const flat = flattenCatalog()
 const byId = (id: string) => flat.find((route) => route.id === id)
 const byPath = (path: string) => flat.find((route) => route.path === path)
 
-/** 75 条路径门：顺序与 `flattenCatalog()` / shell-port `route-inventory.md` 对齐。 */
+/** 76 条路径门：顺序与 `flattenCatalog()` / shell-port `route-inventory.md` 对齐。 */
 const EXPECTED_FLAT_PATHS = [
   '/tray/codex',
   '/',
@@ -45,6 +45,7 @@ const EXPECTED_FLAT_PATHS = [
   '/sessions',
   '/mcp',
   '/mcp/unified',
+  '/agent-sessions',
   '/mcp-manager',
   '/slash-commands',
   '/agents',
@@ -94,14 +95,14 @@ const EXPECTED_FLAT_PATHS = [
 ] as const
 
 describe('router smoke', () => {
-  it('keeps 75 route records matching the route inventory', () => {
-    expect(EXPECTED_FLAT_PATHS).toHaveLength(75)
-    expect(flat).toHaveLength(75)
+  it('keeps 76 route records matching the route inventory', () => {
+    expect(EXPECTED_FLAT_PATHS).toHaveLength(76)
+    expect(flat).toHaveLength(76)
     expect(flat.map((route) => route.path)).toEqual([...EXPECTED_FLAT_PATHS])
     const recordKeys = flat.map(
       (route) => `${route.path}::${route.id ?? ''}::${route.redirect ?? ''}`,
     )
-    expect(new Set(recordKeys).size).toBe(75)
+    expect(new Set(recordKeys).size).toBe(76)
   })
 
   it('keeps handle keys inside the allowlist', () => {

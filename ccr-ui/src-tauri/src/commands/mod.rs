@@ -2,6 +2,7 @@
 //!
 //! 每个子模块对应一个平台或功能域，并提供 `#[ccr_tauri_command_macros::command]` 命令实现。
 
+pub mod agent_sessions;
 pub mod builtin_prompts;
 pub mod checkin;
 pub mod claude;

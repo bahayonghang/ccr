@@ -21,6 +21,12 @@ export const mainLayoutNavSections: MainLayoutNavSection[] = [
     titleKey: 'nav.configCenter',
     items: [
       {
+        to: '/agent-sessions',
+        labelKey: 'nav.agentSessions',
+        icon: 'MessagesSquare',
+        iconClass: 'text-accent-primary/85 group-hover:text-accent-primary transition-colors',
+      },
+      {
         to: '/mcp-manager',
         labelKey: 'nav.mcpManager',
         icon: 'Server',
@@ -122,6 +128,7 @@ export const mainLayoutRouteTitleMap: Record<string, string> = {
   mcp: 'nav.mcp',
   'mcp-unified': 'nav.mcpManager',
   'mcp-manager': 'nav.mcpManager',
+  'agent-sessions': 'nav.agentSessions',
   'slash-commands': 'nav.slashCommands',
   agents: 'nav.agents',
   'agent-detail': 'nav.agents',
@@ -163,4 +170,5 @@ export const mainLayoutCachedViews = [
   'CodexSessionsView',
   'GeminiCliView',
   'McpManagerView',
+  'AgentSessionsView',
 ]

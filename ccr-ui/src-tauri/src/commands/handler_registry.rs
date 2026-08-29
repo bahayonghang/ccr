@@ -163,6 +163,7 @@ fn effective_risk(default_risk: CommandRisk, command: &str) -> CommandRisk {
         | "cancel_usage_import_job_v2"
         | "import_usage_v2"
         | "import_all_usage_v2"
+        | "agent_sessions_start_refresh"
         | "claude_observer_subscription_set" => return CommandRisk::LocalMutation,
         "sync_status"
         | "llmusage_install_recent"
@@ -803,6 +804,13 @@ define_command_registry! {
         super::mcp_presets::list_source_mcp_servers,
         super::mcp_presets::sync_mcp_server,
         super::mcp_presets::sync_all_mcp_servers,
+    ],
+    agent_sessions: "Agent Sessions" [ReadOnly, Generated] => [
+        super::agent_sessions::agent_sessions_list => ["AgentSessionListRequestDto", "AgentSessionPageDto", "export const agentSessionsList = (request: AgentSessionListRequestDto): Promise<AgentSessionPageDto> => invoke('agent_sessions_list', { request })\n"],
+        super::agent_sessions::agent_sessions_get_detail => ["AgentSessionDetailRequestDto", "AgentSessionDetailDto", "export const agentSessionsGetDetail = (request: AgentSessionDetailRequestDto): Promise<AgentSessionDetailDto> => invoke('agent_sessions_get_detail', { request })\n"],
+        super::agent_sessions::agent_sessions_get_provider_status => ["void", "AgentSessionProviderStatusDto[]", "export const agentSessionsGetProviderStatus = (): Promise<AgentSessionProviderStatusDto[]> => invoke('agent_sessions_get_provider_status')\n"],
+        super::agent_sessions::agent_sessions_start_refresh => ["void", "StartSessionIndexJobResponse", "export const agentSessionsStartRefresh = (): Promise<StartSessionIndexJobResponse> => invoke('agent_sessions_start_refresh')\n"],
+        super::agent_sessions::agent_sessions_get_refresh_status => ["string", "SessionIndexJobSnapshot", "export const agentSessionsGetRefreshStatus = (jobId: string): Promise<SessionIndexJobSnapshot> => invoke('agent_sessions_get_refresh_status', { jobId })\n"],
     ],
     usage_v2: "Usage V2" [ReadOnly, Generated] => [
         super::usage::get_usage_summary_v2 => ["UsageRangeInput", "UsageSummaryDto", "export const getUsageSummaryV2 = (platform?: string, startDate?: string, endDate?: string): Promise<UsageSummaryDto> =>\n  invoke('get_usage_summary_v2', { platform, startDate, endDate })\n"],
@@ -1583,6 +1591,23 @@ mod tests {
         output
     }
 
+    fn agent_sessions_client_typescript() -> String {
+        let mut output = [
+            "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
+            "import type { AgentSessionDetailDto } from '@/types/generated/agent_sessions/AgentSessionDetailDto'\n",
+            "import type { AgentSessionDetailRequestDto } from '@/types/generated/agent_sessions/AgentSessionDetailRequestDto'\n",
+            "import type { AgentSessionListRequestDto } from '@/types/generated/agent_sessions/AgentSessionListRequestDto'\n",
+            "import type { AgentSessionPageDto } from '@/types/generated/agent_sessions/AgentSessionPageDto'\n",
+            "import type { AgentSessionProviderStatusDto } from '@/types/generated/agent_sessions/AgentSessionProviderStatusDto'\n",
+            "import type { SessionIndexJobSnapshot } from '@/types/generated/usage/SessionIndexJobSnapshot'\n",
+            "import type { StartSessionIndexJobResponse } from '@/types/generated/usage/StartSessionIndexJobResponse'\n\n",
+        ]
+        .concat();
+        append_module_client_declarations(&mut output, "agent_sessions");
+        output
+    }
+
     fn claude_observer_client_typescript() -> String {
         let mut output = [
             "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
@@ -1719,6 +1744,10 @@ mod tests {
                 usage_v2_client_typescript(),
             ),
             (
+                root.join("ccr-ui/src/api/generated/agentSessions.ts"),
+                agent_sessions_client_typescript(),
+            ),
+            (
                 root.join("ccr-ui/src/api/generated/claudeObserver.ts"),
                 claude_observer_client_typescript(),
             ),
@@ -1727,13 +1756,13 @@ mod tests {
 
     #[test]
     fn command_registry_shape_matches_current_handler_surface() {
-        assert_eq!(COMMAND_MODULES.len(), 37);
+        assert_eq!(COMMAND_MODULES.len(), 38);
 
         #[cfg(target_os = "windows")]
-        assert_eq!(registered_command_count(), 342);
+        assert_eq!(registered_command_count(), 347);
 
         #[cfg(not(target_os = "windows"))]
-        assert_eq!(registered_command_count(), 334);
+        assert_eq!(registered_command_count(), 339);
     }
 
     #[test]
@@ -1768,7 +1797,7 @@ mod tests {
     #[test]
     fn command_capability_descriptors_are_complete_and_unique() {
         let descriptors = command_descriptors().collect::<Vec<_>>();
-        assert_eq!(descriptors.len(), 342);
+        assert_eq!(descriptors.len(), 347);
 
         let mut ids = HashSet::new();
         let mut paths = HashSet::new();
@@ -1797,10 +1826,10 @@ mod tests {
         }
 
         let manifest = command_manifest();
-        assert_eq!(manifest.base_command_count, 334);
-        assert_eq!(manifest.windows_command_count, 342);
-        assert_eq!(manifest.typed_command_count, 271);
-        assert_eq!(manifest.exact_wire_type_count, 271);
+        assert_eq!(manifest.base_command_count, 339);
+        assert_eq!(manifest.windows_command_count, 347);
+        assert_eq!(manifest.typed_command_count, 276);
+        assert_eq!(manifest.exact_wire_type_count, 276);
 
         let exact_contract_modules = descriptors
             .iter()
@@ -1830,13 +1859,14 @@ mod tests {
                         | "claude"
                         | "claude_profiles"
                         | "codex"
+                        | "agent_sessions"
                         | "usage_v2"
                         | "install"
                         | "claude_observer"
                 )
             })
             .collect::<Vec<_>>();
-        assert_eq!(exact_contract_modules.len(), 271);
+        assert_eq!(exact_contract_modules.len(), 276);
         assert!(
             exact_contract_modules
                 .iter()

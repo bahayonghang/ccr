@@ -275,7 +275,17 @@ CREATE TABLE IF NOT EXISTS usage_session_archive (
     cwd TEXT NOT NULL,
     file_path TEXT NOT NULL,
     file_hash TEXT,
+    source_variant TEXT NOT NULL DEFAULT '',
+    source_kind TEXT NOT NULL DEFAULT 'file',
+    source_member_id TEXT NOT NULL DEFAULT '',
+    source_size INTEGER,
+    source_mtime_ns INTEGER,
+    source_stat_hash TEXT,
     message_count INTEGER NOT NULL DEFAULT 0,
+    user_message_count INTEGER NOT NULL DEFAULT 0,
+    assistant_message_count INTEGER NOT NULL DEFAULT 0,
+    tool_use_count INTEGER NOT NULL DEFAULT 0,
+    source_fidelity TEXT NOT NULL DEFAULT 'full',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     source_state TEXT NOT NULL DEFAULT 'live',
@@ -284,14 +294,29 @@ CREATE TABLE IF NOT EXISTS usage_session_archive (
     archived_at TEXT NOT NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_usage_session_archive_file_path
-    ON usage_session_archive (file_path);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_usage_session_archive_source_identity
+    ON usage_session_archive (platform, file_path, source_member_id);
 
 CREATE INDEX IF NOT EXISTS idx_usage_session_archive_platform_created_at
     ON usage_session_archive (platform, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_usage_session_archive_platform_state
     ON usage_session_archive (platform, source_state);
+
+CREATE INDEX IF NOT EXISTS idx_usage_session_archive_agent_page
+    ON usage_session_archive (platform, source_state, updated_at DESC, archive_id DESC);
+
+CREATE TABLE IF NOT EXISTS usage_session_source_state (
+    platform TEXT NOT NULL,
+    source_path TEXT NOT NULL,
+    source_kind TEXT NOT NULL,
+    source_size INTEGER,
+    source_mtime_ns INTEGER,
+    source_stat_hash TEXT NOT NULL,
+    last_success_at TEXT,
+    last_error_code TEXT,
+    PRIMARY KEY (platform, source_path, source_kind)
+);
 
 -- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 -- SSH Host Management Tables

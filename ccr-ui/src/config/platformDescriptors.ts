@@ -13,7 +13,7 @@ export type PlatformSurface = (typeof PLATFORM_SURFACES)[number]
 
 /**
  * descriptor 层：声明该平台有哪些面，驱动导航与（未来）路由生成。
- * 路径与 `routeCatalog` 现网 75 条记录对齐，本任务不改路径。
+ * 平台路径与 `routeCatalog` 现网 76 条记录对齐；独立工具页不属于平台 surface。
  */
 export interface PlatformSurfaceDescriptor {
   id: string

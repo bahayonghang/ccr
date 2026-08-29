@@ -50,8 +50,8 @@ const THIN_SHELLS = [
 ]
 
 describe('platform unify', () => {
-  it('keeps flattenCatalog at 75 paths', () => {
-    expect(flattenCatalog()).toHaveLength(75)
+  it('keeps flattenCatalog at 76 paths', () => {
+    expect(flattenCatalog()).toHaveLength(76)
   })
 
   it('declares surfaces without changing root paths', () => {

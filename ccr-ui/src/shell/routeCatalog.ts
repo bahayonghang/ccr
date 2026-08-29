@@ -115,6 +115,11 @@ const children: CatalogEntry[] = [
   { path: 'sessions', id: 'sessions', redirect: '/monitoring' },
   { path: 'mcp', id: 'mcp', redirect: '/mcp-manager' },
   { path: 'mcp/unified', id: 'mcp-unified', redirect: '/mcp-manager' },
+  {
+    path: 'agent-sessions',
+    id: 'agent-sessions',
+    handle: dash({ cache: true, cacheKey: 'AgentSessionsView', depth: 1, group: 'config' }),
+  },
   { path: 'mcp-manager', id: 'mcp-manager', handle: dash({ depth: 1, group: 'config' }) },
   { path: 'slash-commands', id: 'slash-commands', handle: dash({ depth: 1, group: 'config' }) },
   { path: 'agents', id: 'agents', handle: dash({ depth: 1, group: 'config' }) },
@@ -281,7 +286,7 @@ const joinPath = (parent: string, child: string): string => {
   return `${parent.replace(/\/$/, '')}/${child}`
 }
 
-/** 扁平化后的 75 条路径记录（含布局父级与全部 children）。 */
+/** 扁平化后的 76 条路径记录（含布局父级与全部 children）。 */
 export function flattenCatalog(): FlatCatalogRoute[] {
   const layoutPath = joinPath('', layoutCatalog.path)
   const rows: FlatCatalogRoute[] = [

@@ -51,6 +51,7 @@ export const EXEMPTIONS: Exemption[] = [
   { file: 'src/views/usage/usageChartOptions.ts', kind: 'px', snippet: "fontSize: '10px'", reason: APEX },
   { file: 'src/views/usage/usageChartOptions.ts', kind: 'rgb', snippet: "'rgb(29 29 31 / 8%)'", reason: APEX },
   { file: 'src/views/usage/usageChartOptions.ts', kind: 'rgb', snippet: "'rgb(29 29 31 / 12%)'", reason: APEX },
+  { file: 'src/views/usage/usageDailyBarChart.ts', kind: 'px', snippet: "fontSize: '11px'", reason: APEX },
 
   { file: 'src/utils/startupRecovery.ts', kind: 'px', snippet: "'padding:24px'", reason: STARTUP },
   { file: 'src/utils/startupRecovery.ts', kind: 'px', snippet: "'width:min(560px,100%)'", reason: STARTUP },

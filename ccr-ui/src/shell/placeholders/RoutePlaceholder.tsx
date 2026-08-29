@@ -1,7 +1,7 @@
 import { useParams, useMatches } from 'react-router'
 import { useRouteHandle } from '../routeHandle'
 
-/** 阶段 5 之前的页面占位：渲染路由 id 与 handle，保证 75 条路径无白屏。 */
+/** 阶段 5 之前的页面占位：渲染路由 id 与 handle，保证目录路由无白屏。 */
 export function RoutePlaceholder() {
   const params = useParams()
   const matches = useMatches()

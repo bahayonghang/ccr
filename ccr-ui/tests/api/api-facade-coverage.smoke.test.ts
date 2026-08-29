@@ -281,8 +281,8 @@ describe('API facade command-name coverage', () => {
     ) as ManifestFile
 
     expect(file.schema_version).toBe(2)
-    expect(file.base_command_count).toBe(334)
-    expect(file.windows_command_count).toBe(342)
+    expect(file.base_command_count).toBe(339)
+    expect(file.windows_command_count).toBe(347)
     expect(COMMAND_MANIFEST.schema_version).toBe(file.schema_version)
     expect(COMMAND_MANIFEST.base_command_count).toBe(file.base_command_count)
     expect(COMMAND_MANIFEST.windows_command_count).toBe(file.windows_command_count)
@@ -290,7 +290,7 @@ describe('API facade command-name coverage', () => {
     expect(COMMAND_MANIFEST.commands.map((command) => command.id)).toEqual(
       file.commands.map((command) => command.id),
     )
-    expect(file.commands.filter((command) => command.platform === 'base')).toHaveLength(334)
+    expect(file.commands.filter((command) => command.platform === 'base')).toHaveLength(339)
     expect(file.commands.filter((command) => command.platform === 'windows')).toHaveLength(8)
   })
 

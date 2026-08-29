@@ -16,6 +16,7 @@ export * as grokApi from './domains/grok'
 export * as syncApi from './domains/sync'
 export * as platformApi from './domains/platforms'
 export * as usageApi from './domains/usage'
+export * as agentSessionsApi from './domains/agentSessions'
 export * as systemApi from './domains/system'
 export * as systemPromptsApi from './domains/systemPrompts'
 

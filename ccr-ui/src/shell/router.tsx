@@ -1,5 +1,6 @@
 import { createBrowserRouter, redirect, type LazyRouteFunction, type RouteObject } from 'react-router'
 import { checkinRouteLoaders } from '@/features/checkin/routeLoaders'
+import { agentSessionsRouteLoaders } from '@/features/agent-sessions/routeLoaders'
 import { claudeRouteLoaders } from '@/features/claude/routeLoaders'
 import { codexRouteLoaders } from '@/features/codex/routeLoaders'
 import { commandsRouteLoaders } from '@/features/commands/routeLoaders'
@@ -24,6 +25,7 @@ const loadPlaceholder = () =>
 
 // 后写覆盖短别名：settings→configs，slash-commands→commands，agents→gemini。
 const lazyById: Record<string, LazyLoader> = {
+  ...agentSessionsRouteLoaders,
   ...claudeRouteLoaders,
   ...codexRouteLoaders,
   ...grokRouteLoaders,

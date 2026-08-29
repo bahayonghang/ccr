@@ -41,6 +41,20 @@ pub struct SessionIndexJobSnapshot {
     pub sessions_updated: u64,
     #[ts(as = "f64")]
     pub errors: u64,
+    #[ts(as = "f64")]
+    pub discovered: u64,
+    #[ts(as = "f64")]
+    pub unchanged: u64,
+    #[ts(as = "f64")]
+    pub fingerprinted: u64,
+    #[ts(as = "f64")]
+    pub parsed: u64,
+    #[ts(as = "f64")]
+    pub upserted: u64,
+    #[ts(as = "f64")]
+    pub partial: u64,
+    #[ts(as = "f64")]
+    pub locked: u64,
     pub started_at: String,
     pub updated_at: String,
     // skip_serializing_if 字段在 wire 上是"缺键"而非 null，ts(optional) 生成 `field?: T` 精确表达。
@@ -70,6 +84,13 @@ impl SessionIndexJobSnapshot {
             sessions_added: 0,
             sessions_updated: 0,
             errors: 0,
+            discovered: 0,
+            unchanged: 0,
+            fingerprinted: 0,
+            parsed: 0,
+            upserted: 0,
+            partial: 0,
+            locked: 0,
             started_at: now.clone(),
             updated_at: now,
             finished_at: None,
