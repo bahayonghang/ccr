@@ -1,8 +1,8 @@
 # ccr-ui Frontend Development Guidelines
 
-> Frontend contracts for the CCR desktop UI. Nineteen documents after the React rewrite
+> Frontend contracts for the CCR desktop UI. Twenty documents after the React rewrite
 > (baseline 16 + `layering-contracts.md` + `react-rerender-discipline.md` +
-> `platform-surface-contracts.md`).
+> `platform-surface-contracts.md` + `agent-session-observability-contracts.md`).
 
 ---
 
@@ -28,6 +28,7 @@
 | [Layering Contracts](./layering-contracts.md) | Enforced dependency graph, component layering, facade consumer/definition-side division of labor | Complete |
 | [React Rerender Discipline](./react-rerender-discipline.md) | Four lint-enforced and three review-gate re-render constraints for view-layer React code | Complete |
 | [Platform Surface Contracts](./platform-surface-contracts.md) | Two-layer descriptor + per-surface config; Base components without platform-name branches | Complete |
+| [Agent Session Observability Contracts](./agent-session-observability-contracts.md) | Local-only eight-provider discovery, archive, typed IPC, bounded paging, refresh, and UI contracts | Complete |
 
 The Environment-Scoped Dashboard Contracts file lives in this directory (per-environment Local-only dashboards).
 
@@ -50,6 +51,7 @@ The Environment-Scoped Dashboard Contracts file lives in this directory (per-env
 - Read [Layering Contracts](./layering-contracts.md) before adding or moving any module under `ccr-ui/src/**` (dependency direction, component layering, facade import rules).
 - Read [React Rerender Discipline](./react-rerender-discipline.md) before writing or reviewing view-layer React code under `ccr-ui/src/features/**` and `ccr-ui/src/views/**`.
 - Read [Platform Surface Contracts](./platform-surface-contracts.md) before adding a platform surface, a `features/platform` Base, or a `src/configs/{settings,profiles,commands,mcp,agents,plugins,auth}.ts` export.
+- Read [Agent Session Observability Contracts](./agent-session-observability-contracts.md) before changing a session provider/source, usage archive schema, `agent_sessions_*` IPC, or the `/agent-sessions` page.
 
 ## Quality Check
 
@@ -71,3 +73,4 @@ The Environment-Scoped Dashboard Contracts file lives in this directory (per-env
 - Run `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/usage/apexcharts-style-contract.smoke.test.ts tests/usage/usage-chart-stability.smoke.test.tsx` and a production build when changing `apexChartsCore.ts`, ApexCharts versions, or chart style delivery. Confirm the complete CSS remains a lazy preload dependency and is not linked directly from `index.html`.
 - Run `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/usage/platform-usage-trend-chart.smoke.test.ts tests/usage/usage-chart-diagnostics.smoke.test.ts` when changing platform homepage trend charts or `formatTrendAxisLabel` / `parseUtcDate`.
 - Run `cd ccr-ui && bun run test:smoke -- tests/ui/confirm-interaction.smoke.test.tsx` when changing confirmation dialogs.
+- Run the focused provider, DB, Tauri, binding/inventory, and frontend smoke checks from [Agent Session Observability Contracts](./agent-session-observability-contracts.md) when changing Agent Session discovery, archive, IPC, refresh, or UI behavior.

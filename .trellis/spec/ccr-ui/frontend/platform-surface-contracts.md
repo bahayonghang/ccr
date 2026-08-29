@@ -28,7 +28,7 @@ interface PlatformSurfaceDescriptor {
 }
 ```
 
-`rootPath` values match the live catalog: `/claude-code`, `/codex`, `/grok`, `/opencode`, `/antigravity`. Paths are not generated from this list in this task; `routeCatalog` still emits 75 records.
+`rootPath` values match the live catalog: `/claude-code`, `/codex`, `/grok`, `/opencode`, `/antigravity`. Paths are not generated from this list in this task; `routeCatalog` still emits 76 records.
 
 Per-surface config: one module per surface, one export per platform. Config objects have `cacheKey`, `i18nPrefix`, `features`, `load`/`save` or list CRUD. They do **not** have a `platform: 'codex'` identifier field.
 
@@ -50,7 +50,7 @@ Per-surface config: one module per surface, one export per platform. Config obje
 | Settings save | Single helper `saveSettingsValues` in `settings-model.ts` |
 | Grok settings dirty save | `dirtyPatch` feature + `buildGrokSettingsPatch`; invalid auto-compact blocks save |
 | Non-local environment on a `localOnly` surface | `runtime-unavailable` via `probeLocalEnvironment` |
-| `flattenCatalog()` | 75 paths, same as `route-inventory.md` |
+| `flattenCatalog()` | 76 paths, same as `route-inventory.md` |
 
 ### 5. Good/Base/Bad Cases
 
@@ -62,7 +62,7 @@ Per-surface config: one module per surface, one export per platform. Config obje
 
 ### 6. Tests Required
 
-- `tests/platforms/platform-surface-unify.smoke.test.ts`: 75 paths, descriptor roots, no platform-name branch in Base files, thin shells ≤100 lines, `visibleSettingsFields` / `saveSettingsValues` as the single settings implementation.
+- `tests/platforms/platform-surface-unify.smoke.test.ts`: 76 paths, descriptor roots, no platform-name branch in Base files, thin shells ≤100 lines, `visibleSettingsFields` / `saveSettingsValues` as the single settings implementation.
 - `tests/platforms/platform-base-settings.smoke.test.tsx`: one `BaseSettings` rendered with two configs.
 - `bun run type-check` and `bun run lint:ci`.
 
