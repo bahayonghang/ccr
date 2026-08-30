@@ -1455,3 +1455,26 @@ Usage 子页从粘连文本改成操作员 ledger，并修好 Last 30 Days 日�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 102: 重构 ccr-ui Sync 页布局与交互门控
+
+**Date**: 2026-08-30
+**Task**: 重构 ccr-ui Sync 页布局与交互门控
+**Branch**: `dev`
+
+### Summary
+
+重新设计 ccr-ui 同步界面：修复 scope strip/console intro 文字重叠，侧栏重排为 WebDAV 配置→操作输出→关于同步折叠区，移除 Back to Home，资产卡片操作分级（Sync 主/Push Pull 次/Force 条件），新增 connectionState 门控（未配置引导卡+禁用、不可达警告横幅、未测试不门控），修复全局忙碌时全卡旋转的状态归属问题。type-check/lint/test 全绿，Playwright 四场景截图验证通过。spec 固化门控真值表与 Playwright addInitScript 单参数陷阱。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `343f2e26` | (see git log) |
+| `b2434cdf` | (see git log) |
+| `cbafaa16` | (see git log) |
+
+### Status
+
+[OK] **Completed**
