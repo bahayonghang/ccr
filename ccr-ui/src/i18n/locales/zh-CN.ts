@@ -2282,6 +2282,20 @@ export default {
       sync: '同步',
     },
     backHome: '返回首页',
+    // 连接门控（未配置 / 不可达）
+    gating: {
+      unconfiguredTitle: '先配置云同步',
+      unconfiguredDescription: '配置 WebDAV 账号前同步操作保持禁用；添加账号后即可 Push、Pull 与 Sync。',
+      unconfiguredCta: '配置 WebDAV 账号',
+      unreachableTitle: '远端不可达',
+      unreachableDescription: '无法连接已配置的 WebDAV 服务器，连接测试通过前同步操作保持禁用。',
+      retest: '重新测试连接',
+      disabledUnconfigured: '请先配置 WebDAV 账号以启用同步操作',
+      disabledUnreachable: '请恢复 WebDAV 连接以启用同步操作',
+    },
+    about: {
+      title: '关于同步',
+    },
 
     // Loading and error states
     loading: '加载中...',

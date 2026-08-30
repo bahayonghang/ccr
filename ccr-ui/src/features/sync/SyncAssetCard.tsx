@@ -1,7 +1,7 @@
 import { memo, useCallback } from 'react'
 import type { SyncAssetInfo } from '@/types/syncSelection'
 import type { TranslateFunction } from '@/utils/tf'
-import { SIcon } from '@/ui'
+import { SIcon, buttonClass } from '@/ui'
 
 function AssetTitleRow({ asset, t }: { asset: SyncAssetInfo; t: TranslateFunction }) {
   const kindLabel = asset.kind === 'directory' ? t('sync.assets.kindDirectory') : t('sync.assets.kindFile')
@@ -44,6 +44,8 @@ interface SyncAssetCardProps {
   busyLabel: string
   showForce: boolean
   t: TranslateFunction
+  /** 门控原因（未配置/不可达）；非空时禁用全部同步按钮并作为提示 */
+  disabledReason?: string
   onPush: (asset: SyncAssetInfo) => void
   onPull: (asset: SyncAssetInfo) => void
   onSync: (asset: SyncAssetInfo) => void
@@ -56,6 +58,7 @@ export const SyncAssetCard = memo(function SyncAssetCard({
   busyLabel,
   showForce,
   t,
+  disabledReason,
   onPush,
   onPull,
   onSync,
@@ -74,6 +77,9 @@ export const SyncAssetCard = memo(function SyncAssetCard({
     onForce(asset)
   }, [asset, onForce])
   const localPath = asset.resolvedLocalPath || asset.localPath
+  const gated = Boolean(disabledReason)
+  const gateTitle = gated ? disabledReason : undefined
+  const disabled = busy || gated
 
   return (
     <div className={`sync-asset-card${asset.localExists ? '' : ' sync-asset-card--missing'}`}>
@@ -98,20 +104,20 @@ export const SyncAssetCard = memo(function SyncAssetCard({
         </div>
       </div>
       <div className="sync-asset-card__actions">
-        <button type="button" className="sync-action-button" disabled={busy || !asset.localExists} onClick={handlePush}>
+        <button type="button" className={buttonClass({ variant: 'ghost', size: 'sm' })} disabled={disabled || !asset.localExists} title={gateTitle} onClick={handlePush}>
           <SIcon name="Upload" size="w-4 h-4" />
           {t('sync.assetActions.push')}
         </button>
-        <button type="button" className="sync-action-button" disabled={busy} onClick={handlePull}>
+        <button type="button" className={buttonClass({ variant: 'ghost', size: 'sm' })} disabled={disabled} title={gateTitle} onClick={handlePull}>
           <SIcon name="Download" size="w-4 h-4" />
           {t('sync.assetActions.pull')}
         </button>
-        <button type="button" className="sync-action-button" disabled={busy} onClick={handleSync}>
-          <SIcon name="RefreshCw" size="w-4 h-4" className={busy ? 'animate-spin' : ''} />
+        <button type="button" className={buttonClass({ variant: 'primary', size: 'sm' })} disabled={disabled} title={gateTitle} onClick={handleSync}>
+          <SIcon name="RefreshCw" size="w-4 h-4" className={busyLabel ? 'animate-spin' : ''} />
           {busyLabel || t('sync.assetActions.sync')}
         </button>
         {showForce ? (
-          <button type="button" className="sync-action-button sync-action-button--force" disabled={busy} onClick={handleForce}>
+          <button type="button" className={buttonClass({ variant: 'warning', size: 'sm' })} disabled={disabled} title={gateTitle} onClick={handleForce}>
             <SIcon name="Shield" size="w-4 h-4" />
             {t('sync.assetActions.forceRetry')}
           </button>

@@ -2347,6 +2347,22 @@ export default {
       sync: 'Sync',
     },
     backHome: 'Back to Home',
+    // Connection gating (unconfigured / unreachable)
+    gating: {
+      unconfiguredTitle: 'Set up cloud sync first',
+      unconfiguredDescription:
+        'Sync operations stay disabled until a WebDAV account is configured. Add an account to enable push, pull, and sync.',
+      unconfiguredCta: 'Configure WebDAV account',
+      unreachableTitle: 'Remote unreachable',
+      unreachableDescription:
+        'The configured WebDAV server could not be reached. Sync operations stay disabled until the connection test passes.',
+      retest: 'Retest connection',
+      disabledUnconfigured: 'Configure a WebDAV account to enable sync operations',
+      disabledUnreachable: 'Restore the WebDAV connection to enable sync operations',
+    },
+    about: {
+      title: 'About sync',
+    },
 
     // Loading and error states
     loading: 'Loading...',

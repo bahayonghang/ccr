@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { clearWebdavConfig } from '@/api'
 import type { SyncStatusView } from '@/types/syncSelection'
 import { logger } from '@/utils/logger'
@@ -19,30 +19,33 @@ function connectionChip(syncStatus: SyncStatusView | null, t: ReturnType<typeof 
 interface SyncInfoSidebarProps {
   syncStatus: SyncStatusView | null
   onStatusRefresh: () => void
+  accountDialogOpen: boolean
+  accountDialogMode: 'add' | 'edit'
+  onAccountDialogOpenChange: (open: boolean) => void
+  onOpenAccountDialog: (mode: 'add' | 'edit') => void
 }
 
-export function SyncInfoSidebar({ syncStatus, onStatusRefresh }: SyncInfoSidebarProps) {
+export function SyncInfoSidebar({
+  syncStatus,
+  onStatusRefresh,
+  accountDialogOpen,
+  accountDialogMode,
+  onAccountDialogOpenChange,
+  onOpenAccountDialog,
+}: SyncInfoSidebarProps) {
   const t = useSyncT()
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [dialogMode, setDialogMode] = useState<'add' | 'edit'>('add')
   const [confirmingDisconnect, setConfirmingDisconnect] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
   const [testing, setTesting] = useState(false)
   const configured = Boolean(syncStatus?.configured)
   const chip = connectionChip(syncStatus, t)
-  const services = useMemo(
-    () => [t('sync.supportedServices.nutstore'), t('sync.supportedServices.nextcloud'), t('sync.supportedServices.owncloud'), t('sync.supportedServices.any')],
-    [t],
-  )
 
   const openAdd = useCallback(() => {
-    setDialogMode('add')
-    setDialogOpen(true)
-  }, [])
+    onOpenAccountDialog('add')
+  }, [onOpenAccountDialog])
   const openEdit = useCallback(() => {
-    setDialogMode('edit')
-    setDialogOpen(true)
-  }, [])
+    onOpenAccountDialog('edit')
+  }, [onOpenAccountDialog])
   const closeDisconnect = useCallback(() => {
     setConfirmingDisconnect(false)
   }, [])
@@ -71,7 +74,7 @@ export function SyncInfoSidebar({ syncStatus, onStatusRefresh }: SyncInfoSidebar
   }, [onDisconnect])
 
   return (
-    <div className="space-y-6">
+    <>
       <div className="rounded-2xl border border-border-default/25 bg-bg-elevated p-6">
         <div className="mb-5 flex items-center justify-between gap-3">
           <h2 className="text-xl font-bold text-text-primary">{t('sync.webdav.title')}</h2>
@@ -103,23 +106,7 @@ export function SyncInfoSidebar({ syncStatus, onStatusRefresh }: SyncInfoSidebar
         )}
       </div>
 
-      <div className="rounded-2xl border border-border-default/25 bg-bg-elevated p-6">
-        <h2 className="mb-4 text-xl font-bold text-text-primary">{t('sync.features.title')}</h2>
-        <p className="text-sm text-text-secondary">{t('sync.features.sensitiveMaskingDesc')}</p>
-      </div>
-      <div className="rounded-2xl border border-border-default/25 bg-bg-elevated p-6">
-        <h2 className="mb-4 text-xl font-bold text-text-primary">{t('sync.supportedServices.title')}</h2>
-        <div className="space-y-3 text-sm text-text-secondary">
-          {services.map((service) => (
-            <div key={service} className="flex items-center gap-2">
-              <SIcon name="CheckCircle" size="w-4 h-4" className="text-accent-success" />
-              <span>{service}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <SyncAccountDialog open={dialogOpen} mode={dialogMode} initial={syncStatus} onOpenChange={setDialogOpen} onSaved={onStatusRefresh} />
+      <SyncAccountDialog open={accountDialogOpen} mode={accountDialogMode} initial={syncStatus} onOpenChange={onAccountDialogOpenChange} onSaved={onStatusRefresh} />
       <BaseModal modelValue={confirmingDisconnect} title={t('sync.account.disconnectConfirmTitle')} size="sm" surface="solid" closeOnBackdrop={!disconnecting} closeOnEscape={!disconnecting} onUpdateModelValue={setConfirmingDisconnect} footer={
         <div className="flex w-full gap-2">
           <button type="button" className="flex-1 rounded-lg border border-border-default px-3 py-2" disabled={disconnecting} onClick={closeDisconnect}>{t('sync.account.cancelBtn')}</button>
@@ -128,7 +115,7 @@ export function SyncInfoSidebar({ syncStatus, onStatusRefresh }: SyncInfoSidebar
       }>
         <p className="text-sm text-text-secondary">{t('sync.account.disconnectConfirmBody')}</p>
       </BaseModal>
-    </div>
+    </>
   )
 }
 

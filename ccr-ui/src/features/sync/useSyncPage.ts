@@ -15,6 +15,8 @@ import { buildErrorOutput, buildOperationOutput } from './sync-output'
 
 const GROUP_ORDER = ['ccr', 'claude', 'codex']
 
+export type SyncConnectionState = 'unconfigured' | 'unreachable' | 'connected' | 'unknown'
+
 export function useSyncPage() {
   const t = useSyncT()
   const [loading, setLoading] = useState(true)
@@ -30,6 +32,28 @@ export function useSyncPage() {
   const [forceRetryAll, setForceRetryAll] = useState(false)
   const [passphraseModalOpen, setPassphraseModalOpen] = useState(false)
   const [pending, setPending] = useState<{ asset?: SyncAssetInfo; operation?: SyncAssetOperation; force: boolean; all: boolean } | null>(null)
+  const [accountDialogOpen, setAccountDialogOpen] = useState(false)
+  const [accountDialogMode, setAccountDialogMode] = useState<'add' | 'edit'>('add')
+
+  const openAccountDialog = useCallback((mode: 'add' | 'edit') => {
+    setAccountDialogMode(mode)
+    setAccountDialogOpen(true)
+  }, [])
+
+  const connectionState = useMemo<SyncConnectionState>(() => {
+    if (!syncStatus) return 'unknown'
+    if (!syncStatus.configured) return 'unconfigured'
+    if (syncStatus.remote_accessible === true) return 'connected'
+    if (syncStatus.remote_accessible === false) return 'unreachable'
+    return 'unknown'
+  }, [syncStatus])
+  // 未配置/不可达时门控同步操作；未测试（unknown）不门控
+  const syncGated = connectionState === 'unconfigured' || connectionState === 'unreachable'
+  const syncGateReason = !syncGated
+    ? null
+    : connectionState === 'unconfigured'
+      ? t('sync.gating.disabledUnconfigured')
+      : t('sync.gating.disabledUnreachable')
 
   const assetGroups = useMemo<SyncAssetGroup[]>(
     () => GROUP_ORDER.map((key) => ({
@@ -169,6 +193,13 @@ export function useSyncPage() {
     passphraseModalOpen,
     pending,
     setPassphraseModalOpen,
+    connectionState,
+    syncGated,
+    syncGateReason,
+    accountDialogOpen,
+    accountDialogMode,
+    setAccountDialogOpen,
+    openAccountDialog,
     refreshAll,
     requestRunAsset,
     requestRunAll,
