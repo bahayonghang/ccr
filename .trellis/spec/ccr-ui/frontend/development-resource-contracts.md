@@ -120,3 +120,30 @@ server: {
   },
 }
 ```
+
+
+---
+
+## Common Mistake: Playwright `addInitScript` drops extra args in Tauri web-preview mocks
+
+**Symptom**: A web-preview mock of `window.__TAURI_INTERNALS__` partially works —
+`list_sync_assets` returns fixtures but `sync_status` resolves `undefined`, so
+the Sync page silently renders the "not configured" branch and gating checks
+look broken.
+
+**Cause**: `page.addInitScript(fn, arg)` accepts exactly ONE argument. A call
+like `page.addInitScript(mock, assets, status)` silently drops `status`.
+
+**Fix**: pass a single fixture object.
+
+```ts
+// Wrong
+await page.addInitScript(mock, assets, status)
+// Correct
+await page.addInitScript(mock, { assets, status })
+```
+
+**Prevention**: reference pattern lives in `ccr-ui/.tmp/sync-preview-check.cjs`.
+When verifying dark theme in web preview, the app boots light by default — set
+`document.documentElement.setAttribute('data-theme', 'dark')` after load
+instead of relying on mocked preference commands.

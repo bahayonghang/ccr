@@ -99,3 +99,28 @@ invoke('sync_push_asset', {
   payload: { id, force, passphrase, migratePlaintextV1: false },
 })
 ```
+
+
+---
+
+## UI Contract: connection-state gating on the Sync page
+
+- `useSyncPage` derives `connectionState` from `sync_status` fields alone:
+
+| configured | remote_accessible | connectionState | Sync actions |
+| --- | --- | --- | --- |
+| false | any | `unconfigured` | disabled + setup guide card (CTA opens account dialog) |
+| true | false | `unreachable` | disabled + `role="alert"` warning banner with retest |
+| true | true | `connected` | enabled |
+| true | null | `unknown` (untested) | enabled |
+| status fetch failed (`syncStatus === null`) | — | `unknown` | enabled — never gate on IPC failure |
+
+- Gating disables per-asset Push/Pull/Sync and header Sync all / Force retry
+  all with a localized `title` reason (`sync.gating.disabled*` keys). Account
+  configure / test / disconnect stay available in every state.
+- Busy attribution: only the card with `busyAssetId === asset.id` shows a
+  spinner and busy label; a global batch operation disables all card buttons
+  without spinning them, and only the header Sync all shows progress.
+- The sidebar order is fixed: WebDAV config card -> operation output panel ->
+  collapsed "About sync" `<details>` (safety list, features, supported
+  services). New output scrolls into view with `readPrefersReducedMotion()`.
