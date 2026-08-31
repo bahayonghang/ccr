@@ -1,11 +1,23 @@
 from __future__ import annotations
 
+import json
 import unittest
 
 from scripts.common import REPO_ROOT
 from scripts.ci.ci_surface_policy import SURFACE_PATHS, is_relevant, path_matches
 from scripts.ci.check_workflow_governance import (
+    DEVELOPMENT_RUST_TOOLCHAIN,
+    EXPECTED_BUN_WORKFLOWS,
+    EXPECTED_NODE_WORKFLOW_INPUTS,
+    MSRV_RUST_TOOLCHAIN,
+    NODE_TOOLCHAIN,
+    bun_version_inputs,
+    canonical_bun_version,
     duplicate_mapping_keys,
+    node_pin_failures,
+    node_version_inputs,
+    rust_toolchain_inputs,
+    setup_node_version_inputs,
     workflow_event_values,
     workflow_job_block,
 )
@@ -111,6 +123,157 @@ class WorkflowGovernanceParserTests(unittest.TestCase):
             "  required:\n    name: Required\n    if: ${{ always() }}",
         )
 
+    def test_rust_toolchain_inputs_are_extracted_from_action_inputs(self) -> None:
+        workflow = """steps:
+  - uses: dtolnay/rust-toolchain@0123456789012345678901234567890123456789
+    with:
+      toolchain: 1.98.0
+"""
+
+        self.assertEqual(rust_toolchain_inputs(workflow), ["1.98.0"])
+
+    def test_bun_version_inputs_are_extracted_from_action_inputs(self) -> None:
+        workflow = """steps:
+  - uses: oven-sh/setup-bun@0123456789012345678901234567890123456789
+    with:
+      bun-version: 1.4.0
+"""
+
+        self.assertEqual(bun_version_inputs(workflow), ["1.4.0"])
+
+    def test_node_version_inputs_are_extracted_from_action_inputs(self) -> None:
+        workflow = """steps:
+  - uses: actions/setup-node@0123456789012345678901234567890123456789
+    with:
+      node-version: 24.20.0
+"""
+
+        self.assertEqual(node_version_inputs(workflow), ["24.20.0"])
+        self.assertEqual(setup_node_version_inputs(workflow), [["24.20.0"]])
+
+    def test_node_toolchain_validator_fails_closed_on_drift_and_extra_inputs(
+        self,
+    ) -> None:
+        workflows = {
+            "release.yml": """steps:
+  - uses: actions/setup-node@0123456789012345678901234567890123456789
+    with:
+      node-version: 24.20.0
+  - uses: actions/setup-node@0123456789012345678901234567890123456789
+    with:
+      node-version: 24.19.0
+""",
+            "vscode-ci.yml": """steps:
+  - uses: actions/setup-node@0123456789012345678901234567890123456789
+    with:
+      node-version: 24.20.0
+""",
+            "ci.yml": """steps:
+  - uses: actions/setup-node@0123456789012345678901234567890123456789
+    with:
+      node-version: 26.8.1
+""",
+        }
+
+        failures = node_pin_failures(workflows)
+
+        self.assertTrue(
+            any("release.yml: expected 2 Node 24.20.0" in item for item in failures)
+        )
+        self.assertTrue(
+            any("ci.yml: unexpected Node setup input" in item for item in failures)
+        )
+
+    def test_unrelated_node_version_cannot_mask_an_unpinned_setup_step(self) -> None:
+        workflows = {
+            "release.yml": """steps:
+  - uses: actions/setup-node@0123456789012345678901234567890123456789
+    with:
+      node-version: 24.20.0
+  - uses: actions/setup-node@0123456789012345678901234567890123456789
+  - uses: example/action@0123456789012345678901234567890123456789
+    with:
+      node-version: 24.20.0
+""",
+            "vscode-ci.yml": """steps:
+  - uses: actions/setup-node@0123456789012345678901234567890123456789
+    with:
+      node-version: 24.20.0
+""",
+        }
+
+        failures = node_pin_failures(workflows)
+
+        self.assertTrue(any("release.yml: expected 2" in item for item in failures))
+
+    def test_bun_toolchain_pin_has_one_canonical_source(self) -> None:
+        self.assertEqual(canonical_bun_version(self.ROOT), "1.4.0")
+        docs_package = json.loads(
+            (self.ROOT / "docs" / "package.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(docs_package.get("packageManager"), "bun@1.4.0")
+
+        for name in EXPECTED_BUN_WORKFLOWS:
+            workflow = (self.ROOT / ".github" / "workflows" / name).read_text(
+                encoding="utf-8"
+            )
+            with self.subTest(workflow=name):
+                self.assertEqual(bun_version_inputs(workflow), ["1.4.0"])
+
+    def test_node_toolchain_pin_is_exact_and_scoped(self) -> None:
+        workflow_dir = self.ROOT / ".github" / "workflows"
+        workflows = {
+            path.name: path.read_text(encoding="utf-8")
+            for path in workflow_dir.iterdir()
+            if path.suffix in {".yml", ".yaml"}
+        }
+
+        for name, expected_count in EXPECTED_NODE_WORKFLOW_INPUTS.items():
+            with self.subTest(workflow=name):
+                self.assertEqual(
+                    node_version_inputs(workflows[name]),
+                    [NODE_TOOLCHAIN] * expected_count,
+                )
+        for name, workflow in workflows.items():
+            if name in EXPECTED_NODE_WORKFLOW_INPUTS:
+                continue
+            with self.subTest(workflow=name):
+                self.assertEqual(node_version_inputs(workflow), [])
+
+    def test_workflows_split_development_toolchain_from_msrv(self) -> None:
+        workflows = {
+            name: (self.ROOT / ".github" / "workflows" / name).read_text(
+                encoding="utf-8"
+            )
+            for name in (
+                "ci.yml",
+                "frontend-ci.yml",
+                "release.yml",
+                "tauri-rust-ci.yml",
+                "vscode-ci.yml",
+            )
+        }
+        msrv_job = workflow_job_block(workflows["ci.yml"], "workspace-msrv")
+
+        self.assertEqual(rust_toolchain_inputs(msrv_job), [MSRV_RUST_TOOLCHAIN])
+        self.assertIn(
+            "cargo check --workspace --all-targets --all-features", msrv_job
+        )
+        for name, workflow in workflows.items():
+            ordinary_workflow = (
+                workflow.replace(msrv_job, "", 1) if name == "ci.yml" else workflow
+            )
+            with self.subTest(workflow=name):
+                self.assertTrue(rust_toolchain_inputs(ordinary_workflow))
+                self.assertEqual(
+                    set(rust_toolchain_inputs(ordinary_workflow)),
+                    {DEVELOPMENT_RUST_TOOLCHAIN},
+                )
+
+        root_required = workflow_job_block(workflows["ci.yml"], "root-required")
+        self.assertIn("workspace-msrv", root_required)
+        self.assertIn("MSRV:", root_required)
+
     def test_tauri_rust_gates_use_a_tracked_frontend_fixture(self) -> None:
         cargo_config = (self.ROOT / ".cargo" / "tauri-ci.toml").read_text(
             encoding="utf-8"
@@ -183,7 +346,7 @@ class WorkflowGovernanceParserTests(unittest.TestCase):
             "oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6",
             linux_job,
         )
-        self.assertIn("bun-version: 1.3.10", linux_job)
+        self.assertEqual(bun_version_inputs(linux_job), ["1.4.0"])
         self.assertIn("run: just tauri-ci", linux_job)
 
 

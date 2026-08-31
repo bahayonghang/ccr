@@ -7,6 +7,22 @@ use comfy_table::{
     Table, Width, presets::UTF8_FULL,
 };
 
+const LEGACY_TRUNCATION_INDICATOR: &str = "...";
+
+/// 创建使用 CCR 既有截断语义的默认 ASCII 表格。
+pub(crate) fn new_table() -> Table {
+    let mut table = Table::new();
+    table.set_truncation_indicator(LEGACY_TRUNCATION_INDICATOR);
+    table
+}
+
+/// 创建使用 CCR 既有完整 UTF-8 边框和截断语义的表格。
+pub(crate) fn new_utf8_table() -> Table {
+    let mut table = new_table();
+    table.load_style(UTF8_FULL);
+    table
+}
+
 /// 表格预设样式
 #[derive(Debug, Clone, Copy, Default)]
 pub enum TablePreset {
@@ -25,10 +41,8 @@ pub struct ConfigTableBuilder {
 impl ConfigTableBuilder {
     /// 创建新的配置表格
     pub fn new() -> Self {
-        let mut table = Table::new();
-        table
-            .load_preset(UTF8_FULL)
-            .set_content_arrangement(ContentArrangement::DynamicFullWidth);
+        let mut table = new_utf8_table();
+        table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
         Self { table }
     }
 
@@ -289,10 +303,55 @@ mod tests {
     fn test_config_table_builder() {
         let mut builder = ConfigTableBuilder::new().with_kv_header();
         builder.add_kv_row("Key", "Value");
-        let table = builder.build();
+        let mut table = builder.build();
+        table.force_no_tty();
         let output = table.to_string();
-        assert!(output.contains("Key"));
-        assert!(output.contains("Value"));
+        assert!(!output.contains("\u{1b}["), "{output:?}");
+        assert_eq!(
+            output,
+            concat!(
+                "┌──────┬───────┐\n",
+                "│ 属性 ┆ 值    │\n",
+                "╞══════╪═══════╡\n",
+                "│ Key  ┆ Value │\n",
+                "└──────┴───────┘"
+            )
+        );
+    }
+
+    #[test]
+    fn test_legacy_truncation_indicator_is_preserved() {
+        let mut table = new_table();
+        let mut row = comfy_table::Row::from([Cell::new("content that is too long")]);
+        row.max_height(1);
+        table
+            .set_content_arrangement(ContentArrangement::Dynamic)
+            .set_width(12)
+            .set_header(["Header"])
+            .add_row(row);
+
+        let output = table.to_string();
+        assert!(output.contains("..."), "{output}");
+        assert!(!output.contains('…'), "{output}");
+        assert!(output.lines().all(|line| line.len() <= 12), "{output}");
+    }
+
+    #[test]
+    fn test_ansi_styling_remains_available_when_forced() {
+        let mut table = new_table();
+        table
+            .enforce_styling()
+            .add_row([Cell::new("ready").fg(TableColor::Green)]);
+
+        let output = table.to_string();
+        if std::env::var_os("NO_COLOR").is_some() {
+            assert!(!output.contains("\u{1b}[38;5;10m"), "{output:?}");
+        } else {
+            assert!(
+                output.contains("\u{1b}[38;5;10m ready \u{1b}[39m"),
+                "{output:?}"
+            );
+        }
     }
 
     #[test]
@@ -300,13 +359,18 @@ mod tests {
         let mut builder = PlatformTableBuilder::new();
         builder.add_platform_row("claude", true, true, true, Some("default"), "Claude Code");
         builder.configure_enabled_column();
-        let table = builder.build();
+        let mut table = builder.build();
+        table.force_no_tty();
         let output = table.to_string();
-        // 打印输出以调试
-        eprintln!("=== Table Output ===");
-        eprintln!("{}", output);
-        eprintln!("=== End Table ===");
-        // 表格成功构建即可，不要求特定文本（因为 Unicode 渲染可能受终端影响）
-        assert!(!output.is_empty());
+        assert_eq!(
+            output,
+            concat!(
+                "┌─────────┬──────────┬──────┬──────────────┬─────────────┐\n",
+                "│ 状态    ┆ 平台名称 ┆ 启用 ┆ 当前 Profile ┆ 描述        │\n",
+                "╞═════════╪══════════╪══════╪══════════════╪═════════════╡\n",
+                "│ >> 当前 ┆ claude   ┆   ✓  ┆ default      ┆ Claude Code │\n",
+                "└─────────┴──────────┴──────┴──────────────┴─────────────┘"
+            )
+        );
     }
 }

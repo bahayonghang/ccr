@@ -1,10 +1,26 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { APP_ENGINE, APP_NAME, APP_OWNER, APP_TAGLINE, APP_VERSION } from '@/config/appMeta'
+import { ErrorBoundary } from '@/shell/ErrorBoundary'
 import { useShellT } from '@/shell/i18n'
 import { useShellPreferencesStore } from '@/shell/stores/shellPreferences'
 import { logger } from '@/utils/logger'
 import { getCurrentWindowSafe } from '@/utils/tauriWindow'
-import { BaseModal } from '@/ui/base-modal'
+
+const LazyBaseModal = lazy(() =>
+  import('@/ui/base-modal').then((mod) => ({ default: mod.BaseModal })),
+)
+
+interface AboutDialogFailureFallbackProps {
+  onFailure: () => void
+}
+
+function AboutDialogFailureFallback({ onFailure }: AboutDialogFailureFallbackProps) {
+  useEffect(() => {
+    onFailure()
+  }, [onFailure])
+
+  return null
+}
 
 export function Titlebar() {
   const t = useShellT()
@@ -13,7 +29,21 @@ export function Titlebar() {
   const [isMaximized, setIsMaximized] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
+  const [hasRequestedAbout, setHasRequestedAbout] = useState(false)
+  const [aboutLoadFailed, setAboutLoadFailed] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
+
+  const openAbout = () => {
+    if (aboutLoadFailed) return
+    setHasRequestedAbout(true)
+    setShowAbout(true)
+  }
+
+  const containAboutLoadFailure = useCallback(() => {
+    setShowAbout(false)
+    setHasRequestedAbout(false)
+    setAboutLoadFailed(true)
+  }, [])
 
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
@@ -71,7 +101,8 @@ export function Titlebar() {
           <button
             type="button"
             className="titlebar-interactive mr-2 flex h-5 w-5 items-center justify-center overflow-hidden rounded-md shadow-sm"
-            onClick={() => setShowAbout(true)}
+            onClick={openAbout}
+            disabled={aboutLoadFailed}
           >
             <img src="/icons/icon.svg" className="h-full w-full object-cover" alt={APP_NAME} />
           </button>
@@ -89,9 +120,10 @@ export function Titlebar() {
               <button
                 type="button"
                 className="flex w-full items-center px-3 py-1.5 text-left text-xs text-text-secondary hover:bg-bg-overlay/70 hover:text-text-primary"
+                disabled={aboutLoadFailed}
                 onClick={() => {
                   setIsMenuOpen(false)
-                  setShowAbout(true)
+                  openAbout()
                 }}
               >
                 {t('common.about.menu', { name: APP_NAME })}
@@ -151,41 +183,49 @@ export function Titlebar() {
           </svg>
         </button>
       </div>
-      <BaseModal
-        modelValue={showAbout}
-        title={t('common.about.title', { name: APP_NAME })}
-        size="sm"
-        onUpdateModelValue={setShowAbout}
-      >
-        <div className="flex flex-col items-center p-2">
-          <img src="/icons/logo.svg" alt={`${APP_NAME} logo`} className="mb-4 h-24 w-24 rounded-2xl object-cover" />
-          <h2 className="mb-1 text-2xl font-bold tracking-tight">{APP_NAME}</h2>
-          <div className="mb-4 flex items-center space-x-2 text-xs">
-            <span className="rounded-full border border-accent-primary/20 bg-accent-primary/10 px-2 py-0.5 text-accent-primary">
-              {APP_TAGLINE}
-            </span>
-            <span className="text-text-muted">v{APP_VERSION}</span>
-          </div>
-          <p className="mb-6 text-center text-sm text-text-secondary">{t('common.about.description')}</p>
-          <div className="mb-4 w-full space-y-2">
-            <div className="flex items-center justify-between rounded-lg border border-border-default/60 p-2 text-xs">
-              <span className="text-text-muted">{t('common.about.owner')}</span>
-              <span className="font-medium">{APP_OWNER}</span>
-            </div>
-            <div className="flex items-center justify-between rounded-lg border border-border-default/60 p-2 text-xs">
-              <span className="text-text-muted">{t('common.about.engine')}</span>
-              <span className="font-medium">{APP_ENGINE}</span>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="w-full rounded-xl border border-border-default/60 bg-bg-surface py-2 text-sm font-medium"
-            onClick={() => setShowAbout(false)}
-          >
-            {t('common.about.close')}
-          </button>
-        </div>
-      </BaseModal>
+      {hasRequestedAbout ? (
+        <ErrorBoundary
+          fallback={<AboutDialogFailureFallback onFailure={containAboutLoadFailure} />}
+        >
+          <Suspense fallback={null}>
+            <LazyBaseModal
+              modelValue={showAbout}
+              title={t('common.about.title', { name: APP_NAME })}
+              size="sm"
+              onUpdateModelValue={setShowAbout}
+            >
+              <div className="flex flex-col items-center p-2">
+                <img src="/icons/logo.svg" alt={`${APP_NAME} logo`} className="mb-4 h-24 w-24 rounded-2xl object-cover" />
+                <h2 className="mb-1 text-2xl font-bold tracking-tight">{APP_NAME}</h2>
+                <div className="mb-4 flex items-center space-x-2 text-xs">
+                  <span className="rounded-full border border-accent-primary/20 bg-accent-primary/10 px-2 py-0.5 text-accent-primary">
+                    {APP_TAGLINE}
+                  </span>
+                  <span className="text-text-muted">v{APP_VERSION}</span>
+                </div>
+                <p className="mb-6 text-center text-sm text-text-secondary">{t('common.about.description')}</p>
+                <div className="mb-4 w-full space-y-2">
+                  <div className="flex items-center justify-between rounded-lg border border-border-default/60 p-2 text-xs">
+                    <span className="text-text-muted">{t('common.about.owner')}</span>
+                    <span className="font-medium">{APP_OWNER}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-border-default/60 p-2 text-xs">
+                    <span className="text-text-muted">{t('common.about.engine')}</span>
+                    <span className="font-medium">{APP_ENGINE}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="w-full rounded-xl border border-border-default/60 bg-bg-surface py-2 text-sm font-medium"
+                  onClick={() => setShowAbout(false)}
+                >
+                  {t('common.about.close')}
+                </button>
+              </div>
+            </LazyBaseModal>
+          </Suspense>
+        </ErrorBoundary>
+      ) : null}
     </div>
   )
 }

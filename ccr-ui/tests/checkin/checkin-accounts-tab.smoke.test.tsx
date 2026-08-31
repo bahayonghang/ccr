@@ -65,28 +65,6 @@ beforeAll(() => {
   if (typeof globalThis.ResizeObserver === 'undefined') {
     globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver
   }
-  const mouseEventCtor = (globalThis.MouseEvent ?? Event) as unknown as typeof MouseEvent
-  class PointerEventStub extends mouseEventCtor {
-    readonly pointerId: number
-    readonly pointerType: string
-    readonly isPrimary: boolean
-    constructor(type: string, params: PointerEventInit = {}) {
-      super(type, {
-        bubbles: params.bubbles,
-        cancelable: params.cancelable,
-        button: params.button ?? 0,
-        ctrlKey: params.ctrlKey ?? false,
-      })
-      this.pointerId = params.pointerId ?? 0
-      this.pointerType = params.pointerType ?? 'mouse'
-      this.isPrimary = params.isPrimary ?? true
-    }
-  }
-  if (typeof globalThis.PointerEvent === 'undefined') {
-    const stub = PointerEventStub as unknown as typeof PointerEvent
-    globalThis.PointerEvent = stub
-    window.PointerEvent = stub
-  }
 })
 
 const mountTab = async (locale: 'en-US' | 'zh-CN' = 'en-US', accountList: AccountInfo[] = accounts) => {

@@ -61,7 +61,8 @@ Test-RequiredFile $COMPONENT_MAIN_LAYOUT
 ### 2. Signatures
 - Canonical validator: `python scripts/drift/check_dependency_drift.py [--verbose]`
 - Metadata: `scripts/drift/dependency-drift-allowlist.json`
-- Toolchain source: `rust-toolchain.toml` with channel `1.95.0`; crate manifests use `rust-version = "1.95"`.
+- Development toolchain source: `rust-toolchain.toml` with channel `1.98.0`; crate manifests independently keep `rust-version = "1.95"`.
+- Hosted MSRV gate: `.github/workflows/ci.yml` job `workspace-msrv` explicitly uses Rust `1.95.0` and runs `cargo check --workspace --all-targets --all-features`.
 - Root gate: `just version-check` must invoke the Python dependency drift checker for Windows, Linux, and macOS recipe variants.
 
 ### 3. Contracts
@@ -72,7 +73,8 @@ Test-RequiredFile $COMPONENT_MAIN_LAYOUT
 - Non-matching versions pass only if the JSON allowlist supplies non-empty `owner`, `rationale`, and ISO `expires` fields.
 - Expired, duplicate, stale, or ownerless exceptions fail; active exceptions must not exceed `max_active_exceptions` (currently 3).
 - A stale allowlist entry fails when the dependency disappears from either manifest or the two versions become equal.
-- Every crate plus the independent Tauri manifest must declare MSRV 1.95, matching the pinned 1.95.0 toolchain patch.
+- Every crate plus the independent Tauri manifest must declare MSRV 1.95; upgrading the development/ordinary CI compiler must not rewrite these declarations.
+- Ordinary local, hosted, and release Rust jobs use the `1.98.0` development pin. The dedicated root `workspace-msrv` job stays on `1.95.0`, and `root-required` must fail closed when it fails.
 - Windows recipes call `python`; Linux and macOS recipes call `python3`. Both invoke the same Python validator.
 
 ### 4. Validation & Error Matrix
@@ -84,17 +86,22 @@ Test-RequiredFile $COMPONENT_MAIN_LAYOUT
 - Allowlisted dependency is no longer repeated -> fail.
 - Allowlisted dependency versions now match -> fail until the allowlist entry is removed.
 - Exception owner/rationale missing, expiry invalid/past, or active count above 3 -> fail.
-- Crate MSRV differs from 1.95 or toolchain differs from 1.95.0 -> fail.
+- Crate MSRV differs from 1.95 or development toolchain differs from 1.98.0 -> fail.
+- An ordinary workflow uses a Rust version other than 1.98.0, the explicit MSRV job is missing/not 1.95.0, or `root-required` omits it -> fail.
 
 ### 5. Good/Base/Bad Cases
 - Good: `serde` repeats with the same version in both manifests.
+- Good: `rust-toolchain.toml` and ordinary CI use 1.98.0 while crate `rust-version` remains 1.95 and the dedicated MSRV job compiles all workspace targets on 1.95.0.
 - Base: `toml` differs with owner `desktop-platform`, a migration rationale, and a future expiry while parser compatibility is being evaluated.
 - Bad: adding `anyhow = "1.0.90"` to Tauri while root workspace uses `1.0.102` without an allowlist reason.
 - Bad: leaving an allowlist entry after the Tauri version is aligned with root.
 - Bad: duplicating parsing logic outside the Python validator or leaving an exception without an accountable owner and expiry.
+- Bad: raising `rust-version` because the development compiler was upgraded, or changing every hosted job to 1.98.0 without retaining an executable 1.95.0 MSRV gate.
 
 ### 6. Tests Required
 - Run `python scripts/drift/check_dependency_drift.py --verbose` after validator, manifest, toolchain, or exception changes.
+- Run `python -m unittest scripts.drift.test_check_dependency_drift scripts.ci.test_check_workflow_governance` after changing the development/MSRV split.
+- Run focused Rust 1.98 fmt/clippy/test plus Rust 1.95 check/test for every touched Rust surface; a successful 1.98 build is not MSRV evidence.
 - Run `just version-check` to prove the root gate includes version, doc, and dependency drift checks.
 - Run `git diff --check` before commit.
 
@@ -108,6 +115,60 @@ declare -A ALLOWED_DRIFT=([toml]="temporary")
 #### Correct
 ```bash
 python3 scripts/drift/check_dependency_drift.py "$@"
+```
+
+## Scenario: Docs package manager and lock authority
+
+### 1. Scope / Trigger
+- Trigger: changing `docs/package.json`, docs dependency installation/build recipes, `docs/README.md`, or `scripts/drift/check_doc_drift.py`.
+- Applies because the VitePress site uses Bun in CI and `docs/bun.lock` is its only maintained dependency resolution.
+
+### 2. Signatures
+- Manifest: `docs/package.json`.
+- Canonical Bun toolchain pin: `ccr-ui/package.json#packageManager`; the docs manifest mirrors it exactly.
+- Lock authority: `docs/bun.lock`.
+- Focused build: `cd docs && bun install --frozen-lockfile && bun run audit && bun run build`.
+- Root recipes: `just docs` and `just docs-check`.
+- Drift gate: `python scripts/drift/check_doc_drift.py --verbose`, included by `just version-check`.
+
+### 3. Contracts
+- Do not create or maintain `docs/package-lock.json`; npm is not a second docs dependency authority.
+- `docs/package.json#packageManager` must exactly match the canonical exact-semver Bun pin in `ccr-ui/package.json#packageManager`.
+- Root docs recipes install from `docs/bun.lock` with `bun install --frozen-lockfile` before building or auditing.
+- `docs/README.md` must state that `docs/bun.lock` is the only maintained docs dependency lockfile.
+- Keep npm usage under `ccr-vscode/` independent; the docs lock policy must not rewrite the extension's npm workflow.
+
+### 4. Validation & Error Matrix
+- `docs/bun.lock` missing -> docs drift gate fails.
+- `docs/package-lock.json` exists, including as ignored local residue -> docs drift gate fails.
+- README omits the lock authority statement -> docs drift gate fails.
+- Either package manager field is not exact `bun@x.y.z`, or the docs mirror differs from the UI canonical pin -> docs drift gate fails.
+- Manifest and lock disagree -> frozen Bun install fails without rewriting the lock.
+- A docs recipe invokes npm -> reject as a second resolver path even if the current build succeeds.
+
+### 5. Good/Base/Bad Cases
+- Good: `just docs` runs a frozen Bun install followed by `bun run build`.
+- Base: `docs/.gitignore` keeps `package-lock.json` ignored while the drift gate also rejects a locally generated copy.
+- Bad: `npm install` in a root docs recipe, or keeping both `docs/bun.lock` and `docs/package-lock.json` as dependency authorities.
+- Bad: removing npm commands from `ccr-vscode/`; that package intentionally keeps its own npm lock authority.
+
+### 6. Tests Required
+- `python -m unittest scripts.drift.test_check_doc_drift` covers missing docs files, forbidden docs npm lock, missing README authority, and the happy path.
+- `python scripts/drift/check_doc_drift.py --verbose` and `just version-check` prove the repository state follows the lock policy.
+- `cd docs && bun install --frozen-lockfile && bun run audit && bun run build` and `just docs-check` validate the focused docs path.
+- Run final `just ci` for release-ready governance changes.
+
+### 7. Wrong vs Correct
+#### Wrong
+```just
+docs:
+    cd docs && npm install && npm run build
+```
+
+#### Correct
+```just
+docs:
+    cd docs && bun install --frozen-lockfile && bun run build
 ```
 
 ## Scenario: SQLite native link compatibility
@@ -292,17 +353,18 @@ authenticate the publisher; automatic updates remain disabled.
 - Workflow YAML must reject duplicate mapping keys. Pull requests to `main`, `develop`, and `dev` always instantiate the four stable required contexts; product path filters live only in `SURFACE_PATHS`. Quality workflows (`ci.yml`, `frontend-ci.yml`, `tauri-rust-ci.yml`, `vscode-ci.yml`) are `pull_request`-only. `release.yml` remains tag-push only.
 - Stable branch-protection contexts are `Root Workspace Required`, `Vue and Docs Required`, `Tauri Linux Required`, and `VS Code Required`. Each is a final aggregator: irrelevant changes pass after change detection, while relevant changes pass only when every heavy validation, coverage, audit, and platform matrix dependency succeeds.
 - Change detection checks out full history and uses the pull request's merge-base diff (`base...head`). Changing `scripts/ci/ci_surface_policy.py` makes all four surfaces relevant. Detection failure must fail the aggregator; an empty or failed relevance output must never silently skip a required validation.
-- Rust is pinned to 1.95.0, Bun to 1.3.10, Node to 24.18.0, just to 1.57.0, and cargo-llvm-cov to 0.8.7.
+- Rust development, ordinary CI, and release jobs are pinned to 1.98.0; crate MSRV stays at 1.95 and `ci.yml` retains a required Rust 1.95.0 workspace check. Bun is pinned to 1.4.0, Node to 24.20.0, just to 1.58.0, and cargo-llvm-cov to 0.9.0.
+- `ccr-ui/package.json#packageManager` is the canonical Bun version source. `docs/package.json` and the frontend, Tauri, and release workflow `bun-version` inputs must mirror that exact pin; governance rejects missing, duplicate, or divergent workflow inputs.
 - Root Rust, Vue, and VS Code line coverage must be at least 70%; root and Tauri process gateways must be at least 85%.
 - Tauri uploads its full coverage baseline while the hard security threshold remains the gateway; a broad command-wrapper percentage cannot hide a gateway regression.
 - Root workspace tests use default parallelism. `scripts/ci/check_workflow_governance.py` counts `#[serial]` / `#[serial_test::serial]`; current and target counts are both 0.
 - Tauri command inventory is generated from the handler registry and freezes 315 base / 323 Windows commands across 30 base modules.
-- The Tauri Rust gate runs direct Cargo fmt/check/clippy/test plus repository governance recipes. Its Linux job installs pinned Bun 1.3.10 because `tauri-bindings-check` formats and compares generated TypeScript; it does not install the Vue dependency graph.
+- The Tauri Rust gate runs direct Cargo fmt/check/clippy/test plus repository governance recipes. Its Linux job installs canonical Bun 1.4.0 because `tauri-bindings-check` formats and compares generated TypeScript; it does not install the frontend dependency graph.
 - Fresh checkouts run Tauri Rust compile/test/coverage commands with `.cargo/tauri-ci.toml`, which overrides `frontendDist` to the tracked `ccr-ui/src-tauri/ci-dist/index.html` fixture. Production Tauri builds keep using `ccr-ui/dist`; the fixture must never replace the real `beforeBuildCommand` output in release packaging.
 - Hosted frontend dependency audit calls the repository-owned `frontend-audit` recipe and parses Bun's JSON report. Unexpected, expired, duplicate, package-mismatched, or stale advisory exceptions fail closed.
 - Frontend advisory exceptions require non-empty owner/rationale, ISO expiry, explicit patched versions, and must stay within `maxActiveExceptions` (currently 0).
 - Prefer upstream patched releases. Current frontend overrides pin `fast-uri` 3.1.5, `js-yaml` 4.3.1, and `nanoid` 3.3.17; `dompurify` tracks `^3.4.13`. Nested `brace-expansion` copies are lockfile-pinned per major: `1.1.18`, `2.1.4`, and `5.0.9`.
-- Bun 1.3.10 supports only top-level overrides. Do not force one `brace-expansion` major across `minimatch` 3.x/9.x/10.x: 5.x exports `{ expand }`, while the legacy consumers require the module itself as a function. When a nested copy needs a patched release, bump that lockfile path inside its existing major instead of adding a Bun patch or alias.
+- Bun manifests use only top-level overrides. Do not force one `brace-expansion` major across `minimatch` 3.x/9.x/10.x: 5.x exports `{ expand }`, while the legacy consumers require the module itself as a function. When a nested copy needs a patched release, bump that lockfile path inside its existing major instead of adding a Bun patch or alias.
 
 ### 4. Validation & Error Matrix
 - Mutable action tag, duplicate YAML key, missing workflow, missing branch/relevance policy, PR-level `paths` filter, or missing local recipe -> governance check fails.
@@ -313,7 +375,7 @@ authenticate the publisher; automatic updates remain disabled.
 - Global `--test-threads=1` or serial annotation count above 0 -> governance check fails.
 - Handler inventory differs from registry -> `command_inventory_document_matches_registry` fails.
 - Tauri Rust gate omits `.cargo/tauri-ci.toml`, or the tracked `ci-dist/index.html` fixture is missing -> a fresh checkout may fail in `tauri::generate_context!()` before tests run.
-- Tauri Linux validation omits pinned Bun 1.3.10 -> `tauri-bindings-check` fails at the TypeScript formatting step even when every Rust test passes.
+- Tauri Linux validation omits canonical Bun 1.4.0, or any governed workflow/docs manifest drifts from the canonical UI pin -> governance fails before accepting generated bindings or frontend builds.
 - Unexpected high advisory, leftover `patchedDependencies` while the allowlist is empty, or stale/expired frontend exception -> `bun run audit:dependencies` fails.
 - Required branch protection not readable/configured -> local files may pass, but repository-setting evidence remains `UNVERIFIED`.
 
@@ -330,8 +392,8 @@ authenticate the publisher; automatic updates remain disabled.
 
 ### 6. Tests Required
 - `python -m unittest scripts.ci.test_check_workflow_governance` -> path matching, event parsing, and duplicate-key cases pass.
-- The workflow-governance unit suite asserts that root/UI Tauri Cargo recipes use `.cargo/tauri-ci.toml`, the tracked CI frontend fixture exists, and the Tauri Linux job installs pinned Bun 1.3.10.
-- `python scripts/ci/check_workflow_governance.py` -> 52 immutable action references, stable relevance routing, Tauri Linux Bun setup, and serial-only count 0.
+- The workflow-governance unit suite asserts that root/UI Tauri Cargo recipes use `.cargo/tauri-ci.toml`, the tracked CI frontend fixture exists, every governed manifest/workflow mirrors canonical Bun 1.4.0, and the three Node setup inputs are exactly Node 24.20.0.
+- `python scripts/ci/check_workflow_governance.py` -> 45 immutable action references, stable relevance routing, required Rust 1.95 MSRV lane, Tauri Linux Bun setup, and serial-only count 0.
 - `just ci-governance-check` -> dependency, workflow, and handler inventory gates pass.
 - `cd ccr-ui && bun install --frozen-lockfile && bun run audit:dependencies` -> nested `brace-expansion` is 1.1.18/2.1.4/5.0.9, the audit JSON is empty, and the allowlist has 0/0 active exceptions.
 - `cd ccr-ui && bun run test:smoke -- tests/quality/frontend-dependency-audit.smoke.test.ts` -> exception limit, expiry, package match, stale detection, and GHSA extraction pass.

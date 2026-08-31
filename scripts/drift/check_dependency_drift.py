@@ -26,9 +26,8 @@ except ModuleNotFoundError:
 ROOT_CARGO = REPO_ROOT / "Cargo.toml"
 TAURI_CARGO = REPO_ROOT / "ccr-ui" / "src-tauri" / "Cargo.toml"
 ALLOWLIST = REPO_ROOT / "scripts" / "drift" / "dependency-drift-allowlist.json"
-RUST_TOOLCHAIN = REPO_ROOT / "rust-toolchain.toml"
 EXPECTED_MSRV = "1.95"
-EXPECTED_TOOLCHAIN = "1.95.0"
+EXPECTED_TOOLCHAIN = "1.98.0"
 INTERNAL_UMBRELLA_ALLOWLIST: frozenset[str] = frozenset()
 
 
@@ -92,17 +91,21 @@ def validate_exceptions(
     return result, failures
 
 
-def validate_msrv() -> list[str]:
+def validate_msrv(root: Path = REPO_ROOT) -> list[str]:
     failures: list[str] = []
-    manifests = sorted((REPO_ROOT / "crates").glob("*/Cargo.toml")) + [TAURI_CARGO]
+    manifests = sorted((root / "crates").glob("*/Cargo.toml")) + [
+        root / "ccr-ui" / "src-tauri" / "Cargo.toml"
+    ]
     for manifest in manifests:
         package = load_toml(manifest).get("package", {})
         actual = package.get("rust-version")
         if actual != EXPECTED_MSRV:
             failures.append(
-                f"{manifest.relative_to(REPO_ROOT)} rust-version={actual!r}, expected {EXPECTED_MSRV!r}"
+                f"{manifest.relative_to(root).as_posix()} rust-version={actual!r}, expected {EXPECTED_MSRV!r}"
             )
-    channel = load_toml(RUST_TOOLCHAIN).get("toolchain", {}).get("channel")
+    channel = load_toml(root / "rust-toolchain.toml").get("toolchain", {}).get(
+        "channel"
+    )
     if channel != EXPECTED_TOOLCHAIN:
         failures.append(
             f"rust-toolchain.toml channel={channel!r}, expected {EXPECTED_TOOLCHAIN!r}"

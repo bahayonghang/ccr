@@ -15,3 +15,4 @@ pub use mode::detect_config_mode;
 pub use prompt::{prompt_optional, prompt_required, prompt_tags};
 #[allow(unused_imports)]
 pub use table::{ConfigTableBuilder, PlatformTableBuilder, TablePreset};
+pub(crate) use table::{new_table, new_utf8_table};

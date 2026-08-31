@@ -63,34 +63,6 @@ beforeAll(() => {
     globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver
   }
 
-  // jsdom 26 未实现 PointerEvent。Radix 的 trigger 走 onPointerDown（DropdownMenu 依赖
-  // event.button === 0）与 onPointerMove（Tooltip 依赖 event.pointerType），用 MouseEvent
-  // 子类补全。fireEvent.pointerDown/pointerMove 会优先取 window.PointerEvent。
-  // 桩定义放在 beforeAll：jsdom 全局（MouseEvent）在模块求值阶段不可用。
-  const mouseEventCtor = (globalThis.MouseEvent ?? Event) as unknown as typeof MouseEvent
-  class PointerEventStub extends mouseEventCtor {
-    readonly pointerId: number
-    readonly pointerType: string
-    readonly isPrimary: boolean
-
-    constructor(type: string, params: PointerEventInit = {}) {
-      super(type, {
-        bubbles: params.bubbles,
-        cancelable: params.cancelable,
-        button: params.button ?? 0,
-        ctrlKey: params.ctrlKey ?? false,
-      })
-      this.pointerId = params.pointerId ?? 0
-      this.pointerType = params.pointerType ?? 'mouse'
-      this.isPrimary = params.isPrimary ?? true
-    }
-  }
-  if (typeof globalThis.PointerEvent === 'undefined') {
-    const stub = PointerEventStub as unknown as typeof PointerEvent
-    globalThis.PointerEvent = stub
-    window.PointerEvent = stub
-  }
-
   // jsdom 未实现 scrollIntoView，Radix Select 聚焦选项时调用它
   if (typeof Element.prototype.scrollIntoView !== 'function') {
     Element.prototype.scrollIntoView = () => {}

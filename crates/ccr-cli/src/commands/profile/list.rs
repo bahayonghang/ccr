@@ -4,6 +4,7 @@
 
 #![allow(clippy::unused_async)]
 
+use crate::commands::common::new_utf8_table;
 use crate::managers::PlatformConfigManager;
 use crate::services::ConfigService;
 use ccr_core::Validatable;
@@ -12,7 +13,7 @@ use ccr_core::core::logging::ColorOutput;
 use colored::Colorize;
 use comfy_table::{
     Attribute, Cell, CellAlignment, Color as TableColor, ColumnConstraint, ContentArrangement,
-    Table, Width, presets::UTF8_FULL,
+    Width,
 };
 
 /// 📜 列出所有可用配置
@@ -65,9 +66,8 @@ pub async fn list_command() -> Result<()> {
     }
 
     // 创建表格
-    let mut table = Table::new();
+    let mut table = new_utf8_table();
     table
-        .load_preset(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::DynamicFullWidth)
         .set_header(vec![
             Cell::new("状态")

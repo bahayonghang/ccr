@@ -890,7 +890,8 @@ mod tests {
         )
         .unwrap();
         let pool = temp_usage_pool(&temp);
-        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf());
+        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+            .without_environment_overrides();
 
         let first = refresh_archive_with_registry(&pool, &registry).unwrap();
         assert_eq!(first.total.parsed, 1);

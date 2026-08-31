@@ -379,8 +379,10 @@ fn decode_wsl_output(bytes: &[u8]) -> String {
     if bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE {
         // UTF-16LE 解码
         let utf16: Vec<u16> = bytes[2..]
-            .chunks_exact(2)
-            .map(|c| u16::from_le_bytes([c[0], c[1]]))
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|chunk| u16::from_le_bytes(*chunk))
             .collect();
         String::from_utf16_lossy(&utf16)
     } else {
@@ -388,8 +390,10 @@ fn decode_wsl_output(bytes: &[u8]) -> String {
         // 若有嵌入 null 字节（UTF-16 无 BOM），则按 UTF-16LE 处理
         if bytes.contains(&0u8) && bytes.len().is_multiple_of(2) {
             let utf16: Vec<u16> = bytes
-                .chunks_exact(2)
-                .map(|c| u16::from_le_bytes([c[0], c[1]]))
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .map(|chunk| u16::from_le_bytes(*chunk))
                 .collect();
             String::from_utf16_lossy(&utf16)
         } else {
@@ -842,7 +846,17 @@ pub fn sync_config_blocking(
 
 #[cfg(test)]
 mod tests {
-    use super::copy_dir_recursive;
+    use super::{copy_dir_recursive, decode_wsl_output};
+
+    #[test]
+    fn decode_wsl_output_preserves_utf8_and_utf16le_paths() {
+        assert_eq!(decode_wsl_output(b"Ubuntu\r\n"), "Ubuntu\r\n");
+        assert_eq!(
+            decode_wsl_output(&[0xFF, 0xFE, b'U', 0, b'b', 0, 0x7F]),
+            "Ub"
+        );
+        assert_eq!(decode_wsl_output(&[b'U', 0, b'b', 0]), "Ub");
+    }
 
     #[test]
     fn copy_dir_recursive_copies_nested_files_and_overwrites() {

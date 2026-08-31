@@ -57,32 +57,6 @@ beforeAll(() => {
       ResizeObserverStub as unknown as typeof ResizeObserver
   }
 
-  const mouseEventCtor = (globalThis.MouseEvent ?? Event) as unknown as typeof MouseEvent
-  class PointerEventStub extends mouseEventCtor {
-    readonly pointerId: number
-    readonly pointerType: string
-    readonly isPrimary: boolean
-
-    constructor(type: string, params: PointerEventInit = {}) {
-      super(type, {
-        bubbles: params.bubbles,
-        cancelable: params.cancelable,
-        button: params.button ?? 0,
-        ctrlKey: params.ctrlKey ?? false,
-        clientX: params.clientX ?? 0,
-        clientY: params.clientY ?? 0,
-      })
-      this.pointerId = params.pointerId ?? 0
-      this.pointerType = params.pointerType ?? 'mouse'
-      this.isPrimary = params.isPrimary ?? true
-    }
-  }
-  if (typeof globalThis.PointerEvent === 'undefined') {
-    const stub = PointerEventStub as unknown as typeof PointerEvent
-    globalThis.PointerEvent = stub
-    window.PointerEvent = stub
-  }
-
   injectStyle(readFileSync(TOKENS_CSS_PATH, 'utf8'))
   injectStyle(readFileSync(PRIMITIVES_CSS_PATH, 'utf8'))
 })

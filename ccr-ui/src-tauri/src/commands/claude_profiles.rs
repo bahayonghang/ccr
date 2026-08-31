@@ -301,7 +301,7 @@ pub async fn claude_apply_profile(name: String) -> Result<OpenJsonValueDto, Stri
         Ok(json!({
             "success": true,
             "applied_profile": name,
-            "message": format!("Claude Profile 已应用"),
+            "message": "Claude Profile 已应用",
         }))
     })
     .await

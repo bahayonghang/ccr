@@ -4,13 +4,14 @@
 
 #![allow(clippy::unused_async)]
 
+use crate::commands::common::new_utf8_table;
 use crate::models::Platform;
 use ccr_core::core::ColorOutput;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_store::sessions::models::SessionFilter;
 use ccr_store::sessions::{SessionIndexer, SessionSummary};
 use clap::{Args, Subcommand};
-use comfy_table::{Cell, Color, Table, presets::UTF8_FULL};
+use comfy_table::{Cell, Color};
 
 /// Sessions 命令参数
 #[derive(Args, Debug, Clone)]
@@ -185,8 +186,7 @@ fn cmd_show(session_id: &str) -> Result<()> {
             ColorOutput::title("Session 详情");
             println!();
 
-            let mut table = Table::new();
-            table.load_preset(UTF8_FULL);
+            let mut table = new_utf8_table();
 
             table.add_row(vec![Cell::new("ID").fg(Color::Cyan), Cell::new(&s.id)]);
             table.add_row(vec![
@@ -357,8 +357,7 @@ async fn cmd_prune(confirm: bool) -> Result<()> {
 
 /// 打印 sessions 表格
 fn print_sessions_table(sessions: &[SessionSummary]) {
-    let mut table = Table::new();
-    table.load_preset(UTF8_FULL);
+    let mut table = new_utf8_table();
 
     table.set_header(vec![
         Cell::new("ID").fg(Color::Cyan),

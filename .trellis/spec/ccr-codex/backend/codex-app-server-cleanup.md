@@ -21,7 +21,8 @@
 - Domain: `CodexPlatform::inspect_runtime() -> Result<CodexRuntimeDiagnostic>`（只读，不调用会 reconcile pointer 的 `stable_current_profile()`）。
 - Domain: `CodexPlatform::repair_runtime(snapshot: &CodexRuntimeDiagnostic) -> Result<()>`（仅重放快照解析出的当前 profile）。
 - Diagnostic: `CodexRuntimeDiagnostic::{profile_status, route_status, credential_status, provider_auth_validity, repairable}`；状态值为 `match|missing|mismatch|not_applicable|unsupported`，Provider 有效性当前固定为 `not_checked`。
-- CLI: `ccr codex fix [--dry-run] [--repair-runtime] [--doctor]`（clap 派生，自动进入 `ccr codex help`）。`--repair-runtime` 不隐含 `--doctor`。
+- Command: `fix_command(dry_run: bool, repair_runtime: bool, doctor: bool, skip_process_cleanup: bool) -> Result<()>`。
+- CLI: `ccr codex fix [--dry-run] [--repair-runtime] [--doctor]`（clap 派生，自动进入 `ccr codex help`）。隐藏的 `--skip-process-cleanup` 仅用于非 dry-run binary integration test 隔离；默认 `false`，不出现在 help，且不隐含 dry-run、runtime repair 或 doctor。`--repair-runtime` 不隐含 `--doctor`。
 
 ### 3. Contracts
 
@@ -40,6 +41,7 @@
 - **Provider 结论**：本地 `match` 只证明 profile/runtime 一致，`provider_auth_validity` 始终为 `not_checked`，不得复用结构性 `AuthStateStatus::Valid` 或宣称第三方已接受 key。
 - **默认不修 runtime**：裸 `ccr codex fix` 可清理进程，但不得重写 `config.toml` / `auth.json`。只有 `--repair-runtime` 且快照 `repairable=true` 时，才通过既有 `apply_profile` 原子提交路径重放当前 profile，并再次 inspection 证明结果。
 - **dry_run**：只枚举 `found`，`terminated` 为空，不发任何信号，不做 respawn 复检；与 `--repair-runtime` 组合时只预览重放，不写 runtime。与 `--doctor` 组合时仍运行 doctor，但不落盘 doctor 临时报告。
+- **隐藏测试隔离 seam**：`skip_process_cleanup=true` 时不得构造 `CodexProcessService`、枚举系统进程、发送信号或把默认空报告渲染为 `clean`；必须输出 `process_state = skipped`，然后继续 runtime inspection/repair、环境提示和可选 doctor。该 seam 不改变普通 `skip_process_cleanup=false` 的 `cleanup_report`、渲染、exit 2 或信号合同，不得用环境变量、serial/retry 或 dry-run 替代。
 - **阶段隔离**：process cleanup、CCR runtime inspection/repair、环境提示和可选 doctor 分别保存结果，不得用 `?` 让 runtime 错误跳过后续独立阶段。阶段错误只输出稳定状态和动作边界，不打印可能含 secret 的底层错误字符串。默认路径不查找 PATH 中的 `codex`，不启动该二进制，不做 doctor 后 inspection。
 - **doctor 调用**：仅 `--doctor` 才运行。`codex doctor --json`，以「stdout 是否为有效 JSON」判成功（**非退出码**——检查项失败时 doctor 可能返回非 0，但 stdout 仍是有效报告，须照常展示）。stdout 已有但不是 JSON → `sanitize_doctor_text` 当文本渲染，**不得**再 spawn 第二次。必须使用 `ccr_core::core::process_gateway::ManagedProcess`：`spawn` → 并发排空受限 stdout/stderr → 正常路径 `wait`；超时路径 `terminate_tree(grace)` 并 await reap。禁止只靠 `kill_on_drop(true)` 宣称无残留。外部调用 30s 超时（实现须提供可注入的 Duration seam），`stdin` 置 null。
 - **doctor 快照归属**：doctor 标题必须携带开始前的 resolved profile；doctor 后再次 inspection。任一 profile/runtime 字段变化时，输出不得归属于旧快照，并以 local-drift 退出码结束。
@@ -51,6 +53,7 @@
 
 - 传入 `--doctor` 且 `codex` 不在 PATH（`which_on_path("codex") == None`）→ 中文 error + `std::process::exit(127)`。默认路径缺少 `codex` 不退出 127。
 - `cleanup.respawned` 非空或 `discovery_issue` 非空 → `std::process::exit(2)`（在可选 doctor 之后判定）。
+- `skip_process_cleanup=true` → 进程阶段固定为 `skipped`，不会从占位空报告产生 exit 2；后续 runtime failure/local drift/doctor 仍按原优先级决定退出码。
 - runtime initialization / inspection / repair / repair verification / doctor 后 inspection 失败 → 输出 `runtime_consistency = unavailable`，继续可用独立阶段，最终 `std::process::exit(1)`。
 - profile/route/credential 存在 `missing|mismatch` 且未修复、修复后仍漂移，或 doctor 期间快照变化 → `std::process::exit(3)`。
 - 固定优先级：PATH missing `127`（仅 `--doctor`）> process remaining/unavailable `2` > runtime failure `1` > local drift `3` > success `0`。
@@ -66,9 +69,11 @@
 - Good: 改分类逻辑时用 `Vec<OsString>` 补 native、node wrapper、含 `ccr` 的 launcher 路径，以及 plain/exec/resume/login/任意工具参数反例。
 - Good: 状态机测试使用 fake backend 编排 snapshot 与信号返回，分别断言 TERM exit、deadline KILL、新 PID、respawn、PID reuse、`Some(false)` / `kill=false` 和 discovery issue。
 - Good: Unix 真实 fixture 启动同用户伪 app-server，并通过 `cleanup_report(true)` 证明生产 refresh 链路能看到 PID 且输出不含 sentinel argv。
+- Good: Windows 真实 fixture 只定向刷新当前测试进程与临时 `codex.exe` 子进程，验证 `TERM -> Unsupported -> KILL`、PID 往返和退出后移除；不得用非 dry-run 全量 cleanup 测试枚举或终止用户进程。
 - Good: doctor 解析改动时用真实 schema 样例断言 highlights：顶层 version/status + 非 ok 检查 id；ok 检查的 details 不得进入高亮。
 - Good: route 漂移时同时显示实际 runtime env key 与目标 profile env key 的存在性，值全部隐藏。
 - Good: `--dry-run --repair-runtime` 对 registry、profiles、secret store、config 与 auth 做 byte-for-byte 不变断言。
+- Good: 仅需验证非 dry-run runtime 写入或 doctor 报告落盘的 binary integration test 传隐藏 `--skip-process-cleanup`，断言 `process_state = skipped`，并在失败消息中携带 stdout/stderr。
 - Base: 分类器为纯函数，可脱离真实进程表测试；highlights 为纯函数，可脱离真实 codex 测试。
 - Base: 无当前 profile 时报告 runtime-only 状态，不把某个 pointer 猜成事实。
 - Bad: 按 `Process::name()` 宽匹配 `contains("codex")`——会误杀 `codex exec`/`resume`，且拿不到 `app-server` 判据。
@@ -84,10 +89,11 @@
 ### 6. Tests Required
 
 - `cargo test -p ccr-codex codex_process_service -- --test-threads=1`（显式 refresh 真实 fixture、argv 分类矩阵、动态身份、signal bool、PID reuse / settle respawned、空快照早停、走满 poll_rounds 再 KILL、owner/discovery fail closed）。
+  - Windows 真实 fixture 必须使用受控临时子进程和 `ProcessesToUpdate::Some`，只向该 PID 发信号，并确认进程退出后从 targeted refresh 移除。
 - `cargo test -p ccr-codex runtime_diagnostic -- --test-threads=1`（pointer、route、file secret、provider env、keyring、no-auth、无当前 profile、修复后二次验证与 secret-free Debug/JSON）。
-- `cargo test -p ccr-cli --lib fix -- --test-threads=1`（highlights、process state、退出优先级、ManagedProcess 超时回收、非 JSON 只 spawn 一次）。
-- `cargo test -p ccr-cli --lib codex_fix -- --test-threads=1`（`ccr codex fix` / `--dry-run` / `--repair-runtime` / `--doctor` 解析；`--repair-runtime` 不隐含 `--doctor`）。
-- `cargo test -p ccr --test commands codex_fix -- --test-threads=1`（binary dry-run 无写入、默认路径不启动 fake `codex`、`--doctor` JSON/文本/落盘、runtime inspection 失败仍可执行 `--doctor`、退出码和无 secret 输出）。
+- `cargo test -p ccr-cli --lib fix -- --test-threads=1`（highlights、`clean/unavailable/respawned/skipped` process state、跳过进程阶段不产生 exit 2、退出优先级、ManagedProcess 超时回收、非 JSON 只 spawn 一次）。
+- `cargo test -p ccr-cli --lib codex_fix -- --test-threads=1`（`ccr codex fix` / `--dry-run` / `--repair-runtime` / `--doctor` 解析；隐藏 `--skip-process-cleanup` 不出现在 help 且不隐含其他 flag；`--repair-runtime` 不隐含 `--doctor`）。
+- `cargo test -p ccr --test commands codex_fix -- --test-threads=1`（binary dry-run 无写入、默认路径不启动 fake `codex`、两条非 dry-run 写入测试通过隐藏 seam 隔离系统进程、`--doctor` JSON/文本/落盘、runtime inspection 失败仍可执行 `--doctor`、退出码和无 secret 输出）。
 - `just lint-strict`（跨平台编译 + 无 unwrap/panic 门）。
 - Assertion points: 真实 dry-run 发现 fixture PID；原始 argv sentinel 不出现在结果；app-server 命中且 exec/resume/login/任意工具不命中；失败信号不进入 `terminated`；最终存活身份不会伪报终止；dry-run 受管文件字节不变；runtime failure=1、remaining/unavailable=2、local drift=3、`--doctor` 且 PATH missing=127。
 

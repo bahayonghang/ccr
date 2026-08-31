@@ -255,7 +255,7 @@ describe('DashboardCostMetric', () => {
       </QueryClientProvider>,
     )
     expect(document.querySelector('[data-cost-state="unavailable"]')?.textContent).toBe('—')
-    expect(useUsageSummary.mock.calls.at(-1)?.slice(0, 3)).toEqual([
+    expect(useUsageSummary.mock.calls[useUsageSummary.mock.calls.length - 1]?.slice(0, 3)).toEqual([
       undefined,
       homeDateWindow(30).startDate,
       homeDateWindow(30).endDate,

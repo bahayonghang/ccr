@@ -1,13 +1,13 @@
 #![allow(clippy::unused_async)]
 
 use super::types::{PlatformListItem, PlatformListOutput};
+use crate::commands::common::new_utf8_table;
 use crate::managers::PlatformConfigManager;
 use crate::platforms::PlatformRegistry;
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
 use comfy_table::{
     Attribute, Cell, CellAlignment, Color as TableColor, ColumnConstraint, ContentArrangement,
-    Table, presets::UTF8_FULL,
 };
 
 pub async fn platform_list_command(json: bool) -> Result<()> {
@@ -51,9 +51,8 @@ pub async fn platform_list_command(json: bool) -> Result<()> {
     );
     println!();
 
-    let mut table = Table::new();
+    let mut table = new_utf8_table();
     table
-        .load_preset(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::DynamicFullWidth)
         .set_header(vec![
             Cell::new("State")

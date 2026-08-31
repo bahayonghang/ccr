@@ -8,7 +8,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest'
 // 断言适配器语义与 BaseModal 一致，且四项弹层行为委托 Radix：
 // Esc / 遮罩点击（6px 拖拽阈值）/ 滚动锁定 / aria 接线 / 事件回调 / ref.close()。
 //
-// jsdom 桩：与 tests/ui/ui-primitives.smoke.test.tsx 相同（ResizeObserver、PointerEvent）。
+// jsdom 桩：与 tests/ui/ui-primitives.smoke.test.tsx 相同（ResizeObserver）。
 // 本仓 smoke 套件未引入 jest-dom，断言用原生属性检查。
 
 
@@ -21,33 +21,6 @@ beforeAll(() => {
     }
     globalThis.ResizeObserver =
       ResizeObserverStub as unknown as typeof ResizeObserver
-  }
-
-  const mouseEventCtor = (globalThis.MouseEvent ?? Event) as unknown as typeof MouseEvent
-  class PointerEventStub extends mouseEventCtor {
-    readonly pointerId: number
-    readonly pointerType: string
-    readonly isPrimary: boolean
-
-    constructor(type: string, params: PointerEventInit = {}) {
-      super(type, {
-        bubbles: params.bubbles,
-        cancelable: params.cancelable,
-        button: params.button ?? 0,
-        ctrlKey: params.ctrlKey ?? false,
-        // 位移坐标必须透传：适配器的拖拽阈值判定依赖 clientX/clientY。
-        clientX: params.clientX ?? 0,
-        clientY: params.clientY ?? 0,
-      })
-      this.pointerId = params.pointerId ?? 0
-      this.pointerType = params.pointerType ?? 'mouse'
-      this.isPrimary = params.isPrimary ?? true
-    }
-  }
-  if (typeof globalThis.PointerEvent === 'undefined') {
-    const stub = PointerEventStub as unknown as typeof PointerEvent
-    globalThis.PointerEvent = stub
-    window.PointerEvent = stub
   }
 })
 

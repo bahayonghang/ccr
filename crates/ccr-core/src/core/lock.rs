@@ -14,8 +14,9 @@
 // - 防止同一进程内的并发配置操作
 
 use crate::core::error::{CcrError, Result};
-use fs4::fs_std::FileExt;
+use fs4::{FileExt, TryLockError};
 use std::fs::{self, File, OpenOptions};
+use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
@@ -75,6 +76,23 @@ use std::time::{Duration, Instant};
 ///
 pub static CONFIG_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
+/// Normalize the fs4 1.x try-lock result to CCR's established 0.13-era shape.
+///
+/// Keeping this adapter local lets the acquisition loop retain its existing
+/// timeout, retry, and final error mapping while still distinguishing a held
+/// lock from a real I/O error.
+fn map_try_lock_result(result: std::result::Result<(), TryLockError>) -> io::Result<bool> {
+    match result {
+        Ok(()) => Ok(true),
+        Err(TryLockError::WouldBlock) => Ok(false),
+        Err(TryLockError::Error(error)) => Err(error),
+    }
+}
+
+fn try_lock_exclusive(file: &File) -> io::Result<bool> {
+    map_try_lock_result(FileExt::try_lock(file))
+}
+
 /// 🔒 文件锁
 ///
 /// 提供跨进程的互斥锁功能,基于文件系统锁实现
@@ -125,8 +143,8 @@ impl FileLock {
         let start = Instant::now();
         let mut retry_count = 0;
         loop {
-            // ⚠️ fs4 >= 0.12 语义：Ok(true) = 成功获取；Ok(false) = 锁被其他持有者占用
-            match file.try_lock_exclusive() {
+            // 兼容适配层保持旧合同：Ok(true) = 获取；Ok(false) = 被占用；Err = I/O 错误。
+            match try_lock_exclusive(&file) {
                 Ok(true) => {
                     tracing::debug!("成功获取文件锁: {:?}", lock_path);
                     return Ok(FileLock { file, lock_path });
@@ -272,7 +290,11 @@ impl LockManager {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use std::thread;
+    use std::process::{Command, Stdio};
+
+    const CHILD_LOCK_PATH_ENV: &str = "CCR_TEST_CHILD_LOCK_PATH";
+    const CHILD_LOCK_READY_ENV: &str = "CCR_TEST_CHILD_LOCK_READY";
+    const CHILD_LOCK_RELEASE_ENV: &str = "CCR_TEST_CHILD_LOCK_RELEASE";
 
     #[test]
     fn test_file_lock_basic() {
@@ -289,18 +311,114 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "时间相关测试，在不同系统调度下可能不稳定"]
-    fn test_file_lock_timeout() {
+    fn test_try_lock_result_adapter_preserves_all_outcomes() {
+        assert!(map_try_lock_result(Ok(())).unwrap());
+        assert!(!map_try_lock_result(Err(TryLockError::WouldBlock)).unwrap());
+
+        let source = io::Error::other("adapter source");
+        let error = map_try_lock_result(Err(TryLockError::Error(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            source,
+        ))))
+        .unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::PermissionDenied);
+        let source = error
+            .get_ref()
+            .and_then(|source| source.downcast_ref::<io::Error>())
+            .unwrap();
+        assert_eq!(source.kind(), io::ErrorKind::Other);
+        assert_eq!(source.to_string(), "adapter source");
+    }
+
+    #[test]
+    fn test_file_lock_contention_then_release_allows_retry() {
         let temp_dir = tempfile::tempdir().unwrap();
         let lock_path = temp_dir.path().join("test.lock");
 
-        // 第一个锁
-        let _lock1 = FileLock::new(&lock_path, Duration::from_secs(5)).unwrap();
+        let lock1 = FileLock::new(&lock_path, Duration::from_secs(5)).unwrap();
 
-        // 第二个锁应该超时失败
-        // 🎯 注意：由于使用指数退避策略（50ms, 100ms, 200ms...），需要更长的超时时间
-        let lock2_result = FileLock::new(&lock_path, Duration::from_millis(500));
-        assert!(lock2_result.is_err());
+        // Zero timeout exercises contention without scheduler-dependent sleeps.
+        let lock2_result = FileLock::new(&lock_path, Duration::ZERO);
+        assert!(matches!(lock2_result, Err(CcrError::LockTimeout(_))));
+
+        drop(lock1);
+        let _lock2 = FileLock::new(&lock_path, Duration::ZERO).unwrap();
+    }
+
+    #[test]
+    fn cross_process_lock_holder_child() {
+        let Some(lock_path) = std::env::var_os(CHILD_LOCK_PATH_ENV) else {
+            return;
+        };
+        let ready_path = PathBuf::from(std::env::var_os(CHILD_LOCK_READY_ENV).unwrap());
+        let release_path = PathBuf::from(std::env::var_os(CHILD_LOCK_RELEASE_ENV).unwrap());
+
+        let _lock = FileLock::new(PathBuf::from(lock_path), Duration::from_secs(5)).unwrap();
+        fs::write(&ready_path, b"ready").unwrap();
+
+        let start = Instant::now();
+        while !release_path.exists() {
+            assert!(
+                start.elapsed() < Duration::from_secs(5),
+                "parent did not release the child lock in time"
+            );
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+
+    #[test]
+    fn test_file_lock_cross_process_contention_and_release() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let lock_path = temp_dir.path().join("cross-process.lock");
+        let ready_path = temp_dir.path().join("child.ready");
+        let release_path = temp_dir.path().join("child.release");
+
+        let mut child = Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "core::lock::tests::cross_process_lock_holder_child",
+                "--nocapture",
+                "--test-threads=1",
+            ])
+            .env(CHILD_LOCK_PATH_ENV, &lock_path)
+            .env(CHILD_LOCK_READY_ENV, &ready_path)
+            .env(CHILD_LOCK_RELEASE_ENV, &release_path)
+            .stdout(Stdio::null())
+            .spawn()
+            .unwrap();
+
+        let start = Instant::now();
+        while !ready_path.exists() {
+            if let Some(status) = child.try_wait().unwrap() {
+                panic!("child lock holder exited before ready: {status}");
+            }
+            if start.elapsed() >= Duration::from_secs(5) {
+                let _ = child.kill();
+                let _ = child.wait();
+                panic!("child lock holder did not become ready in time");
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+
+        let contender = FileLock::new(&lock_path, Duration::ZERO);
+        let contended = matches!(contender, Err(CcrError::LockTimeout(_)));
+
+        fs::write(&release_path, b"release").unwrap();
+        let child_status = child.wait().unwrap();
+
+        assert!(contended, "a second process unexpectedly acquired the lock");
+        assert!(child_status.success(), "child lock holder failed");
+        let _lock = FileLock::new(&lock_path, Duration::ZERO).unwrap();
+    }
+
+    #[test]
+    fn test_file_lock_open_error_preserves_file_lock_error() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let parent_file = temp_dir.path().join("not-a-directory");
+        fs::write(&parent_file, b"occupied").unwrap();
+
+        let result = FileLock::new(parent_file.join("test.lock"), Duration::ZERO);
+        assert!(matches!(result, Err(CcrError::FileLockError(_))));
     }
 
     #[test]
@@ -312,32 +430,5 @@ mod tests {
         assert!(temp_dir.path().join("claude_settings.lock").exists());
 
         // 锁在作用域结束时自动释放
-    }
-
-    #[test]
-    #[ignore = "时间相关测试，在不同系统调度下可能不稳定"]
-    fn test_concurrent_locks() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let lock_path = temp_dir.path().join("concurrent.lock");
-        let lock_path_clone = lock_path.clone();
-
-        let handle = thread::spawn(move || {
-            let _lock = FileLock::new(&lock_path_clone, Duration::from_secs(5)).unwrap();
-            thread::sleep(Duration::from_millis(500));
-        });
-
-        // 等待一点时间确保第一个线程获取了锁
-        thread::sleep(Duration::from_millis(100));
-
-        // 这个应该等待第一个锁释放
-        let start = Instant::now();
-        let _lock2 = FileLock::new(&lock_path, Duration::from_secs(5)).unwrap();
-        let elapsed = start.elapsed();
-
-        // 应该等待了至少 350ms (500ms - 100ms - 指数退避的累积延迟)
-        // 🎯 注意：指数退避策略会引入额外延迟，所以断言时间需要更宽松
-        assert!(elapsed >= Duration::from_millis(250));
-
-        handle.join().unwrap();
     }
 }

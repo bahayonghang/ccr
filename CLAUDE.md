@@ -17,8 +17,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Tooling
 
-- `ccr-ui` uses `bun` (`packageManager: bun@1.3.10`) as the primary frontend package manager. Use npm only as a compatibility fallback when Bun is unavailable.
-- `docs/` is a separate VitePress package. When touching docs, verify it with `cd docs && npm run build` or via `just frontend-check`.
+- `ccr-ui` uses `bun` (`packageManager: bun@1.4.0`) as the primary frontend package manager. Use npm only as a compatibility fallback when Bun is unavailable.
+- `docs/` is a separate VitePress package. When touching docs, verify it with `cd docs && bun install --frozen-lockfile && bun run build` or via `just frontend-check`.
 - Prefer `rg` (ripgrep) over `grep` for all text/code searches. Only fall back to `grep` when a POSIX-specific behavior is genuinely required, and call it out explicitly.
 
 ## Codebase-specific rules

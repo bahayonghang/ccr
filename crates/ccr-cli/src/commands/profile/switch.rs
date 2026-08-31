@@ -9,15 +9,14 @@
 #![allow(clippy::unused_async)]
 
 use crate::application::profile_switch::switch_profile_for_platform as run_switch_profile_for_platform;
+use crate::commands::common::new_utf8_table;
 use crate::managers::settings::SettingsManager;
 use crate::models::Platform;
 use crate::platforms::create_platform;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
 use colored::Colorize;
-use comfy_table::{
-    Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
-};
+use comfy_table::{Attribute, Cell, Color as TableColor, ContentArrangement};
 
 /// 🔄 切换到指定配置
 ///
@@ -68,9 +67,8 @@ pub async fn switch_command_for_platform(config_name: &str, platform_name: &str)
     println!();
 
     // === 配置详情表格 ===
-    let mut config_table = Table::new();
+    let mut config_table = new_utf8_table();
     config_table
-        .load_preset(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::DynamicFullWidth)
         .set_header(vec![
             Cell::new("属性")
@@ -215,9 +213,8 @@ pub async fn switch_command_for_platform(config_name: &str, platform_name: &str)
         ColorOutput::step("🔄 环境变量变化");
         println!();
 
-        let mut env_changes_table = Table::new();
+        let mut env_changes_table = new_utf8_table();
         env_changes_table
-            .load_preset(UTF8_FULL)
             .set_content_arrangement(ContentArrangement::DynamicFullWidth)
             .set_header(vec![
                 Cell::new("环境变量")

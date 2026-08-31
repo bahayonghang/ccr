@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Documentation for CCR - unified configuration registry for modern AI CLIs",
   "type": "module",
+  "packageManager": "bun@1.4.0",
   "scripts": {
     "dev": "vitepress dev",
     "build": "vitepress build",

@@ -8,6 +8,7 @@ from scripts.common import REPO_ROOT
 from scripts.drift.check_dependency_drift import (
     declares_dependency,
     internal_umbrella_dependents,
+    validate_msrv,
 )
 
 
@@ -46,6 +47,49 @@ class InternalUmbrellaDependencyTests(unittest.TestCase):
             )
             self.assertEqual(
                 internal_umbrella_dependents(root), ["crates/consumer/Cargo.toml"]
+            )
+
+
+class RustVersionGovernanceTests(unittest.TestCase):
+    def write_fixture(
+        self, root: Path, *, toolchain: str, crate_msrv: str, tauri_msrv: str
+    ) -> None:
+        (root / "crates" / "sample").mkdir(parents=True)
+        (root / "crates" / "sample" / "Cargo.toml").write_text(
+            f'[package]\nname = "sample"\nversion = "1.0.0"\nrust-version = "{crate_msrv}"\n',
+            encoding="utf-8",
+        )
+        (root / "ccr-ui" / "src-tauri").mkdir(parents=True)
+        (root / "ccr-ui" / "src-tauri" / "Cargo.toml").write_text(
+            f'[package]\nname = "desktop"\nversion = "1.0.0"\nrust-version = "{tauri_msrv}"\n',
+            encoding="utf-8",
+        )
+        (root / "rust-toolchain.toml").write_text(
+            f'[toolchain]\nchannel = "{toolchain}"\n', encoding="utf-8"
+        )
+
+    def test_development_toolchain_and_msrv_are_independent(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_fixture(
+                root, toolchain="1.98.0", crate_msrv="1.95", tauri_msrv="1.95"
+            )
+
+            self.assertEqual(validate_msrv(root), [])
+
+    def test_stale_development_pin_and_msrv_drift_are_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_fixture(
+                root, toolchain="1.95.0", crate_msrv="1.96", tauri_msrv="1.95"
+            )
+
+            self.assertEqual(
+                validate_msrv(root),
+                [
+                    "crates/sample/Cargo.toml rust-version='1.96', expected '1.95'",
+                    "rust-toolchain.toml channel='1.95.0', expected '1.98.0'",
+                ],
             )
 
 

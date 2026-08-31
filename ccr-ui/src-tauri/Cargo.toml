@@ -10,7 +10,7 @@ edition = "2024"
 rust-version = "1.95"
 
 [build-dependencies]
-tauri-build = { version = "=2.6.2", features = [] }
+tauri-build = { version = "=2.6.3", features = [] }
 serde_json = "1.0.150"
 
 [dependencies]
@@ -34,7 +34,7 @@ ccr-types = { path = "../../crates/ccr-types" }
 ccr-db = { path = "../../crates/ccr-db" }
 
 # Tauri framework
-tauri = { version = "=2.11.2", features = ["tray-icon"] }
+tauri = { version = "=2.11.5", features = ["tray-icon"] }
 tauri-plugin-dialog = "2"
 
 # Serialization
@@ -70,16 +70,16 @@ reqwest = { version = "0.13.4", default-features = false, features = [
 
 # Logging
 tracing = "0.1.44"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 # System info
 sysinfo = "0.39.6"
 
 # Encryption (for checkin account credentials)
-aes-gcm = "0.10"
+aes-gcm = "0.11"
 
 # UUID
-uuid = { version = "1.25.0", features = ["serde", "v4"] }
+uuid = { version = "1.26.0", features = ["serde", "v4"] }
 chrono = { version = "0.4.45", features = ["serde"] }
 base64 = "0.23.1"
 sha2 = "0.11.0"
@@ -105,14 +105,14 @@ tempfile = "3.27.0"
 
 # Error handling
 thiserror = "2.0.20"
-lru = "0.18.2"
+lru = "0.18.3"
 notify = "8.2.0"
 
 # Lock-free 配置快照（供同步 tray/回调读取 AppState 偏好）
-arc-swap = "1"
+arc-swap = "1.9.2"
 
 # 高并发缓存（替代 RwLock<LruCache>，读路径无需 write 锁、内置分段）
-moka = { version = "0.12", features = ["future"] }
+moka = { version = "0.12.16", features = ["future"] }
 
 # File locking for cache
 fs4 = "1.1.0"

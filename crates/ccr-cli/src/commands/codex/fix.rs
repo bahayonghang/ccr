@@ -32,15 +32,28 @@ const DOCTOR_MAX_TOTAL_BYTES: usize = 2 * 1024 * 1024;
 /// 本地 profile/runtime 漂移（未修复或修复后仍不一致）。
 const LOCAL_DRIFT_EXIT_CODE: i32 = 3;
 
-pub async fn fix_command(dry_run: bool, repair_runtime: bool, doctor: bool) -> Result<()> {
+pub async fn fix_command(
+    dry_run: bool,
+    repair_runtime: bool,
+    doctor: bool,
+    skip_process_cleanup: bool,
+) -> Result<()> {
     // A. 进程清理（dry-run 时只枚举、不终止）。
     let cleanup_started = Instant::now();
-    let cleanup_report = CodexProcessService::new().cleanup_report(dry_run);
-    ColorOutput::step(&format!(
-        "进程清理（{} ms）",
-        cleanup_started.elapsed().as_millis()
-    ));
-    render_cleanup(&cleanup_report);
+    let cleanup_report = if skip_process_cleanup {
+        CodexAppServerCleanupReport::default()
+    } else {
+        CodexProcessService::new().cleanup_report(dry_run)
+    };
+    if skip_process_cleanup {
+        ColorOutput::step("进程清理（skipped）");
+    } else {
+        ColorOutput::step(&format!(
+            "进程清理（{} ms）",
+            cleanup_started.elapsed().as_millis()
+        ));
+    }
+    render_cleanup(&cleanup_report, skip_process_cleanup);
 
     // B. 在调用任何会 reconcile pointer 的路径前，采集只读 profile/runtime 快照。
     let mut runtime_failed = false;
@@ -160,6 +173,7 @@ pub async fn fix_command(dry_run: bool, repair_runtime: bool, doctor: bool) -> R
     // G. 固定优先级：127（仅 --doctor 且 PATH 缺失，已提前返回）> process(2) > runtime failure(1) > local drift(3)。
     if let Some(code) = diagnostic_exit_code(
         &cleanup_report,
+        skip_process_cleanup,
         final_diagnostic.as_ref(),
         runtime_failed,
         snapshot_changed,
@@ -198,11 +212,14 @@ fn decide_runtime_repair(
 
 fn diagnostic_exit_code(
     report: &CodexAppServerCleanupReport,
+    skip_process_cleanup: bool,
     diagnostic: Option<&CodexRuntimeDiagnostic>,
     runtime_failed: bool,
     snapshot_changed: bool,
 ) -> Option<i32> {
-    if report.discovery_issue.is_some() || !report.cleanup.respawned.is_empty() {
+    if !skip_process_cleanup
+        && (report.discovery_issue.is_some() || !report.cleanup.respawned.is_empty())
+    {
         Some(2)
     } else if runtime_failed {
         Some(1)
@@ -221,12 +238,16 @@ fn exit_after_flush(code: i32) -> ! {
 
 // ==================== 进程清理渲染 ====================
 
-fn render_cleanup(report: &CodexAppServerCleanupReport) {
+fn render_cleanup(report: &CodexAppServerCleanupReport, skip_process_cleanup: bool) {
     let cleanup = &report.cleanup;
     ColorOutput::info(&format!(
         "process_state = {}",
-        cleanup_process_state(report)
+        cleanup_process_state(report, skip_process_cleanup)
     ));
+    if skip_process_cleanup {
+        ColorOutput::info("系统进程枚举与清理已跳过；继续本地 runtime 诊断");
+        return;
+    }
     if let Some(issue) = report.discovery_issue {
         ColorOutput::warning(&format!(
             "无法安全完成当前用户的 app-server 发现/清理（{}）",
@@ -282,7 +303,13 @@ fn render_cleanup(report: &CodexAppServerCleanupReport) {
     }
 }
 
-fn cleanup_process_state(report: &CodexAppServerCleanupReport) -> &'static str {
+fn cleanup_process_state(
+    report: &CodexAppServerCleanupReport,
+    skip_process_cleanup: bool,
+) -> &'static str {
+    if skip_process_cleanup {
+        return "skipped";
+    }
     if report.discovery_issue.is_some() {
         return "unavailable";
     }
@@ -1016,12 +1043,12 @@ mod tests {
         let diagnostic = test_diagnostic(RuntimeMatchStatus::Mismatch, true);
         let mut report = CodexAppServerCleanupReport::default();
         assert_eq!(
-            diagnostic_exit_code(&report, Some(&diagnostic), false, false),
+            diagnostic_exit_code(&report, false, Some(&diagnostic), false, false),
             Some(LOCAL_DRIFT_EXIT_CODE)
         );
         let consistent = test_diagnostic(RuntimeMatchStatus::Match, false);
         assert_eq!(
-            diagnostic_exit_code(&report, Some(&consistent), false, true),
+            diagnostic_exit_code(&report, false, Some(&consistent), false, true),
             Some(LOCAL_DRIFT_EXIT_CODE)
         );
 
@@ -1030,10 +1057,10 @@ mod tests {
             cmdline: "codex app-server".to_string(),
         });
         assert_eq!(
-            diagnostic_exit_code(&report, Some(&diagnostic), true, true),
+            diagnostic_exit_code(&report, false, Some(&diagnostic), true, true),
             Some(2)
         );
-        assert_eq!(cleanup_process_state(&report), "respawned");
+        assert_eq!(cleanup_process_state(&report, false), "respawned");
     }
 
     #[test]
@@ -1042,16 +1069,35 @@ mod tests {
         let mut report = CodexAppServerCleanupReport::default();
 
         assert_eq!(
-            diagnostic_exit_code(&report, Some(&diagnostic), true, false),
+            diagnostic_exit_code(&report, false, Some(&diagnostic), true, false),
             Some(1)
         );
 
         report.discovery_issue = Some(CodexProcessDiscoveryIssue::CurrentOwnerUnavailable);
         assert_eq!(
-            diagnostic_exit_code(&report, Some(&diagnostic), true, false),
+            diagnostic_exit_code(&report, false, Some(&diagnostic), true, false),
             Some(2)
         );
-        assert_eq!(cleanup_process_state(&report), "unavailable");
+        assert_eq!(cleanup_process_state(&report, false), "unavailable");
+    }
+
+    #[test]
+    fn skipped_process_cleanup_is_explicit_and_cannot_produce_exit_two() {
+        let consistent = test_diagnostic(RuntimeMatchStatus::Match, false);
+        let mut report = CodexAppServerCleanupReport {
+            discovery_issue: Some(CodexProcessDiscoveryIssue::CurrentOwnerUnavailable),
+            ..CodexAppServerCleanupReport::default()
+        };
+        report.cleanup.respawned.push(CodexAppServer {
+            pid: 42,
+            cmdline: "codex app-server".to_string(),
+        });
+
+        assert_eq!(cleanup_process_state(&report, true), "skipped");
+        assert_eq!(
+            diagnostic_exit_code(&report, true, Some(&consistent), false, false),
+            None
+        );
     }
 
     #[tokio::test]

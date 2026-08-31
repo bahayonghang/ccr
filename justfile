@@ -837,12 +837,12 @@ uninstall:
 # 📚 文档命令
 # ═══════════════════════════════════════════════════════════
 
-# 🌐 启动 VitePress 文档站
+# 🌐 构建 VitePress 文档站
 docs:
-    @just header "🌐 启动文档站"
+    @just header "🌐 构建文档站"
     @just info "📍 项目路径: docs"
-    @just info "📝 将转到 docs/ 并执行 npm run dev"
-    cd docs && npm install && npm run dev
+    @just info "📝 使用 docs/bun.lock 冻结安装并构建"
+    cd docs && bun install --frozen-lockfile && bun run build
 
 # 🌐 构建并在浏览器中打开文档
 doc-open:
@@ -1057,8 +1057,8 @@ _version-sync-macos:
 _version-check-windows:
     @just info "🔍 检查版本号一致性"
     @.\scripts\version\version-sync.ps1 -Check -Verbose
-    @python scripts/drift/check_doc_drift.py --verbose
-    @python scripts/drift/check_dependency_drift.py --verbose
+    @python -X utf8 scripts/drift/check_doc_drift.py --verbose
+    @python -X utf8 scripts/drift/check_dependency_drift.py --verbose
 
 [private]
 _version-check-linux:

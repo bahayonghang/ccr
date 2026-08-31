@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -27,12 +28,23 @@ except ModuleNotFoundError:
 WORKFLOW_DIR = REPO_ROOT / ".github" / "workflows"
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 USES_RE = re.compile(r"^\s*-?\s*uses:\s*([^\s#]+)", re.MULTILINE)
+RUST_TOOLCHAIN_RE = re.compile(r"^\s*toolchain:\s*([^\s#]+)", re.MULTILINE)
+BUN_VERSION_RE = re.compile(r"^\s*bun-version:\s*([^\s#]+)", re.MULTILINE)
+NODE_VERSION_RE = re.compile(r"^\s*node-version:\s*([^\s#]+)", re.MULTILINE)
+SETUP_NODE_USES_RE = re.compile(
+    r"^(?P<indent> *)(?P<sequence>-\s+)?uses:\s*actions/setup-node@[^\s#]+"
+)
 MAPPING_KEY_RE = re.compile(
     r"^(?P<indent> *)(?P<sequence>-\s+)?(?P<key>[A-Za-z_][A-Za-z0-9_-]*):(?P<value>.*)$"
 )
 SERIAL_TEST_RE = re.compile(r"#\[\s*(?:serial|serial_test::serial)(?:\([^]]*\))?\s*\]")
 MAX_SERIAL_TESTS = 0
 REQUIRED_BRANCHES = {"main", "develop", "dev"}
+DEVELOPMENT_RUST_TOOLCHAIN = "1.98.0"
+MSRV_RUST_TOOLCHAIN = "1.95.0"
+EXPECTED_BUN_WORKFLOWS = {"frontend-ci.yml", "release.yml", "tauri-rust-ci.yml"}
+NODE_TOOLCHAIN = "24.20.0"
+EXPECTED_NODE_WORKFLOW_INPUTS = {"release.yml": 2, "vscode-ci.yml": 1}
 
 
 def duplicate_mapping_keys(text: str) -> list[tuple[int, str]]:
@@ -132,6 +144,75 @@ def workflow_job_block(text: str, job_id: str) -> str:
     return "\n".join(lines[start:end])
 
 
+def rust_toolchain_inputs(text: str) -> list[str]:
+    return RUST_TOOLCHAIN_RE.findall(text)
+
+
+def bun_version_inputs(text: str) -> list[str]:
+    return BUN_VERSION_RE.findall(text)
+
+
+def node_version_inputs(text: str) -> list[str]:
+    return NODE_VERSION_RE.findall(text)
+
+
+def setup_node_version_inputs(text: str) -> list[list[str]]:
+    """Return node-version inputs grouped by each actions/setup-node step."""
+    lines = text.splitlines()
+    inputs_by_step: list[list[str]] = []
+    for index, line in enumerate(lines):
+        match = SETUP_NODE_USES_RE.match(line)
+        if match is None:
+            continue
+        uses_indent = len(match.group("indent"))
+        step_indent = uses_indent if match.group("sequence") else max(uses_indent - 2, 0)
+        end = len(lines)
+        for candidate in range(index + 1, len(lines)):
+            candidate_line = lines[candidate]
+            if not candidate_line.strip() or candidate_line.lstrip().startswith("#"):
+                continue
+            candidate_indent = len(candidate_line) - len(candidate_line.lstrip(" "))
+            if candidate_indent <= step_indent:
+                end = candidate
+                break
+        inputs_by_step.append(node_version_inputs("\n".join(lines[index:end])))
+    return inputs_by_step
+
+
+def node_pin_failures(workflows: dict[str, str]) -> list[str]:
+    failures: list[str] = []
+    for name, expected_count in sorted(EXPECTED_NODE_WORKFLOW_INPUTS.items()):
+        inputs = setup_node_version_inputs(workflows.get(name, ""))
+        expected = [[NODE_TOOLCHAIN]] * expected_count
+        if inputs != expected:
+            failures.append(
+                f"{name}: expected {expected_count} Node {NODE_TOOLCHAIN} setup "
+                f"input(s); found {inputs or 'none'}"
+            )
+    for name, workflow in sorted(workflows.items()):
+        if name in EXPECTED_NODE_WORKFLOW_INPUTS:
+            continue
+        inputs = setup_node_version_inputs(workflow)
+        if inputs:
+            failures.append(
+                f"{name}: unexpected Node setup input outside governed workflows: "
+                f"{inputs}"
+            )
+    return failures
+
+
+def canonical_bun_version(root: Path = REPO_ROOT) -> str:
+    package_path = root / "ccr-ui" / "package.json"
+    package = json.loads(package_path.read_text(encoding="utf-8"))
+    package_manager = str(package.get("packageManager") or "").strip()
+    match = re.fullmatch(r"bun@(\d+\.\d+\.\d+)", package_manager)
+    if match is None:
+        raise ValueError(
+            "ccr-ui/package.json#packageManager must be an exact bun@x.y.z pin"
+        )
+    return match.group(1)
+
+
 def main() -> int:
     failures: list[str] = []
     workflow_paths = sorted(
@@ -144,6 +225,45 @@ def main() -> int:
     missing = sorted(required - workflows.keys())
     if missing:
         failures.append(f"missing workflows: {', '.join(missing)}")
+
+    bun_version: str | None = None
+    try:
+        bun_version = canonical_bun_version()
+    except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as error:
+        failures.append(f"canonical Bun pin is invalid: {error}")
+
+    for name in sorted(required & workflows.keys()):
+        workflow = workflows[name]
+        ordinary_workflow = workflow
+        if name == "ci.yml":
+            msrv_job = workflow_job_block(workflow, "workspace-msrv")
+            if not msrv_job:
+                failures.append("ci.yml: missing explicit workspace-msrv job")
+            else:
+                if rust_toolchain_inputs(msrv_job) != [MSRV_RUST_TOOLCHAIN]:
+                    failures.append(
+                        "ci.yml: workspace-msrv must use exactly Rust 1.95.0"
+                    )
+                if "cargo check --workspace --all-targets --all-features" not in msrv_job:
+                    failures.append(
+                        "ci.yml: workspace-msrv must check all workspace targets and features"
+                    )
+                ordinary_workflow = workflow.replace(msrv_job, "", 1)
+        ordinary_toolchains = rust_toolchain_inputs(ordinary_workflow)
+        if not ordinary_toolchains:
+            failures.append(f"{name}: missing Rust {DEVELOPMENT_RUST_TOOLCHAIN} toolchain input")
+        unexpected_toolchains = sorted(
+            {
+                toolchain
+                for toolchain in ordinary_toolchains
+                if toolchain != DEVELOPMENT_RUST_TOOLCHAIN
+            }
+        )
+        if unexpected_toolchains:
+            failures.append(
+                f"{name}: ordinary Rust jobs must use {DEVELOPMENT_RUST_TOOLCHAIN}; "
+                f"found {', '.join(unexpected_toolchains)}"
+            )
 
     action_count = 0
     for name, text in sorted(workflows.items()):
@@ -205,20 +325,44 @@ def main() -> int:
     for runner in ("ubuntu-24.04", "windows-2025", "macos-15"):
         if runner not in root_workflow:
             failures.append(f"ci.yml: root workspace runner coverage missing {runner}")
+    root_required = workflow_job_block(root_workflow, "root-required")
+    if "workspace-msrv" not in root_required or "MSRV:" not in root_required:
+        failures.append("ci.yml: root-required must fail closed on workspace-msrv")
 
     tauri_linux = workflow_job_block(
         workflows.get("tauri-rust-ci.yml", ""), "tauri-linux-required"
     )
-    if "oven-sh/setup-bun@" not in tauri_linux or "bun-version: 1.3.10" not in tauri_linux:
+    if (
+        "oven-sh/setup-bun@" not in tauri_linux
+        or bun_version is None
+        or bun_version_inputs(tauri_linux) != [bun_version]
+    ):
         failures.append(
-            "tauri-rust-ci.yml: Linux validation must install pinned Bun 1.3.10 for bindings"
+            "tauri-rust-ci.yml: Linux validation must install the canonical "
+            "Bun pin for bindings"
         )
 
+    if bun_version is not None:
+        for name in sorted(EXPECTED_BUN_WORKFLOWS):
+            inputs = bun_version_inputs(workflows.get(name, ""))
+            if inputs != [bun_version]:
+                failures.append(
+                    f"{name}: expected exactly one Bun {bun_version} setup input; "
+                    f"found {inputs or 'none'}"
+                )
+        for name, workflow in sorted(workflows.items()):
+            if name in EXPECTED_BUN_WORKFLOWS:
+                continue
+            inputs = bun_version_inputs(workflow)
+            if inputs:
+                failures.append(
+                    f"{name}: unexpected Bun setup input outside governed workflows: "
+                    f"{inputs}"
+                )
+
+    failures.extend(node_pin_failures(workflows))
+
     all_workflows = "\n".join(workflows.values())
-    if "bun-version: 1.3.10" not in all_workflows:
-        failures.append("Bun 1.3.10 pin is missing")
-    if "node-version: 24.18.0" not in all_workflows:
-        failures.append("Node 24.18.0 pin is missing")
 
     justfile = (REPO_ROOT / "justfile").read_text(encoding="utf-8")
     forbidden = "--test-threads=1"

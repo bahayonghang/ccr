@@ -133,7 +133,7 @@ AsyncAtomicWriter::new(target)
   - `SameDir{tag}` → `{full_filename}.{tag}_{ts}.bak` / `{full_filename}.{ts}.bak` (`%Y%m%d_%H%M%S`), rotation matches `starts_with(full_filename) && ends_with(".bak")`.
   - `Dir{dir, prefix}` → `{prefix}.{ts}.{ext}.bak` (ext falls back to `bak`), rotation matches `starts_with(prefix) && ends_with(".bak")`.
 - `secret: true` → owner-only `0o600` set on the temp file before content is written (Unix; Windows no-op). Required for WebDAV credentials (`sync.toml`), checkin crypto keys, and any new API-key/token file.
-- `FileLock` acquisition semantics (fs4 ≥ 0.12): `try_lock_exclusive()` returns `Ok(true)` = acquired, `Ok(false)` = held elsewhere. Treating `Ok(_)` as acquired silently disables all cross-process locking (regression fixed 2026-07; keep the contention regression test).
+- `fs4 1.x` exposes `try_lock()` as `Ok(())` = acquired, `TryLockError::WouldBlock` = held elsewhere, and `TryLockError::Error` = real I/O failure. `ccr-core` normalizes that through a local `io::Result<bool>` adapter so the established acquisition loop remains `Ok(true)` = acquired, `Ok(false)` = contended, `Err` = I/O failure. Treating any non-error result as acquired silently disables cross-process locking; keep the contention, release-and-retry, and adapter error regressions.
 
 ### 4. Validation & Error Matrix
 
@@ -156,6 +156,7 @@ AsyncAtomicWriter::new(target)
 
 - Backup naming byte-format + keep-10 rotation for `SameDir` and `Dir` (assert oldest deleted).
 - Lock contention: pre-hold the derived lock, `write_guarded(lock_timeout=100ms)` returns `LockTimeout`.
+- Cross-process lock regression: a child test process holds the file lock, the parent observes `LockTimeout`, then acquires it after the child exits; two handles in one process are not sufficient evidence.
 - Multi-thread stress: final file content equals one complete payload (no tearing).
 - `#[cfg(unix)]`: `secret: true` target mode `& 0o777 == 0o600` (Windows: skip with comment).
 - Crash-safety proxy: parent-is-file → error, old sibling content intact.

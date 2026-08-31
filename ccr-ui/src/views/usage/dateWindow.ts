@@ -86,7 +86,7 @@ export const getUsageRangePresetSpanDays = (
     const sortedDates = [...trendDates].filter(Boolean).sort()
     if (sortedDates.length >= 2) {
       const start = new Date(`${sortedDates[0]}T00:00:00`)
-      const end = new Date(`${sortedDates.at(-1)}T00:00:00`)
+      const end = new Date(`${sortedDates[sortedDates.length - 1]}T00:00:00`)
       return getInclusiveLocalDaySpan(start, end)
     }
 

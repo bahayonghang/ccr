@@ -210,7 +210,7 @@ describe('profiles shared layer (React)', () => {
         onEditSource={onEditSource}
       />,
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Command Ctrl K' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Command\s*Ctrl K$/ }))
     expect(onOpenPalette).toHaveBeenCalledOnce()
     fireEvent.click(screen.getByRole('button', { name: 'More' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Reload' }))

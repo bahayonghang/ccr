@@ -402,8 +402,15 @@ impl CommandDispatcher {
                 dry_run,
                 repair_runtime,
                 doctor,
+                skip_process_cleanup,
             }) => {
-                crate::commands::codex::fix::fix_command(*dry_run, *repair_runtime, *doctor).await
+                crate::commands::codex::fix::fix_command(
+                    *dry_run,
+                    *repair_runtime,
+                    *doctor,
+                    *skip_process_cleanup,
+                )
+                .await
             }
             Some(CodexAction::Profile { action }) => match action {
                 CodexProfileAction::Help => {

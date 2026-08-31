@@ -113,7 +113,7 @@ export const buildMetricStats = (
   const average = values.reduce((sum, value) => sum + value, 0) / values.length
   const peak = Math.max(...values)
   const first = values[0] ?? 0
-  const last = values.at(-1) ?? 0
+  const last = values[values.length - 1] ?? 0
   const delta = first > 0 ? (last - first) / first : last > 0 ? 1 : 0
   const deltaTone: UsageSummaryCardDeltaTone =
     delta > 0.005 ? 'up' : delta < -0.005 ? 'down' : 'flat'

@@ -30,6 +30,62 @@ Human CLI output may use `println!`, tables, and colored output in command handl
 
 Never print secrets. Use masking helpers for tokens, provider keys, auth files, and config values.
 
+## Scenario: CLI Table Style And Truncation Compatibility
+
+### 1. Scope / Trigger
+
+- Trigger: adding or changing a `comfy-table` table, table preset, width constraint, ANSI color, or command snapshot.
+- Applies because `comfy-table 8` replaced positional presets with `TableStyle` and changed its default truncation indicator from `...` to `…`.
+
+### 2. Signatures
+
+- Default ASCII table: `crate::commands::common::new_table() -> comfy_table::Table`.
+- Full UTF-8 table: `crate::commands::common::new_utf8_table() -> comfy_table::Table`.
+- Style load owned by the shared helper: `Table::load_style(presets::UTF8_FULL)`.
+
+### 3. Contracts
+
+- Command handlers construct tables through `new_table` or `new_utf8_table`; do not call `Table::new` directly.
+- Both helpers explicitly retain the CLI's `...` truncation indicator so an upstream default change cannot silently alter script-visible text.
+- `new_utf8_table` is the only owner of the full UTF-8 preset. Callers still own headers, column order, padding/constraints, alignment, and content arrangement.
+- Captured/non-TTY output remains free of ANSI styling. Explicit TTY styling continues to respect `NO_COLOR`.
+- A dependency migration must not change human output intentionally unless the command contract and its tests are updated in the same batch.
+
+### 4. Validation & Error Matrix
+
+- Direct `Table::new` in a CLI table path -> replace it with the matching shared helper before accepting the change.
+- `load_preset` or another removed pre-8 style API remains -> compile failure; migrate the style only in the shared helper.
+- Narrow table renders `…` instead of `...` -> compatibility regression.
+- Captured/non-TTY table contains an ANSI escape -> output regression for pipes, snapshots, and Windows test processes.
+- Border, column order, or alignment changes without an explicit command requirement -> reject as an unrelated output change.
+
+### 5. Good/Base/Bad Cases
+
+- Good: a command starts with `let mut table = new_utf8_table();` and configures only its own header, rows, and widths.
+- Base: an intentionally ASCII table uses `new_table()` and otherwise keeps the default ASCII style.
+- Bad: calling `Table::new().load_style(UTF8_FULL)` locally, because it bypasses the shared truncation contract.
+
+### 6. Tests Required
+
+- `cargo test -p ccr-cli commands::common::table::tests` asserts exact UTF-8 borders/column order, 12-column truncation with `...`, non-TTY plain text, and ANSI/`NO_COLOR` behavior.
+- Run `cargo test -p ccr-cli --all-features`, `cargo test -p ccr-tui --all-features`, and `cargo test -p ccr --test commands -- --test-threads=1` after table or dependency changes.
+- Run Rust 1.95 check, `just lint-strict`, `just test`, `just tauri-ci`, and both Cargo-lock audits before accepting a `comfy-table` upgrade.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```rust
+let mut table = Table::new();
+table.load_style(comfy_table::presets::UTF8_FULL);
+```
+
+#### Correct
+
+```rust
+let mut table = crate::commands::common::new_utf8_table();
+```
+
 ## Error Handling
 
 Command handlers should return `ccr_core::Result<T>` or `anyhow::Result<T>` where the local command already uses it. Preserve actionable errors from shared crates and handle them at the dispatcher boundary.

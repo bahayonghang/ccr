@@ -53,8 +53,9 @@ Single Python implementations for dependency drift and documentation drift.
   `ccr-ui/src-tauri/Cargo.toml`, validates
   `scripts/drift/dependency-drift-allowlist.json`, checks MSRV, and rejects
   internal crate dependencies on the umbrella `ccr` facade.
-- `check_doc_drift.py` checks `ccr-ui/README.md`, Bun-only lock policy, and
-  Tauri MSRV / edition facts.
+- `check_doc_drift.py` checks `ccr-ui/README.md`, the `ccr-ui/bun.lock` and
+  `docs/bun.lock`-only policies, docs lock documentation, and Tauri MSRV /
+  edition facts.
 
 ```powershell
 python scripts/drift/check_dependency_drift.py --verbose

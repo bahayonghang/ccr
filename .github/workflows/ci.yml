@@ -35,16 +35,16 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Setup Rust 1.95.0
-        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
+      - name: Setup Rust 1.98.0
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
         with:
-          toolchain: 1.95.0
+          toolchain: 1.98.0
           components: clippy,rustfmt
       - name: Install native and repository tools
         run: |
           sudo apt-get update
           sudo apt-get install -y pkg-config libwayland-dev
-          cargo install just --version 1.57.0 --locked
+          cargo install just --version 1.58.0 --locked
       - name: Version and governance checks
         run: just version-check
       - name: Workflow governance checks
@@ -58,6 +58,24 @@ jobs:
       - name: Workspace build check
         run: just check-workspace
 
+  workspace-msrv:
+    name: Root MSRV 1.95
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Setup Rust MSRV 1.95.0
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
+        with:
+          toolchain: 1.95.0
+      - name: Install native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libwayland-dev
+      - name: Check workspace at MSRV
+        run: cargo check --workspace --all-targets --all-features
+
   workspace-coverage:
     name: Root Coverage 70-85
     needs: changes
@@ -65,10 +83,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Setup Rust 1.95.0
-        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
+      - name: Setup Rust 1.98.0
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
         with:
-          toolchain: 1.95.0
+          toolchain: 1.98.0
           components: llvm-tools-preview
       - name: Install coverage tools
         run: |
@@ -76,11 +94,11 @@ jobs:
           sudo apt-get install -y pkg-config libwayland-dev
           bin_dir="${CARGO_HOME:-$HOME/.cargo}/bin"
           mkdir -p "$bin_dir"
-          curl -L --fail --retry 5 --retry-all-errors --retry-delay 2 --max-time 60 -o just.tar.gz https://github.com/casey/just/releases/download/1.57.0/just-1.57.0-x86_64-unknown-linux-musl.tar.gz
-          echo "45b548094283cb9739af8f13273b8cddeee869f5b4ef2bb631b1f311cb566155  just.tar.gz" | sha256sum -c -
+          curl -L --fail --retry 5 --retry-all-errors --retry-delay 2 --max-time 60 -o just.tar.gz https://github.com/casey/just/releases/download/1.58.0/just-1.58.0-x86_64-unknown-linux-musl.tar.gz
+          echo "4a5cc2f53e6f0f8c59092a6cc38291eb729d46a7dd95d3ae582008881b84931d  just.tar.gz" | sha256sum -c -
           tar -xzf just.tar.gz -C "$bin_dir" just
-          curl -L --fail --retry 5 --retry-all-errors --retry-delay 2 --max-time 60 -o cargo-llvm-cov.tar.gz https://github.com/taiki-e/cargo-llvm-cov/releases/download/v0.8.7/cargo-llvm-cov-x86_64-unknown-linux-gnu.tar.gz
-          echo "9a75fe29538d3800b3da57f6f6efb64cba5c720a257bf0cb8b51f39d495a9168  cargo-llvm-cov.tar.gz" | sha256sum -c -
+          curl -L --fail --retry 5 --retry-all-errors --retry-delay 2 --max-time 60 -o cargo-llvm-cov.tar.gz https://github.com/taiki-e/cargo-llvm-cov/releases/download/v0.9.0/cargo-llvm-cov-x86_64-unknown-linux-gnu.tar.gz
+          echo "b068f7c98841aacb9c4f382b4a0c184ae82f49b56a32d442b429b2961c73be15  cargo-llvm-cov.tar.gz" | sha256sum -c -
           tar -xzf cargo-llvm-cov.tar.gz -C "$bin_dir"
       - name: Enforce coverage thresholds
         run: just coverage-rust
@@ -104,12 +122,12 @@ jobs:
         os: [windows-2025, macos-15]
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Setup Rust 1.95.0
-        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
+      - name: Setup Rust 1.98.0
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
         with:
-          toolchain: 1.95.0
+          toolchain: 1.98.0
       - name: Install just
-        run: cargo install just --version 1.57.0 --locked
+        run: cargo install just --version 1.58.0 --locked
       - name: Run parallel workspace tests
         run: just test
 
@@ -120,10 +138,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Setup Rust 1.95.0
-        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
+      - name: Setup Rust 1.98.0
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
         with:
-          toolchain: 1.95.0
+          toolchain: 1.98.0
       - name: Install cargo-audit
         run: cargo install cargo-audit --version 0.22.2 --locked
       - name: Audit lockfile
@@ -132,7 +150,7 @@ jobs:
   root-required:
     name: Root Workspace Required
     if: ${{ always() }}
-    needs: [changes, workspace-quality, workspace-coverage, workspace-platform-tests, security-audit]
+    needs: [changes, workspace-quality, workspace-msrv, workspace-coverage, workspace-platform-tests, security-audit]
     runs-on: ubuntu-24.04
     steps:
       - name: Enforce relevant root results
@@ -140,6 +158,7 @@ jobs:
           DETECTION: ${{ needs.changes.result }}
           RELEVANT: ${{ needs.changes.outputs.relevant }}
           QUALITY: ${{ needs.workspace-quality.result }}
+          MSRV: ${{ needs.workspace-msrv.result }}
           COVERAGE: ${{ needs.workspace-coverage.result }}
           PLATFORM: ${{ needs.workspace-platform-tests.result }}
           AUDIT: ${{ needs.security-audit.result }}
@@ -150,6 +169,6 @@ jobs:
             echo "Root workspace validation is not relevant to this pull request."
             exit 0
           fi
-          for result in "$QUALITY" "$COVERAGE" "$PLATFORM" "$AUDIT"; do
+          for result in "$QUALITY" "$MSRV" "$COVERAGE" "$PLATFORM" "$AUDIT"; do
             test "$result" = success
           done

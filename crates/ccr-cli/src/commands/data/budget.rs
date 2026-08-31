@@ -1,6 +1,7 @@
 // 💰 CCR 预算命令实现
 // 提供预算配置和监控功能
 
+use crate::commands::common::new_table;
 use crate::managers::{BudgetManager, CostTracker};
 use crate::models::budget::BudgetPeriod;
 use ccr_core::core::ColorOutput;
@@ -110,7 +111,7 @@ async fn status_command() -> Result<()> {
     println!();
 
     // 创建成本表格
-    let mut cost_table = Table::new();
+    let mut cost_table = new_table();
     cost_table
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec![

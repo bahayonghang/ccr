@@ -261,11 +261,26 @@ pub struct AgentSessionProviderStatus {
 #[derive(Debug, Clone)]
 pub struct AgentSessionProviderRegistry {
     home: PathBuf,
+    use_environment_overrides: bool,
 }
 
 impl AgentSessionProviderRegistry {
     pub fn new(home: PathBuf) -> Self {
-        Self { home }
+        Self {
+            home,
+            use_environment_overrides: true,
+        }
+    }
+
+    /// Restrict provider discovery to roots derived from the configured home.
+    ///
+    /// Production discovery honors agent-specific environment overrides by
+    /// default. Tests and other explicitly isolated callers can disable those
+    /// process-wide overrides without mutating the process environment.
+    #[must_use]
+    pub fn without_environment_overrides(mut self) -> Self {
+        self.use_environment_overrides = false;
+        self
     }
 
     pub fn from_default_home() -> Result<Self> {
@@ -884,9 +899,20 @@ impl AgentSessionProviderRegistry {
 
     fn roots(&self, agent: AgentSessionAgentId) -> Vec<(String, PathBuf)> {
         match agent {
-            AgentSessionAgentId::Claude => vec![("claude-jsonl".into(), claude_root(&self.home))],
+            AgentSessionAgentId::Claude => {
+                let root = if self.use_environment_overrides {
+                    claude_root(&self.home)
+                } else {
+                    self.home.join(".claude").join("projects")
+                };
+                vec![("claude-jsonl".into(), root)]
+            }
             AgentSessionAgentId::Codex => {
-                let root = env_path("CODEX_HOME").unwrap_or_else(|| self.home.join(".codex"));
+                let root = self
+                    .use_environment_overrides
+                    .then(|| env_path("CODEX_HOME"))
+                    .flatten()
+                    .unwrap_or_else(|| self.home.join(".codex"));
                 vec![
                     ("codex-live".into(), root.join("sessions")),
                     ("codex-archived".into(), root.join("archived_sessions")),
@@ -897,7 +923,11 @@ impl AgentSessionProviderRegistry {
                 self.home.join(".grok").join("sessions"),
             )],
             AgentSessionAgentId::OpenCode => {
-                let root = opencode_root(&self.home);
+                let root = if self.use_environment_overrides {
+                    opencode_root(&self.home)
+                } else {
+                    self.home.join(".local").join("share").join("opencode")
+                };
                 vec![
                     ("opencode-storage".into(), root.clone()),
                     ("opencode-sqlite".into(), root),
@@ -2471,6 +2501,36 @@ mod tests {
     }
 
     #[test]
+    fn isolated_registry_derives_environment_overridable_roots_from_home() {
+        let temp = TempDir::new().unwrap();
+        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+            .without_environment_overrides();
+
+        assert_eq!(
+            registry.roots(AgentSessionAgentId::Claude),
+            vec![("claude-jsonl".into(), temp.path().join(".claude/projects"))]
+        );
+        assert_eq!(
+            registry.roots(AgentSessionAgentId::Codex),
+            vec![
+                ("codex-live".into(), temp.path().join(".codex/sessions")),
+                (
+                    "codex-archived".into(),
+                    temp.path().join(".codex/archived_sessions")
+                ),
+            ]
+        );
+        let opencode_root = temp.path().join(".local/share/opencode");
+        assert_eq!(
+            registry.roots(AgentSessionAgentId::OpenCode),
+            vec![
+                ("opencode-storage".into(), opencode_root.clone()),
+                ("opencode-sqlite".into(), opencode_root),
+            ]
+        );
+    }
+
+    #[test]
     fn stored_source_validation_rejects_provider_shape_tampering() {
         let temp = TempDir::new().unwrap();
         let root = temp.path().join(".kimi-code/sessions");
@@ -2478,7 +2538,8 @@ mod tests {
         let unrelated = root.join("project/session/agents/main/private.jsonl");
         write(&valid, "{\"type\":\"turn.prompt\",\"input\":\"hello\"}\n");
         write(&unrelated, "{\"role\":\"user\",\"content\":\"private\"}\n");
-        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf());
+        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+            .without_environment_overrides();
         assert!(
             registry
                 .restore_source(
@@ -2530,7 +2591,8 @@ mod tests {
                 .join(".kimi-code/sessions/wd_demo_deadbeef1234/session_k1/agents/main/wire.jsonl"),
             "{\"type\":\"turn.prompt\",\"input\":[{\"type\":\"text\",\"text\":\"kimi question\"}]}\n{\"type\":\"context.append_loop_event\",\"event\":{\"type\":\"content.part\",\"part\":{\"type\":\"text\",\"text\":\"kimi answer\"}}}\n{\"type\":\"context.append_loop_event\",\"event\":{\"type\":\"tool.call\",\"name\":\"read_file\",\"args\":{\"path\":\"private\"}}}\n",
         );
-        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf());
+        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+            .without_environment_overrides();
         for agent in [
             AgentSessionAgentId::Claude,
             AgentSessionAgentId::Codex,
@@ -2568,7 +2630,8 @@ mod tests {
             &temp.path().join(".omp/agent/sessions/p/s1.jsonl"),
             transcript,
         );
-        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf());
+        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+            .without_environment_overrides();
         let pi = registry
             .parse_summary(&registry.discover(AgentSessionAgentId::Pi).unwrap()[0])
             .unwrap();
@@ -2605,7 +2668,8 @@ mod tests {
             .unwrap();
         }
         drop(conn);
-        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf());
+        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+            .without_environment_overrides();
         let sources = registry.discover(AgentSessionAgentId::OpenCode).unwrap();
         assert_eq!(sources.len(), 2);
         assert_ne!(sources[0].member_id, sources[1].member_id);
@@ -2631,7 +2695,8 @@ mod tests {
             &root.join("part/m1/p1.json"),
             "{\"id\":\"p1\",\"text\":\"hello from storage\"}",
         );
-        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf());
+        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+            .without_environment_overrides();
         let source = registry
             .discover(AgentSessionAgentId::OpenCode)
             .unwrap()
@@ -2649,7 +2714,8 @@ mod tests {
         let temp = TempDir::new().unwrap();
         let db = temp.path().join(".local/share/opencode/opencode.db");
         write(&db, "not a sqlite database");
-        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf());
+        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+            .without_environment_overrides();
         assert!(registry.discover(AgentSessionAgentId::OpenCode).is_err());
 
         let container = registry
@@ -2671,7 +2737,8 @@ mod tests {
             .path()
             .join(".gemini/antigravity-cli/conversations/a1.pb");
         write(&pb, "encrypted");
-        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf());
+        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+            .without_environment_overrides();
         let source = registry
             .discover(AgentSessionAgentId::Antigravity)
             .unwrap()
@@ -2699,7 +2766,8 @@ mod tests {
         let conn = Connection::open(&db).unwrap();
         conn.execute_batch("CREATE TABLE messages(role TEXT, content TEXT); INSERT INTO messages VALUES('user', 'question'); INSERT INTO messages VALUES('assistant', 'answer');").unwrap();
         drop(conn);
-        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf());
+        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+            .without_environment_overrides();
         let source = registry
             .discover(AgentSessionAgentId::Antigravity)
             .unwrap()
@@ -2724,7 +2792,8 @@ mod tests {
             transcript.push_str(&format!("{{\"type\":\"message\",\"message\":{{\"role\":\"user\",\"content\":\"message {index}\"}}}}\n"));
         }
         write(&path, &transcript);
-        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf());
+        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+            .without_environment_overrides();
         let source = registry
             .discover(AgentSessionAgentId::Pi)
             .unwrap()
@@ -2797,7 +2866,8 @@ mod tests {
         tx.commit().unwrap();
         drop(conn);
 
-        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf());
+        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+            .without_environment_overrides();
         let source = registry
             .discover(AgentSessionAgentId::OpenCode)
             .unwrap()
@@ -2851,7 +2921,8 @@ mod tests {
         tx.commit().unwrap();
         drop(conn);
 
-        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf());
+        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+            .without_environment_overrides();
         let source = registry
             .discover(AgentSessionAgentId::Antigravity)
             .unwrap()
@@ -2895,7 +2966,8 @@ mod tests {
             &temp.path().join(".claude/projects/demo/session.jsonl"),
             "{\"type\":\"assistant\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"name\":\"Read\",\"input\":{\"path\":\"secret\"}}]}}\n{truncated\n",
         );
-        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf());
+        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+            .without_environment_overrides();
         let source = registry
             .discover(AgentSessionAgentId::Claude)
             .unwrap()

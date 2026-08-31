@@ -96,7 +96,7 @@ describe('usage dashboard presentation helpers', () => {
     const slices = groupModelDistribution(models, 6)
 
     expect(slices).toHaveLength(7)
-    expect(slices.at(-1)).toMatchObject({
+    expect(slices[slices.length - 1]).toMatchObject({
       id: 'others',
       isOther: true,
       childCount: 2,

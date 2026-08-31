@@ -35,7 +35,7 @@ tokio = { workspace = true }
 # 仅集成测试消费（tests/commands 等）
 [dev-dependencies]
 ccr-config = { path = "../ccr-config" }
-filetime = "0.2.27"
+filetime = "0.2.29"
 indexmap = { workspace = true }
 serde_json = { workspace = true }
 tempfile = { workspace = true }

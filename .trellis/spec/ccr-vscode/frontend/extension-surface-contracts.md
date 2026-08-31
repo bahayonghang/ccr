@@ -102,7 +102,7 @@
 
 ### 3. Contracts
 - Hosted and local CI both run clean `npm ci`, TypeScript build checks, tests, `build:package`, VSIX creation, and artifact collection.
-- Node is pinned to 24.18.0 and third-party actions use immutable commit SHAs.
+- Node is pinned to 24.20.0 and third-party actions use immutable commit SHAs.
 - The coverage gate enforces at least 70% line coverage; the current function threshold is also 70%.
 - Every pull request to `main`, `develop`, or `dev` creates `VS Code Required`. Changes to `ccr-vscode/**`, the root justfile, the workflow, or `scripts/ci/ci_surface_policy.py` set `relevant=true` and must run validation/coverage; other changes skip the heavy job and let only the aggregator pass.
 - Workflow presence does not prove required branch protection; remote protection evidence is separate.

@@ -50,6 +50,10 @@ export const diffSnapshots = (before, after) => {
 const runCommand = (command, args) => {
   const result = spawnSync(command, args, {
     cwd: uiRoot,
+    env: {
+      ...process.env,
+      RUST_TEST_THREADS: '1',
+    },
     stdio: 'inherit',
   })
 

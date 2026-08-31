@@ -571,8 +571,8 @@ mod tests {
 
     use super::{
         CleanupTiming, CodexProcessDiscoveryIssue, CodexSignalStage, ProcessBackend,
-        ProcessDiscovery, ProcessIdentity, SignalAttempt, TerminationKind, TrackedProcess,
-        cleanup_with_backend, is_codex_app_server,
+        ProcessDiscovery, ProcessIdentity, SignalAttempt, SysinfoProcessBackend, TerminationKind,
+        TrackedProcess, cleanup_with_backend, is_codex_app_server, process_refresh_kind,
     };
 
     #[cfg(unix)]
@@ -583,6 +583,39 @@ mod tests {
         fn drop(&mut self) {
             let _ = self.0.kill();
             let _ = self.0.wait();
+        }
+    }
+
+    #[cfg(windows)]
+    struct ChildGuard(std::process::Child);
+
+    #[cfg(windows)]
+    impl ChildGuard {
+        fn wait_for_exit(&mut self) -> bool {
+            for _ in 0..50 {
+                match self.0.try_wait() {
+                    Ok(Some(_)) => return true,
+                    Ok(None) => std::thread::sleep(Duration::from_millis(20)),
+                    Err(_) => return false,
+                }
+            }
+            false
+        }
+    }
+
+    #[cfg(windows)]
+    impl Drop for ChildGuard {
+        fn drop(&mut self) {
+            let _ = self.0.kill();
+            let _ = self.0.wait();
+        }
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn app_server_fixture_child() {
+        if std::env::var_os("CCR_SYSINFO_PROCESS_FIXTURE").is_some() {
+            std::thread::sleep(Duration::from_secs(30));
         }
     }
 
@@ -650,6 +683,114 @@ mod tests {
             assert!(!matches(&args), "unexpected match: {args:?}");
         }
         assert!(!is_codex_app_server(&[]));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn matches_windows_native_and_node_paths() {
+        assert!(matches(&[
+            r"C:\Program Files\Codex\codex.exe",
+            "--config",
+            "profile=x",
+            "app-server",
+        ]));
+        assert!(matches(&[
+            r"C:\Program Files\nodejs\node.exe",
+            r"C:\Users\test\AppData\Roaming\npm\codex.cmd",
+            "app-server",
+        ]));
+    }
+
+    #[test]
+    fn pid_round_trip_preserves_process_identifier() {
+        let native_pid = std::process::id();
+        assert_eq!(sysinfo::Pid::from_u32(native_pid).as_u32(), native_pid);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_backend_refreshes_and_terminates_only_controlled_child() {
+        use std::process::{Command, Stdio};
+
+        use sysinfo::{Pid, ProcessesToUpdate, get_current_pid};
+
+        let fixture_dir = tempfile::tempdir().expect("fixture directory should be created");
+        let fixture_exe = fixture_dir.path().join("codex.exe");
+        std::fs::copy(
+            std::env::current_exe().expect("current test executable should be available"),
+            &fixture_exe,
+        )
+        .expect("controlled Codex fixture should be copied");
+
+        let child = Command::new(&fixture_exe)
+            .arg("app_server_fixture_child")
+            .arg("--nocapture")
+            .arg("--skip")
+            .arg("app-server")
+            .env("CCR_SYSINFO_PROCESS_FIXTURE", "1")
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .expect("controlled Codex fixture should start");
+        let child_pid = Pid::from_u32(child.id());
+        let mut child = ChildGuard(child);
+        let current_pid = get_current_pid().expect("current PID should be available");
+        let pids = [current_pid, child_pid];
+        let mut backend = SysinfoProcessBackend::default();
+
+        let mut target = None;
+        for _ in 0..50 {
+            backend.system.refresh_processes_specifics(
+                ProcessesToUpdate::Some(&pids),
+                true,
+                process_refresh_kind(),
+            );
+            if let Some(process) = backend.system.process(child_pid)
+                && is_codex_app_server(process.cmd())
+            {
+                target = Some(TrackedProcess {
+                    identity: ProcessIdentity {
+                        pid: process.pid().as_u32(),
+                        start_time: process.start_time(),
+                    },
+                    display: super::CodexAppServer {
+                        pid: process.pid().as_u32(),
+                        cmdline: super::app_server_display_summary(process.cmd()),
+                    },
+                });
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+
+        let target = target.expect("controlled fixture should be visible through targeted refresh");
+        assert_eq!(target.identity.pid, child_pid.as_u32());
+        assert_eq!(
+            backend.signal(&target, CodexSignalStage::Term),
+            SignalAttempt::Unsupported
+        );
+        assert_eq!(
+            backend.signal(&target, CodexSignalStage::Kill),
+            SignalAttempt::Sent
+        );
+        assert!(child.wait_for_exit(), "controlled fixture should exit");
+
+        for _ in 0..50 {
+            backend.system.refresh_processes_specifics(
+                ProcessesToUpdate::Some(&[child_pid]),
+                true,
+                process_refresh_kind(),
+            );
+            if backend.system.process(child_pid).is_none() {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        assert!(
+            backend.system.process(child_pid).is_none(),
+            "targeted refresh should remove the exited controlled fixture"
+        );
     }
 
     #[test]
@@ -935,6 +1076,20 @@ mod tests {
 
         assert_eq!(report.cleanup.found, vec![process.display]);
         assert!(report.cleanup.dry_run);
+        assert!(backend.signal_calls.is_empty());
+        assert!(backend.waits.is_empty());
+        assert_eq!(backend.discovery_calls, 1);
+    }
+
+    #[test]
+    fn empty_initial_snapshot_is_a_no_op() {
+        let mut backend = FakeBackend::new(vec![Ok(Vec::new())]);
+
+        let report = cleanup_with_backend(&mut backend, false, test_timing());
+
+        assert!(report.cleanup.found.is_empty());
+        assert!(report.cleanup.terminated.is_empty());
+        assert!(report.cleanup.respawned.is_empty());
         assert!(backend.signal_calls.is_empty());
         assert!(backend.waits.is_empty());
         assert_eq!(backend.discovery_calls, 1);

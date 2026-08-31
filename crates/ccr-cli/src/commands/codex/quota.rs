@@ -2,6 +2,7 @@
 //!
 //! 查询 Codex 账号的 API 配额余额（5h 窗口 / 周限额）
 
+use crate::commands::common::new_table;
 use crate::services::CodexQuotaService;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
@@ -38,9 +39,9 @@ pub async fn quota_command(account: Option<&str>, json_output: bool, refresh: bo
     }
 
     // 表格输出
-    use comfy_table::{Cell, Color as CColor, ContentArrangement, Table};
+    use comfy_table::{Cell, Color as CColor, ContentArrangement};
 
-    let mut table = Table::new();
+    let mut table = new_table();
     table.set_content_arrangement(ContentArrangement::Dynamic);
     table.set_header(vec![
         Cell::new("账号"),

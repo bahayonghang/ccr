@@ -9,7 +9,7 @@ use indexmap::IndexMap;
 use serde_json::json;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Output};
 use tempfile::TempDir;
 
 const PROFILE_SECRET: &str = "fix-profile-secret-must-not-leak";
@@ -429,16 +429,18 @@ fn codex_fix_repair_runtime_restores_deepseek_fields_without_secret_output() {
     let output = fixture
         .command()
         .env("PATH", "")
-        .args(["codex", "fix", "--repair-runtime"])
+        .args(["codex", "fix", "--repair-runtime", "--skip-process-cleanup"])
         .output()
         .unwrap();
 
-    assert_eq!(output.status.code(), Some(0));
+    let context = command_output_context(&output);
+    assert_eq!(output.status.code(), Some(0), "{context}");
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("Codex runtime 本地漂移已修复"));
-    assert!(stdout.contains("doctor = skipped"));
-    assert!(!stdout.contains(PROFILE_SECRET));
-    assert!(!stdout.contains(RUNTIME_SECRET));
+    assert!(stdout.contains("process_state = skipped"), "{context}");
+    assert!(stdout.contains("Codex runtime 本地漂移已修复"), "{context}");
+    assert!(stdout.contains("doctor = skipped"), "{context}");
+    assert!(!stdout.contains(PROFILE_SECRET), "{context}");
+    assert!(!stdout.contains(RUNTIME_SECRET), "{context}");
 
     let config: toml::Value =
         toml::from_str(&fs::read_to_string(fixture.codex_dir.join("config.toml")).unwrap())
@@ -586,15 +588,17 @@ fn codex_fix_doctor_persists_sanitized_report_when_not_dry_run() {
     let output = fixture
         .command()
         .env("PATH", fake_bin)
-        .args(["codex", "fix", "--doctor"])
+        .args(["codex", "fix", "--doctor", "--skip-process-cleanup"])
         .output()
         .unwrap();
 
-    assert_eq!(output.status.code(), Some(3));
+    let context = command_output_context(&output);
+    assert_eq!(output.status.code(), Some(3), "{context}");
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(!stdout.contains(DOCTOR_SECRET));
-    assert!(!stdout.contains(PROFILE_SECRET));
-    assert!(!stdout.contains(RUNTIME_SECRET));
+    assert!(stdout.contains("process_state = skipped"), "{context}");
+    assert!(!stdout.contains(DOCTOR_SECRET), "{context}");
+    assert!(!stdout.contains(PROFILE_SECRET), "{context}");
+    assert!(!stdout.contains(RUNTIME_SECRET), "{context}");
     let report_path = persist_path_from_stdout(&stdout).expect("report path");
     let saved = fs::read_to_string(&report_path).unwrap();
     assert!(!saved.contains(DOCTOR_SECRET));
@@ -646,6 +650,15 @@ fn persist_path_from_stdout(stdout: &str) -> Option<PathBuf> {
         line.split_once("完整报告已保存到：")
             .map(|(_, path)| PathBuf::from(path.trim()))
     })
+}
+
+fn command_output_context(output: &Output) -> String {
+    format!(
+        "status={:?}\nstdout:\n{}\nstderr:\n{}",
+        output.status.code(),
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    )
 }
 
 fn snapshot_files(paths: &[PathBuf]) -> Vec<(PathBuf, Vec<u8>)> {
