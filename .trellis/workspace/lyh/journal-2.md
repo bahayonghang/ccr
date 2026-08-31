@@ -1478,3 +1478,24 @@ Usage 子页从粘连文本改成操作员 ledger，并修好 Last 30 Days 日�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 103: 完成全项目依赖安全优先分批升级
+
+**Date**: 2026-08-31
+**Task**: 完成全项目依赖安全优先分批升级
+**Branch**: `dev`
+
+### Summary
+
+优先修复 Rust、UI、docs 与 VS Code 安全风险，再按风险递增升级依赖与工具链；完成兼容迁移、全生态复扫和逐批完整 CI，保留有明确解锁条件的延期项。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0463be658cba8934c3477ad5e53efc42e94f1746` | (see git log) |
+
+### Status
+
+[OK] **Completed**
