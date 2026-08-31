@@ -1,4 +1,4 @@
-{"file":".trellis/tasks/08-30-project-dependency-upgrade/research/dependency-scan-2026-08-30.md","reason":"全生态当前版本、漏洞、deprecated API 与 breaking 证据基线；每批实施前刷新动态部分。"}
+{"file":".trellis/tasks/archive/2026-08/08-30-project-dependency-upgrade/research/dependency-scan-2026-08-30.md","reason":"全生态当前版本、漏洞、deprecated API 与 breaking 证据基线；每批实施前刷新动态部分。"}
 {"file":".trellis/spec/ccr/backend/dependency-governance.md","reason":"根/Tauri 依赖漂移、MSRV、SQLite、Tauri 版本对齐、Actions/toolchain 与审计治理合同。"}
 {"file":".trellis/spec/ccr-ui/frontend/index.md","reason":"React UI 依赖变更的前置规范路由和完整前端质量门禁。"}
 {"file":".trellis/spec/ccr-vscode/frontend/index.md","reason":"VS Code manifest、最低版本边界与扩展构建测试合同。"}

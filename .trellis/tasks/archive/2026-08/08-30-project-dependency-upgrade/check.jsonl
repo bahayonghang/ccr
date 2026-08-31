@@ -1,4 +1,4 @@
-{"file":".trellis/tasks/08-30-project-dependency-upgrade/research/dependency-scan-2026-08-30.md","reason":"复核每批目标、漏洞路径、安全复扫结果与 remaining UNVERIFIED。"}
+{"file":".trellis/tasks/archive/2026-08/08-30-project-dependency-upgrade/research/dependency-scan-2026-08-30.md","reason":"复核每批目标、漏洞路径、安全复扫结果与 remaining UNVERIFIED。"}
 {"file":".trellis/spec/ccr/backend/dependency-governance.md","reason":"检查双 Cargo 图、版本漂移、工具链 pin、审计和完整 CI 合同未被削弱。"}
 {"file":".trellis/spec/ccr-ui/frontend/index.md","reason":"检查 UI focused checks、coverage、audit、ApexCharts 特定回归和生产构建。"}
 {"file":".trellis/spec/ccr-vscode/frontend/index.md","reason":"检查扩展 lint/test/package、manifest 与最低 VS Code 版本一致性。"}
