@@ -3,7 +3,7 @@
   "displayName": "CCR - Configuration Switcher",
   "icon": "icon.png",
   "description": "Manage CCR profiles and platform metadata from the VS Code sidebar",
-  "version": "7.2.0",
+  "version": "7.3.0",
   "publisher": "ccr",
   "license": "MIT",
   "repository": {
