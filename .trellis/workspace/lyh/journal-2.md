@@ -1520,3 +1520,24 @@ Usage 子页从粘连文本改成操作员 ledger，并修好 Last 30 Days 日�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 105: 优化 Usage 页 hero 区布局消除大片空白
+
+**Date**: 2026-09-02
+**Task**: 优化 Usage 页 hero 区布局消除大片空白
+**Branch**: `dev`
+
+### Summary
+
+Usage 页 hero 区结构重排：成本结论卡从 7fr/5fr 双列拉伸布局改为通栏两行带（身份区 + 新增成本 sparkline 趋势区/average/peak + 既有 token 构成区），3 张指标卡改 auto-fit 整行排开消除空格子；移除页头重复的 Total Cost StatTile。零数据管道改动、零新增 i18n key。type-check/lint/usage 冒烟 70 项全绿，impeccable layout 检测零发现；2 个 /agent-sessions 失败为既有问题与本任务无关。桌面端视觉验收（AC7）由用户自行确认。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `dfb2f5a0` | (see git log) |
+
+### Status
+
+[OK] **Completed**
