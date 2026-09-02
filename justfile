@@ -8,6 +8,7 @@
 # 构建程序：just build (Debug) 或 just release (优化版)
 # 运行程序：just run -- <参数> 或 just run-release -- <参数>
 # 本地安装：just install (安装到 ~/.cargo/bin)
+# 清理产物：just clean（构建产物）或 just clean-all（含 node_modules）
 # 前置要求：Rust工具链 (cargo, rustc)
 # 提示事项：修改二进制名需同步更新 BIN 变量
 
@@ -153,6 +154,10 @@ _help-windows:
     @Write-Host "                                → 测试 → 构建 → 安全审计"
     @Write-Host "                                → 前端完整检查"
     @Write-Host ""
+    @Write-Host "   🧹 清理命令："
+    @Write-Host "     • just clean              清理构建产物（Cargo/Tauri target、dist、outputs）"
+    @Write-Host "     • just clean-all          上述内容 + node_modules"
+    @Write-Host ""
     @Write-Host ""
 
 [private]
@@ -189,6 +194,10 @@ _help-linux:
     @printf '%s\n' "                                版本同步 → 格式检查 → Clippy"
     @printf '%s\n' "                                → 测试 → 构建 → 安全审计"
     @printf '%s\n' "                                → 前端完整检查"
+    @printf '%s\n' ""
+    @printf '%s\n' "   🧹 清理命令："
+    @printf '%s\n' "     • just clean              清理构建产物（Cargo/Tauri target、dist、outputs）"
+    @printf '%s\n' "     • just clean-all          上述内容 + node_modules"
     @printf '%s\n' ""
 
     @printf '\n'
@@ -227,6 +236,10 @@ _help-macos:
     @printf '%s\n' "                                版本同步 → 格式检查 → Clippy"
     @printf '%s\n' "                                → 测试 → 构建 → 安全审计"
     @printf '%s\n' "                                → 前端完整检查"
+    @printf '%s\n' ""
+    @printf '%s\n' "   🧹 清理命令："
+    @printf '%s\n' "     • just clean              清理构建产物（Cargo/Tauri target、dist、outputs）"
+    @printf '%s\n' "     • just clean-all          上述内容 + node_modules"
     @printf '%s\n' ""
 
     @printf '\n'
@@ -983,12 +996,28 @@ _outputs-collect-ui-sync-windows:
 # 🧹 清理与维护命令
 # ═══════════════════════════════════════════════════════════
 
-# 🧹 清理构建产物
+# 可再生构建产物目录（不含 Cargo target 与 node_modules）
+CLEAN_ARTIFACT_DIRS := "ccr-ui/dist ccr-ui/coverage ccr-ui/.vite ccr-ui/node_modules/.vite ccr-ui/storybook-static ccr-ui/test-results ccr-ui/playwright-report ccr-ui/tests/artifacts ccr-ui/output ccr-ui/src-tauri/ci-dist ccr-ui/src-tauri/bin docs/.vitepress/dist docs/.vitepress/cache docs/node_modules/.cache ccr-vscode/dist ccr-vscode/.vscode-test coverage " + OUTPUTS_DIR
+CLEAN_NODE_MODULE_DIRS := "ccr-ui/node_modules docs/node_modules ccr-vscode/node_modules"
+
+# 🧹 清理构建产物（CLI/Tauri target、前端/文档/扩展产物、outputs）
 clean:
-    @just info "🧹 清理构建产物"
-    @just info "📂 清理目标: target/ 目录"
+    @just header "清理构建产物"
+    @just info "清理 Cargo workspace target/"
     cargo clean
-    @just success "清理完成"
+    @just info "清理 Tauri workspace ccr-ui/src-tauri/target/"
+    cargo clean --manifest-path ccr-ui/src-tauri/Cargo.toml
+    @just info "清理前端/文档/扩展产物与 outputs/"
+    @just _clean-dirs-{{os()}} "{{CLEAN_ARTIFACT_DIRS}}"
+    @just _clean-artifact-files-{{os()}}
+    @just success "构建产物已清理。删除 node_modules 请运行 just clean-all"
+
+# 🧹 清理构建产物和 JS 依赖目录（之后需 bun install / npm ci）
+clean-all: clean
+    @just header "清理 JS 依赖目录"
+    @just warn "将删除 ccr-ui、docs、ccr-vscode 的 node_modules"
+    @just _clean-dirs-{{os()}} "{{CLEAN_NODE_MODULE_DIRS}}"
+    @just success "node_modules 已删除。请按需重新执行 bun install / npm ci"
 
 # 🗂️ 清理归档产物
 outputs-clean:
@@ -1009,19 +1038,66 @@ _outputs-clean-windows:
     @if (Test-Path "{{OUTPUTS_DIR}}") { Remove-Item "{{OUTPUTS_DIR}}" -Recurse -Force }
     @just success "Collected outputs cleaned"
 
+[private]
+_clean-dirs-linux dirs:
+    @just _clean-dirs-unix "{{dirs}}"
+
+[private]
+_clean-dirs-macos dirs:
+    @just _clean-dirs-unix "{{dirs}}"
+
+[private]
+_clean-dirs-unix dirs:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # shellcheck disable=SC2086
+    rm -rf {{dirs}}
+
+[private]
+_clean-dirs-windows dirs:
+    #!pwsh.exe
+    $ErrorActionPreference = 'Stop'
+    foreach ($d in '{{dirs}}'.Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries)) {
+        if (Test-Path -LiteralPath $d) {
+            Remove-Item -LiteralPath $d -Recurse -Force
+        }
+    }
+
+[private]
+_clean-artifact-files-linux:
+    @just _clean-artifact-files-unix
+
+[private]
+_clean-artifact-files-macos:
+    @just _clean-artifact-files-unix
+
+[private]
+_clean-artifact-files-unix:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    rm -f ccr-ui/*.tsbuildinfo ccr-vscode/*.tsbuildinfo ccr-vscode/*.vsix
+
+[private]
+_clean-artifact-files-windows:
+    #!pwsh.exe
+    $ErrorActionPreference = 'Stop'
+    foreach ($root in @('ccr-ui', 'ccr-vscode')) {
+        if (Test-Path -LiteralPath $root) {
+            Get-ChildItem -LiteralPath $root -Filter '*.tsbuildinfo' -File -ErrorAction SilentlyContinue | Remove-Item -Force
+        }
+    }
+    if (Test-Path -LiteralPath 'ccr-vscode') {
+        Get-ChildItem -LiteralPath 'ccr-vscode' -Filter '*.vsix' -File -ErrorAction SilentlyContinue | Remove-Item -Force
+    }
+
 # 📦 检查依赖更新
 update-deps:
     @just info "📦 检查依赖更新"
     @just info "📌 使用 cargo-outdated (需要安装: cargo install cargo-outdated)"
     cargo outdated
 
-# 💣 深度清理 (包括 Cargo 缓存和目标文件)
-deep-clean: clean outputs-clean
-    @just header "💣 深度清理"
-    @just warn "警告：将清理 Cargo 缓存"
-    @just info "🗑️  清理 Cargo 注册表缓存"
-    cargo clean
-    @just success "深度清理完成"
+# 💣 深度清理（兼容旧名称，等同 just clean-all）
+deep-clean: clean-all
 
 # ═══════════════════════════════════════════════════════════
 # 🔧 版本号同步命令

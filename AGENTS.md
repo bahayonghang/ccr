@@ -7,6 +7,7 @@
 - `just build` — build the Rust CLI in debug mode.
 - `just test` — run Rust workspace tests.
 - `just ci` — run the repo-wide CI path: version checks, fmt, clippy, tests, build, audit, and frontend checks.
+- `just clean` — remove rebuildable artifacts (Cargo/Tauri `target`, frontend/docs/vscode dist, coverage, outputs). `just clean-all` also deletes `node_modules`.
 - `just ui-dev` / `just ui-check` — develop or validate the Tauri UI.
 - `cd ccr-ui && bun run dev` — run the web UI locally.
 - `cd ccr-ui && bun run test` — run i18n and Vitest smoke tests.
