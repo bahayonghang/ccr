@@ -1499,3 +1499,24 @@ Usage 子页从粘连文本改成操作员 ledger，并修好 Last 30 Days 日�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 104: 修复 Overview 空用量与 Agent Sessions 缺失源
+
+**Date**: 2026-09-02
+**Task**: 修复 Overview 空用量与 Agent Sessions 缺失源
+**Branch**: `dev`
+
+### Summary
+
+修复启动期 window 错误误报、会话源校验映射、过期 7 天窗口用量导入，以及 Agent Sessions 进页自动刷新并跳过不可读源。桌面实机刷新仍为 UNVERIFIED。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `69119e1d` | (see git log) |
+
+### Status
+
+[OK] **Completed**
