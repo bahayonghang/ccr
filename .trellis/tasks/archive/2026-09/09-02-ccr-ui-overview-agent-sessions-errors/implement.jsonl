@@ -1,0 +1,7 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ccr-ui/frontend/agent-session-observability-contracts.md", "reason": "Detail/restore error matrix, refresh reconcile, no path leakage"}
+{"file": ".trellis/spec/ccr-ui/frontend/dashboard-presentation-contracts.md", "reason": "Frontend errors stay in Event stream, not readiness"}
+{"file": ".trellis/spec/ccr-ui/frontend/monitoring-log-contracts.md", "reason": "frontend.error persist rules; do not change retention cleanup of user DB"}
+{"file": ".trellis/spec/ccr-ui/frontend/layering-contracts.md", "reason": "Keep utils/feature/i18n imports inside allowed graph"}
+{"file": ".trellis/spec/ccr-store/backend/backend-guidelines.md", "reason": "Provider restore/validate is a security boundary"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Archive DTO to UI error mapping crosses store/tauri/react"}
