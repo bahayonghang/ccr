@@ -31,3 +31,20 @@
 
 - `sanitize_frontend_log` is the server boundary. Batch 32. See parent design IPC table.
 - Tests: `ccr-ui/src-tauri/src/log_sanitize.rs`, `ccr-ui/tests/shell/logger.smoke.test.ts`.
+
+## Scenario: Startup window handlers
+
+### 1. Scope / Trigger
+
+- Changing `ccr-ui/src/utils/startupRecovery.ts` or `ccr-ui/src/main.tsx` mount wiring.
+
+### 2. Contracts
+
+- `installStartupErrorHandlers()` returns a disposer. `main.tsx` must keep it and call it from the first React shell mount `useEffect`.
+- Before uninstall: `window` `error` / `unhandledrejection` may call `reportStartupFailure` (`[startup] …` + `renderFatalStartup`).
+- After uninstall: those events must not replace `#app` and must not log `[startup] Unhandled window error`.
+- `frontend.error` still persists into Event stream. Do not delete user `log_entries` to hide a historical startup error.
+
+### 3. Tests Required
+
+- `ccr-ui/tests/shell/startup-recovery.smoke.test.ts`: pre-uninstall fatal path; post-uninstall does not replace `#app`; `main.tsx` keeps and invokes the disposer.

@@ -317,6 +317,19 @@ pub fn get_detail(
     if request.archive_id.is_empty() || request.archive_id.len() > 128 {
         return Err("agent_session_invalid_archive_id".into());
     }
+    let registry = AgentSessionProviderRegistry::from_default_home()
+        .map_err(|_| "agent_session_home_unavailable".to_string())?;
+    get_detail_with_registry(pool, request, &registry)
+}
+
+fn get_detail_with_registry(
+    pool: &DbPool,
+    request: AgentSessionDetailRequestDto,
+    registry: &AgentSessionProviderRegistry,
+) -> Result<AgentSessionDetailDto, String> {
+    if request.archive_id.is_empty() || request.archive_id.len() > 128 {
+        return Err("agent_session_invalid_archive_id".into());
+    }
     let conn = pool
         .get()
         .map_err(|error| format!("agent_session_db_unavailable:{error}"))?;
@@ -324,9 +337,7 @@ pub fn get_detail(
         .map_err(|error| format!("agent_session_source_lookup_failed:{error}"))?
         .ok_or_else(|| "agent_session_not_found".to_string())?;
     drop(conn);
-    let registry = AgentSessionProviderRegistry::from_default_home()
-        .map_err(|_| "agent_session_home_unavailable".to_string())?;
-    let source = restore_source(&registry, &stored)?;
+    let source = restore_source(registry, &stored)?;
     let page = registry
         .read_message_page(
             &source,
@@ -674,7 +685,20 @@ fn restore_source(
             kind,
             (!stored.source_member_id.is_empty()).then(|| stored.source_member_id.clone()),
         )
-        .map_err(|_| "agent_session_source_validation_failed".to_string())
+        .map_err(map_restore_source_error)
+}
+
+fn map_restore_source_error(error: impl std::fmt::Display) -> String {
+    // 只回传稳定错误码，不把路径或 CcrError 英文原文交给渲染器。
+    let message = error.to_string();
+    if message.contains("session source is missing")
+        || message.contains("session source root is unavailable")
+        || message.contains("session member is missing")
+    {
+        "agent_session_source_unavailable".to_string()
+    } else {
+        "agent_session_source_validation_failed".to_string()
+    }
 }
 
 fn row_to_dto(row: AgentSessionArchiveRow) -> Result<AgentSessionListItemDto, String> {
@@ -937,8 +961,176 @@ mod tests {
         let conn = pool.get().unwrap();
         usage_repo::upsert_session_archive_entry(&conn, &entry).unwrap();
         drop(conn);
-
         let page = list_sessions(&pool, empty_list_request()).unwrap();
         assert!(page.items.is_empty());
+    }
+
+    fn write_codex_jsonl(home: &std::path::Path, relative: &str) -> std::path::PathBuf {
+        let path = home.join(relative);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(
+            &path,
+            "{\"type\":\"response_item\",\"payload\":{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"hello\"}]}}\n",
+        )
+        .unwrap();
+        path
+    }
+
+    fn detail_request(archive_id: &str) -> AgentSessionDetailRequestDto {
+        AgentSessionDetailRequestDto {
+            archive_id: archive_id.to_string(),
+            before_cursor: None,
+            limit: None,
+        }
+    }
+
+    fn assert_stable_error(error: &str, expected: &str) {
+        assert_eq!(error, expected);
+        assert!(!error.contains("session source"));
+        assert!(!error.contains('\\') && !error.contains('/'));
+    }
+
+    #[test]
+    fn get_detail_maps_missing_jsonl_to_source_unavailable() {
+        let temp = TempDir::new().unwrap();
+        let live = write_codex_jsonl(temp.path(), ".codex/sessions/2026/09/02/rollout-live.jsonl");
+        let pool = temp_usage_pool(&temp);
+        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+            .without_environment_overrides();
+        refresh_archive_with_registry(&pool, &registry).unwrap();
+        let page = list_sessions(&pool, empty_list_request()).unwrap();
+        let archive_id = page.items[0].archive_id.clone();
+        fs::remove_file(&live).unwrap();
+
+        let error =
+            get_detail_with_registry(&pool, detail_request(&archive_id), &registry).unwrap_err();
+        assert_stable_error(&error, "agent_session_source_unavailable");
+    }
+
+    #[test]
+    fn get_detail_maps_wrong_extension_to_validation_failed() {
+        let temp = TempDir::new().unwrap();
+        let txt = temp.path().join(".codex/sessions/2026/09/02/evil.txt");
+        fs::create_dir_all(txt.parent().unwrap()).unwrap();
+        fs::write(&txt, "not a jsonl session").unwrap();
+        let pool = temp_usage_pool(&temp);
+        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+            .without_environment_overrides();
+        let now = Utc::now();
+        let file_path = txt.to_string_lossy().to_string();
+        let entry = UsageSessionArchiveEntry {
+            archive_id: usage_repo::agent_session_archive_id("codex", &file_path, ""),
+            session_id: "evil".into(),
+            platform: "codex".into(),
+            title: None,
+            cwd: String::new(),
+            file_path: file_path.clone(),
+            file_hash: None,
+            source_variant: "codex-live".into(),
+            source_kind: "file".into(),
+            source_member_id: String::new(),
+            source_size: None,
+            source_mtime_ns: None,
+            source_stat_hash: None,
+            message_count: 0,
+            user_message_count: 0,
+            assistant_message_count: 0,
+            tool_use_count: 0,
+            source_fidelity: "full".into(),
+            created_at: now,
+            updated_at: now,
+            source_state: UsageSourceState::Live,
+            last_seen_at: Some(now),
+            raw_deleted_at: None,
+            archived_at: now,
+        };
+        let conn = pool.get().unwrap();
+        usage_repo::upsert_session_archive_entry(&conn, &entry).unwrap();
+        drop(conn);
+
+        let error = get_detail_with_registry(&pool, detail_request(&entry.archive_id), &registry)
+            .unwrap_err();
+        assert_stable_error(&error, "agent_session_source_validation_failed");
+        assert!(!error.contains(&file_path));
+    }
+
+    #[test]
+    fn get_detail_maps_escaped_path_to_validation_failed() {
+        let temp = TempDir::new().unwrap();
+        fs::create_dir_all(temp.path().join(".codex/sessions")).unwrap();
+        let outside = temp.path().join("outside.jsonl");
+        fs::write(&outside, "{\"role\":\"user\"}\n").unwrap();
+        let pool = temp_usage_pool(&temp);
+        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+            .without_environment_overrides();
+        let now = Utc::now();
+        let file_path = outside.to_string_lossy().to_string();
+        let entry = UsageSessionArchiveEntry {
+            archive_id: usage_repo::agent_session_archive_id("codex", &file_path, ""),
+            session_id: "escaped".into(),
+            platform: "codex".into(),
+            title: None,
+            cwd: String::new(),
+            file_path: file_path.clone(),
+            file_hash: None,
+            source_variant: "codex-live".into(),
+            source_kind: "file".into(),
+            source_member_id: String::new(),
+            source_size: None,
+            source_mtime_ns: None,
+            source_stat_hash: None,
+            message_count: 0,
+            user_message_count: 0,
+            assistant_message_count: 0,
+            tool_use_count: 0,
+            source_fidelity: "full".into(),
+            created_at: now,
+            updated_at: now,
+            source_state: UsageSourceState::Live,
+            last_seen_at: Some(now),
+            raw_deleted_at: None,
+            archived_at: now,
+        };
+        let conn = pool.get().unwrap();
+        usage_repo::upsert_session_archive_entry(&conn, &entry).unwrap();
+        drop(conn);
+
+        let error = get_detail_with_registry(&pool, detail_request(&entry.archive_id), &registry)
+            .unwrap_err();
+        assert_stable_error(&error, "agent_session_source_validation_failed");
+        assert!(!error.contains(&file_path));
+    }
+
+    #[test]
+    fn refresh_upserts_live_jsonl_and_marks_deleted_archive_missing() {
+        let temp = TempDir::new().unwrap();
+        write_codex_jsonl(temp.path(), ".codex/sessions/2026/09/02/rollout-live.jsonl");
+        let old = write_codex_jsonl(temp.path(), ".codex/sessions/2026/03/06/rollout-old.jsonl");
+        let pool = temp_usage_pool(&temp);
+        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+            .without_environment_overrides();
+        refresh_archive_with_registry(&pool, &registry).unwrap();
+        fs::remove_file(&old).unwrap();
+        refresh_archive_with_registry(&pool, &registry).unwrap();
+
+        let page = list_sessions(&pool, empty_list_request()).unwrap();
+        let live_item = page
+            .items
+            .iter()
+            .find(|item| item.session_id == "rollout-live")
+            .unwrap();
+        let old_item = page
+            .items
+            .iter()
+            .find(|item| item.session_id == "rollout-old")
+            .unwrap();
+        assert_eq!(live_item.source_state, "live");
+        assert_eq!(old_item.source_state, "missing");
+
+        let detail =
+            get_detail_with_registry(&pool, detail_request(&live_item.archive_id), &registry)
+                .unwrap();
+        assert_eq!(detail.archive_id, live_item.archive_id);
+        assert!(!detail.messages.is_empty());
     }
 }

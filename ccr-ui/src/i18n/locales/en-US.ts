@@ -5700,8 +5700,14 @@ export default {
     noMatches: 'No matching sessions',
     noTranscriptMatches: 'No matches in loaded messages',
     unknownTime: 'Unknown time',
+    sourceUnavailableDescription: 'This session source is no longer on disk. Refresh to reconcile the archive, then open a session that still exists.',
     roles: { user: 'User', assistant: 'Assistant', tool: 'Tool' },
     agents: { grok: 'Grok', claude: 'Claude', codex: 'Codex', opencode: 'OpenCode', pi: 'Pi', omp: 'OMP', antigravity: 'Antigravity', kimi: 'Kimi' },
+    errors: {
+      generic: 'This session could not be opened. Retry or run an incremental refresh.',
+      agent_session_source_unavailable: 'This session source is missing or its provider root is unavailable.',
+      agent_session_source_validation_failed: 'This session source failed validation and was not opened.',
+    },
   },
 
   profileEditor: {

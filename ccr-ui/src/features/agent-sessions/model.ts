@@ -82,3 +82,43 @@ export const dateBoundary = (value: string, endOfDay: boolean): string | undefin
   return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString()
 }
 
+const AGENT_SESSION_ERROR_CODE = /(?:^|:)(agent_session_[a-z0-9_]+)$/
+
+export const extractAgentSessionErrorCode = (error: string): string | undefined => {
+  const trimmed = error.trim()
+  if (/^agent_session_[a-z0-9_]+$/.test(trimmed)) {
+    return trimmed
+  }
+  return trimmed.match(AGENT_SESSION_ERROR_CODE)?.[1]
+}
+
+export const isUnreadableAgentSessionError = (error: string): boolean => {
+  const code = extractAgentSessionErrorCode(error)
+  return code === 'agent_session_source_unavailable' || code === 'agent_session_source_validation_failed'
+}
+
+export const resolveAgentSessionDetailError = (
+  error: string,
+  t: TranslateFunction,
+): { title: string, description: string } => {
+  const code = extractAgentSessionErrorCode(error)
+  if (code === 'agent_session_source_unavailable') {
+    return {
+      title: t('agentSessions.missing'),
+      description: t('agentSessions.sourceUnavailableDescription'),
+    }
+  }
+  if (code) {
+    const key = `agentSessions.errors.${code}`
+    const translated = t(key)
+    return {
+      title: t('agentSessions.error'),
+      description: translated === key ? t('agentSessions.errors.generic') : translated,
+    }
+  }
+  return {
+    title: t('agentSessions.error'),
+    description: t('agentSessions.errors.generic'),
+  }
+}
+

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router'
 import { getCliVersions, getSystemInfo } from '@/api'
 import { getErrorMessage } from '@/utils/errorHandler'
@@ -14,8 +15,10 @@ import {
   type DashboardBackendStatus,
   type DashboardPlatformSource,
 } from '@/views/dashboard/dashboardPresentation'
-import { useHomeUsageOverview } from '../queries'
+import { homeUsageKeys, usageKeys, useHomeUsageOverview } from '../queries'
 import { hydrateUsageLocale, useUsageT } from '../translate'
+import { useUsageImport } from '../useUsageImport'
+import { useUsageBootstrapImport } from '../useUsageDashboardEffects'
 import { DashboardNextActions } from './DashboardNextActions'
 import { DashboardPlatformMatrix } from './DashboardPlatformMatrix'
 import { DashboardSignalStream } from './DashboardSignalStream'
@@ -51,6 +54,22 @@ export function DashboardView() {
   const [cliVersions, setCliVersions] = useState<Map<string, CliVersionEntry>>(new Map())
   const [cliVersionsLoaded, setCliVersionsLoaded] = useState(false)
   const isNativeRuntime = isTauriRuntime()
+  const queryClient = useQueryClient()
+  const refreshHomeUsage = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: homeUsageKeys.all }),
+      queryClient.invalidateQueries({ queryKey: usageKeys.all }),
+    ])
+  }, [queryClient])
+  const importState = useUsageImport(refreshHomeUsage)
+  useUsageBootstrapImport({
+    unsupported: !isNativeRuntime,
+    needsImport: Boolean(isNativeRuntime && overviewQuery.data?.bootstrap.needs_usage_import),
+    isLoading: overviewQuery.isLoading,
+    isFetched: overviewQuery.isFetched,
+    syncCapability: null,
+    startImportJob: importState.startImportJob,
+  })
 
   const applyCliVersions = useCallback((entries: CliVersionEntry[]) => {
     const normalized = new Map<string, CliVersionEntry>()
@@ -164,9 +183,9 @@ export function DashboardView() {
   ], [t])
 
   const overview = isNativeRuntime ? (overviewQuery.data ?? null) : null
-  const usageLoading = Boolean(isNativeRuntime && overviewQuery.isLoading)
-  const usageError = isNativeRuntime && overviewQuery.error
-    ? getErrorMessage(overviewQuery.error)
+  const usageLoading = Boolean(isNativeRuntime && (overviewQuery.isLoading || importState.importing))
+  const usageError = isNativeRuntime && (overviewQuery.error || importState.error)
+    ? getErrorMessage(overviewQuery.error ?? importState.error)
     : null
 
   const dashboardPresentation = useMemo(() => buildDashboardPresentation({

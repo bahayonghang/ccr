@@ -8,9 +8,16 @@ import type { TranslateFunction } from '@/utils/tf'
 export const resolveActiveArchiveId = (
   sessions: AgentSessionListItemDto[],
   selectedArchiveId: string,
-): string => sessions.some((session) => session.archive_id === selectedArchiveId)
-  ? selectedArchiveId
-  : sessions[0]?.archive_id ?? ''
+  skippedArchiveIds: ReadonlySet<string> = new Set(),
+): string => {
+  const selected = sessions.find((session) => session.archive_id === selectedArchiveId)
+  if (selected) return selected.archive_id
+  return sessions.find((session) => (
+    session.source_state !== 'missing'
+    && session.source_state !== 'deleted_by_user'
+    && !skippedArchiveIds.has(session.archive_id)
+  ))?.archive_id ?? ''
+}
 
 export const isRefreshRunning = (status: string | undefined, pending: boolean): boolean =>
   pending || status === 'pending' || status === 'running'

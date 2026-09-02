@@ -25,21 +25,21 @@ export function useUsageSnapshotRefresh(refresh: () => Promise<void>) {
 
 export function useUsageBootstrapImport(input: {
   unsupported: boolean
-  hasUsageData: boolean
+  needsImport: boolean
   isLoading: boolean
   isFetched: boolean
   syncCapability: UsageFeatureCapability | null
   startImportJob: (opts: { reason: 'bootstrap'; recentDays: number }) => Promise<unknown>
 }) {
   const attempted = useRef(false)
-  const { unsupported, hasUsageData, isLoading, isFetched, syncCapability, startImportJob } = input
+  const { unsupported, needsImport, isLoading, isFetched, syncCapability, startImportJob } = input
   useEffect(() => {
-    if (!isTauriRuntime() || unsupported || hasUsageData || attempted.current) return
+    if (!isTauriRuntime() || unsupported || !needsImport || attempted.current) return
     if (isLoading || !isFetched) return
     if (syncCapability && !syncCapability.supported) return
     attempted.current = true
     void startImportJob({ reason: 'bootstrap', recentDays: 30 })
-  }, [unsupported, hasUsageData, isLoading, isFetched, syncCapability, startImportJob])
+  }, [unsupported, needsImport, isLoading, isFetched, syncCapability, startImportJob])
 }
 
 export function useUsageAutoRefresh(refetch: () => Promise<unknown>) {

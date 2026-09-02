@@ -22,6 +22,7 @@ import { AgentSessionTranscript } from './AgentSessionTranscript'
 import {
   DEFAULT_AGENT_SESSION_FILTERS,
   dateBoundary,
+  isUnreadableAgentSessionError,
   type AgentSessionFilterValues,
 } from './model'
 import { agentSessionKeys } from './queries'
@@ -145,8 +146,10 @@ export function AgentSessionsView() {
   const deferredFilters = useDeferredValue(filterForm.watch())
   const [selectedAgents, setSelectedAgents] = useState<AgentSessionAgentDto[]>([])
   const [selectedArchiveId, setSelectedArchiveId] = useState('')
+  const [skippedArchiveIds, setSkippedArchiveIds] = useState<string[]>([])
   const [refreshJobId, setRefreshJobId] = useState('')
   const invalidatedJobRef = useRef('')
+  const bootstrapRefreshRef = useRef(false)
   const environmentQuery = useQuery({
     queryKey: ['current-environment'],
     queryFn: getCurrentEnvironment,
@@ -179,7 +182,8 @@ export function AgentSessionsView() {
     () => listQuery.data?.pages.flatMap((page) => Array.isArray(page?.items) ? page.items : []) ?? [],
     [listQuery.data],
   )
-  const activeArchiveId = resolveActiveArchiveId(sessions, selectedArchiveId)
+  const skippedArchiveIdSet = useMemo(() => new Set(skippedArchiveIds), [skippedArchiveIds])
+  const activeArchiveId = resolveActiveArchiveId(sessions, selectedArchiveId, skippedArchiveIdSet)
   const activeSession = sessions.find((session) => session.archive_id === activeArchiveId)
 
   const detailQuery = useInfiniteQuery({
@@ -213,11 +217,26 @@ export function AgentSessionsView() {
   const refreshing = isRefreshRunning(refreshStatus, refreshMutation.isPending)
 
   useEffect(() => {
+    if (!localEnvironment || bootstrapRefreshRef.current) return
+    bootstrapRefreshRef.current = true
+    refreshMutation.mutate()
+  }, [localEnvironment, refreshMutation])
+
+  useEffect(() => {
     if (!refreshJobId || invalidatedJobRef.current === refreshJobId) return
     if (refreshStatus !== 'finished' && refreshStatus !== 'failed') return
     invalidatedJobRef.current = refreshJobId
+    setSkippedArchiveIds([])
     void queryClient.invalidateQueries({ queryKey: agentSessionKeys.all })
   }, [queryClient, refreshJobId, refreshStatus])
+
+  useEffect(() => {
+    if (selectedArchiveId || !activeArchiveId || !detailQuery.isError) return
+    if (!isUnreadableAgentSessionError(getErrorMessage(detailQuery.error))) return
+    setSkippedArchiveIds((current) => (
+      current.includes(activeArchiveId) ? current : [...current, activeArchiveId]
+    ))
+  }, [selectedArchiveId, activeArchiveId, detailQuery.error, detailQuery.isError])
 
   const handleToggleAgent = useCallback((agent: AgentSessionAgentDto) => {
     setSelectedAgents((current) => current.includes(agent)

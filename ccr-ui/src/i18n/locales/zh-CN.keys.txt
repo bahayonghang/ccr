@@ -4258,4 +4258,15 @@ export default {
     bootstrapImported: '自动导入 {count} 条 usage 记录',
     bootstrapIndexed: '自动索引 {count} 个 Sessions',
   },
+
+  agentSessions: {
+    missing: '源已缺失',
+    error: '错误',
+    sourceUnavailableDescription: '会话源已不在磁盘上。请增量刷新归档后，打开仍然存在的会话。',
+    errors: {
+      generic: '无法打开该会话。请重试，或先做一次增量刷新。',
+      agent_session_source_unavailable: '会话源缺失，或其 provider 根目录不可用。',
+      agent_session_source_validation_failed: '会话源未通过校验，未打开该路径。',
+    },
+  },
 }

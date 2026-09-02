@@ -55,7 +55,7 @@ export function useUsageDashboardData() {
   useUsageSnapshotRefresh(refresh)
   useUsageBootstrapImport({
     unsupported: flags.dashboardUnsupported,
-    hasUsageData: flags.hasUsageData,
+    needsImport: !flags.hasUsageData,
     isLoading: dashboardQuery.isLoading,
     isFetched: dashboardQuery.isFetched,
     syncCapability: flags.syncCapability,

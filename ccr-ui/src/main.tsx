@@ -1,4 +1,4 @@
-import { StrictMode } from 'react'
+import { StrictMode, useEffect, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { I18nextProvider } from 'react-i18next'
@@ -27,15 +27,30 @@ void registerDeferredIcons().catch(() => {
 })
 loadDeferredStyles()
 initPerfTelemetry()
-installStartupErrorHandlers()
+const uninstallStartupErrorHandlers = installStartupErrorHandlers()
 logger.info('[startup] react shell mounting')
+
+function ReactShellRoot({
+  onMounted,
+  children,
+}: {
+  onMounted: () => void
+  children: ReactNode
+}) {
+  useEffect(() => {
+    onMounted()
+  }, [onMounted])
+  return children
+}
 
 createRoot(container).render(
   <StrictMode>
-    <I18nextProvider i18n={i18n}>
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-      </QueryClientProvider>
-    </I18nextProvider>
+    <ReactShellRoot onMounted={uninstallStartupErrorHandlers}>
+      <I18nextProvider i18n={i18n}>
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      </I18nextProvider>
+    </ReactShellRoot>
   </StrictMode>,
 )

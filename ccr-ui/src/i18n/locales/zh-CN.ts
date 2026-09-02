@@ -5542,8 +5542,14 @@ export default {
     noMatches: '没有匹配的会话',
     noTranscriptMatches: '已加载消息中没有匹配项',
     unknownTime: '未知时间',
+    sourceUnavailableDescription: '会话源已不在磁盘上。请增量刷新归档后，打开仍然存在的会话。',
     roles: { user: '用户', assistant: '助手', tool: '工具' },
     agents: { grok: 'Grok', claude: 'Claude', codex: 'Codex', opencode: 'OpenCode', pi: 'Pi', omp: 'OMP', antigravity: 'Antigravity', kimi: 'Kimi' },
+    errors: {
+      generic: '无法打开该会话。请重试，或先做一次增量刷新。',
+      agent_session_source_unavailable: '会话源缺失，或其 provider 根目录不可用。',
+      agent_session_source_validation_failed: '会话源未通过校验，未打开该路径。',
+    },
   },
 
   profileEditor: {

@@ -187,3 +187,38 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 
 - `ccr-ui/tests/dashboard/dashboard-presentation.smoke.test.ts` — date-order sparkline; `gemini` → `antigravity`; `overview == null` / empty `series` → `undefined`; all-zero series with empty `source_health` is not missing.
 - `ccr-ui/tests/dashboard/dashboard-platform-matrix.smoke.test.tsx` — `state: 'missing'` shows the placeholder; all-zero series does not.
+
+## Scenario: Empty selected window with stale llmusage sync is not usageReady
+
+### 1. Scope / Trigger
+
+- Trigger: changing `compute_home_overview` bootstrap flags, `window_usage_needs_refresh`, or DashboardView bootstrap import.
+- Symptom: 7D totals are 0 while readiness says "Local usage archive returned real data", because `has_any_usage` is true from older events outside the window and last `llmusage` sync predates the window start.
+
+### 2. Signatures
+
+- `window_usage_needs_refresh(total_requests, recent_completed_at, window_start) -> bool`
+- `HomeOverviewBootstrap.needs_usage_import`
+- `useUsageBootstrapImport({ needsImport })`
+
+### 3. Contracts
+
+- `needs_usage_import` is true when there is no usage DB at all, **or** the selected window has `total_requests == 0` and `archive.recent_completed_at` is missing or local-date-before `window_start`.
+- `is_warm` stays `!needs_usage_import && !needs_session_index`. A stale empty 7D window must not present `usageReady`.
+- `DashboardView` starts the same bootstrap import job as the Usage page (`recentDays: 30`) when `needs_usage_import` is true. Completely empty DBs still bootstrap; historical data outside the window no longer suppresses import.
+- Do not delete user `llmusage.db` or `log_entries` to hide empty windows.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Window has requests | `needs_usage_import` false (unless cold DB) |
+| Window 0 requests, last sync inside window | no extra import |
+| Window 0 requests, last sync before window start | `needs_usage_import` true; dashboard bootstrap import |
+
+### 5. Tests Required
+
+- `window_usage_needs_refresh_when_sync_predates_empty_window`
+- `compute_home_overview_marks_stale_empty_window_as_needs_import`
+- `compute_home_overview_joins_usage_series_and_marks_warm_bootstrap` stays warm when today has events
+

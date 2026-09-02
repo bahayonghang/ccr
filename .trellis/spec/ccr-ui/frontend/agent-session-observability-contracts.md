@@ -48,9 +48,11 @@ Database ownership:
 - Availability (`not_installed | no_data | available | error`) is independent from fidelity (`full | partial | locked`). Missing or encrypted data is not a parse error.
 - `ANTIGRAVITY_KEY` is optional and process-scoped. Its presence may permit a partial status, but v1 does not claim `.pb` decryption or `full` fidelity from the key alone; plaintext brain/history fallback is `partial`, and inaccessible encrypted-only data is `locked`.
 - Refresh fingerprints sources before parsing. An unchanged container must not enumerate SQLite members, parse messages, or upsert summaries; the refresh report must expose `discovered`, `unchanged`, `fingerprinted`, `parsed`, `upserted`, `partial`, `locked`, and `errors` counters.
-- The renderer never receives raw source paths or secrets. Logs and user-facing error categories must not contain paths, keys, or transcript content.
+- The renderer never receives raw source paths or secrets. Logs and user-facing error categories must not contain paths, keys, or transcript content. Detail empty states map `agent_session_*` codes to i18n; they must not render the raw code string.
 - `/agent-sessions` is local-only, lives immediately above MCP Manager, and does not replace `/agents`. Non-local environments fail closed before provider/list/detail/refresh queries run; every query key includes the active environment ID.
+- Local mount starts one incremental refresh (`agent_sessions_start_refresh`) so the archive can catch live discover counts. Auto-select skips `missing` / `deleted_by_user` rows and archive IDs whose detail returned `agent_session_source_unavailable` or `agent_session_source_validation_failed`, unless the user clicked that row.
 - The generated client under `src/api/generated/agentSessions.ts` is the only `invoke()` owner. Feature code imports the domain facade, not Tauri directly. Both list rows and transcript rows use measured virtualization with stable keys.
+- After `canonicalize`, Windows `\\?\` / `\\?\UNC\` prefixes and `ParentDir` components must not pass root containment. Compare path components, never string `starts_with`.
 
 ### 4. Validation & Error Matrix
 
@@ -59,10 +61,10 @@ Database ownership:
 | Query text over 200 characters, invalid date, reversed date range, bad cursor/filter | Reject with a stable `agent_session_*` validation error; do not query SQLite |
 | Empty or longer-than-128 archive ID | `agent_session_invalid_archive_id` |
 | Archive ID not found | `agent_session_not_found` |
-| Stored source is outside the canonical provider root, or kind/variant/file/member shape is invalid | Reject as source unavailable; never open the supplied path |
+| Stored source is outside the canonical provider root, or kind/variant/file/member shape is invalid | `agent_session_source_validation_failed`; never open the supplied path |
 | Provider directory absent / installed with no sessions / usable / discovery fails | `not_installed` / `no_data` / `available` / `error` |
 | Encrypted Antigravity data without usable plaintext | `locked`, not `error` and not synthetic transcript text |
-| Source changed during detail read or was removed | Return a stable source-unavailable error; retain the indexed summary state for refresh reconciliation |
+| Source file missing, provider root unavailable, or source removed during detail read | `agent_session_source_unavailable`; retain the indexed summary for refresh reconciliation; do not reuse `agent_session_source_validation_failed` |
 | Active environment is not local | Render local-only state and issue no Agent Session IPC |
 | Generated command, permission, client, DTO, inventory, or docs drift | Binding/inventory checks fail |
 
@@ -73,15 +75,16 @@ Database ownership:
 - Base: a provider with no source directory shows `not_installed`; an empty existing source shows `no_data`.
 - Base: an Antigravity `.pb`-only installation without a usable key shows `locked`; plaintext brain/history fallback shows `partial`.
 - Bad: returning `file_path` as `archive_id`, logging parser input, or trusting a renderer-supplied source path.
+- Bad: mapping a deleted jsonl to `agent_session_source_validation_failed`, or rendering that raw code in the transcript empty state.
 - Bad: reading every transcript message into a `Vec` and slicing after parsing, using offset pagination, or keying React Query without environment identity.
 
 ### 6. Tests Required
 
 - `cargo test -p ccr-store --no-fail-fast`: discovery/parser fixtures for all eight families, source-shape tampering, UTF-8 clipping, stable pagination, and long JSONL/SQLite/bundle sessions.
 - `cargo test -p ccr-db -- --test-threads=1`: fresh/upgrade migration parity, opaque ID backfill, shared-container members, keyset pagination, source-state fingerprints, and missing-state reconciliation.
-- `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml agent_sessions --no-fail-fast`: validation/error mapping, refresh counters, typed command registration, and source restoration guards.
+- `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml agent_sessions --no-fail-fast`: validation/error mapping, refresh counters, typed command registration, and source restoration guards. Missing jsonl → `agent_session_source_unavailable`; wrong extension / escaped path → `agent_session_source_validation_failed`; refresh marks unseen live rows `missing`.
 - `just tauri-bindings-check` and `just tauri-command-inventory-check`: command/client/DTO/permission/inventory/docs drift.
-- Agent Session smoke tests: route order, local-only fail-closed behavior, environment-scoped keys, provider/fidelity states, virtualized list/transcript, responsive stacking, i18n, loading/empty/error states.
+- Agent Session smoke tests: route order, local-only fail-closed behavior, environment-scoped keys, provider/fidelity states, virtualized list/transcript, responsive stacking, i18n, loading/empty/error states, and no raw `agent_session_*` code in the transcript empty state.
 - Final gates: `just ui-check`, `git diff --check`, and process-scoped UTF-8 `just ci` on Windows.
 - Visual evidence: light/dark, zh/en, 1440×900 and sub-900px layouts, all eight family labels, no horizontal overflow, virtualization DOM bounds, and keyboard focus/activation. Native Tauri and real local datasets remain `UNVERIFIED` until exercised directly.
 

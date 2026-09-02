@@ -6,7 +6,7 @@ import type { AgentSessionDetailDto } from '@/types/generated/agent_sessions/Age
 import type { AgentSessionListItemDto } from '@/types/generated/agent_sessions/AgentSessionListItemDto'
 import type { AgentSessionMessageDto } from '@/types/generated/agent_sessions/AgentSessionMessageDto'
 import type { TranslateFunction } from '@/utils/tf'
-import { formatAgentName, formatSessionTime } from './model'
+import { formatAgentName, formatSessionTime, resolveAgentSessionDetailError } from './model'
 
 interface MessageRowProps {
   message: AgentSessionMessageDto
@@ -104,7 +104,8 @@ export const AgentSessionTranscript = memo(function AgentSessionTranscript({
     )
   }
   if (error) {
-    return <EmptyState icon="AlertTriangle" title={t('agentSessions.error')} description={error} actionText={t('common.retry')} onAction={onRetry} />
+    const empty = resolveAgentSessionDetailError(error, t)
+    return <EmptyState icon="AlertTriangle" title={empty.title} description={empty.description} actionText={t('common.retry')} onAction={onRetry} />
   }
 
   const fidelity = details[0]?.fidelity ?? session.fidelity

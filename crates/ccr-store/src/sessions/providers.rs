@@ -6,7 +6,7 @@
 use std::collections::{BTreeMap, HashSet, VecDeque};
 use std::fs::{self, File};
 use std::io::{BufRead, BufReader, Read};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
 use ccr_core::core::error::{CcrError, Result};
@@ -773,7 +773,7 @@ impl AgentSessionProviderRegistry {
             .physical_path
             .canonicalize()
             .map_err(|_| CcrError::ConfigError("session source is missing".into()))?;
-        if !canonical_path.starts_with(&canonical_root) || !canonical_path.is_file() {
+        if !path_is_within_root(&canonical_root, &canonical_path) || !canonical_path.is_file() {
             return Err(CcrError::ConfigError(
                 "session source escaped its canonical root".into(),
             ));
@@ -1084,12 +1084,48 @@ fn valid_member_id(value: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.'))
 }
 
+/// 去掉 Windows canonicalize 产生的 `\\?\` / `\\?\UNC\` 前缀，便于组件比较。
+fn strip_windows_verbatim_prefix(path: &Path) -> PathBuf {
+    let value = path.to_string_lossy();
+    if let Some(rest) = value.strip_prefix(r"\\?\UNC\") {
+        PathBuf::from(format!(r"\\{rest}"))
+    } else if let Some(rest) = value.strip_prefix(r"\\?\") {
+        PathBuf::from(rest)
+    } else {
+        path.to_path_buf()
+    }
+}
+
+/// 判断 path 是否以路径组件方式位于 root 之下（含相等）。禁止字符串 starts_with。
+fn path_is_within_root(root: &Path, path: &Path) -> bool {
+    relative_under_root(root, path).is_some()
+}
+
+fn relative_under_root(root: &Path, path: &Path) -> Option<PathBuf> {
+    let root = strip_windows_verbatim_prefix(root);
+    let path = strip_windows_verbatim_prefix(path);
+    let root_components: Vec<_> = root.components().collect();
+    let path_components: Vec<_> = path.components().collect();
+    if root_components.is_empty() || !path_components.starts_with(&root_components) {
+        return None;
+    }
+    let relative: PathBuf = path_components[root_components.len()..].iter().collect();
+    // canonicalize 之后不应再出现 `..`；仍拒绝 ParentDir，防止未规范化夹具或混用前缀绕过包含判断。
+    if relative
+        .components()
+        .any(|component| matches!(component, Component::ParentDir))
+    {
+        return None;
+    }
+    Some(relative)
+}
+
 fn valid_source_shape(
     source: &AgentSessionSourceRef,
     canonical_root: &Path,
     canonical_path: &Path,
 ) -> bool {
-    let Ok(relative) = canonical_path.strip_prefix(canonical_root) else {
+    let Some(relative) = relative_under_root(canonical_root, canonical_path) else {
         return false;
     };
     let extension = canonical_path.extension().and_then(|value| value.to_str());
@@ -2557,6 +2593,114 @@ mod tests {
                     AgentSessionAgentId::Kimi,
                     "kimi-code",
                     unrelated,
+                    AgentSessionSourceKind::File,
+                    None,
+                )
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn restores_codex_live_jsonl_under_tempfile_with_windows_path_shapes() {
+        let temp = TempDir::new().unwrap();
+        let path = temp
+            .path()
+            .join(".codex")
+            .join("sessions")
+            .join("2026")
+            .join("09")
+            .join("02")
+            .join("rollout-2026-09-02T00-00-00-demo.jsonl");
+        write(
+            &path,
+            "{\"type\":\"response_item\",\"payload\":{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"hello\"}]}}\n",
+        );
+        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+            .without_environment_overrides();
+        assert!(
+            registry
+                .restore_source(
+                    AgentSessionAgentId::Codex,
+                    "codex-live",
+                    path.clone(),
+                    AgentSessionSourceKind::File,
+                    None,
+                )
+                .is_ok()
+        );
+
+        let canonical = path.canonicalize().unwrap();
+        assert!(
+            registry
+                .restore_source(
+                    AgentSessionAgentId::Codex,
+                    "codex-live",
+                    canonical.clone(),
+                    AgentSessionSourceKind::File,
+                    None,
+                )
+                .is_ok(),
+            "canonical path {canonical:?} must restore"
+        );
+
+        let backslash = PathBuf::from(path.to_string_lossy().replace('/', "\\"));
+        assert!(
+            registry
+                .restore_source(
+                    AgentSessionAgentId::Codex,
+                    "codex-live",
+                    backslash,
+                    AgentSessionSourceKind::File,
+                    None,
+                )
+                .is_ok()
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_verbatim_prefix_does_not_break_root_containment() {
+        let root = PathBuf::from(r"C:\Users\lyh\.codex\sessions");
+        let nested = PathBuf::from(r"\\?\C:\Users\lyh\.codex\sessions\2026\09\02\rollout.jsonl");
+        assert!(path_is_within_root(&root, &nested));
+        let escaped = PathBuf::from(r"\\?\C:\Users\lyh\.codex-evil\sessions\rollout.jsonl");
+        assert!(!path_is_within_root(&root, &escaped));
+        let sibling_prefix = PathBuf::from(r"\\?\C:\Users\lyh\.codex\sessions-extra\rollout.jsonl");
+        assert!(!path_is_within_root(&root, &sibling_prefix));
+        let traversal =
+            PathBuf::from(r"\\?\C:\Users\lyh\.codex\sessions\2026\..\..\Windows\win.ini");
+        assert!(!path_is_within_root(&root, &traversal));
+    }
+
+    #[test]
+    fn parent_dir_components_cannot_bypass_root_containment() {
+        let root = PathBuf::from("root-sessions");
+        let nested = root.join("2026").join("09").join("rollout.jsonl");
+        assert!(path_is_within_root(&root, &nested));
+        let escaped = root.join("2026").join("..").join("..").join("evil.jsonl");
+        assert!(!path_is_within_root(&root, &escaped));
+        assert!(!path_is_within_root(
+            &root,
+            &PathBuf::from("root-sessions/2026/../evil.jsonl")
+        ));
+    }
+
+    #[test]
+    fn restore_rejects_parent_dir_escape_to_existing_file() {
+        let temp = TempDir::new().unwrap();
+        let live_dir = temp.path().join(".codex").join("sessions");
+        fs::create_dir_all(&live_dir).unwrap();
+        let outside = temp.path().join(".codex").join("secret.jsonl");
+        write(&outside, "{\"role\":\"user\"}\n");
+        let escaped = live_dir.join("..").join("secret.jsonl");
+        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+            .without_environment_overrides();
+        assert!(
+            registry
+                .restore_source(
+                    AgentSessionAgentId::Codex,
+                    "codex-live",
+                    escaped,
                     AgentSessionSourceKind::File,
                     None,
                 )
