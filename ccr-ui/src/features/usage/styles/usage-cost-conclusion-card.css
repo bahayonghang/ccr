@@ -7,7 +7,6 @@
   overflow: hidden;
   display: grid;
   gap: 0.75rem;
-  height: 100%;
   border-radius: 1.35rem;
   border: 0.0625rem solid var(--color-border-subtle);
   padding: 1.05rem 1.15rem 1.1rem;
@@ -32,6 +31,28 @@
 
 .usage-cost-conclusion::before {
   display: none;
+}
+
+/* row1：身份区 + 趋势区 双分区；row2 为 __embed（Token Breakdown Strip） */
+.usage-cost-conclusion__main {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.usage-cost-conclusion__identity {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.usage-cost-conclusion__trend {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.6rem;
 }
 
 .usage-cost-conclusion__head {
@@ -121,6 +142,55 @@
   line-height: 1.4;
 }
 
+/* 趋势区词汇对齐 UsageMetricCard：sparkline 容器 + average/peak 统计 */
+.usage-cost-conclusion__sparkline {
+  min-width: 0;
+  border-radius: 1rem;
+  border: 0.0625rem solid rgb(var(--usage-metric-rgb) / 10%);
+  background: rgb(var(--color-bg-elevated-rgb) / 28%);
+  padding: 0.26rem 0.36rem;
+}
+
+.usage-cost-conclusion__spark {
+  width: 100%;
+  height: 4.5rem;
+  color: rgb(var(--usage-metric-rgb) / 92%);
+}
+
+.usage-cost-conclusion__stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding-top: 0.1rem;
+}
+
+.usage-cost-conclusion__stats div {
+  min-width: 0;
+}
+
+.usage-cost-conclusion__stats dt {
+  color: var(--color-text-muted);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.usage-cost-conclusion__stats dd {
+  margin-top: 0.1rem;
+  color: var(--color-text-primary);
+  font-size: 0.78rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
 .usage-cost-conclusion__embed {
   margin-top: 0.15rem;
+}
+
+@media (width < 80rem) {
+  .usage-cost-conclusion__main {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

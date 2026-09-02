@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { PageHeader, PageShell, PillToggleGroup, StatTile } from '@/ui'
+import { PageHeader, PageShell, PillToggleGroup } from '@/ui'
 import { getRuntimeUnavailableCopy } from '@/utils/runtimeState'
 import { LlmusageInstallDialog } from './components/LlmusageInstallDialog'
 import { UsageCostConclusionCard } from './components/UsageCostConclusionCard'
@@ -71,13 +71,6 @@ export function UsageDashboardView() {
           <PageHeader
             title={usage.t('usage.title')}
             description={usage.t('usage.subtitle')}
-            status={usage.costSummaryCard ? (
-              <StatTile
-                label={usage.costSummaryCard.label}
-                value={usage.costSummaryCard.value}
-                hint={usage.costSummaryCard.detail}
-              />
-            ) : null}
           />
         )}
       >
