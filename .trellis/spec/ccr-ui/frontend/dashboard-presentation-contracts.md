@@ -4,6 +4,34 @@
 
 ---
 
+## Scenario: Sessions honesty state (`sessionIndexState`) — never render a fake 0
+
+### 1. Scope / Trigger
+
+- Trigger: touching sessions rendering on the Overview home (usage panel metric row, platform ticker cells), or changing `compute_home_overview`'s `needs_session_index` / `active_session_index` flags.
+- Introduced by `09-03-overview-home-restructure`: requests/tokens come from the external `llmusage` crate while sessions come from ccr-db `session_archive` (`src-tauri/src/services/usage.rs:1151`). When the archive is not indexed, the backend returns `total_sessions: 0` — indistinguishable from a real zero without the bootstrap flag.
+
+### 2. Signatures
+
+- `DashboardSessionIndexState = 'indexing' | 'unindexed' | null` (`dashboardPresentation.ts`).
+- `DashboardPresentation.sessionIndexState` — `null` when indexed (numbers trustworthy); `'unindexed'` when `bootstrap.needs_session_index` is true and no index job is running; `'indexing'` when `snapshot.readiness.active_session_index` is also true.
+- Consumed as props by `DashboardUsageMovement` (`UsageSessionMetricCell` in `DashboardUsageMetricsRow.tsx`) and `DashboardPlatformMatrix` (`sessionsCellMetric`).
+
+### 3. Contracts
+
+- When `sessionIndexState` is non-null, the usage panel sessions cell renders the honesty label (`dashboard.usage.sessionsUnindexed` / `sessionsIndexing`) as an info-colored link to `/usage` with the `sessionsUnindexedHint` tooltip — **not** the placeholder `0`.
+- Platform ticker cells render `–` (en dash, muted, same tooltip) for sessions instead of `0`.
+- When `sessionIndexState` is `null`, a real `0` renders normally (indexed archive, zero sessions is honest).
+- Do not extend the IPC contract for this: `bootstrap.needs_session_index` and `snapshot.readiness.active_session_index` already ship in `HomeUsageOverviewResponse`.
+
+### 4. Tests Required
+
+- `ccr-ui/tests/dashboard/dashboard-presentation.smoke.test.ts` — `sessionIndexState` null / unindexed / indexing derivation.
+- `ccr-ui/tests/dashboard/dashboard-usage-movement.smoke.test.tsx` — honesty label + `/usage` link in both states.
+- `ccr-ui/tests/dashboard/dashboard-platform-matrix.smoke.test.tsx` — third metric group renders; `–` under `unindexed`.
+
+---
+
 ## Scenario: Signal severity gating (core vs. frontend-log noise)
 
 ### 1. Scope / Trigger

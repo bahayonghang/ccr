@@ -1,6 +1,6 @@
 # React Rerender Discipline
 
-> View-layer re-render constraints for the React migration: four lint-enforced rules and three review-gate rules.
+> View-layer re-render constraints for the React migration: four lint-enforced rules and four review-gate rules.
 
 ---
 
@@ -33,6 +33,7 @@ Notes:
 | 5 | Context split by change frequency | High-frequency values must not share a Provider with low-frequency values; split by change cadence so a high-frequency update only re-renders its consumers |
 | 6 | `useMemo`/`useCallback` only across `memo` boundaries or for expensive computes | Every `useMemo`/`useCallback` either feeds a `memo` boundary or computes something measurably expensive; blind memoization is a code smell |
 | 7 | Log-stream / chart data updates via ref + batched commits | Log feeds (500-row cap) and chart series updates must accumulate via ref and commit in batches (e.g. `flushSync` or rAF-throttled commit), not one `setState` per entry |
+| 8 | Never memoize `t()` output with an empty dependency array; subscribe via `useAppT()` | Any memoized derivation from `t()` must depend on the resolved locale, or the memo must be dropped; components/hooks that render translated copy use the reactive `useAppT()` (`src/i18n/index.ts`) instead of the raw `translate` singleton so a `setLocale()` switch re-renders them without remount. Regression anchor: `ccr-ui/tests/configs/app-settings-locale-switch.smoke.test.tsx` (zh→en→zh round trip asserts no stale copy) |
 
 ### 4. Pointers
 
@@ -42,9 +43,9 @@ Notes:
 
 ### 5. Good/Base/Bad Cases
 
-- Good: a config form uses `useForm` + `register`; a 10k-row list item is `memo`ized with stable props; a store consumer reads `useUsageStore((s) => s.total)`.
+- Good: a config form uses `useForm` + `register`; a 10k-row list item is `memo`ized with stable props; a store consumer reads `useUsageStore((s) => s.total)`; a settings hook derives section titles from `useAppT()` on every render (4 items, zero memo).
 - Base: `src/ui/` primitive receives an inline click handler from its parent (allowed outside list-item scope).
-- Bad: `<input value={form.values.x} onChange={...}>` without `defaultValue`; a list item recreated each render via `onClick={() => ...}`; `useUsageStore()` with no selector; `items.map((item, i) => <li key={i}>)`; a log feed doing `setEntries([...entries, entry])` per entry.
+- Bad: `<input value={form.values.x} onChange={...}>` without `defaultValue`; a list item recreated each render via `onClick={() => ...}`; `useUsageStore()` with no selector; `items.map((item, i) => <li key={i}>)`; a log feed doing `setEntries([...entries, entry])` per entry; `useMemo(() => sections.map(s => t(s.titleKey)), [])` freezing first-locale copy (the 09-03 settings stale-caption bug).
 
 ### 6. Tests Required
 

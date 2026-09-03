@@ -26,7 +26,7 @@
 | Environment-Scoped Dashboard Contracts | Local-only environment gates, cache invalidation, and stale refresh behavior | Complete |
 | [Grok Settings Contracts](./grok-settings-contracts.md) | Dirty-key typed patches, CAS/managed locks, Local-only gating, and Grok raw-source policy notices | Complete |
 | [Layering Contracts](./layering-contracts.md) | Enforced dependency graph, component layering, facade consumer/definition-side division of labor | Complete |
-| [React Rerender Discipline](./react-rerender-discipline.md) | Four lint-enforced and three review-gate re-render constraints for view-layer React code | Complete |
+| [React Rerender Discipline](./react-rerender-discipline.md) | Four lint-enforced and four review-gate re-render constraints for view-layer React code, incl. the no-empty-deps-memo on `t()` / `useAppT()` i18n clause | Complete |
 | [Platform Surface Contracts](./platform-surface-contracts.md) | Two-layer descriptor + per-surface config; Base components without platform-name branches | Complete |
 | [Agent Session Observability Contracts](./agent-session-observability-contracts.md) | Local-only eight-provider discovery, archive, typed IPC, bounded paging, refresh, and UI contracts | Complete |
 

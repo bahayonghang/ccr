@@ -139,8 +139,30 @@ drops runtime styles.
   the same window inside 30s does not issue IPC. Window-switch tests must
   separate the refetch path from the cache path.
 
-## 7. Horizontal date labels
+## 7. Home movement chart fixed-height contract (hand-written stacked bars)
 
+The Overview home "Usage and cost" chart is **not** ApexCharts — it is hand-written
+flexbox bars (`DashboardUsageMovement.tsx` `UsageStackBar`, height via
+`--stack-height: N%`). Percent bar heights resolve against the chart box, so the
+box itself must be definite and bounded:
+
+- `.dashboard-usage__chart` uses `height: clamp(10rem, 26vh, 16rem)`. Do not
+  reintroduce `flex: 1` or a bare `min-height` — that lets the right rail
+  (Action queue + Event stream) stretch the chart into giant bars via
+  `align-items: stretch`.
+- `.dashboard-usage` stays content-sized (no `height: 100%`), and
+  `.dashboard-lower` uses `align-items: start` so the left column never follows
+  the rail's height. The rail scrolls internally instead
+  (`.dashboard-signals__list` has `max-height` + `overflow: hidden auto`).
+- Gridlines are solid hairlines at quartile positions (25/50/75%); bars and
+  skeletons are square (no radius) per the terminal direction.
+
+Guard: `tests/dashboard/dashboard-usage-movement.smoke.test.tsx`
+`dashboard usage chart boundedness` asserts the clamp height, the absence of
+`flex: 1` / `min-height` on the chart rule, `align-items: start` on
+`.dashboard-lower`, and the rail list's `max-height` + scroll.
+
+## 8. Horizontal date labels
 Platform home trend charts (`PlatformUsageTrendChart`) and the Usage dashboard
 daily trend must use `xaxis.type: 'datetime'`. Labels go through
 `formatTrendAxisLabel` + `parseUtcDate` (`YYYY-MM-DD` → UTC midnight). Forbidden:

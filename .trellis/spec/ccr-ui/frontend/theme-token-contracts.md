@@ -5,6 +5,28 @@
 > Coordination: the executable guards referenced here are the current smoke suite; `08-22-test-contract-rebuild`
 > extends them to the full 19-document contract set (this document is co-owned with that task per its Notes).
 
+## Palette World Notes (value-level history; contracts and thresholds unchanged)
+
+- `09-03-theme-token-world` replaced the palette **values** under the unchanged token names and value domains
+  (direction: 行情终端 / warm-black phosphor terminal, impeccable seed `19fe1fa0`):
+  - Neutral ramps warmed in both themes: light `#e9e4d8 / #f2eee3 / #faf7ec / #ddd5c2` (warm paper),
+    dark `#100f0c / #171410 / #1f1b14 / #2a251b` (warm black); text and border tracks warmed with them.
+  - The `clay` **accent key** now resolves to terminal amber — light `#8f650e`, dark `#f0a32b` — at all four
+    definition points (`:root`, `[data-theme='dark']`, `[data-accent='clay']`, `[data-theme='dark'][data-accent='clay']`).
+    The key was deliberately NOT renamed to `amber`: `amber → clay` already exists in the accent migration map,
+    and reintroducing an `amber` value would collide with stored-value migration. The name/color mismatch is
+    intentional and documented here.
+  - Semantic colors aligned to terminal semantics (dark: success `#5fa05a`, warning `#d9c05a`, danger `#cc5b45`,
+    info `#7d94b0`; light warning `#a07c1e` to keep hue distance from the amber accent).
+  - Antigravity platform color adopted at its four consumer surfaces (nav swatch, nav icon, platform card,
+    usage chart segment + legend): they reference `--color-platform-antigravity` instead of the Gemini blue.
+    `--color-platform-antigravity` stays layer-1 only (no `@theme inline` entry), so consumers use the
+    arbitrary-value pattern (`text-[color:var(--color-platform-antigravity)]`), same as OpenCode.
+  - Boot loader in `ccr-ui/index.html` recolored to the new world (light base `#e9e4d8`, dark base `#100f0c`,
+    dark spinner amber `#f0a32b`); the boot IIFE migration maps/whitelists are untouched.
+  - Contrast thresholds were NOT lowered to make this palette pass; all values above clear the locked gates.
+
+
 ## Registered Scale Extensions
 
 - **Font scale extension (registered by `07-29-profiles-shared-layer`)**: dense meta information (field labels, tag chips, diff rows, stat hints inside the Profiles shared layer) may use `0.75rem`, one step below the Label floor `0.8125rem`. This is the only sub-Label step; px literal font sizes remain forbidden. The exception carries over verbatim to React (`hardcode-mapping.md`「字号」).
@@ -65,8 +87,8 @@
 - Theme bootstrap: `ccr-ui/src/utils/themeBootstrap.ts`
 - Global theme tokens: `ccr-ui/src/styles/tokens.css`
 - Home/dashboard material tokens: `ccr-ui/src/styles/components/home.css`
-- Value domains: `FlavorMode = 'neutral' | 'clay'`; `ResolvedFlavor = FlavorMode`; `AccentMode = 'clay'`; `DEFAULT_FLAVOR = 'neutral'`, `DEFAULT_ACCENT = 'clay'`; `data-resolved-flavor` equals `data-flavor`.
-- Custom accent (batch 5): `applyCustomAccent({ light: '#rrggbb', dark?: '#rrggbb' })` injects a style element covering `CUSTOM_ACCENT_VARIABLE_FAMILY` (8 variables, both theme blocks) and sets `data-accent='custom'`; `clearCustomAccent(fallback)` removes it. UI wiring belongs to `08-22-shell-port` (its R6); persistence of a custom accent is not part of the `ccr-accent` enum storage.
+- Value domains: `FlavorMode = 'neutral' | 'clay'`; `ResolvedFlavor = FlavorMode`; `AccentMode = 'clay'`; `DEFAULT_FLAVOR = 'neutral'`, `DEFAULT_ACCENT = 'clay'`; `data-resolved-flavor` equals `data-flavor` (**vestigial**: `resolveFlavorMode` ignores its theme input, so the resolved attribute can never diverge from `data-flavor`; kept as a registered contract surface — removal is a separate governance decision, not part of palette work).
+- Custom accent (batch 5): `applyCustomAccent({ light: '#rrggbb', dark?: '#rrggbb' })` injects a style element covering `CUSTOM_ACCENT_VARIABLE_FAMILY` (8 variables, both theme blocks) and sets `data-accent='custom'`; `clearCustomAccent(fallback)` removes it. UI wiring belongs to `08-22-shell-port` (its R6); persistence of a custom accent is not part of the `ccr-accent` enum storage. **Vestigial note (09-03)**: `applyCustomAccent`/`clearCustomAccent` currently have **no callers** — the wiring task never landed; they remain registered contract surface, and `data-accent='custom'` is erased by the next `applyAccentToDocument` call and by the `index.html` IIFE whitelist.
 - Visual preference storage keys: `ccr-theme`, `ccr-flavor`, `ccr-accent`.
 - Guards: `theme-bootstrap.smoke.test.ts`, `apple-glass-surface-contract.smoke.test.ts`, `theme-contrast-contract.smoke.test.ts`, `theme-domain-extension.smoke.test.tsx`.
 
