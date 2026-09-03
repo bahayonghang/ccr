@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { NavLink } from 'react-router'
-import { APP_NAME, APP_VERSION_LABEL } from '@/config/appMeta'
+import { APP_NAME, APP_VERSION } from '@/config/appMeta'
 import { SIcon } from '@/ui/s-icon'
 import type { ShellTranslate } from './i18n'
 import { MainLayoutNav } from './MainLayoutNav'
@@ -35,6 +35,7 @@ export function MainLayoutSidebar({
   flavorLabel,
   localeLabel,
 }: SidebarProps) {
+  const metaSummary = `${themeLabel} · ${flavorLabel} · ${localeLabel} · v${APP_VERSION}`
   return (
     <div
       id="primary-navigation-panel"
@@ -82,15 +83,17 @@ export function MainLayoutSidebar({
             <SIcon name="SlidersHorizontal" size="w-4 h-4" />
           </span>
           <span className="settings-dock__copy">
-            <span className="settings-dock__title">{t('nav.settings')}</span>
-            <span className="settings-dock__meta">
+            <span className="settings-dock__row">
+              <span className="settings-dock__title" title={t('nav.settings')}>{t('nav.settings')}</span>
+            </span>
+            <span className="settings-dock__meta" title={metaSummary}>
               <span>{themeLabel}</span>
               <span className="settings-dock__sep">·</span>
               <span>{flavorLabel}</span>
               <span className="settings-dock__sep">·</span>
               <span>{localeLabel}</span>
               <span className="settings-dock__sep">·</span>
-              <span className="settings-dock__version">{APP_VERSION_LABEL}</span>
+              <span className="settings-dock__version">v{APP_VERSION}</span>
             </span>
           </span>
         </NavLink>

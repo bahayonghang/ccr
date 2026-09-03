@@ -60,7 +60,7 @@ export const mainLayoutNavSections: MainLayoutNavSection[] = [
         to: '/antigravity',
         labelKey: 'nav.gemini',
         icon: 'Sparkles',
-        iconClass: 'text-platform-gemini/90 group-hover:text-platform-gemini transition-colors',
+        iconClass: 'text-[color:color-mix(in_srgb,var(--color-platform-antigravity)_90%,transparent)] group-hover:text-[color:var(--color-platform-antigravity)] transition-colors',
       },
       {
         to: '/opencode',

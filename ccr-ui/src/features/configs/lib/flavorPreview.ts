@@ -10,8 +10,8 @@ interface SurfacePreviewTokens {
 
 const FLAVOR_PREVIEW_TOKENS: Record<FlavorMode, { light: SurfacePreviewTokens; dark: SurfacePreviewTokens }> = {
   neutral: {
-    light: { base: '#e8e9ec', elevated: '#f2f3f5', surface: '#fbfcfd', text: '#191b20', muted: '#5f646e' },
-    dark: { base: '#131316', elevated: '#1a1b1f', surface: '#22242a', text: '#f2f3f5', muted: '#9ba1ab' },
+    light: { base: '#e9e4d8', elevated: '#f2eee3', surface: '#faf7ec', text: '#211c12', muted: '#6b6150' },
+    dark: { base: '#100f0c', elevated: '#171410', surface: '#1f1b14', text: '#e9e1d1', muted: '#a1937c' },
   },
   clay: {
     light: { base: '#ebe1d0', elevated: '#f5eee1', surface: '#fefaf2', text: '#31241c', muted: '#715d4c' },

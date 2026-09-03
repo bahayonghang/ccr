@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { getEnvironmentName, getTauriVersion, isTauriEnvironment } from '@/api/runtime/environment'
+import { useAppT } from '@/i18n'
 import { translateWithFallback } from '@/i18n/formatMessage'
 import { CODE_FONT_PRESETS, UI_FONT_PRESETS } from '@/utils/fontPreferences'
 import type { FlavorMode, ThemeMode } from '@/utils/themeBootstrap'
-import { t } from '../locale'
 import {
   appSettingsSchema,
   FONT_CUSTOM,
@@ -33,6 +33,7 @@ import {
 } from '../lib/preferences'
 
 export function useAppSettings() {
+  const t = useAppT()
   const snapshot = readSettingsSnapshot()
   const [effectiveTheme, setEffectiveTheme] = useState(snapshot.effectiveTheme)
   const [runtimeVersion, setRuntimeVersion] = useState<string | null>(null)
@@ -178,10 +179,11 @@ export function useAppSettings() {
         })
       : t(`theme.${theme}`)
 
-  const sections = useMemo(
-    () => SETTINGS_SECTIONS.map((section) => ({ ...section, title: t(section.titleKey), caption: t(section.captionKey) })),
-    [],
-  )
+  const sections = SETTINGS_SECTIONS.map((section) => ({
+    ...section,
+    title: t(section.titleKey),
+    caption: t(section.captionKey),
+  }))
 
   return {
     register,

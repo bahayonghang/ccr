@@ -1,5 +1,4 @@
 import { useCallback, useRef } from 'react'
-import { SIcon } from '@/ui'
 import { t } from './locale'
 import { useAppSettings } from './hooks/useAppSettings'
 import type { SettingsSectionKey } from './lib/settingsModel'
@@ -43,25 +42,17 @@ export function AppSettingsView() {
       <div className="app-settings-shell">
         <header className="app-settings-hero">
           <div className="app-settings-hero__intro">
-            <div className="app-settings-hero__icon">
-              <SIcon name="SlidersHorizontal" size="w-6 h-6" />
-            </div>
-            <div className="space-y-2">
-              <p className="app-settings-hero__eyebrow">{t('settings.eyebrow')}</p>
-              <div>
-                <h1 className="app-settings-hero__title">{t('settings.title')}</h1>
-                <p className="app-settings-hero__description">{t('settings.description')}</p>
-              </div>
-            </div>
+            <h1 className="app-settings-hero__title">{t('settings.title')}</h1>
+            <p className="app-settings-hero__description">{t('settings.description')}</p>
           </div>
-          <div className="app-settings-summary">
-            <span className="app-settings-summary__pill">{settings.runtimeLabel}</span>
+          <div className="app-settings-hero__meta">
+            <span className="app-settings-hero__meta-item">{settings.runtimeLabel}</span>
             {settings.runtimeVersion ? (
-              <span className="app-settings-summary__pill app-settings-summary__pill--mono">v{settings.runtimeVersion}</span>
+              <span className="app-settings-hero__meta-item">v{settings.runtimeVersion}</span>
             ) : null}
-            <span className="app-settings-summary__pill">{settings.themeSummary}</span>
-            <span className="app-settings-summary__pill">{settings.localeLabel}</span>
-            <span className="app-settings-summary__pill app-settings-summary__pill--mono">{settings.sidebarWidth}px</span>
+            <span className="app-settings-hero__meta-item">{settings.themeSummary}</span>
+            <span className="app-settings-hero__meta-item">{settings.localeLabel}</span>
+            <span className="app-settings-hero__meta-item">{settings.sidebarWidth}px</span>
           </div>
         </header>
         <div className="app-settings-layout">

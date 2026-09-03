@@ -100,14 +100,14 @@
 
 .dashboard-action--primary,
 .dashboard-onboarding-step--primary {
-  background: rgb(var(--color-accent-primary-rgb) / 12%);
-  border-color: rgb(var(--color-accent-primary-rgb) / 40%);
+  background: var(--home-surface-sunk);
+  border-color: var(--color-border-subtle);
 }
 
 .dashboard-action--primary:hover,
 .dashboard-onboarding-step--primary:hover {
-  background: rgb(var(--color-accent-primary-rgb) / 16%);
-  border-color: var(--color-accent-primary);
+  background: var(--color-bg-overlay);
+  border-color: var(--color-border-strong);
 }
 
 .dashboard-action__icon,

@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
@@ -225,6 +228,60 @@ describe('DashboardUsageMovement', () => {
     expect(document.querySelector('[data-state="empty"]')).toBeTruthy()
     expect(document.querySelector('[data-dashboard-usage-bars]')).toBeNull()
     expect(document.querySelector('[data-zero="true"]')?.textContent).toBe('0')
+  })
+
+  it('shows the sessions honesty state instead of a fake zero when the session archive is unindexed', () => {
+    renderMovement({
+      overview: overview({
+        summary: { total_sessions: 0, total_requests: 12, total_tokens: 3400, active_days: 2, platforms: 2 },
+        bootstrap: { ...overview().bootstrap, needs_session_index: true, is_warm: false },
+      }),
+      sessionIndexState: 'unindexed',
+    })
+
+    const notice = document.querySelector('[data-session-state="unindexed"]')
+    expect(notice?.textContent).toBe('未索引')
+    expect(notice?.getAttribute('href')).toBe('/usage')
+    expect(notice?.getAttribute('title')).toContain('会话归档尚未索引')
+  })
+
+  it('marks the sessions cell as indexing while the session index job runs', () => {
+    renderMovement({
+      overview: overview({
+        summary: { total_sessions: 0, total_requests: 12, total_tokens: 3400, active_days: 2, platforms: 2 },
+        bootstrap: { ...overview().bootstrap, needs_session_index: true, is_warm: false },
+      }),
+      sessionIndexState: 'indexing',
+    })
+
+    const notice = document.querySelector('[data-session-state="indexing"]')
+    expect(notice?.textContent).toBe('索引中')
+  })
+})
+
+describe('dashboard usage chart boundedness', () => {
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
+  const readStyle = (name: string) =>
+    readFileSync(path.join(root, 'src/features/usage/styles', name), 'utf8')
+  const ruleBlock = (css: string, selector: string) =>
+    new RegExp(`${selector.replace(/[.*[\]()]/g, '\\$&')}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? ''
+
+  it('keeps the movement chart on a fixed clamp height instead of flex growth', () => {
+    const css = readStyle('dashboard-usage-movement.css')
+    const chart = ruleBlock(css, '.dashboard-usage__chart')
+    expect(chart).toContain('height: clamp(')
+    expect(chart).not.toContain('flex: 1')
+    expect(chart).not.toContain('min-height')
+    const panel = ruleBlock(css, '.dashboard-usage')
+    expect(panel).not.toContain('height: 100%')
+  })
+
+  it('aligns the lower grid to start and lets the rail scroll instead of stretching the chart', () => {
+    const view = ruleBlock(readStyle('dashboard-view.css'), '.dashboard-lower')
+    expect(view).toContain('align-items: start')
+    const list = ruleBlock(readStyle('dashboard-signal-stream.css'), '.dashboard-signals__list')
+    expect(list).toContain('max-height')
+    expect(list).toContain('overflow: hidden auto')
   })
 })
 

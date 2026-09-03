@@ -12,7 +12,7 @@ const PLATFORM_NAV_SWATCH: Record<string, string> = {
   '/claude-code': 'bg-platform-claude',
   '/codex': 'bg-platform-codex',
   '/grok': 'bg-platform-grok',
-  '/antigravity': 'bg-platform-gemini',
+  '/antigravity': 'bg-[var(--color-platform-antigravity)]',
   '/opencode': 'bg-[var(--color-platform-opencode)]',
 }
 

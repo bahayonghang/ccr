@@ -22,6 +22,7 @@ import { useUsageBootstrapImport } from '../useUsageDashboardEffects'
 import { DashboardNextActions } from './DashboardNextActions'
 import { DashboardPlatformMatrix } from './DashboardPlatformMatrix'
 import { DashboardSignalStream } from './DashboardSignalStream'
+import { DashboardStatusBar } from './DashboardStatusBar'
 import { DashboardUsageMovement } from './DashboardUsageMovement'
 import { useDashboardSignals } from './useDashboardSignals'
 import '../styles/dashboard-view.css'
@@ -161,7 +162,7 @@ export function DashboardView() {
       desc: t('dashboard.platforms.antigravityDesc'),
       path: '/antigravity',
       icon: 'Sparkles',
-      iconClass: 'text-platform-gemini',
+      iconClass: 'text-[color:var(--color-platform-antigravity)]',
       platformKey: 'antigravity',
       usageKey: 'gemini',
       role: t('dashboard.platforms.roleCoreCli'),
@@ -292,6 +293,7 @@ export function DashboardView() {
           rows={dashboardPresentation.platformRows}
           installedCliCount={dashboardPresentation.installedCliCount}
           runtimeCliCount={dashboardPresentation.runtimeCliCount}
+          sessionIndexState={dashboardPresentation.sessionIndexState}
         />
         <section className="dashboard-lower">
           <DashboardUsageMovement
@@ -300,6 +302,7 @@ export function DashboardView() {
             error={usageError}
             activeDays={activeDays}
             onChangeDays={loadUsageOverview}
+            sessionIndexState={dashboardPresentation.sessionIndexState}
           />
           <div className="dashboard-rail">
             <DashboardNextActions
@@ -312,6 +315,7 @@ export function DashboardView() {
             />
           </div>
         </section>
+        <DashboardStatusBar backendStatus={backendStatus} entries={logs} />
       </div>
     </main>
   )

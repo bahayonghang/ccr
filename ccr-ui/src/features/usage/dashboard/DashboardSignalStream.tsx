@@ -80,7 +80,6 @@ export function DashboardSignalStream({
     >
       <header className="dashboard-signals__header">
         <div className="dashboard-signals__lede">
-          <p className="dashboard-signals__eyebrow">{t('dashboard.signals.eyebrow')}</p>
           <h2 className="dashboard-signals__title">{t('dashboard.signals.title')}</h2>
         </div>
         <PillToggleGroup

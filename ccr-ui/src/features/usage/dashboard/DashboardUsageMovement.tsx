@@ -5,11 +5,11 @@ import { createTf } from '@/utils/tf'
 import { scheduleWhenIdle } from '@/utils/scheduling'
 import { PillToggleGroup, SIcon } from '@/ui'
 import type { HomeUsageOverviewResponse } from '@/types/usage'
+import type { DashboardSessionIndexState } from '@/views/dashboard/dashboardPresentation'
 import { homeUsageKeys } from '../queries'
 import { useUsageT } from '../translate'
 import {
   compactLabel,
-  DashboardCostMetric,
   deriveStackedUsageBars,
   emptyDetailOf,
   emptyTitleOf,
@@ -20,6 +20,7 @@ import {
   type StackedUsageSegment,
   type UsageStackPlatform,
 } from './DashboardCostMetric'
+import { UsageMetricsRow } from './DashboardUsageMetricsRow'
 import '../styles/dashboard-usage-movement.css'
 
 interface DashboardUsageMovementProps {
@@ -28,6 +29,7 @@ interface DashboardUsageMovementProps {
   error: string | null
   activeDays: number
   onChangeDays: (days: number) => void
+  sessionIndexState?: DashboardSessionIndexState
   className?: string
 }
 
@@ -96,22 +98,6 @@ const UsageStackBar = memo(function UsageStackBar(props: {
   )
 })
 
-function UsageMetricCell(props: { label: string; value: string; hero?: boolean; loading: boolean }) {
-  const valueClass = props.hero
-    ? 'dashboard-usage__metric-value dashboard-usage__metric-value--hero'
-    : 'dashboard-usage__metric-value'
-  return (
-    <div className={props.hero ? 'dashboard-usage__metric dashboard-usage__metric--hero' : 'dashboard-usage__metric'}>
-      <span className="dashboard-usage__metric-label">{props.label}</span>
-      {props.loading ? <span className="dashboard-usage__metric-skeleton" /> : (
-        <span className={valueClass} data-hero={props.hero ? 'true' : undefined} data-zero={props.value === '0' ? 'true' : 'false'}>
-          {props.value}
-        </span>
-      )}
-    </div>
-  )
-}
-
 function UsageStatusPanel(props: {
   kind: 'error' | 'empty'
   title: string
@@ -142,6 +128,7 @@ function UsageChartPanel(props: { ariaLabel: string; bars: StackedUsageBar[]; la
       <div className="dashboard-usage__grid" aria-hidden="true">
         <span className="dashboard-usage__grid-line dashboard-usage__grid-line--high" />
         <span className="dashboard-usage__grid-line dashboard-usage__grid-line--mid" />
+        <span className="dashboard-usage__grid-line dashboard-usage__grid-line--low" />
       </div>
       {props.bars.map((bar) => (
         <UsageStackBar
@@ -162,56 +149,11 @@ function UsageSkeleton() {
       <div className="dashboard-usage__grid" aria-hidden="true">
         <span className="dashboard-usage__grid-line dashboard-usage__grid-line--high" />
         <span className="dashboard-usage__grid-line dashboard-usage__grid-line--mid" />
+        <span className="dashboard-usage__grid-line dashboard-usage__grid-line--low" />
       </div>
       {SKELETON_BAR_KEYS.map((key) => (
         <div key={key} className="dashboard-usage-stack dashboard-usage-stack--skeleton" />
       ))}
-    </div>
-  )
-}
-
-function UsageCostCell(props: { label: string; days: number; ready: boolean }) {
-  return (
-    <div className="dashboard-usage__metric">
-      <span className="dashboard-usage__metric-label">{props.label}</span>
-      <span className="dashboard-usage__metric-value">
-        {props.ready ? <DashboardCostMetric days={props.days} /> : <span data-dashboard-cost-placeholder>—</span>}
-      </span>
-    </div>
-  )
-}
-
-function UsageMetricsRow(props: {
-  loading: boolean
-  showLegend: boolean
-  requests: string
-  tokens: string
-  sessions: string
-  costLabel: string
-  requestLabel: string
-  tokenLabel: string
-  sessionLabel: string
-  days: number
-  costReady: boolean
-  legend: UsageStackPlatform[]
-  labels: Record<UsageStackPlatform, string>
-}) {
-  return (
-    <div className="dashboard-usage__metrics">
-      <UsageMetricCell label={props.requestLabel} value={props.requests} hero loading={props.loading} />
-      <UsageMetricCell label={props.tokenLabel} value={props.tokens} loading={props.loading} />
-      <UsageCostCell label={props.costLabel} days={props.days} ready={props.costReady} />
-      <UsageMetricCell label={props.sessionLabel} value={props.sessions} loading={props.loading} />
-      {props.showLegend ? (
-        <div className="dashboard-usage__legend">
-          {props.legend.map((platform) => (
-            <span key={platform} className="dashboard-usage__legend-item">
-              <span className="dashboard-usage__legend-swatch" data-platform={platform} />
-              {props.labels[platform]}
-            </span>
-          ))}
-        </div>
-      ) : null}
     </div>
   )
 }
@@ -320,6 +262,11 @@ function UsageMovementView(props: MovementViewProps) {
         requestLabel={props.t('dashboard.usage.metricRequests')}
         tokenLabel={props.t('dashboard.usage.metricTokens')}
         sessionLabel={props.t('dashboard.usage.metricSessions')}
+        sessionStateLabel={props.t(props.sessionIndexState === 'indexing'
+          ? 'dashboard.usage.sessionsIndexing'
+          : 'dashboard.usage.sessionsUnindexed')}
+        sessionStateHint={props.t('dashboard.usage.sessionsUnindexedHint')}
+        sessionIndexState={props.sessionIndexState ?? null}
         days={props.activeDays}
         costReady={props.costReady}
         legend={props.chart.legend}
@@ -351,6 +298,7 @@ export function DashboardUsageMovement({
   error,
   activeDays,
   onChangeDays,
+  sessionIndexState,
   className,
 }: DashboardUsageMovementProps) {
   const t = useUsageT()
@@ -385,6 +333,7 @@ export function DashboardUsageMovement({
       error={error}
       activeDays={activeDays}
       onChangeDays={onChangeDays}
+      sessionIndexState={sessionIndexState}
       className={className}
       t={t}
       tf={tf}

@@ -383,4 +383,31 @@ describe('dashboard presentation', () => {
       '0',
     )
   })
+
+  it('marks sessions as unindexed or indexing from the overview bootstrap flags', () => {
+    const indexed = buildDashboardPresentation(baseInput())
+    expect(indexed.sessionIndexState).toBeNull()
+
+    const unindexed = buildDashboardPresentation({
+      ...baseInput(),
+      overview: overview({
+        summary: { total_sessions: 0, total_requests: 1240, total_tokens: 980000, active_days: 30, platforms: 4 },
+        bootstrap: { ...overview().bootstrap, needs_session_index: true, is_warm: false },
+      }),
+    })
+    expect(unindexed.sessionIndexState).toBe('unindexed')
+
+    const indexing = buildDashboardPresentation({
+      ...baseInput(),
+      overview: overview({
+        summary: { total_sessions: 0, total_requests: 1240, total_tokens: 980000, active_days: 30, platforms: 4 },
+        bootstrap: { ...overview().bootstrap, needs_session_index: true, is_warm: false },
+        snapshot: {
+          ...overview().snapshot,
+          readiness: { ...overview().snapshot.readiness, active_session_index: true },
+        },
+      }),
+    })
+    expect(indexing.sessionIndexState).toBe('indexing')
+  })
 })

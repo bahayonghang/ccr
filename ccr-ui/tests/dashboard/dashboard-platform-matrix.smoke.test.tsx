@@ -186,7 +186,10 @@ const baseInput = (
   logs: [],
 })
 
-const renderMatrix = (input: DashboardPresentationInput) => {
+const renderMatrix = (
+  input: DashboardPresentationInput,
+  sessionIndexState?: 'indexing' | 'unindexed' | null,
+) => {
   const presentation = buildDashboardPresentation(input)
   return {
     presentation,
@@ -196,6 +199,7 @@ const renderMatrix = (input: DashboardPresentationInput) => {
           rows={presentation.platformRows}
           installedCliCount={presentation.installedCliCount}
           runtimeCliCount={presentation.runtimeCliCount}
+          sessionIndexState={sessionIndexState}
         />
       </MemoryRouter>,
     ),
@@ -275,5 +279,25 @@ describe('dashboard platform matrix', () => {
         ),
       ),
     ).toBe(true)
+  })
+
+  it('renders sessions as a third metric group inside each ticker cell', () => {
+    renderMatrix(baseInput())
+
+    const cell = screen.getByTestId('dashboard-platform-claude-code')
+    const sessions = cell.querySelector('.dashboard-platform__metric--sessions')
+    expect(sessions).toBeTruthy()
+    expect(sessions?.getAttribute('data-session-state')).toBeNull()
+    expect(sessions?.querySelector('strong')?.textContent).toBe('0')
+  })
+
+  it('shows an honest dash instead of a fake zero when the session archive is unindexed', () => {
+    renderMatrix(baseInput(), 'unindexed')
+
+    const cell = screen.getByTestId('dashboard-platform-claude-code')
+    const sessions = cell.querySelector('.dashboard-platform__metric--sessions')
+    expect(sessions?.getAttribute('data-session-state')).toBe('unindexed')
+    expect(sessions?.querySelector('strong')?.textContent).toBe('–')
+    expect(sessions?.getAttribute('title')).toContain('会话归档尚未索引')
   })
 })

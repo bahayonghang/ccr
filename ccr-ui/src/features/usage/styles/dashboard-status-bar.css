@@ -1,0 +1,127 @@
+/* 底部命令状态条：行情终端契约的收尾条。发丝顶线、等宽字符、发丝分隔；颜色只住状态。
+   sticky 钉在滚动容器底部：内容不足一屏时落在文档流末尾，超出时始终可见。 */
+.dashboard-statusbar {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--layer-sticky);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: var(--space-7);
+  margin-top: auto;
+  padding: var(--space-1) var(--space-3);
+  overflow: hidden;
+  border-top: var(--space-px) solid var(--color-border-subtle);
+  background: var(--color-bg-base);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--home-text-meta);
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.dashboard-statusbar > * + * {
+  padding-left: var(--space-3);
+  border-left: var(--space-px) solid var(--color-border-subtle);
+}
+
+.dashboard-statusbar__item {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-width: 0;
+}
+
+.dashboard-statusbar__label {
+  color: var(--color-text-ghost);
+}
+
+.dashboard-statusbar__value {
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* accent 只给 active/ok 态；error 走状态红 */
+.dashboard-statusbar__item[data-tone='ok'] .dashboard-statusbar__value {
+  color: var(--color-accent-primary);
+}
+
+.dashboard-statusbar__item[data-tone='pending'] .dashboard-statusbar__value {
+  color: var(--color-warning);
+}
+
+.dashboard-statusbar__item[data-tone='error'] .dashboard-statusbar__value {
+  color: var(--color-danger);
+}
+
+.dashboard-statusbar__event-dot {
+  width: var(--space-1-5);
+  height: var(--space-1-5);
+  flex: none;
+  border-radius: var(--radius-full);
+  background: var(--color-text-disabled);
+}
+
+.dashboard-statusbar__event[data-level='error'] .dashboard-statusbar__event-dot {
+  background: var(--color-danger);
+}
+
+.dashboard-statusbar__event[data-level='warn'] .dashboard-statusbar__event-dot {
+  background: var(--color-warning);
+}
+
+.dashboard-statusbar__event[data-level='error'] .dashboard-statusbar__value {
+  color: var(--color-danger);
+}
+
+.dashboard-statusbar__event[data-level='warn'] .dashboard-statusbar__value {
+  color: var(--color-warning);
+}
+
+.dashboard-statusbar__commands {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  margin-inline-start: auto;
+  overflow: hidden;
+}
+
+.dashboard-statusbar__command {
+  display: inline-flex;
+  flex: none;
+  align-items: baseline;
+  gap: var(--space-1-5);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color var(--home-motion-duration) var(--home-motion-ease);
+}
+
+.dashboard-statusbar__command:hover {
+  color: var(--color-text-primary);
+}
+
+.dashboard-statusbar__command:focus-visible {
+  outline: var(--space-0-5) solid var(--color-accent-primary);
+  outline-offset: var(--space-0-5);
+}
+
+.dashboard-statusbar__command-index {
+  color: var(--color-text-ghost);
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-statusbar__command:hover .dashboard-statusbar__command-index {
+  color: var(--color-accent-primary);
+}
+
+.dashboard-statusbar__clock {
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+[data-reduced-motion='true'] .dashboard-statusbar__command {
+  transition: none;
+}

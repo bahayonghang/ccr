@@ -386,7 +386,7 @@ const toHex = ({ r, g, b }: Color): string =>
 
 const toTriplet = ({ r, g, b }: Color): string => `${r} ${g} ${b}`
 
-// WCAG 相对亮度；≥0.3 视为亮主色（clay 亮色 0.23、暗色 0.36 之间的分界），
+// WCAG 相对亮度；≥0.3 视为亮主色（clay 亮色 0.15、暗色 0.45 之间的分界），
 // 对比文字换深墨色，否则用暖白。推导值为运行时近似，非契约锚点。
 const relativeLuminance = ({ r, g, b }: Color): number => {
   const channels = [r, g, b].map((channel) => {

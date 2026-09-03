@@ -35,6 +35,13 @@ export type DashboardPlatformMode = 'cli' | 'managed'
 export type DashboardPlatformState = 'ready' | 'scanning' | 'attention' | 'managed'
 export type DashboardUsageMetric = 'sessions' | 'requests' | 'tokens'
 
+/**
+ * 会话索引诚实态：responses 里 sessions 走 ccr-db session_archive 独立通路，
+ * 未索引时后端会给出 0 —— 展示层必须区分"真实的 0"与"未索引的未知"。
+ * null = 索引正常（数字可信）；'unindexed' = 原始会话存在但未索引；'indexing' = 索引进行中。
+ */
+export type DashboardSessionIndexState = 'indexing' | 'unindexed' | null
+
 export interface DashboardPlatformSource {
   title: string
   desc: string
@@ -131,6 +138,8 @@ export interface DashboardPresentation {
   runtimeCliCount: number
   /** 桌面运行时下 CLI 探测已完成但一个都未安装：视为首次使用，行动队列改渲染引导态 */
   isFirstRun: boolean
+  /** 会话归档索引状态；非 null 时所有 sessions 数字不可信，必须渲染诚实态而非 0 */
+  sessionIndexState: DashboardSessionIndexState
 }
 
 const DASHBOARD_DEFAULT_ACTIONS: DashboardAction[] = [
@@ -703,6 +712,13 @@ const buildStatusMetrics = (
   ]
 }
 
+const resolveSessionIndexState = (
+  overview: HomeUsageOverviewResponse | null,
+): DashboardSessionIndexState => {
+  if (!overview || !overview.bootstrap?.needs_session_index) return null
+  return overview.snapshot?.readiness?.active_session_index ? 'indexing' : 'unindexed'
+}
+
 export const buildDashboardPresentation = (input: DashboardPresentationInput): DashboardPresentation => {
   const signalCounts = countSignals(input.logs)
   const platformRows = buildPlatformRows(input)
@@ -730,6 +746,7 @@ export const buildDashboardPresentation = (input: DashboardPresentationInput): D
       && !input.usageLoading
       && installedCliCount === 0
       && (!input.overview || input.overview.summary?.total_requests === 0),
+    sessionIndexState: resolveSessionIndexState(input.overview),
   }
 }
 

@@ -5,39 +5,42 @@
   min-width: 0;
 }
 
+/* 行情带：四平台共享一个面板，格间发丝分隔，视宽不足横向滚动（不换行） */
 .dashboard-platforms__matrix {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-3);
+  display: flex;
+  min-width: 0;
+  overflow: auto hidden;
+  border: var(--space-px) solid var(--color-border-subtle);
+  border-radius: var(--home-card-radius);
+  background: var(--color-bg-surface);
 }
 
 .dashboard-platform {
   --dashboard-platform-accent: var(--color-text-disabled);
 
   display: flex;
+  flex: 1 1 0;
   flex-direction: column;
-  gap: var(--space-3);
-  min-width: 0;
-  padding: var(--space-4);
-  overflow: hidden;
-  border: var(--space-px) solid var(--color-border-subtle);
-  border-radius: var(--radius-2xl);
-  background: var(--color-bg-surface);
+  gap: var(--space-2-5);
+  min-width: 11rem;
+  padding: var(--space-3);
+  border-top: var(--space-0-5) solid var(--dashboard-platform-accent);
   color: var(--color-text-primary);
   text-decoration: none;
-  transition:
-    border-color var(--home-motion-duration) var(--home-motion-ease),
-    background-color var(--home-motion-duration) var(--home-motion-ease);
+  transition: background-color var(--home-motion-duration) var(--home-motion-ease);
+}
+
+.dashboard-platform:not(:last-child) {
+  border-right: var(--space-px) solid var(--color-border-subtle);
 }
 
 .dashboard-platform:hover {
-  border-color: var(--color-border-strong);
   background: var(--color-bg-elevated);
 }
 
 .dashboard-platform:focus-visible {
   outline: var(--space-0-5) solid var(--color-accent-primary);
-  outline-offset: var(--space-0-5);
+  outline-offset: calc(var(--space-0-5) * -1);
 }
 
 .dashboard-platform--claude-code {
@@ -49,17 +52,11 @@
 }
 
 .dashboard-platform--antigravity {
-  --dashboard-platform-accent: var(--color-platform-gemini);
+  --dashboard-platform-accent: var(--color-platform-antigravity);
 }
 
 .dashboard-platform--opencode {
   --dashboard-platform-accent: var(--color-platform-opencode);
-}
-
-.dashboard-platform__bar {
-  height: var(--space-1);
-  margin: calc(var(--space-4) * -1) calc(var(--space-4) * -1) 0;
-  background: var(--dashboard-platform-accent);
 }
 
 .dashboard-platform__head {
@@ -101,7 +98,6 @@
   display: inline-block;
   width: var(--space-12);
   height: var(--home-text-meta);
-  border-radius: var(--radius-md);
   background: rgb(var(--color-border-default-rgb) / 22%);
   animation: dashboard-platform-skeleton-pulse 1.4s ease-in-out infinite;
 }
@@ -190,7 +186,6 @@
   min-width: var(--space-px);
   height: calc(var(--spark-ratio, 0) * 100%);
   min-height: var(--space-0-5);
-  border-radius: var(--radius-md);
   background: var(--color-border-default);
 }
 
@@ -213,7 +208,6 @@
 
 .dashboard-platform__spark--idle {
   border: var(--space-px) solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
   opacity: 0.45;
 }
 
@@ -224,7 +218,7 @@
 
 .dashboard-platform__metrics {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-2);
   min-width: 0;
 }
@@ -235,16 +229,15 @@
   min-width: 0;
 }
 
-.dashboard-platform__metric--end {
-  text-align: right;
-}
-
 .dashboard-platform__metric span {
+  overflow: hidden;
   color: var(--color-text-muted);
   font-family: var(--font-mono);
   font-size: var(--home-text-meta);
   font-weight: var(--font-semibold);
   letter-spacing: 0.14em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dashboard-platform__metric strong {
@@ -257,6 +250,11 @@
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 会话未索引：显示 – 而非误导性的 0 */
+.dashboard-platform__metric--sessions[data-session-state] strong {
+  color: var(--color-text-muted);
 }
 
 .dashboard-platform__missing {
@@ -272,12 +270,6 @@
 .dashboard-platform__missing strong {
   color: var(--color-text-primary);
   font-weight: var(--font-semibold);
-}
-
-@media (width <= 1024px) {
-  .dashboard-platforms__matrix {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 [data-reduced-motion='true'] .dashboard-platform {

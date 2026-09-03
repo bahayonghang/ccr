@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import type {
   DashboardMetricValue,
   DashboardPlatformRow,
+  DashboardSessionIndexState,
 } from '@/views/dashboard/dashboardPresentation'
 import { useUsageT } from '../translate'
 import '../styles/dashboard-platform-matrix.css'
@@ -11,12 +12,38 @@ interface DashboardPlatformMatrixProps {
   rows: DashboardPlatformRow[]
   installedCliCount: number
   runtimeCliCount: number
+  sessionIndexState?: DashboardSessionIndexState
   className?: string
 }
 
 const resolveMetric = (metric: DashboardMetricValue | undefined, t: (key: string) => string) => {
-  if (!metric) return '…'
-  return metric.valueKey ? t(metric.valueKey) : metric.value ?? '…'
+  if (!metric) return '—'
+  return metric.valueKey ? t(metric.valueKey) : metric.value ?? '—'
+}
+
+const cellMetric = (
+  metric: DashboardMetricValue | undefined,
+  fallbackLabelKey: string,
+  t: (key: string) => string,
+) => ({
+  label: metric ? t(metric.labelKey) : t(fallbackLabelKey),
+  text: resolveMetric(metric, t),
+})
+
+/** 会话格：未索引时显示 –（未知），索引正常才显示真实数字（含合法的 0）。 */
+const sessionsCellMetric = (
+  metric: DashboardMetricValue | undefined,
+  sessionIndexState: DashboardSessionIndexState | undefined,
+  t: (key: string) => string,
+) => {
+  const base = cellMetric(metric, 'dashboard.platforms.metrics.sessions', t)
+  if (!sessionIndexState) return { ...base, state: undefined, hint: undefined }
+  return {
+    label: base.label,
+    text: '–',
+    state: sessionIndexState,
+    hint: t('dashboard.usage.sessionsUnindexedHint'),
+  }
 }
 
 const metricBySuffix = (platform: DashboardPlatformRow, suffix: string) =>
@@ -72,15 +99,18 @@ const PlatformSparkline = memo(function PlatformSparkline({
 
 const PlatformCard = memo(function PlatformCard({
   platform,
+  sessionIndexState,
   t,
 }: {
   platform: DashboardPlatformRow
+  sessionIndexState: DashboardSessionIndexState | undefined
   t: (key: string) => string
 }) {
   const version = platform.versionKey ? t(platform.versionKey) : platform.version ?? '…'
   const isMissing = platform.trackingHealth === 'missing'
-  const requestMetric = metricBySuffix(platform, '.requests')
-  const tokenMetric = metricBySuffix(platform, '.tokens')
+  const requests = cellMetric(metricBySuffix(platform, '.requests'), 'dashboard.platforms.metrics.requests', t)
+  const tokens = cellMetric(metricBySuffix(platform, '.tokens'), 'dashboard.platforms.metrics.tokens', t)
+  const sessions = sessionsCellMetric(metricBySuffix(platform, '.sessions'), sessionIndexState, t)
   const statusLabel = isMissing ? t('dashboard.platforms.untracked') : t(platform.stateKey)
 
   return (
@@ -91,7 +121,6 @@ const PlatformCard = memo(function PlatformCard({
       data-tracking={platform.trackingHealth ?? 'unknown'}
       data-testid={`dashboard-platform-${platform.platformKey}`}
     >
-      <span className="dashboard-platform__bar" aria-hidden="true" />
       <span className="dashboard-platform__head">
         <span className="dashboard-platform__identity">
           <strong>{platform.title}</strong>
@@ -137,12 +166,20 @@ const PlatformCard = memo(function PlatformCard({
       ) : (
         <span className="dashboard-platform__metrics">
           <span className="dashboard-platform__metric">
-            <span>{requestMetric ? t(requestMetric.labelKey) : t('dashboard.platforms.metrics.requests')}</span>
-            <strong>{resolveMetric(requestMetric, t)}</strong>
+            <span>{requests.label}</span>
+            <strong>{requests.text}</strong>
           </span>
-          <span className="dashboard-platform__metric dashboard-platform__metric--end">
-            <span>{tokenMetric ? t(tokenMetric.labelKey) : t('dashboard.platforms.metrics.tokens')}</span>
-            <strong>{resolveMetric(tokenMetric, t)}</strong>
+          <span className="dashboard-platform__metric">
+            <span>{tokens.label}</span>
+            <strong>{tokens.text}</strong>
+          </span>
+          <span
+            className="dashboard-platform__metric dashboard-platform__metric--sessions"
+            data-session-state={sessions.state}
+            title={sessions.hint}
+          >
+            <span>{sessions.label}</span>
+            <strong>{sessions.text}</strong>
           </span>
         </span>
       )}
@@ -154,6 +191,7 @@ export function DashboardPlatformMatrix({
   rows,
   installedCliCount,
   runtimeCliCount,
+  sessionIndexState,
   className,
 }: DashboardPlatformMatrixProps) {
   const t = useUsageT()
@@ -169,7 +207,12 @@ export function DashboardPlatformMatrix({
       </p>
       <div className="dashboard-platforms__matrix">
         {rows.map((platform) => (
-          <PlatformCard key={platform.platformKey} platform={platform} t={t} />
+          <PlatformCard
+            key={platform.platformKey}
+            platform={platform}
+            sessionIndexState={sessionIndexState}
+            t={t}
+          />
         ))}
       </div>
     </section>

@@ -116,6 +116,7 @@ export default [
       '**/storybook-static/**',
       '**/coverage/**',
       '**/.tmp/**',
+      '**/.impeccable/**',
       '**/node_modules/**',
       '**/ref/**',
       '**/src-tauri/target/**',

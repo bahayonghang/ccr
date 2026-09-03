@@ -3,7 +3,7 @@
    =================================== */
 
 /* 五色 ramp 直接引用 tokens.css 规范令牌（不经 theme.css 短名桥接）：
-   暗色 neutral 下为 橙 #e8835b / 绿 #7cab82 / 琥珀 #d6a76d / 蓝 #98afc9 / 珊瑚 #db8a73，
+   暗色 neutral 下为 琥珀 #f0a32b / 绿 #5fa05a / 黄 #d9c05a / 蓝 #7d94b0 / 砖红 #e06852，
    色相分散、暗底可读；槽位语义锚点保持 validate→2(warning)、delete→4(danger)，
    槽位 1 对齐 TokenDetailTab 既定语义（output 用 success 绿）。 */
 :root {

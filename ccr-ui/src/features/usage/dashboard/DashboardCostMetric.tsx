@@ -146,8 +146,8 @@ export const emptyDetailOf = (input: {
 }
 
 export const compactLabel = (error: string | null, value?: number) => {
-  if (error) return '…'
-  if (typeof value !== 'number') return '…'
+  if (error) return '—'
+  if (typeof value !== 'number') return '—'
   return new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(value)
 }
 

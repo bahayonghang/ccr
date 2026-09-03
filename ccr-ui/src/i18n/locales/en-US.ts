@@ -776,15 +776,12 @@ export default {
     usage: {
       title: 'Usage and cost',
       description: 'Local usage archive only',
-      peakLabel: 'Peak',
-      hoverHint: "Hover a bar to see that day's exact value.",
       error: 'Local usage summary could not be loaded.',
       emptyTitle: 'No local usage yet',
       emptyDescription: 'No local sessions or usage records are available for this window.',
       unavailableTitle: 'Usage unavailable',
       loadingDescription: 'Loading local usage records and session index data.',
       rangeLabel: 'Usage time range',
-      metricSelectLabel: 'Usage metric',
       range7: '7D',
       range30: '30D',
       range90: '90D',
@@ -792,7 +789,10 @@ export default {
       metricRequests: 'Requests',
       metricTokens: 'TOKEN',
       metricCost: 'Cost',
-      metricPlatforms: 'Platforms',
+      sessionsUnindexed: 'Not indexed',
+      sessionsIndexing: 'Indexing',
+      sessionsUnindexedHint:
+        'Session archive is not indexed yet. Open Usage to rebuild the index and see the real session count.',
       lastUpdated: 'Updated {time}',
       lastUpdatedNever: 'Not updated yet',
       fullReport: 'Open full report',
@@ -803,7 +803,6 @@ export default {
       platformOpenCode: 'OpenCode',
     },
     signals: {
-      eyebrow: 'Event stream',
       title: 'Event stream',
       filterAll: 'All',
       filterWarn: 'Warn+',
@@ -818,6 +817,16 @@ export default {
       unknownTime: 'Unknown time',
       viewAll: 'Open monitoring view',
       openMonitoring: 'Open monitoring',
+    },
+    statusBar: {
+      ariaLabel: 'Command status bar',
+      commandsLabel: 'Quick commands',
+      cmdOverview: 'Overview',
+      cmdCommands: 'Commands',
+      cmdSync: 'Sync',
+      cmdUsage: 'Usage',
+      lastEvent: 'Last event',
+      noEvents: 'No events',
     },
   },
 
@@ -2584,7 +2593,6 @@ export default {
     switchLanguage: 'Switch language',
   },
   settings: {
-    eyebrow: 'Shell Preferences',
     title: 'Settings',
     description:
       'Manage CCR UI appearance, language, and shell-level preferences from one quiet, dependable place.',
@@ -2619,12 +2627,12 @@ export default {
       flavor: {
         eyebrow: 'Flavor',
         title: 'Surface tone',
-        description: 'Pick the surface family: neutral gray or warm clay paper.',
+        description: 'Pick the surface family: warm paper gray or warm clay-brown paper.',
         neutral: 'Neutral',
         neutralDescription:
-          'Pure neutral gray surfaces with solid contrast and no warm or cool tint.',
+          'Warm paper-gray surfaces with a gentle warm cast and solid contrast.',
         clay: 'Clay',
-        clayDescription: 'Warm paper surfaces in the Anthropic editorial tone.',
+        clayDescription: 'Warm clay-brown paper surfaces in the Anthropic editorial tone.',
       },
       typography: {
         eyebrow: 'Typography',

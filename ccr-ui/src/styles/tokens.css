@@ -7,60 +7,60 @@
 
 /* neutral 为默认 flavor：:root 即 neutral light（桌面压暗、卡片最亮；表面/文本令牌 100% 不透明）。 */
 :root {
-  /* --- 背景层级（亮色：桌面压暗、卡片最亮；overlay 为下沉/chip 层） --- */
-  --color-bg-base: #e8e9ec;
-  --color-bg-base-rgb: 232 233 236;
-  --color-bg-elevated: #f2f3f5;
-  --color-bg-elevated-rgb: 242 243 245;
-  --color-bg-surface: #fbfcfd;
-  --color-bg-surface-rgb: 251 252 253;
-  --color-bg-overlay: #dcdee3;
-  --color-bg-overlay-rgb: 220 222 227;
+  /* --- 背景层级（亮色：桌面压暗、卡片最亮；overlay 为下沉/chip 层；09-03 起暖纸面） --- */
+  --color-bg-base: #e9e4d8;
+  --color-bg-base-rgb: 233 228 216;
+  --color-bg-elevated: #f2eee3;
+  --color-bg-elevated-rgb: 242 238 227;
+  --color-bg-surface: #faf7ec;
+  --color-bg-surface-rgb: 250 247 236;
+  --color-bg-overlay: #ddd5c2;
+  --color-bg-overlay-rgb: 221 213 194;
 
   /* --- 遮罩 scrim（唯一允许的常驻半透明：modal/抽屉背后的压暗层） --- */
   --color-scrim: rgb(25 27 32 / 32%);
   --color-scrim-rgb: 25 27 32;
 
   /* --- 边框与分隔（实色：alpha 与 elevated 合成，见 token 治理任务） --- */
-  --color-border-subtle: #d8d9db;
-  --color-border-subtle-rgb: 216 217 219;
-  --color-border-default: #c9cacd;
-  --color-border-default-rgb: 201 202 205;
-  --color-border-strong: #b1b2b5;
-  --color-border-strong-rgb: 177 178 181;
+  --color-border-subtle: #d9d2c0;
+  --color-border-subtle-rgb: 217 210 192;
+  --color-border-default: #c9bfa8;
+  --color-border-default-rgb: 201 191 168;
+  --color-border-strong: #ab9f83;
+  --color-border-strong-rgb: 171 159 131;
   --color-border-accent: rgb(var(--color-accent-primary-rgb) / 18%);
   --color-border-interactive: var(--color-accent-primary);
   --color-border-interactive-rgb: var(--color-accent-primary-rgb);
 
   /* --- 文字层级（实心：对 bg-surface ≥ 12 / 7 / 4.5） --- */
-  --color-text-primary: #191b20;
-  --color-text-primary-rgb: 25 27 32;
-  --color-text-secondary: #3f434c;
-  --color-text-secondary-rgb: 63 67 76;
-  --color-text-muted: #5f646e;
-  --color-text-muted-rgb: 95 100 110;
-  --color-text-ghost: #878d98;
-  --color-text-ghost-rgb: 135 141 152;
-  --color-text-disabled: #b3b8c0;
-  --color-text-disabled-rgb: 179 184 192;
-  --color-text-inverted: #f7f8fa;
-  --color-text-inverted-rgb: 247 248 250;
+  --color-text-primary: #211c12;
+  --color-text-primary-rgb: 33 28 18;
+  --color-text-secondary: #4a4232;
+  --color-text-secondary-rgb: 74 66 50;
+  --color-text-muted: #6b6150;
+  --color-text-muted-rgb: 107 97 80;
+  --color-text-ghost: #968b76;
+  --color-text-ghost-rgb: 150 139 118;
+  --color-text-disabled: #b5a98f;
+  --color-text-disabled-rgb: 181 169 143;
+  --color-text-inverted: #fbf7ec;
+  --color-text-inverted-rgb: 251 247 236;
 
-  /* --- 主强调色 - Clay（与 [data-accent='clay'] 对齐的默认值） --- */
-  --color-accent-primary: #cf6239;
-  --color-accent-primary-hover: #d9714a;
-  --color-accent-primary-active: #b8542f;
-  --color-accent-primary-rgb: 207 98 57;
-  --color-accent-primary-glow: rgb(207 98 57 / 10%);
-  --color-accent-primary-contrast: #fff8f2;
-  --color-accent-primary-contrast-rgb: 255 248 242;
+  /* --- 主强调色 - Clay key → 终端琥珀（与 [data-accent='clay'] 对齐的默认值；09-03 起 clay 值域不变、色值换琥珀） --- */
+  --color-accent-primary: #8f650e;
+  --color-accent-primary-hover: #a2740f;
+  --color-accent-primary-active: #7c580b;
+  --color-accent-primary-rgb: 143 101 14;
+  --color-accent-primary-glow: rgb(143 101 14 / 10%);
+  --color-accent-primary-contrast: #fffaf0;
+  --color-accent-primary-contrast-rgb: 255 250 240;
 
   /* --- 辅助强调色 - Warm Sand --- */
-  --color-accent-secondary: #b99666;
-  --color-accent-secondary-hover: #c6a777;
-  --color-accent-secondary-active: #a98658;
-  --color-accent-secondary-rgb: 185 150 102;
-  --color-accent-secondary-glow: rgb(185 150 102 / 10%);
+  --color-accent-secondary: #a0854f;
+  --color-accent-secondary-hover: #ad9660;
+  --color-accent-secondary-active: #907541;
+  --color-accent-secondary-rgb: 160 133 79;
+  --color-accent-secondary-glow: rgb(160 133 79 / 10%);
 
   /* --- 功能色 --- */
   --color-success: #5b8a62;
@@ -71,20 +71,20 @@
   /* 对比文字：vs --color-success #5b8a62 = 3.79:1（≥3.5 契约） */
   --color-success-contrast: #fff8f2;
   --color-success-contrast-rgb: 255 248 242;
-  --color-warning: #bc8540;
-  --color-warning-hover: #ca9453;
-  --color-warning-rgb: 188 133 64;
-  --color-warning-glow: rgb(188 133 64 / 10%);
+  --color-warning: #a07c1e;
+  --color-warning-hover: #ae8b31;
+  --color-warning-rgb: 160 124 30;
+  --color-warning-glow: rgb(160 124 30 / 10%);
 
-  /* 对比文字：vs --color-warning #bc8540 = 5.61:1（近白仅 3.2:1 不达标，故用深色） */
+  /* 对比文字：vs --color-warning #a07c1e = 4.56:1（≥3.5 契约；深墨优于近白 3.70:1） */
   --color-warning-contrast: #17181c;
   --color-warning-contrast-rgb: 23 24 28;
-  --color-danger: #c76953;
-  --color-danger-hover: #d57a65;
-  --color-danger-rgb: 199 105 83;
-  --color-danger-glow: rgb(199 105 83 / 10%);
+  --color-danger: #9f513f;
+  --color-danger-hover: #a55644;
+  --color-danger-rgb: 159 81 63;
+  --color-danger-glow: rgb(159 81 63 / 10%);
 
-  /* 对比文字：vs --color-danger #c76953 = 3.58:1（≥3.5 契约） */
+  /* 对比文字：vs --color-danger #9f513f = 5.36:1（≥3.5 契约） */
   --color-danger-contrast: #fff8f2;
   --color-danger-contrast-rgb: 255 248 242;
   --color-info: #7d97b6;
@@ -159,92 +159,92 @@
 
 /* ========== 暗色主题（neutral dark：elevated 逐级提亮） ========== */
 [data-theme='dark'] {
-  /* --- 背景层级（base < elevated < surface < overlay 明度递增） --- */
-  --color-bg-base: #131316;
-  --color-bg-base-rgb: 19 19 22;
-  --color-bg-elevated: #1a1b1f;
-  --color-bg-elevated-rgb: 26 27 31;
-  --color-bg-surface: #22242a;
-  --color-bg-surface-rgb: 34 36 42;
-  --color-bg-overlay: #2c2f37;
-  --color-bg-overlay-rgb: 44 47 55;
+  /* --- 背景层级（base < elevated < surface < overlay 明度递增；09-03 起暖黑终端） --- */
+  --color-bg-base: #100f0c;
+  --color-bg-base-rgb: 16 15 12;
+  --color-bg-elevated: #171410;
+  --color-bg-elevated-rgb: 23 20 16;
+  --color-bg-surface: #1f1b14;
+  --color-bg-surface-rgb: 31 27 20;
+  --color-bg-overlay: #2a251b;
+  --color-bg-overlay-rgb: 42 37 27;
 
   /* --- 遮罩 scrim（唯一允许的常驻半透明：modal/抽屉背后的压暗层） --- */
   --color-scrim: rgb(0 0 0 / 56%);
   --color-scrim-rgb: 0 0 0;
 
   /* --- 边框与分隔（实色：暗色旧 14/22/34% 与 elevated 合成） --- */
-  --color-border-subtle: #37393d;
-  --color-border-subtle-rgb: 55 57 61;
-  --color-border-default: #48494e;
-  --color-border-default-rgb: 72 73 78;
-  --color-border-strong: #616368;
-  --color-border-strong-rgb: 97 99 104;
+  --color-border-subtle: #332c21;
+  --color-border-subtle-rgb: 51 44 33;
+  --color-border-default: #453b2a;
+  --color-border-default-rgb: 69 59 42;
+  --color-border-strong: #5d5138;
+  --color-border-strong-rgb: 93 81 56;
   --color-border-accent: rgb(var(--color-accent-primary-rgb) / 24%);
 
   /* --- 文字层级（实心高对比） --- */
-  --color-text-primary: #f2f3f5;
-  --color-text-primary-rgb: 242 243 245;
-  --color-text-secondary: #c9ccd3;
-  --color-text-secondary-rgb: 201 204 211;
-  --color-text-muted: #9ba1ab;
-  --color-text-muted-rgb: 155 161 171;
-  --color-text-ghost: #6d727c;
-  --color-text-ghost-rgb: 109 114 124;
-  --color-text-disabled: #4f545d;
-  --color-text-disabled-rgb: 79 84 93;
-  --color-text-inverted: #17181c;
-  --color-text-inverted-rgb: 23 24 28;
+  --color-text-primary: #e9e1d1;
+  --color-text-primary-rgb: 233 225 209;
+  --color-text-secondary: #c9bda8;
+  --color-text-secondary-rgb: 201 189 168;
+  --color-text-muted: #a1937c;
+  --color-text-muted-rgb: 161 147 124;
+  --color-text-ghost: #6f6552;
+  --color-text-ghost-rgb: 111 101 82;
+  --color-text-disabled: #564e3e;
+  --color-text-disabled-rgb: 86 78 62;
+  --color-text-inverted: #1d1408;
+  --color-text-inverted-rgb: 29 20 8;
 
-  /* --- 主强调色 - Clay on dark（高彩度，非粉彩） --- */
-  --color-accent-primary: #e8835b;
-  --color-accent-primary-hover: #f0926c;
-  --color-accent-primary-active: #d4744a;
-  --color-accent-primary-rgb: 232 131 91;
-  --color-accent-primary-glow: rgb(232 131 91 / 16%);
-  --color-accent-primary-contrast: #1d1207;
-  --color-accent-primary-contrast-rgb: 29 18 7;
+  /* --- 主强调色 - Clay key → 终端琥珀 on dark（契约琥珀，高彩度） --- */
+  --color-accent-primary: #f0a32b;
+  --color-accent-primary-hover: #f5b14a;
+  --color-accent-primary-active: #d98f1d;
+  --color-accent-primary-rgb: 240 163 43;
+  --color-accent-primary-glow: rgb(240 163 43 / 16%);
+  --color-accent-primary-contrast: #1d1204;
+  --color-accent-primary-contrast-rgb: 29 18 4;
 
   /* --- 辅助强调色 - Warm Sand on dark --- */
-  --color-accent-secondary: #d0ae86;
-  --color-accent-secondary-hover: #d9bb96;
-  --color-accent-secondary-active: #c3a177;
-  --color-accent-secondary-rgb: 208 174 134;
-  --color-accent-secondary-glow: rgb(208 174 134 / 16%);
+  --color-accent-secondary: #c9a35f;
+  --color-accent-secondary-hover: #d2b06f;
+  --color-accent-secondary-active: #bc9650;
+  --color-accent-secondary-rgb: 201 163 95;
+  --color-accent-secondary-glow: rgb(201 163 95 / 16%);
 
-  /* --- 功能色 --- */
-  --color-success: #7cab82;
-  --color-success-hover: #8bbb91;
-  --color-success-rgb: 124 171 130;
-  --color-success-glow: rgb(124 171 130 / 16%);
+  /* --- 功能色（09-03 终端语义对齐） --- */
+  --color-success: #5fa05a;
+  --color-success-hover: #6eb069;
+  --color-success-rgb: 95 160 90;
+  --color-success-glow: rgb(95 160 90 / 16%);
 
-  /* 对比文字：vs --color-success #7cab82 = 6.85:1（≥3.5 契约） */
+  /* 对比文字：vs --color-success #5fa05a = 5.63:1（≥3.5 契约） */
   --color-success-contrast: #17181c;
   --color-success-contrast-rgb: 23 24 28;
-  --color-warning: #d6a76d;
-  --color-warning-hover: #dfb47d;
-  --color-warning-rgb: 214 167 109;
-  --color-warning-glow: rgb(214 167 109 / 16%);
+  --color-warning: #d9c05a;
+  --color-warning-hover: #e2cd6a;
+  --color-warning-rgb: 217 192 90;
+  --color-warning-glow: rgb(217 192 90 / 16%);
 
-  /* 对比文字：vs --color-warning #d6a76d = 8.21:1（≥3.5 契约） */
+  /* 对比文字：vs --color-warning #d9c05a = 9.83:1（≥3.5 契约） */
   --color-warning-contrast: #17181c;
   --color-warning-contrast-rgb: 23 24 28;
-  --color-danger: #db8a73;
-  --color-danger-hover: #e59b86;
-  --color-danger-rgb: 219 138 115;
-  --color-danger-glow: rgb(219 138 115 / 16%);
+  --color-danger: #e06852;
+  --color-danger-hover: #ec7a63;
+  --color-danger-rgb: 224 104 82;
+  --color-danger-glow: rgb(224 104 82 / 16%);
 
-  /* 对比文字：vs --color-danger #db8a73 = 6.74:1（≥3.5 契约） */
+  /* 对比文字：vs --color-danger #e06852 = 5.30:1（≥3.5 契约） */
   --color-danger-contrast: #17181c;
   --color-danger-contrast-rgb: 23 24 28;
-  --color-info: #98afc9;
-  --color-info-hover: #a7bdd4;
-  --color-info-rgb: 152 175 201;
-  --color-info-glow: rgb(152 175 201 / 16%);
-  --color-success-tint: #2d3435;
-  --color-warning-tint: #383432;
-  --color-danger-tint: #383033;
-  --color-info-tint: #30353d;
+  --color-info: #7d94b0;
+  --color-info-hover: #8ca2bb;
+  --color-info-rgb: 125 148 176;
+  --color-info-glow: rgb(125 148 176 / 16%);
+  --color-success-tint: #26301f;
+  --color-warning-tint: #362c1a;
+  --color-danger-tint: #331f16;
+  --color-info-tint: #232b31;
 
   /* --- 平台专属色（暗色四角色；dot 与明色同一识别色） --- */
   --color-platform-claude: #d97757;
@@ -417,7 +417,7 @@
   --shadow-lg: 0 20px 44px rgb(0 0 0 / 36%);
   --shadow-xl: 0 28px 60px rgb(0 0 0 / 44%);
   --shadow-2xl: 0 36px 78px rgb(0 0 0 / 50%);
-  --shadow-inner: inset 0 1px 0 rgb(235 238 245 / 3%);
+  --shadow-inner: inset 0 1px 0 rgb(243 234 220 / 3%);
 }
 
 /* ========== 玻璃效果系统 ========== */
@@ -695,25 +695,25 @@
 
 /* 值域仅 clay。data-accent 仍写入，值恒为 clay。 */
 
-/* --- clay（默认） --- */
+/* --- clay（默认；09-03 起 clay key 解析为终端琥珀，值域名不变） --- */
 [data-accent='clay'] {
-  --color-accent-primary: #cf6239;
-  --color-accent-primary-hover: #d9714a;
-  --color-accent-primary-active: #b8542f;
-  --color-accent-primary-rgb: 207 98 57;
-  --color-accent-primary-glow: rgb(207 98 57 / 10%);
-  --color-accent-primary-contrast: #fff8f2;
-  --color-accent-primary-contrast-rgb: 255 248 242;
-  --color-border-accent: rgb(207 98 57 / 18%);
+  --color-accent-primary: #8f650e;
+  --color-accent-primary-hover: #a2740f;
+  --color-accent-primary-active: #7c580b;
+  --color-accent-primary-rgb: 143 101 14;
+  --color-accent-primary-glow: rgb(143 101 14 / 10%);
+  --color-accent-primary-contrast: #fffaf0;
+  --color-accent-primary-contrast-rgb: 255 250 240;
+  --color-border-accent: rgb(143 101 14 / 18%);
 }
 
 [data-theme='dark'][data-accent='clay'] {
-  --color-accent-primary: #e8835b;
-  --color-accent-primary-hover: #f0926c;
-  --color-accent-primary-active: #d4744a;
-  --color-accent-primary-rgb: 232 131 91;
-  --color-accent-primary-glow: rgb(232 131 91 / 16%);
-  --color-accent-primary-contrast: #1d1207;
-  --color-accent-primary-contrast-rgb: 29 18 7;
-  --color-border-accent: rgb(232 131 91 / 24%);
+  --color-accent-primary: #f0a32b;
+  --color-accent-primary-hover: #f5b14a;
+  --color-accent-primary-active: #d98f1d;
+  --color-accent-primary-rgb: 240 163 43;
+  --color-accent-primary-glow: rgb(240 163 43 / 16%);
+  --color-accent-primary-contrast: #1d1204;
+  --color-accent-primary-contrast-rgb: 29 18 4;
+  --color-border-accent: rgb(240 163 43 / 24%);
 }
