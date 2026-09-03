@@ -1,0 +1,31 @@
+{
+  "id": "ui-visual-world-replacement",
+  "name": "ui-visual-world-replacement",
+  "title": "CCR UI 视觉世界替换：首页/设置/配色体系重构",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-09-03",
+  "completedAt": "2026-09-03",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "09-03-theme-token-world",
+    "09-03-overview-home-restructure",
+    "09-03-settings-i18n-restructure",
+    "09-03-settings-dock-polish"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

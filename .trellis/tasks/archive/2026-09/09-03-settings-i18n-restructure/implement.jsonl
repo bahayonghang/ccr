@@ -1,0 +1,4 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ccr-ui/frontend/react-rerender-discipline.md", "reason": "memo/重渲染纪律：stale memo 根因所在"}
+{"file": ".trellis/spec/ccr-ui/frontend/index.md", "reason": "前端 spec 索引"}
+{"file": ".trellis/tasks/09-03-ui-visual-world-replacement/research/settings-i18n-analysis.md", "reason": "i18n 双根因与设置页组件地图"}
