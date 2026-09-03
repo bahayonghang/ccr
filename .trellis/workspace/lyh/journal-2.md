@@ -1541,3 +1541,22 @@ Usage 页 hero 区结构重排：成本结论卡从 7fr/5fr 双列拉伸布局�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 106: UI 视觉世界替换：行情终端
+
+**Date**: 2026-09-03
+**Task**: UI 视觉世界替换：行情终端
+**Branch**: `dev`
+
+### Summary
+
+完成 ccr-ui 视觉世界替换（09-03 任务树，4 子任务全绿归档）：暖色 token 体系（dark #100f0c/#171410/#1f1b14/#2a251b，琥珀 #f0a32b/#8f650e，danger 对比度修至 4.65-4.79）、首页重构（图表 clamp 限高、平台行情带、Sessions 诚实态、底部命令状态条）、设置页中文化 52+ 值并修复 stale-memo 切换失效、设置坞双行重构；DESIGN.md 按建成结果重写，PRODUCT.md/AGENTS.md 清除旧世界语言，i18n 叶计数 4409，新增 2 个回归测试。impeccable finish reviewer 裁决 fix→修复后 ship。残留：/agent-sessions 2 个 pre-existing 测试失败、浅色 Loader spinner 待评审。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Status
+
+[OK] **Completed**
