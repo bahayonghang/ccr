@@ -26,14 +26,14 @@ These notes apply to everything under `ccr-ui/` and supplement the repository-le
 
 ### Brand Personality
 
-- The target brand tone is `calm / precise / editorial`.
+- The target brand tone is `calm / precise / terminal`.
 - Preserve a strong product identity instead of drifting into generic SaaS admin styling or mascot-heavy novelty.
-- The UI should feel like a purpose-built Anthropic-like workbench for advanced users: quiet, focused, and trustworthy under high information density.
+- The UI should feel like a purpose-built market terminal for advanced users: quiet, focused, and trustworthy under high information density.
 
 ### Aesthetic Direction
 
-- Align new work to an `Anthropic-like editorial surface` direction.
-- Prefer warm neutrals, charcoal text, subtle borders, restrained translucency, and low-chroma accents over purple-led gradients or loud glass effects.
+- The visual world is the market terminal (行情终端): a warm-dark, dark-first operating surface where amber marks command, active, and focus; green and red carry status only; and mono type with tabular figures is earned by data contexts. `DESIGN.md` in this directory is the source of truth (tokens mirror `src/styles/tokens.css`); `.impeccable/design.json` is its machine-readable sidecar.
+- Align new work to the world's signatures: hairline-ruled panels, 2px identity ticks, bounded charts, honest empty states, and the bottom command status bar. The rejected rut is the metric-card row plus unbounded hero chart.
 - Treat heavy Liquid Glass / Glassmorphism, anime atmospherics, and catgirl / NEKO branding as legacy directions to remove over time.
 - Remove `guofeng`, `neko`, anime, and purple-tech styling, naming, tokens, and component variants over time; treat them as legacy, not parallel design languages.
 
@@ -47,6 +47,6 @@ These notes apply to everything under `ccr-ui/` and supplement the repository-le
 ### Design Principles
 
 - Power-first UX: optimize for speed, density, and control for expert users.
-- Distinctive, not generic: express identity through calm precision, editorial hierarchy, and restrained surfaces instead of mascots, neon accents, or decorative glass.
+- Distinctive, not generic: express identity through calm precision, clear hierarchy, and restrained surfaces instead of mascots, neon accents, or decorative glass.
 - Style supports usability: visual layers must improve readability, navigation clarity, and task completion rather than compete with them.
-- One visual language: converge on the Anthropic-like editorial direction and eliminate conflicting `guofeng` / `neko` branches.
+- One visual language: converge on the market-terminal direction defined in `DESIGN.md` and eliminate conflicting `guofeng` / `neko` branches.

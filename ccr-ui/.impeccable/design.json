@@ -1,54 +1,54 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-06-05T00:00:00+08:00",
+  "generatedAt": "2026-09-03T21:55:00+08:00",
   "title": "Design System: CCR UI",
   "extensions": {
     "colorMeta": {
-      "clay-accent": {
+      "amber-command": {
         "role": "primary",
-        "displayName": "Clay Accent",
-        "canonical": "#d97757",
-        "tonalRamp": ["#3f1d12", "#6e3320", "#9d4f35", "#c96c4d", "#d97757", "#e9a58b", "#f4cab9", "#fff1e8"]
+        "displayName": "Terminal Amber",
+        "canonical": "#f0a32b",
+        "tonalRamp": ["#241503", "#4a2f08", "#7c520d", "#a97410", "#d98f1d", "#f0a32b", "#f7c46f", "#fce3b3"]
       },
-      "sand-accent": {
+      "sand-secondary": {
         "role": "secondary",
         "displayName": "Warm Sand",
-        "canonical": "#b99666",
-        "tonalRamp": ["#342514", "#5c4122", "#835f36", "#a98658", "#b99666", "#d2b88f", "#ead9bf", "#fff4e0"]
+        "canonical": "#c9a35f",
+        "tonalRamp": ["#241a09", "#4a3617", "#71532a", "#98713e", "#c9a35f", "#d9bd85", "#e9d7b0", "#f7efdc"]
       },
-      "neutral-base": {
+      "status-ready": {
+        "role": "semantic",
+        "displayName": "Ready Green",
+        "canonical": "#5fa05a",
+        "tonalRamp": ["#0f1f0e", "#1d3a1c", "#2e5a2d", "#457f43", "#5fa05a", "#86bc82", "#b4d8b1", "#e3f1e1"]
+      },
+      "status-attention": {
+        "role": "semantic",
+        "displayName": "Attention Red",
+        "canonical": "#e06852",
+        "tonalRamp": ["#2a0f09", "#571f15", "#843322", "#b34a35", "#d95f45", "#e06852", "#ec9384", "#f7c4ba"]
+      },
+      "terminal-base": {
         "role": "neutral",
-        "displayName": "Editorial Base",
-        "canonical": "#f4ede3",
-        "tonalRamp": ["#17120f", "#342b26", "#5f4d3f", "#9a8373", "#ede2d4", "#f4ede3", "#fbf6ee", "#fffaf3"]
+        "displayName": "Terminal Ladder",
+        "canonical": "#100f0c",
+        "tonalRamp": ["#100f0c", "#171410", "#1f1b14", "#2a251b", "#453b2a", "#6b6150", "#a1937c", "#e9e1d1"]
       },
       "ink-primary": {
         "role": "neutral",
-        "displayName": "Charcoal Ink",
-        "canonical": "#31241c",
-        "tonalRamp": ["#17120f", "#211915", "#31241c", "#5f4d3f", "#7f6a5b", "#b4a08f", "#dacbbc", "#f3eadf"]
-      },
-      "success": {
-        "role": "semantic",
-        "displayName": "Sage Success",
-        "canonical": "#5b8a62",
-        "tonalRamp": ["#142419", "#27452d", "#3f6847", "#5b8a62", "#7cab82", "#a9c9ad", "#d4e4d6", "#f1f8f2"]
-      },
-      "danger": {
-        "role": "semantic",
-        "displayName": "Clay Danger",
-        "canonical": "#c76953",
-        "tonalRamp": ["#35140f", "#65291f", "#954535", "#c76953", "#db8a73", "#edb8a9", "#f8dcd4", "#fff1ed"]
+        "displayName": "Phosphor Ink",
+        "canonical": "#e9e1d1",
+        "tonalRamp": ["#100f0c", "#2a251b", "#564e3e", "#a1937c", "#c9bda8", "#ddd5c2", "#e9e1d1", "#faf7ec"]
       }
     },
     "typographyMeta": {
       "headline": {
-        "displayName": "Workbench Headline",
-        "purpose": "Page and panel-level headings with compact editorial authority."
+        "displayName": "Workbench Display",
+        "purpose": "Page-level headers on workbench surfaces; the only fluid size in the system."
       },
       "title": {
         "displayName": "Panel Title",
-        "purpose": "Dense section and card titles."
+        "purpose": "Dense section and panel titles; one title per panel, no duplicate eyebrows."
       },
       "body": {
         "displayName": "Operational Body",
@@ -56,24 +56,33 @@
       },
       "label": {
         "displayName": "Control Label",
-        "purpose": "Forms, metadata, and compact UI labels."
+        "purpose": "Forms, metadata, and compact UI labels; wide tracking only for short Latin mono labels."
+      },
+      "data": {
+        "displayName": "Terminal Data",
+        "purpose": "Numeric readouts, versions, timestamps, axes, and the command status bar; mono with tabular figures."
       }
     },
     "shadows": [
       {
         "name": "subtle-rest",
-        "value": "0 2px 8px rgb(73 54 40 / 6%)",
-        "purpose": "Low surface separation."
+        "value": "0 2px 6px rgb(25 27 32 / 9%)",
+        "purpose": "Optional field and hover separation; resting cards cast none."
       },
       {
-        "name": "structural-card",
-        "value": "0 14px 34px rgb(73 54 40 / 8%)",
-        "purpose": "Interactive workbench panels."
+        "name": "structural-overlay",
+        "value": "0 10px 24px rgb(25 27 32 / 13%)",
+        "purpose": "Sticky bars and interactive overlays."
       },
       {
         "name": "modal-depth",
-        "value": "0 24px 54px rgb(73 54 40 / 10%)",
-        "purpose": "Dialogs and overlays."
+        "value": "0 18px 38px rgb(25 27 32 / 16%)",
+        "purpose": "Dialogs and floating layers that must detach from the workspace."
+      },
+      {
+        "name": "focus-glow",
+        "value": "0 0 0 2px rgb(240 163 43 / 40%)",
+        "purpose": "Focus rings only; never decorative."
       }
     ],
     "motion": [
@@ -86,13 +95,19 @@
         "name": "motion-standard",
         "value": "200ms cubic-bezier(0.4, 0, 0.2, 1)",
         "purpose": "Normal product state transitions."
+      },
+      {
+        "name": "home-micro",
+        "value": "140ms cubic-bezier(0, 0, 0.2, 1) with -1px lift",
+        "purpose": "Workbench micro-interaction contract; collapses to 0ms under reduced motion."
       }
     ],
     "breakpoints": [
-      {
-        "name": "mobile-sidebar",
-        "value": "lg"
-      }
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" },
+      { "name": "2xl", "value": "1536px" }
     ]
   },
   "components": [
@@ -100,90 +115,156 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The next meaningful command on a product surface.",
-      "html": "<button class=\"ds-btn-primary\">Save changes</button>",
-      "css": ".ds-btn-primary { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0.625rem 1rem; border-radius: 9999px; border: 1px solid rgb(var(--color-accent-primary-rgb) / 16%); background: linear-gradient(180deg, var(--color-accent-primary), var(--color-accent-primary-active)); color: var(--color-text-inverted); font: 560 0.875rem/1.24 var(--font-sans); letter-spacing: var(--tracking-normal); box-shadow: 0 14px 28px rgb(var(--color-accent-primary-rgb) / 16%), inset 0 1px 0 rgb(255 251 245 / 18%); transition: transform var(--motion-standard-duration) var(--motion-standard-ease), box-shadow var(--motion-standard-duration) var(--motion-standard-ease), background-color var(--motion-standard-duration) var(--motion-standard-ease); } .ds-btn-primary:hover { transform: translateY(-0.5px); box-shadow: 0 16px 32px rgb(var(--color-accent-primary-rgb) / 18%), inset 0 1px 0 rgb(255 251 245 / 22%); } .ds-btn-primary:focus-visible { outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%); outline-offset: 2px; }"
+      "description": "The next meaningful command; solid Terminal Amber with deep contrast ink, no gradient.",
+      "html": "<button class=\"ds-btn-primary\">同步配置</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem 1rem; border: 0; border-radius: 8px; background: var(--color-accent-primary); color: var(--color-accent-primary-contrast); font-family: var(--font-sans); font-size: 0.8125rem; font-weight: 500; line-height: 1.56; cursor: pointer; transition: background 100ms cubic-bezier(0, 0, 0.2, 1), transform 100ms cubic-bezier(0, 0, 0.2, 1); } .ds-btn-primary:hover { background: var(--color-accent-primary-hover); } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--color-bg-base), 0 0 0 4px rgb(var(--color-accent-primary-rgb) / 56%); }"
     },
     {
       "name": "Secondary Button",
       "kind": "button",
       "refersTo": "button-secondary",
-      "description": "Neutral action beside a primary command.",
-      "html": "<button class=\"ds-btn-secondary\">Open details</button>",
-      "css": ".ds-btn-secondary { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0.625rem 1rem; border-radius: 9999px; border: 1px solid var(--surface-status-border); background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 98%), rgb(var(--color-bg-surface-rgb) / 88%)); color: var(--color-text-primary); font: 560 0.875rem/1.24 var(--font-sans); letter-spacing: var(--tracking-normal); box-shadow: var(--surface-status-shadow), inset 0 1px 0 rgb(255 251 245 / 14%); transition: border-color var(--motion-standard-duration) var(--motion-standard-ease), background-color var(--motion-standard-duration) var(--motion-standard-ease); } .ds-btn-secondary:hover { border-color: rgb(var(--color-accent-primary-rgb) / 18%); } .ds-btn-secondary:focus-visible { outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%); outline-offset: 2px; }"
+      "description": "Neutral action beside a primary command; panel fill with a hairline border.",
+      "html": "<button class=\"ds-btn-secondary\">查看详情</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem 1rem; border: 1px solid var(--color-border-default); border-radius: 8px; background: var(--color-bg-surface); color: var(--color-text-primary); font-family: var(--font-sans); font-size: 0.8125rem; font-weight: 500; line-height: 1.56; cursor: pointer; transition: background 100ms cubic-bezier(0, 0, 0.2, 1), border-color 100ms cubic-bezier(0, 0, 0.2, 1); } .ds-btn-secondary:hover { background: var(--color-bg-overlay); border-color: var(--color-border-strong); } .ds-btn-secondary:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--color-bg-base), 0 0 0 4px rgb(var(--color-accent-primary-rgb) / 56%); }"
     },
     {
       "name": "Input Field",
       "kind": "input",
       "refersTo": "input-default",
-      "description": "Readable configuration input with explicit focus and error hooks.",
-      "html": "<label class=\"ds-field\"><span>Profile name</span><input class=\"ds-input\" placeholder=\"Default profile\" /></label>",
-      "css": ".ds-field { display: grid; gap: 0.375rem; color: var(--color-text-muted); font: 560 0.75rem/1.24 var(--font-sans); letter-spacing: var(--tracking-wide); } .ds-input { min-height: 44px; border-radius: 16px; border: 1px solid rgb(var(--color-border-default-rgb) / 70%); background: var(--surface-workspace-bg); color: var(--color-text-primary); padding: 0.625rem 1rem; font: 400 0.875rem/1.56 var(--font-sans); box-shadow: var(--shadow-sm), inset 0 1px 0 rgb(255 255 255 / 14%); transition: border-color var(--motion-subtle-duration) var(--motion-subtle-ease), box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease); } .ds-input::placeholder { color: rgb(var(--color-text-muted-rgb) / 80%); } .ds-input:focus-visible { outline: 2px solid rgb(var(--color-accent-primary-rgb) / 14%); outline-offset: 2px; border-color: rgb(var(--color-accent-primary-rgb) / 28%); }"
+      "description": "Readable configuration input; amber border shift plus focus ring on focus.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field__label\">配置名称</span><input class=\"ds-input\" placeholder=\"默认配置\" /></label>",
+      "css": ".ds-field { display: grid; gap: 0.375rem; color: var(--color-text-muted); font-family: var(--font-sans); font-size: 0.8125rem; font-weight: 500; line-height: 1.24; } .ds-input { padding: 0.625rem 1rem; border: 1px solid var(--color-border-default); border-radius: 8px; background: var(--color-bg-surface); color: var(--color-text-primary); font-family: var(--font-sans); font-size: 1rem; line-height: 1.56; transition: border-color 100ms cubic-bezier(0, 0, 0.2, 1), box-shadow 100ms cubic-bezier(0, 0, 0.2, 1); } .ds-input::placeholder { color: var(--color-text-ghost); } .ds-input:focus-visible { outline: 0; border-color: var(--color-accent-primary); box-shadow: 0 0 0 2px rgb(var(--color-accent-primary-rgb) / 40%); }"
     },
     {
-      "name": "Elevated Card",
+      "name": "Panel Card",
       "kind": "card",
-      "refersTo": "card-elevated",
-      "description": "Primary dense workbench panel for grouped configuration or state.",
-      "html": "<section class=\"ds-card\"><h3>Runtime status</h3><p>Backend connected. Usage importer ready.</p></section>",
-      "css": ".ds-card { border-radius: 16px; border: 1px solid var(--surface-card-border); background: var(--surface-card-bg); color: var(--color-text-primary); padding: 1.5rem; box-shadow: var(--surface-card-shadow), var(--glass-inner-glow); } .ds-card h3 { margin: 0 0 0.5rem; font: 560 1.3125rem/1.24 var(--font-sans); letter-spacing: var(--tracking-normal); } .ds-card p { margin: 0; color: var(--color-text-secondary); font: 400 0.875rem/1.56 var(--font-sans); }"
+      "refersTo": "card-panel",
+      "description": "Opaque workbench panel separated by a hairline, not a shadow.",
+      "html": "<section class=\"ds-panel\"><h3 class=\"ds-panel__title\">运行状态</h3><p class=\"ds-panel__body\">后端已连接，用量导入器就绪。</p></section>",
+      "css": ".ds-panel { padding: 1rem; border: 1px solid var(--color-border-subtle); border-radius: 12px; background: var(--color-bg-surface); color: var(--color-text-primary); } .ds-panel__title { margin: 0 0 0.5rem; font-family: var(--font-sans); font-size: 1.0625rem; font-weight: 600; line-height: 1.24; } .ds-panel__body { margin: 0; color: var(--color-text-secondary); font-family: var(--font-sans); font-size: 0.875rem; line-height: 1.56; }"
     },
     {
       "name": "Active Navigation Item",
       "kind": "nav",
       "refersTo": "nav-item-active",
-      "description": "Current route state in the persistent operational sidebar.",
-      "html": "<a class=\"ds-nav-active\" href=\"#\"><span class=\"ds-nav-icon\"></span><span>Usage</span></a>",
-      "css": ".ds-nav-active { min-height: 36px; display: inline-flex; align-items: center; gap: 0.625rem; padding: 0.5rem 0.75rem; border-radius: 12px; background: rgb(var(--color-bg-surface-rgb) / 82%); color: var(--color-text-primary); font: 560 0.875rem/1.24 var(--font-sans); text-decoration: none; box-shadow: inset 0 0 0 1px rgb(var(--color-accent-primary-rgb) / 14%); } .ds-nav-icon { width: 0.5rem; height: 0.5rem; border-radius: 9999px; background: var(--color-accent-primary); box-shadow: 0 0 0 4px rgb(var(--color-accent-primary-rgb) / 10%); } .ds-nav-active:focus-visible { outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%); outline-offset: 2px; }"
+      "description": "Current route in the persistent sidebar; a 10% amber tint, never a filled bar.",
+      "html": "<a class=\"ds-nav-active\" href=\"#\"><span class=\"ds-nav-active__dot\"></span><span>用量</span></a>",
+      "css": ".ds-nav-active { display: inline-flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0.75rem; border: 1px solid rgb(var(--color-accent-primary-rgb) / 24%); border-radius: 8px; background: rgb(var(--color-accent-primary-rgb) / 10%); color: var(--color-text-primary); font-family: var(--font-sans); font-size: 0.875rem; font-weight: 500; text-decoration: none; } .ds-nav-active__dot { width: 0.375rem; height: 0.375rem; border-radius: 9999px; background: var(--color-accent-primary); } .ds-nav-active:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--color-bg-base), 0 0 0 4px rgb(var(--color-accent-primary-rgb) / 56%); }"
+    },
+    {
+      "name": "Platform Quote Cell",
+      "kind": "custom",
+      "refersTo": "card-panel",
+      "description": "Signature quote-band cell: 2px platform top tick, hairline separators, mono tabular metrics, honest empty states.",
+      "html": "<a class=\"ds-quote\" href=\"#\"><span class=\"ds-quote__head\"><span class=\"ds-quote__name\">Claude Code</span><span class=\"ds-quote__status\"><span class=\"ds-quote__dot\"></span>就绪</span></span><span class=\"ds-quote__spark\"><i style=\"height:32%\"></i><i style=\"height:58%\"></i><i class=\"is-peak\" style=\"height:100%\"></i><i style=\"height:44%\"></i><i style=\"height:20%\"></i></span><span class=\"ds-quote__rule\"></span><span class=\"ds-quote__metrics\"><span class=\"ds-quote__metric\"><span>REQ</span><strong>1,284</strong></span><span class=\"ds-quote__metric\"><span>TOK</span><strong>2.1M</strong></span><span class=\"ds-quote__metric\"><span>SESS</span><strong class=\"ds-quote__none\">—</strong></span></span></a>",
+      "css": ".ds-quote { display: flex; flex-direction: column; gap: 0.625rem; min-width: 11rem; padding: 0.75rem; border-top: 2px solid var(--color-platform-claude); background: var(--color-bg-surface); color: var(--color-text-primary); text-decoration: none; transition: background-color 140ms cubic-bezier(0, 0, 0.2, 1); } .ds-quote:hover { background: var(--color-bg-elevated); } .ds-quote:focus-visible { outline: 2px solid var(--color-accent-primary); outline-offset: -2px; } .ds-quote__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; } .ds-quote__name { overflow: hidden; font-family: var(--font-sans); font-size: 0.875rem; font-weight: 600; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; } .ds-quote__status { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.125rem 0.5rem; border: 1px solid var(--color-border-subtle); border-radius: 6px; background: var(--color-bg-elevated); color: var(--color-success); font-family: var(--font-sans); font-size: 0.6875rem; font-weight: 500; white-space: nowrap; } .ds-quote__dot { width: 0.375rem; height: 0.375rem; border-radius: 9999px; background: var(--color-success); } .ds-quote__spark { display: flex; align-items: flex-end; gap: 0.125rem; height: 2.5rem; } .ds-quote__spark i { flex: 1 1 0; min-width: 1px; min-height: 0.125rem; background: var(--color-border-default); } .ds-quote__spark i.is-peak { background: var(--color-platform-claude); } .ds-quote__rule { height: 1px; background: var(--color-border-subtle); } .ds-quote__metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; } .ds-quote__metric { display: grid; gap: 0.125rem; min-width: 0; } .ds-quote__metric span { color: var(--color-text-muted); font-family: var(--font-mono); font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.14em; } .ds-quote__metric strong { color: var(--color-text-primary); font-family: var(--font-mono); font-size: 1.125rem; font-variant-numeric: tabular-nums; font-weight: 600; line-height: 1; } .ds-quote__metric strong.ds-quote__none { color: var(--color-text-muted); }"
+    },
+    {
+      "name": "Event Stream Row",
+      "kind": "custom",
+      "refersTo": "card-panel",
+      "description": "Signature stream row: mono timestamp, severity dot, level tag, single-ellipsis message; color only on severity.",
+      "html": "<div class=\"ds-event\"><span class=\"ds-event__time\">21:47:03</span><span class=\"ds-event__dot ds-event__dot--error\"></span><span class=\"ds-event__level ds-event__level--error\">错误</span><span class=\"ds-event__msg\">同步失败：远端配置校验未通过</span></div>",
+      "css": ".ds-event { display: grid; grid-template-columns: auto auto auto minmax(0, 1fr); align-items: baseline; column-gap: 0.5rem; min-height: 2rem; padding: 0.375rem 0.5rem; border-radius: 6px; background: transparent; } .ds-event:hover { background: rgb(var(--color-border-default-rgb) / 6%); } .ds-event__time { color: var(--color-text-muted); font-family: var(--font-mono); font-size: 0.75rem; font-variant-numeric: tabular-nums; font-weight: 500; white-space: nowrap; } .ds-event__dot { width: 0.375rem; height: 0.375rem; border-radius: 9999px; background: var(--color-info); } .ds-event__dot--error { background: var(--color-danger); } .ds-event__level { overflow: hidden; color: var(--color-text-secondary); font-family: var(--font-sans); font-size: 0.75rem; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; } .ds-event__level--error { color: var(--color-danger); } .ds-event__msg { overflow: hidden; min-width: 0; color: var(--color-text-primary); font-family: var(--font-sans); font-size: 0.875rem; line-height: 1.24; text-overflow: ellipsis; white-space: nowrap; }"
+    },
+    {
+      "name": "Command Status Bar",
+      "kind": "custom",
+      "refersTo": "status-bar",
+      "description": "Signature sticky bottom bar: hairline top rule, mono, backend status, numbered route hints, tabular clock.",
+      "html": "<footer class=\"ds-statusbar\"><span class=\"ds-statusbar__item\"><span class=\"ds-statusbar__label\">后端</span><span class=\"ds-statusbar__value ds-statusbar__value--ok\">已连接</span></span><span class=\"ds-statusbar__item\"><span class=\"ds-statusbar__dot\"></span><span class=\"ds-statusbar__value\">同步完成</span></span><span class=\"ds-statusbar__cmds\"><a class=\"ds-statusbar__cmd\" href=\"#\"><span class=\"ds-statusbar__idx\">01</span>概览</a><a class=\"ds-statusbar__cmd\" href=\"#\"><span class=\"ds-statusbar__idx\">02</span>命令</a><a class=\"ds-statusbar__cmd\" href=\"#\"><span class=\"ds-statusbar__idx\">03</span>同步</a><a class=\"ds-statusbar__cmd\" href=\"#\"><span class=\"ds-statusbar__idx\">04</span>用量</a></span><span class=\"ds-statusbar__clock\">21:47:03</span></footer>",
+      "css": ".ds-statusbar { display: flex; align-items: center; gap: 0.75rem; min-height: 1.75rem; padding: 0.25rem 0.75rem; overflow: hidden; border-top: 1px solid var(--color-border-subtle); background: var(--color-bg-base); color: var(--color-text-muted); font-family: var(--font-mono); font-size: 0.6875rem; line-height: 1.3; white-space: nowrap; } .ds-statusbar > * + * { padding-left: 0.75rem; border-left: 1px solid var(--color-border-subtle); } .ds-statusbar__item { display: inline-flex; align-items: center; gap: 0.375rem; } .ds-statusbar__label { color: var(--color-text-ghost); } .ds-statusbar__value { color: var(--color-text-secondary); font-variant-numeric: tabular-nums; } .ds-statusbar__value--ok { color: var(--color-accent-primary); } .ds-statusbar__dot { width: 0.375rem; height: 0.375rem; border-radius: 9999px; background: var(--color-warning); } .ds-statusbar__cmds { display: inline-flex; align-items: center; gap: 0.75rem; margin-inline-start: auto; overflow: hidden; } .ds-statusbar__cmd { display: inline-flex; align-items: baseline; gap: 0.375rem; color: var(--color-text-muted); text-decoration: none; transition: color 140ms cubic-bezier(0, 0, 0.2, 1); } .ds-statusbar__cmd:hover { color: var(--color-text-primary); } .ds-statusbar__cmd:focus-visible { outline: 2px solid var(--color-accent-primary); outline-offset: 2px; } .ds-statusbar__idx { color: var(--color-text-ghost); font-variant-numeric: tabular-nums; } .ds-statusbar__cmd:hover .ds-statusbar__idx { color: var(--color-accent-primary); } .ds-statusbar__clock { color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Settings Dock",
+      "kind": "custom",
+      "refersTo": "card-panel",
+      "description": "Signature sidebar anchor: title row plus mono meta row with version; active is overlay fill with a 2px amber tick.",
+      "html": "<a class=\"ds-dock ds-dock--active\" href=\"#\" title=\"设置\"><span class=\"ds-dock__icon\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\"><circle cx=\"8\" cy=\"8\" r=\"2.4\" stroke=\"currentColor\"/><path d=\"M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4\" stroke=\"currentColor\" stroke-linecap=\"round\"/></svg></span><span class=\"ds-dock__copy\"><span class=\"ds-dock__row\"><span class=\"ds-dock__title\">设置</span></span><span class=\"ds-dock__meta\">zh-CN · 深色 · v4.3.1</span></span></a>",
+      "css": ".ds-dock { position: relative; display: flex; align-items: center; gap: 0.75rem; overflow: hidden; padding: 0.625rem 0.75rem; border: 1px solid var(--color-border-subtle); border-radius: 8px; background: var(--color-bg-surface); color: var(--color-text-primary); text-decoration: none; transition: border-color 140ms cubic-bezier(0, 0, 0.2, 1), background-color 140ms cubic-bezier(0, 0, 0.2, 1); } .ds-dock:hover { border-color: var(--color-border-default); } .ds-dock:focus-visible { outline: 0; box-shadow: 0 0 0 2px rgb(var(--color-accent-primary-rgb) / 40%); } .ds-dock--active { background: var(--color-bg-overlay); } .ds-dock--active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--color-accent-primary); } .ds-dock__icon { display: flex; flex: none; align-items: center; justify-content: center; width: 2rem; height: 2rem; border: 1px solid var(--color-border-default); border-radius: 8px; background: var(--color-bg-elevated); color: var(--color-text-secondary); } .ds-dock__copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 0.25rem; } .ds-dock__row { display: flex; min-width: 0; align-items: baseline; justify-content: space-between; gap: 0.5rem; } .ds-dock__title { min-width: 0; overflow: hidden; font-family: var(--font-sans); font-size: 0.875rem; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; } .ds-dock__meta { display: block; overflow: hidden; color: var(--color-text-muted); font-family: var(--font-mono); font-size: 0.6875rem; font-variant-numeric: tabular-nums; white-space: nowrap; text-overflow: ellipsis; }"
     }
   ],
   "narrative": {
-    "northStar": "The Editorial Control Room",
-    "overview": "CCR UI is a dense operational workbench with an editorial surface system: quiet shell, precise labels, warm clay accent, and structured panels that help expert users see state quickly. The interface should feel trusted during configuration, sync, command execution, and usage analysis, where unclear state can cost real local data.",
+    "northStar": "The Market Terminal (行情终端)",
+    "overview": "CCR UI is a never-sleeps operator terminal for AI CLI toolchains: every managed platform is a quote line, and state, data, and commands share one character grid. The world was user-picked in the 09-03 direction round (concept seed 19fe1fa0, kind=pick, mode=operate), overriding the dice-assigned train-diagram world, and it deliberately rejects the category-default dashboard of a metric-card row plus an unbounded hero chart. The surface is a warm-black phosphor terminal, dark-first because operators watch it for hours in low light. Amber is the command color — it marks the next action, the active route, and the focus ring, nothing else. Green and red are status semantics only. Monospace type is earned by data: numbers, versions, timestamps, and the command status bar. The light theme is a warm paper reading surface built from the same geometry, not a separate design.",
     "keyCharacteristics": [
-      "Dense but organized workbench layouts.",
-      "Warm clay accent used sparingly for primary action and active state.",
-      "Charcoal or high-contrast ink over neutral surfaces.",
-      "Consistent rounded product controls, usually 6px to 16px, with pill buttons where actions need strong hit targets.",
-      "Motion limited to state change, feedback, route continuity, and loading."
+      "Warm dark surface ladder with hairline rules instead of decorative depth.",
+      "Terminal amber reserved for command, active, and focus; status colors reserved for state.",
+      "True monospace stack with tabular figures for every numeric readout.",
+      "Bounded charts, fixed row heights, and honest empty states (dashed baselines, — placeholders).",
+      "zh-CN-first copy, fully globalized through the app i18n contract."
     ],
     "rules": [
       {
-        "name": "The Accent Scarcity Rule",
-        "body": "Clay accent should occupy less than 10% of a normal screen. If it appears everywhere, nothing reads as active.",
+        "name": "The Status-Only Color Rule",
+        "body": "Green, red, warn, and info live only on status hairlines, dots, and state values. Panels, charts, and chrome stay neutral; a colored panel is a bug.",
         "section": "colors"
       },
       {
-        "name": "The Legacy Branch Rule",
-        "body": "Do not add new purple-tech, guofeng, anime, catgirl, or NEKO color variants. Existing traces are migration debt, not optional themes.",
+        "name": "The Amber Scarcity Rule",
+        "body": "Amber marks command, active, and focus — under 10% of any screen. If everything glows, nothing is next.",
         "section": "colors"
       },
       {
-        "name": "The Product Type Rule",
-        "body": "Do not use fluid hero typography inside app surfaces. Fixed rem scales serve this tool better than viewport-driven display type.",
+        "name": "The Platform Tick Rule",
+        "body": "Platform colors identify; they never repaint. Allowed surfaces: 2px ticks, legend swatches, chart segments, identity dots.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mono Is Earned Rule",
+        "body": "Mono appears where the terminal speaks: data, code, time, commands. Prose stays sans; never set paragraphs in mono for atmosphere.",
         "section": "typography"
       },
       {
-        "name": "The Structural Glass Rule",
-        "body": "Existing glass tokens may define shell, workspace, card, modal, and status layers. Do not add decorative glass cards for visual novelty.",
+        "name": "The Tabular Number Rule",
+        "body": "Any number a user compares or watches uses tabular figures (font-variant-numeric: tabular-nums). Columns of digits must not jitter.",
+        "section": "typography"
+      },
+      {
+        "name": "The Product Type Rule",
+        "body": "Fixed rem scales inside app surfaces; no viewport-fluid hero type beyond the one display clamp.",
+        "section": "typography"
+      },
+      {
+        "name": "The Hairline-First Rule",
+        "body": "Separate with a hairline or a tonal step before reaching for shadow. A resting card casts none.",
         "section": "elevation"
+      },
+      {
+        "name": "The Glass Budget Rule",
+        "body": "At most one backdrop-filter surface per screen, floating tier only; no nested glass, no glass inside scrolling content.",
+        "section": "elevation"
+      },
+      {
+        "name": "The 12px Ceiling Rule",
+        "body": "No product surface exceeds a 12px corner. Large radii read as consumer SaaS, not terminal.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Two-Pixel Tick Rule",
+        "body": "Identity and active state arrive as 2px ticks, never as stripes, glows, or filled rails.",
+        "section": "shapes"
       }
     ],
     "dos": [
-      "Do keep expert density and explicit operational scope visible.",
-      "Do use clay accent for primary action, active navigation, focus, and critical emphasis.",
-      "Do preserve light and dark contrast for body text, placeholders, labels, and status text.",
-      "Do use structural surface roles: shell, workspace, card, modal, and status.",
-      "Do keep motion between 100ms and 300ms for product state changes, with reduced-motion alternatives.",
-      "Do treat Tauri-only failures in web preview as runtime limitations when the task is not web compatibility."
+      "Do reserve amber for command, active route, and focus — and keep it under 10% of the screen.",
+      "Do keep green and red on status dots, values, and tints only, paired with their contrast ink.",
+      "Do set every numeric readout, timestamp, version, and route index in mono with tabular figures.",
+      "Do separate surfaces with hairlines and tonal steps before shadows.",
+      "Do render honest empties: dashed baselines, — placeholders, muted unindexed metrics — never a fabricated zero.",
+      "Do keep charts bounded (clamp(10rem, 26vh, 16rem)) and data rows at fixed heights.",
+      "Do subscribe copy through useAppT() and keep the locale contract green.",
+      "Do honor data-reduced-motion: micro-interactions collapse to 0ms and lifts flatten."
     ],
     "donts": [
-      "Don't add generic SaaS admin styling, purple or purple-blue gradients, or marketing hero patterns.",
-      "Don't add heavy Liquid Glass or glassmorphism as decoration.",
-      "Don't add guofeng, neko, anime, catgirl, or mascot-heavy variants.",
-      "Don't hide operational risk behind beginner-friendly simplification.",
-      "Don't create nested cards or identical decorative card grids.",
-      "Don't use side-stripe accent borders, gradient text, or 32px plus radii on product cards."
+      "Don't rebuild the metric-card row plus unbounded hero chart — that dashboard cliché is the rejected rut.",
+      "Don't repaint panels or chrome in platform colors; identity stays on 2px ticks and swatches.",
+      "Don't add decorative glass, nested glass, or glass inside scrolling content.",
+      "Don't add purple or purple-blue gradients, guofeng, neko, anime, catgirl, or mascot variants — legacy debt, not parallel themes.",
+      "Don't widen 2px ticks into side stripes, or use gradient text and 12px-plus radii on product surfaces.",
+      "Don't use fluid hero typography or decorative fonts inside app surfaces.",
+      "Don't capture a bare t outside useAppT(), and don't leave zh-CN copy unglobalized.",
+      "Don't hide disabled, blocked, or destructive states — they must read at a glance."
     ]
   }
 }
