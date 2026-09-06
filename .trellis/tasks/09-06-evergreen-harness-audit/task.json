@@ -1,0 +1,32 @@
+{
+  "id": "evergreen-harness-audit",
+  "name": "evergreen-harness-audit",
+  "title": "CCR 常青维护审查与五套 harness 对齐",
+  "description": "审查 CCR 结构、现有测试与失败 CI，形成五套 harness 规则/能力对齐和文件级改造计划；父任务与五子任务保持 planning，等待明确批准。",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P1",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-09-06",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "09-06-evergreen-ui-smoke",
+    "09-06-evergreen-ci-verdict",
+    "09-06-evergreen-omp-context",
+    "09-06-evergreen-harness-rules",
+    "09-06-evergreen-ci-history"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}
