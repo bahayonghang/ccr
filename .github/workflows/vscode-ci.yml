@@ -47,6 +47,7 @@ jobs:
         run: just vscode-ci
       - name: Run VS Code coverage gate
         run: just vscode-coverage | tee vscode-coverage.txt
+        shell: bash
       - name: Upload VS Code coverage
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6

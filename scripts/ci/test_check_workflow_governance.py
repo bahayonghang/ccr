@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import shutil
+import subprocess
 import unittest
 
 from scripts.common import REPO_ROOT
@@ -21,6 +23,55 @@ from scripts.ci.check_workflow_governance import (
     workflow_event_values,
     workflow_job_block,
 )
+
+
+def _workflow_step_fields(text: str, needle: str) -> dict[str, str]:
+    """Return scalar keys from the YAML sequence item that contains *needle*."""
+    lines = text.splitlines()
+    match_index = next(
+        (index for index, line in enumerate(lines) if needle in line),
+        None,
+    )
+    if match_index is None:
+        return {}
+
+    start: int | None = None
+    start_indent = 0
+    for index in range(match_index, -1, -1):
+        line = lines[index]
+        if not line.strip():
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        if line.lstrip().startswith("- "):
+            start = index
+            start_indent = indent
+            break
+    if start is None:
+        return {}
+
+    end = len(lines)
+    for index in range(start + 1, len(lines)):
+        line = lines[index]
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        if indent < start_indent:
+            end = index
+            break
+        if indent == start_indent and line.lstrip().startswith("- "):
+            end = index
+            break
+
+    fields: dict[str, str] = {}
+    for line in lines[start:end]:
+        stripped = line.strip()
+        if stripped.startswith("- "):
+            stripped = stripped[2:].strip()
+        if ":" not in stripped:
+            continue
+        key, value = stripped.split(":", 1)
+        fields[key.strip()] = value.strip()
+    return fields
 
 
 class WorkflowGovernanceParserTests(unittest.TestCase):
@@ -108,6 +159,69 @@ class WorkflowGovernanceParserTests(unittest.TestCase):
                 self.assertTrue(
                     is_relevant(surface, ["scripts/ci/ci_surface_policy.py"])
                 )
+
+    def test_cargo_config_inputs_trigger_only_consumer_surfaces(self) -> None:
+        expected = {
+            ".cargo/tauri-ci.toml": {"tauri"},
+            ".cargo/config.toml": {"root", "tauri"},
+            ".cargo/audit.toml": {"root"},
+        }
+        for path, surfaces in expected.items():
+            for surface in SURFACE_PATHS:
+                with self.subTest(path=path, surface=surface):
+                    self.assertEqual(
+                        is_relevant(surface, [path]),
+                        surface in surfaces,
+                    )
+        for patterns in SURFACE_PATHS.values():
+            self.assertNotIn(".cargo/**", patterns)
+
+    def test_vscode_coverage_step_uses_bash_pipefail(self) -> None:
+        workflow = (
+            self.ROOT / ".github" / "workflows" / "vscode-ci.yml"
+        ).read_text(encoding="utf-8")
+        step = _workflow_step_fields(workflow, "just vscode-coverage | tee")
+        self.assertEqual(
+            step.get("run"),
+            "just vscode-coverage | tee vscode-coverage.txt",
+        )
+        self.assertEqual(step.get("shell"), "bash")
+
+        bash = shutil.which("bash")
+        if bash is None:
+            self.skipTest(
+                "bash is not available to probe GitHub pipefail semantics"
+            )
+
+        failed = subprocess.run(
+            [
+                bash,
+                "--noprofile",
+                "--norc",
+                "-eo",
+                "pipefail",
+                "-c",
+                "false | tee /dev/null",
+            ],
+            capture_output=True,
+            check=False,
+        )
+        self.assertNotEqual(failed.returncode, 0)
+
+        succeeded = subprocess.run(
+            [
+                bash,
+                "--noprofile",
+                "--norc",
+                "-eo",
+                "pipefail",
+                "-c",
+                "true | tee /dev/null",
+            ],
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(succeeded.returncode, 0)
 
     def test_job_block_stops_before_the_next_job(self) -> None:
         workflow = """jobs:
