@@ -4,12 +4,12 @@ Minimal navigation for this repository. Keep behavior rules in `AGENTS.md` / `CL
 
 ## Top-level areas
 
-- `crates/` — Rust workspace with the CLI/TUI entry point in `crates/ccr` and shared crates such as `ccr-core`, `ccr-config`, `ccr-codex`, `ccr-db`, and `ccr-types`.
-- `ccr-ui/` — React 19 + Tauri desktop UI (`src/`, `src-tauri/`, `tests/`).
+- `crates/` — Rust workspace with the CLI/TUI entry point in `crates/ccr` and shared crates such as `ccr-core`, `ccr-config`, `ccr-codex`, `ccr-db`, `ccr-usage`, and `ccr-types`.
+- `ccr-ui/` — React 19 + Tauri desktop UI (`src/shell`, `src/features`, `src/api`, `src-tauri/`, `tests/`).
 - `ccr-vscode/` — VS Code extension (`src/providers`, `src/services`, extension tests).
-- `docs/` — VitePress documentation site.
+- `docs/` — VitePress documentation site. Agent harness routing: `docs/agents/harnesses.md`.
 - `scripts/` — version synchronization checks and repo automation.
-- `.codex/skills/` — project-local Codex skills.
+- `.codex/skills/` — project-local Codex skills (several are five-tool; see the harnesses page).
 
 ## Verification anchors
 

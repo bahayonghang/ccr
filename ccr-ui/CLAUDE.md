@@ -11,8 +11,8 @@
 CCR UI 是基于 **Tauri v2** 的原生桌面应用，为多个 AI CLI 工具提供可视化管理界面。
 
 **核心组成**:
-1. **Tauri Backend** (`src-tauri/`) - Rust 原生后端，通过 `#[tauri::command]` IPC 提供 141+ 命令
-2. **Frontend** (`src/`) - React 19 单页应用（Anthropic-like 编辑式表面设计）
+1. **Tauri Backend** (`src-tauri/`) - Rust 原生后端；IPC 子模块见 `src-tauri/src/commands/mod.rs`，命令清单见生成文档 `docs/reference/tauri-command-inventory.md`（英：`docs/en/reference/tauri-command-inventory.md`）
+2. **Frontend** (`src/`) - React 19 + TanStack Query 单页应用（视觉规则见本目录 `AGENTS.md` 与 `DESIGN.md` 行情终端）
 3. **ccr-db** (`../crates/ccr-db/`) - 独立 workspace crate，提供 SQLite 数据库、CheckIn、加密等服务
 
 **支持平台**:
@@ -31,23 +31,8 @@ ccr-ui/
 │   │   ├── main.rs                # 应用入口 (AppState 初始化、后台任务)
 │   │   ├── state.rs               # AppState (SQLite 连接池、缓存、环境注册表)
 │   │   ├── events.rs              # Tauri Event 系统 (替代 WebSocket)
-│   │   ├── commands/              # 141+ Tauri IPC 命令 (13 个子模块)
-│   │   │   ├── config.rs          # 配置管理
-│   │   │   ├── claude.rs          # Claude Code 平台
-│   │   │   ├── codex.rs           # Codex 平台
-│   │   │   ├── gemini.rs          # Gemini 平台
-│   │   │   ├── droid.rs           # Droid 平台
-│   │   │   ├── opencode.rs        # OpenCode 平台
-│   │   │   ├── checkin.rs         # CheckIn 签到
-│   │   │   ├── stats.rs           # 统计与费用
-│   │   │   ├── sync.rs            # WebDAV 同步
-│   │   │   ├── system.rs          # 系统信息
-│   │   │   ├── converter.rs       # 配置转换
-│   │   │   ├── ui_state.rs        # UI 收藏/历史
-│   │   │   ├── waf.rs             # WAF WebView Bypass
-│   │   │   ├── unified_mcp.rs     # 跨平台 MCP 管理
-│   │   │   ├── environment.rs     # 执行环境管理
-│   │   │   └── wsl.rs             # WSL 管理 (Windows only)
+│   │   ├── commands/              # `pub mod` 见 commands/mod.rs；注册表见 handler_registry.rs
+│   │   │                          # 生成清单：docs/reference/tauri-command-inventory.md
 │   │   └── platform/              # 执行环境抽象层
 │   │       ├── mod.rs             # ExecutionEnvironment trait + EnvironmentRegistry
 │   │       ├── local.rs           # 本地环境 (委托 ccr 核心库)
@@ -56,20 +41,17 @@ ccr-ui/
 │   └── tauri.conf.json            # Tauri 配置
 │
 ├── src/                            # React 19 前端 (SPA)
-│   ├── views/                      # 40+ 页面组件
-│   ├── components/                 # 20+ 可复用组件
-│   ├── composables/                # 共享 hooks
-│   ├── stores/                     # Zustand 状态管理
-│   ├── api/                        # Tauri invoke() 封装
-│   │   ├── tauri.ts                # 141+ invoke() 包装函数
-│   │   └── index.ts                # 统一导出
-│   ├── router/                     # React Router
-│   ├── types/                      # TypeScript 类型
-│   └── styles/                     # 全局样式
-├── package.json
+│   ├── main.tsx                   # 挂载 Query + Router
+│   ├── shell/                      # 壳层：App、router、routeCatalog、MainLayout
+│   ├── features/                   # 域页面（claude/codex/grok/usage/…）
+│   ├── api/                        # 域封装 + generated typed IPC；tauri.ts 为兼容门面
+│   ├── types/generated/           # ts-rs 生成的 Rust DTO
+│   ├── ui/                         # 共享原语
+│   ├── styles/                     # tokens.css 等（视觉以 DESIGN.md 为准）
+│   └── i18n/
+├── package.json                    # packageManager: bun@1.4.0
 ├── vite.config.ts
-├── docs/                           # VitePress 文档站点
-└── CLAUDE.md                       # 本文件
+└── CLAUDE.md                       # 本文件；视觉规则不在此重定义
 ```
 
 **设计哲学**:
@@ -82,63 +64,9 @@ ccr-ui/
 
 ## Design Context
 
-### Users
+视觉、品牌与审美以本目录 `AGENTS.md` 与 `DESIGN.md`（行情终端 / market terminal）为准。本文件不重定义色板、token 或设计原则。若下文与这两份文件冲突，以 `AGENTS.md` 和 `DESIGN.md` 为准。浏览器或 UI 工具可用不等于已授权操作界面。
 
-CCR UI 的核心用户是 AI CLI 重度用户。典型使用场景不是偶发性配置，而是高频切换和管理多种 AI CLI 工具、配置文件、MCP、Agents、插件、同步与运行状态。
-
-这些用户通常具有较强的工程背景，愿意接受有鲜明识别度的界面语言，但界面仍然必须在高信息密度下保持可读、可扫视、可快速操作。设计重点不是“降低门槛给所有人”，而是让熟练用户更快进入状态、更容易掌控复杂系统。
-
-### Brand Personality
-
-品牌气质固定为：`克制 / 准确 / 编辑式`。
-
-界面应传达的情绪目标：
-- 让用户感到这是为高阶使用者打造的专用工作台，而不是花哨的演示壳层
-- 在专业效率之外建立冷静、可信、可长期使用的产品气质
-- 用排版、节奏、层级和材质克制来建立记忆点，而不是靠 mascot、二次元或高饱和装饰
-
-现有代码中已经形成的品牌语言可以继续延续：
-- 暖中性色表面与高对比排版
-- 克制的半透明层次与清晰的边界
-- 面向高密度工作流的留白、对齐和模块节奏
-
-明确禁止再引入或延续 `Neko / anime / 紫色科技感 / guofeng` 这些旧视觉分支；现存相关风格视为待移除的历史遗留方向，而不是未来设计基线。
-
-### Aesthetic Direction
-
-总体方向为：`Anthropic-like 编辑式工作台 + 暖中性色表面 + 清晰层级 + 克制的材质深度`。
-
-保留项：
-- 暖灰、米白、石墨、浅褐等中性色基底
-- 高对比标题与正文排版层级
-- 轻度半透明、柔和阴影和精确边框带来的深度感
-- 面向高频操作的高密度布局与安静但明确的交互反馈
-
-删除项：
-- `Neko / anime / catgirl / purple-tech / guofeng` 相关视觉元素、命名、色板和局部组件语义
-
-主题与动效要求：
-- 必须同时支持明暗主题，且两套主题都应达到高对比度
-- 动画保留，但应控制在“增强层级与反馈”而非“制造存在感”的范围
-- 动效应优先服务层次、反馈、状态变化和空间连续性
-- 所有核心动画都需要兼容 reduced motion 降级
-
-### Design Principles
-
-1. **Power First**
-   所有设计都优先服务 AI CLI 重度用户的高频操作效率、信息扫描效率和状态感知效率。
-
-2. **Distinctive, Not Generic**
-   允许强风格，但不接受通用 SaaS 后台审美。CCR UI 应通过编辑式层级、暖中性色与克制表面建立辨识度，而不是依赖 mascot、紫色渐变或二次元装饰。
-
-3. **Style Must Support Usability**
-   表面、阴影、边框与微弱半透明只能增强体验，不能破坏文字对比、导航辨识、交互清晰度和信息密度管理。
-
-4. **One Visual Language**
-   未来设计系统以 Anthropic-like 编辑式表面语言为唯一主线，逐步删除 `guofeng-*`、`neko-*` 和 purple-tech 分支，避免同一产品内出现互相冲突的审美体系。
-
-5. **Motion With Restraint**
-   动画应强调节奏、反馈和空间感，但不制造噪音；默认动效精致流畅，同时对 reduced motion 用户提供明确降级路径。
+导航见 `./code_map.md`（`src/shell`、`src/features`、`src/api`、generated types）。
 
 ---
 
@@ -161,13 +89,13 @@ CCR UI 的核心用户是 AI CLI 重度用户。典型使用场景不是偶发�
 |------|------|------|------|
 | **框架** | React | 19.2.8 | UI 框架 |
 | **构建** | Vite | 8.2.2 | 构建工具 |
-| **路由** | React Router | 8.3.0 | 路由管理 |
+| **路由** | React Router | 8.3.1 | 路由管理 |
 | **状态** | Zustand | 5.0.15 | 客户端状态 |
-| **查询** | TanStack React Query | 5.101.4 | 服务端状态 |
+| **查询** | TanStack React Query | 5.102.8 | 服务端状态 |
 | **组件** | Radix UI | 见 package.json `@radix-ui/*` | 无样式原语 |
 | **样式** | Tailwind CSS | 4.3.3 | CSS 框架 |
-| **IPC** | @tauri-apps/api | 2.11.0 | Tauri invoke() 通信 |
-| **类型** | TypeScript | 5.9.3 | 类型安全 |
+| **IPC** | @tauri-apps/api | 2.11.1 | Tauri invoke() 通信 |
+| **类型** | TypeScript | ^6.0.3 | 类型安全 |
 
 ---
 
@@ -231,33 +159,26 @@ pub trait ExecutionEnvironment: Send + Sync {
 
 ### 开发命令
 
+仓库约定前端包管理器是 **bun**（见根 `AGENTS.md`）。下列命令在 `ccr-ui/` 下运行：
+
 ```bash
 cd ccr-ui
 
-# 安装前端依赖
-npm install
+bun install
 
-# Tauri 开发模式 (启动桌面应用 + 热重载)
-npm run tauri dev
-# 或
-cargo tauri dev
+# 网页预览（Playwright/视觉工作默认走这条，不要默认 tauri:dev）
+bun run dev:web -- --host 127.0.0.1 --strictPort
 
-# 前端独立开发 (仅 Web 预览，无 Tauri IPC，也不依赖 legacy ccr web)
-npm run dev
+# Tauri 开发模式（仅当任务明确需要原生窗口 API）
+bun run tauri:dev
 
-# 类型检查
-npm run type-check
+# 类型检查 / lint / smoke
+bun run type-check
+bun run lint
+bun run test
 
-# Lint 检查
-npm run lint
-
-# Tauri Rust 编译检查
-cd src-tauri && cargo check
-
-# 生产构建 (打包桌面应用)
-npm run tauri build
-# 或
-cargo tauri build
+# Tauri Rust
+bun run tauri:check
 ```
 
 ### Just 命令 (从根目录)
@@ -284,9 +205,9 @@ cargo tauri build
 
 ### 前端 (TypeScript/React)
 
-- 组件: React 函数组件（`.tsx`）
-- API 调用: 统一通过 `@/api` 导入
-- 样式: Tailwind CSS 优先
+- 组件: React 函数组件（`PascalCase.tsx`），页面放 `src/features/`，壳层放 `src/shell/`
+- API 调用: 新业务 wrapper 放 `src/api/domains/*`；`src/api/tauri.ts` 是兼容门面
+- 样式: 遵循 `DESIGN.md` / `src/styles/tokens.css`；不要在本文件重定义视觉 token
 - 注释: 中文注释
 
 ---

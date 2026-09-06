@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-This file governs `crates/**`, the Rust workspace packages for CCR. Read `./code_map.md` before broad grep or repo-wide code search inside `crates/`. Run workspace commands from the repository root (`D:\Documents\Code\Github\ccr`) because `Cargo.toml` and `justfile` live there. `ccr` is the installable CLI/TUI entry point. Shared domains live in `ccr-core`, `ccr-config`, `ccr-codex`, `ccr-db`, `ccr-store`, `ccr-sync`, `ccr-skills`, `ccr-checkin`, `ccr-cli`, `ccr-tui`, and `ccr-types`. Keep cross-crate API types in `ccr-types` and avoid duplicating config or storage logic across crates.
+This file governs `crates/**`, the Rust workspace packages for CCR. Read `./code_map.md` before broad grep or repo-wide code search inside `crates/`. Run workspace commands from the repository root (`D:\Documents\Code\Github\ccr`) because `Cargo.toml` and `justfile` live there. `ccr` is the installable CLI/TUI entry point. Shared domains live in `ccr-core`, `ccr-config`, `ccr-codex`, `ccr-db`, `ccr-store`, `ccr-sync`, `ccr-skills`, `ccr-checkin`, `ccr-cli`, `ccr-tui`, `ccr-usage`, and `ccr-types`. `ccr-usage` owns read-only llmusage SQL projections; do not copy usage SQL into Tauri or TUI. Keep cross-crate API types in `ccr-types` and avoid duplicating config or storage logic across crates.
 
 ## Build, Test, and Development Commands
 - `just build` — build the default Rust CLI package in debug mode.

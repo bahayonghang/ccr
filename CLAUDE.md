@@ -1,6 +1,15 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. Shared project facts live in `AGENTS.md` and are imported next. Do not copy user-global Claude rules into this repository.
+
+@AGENTS.md
+
+## How this file loads
+
+- The `@AGENTS.md` line above is a real Claude Code import (not a fenced or inline code span). Claude loads that file as additional project memory. See [Claude memory / imports](https://code.claude.com/docs/en/memory).
+- Directory-scoped notes such as `crates/ccr/src/CLAUDE.md` and `ccr-ui/CLAUDE.md` are **read on demand** when working in those trees. Do not wrap those paths as `@...` inside backticks or list items and expect them to import.
+- Five-tool harness entry files, current project integration (hooks vs pull), reviewer vs implementer permissions, and skill routing: `docs/agents/harnesses.md`.
+- `xhigh` / `low` / `medium` below are **Codex** `model_reasoning_effort` values. They are not Claude Code, Grok, Kimi, or OMP parameters.
 
 ## Build and verification
 
@@ -10,10 +19,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `just frontend-check-quick` runs frontend typecheck, lint, and smoke tests; it intentionally omits build and docs checks.
 - Use `just ci` as the full heavy gate for final acceptance. Current pipeline is 13 steps: version-sync → version-check → fmt → fmt-check → lint-strict → check-workspace → test → release → audit → ci-governance-check → tauri-bindings-check → frontend-check → vscode-ci. Read the step list in the root `justfile` (`_ci-timed-windows` / `_ci-timed-linux`, which hold the same list) rather than this line, because the list changes.
 - `just version-sync` and `just fmt` are repair-oriented steps that may modify files; after running them, inspect the diff before continuing.
-- If you run Rust tests directly instead of `just test`, include `-- --test-threads=1` to avoid concurrent-conflict flakes.
+- If you run Rust tests directly instead of `just test`, include `-- --test-threads=1` to avoid concurrent-conflict flakes. That flake mitigation is existing repo policy, not a reason to serialize unrelated UI/docs/extension tests.
 - Set `CCR_LOG_LEVEL=debug` (or `trace|info|warn|error`) for runtime debug output.
 - For code review passes, ask for all findings regardless of severity and filter separately — do not instruct the model to limit findings upfront.
-- For effort control on long tasks: agentic coding and full audits use `xhigh`; single-file edits and quick lookups use `low`/`medium`.
+- For Codex effort control on long tasks: agentic coding and full audits use `xhigh`; single-file edits and quick lookups use `low`/`medium`.
 
 ## Tooling
 
@@ -25,7 +34,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Internal implementation comments stay in Chinese; public API docs stay in English.
 - When changing config, settings, or sync persistence flows, preserve masking of secrets, backup-before-destructive-change behavior, file locking, and atomic writes.
-- When reviewing UI changes, provide all visual findings; don't pre-filter by severity.
+- When reviewing UI changes, provide all visual findings; don't pre-filter by severity. Visual rules for `ccr-ui` are `ccr-ui/AGENTS.md` and `ccr-ui/DESIGN.md`. Availability of a browser or UI tool is not authorization to operate the UI.
 
 ## Version management
 
@@ -38,11 +47,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Branch strategy: `main` (production), `dev` (development), `feature/*`, `bugfix/*`.
 - Keep commits scoped to one concern. PRs should include summary, impacted areas, verification commands, and linked issues.
 
-## Scoped guidance
+## On-demand scoped files
 
-- `@crates/ccr/src/CLAUDE.md` for core CLI/library details.
-- `@ccr-ui/CLAUDE.md` for the Vue/Tauri UI.
-- `@AGENTS.md` when working in the OpenSpec workflow.
+Read these when working in the matching tree (not Claude `@` imports):
+
+- `crates/ccr/src/CLAUDE.md` for the installable CLI/TUI facade.
+- `ccr-ui/CLAUDE.md` for the React/Tauri desktop UI module notes.
 
 ## External reference repos
 
@@ -65,3 +75,7 @@ Triage uses the default canonical label vocabulary. See `docs/agents/triage-labe
 ### Domain docs
 
 This repo uses a multi-context domain-doc layout. See `docs/agents/domain.md`.
+
+### Harnesses
+
+Claude Code, Codex, Grok Build, Kimi Code, and OMP load chains and roles: `docs/agents/harnesses.md`.

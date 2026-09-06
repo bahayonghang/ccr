@@ -1,461 +1,81 @@
-# CCR Core CLI 模块指导文件
+# CCR CLI facade
 
-[根目录](../CLAUDE.md) > **src**
+[根目录](../../../CLAUDE.md) > **crates/ccr**
 
 ## Change Log
-- **2026-01-11**: 补充 cli/, sessions/, storage/, sync/, platforms/, models/ 模块详细描述
+
+- **2026-09-06**: 按当前源码改为 facade 导航；领域逻辑在其他 crate，不再把本包写成单体 `src/` 服务树。
+- **2026-01-11**: 补充 cli/, sessions/, storage/, sync/, platforms/, models/ 模块详细描述（当时仍按单体树记录，现已过时）
 - **2025-12-17**: 激进精简到 300 行以内，只保留核心架构和技术栈
 - **2025-12-16**: 按标准模板重新组织文档结构
 - **2025-10-22 00:04:36 CST**: 初始核心模块文档创建
 
 ---
 
-## 项目架构
+## 模块职责
 
-### 模块职责
+`crates/ccr` 是可安装的 CLI/TUI **入口包**（workspace `default-members`），不是领域实现所在地。
 
-`src/` 模块是 CCR 的核心 CLI 应用，提供完整的命令行界面、服务层、管理层和基础设施。
+二进制 `src/main.rs` 解析 Clap 参数、初始化日志，并把 TUI 启动器注入 `CommandDispatcher`。命令定义与分发在 `ccr-cli`（本包 `src/cli/mod.rs` 再导出）。TUI 实现在 `ccr-tui`。配置、存储、同步、用量等在对应 crate。
 
-**核心功能**:
-1. **CLI 接口** - 30+ 命令的完整命令行接口
-2. **服务层** - 业务逻辑编排 (7 services)
-3. **管理层** - 数据访问与持久化 (6+ managers)
-4. **TUI** - 交互式终端用户界面
-5. **CCR UI Launcher** - 启动与更新独立 `ccr-ui` 图形界面
-6. **核心基础设施** - 错误处理、文件锁定、原子写入、日志
-7. **Session 管理** - AI 会话解析、索引、搜索 (SQLite)
-8. **平台抽象** - 5 平台支持 (Claude/Codex/Gemini/Qwen/Droid)
-9. **云端同步** - WebDAV 多文件夹同步
+公开 Rust API 通过 `src/lib.rs` 再导出各域 crate，作为 7.x 兼容面；新代码优先 `ccr::prelude` 或直接依赖拥有该逻辑的 crate。不要在本包新增领域服务/管理器。导航以 `crates/code_map.md` 为准，不要按本文件历史单体树去搜 `crates/ccr/src/services/`。
 
-**设计特点**:
-- 既是独立二进制 (`ccr`),也是可复用库
-- 严格分层架构: CLI/TUI → Services → Managers → Core/Utils
-- 所有文件操作使用原子写入(临时文件 + 原子重命名)
-- 文件锁定防止并发损坏
-- 完整审计跟踪(UUID, 时间戳, 操作者)
+### 入口与委派
 
-### 架构层次
+| 入口 | 路径 | 实际所有者 |
+|------|------|------------|
+| CLI 二进制 | `crates/ccr/src/main.rs` | 参数解析、日志、注入 TUI launcher，然后 `CommandDispatcher::dispatch` |
+| CLI 再导出 | `crates/ccr/src/cli/mod.rs` | `ccr-cli` 的 `Cli` / `CommandDispatcher` / `build_cli_command` |
+| 库入口 | `crates/ccr/src/lib.rs` | 7.x 兼容再导出；新代码走 `prelude` 或域 crate |
+| 兼容测试 | `crates/ccr/tests/public_api_compat.rs` | 公开 API 兼容契约 |
+| CLI 命令 | `crates/ccr-cli/src/commands/` | 命令实现 |
+| TUI | `crates/ccr-tui/` | Ratatui 界面；由二进制注入，避免 `ccr-cli`↔`ccr-tui` 循环依赖 |
+| 配置 | `crates/ccr-config`, `crates/ccr-codex` | 平台/profile/Codex |
+| 持久化 | `crates/ccr-db`, `crates/ccr-store` | SQLite、会话、定价 |
+| 用量投影 | `crates/ccr-usage` | 只读 llmusage SQL；不要在本包写用量查询 |
+| 基础设施 | `crates/ccr-core`, `crates/ccr-types` | 锁、原子写、错误类型、跨 crate DTO |
+
+### 本包源码
 
 ```
-src/
-├── CLI/TUI Layer (命令层)
-│   ├── main.rs              - CLI 入口 (Clap 解析)
-│   ├── cli/                 - CLI 定义和分发
-│   │   └── subcommands/     - 子命令模块 (check, codex, platform, sync, ui)
-│   ├── commands/            - 30+ CLI 命令实现
-│   └── tui/                 - 终端 UI (Ratatui)
-│
-├── Service Layer (服务层)
-│   ├── config_service.rs    - 配置操作编排
-│   ├── settings_service.rs  - 设置管理
-│   ├── history_service.rs   - 审计日志
-│   ├── backup_service.rs    - 备份操作
-│   ├── validate_service.rs  - 验证操作
-│   ├── sync_service.rs      - WebDAV 同步
-│   └── ui_service.rs        - UI 启动器
-│
-├── Manager Layer (管理层)
-│   ├── config.rs            - 配置文件管理
-│   ├── settings.rs          - Settings.json 管理
-│   ├── history.rs           - 历史文件管理
-│   ├── cost_tracker.rs      - 成本追踪管理
-│   ├── budget.rs            - 预算控制管理
-│   └── pricing.rs           - 价格表管理
-│
-├── Platform Layer (平台层)
-│   ├── mod.rs               - 平台工厂和注册表
-│   ├── base.rs              - 基础操作函数
-│   ├── claude.rs            - Claude 平台实现
-│   ├── codex.rs             - Codex 平台实现
-│   ├── gemini.rs            - Gemini 平台实现
-│   ├── qwen.rs              - Qwen 平台实现 (stub)
-│   └── droid.rs             - Droid 平台实现
-│
-├── Session & Sync Layer (会话与同步层)
-│   ├── 会话索引与存储由 ccr-store crate 提供
-│   ├── config.rs            - 同步配置管理
-│   ├── folder_manager.rs    - 多文件夹管理
-│   ├── service.rs           - WebDAV 同步服务
-│   ├── commands.rs          - 同步命令 (feature = "web")
-│   └── content_selector.rs  - 内容选择器
-│
-├── Model Layer (模型层)
-│   ├── platform.rs          - Platform 枚举和 PlatformConfig trait
-│   ├── stats.rs             - 成本/Token 统计模型
-│   ├── budget.rs            - 预算配置模型
-│   └── pricing.rs           - 定价配置模型
-│
-└── Core/Utils Layer (核心层)
-    ├── error.rs             - 自定义错误类型
-    ├── lock.rs              - 文件锁定机制
-    ├── atomic_writer.rs     - 原子文件写入
-    ├── logging.rs           - 彩色输出
-    ├── utils/validation.rs  - 验证辅助函数
-    └── utils/mask.rs        - 敏感数据掩码
+crates/ccr/src/
+├── main.rs      # 可安装二进制入口
+├── lib.rs       # 库再导出 / 7.x 兼容面
+└── cli/mod.rs   # 再导出 ccr-cli
 ```
 
-**关键原则**:
-- **关注点分离**: 每层职责明确
-- **原子操作**: 所有文件修改使用临时文件 + 原子重命名
-- **并发安全**: 文件锁定防止多进程损坏
-- **完整审计**: 每个操作都记录到历史文件
-- **失败安全**: 破坏性操作前自动备份
+集成测试在 `crates/ccr/tests/`（commands / workflows / platforms / managers / public_api_compat）。
 
 ---
 
-## 项目技术栈
+## 代码风格
 
-### 核心框架
+- **Edition**: 2024（需要 Rust 1.88+）
+- **格式化**: `cargo fmt`
+- **检查**: `cargo clippy --workspace --all-targets --all-features -- -D warnings -W clippy::unwrap_used`
+- **错误处理**: 生产路径不要新增 `unwrap` / `expect`
+- **文档**: 内部逻辑中文注释，公开 API 英文
+- **测试**: 测试模块可用 `#[allow(clippy::unwrap_used)]`
 
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| **Rust** | Edition 2024 | 编程语言 (需要 1.88+) |
-| **Clap** | 4.5+ | CLI 参数解析 (derive 宏) |
-| **Tokio** | 1.48+ | 异步运行时 |
-
-### 序列化与文件 I/O
-
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| **Serde** | 1.0+ | 序列化框架 |
-| **serde_json** | 1.0+ | JSON 支持 |
-| **toml** | 0.9+ | TOML 解析 |
-| **indexmap** | 2.12+ | 有序 Map (保持配置顺序) |
-| **dirs** | 6.0+ | 跨平台用户目录 |
-| **fs4** | 1.1+ | 文件锁定 |
-| **tempfile** | 3.23+ | 原子文件操作 |
-
-### 错误处理与日志
-
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| **anyhow** | 1.0+ | 灵活错误处理 |
-| **thiserror** | 2.0+ | 自定义错误宏 |
-| **log** | 0.4+ | 日志 facade |
-| **env_logger** | 0.11+ | 环境变量日志 |
-| **colored** | 3.0+ | 彩色终端输出 |
-
-### TUI 与终端
-
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| **Ratatui** | 0.29+ | TUI 框架 |
-| **Crossterm** | 0.29+ | 终端控制 |
-| **comfy-table** | 7.2+ | 表格格式化 |
-
-### 工具库
-
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| **chrono** | 0.4+ | 日期时间 |
-| **uuid** | 1.18+ | UUID 生成 |
-| **whoami** | 2.0+ | 用户识别 |
-| **sysinfo** | 0.37+ | 系统信息 |
-| **reqwest_dav** | 0.2+ | WebDAV 客户端 |
-| **blake3** | 1.8+ | 高性能哈希 (文件去重) |
-| **rayon** | 1.11+ | 并行迭代器 |
-| **rusqlite** | 0.38+ | SQLite 数据库 |
-| **r2d2** | 0.8+ | 数据库连接池 |
-
----
-
-## 项目模块划分
-
-### 文件与文件夹布局
-
-```
-src/
-├── main.rs                    # CLI 入口点 (Clap 解析 + 命令路由)
-├── lib.rs                     # 库导出 (公开 API)
-│
-├── cli/                       # CLI 定义和分发
-│   ├── mod.rs                 - CLI 主结构 (Clap derive)
-│   └── subcommands/           - 子命令模块
-│       ├── check.rs           - 检查命令
-│       ├── codex.rs           - Codex 相关命令
-│       ├── platform.rs        - 平台管理命令
-│       ├── sync.rs            - 同步命令
-│       └── ui.rs              - UI 命令
-│
-├── commands/                  # CLI 命令实现 (30+ 文件)
-│   ├── mod.rs
-│   ├── init.rs                - 初始化配置
-│   ├── list.rs                - 列出配置
-│   ├── current.rs             - 显示当前配置
-│   ├── switch.rs              - 切换配置
-│   ├── add.rs                 - 添加配置
-│   ├── delete.rs              - 删除配置
-│   ├── validate.rs            - 验证配置
-│   ├── history_cmd.rs         - 历史记录
-│   ├── export_import.rs       - 导入/导出
-│   ├── clean.rs               - 清理备份
-│   ├── sync_cmd.rs            - WebDAV 同步
-│   ├── ui_cmd.rs              - UI 启动
-│   ├── tui_cmd.rs             - TUI 启动
-│   ├── stats_cmd.rs           - 成本统计
-│   ├── budget_cmd.rs          - 预算管理
-│   ├── pricing_cmd.rs         - 定价管理
-│   ├── sessions_cmd.rs        - 会话管理
-│   └── provider_cmd.rs        - Provider 健康检查
-│
-├── services/                  # 服务层 (7 文件)
-│   ├── mod.rs
-│   ├── config_service.rs      - 配置操作编排
-│   ├── settings_service.rs    - 设置管理
-│   ├── history_service.rs     - 审计日志
-│   ├── backup_service.rs      - 备份操作
-│   ├── validate_service.rs    - 验证操作
-│   ├── sync_service.rs        - WebDAV 同步
-│   └── ui_service.rs          - UI 启动器
-│
-├── managers/                  # 管理层 (6+ 文件)
-│   ├── mod.rs
-│   ├── config.rs              - 配置文件管理
-│   ├── settings.rs            - Settings.json 管理
-│   ├── history.rs             - 历史文件管理
-│   ├── cost_tracker.rs        - 成本追踪管理
-│   ├── budget.rs              - 预算控制管理
-│   ├── pricing.rs             - 价格表管理
-│   └── temp_override.rs       - 临时 Token 覆盖
-│
-├── platforms/                 # 平台实现 (5 平台)
-│   ├── mod.rs                 - 平台工厂和注册表
-│   ├── base.rs                - 基础操作函数
-│   ├── claude.rs              - Claude 平台实现
-│   ├── codex.rs               - Codex 平台实现
-│   ├── gemini.rs              - Gemini 平台实现
-│   ├── qwen.rs                - Qwen 平台实现 (stub)
-│   └── droid.rs               - Droid 平台实现
-│
-├── sync/                      # 同步模块
-│   ├── mod.rs
-│   ├── config.rs              - 同步配置管理
-│   ├── folder_manager.rs      - 多文件夹管理
-│   ├── service.rs             - WebDAV 同步服务
-│   ├── commands.rs            - 同步命令
-│   └── content_selector.rs    - 内容选择器
-│
-├── models/                    # 数据模型
-│   ├── mod.rs
-│   ├── platform.rs            - Platform 枚举和 PlatformConfig trait
-│   ├── stats.rs               - 成本/Token 统计模型
-│   ├── budget.rs              - 预算配置模型
-│   └── pricing.rs             - 定价配置模型
-│
-├── core/                      # 核心基础设施
-│   ├── mod.rs
-│   ├── error.rs               - 自定义错误类型 (CcrError)
-│   ├── lock.rs                - 文件锁定机制 (LockManager)
-│   ├── atomic_writer.rs       - 原子文件写入
-│   └── logging.rs             - 彩色输出 (ColorOutput)
-│
-├── web/                       # Web 服务器 (feature = "web")
-│   ├── mod.rs
-│   ├── server.rs              - Axum 服务器 (port 19527)
-│   ├── routes.rs              - 路由定义 (14 端点)
-│   └── handlers.rs            - API 处理器
-│
-├── tui/                       # 终端 UI (feature = "tui")
-│   ├── mod.rs
-│   ├── app.rs                 - TUI 应用状态
-│   ├── ui.rs                  - UI 渲染
-│   ├── event.rs               - 事件处理
-│   └── tabs.rs                - 标签页 (Claude/Codex)
-│
-└── utils/                     # 工具函数
-    ├── mod.rs
-    ├── validation.rs          - 验证辅助函数 (Validatable trait)
-    └── mask.rs                - 敏感数据掩码
-```
-
-### 核心入口点
-
-| 入口文件 | 路径 | 职责 |
-|----------|------|------|
-| **CLI 入口** | `src/main.rs` | Clap 解析 + 命令路由 |
-| **库入口** | `src/lib.rs` | 公开 API 导出 |
-| **TUI 入口** | `src/tui/mod.rs` | 终端 UI 入口 |
-| **Session 入口** | `src/sessions/mod.rs` | 会话解析和索引 |
-| **Storage 入口** | `src/storage/mod.rs` | SQLite 数据库访问 |
-| **Sync 入口** | `src/sync/mod.rs` | WebDAV 同步服务 |
-
----
-
-## 项目代码风格与规范
-
-### Rust 代码规范
-
-#### 命名约定
-- **模块名**: `snake_case` (如 `config_service`, `history_cmd`)
-- **类型名**: `PascalCase` (如 `ConfigSection`, `CcrError`)
-- **函数名**: `snake_case` (如 `switch_config`, `list_configs`)
-- **常量**: `SCREAMING_SNAKE_CASE` (如 `DEFAULT_CONFIG`, `MAX_BACKUPS`)
-
-#### 代码风格
-- **Edition**: 2024 (需要 Rust 1.88+)
-- **格式化**: 使用 `cargo fmt` (默认 rustfmt 设置)
-- **检查**: 通过 `cargo clippy --workspace --all-targets --all-features -- -D warnings -W clippy::unwrap_used`
-- **错误处理**: 使用 `CcrError` 类型,详细错误消息
-- **文档**: 内部逻辑用中文注释,公开 API 用英文
-- **测试代码规范**: 测试模块使用 `#[allow(clippy::unwrap_used)]` 属性允许 `unwrap()`（标准做法）
-
----
-
-## 测试与质量
-
-### 测试覆盖
-
-- **目标**: 95%+ 整体覆盖率
-- **单元测试**: 嵌入在模块中 (`#[cfg(test)]`)
-- **集成测试**: `/tests/` 目录 (6 综合测试文件)
-- **并发测试**: 多线程场景验证锁定
-
-### 测试文件
-
-位于 `/tests/`:
-1. **integration_test.rs** - 核心集成测试
-2. **manager_tests.rs** - 管理层测试
-3. **service_workflow_tests.rs** - 服务层测试
-4. **concurrent_tests.rs** - 并发与锁定测试
-5. **end_to_end_tests.rs** - 完整工作流测试
-6. **add_delete_test.rs** - 配置 CRUD 操作
-
-### 运行测试
+从仓库根运行 workspace 命令（`Cargo.toml` 与 `justfile` 在根目录），不要假设 cwd 是 `crates/ccr`。
 
 ```bash
-# 所有测试
-cargo test
-
-# 特定测试文件
-cargo test --test concurrent_tests
-
-# 带输出
-cargo test -- --nocapture
-
-# 单个测试
-cargo test test_switch_config
+just build
+just test
+just lint-strict
+just ci
+cargo test -p ccr --test commands
+cargo test -p ccr --test public_api_compat
 ```
 
-### 质量检查
-
-```bash
-# 代码检查 (标准)
-cargo clippy --workspace --all-targets --all-features -- -D warnings
-
-# 代码检查 (严格，对齐 CI)
-cargo clippy --workspace --all-targets --all-features -- -D warnings -W clippy::unwrap_used
-
-# 格式化检查
-cargo fmt --check
-
-# 安全审计
-cargo audit
-```
+直接跑 `cargo test` 时带 `-- --test-threads=1`（现有 flake 规避，不是新的串行恢复引擎）。
 
 ---
 
-## 项目构建、测试与运行
+## Git 与文档
 
-### 环境要求
+分支：`main` / `dev` / `feature/*` / `bugfix/*`。提交用 Conventional Commits。
 
-- **Rust**: 1.88+ (Edition 2024)
-- **Cargo**: 最新稳定版
-
-### 开发命令
-
-```bash
-# 构建
-cargo build                    # Debug 构建
-cargo build --release          # Release 构建
-
-# 运行
-cargo run                      # 运行 Debug 版本
-cargo run --release            # 运行 Release 版本
-
-# 测试
-cargo test                     # 运行所有测试
-cargo clippy                   # Lint
-cargo fmt                      # 格式化
-
-# 环境变量调试
-export CCR_LOG_LEVEL=debug     # 设置日志级别
-                               # (trace|debug|info|warn|error)
-```
-
-### 使用 Justfile
-
-项目根目录的 `justfile` 提供快捷命令:
-
-```bash
-just build                     # Debug 构建
-just release                   # Release 构建
-just test                      # 运行测试
-just lint                      # Format + Clippy (标准)
-just lint-strict               # Format + Clippy (严格：禁止 unwrap)
-just ci                        # 完整 CI 流程 (使用严格 Clippy)
-```
-
-### 安装
-
-```bash
-# 从 GitHub 安装
-cargo install --git https://github.com/bahayonghang/ccr ccr
-
-# 从源码构建
-git clone https://github.com/bahayonghang/ccr.git
-cd ccr
-cargo install --path crates/ccr
-
-# 初始化配置
-ccr init
-```
-
----
-
-## Git 工作流程
-
-### 分支策略
-
-- **main**: 主分支,生产环境代码
-- **dev**: 开发分支,测试环境代码
-- **feature/***: 功能分支
-- **bugfix/***: Bug 修复分支
-
-### 提交规范
-
-遵循 Conventional Commits:
-
-```bash
-# 功能开发
-git commit -m "feat(CLI): 添加 platform 命令"
-git commit -m "feat(服务): 实现 WebDAV 多文件夹同步"
-
-# Bug 修复
-git commit -m "fix(CLI): 修复配置切换时的锁定问题"
-git commit -m "fix(管理器): 修复 TOML 解析错误"
-
-# 重构
-git commit -m "refactor(核心): 重构错误处理使用 thiserror"
-
-# 性能优化
-git commit -m "perf(文件): 优化文件读取性能"
-
-# 文档
-git commit -m "docs(README): 更新安装说明"
-
-# 测试
-git commit -m "test(集成): 添加并发测试"
-```
-
----
-
-## 文档目录
-
-### 文档存储规范
-
-- **模块文档**: `/src/CLAUDE.md` (本文件)
-- **根文档**: `/CLAUDE.md` (项目总览)
-- **UI 文档**: `/ccr-ui/CLAUDE.md` (CCR UI 总览)
-
----
-
+- 根说明：`/CLAUDE.md`、`/AGENTS.md`
+- crate 导航：`crates/code_map.md`、`crates/AGENTS.md`
+- 桌面 UI：`ccr-ui/CLAUDE.md`（视觉规则以 `ccr-ui/AGENTS.md` 与 `DESIGN.md` 为准）

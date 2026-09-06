@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-`crates/` is the Rust workspace. `crates/ccr` is the installable CLI/TUI entry point, while shared logic lives in crates such as `ccr-core`, `ccr-config`, `ccr-codex`, `ccr-db`, and `ccr-types`. `ccr-ui/` contains the Vue 3 + Tauri app (`src/`, `src-tauri/`, `tests/`). `ccr-vscode/` contains the VS Code extension (`src/providers`, `src/services`). `docs/` holds VitePress docs. `scripts/` holds repo automation and version-sync checks. Before broad repo searches, read `./code_map.md` to identify the relevant module and verification anchors. Usage analytics depend on the external [`llmusage`](https://github.com/bahayonghang/llmuasage) crate, declared as a pinned `rev` git dependency in `ccr-ui/src-tauri/Cargo.toml` and wrapped by `ccr-ui/src-tauri/src/llmusage_adapter/`.
+`crates/` is the Rust workspace. `crates/ccr` is the installable CLI/TUI entry point, while shared logic lives in crates such as `ccr-core`, `ccr-config`, `ccr-codex`, `ccr-db`, `ccr-usage`, and `ccr-types`. `ccr-ui/` contains the React 19 + TanStack Query + Tauri typed-IPC app (`src/`, `src-tauri/`, `tests/`). Visual direction for that app is `ccr-ui/AGENTS.md` and `ccr-ui/DESIGN.md` (market terminal). `ccr-vscode/` contains the VS Code extension (`src/providers`, `src/services`). `docs/` holds VitePress docs. `scripts/` holds repo automation and version-sync checks. Before broad repo searches, read `./code_map.md` to identify the relevant module and verification anchors. Five-tool harness entry files, load chains, and reviewer vs implementer permissions are in `docs/agents/harnesses.md` (English: `docs/en/agents/harnesses.md`). Usage analytics invoke the installed [`llmusage`](https://github.com/bahayonghang/llmuasage) CLI and read its SQLite database; the shared projection owner is `crates/ccr-usage` (all usage SQL). `ccr-ui/src-tauri/src/llmusage_adapter/` is CLI sync, NDJSON events, and DTO/error mapping only — do not link the upstream `llmusage` Rust crate.
 
 ## Build, Test, and Development Commands
 - `just build` — build the Rust CLI in debug mode.
@@ -24,12 +24,12 @@ Quick-check priority:
 ## Coding Style & Naming Conventions
 Rust code must stay `cargo fmt` and clippy clean. Prefer `Result`-based error handling. Do not add `unwrap` or `expect` in production paths. Rust files and modules use `snake_case`; structs, enums, and traits use `PascalCase`.
 
-Frontend and extension code use 2-space indentation, single quotes, and no semicolons. Vue components use `PascalCase.vue`. Follow existing store, service, and component patterns before adding new abstractions.
+Frontend and extension code use 2-space indentation, single quotes, and no semicolons. Frontend components use `PascalCase.tsx`. Follow existing store, service, and component patterns before adding new abstractions.
 
 ## Testing Guidelines
-Keep Rust integration tests under `crates/*/tests` and group them by feature area. UI smoke tests belong in `ccr-ui/tests/**/*.smoke.test.ts`. VS Code tests live beside source as `*.test.ts`. Start with the narrowest relevant check, then escalate by impact scope: subsystem checks for local changes, `just frontend-check` or `just vscode-ci` for full frontend/extension coverage, and `just ci` for cross-module changes or delivery-ready validation.
+Keep Rust integration tests under `crates/*/tests` and group them by feature area. UI smoke tests belong in `ccr-ui/tests/**/*.smoke.test.{ts,tsx}`. VS Code tests live beside source as `*.test.ts`. Start with the narrowest relevant check, then escalate by impact scope: subsystem checks for local changes, `just frontend-check` or `just vscode-ci` for full frontend/extension coverage, and `just ci` for cross-module changes or delivery-ready validation.
 
-Project-local Codex skills live under `.codex/skills/`; prefer the narrowest failing gate first before escalating to full `just ci`.
+Project-local Codex skills live under `.codex/skills/`; several also apply to Claude Code, Grok, Kimi, and OMP. Prefer the narrowest failing gate first before escalating to full `just ci`. See `docs/agents/harnesses.md` for routing and permissions.
 
 ## Commit & Pull Request Guidelines
 Recent history uses Chinese Conventional Commits with scopes and emoji, for example `feat(认证TUI): ✨ ...`, `docs(帮助文档): 📝 ...`, and `chore(release): 🔧 ...`. Keep commits atomic and scoped to one surface.
