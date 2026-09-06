@@ -3,9 +3,71 @@ import { render } from '@testing-library/react'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { I18nextProvider } from 'react-i18next'
 import { createMemoryRouter, RouterProvider } from 'react-router'
+import type { AgentSessionDetailDto } from '@/types/generated/agent_sessions/AgentSessionDetailDto'
+import type { AgentSessionPageDto } from '@/types/generated/agent_sessions/AgentSessionPageDto'
+import type { AgentSessionProviderStatusDto } from '@/types/generated/agent_sessions/AgentSessionProviderStatusDto'
+import type { SessionIndexJobSnapshot } from '@/types/generated/usage/SessionIndexJobSnapshot'
+import type { StartSessionIndexJobResponse } from '@/types/generated/usage/StartSessionIndexJobResponse'
 
 const apiStubs = vi.hoisted(() => {
   const resolved = (value: unknown) => vi.fn().mockResolvedValue(value)
+
+  const AGENT_SESSION_REFRESH_SNAPSHOT: SessionIndexJobSnapshot = {
+    job_id: 'agent-session-index-job',
+    status: 'finished',
+    stage: 'finished',
+    platforms_total: 0,
+    platforms_completed: 0,
+    files_total: 0,
+    files_scanned: 0,
+    sessions_added: 0,
+    sessions_updated: 0,
+    errors: 0,
+    discovered: 0,
+    unchanged: 0,
+    fingerprinted: 0,
+    parsed: 0,
+    upserted: 0,
+    partial: 0,
+    locked: 0,
+    started_at: '2026-09-06T00:00:00Z',
+    updated_at: '2026-09-06T00:00:00Z',
+    finished_at: '2026-09-06T00:00:00Z',
+    warnings: [],
+  }
+  const AGENT_SESSION_START_REFRESH: StartSessionIndexJobResponse = {
+    job_id: AGENT_SESSION_REFRESH_SNAPSHOT.job_id,
+    snapshot: AGENT_SESSION_REFRESH_SNAPSHOT,
+  }
+  const AGENT_SESSION_PAGE: AgentSessionPageDto = { items: [] }
+  const AGENT_SESSION_DETAIL: AgentSessionDetailDto = {
+    archive_id: 'as-smoke',
+    agent: 'codex',
+    variant: 'codex-live',
+    fidelity: 'full',
+    messages: [],
+    has_older: false,
+  }
+  const AGENT_SESSION_PROVIDER_STATUSES: AgentSessionProviderStatusDto[] = []
+
+  const agentSessionFixture = (name: string) => {
+    if (name === 'agentSessionsStartRefresh' || name === 'agent_sessions_start_refresh') {
+      return AGENT_SESSION_START_REFRESH
+    }
+    if (name === 'agentSessionsGetRefreshStatus' || name === 'agent_sessions_get_refresh_status') {
+      return AGENT_SESSION_REFRESH_SNAPSHOT
+    }
+    if (name === 'agentSessionsList' || name === 'agent_sessions_list') {
+      return AGENT_SESSION_PAGE
+    }
+    if (name === 'agentSessionsGetDetail' || name === 'agent_sessions_get_detail') {
+      return AGENT_SESSION_DETAIL
+    }
+    if (name === 'agentSessionsGetProviderStatus' || name === 'agent_sessions_get_provider_status') {
+      return AGENT_SESSION_PROVIDER_STATUSES
+    }
+    return undefined
+  }
 
   const stubForName = (name: string) => {
     if (name === 'isTauriEnvironment') return () => false
@@ -56,6 +118,8 @@ const apiStubs = vi.hoisted(() => {
         open_panel_on_tray_click: true,
       })
     }
+    const agentSessionValue = agentSessionFixture(name)
+    if (agentSessionValue !== undefined) return resolved(agentSessionValue)
     if (/^is[A-Z]/.test(name) || /^has[A-Z]/.test(name)) return vi.fn(() => false)
     const lower = name.toLowerCase()
     if (
@@ -111,6 +175,8 @@ const apiStubs = vi.hoisted(() => {
         all_time: { total_requests: 0, total_input_tokens: 0, total_output_tokens: 0 },
       }
     }
+    const agentSessionValue = agentSessionFixture(command)
+    if (agentSessionValue !== undefined) return agentSessionValue
     if (/list_|_list$|trends|by_model|by_project|by_provider|logs|events|feed|assets/.test(command)) {
       return []
     }
