@@ -1,4 +1,5 @@
 [toolchain]
+# justfile RUST_TOOLCHAIN 必须与此 channel 一致（cargo install 的显式 override）
 channel = "1.98.0"
 components = ["clippy", "rustfmt"]
 profile = "minimal"

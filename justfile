@@ -18,6 +18,8 @@ CLI_CRATE_PATH := "crates/ccr"
 OUTPUTS_DIR := "outputs"
 # 与 .github/workflows/ci.yml security-audit 任务保持同一版本
 CARGO_AUDIT_VERSION := "0.22.2"
+# 与 rust-toolchain.toml channel 保持一致。cargo install 必须写 +channel，否则 rustup 1.28+ 会警告 default toolchain 被 toolchain file 隐式覆盖。
+RUST_TOOLCHAIN := "1.98.0"
 
 # 🧭 跨平台 Shell 配置
 # Windows 使用 PowerShell with UTF-8 encoding; -NoProfile 避免交互式配置污染 CI 输出
@@ -508,7 +510,7 @@ _ensure-cargo-audit-windows:
             cargo binstall cargo-audit --version {{CARGO_AUDIT_VERSION}} --no-confirm --force
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         } else {
-            cargo install cargo-audit --version {{CARGO_AUDIT_VERSION}} --locked --force
+            cargo +{{RUST_TOOLCHAIN}} install cargo-audit --version {{CARGO_AUDIT_VERSION}} --locked --force
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         }
     }
@@ -522,7 +524,7 @@ _ensure-cargo-audit-linux:
       if command -v cargo-binstall >/dev/null 2>&1; then
         cargo binstall cargo-audit --version {{CARGO_AUDIT_VERSION}} --no-confirm --force
       else
-        cargo install cargo-audit --version {{CARGO_AUDIT_VERSION}} --locked --force
+        cargo +{{RUST_TOOLCHAIN}} install cargo-audit --version {{CARGO_AUDIT_VERSION}} --locked --force
       fi
     fi
 
@@ -535,7 +537,7 @@ _ensure-cargo-audit-macos:
       if command -v cargo-binstall >/dev/null 2>&1; then
         cargo binstall cargo-audit --version {{CARGO_AUDIT_VERSION}} --no-confirm --force
       else
-        cargo install cargo-audit --version {{CARGO_AUDIT_VERSION}} --locked --force
+        cargo +{{RUST_TOOLCHAIN}} install cargo-audit --version {{CARGO_AUDIT_VERSION}} --locked --force
       fi
     fi
 
@@ -830,14 +832,14 @@ install:
     @just header "📦 安装到本地"
     @just info "📍 目标路径: ~/.cargo/bin/{{BIN}}"
     @just info "🔒 模式: 锁定依赖版本 (--locked)"
-    cargo install --path {{CLI_CRATE_PATH}} --locked
+    cargo +{{RUST_TOOLCHAIN}} install --path {{CLI_CRATE_PATH}} --locked
     @just success "安装完成"
 
 # ♻️ 强制重新安装
 reinstall:
     @just info "♻️ 强制重新安装"
     @just warn "模式: 覆盖现有安装"
-    cargo install --path {{CLI_CRATE_PATH}} --locked --force
+    cargo +{{RUST_TOOLCHAIN}} install --path {{CLI_CRATE_PATH}} --locked --force
     @just success "重新安装完成"
 
 # 🗑️ 卸载已安装的二进制
