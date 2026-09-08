@@ -1,0 +1,32 @@
+{
+  "id": "grok-auth-account-service",
+  "name": "grok-auth-account-service",
+  "title": "Grok 多账号凭据服务与一致性",
+  "description": "已实施官方账号快照、保存切换删除、运行时身份识别与并发保护；动态验收未执行。",
+  "status": "in_progress",
+  "dev_type": "backend",
+  "scope": "grok-auth",
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-09-08",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "dev",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "09-08-tui-grok-auth-replacement",
+  "relatedFiles": [
+    "crates/ccr-cli/src/services/grok_auth_service.rs",
+    "crates/ccr-cli/src/services/mod.rs",
+    "crates/ccr-cli/src/application/auth_off.rs",
+    "crates/ccr-core/src/core/lock.rs",
+    "crates/ccr-core/src/core/atomic_writer.rs"
+  ],
+  "notes": "Source implementation, failure fixture sources and independent static review delivered. User subsequently explicitly requested local commit and archive. Archive closes source delivery; tests/build/lint/runtime SKIPPED and behavioral AC remain UNVERIFIED. No real Grok process/credentials/config/installed-binary operations or push/publication. See parent implementation-review.md.",
+  "meta": {}
+}

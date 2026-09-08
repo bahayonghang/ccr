@@ -1,0 +1,9 @@
+{"file":".trellis/tasks/09-08-tui-grok-auth-replacement/prd.md","reason":"Parent requirements and pending lifecycle decision"}
+{"file":".trellis/tasks/09-08-tui-grok-auth-replacement/design.md","reason":"Cross-task contracts and boundaries"}
+{"file":".trellis/tasks/09-08-tui-grok-auth-replacement/research/codebase.md","reason":"Verified cleanup inventory"}
+{"file":".trellis/tasks/09-08-tui-grok-auth-replacement/research/grok-multi-account.md","reason":"Pinned official credential protocol and reuse evidence"}
+{"file":".trellis/spec/ccr-tui/backend/backend-guidelines.md","reason":"TUI integration and rendering contracts"}
+{"file":".trellis/spec/ccr-cli/backend/grok-profile-runtime.md","reason":"Profile/auth ownership boundary"}
+{"file":".trellis/spec/ccr-cli/backend/auth-off.md","reason":"Single shared logout write core"}
+{"file":".trellis/spec/ccr-core/backend/atomic-writer.md","reason":"Cross-platform secret atomic persistence"}
+{"file":".trellis/spec/ccr-config/backend/backend-guidelines.md","reason":"Tab config migration-removal impact"}

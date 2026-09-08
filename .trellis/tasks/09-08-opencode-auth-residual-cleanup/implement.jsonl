@@ -1,0 +1,9 @@
+{"file":".trellis/tasks/09-08-tui-grok-auth-replacement/prd.md","reason":"Parent requirements and pending lifecycle decision"}
+{"file":".trellis/tasks/09-08-tui-grok-auth-replacement/design.md","reason":"Cross-task contracts and boundaries"}
+{"file":".trellis/tasks/09-08-tui-grok-auth-replacement/research/codebase.md","reason":"Verified cleanup inventory"}
+{"file":".trellis/tasks/09-08-tui-grok-auth-replacement/research/grok-multi-account.md","reason":"Pinned official credential protocol and reuse evidence"}
+{"file":".trellis/spec/ccr-config/backend/backend-guidelines.md","reason":"Tab loading and persistence"}
+{"file":".trellis/spec/ccr-codex/backend/backend-guidelines.md","reason":"Utility cleanup and domain boundaries"}
+{"file":".trellis/spec/ccr-tui/backend/backend-guidelines.md","reason":"Theme/navigation regression"}
+{"file":".trellis/tasks/09-08-opencode-auth-residual-cleanup/prd.md","reason":"Local acceptance"}
+{"file":".trellis/tasks/09-08-opencode-auth-residual-cleanup/design.md","reason":"Local mechanisms"}

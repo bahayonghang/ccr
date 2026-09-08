@@ -1,0 +1,32 @@
+{
+  "id": "grok-auth-multi-account-tui",
+  "name": "grok-auth-multi-account-tui",
+  "title": "Grok Auth 多账号 TUI 设计与接入",
+  "description": "已实施账号列表、本地匹配与选中分离、账号操作和响应式布局；动态验收未执行。",
+  "status": "in_progress",
+  "dev_type": "backend",
+  "scope": "tui",
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-09-08",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "dev",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "09-08-tui-grok-auth-replacement",
+  "relatedFiles": [
+    "crates/ccr-tui/src/tui/grok_auth/app.rs",
+    "crates/ccr-tui/src/tui/grok_auth/ui.rs",
+    "crates/ccr-tui/src/tui/grok_auth/mod.rs",
+    "crates/ccr-tui/src/tui/app.rs",
+    "crates/ccr-tui/src/tui/mod.rs"
+  ],
+  "notes": "Source implementation, regression sources and independent static recheck delivered. User subsequently explicitly requested local commit and archive. Archive closes source delivery; tests/build/UI/runtime SKIPPED and behavioral AC remain UNVERIFIED. No current Grok Build or real credential/config operations or push/publication. See parent implementation-review.md.",
+  "meta": {}
+}

@@ -1,0 +1,13 @@
+{"file":".trellis/tasks/09-08-tui-grok-auth-replacement/prd.md","reason":"Parent requirements and pending lifecycle decision"}
+{"file":".trellis/tasks/09-08-tui-grok-auth-replacement/design.md","reason":"Cross-task contracts and boundaries"}
+{"file":".trellis/tasks/09-08-tui-grok-auth-replacement/research/codebase.md","reason":"Verified cleanup inventory"}
+{"file":".trellis/tasks/09-08-tui-grok-auth-replacement/research/grok-multi-account.md","reason":"Pinned official credential protocol and reuse evidence"}
+{"file":".trellis/spec/ccr-cli/backend/backend-guidelines.md","reason":"Service ownership error and output policy"}
+{"file":".trellis/spec/ccr-cli/backend/grok-profile-runtime.md","reason":"Auth read/write exception and profile separation"}
+{"file":".trellis/spec/ccr-cli/backend/auth-off.md","reason":"Shared logout and compensation"}
+{"file":".trellis/spec/ccr-cli/backend/test-fixtures.md","reason":"Isolated home/env fixture requirements"}
+{"file":".trellis/spec/ccr-core/backend/atomic-writer.md","reason":"Secret permissions and guarded write"}
+{"file":".trellis/spec/ccr-core/backend/backend-guidelines.md","reason":"Core Secret and lock contract"}
+{"file":".trellis/spec/ccr/backend/public-api-boundary.md","reason":"Only export symbols with real consumers"}
+{"file":".trellis/tasks/09-08-grok-auth-account-service/prd.md","reason":"Local acceptance"}
+{"file":".trellis/tasks/09-08-grok-auth-account-service/design.md","reason":"Local mechanisms"}

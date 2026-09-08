@@ -1,0 +1,42 @@
+{
+  "id": "tui-grok-auth-replacement",
+  "name": "tui-grok-auth-replacement",
+  "title": "TUI 清理 OpenCode Auth 并增加 Grok 多账号管理",
+  "description": "按已批准方案实施 OpenCode Auth 遗留清理与 Grok Auth 多账号保存、列表和切换。",
+  "status": "in_progress",
+  "dev_type": "backend",
+  "scope": "tui",
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-09-08",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "dev",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "09-08-opencode-auth-residual-cleanup",
+    "09-08-grok-auth-account-service",
+    "09-08-grok-auth-multi-account-tui"
+  ],
+  "parent": null,
+  "relatedFiles": [
+    "crates/ccr-tui/src/tui/grok_auth/app.rs",
+    "crates/ccr-tui/src/tui/grok_auth/ui.rs",
+    "crates/ccr-tui/src/tui/app.rs",
+    "crates/ccr-tui/src/tui/mod.rs",
+    "crates/ccr-tui/src/tui/theme.rs",
+    "crates/ccr-config/src/managers/tui_config.rs",
+    "crates/ccr-codex/src/utils.rs",
+    "crates/ccr-cli/src/services/grok_auth_service.rs",
+    "crates/ccr-cli/src/application/auth_off.rs",
+    "crates/ccr-core/src/core/lock.rs",
+    "crates/ccr-core/src/core/atomic_writer.rs"
+  ],
+  "notes": "Source implementation and independent static review delivered on 2026-09-08. User subsequently explicitly requested all local changes committed and all four tasks archived. Archive closes source delivery only: behavioral AC remain unchecked, tests/build/lint/runtime SKIPPED, dynamic acceptance UNVERIFIED. No real Grok process/credentials/config/installed-binary operations or push/publication. See research/implementation-review.md.",
+  "meta": {}
+}

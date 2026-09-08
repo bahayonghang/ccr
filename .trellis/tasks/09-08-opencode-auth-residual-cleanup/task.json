@@ -1,0 +1,31 @@
+{
+  "id": "opencode-auth-residual-cleanup",
+  "name": "opencode-auth-residual-cleanup",
+  "title": "清理 OpenCode Auth 遗留代码与测试",
+  "description": "删除已退休 Auth 标识兼容、孤立配色和路径类型，保留有效 OpenCode 功能。",
+  "status": "in_progress",
+  "dev_type": "backend",
+  "scope": "tui",
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-09-08",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "dev",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "09-08-tui-grok-auth-replacement",
+  "relatedFiles": [
+    "crates/ccr-config/src/managers/tui_config.rs",
+    "crates/ccr-codex/src/utils.rs",
+    "crates/ccr-tui/src/tui/theme.rs",
+    "README.md"
+  ],
+  "notes": "Source cleanup and independent static review delivered; active OpenCode consumers preserved. User subsequently explicitly requested local commit and archive. Archive closes source delivery; tests/build/runtime SKIPPED and behavioral AC remain UNVERIFIED. No current Grok Build or real credential/config operations or push/publication. See parent implementation-review.md.",
+  "meta": {}
+}
