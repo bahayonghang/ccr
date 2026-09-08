@@ -1646,3 +1646,36 @@ Usage 页 hero 区结构重排：成本结论卡从 7fr/5fr 双列拉伸布局�
 ### Next Steps
 
 - 父子任务保持 in_progress，行为 AC 未勾选；后续获得验证证据再验收。未提交或归档。
+
+
+## Session 110: Grok 账号任务全部提交与归档
+
+**Date**: 2026-09-08
+**Task**: Grok 账号任务全部提交与归档
+**Branch**: `dev`
+
+### Summary
+
+按用户明确要求提交所有改动并归档父任务及三个子任务；仅本地提交，未推送。归档不代表动态验收通过。
+
+### Main Changes
+
+- 完成清理、账号服务与 TUI、文档规范、任务审查记录四组提交。
+- 四个任务归档至 .trellis/tasks/archive/2026-09，保留未勾选的行为 AC 和审查记录。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f601d6df` | (see git log) |
+| `1ef4c56b` | (see git log) |
+| `2c991689` | (see git log) |
+| `582702f6` | (see git log) |
+
+### Testing
+
+- [OK] git diff --check 通过；沿用独立静态审查；测试/构建/lint 按用户要求 SKIPPED，动态行为 UNVERIFIED。
+
+### Status
+
+[OK] **Completed**
