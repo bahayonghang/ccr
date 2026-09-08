@@ -1,6 +1,6 @@
 # `grok` - Grok Build Profile Runtime
 
-`ccr grok` manages Grok Build model profiles and official session logout. CCR manages `[model.custom]`, `[models].default`, and `[models].default_reasoning_effort` in `~/.grok/config.toml`. `auth off` may check that `$GROK_HOME/auth.json` exists, back up that file, and delete that file. The default path is `~/.grok/auth.json`. CCR does not parse the token. CCR does not read, write, back up, or validate `mcp_credentials.json`.
+`ccr grok` manages Grok Build model profiles, official session status and logout, and saved accounts in the TUI. Profile operations manage `[model.custom]`, `[models].default`, and `[models].default_reasoning_effort` in `~/.grok/config.toml`; the account service reads official OAuth credentials from `$GROK_HOME/auth.json`, defaulting to `~/.grok/auth.json`. UI and command output do not expose tokens. CCR does not read, write, back up, or validate `mcp_credentials.json`.
 
 ## Official Auth
 
@@ -10,7 +10,18 @@
 | `ccr grok auth current` | report whether an official session file exists; supports `--json`; does not print the token |
 | `ccr grok auth off` | log out the current official runtime; supports `--json` |
 
-`auth off` is independent from `profile off`. The command does not change the profile pointer, and it does not delete `[model.custom]`. The command deletes `auth.json` only. The command does not change `mcp_credentials.json`. CCR has no Grok account snapshot. After logout, run official `grok login`, or fall back to the user's own `XAI_API_KEY`.
+`auth off` is independent from `profile off` and leaves the profile pointer and `[model.custom]` unchanged. Logout deletes the entire `auth.json`, including other scopes and API-key caches. Uniquely identified saved accounts are updated with their latest credentials first, and CCR saved accounts are retained. It does not change `mcp_credentials.json`.
+
+The Grok Auth TUI supports official OAuth personal and team accounts:
+
+- `s`: save a complete copy of the selected current scope under an alias in `<CCR_ROOT>/platforms/grok/auth/accounts.json` (default `~/.ccr/platforms/grok/auth/accounts.json`). Grok may keep running and using the current account. Choose a source when several scopes exist; overwriting an alias requires confirmation.
+- `Enter`: confirm switching to the selected account. End the current Grok session yourself first; the written credentials are intended for a new session. Only the target scope is replaced, after preserving the latest credentials of an identified outgoing account. Unsaved or uncertain identities require an explicit save first.
+- `d`: confirm deleting a CCR saved entry, leaving runtime credentials unchanged.
+- `o`: confirm logout of the entire runtime while retaining CCR saved entries; `r` only reloads local state.
+
+A local match does not verify server authentication. Switching preserves token timestamps, does not refresh or log in, and does not exit a third-party profile. Profiles or environment variables may still determine the authentication route. Enterprise OIDC, external, API-key, and legacy web_login entries are outside saved-account management. There are no corresponding CLI save/switch subcommands.
+
+A copy with missing identity metadata can be saved explicitly. Switching rejects a copy without the `user_id` required by Grok's native format and never invents an identity. Save again after official login produces complete credentials.
 
 ## Commands
 
@@ -66,7 +77,7 @@ For third-party profiles, CCR writes `[model.custom].reasoning_effort`, derives 
 - `api_key` is Grok Build's direct credential field. `--api-key` stores plaintext in CCR profiles, rotating backups, and Grok `config.toml`, while command output omits it. The old `--auth-token` spelling remains a compatibility alias.
 - `env_key` remains available for an environment variable name; do not put an API key value in it.
 - Official profiles reject `api_key`, `auth_token`, and `env_key`. Grok owns its login session and `XAI_API_KEY`.
-- `auth off` deletes `auth.json` only. The command does not change `mcp_credentials.json`. Profile commands still do not read or write `auth.json`.
+- The account service can save and restore official OAuth scopes; `auth off` protects identified saved accounts before deleting the entire `auth.json`. Neither changes `mcp_credentials.json`. Profile commands still do not read or write `auth.json`.
 - Displayed URLs omit userinfo, query, and fragment components.
 
 ## Examples

@@ -54,6 +54,9 @@ Remaining bare-String whitelist (input boundaries only, wrap into `Secret` on fi
 
 ## File And Config Writes
 
+`FileLock::new` opens existing lock files without truncation. Lock acquisition
+must not erase native holder metadata, write a PID, or unlink the shared lock.
+
 Use `AtomicWriter`/`AsyncAtomicWriter` or existing `fileio` helpers for config/runtime file replacement. The local pattern is same-directory temp file plus replacement; Windows replacement has retry logic for sharing violations.
 
 Do not hand-roll `fs::write` for durable CCR config/auth/history state unless a nearby helper already owns the same semantics. Preserve backup, masking, locking, and atomic-write behavior when changing config flows.

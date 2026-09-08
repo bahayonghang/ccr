@@ -29,6 +29,8 @@ ccr grok auth
 | `Enter` / `Space` | 应用选中配置并保持在 TUI 内（结果显示在 Focus 面板） |
 | `q` / `Esc` | 退出 |
 
+Grok Auth 页使用账号操作：`s` 保存、`Enter` 确认切换、`d` 删除保存项、`o` 登出全部运行时凭据、`r` 刷新。确认弹窗默认取消，按 `y` 才确认。保存可在 Grok 运行时执行；切换前请自行结束当前 Grok，供新会话使用。后台操作完成前暂时禁止换页和退出，语言切换与 resize 仍可用。详情见 [`grok`](./grok.md)。
+
 ## 当前定位
 
 - 适合纯终端环境下的 profile 浏览与切换
@@ -40,7 +42,7 @@ ccr grok auth
 - 默认构建启用 `tui` feature
 - 入口判断位于 `Cli::is_tui_mode()`
 - 无子命令行为位于 `CommandDispatcher::handle_no_subcommand()`
-- Grok Auth 页签只展示官方会话状态，并支持 `o` 登出官方运行时登录
+- Grok Auth 页签展示保存账号、选中项和本地会话匹配；实际认证有效性未验证，第三方 profile 保持不变
 
 ## 示例
 
@@ -51,7 +53,8 @@ ccr
 # Enter/Space 应用并停留（按 q 或 Esc 退出）
 
 ccr grok auth
-# 在 Grok Auth 页签按 o，登出当前官方运行时登录
+# s 保存当前账号副本；Enter 打开切换确认
+# d 仅删除保存项；o 打开整个运行时的登出确认
 ```
 
 ## 相关页面

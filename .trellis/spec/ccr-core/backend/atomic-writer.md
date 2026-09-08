@@ -34,6 +34,9 @@
 - On Windows, secret replacement captures the target DACL and applies the same
   ACE set to the temp file before content is written. Compare the parsed DACL,
   not the complete security descriptor: Windows may normalize control flags.
+- New Windows secret targets use a protected current-process-token-user DACL,
+  applied to the empty temporary file before secret bytes. Sync and async paths
+  share the same descriptor helper; failures stop before content is written.
 - On Unix-like platforms, keep using atomic rename/persist semantics.
 - On Windows, do not delete the target before replacement.
 - On Windows, use `MOVEFILE_REPLACE_EXISTING` so the OS replaces the target in one operation.
@@ -132,7 +135,7 @@ AsyncAtomicWriter::new(target)
 - Backup naming is frozen for discoverability (existing `list_backups` filters must keep finding old and new names):
   - `SameDir{tag}` → `{full_filename}.{tag}_{ts}.bak` / `{full_filename}.{ts}.bak` (`%Y%m%d_%H%M%S`), rotation matches `starts_with(full_filename) && ends_with(".bak")`.
   - `Dir{dir, prefix}` → `{prefix}.{ts}.{ext}.bak` (ext falls back to `bak`), rotation matches `starts_with(prefix) && ends_with(".bak")`.
-- `secret: true` → owner-only `0o600` set on the temp file before content is written (Unix; Windows no-op). Required for WebDAV credentials (`sync.toml`), checkin crypto keys, and any new API-key/token file.
+- `secret: true` → private permissions before temporary-file content is written: Unix owner-only mode; Windows current-user DACL for new targets and preserved existing DACL. Required for WebDAV credentials (`sync.toml`), checkin crypto keys, and any new API-key/token file.
 - `fs4 1.x` exposes `try_lock()` as `Ok(())` = acquired, `TryLockError::WouldBlock` = held elsewhere, and `TryLockError::Error` = real I/O failure. `ccr-core` normalizes that through a local `io::Result<bool>` adapter so the established acquisition loop remains `Ok(true)` = acquired, `Ok(false)` = contended, `Err` = I/O failure. Treating any non-error result as acquired silently disables cross-process locking; keep the contention, release-and-retry, and adapter error regressions.
 
 ### 4. Validation & Error Matrix

@@ -149,7 +149,7 @@ When changing tab ordering, add or keep regression tests that assert:
 - Trigger: adding or changing TUI-owned labels, status/error/loading text,
   overlays, toasts, shortcut footers, or post-exit summaries.
 - Applies to the main profile surface and embedded Claude Auth, Codex Auth, and
-  OpenCode Auth surfaces. CLI-only output and raw lower-layer errors are outside
+  Grok Auth surfaces. CLI-only output and raw lower-layer errors are outside
   the translation catalog.
 
 ### 2. Signatures
@@ -249,7 +249,7 @@ Use a synthetic `PlatformTab` only when a tab is not a profile/auth surface but 
 - Give the synthetic tab an empty `profiles` list and route it before profile selection/apply behavior in `handle_key`, mouse handlers, activation, ticks, and `ui::draw`.
 - Lazily initialize the embedded app from `App::with_task_executor(...)`; load external data with `AsyncTaskExecutor::spawn_blocking()` and a message channel so the terminal render loop never blocks on filesystem or SQLite work.
 - Keep the tab read-only unless the PRD explicitly asks for mutations. For usage/statistics views, show unsupported, missing-data, empty, and query-error states inside the view rather than panicking or falling back to profile UI.
-- When retiring a synthetic tab, keep its `TuiTabId` variant parse-tolerant (`#[doc(hidden)]`, filtered on load with a warn) so existing `tui.toml` custom orders survive; see the ccr-config guidelines.
+- Only the retired Usage identifier retains parse-tolerant compatibility. Removed `opencode_auth` is unknown and causes the existing whole-config default fallback; initial loading does not rewrite the file. Do not add a migration layer.
 
 Wrong:
 
@@ -464,7 +464,7 @@ Use `tracing::warn!` for recoverable loading failures and diagnostics. Do not pr
 
 ### 3. Contracts
 
-- Grok contributes exactly one `TabVariant::Profile`; it has no auth tab,
+- Grok contributes exactly one `TabVariant::Profile` alongside its independent `GrokAuth` tab. The profile view has no
   Claude runtime summary, Codex runtime summary, or embedded usage section.
 - Its full and compact labels are `Grok Profile` / `Grok 配置` and `Grok`.
 - Details show description, sanitized base URL, model, API backend, auth mode,
@@ -527,6 +527,34 @@ let auth_mode = GrokPlatform::profile_auth_mode(config);
 ```
 
 ## Testing
+
+### Grok Auth accounts
+
+- Consume only the secret-free `GrokAuthService` snapshot. Selection is independent
+  of each scope's local match; local metadata never proves effective authentication.
+- Save copies a selected OAuth source to CCR while Grok may continue running.
+  Multiple sources require selection; an existing alias requires explicit overwrite.
+- Switch confirmation requires stopping Grok first and states that local credentials
+  serve new sessions; it preserves the profile route and MCP. Read activation only
+  through `GrokPlatform::inspect_activation_state`.
+- Delete removes only a saved item; logout explicitly removes all runtime auth.json
+  credentials, preserving the account library. Confirmations default to cancellation;
+  Enter/n/Esc cancel and only y submits. Do not reuse a delete-only modal title.
+- Freeze the revision, scope and alias in the request. Use the shared executor's
+  blocking task path and one result channel; disable duplicate operations and normal
+  navigation/exit until the result is collected. Ctrl+L and resize remain responsive.
+  Cancel unsubmitted dialogs on tab navigation. Never describe an in-flight action as
+  canceled. A disabled executor submits nothing; a disconnected channel reports an
+  unknown outcome and rereads once without replaying the mutation.
+- Keep the previous snapshot on read errors and show stale state. Keep mutation
+  success/failure separate from subsequent read failure. Store semantic actions for
+  summaries and translate on the TUI thread. No raw credential JSON enters UI state.
+- Render list/details side by side on wide screens, stacked on standard screens,
+  and prioritize selection and feedback on compact screens. Keep necessary action
+  hints and exit visible at 40×12; truncate identifiers by display width.
+- Tests use an injected backend and TestBackend, never personal credentials. The
+  September 8 implementation delivery explicitly skips execution at user request;
+  static review and maintained test sources do not establish runtime acceptance.
 
 Prefer unit tests for state transitions, formatting, and helpers. Use temp dirs and fixture data for auth/config state; do not read real home-directory auth files.
 

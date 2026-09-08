@@ -86,10 +86,14 @@
   and entry-state presence. It is read-only, has no pointer reconciliation or
   other side effects, and never exposes credential values.
 - `mcp_credentials.json` is never read, written, backed up, or validated.
-- `auth.json` is existence-read, secret-backed-up, and deleted only by
-  `auth_off_for_platform(Grok)` / `ccr grok auth off`. Other Grok profile
-  operations still must not read, write, backup, or validate `auth.json`.
-  Grok owns session authentication.
+- `GrokAuthService` owns controlled OAuth parsing and the CCR single-file account
+  store. Save copies one complete official scope without an official lock or any
+  runtime write. Switch protects uniquely recognized outgoing credentials, then
+  CAS-replaces only the selected scope. It never refreshes tokens, changes time
+  fields, or disables profiles. Grok owns actual session authentication.
+- `auth_off_for_platform(Grok)` shares the service lock coordinator and existing
+  whole-file deletion/backup kernel. Grok profile operations still must not read,
+  write, back up, or validate `auth.json`.
 - Errors and logs never contain tokens, complete credential-bearing TOML
   parser errors, or unsafe base URLs. CLI/TUI URL display uses the shared safe
   helper; inline tokens are not rendered, even masked.
