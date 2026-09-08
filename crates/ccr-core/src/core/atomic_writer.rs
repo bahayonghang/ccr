@@ -166,8 +166,8 @@ impl AtomicWriter {
     ///
     /// When enabled, the temporary file is restricted to owner-only
     /// permissions (0o600) on Unix **before** any content is written, so the
-    /// secret bytes are never readable by other users. On Windows this is a
-    /// no-op (NTFS uses a different permission model).
+    /// secret bytes are never readable by other users. Windows initializes a
+    /// protected current-user DACL for new targets and preserves existing DACLs.
     #[must_use]
     pub fn secret(mut self, secret: bool) -> Self {
         self.secret = secret;
@@ -233,8 +233,8 @@ impl AtomicWriter {
                 })?;
         }
         #[cfg(windows)]
-        if self.secret && self.target_path.exists() {
-            let descriptor = capture_windows_dacl(&self.target_path).map_err(|e| {
+        if self.secret {
+            let descriptor = secret_windows_dacl(&self.target_path).map_err(|e| {
                 CcrError::IoError(std::io::Error::other(format!(
                     "读取目标文件 ACL 失败: {}",
                     e
@@ -356,7 +356,14 @@ impl AsyncAtomicWriter {
         let temp_path = self.temp_path();
 
         #[cfg(windows)]
-        let preserved_dacl = if self.options.preserve_mode && self.target_path.exists() {
+        let preserved_dacl = if self.options.secret {
+            let target = self.target_path.clone();
+            Some(
+                tokio::task::spawn_blocking(move || secret_windows_dacl(&target))
+                    .await
+                    .map_err(|_| CcrError::IoError(std::io::Error::other("ACL task failed")))??,
+            )
+        } else if self.options.preserve_mode && self.target_path.exists() {
             Some(
                 capture_windows_dacl_async(self.target_path.clone())
                     .await
@@ -531,8 +538,100 @@ async fn sync_parent_dir_async(_target_path: PathBuf) -> std::io::Result<()> {
 const DACL_SECURITY_INFORMATION: u32 = 0x0000_0004;
 
 #[cfg(windows)]
+#[link(name = "kernel32")]
+unsafe extern "system" {
+    fn GetCurrentProcess() -> *mut std::ffi::c_void;
+    fn CloseHandle(handle: *mut std::ffi::c_void) -> i32;
+    fn LocalFree(memory: *mut std::ffi::c_void) -> *mut std::ffi::c_void;
+}
+#[cfg(windows)]
 #[link(name = "advapi32")]
 unsafe extern "system" {
+    fn OpenProcessToken(
+        process: *mut std::ffi::c_void,
+        access: u32,
+        token: *mut *mut std::ffi::c_void,
+    ) -> i32;
+    fn GetTokenInformation(
+        token: *mut std::ffi::c_void,
+        class: u32,
+        data: *mut std::ffi::c_void,
+        length: u32,
+        needed: *mut u32,
+    ) -> i32;
+    fn ConvertSidToStringSidW(sid: *const std::ffi::c_void, text: *mut *mut u16) -> i32;
+    fn ConvertStringSecurityDescriptorToSecurityDescriptorW(
+        text: *const u16,
+        revision: u32,
+        descriptor: *mut *mut std::ffi::c_void,
+        length: *mut u32,
+    ) -> i32;
+}
+
+/// Obtain the existing DACL, or a protected ACL granting only the token user access.
+#[cfg(windows)]
+fn secret_windows_dacl(path: &Path) -> std::io::Result<Vec<u8>> {
+    match fs::metadata(path) {
+        Ok(_) => return capture_windows_dacl(path),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => return Err(e),
+    }
+    // SAFETY: All WinAPI pointers reference owned, aligned buffers. Handles and
+    // LocalAlloc buffers are released on every path after acquisition.
+    unsafe {
+        let mut token = std::ptr::null_mut();
+        if OpenProcessToken(GetCurrentProcess(), 0x0008, &mut token) == 0 {
+            return Err(std::io::Error::last_os_error());
+        }
+        let mut needed = 0;
+        GetTokenInformation(token, 1, std::ptr::null_mut(), 0, &mut needed);
+        let mut info = vec![0_usize; (needed as usize).div_ceil(std::mem::size_of::<usize>())];
+        let ok = GetTokenInformation(token, 1, info.as_mut_ptr().cast(), needed, &mut needed);
+        let failure = std::io::Error::last_os_error();
+        CloseHandle(token);
+        if ok == 0 {
+            return Err(failure);
+        }
+        let sid = *(info.as_ptr().cast::<*const std::ffi::c_void>());
+        let mut sid_text = std::ptr::null_mut();
+        if ConvertSidToStringSidW(sid, &mut sid_text) == 0 {
+            return Err(std::io::Error::last_os_error());
+        }
+        let mut length = 0;
+        while *sid_text.add(length) != 0 {
+            length += 1;
+        }
+        let user = String::from_utf16_lossy(std::slice::from_raw_parts(sid_text, length));
+        LocalFree(sid_text.cast());
+        let sddl: Vec<u16> = format!("D:P(A;;FA;;;{user})")
+            .encode_utf16()
+            .chain(once(0))
+            .collect();
+        let mut descriptor = std::ptr::null_mut();
+        let mut size = 0;
+        if ConvertStringSecurityDescriptorToSecurityDescriptorW(
+            sddl.as_ptr(),
+            1,
+            &mut descriptor,
+            &mut size,
+        ) == 0
+        {
+            return Err(std::io::Error::last_os_error());
+        }
+        let bytes = std::slice::from_raw_parts(descriptor.cast::<u8>(), size as usize).to_vec();
+        LocalFree(descriptor);
+        Ok(bytes)
+    }
+}
+
+#[cfg(windows)]
+#[link(name = "advapi32")]
+unsafe extern "system" {
+    fn GetSecurityDescriptorControl(
+        descriptor: *const std::ffi::c_void,
+        control: *mut u16,
+        revision: *mut u32,
+    ) -> i32;
     fn GetFileSecurityW(
         file_name: *const u16,
         requested_information: u32,
@@ -587,13 +686,45 @@ fn capture_windows_dacl(path: &Path) -> std::io::Result<Vec<u8>> {
 
 #[cfg(windows)]
 fn apply_windows_dacl(path: &Path, descriptor: &[u8]) -> std::io::Result<()> {
+    #[cfg(test)]
+    {
+        let mut failure = DACL_SETUP_FAILURE
+            .lock()
+            .map_err(|_| std::io::Error::other("ACL failure fixture lock poisoned"))?;
+        if let Some(failure) = failure.as_mut()
+            && path.parent() == Some(failure.directory.as_path())
+        {
+            // Observe the real temporary file at the permission boundary, not
+            // a duplicate mock writer. A moved write-before-ACL is caught here.
+            assert!(
+                fs::read(path)?.is_empty(),
+                "secret payload preceded ACL setup"
+            );
+            failure.empty_temporaries.push(path.to_path_buf());
+            return Err(std::io::Error::from(std::io::ErrorKind::PermissionDenied));
+        }
+    }
     let path = path_to_wide(path);
+    let mut control = 0_u16;
+    let mut revision = 0_u32;
+    // SAFETY: The descriptor comes from GetFileSecurityW or the SDDL converter.
+    if unsafe {
+        GetSecurityDescriptorControl(descriptor.as_ptr().cast(), &mut control, &mut revision)
+    } == 0
+    {
+        return Err(std::io::Error::last_os_error());
+    }
+    let inheritance = if control & 0x1000 != 0 {
+        0x8000_0000
+    } else {
+        0x2000_0000
+    };
     // SAFETY: descriptor is the self-relative security descriptor returned by
     // GetFileSecurityW and remains alive for the call.
     let ok = unsafe {
         SetFileSecurityW(
             path.as_ptr(),
-            DACL_SECURITY_INFORMATION,
+            DACL_SECURITY_INFORMATION | inheritance,
             descriptor.as_ptr().cast(),
         )
     };
@@ -603,6 +734,15 @@ fn apply_windows_dacl(path: &Path, descriptor: &[u8]) -> std::io::Result<()> {
         Ok(())
     }
 }
+
+#[cfg(all(windows, test))]
+struct DaclSetupFailure {
+    directory: PathBuf,
+    empty_temporaries: Vec<PathBuf>,
+}
+
+#[cfg(all(windows, test))]
+static DACL_SETUP_FAILURE: std::sync::Mutex<Option<DaclSetupFailure>> = std::sync::Mutex::new(None);
 
 #[cfg(windows)]
 async fn capture_windows_dacl_async(path: PathBuf) -> std::io::Result<Vec<u8>> {
@@ -804,6 +944,84 @@ mod tests {
         let after = capture_windows_dacl(&target_path).unwrap();
         assert_eq!(fs::read_to_string(&target_path).unwrap(), "new");
         assert_eq!(dacl_bytes(&after), dacl_bytes(&before));
+        assert_eq!(after[3] & 0x10, before[3] & 0x10);
+    }
+
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn grok_auth_new_secret_windows_dacl_is_private_before_payload() {
+        let directory = tempdir().unwrap();
+        let target = directory.path().join("new-secret.json");
+        let descriptor = secret_windows_dacl(&target).unwrap();
+        let temporary = NamedTempFile::new_in(directory.path()).unwrap();
+        apply_windows_dacl(temporary.path(), &descriptor).unwrap();
+        assert_eq!(temporary.as_file().metadata().unwrap().len(), 0);
+        let actual = capture_windows_dacl(temporary.path()).unwrap();
+        let control = u16::from_le_bytes(actual[2..4].try_into().unwrap());
+        assert_ne!(control & 0x1000, 0, "new secret DACL must be protected");
+        let offset = u32::from_le_bytes(actual[16..20].try_into().unwrap()) as usize;
+        let ace_count = u16::from_le_bytes(actual[offset + 4..offset + 6].try_into().unwrap());
+        assert_eq!(ace_count, 1, "only the current user receives an ACE");
+        let expected_offset = u32::from_le_bytes(descriptor[16..20].try_into().unwrap()) as usize;
+        let ace_size =
+            u16::from_le_bytes(actual[offset + 10..offset + 12].try_into().unwrap()) as usize;
+        // An ACCESS_ALLOWED_ACE has an 8-byte header/mask followed by the SID.
+        // The descriptor helper obtains this SID from the current process token.
+        assert_eq!(
+            &actual[offset + 16..offset + 8 + ace_size],
+            &descriptor[expected_offset + 16..expected_offset + 8 + ace_size],
+        );
+        AtomicWriter::new(&target)
+            .secret(true)
+            .write(b"secret")
+            .unwrap();
+        let asynchronous = directory.path().join("async-secret.json");
+        AsyncAtomicWriter::new(&asynchronous)
+            .secret(true)
+            .write_async(b"secret")
+            .await
+            .unwrap();
+        for path in [&target, &asynchronous] {
+            let dacl = capture_windows_dacl(path).unwrap();
+            let control = u16::from_le_bytes(dacl[2..4].try_into().unwrap());
+            assert_ne!(control & 0x1000, 0);
+        }
+    }
+
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn grok_auth_windows_acl_failure_precedes_payload_and_cleans_temporary_files() {
+        let directory = tempdir().unwrap();
+        let existing = directory.path().join("existing.json");
+        let new_target = directory.path().join("new.json");
+        fs::write(&existing, b"original bytes").unwrap();
+        *DACL_SETUP_FAILURE.lock().unwrap() = Some(DaclSetupFailure {
+            directory: directory.path().to_path_buf(),
+            empty_temporaries: Vec::new(),
+        });
+
+        let sync_result = AtomicWriter::new(&existing)
+            .secret(true)
+            .write(b"SECRET_PAYLOAD");
+        let async_result = AsyncAtomicWriter::new(&new_target)
+            .secret(true)
+            .write_async(b"SECRET_PAYLOAD")
+            .await;
+        // Clear the failpoint before assertions so assertion failure cannot
+        // affect another fixture. The directory match also isolates concurrency.
+        let failure = DACL_SETUP_FAILURE.lock().unwrap().take().unwrap();
+        assert!(sync_result.is_err());
+        assert!(async_result.is_err());
+        assert_eq!(failure.empty_temporaries.len(), 2);
+        for temporary in failure.empty_temporaries {
+            assert!(
+                !temporary.exists(),
+                "failed empty temporary was not cleaned up"
+            );
+        }
+        assert_eq!(fs::read(&existing).unwrap(), b"original bytes");
+        assert!(!new_target.exists());
+        assert_eq!(fs::read_dir(directory.path()).unwrap().count(), 1);
     }
 
     #[cfg(windows)]

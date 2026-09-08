@@ -32,6 +32,7 @@ pub enum CompletedAction {
     Rename,
     Save,
     Switch,
+    GrokLogout,
 }
 
 impl CompletedAction {
@@ -42,6 +43,7 @@ impl CompletedAction {
             Self::Rename => crate::tui_text!("Renamed", "已重命名"),
             Self::Save => crate::tui_text!("Saved", "已保存"),
             Self::Switch => crate::tui_text!("Switched to", "已切换到"),
+            Self::GrokLogout => crate::tui_text!("Completed logout for", "已完成登出操作"),
         }
     }
 
@@ -52,6 +54,7 @@ impl CompletedAction {
             Self::Rename => crate::tui_text!("rename", "重命名"),
             Self::Save => crate::tui_text!("save", "保存"),
             Self::Switch => crate::tui_text!("switch to", "切换"),
+            Self::GrokLogout => crate::tui_text!("log out", "登出"),
         }
     }
 }
@@ -141,20 +144,52 @@ fn print_exit_info(app: &App) {
         }
     }
 
-    if let Some((success, error)) = &app.last_grok_action {
+    if let Some((action, name, success, error)) = &app.last_grok_action {
         if *success {
+            let label = if *action == CompletedAction::Switch {
+                crate::tui_text!(
+                    "Local credentials written; authentication unverified for",
+                    "本地凭据已写入；实际认证未验证"
+                )
+            } else {
+                action.success_label()
+            };
             println!(
                 "{}",
-                crate::tui_text!("Grok official session logged out", "已登出 Grok 官方会话")
+                crate::tui_format!(
+                    "{} Grok account/session: {}",
+                    "{} Grok 账号/会话：{}",
+                    label,
+                    name
+                )
             );
         } else if let Some(err) = error {
             eprintln!(
                 "{}",
                 crate::tui_format!(
-                    "Failed to log out Grok official session: {}",
-                    "登出 Grok 官方会话失败：{}",
+                    "Failed to {} Grok account/session {}: {}",
+                    "Grok 账号/会话 {1} {0}失败：{2}",
+                    action.failure_label(),
+                    name,
                     err
                 )
+            );
+        }
+    }
+    if let Some(grok) = &app.grok_auth_app {
+        if grok.outcome_unknown() {
+            eprintln!(
+                "{}",
+                crate::tui_text!(
+                    "Grok task disconnected: outcome unknown; inspect state before retrying",
+                    "Grok 任务中断：结果未知，重试前请检查状态"
+                )
+            );
+        }
+        for warning in grok.operation_warnings() {
+            eprintln!(
+                "{}",
+                crate::tui_format!("Grok warning: {}", "Grok 警告：{}", warning)
             );
         }
     }

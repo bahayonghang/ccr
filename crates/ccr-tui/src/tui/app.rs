@@ -246,7 +246,7 @@ pub struct App {
     /// Last Grok Auth initialization error for placeholder rendering
     pub grok_auth_error: Option<String>,
     /// Last Grok auth off result (success, error)
-    pub last_grok_action: Option<(bool, Option<String>)>,
+    pub last_grok_action: Option<(CompletedAction, String, bool, Option<String>)>,
     /// 用量数据引擎(懒初始化):后台加载 provider 用量,详情面板纯内存查找
     pub usage_app: Option<UsageApp>,
     /// 🖱️ Cached header (tab bar) area for mouse hit-testing
@@ -765,6 +765,16 @@ impl App {
     // -- Action dispatch (executes side effects) --
 
     fn dispatch(&mut self, action: Action) -> Result<bool> {
+        if matches!(
+            action,
+            Action::NextTab | Action::PrevTab | Action::SwitchTab(_)
+        ) && let Some(grok) = self.grok_auth_app.as_mut()
+        {
+            if grok.is_busy() {
+                return Ok(false);
+            }
+            grok.on_deactivated();
+        }
         match action {
             Action::Noop => {}
             Action::Quit => return Ok(true),
@@ -1121,7 +1131,7 @@ impl App {
             return;
         }
 
-        match GrokAuthApp::new() {
+        match GrokAuthApp::with_task_executor(self.task_executor.clone()) {
             Ok(app) => {
                 self.grok_auth_app = Some(app);
                 self.grok_auth_error = None;
@@ -1336,6 +1346,14 @@ impl TuiApp for App {
             return Ok(false);
         }
 
+        if self
+            .grok_auth_app
+            .as_ref()
+            .is_some_and(GrokAuthApp::is_busy)
+        {
+            return Ok(false);
+        }
+
         if let Some(action) = Self::tab_key_action(key) {
             return self.dispatch(action);
         }
@@ -1363,7 +1381,7 @@ impl TuiApp for App {
             if let Some(grok_app) = self.grok_auth_app_mut() {
                 let quit = grok_app.handle_key(key)?;
                 if quit {
-                    self.last_grok_action = grok_app.last_off.clone();
+                    self.last_grok_action = grok_app.last_action.clone();
                     return Ok(true);
                 }
             }
@@ -1376,6 +1394,13 @@ impl TuiApp for App {
     }
 
     fn handle_mouse(&mut self, mouse: MouseEvent) -> Result<bool> {
+        if self
+            .grok_auth_app
+            .as_ref()
+            .is_some_and(GrokAuthApp::is_busy)
+        {
+            return Ok(false);
+        }
         match mouse.kind {
             // 🖱️ 左键点击
             MouseEventKind::Down(MouseButton::Left) => {
@@ -1460,12 +1485,19 @@ impl TuiApp for App {
     }
 
     fn on_tick(&mut self) -> bool {
+        let grok_redraw = if let Some(grok) = self.grok_auth_app.as_mut() {
+            let redraw = grok.on_tick();
+            self.last_grok_action = grok.last_action.clone();
+            redraw
+        } else {
+            false
+        };
         if self.is_claude_auth_tab() {
             self.claude_auth_app.as_mut().is_some_and(|a| a.on_tick())
         } else if self.is_codex_auth_tab() {
             self.codex_auth_app.as_mut().is_some_and(|a| a.on_tick())
         } else if self.is_grok_auth_tab() {
-            self.grok_auth_app.as_mut().is_some_and(|a| a.on_tick())
+            grok_redraw
         } else {
             // Profile tab: 首次进入(含启动首帧)激活用量引擎,此后每 tick 泵
             // 后台任务消息;on_activated 仅在 Idle 态生效,不会重复拉取

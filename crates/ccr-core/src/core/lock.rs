@@ -135,7 +135,7 @@ impl FileLock {
             .read(true)
             .write(true)
             .create(true)
-            .truncate(true)
+            .truncate(false)
             .open(&lock_path)
             .map_err(|e| CcrError::FileLockError(format!("无法打开锁文件: {}", e)))?;
 
@@ -308,6 +308,19 @@ mod tests {
         assert!(lock_path.exists());
 
         // 锁在作用域结束时自动释放
+    }
+
+    #[test]
+    fn grok_auth_lock_preserves_native_holder_metadata() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("auth.json.lock");
+        fs::write(&path, b"native holder metadata").unwrap();
+        let held = FileLock::new(&path, Duration::ZERO).unwrap();
+        assert_eq!(fs::read(&path).unwrap(), b"native holder metadata");
+        assert!(FileLock::new(&path, Duration::ZERO).is_err());
+        assert_eq!(fs::read(&path).unwrap(), b"native holder metadata");
+        drop(held);
+        assert_eq!(fs::read(&path).unwrap(), b"native holder metadata");
     }
 
     #[test]

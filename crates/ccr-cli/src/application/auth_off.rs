@@ -176,7 +176,7 @@ impl Drop for AuthOffBackup {
     }
 }
 
-fn auth_off_backup_root() -> Result<PathBuf> {
+pub(crate) fn auth_off_backup_root() -> Result<PathBuf> {
     if let Ok(custom_root) = std::env::var("CCR_ROOT") {
         let trimmed = custom_root.trim();
         if !trimmed.is_empty() {
@@ -348,8 +348,12 @@ pub(crate) fn grok_auth_json_path() -> Result<PathBuf> {
 }
 
 fn grok_auth_off() -> Result<AuthOffResult> {
-    let path = grok_auth_json_path()?;
-    delete_credential_files(Platform::Grok, "grok", std::slice::from_ref(&path))
+    crate::services::GrokAuthService::new().off()
+}
+
+/// Caller owns the CCR operation and official runtime locks.
+pub(crate) fn grok_auth_off_locked(path: &Path) -> Result<AuthOffResult> {
+    delete_credential_files(Platform::Grok, "grok", &[path.to_path_buf()])
 }
 
 fn delete_credential_files(

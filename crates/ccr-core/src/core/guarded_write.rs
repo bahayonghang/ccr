@@ -49,7 +49,7 @@ pub struct WriteOptions {
     /// Backup policy applied before the target file is replaced.
     pub backup: BackupPolicy,
     /// When true, the file is written with owner-only permissions
-    /// (0o600 on Unix; no-op on Windows).
+    /// (owner-only Unix mode; private new Windows DACL / preserved existing DACL).
     pub secret: bool,
     /// Timeout for acquiring the per-path write lock.
     pub lock_timeout: Duration,
