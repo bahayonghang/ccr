@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/ccr-tui/backend/index.md", "reason": "TUI spec routing"}
+{"file": ".trellis/spec/ccr-tui/backend/backend-guidelines.md", "reason": "State/render boundaries, bilingual display width, fixture tests and gates"}
+{"file": ".trellis/tasks/09-08-codex-auth-tui-presentation/research/usage-attribution.md", "reason": "Confirmed scope-note root cause, attribution boundary and regression matrix"}
