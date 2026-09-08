@@ -263,7 +263,11 @@ let sections = match profile_document_shape(&document) {
 - An unsupported or non-string `theme` falls back to Mocha independently of
   `language` and `tab_order`, preserving all other valid preferences.
 - Current tab ids, in built-in order: `codex_profile`, `claude_profile`,
-  `grok_profile`, `codex_auth`, `claude_auth`, `opencode_auth`.
+  `grok_profile`, `codex_auth`, `claude_auth`, `grok_auth`.
+- The retired `opencode_auth` id is no longer recognized. It follows the
+  existing unknown-enum error path: `load` fails and `load_or_default` uses the
+  full default configuration, including language and theme. Initial loading
+  does not rewrite the file; there is no OpenCode Auth migration or filtering.
 - Deprecated id `usage` (standalone Usage tab retired 2026-07) stays parse-tolerant: the enum variant is kept `#[doc(hidden)]`, `load()` filters it out with a `tracing::warn!` **before** validation, and the user's custom order of the remaining tabs is preserved — never fall back to defaults just because `usage` appears.
 - `load()` treats a list that omits known current ids as an older configuration:
   it preserves the listed order, appends every missing id in built-in relative
@@ -288,7 +292,7 @@ let sections = match profile_document_shape(&document) {
 - Incomplete list after `usage` filtering -> preserve the listed order and
   append missing known ids in built-in relative order.
 - Duplicate ids or unknown ids -> reject `load`; `load_or_default` returns the
-  full default configuration.
+  full default configuration without rewriting the source file.
 - Incomplete list passed directly to `save` -> reject before writing and keep
   the existing file unchanged.
 - TOML parse failure -> return the full default order and let the TUI continue.

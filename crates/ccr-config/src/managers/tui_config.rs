@@ -118,11 +118,6 @@ pub enum TuiTabId {
     CodexAuth,
     ClaudeAuth,
     GrokAuth,
-    /// Deprecated: OpenCode Auth tab 已下线。
-    /// 仅为解析旧版 `tui.toml` 保留;`load()` 会过滤该项并记录 warn,
-    /// 不得因它出现而丢弃用户的自定义排序。
-    #[doc(hidden)]
-    OpencodeAuth,
 }
 
 impl TuiTabId {
@@ -135,7 +130,6 @@ impl TuiTabId {
             TuiTabId::CodexAuth => "codex_auth",
             TuiTabId::ClaudeAuth => "claude_auth",
             TuiTabId::GrokAuth => "grok_auth",
-            TuiTabId::OpencodeAuth => "opencode_auth",
         }
     }
 
@@ -207,15 +201,6 @@ impl TuiConfigManager {
                 self.config_path.display()
             );
             config.tab_order.retain(|tab_id| *tab_id != TuiTabId::Usage);
-        }
-        if config.tab_order.contains(&TuiTabId::OpencodeAuth) {
-            tracing::warn!(
-                "TUI config {} contains deprecated `opencode_auth` tab; ignoring it",
-                self.config_path.display()
-            );
-            config
-                .tab_order
-                .retain(|tab_id| *tab_id != TuiTabId::OpencodeAuth);
         }
 
         let missing = DEFAULT_TAB_ORDER
@@ -359,7 +344,6 @@ mod tests {
             ]
         );
         assert!(!order.contains(&TuiTabId::Usage));
-        assert!(!order.contains(&TuiTabId::OpencodeAuth));
     }
 
     #[test]
@@ -374,7 +358,7 @@ mod tests {
   "codex_profile",
   "codex_auth",
   "claude_auth",
-  "opencode_auth",
+  "grok_auth",
 ]
 "#,
         )
@@ -389,8 +373,8 @@ mod tests {
                 TuiTabId::CodexProfile,
                 TuiTabId::CodexAuth,
                 TuiTabId::ClaudeAuth,
-                TuiTabId::GrokProfile,
                 TuiTabId::GrokAuth,
+                TuiTabId::GrokProfile,
             ]
         );
     }
@@ -408,7 +392,7 @@ tab_order = [
   "claude_profile",
   "codex_auth",
   "claude_auth",
-  "opencode_auth",
+  "grok_auth",
 ]
 "#,
         )
@@ -433,7 +417,7 @@ tab_order = [
   "codex_profile",
   "codex_auth",
   "claude_auth",
-  "opencode_auth",
+  "grok_auth",
 ]
 "#,
         )
@@ -458,7 +442,7 @@ tab_order = [
   "codex_profile",
   "codex_auth",
   "claude_auth",
-  "opencode_auth",
+  "grok_auth",
 ]
 "#,
         )
@@ -525,7 +509,7 @@ tab_order = [
   "claude_profile",
   "usage",
   "codex_auth",
-  "opencode_auth",
+  "grok_auth",
 ]
 "#,
         )
@@ -539,8 +523,8 @@ tab_order = [
                 TuiTabId::CodexProfile,
                 TuiTabId::ClaudeProfile,
                 TuiTabId::CodexAuth,
-                TuiTabId::GrokProfile,
                 TuiTabId::GrokAuth,
+                TuiTabId::GrokProfile,
             ]
         );
     }
@@ -603,20 +587,24 @@ tab_order = [
 
         std::fs::write(
             manager.config_path(),
-            r#"tab_order = [
+            r#"language = "zh_cn"
+theme = "latte"
+tab_order = [
   "codex_profile",
   "claude_profile",
-  "usage",
+  "grok_profile",
   "codex_auth",
   "claude_auth",
-  "claude_runtime"
+  "unknown_tab"
 ]
 "#,
         )
         .unwrap();
 
+        let original = std::fs::read(manager.config_path()).unwrap();
         assert!(manager.load().is_err());
         assert_eq!(manager.load_or_default(), TuiConfig::default());
+        assert_eq!(std::fs::read(manager.config_path()).unwrap(), original);
     }
 
     #[test]
@@ -633,7 +621,7 @@ tab_order = [
   "codex_profile",
   "codex_auth",
   "claude_auth",
-  "opencode_auth",
+  "grok_auth",
 ]
 "#,
         )

@@ -9,7 +9,7 @@ CLI-first workflow with explicit Claude Runtime / Codex Runtime state, plus TUI 
 - **Platform-Scoped Profile Routing**: Use `ccr claude profile ...` and `ccr codex profile ...` instead of the retired global `ccr switch` path.
 - **Enterprise-Grade Safety**: Atomic writes, file locking (`fs4`), audit logs, and automatic backups.
 - **Multi-Interface**: CLI, TUI, and CCR UI.
-- **Auth Portability**: Save/export/import Codex auth and migrate compatible accounts into OpenCode.
+- **Auth Portability**: Save, export, and import Codex auth accounts.
 - **Smart Sync**: WebDAV-based multi-folder synchronization.
 
 ## Interface Preview

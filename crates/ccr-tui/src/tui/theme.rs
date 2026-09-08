@@ -1,10 +1,9 @@
 // TUI theme & style — Catppuccin 双主题（Mocha / Latte）集中配色
 //
 // 设计目标:
-// - 以 Catppuccin 为基底,暗色终端用 Mocha、亮色终端用 Latte,启动时按终端背景自动选定。
+// - 以 Catppuccin 为基底,按保存的偏好选择 Mocha / Latte,仅显式 auto 时检测终端背景。
 // - 两套调色板各自满足明暗对比,保证「明暗终端下所有文字都清晰」。
-// - 三个页面(Claude Code / Codex Auth / OpenCode Auth)共用同一套「外壳」语言,
-//   仅以平台强调色区分身份: Claude=Peach, Codex=Blue, OpenCode=Teal。
+// - Profile 与 Auth 页面共用同一套「外壳」语言,由平台强调色表达身份。
 
 use ccr_cli::managers::{TuiConfigManager, TuiTheme};
 use ccr_cli::models::Platform;
@@ -78,8 +77,6 @@ pub struct Palette {
     pub claude: Color,
     /// Codex identity accent (Blue).
     pub codex: Color,
-    /// OpenCode identity accent (Teal).
-    pub opencode: Color,
     /// Gemini identity accent (Sapphire).
     pub gemini: Color,
     /// Droid identity accent (Green).
@@ -106,7 +103,6 @@ static MOCHA: Palette = Palette {
     selection_fg: Color::Rgb(17, 17, 27),     // Crust #11111b
     claude: Color::Rgb(250, 179, 135),        // Peach #fab387
     codex: Color::Rgb(137, 180, 250),         // Blue #89b4fa
-    opencode: Color::Rgb(148, 226, 213),      // Teal #94e2d5
     gemini: Color::Rgb(116, 199, 236),        // Sapphire #74c7ec
     droid: Color::Rgb(166, 227, 161),         // Green #a6e3a1
     quota: [
@@ -136,7 +132,6 @@ static LATTE: Palette = Palette {
     selection_fg: Color::Rgb(239, 241, 245),  // Base #eff1f5
     claude: Color::Rgb(254, 100, 11),         // Peach #fe640b
     codex: Color::Rgb(30, 102, 245),          // Blue #1e66f5
-    opencode: Color::Rgb(23, 146, 153),       // Teal #179299
     gemini: Color::Rgb(32, 159, 181),         // Sapphire #209fb5
     droid: Color::Rgb(64, 160, 43),           // Green #40a02b
     quota: [
@@ -373,11 +368,6 @@ pub fn claude() -> Color {
 /// Codex identity accent.
 pub fn codex() -> Color {
     palette().codex
-}
-
-/// OpenCode identity accent.
-pub fn opencode() -> Color {
-    palette().opencode
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -617,11 +607,6 @@ pub fn codex_style() -> Style {
     Style::default().fg(codex()).add_modifier(Modifier::BOLD)
 }
 
-/// OpenCode platform style.
-pub fn opencode_style() -> Style {
-    Style::default().fg(opencode()).add_modifier(Modifier::BOLD)
-}
-
 // ═══════════════════════════════════════════════════════════
 // Enhanced style functions
 // ═══════════════════════════════════════════════════════════
@@ -789,11 +774,8 @@ mod tests {
 
     #[test]
     fn page_identity_accents_are_distinct() {
-        // 三个页面共用外壳,但身份强调色必须可区分: Claude=Peach, Codex=Blue, OpenCode=Teal。
         for palette in [&MOCHA, &LATTE] {
             assert_ne!(palette.claude, palette.codex);
-            assert_ne!(palette.claude, palette.opencode);
-            assert_ne!(palette.codex, palette.opencode);
         }
     }
 

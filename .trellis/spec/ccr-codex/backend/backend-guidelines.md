@@ -25,7 +25,7 @@ Keep this split:
 
 ## Filesystem And Security
 
-Use `CodexPaths`/`OpenCodePaths` instead of direct home-directory joins. Preserve `CCR_CODEX_DIR`, `CCR_DATA_DIR`, and `CCR_LOCK_DIR` overrides for tests and controlled environments.
+Use `CodexPaths` instead of direct Codex home-directory joins. The retired OpenCode Auth `OpenCodePaths` helper has been removed; this does not remove other OpenCode configuration or usage consumers. Preserve `CCR_CODEX_DIR`, `CCR_DATA_DIR`, and `CCR_LOCK_DIR` overrides for tests and controlled environments.
 
 Auth files and exported account snapshots are security-sensitive. Preserve masking, private-file permissions, backup-before-destructive-change behavior, and repair/sync flows.
 
