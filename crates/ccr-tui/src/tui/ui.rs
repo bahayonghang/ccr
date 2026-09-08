@@ -2483,6 +2483,155 @@ mod tests {
     }
 
     #[test]
+    fn codex_auth_composed_layout_matrix_preserves_scope_quota_and_errors() {
+        use ccr_cli::managers::TuiLanguage;
+        for language in [TuiLanguage::English, TuiLanguage::SimplifiedChinese] {
+            crate::tui::i18n::set_language(language);
+            for (width, height) in [
+                (80, 24),
+                (100, 22),
+                (100, 30),
+                (120, 22),
+                (140, 40),
+                (180, 50),
+                (60, 18),
+            ] {
+                let (_dir, auth) = codex_auth::ui::tests::presentation_fixture();
+                let profile = ProfileItem {
+                    name: "fixture".into(),
+                    description: None,
+                    is_current: false,
+                };
+                let mut app =
+                    sample_profile_app_for(Platform::Codex, profile, ProfileConfig::new());
+                app.tabs = vec![empty_platform_tab(
+                    Platform::Codex,
+                    TabVariant::CodexAuth,
+                    "Codex Auth",
+                )];
+                app.codex_auth_app = Some(auth);
+                let selected = app
+                    .codex_auth_app
+                    .as_ref()
+                    .expect("injected Codex Auth fixture")
+                    .selected_account()
+                    .expect("fixture selected account")
+                    .name
+                    .clone();
+                for with_error in [false, true] {
+                    if with_error {
+                        codex_auth::ui::tests::set_fixture_quota_error(
+                            app.codex_auth_app
+                                .as_mut()
+                                .expect("injected Codex Auth fixture"),
+                        );
+                    }
+                    let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+                    terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+                    let rendered = buffer_text(terminal.backend());
+                    let compact = rendered.replace(' ', "");
+                    assert_eq!(
+                        app.codex_auth_app
+                            .as_ref()
+                            .expect("Codex Auth fixture preserved after render")
+                            .selected_account()
+                            .expect("selected account preserved after render")
+                            .name,
+                        selected
+                    );
+                    if width == 60 {
+                        assert!(
+                            compact.contains(crate::tui_text!("statisticsomitted", "统计已省略")),
+                            "{rendered}"
+                        );
+                        assert!(!rendered.contains("12.3K"), "{rendered}");
+                        continue;
+                    }
+                    assert!(
+                        compact.contains(crate::tui_text!(
+                            "Local:accountcodexcn",
+                            "本地：账号codexcn"
+                        )),
+                        "{width}x{height}: {rendered}"
+                    );
+                    assert!(rendered.contains("80%"), "{rendered}");
+                    assert!(rendered.contains("10%"), "{rendered}");
+                    assert_eq!(
+                        rendered.matches("12.3K").count(),
+                        3,
+                        "{width}x{height}: {rendered}"
+                    );
+                    assert!(
+                        compact.contains(crate::tui_text!("Cached", "缓存")),
+                        "{rendered}"
+                    );
+                    if with_error {
+                        assert!(
+                            compact.contains(crate::tui_text!("Quotaerror:", "配额错误：")),
+                            "{rendered}"
+                        );
+                        assert!(
+                            terminal
+                                .backend()
+                                .buffer()
+                                .content
+                                .iter()
+                                .any(|cell| cell.fg == theme::error()),
+                            "{rendered}"
+                        );
+                    }
+                    let mode = theme::viewport_mode(width, height);
+                    let content_start = if mode == ViewportMode::Compact { 6 } else { 7 };
+                    let content_end = height - theme::footer_height(mode);
+                    for y in content_start..content_end {
+                        let border = terminal
+                            .backend()
+                            .buffer()
+                            .cell((width - 1, y))
+                            .expect("right border cell inside fixture viewport")
+                            .symbol();
+                        assert!(
+                            matches!(border, "│" | "┐" | "┘"),
+                            "lost border at {width}x{height}, y={y}: {border}"
+                        );
+                    }
+                    if (width, height) == (100, 22) {
+                        assert_eq!(
+                            app.codex_auth_app
+                                .as_ref()
+                                .expect("Codex Auth fixture in compact layout")
+                                .list_area
+                                .get()
+                                .expect("rendered account list area")
+                                .height,
+                            1
+                        );
+                    }
+                    if !with_error && matches!((width, height), (140, 40) | (100, 22)) {
+                        let mut snapshot = String::new();
+                        for y in 0..height {
+                            let mut x = 0;
+                            while x < width {
+                                let symbol = terminal
+                                    .backend()
+                                    .buffer()
+                                    .cell((x, y))
+                                    .expect("snapshot cell inside viewport")
+                                    .symbol();
+                                snapshot.push_str(symbol);
+                                x += symbol.width().max(1) as u16;
+                            }
+                            snapshot.push('\n');
+                        }
+                        println!("SYNTHETIC CODEX AUTH {language:?} {width}x{height}\n{snapshot}");
+                    }
+                }
+            }
+        }
+        crate::tui::i18n::set_language(TuiLanguage::English);
+    }
+
+    #[test]
     fn simplified_chinese_renders_across_all_viewport_modes() {
         crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::SimplifiedChinese);
 

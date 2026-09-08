@@ -382,6 +382,10 @@ impl CodexAuthApp {
         }
     }
 
+    pub fn is_quota_preview_loading(&self) -> bool {
+        self.preview_task_active
+    }
+
     pub fn selected_quota_error(&self) -> Option<&str> {
         match &self.quota_state {
             QuotaState::Error {
@@ -395,9 +399,8 @@ impl CodexAuthApp {
                 Some(message.as_str())
             }
             _ => self
-                .selected_account()
-                .and_then(|account| self.preview_cache.get(&account.name))
-                .and_then(|entry| entry.quota.error.as_deref()),
+                .selected_quota()
+                .and_then(|entry| entry.error.as_deref()),
         }
     }
 
@@ -423,8 +426,8 @@ impl CodexAuthApp {
     }
 
     pub fn preview_reset_cell_for_account(&self, account_name: &str) -> QuotaPreviewCell {
-        if let Some(entry) = self.preview_cache.get(account_name) {
-            if entry.quota.error.is_some() {
+        if let Some(entry) = self.preview_quota_for_account(account_name) {
+            if entry.error.is_some() {
                 return QuotaPreviewCell {
                     text: "ERR".to_string(),
                     state: QuotaPreviewCellState::Error,
@@ -432,7 +435,7 @@ impl CodexAuthApp {
             }
 
             return QuotaPreviewCell {
-                text: Self::preview_reset_summary_text(&entry.quota),
+                text: Self::preview_reset_summary_text(entry),
                 state: QuotaPreviewCellState::Ready,
             };
         }
@@ -468,6 +471,7 @@ impl CodexAuthApp {
         self.preview_cache
             .get(account_name)
             .map(|entry| &entry.quota)
+            .or_else(|| self.quota_cache().get(account_name))
     }
 
     pub fn preview_cell_for_account(
@@ -475,19 +479,27 @@ impl CodexAuthApp {
         account_name: &str,
         window: PreviewMetricWindow,
     ) -> QuotaPreviewCell {
-        if let Some(entry) = self.preview_cache.get(account_name) {
-            if let Some(quota) = entry.quota.quota.as_ref() {
-                let value = match window {
-                    PreviewMetricWindow::FiveHour => quota.hourly_percentage,
-                    PreviewMetricWindow::SevenDay => quota.weekly_percentage,
+        if let Some(entry) = self.preview_quota_for_account(account_name) {
+            if let Some(quota) = entry.quota.as_ref() {
+                let (value, present) = match window {
+                    PreviewMetricWindow::FiveHour => {
+                        (quota.hourly_percentage, quota.hourly_window_present)
+                    }
+                    PreviewMetricWindow::SevenDay => {
+                        (quota.weekly_percentage, quota.weekly_window_present)
+                    }
                 };
                 return QuotaPreviewCell {
-                    text: format!("{value}%"),
+                    text: match present {
+                        Some(true) => format!("{}%", value.clamp(0, 100)),
+                        Some(false) => crate::tui_text!("N/A", "未提供").to_string(),
+                        None => crate::tui_text!("Unknown", "未知").to_string(),
+                    },
                     state: QuotaPreviewCellState::Ready,
                 };
             }
 
-            if entry.quota.error.is_some() {
+            if entry.error.is_some() {
                 return QuotaPreviewCell {
                     text: "ERR".to_string(),
                     state: QuotaPreviewCellState::Error,
@@ -574,8 +586,8 @@ impl CodexAuthApp {
                 top_model: global_top_model,
                 fallback_reason: Some(
                     crate::tui_text!(
-                        "The current login is not saved as a CCR account; local usage can only be shown for the global runtime",
-                        "当前登录尚未保存为 CCR 账号，本地 usage 暂时只能按全局 runtime 展示"
+                        "Unsaved account; attribution unavailable",
+                        "账号未保存，无法归属"
                     )
                     .to_string(),
                 ),
@@ -593,11 +605,8 @@ impl CodexAuthApp {
                 rolling: dataset.global.clone(),
                 top_model: global_top_model,
                 fallback_reason: Some(
-                    crate::tui_text!(
-                        "CCR found no attribution metadata for this account; showing global runtime statistics",
-                        "CCR 未找到该账号的归因元数据，以下为全局 runtime 统计"
-                    )
-                    .to_string(),
+                    crate::tui_text!("Missing CCR account metadata", "缺少 CCR 账号归因元数据")
+                        .to_string(),
                 ),
             };
         };
@@ -613,8 +622,8 @@ impl CodexAuthApp {
                 top_model: global_top_model,
                 fallback_reason: Some(
                     crate::tui_text!(
-                        "Local Codex logs do not contain account fields; this account has no reliable CCR attribution records, so global runtime statistics are shown",
-                        "本地 Codex 日志不包含账号字段；该账号尚无可置信的 CCR 归因记录，以下为全局 runtime 统计"
+                        "No matching CCR attribution records",
+                        "无匹配的 CCR 归因记录"
                     )
                     .to_string(),
                 ),
@@ -636,8 +645,8 @@ impl CodexAuthApp {
             {
                 Some(
                     crate::tui_text!(
-                        "Only local records attributed to this account are shown; older or unattributed history is excluded",
-                        "仅展示已归因到该账号的本地记录；更早或未归因历史不会混入该账号统计"
+                        "Excludes other accounts and unattributed records",
+                        "不计入其他账号及未归属记录"
                     )
                     .to_string(),
                 )
@@ -1518,6 +1527,28 @@ impl CodexAuthApp {
         true
     }
 
+    /// A failed request adds an error to the last successful snapshot, without
+    /// replacing its acquisition time with the time of the failed attempt.
+    fn cache_quota_preview(&mut self, mut quota: CodexAccountQuota) -> CodexAccountQuota {
+        if quota.error.is_some()
+            && quota.quota.is_none()
+            && let Some(previous) = self
+                .preview_quota_for_account(&quota.account_name)
+                .filter(|entry| entry.quota.is_some())
+        {
+            quota.quota = previous.quota.clone();
+            quota.email = previous.email.clone();
+            quota.fetched_at = previous.fetched_at;
+        }
+        self.preview_cache.insert(
+            quota.account_name.clone(),
+            QuotaPreviewEntry {
+                quota: quota.clone(),
+            },
+        );
+        quota
+    }
+
     fn drain_task_messages(&mut self) -> bool {
         let mut changed = false;
 
@@ -1530,18 +1561,28 @@ impl CodexAuthApp {
                 }
                 Ok(CodexAuthTaskMessage::Preview(quotas)) => {
                     for quota in quotas {
-                        self.preview_cache
-                            .insert(quota.account_name.clone(), QuotaPreviewEntry { quota });
+                        let quota = self.cache_quota_preview(quota);
+                        if quota.quota.is_some()
+                            && quota.error.is_none()
+                            && matches!(
+                                &self.quota_state,
+                                QuotaState::Error { account_name, .. }
+                                    if account_name == &quota.account_name
+                            )
+                        {
+                            let mut cache = self.quota_cache().clone();
+                            cache.insert(quota.account_name.clone(), quota);
+                            self.quota_state = QuotaState::Loaded { cache };
+                        }
                     }
                     self.preview_task_active = false;
                     changed = true;
                 }
                 Ok(CodexAuthTaskMessage::Quota(Ok(quota))) => {
+                    let quota = self.cache_quota_preview(quota);
                     let mut cache = self.quota_cache().clone();
                     let account_name = quota.account_name.clone();
-                    cache.insert(account_name.clone(), quota.clone());
-                    self.preview_cache
-                        .insert(account_name.clone(), QuotaPreviewEntry { quota });
+                    cache.insert(account_name.clone(), quota);
                     self.quota_state = QuotaState::Loaded { cache };
                     self.quota_refresh.finish(&account_name);
                     self.quota_task_active = false;
@@ -1559,18 +1600,13 @@ impl CodexAuthApp {
                     if let QuotaState::Error { account_name, .. } = &self.quota_state {
                         self.quota_refresh.finish(account_name);
                     }
-                    self.preview_cache.insert(
-                        error_account_name.clone(),
-                        QuotaPreviewEntry {
-                            quota: CodexAccountQuota {
-                                account_name: error_account_name,
-                                email: None,
-                                quota: None,
-                                error: Some(error_message),
-                                fetched_at: Utc::now(),
-                            },
-                        },
-                    );
+                    self.cache_quota_preview(CodexAccountQuota {
+                        account_name: error_account_name,
+                        email: None,
+                        quota: None,
+                        error: Some(error_message),
+                        fetched_at: Utc::now(),
+                    });
                     self.quota_task_active = false;
                     changed = true;
                 }
@@ -1671,6 +1707,143 @@ impl TuiApp for CodexAuthApp {
 mod tests {
     use super::*;
     use chrono::{Duration, TimeZone, Utc};
+
+    #[test]
+    fn quota_failure_messages_preserve_successful_snapshot_and_recover() {
+        for cache_only in [false, true] {
+            for failure_kind in 0..3 {
+                let (_dir, mut app) = super::super::ui::tests::presentation_fixture();
+                let previous = app
+                    .selected_quota()
+                    .expect("fixture successful quota")
+                    .clone();
+                if cache_only {
+                    app.preview_cache.clear();
+                    app.quota_state = QuotaState::Loaded {
+                        cache: IndexMap::from([("codexcn".into(), previous.clone())]),
+                    };
+                }
+                let failed = CodexAccountQuota {
+                    account_name: "codexcn".into(),
+                    email: None,
+                    quota: None,
+                    error: Some("fixture network failure".into()),
+                    fetched_at: Utc::now(),
+                };
+                let message = match failure_kind {
+                    0 => CodexAuthTaskMessage::Preview(vec![failed]),
+                    1 => CodexAuthTaskMessage::Quota(Ok(failed)),
+                    _ => CodexAuthTaskMessage::Quota(Err((
+                        "codexcn".into(),
+                        "fixture network failure".into(),
+                    ))),
+                };
+                app.task_tx
+                    .send(message)
+                    .expect("fixture task channel connected");
+                assert!(app.drain_task_messages());
+                let retained = app
+                    .selected_quota()
+                    .expect("cached quota retained after failure");
+                assert!(
+                    retained.quota.is_some(),
+                    "failure kind {failure_kind}, cache only {cache_only} lost quota"
+                );
+                assert_eq!(retained.fetched_at, previous.fetched_at);
+                assert_eq!(retained.email, previous.email);
+                assert_eq!(app.selected_quota_error(), Some("fixture network failure"));
+                assert_eq!(
+                    app.preview_cell_for_account("codexcn", PreviewMetricWindow::FiveHour)
+                        .text,
+                    "80%"
+                );
+                let mut terminal =
+                    ratatui::Terminal::new(ratatui::backend::TestBackend::new(140, 30)).unwrap();
+                terminal
+                    .draw(|frame| {
+                        super::super::ui::draw_embedded(
+                            frame,
+                            &mut app,
+                            frame.area(),
+                            Rect::default(),
+                            crate::tui::theme::ViewportMode::Wide,
+                        );
+                    })
+                    .unwrap();
+                let rendered: String = terminal
+                    .backend()
+                    .buffer()
+                    .content
+                    .iter()
+                    .map(|cell| cell.symbol())
+                    .collect();
+                assert!(rendered.contains('█'), "{rendered}");
+                assert!(
+                    rendered.contains("Quota error: fixture network failure"),
+                    "{rendered}"
+                );
+
+                let mut recovered = previous;
+                recovered.fetched_at = Utc::now();
+                recovered
+                    .quota
+                    .as_mut()
+                    .expect("recovered quota data")
+                    .hourly_percentage = 50;
+                let fetched_at = recovered.fetched_at;
+                app.task_tx
+                    .send(CodexAuthTaskMessage::Preview(vec![recovered.clone()]))
+                    .expect("fixture preview recovery channel connected");
+                app.drain_task_messages();
+                assert_eq!(app.selected_quota_error(), None);
+                assert_eq!(
+                    app.selected_quota()
+                        .expect("recovered selected quota")
+                        .fetched_at,
+                    fetched_at
+                );
+                assert_eq!(
+                    app.preview_cell_for_account("codexcn", PreviewMetricWindow::FiveHour)
+                        .text,
+                    "50%"
+                );
+                app.task_tx
+                    .send(CodexAuthTaskMessage::Quota(Ok(recovered)))
+                    .expect("fixture quota recovery channel connected");
+                app.drain_task_messages();
+                assert_eq!(app.selected_quota_error(), None);
+            }
+        }
+    }
+
+    #[test]
+    fn cached_batch_preview_refresh_is_visible_without_claiming_selected_refresh() {
+        let (_dir, mut app) = super::super::ui::tests::presentation_fixture();
+        app.preview_task_active = true;
+        let mut terminal =
+            ratatui::Terminal::new(ratatui::backend::TestBackend::new(140, 30)).unwrap();
+        terminal
+            .draw(|frame| {
+                super::super::ui::draw_embedded(
+                    frame,
+                    &mut app,
+                    frame.area(),
+                    Rect::default(),
+                    crate::tui::theme::ViewportMode::Wide,
+                );
+            })
+            .unwrap();
+        let rendered: String = terminal
+            .backend()
+            .buffer()
+            .content
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect();
+        assert!(rendered.contains("Refreshing previews"), "{rendered}");
+        assert!(rendered.contains("Cached"), "{rendered}");
+        assert!(rendered.contains('█'), "{rendered}");
+    }
 
     #[test]
     fn account_list_hit_test_hits_first_row_of_body_area() {
@@ -1878,6 +2051,21 @@ mod tests {
             panel.top_model.as_ref().map(|top| top.model.as_str()),
             Some("gpt-5.4")
         );
+        let note = panel
+            .fallback_reason
+            .as_deref()
+            .expect("excluded records coverage note");
+        assert!(note.contains("Excludes other accounts and unattributed records"));
+        assert!(!note.contains("older"));
+        assert_eq!(panel.rolling.all_time.total_input_tokens, 200);
+        let only_selected = CodexUsageDataset {
+            records: vec![dataset.records[0].clone()],
+            global: CodexUsageService::compute_rolling_usage_for_records(&dataset.records[..1]),
+        };
+        let full_match =
+            CodexAuthApp::build_usage_panel_data(&only_selected, Some(&selected), &registry);
+        assert!(full_match.fallback_reason.is_none());
+        assert_eq!(full_match.rolling.all_time.total_input_tokens, 200);
     }
 
     fn make_test_app(accounts: Vec<CodexAuthItem>, selected_index: usize) -> CodexAuthApp {
@@ -1909,6 +2097,40 @@ mod tests {
             usage_task_active: false,
             preview_task_active: false,
             quota_task_active: false,
+        }
+    }
+
+    #[test]
+    fn embedded_quota_loading_matches_batch_preview_and_activation_gate() {
+        use ratatui::{Terminal, backend::TestBackend, layout::Rect};
+        let mut app = make_test_app(vec![sample_saved_account("fixture", "fixture-id")], 0);
+        for waiting in [true, false] {
+            app.activation_delay_ticks = waiting.then_some(1);
+            app.preview_task_active = !waiting;
+            let mut terminal = Terminal::new(TestBackend::new(80, 18)).unwrap();
+            terminal
+                .draw(|frame| {
+                    super::super::ui::draw_embedded(
+                        frame,
+                        &mut app,
+                        Rect::new(0, 0, 80, 16),
+                        Rect::new(0, 16, 80, 2),
+                        crate::tui::theme::ViewportMode::Compact,
+                    )
+                })
+                .unwrap();
+            let text: String = terminal
+                .backend()
+                .buffer()
+                .content
+                .iter()
+                .map(|cell| cell.symbol())
+                .collect();
+            assert!(
+                text.contains(if waiting { "5h Waiting" } else { "5h Loading" }),
+                "{text}"
+            );
+            assert!(!text.contains("No cached quota"), "{text}");
         }
     }
 
