@@ -1679,3 +1679,52 @@ Usage 页 hero 区结构重排：成本结论卡从 7fr/5fr 双列拉伸布局�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 111: Grok Auth CLI 核心命令完成，CI 被既有 Windows 锁测试阻塞
+
+**Date**: 2026-09-08
+**Task**: Grok Auth CLI 核心命令完成，CI 被既有 Windows 锁测试阻塞
+**Branch**: `dev`
+
+### Summary
+
+补齐 save/list/switch/delete 并同步帮助、文档和规范；原命令红绿回归通过。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] Grok CLI 8 passed; help 17 passed; ccr-cli 342 passed, 1 ignored; docs-check passed; fmt/clippy/workspace check passed
+- [FAIL] just ci failed at existing ccr-core lock.rs:319 Windows OS error 33; isolated repro also failed; no changes to lock.rs
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 完整 CI 验收仍待既有锁测试修复；任务保持 in_progress。未全局安装、提交或推送。
+
+
+## Session 112: Grok Auth CLI 全部提交与归档
+
+**Date**: 2026-09-08
+**Task**: Grok Auth CLI 全部提交与归档
+**Branch**: `dev`
+
+### Summary
+
+用户明确授权提交全部改动并归档；已提交 Grok Auth CLI、回归、帮助、双语文档与规范并归档任务。完整 CI 仍被既有 ccr-core Windows 锁测试阻塞，归档不代表该 gate 通过。未安装全局二进制，未推送。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7963c73f` | (see git log) |
+
+### Status
+
+[OK] **Completed**
