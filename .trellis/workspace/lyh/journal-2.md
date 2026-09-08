@@ -1560,3 +1560,58 @@ Usage 页 hero 区结构重排：成本结论卡从 7fr/5fr 双列拉伸布局�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 107: Codex Auth 配额条与用量展示优化
+
+**Date**: 2026-09-08
+**Task**: Codex Auth 配额条与用量展示优化
+**Branch**: `dev`
+
+### Summary
+
+完成剩余配额条、范围说明与低高度布局，独立检查修复真实失败消息缓存保持及错误恢复；必需门禁通过，未提交。
+
+### Main Changes
+
+- 彩色剩余配额、明确窗口存在状态与缓存刷新错误；中性账号范围说明、全局回退警告及对齐用量表。
+- 真实后台失败消息保留成功缓存和获取时间；同账号成功清除旧错误；中英文组合布局覆盖低高度。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] TUI 228 / CLI 201 / usage 45 tests PASS；version-check、fmt-check、lint-strict PASS。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 按后续明确授权提交与归档；真实终端观感和私人运行时数据仍UNVERIFIED。
+
+
+## Session 108: Codex Auth 配额条与用量展示优化
+
+**Date**: 2026-09-08
+**Task**: Codex Auth 配额条与用量展示优化
+**Branch**: `dev`
+
+### Summary
+
+提交 Codex Auth 配额进度条、用量范围说明与低高度布局，以及 TUI spec 与 cargo install 工具链固定；随后归档任务。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ee867a1a` | (see git log) |
+| `26fc4dff` | (see git log) |
+| `61b8562a` | (see git log) |
+
+### Status
+
+[OK] **Completed**
