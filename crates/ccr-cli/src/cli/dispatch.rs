@@ -162,7 +162,7 @@ impl CommandDispatcher {
             Some(Commands::Codex { action }) => Self::dispatch_codex(action, tui).await,
 
             Some(Commands::Claude { action }) => Self::dispatch_claude(action, tui).await,
-            Some(Commands::Grok { action }) => Self::dispatch_grok(action, tui).await,
+            Some(Commands::Grok { action }) => Self::dispatch_grok(action, tui, auto_yes).await,
 
             Some(Commands::Sessions(args)) => {
                 crate::commands::sessions_cmd::execute(args.clone()).await
@@ -599,6 +599,7 @@ impl CommandDispatcher {
     async fn dispatch_grok(
         action: &Option<crate::cli::subcommands::GrokAction>,
         tui: Option<&TuiLaunchers>,
+        auto_yes: bool,
     ) -> Result<(), CcrError> {
         use crate::cli::subcommands::{GrokAction, GrokAuthAction, GrokProfileAction};
 
@@ -621,6 +622,25 @@ impl CommandDispatcher {
                 }
                 Some(GrokAuthAction::Current { json }) => {
                     crate::commands::grok::auth::current_command(*json).await
+                }
+                Some(GrokAuthAction::Save {
+                    name,
+                    scope,
+                    force,
+                    json,
+                }) => {
+                    crate::commands::grok::auth::save_command(name, scope.as_deref(), *force, *json)
+                        .await
+                }
+                Some(GrokAuthAction::List { json }) => {
+                    crate::commands::grok::auth::list_command(*json).await
+                }
+                Some(GrokAuthAction::Switch { name, json }) => {
+                    crate::commands::grok::auth::switch_command(name, *json).await
+                }
+                Some(GrokAuthAction::Delete { name, force, json }) => {
+                    crate::commands::grok::auth::delete_command(name, auto_yes || *force, *json)
+                        .await
                 }
                 Some(GrokAuthAction::Off { json }) => {
                     crate::commands::grok::auth::off_command(*json).await

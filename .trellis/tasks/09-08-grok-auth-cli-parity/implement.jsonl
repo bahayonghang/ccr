@@ -1,0 +1,3 @@
+{"file":".trellis/spec/ccr-cli/backend/backend-guidelines.md","reason":"CLI output and ownership"}
+{"file":".trellis/spec/ccr-cli/backend/test-fixtures.md","reason":"Credential fixture isolation"}
+{"file":".trellis/spec/ccr-cli/backend/auth-off.md","reason":"Account service and logout contracts"}

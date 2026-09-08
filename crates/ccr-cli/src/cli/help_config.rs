@@ -180,16 +180,24 @@ const CODEX_AUTH_AFTER_LONG_HELP: &str = "\
   - API Key / Provider Key 模式无需 save / switch";
 
 const GROK_AUTH_LONG_ABOUT: &str = "\
-查看并登出 Grok 官方运行时登录。CCR 不保存 Grok 账号快照。";
+管理 Grok 官方 OAuth 账号快照、切换和运行时登出。";
 
 const GROK_AUTH_AFTER_LONG_HELP: &str = "\
 常用任务:
+  保存当前账号: ccr grok auth save gmail
+  多来源保存: ccr grok auth save gmail --scope <scope>
+  查看账号与来源: ccr grok auth list --json
+  切换保存账号: ccr grok auth switch gmail
+  删除保存账号: ccr grok auth delete gmail
   查看当前官方会话: ccr grok auth current
   登出官方会话: ccr grok auth off
   打开 Grok Auth 界面: ccr grok auth
 
 边界:
-  - 只删除 $GROK_HOME/auth.json
+  - save 只写 CCR 账号库；重名覆盖必须显式使用 --force
+  - 切换前结束当前 Grok；switch 先回存原账号，再恢复目标 scope，用于新会话
+  - delete 不登出；off 回存可识别的原账号后删除整个 $GROK_HOME/auth.json，保留账号库
+  - current 仅检查文件存在；list 的本地匹配不代表服务端登录有效
   - 不读取或写入 mcp_credentials.json
   - 不修改 profile 指针或 config.toml";
 

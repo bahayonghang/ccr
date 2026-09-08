@@ -1,12 +1,16 @@
 # `grok` - Grok Build Profile Runtime
 
-`ccr grok` 管理 Grok Build 的模型与第三方 provider profile，并提供官方会话查询、登出及 TUI 多账号管理。Profile 操作管理 `~/.grok/config.toml` 中的 `[model.custom]`、`[models].default` 和 `[models].default_reasoning_effort`；账号服务受控读取 `$GROK_HOME/auth.json`（未设置时为 `~/.grok/auth.json`）并保存官方 OAuth 凭据。界面和命令输出不展示 token。CCR 不读取、写入、备份或校验 `mcp_credentials.json`。
+`ccr grok` 管理 Grok Build 的模型与第三方 provider profile，并提供官方会话查询、登出及 CLI/TUI 多账号管理。Profile 操作管理 `~/.grok/config.toml` 中的 `[model.custom]`、`[models].default` 和 `[models].default_reasoning_effort`；账号服务受控读取 `$GROK_HOME/auth.json`（未设置时为 `~/.grok/auth.json`）并保存官方 OAuth 凭据。界面和命令输出不展示 token。CCR 不读取、写入、备份或校验 `mcp_credentials.json`。
 
 ## Official Auth
 
 | 命令 | 说明 |
 |---|---|
 | `ccr grok auth` | 有 TUI launcher 时进入 Grok Auth 标签；否则打印帮助 |
+| `ccr grok auth save <name>` | 保存当前官方 OAuth 来源；支持 `--scope`、`--force`、`--json` |
+| `ccr grok auth list` | 列出保存账号和当前可用来源；支持 `--json` |
+| `ccr grok auth switch <name>` | 切换到已保存账号，供新 Grok 会话使用；支持 `--json` |
+| `ccr grok auth delete <name>` | 确认删除保存项，不登出；支持 `--force`、全局 `-y`、`--json` |
 | `ccr grok auth current` | 报告官方会话是否存在；支持 `--json`；不输出 token |
 | `ccr grok auth off` | 登出当前官方运行时登录；支持 `--json` |
 
@@ -19,7 +23,21 @@ Grok Auth TUI 支持官方 OAuth 个人/团队账号：
 - `d`：确认删除 CCR 保存项，运行时凭据不变。
 - `o`：确认登出整个运行时，保留 CCR 保存项；`r` 仅重读本地状态。
 
-“本地匹配”不表示服务端认证有效。切换保留原始 token 时间，不主动刷新或登录，也不退出第三方 profile；当前认证路线仍可能由 profile 或环境变量决定。企业 OIDC、external、API-key 和旧 web_login 不纳入账号保存管理。暂无对应的 CLI save/switch 子命令。
+“本地匹配”不表示服务端认证有效。切换保留原始 token 时间，不主动刷新或登录，也不退出第三方 profile；当前认证路线仍可能由 profile 或环境变量决定。企业 OIDC、external、API-key 和旧 web_login 不纳入账号保存管理。
+
+CLI 与 TUI 使用同一个账号库。单个合法 OAuth 来源可直接保存；多个来源时先用 `list` 查看精确 scope，再通过 `--scope` 选择，不默认取第一个。重名保存需显式 `--force`，全局 `-y` 不代替覆盖授权。保存与删除不修改运行时凭据。
+
+```bash
+ccr grok auth save gmail
+ccr grok auth list --json
+ccr grok auth save work --scope '<scope from list>'
+ccr grok auth save gmail --force
+# 先结束当前 Grok，再切换并启动新会话
+ccr grok auth switch gmail
+ccr grok auth delete work --force
+```
+
+命令失败返回非零退出码。`list --json` 提供保存账号、OAuth 来源及本地运行时状态，不包含 token；`current --json` 的 `logged_in` 仍只代表会话文件存在。Codex 的描述更新、重命名、显式 sync、repair、导入导出未移植到 Grok；切换与登出已通过共享服务回存可识别账号的最新凭据。
 
 身份元数据缺失的副本可显式保存；若缺少 Grok 原生格式要求的 `user_id`，切换会拒绝写入，不补造身份。应在官方登录产生完整凭据后重新保存。
 

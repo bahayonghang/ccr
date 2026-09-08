@@ -80,6 +80,26 @@ Reuse `needs_login_prep` / `can_off` to decide whether to show auth logout.
 
 `needs_auth_off` → `can_auth_off`. Profile leftover and official login are independent flags.
 
+## Scenario: Grok saved-account CLI
+
+- `grok auth save <name> [--scope <scope>] [-f|--force] [--json]`,
+  `list [--json]`, `switch <name> [--json]`, and
+  `delete <name> [-f|--force] [--json]` call the existing account service.
+- Save auto-selects only a single supported source; multiple sources require an
+  explicit scope. No source or invalid scope fails without writing. `--force`
+  authorizes alias replacement; global yes does not imply replacement.
+- Delete captures the revision before confirmation; cancellation writes nothing.
+  Explicit force or global CLI `-y` can skip the prompt. Auth deletion does not
+  read or initialize profile configuration for confirmation settings.
+- CLI JSON uses explicit metadata projections, never credentials or revisions.
+  List includes available sources so callers can discover scope identifiers.
+  Current retains its existence-only contract, independent of account-store parsing.
+- Service errors propagate to a nonzero process exit. Mutation warnings must reach
+  the caller. CLI does not duplicate locks, CAS, logout, or outgoing-account logic.
+- Cover real CLI save/list/switch/delete, source ambiguity, overwrite, cancellation,
+  A/B round-trip, secret-free output, and unchanged profile/MCP files with isolated
+  child-process fixtures under `crates/ccr/tests/commands/`.
+
 ## Scenario: Grok saved-account service
 
 ### 1. Scope / Trigger
