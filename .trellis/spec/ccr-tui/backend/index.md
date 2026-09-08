@@ -6,7 +6,7 @@
 
 | Guide | Description | Status |
 |-------|-------------|--------|
-| [Backend Guidelines](./backend-guidelines.md) | TUI state/rendering boundaries, recoverable errors, logging, tests, and verification | Complete |
+| [Backend Guidelines](./backend-guidelines.md) | TUI state/rendering boundaries, Codex Auth quota/usage presentation, recoverable errors, logging, tests, and verification | Complete |
 
 ## Pre-Development Checklist
 

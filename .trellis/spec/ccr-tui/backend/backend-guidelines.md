@@ -381,6 +381,65 @@ let field = DetailField::new(DetailKey::Model, value, DetailTone::Accent {
 });
 ```
 
+## Scenario: Codex Auth Quota And Local Usage
+
+The main Codex Auth tab and `run_codex_auth_tui()` both reach the main `App`
+and `codex_auth::ui::draw_embedded`. Exercise that composed path when testing
+CLI auth entry behavior; the legacy `codex_auth::ui::draw` is not its substitute.
+
+### Quota presentation
+
+- Read selected-account quota through `CodexAuthApp::selected_quota()`. A valid
+  preview snapshot can exist while `QuotaState` is `Idle`; render the snapshot
+  before adding refresh/error status, rather than replacing it with idle help.
+- `hourly_percentage` and `weekly_percentage` are **remaining** percentages.
+  Render a numeric value and a colored bar from the same value, using the active
+  theme's quota palette. Keep unfilled cells muted and clamp bar geometry at
+  the presentation boundary.
+- `window_present = Some(true)` permits a bar, `Some(false)` means not provided,
+  and `None` means unknown. Missing/unknown windows must not appear full or empty.
+  Account-list previews and selected-account details must agree.
+- Keep cached values visible during refresh, and retain a visible failure when
+  refresh fails with cached data. Display `fetched_at` as quota acquisition time;
+  auth `last_refresh` is a separate timestamp. Do not invent another cache TTL.
+- Enforce that retention at the existing background-message cache write boundary,
+  including batch preview errors, failed quota snapshots carried by `Ok`, and
+  outer task errors. A later valid batch result clears a stale error only for
+  the same account. A manually constructed `QuotaState::Error` render fixture
+  alone does not test this message path.
+
+### Local usage scope and severity
+
+`CodexUsageAttributionState` owns scope-note severity. An
+`AccountAttributed` result is a successful filtered aggregate, so its ordinary
+coverage note is muted/informational. `VirtualAccount` and
+`UnattributedFallback` retain a warning and explicitly identify the displayed
+numbers as global local usage. Load failures retain error styling.
+
+Do not infer missing or corrupt history merely because the global count exceeds
+the selected account's count: other accounts also explain that difference.
+Do not change `records_for_account` or mix global records into account totals to
+remove a warning. CCR activation-window attribution is local history, not an
+official account bill or a conversion from tokens to server-side quota.
+
+### Space budget and regression evidence
+
+- Size auth content from the actual `content_area`, including the space already
+  consumed by the main header, runtime banner, and footer. `ViewportMode::Wide`
+  alone does not imply enough height for two right-side panels.
+- Prefer quota, scope, core statistics, and real errors over secondary metadata.
+  Never show global fallback numbers without their scope. Omitted/truncated
+  content must be apparent; labels, numbers, and ellipses use terminal width.
+- Cover English/Chinese at 80×24, 100×22, 100×30, 120×22, 140×40, and 180×50;
+  additionally verify graceful degradation below those sizes. Assert buffer
+  cells and colors, not only that rendering succeeds.
+- Include cached `Idle`, cached refresh failure, all three window-presence
+  states, low/full remaining percentages, successful attribution with another
+  account's records, true global fallback, and load-error fixtures. Use isolated
+  directories and synthetic records; do not read personal auth or usage data.
+- TestBackend evidence proves buffer composition; native terminal appearance and
+  private runtime correctness require separate direct evidence.
+
 ## Logging
 
 Use `tracing::warn!` for recoverable loading failures and diagnostics. Do not print directly from TUI code during active terminal rendering.
