@@ -303,10 +303,13 @@ Provider usage lives inside the Claude/Codex profile detail panel, powered by an
 - Startup loads `tui.toml` once, applies its language and theme to App
   construction, constructs the App before entering the alternate screen, then
   draws the first frame immediately.
-- Mocha is the deterministic default. `mocha` and `latte` environment values
-  override the persisted theme. Terminal background detection runs only for
-  explicit `CCR_TUI_THEME=auto`; an unset or invalid value must not call
-  `termbg`.
+- `auto` is the default persisted theme; Mocha stays the deterministic fallback
+  when detection is unavailable. `mocha` and `latte` environment values
+  override and pin the theme. Terminal background detection runs when
+  `CCR_TUI_THEME=auto` or the persisted theme is `auto`; a pinned theme (env
+  `mocha`/`latte` or persisted `mocha`/`latte`) must never call `termbg`.
+  Detection failure falls back silently: env `auto` keeps the persisted
+  Mocha/Latte pin; other auto-path failures fall back to Mocha.
 - `Ctrl+T` changes the active palette immediately and saves the full loaded
   config so language and custom tab order survive the theme change.
 - Profile builders assign every important value an explicit `DetailTone`.
@@ -327,8 +330,10 @@ Provider usage lives inside the Claude/Codex profile detail panel, powered by an
 ### 4. Validation & Error Matrix
 
 - Missing/invalid TUI config -> continue with default preferences.
-- Invalid `CCR_TUI_THEME` -> warn and use the persisted theme without probing.
-- `CCR_TUI_THEME=auto` probe failure -> use the persisted theme.
+- Invalid `CCR_TUI_THEME` -> warn and follow the persisted theme: pinned
+  values apply without probing; `auto` still probes.
+- Probe failure on an auto path -> env `auto` keeps the persisted Mocha/Latte
+  pin; persisted `auto` falls back to Mocha.
 - Theme save failure -> keep the new palette for the session, log a warning,
   and leave the previous guarded config file intact.
 - Missing/blank reasoning effort -> muted `-`; unknown string -> raw normalized
@@ -342,16 +347,20 @@ Provider usage lives inside the Claude/Codex profile detail panel, powered by an
   beside the model with an emphasized Codex tone.
 - Good: a 140x30 wide page gives the detail rail more width and omits an empty
   Status strip; 80x20 and 100x30 retain compact/standard behavior.
-- Base: no theme env/config exists, so Mocha is selected without terminal I/O.
-- Bad: calling `termbg` whenever `CCR_TUI_THEME` is unset adds a fixed
-  approximately 100ms wait before the first frame.
+- Base: no theme env/config exists, so the theme resolves as `auto` and the
+  terminal background is probed once (bounded ~100ms, TTY only).
+- Bad: calling `termbg` on a pinned-theme path (env `mocha`/`latte` or
+  persisted `mocha`/`latte`) adds a fixed approximately 100ms wait before
+  the first frame for no benefit.
 - Bad: styling fields with `label.contains("model")` makes new keys and
   localized labels silently lose semantic hierarchy.
 
 ### 6. Tests Required
 
-- Theme resolution tests assert that persisted Mocha/Latte avoids the detector,
-  explicit overrides win, and only `auto` invokes the detector.
+- Theme resolution tests assert that pinned themes (persisted Mocha/Latte or env
+  `mocha`/`latte`) avoid the detector, explicit overrides win, only auto paths
+  (env `auto` or persisted `auto`) invoke the detector, and probe failure falls
+  back to the persisted pin or Mocha.
 - Persistence tests assert `Ctrl+T`-equivalent saving preserves language and
   custom tab order.
 - Reasoning tests cover missing, blank, uppercase known values, every supported

@@ -1,7 +1,7 @@
 // TUI theme & style — Catppuccin 双主题（Mocha / Latte）集中配色
 //
 // 设计目标:
-// - 以 Catppuccin 为基底,按保存的偏好选择 Mocha / Latte,仅显式 auto 时检测终端背景。
+// - 以 Catppuccin 为基底,按保存的偏好选择 Mocha / Latte;env 或持久化主题为 auto 时检测终端背景。
 // - 两套调色板各自满足明暗对比,保证「明暗终端下所有文字都清晰」。
 // - Profile 与 Auth 页面共用同一套「外壳」语言,由平台强调色表达身份。
 
@@ -202,8 +202,10 @@ pub fn toggle_theme() -> ThemeVariant {
     next
 }
 
-/// Resolve and apply the startup theme. Persisted Mocha/Latte is deterministic;
-/// terminal background detection only runs for the explicit `auto` override.
+/// Resolve and apply the startup theme. A pinned theme (env `mocha`/`latte` or
+/// persisted Mocha/Latte) is deterministic and never probes the terminal;
+/// background detection runs when `CCR_TUI_THEME=auto` or the persisted theme
+/// is `auto`, falling back silently on failure.
 pub fn init_theme(configured: TuiTheme) {
     let env_value = std::env::var("CCR_TUI_THEME").ok();
     let variant = resolve_startup_variant(env_value.as_deref(), configured, || {
@@ -228,11 +230,16 @@ fn resolve_startup_variant(
     configured: TuiTheme,
     detect: impl FnOnce() -> Option<ThemeVariant>,
 ) -> ThemeVariant {
+    let pinned = match configured {
+        TuiTheme::Mocha => Some(ThemeVariant::Mocha),
+        TuiTheme::Latte => Some(ThemeVariant::Latte),
+        TuiTheme::Auto => None,
+    };
     match value.map(|raw| raw.trim().to_ascii_lowercase()).as_deref() {
         Some("mocha") => ThemeVariant::Mocha,
         Some("latte") => ThemeVariant::Latte,
-        Some("auto") => detect().unwrap_or_else(|| configured.into()),
-        _ => configured.into(),
+        Some("auto") => detect().or(pinned).unwrap_or(ThemeVariant::Mocha),
+        _ => pinned.unwrap_or_else(|| detect().unwrap_or(ThemeVariant::Mocha)),
     }
 }
 
@@ -250,15 +257,6 @@ fn persist_theme_with_manager(
     let mut config = manager.load_or_default();
     config.theme = variant.into();
     manager.save(&config)
-}
-
-impl From<TuiTheme> for ThemeVariant {
-    fn from(theme: TuiTheme) -> Self {
-        match theme {
-            TuiTheme::Mocha => Self::Mocha,
-            TuiTheme::Latte => Self::Latte,
-        }
-    }
 }
 
 impl From<ThemeVariant> for TuiTheme {
@@ -690,6 +688,40 @@ mod tests {
         });
         assert_eq!(variant, ThemeVariant::Latte);
         assert!(detect_called.get());
+    }
+
+    #[test]
+    fn startup_theme_probes_when_persisted_theme_is_auto() {
+        let detect_called = Cell::new(false);
+        let variant = resolve_startup_variant(None, TuiTheme::Auto, || {
+            detect_called.set(true);
+            Some(ThemeVariant::Latte)
+        });
+
+        assert_eq!(variant, ThemeVariant::Latte);
+        assert!(detect_called.get());
+        assert_eq!(
+            resolve_startup_variant(None, TuiTheme::Auto, || Some(ThemeVariant::Mocha)),
+            ThemeVariant::Mocha
+        );
+    }
+
+    #[test]
+    fn startup_theme_falls_back_when_detection_fails() {
+        // 持久化 Auto(无论 env 缺失还是显式 auto)探测失败 → Mocha
+        assert_eq!(
+            resolve_startup_variant(None, TuiTheme::Auto, || None),
+            ThemeVariant::Mocha
+        );
+        assert_eq!(
+            resolve_startup_variant(Some("auto"), TuiTheme::Auto, || None),
+            ThemeVariant::Mocha
+        );
+        // env=auto + 持久化固定值探测失败 → 持久化固定值
+        assert_eq!(
+            resolve_startup_variant(Some("auto"), TuiTheme::Latte, || None),
+            ThemeVariant::Latte
+        );
     }
 
     #[test]
