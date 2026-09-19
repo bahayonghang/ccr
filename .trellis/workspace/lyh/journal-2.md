@@ -1728,3 +1728,25 @@ Usage 页 hero 区结构重排：成本结论卡从 7fr/5fr 双列拉伸布局�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 113: TUI 终端主题自适应（auto 持久化选项）
+
+**Date**: 2026-09-19
+**Task**: TUI 终端主题自适应（auto 持久化选项）
+**Branch**: `dev`
+
+### Summary
+
+TuiTheme 新增 Auto 并设为默认值：启动时持久化 auto 或 env=auto 经 termbg 探测终端亮暗背景，亮→Latte 暗→Mocha，失败回退 Mocha；固定主题零探测。改动 tui_config.rs + theme.rs，同步两份 backend spec，测试全绿；AC6 真机冒烟待用户验证。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d4306d0` | (see git log) |
+| `72cc37e` | (see git log) |
+
+### Status
+
+[OK] **Completed**
