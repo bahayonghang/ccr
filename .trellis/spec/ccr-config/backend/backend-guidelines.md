@@ -250,17 +250,18 @@ let sections = match profile_document_shape(&document) {
 - `TuiConfigManager::load_or_default(&self) -> TuiConfig`
 - `TuiConfigManager::save(&self, config: &TuiConfig) -> Result<()>`
 - `TuiLanguage::{English, SimplifiedChinese}`
-- `TuiTheme::{Mocha, Latte}`
+- `TuiTheme::{Auto, Mocha, Latte}`
 - `TuiConfig { language: TuiLanguage, theme: TuiTheme, tab_order: Vec<TuiTabId> }`
 
 ### 3. Contracts
 
 - `tab_order` is a complete ordered list of known tab ids.
 - `language` serializes as `en` or `zh_cn`; a missing value defaults to English.
-- `theme` serializes as `mocha` or `latte`; a missing value defaults to Mocha.
+- `theme` serializes as `auto`, `mocha`, or `latte`; a missing value defaults
+  to `auto` (the TUI auto-detects the terminal light/dark background at startup).
 - An unsupported or non-string `language` falls back to English independently
   of `tab_order`, so an otherwise valid custom order is preserved.
-- An unsupported or non-string `theme` falls back to Mocha independently of
+- An unsupported or non-string `theme` falls back to `auto` independently of
   `language` and `tab_order`, preserving all other valid preferences.
 - Current tab ids, in built-in order: `codex_profile`, `claude_profile`,
   `grok_profile`, `codex_auth`, `claude_auth`, `grok_auth`.
@@ -284,8 +285,8 @@ let sections = match profile_document_shape(&document) {
 - Missing `language` -> English, preserving the loaded tab order.
 - Unknown or non-string `language` -> warn and use English, preserving the
   loaded tab order.
-- Missing `theme` -> Mocha, preserving language and tab order.
-- Unknown or non-string `theme` -> warn and use Mocha, preserving language and
+- Missing `theme` -> Auto, preserving language and tab order.
+- Unknown or non-string `theme` -> warn and use Auto, preserving language and
   tab order.
 - `tab_order` containing deprecated `usage` -> filter + warn, then validate the remaining list normally (custom order preserved).
 - Missing `tab_order` -> use the full default order.
@@ -310,7 +311,7 @@ let sections = match profile_document_shape(&document) {
 - Good (legacy): a 6-item order containing `usage` loads with `usage` dropped and the custom order intact.
 - Good (migration): an older 5-item custom order loads unchanged in its first
   five positions with `grok_profile` appended.
-- Base: no `tui.toml` exists, so English, Mocha, and the default order are used.
+- Base: no `tui.toml` exists, so English, Auto, and the default order are used.
 - Bad: `language = "fr"` with a valid order must fall back only the language;
   it must not replace the valid order.
 - Bad: `theme = "solarized"` must not discard a valid Chinese language or
@@ -323,8 +324,9 @@ let sections = match profile_document_shape(&document) {
 
 - Unit tests for missing/English/Chinese/unknown/non-string language values,
   including assertions that valid custom ordering survives language fallback.
-- Unit tests for default/Latte/unknown/non-string theme values, including
-  assertions that language and custom ordering survive theme fallback.
+- Unit tests for default (Auto)/auto/Latte/unknown/non-string theme values,
+  including an `auto` save/load round-trip and assertions that language and
+  custom ordering survive theme fallback.
 - Unit tests for missing file, valid custom order, duplicate ids, unknown ids,
   and legacy orders containing `usage` (order preserved, `usage` filtered).
 - The built-in-order test must assert the complete vector so moving one
