@@ -48,33 +48,6 @@ Command classes:
 - **May rewrite files**: `just fmt`, `just version-sync`, some `lint` / `lint:fix`. Inspect the diff.
 - **May install tools**: steps inside aggregate `just ci` such as audit. A green command does not replace a missing required gate.
 
-## Approved child write-back (P2 still open)
-
-Each row includes tool, command, exit, role/model, and UNVERIFIED. This task did not start five hosted harness sessions.
-
-### ui-smoke · F1
-
-- **Whitelist**: `ccr-ui/tests/shell/route-view-mount.smoke.test.tsx`
-- **Commands**: original `bun run test:smoke -- tests/shell/route-view-mount.smoke.test.tsx` was exit **1**, now **0**; `type-check` / `lint:ci` / full `bun run test` exit **0**.
-- **Tool / role**: dispatch `trellis-implement` then `trellis-check` **PASS**. Resolved model UNVERIFIED.
-- **UNVERIFIED**: hosted Frontend CI, native Tauri desktop.
-
-### ci-verdict · F2 / F3
-
-- **Change**: vscode-ci coverage step `shell: bash`; `.cargo/tauri-ci.toml` → tauri; `.cargo/config.toml` → root+tauri; `.cargo/audit.toml` → root.
-- **Commands**: unittest **24 OK**; `check_workflow_governance` exit **0**; vscode-coverage exit **0** (70% threshold unchanged).
-- **UNVERIFIED**: hosted GitHub Actions, branch protection.
-
-### omp-context · F5
-
-- **Behavior**: `buildTaskContext` injects `design.md` / `implement.md` when present.
-- **Command**: `bun test scripts/trellis/omp-context.test.ts` **5/5** exit **0**.
-- **UNVERIFIED**: a real OMP session. The four `.omp` whitelist files are tracked via path-level `git add -f`; `.gitignore` still lists `.omp/`.
-
-### ci-history
-
-Approved but **not yet executed**. Leave as pending P2. This page does not claim the history-evidence review is done.
-
 ## Grok / Kimi rows in platform-map
 
 The four `platform-map.md` copies (under `.agents`, `.claude`, `.grok`, `.omp` `trellis-meta/references/platform-files/`) only correct the Grok/Kimi rows: official agents/hooks exist; this repo still uses pull. Other tools’ existing text is unchanged.
