@@ -17,7 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Standard fast path is `just version-check` → `just fmt-check` → the relevant subsystem check.
 - Use `just lint-strict` and `just test` for Rust changes, `just frontend-check-quick` for frontend fast feedback, `just ui-check` or `just frontend-check` for full UI/frontend coverage, and `just vscode-ci` for extension work.
 - `just frontend-check-quick` runs frontend typecheck, lint, and smoke tests; it intentionally omits build and docs checks.
-- Use `just ci` as the full heavy gate for final acceptance. Current pipeline is 13 steps: version-sync → version-check → fmt → fmt-check → lint-strict → check-workspace → test → release → audit → ci-governance-check → tauri-bindings-check → frontend-check → vscode-ci. Read the step list in the root `justfile` (`_ci-timed-windows` / `_ci-timed-linux`, which hold the same list) rather than this line, because the list changes.
+- Use `just ci` as the full heavy gate for final acceptance. The step list is in the root `justfile` (`_ci-timed-windows` / `_ci-timed-linux` / `_ci-timed-macos`).
 - `just version-sync` and `just fmt` are repair-oriented steps that may modify files; after running them, inspect the diff before continuing.
 - If you run Rust tests directly instead of `just test`, include `-- --test-threads=1` to avoid concurrent-conflict flakes. That flake mitigation is existing repo policy, not a reason to serialize unrelated UI/docs/extension tests.
 - Set `CCR_LOG_LEVEL=debug` (or `trace|info|warn|error`) for runtime debug output.
