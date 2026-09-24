@@ -59,7 +59,7 @@ ccr-ui/
 - **IPC 通信**: 前端通过 `invoke()` 直接调用 Rust 函数，零网络开销
 - **事件驱动**: 后端通过 `app_handle.emit()` 推送事件，前端 `listen()` 接收
 - **原子操作**: 所有文件写入使用 tempfile + rename 原子操作
-- **类型安全**: Rust `#[tauri::command]` + TypeScript `invoke()` 双端类型安全
+- **类型安全**: Rust `#[ccr_tauri_command_macros::command]` + ts-rs 生成绑定 + TypeScript `invoke()`
 - **环境抽象**: `ExecutionEnvironment` trait 支持 Local/WSL/SSH 多环境
 
 ## Design Context
@@ -198,7 +198,7 @@ bun run tauri:check
 
 ### Tauri 命令 (Rust)
 
-- 所有命令函数使用 `#[tauri::command]`
+- 所有命令函数使用 `#[ccr_tauri_command_macros::command]`，并写入 `commands/handler_registry.rs` 的注册表
 - 文件 I/O 使用 `tokio::task::spawn_blocking`
 - 返回 `Result<T, String>` 格式
 - 命名: `snake_case` (如 `list_configs`, `switch_config`)
