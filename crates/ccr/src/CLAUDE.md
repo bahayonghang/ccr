@@ -2,23 +2,13 @@
 
 [根目录](../../../CLAUDE.md) > **crates/ccr**
 
-## Change Log
-
-- **2026-09-06**: 按当前源码改为 facade 导航；领域逻辑在其他 crate，不再把本包写成单体 `src/` 服务树。
-- **2026-01-11**: 补充 cli/, sessions/, storage/, sync/, platforms/, models/ 模块详细描述（当时仍按单体树记录，现已过时）
-- **2025-12-17**: 激进精简到 300 行以内，只保留核心架构和技术栈
-- **2025-12-16**: 按标准模板重新组织文档结构
-- **2025-10-22 00:04:36 CST**: 初始核心模块文档创建
-
----
-
 ## 模块职责
 
 `crates/ccr` 是可安装的 CLI/TUI **入口包**（workspace `default-members`），不是领域实现所在地。
 
 二进制 `src/main.rs` 解析 Clap 参数、初始化日志，并把 TUI 启动器注入 `CommandDispatcher`。命令定义与分发在 `ccr-cli`（本包 `src/cli/mod.rs` 再导出）。TUI 实现在 `ccr-tui`。配置、存储、同步、用量等在对应 crate。
 
-公开 Rust API 通过 `src/lib.rs` 再导出各域 crate，作为 7.x 兼容面；新代码优先 `ccr::prelude` 或直接依赖拥有该逻辑的 crate。不要在本包新增领域服务/管理器。导航以 `crates/code_map.md` 为准，不要按本文件历史单体树去搜 `crates/ccr/src/services/`。
+公开 Rust API 通过 `src/lib.rs` 再导出各域 crate，作为 7.x 兼容面；新代码优先 `ccr::prelude` 或直接依赖拥有该逻辑的 crate。不要在本包新增领域服务/管理器。导航以 `crates/code_map.md` 为准。
 
 ### 入口与委派
 
