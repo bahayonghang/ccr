@@ -5,7 +5,7 @@ This repository keeps GitHub Copilot for VS Code workspace assets under `.github
 ## Boundaries
 
 - GitHub Copilot workspace customization lives in `.github/copilot-instructions.md`, `.github/instructions/`, `.github/prompts/`, and `.github/agents/`.
-- Shared project skills stay in `.claude/skills/`.
+- Tracked shared project skills stay in `.codex/skills/`. `.claude/` is git-ignored, so `.claude/skills/` exists only in local checkouts that create it.
 - Codex CLI runtime/config lives in the user home directory under `~/.codex/`.
 - CCR Unified Codex profiles live under `~/.ccr/platforms/codex/profiles.toml`.
 
@@ -28,4 +28,4 @@ Do not use GitHub Copilot naming for Codex CLI. They are different products and 
 
 ## Shared Skills
 
-GitHub Copilot can discover shared project skills from multiple workspace paths. This repository intentionally keeps `.claude/skills/` as the single source of truth instead of duplicating the same skills into `.github/skills/`.
+This repository keeps `.codex/skills/` as the single tracked source of shared skills and does not duplicate them into `.github/skills/`.
