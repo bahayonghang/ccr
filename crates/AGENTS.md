@@ -19,7 +19,7 @@ Keep Rust code `cargo fmt` clean and clippy-clean. Use `snake_case` for files, m
 Place integration tests under `crates/<crate>/tests/` and focused unit tests beside the implementation. Name tests by observable behavior, not implementation detail. Prefer the narrowest relevant `cargo test -p ...` command while iterating, then run `just test` or `just ci` before handing off larger changes.
 
 ## Commit & Pull Request Guidelines
-Recent history uses Chinese Conventional Commits with scope, `[AI]` when applicable, and emoji, such as `feat(签到): [AI] ✨ ...` or `chore(版本): [AI] 🔧 ...`. Keep commits atomic by crate or feature boundary. PRs should identify the affected Rust crates, summarize behavior changes, link issues when available, and list the verification commands run.
+Follow the commit convention in the root `AGENTS.md`. Keep commits atomic by crate or feature boundary. PRs should identify the affected Rust crates, summarize behavior changes, link issues when available, and list the verification commands run.
 
 ## Security & Configuration Tips
 Never commit local credentials, tokens, home-directory runtime files, or generated secrets. When touching config, auth, sync, or database code, preserve masking, backup, atomic-write, migration, and read-only safety boundaries. Keep destructive cleanup flows dry-run or confirmation-gated unless a test fixture explicitly owns the temporary directory.
