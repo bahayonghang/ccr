@@ -15,12 +15,13 @@ pub enum SourceKind {
         alias = "gemini-cli",
         alias = "gemini cli",
         alias = "google-gemini",
-        alias = "google gemini"
+        alias = "google gemini",
+        alias = "antigravity_ide"
     )]
     Antigravity,
     #[serde(alias = "open-code", alias = "open code")]
     Opencode,
-    #[serde(alias = "kimi-code", alias = "kimi code")]
+    #[serde(alias = "kimi-code", alias = "kimi code", alias = "kimi")]
     KimiCode,
     #[serde(alias = "oh-my-pi", alias = "oh my pi", alias = "omp")]
     Pi,
@@ -72,10 +73,12 @@ impl SourceKind {
         match raw.trim().to_lowercase().as_str() {
             "claude" | "claude-code" | "claude code" => Some(Self::Claude),
             "codex" | "openai-codex" | "openai codex" => Some(Self::Codex),
+            // `antigravity_ide` 是 llmusage 库中存储的来源值，与 `antigravity` 指同一个 agent。
             "antigravity" | "gemini" | "gemini-cli" | "gemini cli" | "google-gemini"
-            | "google gemini" => Some(Self::Antigravity),
+            | "google gemini" | "antigravity_ide" => Some(Self::Antigravity),
             "opencode" | "open-code" | "open code" => Some(Self::Opencode),
-            "kimi_code" | "kimi-code" | "kimi code" => Some(Self::KimiCode),
+            // `kimi` 是会话归档的平台名，与 llmusage 的 `kimi_code` 指同一个 agent。
+            "kimi_code" | "kimi-code" | "kimi code" | "kimi" => Some(Self::KimiCode),
             "pi" | "oh-my-pi" | "oh my pi" | "omp" => Some(Self::Pi),
             "grok" | "grok-build" | "grok build" => Some(Self::Grok),
             "zcode" | "z-code" | "z code" => Some(Self::Zcode),
@@ -128,6 +131,14 @@ mod tests {
             Some("antigravity")
         );
         assert_eq!(
+            canonical_source_id(Some("antigravity_ide")).as_deref(),
+            Some("antigravity")
+        );
+        assert_eq!(
+            serde_json::from_str::<SourceKind>("\"antigravity_ide\"").ok(),
+            Some(SourceKind::Antigravity)
+        );
+        assert_eq!(
             canonical_source_id(Some("Open Code")).as_deref(),
             Some("opencode")
         );
@@ -136,7 +147,12 @@ mod tests {
             canonical_source_id(Some("Kimi Code")).as_deref(),
             Some("kimi_code")
         );
+        assert_eq!(
+            canonical_source_id(Some("kimi")).as_deref(),
+            Some("kimi_code")
+        );
         assert_eq!(canonical_source_id(Some("oh-my-pi")).as_deref(), Some("pi"));
+        assert_eq!(canonical_source_id(Some("omp")).as_deref(), Some("pi"));
         assert_eq!(
             canonical_source_id(Some("Grok Build")).as_deref(),
             Some("grok")
