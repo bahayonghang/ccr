@@ -24,6 +24,7 @@ import { DashboardPlatformMatrix } from './DashboardPlatformMatrix'
 import { DashboardSignalStream } from './DashboardSignalStream'
 import { DashboardStatusBar } from './DashboardStatusBar'
 import { DashboardUsageMovement } from './DashboardUsageMovement'
+import { DashboardInsights } from './insights/DashboardInsights'
 import { useDashboardSignals } from './useDashboardSignals'
 import '../styles/dashboard-view.css'
 
@@ -63,6 +64,12 @@ export function DashboardView() {
     ])
   }, [queryClient])
   const importState = useUsageImport(refreshHomeUsage)
+  const { startImportJob } = importState
+  const startInsightsImport = useCallback(() => {
+    void startImportJob({}).catch((caught: unknown) => {
+      logger.error('[DashboardView] insights import failed', caught)
+    })
+  }, [startImportJob])
   useUsageBootstrapImport({
     unsupported: !isNativeRuntime,
     needsImport: Boolean(isNativeRuntime && overviewQuery.data?.bootstrap.needs_usage_import),
@@ -315,6 +322,11 @@ export function DashboardView() {
             />
           </div>
         </section>
+        <DashboardInsights
+          isNativeRuntime={isNativeRuntime}
+          onImport={startInsightsImport}
+          importing={importState.importing}
+        />
         <DashboardStatusBar backendStatus={backendStatus} entries={logs} />
       </div>
     </main>

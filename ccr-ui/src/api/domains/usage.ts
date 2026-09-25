@@ -15,6 +15,7 @@ export {
   getUsageLogsV2,
   getUsageDashboardV2,
   getHomeUsageOverviewV2,
+  getHomeInsights,
   ensureSessionIndexV2,
   getSessionIndexJobStatusV2,
   startUsageImportJobV2,

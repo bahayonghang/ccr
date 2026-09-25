@@ -382,7 +382,7 @@ The index.html boot screen is synced to the world: light background #e9e4d8, dar
 
 ### Copy & Localization
 
-zh-CN is fully globalized and is the primary copy voice. Components subscribe to translation via `useAppT()` — never a bare captured `t`. The locale leaf count is governed at 4409 (`scripts/check-i18n.mjs`, enforced by `tests/i18n.test.cjs`); add keys through the contract, not ad hoc. Single-line strings truncate with ellipsis and carry a tooltip.
+zh-CN is fully globalized and is the primary copy voice. Components subscribe to translation via `useAppT()` — never a bare captured `t`. The locale leaf count is governed at 4501 (`scripts/check-i18n.mjs`, enforced by `tests/i18n.test.cjs`); add keys through the contract, not ad hoc. Single-line strings truncate with ellipsis and carry a tooltip.
 
 ## Do's and Don'ts
 

@@ -12,6 +12,7 @@ import {
   getUsageSummaryV2,
   getUsageTrendsV2,
 } from '@/api'
+import { getHomeInsights } from '@/api/domains/usage'
 import type { UsageLogsQuery } from '@/api/generated/usageV2'
 
 // usage 域 Query 层（08-22-state-logic-port 批次 2）。
@@ -48,6 +49,7 @@ export const usageKeys = {
 export const homeUsageKeys = {
   all: ['home-usage'] as const,
   overview: (days?: number) => [...homeUsageKeys.all, 'overview', days ?? null] as const,
+  insights: () => [...homeUsageKeys.all, 'insights'] as const,
 }
 
 export interface UsageLogsQueryKey {
@@ -155,6 +157,16 @@ export function useHomeUsageOverview(days?: number) {
     // TanStack Query 禁止 queryFn 返回 undefined；后端空响应按 null 处理。
     queryFn: async () => (await getHomeUsageOverviewV2(days)) ?? null,
     staleTime: USAGE_STALE_TIME,
+  })
+}
+
+/** 首页 Insights 快照：enabled 由调用方控制（Web 预览不取数、首屏之后再取）。 */
+export function useHomeInsights(options: { enabled: boolean }) {
+  return useQuery({
+    queryKey: homeUsageKeys.insights(),
+    queryFn: () => getHomeInsights(),
+    staleTime: USAGE_STALE_TIME,
+    enabled: options.enabled,
   })
 }
 
