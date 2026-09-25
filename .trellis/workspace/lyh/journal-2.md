@@ -1750,3 +1750,39 @@ TuiTheme 新增 Auto 并设为默认值：启动时持久化 auto 或 env=auto �
 ### Status
 
 [OK] **Completed**
+
+
+## Session 114: 首页 Insights 前端提交与后端设计归档
+<!-- trellis-session: v=2 fp=999b414d33cb368f -->
+
+**Date**: 2026-09-25
+**Task**: 首页 Insights 前端提交与后端设计归档
+**Branch**: `dev`
+
+### Summary
+
+提交首页 Insights 前端实现，归档已完成的 backend 与 design 子任务。frontend 与父任务仍打开。
+
+### Main Changes
+
+- 首页 DashboardView 挂载 Insights，数据来自一次 getHomeInsights，查询在空闲后发起。
+- 归档 09-24-home-insights-backend 与 09-24-home-insights-design。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `76bae516` | feat(ccr-ui): ✨ 首页挂载 Insights 区块 |
+| `5443d95d` | chore(trellis): 🔧 标记 Insights 前端任务进行中 |
+
+### Testing
+
+- [OK] ccr-ui type-check 通过。tests/dashboard 60 项通过。check:i18n 词条 4501。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- frontend 仍缺 1920x1080 视觉核对、frontend-check-quick、bundle-budget、build 与 frontend-quality-reviewer。父任务 AC-P6 的 just ci 未跑。这两项先不归档。

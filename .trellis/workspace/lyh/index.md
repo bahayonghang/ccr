@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 113
-- **Last Active**: 2026-09-19
+- **Total Sessions**: 114
+- **Last Active**: 2026-09-25
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1752 | Active |
+| `journal-2.md` | ~1788 | Active |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 114 | 2026-09-25 | 首页 Insights 前端提交与后端设计归档 | `76bae516`, `5443d95d` | `dev` |
 | 113 | 2026-09-19 | TUI 终端主题自适应（auto 持久化选项） | `d4306d0`, `72cc37e` | `dev` |
 | 112 | 2026-09-08 | Grok Auth CLI 全部提交与归档 | `7963c73f` | `dev` |
 | 111 | 2026-09-08 | Grok Auth CLI 核心命令完成，CI 被既有 Windows 锁测试阻塞 | - | `dev` |
