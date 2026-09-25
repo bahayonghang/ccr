@@ -32,6 +32,22 @@ colors:
   platform-gemini: "#7d97b6"
   platform-opencode: "#735f52"
   platform-antigravity: "#98afc9"
+  platform-kimi-code: "#b65790"
+  platform-pi: "#9773d0"
+  platform-zcode: "#1d83a4"
+  platform-deepseek-harness: "#1e8dfe"
+  chart-other: "#a1937c"
+  chart-other-light: "#968b76"
+  chart-heat-0: "#332f27"
+  chart-heat-1: "#5b5344"
+  chart-heat-2: "#7a7263"
+  chart-heat-3: "#9b9383"
+  chart-heat-4: "#beb5a4"
+  chart-heat-0-light: "#ebe5db"
+  chart-heat-1-light: "#b4ab9b"
+  chart-heat-2-light: "#958d7d"
+  chart-heat-3-light: "#776f60"
+  chart-heat-4-light: "#5b5344"
 typography:
   headline:
     fontFamily: "SF Pro Display, Segoe UI Variable Display, PingFang SC, Microsoft YaHei UI, Microsoft YaHei, sans-serif"
@@ -164,6 +180,10 @@ The palette is a terminal phosphor system: a neutral warm-black ladder carries t
 
 Claude clay (#d97757), Codex sage (#7cab82), Grok lavender (#a79bc4), Gemini steel (#7d97b6), OpenCode umber (#735f52), Antigravity sky (#98afc9). Each platform color has dot / surface / border / text roles per theme.
 
+Four usage sources that appear only in Insights have the same five roles (`--color-platform-{key}`, `-rgb`, `-surface`, `-border`, `-text`): Kimi Code rose (#b65790, key `kimi-code`), Pi violet (#9773d0, key `pi`), ZCode teal (#1d83a4, key `zcode`), DeepSeek Harness azure (#1e8dfe, key `deepseek-harness`). The dot value is the same in both themes and both flavors. The dot holds ≥3:1 against the card face in all four theme × flavor combinations (#faf7ec, #fefaf2, #1f1b14, #2a221e). The surface and border roles mix the dot into the neutral card face (light #faf7ec at 12% / 32%, dark #1f1b14 at 22% / 40%). The text role holds ≥4.5:1 against its surface role and against the card face of both flavors. Source keys `kimi_code` and `deepseek_harness` become kebab case in token names. These four colors are flat identity swatches under the Platform Tick Rule; they never form gradients and never repaint panels.
+
+The nine usage-source colors cannot all be told apart pair by pair (validator record: the `home-insights-design` task's `research/palette-validation.md`). Any chart that shows more than one source at a time must carry a secondary encoding: segment gaps, a legend, direct labels when the chart shows 4 or fewer series, and a per-segment tooltip.
+
 ### Named Rules
 
 **The Status-Only Color Rule.** Green, red, warn, and info live only on status hairlines, dots, and state values. Panels, charts, and chrome stay neutral; a colored panel is a bug.
@@ -280,6 +300,82 @@ Sticky to the scroll container's bottom edge: a 1px hairline top rule over the b
 
 The sidebar's settings anchor: a card with two rows — a title row and a mono meta row ending in the app version — both single-line ellipsis with a native tooltip for the full string. Active state is the overlay background plus a 2px amber left tick.
 
+### Insights Block (signature)
+
+The home Insights block sits below the first viewport. It shares the first viewport's scroll container and the bottom command status bar. The first-viewport composition does not change. Source of the decisions: the `home-insights-design` task's `design.md` §6.
+
+**Shared rules.**
+
+- Order, top to bottom: section header row, totals readout, activity heatmap beside the 7-day comparison, weekly requests by source, time distribution beside the leaderboard.
+- Panels reuse the first-viewport usage panel: surface background, 1px subtle hairline border, `--home-card-radius`, `--home-card-pad`. The gap between blocks is `--home-section-gap`.
+- The heatmap and the 7-day comparison share one row at the `.dashboard-lower` column ratio `1.85fr : 1fr` (heatmap : 7-day comparison). The distribution and the leaderboard share one row in two equal columns. Below 1024px every paired row becomes a single column.
+- Chart gridlines sit at 25/50/75%. Bars have no corner radius. Every bar and cell carries a `title` and a hover tooltip. A chart that shows 4 or fewer series adds direct labels in addition to its legend.
+- Charts are plain DOM and CSS. Do not add a chart dependency.
+- Large numbers use the same compact formatter as the first viewport (`compactLabel`). It formats with the runtime default locale (the WebView system language), not with the app UI language: a Chinese system shows 万 / 亿, an English system shows K / M / B. The full value goes in the `title`.
+- View switches are segmented controls (`role="radiogroup"`). Arrow keys move the selection. The focus ring is visible.
+
+**Section header row.**
+
+- Form: title "使用洞察", a one-line description, and the date range in mono on the right.
+- Height: natural height.
+- Colors: text tokens only.
+- Empty: always rendered, in every empty state.
+
+**Totals readout.**
+
+- Form: one full-width reading line, not cards. A 1px `--color-border-subtle` hairline runs above and below it. Six groups of label + value share one baseline: sessions, tokens, requests, agents, projects, active days. A 1px vertical hairline separates the groups. The label is sans 0.8125rem muted ink. The value is mono 1.125rem semibold primary ink with tabular figures.
+- Height: one line.
+- Colors: text tokens and `--color-border-subtle`. No panel fill, no cells, no 2px tick, no mini bars. The readout must not look like the platform quote band.
+- Empty: a value with no data shows `—`. An unindexed session count shows `—` with `title="会话尚未索引"`.
+
+**7-day comparison.**
+
+- Form: a table inside a panel. Columns: metric, last 7 days, previous 7 days, change. Rows: sessions, requests, active days.
+- Height: header row 1.5rem, then 3 rows at a fixed 2.25rem each.
+- Change format: sign plus text — `+21.7%`, `−17.6%`, `+2 天`, `持平`. When the previous 7 days are 0, write `新增`.
+- Colors: the change column stays secondary ink. Change is not a status, so it gets no status color.
+- Empty: with no requests, only the sessions row has values. With sessions not indexed, the sessions row shows `—`.
+
+**Activity heatmap.**
+
+- Form: 53 week columns × 7 day rows of daily request counts, in 5 steps. Step 0 means no activity. A month label row sits above the grid. A caption line below gives the current streak, the longest streak, and the busiest day. A "少 → 多" legend shows the steps. A segmented control in the panel header switches between the chart view and the table view (图表 / 表格); the chart view is the default.
+- Size: cell width scales with the container between 0.5rem and 0.875rem. The cell gap is `--space-0-5`. When the cell width would go below 0.5rem, the container scrolls horizontally and opens scrolled to the latest week. Height is the 7 cell rows plus the month row plus the caption line.
+- Colors: `--color-chart-heat-0` … `--color-chart-heat-4`, a warm neutral single-hue ramp. Heat-0 is the no-activity cell fill only; it stays visibly apart from the card face in all four theme × flavor combinations (≥1.15:1). One value per theme serves both flavors. Heat-1 is below 3:1 against the surface. The table view is the relief channel for colors below 3:1 (dataviz rule: a tooltip alone is not enough). Each cell's `title` / tooltip also gives the date and the value.
+- Table view: one row per week, newest week first (53 rows). Columns: week start date (mono), Monday … Sunday, week total. Cells show full request counts with grouping separators in mono tabular figures. A day after `as_of` is an empty cell. The table height is `clamp(10rem, 26vh, 16rem)`, with a sticky header row, fixed 2rem rows, and vertical scroll. The caption line stays below the table.
+- Empty: when there are no requests, every cell is heat-0. A caption "导入用量后显示" and an "导入用量" button follow.
+
+**Weekly requests by source.**
+
+- Form: a full-width panel with one stacked bar per week (53 bars) of request counts by source. A segmented control in the panel header switches between the chart view and the table view (图表 / 表格); the chart view is the default.
+- Merge rule: the top 4 sources by total over the 53-week window get their own color. Ties follow `SourceKind::ALL` order. All other sources merge into one "其他" segment. The top 4 are fixed for the whole chart; color follows the source, not the rank.
+- Stack order, bottom to top: claude, zcode, grok, deepseek_harness, antigravity, kimi_code, opencode, codex, pi; "其他" is always on top. The legend uses the same order.
+- Height: the chart is `clamp(10rem, 26vh, 16rem)`, the same bound as the first-viewport chart.
+- Colors: `--color-platform-*` per source. The "其他" segment is `--color-chart-other` with a 45° stripe texture: `repeating-linear-gradient(45deg, var(--color-chart-other) 0 0.1875rem, var(--color-bg-surface) 0.1875rem 0.3125rem)`.
+- Secondary encoding (required, because the nine source colors are not all pairwise distinct): a `--space-0-5` surface-color gap between segments, the legend, direct labels when the chart shows 4 or fewer series, a tooltip per segment, and the table view. The table view is the relief channel for colors below 3:1 (dataviz rule: a tooltip alone is not enough).
+- Table view: one row per week, newest week first (53 rows). Columns: week start date (mono), one column per shown series in stack order (the top 4 sources, then 其他), and the week total. Each source column header carries the 2px platform-color tick and the source name. Cells show full request counts with grouping separators in mono tabular figures. The table height is the chart height `clamp(10rem, 26vh, 16rem)`, with a sticky header row, fixed 2rem rows, and vertical scroll.
+- Empty: not rendered when there are no requests.
+
+**Time distribution.**
+
+- Form: one panel with three views — hour, weekday, month — selected by a segmented control.
+- Height: the chart is a fixed 10rem.
+- Colors: bars `--color-chart-heat-2`; the peak bar `--color-chart-heat-4`.
+- Empty: not rendered when there are no requests.
+
+**Leaderboard.**
+
+- Form: one panel. A segmented control selects the dimension (Agent / 项目 / 模型). A second segmented control selects the metric (请求 / Token / 会话). The session metric is available for Agent only. When sessions are not indexed, the session option is disabled and has a `title` that gives the reason.
+- Height: fixed 2rem rows, 8 rows at most.
+- Colors: an Agent row has a 2px platform-color tick and a 0.375rem-high platform-color bar on a `--color-bg-overlay` track. Project and model rows use a neutral `--color-chart-heat-2` bar.
+- Empty: with no requests, the default metric is sessions.
+
+**Empty states.**
+
+- Empty store (no requests and no sessions): the header row, the totals readout with every value `—`, and one dashed panel (`1px dashed --color-border-default`) with "还没有可分析的记录", a short description, and the primary "导入用量" button. The button is amber because it is the next command.
+- Sessions only (no requests, `sessions_indexed = true`, sessions present): request values show `—`. The heatmap follows its empty rule. The 7-day comparison has values in the sessions row only. The leaderboard defaults to the session metric. The weekly chart and the distribution are not rendered.
+- Usage only (`sessions_indexed = false`): every session count shows `—` with `title="会话尚未索引"`. One info dot plus an explanation line sits below the totals readout. The session metric in the leaderboard is disabled. All other blocks render as usual.
+- Web preview (not the Tauri runtime): the header row plus one solid panel with an info dot, "Web 预览不读取本机数据", and a short description. The block makes no IPC call.
+
 ### Boot Loader
 
 The index.html boot screen is synced to the world: light background #e9e4d8, dark background #100f0c, dark spinner arc in amber #f0a32b. Known open item: the light spinner arc still uses #0071e3 pending an accent review — flag it before shipping a light-first surface.
@@ -300,6 +396,11 @@ zh-CN is fully globalized and is the primary copy voice. Components subscribe to
 - **Do** keep charts bounded (`clamp(10rem, 26vh, 16rem)`) and data rows at fixed heights.
 - **Do** subscribe copy through `useAppT()` and keep the locale contract green.
 - **Do** honor `data-reduced-motion`: micro-interactions collapse to 0ms and lifts flatten.
+- **Do** give the Insights weekly chart a secondary encoding: segment gaps, a legend, direct labels at 4 or fewer series, a tooltip per segment, the stripe texture on "其他", and a table view.
+- **Do** give the Insights weekly chart and the activity heatmap a chart / table switch; the table view gives exact values for colors below 3:1.
+- **Do** keep the top 4 sources and the stack order fixed across the whole weekly chart; color follows the source, not the rank.
+- **Do** give every Insights chart a fixed or clamped height, and every Insights table row a fixed height.
+- **Do** write a 7-day change as sign plus text (`+21.7%`, `−17.6%`, `+2 天`, `持平`, `新增`) in secondary ink.
 
 ### Don't:
 
@@ -311,3 +412,9 @@ zh-CN is fully globalized and is the primary copy voice. Components subscribe to
 - **Don't** use fluid hero typography or decorative fonts inside app surfaces.
 - **Don't** capture a bare `t` outside `useAppT()`, and don't leave zh-CN copy unglobalized.
 - **Don't** hide disabled, blocked, or destructive states — they must read at a glance.
+- **Don't** color a 7-day change green or red; the change is not a status.
+- **Don't** use amber or status colors in the heatmap ramp or the distribution bars; they use `--color-chart-heat-*` only.
+- **Don't** add a chart library for Insights; charts are plain DOM and CSS.
+- **Don't** build the Insights totals as metric cards or as a copy of the platform quote band; it is one hairline-ruled reading line.
+- **Don't** give each of the nine sources its own weekly-chart color; merge everything past the top 4 into "其他".
+- **Don't** use platform colors on project or model rows in the leaderboard; only Agent rows carry the platform tick and bar.

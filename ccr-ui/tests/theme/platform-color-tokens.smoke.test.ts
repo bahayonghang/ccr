@@ -17,6 +17,11 @@ const PLATFORMS = [
 
 const ROLES = ['', '-rgb', '-surface', '-border', '-text'] as const
 
+// 09-24 Insights 新增的四个用量来源（token 名用 kebab）
+const INSIGHTS_SOURCES = ['kimi-code', 'pi', 'zcode', 'deepseek-harness'] as const
+
+const CHART_TOKEN = /--color-chart-[a-z0-9-]+(?=:)/g
+
 const extractVar = (block: string, name: string): string | null => {
   const match = block.match(new RegExp(`${name}:\\s*([^;]+);`))
   return match ? match[1].trim() : null
@@ -90,6 +95,74 @@ describe('平台色 token 四角色', () => {
       expect(surface).toMatch(HEX)
       expect(text).toMatch(HEX)
       expect(contrastRatio(text ?? '', surface ?? '')).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+})
+
+describe('Insights 新增来源色与图表色 token', () => {
+  it('四个新来源的五个角色在明暗两套主题下都有取值，-rgb 与主色一致', async () => {
+    const source = await readFile(TOKENS_PATH, 'utf8')
+    const root = source.match(ROOT_BLOCK)?.[0] ?? ''
+    const dark = source.match(DARK_BLOCK)?.[0] ?? ''
+    expect(root.length).toBeGreaterThan(0)
+    expect(dark.length).toBeGreaterThan(0)
+
+    for (const block of [root, dark]) {
+      for (const key of INSIGHTS_SOURCES) {
+        for (const role of ROLES) {
+          const name = `--color-platform-${key}${role}`
+          expect(extractVar(block, name), name).toBeTruthy()
+        }
+        const hex = extractVar(block, `--color-platform-${key}`)
+        expect(hex, key).toMatch(HEX)
+        expect(extractVar(block, `--color-platform-${key}-surface`)).toMatch(HEX)
+        expect(extractVar(block, `--color-platform-${key}-border`)).toMatch(HEX)
+        expect(extractVar(block, `--color-platform-${key}-text`)).toMatch(HEX)
+        const rgb = extractVar(block, `--color-platform-${key}-rgb`)
+        expect(rgb, `${key}-rgb`).toBe(hexToRgb(hex ?? '#000000').join(' '))
+      }
+    }
+  })
+
+  it('四个新来源的 -text 对 -surface 在明暗两套主题下都不低于 4.5:1', async () => {
+    const source = await readFile(TOKENS_PATH, 'utf8')
+    const root = source.match(ROOT_BLOCK)?.[0] ?? ''
+    const dark = source.match(DARK_BLOCK)?.[0] ?? ''
+
+    for (const block of [root, dark]) {
+      for (const key of INSIGHTS_SOURCES) {
+        const surface = extractVar(block, `--color-platform-${key}-surface`)
+        const text = extractVar(block, `--color-platform-${key}-text`)
+        expect(surface).toMatch(HEX)
+        expect(text).toMatch(HEX)
+        expect(
+          contrastRatio(text ?? '', surface ?? ''),
+          `${key}-text`,
+        ).toBeGreaterThanOrEqual(4.5)
+      }
+    }
+  })
+
+  it('--color-chart-other 与 --color-chart-heat-0..4 在明暗两套主题下名集一致', async () => {
+    const source = await readFile(TOKENS_PATH, 'utf8')
+    const root = source.match(ROOT_BLOCK)?.[0] ?? ''
+    const dark = source.match(DARK_BLOCK)?.[0] ?? ''
+    const expected = [
+      '--color-chart-heat-0',
+      '--color-chart-heat-1',
+      '--color-chart-heat-2',
+      '--color-chart-heat-3',
+      '--color-chart-heat-4',
+      '--color-chart-other',
+    ]
+
+    const rootNames = [...new Set(root.match(CHART_TOKEN) ?? [])].sort()
+    const darkNames = [...new Set(dark.match(CHART_TOKEN) ?? [])].sort()
+    expect(rootNames).toEqual(expected)
+    expect(darkNames).toEqual(expected)
+    for (const name of expected) {
+      expect(extractVar(root, name), name).toMatch(HEX)
+      expect(extractVar(dark, name), name).toMatch(HEX)
     }
   })
 })

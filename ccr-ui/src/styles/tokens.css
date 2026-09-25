@@ -136,6 +136,39 @@
   --color-platform-antigravity-border: #dbe3ec;
   --color-platform-antigravity-text: #617081;
 
+  /* 09-24 Insights 新增来源：dot 对 neutral / clay 两种卡片面均 ≥ 3:1；
+     surface / border = 卡片面 #faf7ec 与 dot 按 12% / 32% 混合；
+     text 在 OKLCH 中降 L 至对 -surface 与两种卡片面（#faf7ec、#fefaf2）均 ≥ 4.5:1 */
+  --color-platform-kimi-code: #b65790;
+  --color-platform-kimi-code-rgb: 182 87 144;
+  --color-platform-kimi-code-surface: #f2e4e1;
+  --color-platform-kimi-code-border: #e4c4cf;
+  --color-platform-kimi-code-text: #a3467f;
+  --color-platform-pi: #9773d0;
+  --color-platform-pi-rgb: 151 115 208;
+  --color-platform-pi-surface: #eee7e9;
+  --color-platform-pi-border: #dacde3;
+  --color-platform-pi-text: #7b56b0;
+  --color-platform-zcode: #1d83a4;
+  --color-platform-zcode-rgb: 29 131 164;
+  --color-platform-zcode-surface: #dfe9e3;
+  --color-platform-zcode-border: #b3d2d5;
+  --color-platform-zcode-text: #007091;
+  --color-platform-deepseek-harness: #1e8dfe;
+  --color-platform-deepseek-harness-rgb: 30 141 254;
+  --color-platform-deepseek-harness-surface: #e0eaee;
+  --color-platform-deepseek-harness-border: #b4d5f2;
+  --color-platform-deepseek-harness-text: #0567c2;
+
+  /* --- Insights 图表色（09-24）：other = 周趋势"其他"段（须叠加斜线纹理）；
+     heat-0..4 = 热力图暖中性单色相梯度，heat-0 为无活动格底色；不用 amber 与状态色 --- */
+  --color-chart-other: #968b76;
+  --color-chart-heat-0: #ebe5db;
+  --color-chart-heat-1: #b4ab9b;
+  --color-chart-heat-2: #958d7d;
+  --color-chart-heat-3: #776f60;
+  --color-chart-heat-4: #5b5344;
+
   /* --- 全局状态语义 --- */
   --state-loading: var(--color-info);
   --state-error: var(--color-danger);
@@ -277,6 +310,38 @@
   --color-platform-antigravity-surface: #212c38;
   --color-platform-antigravity-border: #3d4d5e;
   --color-platform-antigravity-text: #a8c0d8;
+
+  /* 09-24 Insights 新增来源：dot 对 neutral / clay 两种卡片面均 ≥ 3:1；
+     surface / border = 卡片面 #1f1b14 与 dot 按 22% / 40% 混合；
+     text 在 OKLCH 中升 L 至对 -surface 与两种卡片面（#1f1b14、#2a221e）均 ≥ 4.5:1 */
+  --color-platform-kimi-code: #b65790;
+  --color-platform-kimi-code-rgb: 182 87 144;
+  --color-platform-kimi-code-surface: #40282f;
+  --color-platform-kimi-code-border: #5b3346;
+  --color-platform-kimi-code-text: #d775ae;
+  --color-platform-pi: #9773d0;
+  --color-platform-pi-rgb: 151 115 208;
+  --color-platform-pi-surface: #392e3d;
+  --color-platform-pi-border: #4f3e5f;
+  --color-platform-pi-text: #ac88e7;
+  --color-platform-zcode: #1d83a4;
+  --color-platform-zcode-rgb: 29 131 164;
+  --color-platform-zcode-surface: #1f3234;
+  --color-platform-zcode-border: #1e454e;
+  --color-platform-zcode-text: #44a2c4;
+  --color-platform-deepseek-harness: #1e8dfe;
+  --color-platform-deepseek-harness-rgb: 30 141 254;
+  --color-platform-deepseek-harness-surface: #1f3447;
+  --color-platform-deepseek-harness-border: #1f4972;
+  --color-platform-deepseek-harness-text: #4b9dfc;
+
+  /* --- Insights 图表色（暗色；语义同 :root）：heat-0 同时高于 neutral #1f1b14 与 clay #2a221e 卡片面 --- */
+  --color-chart-other: #a1937c;
+  --color-chart-heat-0: #332f27;
+  --color-chart-heat-1: #5b5344;
+  --color-chart-heat-2: #7a7263;
+  --color-chart-heat-3: #9b9383;
+  --color-chart-heat-4: #beb5a4;
 
   /* stage 语义层由 :root 的 var() 引用自动跟随暗色令牌，无需覆盖。 */
 }

@@ -39,6 +39,48 @@
         "displayName": "Phosphor Ink",
         "canonical": "#e9e1d1",
         "tonalRamp": ["#100f0c", "#2a251b", "#564e3e", "#a1937c", "#c9bda8", "#ddd5c2", "#e9e1d1", "#faf7ec"]
+      },
+      "platform-kimi-code": {
+        "role": "categorical",
+        "displayName": "Kimi Code Rose",
+        "canonical": "#b65790",
+        "tonalRamp": ["#40282f", "#5b3346", "#a3467f", "#b65790", "#d775ae", "#e4c4cf", "#f2e4e1"]
+      },
+      "platform-pi": {
+        "role": "categorical",
+        "displayName": "Pi Violet",
+        "canonical": "#9773d0",
+        "tonalRamp": ["#392e3d", "#4f3e5f", "#7b56b0", "#9773d0", "#ac88e7", "#dacde3", "#eee7e9"]
+      },
+      "platform-zcode": {
+        "role": "categorical",
+        "displayName": "ZCode Teal",
+        "canonical": "#1d83a4",
+        "tonalRamp": ["#1f3234", "#1e454e", "#007091", "#1d83a4", "#44a2c4", "#b3d2d5", "#dfe9e3"]
+      },
+      "platform-deepseek-harness": {
+        "role": "categorical",
+        "displayName": "DeepSeek Harness Azure",
+        "canonical": "#1e8dfe",
+        "tonalRamp": ["#1f3447", "#1f4972", "#0567c2", "#1e8dfe", "#4b9dfc", "#b4d5f2", "#e0eaee"]
+      },
+      "chart-other": {
+        "role": "neutral",
+        "displayName": "Chart Other",
+        "canonical": "#a1937c",
+        "tonalRamp": ["#968b76", "#a1937c"]
+      },
+      "chart-heat": {
+        "role": "sequential",
+        "displayName": "Activity Heat (dark)",
+        "canonical": "#beb5a4",
+        "tonalRamp": ["#332f27", "#5b5344", "#7a7263", "#9b9383", "#beb5a4"]
+      },
+      "chart-heat-light": {
+        "role": "sequential",
+        "displayName": "Activity Heat (light)",
+        "canonical": "#5b5344",
+        "tonalRamp": ["#ebe5db", "#b4ab9b", "#958d7d", "#776f60", "#5b5344"]
       }
     },
     "typographyMeta": {
@@ -254,7 +296,12 @@
       "Do render honest empties: dashed baselines, — placeholders, muted unindexed metrics — never a fabricated zero.",
       "Do keep charts bounded (clamp(10rem, 26vh, 16rem)) and data rows at fixed heights.",
       "Do subscribe copy through useAppT() and keep the locale contract green.",
-      "Do honor data-reduced-motion: micro-interactions collapse to 0ms and lifts flatten."
+      "Do honor data-reduced-motion: micro-interactions collapse to 0ms and lifts flatten.",
+      "Do give the Insights weekly chart a secondary encoding: segment gaps, a legend, direct labels at 4 or fewer series, a tooltip per segment, the stripe texture on \"其他\", and a table view.",
+      "Do give the Insights weekly chart and the activity heatmap a chart / table switch; the table view gives exact values for colors below 3:1.",
+      "Do keep the top 4 sources and the stack order fixed across the whole weekly chart; color follows the source, not the rank.",
+      "Do give every Insights chart a fixed or clamped height, and every Insights table row a fixed height.",
+      "Do write a 7-day change as sign plus text (+21.7%, −17.6%, +2 天, 持平, 新增) in secondary ink."
     ],
     "donts": [
       "Don't rebuild the metric-card row plus unbounded hero chart — that dashboard cliché is the rejected rut.",
@@ -264,7 +311,13 @@
       "Don't widen 2px ticks into side stripes, or use gradient text and 12px-plus radii on product surfaces.",
       "Don't use fluid hero typography or decorative fonts inside app surfaces.",
       "Don't capture a bare t outside useAppT(), and don't leave zh-CN copy unglobalized.",
-      "Don't hide disabled, blocked, or destructive states — they must read at a glance."
+      "Don't hide disabled, blocked, or destructive states — they must read at a glance.",
+      "Don't color a 7-day change green or red; the change is not a status.",
+      "Don't use amber or status colors in the heatmap ramp or the distribution bars; they use --color-chart-heat-* only.",
+      "Don't add a chart library for Insights; charts are plain DOM and CSS.",
+      "Don't build the Insights totals as metric cards or as a copy of the platform quote band; it is one hairline-ruled reading line.",
+      "Don't give each of the nine sources its own weekly-chart color; merge everything past the top 4 into \"其他\".",
+      "Don't use platform colors on project or model rows in the leaderboard; only Agent rows carry the platform tick and bar."
     ]
   }
 }
