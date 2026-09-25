@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/ccr/backend/typed-ipc-bindings.md", "reason": "新 DTO 的 ts-rs 注解规则（i64/u64 -> f64）与新域扩展清单"}
+{"file": ".trellis/spec/ccr/backend/tauri-handler-registry.md", "reason": "get_home_insights 命令登记与注册表计数规则"}
+{"file": ".trellis/spec/ccr/backend/llmusage-provider-adapter.md", "reason": "usage SQL 只在 crates/ccr-usage；llmusage_adapter 只做 CLI 同步与 DTO 映射"}
+{"file": ".trellis/spec/ccr/backend/test-fixtures.md", "reason": "ccr_usage::fixtures 投影夹具用法"}
+{"file": ".trellis/spec/ccr/backend/backend-guidelines.md", "reason": "Rust 错误处理与禁止 unwrap/expect 的生产路径规则"}
+{"file": ".trellis/spec/ccr-db/backend/backend-guidelines.md", "reason": "usage_repo 新增只读查询的仓库层约定"}
+{"file": ".trellis/tasks/09-24-home-insights-redesign/research/wake-insights.md", "reason": "Wake 统计口径、周/streak 规则与单次快照执行方式"}

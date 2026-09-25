@@ -1,0 +1,10 @@
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "getHomeInsights 只经 domain facade 导出，不改 tauri.ts 门面"}
+{"file": ".trellis/spec/ccr-ui/frontend/layering-contracts.md", "reason": "insights 组件的依赖方向与 views/ 依赖限制"}
+{"file": ".trellis/spec/ccr-ui/frontend/react-rerender-discipline.md", "reason": "组件重渲染约束与 t() memo 条款"}
+{"file": ".trellis/spec/ccr-ui/frontend/dashboard-presentation-contracts.md", "reason": "首屏组件契约与会话诚实状态"}
+{"file": ".trellis/spec/ccr-ui/frontend/usage-chart-stability-contracts.md", "reason": "修改首屏用量图时的稳定性与 CSS 交付规则"}
+{"file": ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md", "reason": "组件内禁止按平台名分支"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "样式只用 token，px 字面量须在豁免登记内"}
+{"file": ".trellis/tasks/09-24-home-insights-redesign/research/wake-insights.md", "reason": "Wake 统计规则，展示逻辑（7 天对比、streak、前 N）的参照"}
+{"file": "ccr-ui/DESIGN.md", "reason": "Insights Block 条目：区块形式、高度、颜色 token、空态、辅助编码（设计权威来源）"}
+{"file": ".trellis/spec/ccr/backend/llmusage-provider-adapter.md", "reason": "Home Insights 场景：HomeInsightsResponse 字段语义（窗口、streak、agents 合并、totals.agents 口径、sessions_indexed）"}

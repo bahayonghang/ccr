@@ -1,0 +1,30 @@
+{
+  "id": "home-insights-redesign",
+  "name": "home-insights-redesign",
+  "title": "ccr-ui 首页重构：运维首屏 + Wake 式 Insights",
+  "description": "参考 Wake Insights 重做 ccr-ui 首页：保留运维首屏并修复，下半屏新增 Insights（热力图/streak、agent 周趋势、按小时分布、榜单、7 天对比），后端新增 Insights 投影与 typed 命令",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P1",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-09-24",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "09-24-home-insights-backend",
+    "09-24-home-insights-design",
+    "09-24-home-insights-frontend"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

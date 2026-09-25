@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "新增 token 的两层结构、治理登记与豁免计数规则"}
+{"file": ".trellis/spec/ccr-ui/frontend/dashboard-presentation-contracts.md", "reason": "首屏五个子组件契约与会话诚实状态规则，设计空态时须遵守"}
+{"file": ".trellis/spec/ccr-ui/frontend/usage-chart-stability-contracts.md", "reason": "图表 CSS 双路径交付问题，首屏越界排查的已知方向"}
+{"file": ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md", "reason": "平台身份色的描述符分层"}
+{"file": ".trellis/tasks/09-24-home-insights-redesign/research/wake-insights.md", "reason": "Wake Insights 信息结构，设计映射的输入"}
+{"file": ".trellis/tasks/09-24-home-insights-design/research/palette-validation.md", "reason": "颜色取值与校验结果"}
