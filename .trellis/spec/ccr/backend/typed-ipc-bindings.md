@@ -8,7 +8,7 @@
 
 - Trigger: adding/changing any wire DTO returned by (or accepted as input to) a typed Tauri command; typing a new command domain; upgrading `ts-rs`; converting `OpenJsonValueDto` / `JsonValueDto` numbers to `serde_json::Value`.
 - Applies to `ccr-ui/src-tauri/src/services/*`, `ccr-ui/src-tauri/src/commands/{wire,system,grok}.rs`, `ccr-ui/src-tauri/src/llmusage_adapter/{queries,capabilities}.rs`, `ccr-ui/src-tauri/src/{usage_jobs,session_index_jobs}.rs`, `ccr-ui/src-tauri/src/claude_observer/subscription.rs`, `crates/ccr-usage/src/{queries,capabilities}.rs`, and the generated dir `ccr-ui/src/types/generated/`.
-- Typed coverage is generated from the command manifest: 265/328 base commands (80.79%), with exact registry-owned input/output declarations for 265/265 typed commands. This includes Usage V2 (17), Claude Observer (9), install (8), config, system prompts, sync, Claude, Codex, auth/provider, Gemini, Grok, OpenCode, SSH, command execution, and the smaller system/UI/environment/event/shell domains. All typed commands expose a concrete generated return type; `Result<Value, String>` is banned at the command boundary.
+- Typed coverage is generated from the command manifest: 277/340 base commands (81.47%), with exact registry-owned input/output declarations for 277/277 typed commands. This includes Usage V2 (18), Claude Observer (9), install (8), config, system prompts, sync, Claude, Codex, auth/provider, Gemini, Grok, OpenCode, SSH, command execution, and the smaller system/UI/environment/event/shell domains. All typed commands expose a concrete generated return type; `Result<Value, String>` is banned at the command boundary.
 
 ### 2. Signatures
 
@@ -59,7 +59,7 @@
 - Rust DTO changed without regeneration → `just tauri-bindings-check` exits 1 listing the generated paths changed by regeneration.
 - Hand-edited generated file that changes its generated shape → same guard failure; deterministic whitespace is repaired by the normalizer.
 - Parallel export tests interleave writes to the same generated file → standalone semicolons or duplicate final newlines appear nondeterministically; keep drift-guard regeneration serial and reject the corrupted output.
-- New typed command added → handler-registry contract still applies unchanged (`define_command_registry!`, frozen counts 328 base / 336 Windows).
+- New typed command added → handler-registry contract still applies unchanged (`define_command_registry!`, frozen counts 340 base / 348 Windows).
 - `serde(alias)` on input DTOs is ignored by ts-rs but remains active for deserialization; keep the desktop dependency's `no-serde-warnings` feature enabled so this intentional compatibility alias does not emit macro warnings. The generated shape remains canonical snake_case.
 - Plain `cargo test` in src-tauri reruns export tests and rewrites generated files idempotently — `just tauri-bindings-check` normalizes those side effects before comparing the regenerated output with the current worktree baseline.
 
