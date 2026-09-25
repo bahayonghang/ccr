@@ -40,6 +40,14 @@ impl ResolvedZone {
         }
     }
 
+    /// 本地日期时间换算，与 `date_at` 同一实现方式（IANA 走历史夏令时规则）。
+    pub(crate) fn local_at(&self, instant: DateTime<Utc>) -> NaiveDateTime {
+        match self {
+            Self::Fixed(offset) => instant.with_timezone(offset).naive_local(),
+            Self::Iana(tz) => instant.with_timezone(tz).naive_local(),
+        }
+    }
+
     pub(crate) fn local_date_start_utc(
         &self,
         date: NaiveDate,
@@ -134,7 +142,7 @@ pub(crate) fn register_functions(conn: &Connection) -> rusqlite::Result<()> {
     )
 }
 
-fn parse_stored_timestamp(raw: &str) -> Option<DateTime<Utc>> {
+pub(crate) fn parse_stored_timestamp(raw: &str) -> Option<DateTime<Utc>> {
     if let Ok(value) = DateTime::parse_from_rfc3339(raw) {
         return Some(value.with_timezone(&Utc));
     }

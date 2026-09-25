@@ -9,6 +9,7 @@ mod db;
 mod error;
 #[cfg(feature = "test-fixtures")]
 pub mod fixtures;
+mod insights;
 mod paths;
 mod queries;
 mod source;
@@ -24,6 +25,10 @@ pub use db::{
     SourceDiagnostics, build_filter, open_dashboard,
 };
 pub use error::UsageError;
+pub use insights::{
+    INSIGHTS_WEEKS, InsightsDay, InsightsPayload, InsightsSourceTally, InsightsTally,
+    InsightsTrendSeries, InsightsUsageWindow,
+};
 pub use paths::{AppPaths, discover_llmusage_paths};
 pub use queries::{
     DailyTrendDto, HeatmapPoint, HomeOverviewPayload, HomeOverviewPlatformStats,

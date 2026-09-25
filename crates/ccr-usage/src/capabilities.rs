@@ -25,6 +25,7 @@ pub enum FeatureKey {
     Logs,
     Diagnostics,
     HomeOverview,
+    Insights,
     SyncJsonEvents,
     Cancel,
 }
@@ -41,6 +42,7 @@ impl FeatureKey {
             Self::Logs => "logs",
             Self::Diagnostics => "diagnostics",
             Self::HomeOverview => "home_overview",
+            Self::Insights => "insights",
             Self::SyncJsonEvents => "sync_json_events",
             Self::Cancel => "cancel",
         }
@@ -49,7 +51,7 @@ impl FeatureKey {
 
 /// Feature keys answered by reading the llmusage SQLite database. CLI-backed
 /// keys (`SyncJsonEvents`, `Cancel`) are owned by the desktop adapter.
-pub const DB_BACKED_FEATURES: [FeatureKey; 9] = [
+pub const DB_BACKED_FEATURES: [FeatureKey; 10] = [
     FeatureKey::Overview,
     FeatureKey::DailyTrends,
     FeatureKey::ModelBreakdown,
@@ -59,6 +61,7 @@ pub const DB_BACKED_FEATURES: [FeatureKey; 9] = [
     FeatureKey::Logs,
     FeatureKey::Diagnostics,
     FeatureKey::HomeOverview,
+    FeatureKey::Insights,
 ];
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -376,6 +379,18 @@ pub fn required_columns(feature: FeatureKey) -> Vec<(&'static str, Vec<&'static 
                 "pricing_source",
             ],
         )],
+        FeatureKey::Insights => vec![(
+            "usage_bucket_30m",
+            vec![
+                "source",
+                "model",
+                "hour_start",
+                "project_hash",
+                "project_label",
+                "event_count",
+                "total_tokens",
+            ],
+        )],
         FeatureKey::Diagnostics => vec![
             ("source_file", vec!["source", "state"]),
             (
@@ -487,6 +502,42 @@ mod tests {
         assert!(
             cols.iter()
                 .any(|(table, cols)| *table == "usage_event" && cols.contains(&"provider_label"))
+        );
+    }
+
+    #[test]
+    fn insights_capability_reports_missing_bucket_column() {
+        let conn = rusqlite::Connection::open_in_memory().expect("in-memory db should open");
+        conn.execute_batch(
+            r#"
+            CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
+            INSERT INTO meta(key, value) VALUES ('schema_version', '10');
+            CREATE TABLE usage_bucket_30m(
+                source TEXT NOT NULL,
+                model TEXT NOT NULL,
+                hour_start TEXT NOT NULL,
+                event_count INTEGER NOT NULL,
+                total_tokens INTEGER NOT NULL
+            );
+            "#,
+        )
+        .expect("schema 10 fixture should be created");
+        let mut features = std::collections::BTreeMap::new();
+
+        populate_db_features(&conn, Some(10), &mut features);
+
+        let capability = features.get("insights").expect("insights key should exist");
+        assert!(!capability.supported);
+        assert_eq!(
+            capability.reason.as_ref(),
+            Some(&UnsupportedReason::MissingColumn)
+        );
+        assert!(
+            capability
+                .detail
+                .as_deref()
+                .unwrap_or_default()
+                .contains("usage_bucket_30m.project_hash")
         );
     }
 

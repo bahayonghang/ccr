@@ -1348,6 +1348,50 @@ pub fn get_session_archive_daily_trends(
     Ok(rows)
 }
 
+const SESSION_ARCHIVE_PLATFORM_COUNT_SQL: &str = "SELECT platform, COUNT(*)
+     FROM usage_session_archive
+     GROUP BY platform
+     ORDER BY platform ASC";
+
+const SESSION_ARCHIVE_PLATFORM_RANGE_COUNT_SQL: &str = "SELECT platform, COUNT(*)
+     FROM usage_session_archive
+     WHERE created_at >= ?1 AND created_at < ?2
+     GROUP BY platform
+     ORDER BY platform ASC";
+
+/// Counts archived sessions per platform across the full history.
+pub fn count_session_archive_by_platform(
+    conn: &Connection,
+) -> Result<Vec<SessionArchivePlatformSummary>, rusqlite::Error> {
+    let mut stmt = conn.prepare(SESSION_ARCHIVE_PLATFORM_COUNT_SQL)?;
+    let rows = stmt.query_map([], |row| {
+        Ok(SessionArchivePlatformSummary {
+            platform: row.get(0)?,
+            session_count: row.get(1)?,
+        })
+    })?;
+    rows.collect()
+}
+
+/// Counts archived sessions per platform whose `created_at` falls in the
+/// half-open UTC range `[start, end)`.
+pub fn count_session_archive_by_platform_between(
+    conn: &Connection,
+    start: DateTime<Utc>,
+    end: DateTime<Utc>,
+) -> Result<Vec<SessionArchivePlatformSummary>, rusqlite::Error> {
+    // created_at 由 upsert_session_archive_entry 以 DateTime<Utc>::to_rfc3339() 写入
+    // （`+00:00` 后缀），边界用同一格式，字符串比较与时间先后一致。
+    let mut stmt = conn.prepare(SESSION_ARCHIVE_PLATFORM_RANGE_COUNT_SQL)?;
+    let rows = stmt.query_map(params![start.to_rfc3339(), end.to_rfc3339()], |row| {
+        Ok(SessionArchivePlatformSummary {
+            platform: row.get(0)?,
+            session_count: row.get(1)?,
+        })
+    })?;
+    rows.collect()
+}
+
 // ═══════════════════════════════════════════════════════════
 // V2 聚合查询
 //
@@ -2620,6 +2664,114 @@ mod tests {
             last_seen_at: Some(now),
             raw_deleted_at: None,
             archived_at: now,
+        }
+    }
+
+    fn archive_entry_created_at(
+        archive_id: &str,
+        platform: &str,
+        created_at: &str,
+    ) -> UsageSessionArchiveEntry {
+        let mut entry = agent_archive_entry(archive_id, archive_id);
+        entry.platform = platform.to_string();
+        entry.file_path = format!("/data/{archive_id}.jsonl");
+        entry.created_at = DateTime::parse_from_rfc3339(created_at)
+            .unwrap()
+            .with_timezone(&Utc);
+        entry
+    }
+
+    #[test]
+    fn session_archive_counts_group_full_history_by_platform() {
+        let conn = setup_test_db();
+        for (id, platform, created_at) in [
+            ("a", "claude", "2026-09-01T10:00:00Z"),
+            ("b", "claude", "2026-09-20T10:00:00Z"),
+            ("c", "omp", "2025-01-01T10:00:00Z"),
+        ] {
+            upsert_session_archive_entry(
+                &conn,
+                &archive_entry_created_at(id, platform, created_at),
+            )
+            .unwrap();
+        }
+
+        let counts = count_session_archive_by_platform(&conn).unwrap();
+
+        assert_eq!(counts.len(), 2);
+        assert_eq!(counts[0].platform, "claude");
+        assert_eq!(counts[0].session_count, 2);
+        assert_eq!(counts[1].platform, "omp");
+        assert_eq!(counts[1].session_count, 1);
+    }
+
+    #[test]
+    fn session_archive_range_counts_use_half_open_utc_bounds() {
+        let conn = setup_test_db();
+        for (id, created_at) in [
+            ("before", "2026-09-17T23:59:59Z"),
+            ("start", "2026-09-18T00:00:00Z"),
+            ("end-day-morning", "2026-09-24T00:30:00Z"),
+            ("end-day-night", "2026-09-24T23:59:59.500Z"),
+            ("end", "2026-09-25T00:00:00Z"),
+        ] {
+            upsert_session_archive_entry(&conn, &archive_entry_created_at(id, "codex", created_at))
+                .unwrap();
+        }
+        let start = DateTime::parse_from_rfc3339("2026-09-18T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        let end = DateTime::parse_from_rfc3339("2026-09-25T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+
+        let counts = count_session_archive_by_platform_between(&conn, start, end).unwrap();
+
+        // 结束日当天的全部会话都计入；区间终点与起点前的会话不计入。
+        assert_eq!(counts.len(), 1);
+        assert_eq!(counts[0].platform, "codex");
+        assert_eq!(counts[0].session_count, 3);
+    }
+
+    #[test]
+    fn session_archive_platform_counts_use_covering_platform_indexes() {
+        let conn = setup_test_db();
+        let start = "2026-09-18T00:00:00+00:00";
+        let end = "2026-09-25T00:00:00+00:00";
+        // 全历史计数只读 platform，规划器选更窄的 (platform, source_state) 覆盖索引；
+        // 范围计数没有 platform 等值条件，(platform, created_at) 索引只能做覆盖扫描，不能做范围定位。
+        for (sql, bounds, expected_index) in [
+            (
+                SESSION_ARCHIVE_PLATFORM_COUNT_SQL,
+                Vec::new(),
+                "idx_usage_session_archive_platform_state",
+            ),
+            (
+                SESSION_ARCHIVE_PLATFORM_RANGE_COUNT_SQL,
+                vec![start, end],
+                "idx_usage_session_archive_platform_created_at",
+            ),
+        ] {
+            let mut stmt = conn
+                .prepare(&format!("EXPLAIN QUERY PLAN {sql}"))
+                .expect("query plan should prepare");
+            let details = stmt
+                .query_map(rusqlite::params_from_iter(bounds), |row| {
+                    row.get::<_, String>(3)
+                })
+                .expect("query plan rows should execute")
+                .collect::<rusqlite::Result<Vec<_>>>()
+                .expect("query plan rows should decode")
+                .join("\n");
+            assert!(
+                details.contains(&format!("USING COVERING INDEX {expected_index}")),
+                "unexpected plan: {details}"
+            );
+            // 覆盖索引按 platform 有序，GROUP BY / ORDER BY 不需要临时 B 树。
+            assert!(
+                !details.contains("TEMP B-TREE"),
+                "unexpected plan: {details}"
+            );
         }
     }
 

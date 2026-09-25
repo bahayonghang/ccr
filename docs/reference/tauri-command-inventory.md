@@ -2,14 +2,14 @@
 
 > Generated from `commands/handler_registry.rs`; do not edit manually.
 
-- Base commands: 339
-- Windows commands: 347
+- Base commands: 340
+- Windows commands: 348
 - Base modules: 38
 
-- Capability metadata: 339/339
-- Generated typed commands: 276/339 (81.42%)
+- Capability metadata: 340/340
+- Generated typed commands: 277/340 (81.47%)
 
-- Exact input/output type declarations: 276/276
+- Exact input/output type declarations: 277/277
 
 | Module | Title | Platform | Commands | Default risk | Schema |
 | --- | --- | --- | ---: | --- | --- |
@@ -41,7 +41,7 @@
 | `pricing` | 定价管理 | base | 4 | `local_mutation` | `legacy_json` |
 | `mcp_presets` | MCP 预设 | base | 7 | `network_mutation` | `legacy_json` |
 | `agent_sessions` | Agent Sessions | base | 5 | `read_only` | `generated` |
-| `usage_v2` | Usage V2 | base | 17 | `read_only` | `generated` |
+| `usage_v2` | Usage V2 | base | 18 | `read_only` | `generated` |
 | `command_exec` | 命令执行 | base | 6 | `process_execution` | `generated` |
 | `checkin_extended` | 签到扩展 | base | 7 | `network_mutation` | `legacy_json` |
 | `config_extended` | 配置扩展 | base | 2 | `local_mutation` | `legacy_json` |

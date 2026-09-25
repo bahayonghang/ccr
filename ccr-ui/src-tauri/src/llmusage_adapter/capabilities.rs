@@ -88,7 +88,7 @@ mod tests {
 
     #[tokio::test]
     async fn capability_report_merges_db_and_cli_features() {
-        // 无 DB 的临时目录：9 个 DB-backed 特征应统一 DbMissing，
+        // 无 DB 的临时目录：全部 DB-backed 特征应统一 DbMissing，
         // CLI 域两键由 adapter 拼装（sync_json_events 的 supported 取决于本机
         // 是否安装 llmusage，这里只断言键存在与 cancel 的固定语义）。
         let temp = tempfile::TempDir::new().expect("temp dir should be created");

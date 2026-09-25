@@ -1287,6 +1287,105 @@ pub async fn get_home_usage_overview_v2(
     Ok(payload)
 }
 
+/// 获取首页 Insights 单次快照：llmusage 用量投影 + 会话归档计数。
+#[ccr_tauri_command_macros::command]
+pub async fn get_home_insights(
+    state: State<'_, AppState>,
+) -> Result<services::home_insights::HomeInsightsResponse, String> {
+    let command_started = Instant::now();
+    // as_of 只在命令层读本地时钟，服务层与投影全部接收显式日期。
+    let as_of = chrono::Local::now().date_naive();
+    let active_usage_job = state.get_active_usage_import_job().await;
+    let active_session_job = state.get_active_session_index_job().await;
+    let cacheable = !is_active_usage_import_job(active_usage_job.as_ref())
+        && !is_active_session_index_job(active_session_job.as_ref());
+    let cache_key = format!("{USAGE_SNAPSHOT_CACHE_PREFIX}home_insights:{as_of}");
+
+    if cacheable {
+        if let Some(cached) = state.cache_get(&cache_key).await {
+            record_command_duration(&state, command_started);
+            return serde_json::from_value(cached).map_err(|e| format!("Cache decode error: {e}"));
+        }
+
+        match state.begin_cache_fill(&cache_key).await {
+            CacheFillRegistration::Wait(notify) => {
+                notify.notified().await;
+                if let Some(cached) = state.cache_get(&cache_key).await {
+                    record_command_duration(&state, command_started);
+                    return serde_json::from_value(cached)
+                        .map_err(|e| format!("Cache decode error: {e}"));
+                }
+            }
+            CacheFillRegistration::Leader => {
+                let result = compute_home_insights_payload(
+                    state.llmusage.clone(),
+                    state.usage_db_pool.clone(),
+                    as_of,
+                )
+                .await;
+                record_command_duration(&state, command_started);
+
+                match result {
+                    Ok((insights, db_ms)) => {
+                        // 序列化失败也必须 finish_cache_fill，否则 Wait 侧会悬挂。
+                        match serde_json::to_value(&insights) {
+                            Ok(cache_value) => {
+                                state
+                                    .cache_set(
+                                        cache_key.clone(),
+                                        cache_value,
+                                        USAGE_SNAPSHOT_CACHE_TTL_SECS,
+                                    )
+                                    .await;
+                                state.finish_cache_fill(&cache_key).await;
+                                record_db_duration(&state, db_ms);
+                                return Ok(insights);
+                            }
+                            Err(error) => {
+                                state.finish_cache_fill(&cache_key).await;
+                                return Err(format!("Serialize error: {error}"));
+                            }
+                        }
+                    }
+                    Err(error) => {
+                        state.finish_cache_fill(&cache_key).await;
+                        return Err(error);
+                    }
+                }
+            }
+        }
+    }
+
+    let result =
+        compute_home_insights_payload(state.llmusage.clone(), state.usage_db_pool.clone(), as_of)
+            .await;
+    record_command_duration(&state, command_started);
+    let (insights, db_ms) = result?;
+    record_db_duration(&state, db_ms);
+    Ok(insights)
+}
+
+async fn compute_home_insights_payload(
+    llmusage: Arc<LlmusageRuntime>,
+    usage_db_pool: ccr_db::database::DbPool,
+    as_of: chrono::NaiveDate,
+) -> Result<(services::home_insights::HomeInsightsResponse, f64), String> {
+    tokio::task::spawn_blocking(move || {
+        let db_started = Instant::now();
+        let insights = services::home_insights::compute_home_insights(
+            &llmusage,
+            &usage_db_pool,
+            as_of,
+            Utc::now(),
+        )?;
+        let db_ms = elapsed_ms(db_started);
+        tracing::debug!(%as_of, db_ms, "home insights snapshot computed");
+        Ok((insights, db_ms))
+    })
+    .await
+    .map_err(|e| format!("Task join error: {e}"))?
+}
+
 #[ccr_tauri_command_macros::command]
 pub async fn ensure_session_index_v2(
     app_handle: tauri::AppHandle,

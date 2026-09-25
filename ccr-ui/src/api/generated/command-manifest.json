@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
-  "base_command_count": 339,
-  "windows_command_count": 347,
-  "typed_command_count": 276,
-  "exact_wire_type_count": 276,
+  "base_command_count": 340,
+  "windows_command_count": 348,
+  "typed_command_count": 277,
+  "exact_wire_type_count": 277,
   "commands": [
     {
       "id": "list_configs",
@@ -5022,6 +5022,24 @@
       "output_schema": "generated",
       "input_type": "number | undefined",
       "output_type": "HomeUsageOverviewResponse",
+      "timeout_ms": 15000,
+      "timeout_enforcement": "completion_aware",
+      "concurrency": "parallel",
+      "confirmation": "none",
+      "authorization": "local_user",
+      "audit": "metadata_only"
+    },
+    {
+      "id": "get_home_insights",
+      "handler_path": "super::usage::get_home_insights",
+      "module": "usage_v2",
+      "title": "Usage V2",
+      "platform": "base",
+      "risk": "read_only",
+      "input_schema": "generated",
+      "output_schema": "generated",
+      "input_type": "void",
+      "output_type": "HomeInsightsResponse",
       "timeout_ms": 15000,
       "timeout_enforcement": "completion_aware",
       "concurrency": "parallel",

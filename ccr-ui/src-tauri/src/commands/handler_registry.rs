@@ -823,6 +823,7 @@ define_command_registry! {
         super::usage::get_usage_logs_v2 => ["UsageLogsQuery", "PaginatedLogsDto", "export const getUsageLogsV2 = (platformOrQuery?: string | UsageLogsQuery, page?: number, pageSize?: number, model?: string, cursor?: string, includeTotal?: boolean, mode?: 'cursor' | 'offset'): Promise<PaginatedLogsDto> => {\n  const query: UsageLogsQuery = typeof platformOrQuery === 'object'\n    ? platformOrQuery\n    : { platform: platformOrQuery, page, page_size: pageSize, model, cursor, include_total: includeTotal, mode }\n  return invoke('get_usage_logs_v2', { query })\n}\n"],
         super::usage::get_usage_dashboard_v2 => ["UsageDashboardInput", "UsageDashboardResponse", "export const getUsageDashboardV2 = (platform?: string, startDate?: string, endDate?: string, heatmapDays?: number, includeHeatmap?: boolean, provider?: string): Promise<UsageDashboardResponse> =>\n  invoke('get_usage_dashboard_v2', { platform, provider, startDate, endDate, heatmapDays, includeHeatmap })\n"],
         super::usage::get_home_usage_overview_v2 => ["number | undefined", "HomeUsageOverviewResponse", "export const getHomeUsageOverviewV2 = (days?: number): Promise<HomeUsageOverviewResponse> => invoke('get_home_usage_overview_v2', { days })\n"],
+        super::usage::get_home_insights => ["void", "HomeInsightsResponse", "export const getHomeInsights = (): Promise<HomeInsightsResponse> => invoke('get_home_insights')\n"],
         super::usage::ensure_session_index_v2 => ["void", "StartSessionIndexJobResponse", "export const ensureSessionIndexV2 = (): Promise<StartSessionIndexJobResponse> => invoke('ensure_session_index_v2')\n"],
         super::usage::get_session_index_job_status_v2 => ["string", "SessionIndexJobSnapshot", "export const getSessionIndexJobStatusV2 = (jobId: string): Promise<SessionIndexJobSnapshot> => invoke('get_session_index_job_status_v2', { jobId })\n"],
         super::usage::start_usage_import_job_v2 => ["{ platform?: string; recentDays?: number; resetSources?: boolean }", "StartUsageImportJobResponse", "export const startUsageImportJobV2 = (platform?: string, recentDays?: number, resetSources?: boolean): Promise<StartUsageImportJobResponse> =>\n  invoke('start_usage_import_job_v2', { platform, recentDays, resetSources })\n"],
@@ -1568,6 +1569,7 @@ mod tests {
             "import type { CapabilityReport } from '@/types/generated/usage/CapabilityReport'\n",
             "import type { DailyTrendDto } from '@/types/generated/usage/DailyTrendDto'\n",
             "import type { HeatmapResponseDto } from '@/types/generated/usage/HeatmapResponseDto'\n",
+            "import type { HomeInsightsResponse } from '@/types/generated/usage/HomeInsightsResponse'\n",
             "import type { HomeUsageOverviewResponse } from '@/types/generated/usage/HomeUsageOverviewResponse'\n",
             "import type { ImportAllUsageResponse } from '@/types/generated/usage/ImportAllUsageResponse'\n",
             "import type { ModelStatDto } from '@/types/generated/usage/ModelStatDto'\n",
@@ -1759,10 +1761,10 @@ mod tests {
         assert_eq!(COMMAND_MODULES.len(), 38);
 
         #[cfg(target_os = "windows")]
-        assert_eq!(registered_command_count(), 347);
+        assert_eq!(registered_command_count(), 348);
 
         #[cfg(not(target_os = "windows"))]
-        assert_eq!(registered_command_count(), 339);
+        assert_eq!(registered_command_count(), 340);
     }
 
     #[test]
@@ -1797,7 +1799,7 @@ mod tests {
     #[test]
     fn command_capability_descriptors_are_complete_and_unique() {
         let descriptors = command_descriptors().collect::<Vec<_>>();
-        assert_eq!(descriptors.len(), 347);
+        assert_eq!(descriptors.len(), 348);
 
         let mut ids = HashSet::new();
         let mut paths = HashSet::new();
@@ -1826,10 +1828,10 @@ mod tests {
         }
 
         let manifest = command_manifest();
-        assert_eq!(manifest.base_command_count, 339);
-        assert_eq!(manifest.windows_command_count, 347);
-        assert_eq!(manifest.typed_command_count, 276);
-        assert_eq!(manifest.exact_wire_type_count, 276);
+        assert_eq!(manifest.base_command_count, 340);
+        assert_eq!(manifest.windows_command_count, 348);
+        assert_eq!(manifest.typed_command_count, 277);
+        assert_eq!(manifest.exact_wire_type_count, 277);
 
         let exact_contract_modules = descriptors
             .iter()
@@ -1866,7 +1868,7 @@ mod tests {
                 )
             })
             .collect::<Vec<_>>();
-        assert_eq!(exact_contract_modules.len(), 276);
+        assert_eq!(exact_contract_modules.len(), 277);
         assert!(
             exact_contract_modules
                 .iter()
