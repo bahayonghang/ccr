@@ -1823,3 +1823,42 @@ TuiTheme 新增 Auto 并设为默认值：启动时持久化 auto 或 env=auto �
 ### Next Steps
 
 - 如继续技术验收，补齐 macOS 必需矩阵并调查历史 exporter 0xc0000005 原因，按 closure.json 保留其余未验边界。
+
+
+## Session 116: 剩余改动全部提交及 Insights 任务归档
+<!-- trellis-session: v=2 fp=4ac23dbc45998111 -->
+
+**Date**: 2026-09-29
+**Task**: 剩余改动全部提交及 Insights 任务归档
+**Branch**: `dev`
+
+### Summary
+
+按用户要求提交全部 66 个原有剩余改动，并行政归档 9 月 24 日的首页 Insights 父任务及前端子任务。未推送。
+
+### Main Changes
+
+- 分组提交 57 个图标、2 个现有探针脚本、7 个此前仅本地保存的原始产物；补充证据保存范围调整说明。
+- 归档提交 85e3d39f 保留 9 个原始规划/研究文件、已有 backend/design 归档及完整父子关系。父任务关闭分支补记为 dev，原始元数据保存在关闭记录。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c256f84b9f327293f4db8d5766545c832298b17b` | chore(证据): 🔧 提交架构验收原始产物并更新保存说明 |
+| `55e00031185713f5f34948aee44f27f025cc5af2` | chore(品牌资源): 🔧 同步桌面端与站点图标 |
+| `1a30e10cf496e056eaae232aed0c6b0c5a70efef` | chore(ccr-ui): 🔧 保存 Insights 视觉与桌面探针脚本 |
+
+### Testing
+
+- [OK] 57 个图标解码与尺寸检查通过，55 PNG、ICO 六尺寸、ICNS 八图层有效；7 份派生 SVG 与品牌源一致。
+- [OK] 两个脚本 node --check 及 targeted ESLint 通过；59 个图标/脚本 SHA 与起始清单一致。未执行探针、图标生成或界面操作。
+- [OK] 7 个原始产物格式和 SHA 校验通过，限定凭据模式扫描未发现匹配；原有文件字节保留。所有本轮暂存 diff 检查通过。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 任务按用户要求行政关闭；未补做 1920×1080 设计对照、指定 frontend-quality-reviewer、跨 renderer 生成确定性或完整 CI。历史验收限制继续保留。
