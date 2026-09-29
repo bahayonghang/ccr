@@ -55,7 +55,7 @@ use crate::monitoring::{emit_and_record_monitoring_event, should_persist, usage_
 use crate::services;
 use crate::session_index_jobs::{SessionIndexJobSnapshot, SessionIndexJobStatus};
 use crate::state::{AppState, CacheFillRegistration};
-use crate::usage_jobs::{UsageImportJobSnapshot, UsageImportJobStage, UsageImportJobStatus};
+use crate::usage_jobs::{UsageImportCompletion, UsageImportJobSnapshot, UsageImportJobStage};
 
 // wire 类型 / 纯函数已随服务层下沉，此处 pub use 保住既有 `crate::commands::usage::*`
 // 引用路径（usage_jobs.rs 等外部消费点文本不变）。部分类型在本模块内不再被点名，
@@ -153,14 +153,7 @@ async fn emit_usage_snapshot_updated(
 }
 
 fn is_active_usage_import_job(job: Option<&UsageImportJobSnapshot>) -> bool {
-    job.is_some_and(|job| {
-        !matches!(
-            job.status,
-            UsageImportJobStatus::Finished
-                | UsageImportJobStatus::Failed
-                | UsageImportJobStatus::Cancelled
-        )
-    })
+    job.is_some_and(|snapshot| !snapshot.status.is_terminal())
 }
 
 fn is_active_session_index_job(job: Option<&SessionIndexJobSnapshot>) -> bool {
@@ -440,13 +433,10 @@ async fn run_usage_import_job(
     job_id: String,
     platform: Option<String>,
     options: SyncCommandOptions,
+    cancel_token: tokio_util::sync::CancellationToken,
 ) {
     let state = app_handle.state::<AppState>();
     let cli = state.llmusage.cli().clone();
-    let cancel_token = tokio_util::sync::CancellationToken::new();
-    state
-        .register_usage_import_cancel_token(&job_id, cancel_token.clone())
-        .await;
     let results_by_platform = std::sync::Arc::new(tokio::sync::Mutex::new(BTreeMap::<
         String,
         UsageImportResultV2,
@@ -479,18 +469,28 @@ async fn run_usage_import_job(
     )
     .await;
 
-    // 子进程已退出 / 取消 / 报错都到这里，统一清理 cancel token 防泄漏。
-    let _ = app_handle
-        .state::<AppState>()
-        .take_usage_import_cancel_token(&job_id)
-        .await;
-
-    if let Err(error) = execution {
-        tracing::error!(job_id = %job_id, ?error, "Usage import job failed");
-        if let Some(snapshot) =
-            sync_llmusage_failure_snapshot(&app_handle, &job_id, error.to_string()).await
-        {
-            emit_usage_import_job_snapshot(&app_handle, "usage:job-failed", &snapshot).await;
+    match execution {
+        Ok(summary) => {
+            let results = results_by_platform.lock().await.clone();
+            if let Err(error) = finish_llmusage_import_job(
+                &app_handle,
+                &job_id,
+                platform.as_deref(),
+                results,
+                summary,
+            )
+            .await
+            {
+                tracing::error!(job_id = %job_id, %error, "Usage import completion failed");
+            }
+        }
+        Err(error) => {
+            if let Some(snapshot) = state
+                .complete_usage_import_job(&job_id, UsageImportCompletion::Error(error))
+                .await
+            {
+                emit_usage_import_job_snapshot(&app_handle, "usage:job-failed", &snapshot).await;
+            }
         }
     }
 }
@@ -614,23 +614,8 @@ async fn bridge_llmusage_import_event(
             })
             .await;
         }
-        JobEvent::Finished { summary } => {
-            let guard = results_by_platform.lock().await;
-            finish_llmusage_import_job(app_handle, job_id, platform, guard.clone(), summary)
-                .await?;
-        }
-        JobEvent::Failed { error } => return Err(error),
-        JobEvent::Cancelled => {
-            if let Some(snapshot) = app_handle
-                .state::<AppState>()
-                .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
-                    job.mark_cancelled();
-                })
-                .await
-            {
-                emit_usage_import_job_snapshot(app_handle, "usage:job-failed", &snapshot).await;
-            }
-        }
+        // The executor consumes wire terminal events and returns one typed result.
+        JobEvent::Finished { .. } | JobEvent::Failed { .. } | JobEvent::Cancelled => {}
     }
 
     Ok(())
@@ -654,14 +639,7 @@ async fn state_usage_import_job_is_terminal(app_handle: &AppHandle, job_id: &str
         .state::<AppState>()
         .get_usage_import_job(job_id)
         .await
-        .is_some_and(|snapshot| {
-            matches!(
-                snapshot.status,
-                crate::usage_jobs::UsageImportJobStatus::Finished
-                    | crate::usage_jobs::UsageImportJobStatus::Failed
-                    | crate::usage_jobs::UsageImportJobStatus::Cancelled
-            )
-        })
+        .is_some_and(|snapshot| snapshot.status.is_terminal())
 }
 
 async fn finish_llmusage_import_job(
@@ -685,11 +663,14 @@ async fn finish_llmusage_import_job(
     summary.imported_records = summary.imported_records.max(summary_event.total_inserted);
     let final_snapshot = app_handle
         .state::<AppState>()
-        .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
-            job.files_total = job.files_total.max(summary_event.sources);
-            job.records_imported = job.records_imported.max(summary_event.total_inserted);
-            job.mark_finished(results.clone(), summary.clone());
-        })
+        .complete_usage_import_job(
+            job_id,
+            UsageImportCompletion::Finished {
+                results: results.clone(),
+                summary: summary.clone(),
+                source_count: summary_event.sources,
+            },
+        )
         .await
         .ok_or_else(|| format!("Usage import job '{}' not found", job_id))?;
 
@@ -728,17 +709,63 @@ async fn finish_llmusage_import_job(
     Ok(())
 }
 
-async fn sync_llmusage_failure_snapshot(
-    app_handle: &AppHandle,
-    job_id: &str,
-    fallback_error: String,
-) -> Option<UsageImportJobSnapshot> {
-    app_handle
-        .state::<AppState>()
-        .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
-            job.mark_failed(fallback_error.clone());
-        })
-        .await
+async fn run_admitted_usage_sync(
+    state: &AppState,
+    source: Option<String>,
+    recent_days: Option<u32>,
+    rebuild: bool,
+) -> Result<Vec<UsageImportResultV2>, String> {
+    let job_id = format!("llmusage-foreground-{}", Uuid::new_v4());
+    let candidate = UsageImportJobSnapshot::new(
+        job_id.clone(),
+        platform_scope_label(source.as_deref()),
+        recent_days.unwrap_or(30) as usize,
+    );
+    let (snapshot, token) = state.admit_usage_import_job(candidate).await;
+    let Some(token) = token else {
+        return Err(format!("usage_import_already_running:{}", snapshot.job_id));
+    };
+    let outcome = crate::llmusage_adapter::run_sync_collect(
+        state.llmusage.cli(),
+        SyncCommandOptions {
+            rebuild,
+            recent_days,
+            source: source
+                .as_deref()
+                .and_then(crate::llmusage_adapter::parse_source_filter),
+            provider_map: provider_activation_map_path(),
+        },
+        token,
+    )
+    .await;
+    let result = outcome.and_then(|events| {
+        collect_llmusage_sync_results(events, source.as_deref())
+            .map_err(crate::llmusage_adapter::error::LlmusageAdapterError::Cli)
+    });
+    // The executor has reaped the process and joined readers before this
+    // single completion releases the admission shared with background jobs.
+    match result {
+        Ok(results) => {
+            state
+                .complete_usage_import_job(
+                    &job_id,
+                    UsageImportCompletion::Finished {
+                        summary: build_import_summary(&results),
+                        source_count: results.len(),
+                        results: results.clone(),
+                    },
+                )
+                .await;
+            Ok(results)
+        }
+        Err(error) => {
+            let message = error.to_string();
+            state
+                .complete_usage_import_job(&job_id, UsageImportCompletion::Error(error))
+                .await;
+            Err(message)
+        }
+    }
 }
 
 async fn run_llmusage_sync_all(
@@ -746,18 +773,7 @@ async fn run_llmusage_sync_all(
     recent_days: Option<u32>,
     rebuild: bool,
 ) -> Result<Vec<UsageImportResultV2>, String> {
-    let events = crate::llmusage_adapter::run_sync_collect(
-        state.llmusage.cli(),
-        SyncCommandOptions {
-            rebuild,
-            recent_days,
-            source: None,
-            provider_map: provider_activation_map_path(),
-        },
-    )
-    .await
-    .map_err(|error| error.to_string())?;
-    collect_llmusage_sync_results(events, None)
+    run_admitted_usage_sync(state, None, recent_days, rebuild).await
 }
 
 async fn run_llmusage_sync_once(
@@ -766,25 +782,10 @@ async fn run_llmusage_sync_once(
     recent_days: Option<u32>,
     rebuild: bool,
 ) -> Result<UsageImportResultV2, String> {
-    let requested_source = source.clone();
-    let parsed_source = source
-        .as_deref()
-        .and_then(crate::llmusage_adapter::parse_source_filter);
-    let events = crate::llmusage_adapter::run_sync_collect(
-        state.llmusage.cli(),
-        SyncCommandOptions {
-            rebuild,
-            recent_days,
-            source: parsed_source,
-            provider_map: provider_activation_map_path(),
-        },
-    )
-    .await
-    .map_err(|error| error.to_string())?;
-    let mut results = collect_llmusage_sync_results(events, requested_source.as_deref())?;
+    let mut results = run_admitted_usage_sync(state, source.clone(), recent_days, rebuild).await?;
     Ok(results
         .pop()
-        .unwrap_or_else(|| default_import_results(requested_source.as_deref()).remove(0)))
+        .unwrap_or_else(|| default_import_results(source.as_deref()).remove(0)))
 }
 
 async fn run_session_index_job(app_handle: AppHandle, job_id: String) {
@@ -1513,13 +1514,6 @@ pub async fn start_usage_import_job_v2(
     recent_days: Option<usize>,
     reset_sources: Option<bool>,
 ) -> Result<StartUsageImportJobResponse, String> {
-    if let Some(snapshot) = state.get_active_usage_import_job().await {
-        return Ok(StartUsageImportJobResponse {
-            job_id: snapshot.job_id.clone(),
-            snapshot,
-        });
-    }
-
     let recent_window_days = recent_days.unwrap_or(30).max(1);
     let source = platform
         .as_deref()
@@ -1536,13 +1530,20 @@ pub async fn start_usage_import_job_v2(
         platform_scope_label(platform.as_deref()),
         recent_window_days,
     );
-    state.insert_usage_import_job(snapshot.clone()).await;
+    let (snapshot, cancellation) = state.admit_usage_import_job(snapshot).await;
+    let Some(cancel_token) = cancellation else {
+        return Ok(StartUsageImportJobResponse {
+            job_id: snapshot.job_id.clone(),
+            snapshot,
+        });
+    };
 
     tauri::async_runtime::spawn(run_usage_import_job(
         app_handle,
         job_id.clone(),
         platform,
         options,
+        cancel_token,
     ));
 
     Ok(StartUsageImportJobResponse { job_id, snapshot })
@@ -1565,28 +1566,12 @@ pub async fn cancel_usage_import_job_v2(
     state: State<'_, AppState>,
     job_id: String,
 ) -> Result<UsageImportJobSnapshot, String> {
-    // 先取出 token 触发子进程退出；llmusage 0.5.3 没有 graceful contract，
-    // 这里走 kill 让本机资源立即释放，配合 run_sync_stream 内的 cancel 分支返回 cancelled。
-    if let Some(token) = state.take_usage_import_cancel_token(&job_id).await {
-        token.cancel();
-        tracing::info!(
-            ccr_job_id = %job_id,
-            "llmusage sync subprocess cancel signal sent (kill)"
-        );
-    } else {
-        tracing::warn!(
-            ccr_job_id = %job_id,
-            "no cancel token registered for usage import job; only marking local snapshot cancelled"
-        );
-    }
-
     let snapshot = state
-        .update_usage_import_job(&job_id, |job: &mut UsageImportJobSnapshot| {
-            job.mark_cancelled();
-        })
+        .request_usage_import_cancel(&job_id)
         .await
         .ok_or_else(|| format!("Usage import job '{}' not found", job_id))?;
-
-    emit_usage_import_job_snapshot(&app_handle, "usage:job-failed", &snapshot).await;
+    if !snapshot.status.is_terminal() {
+        emit_usage_import_job_snapshot(&app_handle, "usage:job-progress", &snapshot).await;
+    }
     Ok(snapshot)
 }

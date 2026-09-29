@@ -123,8 +123,14 @@ impl DroidPlatform {
         let content = serde_json::to_string_pretty(settings)
             .map_err(|e| CcrError::SettingsError(format!("序列化 Droid 设置失败: {}", e)))?;
 
-        fs::write(&self.settings_path, content)
-            .map_err(|e| CcrError::SettingsError(format!("写入 Droid 设置失败: {}", e)))?;
+        ccr_core::core::guarded_write::write_guarded(
+            &self.settings_path,
+            content.as_bytes(),
+            &ccr_core::core::WriteOptions {
+                secret: true,
+                ..Default::default()
+            },
+        )?;
 
         tracing::info!(
             path = ?self.settings_path,
@@ -171,11 +177,6 @@ impl DroidPlatform {
         base::profile_to_section(profile)
     }
 
-    /// 💾 保存 profiles 到 TOML 文件
-    fn save_profiles(&self, profiles: &IndexMap<String, ProfileConfig>) -> Result<()> {
-        base::save_profiles_to_toml(&self.paths.profiles_file, profiles, "droid", &self.paths)
-    }
-
     /// 🔄 更新 profiles.toml 中的 current_config 字段
     fn update_current_config_in_profiles(&self, name: &str) -> Result<()> {
         base::update_current_config(&self.paths.profiles_file, name)
@@ -201,20 +202,31 @@ impl PlatformConfig for DroidPlatform {
     }
 
     fn save_profile(&self, name: &str, profile: &ProfileConfig) -> Result<()> {
-        // 先验证
-        self.validate_profile(profile)?;
-
-        let mut profiles = self.load_profiles()?;
-        profiles.insert(name.to_string(), profile.clone());
-        self.save_profiles(&profiles)
+        base::mutate_profiles(
+            &self.paths.profiles_file,
+            "droid",
+            &self.paths,
+            |profiles| {
+                let normalized = profile.clone();
+                self.validate_profile(&normalized)?;
+                profiles.insert(name.to_string(), normalized);
+                Ok(())
+            },
+        )
     }
 
     fn delete_profile(&self, name: &str) -> Result<()> {
-        let mut profiles = self.load_profiles()?;
-        if profiles.shift_remove(name).is_none() {
-            return Err(CcrError::ProfileNotFound(name.to_string()));
-        }
-        self.save_profiles(&profiles)?;
+        let profiles = base::mutate_profiles(
+            &self.paths.profiles_file,
+            "droid",
+            &self.paths,
+            |profiles| {
+                if profiles.shift_remove(name).is_none() {
+                    return Err(CcrError::ProfileNotFound(name.to_string()));
+                }
+                Ok(profiles.clone())
+            },
+        )?;
         base::reconcile_registry_current_profile_after_delete("droid", name, &profiles)
     }
 

@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo } from 'react'
 import { SIcon, buttonClass } from '@/ui'
-import { t } from '../locale'
+import { useAppT } from '@/i18n'
 import type { ConfigFilter, ConfigSort } from '../types'
 import { FilterChip } from './FilterChip'
 import '../styles/config-filters.css'
@@ -28,6 +28,7 @@ export const ConfigFilters = memo(function ConfigFilters({
   onShowProviderStats,
   onAddConfig,
 }: ConfigFiltersProps) {
+  const t = useAppT()
   const filters = useMemo(
     () => [
       { type: 'all' as const, label: t('configs.filters.all'), icon: 'LayoutGrid', iconColor: 'text-emerald-400' },
@@ -50,7 +51,7 @@ export const ConfigFilters = memo(function ConfigFilters({
         iconColor: 'text-amber-400',
       },
     ],
-    [],
+    [t],
   )
 
   const handleSort = useCallback(

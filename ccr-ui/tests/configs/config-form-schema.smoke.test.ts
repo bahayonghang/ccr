@@ -38,7 +38,7 @@ describe('config form schema', () => {
       auth_token: 'sk-ant-secret-token',
       tags: ['prod'],
     })
-    expect(values.auth_token).toBe('sk-ant-secret-token')
+    expect(values.auth_token).toBe('')
     expect(maskSensitive(values.auth_token)).not.toContain('secret')
   })
 

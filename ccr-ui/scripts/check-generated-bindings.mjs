@@ -1,115 +1,43 @@
-import { readFile, readdir } from 'node:fs/promises'
-import { spawnSync } from 'node:child_process'
-import { join, relative, resolve, sep } from 'node:path'
+import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { diffSnapshots, snapshotDirectory, withGeneratedDirectory } from './bindings-transaction.mjs'
+import { generatedRoot, generateContents, normalizationStep, runBindingStep } from './generate-bindings.mjs'
 
-const generatedRoot = fileURLToPath(new URL('../src/types/generated/', import.meta.url))
-const uiRoot = fileURLToPath(new URL('../', import.meta.url))
-const normalizer = './scripts/normalize-generated-bindings.mjs'
-const writeError = (message) => process.stderr.write(`${message}\n`)
-const writeOutput = (message) => process.stdout.write(`${message}\n`)
+export { diffSnapshots, snapshotDirectory } from './bindings-transaction.mjs'
 
-export const snapshotDirectory = async (directory = generatedRoot) => {
-  const files = new Map()
-  const relativePath = (path) => relative(directory, path).split(sep).join('/')
-
-  const visit = async (current) => {
-    let entries
-    try {
-      entries = await readdir(current, { withFileTypes: true })
-    } catch (error) {
-      if (error.code === 'ENOENT') return
-      throw error
-    }
-
-    for (const entry of entries) {
-      const path = join(current, entry.name)
-      if (entry.isDirectory()) {
-        await visit(path)
-        continue
-      }
-      if (entry.isFile()) files.set(relativePath(path), await readFile(path))
-    }
+export const checkBindings = ({
+  directory = generatedRoot,
+  runStep = runBindingStep,
+  writeError = (message) => process.stderr.write(`${message}\n`),
+} = {}) => withGeneratedDirectory(directory, async (initial) => {
+  if (initial.files.size > 0) {
+    const normalized = await runStep(normalizationStep)
+    if (normalized !== 0) return normalized
   }
+  const before = await snapshotDirectory(directory)
+  const status = await generateContents(directory, runStep)
+  if (status !== 0) return status
 
-  await visit(directory)
-  return files
-}
-
-export const diffSnapshots = (before, after) => {
-  const paths = new Set([...before.keys(), ...after.keys()])
-  return [...paths]
-    .sort((left, right) => left.localeCompare(right))
-    .filter((path) => {
-      const previous = before.get(path)
-      const current = after.get(path)
-      return !previous || !current || !previous.equals(current)
-    })
-}
-
-const runCommand = (command, args) => {
-  const result = spawnSync(command, args, {
-    cwd: uiRoot,
-    env: {
-      ...process.env,
-      RUST_TEST_THREADS: '1',
-    },
-    stdio: 'inherit',
-  })
-
-  if (result.error) throw result.error
-  return result.status ?? 1
-}
-
-const runNormalizer = () => {
-  const command = process.platform === 'win32' ? 'bun.exe' : 'bun'
-  const result = spawnSync(command, [normalizer], {
-    cwd: uiRoot,
-    stdio: 'inherit',
-  })
-
-  if (result.error) throw result.error
-  return result.status ?? 1
-}
-
-const runBindings = () => {
-  const command = process.platform === 'win32' ? 'just.exe' : 'just'
-  return runCommand(command, ['bindings'])
-}
-
-const main = async () => {
-  const initial = await snapshotDirectory()
-  if (initial.size > 0 && runNormalizer() !== 0) {
-    process.exitCode = 1
-    return
-  }
-  const before = await snapshotDirectory()
-  const status = runBindings()
-  if (status !== 0) {
-    process.exitCode = status
-    return
-  }
-
-  const after = await snapshotDirectory()
-  const changed = diffSnapshots(before, after)
+  const after = await snapshotDirectory(directory)
+  const changed = diffSnapshots(before.files, after.files)
   if (changed.length > 0) {
-    writeError('❌ TypeScript 绑定漂移：重新生成改变了当前工作区的生成物')
+    writeError('TypeScript bindings drift: regeneration changed the worktree baseline')
     for (const path of changed) {
-      const kind = before.has(path) ? (after.has(path) ? 'M' : 'D') : 'A'
+      const kind = before.files.has(path) ? (after.files.has(path) ? 'M' : 'D') : 'A'
       writeError(`  ${kind} src/types/generated/${path}`)
     }
-    writeError('请审阅生成结果，并将 Rust DTO 与生成物一起提交')
-    process.exitCode = 1
-    return
+    writeError('Run just tauri-bindings from the repository root and review the generated changes')
+    return 1
   }
+  return 0
+}, { restoreAlways: true })
 
-  writeOutput('✅ TypeScript 绑定与当前工作区生成物同步')
-}
-
-const isMain = process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])
-if (isMain) {
-  main().catch((error) => {
-    writeError(`❌ TypeScript 绑定检查失败: ${error.message}`)
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
+  checkBindings().then((status) => {
+    process.exitCode = status
+    if (status === 0) process.stdout.write(`TypeScript bindings match the worktree baseline\n`)
+  }).catch((error) => {
+    process.stderr.write(`TypeScript bindings check failed: ${error.message}\n`)
     process.exitCode = 1
   })
 }

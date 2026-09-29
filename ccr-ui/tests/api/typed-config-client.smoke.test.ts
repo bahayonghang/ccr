@@ -15,6 +15,7 @@ describe('generated config client', () => {
       'delete_config',
       'rename_config',
       'duplicate_config',
+      'update_config',
       'validate_configs',
       'import_config',
       'restore_config',
@@ -29,7 +30,7 @@ describe('generated config client', () => {
     const source = await readFile('src/api/generated/config.ts', 'utf8')
 
     expect(source).toContain("invoke('add_config', input)")
-    expect(source).toContain("invoke('duplicate_config', { source, target })")
+    expect(source).toContain("invoke('duplicate_config', { platform, source, target })")
     expect(source).toContain("invoke('export_config', { includeSecrets })")
     expect(source).toContain("invoke('import_config', { content: input.content, mode: input.mode ?? 'merge', backup: input.backup ?? true, confirmationToken:")
     expect(source).toContain("invoke('restore_config', { backupPath, confirmationToken:")

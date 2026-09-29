@@ -10,10 +10,12 @@
 // 设计目标: 消除 claude.rs, codex.rs, gemini.rs 中重复的 ~150 行代码
 
 use crate::managers::PlatformConfigManager;
-use crate::managers::config::{CcsConfig, ConfigSection, GlobalSettings, ProviderType};
+use crate::managers::config::{
+    CcsConfig, ConfigManager, ConfigSection, GlobalSettings, ProviderType,
+};
 use crate::models::{PlatformPaths, ProfileConfig};
+use ccr_core::core::LockManager;
 use ccr_core::core::error::{CcrError, Result};
-use ccr_core::core::{BackupPolicy, LockManager, WriteOptions, write_guarded};
 use ccr_core::utils::toml_json;
 use indexmap::IndexMap;
 use std::fs;
@@ -27,10 +29,6 @@ const PLATFORM_REGISTRY_LOCK_RESOURCE: &str = "platform_registry";
 enum ProfileDocumentShape {
     Full,
     Simplified,
-}
-
-fn profile_lock_resource(platform_name: &str) -> String {
-    format!("platform_profiles_{}", platform_name)
 }
 
 fn save_platform_registry_with_paths<F>(
@@ -158,15 +156,16 @@ pub fn section_to_profile(section: &ConfigSection) -> ProfileConfig {
 
 /// 📋 从 ProfileConfig 转换为 ConfigSection
 pub fn profile_to_section(profile: &ProfileConfig) -> Result<ConfigSection> {
-    let provider_type = profile
-        .provider_type
-        .as_ref()
-        .and_then(|s| match s.as_str() {
-            "official_relay" => Some(ProviderType::OfficialRelay),
-            "third_party" => Some(ProviderType::ThirdPartyModel),
-            "third_party_model" => Some(ProviderType::ThirdPartyModel),
-            _ => None,
-        });
+    let provider_type = match profile.provider_type.as_deref() {
+        None => None,
+        Some("official_relay") => Some(ProviderType::OfficialRelay),
+        Some("third_party" | "third_party_model") => Some(ProviderType::ThirdPartyModel),
+        Some(_) => {
+            return Err(CcrError::ValidationError(
+                "provider_type 无效；期望 official_relay 或 third_party_model".into(),
+            ));
+        }
+    };
 
     Ok(ConfigSection {
         description: profile.description.clone(),
@@ -419,40 +418,55 @@ fn format_toml_diagnostic(content: &str, error: &toml::de::Error, syntax: bool) 
 /// 1. CcsConfig 完整格式 (包含 default_config, current_config, settings)
 /// 2. 简化格式 (仅包含 profile sections)
 pub fn parse_profiles_from_str(content: &str) -> Result<IndexMap<String, ProfileConfig>> {
-    let document = toml::from_str::<toml::Value>(content).map_err(|error| {
-        CcrError::ConfigFormatInvalid(format_toml_diagnostic(content, &error, true))
-    })?;
-
-    let sections = match profile_document_shape(&document) {
-        ProfileDocumentShape::Full => toml::from_str::<CcsConfig>(content)
-            .map(|config| config.sections)
-            .map_err(|error| {
-                CcrError::ConfigFormatInvalid(format_toml_diagnostic(content, &error, false))
-            })?,
-        ProfileDocumentShape::Simplified => {
-            toml::from_str::<IndexMap<String, ConfigSection>>(content).map_err(|error| {
-                CcrError::ConfigFormatInvalid(format_toml_diagnostic(content, &error, false))
-            })?
-        }
-    };
-
-    Ok(sections
+    Ok(parse_config_from_str(content)?
+        .sections
         .into_iter()
         .map(|(name, section)| (name, section_to_profile(&section)))
         .collect())
 }
 
+/// Parse both supported registry shapes without replacing meaningful diagnostics.
+/// This function never initializes a file or completes missing profile fields.
+pub fn parse_config_from_str(content: &str) -> Result<CcsConfig> {
+    let document = toml::from_str::<toml::Value>(content).map_err(|error| {
+        CcrError::ConfigFormatInvalid(format_toml_diagnostic(content, &error, true))
+    })?;
+    match profile_document_shape(&document) {
+        ProfileDocumentShape::Full => toml::from_str::<CcsConfig>(content).map_err(|error| {
+            CcrError::ConfigFormatInvalid(format_toml_diagnostic(content, &error, false))
+        }),
+        ProfileDocumentShape::Simplified => {
+            let sections =
+                toml::from_str::<IndexMap<String, ConfigSection>>(content).map_err(|error| {
+                    CcrError::ConfigFormatInvalid(format_toml_diagnostic(content, &error, false))
+                })?;
+            let first = sections
+                .keys()
+                .next()
+                .cloned()
+                .unwrap_or_else(|| "default".into());
+            Ok(CcsConfig {
+                default_config: first.clone(),
+                current_config: first,
+                settings: GlobalSettings::default(),
+                sections,
+            })
+        }
+    }
+}
+
 /// Read and parse profiles from a TOML file.
 pub fn load_profiles_from_toml(profiles_path: &Path) -> Result<IndexMap<String, ProfileConfig>> {
-    if !profiles_path.exists() {
-        return Ok(IndexMap::new());
-    }
-
     let display_path = profiles_path.display().to_string();
-
-    // 读取文件
-    let content = fs::read_to_string(profiles_path)
-        .map_err(|e| CcrError::ConfigError(format!("读取配置文件失败 {}: {}", display_path, e)))?;
+    let content = match fs::read_to_string(profiles_path) {
+        Ok(content) => content,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(IndexMap::new()),
+        Err(error) => {
+            return Err(CcrError::ConfigError(format!(
+                "读取配置文件失败 {display_path}: {error}"
+            )));
+        }
+    };
 
     parse_profiles_from_str(&content).map_err(|error| match error {
         CcrError::ConfigFormatInvalid(message) => {
@@ -460,6 +474,23 @@ pub fn load_profiles_from_toml(profiles_path: &Path) -> Result<IndexMap<String, 
         }
         other => other,
     })
+}
+
+/// Read only a stored current marker. A legacy map has no current marker; the
+/// compatibility parser's in-memory default must not imply an active profile.
+pub fn load_current_profile_marker(profiles_path: &Path) -> Result<Option<String>> {
+    let content = match fs::read_to_string(profiles_path) {
+        Ok(content) => content,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => {
+            return Err(CcrError::FileIoError(format!(
+                "读取 profile 标记失败: {error}"
+            )));
+        }
+    };
+    let config = crate::managers::config::repository::parse_repository_config(&content)?;
+    let current = config.current_config.trim();
+    Ok((!current.is_empty()).then(|| current.to_string()))
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -479,132 +510,65 @@ pub fn save_profiles_to_toml(
     platform_name: &str,
     paths: &PlatformPaths,
 ) -> Result<()> {
-    let lock_manager = LockManager::with_default_path()?;
-    let lock_name = profile_lock_resource(platform_name);
-    let _lock = lock_manager.lock_resource(&lock_name, PLATFORM_PROFILE_LOCK_TIMEOUT)?;
+    // Explicit whole-document replacement for import/recovery only. Ordinary CRUD
+    // must use mutate_profiles so the initial read is inside the resource lock.
+    mutate_profiles(profiles_path, platform_name, paths, |current| {
+        *current = profiles.clone();
+        Ok(())
+    })
+}
 
-    // 确保目录存在
-    paths.ensure_directories()?;
+/// Shared platform adapter transaction. Validation belongs inside the closure.
+pub fn mutate_profiles<T>(
+    profiles_path: &Path,
+    _platform_name: &str,
+    _paths: &PlatformPaths,
+    mutate: impl FnOnce(&mut IndexMap<String, ProfileConfig>) -> Result<T>,
+) -> Result<T> {
+    mutate_profiles_with_current(profiles_path, |profiles, _current| mutate(profiles))
+}
 
-    // 转换为 ConfigSection 格式
-    let mut sections = IndexMap::new();
-    for (name, profile) in profiles {
-        sections.insert(name.clone(), profile_to_section(profile)?);
-    }
-
-    // 📖 读取现有配置，保留 current_config 和 default_config
-    let (existing_default, existing_current, existing_settings) = if profiles_path.exists() {
-        let content = fs::read_to_string(profiles_path)
-            .map_err(|e| CcrError::ConfigError(format!("读取配置文件失败: {}", e)))?;
-        match toml::from_str::<CcsConfig>(&content) {
-            Ok(existing) => (
-                existing.default_config,
-                existing.current_config,
-                existing.settings,
-            ),
-            Err(_) => get_default_config_values(profiles),
+/// Variant for platforms whose inactive marker must remain empty during CRUD.
+pub fn mutate_profiles_with_current<T>(
+    profiles_path: &Path,
+    mutate: impl FnOnce(&mut IndexMap<String, ProfileConfig>, &mut String) -> Result<T>,
+) -> Result<T> {
+    ConfigManager::new(profiles_path).mutate_or_create(|config| {
+        let mut profiles = config
+            .sections
+            .iter()
+            .map(|(name, section)| (name.clone(), section_to_profile(section)))
+            .collect();
+        let result = mutate(&mut profiles, &mut config.current_config)?;
+        let mut sections = IndexMap::new();
+        for (name, profile) in &profiles {
+            crate::managers::config::repository::validate_profile_name(name)?;
+            let section = profile_to_section(profile)?;
+            let section = match config.sections.get(name) {
+                Some(original) => crate::managers::config::repository::merge_section_delta(
+                    original,
+                    &profile_to_section(&section_to_profile(original))?,
+                    &section,
+                )?,
+                None => section,
+            };
+            sections.insert(name.clone(), section);
         }
-    } else {
-        // 尝试从注册表读取 current_profile
-        get_default_from_registry(platform_name, profiles)
-    };
-
-    // 🔄 验证 current_config 和 default_config 是否仍然存在于 profiles 中
-    let default_config = if sections.contains_key(&existing_default) {
-        existing_default
-    } else {
-        profiles
+        let first = sections
             .keys()
             .next()
             .cloned()
-            .unwrap_or_else(|| "default".to_string())
-    };
-
-    let current_config = if sections.contains_key(&existing_current) {
-        existing_current
-    } else {
-        profiles
-            .keys()
-            .next()
-            .cloned()
-            .unwrap_or_else(|| "default".to_string())
-    };
-
-    // 构建完整配置
-    let config = CcsConfig {
-        default_config,
-        current_config,
-        settings: existing_settings,
-        sections,
-    };
-
-    // 序列化为 TOML
-    let content = toml::to_string_pretty(&config)
-        .map_err(|e| CcrError::ConfigError(format!("序列化配置失败: {}", e)))?;
-
-    // 🛡️ 单次 guarded write：备份轮换 + 原子替换合并（命名 RMW 锁在函数开头已持有）
-    write_guarded(
-        profiles_path,
-        content.as_bytes(),
-        &WriteOptions {
-            backup: BackupPolicy::Dir {
-                dir: paths.backups_dir.clone(),
-                prefix: "profiles".into(),
-            },
-            secret: true,
-            ..Default::default()
-        },
-    )?;
-
-    tracing::info!(
-        platform = platform_name,
-        path = ?profiles_path,
-        corr = ccr_core::current_log_correlation_id(),
-        "saved platform profiles"
-    );
-    Ok(())
-}
-
-/// 📐 获取默认配置值 (当解析失败时)
-fn get_default_config_values(
-    profiles: &IndexMap<String, ProfileConfig>,
-) -> (String, String, GlobalSettings) {
-    let first_key = profiles
-        .keys()
-        .next()
-        .cloned()
-        .unwrap_or_else(|| "default".to_string());
-    (first_key.clone(), first_key, GlobalSettings::default())
-}
-
-/// 📐 从注册表获取默认配置
-fn get_default_from_registry(
-    platform_name: &str,
-    profiles: &IndexMap<String, ProfileConfig>,
-) -> (String, String, GlobalSettings) {
-    let platform_config_mgr = match PlatformConfigManager::with_default() {
-        Ok(mgr) => mgr,
-        Err(_) => return get_default_config_values(profiles),
-    };
-
-    let current_profile = match platform_config_mgr.load() {
-        Ok(unified_config) => {
-            if let Ok(entry) = unified_config.get_platform(platform_name) {
-                entry.current_profile.clone()
-            } else {
-                None
-            }
+            .unwrap_or_else(|| "default".into());
+        if !sections.contains_key(&config.default_config) {
+            config.default_config = first.clone();
         }
-        Err(_) => None,
-    }
-    .or_else(|| profiles.keys().next().cloned())
-    .unwrap_or_else(|| "default".to_string());
-
-    (
-        current_profile.clone(),
-        current_profile,
-        GlobalSettings::default(),
-    )
+        // An empty marker denotes an explicitly inactive platform.
+        if !config.current_config.is_empty() && !sections.contains_key(&config.current_config) {
+            config.current_config = first;
+        }
+        config.sections = sections;
+        Ok(result)
+    })
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -615,85 +579,10 @@ fn get_default_from_registry(
 ///
 /// 在配置切换时调用，用于同步更新 profiles.toml 中记录的当前配置名称
 pub fn update_current_config(profiles_path: &Path, name: &str) -> Result<()> {
-    // 仅在文件存在时更新
-    if !profiles_path.exists() {
-        return Ok(());
+    match ConfigManager::new(profiles_path).mutate(|config| config.set_current(name)) {
+        Err(CcrError::ConfigMissing(_)) => Ok(()),
+        result => result,
     }
-
-    let platform_name = profiles_path
-        .parent()
-        .and_then(|parent| parent.file_name())
-        .and_then(|name| name.to_str())
-        .unwrap_or("unknown");
-    let lock_manager = LockManager::with_default_path()?;
-    let lock_name = profile_lock_resource(platform_name);
-    let _lock = lock_manager.lock_resource(&lock_name, PLATFORM_PROFILE_LOCK_TIMEOUT)?;
-
-    // 读取现有配置
-    let content = fs::read_to_string(profiles_path)
-        .map_err(|e| CcrError::ConfigError(format!("读取配置文件失败: {}", e)))?;
-
-    // 解析 TOML
-    let mut config: CcsConfig = match toml::from_str(&content) {
-        Ok(c) => c,
-        Err(_) => {
-            // 如果解析失败（可能是旧格式），跳过更新
-            tracing::warn!("⚠️ 无法解析 profiles.toml，跳过 current_config 更新");
-            return Ok(());
-        }
-    };
-
-    // 验证目标配置存在
-    if !config.sections.contains_key(name) {
-        return Err(CcrError::ConfigSectionNotFound(name.to_string()));
-    }
-
-    // 更新 current_config
-    config.current_config = name.to_string();
-
-    // 序列化并写回
-    let new_content = toml::to_string_pretty(&config)
-        .map_err(|e| CcrError::ConfigError(format!("序列化配置失败: {}", e)))?;
-
-    let backup_dir = profiles_path
-        .parent()
-        .and_then(|parent| {
-            // 仅在标准目录结构 (<root>/platforms/<name>/profiles.toml) 时向上推算备份目录
-            let grandparent = parent.parent()?;
-            if grandparent
-                .file_name()
-                .and_then(|n| n.to_str())
-                .is_some_and(|n| n.eq_ignore_ascii_case("platforms"))
-            {
-                let root = grandparent.parent()?;
-                Some(root.join("backups").join(platform_name))
-            } else {
-                None
-            }
-        })
-        .unwrap_or_else(|| {
-            profiles_path
-                .parent()
-                .unwrap_or_else(|| Path::new("."))
-                .join("backups")
-        });
-
-    // 🛡️ 单次 guarded write：备份轮换 + 原子替换合并（命名 RMW 锁在函数开头已持有）
-    write_guarded(
-        profiles_path,
-        new_content.as_bytes(),
-        &WriteOptions {
-            backup: BackupPolicy::Dir {
-                dir: backup_dir,
-                prefix: "profiles".into(),
-            },
-            secret: true,
-            ..Default::default()
-        },
-    )?;
-
-    tracing::debug!("✅ 已更新 profiles.toml 的 current_config: {}", name);
-    Ok(())
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -898,6 +787,44 @@ pub fn get_current_profile_from_registry(platform_name: &str) -> Result<Option<S
     }
 }
 
+/// Repair suggestions contain marker names only, never profile credentials.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CurrentProfileRepair {
+    Registry(Option<String>),
+    Profiles(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CurrentProfileResolution {
+    pub current: Option<String>,
+    pub repair: Option<CurrentProfileRepair>,
+}
+
+/// Claude's existing precedence: valid file marker, then valid registry marker.
+pub fn resolve_file_current_profile(
+    profiles: &IndexMap<String, ProfileConfig>,
+    file: Option<&str>,
+    registry: Option<&str>,
+) -> CurrentProfileResolution {
+    if let Some(current) = file.filter(|name| profiles.contains_key(*name)) {
+        return CurrentProfileResolution {
+            current: Some(current.into()),
+            repair: (registry != Some(current))
+                .then(|| CurrentProfileRepair::Registry(Some(current.into()))),
+        };
+    }
+    if let Some(current) = registry.filter(|name| profiles.contains_key(*name)) {
+        return CurrentProfileResolution {
+            current: Some(current.into()),
+            repair: Some(CurrentProfileRepair::Profiles(current.into())),
+        };
+    }
+    CurrentProfileResolution {
+        current: None,
+        repair: registry.map(|_| CurrentProfileRepair::Registry(None)),
+    }
+}
+
 // ═══════════════════════════════════════════════════════════
 // 🧪 测试
 // ═══════════════════════════════════════════════════════════
@@ -955,8 +882,9 @@ mod tests {
         assert_eq!(section2.provider_type, Some(ProviderType::ThirdPartyModel));
 
         profile.provider_type = Some("invalid".to_string());
-        let section3 = profile_to_section(&profile).unwrap();
-        assert_eq!(section3.provider_type, None);
+        let error = profile_to_section(&profile).unwrap_err();
+        assert!(error.to_string().contains("provider_type"));
+        assert!(!error.to_string().contains("invalid"));
     }
 
     #[test]

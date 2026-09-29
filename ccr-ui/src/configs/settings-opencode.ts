@@ -6,8 +6,10 @@ import {
 } from '@/api'
 import { asBool, asList, asString, boolField, selectField, splitList, textField } from '@/configs/settings-helpers'
 import { surfaceNotify } from '@/configs/surfaceNotify'
+import { probeLocalEnvironment } from '@/configs/probeLocal'
 import type { SettingsConfig, SettingsFieldOption } from '@/configs/settings-types'
-import type { OpenCodeTuiConfig } from '@/types/opencode'
+import { SettingsValidationError } from '@/configs/settings-types'
+import { dirtySettingsPatch, settingsRecord } from '@/configs/settings-patch'
 
 const SHARE_OPTIONS: SettingsFieldOption[] = [
   { value: 'manual', labelKey: 'manual' },
@@ -28,7 +30,8 @@ export const opencodeSettingsConfig: SettingsConfig = {
   i18nPrefix: 'opencode.settings',
   titleKey: 'opencode.settings.title',
   subtitleKey: 'opencode.settings.subtitle',
-  features: { dualFile: true },
+  features: { dualFile: true, dirtyPatch: true, localOnly: true },
+  probe: probeLocalEnvironment,
   notify: surfaceNotify,
   tabs: [
     { id: 'runtime', labelKey: 'opencode.settings.tabs.runtime' },
@@ -40,7 +43,9 @@ export const opencodeSettingsConfig: SettingsConfig = {
     textField('defaultAgent', 'runtime', 'opencode.settings.fields.defaultAgent'),
     selectField({ id: 'share', tab: 'runtime', labelKey: 'opencode.settings.fields.share', options: SHARE_OPTIONS }),
     boolField('snapshot', 'runtime', 'opencode.settings.fields.snapshot'),
-    boolField('autoupdate', 'runtime', 'opencode.settings.fields.autoupdate'),
+    selectField({ id: 'autoupdate', tab: 'runtime', labelKey: 'opencode.settings.fields.autoupdate', options: [
+      { value: 'true', labelKey: 'true' }, { value: 'false', labelKey: 'false' }, { value: 'notify', labelKey: 'notify' },
+    ] }),
     { id: 'serverPort', tab: 'runtime', kind: 'number', labelKey: 'opencode.settings.fields.serverPort' },
     textField('serverHostname', 'runtime', 'opencode.settings.fields.serverHostname'),
     boolField('serverMdns', 'runtime', 'opencode.settings.fields.serverMdns'),
@@ -53,13 +58,13 @@ export const opencodeSettingsConfig: SettingsConfig = {
   ],
   load: async () => {
     const [runtime, tui] = await Promise.all([getOpenCodeConfig(), getOpenCodeTuiSettings()])
-    return {
+    return { source: { runtime, tui }, values: {
       model: asString(runtime.model),
       smallModel: asString(runtime.small_model),
       defaultAgent: asString(runtime.default_agent),
       share: asString(runtime.share) || 'manual',
       snapshot: asBool(runtime.snapshot),
-      autoupdate: runtime.autoupdate === true,
+      autoupdate: asString(runtime.autoupdate),
       serverPort: runtime.server?.port ?? '',
       serverHostname: asString(runtime.server?.hostname),
       serverMdns: asBool(runtime.server?.mdns),
@@ -69,16 +74,17 @@ export const opencodeSettingsConfig: SettingsConfig = {
       theme: asString(tui.theme),
       mouse: asBool(tui.mouse),
       keybindsJson: JSON.stringify(tui.keybinds ?? {}, null, 2),
-    }
+    } }
   },
-  save: async ({ values }) => {
-    await updateOpenCodeConfig({
+  save: async ({ values, dirtyKeys, snapshot }) => {
+    const source = settingsRecord(snapshot.source)
+    const runtime = dirtySettingsPatch(RUNTIME_PATHS, {
       model: asString(values.model) || undefined,
       small_model: asString(values.smallModel) || undefined,
       default_agent: asString(values.defaultAgent) || undefined,
       share: (asString(values.share) || 'manual') as 'manual' | 'auto' | 'disabled',
       snapshot: asBool(values.snapshot),
-      autoupdate: asBool(values.autoupdate),
+      autoupdate: values.autoupdate === 'true' ? true : values.autoupdate === 'false' ? false : values.autoupdate,
       server: {
         port: values.serverPort === '' ? undefined : Number(values.serverPort),
         hostname: asString(values.serverHostname) || undefined,
@@ -87,12 +93,25 @@ export const opencodeSettingsConfig: SettingsConfig = {
       tools: parseRecord(asString(values.toolsJson)),
       permission: parseRecord(asString(values.permissionJson)),
       instructions: splitList(values.instructionsText),
-    })
-    const tui: OpenCodeTuiConfig = {
+    }, { dirtyKeys, source: source.runtime })
+    const tui = dirtySettingsPatch(TUI_PATHS, {
       theme: asString(values.theme) || undefined,
       mouse: asBool(values.mouse),
       keybinds: parseRecord(asString(values.keybindsJson)),
+    }, { dirtyKeys, source: source.tui })
+    if ([runtime, tui].some((patch) => Object.values(patch).some((value) => value === undefined))) {
+      throw new SettingsValidationError('settingsRaw.opencodeClearUnsupported')
     }
-    await updateOpenCodeTuiSettings(tui)
+    if (Object.keys(runtime).length) await updateOpenCodeConfig(runtime)
+    if (Object.keys(tui).length) await updateOpenCodeTuiSettings(tui)
+    return { status: 'saved' }
   },
 }
+
+const RUNTIME_PATHS = {
+  model: 'model', smallModel: 'small_model', defaultAgent: 'default_agent', share: 'share',
+  snapshot: 'snapshot', autoupdate: 'autoupdate', serverPort: 'server.port',
+  serverHostname: 'server.hostname', serverMdns: 'server.mdns', toolsJson: 'tools',
+  permissionJson: 'permission', instructionsText: 'instructions',
+}
+const TUI_PATHS = { theme: 'theme', mouse: 'mouse', keybindsJson: 'keybinds' }

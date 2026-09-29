@@ -424,53 +424,6 @@ fn main() {
     });
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::desktop_shell::{MainWindowCloseAction, resolve_main_window_close_action};
-    use crate::state::DesktopShellPreferences;
-
-    #[test]
-    fn close_action_hides_main_window_to_tray_when_enabled() {
-        let action = resolve_main_window_close_action(
-            &DesktopShellPreferences {
-                confirm_before_exit: true,
-                close_to_tray: true,
-                open_panel_on_tray_click: true,
-                ..DesktopShellPreferences::default()
-            },
-            false,
-            false,
-        );
-
-        assert_eq!(action, MainWindowCloseAction::HideToTray);
-    }
-
-    #[test]
-    fn close_action_requests_quit_when_close_to_tray_and_confirm_are_disabled() {
-        let action = resolve_main_window_close_action(
-            &DesktopShellPreferences {
-                confirm_before_exit: false,
-                close_to_tray: false,
-                open_panel_on_tray_click: true,
-                ..DesktopShellPreferences::default()
-            },
-            false,
-            false,
-        );
-
-        assert_eq!(action, MainWindowCloseAction::RequestQuit);
-    }
-
-    #[cfg(target_os = "macos")]
-    #[test]
-    fn macos_window_chrome_config_enables_native_decorations() {
-        let config = super::macos_native_window_chrome_config();
-
-        assert!(config.decorations);
-        assert_eq!(config.title_bar_style, tauri::TitleBarStyle::Visible);
-    }
-}
-
 /// 后台维护任务循环：60s 基础 tick，按 tick 数分频执行不同粒度的清理。
 /// - 每 60s  : cache_cleanup + command job TTL/capacity prune
 /// - 每 300s : ssh 运行时状态 + 密码缓存 cleanup（tick % 5 == 0）
@@ -543,4 +496,51 @@ async fn verify_usage_storage_dir() -> Result<(), String> {
     })
     .await
     .map_err(|e| format!("Task join: {e}"))?
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::desktop_shell::{MainWindowCloseAction, resolve_main_window_close_action};
+    use crate::state::DesktopShellPreferences;
+
+    #[test]
+    fn close_action_hides_main_window_to_tray_when_enabled() {
+        let action = resolve_main_window_close_action(
+            &DesktopShellPreferences {
+                confirm_before_exit: true,
+                close_to_tray: true,
+                open_panel_on_tray_click: true,
+                ..DesktopShellPreferences::default()
+            },
+            false,
+            false,
+        );
+
+        assert_eq!(action, MainWindowCloseAction::HideToTray);
+    }
+
+    #[test]
+    fn close_action_requests_quit_when_close_to_tray_and_confirm_are_disabled() {
+        let action = resolve_main_window_close_action(
+            &DesktopShellPreferences {
+                confirm_before_exit: false,
+                close_to_tray: false,
+                open_panel_on_tray_click: true,
+                ..DesktopShellPreferences::default()
+            },
+            false,
+            false,
+        );
+
+        assert_eq!(action, MainWindowCloseAction::RequestQuit);
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_window_chrome_config_enables_native_decorations() {
+        let config = super::macos_native_window_chrome_config();
+
+        assert!(config.decorations);
+        assert_eq!(config.title_bar_style, tauri::TitleBarStyle::Visible);
+    }
 }

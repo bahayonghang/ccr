@@ -3,4 +3,4 @@
 /**
  * 配置项详情
  */
-export type ConfigInfo = { name: string, description: string, base_url: string, auth_token: string, model?: string, small_fast_model?: string, is_current: boolean, is_default: boolean, provider?: string, provider_type?: string, account?: string, tags?: Array<string>, usage_count: number, enabled: boolean, };
+export type ConfigInfo = { version: string, name: string, description: string, base_url: string, auth_token: string, model?: string, small_fast_model?: string, is_current: boolean, is_default: boolean, provider?: string, provider_type?: string, account?: string, tags?: Array<string>, usage_count: number, enabled: boolean, };

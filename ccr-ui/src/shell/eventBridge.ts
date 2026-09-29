@@ -2,20 +2,18 @@ import { useQueryClient } from '@tanstack/react-query'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { useEffect } from 'react'
 import { claudeObserverKeys } from '@/features/claude/queries'
-import {
-  useCommandsStreamStore,
-  type CommandStreamChannel,
-  type CommandStreamLine,
-} from '@/features/commands/stores'
+import { useCommandsStreamStore } from '@/features/commands/stores'
+import { COMMAND_EVENT_BUFFER_CAP } from '@/features/commands/commandJobState'
 import { homeUsageKeys, usageKeys } from '@/features/usage/queries'
-import type { CommandJobDelta } from '@/types/config'
+import type { CommandJobDelta, CommandJobSnapshot } from '@/types/config'
 import { logger } from '@/utils/logger'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
+import { currentEnvironmentKey } from '@/configs/environmentSession'
 
 // Tauri Event → Query 桥接层（08-22-state-logic-port 批次 3，design.md §3）。
 //
-// 后端 emit 的全局事件在这里集中转成 queryClient 失效/写入，store 不再直接
-// 持有服务端数据。逐事件判定（setQueryData vs invalidateQueries）见
+// 后端 emit 的全局事件在这里集中转成 queryClient 失效/写入。命令任务由
+// shell-lived command stream store 持有唯一进程内快照。其他逐事件判定见
 // `event-adjudication.md`；事件名清单（全局部分，协同点 M）亦在该文件。
 //
 // 取消协议：`listen()` 返回 Promise<UnlistenFn>，cleanup 可能先于 resolve 执行
@@ -53,35 +51,6 @@ export type TauriGlobalEvent = (typeof TAURI_GLOBAL_EVENTS)[number]
 
 type EventListener = (payload: unknown) => void
 
-const toStreamLines = (delta: CommandJobDelta): CommandStreamLine[] =>
-  delta.lines.map((text) => ({
-    channel: delta.channel as CommandStreamChannel,
-    text,
-    seq: delta.seq,
-    jobId: delta.job_id,
-  }))
-
-const appendCommandDelta = (payload: unknown): void => {
-  const delta = payload as CommandJobDelta
-  if (!Array.isArray(delta.lines)) return
-  useCommandsStreamStore.getState().appendStreamLines({ lines: toStreamLines(delta) })
-}
-
-const appendCommandFinished = (payload: unknown): void => {
-  const snapshot = payload as { job_id?: string }
-  if (typeof snapshot.job_id !== 'string') return
-  useCommandsStreamStore.getState().appendStreamLines({
-    lines: [
-      {
-        channel: 'system',
-        text: `job ${snapshot.job_id} finished`,
-        seq: Number.MAX_SAFE_INTEGER,
-        jobId: snapshot.job_id,
-      },
-    ],
-  })
-}
-
 /** createEventBatcher 的返回契约（消费方按名引用，避免 ReturnType 耦合）。 */
 export interface EventBatcher<T> {
   push: (item: T) => void
@@ -96,6 +65,7 @@ export interface EventBatcher<T> {
 export function createEventBatcher<T>(
   flush: (batch: T[]) => void,
   intervalMs = HIGH_FREQUENCY_FLUSH_INTERVAL_MS,
+  maxItems = Infinity,
 ): EventBatcher<T> {
   let buffer: T[] = []
   let timer: ReturnType<typeof setInterval> | null = null
@@ -109,6 +79,7 @@ export function createEventBatcher<T>(
 
   const push = (item: T) => {
     buffer.push(item)
+    if (buffer.length > maxItems) buffer = buffer.slice(-maxItems)
     if (timer === null) {
       timer = setInterval(() => {
         commit()
@@ -151,11 +122,12 @@ export function useTauriEventBridge() {
     const unlistens: UnlistenFn[] = []
 
     // 取消协议：cleanup 已跑过时，迟到的 unlisten 立即调用，不入数组。
-    const track = (pending: Promise<UnlistenFn>) => {
+    const track = (pending: Promise<UnlistenFn>, onResult?: (error: string | null) => void) => {
       pending.then((unlisten) => {
         if (disposed) unlisten()
-        else unlistens.push(unlisten)
+        else { unlistens.push(unlisten); onResult?.(null) }
       }).catch((error) => {
+        if (!disposed) onResult?.(String(error))
         logger.warn('[eventBridge] listen failed', { event: String(error) })
       })
     }
@@ -180,16 +152,43 @@ export function useTauriEventBridge() {
     track(listenSafe('claude_observer:updated', invalidate(claudeObserverKeys.all)))
 
     // —— 环境：全量失效（环境变更影响多数数据域）——
-    track(listenSafe('env:refresh-requested', invalidate([])))
-    track(listenSafe('env:changed', invalidate([])))
+    const refreshEnvironment = () => {
+      // Invalidate identity first so editors freeze before environment-bound reads.
+      const detected = queryClient.invalidateQueries({ queryKey: currentEnvironmentKey })
+      void queryClient.cancelQueries({ predicate: (query) => [
+        'platform-settings', 'platform-settings-probe', 'settings-source-environment',
+      ].includes(String(query.queryKey[0])) })
+      void detected.then(() => {
+        if (!disposed) void queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== currentEnvironmentKey[0] })
+      })
+    }
+    track(listenSafe('env:refresh-requested', refreshEnvironment))
+    track(listenSafe('env:changed', refreshEnvironment))
 
-    // —— 命令流：按 client 累积缓冲，视图卸载不清空（外壳门 AC4）——
-    track(listenSafe('commands:job-progress', appendCommandDelta))
-    track(listenSafe('commands:job-finished', appendCommandFinished))
-    track(listenSafe('commands:job-cancelled', appendCommandFinished))
+    // Shell owns one listener set. Route pages only select the retained job.
+    useCommandsStreamStore.getState().resume()
+    const commandBatch = createEventBatcher<CommandJobDelta>((batch) => {
+      if (!disposed) useCommandsStreamStore.getState().receiveDeltas(batch)
+    }, HIGH_FREQUENCY_FLUSH_INTERVAL_MS, COMMAND_EVENT_BUFFER_CAP)
+    const trackCommand = (event: string, handler: EventListener) => {
+      track(listenSafe(event, handler), (error) => useCommandsStreamStore.getState().reportListener(event, error))
+    }
+    trackCommand('commands:job-progress', (payload) => {
+      if (!disposed) commandBatch.push(payload as CommandJobDelta)
+    })
+    const finishCommand = (payload: unknown) => {
+      if (disposed) return
+      commandBatch.commit()
+      useCommandsStreamStore.getState().receiveSnapshot(payload as CommandJobSnapshot)
+    }
+    trackCommand('commands:job-finished', finishCommand)
+    trackCommand('commands:job-cancelled', finishCommand)
+    if (isTauriRuntime()) void useCommandsStreamStore.getState().reconcile()
 
     return () => {
+      commandBatch.dispose()
       disposed = true
+      useCommandsStreamStore.getState().suspend()
       unlistens.forEach((unlisten) => unlisten())
       unlistens.length = 0
     }

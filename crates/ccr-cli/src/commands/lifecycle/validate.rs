@@ -1,308 +1,39 @@
-// ✅ validate 命令实现 - 验证配置和设置
-// 🔍 全面检查配置文件和 Claude Code 设置的完整性
+//! Terminal adapter for the shared read-only validation report.
 
-#![allow(clippy::unused_async)]
+use crate::services::validate_service::{DiagnosticReport, DiagnosticSeverity, diagnose};
+use ccr_core::core::error::{CcrError, Result};
 
-use crate::models::{AuthStateStatus, ClaudeProfileAuthMode, CodexProfileAuthMode, PlatformConfig};
-use crate::platforms::{ClaudePlatform, CodexPlatform};
-use crate::services::{ClaudeAuthService, CodexAuthService, ConfigService, SettingsService};
-use ccr_core::core::error::Result;
-use ccr_core::core::logging::ColorOutput;
-use colored::*;
-
-/// ✅ 验证配置和设置
-///
-/// 验证流程:
-/// 1. 📝 验证配置文件 (~/.ccs_config.toml)
-///    - 文件是否存在
-///    - 格式是否正确
-///    - 所有配置节是否有效
-///    - 当前配置是否存在
-///
-/// 2. 🌍 验证 Claude Code 设置 (~/.claude/settings.json)
-///    - 文件是否存在
-///    - 必需环境变量是否设置
-///    - 环境变量值是否有效
-///
-/// 3. 📊 生成验证报告
-///    - 显示错误和警告
-///    - 提供修复建议
+/// Compatibility entry point for embedded callers. No process exit occurs here.
 pub async fn validate_command() -> Result<()> {
-    ColorOutput::title("配置验证报告");
-    println!();
-
-    let mut has_errors = false;
-    let mut has_warnings = false;
-
-    // 使用 ConfigService 验证配置文件
-    ColorOutput::step("验证配置文件 (~/.ccs_config.toml)");
-    let config_service = ConfigService::with_default()?;
-
-    match config_service.validate_all() {
-        Ok(report) => {
-            ColorOutput::success(&format!(
-                "配置文件存在: {}",
-                config_service.config_manager().config_path().display()
-            ));
-
-            // 显示验证结果
-            println!();
-            for (name, is_valid, error_msg) in &report.results {
-                if *is_valid {
-                    println!("  {} {}", "✓".green(), name);
-                } else {
-                    if let Some(msg) = error_msg {
-                        println!("  {} {} - {}", "✗".red(), name, msg);
-                    } else {
-                        println!("  {} {}", "✗".red(), name);
-                    }
-                    has_errors = true;
-                }
-            }
-
-            println!();
-            if report.invalid_count > 0 {
-                ColorOutput::warning(&format!(
-                    "配置节验证: {} 个通过, {} 个失败",
-                    report.valid_count, report.invalid_count
-                ));
-            } else {
-                ColorOutput::success(&format!("所有 {} 个配置节验证通过", report.valid_count));
-            }
-
-            // 验证当前配置
-            println!();
-            ColorOutput::step("当前配置验证");
-            let config = config_service.load_config()?;
-            if config.sections.contains_key(&config.current_config) {
-                ColorOutput::success(&format!("当前配置 '{}' 存在", config.current_config));
-            } else {
-                ColorOutput::error(&format!("当前配置 '{}' 不存在", config.current_config));
-                has_errors = true;
-            }
-        }
-        Err(e) => {
-            ColorOutput::error(&format!("配置文件加载失败: {}", e));
-            has_errors = true;
-        }
+    let report = validate_report_command();
+    if report.has_errors() {
+        return Err(CcrError::ValidationError(
+            "Validation reported failed checks".into(),
+        ));
     }
-
-    println!();
-    ColorOutput::separator();
-    println!();
-
-    let claude_profile_auth_mode = resolve_claude_profile_auth_mode();
-    let codex_profile_auth_mode = resolve_codex_profile_auth_mode();
-
-    // 使用 SettingsService 验证 Claude Code 设置
-    ColorOutput::step("验证 Claude Code 设置 (~/.claude/settings.json)");
-    let settings_service = match SettingsService::with_default() {
-        Ok(s) => s,
-        Err(e) => {
-            ColorOutput::error(&format!("无法访问设置服务: {}", e));
-            has_errors = true;
-            return generate_report(has_errors, has_warnings);
-        }
-    };
-
-    match settings_service.get_current_settings_async().await {
-        Ok(settings) => {
-            ColorOutput::success(&format!(
-                "设置文件存在: {}",
-                settings_service
-                    .settings_manager()
-                    .settings_path()
-                    .display()
-            ));
-
-            println!();
-            ColorOutput::step("环境变量验证");
-
-            let env_status = settings.anthropic_env_status();
-            for (var_name, value) in env_status {
-                match value {
-                    Some(v) if !v.is_empty() => {
-                        println!(
-                            "  {} {}: {}",
-                            "✓".green(),
-                            var_name,
-                            ColorOutput::mask_sensitive(&v)
-                        );
-                    }
-                    Some(_) => {
-                        println!("  {} {}: 值为空", "⚠".yellow(), var_name);
-                        has_warnings = true;
-                    }
-                    None => {
-                        let is_optional = var_name.contains("SMALL_FAST_MODEL");
-                        let is_profile_unconfigured = claude_profile_auth_mode.is_none();
-                        let is_subscription_mode =
-                            claude_profile_auth_mode == Some(ClaudeProfileAuthMode::Subscription);
-
-                        if is_optional || is_subscription_mode || is_profile_unconfigured {
-                            println!("  {} {}: 未设置", "○".dimmed(), var_name);
-                        } else {
-                            println!("  {} {}: 未设置", "✗".red(), var_name);
-                            has_errors = true;
-                        }
-                    }
-                }
-            }
-
-            println!();
-            match claude_profile_auth_mode {
-                Some(ClaudeProfileAuthMode::Subscription) => {
-                    ColorOutput::info("当前 Claude Profile 使用 subscription 模式");
-                    let auth_service = ClaudeAuthService::new()?;
-                    let snapshot = auth_service.read_auth_snapshot()?;
-                    if let Some(info) = snapshot.current_info {
-                        if let Some(email) = info.email {
-                            ColorOutput::info(&format!(
-                                "检测到官方登录邮箱: {}",
-                                auth_service.mask_email(&email)
-                            ));
-                        }
-                        if let Some(subscription_type) = info.subscription_type {
-                            ColorOutput::info(&format!("订阅类型: {}", subscription_type));
-                        }
-                        if let Some(rate_limit_tier) = info.rate_limit_tier {
-                            ColorOutput::info(&format!("速率档位: {}", rate_limit_tier));
-                        }
-                    } else {
-                        ColorOutput::error("未检测到 Claude 官方订阅凭据");
-                        has_errors = true;
-                    }
-
-                    if snapshot.runtime_usable {
-                        ColorOutput::success("subscription 凭据验证通过");
-                    } else {
-                        ColorOutput::error("subscription 凭据不存在、无法解析或已过期");
-                        has_errors = true;
-                    }
-
-                    if settings.has_anthropic_overrides() {
-                        ColorOutput::warning(
-                            "subscription 模式下检测到 ANTHROPIC_* 覆盖；实际运行时可能仍受 API key 覆盖影响",
-                        );
-                        has_warnings = true;
-                    }
-                }
-                Some(ClaudeProfileAuthMode::ApiKey) => match settings.validate_api_key_mode() {
-                    Ok(_) => ColorOutput::success("设置验证通过"),
-                    Err(e) => {
-                        ColorOutput::error(&format!("设置验证失败: {}", e));
-                        has_errors = true;
-                    }
-                },
-                None => {
-                    ColorOutput::info(
-                        "Claude current profile is not resolved; skipping Claude runtime/auth validation",
-                    );
-                }
-            }
-        }
-        Err(e) => {
-            ColorOutput::warning(&format!("设置文件不存在或无法读取: {}", e));
-            ColorOutput::info("提示: 运行 'ccr claude profile switch <profile>' 来初始化设置");
-            has_warnings = true;
-        }
-    }
-
-    println!();
-    ColorOutput::separator();
-    println!();
-    ColorOutput::step("验证 Codex runtime/profile 状态");
-    match codex_profile_auth_mode {
-        Some(auth_mode) => {
-            ColorOutput::info(&format!(
-                "当前 Codex Profile 使用 {} 模式",
-                auth_mode.as_str()
-            ));
-            match CodexAuthService::new() {
-                Ok(auth_service) => {
-                    let auth_state = auth_service.get_auth_state();
-                    if auth_mode.uses_openai_auth() {
-                        if auth_state.status == AuthStateStatus::Valid {
-                            ColorOutput::success("Codex OpenAI 认证状态可用");
-                        } else {
-                            ColorOutput::error(&format!(
-                                "Codex OpenAI 认证状态不可用: {}",
-                                auth_state.reason
-                            ));
-                            has_errors = true;
-                        }
-                    } else {
-                        ColorOutput::success("Codex Profile 不需要 managed OpenAI auth");
-                    }
-                }
-                Err(e) => {
-                    ColorOutput::warning(&format!("Codex auth service 无法初始化: {}", e));
-                    has_warnings = true;
-                }
-            }
-        }
-        None => {
-            ColorOutput::info("Codex 未解析到当前 Profile，跳过 Codex runtime/auth 验证");
-        }
-    }
-
-    println!();
-    ColorOutput::separator();
-
-    generate_report(has_errors, has_warnings)
+    Ok(())
 }
 
-fn resolve_claude_profile_auth_mode() -> Option<ClaudeProfileAuthMode> {
-    ClaudePlatform::new()
-        .and_then(|platform| {
-            let current_profile = platform.get_current_profile()?;
-            let profiles = platform.load_profiles()?;
-            Ok(current_profile
-                .and_then(|name| profiles.get(&name).map(ClaudePlatform::profile_auth_mode)))
-        })
-        .ok()
-        .flatten()
-}
-
-fn resolve_codex_profile_auth_mode() -> Option<CodexProfileAuthMode> {
-    CodexPlatform::new()
-        .and_then(|platform| {
-            let current_profile = platform.get_current_profile()?;
-            let profiles = platform.load_profiles()?;
-            Ok(current_profile
-                .and_then(|name| profiles.get(&name).map(CodexPlatform::profile_auth_mode)))
-        })
-        .ok()
-        .flatten()
-}
-
-fn generate_report(has_errors: bool, has_warnings: bool) -> Result<()> {
-    println!();
-    ColorOutput::title("验证总结");
-    println!();
-
-    if !has_errors && !has_warnings {
-        ColorOutput::success("✓ 所有验证通过,配置状态正常");
-        println!();
-        return Ok(());
-    }
-
-    if has_errors {
-        ColorOutput::error("✗ 发现配置错误,请修复后重试");
-        println!();
-        ColorOutput::info("建议:");
-        println!("  1. 检查配置文件格式是否正确");
-        println!("  2. 确保所有必填字段都已填写");
-        println!("  3. 运行 'ccr list' 查看可用配置");
+/// The binary consumes severity and the existing CcrError exit-code mapping.
+pub fn validate_report_command() -> DiagnosticReport {
+    let report = diagnose();
+    println!("配置验证报告 / Validation report");
+    for check in &report.checks {
+        let severity = match check.severity {
+            DiagnosticSeverity::Info => "OK",
+            DiagnosticSeverity::Warning => "WARN",
+            DiagnosticSeverity::Error => "ERROR",
+        };
+        let platform = check
+            .platform
+            .map_or("CCR", |platform| platform.display_name());
         println!(
-            "  4. 运行 'ccr claude profile switch <profile>' 或 'ccr codex profile switch <profile>' 切换到有效配置"
+            "[{severity}/{}] {platform} / {}: {}",
+            check.category.as_str(),
+            check.target,
+            check.message
         );
     }
-
-    if has_warnings {
-        ColorOutput::warning("⚠ 发现配置警告,建议检查");
-    }
-
-    println!();
-    Ok(())
+    println!("Validation exit code: {}", report.exit_code());
+    report
 }

@@ -18,7 +18,7 @@ const CONFIGS_STALE_TIME = 300_000
 export function useConfigsList() {
   return useQuery({
     queryKey: configsKeys.list(),
-    queryFn: () => listConfigs(),
+    queryFn: () => listConfigs('claude'),
     staleTime: CONFIGS_STALE_TIME,
   })
 }

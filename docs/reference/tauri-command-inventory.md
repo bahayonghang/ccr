@@ -7,13 +7,13 @@
 - Base modules: 38
 
 - Capability metadata: 340/340
-- Generated typed commands: 277/340 (81.47%)
+- Generated typed commands: 278/340 (81.76%)
 
-- Exact input/output type declarations: 277/277
+- Exact input/output type declarations: 278/278
 
 | Module | Title | Platform | Commands | Default risk | Schema |
 | --- | --- | --- | ---: | --- | --- |
-| `config` | 配置管理 | base | 12 | `local_mutation` | `generated` |
+| `config` | 配置管理 | base | 13 | `local_mutation` | `generated` |
 | `settings_raw` | 配置源文件 | base | 6 | `secret_mutation` | `legacy_json` |
 | `system_prompts` | 系统提示词 | base | 4 | `local_mutation` | `generated` |
 | `sync` | 同步 | base | 17 | `network_mutation` | `generated` |
@@ -44,7 +44,7 @@
 | `usage_v2` | Usage V2 | base | 18 | `read_only` | `generated` |
 | `command_exec` | 命令执行 | base | 6 | `process_execution` | `generated` |
 | `checkin_extended` | 签到扩展 | base | 7 | `network_mutation` | `legacy_json` |
-| `config_extended` | 配置扩展 | base | 2 | `local_mutation` | `legacy_json` |
+| `config_extended` | 配置扩展 | base | 1 | `local_mutation` | `legacy_json` |
 | `exit_confirm` | 退出确认 | base | 2 | `local_mutation` | `generated` |
 | `shell` | Desktop Shell | base | 10 | `process_execution` | `generated` |
 | `system_extended_legacy` | 系统更新 | base | 1 | `process_execution` | `legacy_json` |

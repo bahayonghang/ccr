@@ -1,14 +1,16 @@
 import { getCodexConfig, updateCodexConfig } from '@/api'
+import { getCodexConfigRaw, saveCodexConfigRaw, listCodexConfigLayers } from '@/api/domains/codex'
+import { probeLocalEnvironment } from '@/configs/probeLocal'
 import { buildCodexSettingsPayload, flattenCodexSettings } from '@/configs/settings-codex-map'
 import { boolField, selectField, textField } from '@/configs/settings-helpers'
 import { surfaceNotify } from '@/configs/surfaceNotify'
 import type { SettingsConfig, SettingsFieldOption } from '@/configs/settings-types'
 
 const CODEX_EFFORT: SettingsFieldOption[] = [
-  { value: 'minimal', labelKey: 'minimal' },
-  { value: 'low', labelKey: 'low' },
-  { value: 'medium', labelKey: 'medium' },
-  { value: 'high', labelKey: 'high' },
+  { value: 'minimal', labelKey: 'codex.settings.model.reasoningEffortOptions.minimal' },
+  { value: 'low', labelKey: 'codex.settings.model.reasoningEffortOptions.low' },
+  { value: 'medium', labelKey: 'codex.settings.model.reasoningEffortOptions.medium' },
+  { value: 'high', labelKey: 'codex.settings.model.reasoningEffortOptions.high' },
 ]
 
 export const codexSettingsConfig: SettingsConfig = {
@@ -18,7 +20,9 @@ export const codexSettingsConfig: SettingsConfig = {
   i18nPrefix: 'codex.settings',
   titleKey: 'codex.settings.title',
   subtitleKey: 'codex.settings.subtitle',
-  features: { rawSource: true },
+  features: { rawSource: true, dirtyPatch: true, localOnly: true },
+  probe: probeLocalEnvironment,
+  rawSource: { language: 'toml', probe: probeLocalEnvironment, getRaw: getCodexConfigRaw, saveRaw: saveCodexConfigRaw, listLayers: listCodexConfigLayers },
   notify: surfaceNotify,
   tabs: [
     { id: 'model', labelKey: 'codex.settings.tabs.model' },
@@ -30,7 +34,7 @@ export const codexSettingsConfig: SettingsConfig = {
   fields: [
     textField('model', 'model', 'codex.settings.model.model'),
     textField('model_provider', 'model', 'codex.settings.model.modelProvider'),
-    selectField({ id: 'model_reasoning_effort', tab: 'model', labelKey: 'codex.settings.model.reasoningEffort', options: CODEX_EFFORT }),
+    { ...selectField({ id: 'model_reasoning_effort', tab: 'model', labelKey: 'codex.settings.model.reasoningEffort', options: CODEX_EFFORT }), unsetLabelKey: 'codex.status.notSet' },
     textField('model_reasoning_summary', 'model', 'codex.settings.model.reasoningSummary'),
     textField('model_verbosity', 'model', 'codex.settings.model.verbosity'),
     { id: 'model_context_window', tab: 'model', kind: 'number', labelKey: 'codex.settings.model.contextWindow' },
@@ -50,7 +54,9 @@ export const codexSettingsConfig: SettingsConfig = {
     { id: 'instructions', tab: 'tools', kind: 'textarea', labelKey: 'codex.settings.tools.instructions' },
     textField('tuiAlternateScreen', 'ui', 'codex.settings.ui.alternateScreen'),
     boolField('tuiAnimations', 'ui', 'codex.settings.ui.animations'),
-    boolField('tuiNotifications', 'ui', 'codex.settings.ui.notifications'),
+    { ...selectField({ id: 'tuiNotifications', tab: 'ui', labelKey: 'codex.settings.ui.notifications', options: [
+      { value: 'true', labelKey: 'true' }, { value: 'false', labelKey: 'false' },
+    ] }), unsetLabelKey: 'codex.status.notSet' },
     boolField('tuiShowTooltips', 'ui', 'codex.settings.ui.showTooltips'),
     boolField('hide_agent_reasoning', 'ui', 'codex.settings.ui.hideAgentReasoning'),
     boolField('show_raw_agent_reasoning', 'ui', 'codex.settings.ui.showRawAgentReasoning'),
@@ -62,8 +68,12 @@ export const codexSettingsConfig: SettingsConfig = {
     boolField('analyticsEnabled', 'features', 'codex.settings.features.analytics'),
     boolField('feedbackEnabled', 'features', 'codex.settings.features.feedback'),
   ],
-  load: async () => flattenCodexSettings(await getCodexConfig()),
-  save: async ({ values }) => {
-    await updateCodexConfig(buildCodexSettingsPayload(values))
+  load: async () => {
+    const source = await getCodexConfig()
+    return { values: flattenCodexSettings(source), source }
+  },
+  save: async ({ values, dirtyKeys, snapshot }) => {
+    if (dirtyKeys.length) await updateCodexConfig(buildCodexSettingsPayload(values, { dirtyKeys, source: snapshot.source }))
+    return { status: 'saved' }
   },
 }

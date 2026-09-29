@@ -26,9 +26,11 @@ New platform config behavior should flow through `PlatformPaths` and the manager
 
 ## Persistence Rules
 
-Unified config is rooted at `CCR_ROOT` when set, otherwise under `~/.ccr`. Platform profiles live under `~/.ccr/platforms/<platform>/profiles.toml`. Preserve `ConfigManager::for_platform` for per-platform callers and `with_default` for current-platform callers.
+Unified config is rooted at `CCR_ROOT` when set, otherwise under `~/.ccr`. Platform profiles live under `~/.ccr/platforms/<platform>/profiles.toml`. New callers use `ConfigManager::for_platform` with an explicit platform. `with_default` is a legacy Claude-domain adapter; registry order and retired current-platform routing do not select its domain. Neither constructor creates or repairs files.
 
 Use `ccr_core::fileio`/manager save methods for TOML writes. Do not bypass manager helpers for profile writes because they preserve autofix and path conventions.
+
+Read [Profile Repository Transactions](./profile-repository.md) before changing profile CRUD, partial edits, current-marker resolution, or configuration reads. Ordinary updates use the repository mutation API. Autofix and full replacement are explicit operations.
 
 ## Managed Env Mapping Contract
 

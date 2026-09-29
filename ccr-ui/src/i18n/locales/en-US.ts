@@ -1,5 +1,6 @@
 export default {
   auth: {
+    stale: 'Refresh failed. The last confirmed session is shown.',
     off: 'Log out official session',
     offDescription: 'Clear the local official runtime login. Saved CCR account snapshots stay.',
     confirmOffTitle: 'Log out official session',
@@ -1420,7 +1421,16 @@ export default {
       actionOff: 'Exit profile',
     },
   },
+  settingsSession: {
+    environmentChanged: 'The environment changed or is unavailable. Your draft is retained and saving is disabled.',
+    returnEnvironment: 'Return to the draft environment',
+    discardReload: 'Discard draft and reload',
+    serverChanged: 'The server settings changed. Your draft and its original baseline are retained. Reload before saving.',
+    reloadRequired: 'The save completed, but the refreshed settings are unavailable. Reload before editing again.',
+  },
   settingsRaw: {
+    claudeClearUnsupported: 'The settings form cannot remove these top-level fields. Open Source and delete the corresponding configuration keys. Your changes have not been saved.',
+    opencodeClearUnsupported: 'The OpenCode settings API cannot remove these top-level fields. Restore the previous values, or edit the configuration file to delete the keys. Your changes have not been saved.',
     sourceTab: 'Source',
     warningTitle: 'View raw configuration',
     warningMessage: 'The source file may contain API keys, tokens, or other plaintext credentials. Its content stays only in this page memory. Continue in a private environment.',
@@ -1526,6 +1536,7 @@ export default {
   },
   claudeSettings: {
     title: 'Claude Code Global Settings',
+    subtitle: 'Manage model, permissions, environment variables, interface, sandbox, and Git attribution settings.',
     back: 'Back',
     save: 'Save Settings',
     saving: 'Saving...',
@@ -2326,6 +2337,11 @@ export default {
       'Only {count} CCR subcommands can run; non-zero exit codes fail but keep full output.',
     composerEyebrow: 'Command composer',
     cancelJob: 'Cancel job',
+    jobExpired: 'The retained job snapshot has expired. The last output remains available; the job can no longer be monitored or cancelled.',
+    liveUpdatesUnavailable: 'Live command updates are unavailable. Job status is checked while the command runs; retry a failed status check.',
+    historyPending: 'Saving command history…',
+    historySaved: 'Command history saved.',
+    historySaveFailed: 'Command history could not be confirmed as saved. The result remains in this session. Refresh reads history without repeating the write.',
     webUnavailableDetail:
       'This is the Web preview runtime, so Tauri background jobs cannot start; use it only to inspect layout and copy.',
     clientUnavailableTitle: 'This client is not wired to the execution whitelist',
@@ -4313,6 +4329,7 @@ export default {
       title: 'Codex Settings',
       subtitle:
         'Global Codex configuration for model, security, toolchain, interface, and feature toggles.',
+      save: 'Save',
       saving: 'Saving...',
       tabs: {
         model: 'Model & Reasoning',
@@ -4327,6 +4344,12 @@ export default {
         modelProvider: 'Runtime Namespace',
         modelProviderPlaceholder: 'reserved namespace, e.g. custom',
         reasoningEffort: 'Reasoning Effort',
+        reasoningEffortOptions: {
+          minimal: 'Minimal',
+          low: 'Low',
+          medium: 'Medium',
+          high: 'High',
+        },
         reasoningSummary: 'Reasoning Summary',
         verbosity: 'Verbosity',
         contextWindow: 'Context Window',
@@ -5654,6 +5677,9 @@ export default {
   },
 
   profilesSurface: {
+    appliedWithWarning: 'Configuration changes are committed. Usage count or audit records need attention. Do not repeat activation.',
+    recoveryRequired: 'The profile operation needs recovery. External changes were retained. Inspect the current configuration before continuing.',
+    unchangedFailure: 'The profile operation failed. Previous files were restored.',
     breadcrumbProfiles: 'Profiles',
     newProfile: 'New Profile',
     reload: 'Reload',

@@ -38,7 +38,7 @@ Legacy `src/views/` and `src/composables/` paths may still exist; new page work 
 | `src-tauri/src/main.rs` | Tauri app bootstrap and command registration. |
 | `src-tauri/src/state.rs` | Shared app state and service wiring. |
 | `src-tauri/src/commands/` | Tauri invoke command handlers by domain. |
-| `src-tauri/src/llmusage_adapter/` | CLI sync, NDJSON events, and DTO/error mapping only. Usage SQL belongs in `crates/ccr-usage`. Do not link the upstream `llmusage` crate. |
+| `src-tauri/src/llmusage_adapter/` | CLI sync, NDJSON events, and DTO/error mapping only. All usage SQL and read-only projections belong in `../crates/ccr-usage/src/`. Contract navigation: `../.trellis/spec/ccr/backend/index.md`. Do not link the upstream `llmusage` crate. |
 | `src-tauri/src/platform/`, `src-tauri/src/process/`, `src-tauri/src/ssh/` | Local platform detection, process helpers, SSH/WSL integration. |
 | `src-tauri/src/*_jobs.rs`, `src-tauri/src/monitoring.rs`, `src-tauri/src/events.rs` | Background jobs, monitoring feed, and event emission. |
 | `src-tauri/tests/` | Rust-side integration tests and guards. |
@@ -49,7 +49,7 @@ Legacy `src/views/` and `src/composables/` paths may still exist; new page work 
 - Frontend unit/smoke tests: `bun run test`; i18n only: `bun run test:i18n`; smoke only: `bun run test:smoke`.
 - Frontend type/build checks: `bun run type-check`, `bun run build`, `bun run check:i18n`, `bun run check:bundle-budget`.
 - Tauri backend checks: `bun run tauri:check`, `bun run tauri:test`, `bun run tauri:clippy`.
-- Just gates from this directory: `just check`, `just test`, `just build`; root aliases include `just ui-check`, `just ui-test`, `just ui-build`, and `just tauri-check`. `just check` reaches frontend linting, which may auto-fix files through the package `lint` script.
+- Just gates from this directory: `just check`, `just test`, `just build`; root aliases include `just ui-check`, `just ui-test`, `just ui-build`, and `just tauri-check`. `just check` reaches the no-fix package `lint` script. `lint:ci` also performs no source autofix; only explicit `lint:fix` mutates linted source.
 
 ## Safety and generated-output boundaries
 

@@ -312,13 +312,20 @@ mod tests {
 
     #[test]
     fn grok_auth_lock_preserves_native_holder_metadata() {
+        use std::io::{Read, Seek};
+
         let directory = tempfile::tempdir().unwrap();
         let path = directory.path().join("auth.json.lock");
         fs::write(&path, b"native holder metadata").unwrap();
-        let held = FileLock::new(&path, Duration::ZERO).unwrap();
-        assert_eq!(fs::read(&path).unwrap(), b"native holder metadata");
+        let mut held = FileLock::new(&path, Duration::ZERO).unwrap();
+        let mut metadata = Vec::new();
+        held.file.read_to_end(&mut metadata).unwrap();
+        assert_eq!(metadata, b"native holder metadata");
         assert!(FileLock::new(&path, Duration::ZERO).is_err());
-        assert_eq!(fs::read(&path).unwrap(), b"native holder metadata");
+        held.file.rewind().unwrap();
+        metadata.clear();
+        held.file.read_to_end(&mut metadata).unwrap();
+        assert_eq!(metadata, b"native holder metadata");
         drop(held);
         assert_eq!(fs::read(&path).unwrap(), b"native holder metadata");
     }

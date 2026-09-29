@@ -25,14 +25,14 @@ function ComposerActions({
         {selectedFavorite ? page.t('commands.removeFavorite') : page.t('commands.addFavorite')}
       </button>
       {page.isRunning ? (
-        <button type="button" className="inline-flex items-center gap-2 rounded-lg border border-accent-danger/30 px-3 py-2 text-sm text-accent-danger" disabled={!page.currentSnapshot} onClick={onCancel}>
+        <button type="button" className="inline-flex items-center gap-2 rounded-lg border border-accent-danger/30 px-3 py-2 text-sm text-accent-danger" disabled={!page.currentSnapshot || page.cancelling} onClick={onCancel}>
           <SIcon name="Square" size="w-4 h-4" />
           {page.t('commands.cancelJob')}
         </button>
       ) : null}
       <button type="button" className="inline-flex items-center gap-2 rounded-lg bg-accent-primary px-3 py-2 text-sm text-[color:var(--color-accent-primary-contrast)] disabled:opacity-55" disabled={!page.canExecuteSelected} onClick={onExecute}>
         <SIcon name="Play" size="w-4 h-4" />
-        {page.isRunning ? page.t('commands.executing') : page.t('commands.run')}
+        {page.isRunning || page.submitting ? page.t('commands.executing') : page.t('commands.run')}
       </button>
     </div>
   )
@@ -69,7 +69,7 @@ function ArgsAndDanger({
       </label>
       {page.selectedCommandInfo?.dangerous ? (
         <label className="commands-danger-confirm">
-          <Checkbox checked={page.dangerAccepted} disabled={page.runtimeUnavailable || page.isRunning} onCheckedChange={onDanger} />
+          <Checkbox checked={page.dangerAccepted} disabled={page.runtimeUnavailable || page.isRunning || page.submitting} onCheckedChange={onDanger} />
           <span>
             <strong>{page.t('commands.dangerConfirmTitle')}</strong>
             {page.t('commands.dangerConfirmDescription')}

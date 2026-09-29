@@ -58,7 +58,7 @@
 - Registry metadata must remain non-empty and domain-keyed; empty module keys, titles, or command lists are invalid.
 - Count assertions intentionally freeze the current handler surface: 340 base commands and 348 commands on Windows across 38 base modules.
 - Capability descriptors cover every command ID and include risk, input/output schema, timeout, concurrency, confirmation, authorization, and audit policy.
-- Every generated command row owns its handler path, exact TypeScript input/output type names, and client declaration. The manifest v2 exact count is 277/277 typed commands; generated-client functions may contain imports/type aliases only and must append declarations from the registry.
+- Every generated command row owns its handler path, exact TypeScript input/output type names, and client declaration. The manifest v2 exact count is 278/278 typed commands; generated-client functions may contain imports/type aliases only and must append declarations from the registry.
 - Risk inference recognizes action verbs both at the start of an ID and after domain prefixes. For example, `claude_get_settings` is read-only and `codex_delete_session` is destructive; the module default still controls secret/system authorization and audit redaction.
 - Generated inventory artifacts are `docs/{en/,}reference/tauri-command-inventory.md`, `ccr-ui/src/api/generated/command-manifest.json`, `commandCapabilities.ts`, and the generated domain clients.
 - The manifest is an authoritative backend allowlist: an app command without a descriptor is rejected before the generated handler runs. Audit logging records descriptor metadata only and never logs the invoke payload.
@@ -147,7 +147,7 @@ Keep command registration domain-shaped and testable, while `commands::mod` rema
 ### 1. Scope / Trigger
 
 - Trigger: adding or changing a registry command's timeout, concurrency, confirmation, or cancellation behavior.
-- Applies to all 336 desktop commands under `src/commands/**`, the local `command-macros` proc-macro crate, and `runtime_policy.rs`.
+- Applies to the registry surface (340 base commands, 348 on Windows) under `src/commands/**`, the local `command-macros` proc-macro crate, and `runtime_policy.rs`.
 
 ### 2. Signatures
 
@@ -175,6 +175,16 @@ The attribute macro accepts only `async fn` returning `Result<T, String>`, emits
 - `BusinessOwned` delegates timeout, cancellation, and cleanup to the owning business boundary, such as `ProcessGateway` or an install attempt.
 - Confirmation is checked in `generate_handler` before dispatch. `user_gesture` requires `desktop-confirm:<command>`; opaque capability commands require non-empty backend-issued `planId` or `request.challenge_id`.
 - A cloned `InvokeResolver` race is not an execution boundary: it cannot observe or cancel the real handler future and must not release a permit early.
+
+### Control delivery and background admission
+
+- `command_lifecycle` explicitly maps the 23 command/install/usage/OAuth IDs to an operation and resource. Control delivery uses `Parallel` without changing risk, authorization, confirmation, or audit. Queries retain their existing `Parallel` policy.
+- Command and install execution share the original process `Singleton` semaphore. Their start handlers move the wrapper's `OwnedSemaphorePermit` through `take_background_admission`; they never acquire a second execution permit. The task-local transfer is checked against the command ID and can occur only once. Early handler errors release untransferred admission.
+- The command runner holds transferred admission through process/readers and terminal cleanup. InstallService owns its attempt slot and permit through the executor join. A terminal event or a dropped event receiver cannot clear the slot.
+- Usage foreground imports and background jobs use the same T06 `AppState::admit_usage_import_job` registry. Foreground imports pass the registered token to the executor and submit one completion after cleanup. Existing background start reuse remains unchanged.
+- OAuth start uses `BusinessOwned` admission. Its separate startup mutex checks active-login reuse before acquiring the same `codex_auth` module semaphore. No controller state mutex is held across that await. A reused active ID does not bind or save again. A new login retains module admission through listener, exchange, account commit, and pending cleanup.
+- OAuth complete/callback/cancel/release are owner controls. Completion still exchanges and writes secrets under the login owner's admission; it is not read-only. Cancellation never drops an in-progress secret commit.
+- Regression tests must show owner acknowledgement before releasing the foreground barrier, retain admission after start returns and while cleanup is blocked, reject or reuse a second start, preserve command/install cross-entry exclusion, and reject stale IDs. Use bounded watchdogs only as failure protection.
 
 ### 4. Validation & Error Matrix
 

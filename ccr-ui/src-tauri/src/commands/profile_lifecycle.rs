@@ -2,7 +2,72 @@ use serde_json::{Value, json};
 use std::fs;
 use std::path::Path;
 
+use ccr_cli::application::profile_lifecycle::{
+    ApplyProfileRequest, ProfileOutcome, ProfileStatus, apply_profile,
+};
 use ccr_config::{PlatformPaths, parse_profiles_from_str};
+
+pub(crate) fn profile_outcome_payload(outcome: ProfileOutcome) -> Value {
+    json!({
+        "success": matches!(outcome.status, ProfileStatus::Applied | ProfileStatus::AppliedWithWarning),
+        "applied_profile": outcome.profile,
+        "message": outcome.message(),
+        "outcome": outcome,
+    })
+}
+
+/// Desktop service adapter; runs inside the handler's one blocking worker.
+pub(crate) fn apply_profile_payload(request: ApplyProfileRequest) -> Result<Value, String> {
+    apply_profile(request)
+        .map(profile_outcome_payload)
+        .map_err(|error| error.to_string())
+}
+
+#[cfg(test)]
+mod application_contract {
+    use super::*;
+    use ccr_cli::application::profile_contract;
+    fn desktop(request: ApplyProfileRequest) -> ccr_core::Result<ProfileOutcome> {
+        let payload = apply_profile_payload(request).map_err(ccr_core::CcrError::ConfigError)?;
+        serde_json::from_value(payload["outcome"].clone())
+            .map_err(|_| ccr_core::CcrError::ConfigError("Invalid outcome".into()))
+    }
+    #[test]
+    fn profile_post_publish_failure_contract() {
+        let _desktop = crate::test_support::lock_env();
+        profile_contract::post_publish_failure(desktop);
+    }
+    #[test]
+    fn profile_deleted_after_prepare_contract() {
+        let _desktop = crate::test_support::lock_env();
+        profile_contract::deleted_after_preparation(desktop);
+    }
+    #[test]
+    fn profile_preflight_contract() {
+        let _desktop = crate::test_support::lock_env();
+        profile_contract::preflight(desktop);
+    }
+    #[test]
+    fn profile_success_replay_contract() {
+        let _desktop = crate::test_support::lock_env();
+        profile_contract::success_and_replay(desktop);
+    }
+    #[test]
+    fn profile_ancillary_contract() {
+        let _desktop = crate::test_support::lock_env();
+        profile_contract::ancillary_failures(desktop);
+    }
+    #[test]
+    fn profile_each_write_contract() {
+        let _desktop = crate::test_support::lock_env();
+        profile_contract::failure_matrix(desktop);
+    }
+    #[test]
+    fn profile_external_version_contract() {
+        let _desktop = crate::test_support::lock_env();
+        profile_contract::external_change(desktop);
+    }
+}
 
 use crate::commands::settings_raw::{
     invalid_result, read_raw_file, toml_error_position, write_raw_file_versioned,

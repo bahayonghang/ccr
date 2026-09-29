@@ -11,8 +11,9 @@
 // - 设置文件: `~/.claude/settings.json`
 // - 支持多平台配置
 
-use crate::managers::PlatformConfigManager;
-use crate::managers::config::{CcsConfig, ConfigSection};
+#[cfg(test)]
+use crate::managers::config::CcsConfig;
+use crate::managers::config::ConfigSection;
 #[cfg(test)]
 use crate::managers::settings::ClaudeSettings;
 use crate::managers::settings::SettingsManager;
@@ -25,7 +26,6 @@ use ccr_core::core::LockManager;
 use ccr_core::core::error::{CcrError, Result};
 use indexmap::IndexMap;
 use serde_json::json;
-use std::fs;
 use std::path::PathBuf;
 
 /// 🤖 Claude Platform 实现
@@ -82,11 +82,6 @@ impl ClaudePlatform {
         base::profile_to_section(profile)
     }
 
-    /// 💾 保存 profiles 到 TOML 文件
-    fn save_profiles(&self, profiles: &IndexMap<String, ProfileConfig>) -> Result<()> {
-        base::save_profiles_to_toml(&self.paths.profiles_file, profiles, "claude", &self.paths)
-    }
-
     /// 🔄 更新 profiles.toml 中的 current_config 字段
     ///
     /// 在配置切换时调用，用于同步更新 profiles.toml 中记录的当前配置名称
@@ -103,59 +98,50 @@ impl ClaudePlatform {
         &self,
         profiles: &IndexMap<String, ProfileConfig>,
     ) -> Result<Option<String>> {
-        if !self.paths.profiles_file.exists() {
-            return Ok(None);
-        }
-
-        let content = match fs::read_to_string(&self.paths.profiles_file) {
-            Ok(content) => content,
-            Err(_) => return Ok(None),
-        };
-
-        let parsed = match toml::from_str::<CcsConfig>(&content) {
-            Ok(parsed) => parsed,
-            Err(_) => return Ok(None),
-        };
-
-        let current = parsed.current_config.trim();
-        if current.is_empty() || !profiles.contains_key(current) {
-            return Ok(None);
-        }
-
-        Ok(Some(current.to_string()))
+        Ok(
+            base::load_current_profile_marker(&self.paths.profiles_file)?
+                .filter(|current| profiles.contains_key(current)),
+        )
     }
 
     fn clear_current_profile_registry(&self) -> Result<()> {
-        let manager = PlatformConfigManager::with_default()?;
-        let mut unified = manager.load()?;
-        if let Ok(entry) = unified.get_platform_mut("claude") {
-            entry.current_profile = None;
-            entry.last_used = Some(chrono::Utc::now().to_rfc3339());
-        }
-        manager.save(&unified)
+        let locks = LockManager::with_default_path()?;
+        base::clear_registry_current_profile_with_paths(
+            &self.paths.registry_file,
+            locks.lock_dir(),
+            "claude",
+        )
     }
 
     fn stable_current_profile(&self) -> Result<Option<String>> {
+        Ok(self.current_profile_resolution()?.current)
+    }
+
+    /// Resolve the current marker without repairing either file.
+    pub fn current_profile_resolution(&self) -> Result<base::CurrentProfileResolution> {
         let profiles = self.load_profiles()?;
-        let registry_current = base::get_current_profile_from_registry("claude")?;
+        let file = self.current_profile_from_file(&profiles)?;
+        let registry = base::get_current_profile_from_registry("claude")?;
+        Ok(base::resolve_file_current_profile(
+            &profiles,
+            file.as_deref(),
+            registry.as_deref(),
+        ))
+    }
 
-        if let Some(file_current) = self.current_profile_from_file(&profiles)? {
-            if registry_current.as_deref() != Some(file_current.as_str()) {
-                base::update_registry_current_profile("claude", &file_current)?;
+    /// Explicit repair for diagnostics and migration workflows.
+    pub fn reconcile_current_profile(&self) -> Result<()> {
+        match self.current_profile_resolution()?.repair {
+            Some(base::CurrentProfileRepair::Registry(Some(current))) => {
+                base::update_registry_current_profile("claude", &current)
             }
-            return Ok(Some(file_current));
-        }
-
-        match registry_current {
-            Some(current) if profiles.contains_key(&current) => {
-                self.update_current_config_in_profiles(&current)?;
-                Ok(Some(current))
+            Some(base::CurrentProfileRepair::Registry(None)) => {
+                self.clear_current_profile_registry()
             }
-            Some(_) => {
-                self.clear_current_profile_registry()?;
-                Ok(None)
+            Some(base::CurrentProfileRepair::Profiles(current)) => {
+                self.update_current_config_in_profiles(&current)
             }
-            None => Ok(None),
+            None => Ok(()),
         }
     }
 
@@ -252,22 +238,32 @@ impl PlatformConfig for ClaudePlatform {
     }
 
     fn save_profile(&self, name: &str, profile: &ProfileConfig) -> Result<()> {
-        // 先验证
-        self.validate_profile(profile)?;
-
-        let mut profiles = self.load_profiles()?;
-        let mut normalized = profile.clone();
-        Self::normalize_profile(&mut normalized);
-        profiles.insert(name.to_string(), normalized);
-        self.save_profiles(&profiles)
+        base::mutate_profiles(
+            &self.paths.profiles_file,
+            "claude",
+            &self.paths,
+            |profiles| {
+                let mut normalized = profile.clone();
+                Self::normalize_profile(&mut normalized);
+                self.validate_profile(&normalized)?;
+                profiles.insert(name.to_string(), normalized);
+                Ok(())
+            },
+        )
     }
 
     fn delete_profile(&self, name: &str) -> Result<()> {
-        let mut profiles = self.load_profiles()?;
-        if profiles.shift_remove(name).is_none() {
-            return Err(CcrError::ProfileNotFound(name.to_string()));
-        }
-        self.save_profiles(&profiles)?;
+        let profiles = base::mutate_profiles(
+            &self.paths.profiles_file,
+            "claude",
+            &self.paths,
+            |profiles| {
+                if profiles.shift_remove(name).is_none() {
+                    return Err(CcrError::ProfileNotFound(name.to_string()));
+                }
+                Ok(profiles.clone())
+            },
+        )?;
         base::reconcile_registry_current_profile_after_delete("claude", name, &profiles)
     }
 
@@ -278,7 +274,7 @@ impl PlatformConfig for ClaudePlatform {
 
     fn apply_profile(&self, name: &str) -> Result<()> {
         // 加载并克隆 profile，防御性纠正必须先持久化，再修改 runtime settings。
-        let mut profiles = self.load_profiles()?;
+        let profiles = self.load_profiles()?;
         let mut profile = profiles
             .get(name)
             .cloned()
@@ -302,8 +298,7 @@ impl PlatformConfig for ClaudePlatform {
         self.validate_profile(&profile)?;
 
         if literal_mode != auth_mode {
-            profiles.insert(name.to_string(), profile.clone());
-            self.save_profiles(&profiles).map_err(|error| {
+            self.save_profile(name, &profile).map_err(|error| {
                 CcrError::ConfigError(format!(
                     "Claude profile `{name}` 的 auth_mode 自动纠正写回失败: {error}；请重新保存该 profile 后重试"
                 ))
@@ -362,9 +357,11 @@ impl PlatformConfig for ClaudePlatform {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    #[cfg(test)]
     use crate::managers::PlatformConfigManager;
     use crate::managers::{PlatformConfigEntry, UnifiedConfig};
     use crate::test_support::TestHome;
+    #[cfg(test)]
     use std::fs;
 
     struct TestEnv {
@@ -562,7 +559,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_current_profile_prefers_profiles_file_and_repairs_registry() {
+    fn test_get_current_profile_prefers_file_and_only_explicit_reconcile_repairs_registry() {
         let env = TestEnv::new();
 
         let result = (|| -> Result<()> {
@@ -572,7 +569,14 @@ mod tests {
             platform.update_current_config_in_profiles("beta")?;
             base::update_registry_current_profile("claude", "alpha")?;
 
+            let before = fs::read(&platform.paths.registry_file)?;
             assert_eq!(platform.get_current_profile()?, Some("beta".to_string()));
+            assert_eq!(before, fs::read(&platform.paths.registry_file)?);
+            assert_eq!(
+                platform.current_profile_resolution()?.repair,
+                Some(base::CurrentProfileRepair::Registry(Some("beta".into())))
+            );
+            platform.reconcile_current_profile()?;
 
             let manager = PlatformConfigManager::with_default()?;
             let reloaded = manager.load()?;
@@ -589,7 +593,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_current_profile_repairs_profiles_file_from_valid_registry() {
+    fn test_get_current_profile_uses_registry_without_repairing_profiles_file() {
         let env = TestEnv::new();
 
         let result = (|| -> Result<()> {
@@ -605,7 +609,13 @@ mod tests {
             assert_eq!(platform.get_current_profile()?, Some("beta".to_string()));
 
             let repaired = read_profiles_config(env.root_path());
-            assert_eq!(repaired.current_config, "beta");
+            assert_eq!(repaired.current_config, "ghost");
+            assert_eq!(
+                platform.current_profile_resolution()?.repair,
+                Some(base::CurrentProfileRepair::Profiles("beta".into()))
+            );
+            platform.reconcile_current_profile()?;
+            assert_eq!(read_profiles_config(env.root_path()).current_config, "beta");
 
             Ok(())
         })();
@@ -632,7 +642,15 @@ mod tests {
 
             let manager = PlatformConfigManager::with_default()?;
             let reloaded = manager.load()?;
-            assert_eq!(reloaded.get_platform("claude")?.current_profile, None);
+            assert_eq!(
+                reloaded.get_platform("claude")?.current_profile.as_deref(),
+                Some("phantom")
+            );
+            platform.reconcile_current_profile()?;
+            assert_eq!(
+                manager.load()?.get_platform("claude")?.current_profile,
+                None
+            );
 
             Ok(())
         })();

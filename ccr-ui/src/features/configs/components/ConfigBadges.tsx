@@ -1,8 +1,9 @@
 import type { ConfigItem } from '@/types'
 import { SIcon } from '@/ui'
-import { t } from '../locale'
+import { useAppT } from '@/i18n'
 
 export function ConfigBadges({ config }: { config: ConfigItem }) {
+  const t = useAppT()
   return (
     <div className="flex shrink-0 gap-1.5">
       {config.is_current ? (

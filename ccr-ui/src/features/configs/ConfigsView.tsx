@@ -1,7 +1,9 @@
 import { useCallback, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { HistoryList, PageHeader, PageShell, SIcon } from '@/ui'
-import { t } from './locale'
+import { useAppT } from '@/i18n'
+import { translateWithFallback } from '@/i18n/formatMessage'
+import { configsNotify } from './notify'
 import { useConfigsPage } from './hooks/useConfigsPage'
 import { ConfigFilters } from './components/ConfigFilters'
 import { ConfigList } from './components/ConfigList'
@@ -20,7 +22,18 @@ interface SearchForm {
 }
 
 export function ConfigsView() {
+  const t = useAppT()
   const page = useConfigsPage()
+  const { handleEnable } = page
+  const onEnable = useCallback(async (name: string) => {
+    const confirmed = await configsNotify.confirm({
+      title: t('configs.enable'),
+      message: translateWithFallback(t, 'configs.confirmEnable', '确定启用配置 "{name}" 吗？', { name }),
+      confirmText: t('configs.enable'),
+      type: 'warning',
+    })
+    if (confirmed) await handleEnable(name)
+  }, [handleEnable, t])
   const form = useForm<SearchForm>({ defaultValues: { search: page.searchQuery } })
   const onSearch = useCallback(
     (event: { target: EventTarget | null }) => {
@@ -34,7 +47,7 @@ export function ConfigsView() {
       { id: 'configs' as const, label: t('configs.tabs.configList'), icon: 'Settings' },
       { id: 'history' as const, label: t('configs.tabs.history'), icon: 'History' },
     ],
-    [],
+    [t],
   )
 
   return (
@@ -125,6 +138,7 @@ export function ConfigsView() {
               error={page.error}
               highlightedName={page.highlightedName}
               onSwitch={page.handleSwitch}
+              onEnable={onEnable}
               onEdit={page.handleEdit}
             />
           </div>

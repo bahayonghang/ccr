@@ -1,6 +1,7 @@
 import { asBool, asList, asString, splitList } from '@/configs/settings-helpers'
 import type { SettingsValues } from '@/configs/settings-types'
 import type { CodexConfig } from '@/types/codex'
+import { dirtySettingsPatch, settingsRecord } from '@/configs/settings-patch'
 
 const optionalNumber = (value: SettingsValues[string]): number | undefined =>
   value === '' ? undefined : Number(value)
@@ -37,7 +38,7 @@ const flattenTools = (form: CodexConfig): SettingsValues => ({
 const flattenUi = (form: CodexConfig): SettingsValues => ({
   tuiAlternateScreen: asString(form.tui?.alternate_screen),
   tuiAnimations: asBool(form.tui?.animations),
-  tuiNotifications: form.tui?.notifications === true,
+  tuiNotifications: form.tui?.notifications == null ? '' : JSON.stringify(form.tui.notifications),
   tuiShowTooltips: asBool(form.tui?.show_tooltips),
   hide_agent_reasoning: asBool(form.hide_agent_reasoning),
   show_raw_agent_reasoning: asBool(form.show_raw_agent_reasoning),
@@ -97,7 +98,9 @@ const buildUi = (values: SettingsValues): CodexConfig => ({
   tui: {
     alternate_screen: asString(values.tuiAlternateScreen) || undefined,
     animations: asBool(values.tuiAnimations),
-    notifications: asBool(values.tuiNotifications),
+    notifications: values.tuiNotifications === '' || values.tuiNotifications == null
+      ? undefined
+      : JSON.parse(String(values.tuiNotifications)) as boolean | string[],
     show_tooltips: asBool(values.tuiShowTooltips),
   },
   hide_agent_reasoning: asBool(values.hide_agent_reasoning),
@@ -116,12 +119,43 @@ const buildFeatures = (values: SettingsValues): CodexConfig => ({
   feedback: { enabled: asBool(values.feedbackEnabled) },
 })
 
-export function buildCodexSettingsPayload(values: SettingsValues): CodexConfig {
-  return {
+export function buildCodexSettingsPayload(
+  values: SettingsValues,
+  input: { dirtyKeys: readonly string[]; source: unknown },
+): Record<string, unknown> {
+  const payload: CodexConfig = {
     ...buildModel(values),
     ...buildSecurity(values),
     ...buildTools(values),
     ...buildUi(values),
     ...buildFeatures(values),
   }
+  const paths: Record<string, string> = Object.fromEntries(Object.keys(payload).map((key) => [key, key]))
+  Object.assign(paths, {
+    writableRoots: 'sandbox_workspace_write.writable_roots',
+    sandboxNetworkAccess: 'sandbox_workspace_write.network_access',
+    shellIncludeOnly: 'shell_environment_policy.include_only',
+    toolsViewImage: 'tools.view_image',
+    toolsWebSearch: 'tools.web_search',
+    tuiAlternateScreen: 'tui.alternate_screen',
+    tuiAnimations: 'tui.animations',
+    tuiNotifications: 'tui.notifications',
+    tuiShowTooltips: 'tui.show_tooltips',
+    historyPersistence: 'history.persistence',
+    historyMaxBytes: 'history.max_bytes',
+    analyticsEnabled: 'analytics.enabled',
+    feedbackEnabled: 'feedback.enabled',
+  })
+  // Codex merges each submitted leaf and retains disk-only extension fields.
+  return codexUnsetPatch(dirtySettingsPatch(paths, payload, { dirtyKeys: input.dirtyKeys, source: {} }))
+}
+
+function codexUnsetPatch(patch: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(patch).map(([key, value]) => [
+    key,
+    value === undefined ? null
+      : value !== null && typeof value === 'object' && !Array.isArray(value)
+        ? codexUnsetPatch(settingsRecord(value))
+        : value,
+  ]))
 }

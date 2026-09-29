@@ -44,7 +44,7 @@
     "tauri:check": "cd src-tauri && cargo check",
     "tauri:clippy": "cd src-tauri && cargo clippy",
     "tauri:fmt": "cd src-tauri && cargo fmt",
-    "tauri:test": "cd src-tauri && cargo test",
+    "tauri:test": "cd src-tauri && cargo test -- --skip export_bindings",
     "check:all": "bun run docs:audit && bun run type-check && bun run lint && bun run test && bun run tauri:check"
   },
   "dependencies": {

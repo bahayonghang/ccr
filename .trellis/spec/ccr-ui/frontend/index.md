@@ -10,7 +10,8 @@
 
 | Guide | Description | Status |
 | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | -------- |
-| [API Facade Boundary](./api-facade-boundary.md) | Domain-first API wrappers and legacy Tauri facade guardrails | Complete |
+| [API Facade Boundary](./api-facade-boundary.md) | Domain-first wrappers, config outcomes/versioned drafts, and legacy facade guardrails | Complete |
+| [Command Job Lifecycle](./command-job-lifecycle.md) | Shell-owned jobs, snapshot recovery, listener failures, and history persistence states | Complete |
 | [Check-in UX Concurrency Contracts](./checkin-ux-contracts.md) | Balance refresh per-origin queue/throttle, event-based job waiting, 4-state display, toast-only errors | Complete |
 | [Provider Template Contracts](./provider-template-contracts.md) | Non-secret global provider templates, platform overrides, and saved-provider separation | Complete |
 | [Theme Token Contracts](./theme-token-contracts.md) | Theme/flavor/accent/font token layering, font-preference fallback override, and visual verification guardrails | Complete |
@@ -34,7 +35,8 @@ The Environment-Scoped Dashboard Contracts file lives in this directory (per-env
 
 ## Pre-Development Checklist
 
-- Read [API Facade Boundary](./api-facade-boundary.md) before adding or changing frontend API wrappers.
+- Read [API Facade Boundary](./api-facade-boundary.md) before adding or changing frontend API wrappers, config mutation actions, or versioned edit drafts.
+- Read [Command Job Lifecycle](./command-job-lifecycle.md) before changing command workbench state, events, recovery, or history submission.
 - Read [Check-in UX Concurrency Contracts](./checkin-ux-contracts.md) before changing check-in batch refresh, job waiting, result display, or error surfacing.
 - Read [Provider Template Contracts](./provider-template-contracts.md) before adding or changing Claude Code, Codex, or OpenCode provider template flows.
 - Read [Theme Token Contracts](./theme-token-contracts.md) before changing `ccr-ui/src/styles/tokens.css`, flavor overrides, font tracks / `fontPreferences.ts` / font-preference overrides, or theme smoke contracts.

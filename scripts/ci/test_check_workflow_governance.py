@@ -405,9 +405,9 @@ class WorkflowGovernanceParserTests(unittest.TestCase):
         self.assertIn(
             "cargo --config .cargo/tauri-ci.toml llvm-cov", root_justfile
         )
-        self.assertIn(
-            "cargo --config ../.cargo/tauri-ci.toml test", ui_justfile
-        )
+        self.assertIn("scripts/generate-bindings.mjs", ui_justfile)
+        generator = (self.ROOT / "ccr-ui" / "scripts" / "generate-bindings.mjs").read_text(encoding="utf-8")
+        self.assertIn("'--config', '../.cargo/tauri-ci.toml', 'test'", generator)
 
     def test_root_fmt_repairs_json_before_fmt_check(self) -> None:
         root_justfile = (self.ROOT / "justfile").read_text(encoding="utf-8")
@@ -421,7 +421,10 @@ class WorkflowGovernanceParserTests(unittest.TestCase):
         )
 
         self.assertIn("scripts/check-generated-bindings.mjs", ui_justfile)
-        self.assertIn("scripts/normalize-generated-bindings.mjs", ui_justfile)
+        self.assertIn("scripts/generate-bindings.mjs", ui_justfile)
+        generator = (self.ROOT / "ccr-ui" / "scripts" / "generate-bindings.mjs").read_text(encoding="utf-8")
+        self.assertIn("./scripts/normalize-generated-bindings.mjs", generator)
+        self.assertIn("withGeneratedDirectory", generator)
         self.assertNotIn("git status --porcelain -- src/types/generated", ui_justfile)
         self.assertTrue(
             (self.ROOT / "ccr-ui" / "scripts" / "check-generated-bindings.mjs").is_file()

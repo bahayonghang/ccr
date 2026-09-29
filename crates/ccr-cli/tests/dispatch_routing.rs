@@ -38,6 +38,26 @@ struct IsolatedEnv {
 }
 
 impl IsolatedEnv {
+    fn inventory(&self) -> Vec<(std::path::PathBuf, Option<Vec<u8>>)> {
+        fn collect(
+            path: &std::path::Path,
+            entries: &mut Vec<(std::path::PathBuf, Option<Vec<u8>>)>,
+        ) {
+            if path.is_file() {
+                entries.push((path.to_path_buf(), Some(std::fs::read(path).unwrap())));
+            } else {
+                entries.push((path.to_path_buf(), None));
+                for entry in std::fs::read_dir(path).unwrap() {
+                    collect(&entry.unwrap().path(), entries);
+                }
+            }
+        }
+        let mut entries = Vec::new();
+        collect(self._temp_dir.path(), &mut entries);
+        entries.sort_by(|a, b| a.0.cmp(&b.0));
+        entries
+    }
+
     fn new() -> Self {
         let guard = TEST_ENV_LOCK
             .lock()
@@ -323,12 +343,38 @@ async fn help_branch_is_pure_output_and_returns_ok() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn list_command_routes_and_runs_in_isolated_env() {
-    // `ccr list` 只读列出配置；空环境下 ConfigManager 会自动初始化默认配置
-    // （写入的是隔离 tempdir 内的 CCR_ROOT），预期 Ok。
-    let _env = IsolatedEnv::new();
+    let env = IsolatedEnv::new();
+    let path = env
+        ._temp_dir
+        .path()
+        .join(".ccr/platforms/claude/profiles.toml");
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(
+        path,
+        r#"default_config = "main"
+current_config = "main"
+[main]
+base_url = "https://api.example.test"
+auth_token = "synthetic-dispatch-secret"
+model = "test-model"
+"#,
+    )
+    .unwrap();
+    let before = env.inventory();
     let cli = parse(&["ccr", "list"]);
     let result = CommandDispatcher::dispatch(&cli, None).await;
     assert!(result.is_ok(), "list 命令应返回 Ok: {result:?}");
+    assert_eq!(env.inventory(), before);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn list_command_preserves_missing_config_without_initializing() {
+    let env = IsolatedEnv::new();
+    let before = env.inventory();
+    let cli = parse(&["ccr", "list"]);
+    let result = CommandDispatcher::dispatch(&cli, None).await;
+    assert!(matches!(result, Err(CcrError::ConfigMissing(_))));
+    assert_eq!(env.inventory(), before);
 }
 
 #[tokio::test(flavor = "multi_thread")]

@@ -1,5 +1,6 @@
 export default {
   auth: {
+    stale: '刷新失败。当前显示上次确认的会话状态。',
     off: '登出官方会话',
     offDescription: '清除本机官方运行时登录。已保存的 CCR 账号快照不会删除。',
     confirmOffTitle: '登出官方会话',
@@ -1375,7 +1376,16 @@ export default {
       actionOff: '退出 Profile',
     },
   },
+  settingsSession: {
+    environmentChanged: '环境已变化或暂不可用。草稿已保留，保存已禁用。',
+    returnEnvironment: '返回草稿所属环境',
+    discardReload: '放弃草稿并重新加载',
+    serverChanged: '服务端设置已变化。草稿及原始编辑基线已保留，请重新加载后再保存。',
+    reloadRequired: '保存已完成，但无法获取更新后的设置。请重新加载后继续编辑。',
+  },
   settingsRaw: {
+    claudeClearUnsupported: '设置表单不支持移除这些顶层字段。请打开“源文件”，删除对应的配置键。当前修改尚未保存。',
+    opencodeClearUnsupported: 'OpenCode 设置接口不支持移除这些顶层字段。请恢复原值，或直接编辑配置文件以删除对应的键。当前修改尚未保存。',
     sourceTab: '源文件',
     warningTitle: '查看原始配置',
     warningMessage: '源文件可能包含 API Key、Token 或其他明文凭据。内容只在当前页面内存中保留，请确认周围环境安全。',
@@ -1481,6 +1491,7 @@ export default {
   },
   claudeSettings: {
     title: 'Claude Code 全局设置',
+    subtitle: '管理模型、权限、环境变量、界面、沙箱与 Git 归属设置。',
     back: '返回',
     save: '保存设置',
     saving: '保存中...',
@@ -2267,6 +2278,11 @@ export default {
     cardTrustDetail: '当前仅允许 {count} 个 CCR 子命令，退出码非 0 会标记为失败但保留输出。',
     composerEyebrow: '命令编排',
     cancelJob: '取消任务',
+    jobExpired: '任务快照已过期。保留最后一次输出，无法继续查询或取消该任务。',
+    liveUpdatesUnavailable: '命令实时订阅不可用。运行期间将查询任务状态；查询失败后可手动重试。',
+    historyPending: '正在保存命令历史…',
+    historySaved: '命令历史已保存。',
+    historySaveFailed: '无法确认命令历史已保存。本次会话保留执行结果；刷新仅重新读取历史，不重复提交。',
     webUnavailableDetail: '当前是 Web 预览环境，不能启动 Tauri 后台任务；页面仅用于检查布局和文案。',
     clientUnavailableTitle: '该客户端尚未接入执行白名单',
     clientUnavailableDescription: '{client} 当前只作为能力入口展示；执行面仅限 CCR 白名单。',
@@ -4175,6 +4191,7 @@ export default {
     settings: {
       title: 'Codex 设置',
       subtitle: 'Codex 全局配置：模型、安全、工具链、界面与功能开关。',
+      save: '保存',
       saving: '保存中...',
       tabs: {
         model: '模型与推理',
@@ -4189,6 +4206,12 @@ export default {
         modelProvider: '运行时命名空间',
         modelProviderPlaceholder: '保留命名空间，如 custom',
         reasoningEffort: '推理深度',
+        reasoningEffortOptions: {
+          minimal: '最低',
+          low: '低',
+          medium: '中',
+          high: '高',
+        },
         reasoningSummary: '推理摘要模式',
         verbosity: '详细程度',
         contextWindow: '上下文窗口',
@@ -5495,6 +5518,9 @@ export default {
   },
 
   profilesSurface: {
+    appliedWithWarning: '配置变更已提交；使用计数或审计记录未完整完成，请勿重复激活。',
+    recoveryRequired: '配置操作需要恢复；外部变更已保留，请检查当前配置后再继续。',
+    unchangedFailure: '配置操作失败；原有文件已恢复。',
     breadcrumbProfiles: 'Profiles',
     newProfile: '新建 Profile',
     reload: '刷新',

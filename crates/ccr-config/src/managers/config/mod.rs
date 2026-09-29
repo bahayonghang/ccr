@@ -10,9 +10,14 @@
 
 pub mod ccs_config;
 mod manager;
+pub mod repository;
 pub mod types;
 
 // 重新导出所有公共类型
 pub use ccs_config::CcsConfig;
 pub use manager::ConfigManager;
+pub use repository::{ConfigPatch, ConfigSnapshot, FieldPatch};
 pub use types::{ConfigSection, GlobalSettings, ProviderType};
+
+#[cfg(test)]
+mod repository_tests;

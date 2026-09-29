@@ -14,12 +14,13 @@
 //   因此与调用方自身的 RMW 锁（CONFIG_LOCK / 命名锁）不构成环，无死锁风险。
 // - load→mutate→save 序列的事务性仍由调用方负责，本模块只保证单次写的互斥与完整性。
 
-use crate::core::atomic_writer::AtomicWriter;
+use crate::core::atomic_writer::{AtomicWriter, FileMetadata};
 use crate::core::error::{CcrError, Result};
 use crate::core::lock::LockManager;
 use chrono::Local;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::io::Read;
+use std::path::{Component, Path, PathBuf};
 use std::time::Duration;
 
 /// Maximum number of rotated backup files kept per target.
@@ -73,7 +74,7 @@ pub enum BackupPolicy {
     #[default]
     None,
     /// Backup next to the source file, named
-    /// `{filename}.{tag}_{timestamp}.bak` (or `{filename}.{timestamp}.bak`
+    /// `{filename}.{tag}_{timestamp}.{id}.bak` (or `{filename}.{timestamp}.{id}.bak`
     /// without a tag). Rotation keeps the newest [`BACKUP_KEEP`] files whose
     /// name matches `starts_with(filename) && ends_with(".bak")`.
     SameDir {
@@ -81,7 +82,7 @@ pub enum BackupPolicy {
         tag: Option<String>,
     },
     /// Backup into a dedicated directory, named
-    /// `{prefix}.{timestamp}.{ext}.bak` (`ext` falls back to `bak` when the
+    /// `{prefix}.{timestamp}.{id}.{ext}.bak` (`ext` falls back to `bak` when the
     /// source has no extension). Rotation keeps the newest [`BACKUP_KEEP`]
     /// files whose name matches `starts_with(prefix) && ends_with(".bak")`.
     Dir {
@@ -115,6 +116,11 @@ pub fn write_guarded(path: &Path, bytes: &[u8], opts: &WriteOptions) -> Result<(
 /// Async variant of [`write_guarded`]. The blocking implementation runs on
 /// the tokio blocking thread pool.
 pub async fn write_guarded_async(path: &Path, bytes: Vec<u8>, opts: WriteOptions) -> Result<()> {
+    if super::write_journal::is_active() {
+        return Err(CcrError::ConfigError(
+            "Async write inside a synchronous operation journal".into(),
+        ));
+    }
     let path = path.to_path_buf();
     tokio::task::spawn_blocking(move || write_guarded(&path, &bytes, &opts))
         .await
@@ -137,6 +143,75 @@ pub fn write_guarded_versioned(
     expected_token: &str,
     opts: &WriteOptions,
 ) -> Result<VersionedWriteOutcome> {
+    write_versioned_inner(path, bytes, expected_token, opts, None)
+}
+
+/// Enforce the existing secret-file policy without replacing matching content.
+/// Returns false if the file is missing or its content version differs.
+/// The leaf lock covers the handle read and permission update. Unix owner-only
+/// modes and existing Windows DACLs are retained. No backup is created, and
+/// content, inode and modification time remain unchanged.
+pub fn enforce_secret_permissions_versioned(
+    path: &Path,
+    expected_token: &str,
+    lock_timeout: Duration,
+) -> Result<bool> {
+    let target = absolute_path(path)?;
+    let manager = LockManager::with_default_path()?;
+    let _lock = manager.lock_resource(&lock_resource_name(&target), lock_timeout)?;
+    let mut file = match fs::File::open(&target) {
+        Ok(file) => file,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(error) => return Err(error.into()),
+    };
+    let mut bytes = Vec::new();
+    file.read_to_end(&mut bytes)?;
+    if content_version_token(&bytes) != expected_token {
+        return Ok(false);
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+
+        let mode = file.metadata()?.permissions().mode();
+        let required = super::atomic_writer::secret_unix_mode(Some(mode));
+        if mode & 0o7777 != required {
+            // Check journal versions and faults before the metadata change.
+            // Hardening adds no content rollback entry. Existing content
+            // entries retain their original metadata restoration policy.
+            let _ = super::write_journal::before_write(&target)?;
+            file.set_permissions(fs::Permissions::from_mode(required))?;
+            file.sync_all()?;
+        }
+    }
+    Ok(true)
+}
+
+pub(super) fn restore_guarded_versioned(
+    path: &Path,
+    bytes: &[u8],
+    expected_token: &str,
+    metadata: &FileMetadata,
+) -> Result<VersionedWriteOutcome> {
+    write_versioned_inner(
+        path,
+        bytes,
+        expected_token,
+        &WriteOptions {
+            secret: true,
+            ..Default::default()
+        },
+        Some(metadata),
+    )
+}
+
+fn write_versioned_inner(
+    path: &Path,
+    bytes: &[u8],
+    expected_token: &str,
+    opts: &WriteOptions,
+    metadata: Option<&FileMetadata>,
+) -> Result<VersionedWriteOutcome> {
     let target = absolute_path(path)?;
     let lock_manager = LockManager::with_default_path()?;
     let resource = lock_resource_name(&target);
@@ -158,7 +233,7 @@ pub fn write_guarded_versioned(
         return Ok(VersionedWriteOutcome::Conflict);
     }
 
-    write_locked(&target, bytes, opts)?;
+    write_locked_with_metadata(&target, bytes, opts, metadata)?;
     Ok(VersionedWriteOutcome::Written)
 }
 
@@ -169,6 +244,11 @@ pub async fn write_guarded_versioned_async(
     expected_token: String,
     opts: WriteOptions,
 ) -> Result<VersionedWriteOutcome> {
+    if super::write_journal::is_active() {
+        return Err(CcrError::ConfigError(
+            "Async write inside a synchronous operation journal".into(),
+        ));
+    }
     let path = path.to_path_buf();
     tokio::task::spawn_blocking(move || {
         write_guarded_versioned(&path, &bytes, &expected_token, &opts)
@@ -181,11 +261,64 @@ pub async fn write_guarded_versioned_async(
 
 /// Applies backup and replacement while the caller holds the target lock.
 fn write_locked(target: &Path, bytes: &[u8], opts: &WriteOptions) -> Result<()> {
+    write_locked_with_metadata(target, bytes, opts, None)
+}
+
+fn write_locked_with_metadata(
+    target: &Path,
+    bytes: &[u8],
+    opts: &WriteOptions,
+    metadata: Option<&FileMetadata>,
+) -> Result<()> {
+    let preimage = super::write_journal::before_write(target)?;
     perform_backup(target, &opts.backup)?;
-    AtomicWriter::new(target).secret(opts.secret).write(bytes)?;
+    AtomicWriter::new(target)
+        .secret(opts.secret)
+        .write_with_commit(bytes, metadata, || {
+            super::write_journal::committed(target, preimage, Some(bytes));
+        })?;
 
     tracing::debug!("✅ guarded write 完成: {:?}", target);
     Ok(())
+}
+
+/// Remove a file under the same leaf lock used by guarded writes.
+pub fn delete_guarded(path: &Path) -> Result<()> {
+    delete_guarded_inner(path, None).map(|_| ())
+}
+
+/// Compare-and-delete. Missing files use the empty version token.
+pub fn delete_guarded_versioned(path: &Path, expected: &str) -> Result<VersionedWriteOutcome> {
+    delete_guarded_inner(path, Some(expected))
+}
+
+fn delete_guarded_inner(path: &Path, expected: Option<&str>) -> Result<VersionedWriteOutcome> {
+    let target = absolute_path(path)?;
+    let manager = LockManager::with_default_path()?;
+    let _lock = manager.lock_resource(&lock_resource_name(&target), DEFAULT_LOCK_TIMEOUT)?;
+    let current = match fs::read(&target) {
+        Ok(bytes) => Some(bytes),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
+        Err(_) => {
+            return Err(CcrError::FileIoError(
+                "Cannot read guarded deletion target".into(),
+            ));
+        }
+    };
+    let token = current
+        .as_deref()
+        .map(content_version_token)
+        .unwrap_or_default();
+    if expected.is_some_and(|expected| token != expected) {
+        return Ok(VersionedWriteOutcome::Conflict);
+    }
+    if current.is_some() {
+        let preimage = super::write_journal::before_write(&target)?;
+        fs::remove_file(&target)
+            .map_err(|_| CcrError::FileIoError("Cannot delete guarded target".into()))?;
+        super::write_journal::committed(&target, preimage, None);
+    }
+    Ok(VersionedWriteOutcome::Written)
 }
 
 /// Takes an explicit backup of `path` according to `policy`, holding the same
@@ -215,10 +348,57 @@ pub fn backup_guarded(path: &Path, policy: &BackupPolicy) -> Result<Option<PathB
 /// - 统一小写后哈希（Windows 文件系统大小写不敏感；Unix 上仅可能"过度互斥"，无害）
 /// - std 的 SipHash 每进程随机种子，不能用于跨进程锁名，故内联 FNV-1a
 pub(crate) fn lock_resource_name(path: &Path) -> String {
+    #[cfg(windows)]
+    let abs = normalized_resource_path(path).unwrap_or_else(|_| path.to_path_buf());
+    #[cfg(not(windows))]
     let abs = std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf());
     let normalized = abs.to_string_lossy().to_lowercase();
     let hash = fnv1a64(normalized.as_bytes());
-    format!("gw_{}_{:016x}", sanitized_stem(path), hash)
+    #[cfg(windows)]
+    let stem = sanitized_stem(&abs);
+    #[cfg(not(windows))]
+    let stem = sanitized_stem(path);
+    format!("gw_{stem}_{hash:016x}")
+}
+
+/// Return the lexical identity shared by configuration resource locks.
+///
+/// Windows disk/UNC verbatim prefixes and case aliases use the same identity.
+/// This does not resolve symlinks and does not require the target to exist.
+pub fn normalized_resource_path(path: &Path) -> std::io::Result<PathBuf> {
+    let absolute = std::path::absolute(path)?;
+    let mut normalized = PathBuf::new();
+    for component in absolute.components() {
+        match component {
+            #[cfg(windows)]
+            Component::Prefix(prefix) => match prefix.kind() {
+                std::path::Prefix::VerbatimDisk(drive) => {
+                    normalized.push(format!("{}:", char::from(drive)));
+                }
+                std::path::Prefix::VerbatimUNC(server, share) => {
+                    let mut prefix = std::ffi::OsString::from(r"\\");
+                    prefix.push(server);
+                    prefix.push(r"\");
+                    prefix.push(share);
+                    normalized.push(prefix);
+                }
+                _ => normalized.push(prefix.as_os_str()),
+            },
+            Component::CurDir => {}
+            Component::ParentDir => {
+                normalized.pop();
+            }
+            _ => normalized.push(component.as_os_str()),
+        }
+    }
+    #[cfg(windows)]
+    {
+        Ok(PathBuf::from(normalized.to_string_lossy().to_lowercase()))
+    }
+    #[cfg(not(windows))]
+    {
+        Ok(normalized)
+    }
 }
 
 /// FNV-1a 64-bit（跨进程稳定的路径哈希）
@@ -257,11 +437,21 @@ fn absolute_path(path: &Path) -> Result<PathBuf> {
 
 /// 执行备份 + 轮换（调用方需已持有对应的路径锁）
 fn perform_backup(source: &Path, policy: &BackupPolicy) -> Result<Option<PathBuf>> {
+    perform_backup_at(
+        source,
+        policy,
+        &Local::now().format("%Y%m%d_%H%M%S").to_string(),
+    )
+}
+
+fn perform_backup_at(
+    source: &Path,
+    policy: &BackupPolicy,
+    timestamp: &str,
+) -> Result<Option<PathBuf>> {
     if !source.exists() {
         return Ok(None);
     }
-
-    let timestamp = Local::now().format("%Y%m%d_%H%M%S");
 
     match policy {
         BackupPolicy::None => Ok(None),
@@ -273,14 +463,13 @@ fn perform_backup(source: &Path, policy: &BackupPolicy) -> Result<Option<PathBuf
                 CcrError::FileIoError(format!("无效的源文件名: {}", source.display()))
             })?;
 
-            // 命名与 config_file_handler 既有格式逐字节一致
-            let backup_name = match tag {
-                Some(tag) => format!("{file_name}.{tag}_{timestamp}.bak"),
-                None => format!("{file_name}.{timestamp}.bak"),
-            };
-            let backup_path = dir.join(backup_name);
-
-            copy_backup(source, &backup_path)?;
+            let backup_path = copy_backup_new(source, dir, || {
+                let id = uuid::Uuid::new_v4().simple();
+                dir.join(match tag {
+                    Some(tag) => format!("{file_name}.{tag}_{timestamp}.{id}.bak"),
+                    None => format!("{file_name}.{timestamp}.{id}.bak"),
+                })
+            })?;
             rotate_backups(dir, file_name)?;
             Ok(Some(backup_path))
         }
@@ -288,30 +477,71 @@ fn perform_backup(source: &Path, policy: &BackupPolicy) -> Result<Option<PathBuf
             fs::create_dir_all(dir)
                 .map_err(|e| CcrError::FileIoError(format!("创建备份目录失败 {:?}: {}", dir, e)))?;
 
-            // 命名与 platforms/base.rs backup_with_rotation 既有格式逐字节一致
+            // Preserve the prefix and extension used by existing discovery.
             let extension = source
                 .extension()
                 .and_then(|ext| ext.to_str())
                 .filter(|ext| !ext.is_empty())
                 .unwrap_or("bak");
-            let backup_path = dir.join(format!("{prefix}.{timestamp}.{extension}.bak"));
-
-            copy_backup(source, &backup_path)?;
+            let backup_path = copy_backup_new(source, dir, || {
+                let id = uuid::Uuid::new_v4().simple();
+                dir.join(format!("{prefix}.{timestamp}.{id}.{extension}.bak"))
+            })?;
             rotate_backups(dir, prefix)?;
             Ok(Some(backup_path))
         }
     }
 }
 
-fn copy_backup(source: &Path, backup_path: &Path) -> Result<()> {
-    fs::copy(source, backup_path).map_err(|e| {
-        CcrError::FileIoError(format!(
-            "备份文件失败 {:?} -> {:?}: {}",
-            source, backup_path, e
+fn copy_backup_new(
+    source: &Path,
+    dir: &Path,
+    mut next_path: impl FnMut() -> PathBuf,
+) -> Result<PathBuf> {
+    let mut copy = || -> std::io::Result<PathBuf> {
+        let mut input = fs::File::open(source)?;
+        let mut temporary = tempfile::NamedTempFile::new_in(dir)?;
+        // Apply the source policy before copying any bytes. In particular, a
+        // private Windows target must not inherit the backup directory DACL.
+        #[cfg(windows)]
+        {
+            use crate::core::atomic_writer::{apply_windows_dacl, capture_windows_dacl};
+            apply_windows_dacl(temporary.path(), &capture_windows_dacl(source)?)?;
+        }
+        let source_permissions = input.metadata()?.permissions();
+        temporary
+            .as_file()
+            .set_permissions(source_permissions.clone())?;
+        std::io::copy(&mut input, temporary.as_file_mut())?;
+        temporary.as_file().sync_all()?;
+        for _ in 0..16 {
+            let path = next_path();
+            match temporary.persist_noclobber(&path) {
+                Ok(file) => {
+                    // tempfile clears Windows file attributes when publishing.
+                    // Restore the source read-only flag; the DACL was applied
+                    // before copying the payload and remains unchanged.
+                    #[cfg(windows)]
+                    file.set_permissions(source_permissions.clone())?;
+                    drop(file);
+                    return Ok(path);
+                }
+                Err(error) if error.error.kind() == std::io::ErrorKind::AlreadyExists => {
+                    temporary = error.file;
+                }
+                Err(error) => return Err(error.error),
+            }
+        }
+        Err(std::io::Error::new(
+            std::io::ErrorKind::AlreadyExists,
+            "backup name allocation exhausted",
         ))
+    };
+    let path = copy().map_err(|error| {
+        CcrError::FileIoError(format!("备份文件失败 {}: {error}", source.display()))
     })?;
-    tracing::debug!("💾 已创建备份: {:?}", backup_path);
-    Ok(())
+    tracing::debug!("已创建备份: {:?}", path);
+    Ok(path)
 }
 
 /// 轮换：目录内匹配 `starts_with(match_prefix) && ends_with(".bak")` 的文件，
@@ -337,7 +567,7 @@ fn rotate_backups(dir: &Path, match_prefix: &str) -> Result<()> {
     backups.sort_by(|a, b| {
         let a_time = fs::metadata(a).and_then(|m| m.modified()).ok();
         let b_time = fs::metadata(b).and_then(|m| m.modified()).ok();
-        b_time.cmp(&a_time)
+        b_time.cmp(&a_time).then_with(|| b.cmp(a))
     });
 
     for old in &backups[BACKUP_KEEP..] {
@@ -363,6 +593,9 @@ mod tests {
 
     // 断言时间戳段符合 %Y%m%d_%H%M%S（8 位日期 + '_' + 6 位时间）
     fn assert_timestamp_segment(segment: &str) {
+        let (segment, id) = segment.split_once('.').unwrap();
+        assert_eq!(id.len(), 32);
+        assert!(id.bytes().all(|byte| byte.is_ascii_hexdigit()));
         assert_eq!(segment.len(), 15, "时间戳段长度应为 15: {segment}");
         assert!(segment[..8].chars().all(|c| c.is_ascii_digit()));
         assert_eq!(&segment[8..9], "_");
@@ -380,6 +613,307 @@ mod tests {
 
         write_guarded(&target, b"second", &WriteOptions::default()).unwrap();
         assert_eq!(fs::read_to_string(&target).unwrap(), "second");
+    }
+
+    #[test]
+    fn test_fixed_clock_preserves_each_preimage_and_legacy_backup() {
+        for separate in [false, true] {
+            let dir = tempdir().unwrap();
+            let source = dir.path().join("profiles.toml");
+            let prefix = if separate {
+                "profiles"
+            } else {
+                "profiles.toml"
+            };
+            let policy = if separate {
+                BackupPolicy::Dir {
+                    dir: dir.path().to_path_buf(),
+                    prefix: prefix.into(),
+                }
+            } else {
+                BackupPolicy::SameDir { tag: None }
+            };
+            let legacy = dir
+                .path()
+                .join(format!("{prefix}.20260928_120000.toml.bak"));
+            fs::write(&legacy, b"legacy").unwrap();
+            let mut paths = Vec::new();
+            for content in ["first", "second", "third"] {
+                fs::write(&source, content).unwrap();
+                paths.push(
+                    perform_backup_at(&source, &policy, "20260928_120000")
+                        .unwrap()
+                        .unwrap(),
+                );
+            }
+            assert_eq!(fs::read(&legacy).unwrap(), b"legacy");
+            for (path, content) in paths.iter().zip(["first", "second", "third"]) {
+                assert_eq!(fs::read_to_string(path).unwrap(), content);
+                // Old restore consumers select by path and read complete bytes.
+                AtomicWriter::new(&source)
+                    .write(&fs::read(path).unwrap())
+                    .unwrap();
+                assert_eq!(fs::read_to_string(&source).unwrap(), content);
+            }
+            assert_ne!(paths[0], paths[1]);
+            assert_ne!(paths[1], paths[2]);
+        }
+    }
+
+    #[test]
+    fn test_backup_collision_retries_without_overwriting() {
+        let dir = tempdir().unwrap();
+        let source = dir.path().join("source");
+        let collision = dir.path().join("existing.bak");
+        let destination = dir.path().join("new.bak");
+        fs::write(&source, b"new preimage").unwrap();
+        fs::write(&collision, b"old preimage").unwrap();
+        let mut attempts = 0;
+        let result = copy_backup_new(&source, dir.path(), || {
+            attempts += 1;
+            if attempts == 1 {
+                collision.clone()
+            } else {
+                destination.clone()
+            }
+        })
+        .unwrap();
+        assert_eq!(attempts, 2);
+        assert_eq!(result, destination);
+        assert_eq!(fs::read(collision).unwrap(), b"old preimage");
+        assert_eq!(fs::read(destination).unwrap(), b"new preimage");
+        assert_eq!(fs::read_dir(dir.path()).unwrap().count(), 3);
+    }
+
+    #[test]
+    fn test_fixed_clock_backup_child() {
+        let Some(target) = std::env::var_os("CCR_GUARDED_BACKUP_CHILD") else {
+            return;
+        };
+        let source = PathBuf::from(target);
+        let payload = std::env::var("CCR_GUARDED_BACKUP_PAYLOAD").unwrap();
+        let manager = LockManager::with_default_path().unwrap();
+        let _lock = manager
+            .lock_resource(&lock_resource_name(&source), Duration::from_secs(10))
+            .unwrap();
+        perform_backup_at(
+            &source,
+            &BackupPolicy::SameDir { tag: None },
+            "20260928_120000",
+        )
+        .unwrap();
+        AtomicWriter::new(&source)
+            .write(payload.as_bytes())
+            .unwrap();
+    }
+
+    #[test]
+    fn test_fixed_clock_multiprocess_backups_preserve_every_version() {
+        use std::collections::BTreeSet;
+        let dir = tempdir().unwrap();
+        let _locks = TestLockDirEnv::new(&dir.path().join("locks"));
+        let source = dir.path().join("profiles.toml");
+        fs::write(&source, "initial").unwrap();
+        let mut children: Vec<_> = ["one", "two", "three"]
+            .into_iter()
+            .map(|payload| {
+                std::process::Command::new(std::env::current_exe().unwrap())
+                    .args([
+                        "--exact",
+                        "core::guarded_write::tests::test_fixed_clock_backup_child",
+                        "--test-threads=1",
+                    ])
+                    .env("CCR_GUARDED_BACKUP_CHILD", &source)
+                    .env("CCR_GUARDED_BACKUP_PAYLOAD", payload)
+                    .stdout(std::process::Stdio::null())
+                    .spawn()
+                    .unwrap()
+            })
+            .collect();
+        for child in &mut children {
+            assert!(child.wait().unwrap().success());
+        }
+        let backups: Vec<_> = fs::read_dir(dir.path())
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .filter(|path| path.extension().is_some_and(|extension| extension == "bak"))
+            .collect();
+        assert_eq!(backups.len(), 3);
+        let mut contents: BTreeSet<_> = backups
+            .iter()
+            .map(|path| fs::read_to_string(path).unwrap())
+            .collect();
+        contents.insert(fs::read_to_string(source).unwrap());
+        assert_eq!(
+            contents,
+            ["initial", "one", "two", "three"]
+                .into_iter()
+                .map(String::from)
+                .collect()
+        );
+    }
+
+    #[test]
+    fn test_backup_failure_preserves_target_and_removes_temporary() {
+        let dir = tempdir().unwrap();
+        let _locks = TestLockDirEnv::new(&dir.path().join("locks"));
+        let source = dir.path().join("source");
+        let blocked = dir.path().join("not-a-directory");
+        fs::write(&source, b"old").unwrap();
+        fs::write(&blocked, b"block").unwrap();
+        assert!(
+            write_guarded(
+                &source,
+                b"new",
+                &WriteOptions {
+                    backup: BackupPolicy::Dir {
+                        dir: blocked,
+                        prefix: "source".into()
+                    },
+                    ..Default::default()
+                }
+            )
+            .is_err()
+        );
+        assert_eq!(fs::read(&source).unwrap(), b"old");
+        let collision = dir.path().join("occupied.bak");
+        fs::write(&collision, b"kept").unwrap();
+        let before = fs::read_dir(dir.path()).unwrap().count();
+        assert!(copy_backup_new(&source, dir.path(), || collision.clone()).is_err());
+        assert_eq!(fs::read(collision).unwrap(), b"kept");
+        assert_eq!(fs::read_dir(dir.path()).unwrap().count(), before);
+    }
+
+    #[test]
+    fn test_rotation_ties_are_stable_for_old_and_new_names() {
+        let dir = tempdir().unwrap();
+        let timestamp = std::time::SystemTime::UNIX_EPOCH + Duration::from_secs(12345);
+        let mut paths = Vec::new();
+        for index in 0..12 {
+            let suffix = if index % 2 == 0 { "" } else { ".unique" };
+            let path = dir
+                .path()
+                .join(format!("profiles.20260928_1200{index:02}{suffix}.toml.bak"));
+            fs::write(&path, index.to_string()).unwrap();
+            fs::File::options()
+                .write(true)
+                .open(&path)
+                .unwrap()
+                .set_modified(timestamp)
+                .unwrap();
+            paths.push(path);
+        }
+        rotate_backups(dir.path(), "profiles").unwrap();
+        assert_eq!(fs::read_dir(dir.path()).unwrap().count(), BACKUP_KEEP);
+        assert!(!paths[0].exists());
+        assert!(!paths[1].exists());
+        assert!(paths[2..].iter().all(|path| path.exists()));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_readonly_backup_collision_failure_removes_temporary() {
+        let dir = tempdir().unwrap();
+        let source = dir.path().join("source.json");
+        let collision = dir.path().join("existing.bak");
+        fs::write(&source, b"private preimage").unwrap();
+        fs::write(&collision, b"old preimage").unwrap();
+        let original_permissions = fs::metadata(&source).unwrap().permissions();
+        let mut permissions = original_permissions.clone();
+        permissions.set_readonly(true);
+        fs::set_permissions(&source, permissions.clone()).unwrap();
+        let mut attempts = 0;
+        let result = copy_backup_new(&source, dir.path(), || {
+            attempts += 1;
+            collision.clone()
+        });
+        fs::set_permissions(&source, original_permissions).unwrap();
+        assert!(result.is_err());
+        assert_eq!(attempts, 16);
+        assert_eq!(fs::read(&source).unwrap(), b"private preimage");
+        assert_eq!(fs::read(&collision).unwrap(), b"old preimage");
+        assert_eq!(fs::read_dir(dir.path()).unwrap().count(), 2);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_backup_preserves_windows_readonly_attribute() {
+        let dir = tempdir().unwrap();
+        let source = dir.path().join("source.json");
+        fs::write(&source, b"private preimage").unwrap();
+        let original_permissions = fs::metadata(&source).unwrap().permissions();
+        let mut permissions = original_permissions.clone();
+        permissions.set_readonly(true);
+        fs::set_permissions(&source, permissions).unwrap();
+        let backup = perform_backup_at(
+            &source,
+            &BackupPolicy::SameDir { tag: None },
+            "20260928_120000",
+        )
+        .unwrap()
+        .unwrap();
+        let readonly = fs::metadata(&backup).unwrap().permissions().readonly();
+        fs::set_permissions(&source, original_permissions.clone()).unwrap();
+        fs::set_permissions(&backup, original_permissions).unwrap();
+        assert!(
+            readonly,
+            "backup must preserve the source read-only attribute"
+        );
+        assert_eq!(fs::read(backup).unwrap(), b"private preimage");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_backup_preserves_private_windows_dacl() {
+        use crate::core::atomic_writer::capture_windows_dacl;
+        let dir = tempdir().unwrap();
+        let source = dir.path().join("private.json");
+        AtomicWriter::new(&source)
+            .secret(true)
+            .write(b"private preimage")
+            .unwrap();
+        let backup = perform_backup_at(
+            &source,
+            &BackupPolicy::SameDir { tag: None },
+            "20260928_120000",
+        )
+        .unwrap()
+        .unwrap();
+        let ace_bytes = |path: &Path| {
+            let descriptor = capture_windows_dacl(path).unwrap();
+            let offset = u32::from_le_bytes(descriptor[16..20].try_into().unwrap()) as usize;
+            let length =
+                u16::from_le_bytes(descriptor[offset + 2..offset + 4].try_into().unwrap()) as usize;
+            descriptor[offset..offset + length].to_vec()
+        };
+        assert_eq!(ace_bytes(&source), ace_bytes(&backup));
+        assert_eq!(fs::read(&backup).unwrap(), b"private preimage");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_backup_preserves_private_unix_mode() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempdir().unwrap();
+        let source = dir.path().join("private.json");
+        for mode in [0o400, 0o600] {
+            AtomicWriter::new(&source)
+                .secret(true)
+                .write(b"private preimage")
+                .unwrap();
+            fs::set_permissions(&source, fs::Permissions::from_mode(mode)).unwrap();
+            let backup = perform_backup_at(
+                &source,
+                &BackupPolicy::SameDir { tag: None },
+                "20260928_120000",
+            )
+            .unwrap()
+            .unwrap();
+            assert_eq!(
+                fs::metadata(backup).unwrap().permissions().mode() & 0o777,
+                mode
+            );
+        }
     }
 
     #[test]
@@ -528,8 +1062,7 @@ mod tests {
         assert!(!remaining.iter().any(|name| name.contains("fake00")));
     }
 
-    // 🔐 secret 权限断言仅在 Unix 有意义；Windows 权限模型（NTFS ACL）不同，
-    // secret 选项在 Windows 上为 no-op，故无对应测试。
+    // Unix mode assertions complement the Windows DACL tests above.
     #[cfg(unix)]
     #[test]
     fn test_write_guarded_secret_sets_owner_only_mode() {
@@ -615,6 +1148,77 @@ mod tests {
         assert_eq!(first, second);
         assert_eq!(first.len(), 64);
         assert_ne!(first, content_version_token(b"settings-v2"));
+    }
+
+    #[test]
+    fn test_secret_permission_no_op_requires_an_existing_matching_version() {
+        let temp_dir = tempdir().unwrap();
+        let _lock_dir = TestLockDirEnv::new(temp_dir.path().join("locks").as_path());
+        let target = temp_dir.path().join("settings.json");
+        let timeout = Duration::from_secs(1);
+        assert!(!enforce_secret_permissions_versioned(&target, "", timeout).unwrap());
+        assert!(!target.exists());
+        fs::write(&target, b"current").unwrap();
+        let before = fs::metadata(&target).unwrap().modified().unwrap();
+        assert!(
+            !enforce_secret_permissions_versioned(
+                &target,
+                &content_version_token(b"stale"),
+                timeout,
+            )
+            .unwrap()
+        );
+        assert_eq!(fs::read(&target).unwrap(), b"current");
+        assert_eq!(fs::metadata(&target).unwrap().modified().unwrap(), before);
+    }
+
+    #[test]
+    fn test_secret_permission_no_op_waits_for_the_guarded_leaf_lock() {
+        let temp_dir = tempdir().unwrap();
+        let _lock_dir = TestLockDirEnv::new(temp_dir.path().join("locks").as_path());
+        let target = temp_dir.path().join("settings.json");
+        fs::write(&target, b"current").unwrap();
+        let manager = LockManager::with_default_path().unwrap();
+        let _held = manager
+            .lock_resource(&lock_resource_name(&target), Duration::from_secs(1))
+            .unwrap();
+        let result = enforce_secret_permissions_versioned(
+            &target,
+            &content_version_token(b"current"),
+            Duration::from_millis(100),
+        );
+        assert!(matches!(result, Err(CcrError::LockTimeout(_))));
+        assert_eq!(fs::read(&target).unwrap(), b"current");
+    }
+
+    #[cfg(all(unix, feature = "test-support"))]
+    #[test]
+    fn test_secret_permission_no_op_policy_fault_preserves_metadata() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp_dir = tempdir().unwrap();
+        let _lock_dir = TestLockDirEnv::new(temp_dir.path().join("locks").as_path());
+        let target = temp_dir.path().join("settings.json");
+        fs::write(&target, b"current").unwrap();
+        fs::set_permissions(&target, fs::Permissions::from_mode(0o644)).unwrap();
+        let before = fs::metadata(&target).unwrap().modified().unwrap();
+        let _fault = crate::core::write_journal::fault::install(|_| {
+            Err(CcrError::FileIoError(
+                "injected permission policy failure".into(),
+            ))
+        });
+        assert!(
+            enforce_secret_permissions_versioned(
+                &target,
+                &content_version_token(b"current"),
+                Duration::from_secs(1),
+            )
+            .is_err()
+        );
+        let metadata = fs::metadata(&target).unwrap();
+        assert_eq!(metadata.permissions().mode() & 0o777, 0o644);
+        assert_eq!(metadata.modified().unwrap(), before);
+        assert_eq!(fs::read(&target).unwrap(), b"current");
     }
 
     #[test]

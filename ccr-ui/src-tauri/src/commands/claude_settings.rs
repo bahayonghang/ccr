@@ -1,27 +1,39 @@
 use super::*;
 
-/// 读取 ~/.claude/settings.json，以 JSON Value 返回完整内容。
+/// 读取入场环境的 Claude settings；可选环境 ID 不匹配时在 I/O 前拒绝。
 #[ccr_tauri_command_macros::command]
-pub async fn claude_get_settings(state: State<'_, AppState>) -> Result<OpenJsonValueDto, String> {
-    open_json(read_active_claude_settings_raw(state.inner()).await?)
+pub async fn claude_get_settings(
+    state: State<'_, AppState>,
+    expected_environment_id: Option<String>,
+) -> Result<OpenJsonValueDto, String> {
+    open_json(
+        read_settings_from_registry(&state.env_registry, expected_environment_id.as_deref())
+            .await?,
+    )
 }
 
-/// 将调用方提供的 JSON 合并写入 ~/.claude/settings.json。
+/// 在同一个入场环境中读取并合并写入 Claude settings。
 #[ccr_tauri_command_macros::command]
 pub async fn claude_update_settings(
     state: State<'_, AppState>,
     settings: OpenJsonValueDto,
+    expected_environment_id: Option<String>,
 ) -> Result<OpenJsonValueDto, String> {
     let patch: Value = settings.into();
-    let result = update_settings(state.inner(), move |settings| {
-        let mut current = serde_json::to_value(&*settings)
-            .map_err(|error| format!("Serialization error: {error}"))?;
-        merge_settings_patch(&mut current, patch.clone())?;
-        let validated = serde_json::from_value(current)
-            .map_err(|error| format!("Invalid settings payload: {error}"))?;
-        *settings = validated;
-        serde_json::to_value(&*settings).map_err(|error| format!("Serialization error: {error}"))
-    })
+    let result = update_settings_from_registry(
+        &state.env_registry,
+        expected_environment_id.as_deref(),
+        move |settings| {
+            let mut current = serde_json::to_value(&*settings)
+                .map_err(|error| format!("Serialization error: {error}"))?;
+            merge_settings_patch(&mut current, patch.clone())?;
+            let validated = serde_json::from_value(current)
+                .map_err(|error| format!("Invalid settings payload: {error}"))?;
+            *settings = validated;
+            serde_json::to_value(&*settings)
+                .map_err(|error| format!("Serialization error: {error}"))
+        },
+    )
     .await?;
     open_json(result)
 }

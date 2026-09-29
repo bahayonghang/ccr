@@ -5,6 +5,35 @@ import type { useCommandsPage } from './useCommandsPage'
 
 type Page = ReturnType<typeof useCommandsPage>
 
+function JobNotice({ page }: { page: Page }) {
+  const onRefresh = useCallback(() => { void page.handleRefreshJob() }, [page])
+  if (!page.jobExpired && !page.jobError && !page.liveUpdatesUnavailable) return null
+  return (
+    <div className="commands-notice" role="alert">
+      <p>{page.jobExpired ? page.t('commands.jobExpired') : page.jobError}</p>
+      {page.liveUpdatesUnavailable ? <p>{page.t('commands.liveUpdatesUnavailable')}</p> : null}
+      {page.currentSnapshot && !page.jobExpired ? <button type="button" onClick={onRefresh}>{page.t('common.retry')}</button> : null}
+    </div>
+  )
+}
+
+function HistoryNotice({ page }: { page: Page }) {
+  const onRefresh = useCallback(() => { void page.handleRefreshHistory() }, [page])
+  const status = page.historyWrite?.status
+  return <>
+    {status === 'pending' || status === 'saved' ? (
+      <p role="status">{page.t(status === 'pending' ? 'commands.historyPending' : 'commands.historySaved')}</p>
+    ) : null}
+    {page.failedHistoryWrites.map((write) => (
+      <div key={write.summary.job_id} className="commands-notice" role="alert">
+        <strong>{page.t('commands.historySaveFailed')}</strong>
+        <p>{write.summary.command} · {write.summary.job_id} · {write.error}</p>
+        <button type="button" onClick={onRefresh}>{page.t('common.refresh')}</button>
+      </div>
+    ))}
+  </>
+}
+
 export const CommandsLedger = memo(function CommandsLedger({ page }: { page: Page }) {
   const onCopy = useCallback(() => {
     void page.handleCopyOutput()
@@ -25,14 +54,16 @@ export const CommandsLedger = memo(function CommandsLedger({ page }: { page: Pag
         </div>
         <div className="commands-panel__actions">
           <button type="button" className="rounded-lg border border-border-default px-3 py-1.5 text-xs" disabled={!hasOutput} onClick={onCopy}>{page.t('commands.copy')}</button>
-          <button type="button" className="rounded-lg border border-border-default px-3 py-1.5 text-xs" disabled={!page.currentSnapshot} onClick={page.handleClearOutput}>{page.t('commands.clear')}</button>
+          <button type="button" className="rounded-lg border border-border-default px-3 py-1.5 text-xs" disabled={!page.currentSnapshot || page.isRunning || page.submitting} onClick={page.handleClearOutput}>{page.t('commands.clear')}</button>
         </div>
       </div>
+      <JobNotice page={page} />
+      <HistoryNotice page={page} />
       {page.currentSnapshot ? (
         <div className="commands-ledger__metrics">
           <div className="commands-ledger__metric">
             <span>{page.t('commands.jobStatus')}</span>
-            <strong className={statusClass}>{page.t(`commands.status.${page.currentSnapshot.status}`)}</strong>
+            <strong className={statusClass}>{page.t(`commands.status.${page.jobExpired ? 'unavailable' : page.currentSnapshot.status}`)}</strong>
           </div>
           <div className="commands-ledger__metric">
             <span>{page.t('commands.duration')}</span>

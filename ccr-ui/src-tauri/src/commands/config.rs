@@ -3,20 +3,25 @@
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
-use ccr_config::{
-    CcsConfig, ConfigManager, ConfigSection, ConfigService, ImportMode, ProviderType,
-};
-use ccr_core::{CcrError, LockManager};
+use ccr_config::{CcsConfig, ConfigManager, ConfigService, ImportMode};
+use ccr_core::CcrError;
 use ccr_store::HistoryService;
 use std::path::{Component, Path, PathBuf};
 use ts_rs::TS;
 
 use crate::state::AppState;
 
+mod adapter;
+use adapter::{ConfigMutationResult, ConfigPatchInput, required_platform};
+
+#[cfg(test)]
+mod contract_tests;
+
 /// 配置项详情
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../../src/types/generated/config/")]
 pub struct ConfigInfo {
+    pub version: String,
     pub name: String,
     pub description: String,
     pub base_url: String,
@@ -152,18 +157,22 @@ fn restore_config_from_backup_path(backup_path: &Path) -> Result<(), CcrError> {
 // ── 配置管理 ──
 
 #[ccr_tauri_command_macros::command]
-pub async fn list_configs(_state: State<'_, AppState>) -> Result<Vec<ConfigInfo>, String> {
+pub async fn list_configs(platform: Option<String>) -> Result<Vec<ConfigInfo>, String> {
+    let platform = required_platform(platform.as_deref()).map_err(|e| e.to_string())?;
     let result = tokio::task::spawn_blocking(move || {
-        let manager = ConfigManager::with_default()
+        let manager = ConfigManager::for_platform(&platform.to_string())
             .map_err(|e| format!("Failed to create ConfigManager: {e}"))?;
-        let config = manager
-            .load()
-            .map_err(|e| format!("Failed to load config: {e}"))?;
+        let snapshot = manager.snapshot().map_err(|e| e.to_string())?;
+        let config = snapshot.config;
+        let current = ccr_cli::platforms::create_platform(platform)
+            .and_then(|instance| instance.get_current_profile())
+            .map_err(|e| e.to_string())?;
 
         let configs: Vec<ConfigInfo> = config
             .sections
             .iter()
             .map(|(name, section)| ConfigInfo {
+                version: snapshot.version.clone(),
                 name: name.clone(),
                 description: section.description.clone().unwrap_or_default(),
                 base_url: section.base_url.clone().unwrap_or_default(),
@@ -174,7 +183,7 @@ pub async fn list_configs(_state: State<'_, AppState>) -> Result<Vec<ConfigInfo>
                     .unwrap_or_default(),
                 model: section.model.clone(),
                 small_fast_model: section.small_fast_model.clone(),
-                is_current: name == &config.current_config,
+                is_current: current.as_deref() == Some(name.as_str()),
                 is_default: name == &config.default_config,
                 provider: section.provider.clone(),
                 provider_type: section
@@ -197,187 +206,70 @@ pub async fn list_configs(_state: State<'_, AppState>) -> Result<Vec<ConfigInfo>
 }
 
 #[ccr_tauri_command_macros::command]
-pub async fn switch_config(name: String) -> Result<String, String> {
-    ccr::commands::switch_command(&name)
+pub async fn switch_config(
+    name: String,
+    platform: Option<String>,
+    enable: Option<bool>,
+) -> Result<ConfigMutationResult, String> {
+    let platform = required_platform(platform.as_deref()).map_err(|e| e.to_string())?;
+    tokio::task::spawn_blocking(move || adapter::activate(platform, name, enable.unwrap_or(false)))
         .await
-        .map_err(|e| e.to_string())?;
-    Ok(format!("Switched to config: {name}"))
+        .map_err(|e| format!("Task join error: {e}"))?
+        .map_err(|e| e.to_string())
 }
 
 #[ccr_tauri_command_macros::command]
-#[allow(clippy::too_many_arguments)]
 pub async fn add_config(
     name: String,
-    description: Option<String>,
-    base_url: String,
-    auth_token: String,
-    model: Option<String>,
-    small_fast_model: Option<String>,
-    provider: Option<String>,
-    provider_type: Option<String>,
-    account: Option<String>,
-    tags: Option<Vec<String>>,
-) -> Result<String, String> {
-    tokio::task::spawn_blocking(move || {
-        // 使用锁管理器确保并发安全
-        let lock_manager = LockManager::with_default_path()
-            .map_err(|e| format!("Failed to create LockManager: {e}"))?;
-        let _lock = lock_manager
-            .lock_resource("config", std::time::Duration::from_secs(5))
-            .map_err(|e| format!("Failed to acquire lock: {e}"))?;
-
-        let manager = ConfigManager::with_default()
-            .map_err(|e| format!("Failed to create ConfigManager: {e}"))?;
-        let mut config = manager
-            .load()
-            .map_err(|e| format!("Failed to load config: {e}"))?;
-
-        if config.sections.contains_key(&name) {
-            return Err(format!("Config '{name}' already exists"));
-        }
-
-        let section = ConfigSection {
-            description,
-            base_url: Some(base_url),
-            auth_token: Some(ccr_core::Secret::new(auth_token)),
-            model,
-            small_fast_model,
-            provider,
-            provider_type: provider_type.as_deref().and_then(|s| match s {
-                "official_relay" => Some(ProviderType::OfficialRelay),
-                "third_party_model" => Some(ProviderType::ThirdPartyModel),
-                _ => None,
-            }),
-            account,
-            tags,
-            usage_count: Some(0),
-            enabled: Some(true),
-            other: Default::default(),
-            ..Default::default()
-        };
-
-        config.set_section(name.clone(), section);
-        manager
-            .save(&config)
-            .map_err(|e| format!("Failed to save config: {e}"))?;
-
-        Ok(format!("Configuration '{name}' added successfully"))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {e}"))?
+    platform: Option<String>,
+    data: Option<ConfigPatchInput>,
+) -> Result<ConfigMutationResult, String> {
+    let platform = required_platform(platform.as_deref()).map_err(|e| e.to_string())?;
+    let data = data.ok_or_else(|| "config_payload_required".to_string())?;
+    tokio::task::spawn_blocking(move || adapter::add(platform, &name, data))
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
+        .map_err(|e| e.to_string())
 }
 
 #[ccr_tauri_command_macros::command]
 pub async fn delete_config(
     name: String,
+    platform: Option<String>,
     confirmation_token: Option<String>,
-) -> Result<String, String> {
+) -> Result<ConfigMutationResult, String> {
     validate_destructive_confirmation("delete_config", confirmation_token.as_deref())?;
-
-    tokio::task::spawn_blocking(move || {
-        let service = ConfigService::with_default()
-            .map_err(|e| format!("Failed to create ConfigService: {e}"))?;
-        service
-            .delete_config(&name)
-            .map_err(|e| format!("Failed to delete config: {e}"))?;
-
-        Ok(format!("Configuration '{name}' deleted successfully"))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {e}"))?
+    let platform = required_platform(platform.as_deref()).map_err(|e| e.to_string())?;
+    tokio::task::spawn_blocking(move || adapter::delete(platform, &name))
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
+        .map_err(|e| e.to_string())
 }
 
 #[ccr_tauri_command_macros::command]
-pub async fn rename_config(old_name: String, new_name: String) -> Result<String, String> {
-    tokio::task::spawn_blocking(move || {
-        let lock_manager = LockManager::with_default_path()
-            .map_err(|e| format!("Failed to create LockManager: {e}"))?;
-        let _lock = lock_manager
-            .lock_resource("config", std::time::Duration::from_secs(5))
-            .map_err(|e| format!("Failed to acquire lock: {e}"))?;
-
-        let manager = ConfigManager::with_default()
-            .map_err(|e| format!("Failed to create ConfigManager: {e}"))?;
-        let mut config = manager
-            .load()
-            .map_err(|e| format!("Failed to load config: {e}"))?;
-
-        if !config.sections.contains_key(&old_name) {
-            return Err(format!("Config '{old_name}' not found"));
-        }
-
-        if config.sections.contains_key(&new_name) {
-            return Err(format!("Config '{new_name}' already exists"));
-        }
-
-        // 取出旧配置节
-        let section = config
-            .sections
-            .shift_remove(&old_name)
-            .ok_or_else(|| format!("Config '{old_name}' not found"))?;
-
-        // 用新名称插入
-        config.set_section(new_name.clone(), section);
-
-        // 更新 current/default 引用
-        if config.current_config == old_name {
-            config.current_config = new_name.clone();
-        }
-        if config.default_config == old_name {
-            config.default_config = new_name.clone();
-        }
-
-        manager
-            .save(&config)
-            .map_err(|e| format!("Failed to save config: {e}"))?;
-
-        Ok(format!(
-            "Configuration '{old_name}' renamed to '{new_name}'"
-        ))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {e}"))?
+pub async fn rename_config(
+    old_name: String,
+    new_name: String,
+    platform: Option<String>,
+) -> Result<ConfigMutationResult, String> {
+    let platform = required_platform(platform.as_deref()).map_err(|e| e.to_string())?;
+    tokio::task::spawn_blocking(move || adapter::rename(platform, &old_name, &new_name))
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
+        .map_err(|e| e.to_string())
 }
 
 #[ccr_tauri_command_macros::command]
-pub async fn duplicate_config(source: String, target: String) -> Result<String, String> {
-    tokio::task::spawn_blocking(move || {
-        let lock_manager = LockManager::with_default_path()
-            .map_err(|e| format!("Failed to create LockManager: {e}"))?;
-        let _lock = lock_manager
-            .lock_resource("config", std::time::Duration::from_secs(5))
-            .map_err(|e| format!("Failed to acquire lock: {e}"))?;
-
-        let manager = ConfigManager::with_default()
-            .map_err(|e| format!("Failed to create ConfigManager: {e}"))?;
-        let mut config = manager
-            .load()
-            .map_err(|e| format!("Failed to load config: {e}"))?;
-
-        if !config.sections.contains_key(&source) {
-            return Err(format!("Config '{source}' not found"));
-        }
-
-        if config.sections.contains_key(&target) {
-            return Err(format!("Config '{target}' already exists"));
-        }
-
-        let section = config
-            .sections
-            .get(&source)
-            .ok_or_else(|| format!("Config '{source}' not found"))?
-            .clone();
-
-        config.set_section(target.clone(), section);
-
-        manager
-            .save(&config)
-            .map_err(|e| format!("Failed to save config: {e}"))?;
-
-        Ok(format!("Configuration '{source}' duplicated as '{target}'"))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {e}"))?
+pub async fn duplicate_config(
+    source: String,
+    target: String,
+    platform: Option<String>,
+) -> Result<ConfigMutationResult, String> {
+    let platform = required_platform(platform.as_deref()).map_err(|e| e.to_string())?;
+    tokio::task::spawn_blocking(move || adapter::duplicate(platform, &source, &target))
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?
+        .map_err(|e| e.to_string())
 }
 
 #[ccr_tauri_command_macros::command]
@@ -505,68 +397,19 @@ pub async fn clear_history() -> Result<String, String> {
 }
 
 #[ccr_tauri_command_macros::command]
-pub async fn update_config(name: String, data: serde_json::Value) -> Result<String, String> {
+pub async fn update_config(
+    name: String,
+    platform: Option<String>,
+    data: ConfigPatchInput,
+    expected_version: Option<String>,
+) -> Result<ConfigMutationResult, String> {
+    let platform = required_platform(platform.as_deref()).map_err(|e| e.to_string())?;
     tokio::task::spawn_blocking(move || {
-        let lock_manager = LockManager::with_default_path()
-            .map_err(|e| format!("Failed to create LockManager: {e}"))?;
-        let _lock = lock_manager
-            .lock_resource("config", std::time::Duration::from_secs(5))
-            .map_err(|e| format!("Failed to acquire lock: {e}"))?;
-
-        let manager = ConfigManager::with_default()
-            .map_err(|e| format!("Failed to create ConfigManager: {e}"))?;
-        let mut config = manager
-            .load()
-            .map_err(|e| format!("Failed to load config: {e}"))?;
-
-        let section = config
-            .sections
-            .get_mut(&name)
-            .ok_or_else(|| format!("Config '{name}' not found"))?;
-
-        // 按字段名称更新对应字段
-        if let Some(obj) = data.as_object() {
-            for (key, value) in obj {
-                match key.as_str() {
-                    "description" => {
-                        section.description = value.as_str().map(str::to_string);
-                    }
-                    "base_url" => {
-                        section.base_url = value.as_str().map(str::to_string);
-                    }
-                    "auth_token" => {
-                        section.auth_token = value.as_str().map(ccr_core::Secret::from);
-                    }
-                    "model" => {
-                        section.model = value.as_str().map(str::to_string);
-                    }
-                    "small_fast_model" => {
-                        section.small_fast_model = value.as_str().map(str::to_string);
-                    }
-                    "provider" => {
-                        section.provider = value.as_str().map(str::to_string);
-                    }
-                    "account" => {
-                        section.account = value.as_str().map(str::to_string);
-                    }
-                    "enabled" => {
-                        if let Some(b) = value.as_bool() {
-                            section.enabled = Some(b);
-                        }
-                    }
-                    _ => {}
-                }
-            }
-        }
-
-        manager
-            .save(&config)
-            .map_err(|e| format!("Failed to save config: {e}"))?;
-
-        Ok(format!("Configuration '{name}' updated successfully"))
+        adapter::update(platform, &name, data, expected_version.as_deref())
     })
     .await
     .map_err(|e| format!("Task join error: {e}"))?
+    .map_err(|e| e.to_string())
 }
 
 #[cfg(test)]

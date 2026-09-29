@@ -1407,11 +1407,6 @@ impl CodexPlatform {
         base::load_profiles_from_toml(&self.paths.profiles_file)
     }
 
-    /// 💾 保存 profiles 到 TOML 文件
-    fn save_profiles_to_file(&self, profiles: &IndexMap<String, ProfileConfig>) -> Result<()> {
-        base::save_profiles_to_toml(&self.paths.profiles_file, profiles, "codex", &self.paths)
-    }
-
     pub fn profile_auth_mode(profile: &ProfileConfig) -> CodexProfileAuthMode {
         Self::resolve_profile_auth_mode(profile)
     }
@@ -1471,8 +1466,7 @@ impl CodexPlatform {
 
     /// Build a read-only snapshot of the CCR profile and Codex runtime.
     ///
-    /// This intentionally avoids `stable_current_profile()`: that method repairs the registry
-    /// pointer when the route differs, while diagnostics must preserve the evidence it observes.
+    /// Reports both stored markers and runtime differences without writing files.
     pub fn inspect_runtime(&self) -> Result<CodexRuntimeDiagnostic> {
         self.inspect_runtime_with_env(|name| std::env::var(name).ok())
     }
@@ -2103,13 +2097,11 @@ impl CodexPlatform {
     }
 
     fn clear_current_profile_registry(&self) -> Result<()> {
-        let manager = PlatformConfigManager::new(&self.paths.registry_file);
-        let mut unified = manager.load_or_create_default()?;
-        if let Ok(entry) = unified.get_platform_mut("codex") {
-            entry.current_profile = None;
-            entry.last_used = Some(chrono::Utc::now().to_rfc3339());
-        }
-        manager.save(&unified)
+        base::clear_registry_current_profile_with_paths(
+            &self.paths.registry_file,
+            &self.registry_lock_dir(),
+            "codex",
+        )
     }
 
     fn current_profile_from_registry(&self) -> Result<Option<String>> {
@@ -2123,26 +2115,13 @@ impl CodexPlatform {
     }
 
     fn fallback_current_profile_from_file(&self) -> Result<Option<String>> {
-        if !self.paths.profiles_file.exists() {
+        let Some(current) = base::load_current_profile_marker(&self.paths.profiles_file)? else {
             return Ok(None);
-        }
-
-        let content = match std::fs::read_to_string(&self.paths.profiles_file) {
-            Ok(content) => content,
-            Err(_) => return Ok(None),
         };
-
-        let parsed = match toml::from_str::<CcsConfig>(&content) {
-            Ok(parsed) => parsed,
-            Err(_) => return Ok(None),
-        };
-
-        let current = parsed.current_config.trim();
-        if current.is_empty() || !parsed.sections.contains_key(current) {
-            return Ok(None);
-        }
-
-        Ok(Some(current.to_string()))
+        Ok(self
+            .load_profiles_from_file()?
+            .contains_key(&current)
+            .then_some(current))
     }
 
     fn stable_current_profile(&self) -> Result<Option<String>> {
@@ -2159,14 +2138,12 @@ impl CodexPlatform {
             Some(current) => {
                 let profiles = self.load_profiles()?;
                 let Some(profile) = profiles.get(&current) else {
-                    self.clear_current_profile_registry()?;
                     return Ok(None);
                 };
 
                 if runtime_matches_profile(&current, profile)? {
                     Ok(Some(current))
                 } else {
-                    self.clear_current_profile_registry()?;
                     Ok(None)
                 }
             }
@@ -2219,25 +2196,31 @@ impl PlatformConfig for CodexPlatform {
         let mut stored_profile = normalized.clone();
         CodexRuntimeService::scrub_profile_secret_fields(&mut stored_profile, auth_mode);
 
-        // 加载现有 profiles
-        let mut profiles = self.load_profiles_from_file()?;
-
-        // 添加/更新 profile
-        profiles.insert(name.to_string(), stored_profile);
-
-        // 保存
-        self.save_profiles_to_file(&profiles)
+        base::mutate_profiles(
+            &self.paths.profiles_file,
+            "codex",
+            &self.paths,
+            |profiles| {
+                self.validate_profile(&normalized)?;
+                profiles.insert(name.to_string(), stored_profile);
+                Ok(())
+            },
+        )
     }
 
     fn delete_profile(&self, name: &str) -> Result<()> {
-        let mut profiles = self.load_profiles_from_file()?;
-
-        if profiles.shift_remove(name).is_none() {
-            return Err(CcrError::ProfileNotFound(name.to_string()));
-        }
-
-        self.runtime_service.delete_profile_secret(name)?;
-        self.save_profiles_to_file(&profiles)?;
+        let profiles = base::mutate_profiles(
+            &self.paths.profiles_file,
+            "codex",
+            &self.paths,
+            |profiles| {
+                if profiles.shift_remove(name).is_none() {
+                    return Err(CcrError::ProfileNotFound(name.to_string()));
+                }
+                self.runtime_service.delete_profile_secret(name)?;
+                Ok(profiles.clone())
+            },
+        )?;
         base::reconcile_registry_current_profile_after_delete_with_paths(
             &self.paths.registry_file,
             &self.registry_lock_dir(),
@@ -2283,7 +2266,9 @@ impl PlatformConfig for CodexPlatform {
             self.paths.platform_dir.clone(),
             self.codex_dir(),
         );
-        let _ = service.sync_current_auth_registry();
+        if !ccr_core::core::write_journal::is_active() {
+            let _ = service.sync_current_auth_registry();
+        }
 
         tracing::info!(
             profile = name,
@@ -4497,6 +4482,39 @@ env_key = "MISTRAL_API_KEY"
         );
         assert_eq!(diagnostic.runtime_consistency(), RuntimeMatchStatus::Match);
         assert!(!diagnostic.repairable);
+    }
+
+    #[test]
+    fn current_profile_query_preserves_stale_registry_marker() {
+        let _env = TestCodexEnv::new();
+        let platform = CodexPlatform::new().unwrap();
+        platform
+            .save_profile("future", &runtime_api_key_profile("synthetic-secret"))
+            .unwrap();
+        base::update_registry_current_profile_with_paths(
+            &platform.paths.registry_file,
+            &platform.registry_lock_dir(),
+            "codex",
+            "missing",
+        )
+        .unwrap();
+        let before = std::fs::read(&platform.paths.registry_file).unwrap();
+        let modified = std::fs::metadata(&platform.paths.registry_file)
+            .unwrap()
+            .modified()
+            .unwrap();
+        assert_eq!(platform.get_current_profile().unwrap(), None);
+        assert_eq!(
+            before,
+            std::fs::read(&platform.paths.registry_file).unwrap()
+        );
+        assert_eq!(
+            modified,
+            std::fs::metadata(&platform.paths.registry_file)
+                .unwrap()
+                .modified()
+                .unwrap()
+        );
     }
 
     #[test]

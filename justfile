@@ -398,14 +398,14 @@ test:
     @just header "✅ 运行测试套件"
     @just info "📊 模式: 完整工作区测试"
     @just info "并行策略: 默认并行；仅共享进程状态的用例使用显式 crate 内锁"
-    cargo test --workspace --all-features
+    cargo test --workspace --all-features -- --skip export_bindings
     @just success "所有测试通过"
 
 # 🧪 运行所有测试 (包括忽略的测试)
 test-all:
     @just info "🧪 运行完整测试套件"
     @just info "📊 模式: 包含被忽略的测试"
-    cargo test --workspace --all-features -- --include-ignored
+    cargo test --workspace --all-features -- --include-ignored --skip export_bindings
     @just success "完整测试通过"
 
 # 📊 运行基准测试
@@ -578,7 +578,7 @@ _ci-timed-windows:
         @{ Name = "release";         Label = "Release Build" },
         @{ Name = "audit";           Label = "Security Audit" },
         @{ Name = "ci-governance-check"; Label = "CI Governance" },
-        @{ Name = "tauri-bindings-check"; Label = "TS Bindings Drift" },
+        @{ Name = "tauri-ci";       Label = "Tauri CI" },
         @{ Name = "frontend-check";  Label = "Frontend Check" },
         @{ Name = "frontend-coverage"; Label = "Frontend Coverage" },
         @{ Name = "vscode-ci";       Label = "VSCode CI" }
@@ -636,8 +636,8 @@ _ci-timed-windows:
 _ci-timed-linux:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-sync" "version-check" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-bindings-check" "frontend-check" "frontend-coverage" "vscode-ci")
-    labels=("Version Sync" "Version Check" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "TS Bindings Drift" "Frontend Check" "Frontend Coverage" "VSCode CI")
+    steps=("version-sync" "version-check" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-ci" "frontend-check" "frontend-coverage" "vscode-ci")
+    labels=("Version Sync" "Version Check" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "Tauri CI" "Frontend Check" "Frontend Coverage" "VSCode CI")
     PAD=20
     times=()
     statuses=()
@@ -697,8 +697,8 @@ _ci-timed-linux:
 _ci-timed-macos:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-sync" "version-check" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-bindings-check" "frontend-check" "frontend-coverage" "vscode-ci")
-    labels=("Version Sync" "Version Check" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "TS Bindings Drift" "Frontend Check" "Frontend Coverage" "VSCode CI")
+    steps=("version-sync" "version-check" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-ci" "frontend-check" "frontend-coverage" "vscode-ci")
+    labels=("Version Sync" "Version Check" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "Tauri CI" "Frontend Check" "Frontend Coverage" "VSCode CI")
     PAD=20
     times=()
     statuses=()
@@ -1158,17 +1158,17 @@ workflow-governance-check:
 
 [private]
 _workflow-governance-check-windows:
-    @python -m unittest scripts.ci.test_check_workflow_governance
+    @python -m unittest scripts.ci.test_check_workflow_governance scripts.ci.test_architecture_contract_gates
     @python scripts/ci/check_workflow_governance.py
 
 [private]
 _workflow-governance-check-linux:
-    @python3 -m unittest scripts.ci.test_check_workflow_governance
+    @python3 -m unittest scripts.ci.test_check_workflow_governance scripts.ci.test_architecture_contract_gates
     @python3 scripts/ci/check_workflow_governance.py
 
 [private]
 _workflow-governance-check-macos:
-    @python3 -m unittest scripts.ci.test_check_workflow_governance
+    @python3 -m unittest scripts.ci.test_check_workflow_governance scripts.ci.test_architecture_contract_gates
     @python3 scripts/ci/check_workflow_governance.py
 
 # 🔐 Root/Tauri dependency drift、例外 metadata 和 MSRV 治理
@@ -1195,7 +1195,7 @@ ci-governance-check: workflow-governance-check dependency-governance-check tauri
 
 # 📊 Rust workspace 覆盖率：总体 70%，安全 gateway 85%
 coverage-rust:
-    cargo llvm-cov --workspace --all-features --json --output-path target/coverage-workspace.json
+    cargo llvm-cov --workspace --all-features --json --output-path target/coverage-workspace.json -- --skip export_bindings
     @just _coverage-rust-check-{{os()}}
 
 [private]
@@ -1212,7 +1212,7 @@ _coverage-rust-check-macos:
 
 # 📊 Tauri backend 覆盖率：生成完整报告，安全 gateway ≥85%
 coverage-tauri:
-    cargo --config .cargo/tauri-ci.toml llvm-cov --manifest-path ccr-ui/src-tauri/Cargo.toml --json --output-path ccr-ui/src-tauri/target/coverage-tauri.json
+    cargo --config .cargo/tauri-ci.toml llvm-cov --manifest-path ccr-ui/src-tauri/Cargo.toml --json --output-path ccr-ui/src-tauri/target/coverage-tauri.json -- --skip export_bindings
     @just _coverage-tauri-check-{{os()}}
 
 [private]
@@ -1518,7 +1518,7 @@ tauri-test:
 tauri-bindings:
     @just _ui-run bindings
 
-# 🧪 TypeScript 绑定漂移守卫（自动修复空白后验证重新生成结果；结构漂移仍阻断）
+# 🧪 TypeScript 绑定漂移守卫（比较规范化生成结果并恢复原字节；结构漂移仍阻断）
 tauri-bindings-check:
     @just _ui-run bindings-check
 
@@ -1546,7 +1546,7 @@ tauri-ci: dependency-governance-check
     cargo fmt --manifest-path ccr-ui/src-tauri/Cargo.toml -- --check
     cargo --config .cargo/tauri-ci.toml check --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop
     cargo --config .cargo/tauri-ci.toml clippy --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop -- -D warnings
-    cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml --all-features
+    cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml --all-features -- --skip export_bindings
     just tauri-bindings-check
     just tauri-command-inventory-check
     @just success "Tauri Rust CI passed"

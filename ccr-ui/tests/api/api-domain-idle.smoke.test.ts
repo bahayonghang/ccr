@@ -78,8 +78,8 @@ describe('idle API domain wrappers', () => {
     await expect(api.getSkipExitConfirm()).resolves.toBe(false)
     await api.setSkipExitConfirm(true)
     await expect(api.getSkipExitConfirm()).resolves.toBe(true)
-    await expect(api.getConfig('sample')).resolves.toEqual({ name: 'sample' })
-    await expect(api.getConfig('missing')).resolves.toBeNull()
+    await expect(api.getConfig('claude', 'sample')).resolves.toEqual({ name: 'sample' })
+    await expect(api.getConfig('claude', 'missing')).resolves.toBeNull()
     await expect(api.installMcpPreset({
       preset_id: 'p1',
       env: { TOKEN: 't', skip: 1 },

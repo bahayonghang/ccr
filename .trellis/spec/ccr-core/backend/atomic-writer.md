@@ -125,6 +125,8 @@ AsyncAtomicWriter::new(target)
 - `BackupPolicy::{None, SameDir { tag: Option<String> }, Dir { dir: PathBuf, prefix: String }}`
 - `fileio::write_toml_opts / write_json_opts (+ _async)` — serialization wrappers that forward `WriteOptions`
 - `pub(crate) lock_resource_name(path) -> String` — `gw_{sanitized_stem}_{fnv1a64(lowercased absolute path):016x}`
+- `normalized_resource_path(path: &Path) -> std::io::Result<PathBuf>` owns lexical resource identity for repository locks and Windows leaf locks/journals.
+- `enforce_secret_permissions_versioned(path, expected_token, lock_timeout) -> Result<bool>` verifies an existing file through an open handle under the guarded leaf lock. Missing or stale content returns false without a metadata change.
 
 ### 3. Contracts
 
@@ -132,10 +134,16 @@ AsyncAtomicWriter::new(target)
 - The derived path lock is a LEAF lock: callers never acquire it directly, so lock order is always `{caller RMW locks (ccr_config / platform_profiles_* / CONFIG_LOCK)} → {gw path lock}` — acyclic. guarded write must NEVER touch `CONFIG_LOCK` (std Mutex, non-reentrant; `config_service.lock_config()` already holds it when saving).
 - guarded write guarantees write-write mutual exclusion and crash-safe replacement only. Read-modify-write transactionality remains the CALLER's responsibility (keep named RMW locks such as `platform_profiles_{name}`).
 - Lock names must be stable across processes: FNV-1a 64 inline hash (std `DefaultHasher` is per-process seeded and forbidden for lock names); `std::path::absolute` (target may not exist yet); lowercase before hashing (NTFS case-insensitive).
-- Backup naming is frozen for discoverability (existing `list_backups` filters must keep finding old and new names):
-  - `SameDir{tag}` → `{full_filename}.{tag}_{ts}.bak` / `{full_filename}.{ts}.bak` (`%Y%m%d_%H%M%S`), rotation matches `starts_with(full_filename) && ends_with(".bak")`.
-  - `Dir{dir, prefix}` → `{prefix}.{ts}.{ext}.bak` (ext falls back to `bak`), rotation matches `starts_with(prefix) && ends_with(".bak")`.
+- On Windows, ordinary and verbatim drive/UNC prefixes and case aliases use the same component-normalized identity from `normalized_resource_path`. The journal and guarded leaf lock must use that helper together. Preserve the existing non-Windows leaf-lock name calculation. The helper does not resolve symlinks.
+- Backup names retain their old prefix, timestamp (`%Y%m%d_%H%M%S`), and suffix for discoverability:
+  - `SameDir{tag}` → `{full_filename}.{tag}_{ts}.{id}.bak` / `{full_filename}.{ts}.{id}.bak`; rotation still matches `starts_with(full_filename) && ends_with(".bak")`.
+  - `Dir{dir, prefix}` → `{prefix}.{ts}.{id}.{ext}.bak` (ext falls back to `bak`); rotation still matches `starts_with(prefix) && ends_with(".bak")`.
+  - `{id}` is a 32-character UUID. Old names without an ID remain valid; do not rename existing backups.
+  - Prepare a same-directory temporary backup, apply the source permissions/DACL before copying bytes, flush content, and publish with `persist_noclobber`. A collision retries with a fresh ID, at most 16 times. Failure removes the temporary file and preserves every existing backup and the target.
+  - On Windows, restore the source read-only attribute after `persist_noclobber`, which clears file attributes during publication. The DACL remains established before copying payload bytes.
+  - Rotation sorts by descending modification time, then descending path for equal timestamps. Keep the existing keep-10 policy.
 - `secret: true` → private permissions before temporary-file content is written: Unix owner-only mode; Windows current-user DACL for new targets and preserved existing DACL. Required for WebDAV credentials (`sync.toml`), checkin crypto keys, and any new API-key/token file.
+- Explicit no-op mutations use the same Unix mode decision as sync and async secret writers. Apply metadata-only hardening through the verified file handle, with no replacement or backup. Preserve bytes, inode, mtime, stricter owner-only modes, and existing Windows DACLs. Check an active journal version before hardening and add no content rollback entry. Existing content entries still restore their recorded metadata under the original compensation contract.
 - `fs4 1.x` exposes `try_lock()` as `Ok(())` = acquired, `TryLockError::WouldBlock` = held elsewhere, and `TryLockError::Error` = real I/O failure. `ccr-core` normalizes that through a local `io::Result<bool>` adapter so the established acquisition loop remains `Ok(true)` = acquired, `Ok(false)` = contended, `Err` = I/O failure. Treating any non-error result as acquired silently disables cross-process locking; keep the contention, release-and-retry, and adapter error regressions.
 
 ### 4. Validation & Error Matrix
@@ -157,8 +165,12 @@ AsyncAtomicWriter::new(target)
 
 ### 6. Tests Required
 
-- Backup naming byte-format + keep-10 rotation for `SameDir` and `Dir` (assert oldest deleted).
+- Backup prefix/timestamp/ID/suffix + keep-10 rotation for `SameDir` and `Dir` (assert oldest deleted).
+- Fixed-clock writes retain distinct preimages; collisions retry without replacement; mixed old/new names use a stable rotation tie-break. Three independent child processes preserve all versions under the target lock.
+- Backup copies preserve private Windows DACL ACEs and Unix owner-only modes before payload writes; existing settings/config consumers discover new names and restore old/new files.
+- Windows backup publication retains the source read-only attribute, and collision exhaustion removes the temporary file even for read-only sources.
 - Lock contention: pre-hold the derived lock, `write_guarded(lock_timeout=100ms)` returns `LockTimeout`.
+- Windows alias contention: hold the ordinary-path leaf lock and write through an uppercase verbatim alias; the write must time out without changing bytes. Hold the alias leaf lock during rollback; compensation must wait until release. Path-string equality alone does not prove lock behavior.
 - Cross-process lock regression: a child test process holds the file lock, the parent observes `LockTimeout`, then acquires it after the child exits; two handles in one process are not sufficient evidence.
 - Multi-thread stress: final file content equals one complete payload (no tearing).
 - `#[cfg(unix)]`: `secret: true` target mode `& 0o777 == 0o600` (Windows: skip with comment).
@@ -288,7 +300,20 @@ match write_guarded_versioned(path, bytes, expected_token, opts)? {
 
 ## Known Debt (out of guarded-write task scope, tracked 2026-07)
 
-- `ccr-cli/src/sync/commands.rs` non-atomic `tokio::fs::write` of config during pull; `ccr-cli/platforms/{gemini,droid}.rs` bare `fs::write` of settings; `ccr-codex`/`ccr-skills` direct `AtomicWriter` / hand-rolled temp+rename call sites — migrate to guarded write incrementally.
+- `ccr-cli/src/sync/commands.rs` non-atomic `tokio::fs::write` of config during pull; `ccr-codex`/`ccr-skills` direct `AtomicWriter` / hand-rolled temp+rename call sites — migrate to guarded write incrementally.
 - `folder_manager.add_folder` RMW loads outside the lock (pre-existing race, orthogonal to write mutual exclusion).
 - `AsyncAtomicWriter` manual temp path gets umask perms on Unix (direct users are all in out-of-scope crates; it now fsyncs).
 - Reviewer-noted: `platform_config` untagged backups (prefix `config`) share the keep-10 pool with tagged ones (`config_{tag}`); frequent untagged backups can evict old tagged backups.
+
+
+## Scenario: Synchronous scoped compensation
+
+- WriteJournal owns an explicit list of files and remains on one synchronous thread. Its Rc marker prevents Send and Sync. Nested journals and guarded async dispatch inside a journal are rejected.
+- Bind an earlier repository snapshot with expect_version. Verify declared baseline versions before mutation and the latest committed versions before completion.
+- Guarded writers capture bytes and permissions under their leaf lock. The in-memory preimage is neither Debug nor serializable.
+- Windows declared-path lookup and rollback use the same normalized identity as guarded leaf locks, including ordinary/verbatim drive and UNC aliases.
+- AtomicWriter::write_with_commit calls its internal publication callback immediately after replacement and before fallible metadata restoration or directory sync. A post-publication error must still enter compensation.
+- Roll back recorded writes in reverse order using CAS. Repeated writes, deletion, and recreation are separate entries. Skip earlier entries for a file when a newer entry cannot be restored. Retain external versions and return recovery paths.
+- Restoration applies captured Unix permissions or Windows DACL to the temporary before payload writes. Preserve Windows read-only attributes after publication. Metadata restoration errors require recovery.
+- The journal does not undo backup rotation or supply an OS multi-file transaction. Keep preimages in memory only. The application owns persisted interruption markers and recovery outcomes.
+- Required tests: missing and unlisted paths, repeated writes/delete/recreate, external versions, source token conflicts, nested/unwind boundaries, thread isolation, async rejection, Windows case/verbatim aliases, post-publication failure, Unix 0400, Windows DACL, and Windows read-only restoration.

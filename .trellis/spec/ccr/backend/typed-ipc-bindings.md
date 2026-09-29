@@ -8,7 +8,7 @@
 
 - Trigger: adding/changing any wire DTO returned by (or accepted as input to) a typed Tauri command; typing a new command domain; upgrading `ts-rs`; converting `OpenJsonValueDto` / `JsonValueDto` numbers to `serde_json::Value`.
 - Applies to `ccr-ui/src-tauri/src/services/*`, `ccr-ui/src-tauri/src/commands/{wire,system,grok}.rs`, `ccr-ui/src-tauri/src/llmusage_adapter/{queries,capabilities}.rs`, `ccr-ui/src-tauri/src/{usage_jobs,session_index_jobs}.rs`, `ccr-ui/src-tauri/src/claude_observer/subscription.rs`, `crates/ccr-usage/src/{queries,capabilities}.rs`, and the generated dir `ccr-ui/src/types/generated/`.
-- Typed coverage is generated from the command manifest: 277/340 base commands (81.47%), with exact registry-owned input/output declarations for 277/277 typed commands. This includes Usage V2 (18), Claude Observer (9), install (8), config, system prompts, sync, Claude, Codex, auth/provider, Gemini, Grok, OpenCode, SSH, command execution, and the smaller system/UI/environment/event/shell domains. All typed commands expose a concrete generated return type; `Result<Value, String>` is banned at the command boundary.
+- Typed coverage is generated from the command manifest: 278/340 base commands (81.76%), with exact registry-owned input/output declarations for 278/278 typed commands. This includes Usage V2 (18), Claude Observer (9), install (8), config, system prompts, sync, Claude, Codex, auth/provider, Gemini, Grok, OpenCode, SSH, command execution, and the smaller system/UI/environment/event/shell domains. All typed commands expose a concrete generated return type; `Result<Value, String>` is banned at the command boundary.
 
 ### 2. Signatures
 
@@ -34,8 +34,9 @@
   `ccr-usage` features: `ts = ["dep:ts-rs"]`（src-tauri 主依赖启用）、`test-fixtures = []`（src-tauri dev-dependency 启用，暴露 `ccr_usage::fixtures` 投影库 fixture）。
 
 - Command shape: `#[tauri::command]` is a thin adapter (timing/State extraction/spawn_blocking/cache); business logic lives in State-free sync functions in `services/usage.rs` taking `&LlmusageRuntime` / `&DbPool` + plain args, returning `Result<NamedDto, String>`. `LlmusageRuntime::from_paths(AppPaths)` exists for tests.
-- Regeneration: `just tauri-bindings` (root) → deletes `ccr-ui/src/types/generated/`, runs `cargo test -p ccr-cli --features ts export_bindings` + `cargo test -p ccr-usage --features ts export_bindings` + `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml export_bindings`.
-- Drift guard: `just tauri-bindings-check` first runs the existing generated-file normalizer to repair deterministic whitespace, then snapshots `src/types/generated/`, regenerates with `RUST_TEST_THREADS=1`, and compares the result with the normalized pre-generation worktree snapshot. Serializing only the mutating export tests prevents concurrent ts-rs writers from interleaving a shared file; ordinary Rust tests retain default parallelism. Formatting-only drift is repaired automatically; DTO/file-shape drift still fails. Wired into `just ci` before `frontend-check`. Independent of the api-facade-boundary smoke (per that spec).
+- Regeneration: `just tauri-bindings` delegates to `ccr-ui/scripts/generate-bindings.mjs`. `bindings-transaction.mjs` snapshots the generated root's existence, directories and exact file bytes before clearing it. The generator runs the CLI, ccr-usage and independent Tauri export suites in sequence, then the normalizer. Only a successful direct generation retains the new output. A nonzero child exit or exception restores the caller's snapshot and remains a failure; restoration failure is also reported as a failure.
+- Drift guard: `just tauri-bindings-check` delegates to `check-generated-bindings.mjs`. The guard snapshots the caller's original bytes, normalizes a comparison baseline, regenerates with `RUST_TEST_THREADS=1`, and compares file additions/deletions/content. Every result restores the original caller snapshot, including success, drift, normalizer failure and export failure. Formatting-only differences can compare equal without modifying the caller's files; DTO/file-shape drift returns nonzero. Explicit direct generation is required to retain reviewed output.
+- `RUST_TEST_THREADS=1` applies only to the mutating export child suites. Root/Tauri behavior and coverage recipes retain default parallelism and skip `export_bindings`; the aggregate runs the dedicated generation guard separately. These ownership rules do not establish the cause of earlier Windows startup or generated-tail failures.
 
 ### 3. Contracts
 
@@ -144,7 +145,7 @@ Whole f64 values become integer JSON numbers so `as_u64()` / `as_i64()` work.
 ### 1. Scope / Trigger
 
 - Trigger: changing llmusage detection, planning, automatic execution, install events, cancellation, or generated install DTOs.
-- Applies to `crates/ccr-cli/src/services/install_{types,plan,service,exec,ring_buffer}.rs`, `ccr-ui/src-tauri/src/commands/install.rs`, `ccr-ui/src/api/domains/install.ts`, `ccr-ui/src/components/usage/LlmusageInstallDialog.vue`, and `ccr-ui/src/types/generated/install/`.
+- Applies to `crates/ccr-cli/src/services/install_{types,plan,service,exec,ring_buffer}.rs`, `ccr-ui/src-tauri/src/commands/install.rs`, `ccr-ui/src/api/domains/install.ts`, `ccr-ui/src/features/usage/components/LlmusageInstallDialog.tsx`, and `ccr-ui/src/types/generated/install/`.
 - The renderer is a low-trust request layer. It may display a plan and return its opaque ID, but it never owns an executable capability.
 
 ### 2. Signatures
@@ -189,7 +190,7 @@ Whole f64 values become integer JSON numbers so `as_u64()` / `as_i64()` work.
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml install -- --test-threads=1`: compile and exercise the desktop command surface.
 - `cd ccr-ui && bun run test:smoke -- tests/shell/install-opaque-handle.smoke.test.ts`: assert execute sends only `{ planId }` and the generated plan view has no `command`, `args`, or `envs`.
 - Run `cd ccr-ui && bun run type-check`, `just frontend-check-quick`, `just lint-strict`, and `just test`.
-- After the generated baseline is committed, run `just tauri-bindings-check`; intended new generated files make the HEAD-based drift guard red before that baseline exists.
+- After explicit generation, run `just tauri-bindings-check` against the current worktree baseline. The guard does not require a commit and must not use HEAD to discard reviewed, uncommitted generated changes.
 
 ### 7. Wrong vs Correct
 
@@ -302,3 +303,83 @@ const timeoutMode = risk === 'process_execution' ? 'hard_timeout' : 'none'
 const capability = COMMAND_MANIFEST.commands.find(item => item.id === command)
 // Consume the backend-generated policy; do not reinterpret risk locally.
 ```
+
+## Scenario: generic config explicit-platform adapter
+
+### 1. Scope / Trigger
+
+- Trigger: changing generic config list, switch/enable, add, update, rename, duplicate, delete, or their generated clients.
+- Owners: `ccr-ui/src-tauri/src/commands/config.rs`, `commands/config/adapter.rs`, and the registry. Generic `/configs` retains its Claude scope. Codex and Grok profile pages use their dedicated commands.
+
+### 2. Signatures
+
+The generated client contract is:
+
+```typescript
+type ConfigPlatform = 'claude'
+type AddConfigInput = { platform: ConfigPlatform; name: string; data: ConfigPatchInput }
+type UpdateConfigInput = AddConfigInput & { expectedVersion?: string }
+type ConfigMutationResult = { platform: ConfigPlatform; name: string; outcome?: ProfileOutcome }
+
+listConfigsTyped(platform: ConfigPlatform): Promise<ConfigInfo[]>
+switchConfigTyped(platform: ConfigPlatform, name: string, enable?: boolean): Promise<ConfigMutationResult>
+updateConfigTyped(input: UpdateConfigInput): Promise<ConfigMutationResult>
+```
+
+- `ConfigInfo.version: string` is the repository snapshot token.
+- The Rust boundary accepts `platform: Option<String>` to return explicit compatibility errors. The generated client requires `ConfigPlatform`.
+- Rust `expected_version` is the Tauri argument `expectedVersion`.
+
+### 3. Contracts
+
+- Resolve `platform` before scheduling the worker. Accept exactly `claude`. Never infer a platform from registry order or global current state. Delete still validates its action-specific confirmation first.
+- All migrated command IDs remain unchanged. `update_config` belongs to the typed `config` registry domain. The T03 migration changes typed/exact declarations from 277 to 278; base/Windows counts remain 340/348. Regenerate inventory, clients, and DTOs from Rust sources.
+- Preserve registry authorization, confirmation, audit, and risk metadata. Moving update from `config_extended` to `config` also changes its module concurrency gate; application/resource/leaf locks remain authoritative for state consistency.
+- `switch_config` uses `apply_profile` for absent/false enable and `enable_profile` for true. Rename uses `update_profile`. Direct CRUD delegates to the T01 repository mutation/service. One blocking worker owns each synchronous operation.
+- `ConfigPatchInput` accepts only an object. Its nullable string fields are `description`, `base_url`, `auth_token`, `model`, `small_fast_model`, `provider`, `provider_type`, and `account`. `tags` accepts a string array or null. `enabled` accepts only a boolean when present.
+- Omitted fields retain their source values. Explicit null removes an optional field. Domain validation runs after applying the patch, so required effective credentials or endpoints cannot be removed when platform rules require them.
+- Unknown keys, wrong field types, arrays, scalar values, and `enabled: null` are rejected during deserialization. Use an object-map deserializer; derived structs with all optional fields can accept an empty sequence.
+- Update passes `expectedVersion` to the T01 CAS check. The form editor must send its original read token; callers without a token still mutate under the repository resource lock.
+- Preserve unknown TOML fields, datetime values, and untouched credentials. List masks credentials and performs no marker repair. Mutation results contain identifiers and optional lifecycle outcomes, never the raw profile. Do not derive `Debug` for credential-bearing patch inputs.
+
+### 4. Validation & Error Matrix
+
+| Condition | Boundary result |
+| --- | --- |
+| Missing platform | Error contains `platform_required`; no config writes |
+| Unsupported or unknown platform | Error contains `config_platform_unsupported`; no config writes |
+| Add without data | `config_payload_required` |
+| Unknown patch key | `unknown_config_patch_field` |
+| Wrong type, non-object, or enabled null | Deserialization error; no mutation |
+| Blank/reserved name | `invalid_config_name` where validated by the direct adapter |
+| Missing source, duplicate destination, or stale token | Existing repository/application validation or CAS error; no mutation |
+| Disable/delete active resolved profile | `active_config_cannot_be_disabled` / `active_config_cannot_be_deleted` |
+| Applied with ancillary warning | Return the committed `ProfileOutcome`; no generic activation failure |
+
+### 5. Good/Base/Bad Cases
+
+- Good: update `{ platform: 'claude', name, data: { description: null }, expectedVersion }` removes description while preserving every omitted field.
+- Base: the read-only `listConfigs()` compatibility wrapper maps its known generic page to Claude. Mutation wrappers require explicit platform.
+- Bad: cast arbitrary JSON into `ConfigPatchInput`, silently discard an unknown key, or choose the first platform in the registry.
+- Bad: convert a committed warning into an error that causes the client to activate again.
+
+### 6. Tests Required
+
+- Actual `commands::config` handler fixtures: switch, enable, active rename, all CRUD, missing/unsupported platform, strict patch object/type/null rules, missing/collision/stale token, current/default protection, masking, and unknown TOML/datetime preservation.
+- Run the desktop-handler/shared-service subprocess fixture for independent edits; both fields must remain present after both processes finish.
+- Run registry counts, input/output declarations, main/tray ACL, confirmation, and inventory checks.
+- Run `just tauri-command-inventory-check`, `just tauri-bindings-check`, frontend type-check, and config/API smoke tests. Scoped export success does not replace the full bindings guard.
+
+### 7. Wrong vs Correct
+
+Wrong: `switch_command(name)` from the generic Tauri handler, or `serde_json::Value` followed by permissive `as_str()` patch reads.
+
+Correct:
+
+```rust
+let platform = required_platform(platform.as_deref())?;
+let request = ApplyProfileRequest::new(platform, &name);
+let outcome = if enable { enable_profile(request)? } else { apply_profile(request)? };
+```
+
+The handler maps errors and schedules the worker; the application owns the mutation lifecycle.

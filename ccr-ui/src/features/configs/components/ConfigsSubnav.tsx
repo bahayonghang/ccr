@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router'
 import { getCurrentEnvironment } from '@/api'
 import { getModuleSubnavItems } from '@/config/moduleSubnav'
 import { SIcon } from '@/ui'
-import { t } from '../locale'
+import { useAppT } from '@/i18n'
 
 interface SubnavItemView {
   href: string
@@ -23,6 +23,7 @@ const SubnavLink = ({ item, active }: { item: SubnavItemView; active: boolean })
 }
 
 export function ConfigsSubnav({ module = 'claude-code' }: { module?: string }) {
+  const t = useAppT()
   const location = useLocation()
   const [isLocal, setIsLocal] = useState(false)
 
@@ -51,7 +52,7 @@ export function ConfigsSubnav({ module = 'claude-code' }: { module?: string }) {
         icon: item.icon,
         disabled: Boolean(item.localOnly && !isLocal),
       })),
-    [isLocal, module],
+    [isLocal, module, t],
   )
 
   const activeHref = useMemo(

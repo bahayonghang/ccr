@@ -15,11 +15,12 @@ describe('config domain API', () => {
   it('uses typed confirmation tokens for destructive config commands', async () => {
     const { deleteConfig, importConfig, restoreConfig } = await import('@/api/domains/config')
 
-    await deleteConfig('old')
+    await deleteConfig('claude', 'old')
     await importConfig({ content: 'current_config = "default"', mode: 'replace', backup: false })
     await restoreConfig('profiles.toml.pre_restore_20260604_120000.bak')
 
     expect(invokeMock).toHaveBeenNthCalledWith(1, 'delete_config', {
+      platform: 'claude',
       name: 'old',
       confirmationToken: 'desktop-confirm:delete_config',
     })

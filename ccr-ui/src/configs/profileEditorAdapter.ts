@@ -38,7 +38,7 @@ export interface ProfileEditorIssue {
 }
 
 export type ProfileWriteOutcome =
-  | { status: 'ok'; appliedName?: string }
+  | { status: 'ok'; appliedName?: string; activationCommitted?: boolean; warning?: string }
   | { status: 'recovery'; kind: string; message: string; oldName?: string; newName?: string }
   | { status: 'blocked'; message: string; forceAllowed: boolean }
   | { status: 'error'; message: string }

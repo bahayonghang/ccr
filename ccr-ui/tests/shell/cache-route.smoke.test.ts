@@ -1,21 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { queryClient } from '@/shell/queryClient'
-import {
-  COMMANDS_STREAM_CAP,
-  useCommandsStreamStore,
-  type CommandStreamLine,
-} from '@/features/commands/stores'
+import { useCommandsStreamStore } from '@/features/commands/stores'
+import { COMMAND_OUTPUT_LINES_PER_CHANNEL, emptyCommandJob, mergeCommandSnapshot } from '@/features/commands/commandJobState'
 import { useConfigsViewStore } from '@/features/configs/stores'
 import { useGrokViewStore } from '@/features/grok/stores'
 import { useUsageViewStore } from '@/features/usage/stores'
 import { readInnerScroll, restoreInnerScroll, saveInnerScroll } from '@/shell/innerScroll'
-
-const line = (index: number): CommandStreamLine => ({
-  channel: 'stdout',
-  text: `line-${index}`,
-  seq: index,
-  jobId: 'job-1',
-})
 
 describe('cache-route store R/W（AC4）', () => {
   beforeEach(() => {
@@ -38,19 +28,22 @@ describe('cache-route store R/W（AC4）', () => {
     expect(useGrokViewStore.getState().selectedProfileName).toBe('work')
   })
 
-  it('commands 流式缓冲按 client 追加、卸载不清空、超限截断最旧行', () => {
+  it('commands retains one bounded snapshot instead of a separate client output buffer', () => {
     const store = useCommandsStreamStore.getState()
-    store.setActiveClient('ccr')
-    store.appendStreamLines({ lines: [line(1), line(2)] })
-    expect(useCommandsStreamStore.getState().linesByClient.ccr).toHaveLength(2)
-
-    const overflow = Array.from({ length: COMMANDS_STREAM_CAP + 5 }, (_, index) => line(index))
-    useCommandsStreamStore.setState({ linesByClient: {} })
-    store.appendStreamLines({ client: 'ccr', lines: overflow })
-    const buffered = useCommandsStreamStore.getState().linesByClient.ccr
-    expect(buffered).toHaveLength(COMMANDS_STREAM_CAP)
-    expect(buffered[0]?.text).toBe('line-5')
-    expect(buffered[buffered.length - 1]?.text).toBe(`line-${COMMANDS_STREAM_CAP + 4}`)
+    useCommandsStreamStore.setState({ job: mergeCommandSnapshot(emptyCommandJob(), {
+      job_id: 'job-cap', command: 'status', args: [], status: 'queued', started_at: '',
+      finished_at: null, duration_ms: null, exit_code: null, stdout_lines: [], stderr_lines: [],
+      system_lines: [], truncated: false, dropped_lines: 0, error: null,
+    }, false) })
+    store.receiveDeltas([{ job_id: 'job-cap', seq: 0, channel: 'stdout', lines: ['first'], dropped_count: 0 }])
+    expect(useCommandsStreamStore.getState().job.snapshot?.stdout_lines).toEqual(['first'])
+    const overflow = Array.from({ length: COMMAND_OUTPUT_LINES_PER_CHANNEL + 5 }, (_, index) => String(index))
+    store.receiveDeltas([{ job_id: 'job-cap', seq: 1, channel: 'stdout', lines: overflow, dropped_count: 0 }])
+    const snapshot = useCommandsStreamStore.getState().job.snapshot
+    expect(snapshot?.stdout_lines).toHaveLength(COMMAND_OUTPUT_LINES_PER_CHANNEL)
+    expect(snapshot?.stdout_lines[0]).toBe('5')
+    expect(snapshot?.truncated).toBe(true)
+    expect(snapshot?.dropped_lines).toBe(6)
   })
 
   it('configs 选中态、搜索词与表单草稿按配置 id 读写', () => {

@@ -469,7 +469,7 @@ Use `tracing::warn!` for recoverable loading failures and diagnostics. Do not pr
   sanitization.
 - `GrokPlatform::profile_auth_mode(&ProfileConfig) -> Result<GrokProfileAuthMode>`
   owns credential-source classification.
-- `PlatformConfig::apply_profile(&str)` remains the shared apply entry point.
+- `tui::profile_backend::apply(ApplyProfileRequest)` calls the shared `ccr_cli::application::profile_lifecycle::apply_profile` use case. `PlatformConfig::apply_profile(&str)` remains a platform mechanism inside that use case.
 
 ### 3. Contracts
 
@@ -485,6 +485,7 @@ Use `tracing::warn!` for recoverable loading failures and diagnostics. Do not pr
 - Enter/Space use the existing profile apply path (apply and stay; quit via
   `q` / `Esc`), toast reporting, reload, current marker, and per-tab selection
   behavior without a Grok-only mutation path.
+- The shared use case owns preflight, activation, counts, and history. The TUI must not compose an independent off with apply or save its own success count. Present committed warnings and recovery outcomes with localized toasts; do not retry activation automatically.
 
 ### 4. Validation & Error Matrix
 

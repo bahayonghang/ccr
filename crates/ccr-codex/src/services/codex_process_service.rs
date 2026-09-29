@@ -571,9 +571,11 @@ mod tests {
 
     use super::{
         CleanupTiming, CodexProcessDiscoveryIssue, CodexSignalStage, ProcessBackend,
-        ProcessDiscovery, ProcessIdentity, SignalAttempt, SysinfoProcessBackend, TerminationKind,
-        TrackedProcess, cleanup_with_backend, is_codex_app_server, process_refresh_kind,
+        ProcessDiscovery, ProcessIdentity, SignalAttempt, TerminationKind, TrackedProcess,
+        cleanup_with_backend, is_codex_app_server,
     };
+    #[cfg(windows)]
+    use super::{SysinfoProcessBackend, process_refresh_kind};
 
     #[cfg(unix)]
     struct ChildGuard(std::process::Child);

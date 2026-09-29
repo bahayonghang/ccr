@@ -28,6 +28,7 @@ const applyWhenOk = async (input: {
   onApply?: (name: string) => Promise<void>
 }): Promise<boolean> => {
   if (input.outcome.status !== 'ok' || !input.apply) return false
+  if (input.outcome.activationCommitted) return true
   const appliedName = input.outcome.appliedName ?? nameOf(input.form)
   if (input.onApply && appliedName) await input.onApply(appliedName)
   return true

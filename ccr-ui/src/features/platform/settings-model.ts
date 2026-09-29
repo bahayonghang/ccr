@@ -1,4 +1,4 @@
-import type { SettingsConfig, SettingsField, SettingsValues } from '@/configs/settings'
+import type { SettingsConfig, SettingsField, SettingsValues, SettingsSaveInput, SettingsSaveResult } from '@/configs/settings'
 
 /** 可见字段的唯一实现：所有平台 settings config 都经此过滤。 */
 export function visibleSettingsFields(config: SettingsConfig): SettingsField[] {
@@ -37,12 +37,11 @@ export function invalidSettingsField(
 /** 保存路径的唯一实现：校验 + config.save。改此处则全部 settings 薄壳同时生效。 */
 export async function saveSettingsValues(
   config: SettingsConfig,
-  values: SettingsValues,
-  dirtyKeys: string[],
-): Promise<void> {
-  const invalid = invalidSettingsField(config, values, dirtyKeys)
+  input: SettingsSaveInput,
+): Promise<SettingsSaveResult> {
+  const invalid = invalidSettingsField(config, input.values, input.dirtyKeys)
   if (invalid) throw new Error(invalid)
-  await config.save({ values, dirtyKeys })
+  return config.save(input)
 }
 
 export function fieldsForTab(config: SettingsConfig, tab: string): SettingsField[] {

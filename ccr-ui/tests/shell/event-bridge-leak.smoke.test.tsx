@@ -4,22 +4,26 @@ import type { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { TAURI_GLOBAL_EVENTS, useTauriEventBridge } from '@/shell/eventBridge'
+import { useCommandsStreamStore } from '@/features/commands/stores'
 
 // 订阅泄漏检测（08-22-state-logic-port AC5，design.md §7 三用例）。
 //
 const bridge = vi.hoisted(() => {
   const pending: Array<{ resolve: (unlisten: () => void) => void; unlisten: () => void }> = []
   const counters = { listen: 0, unlisten: 0 }
+  const callbacks: Array<{ name: string; handler: (event: { payload: unknown }) => void }> = []
   let immediateResolve = false
 
   return {
     pending,
     counters,
+    callbacks,
     setImmediateResolve(value: boolean) {
       immediateResolve = value
     },
-    listen() {
+    listen(name: string, handler: (event: { payload: unknown }) => void) {
       counters.listen++
+      callbacks.push({ name, handler })
       const unlisten = () => {
         counters.unlisten++
       }
@@ -34,6 +38,7 @@ const bridge = vi.hoisted(() => {
     },
     reset() {
       pending.length = 0
+      callbacks.length = 0
       counters.listen = 0
       counters.unlisten = 0
       immediateResolve = false
@@ -42,7 +47,7 @@ const bridge = vi.hoisted(() => {
 })
 
 vi.mock('@tauri-apps/api/event', () => ({
-  listen: vi.fn(() => bridge.listen()),
+  listen: vi.fn((name: string, handler: (event: { payload: unknown }) => void) => bridge.listen(name, handler)),
 }))
 
 // listenSafe 经 isTauriRuntime() 判定后才走真实 listen mock；置上运行时标记。
@@ -52,6 +57,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  vi.useRealTimers()
   delete (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__
 })
 
@@ -157,5 +163,31 @@ describe('eventBridge 订阅泄漏（AC5，design.md §7）', () => {
 
     expect(bridge.counters.listen).toBe(total)
     expect(bridge.counters.unlisten).toBe(total)
+  })
+
+  it('ignores command callbacks after shell cleanup even before late listen resolution', async () => {
+    vi.useFakeTimers()
+    const receive = vi.spyOn(useCommandsStreamStore.getState(), 'receiveSnapshot')
+    const deltas = vi.spyOn(useCommandsStreamStore.getState(), 'receiveDeltas')
+    const Wrapper = createWrapper()
+    const view = render(<BridgeHarness />, { wrapper: Wrapper })
+    const oldCallbacks = bridge.callbacks.filter((callback) => callback.name.startsWith('commands:'))
+    const oldPending = bridge.pending.splice(0)
+    view.unmount()
+    const next = render(<BridgeHarness />, { wrapper: Wrapper })
+    const payload = { job_id: 'late-job', seq: 0, lines: ['late'], channel: 'stdout', status: 'running' }
+    act(() => { oldCallbacks.forEach(({ handler }) => handler({ payload })) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(500) })
+    expect(receive).not.toHaveBeenCalled()
+    expect(deltas).not.toHaveBeenCalled()
+    await act(async () => { oldPending.forEach(({ resolve, unlisten }) => resolve(unlisten)) })
+    expect(bridge.counters.unlisten).toBe(oldPending.length)
+    const finishedCallbacks = bridge.callbacks.filter((callback) => callback.name === 'commands:job-finished')
+    const currentFinished = finishedCallbacks[finishedCallbacks.length - 1]
+    act(() => { currentFinished?.handler({ payload }) })
+    expect(receive).toHaveBeenCalledTimes(1)
+    next.unmount()
+    await act(async () => { bridge.pending.splice(0).forEach(({ resolve, unlisten }) => resolve(unlisten)) })
+    expect(bridge.counters.unlisten).toBe(bridge.counters.listen)
   })
 })

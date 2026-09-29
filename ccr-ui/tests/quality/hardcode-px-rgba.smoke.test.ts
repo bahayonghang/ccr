@@ -35,9 +35,9 @@ const THEME_WRITER = 'themeBootstrap rgb() writer（自定义 accent 第 1 层�
 const VIEWPORT = 'viewport breakpoint（matchMedia 用 CSS px，不随根字号缩放）'
 
 export const EXEMPTIONS: Exemption[] = [
-  { file: 'src/features/editor/editorTheme.ts', kind: 'px', snippet: "fontSize: '13px'", reason: CODEMIRROR },
-  { file: 'src/features/editor/editorTheme.ts', kind: 'px', snippet: "padding: '14px 0'", reason: CODEMIRROR },
-  { file: 'src/features/editor/editorTheme.ts', kind: 'px', snippet: "borderRight: '1px solid var(--border-subtle)'", reason: CODEMIRROR },
+  { file: 'src/features/platform/editor/editorTheme.ts', kind: 'px', snippet: "fontSize: '13px'", reason: CODEMIRROR },
+  { file: 'src/features/platform/editor/editorTheme.ts', kind: 'px', snippet: "padding: '14px 0'", reason: CODEMIRROR },
+  { file: 'src/features/platform/editor/editorTheme.ts', kind: 'px', snippet: "borderRight: '1px solid var(--border-subtle)'", reason: CODEMIRROR },
 
   { file: 'src/views/usage/usageChartOptions.ts', kind: 'px', snippet: "PIE_DATA_LABEL_STYLE = Object.freeze({ fontSize: '11px'", reason: APEX },
   { file: 'src/views/usage/usageChartOptions.ts', kind: 'px', snippet: "style: { colors: theme.textMuted, fontSize: '11px' }", reason: APEX },

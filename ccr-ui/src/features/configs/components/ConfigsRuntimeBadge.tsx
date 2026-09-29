@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { isTauriEnvironment, TauriRuntimeApi } from '@/api/runtime/environment'
 import { SIcon } from '@/ui'
 import { logger } from '@/utils/logger'
-import { t } from '../locale'
+import { useAppT } from '@/i18n'
 
 export function ConfigsRuntimeBadge() {
+  const t = useAppT()
   const [isTauri, setIsTauri] = useState(false)
   const [tauriVersion, setTauriVersion] = useState<string | null>(null)
 

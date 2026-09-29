@@ -96,6 +96,17 @@ impl ConfigValidator {
         section.validate()
     }
 
+    /// Validate with the owning platform's auth rules. The legacy entry point
+    /// above retains API-key-only compatibility; new diagnostics inject the
+    /// same validator used before profile application.
+    pub fn validate_section_with(
+        &self,
+        section: &ConfigSection,
+        validate: impl FnOnce(&ConfigSection) -> Result<()>,
+    ) -> Result<()> {
+        validate(section)
+    }
+
     /// 📋 批量验证所有配置节
     ///
     /// 验证配置中的所有配置节，返回详细的验证报告

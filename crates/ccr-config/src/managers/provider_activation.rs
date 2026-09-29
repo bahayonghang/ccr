@@ -60,8 +60,10 @@ pub struct ActivationEvent {
 
 /// 记录一次 provider 激活（尽力而为，失败仅告警，绝不影响切换）
 pub fn record_activation(root: &Path, platform: &str, profile_name: &str) {
-    let event = build_activation_event(root, platform, profile_name);
-    if let Err(err) = append_deduped(root, &event) {
+    if ccr_core::core::write_journal::is_active() {
+        return;
+    }
+    if let Err(err) = try_record_activation(root, platform, profile_name) {
         tracing::warn!(
             platform,
             profile = profile_name,
@@ -71,8 +73,20 @@ pub fn record_activation(root: &Path, platform: &str, profile_name: &str) {
     }
 }
 
+/// Report an ancillary failure after the application has committed activation.
+pub fn try_record_activation(
+    root: &Path,
+    platform: &str,
+    profile_name: &str,
+) -> Result<(), String> {
+    append_deduped(root, &build_activation_event(root, platform, profile_name))
+}
+
 /// 记录一次 provider 清除（当前 profile 被清空）
 pub fn record_clear(root: &Path, platform: &str) {
+    if ccr_core::core::write_journal::is_active() {
+        return;
+    }
     let event = ActivationEvent {
         platform: platform.to_string(),
         profile: None,

@@ -106,18 +106,20 @@ describe('platform unify', () => {
       expect(visibleSettingsFields(config).length).toBeGreaterThan(0)
     }
     const source = readFileSync(join(SRC, 'features/platform/settings/BaseSettings.tsx'), 'utf8')
-    expect(source).toContain('saveSettingsValues')
+    expect(source).toContain('useSettingsSession(config, form, t)')
+    const session = readFileSync(join(SRC, 'features/platform/settings/useSettingsSession.ts'), 'utf8')
+    expect(session).toContain('await saveSettingsValues(config,')
     expect(source).toContain('fieldsForTab')
   })
 
   it('applies a shared save helper to every settings config', async () => {
-    const save = async () => undefined
+    const save = async () => ({ status: 'saved' as const })
     const config = {
       ...settingsConfigs.claude,
       save,
       fields: settingsConfigs.claude.fields,
     }
-    await saveSettingsValues(config, { model: 'sonnet' }, ['model'])
+    await saveSettingsValues(config, { values: { model: 'sonnet' }, dirtyKeys: ['model'], snapshot: { values: { model: 'sonnet' }, source: {} } })
     const shells = [
       'src/features/claude/ClaudeSettingsView.tsx',
       'src/features/codex/CodexSettingsView.tsx',

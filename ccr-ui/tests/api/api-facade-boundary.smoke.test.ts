@@ -22,7 +22,6 @@ const COMPATIBILITY_MARKERS = [
 ] as const
 
 const ALLOWED_TAURI_FACADE_COMMANDS = [
-  'update_config',
   'list_mcp_presets',
   'get_mcp_preset',
   'install_mcp_preset',

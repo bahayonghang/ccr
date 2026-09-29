@@ -126,6 +126,7 @@ winreg = "0.56.0"
 # russh-sftp = "2.1.1"
 
 [dev-dependencies]
+ccr-cli = { path = "../../crates/ccr-cli", features = ["test-support"] }
 # 服务层单测的 llmusage 投影 fixture（与主依赖 features 合并生效：ts + test-fixtures）
 ccr-usage = { path = "../../crates/ccr-usage", features = ["test-fixtures"] }
 

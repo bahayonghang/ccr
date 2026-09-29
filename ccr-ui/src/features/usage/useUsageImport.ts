@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
-import { startUsageImportJobV2 } from '@/api'
+import { getUsageImportJobStatusV2, startUsageImportJobV2 } from '@/api'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 import {
-  buildImportSummary,
+  getUsageImportJobSummary,
+  isUsageImportJobFailed,
+  isUsageImportJobTerminal,
+  shouldApplyUsageImportJob,
   normalizeUserVisibleImportJob,
 } from '@/utils/usageImportNormalization'
 import type {
@@ -14,9 +17,6 @@ import type {
   UsagePlatform,
 } from '@/types/usage'
 
-const isTerminalJob = (job: UsageImportJobSnapshot | null) =>
-  job?.status === 'finished' || job?.status === 'failed' || job?.status === 'cancelled'
-
 export function useUsageImport(onRefresh: () => Promise<void>) {
   const [importing, setImporting] = useState(false)
   const [isBootstrapping, setIsBootstrapping] = useState(false)
@@ -25,6 +25,7 @@ export function useUsageImport(onRefresh: () => Promise<void>) {
   const [lastImportSummary, setLastImportSummary] = useState<UsageImportSummary | null>(null)
   const [lastImportResults, setLastImportResults] = useState<UsageImportResult[]>([])
   const [currentImportJob, setCurrentImportJob] = useState<UsageImportJobSnapshot | null>(null)
+  const latestJobRef = useRef<UsageImportJobSnapshot | null>(null)
   const unlistenersRef = useRef<UnlistenFn[]>([])
   const activeReasonRef = useRef<'manual' | 'bootstrap' | null>(null)
 
@@ -35,11 +36,13 @@ export function useUsageImport(onRefresh: () => Promise<void>) {
   }, [])
 
   const applyJob = useCallback((job: UsageImportJobSnapshot) => {
+    if (!shouldApplyUsageImportJob(latestJobRef.current, job)) return
+    latestJobRef.current = job
     const visible = normalizeUserVisibleImportJob(job)
-    const summary = visible.summary ?? (visible.results.length > 0 ? buildImportSummary(visible.results) : null)
+    const summary = getUsageImportJobSummary(visible)
     setCurrentImportJob({ ...visible, summary: summary ?? visible.summary })
-    setImporting(!isTerminalJob(job))
-    setIsBootstrapping(activeReasonRef.current === 'bootstrap' && !isTerminalJob(job))
+    setImporting(!isUsageImportJobTerminal(job))
+    setIsBootstrapping(activeReasonRef.current === 'bootstrap' && !isUsageImportJobTerminal(job))
     if (visible.results.length > 0) setLastImportResults(visible.results)
     if (summary) {
       setLastImportSummary(summary)
@@ -56,7 +59,7 @@ export function useUsageImport(onRefresh: () => Promise<void>) {
         setWarning(null)
       }
     }
-    if (job.status === 'failed') setError(visible.error || '后台导入任务失败')
+    if (isUsageImportJobFailed(job.status)) setError(visible.error || '后台导入任务失败')
   }, [])
 
   const startImportJob = useCallback(async (opts: {
@@ -103,7 +106,15 @@ export function useUsageImport(onRefresh: () => Promise<void>) {
           void clearListeners()
         }),
       ])
-      return response.snapshot
+      // A queued runner can finish before event subscriptions are installed.
+      const snapshot = await getUsageImportJobStatusV2(response.job_id)
+      applyJob(snapshot)
+      if (isUsageImportJobTerminal(snapshot)) {
+        activeReasonRef.current = null
+        await clearListeners()
+      }
+      if (snapshot.status === 'finished') void onRefresh()
+      return snapshot
     } catch (caught) {
       const message = getErrorMessage(caught)
       setError(message)

@@ -28,9 +28,9 @@
 - Tests or README still create/document a removed target -> stale contract; update them with the script change.
 
 ### 5. Good/Base/Bad Cases
-- Good: `ccr-ui/src/components/MainLayout.vue` is the only MainLayout version target after the legacy `src/layouts/MainLayout.vue` file is removed.
-- Base: a Vue component uses `APP_VERSION_LABEL`; the script accepts it as package-version-backed and does not rewrite the component.
-- Bad: leaving `ccr-ui/src/layouts/MainLayout.vue` in `SYNC_TARGETS` after the file is deleted.
+- Good: `ccr-ui/src/config/appMeta.ts` is the package-backed UI version target; `src/shell/MainLayoutChrome.tsx` and `Titlebar.tsx` consume its version.
+- Base: `appMeta.ts` uses `APP_VERSION_LABEL`; both sync scripts retain the legacy parser tag `vue` for that source target and do not rewrite the package-backed value.
+- Bad (historical migration example): leaving `ccr-ui/src/layouts/MainLayout.vue` in `SYNC_TARGETS` after the file is deleted.
 
 ### 6. Tests Required
 - Run `./scripts/version/version-sync.ps1 -Check -Verbose` after editing Windows sync behavior.
@@ -47,7 +47,7 @@ Test-RequiredFile $LEGACY_MAIN_LAYOUT
 
 #### Correct
 ```powershell
-@{ Name = "ui-component"; Path = "ccr-ui\src\components\MainLayout.vue"; Type = "vue" }
+@{ Name = "ui-component"; Path = "ccr-ui\src\config\appMeta.ts"; Type = "vue" }
 Test-RequiredFile $COMPONENT_MAIN_LAYOUT
 ```
 
@@ -55,6 +55,7 @@ Test-RequiredFile $COMPONENT_MAIN_LAYOUT
 
 ### 1. Scope / Trigger
 - Trigger: changing root `[workspace.dependencies]`, `ccr-ui/src-tauri/Cargo.toml`, or dependency-governance scripts.
+- Security updates to either `Cargo.lock` also require verification of both independent lockfiles.
 - Applies because the Tauri app currently remains an independent workspace/manifest while depending on the same Rust ecosystem as the root workspace.
 - The gate detects new repeated dependency version drift before CI or release builds silently diverge.
 
@@ -64,6 +65,7 @@ Test-RequiredFile $COMPONENT_MAIN_LAYOUT
 - Development toolchain source: `rust-toolchain.toml` with channel `1.98.0`; crate manifests independently keep `rust-version = "1.95"`.
 - Hosted MSRV gate: `.github/workflows/ci.yml` job `workspace-msrv` explicitly uses Rust `1.95.0` and runs `cargo check --workspace --all-targets --all-features`.
 - Root gate: `just version-check` must invoke the Python dependency drift checker for Windows, Linux, and macOS recipe variants.
+- Lockfile security checks: `cargo audit --file Cargo.lock` and `cargo audit --file ccr-ui/src-tauri/Cargo.lock`. Record the advisory database revision and whether fetching succeeded.
 
 ### 3. Contracts
 - Parse root `Cargo.toml` `[workspace.dependencies]`.
@@ -76,6 +78,8 @@ Test-RequiredFile $COMPONENT_MAIN_LAYOUT
 - Every crate plus the independent Tauri manifest must declare MSRV 1.95; upgrading the development/ordinary CI compiler must not rewrite these declarations.
 - Ordinary local, hosted, and release Rust jobs use the `1.98.0` development pin. The dedicated root `workspace-msrv` job stays on `1.95.0`, and `root-required` must fail closed when it fails.
 - Windows recipes call `python`; Linux and macOS recipes call `python3`. Both invoke the same Python validator.
+- For a narrow security update, record each lockfile's before/after package versions, checksums, dependency lists, and package count. Verify checksums against the registry. Preserve existing audit warnings and failed attempts; do not add ignores to obtain a passing result.
+- A vulnerable package in a lockfile does not establish that the package is active in the built feature/target graph. Record that boundary separately from the audit result. A successful development-toolchain check does not replace the MSRV check.
 
 ### 4. Validation & Error Matrix
 - Root Cargo manifest missing -> fail.
@@ -88,6 +92,7 @@ Test-RequiredFile $COMPONENT_MAIN_LAYOUT
 - Exception owner/rationale missing, expiry invalid/past, or active count above 3 -> fail.
 - Crate MSRV differs from 1.95 or development toolchain differs from 1.98.0 -> fail.
 - An ordinary workflow uses a Rust version other than 1.98.0, the explicit MSRV job is missing/not 1.95.0, or `root-required` omits it -> fail.
+- Only one independent lockfile audited, fetch failed, or the checked lockfile differs from the delivered file -> incomplete security evidence.
 
 ### 5. Good/Base/Bad Cases
 - Good: `serde` repeats with the same version in both manifests.
@@ -355,11 +360,14 @@ authenticate the publisher; automatic updates remain disabled.
 - Change detection checks out full history and uses the pull request's merge-base diff (`base...head`). Changing `scripts/ci/ci_surface_policy.py` makes all four surfaces relevant. Detection failure must fail the aggregator; an empty or failed relevance output must never silently skip a required validation.
 - Rust development, ordinary CI, and release jobs are pinned to 1.98.0; crate MSRV stays at 1.95 and `ci.yml` retains a required Rust 1.95.0 workspace check. Bun is pinned to 1.4.0, Node to 24.20.0, just to 1.58.0, and cargo-llvm-cov to 0.9.0.
 - `ccr-ui/package.json#packageManager` is the canonical Bun version source. `docs/package.json` and the frontend, Tauri, and release workflow `bun-version` inputs must mirror that exact pin; governance rejects missing, duplicate, or divergent workflow inputs.
-- Root Rust, Vue, and VS Code line coverage must be at least 70%; root and Tauri process gateways must be at least 85%.
+- Root Rust, React frontend, and VS Code line coverage must be at least 70%; root and Tauri process gateways must be at least 85%. The stable hosted context name `Vue and Docs Required` remains unchanged for branch-protection compatibility.
 - Tauri uploads its full coverage baseline while the hard security threshold remains the gateway; a broad command-wrapper percentage cannot hide a gateway regression.
 - Root workspace tests use default parallelism. `scripts/ci/check_workflow_governance.py` counts `#[serial]` / `#[serial_test::serial]`; current and target counts are both 0.
-- Tauri command inventory is generated from the handler registry and freezes 315 base / 323 Windows commands across 30 base modules.
+- Tauri command inventory is generated from `commands/handler_registry.rs`: 340 base / 348 Windows commands across 38 base modules. `ccr-ui/src/api/generated/command-manifest.json` records 278 typed commands and 278 exact wire contracts. Registry count tests intentionally freeze that surface; regenerate and verify the manifest when the surface changes.
 - The Tauri Rust gate runs direct Cargo fmt/check/clippy/test plus repository governance recipes. Its Linux job installs canonical Bun 1.4.0 because `tauri-bindings-check` formats and compares generated TypeScript; it does not install the frontend dependency graph.
+- Windows/Linux/macOS `just ci` runs `tauri-ci` once: strict binary Clippy, all behavior tests, bindings drift and inventory. Desktop test failure must make the aggregate nonzero.
+- Root/Tauri tests and coverage remain parallel with only `--skip export_bindings`; the transactional generator owns exports. Existing thresholds and hosted lanes remain unchanged.
+- `ci` includes mutating `version-sync`/`fmt`; read-only review uses `version-check`/`fmt-check`. Binding checks restore caller bytes on every result; direct generation retains output only on success.
 - Fresh checkouts run Tauri Rust compile/test/coverage commands with `.cargo/tauri-ci.toml`, which overrides `frontendDist` to the tracked `ccr-ui/src-tauri/ci-dist/index.html` fixture. Production Tauri builds keep using `ccr-ui/dist`; the fixture must never replace the real `beforeBuildCommand` output in release packaging.
 - Hosted frontend dependency audit calls the repository-owned `frontend-audit` recipe and parses Bun's JSON report. Unexpected, expired, duplicate, package-mismatched, or stale advisory exceptions fail closed.
 - Frontend advisory exceptions require non-empty owner/rationale, ISO expiry, explicit patched versions, and must stay within `maxActiveExceptions` (currently 0).
@@ -370,7 +378,7 @@ authenticate the publisher; automatic updates remain disabled.
 - Mutable action tag, duplicate YAML key, missing workflow, missing branch/relevance policy, PR-level `paths` filter, or missing local recipe -> governance check fails.
 - Relevant product job fails/skips/cancels -> its stable required aggregator fails.
 - Irrelevant product change -> heavy jobs skip, but the stable required aggregator completes successfully so branch protection never waits for a missing context.
-- Root/Vue/VS Code line coverage below 70 -> corresponding coverage recipe fails.
+- Root/React/VS Code line coverage below 70 -> corresponding coverage recipe fails.
 - Root/Tauri gateway below 85 or gateway path not found -> coverage validator fails closed.
 - Global `--test-threads=1` or serial annotation count above 0 -> governance check fails.
 - Handler inventory differs from registry -> `command_inventory_document_matches_registry` fails.
@@ -392,6 +400,7 @@ authenticate the publisher; automatic updates remain disabled.
 
 ### 6. Tests Required
 - `python -m unittest scripts.ci.test_check_workflow_governance` -> path matching, event parsing, and duplicate-key cases pass.
+- `python -m unittest scripts.ci.test_architecture_contract_gates` runs the actual aggregate graph with failing/successful Cargo fixtures and checks platform lists/export ownership. The fixture proves propagation, not real Rust suite success.
 - The workflow-governance unit suite asserts that root/UI Tauri Cargo recipes use `.cargo/tauri-ci.toml`, the tracked CI frontend fixture exists, every governed manifest/workflow mirrors canonical Bun 1.4.0, and the three Node setup inputs are exactly Node 24.20.0.
 - `python scripts/ci/check_workflow_governance.py` -> 45 immutable action references, stable relevance routing, required Rust 1.95 MSRV lane, Tauri Linux Bun setup, and serial-only count 0.
 - `just ci-governance-check` -> dependency, workflow, and handler inventory gates pass.

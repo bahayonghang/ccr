@@ -12,4 +12,4 @@ pub use clean::{clean_backups_command, clean_menu_command, clean_planfiles_comma
 pub use clear::clear_command;
 pub use init::init_command;
 pub use optimize::optimize_command;
-pub use validate::validate_command;
+pub use validate::{validate_command, validate_report_command};

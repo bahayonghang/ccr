@@ -1,3 +1,4 @@
+import { profileOutcomeWarning } from '@/utils/profileOutcome'
 import { useCallback, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -123,13 +124,16 @@ export function useCodexProfilesPage() {
           message: t('codex.profiles.confirmApply', { name }),
           type: 'warning',
           run: async () => {
-            await applyCodexProfile(name)
-            surfaceNotify.success(t('common.success'))
+            const response = await applyCodexProfile(name)
+            const warning = profileOutcomeWarning(response)
+            if (warning) surfaceNotify.warning(warning)
+            else surfaceNotify.success(t('common.success'))
             await listQuery.refetch()
           },
         })
       } catch (caught) {
         surfaceNotify.error(getErrorMessage(caught, t('codex.profiles.messages.operationFailed')))
+        await listQuery.refetch()
       }
     },
     [current, listQuery],
@@ -207,7 +211,8 @@ export function useCodexProfilesPage() {
   }, [])
 
   const handleEditorDone = useCallback(
-    (outcome: { status: string }) => {
+    (outcome: { status: string; warning?: string }) => {
+      if (outcome.warning) surfaceNotify.warning(outcome.warning)
       if (outcome.status === 'ok') void listQuery.refetch()
     },
     [listQuery],

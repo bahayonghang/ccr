@@ -3,8 +3,34 @@ import type {
   UsageImportResult,
   UsagePlatform,
   UsageImportJobSnapshot,
+  UsageImportJobStatus,
   UsageImportSummary,
 } from '@/types/usage'
+
+const terminalImportStatuses: Record<UsageImportJobStatus, boolean> = {
+  pending: false,
+  running: false,
+  recent_ready: false,
+  cancel_requested: false,
+  finished: true,
+  failed: true,
+  cancelled: true,
+  timed_out: true,
+  cleanup_failed: true,
+}
+
+export const isUsageImportJobTerminal = (job: UsageImportJobSnapshot | null): boolean =>
+  job !== null && terminalImportStatuses[job.status]
+
+export const isUsageImportJobFailed = (status: UsageImportJobStatus): boolean =>
+  ['failed', 'timed_out', 'cleanup_failed'].includes(status)
+
+export const shouldApplyUsageImportJob = (
+  current: UsageImportJobSnapshot | null,
+  next: UsageImportJobSnapshot,
+): boolean => current?.job_id !== next.job_id || (
+  !isUsageImportJobTerminal(current) && next.updated_at >= current.updated_at
+)
 
 export const isOptionalAbsentImportResult = (result: UsageImportResult): boolean =>
   result.is_optional_absent === true
@@ -52,6 +78,9 @@ export const buildImportSummary = (results: UsageImportResult[]): UsageImportSum
     has_partial: hasPartial,
   }
 }
+
+export const getUsageImportJobSummary = (job: UsageImportJobSnapshot): UsageImportSummary | null =>
+  job.summary ?? (job.results.length > 0 ? buildImportSummary(job.results) : null)
 
 export const isImportAllUsageResponse = (
   payload: UsageImportResult | ImportAllUsageResponse,

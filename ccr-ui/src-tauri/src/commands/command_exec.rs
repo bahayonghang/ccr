@@ -1840,14 +1840,34 @@ pub async fn start_ccr_command_job(
     let request = CommandExecutionRequest::background(command, args, confirmation_token);
     validate_command_request(&request)?;
 
+    let admission = super::runtime_policy::take_background_admission("start_ccr_command_job")?;
     let job_id = format!("ccr-command-{}", Uuid::new_v4());
     let snapshot = CommandJobSnapshot::queued(job_id.clone(), request.command, request.args);
     let cancel_token = CancellationToken::new();
-    insert_job(snapshot.clone(), cancel_token.clone()).await?;
+    launch_command_job(
+        snapshot,
+        cancel_token.clone(),
+        admission,
+        run_command_job(app_handle, job_id, cancel_token),
+    )
+    .await
+}
 
-    tauri::async_runtime::spawn(run_command_job(app_handle, job_id.clone(), cancel_token));
-
-    Ok(StartCommandJobResponse { job_id, snapshot })
+async fn launch_command_job(
+    snapshot: CommandJobSnapshot,
+    cancel_token: CancellationToken,
+    admission: tokio::sync::OwnedSemaphorePermit,
+    runner: impl std::future::Future<Output = ()> + Send + 'static,
+) -> Result<StartCommandJobResponse, String> {
+    insert_job(snapshot.clone(), cancel_token).await?;
+    tauri::async_runtime::spawn(async move {
+        runner.await;
+        drop(admission);
+    });
+    Ok(StartCommandJobResponse {
+        job_id: snapshot.job_id.clone(),
+        snapshot,
+    })
 }
 
 #[ccr_tauri_command_macros::command]
@@ -1864,6 +1884,10 @@ pub async fn cancel_ccr_command_job(
     _app_handle: AppHandle,
     job_id: String,
 ) -> Result<CommandJobSnapshot, String> {
+    request_command_job_cancel(job_id).await
+}
+
+async fn request_command_job_cancel(job_id: String) -> Result<CommandJobSnapshot, String> {
     if let Some(token) = COMMAND_JOBS
         .cancel_tokens
         .lock()
@@ -1930,6 +1954,129 @@ pub async fn get_ccr_command_help(command: String) -> Result<CommandHelpResponse
 
 #[cfg(test)]
 mod tests {
+    #[tokio::test]
+    async fn foreground_barrier_does_not_block_existing_command_owner_controls() {
+        use crate::commands::runtime_policy::execute;
+        use tokio::sync::oneshot;
+        let job_id = format!("existing-fixture-{}", uuid::Uuid::new_v4());
+        let token = tokio_util::sync::CancellationToken::new();
+        super::insert_job(
+            super::CommandJobSnapshot::queued(job_id.clone(), "status".into(), vec![]),
+            token.clone(),
+        )
+        .await
+        .expect("existing owner fixture");
+        let (started_tx, started_rx) = oneshot::channel();
+        let (release_tx, release_rx) = oneshot::channel();
+        let foreground = tokio::spawn(execute("execute_ccr_command", async move {
+            started_tx.send(()).expect("started");
+            release_rx.await.expect("release");
+            Ok::<_, String>(())
+        }));
+        started_rx.await.expect("shared execution permit held");
+        let snapshot = tokio::time::timeout(
+            std::time::Duration::from_secs(1),
+            super::get_ccr_command_job_status(job_id.clone()),
+        )
+        .await
+        .expect("status watchdog")
+        .expect("status");
+        assert_eq!(snapshot.job_id, job_id);
+        tokio::time::timeout(
+            std::time::Duration::from_secs(1),
+            execute(
+                "cancel_ccr_command_job",
+                super::request_command_job_cancel(job_id.clone()),
+            ),
+        )
+        .await
+        .expect("control watchdog")
+        .expect("owner receives cancel");
+        assert!(token.is_cancelled());
+        assert!(!foreground.is_finished());
+        release_tx
+            .send(())
+            .expect("release only after owner acknowledgement");
+        foreground.await.expect("join").expect("foreground result");
+        super::remove_cancel_token(&job_id).await;
+        super::COMMAND_JOBS.jobs.lock().await.remove(&job_id);
+    }
+    #[tokio::test]
+    async fn command_owner_receives_cancel_before_cleanup_and_keeps_start_admission() {
+        use crate::commands::runtime_policy::{execute, take_background_admission};
+        use tokio::sync::oneshot;
+        let job_id = format!("fixture-{}", uuid::Uuid::new_v4());
+        let snapshot = super::CommandJobSnapshot::queued(job_id.clone(), "status".into(), vec![]);
+        let token = tokio_util::sync::CancellationToken::new();
+        let runner_token = token.clone();
+        let (cancel_ack, cancelled) = oneshot::channel();
+        let (cleanup_release, cleanup) = oneshot::channel();
+        let (owner_finished, finished) = oneshot::channel();
+        let runner_id = job_id.clone();
+        let response = execute("start_ccr_command_job", async move {
+            let admission = take_background_admission("start_ccr_command_job")?;
+            super::launch_command_job(snapshot, token, admission, async move {
+                runner_token.cancelled().await;
+                cancel_ack.send(()).expect("owner cancel acknowledgement");
+                cleanup.await.expect("cleanup release");
+                super::update_job(&runner_id, |job| {
+                    job.mark_terminal(
+                        super::CommandJobStatus::Cancelled,
+                        std::time::Instant::now(),
+                        None,
+                        None,
+                    )
+                })
+                .await;
+                super::remove_cancel_token(&runner_id).await;
+                owner_finished.send(()).expect("owner finished");
+            })
+            .await
+        })
+        .await
+        .expect("start returned");
+        assert_eq!(response.job_id, job_id);
+        let snapshot = super::get_ccr_command_job_status(job_id.clone())
+            .await
+            .expect("status reachable");
+        assert_eq!(snapshot.status, super::CommandJobStatus::Queued);
+        assert!(
+            execute(
+                "cancel_ccr_command_job",
+                super::request_command_job_cancel("wrong-id".into())
+            )
+            .await
+            .is_err()
+        );
+        execute(
+            "cancel_ccr_command_job",
+            super::request_command_job_cancel(job_id.clone()),
+        )
+        .await
+        .expect("cancel control");
+        tokio::time::timeout(std::time::Duration::from_secs(1), cancelled)
+            .await
+            .expect("watchdog")
+            .expect("owner ack before cleanup release");
+        let mut contender = std::pin::pin!(execute("llmusage_install_plan", async {
+            Ok::<_, String>(())
+        }));
+        std::future::poll_fn(|cx| {
+            assert!(std::future::Future::poll(contender.as_mut(), cx).is_pending());
+            std::task::Poll::Ready(())
+        })
+        .await;
+        cleanup_release.send(()).expect("release cleanup");
+        finished.await.expect("owner finished");
+        contender.await.expect("shared execution resource released");
+        assert_eq!(
+            super::get_ccr_command_job_status(job_id)
+                .await
+                .expect("terminal")
+                .status,
+            super::CommandJobStatus::Cancelled
+        );
+    }
     use super::*;
     use tokio::io::AsyncWriteExt;
 

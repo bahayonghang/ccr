@@ -2,7 +2,7 @@
 // 聚合本地环境、平台配置、当前 profile、认证状态与可选在线探活。
 
 use crate::managers::conflict_checker::{Conflict, ConflictChecker, ConflictSeverity};
-use crate::managers::{CcsConfig, ClaudeSettings, PlatformConfigManager, UnifiedConfig};
+use crate::managers::{ClaudeSettings, PlatformConfigManager, UnifiedConfig};
 use crate::models::{
     AuthStateStatus, ClaudeAuthConfidence, ClaudeAuthDiagnosis, ClaudeAuthSourceKind, Platform,
     PlatformPaths, ProfileConfig,
@@ -10,7 +10,10 @@ use crate::models::{
 use crate::platforms::claude::ClaudePlatform;
 use crate::platforms::droid::DroidSettings;
 use crate::platforms::gemini::GeminiSettings;
-use crate::platforms::{CodexPlatform, PlatformDetector, create_platform};
+use crate::platforms::{
+    CodexPlatform, GrokActivationState, GrokPlatform, GrokProfileAuthMode, PlatformDetector,
+    create_platform,
+};
 use crate::services::health_check::{HealthCheckResult, HealthCheckService, HealthStatus};
 use crate::services::{ClaudeAuthService, CodexAuthService};
 use ccr_config::platforms::base;
@@ -187,8 +190,6 @@ impl DoctorProviderProbe for LiveDoctorProviderProbe {
 struct GlobalDoctorContext {
     unified: Option<UnifiedConfig>,
     configured_platforms: Vec<Platform>,
-    claude_target: Option<Platform>,
-    codex_target: Option<Platform>,
 }
 
 struct ResolvedScope {
@@ -258,8 +259,6 @@ impl DoctorService {
         let mut context = GlobalDoctorContext {
             unified: None,
             configured_platforms: Vec::new(),
-            claude_target: None,
-            codex_target: None,
         };
 
         let platform_manager = match PlatformConfigManager::with_default() {
@@ -334,7 +333,7 @@ impl DoctorService {
                             "CCR registry file could not be parsed.",
                         )
                         .with_path(registry_path.display().to_string())
-                        .with_detail(error.to_string())
+                        .with_detail(Self::safe_error_detail(&error))
                         .with_recommendation(
                             "Fix ~/.ccr/config.toml or regenerate it with `ccr init`.",
                         ),
@@ -362,12 +361,6 @@ impl DoctorService {
         let (configured_platforms, unknown_registry_platforms) =
             Self::merge_configured_platforms(context.unified.as_ref(), detected_platforms);
         context.configured_platforms = configured_platforms.clone();
-        context.claude_target = configured_platforms
-            .contains(&Platform::Claude)
-            .then_some(Platform::Claude);
-        context.codex_target = configured_platforms
-            .contains(&Platform::Codex)
-            .then_some(Platform::Codex);
 
         if configured_platforms.is_empty() {
             report.push(
@@ -412,8 +405,13 @@ impl DoctorService {
             );
         }
 
-        Self::push_runtime_target_check(report, Platform::Claude, context.claude_target.is_some());
-        Self::push_runtime_target_check(report, Platform::Codex, context.codex_target.is_some());
+        for &platform in Platform::auth_profile_supported() {
+            Self::push_runtime_target_check(
+                report,
+                platform,
+                configured_platforms.contains(&platform),
+            );
+        }
 
         self.collect_conflict_check(report);
 
@@ -522,7 +520,7 @@ impl DoctorService {
                         "global.conflicts",
                         "Conflict scan could not inspect every platform setting file.",
                     )
-                    .with_detail(error.to_string())
+                    .with_detail(Self::safe_error_detail(&error))
                     .with_recommendation(
                         "Inspect local platform settings manually if conflicts are suspected.",
                     ),
@@ -552,17 +550,18 @@ impl DoctorService {
             };
         }
 
-        let targets = [context.claude_target, context.codex_target]
-            .into_iter()
-            .flatten()
+        let targets = Platform::auth_profile_supported()
+            .iter()
+            .copied()
+            .filter(|platform| context.configured_platforms.contains(platform))
             .collect::<Vec<_>>();
 
         ResolvedScope {
             label: if targets.is_empty() {
-                "global + configured Claude/Codex runtimes".to_string()
+                "global + configured Claude/Codex/Grok runtimes".to_string()
             } else {
                 format!(
-                    "global + configured Claude/Codex runtimes ({})",
+                    "global + configured Claude/Codex/Grok runtimes ({})",
                     Self::format_platform_names(&targets)
                 )
             },
@@ -589,6 +588,12 @@ impl DoctorService {
                 ),
             );
             return;
+        }
+        if !platform.supports_auth_profile() {
+            report.push(DoctorCheck::warn(
+                format!("platform.{platform_name}.support"),
+                format!("{}: {}. Read-only compatibility checks; auth/profile commands are unavailable.", platform.display_name(), platform.diagnostic_support()),
+            ));
         }
 
         let paths = match PlatformPaths::new(platform) {
@@ -662,7 +667,7 @@ impl DoctorService {
                             ),
                         )
                         .with_path(paths.profiles_file.display().to_string())
-                        .with_detail(error.to_string())
+                        .with_detail(Self::safe_error_detail(&error))
                         .with_recommendation("Fix the profiles TOML before rerunning doctor."),
                     );
                     Default::default()
@@ -711,12 +716,18 @@ impl DoctorService {
                                     platform_name, profile_name
                                 ),
                             )
-                            .with_detail(error.to_string())
+                            .with_detail(Self::safe_error_detail(&error))
                             .with_recommendation(
                                 "Fix the current profile fields before rerunning doctor.",
                             ),
                         );
                     }
+                }
+                if !profile.is_enabled() {
+                    report.push(DoctorCheck::fail(
+                        format!("platform.{platform_name}.profile_activation"),
+                        "The recorded current profile is disabled; activation is unavailable.",
+                    ));
                 }
 
                 report.push(self.validate_settings_file(
@@ -777,14 +788,21 @@ impl DoctorService {
         profiles: &indexmap::IndexMap<String, ProfileConfig>,
     ) -> CurrentProfileResolution {
         let platform_name = platform.short_name();
-        let registry_current = unified.and_then(|config| {
-            config
-                .get_platform_profile(platform_name)
-                .ok()
-                .flatten()
-                .map(str::to_string)
-        });
-        let file_current = Self::read_profiles_current(profiles_path);
+        let registry_current = unified
+            .and_then(|config| config.platforms.get(platform_name))
+            .and_then(|entry| entry.current_profile.clone());
+        let file_current = match base::load_current_profile_marker(profiles_path) {
+            Ok(current) => current,
+            Err(_) => {
+                return CurrentProfileResolution {
+                    check: DoctorCheck::fail(
+                        format!("platform.{platform_name}.current_profile"),
+                        "Current profile marker could not be read or parsed.",
+                    ),
+                    effective_profile: None,
+                };
+            }
+        };
 
         let registry_valid = registry_current
             .as_ref()
@@ -795,16 +813,25 @@ impl DoctorService {
             .filter(|name| profiles.contains_key(name.as_str()))
             .cloned();
 
-        let effective_profile = file_valid.clone().or(registry_valid.clone());
+        let effective_profile = if platform == Platform::Claude {
+            file_valid.clone().or(registry_valid.clone())
+        } else {
+            registry_valid.clone().or(file_valid.clone())
+        };
         let id = format!("platform.{platform_name}.current_profile");
 
         let (status, summary, detail, recommendation) = match effective_profile.as_deref() {
             Some(profile_name) if file_valid.is_some() && registry_valid.is_some() => {
                 if file_valid != registry_valid {
+                    let (source, other) = if platform == Platform::Claude {
+                        ("profiles.toml", "registry")
+                    } else {
+                        ("registry", "profiles.toml")
+                    };
                     (
                         DoctorStatus::Warn,
                         format!(
-                            "Current {} profile resolved to '{}' from profiles.toml, but the registry points elsewhere.",
+                            "Current {} profile resolved to '{}' from {source}, but {other} points elsewhere.",
                             platform_name, profile_name
                         ),
                         Some(format!(
@@ -889,7 +916,7 @@ impl DoctorService {
         }
     }
 
-    fn validate_settings_file(
+    pub(crate) fn validate_settings_file(
         &self,
         platform: Platform,
         settings_path: &Path,
@@ -920,10 +947,10 @@ impl DoctorService {
 
                 let settings: ClaudeSettings = match serde_json::from_str(&content) {
                     Ok(settings) => settings,
-                    Err(error) => {
+                    Err(_error) => {
                         return DoctorCheck::fail(id, "Claude settings file could not be parsed.")
                             .with_path(settings_path.display().to_string())
-                            .with_detail(error.to_string())
+                            .with_detail("Invalid JSON or settings field type.")
                             .with_recommendation(
                                 "Fix ~/.claude/settings.json before rerunning doctor.",
                             );
@@ -982,9 +1009,9 @@ impl DoctorService {
                 match toml::from_str::<toml::Value>(&content) {
                     Ok(_) => DoctorCheck::ok(id, "Codex config.toml is readable.")
                         .with_path(settings_path.display().to_string()),
-                    Err(error) => DoctorCheck::fail(id, "Codex config.toml could not be parsed.")
+                    Err(_error) => DoctorCheck::fail(id, "Codex config.toml could not be parsed.")
                         .with_path(settings_path.display().to_string())
-                        .with_detail(error.to_string())
+                        .with_detail("Invalid TOML.")
                         .with_recommendation("Fix ~/.codex/config.toml before rerunning doctor."),
                 }
             }
@@ -1015,12 +1042,12 @@ impl DoctorService {
                             "Fix the Antigravity settings JSON or re-apply the active profile.",
                         ),
                     },
-                    Err(error) => DoctorCheck::fail(
+                    Err(_error) => DoctorCheck::fail(
                         id,
                         "Antigravity settings file could not be parsed.",
                     )
                     .with_path(settings_path.display().to_string())
-                    .with_detail(error.to_string())
+                    .with_detail("Invalid JSON or settings field type.")
                     .with_recommendation(
                         "Fix ~/.gemini/antigravity-cli/settings.json before rerunning doctor.",
                     ),
@@ -1039,16 +1066,27 @@ impl DoctorService {
                 match serde_json::from_str::<DroidSettings>(&content) {
                     Ok(_) => DoctorCheck::ok(id, "Droid settings file is readable.")
                         .with_path(settings_path.display().to_string()),
-                    Err(error) => DoctorCheck::fail(id, "Droid settings file could not be parsed.")
-                        .with_path(settings_path.display().to_string())
-                        .with_detail(error.to_string())
-                        .with_recommendation(
-                            "Fix ~/.factory/settings.json before rerunning doctor.",
-                        ),
+                    Err(_error) => {
+                        DoctorCheck::fail(id, "Droid settings file could not be parsed.")
+                            .with_path(settings_path.display().to_string())
+                            .with_detail("Invalid JSON or settings field type.")
+                            .with_recommendation(
+                                "Fix ~/.factory/settings.json before rerunning doctor.",
+                            )
+                    }
                 }
             }
             Platform::Qwen => DoctorCheck::skip(id, "Qwen settings validation is skipped."),
-            Platform::Grok => DoctorCheck::skip(id, "Grok settings validation is skipped."),
+            Platform::Grok => match fs::read_to_string(settings_path) {
+                Ok(content) => match toml::from_str::<toml::Table>(&content) {
+                    Ok(_) => DoctorCheck::ok(id, "Grok config.toml is readable.")
+                        .with_path(settings_path.display().to_string()),
+                    Err(_) => DoctorCheck::fail(id, "Grok config.toml could not be parsed.")
+                        .with_path(settings_path.display().to_string()),
+                },
+                Err(_) => DoctorCheck::fail(id, "Grok config.toml could not be read.")
+                    .with_path(settings_path.display().to_string()),
+            },
         }
     }
 
@@ -1106,7 +1144,7 @@ impl DoctorService {
             Ok(service) => service,
             Err(error) => {
                 return DoctorCheck::fail(id, "Claude auth-source diagnosis could not start.")
-                    .with_detail(error.to_string());
+                    .with_detail(Self::safe_error_detail(&error));
             }
         };
 
@@ -1114,7 +1152,7 @@ impl DoctorService {
             Ok(diagnosis) => diagnosis,
             Err(error) => {
                 return DoctorCheck::fail(id, "Claude auth sources could not be read safely.")
-                    .with_detail(error.to_string())
+                    .with_detail(Self::safe_error_detail(&error))
                     .with_recommendation(
                         "Fix the resolved Claude settings/state/credentials files and rerun doctor.",
                     );
@@ -1369,7 +1407,11 @@ impl DoctorService {
         }
     }
 
-    fn validate_runtime_health(&self, platform: Platform, profile: &ProfileConfig) -> DoctorCheck {
+    pub(crate) fn validate_runtime_health(
+        &self,
+        platform: Platform,
+        profile: &ProfileConfig,
+    ) -> DoctorCheck {
         let id = format!("platform.{}.runtime_auth", platform.short_name());
         match platform {
             Platform::Claude => {
@@ -1407,7 +1449,7 @@ impl DoctorService {
                         },
                         Err(error) => {
                             DoctorCheck::fail(id, "Claude runtime auth snapshot could not be read.")
-                                .with_detail(error.to_string())
+                                .with_detail(Self::safe_error_detail(&error))
                         }
                     },
                     Err(error) => {
@@ -1442,9 +1484,9 @@ impl DoctorService {
                                     "Codex runtime auth is not ready for the current profile.",
                                 )
                                 .with_detail(format!(
-                                    "store = {}, reason = {}.",
+                                    "store = {}, status = {:?}.",
                                     auth_state.store.as_str(),
-                                    auth_state.reason
+                                    auth_state.status
                                 ))
                                 .with_recommendation(
                                     "Log in to Codex or switch cli_auth_credentials_store to file before rerunning doctor.",
@@ -1480,7 +1522,32 @@ impl DoctorService {
                 "Droid local runtime health is covered by profile and settings validation.",
             ),
             Platform::Qwen => DoctorCheck::skip(id, "Qwen runtime validation is skipped."),
-            Platform::Grok => DoctorCheck::skip(id, "Grok runtime validation is skipped."),
+            Platform::Grok => match GrokPlatform::profile_auth_mode(profile) {
+                Ok(GrokProfileAuthMode::Session) => DoctorCheck::warn(
+                    id,
+                    "Grok session authentication is owned by Grok; offline diagnosis does not verify login.",
+                ),
+                Ok(mode) => match GrokPlatform::new()
+                    .and_then(|platform| platform.inspect_activation_state())
+                {
+                    Ok(GrokActivationState::Active { .. }) => DoctorCheck::ok(
+                        id,
+                        format!(
+                            "Grok runtime route matches the profile ({}).",
+                            mode.as_str()
+                        ),
+                    ),
+                    Ok(_) => DoctorCheck::warn(
+                        id,
+                        "Grok runtime route does not match the recorded profile.",
+                    )
+                    .with_recommendation("Re-apply the intended Grok profile explicitly."),
+                    Err(_) => {
+                        DoctorCheck::fail(id, "Grok runtime state could not be read or validated.")
+                    }
+                },
+                Err(_) => DoctorCheck::fail(id, "Grok profile authentication fields are invalid."),
+            },
         }
     }
 
@@ -1618,15 +1685,11 @@ impl DoctorService {
             .join(", ")
     }
 
-    fn read_profiles_current(profiles_path: &Path) -> Option<String> {
-        if !profiles_path.exists() {
-            return None;
-        }
-
-        let content = fs::read_to_string(profiles_path).ok()?;
-        let parsed = toml::from_str::<CcsConfig>(&content).ok()?;
-        let current = parsed.current_config.trim();
-        (!current.is_empty()).then(|| current.to_string())
+    fn safe_error_detail(error: &ccr_core::CcrError) -> String {
+        format!(
+            "Diagnostic read or validation failed (exit code {}).",
+            error.exit_code()
+        )
     }
 
     fn format_conflict_detail(conflicts: &[&Conflict], warnings: &[String]) -> String {
@@ -1949,7 +2012,7 @@ current_profile = "{current_profile}"
         assert_eq!(report.summary.failed, 0);
         assert_eq!(
             report.scope,
-            "global + configured Claude/Codex runtimes (claude)"
+            "global + configured Claude/Codex/Grok runtimes (claude)"
         );
         assert!(
             report.checks.iter().any(

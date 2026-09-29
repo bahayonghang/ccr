@@ -1,3 +1,4 @@
+import { profileOutcomeWarning, requireProfileOutcome } from '@/utils/profileOutcome'
 import { claudeApi } from '@/api'
 import type {
   ProfileEditorAdapter,
@@ -150,7 +151,9 @@ export const claudeProfileEditorAdapter: ProfileEditorAdapter<
     const payload = omitEmptyAuthToken(buildClaudeProfileRequest(form))
     try {
       if (ctx.isEditing && ctx.originalName) {
-        await claudeApi.updateClaudeProfile(ctx.originalName, payload)
+        const response = await claudeApi.updateClaudeProfile(ctx.originalName, payload)
+        const outcome = requireProfileOutcome(response)
+        return { status: 'ok', appliedName: form.name.trim(), activationCommitted: outcome?.activation_committed, warning: profileOutcomeWarning(response) }
       } else {
         await claudeApi.addClaudeProfile(payload)
       }

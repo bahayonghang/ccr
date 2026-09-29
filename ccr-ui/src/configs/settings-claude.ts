@@ -1,7 +1,11 @@
 import { getClaudeSettings, updateClaudeSettings } from '@/api'
+import { getClaudeSettingsRaw, saveClaudeSettingsRaw, listClaudeSettingsLayers } from '@/api/domains/claude'
+import { probeLocalEnvironment } from '@/configs/probeLocal'
+import { dirtySettingsPatch } from '@/configs/settings-patch'
 import { asBool, asList, asString, boolField, selectField, splitList, textField } from '@/configs/settings-helpers'
 import { surfaceNotify } from '@/configs/surfaceNotify'
 import type { SettingsConfig, SettingsFieldOption } from '@/configs/settings-types'
+import { SettingsValidationError } from '@/configs/settings-types'
 import type { ClaudeSettingsData } from '@/types/claude'
 
 const MODEL_OPTIONS: SettingsFieldOption[] = [
@@ -28,6 +32,9 @@ const ATTRIBUTION_OPTIONS: SettingsFieldOption[] = [
   { value: 'authored-by', labelKey: 'authored-by' },
 ]
 
+const environmentText = (env: ClaudeSettingsData['env']) =>
+  Object.entries(env ?? {}).map(([key, value]) => key + '=' + value).join('\n')
+
 export const claudeSettingsConfig: SettingsConfig = {
   cacheKey: 'settings-claude',
   homePath: '/claude-code',
@@ -35,7 +42,8 @@ export const claudeSettingsConfig: SettingsConfig = {
   i18nPrefix: 'claudeSettings',
   titleKey: 'claudeSettings.title',
   subtitleKey: 'claudeSettings.subtitle',
-  features: { rawSource: true },
+  features: { rawSource: true, dirtyPatch: true },
+  rawSource: { language: 'json', probe: probeLocalEnvironment, getRaw: getClaudeSettingsRaw, saveRaw: saveClaudeSettingsRaw, listLayers: listClaudeSettingsLayers },
   notify: surfaceNotify,
   tabs: [
     { id: 'model', labelKey: 'claudeSettings.tabs.model' },
@@ -78,10 +86,9 @@ export const claudeSettingsConfig: SettingsConfig = {
     selectField({ id: 'attrPr', tab: 'git', labelKey: 'claudeSettings.git.prAttribution', options: ATTRIBUTION_OPTIONS }),
     boolField('includeCoAuthoredBy', 'git', 'claudeSettings.git.includeCoAuthored'),
   ],
-  load: async () => {
-    const data = await getClaudeSettings()
-    const envLines = Object.entries(data.env ?? {}).map(([key, value]) => `${key}=${value}`)
-    return {
+  load: async (context) => {
+    const data = await getClaudeSettings(context?.environmentId)
+    return { source: data, values: {
       model: asString(data.model),
       effortLevel: asString(data.effortLevel),
       alwaysThinkingEnabled: asBool(data.alwaysThinkingEnabled),
@@ -93,7 +100,7 @@ export const claudeSettingsConfig: SettingsConfig = {
       permAllow: asList(data.permissions?.allow),
       permDeny: asList(data.permissions?.deny),
       permAdditionalDirs: asList(data.permissions?.additionalDirectories),
-      envText: envLines.join('\n'),
+      envText: environmentText(data.env),
       theme: asString(data.theme),
       language: asString(data.language),
       showTurnDuration: asBool(data.showTurnDuration),
@@ -113,9 +120,9 @@ export const claudeSettingsConfig: SettingsConfig = {
       attrCommit: asString(data.attribution?.commit),
       attrPr: asString(data.attribution?.pr),
       includeCoAuthoredBy: asBool(data.includeCoAuthoredBy),
-    }
+    } }
   },
-  save: async ({ values }) => {
+  save: async ({ values, dirtyKeys, snapshot, environmentId }) => {
     const env: Record<string, string> = {}
     for (const line of splitList(values.envText)) {
       const sep = line.indexOf('=')
@@ -163,6 +170,19 @@ export const claudeSettingsConfig: SettingsConfig = {
         pr: asString(values.attrPr) || undefined,
       },
     }
-    await updateClaudeSettings(payload)
+    const paths: Record<string, string> = Object.fromEntries(Object.keys(payload).map((key) => [key, key]))
+    Object.assign(paths, {
+      envText: 'env', permDefaultMode: 'permissions.defaultMode', permAllow: 'permissions.allow',
+      permDeny: 'permissions.deny', permAdditionalDirs: 'permissions.additionalDirectories',
+      sandboxEnabled: 'sandbox.enabled', sandboxAutoAllow: 'sandbox.autoAllowBashIfSandboxed',
+      sandboxAllowLocal: 'sandbox.network.allowLocalBinding', sandboxAllowedDomains: 'sandbox.network.allowedDomains',
+      sandboxExcludedCmds: 'sandbox.excludedCommands', attrCommit: 'attribution.commit', attrPr: 'attribution.pr',
+    })
+    const patch = dirtySettingsPatch(paths, payload, { dirtyKeys, source: snapshot.source })
+    if (Object.values(patch).some((value) => value === undefined)) {
+      throw new SettingsValidationError('settingsRaw.claudeClearUnsupported')
+    }
+    if (Object.keys(patch).length) await updateClaudeSettings(patch, environmentId)
+    return { status: 'saved' }
   },
 }

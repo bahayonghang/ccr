@@ -10,6 +10,7 @@ export interface SurfacePageProps {
   stateTitle?: string
   stateDescription?: string
   onRetry?: () => void
+  retryLabel?: string
   children?: ReactNode
 }
 
@@ -34,6 +35,7 @@ export function SurfacePage({
   stateTitle,
   stateDescription,
   onRetry,
+  retryLabel,
   children,
 }: SurfacePageProps) {
   const showPanel = state === 'loading' || state === 'error' || state === 'empty' || state === 'runtime-unavailable'
@@ -50,7 +52,7 @@ export function SurfacePage({
           state={state}
           title={stateTitle ?? title}
           description={stateDescription}
-          actionLabel={state === 'error' ? 'Retry' : undefined}
+          actionLabel={state === 'error' ? retryLabel ?? 'Retry' : undefined}
           onAction={onRetry}
         />
       ) : (

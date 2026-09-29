@@ -40,6 +40,50 @@ pub(crate) enum CommandConcurrency {
     Singleton,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum LifecycleOperation {
+    Foreground,
+    Start,
+    Query,
+    Control,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum LifecycleResource {
+    ProcessExecution,
+    UsageImport,
+    CodexAuth,
+}
+
+/// Explicit control matrix. Resource identity is independent of risk, ACL,
+/// confirmation, and audit. Command and install share ProcessExecution.
+pub(crate) fn command_lifecycle(command: &str) -> Option<(LifecycleResource, LifecycleOperation)> {
+    use LifecycleOperation::{Control, Foreground, Query, Start};
+    use LifecycleResource::{CodexAuth, ProcessExecution, UsageImport};
+    Some(match command {
+        "execute_ccr_command" | "llmusage_install_plan" => (ProcessExecution, Foreground),
+        "start_ccr_command_job" | "llmusage_install_execute" => (ProcessExecution, Start),
+        "get_ccr_command_job_status"
+        | "llmusage_install_detect"
+        | "llmusage_install_probe_capabilities"
+        | "llmusage_install_recent"
+        | "llmusage_install_manual_catalog"
+        | "llmusage_install_check" => (ProcessExecution, Query),
+        "cancel_ccr_command_job" | "llmusage_install_cancel" => (ProcessExecution, Control),
+        "import_usage_v2" | "import_all_usage_v2" => (UsageImport, Foreground),
+        "start_usage_import_job_v2" => (UsageImport, Start),
+        "get_usage_import_job_status_v2" => (UsageImport, Query),
+        "cancel_usage_import_job_v2" => (UsageImport, Control),
+        "codex_oauth_login_start" => (CodexAuth, Start),
+        "codex_oauth_login_completed"
+        | "codex_oauth_login_cancel"
+        | "codex_oauth_submit_callback_url"
+        | "codex_release_oauth_port" => (CodexAuth, Control),
+        "codex_is_oauth_port_in_use" => (CodexAuth, Query),
+        _ => return None,
+    })
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub(crate) enum CommandTimeoutEnforcement {
@@ -158,6 +202,11 @@ impl CommandDescriptor {
 
 fn effective_risk(default_risk: CommandRisk, command: &str) -> CommandRisk {
     match command {
+        "codex_oauth_login_start"
+        | "codex_oauth_login_completed"
+        | "codex_oauth_login_cancel"
+        | "codex_oauth_submit_callback_url"
+        | "codex_release_oauth_port" => return CommandRisk::SecretMutation,
         "append_frontend_logs"
         | "start_usage_import_job_v2"
         | "cancel_usage_import_job_v2"
@@ -271,9 +320,18 @@ fn capability_policy(
     };
 
     let timeout_enforcement = match (risk, command) {
+        (_, "codex_oauth_login_start") => CommandTimeoutEnforcement::BusinessOwned,
         (_, "test_webdav_config") => CommandTimeoutEnforcement::Cooperative,
         (CommandRisk::ProcessExecution, _) => CommandTimeoutEnforcement::BusinessOwned,
         _ => CommandTimeoutEnforcement::CompletionAware,
+    };
+    let concurrency = if matches!(
+        command_lifecycle(command),
+        Some((_, LifecycleOperation::Control))
+    ) {
+        CommandConcurrency::Parallel
+    } else {
+        concurrency
     };
 
     let confirmation = if matches!(
@@ -482,12 +540,13 @@ fn audit_invoke(invoke: &tauri::ipc::Invoke) -> bool {
 
 define_command_registry! {
     config: "配置管理" [LocalMutation, Generated] => [
-        super::config::list_configs => ["void", "ConfigInfo[]", "export const listConfigsTyped = (): Promise<ConfigInfo[]> => invoke('list_configs')\n"],
-        super::config::switch_config => ["string", "string", "export const switchConfigTyped = (name: string): Promise<string> => invoke('switch_config', { name })\n"],
-        super::config::add_config => ["AddConfigInput", "string", "export const addConfigTyped = (input: AddConfigInput): Promise<string> => invoke('add_config', input)\n"],
-        super::config::delete_config => ["string", "string", "export const deleteConfigTyped = (name: string): Promise<string> => invoke('delete_config', { name, confirmationToken: confirmationTokenFor('delete_config') })\n"],
-        super::config::rename_config => ["{ oldName: string; newName: string }", "string", "export const renameConfigTyped = (oldName: string, newName: string): Promise<string> => invoke('rename_config', { oldName, newName })\n"],
-        super::config::duplicate_config => ["{ source: string; target: string }", "string", "export const duplicateConfigTyped = (source: string, target: string): Promise<string> => invoke('duplicate_config', { source, target })\n"],
+        super::config::list_configs => ["ConfigPlatform", "ConfigInfo[]", "export const listConfigsTyped = (platform: ConfigPlatform): Promise<ConfigInfo[]> => invoke('list_configs', { platform })\n"],
+        super::config::switch_config => ["{ platform: ConfigPlatform; name: string; enable?: boolean }", "ConfigMutationResult", "export const switchConfigTyped = (platform: ConfigPlatform, name: string, enable = false): Promise<ConfigMutationResult> => invoke('switch_config', { platform, name, enable })\n"],
+        super::config::add_config => ["AddConfigInput", "ConfigMutationResult", "export const addConfigTyped = (input: AddConfigInput): Promise<ConfigMutationResult> => invoke('add_config', input)\n"],
+        super::config::delete_config => ["{ platform: ConfigPlatform; name: string }", "ConfigMutationResult", "export const deleteConfigTyped = (platform: ConfigPlatform, name: string): Promise<ConfigMutationResult> => invoke('delete_config', { platform, name, confirmationToken: confirmationTokenFor('delete_config') })\n"],
+        super::config::rename_config => ["{ platform: ConfigPlatform; oldName: string; newName: string }", "ConfigMutationResult", "export const renameConfigTyped = (platform: ConfigPlatform, oldName: string, newName: string): Promise<ConfigMutationResult> => invoke('rename_config', { platform, oldName, newName })\n"],
+        super::config::duplicate_config => ["{ platform: ConfigPlatform; source: string; target: string }", "ConfigMutationResult", "export const duplicateConfigTyped = (platform: ConfigPlatform, source: string, target: string): Promise<ConfigMutationResult> => invoke('duplicate_config', { platform, source, target })\n"],
+        super::config::update_config => ["UpdateConfigInput", "ConfigMutationResult", "export const updateConfigTyped = (input: UpdateConfigInput): Promise<ConfigMutationResult> => invoke('update_config', input)\n"],
         super::config::validate_configs => ["void", "string", "export const validateConfigsTyped = (): Promise<string> => invoke('validate_configs')\n"],
         super::config::import_config => ["ImportConfigInput", "ImportResult", "export const importConfigTyped = (input: ImportConfigInput): Promise<ImportResult> => invoke('import_config', { content: input.content, mode: input.mode ?? 'merge', backup: input.backup ?? true, confirmationToken: confirmationTokenFor('import_config') })\n"],
         super::config::restore_config => ["string", "string", "export const restoreConfigTyped = (backupPath: string): Promise<string> => invoke('restore_config', { backupPath, confirmationToken: confirmationTokenFor('restore_config') })\n"],
@@ -529,8 +588,8 @@ define_command_registry! {
         super::sync::clear_webdav_config => ["void", "void", "export const clearWebdavConfig = (): Promise<void> => invoke('clear_webdav_config')\n"],
     ],
     claude: "Claude Code" [SecretMutation, Generated] => [
-        super::claude::claude_get_settings => ["void", "OpenJsonValueDto", "export const getClaudeSettings = (): Promise<OpenJsonValueDto> => invoke('claude_get_settings')\n"],
-        super::claude::claude_update_settings => ["OpenJsonValueDto", "OpenJsonValueDto", "export const updateClaudeSettings = (settings: OpenJsonValueDto): Promise<OpenJsonValueDto> => invoke('claude_update_settings', { settings })\n"],
+        super::claude::claude_get_settings => ["{ expectedEnvironmentId?: string | null }", "OpenJsonValueDto", "export const getClaudeSettings = (expectedEnvironmentId?: string | null): Promise<OpenJsonValueDto> => invoke('claude_get_settings', { expectedEnvironmentId })\n"],
+        super::claude::claude_update_settings => ["{ settings: OpenJsonValueDto; expectedEnvironmentId?: string | null }", "OpenJsonValueDto", "export const updateClaudeSettings = (settings: OpenJsonValueDto, expectedEnvironmentId?: string | null): Promise<OpenJsonValueDto> => invoke('claude_update_settings', { settings, expectedEnvironmentId })\n"],
         super::claude::claude_list_mcp_servers => ["void", "OpenJsonValueDto", "export const listClaudeMcpServers = (): Promise<OpenJsonValueDto> => invoke('claude_list_mcp_servers')\n"],
         super::claude::claude_add_mcp_server => ["{ name: string; config: OpenJsonValueDto; scope?: string }", "OpenJsonValueDto", "export const addClaudeMcpServer = (name: string, config: OpenJsonValueDto, scope?: string): Promise<OpenJsonValueDto> => invoke('claude_add_mcp_server', { name, config, scope })\n"],
         super::claude::claude_update_mcp_server => ["{ name: string; config: OpenJsonValueDto; scope?: string }", "OpenJsonValueDto", "export const updateClaudeMcpServer = (name: string, config: OpenJsonValueDto, scope?: string): Promise<OpenJsonValueDto> => invoke('claude_update_mcp_server', { name, config, scope })\n"],
@@ -850,7 +909,7 @@ define_command_registry! {
         super::checkin::get_account_dashboard,
     ],
     config_extended: "配置扩展" [LocalMutation, LegacyJson] => [
-        super::config::update_config,
+
         super::config::clean_backups,
     ],
     exit_confirm: "退出确认" [LocalMutation, Generated] => [
@@ -1330,18 +1389,11 @@ mod tests {
             "import type { ExportResult } from '@/types/generated/config/ExportResult'\n",
             "import type { HistoryEntry } from '@/types/generated/config/HistoryEntry'\n",
             "import type { ImportResult } from '@/types/generated/config/ImportResult'\n\n",
-            "export type AddConfigInput = {\n",
-            "  name: string\n",
-            "  description?: string | null\n",
-            "  baseUrl: string\n",
-            "  authToken: string\n",
-            "  model?: string | null\n",
-            "  smallFastModel?: string | null\n",
-            "  provider?: string | null\n",
-            "  providerType?: string | null\n",
-            "  account?: string | null\n",
-            "  tags?: string[] | null\n",
-            "}\n",
+            "import type { ConfigPlatform } from '@/types/generated/config/ConfigPlatform'\n",
+            "import type { ConfigPatchInput } from '@/types/generated/config/ConfigPatchInput'\n",
+            "import type { ConfigMutationResult } from '@/types/generated/config/ConfigMutationResult'\n",
+            "export type AddConfigInput = { platform: ConfigPlatform; name: string; data: ConfigPatchInput }\n",
+            "export type UpdateConfigInput = AddConfigInput & { expectedVersion?: string }\n",
             "export type ImportConfigInput = { content: string; mode?: string; backup?: boolean }\n\n",
             "const confirmationTokenFor = (action: 'delete_config' | 'import_config' | 'restore_config') => `desktop-confirm:${action}`\n\n",
         ]
@@ -1830,8 +1882,8 @@ mod tests {
         let manifest = command_manifest();
         assert_eq!(manifest.base_command_count, 340);
         assert_eq!(manifest.windows_command_count, 348);
-        assert_eq!(manifest.typed_command_count, 277);
-        assert_eq!(manifest.exact_wire_type_count, 277);
+        assert_eq!(manifest.typed_command_count, 278);
+        assert_eq!(manifest.exact_wire_type_count, 278);
 
         let exact_contract_modules = descriptors
             .iter()
@@ -1868,7 +1920,7 @@ mod tests {
                 )
             })
             .collect::<Vec<_>>();
-        assert_eq!(exact_contract_modules.len(), 277);
+        assert_eq!(exact_contract_modules.len(), 278);
         assert!(
             exact_contract_modules
                 .iter()
@@ -1951,6 +2003,84 @@ mod tests {
             .map(|descriptor| descriptor.id)
             .collect::<Vec<_>>();
         assert_eq!(cooperative, vec!["test_webdav_config"]);
+    }
+
+    #[test]
+    fn lifecycle_matrix_preserves_each_commands_security_and_execution_resource() {
+        use super::{LifecycleOperation, LifecycleResource, command_lifecycle};
+        let descriptors = command_descriptors()
+            .filter(|descriptor| command_lifecycle(descriptor.id).is_some())
+            .collect::<Vec<_>>();
+        assert_eq!(descriptors.len(), 23);
+        for descriptor in descriptors {
+            let (resource, operation) =
+                command_lifecycle(descriptor.id).expect("lifecycle mapping");
+            let query = operation == LifecycleOperation::Query;
+            assert_eq!(
+                descriptor.confirmation,
+                if query {
+                    CommandConfirmation::None
+                } else if descriptor.id == "llmusage_install_execute" {
+                    CommandConfirmation::OpaqueCapability
+                } else {
+                    CommandConfirmation::UserGesture
+                },
+                "{} confirmation",
+                descriptor.id
+            );
+            let (authorization, audit, risk, concurrency) = match resource {
+                LifecycleResource::ProcessExecution => (
+                    CommandAuthorization::SystemCapability,
+                    CommandAudit::Redacted,
+                    CommandRisk::ProcessExecution,
+                    CommandConcurrency::Singleton,
+                ),
+                LifecycleResource::UsageImport => (
+                    CommandAuthorization::LocalUser,
+                    CommandAudit::MetadataOnly,
+                    CommandRisk::LocalMutation,
+                    CommandConcurrency::ModuleExclusive,
+                ),
+                LifecycleResource::CodexAuth => (
+                    CommandAuthorization::SecretAccess,
+                    CommandAudit::Redacted,
+                    CommandRisk::SecretMutation,
+                    CommandConcurrency::ModuleExclusive,
+                ),
+            };
+            assert_eq!(
+                descriptor.authorization, authorization,
+                "{} authorization",
+                descriptor.id
+            );
+            assert_eq!(descriptor.audit, audit, "{} audit", descriptor.id);
+            assert_eq!(
+                descriptor.risk,
+                if query { CommandRisk::ReadOnly } else { risk },
+                "{} risk",
+                descriptor.id
+            );
+            assert_eq!(
+                descriptor.concurrency,
+                if query || operation == LifecycleOperation::Control {
+                    CommandConcurrency::Parallel
+                } else {
+                    concurrency
+                },
+                "{} resource",
+                descriptor.id
+            );
+            if !query {
+                assert!(
+                    !super::confirmation_payload_is_valid(
+                        descriptor,
+                        &tauri::ipc::InvokeBody::Json(serde_json::json!({}))
+                    ),
+                    "{} rejects missing confirmation before owner dispatch",
+                    descriptor.id
+                );
+            }
+        }
     }
 
     #[test]
@@ -2260,7 +2390,9 @@ mod tests {
             if std::env::var_os("CCR_UPDATE_COMMAND_INVENTORY").is_some() {
                 std::fs::create_dir_all(path.parent().expect("inventory parent"))
                     .expect("create inventory directory");
-                std::fs::write(&path, &expected).expect("write command inventory");
+                std::fs::write(&path, &expected).unwrap_or_else(|error| {
+                    panic!("write command inventory {}: {error}", path.display())
+                });
             }
             let actual = std::fs::read_to_string(&path)
                 .expect("read command inventory")

@@ -199,8 +199,31 @@ fn grok_frames_keep_actions_and_local_evidence_across_sizes_and_languages() {
                 }
                 if state == 3 {
                     assert!(text.contains("Enter/n/Esc"));
-                    assert!(text.contains(crate::tui_text!("CCR saved accounts", "CCR 保存账号")));
-                    assert!(text.contains(crate::tui_text!("Unsaved", "未保存")));
+                    let popup_width = width.min(78);
+                    let popup_x = (width - popup_width) / 2;
+                    let mode = crate::tui::theme::viewport_mode(width, height);
+                    let popup_height =
+                        (height - 3 - crate::tui::theme::footer_height(mode)).min(16);
+                    let mut confirmation = String::new();
+                    for y in 4..3 + popup_height - 1 {
+                        for x in popup_x + 1..popup_x + popup_width - 1 {
+                            confirmation.push_str(terminal.backend().buffer()[(x, y)].symbol());
+                        }
+                    }
+                    // Ignore wide-character continuation cells and wrapped-line padding.
+                    let confirmation: String = confirmation
+                        .chars()
+                        .filter(|ch| !ch.is_whitespace())
+                        .flat_map(char::to_lowercase)
+                        .collect();
+                    assert!(
+                        confirmation.contains(crate::tui_text!("ccrsavedaccounts", "ccr保存账号")),
+                        "missing retained-accounts warning: {language:?}, {width}x{height}"
+                    );
+                    assert!(
+                        confirmation.contains(crate::tui_text!("unsaved", "未保存")),
+                        "missing unsaved-credentials warning: {language:?}, {width}x{height}"
+                    );
                 }
                 if state == 0 {
                     assert!(text.contains("personal"));

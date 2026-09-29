@@ -37,6 +37,12 @@ pub async fn switch_command_for_platform(config_name: &str, platform_name: &str)
     ColorOutput::step("步骤 1/3: 读取配置文件");
     ColorOutput::info(&format!("使用平台: {}", platform_name.bright_yellow()));
     let result = run_switch_profile_for_platform(config_name, platform_name).await?;
+    if !result.outcome.activation_committed {
+        return Err(CcrError::ConfigError(result.outcome.message().into()));
+    }
+    if !result.outcome.warnings.is_empty() {
+        ColorOutput::warning(result.outcome.message());
+    }
     let platform = result.platform;
     let target_section = result.target_section;
     let old_env = result.old_env;
@@ -54,11 +60,20 @@ pub async fn switch_command_for_platform(config_name: &str, platform_name: &str)
 
     // 📚 步骤 3: 记录历史（已在用例中执行）
     ColorOutput::step("步骤 3/3: 记录操作历史");
-    ColorOutput::success("✅ 操作历史已记录");
+    if result.outcome.warnings.is_empty() {
+        ColorOutput::success("✅ 操作历史已记录");
+    } else {
+        ColorOutput::warning("配置已生效；计数或历史记录未完整完成，请勿重复激活");
+    }
     println!();
 
-    let platform_config = create_platform(platform)
-        .map_err(|e| CcrError::ConfigError(format!("创建平台 {} 失败: {}", platform_name, e)))?;
+    let platform_config = match create_platform(platform) {
+        Ok(instance) => instance,
+        Err(_) => {
+            ColorOutput::warning("配置已提交，无法读取显示详情；请勿重复激活");
+            return Ok(());
+        }
+    };
 
     // 📋 输出新配置细节与校验结果
     ColorOutput::separator();
@@ -297,8 +312,7 @@ pub async fn switch_command_for_platform(config_name: &str, platform_name: &str)
 
     // 最终验证（仅 Claude 平台）
     if platform == Platform::Claude {
-        let settings_manager = SettingsManager::with_default()?;
-        if let Ok(settings) = settings_manager.load() {
+        if let Ok(settings) = SettingsManager::with_default().and_then(|manager| manager.load()) {
             match settings.validate() {
                 Ok(_) => {
                     ColorOutput::success("✓ 配置已生效,Claude Code 可以使用新的 API 配置");

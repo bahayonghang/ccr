@@ -86,11 +86,6 @@ impl GeminiPlatform {
         base::load_profiles_from_toml(&self.paths.profiles_file)
     }
 
-    /// 💾 保存 profiles 到 TOML 文件
-    fn save_profiles_to_file(&self, profiles: &IndexMap<String, ProfileConfig>) -> Result<()> {
-        base::save_profiles_to_toml(&self.paths.profiles_file, profiles, "gemini", &self.paths)
-    }
-
     /// 📖 加载 Antigravity settings
     #[expect(dead_code)]
     fn load_settings(&self) -> Result<GeminiSettings> {
@@ -119,8 +114,14 @@ impl GeminiPlatform {
             .map_err(|e| CcrError::SettingsError(format!("序列化 Antigravity 设置失败: {}", e)))?;
 
         // 写入文件
-        fs::write(&self.settings_path, content)
-            .map_err(|e| CcrError::SettingsError(format!("写入 Antigravity 设置失败: {}", e)))?;
+        ccr_core::core::guarded_write::write_guarded(
+            &self.settings_path,
+            content.as_bytes(),
+            &ccr_core::core::WriteOptions {
+                secret: true,
+                ..Default::default()
+            },
+        )?;
 
         tracing::info!(
             path = ?self.settings_path,
@@ -204,27 +205,31 @@ impl PlatformConfig for GeminiPlatform {
     }
 
     fn save_profile(&self, name: &str, profile: &ProfileConfig) -> Result<()> {
-        // 先验证
-        self.validate_profile(profile)?;
-
-        // 加载现有 profiles
-        let mut profiles = self.load_profiles()?;
-
-        // 添加/更新 profile
-        profiles.insert(name.to_string(), profile.clone());
-
-        // 保存
-        self.save_profiles_to_file(&profiles)
+        base::mutate_profiles(
+            &self.paths.profiles_file,
+            "gemini",
+            &self.paths,
+            |profiles| {
+                let normalized = profile.clone();
+                self.validate_profile(&normalized)?;
+                profiles.insert(name.to_string(), normalized);
+                Ok(())
+            },
+        )
     }
 
     fn delete_profile(&self, name: &str) -> Result<()> {
-        let mut profiles = self.load_profiles()?;
-
-        if profiles.shift_remove(name).is_none() {
-            return Err(CcrError::ProfileNotFound(name.to_string()));
-        }
-
-        self.save_profiles_to_file(&profiles)?;
+        let profiles = base::mutate_profiles(
+            &self.paths.profiles_file,
+            "gemini",
+            &self.paths,
+            |profiles| {
+                if profiles.shift_remove(name).is_none() {
+                    return Err(CcrError::ProfileNotFound(name.to_string()));
+                }
+                Ok(profiles.clone())
+            },
+        )?;
         base::reconcile_registry_current_profile_after_delete("gemini", name, &profiles)
     }
 

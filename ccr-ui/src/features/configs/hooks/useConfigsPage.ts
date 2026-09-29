@@ -2,9 +2,10 @@ import { useCallback, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { deleteConfig, disableConfig, enableConfig, switchConfig } from '@/api'
 import { getErrorMessage } from '@/utils/errorHandler'
+import { requireProfileOutcome, profileOutcomeWarning } from '@/utils/profileOutcome'
 import { translateWithFallback } from '@/i18n/formatMessage'
 import type { ConfigItem } from '@/types'
-import { t } from '../locale'
+import { useAppT } from '@/i18n'
 import { configsNotify } from '../notify'
 import { configsKeys, useConfigsHistory, useConfigsList, useProviderUsage } from '../queries'
 import { useConfigsViewStore } from '../stores'
@@ -12,6 +13,7 @@ import { buildConfigSummary, currentConfigName, filterConfigs, quickJumpConfigs 
 import type { ConfigFilter, ConfigsTabId, ConfigSort, ProviderSortMode } from '../types'
 
 export function useConfigsPage() {
+  const t = useAppT()
   const queryClient = useQueryClient()
   const listQuery = useConfigsList()
   const [activeTab, setActiveTab] = useState<ConfigsTabId>('configs')
@@ -34,7 +36,7 @@ export function useConfigsPage() {
     () => filterConfigs({ configs, filter: currentFilter, searchQuery, sort: currentSort }),
     [configs, currentFilter, currentSort, searchQuery],
   )
-  const summary = useMemo(() => buildConfigSummary(configs, t), [configs])
+  const summary = useMemo(() => buildConfigSummary(configs, t), [configs, t])
   const jumps = useMemo(() => quickJumpConfigs(filtered), [filtered])
   const currentName = currentConfigName(configs, t('configs.noCurrentConfig'))
 
@@ -52,15 +54,19 @@ export function useConfigsPage() {
       })
       if (!confirmed) return
       try {
-        await switchConfig(name)
-        configsNotify.success(`Switched to configuration ${name}`)
-        setCurrentConfig(name)
+        const response = await switchConfig('claude', name)
         await refresh()
+        const outcome = requireProfileOutcome(response)
+        if (!outcome?.activation_committed) throw new Error(t('profilesSurface.unchangedFailure'))
+        const warning = profileOutcomeWarning(response)
+        if (warning) configsNotify.warning(warning)
+        else configsNotify.success(`Switched to configuration ${name}`)
+        setCurrentConfig(name)
       } catch (error) {
         configsNotify.error(error instanceof Error ? error.message : 'Failed to switch configuration')
       }
     },
-    [refresh, setCurrentConfig],
+    [refresh, setCurrentConfig, t],
   )
 
   const handleEdit = useCallback((name: string) => {
@@ -78,33 +84,38 @@ export function useConfigsPage() {
       })
       if (!confirmed) return
       try {
-        await deleteConfig(name)
+        await deleteConfig('claude', name)
         configsNotify.success(`Configuration ${name} deleted`)
         await refresh()
       } catch (error) {
         configsNotify.error(error instanceof Error ? error.message : 'Failed to delete configuration')
       }
     },
-    [refresh],
+    [refresh, t],
   )
 
   const handleEnable = useCallback(
     async (name: string) => {
       try {
-        await enableConfig(name)
-        configsNotify.success(`Configuration ${name} enabled`)
+        const response = await enableConfig('claude', name)
         await refresh()
+        const outcome = requireProfileOutcome(response)
+        if (!outcome?.activation_committed) throw new Error(t('profilesSurface.unchangedFailure'))
+        const warning = profileOutcomeWarning(response)
+        if (warning) configsNotify.warning(warning)
+        else configsNotify.success(`Configuration ${name} enabled`)
+        setCurrentConfig(name)
       } catch (error) {
         configsNotify.error(error instanceof Error ? error.message : 'Failed to enable configuration')
       }
     },
-    [refresh],
+    [refresh, setCurrentConfig, t],
   )
 
   const handleDisable = useCallback(
     async (name: string) => {
       try {
-        await disableConfig(name)
+        await disableConfig('claude', name)
         configsNotify.success(`Configuration ${name} disabled`)
         await refresh()
       } catch (error) {

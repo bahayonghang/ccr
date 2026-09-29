@@ -613,14 +613,24 @@ async fn capture_doctor(
     args: &[&str],
     timeout: Duration,
 ) -> std::result::Result<Vec<u8>, DoctorError> {
+    let child = spawn_doctor(bin, args)?;
+    capture_doctor_output(child, timeout).await
+}
+
+fn spawn_doctor(bin: &Path, args: &[&str]) -> std::result::Result<ManagedProcess, DoctorError> {
     let mut cmd = tokio::process::Command::new(bin);
     cmd.args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
-    let mut child =
-        ManagedProcess::spawn(cmd).map_err(|error| DoctorError::Spawn(error.to_string()))?;
+    ManagedProcess::spawn(cmd).map_err(|error| DoctorError::Spawn(error.to_string()))
+}
+
+async fn capture_doctor_output(
+    mut child: ManagedProcess,
+    timeout: Duration,
+) -> std::result::Result<Vec<u8>, DoctorError> {
     let stdout = child.take_stdout();
     let stderr = child.take_stderr();
     let stdout_task = tokio::spawn(drain_bounded_pipe(stdout));
@@ -878,9 +888,9 @@ fn render_doctor(outcome: &DoctorOutcome, profile: Option<&str>, snapshot_change
 mod tests {
     use super::{
         DoctorError, LOCAL_DRIFT_EXIT_CODE, RuntimeRepairAction, capture_doctor,
-        cleanup_process_state, decide_runtime_repair, diagnostic_exit_code, extract_highlights,
-        run_codex_doctor, runtime_diagnostic_lines, sanitize_doctor_json, sanitize_doctor_text,
-        value_to_display,
+        capture_doctor_output, cleanup_process_state, decide_runtime_repair, diagnostic_exit_code,
+        extract_highlights, run_codex_doctor, runtime_diagnostic_lines, sanitize_doctor_json,
+        sanitize_doctor_text, spawn_doctor, value_to_display,
     };
     use ccr_codex::{
         CodexAppServer, CodexAppServerCleanupReport, CodexProcessDiscoveryIssue,
@@ -1164,26 +1174,55 @@ mod tests {
 
     #[tokio::test]
     async fn doctor_timeout_terminates_parent_and_grandchild() {
+        #[cfg(windows)]
+        let mut host_env = crate::test_support::TestHostEnv::new();
+        #[cfg(windows)]
+        host_env.set_env("PATH", std::ffi::OsStr::new(""));
         let temp = tempfile::tempdir().expect("tempdir");
         let parent_pid = temp.path().join("parent.pid");
         let child_pid = temp.path().join("grandchild.pid");
         let (bin, args) = hanging_doctor_command(&parent_pid, &child_pid);
         let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
-        let timeout = if cfg!(windows) {
-            Duration::from_secs(20)
-        } else {
-            Duration::from_secs(2)
-        };
+        let child = spawn_doctor(&bin, &arg_refs).expect("spawn managed doctor fixture");
 
-        // 在超时杀树的同时等 pid 文件，避免 Windows 并行负载下 PowerShell 还没写完就被杀掉。
-        let (result, parent, grandchild) = tokio::join!(
-            capture_doctor(&bin, &arg_refs, timeout),
-            wait_for_pid_file(&parent_pid),
-            wait_for_pid_file(&child_pid),
-        );
+        // Confirm the controlled fixture is ready before testing timeout cleanup.
+        let parent = wait_for_pid_file(&parent_pid).await;
+        assert!(test_process_is_running(parent));
+        assert!(!child_pid.exists());
+        std::fs::write(temp.path().join("start-child"), b"ready").expect("release child startup");
+        let grandchild = wait_for_pid_file(&child_pid).await;
+        assert!(test_process_is_running(grandchild));
+
+        let result = capture_doctor_output(child, Duration::from_millis(200)).await;
         assert_eq!(result, Err(DoctorError::Timeout));
         wait_until_process_gone(parent).await;
         wait_until_process_gone(grandchild).await;
+    }
+
+    #[tokio::test]
+    async fn doctor_deadline_applies_before_fixture_is_ready() {
+        #[cfg(windows)]
+        let mut host_env = crate::test_support::TestHostEnv::new();
+        #[cfg(windows)]
+        host_env.set_env("PATH", std::ffi::OsStr::new(""));
+        let temp = tempfile::tempdir().expect("tempdir");
+        let parent_pid = temp.path().join("parent.pid");
+        let child_pid = temp.path().join("grandchild.pid");
+        let (bin, args) = hanging_doctor_command(&parent_pid, &child_pid);
+        let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
+
+        // Keep child startup blocked to exercise the production entrypoint deadline.
+        let result = tokio::time::timeout(
+            Duration::from_secs(5),
+            capture_doctor(&bin, &arg_refs, Duration::from_millis(200)),
+        )
+        .await
+        .expect("production doctor deadline must bound an unready fixture");
+        assert_eq!(result, Err(DoctorError::Timeout));
+        assert!(!child_pid.exists());
+        if let Ok(raw) = std::fs::read_to_string(parent_pid) {
+            wait_until_process_gone(raw.trim().parse().expect("parent PID")).await;
+        }
     }
 
     struct FakeDoctorScript {
@@ -1256,21 +1295,26 @@ mod tests {
         parent_pid: &std::path::Path,
         child_pid: &std::path::Path,
     ) -> (PathBuf, Vec<String>) {
+        let powershell = PathBuf::from(std::env::var_os("SystemRoot").expect("Windows SystemRoot"))
+            .join(r"System32\WindowsPowerShell\v1.0\powershell.exe");
+        assert!(powershell.is_absolute() && powershell.is_file());
         let dir = parent_pid.parent().expect("pid file parent");
         let script_path = dir.join("hanging-doctor.ps1");
         let script = format!(
             "$ErrorActionPreference = 'Stop'\n\
              [IO.File]::WriteAllText({parent}, [string]$PID)\n\
-             $child = Start-Process -FilePath $env:ComSpec -ArgumentList '/C','ping -n 30 127.0.0.1 >NUL' -PassThru -WindowStyle Hidden\n\
+             while (-not [IO.File]::Exists({release})) {{ [Threading.Thread]::Sleep(10) }}\n\
+             $child = Start-Process -FilePath (Join-Path $PSHOME 'powershell.exe') -ArgumentList '-NoProfile','-NonInteractive','-Command','Start-Sleep -Seconds 30' -PassThru -WindowStyle Hidden\n\
              if (-not $child -or $child.Id -le 0) {{ throw 'failed to start grandchild' }}\n\
              [IO.File]::WriteAllText({child}, [string]$child.Id)\n\
              Start-Sleep -Seconds 30\n",
             parent = ps_single_quote(parent_pid),
             child = ps_single_quote(child_pid),
+            release = ps_single_quote(&dir.join("start-child")),
         );
         std::fs::write(&script_path, script).expect("write hanging doctor");
         (
-            PathBuf::from("powershell.exe"),
+            powershell,
             vec![
                 "-NoProfile".to_string(),
                 "-NonInteractive".to_string(),
@@ -1291,9 +1335,10 @@ mod tests {
         let dir = parent_pid.parent().expect("pid file parent");
         let bin = dir.join("hanging-doctor");
         let script = format!(
-            "#!/bin/sh\nprintf '%s\\n' \"$$\" > {parent}\n/bin/sleep 30 &\nprintf '%s\\n' \"$!\" > {child}\nwait\n",
+            "#!/bin/sh\nprintf '%s\\n' \"$$\" > {parent}\nwhile [ ! -f {release} ]; do /bin/sleep 0.01; done\n/bin/sleep 30 &\nprintf '%s\\n' \"$!\" > {child}\nwait\n",
             parent = sh_single_quote(parent_pid),
             child = sh_single_quote(child_pid),
+            release = sh_single_quote(&dir.join("start-child")),
         );
         std::fs::write(&bin, script).expect("write hanging doctor");
         let mut permissions = std::fs::metadata(&bin)

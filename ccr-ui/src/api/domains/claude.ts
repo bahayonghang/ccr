@@ -1,3 +1,4 @@
+import { requireProfileOutcome } from '@/utils/profileOutcome'
 /**
  * Claude Domain —— Claude Code 平台 Settings / MCP / Agents / Slash / Plugins / Output Styles /
  * Statusline / Hooks / Budgets / Prompts / Profiles / Auth 全量 API
@@ -215,13 +216,13 @@ const rawProfilesSaveFrom = (value: OpenJsonValueDto): RawProfilesSaveResult => 
 // ── Claude Settings ──
 
 /** 获取 Claude Code 全局设置 */
-export const getClaudeSettings = async (): Promise<ClaudeSettingsData> => {
-  return settingsFrom(await claudeGenerated.getClaudeSettings())
+export const getClaudeSettings = async (expectedEnvironmentId?: string): Promise<ClaudeSettingsData> => {
+  return settingsFrom(await claudeGenerated.getClaudeSettings(expectedEnvironmentId))
 }
 
 /** 更新 Claude Code 全局设置 */
-export const updateClaudeSettings = async (settings: unknown): Promise<ClaudeSettingsData> => {
-  return settingsFrom(await claudeGenerated.updateClaudeSettings(asOpenJson(settings)))
+export const updateClaudeSettings = async (settings: unknown, expectedEnvironmentId?: string): Promise<ClaudeSettingsData> => {
+  return settingsFrom(await claudeGenerated.updateClaudeSettings(asOpenJson(settings), expectedEnvironmentId))
 }
 
 export const getClaudeSettingsRaw = async (): Promise<RawFileGetResult> => {
@@ -578,8 +579,10 @@ export const addClaudeProfile = async (request: unknown): Promise<ClaudeProfile>
 export const updateClaudeProfile = async (
   name: string,
   request: unknown,
-): Promise<ClaudeProfile> => {
-  return profileFrom(await claudeGenerated.updateClaudeProfile(name, asOpenJson(request)))
+): Promise<OpenJsonValueDto> => {
+  const payload = await claudeGenerated.updateClaudeProfile(name, asOpenJson(request))
+  requireProfileOutcome(payload)
+  return payload
 }
 
 export const deleteClaudeProfile = async (name: string): Promise<OpenJsonValueDto> => {

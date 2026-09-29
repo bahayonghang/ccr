@@ -852,15 +852,15 @@ test-backend:
 
 _test-backend-linux:
     @echo "🧪 运行后端测试..."
-    cd src-tauri && cargo test
+    cd src-tauri && cargo test -- --skip export_bindings
 
 _test-backend-macos:
     @echo "🧪 运行后端测试..."
-    cd src-tauri && cargo test
+    cd src-tauri && cargo test -- --skip export_bindings
 
 _test-backend-windows:
     @Write-Output '🧪 运行后端测试...'
-    @Set-Location src-tauri; cargo test
+    @Set-Location src-tauri; cargo test -- --skip export_bindings
 
 # 运行前端测试
 test-frontend:
@@ -1536,37 +1536,15 @@ bindings:
     @just _bindings-{{os()}}
 
 _bindings-linux:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    echo "🔄 重新生成 TypeScript 绑定..."
-    rm -rf src/types/generated
-    cargo test --manifest-path ../Cargo.toml -p ccr-cli --features ts export_bindings
-    cargo test --manifest-path ../Cargo.toml -p ccr-usage --features ts export_bindings
-    cargo --config ../.cargo/tauri-ci.toml test --manifest-path src-tauri/Cargo.toml export_bindings
-    bun ./scripts/normalize-generated-bindings.mjs
-    echo "✅ 绑定已生成: src/types/generated/"
+    @bun ./scripts/generate-bindings.mjs
 
 _bindings-macos:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    echo "🔄 重新生成 TypeScript 绑定..."
-    rm -rf src/types/generated
-    cargo test --manifest-path ../Cargo.toml -p ccr-cli --features ts export_bindings
-    cargo test --manifest-path ../Cargo.toml -p ccr-usage --features ts export_bindings
-    cargo --config ../.cargo/tauri-ci.toml test --manifest-path src-tauri/Cargo.toml export_bindings
-    bun ./scripts/normalize-generated-bindings.mjs
-    echo "✅ 绑定已生成: src/types/generated/"
+    @bun ./scripts/generate-bindings.mjs
 
 _bindings-windows:
-    @Write-Output '🔄 重新生成 TypeScript 绑定...'
-    @if (Test-Path src/types/generated) { Remove-Item -Recurse -Force src/types/generated }
-    @cargo test --manifest-path ../Cargo.toml -p ccr-cli --features ts export_bindings
-    @cargo test --manifest-path ../Cargo.toml -p ccr-usage --features ts export_bindings
-    @cargo --config ../.cargo/tauri-ci.toml test --manifest-path src-tauri/Cargo.toml export_bindings
-    @bun ./scripts/normalize-generated-bindings.mjs
-    @Write-Output '✅ 绑定已生成: src/types/generated/'
+    @bun ./scripts/generate-bindings.mjs
 
-# 🧪 TypeScript 绑定漂移守卫：先自动规范化空白，再验证重新生成与当前工作区生成物一致
+# 🧪 TypeScript 绑定漂移守卫：比较规范化结果，并在所有结果下恢复调用前生成物
 bindings-check:
     @just _bindings-check-{{os()}}
 

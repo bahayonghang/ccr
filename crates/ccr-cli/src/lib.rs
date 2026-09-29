@@ -9,7 +9,8 @@ pub mod platforms;
 pub mod services;
 pub mod sync;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
+#[allow(dead_code)]
 pub(crate) mod test_support {
     use std::ffi::{OsStr, OsString};
     use std::path::{Path, PathBuf};

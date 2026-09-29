@@ -12,6 +12,7 @@ pub mod grok_auth;
 pub mod i18n;
 pub mod overlay;
 mod pagination;
+pub mod profile_backend;
 pub mod runtime;
 mod selection;
 pub mod theme;
@@ -64,6 +65,9 @@ fn print_exit_info(app: &App) {
     // Profile switch result
     if let Some((platform, profile, success, error)) = &app.last_applied {
         if *success {
+            if let Some(warning) = error {
+                eprintln!("{warning}");
+            }
             println!(
                 "{}",
                 crate::tui_format!(

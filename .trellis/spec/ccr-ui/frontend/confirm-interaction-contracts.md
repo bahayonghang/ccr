@@ -59,6 +59,17 @@
 
 ## 6. Tests Required
 
+- Tauri production CSP requires a page nonce on runtime styles. Before React mounts,
+  `src/main.tsx` calls `initializeRuntimeStyleNonce` from `src/utils/cspNonce.ts`.
+  The helper sets the installed `get-nonce` package's `__webpack_nonce__` fallback
+  for Radix / react-style-singleton scroll-lock styles. CodeMirror reads the same
+  page nonce through its existing editor adapter. Do not relax CSP to permit
+  missing nonces. Ordinary web pages without a nonce keep their existing behavior.
+- `tests/ui/runtime-style-nonce.smoke.test.tsx` mounts the real ConfirmModal and
+  checks the runtime style nonce, readable sheet, body scroll lock and cleanup.
+  Native validation must also verify the computed scroll lock and zero style CSP
+  violations under the production policy; JSDOM does not enforce CSP.
+
 - `rg "\b(confirm|alert)\(" ccr-ui/src --glob '!**/*.test.*'` 零实弹。
 - `cd ccr-ui && bun run test:smoke -- tests/ui/confirm-interaction.smoke.test.tsx`。
 - `cd ccr-ui && bun run type-check && bun run lint`。

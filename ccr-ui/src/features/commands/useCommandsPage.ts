@@ -1,18 +1,13 @@
-import { listen, type Event, type UnlistenFn } from '@tauri-apps/api/event'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { cancelCcrCommandJob, listConfigs, startCcrCommandJob } from '@/api'
+import { listConfigs } from '@/api'
 import { useCommands } from './queries'
 import {
   addFavorite as addFavoriteItem,
-  addRecentItem,
-  clearRecentItems,
   getFavorites,
-  getRecentItems,
   removeFavorite as removeFavoriteItem,
 } from '@/api/domains/uiState'
-import type { CommandJobDelta, CommandJobSnapshot, ConfigItem } from '@/types'
-import type { CommandHistoryDto as CommandHistoryItem } from '@/types/generated/ui_state/CommandHistoryDto'
+import type { ConfigItem } from '@/types'
 import type { FavoriteCommandDto as FavoriteCommand } from '@/types/generated/ui_state/FavoriteCommandDto'
 import { normalizeCliClient, type CliClient } from '@/types/router'
 import { createAnsiRenderer } from '@/utils/ansiRenderer'
@@ -32,6 +27,8 @@ import {
   type LedgerChannel,
 } from './commands-model'
 import { useCommandsT } from './locale'
+import { useCommandsStreamStore } from './stores'
+import { isCommandActive } from './commandJobState'
 
 export function useCommandsPage() {
   const t = useCommandsT()
@@ -46,13 +43,21 @@ export function useCommandsPage() {
   const [activeCategory, setActiveCategory] = useState('all')
   const [activeCollection, setActiveCollection] = useState<CommandCollection>('catalog')
   const [dangerAccepted, setDangerAccepted] = useState(false)
-  const [currentSnapshot, setCurrentSnapshot] = useState<CommandJobSnapshot | null>(null)
+  const job = useCommandsStreamStore((state) => state.job)
+  const currentSnapshot = job.snapshot
+  const submitting = useCommandsStreamStore((state) => state.submitting)
+  const cancelling = useCommandsStreamStore((state) => state.cancelling)
+  const jobError = useCommandsStreamStore((state) => state.error)
+  const listenerFailures = useCommandsStreamStore((state) => state.listenerFailures)
+  const historyWrites = useCommandsStreamStore((state) => state.historyWrites)
+  const historyItems = useCommandsStreamStore((state) => state.historyItems)
+  const handleCancel = useCommandsStreamStore((state) => state.cancel)
+  const handleRefreshJob = useCommandsStreamStore((state) => state.reconcile)
+  const handleClearHistory = useCommandsStreamStore((state) => state.clearHistory)
+  const handleRefreshHistory = useCommandsStreamStore((state) => state.loadHistory)
   const [configs, setConfigs] = useState<ConfigItem[]>([])
   const [favorites, setFavorites] = useState<FavoriteCommand[]>([])
-  const [historyItems, setHistoryItems] = useState<CommandHistoryItem[]>([])
-  const lastDeltaSeq = useRef(-1)
   const preserveArgs = useRef(false)
-  const recordedJobIds = useRef(new Set<string>())
   const ansiRenderer = useRef(createAnsiRenderer())
 
   const commandsQuery = useCommands(selectedClient)
@@ -85,60 +90,20 @@ export function useCommandsPage() {
     if (runtimeUnavailable) {
       setConfigs([{ name: 'default' } as ConfigItem, { name: 'workspace' } as ConfigItem])
       setFavorites([])
-      setHistoryItems([])
       return
     }
-    void listConfigs().then((response) => {
+    void listConfigs('claude').then((response) => {
       setConfigs(Array.isArray(response) ? response : response.configs)
     }).catch((error) => logger.error('Failed to load configs:', error))
-    void Promise.all([getFavorites(), getRecentItems(20)]).then(([favoriteData, historyData]) => {
-      setFavorites(favoriteData)
-      setHistoryItems(historyData)
-    }).catch((error) => logger.error('Failed to load command favorites/history:', error))
-  }, [runtimeUnavailable])
-
-  useEffect(() => {
-    if (runtimeUnavailable) return
-    const unlisteners: UnlistenFn[] = []
-    const handleDelta = (event: Event<CommandJobDelta>) => {
-      setCurrentSnapshot((snapshot) => {
-        const delta = event.payload
-        if (!snapshot || delta.job_id !== snapshot.job_id || delta.seq <= lastDeltaSeq.current) return snapshot
-        lastDeltaSeq.current = delta.seq
-        const field = delta.channel === 'stdout' ? 'stdout_lines' : delta.channel === 'stderr' ? 'stderr_lines' : 'system_lines'
-        const lines = [...snapshot[field], ...delta.lines]
-        return { ...snapshot, [field]: lines.slice(-500), status: delta.status ?? snapshot.status, truncated: Boolean(snapshot.truncated) || delta.dropped_count > 0, dropped_lines: (snapshot.dropped_lines ?? 0) + delta.dropped_count }
-      })
-    }
-    const handleSnapshot = (event: Event<CommandJobSnapshot>) => {
-      const payload = event.payload
-      setCurrentSnapshot((snapshot) => {
-        if (!snapshot || payload.job_id === snapshot.job_id) {
-          lastDeltaSeq.current = -1
-          return payload
-        }
-        return snapshot
-      })
-      if (recordedJobIds.current.has(payload.job_id)) return
-      if (!['success', 'failed', 'cancelled', 'cleanup_failed'].includes(payload.status)) return
-      recordedJobIds.current.add(payload.job_id)
-      void addRecentItem(payload.command, payload.args, payload.status === 'success', payload.duration_ms ?? 0)
-        .then(() => getRecentItems(20))
-        .then(setHistoryItems)
-        .catch((error) => logger.error('Failed to persist command history:', error))
-    }
-    void listen<CommandJobDelta>('commands:job-progress', handleDelta).then((fn) => unlisteners.push(fn))
-    void listen<CommandJobSnapshot>('commands:job-finished', handleSnapshot).then((fn) => unlisteners.push(fn))
-    void listen<CommandJobSnapshot>('commands:job-cancelled', handleSnapshot).then((fn) => unlisteners.push(fn))
-    return () => {
-      unlisteners.forEach((fn) => fn())
-    }
+    void getFavorites().then(setFavorites).catch((error) => logger.error('Failed to load command favorites:', error))
+    void useCommandsStreamStore.getState().loadHistory()
+    void useCommandsStreamStore.getState().reconcile()
   }, [runtimeUnavailable])
 
   const selectedCommandInfo = commands.find((command) => command.name === selectedCommand)
-  const isRunning = currentSnapshot?.status === 'queued' || currentSnapshot?.status === 'running'
+  const isRunning = isCommandActive(currentSnapshot) && !job.expired
   const canRun = !runtimeUnavailable && selectedClient === 'ccr'
-  const canEditArgs = canRun && Boolean(selectedCommandInfo?.executable) && !isRunning
+  const canEditArgs = canRun && Boolean(selectedCommandInfo?.executable) && !isRunning && !submitting
   const canExecuteSelected = Boolean(canEditArgs && selectedCommandInfo && !(selectedCommandInfo.dangerous && !dangerAccepted) && !(selectedCommandInfo.requiresArgs && args.trim().length === 0))
 
   const filteredCommands = useMemo(() => {
@@ -159,24 +124,11 @@ export function useCommandsPage() {
 
   const handleExecute = useCallback(async () => {
     if (!canExecuteSelected || !selectedCommandInfo) return
-    try {
-      const response = await startCcrCommandJob({ command: selectedCommandInfo.name, args: splitArgs(args), confirmationToken: selectedCommandInfo.dangerous && dangerAccepted ? `desktop-confirm:${selectedCommandInfo.name}` : undefined })
-      setCurrentSnapshot(response.snapshot)
-      lastDeltaSeq.current = -1
-    } catch (error) {
-      const message = error instanceof Error ? error.message : t('commands.unknownError')
-      setCurrentSnapshot({ job_id: 'local-error', command: selectedCommandInfo.name, args: splitArgs(args), status: 'failed', started_at: new Date().toISOString(), finished_at: new Date().toISOString(), duration_ms: 0, exit_code: -1, stdout_lines: [], stderr_lines: [], system_lines: [message], truncated: false, dropped_lines: 0, error: message })
-    }
-  }, [args, canExecuteSelected, dangerAccepted, selectedCommandInfo, t])
-
-  const handleCancel = useCallback(async () => {
-    if (!currentSnapshot) return
-    try {
-      setCurrentSnapshot(await cancelCcrCommandJob(currentSnapshot.job_id))
-    } catch (error) {
-      logger.error('Failed to cancel command job:', error)
-    }
-  }, [currentSnapshot])
+    await useCommandsStreamStore.getState().start({
+      command: selectedCommandInfo.name, args: splitArgs(args),
+      confirmationToken: selectedCommandInfo.dangerous && dangerAccepted ? `desktop-confirm:${selectedCommandInfo.name}` : undefined,
+    })
+  }, [args, canExecuteSelected, dangerAccepted, selectedCommandInfo])
 
   const handleCopyOutput = useCallback(async () => {
     const text = ledgerLines.map((line) => `[${line.channel}] ${line.text}`).join('\n')
@@ -185,8 +137,7 @@ export function useCommandsPage() {
 
   const handleClearOutput = useCallback(() => {
     ansiRenderer.current.clear()
-    setCurrentSnapshot(null)
-    lastDeltaSeq.current = -1
+    useCommandsStreamStore.getState().clearOutput()
   }, [])
 
   const loadPersistedCommand = useCallback((command: string, persistedArgs: string[]) => {
@@ -216,15 +167,6 @@ export function useCommandsPage() {
     }
   }, [args, favorites, selectedCommand, selectedCommandInfo])
 
-  const handleClearHistory = useCallback(async () => {
-    try {
-      await clearRecentItems()
-      setHistoryItems([])
-    } catch (error) {
-      logger.error('Failed to clear recent history:', error)
-    }
-  }, [])
-
   return {
     t,
     runtimeUnavailable,
@@ -245,6 +187,14 @@ export function useCommandsPage() {
     dangerAccepted,
     setDangerAccepted,
     currentSnapshot,
+    submitting,
+    cancelling,
+    jobError,
+    liveUpdatesUnavailable: Object.keys(listenerFailures).length > 0,
+    historyWrite: currentSnapshot ? historyWrites[currentSnapshot.job_id] : undefined,
+    failedHistoryWrites: Object.values(historyWrites).filter((write) => write.status === 'failed'),
+    jobExpired: job.expired,
+    handleRefreshJob,
     configs,
     favorites,
     historyItems,
@@ -263,6 +213,7 @@ export function useCommandsPage() {
     loadPersistedCommand,
     handleToggleFavorite,
     handleClearHistory,
+    handleRefreshHistory,
     CLI_CLIENTS,
     MAX_LEDGER_LINES,
   }

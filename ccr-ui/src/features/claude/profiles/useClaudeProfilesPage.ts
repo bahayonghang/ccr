@@ -1,3 +1,4 @@
+import { profileOutcomeWarning } from '@/utils/profileOutcome'
 import { useCallback, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -124,13 +125,16 @@ export function useClaudeProfilesPage() {
           message: t('claudeProfiles.confirmApply', { name }),
           type: 'warning',
           run: async () => {
-            await applyClaudeProfile(name)
-            surfaceNotify.success(t('common.success'))
+            const response = await applyClaudeProfile(name)
+            const warning = profileOutcomeWarning(response)
+            if (warning) surfaceNotify.warning(warning)
+            else surfaceNotify.success(t('common.success'))
             await listQuery.refetch()
           },
         })
       } catch (caught) {
         surfaceNotify.error(getErrorMessage(caught, t('claudeProfiles.applyFailed')))
+        await listQuery.refetch()
       }
     },
     [listQuery],
@@ -207,7 +211,8 @@ export function useClaudeProfilesPage() {
   }, [])
 
   const handleEditorDone = useCallback(
-    (outcome: { status: string }) => {
+    (outcome: { status: string; warning?: string }) => {
+      if (outcome.warning) surfaceNotify.warning(outcome.warning)
       if (outcome.status === 'ok') void listQuery.refetch()
     },
     [listQuery],

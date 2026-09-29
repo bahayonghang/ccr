@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { ConfigItem, UpdateConfigRequest } from '@/types'
 import type { ProviderTemplateDraftContext } from '@/types/providerTemplates'
+import type { ConfigPatchInput } from '@/types/generated/config/ConfigPatchInput'
 
 export const configFormSchema = z.object({
   name: z.string(),
@@ -23,6 +24,24 @@ export const addConfigFormSchema = configFormSchema.extend({
 
 export type ConfigFormValues = z.infer<typeof configFormSchema>
 
+const editDraftSchema = z.object({
+  values: configFormSchema,
+  baseline: configFormSchema,
+  version: z.string().min(1),
+})
+
+export type ConfigEditDraft = z.infer<typeof editDraftSchema>
+
+export function readConfigEditDraft(value: unknown, name: string): ConfigEditDraft | null {
+  const parsed = editDraftSchema.safeParse(value)
+  if (!parsed.success || parsed.data.values.name !== name || parsed.data.baseline.name !== name) return null
+  return {
+    ...parsed.data,
+    values: { ...parsed.data.values, auth_token: '' },
+    baseline: { ...parsed.data.baseline, auth_token: '' },
+  }
+}
+
 export const emptyConfigForm = (): ConfigFormValues => ({
   name: '',
   description: '',
@@ -41,7 +60,8 @@ export function valuesFromConfig(config: Partial<ConfigItem>): ConfigFormValues 
     name: config.name ?? '',
     description: config.description ?? '',
     base_url: config.base_url ?? '',
-    auth_token: config.auth_token ?? '',
+    // The list response is masked; a new credential is entered locally.
+    auth_token: '',
     model: config.model ?? '',
     small_fast_model: config.small_fast_model ?? '',
     provider: config.provider ?? '',
@@ -72,6 +92,21 @@ export function toUpdateRequest(values: ConfigFormValues, name: string): UpdateC
     account: values.account || undefined,
     tags: tags.length ? tags : undefined,
   }
+}
+
+/** Changed empty optional fields clear explicitly; missing fields retain source values. */
+export function toConfigPatch(values: ConfigFormValues, baseline?: ConfigFormValues): ConfigPatchInput {
+  const patch: ConfigPatchInput = {}
+  const fields = ['description', 'base_url', 'auth_token', 'model', 'small_fast_model', 'provider', 'provider_type', 'account'] as const
+  for (const key of fields) {
+    if (baseline && values[key] === baseline[key]) continue
+    patch[key] = values[key] || null
+  }
+  if (!baseline || values.tagsInput !== baseline.tagsInput) {
+    const tags = parseTagsInput(values.tagsInput)
+    patch.tags = tags.length ? tags : null
+  }
+  return patch
 }
 
 export function draftContextFromValues(values: ConfigFormValues): ProviderTemplateDraftContext {

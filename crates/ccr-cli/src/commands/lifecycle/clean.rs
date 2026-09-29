@@ -130,10 +130,14 @@ pub async fn clean_backups_command(days: u64, dry_run: bool, force: bool) -> Res
 
     // ⚡ 检查自动确认模式：--force 参数 OR 配置文件中的 skip_confirmation
     let config_service = ConfigService::with_default()?;
-    let config = config_service.load_config()?;
-    let skip_confirmation = force || config.settings.skip_confirmation;
+    let configured_skip_confirmation = match config_service.load_config() {
+        Ok(config) => config.settings.skip_confirmation,
+        Err(CcrError::ConfigMissing(_)) => false,
+        Err(error) => return Err(error),
+    };
+    let skip_confirmation = force || configured_skip_confirmation;
 
-    if config.settings.skip_confirmation && !force {
+    if configured_skip_confirmation && !force {
         ColorOutput::info("⚡ 自动确认模式已启用，将跳过确认");
     }
 

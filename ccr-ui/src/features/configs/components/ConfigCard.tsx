@@ -1,7 +1,7 @@
 import { memo, useCallback } from 'react'
 import type { ConfigItem } from '@/types'
 import { SIcon } from '@/ui'
-import { t } from '../locale'
+import { useAppT } from '@/i18n'
 import { providerKind } from '../lib/configList'
 import { ConfigBadges, ConfigMetaChips } from './ConfigBadges'
 import '../styles/config-card.css'
@@ -10,6 +10,7 @@ interface ConfigCardProps {
   config: ConfigItem
   highlighted: boolean
   onSwitch: (name: string) => void
+  onEnable: (name: string) => void
   onEdit: (name: string) => void
 }
 
@@ -35,15 +36,19 @@ export const ConfigCard = memo(function ConfigCard({
   config,
   highlighted,
   onSwitch,
+  onEnable,
   onEdit,
 }: ConfigCardProps) {
+  const t = useAppT()
   const kind = providerKind(config)
   const handleEdit = useCallback(() => {
     onEdit(config.name)
   }, [config.name, onEdit])
   const handleSwitch = useCallback(() => {
-    onSwitch(config.name)
-  }, [config.name, onSwitch])
+    if (config.enabled === false) onEnable(config.name)
+    else onSwitch(config.name)
+  }, [config.enabled, config.name, onEnable, onSwitch])
+  const actionLabel = config.enabled === false ? t('configs.enable') : t('configs.switch')
 
   const rowClass = [
     'config-row group relative flex items-stretch overflow-hidden rounded-xl transition-colors duration-300',
@@ -87,7 +92,7 @@ export const ConfigCard = memo(function ConfigCard({
         <ConfigMetaChips config={config} />
       </button>
       <div className="flex shrink-0 items-center gap-2 pr-4">
-        {config.is_current ? (
+        {config.is_current && config.enabled !== false ? (
           <span className="inline-flex cursor-default items-center gap-1 rounded-lg bg-emerald-400/5 px-3 py-1.5 text-xs font-bold text-emerald-400/70">
             <SIcon name="CheckCircle" size="w-3.5 h-3.5" />
             {t('configs.inUse')}
@@ -96,12 +101,12 @@ export const ConfigCard = memo(function ConfigCard({
           <button
             type="button"
             className="switch-btn rounded-lg px-3.5 py-1.5 text-xs font-bold opacity-0 transition-[color,background-color,opacity] duration-200 group-hover:opacity-100 focus:opacity-100"
-            aria-label={`${t('configs.switch')}: ${config.name}`}
-            title={t('configs.switch')}
+            aria-label={`${actionLabel}: ${config.name}`}
+            title={actionLabel}
             onClick={handleSwitch}
           >
             <SIcon name="ArrowRightLeft" size="w-3.5 h-3.5" className="mr-1 inline-block" />
-            {t('configs.switch')}
+            {actionLabel}
           </button>
         )}
         <button

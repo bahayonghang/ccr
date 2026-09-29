@@ -1615,7 +1615,10 @@ mod tests {
         let dashboard = Dashboard::open(AppPaths::from_root(temp.path()))
             .expect("dashboard should open test db");
         let trends = dashboard
-            .trends_daily(&QueryFilter::default())
+            .trends_daily(&QueryFilter {
+                timezone: ReportTimezone::Utc,
+                ..QueryFilter::default()
+            })
             .expect("daily trends should query");
 
         assert_eq!(trends.len(), 2);
@@ -1707,6 +1710,7 @@ mod tests {
                 source: Some(SourceKind::Claude),
                 since: NaiveDate::from_ymd_opt(2026, 5, 20),
                 until: NaiveDate::from_ymd_opt(2026, 5, 21),
+                timezone: ReportTimezone::Utc,
                 ..QueryFilter::default()
             })
             .expect("source breakdown should query");

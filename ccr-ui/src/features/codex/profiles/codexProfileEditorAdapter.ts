@@ -1,3 +1,4 @@
+import { profileOutcomeWarning, requireProfileOutcome } from '@/utils/profileOutcome'
 import { codexApi } from '@/api'
 import type {
   ProfileEditorAdapter,
@@ -202,7 +203,9 @@ export const codexProfileEditorAdapter: ProfileEditorAdapter<CodexEditorForm, Co
     const payload = omitEmptyAuthToken(buildCodexProfileRequest(form, resolvedModelOf(form)))
     try {
       if (ctx.isEditing && ctx.originalName) {
-        await codexApi.updateCodexProfile(ctx.originalName, payload)
+        const response = await codexApi.updateCodexProfile(ctx.originalName, payload)
+        const outcome = requireProfileOutcome(response)
+        return { status: 'ok', appliedName: form.name.trim(), activationCommitted: outcome?.activation_committed, warning: profileOutcomeWarning(response) }
       } else {
         await codexApi.addCodexProfile(payload)
       }

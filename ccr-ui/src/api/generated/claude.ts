@@ -3,8 +3,8 @@
 import { invoke } from '@/api/invokeRuntime'
 import type { OpenJsonValueDto } from '@/types/generated/common/OpenJsonValueDto'
 
-export const getClaudeSettings = (): Promise<OpenJsonValueDto> => invoke('claude_get_settings')
-export const updateClaudeSettings = (settings: OpenJsonValueDto): Promise<OpenJsonValueDto> => invoke('claude_update_settings', { settings })
+export const getClaudeSettings = (expectedEnvironmentId?: string | null): Promise<OpenJsonValueDto> => invoke('claude_get_settings', { expectedEnvironmentId })
+export const updateClaudeSettings = (settings: OpenJsonValueDto, expectedEnvironmentId?: string | null): Promise<OpenJsonValueDto> => invoke('claude_update_settings', { settings, expectedEnvironmentId })
 export const listClaudeMcpServers = (): Promise<OpenJsonValueDto> => invoke('claude_list_mcp_servers')
 export const addClaudeMcpServer = (name: string, config: OpenJsonValueDto, scope?: string): Promise<OpenJsonValueDto> => invoke('claude_add_mcp_server', { name, config, scope })
 export const updateClaudeMcpServer = (name: string, config: OpenJsonValueDto, scope?: string): Promise<OpenJsonValueDto> => invoke('claude_update_mcp_server', { name, config, scope })

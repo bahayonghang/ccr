@@ -714,8 +714,8 @@ export const getCodexProfileEnv = async (name: string): Promise<OpenJsonValueDto
   return codexClient.getCodexProfileEnv(name)
 }
 
-export const applyCodexProfile = async (name: string): Promise<void> => {
-  await codexClient.applyCodexProfile(name)
+export const applyCodexProfile = async (name: string): Promise<OpenJsonValueDto> => {
+  return codexClient.applyCodexProfile(name)
 }
 
 export const codexProfileOff = async (): Promise<CodexProfileOffResult> => {

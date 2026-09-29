@@ -4,11 +4,13 @@ import { codexAuthOff, getCodexAuthCurrent } from '@/api/domains/codex'
 import { probeLocalEnvironment, type EnvironmentProbe } from '@/configs/probeLocal'
 import { surfaceNotify, type SurfaceNotify } from '@/configs/surfaceNotify'
 
-export interface AuthSessionState {
+export interface AuthSession {
   loggedIn: boolean
   canAuthOff: boolean
   detail?: string
 }
+
+export type AuthSessionState = AuthSession | { status: 'unsupported_environment' }
 
 export interface AuthOffResult {
   changed: boolean
@@ -49,7 +51,7 @@ export const grokAuthConfig: AuthSessionConfig = {
   load: async () => {
     const response = await grokAuthCurrent()
     if (response.status === 'unsupported_environment') {
-      return { loggedIn: false, canAuthOff: false }
+      return { status: 'unsupported_environment' }
     }
     return { loggedIn: response.logged_in, canAuthOff: response.can_auth_off }
   },

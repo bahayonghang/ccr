@@ -1,8 +1,9 @@
-import { getGrokSettings, updateGrokSettings } from '@/api/domains/grok'
+import { getGrokSettings, updateGrokSettings, getGrokConfigRaw, saveGrokConfigRaw, listGrokConfigLayers } from '@/api/domains/grok'
 import { probeLocalEnvironment } from '@/configs/probeLocal'
 import { boolField, selectField, textField } from '@/configs/settings-helpers'
 import { surfaceNotify } from '@/configs/surfaceNotify'
-import type { SettingsConfig, SettingsValues } from '@/configs/settings-types'
+import type { SettingsConfig, SettingsValues, SettingsField } from '@/configs/settings-types'
+import { SettingsUnavailableError } from '@/configs/settings-types'
 import type { GrokSettingsForm, GrokSettingsKey } from '@/utils/grokSettings'
 import {
   GROK_CHANNELS,
@@ -48,6 +49,17 @@ export const grokSettingsConfig: SettingsConfig = {
   titleKey: 'grok.settings.title',
   subtitleKey: 'grok.settings.subtitle',
   features: { rawSource: true, localOnly: true, dirtyPatch: true, managedLocks: true },
+  rawSource: {
+    language: 'toml', probe: probeLocalEnvironment,
+    getRaw: getGrokConfigRaw, saveRaw: saveGrokConfigRaw, listLayers: listGrokConfigLayers,
+    backupNoticeKey: 'grok.settings.source.noBackup',
+    policyNoticeKey: 'grok.settings.source.policyNotice',
+    policyLayerIds: ['managed_user', 'managed_system', 'requirements_user', 'requirements_system'],
+  },
+  managedNotice: {
+    titleKey: 'grok.settings.managed.title', descriptionKey: 'grok.settings.managed.description',
+    actionKey: 'grok.settings.managed.action', href: '/grok/profiles',
+  },
   notify: surfaceNotify,
   probe: probeLocalEnvironment,
   tabs: [
@@ -55,7 +67,7 @@ export const grokSettingsConfig: SettingsConfig = {
     { id: 'sessionUi', labelKey: 'grok.settings.tabs.sessionUi' },
     { id: 'cli', labelKey: 'grok.settings.tabs.cli' },
   ],
-  fields: [
+  fields: ([
     textField('models_default', 'model', 'grok.settings.fields.defaultModel'),
     selectField({
       id: 'models_default_reasoning_effort',
@@ -97,16 +109,22 @@ export const grokSettingsConfig: SettingsConfig = {
       labelKey: 'grok.settings.fields.forkWorktree',
       options: optionsOf(GROK_WORKTREE_MODES),
     }),
-  ],
+  ] satisfies SettingsField[]).map((field) => ({ ...field, unsetLabelKey: 'grok.settings.options.unset' })),
   load: async () => {
     const response = await getGrokSettings()
-    if (response.status !== 'ok') throw new Error(response.status)
+    if (response.status !== 'ok') throw new SettingsUnavailableError()
     const form = grokSettingsResponseToForm(response)
     const values: SettingsValues = {}
     for (const [id, key] of Object.entries(GROK_ID_TO_KEY)) {
       values[id] = form[key]
     }
-    return values
+    return {
+      values, source: response,
+      managedLocks: response.managed_keys_locked ? {
+        models_default: 'grok.settings.managed.description',
+        models_default_reasoning_effort: 'grok.settings.managed.description',
+      } : undefined,
+    }
   },
   save: async ({ values, dirtyKeys }) => {
     const form = grokFormFromValues(values)
@@ -118,7 +136,8 @@ export const grokSettingsConfig: SettingsConfig = {
     const invalid = validateGrokSettingsForm(form, grokDirty)
     if (invalid) throw new Error(invalid)
     const patch = buildGrokSettingsPatch(form, grokDirty)
+    if (!grokDirty.size) return { status: 'saved' }
     const result = await updateGrokSettings(patch)
-    if (result.status !== 'saved') throw new Error(result.status)
+    return result
   },
 }

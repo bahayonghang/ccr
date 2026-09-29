@@ -4,8 +4,8 @@ import { executeCommand, listCommands } from '@/api'
 // commands 域 Query 层（08-22-state-logic-port 批次 2）。
 // 原 `stores/commands.ts` 的 `useCachedFetch`（2min TTL）由 Query 的 staleTime
 // 等效替代；`executeCommand` 为写操作 → useMutation + 失效列表 key。
-// `running` / `currentCommand` / `lastOutput` 为执行瞬态，由命令页视图状态承载
-// （state-disposition.md：随命令页 Query 承载，不入全局 store）。
+// Background job identity, output and history belong to the shell-lived command
+// stream store. Query owns only the catalog; pages do not duplicate job state.
 
 export const commandsKeys = {
   all: ['commands'] as const,

@@ -957,43 +957,23 @@ impl App {
             return false;
         }
 
-        if let Err(error) = profile_off_for_platform(platform) {
-            let err_msg = error.to_string();
-            self.toasts.push(Toast::error(crate::tui_format!(
-                "Exit profile failed: {}",
-                "退出 Profile 失败：{}",
-                err_msg
-            )));
-            self.last_applied = Some((platform_label, profile_name, false, Some(err_msg)));
-            return false;
-        }
-
-        let Some(instance) = &self.tabs[self.active_tab].instance else {
-            self.toasts.push(Toast::error(crate::tui_text!(
-                "Platform is not initialized",
-                "平台未初始化"
-            )));
-            return false;
-        };
-
-        match instance.apply_profile(&profile_name) {
-            Ok(()) => {
-                self.toasts.push(Toast::success(crate::tui_format!(
-                    "Switched to: {}",
-                    "已切换到：{}",
-                    profile_name
-                )));
-                self.last_applied = Some((platform_label, profile_name.clone(), true, None));
-
-                if let Ok(profiles) = instance.load_profiles()
-                    && let Some(mut profile) = profiles.get(&profile_name).cloned()
-                {
-                    profile.increment_usage();
-                    let _ = instance.save_profile(&profile_name, &profile);
-                }
-
+        let request = ccr_cli::application::profile_lifecycle::ApplyProfileRequest::new(
+            platform,
+            &profile_name,
+        );
+        match super::profile_backend::apply(request) {
+            Ok(outcome) => {
+                let toast = super::profile_backend::presentation(&outcome);
+                let message = toast.message.clone();
+                self.toasts.push(toast);
+                self.last_applied = Some((
+                    platform_label,
+                    profile_name.clone(),
+                    outcome.activation_committed,
+                    (!outcome.warnings.is_empty()).then_some(message),
+                ));
                 self.reload_profiles();
-                true
+                outcome.activation_committed
             }
             Err(e) => {
                 let err_msg = e.to_string();

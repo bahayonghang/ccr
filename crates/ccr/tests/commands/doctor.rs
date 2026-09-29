@@ -299,7 +299,7 @@ fn doctor_reports_healthy_configured_claude_runtime() {
     assert_eq!(json["summary"]["failed"], 0);
     assert_eq!(
         json["scope"],
-        "global + configured Claude/Codex runtimes (claude)"
+        "global + configured Claude/Codex/Grok runtimes (claude)"
     );
     let checks = json["checks"].as_array().unwrap();
     assert!(
@@ -590,7 +590,7 @@ current_profile = "main"
     assert!(output.status.success(), "{:?}", output.status);
     assert_eq!(
         json["scope"],
-        "global + configured Claude/Codex runtimes (claude)"
+        "global + configured Claude/Codex/Grok runtimes (claude)"
     );
     assert!(json["checks"].as_array().unwrap().iter().all(|check| {
         check["id"] != "global.current_platform" && !check["id"].as_str().unwrap().contains("codex")

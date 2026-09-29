@@ -8,7 +8,9 @@
 |-------|-------------|--------|
 | [Backend Guidelines](./backend-guidelines.md) | CLI command boundaries, output/logging rules, errors, tests, and verification | Complete |
 | [Test Fixtures](./test-fixtures.md) | Process-wide env and filesystem fixtures for CLI tests | Complete |
+| [CLI Diagnostics](./diagnostics-contract.md) | Typed reports, pure reads, auth rules, platform capabilities, and exit codes | Complete |
 | [Profile Initialization](./profile-init.md) | Claude/Codex/Grok profile scaffolding, templates, guarded creation, and registry registration | Complete |
+| [Profile Application Lifecycle](./profile-application-lifecycle.md) | Shared apply/enable/rename, active-profile guards, compensation, outcomes, and replay | Complete |
 | [Grok Profile Runtime](./grok-profile-runtime.md) | Grok profile validation, runtime switching, restoration, CAS, and secret boundaries | Complete |
 | [Claude Auth Runtime Diagnosis](./claude-auth-runtime.md) | Claude Code auth-source priority, confidence, ownership, secret-free diagnosis, and action warnings | Complete |
 | [Profile Off Login-Prep](./profile-off-login-prep.md) | Shared Claude/Codex/Grok `profile off` login-prep cleanup, `needs_login_prep`, and backup/secret write rules | Complete |
@@ -18,7 +20,9 @@
 
 - Read [Backend Guidelines](./backend-guidelines.md) before changing command definitions, command handlers, CLI services, CLI managers, or command output.
 - Read [Test Fixtures](./test-fixtures.md) before adding tests that mutate process env or home-directory paths.
+- Read [CLI Diagnostics](./diagnostics-contract.md) before changing validate, doctor, their reports, or binary status.
 - Read [Profile Initialization](./profile-init.md) before changing profile init commands, embedded examples, or platform registry bootstrap.
+- Read [Profile Application Lifecycle](./profile-application-lifecycle.md) before changing apply/enable/rename or guarded active-profile mutations in CLI, TUI, or desktop adapters.
 - Read [Grok Profile Runtime](./grok-profile-runtime.md) before changing Grok profile validation, runtime switching, restoration, deletion, or credential display.
 - Read [Claude Auth Runtime Diagnosis](./claude-auth-runtime.md) before changing Claude auth/profile switching, runtime summaries, doctor auth-source checks, or auth-source output in any client.
 - Read [Profile Off Login-Prep](./profile-off-login-prep.md) before changing `profile off`, `needs_login_prep`, TUI apply/auth-switch off, or Tauri `*_profile_off`.

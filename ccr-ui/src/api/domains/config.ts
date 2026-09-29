@@ -25,11 +25,12 @@ import {
   restoreConfigTyped,
   switchConfigTyped,
   validateConfigsTyped,
-  type AddConfigInput,
+  updateConfigTyped,
 } from '../generated/config'
 import type { ConfigListResponse, HistoryResponse } from '@/types/config'
 import type { ExportResult } from '@/types/generated/config/ExportResult'
 import type { ImportResult } from '@/types/generated/config/ImportResult'
+import type { ConfigPlatform } from '@/types/generated/config/ConfigPlatform'
 
 interface ImportConfigPayload {
   content?: string
@@ -38,8 +39,8 @@ interface ImportConfigPayload {
 }
 
 /** 列出所有配置（包装为 { configs: [...] } 格式供前端消费） */
-export const listConfigs = async (): Promise<ConfigListResponse> => {
-  const configs = await listConfigsTyped()
+export const listConfigs = async (platform: ConfigPlatform = 'claude'): Promise<ConfigListResponse> => {
+  const configs = await listConfigsTyped(platform)
   return {
     configs,
     current_config: configs.find((config) => config.is_current)?.name ?? '',
@@ -50,39 +51,16 @@ export const listConfigs = async (): Promise<ConfigListResponse> => {
 /** 切换到指定配置 */
 export const switchConfig = switchConfigTyped
 
-/** 添加新配置（兼容 addConfig(name, config) 与 addConfig({name,...})） */
-export const addConfig = async (
-  nameOrData: string | object,
-  config?: unknown,
-): Promise<string> => {
-  const data = typeof nameOrData === 'string'
-    ? { ...asRecord(config), name: nameOrData }
-    : asRecord(nameOrData)
-  const input: AddConfigInput = {
-    name: String(data.name ?? ''),
-    description: typeof data.description === 'string' ? data.description : null,
-    baseUrl: String(data.base_url ?? data.baseUrl ?? ''),
-    authToken: String(data.auth_token ?? data.authToken ?? ''),
-    model: typeof data.model === 'string' ? data.model : null,
-    smallFastModel: typeof data.small_fast_model === 'string'
-      ? data.small_fast_model
-      : typeof data.smallFastModel === 'string' ? data.smallFastModel : null,
-    provider: typeof data.provider === 'string' ? data.provider : null,
-    providerType: typeof data.provider_type === 'string'
-      ? data.provider_type
-      : typeof data.providerType === 'string' ? data.providerType : null,
-    account: typeof data.account === 'string' ? data.account : null,
-    tags: Array.isArray(data.tags) ? data.tags.filter((tag): tag is string => typeof tag === 'string') : null,
-  }
-  return addConfigTyped(input)
-}
+/** Mutating requests use an explicit platform and a strict generated patch. */
+export const addConfig = addConfigTyped
+export const updateConfig = updateConfigTyped
 
-/** 更新配置 */
-export const updateConfig = async <T = UnknownRecord>(
-  name: string,
-  config: unknown,
-): Promise<T> => {
-  return invoke('update_config', { name, data: config })
+/** Enabling persists policy and activates in one backend application operation. */
+export const enableConfig = (platform: ConfigPlatform, name: string) => switchConfigTyped(platform, name, true)
+export const disableConfig = (platform: ConfigPlatform, name: string) => updateConfigTyped({ platform, name, data: { enabled: false } })
+export const getConfig = async (platform: ConfigPlatform, name: string) => {
+  const configs = await listConfigsTyped(platform)
+  return configs.find((config) => config.name === name) ?? null
 }
 
 /** 删除指定配置 */

@@ -213,6 +213,38 @@ def canonical_bun_version(root: Path = REPO_ROOT) -> str:
     return match.group(1)
 
 
+def recipe_block(text: str, name: str) -> str:
+    match = re.search(rf"^{re.escape(name)}:[^\n]*\n(?:[ \t]+[^\n]*\n|\n)*", text, re.MULTILINE)
+    return match.group(0).rstrip() + "\n" if match else ""
+
+
+def local_aggregate_failures(justfile: str) -> list[str]:
+    failures = []
+    for platform in ("windows", "linux", "macos"):
+        block = recipe_block(justfile, f"_ci-timed-{platform}")
+        if platform == "windows":
+            steps = re.findall(r'Name\s*=\s*"([^"]+)"', block)
+        else:
+            line = re.search(r"^    steps=\(([^\n]+)\)", block, re.MULTILINE)
+            steps = re.findall(r'"([^"]+)"', line.group(1)) if line else []
+        if steps.count("tauri-ci") != 1:
+            failures.append(f"local {platform} CI must include exactly one tauri-ci step")
+    desktop = recipe_block(justfile, "tauri-ci")
+    for command in (
+        "cargo --config .cargo/tauri-ci.toml clippy --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop -- -D warnings",
+        "cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml --all-features -- --skip export_bindings",
+        "just tauri-bindings-check",
+        "just tauri-command-inventory-check",
+    ):
+        if command not in desktop:
+            failures.append(f"tauri-ci is missing its required command: {command}")
+    for recipe in ("test", "test-all", "coverage-rust", "coverage-tauri"):
+        block = recipe_block(justfile, recipe)
+        if "--skip export_bindings" not in block:
+            failures.append(f"{recipe} must leave binding exports to the transaction guard")
+    return failures
+
+
 def main() -> int:
     failures: list[str] = []
     workflow_paths = sorted(
@@ -365,6 +397,7 @@ def main() -> int:
     all_workflows = "\n".join(workflows.values())
 
     justfile = (REPO_ROOT / "justfile").read_text(encoding="utf-8")
+    failures.extend(local_aggregate_failures(justfile))
     forbidden = "--test-threads=1"
     if forbidden in justfile or forbidden in all_workflows:
         failures.append("global --test-threads=1 remains in justfile or hosted workflows")

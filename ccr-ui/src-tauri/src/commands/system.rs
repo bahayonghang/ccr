@@ -1012,11 +1012,42 @@ mod tests {
 
     #[tokio::test]
     async fn cli_versions_fast_mode_returns_expected_shape() {
+        let mut process_env = crate::test_support::TestProcessEnv::new();
+        let fixture_dir = tempfile::tempdir().expect("fixture directory");
+        process_env.set("PATH", fixture_dir.path().as_os_str());
+        let statuses: Vec<_> = ["claude", "codex", "gemini"]
+            .into_iter()
+            .map(|tool| {
+                let program = fixture_dir.path().join(if cfg!(windows) {
+                    format!("{tool}.cmd")
+                } else {
+                    tool.to_string()
+                });
+                let script = if cfg!(windows) {
+                    format!("@echo off\r\necho {tool} fixture-1.2.3\r\n")
+                } else {
+                    format!("#!/bin/sh\nprintf '{tool} fixture-1.2.3\\n'\n")
+                };
+                std::fs::write(&program, script).expect("write CLI fixture");
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o700))
+                        .expect("make CLI fixture executable");
+                }
+                CliStatus {
+                    name: tool.to_string(),
+                    installed: true,
+                    path: Some(program.to_string_lossy().into_owned()),
+                    version: None,
+                }
+            })
+            .collect();
         let started_at = Instant::now();
         let mode = CliProbeMode::Fast;
         let timeout_ms = 3_500;
         let parallelism = 4;
-        let entries = compute_cli_versions(timeout_ms, parallelism, None)
+        let entries = compute_cli_versions(timeout_ms, parallelism, Some(&statuses))
             .await
             .expect("compute_cli_versions should succeed");
         let payload = cli_versions_payload(entries, mode, timeout_ms, parallelism);
@@ -1025,8 +1056,27 @@ mod tests {
         assert_eq!(payload.timeout_ms, 3_500);
         assert_eq!(payload.versions.len(), 5);
         assert_eq!(payload.entries.len(), 5);
+        assert_eq!(payload.parallelism, 4);
+        let platforms: Vec<_> = payload
+            .entries
+            .iter()
+            .map(|entry| entry.platform.as_str())
+            .collect();
+        assert_eq!(platforms, CLI_VERSION_TOOLS);
+        for entry in &payload.entries[1..4] {
+            assert!(entry.installed, "{entry:?}");
+            assert_eq!(entry.status, "ok");
+            assert_eq!(
+                entry.version,
+                Some(format!("{} fixture-1.2.3", entry.platform))
+            );
+        }
+        assert!(!payload.entries[0].installed);
+        assert_eq!(payload.entries[0].status, "error");
+        assert!(!payload.entries[4].installed);
+        assert_eq!(payload.entries[4].status, "not_installed");
 
-        // fast 模式下应在合理时间内返回，避免回归导致探测超时
+        // 受控进程保留 fast deadline，不调用宿主安装的 CLI。
         assert!(started_at.elapsed() <= Duration::from_millis(5_000));
     }
 

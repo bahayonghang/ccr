@@ -12,7 +12,7 @@ export function CommandsView() {
     ? page.t('commands.runtimeWeb')
     : page.selectedClient !== 'ccr'
       ? page.t('commands.runtimeClientPreview')
-      : page.isRunning
+      : page.isRunning || page.submitting
         ? page.t('commands.runtimeRunning')
         : page.t('commands.runtimeReady')
   const selectedClientLabel = page.CLI_CLIENTS.find((item) => item.id === page.selectedClient)?.name ?? page.selectedClient
@@ -41,7 +41,7 @@ export function CommandsView() {
               </span>
               <span className="commands-chip">
                 <SIcon name="Activity" size="w-3.5 h-3.5" />
-                {page.currentSnapshot ? page.t(`commands.status.${page.currentSnapshot.status}`) : page.t('commands.cardJobIdle')}
+                {page.currentSnapshot ? page.t(`commands.status.${page.jobExpired ? 'unavailable' : page.currentSnapshot.status}`) : page.t('commands.cardJobIdle')}
               </span>
             </>
           }

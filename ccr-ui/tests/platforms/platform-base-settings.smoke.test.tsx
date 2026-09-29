@@ -5,6 +5,10 @@ import { describe, expect, it, vi } from 'vitest'
 import type { SettingsConfig } from '@/configs/settings'
 import { BaseSettings } from '@/features/platform'
 
+vi.mock('@/api/runtime/environment', () => ({
+  getCurrentEnvironment: async () => ({ id: 'local', env_type: 'local', name: 'Local' }),
+}))
+
 const notify = {
   success: vi.fn(),
   error: vi.fn(),
@@ -23,8 +27,8 @@ const makeConfig = (cacheKey: string, model: string): SettingsConfig => ({
   fields: [{ id: 'model', tab: 'model', kind: 'text', labelKey: 'model-label' }],
   features: {},
   notify,
-  load: async () => ({ model }),
-  save: async () => undefined,
+  load: async () => ({ values: { model }, source: { model } }),
+  save: async () => ({ status: 'saved' }),
 })
 
 const renderWithQuery = (node: ReactNode) => {
@@ -41,11 +45,13 @@ describe('BaseSettings shared implementation', () => {
     const { unmount } = renderWithQuery(<BaseSettings config={first} t={(key) => key} />)
     await waitFor(() => {
       expect(screen.getByText('title-settings-a')).toBeTruthy()
+      expect((screen.getByLabelText('model-label') as HTMLInputElement).value).toBe('sonnet')
     })
     unmount()
     renderWithQuery(<BaseSettings config={second} t={(key) => key} />)
     await waitFor(() => {
       expect(screen.getByText('title-settings-b')).toBeTruthy()
+      expect((screen.getByLabelText('model-label') as HTMLInputElement).value).toBe('gpt')
     })
   })
 })

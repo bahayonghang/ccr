@@ -12,7 +12,7 @@ import {
   addConfigFormSchema,
   draftContextFromValues,
   emptyConfigForm,
-  toUpdateRequest,
+  toConfigPatch,
   type ConfigFormValues,
 } from '../lib/configForm'
 import { NEW_CONFIG_DRAFT_ID } from '../types'
@@ -27,7 +27,6 @@ interface AddConfigModalProps {
 }
 
 export function AddConfigModal({ isOpen, onClose, onSaved }: AddConfigModalProps) {
-  const formDraft = useConfigsViewStore((state) => state.formDrafts[NEW_CONFIG_DRAFT_ID])
   const setFormDraft = useConfigsViewStore((state) => state.setFormDraft)
   const clearFormDraft = useConfigsViewStore((state) => state.clearFormDraft)
   const [saving, setSaving] = useState(false)
@@ -41,16 +40,17 @@ export function AddConfigModal({ isOpen, onClose, onSaved }: AddConfigModalProps
 
   useEffect(() => {
     if (!isOpen) return
+    const formDraft = useConfigsViewStore.getState().formDrafts[NEW_CONFIG_DRAFT_ID]
     const draft = formDraft && typeof formDraft === 'object' ? { ...emptyConfigForm(), ...(formDraft as object) } : emptyConfigForm()
-    reset(draft as ConfigFormValues)
+    reset({ ...draft, auth_token: '' } as ConfigFormValues)
     setSelectedTemplateId(null)
     setSelectedEndpoint('')
-  }, [formDraft, isOpen, reset])
+  }, [isOpen, reset])
 
   useEffect(() => {
     if (!isOpen) return
     const sub = form.watch((values) => {
-      setFormDraft(NEW_CONFIG_DRAFT_ID, values)
+      setFormDraft(NEW_CONFIG_DRAFT_ID, { ...values, auth_token: '' })
     })
     return () => sub.unsubscribe()
   }, [form, isOpen, setFormDraft])
@@ -83,7 +83,7 @@ export function AddConfigModal({ isOpen, onClose, onSaved }: AddConfigModalProps
     async (values: ConfigFormValues) => {
       setSaving(true)
       try {
-        await addConfig(toUpdateRequest(values, values.name.trim()))
+        await addConfig({ platform: 'claude', name: values.name.trim(), data: toConfigPatch(values) })
         configsNotify.success('Configuration added successfully')
         clearFormDraft(NEW_CONFIG_DRAFT_ID)
         onSaved()

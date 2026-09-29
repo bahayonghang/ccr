@@ -1,3 +1,4 @@
+import { profileOutcomeWarning, requireProfileOutcome } from '@/utils/profileOutcome'
 import { useCallback, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { grokApi } from '@/api'
@@ -40,6 +41,7 @@ export async function runProfileRecovery(pending: {
     const response = await grokApi.applyGrokProfile(pending.newName)
     if (response.status === 'unsupported_environment') return
     if (response.status !== 'applied') throw new Error(t('grok.profiles.messages.unexpectedResponse'))
+    requireProfileOutcome(response)
     return
   }
   const response = await grokApi.deleteGrokProfile(pending.oldName)
@@ -160,10 +162,13 @@ export function useGrokProfilesPage() {
         const response = await grokApi.applyGrokProfile(name)
         if (actionUnsupported(response)) return
         if (response.status !== 'applied') throw new Error(t('grok.profiles.messages.unexpectedResponse'))
-        surfaceNotify.success(t('grok.profiles.messages.applySuccess', { name }))
+        const warning = profileOutcomeWarning(response)
+        if (warning) surfaceNotify.warning(warning)
+        else surfaceNotify.success(t('grok.profiles.messages.applySuccess', { name }))
         await reload()
       } catch (error) {
         surfaceNotify.error(getErrorMessage(error, t('grok.profiles.messages.applyFailed')))
+        await reload()
       }
     },
     [actionUnsupported, currentProfile, localOnly, profiles, reload],

@@ -70,6 +70,7 @@ pub struct ManagedProcess {
     pid: u32,
     tree: PlatformProcessTree,
     reaped: bool,
+    tree_cleaned: bool,
 }
 
 impl ManagedProcess {
@@ -86,6 +87,7 @@ impl ManagedProcess {
             pid,
             tree,
             reaped: false,
+            tree_cleaned: false,
         })
     }
 
@@ -106,32 +108,65 @@ impl ManagedProcess {
     }
 
     pub async fn wait(&mut self) -> io::Result<ExitStatus> {
-        let status = self.child.wait().await;
-        self.reaped = true;
-        status
+        let status = self.reap().await?;
+        if !self.tree_cleaned {
+            self.tree.terminate_forceful(self.pid)?;
+            self.confirm_tree_exit(tokio::time::Instant::now() + Duration::from_secs(5))
+                .await?;
+        }
+        Ok(status)
     }
 
     pub async fn terminate_tree(&mut self, grace: Duration) -> io::Result<ExitStatus> {
+        if self.tree_cleaned {
+            return self.reap().await;
+        }
+        let deadline = tokio::time::Instant::now() + grace;
         self.tree.terminate_graceful(self.pid)?;
-        match tokio::time::timeout(grace, self.child.wait()).await {
-            Ok(status) => {
-                self.reaped = true;
-                status
+        let graceful_status = tokio::time::timeout(grace / 2, self.reap()).await;
+        // The direct child can exit while a descendant ignores graceful termination.
+        self.tree.terminate_forceful(self.pid)?;
+        let status = match graceful_status {
+            Ok(status) => status?,
+            Err(_) => tokio::time::timeout_at(deadline, self.reap())
+                .await
+                .map_err(|_| cleanup_timeout())??,
+        };
+        self.confirm_tree_exit(deadline).await?;
+        Ok(status)
+    }
+
+    async fn reap(&mut self) -> io::Result<ExitStatus> {
+        let status = self.child.wait().await?;
+        self.reaped = true;
+        Ok(status)
+    }
+
+    async fn confirm_tree_exit(&mut self, deadline: tokio::time::Instant) -> io::Result<()> {
+        loop {
+            if !self.tree.is_running(self.pid)? {
+                self.tree_cleaned = true;
+                return Ok(());
             }
-            Err(_) => {
-                self.tree.terminate_forceful(self.pid)?;
-                let status = self.child.wait().await;
-                self.reaped = true;
-                status
+            let now = tokio::time::Instant::now();
+            if now >= deadline {
+                return Err(cleanup_timeout());
             }
+            tokio::time::sleep_until((now + Duration::from_millis(10)).min(deadline)).await;
         }
     }
 }
 
+fn cleanup_timeout() -> io::Error {
+    io::Error::new(io::ErrorKind::TimedOut, "process_tree_cleanup_timeout")
+}
+
 impl Drop for ManagedProcess {
     fn drop(&mut self) {
-        if !self.reaped {
+        if !self.tree_cleaned {
             let _ = self.tree.terminate_forceful(self.pid);
+        }
+        if !self.reaped {
             let _ = self.child.start_kill();
         }
     }
@@ -157,16 +192,20 @@ impl PlatformProcessTree {
     }
 
     fn terminate_graceful(&self, pid: u32) -> io::Result<()> {
-        signal_process_group(pid, 15)
+        signal_process_group(pid, 15).map(|_| ())
     }
 
     fn terminate_forceful(&self, pid: u32) -> io::Result<()> {
-        signal_process_group(pid, 9)
+        signal_process_group(pid, 9).map(|_| ())
+    }
+
+    fn is_running(&self, pid: u32) -> io::Result<bool> {
+        signal_process_group(pid, 0)
     }
 }
 
 #[cfg(unix)]
-fn signal_process_group(pid: u32, signal: i32) -> io::Result<()> {
+fn signal_process_group(pid: u32, signal: i32) -> io::Result<bool> {
     unsafe extern "C" {
         fn kill(pid: i32, signal: i32) -> i32;
     }
@@ -174,11 +213,11 @@ fn signal_process_group(pid: u32, signal: i32) -> io::Result<()> {
     // SAFETY: a negative PID targets the process group created for this child.
     let result = unsafe { kill(-(pid as i32), signal) };
     if result == 0 {
-        Ok(())
+        Ok(true)
     } else {
         let error = io::Error::last_os_error();
         if error.raw_os_error() == Some(3) {
-            Ok(())
+            Ok(false)
         } else {
             Err(error)
         }
@@ -293,6 +332,48 @@ impl PlatformProcessTree {
 
     fn terminate_forceful(&self, _pid: u32) -> io::Result<()> {
         self.terminate(1)
+    }
+
+    fn is_running(&self, _pid: u32) -> io::Result<bool> {
+        #[repr(C)]
+        #[derive(Default)]
+        struct BasicAccountingInformation {
+            total_user_time: i64,
+            total_kernel_time: i64,
+            this_period_total_user_time: i64,
+            this_period_total_kernel_time: i64,
+            total_page_fault_count: u32,
+            total_processes: u32,
+            active_processes: u32,
+            total_terminated_processes: u32,
+        }
+
+        unsafe extern "system" {
+            fn QueryInformationJobObject(
+                job: *mut std::ffi::c_void,
+                information_class: i32,
+                information: *mut std::ffi::c_void,
+                information_length: u32,
+                return_length: *mut u32,
+            ) -> i32;
+        }
+
+        let mut information = BasicAccountingInformation::default();
+        // SAFETY: the owned job handle and writable accounting structure are valid.
+        let result = unsafe {
+            QueryInformationJobObject(
+                self.job,
+                1, // JobObjectBasicAccountingInformation
+                (&raw mut information).cast(),
+                std::mem::size_of::<BasicAccountingInformation>() as u32,
+                std::ptr::null_mut(),
+            )
+        };
+        if result == 0 {
+            Err(io::Error::last_os_error())
+        } else {
+            Ok(information.active_processes > 0)
+        }
     }
 
     fn terminate(&self, exit_code: u32) -> io::Result<()> {
@@ -451,6 +532,24 @@ mod tests {
         command
     }
 
+    #[tokio::test]
+    async fn live_tree_confirmation_times_out_without_claiming_cleanup() {
+        let mut process =
+            ManagedProcess::spawn(shell_command("sleep 30")).expect("spawn live process");
+        let started = tokio::time::Instant::now();
+        let error = process
+            .confirm_tree_exit(started + Duration::from_millis(30))
+            .await
+            .expect_err("a live tree cannot confirm successful cleanup");
+        assert_eq!(error.kind(), io::ErrorKind::TimedOut);
+        assert!(!process.tree_cleaned && !process.reaped);
+        assert!(started.elapsed() < Duration::from_millis(500));
+        process
+            .terminate_tree(Duration::from_secs(2))
+            .await
+            .expect("clean up the fixture after confirmation timeout");
+    }
+
     #[cfg(unix)]
     fn shell_command(script: &str) -> Command {
         let mut command = Command::new("sh");
@@ -518,6 +617,130 @@ mod tests {
         tokio::time::sleep(Duration::from_millis(100)).await;
 
         assert!(!unix_process_is_running(grandchild_pid));
+    }
+
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn reaped_windows_parent_still_cleans_its_descendant_tree() {
+        for drop_after_reap in [false, true] {
+            let temp = tempfile::tempdir().expect("tempdir");
+            let pid_file = temp.path().join("grandchild.pid");
+            let script = format!(
+                "$ErrorActionPreference='Stop'; Start-Sleep -Milliseconds 300; \
+                 $child=Start-Process -FilePath 'cmd.exe' -ArgumentList '/C','ping -n 30 127.0.0.1 >NUL' -PassThru; \
+                 [IO.File]::WriteAllText('{}', [string]$child.Id)",
+                pid_file.to_string_lossy().replace('\'', "''")
+            );
+            let mut command = Command::new("powershell.exe");
+            command.args(["-NoProfile", "-NonInteractive", "-Command", &script]);
+            let mut process = ManagedProcess::spawn(command).expect("managed parent");
+            let descendant = wait_for_pid_file(&pid_file).await;
+            process.reap().await.expect("reap direct child");
+            assert!(process_is_running(descendant));
+            assert!(process.reaped && !process.tree_cleaned);
+            if drop_after_reap {
+                drop(process);
+            } else {
+                assert!(
+                    process
+                        .wait()
+                        .await
+                        .expect("wait and clean owned tree")
+                        .success()
+                );
+                assert!(process.tree_cleaned);
+            }
+            for _ in 0..100 {
+                if !process_is_running(descendant) {
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+            assert!(!process_is_running(descendant));
+        }
+    }
+
+    #[cfg(unix)]
+    async fn unix_ignoring_descendant(
+        directory: &std::path::Path,
+        parent_exits: bool,
+    ) -> (ManagedProcess, u32) {
+        let pid_file = directory.join("grandchild.pid");
+        let ready_file = directory.join("grandchild.ready");
+        let quote = |path: &std::path::Path| path.to_string_lossy().replace('\'', "'\\''");
+        let child_script = format!(
+            "trap '' TERM; printf ready > '{}'; exec sleep 30",
+            quote(&ready_file)
+        );
+        let after_start = if parent_exits {
+            "exit 0"
+        } else {
+            "wait \"$descendant\""
+        };
+        let script = format!(
+            "trap 'exit 0' TERM; sh -c '{}' & descendant=$!; \
+             while [ ! -f '{}' ]; do sleep 0.01; done; \
+             printf '%s' \"$descendant\" > '{}'; {after_start}",
+            child_script.replace('\'', "'\\''"),
+            quote(&ready_file),
+            quote(&pid_file),
+        );
+        let mut command = Command::new("sh");
+        command.args(["-c", &script]);
+        let process = ManagedProcess::spawn(command).expect("managed parent");
+        let descendant = wait_for_unix_pid_file(&pid_file).await;
+        assert!(unix_process_is_running(descendant));
+        (process, descendant)
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn termination_escalates_after_unix_parent_exits_on_term() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let (mut process, descendant) = unix_ignoring_descendant(temp.path(), false).await;
+        let started = tokio::time::Instant::now();
+        let status = process
+            .terminate_tree(Duration::from_secs(2))
+            .await
+            .expect("terminate descendants after graceful parent exit");
+        assert!(
+            status.success(),
+            "the parent must exit through its TERM trap"
+        );
+        assert!(started.elapsed() < Duration::from_millis(2500));
+        assert!(!unix_process_is_running(descendant));
+        assert!(process.reaped && process.tree_cleaned);
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn wait_terminates_unix_descendants_after_parent_exit() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let (mut process, descendant) = unix_ignoring_descendant(temp.path(), true).await;
+        let status = tokio::time::timeout(Duration::from_secs(6), process.wait())
+            .await
+            .expect("wait must bound descendant cleanup")
+            .expect("clean descendants after normal parent exit");
+        assert!(status.success());
+        assert!(!unix_process_is_running(descendant));
+        assert!(process.reaped && process.tree_cleaned);
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn dropping_reaped_unix_parent_still_terminates_descendants() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let (mut process, descendant) = unix_ignoring_descendant(temp.path(), true).await;
+        process.reap().await.expect("reap direct child");
+        assert!(process.reaped && !process.tree_cleaned);
+        drop(process);
+        for _ in 0..100 {
+            if !unix_process_is_running(descendant) {
+                return;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        panic!("descendant {descendant} survived the reaped-parent Drop fallback");
     }
 
     #[cfg(unix)]

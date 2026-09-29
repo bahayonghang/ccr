@@ -50,6 +50,7 @@ Notes:
 ### 6. Tests Required
 
 - `cd ccr-ui && bun run lint:ci` → exit 0 (entries 1–4 enforced).
+- Generic Configs regression: `tests/configs/configs-actions.smoke.test.tsx` switches zh-CN to en-US and back in one mounted page. Query data identity and card DOM identity remain unchanged while tabs, summary, filters, badges, and card actions update. Use `useAppT` in translated consumers and include its identity in translated memo dependencies.
 - Red-proof for entries 1–4 is documented in `08-22-arch-quality-perf/implement.md` batch-4 evidence (temporary scratch file → 7 errors, reverted).
 - Entries 5–7 are review items on each view subtask PR, cross-checked in the phase-7 re-measurement.
 

@@ -8,6 +8,10 @@ export type {
   SettingsScalar,
   SettingsTab,
   SettingsValues,
+  SettingsSnapshot,
+  SettingsSaveInput,
+  SettingsSaveResult,
+  SettingsRawSource,
 } from '@/configs/settings-types'
 export { claudeSettingsConfig } from '@/configs/settings-claude'
 export { grokSettingsConfig } from '@/configs/settings-grok'

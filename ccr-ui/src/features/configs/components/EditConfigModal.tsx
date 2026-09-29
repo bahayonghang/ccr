@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { getConfig, updateConfig } from '@/api'
@@ -9,8 +9,8 @@ import { configsNotify } from '../notify'
 import {
   configFormSchema,
   emptyConfigForm,
-  isConfigFormDraft,
-  toUpdateRequest,
+  readConfigEditDraft,
+  toConfigPatch,
   valuesFromConfig,
   type ConfigFormValues,
 } from '../lib/configForm'
@@ -25,10 +25,12 @@ interface EditConfigModalProps {
 }
 
 export function EditConfigModal({ isOpen, configName, onClose, onSaved }: EditConfigModalProps) {
-  const formDraft = useConfigsViewStore((state) => state.formDrafts[configName])
+  const baseline = useRef<{ values: ConfigFormValues; version: string } | null>(null)
   const setFormDraft = useConfigsViewStore((state) => state.setFormDraft)
   const clearFormDraft = useConfigsViewStore((state) => state.clearFormDraft)
   const [loading, setLoading] = useState(false)
+  const [loadedName, setLoadedName] = useState<string | null>(null)
+  const [reloadVersion, setReloadVersion] = useState(0)
   const [saving, setSaving] = useState(false)
   const [showToken, setShowToken] = useState(false)
   const form = useForm<ConfigFormValues>({
@@ -38,18 +40,29 @@ export function EditConfigModal({ isOpen, configName, onClose, onSaved }: EditCo
   const { register, handleSubmit, reset, watch } = form
 
   useEffect(() => {
+    baseline.current = null
+    setLoadedName(null)
     if (!isOpen || !configName) return
     let cancelled = false
     const load = async () => {
       setLoading(true)
       setShowToken(false)
       try {
-        const data = await getConfig(configName)
+        const data = await getConfig('claude', configName)
         if (!data) throw new Error(`Configuration not found: ${configName}`)
         if (cancelled) return
         const loaded = valuesFromConfig(data)
-        reset(isConfigFormDraft(formDraft) ? formDraft : loaded)
+        const stored = useConfigsViewStore.getState().formDrafts[configName]
+        const draft = readConfigEditDraft(stored, configName)
+        baseline.current = draft
+          ? { values: draft.baseline, version: draft.version }
+          : { values: loaded, version: data.version }
+        reset(draft?.values ?? loaded)
+        setLoadedName(configName)
       } catch (error) {
+        if (cancelled) return
+        baseline.current = null
+        setLoadedName(null)
         configsNotify.error(getErrorMessage(error) || 'Failed to load configuration')
       } finally {
         if (!cancelled) setLoading(false)
@@ -59,12 +72,18 @@ export function EditConfigModal({ isOpen, configName, onClose, onSaved }: EditCo
     return () => {
       cancelled = true
     }
-  }, [configName, formDraft, isOpen, reset])
+  }, [configName, isOpen, reloadVersion, reset])
 
   useEffect(() => {
     if (!isOpen || !configName) return
     const sub = watch((values) => {
-      setFormDraft(configName, values)
+      const snapshot = baseline.current
+      if (!snapshot || snapshot.values.name !== configName) return
+      setFormDraft(configName, {
+        values: { ...values, auth_token: '' },
+        baseline: snapshot.values,
+        version: snapshot.version,
+      })
     })
     return () => sub.unsubscribe()
   }, [configName, isOpen, setFormDraft, watch])
@@ -73,11 +92,32 @@ export function EditConfigModal({ isOpen, configName, onClose, onSaved }: EditCo
     setShowToken((value) => !value)
   }, [])
 
+  const reload = useCallback(async () => {
+    const confirmed = await configsNotify.confirm({
+      title: tt('重新载入配置', 'Reload configuration'),
+      message: tt('丢弃未保存的草稿并读取当前配置？', 'Discard the unsaved draft and read the current configuration?'),
+      confirmText: tt('重新载入', 'Reload'),
+      type: 'warning',
+    })
+    if (!confirmed) return
+    clearFormDraft(configName)
+    baseline.current = null
+    setLoadedName(null)
+    setReloadVersion((version) => version + 1)
+  }, [clearFormDraft, configName])
+
   const onValid = useCallback(
     async (values: ConfigFormValues) => {
       setSaving(true)
       try {
-        await updateConfig(configName, toUpdateRequest(values, configName))
+        const snapshot = baseline.current
+        if (!snapshot || snapshot.values.name !== configName || loadedName !== configName) {
+          throw new Error('Configuration snapshot is unavailable')
+        }
+        await updateConfig({
+          platform: 'claude', name: configName,
+          data: toConfigPatch(values, snapshot.values), expectedVersion: snapshot.version,
+        })
         configsNotify.success('Configuration saved successfully')
         clearFormDraft(configName)
         onSaved()
@@ -88,7 +128,7 @@ export function EditConfigModal({ isOpen, configName, onClose, onSaved }: EditCo
         setSaving(false)
       }
     },
-    [clearFormDraft, configName, onClose, onSaved],
+    [clearFormDraft, configName, loadedName, onClose, onSaved],
   )
 
   const onSubmit = useMemo(() => handleSubmit(onValid), [handleSubmit, onValid])
@@ -133,10 +173,13 @@ export function EditConfigModal({ isOpen, configName, onClose, onSaved }: EditCo
           <button type="button" className="flex-1 rounded-lg px-4 py-2 text-sm text-text-secondary" onClick={onClose}>
             {tt('取消', 'Cancel')}
           </button>
+          <button type="button" className="flex-1 rounded-lg px-4 py-2 text-sm text-text-secondary" disabled={saving || loading} onClick={reload}>
+            {tt('重新载入', 'Reload')}
+          </button>
           <button
             type="button"
             className="flex-1 rounded-lg bg-accent-primary px-4 py-2 text-sm text-[color:var(--color-accent-primary-contrast)]"
-            disabled={saving || loading}
+            disabled={saving || loading || loadedName !== configName}
             onClick={onSubmit}
           >
             {tt('保存更改', 'Save Changes')}

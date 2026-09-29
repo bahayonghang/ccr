@@ -45,6 +45,32 @@ pub struct AtomicWriter {
     secret: bool,
 }
 
+#[cfg(unix)]
+pub(crate) fn secret_unix_mode(existing_mode: Option<u32>) -> u32 {
+    existing_mode
+        .filter(|mode| mode & 0o077 == 0)
+        .map(|mode| mode & 0o777)
+        .unwrap_or(0o600)
+}
+
+/// Metadata captured under a guarded leaf lock for compensation.
+#[derive(Clone)]
+pub(crate) struct FileMetadata {
+    permissions: fs::Permissions,
+    #[cfg(windows)]
+    dacl: Vec<u8>,
+}
+
+impl FileMetadata {
+    pub(crate) fn capture(path: &Path) -> Result<Self> {
+        Ok(Self {
+            permissions: fs::metadata(path)?.permissions(),
+            #[cfg(windows)]
+            dacl: capture_windows_dacl(path)?,
+        })
+    }
+}
+
 /// 📝 异步原子写入器
 pub struct AsyncAtomicWriter {
     target_path: PathBuf,
@@ -188,6 +214,16 @@ impl AtomicWriter {
     /// 2. 写入内容到临时文件
     /// 3. 原子替换目标文件
     pub fn write(&self, content: &[u8]) -> Result<()> {
+        self.write_with_commit(content, None, || {})
+    }
+
+    /// Notify the caller immediately after replacement, before fallible sync.
+    pub(crate) fn write_with_commit(
+        &self,
+        content: &[u8],
+        metadata: Option<&FileMetadata>,
+        published: impl FnOnce(),
+    ) -> Result<()> {
         // 📁 确保目标目录存在
         if let Some(parent) = self.target_path.parent() {
             fs::create_dir_all(parent).map_err(|e| {
@@ -211,10 +247,9 @@ impl AtomicWriter {
         #[cfg(unix)]
         if self.secret {
             use std::os::unix::fs::{MetadataExt, PermissionsExt};
-            let mode = match fs::metadata(&self.target_path) {
-                Ok(metadata) if metadata.mode() & 0o077 == 0 => metadata.mode() & 0o777,
-                Ok(_) => 0o600,
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => 0o600,
+            let existing_mode = match fs::metadata(&self.target_path) {
+                Ok(metadata) => Some(metadata.mode()),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
                 Err(error) => {
                     return Err(CcrError::IoError(std::io::Error::other(format!(
                         "读取目标文件权限失败: {}",
@@ -224,7 +259,7 @@ impl AtomicWriter {
             };
             temp_file
                 .as_file()
-                .set_permissions(fs::Permissions::from_mode(mode))
+                .set_permissions(fs::Permissions::from_mode(secret_unix_mode(existing_mode)))
                 .map_err(|e| {
                     CcrError::IoError(std::io::Error::other(format!(
                         "设置临时文件权限失败: {}",
@@ -248,6 +283,14 @@ impl AtomicWriter {
             })?;
         }
 
+        if let Some(metadata) = metadata {
+            #[cfg(windows)]
+            apply_windows_dacl(temp_file.path(), &metadata.dacl)?;
+            temp_file
+                .as_file()
+                .set_permissions(metadata.permissions.clone())?;
+        }
+
         // ✍️ 通过临时文件句柄写入内容（避免二次打开）
         {
             use std::io::Write;
@@ -262,6 +305,14 @@ impl AtomicWriter {
         })?;
 
         self.persist_temp_file(temp_file)?;
+        published();
+        // tempfile clears Windows attributes when publishing a temporary.
+        #[cfg(windows)]
+        if let Some(metadata) = metadata {
+            fs::set_permissions(&self.target_path, metadata.permissions.clone())?;
+        }
+        #[cfg(feature = "test-support")]
+        super::write_journal::fault::after_publish(&self.target_path)?;
         sync_parent_dir(&self.target_path).map_err(|e| {
             CcrError::IoError(std::io::Error::other(format!("刷写父目录失败: {}", e)))
         })?;
@@ -399,9 +450,7 @@ impl AsyncAtomicWriter {
                 None
             };
             let mode = if self.options.secret {
-                existing_mode
-                    .filter(|mode| mode & 0o077 == 0)
-                    .unwrap_or(0o600)
+                secret_unix_mode(existing_mode)
             } else {
                 existing_mode.unwrap_or(0o666)
             };
@@ -647,7 +696,7 @@ unsafe extern "system" {
 }
 
 #[cfg(windows)]
-fn capture_windows_dacl(path: &Path) -> std::io::Result<Vec<u8>> {
+pub(super) fn capture_windows_dacl(path: &Path) -> std::io::Result<Vec<u8>> {
     let path = path_to_wide(path);
     let mut needed = 0_u32;
     // SAFETY: The first call intentionally supplies a null buffer to obtain
@@ -685,7 +734,7 @@ fn capture_windows_dacl(path: &Path) -> std::io::Result<Vec<u8>> {
 }
 
 #[cfg(windows)]
-fn apply_windows_dacl(path: &Path, descriptor: &[u8]) -> std::io::Result<()> {
+pub(super) fn apply_windows_dacl(path: &Path, descriptor: &[u8]) -> std::io::Result<()> {
     #[cfg(test)]
     {
         let mut failure = DACL_SETUP_FAILURE

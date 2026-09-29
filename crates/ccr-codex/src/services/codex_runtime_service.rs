@@ -6,8 +6,8 @@ use crate::models::{
     CodexProfileAuthMode, CodexProfileSecret, CodexProfileSecretStore, CredentialStoreKind,
     Platform, PlatformPaths, ProfileConfig,
 };
-use ccr_core::core::AtomicWriter;
 use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::guarded_write::{WriteOptions, delete_guarded, write_guarded};
 use chrono::Utc;
 use indexmap::IndexMap;
 use serde_json::{Map as JsonMap, Value as JsonValue};
@@ -330,9 +330,14 @@ impl CodexRuntimeService {
 
         let content = serde_json::to_string_pretty(store)
             .map_err(|e| CcrError::ConfigError(format!("序列化 secret store 失败: {}", e)))?;
-        AtomicWriter::new(&path)
-            .secret(true)
-            .write(content.as_bytes())
+        write_guarded(
+            &path,
+            content.as_bytes(),
+            &WriteOptions {
+                secret: true,
+                ..Default::default()
+            },
+        )
     }
 
     #[allow(dead_code)]
@@ -350,11 +355,7 @@ fn detect_auth_store(config: &toml::Value) -> CredentialStoreKind {
 }
 
 fn remove_if_exists(path: &Path) -> Result<()> {
-    if path.exists() {
-        fs::remove_file(path)
-            .map_err(|e| CcrError::ConfigError(format!("删除文件失败 {:?}: {}", path, e)))?;
-    }
-    Ok(())
+    delete_guarded(path)
 }
 
 fn restore_optional_backup(
@@ -362,6 +363,10 @@ fn restore_optional_backup(
     backup: Option<&Path>,
     existed_before: bool,
 ) -> Result<()> {
+    // The application journal owns compensation for this operation file.
+    if ccr_core::core::write_journal::contains(target) {
+        return Ok(());
+    }
     match backup {
         Some(backup) if backup.exists() => {
             fs::copy(backup, target).map_err(|e| {

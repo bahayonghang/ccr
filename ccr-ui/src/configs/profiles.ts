@@ -1,3 +1,4 @@
+import { profileOutcomeWarning } from '@/utils/profileOutcome'
 import {
   addClaudeProfile,
   addCodexProfile,
@@ -133,7 +134,8 @@ export const claudeProfilesConfig: ProfilesConfig = {
     }
   },
   apply: async (name) => {
-    await applyClaudeProfile(name)
+    const warning = profileOutcomeWarning(await applyClaudeProfile(name))
+    if (warning) surfaceNotify.warning(warning)
   },
   remove: async (name) => {
     await deleteClaudeProfile(name)
@@ -142,7 +144,8 @@ export const claudeProfilesConfig: ProfilesConfig = {
     await addClaudeProfile(draft)
   },
   update: async (name, draft) => {
-    await updateClaudeProfile(name, draft)
+    const warning = profileOutcomeWarning(await updateClaudeProfile(name, draft))
+    if (warning) surfaceNotify.warning(warning)
   },
   profileOff: async () => {
     await claudeProfileOff()
@@ -176,7 +179,8 @@ export const grokProfilesConfig: ProfilesConfig = {
     }
   },
   apply: async (name) => {
-    await applyGrokProfile(name)
+    const warning = profileOutcomeWarning(await applyGrokProfile(name))
+    if (warning) surfaceNotify.warning(warning)
   },
   remove: async (name) => {
     await deleteGrokProfile(name)
@@ -206,7 +210,8 @@ export const codexProfilesConfig: ProfilesConfig = {
     }
   },
   apply: async (name) => {
-    await applyCodexProfile(name)
+    const warning = profileOutcomeWarning(await applyCodexProfile(name))
+    if (warning) surfaceNotify.warning(warning)
   },
   remove: async (name) => {
     await deleteCodexProfile(name)
@@ -215,7 +220,8 @@ export const codexProfilesConfig: ProfilesConfig = {
     await addCodexProfile(draft)
   },
   update: async (name, draft) => {
-    await updateCodexProfile(name, draft)
+    const warning = profileOutcomeWarning(await updateCodexProfile(name, draft))
+    if (warning) surfaceNotify.warning(warning)
   },
   profileOff: async () => {
     await codexProfileOff()

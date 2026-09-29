@@ -2644,17 +2644,19 @@ mod tests {
         );
 
         let backslash = PathBuf::from(path.to_string_lossy().replace('/', "\\"));
-        assert!(
-            registry
-                .restore_source(
-                    AgentSessionAgentId::Codex,
-                    "codex-live",
-                    backslash,
-                    AgentSessionSourceKind::File,
-                    None,
-                )
-                .is_ok()
+        #[cfg(unix)]
+        assert!(!backslash.exists());
+        let restored = registry.restore_source(
+            AgentSessionAgentId::Codex,
+            "codex-live",
+            backslash,
+            AgentSessionSourceKind::File,
+            None,
         );
+        #[cfg(windows)]
+        assert!(restored.is_ok());
+        #[cfg(unix)]
+        assert!(restored.is_err());
     }
 
     #[cfg(windows)]

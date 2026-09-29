@@ -21,6 +21,12 @@ pub enum LlmusageAdapterError {
     Query(String),
     #[error("llmusage_cli_error: {0}")]
     Cli(String),
+    #[error("llmusage_cancelled")]
+    Cancelled,
+    #[error("llmusage_timed_out")]
+    TimedOut,
+    #[error("llmusage_cleanup_failed: {0}")]
+    CleanupFailed(String),
 }
 
 impl From<rusqlite::Error> for LlmusageAdapterError {

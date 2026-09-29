@@ -11,6 +11,7 @@ import { registerDeferredIcons, registerShellIcons } from '@/config/iconRegistry
 import { loadDeferredStyles } from './utils/deferredStyles'
 import { initPerfTelemetry } from './utils/perfTelemetry'
 import { applyReducedMotionToDocument } from './utils/reducedMotion'
+import { initializeRuntimeStyleNonce } from './utils/cspNonce'
 import { installStartupErrorHandlers } from './utils/startupRecovery'
 import { logger } from './utils/logger'
 import './styles/index.css'
@@ -20,6 +21,7 @@ if (!container) {
   throw new Error('CCR UI 挂载点缺失：#app 不存在于 index.html')
 }
 
+initializeRuntimeStyleNonce()
 applyReducedMotionToDocument()
 registerShellIcons()
 void registerDeferredIcons().catch(() => {

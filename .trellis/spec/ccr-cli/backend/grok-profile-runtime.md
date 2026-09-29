@@ -80,6 +80,10 @@
   `models.default_reasoning_effort` unchanged, and clears profile pointers.
 - Delete checks raw registry and profiles intent plus runtime equality without
   calling drift detection. A drifted active profile still requires `off`.
+- `get_current_profile` is a pure query. Runtime drift returns no active profile
+  without clearing either stored marker. Save/delete read the declared profiles
+  marker under the repository resource lock; a simplified map without that
+  marker has no file-based activation intent.
 - `inspect_activation_state` is the only activation-state authority for UI
   callers. It reports `Inactive`, `Active`, `Drifted`, or
   `UnsafeMissingEntryState` from raw registry/profile intent, runtime equality,
@@ -134,8 +138,8 @@
   Grok choose its upstream default.
 - Good: editing an official profile sends `model: null`, the Tauri patch helper
   clears the stored model, and the next apply removes `models.default`.
-- Bad: delete through `get_current_profile()` after drift, because that helper
-  clears the registry and can bypass the active-intent guard.
+- Bad: delete through `get_current_profile()` after drift, because the query
+  returns no active profile while stored activation intent can remain.
 - Bad: interpolate `toml::de::Error` into a terminal error; its display text can
   include an `api_key` source line.
 - Bad: back up runtime `config.toml` beside itself on each switch; that creates
@@ -168,8 +172,9 @@ if self.get_current_profile()?.as_deref() != Some(name) {
 }
 ```
 
-Drift detection can clear the registry before this check, leaving an inline
-runtime credential orphaned.
+Drift detection can return no active profile while a stored marker still
+requires runtime cleanup. This check can leave an inline runtime credential
+orphaned.
 
 ### Correct
 

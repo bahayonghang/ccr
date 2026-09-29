@@ -7,10 +7,8 @@
 // - 支持配置文件的备份和恢复
 
 use crate::managers::config::CcsConfig;
-use ccr_core::AutoCompletable;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::fileio;
-use ccr_core::core::guarded_write::WriteOptions;
 use ccr_core::core::{BackupPolicy, backup_guarded};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -49,20 +47,19 @@ impl ConfigFileHandler {
     /// 2. 📄 读取文件内容
     /// 3. 🔍 解析 TOML 格式
     ///
-    /// ⚠️ **并发安全**: 此方法不加锁，调用方需要在外层使用 CONFIG_LOCK 保护 RMW 序列
+    /// ⚠️ **并发安全**: 读取不加锁；RMW 必须调用 ConfigManager::mutate
     ///
     /// 注意: 此方法为纯读取，不会自动修复或写回文件。
     /// 如需自动补全并保存，请使用 `load_with_autofix`。
     pub fn load(&self) -> Result<CcsConfig> {
-        // ✅ 检查文件是否存在
-        if !self.config_path.exists() {
-            return Err(CcrError::ConfigMissing(
-                self.config_path.display().to_string(),
-            ));
-        }
-
-        // 使用统一的 fileio 读取 TOML
-        let config: CcsConfig = fileio::read_toml(&self.config_path)?;
+        let content = fs::read_to_string(&self.config_path).map_err(|error| {
+            if error.kind() == std::io::ErrorKind::NotFound {
+                CcrError::ConfigMissing(self.config_path.display().to_string())
+            } else {
+                CcrError::FileIoError(format!("读取配置失败: {error}"))
+            }
+        })?;
+        let config = crate::managers::config::repository::parse_repository_config(&content)?;
 
         tracing::debug!(
             "✅ 成功加载配置文件: {:?}, 配置节数量: {}",
@@ -80,26 +77,9 @@ impl ConfigFileHandler {
     /// 2. 🔍 自动补全缺失字段
     /// 3. 💾 如果有变更则保存
     ///
-    /// ⚠️ **并发安全**: 此方法不加锁，调用方需要在外层使用 CONFIG_LOCK 保护 RMW 序列
+    /// ⚠️ **并发安全**: 读取不加锁；RMW 必须调用 ConfigManager::mutate
     pub fn load_with_autofix(&self) -> Result<CcsConfig> {
-        let mut config = self.load()?;
-
-        // 🔄 自动补全缺失字段
-        let mut modified = false;
-        for (name, section) in &mut config.sections {
-            if section.auto_complete() {
-                tracing::debug!("🔄 自动补全配置节 '{}' 的缺失字段", name);
-                modified = true;
-            }
-        }
-
-        // 💾 如果有字段被自动补全，保存配置
-        if modified {
-            tracing::info!("💾 检测到缺失字段已自动补全，保存配置文件");
-            self.save(&config)?;
-        }
-
-        Ok(config)
+        crate::managers::config::ConfigManager::new(&self.config_path).load_with_autofix()
     }
 
     /// 💾 保存配置文件
@@ -108,16 +88,13 @@ impl ConfigFileHandler {
     /// 1. 📝 序列化为 TOML 格式
     /// 2. 💾 写入磁盘
     ///
-    /// ⚠️ **并发安全**: 此方法不加锁，调用方需要在外层使用 CONFIG_LOCK 保护 RMW 序列
+    /// ⚠️ **并发安全**: 读取不加锁；RMW 必须调用 ConfigManager::mutate
     pub fn save(&self, config: &CcsConfig) -> Result<()> {
         // profiles.toml 含明文 auth_token，必须按密文文件写盘。
         fileio::write_toml_opts(
             &self.config_path,
             config,
-            &WriteOptions {
-                secret: true,
-                ..Default::default()
-            },
+            &crate::managers::config::repository::profile_write_options(&self.config_path),
         )?;
 
         tracing::debug!("✅ 配置文件已保存: {:?}", self.config_path);

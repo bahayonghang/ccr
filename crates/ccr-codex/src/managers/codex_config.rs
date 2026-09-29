@@ -205,7 +205,14 @@ impl CodexConfigManager {
 
     /// 🔄 原子写入文件 (临时文件 + persist)
     fn atomic_write(&self, target: &Path, data: &[u8]) -> Result<()> {
-        AtomicWriter::new(target).secret(true).write(data)
+        ccr_core::core::guarded_write::write_guarded(
+            target,
+            data,
+            &ccr_core::core::WriteOptions {
+                secret: true,
+                ..Default::default()
+            },
+        )
     }
 
     // ═══════════════════════════════════════════════════════════

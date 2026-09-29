@@ -1,7 +1,7 @@
 import { memo } from 'react'
 import type { ConfigItem } from '@/types'
 import { SIcon, Spinner } from '@/ui'
-import { t } from '../locale'
+import { useAppT } from '@/i18n'
 import { ConfigCard } from './ConfigCard'
 
 interface ConfigListProps {
@@ -10,6 +10,7 @@ interface ConfigListProps {
   error: string | null
   highlightedName: string | null
   onSwitch: (name: string) => void
+  onEnable: (name: string) => void
   onEdit: (name: string) => void
 }
 
@@ -19,8 +20,10 @@ export const ConfigList = memo(function ConfigList({
   error,
   highlightedName,
   onSwitch,
+  onEnable,
   onEdit,
 }: ConfigListProps) {
+  const t = useAppT()
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-text-muted">
@@ -57,6 +60,7 @@ export const ConfigList = memo(function ConfigList({
           config={config}
           highlighted={highlightedName === config.name}
           onSwitch={onSwitch}
+          onEnable={onEnable}
           onEdit={onEdit}
         />
       ))}

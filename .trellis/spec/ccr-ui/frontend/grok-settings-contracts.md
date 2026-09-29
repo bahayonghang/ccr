@@ -29,7 +29,10 @@ features?: {
   managedLocks?: boolean
 }
 
-probe?: () => Promise<{ ok: true } | { ok: false; envType: string }>
+probe?: () => Promise<'ok' | 'unsupported_environment'>
+
+load: () => Promise<SettingsSnapshot>
+save: (input: SettingsSaveInput) => Promise<SettingsSaveResult>
 ```
 
 Grok's thin shell:
@@ -51,6 +54,12 @@ return <BaseSettings config={grokSettingsConfig} />
   `BaseSettings` must not serialize the whole form into a document.
 - `managedLocks: true` disables the locked fields in the form. The backend
   remains the enforcement boundary (`managed_locked`).
+- The loaded snapshot supplies field-id lock reasons. The Grok config supplies
+  the managed-state notice and Profiles recovery link. Expected `conflict`,
+  `managed_locked`, and `unsupported_environment` outcomes retain their named
+  status through the shared save helper.
+- Nullable Grok fields retain an explicit unset option. Boolean false and unset
+  remain different values; unchanged unknown enum values remain visible.
 - Invalid integer-range fields (Grok auto-compact `0..100`) disable save in the
   base field control and are rejected again in the backend.
 
@@ -155,6 +164,10 @@ Backend commands are `grok_get_settings`, `grok_update_settings`,
 - `tests/platforms/grok-settings-api.smoke.test.ts`: generated-client forwarding, raw unsupported normalization, tokens, invalid markers, and unknown-status rejection.
 - `tests/ui/code-source-editor.smoke.test.tsx`: shared editor mount and CSP nonce; default consumers remain unchanged.
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::grok::tests -- --test-threads=1`: whitelist/value validation, unknown-key preservation, CAS retry/conflict, activation recheck, raw invalid/stale behavior, and no-backup policy.
+- The no-backup fixture seeds an existing config and backup sentinel files,
+  compares the non-config file inventory and bytes after typed/raw saves, and
+  verifies invalid typed/raw and stale raw attempts preserve both config bytes
+  and the inventory. Lock files are excluded from that inventory.
 - Run `just tauri-bindings-check` before `just frontend-check-quick`, sequentially. The bindings command regenerates/moves `src/types/generated`; running `tsc` concurrently can observe a transient missing tree.
 - For source-mode changes, also run the CodeMirror CSP smoke and the production checks from `raw-config-editor-contracts.md`.
 
