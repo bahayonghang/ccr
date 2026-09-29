@@ -1786,3 +1786,40 @@ TuiTheme 新增 Auto 并设为默认值：启动时持久化 auto 或 env=auto �
 ### Next Steps
 
 - frontend 仍缺 1920x1080 视觉核对、frontend-check-quick、bundle-budget、build 与 frontend-quality-reviewer。父任务 AC-P6 的 just ci 未跑。这两项先不归档。
+
+
+## Session 115: CLI 与 Tauri 架构提交及行政归档
+<!-- trellis-session: v=2 fp=e6064f953abcee21 -->
+
+**Date**: 2026-09-28
+**Task**: CLI 与 Tauri 架构提交及行政归档
+**Branch**: `dev`
+
+### Summary
+
+源码已本地提交，父任务及 11 个子任务按用户要求行政归档。Windows 与 Linux 已有门禁通过；macOS、历史 0xc0000005 原因及原生/真实环境验收边界保留。未推送。
+
+### Main Changes
+
+- 归档提交 bd74244e 保存 654 个文件，包含中央验收矩阵、关闭记录、路径映射及证据完整性清单。
+- 57 个图标和 2 个原有本地临时脚本保持原状；两个 Insights 任务不变。7 个大型原始产物和已忽略日志仅本地保留。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f22732fc319a11adc38338603ea627def13c6348` | refactor(架构): ♻️ 统一 CLI 与 Tauri 业务边界和回归门禁 |
+
+### Testing
+
+- [OK] 沿用冻结验证：Windows just ci 14 阶段、前端 904 测试、VS Code 51 测试、Linux workspace/Tauri/coverage。提交归档阶段未重跑完整门禁。
+- [OK] 归档前后 1237 个原始非元数据文件 SHA256 一致，654 个暂存 blob 与归档提交一致。
+- [OK] 源码暂存检查通过。归档完整 diff 检查保留 7 个历史补丁的 28 个必需空上下文标记提示；其余归档路径检查通过。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 如继续技术验收，补齐 macOS 必需矩阵并调查历史 exporter 0xc0000005 原因，按 closure.json 保留其余未验边界。
