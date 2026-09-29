@@ -1,0 +1,15 @@
+{
+  "command": [
+    "cargo",
+    "install",
+    "tauri-driver",
+    "--version",
+    "2.1.0",
+    "--locked",
+    "--root",
+    "/tmp/ccr-architecture-tools-01a0e781"
+  ],
+  "start_utc": "2026-09-29T01:32:24.911450+00:00",
+  "exit_code": 0,
+  "scope": "Test driver installation only; independent target; no repository Cargo or bindings"
+}

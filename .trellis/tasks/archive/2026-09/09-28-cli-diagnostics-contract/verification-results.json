@@ -1,0 +1,110 @@
+{
+  "checks": [
+    {
+      "name": "binary-verified",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "-p",
+        "ccr",
+        "--test",
+        "diagnostics_contract"
+      ],
+      "exit_code": 0,
+      "passed": 9,
+      "seconds": 8.42
+    },
+    {
+      "name": "doctor-binary-verified",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "-p",
+        "ccr",
+        "--test",
+        "commands",
+        "doctor"
+      ],
+      "exit_code": 0,
+      "passed": 16,
+      "seconds": 6.33
+    },
+    {
+      "name": "validate-binary-verified",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "-p",
+        "ccr",
+        "--test",
+        "commands",
+        "validate"
+      ],
+      "exit_code": 0,
+      "passed": 2,
+      "seconds": 2.06
+    },
+    {
+      "name": "validate-unit-verified",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "-p",
+        "ccr-cli",
+        "validate"
+      ],
+      "exit_code": 0,
+      "passed": 5,
+      "seconds": 1.64
+    },
+    {
+      "name": "validator-unit-verified",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "-p",
+        "ccr-config",
+        "validator"
+      ],
+      "exit_code": 0,
+      "passed": 6,
+      "seconds": 9.0
+    },
+    {
+      "name": "clippy-verified",
+      "command": [
+        "cargo",
+        "clippy",
+        "--offline",
+        "--locked",
+        "-p",
+        "ccr",
+        "-p",
+        "ccr-cli",
+        "-p",
+        "ccr-config",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings",
+        "-D",
+        "clippy::unwrap_used"
+      ],
+      "exit_code": 0,
+      "passed": 0,
+      "seconds": 15.18
+    }
+  ],
+  "cargo_lock_sha256": "ca1f03e85b5e0d888109ac8af7e7943fc1ceecd20a0f6eeb6a60052c5155db79"
+}

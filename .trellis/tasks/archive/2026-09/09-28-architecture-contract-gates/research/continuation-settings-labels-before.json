@@ -1,0 +1,6 @@
+{
+  "file": "ccr-ui/src/configs/settings-codex.ts",
+  "sha256": "ae0701d198a1dbc9ade71ed5b332cccb0cb1ef98697f95788b4bc00aabc85245",
+  "source": "root browser fixture review",
+  "new_test": "ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx"
+}

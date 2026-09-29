@@ -1,0 +1,18 @@
+{
+  "command": [
+    "cargo",
+    "check",
+    "--locked",
+    "--offline",
+    "-p",
+    "ccr-sync",
+    "--all-targets",
+    "--all-features"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "environment_overrides": {},
+  "started_at": "2026-09-28T23:01:53.830519+00:00",
+  "exit_code": 0,
+  "seconds": 5.665,
+  "log": "continuation-security-root-sync-check.log"
+}

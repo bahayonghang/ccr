@@ -1,0 +1,12 @@
+{
+  "date_utc": "2026-09-28T23:00:06.212052+00:00",
+  "baseline_commit": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "files": {
+    "ccr-ui/src-tauri/src/main.rs": "28005807860811e598088679ba333e29ea4cd62391abda60dc53b9b9a225bcff",
+    "ccr-ui/src-tauri/src/state.rs": "d44ba1f2b244a82af6a8f7fa5567e72c4b272543ed18618e1545ea05ba5a10cf",
+    "ccr-ui/src-tauri/src/commands/claude.rs": "c673c58cf65a9a2f30399a06b63364f8e66564fd0e50e928f8521e022d585d6f",
+    "ccr-ui/src-tauri/src/commands/codex.rs": "63ecad05a6dd2af59021cc87ccdb6a22a23cce201688e1bb36a90c1691705da4"
+  },
+  "original_diagnostics": ".trellis/tasks/09-28-frontend-query-error-contracts/research/backend-clippy.log",
+  "original_diagnostics_sha256": "4cf39ac9622f9ca08f6080386c946927c24517930d47f67177b646b9272ada14"
+}

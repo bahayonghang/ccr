@@ -1,0 +1,326 @@
+{
+  "baseline_commit": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "date": "2026-09-28",
+  "scopes": [
+    {
+      "scope": "crates",
+      "files": 432,
+      "lines_including_tests_comments_blanks": 161672,
+      "largest": [
+        [
+          4627,
+          "crates/ccr-codex/src/platforms/codex.rs"
+        ],
+        [
+          4451,
+          "crates/ccr-tui/src/tui/ui.rs"
+        ],
+        [
+          4315,
+          "crates/ccr-codex/src/services/codex_history_sync_service.rs"
+        ],
+        [
+          3633,
+          "crates/ccr-codex/src/services/codex_auth_service.rs"
+        ],
+        [
+          3477,
+          "crates/ccr-db/src/services/usage_import_service.rs"
+        ],
+        [
+          3391,
+          "crates/ccr-skills/src/services/skills_service.rs"
+        ],
+        [
+          3136,
+          "crates/ccr-db/src/database/migrations.rs"
+        ],
+        [
+          3128,
+          "crates/ccr-store/src/sessions/providers.rs"
+        ],
+        [
+          2890,
+          "crates/ccr-checkin/src/services/checkin_service.rs"
+        ],
+        [
+          2850,
+          "crates/ccr-db/src/database/repositories/usage_repo.rs"
+        ]
+      ]
+    },
+    {
+      "scope": "ccr-ui/src",
+      "files": 696,
+      "lines_including_tests_comments_blanks": 95914,
+      "largest": [
+        [
+          5858,
+          "ccr-ui/src/i18n/locales/en-US.ts"
+        ],
+        [
+          5699,
+          "ccr-ui/src/i18n/locales/zh-CN.ts"
+        ],
+        [
+          1230,
+          "ccr-ui/src/i18n/bootMessages.ts"
+        ],
+        [
+          1049,
+          "ccr-ui/src/api/domains/codex.ts"
+        ],
+        [
+          752,
+          "ccr-ui/src/views/dashboard/dashboardPresentation.ts"
+        ],
+        [
+          736,
+          "ccr-ui/src/api/tauri.ts"
+        ],
+        [
+          671,
+          "ccr-ui/src/composables/useUnifiedMcp.ts"
+        ],
+        [
+          667,
+          "ccr-ui/src/types/checkin.ts"
+        ],
+        [
+          624,
+          "ccr-ui/src/api/domains/claude.ts"
+        ],
+        [
+          578,
+          "ccr-ui/src/composables/useCodexDashboard.ts"
+        ]
+      ]
+    },
+    {
+      "scope": "ccr-ui/src-tauri/src",
+      "files": 90,
+      "lines_including_tests_comments_blanks": 48109,
+      "largest": [
+        [
+          2432,
+          "ccr-ui/src-tauri/src/commands/codex.rs"
+        ],
+        [
+          2366,
+          "ccr-ui/src-tauri/src/commands/handler_registry.rs"
+        ],
+        [
+          2317,
+          "ccr-ui/src-tauri/src/commands/command_exec.rs"
+        ],
+        [
+          2272,
+          "ccr-ui/src-tauri/src/services/usage.rs"
+        ],
+        [
+          2205,
+          "ccr-ui/src-tauri/src/commands/grok.rs"
+        ],
+        [
+          1832,
+          "ccr-ui/src-tauri/src/commands/codex_auth.rs"
+        ],
+        [
+          1778,
+          "ccr-ui/src-tauri/src/commands/sync.rs"
+        ],
+        [
+          1613,
+          "ccr-ui/src-tauri/src/commands/codex_agent_sources.rs"
+        ],
+        [
+          1592,
+          "ccr-ui/src-tauri/src/commands/usage.rs"
+        ],
+        [
+          1510,
+          "ccr-ui/src-tauri/src/commands/claude_mcp_config.rs"
+        ]
+      ]
+    }
+  ],
+  "crate_dependencies": [
+    {
+      "crate": "ccr",
+      "local_dependencies": [
+        "ccr-cli",
+        "ccr-core",
+        "ccr-store",
+        "ccr-tui"
+      ]
+    },
+    {
+      "crate": "ccr-checkin",
+      "local_dependencies": [
+        "ccr-core",
+        "ccr-db",
+        "ccr-types"
+      ]
+    },
+    {
+      "crate": "ccr-cli",
+      "local_dependencies": [
+        "ccr-core",
+        "ccr-config",
+        "ccr-sync",
+        "ccr-skills",
+        "ccr-store",
+        "ccr-codex",
+        "ccr-types"
+      ]
+    },
+    {
+      "crate": "ccr-codex",
+      "local_dependencies": [
+        "ccr-core",
+        "ccr-config",
+        "ccr-types"
+      ]
+    },
+    {
+      "crate": "ccr-config",
+      "local_dependencies": [
+        "ccr-core",
+        "ccr-types"
+      ]
+    },
+    {
+      "crate": "ccr-core",
+      "local_dependencies": []
+    },
+    {
+      "crate": "ccr-db",
+      "local_dependencies": [
+        "ccr-core",
+        "ccr-types"
+      ]
+    },
+    {
+      "crate": "ccr-skills",
+      "local_dependencies": [
+        "ccr-config",
+        "ccr-core"
+      ]
+    },
+    {
+      "crate": "ccr-store",
+      "local_dependencies": [
+        "ccr-core",
+        "ccr-config",
+        "ccr-types"
+      ]
+    },
+    {
+      "crate": "ccr-sync",
+      "local_dependencies": [
+        "ccr-config",
+        "ccr-core"
+      ]
+    },
+    {
+      "crate": "ccr-tui",
+      "local_dependencies": [
+        "ccr-cli",
+        "ccr-core",
+        "ccr-codex",
+        "ccr-usage"
+      ]
+    },
+    {
+      "crate": "ccr-types",
+      "local_dependencies": []
+    },
+    {
+      "crate": "ccr-usage",
+      "local_dependencies": []
+    }
+  ],
+  "manifest": {
+    "schema_version": 2,
+    "base_command_count": 340,
+    "windows_command_count": 348,
+    "typed_command_count": 277,
+    "exact_wire_type_count": 277,
+    "legacy_commands": [
+      "claude_get_settings_raw_text",
+      "claude_save_settings_raw_text",
+      "codex_get_config_raw_text",
+      "codex_save_config_raw_text",
+      "claude_list_settings_layers",
+      "codex_list_config_layers",
+      "list_providers",
+      "add_provider",
+      "update_provider",
+      "delete_provider",
+      "test_provider_connection",
+      "list_accounts",
+      "add_account",
+      "update_account",
+      "delete_account",
+      "batch_delete_accounts",
+      "execute_checkin",
+      "batch_checkin",
+      "start_checkin_job",
+      "get_checkin_job_status",
+      "get_checkin_records",
+      "get_balance",
+      "get_balance_history",
+      "get_balance_stats",
+      "export_checkin_data",
+      "export_checkin_stats",
+      "execute_cdk_recharge",
+      "get_cdk_history",
+      "list_waf_cookies",
+      "add_waf_cookie",
+      "delete_waf_cookie",
+      "health_check",
+      "open_waf_login",
+      "get_waf_cookie_status",
+      "validate_waf_cookie_for_account",
+      "waf_deliver_cookie",
+      "unified_list_mcp_servers",
+      "unified_add_mcp_server",
+      "unified_update_mcp_server",
+      "unified_delete_mcp_server",
+      "env_list_platforms",
+      "env_detect_cli",
+      "set_pricing",
+      "get_pricing_list",
+      "remove_pricing",
+      "reset_pricing",
+      "list_mcp_presets",
+      "get_mcp_preset",
+      "install_mcp_preset",
+      "install_mcp_preset_single",
+      "list_source_mcp_servers",
+      "sync_mcp_server",
+      "sync_all_mcp_servers",
+      "list_builtin_providers",
+      "add_builtin_provider",
+      "get_checkin_account_cookies",
+      "export_checkin_config",
+      "preview_checkin_import",
+      "import_checkin_config",
+      "get_account_dashboard",
+      "update_config",
+      "clean_backups",
+      "update_ccr",
+      "wsl_list_distros",
+      "wsl_refresh_distros",
+      "wsl_clear_cache",
+      "wsl_cache_status",
+      "wsl_read_config",
+      "wsl_write_config",
+      "wsl_detect_cli",
+      "wsl_sync_config"
+    ]
+  },
+  "spec_missing_packages": [
+    "ccr-usage"
+  ]
+}

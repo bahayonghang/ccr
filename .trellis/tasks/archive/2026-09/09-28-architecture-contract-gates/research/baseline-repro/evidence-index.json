@@ -1,0 +1,46 @@
+{
+  "baseline_commit": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "baseline_product_instrumentation": {
+    "crates/ccr-cli/src/lib.rs": {
+      "baseline_sha256": "372b58f8fce17cd821ed1c08762b6f85694556fb406844bee1892e22ce7721ed",
+      "test_build_sha256": "6a3c239d5a301b9aa5481e39bf030c3575de8f831926f13bc05ce72cfeb1363b"
+    },
+    "ccr-ui/src-tauri/src/llmusage_adapter/cli.rs": {
+      "baseline_sha256": "9b1d53163e6ebb2de78de6a24b915a7c916be617a0a18b1e7e4bd46ff7db8022",
+      "test_build_sha256": "456f1b1e385c251db3ea6a4788361003cecc02a458ae0ae300cf1d37de858b01"
+    },
+    "ccr-ui/src-tauri/src/process/gateway.rs": {
+      "baseline_sha256": "7e6ec640561e8272aed36def4bf9a812c3d91aaafc5ff163f319e76afaf0496e",
+      "test_build_sha256": "c469edc718bb48192782f65b6f9599cbdafb4939fb3eb77e3d23e6b77e0e941b"
+    }
+  },
+  "tests": {
+    "a09-baseline.json": "a4ff7d1ff3d4ddda6bca56b43d2fbc33f5fb0baf8fd1c84fbf50cba9dc404da5",
+    "a09-baseline.log": "d8b6379154d89af97222c13127afd65743abffe4ba3e79e32878febc2bfccde3",
+    "a09-instrumentation.json": "6ee9854c1c2f4159a216e531c2719dab79e23158850639813bfeea6701122691",
+    "a09_baseline_test.rs": "d7a554c287071d31d1419df8e6cd2fa341da6a26bfea2fce42e2061b58ea2157",
+    "a15-baseline.json": "bf333a3869084aa9a04aaabca9fe3d4c4e44c48b1f81cbe9765261710f63fe75",
+    "a15-baseline.log": "fe7bdf6c1bf6fa6c8768b2cedfc4595d7c8261fdd8b226de937af990ceb19cc1",
+    "architecture_baseline_tests.rs": "54ce43326bfbfc64fbe3c874160870d0debbab943324b6e3bc09e724e924be35",
+    "baseline-capabilities-input.tsx": "98d3b136cb44a5e7e032c29fa2c6a44eb8cef937f7dbd8b9c594117bd9c8a135",
+    "cli-baseline.json": "344aa1479818398a40d404e2c636d4bfa378ed2547b023683389556cfe372a53",
+    "cli-baseline.log": "dc1a3838ce5e217f421b5b1098b45fd7fee7051c86eb7ab9633fc823129ada1e",
+    "silent_child.pdb": "9d0f74cd29fbc28d998d0decf8373a7a4c1ff9788aa4054f1df8a8a97cfef7ea",
+    "silent_child.rs": "24db00deb44ca9688dbed9d19a31f854bec79d48c55dadd30081f1fa6e00279f",
+    "a14-baseline.json": "90adffefde846a7b47d5eb5932ba8038a945e28f6a3399478f525e4aaca57b29",
+    "a14-baseline.log": "b1f0b3673cc9bc41de52a05e17ada033c5b13ae1d5764504f738440ff1407c42",
+    "a14-baseline.test.ts": "c9b02db9464c39ade3263be2944b95bb5ca1cd19d746b0d783d4fa059eed2370",
+    "settings-codex-map-baseline.ts": "4c120be0c30bed997b70bc435671a7a12a125f0b3c11831143e0a6c51791cbce",
+    "settings-helpers-baseline.ts": "c2bd9f4f75b9ffbfae3a4933df8255f84ea6373bc81cbb25fde5dca729c7a9b4"
+  },
+  "expected_results": {
+    "A01": "old retired caller destination rejected valid target",
+    "A02": "actual stale platform snapshot erased successful service write",
+    "A03": "actual runtime new while history failure escaped",
+    "A09": "real silent process outlived shortened descriptor deadline; explicit cancellation reaped it",
+    "A11": "actual icacls failure ignored by original persistence function sequence",
+    "A15": "original real route leaves managed model editable under transport fixture",
+    "A14": "original mapper replaced existing notifications event array with false when changing model only"
+  },
+  "source_eol_note": "A09 gateway original hashes in two captures refer to the same baseline blob using LF and CRLF representations; exact probe metadata is preserved."
+}

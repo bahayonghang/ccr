@@ -1,0 +1,18 @@
+{
+  "date": "2026-09-28",
+  "phase": "parallel prerequisite fixture, no T09 production implementation",
+  "command": "bun run test:smoke -- tests/platforms/query-contract-baseline.smoke.test.tsx",
+  "cwd": "ccr-ui",
+  "result": {
+    "exit_code": 1,
+    "passed": 0,
+    "failed": 3
+  },
+  "log": "root-precondition-red-final.log",
+  "note": "The initial fixture observed before the batched Query update committed and incorrectly passed the dirty-refetch case. The final fixture waits for an independent server snapshot observer, then verifies the actual input. No arbitrary sleep was added.",
+  "files": {
+    "ccr-ui/tests/platforms/query-contract-baseline.smoke.test.tsx": "f3d9be47d61f8f036f66b159763a5154c1136487d080b2746bcefa661975527c",
+    "ccr-ui/src/features/platform/auth/BaseAuth.tsx": "10c4e66ced0d7d2b291a2c85a011f922c6d0d84659da778ce80dc2bdea5cf427",
+    "ccr-ui/src/features/platform/settings/BaseSettings.tsx": "df451f99eb322d7c20df12cec0aad6f087f043f9c93d9f373f5a7b27e0ce1cb9"
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "id": "config-repository-consistency",
+  "name": "config-repository-consistency",
+  "title": "配置仓储并发一致性与纯查询",
+  "description": "统一 profile 资源的读改写锁，分离只读查询与显式修复，保留现有格式和安全写入。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P1",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-09-28",
+  "completedAt": "2026-09-28",
+  "branch": "dev",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": "f22732fc319a11adc38338603ea627def13c6348",
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "09-28-cli-tauri-architecture",
+  "relatedFiles": [
+    "crates/ccr-config/src/managers/config/",
+    "crates/ccr-config/src/services/config_service.rs",
+    "crates/ccr-config/src/platforms/base.rs",
+    "crates/ccr-cli/src/platforms/claude.rs"
+  ],
+  "notes": "",
+  "meta": {
+    "architecture_task_key": "T01",
+    "depends_on": [],
+    "planning_only": false,
+    "review_baseline": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+    "implementation_authorized": true,
+    "approval_inherited_from": "09-28-cli-tauri-architecture",
+    "approval_date": "2026-09-28",
+    "closure": {
+      "kind": "user_authorized_administrative_archive",
+      "authorization": "请提交改动和归档任务",
+      "closed_at_utc": "2026-09-29T04:55:33.470880+00:00",
+      "acceptance": "partial_required_acceptance_remains_open",
+      "scope": "aggregate architecture acceptance; see parent closure",
+      "record": ".trellis/tasks/archive/2026-09/09-28-cli-tauri-architecture/closure.json",
+      "original_parent": "09-28-cli-tauri-architecture"
+    }
+  }
+}

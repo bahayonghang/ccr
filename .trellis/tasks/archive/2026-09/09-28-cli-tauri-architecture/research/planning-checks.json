@@ -1,0 +1,37 @@
+{
+  "date": "2026-09-28",
+  "baseline_commit": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "scope": "planning artifacts only; no product acceptance",
+  "tasks": 12,
+  "states": {
+    "09-28-cli-tauri-architecture": "planning",
+    "09-28-config-repository-consistency": "planning",
+    "09-28-profile-application-usecases": "planning",
+    "09-28-tauri-config-adapter": "planning",
+    "09-28-cli-diagnostics-contract": "planning",
+    "09-28-safe-persistence-backups": "planning",
+    "09-28-usage-job-lifecycle": "planning",
+    "09-28-command-workbench-lifecycle": "planning",
+    "09-28-settings-lossless-capabilities": "planning",
+    "09-28-frontend-query-error-contracts": "planning",
+    "09-28-architecture-contract-gates": "planning",
+    "09-28-desktop-control-oauth-lifecycle": "planning"
+  },
+  "parent_links_valid": true,
+  "dependency_cycle": false,
+  "parent_acceptance_count": 11,
+  "child_acceptance_count": 39,
+  "precheck_blocking": [],
+  "context_validation_passed": 12,
+  "source_citation_ranges_checked": 137,
+  "source_citation_invalid": [],
+  "independent_review": "PV-01..PV-06 closed; see planning-validation.md",
+  "tracked_product_diff": "",
+  "git_diff_check_exit_code": 0,
+  "original_tasks": {
+    "09-24-home-insights-redesign": "planning",
+    "09-24-home-insights-frontend": "in_progress"
+  },
+  "research_cache_cleanup": "blocked by policy; retained",
+  "product_tests_rerun_in_final_planning_pass": false
+}

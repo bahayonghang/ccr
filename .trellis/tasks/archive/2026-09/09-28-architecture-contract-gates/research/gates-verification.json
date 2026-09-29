@@ -1,0 +1,136 @@
+{
+  "timestamp": "2026-09-28T10:58:28.348220-05:00",
+  "baseline_commit": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "fix_commit": null,
+  "files": {
+    "justfile": "354fdd0eb109dba69bcd1721ba02e9c567cb8f2156e17d5f3ad7ae5ea6eb568f",
+    "ccr-ui/justfile": "54d766fd7fe86bbce57e6081d406b2c389c3189811dc51578152405dba3a480e",
+    "ccr-ui/package.json": "cd8a79cdd853c9a3999acb14db1f177f0a0538edfedc1cc7d73589aaea0467d2",
+    "ccr-ui/scripts/bindings-transaction.mjs": "b010d060842312aa8b8d9ef78323f411d0de102ebfaad7491d845586dcfe4180",
+    "ccr-ui/scripts/bindings-transaction.d.mts": "76a0d88e223448489c403c0b69dcd49a03ee91b5d41ceaf29270ca889df6764f",
+    "ccr-ui/scripts/generate-bindings.mjs": "6583ca7cd146e09ac0105d880c5a4fe9443c21f841a58df658441199b386c77c",
+    "ccr-ui/scripts/generate-bindings.d.mts": "e0ae1f9677ba85f6513e9c76a6a2541a9dc5326fee5635443818f5f76e69f4f9",
+    "ccr-ui/scripts/check-generated-bindings.mjs": "a9afa2cff60bfc2b265ae2efe77b123a22cfdde54f7ca1359f2309f0fa2e8b94",
+    "ccr-ui/scripts/check-generated-bindings.d.mts": "984b8f7a4305c495e3c70f386081dc063c5e81cd7fc88207ad3d1ef438eafba3",
+    "ccr-ui/tests/quality/bindings-transaction.smoke.test.ts": "0b56d7e06e33a3ea79a405016a319f966bf0b4112f6417bcce00129076ac043a",
+    "ccr-ui/src/views/usage/dateWindow.ts": "d43f52608d955b0f4864e92b146748c34ba9098014e63ddcf3799277b9273759",
+    "ccr-ui/tests/usage/usage-date-window.smoke.test.ts": "07d97d455aa78442d1f4fb66d82cb9ff3314c21dd95480885c9ab5991863f4db",
+    "crates/ccr-core/src/core/lock.rs": "91441b874a7b776772a9164b9cbc81f7a86c0a34694f934d5965bd2878f9031f",
+    "scripts/ci/check_workflow_governance.py": "4b3d4b2c000ee183e533a59c843b312fa503dff4157fb1ee4a823cc6cf5d772d",
+    "scripts/ci/test_check_workflow_governance.py": "11d99acc998995c190779c38a60f49d7f0f20aea53433f4ea574dcb8c9ba92dd",
+    "scripts/ci/test_architecture_contract_gates.py": "dbea51132386eab0d1865654f7422ad46c701c69975f92078858d958ab10df5a"
+  },
+  "tracked_diff_sha256": "3e6ebe4bf70bc87425bdfe77d5de87e78a64fca16a2e7d4d9e3fb041e09c6740",
+  "protected": {
+    "ccr-ui/.tmp-desktop-probe.mjs": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+    "ccr-ui/.tmp-insights-visual.mjs": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53"
+  },
+  "commands": [
+    {
+      "command": "cargo test -p ccr-core core::lock::tests::grok_auth_lock_preserves_native_holder_metadata -- --exact",
+      "log": "gates-lock-red.log",
+      "exit_code": 101,
+      "tests": {
+        "passed": 0,
+        "failed": 1
+      },
+      "phase": "old behavior OS33"
+    },
+    {
+      "command": "same command after test correction",
+      "log": "gates-lock-green.log",
+      "exit_code": 5,
+      "phase": "test executable 0xc0000005 startup failure, cause unknown"
+    },
+    {
+      "command": "same command, no source change",
+      "log": "gates-lock-green-retry.log",
+      "exit_code": 0,
+      "tests": {
+        "passed": 1,
+        "failed": 0
+      }
+    },
+    {
+      "command": "bun run test:smoke -- tests/usage/usage-date-window.smoke.test.ts",
+      "log": "gates-date-red-final.log",
+      "exit_code": 1,
+      "tests": {
+        "passed": 7,
+        "failed": 2
+      },
+      "phase": "old behavior DST"
+    },
+    {
+      "command": "bun run test:smoke -- tests/usage/usage-date-window.smoke.test.ts tests/quality/bindings-transaction.smoke.test.ts",
+      "log": "gates-frontend-final.log",
+      "exit_code": 0,
+      "tests": {
+        "passed": 25,
+        "failed": 0
+      }
+    },
+    {
+      "command": "python -m unittest scripts.ci.test_architecture_contract_gates scripts.ci.test_check_workflow_governance",
+      "log": "gates-governance-final.log",
+      "exit_code": 0,
+      "tests": {
+        "passed": 27,
+        "failed": 0
+      }
+    },
+    {
+      "command": "just tauri-bindings-check",
+      "log": "gates-full-bindings.log",
+      "exit_code": 1,
+      "phase": "six drift paths, exact bytes restored"
+    },
+    {
+      "command": "just tauri-bindings",
+      "log": "gates-direct-generation.log",
+      "exit_code": 0,
+      "tests": {
+        "CLI_exports": 24,
+        "usage_exports": 9,
+        "Tauri_exports": 197
+      }
+    },
+    {
+      "command": "bun .trellis/tasks/09-28-architecture-contract-gates/research/gates-instrumented-bindings.mjs",
+      "log": "gates-instrumented-bindings.log",
+      "exit_code": 0,
+      "phase": "stage snapshots retained; prior six-path drift did not recur"
+    },
+    {
+      "command": "just tauri-bindings-check",
+      "log": "gates-full-bindings-final.log",
+      "exit_code": 0,
+      "tests": {
+        "CLI_exports": 24,
+        "usage_exports": 9,
+        "Tauri_exports": 197
+      }
+    },
+    {
+      "command": "bun run type-check",
+      "log": "gates-typecheck-final.log",
+      "exit_code": 0
+    },
+    {
+      "command": "bunx eslint scoped T10 scripts/tests/dateWindow.ts",
+      "log": "gates-eslint-scoped-pass.log",
+      "exit_code": 0,
+      "scope": "diagnostic scoped lint, not formal lint:ci"
+    },
+    {
+      "command": "cargo fmt --all -- --check",
+      "log": "gates-fmt.log",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "log": "gates-diff-check.log",
+      "exit_code": 0
+    }
+  ]
+}

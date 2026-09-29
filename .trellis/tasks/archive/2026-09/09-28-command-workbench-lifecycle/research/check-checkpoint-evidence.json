@@ -1,0 +1,162 @@
+{
+  "task": "T07",
+  "stage": "early_read_only_checkpoint",
+  "captured_at_utc": "2026-09-28T14:19:50.415257+00:00",
+  "source_frozen": false,
+  "source_change_permission": "none",
+  "allowed_writes": [
+    "check-checkpoint.md",
+    "research/check-checkpoint-evidence.json"
+  ],
+  "executed_checks": [],
+  "not_executed": [
+    "lint",
+    "type-check",
+    "tests",
+    "build",
+    "bindings generation",
+    "inventory generation",
+    "native UI",
+    "web UI",
+    "visual review"
+  ],
+  "findings": [
+    {
+      "id": "CP-T07-01",
+      "severity": "P2",
+      "evidence": "source_control_flow",
+      "issue": "command listener rejection has no visible recovery status",
+      "locations": [
+        "ccr-ui/src/shell/eventBridge.ts:124-130",
+        "ccr-ui/src/features/commands/commandJobStore.ts:104-118",
+        "ccr-ui/src/features/commands/commandJobStore.ts:156-178",
+        "ccr-ui/src/features/commands/CommandsLedger.tsx:8-15"
+      ],
+      "execution_reproduced": false,
+      "resolution": "root requested implementer add visible listener failure and real shell/CommandsView reconciliation regression"
+    },
+    {
+      "id": "CP-T07-02",
+      "severity": "P2",
+      "evidence": "source_control_flow",
+      "issue": "history persistence rejection only logs after permanent write claim",
+      "locations": [
+        "ccr-ui/src/features/commands/commandJobStore.ts:69-88",
+        "ccr-ui/src/features/commands/commandJobState.ts:50-60"
+      ],
+      "execution_reproduced": false,
+      "preexisting_limitation": true,
+      "resolution": "root approved pending/saved/failed presentation and retained unpersisted summary; one submission per job; no retry or backend API/schema expansion"
+    }
+  ],
+  "test_source_coverage": {
+    "workbench_component_cases": 14,
+    "reducer_expanded_cases": 8,
+    "event_bridge_cases": 4,
+    "executed_by_checker": false
+  },
+  "files": [
+    {
+      "path": "ccr-ui/src/features/commands/commandJobStore.ts",
+      "sha256": "82fb7a4cf3786349242240c59164917b7639e76fccf37b61da5f6130c9f1cd25",
+      "bytes": 8838,
+      "lines": 219
+    },
+    {
+      "path": "ccr-ui/src/features/commands/commandJobState.ts",
+      "sha256": "3ef64dc45c0807193c7b8fd5636d0944aade6938be7d5b7244434632dbc3399e",
+      "bytes": 3835,
+      "lines": 87
+    },
+    {
+      "path": "ccr-ui/src/features/commands/useCommandsPage.ts",
+      "sha256": "70655ee0327fb6be841e68d6fc6fbd0efcb9b588493254e9cd84b11fe4269374",
+      "bytes": 9279,
+      "lines": 213
+    },
+    {
+      "path": "ccr-ui/src/features/commands/stores.ts",
+      "sha256": "5aca041451a7575075b567b5e283ac65b9e1cddea1bc0a3e3270b334ed83f6d8",
+      "bytes": 3108,
+      "lines": 94
+    },
+    {
+      "path": "ccr-ui/src/features/commands/queries.ts",
+      "sha256": "c81fd758e9a635cd69fc526225fe8bdcb41e981e324dac1fbbb3c1dca2b5a7c3",
+      "bytes": 1328,
+      "lines": 33
+    },
+    {
+      "path": "ccr-ui/src/features/commands/CommandsComposer.tsx",
+      "sha256": "3bbc075b56580fa033e07adc8bc5847808013273abb46beb04e4ed286aa896a5",
+      "bytes": 7035,
+      "lines": 159
+    },
+    {
+      "path": "ccr-ui/src/features/commands/CommandsLedger.tsx",
+      "sha256": "e2a3bcb252b0a5b91829ec86028964d5a98f3ad1a2e1caebf0138c93604ae453",
+      "bytes": 4305,
+      "lines": 85
+    },
+    {
+      "path": "ccr-ui/src/features/commands/CommandsView.tsx",
+      "sha256": "044b55bdc07243d36bcfc4a1e8cfcb728ebdf53651cf79f5eb0f6eb76f846f66",
+      "bytes": 2461,
+      "lines": 60
+    },
+    {
+      "path": "ccr-ui/src/shell/eventBridge.ts",
+      "sha256": "98a9bb93d8c3a6278ff618fa01ec179a3fa1465440e3f56c694b34002db407b3",
+      "bytes": 7264,
+      "lines": 180
+    },
+    {
+      "path": "ccr-ui/src/shell/useShellRuntime.ts",
+      "sha256": "c37a150b241138909687931151601fcff9870732116c96ee8234b7200d09b3c5",
+      "bytes": 2056,
+      "lines": 53
+    },
+    {
+      "path": "ccr-ui/tests/commands/command-workbench-lifecycle.smoke.test.tsx",
+      "sha256": "c668046db4485622420eb000e186adce433183da9f8bb73adeb76e4df3eb749d",
+      "bytes": 18248,
+      "lines": 350
+    },
+    {
+      "path": "ccr-ui/tests/commands/command-job-reducer.smoke.test.ts",
+      "sha256": "9c98e178b0474a53ac51970146e1213d6ab69cd14dfb6b94b6c90791e55c09a3",
+      "bytes": 2816,
+      "lines": 47
+    },
+    {
+      "path": "ccr-ui/tests/shell/event-bridge-leak.smoke.test.tsx",
+      "sha256": "68063a2c1d5b4e1caa2e1b3c01f293e5c1fd4dc661f1e5bf487b4802c119265f",
+      "bytes": 7763,
+      "lines": 193
+    },
+    {
+      "path": "ccr-ui/tests/shell/cache-route.smoke.test.ts",
+      "sha256": "0e3717fb3d209aa1c0b2331a434f841ed032dc2903d93eca9418f260323cb66f",
+      "bytes": 4453,
+      "lines": 86
+    },
+    {
+      "path": "ccr-ui/src-tauri/src/commands/command_exec.rs",
+      "sha256": "75215f5fcc8762b395a01efe2f7d2bb896ffc2380185fb322675e687b43975fa",
+      "bytes": 81957,
+      "lines": 2464
+    },
+    {
+      "path": "ccr-ui/src/api/tauri.ts",
+      "sha256": "1da8c63ef46939959be7c97c21cebdd6a9f90115060a36a3704d2cdf548bb693",
+      "bytes": 25268,
+      "lines": 718
+    },
+    {
+      "path": "ccr-ui/src/api/generated/commandExec.ts",
+      "sha256": "e7b6c6f9f24ccc3e4f7af770a53ad59abf88d3eb794fc201fb03f69fd83daf99",
+      "bytes": 1473,
+      "lines": 32
+    }
+  ]
+}

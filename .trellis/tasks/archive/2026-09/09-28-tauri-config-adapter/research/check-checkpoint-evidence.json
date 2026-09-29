@@ -1,0 +1,61 @@
+{
+  "captured_at": "2026-09-28T14:06:16.188278+00:00",
+  "reviewer": "/root/check_t03",
+  "mode": "read_only_early_checkpoint",
+  "source_owner": "/root/implement_t03",
+  "reviewer_test_runs": [],
+  "baseline_commit": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "files": {
+    "crates/ccr-cli/src/application/profile_lifecycle.rs": {
+      "sha256": "3522dac8f45316699ae0db5ba750f51ce1a82abd574770d9937c5d0c333e3fae",
+      "size": 15991
+    },
+    "crates/ccr-cli/src/application/profile_contract.rs": {
+      "sha256": "82e2d5acd2a98e872742119eb25a8efefcd99c2a16b331b1dd3fda512bbd58fa",
+      "size": 22422
+    },
+    "ccr-ui/src-tauri/src/commands/config.rs": {
+      "sha256": "3b5bba538f14e2d7fc2fc56a05e8d5265ab93e0ec16ea45d54c75d853a414f10",
+      "size": 19296
+    },
+    "ccr-ui/src-tauri/src/commands/config/adapter.rs": {
+      "sha256": "0bb45e2a3f9f1dc54012a0fb441fb269ec58dd3fef79bc536f61d5f766e51186",
+      "size": 8244
+    },
+    "ccr-ui/src-tauri/src/commands/config/contract_tests.rs": {
+      "sha256": "4b77cd65c6a4155d2623907eae79030c305db3813bcad493b2d66d5604c05ce4",
+      "size": 6778
+    },
+    "ccr-ui/src-tauri/src/commands/handler_registry.rs": {
+      "sha256": "5aa5891ea6bdb0f87385f27b2caba326a74b0599de1fb7eef3035e57dcb1ff83",
+      "size": 156112
+    },
+    "crates/ccr-cli/src/platforms/claude.rs": {
+      "sha256": "cd9b3aaa950dfb7551fcfaed8cf7254c281871d31fd3f564e94bf99dbb45ce87",
+      "size": 44120
+    },
+    "crates/ccr-config/src/platforms/base.rs": {
+      "sha256": "2bf0a4b49434abbd06df62edf2023d3747fe328dfb6a53e95bd1718c52e46a2f",
+      "size": 45192
+    },
+    "crates/ccr-config/src/services/config_service.rs": {
+      "sha256": "e2dfbd893e629194caf2288e59fafc10834579acc7466455eba363be8d6c5b47",
+      "size": 21214
+    },
+    "crates/ccr-config/src/managers/config/repository.rs": {
+      "sha256": "be8c61e0a0cc03748457d694e911e458e0106e0287125d49176aae5f109643cb",
+      "size": 12722
+    }
+  },
+  "implementer_log": {
+    "path": ".trellis\\tasks\\09-28-tauri-config-adapter\\backend-second.log",
+    "sha256": "38a9d869694daf8a4ed6fe1d114ddf8510995b83b560308036a76aefa4b5eb44",
+    "result_lines": [
+      "test commands::config::contract_tests::strict_patch_rejects_unknown_wrong_types_missing_collision_without_write ... FAILED",
+      "---- commands::config::contract_tests::strict_patch_rejects_unknown_wrong_types_missing_collision_without_write stdout ----",
+      "thread 'commands::config::contract_tests::strict_patch_rejects_unknown_wrong_types_missing_collision_without_write' (56560) panicked at src\\commands\\config\\contract_tests.rs:64:9:",
+      "    commands::config::contract_tests::strict_patch_rejects_unknown_wrong_types_missing_collision_without_write",
+      "test result: FAILED. 12 passed; 1 failed; 0 ignored; 0 measured; 580 filtered out; finished in 4.66s"
+    ]
+  }
+}

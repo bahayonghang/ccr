@@ -1,0 +1,8 @@
+{
+  "date": "2026-09-28",
+  "head": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "protected_files_sha256": {
+    "ccr-ui/.tmp-desktop-probe.mjs": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+    "ccr-ui/.tmp-insights-visual.mjs": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "command": [
+    "cargo",
+    "audit",
+    "--no-fetch",
+    "--file",
+    "ccr-ui/src-tauri/Cargo.lock"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "environment_overrides": {},
+  "started_at": "2026-09-28T22:57:11.589743+00:00",
+  "exit_code": 1,
+  "seconds": 1.971,
+  "log": "continuation-security-tauri-audit-before.log"
+}

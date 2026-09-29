@@ -1,0 +1,1309 @@
+{
+  "repo_root": "D:/Documents/Code/Github/ccr",
+  "review_scope": {
+    "mode": "task-tree",
+    "root": "09-28-cli-tauri-architecture",
+    "task_count": 12,
+    "members": [
+      {
+        "name": "09-28-cli-tauri-architecture",
+        "path": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-cli-tauri-architecture",
+        "location": "active",
+        "status": "planning"
+      },
+      {
+        "name": "09-28-config-repository-consistency",
+        "path": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-config-repository-consistency",
+        "location": "active",
+        "status": "planning"
+      },
+      {
+        "name": "09-28-profile-application-usecases",
+        "path": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-profile-application-usecases",
+        "location": "active",
+        "status": "planning"
+      },
+      {
+        "name": "09-28-tauri-config-adapter",
+        "path": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-tauri-config-adapter",
+        "location": "active",
+        "status": "planning"
+      },
+      {
+        "name": "09-28-cli-diagnostics-contract",
+        "path": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-cli-diagnostics-contract",
+        "location": "active",
+        "status": "planning"
+      },
+      {
+        "name": "09-28-safe-persistence-backups",
+        "path": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-safe-persistence-backups",
+        "location": "active",
+        "status": "planning"
+      },
+      {
+        "name": "09-28-usage-job-lifecycle",
+        "path": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-usage-job-lifecycle",
+        "location": "active",
+        "status": "planning"
+      },
+      {
+        "name": "09-28-command-workbench-lifecycle",
+        "path": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-command-workbench-lifecycle",
+        "location": "active",
+        "status": "planning"
+      },
+      {
+        "name": "09-28-settings-lossless-capabilities",
+        "path": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-settings-lossless-capabilities",
+        "location": "active",
+        "status": "planning"
+      },
+      {
+        "name": "09-28-frontend-query-error-contracts",
+        "path": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-frontend-query-error-contracts",
+        "location": "active",
+        "status": "planning"
+      },
+      {
+        "name": "09-28-architecture-contract-gates",
+        "path": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-architecture-contract-gates",
+        "location": "active",
+        "status": "planning"
+      },
+      {
+        "name": "09-28-desktop-control-oauth-lifecycle",
+        "path": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-desktop-control-oauth-lifecycle",
+        "location": "active",
+        "status": "planning"
+      }
+    ],
+    "edges": [
+      {
+        "parent": "09-28-cli-tauri-architecture",
+        "child": "09-28-config-repository-consistency"
+      },
+      {
+        "parent": "09-28-cli-tauri-architecture",
+        "child": "09-28-profile-application-usecases"
+      },
+      {
+        "parent": "09-28-cli-tauri-architecture",
+        "child": "09-28-tauri-config-adapter"
+      },
+      {
+        "parent": "09-28-cli-tauri-architecture",
+        "child": "09-28-cli-diagnostics-contract"
+      },
+      {
+        "parent": "09-28-cli-tauri-architecture",
+        "child": "09-28-safe-persistence-backups"
+      },
+      {
+        "parent": "09-28-cli-tauri-architecture",
+        "child": "09-28-usage-job-lifecycle"
+      },
+      {
+        "parent": "09-28-cli-tauri-architecture",
+        "child": "09-28-command-workbench-lifecycle"
+      },
+      {
+        "parent": "09-28-cli-tauri-architecture",
+        "child": "09-28-settings-lossless-capabilities"
+      },
+      {
+        "parent": "09-28-cli-tauri-architecture",
+        "child": "09-28-frontend-query-error-contracts"
+      },
+      {
+        "parent": "09-28-cli-tauri-architecture",
+        "child": "09-28-architecture-contract-gates"
+      },
+      {
+        "parent": "09-28-cli-tauri-architecture",
+        "child": "09-28-desktop-control-oauth-lifecycle"
+      }
+    ],
+    "legacy_fallback_tasks": []
+  },
+  "tasks": [
+    {
+      "task_dir": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-cli-tauri-architecture",
+      "task_status": "planning",
+      "artifacts": {
+        "present": {
+          "prd.md": true,
+          "design.md": true,
+          "implement.md": true,
+          "implement.jsonl": true,
+          "check.jsonl": true,
+          "task.json": true
+        },
+        "shape": "complex",
+        "note": ""
+      },
+      "placeholders": [],
+      "citations": {
+        "total": 0,
+        "by_status": {},
+        "entries": []
+      },
+      "identifiers": {
+        "requirements": [
+          "R1",
+          "R2",
+          "R3",
+          "R4",
+          "R5",
+          "R6",
+          "R7",
+          "R8",
+          "R9",
+          "R10",
+          "R11"
+        ],
+        "criteria": [
+          {
+            "id": "AC1",
+            "requirements": [
+              "R1"
+            ],
+            "clause_hint": 2
+          },
+          {
+            "id": "AC2",
+            "requirements": [
+              "R2"
+            ],
+            "clause_hint": 2
+          },
+          {
+            "id": "AC3",
+            "requirements": [
+              "R3"
+            ],
+            "clause_hint": 2
+          },
+          {
+            "id": "AC4",
+            "requirements": [
+              "R4"
+            ],
+            "clause_hint": 2
+          },
+          {
+            "id": "AC5",
+            "requirements": [
+              "R5"
+            ],
+            "clause_hint": 2
+          },
+          {
+            "id": "AC6",
+            "requirements": [
+              "R6"
+            ],
+            "clause_hint": 2
+          },
+          {
+            "id": "AC7",
+            "requirements": [
+              "R7"
+            ],
+            "clause_hint": 2
+          },
+          {
+            "id": "AC8",
+            "requirements": [
+              "R8"
+            ],
+            "clause_hint": 2
+          },
+          {
+            "id": "AC9",
+            "requirements": [
+              "R9"
+            ],
+            "clause_hint": 2
+          },
+          {
+            "id": "AC10",
+            "requirements": [
+              "R10"
+            ],
+            "clause_hint": 2
+          },
+          {
+            "id": "AC11",
+            "requirements": [
+              "R11"
+            ],
+            "clause_hint": 2
+          }
+        ],
+        "criteria_without_requirement": [],
+        "requirements_without_criterion": [],
+        "referenced_but_undefined": []
+      },
+      "blocking": [],
+      "drift_pass_required": false,
+      "task_name": "09-28-cli-tauri-architecture",
+      "location": "active"
+    },
+    {
+      "task_dir": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-config-repository-consistency",
+      "task_status": "planning",
+      "artifacts": {
+        "present": {
+          "prd.md": true,
+          "design.md": true,
+          "implement.md": true,
+          "implement.jsonl": true,
+          "check.jsonl": true,
+          "task.json": true
+        },
+        "shape": "complex",
+        "note": ""
+      },
+      "placeholders": [],
+      "citations": {
+        "total": 4,
+        "by_status": {
+          "resolved": 4
+        },
+        "entries": [
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "crates/ccr-cli/src/platforms/claude.rs:258-262",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-cli/src/platforms/claude.rs",
+            "file_lines": 1252
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "crates/ccr-config/src/platforms/base.rs:482-504",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-config/src/platforms/base.rs",
+            "file_lines": 1273
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "crates/ccr-config/src/managers/config/manager.rs:31-46",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-config/src/managers/config/manager.rs",
+            "file_lines": 173
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "crates/ccr-config/src/managers/config/manager.rs:89-108",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-config/src/managers/config/manager.rs",
+            "file_lines": 173
+          }
+        ]
+      },
+      "identifiers": {
+        "requirements": [
+          "R1",
+          "R2",
+          "R3"
+        ],
+        "criteria": [
+          {
+            "id": "AC1",
+            "requirements": [
+              "R1"
+            ],
+            "clause_hint": 1
+          },
+          {
+            "id": "AC2",
+            "requirements": [
+              "R2"
+            ],
+            "clause_hint": 2
+          },
+          {
+            "id": "AC3",
+            "requirements": [
+              "R3"
+            ],
+            "clause_hint": 3
+          }
+        ],
+        "criteria_without_requirement": [],
+        "requirements_without_criterion": [],
+        "referenced_but_undefined": []
+      },
+      "blocking": [],
+      "drift_pass_required": false,
+      "task_name": "09-28-config-repository-consistency",
+      "location": "active"
+    },
+    {
+      "task_dir": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-profile-application-usecases",
+      "task_status": "planning",
+      "artifacts": {
+        "present": {
+          "prd.md": true,
+          "design.md": true,
+          "implement.md": true,
+          "implement.jsonl": true,
+          "check.jsonl": true,
+          "task.json": true
+        },
+        "shape": "complex",
+        "note": ""
+      },
+      "placeholders": [],
+      "citations": {
+        "total": 4,
+        "by_status": {
+          "resolved": 4
+        },
+        "entries": [
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "crates/ccr-tui/src/tui/app.rs:934-993",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-tui/src/tui/app.rs",
+            "file_lines": 2659
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "crates/ccr-cli/src/application/profile_switch.rs:60-92",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-cli/src/application/profile_switch.rs",
+            "file_lines": 103
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "crates/ccr-cli/src/application/profile_off.rs:256-261",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-cli/src/application/profile_off.rs",
+            "file_lines": 685
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "crates/ccr-cli/src/platforms/claude.rs:317-329",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-cli/src/platforms/claude.rs",
+            "file_lines": 1252
+          }
+        ]
+      },
+      "identifiers": {
+        "requirements": [
+          "R1",
+          "R2",
+          "R3",
+          "R4",
+          "R5"
+        ],
+        "criteria": [
+          {
+            "id": "AC1",
+            "requirements": [
+              "R1"
+            ],
+            "clause_hint": 3
+          },
+          {
+            "id": "AC2",
+            "requirements": [
+              "R2"
+            ],
+            "clause_hint": 2
+          },
+          {
+            "id": "AC3",
+            "requirements": [
+              "R3"
+            ],
+            "clause_hint": 1
+          },
+          {
+            "id": "AC4",
+            "requirements": [
+              "R4"
+            ],
+            "clause_hint": 3
+          },
+          {
+            "id": "AC5",
+            "requirements": [
+              "R5"
+            ],
+            "clause_hint": 3
+          }
+        ],
+        "criteria_without_requirement": [],
+        "requirements_without_criterion": [],
+        "referenced_but_undefined": []
+      },
+      "blocking": [],
+      "drift_pass_required": false,
+      "task_name": "09-28-profile-application-usecases",
+      "location": "active"
+    },
+    {
+      "task_dir": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-tauri-config-adapter",
+      "task_status": "planning",
+      "artifacts": {
+        "present": {
+          "prd.md": true,
+          "design.md": true,
+          "implement.md": true,
+          "implement.jsonl": true,
+          "check.jsonl": true,
+          "task.json": true
+        },
+        "shape": "complex",
+        "note": ""
+      },
+      "placeholders": [],
+      "citations": {
+        "total": 4,
+        "by_status": {
+          "resolved": 4
+        },
+        "entries": [
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "ccr-ui/src/features/configs/hooks/useConfigsPage.ts:55",
+            "status": "resolved",
+            "resolved_path": "ccr-ui/src/features/configs/hooks/useConfigsPage.ts",
+            "file_lines": 173
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "ccr-ui/src/api/generated/config.ts:26",
+            "status": "resolved",
+            "resolved_path": "ccr-ui/src/api/generated/config.ts",
+            "file_lines": 36
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "ccr-ui/src-tauri/src/commands/config.rs:200-204",
+            "status": "resolved",
+            "resolved_path": "ccr-ui/src-tauri/src/commands/config.rs",
+            "file_lines": 720
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "crates/ccr-cli/src/commands/profile/switch.rs:24-26",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-cli/src/commands/profile/switch.rs",
+            "file_lines": 335
+          }
+        ]
+      },
+      "identifiers": {
+        "requirements": [
+          "R1",
+          "R2",
+          "R3"
+        ],
+        "criteria": [
+          {
+            "id": "AC1",
+            "requirements": [
+              "R1"
+            ],
+            "clause_hint": 1
+          },
+          {
+            "id": "AC2",
+            "requirements": [
+              "R2"
+            ],
+            "clause_hint": 4
+          },
+          {
+            "id": "AC3",
+            "requirements": [
+              "R3"
+            ],
+            "clause_hint": 2
+          }
+        ],
+        "criteria_without_requirement": [],
+        "requirements_without_criterion": [],
+        "referenced_but_undefined": []
+      },
+      "blocking": [],
+      "drift_pass_required": false,
+      "task_name": "09-28-tauri-config-adapter",
+      "location": "active"
+    },
+    {
+      "task_dir": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-cli-diagnostics-contract",
+      "task_status": "planning",
+      "artifacts": {
+        "present": {
+          "prd.md": true,
+          "design.md": true,
+          "implement.md": true,
+          "implement.jsonl": true,
+          "check.jsonl": true,
+          "task.json": true
+        },
+        "shape": "complex",
+        "note": ""
+      },
+      "placeholders": [],
+      "citations": {
+        "total": 4,
+        "by_status": {
+          "resolved": 4
+        },
+        "entries": [
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "crates/ccr-cli/src/commands/lifecycle/validate.rs:255-307",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-cli/src/commands/lifecycle/validate.rs",
+            "file_lines": 308
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "crates/ccr-cli/src/platforms/claude.rs:339-345",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-cli/src/platforms/claude.rs",
+            "file_lines": 1252
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "crates/ccr-config/src/models/platform.rs:115-120",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-config/src/models/platform.rs",
+            "file_lines": 705
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "crates/ccr/tests/commands/validate.rs:125-161",
+            "status": "resolved",
+            "resolved_path": "crates/ccr/tests/commands/validate.rs",
+            "file_lines": 161
+          }
+        ]
+      },
+      "identifiers": {
+        "requirements": [
+          "R1",
+          "R2",
+          "R3"
+        ],
+        "criteria": [
+          {
+            "id": "AC1",
+            "requirements": [
+              "R1"
+            ],
+            "clause_hint": 4
+          },
+          {
+            "id": "AC2",
+            "requirements": [
+              "R2"
+            ],
+            "clause_hint": 3
+          },
+          {
+            "id": "AC3",
+            "requirements": [
+              "R3"
+            ],
+            "clause_hint": 2
+          }
+        ],
+        "criteria_without_requirement": [],
+        "requirements_without_criterion": [],
+        "referenced_but_undefined": []
+      },
+      "blocking": [],
+      "drift_pass_required": false,
+      "task_name": "09-28-cli-diagnostics-contract",
+      "location": "active"
+    },
+    {
+      "task_dir": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-safe-persistence-backups",
+      "task_status": "planning",
+      "artifacts": {
+        "present": {
+          "prd.md": true,
+          "design.md": true,
+          "implement.md": true,
+          "implement.jsonl": true,
+          "check.jsonl": true,
+          "task.json": true
+        },
+        "shape": "complex",
+        "note": ""
+      },
+      "placeholders": [],
+      "citations": {
+        "total": 4,
+        "by_status": {
+          "resolved": 4
+        },
+        "entries": [
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "crates/ccr-core/src/core/guarded_write.rs:264-307",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-core/src/core/guarded_write.rs",
+            "file_lines": 784
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "crates/ccr-cli/src/application/profile_off.rs:82-86",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-cli/src/application/profile_off.rs",
+            "file_lines": 685
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "ccr-ui/src-tauri/src/commands/codex_auth.rs:518-521",
+            "status": "resolved",
+            "resolved_path": "ccr-ui/src-tauri/src/commands/codex_auth.rs",
+            "file_lines": 1832
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "crates/ccr-codex/src/utils.rs:87-111",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-codex/src/utils.rs",
+            "file_lines": 171
+          }
+        ]
+      },
+      "identifiers": {
+        "requirements": [
+          "R1",
+          "R2",
+          "R3",
+          "R4"
+        ],
+        "criteria": [
+          {
+            "id": "AC1",
+            "requirements": [
+              "R1"
+            ],
+            "clause_hint": 1
+          },
+          {
+            "id": "AC2",
+            "requirements": [
+              "R2"
+            ],
+            "clause_hint": 3
+          },
+          {
+            "id": "AC3",
+            "requirements": [
+              "R3"
+            ],
+            "clause_hint": 5
+          },
+          {
+            "id": "AC4",
+            "requirements": [
+              "R4"
+            ],
+            "clause_hint": 3
+          }
+        ],
+        "criteria_without_requirement": [],
+        "requirements_without_criterion": [],
+        "referenced_but_undefined": []
+      },
+      "blocking": [],
+      "drift_pass_required": false,
+      "task_name": "09-28-safe-persistence-backups",
+      "location": "active"
+    },
+    {
+      "task_dir": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-usage-job-lifecycle",
+      "task_status": "planning",
+      "artifacts": {
+        "present": {
+          "prd.md": true,
+          "design.md": true,
+          "implement.md": true,
+          "implement.jsonl": true,
+          "check.jsonl": true,
+          "task.json": true
+        },
+        "shape": "complex",
+        "note": ""
+      },
+      "placeholders": [],
+      "citations": {
+        "total": 4,
+        "by_status": {
+          "resolved": 4
+        },
+        "entries": [
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "ccr-ui/src-tauri/src/commands/usage.rs:446-449",
+            "status": "resolved",
+            "resolved_path": "ccr-ui/src-tauri/src/commands/usage.rs",
+            "file_lines": 1592
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "ccr-ui/src-tauri/src/commands/usage.rs:1539-1546",
+            "status": "resolved",
+            "resolved_path": "ccr-ui/src-tauri/src/commands/usage.rs",
+            "file_lines": 1592
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "ccr-ui/src-tauri/src/commands/usage.rs:1570-1590",
+            "status": "resolved",
+            "resolved_path": "ccr-ui/src-tauri/src/commands/usage.rs",
+            "file_lines": 1592
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "ccr-ui/src-tauri/src/llmusage_adapter/cli.rs:139-159",
+            "status": "resolved",
+            "resolved_path": "ccr-ui/src-tauri/src/llmusage_adapter/cli.rs",
+            "file_lines": 401
+          }
+        ]
+      },
+      "identifiers": {
+        "requirements": [
+          "R1",
+          "R2",
+          "R3",
+          "R4"
+        ],
+        "criteria": [
+          {
+            "id": "AC1",
+            "requirements": [
+              "R1"
+            ],
+            "clause_hint": 2
+          },
+          {
+            "id": "AC2",
+            "requirements": [
+              "R2"
+            ],
+            "clause_hint": 4
+          },
+          {
+            "id": "AC3",
+            "requirements": [
+              "R3"
+            ],
+            "clause_hint": 3
+          },
+          {
+            "id": "AC4",
+            "requirements": [
+              "R4"
+            ],
+            "clause_hint": 3
+          }
+        ],
+        "criteria_without_requirement": [],
+        "requirements_without_criterion": [],
+        "referenced_but_undefined": []
+      },
+      "blocking": [],
+      "drift_pass_required": false,
+      "task_name": "09-28-usage-job-lifecycle",
+      "location": "active"
+    },
+    {
+      "task_dir": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-command-workbench-lifecycle",
+      "task_status": "planning",
+      "artifacts": {
+        "present": {
+          "prd.md": true,
+          "design.md": true,
+          "implement.md": true,
+          "implement.jsonl": true,
+          "check.jsonl": true,
+          "task.json": true
+        },
+        "shape": "complex",
+        "note": ""
+      },
+      "placeholders": [],
+      "citations": {
+        "total": 2,
+        "by_status": {
+          "resolved": 2
+        },
+        "entries": [
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "ccr-ui/src/features/commands/useCommandsPage.ts:49",
+            "status": "resolved",
+            "resolved_path": "ccr-ui/src/features/commands/useCommandsPage.ts",
+            "file_lines": 269
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "ccr-ui/src/features/commands/useCommandsPage.ts:99-179",
+            "status": "resolved",
+            "resolved_path": "ccr-ui/src/features/commands/useCommandsPage.ts",
+            "file_lines": 269
+          }
+        ]
+      },
+      "identifiers": {
+        "requirements": [
+          "R1",
+          "R2",
+          "R3"
+        ],
+        "criteria": [
+          {
+            "id": "AC1",
+            "requirements": [
+              "R1"
+            ],
+            "clause_hint": 3
+          },
+          {
+            "id": "AC2",
+            "requirements": [
+              "R2"
+            ],
+            "clause_hint": 3
+          },
+          {
+            "id": "AC3",
+            "requirements": [
+              "R3"
+            ],
+            "clause_hint": 1
+          }
+        ],
+        "criteria_without_requirement": [],
+        "requirements_without_criterion": [],
+        "referenced_but_undefined": []
+      },
+      "blocking": [],
+      "drift_pass_required": false,
+      "task_name": "09-28-command-workbench-lifecycle",
+      "location": "active"
+    },
+    {
+      "task_dir": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-settings-lossless-capabilities",
+      "task_status": "planning",
+      "artifacts": {
+        "present": {
+          "prd.md": true,
+          "design.md": true,
+          "implement.md": true,
+          "implement.jsonl": true,
+          "check.jsonl": true,
+          "task.json": true
+        },
+        "shape": "complex",
+        "note": ""
+      },
+      "placeholders": [],
+      "citations": {
+        "total": 4,
+        "by_status": {
+          "resolved": 4
+        },
+        "entries": [
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "ccr-ui/src/configs/settings-codex-map.ts:39",
+            "status": "resolved",
+            "resolved_path": "ccr-ui/src/configs/settings-codex-map.ts",
+            "file_lines": 127
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "ccr-ui/src/configs/settings-codex-map.ts:94",
+            "status": "resolved",
+            "resolved_path": "ccr-ui/src/configs/settings-codex-map.ts",
+            "file_lines": 127
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "ccr-ui/src/configs/settings-types.ts:1",
+            "status": "resolved",
+            "resolved_path": "ccr-ui/src/configs/settings-types.ts",
+            "file_lines": 58
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "ccr-ui/src/features/platform/settings/BaseSettings.tsx:1",
+            "status": "resolved",
+            "resolved_path": "ccr-ui/src/features/platform/settings/BaseSettings.tsx",
+            "file_lines": 120
+          }
+        ]
+      },
+      "identifiers": {
+        "requirements": [
+          "R1",
+          "R2",
+          "R3"
+        ],
+        "criteria": [
+          {
+            "id": "AC1",
+            "requirements": [
+              "R1"
+            ],
+            "clause_hint": 2
+          },
+          {
+            "id": "AC2",
+            "requirements": [
+              "R2"
+            ],
+            "clause_hint": 2
+          },
+          {
+            "id": "AC3",
+            "requirements": [
+              "R3"
+            ],
+            "clause_hint": 2
+          }
+        ],
+        "criteria_without_requirement": [],
+        "requirements_without_criterion": [],
+        "referenced_but_undefined": []
+      },
+      "blocking": [],
+      "drift_pass_required": false,
+      "task_name": "09-28-settings-lossless-capabilities",
+      "location": "active"
+    },
+    {
+      "task_dir": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-frontend-query-error-contracts",
+      "task_status": "planning",
+      "artifacts": {
+        "present": {
+          "prd.md": true,
+          "design.md": true,
+          "implement.md": true,
+          "implement.jsonl": true,
+          "check.jsonl": true,
+          "task.json": true
+        },
+        "shape": "complex",
+        "note": ""
+      },
+      "placeholders": [],
+      "citations": {
+        "total": 3,
+        "by_status": {
+          "resolved": 3
+        },
+        "entries": [
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "ccr-ui/src/features/platform/auth/BaseAuth.tsx:15-67",
+            "status": "resolved",
+            "resolved_path": "ccr-ui/src/features/platform/auth/BaseAuth.tsx",
+            "file_lines": 95
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "ccr-ui/src/features/platform/settings/BaseSettings.tsx:26-41",
+            "status": "resolved",
+            "resolved_path": "ccr-ui/src/features/platform/settings/BaseSettings.tsx",
+            "file_lines": 120
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "ccr-ui/src/features/configs/ConfigsView.tsx:32-38",
+            "status": "resolved",
+            "resolved_path": "ccr-ui/src/features/configs/ConfigsView.tsx",
+            "file_lines": 149
+          }
+        ]
+      },
+      "identifiers": {
+        "requirements": [
+          "R1",
+          "R2",
+          "R3"
+        ],
+        "criteria": [
+          {
+            "id": "AC1",
+            "requirements": [
+              "R1"
+            ],
+            "clause_hint": 2
+          },
+          {
+            "id": "AC2",
+            "requirements": [
+              "R2"
+            ],
+            "clause_hint": 3
+          },
+          {
+            "id": "AC3",
+            "requirements": [
+              "R3"
+            ],
+            "clause_hint": 2
+          }
+        ],
+        "criteria_without_requirement": [],
+        "requirements_without_criterion": [],
+        "referenced_but_undefined": []
+      },
+      "blocking": [],
+      "drift_pass_required": false,
+      "task_name": "09-28-frontend-query-error-contracts",
+      "location": "active"
+    },
+    {
+      "task_dir": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-architecture-contract-gates",
+      "task_status": "planning",
+      "artifacts": {
+        "present": {
+          "prd.md": true,
+          "design.md": true,
+          "implement.md": true,
+          "implement.jsonl": true,
+          "check.jsonl": true,
+          "task.json": true
+        },
+        "shape": "complex",
+        "note": ""
+      },
+      "placeholders": [],
+      "citations": {
+        "total": 3,
+        "by_status": {
+          "resolved": 3
+        },
+        "entries": [
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "github/workflows/tauri-rust-ci.yml:27-49",
+            "status": "resolved",
+            "resolved_path": ".github/workflows/tauri-rust-ci.yml",
+            "file_lines": 128
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "trellis/spec/ccr/backend/tauri-handler-registry.md:150",
+            "status": "resolved",
+            "resolved_path": ".trellis/spec/ccr/backend/tauri-handler-registry.md",
+            "file_lines": 226
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "trellis/spec/ccr/backend/dependency-governance.md:361",
+            "status": "resolved",
+            "resolved_path": ".trellis/spec/ccr/backend/dependency-governance.md",
+            "file_lines": 503
+          }
+        ]
+      },
+      "identifiers": {
+        "requirements": [
+          "R1",
+          "R2",
+          "R3",
+          "R4"
+        ],
+        "criteria": [
+          {
+            "id": "AC1",
+            "requirements": [
+              "R1"
+            ],
+            "clause_hint": 2
+          },
+          {
+            "id": "AC2",
+            "requirements": [
+              "R2"
+            ],
+            "clause_hint": 4
+          },
+          {
+            "id": "AC3",
+            "requirements": [
+              "R3"
+            ],
+            "clause_hint": 3
+          },
+          {
+            "id": "AC4",
+            "requirements": [
+              "R4"
+            ],
+            "clause_hint": 2
+          }
+        ],
+        "criteria_without_requirement": [],
+        "requirements_without_criterion": [],
+        "referenced_but_undefined": []
+      },
+      "blocking": [],
+      "drift_pass_required": false,
+      "task_name": "09-28-architecture-contract-gates",
+      "location": "active"
+    },
+    {
+      "task_dir": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-28-desktop-control-oauth-lifecycle",
+      "task_status": "planning",
+      "artifacts": {
+        "present": {
+          "prd.md": true,
+          "design.md": true,
+          "implement.md": true,
+          "implement.jsonl": true,
+          "check.jsonl": true,
+          "task.json": true
+        },
+        "shape": "complex",
+        "note": ""
+      },
+      "placeholders": [],
+      "citations": {
+        "total": 4,
+        "by_status": {
+          "resolved": 4
+        },
+        "entries": [
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "ccr-ui/src-tauri/src/commands/handler_registry.rs:257-263",
+            "status": "resolved",
+            "resolved_path": "ccr-ui/src-tauri/src/commands/handler_registry.rs",
+            "file_lines": 2366
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "ccr-ui/src-tauri/src/commands/codex_auth.rs:595-599",
+            "status": "resolved",
+            "resolved_path": "ccr-ui/src-tauri/src/commands/codex_auth.rs",
+            "file_lines": 1832
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "ccr-ui/src-tauri/src/commands/codex_auth.rs:671-680",
+            "status": "resolved",
+            "resolved_path": "ccr-ui/src-tauri/src/commands/codex_auth.rs",
+            "file_lines": 1832
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 11,
+            "citation": "ccr-ui/src-tauri/src/commands/codex_auth.rs:1426-1432",
+            "status": "resolved",
+            "resolved_path": "ccr-ui/src-tauri/src/commands/codex_auth.rs",
+            "file_lines": 1832
+          }
+        ]
+      },
+      "identifiers": {
+        "requirements": [
+          "R1",
+          "R2",
+          "R3",
+          "R4"
+        ],
+        "criteria": [
+          {
+            "id": "AC1",
+            "requirements": [
+              "R1"
+            ],
+            "clause_hint": 9
+          },
+          {
+            "id": "AC2",
+            "requirements": [
+              "R2"
+            ],
+            "clause_hint": 3
+          },
+          {
+            "id": "AC3",
+            "requirements": [
+              "R3"
+            ],
+            "clause_hint": 3
+          },
+          {
+            "id": "AC4",
+            "requirements": [
+              "R4"
+            ],
+            "clause_hint": 1
+          }
+        ],
+        "criteria_without_requirement": [],
+        "requirements_without_criterion": [],
+        "referenced_but_undefined": []
+      },
+      "blocking": [],
+      "drift_pass_required": false,
+      "task_name": "09-28-desktop-control-oauth-lifecycle",
+      "location": "active"
+    }
+  ],
+  "reviews_git": {
+    "path": ".trellis/reviews/09-28-cli-tauri-architecture.md",
+    "state": "untracked"
+  },
+  "blocking": []
+}

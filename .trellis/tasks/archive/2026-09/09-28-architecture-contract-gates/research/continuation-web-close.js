@@ -1,0 +1,1 @@
+assert.equal(page.url(),'http://127.0.0.1:49173/codex/settings');await page.close();return {closedTaskScratchPage:true,remaining:pages().map(p=>p.url())};

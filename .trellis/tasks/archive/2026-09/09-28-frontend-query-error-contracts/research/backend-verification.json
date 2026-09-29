@@ -1,0 +1,76 @@
+{
+  "baseline_commit": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "date": "2026-09-28",
+  "environment": "Windows; Rust 1.98",
+  "source_sha256": {
+    "ccr-ui/src-tauri/src/commands/claude.rs": "c673c58cf65a9a2f30399a06b63364f8e66564fd0e50e928f8521e022d585d6f",
+    "ccr-ui/src-tauri/src/commands/claude_settings.rs": "6422475dd70b4fbcd0a666f2b46d6d0429c621d3c4f192dc263e3aee317e79fe",
+    "ccr-ui/src-tauri/src/commands/claude_settings_tests.rs": "464a39f9501c11244277982814c3bd52e7ea8b0649f0ac39d1a3de7ba6e3e658",
+    "ccr-ui/src-tauri/src/commands/handler_registry.rs": "97e1b1ca74e56af2852d7b2fabef17f2ed7bd3f34d3bbfd66db7f4df34c92890",
+    "ccr-ui/src/api/generated/claude.ts": "d72fc37824f1660f346b6d97239ecc00b0b3d989b7c2472e48cf048585adcd3f",
+    "ccr-ui/src/api/generated/command-manifest.json": "2c89bdd2c7c2dbbe9bbd3c9b4d28f3c21c54f625bd8799b3815a0abadb745417",
+    "ccr-ui/src/api/generated/commandCapabilities.ts": "eb686b8a7c00d249f4005e466590a956348e179654141bb9e69c54f61e1a966b"
+  },
+  "checks": [
+    {
+      "log": "backend-environment-red.log",
+      "exit_code": 101,
+      "passed": 0,
+      "failed": 1
+    },
+    {
+      "log": "backend-environment-green.log",
+      "exit_code": 0,
+      "passed": 39,
+      "failed": 0,
+      "binding_export_tests": 17,
+      "new_environment_tests": 6
+    },
+    {
+      "log": "backend-inventory-generation.log",
+      "exit_code": 0,
+      "passed": 1
+    },
+    {
+      "log": "backend-registry-check.log",
+      "exit_code": 0,
+      "passed": 21
+    },
+    {
+      "log": "backend-clippy.log",
+      "exit_code": 101,
+      "scope": "all-targets",
+      "baseline_errors": 4
+    },
+    {
+      "log": "backend-clippy-bin.log",
+      "exit_code": 0,
+      "scope": "bin ccr-desktop"
+    },
+    {
+      "log": "backend-fmt-check.log",
+      "exit_code": 0
+    },
+    {
+      "log": "backend-diff-check.log",
+      "exit_code": 0
+    }
+  ],
+  "command_count": 348,
+  "manifest_deltas": [
+    {
+      "id": "claude_get_settings",
+      "changed_keys": [
+        "input_type"
+      ]
+    },
+    {
+      "id": "claude_update_settings",
+      "changed_keys": [
+        "input_type"
+      ]
+    }
+  ],
+  "fix_commit": null,
+  "native_or_real_remote_verified": false
+}

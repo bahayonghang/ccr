@@ -1,0 +1,51 @@
+--- before/crates/ccr-cli/src/commands/codex/fix.rs
++++ after/crates/ccr-cli/src/commands/codex/fix.rs
+@@ -1174,6 +1174,10 @@
+ 
+     #[tokio::test]
+     async fn doctor_timeout_terminates_parent_and_grandchild() {
++        #[cfg(windows)]
++        let mut host_env = crate::test_support::TestHostEnv::new();
++        #[cfg(windows)]
++        host_env.set_env("PATH", std::ffi::OsStr::new(""));
+         let temp = tempfile::tempdir().expect("tempdir");
+         let parent_pid = temp.path().join("parent.pid");
+         let child_pid = temp.path().join("grandchild.pid");
+@@ -1197,6 +1201,10 @@
+ 
+     #[tokio::test]
+     async fn doctor_deadline_applies_before_fixture_is_ready() {
++        #[cfg(windows)]
++        let mut host_env = crate::test_support::TestHostEnv::new();
++        #[cfg(windows)]
++        host_env.set_env("PATH", std::ffi::OsStr::new(""));
+         let temp = tempfile::tempdir().expect("tempdir");
+         let parent_pid = temp.path().join("parent.pid");
+         let child_pid = temp.path().join("grandchild.pid");
+@@ -1287,13 +1295,16 @@
+         parent_pid: &std::path::Path,
+         child_pid: &std::path::Path,
+     ) -> (PathBuf, Vec<String>) {
++        let powershell = PathBuf::from(std::env::var_os("SystemRoot").expect("Windows SystemRoot"))
++            .join(r"System32\WindowsPowerShell\v1.0\powershell.exe");
++        assert!(powershell.is_absolute() && powershell.is_file());
+         let dir = parent_pid.parent().expect("pid file parent");
+         let script_path = dir.join("hanging-doctor.ps1");
+         let script = format!(
+             "$ErrorActionPreference = 'Stop'\n\
+              [IO.File]::WriteAllText({parent}, [string]$PID)\n\
+              while (-not [IO.File]::Exists({release})) {{ [Threading.Thread]::Sleep(10) }}\n\
+-             $child = Start-Process -FilePath $env:ComSpec -ArgumentList '/C','ping -n 30 127.0.0.1 >NUL' -PassThru -WindowStyle Hidden\n\
++             $child = Start-Process -FilePath (Join-Path $PSHOME 'powershell.exe') -ArgumentList '-NoProfile','-NonInteractive','-Command','Start-Sleep -Seconds 30' -PassThru -WindowStyle Hidden\n\
+              if (-not $child -or $child.Id -le 0) {{ throw 'failed to start grandchild' }}\n\
+              [IO.File]::WriteAllText({child}, [string]$child.Id)\n\
+              Start-Sleep -Seconds 30\n",
+@@ -1303,7 +1314,7 @@
+         );
+         std::fs::write(&script_path, script).expect("write hanging doctor");
+         (
+-            PathBuf::from("powershell.exe"),
++            powershell,
+             vec![
+                 "-NoProfile".to_string(),
+                 "-NonInteractive".to_string(),

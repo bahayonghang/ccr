@@ -1,0 +1,1146 @@
+{
+  "schema_version": 1,
+  "status": "incremental_review_complete_final_gates_and_dedicated_review_pending",
+  "reviewer": "/root/implement_t09",
+  "captured_at_utc": "2026-09-29T01:40:55.672412+00:00",
+  "head": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "review_kind": "non-author review of current remaining-gate changes and evidence",
+  "dedicated_trellis_check_role_barrier_solved": true,
+  "write_scope": [
+    "remaining-independent-check.md",
+    "remaining-independent-check.json"
+  ],
+  "source_changes_by_reviewer": [],
+  "independence": {
+    "independent_scope": [
+      "ccr-ui/.tmp-desktop-probe.mjs",
+      "ccr-ui/.tmp-insights-visual.mjs",
+      "remaining-* evidence by other agents",
+      "CSP helper/bootstrap/re-export/test/spec delta authored by root",
+      "Doctor Windows fixture latest delta authored by remaining_gates only; historical whole-file authorship excluded"
+    ],
+    "historical_authored_scope": [
+      "crates/ccr-cli/src/commands/codex/fix.rs",
+      "research/continuation-doctor-implementation.md/json",
+      "research/continuation-bindings-startup-*"
+    ],
+    "excluded_from_independence_claim": "All historical product changes and evidence. Prior freezes are reused only for lineage."
+  },
+  "script_baseline": {
+    "path": "remaining-windows-script-baseline.json",
+    "sha256": "8bd809225429ae5f1bf056c672e1b0d781bc4ac2042883994fdf161d4fd280a7",
+    "captured_at_utc": "2026-09-29T01:25:14.072441+00:00"
+  },
+  "script_review": [
+    {
+      "path": "ccr-ui/.tmp-desktop-probe.mjs",
+      "original_sha256": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+      "original_hash_matches_saved": true,
+      "original_size_matches_saved": true,
+      "reviewed_sha256": "369137cd419a0a9ac81d79387c1c8ff037ea1078d22e2a795613b7858270d7b9",
+      "changed_output_calls": 3,
+      "output_lines": [
+        20,
+        24,
+        92
+      ],
+      "exact_output_replacements_only": true,
+      "syntax_check_exit_code": 0
+    },
+    {
+      "path": "ccr-ui/.tmp-insights-visual.mjs",
+      "original_sha256": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53",
+      "original_hash_matches_saved": true,
+      "original_size_matches_saved": true,
+      "reviewed_sha256": "6d00d2d08f1c707ed888b27ace419f92720a5de0a214fdb836bd9d4e66fe5d61",
+      "changed_output_calls": 2,
+      "output_lines": [
+        236,
+        381
+      ],
+      "exact_output_replacements_only": true,
+      "syntax_check_exit_code": 0
+    }
+  ],
+  "output_equivalence": {
+    "method": "Execute five extracted original/current output expression pairs in Node vm with Console and Writable captures. No Playwright import or browser operation.",
+    "runtime": "Node v26.7.0; local focused check, not pinned Node 24 validation",
+    "cases": 5,
+    "passed": 5,
+    "stdout_bytes": [
+      0,
+      0,
+      308,
+      154,
+      716
+    ],
+    "stderr_bytes": [
+      55,
+      38,
+      0,
+      0,
+      0
+    ],
+    "streams_indentation_labels_final_newlines_equal": true
+  },
+  "reviewer_checks": [
+    {
+      "command": [
+        "node",
+        "--check",
+        "ccr-ui/.tmp-desktop-probe.mjs"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "ccr-ui/.tmp-insights-visual.mjs"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "bun",
+        "./node_modules/eslint/bin/eslint.js",
+        ".tmp-desktop-probe.mjs",
+        ".tmp-insights-visual.mjs",
+        "--quiet"
+      ],
+      "cwd": "ccr-ui",
+      "exit_code": 0
+    }
+  ],
+  "reviewer_harness_attempts": [
+    {
+      "kind": "reviewer_harness_error",
+      "product_change": false,
+      "observed": "Initial Node comparison harness raised SyntaxError from newline escaping before cases ran; initial hand-authored replacement check also had an escaping mismatch.",
+      "resolution": "Extract actual call text and use String.fromCharCode(10) for sample newlines; all five cases passed without product or threshold edits."
+    }
+  ],
+  "source_lineage": {
+    "original_freeze": {
+      "path": "continuation-final-source-freeze.json",
+      "sha256": "a531395a7d9857c1739491af54b8a781c840199a43c5e8e0bd9ad7959ed60f54"
+    },
+    "platform_freeze": {
+      "path": "continuation-platform-final-source-freeze.json",
+      "sha256": "fa79dd6fc1f9f1142d63e7c20a72d161ef398f1f683388d2ba49c7d71c3bfaaa"
+    },
+    "platform_changes_from_original": [
+      "ccr-ui/src-tauri/src/commands/codex_auth.rs"
+    ],
+    "expected_remaining_delta": [
+      "ccr-ui/.tmp-desktop-probe.mjs",
+      "ccr-ui/.tmp-insights-visual.mjs"
+    ],
+    "frozen_path_count": 263,
+    "present_file_count": 261,
+    "missing_markers": [
+      "ccr-ui/src/features/editor/styles/code-source-editor.css",
+      "ccr-ui/src/features/editor/styles/config-source-panel.css"
+    ],
+    "current_unexpected_changes": [],
+    "additional_authorized_delta": {
+      "path": "crates/ccr-cli/src/commands/codex/fix.rs",
+      "before": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+      "after": "9d2a321acb63ab1563b51cddc56cd3c4c6b02cd141b9fdd18ee8b02ef762194c",
+      "reason": "Windows fixture independence from PATH"
+    },
+    "current_check_at_utc": "2026-09-29T01:54:19.576265+00:00",
+    "remaining_freeze": {
+      "path": "remaining-source-freeze.json",
+      "sha256": "46f5b43cbdcfb664480d9ce1d8f57f0e6a9fa51ef3cd492fe60c0674d597f447",
+      "file_map_verified_against_gate_before_after": true,
+      "paths": 263,
+      "existing_files": 261,
+      "deletion_markers": 2
+    }
+  },
+  "reviewed_gates": [
+    {
+      "name": "Windows frontend-check",
+      "metadata": "remaining-windows-frontend-check.json",
+      "metadata_sha256": "096a5c28c1c75c5bf1d3b8a3d30233f913eb38c8b632ba8144e86855d5f11048",
+      "command": [
+        "just",
+        "frontend-check"
+      ],
+      "state": "finished",
+      "exit_code": 0,
+      "seconds": 182.238,
+      "tests": {
+        "smoke_files": 168,
+        "smoke_tests": 901,
+        "i18n_tests": 24
+      },
+      "logs": {
+        "stdout": {
+          "path": "remaining-windows-frontend-check.stdout.log",
+          "recorded_sha256": "bf944ee5d23801ef863cd9276eecc058a0fdccad8db2d126a6112d28a2ca6e60",
+          "actual_sha256": "bf944ee5d23801ef863cd9276eecc058a0fdccad8db2d126a6112d28a2ca6e60",
+          "matches": true
+        },
+        "stderr": {
+          "path": "remaining-windows-frontend-check.stderr.log",
+          "recorded_sha256": "ebc0b10ab990a1a9b32dec49815eba0d8e9e80da51439537555ed012542a8773",
+          "actual_sha256": "ebc0b10ab990a1a9b32dec49815eba0d8e9e80da51439537555ed012542a8773",
+          "matches": true
+        },
+        "combined": {
+          "path": "remaining-windows-frontend-check.log",
+          "recorded_sha256": "577400ea00b431973149a39ec29e4f0cdcd2f2ee9842f5acb23d4529069e2ad9",
+          "actual_sha256": "577400ea00b431973149a39ec29e4f0cdcd2f2ee9842f5acb23d4529069e2ad9",
+          "matches": true
+        }
+      },
+      "source_before_matches_expected": true,
+      "source_after_matches_expected": true,
+      "source_before_after_equal": true,
+      "generated_snapshot": "remaining-windows-frontend-check.generated-before.json",
+      "generated_snapshot_sha256": "1ebc696363e75e15b3b2419d7d710cecd825233f3ccc696aadb03572f97323d0",
+      "generated_paths": 230,
+      "invalid_embedded_hashes": [],
+      "generated_current_changes": [],
+      "warnings_preserved": [
+        "Vite native-loader warning",
+        "bundle chunk-size warning"
+      ]
+    },
+    {
+      "name": "Windows remaining root CI initial run",
+      "metadata": "remaining-windows-ci.json",
+      "metadata_sha256": "c59afb4d24a66193a1635aec4351101512cef9d0cacb17d1df6c903ccd155c4a",
+      "command": [
+        "just",
+        "ci"
+      ],
+      "state": "finished",
+      "exit_code": 1,
+      "seconds": 174.077,
+      "source_before_after_equal": true,
+      "recorded_source_changes": [],
+      "generated_changes": [],
+      "logs": {
+        "stdout": {
+          "path": "remaining-windows-ci.stdout.log",
+          "recorded_sha256": "cabe76e09210807b7d2132c280359cc54ab5f88c9e372088b2df0b43059c73c0",
+          "actual_sha256": "cabe76e09210807b7d2132c280359cc54ab5f88c9e372088b2df0b43059c73c0",
+          "matches": true
+        },
+        "stderr": {
+          "path": "remaining-windows-ci.stderr.log",
+          "recorded_sha256": "abfbf272f74fe916aac949072dbb9f8ac99e37446a5afbb1bbc60968c77788a2",
+          "actual_sha256": "abfbf272f74fe916aac949072dbb9f8ac99e37446a5afbb1bbc60968c77788a2",
+          "matches": true
+        },
+        "combined": {
+          "path": "remaining-windows-ci.log",
+          "recorded_sha256": "abc7e8d786d7fb0ebeda41d722c0612f10f1cfbd541f9d2ac62ae2c3ac0839cb",
+          "actual_sha256": "abc7e8d786d7fb0ebeda41d722c0612f10f1cfbd541f9d2ac62ae2c3ac0839cb",
+          "matches": true
+        }
+      },
+      "failed_suite_counts": {
+        "passed": 343,
+        "failed": 2,
+        "ignored": 0,
+        "filtered_out": 24
+      },
+      "failures": [
+        "doctor_deadline_applies_before_fixture_is_ready: expected Timeout, observed Spawn(\"program not found\")",
+        "doctor_timeout_terminates_parent_and_grandchild: Spawn(\"program not found\")"
+      ],
+      "independence_boundary": "New run evidence verified; historical fixture implementation authored by this reviewer and excluded from independent source claims.",
+      "original_AV_reached_or_closed": false
+    },
+    {
+      "name": "Doctor targeted empty-PATH regression",
+      "metadata": "remaining-doctor-focused.json",
+      "metadata_sha256": "f611dc5e71aa4faa1c3f442b62d8207adaf5c836e5ac731ffb510348be1d5efc",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "ccr-cli",
+        "--all-features",
+        "--lib",
+        "commands::codex::fix::tests::doctor_",
+        "--",
+        "--nocapture"
+      ],
+      "state": "finished",
+      "exit_code": 0,
+      "seconds": 17.986,
+      "tests": {
+        "passed": 3,
+        "failed": 0,
+        "filtered_out": 366
+      },
+      "source_before_sha256": "9d2a321acb63ab1563b51cddc56cd3c4c6b02cd141b9fdd18ee8b02ef762194c",
+      "source_after_sha256": "9d2a321acb63ab1563b51cddc56cd3c4c6b02cd141b9fdd18ee8b02ef762194c",
+      "source_matches_reviewed": true,
+      "log": "remaining-doctor-focused.log",
+      "log_sha256": "148789d365b3472d12d1d70c0163296439fb776de94f3a41470173b0bdfbe44c",
+      "log_hash_matches": true,
+      "source_independence_limit": "Historical implementation by reviewer; new delta by other author."
+    },
+    {
+      "name": "Full ccr-cli lib after Windows fixture correction",
+      "metadata": "remaining-doctor-lib.json",
+      "metadata_sha256": "2f55f614716e1fabaca11da40802f1dfec9fa77de069bc73f3b0f6a4cdd3a045",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "ccr-cli",
+        "--all-features",
+        "--lib",
+        "--",
+        "--skip",
+        "export_bindings"
+      ],
+      "state": "finished",
+      "exit_code": 0,
+      "seconds": 110.252,
+      "tests": {
+        "passed": 345,
+        "failed": 0,
+        "filtered_out": 24
+      },
+      "source_before_sha256": "9d2a321acb63ab1563b51cddc56cd3c4c6b02cd141b9fdd18ee8b02ef762194c",
+      "source_after_sha256": "9d2a321acb63ab1563b51cddc56cd3c4c6b02cd141b9fdd18ee8b02ef762194c",
+      "source_matches_reviewed": true,
+      "log": "remaining-doctor-lib.log",
+      "log_sha256": "79dd3243fe9655c723d5ef5427a9c26abb0d6f339cb9c4c3fd6906ccdaa62f5d",
+      "log_hash_matches": true,
+      "source_independence_limit": "Historical implementation by reviewer; new delta by other author."
+    },
+    {
+      "name": "Strict ccr-cli Clippy after fixture correction",
+      "metadata": "remaining-doctor-clippy.json",
+      "metadata_sha256": "83b2ce881895300d05b60fad89db1df6482206e5e7377d671bf92ff663daaf8f",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "ccr-cli",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "state": "finished",
+      "exit_code": 0,
+      "seconds": 9.474,
+      "tests": null,
+      "source_before_sha256": "9d2a321acb63ab1563b51cddc56cd3c4c6b02cd141b9fdd18ee8b02ef762194c",
+      "source_after_sha256": "9d2a321acb63ab1563b51cddc56cd3c4c6b02cd141b9fdd18ee8b02ef762194c",
+      "source_matches_reviewed": true,
+      "log": "remaining-doctor-clippy.log",
+      "log_sha256": "ab77613e3730d607278ee5ff04e4bc95d8ecd7751e5ec866e79b5732dc3192c4",
+      "log_hash_matches": true,
+      "source_independence_limit": "Historical implementation by reviewer; new delta by other author."
+    },
+    {
+      "name": "Linux full Tauri gate",
+      "metadata": "remaining-linux-tauri-ci.json",
+      "metadata_sha256": "fd1874c4208c87bc358dc70018283a82839cdb6c79e638e60072fd58d54f1b28",
+      "command": [
+        "just",
+        "tauri-ci"
+      ],
+      "state": "finished",
+      "exit_code": 0,
+      "seconds": 209.223,
+      "log": "remaining-linux-tauri-ci.log",
+      "log_sha256": "73499ffbfe8578860026eef4b9e4698d4cf4dbe476fa72cca97c90694d02fcd6",
+      "log_hash_matches": true,
+      "source_before_matches_remaining_freeze": true,
+      "source_after_matches_remaining_freeze": true,
+      "generated_path_count": 230,
+      "generated_before_after_equal": true,
+      "actual_test_summaries": [
+        {
+          "line": 445,
+          "result": "ok",
+          "passed": 397,
+          "failed": 0,
+          "ignored": 1,
+          "filtered_out": 197
+        },
+        {
+          "line": 453,
+          "result": "ok",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0,
+          "filtered_out": 0
+        },
+        {
+          "line": 487,
+          "result": "ok",
+          "passed": 24,
+          "failed": 0,
+          "ignored": 0,
+          "filtered_out": 346
+        },
+        {
+          "line": 493,
+          "result": "ok",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "filtered_out": 12
+        },
+        {
+          "line": 529,
+          "result": "ok",
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0,
+          "filtered_out": 58
+        },
+        {
+          "line": 734,
+          "result": "ok",
+          "passed": 197,
+          "failed": 0,
+          "ignored": 0,
+          "filtered_out": 398
+        },
+        {
+          "line": 740,
+          "result": "ok",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "filtered_out": 2
+        },
+        {
+          "line": 750,
+          "result": "ok",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "filtered_out": 594
+        },
+        {
+          "line": 756,
+          "result": "ok",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "filtered_out": 2
+        }
+      ],
+      "zero_match_summaries_counted_as_executed_tests": false
+    },
+    {
+      "name": "Linux Tauri coverage gate",
+      "metadata": "remaining-linux-coverage-tauri.json",
+      "metadata_sha256": "3c34e0712e5931e15770c4f52f4fc8ffb291145ad5d81dd136c3701159170d17",
+      "command": [
+        "just",
+        "coverage-tauri"
+      ],
+      "state": "finished",
+      "exit_code": 0,
+      "seconds": 202.864,
+      "log": "remaining-linux-coverage-tauri.log",
+      "log_sha256": "11a10dfa75ce1230629d47968fb1908b87e63c98772952bd0e9141060ccc4bf1",
+      "log_hash_matches": true,
+      "source_before_matches_remaining_freeze": true,
+      "source_after_matches_remaining_freeze": true,
+      "generated_path_count": 230,
+      "generated_before_after_equal": true,
+      "actual_test_summaries": [
+        {
+          "line": 915,
+          "result": "ok",
+          "passed": 397,
+          "failed": 0,
+          "ignored": 1,
+          "filtered_out": 197
+        },
+        {
+          "line": 923,
+          "result": "ok",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0,
+          "filtered_out": 0
+        }
+      ],
+      "zero_match_summaries_counted_as_executed_tests": false
+    },
+    {
+      "name": "Windows root CI after Doctor fixture correction",
+      "metadata": "remaining-windows-ci-after-doctor.json",
+      "metadata_sha256": "be9f4561c4552b3cd9956ea5858b42a5567abc65e43312e538abc9e75b4b078b",
+      "command": [
+        "just",
+        "ci"
+      ],
+      "state": "finished",
+      "exit_code": 1,
+      "seconds": 690.743,
+      "logs": {
+        "stdout": {
+          "path": "remaining-windows-ci-after-doctor.stdout.log",
+          "recorded_sha256": "0cca35acf003d1041f9048b847912766472ebca04446bac2fbbe34a6a634178b",
+          "actual_sha256": "0cca35acf003d1041f9048b847912766472ebca04446bac2fbbe34a6a634178b",
+          "matches": true
+        },
+        "stderr": {
+          "path": "remaining-windows-ci-after-doctor.stderr.log",
+          "recorded_sha256": "73ac57557d974a1c33dfc3eb7a04fb9bbec526204e9f327a8e65fadeb449d787",
+          "actual_sha256": "73ac57557d974a1c33dfc3eb7a04fb9bbec526204e9f327a8e65fadeb449d787",
+          "matches": true
+        },
+        "combined": {
+          "path": "remaining-windows-ci-after-doctor.log",
+          "recorded_sha256": "5073e880b201ae29957184673f58e2321e7ffd298a4fc767d7eb880d982a77e8",
+          "actual_sha256": "5073e880b201ae29957184673f58e2321e7ffd298a4fc767d7eb880d982a77e8",
+          "matches": true
+        }
+      },
+      "source_before_matches_remaining_freeze": true,
+      "source_after_matches_remaining_freeze": true,
+      "generated_snapshot": "remaining-windows-ci-after-doctor.generated-before.json",
+      "generated_snapshot_sha256": "1ebc696363e75e15b3b2419d7d710cecd825233f3ccc696aadb03572f97323d0",
+      "generated_paths": 230,
+      "embedded_hashes_verified": true,
+      "generated_changes": [],
+      "failed_suite_counts": {
+        "passed": 406,
+        "failed": 1,
+        "ignored": 1,
+        "filtered_out": 197
+      },
+      "failure": "commands::system::tests::cli_versions_fast_mode_returns_expected_shape: system.rs:1030 elapsed <= 5000ms assertion",
+      "passed_preceding_stages": [
+        "Version Sync",
+        "Version Check",
+        "Format",
+        "Format Check",
+        "Strict Clippy",
+        "Workspace Check",
+        "Test",
+        "Release Build",
+        "Security Audit",
+        "CI Governance"
+      ],
+      "unexecuted_after_failure": [
+        "remaining Tauri CI stages",
+        "root stages after Tauri CI"
+      ],
+      "failure_cause": "Unknown at review time. Assertion and elapsed threshold are confirmed; no exact elapsed value or schedule is captured.",
+      "historical_AV_explained": false
+    },
+    {
+      "name": "CSP focused regression after TypeScript-compatible assertion",
+      "metadata": "remaining-csp-focused-final.json",
+      "metadata_sha256": "a0fda818117cb3b0c42a726f426babb8923bba1239ae26a3d320b1aff8d4b2f8",
+      "command": [
+        "bunx",
+        "vitest",
+        "run",
+        "--config",
+        "vitest.smoke.config.ts",
+        "tests/ui/runtime-style-nonce.smoke.test.tsx",
+        "tests/ui/code-source-editor.smoke.test.tsx",
+        "tests/ui/confirm-interaction.smoke.test.tsx"
+      ],
+      "exit_code": 0,
+      "seconds": 2.577,
+      "log": "remaining-csp-focused-final.log",
+      "log_sha256": "89de8cdfac0a6750db4cd0f3a3a824534fe9b21fa8ba46d5c0c3176cde8a8ea1",
+      "log_hash_matches": true,
+      "source_path_base": "ccr-ui",
+      "source_paths": 4,
+      "source_before_after_equal": true,
+      "source_matches_reviewed_current": true,
+      "source_map": {
+        "src/utils/cspNonce.ts": "9102abf17c251cee147d526625765d5ed81baeff033b3d22ab8e04ac61754548",
+        "src/main.tsx": "58c02122dbcac4bcd623f62a74c1848cb455507815870589c1768ab71e8acefc",
+        "src/features/platform/editor/cspNonce.ts": "6af38c654eb31f80aae67f94c64be48cfa16e7842484e9c64e82443b5118868d",
+        "tests/ui/runtime-style-nonce.smoke.test.tsx": "57a3043d8b27593cd27dc0ae7d781b8e2d0aabd5469c96cc3cb9a0669b91c494"
+      },
+      "reviewer_executed": false,
+      "tests": {
+        "files": 3,
+        "tests": 7
+      },
+      "scope": "real runtime nonce modal cases, CodeMirror nonce, confirm interaction"
+    },
+    {
+      "name": "CSP full frontend type check",
+      "metadata": "remaining-csp-types-final.json",
+      "metadata_sha256": "40c292d4fff114ba94879adef50f08fd30a5ccd822f312e13e2a0005cf9d3a5b",
+      "command": [
+        "bun",
+        "run",
+        "type-check"
+      ],
+      "exit_code": 0,
+      "seconds": 8.083,
+      "log": "remaining-csp-types-final.log",
+      "log_sha256": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92",
+      "log_hash_matches": true,
+      "source_path_base": "ccr-ui",
+      "source_paths": 4,
+      "source_before_after_equal": true,
+      "source_matches_reviewed_current": true,
+      "source_map": {
+        "src/utils/cspNonce.ts": "9102abf17c251cee147d526625765d5ed81baeff033b3d22ab8e04ac61754548",
+        "src/main.tsx": "58c02122dbcac4bcd623f62a74c1848cb455507815870589c1768ab71e8acefc",
+        "src/features/platform/editor/cspNonce.ts": "6af38c654eb31f80aae67f94c64be48cfa16e7842484e9c64e82443b5118868d",
+        "tests/ui/runtime-style-nonce.smoke.test.tsx": "57a3043d8b27593cd27dc0ae7d781b8e2d0aabd5469c96cc3cb9a0669b91c494"
+      },
+      "reviewer_executed": false
+    },
+    {
+      "name": "CSP changed-file ESLint",
+      "metadata": "remaining-csp-lint.json",
+      "metadata_sha256": "01fd7cdbdc9e1a0435ebe15b85e60dd7b1da9dcd05f1380c5d9ff41d58b4625c",
+      "command": [
+        "bunx",
+        "eslint",
+        "src/utils/cspNonce.ts",
+        "src/main.tsx",
+        "src/features/platform/editor/cspNonce.ts",
+        "tests/ui/runtime-style-nonce.smoke.test.tsx"
+      ],
+      "exit_code": 0,
+      "seconds": 4.136,
+      "log": "remaining-csp-lint.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_hash_matches": true,
+      "source_path_base": "ccr-ui",
+      "source_paths": 4,
+      "source_before_after_equal": true,
+      "source_matches_reviewed_current": true,
+      "source_map": {
+        "src/utils/cspNonce.ts": "9102abf17c251cee147d526625765d5ed81baeff033b3d22ab8e04ac61754548",
+        "src/main.tsx": "58c02122dbcac4bcd623f62a74c1848cb455507815870589c1768ab71e8acefc",
+        "src/features/platform/editor/cspNonce.ts": "6af38c654eb31f80aae67f94c64be48cfa16e7842484e9c64e82443b5118868d",
+        "tests/ui/runtime-style-nonce.smoke.test.tsx": "57a3043d8b27593cd27dc0ae7d781b8e2d0aabd5469c96cc3cb9a0669b91c494"
+      },
+      "reviewer_executed": false
+    },
+    {
+      "name": "CSP production frontend build",
+      "metadata": "remaining-csp-ui-build.json",
+      "metadata_sha256": "d2efa648280e075866aa78b1f874f7a348af402154743877c2889889fd99dd20",
+      "command": [
+        "bun",
+        "run",
+        "build"
+      ],
+      "exit_code": 0,
+      "seconds": 3.708,
+      "log": "remaining-csp-ui-build.log",
+      "log_sha256": "72928b9df947254b541923774897b2dbc0d40ed0b56e7dd1d016b17d756ca8bc",
+      "log_hash_matches": true,
+      "source_path_base": ".",
+      "source_paths": 1060,
+      "source_before_after_equal": true,
+      "source_matches_reviewed_current": true,
+      "source_map": null,
+      "reviewer_executed": false,
+      "dist_path_count": 284,
+      "dist_current_hashes_match": true,
+      "warnings_preserved": [
+        "chunk size exceeds 513kB",
+        "Vite plugin timings"
+      ],
+      "scope": "Frontend source only; does not claim concurrent Rust source coverage"
+    }
+  ],
+  "prerequisites_only": [
+    {
+      "path": "remaining-linux-toolchain.json",
+      "sha256": "ba6c7b65b85b02318cbf0693c1f85f8e2fe90fd0826b764b40e5158a9326b1d3",
+      "counts_as_gate_pass": false
+    },
+    {
+      "path": "remaining-native-driver-build.json",
+      "sha256": "fd2b9dbc861ee847e450374404a33ba7ab2439d57ae9e9c22fcfdef1f848cf42",
+      "counts_as_gate_pass": false
+    },
+    {
+      "path": "remaining-native-webkit-driver.json",
+      "sha256": "ec2b603173a9ec765e5f339282f1bf31b55a80eec560c3bb9ccba9372e89b1ee",
+      "counts_as_gate_pass": false
+    }
+  ],
+  "findings": [
+    {
+      "id": "NCR-01",
+      "scope": "native evidence readiness",
+      "status": "static_addressed_runtime_pending",
+      "source": "remaining-native-webview.py:102",
+      "problem": "A nonempty WebDriver status object is truthy even when ready=false.",
+      "requested": "Require status.ready is True before POST /session.",
+      "impact": "May produce a startup false failure.",
+      "reviewed_revision_sha256": "edecb2b804f8d933053bbb174b293872aa99b07c8edce25ea57a772d957ba755",
+      "resolution": "Line 103 requires status.ready is True."
+    },
+    {
+      "id": "NCR-02",
+      "scope": "native editor/CSP acceptance",
+      "status": "static_addressed_runtime_pending",
+      "source": "remaining-native-webview.py:119-121",
+      "problem": "Positive editor height and token-span count do not prove CodeMirror stylesheet application. editorDisplay is recorded but not asserted.",
+      "requested": "Check source-supported computed styles such as flex layout and editor theme dimensions; record relevant style CSP failures.",
+      "impact": "Could accept visible but unstyled DOM as native editor style/CSP success.",
+      "reviewed_revision_sha256": "edecb2b804f8d933053bbb174b293872aa99b07c8edce25ea57a772d957ba755",
+      "resolution": "Lines 117 and 121-129 capture style CSP and assert flex, 13px font, and editor/content 28rem computed min-height."
+    },
+    {
+      "id": "NCR-03",
+      "scope": "native process cleanup acceptance",
+      "status": "static_addressed_runtime_pending",
+      "source": "remaining-native-webview.py:151-169",
+      "problem": "session_close_error can be recorded while overall state remains passed; process-group termination is not separately verified.",
+      "requested": "Keep cleanup as an explicit acceptance result and fail/open on unresolved cleanup failure.",
+      "impact": "Could report full pass with incomplete cleanup evidence.",
+      "reviewed_revision_sha256": "edecb2b804f8d933053bbb174b293872aa99b07c8edce25ea57a772d957ba755",
+      "resolution": "Lines 160-192 set failed_cleanup on session close error or active group members and inspect /proc group membership."
+    },
+    {
+      "id": "NCR-04",
+      "scope": "native local control-channel isolation",
+      "status": "static_addressed_runtime_pending",
+      "source": "remaining-native-webview.py:64-69",
+      "problem": "The driver child has an environment allowlist, but urllib uses the Python parent default proxy configuration.",
+      "requested": "Use an explicit ProxyHandler({}) for localhost WebDriver requests.",
+      "impact": "The allowlist alone does not prove local requests bypass inherited proxies.",
+      "reviewed_revision_sha256": "edecb2b804f8d933053bbb174b293872aa99b07c8edce25ea57a772d957ba755",
+      "resolution": "Lines 59 and 69 use ProxyHandler({}) through a dedicated opener."
+    },
+    {
+      "id": "NCR-05",
+      "scope": "native final style CSP acceptance",
+      "status": "static_addressed_runtime_pending",
+      "source": "remaining-native-webview.py:153-173",
+      "problem": "Zero style violation assertion runs at editor mount; style events during save are collected but not rechecked before passed.",
+      "requested": "After native save roundtrip, capture and assert final style CSP events are empty before setting passed.",
+      "impact": "Final style CSP claim could exceed the checked interval.",
+      "reviewed_revision_sha256": "475797bf8466010dabc223cf2f1fda3663487e6b55c2ca726901fa8f4c0da7c1",
+      "resolution": "After exact disk JSON equality, wait for editor dismissal and source action enabled; capture styles_after_save and require empty before passed."
+    }
+  ],
+  "reporting_corrections": [
+    {
+      "topic": "freeze count",
+      "correct": "263 frozen paths = 261 actual files + 2 explicit null deletion markers; historical bytes unchanged."
+    }
+  ],
+  "open_items": [
+    "Windows aggregate CI failed at Tauri fast-version elapsed assertion; cause and correction/rerun pending",
+    "Runtime-style nonce focused/types/lint/build and final native harness statically verified; rebuilt production native regression pending",
+    "Required macOS evidence outside reviewer execution",
+    "Existing dedicated checker /root/check_t01 is running; its final result is not yet incorporated here"
+  ],
+  "historical_failures_preserved": [
+    "Original root CI exit 1 STATUS_ACCESS_VIOLATION",
+    "Original formal frontend five no-console errors",
+    "WebKitWebDriver --version exit 1 with usage text",
+    "Remaining Windows root CI exit 1 at workspace test: 343 passed, 2 failed; neither old AV nor later stages reached.",
+    "Windows CI after Doctor fix exit 1: Tauri 406 passed, 1 failed, 1 ignored, 197 filtered; cli_versions_fast_mode elapsed <=5000ms assertion.",
+    "Native attempts 1-2 failed due harness selectors; attempts 3-4 failed due actual shared modal style-src-elem CSP violation.",
+    "Initial CSP type check TS2550 for Object.hasOwn; compatible property-descriptor assertion then passed focused/types/lint."
+  ],
+  "native_static_review": {
+    "reviewed_at_utc": "2026-09-29T01:49:50.538791+00:00",
+    "tools": [
+      {
+        "path": "remaining-linux-run.py",
+        "sha256": "3bbbeef82ed403856578eea2b1748605ef70f3c399808267400f3ea4f278120c",
+        "ast_passed": true
+      },
+      {
+        "path": "remaining-native-webview.py",
+        "sha256": "edecb2b804f8d933053bbb174b293872aa99b07c8edce25ea57a772d957ba755",
+        "ast_passed": true
+      },
+      {
+        "path": "remaining-native-isolation.md",
+        "sha256": "0fadd2147b61bb5933c2617ef512ec06456850ae6a08320f639711507a813f57",
+        "ast_passed": false
+      }
+    ],
+    "execution": "Not executed by reviewer",
+    "confirmed": [
+      "Settings route and save selector exist in current source",
+      "Native build omits ci-dist Cargo config and removes TAURI_CONFIG",
+      "Native runtime environment uses explicit HOME/XDG/CCR/Claude/Codex/llmusage roots and private D-Bus",
+      "Inline-script CSP control requires a script-src violation and unchanged sentinel"
+    ],
+    "limitations": [
+      "Environment redirection is not an OS filesystem sandbox",
+      "Native Linux WebKitGTK/WSLg only; no Windows WebView2, macOS WKWebView, physical-input, hardware, or release-package acceptance",
+      "Native save and inline-script control not reached in attempts 1-4"
+    ],
+    "findings_static_addressed": 4,
+    "runtime_status": "Attempts 1-4 reviewed. Attempts 1-2 reveal harness selector defects; attempts 3-4 reveal actual missing nonce for shared modal scroll-lock style. End-to-end native acceptance remains failed.",
+    "initial_revision_hash_captured": false,
+    "hash_provenance": "The initial finding read did not capture a simultaneous hash. edecb2b804f8d933053bbb174b293872aa99b07c8edce25ea57a772d957ba755 was captured when writing the report after the author had revised the script, and is confirmed by the subsequent reread.",
+    "post_nonce_harness_review": {
+      "sha256": "475797bf8466010dabc223cf2f1fda3663487e6b55c2ca726901fa8f4c0da7c1",
+      "ast_passed": true,
+      "new_assertions": [
+        "build receipt SHA and binary match",
+        "scroll lock nonce equals page nonce",
+        "scroll lock sheet/rules and computed body overflow",
+        "confirmation scroll-lock release",
+        "CodeMirror nonce/sheet/rules/scroller flex/gutter alignment"
+      ],
+      "old_acceptance_assertions_preserved": true,
+      "final_style_assertion": {
+        "sha256": "475797bf8466010dabc223cf2f1fda3663487e6b55c2ca726901fa8f4c0da7c1",
+        "ast_passed": true,
+        "source_consistency": [
+          "ccr-ui/src/features/platform/editor/ConfigSourcePanel.tsx:176-180",
+          "ccr-ui/src/features/platform/settings/BaseSettings.tsx:49-52"
+        ],
+        "native_runtime_pending": true
+      }
+    }
+  },
+  "doctor_delta_review": {
+    "reviewed_at_utc": "2026-09-29T01:54:19.573736+00:00",
+    "path": "crates/ccr-cli/src/commands/codex/fix.rs",
+    "before_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+    "before_matches_saved": true,
+    "reviewed_sha256": "9d2a321acb63ab1563b51cddc56cd3c4c6b02cd141b9fdd18ee8b02ef762194c",
+    "production_prefix_bytes_equal": true,
+    "scope": "Two Windows TestHostEnv empty-PATH guards and absolute parent/child PowerShell fixture paths. Production unchanged.",
+    "independence_limit": "Reviewer authored historical Doctor implementation; review concerns only the new delta by remaining_gates.",
+    "static_result": "No blocking finding in new delta",
+    "baseline_record_sha256": "8eac7a514642f341df88c9782d312043f6c270a0ca0922896224d5e9e81f8bc8",
+    "diff_sha256": "27927a775dca732e71dfb22659ad4400b3e1c8c2e292d4f4cf1f1bc99c12c977",
+    "red": {
+      "metadata_sha256": "d33cecb0ffc58e0f01d9d4a7b94d2e5611c32b67efa0a394484d522d65f97b47",
+      "exit_code": 101,
+      "passed": 1,
+      "failed": 2,
+      "log_sha256": "802eecb9a50f1346643570c7cd002e0fa2e76abde8304f2373cac70082cbf96e",
+      "log_hash_matches": true,
+      "binary_sha_matches_ci_before_after": true
+    },
+    "author_report": {
+      "markdown_sha256": "c56a75ceb387ad94f96b0aebffcbbd5c50c86c54438dae5d285ad6176fca324a",
+      "json_sha256": "3d10f3201efd3b6ffd7492907b72d205bcde97a2b7665c97556dccd1d90e17ba",
+      "all_referenced_artifact_hashes_verified": true,
+      "artifact_count": 14,
+      "static_checks_sha256": "e48043f1d86b78ecb2f100cc77f6de555192181d08d29e4c66275cecb7b46c3e",
+      "causality_boundary_preserved": "The full CI run did not record the exact PATH value or lock owner at failure; the specific concurrent scheduling interleaving is not observed. Historical exporter startup STATUS_ACCESS_VIOLATION remains unexplained and is a separate failure.",
+      "fix_commit": null
+    }
+  },
+  "tauri_coverage_recomputation": {
+    "path": "ccr-ui/src-tauri/target/coverage-tauri.json",
+    "sha256": "e347b83c3e5ec8527ed021c6a61f9800cf00fee4814cb9dc83f3064ce4b584a2",
+    "overall_lines": {
+      "count": 34415,
+      "covered": 17929,
+      "percent": 52.096469562690686
+    },
+    "gateway_lines": {
+      "count": 703,
+      "covered": 654,
+      "percent": 93.0298719772404
+    },
+    "gateway_recomputed_percent": 93.0298719772404,
+    "required_gateway_percent": 85,
+    "gateway_passed": true,
+    "overall_role": "Tauri baseline only; no overall 70 percent gate is claimed."
+  },
+  "last_updated_at_utc": "2026-09-29T02:22:37.315602+00:00",
+  "native_build_review": {
+    "metadata": "remaining-linux-native-build.json",
+    "metadata_sha256": "2e2af9fe48682478fc8658b37d92a2fa6992b74eaa0ea0d8ff30d6c5cc2533ab",
+    "command": [
+      "cargo",
+      "build",
+      "--manifest-path",
+      "ccr-ui/src-tauri/Cargo.toml",
+      "--bin",
+      "ccr-desktop",
+      "--features",
+      "custom-protocol"
+    ],
+    "exit_code": 0,
+    "seconds": 65.639,
+    "log": "remaining-linux-native-build.log",
+    "log_sha256": "17998a17cbc46c466661d5e097347d40ab05b6fbc7b88a49cfd8ce45c2f9692b",
+    "log_hash_matches": true,
+    "binary": "/tmp/ccr-architecture-linux-01a0e781/debug/ccr-desktop",
+    "binary_sha256": "c48e15fa07174721a2cb550cf0691ed53710284087a080654004ca1e91712d11",
+    "source_before_after_match_remaining_freeze": true,
+    "generated_paths": 230,
+    "generated_before_after_equal": true,
+    "frontend_dist_paths": 284,
+    "frontend_dist_live_hashes_verified_at_utc": "2026-09-29T02:14:29.003200+00:00",
+    "frontend_dist_live_mismatches": [],
+    "csp_config_sha256": "09eeed6614d24a8ca2232671df7327d7271af10e1f3d53fc0ceb5c994f9de48c",
+    "csp_matches_current_at_review": true,
+    "production_custom_protocol": true,
+    "ci_dist_override_used": false,
+    "runtime_acceptance_proved_by_build": false,
+    "binary_hash_independently_read_by_reviewer": false,
+    "lineage_limit": "Pre-nonce-fix binary and bundle. Subsequent source changes require a new build receipt."
+  },
+  "native_attempt_reviews": [
+    {
+      "attempt": 1,
+      "metadata": "remaining-native-webview-1.json",
+      "metadata_sha256": "75d6f2beae5e6c9578ba223b86f2ddf7947aaa36af3e6b997bf3fc57b903d9fd",
+      "log": "remaining-native-webview-1.log",
+      "log_sha256": "e0c8599e6b67369e96da521602e76d9d16d472ba1520b614fb6c3af53dbd938b",
+      "harness": "remaining-native-webview-attempt1.py",
+      "harness_sha256": "edecb2b804f8d933053bbb174b293872aa99b07c8edce25ea57a772d957ba755",
+      "harness_hash_recorded_in_receipt": false,
+      "harness_hash_matches_receipt": null,
+      "state": "failed",
+      "started_at_utc": "2026-09-29T02:00:23.571876+00:00",
+      "finished_at_utc": "2026-09-29T02:00:57.162099+00:00",
+      "binary_matches_build": true,
+      "native_boot": null,
+      "plaintext_confirmation": null,
+      "scope": "Native Linux WebKitGTK under WSLg; production custom-protocol assets/CSP; synthetic local settings; no account authentication",
+      "classification": "Harness mount selector used #root; actual app mount is #app. No editor, inline-script control, or save ran.",
+      "inline_script_control_executed": false,
+      "source_save_executed": false,
+      "session_close_error": null,
+      "driver_exit_code": -15,
+      "active_process_group_after_cleanup": []
+    },
+    {
+      "attempt": 2,
+      "metadata": "remaining-native-webview-2.json",
+      "metadata_sha256": "4d0cb921ea85c055a1a70f4379c1fc8efdc8f754e68688c1f9137a0983141201",
+      "log": "remaining-native-webview-2.log",
+      "log_sha256": "55d6e01ce08eab2c7671e1bf640baf985e083f24a0179e11d054c73f09388783",
+      "harness": "remaining-native-webview-attempt2.py",
+      "harness_sha256": "341f621a37e48f0c3e4ebd0806d80faf3799d59c24324a9d93b9bddafb9c78c9",
+      "harness_hash_recorded_in_receipt": false,
+      "harness_hash_matches_receipt": null,
+      "state": "failed",
+      "started_at_utc": "2026-09-29T02:04:07.565996+00:00",
+      "finished_at_utc": "2026-09-29T02:04:42.598531+00:00",
+      "binary_matches_build": true,
+      "native_boot": {
+        "title": "CCR UI",
+        "native": true,
+        "url": "tauri://localhost"
+      },
+      "plaintext_confirmation": null,
+      "scope": "Native Linux WebKitGTK under WSLg; production custom-protocol assets/CSP; synthetic local settings; no account authentication",
+      "classification": "Harness source-action regex omitted actual Chinese label 源文件. No editor, inline-script control, or save ran.",
+      "inline_script_control_executed": false,
+      "source_save_executed": false,
+      "session_close_error": null,
+      "driver_exit_code": -15,
+      "active_process_group_after_cleanup": []
+    },
+    {
+      "attempt": 3,
+      "metadata": "remaining-native-webview-3.json",
+      "metadata_sha256": "9ddd33de1a27c333388eee6b7b34836c4132896cb4e32d0fe2663b07779bf305",
+      "log": "remaining-native-webview-3.log",
+      "log_sha256": "462d7c2be7891c6a78ed1f2cf2c0a11dc5c85de675eb20b01060caebbffe093a",
+      "harness": "remaining-native-webview-attempt3.py",
+      "harness_sha256": "7c6ad6ffa8156cedc26f0b6a5c1124e0418aa15797da68362d27c6f7dbc49c8a",
+      "harness_hash_recorded_in_receipt": true,
+      "harness_hash_matches_receipt": true,
+      "state": "failed",
+      "started_at_utc": "2026-09-29T02:06:05.933472+00:00",
+      "finished_at_utc": "2026-09-29T02:06:11.586407+00:00",
+      "binary_matches_build": true,
+      "native_boot": {
+        "title": "CCR UI",
+        "native": true,
+        "url": "tauri://localhost"
+      },
+      "plaintext_confirmation": {
+        "visible": true,
+        "editorCount": 0
+      },
+      "scope": "Native Linux WebKitGTK under WSLg; production custom-protocol assets/CSP; synthetic local settings; no account authentication",
+      "classification": "Real style-src-elem violation while opening shared confirmation; actual editor flex/13px/28rem values passed. Save and inline-script control not reached.",
+      "inline_script_control_executed": false,
+      "source_save_executed": false,
+      "session_close_error": null,
+      "driver_exit_code": -15,
+      "active_process_group_after_cleanup": [],
+      "editor_style": {
+        "editorDisplay": "flex",
+        "editorFontSize": "13px",
+        "editorMinHeight": 448,
+        "contentMinHeight": 448,
+        "rootFontSize": 16,
+        "tokenSpans": 4,
+        "noncedStyles": 2
+      },
+      "style_csp_violations": [
+        {
+          "directive": "style-src-elem",
+          "blockedURI": "inline"
+        }
+      ]
+    },
+    {
+      "attempt": 4,
+      "metadata": "remaining-native-webview-4.json",
+      "metadata_sha256": "59c49201ef76f7c56f9fb55d9386b11916c4f4cc51ffd24a2523c9da96dd456f",
+      "log": "remaining-native-webview-4.log",
+      "log_sha256": "1532803dbf15780942e3c0718aaa238ba21b4ae39d7316883d713089384cd8ca",
+      "harness": "remaining-native-webview-attempt4.py",
+      "harness_sha256": "52017af47c690fbca0a3cb9f24781d043ea5df629f5069bc9c77c29167a13bc2",
+      "harness_hash_recorded_in_receipt": true,
+      "harness_hash_matches_receipt": true,
+      "state": "failed",
+      "started_at_utc": "2026-09-29T02:07:20.255533+00:00",
+      "finished_at_utc": "2026-09-29T02:07:23.434153+00:00",
+      "binary_matches_build": true,
+      "native_boot": {
+        "title": "CCR UI",
+        "native": true,
+        "url": "tauri://localhost"
+      },
+      "plaintext_confirmation": {
+        "visible": true,
+        "editorCount": 0
+      },
+      "scope": "Native Linux WebKitGTK under WSLg; production custom-protocol assets/CSP; synthetic local settings; no account authentication",
+      "classification": "Diagnostic rerun localized style-src-elem to base-modal-CepZGn4m.js; scroll-lock stylesheet lacked nonce before CodeMirror mount. Zero-violation assertion remained unchanged.",
+      "inline_script_control_executed": false,
+      "source_save_executed": false,
+      "session_close_error": null,
+      "driver_exit_code": -15,
+      "active_process_group_after_cleanup": [],
+      "editor_style": {
+        "editorDisplay": "flex",
+        "editorFontSize": "13px",
+        "editorMinHeight": 448,
+        "contentMinHeight": 448,
+        "rootFontSize": 16,
+        "tokenSpans": 4,
+        "noncedStyles": 2
+      },
+      "style_csp_violations": [
+        {
+          "lineNumber": 1,
+          "directive": "style-src-elem",
+          "columnNumber": 24813,
+          "sourceFile": "tauri://localhost/assets/base-modal-CepZGn4m.js",
+          "sample": "",
+          "blockedURI": "inline"
+        }
+      ],
+      "scroll_lock_added_without_nonce_before_editor": true,
+      "style_violation_before_editor": 1,
+      "codemirror_style_has_nonce": true
+    }
+  ],
+  "nonce_ownership_review": {
+    "reviewed_at_utc": "2026-09-29T02:14:29.003200+00:00",
+    "status": "implementation_static_review_pass_focused_log_pass_native_pending",
+    "requested_owner": "src/utils/cspNonce.ts plus src/main.tsx initialization before createRoot/render",
+    "compatibility": "feature cspNonce re-export retains callers",
+    "mechanism": "set globalThis.__webpack_nonce__ only when readPageCspNonce resolves a nonempty page nonce",
+    "local_evidence": [
+      "ccr-ui/node_modules/get-nonce/dist/es2015/index.js:1-12",
+      "ccr-ui/node_modules/get-nonce/README.md:29-39",
+      "ccr-ui/node_modules/react-style-singleton/dist/es2015/singleton.js:1-11",
+      "ccr-ui/src/main.tsx:18-46",
+      ".trellis/spec/ccr-ui/frontend/layering-contracts.md:24-62"
+    ],
+    "current_get_nonce_version": "1.0.1",
+    "other_current_source_writers_found": false,
+    "direct_dependency_required_by_this_mechanism": false,
+    "csp_relaxation_requested": false,
+    "required_checks": [
+      "actual ConfirmModal mount passes page nonce to scroll-lock stylesheet",
+      "no-nonce web behavior",
+      "CodeMirror nonce regression",
+      "test global descriptor restored and modal cleanup",
+      "native production bundle stylesheet sheet and computed overflow",
+      "zero style CSP violation and blocked inline-script negative control",
+      "actual UI source save and fixture preservation",
+      "new source/bundle/binary lineage"
+    ],
+    "implemented_files": {
+      "ccr-ui/src/utils/cspNonce.ts": "9102abf17c251cee147d526625765d5ed81baeff033b3d22ab8e04ac61754548",
+      "ccr-ui/src/main.tsx": "58c02122dbcac4bcd623f62a74c1848cb455507815870589c1768ab71e8acefc",
+      "ccr-ui/src/features/platform/editor/cspNonce.ts": "6af38c654eb31f80aae67f94c64be48cfa16e7842484e9c64e82443b5118868d",
+      "ccr-ui/tests/ui/runtime-style-nonce.smoke.test.tsx": "57a3043d8b27593cd27dc0ae7d781b8e2d0aabd5469c96cc3cb9a0669b91c494",
+      ".trellis/spec/ccr-ui/frontend/confirm-interaction-contracts.md": "339cac5dd8c67b12b4e0ccd817d96b28c95ff567e5ab3583f6d578fc2cd249b0"
+    },
+    "static_findings": [],
+    "implementation_review": [
+      "utils is the shared lower-level owner; existing feature remains a compatibility re-export",
+      "main initialization line 24 precedes createRoot/render line 48",
+      "global compatibility entry is written only for a nonempty page nonce",
+      "three actual ConfirmModal cases cover style precedence, script fallback, no-nonce web",
+      "test checks nonce, sheet, body overflow and unmount cleanup; restores original property descriptor",
+      "spec explicitly states JSDOM does not enforce CSP"
+    ],
+    "focused_evidence": {
+      "log": "remaining-csp-focused.log",
+      "log_sha256": "9cce2878424d184a1912a8a9594799864dc97430414c5530dd4a26781a8fc91c",
+      "observed_test_files": 3,
+      "observed_tests": 7,
+      "log_reports_success": true,
+      "author_reported_exit_code": 0,
+      "exact_command_and_source_receipt_pending": false,
+      "reviewer_executed": false,
+      "superseding_receipt": "remaining-csp-focused-final.json"
+    },
+    "unchanged_inputs_verified": {
+      "ccr-ui/package.json": true
+    },
+    "typescript_correction": {
+      "initial_log": "remaining-csp-types.log",
+      "initial_log_sha256": "c429d77933bc9fa5f98ccc0618ab101804898b41ad38e65785cbaadebb925f7b",
+      "diagnostic": "TS2550 at runtime-style-nonce.smoke.test.tsx:63: Object.hasOwn unavailable in existing compiler target",
+      "initial_test_sha256": "5b3985b99585ab7bdaa8e0ab2eb5f2d256335f4afb0116948dd760bd0ed87a2b",
+      "corrected_test_sha256": "57a3043d8b27593cd27dc0ae7d781b8e2d0aabd5469c96cc3cb9a0669b91c494",
+      "change": "Use Object.getOwnPropertyDescriptor(...).toBeUndefined() for the same absent-global-property assertion",
+      "compiler_target_changed": false,
+      "assertion_weakened": false,
+      "focused_types_lint_passed_after_correction": true
+    }
+  },
+  "review_completed_at_utc": "2026-09-29T02:22:37.315602+00:00",
+  "dedicated_trellis_check_review_complete": false,
+  "dedicated_review_handoff": {
+    "target": "/root/check_t01",
+    "role": "existing dedicated checker per root dispatch",
+    "status": "running",
+    "live_agent_list_verified_at_utc": "2026-09-29T02:22:37.315602+00:00",
+    "write_scope": [
+      "research/remaining-dedicated-check.md",
+      "research/remaining-dedicated-check.json"
+    ],
+    "historical_new_spawn_thread_limit_failure_preserved": true,
+    "clarification": "Existing checker followup restored a dedicated review path. This incremental report remains a non-author review and does not itself complete that dedicated review."
+  },
+  "source_changes_by_reviewer_scope": "No product source changes during this incremental review. Historical authored areas remain explicitly excluded.",
+  "handoff_notes": [
+    "Review cutoff contains finalized evidence through CSP focused/types/lint/UI-build and final native harness static review.",
+    "Latest reviewed Windows aggregate remains failed at fast-version <=5000ms assertion. remaining_gates owns diagnosis/correction.",
+    "Reviewed native attempts 1-4 are pre-fix failures. New freeze/native binary/roundtrip evidence remains root-owned and pending at cutoff.",
+    "Do not attribute earlier passes to post-nonce or future system.rs source without an explicit lineage comparison."
+  ]
+}

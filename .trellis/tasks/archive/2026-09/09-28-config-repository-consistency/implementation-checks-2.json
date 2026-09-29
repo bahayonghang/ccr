@@ -1,0 +1,68 @@
+[
+  {
+    "name": "codex-current-query",
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "ccr-codex",
+      "--lib",
+      "current_profile_query_preserves_stale_registry_marker",
+      "--",
+      "--nocapture"
+    ],
+    "exit_code": 0,
+    "summary": [
+      "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 230 filtered out; finished in 0.05s"
+    ]
+  },
+  {
+    "name": "cargo-codex-profile-retry",
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "ccr-codex",
+      "profile",
+      "--",
+      "--nocapture"
+    ],
+    "exit_code": 0,
+    "summary": [
+      "test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 213 filtered out; finished in 0.75s"
+    ]
+  },
+  {
+    "name": "cargo-cli-platforms",
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "ccr-cli",
+      "platforms::"
+    ],
+    "exit_code": 0,
+    "summary": [
+      "test result: ok. 61 passed; 0 failed; 0 ignored; 0 measured; 271 filtered out; finished in 3.15s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.00s"
+    ]
+  },
+  {
+    "name": "clippy-cli-codex",
+    "command": [
+      "cargo",
+      "clippy",
+      "-p",
+      "ccr-cli",
+      "-p",
+      "ccr-codex",
+      "--all-targets",
+      "--all-features",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 101,
+    "summary": []
+  }
+]

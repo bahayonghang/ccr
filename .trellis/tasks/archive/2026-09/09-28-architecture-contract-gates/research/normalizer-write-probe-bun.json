@@ -1,0 +1,22 @@
+{
+  "runtime": "bun",
+  "version": "1.4.2",
+  "platform": "win32",
+  "results": [
+    {
+      "iterations": 50,
+      "mismatch": false,
+      "expectedBytes": 40
+    },
+    {
+      "iterations": 50,
+      "mismatch": false,
+      "expectedBytes": 60
+    },
+    {
+      "iterations": 50,
+      "mismatch": false,
+      "expectedBytes": 71
+    }
+  ]
+}

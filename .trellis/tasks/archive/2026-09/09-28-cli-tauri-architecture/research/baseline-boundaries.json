@@ -1,0 +1,12 @@
+{
+  "check": "boundaries",
+  "command": [
+    "bun",
+    "run",
+    "check:arch-boundaries"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+  "exit_code": 0,
+  "seconds": 14.75,
+  "log": "baseline-boundaries.log"
+}

@@ -1,0 +1,12 @@
+{
+  "at_utc": "2026-09-29T02:12:28.261Z",
+  "before": {
+    "nonce": "",
+    "readable": true
+  },
+  "after": {
+    "nonce": "synthetic-page-nonce",
+    "readable": true
+  },
+  "scope": "Installed react-style-singleton/get-nonce runtime bridge in JSDOM; does not enforce CSP or validate native behavior"
+}

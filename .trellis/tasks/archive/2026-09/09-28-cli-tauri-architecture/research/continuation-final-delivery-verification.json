@@ -1,0 +1,84 @@
+{
+  "captured_at_utc": "2026-09-29T00:26:51.102014+00:00",
+  "baseline_commit": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "source_snapshot": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-platform-final-source-freeze.json",
+  "source_snapshot_sha256": "fa79dd6fc1f9f1142d63e7c20a72d161ef398f1f683388d2ba49c7d71c3bfaaa",
+  "source_paths_checked": 263,
+  "source_existing_files_checked": 261,
+  "source_deleted_paths_checked": [
+    "ccr-ui/src/features/editor/styles/code-source-editor.css",
+    "ccr-ui/src/features/editor/styles/config-source-panel.css"
+  ],
+  "source_changed": [],
+  "source_provenance_correction": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-platform-freeze-provenance.json",
+  "generated_types_checked": 230,
+  "generated_matches_successful_formal_guard": true,
+  "generated_guard_snapshot": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-tauri-after.json",
+  "generated_guard_snapshot_sha256": "fc5c8c6de88804d826c405ff352bb444257c95375f1418dd1877f673ae0463ed",
+  "protected_files": {
+    "ccr-ui/.tmp-desktop-probe.mjs": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+    "ccr-ui/.tmp-insights-visual.mjs": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53"
+  },
+  "existing_task_statuses": {
+    "09-24-home-insights-redesign": "planning",
+    "09-24-home-insights-frontend": "in_progress"
+  },
+  "architecture_task_statuses": {
+    "09-28-config-repository-consistency": "in_progress",
+    "09-28-profile-application-usecases": "in_progress",
+    "09-28-tauri-config-adapter": "in_progress",
+    "09-28-cli-diagnostics-contract": "in_progress",
+    "09-28-safe-persistence-backups": "in_progress",
+    "09-28-usage-job-lifecycle": "in_progress",
+    "09-28-command-workbench-lifecycle": "in_progress",
+    "09-28-settings-lossless-capabilities": "in_progress",
+    "09-28-frontend-query-error-contracts": "in_progress",
+    "09-28-architecture-contract-gates": "in_progress",
+    "09-28-desktop-control-oauth-lifecycle": "in_progress",
+    "09-28-cli-tauri-architecture": "in_progress"
+  },
+  "context_validation_evidence": "continuation-context-preservation.json",
+  "task_context_validations_passed": 12,
+  "diff_check_exit": 0,
+  "diff_check_log": "continuation-final-diff-check.log",
+  "diff_check_log_sha256": "2b6c1e9ae77bc4fe570682aefe1d8a137cc43ed37564b01e7a07df0b6474785e",
+  "final_root_ci": {
+    "check": "ci",
+    "command": [
+      "just",
+      "ci"
+    ],
+    "cwd": "D:\\Documents\\Code\\Github\\ccr",
+    "started_at": "2026-09-28T23:43:55.849741+00:00",
+    "exit_code": 1,
+    "seconds": 710.79,
+    "log": "root-continuation-final-ci.log",
+    "command_environment_override": {
+      "CCR_SKIP_ICON_GENERATION": "1"
+    }
+  },
+  "root_ci_failure": "CLI binding exporter startup0xc0000005; no running-count banner observed for failed process; cause unresolved",
+  "root_ci_source_boundary": "Before final one-line cfg(test,windows) import correction; do not reattribute original root CI to the later source snapshot",
+  "standalone_tauri_gate": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-tauri-ci.json",
+  "post_cfg_checks": [
+    ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-platform-final-checks.json",
+    ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-oauth-selector-correction.json"
+  ],
+  "invalid_selector_runs_excluded_from_behavior_acceptance": [
+    "continuation-linux-tauri-oauth-final.json",
+    "continuation-windows-oauth-after-import.json"
+  ],
+  "original_frontend_gate": "root-continuation-frontend.json",
+  "frontend_tests": "root-continuation-frontend-tests.json",
+  "frontend_build": "root-continuation-ui-build.json",
+  "committed": false,
+  "pushed": false,
+  "archived": false,
+  "limits": [
+    "Root aggregate remains failed despite independent successful Tauri retries; startup cause unresolved",
+    "Current formal frontend gate retains5 protected-file errors",
+    "Required macOS process matrix, full Linux lane and native WebView/CSP not run",
+    "Dedicated check-role dispatch remains blocked; scoped non-author reviews are recorded",
+    "Final evidence matrix and report review are tracked separately and do not change product source acceptance"
+  ]
+}

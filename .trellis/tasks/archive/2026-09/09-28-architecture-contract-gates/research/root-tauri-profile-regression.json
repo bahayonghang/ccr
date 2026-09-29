@@ -1,0 +1,18 @@
+{
+  "command": [
+    "C:\\Users\\lyh\\AppData\\Local\\mbx\\bin\\cargo.EXE",
+    "--config",
+    ".cargo/tauri-ci.toml",
+    "test",
+    "--manifest-path",
+    "ccr-ui/src-tauri/Cargo.toml",
+    "--all-features",
+    "profile",
+    "--",
+    "--skip",
+    "export_bindings"
+  ],
+  "exit_code": 0,
+  "seconds": 152.75,
+  "log": "root-tauri-profile-regression.log"
+}

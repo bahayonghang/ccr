@@ -1,0 +1,15 @@
+{
+  "check": "test",
+  "command": [
+    "just",
+    "test"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "started_at": "2026-09-28T16:17:30.762127+00:00",
+  "exit_code": 1,
+  "seconds": 148.61,
+  "log": "root-final-after-fixtures-test.log",
+  "command_environment_override": {
+    "CCR_SKIP_ICON_GENERATION": "1"
+  }
+}

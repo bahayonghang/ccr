@@ -1,0 +1,12 @@
+{
+  "check": "types",
+  "command": [
+    "bun",
+    "run",
+    "type-check"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+  "exit_code": 0,
+  "seconds": 8.46,
+  "log": "baseline-types.log"
+}

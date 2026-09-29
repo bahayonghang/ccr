@@ -1,0 +1,2 @@
+await page.waitForFunction(() => document.querySelectorAll('a[href]').length > 0, { timeout: 30000 });
+return { observation: await tabbit.observe({ frames: 'none', maxChars: 7000 }), errors: ccrWebErrors };

@@ -1,0 +1,29 @@
+{
+  "reviewed_at_utc": "2026-09-29T03:03:34.219891+00:00",
+  "reviewer": "root, non-author of the six permission files",
+  "scope": [
+    "crates/ccr-config/src/managers/config/repository.rs",
+    "crates/ccr-config/src/managers/config/repository_tests.rs",
+    "crates/ccr-core/src/core/atomic_writer.rs",
+    "crates/ccr-core/src/core/guarded_write.rs",
+    ".trellis/spec/ccr-core/backend/atomic-writer.md",
+    ".trellis/spec/ccr-config/backend/profile-repository.md"
+  ],
+  "status": "passed_delta_review_pending_formal_gates",
+  "source_freeze": "remaining-permissions-source-freeze.json",
+  "source_freeze_sha256": "db558b278b92936895543e274352d5034adcd800852998aa19fbfb418b3f5891",
+  "findings_resolved": [
+    "Guarded handle read and token validation remain inside the leaf lock; repository holds the outer resource lock",
+    "Shared Unix mode selection preserves 0400/0600 and normalizes broad and special modes as the existing writers do",
+    "Invalid/stale/query paths do not harden metadata; no-op CAS rejects a concurrent leaf replacement",
+    "No replacement, backup, content or mtime change for no-op permission enforcement",
+    "Journal claim narrowed: no new metadata-only rollback entry; existing content compensation retains its original metadata contract"
+  ],
+  "unchanged_original_regression": "crates/ccr-config/src/platforms/base.rs",
+  "implementation_evidence": "remaining-permissions-fix.json",
+  "limits": [
+    "Windows retains its existing DACL; new-target Windows policy is unchanged",
+    "Fault regression is pre-change injection, not a measured OS permission denial",
+    "macOS native execution remains unavailable"
+  ]
+}

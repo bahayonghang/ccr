@@ -1,0 +1,82 @@
+[
+  {
+    "label": "check-frontend-type",
+    "command": [
+      "bun",
+      "run",
+      "type-check"
+    ],
+    "exit_code": 0,
+    "seconds": 8.47
+  },
+  {
+    "label": "check-frontend-lint",
+    "command": [
+      "bun",
+      "run",
+      "lint:ci"
+    ],
+    "exit_code": 1,
+    "seconds": 17.88
+  },
+  {
+    "label": "check-frontend-cycles",
+    "command": [
+      "bun",
+      "run",
+      "check:cycles"
+    ],
+    "exit_code": 0,
+    "seconds": 2.26
+  },
+  {
+    "label": "check-frontend-boundaries",
+    "command": [
+      "bun",
+      "run",
+      "check:arch-boundaries"
+    ],
+    "exit_code": 0,
+    "seconds": 14.58
+  },
+  {
+    "label": "check-frontend-style",
+    "command": [
+      "bun",
+      "run",
+      "lint:style"
+    ],
+    "exit_code": 0,
+    "seconds": 0.89
+  },
+  {
+    "label": "check-frontend-i18n",
+    "command": [
+      "bun",
+      "run",
+      "test:i18n"
+    ],
+    "exit_code": 0,
+    "seconds": 0.44
+  },
+  {
+    "label": "check-frontend-smoke",
+    "command": [
+      "bun",
+      "run",
+      "test:smoke",
+      "--",
+      "tests/platforms",
+      "tests/configs",
+      "tests/shell",
+      "tests/api",
+      "tests/editor",
+      "tests/ui/confirm-interaction.smoke.test.tsx",
+      "tests/ui/code-source-editor.smoke.test.tsx"
+    ],
+    "exit_code": 0,
+    "files_passed": 67,
+    "tests_passed": 279,
+    "log": "check-frontend-smoke.log"
+  }
+]

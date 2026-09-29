@@ -1,0 +1,22 @@
+{
+  "command": [
+    "cargo",
+    "tree",
+    "--manifest-path",
+    "ccr-ui/src-tauri/Cargo.toml",
+    "--locked",
+    "--offline",
+    "--workspace",
+    "--all-features",
+    "--target",
+    "all",
+    "-i",
+    "rustls@0.23.40"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "environment_overrides": {},
+  "started_at": "2026-09-28T22:57:47.282155+00:00",
+  "exit_code": 0,
+  "seconds": 1.334,
+  "log": "continuation-security-tauri-tree-before.log"
+}

@@ -1,0 +1,3703 @@
+{
+  "date": "2026-09-28",
+  "captured_at": "2026-09-28T18:10:24.452703-05:00",
+  "reviewer": "/root/implement_t10_specs",
+  "status": "review_complete_required_gaps_remain",
+  "dispatch": "Dedicated trellis-check failed again: agent thread limit reached. Authorized non-author review reused.",
+  "self_owned_exclusion": "T10 specs/matrix receive status comparison only; independent review comes from gates owner cross-check-specs.",
+  "execution_boundary": "Reads plus these two report writes only. No Cargo, bindings, full CI, UI operation, real account access or source/log/matrix/status mutation.",
+  "input_snapshots": [
+    {
+      "path": ".trellis/tasks/09-28-cli-tauri-architecture/integration-report.md",
+      "sha256": "0b59869207bfc03f1d4058cabe0ccbc5bf5ac49e1204339549c4dbcb06edb39a"
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-scope.md",
+      "sha256": "08fc76fca3a354065655b5cdcbd928e591978b4d6bd32fd2417f62ac42b8acaa"
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/requirements-evidence.json",
+      "sha256": "c22f0baf977a4e1f76cb637064b5ed21662e20268fb9acebbbc59d80630c5015"
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/cross-check-specs.md",
+      "sha256": "159576648ccee15cb69c46f1adf20164d44b46390aeefc79f63c2e1dfe305a0d"
+    },
+    {
+      "path": ".codex/agents/trellis-check.toml",
+      "sha256": "206fd96a8aa17e95ed344cc435661d597093ece571671f298ca64490422fffe0"
+    },
+    {
+      "path": ".trellis/tasks/09-28-config-repository-consistency/check-report.md",
+      "sha256": "7d2573dd567bf944f0e21818513d04ed5093f3c60e0fe3572d931a1ef55e1f12"
+    },
+    {
+      "path": ".trellis/tasks/09-28-profile-application-usecases/check-report.md",
+      "sha256": "55edff60422b4b38edce4bcad79ec5d801536fe620bffe8f831185e937f4b394"
+    },
+    {
+      "path": ".trellis/tasks/09-28-tauri-config-adapter/check-report.md",
+      "sha256": "cc4c1beac46164adbb050cb4e2d7050820b9c4c3e48956cdfc1d04b6e66a5fc9"
+    },
+    {
+      "path": ".trellis/tasks/09-28-cli-diagnostics-contract/check-report.md",
+      "sha256": "a44b28e59c4f2948a3ee91c740c5da5f7250433eec1b87faec112936142d30c2"
+    },
+    {
+      "path": ".trellis/tasks/09-28-safe-persistence-backups/check-report.md",
+      "sha256": "72ab91c717cf0c163f7b8252c5ac9d10d9fe38f0674a7d5f31711886be9d9af6"
+    },
+    {
+      "path": ".trellis/tasks/09-28-usage-job-lifecycle/check-report.md",
+      "sha256": "32a48ea343ccae01dbb55360d6e0601d9d83160e881ef2650ffc88fb4f0c520b"
+    },
+    {
+      "path": ".trellis/tasks/09-28-command-workbench-lifecycle/check-report.md",
+      "sha256": "e72bc2475f82cf9d039bcdbdcb2337b317026f7ee2e93185aff3f582e7633362"
+    },
+    {
+      "path": ".trellis/tasks/09-28-settings-lossless-capabilities/check-report.md",
+      "sha256": "5ffa0032a3ac35a8f89754ea465361e7821a56522f5bdbf85336fd8246b2984a"
+    },
+    {
+      "path": ".trellis/tasks/09-28-frontend-query-error-contracts/check-report.md",
+      "sha256": "ba2a15fb78a6cf18b5f0419d5c61ca21e19b7bcaf5fdbb3da740b526ef7be1f4"
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/check-report.md",
+      "sha256": "be5904ecbbc6639bc374277057ce119780d28081393fae22a3cebe96e333ad1d"
+    },
+    {
+      "path": ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-report.md",
+      "sha256": "a8118a43b55ab721d99fdda10a18e238cd1e2a5174caf3a4142611dc06fb93ba"
+    }
+  ],
+  "report": {
+    "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-acceptance-review.md",
+    "sha256": "bef7f48fc7fdf145275bee9126c2b7f738d63861ac5f15548953f8022196e173"
+  },
+  "requirements": [
+    {
+      "id": "T01.AC1",
+      "requirement": "两个独立进程经不同 adapter 并发修改不同 profile 后，两项修改都存在。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-config-repository-consistency/prd.md",
+          "line": 34
+        },
+        {
+          "path": ".trellis/tasks/09-28-config-repository-consistency/design.md",
+          "line": 11
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "repository",
+          "source": "crates/ccr-config/src/managers/config/repository_tests.rs",
+          "cases": [
+            {
+              "selector": "platform_and_service_processes_keep_both_updates",
+              "line": 419
+            },
+            {
+              "selector": "desktop_and_service_processes_keep_both_updates",
+              "line": 424
+            },
+            {
+              "selector": "windows_verbatim_and_service_processes_keep_both_updates",
+              "line": 430
+            },
+            {
+              "selector": "reads_do_not_initialize_autofix_or_lock_files",
+              "line": 54
+            },
+            {
+              "selector": "explicit_platform_and_legacy_claude_ignore_registry_order",
+              "line": 131
+            },
+            {
+              "selector": "strict_patch_rejects_invalid_missing_duplicate_and_stale_without_writes",
+              "line": 157
+            },
+            {
+              "selector": "patch_preserves_unedited_fields_and_renames_current_and_default",
+              "line": 193
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-profile-application-usecases/check-repository-alias-final.log",
+            ".trellis/tasks/09-28-profile-application-usecases/root-linux-repository-final-alias.json"
+          ],
+          "boundary": "Windows plus Linux Rust 1.95 MSRV. Repository desktop fixture uses ConfigService; actual Tauri handler is config_handlers. No real UNC share or symlink-alias guarantee."
+        },
+        {
+          "id": "config_handlers",
+          "source": "ccr-ui/src-tauri/src/commands/config/contract_tests.rs",
+          "cases": [
+            {
+              "selector": "actual_handlers_switch_and_enable_commit_runtime_and_policy",
+              "line": 27
+            },
+            {
+              "selector": "legacy_and_unsupported_platform_requests_never_write",
+              "line": 77
+            },
+            {
+              "selector": "strict_patch_rejects_unknown_wrong_types_missing_collision_without_write",
+              "line": 145
+            },
+            {
+              "selector": "patch_retains_secret_unknown_fields_inactive_marker_and_checks_version",
+              "line": 194
+            },
+            {
+              "selector": "desktop_and_service_processes_preserve_independent_changes",
+              "line": 449
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-tauri-config-adapter/check-backend-final.log",
+            ".trellis/tasks/09-28-tauri-config-adapter/check-enable-final.log"
+          ],
+          "boundary": "Generic /configs explicitly Claude-only; platform enable compensation separately covers Claude/Codex/Grok. No native WebView."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo test -p ccr-config repository"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T01.AC2",
+      "requirement": "registry 排序变化不改变指定平台结果；list/current/validate 前后文件清单与内容相同。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-config-repository-consistency/prd.md",
+          "line": 35
+        },
+        {
+          "path": ".trellis/tasks/09-28-config-repository-consistency/design.md",
+          "line": 12
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "repository",
+          "source": "crates/ccr-config/src/managers/config/repository_tests.rs",
+          "cases": [
+            {
+              "selector": "platform_and_service_processes_keep_both_updates",
+              "line": 419
+            },
+            {
+              "selector": "desktop_and_service_processes_keep_both_updates",
+              "line": 424
+            },
+            {
+              "selector": "windows_verbatim_and_service_processes_keep_both_updates",
+              "line": 430
+            },
+            {
+              "selector": "reads_do_not_initialize_autofix_or_lock_files",
+              "line": 54
+            },
+            {
+              "selector": "explicit_platform_and_legacy_claude_ignore_registry_order",
+              "line": 131
+            },
+            {
+              "selector": "strict_patch_rejects_invalid_missing_duplicate_and_stale_without_writes",
+              "line": 157
+            },
+            {
+              "selector": "patch_preserves_unedited_fields_and_renames_current_and_default",
+              "line": 193
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-profile-application-usecases/check-repository-alias-final.log",
+            ".trellis/tasks/09-28-profile-application-usecases/root-linux-repository-final-alias.json"
+          ],
+          "boundary": "Windows plus Linux Rust 1.95 MSRV. Repository desktop fixture uses ConfigService; actual Tauri handler is config_handlers. No real UNC share or symlink-alias guarantee."
+        },
+        {
+          "id": "diagnostics",
+          "source": "crates/ccr/tests/diagnostics_contract.rs",
+          "cases": [
+            {
+              "selector": "validate_binary_six_state_matrix_is_read_only",
+              "line": 143
+            },
+            {
+              "selector": "validate_binary_applied_api_and_subscription_profiles_follow_domain_rules",
+              "line": 196
+            },
+            {
+              "selector": "validate_binary_native_denied_read_is_distinct_from_missing",
+              "line": 328
+            },
+            {
+              "selector": "doctor_binary_default_scope_includes_grok_and_preserves_simplified_profiles",
+              "line": 367
+            },
+            {
+              "selector": "doctor_binary_grok_is_supported_and_legacy_adapters_are_explicit",
+              "line": 504
+            },
+            {
+              "selector": "validate_binary_claude_current_uses_valid_marker_precedence_without_repair",
+              "line": 476
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-cli-diagnostics-contract/check-binary-final.log"
+          ],
+          "boundary": "Windows three platforms and API-key/subscription fixtures; Linux/macOS binary acceptance unrun."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo test -p ccr-config repository"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T01.AC3",
+      "requirement": "非法 patch、重名和版本冲突均返回明确错误且磁盘不变；合法更新保留未编辑字段。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-config-repository-consistency/prd.md",
+          "line": 36
+        },
+        {
+          "path": ".trellis/tasks/09-28-config-repository-consistency/design.md",
+          "line": 13
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "repository",
+          "source": "crates/ccr-config/src/managers/config/repository_tests.rs",
+          "cases": [
+            {
+              "selector": "platform_and_service_processes_keep_both_updates",
+              "line": 419
+            },
+            {
+              "selector": "desktop_and_service_processes_keep_both_updates",
+              "line": 424
+            },
+            {
+              "selector": "windows_verbatim_and_service_processes_keep_both_updates",
+              "line": 430
+            },
+            {
+              "selector": "reads_do_not_initialize_autofix_or_lock_files",
+              "line": 54
+            },
+            {
+              "selector": "explicit_platform_and_legacy_claude_ignore_registry_order",
+              "line": 131
+            },
+            {
+              "selector": "strict_patch_rejects_invalid_missing_duplicate_and_stale_without_writes",
+              "line": 157
+            },
+            {
+              "selector": "patch_preserves_unedited_fields_and_renames_current_and_default",
+              "line": 193
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-profile-application-usecases/check-repository-alias-final.log",
+            ".trellis/tasks/09-28-profile-application-usecases/root-linux-repository-final-alias.json"
+          ],
+          "boundary": "Windows plus Linux Rust 1.95 MSRV. Repository desktop fixture uses ConfigService; actual Tauri handler is config_handlers. No real UNC share or symlink-alias guarantee."
+        },
+        {
+          "id": "config_handlers",
+          "source": "ccr-ui/src-tauri/src/commands/config/contract_tests.rs",
+          "cases": [
+            {
+              "selector": "actual_handlers_switch_and_enable_commit_runtime_and_policy",
+              "line": 27
+            },
+            {
+              "selector": "legacy_and_unsupported_platform_requests_never_write",
+              "line": 77
+            },
+            {
+              "selector": "strict_patch_rejects_unknown_wrong_types_missing_collision_without_write",
+              "line": 145
+            },
+            {
+              "selector": "patch_retains_secret_unknown_fields_inactive_marker_and_checks_version",
+              "line": 194
+            },
+            {
+              "selector": "desktop_and_service_processes_preserve_independent_changes",
+              "line": 449
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-tauri-config-adapter/check-backend-final.log",
+            ".trellis/tasks/09-28-tauri-config-adapter/check-enable-final.log"
+          ],
+          "boundary": "Generic /configs explicitly Claude-only; platform enable compensation separately covers Claude/Codex/Grok. No native WebView."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo test -p ccr-config repository"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T02.AC1",
+      "requirement": "无效、被删除或禁用目标在三个入口均无写入；写入阶段故障产生可验证的回滚或显式可恢复结果。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-profile-application-usecases/prd.md",
+          "line": 36
+        },
+        {
+          "path": ".trellis/tasks/09-28-profile-application-usecases/design.md",
+          "line": 11
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "profile_cli",
+          "source": "crates/ccr-cli/src/application/profile_contract.rs",
+          "cases": [
+            {
+              "selector": "profile_preflight_contract",
+              "line": 532
+            },
+            {
+              "selector": "profile_each_write_contract",
+              "line": 544
+            },
+            {
+              "selector": "profile_success_replay_contract",
+              "line": 536
+            },
+            {
+              "selector": "profile_ancillary_contract",
+              "line": 540
+            },
+            {
+              "selector": "profile_external_version_contract",
+              "line": 548
+            },
+            {
+              "selector": "profile_rename_each_write_contract",
+              "line": 552
+            },
+            {
+              "selector": "profile_adapters_keep_application_boundary",
+              "line": 490
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-profile-application-usecases/check-cli-alias-final.log"
+          ],
+          "boundary": "Claude/Codex/Grok application requests. Not interactive terminal acceptance or OS multi-file atomicity."
+        },
+        {
+          "id": "profile_tui",
+          "source": "crates/ccr-tui/src/tui/profile_backend.rs",
+          "cases": [
+            {
+              "selector": "apply_preflight_contract",
+              "line": 79
+            },
+            {
+              "selector": "apply_each_write_contract",
+              "line": 91
+            },
+            {
+              "selector": "apply_ancillary_contract",
+              "line": 87
+            },
+            {
+              "selector": "apply_success_replay_contract",
+              "line": 83
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-profile-application-usecases/check-tui-alias-final.log"
+          ],
+          "boundary": "No interactive TUI acceptance. Calls the shared contract harness with an isolated root."
+        },
+        {
+          "id": "profile_desktop",
+          "source": "ccr-ui/src-tauri/src/commands/profile_lifecycle.rs",
+          "cases": [
+            {
+              "selector": "profile_preflight_contract",
+              "line": 46
+            },
+            {
+              "selector": "profile_success_replay_contract",
+              "line": 51
+            },
+            {
+              "selector": "profile_ancillary_contract",
+              "line": 56
+            },
+            {
+              "selector": "profile_each_write_contract",
+              "line": 61
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-profile-application-usecases/check-desktop-alias-final.log"
+          ],
+          "boundary": "No native IPC/WebView. Rename helper coverage is also listed in the independent report."
+        },
+        {
+          "id": "journal",
+          "source": "crates/ccr-core/src/core/write_journal.rs",
+          "cases": [
+            {
+              "selector": "journal_restores_post_publish_failure",
+              "line": 381
+            },
+            {
+              "selector": "journal_rollback_obeys_windows_alias_leaf_lock",
+              "line": 448
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-profile-application-usecases/check-journal-alias-final.log",
+            ".trellis/tasks/09-28-profile-application-usecases/root-linux-write-journal-faults-final-alias.json"
+          ],
+          "boundary": "Windows DACL/read-only and Linux mode branches. No process-crash recovery transaction guarantee."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo test -p ccr-cli profile",
+          "cargo test -p ccr-tui apply",
+          "cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml profile"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T02.AC2",
+      "requirement": "相同 fixture 和请求在三个入口产生相同持久状态；实际未生效不得增加成功计数或成功历史。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-profile-application-usecases/prd.md",
+          "line": 37
+        },
+        {
+          "path": ".trellis/tasks/09-28-profile-application-usecases/design.md",
+          "line": 12
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "profile_cli",
+          "source": "crates/ccr-cli/src/application/profile_contract.rs",
+          "cases": [
+            {
+              "selector": "profile_preflight_contract",
+              "line": 532
+            },
+            {
+              "selector": "profile_each_write_contract",
+              "line": 544
+            },
+            {
+              "selector": "profile_success_replay_contract",
+              "line": 536
+            },
+            {
+              "selector": "profile_ancillary_contract",
+              "line": 540
+            },
+            {
+              "selector": "profile_external_version_contract",
+              "line": 548
+            },
+            {
+              "selector": "profile_rename_each_write_contract",
+              "line": 552
+            },
+            {
+              "selector": "profile_adapters_keep_application_boundary",
+              "line": 490
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-profile-application-usecases/check-cli-alias-final.log"
+          ],
+          "boundary": "Claude/Codex/Grok application requests. Not interactive terminal acceptance or OS multi-file atomicity."
+        },
+        {
+          "id": "profile_tui",
+          "source": "crates/ccr-tui/src/tui/profile_backend.rs",
+          "cases": [
+            {
+              "selector": "apply_preflight_contract",
+              "line": 79
+            },
+            {
+              "selector": "apply_each_write_contract",
+              "line": 91
+            },
+            {
+              "selector": "apply_ancillary_contract",
+              "line": 87
+            },
+            {
+              "selector": "apply_success_replay_contract",
+              "line": 83
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-profile-application-usecases/check-tui-alias-final.log"
+          ],
+          "boundary": "No interactive TUI acceptance. Calls the shared contract harness with an isolated root."
+        },
+        {
+          "id": "profile_desktop",
+          "source": "ccr-ui/src-tauri/src/commands/profile_lifecycle.rs",
+          "cases": [
+            {
+              "selector": "profile_preflight_contract",
+              "line": 46
+            },
+            {
+              "selector": "profile_success_replay_contract",
+              "line": 51
+            },
+            {
+              "selector": "profile_ancillary_contract",
+              "line": 56
+            },
+            {
+              "selector": "profile_each_write_contract",
+              "line": 61
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-profile-application-usecases/check-desktop-alias-final.log"
+          ],
+          "boundary": "No native IPC/WebView. Rename helper coverage is also listed in the independent report."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo test -p ccr-cli profile",
+          "cargo test -p ccr-tui apply",
+          "cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml profile"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T02.AC3",
+      "requirement": "历史写失败时结果明确标记 activation 已提交及附属失败，三端均显示相应结果且不自动重做激活。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-profile-application-usecases/prd.md",
+          "line": 38
+        },
+        {
+          "path": ".trellis/tasks/09-28-profile-application-usecases/design.md",
+          "line": 13
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "profile_warning_binary",
+          "source": "crates/ccr/tests/commands/claude_profile.rs",
+          "cases": [
+            {
+              "selector": "claude_profile_switch_reports_committed_history_warning",
+              "line": 369
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-profile-application-usecases/check-cli-warning-output.log"
+          ],
+          "boundary": "Windows synthetic credentials; one committed activation and history_failed record; no real account."
+        },
+        {
+          "id": "profile_tui",
+          "source": "crates/ccr-tui/src/tui/profile_backend.rs",
+          "cases": [
+            {
+              "selector": "apply_preflight_contract",
+              "line": 79
+            },
+            {
+              "selector": "apply_each_write_contract",
+              "line": 91
+            },
+            {
+              "selector": "apply_ancillary_contract",
+              "line": 87
+            },
+            {
+              "selector": "apply_success_replay_contract",
+              "line": 83
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-profile-application-usecases/check-tui-alias-final.log"
+          ],
+          "boundary": "No interactive TUI acceptance. Calls the shared contract harness with an isolated root."
+        },
+        {
+          "id": "config_page",
+          "source": "ccr-ui/tests/configs/configs-actions.smoke.test.tsx",
+          "cases": [
+            {
+              "selector": "switches an enabled row with an explicit platform",
+              "line": 121
+            },
+            {
+              "selector": "exposes an enable action for a disabled row",
+              "line": 133
+            },
+            {
+              "selector": "refreshes a committed warning",
+              "line": 163
+            },
+            {
+              "selector": "updates tabs, summaries and mounted cards",
+              "line": 91
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-frontend-query-error-contracts/research/check-frontend-smoke.log"
+          ],
+          "boundary": "Bottom Tauri invoke, unrelated queries and confirmation decisions are mocked. Filesystem behavior is covered separately by config_handlers, not native end-to-end."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo test -p ccr-cli profile",
+          "cargo test -p ccr-tui apply",
+          "cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml profile"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T02.AC4",
+      "requirement": "profile 的桌面与 TUI 路径均调用同一 application 用例；共享入口没有 stdin、print 或 process::exit。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-profile-application-usecases/prd.md",
+          "line": 39
+        },
+        {
+          "path": ".trellis/tasks/09-28-profile-application-usecases/design.md",
+          "line": 14
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "profile_cli",
+          "source": "crates/ccr-cli/src/application/profile_contract.rs",
+          "cases": [
+            {
+              "selector": "profile_preflight_contract",
+              "line": 532
+            },
+            {
+              "selector": "profile_each_write_contract",
+              "line": 544
+            },
+            {
+              "selector": "profile_success_replay_contract",
+              "line": 536
+            },
+            {
+              "selector": "profile_ancillary_contract",
+              "line": 540
+            },
+            {
+              "selector": "profile_external_version_contract",
+              "line": 548
+            },
+            {
+              "selector": "profile_rename_each_write_contract",
+              "line": 552
+            },
+            {
+              "selector": "profile_adapters_keep_application_boundary",
+              "line": 490
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-profile-application-usecases/check-cli-alias-final.log"
+          ],
+          "boundary": "Claude/Codex/Grok application requests. Not interactive terminal acceptance or OS multi-file atomicity."
+        },
+        {
+          "id": "profile_tui",
+          "source": "crates/ccr-tui/src/tui/profile_backend.rs",
+          "cases": [
+            {
+              "selector": "apply_preflight_contract",
+              "line": 79
+            },
+            {
+              "selector": "apply_each_write_contract",
+              "line": 91
+            },
+            {
+              "selector": "apply_ancillary_contract",
+              "line": 87
+            },
+            {
+              "selector": "apply_success_replay_contract",
+              "line": 83
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-profile-application-usecases/check-tui-alias-final.log"
+          ],
+          "boundary": "No interactive TUI acceptance. Calls the shared contract harness with an isolated root."
+        },
+        {
+          "id": "profile_desktop",
+          "source": "ccr-ui/src-tauri/src/commands/profile_lifecycle.rs",
+          "cases": [
+            {
+              "selector": "profile_preflight_contract",
+              "line": 46
+            },
+            {
+              "selector": "profile_success_replay_contract",
+              "line": 51
+            },
+            {
+              "selector": "profile_ancillary_contract",
+              "line": 56
+            },
+            {
+              "selector": "profile_each_write_contract",
+              "line": 61
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-profile-application-usecases/check-desktop-alias-final.log"
+          ],
+          "boundary": "No native IPC/WebView. Rename helper coverage is also listed in the independent report."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo test -p ccr-cli profile",
+          "cargo test -p ccr-tui apply",
+          "cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml profile"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T02.AC5",
+      "requirement": "rename 在 save-new、delete-old、apply 各阶段失败时结果可解释，current/default 不悬空，CLI/Tauri 同 fixture 后果一致。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-profile-application-usecases/prd.md",
+          "line": 40
+        },
+        {
+          "path": ".trellis/tasks/09-28-profile-application-usecases/design.md",
+          "line": 15
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "profile_cli",
+          "source": "crates/ccr-cli/src/application/profile_contract.rs",
+          "cases": [
+            {
+              "selector": "profile_preflight_contract",
+              "line": 532
+            },
+            {
+              "selector": "profile_each_write_contract",
+              "line": 544
+            },
+            {
+              "selector": "profile_success_replay_contract",
+              "line": 536
+            },
+            {
+              "selector": "profile_ancillary_contract",
+              "line": 540
+            },
+            {
+              "selector": "profile_external_version_contract",
+              "line": 548
+            },
+            {
+              "selector": "profile_rename_each_write_contract",
+              "line": 552
+            },
+            {
+              "selector": "profile_adapters_keep_application_boundary",
+              "line": 490
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-profile-application-usecases/check-cli-alias-final.log"
+          ],
+          "boundary": "Claude/Codex/Grok application requests. Not interactive terminal acceptance or OS multi-file atomicity."
+        },
+        {
+          "id": "config_handlers",
+          "source": "ccr-ui/src-tauri/src/commands/config/contract_tests.rs",
+          "cases": [
+            {
+              "selector": "actual_handlers_switch_and_enable_commit_runtime_and_policy",
+              "line": 27
+            },
+            {
+              "selector": "legacy_and_unsupported_platform_requests_never_write",
+              "line": 77
+            },
+            {
+              "selector": "strict_patch_rejects_unknown_wrong_types_missing_collision_without_write",
+              "line": 145
+            },
+            {
+              "selector": "patch_retains_secret_unknown_fields_inactive_marker_and_checks_version",
+              "line": 194
+            },
+            {
+              "selector": "desktop_and_service_processes_preserve_independent_changes",
+              "line": 449
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-tauri-config-adapter/check-backend-final.log",
+            ".trellis/tasks/09-28-tauri-config-adapter/check-enable-final.log"
+          ],
+          "boundary": "Generic /configs explicitly Claude-only; platform enable compensation separately covers Claude/Codex/Grok. No native WebView."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo test -p ccr-cli profile",
+          "cargo test -p ccr-tui apply",
+          "cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml profile"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T03.AC1",
+      "requirement": "隔离 fixture 中从配置页发起切换和启用均成功，runtime 与当前 profile 一致。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-tauri-config-adapter/prd.md",
+          "line": 34
+        },
+        {
+          "path": ".trellis/tasks/09-28-tauri-config-adapter/design.md",
+          "line": 11
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "config_handlers",
+          "source": "ccr-ui/src-tauri/src/commands/config/contract_tests.rs",
+          "cases": [
+            {
+              "selector": "actual_handlers_switch_and_enable_commit_runtime_and_policy",
+              "line": 27
+            },
+            {
+              "selector": "legacy_and_unsupported_platform_requests_never_write",
+              "line": 77
+            },
+            {
+              "selector": "strict_patch_rejects_unknown_wrong_types_missing_collision_without_write",
+              "line": 145
+            },
+            {
+              "selector": "patch_retains_secret_unknown_fields_inactive_marker_and_checks_version",
+              "line": 194
+            },
+            {
+              "selector": "desktop_and_service_processes_preserve_independent_changes",
+              "line": 449
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-tauri-config-adapter/check-backend-final.log",
+            ".trellis/tasks/09-28-tauri-config-adapter/check-enable-final.log"
+          ],
+          "boundary": "Generic /configs explicitly Claude-only; platform enable compensation separately covers Claude/Codex/Grok. No native WebView."
+        },
+        {
+          "id": "config_page",
+          "source": "ccr-ui/tests/configs/configs-actions.smoke.test.tsx",
+          "cases": [
+            {
+              "selector": "switches an enabled row with an explicit platform",
+              "line": 121
+            },
+            {
+              "selector": "exposes an enable action for a disabled row",
+              "line": 133
+            },
+            {
+              "selector": "refreshes a committed warning",
+              "line": 163
+            },
+            {
+              "selector": "updates tabs, summaries and mounted cards",
+              "line": 91
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-frontend-query-error-contracts/research/check-frontend-smoke.log"
+          ],
+          "boundary": "Bottom Tauri invoke, unrelated queries and confirmation decisions are mocked. Filesystem behavior is covered separately by config_handlers, not native end-to-end."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::config",
+          "bun run test:smoke -- tests/configs tests/api"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T03.AC2",
+      "requirement": "未知 key、错误类型、目标缺失和重名均拒绝且无写入；并发独立修改不丢失。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-tauri-config-adapter/prd.md",
+          "line": 35
+        },
+        {
+          "path": ".trellis/tasks/09-28-tauri-config-adapter/design.md",
+          "line": 12
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "config_handlers",
+          "source": "ccr-ui/src-tauri/src/commands/config/contract_tests.rs",
+          "cases": [
+            {
+              "selector": "actual_handlers_switch_and_enable_commit_runtime_and_policy",
+              "line": 27
+            },
+            {
+              "selector": "legacy_and_unsupported_platform_requests_never_write",
+              "line": 77
+            },
+            {
+              "selector": "strict_patch_rejects_unknown_wrong_types_missing_collision_without_write",
+              "line": 145
+            },
+            {
+              "selector": "patch_retains_secret_unknown_fields_inactive_marker_and_checks_version",
+              "line": 194
+            },
+            {
+              "selector": "desktop_and_service_processes_preserve_independent_changes",
+              "line": 449
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-tauri-config-adapter/check-backend-final.log",
+            ".trellis/tasks/09-28-tauri-config-adapter/check-enable-final.log"
+          ],
+          "boundary": "Generic /configs explicitly Claude-only; platform enable compensation separately covers Claude/Codex/Grok. No native WebView."
+        },
+        {
+          "id": "repository",
+          "source": "crates/ccr-config/src/managers/config/repository_tests.rs",
+          "cases": [
+            {
+              "selector": "platform_and_service_processes_keep_both_updates",
+              "line": 419
+            },
+            {
+              "selector": "desktop_and_service_processes_keep_both_updates",
+              "line": 424
+            },
+            {
+              "selector": "windows_verbatim_and_service_processes_keep_both_updates",
+              "line": 430
+            },
+            {
+              "selector": "reads_do_not_initialize_autofix_or_lock_files",
+              "line": 54
+            },
+            {
+              "selector": "explicit_platform_and_legacy_claude_ignore_registry_order",
+              "line": 131
+            },
+            {
+              "selector": "strict_patch_rejects_invalid_missing_duplicate_and_stale_without_writes",
+              "line": 157
+            },
+            {
+              "selector": "patch_preserves_unedited_fields_and_renames_current_and_default",
+              "line": 193
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-profile-application-usecases/check-repository-alias-final.log",
+            ".trellis/tasks/09-28-profile-application-usecases/root-linux-repository-final-alias.json"
+          ],
+          "boundary": "Windows plus Linux Rust 1.95 MSRV. Repository desktop fixture uses ConfigService; actual Tauri handler is config_handlers. No real UNC share or symlink-alias guarantee."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::config",
+          "bun run test:smoke -- tests/configs tests/api"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T03.AC3",
+      "requirement": "命令清单和客户端生成无漂移；旧请求缺乏可确定平台时返回明确 platform_required 或兼容迁移错误，且不修改状态。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-tauri-config-adapter/prd.md",
+          "line": 36
+        },
+        {
+          "path": ".trellis/tasks/09-28-tauri-config-adapter/design.md",
+          "line": 13
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "config_handlers",
+          "source": "ccr-ui/src-tauri/src/commands/config/contract_tests.rs",
+          "cases": [
+            {
+              "selector": "actual_handlers_switch_and_enable_commit_runtime_and_policy",
+              "line": 27
+            },
+            {
+              "selector": "legacy_and_unsupported_platform_requests_never_write",
+              "line": 77
+            },
+            {
+              "selector": "strict_patch_rejects_unknown_wrong_types_missing_collision_without_write",
+              "line": 145
+            },
+            {
+              "selector": "patch_retains_secret_unknown_fields_inactive_marker_and_checks_version",
+              "line": 194
+            },
+            {
+              "selector": "desktop_and_service_processes_preserve_independent_changes",
+              "line": 449
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-tauri-config-adapter/check-backend-final.log",
+            ".trellis/tasks/09-28-tauri-config-adapter/check-enable-final.log"
+          ],
+          "boundary": "Generic /configs explicitly Claude-only; platform enable compensation separately covers Claude/Codex/Grok. No native WebView."
+        },
+        {
+          "id": "registry",
+          "source": "ccr-ui/src-tauri/src/commands/handler_registry.rs",
+          "cases": [
+            {
+              "selector": "command_registry_shape_matches_current_handler_surface",
+              "line": 1812
+            },
+            {
+              "selector": "command_inventory_document_matches_registry",
+              "line": 2388
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-frontend-query-error-contracts/research/check-backend-registry.log"
+          ],
+          "boundary": "21 passed; full DTO bindings guard remains separate. Snapshot metadata count is not behavior acceptance."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::config",
+          "bun run test:smoke -- tests/configs tests/api"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T04.AC1",
+      "requirement": "invalid、corrupt、unreadable fixture 的 ccr validate 非零退出；合法配置和 warning-only 按已记录策略退出。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-cli-diagnostics-contract/prd.md",
+          "line": 34
+        },
+        {
+          "path": ".trellis/tasks/09-28-cli-diagnostics-contract/design.md",
+          "line": 11
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "diagnostics",
+          "source": "crates/ccr/tests/diagnostics_contract.rs",
+          "cases": [
+            {
+              "selector": "validate_binary_six_state_matrix_is_read_only",
+              "line": 143
+            },
+            {
+              "selector": "validate_binary_applied_api_and_subscription_profiles_follow_domain_rules",
+              "line": 196
+            },
+            {
+              "selector": "validate_binary_native_denied_read_is_distinct_from_missing",
+              "line": 328
+            },
+            {
+              "selector": "doctor_binary_default_scope_includes_grok_and_preserves_simplified_profiles",
+              "line": 367
+            },
+            {
+              "selector": "doctor_binary_grok_is_supported_and_legacy_adapters_are_explicit",
+              "line": 504
+            },
+            {
+              "selector": "validate_binary_claude_current_uses_valid_marker_precedence_without_repair",
+              "line": 476
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-cli-diagnostics-contract/check-binary-final.log"
+          ],
+          "boundary": "Windows three platforms and API-key/subscription fixtures; Linux/macOS binary acceptance unrun."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo test -p ccr --test diagnostics_contract"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T04.AC2",
+      "requirement": "合法 subscription 与 API-key fixture 在 validate/apply 预检中一致；缺失、损坏和权限错误分类不同。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-cli-diagnostics-contract/prd.md",
+          "line": 35
+        },
+        {
+          "path": ".trellis/tasks/09-28-cli-diagnostics-contract/design.md",
+          "line": 12
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "diagnostics",
+          "source": "crates/ccr/tests/diagnostics_contract.rs",
+          "cases": [
+            {
+              "selector": "validate_binary_six_state_matrix_is_read_only",
+              "line": 143
+            },
+            {
+              "selector": "validate_binary_applied_api_and_subscription_profiles_follow_domain_rules",
+              "line": 196
+            },
+            {
+              "selector": "validate_binary_native_denied_read_is_distinct_from_missing",
+              "line": 328
+            },
+            {
+              "selector": "doctor_binary_default_scope_includes_grok_and_preserves_simplified_profiles",
+              "line": 367
+            },
+            {
+              "selector": "doctor_binary_grok_is_supported_and_legacy_adapters_are_explicit",
+              "line": 504
+            },
+            {
+              "selector": "validate_binary_claude_current_uses_valid_marker_precedence_without_repair",
+              "line": 476
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-cli-diagnostics-contract/check-binary-final.log"
+          ],
+          "boundary": "Windows three platforms and API-key/subscription fixtures; Linux/macOS binary acceptance unrun."
+        },
+        {
+          "id": "profile_cli",
+          "source": "crates/ccr-cli/src/application/profile_contract.rs",
+          "cases": [
+            {
+              "selector": "profile_preflight_contract",
+              "line": 532
+            },
+            {
+              "selector": "profile_each_write_contract",
+              "line": 544
+            },
+            {
+              "selector": "profile_success_replay_contract",
+              "line": 536
+            },
+            {
+              "selector": "profile_ancillary_contract",
+              "line": 540
+            },
+            {
+              "selector": "profile_external_version_contract",
+              "line": 548
+            },
+            {
+              "selector": "profile_rename_each_write_contract",
+              "line": 552
+            },
+            {
+              "selector": "profile_adapters_keep_application_boundary",
+              "line": 490
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-profile-application-usecases/check-cli-alias-final.log"
+          ],
+          "boundary": "Claude/Codex/Grok application requests. Not interactive terminal acceptance or OS multi-file atomicity."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo test -p ccr --test diagnostics_contract"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T04.AC3",
+      "requirement": "诊断前后 fixture 文件不变；doctor 覆盖当前支持的 Claude/Codex/Grok，保留 adapter 的支持状态明确。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-cli-diagnostics-contract/prd.md",
+          "line": 36
+        },
+        {
+          "path": ".trellis/tasks/09-28-cli-diagnostics-contract/design.md",
+          "line": 13
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "diagnostics",
+          "source": "crates/ccr/tests/diagnostics_contract.rs",
+          "cases": [
+            {
+              "selector": "validate_binary_six_state_matrix_is_read_only",
+              "line": 143
+            },
+            {
+              "selector": "validate_binary_applied_api_and_subscription_profiles_follow_domain_rules",
+              "line": 196
+            },
+            {
+              "selector": "validate_binary_native_denied_read_is_distinct_from_missing",
+              "line": 328
+            },
+            {
+              "selector": "doctor_binary_default_scope_includes_grok_and_preserves_simplified_profiles",
+              "line": 367
+            },
+            {
+              "selector": "doctor_binary_grok_is_supported_and_legacy_adapters_are_explicit",
+              "line": 504
+            },
+            {
+              "selector": "validate_binary_claude_current_uses_valid_marker_precedence_without_repair",
+              "line": 476
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-cli-diagnostics-contract/check-binary-final.log"
+          ],
+          "boundary": "Windows three platforms and API-key/subscription fixtures; Linux/macOS binary acceptance unrun."
+        },
+        {
+          "id": "repository",
+          "source": "crates/ccr-config/src/managers/config/repository_tests.rs",
+          "cases": [
+            {
+              "selector": "platform_and_service_processes_keep_both_updates",
+              "line": 419
+            },
+            {
+              "selector": "desktop_and_service_processes_keep_both_updates",
+              "line": 424
+            },
+            {
+              "selector": "windows_verbatim_and_service_processes_keep_both_updates",
+              "line": 430
+            },
+            {
+              "selector": "reads_do_not_initialize_autofix_or_lock_files",
+              "line": 54
+            },
+            {
+              "selector": "explicit_platform_and_legacy_claude_ignore_registry_order",
+              "line": 131
+            },
+            {
+              "selector": "strict_patch_rejects_invalid_missing_duplicate_and_stale_without_writes",
+              "line": 157
+            },
+            {
+              "selector": "patch_preserves_unedited_fields_and_renames_current_and_default",
+              "line": 193
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-profile-application-usecases/check-repository-alias-final.log",
+            ".trellis/tasks/09-28-profile-application-usecases/root-linux-repository-final-alias.json"
+          ],
+          "boundary": "Windows plus Linux Rust 1.95 MSRV. Repository desktop fixture uses ConfigService; actual Tauri handler is config_handlers. No real UNC share or symlink-alias guarantee."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo test -p ccr --test diagnostics_contract"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T05.AC1",
+      "requirement": "固定时钟下连续三次修改保留三份不同的前镜像，且轮换数遵守现有限额。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-safe-persistence-backups/prd.md",
+          "line": 35
+        },
+        {
+          "path": ".trellis/tasks/09-28-safe-persistence-backups/design.md",
+          "line": 11
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "backups",
+          "source": "crates/ccr-core/src/core/guarded_write.rs",
+          "cases": [
+            {
+              "selector": "test_fixed_clock_preserves_each_preimage_and_legacy_backup",
+              "line": 577
+            },
+            {
+              "selector": "test_fixed_clock_multiprocess_backups_preserve_every_version",
+              "line": 669
+            },
+            {
+              "selector": "test_rotation_ties_are_stable_for_old_and_new_names",
+              "line": 746
+            },
+            {
+              "selector": "test_backup_preserves_windows_readonly_attribute",
+              "line": 798
+            },
+            {
+              "selector": "test_backup_preserves_private_windows_dacl",
+              "line": 825
+            },
+            {
+              "selector": "test_backup_preserves_private_unix_mode",
+              "line": 853
+            },
+            {
+              "selector": "test_dir_backup_rotation_keeps_ten",
+              "line": 990
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-profile-application-usecases/check-guarded-alias-final.log",
+            ".trellis/tasks/09-28-profile-application-usecases/root-linux-guarded-write-final-alias.json"
+          ],
+          "boundary": "Windows/Linux; Linux consumers are not a complete CLI-reader matrix; macOS unrun."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo test -p ccr-core guarded_write",
+          "cargo test -p ccr-codex oauth_pending"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T05.AC2",
+      "requirement": "旧/新格式混合目录的列出、恢复、轮换测试通过，敏感前镜像权限满足既有规则。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-safe-persistence-backups/prd.md",
+          "line": 36
+        },
+        {
+          "path": ".trellis/tasks/09-28-safe-persistence-backups/design.md",
+          "line": 12
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "backups",
+          "source": "crates/ccr-core/src/core/guarded_write.rs",
+          "cases": [
+            {
+              "selector": "test_fixed_clock_preserves_each_preimage_and_legacy_backup",
+              "line": 577
+            },
+            {
+              "selector": "test_fixed_clock_multiprocess_backups_preserve_every_version",
+              "line": 669
+            },
+            {
+              "selector": "test_rotation_ties_are_stable_for_old_and_new_names",
+              "line": 746
+            },
+            {
+              "selector": "test_backup_preserves_windows_readonly_attribute",
+              "line": 798
+            },
+            {
+              "selector": "test_backup_preserves_private_windows_dacl",
+              "line": 825
+            },
+            {
+              "selector": "test_backup_preserves_private_unix_mode",
+              "line": 853
+            },
+            {
+              "selector": "test_dir_backup_rotation_keeps_ten",
+              "line": 990
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-profile-application-usecases/check-guarded-alias-final.log",
+            ".trellis/tasks/09-28-profile-application-usecases/root-linux-guarded-write-final-alias.json"
+          ],
+          "boundary": "Windows/Linux; Linux consumers are not a complete CLI-reader matrix; macOS unrun."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo test -p ccr-core guarded_write",
+          "cargo test -p ccr-codex oauth_pending"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T05.AC3",
+      "requirement": "OAuth pending 使用 secret:true 和 BackupPolicy::None；创建、替换、取消、过期清理及权限失败后，目标目录和配置的备份目录不得新增 verifier/state 的备份或历史副本。权限失败不发布不受保护的新凭据文件，handler 返回明确失败，原有目标字节保持完整。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-safe-persistence-backups/prd.md",
+          "line": 37
+        },
+        {
+          "path": ".trellis/tasks/09-28-safe-persistence-backups/design.md",
+          "line": 13
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "pending",
+          "source": "crates/ccr-codex/src/services/codex_oauth_pending_store.rs",
+          "cases": [
+            {
+              "selector": "oauth_pending_create_replace_cancel_and_expiry_never_make_copies",
+              "line": 192
+            },
+            {
+              "selector": "oauth_pending_permission_failure_preserves_old_or_missing_target",
+              "line": 222
+            },
+            {
+              "selector": "oauth_pending_errors_and_default_output_redact_sentinels",
+              "line": 302
+            },
+            {
+              "selector": "oauth_pending_preserves_owner_only_permissions",
+              "line": 355
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-safe-persistence-backups/check-linux-oauth-pending.json"
+          ],
+          "boundary": "Linux Rust 1.95 five tests. Simulated denial is not native OS denial. Windows DACL evidence remains in T05 check-report and T11 adapter logs; macOS unrun."
+        },
+        {
+          "id": "oauth",
+          "source": "ccr-ui/src-tauri/src/commands/codex_auth/oauth_tests.rs",
+          "cases": [
+            {
+              "selector": "bind_race_and_save_failure_never_publish_active_login",
+              "line": 295
+            },
+            {
+              "selector": "start_owns_listener_and_storage_before_return_and_reuses_live_id",
+              "line": 263
+            },
+            {
+              "selector": "silent_socket_times_out_and_releases_listener_without_success",
+              "line": 378
+            },
+            {
+              "selector": "slow_http_body_is_cancelled_and_server_observes_closed_connection",
+              "line": 738
+            },
+            {
+              "selector": "successful_completion_is_unique_and_does_not_expose_sentinels",
+              "line": 495
+            },
+            {
+              "selector": "stale_cleanup_retry_cannot_clear_a_replacement_login",
+              "line": 695
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-oauth-green.log"
+          ],
+          "boundary": "Windows isolated credentials/network; real provider login and Linux/macOS OAuth unrun."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo test -p ccr-core guarded_write",
+          "cargo test -p ccr-codex oauth_pending"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T05.AC4",
+      "requirement": "合成 secret sentinel 在失败、取消、过期清理的可见输出中均不存在。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-safe-persistence-backups/prd.md",
+          "line": 38
+        },
+        {
+          "path": ".trellis/tasks/09-28-safe-persistence-backups/design.md",
+          "line": 14
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "pending",
+          "source": "crates/ccr-codex/src/services/codex_oauth_pending_store.rs",
+          "cases": [
+            {
+              "selector": "oauth_pending_create_replace_cancel_and_expiry_never_make_copies",
+              "line": 192
+            },
+            {
+              "selector": "oauth_pending_permission_failure_preserves_old_or_missing_target",
+              "line": 222
+            },
+            {
+              "selector": "oauth_pending_errors_and_default_output_redact_sentinels",
+              "line": 302
+            },
+            {
+              "selector": "oauth_pending_preserves_owner_only_permissions",
+              "line": 355
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-safe-persistence-backups/check-linux-oauth-pending.json"
+          ],
+          "boundary": "Linux Rust 1.95 five tests. Simulated denial is not native OS denial. Windows DACL evidence remains in T05 check-report and T11 adapter logs; macOS unrun."
+        },
+        {
+          "id": "oauth",
+          "source": "ccr-ui/src-tauri/src/commands/codex_auth/oauth_tests.rs",
+          "cases": [
+            {
+              "selector": "bind_race_and_save_failure_never_publish_active_login",
+              "line": 295
+            },
+            {
+              "selector": "start_owns_listener_and_storage_before_return_and_reuses_live_id",
+              "line": 263
+            },
+            {
+              "selector": "silent_socket_times_out_and_releases_listener_without_success",
+              "line": 378
+            },
+            {
+              "selector": "slow_http_body_is_cancelled_and_server_observes_closed_connection",
+              "line": 738
+            },
+            {
+              "selector": "successful_completion_is_unique_and_does_not_expose_sentinels",
+              "line": 495
+            },
+            {
+              "selector": "stale_cleanup_retry_cannot_clear_a_replacement_login",
+              "line": 695
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-oauth-green.log"
+          ],
+          "boundary": "Windows isolated credentials/network; real provider login and Linux/macOS OAuth unrun."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo test -p ccr-core guarded_write",
+          "cargo test -p ccr-codex oauth_pending"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T06.AC1",
+      "requirement": "runner 被 barrier 暂停时立即取消，释放 barrier 后 spawn 次数为零；active 占用直到 runner 真正完成。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-usage-job-lifecycle/prd.md",
+          "line": 35
+        },
+        {
+          "path": ".trellis/tasks/09-28-usage-job-lifecycle/design.md",
+          "line": 11
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "usage_registry",
+          "source": "ccr-ui/src-tauri/src/usage_jobs.rs",
+          "cases": [
+            {
+              "selector": "cancelled_result_rejects_late_failure",
+              "line": 340
+            },
+            {
+              "selector": "failed_result_rejects_cancel_and_late_progress",
+              "line": 350
+            },
+            {
+              "selector": "cancel_before_runner_start_prevents_spawn_and_keeps_admission",
+              "line": 378
+            },
+            {
+              "selector": "all_terminal_results_reject_duplicate_cancel_progress_and_completion",
+              "line": 420
+            },
+            {
+              "selector": "running_cancel_keeps_token_and_reports_cleanup_failure",
+              "line": 443
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-usage.log"
+          ],
+          "boundary": "Not a full Tauri App click. T11 log supersedes the T06 intermediate control-policy failure."
+        },
+        {
+          "id": "control_policy",
+          "source": "ccr-ui/src-tauri/src/commands/runtime_policy.rs",
+          "cases": [
+            {
+              "selector": "control_matrix_command_and_install_delivery",
+              "line": 162
+            },
+            {
+              "selector": "control_matrix_usage_delivery",
+              "line": 185
+            },
+            {
+              "selector": "control_matrix_oauth_delivery",
+              "line": 199
+            },
+            {
+              "selector": "background_permit_transfer_is_single_use_and_preserves_shared_process_exclusion",
+              "line": 214
+            },
+            {
+              "selector": "usage_owner_controls_reach_existing_job_during_each_foreground_import",
+              "line": 368
+            },
+            {
+              "selector": "install_owner_cancel_and_recent_reach_attempt_before_cleanup",
+              "line": 282
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-runtime_policy.log"
+          ],
+          "boundary": "C01-C06/23 IDs in T11 report. No global Parallel conversion; Windows scoped execution."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "just tauri-process-smoke",
+          "cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml usage -- --skip export_bindings"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T06.AC2",
+      "requirement": "Cancelled、Finished、Failed 的已终结记录不被迟到事件或重复 cancel 覆盖；清理失败可见。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-usage-job-lifecycle/prd.md",
+          "line": 36
+        },
+        {
+          "path": ".trellis/tasks/09-28-usage-job-lifecycle/design.md",
+          "line": 12
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "usage_registry",
+          "source": "ccr-ui/src-tauri/src/usage_jobs.rs",
+          "cases": [
+            {
+              "selector": "cancelled_result_rejects_late_failure",
+              "line": 340
+            },
+            {
+              "selector": "failed_result_rejects_cancel_and_late_progress",
+              "line": 350
+            },
+            {
+              "selector": "cancel_before_runner_start_prevents_spawn_and_keeps_admission",
+              "line": 378
+            },
+            {
+              "selector": "all_terminal_results_reject_duplicate_cancel_progress_and_completion",
+              "line": 420
+            },
+            {
+              "selector": "running_cancel_keeps_token_and_reports_cleanup_failure",
+              "line": 443
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-usage.log"
+          ],
+          "boundary": "Not a full Tauri App click. T11 log supersedes the T06 intermediate control-policy failure."
+        },
+        {
+          "id": "usage_ui",
+          "source": "ccr-ui/tests/usage/usage-import-lifecycle.smoke.test.tsx",
+          "cases": [
+            {
+              "selector": "it(",
+              "line": 52
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-usage-job-lifecycle/check-frontend-lifecycle.log"
+          ],
+          "boundary": "18 tests including normalization; no native WebView or real llmusage command."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "just tauri-process-smoke",
+          "cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml usage -- --skip export_bindings"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T06.AC3",
+      "requirement": "静默、EOF 后仍存活、持有 stderr 和清理失败的假进程均在配置期限加清理宽限内结束，返回真实结果。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-usage-job-lifecycle/prd.md",
+          "line": 37
+        },
+        {
+          "path": ".trellis/tasks/09-28-usage-job-lifecycle/design.md",
+          "line": 13
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "required_gap_open",
+      "existing_evidence_groups": [
+        {
+          "id": "usage_executor",
+          "source": "ccr-ui/src-tauri/src/llmusage_adapter/cli_lifecycle_tests.rs",
+          "cases": [
+            {
+              "selector": "silent_process_obeys_descriptor_deadline",
+              "line": 111
+            },
+            {
+              "selector": "stdout_eof_does_not_disable_deadline_while_child_lives",
+              "line": 123
+            },
+            {
+              "selector": "cleanup_error_and_hung_reap_override_cancelled",
+              "line": 160
+            },
+            {
+              "selector": "externally_held_stderr_has_bounded_join_and_cleanup_error",
+              "line": 228
+            },
+            {
+              "selector": "stdout_flood_without_eof_fails_at_one_mebibyte",
+              "line": 257
+            },
+            {
+              "selector": "stderr_retains_at_most_sixty_four_capped_lines",
+              "line": 278
+            },
+            {
+              "selector": "native_windows_silent_child_times_out_and_is_reaped",
+              "line": 296
+            },
+            {
+              "selector": "native_windows_running_cancel_reaps_the_child",
+              "line": 328
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-usage.log"
+          ],
+          "boundary": "Fake-process deadlines do not prove native tree cleanup; use process_tree. Old native deadline omission has a scoped red with only descriptor timeout shortened. Old cleanup-error precedence and new descendant fixtures remain source-only for the baseline."
+        },
+        {
+          "id": "process_tree",
+          "source": "crates/ccr-core/src/core/process_gateway.rs",
+          "cases": [
+            {
+              "selector": "live_tree_confirmation_times_out_without_claiming_cleanup",
+              "line": 536
+            },
+            {
+              "selector": "reaped_windows_parent_still_cleans_its_descendant_tree",
+              "line": 624
+            },
+            {
+              "selector": "termination_escalates_after_unix_parent_exits_on_term",
+              "line": 698
+            },
+            {
+              "selector": "dropping_reaped_unix_parent_still_terminates_descendants",
+              "line": 731
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-usage-job-lifecycle/check-core-process-linux-final.log",
+            ".trellis/tasks/09-28-usage-job-lifecycle/check-process-smoke-final.log"
+          ],
+          "boundary": "Windows 10 Tauri plus 7 core; Linux 9 core on MSRV 1.95; no macOS or original-binary red run for the newly added descendant fixtures."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [
+        "V02"
+      ],
+      "minimum_verification_entry": {
+        "commands": [
+          "just tauri-process-smoke",
+          "cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml usage -- --skip export_bindings"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T06.AC4",
+      "requirement": "stdout 无换行 flood 仍受 1 MiB 单行限制；stderr 保留上限和 DTO secret 规则不退化；adapter 不新增 usage SQL。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-usage-job-lifecycle/prd.md",
+          "line": 38
+        },
+        {
+          "path": ".trellis/tasks/09-28-usage-job-lifecycle/design.md",
+          "line": 14
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "usage_executor",
+          "source": "ccr-ui/src-tauri/src/llmusage_adapter/cli_lifecycle_tests.rs",
+          "cases": [
+            {
+              "selector": "silent_process_obeys_descriptor_deadline",
+              "line": 111
+            },
+            {
+              "selector": "stdout_eof_does_not_disable_deadline_while_child_lives",
+              "line": 123
+            },
+            {
+              "selector": "cleanup_error_and_hung_reap_override_cancelled",
+              "line": 160
+            },
+            {
+              "selector": "externally_held_stderr_has_bounded_join_and_cleanup_error",
+              "line": 228
+            },
+            {
+              "selector": "stdout_flood_without_eof_fails_at_one_mebibyte",
+              "line": 257
+            },
+            {
+              "selector": "stderr_retains_at_most_sixty_four_capped_lines",
+              "line": 278
+            },
+            {
+              "selector": "native_windows_silent_child_times_out_and_is_reaped",
+              "line": 296
+            },
+            {
+              "selector": "native_windows_running_cancel_reaps_the_child",
+              "line": 328
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-usage.log"
+          ],
+          "boundary": "Fake-process deadlines do not prove native tree cleanup; use process_tree. Old native deadline omission has a scoped red with only descriptor timeout shortened. Old cleanup-error precedence and new descendant fixtures remain source-only for the baseline."
+        },
+        {
+          "id": "usage_registry",
+          "source": "ccr-ui/src-tauri/src/usage_jobs.rs",
+          "cases": [
+            {
+              "selector": "cancelled_result_rejects_late_failure",
+              "line": 340
+            },
+            {
+              "selector": "failed_result_rejects_cancel_and_late_progress",
+              "line": 350
+            },
+            {
+              "selector": "cancel_before_runner_start_prevents_spawn_and_keeps_admission",
+              "line": 378
+            },
+            {
+              "selector": "all_terminal_results_reject_duplicate_cancel_progress_and_completion",
+              "line": 420
+            },
+            {
+              "selector": "running_cancel_keeps_token_and_reports_cleanup_failure",
+              "line": 443
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-usage.log"
+          ],
+          "boundary": "Not a full Tauri App click. T11 log supersedes the T06 intermediate control-policy failure."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "just tauri-process-smoke",
+          "cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml usage -- --skip export_bindings"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T07.AC1",
+      "requirement": "任务运行中离开命令页再返回，job ID、状态、输出和取消能力恢复。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-command-workbench-lifecycle/prd.md",
+          "line": 34
+        },
+        {
+          "path": ".trellis/tasks/09-28-command-workbench-lifecycle/design.md",
+          "line": 11
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "command_page",
+          "source": "ccr-ui/tests/commands/command-workbench-lifecycle.smoke.test.tsx",
+          "cases": [
+            {
+              "selector": "restores the running job and output after a real route unmount",
+              "line": 109
+            },
+            {
+              "selector": "blocks synchronous duplicate submission",
+              "line": 142
+            },
+            {
+              "selector": "records terminal history once",
+              "line": 126
+            },
+            {
+              "selector": "shows a failed terminal subscription",
+              "line": 354
+            },
+            {
+              "selector": "keeps a failed history summary visible",
+              "line": 377
+            },
+            {
+              "selector": "keeps recovery suspended when a pending start resolves",
+              "line": 404
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-command-workbench-lifecycle/research/check-final-regression.log"
+          ],
+          "boundary": "API facade is mocked in this route fixture. Actual backend command owner and runtime policy are separately tested. History is one write attempt per job, not cross-IPC exactly-once; failed writes are visible and not blindly retried."
+        },
+        {
+          "id": "command_owner",
+          "source": "ccr-ui/src-tauri/src/commands/command_exec.rs",
+          "cases": [
+            {
+              "selector": "command_owner_receives_cancel_before_cleanup_and_keeps_start_admission",
+              "line": 2005
+            },
+            {
+              "selector": "foreground_barrier_does_not_block_existing_command_owner_controls",
+              "line": 1958
+            },
+            {
+              "selector": "terminal_snapshot_keeps_non_zero_exit_as_failed_with_output",
+              "line": 2288
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-command-exec.log"
+          ],
+          "boundary": "Windows Rust behavior; paired with renderer tests, not full native UI end-to-end."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "bun run test:smoke -- tests/commands/command-workbench-lifecycle.smoke.test.tsx tests/shell/event-bridge-leak.smoke.test.tsx"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T07.AC2",
+      "requirement": "终态先于 start 响应、重复/乱序事件均不回退终态或重复写 history；旧 job 事件不能覆盖新 job，提交期间禁止重复启动。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-command-workbench-lifecycle/prd.md",
+          "line": 35
+        },
+        {
+          "path": ".trellis/tasks/09-28-command-workbench-lifecycle/design.md",
+          "line": 12
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "command_page",
+          "source": "ccr-ui/tests/commands/command-workbench-lifecycle.smoke.test.tsx",
+          "cases": [
+            {
+              "selector": "restores the running job and output after a real route unmount",
+              "line": 109
+            },
+            {
+              "selector": "blocks synchronous duplicate submission",
+              "line": 142
+            },
+            {
+              "selector": "records terminal history once",
+              "line": 126
+            },
+            {
+              "selector": "shows a failed terminal subscription",
+              "line": 354
+            },
+            {
+              "selector": "keeps a failed history summary visible",
+              "line": 377
+            },
+            {
+              "selector": "keeps recovery suspended when a pending start resolves",
+              "line": 404
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-command-workbench-lifecycle/research/check-final-regression.log"
+          ],
+          "boundary": "API facade is mocked in this route fixture. Actual backend command owner and runtime policy are separately tested. History is one write attempt per job, not cross-IPC exactly-once; failed writes are visible and not blindly retried."
+        },
+        {
+          "id": "command_owner",
+          "source": "ccr-ui/src-tauri/src/commands/command_exec.rs",
+          "cases": [
+            {
+              "selector": "command_owner_receives_cancel_before_cleanup_and_keeps_start_admission",
+              "line": 2005
+            },
+            {
+              "selector": "foreground_barrier_does_not_block_existing_command_owner_controls",
+              "line": 1958
+            },
+            {
+              "selector": "terminal_snapshot_keeps_non_zero_exit_as_failed_with_output",
+              "line": 2288
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-command-exec.log"
+          ],
+          "boundary": "Windows Rust behavior; paired with renderer tests, not full native UI end-to-end."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "bun run test:smoke -- tests/commands/command-workbench-lifecycle.smoke.test.tsx tests/shell/event-bridge-leak.smoke.test.tsx"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T07.AC3",
+      "requirement": "listen Promise 在卸载后才 resolve 时仍调用 unlisten，重新进入不会新增重复监听。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-command-workbench-lifecycle/prd.md",
+          "line": 36
+        },
+        {
+          "path": ".trellis/tasks/09-28-command-workbench-lifecycle/design.md",
+          "line": 13
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "command_listener",
+          "source": "ccr-ui/tests/shell/event-bridge-leak.smoke.test.tsx",
+          "cases": [
+            {
+              "selector": "卸载之后 listen 才 resolve",
+              "line": 107
+            },
+            {
+              "selector": "ignores command callbacks after shell cleanup",
+              "line": 168
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-command-workbench-lifecycle/research/check-final-regression.log"
+          ],
+          "boundary": "Tauri event transport is mocked; native event delivery is not accepted by this fixture."
+        },
+        {
+          "id": "command_page",
+          "source": "ccr-ui/tests/commands/command-workbench-lifecycle.smoke.test.tsx",
+          "cases": [
+            {
+              "selector": "restores the running job and output after a real route unmount",
+              "line": 109
+            },
+            {
+              "selector": "blocks synchronous duplicate submission",
+              "line": 142
+            },
+            {
+              "selector": "records terminal history once",
+              "line": 126
+            },
+            {
+              "selector": "shows a failed terminal subscription",
+              "line": 354
+            },
+            {
+              "selector": "keeps a failed history summary visible",
+              "line": 377
+            },
+            {
+              "selector": "keeps recovery suspended when a pending start resolves",
+              "line": 404
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-command-workbench-lifecycle/research/check-final-regression.log"
+          ],
+          "boundary": "API facade is mocked in this route fixture. Actual backend command owner and runtime policy are separately tested. History is one write attempt per job, not cross-IPC exactly-once; failed writes are visible and not blindly retried."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "bun run test:smoke -- tests/commands/command-workbench-lifecycle.smoke.test.tsx tests/shell/event-bridge-leak.smoke.test.tsx"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T08.AC1",
+      "requirement": "已有 Codex tui.notifications 数组时只修改 model，保存后数组逐项不变；OpenCode 原值 notify 时只修改其他字段，保存请求不携带 autoupdate。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-settings-lossless-capabilities/prd.md",
+          "line": 34
+        },
+        {
+          "path": ".trellis/tasks/09-28-settings-lossless-capabilities/design.md",
+          "line": 11
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "required_gap_open",
+      "existing_evidence_groups": [
+        {
+          "id": "settings_mapping",
+          "source": "ccr-ui/tests/platforms/settings-lossless.smoke.test.ts",
+          "cases": [
+            {
+              "selector": "changes only Codex model and preserves notifications array",
+              "line": 84
+            },
+            {
+              "selector": "does not resend stale Codex sibling values",
+              "line": 102
+            },
+            {
+              "selector": "keeps OpenCode notify",
+              "line": 134
+            },
+            {
+              "selector": "does not issue any mutation when no field is dirty",
+              "line": 189
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-frontend-query-error-contracts/research/check-frontend-smoke.log"
+          ],
+          "boundary": "Transport is mocked. The codex_settings_backend group supplies real Rust projection/merge evidence; combined coverage remains separate-layer tests. OpenCode real filesystem end-to-end is not covered."
+        },
+        {
+          "id": "settings_page",
+          "source": "ccr-ui/tests/platforms/settings-capabilities.smoke.test.tsx",
+          "cases": [
+            {
+              "selector": "disables managed model inputs",
+              "line": 129
+            },
+            {
+              "selector": "shows Codex unknown enums and notification arrays",
+              "line": 148
+            },
+            {
+              "selector": "preserves the raw draft on conflict",
+              "line": 257
+            },
+            {
+              "selector": "waits for plaintext confirmation",
+              "line": 324
+            },
+            {
+              "selector": "does not read source files in a remote environment",
+              "line": 306
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-frontend-query-error-contracts/research/check-frontend-smoke.log"
+          ],
+          "boundary": "Bottom invoke/confirmation and DOM geometry mocked. Real Grok filesystem/CAS/no-backup fixture paired; native WebView/CSP and real SSH/WSL unrun."
+        },
+        {
+          "id": "codex_settings_backend",
+          "source": "ccr-ui/src-tauri/src/commands/codex.rs",
+          "cases": [
+            {
+              "selector": "read_codex_config_accepts_tui_notifications_event_array",
+              "line": 2137
+            },
+            {
+              "selector": "apply_codex_settings_update_preserves_tui_notifications_event_array",
+              "line": 2177
+            },
+            {
+              "selector": "apply_codex_settings_update_clears_nested_fields_with_nulls",
+              "line": 2233
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-architecture-contract-gates/../09-28-cli-tauri-architecture/research/root-acceptance-after-tui-tauri.log"
+          ],
+          "boundary": "Windows Codex backend: file-read fixture checks notifications JSON array and unknown notification_condition in the parsed config; partial-merge fixture checks serialization preserves array/condition/method/status_line; null-clear fixture checks in-memory None fields. No disk-save roundtrip, invoke, native WebView or real accounts."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [
+        "V03"
+      ],
+      "minimum_verification_entry": {
+        "commands": [
+          "bun run test:smoke -- tests/platforms/settings-lossless.smoke.test.ts tests/platforms/settings-capabilities.smoke.test.tsx"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T08.AC2",
+      "requirement": "Grok managed_keys_locked 对应输入禁用并说明原因；未知合法枚举显示当前值且保存其他字段不覆盖。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-settings-lossless-capabilities/prd.md",
+          "line": 35
+        },
+        {
+          "path": ".trellis/tasks/09-28-settings-lossless-capabilities/design.md",
+          "line": 12
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "settings_page",
+          "source": "ccr-ui/tests/platforms/settings-capabilities.smoke.test.tsx",
+          "cases": [
+            {
+              "selector": "disables managed model inputs",
+              "line": 129
+            },
+            {
+              "selector": "shows Codex unknown enums and notification arrays",
+              "line": 148
+            },
+            {
+              "selector": "preserves the raw draft on conflict",
+              "line": 257
+            },
+            {
+              "selector": "waits for plaintext confirmation",
+              "line": 324
+            },
+            {
+              "selector": "does not read source files in a remote environment",
+              "line": 306
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-frontend-query-error-contracts/research/check-frontend-smoke.log"
+          ],
+          "boundary": "Bottom invoke/confirmation and DOM geometry mocked. Real Grok filesystem/CAS/no-backup fixture paired; native WebView/CSP and real SSH/WSL unrun."
+        },
+        {
+          "id": "grok_settings",
+          "source": "ccr-ui/src-tauri/src/commands/grok.rs",
+          "cases": [
+            {
+              "selector": "settings_and_raw_saves_preserve_the_configured_backup_inventory",
+              "line": 2209
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-settings-lossless-capabilities/grok-rust.log"
+          ],
+          "boundary": "Windows fixture, no real account; check-report separately records final independent 16-test execution."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "bun run test:smoke -- tests/platforms/settings-lossless.smoke.test.ts tests/platforms/settings-capabilities.smoke.test.tsx"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T08.AC3",
+      "requirement": "支持 raw source 的平台可以从 Settings 打开现有编辑器并处理 CAS 冲突；非 Local 环境不调用 Local-only 设置接口。 Grok typed/raw 保存及 invalid/stale 等失败路径均不产生备份，页面保留现有无备份提示。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-settings-lossless-capabilities/prd.md",
+          "line": 36
+        },
+        {
+          "path": ".trellis/tasks/09-28-settings-lossless-capabilities/design.md",
+          "line": 13
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "required_gap_open",
+      "existing_evidence_groups": [
+        {
+          "id": "settings_page",
+          "source": "ccr-ui/tests/platforms/settings-capabilities.smoke.test.tsx",
+          "cases": [
+            {
+              "selector": "disables managed model inputs",
+              "line": 129
+            },
+            {
+              "selector": "shows Codex unknown enums and notification arrays",
+              "line": 148
+            },
+            {
+              "selector": "preserves the raw draft on conflict",
+              "line": 257
+            },
+            {
+              "selector": "waits for plaintext confirmation",
+              "line": 324
+            },
+            {
+              "selector": "does not read source files in a remote environment",
+              "line": 306
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-frontend-query-error-contracts/research/check-frontend-smoke.log"
+          ],
+          "boundary": "Bottom invoke/confirmation and DOM geometry mocked. Real Grok filesystem/CAS/no-backup fixture paired; native WebView/CSP and real SSH/WSL unrun."
+        },
+        {
+          "id": "grok_settings",
+          "source": "ccr-ui/src-tauri/src/commands/grok.rs",
+          "cases": [
+            {
+              "selector": "settings_and_raw_saves_preserve_the_configured_backup_inventory",
+              "line": 2209
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-settings-lossless-capabilities/grok-rust.log"
+          ],
+          "boundary": "Windows fixture, no real account; check-report separately records final independent 16-test execution."
+        },
+        {
+          "id": "settings_raw_session",
+          "source": "ccr-ui/tests/platforms/settings-source-session.smoke.test.tsx",
+          "cases": [
+            {
+              "selector": "retains the same raw editor and token",
+              "line": 60
+            },
+            {
+              "selector": "does not discard a raw draft until",
+              "line": 98
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-frontend-query-error-contracts/research/check-frontend-smoke.log"
+          ],
+          "boundary": "Controlled source callbacks/confirmation; no real remote host."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [
+        "V04"
+      ],
+      "minimum_verification_entry": {
+        "commands": [
+          "bun run test:smoke -- tests/platforms/settings-lossless.smoke.test.ts tests/platforms/settings-capabilities.smoke.test.tsx"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T09.AC1",
+      "requirement": "probe 或 load 拒绝后出现错误及正确重试入口，不显示确定的 signedOut 或无限 loading；退出失败保留旧状态且不重复提交。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-frontend-query-error-contracts/prd.md",
+          "line": 34
+        },
+        {
+          "path": ".trellis/tasks/09-28-frontend-query-error-contracts/design.md",
+          "line": 11
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "auth_query",
+          "source": "ccr-ui/tests/platforms/auth-query-contract.smoke.test.tsx",
+          "cases": [
+            {
+              "selector": "preserves authoritative backend unsupported",
+              "line": 33
+            },
+            {
+              "selector": "keeps pending distinct",
+              "line": 41
+            },
+            {
+              "selector": "keeps confirmed session data marked stale",
+              "line": 61
+            },
+            {
+              "selector": "claims the off action before confirmation",
+              "line": 90
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-frontend-query-error-contracts/research/check-frontend-smoke.log"
+          ],
+          "boundary": "Grok domain transport and confirmation mocked; no real OAuth login."
+        },
+        {
+          "id": "auth_cache",
+          "source": "ccr-ui/tests/platforms/auth-probe-recovery-check.smoke.test.tsx",
+          "cases": [
+            {
+              "selector": "it(",
+              "line": 10
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-frontend-query-error-contracts/research/check-auth-probe-production-cache.log",
+            ".trellis/tasks/09-28-frontend-query-error-contracts/research/check-frontend-smoke.log"
+          ],
+          "boundary": "A successful probe is not treated as fresh session data; native transport unrun."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "bun run test:smoke -- tests/platforms tests/configs tests/shell"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T09.AC2",
+      "requirement": "dirty 表单收到后台 refetch 时保留已编辑字段；旧环境响应不覆盖新会话；仅保存成功或用户明确放弃后重置。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-frontend-query-error-contracts/prd.md",
+          "line": 35
+        },
+        {
+          "path": ".trellis/tasks/09-28-frontend-query-error-contracts/design.md",
+          "line": 12
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "settings_session",
+          "source": "ccr-ui/tests/platforms/settings-session.smoke.test.tsx",
+          "cases": [
+            {
+              "selector": "freezes synchronously from the real shell environment event",
+              "line": 55
+            },
+            {
+              "selector": "keeps the original baseline after refetch",
+              "line": 94
+            },
+            {
+              "selector": "rejects a late initial response",
+              "line": 189
+            },
+            {
+              "selector": "does not apply an old save completion",
+              "line": 221
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-frontend-query-error-contracts/research/check-frontend-smoke.log"
+          ],
+          "boundary": "Environment API and settings adapter are controlled. Backend captured-target fixture supplies separate filesystem-owner evidence."
+        },
+        {
+          "id": "settings_raw_session",
+          "source": "ccr-ui/tests/platforms/settings-source-session.smoke.test.tsx",
+          "cases": [
+            {
+              "selector": "retains the same raw editor and token",
+              "line": 60
+            },
+            {
+              "selector": "does not discard a raw draft until",
+              "line": 98
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-frontend-query-error-contracts/research/check-frontend-smoke.log"
+          ],
+          "boundary": "Controlled source callbacks/confirmation; no real remote host."
+        },
+        {
+          "id": "settings_environment",
+          "source": "ccr-ui/src-tauri/src/commands/claude_settings_tests.rs",
+          "cases": [
+            {
+              "selector": "settings_expected_environment_mismatch_rejects_read_and_update_before_io",
+              "line": 126
+            },
+            {
+              "selector": "settings_expected_environment_update_keeps_original_arc_after_a_b_a_replacement",
+              "line": 184
+            },
+            {
+              "selector": "settings_matching_local_environment_keeps_atomic_settings_manager",
+              "line": 242
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-frontend-query-error-contracts/research/check-backend-behavior.log"
+          ],
+          "boundary": "Controlled environments plus local temporary files; real SSH/WSL sessions unrun."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "bun run test:smoke -- tests/platforms tests/configs tests/shell"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T09.AC3",
+      "requirement": "保持配置数据引用不变，从 zh-CN 切换 en-US 后 tab、summary 和已挂载卡片文案全部更新。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-frontend-query-error-contracts/prd.md",
+          "line": 36
+        },
+        {
+          "path": ".trellis/tasks/09-28-frontend-query-error-contracts/design.md",
+          "line": 13
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "config_page",
+          "source": "ccr-ui/tests/configs/configs-actions.smoke.test.tsx",
+          "cases": [
+            {
+              "selector": "switches an enabled row with an explicit platform",
+              "line": 121
+            },
+            {
+              "selector": "exposes an enable action for a disabled row",
+              "line": 133
+            },
+            {
+              "selector": "refreshes a committed warning",
+              "line": 163
+            },
+            {
+              "selector": "updates tabs, summaries and mounted cards",
+              "line": 91
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-frontend-query-error-contracts/research/check-frontend-smoke.log"
+          ],
+          "boundary": "Bottom Tauri invoke, unrelated queries and confirmation decisions are mocked. Filesystem behavior is covered separately by config_handlers, not native end-to-end."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "bun run test:smoke -- tests/platforms tests/configs tests/shell"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T10.AC1",
+      "requirement": "文档化 aggregate 包含 desktop clippy 和全量行为测试；注入 desktop 测试失败时 aggregate 非零退出。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-architecture-contract-gates/prd.md",
+          "line": 35
+        },
+        {
+          "path": ".trellis/tasks/09-28-architecture-contract-gates/design.md",
+          "line": 11
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "required_gap_open",
+      "existing_evidence_groups": [
+        {
+          "id": "aggregate",
+          "source": "scripts/ci/test_architecture_contract_gates.py",
+          "cases": [
+            {
+              "selector": "test_all_local_platforms_reuse_complete_desktop_gate",
+              "line": 17
+            },
+            {
+              "selector": "test_real_aggregate_propagates_desktop_test_failure",
+              "line": 28
+            },
+            {
+              "selector": "test_ui_behavior_entries_do_not_write_bindings",
+              "line": 82
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-architecture-contract-gates/research/gates-governance-final.log"
+          ],
+          "boundary": "Windows execution; all three recipe definitions checked. The failure fixture does not run real Cargo tests; actual final full gates remain root-owned."
+        },
+        {
+          "id": "bindings",
+          "source": "ccr-ui/tests/quality/bindings-transaction.smoke.test.ts",
+          "cases": [
+            {
+              "selector": "restores exact bytes after direct",
+              "line": 40
+            },
+            {
+              "selector": "check preserves original bytes",
+              "line": 66
+            },
+            {
+              "selector": "reports restoration failure",
+              "line": 105
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-architecture-contract-gates/research/gates-frontend-final.log",
+            ".trellis/tasks/09-28-architecture-contract-gates/research/gates-full-bindings-final.json"
+          ],
+          "boundary": "25 includes calendar tests. Full guard exit 0 preserved all 230 generated type files byte-for-byte; earlier unexplained drift remains recorded."
+        },
+        {
+          "id": "calendar",
+          "source": "ccr-ui/tests/usage/usage-date-window.smoke.test.ts",
+          "cases": [
+            {
+              "selector": "counts calendar days across DST",
+              "line": 83
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-architecture-contract-gates/research/gates-frontend-final.log"
+          ],
+          "boundary": "Calendar-day semantics only; no time-series network data needed."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [
+        "V01",
+        "V05"
+      ],
+      "minimum_verification_entry": {
+        "commands": [
+          "python -m unittest scripts.ci.test_check_workflow_governance scripts.ci.test_architecture_contract_gates"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T10.AC2",
+      "requirement": "所有 P1 在 evidence ledger 关联旧反例、测试、修复 commit 和结果；不存在仅凭 mock 成功或静态计数验收的条目。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-architecture-contract-gates/prd.md",
+          "line": 36
+        },
+        {
+          "path": ".trellis/tasks/09-28-architecture-contract-gates/design.md",
+          "line": 12
+        }
+      ],
+      "review_scope": "self_owned_status_comparison_only",
+      "assessment": "status_only_reuse_cross_check_specs",
+      "existing_evidence_groups": [],
+      "artifact_evidence_paths": [
+        ".trellis/tasks/09-28-cli-tauri-architecture/research/p1-evidence-ledger.json",
+        ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/evidence-index.json",
+        ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/cli-baseline.log",
+        ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/a09-baseline.log",
+        ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/a14-baseline.log",
+        ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/a15-baseline.log"
+      ],
+      "required_followups": [
+        "V07"
+      ],
+      "minimum_verification_entry": {
+        "commands": [
+          "python -m unittest scripts.ci.test_check_workflow_governance scripts.ci.test_architecture_contract_gates"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T10.AC3",
+      "requirement": "过期 Vue 当前路径、336/315/323 等冲突描述得到修订；规范链接可解析，ccr-usage 职责在索引可找到。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-architecture-contract-gates/prd.md",
+          "line": 37
+        },
+        {
+          "path": ".trellis/tasks/09-28-architecture-contract-gates/design.md",
+          "line": 13
+        }
+      ],
+      "review_scope": "self_owned_status_comparison_only",
+      "assessment": "status_only_reuse_cross_check_specs",
+      "existing_evidence_groups": [],
+      "artifact_evidence_paths": [
+        ".trellis/tasks/09-28-architecture-contract-gates/research/spec-validation.json",
+        ".trellis/tasks/09-28-architecture-contract-gates/research/spec-convergence-evidence.json",
+        ".trellis/tasks/09-28-architecture-contract-gates/research/spec-context-09-28-usage-job-lifecycle.log",
+        ".trellis/tasks/09-28-architecture-contract-gates/research/spec-context-09-28-architecture-contract-gates.log"
+      ],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "python -m unittest scripts.ci.test_check_workflow_governance scripts.ci.test_architecture_contract_gates"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T10.AC4",
+      "requirement": "正式 lint 与受控诊断分别记录；原有临时脚本和 Insights 任务状态保持独立处理。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-architecture-contract-gates/prd.md",
+          "line": 38
+        },
+        {
+          "path": ".trellis/tasks/09-28-architecture-contract-gates/design.md",
+          "line": 14
+        }
+      ],
+      "review_scope": "self_owned_status_comparison_only",
+      "assessment": "status_only_reuse_cross_check_specs",
+      "existing_evidence_groups": [],
+      "artifact_evidence_paths": [
+        ".trellis/tasks/09-28-architecture-contract-gates/research/spec-validation.json",
+        ".trellis/tasks/09-28-cli-tauri-architecture/research/baseline-lint.json",
+        ".trellis/tasks/09-28-cli-tauri-architecture/research/baseline-lint-tracked-diagnostic.json",
+        ".trellis/tasks/09-28-cli-tauri-architecture/research/root-final-frontend.json",
+        ".trellis/tasks/09-28-cli-tauri-architecture/research/root-final-frontend.log",
+        ".trellis/tasks/09-28-cli-tauri-architecture/research/isolated-final-frontend.json",
+        ".trellis/tasks/09-28-cli-tauri-architecture/research/isolated-final-frontend.log"
+      ],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "python -m unittest scripts.ci.test_check_workflow_governance scripts.ci.test_architecture_contract_gates"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T11.AC1",
+      "requirement": "逐 ID 执行 control-command-matrix.md 的 C01-C06：command、install、usage、OAuth 四个命令族的现有控制入口在 barrier 释放前到达 owner；已有 Parallel 查询保持可达。后台 start 已返回时，资源 admission 仍由真实 owner 持到完成与清理；同资源第二次 start 被拒绝、排队或按现有协议幂等复用同一 job，不创建并发作业。不存在的 get/status 操作明确标为不适用；ACL、确认和资源互斥保持。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/prd.md",
+          "line": 35
+        },
+        {
+          "path": ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/design.md",
+          "line": 11
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "control_policy",
+          "source": "ccr-ui/src-tauri/src/commands/runtime_policy.rs",
+          "cases": [
+            {
+              "selector": "control_matrix_command_and_install_delivery",
+              "line": 162
+            },
+            {
+              "selector": "control_matrix_usage_delivery",
+              "line": 185
+            },
+            {
+              "selector": "control_matrix_oauth_delivery",
+              "line": 199
+            },
+            {
+              "selector": "background_permit_transfer_is_single_use_and_preserves_shared_process_exclusion",
+              "line": 214
+            },
+            {
+              "selector": "usage_owner_controls_reach_existing_job_during_each_foreground_import",
+              "line": 368
+            },
+            {
+              "selector": "install_owner_cancel_and_recent_reach_attempt_before_cleanup",
+              "line": 282
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-runtime_policy.log"
+          ],
+          "boundary": "C01-C06/23 IDs in T11 report. No global Parallel conversion; Windows scoped execution."
+        },
+        {
+          "id": "command_owner",
+          "source": "ccr-ui/src-tauri/src/commands/command_exec.rs",
+          "cases": [
+            {
+              "selector": "command_owner_receives_cancel_before_cleanup_and_keeps_start_admission",
+              "line": 2005
+            },
+            {
+              "selector": "foreground_barrier_does_not_block_existing_command_owner_controls",
+              "line": 1958
+            },
+            {
+              "selector": "terminal_snapshot_keeps_non_zero_exit_as_failed_with_output",
+              "line": 2288
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-command-exec.log"
+          ],
+          "boundary": "Windows Rust behavior; paired with renderer tests, not full native UI end-to-end."
+        },
+        {
+          "id": "usage_registry",
+          "source": "ccr-ui/src-tauri/src/usage_jobs.rs",
+          "cases": [
+            {
+              "selector": "cancelled_result_rejects_late_failure",
+              "line": 340
+            },
+            {
+              "selector": "failed_result_rejects_cancel_and_late_progress",
+              "line": 350
+            },
+            {
+              "selector": "cancel_before_runner_start_prevents_spawn_and_keeps_admission",
+              "line": 378
+            },
+            {
+              "selector": "all_terminal_results_reject_duplicate_cancel_progress_and_completion",
+              "line": 420
+            },
+            {
+              "selector": "running_cancel_keeps_token_and_reports_cleanup_failure",
+              "line": 443
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-usage.log"
+          ],
+          "boundary": "Not a full Tauri App click. T11 log supersedes the T06 intermediate control-policy failure."
+        },
+        {
+          "id": "oauth",
+          "source": "ccr-ui/src-tauri/src/commands/codex_auth/oauth_tests.rs",
+          "cases": [
+            {
+              "selector": "bind_race_and_save_failure_never_publish_active_login",
+              "line": 295
+            },
+            {
+              "selector": "start_owns_listener_and_storage_before_return_and_reuses_live_id",
+              "line": 263
+            },
+            {
+              "selector": "silent_socket_times_out_and_releases_listener_without_success",
+              "line": 378
+            },
+            {
+              "selector": "slow_http_body_is_cancelled_and_server_observes_closed_connection",
+              "line": 738
+            },
+            {
+              "selector": "successful_completion_is_unique_and_does_not_expose_sentinels",
+              "line": 495
+            },
+            {
+              "selector": "stale_cleanup_retry_cannot_clear_a_replacement_login",
+              "line": 695
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-oauth-green.log"
+          ],
+          "boundary": "Windows isolated credentials/network; real provider login and Linux/macOS OAuth unrun."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml runtime_policy",
+          "cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml codex_auth"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T11.AC2",
+      "requirement": "端口占用、bind 或 pending 保存失败均不返回可用 URL，不留下虚假活动登录；每个 login ID 仅一个终态。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/prd.md",
+          "line": 36
+        },
+        {
+          "path": ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/design.md",
+          "line": 12
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "oauth",
+          "source": "ccr-ui/src-tauri/src/commands/codex_auth/oauth_tests.rs",
+          "cases": [
+            {
+              "selector": "bind_race_and_save_failure_never_publish_active_login",
+              "line": 295
+            },
+            {
+              "selector": "start_owns_listener_and_storage_before_return_and_reuses_live_id",
+              "line": 263
+            },
+            {
+              "selector": "silent_socket_times_out_and_releases_listener_without_success",
+              "line": 378
+            },
+            {
+              "selector": "slow_http_body_is_cancelled_and_server_observes_closed_connection",
+              "line": 738
+            },
+            {
+              "selector": "successful_completion_is_unique_and_does_not_expose_sentinels",
+              "line": 495
+            },
+            {
+              "selector": "stale_cleanup_retry_cannot_clear_a_replacement_login",
+              "line": 695
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-oauth-green.log"
+          ],
+          "boundary": "Windows isolated credentials/network; real provider login and Linux/macOS OAuth unrun."
+        },
+        {
+          "id": "pending",
+          "source": "crates/ccr-codex/src/services/codex_oauth_pending_store.rs",
+          "cases": [
+            {
+              "selector": "oauth_pending_create_replace_cancel_and_expiry_never_make_copies",
+              "line": 192
+            },
+            {
+              "selector": "oauth_pending_permission_failure_preserves_old_or_missing_target",
+              "line": 222
+            },
+            {
+              "selector": "oauth_pending_errors_and_default_output_redact_sentinels",
+              "line": 302
+            },
+            {
+              "selector": "oauth_pending_preserves_owner_only_permissions",
+              "line": 355
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-safe-persistence-backups/check-linux-oauth-pending.json"
+          ],
+          "boundary": "Linux Rust 1.95 five tests. Simulated denial is not native OS denial. Windows DACL evidence remains in T05 check-report and T11 adapter logs; macOS unrun."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml runtime_policy",
+          "cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml codex_auth"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T11.AC3",
+      "requirement": "silent socket、慢 HTTP body 和取消均在期限加宽限内释放 listener/pending；失败和取消不会伪造登录成功。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/prd.md",
+          "line": 37
+        },
+        {
+          "path": ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/design.md",
+          "line": 13
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "oauth",
+          "source": "ccr-ui/src-tauri/src/commands/codex_auth/oauth_tests.rs",
+          "cases": [
+            {
+              "selector": "bind_race_and_save_failure_never_publish_active_login",
+              "line": 295
+            },
+            {
+              "selector": "start_owns_listener_and_storage_before_return_and_reuses_live_id",
+              "line": 263
+            },
+            {
+              "selector": "silent_socket_times_out_and_releases_listener_without_success",
+              "line": 378
+            },
+            {
+              "selector": "slow_http_body_is_cancelled_and_server_observes_closed_connection",
+              "line": 738
+            },
+            {
+              "selector": "successful_completion_is_unique_and_does_not_expose_sentinels",
+              "line": 495
+            },
+            {
+              "selector": "stale_cleanup_retry_cannot_clear_a_replacement_login",
+              "line": 695
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-oauth-green.log"
+          ],
+          "boundary": "Windows isolated credentials/network; real provider login and Linux/macOS OAuth unrun."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml runtime_policy",
+          "cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml codex_auth"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    },
+    {
+      "id": "T11.AC4",
+      "requirement": "受影响 generated artifacts 无漂移，auxiliary-window ACL/确认测试不变，verifier/token sentinel 不进入事件或日志。",
+      "requirement_refs": [
+        {
+          "path": ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/prd.md",
+          "line": 38
+        },
+        {
+          "path": ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/design.md",
+          "line": 14
+        }
+      ],
+      "review_scope": "non_author_product_slice",
+      "assessment": "scoped_evidence_sufficient_no_repeat_requested",
+      "existing_evidence_groups": [
+        {
+          "id": "registry",
+          "source": "ccr-ui/src-tauri/src/commands/handler_registry.rs",
+          "cases": [
+            {
+              "selector": "command_registry_shape_matches_current_handler_surface",
+              "line": 1812
+            },
+            {
+              "selector": "command_inventory_document_matches_registry",
+              "line": 2388
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-frontend-query-error-contracts/research/check-backend-registry.log"
+          ],
+          "boundary": "21 passed; full DTO bindings guard remains separate. Snapshot metadata count is not behavior acceptance."
+        },
+        {
+          "id": "oauth",
+          "source": "ccr-ui/src-tauri/src/commands/codex_auth/oauth_tests.rs",
+          "cases": [
+            {
+              "selector": "bind_race_and_save_failure_never_publish_active_login",
+              "line": 295
+            },
+            {
+              "selector": "start_owns_listener_and_storage_before_return_and_reuses_live_id",
+              "line": 263
+            },
+            {
+              "selector": "silent_socket_times_out_and_releases_listener_without_success",
+              "line": 378
+            },
+            {
+              "selector": "slow_http_body_is_cancelled_and_server_observes_closed_connection",
+              "line": 738
+            },
+            {
+              "selector": "successful_completion_is_unique_and_does_not_expose_sentinels",
+              "line": 495
+            },
+            {
+              "selector": "stale_cleanup_retry_cannot_clear_a_replacement_login",
+              "line": 695
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-oauth-green.log"
+          ],
+          "boundary": "Windows isolated credentials/network; real provider login and Linux/macOS OAuth unrun."
+        },
+        {
+          "id": "pending",
+          "source": "crates/ccr-codex/src/services/codex_oauth_pending_store.rs",
+          "cases": [
+            {
+              "selector": "oauth_pending_create_replace_cancel_and_expiry_never_make_copies",
+              "line": 192
+            },
+            {
+              "selector": "oauth_pending_permission_failure_preserves_old_or_missing_target",
+              "line": 222
+            },
+            {
+              "selector": "oauth_pending_errors_and_default_output_redact_sentinels",
+              "line": 302
+            },
+            {
+              "selector": "oauth_pending_preserves_owner_only_permissions",
+              "line": 355
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-safe-persistence-backups/check-linux-oauth-pending.json"
+          ],
+          "boundary": "Linux Rust 1.95 five tests. Simulated denial is not native OS denial. Windows DACL evidence remains in T05 check-report and T11 adapter logs; macOS unrun."
+        },
+        {
+          "id": "bindings",
+          "source": "ccr-ui/tests/quality/bindings-transaction.smoke.test.ts",
+          "cases": [
+            {
+              "selector": "restores exact bytes after direct",
+              "line": 40
+            },
+            {
+              "selector": "check preserves original bytes",
+              "line": 66
+            },
+            {
+              "selector": "reports restoration failure",
+              "line": 105
+            }
+          ],
+          "logs": [
+            ".trellis/tasks/09-28-architecture-contract-gates/research/gates-frontend-final.log",
+            ".trellis/tasks/09-28-architecture-contract-gates/research/gates-full-bindings-final.json"
+          ],
+          "boundary": "25 includes calendar tests. Full guard exit 0 preserved all 230 generated type files byte-for-byte; earlier unexplained drift remains recorded."
+        }
+      ],
+      "artifact_evidence_paths": [],
+      "required_followups": [],
+      "minimum_verification_entry": {
+        "commands": [
+          "cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml runtime_policy",
+          "cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml codex_auth"
+        ],
+        "cwd": "ccr-ui for bun; repository root otherwise",
+        "run_now": false,
+        "reuse_rule": "同源成功证据不重复；仅新增变更/缺口触发最窄验证。"
+      }
+    }
+  ],
+  "minimum_validation_plan": [
+    {
+      "id": "V01",
+      "report_line": 23,
+      "title": "正式本机门禁",
+      "details": [
+        "",
+        "- 分类：正式最终验收必需。",
+        "- 要求：T10 `prd.md:28,35`，`design.md:11,14`，`implement.md:34-36`。",
+        "- 现有证据：父 `integration-report.md` 和 `research/root-delivery-after-utc-ci.json/.log` 记录上一冻结版 workspace tests、Release 通过，根 CI 在 audit 失败；独立完整 Tauri 通过。原工作区 frontend-check 仍记录两脚本 5 条 no-console，隔离授权源码副本成功不覆盖原失败。",
+        "- 最小入口：新锁文件 owner 完成后审计两个 Cargo.lock 并运行依赖治理；获得明确授权的脚本修正须通过原 `bun run lint:ci`；最终冻结后由 root 执行一次 `just ci`。不为覆盖计数重复已经通过的同源过滤集，不降低门禁。",
+        "- 本机可完成。依赖/脚本新日志本阶段没有独立授予通过。",
+        ""
+      ]
+    },
+    {
+      "id": "V02",
+      "report_line": 31,
+      "title": "macOS 原生进程清理",
+      "details": [
+        "",
+        "- 分类：规划必需阻断。",
+        "- 要求：T06 `design.md:13` 明列 Windows/Linux/macOS tree cleanup matrix；T10 `design.md:11` 要求保留该矩阵。",
+        "- 源码：`.github/workflows/tauri-rust-ci.yml:51-69`；`justfile:1554-1556`；`crates/ccr-core/src/core/process_gateway.rs:698,731`。",
+        "- 已有证据：Windows 10 项 Tauri + 7 项 core、Linux Rust 1.95 core 9 项通过；macOS 未运行。来源为 T06 `check-process-smoke-final.log` 与 `check-core-process-linux-final.log`。",
+        "- 最小入口：在同源码、同锁文件、Rust 1.98.0 的 macOS 设备或 runner 上运行 `just tauri-process-smoke`。现有 recipe 已同时执行 Tauri `process::gateway` 与 core `core::process_gateway`，无需再建入口。记录非零测试数、父进程先退出/Drop、后代终止和超时结果。",
+        "- 当前 Windows/WSL 不能代替 macOS；需要设备或获授权 runner，不需要真实账户。",
+        ""
+      ]
+    },
+    {
+      "id": "V03",
+      "report_line": 40,
+      "title": "Codex model-only 文件往返",
+      "details": [
+        "",
+        "- 分类：本机可补的精确持久化验收。",
+        "- 要求：T08 `prd.md:34`、`design.md:11`；父 `design.md:64` 明列 typed read → patch → reread。",
+        "- 源码：`ccr-ui/tests/platforms/settings-lossless.smoke.test.ts:39,84-89` 由 mock transport 模拟写回；`commands/codex_settings.rs:18-35` 是实际 read/apply/write 路径；`commands/codex.rs:2137,2177,2233` 三例分别为文件读取、animations 内存 merge/serialization、null 内存 merge。",
+        "- 现有三例全部通过，但没有同次仅改 model 的真实文件保存→reread。该项是证据缺口，没有据此确认产品错误。",
+        "- 最小入口：复用 TestProcessEnv 和临时 Codex 根，合成 TOML 含两项 notifications 及非目标扩展；调用真实更新入口或同一真实 read/apply/write 链，仅提交 model；重新读取文件并逐项比较数组、model 与未改字段。新增 selector 实际存在后只跑该最窄用例。主会话已指派 implement_t09。",
+        "- 不需要 WebView、真实账户或网络。",
+        ""
+      ]
+    },
+    {
+      "id": "V04",
+      "report_line": 49,
+      "title": "正常 Web 表单与原生 Settings smoke",
+      "details": [
+        "",
+        "- 分类：T08 指定后续 smoke；全面原生视觉属于更大范围。",
+        "- 要求：T08 `design.md:13`；T10 `implement.md` 的“UI 改动做相关 Web 行为/视觉验证并另列 native 限制”。",
+        "- 已有：父 `research/web-preview-preflight.md:23-45` 保存实际 Web 错误、重试、Commands 不可用布局和宽度观察；React/CodeMirror 路由用例通过。旧 browser mock 安装曾失败，不能当正常表单保存成功证据。",
+        "- Web 最小入口：在 ccr-ui 运行 `bun run dev:web -- --host 127.0.0.1 --strictPort`，独立标签页明确安装 synthetic IPC 后检查 managed 锁与原因、未知枚举、raw 编辑器与冲突可达性。记录底层 mock 边界。",
+        "- Native 最小入口：先证明完整 desktop 启动隔离，或使用可丢弃 OS 用户环境，再以合成配置检查同一路由及 raw 入口。生产 CSP 必须在嵌入前端的原生模式验；`tauri.conf.json:74` 的 `devCsp=null` 使开发模式成功不足以证明生产 CSP。",
+        "- 未找到现有完整启动隔离 harness。`TestProcessEnv` 仅是测试级 guard；详细定位见后文。当前不直接启动桌面应用读取真实用户配置。",
+        ""
+      ]
+    },
+    {
+      "id": "V05",
+      "report_line": 58,
+      "title": "Linux pinned 1.98 平台结论",
+      "details": [
+        "",
+        "- 分类：授予 Linux 正式平台/hosted required 结论所需；不把旧 MSRV 定向结果扩大为完整平台结论。",
+        "- 要求：T10 `design.md:11`；`rust-toolchain.toml:3`；`.github/workflows/ci.yml:31-59`；`.github/workflows/tauri-rust-ci.yml:27-49`。",
+        "- 现有环境：WSL Ubuntu-24.04；cwd `/mnt/d/Documents/Code/Github/ccr`；target `/tmp/ccr-architecture-linux-01a0e781`。cargo/rustc/rustdoc 来自 `/home/lyh/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin`，实际 Rust 1.95。T06 `check-report.md:46,57` 记录子进程 RUSTUP_TOOLCHAIN=stable、RUSTC/RUSTDOC 绝对路径、PATH 前置对应 bin、清空 wrapper；未改全局配置。",
+        "- 旧进程命令：`cargo test --offline --locked --target-dir /tmp/ccr-architecture-linux-01a0e781 -p ccr-core process_gateway -- --nocapture`，9 passed。T05 `check-linux-oauth-pending.json` 保存实际 cwd、绝对 cargo 路径、`test --locked -p ccr-codex oauth_pending -- --test-threads=1` 与 5 passed。T02 `root-linux-repository-final-alias.json` 和 `root-linux-write-journal-faults-final-alias.json` 分别记录 repository 17 passed/1 ignored、journal 9 passed 及前后指纹。",
+        "- 最小可行入口：先只读核对实际 rustc/cargo 版本；现有记录未证明安装了 1.98。具备 pinned 工具链与 workflow 声明的 native 依赖后，先跑 `just tauri-process-smoke`。",
+        "- 若授予正式 Linux 结论，再运行 ci.yml 的 root version/governance/fmt/lint-strict/test/check-workspace 和 tauri-rust-ci.yml 的 `just tauri-ci`；hosted required 的完整宣称还需对应 coverage/MSRV lanes，保留阈值。无需重复 Windows 全套来证明 Linux。",
+        "- 现有 WSL 可承载；本轮未安装工具链、运行 Cargo 或读取新运行状态。",
+        ""
+      ]
+    },
+    {
+      "id": "V06",
+      "report_line": 68,
+      "title": "明示未测扩展",
+      "details": [
+        "",
+        "- 依据：T11 `design.md:12-13` 使用 fake listener/storage、本地 loopback、受控 socket/server，明确不调用真实 OAuth；T09 `design.md:11-12` 明确 real BaseAuth + mock domain 和受控 Query promises；父 `design.md:74-76` 保留原生视觉和外部账户边界。",
+        "- 已有 Windows 实际 loopback/socket/body 与 pending store 证据；TUI adapter/presenter 与 48 帧通过；RemoteSettingsEnvironment 和临时 Local 文件检查环境身份与目标捕获。真实 OS 资源释放可以由这些本机 fixture 验证，不要求登录真实服务。",
+        "- 最小充分范围不扩大到真实 provider OAuth、SSH 账户保存或交互 TUI。未来如要求真实远程保存，需要明确的可丢弃 SSH/WSL 主机和配置根。全面原生视觉继续列未测，与 V04 指定功能 smoke 分开。",
+        ""
+      ]
+    },
+    {
+      "id": "V07",
+      "report_line": 74,
+      "title": "fix_commit 追溯边界",
+      "details": [
+        "",
+        "- T10 `prd.md:36` 要求修复 commit 字段，`:42` 又把提交列为不在本任务范围；当前 9 组 P1 保留 `fix_commit=null` 和源码/差异 SHA。",
+        "- 不虚构 commit，不为填字段自行提交。主会话区分行为证据完成与等待获授权后填入的提交追溯；无需为该字段重复产品测试。",
+        ""
+      ]
+    }
+  ],
+  "linux_195": {
+    "distribution": "WSL Ubuntu-24.04",
+    "cwd": "/mnt/d/Documents/Code/Github/ccr",
+    "target_dir": "/tmp/ccr-architecture-linux-01a0e781",
+    "toolchain_bin": "/home/lyh/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin",
+    "rust_version": "1.95 prior evidence; not refreshed",
+    "process_command": "cargo test --offline --locked --target-dir /tmp/ccr-architecture-linux-01a0e781 -p ccr-core process_gateway -- --nocapture",
+    "process_result": "9 passed",
+    "process_evidence": ".trellis/tasks/09-28-usage-job-lifecycle/check-core-process-linux-final.log",
+    "artifacts": [
+      {
+        "artifact": {
+          "path": ".trellis/tasks/09-28-safe-persistence-backups/check-linux-oauth-pending.json",
+          "sha256": "ad40368ca8c53b6cec80caa9dce8d954d381bb58123cebebdd78bf8eb7653d68"
+        },
+        "command": [
+          "/home/lyh/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo",
+          "test",
+          "--locked",
+          "-p",
+          "ccr-codex",
+          "oauth_pending",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "summary": {
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 224
+        },
+        "toolchain": "/home/lyh/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin"
+      },
+      {
+        "artifact": {
+          "path": ".trellis/tasks/09-28-profile-application-usecases/root-linux-repository-final-alias.json",
+          "sha256": "45c2e18a42055d420e21a18290c0953e8f4b08dbe7a1dc2f0c89c8875180b580"
+        },
+        "command": [
+          "/home/lyh/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "ccr-config",
+          "repository",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "summary": [
+          "test result: ok. 17 passed; 0 failed; 1 ignored; 0 measured; 81 filtered out; finished in 4.61s"
+        ],
+        "toolchain": "/home/lyh/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin"
+      },
+      {
+        "artifact": {
+          "path": ".trellis/tasks/09-28-profile-application-usecases/root-linux-write-journal-faults-final-alias.json",
+          "sha256": "467feef43e5e39f718599c3849d881d17c65061bc11f614d2a1671bf15c654a6"
+        },
+        "command": [
+          "/home/lyh/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "ccr-core",
+          "--features",
+          "test-support",
+          "write_journal",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "summary": [
+          "test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 107 filtered out; finished in 0.18s"
+        ],
+        "toolchain": "/home/lyh/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin"
+      }
+    ]
+  }
+}

@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-09-29T00:10:57.184705+00:00",
+  "owner": "/root/implement_t09",
+  "task": ".trellis/tasks/09-28-architecture-contract-gates",
+  "status": "revalidation_passed_startup_cause_unresolved",
+  "product_source_changes": [],
+  "original_aggregate": {
+    "command": [
+      "just",
+      "ci"
+    ],
+    "exit_code": 1,
+    "started_at_utc": "2026-09-28T23:43:55.849741+00:00",
+    "seconds": 710.79,
+    "preserved_metadata": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-original-ci.json",
+    "preserved_metadata_sha256": "68582f8288a9f2892e8f7372dd949115f31d8290def0a6a2bf0e1168875f8aed",
+    "preserved_log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-original-ci.log",
+    "preserved_log_sha256": "03a8329dc3ac83efc4f8852310b28ffa4f53d3a4cc9e6847895dbd3c2b0bf74b",
+    "failure_log_lines": [
+      2886,
+      2906
+    ],
+    "failure": "ccr_cli-957d4a190e1b8043.exe export_bindings exited with 0xc0000005 STATUS_ACCESS_VIOLATION before running N tests was printed",
+    "failed_run_executable_sha256": null,
+    "status_preserved": "failed; later scoped passes do not replace original aggregate exit 1"
+  },
+  "post_failure_executable_observation": {
+    "captured_at_utc": "2026-09-28T23:59:20.442234+00:00",
+    "capture_mode": "post_failure_observation_not_failure_time_hash",
+    "requested_executable": "target\\debug\\deps\\ccr_cli-957d4a190e1b8043.exe",
+    "resolved_executable": "C:\\Users\\lyh\\AppData\\Local\\mbx\\targets\\v1\\6b736f3e8608d890383d61470c216d50cd84b38db0e955508f465ce6ab4ea1b5\\debug\\deps\\ccr_cli-957d4a190e1b8043.exe",
+    "executable_sha256": "a9f059fca10c030a9c07d4bb7f938c3e6041b22ad245a001efbe6b1e6bee1ab5",
+    "executable_size_bytes": 21250048,
+    "executable_mtime_utc": "2026-09-28T23:55:45.630039+00:00"
+  },
+  "list_probe": {
+    "command": [
+      "C:\\Users\\lyh\\AppData\\Local\\mbx\\targets\\v1\\6b736f3e8608d890383d61470c216d50cd84b38db0e955508f465ce6ab4ea1b5\\debug\\deps\\ccr_cli-957d4a190e1b8043.exe",
+      "--list",
+      "export_bindings"
+    ],
+    "cwd": "D:\\Documents\\Code\\Github\\ccr",
+    "started_at_utc": "2026-09-28T23:59:20.455423+00:00",
+    "seconds": 0.027,
+    "exit_code": 0,
+    "binary_before_sha256": "a9f059fca10c030a9c07d4bb7f938c3e6041b22ad245a001efbe6b1e6bee1ab5",
+    "binary_after_sha256": "a9f059fca10c030a9c07d4bb7f938c3e6041b22ad245a001efbe6b1e6bee1ab5",
+    "capture_mode": "post_failure_observation",
+    "stdout": "application::profile_lifecycle::export_bindings_profileoutcome: test\napplication::profile_lifecycle::export_bindings_profilestatus: test\napplication::profile_lifecycle::export_bindings_profilewarning: test\nservices::install_types::export_bindings_absentreason: test\nservices::install_types::export_bindings_attemptid: test\nservices::install_types::export_bindings_cancelresult: test\nservices::install_types::export_bindings_datarootwarning: test\nservices::install_types::export_bindings_detectionresult: test\nservices::install_types::export_bindings_durationclass: test\nservices::install_types::export_bindings_failurekind: test\nservices::install_types::export_bindings_hostcapabilities: test\nservices::install_types::export_bindings_installactionkind: test\nservices::install_types::export_bindings_installevent: test\nservices::install_types::export_bindings_installplanview: test\nservices::install_types::export_bindings_logstream: test\nservices::install_types::export_bindings_manualcatalog: test\nservices::install_types::export_bindings_manualcommand: test\nservices::install_types::export_bindings_packagemanager: test\nservices::install_types::export_bindings_planid: test\nservices::install_types::export_bindings_planoutcome: test\nservices::install_types::export_bindings_platform: test\nservices::install_types::export_bindings_progressstage: test\nservices::install_types::export_bindings_ringbuffersnapshot: test\nservices::install_types::export_bindings_unsupportedreason: test\n\n24 tests, 0 benchmarks\n",
+    "stderr": ""
+  },
+  "application_error_query": {
+    "metadata": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-application-errors.json",
+    "metadata_sha256": "170bd3395cef4c38970f3b53ffc085e495e1968c794a4d1b524bcf9731462e47",
+    "filter": {
+      "log_name": "Application",
+      "provider": "Application Error",
+      "event_id": 1000,
+      "start_utc": "2026-09-28T23:43:55.8497410Z",
+      "end_utc": "2026-09-28T23:55:46.6397410Z"
+    },
+    "query_status": "no_events_in_time_window",
+    "matching_event_count": 0,
+    "conclusion": "No matching Application Error/1000 event was located in the exact original CI interval; no faulting module/offset evidence was obtained",
+    "cause": "unknown",
+    "privacy_scope": "Only target-executable fields were selected for output; no other application event was emitted",
+    "initial_query_correction_record": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-application-errors-initial.json",
+    "window_basis": "Start uses original started_at; end is derived from started_at plus original recorded seconds (710.79), not a separately recorded finish timestamp"
+  },
+  "revalidation": [
+    {
+      "metadata": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-bindings-check.json",
+      "metadata_sha256": "b2cbe43a152e456df23de577aba30e9feb9b2a6f9213440eb927de3e9e606ae8",
+      "result_counts": {
+        "ccr_cli_export_tests": 24,
+        "ccr_usage_export_tests": 9,
+        "tauri_export_tests": 197
+      },
+      "command": [
+        "just",
+        "tauri-bindings-check"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "started_at_utc": "2026-09-29T00:02:26.681686+00:00",
+      "command_environment_override": {
+        "CCR_SKIP_ICON_GENERATION": "1"
+      },
+      "override_basis": "same explicit override as original root CI",
+      "before_snapshot": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-bindings-before.json",
+      "before_snapshot_sha256": "d40c4c3f39fb4f79def43623c1620a62af289d88ad15bd67e61f602a34faba38",
+      "binary_before_sha256": "a9f059fca10c030a9c07d4bb7f938c3e6041b22ad245a001efbe6b1e6bee1ab5",
+      "source_freeze_sha256": "a531395a7d9857c1739491af54b8a781c840199a43c5e8e0bd9ad7959ed60f54",
+      "exit_code": 0,
+      "seconds": 60.203,
+      "finished_at_utc": "2026-09-29T00:03:26.898045+00:00",
+      "after_snapshot": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-bindings-after.json",
+      "after_snapshot_sha256": "66b558842da323a04ce1b792899021ec760313f2e1802b9e9b2c3f90ff9c988b",
+      "binary_after_sha256": "a9f059fca10c030a9c07d4bb7f938c3e6041b22ad245a001efbe6b1e6bee1ab5",
+      "generated_types_unchanged": true,
+      "freeze_unchanged": true,
+      "post_freeze_mismatches": {},
+      "post_generated_type_count": 230,
+      "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-bindings-check.log",
+      "log_sha256": "b255852434433cf81d22556b67c4dd3115338d20dab902228df083a39f3bab85"
+    },
+    {
+      "metadata": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-tauri-ci.json",
+      "metadata_sha256": "b84f82777995575be4d528110cdeb51498f236bb7a6d4656ba585c5ad619098b",
+      "result_counts": {
+        "tauri_behavior_passed": 407,
+        "tauri_behavior_ignored": 1,
+        "llmusage_guard_passed": 2,
+        "ccr_cli_export_tests": 24,
+        "ccr_usage_export_tests": 9,
+        "tauri_export_tests": 197,
+        "command_inventory_passed": 1
+      },
+      "command": [
+        "just",
+        "tauri-ci"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "started_at_utc": "2026-09-29T00:04:44.335491+00:00",
+      "command_environment_override": {
+        "CCR_SKIP_ICON_GENERATION": "1"
+      },
+      "override_basis": "same explicit override as original root CI",
+      "before_snapshot": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-tauri-before.json",
+      "before_snapshot_sha256": "ea09f2ec3e79a179237cb7f04912559625c84296be6d288f24bef02860544918",
+      "binary_before_sha256": "a9f059fca10c030a9c07d4bb7f938c3e6041b22ad245a001efbe6b1e6bee1ab5",
+      "source_freeze_sha256": "a531395a7d9857c1739491af54b8a781c840199a43c5e8e0bd9ad7959ed60f54",
+      "exit_code": 0,
+      "seconds": 230.503,
+      "finished_at_utc": "2026-09-29T00:08:34.851601+00:00",
+      "after_snapshot": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-tauri-after.json",
+      "after_snapshot_sha256": "fc5c8c6de88804d826c405ff352bb444257c95375f1418dd1877f673ae0463ed",
+      "binary_after_sha256": "a9f059fca10c030a9c07d4bb7f938c3e6041b22ad245a001efbe6b1e6bee1ab5",
+      "generated_types_unchanged": true,
+      "freeze_unchanged": true,
+      "post_freeze_mismatches": {},
+      "post_generated_type_count": 230,
+      "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-tauri-ci.log",
+      "log_sha256": "636f7862da807f24be8ee72fffb1cd155e816be77d88e8a06f7fd3e063bed289"
+    }
+  ],
+  "scope_snapshots": [
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-before.json",
+      "sha256": "f284f0383d7e26d88763363b9c9df002f244018726e8312a5718529fa13d6b44",
+      "captured_at_utc": "2026-09-28T23:59:20.442234+00:00",
+      "freeze_count": 263,
+      "generated_types_count": 230,
+      "matches_initial_paths_and_bytes": true
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-bindings-before.json",
+      "sha256": "d40c4c3f39fb4f79def43623c1620a62af289d88ad15bd67e61f602a34faba38",
+      "captured_at_utc": "2026-09-29T00:02:26.680603+00:00",
+      "freeze_count": 263,
+      "generated_types_count": 230,
+      "matches_initial_paths_and_bytes": true
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-bindings-after.json",
+      "sha256": "66b558842da323a04ce1b792899021ec760313f2e1802b9e9b2c3f90ff9c988b",
+      "captured_at_utc": "2026-09-29T00:03:26.897055+00:00",
+      "freeze_count": 263,
+      "generated_types_count": 230,
+      "matches_initial_paths_and_bytes": true
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-tauri-before.json",
+      "sha256": "ea09f2ec3e79a179237cb7f04912559625c84296be6d288f24bef02860544918",
+      "captured_at_utc": "2026-09-29T00:04:44.334455+00:00",
+      "freeze_count": 263,
+      "generated_types_count": 230,
+      "matches_initial_paths_and_bytes": true
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-tauri-after.json",
+      "sha256": "fc5c8c6de88804d826c405ff352bb444257c95375f1418dd1877f673ae0463ed",
+      "captured_at_utc": "2026-09-29T00:08:34.850672+00:00",
+      "freeze_count": 263,
+      "generated_types_count": 230,
+      "matches_initial_paths_and_bytes": true
+    }
+  ],
+  "execution_bounds": {
+    "standalone_bindings_check_runs": 1,
+    "complete_tauri_ci_runs": 1,
+    "bindings_check_inside_tauri_ci": "existing required recipe step; one additional invocation",
+    "root_workspace_tests_rerun": false,
+    "root_release_rerun": false,
+    "full_root_ci_rerun": false,
+    "explicit_command_environment_override": {
+      "CCR_SKIP_ICON_GENERATION": "1"
+    },
+    "override_matches_original_root_ci": true,
+    "generation_parallelism": "Keep existing export-only RUST_TEST_THREADS=1 set by generate-bindings.mjs; no new test serialization",
+    "toolchain_pin_observed_after_runs": "1.98.0",
+    "toolchain_pin_changed": false,
+    "wrapper_disabled_or_changed": false,
+    "system_security_policy_changed": false,
+    "manual_cache_deletion": false
+  },
+  "limits": [
+    "The original STATUS_ACCESS_VIOLATION startup cause remains unknown.",
+    "Executable hashes were first collected after the failure; no failure-time hash is claimed.",
+    "Passing unchanged-executable probes and scoped retries do not identify the crash mechanism.",
+    "No matching Application Error event was found within the authorized original CI interval; event absence is not proof that no crash occurred.",
+    "The original root CI result remains exit 1. This owner did not repeat passed root workspace tests or release steps.",
+    "All 230 generated type paths/content hashes and all 263 freeze paths/content hashes match before and after both revalidations; timestamps are not claimed unchanged.",
+    "This report does not claim Windows Rust 1.95, Linux Tauri process smoke, macOS, or native WebView acceptance; root owns the next stages."
+  ],
+  "handoff": {
+    "windows_cargo_released": true,
+    "last_completed_session": 19398,
+    "owner_active_cargo_or_test_sessions": [],
+    "task_lifecycle_changed": false,
+    "parent_report_or_matrix_changed": false,
+    "commit_push_or_archive": false
+  }
+}

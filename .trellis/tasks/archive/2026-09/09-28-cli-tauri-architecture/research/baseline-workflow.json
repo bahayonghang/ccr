@@ -1,0 +1,11 @@
+{
+  "check": "workflow",
+  "command": [
+    "python",
+    "scripts/ci/check_workflow_governance.py"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "exit_code": 0,
+  "seconds": 0.18,
+  "log": "baseline-workflow.log"
+}

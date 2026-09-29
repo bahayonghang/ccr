@@ -1,0 +1,6 @@
+{
+  "command": "just lint-strict",
+  "phase": "preintegration; before T10 changes",
+  "exit_code": 0,
+  "elapsed_seconds": 11.79
+}

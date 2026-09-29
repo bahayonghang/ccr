@@ -1,0 +1,6 @@
+{
+  "reason": "formal guard deleted generated directory then CLI export process exited 0xc0000005 before exports",
+  "restored_count": 227,
+  "verified_byte_identical": 227,
+  "new_or_existing_files_overwritten": 0
+}

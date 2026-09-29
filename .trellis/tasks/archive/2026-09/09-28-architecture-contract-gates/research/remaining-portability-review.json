@@ -1,0 +1,62 @@
+{
+  "verified_at_utc": "2026-09-29T03:21:18.165898+00:00",
+  "reviewer": "/root/check_t01",
+  "source_freeze": "remaining-portability-source-freeze.json",
+  "source_freeze_sha256": "49801fe0931bcdf156ce4718d5fae5ca844b4ff29988661318ce556a4d292a7d",
+  "source_count": 268,
+  "source_files": 266,
+  "source_deletions": 2,
+  "current_source_mismatches": [],
+  "octal_fix": {
+    "receipt": "remaining-octal-test-fix.json",
+    "receipt_sha256": "fd4b6e211cde69e116f30395c0a8923a02de5e1f65203861748b78eec0575e2f",
+    "path": "crates/ccr/tests/diagnostics_contract.rs",
+    "before_sha256": "793bb6f12e770b0462a00c7ef184f7642edbec8359c38ae4359167d6e3b55ccf",
+    "after_sha256": "230f1711ce599e4173daa39992ee900ee3e3216522b12c4a495bbf9d7b3b4455",
+    "unique_raw_byte_replacement": true,
+    "line_endings_preserved": true,
+    "semantic_change": false,
+    "author": "/root"
+  },
+  "quality": {
+    "receipt": "remaining-linux-workspace-quality-after-octal.json",
+    "receipt_sha256": "ada15b43241693b4cc088f19195182d5eddb8855482e11105b1a11d08f4bbc5f",
+    "command": [
+      "just",
+      "version-check",
+      "workflow-governance-check",
+      "fmt-check",
+      "lint-strict",
+      "test",
+      "check-workspace"
+    ],
+    "exit_code": 101,
+    "seconds": 186.517,
+    "log": "remaining-linux-workspace-quality-after-octal.log",
+    "log_sha256": "e0eac7ca333972777e1c2de13b2d731aeda967f5184d88a8366acb0ffd30dcc3",
+    "log_hash_verified": true,
+    "sources_before_after_equal_freeze": true,
+    "source_changes": [],
+    "generated_before_after_current_equal": true,
+    "generated_count": 230,
+    "generated_changes": [],
+    "version_governance_fmt": "passed",
+    "workspace_strict_clippy": "passed",
+    "workspace_tests": "failed",
+    "workspace_check": "not_reached",
+    "failing_test": "sessions::providers::tests::restores_codex_live_jsonl_under_tempfile_with_windows_path_shapes",
+    "failure_location": "crates/ccr-store/src/sessions/providers.rs:2647",
+    "store_result": {
+      "passed": 80,
+      "failed": 1,
+      "ignored": 2
+    },
+    "ccr_cli_result": {
+      "passed": 346,
+      "failed": 0,
+      "filtered": 24,
+      "seconds": 104.17
+    },
+    "lock_review": "The over-60-second profile cases subsequently passed. TestHome holds a crate-global environment Mutex across each fixture. The permission helper holds a guarded leaf lock and before_write uses thread-local RefCell state and reads; no reverse lock acquisition was found. No thread wait trace was collected, so individual waits are not attributed conclusively to the environment Mutex."
+  }
+}

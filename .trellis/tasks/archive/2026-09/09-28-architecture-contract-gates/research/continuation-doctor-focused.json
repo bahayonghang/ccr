@@ -1,0 +1,22 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "-p",
+    "ccr-cli",
+    "--all-features",
+    "--lib",
+    "commands::codex::fix::tests::doctor_",
+    "--",
+    "--nocapture"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "source_before_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+  "started_at_utc": "2026-09-28T23:37:08.399099+00:00",
+  "exit_code": 5,
+  "seconds": 11.046,
+  "source_after_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+  "finished_at_utc": "2026-09-28T23:37:19.445820+00:00",
+  "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-focused.log",
+  "log_sha256": "a85817cc0d74fdb68dcc6b16616f4f871ff6ea861ddc2bdc7857e792071e3e4b"
+}

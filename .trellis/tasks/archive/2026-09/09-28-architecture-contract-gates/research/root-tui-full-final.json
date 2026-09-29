@@ -1,0 +1,12 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "-p",
+    "ccr-tui",
+    "--all-features",
+    "--lib"
+  ],
+  "exit_code": 0,
+  "seconds": 42.11
+}

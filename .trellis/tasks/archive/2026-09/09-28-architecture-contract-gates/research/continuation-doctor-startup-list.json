@@ -1,0 +1,15 @@
+{
+  "command": [
+    "C:\\Users\\lyh\\AppData\\Local\\mbx\\targets\\v1\\6b736f3e8608d890383d61470c216d50cd84b38db0e955508f465ce6ab4ea1b5\\debug\\deps\\ccr_cli-7e52afdc8af423ce.exe",
+    "--list",
+    "commands::codex::fix::tests::doctor_"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "binary_sha256": "acbfa8455446da122a40581faf215c10e72313262536b282dba83ea4146f464d",
+  "source_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+  "started_at_utc": "2026-09-28T23:38:55.776168+00:00",
+  "exit_code": 0,
+  "seconds": 0.028,
+  "stdout": "commands::codex::fix::tests::doctor_deadline_applies_before_fixture_is_ready: test\ncommands::codex::fix::tests::doctor_reports_redact_sensitive_values_before_render_or_save: test\ncommands::codex::fix::tests::doctor_timeout_terminates_parent_and_grandchild: test\n\n3 tests, 0 benchmarks\n",
+  "stderr": ""
+}

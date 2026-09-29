@@ -1,0 +1,39 @@
+[
+  {
+    "log": ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-runtime_policy.log",
+    "filter": "runtime_policy",
+    "exit": 0
+  },
+  {
+    "log": ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-handler_registry.log",
+    "filter": "handler_registry",
+    "exit": 0
+  },
+  {
+    "log": ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-usage.log",
+    "filter": "usage",
+    "exit": 0
+  },
+  {
+    "log": ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-port_release_report.log",
+    "filter": "port_release_report",
+    "exit": 0
+  },
+  {
+    "log": ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-process-gateway.log",
+    "filter": "process::gateway",
+    "exit": 0
+  },
+  {
+    "filter": "install",
+    "exit": 0
+  },
+  {
+    "filter": "fmt",
+    "exit": 0
+  },
+  {
+    "filter": "clippy",
+    "exit": 0
+  }
+]

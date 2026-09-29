@@ -1,0 +1,91 @@
+{
+  "reviewed_at_utc": "2026-09-29T03:46:04.205457+00:00",
+  "reviewer": "/root/check_t01",
+  "status": "passed_local_linux_receipts_other_formal_gates_pending",
+  "receipts": [
+    {
+      "command": [
+        "just",
+        "coverage-rust"
+      ],
+      "exit_code": 0,
+      "seconds": 213.25,
+      "log": "remaining-linux-workspace-coverage-after-path.log",
+      "log_sha256": "3c7bb681c4f56fbfda35c4c25ff79de5852c8b8323f6b767dcd59dfea3197426",
+      "rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+      "environment_overrides": {
+        "PATH": "/tmp/ccr-architecture-tools-01a0e781/bin:/home/lyh/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "RUSTUP_TOOLCHAIN": "1.98.0",
+        "CARGO_TARGET_DIR": "/tmp/ccr-architecture-linux-01a0e781",
+        "CCR_SKIP_ICON_GENERATION": "1"
+      },
+      "source_freeze_reference": "remaining-platform-tests-source-freeze.json",
+      "source_freeze_sha256": "a31c8730384c91076a051f226d3201e1b6cd2d9efa7ec63f881b8899601db273",
+      "receipt": "remaining-linux-workspace-coverage-after-path.json",
+      "receipt_sha256": "396320b6012eac1639086cc21d668f064c164c2c61a57ef8564677a1cf2a02ec",
+      "log_hash_verified": true,
+      "source_maps_equal_freeze": true,
+      "source_count": 269,
+      "generated_maps_before_after_equal": true,
+      "generated_count": 230,
+      "current_generated_not_resampled_during_running_tauri_gate": true,
+      "source_changes": [],
+      "generated_changes": [],
+      "raw_report": "remaining-linux-coverage-workspace-after-path-report.json",
+      "raw_report_sha256": "0f59ba2a17de26c0ea21910e6605d9df6c3535653b5cffe9e73c37e2442f7d7e",
+      "overall": {
+        "count": 99931,
+        "covered": 74554,
+        "percent": 74.60547777966798,
+        "recomputed_percent": 74.60547777966796,
+        "threshold": 70,
+        "pass": true
+      },
+      "gateway": {
+        "count": 409,
+        "covered": 393,
+        "percent": 96.08801955990221,
+        "recomputed_percent": 96.08801955990221,
+        "threshold": 85,
+        "pass": true,
+        "path": "/mnt/d/Documents/Code/Github/ccr/crates/ccr-core/src/core/process_gateway.rs"
+      },
+      "gate_scope": "Rust workspace overall and ccr-core process gateway; distinct from Tauri overall baseline."
+    },
+    {
+      "command": [
+        "cargo",
+        "check",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "seconds": 4.96,
+      "log": "remaining-linux-workspace-msrv-after-path.log",
+      "log_sha256": "62e62c88126e094d8c045a5409bae8230dfe333d32b69579ca251084a7213b7b",
+      "rustc": "rustc 1.95.0 (59807616e 2026-04-14)",
+      "environment_overrides": {
+        "PATH": "/tmp/ccr-architecture-tools-01a0e781/bin:/home/lyh/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "RUSTUP_TOOLCHAIN": "stable",
+        "CARGO_TARGET_DIR": "/tmp/ccr-architecture-linux-01a0e781",
+        "CCR_SKIP_ICON_GENERATION": "1"
+      },
+      "source_freeze_reference": "remaining-platform-tests-source-freeze.json",
+      "source_freeze_sha256": "a31c8730384c91076a051f226d3201e1b6cd2d9efa7ec63f881b8899601db273",
+      "receipt": "remaining-linux-workspace-msrv-after-path.json",
+      "receipt_sha256": "53b6d5c65378a972557a498052c943ebcef82bda0132c6d7c85af7172008c712",
+      "log_hash_verified": true,
+      "source_maps_equal_freeze": true,
+      "source_count": 269,
+      "generated_maps_before_after_equal": true,
+      "generated_count": 230,
+      "current_generated_not_resampled_during_running_tauri_gate": true,
+      "source_changes": [],
+      "generated_changes": [],
+      "msrv": "1.95.0",
+      "version_basis": "Captured rustc version 1.95.0; do not infer MSRV from mutable stable toolchain alias alone."
+    }
+  ]
+}

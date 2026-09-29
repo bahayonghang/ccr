@@ -1,0 +1,60 @@
+{
+  "timestamp": "2026-09-28T12:08:43.033702-05:00",
+  "reviewer": "/root/implement_t10_gates",
+  "review_type": "read-only source and raw-log review; no Cargo execution",
+  "status": "baseline_flake_unresolved",
+  "source": {
+    "path": "crates/ccr-cli/src/commands/codex/fix.rs",
+    "sha256": "2615ff8ef43b62d659b9e1604c56ece8161fd6552d93096b6ea07a751d2b667a",
+    "bytes": 51877
+  },
+  "source_restored_equal_to_HEAD": true,
+  "diagnostic_metadata": {
+    "path": ".trellis/tasks/09-28-architecture-contract-gates/research/root-doctor-diagnostic-outcome.json",
+    "sha256": "5150cf7db76ce4647c204aef3f38ec6602782ab21bcfcbdb7e6ac43696b43dde",
+    "bytes": 640
+  },
+  "failed_root_ci": {
+    "log": {
+      "path": ".trellis/tasks/09-28-cli-tauri-architecture/research/root-acceptance-after-tui-ci.log",
+      "sha256": "8e055e60f72aa944b2b9546a8a19f0418f5dacb98eea9ba0906c0bc04bba1f8c",
+      "bytes": 62778
+    },
+    "cli_passed": 343,
+    "cli_failed": 1,
+    "failure": "grandchild PID file was not written"
+  },
+  "instrumented_cli_run": {
+    "metadata": {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/root-doctor-cli-instrumented.json",
+      "sha256": "2f812afa4cd3e8016d42e70543fefc0297ace7e96fd3ff83247b30d90a37872d",
+      "bytes": 208
+    },
+    "log": {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/root-doctor-cli-instrumented.log",
+      "sha256": "c1cbb660bb7a66c9608126a58315d35bdd5d31c6880384595bba473950c27c90",
+      "bytes": 31901
+    },
+    "cli_passed": 344,
+    "cli_failed": 0,
+    "default_parallel": true,
+    "root_cause_confirmed": false
+  },
+  "source_facts": [
+    "capture_doctor starts the timeout after ManagedProcess::spawn; Windows fixture uses 20 seconds",
+    "PID readiness poll and capture timeout run concurrently; tokio::join does not delay the timeout until PID readiness",
+    "Windows fixture writes parent PID, calls Start-Process, then writes the returned child PID",
+    "Windows ManagedProcess terminates the Job Object, awaits the direct child, and confirms active_processes equals zero",
+    "The fixture parent and descendant naturally exit after about 30 seconds; subsequent process-gone polling allows 20 seconds"
+  ],
+  "cause": "unconfirmed",
+  "recommendations_not_applied": [
+    "If later evidence supports a fixture change, consider explicit ProcessStartInfo with UseShellExecute=false and CreateNoWindow=true; retain timeout result and required parent/descendant PID and death assertions",
+    "Consider long-lived fixture processes or a separate bounded cleanup assertion to avoid natural exit satisfying death assertions; current false-pass possibility is source-level, not reproduced"
+  ],
+  "limits": [
+    "An instrumented rerun passing does not establish the missing-PID cause or prove a fix",
+    "No production or fixture change remains from this diagnosis",
+    "Final root aggregate remains root-owned and pending; successful Tauri and TUI evidence do not imply root CI passed"
+  ]
+}

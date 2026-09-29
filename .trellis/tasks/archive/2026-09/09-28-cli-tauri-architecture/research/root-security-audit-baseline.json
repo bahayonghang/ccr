@@ -1,0 +1,16 @@
+{
+  "original_aggregate": "root-delivery-after-utc-ci.log",
+  "crate": "rustls",
+  "locked_versions": [
+    "0.23.40"
+  ],
+  "advisory_reported_by_cargo_audit": "RUSTSEC-2026-0285",
+  "recommended_patched_range_reported_by_cargo_audit": ">=0.23.45",
+  "lock_matches_baseline_bytes": true,
+  "current_lock_sha256": "ca1f03e85b5e0d888109ac8af7e7943fc1ceecd20a0f6eeb6a60052c5155db79",
+  "baseline_lock_sha256": "ca1f03e85b5e0d888109ac8af7e7943fc1ceecd20a0f6eeb6a60052c5155db79",
+  "action": "No dependency or lockfile changes. Outside approved architecture task file scope; audit failure retained.",
+  "baseline_locked_versions": [
+    "0.23.40"
+  ]
+}

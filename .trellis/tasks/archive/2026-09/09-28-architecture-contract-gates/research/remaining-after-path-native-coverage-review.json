@@ -1,0 +1,111 @@
+{
+  "reviewed_at_utc": "2026-09-29T03:59:49.052115+00:00",
+  "reviewer": "/root/check_t01",
+  "status": "passed_scoped_linux_native7_and_tauri_coverage_windows_pending",
+  "source_freeze": "remaining-platform-tests-source-freeze.json",
+  "source_freeze_sha256": "a31c8730384c91076a051f226d3201e1b6cd2d9efa7ec63f881b8899601db273",
+  "source_count": 269,
+  "tauri_coverage": {
+    "receipt": "remaining-linux-coverage-tauri-after-path.json",
+    "receipt_sha256": "e4fffdf8d8a224c14cdac87328e28adb6f0a3e283199bdf5d920dab6e774c232",
+    "exit_code": 0,
+    "seconds": 166.002,
+    "log_sha256": "de2739b7f8c546fac6363e7f5e0d066cd11078fbd10d84c63f8f1bb2d697834e",
+    "source_before_after_equal_freeze": true,
+    "generated_before_after_equal": true,
+    "raw_report": "remaining-linux-coverage-tauri-after-path-report.json",
+    "raw_report_sha256": "dd9194758676c4d888805c96b3127a6ff45feabeec822a900fc5766135d690ba",
+    "gateway": {
+      "count": 703,
+      "covered": 654,
+      "percent": 93.0298719772404,
+      "recomputed_percent": 93.0298719772404,
+      "threshold": 85,
+      "pass": true
+    },
+    "overall": {
+      "count": 34456,
+      "covered": 17964,
+      "percent": 52.1360575806826,
+      "recomputed_percent": 52.13605758068261,
+      "scope": "Tauri baseline only; recipe has no overall threshold."
+    }
+  },
+  "native_build": {
+    "receipt": "remaining-linux-native-after-path.json",
+    "receipt_sha256": "7a413db6d0102ede529ffaaf52b7123983263c09d1fc51358606d22b9f46551b",
+    "exit_code": 0,
+    "seconds": 38.995,
+    "log_sha256": "27e9ea8f1ed836d00ecc3a43edb0440f4266d32c486c7709cf5a7ea69e4ab828",
+    "source_before_after_equal_freeze": true,
+    "generated_before_after_equal": true,
+    "frontend_dist_before_after_equal_ui_build": true,
+    "assets": 284,
+    "csp_config_sha256": "09eeed6614d24a8ca2232671df7327d7271af10e1f3d53fc0ceb5c994f9de48c",
+    "csp_config_current_hash_separately_verified": true,
+    "binary_sha256": "7b72d615f1909baece92bc60c9c327daf9eacbbd692e73dc0ba5797e462c8918",
+    "current_binary_hash_independently_verified": true
+  },
+  "native_run": {
+    "receipt": "remaining-native-webview-7.json",
+    "receipt_sha256": "18fe1b7ab7725eed9f8c3b49548b78fef1f2613d145da26b87ea37ff6fdc0d0c",
+    "log_sha256": "6ae9fc07d0c9c3a1a36985194a71370c482ec3112205b8d225d3aaedc6b24ce0",
+    "harness": "remaining-native-webview-after-path.py",
+    "harness_sha256": "16d7d0b19357bf33dd7580e539478bc13cbe633e2f1583e7e48476d44bf053fd",
+    "harness_delta_from_reviewed_attempt6": "After normalizing line endings, the only logical text change adds the after-path build receipt name to the allowlist; no assertions or actions changed. Raw bytes also change LF to CRLF.",
+    "state": "passed",
+    "checks": [
+      "native_boot",
+      "plaintext_confirmation",
+      "native_scroll_lock",
+      "native_editor",
+      "production_csp",
+      "native_save_roundtrip"
+    ],
+    "save_actual_equals_expected": true,
+    "current_saved_file_sha256_independently_verified": "b57aed982cf108e3ee2f9e2f153fdaa68a2e00c47a62411d1ae00d403235db10",
+    "current_saved_json_independently_read": true,
+    "screenshot": "remaining-native-webview-7.png",
+    "screenshot_sha256": "13c62cd593fb2ca9a3babdb49d73e9b221b579124f7e5fcc129a1130e2db8bf7",
+    "visual_review": "Native Local Claude settings source editor, syntax highlighting and aligned gutter visible; screenshot is before editing and displays sonnet. Save proof comes from WebDriver actions and exact disk JSON/hash.",
+    "post_save_style_csp_violations_empty": true,
+    "style_dom_removal_and_scroll_unlock_not_measured": true,
+    "live_process_group_members_after_cleanup": [],
+    "driver_exit_code": -15,
+    "harness_line_endings": {
+      "before_file": "remaining-native-webview.py",
+      "before_sha256": "7e4ccd29109ffe48dfe8ddf8381c5b802801cfe4d5906570c7cca7177ae79c53",
+      "before_bytes": 17334,
+      "before_lf": 227,
+      "before_crlf": 0,
+      "after_file": "remaining-native-webview-after-path.py",
+      "after_sha256": "16d7d0b19357bf33dd7580e539478bc13cbe633e2f1583e7e48476d44bf053fd",
+      "after_bytes": 17603,
+      "after_lf": 227,
+      "after_crlf": 227,
+      "raw_change_exactly_allowlist_extension_plus_lf_to_crlf": true
+    }
+  },
+  "frontend_input_binding": {
+    "ui_build_receipt": "remaining-csp-ui-build.json",
+    "ui_build_receipt_sha256": "d2efa648280e075866aa78b1f874f7a348af402154743877c2889889fd99dd20",
+    "input_count": 1060,
+    "before_after_equal": true,
+    "nongenerated_current_paths_verified": 830,
+    "generated_paths_bound_to_native_build_stable_snapshot": 230,
+    "current_generated_or_dist_not_sampled_during_windows_ci": true
+  },
+  "root_acceptance": {
+    "receipt": "remaining-native-acceptance-final.json",
+    "receipt_sha256": "f37b469aa66deaf3123ca4fb2a25b587b03770cf20db82f48c31aee083a73191",
+    "artifact_hashes_verified": 9,
+    "field_semantics": "Corrected to post-save style CSP events only; DOM-removal and scroll-unlock remain unmeasured.",
+    "historical_correction_receipt": "remaining-native-style-evidence-correction.json",
+    "historical_correction_sha256": "0b182cab258e2df7c0400b14f57e86430aabebbee3916f3473f70b23f9253980"
+  },
+  "limits": [
+    "Linux WebKitGTK/WSLg, debug automation binary with production custom-protocol assets/CSP.",
+    "Synthetic local settings and WebDriver input; environment redirection is not an OS filesystem sandbox.",
+    "No Windows WebView2/macOS native, physical input, release installer, real SSH or provider OAuth acceptance."
+  ]
+}

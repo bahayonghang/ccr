@@ -1,0 +1,11 @@
+{
+  "check": "format",
+  "command": [
+    "just",
+    "fmt-check"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "exit_code": 0,
+  "seconds": 6.51,
+  "log": "baseline-format.log"
+}

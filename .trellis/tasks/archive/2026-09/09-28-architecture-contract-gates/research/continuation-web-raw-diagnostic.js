@@ -1,0 +1,1 @@
+return {main:(await page.locator('main').first().innerText()).slice(0,6000),calls:await page.evaluate(()=>ccrFixture.calls.slice(-25).map(c=>c.cmd)),unknown:await page.evaluate(()=>ccrFixture.unknown.slice(-20)),errors:ccrWebErrors};

@@ -1,0 +1,11 @@
+{
+  "root_ci": "../09-28-cli-tauri-architecture/research/root-continuation-final-ci.json",
+  "baseline": "gates-full-bindings-final.json",
+  "base": "ccr-ui\\src\\types\\generated",
+  "current_count": 230,
+  "expected_count": 230,
+  "changed": [],
+  "missing": [],
+  "added": [],
+  "source_freeze_changes": []
+}

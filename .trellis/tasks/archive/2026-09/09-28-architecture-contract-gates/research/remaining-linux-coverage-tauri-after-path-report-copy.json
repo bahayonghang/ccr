@@ -1,0 +1,18 @@
+{
+  "copied_at_utc": "2026-09-29T03:51:12.976202+00:00",
+  "run": "remaining-linux-coverage-tauri-after-path.json",
+  "copy": "remaining-linux-coverage-tauri-after-path-report.json",
+  "sha256": "dd9194758676c4d888805c96b3127a6ff45feabeec822a900fc5766135d690ba",
+  "overall_lines": {
+    "count": 34456,
+    "covered": 17964,
+    "percent": 52.1360575806826
+  },
+  "gateway_lines": {
+    "count": 703,
+    "covered": 654,
+    "percent": 93.0298719772404
+  },
+  "required_gateway_threshold": 85,
+  "overall_threshold_not_applied_by_this_recipe": true
+}

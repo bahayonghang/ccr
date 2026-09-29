@@ -1,0 +1,12 @@
+{
+  "check": "lint",
+  "command": [
+    "bun",
+    "run",
+    "lint:ci"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+  "exit_code": 1,
+  "seconds": 17.47,
+  "log": "baseline-lint.log"
+}

@@ -1,0 +1,97 @@
+{
+  "timestamp": "2026-09-28T12:16:26.594834-05:00",
+  "reviewer": "/root/implement_t10_gates",
+  "status": "passed_scoped",
+  "scope": "Read-only non-author source and raw-log review; only own report/research written",
+  "source": {
+    "path": "crates/ccr-usage/src/db.rs",
+    "sha256": "c3127cfd84caf63266601b98ae2bed55dbe1f5d4db08129867a1e62502039d89",
+    "bytes": 73385
+  },
+  "baseline": {
+    "ref": "HEAD:crates/ccr-usage/src/db.rs",
+    "sha256": "f8d42f2a163931c63b7fcc4e0202b7f95e05592679e8a0098c0ff2fba0533742"
+  },
+  "exact_two_queryfilter_transformations_match": true,
+  "production_default_local_unchanged": true,
+  "production_sql_unchanged": true,
+  "fixtures_and_expected_assertions_unchanged": true,
+  "selected_timezone": "ReportTimezone::Utc",
+  "source_lines": {
+    "daily_fixture": 1586,
+    "daily_timezone": 1619,
+    "source_fixture": 1675,
+    "source_timezone": 1713,
+    "default_local": 24,
+    "zone_mapping": 247,
+    "trends_query": 353,
+    "source_query": 560
+  },
+  "preserved_expected_values": {
+    "daily_date": "2026-05-21",
+    "daily_output_tokens": 41,
+    "daily_reasoning_output_tokens": 11,
+    "daily_total_tokens": 137,
+    "source_order": [
+      "legacy",
+      "antigravity",
+      "codex",
+      "claude"
+    ],
+    "source_total_tokens": 705,
+    "codex_event_count": 2
+  },
+  "prior_failure": {
+    "log": {
+      "path": ".trellis/tasks/09-28-cli-tauri-architecture/research/root-delivery-test.log",
+      "sha256": "6c109a6edb879ab86ec2e4fdfa82c70be8a2c8c5d107ebe2be4c98e5bab1cd55",
+      "bytes": 164244
+    },
+    "passed": 63,
+    "failed": 2
+  },
+  "root_execution": {
+    "metadata": {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/root-usage-utc-fixtures.json",
+      "sha256": "93bffd85a122997d8f4a79f3a98979705242dbb078fd91b697f8f57a35e83c7e",
+      "bytes": 624
+    },
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "ccr-usage",
+      "--all-features",
+      "--lib",
+      "--",
+      "--skip",
+      "export_bindings"
+    ],
+    "exit_code": 0,
+    "log": {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/root-usage-utc-fixtures.log",
+      "sha256": "93867c846c5dd127e468d571f7e8aae42eb599f6eaf5cc2f340f8eab025763c9",
+      "bytes": 5969
+    },
+    "passed": 65,
+    "failed": 0,
+    "ignored": 0,
+    "filtered_exports": 9,
+    "selected_case_lines": [
+      "test db::tests::trends_daily_keeps_output_compatible_and_exposes_reasoning ... ok",
+      "test db::tests::source_breakdown_respects_date_range_and_ignores_source_filter ... ok",
+      "test db::tests::dst_transition_days_emit_23_and_25_hour_half_open_bounds ... ok",
+      "test db::tests::since_until_use_dst_aware_utc_half_open_bounds ... ok",
+      "test db::tests::utc_dates_emit_midnight_z_bounds ... ok",
+      "test timezone::tests::local_bounds_use_historical_dst_offsets ... ok",
+      "test timezone::tests::spring_forward_and_fall_back_instants_keep_the_local_date ... ok",
+      "test timezone::tests::sqlite_function_groups_using_real_iana_offsets ... ok",
+      "test timezone::tests::unknown_local_iana_zone_is_an_explicit_error ... ok"
+    ]
+  },
+  "limits": [
+    "Reviewer did not execute Cargo or bindings",
+    "65 tests are the full ccr-usage library behavior suite, not the workspace or root aggregate",
+    "Final root CI after this patch remains root-owned and pending"
+  ]
+}

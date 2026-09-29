@@ -1,0 +1,623 @@
+{
+  "approval": "2026-09-28 最新规划获批",
+  "tasks": [
+    {
+      "key": "T01",
+      "task": "09-28-config-repository-consistency",
+      "depends_on": [],
+      "implementation": "verified_windows",
+      "independent_check": "passed_scoped",
+      "acceptance": [
+        {
+          "id": "AC1",
+          "requirement": "两个独立进程经不同 adapter 并发修改不同 profile 后，两项修改都存在。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-config-repository-consistency/check-report.md"
+          ]
+        },
+        {
+          "id": "AC2",
+          "requirement": "registry 排序变化不改变指定平台结果；list/current/validate 前后文件清单与内容相同。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-config-repository-consistency/check-report.md"
+          ]
+        },
+        {
+          "id": "AC3",
+          "requirement": "非法 patch、重名和版本冲突均返回明确错误且磁盘不变；合法更新保留未编辑字段。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-config-repository-consistency/check-report.md"
+          ]
+        }
+      ],
+      "report": "../09-28-config-repository-consistency/implementation-report.md",
+      "check_report": "../09-28-config-repository-consistency/check-report.md",
+      "remaining_validation": [
+        "macOS and real UNC/symlink-alias acceptance unrun",
+        "Intermittent Windows executable-start failures retained; final aggregate outcome is in integration-report.md"
+      ]
+    },
+    {
+      "key": "T02",
+      "task": "09-28-profile-application-usecases",
+      "depends_on": [
+        "T01",
+        "T05"
+      ],
+      "implementation": "verified_scoped",
+      "independent_check": "passed_scoped",
+      "acceptance": [
+        {
+          "id": "AC1",
+          "requirement": "无效、被删除或禁用目标在三个入口均无写入；写入阶段故障产生可验证的回滚或显式可恢复结果。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-profile-application-usecases/check-report.md"
+          ]
+        },
+        {
+          "id": "AC2",
+          "requirement": "相同 fixture 和请求在三个入口产生相同持久状态；实际未生效不得增加成功计数或成功历史。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-profile-application-usecases/check-report.md"
+          ]
+        },
+        {
+          "id": "AC3",
+          "requirement": "历史写失败时结果明确标记 activation 已提交及附属失败，三端均显示相应结果且不自动重做激活。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-profile-application-usecases/check-report.md"
+          ]
+        },
+        {
+          "id": "AC4",
+          "requirement": "profile 的桌面与 TUI 路径均调用同一 application 用例；共享入口没有 stdin、print 或 process::exit。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-profile-application-usecases/check-report.md"
+          ]
+        },
+        {
+          "id": "AC5",
+          "requirement": "rename 在 save-new、delete-old、apply 各阶段失败时结果可解释，current/default 不悬空，CLI/Tauri 同 fixture 后果一致。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-profile-application-usecases/check-report.md"
+          ]
+        }
+      ],
+      "linux_supplement": {
+        "status": "passed_scoped_final_alias_fix",
+        "journal_tests": 9,
+        "guarded_write_tests": 24,
+        "atomic_writer_tests": 9,
+        "repository_tests": 17,
+        "repository_ignored": 1,
+        "toolchain": "Linux stable 1.95.0 MSRV",
+        "source_and_lock_unchanged": true,
+        "evidence": [
+          "../09-28-profile-application-usecases/root-linux-write-journal-faults-final-alias.json",
+          "../09-28-profile-application-usecases/root-linux-guarded-write-final-alias.json",
+          "../09-28-profile-application-usecases/root-linux-atomic-writer-final-alias.json",
+          "../09-28-profile-application-usecases/root-linux-repository-final-alias.json"
+        ]
+      },
+      "report": "../09-28-profile-application-usecases/implementation-report.md",
+      "check_report": "../09-28-profile-application-usecases/check-report.md",
+      "remaining_validation": [
+        "Native WebView, interactive TUI and macOS acceptance unrun",
+        "Grok rename remains outside the approved Claude/Codex update/rename migration",
+        "Final aggregate and protected-script formal lint outcome is in integration-report.md"
+      ]
+    },
+    {
+      "key": "T03",
+      "task": "09-28-tauri-config-adapter",
+      "depends_on": [
+        "T01",
+        "T02"
+      ],
+      "implementation": "verified_scoped",
+      "independent_check": "passed_scoped",
+      "acceptance": [
+        {
+          "id": "AC1",
+          "requirement": "隔离 fixture 中从配置页发起切换和启用均成功，runtime 与当前 profile 一致。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-tauri-config-adapter/check-report.md",
+            "../09-28-tauri-config-adapter/check-frontend-verified.log"
+          ]
+        },
+        {
+          "id": "AC2",
+          "requirement": "未知 key、错误类型、目标缺失和重名均拒绝且无写入；并发独立修改不丢失。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-tauri-config-adapter/check-report.md",
+            "../09-28-tauri-config-adapter/check-frontend-verified.log"
+          ]
+        },
+        {
+          "id": "AC3",
+          "requirement": "命令清单和客户端生成无漂移；旧请求缺乏可确定平台时返回明确 platform_required 或兼容迁移错误，且不修改状态。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-tauri-config-adapter/check-report.md",
+            "../09-28-tauri-config-adapter/check-frontend-verified.log"
+          ]
+        }
+      ],
+      "dependency_checkpoint": {
+        "scope": "T02 apply/update/rename/outcome compensation and actual CLI warning independently verified",
+        "evidence": [
+          "../09-28-profile-application-usecases/check-report.md"
+        ]
+      },
+      "latest_checkpoint": "Independent backend/config-page/CAS checks passed; full just tauri-ci including bindings passed during final root integration. Native UI remains unrun.",
+      "report": "../09-28-tauri-config-adapter/implementation-report.md",
+      "check_report": "../09-28-tauri-config-adapter/check-report.md",
+      "remaining_validation": [
+        "Native WebView and real environment interaction unrun",
+        "Final aggregate and protected-script formal lint outcome is in integration-report.md"
+      ]
+    },
+    {
+      "key": "T04",
+      "task": "09-28-cli-diagnostics-contract",
+      "depends_on": [
+        "T01",
+        "T02"
+      ],
+      "implementation": "verified_windows_scoped",
+      "independent_check": "passed_scoped",
+      "acceptance": [
+        {
+          "id": "AC1",
+          "requirement": "invalid、corrupt、unreadable fixture 的 ccr validate 非零退出；合法配置和 warning-only 按已记录策略退出。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-cli-diagnostics-contract/check-report.md"
+          ]
+        },
+        {
+          "id": "AC2",
+          "requirement": "合法 subscription 与 API-key fixture 在 validate/apply 预检中一致；缺失、损坏和权限错误分类不同。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-cli-diagnostics-contract/check-report.md"
+          ]
+        },
+        {
+          "id": "AC3",
+          "requirement": "诊断前后 fixture 文件不变；doctor 覆盖当前支持的 Claude/Codex/Grok，保留 adapter 的支持状态明确。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-cli-diagnostics-contract/check-report.md"
+          ]
+        }
+      ],
+      "dependency_checkpoint": {
+        "scope": "frozen validator/auth-mode and disabled/deleted/invalid preflight; T02 recovery AC remains separate",
+        "evidence": [
+          "../09-28-profile-application-usecases/check-checkpoint.md",
+          "../09-28-profile-application-usecases/check-platform-validators.json",
+          "../09-28-profile-application-usecases/check-codex-profile-validators.json",
+          "../09-28-profile-application-usecases/check-preflight-independent.json"
+        ]
+      },
+      "report": "../09-28-cli-diagnostics-contract/implementation-report.md",
+      "check_report": "../09-28-cli-diagnostics-contract/check-report.md",
+      "remaining_validation": [
+        "Linux/macOS diagnostic binary and native interaction acceptance unrun",
+        "Final aggregate result is in integration-report.md; docs-check passed"
+      ]
+    },
+    {
+      "key": "T05",
+      "task": "09-28-safe-persistence-backups",
+      "depends_on": [],
+      "implementation": "verified_windows_linux_scoped",
+      "independent_check": "passed_scoped",
+      "acceptance": [
+        {
+          "id": "AC1",
+          "requirement": "固定时钟下连续三次修改保留三份不同的前镜像，且轮换数遵守现有限额。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-safe-persistence-backups/check-report.md",
+            "../09-28-safe-persistence-backups/implementation-report.md"
+          ]
+        },
+        {
+          "id": "AC2",
+          "requirement": "旧/新格式混合目录的列出、恢复、轮换测试通过，敏感前镜像权限满足既有规则。",
+          "status": "passed_windows_linux_pending_macos",
+          "evidence": [
+            "../09-28-safe-persistence-backups/check-report.md",
+            "../09-28-safe-persistence-backups/implementation-report.md"
+          ]
+        },
+        {
+          "id": "AC3",
+          "requirement": "OAuth pending 使用 secret:true 和 BackupPolicy::None；创建、替换、取消、过期清理及权限失败后，目标目录和配置的备份目录不得新增 verifier/state 的备份或历史副本。权限失败不发布不受保护的新凭据文件，handler 返回明确失败，原有目标字节保持完整。",
+          "status": "passed_windows_linux_pending_macos",
+          "evidence": [
+            "../09-28-safe-persistence-backups/check-report.md",
+            "../09-28-safe-persistence-backups/implementation-report.md"
+          ]
+        },
+        {
+          "id": "AC4",
+          "requirement": "合成 secret sentinel 在失败、取消、过期清理的可见输出中均不存在。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-safe-persistence-backups/check-report.md",
+            "../09-28-safe-persistence-backups/implementation-report.md"
+          ]
+        }
+      ],
+      "report": "../09-28-safe-persistence-backups/implementation-report.md",
+      "check_report": "../09-28-safe-persistence-backups/check-report.md",
+      "remaining_validation": [
+        "macOS acceptance and complete pinned Linux 1.98 CI unrun",
+        "Linux strict Clippy unrun; prior platform-specific import findings retained",
+        "Intermittent Windows binary-start failure cause unconfirmed; fixed OS33 fixture is no longer open"
+      ],
+      "linux_supplement": {
+        "status": "passed_scoped",
+        "tests": 29,
+        "toolchain": "Linux stable 1.95.0 MSRV",
+        "evidence": [
+          "../09-28-safe-persistence-backups/root-linux-guarded-write.json",
+          "../09-28-safe-persistence-backups/check-report.md"
+        ],
+        "lock_unchanged": true
+      }
+    },
+    {
+      "key": "T06",
+      "task": "09-28-usage-job-lifecycle",
+      "depends_on": [],
+      "implementation": "implemented",
+      "independent_check": "passed_scoped_including_T11_shared_usage",
+      "acceptance": [
+        {
+          "id": "AC1",
+          "requirement": "runner 被 barrier 暂停时立即取消，释放 barrier 后 spawn 次数为零；active 占用直到 runner 真正完成。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-usage-job-lifecycle/check-report.md"
+          ]
+        },
+        {
+          "id": "AC2",
+          "requirement": "Cancelled、Finished、Failed 的已终结记录不被迟到事件或重复 cancel 覆盖；清理失败可见。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-usage-job-lifecycle/check-report.md"
+          ]
+        },
+        {
+          "id": "AC3",
+          "requirement": "静默、EOF 后仍存活、持有 stderr 和清理失败的假进程均在配置期限加清理宽限内结束，返回真实结果。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-usage-job-lifecycle/check-report.md"
+          ]
+        },
+        {
+          "id": "AC4",
+          "requirement": "stdout 无换行 flood 仍受 1 MiB 单行限制；stderr 保留上限和 DTO secret 规则不退化；adapter 不新增 usage SQL。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-usage-job-lifecycle/check-report.md"
+          ]
+        }
+      ],
+      "report": "../09-28-usage-job-lifecycle/implementation-report.md",
+      "dependency_contracts_ready": {
+        "T11": "Registry/admission/token/control/terminal contracts independently checked. Process cleanup and shared Usage gate verified in T06/T11 reviews; final standalone Windows Tauri aggregate passed."
+      },
+      "check_report": "../09-28-usage-job-lifecycle/check-report.md",
+      "remaining_validation": [
+        "macOS and complete pinned Linux CI unrun",
+        "Final full Windows Tauri gate passed; root aggregate outcome is in integration-report.md"
+      ],
+      "shared_usage_gate_evidence": "../09-28-desktop-control-oauth-lifecycle/check-usage.log"
+    },
+    {
+      "key": "T07",
+      "task": "09-28-command-workbench-lifecycle",
+      "depends_on": [
+        "T11"
+      ],
+      "implementation": "verified_scoped",
+      "independent_check": "passed_scoped",
+      "acceptance": [
+        {
+          "id": "AC1",
+          "requirement": "任务运行中离开命令页再返回，job ID、状态、输出和取消能力恢复。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-command-workbench-lifecycle/check-report.md",
+            "../09-28-command-workbench-lifecycle/research/check-final-regression-evidence.json"
+          ]
+        },
+        {
+          "id": "AC2",
+          "requirement": "终态先于 start 响应、重复/乱序事件均不回退终态或重复写 history；旧 job 事件不能覆盖新 job，提交期间禁止重复启动。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-command-workbench-lifecycle/check-report.md",
+            "../09-28-command-workbench-lifecycle/research/check-final-regression-evidence.json"
+          ]
+        },
+        {
+          "id": "AC3",
+          "requirement": "listen Promise 在卸载后才 resolve 时仍调用 unlisten，重新进入不会新增重复监听。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-command-workbench-lifecycle/check-report.md",
+            "../09-28-command-workbench-lifecycle/research/check-final-regression-evidence.json"
+          ]
+        }
+      ],
+      "dependency_checkpoint": {
+        "scope": "T11 command owner, runtime permit, status and cancel behavior independently passed; remaining OAuth and bindings review separate",
+        "evidence": [
+          "../09-28-desktop-control-oauth-lifecycle/check-command-exec.log",
+          "../09-28-desktop-control-oauth-lifecycle/check-runtime-policy.log"
+        ]
+      },
+      "latest_checkpoint": "Independent 19-file/102-test regression passed; full 900-test frontend suite, coverage and isolated frontend gate passed. Native WebView remains unrun.",
+      "report": "../09-28-command-workbench-lifecycle/implementation-report.md",
+      "check_report": "../09-28-command-workbench-lifecycle/check-report.md",
+      "remaining_validation": [
+        "Native WebView interaction unrun; controlled browser/route evidence remains scoped",
+        "Original-worktree formal lint retains protected-script failures; isolated full frontend gate passed"
+      ]
+    },
+    {
+      "key": "T08",
+      "task": "09-28-settings-lossless-capabilities",
+      "depends_on": [],
+      "implementation": "verified_scoped",
+      "independent_check": "passed_scoped",
+      "acceptance": [
+        {
+          "id": "AC1",
+          "requirement": "已有 Codex tui.notifications 数组时只修改 model，保存后数组逐项不变；OpenCode 原值 notify 时只修改其他字段，保存请求不携带 autoupdate。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-settings-lossless-capabilities/check-report.md"
+          ]
+        },
+        {
+          "id": "AC2",
+          "requirement": "Grok managed_keys_locked 对应输入禁用并说明原因；未知合法枚举显示当前值且保存其他字段不覆盖。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-settings-lossless-capabilities/check-report.md"
+          ]
+        },
+        {
+          "id": "AC3",
+          "requirement": "支持 raw source 的平台可以从 Settings 打开现有编辑器并处理 CAS 冲突；非 Local 环境不调用 Local-only 设置接口。 Grok typed/raw 保存及 invalid/stale 等失败路径均不产生备份，页面保留现有无备份提示。",
+          "status": "passed_automated_pending_ui",
+          "evidence": [
+            "../09-28-settings-lossless-capabilities/check-report.md"
+          ]
+        }
+      ],
+      "report": "../09-28-settings-lossless-capabilities/implementation-report.md",
+      "check_report": "../09-28-settings-lossless-capabilities/check-report.md",
+      "remaining_validation": [
+        "Native WebView/CSP and real SSH/WSL interactions unrun",
+        "T09 environment/query/session and final automated frontend checks passed",
+        "Original-worktree formal lint retains protected-script failures"
+      ]
+    },
+    {
+      "key": "T09",
+      "task": "09-28-frontend-query-error-contracts",
+      "depends_on": [
+        "T03",
+        "T08"
+      ],
+      "implementation": "verified_scoped",
+      "independent_check": "passed_scoped",
+      "acceptance": [
+        {
+          "id": "AC1",
+          "requirement": "probe 或 load 拒绝后出现错误及正确重试入口，不显示确定的 signedOut 或无限 loading；退出失败保留旧状态且不重复提交。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-frontend-query-error-contracts/check-report.md",
+            "../09-28-frontend-query-error-contracts/research/check-summary.json"
+          ]
+        },
+        {
+          "id": "AC2",
+          "requirement": "dirty 表单收到后台 refetch 时保留已编辑字段；旧环境响应不覆盖新会话；仅保存成功或用户明确放弃后重置。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-frontend-query-error-contracts/check-report.md",
+            "../09-28-frontend-query-error-contracts/research/check-summary.json"
+          ]
+        },
+        {
+          "id": "AC3",
+          "requirement": "保持配置数据引用不变，从 zh-CN 切换 en-US 后 tab、summary 和已挂载卡片文案全部更新。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-frontend-query-error-contracts/check-report.md",
+            "../09-28-frontend-query-error-contracts/research/check-summary.json"
+          ]
+        }
+      ],
+      "precondition_tests": {
+        "file": "ccr-ui/tests/platforms/query-contract-baseline.smoke.test.tsx",
+        "failed": 3,
+        "passed": 0,
+        "status": "old_behavior_reproduced_before_implementation",
+        "evidence": "../09-28-frontend-query-error-contracts/research/root-precondition-red.json"
+      },
+      "activation_basis": "T03 relevant independent contracts and T08 independent scoped contracts passed; user approval inherited from parent.",
+      "report": "../09-28-frontend-query-error-contracts/implementation-report.md",
+      "check_report": "../09-28-frontend-query-error-contracts/check-report.md",
+      "remaining_validation": [
+        "Native WebView and real SSH/WSL unrun; controlled environment backend fixtures passed",
+        "Full Tauri/bindings and isolated frontend gate passed; original-worktree lint and root aggregate remain separately reported"
+      ]
+    },
+    {
+      "key": "T10",
+      "task": "09-28-architecture-contract-gates",
+      "depends_on": [
+        "T01",
+        "T02",
+        "T03",
+        "T04",
+        "T05",
+        "T06",
+        "T07",
+        "T08",
+        "T09",
+        "T11"
+      ],
+      "implementation": "implemented_windows_scoped_root_tests_and_release_passed_aggregate_audit_blocked",
+      "independent_check": "dedicated_dispatch_blocked_non_author_cross_review_passed_scoped",
+      "acceptance": [
+        {
+          "id": "AC1",
+          "requirement": "文档化 aggregate 包含 desktop clippy 和全量行为测试；注入 desktop 测试失败时 aggregate 非零退出。",
+          "status": "passed_windows_contract_full_aggregate_still_non_green",
+          "evidence": [
+            "research/root-acceptance-after-tui-tauri.json",
+            "../09-28-architecture-contract-gates/research/cross-gates-governance.json",
+            "research/root-delivery-after-utc-ci.json"
+          ]
+        },
+        {
+          "id": "AC2",
+          "requirement": "所有 P1 在 evidence ledger 关联旧反例、测试、修复 commit 和结果；不存在仅凭 mock 成功或静态计数验收的条目。",
+          "status": "passed_scoped_mapping_uncommitted",
+          "evidence": [
+            "research/p1-evidence-ledger.json",
+            "../09-28-architecture-contract-gates/research/evidence-mapping-validation.json"
+          ]
+        },
+        {
+          "id": "AC3",
+          "requirement": "过期 Vue 当前路径、336/315/323 等冲突描述得到修订；规范链接可解析，ccr-usage 职责在索引可找到。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-architecture-contract-gates/research/spec-validation.json"
+          ]
+        },
+        {
+          "id": "AC4",
+          "requirement": "正式 lint 与受控诊断分别记录；原有临时脚本和 Insights 任务状态保持独立处理。",
+          "status": "passed_preservation_and_separate_gate_reporting",
+          "evidence": [
+            "research/final-context-preservation.json",
+            "research/root-final-frontend.json",
+            "research/isolated-final-frontend.json"
+          ]
+        }
+      ],
+      "dependency_checkpoint": "All ten predecessor task domain contracts independently passed scoped checks. T11 full bindings and final aggregate evidence deliberately converge in T10.",
+      "report": "../09-28-architecture-contract-gates/gates-implementation-report.md",
+      "spec_report": "../09-28-architecture-contract-gates/spec-implementation-report.md",
+      "check_reports": [
+        "../09-28-architecture-contract-gates/cross-check-gates.md",
+        "../09-28-architecture-contract-gates/cross-check-specs.md",
+        "../09-28-architecture-contract-gates/root-integration-review.md"
+      ],
+      "remaining_validation": [
+        "Dedicated trellis-check dispatch blocked by platform agent thread limit; non-author cross-review passed scoped",
+        "Root aggregate failed at existing rustls security advisory; protected formal frontend lint also remains open. Native startup/PID causes unconfirmed despite later full workspace pass.",
+        "macOS, pinned Linux 1.98 full CI, native WebView, real SSH/WSL/OAuth and interactive TUI acceptance unrun"
+      ],
+      "check_report": "../09-28-architecture-contract-gates/check-report.md",
+      "final_evidence_matrix": "../09-28-architecture-contract-gates/research/requirements-evidence.json"
+    },
+    {
+      "key": "T11",
+      "task": "09-28-desktop-control-oauth-lifecycle",
+      "depends_on": [
+        "T05",
+        "T06"
+      ],
+      "implementation": "verified_windows_scoped_including_bindings",
+      "independent_check": "passed_scoped_with_root_formal_bindings_evidence",
+      "acceptance": [
+        {
+          "id": "AC1",
+          "requirement": "逐 ID 执行 control-command-matrix.md 的 C01-C06：command、install、usage、OAuth 四个命令族的现有控制入口在 barrier 释放前到达 owner；已有 Parallel 查询保持可达。后台 start 已返回时，资源 admission 仍由真实 owner 持到完成与清理；同资源第二次 start 被拒绝、排队或按现有协议幂等复用同一 job，不创建并发作业。不存在的 get/status 操作明确标为不适用；ACL、确认和资源互斥保持。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-desktop-control-oauth-lifecycle/check-report.md"
+          ]
+        },
+        {
+          "id": "AC2",
+          "requirement": "端口占用、bind 或 pending 保存失败均不返回可用 URL，不留下虚假活动登录；每个 login ID 仅一个终态。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-desktop-control-oauth-lifecycle/check-report.md"
+          ]
+        },
+        {
+          "id": "AC3",
+          "requirement": "silent socket、慢 HTTP body 和取消均在期限加宽限内释放 listener/pending；失败和取消不会伪造登录成功。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-desktop-control-oauth-lifecycle/check-report.md"
+          ]
+        },
+        {
+          "id": "AC4",
+          "requirement": "受影响 generated artifacts 无漂移，auxiliary-window ACL/确认测试不变，verifier/token sentinel 不进入事件或日志。",
+          "status": "passed_scoped",
+          "evidence": [
+            "../09-28-desktop-control-oauth-lifecycle/check-report.md",
+            "../09-28-architecture-contract-gates/research/gates-full-bindings-final.json",
+            "research/root-acceptance-after-tui-tauri.json"
+          ]
+        }
+      ],
+      "report": "../09-28-desktop-control-oauth-lifecycle/implementation-report.md",
+      "remaining_validation": [
+        "Linux/macOS OAuth and native WebView/real-login acceptance unrun",
+        "Full Tauri/bindings passed; final root aggregate and original-worktree lint outcome is in integration-report.md"
+      ],
+      "check_report": "../09-28-desktop-control-oauth-lifecycle/check-report.md"
+    }
+  ],
+  "final_gate_report": "integration-report.md",
+  "task_lifecycle_note": "Planning acceptance statuses are evidence-scoped; task.json states remain in_progress. No commit, push or archive authorized in this delivery.",
+  "final_integration": {
+    "implementation": "all_11_tasks_implemented_scoped",
+    "root_workspace_tests": "passed_in_root_delivery_after_utc_ci",
+    "release_build": "passed_in_root_delivery_after_utc_ci",
+    "root_aggregate": "failed_security_audit_existing_rustls_0.23.40_RUSTSEC-2026-0285",
+    "standalone_tauri": "passed_full",
+    "frontend_tests": "900_passed_plus_24_i18n",
+    "frontend_coverage": "75.19_percent_above_70_percent",
+    "original_frontend_gate": "failed_5_protected_script_no_console_errors",
+    "isolated_frontend_gate": "passed",
+    "source_verification": "research/final-delivery-verification.json",
+    "final_root_evidence": "research/root-delivery-after-utc-ci.json",
+    "security_baseline_evidence": "research/root-security-audit-baseline.json",
+    "dedicated_t10_checker": "dispatch_blocked_non_author_cross_review_recorded",
+    "task_lifecycle": "unchanged_in_progress",
+    "fix_commit": null
+  }
+}

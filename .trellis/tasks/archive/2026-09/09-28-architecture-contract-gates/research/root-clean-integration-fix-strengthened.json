@@ -1,0 +1,16 @@
+{
+  "command": [
+    "C:\\Users\\lyh\\AppData\\Local\\mbx\\bin\\cargo.EXE",
+    "test",
+    "-p",
+    "ccr",
+    "--test",
+    "commands",
+    "clean::",
+    "--",
+    "--nocapture"
+  ],
+  "exit_code": 0,
+  "seconds": 3.97,
+  "log": "root-clean-integration-fix-strengthened.log"
+}

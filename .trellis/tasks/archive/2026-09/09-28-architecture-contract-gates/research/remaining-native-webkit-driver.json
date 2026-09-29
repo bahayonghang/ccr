@@ -1,0 +1,42 @@
+{
+  "recorded_at_utc": "2026-09-29T01:33:08.286259+00:00",
+  "scope": "Task-local package extraction; no installed package changes",
+  "runs": [
+    {
+      "command": [
+        "apt-get",
+        "download",
+        "webkit2gtk-driver=2.52.6-0ubuntu0.24.04.1"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "dpkg-deb",
+        "-x",
+        "/tmp/ccr-architecture-tools-01a0e781/webkit2gtk-driver_2.52.6-0ubuntu0.24.04.1_amd64.deb",
+        "/tmp/ccr-architecture-tools-01a0e781/webkit"
+      ],
+      "exit_code": 0,
+      "deb_sha256": "b74893560bc974aac116a31b1f2474a835534b96e9b5690f4d43157d5e0083df"
+    },
+    {
+      "command": [
+        "ldd",
+        "/tmp/ccr-architecture-tools-01a0e781/webkit/usr/bin/WebKitWebDriver"
+      ],
+      "exit_code": 0,
+      "stdout": "\tlinux-vdso.so.1 (0x00007b6f87528000)\n\tlibsoup-3.0.so.0 => /lib/x86_64-linux-gnu/libsoup-3.0.so.0 (0x00007b6f872cc000)\n\tlibicudata.so.74 => /lib/x86_64-linux-gnu/libicudata.so.74 (0x00007b6f85400000)\n\tlibicui18n.so.74 => /lib/x86_64-linux-gnu/libicui18n.so.74 (0x00007b6f85000000)\n\tlibicuuc.so.74 => /lib/x86_64-linux-gnu/libicuuc.so.74 (0x00007b6f84c00000)\n\tlibatomic.so.1 => /lib/x86_64-linux-gnu/libatomic.so.1 (0x00007b6f872c1000)\n\tlibgio-2.0.so.0 => /lib/x86_64-linux-gnu/libgio-2.0.so.0 (0x00007b6f84e30000)\n\tlibgobject-2.0.so.0 => /lib/x86_64-linux-gnu/libgobject-2.0.so.0 (0x00007b6f8725c000)\n\tlibglib-2.0.so.0 => /lib/x86_64-linux-gnu/libglib-2.0.so.0 (0x00007b6f84ab7000)\n\tlibz.so.1 => /lib/x86_64-linux-gnu/libz.so.1 (0x00007b6f87240000)\n\tlibsystemd.so.0 => /lib/x86_64-linux-gnu/libsystemd.so.0 (0x00007b6f87160000)\n\tlibstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007b6f84800000)\n\tlibm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007b6f84717000)\n\tlibgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1 (0x00007b6f853d0000)\n\tlibc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007b6f84400000)\n\t/lib64/ld-linux-x86-64.so.2 (0x00007b6f8752a000)\n\tlibgmodule-2.0.so.0 => /lib/x86_64-linux-gnu/libgmodule-2.0.so.0 (0x00007b6f853c9000)\n\tlibsqlite3.so.0 => /lib/x86_64-linux-gnu/libsqlite3.so.0 (0x00007b6f84298000)\n\tlibpsl.so.5 => /lib/x86_64-linux-gnu/libpsl.so.5 (0x00007b6f853b5000)\n\tlibbrotlidec.so.1 => /lib/x86_64-linux-gnu/libbrotlidec.so.1 (0x00007b6f853a5000)\n\tlibgssapi_krb5.so.2 => /lib/x86_64-linux-gnu/libgssapi_krb5.so.2 (0x00007b6f85351000)\n\tlibnghttp2.so.14 => /lib/x86_64-linux-gnu/libnghttp2.so.14 (0x00007b6f846ec000)\n\tlibmount.so.1 => /lib/x86_64-linux-gnu/libmount.so.1 (0x00007b6f8469f000)\n\tlibselinux.so.1 => /lib/x86_64-linux-gnu/libselinux.so.1 (0x00007b6f84672000)\n\tlibffi.so.8 => /lib/x86_64-linux-gnu/libffi.so.8 (0x00007b6f84e24000)\n\tlibpcre2-8.so.0 => /lib/x86_64-linux-gnu/libpcre2-8.so.0 (0x00007b6f841fe000)\n\tlibcap.so.2 => /lib/x86_64-linux-gnu/libcap.so.2 (0x00007b6f84e17000)\n\tlibgcrypt.so.20 => /lib/x86_64-linux-gnu/libgcrypt.so.20 (0x00007b6f840b6000)\n\tliblz4.so.1 => /lib/x86_64-linux-gnu/liblz4.so.1 (0x00007b6f84650000)\n\tliblzma.so.5 => /lib/x86_64-linux-gnu/liblzma.so.5 (0x00007b6f8461e000)\n\tlibzstd.so.1 => /lib/x86_64-linux-gnu/libzstd.so.1 (0x00007b6f83ffc000)\n\tlibunistring.so.5 => /lib/x86_64-linux-gnu/libunistring.so.5 (0x00007b6f83e4f000)\n\tlibidn2.so.0 => /lib/x86_64-linux-gnu/libidn2.so.0 (0x00007b6f83e2d000)\n\tlibbrotlicommon.so.1 => /lib/x86_64-linux-gnu/libbrotlicommon.so.1 (0x00007b6f83e0a000)\n\tlibkrb5.so.3 => /lib/x86_64-linux-gnu/libkrb5.so.3 (0x00007b6f83d41000)\n\tlibk5crypto.so.3 => /lib/x86_64-linux-gnu/libk5crypto.so.3 (0x00007b6f83d15000)\n\tlibcom_err.so.2 => /lib/x86_64-linux-gnu/libcom_err.so.2 (0x00007b6f84e0d000)\n\tlibkrb5support.so.0 => /lib/x86_64-linux-gnu/libkrb5support.so.0 (0x00007b6f84aaa000)\n\tlibblkid.so.1 => /lib/x86_64-linux-gnu/libblkid.so.1 (0x00007b6f83cda000)\n\tlibgpg-error.so.0 => /lib/x86_64-linux-gnu/libgpg-error.so.0 (0x00007b6f83cb5000)\n\tlibkeyutils.so.1 => /lib/x86_64-linux-gnu/libkeyutils.so.1 (0x00007b6f84aa1000)\n\tlibresolv.so.2 => /lib/x86_64-linux-gnu/libresolv.so.2 (0x00007b6f83ca3000)\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/ccr-architecture-tools-01a0e781/webkit/usr/bin/WebKitWebDriver",
+        "--version"
+      ],
+      "exit_code": 1,
+      "stdout": "Usage: /tmp/ccr-architecture-tools-01a0e781/webkit/usr/bin/WebKitWebDriver options\n  -h,          --help             Prints this help message\n  -p <port>,   --port=<port>      Port number the driver will use\n               --host=<host>      Host IP the driver will use, or either 'local' or 'all' (default: 'local')\n  -t <ip:port> --target=<ip:port> Target IP and port\n               --replace-on-new-session  Replace the existing session on new session request\n",
+      "stderr": ""
+    }
+  ]
+}

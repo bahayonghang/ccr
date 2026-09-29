@@ -1,0 +1,16 @@
+{
+  "captured_at_utc": "2026-09-29T00:00:11.1461834+00:00",
+  "target_executable": "ccr_cli-957d4a190e1b8043.exe",
+  "filter": {
+    "log_name": "Application",
+    "provider": "Application Error",
+    "event_id": 1000,
+    "start_utc": "2026-09-28T18:43:55.0000000-05:00",
+    "end_utc": "2026-09-28T18:55:46.0000000-05:00"
+  },
+  "query_status": "no_events_in_time_window",
+  "query_error": null,
+  "matching_event_count": 0,
+  "matching_events": [],
+  "scope": "Only target-executable crash fields within original CI time window; no other application events emitted"
+}

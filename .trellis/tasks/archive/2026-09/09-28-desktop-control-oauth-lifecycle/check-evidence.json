@@ -1,0 +1,39 @@
+{
+  "captured_utc": "2026-09-28T13:44:42.285985+00:00",
+  "baseline": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "sha256": {
+    "ccr-ui/src-tauri/src/commands/runtime_policy.rs": "5646dde1cf89c45cf26567ecf27d6d6283e117d6f023474201cc8f18fed5dc64",
+    "ccr-ui/src-tauri/src/commands/handler_registry.rs": "df570b8717e14a0e65cb2e481c738213484780d121aef17e7b213d14eb8fe0dc",
+    "ccr-ui/src-tauri/src/commands/command_exec.rs": "75215f5fcc8762b395a01efe2f7d2bb896ffc2380185fb322675e687b43975fa",
+    "ccr-ui/src-tauri/src/commands/install.rs": "2997d2a9b4241da6dd581b524730fbd6f62e05a87d75893a66c4502474c2ae50",
+    "crates/ccr-cli/src/services/install_exec.rs": "4ea9de153f423117484de812a2a7f3e934c22417314d753009bd74071d27e9d4",
+    "crates/ccr-cli/src/services/install_service.rs": "ad1c8431d23018b1e8df6b54c1ce593cd42464f669d411466040984fb5a15a40",
+    "ccr-ui/src-tauri/src/commands/usage.rs": "6ba53bd0182618f9723cade3db055f2db7f654d5c451233dcec87dea7c138c78",
+    "ccr-ui/src-tauri/src/commands/codex_auth.rs": "0720f229c18ff4facec1e46a2b039a476215124fa34985c2d58b895aa81bfe97",
+    "ccr-ui/src-tauri/src/commands/codex_auth/oauth.rs": "02eed2c9abf9aa3d48600dbd4b5abed409c4b7ce7bb1bc99cc3d33e45300a2ed",
+    "ccr-ui/src-tauri/src/commands/codex_auth/oauth_tests.rs": "743c45b9c3d6bc58bdb80bbcd0df6423274176dc809cbc45bef9509ce6e21668",
+    ".trellis/spec/ccr-codex/backend/backend-guidelines.md": "1618bf1bd92b15648c50d37399905eb0f2f5243dfe6331e08f718ada2d47a61b",
+    "ccr-ui/src/api/generated/command-manifest.json": "79199e07218230238f6f3cbb630229eca2a965c4eb4b0d3ebc80a6ed4bdb14ff",
+    "ccr-ui/src/api/generated/commandCapabilities.ts": "f7e61559bbae58b0048a7d053ca8adfc90290c5802508695addbeb1b604fa723",
+    "ccr-ui/.tmp-desktop-probe.mjs": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+    "ccr-ui/.tmp-insights-visual.mjs": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53"
+  },
+  "protected_files_unchanged": {
+    "ccr-ui/.tmp-desktop-probe.mjs": true,
+    "ccr-ui/.tmp-insights-visual.mjs": true
+  },
+  "ac": {
+    "AC1": "windows_scoped_pass",
+    "AC2": "windows_scoped_pass",
+    "AC3": "windows_scoped_pass",
+    "AC4": "blocked_formal_bindings_guard"
+  },
+  "t07_dependency": "approved_scoped",
+  "t06_shared_usage": "70 unit tests plus 2 no-crate guards passed",
+  "native_limits": [
+    "Linux/macOS OAuth not run",
+    "real OAuth/install not run",
+    "native Webview not run",
+    "full just ci and just tauri-ci not run"
+  ]
+}

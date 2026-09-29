@@ -1,0 +1,1 @@
+fn main() { let args: Vec<String> = std::env::args().collect(); if let Some(home) = args.get(2) { std::fs::write(std::path::Path::new(home).join("child.pid"), std::process::id().to_string()).unwrap(); } std::thread::sleep(std::time::Duration::from_secs(30)); }

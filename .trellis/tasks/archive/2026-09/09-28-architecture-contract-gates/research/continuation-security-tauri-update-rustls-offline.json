@@ -1,0 +1,19 @@
+{
+  "command": [
+    "cargo",
+    "update",
+    "--manifest-path",
+    "ccr-ui/src-tauri/Cargo.toml",
+    "--offline",
+    "-p",
+    "rustls@0.23.40",
+    "--precise",
+    "0.23.45"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "environment_overrides": {},
+  "started_at": "2026-09-28T23:00:21.728442+00:00",
+  "exit_code": 0,
+  "seconds": 1.242,
+  "log": "continuation-security-tauri-update-rustls-offline.log"
+}

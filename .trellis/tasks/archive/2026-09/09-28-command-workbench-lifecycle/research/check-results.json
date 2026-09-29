@@ -1,0 +1,143 @@
+{
+  "task": "T07",
+  "reviewer": "check_t07",
+  "date": "2026-09-28",
+  "recorded_at_utc": "2026-09-28T15:04:13.514089+00:00",
+  "status": "scoped_behavior_pass_formal_gates_blocked",
+  "ac_status": {
+    "AC1": "independent_automated_pass",
+    "AC2": "independent_automated_pass",
+    "AC3": "independent_automated_pass"
+  },
+  "fix_commit": null,
+  "fixed_by_implementer": [
+    "CP-T07-01",
+    "CP-T07-02"
+  ],
+  "fixed_by_checker": [
+    "CP-T07-03",
+    "CP-T07-04"
+  ],
+  "checks": [
+    {
+      "name": "late_start_cancel_red",
+      "exit_code": 1,
+      "passed": 0,
+      "failed": 2,
+      "log": "check-late-response-red.log",
+      "log_sha256": "e1b8e73247ead28670efe3193cf78be999a374ae21020288ce2a88710ab2487c"
+    },
+    {
+      "name": "late_start_cancel_green",
+      "exit_code": 0,
+      "passed": 2,
+      "failed": 0,
+      "log": "check-late-response-green.log",
+      "log_sha256": "4814a3792366b988f29571a2b21ce96543119a7f5c02161f457f05306e4e6fce"
+    },
+    {
+      "name": "scheduled_retry_red",
+      "exit_code": 1,
+      "passed": 0,
+      "failed": 1,
+      "log": "check-retry-timer-red.log",
+      "log_sha256": "5e324d073f8b138ea8b5b6c63f6a89dc9d5eb1527463124a29cb4846d5ca890c"
+    },
+    {
+      "name": "final_behavior_regression",
+      "exit_code": 0,
+      "files": 19,
+      "passed": 102,
+      "failed": 0,
+      "log": "check-final-regression.log",
+      "log_sha256": "29cc25cca4b0a815d985df1c40567002168f09754510bb3d1eaeb3349e1da5ce"
+    },
+    {
+      "name": "scoped_lint",
+      "exit_code": 0,
+      "log": "check-scoped-lint-final.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "formal_lint",
+      "exit_code": 1,
+      "errors": 11,
+      "protected_baseline_errors": 5,
+      "other_owner_inflight_errors": 6,
+      "log": "check-formal-lint.log",
+      "log_sha256": "a1715f52bafba5a8401cc10e9af10f5e214456adf41607deb4046745696273b6"
+    },
+    {
+      "name": "typecheck",
+      "exit_code": 2,
+      "errors": 2,
+      "other_owner": "T09",
+      "log": "check-typecheck.log",
+      "log_sha256": "487f48a22097a0308eb8df60e7040c2de7a8edd160b963190867a303e7ee4e00"
+    },
+    {
+      "name": "architecture_boundaries",
+      "exit_code": 0,
+      "fixtures": 4,
+      "log": "check-boundaries.log",
+      "log_sha256": "243e33417b06bf486c839b40b8b3bafdebe4cf12192434050a26f752a3a700cb"
+    },
+    {
+      "name": "cycles",
+      "exit_code": 0,
+      "files": 737,
+      "cycles": 0,
+      "log": "check-cycles.log",
+      "log_sha256": "1f8a98baf076e74c51e2cd4712d9e1b5a5b3fba4606511373e8c8932ea3ddc18"
+    },
+    {
+      "name": "production_build",
+      "exit_code": 0,
+      "environment": {
+        "CCR_SKIP_ICON_GENERATION": "1"
+      },
+      "warning": "chunk size warning retained",
+      "log": "check-build.log",
+      "log_sha256": "204a7422e1c6c82693929382599adf061e0677f00a05918b8e676933a8555127"
+    },
+    {
+      "name": "scoped_diff_check",
+      "exit_code": 0,
+      "log": "check-diff.log",
+      "log_sha256": "232837d6c7577c5280dd8260e42a9f77bd0b39159854aea5e01500ceb5eed96c"
+    }
+  ],
+  "final_source_hashes": {
+    "ccr-ui/src/features/commands/commandJobStore.ts": "e047353c0c4c575d148d647d4a7b7376848d89902776a957ba8febdbe50551c2",
+    "ccr-ui/src/features/commands/commandJobState.ts": "3ef64dc45c0807193c7b8fd5636d0944aade6938be7d5b7244434632dbc3399e",
+    "ccr-ui/src/features/commands/useCommandsPage.ts": "c0112f4088d05e164232537f95888852897d23dcb049591c70eadc60899f1f70",
+    "ccr-ui/src/features/commands/CommandsComposer.tsx": "3bbc075b56580fa033e07adc8bc5847808013273abb46beb04e4ed286aa896a5",
+    "ccr-ui/src/features/commands/CommandsLedger.tsx": "40a9c2c4f9aa965580ede2ec2fb80e5e4741aef12721068adb8139728f8cc63a",
+    "ccr-ui/src/features/commands/CommandsView.tsx": "044b55bdc07243d36bcfc4a1e8cfcb728ebdf53651cf79f5eb0f6eb76f846f66",
+    "ccr-ui/src/features/commands/stores.ts": "5aca041451a7575075b567b5e283ac65b9e1cddea1bc0a3e3270b334ed83f6d8",
+    "ccr-ui/src/features/commands/queries.ts": "c81fd758e9a635cd69fc526225fe8bdcb41e981e324dac1fbbb3c1dca2b5a7c3",
+    "ccr-ui/src/shell/eventBridge.ts": "18f768dc8f4bd9c6e9c39f8519013b9646a1daa99aa3b1510933f18a9cb4017f",
+    "ccr-ui/tests/commands/command-workbench-lifecycle.smoke.test.tsx": "0b7af0d4b341f5af29ea7d8bf2b8d5c422358da1bdd4db8470de861e9b15db23",
+    "ccr-ui/tests/commands/command-job-reducer.smoke.test.ts": "9c98e178b0474a53ac51970146e1213d6ab69cd14dfb6b94b6c90791e55c09a3",
+    "ccr-ui/tests/shell/event-bridge-leak.smoke.test.tsx": "68063a2c1d5b4e1caa2e1b3c01f293e5c1fd4dc661f1e5bf487b4802c119265f",
+    "ccr-ui/tests/shell/cache-route.smoke.test.ts": "0e3717fb3d209aa1c0b2331a434f841ed032dc2903d93eca9418f260323cb66f",
+    ".trellis/spec/ccr-ui/frontend/command-job-lifecycle.md": "eca041a29cba757e5b1703634303f35145d8b6d3baca7a5b6ae10fc6d455321e",
+    "ccr-ui/.tmp-desktop-probe.mjs": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+    "ccr-ui/.tmp-insights-visual.mjs": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53",
+    "eventBridge.command_section": "f07329930d2f72caf6b773314008ca4fca6fc5eafd715eccd631f10f42ba50e3"
+  },
+  "changed_since_final_regression": [],
+  "unverified": [
+    "native Tauri UI",
+    "actual browser interactions",
+    "visual acceptance",
+    "full repository CI"
+  ],
+  "prohibited_actions_performed": [],
+  "remaining_code_defects_in_t07_scope": [],
+  "retained_limits": [
+    "history write is at most once per session, no durable exactly-once promise",
+    "two global type errors in in-progress T09",
+    "five baseline and six T09 errors in formal lint during check"
+  ]
+}

@@ -1,0 +1,2 @@
+await expect(page.locator('[role="dialog"], [role="alertdialog"]')).toBeVisible({timeout:15000});
+return {dialogs:await page.locator('[role="dialog"], [role="alertdialog"]').allTextContents(),buttons:await page.getByRole('button').allTextContents(),errors:ccrWebErrors};

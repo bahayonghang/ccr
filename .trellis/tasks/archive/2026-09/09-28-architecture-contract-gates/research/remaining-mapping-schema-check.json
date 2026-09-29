@@ -1,0 +1,124 @@
+{
+  "status": "passed",
+  "scope": "Evidence parser only; no product gate executed or acceptance granted; published matrix not regenerated.",
+  "checks": [
+    {
+      "metadata": "remaining-windows-frontend-check.json",
+      "state": "finished",
+      "exit_code": 0,
+      "verified_streams": 3,
+      "source_paths": 263,
+      "source_stable": true,
+      "nominal_freeze_matches": false,
+      "source_epoch_sha256": null,
+      "parent_reference_is_ancestry_only": false
+    },
+    {
+      "metadata": "remaining-windows-ci.json",
+      "state": "finished",
+      "exit_code": 1,
+      "verified_streams": 3,
+      "source_paths": 263,
+      "source_stable": true,
+      "nominal_freeze_matches": false,
+      "source_epoch_sha256": null,
+      "parent_reference_is_ancestry_only": false
+    },
+    {
+      "metadata": "remaining-linux-tauri-ci.json",
+      "state": "finished",
+      "exit_code": 0,
+      "verified_streams": 1,
+      "source_paths": 263,
+      "source_stable": true,
+      "nominal_freeze_matches": null,
+      "source_epoch_sha256": "46f5b43cbdcfb664480d9ce1d8f57f0e6a9fa51ef3cd492fe60c0674d597f447",
+      "parent_reference_is_ancestry_only": true
+    },
+    {
+      "metadata": "remaining-linux-coverage-tauri.json",
+      "state": "finished",
+      "exit_code": 0,
+      "verified_streams": 1,
+      "source_paths": 263,
+      "source_stable": true,
+      "nominal_freeze_matches": null,
+      "source_epoch_sha256": "46f5b43cbdcfb664480d9ce1d8f57f0e6a9fa51ef3cd492fe60c0674d597f447",
+      "parent_reference_is_ancestry_only": true
+    },
+    {
+      "metadata": "remaining-linux-native-build.json",
+      "state": "finished",
+      "exit_code": 0,
+      "verified_streams": 1,
+      "source_paths": 263,
+      "source_stable": true,
+      "nominal_freeze_matches": null,
+      "source_epoch_sha256": "46f5b43cbdcfb664480d9ce1d8f57f0e6a9fa51ef3cd492fe60c0674d597f447",
+      "parent_reference_is_ancestry_only": true
+    }
+  ],
+  "negative_cases_rejected": [
+    "running_command",
+    "wrong_stream_hash",
+    "unreported_source_change"
+  ],
+  "unchanged_published_run_count": 41,
+  "published_matrix_sha256": "2153bbff149b7f0b78565642320a2e8ae3f14ed00bbd3adac4ad1639ddaa6b4d",
+  "generated_snapshot_checks": [
+    {
+      "metadata": "remaining-windows-frontend-check.json",
+      "exit_code": 0,
+      "generated_comparison": {
+        "before_count": 230,
+        "after_count": 230,
+        "changes": [],
+        "before_bytes_verified": true
+      }
+    },
+    {
+      "metadata": "remaining-windows-ci.json",
+      "exit_code": 1,
+      "generated_comparison": {
+        "before_count": 230,
+        "after_count": 230,
+        "changes": [],
+        "before_bytes_verified": true
+      }
+    },
+    {
+      "metadata": "remaining-linux-tauri-ci.json",
+      "exit_code": 0,
+      "generated_comparison": {
+        "before_count": 230,
+        "after_count": 230,
+        "maps_equal": true,
+        "changes": []
+      }
+    },
+    {
+      "metadata": "remaining-linux-coverage-tauri.json",
+      "exit_code": 0,
+      "generated_comparison": {
+        "before_count": 230,
+        "after_count": 230,
+        "maps_equal": true,
+        "changes": []
+      }
+    },
+    {
+      "metadata": "remaining-linux-native-build.json",
+      "exit_code": 0,
+      "generated_comparison": {
+        "before_count": 230,
+        "after_count": 230,
+        "maps_equal": true,
+        "changes": []
+      }
+    }
+  ],
+  "prepared_script_sha256": {
+    "build_evidence_matrix.py": "f0e6cf62f113596beda855f98160c3ad4754285145b1ad1cf1a97927e96e2287",
+    "validate_evidence_mapping.py": "8e77a4891a7b7cc7306b59cb433f86859ab4ae23485c49b90351709b0ee10e71"
+  }
+}

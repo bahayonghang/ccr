@@ -1,0 +1,57 @@
+{
+  "checks": [
+    {
+      "name": "continuation-linux-tauri-strict-final",
+      "exit_code": 0,
+      "seconds": 97.6,
+      "source_changes": [],
+      "generated_types_unchanged": true
+    },
+    {
+      "name": "continuation-linux-tauri-oauth-final",
+      "exit_code": 0,
+      "seconds": 77.28,
+      "source_changes": [],
+      "generated_types_unchanged": true
+    },
+    {
+      "name": "continuation-linux-tauri-process-after-import",
+      "exit_code": 0,
+      "seconds": 10.909,
+      "source_changes": [],
+      "generated_types_unchanged": true
+    },
+    {
+      "name": "continuation-windows-msrv-tauri-after-import",
+      "exit_code": 0,
+      "seconds": 21.154,
+      "source_changes": [],
+      "generated_types_unchanged": true
+    },
+    {
+      "name": "continuation-windows-oauth-after-import",
+      "exit_code": 0,
+      "seconds": 58.874,
+      "source_changes": [],
+      "generated_types_unchanged": true
+    },
+    {
+      "name": "continuation-tauri-fmt-after-import",
+      "exit_code": 0,
+      "seconds": 0.736,
+      "source_changes": [],
+      "generated_types_unchanged": true
+    }
+  ],
+  "source_freeze": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-platform-final-source-freeze.json",
+  "source_freeze_sha256": "fa79dd6fc1f9f1142d63e7c20a72d161ef398f1f683388d2ba49c7d71c3bfaaa",
+  "generated_schema_changes": [
+    {
+      "path": "ccr-ui/src-tauri/gen/schemas/linux-schema.json",
+      "action": "remove_new_build_generated_linux_schema",
+      "after_sha256": "32261c7f53df73489e0b5ff5cea42fc1d873125a4ca1e04184af78a397021e68"
+    }
+  ],
+  "final_source_changes": [],
+  "completed_at": "2026-09-29T00:23:27.455639+00:00"
+}

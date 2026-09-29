@@ -1,0 +1,195 @@
+{
+  "date": "2026-09-28",
+  "status": "passed",
+  "owned_files": [
+    {
+      "path": ".trellis/spec/ccr/backend/dependency-governance.md",
+      "bytes": 32568,
+      "sha256": "c5d4068b3f7bdff793e79ba03de46515f133776ae43ffe81ece9d82117c6bab2"
+    },
+    {
+      "path": ".trellis/spec/ccr/backend/tauri-handler-registry.md",
+      "bytes": 14597,
+      "sha256": "e1b3bb5734e686180f59aa407baaef7a5ef6cf6e06b32c2f7c797f7d00df01e9"
+    },
+    {
+      "path": ".trellis/spec/ccr/backend/typed-ipc-bindings.md",
+      "bytes": 28968,
+      "sha256": "ea7c2c0872c0f83f8d2652534061cdaf7853c99a3e49752c8d4d8d3f054d4a3a"
+    },
+    {
+      "path": ".trellis/spec/ccr/backend/index.md",
+      "bytes": 4470,
+      "sha256": "9b2e3635af0dbe09fde32c33a5495b5dd726d4ff4e8e7632b56e0e219ce99eca"
+    },
+    {
+      "path": ".trellis/spec/ccr/backend/llmusage-provider-adapter.md",
+      "bytes": 32727,
+      "sha256": "77d08a9536e3dae9c2ad86244371577460f820722de7a08375a534d2b0590d13"
+    },
+    {
+      "path": ".trellis/spec/ccr/backend/usage-job-lifecycle.md",
+      "bytes": 5116,
+      "sha256": "8a16f2161336cba86bc3fd1878d40fe0298eddec5e6d0da7d28eed5ca9414485"
+    },
+    {
+      "path": "code_map.md",
+      "bytes": 1715,
+      "sha256": "492b729515ec84ffb5ea05f56c685e6d3a27ccc752ff9879ce4f225cbaa38b3a"
+    },
+    {
+      "path": "ccr-ui/code_map.md",
+      "bytes": 5698,
+      "sha256": "62de6add91c60a9f3d3e6033132e8825bcfe5b0f386c691f537a7a3b1157a17d"
+    }
+  ],
+  "resolved_relative_links": [
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./backend-guidelines.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./desktop-command-policy.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./dependency-governance.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./llmusage-provider-adapter.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./usage-job-lifecycle.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./module-decomposition.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./public-api-boundary.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./repository-json-formatting.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./ssh-security.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./tauri-handler-registry.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./test-fixtures.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./typed-ipc-bindings.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./backend-guidelines.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./public-api-boundary.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./test-fixtures.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./dependency-governance.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./module-decomposition.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./repository-json-formatting.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./desktop-command-policy.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./tauri-handler-registry.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./ssh-security.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./llmusage-provider-adapter.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./usage-job-lifecycle.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./llmusage-provider-adapter.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./typed-ipc-bindings.md"
+    }
+  ],
+  "manifest_counts": {
+    "base_command_count": 340,
+    "windows_command_count": 348,
+    "typed_command_count": 278,
+    "exact_wire_type_count": 278
+  },
+  "base_modules": 38,
+  "prior_analytics_pricing_home_insights_bytes_unchanged": true,
+  "context_validations": [
+    {
+      "task": "09-28-usage-job-lifecycle",
+      "command": [
+        "python",
+        ".trellis/scripts/task.py",
+        "validate",
+        ".trellis/tasks/09-28-usage-job-lifecycle"
+      ],
+      "exit_code": 0
+    },
+    {
+      "task": "09-28-architecture-contract-gates",
+      "command": [
+        "python",
+        ".trellis/scripts/task.py",
+        "validate",
+        ".trellis/tasks/09-28-architecture-contract-gates"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "protected_files": [
+    {
+      "path": "ccr-ui/.tmp-desktop-probe.mjs",
+      "sha256": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+      "unchanged": true
+    },
+    {
+      "path": "ccr-ui/.tmp-insights-visual.mjs",
+      "sha256": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53",
+      "unchanged": true
+    }
+  ],
+  "existing_task_statuses": {
+    "09-24-home-insights-redesign": "planning",
+    "09-24-home-insights-frontend": "in_progress"
+  },
+  "limits": "Checks links, exact source bytes, per-file context budget and protected baseline. No product behavior or full-gate acceptance is inferred."
+}

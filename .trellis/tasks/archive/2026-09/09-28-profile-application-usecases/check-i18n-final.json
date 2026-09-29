@@ -1,0 +1,10 @@
+{
+  "command": [
+    "bun",
+    "run",
+    "test:i18n"
+  ],
+  "cwd": "ccr-ui",
+  "exit_code": 0,
+  "seconds": 0.71
+}

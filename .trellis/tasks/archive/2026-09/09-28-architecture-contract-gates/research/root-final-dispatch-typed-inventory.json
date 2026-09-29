@@ -1,0 +1,13 @@
+{
+  "command": [
+    "C:\\Users\\lyh\\AppData\\Local\\mbx\\bin\\cargo.EXE",
+    "test",
+    "-p",
+    "ccr-cli",
+    "--test",
+    "dispatch_routing"
+  ],
+  "exit_code": 0,
+  "seconds": 4.13,
+  "log": "root-final-dispatch-typed-inventory.log"
+}

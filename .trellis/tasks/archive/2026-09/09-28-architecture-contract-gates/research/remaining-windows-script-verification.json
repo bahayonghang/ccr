@@ -1,0 +1,40 @@
+{
+  "files": [
+    {
+      "path": "ccr-ui/.tmp-desktop-probe.mjs",
+      "before_sha256": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+      "after_sha256": "369137cd419a0a9ac81d79387c1c8ff037ea1078d22e2a795613b7858270d7b9",
+      "syntax_check": {
+        "command": [
+          "node",
+          "--check",
+          "ccr-ui/.tmp-desktop-probe.mjs"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "console_calls_before": 3,
+      "console_calls_after": 0
+    },
+    {
+      "path": "ccr-ui/.tmp-insights-visual.mjs",
+      "before_sha256": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53",
+      "after_sha256": "6d00d2d08f1c707ed888b27ace419f92720a5de0a214fdb836bd9d4e66fe5d61",
+      "syntax_check": {
+        "command": [
+          "node",
+          "--check",
+          "ccr-ui/.tmp-insights-visual.mjs"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "console_calls_before": 2,
+      "console_calls_after": 0
+    }
+  ],
+  "behavior_scope": "Replace five console output calls with explicit writes to the same stdout/stderr streams. JSON indentation, newline, message labels and browser operations remain unchanged. No native/browser probe execution.",
+  "syntax_passed": true
+}

@@ -1,0 +1,2441 @@
+{
+  "status": "passed_for_assigned_lockfile_scope_with_recorded_boundaries",
+  "reviewer": "/root/implement_t10_specs",
+  "scope": "Read-only review of two security lock changes and Linux directed evidence; only this report pair is writable",
+  "review_date": "2026-09-28",
+  "independent_primary_sources": [
+    {
+      "url": "https://raw.githubusercontent.com/RustSec/advisory-db/ef03605143a913024f864d2edf476adad5720c93/crates/rustls/RUSTSEC-2026-0285.md",
+      "final_url": "https://raw.githubusercontent.com/RustSec/advisory-db/ef03605143a913024f864d2edf476adad5720c93/crates/rustls/RUSTSEC-2026-0285.md",
+      "sha256": "cbdf838e35f584bf622c66cd3658cc2cb9ce057da10356800e794296e901b560",
+      "bytes": 1264,
+      "version": null,
+      "advisory_fields": {
+        "advisory": {
+          "id": "RUSTSEC-2026-0285",
+          "package": "rustls",
+          "date": "2026-09-14",
+          "url": "https://github.com/rustls/rustls/security/advisories/GHSA-2mjx-qc3c-rqvc",
+          "categories": [
+            "crypto-failure"
+          ],
+          "aliases": [
+            "GHSA-2mjx-qc3c-rqvc"
+          ],
+          "cvss": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N"
+        },
+        "versions": {
+          "patched": [
+            ">= 0.23.45"
+          ],
+          "unaffected": [
+            "< 0.23.13"
+          ]
+        }
+      },
+      "matches_owner_saved_primary_response": true
+    },
+    {
+      "url": "https://crates.io/api/v1/crates/rustls/0.23.45",
+      "final_url": "https://crates.io/api/v1/crates/rustls/0.23.45",
+      "sha256": "350effc51bf2156df2da4936b239747a158e651b39c2b843d91ba0a436138fd3",
+      "bytes": 2125,
+      "version": {
+        "crate": "rustls",
+        "num": "0.23.45",
+        "rust_version": "1.71",
+        "checksum": "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634",
+        "yanked": false,
+        "features": {
+          "aws-lc-rs": [
+            "aws_lc_rs"
+          ],
+          "aws_lc_rs": [
+            "dep:aws-lc-rs",
+            "webpki/aws-lc-rs",
+            "aws-lc-rs/aws-lc-sys",
+            "aws-lc-rs/prebuilt-nasm"
+          ],
+          "brotli": [
+            "dep:brotli",
+            "dep:brotli-decompressor",
+            "std"
+          ],
+          "custom-provider": [],
+          "default": [
+            "aws_lc_rs",
+            "logging",
+            "prefer-post-quantum",
+            "std",
+            "tls12"
+          ],
+          "fips": [
+            "aws_lc_rs",
+            "aws-lc-rs?/fips",
+            "webpki/aws-lc-rs-fips"
+          ],
+          "logging": [
+            "log"
+          ],
+          "prefer-post-quantum": [
+            "aws_lc_rs"
+          ],
+          "read_buf": [
+            "rustversion",
+            "std"
+          ],
+          "ring": [
+            "dep:ring",
+            "webpki/ring"
+          ],
+          "std": [
+            "webpki/std",
+            "pki-types/std",
+            "once_cell/std"
+          ],
+          "tls12": [],
+          "zlib": [
+            "dep:zlib-rs"
+          ]
+        }
+      },
+      "text": null,
+      "matches_owner_saved_primary_response": true
+    },
+    {
+      "url": "https://crates.io/api/v1/crates/rustls-webpki/0.103.14",
+      "final_url": "https://crates.io/api/v1/crates/rustls-webpki/0.103.14",
+      "sha256": "dc67c278aac2c36dabf3d7c0129fc7ef959ad07e0dfa851002e3b90d8f14008c",
+      "bytes": 1845,
+      "version": {
+        "crate": "rustls-webpki",
+        "num": "0.103.14",
+        "rust_version": "1.71",
+        "checksum": "0527518605e68109d875e248ea259b6758801cf165e4b2c2733ae3b51f12535a",
+        "yanked": false,
+        "features": {
+          "alloc": [
+            "ring?/alloc",
+            "pki-types/alloc"
+          ],
+          "aws-lc-rs": [
+            "dep:aws-lc-rs",
+            "aws-lc-rs/aws-lc-sys",
+            "aws-lc-rs/prebuilt-nasm"
+          ],
+          "aws-lc-rs-fips": [
+            "dep:aws-lc-rs",
+            "aws-lc-rs/fips"
+          ],
+          "aws-lc-rs-unstable": [
+            "aws-lc-rs"
+          ],
+          "default": [
+            "std"
+          ],
+          "ring": [
+            "dep:ring"
+          ],
+          "std": [
+            "alloc",
+            "pki-types/std"
+          ]
+        }
+      },
+      "text": null,
+      "matches_owner_saved_primary_response": true
+    }
+  ],
+  "registry_entries": {
+    "rustls": [
+      {
+        "name": "rustls",
+        "vers": "0.23.40",
+        "deps": [
+          {
+            "name": "aws-lc-rs",
+            "req": "^1.14",
+            "features": [],
+            "optional": true,
+            "default_features": false,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "base64",
+            "req": "^0.22",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "bencher",
+            "req": "^0.1.5",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "brotli",
+            "req": "^8",
+            "features": [
+              "std"
+            ],
+            "optional": true,
+            "default_features": false,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "brotli-decompressor",
+            "req": "^5.0.0",
+            "features": [],
+            "optional": true,
+            "default_features": true,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "env_logger",
+            "req": "^0.11",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "hashbrown",
+            "req": "^0.15",
+            "features": [
+              "default-hasher",
+              "inline-more"
+            ],
+            "optional": true,
+            "default_features": false,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "hex",
+            "req": "^0.4",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "log",
+            "req": "^0.4.8",
+            "features": [],
+            "optional": true,
+            "default_features": true,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "log",
+            "req": "^0.4.8",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "macro_rules_attribute",
+            "req": "^0.2",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "num-bigint",
+            "req": "^0.4.4",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "once_cell",
+            "req": "^1.16",
+            "features": [
+              "alloc",
+              "race"
+            ],
+            "optional": false,
+            "default_features": false,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "pki-types",
+            "req": "^1.12",
+            "features": [
+              "alloc"
+            ],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "normal",
+            "package": "rustls-pki-types"
+          },
+          {
+            "name": "rcgen",
+            "req": "^0.14",
+            "features": [
+              "pem",
+              "aws_lc_rs"
+            ],
+            "optional": false,
+            "default_features": false,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "ring",
+            "req": "^0.17",
+            "features": [],
+            "optional": true,
+            "default_features": true,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "rustversion",
+            "req": "^1.0.6",
+            "features": [],
+            "optional": true,
+            "default_features": true,
+            "target": null,
+            "kind": "build"
+          },
+          {
+            "name": "serde",
+            "req": "^1",
+            "features": [
+              "derive"
+            ],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "serde_json",
+            "req": "^1",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "subtle",
+            "req": "^2.5.0",
+            "features": [],
+            "optional": false,
+            "default_features": false,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "time",
+            "req": "^0.3.6",
+            "features": [],
+            "optional": false,
+            "default_features": false,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "webpki",
+            "req": "^0.103.5",
+            "features": [
+              "alloc"
+            ],
+            "optional": false,
+            "default_features": false,
+            "target": null,
+            "kind": "normal",
+            "package": "rustls-webpki"
+          },
+          {
+            "name": "webpki-roots",
+            "req": "^1",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "x509-parser",
+            "req": "^0.17",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "zeroize",
+            "req": "^1.8",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "zlib-rs",
+            "req": "^0.6",
+            "features": [],
+            "optional": true,
+            "default_features": true,
+            "target": null,
+            "kind": "normal"
+          }
+        ],
+        "cksum": "ef86cd5876211988985292b91c96a8f2d298df24e75989a43a3c73f2d4d8168b",
+        "features": {
+          "custom-provider": [],
+          "logging": [
+            "log"
+          ],
+          "read_buf": [
+            "rustversion",
+            "std"
+          ],
+          "std": [
+            "webpki/std",
+            "pki-types/std",
+            "once_cell/std"
+          ],
+          "tls12": []
+        },
+        "features2": {
+          "aws-lc-rs": [
+            "aws_lc_rs"
+          ],
+          "aws_lc_rs": [
+            "dep:aws-lc-rs",
+            "webpki/aws-lc-rs",
+            "aws-lc-rs/aws-lc-sys",
+            "aws-lc-rs/prebuilt-nasm"
+          ],
+          "brotli": [
+            "dep:brotli",
+            "dep:brotli-decompressor",
+            "std"
+          ],
+          "default": [
+            "aws_lc_rs",
+            "logging",
+            "prefer-post-quantum",
+            "std",
+            "tls12"
+          ],
+          "fips": [
+            "aws_lc_rs",
+            "aws-lc-rs?/fips",
+            "webpki/aws-lc-rs-fips"
+          ],
+          "prefer-post-quantum": [
+            "aws_lc_rs"
+          ],
+          "ring": [
+            "dep:ring",
+            "webpki/ring"
+          ],
+          "zlib": [
+            "dep:zlib-rs"
+          ]
+        },
+        "yanked": false,
+        "rust_version": "1.71",
+        "pubtime": "2026-04-28T15:59:43Z",
+        "v": 2
+      },
+      {
+        "name": "rustls",
+        "vers": "0.23.45",
+        "deps": [
+          {
+            "name": "aws-lc-rs",
+            "req": "^1.18",
+            "features": [],
+            "optional": true,
+            "default_features": false,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "base64",
+            "req": "^0.22",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "bencher",
+            "req": "^0.1.5",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "brotli",
+            "req": "^8",
+            "features": [
+              "std"
+            ],
+            "optional": true,
+            "default_features": false,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "brotli-decompressor",
+            "req": "^5.0.0",
+            "features": [],
+            "optional": true,
+            "default_features": true,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "env_logger",
+            "req": "^0.11",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "hashbrown",
+            "req": "^0.15",
+            "features": [
+              "default-hasher",
+              "inline-more"
+            ],
+            "optional": true,
+            "default_features": false,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "hex",
+            "req": "^0.4",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "log",
+            "req": "^0.4.8",
+            "features": [],
+            "optional": true,
+            "default_features": true,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "log",
+            "req": "^0.4.8",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "macro_rules_attribute",
+            "req": "^0.2",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "num-bigint",
+            "req": "^0.4.4",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "once_cell",
+            "req": "^1.16",
+            "features": [
+              "alloc",
+              "race"
+            ],
+            "optional": false,
+            "default_features": false,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "pki-types",
+            "req": "^1.12",
+            "features": [
+              "alloc"
+            ],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "normal",
+            "package": "rustls-pki-types"
+          },
+          {
+            "name": "rcgen",
+            "req": "^0.14",
+            "features": [
+              "pem",
+              "aws_lc_rs"
+            ],
+            "optional": false,
+            "default_features": false,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "ring",
+            "req": "^0.17",
+            "features": [],
+            "optional": true,
+            "default_features": true,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "rustversion",
+            "req": "^1.0.6",
+            "features": [],
+            "optional": true,
+            "default_features": true,
+            "target": null,
+            "kind": "build"
+          },
+          {
+            "name": "serde",
+            "req": "^1",
+            "features": [
+              "derive"
+            ],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "serde_json",
+            "req": "^1",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "subtle",
+            "req": "^2.5.0",
+            "features": [],
+            "optional": false,
+            "default_features": false,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "time",
+            "req": "^0.3.6",
+            "features": [],
+            "optional": false,
+            "default_features": false,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "webpki",
+            "req": "^0.103.14",
+            "features": [
+              "alloc"
+            ],
+            "optional": false,
+            "default_features": false,
+            "target": null,
+            "kind": "normal",
+            "package": "rustls-webpki"
+          },
+          {
+            "name": "webpki-roots",
+            "req": "^1",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "x509-parser",
+            "req": "^0.17",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "zeroize",
+            "req": "^1.8",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "zlib-rs",
+            "req": "^0.6",
+            "features": [],
+            "optional": true,
+            "default_features": true,
+            "target": null,
+            "kind": "normal"
+          }
+        ],
+        "cksum": "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634",
+        "features": {
+          "custom-provider": [],
+          "logging": [
+            "log"
+          ],
+          "read_buf": [
+            "rustversion",
+            "std"
+          ],
+          "std": [
+            "webpki/std",
+            "pki-types/std",
+            "once_cell/std"
+          ],
+          "tls12": []
+        },
+        "features2": {
+          "aws-lc-rs": [
+            "aws_lc_rs"
+          ],
+          "aws_lc_rs": [
+            "dep:aws-lc-rs",
+            "webpki/aws-lc-rs",
+            "aws-lc-rs/aws-lc-sys",
+            "aws-lc-rs/prebuilt-nasm"
+          ],
+          "brotli": [
+            "dep:brotli",
+            "dep:brotli-decompressor",
+            "std"
+          ],
+          "default": [
+            "aws_lc_rs",
+            "logging",
+            "prefer-post-quantum",
+            "std",
+            "tls12"
+          ],
+          "fips": [
+            "aws_lc_rs",
+            "aws-lc-rs?/fips",
+            "webpki/aws-lc-rs-fips"
+          ],
+          "prefer-post-quantum": [
+            "aws_lc_rs"
+          ],
+          "ring": [
+            "dep:ring",
+            "webpki/ring"
+          ],
+          "zlib": [
+            "dep:zlib-rs"
+          ]
+        },
+        "yanked": false,
+        "rust_version": "1.71",
+        "pubtime": "2026-09-14T15:11:17Z",
+        "v": 2
+      }
+    ],
+    "rustls-webpki": [
+      {
+        "name": "rustls-webpki",
+        "vers": "0.103.13",
+        "deps": [
+          {
+            "name": "aws-lc-rs",
+            "req": "^1.14",
+            "features": [],
+            "optional": true,
+            "default_features": false,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "base64",
+            "req": "^0.22",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "bencher",
+            "req": "^0.1.5",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "bzip2",
+            "req": "^0.6",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "once_cell",
+            "req": "^1.17.2",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "pki-types",
+            "req": "^1.12",
+            "features": [],
+            "optional": false,
+            "default_features": false,
+            "target": null,
+            "kind": "normal",
+            "package": "rustls-pki-types"
+          },
+          {
+            "name": "rcgen",
+            "req": "^0.14.2",
+            "features": [
+              "aws_lc_rs"
+            ],
+            "optional": false,
+            "default_features": false,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "ring",
+            "req": "^0.17",
+            "features": [],
+            "optional": true,
+            "default_features": false,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "serde",
+            "req": "^1.0",
+            "features": [
+              "derive"
+            ],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "serde_json",
+            "req": "^1.0",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "untrusted",
+            "req": "^0.9",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "x509-parser",
+            "req": "^0.18.1",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          }
+        ],
+        "cksum": "61c429a8649f110dddef65e2a5ad240f747e85f7758a6bccc7e5777bd33f756e",
+        "features": {},
+        "features2": {
+          "alloc": [
+            "ring?/alloc",
+            "pki-types/alloc"
+          ],
+          "aws-lc-rs": [
+            "dep:aws-lc-rs",
+            "aws-lc-rs/aws-lc-sys",
+            "aws-lc-rs/prebuilt-nasm"
+          ],
+          "aws-lc-rs-fips": [
+            "dep:aws-lc-rs",
+            "aws-lc-rs/fips"
+          ],
+          "aws-lc-rs-unstable": [
+            "aws-lc-rs",
+            "aws-lc-rs/unstable"
+          ],
+          "default": [
+            "std"
+          ],
+          "ring": [
+            "dep:ring"
+          ],
+          "std": [
+            "alloc",
+            "pki-types/std"
+          ]
+        },
+        "yanked": false,
+        "rust_version": "1.71",
+        "pubtime": "2026-04-21T10:25:37Z",
+        "v": 2
+      },
+      {
+        "name": "rustls-webpki",
+        "vers": "0.103.14",
+        "deps": [
+          {
+            "name": "aws-lc-rs",
+            "req": "^1.18",
+            "features": [],
+            "optional": true,
+            "default_features": false,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "base64",
+            "req": "^0.23",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "bencher",
+            "req": "^0.1.5",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "bzip2",
+            "req": "^0.6",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "once_cell",
+            "req": "^1.17.2",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "pki-types",
+            "req": "^1.12",
+            "features": [],
+            "optional": false,
+            "default_features": false,
+            "target": null,
+            "kind": "normal",
+            "package": "rustls-pki-types"
+          },
+          {
+            "name": "rcgen",
+            "req": "^0.14.2",
+            "features": [
+              "aws_lc_rs"
+            ],
+            "optional": false,
+            "default_features": false,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "ring",
+            "req": "^0.17",
+            "features": [],
+            "optional": true,
+            "default_features": false,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "serde",
+            "req": "^1.0",
+            "features": [
+              "derive"
+            ],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "serde_json",
+            "req": "^1.0",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          },
+          {
+            "name": "untrusted",
+            "req": "^0.9",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "normal"
+          },
+          {
+            "name": "x509-parser",
+            "req": "^0.18.1",
+            "features": [],
+            "optional": false,
+            "default_features": true,
+            "target": null,
+            "kind": "dev"
+          }
+        ],
+        "cksum": "0527518605e68109d875e248ea259b6758801cf165e4b2c2733ae3b51f12535a",
+        "features": {},
+        "features2": {
+          "alloc": [
+            "ring?/alloc",
+            "pki-types/alloc"
+          ],
+          "aws-lc-rs": [
+            "dep:aws-lc-rs",
+            "aws-lc-rs/aws-lc-sys",
+            "aws-lc-rs/prebuilt-nasm"
+          ],
+          "aws-lc-rs-fips": [
+            "dep:aws-lc-rs",
+            "aws-lc-rs/fips"
+          ],
+          "aws-lc-rs-unstable": [
+            "aws-lc-rs"
+          ],
+          "default": [
+            "std"
+          ],
+          "ring": [
+            "dep:ring"
+          ],
+          "std": [
+            "alloc",
+            "pki-types/std"
+          ]
+        },
+        "yanked": false,
+        "rust_version": "1.71",
+        "pubtime": "2026-08-11T15:33:51Z",
+        "v": 2
+      }
+    ]
+  },
+  "reviewed_at_utc": "2026-09-28T23:21:35.897401+00:00",
+  "head": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "input_reports": [
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-baseline.json",
+      "sha256": "9e5b4f6badc83f9dee83410c1053d23fb8186a0de499895e4f1704cbb2aa86b4",
+      "bytes": 13099
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-baseline.json",
+      "sha256": "1ef21e21a2ad6ce5e43e23be13005f2a7681c13701953da3b2a4354b6a250685",
+      "bytes": 5837
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-implementation.md",
+      "sha256": "fd40dc01d69ce52f1e9ecbbf52c237baaa51276b415249ba22a9391b548a99ef",
+      "bytes": 7785
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-implementation.json",
+      "sha256": "2ac6c6b776ad5a8a41f5eeef12e94cda221df746f8d163b7b9a0e84078ea6db7",
+      "bytes": 28013
+    }
+  ],
+  "locks": {
+    "root": {
+      "path": "Cargo.lock",
+      "before_sha256": "ca1f03e85b5e0d888109ac8af7e7943fc1ceecd20a0f6eeb6a60052c5155db79",
+      "after_sha256": "22acbf9e8cad08d4a0653484681cc2ac3441f7c5f9357b1c824b8844d9dae1d3",
+      "before_equals_head_bytes": true,
+      "before_matches_both_baselines": true,
+      "after_matches_owner_report": true,
+      "package_count_before": 491,
+      "package_count_after": 491,
+      "changed_packages": [
+        {
+          "name": "rustls",
+          "fields": {
+            "checksum": {
+              "before": "ef86cd5876211988985292b91c96a8f2d298df24e75989a43a3c73f2d4d8168b",
+              "after": "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634"
+            },
+            "version": {
+              "before": "0.23.40",
+              "after": "0.23.45"
+            }
+          },
+          "dependencies": [
+            "once_cell",
+            "rustls-pki-types",
+            "rustls-webpki",
+            "subtle",
+            "zeroize"
+          ],
+          "dependencies_unchanged": true
+        },
+        {
+          "name": "rustls-webpki",
+          "fields": {
+            "checksum": {
+              "before": "61c429a8649f110dddef65e2a5ad240f747e85f7758a6bccc7e5777bd33f756e",
+              "after": "0527518605e68109d875e248ea259b6758801cf165e4b2c2733ae3b51f12535a"
+            },
+            "version": {
+              "before": "0.103.13",
+              "after": "0.103.14"
+            }
+          },
+          "dependencies": [
+            "ring",
+            "rustls-pki-types",
+            "untrusted"
+          ],
+          "dependencies_unchanged": true
+        }
+      ],
+      "git_numstat": "+4/-4",
+      "changed_positional_lines": 4,
+      "no_aws_lc_rs_package": true
+    },
+    "tauri": {
+      "path": "ccr-ui/src-tauri/Cargo.lock",
+      "before_sha256": "a21024dae2f7c909e24b70ee5296cd7ceb0821cab5c9f530a92fecaf818984d7",
+      "after_sha256": "a211d3c584b853c3f038912bbfba10303d4d5f9505cfea5cda39d2a82926ae28",
+      "before_equals_head_bytes": true,
+      "before_matches_both_baselines": true,
+      "after_matches_owner_report": true,
+      "package_count_before": 678,
+      "package_count_after": 678,
+      "changed_packages": [
+        {
+          "name": "rustls",
+          "fields": {
+            "checksum": {
+              "before": "ef86cd5876211988985292b91c96a8f2d298df24e75989a43a3c73f2d4d8168b",
+              "after": "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634"
+            },
+            "version": {
+              "before": "0.23.40",
+              "after": "0.23.45"
+            }
+          },
+          "dependencies": [
+            "once_cell",
+            "rustls-pki-types",
+            "rustls-webpki",
+            "subtle",
+            "zeroize"
+          ],
+          "dependencies_unchanged": true
+        },
+        {
+          "name": "rustls-webpki",
+          "fields": {
+            "checksum": {
+              "before": "61c429a8649f110dddef65e2a5ad240f747e85f7758a6bccc7e5777bd33f756e",
+              "after": "0527518605e68109d875e248ea259b6758801cf165e4b2c2733ae3b51f12535a"
+            },
+            "version": {
+              "before": "0.103.13",
+              "after": "0.103.14"
+            }
+          },
+          "dependencies": [
+            "ring",
+            "rustls-pki-types",
+            "untrusted"
+          ],
+          "dependencies_unchanged": true
+        }
+      ],
+      "git_numstat": "+4/-4",
+      "changed_positional_lines": 4,
+      "no_aws_lc_rs_package": true
+    }
+  },
+  "command_evidence": [
+    {
+      "command": [
+        "cargo",
+        "audit",
+        "--no-fetch",
+        "--file",
+        "ccr-ui/src-tauri/Cargo.lock"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T22:57:11.589743+00:00",
+      "exit_code": 1,
+      "seconds": 1.971,
+      "log": "continuation-security-tauri-audit-before.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-audit-before.json",
+        "sha256": "bbeac9648e42cc52e7be9af2aa9468704a88838fa390065403fdbc544af81147",
+        "bytes": 353
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-audit-before.log",
+        "sha256": "698096ccb402ab59ccdacdf35b5054435cf8329b184a2e7495f1721962e445cb",
+        "bytes": 2698
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "tree",
+        "--locked",
+        "--offline",
+        "--all-features",
+        "--target",
+        "all",
+        "-i",
+        "rustls@0.23.40"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T22:57:11.589812+00:00",
+      "exit_code": 0,
+      "seconds": 1.473,
+      "log": "continuation-security-root-tree-before.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-tree-before.json",
+        "sha256": "460cefafb69c4dc63964ac0d823a663c72185e5cccf031dcdd405ba8cd36451a",
+        "bytes": 401
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-tree-before.log",
+        "sha256": "4dc8e4fe7f86c681d8b81d94c4e76a3dda13457f37def5513d5850195a7778f6",
+        "bytes": 176
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "audit",
+        "--no-fetch",
+        "--file",
+        "Cargo.lock"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T22:57:11.589926+00:00",
+      "exit_code": 1,
+      "seconds": 1.67,
+      "log": "continuation-security-root-audit-before.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-audit-before.json",
+        "sha256": "034523533a48e083fd74cabac0baf280734761617e9a48905b8de487b3af250b",
+        "bytes": 334
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-audit-before.log",
+        "sha256": "a0ad87c948f895eca3c449dd639a90b6007e052b665d0aa985b2de5bc95084ad",
+        "bytes": 782
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "tree",
+        "--manifest-path",
+        "ccr-ui/src-tauri/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--workspace",
+        "--all-features",
+        "--target",
+        "all",
+        "-i",
+        "rustls@0.23.40"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T22:57:47.282155+00:00",
+      "exit_code": 0,
+      "seconds": 1.334,
+      "log": "continuation-security-tauri-tree-before.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-tree-before.json",
+        "sha256": "4c23adc60a793f5dd32fe0a8856b310d48ca25a0da50099caf2d002618140124",
+        "bytes": 482
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-tree-before.log",
+        "sha256": "7410cde5bdeaf299c2e7e32edde7fa1e5e836aad1ff9cbf087c2e82a51a143dc",
+        "bytes": 280
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "tree",
+        "--locked",
+        "--offline",
+        "--workspace",
+        "--all-features",
+        "--target",
+        "all",
+        "-i",
+        "rustls@0.23.40"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T22:57:47.322983+00:00",
+      "exit_code": 0,
+      "seconds": 1.485,
+      "log": "continuation-security-root-tree-workspace-before.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-tree-workspace-before.json",
+        "sha256": "15de8f3c457731424c17a22512f5b37dd7d7447bc69343a5b124e3e31537ac04",
+        "bytes": 431
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-tree-workspace-before.log",
+        "sha256": "a8238e87815bfe6e076e854b8118356a281b6783fc798ea5e20ae3803d5d79d5",
+        "bytes": 332
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "update",
+        "-p",
+        "rustls@0.23.40",
+        "--precise",
+        "0.23.45"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T22:58:05.313236+00:00",
+      "exit_code": 101,
+      "seconds": 53.947,
+      "log": "continuation-security-root-update-rustls.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-update-rustls.json",
+        "sha256": "945547b37e4520bee59d0ee64d1da7cae796453946dcee36388bcc77dc547fb9",
+        "bytes": 355
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-update-rustls.log",
+        "sha256": "860918125acf0d72feabd74190aa0a976106e423f73c3c19cd0382960d136077",
+        "bytes": 22566
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "update",
+        "--offline",
+        "-p",
+        "rustls@0.23.40",
+        "--precise",
+        "0.23.45"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T22:59:39.676362+00:00",
+      "exit_code": 0,
+      "seconds": 1.152,
+      "log": "continuation-security-root-update-rustls-offline.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-update-rustls-offline.json",
+        "sha256": "6a2b3fcfe34a0deb25c74d8b91b340a333120bfda97115c0707834ce3944a051",
+        "bytes": 378
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-update-rustls-offline.log",
+        "sha256": "c3ffcf4aee18b02d77acd63343f7bed1f277906ba2b1e04ae9ab60f438d8a0d1",
+        "bytes": 162
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "update",
+        "--offline",
+        "-p",
+        "rustls-webpki@0.103.15",
+        "--precise",
+        "0.103.14"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T23:00:17.779040+00:00",
+      "exit_code": 0,
+      "seconds": 0.945,
+      "log": "continuation-security-root-update-webpki-minimum.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-update-webpki-minimum.json",
+        "sha256": "c0744f267493ff1cb953899e6e0146fd0d77caeb80e251fd2c07be7fd9abd0dc",
+        "bytes": 387
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-update-webpki-minimum.log",
+        "sha256": "78690205abf2290c17a13e1ecd04ae6f0996dac91dca3ec9b9aa91c09c1a1bb2",
+        "bytes": 121
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "update",
+        "--manifest-path",
+        "ccr-ui/src-tauri/Cargo.toml",
+        "--offline",
+        "-p",
+        "rustls-webpki@0.103.13",
+        "--precise",
+        "0.103.14"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T23:00:19.577235+00:00",
+      "exit_code": 0,
+      "seconds": 1.314,
+      "log": "continuation-security-tauri-update-webpki-minimum.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-update-webpki-minimum.json",
+        "sha256": "29855b769b31b1adff88c0a731c76d507a84dc0bf58e3e8ee5d3a47f141fa1c1",
+        "bytes": 448
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-update-webpki-minimum.log",
+        "sha256": "a29879f42e97d0c4222a13bdada4e7ac4c6dccc8aa4d7a49038823237057056f",
+        "bytes": 121
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "update",
+        "--manifest-path",
+        "ccr-ui/src-tauri/Cargo.toml",
+        "--offline",
+        "-p",
+        "rustls@0.23.40",
+        "--precise",
+        "0.23.45"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T23:00:21.728442+00:00",
+      "exit_code": 0,
+      "seconds": 1.242,
+      "log": "continuation-security-tauri-update-rustls-offline.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-update-rustls-offline.json",
+        "sha256": "e6946599e3f9b07d51b12379c5fc3658aa3320d68badb397ce749e1428514a06",
+        "bytes": 439
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-update-rustls-offline.log",
+        "sha256": "4fb1e36776b717362afb4cc55c88229753c9c22c140d153d17d4623bfe2237f8",
+        "bytes": 112
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "audit",
+        "--file",
+        "Cargo.lock"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T23:01:06.277193+00:00",
+      "exit_code": 0,
+      "seconds": 3.016,
+      "log": "continuation-security-root-audit-after.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-audit-after.json",
+        "sha256": "cb7d75e4d932bf8fc1d6cb6a8bbfeb881b1f573c45a6566c0a4ce380dec46f73",
+        "bytes": 315
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-audit-after.log",
+        "sha256": "e0edf3a3224d6b490210798e257311165d9314efb15fbcc2b5795cdf6b3d166b",
+        "bytes": 349
+      }
+    },
+    {
+      "command": [
+        "just",
+        "dependency-governance-check"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T23:01:06.277211+00:00",
+      "exit_code": 0,
+      "seconds": 0.996,
+      "log": "continuation-security-dependency-governance.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-dependency-governance.json",
+        "sha256": "f0131fb7ba9bfaecc482a48be809de3b2f5b9ab8cd240a8a3245d77c9ed03963",
+        "bytes": 307
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-dependency-governance.log",
+        "sha256": "2132a0c73d86563fbd985e712f7a4ac187e4324a07e4d3fd5c7c3fa96511c8ea",
+        "bytes": 255
+      }
+    },
+    {
+      "command": [
+        "just",
+        "version-check"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T23:01:06.298682+00:00",
+      "exit_code": 0,
+      "seconds": 2.092,
+      "log": "continuation-security-version-check.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-version-check.json",
+        "sha256": "df23c6e7f32d05a6dd00cd8a62870ae84b6d27dbc784cf32ac7fe8e4e194ee03",
+        "bytes": 285
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-version-check.log",
+        "sha256": "ef34cc63b96d6b41b542267d0a033f0f5e969d3ec17d2d0b6fbbf8f6638991de",
+        "bytes": 780
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "audit",
+        "--file",
+        "ccr-ui/src-tauri/Cargo.lock"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T23:01:19.835347+00:00",
+      "exit_code": 0,
+      "seconds": 4.877,
+      "log": "continuation-security-tauri-audit-after.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-audit-after.json",
+        "sha256": "322126a0e1759d97cff5f7244d039ad1bc67337c44570a3c87ac412740397598",
+        "bytes": 333
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-audit-after.log",
+        "sha256": "587a230dba922da2f2211a931200aa027ba104303179aa1c7bd42cc74ae6f523",
+        "bytes": 2360
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "check",
+        "--locked",
+        "--offline",
+        "-p",
+        "ccr-sync",
+        "--all-targets",
+        "--all-features"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T23:01:53.830519+00:00",
+      "exit_code": 0,
+      "seconds": 5.665,
+      "log": "continuation-security-root-sync-check.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-sync-check.json",
+        "sha256": "24ef77eda880a3e5f6c881520ba2ed3f290833446c336803eaa4e35fadb9ae60",
+        "bytes": 388
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-sync-check.log",
+        "sha256": "c705195c6fe22f779902a533638cc72c104519af72d1873656982623772c4d8e",
+        "bytes": 1001
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "--config",
+        ".cargo/tauri-ci.toml",
+        "check",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "ccr-ui/src-tauri/Cargo.toml",
+        "--bin",
+        "ccr-desktop"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {
+        "CCR_SKIP_ICON_GENERATION": "1"
+      },
+      "started_at": "2026-09-28T23:02:10.454301+00:00",
+      "exit_code": 0,
+      "seconds": 11.702,
+      "log": "continuation-security-tauri-bin-check.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-bin-check.json",
+        "sha256": "f2cdeaa6693a03aab2e177bf6191651fe7bf0f2c0e275087859b9def09dcb106",
+        "bytes": 497
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-bin-check.log",
+        "sha256": "c8dff134bd9005ce5c9e0b60cd241b23a51901766aa1665b743bea268d2a215b",
+        "bytes": 1748
+      }
+    }
+  ],
+  "evidence_integrity": {
+    "commands": 16,
+    "metadata_and_log_files": 32,
+    "hash_or_metadata_mismatches": 0
+  },
+  "advisory_database": {
+    "commit": "ef03605143a913024f864d2edf476adad5720c93",
+    "remote": "https://github.com/RustSec/advisory-db.git"
+  },
+  "upstream_definition_deltas": [
+    {
+      "package": "rustls",
+      "old_version": "0.23.40",
+      "new_version": "0.23.45",
+      "feature_definition_changes": {},
+      "upstream_dependency_changes": [
+        {
+          "name": "aws-lc-rs",
+          "kind": "normal",
+          "optional": true,
+          "changed_fields": {
+            "req": {
+              "before": "^1.14",
+              "after": "^1.18"
+            }
+          }
+        },
+        {
+          "name": "webpki",
+          "kind": "normal",
+          "optional": false,
+          "changed_fields": {
+            "req": {
+              "before": "^0.103.5",
+              "after": "^0.103.14"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "package": "rustls-webpki",
+      "old_version": "0.103.13",
+      "new_version": "0.103.14",
+      "feature_definition_changes": {
+        "aws-lc-rs-unstable": {
+          "before": [
+            "aws-lc-rs",
+            "aws-lc-rs/unstable"
+          ],
+          "after": [
+            "aws-lc-rs"
+          ]
+        }
+      },
+      "upstream_dependency_changes": [
+        {
+          "name": "aws-lc-rs",
+          "kind": "normal",
+          "optional": true,
+          "changed_fields": {
+            "req": {
+              "before": "^1.14",
+              "after": "^1.18"
+            }
+          }
+        },
+        {
+          "name": "base64",
+          "kind": "dev",
+          "optional": false,
+          "changed_fields": {
+            "req": {
+              "before": "^0.22",
+              "after": "^0.23"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "protected_input_snapshots": [
+    {
+      "before": {
+        "path": "Cargo.toml",
+        "sha256": "c4a71f50dee5cbdc4e477cb66e47f33a0e6e5d1fe78de46a41f51a6015790dd4",
+        "bytes": 2745
+      },
+      "owner_after": {
+        "path": "Cargo.toml",
+        "sha256": "c4a71f50dee5cbdc4e477cb66e47f33a0e6e5d1fe78de46a41f51a6015790dd4",
+        "bytes": 2745
+      },
+      "review_snapshot": {
+        "path": "Cargo.toml",
+        "sha256": "c4a71f50dee5cbdc4e477cb66e47f33a0e6e5d1fe78de46a41f51a6015790dd4",
+        "bytes": 2745
+      },
+      "review_matches_owner_after": true
+    },
+    {
+      "before": {
+        "path": "ccr-ui/src-tauri/Cargo.toml",
+        "sha256": "9c7c095139e2c85cd61e28471dd799c6fc79c0e677c3de539ee3004652974701",
+        "bytes": 3844
+      },
+      "owner_after": {
+        "path": "ccr-ui/src-tauri/Cargo.toml",
+        "sha256": "9c7c095139e2c85cd61e28471dd799c6fc79c0e677c3de539ee3004652974701",
+        "bytes": 3844
+      },
+      "review_snapshot": {
+        "path": "ccr-ui/src-tauri/Cargo.toml",
+        "sha256": "9c7c095139e2c85cd61e28471dd799c6fc79c0e677c3de539ee3004652974701",
+        "bytes": 3844
+      },
+      "review_matches_owner_after": true
+    },
+    {
+      "before": {
+        "path": "rust-toolchain.toml",
+        "sha256": "961b6190f4aad6120ca3fffe218389b991933141c90c362b5bbe92f6622540d9",
+        "bytes": 178
+      },
+      "owner_after": {
+        "path": "rust-toolchain.toml",
+        "sha256": "961b6190f4aad6120ca3fffe218389b991933141c90c362b5bbe92f6622540d9",
+        "bytes": 178
+      },
+      "review_snapshot": {
+        "path": "rust-toolchain.toml",
+        "sha256": "961b6190f4aad6120ca3fffe218389b991933141c90c362b5bbe92f6622540d9",
+        "bytes": 178
+      },
+      "review_matches_owner_after": true
+    },
+    {
+      "before": {
+        "path": ".cargo/audit.toml",
+        "sha256": "b015e9228fd85984d7f433744fcb9bfe1a2ab0c71d04043d9e00fc2ce2fcd712",
+        "bytes": 118
+      },
+      "owner_after": {
+        "path": ".cargo/audit.toml",
+        "sha256": "b015e9228fd85984d7f433744fcb9bfe1a2ab0c71d04043d9e00fc2ce2fcd712",
+        "bytes": 118
+      },
+      "review_snapshot": {
+        "path": ".cargo/audit.toml",
+        "sha256": "b015e9228fd85984d7f433744fcb9bfe1a2ab0c71d04043d9e00fc2ce2fcd712",
+        "bytes": 118
+      },
+      "review_matches_owner_after": true
+    },
+    {
+      "before": {
+        "path": "ccr-ui/.tmp-desktop-probe.mjs",
+        "sha256": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+        "bytes": 3779
+      },
+      "owner_after": {
+        "path": "ccr-ui/.tmp-desktop-probe.mjs",
+        "sha256": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+        "bytes": 3779
+      },
+      "review_snapshot": {
+        "path": "ccr-ui/.tmp-desktop-probe.mjs",
+        "sha256": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+        "bytes": 3779
+      },
+      "review_matches_owner_after": true
+    },
+    {
+      "before": {
+        "path": "ccr-ui/.tmp-insights-visual.mjs",
+        "sha256": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53",
+        "bytes": 14099
+      },
+      "owner_after": {
+        "path": "ccr-ui/.tmp-insights-visual.mjs",
+        "sha256": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53",
+        "bytes": 14099
+      },
+      "review_snapshot": {
+        "path": "ccr-ui/.tmp-insights-visual.mjs",
+        "sha256": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53",
+        "bytes": 14099
+      },
+      "review_matches_owner_after": true
+    }
+  ],
+  "manifest_msrv_declarations": [
+    {
+      "path": "crates/ccr/Cargo.toml",
+      "rust_version": "1.95"
+    },
+    {
+      "path": "crates/ccr-checkin/Cargo.toml",
+      "rust_version": "1.95"
+    },
+    {
+      "path": "crates/ccr-cli/Cargo.toml",
+      "rust_version": "1.95"
+    },
+    {
+      "path": "crates/ccr-codex/Cargo.toml",
+      "rust_version": "1.95"
+    },
+    {
+      "path": "crates/ccr-config/Cargo.toml",
+      "rust_version": "1.95"
+    },
+    {
+      "path": "crates/ccr-core/Cargo.toml",
+      "rust_version": "1.95"
+    },
+    {
+      "path": "crates/ccr-db/Cargo.toml",
+      "rust_version": "1.95"
+    },
+    {
+      "path": "crates/ccr-skills/Cargo.toml",
+      "rust_version": "1.95"
+    },
+    {
+      "path": "crates/ccr-store/Cargo.toml",
+      "rust_version": "1.95"
+    },
+    {
+      "path": "crates/ccr-sync/Cargo.toml",
+      "rust_version": "1.95"
+    },
+    {
+      "path": "crates/ccr-tui/Cargo.toml",
+      "rust_version": "1.95"
+    },
+    {
+      "path": "crates/ccr-types/Cargo.toml",
+      "rust_version": "1.95"
+    },
+    {
+      "path": "crates/ccr-usage/Cargo.toml",
+      "rust_version": "1.95"
+    },
+    {
+      "path": "ccr-ui/src-tauri/Cargo.toml",
+      "rust_version": "1.95"
+    }
+  ],
+  "compatibility": {
+    "dependency_declared_msrv": "1.71",
+    "repository_declared_msrv": "1.95",
+    "development_toolchain": "1.98.0",
+    "actual_msrv_195_run_by_reviewer": false,
+    "project_feature_declarations_unchanged_at_review_snapshot": true,
+    "upstream_feature_semantics_all_identical": false
+  },
+  "audit": {
+    "ignored_advisories": [],
+    "tauri_warnings_before": [
+      {
+        "crate": "fxhash",
+        "version": "0.2.1",
+        "warning": "unmaintained",
+        "id": "RUSTSEC-2025-0057"
+      },
+      {
+        "crate": "proc-macro-error",
+        "version": "1.0.4",
+        "warning": "unmaintained",
+        "id": "RUSTSEC-2024-0370"
+      },
+      {
+        "crate": "unic-char-property",
+        "version": "0.9.0",
+        "warning": "unmaintained",
+        "id": "RUSTSEC-2025-0081"
+      },
+      {
+        "crate": "unic-char-range",
+        "version": "0.9.0",
+        "warning": "unmaintained",
+        "id": "RUSTSEC-2025-0075"
+      },
+      {
+        "crate": "unic-common",
+        "version": "0.9.0",
+        "warning": "unmaintained",
+        "id": "RUSTSEC-2025-0080"
+      },
+      {
+        "crate": "unic-ucd-ident",
+        "version": "0.9.0",
+        "warning": "unmaintained",
+        "id": "RUSTSEC-2025-0100"
+      },
+      {
+        "crate": "unic-ucd-version",
+        "version": "0.9.0",
+        "warning": "unmaintained",
+        "id": "RUSTSEC-2025-0098"
+      },
+      {
+        "crate": "glib",
+        "version": "0.18.5",
+        "warning": "unsound",
+        "id": "RUSTSEC-2024-0429"
+      },
+      {
+        "crate": "rand",
+        "version": "0.7.3",
+        "warning": "unsound",
+        "id": "RUSTSEC-2026-0097"
+      }
+    ],
+    "tauri_warnings_after": [
+      {
+        "crate": "fxhash",
+        "version": "0.2.1",
+        "warning": "unmaintained",
+        "id": "RUSTSEC-2025-0057"
+      },
+      {
+        "crate": "proc-macro-error",
+        "version": "1.0.4",
+        "warning": "unmaintained",
+        "id": "RUSTSEC-2024-0370"
+      },
+      {
+        "crate": "unic-char-property",
+        "version": "0.9.0",
+        "warning": "unmaintained",
+        "id": "RUSTSEC-2025-0081"
+      },
+      {
+        "crate": "unic-char-range",
+        "version": "0.9.0",
+        "warning": "unmaintained",
+        "id": "RUSTSEC-2025-0075"
+      },
+      {
+        "crate": "unic-common",
+        "version": "0.9.0",
+        "warning": "unmaintained",
+        "id": "RUSTSEC-2025-0080"
+      },
+      {
+        "crate": "unic-ucd-ident",
+        "version": "0.9.0",
+        "warning": "unmaintained",
+        "id": "RUSTSEC-2025-0100"
+      },
+      {
+        "crate": "unic-ucd-version",
+        "version": "0.9.0",
+        "warning": "unmaintained",
+        "id": "RUSTSEC-2025-0098"
+      },
+      {
+        "crate": "glib",
+        "version": "0.18.5",
+        "warning": "unsound",
+        "id": "RUSTSEC-2024-0429"
+      },
+      {
+        "crate": "rand",
+        "version": "0.7.3",
+        "warning": "unsound",
+        "id": "RUSTSEC-2026-0097"
+      }
+    ],
+    "warnings_unchanged": true,
+    "unmaintained_count": 7,
+    "unsound_count": 2,
+    "final_audits": [
+      {
+        "workspace": "root",
+        "command": [
+          "cargo",
+          "audit",
+          "--file",
+          "Cargo.lock"
+        ],
+        "exit_code": 0,
+        "fetch_observed": true,
+        "index_update_observed": true,
+        "warning_count": 0,
+        "raw_log": {
+          "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-audit-after.log",
+          "sha256": "e0edf3a3224d6b490210798e257311165d9314efb15fbcc2b5795cdf6b3d166b",
+          "bytes": 349
+        }
+      },
+      {
+        "workspace": "tauri",
+        "command": [
+          "cargo",
+          "audit",
+          "--file",
+          "ccr-ui/src-tauri/Cargo.lock"
+        ],
+        "exit_code": 0,
+        "fetch_observed": true,
+        "index_update_observed": true,
+        "warning_count": 9,
+        "raw_log": {
+          "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-audit-after.log",
+          "sha256": "587a230dba922da2f2211a931200aa027ba104303179aa1c7bd42cc74ae6f523",
+          "bytes": 2360
+        }
+      }
+    ]
+  },
+  "preserved_failures": [
+    {
+      "command": [
+        "cargo",
+        "audit",
+        "--no-fetch",
+        "--file",
+        "ccr-ui/src-tauri/Cargo.lock"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T22:57:11.589743+00:00",
+      "exit_code": 1,
+      "seconds": 1.971,
+      "log": "continuation-security-tauri-audit-before.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-audit-before.json",
+        "sha256": "bbeac9648e42cc52e7be9af2aa9468704a88838fa390065403fdbc544af81147",
+        "bytes": 353
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-audit-before.log",
+        "sha256": "698096ccb402ab59ccdacdf35b5054435cf8329b184a2e7495f1721962e445cb",
+        "bytes": 2698
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "audit",
+        "--no-fetch",
+        "--file",
+        "Cargo.lock"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T22:57:11.589926+00:00",
+      "exit_code": 1,
+      "seconds": 1.67,
+      "log": "continuation-security-root-audit-before.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-audit-before.json",
+        "sha256": "034523533a48e083fd74cabac0baf280734761617e9a48905b8de487b3af250b",
+        "bytes": 334
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-audit-before.log",
+        "sha256": "a0ad87c948f895eca3c449dd639a90b6007e052b665d0aa985b2de5bc95084ad",
+        "bytes": 782
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "update",
+        "-p",
+        "rustls@0.23.40",
+        "--precise",
+        "0.23.45"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T22:58:05.313236+00:00",
+      "exit_code": 101,
+      "seconds": 53.947,
+      "log": "continuation-security-root-update-rustls.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-update-rustls.json",
+        "sha256": "945547b37e4520bee59d0ee64d1da7cae796453946dcee36388bcc77dc547fb9",
+        "bytes": 355
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-update-rustls.log",
+        "sha256": "860918125acf0d72feabd74190aa0a976106e423f73c3c19cd0382960d136077",
+        "bytes": 22566
+      }
+    }
+  ],
+  "linux_directed_evidence": [
+    {
+      "metadata": {
+        "command": [
+          "wsl.exe",
+          "-d",
+          "Ubuntu-24.04",
+          "--exec",
+          "/usr/bin/env",
+          "RUSTUP_TOOLCHAIN=1.98.0",
+          "PATH=/home/lyh/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+          "CARGO_TARGET_DIR=/tmp/ccr-architecture-linux-01a0e781",
+          "/home/lyh/.cargo/bin/cargo",
+          "clippy",
+          "--offline",
+          "--locked",
+          "-p",
+          "ccr-codex",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "started_at": "2026-09-28T23:06:43.496555+00:00",
+        "source_sha": "bc10aa1cf8b17af5b49f337963a703b8ece68c63283ea8219f53ee42f2013cea",
+        "lock_sha": "22acbf9e8cad08d4a0653484681cc2ac3441f7c5f9357b1c824b8844d9dae1d3",
+        "exit_code": 101,
+        "seconds": 0.62,
+        "log": "continuation-linux-codex-clippy.log"
+      },
+      "metadata_file": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-linux-codex-clippy.json",
+        "sha256": "131240fb2ad0dd9da702544a6a717f0277db820eed539e470ab3fafb72280ae9",
+        "bytes": 808
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-linux-codex-clippy.log",
+        "sha256": "38d08fd07d3b224d4b5621684d5144066e96a4b5c1b4f274fbe3146febc7e640",
+        "bytes": 130
+      },
+      "exact_ok_selectors": [],
+      "current_root_lock_matches_metadata": true,
+      "source_sha_path": "crates/ccr-codex/src/services/codex_process_service.rs",
+      "source_sha_matches_current_codex_file": true,
+      "core_process_gateway_execution_time_sha_recorded": false
+    },
+    {
+      "metadata": {
+        "command": [
+          "wsl.exe",
+          "-d",
+          "Ubuntu-24.04",
+          "--exec",
+          "/usr/bin/env",
+          "RUSTUP_TOOLCHAIN=1.98.0",
+          "PATH=/home/lyh/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+          "CARGO_TARGET_DIR=/tmp/ccr-architecture-linux-01a0e781",
+          "/home/lyh/.cargo/bin/cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "ccr-core",
+          "process_gateway",
+          "--",
+          "--nocapture"
+        ],
+        "started_at": "2026-09-28T23:06:44.116850+00:00",
+        "source_sha": "bc10aa1cf8b17af5b49f337963a703b8ece68c63283ea8219f53ee42f2013cea",
+        "lock_sha": "22acbf9e8cad08d4a0653484681cc2ac3441f7c5f9357b1c824b8844d9dae1d3",
+        "exit_code": 101,
+        "seconds": 0.37,
+        "log": "continuation-linux-process.log"
+      },
+      "metadata_file": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-linux-process.json",
+        "sha256": "933cc9d977f6100fd28c001df9dae86bc95e07eb9da34d5bceebe6ff282d8e2b",
+        "bytes": 771
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-linux-process.log",
+        "sha256": "38d08fd07d3b224d4b5621684d5144066e96a4b5c1b4f274fbe3146febc7e640",
+        "bytes": 130
+      },
+      "exact_ok_selectors": [],
+      "current_root_lock_matches_metadata": true,
+      "source_sha_path": "crates/ccr-codex/src/services/codex_process_service.rs",
+      "source_sha_matches_current_codex_file": true,
+      "core_process_gateway_execution_time_sha_recorded": false
+    },
+    {
+      "metadata": {
+        "command": [
+          "wsl.exe",
+          "-d",
+          "Ubuntu-24.04",
+          "--exec",
+          "/usr/bin/env",
+          "RUSTUP_TOOLCHAIN=1.98.0",
+          "PATH=/home/lyh/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+          "CARGO_TARGET_DIR=/tmp/ccr-architecture-linux-01a0e781",
+          "/home/lyh/.cargo/bin/cargo",
+          "clippy",
+          "--locked",
+          "-p",
+          "ccr-codex",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "started_at": "2026-09-28T23:07:47.355245+00:00",
+        "source_sha": "bc10aa1cf8b17af5b49f337963a703b8ece68c63283ea8219f53ee42f2013cea",
+        "lock_sha": "22acbf9e8cad08d4a0653484681cc2ac3441f7c5f9357b1c824b8844d9dae1d3",
+        "exit_code": 0,
+        "seconds": 23.89,
+        "log": "continuation-linux-codex-clippy-online.log"
+      },
+      "metadata_file": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-linux-codex-clippy-online.json",
+        "sha256": "a9d60dd8dba3ff1708dd262a61876072af52e49b9efc8d4a5830cb0e88ff85a8",
+        "bytes": 796
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-linux-codex-clippy-online.log",
+        "sha256": "2f8187b5be7243980b52124c5818c55db9ce4cf776276d1b729ee9eee3add582",
+        "bytes": 7104
+      },
+      "exact_ok_selectors": [],
+      "current_root_lock_matches_metadata": true,
+      "source_sha_path": "crates/ccr-codex/src/services/codex_process_service.rs",
+      "source_sha_matches_current_codex_file": true,
+      "core_process_gateway_execution_time_sha_recorded": false
+    },
+    {
+      "metadata": {
+        "command": [
+          "wsl.exe",
+          "-d",
+          "Ubuntu-24.04",
+          "--exec",
+          "/usr/bin/env",
+          "RUSTUP_TOOLCHAIN=1.98.0",
+          "PATH=/home/lyh/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+          "CARGO_TARGET_DIR=/tmp/ccr-architecture-linux-01a0e781",
+          "/home/lyh/.cargo/bin/cargo",
+          "test",
+          "--locked",
+          "-p",
+          "ccr-core",
+          "process_gateway",
+          "--",
+          "--nocapture"
+        ],
+        "started_at": "2026-09-28T23:08:11.244756+00:00",
+        "source_sha": "bc10aa1cf8b17af5b49f337963a703b8ece68c63283ea8219f53ee42f2013cea",
+        "lock_sha": "22acbf9e8cad08d4a0653484681cc2ac3441f7c5f9357b1c824b8844d9dae1d3",
+        "exit_code": 0,
+        "seconds": 13.18,
+        "log": "continuation-linux-process-online.log"
+      },
+      "metadata_file": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-linux-process-online.json",
+        "sha256": "91c7f3522afee3de48475ac02445409e5d93c9396c42d1aca4a130431dfa0576",
+        "bytes": 759
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-linux-process-online.log",
+        "sha256": "8d2d4cd26ec248be291d59bbeb87e1ccc4b4fed12414094b496cad21513fb434",
+        "bytes": 5297
+      },
+      "exact_ok_selectors": [
+        "core::process_gateway::tests::bounded_line_reader_handles_newline_crlf_and_utf8_boundary",
+        "core::process_gateway::tests::bounded_line_reader_caps_unterminated_input",
+        "core::process_gateway::tests::managed_process_exposes_pipes_and_waits",
+        "core::process_gateway::tests::dropping_unreaped_process_terminates_it",
+        "core::process_gateway::tests::live_tree_confirmation_times_out_without_claiming_cleanup",
+        "core::process_gateway::tests::wait_terminates_unix_descendants_after_parent_exit",
+        "core::process_gateway::tests::dropping_reaped_unix_parent_still_terminates_descendants",
+        "core::process_gateway::tests::termination_escalates_after_unix_parent_exits_on_term",
+        "core::process_gateway::tests::managed_process_terminates_unix_descendant_group"
+      ],
+      "current_root_lock_matches_metadata": true,
+      "source_sha_path": "crates/ccr-codex/src/services/codex_process_service.rs",
+      "source_sha_matches_current_codex_file": true,
+      "core_process_gateway_execution_time_sha_recorded": false,
+      "test_result": {
+        "passed": 9,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 106
+      }
+    }
+  ],
+  "linux_directed_scope": "Rust 1.98 Codex Clippy and nine core process tests passed. stdout/stderr display order is not event order. No rerun is needed to resolve the tail-only concern. These results are not full Linux just ci or tauri-ci and do not close required macOS validation.",
+  "current_source_samples": [
+    {
+      "path": "crates/ccr-codex/src/services/codex_process_service.rs",
+      "sha256": "bc10aa1cf8b17af5b49f337963a703b8ece68c63283ea8219f53ee42f2013cea",
+      "bytes": 39596
+    },
+    {
+      "path": "crates/ccr-core/src/core/process_gateway.rs",
+      "sha256": "bd8890b9cae7707f9e523f31123a1bb045e1553f0947669e3b55a859f97634f6",
+      "bytes": 27136
+    },
+    {
+      "path": "ccr-ui/src-tauri/Cargo.toml",
+      "sha256": "9c7c095139e2c85cd61e28471dd799c6fc79c0e677c3de539ee3004652974701",
+      "bytes": 3844
+    }
+  ],
+  "command_time_boundaries": {
+    "security_log_metadata_full_source_snapshot": false,
+    "security_log_metadata_per_command_lock_sha": false,
+    "lock_evidence": "Before snapshots equal Git HEAD and both baselines. Exact update logs precede audits; current locks match owner final hashes.",
+    "source_evidence": "Owner manifest snapshots match reviewer sampling. The shared dirty checkout has no full per-command source fingerprint. Narrow compile logs attest to their recorded executions, not later integrated code.",
+    "linux_source_sha": "The metadata source_sha identifies codex_process_service.rs; the metadata does not freeze core/process_gateway.rs at execution time."
+  },
+  "reviewer_checks": {
+    "new_cargo_commands": 0,
+    "new_full_ci_commands": 0,
+    "read_only_static_assertions": "passed",
+    "git_diff_check": {
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "Cargo.lock",
+        "ccr-ui/src-tauri/Cargo.lock"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "warning: in the working copy of 'Cargo.lock', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'ccr-ui/src-tauri/Cargo.lock', LF will be replaced by CRLF the next time Git touches it\n"
+    },
+    "helper_corrections": [
+      "Default Windows encoding caused an initial Cargo.toml anchor read to fail; explicit UTF-8 reads succeeded.",
+      "difflib autojunk counted unchanged source lines as diff lines; direct positional comparison and git numstat both confirm exactly 4 changed lines.",
+      "The first JSON builder lacked cached registry entries because CRLF lines were not normalized; the saved capture was parsed correctly and the assertions rerun. No product command or file was changed by these helper failures.",
+      "An initial MSRV assertion incorrectly expected rust-version in root workspace.package. The final check reads all package manifests and the independent Tauri manifest; all declare 1.95."
+    ]
+  },
+  "findings": [],
+  "notes": [
+    {
+      "id": "N1",
+      "classification": "scope_clarification",
+      "text": "Project feature declarations and lock dependency lists are unchanged. Upstream rustls-webpki aws-lc-rs-unstable mapping changed and optional aws-lc-rs requirements increased. Neither lock contains aws-lc-rs."
+    },
+    {
+      "id": "N2",
+      "classification": "evidence_boundary",
+      "text": "Security compile logs lack a full source fingerprint at command time. Root owns final integrated validation; earlier narrow success does not attest to later fixture edits."
+    },
+    {
+      "id": "N3",
+      "classification": "retained_risk",
+      "text": "Nine existing Tauri advisory warnings remain. Default audit exit zero does not mean an empty warning set."
+    }
+  ],
+  "blocking_findings": 0,
+  "remaining_integration_checks": [
+    "Root aggregate after all authorized changes",
+    "Tauri integrated strict lint, tests, bindings and frontend gates as planned",
+    "Required Linux full gates and macOS process-tree check",
+    "Actual Rust 1.95 MSRV gate"
+  ],
+  "actions_not_taken": [
+    "No source, manifest, lock, spec, matrix, parent report or task-state writes",
+    "No Cargo, full CI, bindings or product test execution",
+    "No real user-account or secret operations",
+    "No commit, push or archive",
+    "No dedicated trellis-check dispatch; this is the authorized non-author scope review"
+  ],
+  "markdown_report": {
+    "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-check.md",
+    "sha256": "c0c115e0dfec11db0d74a50c69753929ee3ef763a0afb646b2cd17ee6d50bb62",
+    "bytes": 8656
+  }
+}

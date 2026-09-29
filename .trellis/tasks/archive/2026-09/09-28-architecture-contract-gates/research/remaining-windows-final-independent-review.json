@@ -1,0 +1,101 @@
+{
+  "reviewer": "/root/check_t01",
+  "verified_at_utc": "2026-09-29T04:20:15.549383+00:00",
+  "status": "passed_recorded_windows_gate_and_preservation",
+  "receipt": "remaining-windows-ci-after-path.json",
+  "receipt_sha256": "657b581fd6bbe1d10d52256f43d1130ebb6078e8edb4ce7359491abd3ca2795f",
+  "command": [
+    "just",
+    "ci"
+  ],
+  "exit_code": 0,
+  "seconds": 1078.351,
+  "started_at_utc": "2026-09-29T03:53:13.845071+00:00",
+  "finished_at_utc": "2026-09-29T04:11:12.237060+00:00",
+  "source_freeze": "remaining-platform-tests-source-freeze.json",
+  "source_freeze_sha256": "a31c8730384c91076a051f226d3201e1b6cd2d9efa7ec63f881b8899601db273",
+  "current_source_paths": 269,
+  "existing_files": 267,
+  "deletion_markers": 2,
+  "sources_before_after_current_match": true,
+  "logs": {
+    "stdout": {
+      "path": "remaining-windows-ci-after-path.stdout.log",
+      "sha256": "18b9a6b645e457944da9750b1d987a9b2bedcd8490ec6251247e0c4df3bd3906"
+    },
+    "stderr": {
+      "path": "remaining-windows-ci-after-path.stderr.log",
+      "sha256": "62208807b76d7f948ba180732651360863c0d891956dbd6ee21e0cd3ebb9f6de"
+    },
+    "combined": {
+      "path": "remaining-windows-ci-after-path.log",
+      "sha256": "6793bfeae5575231d6e3287a0d26a164c01ca7689a38e5d2b751a7645d877cd3"
+    }
+  },
+  "passed_stages": {
+    "Version Sync": "00:02.233",
+    "Version Check": "00:02.025",
+    "Format": "00:04.775",
+    "Format Check": "00:05.798",
+    "Strict Clippy": "00:15.703",
+    "Workspace Check": "00:10.064",
+    "Test": "04:00.759",
+    "Release Build": "02:35.472",
+    "Security Audit": "00:06.311",
+    "CI Governance": "01:24.836",
+    "Tauri CI": "04:40.453",
+    "Frontend Check": "02:36.270",
+    "Frontend Coverage": "01:39.802",
+    "VSCode CI": "00:13.103"
+  },
+  "tauri_behavior_passed": 407,
+  "frontend_smoke": {
+    "files": 169,
+    "passed": 904
+  },
+  "frontend_coverage": {
+    "path": "ccr-ui/coverage/coverage-final.json",
+    "sha256": "c9927a8ca003474477c74fb68e6cf0fd50fff7a2fd9c5f3b8691002337f80fdc",
+    "file_records": 661,
+    "covered_lines": 13081,
+    "total_lines": 17395,
+    "computed_percent": 75.19977004886461,
+    "displayed_line_percent": 75.19,
+    "displayed_statement_percent": 72.92,
+    "line_threshold": 70,
+    "method": "Per file, group statement counters by statement start line and use the maximum hit count for each line. Count each resulting line once.",
+    "tests": {
+      "files": 169,
+      "passed": 904
+    }
+  },
+  "generated_types": {
+    "snapshot": "remaining-windows-ci-after-path.generated-before.json",
+    "snapshot_sha256": "1ebc696363e75e15b3b2419d7d710cecd825233f3ccc696aadb03572f97323d0",
+    "files": 230,
+    "exact_path_set_match": true,
+    "original_bytes_match": true
+  },
+  "schema_restoration": {
+    "receipt": "remaining-schema-restoration-final.json",
+    "receipt_sha256": "8d2b4d0998ced858b08593ecbf77771d2567a3ca3a30de5918494927671bfe40",
+    "baseline": "continuation-linux-tauri-schema-before.json",
+    "baseline_sha256": "9aa09480f485790c273a98d1355396ce6febe24371fd7ba4263362ccf4cc4d64",
+    "original_files": 4,
+    "original_bytes_match": true,
+    "preexisting_schema_hashes": {
+      "ccr-ui/src-tauri/gen/schemas/acl-manifests.json": "4597aef2e1a06c8a8cf285f283e37d8ba0f5ea12e0b333618156929fc32afcc3",
+      "ccr-ui/src-tauri/gen/schemas/capabilities.json": "6934cae7bfc299c4ce98b6d9c99b51b8b4b4ba6fff375d2889764568fa11319a",
+      "ccr-ui/src-tauri/gen/schemas/desktop-schema.json": "32261c7f53df73489e0b5ff5cea42fc1d873125a4ca1e04184af78a397021e68",
+      "ccr-ui/src-tauri/gen/schemas/windows-schema.json": "32261c7f53df73489e0b5ff5cea42fc1d873125a4ca1e04184af78a397021e68"
+    },
+    "removed_path_absent": true,
+    "preserved_copy": "remaining-linux-generated-schema-final.json",
+    "preserved_copy_sha256": "32261c7f53df73489e0b5ff5cea42fc1d873125a4ca1e04184af78a397021e68"
+  },
+  "limits": [
+    "Review verified recorded outputs and current bytes; reviewer did not rerun passing CI.",
+    "Windows CI does not establish macOS process-matrix execution or Windows native WebView acceptance.",
+    "No fix commit was authorized or created."
+  ]
+}

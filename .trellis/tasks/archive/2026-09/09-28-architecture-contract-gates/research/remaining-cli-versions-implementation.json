@@ -1,0 +1,11 @@
+{
+  "captured_at_utc": "2026-09-29T02:30:43.053539+00:00",
+  "file": "ccr-ui/src-tauri/src/commands/system.rs",
+  "sha256": "ca2423b8f9badcee29de9b20ac97c968e6c057e876c27ffb4871542d67b12404",
+  "scope": "test_module_only",
+  "production_changed": false,
+  "historical_failure": "remaining-windows-ci-after-doctor.json",
+  "empty_path_diagnostic": "remaining-cli-versions-empty-path-diagnostic.json",
+  "focused_check": "remaining-cli-versions-focused.json",
+  "cause_boundary": "Host CLI dependency removed from the test; specific historical delay remains undetermined; no link to exporter AV"
+}

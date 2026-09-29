@@ -1,0 +1,19 @@
+{
+  "command": [
+    "cargo",
+    "clippy",
+    "--offline",
+    "--locked",
+    "-p",
+    "ccr",
+    "--all-targets",
+    "--all-features",
+    "--",
+    "-D",
+    "warnings",
+    "-D",
+    "clippy::unwrap_used"
+  ],
+  "exit_code": 0,
+  "seconds": 18.71
+}

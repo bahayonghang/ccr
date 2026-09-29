@@ -1,0 +1,42 @@
+{
+  "reviewed_at_utc": "2026-09-29T03:50:30.632639+00:00",
+  "reviewer": "/root/check_t01",
+  "receipt": "remaining-linux-tauri-ci-after-path.json",
+  "receipt_sha256": "e7abbed0805987a7376d3dc38cd1664f4a0fd779144b51136a93431618e57732",
+  "command": [
+    "just",
+    "tauri-ci"
+  ],
+  "exit_code": 0,
+  "seconds": 216.576,
+  "log": "remaining-linux-tauri-ci-after-path.log",
+  "log_sha256": "18eeed22ef5c70426b85e98731bf08af834b57abb7f14c3c856b1ea1b01a3a6f",
+  "log_hash_verified": true,
+  "source_freeze": "remaining-platform-tests-source-freeze.json",
+  "source_freeze_sha256": "a31c8730384c91076a051f226d3201e1b6cd2d9efa7ec63f881b8899601db273",
+  "source_before_after_equal_freeze": true,
+  "source_count": 269,
+  "generated_before_after_equal": true,
+  "generated_count": 230,
+  "current_generated_not_resampled_during_running_coverage": true,
+  "source_changes": [],
+  "generated_changes": [],
+  "governance_python_tests": 6,
+  "stages": {
+    "fmt": "passed",
+    "cargo_check_desktop_bin": "passed",
+    "strict_clippy_desktop_bin": "passed",
+    "behavior_tests": 397,
+    "guard_tests": 2,
+    "ignored_helper": 1,
+    "exporter_tests": [
+      24,
+      9,
+      197
+    ],
+    "inventory_test": 1,
+    "bindings_baseline_restoration": "passed"
+  },
+  "zero_match_targets_not_counted": true,
+  "scope": "Local WSL Tauri aggregate. Does not replace Windows full ci, Tauri coverage, native attempt7 or macOS."
+}

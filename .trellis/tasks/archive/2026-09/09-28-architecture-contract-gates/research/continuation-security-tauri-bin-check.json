@@ -1,0 +1,22 @@
+{
+  "command": [
+    "cargo",
+    "--config",
+    ".cargo/tauri-ci.toml",
+    "check",
+    "--locked",
+    "--offline",
+    "--manifest-path",
+    "ccr-ui/src-tauri/Cargo.toml",
+    "--bin",
+    "ccr-desktop"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "environment_overrides": {
+    "CCR_SKIP_ICON_GENERATION": "1"
+  },
+  "started_at": "2026-09-28T23:02:10.454301+00:00",
+  "exit_code": 0,
+  "seconds": 11.702,
+  "log": "continuation-security-tauri-bin-check.log"
+}

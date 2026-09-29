@@ -1,0 +1,28 @@
+{
+  "command": [
+    "just",
+    "tauri-ci"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "started_at_utc": "2026-09-29T00:04:44.335491+00:00",
+  "command_environment_override": {
+    "CCR_SKIP_ICON_GENERATION": "1"
+  },
+  "override_basis": "same explicit override as original root CI",
+  "before_snapshot": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-tauri-before.json",
+  "before_snapshot_sha256": "ea09f2ec3e79a179237cb7f04912559625c84296be6d288f24bef02860544918",
+  "binary_before_sha256": "a9f059fca10c030a9c07d4bb7f938c3e6041b22ad245a001efbe6b1e6bee1ab5",
+  "source_freeze_sha256": "a531395a7d9857c1739491af54b8a781c840199a43c5e8e0bd9ad7959ed60f54",
+  "exit_code": 0,
+  "seconds": 230.503,
+  "finished_at_utc": "2026-09-29T00:08:34.851601+00:00",
+  "after_snapshot": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-tauri-after.json",
+  "after_snapshot_sha256": "fc5c8c6de88804d826c405ff352bb444257c95375f1418dd1877f673ae0463ed",
+  "binary_after_sha256": "a9f059fca10c030a9c07d4bb7f938c3e6041b22ad245a001efbe6b1e6bee1ab5",
+  "generated_types_unchanged": true,
+  "freeze_unchanged": true,
+  "post_freeze_mismatches": {},
+  "post_generated_type_count": 230,
+  "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-bindings-startup-tauri-ci.log",
+  "log_sha256": "636f7862da807f24be8ee72fffb1cd155e816be77d88e8a06f7fd3e063bed289"
+}

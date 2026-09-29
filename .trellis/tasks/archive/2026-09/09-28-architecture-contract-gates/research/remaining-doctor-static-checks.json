@@ -1,0 +1,37 @@
+{
+  "captured_at_utc": "2026-09-29T01:52:57.769362+00:00",
+  "source_sha256": "9d2a321acb63ab1563b51cddc56cd3c4c6b02cd141b9fdd18ee8b02ef762194c",
+  "checks": [
+    {
+      "command": [
+        "rustfmt",
+        "--edition",
+        "2024",
+        "--check",
+        "crates/ccr-cli/src/commands/codex/fix.rs"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "crates/ccr-cli/src/commands/codex/fix.rs"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "warning: in the working copy of 'crates/ccr-cli/src/commands/codex/fix.rs', LF will be replaced by CRLF the next time Git touches it\n"
+    }
+  ],
+  "production_prefix_equal": true,
+  "source_diff": "remaining-doctor-change.diff",
+  "binary_observed_after_checks": {
+    "path": "target/debug/deps/ccr_cli-7e52afdc8af423ce.exe",
+    "sha256": "e45a7068f7d25f51d86e930a9f5b86ecc0da6cf6c90a2f678121899201536516"
+  },
+  "toolchain": "rustc 1.98.0 (88d9e12ae 2026-08-18); cargo 1.98.0 (797e8a9bc 2026-08-05)"
+}

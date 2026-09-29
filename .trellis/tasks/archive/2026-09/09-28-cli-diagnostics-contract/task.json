@@ -1,0 +1,52 @@
+{
+  "id": "cli-diagnostics-contract",
+  "name": "cli-diagnostics-contract",
+  "title": "CLI 诊断结果与退出码契约",
+  "description": "统一认证模式校验、未配置与读取失败分类、只读诊断和非零错误退出码。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-09-28",
+  "completedAt": "2026-09-28",
+  "branch": "dev",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": "f22732fc319a11adc38338603ea627def13c6348",
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "09-28-cli-tauri-architecture",
+  "relatedFiles": [
+    "crates/ccr-cli/src/commands/lifecycle/validate.rs",
+    "crates/ccr-cli/src/services/validate_service.rs",
+    "crates/ccr-config/src/managers/config_validator.rs",
+    "crates/ccr/src/main.rs",
+    "crates/ccr-cli/src/commands/doctor_cmd.rs"
+  ],
+  "notes": "",
+  "meta": {
+    "architecture_task_key": "T04",
+    "depends_on": [
+      "09-28-config-repository-consistency",
+      "09-28-profile-application-usecases"
+    ],
+    "planning_only": false,
+    "review_baseline": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+    "implementation_authorized": true,
+    "approval_date": "2026-09-28",
+    "approval_inherited_from": "09-28-cli-tauri-architecture",
+    "closure": {
+      "kind": "user_authorized_administrative_archive",
+      "authorization": "请提交改动和归档任务",
+      "closed_at_utc": "2026-09-29T04:55:33.470880+00:00",
+      "acceptance": "partial_required_acceptance_remains_open",
+      "scope": "aggregate architecture acceptance; see parent closure",
+      "record": ".trellis/tasks/archive/2026-09/09-28-cli-tauri-architecture/closure.json",
+      "original_parent": "09-28-cli-tauri-architecture"
+    }
+  }
+}

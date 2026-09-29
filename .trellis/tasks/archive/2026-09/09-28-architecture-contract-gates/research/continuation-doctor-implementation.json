@@ -1,0 +1,337 @@
+{
+  "schema_version": 1,
+  "local_date": "2026-09-28",
+  "recorded_at_utc": "2026-09-28T23:45:35.837203+00:00",
+  "owner": "/root/implement_t09",
+  "task": ".trellis/tasks/09-28-architecture-contract-gates",
+  "status": "passed_scoped_pending_independent_review_and_root_full_ci",
+  "files_changed": [
+    "crates/ccr-cli/src/commands/codex/fix.rs"
+  ],
+  "source": {
+    "before_sha256": "2615ff8ef43b62d659b9e1604c56ece8161fd6552d93096b6ea07a751d2b667a",
+    "after_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+    "before_snapshot": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-before.rs.txt",
+    "after_snapshot": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-final.rs.txt",
+    "incremental_diff": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-final.diff",
+    "anchors": {
+      "async fn capture_doctor(": 611,
+      "fn spawn_doctor(": 620,
+      "async fn capture_doctor_output(": 630,
+      "async fn doctor_timeout_terminates_parent_and_grandchild(": 1176,
+      "async fn doctor_deadline_applies_before_fixture_is_ready(": 1199
+    },
+    "frozen": true,
+    "capture_mode": "before_and_after_each_subprocess_command"
+  },
+  "original_failure": {
+    "log": ".trellis/tasks/09-28-cli-tauri-architecture/research/root-continuation-ci.log",
+    "sha256": "46eec7542dddc6b7a4b460747a86e1a076ed4d0bfe467b145ef61093b24ed0c5",
+    "preserved_copy": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-original-ci.log",
+    "preserved_copy_sha256": "46eec7542dddc6b7a4b460747a86e1a076ed4d0bfe467b145ef61093b24ed0c5",
+    "lines": [
+      868,
+      878
+    ],
+    "observed": "343 unit tests passed; doctor_timeout_terminates_parent_and_grandchild failed because grandchild.pid was absent",
+    "original_host_startup_delay_cause": "unknown; not reproduced in baseline narrow run or instrumented parallel package suite"
+  },
+  "diagnosis": {
+    "confirmed": "The old test starts the action deadline concurrently with fixture PID readiness. A managed parent deliberately blocked before child creation is terminated by that deadline, then the test fails waiting for the grandchild PID.",
+    "controlled_red": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-controlled-red.json",
+    "controlled_trace": "parent-ready:2; no child-start permission; missing grandchild.pid",
+    "controlled_red_is_original_host_root_cause_proof": false,
+    "environment_probe": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-environment-probe.json",
+    "environment_probe_result": "Five isolated synthetic child environments all created a child successfully; no process-global environment was mutated"
+  },
+  "implementation": {
+    "private_helpers": [
+      "spawn_doctor",
+      "capture_doctor_output"
+    ],
+    "production_sequence": "capture_doctor calls spawn_doctor then immediately awaits capture_doctor_output with the unchanged caller timeout; production has no readiness gate",
+    "unchanged_sequence_proof": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-sequence-proof.json",
+    "tree_cleanup_regression": "Observe live parent, release file permission, observe live grandchild, invoke same production timeout/wait/cleanup helper, assert Timeout and both PIDs gone",
+    "entrypoint_deadline_regression": "Actual capture_doctor entrypoint with child startup blocked; 200ms caller timeout and outer 5s assertion; require Timeout and no grandchild PID",
+    "fixture_sync": "TempDir start-child file; Windows and Unix poll the explicit file condition",
+    "timeout_changes": "Production DOCTOR_TIMEOUT/DOCTOR_TERMINATE_GRACE and existing per-stage PID readiness/exit bounds unchanged; initialized-tree action timeout reduced to 200ms",
+    "temporary_instrumentation_removed": true,
+    "shared_gateway_modified": false,
+    "added_global_serialization": false,
+    "added_lint_allow": false
+  },
+  "validation": [
+    {
+      "metadata": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-baseline.json",
+      "metadata_sha256": "2bee14027c34d7d594c04eb59a329d63e95058cd4c0107d6f4ddf986aee1d160",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "ccr-cli",
+        "--all-features",
+        "--lib",
+        "commands::codex::fix::tests::doctor_timeout_terminates_parent_and_grandchild",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "source_before_sha256": "2615ff8ef43b62d659b9e1604c56ece8161fd6552d93096b6ea07a751d2b667a",
+      "started_at_utc": "2026-09-28T23:27:25.813089+00:00",
+      "exit_code": 0,
+      "seconds": 35.819,
+      "source_after_sha256": "2615ff8ef43b62d659b9e1604c56ece8161fd6552d93096b6ea07a751d2b667a",
+      "finished_at_utc": "2026-09-28T23:28:01.632468+00:00",
+      "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-baseline.log",
+      "log_sha256": "d70bfaf5490b463e30f3826ac8e788984a6699a2e869d3451b795aec95b75a5b"
+    },
+    {
+      "metadata": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-instrumented-suite.json",
+      "metadata_sha256": "e891fb511a7e28486e54727f53c725b23475934d4bea0a0b215615a123dee89f",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "ccr-cli",
+        "--all-features",
+        "--",
+        "--skip",
+        "export_bindings"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "source_before_sha256": "6d3faf63736bb24b9fd5db46cc13358d714abecd9f3ae1a95468b4a5fa5a20d0",
+      "started_at_utc": "2026-09-28T23:29:46.491141+00:00",
+      "source_stage": "temporary fixture instrumentation",
+      "exit_code": 0,
+      "seconds": 123.44,
+      "source_after_sha256": "6d3faf63736bb24b9fd5db46cc13358d714abecd9f3ae1a95468b4a5fa5a20d0",
+      "finished_at_utc": "2026-09-28T23:31:49.931013+00:00",
+      "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-instrumented-suite.log",
+      "log_sha256": "f02d953882a9a959b01d3de29f0dff01c5c702625dbdc340aad69da88bc03a27"
+    },
+    {
+      "metadata": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-controlled-red.json",
+      "metadata_sha256": "cd18690cb5e16e9539416c594ae514259b5a851e70579396561468105940d3b1",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "ccr-cli",
+        "--all-features",
+        "--lib",
+        "commands::codex::fix::tests::doctor_timeout_terminates_parent_and_grandchild",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "source_before_sha256": "35e9cdf618bbd7578f0e8fe86354cee8cb7320e1fc04aeb3e6e20ac3550b0271",
+      "started_at_utc": "2026-09-28T23:34:26.632589+00:00",
+      "source_stage": "controlled child-start permission remains closed; original test/action deadline unchanged",
+      "expected": "test fails with missing grandchild PID after the action timeout terminates unready fixture",
+      "exit_code": 101,
+      "seconds": 33.083,
+      "source_after_sha256": "35e9cdf618bbd7578f0e8fe86354cee8cb7320e1fc04aeb3e6e20ac3550b0271",
+      "finished_at_utc": "2026-09-28T23:34:59.716273+00:00",
+      "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-controlled-red.log",
+      "log_sha256": "cd37b934d0842c3bdbe2e7a40d60d95a5593156a4396eb1eda005717f2e1b86c"
+    },
+    {
+      "metadata": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-focused.json",
+      "metadata_sha256": "1c0156847181654d2743b5a2ba23ca87cbceb059df6d1312ec9214845a394aad",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "ccr-cli",
+        "--all-features",
+        "--lib",
+        "commands::codex::fix::tests::doctor_",
+        "--",
+        "--nocapture"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "source_before_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+      "started_at_utc": "2026-09-28T23:37:08.399099+00:00",
+      "exit_code": 5,
+      "seconds": 11.046,
+      "source_after_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+      "finished_at_utc": "2026-09-28T23:37:19.445820+00:00",
+      "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-focused.log",
+      "log_sha256": "a85817cc0d74fdb68dcc6b16616f4f871ff6ea861ddc2bdc7857e792071e3e4b"
+    },
+    {
+      "metadata": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-startup-list.json",
+      "metadata_sha256": "f7c3838ba0f5c1d312c8e29caba3ebd5a0e85fe946ed3a781a71c97e785013a6",
+      "command": [
+        "C:\\Users\\lyh\\AppData\\Local\\mbx\\targets\\v1\\6b736f3e8608d890383d61470c216d50cd84b38db0e955508f465ce6ab4ea1b5\\debug\\deps\\ccr_cli-7e52afdc8af423ce.exe",
+        "--list",
+        "commands::codex::fix::tests::doctor_"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "binary_sha256": "acbfa8455446da122a40581faf215c10e72313262536b282dba83ea4146f464d",
+      "source_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+      "started_at_utc": "2026-09-28T23:38:55.776168+00:00",
+      "exit_code": 0,
+      "seconds": 0.028,
+      "stdout": "commands::codex::fix::tests::doctor_deadline_applies_before_fixture_is_ready: test\ncommands::codex::fix::tests::doctor_reports_redact_sensitive_values_before_render_or_save: test\ncommands::codex::fix::tests::doctor_timeout_terminates_parent_and_grandchild: test\n\n3 tests, 0 benchmarks\n",
+      "stderr": ""
+    },
+    {
+      "metadata": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-focused-retry.json",
+      "metadata_sha256": "a350af0877cd412ccf31e70cb45ebb90739d7665a3cb1c033876ccf8ffa7b0a0",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "ccr-cli",
+        "--all-features",
+        "--lib",
+        "commands::codex::fix::tests::doctor_",
+        "--",
+        "--nocapture"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "source_before_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+      "binary_before_sha256": "acbfa8455446da122a40581faf215c10e72313262536b282dba83ea4146f464d",
+      "started_at_utc": "2026-09-28T23:39:32.277232+00:00",
+      "exit_code": 0,
+      "seconds": 1.49,
+      "source_after_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+      "binary_after_sha256": "acbfa8455446da122a40581faf215c10e72313262536b282dba83ea4146f464d",
+      "finished_at_utc": "2026-09-28T23:39:33.779298+00:00",
+      "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-focused-retry.log",
+      "log_sha256": "430cbd9e7c09ba11e7d33a5f694614cc3383485bd7813cc55f6384b7dedcb657"
+    },
+    {
+      "metadata": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-final-suite.json",
+      "metadata_sha256": "edf083bb6e538bf885eadd333a6729e8ce7f2fe9bc6eb13f80c78d9a400dd8a8",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "ccr-cli",
+        "--all-features",
+        "--",
+        "--skip",
+        "export_bindings"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "source_before_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+      "started_at_utc": "2026-09-28T23:40:23.307019+00:00",
+      "default_parallelism": true,
+      "exit_code": 0,
+      "seconds": 120.612,
+      "source_after_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+      "finished_at_utc": "2026-09-28T23:42:23.919818+00:00",
+      "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-final-suite.log",
+      "log_sha256": "a5e9fa385b6548bf566f2ec450ba88195b712c75346e03efd6eebfa5b0a4eb30"
+    },
+    {
+      "metadata": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-final-clippy.json",
+      "metadata_sha256": "3c63d382e5d53a59bf906c8d8c8d7f7b531d43bca669a6f1ffda1f9af604bacb",
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "ccr-cli",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "source_before_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+      "started_at_utc": "2026-09-28T23:42:23.920928+00:00",
+      "default_parallelism": true,
+      "exit_code": 0,
+      "seconds": 11.588,
+      "source_after_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+      "finished_at_utc": "2026-09-28T23:42:35.508874+00:00",
+      "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-final-clippy.log",
+      "log_sha256": "5369dc33b8d3d6745114e6ae10df3098f30e1b7999516e113287a3a93bf6fd64"
+    },
+    {
+      "metadata": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-final-rustfmt.json",
+      "metadata_sha256": "3ab51af5e37f4e6294a891f692e5bdec5d07dfc7c167544801df7074bc187bad",
+      "command": [
+        "rustfmt",
+        "--check",
+        "--edition",
+        "2024",
+        "--config",
+        "skip_children=true",
+        "crates/ccr-cli/src/commands/codex/fix.rs"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "source_before_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+      "started_at_utc": "2026-09-28T23:42:35.509855+00:00",
+      "default_parallelism": true,
+      "exit_code": 0,
+      "seconds": 0.119,
+      "source_after_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+      "finished_at_utc": "2026-09-28T23:42:35.629327+00:00",
+      "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-final-rustfmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "metadata": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-final-diff-check.json",
+      "metadata_sha256": "2be8c0be7b6562b8fe98a9bd56496c74450e3b692fd4afa13503fd010e45fac7",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "crates/ccr-cli/src/commands/codex/fix.rs"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "source_before_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+      "started_at_utc": "2026-09-28T23:42:35.630351+00:00",
+      "default_parallelism": true,
+      "exit_code": 0,
+      "seconds": 0.044,
+      "source_after_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+      "finished_at_utc": "2026-09-28T23:42:35.674342+00:00",
+      "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-final-diff-check.log",
+      "log_sha256": "3ee2af8f5ed215ddd419a4a9b8190007c3ca6dd3052b789a8d3be83ed31444ca"
+    }
+  ],
+  "final_results": {
+    "focused_passed": 3,
+    "unit_passed": 345,
+    "unit_filtered_bindings": 24,
+    "dispatch_passed": 12,
+    "doctest_passed": 1,
+    "doctest_ignored": 1,
+    "clippy_exit_code": 0,
+    "rustfmt_exit_code": 0,
+    "diff_check_exit_code": 0
+  },
+  "historical_startup_failure": {
+    "metadata": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-focused.json",
+    "cargo_exit_code": 5,
+    "binary_exit": "0xc0000005 STATUS_ACCESS_VIOLATION",
+    "observed": "After compilation the executable exited before printing running N tests; no assertion result was emitted",
+    "cause": "unknown",
+    "followup": "Same executable path listed tests successfully. Subsequent identical Cargo command passed 3 tests with unchanged source and matching before/after executable hashes.",
+    "failed_run_binary_hash_note": "No separate executable hash captured at the instant of the crash. First post-failure startup probe and succeeding retry hash the executable.",
+    "rerun_log_does_not_replace_original": true
+  },
+  "limits": [
+    "Original host cause of missing grandchild.pid remains unknown; controlled startup gating confirms the readiness/deadline mechanism only.",
+    "Single STATUS_ACCESS_VIOLATION startup failure is preserved with unknown cause.",
+    "Owner validated Windows real child processes; Linux/macOS behavior and native WebView acceptance are not claimed.",
+    "Package-scoped validation does not replace root just ci.",
+    "No shared gateway production behavior, protected .tmp scripts, task lifecycle, parent reports or matrices were changed by this owner.",
+    "No commit, push or archive action performed."
+  ],
+  "handoff": {
+    "windows_cargo_released": true,
+    "owner_active_build_or_test_sessions": [],
+    "last_completed_session": 41695,
+    "reviewer": "/root/implement_t10_gates",
+    "root_owns_full_ci_and_wsl": true
+  }
+}

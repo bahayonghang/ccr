@@ -1,0 +1,8 @@
+{"file": ".trellis/spec/ccr/backend/usage-job-lifecycle.md", "reason": "本任务新增的usage admission、deadline与terminal独立契约；从原adapter规范完整抽取"}
+{"file": ".trellis/spec/ccr/backend/llmusage-provider-adapter.md", "reason": "本任务必须保留的现行领域契约"}
+{"file": ".trellis/spec/ccr/backend/desktop-command-policy.md", "reason": "本任务必须保留的现行领域契约"}
+{"file": ".trellis/spec/ccr-core/backend/managed-process.md", "reason": "本任务必须保留的现行领域契约"}
+{"file": ".trellis/spec/ccr/backend/typed-ipc-bindings.md", "reason": "本任务必须保留的现行领域契约"}
+{"file": ".trellis/tasks/09-28-cli-tauri-architecture/research/architecture-audit.md", "reason": "已验证发现、作用范围和反例验收"}
+{"file": ".trellis/tasks/09-28-cli-tauri-architecture/research/governance-audit.md", "reason": "已验证发现、作用范围和反例验收"}
+{"file": ".trellis/tasks/09-28-cli-tauri-architecture/research/tauri-audit.md", "reason": "已验证发现、作用范围和反例验收"}

@@ -1,0 +1,16 @@
+{
+  "command": [
+    "C:\\Users\\lyh\\AppData\\Local\\mbx\\targets\\v1\\6b736f3e8608d890383d61470c216d50cd84b38db0e955508f465ce6ab4ea1b5\\debug\\deps\\ccr_cli-957d4a190e1b8043.exe",
+    "--list",
+    "export_bindings"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "started_at_utc": "2026-09-28T23:59:20.455423+00:00",
+  "seconds": 0.027,
+  "exit_code": 0,
+  "binary_before_sha256": "a9f059fca10c030a9c07d4bb7f938c3e6041b22ad245a001efbe6b1e6bee1ab5",
+  "binary_after_sha256": "a9f059fca10c030a9c07d4bb7f938c3e6041b22ad245a001efbe6b1e6bee1ab5",
+  "capture_mode": "post_failure_observation",
+  "stdout": "application::profile_lifecycle::export_bindings_profileoutcome: test\napplication::profile_lifecycle::export_bindings_profilestatus: test\napplication::profile_lifecycle::export_bindings_profilewarning: test\nservices::install_types::export_bindings_absentreason: test\nservices::install_types::export_bindings_attemptid: test\nservices::install_types::export_bindings_cancelresult: test\nservices::install_types::export_bindings_datarootwarning: test\nservices::install_types::export_bindings_detectionresult: test\nservices::install_types::export_bindings_durationclass: test\nservices::install_types::export_bindings_failurekind: test\nservices::install_types::export_bindings_hostcapabilities: test\nservices::install_types::export_bindings_installactionkind: test\nservices::install_types::export_bindings_installevent: test\nservices::install_types::export_bindings_installplanview: test\nservices::install_types::export_bindings_logstream: test\nservices::install_types::export_bindings_manualcatalog: test\nservices::install_types::export_bindings_manualcommand: test\nservices::install_types::export_bindings_packagemanager: test\nservices::install_types::export_bindings_planid: test\nservices::install_types::export_bindings_planoutcome: test\nservices::install_types::export_bindings_platform: test\nservices::install_types::export_bindings_progressstage: test\nservices::install_types::export_bindings_ringbuffersnapshot: test\nservices::install_types::export_bindings_unsupportedreason: test\n\n24 tests, 0 benchmarks\n",
+  "stderr": ""
+}

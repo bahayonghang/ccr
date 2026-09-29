@@ -1,0 +1,38 @@
+{
+  "checks": [
+    {
+      "platform": "Linux",
+      "exit_code": 0,
+      "matched_test_count": 18,
+      "accepted_as_behavior_evidence": true,
+      "source_changes": [],
+      "generated_types_unchanged": true,
+      "aggregate_passed_count": 20,
+      "complete_named_pass_selector_count": 18,
+      "named_selector_capture_complete": false,
+      "matched_test_count_semantics": "complete extracted selector count, not aggregate count"
+    },
+    {
+      "platform": "Windows",
+      "exit_code": 0,
+      "matched_test_count": 1,
+      "accepted_as_behavior_evidence": true,
+      "source_changes": [],
+      "generated_types_unchanged": true,
+      "aggregate_passed_count": 1,
+      "complete_named_pass_selector_count": 1,
+      "named_selector_capture_complete": true,
+      "matched_test_count_semantics": "complete extracted selector count, not aggregate count"
+    }
+  ],
+  "generated_schema_restoration": [],
+  "final_source_changes": [],
+  "invalid_selector_runs": [
+    "continuation-linux-tauri-oauth-final.json",
+    "continuation-windows-oauth-after-import.json"
+  ],
+  "source_freeze": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-platform-final-source-freeze.json",
+  "source_freeze_sha256": "fa79dd6fc1f9f1142d63e7c20a72d161ef398f1f683388d2ba49c7d71c3bfaaa",
+  "completed_at": "2026-09-29T00:24:34.310143+00:00",
+  "counting_note": "Linux OAuth aggregate20, complete named selectors18; Windows aggregate1/name1. Preserve fragmented original log lines without inventing missing selectors."
+}

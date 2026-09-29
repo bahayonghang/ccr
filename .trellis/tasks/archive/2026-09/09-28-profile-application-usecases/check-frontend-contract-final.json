@@ -1,0 +1,12 @@
+{
+  "command": [
+    "bun",
+    "run",
+    "test:smoke",
+    "--",
+    "tests/profiles",
+    "tests/api"
+  ],
+  "exit_code": 0,
+  "seconds": 30.82
+}

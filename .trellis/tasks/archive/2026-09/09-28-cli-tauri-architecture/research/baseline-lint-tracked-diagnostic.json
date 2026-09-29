@@ -1,0 +1,17 @@
+{
+  "check": "lint-tracked-diagnostic",
+  "command": [
+    "bun",
+    "node_modules/eslint/bin/eslint.js",
+    ".",
+    "--quiet",
+    "--ignore-pattern",
+    ".tmp-desktop-probe.mjs",
+    "--ignore-pattern",
+    ".tmp-insights-visual.mjs"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+  "exit_code": 0,
+  "seconds": 23.17,
+  "log": "baseline-lint-tracked-diagnostic.log"
+}

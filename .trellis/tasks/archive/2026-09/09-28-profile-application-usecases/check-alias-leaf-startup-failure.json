@@ -1,0 +1,17 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--offline",
+    "--locked",
+    "-p",
+    "ccr-core",
+    "--features",
+    "test-support",
+    "alias_leaf_lock",
+    "--",
+    "--test-threads=1"
+  ],
+  "exit_code": 5,
+  "seconds": 8.26
+}

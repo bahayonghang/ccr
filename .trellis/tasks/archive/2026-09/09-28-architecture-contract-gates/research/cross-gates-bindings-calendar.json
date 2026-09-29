@@ -1,0 +1,14 @@
+{
+  "command": [
+    "bun.exe",
+    "run",
+    "test:smoke",
+    "--",
+    "tests/quality/bindings-transaction.smoke.test.ts",
+    "tests/usage/usage-date-window.smoke.test.ts"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+  "exit_code": 0,
+  "seconds": 1.54,
+  "log": "cross-gates-bindings-calendar.log"
+}

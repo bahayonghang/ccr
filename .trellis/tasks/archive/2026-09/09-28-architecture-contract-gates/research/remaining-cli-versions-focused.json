@@ -1,0 +1,25 @@
+{
+  "command": [
+    "cargo",
+    "--config",
+    ".cargo/tauri-ci.toml",
+    "test",
+    "--manifest-path",
+    "ccr-ui/src-tauri/Cargo.toml",
+    "--bin",
+    "ccr-desktop",
+    "--all-features",
+    "commands::system::tests::cli_versions_fast_mode_returns_expected_shape",
+    "--",
+    "--exact",
+    "--nocapture"
+  ],
+  "started_at_utc": "2026-09-29T02:27:08.943534+00:00",
+  "source_before_sha256": "ca2423b8f9badcee29de9b20ac97c968e6c057e876c27ffb4871542d67b12404",
+  "state": "finished",
+  "exit_code": 0,
+  "seconds": 59.976,
+  "source_after_sha256": "ca2423b8f9badcee29de9b20ac97c968e6c057e876c27ffb4871542d67b12404",
+  "finished_at_utc": "2026-09-29T02:28:08.920427+00:00",
+  "log_sha256": "ea0045f84fbaa89e1b7f856313f02fa15aae8e0e1832931bb74ee59798dc6174"
+}

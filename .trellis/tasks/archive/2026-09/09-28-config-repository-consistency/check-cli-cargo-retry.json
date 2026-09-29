@@ -1,0 +1,12 @@
+[
+  {
+    "exit_code": 0,
+    "command": "cargo test -p ccr-cli platforms::",
+    "log": "check-cli-platforms-retry.log"
+  },
+  {
+    "exit_code": 0,
+    "command": "cargo test -p ccr-cli profile",
+    "log": "check-cli-profile-retry.log"
+  }
+]

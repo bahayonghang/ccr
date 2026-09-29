@@ -1,0 +1,194 @@
+{
+  "updated_at_utc": "2026-09-29T03:02:40.622999+00:00",
+  "author": "/root/check_t01",
+  "status": "fixed_focused_checks_passed_waiting_independent_review_and_final_gates",
+  "finding": "DC-02",
+  "before_snapshot": "remaining-permissions-fix-before.json",
+  "before_snapshot_sha256": "ead8c50df8113d7751dcbd53bd1e3c88cc9b849af5e32706d8475b7ce47a89ca",
+  "delta": "remaining-permissions-fix.diff",
+  "delta_sha256": "a65fd1cb41b3ea8ccd0b84bc6675f5cc594d97ac35b1df7ab5635c7ed26d533d",
+  "source_paths": [
+    "crates/ccr-config/src/managers/config/repository.rs",
+    "crates/ccr-config/src/managers/config/repository_tests.rs",
+    "crates/ccr-core/src/core/atomic_writer.rs",
+    "crates/ccr-core/src/core/guarded_write.rs",
+    ".trellis/spec/ccr-core/backend/atomic-writer.md",
+    ".trellis/spec/ccr-config/backend/profile-repository.md"
+  ],
+  "current_source_sha256": {
+    "crates/ccr-config/src/managers/config/repository.rs": "75041a8ff57c6c56ca9288eabd8c5f0d9ef577464cffe870deb24f2dd7567be6",
+    "crates/ccr-config/src/managers/config/repository_tests.rs": "5a363acef917ba9b9edabd13462d5f176a97069474278116c3c3b2a8771e0e67",
+    "crates/ccr-core/src/core/atomic_writer.rs": "68322a032f01b480db240f1f5781192f5099bbf2a41bf6691ea07d6990765af2",
+    "crates/ccr-core/src/core/guarded_write.rs": "74a5e4f1908f0ea8c05baec658330c0c9edcd3d5dd67950ae4e11ae4597ce176",
+    ".trellis/spec/ccr-core/backend/atomic-writer.md": "b46acaacb5e317e53ccff952a1995474f43d0665c4c7215ad115a86751b82f03",
+    ".trellis/spec/ccr-config/backend/profile-repository.md": "6f44afe5c1b102d3b50e91c5b7048ab59250a7e49f91031e7c31c4b3e8c534b6"
+  },
+  "prior_freeze_source_differences": [
+    ".trellis/spec/ccr-config/backend/profile-repository.md",
+    ".trellis/spec/ccr-core/backend/atomic-writer.md",
+    "crates/ccr-config/src/managers/config/repository.rs",
+    "crates/ccr-config/src/managers/config/repository_tests.rs",
+    "crates/ccr-core/src/core/atomic_writer.rs",
+    "crates/ccr-core/src/core/guarded_write.rs"
+  ],
+  "original_base_test_sha256_unchanged": true,
+  "checks": [
+    {
+      "command": [
+        "rustfmt",
+        "--edition",
+        "2024",
+        "--check",
+        "crates/ccr-config/src/managers/config/repository.rs",
+        "crates/ccr-config/src/managers/config/repository_tests.rs",
+        "crates/ccr-core/src/core/atomic_writer.rs",
+        "crates/ccr-core/src/core/guarded_write.rs"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "crates/ccr-config/src/managers/config/repository.rs",
+        "crates/ccr-config/src/managers/config/repository_tests.rs",
+        "crates/ccr-core/src/core/atomic_writer.rs",
+        "crates/ccr-core/src/core/guarded_write.rs",
+        ".trellis/spec/ccr-core/backend/atomic-writer.md",
+        ".trellis/spec/ccr-config/backend/profile-repository.md"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "static_log_sha256": "64aeeccd473e6aa8f4b6d91623949f0bb3d0b3b48afb3701c900d1271d07e9dd",
+  "focused_receipts": [
+    {
+      "path": "remaining-permissions-linux-config-final.json",
+      "sha256": "3f0fa2704d3d31f3791caa4fc9c4b403eb20503775ed447b283f62b59dcc851e",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "ccr-config",
+        "--all-features",
+        "--lib"
+      ],
+      "exit_code": 0,
+      "seconds": 6.549,
+      "log": "remaining-permissions-linux-config-final.log",
+      "log_sha256": "13f72add735a6b10e7e1b04cfdcb58f65071d2e725763df4f7a44255758e57d4",
+      "source_changes": [],
+      "generated_changes": [],
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.36s",
+        "test result: ok. 104 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 5.16s"
+      ]
+    },
+    {
+      "path": "remaining-permissions-linux-core-guarded.json",
+      "sha256": "a4e031a894bf2978eb6764b6014a1aa2b2918f3aa0c719f2b5eb5f5732134374",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "ccr-core",
+        "--all-features",
+        "core::guarded_write::tests",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 6.273,
+      "log": "remaining-permissions-linux-core-guarded.log",
+      "log_sha256": "18fcb7b51cf2059fa25ba8173d520c6bb8e10f66953c7881b7b6e75332cbb724",
+      "source_changes": [],
+      "generated_changes": [],
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.09s",
+        "test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 92 filtered out; finished in 4.16s"
+      ]
+    },
+    {
+      "path": "remaining-permissions-linux-core-atomic.json",
+      "sha256": "dba8ca3f309a471e4c7ad7eae8c2ce42d54cb6567a071d3e46f796fc5e33a6bd",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "ccr-core",
+        "--all-features",
+        "core::atomic_writer::tests",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.431,
+      "log": "remaining-permissions-linux-core-atomic.log",
+      "log_sha256": "e72b3f5d17c351feac07e17dc4047174852d7013d63b17b5e11863a9d248f721",
+      "source_changes": [],
+      "generated_changes": [],
+      "result_lines": [
+        "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.24s",
+        "test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 110 filtered out; finished in 0.16s"
+      ]
+    },
+    {
+      "path": "remaining-permissions-linux-clippy.json",
+      "sha256": "088c68146559e1f0e6d099887a7e1a26b276f8b14bff77f142ab71d1e07546cd",
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "ccr-core",
+        "-p",
+        "ccr-config",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 3.393,
+      "log": "remaining-permissions-linux-clippy.log",
+      "log_sha256": "59f88c2565d11575c4586fa32ace258ee17cd8ad296804e77bad58008629cc34",
+      "source_changes": [],
+      "generated_changes": [],
+      "result_lines": [
+        "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.35s"
+      ]
+    },
+    {
+      "path": "remaining-permissions-linux-check.json",
+      "sha256": "2ecb29dca34aeeee2a521c83cdd429661fe9386d081a3e4d3e6f813709d53db6",
+      "command": [
+        "cargo",
+        "check",
+        "-p",
+        "ccr-core",
+        "-p",
+        "ccr-config",
+        "--all-targets",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "seconds": 1.574,
+      "log": "remaining-permissions-linux-check.log",
+      "log_sha256": "d8910452dc728fd734ae9d23a3ed92b57b7bae1d3a65546e5a7970ca4daeb746",
+      "source_changes": [],
+      "generated_changes": [],
+      "result_lines": [
+        "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.55s"
+      ]
+    }
+  ],
+  "journal_scope": "Metadata-only hardening creates no content rollback entry. Existing content entries still restore their recorded metadata under the unchanged compensation policy.",
+  "evidence_limits": [
+    "Unix mode tests ran on Linux; Windows helper version/locking path and DACL preservation still await final Windows gate.",
+    "The injected policy fault proves a pre-change error boundary; it is not an actual OS chmod denial.",
+    "T01 and this narrow core delta are reviewer-authored and require root independent review.",
+    "Earlier Windows final CI belongs to the prior source freeze, not this new delta."
+  ]
+}

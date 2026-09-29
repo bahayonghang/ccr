@@ -1,0 +1,51 @@
+--- before/ccr-ui/.tmp-desktop-probe.mjs
++++ after/ccr-ui/.tmp-desktop-probe.mjs
+@@ -17,11 +17,11 @@
+ }
+ if (!page) {
+   for (const context of contexts) {
+-    for (const candidate of context.pages()) console.error("target:", candidate.url());
++    for (const candidate of context.pages()) process.stderr.write(`target: ${candidate.url()}\n`);
+   }
+   throw new Error("main window target not found");
+ }
+-console.error("using", page.url());
++process.stderr.write(`using ${page.url()}\n`);
+ await page.waitForSelector(".dashboard-usage", { timeout: 60_000 });
+ await page.waitForTimeout(4000);
+ 
+@@ -89,5 +89,5 @@
+ await page.screenshot({ path: "C:/Users/lyh/AppData/Local/Temp/cdp-insights.png" });
+ await page.locator(".insights-trend").first().screenshot({ path: "C:/Users/lyh/AppData/Local/Temp/cdp-trend.png" }).catch(() => {});
+ 
+-console.log(JSON.stringify({ first, insights }, null, 2));
++process.stdout.write(`${JSON.stringify({ first, insights }, null, 2)}\n`);
+ await browser.close();
+--- before/ccr-ui/.tmp-insights-visual.mjs
++++ after/ccr-ui/.tmp-insights-visual.mjs
+@@ -233,7 +233,7 @@
+       text: el.innerText.slice(0, 200),
+     })),
+   }));
+-  console.log(JSON.stringify({ debug }, null, 2));
++  process.stdout.write(`${JSON.stringify({ debug }, null, 2)}\n`);
+   await page.screenshot({ path: `${shotDir}/debug.png`, fullPage: true });
+   throw error;
+ }
+@@ -378,7 +378,7 @@
+   return el ? el.innerText.replace(/\n{2,}/g, "\n").slice(0, 2500) : null;
+ });
+ 
+-console.log(
++process.stdout.write(
+   JSON.stringify(
+     {
+       variant,
+@@ -391,6 +391,6 @@
+     },
+     null,
+     2,
+-  ),
++  ) + "\n",
+ );
+ await browser.close();

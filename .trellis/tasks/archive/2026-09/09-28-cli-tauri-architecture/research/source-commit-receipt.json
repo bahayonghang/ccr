@@ -1,0 +1,14 @@
+{
+  "created_at_utc": "2026-09-29T04:49:39.659886+00:00",
+  "commit": "f22732fc319a11adc38338603ea627def13c6348",
+  "parent": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "subject": "refactor(架构): ♻️ 统一 CLI 与 Tauri 业务边界和回归门禁",
+  "scope_paths": 267,
+  "changed_paths_without_rename_collapse": 264,
+  "git_display_file_count": 262,
+  "source_blobs_match_reviewed_index": true,
+  "other_dirty_paths_preserved": 59,
+  "commit_channel": "local git commit -F",
+  "pushed": false,
+  "remaining_acceptance": "macOS, historical access violation cause and native/real-environment boundaries remain open"
+}

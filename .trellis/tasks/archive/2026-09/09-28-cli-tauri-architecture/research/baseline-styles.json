@@ -1,0 +1,12 @@
+{
+  "check": "styles",
+  "command": [
+    "bun",
+    "run",
+    "lint:style"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+  "exit_code": 0,
+  "seconds": 1.32,
+  "log": "baseline-styles.log"
+}

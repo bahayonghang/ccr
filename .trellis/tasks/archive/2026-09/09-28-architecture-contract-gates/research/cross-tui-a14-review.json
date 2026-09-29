@@ -1,0 +1,222 @@
+{
+  "timestamp": "2026-09-28T12:01:08.883585-05:00",
+  "reviewer": "/root/implement_t10_gates",
+  "status": "passed_scoped",
+  "tui": {
+    "source": {
+      "path": "crates/ccr-tui/src/tui/grok_auth/tests.rs",
+      "sha256": "5da8d0c6ca3570eea098f7e891b3dc09679b732ce5f559db10887c7de9b63cd3",
+      "bytes": 13871
+    },
+    "unchanged_production_ui": {
+      "path": "crates/ccr-tui/src/tui/grok_auth/ui.rs",
+      "sha256": "d56e08306086146af6ceb05a3a86995c38b0018ec7358cd5863c941f5460a2d7",
+      "bytes": 22052
+    },
+    "baseline_test_sha256": "c348d771906fadb61d88c880efd16c2709b7fcfd6ee6fbdc1f2fce143e918228",
+    "metadata": {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/root-tui-frame-assertion.json",
+      "sha256": "26338030b7550598e7553b7872d771465c04e110d8e238fc4da45706dd5b408d",
+      "bytes": 1156
+    },
+    "metadata_sha_and_log_reference_valid": true,
+    "preserved_frame_combinations": 48,
+    "confirmation_frames": 8,
+    "popup_body_geometry_matches_ui": true,
+    "case_and_padding_normalization_only_inside_popup": true,
+    "other_confirmation_and_navigation_assertions_preserved": true,
+    "execution_evidence": [
+      {
+        "metadata": {
+          "path": ".trellis/tasks/09-28-architecture-contract-gates/research/root-tui-frame-repro.json",
+          "sha256": "0b831d3df87c87810ad954851f6eb47b095d0961e44ce6f3bbda0bfd7c338a6e",
+          "bytes": 269
+        },
+        "command": {
+          "command": [
+            "cargo",
+            "test",
+            "-p",
+            "ccr-tui",
+            "--all-features",
+            "--lib",
+            "grok_frames_keep_actions_and_local_evidence_across_sizes_and_languages",
+            "--",
+            "--nocapture"
+          ],
+          "exit_code": 101,
+          "seconds": 14.11
+        },
+        "log": {
+          "path": ".trellis/tasks/09-28-architecture-contract-gates/research/root-tui-frame-repro.log",
+          "sha256": "0313c1b89ea5b57895e1744783634c76b52efff8d9a47f0afd8c05e33f88cb03",
+          "bytes": 2127
+        },
+        "summary": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 245 filtered out; finished in 0.00s"
+        ]
+      },
+      {
+        "metadata": {
+          "path": ".trellis/tasks/09-28-architecture-contract-gates/research/root-tui-frame-layout-repro.json",
+          "sha256": "a45e9270e0ca3e98a8a75d1bc4ff1772080a622987f7b10964ed32e9ef22ef98",
+          "bytes": 268
+        },
+        "command": {
+          "command": [
+            "cargo",
+            "test",
+            "-p",
+            "ccr-tui",
+            "--all-features",
+            "--lib",
+            "grok_frames_keep_actions_and_local_evidence_across_sizes_and_languages",
+            "--",
+            "--nocapture"
+          ],
+          "exit_code": 101,
+          "seconds": 4.69
+        },
+        "log": {
+          "path": ".trellis/tasks/09-28-architecture-contract-gates/research/root-tui-frame-layout-repro.log",
+          "sha256": "2ad32e2c358b4dadc98ca28de2a6fec60b37b9b8a4aa337d18bf9fd5b887d1b7",
+          "bytes": 8416
+        },
+        "summary": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 245 filtered out; finished in 0.02s"
+        ]
+      },
+      {
+        "metadata": {
+          "path": ".trellis/tasks/09-28-architecture-contract-gates/research/root-tui-frame-normalized-fix.json",
+          "sha256": "6842fa27f16c4e2b7619e2761c13c10bdd4cae5fd8fa34b031c24f75f82f957a",
+          "bytes": 266
+        },
+        "command": {
+          "command": [
+            "cargo",
+            "test",
+            "-p",
+            "ccr-tui",
+            "--all-features",
+            "--lib",
+            "grok_frames_keep_actions_and_local_evidence_across_sizes_and_languages",
+            "--",
+            "--nocapture"
+          ],
+          "exit_code": 0,
+          "seconds": 5.85
+        },
+        "log": {
+          "path": ".trellis/tasks/09-28-architecture-contract-gates/research/root-tui-frame-normalized-fix.log",
+          "sha256": "f4e39627e9e3aeb5f7db323130df68f428bb5927a40e111ea283fabeaab48e3c",
+          "bytes": 972
+        },
+        "summary": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 245 filtered out; finished in 0.02s"
+        ]
+      }
+    ],
+    "full_suite_execution": {
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/root-tui-full-final.json",
+        "sha256": "60ec86bbed6f50e14cc394d1774529e6da6584d3afba83202180959f4aa6c880",
+        "bytes": 157
+      },
+      "command": {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "ccr-tui",
+          "--all-features",
+          "--lib"
+        ],
+        "exit_code": 0,
+        "seconds": 42.11
+      },
+      "log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/root-tui-full-final.log",
+        "sha256": "3cec7426a34fc9f78d45130e0258aec443a70ac445d607e56fd0cfc396d40d52",
+        "bytes": 22084
+      },
+      "passed": 246,
+      "failed": 0,
+      "ignored": 0,
+      "reviewed_only": true
+    }
+  },
+  "a14": {
+    "source": {
+      "path": "ccr-ui/src-tauri/src/commands/codex.rs",
+      "sha256": "63ecad05a6dd2af59021cc87ccdb6a22a23cce201688e1bb36a90c1691705da4",
+      "bytes": 83098
+    },
+    "cases": [
+      {
+        "selector": "read_codex_config_accepts_tui_notifications_event_array",
+        "line": 2137
+      },
+      {
+        "selector": "apply_codex_settings_update_preserves_tui_notifications_event_array",
+        "line": 2177
+      },
+      {
+        "selector": "apply_codex_settings_update_clears_nested_fields_with_nulls",
+        "line": 2233
+      }
+    ],
+    "precise_scope": [
+      "Temporary-file read checks Events array and parsed other.notification_condition; JSON projection checks notifications array only",
+      "In-memory tui.animations merge followed by serialization preserves array/condition/method/status_line",
+      "In-memory null-clearing merge checks sandbox/history/tools/features None; no serialization"
+    ],
+    "formal_tauri_metadata": {
+      "path": ".trellis/tasks/09-28-cli-tauri-architecture/research/root-acceptance-after-tui-tauri.json",
+      "sha256": "67cbb4ae36aa1c3fc92c1bdf003caf44ea78f69f76824e678f9a7bd01c2b621c",
+      "bytes": 346
+    },
+    "formal_tauri_command": {
+      "check": "tauri",
+      "command": [
+        "just",
+        "tauri-ci"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "started_at": "2026-09-28T16:52:48.129276+00:00",
+      "exit_code": 0,
+      "seconds": 216.52,
+      "log": "root-acceptance-after-tui-tauri.log",
+      "command_environment_override": {
+        "CCR_SKIP_ICON_GENERATION": "1"
+      }
+    },
+    "formal_tauri_log": {
+      "path": ".trellis/tasks/09-28-cli-tauri-architecture/research/root-acceptance-after-tui-tauri.log",
+      "sha256": "f87233d4312929bdfc2dbd80d262cd34310844a2aac9d8bd3b035550abe3b333",
+      "bytes": 63825
+    },
+    "selected_case_lines": [
+      "test commands::codex::tests::read_codex_config_accepts_tui_notifications_event_array ... ok",
+      "test commands::codex::tests::apply_codex_settings_update_preserves_tui_notifications_event_array ... ok",
+      "test commands::codex::tests::apply_codex_settings_update_clears_nested_fields_with_nulls ... ok"
+    ],
+    "limits": "Separate-layer backend fixtures. No disk-save roundtrip, invoke/native WebView, all-unknown-fields guarantee, real account or OpenCode filesystem acceptance."
+  },
+  "final_matrix": {
+    "artifact": {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/requirements-evidence.json",
+      "sha256": "31be211283bae7ea932cc6081ed799fe6bec6129a5fb6245df5d1136b739cccf",
+      "bytes": 102413
+    },
+    "requirements": 39,
+    "test_groups": 33,
+    "review_script_result": {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/cross-check-specs.json",
+      "sha256": "0f2eff393461a7eb60fd6eb9ff3f1b2aba630a3d3a5ea3720199c13dc5e72600",
+      "bytes": 49954
+    }
+  },
+  "review_permission": "Reviewer only writes own cross-check report/research; no Cargo, bindings, product or matrix writes. Dedicated T10 checker unavailable due agent thread limit reached; cross-owner review is not that dispatch.",
+  "root_just_ci_acceptance": "pending root final aggregate; preceding round failed missing doctor descendant PID"
+}

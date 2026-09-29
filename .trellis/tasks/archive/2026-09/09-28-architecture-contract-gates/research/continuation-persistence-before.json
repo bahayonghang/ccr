@@ -1,0 +1,6 @@
+{
+  "date_utc": "2026-09-28T23:05:50.844874+00:00",
+  "file": "ccr-ui/src-tauri/src/commands/codex_settings.rs",
+  "sha256": "9e12030f565b0c74fdacffc975ea447b9d9648f4603960e4931cac6c2fd4122f",
+  "scope": "root-approved private persistence helper and disk roundtrip test; no Tauri test feature"
+}

@@ -1,0 +1,14 @@
+{
+  "source": "ccr-ui/src-tauri/src/commands/codex_auth.rs",
+  "before_sha256": "0720f229c18ff4facec1e46a2b039a476215124fa34985c2d58b895aa81bfe97",
+  "after_sha256": "02731e81bd90688edd0f4e13c9baec73ea8fec7b4d7077010b7d5b6f0cf3bc80",
+  "changed_lines": 1,
+  "reason": "Mutex is referenced only in the existing cfg(windows) test; cfg(test) imported it unused in Linux tests",
+  "production_behavior_changed": false,
+  "diff": "--- before\n+++ after\n@@ -19,7 +19,7 @@\n use sha2::{Digest, Sha256};\n use std::collections::BTreeMap;\n use std::ffi::OsString;\n-#[cfg(test)]\n+#[cfg(all(test, windows))]\n use std::sync::Mutex;\n use std::sync::{Arc, LazyLock};\n \n",
+  "captured_at_utc": "2026-09-29T00:17:56.826515+00:00",
+  "raw_warning_evidence": "continuation-linux-tauri-process.log",
+  "original_test_run_exit_code": 0,
+  "evidence_kind": "unused-import compiler warning in successful Linux test run",
+  "before_snapshot": "continuation-linux-import-before.rs"
+}

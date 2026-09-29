@@ -1,0 +1,17 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--offline",
+    "--locked",
+    "-p",
+    "ccr-cli",
+    "profile_contract",
+    "--",
+    "--test-threads=1",
+    "--skip",
+    "export_bindings"
+  ],
+  "exit_code": 0,
+  "seconds": 121.46
+}

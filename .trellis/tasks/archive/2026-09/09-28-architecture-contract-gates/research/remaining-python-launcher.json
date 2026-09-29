@@ -1,0 +1,8 @@
+{
+  "at_utc": "2026-09-29T03:08:42.327979+00:00",
+  "action": "Add task-local python symlink to existing /usr/bin/python3; no repository recipe or global environment change",
+  "exit_code": 0,
+  "stdout": "/tmp/ccr-architecture-tools-01a0e781/bin/python -> /usr/bin/python3.12\n",
+  "stderr": "",
+  "reason": "remaining-linux-workspace-quality-after-permissions exited 127 because only python3 was available"
+}

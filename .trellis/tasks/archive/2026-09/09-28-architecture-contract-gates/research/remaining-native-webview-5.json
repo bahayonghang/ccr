@@ -1,0 +1,935 @@
+{
+  "started_at_utc": "2026-09-29T02:30:57.413219+00:00",
+  "state": "failed",
+  "fixture_root": "/tmp/ccr-native-fixture-___vz6fa",
+  "environment": {
+    "HOME": "/tmp/ccr-native-fixture-___vz6fa/home",
+    "USERPROFILE": "/tmp/ccr-native-fixture-___vz6fa/home",
+    "PATH": "/tmp/ccr-architecture-tools-01a0e781/bin:/usr/bin:/bin",
+    "CCR_ROOT": "/tmp/ccr-native-fixture-___vz6fa/home/.ccr",
+    "CCR_DATA_DIR": "/tmp/ccr-native-fixture-___vz6fa/home/.ccr",
+    "CLAUDE_CONFIG_DIR": "/tmp/ccr-native-fixture-___vz6fa/home/.claude",
+    "CODEX_HOME": "/tmp/ccr-native-fixture-___vz6fa/home/.codex",
+    "LLMUSAGE_HOME": "/tmp/ccr-native-fixture-___vz6fa/home/.llmusage",
+    "XDG_CONFIG_HOME": "/tmp/ccr-native-fixture-___vz6fa/home/.config",
+    "XDG_DATA_HOME": "/tmp/ccr-native-fixture-___vz6fa/home/.local/share",
+    "XDG_CACHE_HOME": "/tmp/ccr-native-fixture-___vz6fa/home/.cache",
+    "XDG_STATE_HOME": "/tmp/ccr-native-fixture-___vz6fa/home/.local/state",
+    "XDG_RUNTIME_DIR": "/tmp/ccr-native-fixture-___vz6fa/runtime",
+    "TMPDIR": "/tmp/ccr-native-fixture-___vz6fa",
+    "DISPLAY": ":0",
+    "GDK_BACKEND": "x11",
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8"
+  },
+  "binary": "/tmp/ccr-architecture-linux-01a0e781/debug/ccr-desktop",
+  "binary_sha256": "e97fe3f4aed28ab17873bfeeceb7178ab46f179a20e787516ae0aacfe22ebec4",
+  "build_record": "remaining-linux-native-after-csp.json",
+  "checks": {
+    "native_boot": {
+      "title": "CCR UI",
+      "native": true,
+      "url": "tauri://localhost"
+    },
+    "plaintext_confirmation": {
+      "visible": true,
+      "editorCount": 0
+    },
+    "native_scroll_lock": {
+      "pageNonce": "9148428737563545987",
+      "bodyOverflow": "hidden",
+      "nonce": "9148428737563545987",
+      "rules": 7,
+      "locked": true,
+      "sheetReadable": true
+    },
+    "native_editor": {
+      "editorHeight": 448,
+      "tokenSpans": 4,
+      "editorMinHeight": 448,
+      "text": "{\n  \"model\": \"sonnet\",\n  \"env\": {\n    \"CCR_NATIVE_FIXTURE\": \"preserve\"\n  },\n  \"native_fixture\": {\n    \"unknown\": true,\n    \"count\": 7\n  }\n}\n\n",
+      "editorDisplay": "flex",
+      "noncedStyles": 2,
+      "contentMinHeight": 448,
+      "styleSheets": 8,
+      "url": "tauri://localhost/claude-code/settings",
+      "editorFontSize": "13px",
+      "rootFontSize": 16,
+      "styleCspViolations": []
+    },
+    "production_csp": {
+      "inlineExecuted": false,
+      "meta": [],
+      "events": [
+        {
+          "directive": "script-src-elem",
+          "blockedURI": "inline"
+        }
+      ]
+    }
+  },
+  "scope": "Native Linux WebKitGTK under WSLg; production custom-protocol assets/CSP; synthetic local settings; no account authentication",
+  "harness_sha256": "475797bf8466010dabc223cf2f1fda3663487e6b55c2ca726901fa8f4c0da7c1",
+  "build_record_sha256": "1666cf2e0e19da748cf66cc61d6d5ab395dd1f6844a038aa3eb8665df66aa1ca",
+  "driver_command": [
+    "/usr/bin/dbus-run-session",
+    "--",
+    "/tmp/ccr-architecture-tools-01a0e781/bin/tauri-driver",
+    "--port",
+    "60913",
+    "--native-port",
+    "41253",
+    "--native-driver",
+    "/tmp/ccr-architecture-tools-01a0e781/webkit/usr/bin/WebKitWebDriver"
+  ],
+  "driver_pid": 126192,
+  "capabilities": {
+    "browserName": "wry",
+    "browserVersion": "0.55.1",
+    "platformName": "linux",
+    "acceptInsecureCerts": false,
+    "strictFileInteractability": false,
+    "setWindowRect": true,
+    "unhandledPromptBehavior": "dismiss and notify",
+    "pageLoadStrategy": "normal",
+    "proxy": {},
+    "timeouts": {
+      "script": 30000,
+      "pageLoad": 30000,
+      "implicit": 0
+    }
+  },
+  "styles_before_plaintext_confirmation": {
+    "styles": [
+      {
+        "parent": "HEAD",
+        "nonce": "9148428737563545987",
+        "text": "\n  .with-scroll-bars-hidden {\n   overflow: hidden !important;\n   padding-right: 0px !important;\n  }\n  body[data-scroll-locked] {\n    overflow: hidden !important;\n    overscroll-behavior: contain;\n    position: relative !important;\n    padding-left: 0px;\n    padding-top: 0px;\n    padding-right: 0px;\n    margin-left:0;\n    margin-top:0;\n    margin-right: 0px !important;\n    \n  }\n  \n  .right-scroll-bar-position {\n    right: 0px !important;\n  }\n  \n  .width-before-scroll-bar {\n    margin-right: 0px !important;\n  }\n  \n  .right-scroll-bar-position .right-scroll-bar-position {\n    right: 0 !important;\n  }\n  \n  .width-before-scroll-bar .width-before-scroll-bar {\n    margin-right: 0 !important;\n  }\n  \n  body[data-scroll-locked] {\n    --removed-body-scroll-bar-size: 0px;\n  }\n"
+      }
+    ],
+    "events": []
+  },
+  "editor_runtime_style": {
+    "pageNonce": "9148428737563545987",
+    "contentTop": 327.1875,
+    "nonce": "9148428737563545987",
+    "rules": 131,
+    "sheetReadable": true,
+    "gutterTop": 327.1875,
+    "scrollerDisplay": "flex"
+  },
+  "styles_after_editor_mount": {
+    "styles": [
+      {
+        "parent": "HEAD",
+        "nonce": "9148428737563545987",
+        "text": "\n  .with-scroll-bars-hidden {\n   overflow: hidden !important;\n   padding-right: 0px !important;\n  }\n  body[data-scroll-locked] {\n    overflow: hidden !important;\n    overscroll-behavior: contain;\n    position: relative !important;\n    padding-left: 0px;\n    padding-top: 0px;\n    padding-right: 0px;\n    margin-left:0;\n    margin-top:0;\n    margin-right: 0px !important;\n    \n  }\n  \n  .right-scroll-bar-position {\n    right: 0px !important;\n  }\n  \n  .width-before-scroll-bar {\n    margin-right: 0px !important;\n  }\n  \n  .right-scroll-bar-position .right-scroll-bar-position {\n    right: 0 !important;\n  }\n  \n  .width-before-scroll-bar .width-before-scroll-bar {\n    margin-right: 0 !important;\n  }\n  \n  body[data-scroll-locked] {\n    --removed-body-scroll-bar-size: 0px;\n  }\n"
+      },
+      {
+        "parent": "HEAD",
+        "nonce": "9148428737563545987",
+        "text": ".ͼ1.cm-focused {outline: 1px dotted #212121;}\n.ͼ1 {position: relative !important; box-sizing: border-box; display: flex !important; flex-direction: column;}\n.ͼ1 .cm-scroller {display: flex !important; align-items: flex-start !important; font-family: monospace; line-height: 1.4; height: 100%; overflow-x: auto; position: relative; z-index: 0; overflow-anchor: none;}\n.ͼ1 .cm-content[contenteditable=true] {-webkit-user-modify: read-write-plaintext-only;}\n.ͼ1 .cm-content {margin: 0; flex-grow: 2; flex-shrink: 0; display: block; white-space: pre; word-wrap: normal; box-sizing: border-box; min-height: 100%; padding: 4px 0; outline: none;}\n.ͼ1 .cm-lineWrapping {white-space: pre-wrap; white-space: break-spaces; word-break: break-word; overflow-wrap: anywhere; flex-shrink: 1;}\n.ͼ2 .cm-content {caret-color: black;}\n.ͼ3 .cm-content {caret-color: white;}\n.ͼ1 .cm-line {display: block; padding: 0 2px 0 6px;}\n.ͼ1 .cm-layer > * {position: absolute;}\n.ͼ1 .cm-layer {user-select: none; position: absolute; left: 0; top: 0; contain: size style;}\n.ͼ2 .cm-selectionBackground {background: #d9d9d9;}\n.ͼ3 .cm-selectionBackground {background: #222;}\n.ͼ2.cm-focused > .cm-scroller > .cm-selectionLayer .cm-select"
+      }
+    ],
+    "events": []
+  },
+  "error": "{\"value\":{\"error\":\"element not interactable\",\"message\":\"\",\"stacktrace\":\"\"}}",
+  "traceback": "Traceback (most recent call last):\n  File \"/mnt/d/Documents/Code/Github/ccr/.trellis/tasks/09-28-architecture-contract-gates/research/remaining-native-webview.py\", line 75, in request\n    with opener.open(req, timeout=timeout) as response:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/urllib/request.py\", line 521, in open\n    response = meth(req, response)\n               ^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/urllib/request.py\", line 630, in http_response\n    response = self.parent.error(\n               ^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/urllib/request.py\", line 559, in error\n    return self._call_chain(*args)\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/urllib/request.py\", line 492, in _call_chain\n    result = func(*args)\n             ^^^^^^^^^^^\n  File \"/usr/lib/python3.12/urllib/request.py\", line 639, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 400: Bad Request\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/mnt/d/Documents/Code/Github/ccr/.trellis/tasks/09-28-architecture-contract-gates/research/remaining-native-webview.py\", line 168, in <module>\n    request('POST',f'/session/{session}/element/{save_button}/click',{})\n  File \"/mnt/d/Documents/Code/Github/ccr/.trellis/tasks/09-28-architecture-contract-gates/research/remaining-native-webview.py\", line 78, in request\n    raise RuntimeError(error.read().decode()) from error\nRuntimeError: {\"value\":{\"error\":\"element not interactable\",\"message\":\"\",\"stacktrace\":\"\"}}\n",
+  "failure_dom": {
+    "body": "跳到主要内容\n\n\nCCR UI\n运行工作台\n\n运行概览\n配置中心\nAgent 会话\n\nMCP 管理\n平台\n\nClaude Code\n\nCodex\n\nGrok\n\nAntigravity\n\nOpenCode\n工具\n\n命令\n\n签到管理\n\n同步\n\n用量\n\n设置\n浅色模式·中性·中文·v7.3.0\nClaude Code\n\nLocal\n\nClaude Code 全局设置\n管理模型、权限、环境变量、界面、沙箱与 Git 归属设置。\n配置文件\n/tmp/ccr-native-fixture-___vz6fa/home/.claude/settings.json\n返回\n有未保存修改\n重新加载\n保存源文件\n当前编辑的是磁盘原文，可能包含明文凭据；内容不会写入浏览器存储或日志。\n1\n所以我按这条链路把工作排开了\nnextpreviousallmatch caseregexpby word\nreplacereplace all×\n配置层级\n按平台优先级展示当前可发现的配置来源。\n4\nManaged\n/etc/claude-code/managed-settings.json\n只读\nProject需要项目上下文，本工具不管理\n只读\nProject local需要项目上下文，本工具不管理\n只读\nUser\n/tmp/ccr-native-fixture-___vz6fa/home/.claude/settings.json\n可编辑\n\n顶部\n",
+    "url": "tauri://localhost/claude-code/settings"
+  },
+  "driver_exit_code": -15,
+  "live_process_group_members_after_cleanup": [],
+  "fixture_files": [
+    {
+      "path": "runtime/dconf/user",
+      "bytes": 2
+    },
+    {
+      "path": "runtime/tray-icon/tray-icon-ccr-tray-0.png",
+      "bytes": 1839
+    },
+    {
+      "path": "home/.ccr-ui/ccr-ui.db",
+      "bytes": 4096
+    },
+    {
+      "path": "home/.ccr-ui/ccr-ui.db-wal",
+      "bytes": 939392
+    },
+    {
+      "path": "home/.ccr-ui/ccr-ui.db-shm",
+      "bytes": 32768
+    },
+    {
+      "path": "home/.claude/settings.json",
+      "bytes": 140
+    },
+    {
+      "path": "home/.claude/.locks/codex_oauth_pending_12d241c95344065b23ed88ee4284907a7a89ab5a846800ff9dda6b82cd8a90f2.lock",
+      "bytes": 0
+    },
+    {
+      "path": "home/.local/share/com.ccr.desktop/hsts-storage.sqlite",
+      "bytes": 12288
+    },
+    {
+      "path": "home/.local/share/webkitgtk-4.1/WebInspector/localstorage/resource__0.localstorage-wal",
+      "bytes": 28872
+    },
+    {
+      "path": "home/.local/share/webkitgtk-4.1/WebInspector/localstorage/resource__0.localstorage",
+      "bytes": 4096
+    },
+    {
+      "path": "home/.local/share/webkitgtk-4.1/WebInspector/localstorage/resource__0.localstorage-shm",
+      "bytes": 32768
+    },
+    {
+      "path": "home/.local/share/webkitgtk-4.1/WebInspector/storage/salt",
+      "bytes": 8
+    },
+    {
+      "path": "home/.local/share/webkitgtk-4.1/WebInspector/mediakeys/v1/salt",
+      "bytes": 8
+    },
+    {
+      "path": "home/.local/share/webkitgtk-4.1/WebInspector/databases/indexeddb/v1/resource__0/E8DA97436ECABD6F2D341BB04999E49A9BF1E628A1CA8A34DF87F160078240E2/IndexedDB.sqlite3-shm",
+      "bytes": 32768
+    },
+    {
+      "path": "home/.local/share/webkitgtk-4.1/WebInspector/databases/indexeddb/v1/resource__0/E8DA97436ECABD6F2D341BB04999E49A9BF1E628A1CA8A34DF87F160078240E2/IndexedDB.sqlite3-wal",
+      "bytes": 708672
+    },
+    {
+      "path": "home/.local/share/webkitgtk-4.1/WebInspector/databases/indexeddb/v1/resource__0/E8DA97436ECABD6F2D341BB04999E49A9BF1E628A1CA8A34DF87F160078240E2/IndexedDB.sqlite3",
+      "bytes": 4096
+    },
+    {
+      "path": "home/.local/share/webkitgtk-4.1/WebInspector/storage/_3tv-1Rl4Nq7xNUHgcKoHhuSMnkdSDepk83-pWBqzhY/_3tv-1Rl4Nq7xNUHgcKoHhuSMnkdSDepk83-pWBqzhY/origin",
+      "bytes": 38
+    },
+    {
+      "path": "home/.local/share/com.ccr.desktop/CacheStorage/salt",
+      "bytes": 8
+    },
+    {
+      "path": "home/.local/share/com.ccr.desktop/storage/salt",
+      "bytes": 8
+    },
+    {
+      "path": "home/.local/share/com.ccr.desktop/mediakeys/v1/salt",
+      "bytes": 8
+    },
+    {
+      "path": "home/.local/share/com.ccr.desktop/WebKitCache/Version 17/salt",
+      "bytes": 8
+    },
+    {
+      "path": "home/.local/share/com.ccr.desktop/storage/j6TnjyI9epBFBHf3KP8WhoNkeqfjXu9r7LRGC7w8CrY/j6TnjyI9epBFBHf3KP8WhoNkeqfjXu9r7LRGC7w8CrY/origin",
+      "bytes": 50
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/index",
+      "bytes": 1310728
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/marker",
+      "bytes": 0
+    },
+    {
+      "path": "home/.cache/gstreamer-1.0/registry.x86_64.bin",
+      "bytes": 415019
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/b0/81477887d898643c2e829d401ea95248f79bdc",
+      "bytes": 1888
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/7e/717c9382a81af900dee7e0bf31b385a1c0e6c0",
+      "bytes": 4382
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/7e/b8f130864a79fe62268ef191bc7f10ba7da6bb",
+      "bytes": 5653
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/7e/4b4f2058d172410f77901d78187b9f4c6cc991",
+      "bytes": 1303
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/7e/7ec0aa8ec65159c173da838a82d779770b62f9",
+      "bytes": 1935
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/8f/f06aefd0601ca53e96d108ed92d1fafdc7734e",
+      "bytes": 3402
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/3c/371ae22fbdaa6c74fdb07642c961acaecc95d2",
+      "bytes": 2468
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/ed/898b6ac78c3a465b613129fcfa1ae3a965a7d4",
+      "bytes": 848
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/ed/1a024b29990217ae20c3e73af6ce6266e103d1",
+      "bytes": 2804
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/df/5edc37e41423c4d1f2489891d33b40fcea79b6",
+      "bytes": 5368
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/df/738b3d6aeefc8288360f77a4c68ae3def47023",
+      "bytes": 1743
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/b4/b4e91ec6320f9b4528a177ea1736b38135024a",
+      "bytes": 1765
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/a6/135db171ca71f93d8ab229f2ba52464be09dfe",
+      "bytes": 5751
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/dd/61d143fdc7aaed93919a48698576a26a291b46",
+      "bytes": 3172
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/6f/6bcd28964b3c7fbffaa1bf9c445c19077acae1",
+      "bytes": 995
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/b6/8d8d1e1383bff4c42fb2216aee4a073da9aa03",
+      "bytes": 3818
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/94/d49d4700721e35e140251d7584e0cd6e651fe1",
+      "bytes": 2122
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/eb/e21d8322be8ba681eeaddf020894adcec681ec",
+      "bytes": 2017
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/eb/aa1056599cc74117a33c22345faee4fdedf441",
+      "bytes": 2101
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/7b/a32124d14c4d3dc5f7fb21c6cef5541c01fdb4",
+      "bytes": 22563
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/7b/baadb3f187ff5875280d3411df0cbc40ec0b69",
+      "bytes": 1391
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/08/362b0835e0003637274435d3571e4df90dd257",
+      "bytes": 1899
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/12/edc092ec821643da5b484f4c3cdbbdf5bf8efb",
+      "bytes": 16398
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/9c/9ad30e60c9c607628edf9618e01c00f33cf794",
+      "bytes": 2039
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/9c/a358107f31926bfe00879a5952c20798b51b26",
+      "bytes": 2314
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/0b/da47c14412b8b88704d5057cacacc657498e4f",
+      "bytes": 5279
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/8a/3ba69815250505395b939135a656e09f33d1d7",
+      "bytes": 4537
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/21/ba340b9df90040cc11da2dffddf7cc69b2dbe5",
+      "bytes": 2722
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/2b/22b0bda71639950f36ff095d97aab11c26cff3",
+      "bytes": 1275
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/47/381e9760ba0edaf1f9a7bf5693a3c54016156e",
+      "bytes": 1299
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/23/c0fdb0214ddd5af9d0e957d5d5cc7cd5894485",
+      "bytes": 4442
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/23/f6c131c9927bffc980881375d02437fcb3e509",
+      "bytes": 4406
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/6d/625926bd22a4a9fe1abd3110be9e7e6053c427",
+      "bytes": 8360
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/6d/b07fbf58316ddb5c3fc394126b050173dbf2ed",
+      "bytes": 4879
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/39/404a6c18865652fac133ed52a4716e9eea9b0b",
+      "bytes": 2087
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/65/dd51a8b35e2a18fb405bc44883670706c4cd9a",
+      "bytes": 1086
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/65/49280cfd54b9331781fb96d1e56fef9a75211a",
+      "bytes": 4297
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/65/71825d0dcf63f06fa2105c0f0befff4c791b36",
+      "bytes": 2802
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/5c/282fa75680507b61a919ad3d0c7fa02fe1c9e5",
+      "bytes": 1431
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/5e/7d1b834c9fda72056c809cd8475d25856db973",
+      "bytes": 885
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/71/5a17f36fbab108f2ad1f3e45876f699a7db25b",
+      "bytes": 1233
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/27/c1bebdca76d9de719eda36a24eaafe9e69501a",
+      "bytes": 4984
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/0d/42ab61b86eb0c4063d9748cc523fff73e808f1",
+      "bytes": 756
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/c1/44b351a67b2f9465f9b767188c0b5102546157",
+      "bytes": 3688
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/c1/3b86b367455c39d2712dd4c3c15ec0bab813e3",
+      "bytes": 2189
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/ef/5c4e95037d8b60db1bb010584efb381625211f",
+      "bytes": 2585
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/ef/4d96c92649c41c5d757fa8c8f8b0dee138a15e",
+      "bytes": 952
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/ef/86be2d979b157021161277a9c312e09a28f664",
+      "bytes": 2567
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/9e/6f8ac3a166174e24ef5e0de457969a668ed453",
+      "bytes": 752
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/9e/e76bb52f2d06cca7e140091272a9a51be03206",
+      "bytes": 1371
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/9e/9a6a0fdeab68ad1e7da69ff2b2bdcd2dda48d2",
+      "bytes": 3596
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/6c/df7c6124cd76f4c720ef12ba0b24a29e6c4c94",
+      "bytes": 2193
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/6c/e4cafac0f71eee43b3f30a77d49567731f15fd",
+      "bytes": 1609
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/19/d78b376fafe8e32d08de03cb2404bd4222507b",
+      "bytes": 1847
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/7c/0e8ba484af9dc651b07bc94b2c85c9e2f801e3",
+      "bytes": 1201
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/e1/e6e50e854a121822e5335c1c243fb39856dd56",
+      "bytes": 2113
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/fa/657af3350b1c8c3260a0d4ce1de61beeaf954b",
+      "bytes": 413
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/24/cfe6751bb4a5aa0b12fb72a79f50e4faf8df6e",
+      "bytes": 1199
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/35/5c9b01bce20a8f3adac512e0df87ba9c1e04c7",
+      "bytes": 3226
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/bb/e500bc286d11072f30cdbc8e2ea4d31a67939a",
+      "bytes": 1286
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/bb/76c8efe4ddcf90eb81e6806c31fafa4c53b374",
+      "bytes": 2803
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/99/322f7667f8164a32ed49a41d57a66f66ba1b1b",
+      "bytes": 2042
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/82/459799b9aa1de8bb81507904fea241f0aadc9b",
+      "bytes": 1247
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/e9/6a6a784b95cfd667513c898dca86b2a397ace9",
+      "bytes": 11706
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/d9/278d9a2d8138eaa827249872e79f4dc224d17c",
+      "bytes": 1864
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/77/b2bb129dedb1cf50c324bbfb64b87d91833218",
+      "bytes": 1117
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/ff/af9ddcf0dd8051695655734aaf5b9d4866c547",
+      "bytes": 6703
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/44/c054202c5d72f4372c3845520f109ca5dafd78",
+      "bytes": 19058
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/44/1c15eed3bb75402c4405eee89afe7a3c30e6e4",
+      "bytes": 4350
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/c2/b66afc02227de514527a6cb175a7db1c2e0bcf",
+      "bytes": 1567
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/92/a16729fd82d1d875531d9908ae78cef83586f0",
+      "bytes": 2261
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/92/25f8c26245c7cfe2fbdff6141553f230b3d1aa",
+      "bytes": 1917
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/09/24ce988c6a4408848bbcd43ee12a51ea2ba7c8",
+      "bytes": 1990
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/09/eb245d40e894e246e3e16cccf3edb9c6fe9c74",
+      "bytes": 4636
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/97/e806d45f4454c23386d3a028203d14a38cb9aa",
+      "bytes": 996
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/97/df5bac82ef6c6a459027e4fbce005ac6b84811",
+      "bytes": 3687
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/f5/62ae60e9804096c97313e6901d3a6493a3d583",
+      "bytes": 2433
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/f5/753dfa7c7fe733b8027a0411c9b2b33f351f60",
+      "bytes": 2002
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/f5/9e99ac6f5eb50aaf12e6f6d211238c0f248417",
+      "bytes": 1652
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/f5/fef681c47adef44e87fbc188b61b095abdbe5a",
+      "bytes": 2087
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/43/f3053b8ce9bc354269d61eea7ae8fc527159a5",
+      "bytes": 1701
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/43/3c861e92e0cc5657e53c3441971342af053525",
+      "bytes": 1543
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/50/d302d43e84041722eac3fdbd83e563285c2c6c",
+      "bytes": 2431
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/53/d912c7e5fbd0b036a615126168741659b5121a",
+      "bytes": 1852
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/00/705069f8d0669ff91b08355839c5ed631e7fe1",
+      "bytes": 1450
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/36/e5258c32691aeeda33e611c45c1c7b42ce2526",
+      "bytes": 2483
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/36/8dbcf2b57b02d4453fed19086c91f4936ef117",
+      "bytes": 998
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/36/717b361268dd044af5db22ff6843c2a63f2117",
+      "bytes": 1761
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/74/4b4200c6fc9bb4fcf4fc854ca503033112bc0d",
+      "bytes": 2750
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/74/f42999a7750ec7f4fc2e7378f979321a47c446",
+      "bytes": 4777
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/5f/0ca5215cd7359bde7b7cabbf26491493fb4e4e",
+      "bytes": 2715
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/48/f399a0bda2bceeaf3d6ce50419ad8e3483a60d",
+      "bytes": 1618
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/68/22c5f39eaf2a26ef951d2f27347f8ba43c687e",
+      "bytes": 769
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/68/52bbab5992116876e6375199398e088f62909e",
+      "bytes": 2804
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/04/54aa2d2d4bb8e297d29788bb78efb3afd21569",
+      "bytes": 5871
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/04/5a0ea26d5d2c701f5e42c5535a220b42b36374",
+      "bytes": 602
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/59/3c4b14feaf40513b1e9d33cacc8a6294a41478",
+      "bytes": 1233
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/59/da08bb04253747c606dabccbca58e39379ed84",
+      "bytes": 3175
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/59/441c9902eee790c308417a1f2ee34424c91544",
+      "bytes": 1765
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/1c/6133cbd459d87d32886878e4ee828d1d38edb9",
+      "bytes": 22877
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/b8/f9361b9bb40275da15784e09243965129dc076",
+      "bytes": 3593
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/1a/e17e5c8763c00dc24db9b79188bf9f71f8d5aa",
+      "bytes": 2314
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/f8/4a6a1cafc8fa5e097d4c1fa73822f962f20a53",
+      "bytes": 4390
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/ce/928fa1009a542b3fb8ebcaa140b4f9f7f6aa70",
+      "bytes": 2860
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/9d/7a5bdef2c52441ef2f85692c6002888996b439",
+      "bytes": 1583
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/1e/b7ae2c38f6073fdfed16c8726d58546bcd71e8",
+      "bytes": 1761
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/1e/058f526640d35e48adda5911e282813d97a693",
+      "bytes": 601
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/f9/cf48145c7533458c6ea2e2f73dadeb43637e74",
+      "bytes": 1032
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/f9/0d9ec3f4e671e9cfda8c9321306772a27a447c",
+      "bytes": 4555
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/ee/96b2962dfb9ef959252ca76a003c487c85f1f9",
+      "bytes": 1384
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/ee/e1646f50b2838b5913e94ef4319226b48cbe8a",
+      "bytes": 763
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/29/92d25dbeab75ea96cd272607920af7cda47e7d",
+      "bytes": 5750
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/29/5dc09428d1961b327dd8a2242843591fb23271",
+      "bytes": 594
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/01/63fe09b725ef7c2733b37f344073b83f328cc3",
+      "bytes": 3076
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/90/cd5f31a722cbfb4708b7f30e14472dd7bd59b8",
+      "bytes": 4058
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/dc/18ad7c8dbadcb8615e2576d552dbca08049d65",
+      "bytes": 1121
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/16/06e8ab752583fa32c3d272abfa2f8a8ac2d951",
+      "bytes": 1596
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/10/11d3cab7024233f5a49a3ef7f6e4dc39d6481e",
+      "bytes": 11634
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/07/1500739985c791217d07edc75742b0a2efd532",
+      "bytes": 2269
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/fc/3e4061275e60bd6c83dc18cf3933072407131f",
+      "bytes": 1761
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/7f/4e5ff42fefd305cf27d52db53db268d46531c4",
+      "bytes": 3697
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/98/53329f545e6b5ee5c9d8e9c8df059968bbd95a",
+      "bytes": 22540
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/c7/493f233df5e00c191b40f15efde4f7069596af",
+      "bytes": 1275
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/c7/f6aac3d4378838972ce118c04e32cc4bfe9952",
+      "bytes": 1606
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/4d/8149864747d37b79e28c77f93f5fc2f3b5bc3a",
+      "bytes": 2314
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/4d/3de27d96c6fdb4c711334b3831c9fb59f06d60",
+      "bytes": 2071
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/4d/5b7838021654d33994a4fd85f0a751f6a2ab2c",
+      "bytes": 1238
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/70/dafcd7a4ff5ecaddb795689353197ec91c5fdc",
+      "bytes": 3596
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/72/69bffcc9860f1f3e0e0e556b0b4b274e2570e2",
+      "bytes": 3596
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/6e/c9106e37c27d52df38932a1eafd740f302eadc",
+      "bytes": 1302
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/a5/ccb2e38913691c482f6bfcc4d1477783fcee7c",
+      "bytes": 1357
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/a5/a32e513c3a28293d83fd95f21d8856c7b6a518",
+      "bytes": 2485
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/91/1a9346ebbd07883666bb528c4b3d5184de5fa8",
+      "bytes": 1408
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/91/a12d6594e05817f0998b8dd9f21af13bbfb8c8",
+      "bytes": 1202
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/33/1733f72c098c2e507227af3f4fcf3ff6a01612",
+      "bytes": 1935
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/89/1276dc97c6b5e64b85f9ff67a60a798dca2f77",
+      "bytes": 3597
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/be/e6019a8ceae5c1303a0869d5cf59048e6b647a",
+      "bytes": 998
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/03/7a4d55ecf1935f6749070e5fa236142dedaac4",
+      "bytes": 585
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/40/d35ec1693a7061aa7248c8d97784cdc31e41c2",
+      "bytes": 986
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/de/45806dfe59c69916d621d2315fb488ec233cb6",
+      "bytes": 1765
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/c9/d76e97a08bbdcc5459fffdd4b6bbcbbcca3e76",
+      "bytes": 1706
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/c9/86a910d15944bf1609ef7bc4eae6f39f9ec2e1",
+      "bytes": 2071
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/c9/a7692d44d3d3775036b1d5d76a51c78d3d0878",
+      "bytes": 1844
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/c9/468f8f6e39f7ad7b9c86e09182990d85180511",
+      "bytes": 21707
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/bc/0d00304417d2aa70752b5b5c697f09131cb1ee",
+      "bytes": 1288
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/d7/fae1a5715db8645021d3a9823d96c89fe6424e",
+      "bytes": 1761
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/31/b371bf58e73be6d1bfba4942c80ecd33e291b3",
+      "bytes": 1790
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/86/153ad4eb7f06cfeca9c21eef0ea7c751809306",
+      "bytes": 1515
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/38/40a50a6fd981b1f430cbce02bd771b465d909e",
+      "bytes": 1568
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/a1/f710c7f5bb0c19325fabe45369b2d4b18c4496",
+      "bytes": 998
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/a1/6a7cf008f64ae9a78277c51c8245c798d3ff46",
+      "bytes": 436
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/58/8db43396a28d4615880adad26529bda688c092",
+      "bytes": 1200
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/46/f7500a2b99789778a431ab70cd1a5f2bd617f6",
+      "bytes": 1980
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/46/dfcc1a89bf4080b325c2c01205c70ae1b6347d",
+      "bytes": 4068
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/46/3df1cada0facc212b733f67c83ecf06d4324ee",
+      "bytes": 1219
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/8c/6b84d0da93ccb74df1fccc04e9e7f45fc507af",
+      "bytes": 599
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/8c/a6abfa8c268e9d122dd50dd8463997ead5ebc3",
+      "bytes": 3760
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/db/427495f59632f078d8a9494dd441d90fa35e4b",
+      "bytes": 3594
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/85/fc6f868a8c3fa13b1ebb2ec7d86bc60471741b",
+      "bytes": 2314
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/28/85bc8a54fe0af3e85753826a6695c25b7f541f",
+      "bytes": 1611
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/57/29ea7df683617e0e51af127ea44354db8fa6fb",
+      "bytes": 1413
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/57/a648b895786647b65c2921c1cdf5956c8e1e65",
+      "bytes": 1960
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/d8/2118cfd13dd2dd55ba04b40b2967bbcfe60ff8",
+      "bytes": 4044
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/d8/a45d2500e79faf704f5d469a54178f77836ee2",
+      "bytes": 2658
+    },
+    {
+      "path": "home/.cache/mesa_shader_cache/bf/07cc83047cea8c75619bd9c670a956519e7f5b",
+      "bytes": 3758
+    },
+    {
+      "path": "home/.cache/webkitgtk-4.1/WebInspector/hsts-storage.sqlite",
+      "bytes": 12288
+    },
+    {
+      "path": "home/.cache/webkitgtk-4.1/WebInspector/CacheStorage/salt",
+      "bytes": 8
+    },
+    {
+      "path": "home/.cache/webkitgtk-4.1/WebInspector/WebKitCache/Version 17/salt",
+      "bytes": 8
+    },
+    {
+      "path": "home/.ccr/logs/ccr.log.2026-09-29",
+      "bytes": 9596
+    },
+    {
+      "path": "home/.ccr/analytics/usage.db-wal",
+      "bytes": 947632
+    },
+    {
+      "path": "home/.ccr/analytics/usage.db",
+      "bytes": 4096
+    },
+    {
+      "path": "home/.ccr/analytics/usage.db-shm",
+      "bytes": 32768
+    }
+  ],
+  "finished_at_utc": "2026-09-29T02:31:01.770770+00:00"
+}

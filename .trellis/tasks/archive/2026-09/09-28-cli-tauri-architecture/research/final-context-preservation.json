@@ -1,0 +1,75 @@
+{
+  "date": "2026-09-28",
+  "task_contexts": [
+    {
+      "task": "09-28-cli-tauri-architecture",
+      "exit_code": 0,
+      "log": "final-context-09-28-cli-tauri-architecture.log"
+    },
+    {
+      "task": "09-28-config-repository-consistency",
+      "exit_code": 0,
+      "log": "final-context-09-28-config-repository-consistency.log"
+    },
+    {
+      "task": "09-28-profile-application-usecases",
+      "exit_code": 0,
+      "log": "final-context-09-28-profile-application-usecases.log"
+    },
+    {
+      "task": "09-28-tauri-config-adapter",
+      "exit_code": 0,
+      "log": "final-context-09-28-tauri-config-adapter.log"
+    },
+    {
+      "task": "09-28-cli-diagnostics-contract",
+      "exit_code": 0,
+      "log": "final-context-09-28-cli-diagnostics-contract.log"
+    },
+    {
+      "task": "09-28-safe-persistence-backups",
+      "exit_code": 0,
+      "log": "final-context-09-28-safe-persistence-backups.log"
+    },
+    {
+      "task": "09-28-usage-job-lifecycle",
+      "exit_code": 0,
+      "log": "final-context-09-28-usage-job-lifecycle.log"
+    },
+    {
+      "task": "09-28-command-workbench-lifecycle",
+      "exit_code": 0,
+      "log": "final-context-09-28-command-workbench-lifecycle.log"
+    },
+    {
+      "task": "09-28-settings-lossless-capabilities",
+      "exit_code": 0,
+      "log": "final-context-09-28-settings-lossless-capabilities.log"
+    },
+    {
+      "task": "09-28-frontend-query-error-contracts",
+      "exit_code": 0,
+      "log": "final-context-09-28-frontend-query-error-contracts.log"
+    },
+    {
+      "task": "09-28-architecture-contract-gates",
+      "exit_code": 0,
+      "log": "final-context-09-28-architecture-contract-gates.log"
+    },
+    {
+      "task": "09-28-desktop-control-oauth-lifecycle",
+      "exit_code": 0,
+      "log": "final-context-09-28-desktop-control-oauth-lifecycle.log"
+    }
+  ],
+  "protected_files": {
+    "ccr-ui/.tmp-desktop-probe.mjs": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+    "ccr-ui/.tmp-insights-visual.mjs": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53"
+  },
+  "existing_task_statuses": {
+    "09-24-home-insights-redesign": "planning",
+    "09-24-home-insights-frontend": "in_progress"
+  },
+  "diff_check_exit": 0,
+  "diff_check_log": "final-diff-check.log"
+}

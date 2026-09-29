@@ -1,0 +1,12 @@
+await page.getByRole('textbox',{name:'默认模型',exact:true}).fill('codex-after');
+await page.getByRole('button',{name:'保存',exact:true}).click();
+await expect(page.getByRole('button',{name:'保存',exact:true})).toBeDisabled();
+const value=await page.evaluate(()=>({updates:ccrFixture.calls.filter(c=>c.cmd==='codex_update_settings'),settings:ccrFixture.settings,unknown:ccrFixture.unknown}));
+assert.equal(value.updates.length,1);assert.deepEqual(value.updates[0].args.settings,{model:'codex-after'});
+assert.deepEqual(value.settings.tui.notifications,['agent-turn-complete','approval-requested']);
+assert.equal(value.settings.model_reasoning_effort,'future-effort');
+assert.equal((await page.locator('main').innerText()).includes('⟦'),false);
+await page.getByRole('button',{name:'源文件',exact:true}).click();
+const dialog=page.getByRole('dialog',{name:'查看原始配置',exact:true});
+await expect(dialog).toBeVisible({timeout:15000});
+return {value,dialog:await dialog.innerText(),buttons:await dialog.getByRole('button').allTextContents(),errors:ccrWebErrors};

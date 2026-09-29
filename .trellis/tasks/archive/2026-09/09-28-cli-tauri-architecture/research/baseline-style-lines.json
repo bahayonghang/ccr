@@ -1,0 +1,12 @@
+{
+  "check": "style-lines",
+  "command": [
+    "bun",
+    "run",
+    "check:style-lines"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+  "exit_code": 0,
+  "seconds": 0.12,
+  "log": "baseline-style-lines.log"
+}

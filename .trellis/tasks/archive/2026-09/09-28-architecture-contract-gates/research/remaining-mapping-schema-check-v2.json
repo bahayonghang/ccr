@@ -1,0 +1,29 @@
+{
+  "status": "parser_and_receipt_validator_preparation_passed",
+  "scope": "Four completed receipt schemas and four rejection controls only; no matrix publication or complete final validator pass.",
+  "script_sha256": {
+    "build_evidence_matrix.py": "1748dda5a7dd5779bda3c10746c0849241175083eba10790e9c02b0309e57006",
+    "validate_evidence_mapping.py": "8e0b6fbc07176931ad0819f6c08d3036443393e9d36971f2a6b74a16b0d0c8f5"
+  },
+  "positive_receipts": {
+    "remaining-linux-workspace-coverage-final.json": "09a8f6088fc4c645004e690d1f397df47fe2aebc593d6dbbcb6a5061640df47c",
+    "remaining-windows-ci-final.json": "89395ca76954df0da66ec1cc9adc546b0f88a88921cfd66eea71025e0fbf40da",
+    "remaining-linux-coverage-tauri-final.json": "441bb1f3ea471eb0caf0107efb4fc161fdb366bcc06e551ed2a3da486efc3e6a",
+    "remaining-csp-focused-final.json": "a0fda818117cb3b0c42a726f426babb8923bba1239ae26a3d320b1aff8d4b2f8"
+  },
+  "negative_controls_rejected": [
+    "running",
+    "missing_source_change",
+    "missing_generated_change",
+    "wrong_log_hash"
+  ],
+  "failed_coverage": {
+    "exit_code": 101,
+    "source_changes": 7,
+    "generated_before": 230,
+    "generated_after": 33,
+    "generated_changes": 201,
+    "coverage_report_sha256": null
+  },
+  "verified_artifacts": 13
+}

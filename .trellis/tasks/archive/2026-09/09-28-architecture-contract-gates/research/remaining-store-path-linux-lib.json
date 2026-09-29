@@ -1,0 +1,43 @@
+{
+  "state": "finished",
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "ccr-store",
+    "--all-features",
+    "--lib"
+  ],
+  "cwd": "/mnt/d/Documents/Code/Github/ccr",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "started_at_utc": "2026-09-29T03:31:25.690514+00:00",
+  "git_head": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "sources_before": {
+    "Cargo.toml": "c4a71f50dee5cbdc4e477cb66e47f33a0e6e5d1fe78de46a41f51a6015790dd4",
+    "Cargo.lock": "22acbf9e8cad08d4a0653484681cc2ac3441f7c5f9357b1c824b8844d9dae1d3",
+    "crates/ccr-store/Cargo.toml": "aec6ff5743c07bb9b4c15d81bc0eb0afd306d43c3549a885c01be368210fa21f",
+    "crates/ccr-store/src/sessions/providers.rs": "93d816299b3d24abba4cbe02597d0cd91d5d258a865ea84a3fe79267c39c22c0"
+  },
+  "environment_overrides": {
+    "PATH": "/tmp/ccr-architecture-tools-01a0e781/bin:/home/lyh/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "RUSTUP_TOOLCHAIN": "1.98.0",
+    "CARGO_TARGET_DIR": "/tmp/ccr-architecture-linux-01a0e781",
+    "CCR_SKIP_ICON_GENERATION": "1"
+  },
+  "rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+  "runner_sha256": "8f4b933402a0996bb102ad248e395dfc0ed04534d2a06e26e6130384bbf1234f",
+  "scope": "One approved test, ccr-store lib/strict Clippy, or scoped static check; not an aggregate gate",
+  "log": "remaining-store-path-linux-lib.log",
+  "exit_code": 0,
+  "seconds": 0.768,
+  "finished_at_utc": "2026-09-29T03:31:26.507510+00:00",
+  "sources_after": {
+    "Cargo.toml": "c4a71f50dee5cbdc4e477cb66e47f33a0e6e5d1fe78de46a41f51a6015790dd4",
+    "Cargo.lock": "22acbf9e8cad08d4a0653484681cc2ac3441f7c5f9357b1c824b8844d9dae1d3",
+    "crates/ccr-store/Cargo.toml": "aec6ff5743c07bb9b4c15d81bc0eb0afd306d43c3549a885c01be368210fa21f",
+    "crates/ccr-store/src/sessions/providers.rs": "93d816299b3d24abba4cbe02597d0cd91d5d258a865ea84a3fe79267c39c22c0"
+  },
+  "log_sha256": "48a67433288aae9b5c2b798e97e13f9723fe1c7d14fa462ae6162a7b88c424a0",
+  "source_changes": []
+}

@@ -1,0 +1,19 @@
+{
+  "command": [
+    "cargo",
+    "--config",
+    ".cargo/tauri-ci.toml",
+    "test",
+    "--offline",
+    "--locked",
+    "--manifest-path",
+    "ccr-ui/src-tauri/Cargo.toml",
+    "application_",
+    "--",
+    "--test-threads=1",
+    "--skip",
+    "export_bindings"
+  ],
+  "exit_code": 0,
+  "seconds": 147.69
+}

@@ -1,0 +1,21 @@
+{
+  "command": [
+    "C:\\Users\\lyh\\AppData\\Local\\mbx\\bin\\cargo.EXE",
+    "--config",
+    ".cargo/tauri-ci.toml",
+    "test",
+    "--manifest-path",
+    "ccr-ui/src-tauri/Cargo.toml",
+    "--target-dir",
+    "D:/Documents/Code/Github/ccr/ccr-ui/src-tauri/target",
+    "architecture_baseline_deadline",
+    "--",
+    "--nocapture"
+  ],
+  "cwd": "C:\\Users\\lyh\\.codex\\worktrees\\ccr-architecture-baseline\\ccr",
+  "exit_code": 101,
+  "seconds": 74.92,
+  "log": "a09-baseline.log",
+  "expected": "red actual old streaming timeout",
+  "instrumentation": "a09-instrumentation.json"
+}

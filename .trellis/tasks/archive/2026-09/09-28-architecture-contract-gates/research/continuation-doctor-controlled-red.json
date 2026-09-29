@@ -1,0 +1,25 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "-p",
+    "ccr-cli",
+    "--all-features",
+    "--lib",
+    "commands::codex::fix::tests::doctor_timeout_terminates_parent_and_grandchild",
+    "--",
+    "--exact",
+    "--nocapture"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "source_before_sha256": "35e9cdf618bbd7578f0e8fe86354cee8cb7320e1fc04aeb3e6e20ac3550b0271",
+  "started_at_utc": "2026-09-28T23:34:26.632589+00:00",
+  "source_stage": "controlled child-start permission remains closed; original test/action deadline unchanged",
+  "expected": "test fails with missing grandchild PID after the action timeout terminates unready fixture",
+  "exit_code": 101,
+  "seconds": 33.083,
+  "source_after_sha256": "35e9cdf618bbd7578f0e8fe86354cee8cb7320e1fc04aeb3e6e20ac3550b0271",
+  "finished_at_utc": "2026-09-28T23:34:59.716273+00:00",
+  "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-controlled-red.log",
+  "log_sha256": "cd37b934d0842c3bdbe2e7a40d60d95a5593156a4396eb1eda005717f2e1b86c"
+}

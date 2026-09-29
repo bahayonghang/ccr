@@ -1,0 +1,26 @@
+{
+  "command": [
+    "wsl.exe",
+    "-d",
+    "Ubuntu-24.04",
+    "--exec",
+    "/usr/bin/env",
+    "RUSTUP_TOOLCHAIN=1.98.0",
+    "PATH=/home/lyh/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "CARGO_TARGET_DIR=/tmp/ccr-architecture-linux-01a0e781",
+    "/home/lyh/.cargo/bin/cargo",
+    "test",
+    "--locked",
+    "-p",
+    "ccr-core",
+    "process_gateway",
+    "--",
+    "--nocapture"
+  ],
+  "started_at": "2026-09-28T23:08:11.244756+00:00",
+  "source_sha": "bc10aa1cf8b17af5b49f337963a703b8ece68c63283ea8219f53ee42f2013cea",
+  "lock_sha": "22acbf9e8cad08d4a0653484681cc2ac3441f7c5f9357b1c824b8844d9dae1d3",
+  "exit_code": 0,
+  "seconds": 13.18,
+  "log": "continuation-linux-process-online.log"
+}
