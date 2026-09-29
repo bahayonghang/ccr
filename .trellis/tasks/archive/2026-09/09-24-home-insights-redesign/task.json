@@ -3,7 +3,7 @@
   "name": "home-insights-redesign",
   "title": "ccr-ui 首页重构：运维首屏 + Wake 式 Insights",
   "description": "参考 Wake Insights 重做 ccr-ui 首页：保留运维首屏并修复，下半屏新增 Insights（热力图/streak、agent 周趋势、按小时分布、榜单、7 天对比），后端新增 Insights 投影与 typed 命令",
-  "status": "planning",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -11,11 +11,11 @@
   "creator": "lyh",
   "assignee": "lyh",
   "createdAt": "2026-09-24",
-  "completedAt": null,
-  "branch": null,
+  "completedAt": "2026-09-29",
+  "branch": "dev",
   "base_branch": "main",
   "worktree_path": null,
-  "commit": null,
+  "commit": "76bae5164cebc9e9d5b82dcd9a082d4035b12968",
   "pr_url": null,
   "subtasks": [],
   "children": [
@@ -26,5 +26,20 @@
   "parent": null,
   "relatedFiles": [],
   "notes": "",
-  "meta": {}
+  "meta": {
+    "closure": {
+      "kind": "user_authorized_administrative_archive",
+      "authorization": "请提交所有其他改动并归档那两个9月24日的任务",
+      "record": ".trellis/tasks/archive/2026-09/09-24-home-insights-redesign/closure.json",
+      "acceptance": "not_recertified_in_this_closure",
+      "original_status": "planning",
+      "original_branch": null,
+      "remaining_work_commits": {
+        "artifacts": "c256f84b9f327293f4db8d5766545c832298b17b",
+        "icons": "55e00031185713f5f34948aee44f27f025cc5af2",
+        "probes": "1a30e10cf496e056eaae232aed0c6b0c5a70efef"
+      },
+      "original_parent": null
+    }
+  }
 }

@@ -1,0 +1,41 @@
+{
+  "id": "home-insights-frontend",
+  "name": "home-insights-frontend",
+  "title": "首页 Insights 前端实现",
+  "description": "DashboardView 首屏修复 + Insights 区块组件、查询、i18n、smoke 测试",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P1",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-09-24",
+  "completedAt": "2026-09-29",
+  "branch": "dev",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": "76bae5164cebc9e9d5b82dcd9a082d4035b12968",
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "09-24-home-insights-redesign",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "closure": {
+      "kind": "user_authorized_administrative_archive",
+      "authorization": "请提交所有其他改动并归档那两个9月24日的任务",
+      "record": ".trellis/tasks/archive/2026-09/09-24-home-insights-redesign/closure.json",
+      "acceptance": "not_recertified_in_this_closure",
+      "original_status": "in_progress",
+      "original_branch": "dev",
+      "remaining_work_commits": {
+        "artifacts": "c256f84b9f327293f4db8d5766545c832298b17b",
+        "icons": "55e00031185713f5f34948aee44f27f025cc5af2",
+        "probes": "1a30e10cf496e056eaae232aed0c6b0c5a70efef"
+      },
+      "original_parent": "09-24-home-insights-redesign"
+    }
+  }
+}

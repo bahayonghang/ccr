@@ -1,0 +1,67 @@
+{
+  "verified_at_utc": "2026-09-29T06:35:37.009294+00:00",
+  "tasks_archived": 2,
+  "original_task_files": {
+    ".trellis/tasks/09-24-home-insights-frontend/check.jsonl": {
+      "bytes": 542,
+      "sha256": "0f688dd5fbbb4f8672f8a31dfa1e5b9e8486a8d07a67107135bf6cff0af4215f"
+    },
+    ".trellis/tasks/09-24-home-insights-frontend/design.md": {
+      "bytes": 6247,
+      "sha256": "2127a7539a10268565697d5677e3e90d3179926e63df0f89ddc12de9e32a49d9"
+    },
+    ".trellis/tasks/09-24-home-insights-frontend/implement.jsonl": {
+      "bytes": 1475,
+      "sha256": "dd67b6262207d035007460989b12b17e7098da77fc217ac1a2018f41ada6143d"
+    },
+    ".trellis/tasks/09-24-home-insights-frontend/implement.md": {
+      "bytes": 2823,
+      "sha256": "62d17e470ee8bf13e523cfd679eef89fdf23aa20e4c9064acd340e4cd403dd3c"
+    },
+    ".trellis/tasks/09-24-home-insights-frontend/prd.md": {
+      "bytes": 5329,
+      "sha256": "a2a5b4e53271c73460e09b0dca0db9ae0ed822ff9ac84fc012d601851de7a849"
+    },
+    ".trellis/tasks/09-24-home-insights-frontend/task.json": {
+      "bytes": 674,
+      "sha256": "ec85faa245a91d43832b0996c7e3e696a9ee0fd6ec5a06fe1a5550ea08f06156"
+    },
+    ".trellis/tasks/09-24-home-insights-redesign/check.jsonl": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    ".trellis/tasks/09-24-home-insights-redesign/implement.jsonl": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    ".trellis/tasks/09-24-home-insights-redesign/prd.md": {
+      "bytes": 6082,
+      "sha256": "e825416bed1eb17ec42679295d5e7a78187a3bdca247bfb3258a3093b134ce52"
+    },
+    ".trellis/tasks/09-24-home-insights-redesign/task.json": {
+      "bytes": 926,
+      "sha256": "6255a121aa238c64ff897c676d4cedea78cada491c81e636d2812babb9353bba"
+    },
+    ".trellis/tasks/09-24-home-insights-redesign/research/wake-insights.md": {
+      "bytes": 2407,
+      "sha256": "4560f288cc131151695efc984d27407834edfb11db37c6b2622b774fea1c1759"
+    }
+  },
+  "original_nonmetadata_files_unchanged": 9,
+  "modified_task_metadata": [
+    ".trellis/tasks/archive/2026-09/09-24-home-insights-frontend/task.json",
+    ".trellis/tasks/archive/2026-09/09-24-home-insights-redesign/task.json"
+  ],
+  "archived_sibling_metadata_unchanged": [
+    ".trellis/tasks/archive/2026-09/09-24-home-insights-backend/task.json",
+    ".trellis/tasks/archive/2026-09/09-24-home-insights-design/task.json"
+  ],
+  "child_parent_links_retained": 3,
+  "remaining_work_commits": {
+    "artifacts": "c256f84b9f327293f4db8d5766545c832298b17b",
+    "icons": "55e00031185713f5f34948aee44f27f025cc5af2",
+    "probes": "1a30e10cf496e056eaae232aed0c6b0c5a70efef"
+  },
+  "content_review_sha256": "542dda7d6c15cd3097bf2688bf3261fa1f789a35633b51ffacc42bf527981fdc",
+  "status": "passed"
+}
