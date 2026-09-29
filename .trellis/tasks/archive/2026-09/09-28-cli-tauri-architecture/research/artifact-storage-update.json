@@ -1,0 +1,90 @@
+{
+  "recorded_at_utc": "2026-09-29T06:25:36.412228+00:00",
+  "authorization": "请提交所有其他改动并归档那两个9月24日的任务",
+  "storage_policy": "Commit all seven previously local-only nonignored artifacts per subsequent user request",
+  "supersedes_storage_selection_only": "closure.json local_only_artifacts; prior records remain historical",
+  "acceptance_status": "partial_required_acceptance_remains_open",
+  "acceptance_change": false,
+  "files": [
+    {
+      "state": "??",
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/baseline-repro/silent_child.exe",
+      "bytes": 169984,
+      "sha256": "770a4d3908bb874d6dcbf80120956b6c7292e3f8cb270f0c0faf45c823858d53"
+    },
+    {
+      "state": "??",
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/baseline-repro/silent_child.pdb",
+      "bytes": 1347584,
+      "sha256": "9d0f74cd29fbc28d998d0decf8373a7a4c1ff9788aa4054f1df8a8a97cfef7ea"
+    },
+    {
+      "state": "??",
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/continuation-linux-tauri-schema-before.json",
+      "bytes": 1270154,
+      "sha256": "9aa09480f485790c273a98d1355396ce6febe24371fd7ba4263362ccf4cc4d64"
+    },
+    {
+      "state": "??",
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-linux-coverage-report-final.json",
+      "bytes": 10664881,
+      "sha256": "55cd4a62be3bc291aa041531180ae485c771f68e9b92961b6046d29e824cb5d3"
+    },
+    {
+      "state": "??",
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-linux-coverage-report.json",
+      "bytes": 10658871,
+      "sha256": "e347b83c3e5ec8527ed021c6a61f9800cf00fee4814cb9dc83f3064ce4b584a2"
+    },
+    {
+      "state": "??",
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-linux-coverage-tauri-after-path-report.json",
+      "bytes": 10664881,
+      "sha256": "dd9194758676c4d888805c96b3127a6ff45feabeec822a900fc5766135d690ba"
+    },
+    {
+      "state": "??",
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-linux-coverage-workspace-after-path-report.json",
+      "bytes": 21966618,
+      "sha256": "0f59ba2a17de26c0ea21910e6605d9df6c3535653b5cffe9e73c37e2442f7d7e"
+    }
+  ],
+  "format_validation": [
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/baseline-repro/silent_child.exe",
+      "format": "PE executable (not executed)"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/baseline-repro/silent_child.pdb",
+      "format": "MSVC PDB (not executed)"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/continuation-linux-tauri-schema-before.json",
+      "format": "Tauri schema snapshot",
+      "valid_json": true
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-linux-coverage-report-final.json",
+      "format": "llvm.coverage.json.export",
+      "valid_json": true
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-linux-coverage-report.json",
+      "format": "llvm.coverage.json.export",
+      "valid_json": true
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-linux-coverage-tauri-after-path-report.json",
+      "format": "llvm.coverage.json.export",
+      "valid_json": true
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-linux-coverage-workspace-after-path-report.json",
+      "format": "llvm.coverage.json.export",
+      "valid_json": true
+    }
+  ],
+  "high_confidence_secret_pattern_matches": 0,
+  "binary_execution": false,
+  "pushed": false
+}
