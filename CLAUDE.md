@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `just frontend-check-quick` runs frontend typecheck, lint, and smoke tests; it intentionally omits build and docs checks.
 - Use `just ci` as the full heavy gate for final acceptance. The step list is in the root `justfile` (`_ci-timed-windows` / `_ci-timed-linux` / `_ci-timed-macos`).
 - `just version-sync` and `just fmt` are repair-oriented steps that may modify files; after running them, inspect the diff before continuing.
-- If you run Rust tests directly instead of `just test`, include `-- --test-threads=1` to avoid concurrent-conflict flakes. That flake mitigation is existing repo policy, not a reason to serialize unrelated UI/docs/extension tests.
+- Direct Rust tests use default parallelism: `cargo test --workspace --all-features -- --skip export_bindings`. Isolate shared environment state in the owning fixture. The separate binding-generation gate owns exports.
 - Set `CCR_LOG_LEVEL=debug` (or `trace|info|warn|error`) for runtime debug output.
 - For code review passes, ask for all findings regardless of severity and filter separately — do not instruct the model to limit findings upfront.
 - For Codex effort control on long tasks: agentic coding and full audits use `xhigh`; single-file edits and quick lookups use `low`/`medium`.

@@ -77,6 +77,14 @@ cmake-build-*/
 .antigravitycli/
 .impeccable/
 .omp/
+# Deliver the OMP extension required by the repository contract tests.
+!/.omp/
+/.omp/*
+!/.omp/extensions/
+/.omp/extensions/*
+!/.omp/extensions/trellis/
+/.omp/extensions/trellis/*
+!/.omp/extensions/trellis/index.ts
 .grok/
 .kimi-code/
 

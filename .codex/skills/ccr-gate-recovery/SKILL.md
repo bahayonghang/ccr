@@ -7,7 +7,9 @@ description: CCR-specific local gate recovery workflow. Use when asked to fix fa
 
 Recover local verification gates from the CCR repository root by finding the first real failing step, fixing narrowly, and escalating validation only after the narrow gate is green.
 
-This skill applies to Claude Code, Codex, Grok Build, Kimi Code, and OMP — not Codex only. It does not invent a new recovery engine. Keep the repository's existing **parallel** test gates; do not serialize unrelated suites as a recovery strategy. Rust `-- --test-threads=1` is the existing flake mitigation from `CLAUDE.md` when running `cargo test` directly.
+This skill applies to Claude Code, Codex, Grok Build, Kimi Code, and OMP. Use existing repository gates and default test parallelism. Isolate shared environment state in the owning fixture. Keep binding exports in the separate generation gate.
+
+Before implementation approval, inspect and run only authorized checks. After approval, implement and self-fix check roles may edit the approved files. Keep native client, hosted CI, and local test evidence separate.
 
 ## Workflow
 
@@ -29,10 +31,10 @@ This skill applies to Claude Code, Codex, Grok Build, Kimi Code, and OMP — not
 ```powershell
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test --workspace --all-features -- --test-threads=1
+cargo test --workspace --all-features -- --skip export_bindings
 ```
 
-Use package-scoped `cargo test -p <crate-name>` while iterating when the failing crate is clear. Independent UI/docs/extension gates may run in parallel with Rust; do not serialize them to “recover” a gate.
+Use package-scoped `cargo test -p <crate-name> -- --skip export_bindings` when the failing crate is clear. Independent UI, docs, and extension gates may run in parallel with Rust.
 
 ### ccr-ui
 
