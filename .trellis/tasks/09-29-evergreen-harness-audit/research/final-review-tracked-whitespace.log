@@ -1,0 +1,10 @@
+
+STDERR:
+warning: in the working copy of '.github/dependabot.yml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '.github/workflows/ci.yml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '.github/workflows/frontend-ci.yml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '.github/workflows/vscode-ci.yml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'justfile', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scripts/ci/check_workflow_governance.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scripts/ci/ci_surface_policy.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scripts/ci/test_check_workflow_governance.py', LF will be replaced by CRLF the next time Git touches it

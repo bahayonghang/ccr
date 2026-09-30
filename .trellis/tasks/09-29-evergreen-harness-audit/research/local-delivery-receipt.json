@@ -1,0 +1,116 @@
+{
+  "recorded_at_utc": "2026-09-30T05:37:07.841930+00:00",
+  "work_commits": [
+    {
+      "group": "harness",
+      "commit": "c4d38e5154edf6a8fa1c781f91d31ce6aa4bb5ad",
+      "paths": [
+        ".codex/skills/ccr-gate-recovery/SKILL.md",
+        ".gitignore",
+        ".omp/extensions/trellis/index.ts",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "docs/agents/harnesses.md",
+        "docs/en/agents/harnesses.md",
+        "scripts/quality/check_harness_contracts.py",
+        "scripts/quality/test_check_harness_contracts.py",
+        "scripts/trellis/omp-context.test.ts"
+      ],
+      "git_lf_normalized_paths": [
+        ".gitignore",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "docs/agents/harnesses.md",
+        "docs/en/agents/harnesses.md"
+      ]
+    },
+    {
+      "group": "gates",
+      "commit": "f68116ecd22bb74b86011b01d14b72cfc8a855d0",
+      "paths": [
+        ".github/dependabot.yml",
+        ".github/workflows/ci.yml",
+        ".github/workflows/frontend-ci.yml",
+        ".github/workflows/vscode-ci.yml",
+        ".trellis/spec/ccr/backend/dependency-governance.md",
+        ".trellis/spec/ccr/backend/test-fixtures.md",
+        "docs/en/guide/github-copilot-workspace.md",
+        "docs/guide/github-copilot-workspace.md",
+        "justfile",
+        "scripts/ci/check_workflow_governance.py",
+        "scripts/ci/ci_surface_policy.py",
+        "scripts/ci/test_check_workflow_governance.py",
+        "scripts/quality/check-copilot-assets.mjs",
+        "scripts/quality/check-copilot-assets.test.mjs"
+      ],
+      "git_lf_normalized_paths": [
+        ".trellis/spec/ccr/backend/dependency-governance.md",
+        ".trellis/spec/ccr/backend/test-fixtures.md",
+        "docs/en/guide/github-copilot-workspace.md",
+        "docs/guide/github-copilot-workspace.md",
+        "justfile",
+        "scripts/ci/check_workflow_governance.py",
+        "scripts/ci/test_check_workflow_governance.py",
+        "scripts/quality/check-copilot-assets.mjs"
+      ]
+    },
+    {
+      "group": "extension",
+      "commit": "c1453c7b1f5405f93eaecf67ff0d074bb1e9db1d",
+      "paths": [
+        ".trellis/spec/ccr-vscode/frontend/extension-surface-contracts.md",
+        "ccr-vscode/.vscodeignore",
+        "ccr-vscode/justfile",
+        "ccr-vscode/package-lock.json",
+        "ccr-vscode/package.json",
+        "ccr-vscode/scripts/check-package-files.mjs",
+        "ccr-vscode/scripts/check-package-files.test.mjs"
+      ],
+      "git_lf_normalized_paths": [
+        ".trellis/spec/ccr-vscode/frontend/extension-surface-contracts.md",
+        "ccr-vscode/justfile",
+        "ccr-vscode/package-lock.json",
+        "ccr-vscode/package.json"
+      ]
+    },
+    {
+      "group": "ui-lock",
+      "commit": "30cbeddf730ed01b312c3396ba7b8691853be859",
+      "paths": [
+        "ccr-ui/bun.lock"
+      ],
+      "git_lf_normalized_paths": []
+    }
+  ],
+  "eligible_for_archive": [
+    "09-29-harness-omp-context",
+    "09-29-harness-contract-alignment",
+    "09-29-harness-copilot-crlf"
+  ],
+  "remaining_active": {
+    "09-29-evergreen-harness-audit": "完整 CI 失败，安全与原生验收仍未关闭。",
+    "09-29-harness-dependabot-bun": "真实 Dependabot 验证仍未执行。",
+    "09-29-harness-vsix-package": "新增扩展依赖补丁仍待批准，当前审计两个受影响包。",
+    "09-29-harness-readonly-gates": "正式完整 CI 仍为 FAILED。",
+    "09-29-harness-ci-evidence": "managers 夹具候选待批准；macOS 与原生客户端等证据未齐。",
+    "09-29-harness-frontend-security": "最终 LF 完整前端门槛及任务声明的最终完整 CI 尚未完成。"
+  },
+  "full_ci": "FAILED; latest final-ci-retry1 stopped at Rust managers FileLockError; later gates not run",
+  "pending_repairs_unapplied": true,
+  "git_source_staging": "Git normalized CRLF source files to LF under the existing configuration. Each staged blob was verified equal to the current bytes or CRLF-to-LF bytes. Raw task receipts will use command-local core.autocrlf=false to preserve recorded hashes.",
+  "large_raw_evidence": {
+    "path": ".trellis/tasks/09-29-harness-ci-evidence/research/tauri-advisory-commands.json",
+    "bytes": 1164069,
+    "sha256": "fd50a44aab9e7d9ab269425ceaa6c691004db9390147cf3be9ad273c7d43bd96",
+    "commit_authorization": "awaiting_user_choice"
+  },
+  "source_add_note": "The first git add returned an ignored .codex ancestor warning. All ten intended paths were present in the index and each blob matched expected content before the first commit. No additional path was force-added.",
+  "evidence_staging": {
+    "included_paths": 438,
+    "ignored_raw_logs_included": 165,
+    "excluded_generated_cache_files": 3,
+    "excluded_pending_large_file": ".trellis/tasks/09-29-harness-ci-evidence/research/tauri-advisory-commands.json",
+    "manifest": "local-delivery-evidence-files.txt",
+    "method": "Exact path list; force-add only these approved task artifacts, preserving raw bytes with command-local core.autocrlf=false. ignore-boundary.log is a 196-byte UTF-8 git output with NUL separators."
+  }
+}

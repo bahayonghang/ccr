@@ -1,0 +1,51 @@
+{
+  "version": "7.4.0",
+  "name": "ccr-vscode",
+  "dependencies": {
+    "@vscode/vsce": {
+      "version": "3.9.2",
+      "resolved": "https://registry.npmjs.org/@vscode/vsce/-/vsce-3.9.2.tgz",
+      "overridden": false,
+      "dependencies": {
+        "@secretlint/node": {
+          "version": "10.2.2",
+          "resolved": "https://registry.npmjs.org/@secretlint/node/-/node-10.2.2.tgz",
+          "overridden": false,
+          "dependencies": {
+            "@secretlint/config-loader": {
+              "version": "10.2.2",
+              "resolved": "https://registry.npmjs.org/@secretlint/config-loader/-/config-loader-10.2.2.tgz",
+              "overridden": false,
+              "dependencies": {
+                "ajv": {
+                  "version": "8.18.0",
+                  "resolved": "https://registry.npmjs.org/ajv/-/ajv-8.18.0.tgz",
+                  "overridden": false,
+                  "dependencies": {
+                    "fast-uri": {
+                      "version": "3.1.6",
+                      "resolved": "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.6.tgz",
+                      "overridden": false
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "cheerio": {
+          "version": "1.2.0",
+          "resolved": "https://registry.npmjs.org/cheerio/-/cheerio-1.2.0.tgz",
+          "overridden": false,
+          "dependencies": {
+            "undici": {
+              "version": "7.29.0",
+              "resolved": "https://registry.npmjs.org/undici/-/undici-7.29.0.tgz",
+              "overridden": false
+            }
+          }
+        }
+      }
+    }
+  }
+}

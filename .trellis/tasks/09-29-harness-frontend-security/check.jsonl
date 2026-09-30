@@ -1,0 +1,3 @@
+{"file":".trellis/tasks/09-29-evergreen-harness-audit/research/context-governance.md","reason":"本任务所需规范原文；含来源、行号及 SHA-256，避免单文件注入截断"}
+{"file":".trellis/tasks/09-29-evergreen-harness-audit/research/audit-report.md","reason":"已复核缺陷、边界与来源"}
+{"file":".trellis/tasks/09-29-evergreen-harness-audit/research/harness-matrix.md","reason":"五套工具和模型角色边界"}

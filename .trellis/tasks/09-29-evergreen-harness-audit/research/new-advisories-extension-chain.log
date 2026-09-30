@@ -1,0 +1,448 @@
+[
+  {
+    "name": "brace-expansion",
+    "version": "5.0.9",
+    "location": "node_modules/brace-expansion",
+    "isWorkspace": false,
+    "dependents": [
+      {
+        "type": "prod",
+        "name": "brace-expansion",
+        "spec": "^5.0.8",
+        "from": {
+          "name": "minimatch",
+          "version": "10.2.6",
+          "location": "node_modules/minimatch",
+          "isWorkspace": false,
+          "dependents": [
+            {
+              "type": "prod",
+              "name": "minimatch",
+              "spec": "^10.2.2",
+              "from": {
+                "name": "@vscode/vsce",
+                "version": "3.9.2",
+                "location": "node_modules/@vscode/vsce",
+                "isWorkspace": false,
+                "dependents": [
+                  {
+                    "type": "dev",
+                    "name": "@vscode/vsce",
+                    "spec": "^3.9.2",
+                    "from": {
+                      "location": "D:\\Documents\\Code\\Github\\ccr\\ccr-vscode"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "prod",
+              "name": "minimatch",
+              "spec": "^10.2.2",
+              "from": {
+                "name": "glob",
+                "version": "13.0.6",
+                "location": "node_modules/glob",
+                "isWorkspace": false,
+                "dependents": [
+                  {
+                    "type": "prod",
+                    "name": "glob",
+                    "spec": "^13.0.6",
+                    "from": {
+                      "name": "@vscode/vsce",
+                      "version": "3.9.2",
+                      "location": "node_modules/@vscode/vsce",
+                      "isWorkspace": false,
+                      "dependents": [
+                        {
+                          "type": "dev",
+                          "name": "@vscode/vsce",
+                          "spec": "^3.9.2",
+                          "from": {
+                            "location": "D:\\Documents\\Code\\Github\\ccr\\ccr-vscode"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "dev": true,
+    "optional": false,
+    "devOptional": false,
+    "peer": false,
+    "bundled": false,
+    "overridden": false
+  },
+  {
+    "name": "fast-uri",
+    "version": "3.1.7",
+    "location": "node_modules/fast-uri",
+    "isWorkspace": false,
+    "dependents": [
+      {
+        "type": "prod",
+        "name": "fast-uri",
+        "spec": "^3.0.1",
+        "from": {
+          "name": "ajv",
+          "version": "8.18.0",
+          "location": "node_modules/ajv",
+          "isWorkspace": false,
+          "dependents": [
+            {
+              "type": "prod",
+              "name": "ajv",
+              "spec": "^8.17.1",
+              "from": {
+                "name": "@secretlint/config-loader",
+                "version": "10.2.2",
+                "location": "node_modules/@secretlint/config-loader",
+                "isWorkspace": false,
+                "dependents": [
+                  {
+                    "type": "prod",
+                    "name": "@secretlint/config-loader",
+                    "spec": "^10.2.2",
+                    "from": {
+                      "name": "@secretlint/node",
+                      "version": "10.2.2",
+                      "location": "node_modules/@secretlint/node",
+                      "isWorkspace": false,
+                      "dependents": [
+                        {
+                          "type": "prod",
+                          "name": "@secretlint/node",
+                          "spec": "^10.1.2",
+                          "from": {
+                            "name": "@vscode/vsce",
+                            "version": "3.9.2",
+                            "location": "node_modules/@vscode/vsce",
+                            "isWorkspace": false,
+                            "dependents": [
+                              {
+                                "type": "dev",
+                                "name": "@vscode/vsce",
+                                "spec": "^3.9.2",
+                                "from": {
+                                  "location": "D:\\Documents\\Code\\Github\\ccr\\ccr-vscode"
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "type": "prod",
+                          "name": "@secretlint/node",
+                          "spec": "^10.2.2",
+                          "from": {
+                            "name": "secretlint",
+                            "version": "10.2.2",
+                            "location": "node_modules/secretlint",
+                            "isWorkspace": false,
+                            "dependents": [
+                              {
+                                "type": "prod",
+                                "name": "secretlint",
+                                "spec": "^10.1.2",
+                                "from": {
+                                  "name": "@vscode/vsce",
+                                  "version": "3.9.2",
+                                  "location": "node_modules/@vscode/vsce",
+                                  "isWorkspace": false,
+                                  "dependents": [
+                                    {
+                                      "type": "dev",
+                                      "name": "@vscode/vsce",
+                                      "spec": "^3.9.2",
+                                      "from": {
+                                        "location": "D:\\Documents\\Code\\Github\\ccr\\ccr-vscode"
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "prod",
+              "name": "ajv",
+              "spec": "^8.0.1",
+              "from": {
+                "name": "table",
+                "version": "6.9.0",
+                "location": "node_modules/table",
+                "isWorkspace": false,
+                "dependents": [
+                  {
+                    "type": "prod",
+                    "name": "table",
+                    "spec": "^6.9.0",
+                    "from": {
+                      "name": "@secretlint/formatter",
+                      "version": "10.2.2",
+                      "location": "node_modules/@secretlint/formatter",
+                      "isWorkspace": false,
+                      "dependents": [
+                        {
+                          "type": "prod",
+                          "name": "@secretlint/formatter",
+                          "spec": "^10.2.2",
+                          "from": {
+                            "name": "@secretlint/node",
+                            "version": "10.2.2",
+                            "location": "node_modules/@secretlint/node",
+                            "isWorkspace": false,
+                            "dependents": [
+                              {
+                                "type": "prod",
+                                "name": "@secretlint/node",
+                                "spec": "^10.1.2",
+                                "from": {
+                                  "name": "@vscode/vsce",
+                                  "version": "3.9.2",
+                                  "location": "node_modules/@vscode/vsce",
+                                  "isWorkspace": false,
+                                  "dependents": [
+                                    {
+                                      "type": "dev",
+                                      "name": "@vscode/vsce",
+                                      "spec": "^3.9.2",
+                                      "from": {
+                                        "location": "D:\\Documents\\Code\\Github\\ccr\\ccr-vscode"
+                                      }
+                                    }
+                                  ]
+                                }
+                              },
+                              {
+                                "type": "prod",
+                                "name": "@secretlint/node",
+                                "spec": "^10.2.2",
+                                "from": {
+                                  "name": "secretlint",
+                                  "version": "10.2.2",
+                                  "location": "node_modules/secretlint",
+                                  "isWorkspace": false,
+                                  "dependents": [
+                                    {
+                                      "type": "prod",
+                                      "name": "secretlint",
+                                      "spec": "^10.1.2",
+                                      "from": {
+                                        "name": "@vscode/vsce",
+                                        "version": "3.9.2",
+                                        "location": "node_modules/@vscode/vsce",
+                                        "isWorkspace": false,
+                                        "dependents": [
+                                          {
+                                            "type": "dev",
+                                            "name": "@vscode/vsce",
+                                            "spec": "^3.9.2",
+                                            "from": {
+                                              "location": "D:\\Documents\\Code\\Github\\ccr\\ccr-vscode"
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "type": "prod",
+                          "name": "@secretlint/formatter",
+                          "spec": "^10.2.2",
+                          "from": {
+                            "name": "secretlint",
+                            "version": "10.2.2",
+                            "location": "node_modules/secretlint",
+                            "isWorkspace": false,
+                            "dependents": [
+                              {
+                                "type": "prod",
+                                "name": "secretlint",
+                                "spec": "^10.1.2",
+                                "from": {
+                                  "name": "@vscode/vsce",
+                                  "version": "3.9.2",
+                                  "location": "node_modules/@vscode/vsce",
+                                  "isWorkspace": false,
+                                  "dependents": [
+                                    {
+                                      "type": "dev",
+                                      "name": "@vscode/vsce",
+                                      "spec": "^3.9.2",
+                                      "from": {
+                                        "location": "D:\\Documents\\Code\\Github\\ccr\\ccr-vscode"
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "prod",
+                    "name": "table",
+                    "spec": "^6.9.0",
+                    "from": {
+                      "name": "@textlint/linter-formatter",
+                      "version": "15.5.2",
+                      "location": "node_modules/@textlint/linter-formatter",
+                      "isWorkspace": false,
+                      "dependents": [
+                        {
+                          "type": "prod",
+                          "name": "@textlint/linter-formatter",
+                          "spec": "^15.2.0",
+                          "from": {
+                            "name": "@secretlint/formatter",
+                            "version": "10.2.2",
+                            "location": "node_modules/@secretlint/formatter",
+                            "isWorkspace": false,
+                            "dependents": [
+                              {
+                                "type": "prod",
+                                "name": "@secretlint/formatter",
+                                "spec": "^10.2.2",
+                                "from": {
+                                  "name": "@secretlint/node",
+                                  "version": "10.2.2",
+                                  "location": "node_modules/@secretlint/node",
+                                  "isWorkspace": false,
+                                  "dependents": [
+                                    {
+                                      "type": "prod",
+                                      "name": "@secretlint/node",
+                                      "spec": "^10.1.2",
+                                      "from": {
+                                        "name": "@vscode/vsce",
+                                        "version": "3.9.2",
+                                        "location": "node_modules/@vscode/vsce",
+                                        "isWorkspace": false,
+                                        "dependents": [
+                                          {
+                                            "type": "dev",
+                                            "name": "@vscode/vsce",
+                                            "spec": "^3.9.2",
+                                            "from": {
+                                              "location": "D:\\Documents\\Code\\Github\\ccr\\ccr-vscode"
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    {
+                                      "type": "prod",
+                                      "name": "@secretlint/node",
+                                      "spec": "^10.2.2",
+                                      "from": {
+                                        "name": "secretlint",
+                                        "version": "10.2.2",
+                                        "location": "node_modules/secretlint",
+                                        "isWorkspace": false,
+                                        "dependents": [
+                                          {
+                                            "type": "prod",
+                                            "name": "secretlint",
+                                            "spec": "^10.1.2",
+                                            "from": {
+                                              "name": "@vscode/vsce",
+                                              "version": "3.9.2",
+                                              "location": "node_modules/@vscode/vsce",
+                                              "isWorkspace": false,
+                                              "dependents": [
+                                                {
+                                                  "type": "dev",
+                                                  "name": "@vscode/vsce",
+                                                  "spec": "^3.9.2",
+                                                  "from": {
+                                                    "location": "D:\\Documents\\Code\\Github\\ccr\\ccr-vscode"
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              },
+                              {
+                                "type": "prod",
+                                "name": "@secretlint/formatter",
+                                "spec": "^10.2.2",
+                                "from": {
+                                  "name": "secretlint",
+                                  "version": "10.2.2",
+                                  "location": "node_modules/secretlint",
+                                  "isWorkspace": false,
+                                  "dependents": [
+                                    {
+                                      "type": "prod",
+                                      "name": "secretlint",
+                                      "spec": "^10.1.2",
+                                      "from": {
+                                        "name": "@vscode/vsce",
+                                        "version": "3.9.2",
+                                        "location": "node_modules/@vscode/vsce",
+                                        "isWorkspace": false,
+                                        "dependents": [
+                                          {
+                                            "type": "dev",
+                                            "name": "@vscode/vsce",
+                                            "spec": "^3.9.2",
+                                            "from": {
+                                              "location": "D:\\Documents\\Code\\Github\\ccr\\ccr-vscode"
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "dev": true,
+    "optional": false,
+    "devOptional": false,
+    "peer": false,
+    "bundled": false,
+    "overridden": false
+  }
+]

@@ -1,0 +1,19 @@
+{
+  "verified_utc": "2026-09-30T03:45:29.411458+00:00",
+  "ui_exact_four_semantic_nodes": 4,
+  "ui_sha256": "f4d25c2659543ffbc3c439a92813f0d67d9c44c2bc3d881d7e3710bb52adbf1e",
+  "ui_crlf_count": 1568,
+  "ui_reconstructed_lf_baseline_matches_capture": true,
+  "ui_extra_newline_change_present": true,
+  "other_captured_sources_unchanged": {
+    "ccr-ui/package.json": true,
+    "docs/bun.lock": true,
+    "docs/package.json": true,
+    "ccr-vscode/package-lock.json": true,
+    "ccr-vscode/package.json": true
+  },
+  "spec_sha256": "a30515eb1d2e75b97fd3feb2f76650bd62385fb4bd053b3f9f2cf93ca275dafe",
+  "maxActiveExceptions": 0,
+  "policy_sha256": "4fc8dfb8ed4f181bb459a68a65cde2adee8aab7363c6cd2c936ccfa5df631022",
+  "reviewer_product_writes": false
+}

@@ -1,0 +1,9 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 前端 TypeScript 类型检查
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+cd ccr-ui && bun install --frozen-lockfile && bun run type-check
+bun install v1.4.2 (744846f84)
+
+Checked 654 installs across 723 packages (no changes) [560.00ms]
+$ tsc --noEmit
+✅ 前端类型检查通过

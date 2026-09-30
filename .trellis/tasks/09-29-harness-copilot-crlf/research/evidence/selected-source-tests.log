@@ -1,0 +1,42 @@
+✔ accepts LF with no BOM without changing bytes (318.7987ms)
+✔ accepts LF with BOM without changing bytes (324.7134ms)
+✔ accepts CRLF with no BOM without changing bytes (315.5464ms)
+✔ accepts CRLF with BOM without changing bytes (310.1001ms)
+✔ rejects missing field (327.8365ms)
+✔ rejects empty plain value (313.1486ms)
+✔ rejects empty double-quoted value (313.8444ms)
+✔ rejects empty single-quoted value (308.6453ms)
+✔ rejects whitespace-only value (322.4229ms)
+✔ rejects comment-only value (315.2014ms)
+✔ rejects null value (323.3173ms)
+✔ rejects missing opening delimiter (335.9123ms)
+✔ rejects false opening delimiter (320.9632ms)
+✔ rejects unclosed header (323.7113ms)
+✔ rejects false closing delimiter (337.6799ms)
+✔ rejects missing field separator (314.5392ms)
+✔ rejects duplicate field (325.8403ms)
+✔ rejects unclosed quoted value (332.8983ms)
+✔ rejects mismatched quoted value (320.9742ms)
+✔ rejects invalid double-quote escape (323.2985ms)
+✔ rejects structured required value (341.9285ms)
+✔ requires applyTo in its asset type (330.8342ms)
+✔ requires agent in its asset type (334.5491ms)
+✔ requires name in its asset type (340.4352ms)
+✔ accepts quoted comments and an exact closing delimiter at EOF (317.2747ms)
+✔ requires shared rules to be tracked even when the file exists (374.1188ms)
+✔ local skills do not replace tracked shared skills (385.0208ms)
+✔ rejects a missing tracked shared skill (316.1235ms)
+✔ rejects missing expected assets (319.4238ms)
+✔ rejects tracked terminology drift case 1 (380.8251ms)
+✔ rejects tracked terminology drift case 2 (399.7406ms)
+✔ rejects tracked terminology drift case 3 (384.7108ms)
+✔ rejects tracked terminology drift case 4 (417.1809ms)
+✔ rejects tracked terminology drift case 5 (420.2327ms)
+ℹ tests 34
+ℹ suites 0
+ℹ pass 34
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12193.0793

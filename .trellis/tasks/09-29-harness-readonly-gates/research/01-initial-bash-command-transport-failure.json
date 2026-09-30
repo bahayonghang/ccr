@@ -1,0 +1,13 @@
+{
+  "date_utc": "2026-09-30T03:08:11.474859+00:00",
+  "command": [
+    "C:\\Program Files\\Python314\\python.exe",
+    "-m",
+    "unittest",
+    "scripts.ci.test_check_workflow_governance.ReadonlyAggregateTests.test_linux_aggregate_order_and_first_failure",
+    "scripts.ci.test_check_workflow_governance.ReadonlyAggregateTests.test_macos_aggregate_order_and_first_failure"
+  ],
+  "exit_code": 1,
+  "boundary": "Windows legacy bash.exe -c argument transport corrupts shell variables; aggregate source is unchanged",
+  "expected_failures": 14
+}

@@ -1,0 +1,3 @@
+cd ccr-ui && bun run audit:dependencies
+$ bun ./scripts/audit-dependencies.mjs
+frontend dependency audit passed: 0 reported advisories, 0/0 active exceptions

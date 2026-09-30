@@ -1,0 +1,22 @@
+
+running 17 tests
+test general::test_config_section_validation ... ok
+test general::test_settings_validation ... ok
+test general::test_settings_update_from_config ... ok
+test general::test_config_sorting_and_filtering ... ok
+test legacy_registry::per_platform_current_profile_helpers_round_trip ... ok
+test general::test_history_entry_env_changes ... ok
+test legacy_registry::config_manager_default_ignores_legacy_current_platform_routing ... ok
+test general::test_config_manager_lifecycle ... ok
+test legacy_registry::legacy_registry_fields_load_without_becoming_clean_write_routing_truth ... ok
+test general::test_settings_manager_atomic_operations ... ok
+test general::test_config_manager_section_operations ... ok
+test general::test_history_manager_stats ... ok
+test general::test_config_and_settings_integration ... ok
+test general::test_history_manager_add_and_load ... ok
+test general::test_history_manager_filtering ... ok
+test general::test_settings_backup_and_restore ... ok
+test general::test_history_manager_recent_limit ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+

@@ -1,0 +1,21 @@
+🔍 检查版本号一致性
+🔧 根版本: 7.4.0
+📦 ccr-types 版本: 7.4.0
+📦 ccr-db 版本: 7.4.0
+⚛️  前端版本: 7.4.0
+🖥️  Tauri Cargo 版本: 7.4.0
+🖥️  Tauri Conf 版本: 7.4.0
+🖼️  appMeta.ts (config) 版本: 7.4.0
+📘 ccr-ui/README.md 徽章版本: 7.4.0
+🔌 VSCode 扩展版本: 7.4.0
+✅ 版本一致性检查通过
+📄 ccr-ui/README.md version: 7.4.0
+📦 canonical package manager: bun@1.4.0
+📚 docs package manager mirror: bun@1.4.0
+🦀 rust-version: 1.95, edition: 2024
+🔒 JS lock strategy: ccr-ui/bun.lock and docs/bun.lock only
+✅ 文档/锁文件 drift 检查通过
+Repeated dependencies checked: 19
+Active exceptions: 1
+  - toml root=1.1.4 tauri=0.9.8
+root/Tauri dependency and MSRV governance check passed

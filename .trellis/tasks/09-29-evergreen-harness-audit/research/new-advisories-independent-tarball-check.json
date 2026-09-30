@@ -1,0 +1,69 @@
+{
+  "verification": "independent second download; package.json read in memory; no archive extraction or package execution",
+  "proposal_sha256": "4de026585eac74ba1ab7281b58d196f5a83561b487e3b18b2b0440cebf0851cc",
+  "tarballs": [
+    {
+      "package": "brace-expansion",
+      "version": "1.1.21",
+      "url": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-1.1.21.tgz",
+      "http_status": 200,
+      "fetched_utc": "2026-09-30T03:41:57.961466+00:00",
+      "bytes": 7924,
+      "sha512": "sha512-9zeA+KLZNNzglF2TPKRQEDyx6Yby7daAkuy8MiPzpXPsYDWi/DRM8jmwUDxokQjYqBpv5DgPiwD4h4ZZSy1Ujw==",
+      "metadata_fields_verified": [
+        "name",
+        "version",
+        "dependencies",
+        "optionalDependencies",
+        "peerDependencies",
+        "engines",
+        "main",
+        "exports",
+        "type"
+      ],
+      "code_executed": false
+    },
+    {
+      "package": "fast-uri",
+      "version": "3.1.8",
+      "url": "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.8.tgz",
+      "http_status": 200,
+      "fetched_utc": "2026-09-30T03:41:58.191079+00:00",
+      "bytes": 44269,
+      "sha512": "sha512-GZMtZUTNRpOVIECoXwLNZS5xUGE+mVNbTB8h/7Rwh2TFWcBQiPzTgyZi05BF9UMZKkLJv8XBRJTlU7zg8+ZfMg==",
+      "metadata_fields_verified": [
+        "name",
+        "version",
+        "dependencies",
+        "optionalDependencies",
+        "peerDependencies",
+        "engines",
+        "main",
+        "exports",
+        "type"
+      ],
+      "code_executed": false
+    },
+    {
+      "package": "brace-expansion",
+      "version": "5.0.12",
+      "url": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.12.tgz",
+      "http_status": 200,
+      "fetched_utc": "2026-09-30T03:41:57.920800+00:00",
+      "bytes": 12620,
+      "sha512": "sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ==",
+      "metadata_fields_verified": [
+        "name",
+        "version",
+        "dependencies",
+        "optionalDependencies",
+        "peerDependencies",
+        "engines",
+        "main",
+        "exports",
+        "type"
+      ],
+      "code_executed": false
+    }
+  ]
+}

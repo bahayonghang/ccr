@@ -1,0 +1,24 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🤖 GitHub Copilot 工作区资产检查
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+node scripts/quality/check-copilot-assets.mjs
+GitHub Copilot workspace asset check failed:
+- Missing frontmatter key "applyTo" in .github/instructions/rust.instructions.md
+- Missing frontmatter key "description" in .github/instructions/rust.instructions.md
+- Missing frontmatter key "applyTo" in .github/instructions/ui.instructions.md
+- Missing frontmatter key "description" in .github/instructions/ui.instructions.md
+- Missing frontmatter key "applyTo" in .github/instructions/docs.instructions.md
+- Missing frontmatter key "description" in .github/instructions/docs.instructions.md
+- Missing frontmatter key "description" in .github/prompts/rust-change.prompt.md
+- Missing frontmatter key "agent" in .github/prompts/rust-change.prompt.md
+- Missing frontmatter key "description" in .github/prompts/ui-change.prompt.md
+- Missing frontmatter key "agent" in .github/prompts/ui-change.prompt.md
+- Missing frontmatter key "description" in .github/prompts/docs-change.prompt.md
+- Missing frontmatter key "agent" in .github/prompts/docs-change.prompt.md
+- Missing frontmatter key "name" in .github/agents/researcher.agent.md
+- Missing frontmatter key "description" in .github/agents/researcher.agent.md
+- Missing frontmatter key "name" in .github/agents/implementer.agent.md
+- Missing frontmatter key "description" in .github/agents/implementer.agent.md
+- Missing frontmatter key "name" in .github/agents/reviewer.agent.md
+- Missing frontmatter key "description" in .github/agents/reviewer.agent.md
+error: recipe `copilot-check` failed on line 795 with exit code 1

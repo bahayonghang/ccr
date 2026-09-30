@@ -1,0 +1,38 @@
+[
+  {
+    "label": "unit",
+    "exit_code": 0
+  },
+  {
+    "label": "workflow-governance",
+    "exit_code": 0
+  },
+  {
+    "label": "version-check",
+    "exit_code": 0
+  },
+  {
+    "label": "docs-frozen",
+    "exit_code": 0
+  },
+  {
+    "label": "docs-audit",
+    "exit_code": 0
+  },
+  {
+    "label": "docs-build",
+    "exit_code": 0
+  },
+  {
+    "label": "ui-frozen",
+    "exit_code": 0
+  },
+  {
+    "label": "actionlint",
+    "exit_code": 0
+  },
+  {
+    "label": "diff-check",
+    "exit_code": 0
+  }
+]

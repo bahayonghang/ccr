@@ -1,0 +1,393 @@
+
+━━━ Version Check ━━━
+🔍 检查版本号一致性
+🔧 根版本: 7.4.0
+📦 ccr-types 版本: 7.4.0
+📦 ccr-db 版本: 7.4.0
+⚛️  前端版本: 7.4.0
+🖥️  Tauri Cargo 版本: 7.4.0
+🖥️  Tauri Conf 版本: 7.4.0
+🖼️  appMeta.ts (config) 版本: 7.4.0
+📘 ccr-ui/README.md 徽章版本: 7.4.0
+🔌 VSCode 扩展版本: 7.4.0
+✅ 版本一致性检查通过
+📄 ccr-ui/README.md version: 7.4.0
+📦 canonical package manager: bun@1.4.0
+📚 docs package manager mirror: bun@1.4.0
+🦀 rust-version: 1.95, edition: 2024
+🔒 JS lock strategy: ccr-ui/bun.lock and docs/bun.lock only
+✅ 文档/锁文件 drift 检查通过
+Repeated dependencies checked: 19
+Active exceptions: 1
+  - toml root=1.1.4 tauri=0.9.8
+root/Tauri dependency and MSRV governance check passed
+  Version Check ....... 00:02.073  OK
+
+━━━ Format Check ━━━
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.008s
+
+OK
+JSON configuration formatting checked: 11 files
+🔍 检查代码格式
+📌 模式: 仅验证，不修改文件
+cargo fmt -- --check
+cargo fmt --manifest-path ccr-ui/src-tauri/Cargo.toml -- --check
+✅ 代码格式符合规范
+  Format Check ........ 00:05.829  OK
+
+━━━ OMP Check ━━━
+bun test scripts/trellis/omp-context.test.ts
+bun test v1.4.2 (744846f84)
+
+scripts\trellis\omp-context.test.ts:
+(pass) OMP Trellis buildTaskContext > main and each role receive prd/design/implement markers [29.16ms]
+(pass) OMP Trellis buildTaskContext > jsonl files stay isolated by role [31.07ms]
+(pass) OMP Trellis buildTaskContext > lightweight task without design/implement still reads PRD [2.68ms]
+(pass) OMP Trellis buildTaskContext > missing task files do not crash session_start [2.38ms]
+(pass) OMP Trellis buildTaskContext > out-of-trust jsonl paths stay rejected [9.82ms]
+(pass) OMP Trellis buildTaskContext > legacy info.md remains available to every role [23.87ms]
+(pass) OMP Trellis buildTaskContext > design and implementation edits refresh the existing session cache [22.79ms]
+(pass) OMP Trellis buildTaskContext > artifact and referenced-file symlinks cannot read outside trusted roots [9.69ms]
+(pass) OMP Trellis buildTaskContext > explicit trusted roots permit artifact and manifest symlinks [11.18ms]
+(pass) OMP Trellis buildTaskContext > artifact and file caps truncate on complete UTF-8 characters [10.58ms]
+(pass) OMP Trellis buildTaskContext > total context cap emits a required-read notice without oversized content [6.87ms]
+(pass) OMP Trellis buildTaskContext > a cap smaller than the wrapper emits no malformed payload [4.84ms]
+(pass) OMP Trellis buildTaskContext > binary and malformed UTF-8 artifacts stay omitted [8.31ms]
+(pass) OMP Trellis buildTaskContext > oversized manifests are omitted before parsing their entries [7.61ms]
+
+ 14 pass
+ 0 fail
+ 99 expect() calls
+Ran 14 tests across 1 file. [583.00ms]
+  OMP Check ........... 00:00.904  OK
+
+━━━ Harness Check ━━━
+python -m unittest scripts.quality.test_check_harness_contracts
+.....................
+----------------------------------------------------------------------
+Ran 21 tests in 0.705s
+
+OK
+python scripts/quality/check_harness_contracts.py
+Harness contract check passed: 6 shared files, 5 harnesses
+Static guidance only; native loading, trust, and account settings remain unverified.
+  Harness Check ....... 00:01.622  OK
+
+━━━ Copilot Check ━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🤖 GitHub Copilot 工作区资产检查
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+node --test scripts/quality/check-copilot-assets.test.mjs
+✔ accepts LF with no BOM without changing bytes (315.5048ms)
+✔ accepts LF with BOM without changing bytes (319.9321ms)
+✔ accepts CRLF with no BOM without changing bytes (310.8234ms)
+✔ accepts CRLF with BOM without changing bytes (386.765ms)
+✔ rejects missing field (302.3653ms)
+✔ rejects empty plain value (299.5163ms)
+✔ rejects empty double-quoted value (319.6484ms)
+✔ rejects empty single-quoted value (312.7472ms)
+✔ rejects whitespace-only value (309.9559ms)
+✔ rejects comment-only value (318.1909ms)
+✔ rejects null value (313.6285ms)
+✔ rejects missing opening delimiter (313.3762ms)
+✔ rejects false opening delimiter (324.3662ms)
+✔ rejects unclosed header (334.3616ms)
+✔ rejects false closing delimiter (323.7084ms)
+✔ rejects missing field separator (326.8546ms)
+✔ rejects duplicate field (325.9176ms)
+✔ rejects unclosed quoted value (308.141ms)
+✔ rejects mismatched quoted value (313.624ms)
+✔ rejects invalid double-quote escape (326.8077ms)
+✔ rejects structured required value (317.9388ms)
+✔ requires applyTo in its asset type (320.1551ms)
+✔ requires agent in its asset type (328.6068ms)
+✔ requires name in its asset type (317.8506ms)
+✔ accepts quoted comments and an exact closing delimiter at EOF (370.3169ms)
+✔ requires shared rules to be tracked even when the file exists (433.5167ms)
+✔ local skills do not replace tracked shared skills (396.986ms)
+✔ rejects a missing tracked shared skill (358.9147ms)
+✔ rejects missing expected assets (375.7028ms)
+✔ rejects tracked terminology drift case 1 (450.397ms)
+✔ rejects tracked terminology drift case 2 (435.9684ms)
+✔ rejects tracked terminology drift case 3 (420.7851ms)
+✔ rejects tracked terminology drift case 4 (421.7934ms)
+✔ rejects tracked terminology drift case 5 (439.5611ms)
+ℹ tests 34
+ℹ suites 0
+ℹ pass 34
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12775.9808
+node scripts/quality/check-copilot-assets.mjs
+Validated 12 GitHub Copilot workspace assets.
+Scanned 4807 tracked files for terminology drift.
+✅ GitHub Copilot 工作区资产检查通过
+  Copilot Check ....... 00:16.219  OK
+
+━━━ Strict Clippy ━━━
+🔥 运行严格 Clippy 检查
+⚠️  模式: 所有警告视为错误 + 禁止 unwrap
+📌 注意: 测试代码中的 unwrap 会产生警告
+python scripts/quality/check_secret_writes.py
+Sensitive persistence policy check passed
+cargo clippy --workspace --all-targets --all-features -- -D warnings -D clippy::unwrap_used
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.07s
+mbx[savings]: 2089 compilations old. not one compiled twice.
+✅ 严格 Clippy 检查通过
+  Strict Clippy ....... 00:05.232  OK
+
+━━━ Workspace Check ━━━
+🔍 运行工作区类型检查...
+💡 覆盖新拆分 crates，避免旁路 crate 漂移
+cargo check --workspace
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.91s
+mbx[savings]: 2089 compilations retrieved with a straight face.
+✅ 工作区类型检查通过
+  Workspace Check ..... 00:03.880  OK
+
+━━━ Test ━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ 运行测试套件
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 模式: 完整工作区测试
+并行策略: 默认并行；仅共享进程状态的用例使用显式 crate 内锁
+cargo test --workspace --all-features -- --skip export_bindings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.78s
+     Running unittests src\lib.rs (target\debug\deps\ccr-26640b2660ef243f.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\main.rs (target\debug\deps\ccr-b69088ab180963a8.exe)
+
+running 1 test
+test tests::test_cli_parsing ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\commands.rs (target\debug\deps\commands-ede228f9c3dd32ff.exe)
+
+running 117 tests
+test clean::clean_backups_subcommand_dry_run_keeps_old_backup ... ok
+test clean::clean_menu_number_can_run_backups_target ... ok
+test clean::clean_menu_can_cancel_without_running_target ... ok
+test clean::clean_planfiles_all_dry_run_finds_nested_files ... ok
+test clean::clean_all_runs_recursive_planfiles_without_menu ... ok
+test clean::clean_planfiles_all_dry_run_includes_hidden_and_ignored_dirs ... ok
+test clean::clean_planfiles_yes_removes_only_root_target_files ... ok
+test clean::clean_planfiles_all_yes_removes_nested_target_files ... ok
+test clean::clean_planfiles_dry_run_defaults_to_root_only_for_hidden_and_ignored_dirs ... ok
+test clean::clean_backups_corrupt_config_fails_without_deleting_backup ... ok
+test clean::clean_menu_auto_yes_runs_default_planfiles_target ... ok
+test clean::clean_planfiles_dry_run_defaults_to_root_files_only ... ok
+test clean::clean_menu_default_number_runs_planfiles_target ... ok
+test claude_profile::claude_profile_list_json_reports_current_profile ... ok
+test claude_profile::claude_profile_current_json_returns_single_claude_card ... ok
+test claude_profile::claude_profile_off_clears_managed_env_without_pointer_and_keeps_user_key ... ok
+test claude_profile::claude_profile_init_is_inactive_idempotent_and_preserves_runtime ... ok
+test claude_profile::claude_profile_off_clears_stale_profiles_file_pointer_and_settings_overrides ... ok
+test codex_fix::codex_fix_default_path_does_not_invoke_codex_binary ... ok
+test claude_profile::claude_auth_off_deletes_credentials_and_keeps_onboarding ... ok
+test codex_fix::codex_fix_doctor_missing_binary_exits_127 ... ok
+test codex_fix::codex_fix_doctor_json_renders_version_and_status ... ok
+test codex_fix::codex_fix_doctor_persists_sanitized_report_when_not_dry_run ... ok
+test codex_fix::codex_fix_doctor_non_json_spawns_once_and_renders_text ... ok
+test codex_profile::codex_auth_off_deletes_auth_json_and_keeps_profile_pointer ... ok
+test codex_fix::codex_fix_dry_run_repair_reports_drift_without_writing_runtime ... ok
+test codex_fix::codex_fix_doctor_snapshot_change_exits_3_and_does_not_keep_old_profile ... ok
+test codex_fix::codex_fix_doctor_warning_prints_non_ok_check_id ... ok
+test codex_fix::codex_fix_runs_doctor_when_runtime_inspection_is_unavailable ... ok
+test codex_profile::codex_profile_list_json_reports_current_profile ... ok
+test codex_profile::codex_profile_current_json_returns_single_codex_card ... ok
+test codex_fix::codex_fix_repair_runtime_restores_deepseek_fields_without_secret_output ... ok
+test codex_profile::codex_profile_off_is_idempotent_when_no_active_profile ... ok
+test codex_profile::codex_profile_off_keeps_official_api_key_without_pointer ... ok
+test current::current_default_output_centers_runtime_cards_not_current_platform_banner ... ok
+test codex_profile::codex_profile_off_clears_default_home_auth_when_codex_home_redirects ... ok
+test current::current_json_reports_mixed_runtime_states_with_legacy_registry_present ... ok
+test current::current_json_uses_runtime_overview_schema_without_legacy_current_platform ... ok
+test codex_profile::codex_profile_off_clears_stale_profiles_file_pointer_and_auth_json ... ok
+test doctor::doctor_default_scope_does_not_follow_legacy_current_platform ... ok
+test doctor::doctor_all_platforms_includes_each_configured_platform ... ok
+test doctor::doctor_fails_when_claude_subscription_is_missing ... ok
+test doctor::doctor_fails_when_codex_credential_store_is_not_file ... ok
+test doctor::doctor_rejects_conflicting_scope_flags ... ok
+test codex_profile::codex_profile_init_is_inactive_idempotent_and_preserves_runtime ... ok
+test codex_profile::codex_profile_off_scrubs_api_key_without_snapshot_when_pointer_exists ... ok
+test doctor::doctor_reports_healthy_configured_claude_runtime ... ok
+test doctor::doctor_reports_platform_visible_subscription_state_without_competing_sources ... ok
+test claude_profile::claude_profile_off_is_idempotent_when_no_active_profile ... ok
+test doctor::doctor_reports_visible_auth_sources_without_leaking_credentials ... ok
+test doctor::doctor_warns_for_glm_placeholder_and_missing_runtime_envs ... ok
+
+初始化 Grok Build Profiles
+=======================
+
+[OK] 已创建 profiles 模板: C:\Users\lyh\AppData\Local\Temp\.tmpmjx8Du\home\.ccr\platforms\grok\profiles.toml
+[OK] 已注册平台: grok
+
+[INFO] 下一步:
+  1. 编辑模板: C:\Users\lyh\AppData\Local\Temp\.tmpmjx8Du\home\.ccr\platforms\grok\profiles.toml
+  2. 或创建 profile: ccr grok profile create --help
+  3. 查看 profiles: ccr grok profile list
+  4. 激活 profile: ccr grok profile switch <name>
+test grok_profile::grok_profile_init_preserves_existing_unparseable_profiles_file ... ok
+test help::bare_project_requires_an_explicit_action ... ok
+test help::codex_fix_help_exposes_explicit_runtime_repair ... ok
+test claude_profile::claude_profile_crud_commands_support_vscode_surface ... ok
+
+初始化 Grok Build Profiles
+=======================
+
+[INFO] profiles 文件已存在，保持不变: C:\Users\lyh\AppData\Local\Temp\.tmpmjx8Du\home\.ccr\platforms\grok\profiles.toml
+[INFO] 平台已注册: grok
+
+[INFO] 下一步:
+  1. 编辑模板: C:\Users\lyh\AppData\Local\Temp\.tmpmjx8Du\home\.ccr\platforms\grok\profiles.toml
+  2. 或创建 profile: ccr grok profile create --help
+  3. 查看 profiles: ccr grok profile list
+  4. 激活 profile: ccr grok profile switch <name>
+test grok_profile::concurrent_grok_profile_init_is_lossless_and_idempotent ... ok
+test grok_profile::grok_profile_init_json_reports_first_and_idempotent_runs ... ok
+test help::grok_auth_help_includes_logout_boundary ... ok
+test grok_auth::grok_auth_save_original_command ... ok
+test codex_profile::codex_profile_switches_deepseek_bearer_and_clears_runtime_on_off ... ok
+test codex_profile::codex_profile_switch_and_off_clears_runtime_route_and_auth_json ... ok
+test help::platform_not_found_message_recommends_supported_profile_init_commands ... ok
+test help::initialized_ccr_init_output_does_not_recommend_retired_platform_init ... ok
+test codex_profile::codex_profile_crud_commands_support_vscode_surface ... ok
+test help::help_subcommand_matches_root_help ... ok
+test claude_profile::claude_profile_switch_and_off_keep_official_auth_current ... ok
+test grok_profile::grok_profile_rejects_array_env_key_and_legacy_platform_switch ... ok
+test grok_profile::grok_auth_off_deletes_auth_json_and_keeps_mcp_and_custom_model ... ok
+test help::help_subcommand_supports_nested_codex_auth_path ... ok
+test help::help_subcommand_supports_platform_path ... ok
+test help::legacy_init_help_remains_user_configuration_command ... ok
+test help::legacy_platform_init_grok_remains_parseable_and_returns_migration_error ... ok
+test grok_profile::grok_profile_init_creates_inactive_template_without_touching_runtime ... ok
+test help::root_help_includes_guided_tasks ... ok
+test help::version_flag_returns_short_version_output ... ok
+test help::version_subcommand_omits_opencode_entry ... ok
+test help::help_subcommand_supports_clean_path ... ok
+test help::version_subcommand_reports_short_flag_usage_hint ... ok
+test legacy_routing::platform_profile_commands_report_platform_scoped_profile_migration ... ok
+test grok_auth::grok_auth_help_describes_saved_accounts ... ok
+test legacy_routing::root_switch_reports_platform_scoped_profile_migration ... ok
+test legacy_routing::shortcut_switch_reports_platform_scoped_profile_migration ... ok
+test help::help_subcommand_supports_project_init_path ... ok
+test platform_profile_surface::legacy_platform_profile_gemini_reports_migration_instead_of_mutating ... ok
+test grok_profile::grok_profile_off_clears_managed_route_when_entry_state_is_missing ... ok
+test profile_open::profile_open_creates_claude_file_when_missing ... ok
+test grok_profile::grok_profile_off_uses_shared_core_and_is_idempotent ... ok
+test profile_open::profile_open_creates_codex_file_when_missing ... ok
+test profile_open::profile_open_creates_grok_file_when_missing ... ok
+test sync_content::test_sync_content_selection_empty ... ok
+test profile_open::profile_open_idempotent_does_not_overwrite_existing_file ... ok
+test sync_content::test_sync_content_selection_flow ... ok
+test sync_content::test_sync_content_type_detection ... ok
+test profile_open::profile_open_json_has_all_required_fields ... ok
+test legacy_routing::platform_state_commands_report_runtime_migration ... ok
+test project_init::git_init_failure_stops_before_trellis_and_gitignore ... ok
+test project_init::forwards_global_yes_only_to_trellis ... ok
+test project_init::gitignore_read_failure_reports_file_stage_after_trellis ... ok
+test grok_auth::grok_auth_delete_cancel_global_yes_and_error_exit ... ok
+test project_init::missing_git_stops_before_trellis ... ok
+test project_init::initializes_new_repository_then_trellis_and_gitignore ... ok
+test platform_profile_surface::claude_and_codex_profile_crud_surfaces_accept_supported_platforms ... ok
+test project_init::missing_trellis_is_reported_after_git_is_ready ... ok
+test grok_profile::grok_profile_force_delete_clears_runtime_before_removing_profile ... ok
+test project_init::preserves_parent_repository_boundary_but_initializes_current_directory ... ok
+test project_init::rejects_trellis_zero_exit_without_minimum_workflow ... ok
+test validate::validate_skips_missing_claude_and_codex_profiles_without_legacy_platform_gate ... ok
+test validate::validate_accepts_registry_without_legacy_current_platform ... ok
+test project_init::skips_git_init_at_existing_repository_root ... ok
+test grok_auth::grok_auth_corruption_and_unknown_outgoing_are_safe ... ok
+test project_init::trellis_failure_keeps_git_result_and_skips_gitignore ... ok
+test grok_auth::grok_auth_round_trip_delete_and_off_preserve_boundaries ... ok
+test project_init::preserves_existing_gitignore_and_does_not_rewrite_when_complete ... ok
+test grok_auth::grok_auth_scope_selection_and_overwrite_fail_without_writes ... ok
+test help::platform_profile_help_lists_init_for_supported_platforms ... ok
+test grok_profile::grok_profile_command_flow_masks_secrets_and_clears_managed_runtime ... ok
+mbx[progress]: 15s elapsed; 0 hits, 0 misses, 0 bypassed, 0 not looked up; ~0s compiler work saved
+mbx[progress]: 30s elapsed; 0 hits, 0 misses, 0 bypassed, 0 not looked up; ~0s compiler work saved
+test claude_profile::claude_profile_switch_reports_committed_history_warning ... ok
+
+test result: ok. 117 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.55s
+
+     Running tests\diagnostics_contract.rs (target\debug\deps\diagnostics_contract-e4151c13514465a3.exe)
+
+running 12 tests
+test doctor_binary_default_scope_includes_grok_and_preserves_simplified_profiles ... ok
+test doctor_binary_grok_is_supported_and_legacy_adapters_are_explicit ... ok
+test validate_binary_native_denied_read_is_distinct_from_missing ... ok
+test validate_binary_disabled_current_is_not_activatable ... ok
+test doctor_binary_current_conflict_names_the_authoritative_source ... ok
+test doctor_binary_corrupt_registry_and_settings_do_not_echo_source_secrets ... ok
+test validate_binary_claude_current_uses_valid_marker_precedence_without_repair ... ok
+test validate_binary_subscription_profiles_and_empty_documents_are_valid ... ok
+test validate_binary_existing_runtime_errors_are_not_unconfigured ... ok
+test validate_binary_runtime_errors_are_independent_of_profile_presence ... ok
+test validate_binary_applied_api_and_subscription_profiles_follow_domain_rules ... ok
+test validate_binary_six_state_matrix_is_read_only ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.90s
+
+     Running tests\managers.rs (target\debug\deps\managers-a1d9605a086d887d.exe)
+
+running 17 tests
+test general::test_config_section_validation ... ok
+test general::test_settings_update_from_config ... ok
+test general::test_config_sorting_and_filtering ... ok
+test general::test_settings_validation ... ok
+test legacy_registry::per_platform_current_profile_helpers_round_trip ... ok
+test legacy_registry::config_manager_default_ignores_legacy_current_platform_routing ... ok
+test legacy_registry::legacy_registry_fields_load_without_becoming_clean_write_routing_truth ... FAILED
+test general::test_history_entry_env_changes ... ok
+test general::test_config_manager_lifecycle ... ok
+test general::test_settings_manager_atomic_operations ... ok
+test general::test_config_manager_section_operations ... ok
+test general::test_config_and_settings_integration ... ok
+test general::test_history_manager_stats ... ok
+test general::test_history_manager_filtering ... ok
+test general::test_history_manager_add_and_load ... ok
+test general::test_settings_backup_and_restore ... ok
+test general::test_history_manager_recent_limit ... ok
+
+failures:
+
+---- legacy_registry::legacy_registry_fields_load_without_becoming_clean_write_routing_truth stdout ----
+
+thread 'legacy_registry::legacy_registry_fields_load_without_becoming_clean_write_routing_truth' (71072) panicked at crates\ccr\tests\managers\legacy_registry.rs:53:27:
+called `Result::unwrap()` on an `Err` value: FileLockError("无法打开锁文件: The system cannot find the path specified. (os error 3)")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    legacy_registry::legacy_registry_fields_load_without_becoming_clean_write_routing_truth
+
+test result: FAILED. 16 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+
+error: test failed, to rerun pass `-p ccr --test managers`
+error: recipe `test` failed on line 401 with exit code 1
+  Test ................ 00:37.005  FAIL
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CI Timing Summary (failed at: Test)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Version Check ....... 00:02.073  OK
+  Format Check ........ 00:05.829  OK
+  OMP Check ........... 00:00.904  OK
+  Harness Check ....... 00:01.622  OK
+  Copilot Check ....... 00:16.219  OK
+  Strict Clippy ....... 00:05.232  OK
+  Workspace Check ..... 00:03.880  OK
+  Test ................ 00:37.005  FAIL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  TOTAL .............. 01:12.783
+error: recipe `_ci-timed-windows` failed with exit code 1
+error: recipe `ci` failed on line 549 with exit code 1

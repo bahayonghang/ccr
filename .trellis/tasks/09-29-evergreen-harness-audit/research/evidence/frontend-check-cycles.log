@@ -1,0 +1,10 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔄 前端循环依赖检查
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+cd ccr-ui && bun install --frozen-lockfile && bun run check:cycles
+bun install v1.4.2 (744846f84)
+
+Checked 654 installs across 723 packages (no changes) [155.00ms]
+$ bun ./scripts/check-cycles.mjs
+[check-cycles] PASS：738 个文件，无循环依赖
+✅ 前端循环依赖检查通过

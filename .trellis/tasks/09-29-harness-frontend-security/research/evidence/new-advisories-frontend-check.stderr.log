@@ -1,0 +1,43 @@
+cd ccr-ui && bun install --frozen-lockfile && bun run type-check
+$ tsc --noEmit
+cd ccr-ui && bun install --frozen-lockfile && bun run lint:ci
+$ eslint . --quiet && bun run lint:style && bun run check:style-lines
+$ stylelint "src/**/*.css"
+$ bun ./scripts/check-component-style-lines.mjs
+cd ccr-ui && bun install --frozen-lockfile && bun run check:cycles
+$ bun ./scripts/check-cycles.mjs
+cd ccr-ui && bun install --frozen-lockfile && bun run check:arch-boundaries
+$ bun ./scripts/check-arch-boundaries.mjs
+cd ccr-ui && bun install --frozen-lockfile && bun run test
+$ bun run test:i18n && bun run test:smoke
+$ bun tests/i18n.test.cjs && bun ./scripts/detect-i18n-key-leak.mjs --self-test
+$ vitest run --config vitest.smoke.config.ts
+Not implemented: navigation to another Document
+cd ccr-ui && bun install --frozen-lockfile && bun run build
+$ bun run icons:ensure
+$ node ./scripts/ensure-icons.cjs
+$ vite build
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vite.config.ts:8:10). Use `import.meta.dirname` instead
+  - JSON import "./scripts/dev-warm-targets.json" without import attributes (vite.config.ts:5:28). Add `with { type: 'json' }`
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[lightningcss minify] Unknown at rule: @tailwind
+1764 |  
+1765 |  /* Needed so Tailwind can place `@layer components` from utilities.css (used by `@apply`). */
+1766 |  @tailwind components;
+     |           ^
+1767 |  
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 513 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+cd docs && bun install --frozen-lockfile && bun run audit && bun run build
+$ node ./scripts/audit-docs.mjs
+$ vitepress build
+- building client + server bundles...
+[32m✓[0m building client + server bundles...
+- rendering pages...
+[32m✓[0m rendering pages...
+cd ccr-ui && bun run docs:audit
+$ node ./scripts/audit-docs.mjs

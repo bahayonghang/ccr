@@ -1,0 +1,33 @@
+{
+  "command": [
+    "bun",
+    "run",
+    "test:smoke",
+    "--",
+    "tests/quality/frontend-dependency-audit.smoke.test.ts"
+  ],
+  "executable": "C:\\Users\\lyh\\scoop\\shims\\bun.EXE",
+  "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "started_utc": "2026-09-30T03:41:54.175816+00:00",
+  "finished_utc": "2026-09-30T03:41:55.389745+00:00",
+  "duration_seconds": 1.214,
+  "environment_overrides": {},
+  "exit_code": 0,
+  "input_sha256_before": {
+    "ccr-ui/package.json": "c9f7e5f78730643ca444fa1191feceb66bc1cf56509bf3e60edf85dbabf3a0cf",
+    "ccr-ui/bun.lock": "f4d25c2659543ffbc3c439a92813f0d67d9c44c2bc3d881d7e3710bb52adbf1e",
+    "ccr-ui/scripts/frontend-audit-allowlist.json": "4fc8dfb8ed4f181bb459a68a65cde2adee8aab7363c6cd2c936ccfa5df631022",
+    "ccr-ui/scripts/audit-dependencies.mjs": "08c993e5689828795216fa875eed8279df1c54fa168c806d6efe07b83a11e071",
+    "justfile": "6bd6ee7903b875b0c3f6ecfce6984484e96c3f0f96658c700a29539456f724a6"
+  },
+  "input_sha256_after": {
+    "ccr-ui/package.json": "c9f7e5f78730643ca444fa1191feceb66bc1cf56509bf3e60edf85dbabf3a0cf",
+    "ccr-ui/bun.lock": "f4d25c2659543ffbc3c439a92813f0d67d9c44c2bc3d881d7e3710bb52adbf1e",
+    "ccr-ui/scripts/frontend-audit-allowlist.json": "4fc8dfb8ed4f181bb459a68a65cde2adee8aab7363c6cd2c936ccfa5df631022",
+    "ccr-ui/scripts/audit-dependencies.mjs": "08c993e5689828795216fa875eed8279df1c54fa168c806d6efe07b83a11e071",
+    "justfile": "6bd6ee7903b875b0c3f6ecfce6984484e96c3f0f96658c700a29539456f724a6"
+  },
+  "stdout_sha256": "718d848f03db81ff57b5b4dcf6cb83c42910b3595eda6e3d1b952bf0c02ab5bb",
+  "stderr_sha256": "986b72e601c67c44af061705c82fc47f1a1e6b9444e372955fd8163766872855"
+}

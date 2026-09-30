@@ -1,0 +1,64 @@
+{
+  "id": "harness-ci-evidence",
+  "name": "harness-ci-evidence",
+  "title": "T07 历史 CI 失败复验与诊断证据",
+  "description": "复验旧 Root Tauri Frontend 失败，补足原生覆盖率和安全警告责任记录且不降低门槛",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-09-29",
+  "completedAt": null,
+  "branch": "dev",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": "30cbeddf730ed01b312c3396ba7b8691853be859",
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "09-29-evergreen-harness-audit",
+  "relatedFiles": [
+    "crates/ccr-cli/src/commands/codex/fix.rs",
+    "ccr-ui/src-tauri/src/process/gateway.rs",
+    "ccr-ui/tests/setup/react-cleanup.ts",
+    "ccr-ui/vitest.smoke.config.ts",
+    ".trellis/spec/ccr/backend/test-fixtures.md",
+    ".trellis/spec/ccr/backend/dependency-governance.md"
+  ],
+  "notes": "用户已批准实施并授权本地提交和验收完成后的归档。推送、PR、发布和两个新增补丁仍未授权。历史批准记录见父任务 approval.json。",
+  "meta": {
+    "implementation_approved": true,
+    "parent_plan": ".trellis/tasks/09-29-evergreen-harness-audit",
+    "approval_record": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json",
+    "local_implementation": "validation_and_writeback_complete",
+    "acceptance": {
+      "AC1": "passed with historical root causes preserved as unknown",
+      "AC2": "passed at unchanged local full-suite thresholds",
+      "AC3": "unverified macOS and native fresh client boundaries",
+      "AC4": "passed; nine warnings and original failures retained"
+    },
+    "remaining_evidence": [
+      "macOS process tests",
+      "fresh five-client hook/trust and permissions",
+      "final committed revision hosted CI"
+    ],
+    "results": "research/implementation-results.md",
+    "latest_full_aggregate": "final-ci-retry1: failed at Test, managers legacy_registry file-lock path missing; 2509 source hashes unchanged",
+    "latest_full_aggregate_receipt": "../09-29-evergreen-harness-audit/research/final-ci-retry1.json",
+    "new_manager_failure": "Confirmed six unguarded default-lock-directory readers; exact failing thread interleaving remains unobserved. Narrow diagnostics passed 1/1 and 17/17; aggregate failure retained.",
+    "pending_scope_request": "manager-lock-fixture-guard-followup",
+    "delivery_status": "implementation locally committed; acceptance remains incomplete",
+    "delivery_authorization": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json#delivery_authorization",
+    "work_commits": [
+      "c4d38e5154edf6a8fa1c781f91d31ce6aa4bb5ad",
+      "f68116ecd22bb74b86011b01d14b72cfc8a855d0",
+      "c1453c7b1f5405f93eaecf67ff0d074bb1e9db1d",
+      "30cbeddf730ed01b312c3396ba7b8691853be859"
+    ],
+    "archive_eligibility": "not_eligible",
+    "remaining_acceptance": "managers 夹具候选待批准；macOS 与原生客户端等证据未齐。"
+  }
+}

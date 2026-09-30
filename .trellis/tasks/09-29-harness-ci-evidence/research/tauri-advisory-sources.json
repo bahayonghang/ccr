@@ -1,0 +1,261 @@
+{
+  "metadata": {
+    "cargo-version": "cargo 1.98.0 (797e8a9bc 2026-08-05)",
+    "rustc-version": "rustc 1.98.0 (88d9e12ae 2026-08-18)\nbinary: rustc\ncommit-hash: 88d9e12ae178fab0fb5cc050a94da85685d449ea\ncommit-date: 2026-08-18\nhost: x86_64-pc-windows-msvc\nrelease: 1.98.0\nLLVM version: 22.1.8",
+    "audit-version": "cargo-audit-audit 0.22.2",
+    "head": "fe9d65972376dbb4c332fde9860c1e42ff2f2005",
+    "advisory-db-head": "f23b768236fe2880e4cfa167da662cad8ca79240",
+    "advisory-db-status": "?? crates/stable-vec/RUSTSEC-0000-0000.md"
+  },
+  "sources": [
+    {
+      "package": "fxhash",
+      "locked_version": "0.2.1",
+      "advisory_id": "RUSTSEC-2025-0057",
+      "source": "C:\\Users\\lyh\\.cargo\\advisory-db\\crates\\fxhash\\RUSTSEC-2025-0057.md",
+      "source_sha256": "c02baaa85327611ec095840cff0ade988459e7161a14dfe76d9523b27df7acee",
+      "fields": {
+        "advisory": {
+          "id": "RUSTSEC-2025-0057",
+          "package": "fxhash",
+          "date": "2025-09-05",
+          "url": "https://github.com/cbreeden/fxhash/issues/20",
+          "informational": "unmaintained"
+        },
+        "versions": {
+          "patched": []
+        }
+      }
+    },
+    {
+      "package": "proc-macro-error",
+      "locked_version": "1.0.4",
+      "advisory_id": "RUSTSEC-2024-0370",
+      "source": "C:\\Users\\lyh\\.cargo\\advisory-db\\crates\\proc-macro-error\\RUSTSEC-2024-0370.md",
+      "source_sha256": "ea516b2cd02d3354cd6b707ff152f9c8de27c14c0f9ad5d9bb41198ef210a64c",
+      "fields": {
+        "advisory": {
+          "id": "RUSTSEC-2024-0370",
+          "package": "proc-macro-error",
+          "date": "2024-09-01",
+          "informational": "unmaintained",
+          "url": "https://gitlab.com/CreepySkeleton/proc-macro-error/-/issues/20"
+        },
+        "versions": {
+          "patched": []
+        }
+      }
+    },
+    {
+      "package": "unic-char-property",
+      "locked_version": "0.9.0",
+      "advisory_id": "RUSTSEC-2025-0081",
+      "source": "C:\\Users\\lyh\\.cargo\\advisory-db\\crates\\unic-char-property\\RUSTSEC-2025-0081.md",
+      "source_sha256": "2b065f42220eff9b94e0a15aeddd7c4a8780eb51f9604ed124d294b1ecaa26ad",
+      "fields": {
+        "advisory": {
+          "id": "RUSTSEC-2025-0081",
+          "package": "unic-char-property",
+          "date": "2025-10-18",
+          "informational": "unmaintained",
+          "url": "https://github.com/rustsec/advisory-db/issues/2414"
+        },
+        "versions": {
+          "patched": [],
+          "unaffected": []
+        }
+      }
+    },
+    {
+      "package": "unic-char-range",
+      "locked_version": "0.9.0",
+      "advisory_id": "RUSTSEC-2025-0075",
+      "source": "C:\\Users\\lyh\\.cargo\\advisory-db\\crates\\unic-char-range\\RUSTSEC-2025-0075.md",
+      "source_sha256": "da59b812cd92ccaf3ff7df78318504c6a95098624df1d7288ba713ec7d963692",
+      "fields": {
+        "advisory": {
+          "id": "RUSTSEC-2025-0075",
+          "package": "unic-char-range",
+          "date": "2025-10-18",
+          "informational": "unmaintained",
+          "url": "https://github.com/rustsec/advisory-db/issues/2414"
+        },
+        "versions": {
+          "patched": [],
+          "unaffected": []
+        }
+      }
+    },
+    {
+      "package": "unic-common",
+      "locked_version": "0.9.0",
+      "advisory_id": "RUSTSEC-2025-0080",
+      "source": "C:\\Users\\lyh\\.cargo\\advisory-db\\crates\\unic-common\\RUSTSEC-2025-0080.md",
+      "source_sha256": "260ef4dc36caaadeab54e613f78f22089fd9058d371ef2c59cc09d0654896daa",
+      "fields": {
+        "advisory": {
+          "id": "RUSTSEC-2025-0080",
+          "package": "unic-common",
+          "date": "2025-10-18",
+          "informational": "unmaintained",
+          "url": "https://github.com/rustsec/advisory-db/issues/2414"
+        },
+        "versions": {
+          "patched": [],
+          "unaffected": []
+        }
+      }
+    },
+    {
+      "package": "unic-ucd-ident",
+      "locked_version": "0.9.0",
+      "advisory_id": "RUSTSEC-2025-0100",
+      "source": "C:\\Users\\lyh\\.cargo\\advisory-db\\crates\\unic-ucd-ident\\RUSTSEC-2025-0100.md",
+      "source_sha256": "926d38917fcdbfe2b251b877ee91eb873a72fcae235b0438cdf76fdd072ca4a7",
+      "fields": {
+        "advisory": {
+          "id": "RUSTSEC-2025-0100",
+          "package": "unic-ucd-ident",
+          "date": "2025-10-18",
+          "informational": "unmaintained",
+          "url": "https://github.com/rustsec/advisory-db/issues/2414"
+        },
+        "versions": {
+          "patched": [],
+          "unaffected": []
+        }
+      }
+    },
+    {
+      "package": "unic-ucd-version",
+      "locked_version": "0.9.0",
+      "advisory_id": "RUSTSEC-2025-0098",
+      "source": "C:\\Users\\lyh\\.cargo\\advisory-db\\crates\\unic-ucd-version\\RUSTSEC-2025-0098.md",
+      "source_sha256": "555bd5d7162227d0e528dcd3da26603233ef529f342ee687b43eaeec7af9eac6",
+      "fields": {
+        "advisory": {
+          "id": "RUSTSEC-2025-0098",
+          "package": "unic-ucd-version",
+          "date": "2025-10-18",
+          "informational": "unmaintained",
+          "url": "https://github.com/rustsec/advisory-db/issues/2414"
+        },
+        "versions": {
+          "patched": [],
+          "unaffected": []
+        }
+      }
+    },
+    {
+      "package": "glib",
+      "locked_version": "0.18.5",
+      "advisory_id": "RUSTSEC-2024-0429",
+      "source": "C:\\Users\\lyh\\.cargo\\advisory-db\\crates\\glib\\RUSTSEC-2024-0429.md",
+      "source_sha256": "0c1ab1d4a0ebe5948e362728b31613ab588b84a0284dadbc119f7424fdd9c6d0",
+      "fields": {
+        "advisory": {
+          "id": "RUSTSEC-2024-0429",
+          "package": "glib",
+          "date": "2024-03-30",
+          "url": "https://github.com/gtk-rs/gtk-rs-core/pull/1343",
+          "informational": "unsound",
+          "aliases": [
+            "GHSA-wrw7-89jp-8q8g"
+          ]
+        },
+        "affected": {
+          "functions": {
+            "glib::VariantStrIter::next": [
+              ">=0.15.0,<0.20.0"
+            ],
+            "glib::VariantStrIter::nth": [
+              ">=0.15.0,<0.20.0"
+            ],
+            "glib::VariantStrIter::last": [
+              ">=0.15.0,<0.20.0"
+            ],
+            "glib::VariantStrIter::next_back": [
+              ">=0.15.0,<0.20.0"
+            ],
+            "glib::VariantStrIter::nth_back": [
+              ">=0.15.0,<0.20.0"
+            ]
+          }
+        },
+        "versions": {
+          "patched": [
+            ">=0.20.0"
+          ],
+          "unaffected": [
+            "<0.15.0"
+          ]
+        }
+      }
+    },
+    {
+      "package": "rand",
+      "locked_version": "0.7.3",
+      "advisory_id": "RUSTSEC-2026-0097",
+      "source": "C:\\Users\\lyh\\.cargo\\advisory-db\\crates\\rand\\RUSTSEC-2026-0097.md",
+      "source_sha256": "2d3a02f38b5bf832ee640cf39d6e00c416f0a676881a0712ea792c9323dfbebd",
+      "fields": {
+        "advisory": {
+          "id": "RUSTSEC-2026-0097",
+          "package": "rand",
+          "date": "2026-04-09",
+          "url": "https://github.com/rust-random/rand/pull/1763",
+          "informational": "unsound",
+          "categories": [],
+          "keywords": [],
+          "aliases": [
+            "GHSA-cq8v-f236-94qc"
+          ]
+        },
+        "affected": {
+          "functions": {
+            "rand::rng": [
+              ">= 0.9.0"
+            ],
+            "rand::thread_rng": [
+              "< 0.10.0, >= 0.7.0"
+            ]
+          }
+        },
+        "versions": {
+          "patched": [
+            ">= 0.10.1",
+            "< 0.10.0, >= 0.9.3",
+            "< 0.9.0, >= 0.8.6"
+          ],
+          "unaffected": [
+            "< 0.7.0"
+          ]
+        }
+      }
+    }
+  ],
+  "database_fetch": "not requested; cached official RustSec Git checkout",
+  "input_sha256": {
+    "Cargo.toml": "5d20db4553ddc8e5ff80253097c5b9e66e52fd2d385802f7342cb31a72a91782",
+    "Cargo.lock": "0479f15cb8e406ab181f0da867461dcec50cfe99ca3c4d9a6cd5551cccdfe305",
+    "ccr-ui/src-tauri/Cargo.toml": "35196c50bef0e96bf584ac90a03e6b6a32243ce44c2746125f67fe6c4dc8e2db",
+    "ccr-ui/src-tauri/Cargo.lock": "7225e63865b8315c3955c653e9cb9d755cc3019ada51bf4c0ed2a6d77de95c97",
+    "ccr-ui/src-tauri/command-macros/Cargo.toml": "03a3f276457a8e06dad2596587aca623f68b83ce104159dcf2789e391ba32a80",
+    ".cargo/config.toml": "6846516aa1f8e902ffe7e176c272f607cf104b1c36721d60af1ee26ea6f3a949",
+    ".cargo/audit.toml": "b015e9228fd85984d7f433744fcb9bfe1a2ab0c71d04043d9e00fc2ce2fcd712",
+    "rust-toolchain.toml": "961b6190f4aad6120ca3fffe218389b991933141c90c362b5bbe92f6622540d9",
+    "crates/ccr-checkin/Cargo.toml": "be513c47815a9912f42ec3aede370dcf50755747f13588daf2e3f27d6a23bca6",
+    "crates/ccr-cli/Cargo.toml": "90e4e01b1915ea1abecdb19260d80d98e3e2c6cc7ff5bb7853acbbdafc113f4e",
+    "crates/ccr-codex/Cargo.toml": "3f39698fe3135494d9a23008e521600bac7028a4997f7421081a53305da5d974",
+    "crates/ccr-config/Cargo.toml": "7d1db73061a01cd2fba00bcce324df836d5dc39d908a813fb94b10ed9d8c4d22",
+    "crates/ccr-core/Cargo.toml": "a4e47d451f72b1bf044335d58b4dfcbf7bc40889eda1b6c1dc3c33b007a73c5f",
+    "crates/ccr-db/Cargo.toml": "7b8e49d28f2c86dc69f7eee80876462cfe1bcd7085d0756528ca87883e883ffa",
+    "crates/ccr-skills/Cargo.toml": "6238715fbaa56236cb0c0651d1cfe22011a79cc10b0f3ab471142c1a0e520611",
+    "crates/ccr-store/Cargo.toml": "aec6ff5743c07bb9b4c15d81bc0eb0afd306d43c3549a885c01be368210fa21f",
+    "crates/ccr-sync/Cargo.toml": "020a0e6a8773c0cf7607c95013d3b6a4db8045531d4b67039f20b579331c92fc",
+    "crates/ccr-tui/Cargo.toml": "fdacf7d251f97f88bc61bf591e7d2654933d805d3f05fca119a0fceff8a24c16",
+    "crates/ccr-types/Cargo.toml": "b51887ea73b6a543c2fd0eabdef18c1b3797cf319d0b39feb0dea9b8372a6dfa",
+    "crates/ccr-usage/Cargo.toml": "3556341491abf82c0334e213683d53cf176bca18eb7056a212452b266b40eb2a",
+    "crates/ccr/Cargo.toml": "e0d7fbbdc6cc7e0ed28f11424046c2fd8bf4c84b159daf6cd5d6991754adcdc7"
+  }
+}

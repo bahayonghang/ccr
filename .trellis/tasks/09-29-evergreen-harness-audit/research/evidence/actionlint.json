@@ -1,0 +1,8 @@
+{
+  "command": "actionlint -color",
+  "exit_code": 0,
+  "started": "2026-09-29T21:02:16.1943229-05:00",
+  "ended": "2026-09-29T21:02:16.4377787-05:00",
+  "boundary": "Windows local",
+  "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/actionlint.log"
+}

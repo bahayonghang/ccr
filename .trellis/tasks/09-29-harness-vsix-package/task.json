@@ -1,0 +1,53 @@
+{
+  "id": "harness-vsix-package",
+  "name": "harness-vsix-package",
+  "title": "T05 VSIX 打包范围与本地文件排除",
+  "description": "排除已确认进入 VSIX 的本地 Serena 配置及非运行产物并增加清单检查",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P1",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-09-29",
+  "completedAt": null,
+  "branch": "dev",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": "30cbeddf730ed01b312c3396ba7b8691853be859",
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "09-29-evergreen-harness-audit",
+  "relatedFiles": [
+    "ccr-vscode/.vscodeignore",
+    "ccr-vscode/package.json",
+    "ccr-vscode/justfile",
+    "ccr-vscode/scripts/check-package-files.mjs",
+    "ccr-vscode/scripts/check-package-files.test.mjs",
+    ".trellis/spec/ccr-vscode/frontend/extension-surface-contracts.md",
+    "ccr-vscode/package-lock.json"
+  ],
+  "notes": "用户已批准实施并授权本地提交和验收完成后的归档。推送、PR、发布和两个新增补丁仍未授权。历史批准记录见父任务 approval.json。",
+  "meta": {
+    "implementation_approved": true,
+    "parent_plan": ".trellis/tasks/09-29-evergreen-harness-audit",
+    "approval_record": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json",
+    "extension_dependency_patch_approved": true,
+    "local_implementation": "passed",
+    "independent_review": "../09-29-evergreen-harness-audit/research/independent-review.md",
+    "delivery_status": "implementation locally committed; acceptance remains incomplete",
+    "latest_security_audit": "failed: brace-expansion and fast-uri; further compatible targets await user approval",
+    "pending_scope_request": "new-advisories-vscode-compatible-followup",
+    "delivery_authorization": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json#delivery_authorization",
+    "work_commits": [
+      "c4d38e5154edf6a8fa1c781f91d31ce6aa4bb5ad",
+      "f68116ecd22bb74b86011b01d14b72cfc8a855d0",
+      "c1453c7b1f5405f93eaecf67ff0d074bb1e9db1d",
+      "30cbeddf730ed01b312c3396ba7b8691853be859"
+    ],
+    "archive_eligibility": "not_eligible",
+    "remaining_acceptance": "新增扩展依赖补丁仍待批准，当前审计两个受影响包。"
+  }
+}

@@ -1,0 +1,39 @@
+bun test v1.4.2 (744846f84)
+
+scripts\trellis\omp-context.test.ts:
+206 |       "trellis-research",
+207 |     ];
+208 |     for (const role of roles) {
+209 |       const content = await collectSessionStart(complexRepo, role);
+210 |       expect(content, `${role} missing PRD`).toContain(PRD_MARKER);
+211 |       expect(content, `${role} missing Design`).toContain(DESIGN_MARKER);
+                                                      ^
+error: main missing Design
+
+Expected to contain: "OMP_CTX_DESIGN_MARKER"
+Received: "<task-context>\nContext is bounded by .trellis/config.yaml. Files marked [truncated] or [omitted] remain authoritative on disk; use their required_read path before relying on missing detail.\n\n### .trellis/tasks/fixture-complex/prd.md [inline]\n\nOMP_CTX_PRD_MARKER\n\n\n## implement.jsonl\n\n### .trellis/tasks/fixture-complex/implement-spec.md [inline]\n\nOMP_CTX_IMPLEMENT_JSONL_MARKER\n\n\n## check.jsonl\n\n### .trellis/tasks/fixture-complex/check-spec.md [inline]\n\nOMP_CTX_CHECK_JSONL_MARKER\n\n</task-context>"
+
+      at <anonymous> (D:\Documents\Code\Github\ccr\scripts\trellis\omp-context.test.ts:211:49)
+(fail) OMP Trellis buildTaskContext > main and each role receive prd/design/implement markers [15.68ms]
+(pass) OMP Trellis buildTaskContext > jsonl files stay isolated by role [25.29ms]
+236 |   });
+237 | 
+238 |   test("lightweight task without design/implement still reads PRD", async () => {
+239 |     const content = await collectSessionStart(lightRepo, "main");
+240 |     expect(content).toContain(PRD_MARKER);
+241 |     expect(content).toContain("## PRD");
+                          ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "## PRD"
+Received: "<task-context>\nContext is bounded by .trellis/config.yaml. Files marked [truncated] or [omitted] remain authoritative on disk; use their required_read path before relying on missing detail.\n\n### .trellis/tasks/fixture-light/prd.md [inline]\n\nOMP_CTX_PRD_MARKER\n\n</task-context>"
+
+      at <anonymous> (D:\Documents\Code\Github\ccr\scripts\trellis\omp-context.test.ts:241:21)
+(fail) OMP Trellis buildTaskContext > lightweight task without design/implement still reads PRD [2.06ms]
+(pass) OMP Trellis buildTaskContext > missing task files do not crash session_start [1.65ms]
+(pass) OMP Trellis buildTaskContext > out-of-trust jsonl paths stay rejected [9.40ms]
+
+ 3 pass
+ 2 fail
+ 21 expect() calls
+Ran 5 tests across 1 file. [981.00ms]

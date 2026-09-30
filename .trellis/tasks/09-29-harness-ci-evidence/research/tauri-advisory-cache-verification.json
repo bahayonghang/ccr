@@ -1,0 +1,261 @@
+{
+  "recorded_utc": "2026-09-30T03:09:11.066558+00:00",
+  "revision": "f23b768236fe2880e4cfa167da662cad8ca79240",
+  "current_head": "f23b768236fe2880e4cfa167da662cad8ca79240",
+  "status_at_capture": "?? crates/stable-vec/RUSTSEC-0000-0000.md",
+  "status_now": "?? crates/stable-vec/RUSTSEC-0000-0000.md\n",
+  "cache_worktree_clean": false,
+  "consumed_advisories": [
+    {
+      "advisory_id": "RUSTSEC-2025-0057",
+      "relative_path": "crates/fxhash/RUSTSEC-2025-0057.md",
+      "tracked_blob_sha256": "c02baaa85327611ec095840cff0ade988459e7161a14dfe76d9523b27df7acee",
+      "working_file_sha256": "c02baaa85327611ec095840cff0ade988459e7161a14dfe76d9523b27df7acee",
+      "original_capture_sha256": "c02baaa85327611ec095840cff0ade988459e7161a14dfe76d9523b27df7acee",
+      "bytes_equal": true,
+      "matches_original_capture": true
+    },
+    {
+      "advisory_id": "RUSTSEC-2024-0370",
+      "relative_path": "crates/proc-macro-error/RUSTSEC-2024-0370.md",
+      "tracked_blob_sha256": "ea516b2cd02d3354cd6b707ff152f9c8de27c14c0f9ad5d9bb41198ef210a64c",
+      "working_file_sha256": "ea516b2cd02d3354cd6b707ff152f9c8de27c14c0f9ad5d9bb41198ef210a64c",
+      "original_capture_sha256": "ea516b2cd02d3354cd6b707ff152f9c8de27c14c0f9ad5d9bb41198ef210a64c",
+      "bytes_equal": true,
+      "matches_original_capture": true
+    },
+    {
+      "advisory_id": "RUSTSEC-2025-0081",
+      "relative_path": "crates/unic-char-property/RUSTSEC-2025-0081.md",
+      "tracked_blob_sha256": "2b065f42220eff9b94e0a15aeddd7c4a8780eb51f9604ed124d294b1ecaa26ad",
+      "working_file_sha256": "2b065f42220eff9b94e0a15aeddd7c4a8780eb51f9604ed124d294b1ecaa26ad",
+      "original_capture_sha256": "2b065f42220eff9b94e0a15aeddd7c4a8780eb51f9604ed124d294b1ecaa26ad",
+      "bytes_equal": true,
+      "matches_original_capture": true
+    },
+    {
+      "advisory_id": "RUSTSEC-2025-0075",
+      "relative_path": "crates/unic-char-range/RUSTSEC-2025-0075.md",
+      "tracked_blob_sha256": "da59b812cd92ccaf3ff7df78318504c6a95098624df1d7288ba713ec7d963692",
+      "working_file_sha256": "da59b812cd92ccaf3ff7df78318504c6a95098624df1d7288ba713ec7d963692",
+      "original_capture_sha256": "da59b812cd92ccaf3ff7df78318504c6a95098624df1d7288ba713ec7d963692",
+      "bytes_equal": true,
+      "matches_original_capture": true
+    },
+    {
+      "advisory_id": "RUSTSEC-2025-0080",
+      "relative_path": "crates/unic-common/RUSTSEC-2025-0080.md",
+      "tracked_blob_sha256": "260ef4dc36caaadeab54e613f78f22089fd9058d371ef2c59cc09d0654896daa",
+      "working_file_sha256": "260ef4dc36caaadeab54e613f78f22089fd9058d371ef2c59cc09d0654896daa",
+      "original_capture_sha256": "260ef4dc36caaadeab54e613f78f22089fd9058d371ef2c59cc09d0654896daa",
+      "bytes_equal": true,
+      "matches_original_capture": true
+    },
+    {
+      "advisory_id": "RUSTSEC-2025-0100",
+      "relative_path": "crates/unic-ucd-ident/RUSTSEC-2025-0100.md",
+      "tracked_blob_sha256": "926d38917fcdbfe2b251b877ee91eb873a72fcae235b0438cdf76fdd072ca4a7",
+      "working_file_sha256": "926d38917fcdbfe2b251b877ee91eb873a72fcae235b0438cdf76fdd072ca4a7",
+      "original_capture_sha256": "926d38917fcdbfe2b251b877ee91eb873a72fcae235b0438cdf76fdd072ca4a7",
+      "bytes_equal": true,
+      "matches_original_capture": true
+    },
+    {
+      "advisory_id": "RUSTSEC-2025-0098",
+      "relative_path": "crates/unic-ucd-version/RUSTSEC-2025-0098.md",
+      "tracked_blob_sha256": "555bd5d7162227d0e528dcd3da26603233ef529f342ee687b43eaeec7af9eac6",
+      "working_file_sha256": "555bd5d7162227d0e528dcd3da26603233ef529f342ee687b43eaeec7af9eac6",
+      "original_capture_sha256": "555bd5d7162227d0e528dcd3da26603233ef529f342ee687b43eaeec7af9eac6",
+      "bytes_equal": true,
+      "matches_original_capture": true
+    },
+    {
+      "advisory_id": "RUSTSEC-2024-0429",
+      "relative_path": "crates/glib/RUSTSEC-2024-0429.md",
+      "tracked_blob_sha256": "0c1ab1d4a0ebe5948e362728b31613ab588b84a0284dadbc119f7424fdd9c6d0",
+      "working_file_sha256": "0c1ab1d4a0ebe5948e362728b31613ab588b84a0284dadbc119f7424fdd9c6d0",
+      "original_capture_sha256": "0c1ab1d4a0ebe5948e362728b31613ab588b84a0284dadbc119f7424fdd9c6d0",
+      "bytes_equal": true,
+      "matches_original_capture": true
+    },
+    {
+      "advisory_id": "RUSTSEC-2026-0097",
+      "relative_path": "crates/rand/RUSTSEC-2026-0097.md",
+      "tracked_blob_sha256": "2d3a02f38b5bf832ee640cf39d6e00c416f0a676881a0712ea792c9323dfbebd",
+      "working_file_sha256": "2d3a02f38b5bf832ee640cf39d6e00c416f0a676881a0712ea792c9323dfbebd",
+      "original_capture_sha256": "2d3a02f38b5bf832ee640cf39d6e00c416f0a676881a0712ea792c9323dfbebd",
+      "bytes_equal": true,
+      "matches_original_capture": true
+    }
+  ],
+  "untracked_residue": {
+    "path": "crates/stable-vec/RUSTSEC-0000-0000.md",
+    "present_now": true,
+    "sha256": "1f0ccc7d77a1a36d366864ae6b7a0426e42f070cc25547cffabf741ce0b0a78b",
+    "tracked_at_revision": false,
+    "matching_locked_packages": [],
+    "advisory_reported_in_captured_audit": false
+  },
+  "reported_advisory_ids": [
+    "RUSTSEC-2025-0057",
+    "RUSTSEC-2024-0370",
+    "RUSTSEC-2025-0081",
+    "RUSTSEC-2025-0075",
+    "RUSTSEC-2025-0080",
+    "RUSTSEC-2025-0100",
+    "RUSTSEC-2025-0098",
+    "RUSTSEC-2024-0429",
+    "RUSTSEC-2026-0097"
+  ],
+  "commands": [
+    {
+      "command": [
+        "git",
+        "-C",
+        "C:\\Users\\lyh\\.cargo\\advisory-db",
+        "status",
+        "--porcelain"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "dc677211f3579a1d8f851f5f50684913a34a702b457480da66200f006cc98708",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "-C",
+        "C:\\Users\\lyh\\.cargo\\advisory-db",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "3aee7ab573f5f26fdd52fc13acfcdea72c7c2ffe4313a8f6d78d085c66e8bfac",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "-C",
+        "C:\\Users\\lyh\\.cargo\\advisory-db",
+        "show",
+        "f23b768236fe2880e4cfa167da662cad8ca79240:crates/fxhash/RUSTSEC-2025-0057.md"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "c02baaa85327611ec095840cff0ade988459e7161a14dfe76d9523b27df7acee",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "-C",
+        "C:\\Users\\lyh\\.cargo\\advisory-db",
+        "show",
+        "f23b768236fe2880e4cfa167da662cad8ca79240:crates/proc-macro-error/RUSTSEC-2024-0370.md"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "ea516b2cd02d3354cd6b707ff152f9c8de27c14c0f9ad5d9bb41198ef210a64c",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "-C",
+        "C:\\Users\\lyh\\.cargo\\advisory-db",
+        "show",
+        "f23b768236fe2880e4cfa167da662cad8ca79240:crates/unic-char-property/RUSTSEC-2025-0081.md"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "2b065f42220eff9b94e0a15aeddd7c4a8780eb51f9604ed124d294b1ecaa26ad",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "-C",
+        "C:\\Users\\lyh\\.cargo\\advisory-db",
+        "show",
+        "f23b768236fe2880e4cfa167da662cad8ca79240:crates/unic-char-range/RUSTSEC-2025-0075.md"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "da59b812cd92ccaf3ff7df78318504c6a95098624df1d7288ba713ec7d963692",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "-C",
+        "C:\\Users\\lyh\\.cargo\\advisory-db",
+        "show",
+        "f23b768236fe2880e4cfa167da662cad8ca79240:crates/unic-common/RUSTSEC-2025-0080.md"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "260ef4dc36caaadeab54e613f78f22089fd9058d371ef2c59cc09d0654896daa",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "-C",
+        "C:\\Users\\lyh\\.cargo\\advisory-db",
+        "show",
+        "f23b768236fe2880e4cfa167da662cad8ca79240:crates/unic-ucd-ident/RUSTSEC-2025-0100.md"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "926d38917fcdbfe2b251b877ee91eb873a72fcae235b0438cdf76fdd072ca4a7",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "-C",
+        "C:\\Users\\lyh\\.cargo\\advisory-db",
+        "show",
+        "f23b768236fe2880e4cfa167da662cad8ca79240:crates/unic-ucd-version/RUSTSEC-2025-0098.md"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "555bd5d7162227d0e528dcd3da26603233ef529f342ee687b43eaeec7af9eac6",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "-C",
+        "C:\\Users\\lyh\\.cargo\\advisory-db",
+        "show",
+        "f23b768236fe2880e4cfa167da662cad8ca79240:crates/glib/RUSTSEC-2024-0429.md"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "0c1ab1d4a0ebe5948e362728b31613ab588b84a0284dadbc119f7424fdd9c6d0",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "-C",
+        "C:\\Users\\lyh\\.cargo\\advisory-db",
+        "show",
+        "f23b768236fe2880e4cfa167da662cad8ca79240:crates/rand/RUSTSEC-2026-0097.md"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "2d3a02f38b5bf832ee640cf39d6e00c416f0a676881a0712ea792c9323dfbebd",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "-C",
+        "C:\\Users\\lyh\\.cargo\\advisory-db",
+        "ls-tree",
+        "-r",
+        "--name-only",
+        "f23b768236fe2880e4cfa167da662cad8ca79240",
+        "--",
+        "crates/stable-vec/RUSTSEC-0000-0000.md"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": ""
+    }
+  ],
+  "effect_on_consumed_nine": "All nine consumed advisory files are byte-identical to tracked blobs at the fixed revision and their original captured hashes. The untracked residue is not a consumed record, stable-vec is absent from the locked packages, and the residue advisory is absent from the captured audit results. The entire cache must not be described as clean or bound exclusively to the Git revision."
+}

@@ -1,0 +1,784 @@
+......
+----------------------------------------------------------------------
+Ran 6 tests in 0.017s
+
+OK
+Repeated dependencies checked: 19
+Active exceptions: 1
+  - toml root=1.1.4 tauri=0.9.8
+root/Tauri dependency and MSRV governance check passed
+cargo fmt --manifest-path ccr-ui/src-tauri/Cargo.toml -- --check
+cargo --config .cargo/tauri-ci.toml check --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop
+warning: linker stdout: 正在创建库 D:/Documents/Code/Github/ccr/ccr-ui/src-tauri/target\debug\deps\ccr_tauri_command_macros-271ea576f0e047ce.dll.lib 和对象 D:/Documents/Code/Github/ccr/ccr-ui/src-tauri/target\debug\deps\ccr_tauri_command_macros-271ea576f0e047ce.dll.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `ccr-tauri-command-macros` (lib) generated 1 warning
+    Checking ccr-desktop v7.4.0 (D:\Documents\Code\Github\ccr\ccr-ui\src-tauri)
+mbx[progress]: 15s elapsed; 0 hits, 0 misses, 0 bypassed, 0 not looked up; ~0s compiler work saved
+mbx[progress]: 30s elapsed; 0 hits, 0 misses, 0 bypassed, 0 not looked up; ~0s compiler work saved
+mbx[warning]: result was not stored: compiler input was modified during compilation: C:\Users\lyh\AppData\Local\mbx\out-dirs\v1\c36deed1b57139e5725cd037862f68a3999378ea8e4d9b595223403d463ab4be\f91ec035aa04b29f1333b393ca9e75149a6fb7c86167eee1a05bee1297fa7cdb
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 35.36s
+mbx[cache]: 0 hits, 1 misses; 0 B downloaded, 0 B uploaded, 0 B stored locally
+mbx[savings]: 1205 compilations served. the monocle stays on.
+cargo --config .cargo/tauri-ci.toml clippy --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop -- -D warnings
+warning: linker stdout: 正在创建库 D:\Documents\Code\Github\ccr\ccr-ui\src-tauri\target\debug\deps\ccr_tauri_command_macros-fab4b9c61e81a630.dll.lib 和对象 D:\Documents\Code\Github\ccr\ccr-ui\src-tauri\target\debug\deps\ccr_tauri_command_macros-fab4b9c61e81a630.dll.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+  = note: the `linker_messages` lint ignores `-D warnings`
+
+warning: `ccr-tauri-command-macros` (lib) generated 1 warning
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.14s
+mbx[savings]: 1205 compilations on file. the box remembers.
+cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml --all-features -- --skip export_bindings
+warning: linker stdout: 正在创建库 D:/Documents/Code/Github/ccr/ccr-ui/src-tauri/target\debug\deps\ccr_tauri_command_macros-271ea576f0e047ce.dll.lib 和对象 D:/Documents/Code/Github/ccr/ccr-ui/src-tauri/target\debug\deps\ccr_tauri_command_macros-271ea576f0e047ce.dll.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `ccr-tauri-command-macros` (lib) generated 1 warning
+   Compiling ccr-desktop v7.4.0 (D:\Documents\Code\Github\ccr\ccr-ui\src-tauri)
+mbx[progress]: 15s elapsed; 0 hits, 0 misses, 2 bypassed, 0 not looked up; ~0s compiler work saved
+mbx[progress]: 30s elapsed; 0 hits, 0 misses, 2 bypassed, 0 not looked up; ~0s compiler work saved
+mbx[progress]: 45s elapsed; 0 hits, 0 misses, 2 bypassed, 0 not looked up; ~0s compiler work saved
+mbx[progress]: 1m elapsed; 0 hits, 0 misses, 2 bypassed, 0 not looked up; ~0s compiler work saved
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 11s
+     Running unittests src\main.rs (ccr-ui\src-tauri\target\debug\deps\ccr_desktop-b39d7852fe3b2591.exe)
+
+running 408 tests
+test bridge::tests::note_bridge_io_failure_increments ... ok
+test bridge::tests::reentrant_consumer_does_not_enqueue ... ok
+test bridge::tests::runtime_entry_maps_error_and_warn ... ok
+test checkin_jobs::tests::apply_result_counts_skipped_separately_and_propagates_skip_reason ... ok
+test claude_observer::pricing::tests::parses_embedded_catalog ... ok
+test checkin_jobs::tests::already_checked_in_is_not_counted_as_failure ... ok
+test claude_observer::pricing::tests::unknown_model_returns_none ... ok
+test claude_observer::pricing::tests::date_suffixed_resolves_via_prefix ... ok
+test claude_observer::pricing::tests::exact_match_cost ... ok
+test claude_observer::jsonl::tests::missing_session_id_returns_empty ... ok
+test commands::checkin::tests::job_failure_preserves_waf_blocked_error_code ... ok
+test claude_observer::jsonl::tests::user_line_emits_tool_result_events ... ok
+test claude_observer::jsonl::tests::assistant_line_emits_tool_use_events ... ok
+test claude_observer::scanner::tests::build_rows_pairs_tool_use_and_result ... ok
+test claude_observer::jsonl::tests::falls_back_to_project_hint_when_cwd_missing ... ok
+test commands::claude::auth::tests::auth_account_item_preserves_rfc3339_wire_dates ... ok
+test commands::claude::auth::tests::runtime_summary_preserves_secret_free_auth_diagnosis_metadata ... ok
+test commands::checkin::tests::job_failure_preserves_crypto_error_code ... ok
+test claude_observer::jsonl::tests::ignores_summary_and_meta_lines ... ok
+test claude_observer::jsonl::tests::invalid_json_returns_empty ... ok
+test commands::claude::auth::tests::runtime_summary_omits_absent_optional_fields ... ok
+test commands::claude::environment_tests::settings_empty_registry_only_preserves_unbound_local_fallback ... ok
+test commands::claude::environment_tests::settings_expected_environment_mismatch_rejects_read_and_update_before_io ... ok
+test commands::claude::environment_tests::settings_expected_environment_read_keeps_its_admitted_target ... ok
+test commands::claude::environment_tests::settings_expected_environment_update_keeps_original_arc_after_a_b_a_replacement ... ok
+test commands::claude::tests::claude_update_settings_accepts_official_grouped_hooks ... ok
+test commands::claude::environment_tests::settings_update_remains_on_captured_environment_after_switch ... ok
+test commands::claude::tests::merge_settings_patch_replaces_env_and_preserves_unknown_fields ... ok
+test commands::claude::tests::patch_profile_with_config_clears_platform_data_when_extra_is_null ... ok
+test commands::claude::tests::patch_profile_with_config_prefers_platform_data_over_extra ... ok
+test commands::claude::tests::read_claude_settings_from_env_returns_empty_object_when_missing ... ok
+test commands::claude::tests::read_claude_settings_from_env_surfaces_non_missing_errors ... ok
+test commands::claude::tests::read_claude_settings_from_env_reads_top_level_env ... ok
+test commands::claude::tests::typed_save_roundtrips_unknown_top_level_fields ... ok
+test commands::claude::profiles::export_tests::claude_export_profiles_reports_missing_file ... ok
+test commands::claude::profiles::export_tests::claude_export_profiles_rejects_redacted_mode ... ok
+test claude_observer::subscription::tests::negative_monthly_falls_back_to_default ... ok
+test claude_observer::subscription::tests::set_then_get_roundtrip ... ok
+test claude_observer::subscription::tests::defaults_on_empty_db ... ok
+test commands::codex::agent_sources::tests::github_repo_parser_accepts_basic_repo_url ... ok
+test commands::codex::agent_sources::tests::github_repo_parser_strips_tree_suffix ... ok
+test commands::codex::agent_sources::tests::infer_category_prefers_categories_segment ... ok
+test commands::codex::agents::tests::merge_structured_config_preserves_existing_skills_config_when_omitted ... ok
+test commands::codex::agents::tests::merge_structured_config_preserves_unknown_fields ... ok
+test commands::codex::agents::tests::raw_toml_can_be_overridden_by_structured_name ... ok
+test commands::codex::agent_sources::tests::evaluate_install_status_marks_conflict_when_both_changed ... ok
+test claude_observer::scanner::tests::ingest_single_file_writes_rows_and_state ... ok
+test commands::claude_mcp_config::tests::custom_config_dir_moves_only_the_user_state_path ... ok
+test commands::codex::auth::oauth::tests::bind_race_and_save_failure_never_publish_active_login ... ok
+test commands::codex::auth::oauth::tests::cleanup_retry_has_one_owner_without_blocking_control_locks ... ok
+test commands::codex::agents::tests::resolve_global_context_defaults_to_codex_home ... ok
+test commands::codex::auth::oauth::tests::expired_restore_creates_fresh_id_and_cleanup_failure_is_visible ... ok
+test commands::codex::auth::oauth::tests::recovered_callback_must_match_state_before_listener_publication ... ok
+test commands::claude::profiles::export_tests::claude_export_profiles_reads_raw_toml_and_filename ... ok
+test commands::codex::auth::oauth::tests::restore_waiting_for_admission_does_not_resurrect_cancelled_pending ... ok
+test commands::codex::auth::oauth::tests::commit_rejects_cancellation_and_retains_admission_until_completion ... ok
+test commands::codex::auth::oauth::tests::start_owns_listener_and_storage_before_return_and_reuses_live_id ... ok
+test commands::codex::auth::oauth::tests::stale_cleanup_retry_cannot_clear_a_replacement_login ... ok
+test commands::codex::auth::oauth::tests::successful_completion_is_unique_and_does_not_expose_sentinels ... ok
+test commands::codex::auth::oauth::tests::slow_http_body_is_cancelled_and_server_observes_closed_connection ... ok
+test commands::codex::auth::oauth::tests::wrong_id_state_origin_and_duplicate_callback_leave_owner_unchanged ... ok
+test commands::codex::auth::oauth::tests::token_endpoint_error_and_invalid_body_never_return_secret_content ... ok
+test commands::codex::auth::tests::port_discovery_parsers_deduplicate_listener_pids ... ok
+test commands::codex::auth::oauth::tests::cancel_exchange_keeps_admission_until_cleanup_finishes ... ok
+test commands::codex::auth::tests::port_release_report_is_noop_when_no_owned_process_matches ... ok
+test commands::codex::auth::tests::port_release_report_never_claims_unknown_processes ... ok
+test commands::codex::auth::oauth::tests::oauth_start_reuses_live_id_before_waiting_for_same_module_admission ... ok
+test commands::codex::profiles::export_tests::codex_export_profiles_reads_raw_toml_and_filename ... ok
+test commands::codex::profiles::export_tests::codex_export_profiles_rejects_redacted_mode ... ok
+test commands::codex::profiles::export_tests::codex_export_profiles_reports_missing_file ... ok
+test commands::codex::auth::oauth::tests::silent_socket_times_out_and_releases_listener_without_success ... ok
+test commands::codex::auth::oauth::tests::slow_http_body_and_silent_accepted_socket_share_the_login_deadline ... ok
+mbx[progress]: 1m 15s elapsed; 0 hits, 0 misses, 2 bypassed, 0 not looked up; ~0s compiler work saved
+mbx[progress]: 1m 30s elapsed; 0 hits, 0 misses, 2 bypassed, 0 not looked up; ~0s compiler work saved
+test commands::claude::profiles::application_rename_contract::profile_rename_each_write_contract ... ok
+test commands::codex::settings::tests::model_only_update_preserves_notifications_and_untouched_fields_on_disk ... ok
+test commands::codex::tests::apply_codex_settings_update_accepts_boolean_tui_notifications ... ok
+test commands::codex::tests::apply_codex_settings_update_clears_nested_fields_with_nulls ... ok
+test commands::codex::tests::apply_codex_settings_update_patches_nested_fields ... ok
+test commands::codex::tests::apply_codex_settings_update_preserves_tui_notifications_event_array ... ok
+test commands::codex::tests::codex_config_write_preserves_deepseek_flatten_fields ... ok
+test commands::claude::environment_tests::settings_matching_local_environment_keeps_atomic_settings_manager ... ok
+test commands::codex::tests::codex_model_catalog_keeps_target_presets_and_legacy_custom_models_distinct ... ok
+test commands::codex::tests::parse_mcp_server_accepts_legacy_disabled_alias_and_merge_keeps_unknown_fields ... ok
+test commands::codex::tests::parse_mcp_server_supports_official_fields_and_preserves_unknown_fields ... ok
+test commands::codex::tests::patch_profile_with_config_accepts_deepseek_platform_fields ... ok
+test commands::codex::tests::patch_profile_with_config_clears_platform_data_when_extra_is_empty_object ... ok
+test commands::codex::tests::patch_profile_with_config_clears_platform_data_when_extra_is_null ... ok
+test commands::codex::tests::patch_profile_with_config_prefers_platform_data_over_extra ... ok
+test commands::codex::tests::patch_profile_with_config_removes_missing_platform_data_keys ... ok
+test commands::claude_mcp_config::tests::claude_mcp_cas_replays_after_one_external_change ... ok
+test commands::codex::tests::read_codex_config_accepts_tui_notifications_event_array ... ok
+test commands::codex::tray::tests::tray_snapshot_only_attaches_quota_to_current_account ... ok
+test commands::codex::tray::tests::tray_snapshot_skips_quota_lookup_for_profile_only_mode ... ok
+test commands::command_exec::tests::cleanup_failure_never_claims_cancelled_status ... ok
+test commands::command_exec::tests::command_catalog_marks_execution_boundaries_with_metadata ... ok
+test commands::command_exec::tests::command_job_capacity_keeps_active_snapshots ... ok
+test commands::command_exec::tests::command_job_capacity_prunes_oldest_terminal_snapshots_first ... ok
+test commands::command_exec::tests::command_job_snapshot_caps_output_lines_per_channel ... ok
+test commands::command_exec::tests::command_job_snapshot_caps_single_line_bytes ... ok
+test commands::command_exec::tests::command_job_snapshot_serializes_required_status_values ... ok
+test commands::command_exec::tests::command_job_ttl_prunes_only_terminal_jobs ... ok
+test commands::command_exec::tests::command_owner_receives_cancel_before_cleanup_and_keeps_start_admission ... ok
+test commands::command_exec::tests::command_policy_accepts_short_aliases_declared_in_catalog ... ok
+test commands::command_exec::tests::command_policy_allows_safe_command_with_declared_flag ... ok
+test commands::command_exec::tests::command_policy_rejects_destructive_passthrough_commands_even_with_confirmation ... ok
+test commands::command_exec::tests::command_policy_rejects_destructive_passthrough_for_background_jobs ... ok
+test commands::command_exec::tests::command_policy_rejects_extra_positional_args ... ok
+test commands::command_exec::tests::command_policy_rejects_unknown_flag_before_process_spawn ... ok
+test commands::command_exec::tests::command_policy_rejects_value_flags_without_values ... ok
+test commands::command_exec::tests::foreground_barrier_does_not_block_existing_command_owner_controls ... ok
+test commands::command_exec::tests::parse_ccr_version_output_extracts_semver_token ... ok
+test commands::command_exec::tests::split_output_lines_preserves_channel_text_without_blank_noise ... ok
+test commands::command_exec::tests::stalled_output_consumer_stays_bounded_and_reports_drops ... ok
+test commands::command_exec::tests::terminal_snapshot_keeps_non_zero_exit_as_failed_with_output ... ok
+test commands::claude_mcp_config::tests::claude_mcp_add_normalizes_http_transport_without_empty_command ... ok
+test commands::command_exec::tests::validate_command_rejects_non_whitelisted_command ... ok
+test commands::claude::tests::local_settings_update_replays_concurrent_cli_mutation ... ok
+test commands::command_exec::tests::unterminated_output_line_is_bounded_and_reported ... ok
+test commands::claude_mcp_config::tests::claude_mcp_empty_update_patch_does_not_clear_existing_config ... ok
+test commands::claude_mcp_config::tests::claude_mcp_concurrent_mutations_preserve_both_fields ... ok
+test commands::config::contract_tests::config_subprocess ... ignored, isolated child process for the repository concurrency fixture
+test commands::claude_mcp_config::tests::claude_mcp_cas_fails_after_three_external_changes ... ok
+test commands::claude_mcp_config::tests::claude_mcp_env_patch_merges_instead_of_replacing_existing_keys ... ok
+test commands::claude_mcp_config::tests::claude_mcp_local_mutation_preserves_other_project_state ... ok
+test commands::claude_mcp_config::tests::claude_mcp_user_mutations_preserve_unrelated_state_fields ... ok
+test commands::claude_mcp_config::tests::claude_mcp_reports_project_approval_states ... ok
+test commands::claude_mcp_config::tests::claude_mcp_update_can_switch_from_stdio_to_http ... ok
+test commands::config::tests::destructive_confirmation_requires_action_scoped_token ... ok
+test commands::config::tests::resolve_managed_restore_path_accepts_config_backup_filename_only ... ok
+test commands::config::tests::resolve_managed_restore_path_rejects_non_current_config_backup_names ... ok
+test commands::config::tests::resolve_managed_restore_path_rejects_path_traversal_and_absolute_paths ... ok
+test commands::config::tests::restore_config_from_backup_path_accepts_ccr_config_shape ... ok
+test commands::config::tests::restore_config_from_backup_path_rejects_invalid_toml_before_write ... ok
+test commands::config::tests::restore_config_from_backup_path_rejects_missing_file ... ok
+test commands::grok::tests::credential_actions_cover_preserve_replace_and_clear ... ok
+test commands::grok::tests::delete_state_machine_blocks_or_forces_only_the_target_activation ... ok
+test commands::grok::tests::every_grok_command_applies_the_local_only_gate_before_work ... ok
+test commands::grok::tests::ipc_f64_context_window_is_accepted_as_positive_integer ... ok
+test commands::grok::tests::profile_dto_never_serializes_credentials_or_unsafe_url_parts ... ok
+test commands::grok::tests::profile_kind_follows_runtime_shape_instead_of_provider_label ... ok
+test commands::grok::tests::profile_patch_preserves_absent_fields_and_supports_null_and_credentials ... ok
+test commands::grok::tests::raw_save_rejects_invalid_or_stale_content_without_backup ... ok
+test commands::grok::tests::rename_state_machine_preserves_recoverable_partial_states_without_error_details ... ok
+test commands::claude_mcp_config::tests::claude_mcp_toggle_update_preserves_command_args_and_env ... ok
+test commands::grok::tests::rename_updates_real_inactive_and_active_profile_state ... ok
+test commands::claude_mcp_config::tests::claude_mcp_add_creates_missing_mcp_servers_object ... ok
+test commands::claude_mcp_config::tests::claude_mcp_masked_env_is_not_written_back_over_real_secret ... ok
+test commands::codex::auth::tests::oauth_pending_adapter_preserves_legacy_root_when_data_dir_differs ... ok
+test commands::codex::auth::tests::oauth_pending_storage_failure_preserves_memory_and_redacts_output ... ok
+test commands::grok::tests::settings_patch_validates_whitelist_and_value_domains ... ok
+test commands::handler_registry::tests::command_capability_descriptors_are_complete_and_unique ... ok
+test commands::handler_registry::tests::command_capability_policy_covers_security_boundaries ... ok
+test commands::handler_registry::tests::command_inventory_document_matches_registry ... ok
+test commands::handler_registry::tests::command_registry_modules_are_well_formed ... ok
+test commands::handler_registry::tests::command_registry_paths_are_unique ... ok
+test commands::handler_registry::tests::command_registry_shape_matches_current_handler_surface ... ok
+test commands::handler_registry::tests::confirmation_policy_rejects_missing_or_forged_payload_proof ... ok
+test commands::handler_registry::tests::generated_claude_auth_client_covers_the_typed_registry_module ... ok
+test commands::handler_registry::tests::generated_claude_client_covers_core_and_profile_modules ... ok
+test commands::handler_registry::tests::generated_codex_auth_client_covers_typed_auth_and_provider_modules ... ok
+test commands::handler_registry::tests::generated_codex_client_covers_the_typed_registry_module ... ok
+test commands::handler_registry::tests::generated_command_exec_client_covers_the_typed_registry_module ... ok
+test commands::handler_registry::tests::generated_config_client_covers_the_typed_registry_module ... ok
+test commands::handler_registry::tests::generated_small_domain_clients_cover_their_typed_registry_modules ... ok
+test commands::handler_registry::tests::generated_ssh_client_covers_the_typed_registry_module ... ok
+test commands::handler_registry::tests::generated_sync_client_covers_the_typed_registry_module ... ok
+test commands::handler_registry::tests::generated_tauri_acl_scopes_application_commands_by_window ... ok
+test commands::handler_registry::tests::lifecycle_matrix_preserves_each_commands_security_and_execution_resource ... ok
+test commands::handler_registry::tests::opaque_install_capability_requires_a_non_empty_plan_handle ... ok
+test commands::handler_registry::tests::opaque_ssh_confirmation_requires_a_backend_challenge ... ok
+test commands::handler_registry::tests::tray_panel_permission_set_excludes_unrelated_privileged_commands ... ok
+test commands::opencode::tests::agent_upsert_preserves_unknown_frontmatter_and_filename ... ok
+test commands::opencode::tests::config_dir_uses_xdg_layout ... ok
+test commands::opencode::tests::merge_json_objects_preserves_unrelated_keys ... ok
+test commands::opencode::tests::parse_markdown_frontmatter_round_trip ... ok
+test commands::opencode::tests::plugin_scan_only_includes_script_files ... ok
+mbx[progress]: 1m 45s elapsed; 0 hits, 0 misses, 2 bypassed, 0 not looked up; ~0s compiler work saved
+mbx[progress]: 2m elapsed; 0 hits, 0 misses, 2 bypassed, 0 not looked up; ~0s compiler work saved
+test commands::claude_mcp_config::tests::claude_mcp_lists_user_local_project_and_marks_precedence_with_windows_key has been running for over 60 seconds
+test commands::codex::profiles::application_rename_contract::profile_rename_each_write_contract has been running for over 60 seconds
+test commands::codex::profiles::update_tests::codex_update_profile_rejects_blank_target_name has been running for over 60 seconds
+test commands::codex::profiles::update_tests::codex_update_profile_rename_migrates_profile_secret_and_current_profile has been running for over 60 seconds
+test commands::codex::profiles::update_tests::codex_update_profile_rename_rejects_conflicting_target_without_writing_partial_state has been running for over 60 seconds
+test commands::codex::profiles::update_tests::codex_update_profile_same_target_name_updates_in_place has been running for over 60 seconds
+test commands::codex::profiles::application_rename_contract::profile_rename_each_write_contract ... ok
+test commands::codex::profiles::update_tests::codex_update_profile_rejects_blank_target_name ... ok
+test commands::codex::profiles::update_tests::codex_update_profile_rename_migrates_profile_secret_and_current_profile ... ok
+test commands::codex::profiles::update_tests::codex_update_profile_rename_rejects_conflicting_target_without_writing_partial_state ... ok
+test commands::codex::profiles::update_tests::codex_update_profile_same_target_name_updates_in_place ... ok
+test commands::codex::tests::codex_list_profiles_reads_only_ccr_profiles_source ... ok
+test commands::codex::tests::profile_to_json_projects_deepseek_fields_without_duplicating_extra ... ok
+test commands::profile_lifecycle::tests::profiles_raw_get_reports_verbatim_content_and_token ... ok
+test commands::config::contract_tests::active_rename_uses_application_and_preserves_runtime ... ok
+test commands::profile_lifecycle::tests::profiles_raw_rejects_syntax_semantic_and_empty_content_without_leaks ... ok
+test commands::config::contract_tests::actual_handlers_crud_preserve_typed_fields_and_confirmation ... ok
+test commands::profile_lifecycle::tests::target_name_defaults_to_current_name ... ok
+test commands::profile_lifecycle::tests::target_name_rejects_blank_values ... ok
+test commands::runtime_policy::tests::background_permit_transfer_is_single_use_and_preserves_shared_process_exclusion ... ok
+test commands::config::contract_tests::actual_handlers_protect_registry_fallback_active_profile ... ok
+test commands::runtime_policy::tests::control_matrix_oauth_delivery ... ok
+test commands::runtime_policy::tests::control_matrix_command_and_install_delivery ... ok
+test commands::runtime_policy::tests::control_matrix_usage_delivery ... ok
+test commands::runtime_policy::tests::foreground_install_plan_does_not_block_existing_attempt_owner ... ok
+test commands::runtime_policy::tests::cooperative_deadline_cancels_the_command_future ... ok
+test commands::runtime_policy::tests::install_owner_cancel_and_recent_reach_attempt_before_cleanup ... ok
+test commands::runtime_policy::tests::risk_classes_choose_explicit_timeout_ownership ... ok
+test commands::runtime_policy::tests::transfer_survives_wrapper_abort_and_early_error_releases_untransferred_permit ... ok
+test commands::runtime_policy::tests::module_permit_is_held_until_the_command_future_completes ... ok
+test commands::runtime_policy::tests::usage_owner_controls_reach_existing_job_during_each_foreground_import ... ok
+test commands::settings_raw::tests::claude_invalid_json_is_rejected_without_leaking_content ... ok
+test commands::settings_raw::tests::claude_semantic_error_includes_position_without_leaking_content ... ok
+test commands::settings_raw::tests::codex_semantic_error_is_rejected_without_leaking_content ... ok
+test commands::settings_raw::tests::get_raw_file_reports_missing_target ... ok
+test commands::settings_raw::tests::raw_save_creates_missing_file_and_backs_up_existing_file ... ok
+test commands::settings_raw::tests::raw_save_rejects_stale_token_and_preserves_external_change ... ok
+test commands::shell::tests::exact_display_name_match_is_required ... ok
+test commands::shell::tests::normalize_windows_display_icon_path_strips_resource_suffix ... ok
+test commands::shell::tests::trim_wrapped_quotes_removes_outer_quotes ... ok
+test commands::shell::tests::windows_candidate_paths_cover_local_and_program_files_roots ... ok
+test commands::ssh::tests::failed_active_target_falls_back_to_local ... ok
+test commands::ssh::tests::failed_inactive_target_does_not_replace_active_environment ... ok
+test commands::sync::tests::add_sync_folder_uses_platforms_segment_for_default_config_folder ... ok
+test commands::sync::tests::asset_remote_exists_state_maps_three_states ... ok
+test commands::sync::tests::asset_remote_path_uses_base_and_canonical_segments ... ok
+test commands::sync::tests::ccr_asset_path_honors_environment_root_when_set ... ok
+test commands::sync::tests::directory_remote_path_empty_falls_back_to_root ... ok
+test commands::sync::tests::directory_remote_path_normalizes_directory_targets_with_trailing_slash ... ok
+test commands::sync::tests::existing_incomplete_canonical_config_never_falls_back_to_legacy ... ok
+test commands::sync::tests::find_case_insensitive_child_matches_markdown_variants ... ok
+test commands::sync::tests::legacy_webdav_is_migrated_once_into_canonical_config ... ok
+test commands::sync::tests::load_webdav_config_uses_legacy_default_base_for_unconfigured_folder_defaults ... ok
+test commands::sync::tests::sensitive_assets_require_non_empty_operation_passphrase ... ok
+test commands::sync::tests::set_webdav_config_rejects_non_loopback_http_before_persistence ... ok
+test commands::sync::tests::set_webdav_config_writes_only_canonical_folder_config ... ok
+test commands::sync::tests::sync_asset_direction_labels_distinguish_push_pull_and_sync ... ok
+test commands::sync::tests::sync_asset_manifest_contains_expected_ids ... ok
+test commands::sync::tests::sync_asset_truth_table_is_exhaustive_for_force_and_presence ... ok
+test commands::sync::tests::update_sync_folder_upserts_enabled_paths_and_description ... ok
+test commands::system::monitoring_query_tests::monitoring_matches_query_accepts_empty_query ... ok
+test commands::system::monitoring_query_tests::monitoring_matches_query_filters_level_and_channel ... ok
+test commands::system::tests::build_cli_probe_targets_prefers_windows_cmd_wrapper_for_extensionless_shim ... ok
+test commands::system::tests::build_cli_probe_targets_uses_detected_paths_and_marks_missing_tools ... ok
+test commands::config::contract_tests::actual_handlers_switch_and_enable_commit_runtime_and_policy ... ok
+test commands::system::tests::get_system_info_exposes_home_dashboard_metrics ... ok
+test commands::system::tests::normalize_cli_tool_rejects_unknown_tool ... ok
+test commands::system::tests::single_cli_probe_returns_requested_platform ... ok
+test commands::system_prompts::tests::create_and_save_use_version_tokens_and_backup ... ok
+test commands::system_prompts::tests::list_reports_missing_file_and_sorted_claude_rules ... ok
+test commands::system_prompts::tests::oversized_content_warns_without_leaking_probe ... ok
+test commands::system_prompts::tests::registry_resolves_all_supported_home_paths ... ok
+test commands::system_prompts::tests::stale_save_and_duplicate_create_preserve_existing_content ... ok
+test commands::unified_mcp::tests::codex_toml_write_preserves_deepseek_fields ... ok
+test commands::wire::tests::fractional_and_negative_f64_keep_expected_json_shape ... ok
+test commands::wire::tests::whole_f64_round_trips_as_integer_json_number ... ok
+test desktop_shell::tests::close_to_tray_beats_exit_confirmation ... ok
+test desktop_shell::tests::force_exit_allows_close_immediately ... ok
+test desktop_shell::tests::manual_tray_panel_position_clamps_back_into_work_area ... ok
+test desktop_shell::tests::manual_tray_panel_position_is_preserved_inside_work_area ... ok
+test desktop_shell::tests::tray_panel_clamps_size_to_small_work_area ... ok
+test desktop_shell::tests::tray_panel_fallback_clamps_to_zero_when_anchor_near_top ... ok
+test desktop_shell::tests::tray_panel_falls_back_above_anchor_when_work_area_missing ... ok
+test desktop_shell::tests::tray_panel_prefers_above_bottom_taskbar ... ok
+test desktop_shell::tests::tray_panel_stays_below_top_taskbar_work_area ... ok
+test llmusage_adapter::capabilities::tests::capability_report_merges_db_and_cli_features ... ok
+test llmusage_adapter::cli::lifecycle_tests::blocked_event_callback_remains_cancellable ... ok
+test llmusage_adapter::cli::lifecycle_tests::cleanup_error_and_hung_reap_override_cancelled ... ok
+test llmusage_adapter::cli::lifecycle_tests::cleanup_error_overrides_timeout_and_protocol_failure ... ok
+test llmusage_adapter::cli::lifecycle_tests::externally_held_stderr_has_bounded_join_and_cleanup_error ... ok
+test llmusage_adapter::cli::lifecycle_tests::finished_event_waits_for_child_exit_and_stderr ... ok
+test llmusage_adapter::cli::lifecycle_tests::missing_stderr_still_requires_tree_cleanup ... ok
+test llmusage_adapter::cli::lifecycle_tests::native_windows_running_cancel_reaps_the_child ... ok
+test llmusage_adapter::cli::lifecycle_tests::native_windows_silent_child_times_out_and_is_reaped ... ok
+test llmusage_adapter::cli::lifecycle_tests::production_sync_deadline_remains_one_hour ... ok
+test llmusage_adapter::cli::lifecycle_tests::silent_process_obeys_descriptor_deadline ... ok
+test llmusage_adapter::cli::lifecycle_tests::stderr_retains_at_most_sixty_four_capped_lines ... ok
+test llmusage_adapter::cli::lifecycle_tests::stdout_eof_does_not_disable_deadline_while_child_lives ... ok
+test llmusage_adapter::cli::lifecycle_tests::stdout_flood_without_eof_fails_at_one_mebibyte ... ok
+test llmusage_adapter::cli::lifecycle_tests::successful_exit_returns_summary_after_readers_finish ... ok
+test llmusage_adapter::cli::lifecycle_tests::wire_cancel_event_returns_cancelled_only_after_cleanup ... ok
+test llmusage_adapter::cli::tests::cancel_token_aborts_stdout_consumer ... ok
+test llmusage_adapter::cli::tests::oversized_unterminated_stdout_line_fails_bounded ... ok
+test llmusage_adapter::cli::tests::stderr_flood_does_not_block_stdout_consumption ... ok
+test llmusage_adapter::cli::tests::sync_options_append_provider_map_argument ... ok
+test llmusage_adapter::cli::tests::sync_options_defaults_to_all_sources_without_rebuild ... ok
+test llmusage_adapter::db::tests::shared_usage_error_maps_every_variant ... ok
+test llmusage_adapter::db::tests::wrapper_propagates_schema_gate_as_adapter_error ... ok
+test llmusage_adapter::events::tests::noise_between_legal_events_does_not_break_stream ... ok
+test llmusage_adapter::events::tests::parses_current_pricing_and_accounting_lifecycle_events ... ok
+test llmusage_adapter::events::tests::parses_source_finished_with_optional_absent_flag ... ok
+test llmusage_adapter::events::tests::parses_zcode_and_deepseek_harness_source_events ... ok
+test llmusage_adapter::events::tests::rejects_brace_started_but_malformed_json ... ok
+test llmusage_adapter::events::tests::skips_ansi_colored_tracing_line_mixed_into_stdout ... ok
+test llmusage_adapter::events::tests::skips_plain_text_log_line_without_braces ... ok
+test llmusage_adapter::queries::tests::maps_overview_to_existing_usage_summary_contract ... ok
+test llmusage_adapter::queries::tests::project_path_falls_back_to_display_safe_fields ... ok
+test log_sanitize::tests::sanitize_frontend_log_redacts_secret_fields_and_text ... ok
+test log_sanitize::tests::sanitize_frontend_log_truncates_message_and_oversize_fields ... ok
+test log_sanitize::tests::sanitize_replaces_stale_timestamp ... ok
+test log_sanitize::tests::take_frontend_log_batch_keeps_first_32 ... ok
+test monitoring::tests::checkin_job_entry_marks_failed_finished_job_as_warn ... ok
+test monitoring::tests::event_to_monitoring_entry_maps_domain_events ... ok
+test monitoring::tests::frontend_log_entry_defaults_source_and_maps_event_type ... ok
+test monitoring::tests::should_persist_warn_and_whitelisted_events ... ok
+test platform::config_path::tests::empty_defaults_to_settings_json ... ok
+test platform::config_path::tests::normalizes_separators_and_dot_segments ... ok
+test platform::config_path::tests::rejects_absolute_or_unc_paths ... ok
+test platform::config_path::tests::rejects_control_characters ... ok
+test platform::config_path::tests::rejects_parent_traversal ... ok
+test commands::config::contract_tests::desktop_and_service_processes_preserve_independent_changes ... ok
+test commands::config::contract_tests::direct_mutation_waits_for_application_lock_and_rechecks_activation ... ok
+test platform::ssh::tests::rename_failure_runs_cleanup_after_upload ... ok
+test platform::ssh::tests::upload_failure_runs_cleanup_without_rename ... ok
+test platform::wsl::tests::copy_dir_recursive_copies_nested_files_and_overwrites ... ok
+test platform::wsl::tests::decode_wsl_output_preserves_utf8_and_utf16le_paths ... ok
+test process::gateway::tests::descriptor_catalog_is_closed_and_resolves_expected_tools ... ok
+test process::gateway::tests::development_sidecar_and_hash_validation_are_deterministic ... ok
+test process::gateway::tests::foreground_output_flood_is_capped_and_terminated ... ok
+test process::gateway::tests::foreground_stdin_is_written_and_streams_are_collected ... ok
+test process::gateway::tests::foreground_timeout_terminates_and_reaps_process ... ok
+test process::gateway::tests::oauth_url_policy_accepts_authorize_and_fixed_loopback_callback ... ok
+test process::gateway::tests::oauth_url_policy_rejects_unsafe_schemes_and_host_confusion ... ok
+test process::gateway::tests::owned_process_registry_filters_ports_and_requests_cancellation ... ok
+test process::gateway::tests::release_sidecar_resolution_requires_hash_and_never_falls_back_to_path ... ok
+test process::gateway::tests::sidecar_hash_mismatch_is_rejected ... ok
+test services::agent_sessions::tests::all_eight_agents_map_to_store_ids ... ok
+test services::agent_sessions::tests::cursor_round_trip_and_limit_validation ... ok
+test services::agent_sessions::tests::default_list_excludes_legacy_non_target_platform_rows ... ok
+test services::agent_sessions::tests::detail_fidelity_never_overstates_an_archived_degradation ... ok
+test services::agent_sessions::tests::get_detail_maps_escaped_path_to_validation_failed ... ok
+test services::agent_sessions::tests::get_detail_maps_missing_jsonl_to_source_unavailable ... ok
+test services::agent_sessions::tests::get_detail_maps_wrong_extension_to_validation_failed ... ok
+test services::agent_sessions::tests::refresh_upserts_live_jsonl_and_marks_deleted_archive_missing ... ok
+test services::agent_sessions::tests::unchanged_refresh_skips_parse_and_upsert_work ... ok
+test services::claude_observer::service_tests::cache_stats_aggregates_tokens ... ok
+test services::claude_observer::service_tests::cost_breakdown_sorts_limits_and_rejects_unknown_dim ... ok
+test services::claude_observer::service_tests::daily_trend_filters_platform_and_maps_fields ... ok
+test services::claude_observer::service_tests::insight_assembles_dual_sources_and_roi_branches ... ok
+test services::claude_observer::service_tests::tool_heatmap_and_top_tools_read_tool_calls ... ok
+test commands::config::contract_tests::enable_stage_failure_and_replay_contract ... ok
+test commands::config::contract_tests::legacy_and_unsupported_platform_requests_never_write ... ok
+test services::claude_observer::service_tests::top_sessions_orders_by_cost_or_calls ... ok
+test commands::config::contract_tests::patch_retains_secret_unknown_fields_inactive_marker_and_checks_version ... ok
+test commands::config::contract_tests::strict_patch_rejects_unknown_wrong_types_missing_collision_without_write ... ok
+test services::home_insights::tests::home_insights_merges_usage_and_session_rows_for_one_unmapped_key ... ok
+test commands::claude_mcp_config::tests::claude_mcp_lists_user_local_project_and_marks_precedence_with_windows_key ... ok
+test commands::grok::tests::settings_and_raw_saves_preserve_the_configured_backup_inventory ... ok
+test services::home_insights::tests::home_insights_last_7_days_sessions_include_as_of_day ... ok
+test commands::grok::tests::settings_patch_preserves_unknown_tables_and_writes_no_backup ... ok
+test services::home_insights::tests::home_insights_maps_session_platforms_and_keeps_unknown_rows ... ok
+test services::home_insights::tests::home_insights_response_cache_value_round_trips ... ok
+test commands::grok::tests::settings_patch_rechecks_managed_lock_after_concurrent_apply ... ok
+test commands::grok::tests::settings_patch_retries_after_concurrent_write_and_preserves_external_keys ... ok
+test commands::grok::tests::settings_patch_returns_conflict_after_three_attempts ... ok
+test services::home_insights::tests::home_insights_surfaces_missing_llmusage_db_as_error ... ok
+test services::home_insights::tests::home_insights_reports_unindexed_sessions_honestly ... ok
+test services::usage::service_tests::usage_by_model_preserves_llmusage_static_v1_fable_mythos_rows ... ok
+test services::usage::service_tests::usage_by_model_maps_breakdown_ordering_and_costs ... ok
+test services::usage::service_tests::usage_by_project_prefers_ref_and_excludes_empty_hash ... ok
+test services::usage::service_tests::usage_by_provider_aggregates_and_maps_unattributed_to_none ... ok
+test services::usage::tests::detect_home_empty_reason_distinguishes_usage_and_sessions ... ok
+test services::usage::tests::home_date_range_is_inclusive_for_requested_days ... ok
+test services::usage::tests::import_summary_detects_no_importable_logs ... ok
+test services::usage::tests::import_summary_marks_partial_and_failures ... ok
+test services::usage::tests::normalize_home_platform_supports_common_aliases ... ok
+test services::usage::tests::source_import_result_keeps_real_opencode_errors_actionable ... ok
+test services::usage::tests::source_import_result_maps_llmusage_stats_to_ccr_contract ... ok
+test services::usage::tests::source_import_result_treats_missing_opencode_db_as_optional_absent_source ... ok
+test services::usage::tests::usage_freshness_classifies_missing_fresh_and_stale_sources ... ok
+test services::usage::tests::usage_logs_mode_defaults_to_cursor ... ok
+test services::usage::tests::usage_logs_query_supports_camel_case_aliases ... ok
+test services::usage::tests::usage_readiness_prioritizes_syncing_then_actions ... ok
+test services::usage::tests::usage_snapshot_projection_serializes_stable_drilldown_contract ... ok
+test services::usage::tests::usage_source_health_promotes_missing_and_degraded_state ... ok
+test services::usage::tests::window_usage_needs_refresh_when_sync_predates_empty_window ... ok
+test ssh::security::tests::challenge_is_single_use_and_expiry_is_stable ... ok
+test ssh::security::tests::host_key_state_has_new_match_and_mismatch_outcomes ... ok
+test ssh::security::tests::known_hosts_update_replaces_only_the_target ... ok
+test ssh::security::tests::mismatch_is_a_distinct_blocking_security_failure ... ok
+test ssh::security::tests::openssh_commands_always_use_the_app_trust_store ... ok
+test ssh::security::tests::posix_encoder_handles_single_quotes ... ok
+test ssh::security::tests::rejects_hostile_remote_home_corpus ... ok
+test ssh::security::tests::remote_path_property_is_deterministic_and_non_interpolating ... ok
+test ssh::security::tests::sftp_write_is_staged_and_uses_no_remote_shell ... ok
+test ssh::security::tests::validates_host_user_identity_and_option_boundaries ... ok
+test state::tests::desktop_shell_preferences_defaults_when_file_is_missing ... ok
+test state::tests::desktop_shell_preferences_load_legacy_files_with_default_tray_panel_state ... ok
+test services::usage::service_tests::compute_dashboard_includes_heatmap_with_seeded_dates_when_requested ... ok
+test tests::close_action_hides_main_window_to_tray_when_enabled ... ok
+test tests::close_action_requests_quit_when_close_to_tray_and_confirm_are_disabled ... ok
+test usage_jobs::lifecycle_tests::all_terminal_results_reject_duplicate_cancel_progress_and_completion ... ok
+test usage_jobs::lifecycle_tests::cancel_before_runner_start_prevents_spawn_and_keeps_admission ... ok
+test usage_jobs::lifecycle_tests::cancelled_result_rejects_late_failure ... ok
+test usage_jobs::lifecycle_tests::failed_result_rejects_cancel_and_late_progress ... ok
+test usage_jobs::lifecycle_tests::running_cancel_keeps_token_and_reports_cleanup_failure ... ok
+test services::usage::service_tests::usage_heatmap_zero_fills_requested_window_and_maps_dates ... ok
+test state::tests::desktop_shell_preferences_round_trip_via_json_file ... ok
+test services::usage::service_tests::compute_home_overview_joins_usage_series_and_marks_warm_bootstrap ... ok
+test services::usage::service_tests::compute_dashboard_assembles_seeded_stats_without_heatmap ... ok
+test services::usage::service_tests::compute_home_overview_marks_stale_empty_window_as_needs_import ... ok
+test services::usage::service_tests::compute_home_overview_on_empty_stores_reports_cold_bootstrap ... ok
+test services::usage::service_tests::usage_summary_aggregates_seeds_and_applies_platform_filter ... ok
+test services::usage::service_tests::usage_trends_groups_by_day_and_respects_date_range ... ok
+test services::usage::service_tests::usage_logs_honors_cursor_pagination_total_and_page_size_clamp ... ok
+test services::usage::service_tests::usage_dashboard_response_cache_value_round_trips ... ok
+test commands::profile_lifecycle::application_contract::profile_ancillary_contract has been running for over 60 seconds
+test commands::profile_lifecycle::application_contract::profile_ancillary_contract ... ok
+test commands::profile_lifecycle::application_contract::profile_deleted_after_prepare_contract ... ok
+test commands::profile_lifecycle::application_contract::profile_each_write_contract ... ok
+test commands::profile_lifecycle::application_contract::profile_external_version_contract ... ok
+mbx[progress]: 3m elapsed; 0 hits, 0 misses, 2 bypassed, 0 not looked up; ~0s compiler work saved
+test commands::profile_lifecycle::application_contract::profile_post_publish_failure_contract ... ok
+test commands::profile_lifecycle::application_contract::profile_preflight_contract ... ok
+test commands::profile_lifecycle::application_contract::profile_success_replay_contract ... ok
+test commands::profile_lifecycle::tests::profiles_raw_rejects_stale_token_without_backup ... ok
+test commands::profile_lifecycle::tests::profiles_raw_requires_force_when_current_profile_disappears ... ok
+test commands::settings_raw::tests::claude_raw_settings_use_shared_path_priority ... ok
+test commands::system::tests::cli_versions_fast_mode_returns_expected_shape ... ok
+test platform::local::tests::claude_config_dir_controls_local_config_reads_and_writes ... ok
+test platform::local::tests::grok_home_controls_config_path_without_plaintext_backups ... ok
+
+test result: ok. 407 passed; 0 failed; 1 ignored; 0 measured; 197 filtered out; finished in 110.09s
+
+     Running tests\llmusage_no_crate_guard.rs (ccr-ui\src-tauri\target\debug\deps\llmusage_no_crate_guard-66d7e009ad993702.exe)
+
+running 2 tests
+test ccr_ui_tauri_does_not_depend_on_llmusage_crate ... ok
+test ccr_ui_tauri_source_does_not_import_llmusage_crate ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+mbx[cache]: 0 hits, 0 misses, 2 bypassed; 0 B downloaded, 0 B uploaded, 0 B stored locally
+mbx[savings]: 30.2 GiB logical of old files removed while you were busy compiling other things.
+just tauri-bindings-check
+just --justfile ccr-ui/justfile bindings-check
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.98s
+     Running unittests src\lib.rs (D:\Documents\Code\Github\ccr\target\debug\deps\ccr_cli-aeee7fcf23a4353b.exe)
+
+running 24 tests
+test application::profile_lifecycle::export_bindings_profileoutcome ... ok
+test application::profile_lifecycle::export_bindings_profilestatus ... ok
+test application::profile_lifecycle::export_bindings_profilewarning ... ok
+test services::install_types::export_bindings_absentreason ... ok
+test services::install_types::export_bindings_attemptid ... ok
+test services::install_types::export_bindings_cancelresult ... ok
+test services::install_types::export_bindings_datarootwarning ... ok
+test services::install_types::export_bindings_detectionresult ... ok
+test services::install_types::export_bindings_durationclass ... ok
+test services::install_types::export_bindings_failurekind ... ok
+test services::install_types::export_bindings_hostcapabilities ... ok
+test services::install_types::export_bindings_installactionkind ... ok
+test services::install_types::export_bindings_installevent ... ok
+test services::install_types::export_bindings_installplanview ... ok
+test services::install_types::export_bindings_logstream ... ok
+test services::install_types::export_bindings_manualcatalog ... ok
+test services::install_types::export_bindings_manualcommand ... ok
+test services::install_types::export_bindings_packagemanager ... ok
+test services::install_types::export_bindings_planid ... ok
+test services::install_types::export_bindings_planoutcome ... ok
+test services::install_types::export_bindings_platform ... ok
+test services::install_types::export_bindings_progressstage ... ok
+test services::install_types::export_bindings_ringbuffersnapshot ... ok
+test services::install_types::export_bindings_unsupportedreason ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 345 filtered out; finished in 0.12s
+
+     Running tests\dispatch_routing.rs (D:\Documents\Code\Github\ccr\target\debug\deps\dispatch_routing-8e292b5c9a50d14e.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.00s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.39s
+     Running unittests src\lib.rs (D:\Documents\Code\Github\ccr\target\debug\deps\ccr_usage-69bebf9ee6936530.exe)
+
+running 9 tests
+test capabilities::export_bindings_featurecapability ... ok
+test capabilities::export_bindings_unsupportedreason ... ok
+test insights::export_bindings_insightsday ... ok
+test insights::export_bindings_insightstally ... ok
+test insights::export_bindings_insightstrendseries ... ok
+test queries::export_bindings_dailytrenddto ... ok
+test queries::export_bindings_providerbreakdowndto ... ok
+test queries::export_bindings_sourcebreakdowndto ... ok
+test queries::export_bindings_usagerecorddto ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 58 filtered out; finished in 0.04s
+
+warning: linker stdout: 正在创建库 D:/Documents/Code/Github/ccr/ccr-ui/src-tauri/target\debug\deps\ccr_tauri_command_macros-271ea576f0e047ce.dll.lib 和对象 D:/Documents/Code/Github/ccr/ccr-ui/src-tauri/target\debug\deps\ccr_tauri_command_macros-271ea576f0e047ce.dll.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `ccr-tauri-command-macros` (lib) generated 1 warning
+   Compiling ccr-desktop v7.4.0 (D:\Documents\Code\Github\ccr\ccr-ui\src-tauri)
+mbx[progress]: 15s elapsed; 0 hits, 0 misses, 1 bypassed, 0 not looked up; ~0s compiler work saved
+mbx[progress]: 30s elapsed; 0 hits, 0 misses, 1 bypassed, 0 not looked up; ~0s compiler work saved
+mbx[progress]: 45s elapsed; 0 hits, 0 misses, 1 bypassed, 0 not looked up; ~0s compiler work saved
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 49.85s
+     Running unittests src\main.rs (src-tauri\target\debug\deps\ccr_desktop-5aabd7cb81fe19ae.exe)
+
+running 197 tests
+test claude_observer::subscription::export_bindings_subscriptiondto ... ok
+test commands::builtin_prompts::export_bindings_builtinpromptdto ... ok
+test commands::builtin_prompts::export_bindings_promptvariabledto ... ok
+test commands::claude::auth::export_bindings_claudeauthaccountitem ... ok
+test commands::claude::auth::export_bindings_claudeauthactionresponse ... ok
+test commands::claude::auth::export_bindings_claudeauthconfidence ... ok
+test commands::claude::auth::export_bindings_claudeauthcurrentinfo ... ok
+test commands::claude::auth::export_bindings_claudeauthcurrentresponse ... ok
+test commands::claude::auth::export_bindings_claudeauthdiagnosis ... ok
+test commands::claude::auth::export_bindings_claudeauthevidence ... ok
+test commands::claude::auth::export_bindings_claudeauthlistresponse ... ok
+test commands::claude::auth::export_bindings_claudeauthoffresponse ... ok
+test commands::claude::auth::export_bindings_claudeauthownership ... ok
+test commands::claude::auth::export_bindings_claudeauthsourcekind ... ok
+test commands::claude::auth::export_bindings_claudeauthsourcelocation ... ok
+test commands::claude::auth::export_bindings_claudeauthsourceobservation ... ok
+test commands::claude::auth::export_bindings_claudeloginstate ... ok
+test commands::claude::auth::export_bindings_claudeprofileauthmode ... ok
+test commands::claude::auth::export_bindings_clauderuntimemode ... ok
+test commands::claude::auth::export_bindings_clauderuntimesummary ... ok
+test commands::codex::auth::export_bindings_codexapikeyaddpayload ... ok
+test commands::codex::auth::export_bindings_codexauthaccountitem ... ok
+test commands::codex::auth::export_bindings_codexauthaccountmetadata ... ok
+test commands::codex::auth::export_bindings_codexauthactionresponse ... ok
+test commands::codex::auth::export_bindings_codexauthcurrentinfo ... ok
+test commands::codex::auth::export_bindings_codexauthcurrentresponse ... ok
+test commands::codex::auth::export_bindings_codexauthimportpayload ... ok
+test commands::codex::auth::export_bindings_codexauthlistresponse ... ok
+test commands::codex::auth::export_bindings_codexauthmutationresponse ... ok
+test commands::codex::auth::export_bindings_codexauthoffresponse ... ok
+test commands::codex::auth::export_bindings_codexauthprocessresponse ... ok
+test commands::codex::auth::export_bindings_codexauthrenameresponse ... ok
+test commands::codex::auth::export_bindings_codexjsonvalue ... ok
+test commands::codex::auth::export_bindings_codexloginstate ... ok
+test commands::codex::auth::export_bindings_codexmodelproviderapikeydto ... ok
+test commands::codex::auth::export_bindings_codexmodelproviderdeleteresponse ... ok
+test commands::codex::auth::export_bindings_codexmodelproviderrecorddto ... ok
+test commands::codex::auth::export_bindings_codexmodelprovidersaveresponse ... ok
+test commands::codex::auth::export_bindings_codexmodelprovidersresponse ... ok
+test commands::codex::auth::export_bindings_codexmodelproviderupsertpayload ... ok
+test commands::codex::auth::export_bindings_codexoauthstartresponse ... ok
+test commands::codex::auth::export_bindings_oauthportreleasereport ... ok
+test commands::command_exec::export_bindings_commandargschema ... ok
+test commands::command_exec::export_bindings_commandcatalog ... ok
+test commands::command_exec::export_bindings_commandexecutionresult ... ok
+test commands::command_exec::export_bindings_commandflagschema ... ok
+test commands::command_exec::export_bindings_commandhelpresponse ... ok
+test commands::command_exec::export_bindings_commandinfo ... ok
+test commands::command_exec::export_bindings_commandjobdelta ... ok
+test commands::command_exec::export_bindings_commandjobsnapshot ... ok
+test commands::command_exec::export_bindings_commandjobstatus ... ok
+test commands::command_exec::export_bindings_outputchannel ... ok
+test commands::command_exec::export_bindings_startcommandjobresponse ... ok
+test commands::config::adapter::export_bindings_configmutationresult ... ok
+test commands::config::adapter::export_bindings_configpatchinput ... ok
+test commands::config::adapter::export_bindings_configplatform ... ok
+test commands::config::export_bindings_configinfo ... ok
+test commands::config::export_bindings_exportresult ... ok
+test commands::config::export_bindings_historyentry ... ok
+test commands::config::export_bindings_importresult ... ok
+test commands::converter::export_bindings_converterclitype ... ok
+test commands::converter::export_bindings_converterrequestdto ... ok
+test commands::converter::export_bindings_convertresult ... ok
+test commands::converter::export_bindings_convertstats ... ok
+test commands::grok::export_bindings_grokactivationdto ... ok
+test commands::grok::export_bindings_grokauthcurrentresponse ... ok
+test commands::grok::export_bindings_grokauthmodedto ... ok
+test commands::grok::export_bindings_grokauthoffresponse ... ok
+test commands::grok::export_bindings_grokclisettingsdto ... ok
+test commands::grok::export_bindings_grokconfiglayerdto ... ok
+test commands::grok::export_bindings_grokconfiglayersresponse ... ok
+test commands::grok::export_bindings_grokcustommodeldto ... ok
+test commands::grok::export_bindings_grokdashboardcommandresponse ... ok
+test commands::grok::export_bindings_grokdashboardoverview ... ok
+test commands::grok::export_bindings_grokdeleteblockedreasondto ... ok
+test commands::grok::export_bindings_grokhintssettingsdto ... ok
+test commands::grok::export_bindings_grokmodelssettingsdto ... ok
+test commands::grok::export_bindings_grokprofileactionresponse ... ok
+test commands::grok::export_bindings_grokprofilecommandresponse ... ok
+test commands::grok::export_bindings_grokprofiledto ... ok
+test commands::grok::export_bindings_grokprofilekinddto ... ok
+test commands::grok::export_bindings_grokprofilescommandresponse ... ok
+test commands::grok::export_bindings_grokprofilesresponse ... ok
+test commands::grok::export_bindings_grokrawconfigresponse ... ok
+test commands::grok::export_bindings_grokrawsaveresponse ... ok
+test commands::grok::export_bindings_groksessionsettingsdto ... ok
+test commands::grok::export_bindings_groksettingscommandresponse ... ok
+test commands::grok::export_bindings_groksettingspatchdto ... ok
+test commands::grok::export_bindings_groksettingsresponse ... ok
+test commands::grok::export_bindings_groksettingsupdateresponse ... ok
+test commands::grok::export_bindings_grokuisettingsdto ... ok
+test commands::opencode::export_bindings_opencodepluginfilerecord ... ok
+test commands::opencode::export_bindings_opencodethemerecord ... ok
+test commands::shell::export_bindings_skillportappstatus ... ok
+test commands::ssh::export_bindings_addsshhostrequest ... ok
+test commands::ssh::export_bindings_sshclistatusdto ... ok
+test commands::ssh::export_bindings_sshconfirmfingerprintrequest ... ok
+test commands::ssh::export_bindings_sshconnectionstate ... ok
+test commands::ssh::export_bindings_sshconnectionstateresponse ... ok
+test commands::ssh::export_bindings_sshconnectresultdto ... ok
+test commands::ssh::export_bindings_sshfingerprintproberesult ... ok
+test commands::ssh::export_bindings_sshhostconfigdto ... ok
+test commands::ssh::export_bindings_sshhostkeystatus ... ok
+test commands::ssh::export_bindings_sshkeyinfodto ... ok
+test commands::ssh::export_bindings_sshprobefingerprintrequest ... ok
+test commands::sync::export_bindings_syncallassetsinput ... ok
+test commands::sync::export_bindings_syncassetinfo ... ok
+test commands::sync::export_bindings_syncassetkind ... ok
+test commands::sync::export_bindings_syncassetoperationinput ... ok
+test commands::sync::export_bindings_syncencryptionstate ... ok
+test commands::sync::export_bindings_syncfolderinfo ... ok
+test commands::sync::export_bindings_syncoperationfailure ... ok
+test commands::sync::export_bindings_syncoperationresult ... ok
+test commands::sync::export_bindings_syncstatusinfo ... ok
+test commands::sync::export_bindings_webdavconfigdetails ... ok
+test commands::sync::export_bindings_webdavconfiginput ... ok
+test commands::sync::export_bindings_webdavtestresult ... ok
+test commands::system::export_bindings_cliversionentry ... ok
+test commands::system::export_bindings_cliversionoptions ... ok
+test commands::system::export_bindings_cliversionsoptions ... ok
+test commands::system::export_bindings_cliversionsresponse ... ok
+test commands::system::export_bindings_eventlogentrydto ... ok
+test commands::system::export_bindings_frontendloginputdto ... ok
+test commands::system::export_bindings_jsonvaluedto ... ok
+test commands::system::export_bindings_monitoringentrydto ... ok
+test commands::system::export_bindings_monitoringfeedquerydto ... ok
+test commands::system::export_bindings_monitoringleveldto ... ok
+test commands::system::export_bindings_runtimemetricsresponse ... ok
+test commands::system::export_bindings_systeminfo ... ok
+test commands::system::export_bindings_versioninfo ... ok
+test commands::ui_state::export_bindings_commandhistorydto ... ok
+test commands::ui_state::export_bindings_favoritecommanddto ... ok
+test commands::wire::export_bindings_openjsonvaluedto ... ok
+test llmusage_adapter::capabilities::export_bindings_capabilityreport ... ok
+test llmusage_adapter::queries::export_bindings_heatmapresponsedto ... ok
+test llmusage_adapter::queries::export_bindings_modelstatdto ... ok
+test llmusage_adapter::queries::export_bindings_paginatedlogsdto ... ok
+test llmusage_adapter::queries::export_bindings_projectstatdto ... ok
+test llmusage_adapter::queries::export_bindings_usagesummarydto ... ok
+test platform::export_bindings_environmentinfo ... ok
+test platform::export_bindings_environmenttype ... ok
+test services::agent_sessions::export_bindings_agentsessionagentdto ... ok
+test services::agent_sessions::export_bindings_agentsessionavailabilitydto ... ok
+test services::agent_sessions::export_bindings_agentsessiondetaildto ... ok
+test services::agent_sessions::export_bindings_agentsessiondetailrequestdto ... ok
+test services::agent_sessions::export_bindings_agentsessionfidelitydto ... ok
+test services::agent_sessions::export_bindings_agentsessionlistitemdto ... ok
+test services::agent_sessions::export_bindings_agentsessionlistrequestdto ... ok
+test services::agent_sessions::export_bindings_agentsessionmessagedto ... ok
+test services::agent_sessions::export_bindings_agentsessionpagedto ... ok
+test services::agent_sessions::export_bindings_agentsessionproviderrefreshdto ... ok
+test services::agent_sessions::export_bindings_agentsessionproviderstatusdto ... ok
+test services::agent_sessions::export_bindings_agentsessionrefreshcountersdto ... ok
+test services::agent_sessions::export_bindings_agentsessionrefreshreportdto ... ok
+test services::claude_observer::export_bindings_breakdownrow ... ok
+test services::claude_observer::export_bindings_cachestatsdto ... ok
+test services::claude_observer::export_bindings_dailypoint ... ok
+test services::claude_observer::export_bindings_heatmapcell ... ok
+test services::claude_observer::export_bindings_insightdto ... ok
+test services::claude_observer::export_bindings_sessionrow ... ok
+test services::claude_observer::export_bindings_toptoolrow ... ok
+test services::home_insights::export_bindings_homeinsightsresponse ... ok
+test services::home_insights::export_bindings_insightsagenttally ... ok
+test services::home_insights::export_bindings_insightstotals ... ok
+test services::home_insights::export_bindings_insightswindow ... ok
+test services::usage::export_bindings_homeoverviewbootstrap ... ok
+test services::usage::export_bindings_homeoverviewplatformstats ... ok
+test services::usage::export_bindings_homeoverviewseriesitem ... ok
+test services::usage::export_bindings_homeoverviewsummary ... ok
+test services::usage::export_bindings_homeusageoverviewresponse ... ok
+test services::usage::export_bindings_importallusageresponse ... ok
+test services::usage::export_bindings_startsessionindexjobresponse ... ok
+test services::usage::export_bindings_startusageimportjobresponse ... ok
+test services::usage::export_bindings_usagearchivediagnostics ... ok
+test services::usage::export_bindings_usagedashboardresponse ... ok
+test services::usage::export_bindings_usagedrilldownprojection ... ok
+test services::usage::export_bindings_usagefreshnessprojection ... ok
+test services::usage::export_bindings_usagefreshnessstate ... ok
+test services::usage::export_bindings_usageimportresultv2 ... ok
+test services::usage::export_bindings_usageimportsummary ... ok
+test services::usage::export_bindings_usagelogsmode ... ok
+test services::usage::export_bindings_usagelogsquery ... ok
+test services::usage::export_bindings_usagereadinessprojection ... ok
+test services::usage::export_bindings_usagereadinessstate ... ok
+test services::usage::export_bindings_usagesnapshotprojection ... ok
+test services::usage::export_bindings_usagesourcehealth ... ok
+test services::usage::export_bindings_usagesourcehealthstate ... ok
+test session_index_jobs::export_bindings_sessionindexjobsnapshot ... ok
+test session_index_jobs::export_bindings_sessionindexjobstage ... ok
+test session_index_jobs::export_bindings_sessionindexjobstatus ... ok
+test state::export_bindings_desktopshellpreferences ... ok
+test state::export_bindings_traypanelmanualposition ... ok
+test state::export_bindings_traypanelplacementmode ... ok
+test state::export_bindings_traypanelplacementstate ... ok
+test usage_jobs::export_bindings_usageimportjobsnapshot ... ok
+test usage_jobs::export_bindings_usageimportjobstage ... ok
+test usage_jobs::export_bindings_usageimportjobstatus ... ok
+
+test result: ok. 197 passed; 0 failed; 0 ignored; 0 measured; 408 filtered out; finished in 0.97s
+
+     Running tests\llmusage_no_crate_guard.rs (src-tauri\target\debug\deps\llmusage_no_crate_guard-e3ffec19be904b78.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+mbx[cache]: 0 hits, 0 misses, 1 bypassed; 0 B downloaded, 0 B uploaded, 0 B stored locally
+mbx[savings]: 30.2 GiB logical of old files removed to date. the broom sends its regards.
+TypeScript bindings match the worktree baseline
+just tauri-command-inventory-check
+warning: linker stdout: 正在创建库 D:/Documents/Code/Github/ccr/ccr-ui/src-tauri/target\debug\deps\ccr_tauri_command_macros-271ea576f0e047ce.dll.lib 和对象 D:/Documents/Code/Github/ccr/ccr-ui/src-tauri/target\debug\deps\ccr_tauri_command_macros-271ea576f0e047ce.dll.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `ccr-tauri-command-macros` (lib) generated 1 warning
+   Compiling ccr-desktop v7.4.0 (D:\Documents\Code\Github\ccr\ccr-ui\src-tauri)
+mbx[progress]: 15s elapsed; 0 hits, 0 misses, 1 bypassed, 0 not looked up; ~0s compiler work saved
+mbx[progress]: 30s elapsed; 0 hits, 0 misses, 1 bypassed, 0 not looked up; ~0s compiler work saved
+mbx[progress]: 45s elapsed; 0 hits, 0 misses, 1 bypassed, 0 not looked up; ~0s compiler work saved
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 50.70s
+     Running unittests src\main.rs (ccr-ui\src-tauri\target\debug\deps\ccr_desktop-5aabd7cb81fe19ae.exe)
+
+running 1 test
+test commands::handler_registry::tests::command_inventory_document_matches_registry ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 604 filtered out; finished in 0.02s
+
+     Running tests\llmusage_no_crate_guard.rs (ccr-ui\src-tauri\target\debug\deps\llmusage_no_crate_guard-e3ffec19be904b78.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+mbx[cache]: 0 hits, 0 misses, 1 bypassed; 0 B downloaded, 0 B uploaded, 0 B stored locally
+mbx[savings]: swept up 30.2 GiB logical so far. the broom is content-addressed.
+✅ Tauri Rust CI passed

@@ -1,0 +1,292 @@
+{
+  "name": "js-yaml",
+  "source": "https://registry.npmjs.org/js-yaml",
+  "fetched_utc": "2026-09-30T02:29:08.9654864Z",
+  "scope": "Only the baseline and selected patch release; unrelated historical versions omitted",
+  "source_snapshot_sha256": "e5f3916124bd6f3d1ef0831c94fe6c9eabcbde25c5af96021cd2ec1c10fbd790",
+  "dist-tags": {
+    "latest": "5.4.2",
+    "v4-legacy": "4.3.2",
+    "v3-legacy": "3.15.2"
+  },
+  "time": {
+    "4.3.1": "2026-07-31T17:39:51.183Z",
+    "4.3.2": "2026-08-26T20:42:48.747Z"
+  },
+  "versions": {
+    "4.3.1": {
+      "name": "js-yaml",
+      "version": "4.3.1",
+      "keywords": [
+        "yaml",
+        "parser",
+        "serializer",
+        "pyyaml"
+      ],
+      "author": {
+        "name": "Vladimir Zapparov",
+        "email": "dervus.grim@gmail.com"
+      },
+      "license": "MIT",
+      "_id": "js-yaml@4.3.1",
+      "maintainers": [
+        {
+          "name": "vitaly",
+          "email": "vitaly@rcopen.com"
+        }
+      ],
+      "contributors": [
+        {
+          "url": "http://www.ixti.net/",
+          "name": "Aleksey V Zapparov",
+          "email": "ixti@member.fsf.org"
+        },
+        {
+          "url": "https://github.com/puzrin",
+          "name": "Vitaly Puzrin",
+          "email": "vitaly@rcdesign.ru"
+        },
+        {
+          "url": "http://got-ravings.blogspot.com",
+          "name": "Martin Grenfell",
+          "email": "martin.grenfell@gmail.com"
+        }
+      ],
+      "homepage": "https://github.com/nodeca/js-yaml#readme",
+      "bugs": {
+        "url": "https://github.com/nodeca/js-yaml/issues"
+      },
+      "bin": {
+        "js-yaml": "bin/js-yaml.js"
+      },
+      "dist": {
+        "shasum": "01216c001d67f48e2cd560d708c7af21090a3848",
+        "tarball": "https://registry.npmjs.org/js-yaml/-/js-yaml-4.3.1.tgz",
+        "fileCount": 36,
+        "integrity": "sha512-CY6crGq313MX8GkwvB7tzgp99vjQxY1++5y10/BKN/GUfHqWaOGQMNZkBvqSzsZKWk/ijwHlWzzkLulsGHhjWQ==",
+        "signatures": [
+          {
+            "sig": "MEQCIEfeJDHJVb3WYEp2tLJa3SHD/hh6ar8/boVLSQuPYgNIAiBpVH1Lgv2q4deM2fhLqeV+HS691NZLmCcAaMld2JjcUg==",
+            "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+          },
+          {
+            "sig": "MEQCIEZsasSqJgdEzohFyrJTbfpYS1kTxmDg2sSQTZQQcfmaAiAr3WSz8NcSYBbTY8sANLxf9n/vbwzCkrNjR3Uz3ROqQQ==",
+            "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+          }
+        ],
+        "unpackedSize": 957953
+      },
+      "unpkg": "dist/js-yaml.min.js",
+      "module": "./dist/js-yaml.mjs",
+      "exports": {
+        ".": {
+          "import": "./dist/js-yaml.mjs",
+          "require": "./index.js"
+        },
+        "./package.json": "./package.json"
+      },
+      "funding": [
+        {
+          "url": "https://github.com/sponsors/puzrin",
+          "type": "github"
+        },
+        {
+          "url": "https://github.com/sponsors/nodeca",
+          "type": "github"
+        }
+      ],
+      "gitHead": "86e91b815b8794c3c73a179c1770871e37ec2df8",
+      "scripts": {
+        "lint": "eslint .",
+        "test": "npm run lint && npm run test:core && npm run test:build",
+        "build": "node support/build-dist.mjs",
+        "gh-demo": "npm run build:demo && gh-pages -d demo -f",
+        "prepack": "npm test && npm run build",
+        "coverage": "npm run build && c8 --include 'lib/**' -r text -r html -r lcov node --test test/core/*.test.*",
+        "lint-fix": "eslint . --fix",
+        "test:core": "node --test test/core/*.test.*",
+        "build:demo": "npm run lint && node support/build_demo.mjs",
+        "test:build": "npm run build && node --test test/build/*.test.*"
+      },
+      "_npmUser": {
+        "name": "vitaly",
+        "email": "vitaly@rcopen.com"
+      },
+      "jsdelivr": "dist/js-yaml.min.js",
+      "repository": {
+        "url": "git+https://github.com/nodeca/js-yaml.git",
+        "type": "git"
+      },
+      "_npmVersion": "11.13.0",
+      "description": "YAML 1.2 parser and serializer",
+      "directories": {},
+      "_nodeVersion": "24.16.0",
+      "dependencies": {
+        "argparse": "^2.0.1"
+      },
+      "publishConfig": {
+        "tag": "v4-legacy"
+      },
+      "_hasShrinkwrap": false,
+      "readmeFilename": "README.md",
+      "devDependencies": {
+        "c8": "^11.0.0",
+        "vite": "7.3.6",
+        "eslint": "^9.39.4",
+        "gh-pages": "^6.3.0",
+        "tinybench": "^6.0.2",
+        "codemirror": "^5.65.21",
+        "fast-check": "^4.8.0",
+        "workerpool": "^10.0.2",
+        "@babel/core": "8.0.1",
+        "neostandard": "^0.13.0",
+        "@babel/preset-env": "8.0.1",
+        "@rollup/plugin-terser": "0.4.4",
+        "vite-plugin-singlefile": "^2.3.3",
+        "@rollup/plugin-commonjs": "29.0.3",
+        "vite-plugin-node-polyfills": "^0.28.0"
+      },
+      "_npmOperationalInternal": {
+        "tmp": "tmp/js-yaml_4.3.1_1785519591026_0.7441913773460092",
+        "host": "s3://npm-registry-packages-npm-production"
+      }
+    },
+    "4.3.2": {
+      "name": "js-yaml",
+      "version": "4.3.2",
+      "keywords": [
+        "yaml",
+        "parser",
+        "serializer",
+        "pyyaml"
+      ],
+      "author": {
+        "name": "Vladimir Zapparov",
+        "email": "dervus.grim@gmail.com"
+      },
+      "license": "MIT",
+      "_id": "js-yaml@4.3.2",
+      "maintainers": [
+        {
+          "name": "vitaly",
+          "email": "vitaly@rcopen.com"
+        }
+      ],
+      "contributors": [
+        {
+          "url": "http://www.ixti.net/",
+          "name": "Aleksey V Zapparov",
+          "email": "ixti@member.fsf.org"
+        },
+        {
+          "url": "https://github.com/puzrin",
+          "name": "Vitaly Puzrin",
+          "email": "vitaly@rcdesign.ru"
+        },
+        {
+          "url": "http://got-ravings.blogspot.com",
+          "name": "Martin Grenfell",
+          "email": "martin.grenfell@gmail.com"
+        }
+      ],
+      "homepage": "https://github.com/nodeca/js-yaml#readme",
+      "bugs": {
+        "url": "https://github.com/nodeca/js-yaml/issues"
+      },
+      "bin": {
+        "js-yaml": "bin/js-yaml.js"
+      },
+      "dist": {
+        "shasum": "8e44fb14a2643c59726bb15787b5f1512cb3d3fb",
+        "tarball": "https://registry.npmjs.org/js-yaml/-/js-yaml-4.3.2.tgz",
+        "fileCount": 36,
+        "integrity": "sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==",
+        "signatures": [
+          {
+            "sig": "MEQCIHX1fhXx2YLljlMVkO3TOGmUvdJwvGlSNbQ9JmgKmvnwAiBVGFiwLAM71Y7XkvHNNa3T0jiHvADOu5gHOSphe7Qreg==",
+            "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+          },
+          {
+            "sig": "MEYCIQDQAOE9N7qMq0rqJ6J+D1LhKV6XD4f8/lF1RLPkvx6XqwIhAKc27B6CGAsT69+lN4wJvaJJz8b77DeYZMl76Ru/hsPO",
+            "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+          }
+        ],
+        "unpackedSize": 960180
+      },
+      "unpkg": "dist/js-yaml.min.js",
+      "module": "./dist/js-yaml.mjs",
+      "exports": {
+        ".": {
+          "import": "./dist/js-yaml.mjs",
+          "require": "./index.js"
+        },
+        "./package.json": "./package.json"
+      },
+      "funding": [
+        {
+          "url": "https://github.com/sponsors/puzrin",
+          "type": "github"
+        },
+        {
+          "url": "https://github.com/sponsors/nodeca",
+          "type": "github"
+        }
+      ],
+      "gitHead": "79ca68d90f333fbe6d9e42827527e62636200191",
+      "scripts": {
+        "lint": "eslint .",
+        "test": "npm run lint && npm run test:core && npm run test:build",
+        "build": "node support/build-dist.mjs",
+        "gh-demo": "npm run build:demo && gh-pages -d demo -f",
+        "prepack": "npm test && npm run build",
+        "coverage": "npm run build && c8 --include 'lib/**' -r text -r html -r lcov node --test test/core/*.test.*",
+        "lint-fix": "eslint . --fix",
+        "test:core": "node --test test/core/*.test.*",
+        "build:demo": "npm run lint && node support/build_demo.mjs",
+        "test:build": "npm run build && node --test test/build/*.test.*"
+      },
+      "_npmUser": {
+        "name": "vitaly",
+        "email": "vitaly@rcopen.com"
+      },
+      "jsdelivr": "dist/js-yaml.min.js",
+      "repository": {
+        "url": "git+https://github.com/nodeca/js-yaml.git",
+        "type": "git"
+      },
+      "_npmVersion": "11.13.0",
+      "description": "YAML 1.2 parser and serializer",
+      "directories": {},
+      "_nodeVersion": "24.16.0",
+      "dependencies": {
+        "argparse": "^2.0.1"
+      },
+      "publishConfig": {
+        "tag": "v4-legacy"
+      },
+      "_hasShrinkwrap": false,
+      "readmeFilename": "README.md",
+      "devDependencies": {
+        "c8": "^11.0.0",
+        "vite": "7.3.6",
+        "eslint": "^9.39.4",
+        "gh-pages": "^6.3.0",
+        "tinybench": "^6.0.2",
+        "codemirror": "^5.65.21",
+        "fast-check": "^4.8.0",
+        "workerpool": "^10.0.2",
+        "@babel/core": "8.0.1",
+        "neostandard": "^0.13.0",
+        "@babel/preset-env": "8.0.1",
+        "@rollup/plugin-terser": "0.4.4",
+        "vite-plugin-singlefile": "^2.3.3",
+        "@rollup/plugin-commonjs": "29.0.3",
+        "vite-plugin-node-polyfills": "^0.28.0"
+      },
+      "_npmOperationalInternal": {
+        "tmp": "tmp/js-yaml_4.3.2_1787776968630_0.17357195072587506",
+        "host": "s3://npm-registry-packages-npm-production"
+      }
+    }
+  }
+}

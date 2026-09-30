@@ -1,0 +1,15 @@
+{
+  "only_two_ecosystem_lines_changed": true,
+  "preserved": [
+    "Cargo entries",
+    "GitHub Actions entry",
+    "directories",
+    "schedules",
+    "labels"
+  ],
+  "javascript_mapping": {
+    "/ccr-ui": "bun",
+    "/docs": "bun",
+    "/ccr-vscode": "npm"
+  }
+}

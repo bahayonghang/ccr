@@ -1,0 +1,57 @@
+{
+  "checked_at_utc": "2026-09-30T02:45:22.360176+00:00",
+  "changed_node_count": 2,
+  "changes": {
+    "node_modules/fast-uri": {
+      "version": {
+        "before": "3.1.6",
+        "after": "3.1.7"
+      },
+      "resolved": {
+        "before": "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.6.tgz",
+        "after": "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.7.tgz"
+      },
+      "integrity": {
+        "before": "sha512-7Ical1vFEMr0onbVzEDIreM22I4khW+fzyQPwvAFWBp1iwdshSZRsL4jjRvPG9JP1uiqMHRto+YU6R2/CzDz5Q==",
+        "after": "sha512-dOvZVzjdZdz7phd9v6jCbwxrBW3fK6n8Rc0CtdmM4bumzMnxywBYhuph6J819RRw/ku+rLbelwfMunktuzVVHg=="
+      }
+    },
+    "node_modules/undici": {
+      "version": {
+        "before": "7.29.0",
+        "after": "7.29.1"
+      },
+      "resolved": {
+        "before": "https://registry.npmjs.org/undici/-/undici-7.29.0.tgz",
+        "after": "https://registry.npmjs.org/undici/-/undici-7.29.1.tgz"
+      },
+      "integrity": {
+        "before": "sha512-IDxfleLmmbSskfWSUATiN1nfn2rDuvnMOqb5CWR92iIfojA0Ud+ulOAAEQ57LPr9rWmsreUyf5lwyao+7GNNVw==",
+        "after": "sha512-RYONW2MeafgYlkVOKYKkA/Ag7BmXqgIWCa8t1m0JcxrQg9pI9lEqRhAOruOBCbAohOa/gkCF+iPi9hrgvTzu6Q=="
+      }
+    }
+  },
+  "dependency_ranges_unchanged": true,
+  "inventory": {
+    "path": "ccr-vscode\\ccr-vscode.vsix",
+    "bytes": 63983,
+    "sha256": "60f8a9656c0cad03c46b08187cc1184ed1215d2d2e561d3912a4ec91a042c9e2",
+    "entries": [
+      "extension.vsixmanifest",
+      "[Content_Types].xml",
+      "extension/readme.md",
+      "extension/package.json",
+      "extension/LICENSE.txt",
+      "extension/icon.png",
+      "extension/changelog.md",
+      "extension/dist/extension.js",
+      "extension/resources/icons/qwen.svg",
+      "extension/resources/icons/iflow.svg",
+      "extension/resources/icons/gemini.svg",
+      "extension/resources/icons/droid.svg",
+      "extension/resources/icons/codex.svg",
+      "extension/resources/icons/claude.svg",
+      "extension/resources/icons/ccr.svg"
+    ]
+  }
+}

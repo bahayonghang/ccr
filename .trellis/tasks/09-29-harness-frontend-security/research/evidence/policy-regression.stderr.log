@@ -1,0 +1,1 @@
+$ vitest run --config vitest.smoke.config.ts tests/quality/frontend-dependency-audit.smoke.test.ts

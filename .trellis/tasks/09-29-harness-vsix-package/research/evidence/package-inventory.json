@@ -1,0 +1,24 @@
+{
+  "input_head": "fe9d65972376dbb4c332fde9860c1e42ff2f2005",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "path": "ccr-vscode/ccr-vscode.vsix",
+  "sha256": "87185e45da40a9dcd37009465a6f0f85f108c4bb166a80ebb0847499ce363741",
+  "bytes": 63983,
+  "entries": [
+    "extension.vsixmanifest",
+    "[Content_Types].xml",
+    "extension/readme.md",
+    "extension/package.json",
+    "extension/LICENSE.txt",
+    "extension/icon.png",
+    "extension/changelog.md",
+    "extension/dist/extension.js",
+    "extension/resources/icons/qwen.svg",
+    "extension/resources/icons/iflow.svg",
+    "extension/resources/icons/gemini.svg",
+    "extension/resources/icons/droid.svg",
+    "extension/resources/icons/codex.svg",
+    "extension/resources/icons/claude.svg",
+    "extension/resources/icons/ccr.svg"
+  ]
+}

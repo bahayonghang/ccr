@@ -1,0 +1,47 @@
+cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml process::gateway
+warning: linker stdout: 正在创建库 D:/Documents/Code/Github/ccr/ccr-ui/src-tauri/target\debug\deps\ccr_tauri_command_macros-271ea576f0e047ce.dll.lib 和对象 D:/Documents/Code/Github/ccr/ccr-ui/src-tauri/target\debug\deps\ccr_tauri_command_macros-271ea576f0e047ce.dll.exp
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `ccr-tauri-command-macros` (lib) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.31s
+     Running unittests src\main.rs (ccr-ui\src-tauri\target\debug\deps\ccr_desktop-5aabd7cb81fe19ae.exe)
+
+running 10 tests
+test process::gateway::tests::descriptor_catalog_is_closed_and_resolves_expected_tools ... ok
+test process::gateway::tests::oauth_url_policy_accepts_authorize_and_fixed_loopback_callback ... ok
+test process::gateway::tests::oauth_url_policy_rejects_unsafe_schemes_and_host_confusion ... ok
+test process::gateway::tests::owned_process_registry_filters_ports_and_requests_cancellation ... ok
+test process::gateway::tests::sidecar_hash_mismatch_is_rejected ... ok
+test process::gateway::tests::release_sidecar_resolution_requires_hash_and_never_falls_back_to_path ... ok
+test process::gateway::tests::development_sidecar_and_hash_validation_are_deterministic ... ok
+test process::gateway::tests::foreground_timeout_terminates_and_reaps_process ... ok
+test process::gateway::tests::foreground_output_flood_is_capped_and_terminated ... ok
+test process::gateway::tests::foreground_stdin_is_written_and_streams_are_collected ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 595 filtered out; finished in 0.34s
+
+     Running tests\llmusage_no_crate_guard.rs (ccr-ui\src-tauri\target\debug\deps\llmusage_no_crate_guard-e3ffec19be904b78.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+cargo test -p ccr-core core::process_gateway
+   Compiling ccr-core v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.42s
+     Running unittests src\lib.rs (target\debug\deps\ccr_core-b481f42d489f5b4c.exe)
+
+running 7 tests
+test core::process_gateway::tests::bounded_line_reader_handles_newline_crlf_and_utf8_boundary ... ok
+test core::process_gateway::tests::bounded_line_reader_caps_unterminated_input ... ok
+test core::process_gateway::tests::live_tree_confirmation_times_out_without_claiming_cleanup ... ok
+test core::process_gateway::tests::dropping_unreaped_process_terminates_it ... ok
+test core::process_gateway::tests::managed_process_exposes_pipes_and_waits ... ok
+test core::process_gateway::tests::managed_process_terminates_windows_descendant_tree ... ok
+test core::process_gateway::tests::reaped_windows_parent_still_cleans_its_descendant_tree ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 113 filtered out; finished in 1.39s
+
+mbx[cache]: 0 hits, 0 misses, 1 not looked up; 0 B downloaded, 0 B uploaded, 30.6 MiB stored locally
+mbx[savings]: the sweep found 30.2 GiB logical nobody would miss. nobody has.

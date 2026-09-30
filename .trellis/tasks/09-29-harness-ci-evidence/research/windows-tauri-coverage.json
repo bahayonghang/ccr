@@ -1,0 +1,19 @@
+{
+  "command": [
+    "just",
+    "coverage-tauri"
+  ],
+  "started_at_utc": "2026-09-30T02:57:29.668241+00:00",
+  "duration_seconds": 259.2,
+  "exit_code": 0,
+  "os": "Windows local",
+  "boundary": "Local native backend tests; no GUI, macOS, hosted CI or fresh client trust evidence. Default test parallelism retained.",
+  "input_sha256": {
+    "Cargo.lock": "0479f15cb8e406ab181f0da867461dcec50cfe99ca3c4d9a6cd5551cccdfe305",
+    "ccr-ui/src-tauri/Cargo.lock": "7225e63865b8315c3955c653e9cb9d755cc3019ada51bf4c0ed2a6d77de95c97",
+    "crates/ccr-cli/src/commands/codex/fix.rs": "9d2a321acb63ab1563b51cddc56cd3c4c6b02cd141b9fdd18ee8b02ef762194c",
+    "ccr-ui/src-tauri/src/process/gateway.rs": "d67dd0684071c82926002c6f5c71a6d289cf5f0a98757cc9f17d1fc0e95f269b"
+  },
+  "log": "windows-tauri-coverage.log",
+  "log_sha256": "060ac09c7d5a6dc491f5d511637157bfa3abb10e753b7cc4fb0532d356cf8958"
+}

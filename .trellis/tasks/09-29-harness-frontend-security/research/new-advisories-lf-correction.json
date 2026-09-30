@@ -1,0 +1,38 @@
+{
+  "recorded_utc": "2026-09-30T03:48:24.301487+00:00",
+  "operation": "Reconstruct original LF bytes with exactly four approved package-line replacements",
+  "current_sha256_before": "f4d25c2659543ffbc3c439a92813f0d67d9c44c2bc3d881d7e3710bb52adbf1e",
+  "final_lf_sha256": "c4301a8d1909ac7db2f92930e5d91172195d3ad51c84b4e163c16909a2528025",
+  "original_sha256": "87a80e33cdbdaf8ed72516419ece312de1134d94a3e0495d92139580ca65ae07",
+  "reverse_four_replacements_sha256": "87a80e33cdbdaf8ed72516419ece312de1134d94a3e0495d92139580ca65ae07",
+  "reverse_four_replacements_byte_exact": true,
+  "current_normalized_lf_equals_expected": true,
+  "crlf_count_before": 1568,
+  "crlf_count_after": 0,
+  "package_count_before": 743,
+  "package_count_after": 743,
+  "changed_nodes": [
+    "brace-expansion",
+    "fast-uri",
+    "@typescript-eslint/typescript-estree/minimatch/brace-expansion",
+    "glob/minimatch/brace-expansion"
+  ],
+  "source_sha256_before": {
+    "ccr-ui/bun.lock": "f4d25c2659543ffbc3c439a92813f0d67d9c44c2bc3d881d7e3710bb52adbf1e",
+    "ccr-ui/package.json": "c9f7e5f78730643ca444fa1191feceb66bc1cf56509bf3e60edf85dbabf3a0cf",
+    "docs/bun.lock": "fcc99d04e4ebe06c175db3744907db9bace0f0ee22c7a5cb1100051bf07b6434",
+    "docs/package.json": "786d7ddf7793d63faa3fe22befb8109da2e008b4693e1cdb298c0e1ac330636c",
+    "ccr-vscode/package-lock.json": "846b84a475e48c9e7f335a87121a1894dc64548f41449d2dd54a5b932174fdd4",
+    "ccr-vscode/package.json": "ae72468d025b9714f8870a04cbdeaec4041290bc86d489b478e2080b74d49c50"
+  },
+  "source_sha256_after": {
+    "ccr-ui/bun.lock": "c4301a8d1909ac7db2f92930e5d91172195d3ad51c84b4e163c16909a2528025",
+    "ccr-ui/package.json": "c9f7e5f78730643ca444fa1191feceb66bc1cf56509bf3e60edf85dbabf3a0cf",
+    "docs/bun.lock": "fcc99d04e4ebe06c175db3744907db9bace0f0ee22c7a5cb1100051bf07b6434",
+    "docs/package.json": "786d7ddf7793d63faa3fe22befb8109da2e008b4693e1cdb298c0e1ac330636c",
+    "ccr-vscode/package-lock.json": "846b84a475e48c9e7f335a87121a1894dc64548f41449d2dd54a5b932174fdd4",
+    "ccr-vscode/package.json": "ae72468d025b9714f8870a04cbdeaec4041290bc86d489b478e2080b74d49c50"
+  },
+  "git_configuration_modified": false,
+  "prior_receipts_preserved": true
+}

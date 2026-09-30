@@ -1,0 +1,421 @@
+{
+  "name": "undici",
+  "source": "https://registry.npmjs.org/undici",
+  "fetched_utc": "2026-09-30T02:29:10.1141729Z",
+  "scope": "Only the baseline and selected patch release; unrelated historical versions omitted",
+  "source_snapshot_sha256": "058e5322bf22a2fb7d2e173dedab3efa3670fb01b9380b88bec0506849ea5ee2",
+  "dist-tags": {
+    "test": "5.24.0-test.6",
+    "next": "7.0.0-alpha.10",
+    "five": "5.29.0",
+    "six": "6.29.0",
+    "latest": "8.11.2",
+    "seven": "7.30.0"
+  },
+  "time": {
+    "8.10.0": "2026-08-03T15:11:43.611Z",
+    "8.10.2": "2026-09-04T14:00:54.766Z"
+  },
+  "versions": {
+    "8.10.0": {
+      "name": "undici",
+      "version": "8.10.0",
+      "keywords": [
+        "fetch",
+        "http",
+        "https",
+        "promise",
+        "request",
+        "curl",
+        "wget",
+        "xhr",
+        "whatwg"
+      ],
+      "license": "MIT",
+      "_id": "undici@8.10.0",
+      "maintainers": [
+        {
+          "name": "matteo.collina",
+          "email": "hello@matteocollina.com"
+        },
+        {
+          "name": "ronag",
+          "email": "ronagy@icloud.com"
+        },
+        {
+          "name": "ethan_arrowood",
+          "email": "ethan@arrowood.dev"
+        }
+      ],
+      "contributors": [
+        {
+          "url": "https://github.com/dnlup",
+          "name": "Daniele Belardi"
+        },
+        {
+          "url": "https://github.com/ethan-arrowood",
+          "name": "Ethan Arrowood"
+        },
+        {
+          "url": "https://github.com/mcollina",
+          "name": "Matteo Collina"
+        },
+        {
+          "url": "https://github.com/KhafraDev",
+          "name": "Matthew Aitken"
+        },
+        {
+          "url": "https://github.com/ronag",
+          "name": "Robert Nagy"
+        },
+        {
+          "url": "https://github.com/szmarczak",
+          "name": "Szymon Marczak"
+        },
+        {
+          "url": "https://github.com/delvedor",
+          "name": "Tomas Della Vedova"
+        }
+      ],
+      "homepage": "https://undici.nodejs.org",
+      "bugs": {
+        "url": "https://github.com/nodejs/undici/issues"
+      },
+      "tsd": {
+        "directory": "test/types",
+        "compilerOptions": {
+          "lib": [
+            "esnext"
+          ],
+          "esModuleInterop": true
+        }
+      },
+      "dist": {
+        "shasum": "67ed7c4087f0f40fba7bef3a46f2be80572f2473",
+        "tarball": "https://registry.npmjs.org/undici/-/undici-8.10.0.tgz",
+        "fileCount": 214,
+        "integrity": "sha512-HvltHd7avK13QIw/oLe4qoOLyoVSoafqJ2jYOrtMRBkbYT31eiBQ8O0ehRKZiEZCMEyLFQNIADpgCWC5fALvYQ==",
+        "signatures": [
+          {
+            "sig": "MEYCIQCXBZ/HWiQmaZq2H8jhdTV9+ajisbW77WE+59++spkxdgIhAI0tuAJEF6m9KBou8LBFa8L5Saj0QAyJJam1lUEZ4NV/",
+            "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+          },
+          {
+            "sig": "MEMCIAtZSXSMf9L+U9n3YYC/mVfFrF43bHGxzoIE7Sep6mKHAh8ixV6yw8xDQP+IyDbIentxvCnSh4kZZluBIFLRtoTy",
+            "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+          }
+        ],
+        "attestations": {
+          "url": "https://registry.npmjs.org/-/npm/v1/attestations/undici@8.10.0",
+          "provenance": {
+            "predicateType": "https://slsa.dev/provenance/v1"
+          }
+        },
+        "unpackedSize": 1880876
+      },
+      "jest": {
+        "testMatch": [
+          "<rootDir>/test/jest/**"
+        ]
+      },
+      "main": "index.js",
+      "types": "index.d.ts",
+      "engines": {
+        "node": ">=22.19.0"
+      },
+      "gitHead": "c8d80e6b2dcfab282557b08f51352937bc9e5692",
+      "scripts": {
+        "lint": "eslint --cache",
+        "test": "npm run test:javascript && cross-env NODE_V8_COVERAGE= npm run test:typescript",
+        "bench": "echo \"Error: Benchmarks have been moved to '/benchmarks'\" && exit 1",
+        "prepare": "husky && node ./scripts/platform-shell.js",
+        "test:h2": "npm run test:h2:core && npm run test:h2:fetch",
+        "coverage": "npm run coverage:clean && cross-env NODE_V8_COVERAGE=./coverage/tmp npm run test:javascript && npm run coverage:report",
+        "lint:fix": "eslint --fix --cache",
+        "test:tdd": "borp --timeout 180000 --expose-gc -p \"test/*.js\"",
+        "test:wpt": "npm run test:wpt:setup && node test/web-platform-tests/wpt-runner.mjs run /fetch /mimesniff /websockets /serviceWorkers /eventsource",
+        "test:jest": "cross-env NODE_V8_COVERAGE= jest",
+        "test:unit": "borp --timeout 180000 --expose-gc -p \"test/*.js\"",
+        "build:node": "esbuild index-fetch.js --bundle --platform=node --outfile=undici-fetch.js --define:esbuildDetection=1 --keep-names && node scripts/strip-comments.js",
+        "build:wasm": "node build/wasm.js --docker",
+        "test:cache": "borp --timeout 180000 -p \"test/cache/*.js\"",
+        "test:fetch": "npm run build:node && borp --timeout 180000 --expose-gc --concurrency 1 -p \"test/fetch/*.js\" && npm run test:webidl && npm run test:busboy",
+        "test:infra": "borp --timeout 180000 -p \"test/infra/*.js\"",
+        "coverage:ci": "npm run coverage:clean && cross-env NODE_V8_COVERAGE=./coverage/tmp npm run test:javascript && npm run coverage:report:ci",
+        "test:busboy": "borp --timeout 180000 -p \"test/busboy/*.js\"",
+        "test:webidl": "borp --timeout 180000 -p \"test/webidl/*.js\"",
+        "generate-pem": "node scripts/generate-pem.js",
+        "test:cookies": "borp --timeout 180000 -p \"test/cookie/*.js\"",
+        "test:fuzzing": "node test/fuzzing/fuzzing.test.js",
+        "test:h2:core": "borp --timeout 180000 -p \"test/+(http2|h2)*.js\"",
+        "serve:website": "echo \"Error: Documentation has been moved to '/docs'\" && exit 1",
+        "test:h2:fetch": "npm run build:node && borp --timeout 180000 -p \"test/fetch/http2*.js\"",
+        "coverage:clean": "node ./scripts/clean-coverage.js",
+        "test:node-test": "borp --timeout 180000 -p \"test/node-test/**/*.js\"",
+        "test:websocket": "borp --timeout 180000 -p \"test/websocket/**/*.js\"",
+        "test:wpt:setup": "node test/web-platform-tests/wpt-runner.mjs setup",
+        "coverage:report": "cross-env NODE_V8_COVERAGE= c8 report",
+        "test:javascript": "npm run test:javascript:no-jest && npm run test:jest",
+        "test:node-fetch": "borp --timeout 180000 -p \"test/node-fetch/**/*.js\"",
+        "test:typescript": "tsd && tsc test/imports/undici-import.ts --typeRoots ./types --noEmit && tsc ./types/*.d.ts --noEmit --typeRoots ./types",
+        "test:cache-tests": "node test/cache-interceptor/cache-tests.mjs --ci",
+        "test:eventsource": "npm run build:node && borp --timeout 180000 --expose-gc -p \"test/eventsource/*.js\"",
+        "test:interceptors": "borp --timeout 180000 -p \"test/interceptors/*.js\"",
+        "coverage:report:ci": "c8 report",
+        "test:tdd:node-test": "borp --timeout 180000 -p \"test/node-test/**/*.js\" -w",
+        "test:cache-interceptor": "borp --timeout 180000 -p \"test/cache-interceptor/*.js\"",
+        "test:javascript:no-jest": "npm run generate-pem && npm run test:unit && npm run test:fetch && npm run test:node-fetch && npm run test:infra && npm run test:cache && npm run test:cache-interceptor && npm run test:interceptors && npm run test:cookies && npm run test:eventsource && npm run test:subresource-integrity && npm run test:wpt && npm run test:websocket && npm run test:node-test && npm run test:cache-tests",
+        "test:websocket:autobahn": "node test/autobahn/client.js",
+        "test:subresource-integrity": "borp --timeout 180000 -p \"test/subresource-integrity/*.js\"",
+        "test:javascript:without-intl": "npm run test:javascript:no-jest",
+        "test:cache-interceptor:sqlite": "cross-env NODE_OPTIONS=--experimental-sqlite npm run test:cache-interceptor",
+        "test:websocket:autobahn:report": "node test/autobahn/report.js"
+      },
+      "_npmUser": {
+        "name": "GitHub Actions",
+        "email": "npm-oidc-no-reply@github.com",
+        "trustedPublisher": {
+          "id": "github",
+          "oidcConfigId": "oidc:85b53724-67ba-4d40-aa22-1440b722698a"
+        }
+      },
+      "repository": {
+        "url": "git+https://github.com/nodejs/undici.git",
+        "type": "git"
+      },
+      "_npmVersion": "12.0.2",
+      "description": "An HTTP/1.1 client, written from scratch for Node.js",
+      "directories": {},
+      "_nodeVersion": "24.18.0",
+      "_hasShrinkwrap": false,
+      "devDependencies": {
+        "c8": "^12.0.0",
+        "ws": "^8.11.0",
+        "tsd": "^0.33.0",
+        "borp": "^1.0.0",
+        "jest": "^30.0.5",
+        "husky": "^9.0.7",
+        "proxy": "^4.0.0",
+        "eslint": "^9.9.0",
+        "esbuild": "^0.28.0",
+        "cross-env": "^10.0.0",
+        "dns-packet": "^5.4.0",
+        "fast-check": "^4.1.1",
+        "node-forge": "^1.3.1",
+        "typescript": "^6.0.2",
+        "@types/node": "^22.0.0",
+        "neostandard": "^0.13.0",
+        "jsondiffpatch": "^0.7.3",
+        "@fastify/busboy": "3.2.0",
+        "abort-controller": "^3.0.0",
+        "@matteo.collina/tspl": "^0.2.0",
+        "@sinonjs/fake-timers": "^12.0.0",
+        "@metcoder95/https-pem": "^1.0.0"
+      },
+      "_npmOperationalInternal": {
+        "tmp": "tmp/undici_8.10.0_1785769903496_0.3949479078559772",
+        "host": "s3://npm-registry-packages-npm-production"
+      }
+    },
+    "8.10.2": {
+      "name": "undici",
+      "version": "8.10.2",
+      "keywords": [
+        "fetch",
+        "http",
+        "https",
+        "promise",
+        "request",
+        "curl",
+        "wget",
+        "xhr",
+        "whatwg"
+      ],
+      "license": "MIT",
+      "_id": "undici@8.10.2",
+      "maintainers": [
+        {
+          "name": "matteo.collina",
+          "email": "hello@matteocollina.com"
+        },
+        {
+          "name": "ronag",
+          "email": "ronagy@icloud.com"
+        },
+        {
+          "name": "ethan_arrowood",
+          "email": "ethan@arrowood.dev"
+        }
+      ],
+      "contributors": [
+        {
+          "url": "https://github.com/dnlup",
+          "name": "Daniele Belardi"
+        },
+        {
+          "url": "https://github.com/ethan-arrowood",
+          "name": "Ethan Arrowood"
+        },
+        {
+          "url": "https://github.com/mcollina",
+          "name": "Matteo Collina"
+        },
+        {
+          "url": "https://github.com/KhafraDev",
+          "name": "Matthew Aitken"
+        },
+        {
+          "url": "https://github.com/ronag",
+          "name": "Robert Nagy"
+        },
+        {
+          "url": "https://github.com/szmarczak",
+          "name": "Szymon Marczak"
+        },
+        {
+          "url": "https://github.com/delvedor",
+          "name": "Tomas Della Vedova"
+        }
+      ],
+      "homepage": "https://undici.nodejs.org",
+      "bugs": {
+        "url": "https://github.com/nodejs/undici/issues"
+      },
+      "tsd": {
+        "directory": "test/types",
+        "compilerOptions": {
+          "lib": [
+            "esnext"
+          ],
+          "esModuleInterop": true
+        }
+      },
+      "dist": {
+        "shasum": "960bcb0b43c267f86910ea7ca408ada843a44bc7",
+        "tarball": "https://registry.npmjs.org/undici/-/undici-8.10.2.tgz",
+        "fileCount": 214,
+        "integrity": "sha512-/y4/bH9YNU5hi9NIrpOuvGXFcxrj3CMrV+/AYpowAYTpHn8gX/XPFjNy766FPoYY0miQhdW977JFWKGNhBdwyQ==",
+        "signatures": [
+          {
+            "sig": "MEUCIQD1PxvKiEOkz6cbhJxkk2IRzAMUq3SkfAtvfKXsuIPwUwIgQWwAmbeB+iYSXGQzsi2EmkZF0BImJ2NpmKyopb3sTC0=",
+            "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+          },
+          {
+            "sig": "MEQCIEah70AYQIk+wMhMDfsxPPMZO4KzFf8wlEWdmplItSOvAiArmg/fDWIGFvegas+ArMMRLv2XGralPhT/w5QPABDJ7Q==",
+            "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+          }
+        ],
+        "attestations": {
+          "url": "https://registry.npmjs.org/-/npm/v1/attestations/undici@8.10.2",
+          "provenance": {
+            "predicateType": "https://slsa.dev/provenance/v1"
+          }
+        },
+        "unpackedSize": 1904976
+      },
+      "jest": {
+        "testMatch": [
+          "<rootDir>/test/jest/**"
+        ]
+      },
+      "main": "index.js",
+      "types": "index.d.ts",
+      "engines": {
+        "node": ">=22.19.0"
+      },
+      "gitHead": "5e541e0b9df7563e5766bbd469fbfe383d9ae6ca",
+      "scripts": {
+        "lint": "eslint --cache",
+        "test": "npm run test:javascript && cross-env NODE_V8_COVERAGE= npm run test:typescript",
+        "bench": "echo \"Error: Benchmarks have been moved to '/benchmarks'\" && exit 1",
+        "prepare": "husky && node ./scripts/platform-shell.js",
+        "test:h2": "npm run test:h2:core && npm run test:h2:fetch",
+        "coverage": "npm run coverage:clean && cross-env NODE_V8_COVERAGE=./coverage/tmp npm run test:javascript && npm run coverage:report",
+        "lint:fix": "eslint --fix --cache",
+        "test:tdd": "borp --timeout 180000 --expose-gc -p \"test/*.js\"",
+        "test:wpt": "npm run test:wpt:setup && node test/web-platform-tests/wpt-runner.mjs run /fetch /mimesniff /xhr /websockets /eventsource",
+        "test:jest": "cross-env NODE_V8_COVERAGE= jest",
+        "test:unit": "borp --timeout 180000 --expose-gc -p \"test/*.js\"",
+        "build:node": "esbuild index-fetch.js --bundle --platform=node --outfile=undici-fetch.js --define:esbuildDetection=1 --keep-names && node scripts/strip-comments.js",
+        "build:wasm": "node build/wasm.js --docker",
+        "test:cache": "borp --timeout 180000 -p \"test/cache/*.js\"",
+        "test:fetch": "npm run build:node && borp --timeout 180000 --expose-gc --concurrency 1 -p \"test/fetch/*.js\" && npm run test:webidl && npm run test:busboy",
+        "test:infra": "borp --timeout 180000 -p \"test/infra/*.js\"",
+        "coverage:ci": "npm run coverage:clean && cross-env NODE_V8_COVERAGE=./coverage/tmp npm run test:javascript && npm run coverage:report:ci",
+        "test:busboy": "borp --timeout 180000 -p \"test/busboy/*.js\"",
+        "test:webidl": "borp --timeout 180000 -p \"test/webidl/*.js\"",
+        "generate-pem": "node scripts/generate-pem.js",
+        "test:cookies": "borp --timeout 180000 -p \"test/cookie/*.js\"",
+        "test:fuzzing": "node test/fuzzing/fuzzing.test.js",
+        "test:h2:core": "borp --timeout 180000 -p \"test/+(http2|h2)*.js\"",
+        "serve:website": "echo \"Error: Documentation has been moved to '/docs'\" && exit 1",
+        "test:h2:fetch": "npm run build:node && borp --timeout 180000 -p \"test/fetch/http2*.js\"",
+        "coverage:clean": "node ./scripts/clean-coverage.js",
+        "test:node-test": "borp --timeout 180000 -p \"test/node-test/**/*.js\"",
+        "test:websocket": "borp --timeout 180000 -p \"test/websocket/**/*.js\"",
+        "test:wpt:setup": "node test/web-platform-tests/wpt-runner.mjs setup",
+        "coverage:report": "cross-env NODE_V8_COVERAGE= c8 report",
+        "test:javascript": "npm run test:javascript:no-jest && npm run test:jest",
+        "test:node-fetch": "borp --timeout 180000 -p \"test/node-fetch/**/*.js\"",
+        "test:typescript": "tsd && tsc test/imports/undici-import.ts --typeRoots ./types --noEmit && tsc ./types/*.d.ts --noEmit --typeRoots ./types",
+        "test:cache-tests": "node test/cache-interceptor/cache-tests.mjs --ci",
+        "test:eventsource": "npm run build:node && borp --timeout 180000 --expose-gc -p \"test/eventsource/*.js\"",
+        "test:interceptors": "borp --timeout 180000 -p \"test/interceptors/*.js\"",
+        "coverage:report:ci": "c8 report",
+        "test:tdd:node-test": "borp --timeout 180000 -p \"test/node-test/**/*.js\" -w",
+        "test:cache-interceptor": "borp --timeout 180000 -p \"test/cache-interceptor/*.js\"",
+        "test:javascript:no-jest": "npm run generate-pem && npm run test:unit && npm run test:fetch && npm run test:node-fetch && npm run test:infra && npm run test:cache && npm run test:cache-interceptor && npm run test:interceptors && npm run test:cookies && npm run test:eventsource && npm run test:subresource-integrity && npm run test:wpt && npm run test:websocket && npm run test:node-test && npm run test:cache-tests",
+        "test:websocket:autobahn": "node test/autobahn/client.js",
+        "test:subresource-integrity": "borp --timeout 180000 -p \"test/subresource-integrity/*.js\"",
+        "test:javascript:without-intl": "npm run test:javascript:no-jest",
+        "test:cache-interceptor:sqlite": "cross-env NODE_OPTIONS=--experimental-sqlite npm run test:cache-interceptor",
+        "test:websocket:autobahn:report": "node test/autobahn/report.js"
+      },
+      "_npmUser": {
+        "name": "GitHub Actions",
+        "email": "npm-oidc-no-reply@github.com",
+        "trustedPublisher": {
+          "id": "github",
+          "oidcConfigId": "oidc:85b53724-67ba-4d40-aa22-1440b722698a"
+        }
+      },
+      "repository": {
+        "url": "git+https://github.com/nodejs/undici.git",
+        "type": "git"
+      },
+      "_npmVersion": "12.0.2",
+      "description": "An HTTP/1.1 client, written from scratch for Node.js",
+      "directories": {},
+      "_nodeVersion": "24.20.0",
+      "_hasShrinkwrap": false,
+      "devDependencies": {
+        "c8": "^12.0.0",
+        "ws": "^8.11.0",
+        "tsd": "^0.33.0",
+        "borp": "^1.0.0",
+        "jest": "^30.0.5",
+        "husky": "^9.0.7",
+        "proxy": "^4.0.0",
+        "eslint": "^9.9.0",
+        "esbuild": "^0.28.0",
+        "cross-env": "^10.0.0",
+        "dns-packet": "^5.4.0",
+        "fast-check": "^4.1.1",
+        "node-forge": "^1.3.1",
+        "typescript": "^6.0.2",
+        "@types/node": "^22.0.0",
+        "neostandard": "^0.13.0",
+        "jsondiffpatch": "^0.7.3",
+        "@fastify/busboy": "3.2.2",
+        "abort-controller": "^3.0.0",
+        "@matteo.collina/tspl": "^0.2.0",
+        "@sinonjs/fake-timers": "^12.0.0",
+        "@metcoder95/https-pem": "^1.0.0"
+      },
+      "_npmOperationalInternal": {
+        "tmp": "tmp/undici_8.10.2_1788530454668_0.8085206313812237",
+        "host": "s3://npm-registry-packages-npm-production"
+      }
+    }
+  }
+}

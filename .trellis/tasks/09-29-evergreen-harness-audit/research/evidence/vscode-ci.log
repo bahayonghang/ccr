@@ -1,0 +1,161 @@
+just --justfile ccr-vscode/justfile ci
+npm ci
+
+added 292 packages, and audited 293 packages in 15s
+
+86 packages are looking for funding
+  run `npm fund` for details
+
+2 high severity vulnerabilities
+
+To address all issues, run:
+  npm audit fix
+
+Run `npm audit` for details.
+npm warn install-scripts 3 packages had install scripts blocked because they are not covered by allowScripts:
+npm warn install-scripts   @vscode/vsce-sign@2.0.9 (postinstall: node ./src/postinstall.js)
+npm warn install-scripts   esbuild@0.28.2 (postinstall: node install.js)
+npm warn install-scripts   keytar@7.9.0 (install: prebuild-install || npm run build)
+npm warn install-scripts
+npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+npm run lint
+npm notice run ccr-vscode@7.4.0 lint
+npm notice run tsc --noEmit && tsc -p tsconfig.test.json --noEmit
+npm test
+npm notice run ccr-vscode@7.4.0 pretest
+npm notice run npm run build
+npm notice run ccr-vscode@7.4.0 build
+npm notice run esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node18 --charset=utf8
+
+  dist\extension.js  145.9kb
+
+Done in 20ms
+npm notice run ccr-vscode@7.4.0 test
+npm notice run node --import tsx --test src/**/*.test.ts
+▶ package manifest
+  ✔ exposes the platform metadata and lazy activation surface (0.9533ms)
+✔ package manifest (1.6002ms)
+▶ profileEditorPanel helpers
+  ✔ builds a stable key for edit mode (0.4584ms)
+  ✔ builds a stable key for create mode (0.0934ms)
+  ✔ normalizes comma-separated tags into arrays (0.5015ms)
+  ✔ returns undefined for empty optional values (0.088ms)
+  ✔ preserves non-tag values (0.0687ms)
+✔ profileEditorPanel helpers (1.9019ms)
+▶ profileTreePresentation
+  ✔ formats Codex platform description from runtime summary (0.5755ms)
+  ✔ formats auth description from quota first (0.0994ms)
+  ✔ keeps auth description empty when quota exists without a plan label (0.0714ms)
+  ✔ surfaces quota errors instead of falling back to email text (0.0609ms)
+  ✔ builds quota detail descriptors with reset times (14.2482ms)
+  ✔ marks missing reset times as unavailable in quota detail descriptors (0.1297ms)
+  ✔ builds loading and unavailable quota detail fallbacks (0.1364ms)
+  ✔ builds runtime details using fallback source and sidecar state (0.2442ms)
+  ✔ formats non-Claude/Codex sections as browse-only surfaces (0.1786ms)
+✔ profileTreePresentation (16.5586ms)
+▶ profileTreeVisibility
+  ✔ keeps mutation support limited to Claude and Codex (0.4465ms)
+  ✔ marks writable and read-only platform nodes differently (0.0985ms)
+  ✔ marks writable and read-only sections differently (0.0977ms)
+  ✔ marks writable and read-only profiles differently (0.09ms)
+✔ profileTreeVisibility (1.3994ms)
+▶ statusBarPresentation
+  ✔ builds compact platform labels (0.5544ms)
+  ✔ builds a Claude compact status bar label (0.117ms)
+  ✔ builds a compact Codex status bar label (0.0731ms)
+  ✔ adds runtime-specific tooltip lines for Codex (0.1506ms)
+✔ statusBarPresentation (1.6404ms)
+▶ statusBarTarget
+  ✔ normalizes invalid mode to pinned (0.4602ms)
+  ✔ keeps only supported status bar platforms (0.485ms)
+  ✔ resolves both items by default in pinned mode (0.1407ms)
+  ✔ shows every platform with an active profile in current mode (0.0849ms)
+  ✔ falls back to enabled platforms in current mode when no active profiles exist (0.0829ms)
+  ✔ hides all items in hidden mode (0.0629ms)
+  ✔ can disable codex item independently (0.0735ms)
+  ✔ keeps single target compatibility with first visible platform (0.0913ms)
+✔ statusBarTarget (2.216ms)
+▶ ccrCli arg builders
+  ✔ builds profile create args with structured flags (0.8392ms)
+  ✔ builds set-field args for scalar and array values (0.1358ms)
+  ✔ builds enable/disable/delete args with force when requested (0.1299ms)
+  ✔ builds named Claude and Codex profile wrappers (0.1217ms)
+  ✔ builds platform-scoped profile switch and off args (0.0726ms)
+  ✔ builds platform-scoped auth off args (0.0743ms)
+  ✔ builds codex auth update args for set and clear (0.074ms)
+✔ ccrCli arg builders (2.2305ms)
+▶ ccrPaths
+  ✔ getCcrRoot returns $CCR_ROOT when set (6.8397ms)
+  ✔ getCcrRoot falls back to ~/.ccr/ when $CCR_ROOT is not set (0.6417ms)
+  ✔ getRegistryPath appends config.toml (0.373ms)
+  ✔ getProfilesPath builds correct platform path (0.4298ms)
+  ✔ keeps the surfaced platform list in sync with the extension metadata (0.8112ms)
+✔ ccrPaths (10.0037ms)
+▶ tomlReader
+  ▶ readRegistry
+    ✔ returns null when config.toml does not exist (13.6778ms)
+    ✔ parses config.toml with platform entries (8.2196ms)
+    ✔ includes newly surfaced platform entries when they exist (2.3267ms)
+  ✔ readRegistry (24.6125ms)
+  ▶ readProfiles
+    ✔ returns empty array when profiles.toml does not exist (1.0623ms)
+    ✔ parses profiles.toml with CcsConfig format (4.3801ms)
+  ✔ readProfiles (5.8507ms)
+  ▶ maskToken
+    ✔ masks long tokens showing last 4 chars (0.6399ms)
+    ✔ returns **** for short tokens (0.3797ms)
+    ✔ returns empty string for undefined (0.4117ms)
+  ✔ maskToken (1.5733ms)
+✔ tomlReader (36.1957ms)
+ℹ tests 51
+ℹ suites 12
+ℹ pass 51
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 459.2858
+npm run build:package
+npm notice run ccr-vscode@7.4.0 build:package
+npm notice run esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node18 --charset=utf8 --minify --legal-comments=none
+
+  dist\extension.js  90.1kb
+
+Done in 17ms
+npx --no-install vsce package --no-dependencies -o ccr-vscode.vsix
+npm notice run ccr-vscode@7.4.0 npx
+npm notice run vsce package --no-dependencies -o ccr-vscode.vsix
+ INFO  Files included in the VSIX:
+ccr-vscode.vsix
+├─ [Content_Types].xml 
+├─ extension.vsixmanifest 
+└─ extension/
+   ├─ AGENTS.md [1.78 KB]
+   ├─ CLAUDE.md [1.29 KB]
+   ├─ LICENSE.txt [1.06 KB]
+   ├─ changelog.md [2 KB]
+   ├─ code_map.md [3.75 KB]
+   ├─ icon.png [28.41 KB]
+   ├─ icon.svg [2.01 KB]
+   ├─ package.json [8 KB]
+   ├─ readme.md [1.97 KB]
+   ├─ .serena/
+   │  ├─ .gitignore [0.03 KB]
+   │  ├─ project.local.yml [0.4 KB]
+   │  └─ project.yml [8.59 KB]
+   ├─ dist/
+   │  ├─ extension.js [90.08 KB]
+   │  └─ extension.js.map [287.26 KB]
+   └─ resources/
+      └─ icons/
+         ├─ ccr.svg [0.54 KB]
+         ├─ claude.svg [0.32 KB]
+         ├─ codex.svg [0.29 KB]
+         ├─ droid.svg [0.4 KB]
+         ├─ gemini.svg [0.29 KB]
+         ├─ iflow.svg [0.38 KB]
+         └─ qwen.svg [0.28 KB]
+
+ DONE  Packaged: ccr-vscode.vsix (23 files, 128.11 KB)
+✅ ccr-vscode.vsix → ../outputs/ccr-vscode/
+CCR VSCode Extension CI passed

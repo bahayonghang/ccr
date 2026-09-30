@@ -1,0 +1,2 @@
+cd ccr-ui && bun run audit:dependencies
+$ bun ./scripts/audit-dependencies.mjs

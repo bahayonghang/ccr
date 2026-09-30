@@ -1,0 +1,46 @@
+{
+  "id": "harness-copilot-crlf",
+  "name": "harness-copilot-crlf",
+  "title": "T04 Copilot 检查的跨平台换行兼容",
+  "description": "修复 LF 独占 frontmatter 解析并保留字段和术语约束",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-09-29",
+  "completedAt": null,
+  "branch": "dev",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": "30cbeddf730ed01b312c3396ba7b8691853be859",
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "09-29-evergreen-harness-audit",
+  "relatedFiles": [
+    "scripts/quality/check-copilot-assets.mjs",
+    "scripts/quality/check-copilot-assets.test.mjs",
+    "docs/guide/github-copilot-workspace.md",
+    "docs/en/guide/github-copilot-workspace.md"
+  ],
+  "notes": "用户已批准实施并授权本地提交和验收完成后的归档。推送、PR、发布和两个新增补丁仍未授权。历史批准记录见父任务 approval.json。",
+  "meta": {
+    "implementation_approved": true,
+    "parent_plan": ".trellis/tasks/09-29-evergreen-harness-audit",
+    "approval_record": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json",
+    "local_implementation": "passed",
+    "independent_review": "../09-29-evergreen-harness-audit/research/independent-review.md",
+    "delivery_status": "implementation locally committed; acceptance-complete archive pending",
+    "delivery_authorization": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json#delivery_authorization",
+    "work_commits": [
+      "c4d38e5154edf6a8fa1c781f91d31ce6aa4bb5ad",
+      "f68116ecd22bb74b86011b01d14b72cfc8a855d0",
+      "c1453c7b1f5405f93eaecf67ff0d074bb1e9db1d",
+      "30cbeddf730ed01b312c3396ba7b8691853be859"
+    ],
+    "archive_eligibility": "eligible"
+  }
+}

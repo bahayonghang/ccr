@@ -1,0 +1,74 @@
+{
+  "date_utc": "2026-09-30",
+  "input_head": "fe9d65972376dbb4c332fde9860c1e42ff2f2005",
+  "os": "Windows-11-10.0.26200-SP0",
+  "python": "3.14.7",
+  "bun": "1.4.2",
+  "declared_bun": "1.4.0",
+  "checks": [
+    {
+      "command": "python -m unittest scripts.quality.test_check_harness_contracts",
+      "started_utc": "2026-09-30T02:57:15.440Z",
+      "chunk_id": "33158b",
+      "wall_time_seconds": 1.679995,
+      "exit_code": 0,
+      "original_token_count": 31,
+      "output": "....................\r\n----------------------------------------------------------------------\r\nRan 20 tests in 1.033s\r\n\r\nOK\r\n"
+    },
+    {
+      "command": "python scripts/quality/check_harness_contracts.py",
+      "started_utc": "2026-09-30T02:57:15.440Z",
+      "chunk_id": "5fac46",
+      "wall_time_seconds": 0.6079121,
+      "exit_code": 0,
+      "original_token_count": 37,
+      "output": "Harness contract check passed: 6 shared files, 5 harnesses\r\nStatic guidance only; native loading, trust, and account settings remain unverified.\r\n"
+    },
+    {
+      "command": "just docs-check",
+      "started_utc": "2026-09-30T02:57:15.441Z",
+      "chunk_id": "0f494a",
+      "wall_time_seconds": 9.7589474,
+      "exit_code": 0,
+      "original_token_count": 214,
+      "output": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\r\n📚 文档构建检查\r\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\r\ncd docs && bun install --frozen-lockfile && bun run audit && bun run build\nbun install v1.4.2 (744846f84)\n\nChecked 130 installs across 180 packages (no changes) [23.00ms]\n$ node ./scripts/audit-docs.mjs\ndocs audit passed\n$ vitepress build\n\n  vitepress v1.6.4\n\n- building client + server bundles...\n\u001b[32m✓\u001b[0m building client + server bundles...\n- rendering pages...\n\u001b[32m✓\u001b[0m rendering pages...\nbuild complete in 4.52s.\ncd ccr-ui && bun run docs:audit\n$ node ./scripts/audit-docs.mjs\nccr-ui docs audit passed\n✅ 文档构建检查完成\r\n"
+    },
+    {
+      "command": "just version-check",
+      "started_utc": "2026-09-30T02:57:15.441Z",
+      "chunk_id": "ae42b4",
+      "wall_time_seconds": 3.4745037,
+      "exit_code": 0,
+      "original_token_count": 195,
+      "output": "🔍 检查版本号一致性\r\n🔧 根版本: 7.4.0\r\n📦 ccr-types 版本: 7.4.0\r\n📦 ccr-db 版本: 7.4.0\r\n⚛️  前端版本: 7.4.0\r\n🖥️  Tauri Cargo 版本: 7.4.0\r\n🖥️  Tauri Conf 版本: 7.4.0\r\n🖼️  appMeta.ts (config) 版本: 7.4.0\r\n📘 ccr-ui/README.md 徽章版本: 7.4.0\r\n🔌 VSCode 扩展版本: 7.4.0\r\n✅ 版本一致性检查通过\r\n📄 ccr-ui/README.md version: 7.4.0\r\n📦 canonical package manager: bun@1.4.0\r\n📚 docs package manager mirror: bun@1.4.0\r\n🦀 rust-version: 1.95, edition: 2024\r\n🔒 JS lock strategy: ccr-ui/bun.lock and docs/bun.lock only\r\n✅ 文档/锁文件 drift 检查通过\r\nRepeated dependencies checked: 19\r\nActive exceptions: 1\r\n  - toml root=1.1.4 tauri=0.9.8\r\nroot/Tauri dependency and MSRV governance check passed\r\n"
+    },
+    {
+      "command": "git diff --check",
+      "started_utc": "2026-09-30T02:57:15.441Z",
+      "chunk_id": "83ff4b",
+      "wall_time_seconds": 0.8225987,
+      "exit_code": 0,
+      "original_token_count": 1,
+      "output": "\n"
+    },
+    {
+      "command": "@'\nimport json\nimport platform\nimport subprocess\nfrom pathlib import Path\nfrom scripts.quality.check_harness_contracts import SHARED_FILES\ntracked = subprocess.check_output(['git', 'ls-files', '--', *SHARED_FILES], text=True).splitlines()\nassert set(tracked) == set(SHARED_FILES), tracked\nfor path in ['scripts/quality/check_harness_contracts.py', 'scripts/quality/test_check_harness_contracts.py']:\n    subprocess.run(['git', '-c', 'core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol', 'diff', '--no-index', '--check', '--', 'NUL', path], check=True)\nprint(json.dumps({'python':platform.python_version(), 'os':platform.platform(), 'head':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(), 'tracked_shared_files':tracked, 'new_python_whitespace_check':'passed'},indent=2))\n'@ | python -",
+      "started_utc": "2026-09-30T02:58:23.259Z",
+      "chunk_id": "c3c7ed",
+      "wall_time_seconds": 0.5342951,
+      "exit_code": 1,
+      "original_token_count": 163,
+      "output": "warning: in the working copy of 'scripts/quality/check_harness_contracts.py', LF will be replaced by CRLF the next time Git touches it\nTraceback (most recent call last):\r\n  File \"<stdin>\", line 9, in <module>\r\n  File \"C:\\Program Files\\Python314\\Lib\\subprocess.py\", line 578, in run\r\n    raise CalledProcessError(retcode, process.args,\r\n                             output=stdout, stderr=stderr)\r\nsubprocess.CalledProcessError: Command '['git', '-c', 'core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol', 'diff', '--no-index', '--check', '--', 'NUL', 'scripts/quality/check_harness_contracts.py']' returned non-zero exit status 1.\r\n"
+    },
+    {
+      "command": "@'\nimport json\nimport platform\nimport subprocess\nfrom scripts.quality.check_harness_contracts import SHARED_FILES\ntracked = subprocess.check_output(['git', 'ls-files', '--', *SHARED_FILES], text=True).splitlines()\nassert set(tracked) == set(SHARED_FILES), tracked\nchecks = []\nfor path in ['scripts/quality/check_harness_contracts.py', 'scripts/quality/test_check_harness_contracts.py']:\n    result = subprocess.run(['git', '-c', 'core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol', 'diff', '--no-index', '--check', '--', 'NUL', path], capture_output=True, text=True, encoding='utf-8')\n    assert result.returncode in (0, 1) and not result.stdout.strip(), (path, result.returncode, result.stdout, result.stderr)\n    assert all(line.startswith('warning:') for line in result.stderr.splitlines()), result.stderr\n    checks.append({'path':path,'exit_code':result.returncode,'whitespace_errors':0,'note':'no-index reports differences from NUL with exit 1'})\nprint(json.dumps({'python':platform.python_version(), 'os':platform.platform(), 'head':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(), 'tracked_shared_files':tracked, 'new_python_whitespace_checks':checks},indent=2))\n'@ | python -",
+      "started_utc": "2026-09-30T02:58:53.210Z",
+      "chunk_id": "dabb4e",
+      "wall_time_seconds": 0.6387847,
+      "exit_code": 0,
+      "original_token_count": 195,
+      "output": "{\r\n  \"python\": \"3.14.7\",\r\n  \"os\": \"Windows-11-10.0.26200-SP0\",\r\n  \"head\": \"fe9d65972376dbb4c332fde9860c1e42ff2f2005\",\r\n  \"tracked_shared_files\": [\r\n    \".codex/skills/ccr-gate-recovery/SKILL.md\",\r\n    \".trellis/workflow.md\",\r\n    \"AGENTS.md\",\r\n    \"CLAUDE.md\",\r\n    \"docs/agents/harnesses.md\",\r\n    \"docs/en/agents/harnesses.md\"\r\n  ],\r\n  \"new_python_whitespace_checks\": [\r\n    {\r\n      \"path\": \"scripts/quality/check_harness_contracts.py\",\r\n      \"exit_code\": 1,\r\n      \"whitespace_errors\": 0,\r\n      \"note\": \"no-index reports differences from NUL with exit 1\"\r\n    },\r\n    {\r\n      \"path\": \"scripts/quality/test_check_harness_contracts.py\",\r\n      \"exit_code\": 1,\r\n      \"whitespace_errors\": 0,\r\n      \"note\": \"no-index reports differences from NUL with exit 1\"\r\n    }\r\n  ]\r\n}\r\n"
+    }
+  ],
+  "fixture_boundary": "Six tracked shared documents and the checker copied into a temporary directory; no Git metadata or personal agents/hooks/configs. This is a controlled delivery fixture, not a committed clean clone."
+}

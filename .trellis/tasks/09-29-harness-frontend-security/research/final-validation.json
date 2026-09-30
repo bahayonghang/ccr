@@ -1,0 +1,21 @@
+{
+  "checked_file_count": 37,
+  "failure_count": 0,
+  "failures": [],
+  "controls": {
+    "clean": {
+      "exit_code": 1,
+      "output": "",
+      "stderr": ""
+    },
+    "trailing_whitespace": {
+      "exit_code": 3,
+      "output": ".trellis\\tasks\\09-29-harness-frontend-security\\research\\evidence\\whitespace-bad.tmp:1: trailing whitespace.\n+trailing spaces  \n",
+      "stderr": ""
+    }
+  },
+  "git_config_scope": "command-only; no persistent configuration changed",
+  "tracked_diff_check": "evidence/diff-check.json",
+  "correction": "The first evidence wrapper treated no-index exit 1 as failure. Controls prove exit 1 is an expected content difference; exit 3 reports whitespace errors. No files were changed to satisfy the check.",
+  "raw_logs_preserved": true
+}

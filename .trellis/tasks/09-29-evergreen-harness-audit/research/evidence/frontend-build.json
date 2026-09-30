@@ -1,0 +1,8 @@
+{
+  "command": "CCR_SKIP_ICON_GENERATION=1 just frontend-build",
+  "exit_code": 0,
+  "started": "2026-09-29T21:05:31.1620664-05:00",
+  "ended": "2026-09-29T21:05:42.3050678-05:00",
+  "boundary": "Windows web build with committed icons",
+  "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/frontend-build.log"
+}

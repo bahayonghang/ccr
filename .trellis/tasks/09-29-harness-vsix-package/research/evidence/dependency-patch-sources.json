@@ -1,0 +1,424 @@
+{
+  "checked_at_utc": "2026-09-30T02:41:12.798402+00:00",
+  "advisories": [
+    {
+      "ghsa_id": "GHSA-2gqq-gqf2-x968",
+      "html_url": "https://github.com/advisories/GHSA-2gqq-gqf2-x968",
+      "summary": "undici vulnerable to response truncation via oversized chunked responses in the dump interceptor",
+      "severity": "low",
+      "type": "reviewed",
+      "published_at": "2026-09-29T18:18:51Z",
+      "updated_at": "2026-09-29T18:18:52Z",
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 7.1.0, < 7.29.1",
+          "first_patched_version": "7.29.1",
+          "vulnerable_functions": []
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 8.0.0, < 8.10.2",
+          "first_patched_version": "8.10.2",
+          "vulnerable_functions": []
+        }
+      ]
+    },
+    {
+      "ghsa_id": "GHSA-2jfj-6hjv-fm6j",
+      "html_url": "https://github.com/advisories/GHSA-2jfj-6hjv-fm6j",
+      "summary": "undici vulnerable to cross-user cookie disclosure via Set-Cookie caching in shared caches",
+      "severity": "medium",
+      "type": "reviewed",
+      "published_at": "2026-09-29T18:19:58Z",
+      "updated_at": "2026-09-29T18:19:59Z",
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 7.0.0, < 7.29.1",
+          "first_patched_version": "7.29.1",
+          "vulnerable_functions": []
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 8.0.0, < 8.10.2",
+          "first_patched_version": "8.10.2",
+          "vulnerable_functions": []
+        }
+      ]
+    },
+    {
+      "ghsa_id": "GHSA-3wwx-pv8p-q78v",
+      "html_url": "https://github.com/advisories/GHSA-3wwx-pv8p-q78v",
+      "summary": "undici vulnerable to Denial of Service via unhandled error in WebSocket permessage-deflate decompression",
+      "severity": "medium",
+      "type": "reviewed",
+      "published_at": "2026-09-28T21:42:37Z",
+      "updated_at": "2026-09-28T21:42:38Z",
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 6.25.0, < 6.28.1",
+          "first_patched_version": "6.28.1",
+          "vulnerable_functions": []
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 7.28.0, < 7.29.1",
+          "first_patched_version": "7.29.1",
+          "vulnerable_functions": []
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 8.1.0, < 8.10.2",
+          "first_patched_version": "8.10.2",
+          "vulnerable_functions": []
+        }
+      ]
+    },
+    {
+      "ghsa_id": "GHSA-3xpg-4rpp-hhhm",
+      "html_url": "https://github.com/advisories/GHSA-3xpg-4rpp-hhhm",
+      "summary": "undici vulnerable to Denial of Service via unbounded decompression of compressed responses",
+      "severity": "medium",
+      "type": "reviewed",
+      "published_at": "2026-09-29T18:20:37Z",
+      "updated_at": "2026-09-29T18:20:38Z",
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 7.15.0, < 7.29.1",
+          "first_patched_version": "7.29.1",
+          "vulnerable_functions": []
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 8.0.0, < 8.10.2",
+          "first_patched_version": "8.10.2",
+          "vulnerable_functions": []
+        }
+      ]
+    },
+    {
+      "ghsa_id": "GHSA-58mr-gqgx-xq4g",
+      "html_url": "https://github.com/advisories/GHSA-58mr-gqgx-xq4g",
+      "summary": "fast-uri vulnerable to host confusion via an unclosed bracket in the URI authority",
+      "severity": "high",
+      "type": "reviewed",
+      "published_at": "2026-09-28T21:23:35Z",
+      "updated_at": "2026-09-28T21:23:36Z",
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "fast-uri"
+          },
+          "vulnerable_version_range": "= 2.4.5",
+          "first_patched_version": "2.4.6",
+          "vulnerable_functions": []
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "fast-uri"
+          },
+          "vulnerable_version_range": "= 3.1.6",
+          "first_patched_version": "3.1.7",
+          "vulnerable_functions": []
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "fast-uri"
+          },
+          "vulnerable_version_range": "= 4.1.3",
+          "first_patched_version": "4.1.4",
+          "vulnerable_functions": []
+        }
+      ]
+    },
+    {
+      "ghsa_id": "GHSA-8436-99hf-9mmv",
+      "html_url": "https://github.com/advisories/GHSA-8436-99hf-9mmv",
+      "summary": "undici vulnerable to caching and replay of unsafe HTTP method responses",
+      "severity": "low",
+      "type": "reviewed",
+      "published_at": "2026-09-29T18:16:28Z",
+      "updated_at": "2026-09-29T18:16:29Z",
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 7.0.0, < 7.29.1",
+          "first_patched_version": "7.29.1",
+          "vulnerable_functions": []
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 8.0.0, < 8.10.2",
+          "first_patched_version": "8.10.2",
+          "vulnerable_functions": []
+        }
+      ]
+    },
+    {
+      "ghsa_id": "GHSA-pmjh-fq2x-6v4x",
+      "html_url": "https://github.com/advisories/GHSA-pmjh-fq2x-6v4x",
+      "summary": "undici vulnerable to Denial of Service via orphaned RetryHandler response body",
+      "severity": "medium",
+      "type": "reviewed",
+      "published_at": "2026-09-29T18:22:34Z",
+      "updated_at": "2026-09-29T18:22:35Z",
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 7.11.0, < 7.29.1",
+          "first_patched_version": "7.29.1",
+          "vulnerable_functions": []
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 8.0.0, < 8.10.2",
+          "first_patched_version": "8.10.2",
+          "vulnerable_functions": []
+        }
+      ]
+    },
+    {
+      "ghsa_id": "GHSA-qw65-cvwx-89v3",
+      "html_url": "https://github.com/advisories/GHSA-qw65-cvwx-89v3",
+      "summary": "fast-uri vulnerable to authority injection via an unvalidated port in serialize",
+      "severity": "high",
+      "type": "reviewed",
+      "published_at": "2026-09-28T21:24:39Z",
+      "updated_at": "2026-09-28T21:24:40Z",
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "fast-uri"
+          },
+          "vulnerable_version_range": "< 2.4.6",
+          "first_patched_version": "2.4.6",
+          "vulnerable_functions": []
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "fast-uri"
+          },
+          "vulnerable_version_range": ">= 3.0.0, < 3.1.7",
+          "first_patched_version": "3.1.7",
+          "vulnerable_functions": []
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "fast-uri"
+          },
+          "vulnerable_version_range": ">= 4.0.0, < 4.1.4",
+          "first_patched_version": "4.1.4",
+          "vulnerable_functions": []
+        }
+      ]
+    },
+    {
+      "ghsa_id": "GHSA-r53p-7pc4-xj5r",
+      "html_url": "https://github.com/advisories/GHSA-r53p-7pc4-xj5r",
+      "summary": "undici vulnerable to downstream response splitting via retry interceptor",
+      "severity": "low",
+      "type": "reviewed",
+      "published_at": "2026-09-29T18:22:07Z",
+      "updated_at": "2026-09-29T18:22:08Z",
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": "< 6.28.1",
+          "first_patched_version": "6.28.1",
+          "vulnerable_functions": []
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 7.0.0, < 7.29.1",
+          "first_patched_version": "7.29.1",
+          "vulnerable_functions": []
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 8.0.0, < 8.10.2",
+          "first_patched_version": "8.10.2",
+          "vulnerable_functions": []
+        }
+      ]
+    },
+    {
+      "ghsa_id": "GHSA-rfgv-xxqx-mfg5",
+      "html_url": "https://github.com/advisories/GHSA-rfgv-xxqx-mfg5",
+      "summary": "undici vulnerable to Denial of Service via unrequested WebSocket subprotocol",
+      "severity": "high",
+      "type": "reviewed",
+      "published_at": "2026-09-29T18:21:33Z",
+      "updated_at": "2026-09-29T18:21:41Z",
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 6.7.0, < 6.28.1",
+          "first_patched_version": "6.28.1",
+          "vulnerable_functions": []
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 7.0.0, < 7.29.1",
+          "first_patched_version": "7.29.1",
+          "vulnerable_functions": []
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 8.0.0, < 8.10.2",
+          "first_patched_version": "8.10.2",
+          "vulnerable_functions": []
+        }
+      ]
+    },
+    {
+      "ghsa_id": "GHSA-rx4f-c7p8-82vq",
+      "html_url": "https://github.com/advisories/GHSA-rx4f-c7p8-82vq",
+      "summary": "undici vulnerable to Denial of Service via WebSocketStream unclean close",
+      "severity": "medium",
+      "type": "reviewed",
+      "published_at": "2026-09-29T18:10:32Z",
+      "updated_at": "2026-09-29T18:10:33Z",
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 7.0.0, < 7.29.1",
+          "first_patched_version": "7.29.1",
+          "vulnerable_functions": []
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 8.0.0, < 8.10.2",
+          "first_patched_version": "8.10.2",
+          "vulnerable_functions": []
+        }
+      ]
+    },
+    {
+      "ghsa_id": "GHSA-w293-vg96-wgc3",
+      "html_url": "https://github.com/advisories/GHSA-w293-vg96-wgc3",
+      "summary": "undici vulnerable to TLS certificate validation bypass via dropped connect options in BalancedPool",
+      "severity": "high",
+      "type": "reviewed",
+      "published_at": "2026-09-29T18:17:15Z",
+      "updated_at": "2026-09-29T18:17:16Z",
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 7.24.1, < 7.29.1",
+          "first_patched_version": "7.29.1",
+          "vulnerable_functions": []
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "undici"
+          },
+          "vulnerable_version_range": ">= 8.0.0, < 8.10.2",
+          "first_patched_version": "8.10.2",
+          "vulnerable_functions": []
+        }
+      ]
+    }
+  ],
+  "registry": [
+    {
+      "name": "fast-uri",
+      "version": "3.1.7",
+      "metadata_url": "https://registry.npmjs.org/fast-uri/3.1.7",
+      "tarball": "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.7.tgz",
+      "integrity": "sha512-dOvZVzjdZdz7phd9v6jCbwxrBW3fK6n8Rc0CtdmM4bumzMnxywBYhuph6J819RRw/ku+rLbelwfMunktuzVVHg==",
+      "shasum": "743157d957f3cbb4c65310e033dc2ad4ad7dc60a",
+      "bytes": 43760,
+      "engines": null,
+      "tarball_verified": true
+    },
+    {
+      "name": "undici",
+      "version": "7.29.1",
+      "metadata_url": "https://registry.npmjs.org/undici/7.29.1",
+      "tarball": "https://registry.npmjs.org/undici/-/undici-7.29.1.tgz",
+      "integrity": "sha512-RYONW2MeafgYlkVOKYKkA/Ag7BmXqgIWCa8t1m0JcxrQg9pI9lEqRhAOruOBCbAohOa/gkCF+iPi9hrgvTzu6Q==",
+      "shasum": "7741c6fc8b3e1a48e30323833642bfbe841443ad",
+      "bytes": 400243,
+      "engines": {
+        "node": ">=20.18.1"
+      },
+      "tarball_verified": true
+    }
+  ]
+}

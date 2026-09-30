@@ -1,0 +1,263 @@
+{
+  "recorded_at_utc": "2026-09-30T02:49:38.467928+00:00",
+  "head": "fe9d65972376dbb4c332fde9860c1e42ff2f2005",
+  "os": "Windows-11-10.0.26200-SP0",
+  "node_version": "v26.7.0",
+  "core_autocrlf": "true",
+  "changed_source_sha256": {
+    "scripts/quality/check-copilot-assets.mjs": "19c9db374c9e2f1da4941a35fe42bd335ecadec8dfbfaccc16687bedc6e91696",
+    "scripts/quality/check-copilot-assets.test.mjs": "e35d8c0079538951d8e9103e79acbfc4feddd0ec5e6398b085cab9dbb159851b",
+    "docs/guide/github-copilot-workspace.md": "952518144ee172392d60022c85c24309d9c7195bf40d203ca20f0a0b99cf6766",
+    "docs/en/guide/github-copilot-workspace.md": "9b4089e0ecb41abdf59c2dd822193fa46b3fe6a42dab4defc20f263224219719"
+  },
+  "checks": [
+    {
+      "name": "selected-sources",
+      "command": [
+        "git",
+        "ls-files",
+        "--cached",
+        "--others",
+        "--exclude-standard",
+        "--",
+        ".gitignore",
+        "scripts/quality/check-copilot-assets.mjs",
+        "scripts/quality/check-copilot-assets.test.mjs",
+        "docs/guide/github-copilot-workspace.md",
+        "docs/en/guide/github-copilot-workspace.md",
+        "AGENTS.md",
+        ".codex/skills/ccr-gate-recovery/SKILL.md",
+        ".codex/skills/ccr-ui-visual-workflow/SKILL.md",
+        ".github/copilot-instructions.md",
+        ".github/instructions/rust.instructions.md",
+        ".github/instructions/ui.instructions.md",
+        ".github/instructions/docs.instructions.md",
+        ".github/prompts/rust-change.prompt.md",
+        ".github/prompts/ui-change.prompt.md",
+        ".github/prompts/docs-change.prompt.md",
+        ".github/agents/researcher.agent.md",
+        ".github/agents/implementer.agent.md",
+        ".github/agents/reviewer.agent.md"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "exit_code": 0,
+      "status": "PASS",
+      "seconds": 0.045,
+      "log": "selected-sources.log",
+      "log_sha256": "18ac6ca1556fdfe362a554e1c7f877322f46256cca7f23c6c9117a4d033f445c"
+    },
+    {
+      "name": "worktree-copilot-check",
+      "command": [
+        "C:\\Users\\lyh\\scoop\\shims\\just.EXE",
+        "copilot-check"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "exit_code": 0,
+      "status": "PASS",
+      "seconds": 3.064,
+      "log": "worktree-copilot-check.log",
+      "log_sha256": "ca23e3757e8dcfd1e8b809c2a4aad7a4734f20dcaa95ce108221007b0d99bcf1"
+    },
+    {
+      "name": "checker-syntax",
+      "command": [
+        "D:\\GreenSoftware\\node\\node.EXE",
+        "--check",
+        "scripts/quality/check-copilot-assets.mjs"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "exit_code": 0,
+      "status": "PASS",
+      "seconds": 0.069,
+      "log": "checker-syntax.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "tests-syntax",
+      "command": [
+        "D:\\GreenSoftware\\node\\node.EXE",
+        "--check",
+        "scripts/quality/check-copilot-assets.test.mjs"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "exit_code": 0,
+      "status": "PASS",
+      "seconds": 0.059,
+      "log": "tests-syntax.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "fixture-git-init",
+      "command": [
+        "git",
+        "init",
+        "--quiet"
+      ],
+      "cwd": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-copilot-selected-source-ks284o__",
+      "exit_code": 0,
+      "status": "PASS",
+      "seconds": 0.06,
+      "log": "fixture-git-init.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "fixture-track-selected",
+      "command": [
+        "git",
+        "-c",
+        "core.autocrlf=true",
+        "add",
+        "--force",
+        "--",
+        "scripts/quality/check-copilot-assets.test.mjs",
+        ".codex/skills/ccr-gate-recovery/SKILL.md",
+        ".codex/skills/ccr-ui-visual-workflow/SKILL.md",
+        ".github/agents/implementer.agent.md",
+        ".github/agents/researcher.agent.md",
+        ".github/agents/reviewer.agent.md",
+        ".github/copilot-instructions.md",
+        ".github/instructions/docs.instructions.md",
+        ".github/instructions/rust.instructions.md",
+        ".github/instructions/ui.instructions.md",
+        ".github/prompts/docs-change.prompt.md",
+        ".github/prompts/rust-change.prompt.md",
+        ".github/prompts/ui-change.prompt.md",
+        ".gitignore",
+        "AGENTS.md",
+        "docs/en/guide/github-copilot-workspace.md",
+        "docs/guide/github-copilot-workspace.md",
+        "scripts/quality/check-copilot-assets.mjs"
+      ],
+      "cwd": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-copilot-selected-source-ks284o__",
+      "exit_code": 0,
+      "status": "PASS",
+      "seconds": 0.131,
+      "log": "fixture-track-selected.log",
+      "log_sha256": "bf923e825cf5f57179147bac794e52b7f5dfde34b10e4dcd0abba1d9155c05e5"
+    },
+    {
+      "name": "selected-source-assets",
+      "command": [
+        "D:\\GreenSoftware\\node\\node.EXE",
+        "scripts/quality/check-copilot-assets.mjs"
+      ],
+      "cwd": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-copilot-selected-source-ks284o__",
+      "exit_code": 0,
+      "status": "PASS",
+      "seconds": 0.11,
+      "log": "selected-source-assets.log",
+      "log_sha256": "b72ead2246ba55db420062c47044e7dc9fc26a7a9c17b033fa254a1f307a46a2",
+      "claude_directory_present": false,
+      "copied_files": [
+        ".codex/skills/ccr-gate-recovery/SKILL.md",
+        ".codex/skills/ccr-ui-visual-workflow/SKILL.md",
+        ".github/agents/implementer.agent.md",
+        ".github/agents/researcher.agent.md",
+        ".github/agents/reviewer.agent.md",
+        ".github/copilot-instructions.md",
+        ".github/instructions/docs.instructions.md",
+        ".github/instructions/rust.instructions.md",
+        ".github/instructions/ui.instructions.md",
+        ".github/prompts/docs-change.prompt.md",
+        ".github/prompts/rust-change.prompt.md",
+        ".github/prompts/ui-change.prompt.md",
+        ".gitignore",
+        "AGENTS.md",
+        "docs/en/guide/github-copilot-workspace.md",
+        "docs/guide/github-copilot-workspace.md",
+        "scripts/quality/check-copilot-assets.mjs",
+        "scripts/quality/check-copilot-assets.test.mjs"
+      ],
+      "scope": "Working-tree bytes selected by Git; temporary Git index only; not a committed full clone or native client run."
+    },
+    {
+      "name": "selected-source-tests",
+      "command": [
+        "D:\\GreenSoftware\\node\\node.EXE",
+        "--test",
+        "scripts/quality/check-copilot-assets.test.mjs"
+      ],
+      "cwd": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-copilot-selected-source-ks284o__",
+      "exit_code": 0,
+      "status": "PASS",
+      "seconds": 12.256,
+      "log": "selected-source-tests.log",
+      "log_sha256": "e738ac7091916f9be8ea4fe3f81bcb0eeac5ba9f84bb17b859dc2da864472b93"
+    },
+    {
+      "name": "tracked-diff-check",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "scripts/quality/check-copilot-assets.mjs",
+        "docs/guide/github-copilot-workspace.md",
+        "docs/en/guide/github-copilot-workspace.md"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "exit_code": 0,
+      "status": "PASS",
+      "seconds": 0.052,
+      "log": "tracked-diff-check.log",
+      "log_sha256": "450e56d223c36b8b5c20f97bf352fa348aed4aac85a27d7678dd70e3bfba19e1"
+    },
+    {
+      "name": "new-test-diff-check",
+      "command": [
+        "git",
+        "-c",
+        "core.autocrlf=false",
+        "-c",
+        "core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol",
+        "diff",
+        "--no-index",
+        "--check",
+        "--",
+        "nul",
+        "scripts/quality/check-copilot-assets.test.mjs"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "exit_code": 1,
+      "status": "PASS",
+      "seconds": 0.059,
+      "log": "new-test-diff-check.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code_meaning": "No-index returns 1 for a new file; PASS also requires no whitespace diagnostics."
+    },
+    {
+      "name": "task-context-validate",
+      "command": [
+        "python",
+        ".trellis/scripts/task.py",
+        "validate",
+        ".trellis/tasks/09-29-harness-copilot-crlf"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "exit_code": 0,
+      "status": "PASS",
+      "seconds": 0.16,
+      "log": "task-context-validate.log",
+      "log_sha256": "a1677743825370d46e0d3b0e70ee79dccf68444045d6c3a0b0d9f0b3032cff34"
+    }
+  ],
+  "earlier_tool_receipts": [
+    {
+      "command": "node --test scripts/quality/check-copilot-assets.test.mjs",
+      "exit_code": 0,
+      "pass": 34,
+      "fail": 0,
+      "skipped": 0,
+      "duration_ms": 13787.1032,
+      "tool_session_id": 30546
+    },
+    {
+      "command": "just docs-check",
+      "exit_code": 0,
+      "summary": "Frozen install made no changes; docs audit, VitePress build, and ccr-ui docs audit passed.",
+      "tool_chunk_id": "abb6fc"
+    }
+  ],
+  "native_clients": "UNVERIFIED"
+}

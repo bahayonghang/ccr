@@ -1,0 +1,13 @@
+{
+  "platform": "Windows-11-10.0.26200-SP0",
+  "versions": {
+    "python": "Python 3.14.7",
+    "bun": "1.4.2",
+    "node": "v26.7.0",
+    "just": "just 1.58.0"
+  },
+  "observed_local": "2026-09-29T21:51:38.235618-05:00",
+  "observed_utc": "2026-09-30T02:51:38.235891+00:00",
+  "head": "fe9d65972376dbb4c332fde9860c1e42ff2f2005",
+  "hosted_dependabot": "UNVERIFIED; no dispatch, push, or rerun performed"
+}

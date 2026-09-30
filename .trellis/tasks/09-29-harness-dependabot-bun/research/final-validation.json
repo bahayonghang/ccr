@@ -1,0 +1,14 @@
+{
+  "task_context_validation_exit": 0,
+  "new_artifacts_checked": 20,
+  "whitespace_failures": [],
+  "delivered_source_sha256": {
+    ".github/dependabot.yml": "d8d8596d07817406da0b9f9c9dbe8ec4ec8570a37eab0becd512ec7ea2fbde5d",
+    "scripts/ci/check_workflow_governance.py": "3e08072376933e632542caf08a3b507b83e79d89ec0f7764661c739254088f91",
+    "scripts/ci/test_check_workflow_governance.py": "0dae1a10016048edf73513e1d713db1ab9f3708ab4f07587d51660622370b0b3"
+  },
+  "all_nine_local_commands_passed": true,
+  "checked_source_matches_delivered": true,
+  "hosted_dependabot": "UNVERIFIED",
+  "git_configuration": "Command-local only; no persistent configuration changed"
+}

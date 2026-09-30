@@ -1,0 +1,168 @@
+{
+  "started_utc": "2026-09-30T03:09:33.289669+00:00",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "head": "fe9d65972376dbb4c332fde9860c1e42ff2f2005",
+  "scope": "T06 scoped local checks; full just ci and hosted/native gates are owned by the parent task",
+  "sources_before": {
+    "justfile": "6bd6ee7903b875b0c3f6ecfce6984484e96c3f0f96658c700a29539456f724a6",
+    ".github/workflows/ci.yml": "5b1b1aa7d30bbe8844404920489965b0eb566b27e41fcb27bcf08c16caa7681c",
+    ".github/workflows/frontend-ci.yml": "5ac71dc6cd5bcd94f78430f6bbf7434d7205060fdc99eca6a62c444acde10129",
+    ".github/workflows/vscode-ci.yml": "f99712b0cbb95faca2a0f6f4b1dd05d80b34a71daa01ae6ba9c77a0ddc50255f",
+    "scripts/ci/ci_surface_policy.py": "005463e0e49a7a79243771bdb5624ee6aa569dd2681b58125c20400677a3c5fa",
+    "scripts/ci/check_workflow_governance.py": "04ee49b793ae8c78a6962f6aa95d7c23e81195b0f42ce6359c63104e25c233be",
+    "scripts/ci/test_check_workflow_governance.py": "378a731d3b0667e5dd1815da30df4f9cc351246f78e091f87d6f8517179793d2"
+  },
+  "checks": [
+    {
+      "name": "02-governance-tests",
+      "command": [
+        "C:\\Program Files\\Python314\\python.exe",
+        "-m",
+        "unittest",
+        "scripts.ci.test_check_workflow_governance",
+        "scripts.ci.test_architecture_contract_gates"
+      ],
+      "resolved_command": [
+        "C:\\Program Files\\Python314\\python.exe",
+        "-m",
+        "unittest",
+        "scripts.ci.test_check_workflow_governance",
+        "scripts.ci.test_architecture_contract_gates"
+      ],
+      "exit_code": 1,
+      "seconds": 25.977
+    },
+    {
+      "name": "03-workflow-governance",
+      "command": [
+        "just",
+        "workflow-governance-check"
+      ],
+      "resolved_command": [
+        "C:\\Users\\lyh\\scoop\\shims\\just.EXE",
+        "workflow-governance-check"
+      ],
+      "exit_code": 1,
+      "seconds": 26.697
+    },
+    {
+      "name": "04-actionlint",
+      "command": [
+        "actionlint"
+      ],
+      "resolved_command": [
+        "C:\\Users\\lyh\\AppData\\Local\\Microsoft\\WinGet\\Links\\actionlint.EXE"
+      ],
+      "exit_code": 0,
+      "seconds": 0.206
+    },
+    {
+      "name": "05-omp-check",
+      "command": [
+        "just",
+        "omp-check"
+      ],
+      "resolved_command": [
+        "C:\\Users\\lyh\\scoop\\shims\\just.EXE",
+        "omp-check"
+      ],
+      "exit_code": 0,
+      "seconds": 1.015
+    },
+    {
+      "name": "06-harness-check",
+      "command": [
+        "just",
+        "harness-check"
+      ],
+      "resolved_command": [
+        "C:\\Users\\lyh\\scoop\\shims\\just.EXE",
+        "harness-check"
+      ],
+      "exit_code": 0,
+      "seconds": 1.629
+    },
+    {
+      "name": "07-copilot-check",
+      "command": [
+        "just",
+        "copilot-check"
+      ],
+      "resolved_command": [
+        "C:\\Users\\lyh\\scoop\\shims\\just.EXE",
+        "copilot-check"
+      ],
+      "exit_code": 0,
+      "seconds": 15.68
+    },
+    {
+      "name": "08-frontend-audit",
+      "command": [
+        "just",
+        "frontend-audit"
+      ],
+      "resolved_command": [
+        "C:\\Users\\lyh\\scoop\\shims\\just.EXE",
+        "frontend-audit"
+      ],
+      "exit_code": 0,
+      "seconds": 4.322
+    },
+    {
+      "name": "09-cargo-audit",
+      "command": [
+        "just",
+        "audit"
+      ],
+      "resolved_command": [
+        "C:\\Users\\lyh\\scoop\\shims\\just.EXE",
+        "audit"
+      ],
+      "exit_code": 0,
+      "seconds": 9.839
+    },
+    {
+      "name": "10-diff-check",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "justfile",
+        ".github/workflows/ci.yml",
+        ".github/workflows/frontend-ci.yml",
+        ".github/workflows/vscode-ci.yml",
+        "scripts/ci/ci_surface_policy.py",
+        "scripts/ci/check_workflow_governance.py",
+        "scripts/ci/test_check_workflow_governance.py"
+      ],
+      "resolved_command": [
+        "C:\\Program Files\\Git\\cmd\\git.EXE",
+        "diff",
+        "--check",
+        "--",
+        "justfile",
+        ".github/workflows/ci.yml",
+        ".github/workflows/frontend-ci.yml",
+        ".github/workflows/vscode-ci.yml",
+        "scripts/ci/ci_surface_policy.py",
+        "scripts/ci/check_workflow_governance.py",
+        "scripts/ci/test_check_workflow_governance.py"
+      ],
+      "exit_code": 0,
+      "seconds": 0.057
+    }
+  ],
+  "sources_after": {
+    "justfile": "6bd6ee7903b875b0c3f6ecfce6984484e96c3f0f96658c700a29539456f724a6",
+    ".github/workflows/ci.yml": "5b1b1aa7d30bbe8844404920489965b0eb566b27e41fcb27bcf08c16caa7681c",
+    ".github/workflows/frontend-ci.yml": "5ac71dc6cd5bcd94f78430f6bbf7434d7205060fdc99eca6a62c444acde10129",
+    ".github/workflows/vscode-ci.yml": "f99712b0cbb95faca2a0f6f4b1dd05d80b34a71daa01ae6ba9c77a0ddc50255f",
+    "scripts/ci/ci_surface_policy.py": "005463e0e49a7a79243771bdb5624ee6aa569dd2681b58125c20400677a3c5fa",
+    "scripts/ci/check_workflow_governance.py": "04ee49b793ae8c78a6962f6aa95d7c23e81195b0f42ce6359c63104e25c233be",
+    "scripts/ci/test_check_workflow_governance.py": "378a731d3b0667e5dd1815da30df4f9cc351246f78e091f87d6f8517179793d2"
+  },
+  "source_drift": [],
+  "finished_utc": "2026-09-30T03:10:58.890076+00:00"
+}

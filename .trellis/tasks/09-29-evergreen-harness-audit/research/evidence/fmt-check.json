@@ -1,0 +1,8 @@
+{
+  "command": "just fmt-check",
+  "exit_code": 0,
+  "started": "2026-09-29T20:59:04.8862391-05:00",
+  "ended": "2026-09-29T20:59:11.3651104-05:00",
+  "boundary": "Windows local",
+  "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/fmt-check.log"
+}

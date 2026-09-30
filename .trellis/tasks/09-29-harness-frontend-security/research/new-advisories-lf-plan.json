@@ -1,0 +1,10 @@
+{
+  "current_sha256": "f4d25c2659543ffbc3c439a92813f0d67d9c44c2bc3d881d7e3710bb52adbf1e",
+  "expected_lf_sha256": "c4301a8d1909ac7db2f92930e5d91172195d3ad51c84b4e163c16909a2528025",
+  "before_crlf_count": 0,
+  "current_crlf_count": 1568,
+  "expected_crlf_count": 0,
+  "autocrlf": "true",
+  "attributes": "ccr-ui/bun.lock: text: unspecified\nccr-ui/bun.lock: eol: unspecified",
+  "only_additional_change_is_line_endings": true
+}

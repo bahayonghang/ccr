@@ -1,0 +1,137 @@
+{
+  "started_utc": "2026-09-30T03:16:20.479730+00:00",
+  "source_sha256_before": {
+    "justfile": "6bd6ee7903b875b0c3f6ecfce6984484e96c3f0f96658c700a29539456f724a6",
+    ".github/workflows/ci.yml": "5b1b1aa7d30bbe8844404920489965b0eb566b27e41fcb27bcf08c16caa7681c",
+    ".github/workflows/frontend-ci.yml": "5ac71dc6cd5bcd94f78430f6bbf7434d7205060fdc99eca6a62c444acde10129",
+    ".github/workflows/vscode-ci.yml": "f99712b0cbb95faca2a0f6f4b1dd05d80b34a71daa01ae6ba9c77a0ddc50255f",
+    ".github/dependabot.yml": "d8d8596d07817406da0b9f9c9dbe8ec4ec8570a37eab0becd512ec7ea2fbde5d",
+    "scripts/ci/ci_surface_policy.py": "005463e0e49a7a79243771bdb5624ee6aa569dd2681b58125c20400677a3c5fa",
+    "scripts/ci/check_workflow_governance.py": "04ee49b793ae8c78a6962f6aa95d7c23e81195b0f42ce6359c63104e25c233be",
+    "scripts/ci/test_check_workflow_governance.py": "e6efa6ca118b22c786d01830cc9c256ab7aa090b372b45ae348cfd0560c73efc",
+    "scripts/quality/check_harness_contracts.py": "20696898a364d6bfe9ef6e736c78bd9cb4849a24272252bc2ecbd68c711188b2",
+    "scripts/quality/test_check_harness_contracts.py": "f6eb2a9f8ae0bb3643968f71c9dbcf9863c0599d791b3047f88116c200fe9a64"
+  },
+  "checks": [
+    {
+      "name": "workflow-governance",
+      "command": [
+        "just",
+        "workflow-governance-check"
+      ],
+      "exit_code": 0,
+      "seconds": 25.459,
+      "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/final-review-workflow-governance.log",
+      "log_sha256": "a354e07cd72f988e14a61628501ee2351907d91447e728333d5a94bb82ab79b7"
+    },
+    {
+      "name": "harness",
+      "command": [
+        "just",
+        "harness-check"
+      ],
+      "exit_code": 0,
+      "seconds": 1.688,
+      "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/final-review-harness.log",
+      "log_sha256": "d08844c1c54415a61190806dd0584b23a7d0a5c2601bd8f004584e15c1acfd69"
+    },
+    {
+      "name": "actionlint",
+      "command": [
+        "actionlint"
+      ],
+      "exit_code": 0,
+      "seconds": 0.203,
+      "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/final-review-actionlint.log",
+      "log_sha256": "abc30023955fb1415cb6df613a2f287897377fa4b0a607d322483e2bd51a91d1"
+    },
+    {
+      "name": "python-compile",
+      "command": [
+        "C:\\Program Files\\Python314\\python.exe",
+        "-m",
+        "py_compile",
+        "scripts/ci/ci_surface_policy.py",
+        "scripts/ci/check_workflow_governance.py",
+        "scripts/ci/test_check_workflow_governance.py",
+        "scripts/quality/check_harness_contracts.py",
+        "scripts/quality/test_check_harness_contracts.py"
+      ],
+      "exit_code": 0,
+      "seconds": 0.089,
+      "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/final-review-python-compile.log",
+      "log_sha256": "abc30023955fb1415cb6df613a2f287897377fa4b0a607d322483e2bd51a91d1"
+    },
+    {
+      "name": "tracked-whitespace",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "justfile",
+        ".github/workflows/ci.yml",
+        ".github/workflows/frontend-ci.yml",
+        ".github/workflows/vscode-ci.yml",
+        ".github/dependabot.yml",
+        "scripts/ci/ci_surface_policy.py",
+        "scripts/ci/check_workflow_governance.py",
+        "scripts/ci/test_check_workflow_governance.py"
+      ],
+      "exit_code": 0,
+      "seconds": 0.047,
+      "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/final-review-tracked-whitespace.log",
+      "log_sha256": "8516fd7aa2fd199bc0f2bfbce35125e5ca0f6a4b35252297166b01ad1d7f2ed8"
+    },
+    {
+      "name": "harness-checker-whitespace",
+      "command": [
+        "git",
+        "-c",
+        "core.autocrlf=false",
+        "diff",
+        "--no-index",
+        "--check",
+        "--",
+        "NUL",
+        "scripts/quality/check_harness_contracts.py"
+      ],
+      "exit_code": 1,
+      "seconds": 0.041,
+      "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/final-review-harness-checker-whitespace.log",
+      "log_sha256": "abc30023955fb1415cb6df613a2f287897377fa4b0a607d322483e2bd51a91d1"
+    },
+    {
+      "name": "harness-tests-whitespace",
+      "command": [
+        "git",
+        "-c",
+        "core.autocrlf=false",
+        "diff",
+        "--no-index",
+        "--check",
+        "--",
+        "NUL",
+        "scripts/quality/test_check_harness_contracts.py"
+      ],
+      "exit_code": 1,
+      "seconds": 0.049,
+      "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/final-review-harness-tests-whitespace.log",
+      "log_sha256": "abc30023955fb1415cb6df613a2f287897377fa4b0a607d322483e2bd51a91d1"
+    }
+  ],
+  "source_sha256_after": {
+    "justfile": "6bd6ee7903b875b0c3f6ecfce6984484e96c3f0f96658c700a29539456f724a6",
+    ".github/workflows/ci.yml": "5b1b1aa7d30bbe8844404920489965b0eb566b27e41fcb27bcf08c16caa7681c",
+    ".github/workflows/frontend-ci.yml": "5ac71dc6cd5bcd94f78430f6bbf7434d7205060fdc99eca6a62c444acde10129",
+    ".github/workflows/vscode-ci.yml": "f99712b0cbb95faca2a0f6f4b1dd05d80b34a71daa01ae6ba9c77a0ddc50255f",
+    ".github/dependabot.yml": "d8d8596d07817406da0b9f9c9dbe8ec4ec8570a37eab0becd512ec7ea2fbde5d",
+    "scripts/ci/ci_surface_policy.py": "005463e0e49a7a79243771bdb5624ee6aa569dd2681b58125c20400677a3c5fa",
+    "scripts/ci/check_workflow_governance.py": "04ee49b793ae8c78a6962f6aa95d7c23e81195b0f42ce6359c63104e25c233be",
+    "scripts/ci/test_check_workflow_governance.py": "e6efa6ca118b22c786d01830cc9c256ab7aa090b372b45ae348cfd0560c73efc",
+    "scripts/quality/check_harness_contracts.py": "20696898a364d6bfe9ef6e736c78bd9cb4849a24272252bc2ecbd68c711188b2",
+    "scripts/quality/test_check_harness_contracts.py": "f6eb2a9f8ae0bb3643968f71c9dbcf9863c0599d791b3047f88116c200fe9a64"
+  },
+  "source_drift": [],
+  "finished_utc": "2026-09-30T03:16:48.060919+00:00"
+}

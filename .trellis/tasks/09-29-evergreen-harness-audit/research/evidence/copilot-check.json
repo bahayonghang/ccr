@@ -1,0 +1,8 @@
+{
+  "command": "just copilot-check",
+  "exit_code": 1,
+  "started": "2026-09-29T21:00:16.3305362-05:00",
+  "ended": "2026-09-29T21:00:21.2986279-05:00",
+  "boundary": "Windows local",
+  "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/copilot-check.log"
+}

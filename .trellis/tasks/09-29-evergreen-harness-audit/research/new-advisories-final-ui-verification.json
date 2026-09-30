@@ -1,0 +1,298 @@
+{
+  "verified_utc": "2026-09-30T03:51:31.772Z",
+  "final_ui_sha256": "c4301a8d1909ac7db2f92930e5d91172195d3ad51c84b4e163c16909a2528025",
+  "crlf_count": 0,
+  "lf_count": 1568,
+  "original_ui_sha256": "87a80e33cdbdaf8ed72516419ece312de1134d94a3e0495d92139580ca65ae07",
+  "forward_four_lines_byte_exact": true,
+  "CRLF_normalization_only_from_prior_full_test_sha": true,
+  "prior_full_test_sha256": "f4d25c2659543ffbc3c439a92813f0d67d9c44c2bc3d881d7e3710bb52adbf1e",
+  "entries": 743,
+  "incremental": [
+    {
+      "node": "brace-expansion",
+      "from": "brace-expansion@1.1.18",
+      "to": "brace-expansion@1.1.21",
+      "fields": [
+        "version",
+        "integrity"
+      ]
+    },
+    {
+      "node": "fast-uri",
+      "from": "fast-uri@3.1.7",
+      "to": "fast-uri@3.1.8",
+      "fields": [
+        "version",
+        "integrity"
+      ]
+    },
+    {
+      "node": "@typescript-eslint/typescript-estree/minimatch/brace-expansion",
+      "from": "brace-expansion@5.0.9",
+      "to": "brace-expansion@5.0.12",
+      "fields": [
+        "version",
+        "integrity"
+      ]
+    },
+    {
+      "node": "glob/minimatch/brace-expansion",
+      "from": "brace-expansion@5.0.9",
+      "to": "brace-expansion@5.0.12",
+      "fields": [
+        "version",
+        "integrity"
+      ]
+    }
+  ],
+  "cumulative": [
+    {
+      "node": "brace-expansion",
+      "from": "brace-expansion@1.1.18",
+      "to": "brace-expansion@1.1.21",
+      "fields": [
+        "version",
+        "integrity"
+      ]
+    },
+    {
+      "node": "colord",
+      "from": "colord@2.9.3",
+      "to": "colord@2.9.4",
+      "fields": [
+        "version",
+        "integrity"
+      ]
+    },
+    {
+      "node": "fast-uri",
+      "from": "fast-uri@3.1.5",
+      "to": "fast-uri@3.1.8",
+      "fields": [
+        "version",
+        "integrity"
+      ]
+    },
+    {
+      "node": "js-yaml",
+      "from": "js-yaml@4.3.1",
+      "to": "js-yaml@4.3.2",
+      "fields": [
+        "version",
+        "integrity"
+      ]
+    },
+    {
+      "node": "undici",
+      "from": "undici@8.10.0",
+      "to": "undici@8.10.2",
+      "fields": [
+        "version",
+        "integrity"
+      ]
+    },
+    {
+      "node": "@typescript-eslint/typescript-estree/minimatch/brace-expansion",
+      "from": "brace-expansion@5.0.9",
+      "to": "brace-expansion@5.0.12",
+      "fields": [
+        "version",
+        "integrity"
+      ]
+    },
+    {
+      "node": "glob/minimatch/brace-expansion",
+      "from": "brace-expansion@5.0.9",
+      "to": "brace-expansion@5.0.12",
+      "fields": [
+        "version",
+        "integrity"
+      ]
+    }
+  ],
+  "receipts": [
+    {
+      "file": ".trellis/tasks/09-29-harness-frontend-security/research/evidence/new-advisories-lf-frozen-install.json",
+      "sha256": "bfb1b5acd785c7e2af3384ccab7bd85658dbfb67b55b5c5386f8a513bdb469f7",
+      "command": [
+        "bun",
+        "install",
+        "--frozen-lockfile"
+      ],
+      "exit_code": 0,
+      "input_lock_sha256": "c4301a8d1909ac7db2f92930e5d91172195d3ad51c84b4e163c16909a2528025",
+      "source_hashes_stable": true,
+      "raw_logs_hash_verified": true,
+      "summary_lines": []
+    },
+    {
+      "file": ".trellis/tasks/09-29-harness-frontend-security/research/evidence/new-advisories-lf-frontend-audit.json",
+      "sha256": "53ef9e153dcddee009d1a03a39b926caa25c55f0275603a9b42350188699507a",
+      "command": [
+        "just",
+        "frontend-audit"
+      ],
+      "exit_code": 0,
+      "input_lock_sha256": "c4301a8d1909ac7db2f92930e5d91172195d3ad51c84b4e163c16909a2528025",
+      "source_hashes_stable": true,
+      "raw_logs_hash_verified": true,
+      "summary_lines": [
+        "frontend dependency audit passed: 0 reported advisories, 0/0 active exceptions"
+      ]
+    },
+    {
+      "file": ".trellis/tasks/09-29-harness-frontend-security/research/evidence/new-advisories-lf-diff-check.json",
+      "sha256": "162b4280997e5102c1076626834229d6e5eca37eaae18bd861b29f2430acc575",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "ccr-ui/bun.lock"
+      ],
+      "exit_code": 0,
+      "input_lock_sha256": "c4301a8d1909ac7db2f92930e5d91172195d3ad51c84b4e163c16909a2528025",
+      "source_hashes_stable": true,
+      "raw_logs_hash_verified": true,
+      "summary_lines": []
+    },
+    {
+      "file": ".trellis/tasks/09-29-harness-frontend-security/research/evidence/new-advisories-frontend-check.json",
+      "sha256": "4853352042fd2c6234bd0615af88a14db7964928f77ce45a153c3e87d158a691",
+      "command": [
+        "just",
+        "frontend-check"
+      ],
+      "exit_code": 0,
+      "input_lock_sha256": "f4d25c2659543ffbc3c439a92813f0d67d9c44c2bc3d881d7e3710bb52adbf1e",
+      "source_hashes_stable": true,
+      "raw_logs_hash_verified": true,
+      "summary_lines": [
+        "  zh-CN namespaces (549): auth, common, language, shell, about, backend, environment, historyPanel, versionManager, updateModal, ccrControl, status, time, editor, variables, nav, user, checkin, actions, tabs, dialog, stats, result, progress, waf, detail, skipReasons, info, errors, hints, labels, accounts, columns, modal, fields, waf, cdk, help, errors, account_manager, account_list, token_config, history, status, records, providers, oauthWizard, oauthTypes, steps, summary, errors, dashboard, insights, totals, compare, views, heatmap, trend, distribution, leaderboard, weekdays, months, empty, webPreview, readiness, reasons, metrics, actions, platforms, metrics, usage, signals, statusBar, claudeCode, hero, features, modules, profiles, auth, settings, mcpServers, slashCommands, agents, plugins, quickActions, tips, observer, tab, metric, chart, subscription, tokenDetail, behavior, empty, claudeProfiles, authTokenActions, sections, basic, connection, auth, status, actions, runtimeBanner, confirm, messages, groups, statStrip, toolbar, fields, inspector, issues, commandPalette, settingsSession, settingsRaw, profilesRaw, systemPrompts, files, platforms, claudeSettings, tabs, model, permissions, env, ui, sandbox, git, mcp, breadcrumb, presets, sync, manager, hero, actions, metrics, presetsDrawer, scopes, approvals, state, list, bulkDelete, confirm, messages, detail, form, import, errors, monitoring, levels, prompts, builtin, categories, agents, folders, search, validation, messages, form, models, breadcrumb, slashCommands, folders, search, form, breadcrumb, viewControls, plugins, form, breadcrumb, configs, breadcrumb, buttons, tabs, filters, sidebar, sort, provider, sortModes, form, addConfig, commands, catalog, status, converter, formatDescriptions, usageNotes, sync, breadcrumb, gating, about, assets, passphrase, assetGroups, ccr, claude, codex, assetActions, assetStatus, output, webdav, account, features, supportedServices, messages, theme, language, settings, dock, summary, appearance, theme, flavor, typography, language, shell, diagnostics, errors, notifications, usage, platforms, actions, filters, timeRange, model, summaryCards, trends, states, emptyState, unsupported, cli_missing, db_missing, db_unreadable, schema_unsupported, missing_table, missing_column, waiting_for_llmusage, install, dialog, stage, duration, dashboard, range, importJobBanner, toolbar, tabs, cards, tokenStrip, sources, ops, states, ready, syncing, stale, degraded, needs_import, needs_session_index, empty, health, freshness, sourceStates, sourceStateHints, actions, alerts, age, cost, providers, chart, bucket, highlights, rankings, models, tokens, modes, projects, meta, table, logs, diagnostics, status, pricing, actions, boundary, fields, default, models, form, operations, empty, states, confirm, messages, stats, timeRange, actions, summaryCards, tokenDetails, sections, units, states, codex, overview, features, modules, mcp, agents, profiles, slashCommands, auth, settings, plugins, config, tips, capabilities, dashboard, header, statusLabels, readiness, auth, profiles, config, usage, usageFreshness, actionConsole, actions, login, createProfile, selectProfile, completeSettings, addMcp, openSessions, ready, refresh, management, auth, profiles, settings, mcp, agents, sessions, usage, empty, error, actions, states, mcp, types, placeholders, validation, messages, agents, sources, freshness, stats, status, confirm, messages, validation, form, messages, profiles, fields, actions, runtimeBanner, confirm, placeholders, authModes, authTokenHints, templateSelector, sections, sectionHints, tokenActions, providers, validation, messages, empty, groups, statStrip, toolbar, commandPalette, inspector, issues, status, settings, tabs, model, reasoningEffortOptions, security, tools, ui, features, messages, slashCommands, folders, validation, messages, auth, off, profileGuard, status, loginState, fields, placeholders, validation, table, messages, tray, rename, filters, statusOptions, freshnessOptions, planOptions, sortOptions, plugins, folders, validation, messages, messages, gemini, overview, stats, hero, tags, terminal, modules, quick, mcp, validation, messages, agents, folders, validation, messages, slashCommands, folders, validation, messages, plugins, validation, messages, grok, overview, auth, dashboard, header, localOnly, readiness, installation, profiles, config, actions, install, createProfile, activateProfile, repairDrift, inspectUnsafe, openSettings, management, profiles, settings, commands, statusLabels, empty, error, profiles, actions, statStrip, toolbar, empty, groups, fields, profileKinds, authModes, credentialActions, editor, validation, confirm, messages, driftBanner, inactive, active, drifted, unsafe_missing_entry_state, renameRecovery, rename_apply_failed, rename_cleanup_failed, unsafeDelete, commandPalette, inspector, issues, missing, settings, localOnly, tabs, status, managed, conflict, model, sessionUi, cli, worktrees, fields, placeholders, helpers, options, themeOptions, worktreeOptions, customModels, source, footer, validation, messages, states, activation, activationWarning, authMode, version, placeholder, platformUsage, tabs, cards, metrics, rank, units, empty, platforms, codex, antigravity, opencode, usageStats, viewModes, profilePresentation, name, configPath, fields, auth, badges, profilesSurface, stats, empty, view, table, toolbar, inspector, commandPalette, agentSessions, roles, agents, errors, profileEditor, validation",
+        "  en-US namespaces (549): auth, common, language, shell, about, backend, environment, historyPanel, versionManager, updateModal, ccrControl, status, time, editor, variables, nav, user, checkin, actions, tabs, dialog, stats, result, progress, waf, detail, skipReasons, info, errors, hints, labels, accounts, columns, modal, fields, waf, cdk, help, errors, account_manager, account_list, token_config, history, status, records, providers, oauthWizard, oauthTypes, steps, summary, errors, dashboard, insights, totals, compare, views, heatmap, trend, distribution, leaderboard, weekdays, months, empty, webPreview, readiness, reasons, metrics, actions, platforms, metrics, usage, signals, statusBar, claudeCode, hero, features, modules, profiles, auth, settings, mcpServers, slashCommands, agents, plugins, quickActions, tips, observer, tab, metric, chart, subscription, tokenDetail, behavior, empty, claudeProfiles, authTokenActions, sections, basic, connection, auth, status, actions, runtimeBanner, confirm, messages, groups, statStrip, toolbar, fields, inspector, issues, commandPalette, settingsSession, settingsRaw, profilesRaw, systemPrompts, files, platforms, claudeSettings, tabs, model, permissions, env, ui, sandbox, git, mcp, breadcrumb, presets, sync, manager, hero, actions, metrics, presetsDrawer, scopes, approvals, state, list, bulkDelete, confirm, messages, detail, form, import, errors, monitoring, levels, prompts, builtin, categories, agents, folders, search, validation, messages, form, models, breadcrumb, slashCommands, folders, search, form, breadcrumb, viewControls, plugins, form, breadcrumb, configs, breadcrumb, buttons, tabs, filters, sidebar, sort, provider, sortModes, form, addConfig, commands, catalog, status, converter, formatDescriptions, usageNotes, sync, breadcrumb, gating, about, assets, passphrase, assetGroups, ccr, claude, codex, assetActions, assetStatus, output, webdav, account, features, supportedServices, messages, errors, theme, language, settings, dock, summary, appearance, theme, flavor, typography, language, shell, diagnostics, notifications, usage, platforms, actions, filters, timeRange, model, summaryCards, trends, states, emptyState, unsupported, cli_missing, db_missing, db_unreadable, schema_unsupported, missing_table, missing_column, waiting_for_llmusage, install, dialog, stage, duration, dashboard, range, importJobBanner, toolbar, tabs, cards, tokenStrip, sources, ops, states, ready, syncing, stale, degraded, needs_import, needs_session_index, empty, health, freshness, sourceStates, sourceStateHints, actions, alerts, age, cost, providers, chart, bucket, highlights, rankings, models, tokens, modes, projects, meta, table, logs, diagnostics, status, pricing, actions, boundary, fields, default, models, form, operations, empty, states, confirm, messages, stats, timeRange, actions, summaryCards, tokenDetails, sections, units, states, codex, overview, features, modules, mcp, agents, profiles, slashCommands, auth, settings, plugins, config, tips, capabilities, dashboard, header, statusLabels, readiness, auth, profiles, config, usage, usageFreshness, actionConsole, actions, login, createProfile, selectProfile, completeSettings, addMcp, openSessions, ready, refresh, management, auth, profiles, settings, mcp, agents, sessions, usage, empty, error, actions, states, mcp, types, placeholders, validation, messages, agents, sources, freshness, stats, status, confirm, messages, validation, form, messages, profiles, fields, actions, runtimeBanner, confirm, placeholders, authModes, authTokenHints, templateSelector, sections, sectionHints, tokenActions, providers, validation, messages, empty, groups, statStrip, toolbar, commandPalette, inspector, issues, status, settings, tabs, model, reasoningEffortOptions, security, tools, ui, features, messages, slashCommands, folders, validation, messages, auth, off, profileGuard, status, loginState, fields, placeholders, validation, table, messages, tray, rename, filters, statusOptions, freshnessOptions, planOptions, sortOptions, plugins, folders, validation, messages, messages, gemini, overview, stats, hero, tags, terminal, modules, quick, mcp, validation, messages, agents, folders, validation, messages, slashCommands, folders, validation, messages, plugins, validation, messages, grok, overview, auth, dashboard, header, localOnly, readiness, installation, profiles, config, actions, install, createProfile, activateProfile, repairDrift, inspectUnsafe, openSettings, management, profiles, settings, commands, statusLabels, empty, error, profiles, actions, statStrip, toolbar, empty, groups, fields, profileKinds, authModes, credentialActions, editor, validation, confirm, messages, driftBanner, inactive, active, drifted, unsafe_missing_entry_state, renameRecovery, rename_apply_failed, rename_cleanup_failed, unsafeDelete, commandPalette, inspector, issues, missing, settings, localOnly, tabs, status, managed, conflict, model, sessionUi, cli, worktrees, fields, placeholders, helpers, options, themeOptions, worktreeOptions, customModels, source, footer, validation, messages, states, activation, activationWarning, authMode, version, placeholder, platformUsage, tabs, cards, metrics, rank, units, empty, platforms, codex, antigravity, opencode, usageStats, viewModes, profilePresentation, name, configPath, fields, auth, badges, profilesSurface, stats, empty, view, table, toolbar, inspector, commandPalette, agentSessions, roles, agents, errors, profileEditor, validation",
+        "✓ All tests passed! i18n files are valid and consistent.",
+        "✅ key leak detector self-test passed（集合 4523 个叶子 key）",
+        " Test Files  169 passed (169)",
+        "      Tests  904 passed (904)",
+        "✅ 前端 Smoke Tests 通过",
+        "docs audit passed",
+        "ccr-ui docs audit passed"
+      ]
+    },
+    {
+      "file": ".trellis/tasks/09-29-harness-frontend-security/research/evidence/new-advisories-frontend-coverage.json",
+      "sha256": "45c4d8e298e00b86367188f02e1d177b63b040ff29daa4452778c525dd6b6cb0",
+      "command": [
+        "just",
+        "frontend-coverage"
+      ],
+      "exit_code": 0,
+      "input_lock_sha256": "f4d25c2659543ffbc3c439a92813f0d67d9c44c2bc3d881d7e3710bb52adbf1e",
+      "source_hashes_stable": true,
+      "raw_logs_hash_verified": true,
+      "summary_lines": [
+        " Test Files  169 passed (169)",
+        "      Tests  904 passed (904)",
+        "All files          |   72.93 |    59.45 |   71.89 |   75.21 |                   "
+      ]
+    },
+    {
+      "file": ".trellis/tasks/09-29-harness-frontend-security/research/evidence/new-advisories-policy-regression.json",
+      "sha256": "cd0afb6fcefbf05882db76341483a039e1c0b4e0279c4f687a9a710eae0b35db",
+      "command": [
+        "bun",
+        "run",
+        "test:smoke",
+        "--",
+        "tests/quality/frontend-dependency-audit.smoke.test.ts"
+      ],
+      "exit_code": 0,
+      "input_lock_sha256": "f4d25c2659543ffbc3c439a92813f0d67d9c44c2bc3d881d7e3710bb52adbf1e",
+      "source_hashes_stable": true,
+      "raw_logs_hash_verified": true,
+      "summary_lines": [
+        " Test Files  1 passed (1)",
+        "      Tests  3 passed (3)"
+      ]
+    }
+  ],
+  "other_sources": [
+    {
+      "file": "ccr-ui/package.json",
+      "sha256": "c9f7e5f78730643ca444fa1191feceb66bc1cf56509bf3e60edf85dbabf3a0cf",
+      "unchanged": true
+    },
+    {
+      "file": "docs/bun.lock",
+      "sha256": "fcc99d04e4ebe06c175db3744907db9bace0f0ee22c7a5cb1100051bf07b6434",
+      "unchanged": true
+    },
+    {
+      "file": "docs/package.json",
+      "sha256": "786d7ddf7793d63faa3fe22befb8109da2e008b4693e1cdb298c0e1ac330636c",
+      "unchanged": true
+    },
+    {
+      "file": "ccr-vscode/package-lock.json",
+      "sha256": "846b84a475e48c9e7f335a87121a1894dc64548f41449d2dd54a5b932174fdd4",
+      "unchanged": true
+    },
+    {
+      "file": "ccr-vscode/package.json",
+      "sha256": "ae72468d025b9714f8870a04cbdeaec4041290bc86d489b478e2080b74d49c50",
+      "unchanged": true
+    }
+  ],
+  "unique_GHSA": 22,
+  "advisory_range_evaluations": 81,
+  "advisory_matches": [],
+  "reviewer_source_writes": false,
+  "coverage": {
+    "file": "ccr-ui/coverage/coverage-final.json",
+    "sha256": "ec27057d6ff5a77fb9b32f19e901414432d0b435fd828593ff9e34fddf6ff38d",
+    "summary": {
+      "lines": {
+        "total": 17395,
+        "covered": 13083,
+        "skipped": 0,
+        "pct": 75.21
+      },
+      "statements": {
+        "total": 20092,
+        "covered": 14655,
+        "skipped": 0,
+        "pct": 72.93
+      },
+      "functions": {
+        "total": 5785,
+        "covered": 4159,
+        "skipped": 0,
+        "pct": 71.89
+      },
+      "branches": {
+        "total": 13500,
+        "covered": 8027,
+        "skipped": 0,
+        "pct": 59.45
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": "Unknown"
+      }
+    },
+    "input_lock_sha256": "f4d25c2659543ffbc3c439a92813f0d67d9c44c2bc3d881d7e3710bb52adbf1e",
+    "boundary": "Prior CRLF lock; final LF differs only in line endings. Not a rerun on final LF."
+  },
+  "aggregate_retry1": {
+    "receipt_sha256": "1644771a0e897f9f065d5371d2e81ce7595394983baf9131d966d26b6ecd027b",
+    "exit_code": 1,
+    "started_at_utc": "2026-09-30T03:49:38.114489+00:00",
+    "failed_stage": "Test",
+    "failed_test": "legacy_registry::legacy_registry_fields_load_without_becoming_clean_write_routing_truth",
+    "source_bytes_preserved": true,
+    "final_lf_frontend_not_reached": true
+  }
+}

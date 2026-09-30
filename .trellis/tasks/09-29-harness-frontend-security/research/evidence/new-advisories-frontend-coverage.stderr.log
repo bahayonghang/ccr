@@ -1,0 +1,2 @@
+cd ccr-ui && bun run vitest -- run --config vitest.smoke.config.ts --coverage
+Not implemented: navigation to another Document
