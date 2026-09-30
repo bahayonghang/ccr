@@ -53,6 +53,6 @@
 - T01/T04 当前源码 SHA-256 与各自 verification.json 一致；selected-source 夹具记录明确包含未提交的可交付文件，没有声称已提交完整 clean clone。
 - 已核对 extension-surface-contracts.md 的打包与两节点补丁契约，以及 dependency-governance.md 的安全更新条款。两份源摘录 SHA-256 与当前 dependency-governance.md、workflow.md 匹配。
 
-证据入口：[T01](../../09-29-harness-omp-context/research/implementation-results.md)、[T04](../../09-29-harness-copilot-crlf/research/implementation-results.md)、[T05](../../09-29-harness-vsix-package/research/dependency-patch-results.md)、[T08](../../09-29-harness-frontend-security/research/implementation-results.md)。
+证据入口：[T01](../../archive/2026-09/09-29-harness-omp-context/research/implementation-results.md)、[T04](../../archive/2026-09/09-29-harness-copilot-crlf/research/implementation-results.md)、[T05](../../09-29-harness-vsix-package/research/dependency-patch-results.md)、[T08](../../09-29-harness-frontend-security/research/implementation-results.md)。
 
 Lint：扩展独立 PASS，前端回执 PASS，脚本语法 PASS。TypeCheck：扩展独立 PASS，前端回执 PASS；OMP 原生 API 类型检查 UNVERIFIED。Tests：重点 56/56 PASS，完整前端/扩展既有回执 PASS。

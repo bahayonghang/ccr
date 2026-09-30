@@ -10,7 +10,7 @@
 - [x] 复核 F06 与设计文件白名单；实现保持在四个批准文件内。
 - [x] 按 design.md 实施最小修改，并保留原失败证据。
 - [x] 逐项满足 prd.md 的 3 条 AC；独立目录使用未提交交付候选，证据边界已明确。
-- [x] 强模型独立复核代码、边界、负例与证据；见[独立审查](../09-29-evergreen-harness-audit/research/independent-review.md)。
+- [x] 强模型独立复核代码、边界、负例与证据；见[独立审查](../../../09-29-evergreen-harness-audit/research/independent-review.md)。
 - [x] 回写双语 Copilot 工作区说明并注明五套适用工具；未提交或归档。
 
 ## 必须通过的检查

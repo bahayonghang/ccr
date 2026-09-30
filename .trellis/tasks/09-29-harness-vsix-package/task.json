@@ -37,7 +37,7 @@
     "extension_dependency_patch_approved": true,
     "local_implementation": "passed",
     "independent_review": "../09-29-evergreen-harness-audit/research/independent-review.md",
-    "delivery_status": "implementation locally committed; acceptance remains incomplete",
+    "delivery_status": "locally committed; task remains in_progress with acceptance gaps",
     "latest_security_audit": "failed: brace-expansion and fast-uri; further compatible targets await user approval",
     "pending_scope_request": "new-advisories-vscode-compatible-followup",
     "delivery_authorization": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json#delivery_authorization",

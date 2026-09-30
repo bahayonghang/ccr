@@ -26,10 +26,10 @@
 - AC5（全部）：未经后续明确批准不进入实施；没有全局账户、模型、trust、推送或发布副作用。
 
 ## 子任务与优先级
-- T01 / P1：[OMP 上下文完整性与可复现交付](../09-29-harness-omp-context/prd.md) — F02、F03
-- T02 / P1：[五套 harness 共享说明与角色权限对齐](../09-29-harness-contract-alignment/prd.md) — F03、F04
+- T01 / P1：[OMP 上下文完整性与可复现交付](../archive/2026-09/09-29-harness-omp-context/prd.md) — F02、F03
+- T02 / P1：[五套 harness 共享说明与角色权限对齐](../archive/2026-09/09-29-harness-contract-alignment/prd.md) — F03、F04
 - T03 / P1：[Dependabot Bun 生态配置修复](../09-29-harness-dependabot-bun/prd.md) — F05
-- T04 / P2：[Copilot 检查的跨平台换行兼容](../09-29-harness-copilot-crlf/prd.md) — F06
+- T04 / P2：[Copilot 检查的跨平台换行兼容](../archive/2026-09/09-29-harness-copilot-crlf/prd.md) — F06
 - T05 / P1：[VSIX 打包范围与本地文件排除](../09-29-harness-vsix-package/prd.md) — F07
 - T06 / P2：[只读聚合门禁与遗漏检查接入](../09-29-harness-readonly-gates/prd.md) — F08
 - T07 / P2：[历史 CI 失败复验与诊断证据](../09-29-harness-ci-evidence/prd.md) — H01、H02、H03、O01

@@ -10,7 +10,7 @@
 - [x] 复核 F02、F03 与设计文件白名单；缓存依赖与 artifact 可信路径补齐已由主会话确认。
 - [x] 按 design.md 实施最小修改，并保留原失败证据。
 - [x] 逐项满足 prd.md 的 3 条 AC；交付候选与已提交 clean clone 的证据边界见实施记录。
-- [x] 强模型独立复核代码、边界、负例与证据；见[独立审查](../09-29-evergreen-harness-audit/research/independent-review.md)。
+- [x] 强模型独立复核代码、边界、负例与证据；见[独立审查](../../../09-29-evergreen-harness-audit/research/independent-review.md)。
 - [x] T02 已回写双语 harness 说明，明确 OMP 注入、交付候选和原生验证边界；未提交归档。
 
 ## 必须通过的检查

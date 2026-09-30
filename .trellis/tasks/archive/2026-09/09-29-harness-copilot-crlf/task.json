@@ -3,7 +3,7 @@
   "name": "harness-copilot-crlf",
   "title": "T04 Copilot 检查的跨平台换行兼容",
   "description": "修复 LF 独占 frontmatter 解析并保留字段和术语约束",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -11,7 +11,7 @@
   "creator": "lyh",
   "assignee": "lyh",
   "createdAt": "2026-09-29",
-  "completedAt": null,
+  "completedAt": "2026-09-30",
   "branch": "dev",
   "base_branch": "main",
   "worktree_path": null,
@@ -32,8 +32,8 @@
     "parent_plan": ".trellis/tasks/09-29-evergreen-harness-audit",
     "approval_record": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json",
     "local_implementation": "passed",
-    "independent_review": "../09-29-evergreen-harness-audit/research/independent-review.md",
-    "delivery_status": "implementation locally committed; acceptance-complete archive pending",
+    "independent_review": "../../../09-29-evergreen-harness-audit/research/independent-review.md",
+    "delivery_status": "locally committed and archived after local acceptance",
     "delivery_authorization": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json#delivery_authorization",
     "work_commits": [
       "c4d38e5154edf6a8fa1c781f91d31ce6aa4bb5ad",
@@ -41,6 +41,7 @@
       "c1453c7b1f5405f93eaecf67ff0d074bb1e9db1d",
       "30cbeddf730ed01b312c3396ba7b8691853be859"
     ],
-    "archive_eligibility": "eligible"
+    "archive_eligibility": "eligible",
+    "archived_with_unverified_boundaries_preserved": true
   }
 }

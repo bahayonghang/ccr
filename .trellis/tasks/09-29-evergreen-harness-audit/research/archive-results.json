@@ -1,0 +1,45 @@
+{
+  "recorded_at_utc": "2026-09-30T05:41:37.120012+00:00",
+  "archive_mapping": {
+    ".trellis/tasks/09-29-harness-omp-context": ".trellis/tasks/archive/2026-09/09-29-harness-omp-context",
+    ".trellis/tasks/09-29-harness-contract-alignment": ".trellis/tasks/archive/2026-09/09-29-harness-contract-alignment",
+    ".trellis/tasks/09-29-harness-copilot-crlf": ".trellis/tasks/archive/2026-09/09-29-harness-copilot-crlf"
+  },
+  "archived_count": 3,
+  "remaining_in_progress": [
+    "09-29-evergreen-harness-audit",
+    "09-29-harness-dependabot-bun",
+    "09-29-harness-vsix-package",
+    "09-29-harness-readonly-gates",
+    "09-29-harness-ci-evidence",
+    "09-29-harness-frontend-security"
+  ],
+  "raw_receipts_logs_and_patches_verified": 334,
+  "raw_hash_changes": [],
+  "updated_curated_paths": [
+    ".trellis/tasks/09-29-evergreen-harness-audit/implement.md",
+    ".trellis/tasks/09-29-evergreen-harness-audit/prd.md",
+    ".trellis/tasks/09-29-evergreen-harness-audit/research/implementation-results.md",
+    ".trellis/tasks/09-29-evergreen-harness-audit/research/independent-review.md",
+    ".trellis/tasks/09-29-evergreen-harness-audit/research/local-delivery.md",
+    ".trellis/tasks/09-29-evergreen-harness-audit/task.json",
+    ".trellis/tasks/09-29-harness-ci-evidence/task.json",
+    ".trellis/tasks/09-29-harness-dependabot-bun/task.json",
+    ".trellis/tasks/09-29-harness-frontend-security/task.json",
+    ".trellis/tasks/09-29-harness-readonly-gates/task.json",
+    ".trellis/tasks/09-29-harness-vsix-package/task.json",
+    ".trellis/tasks/archive/2026-09/09-29-harness-contract-alignment/prd.md",
+    ".trellis/tasks/archive/2026-09/09-29-harness-contract-alignment/research/implementation-results.md",
+    ".trellis/tasks/archive/2026-09/09-29-harness-contract-alignment/task.json",
+    ".trellis/tasks/archive/2026-09/09-29-harness-copilot-crlf/implement.md",
+    ".trellis/tasks/archive/2026-09/09-29-harness-copilot-crlf/prd.md",
+    ".trellis/tasks/archive/2026-09/09-29-harness-copilot-crlf/task.json",
+    ".trellis/tasks/archive/2026-09/09-29-harness-omp-context/implement.md",
+    ".trellis/tasks/archive/2026-09/09-29-harness-omp-context/prd.md",
+    ".trellis/tasks/archive/2026-09/09-29-harness-omp-context/task.json"
+  ],
+  "full_ci_status": "FAILED, retained",
+  "pending_followup_patches": "unapplied, awaiting user scope approval",
+  "large_raw_json": "untracked; pending explicit large-file commit choice",
+  "boundary": "Archive only local-acceptance-complete T01/T02/T04. Historical command paths and original receipt bytes remain unchanged. Mapping resolves those historical paths."
+}

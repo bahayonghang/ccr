@@ -37,7 +37,7 @@
     "approval_record": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json",
     "local_implementation": "passed_scoped; first full aggregate failed at frontend-audit",
     "independent_review": "../09-29-evergreen-harness-audit/research/final-integration-review.md",
-    "delivery_status": "implementation locally committed; acceptance remains incomplete",
+    "delivery_status": "locally committed; task remains in_progress with acceptance gaps",
     "final_aggregate": "failed at Rust managers Test in final-ci-retry1; root cause investigation in progress",
     "source_preservation": "2509 source hashes unchanged in actual full CI",
     "latest_full_aggregate": "final-ci-retry1: failed at Test, managers legacy_registry file-lock path missing; 2509 source hashes unchanged",

@@ -50,7 +50,7 @@
     "latest_full_aggregate_receipt": "../09-29-evergreen-harness-audit/research/final-ci-retry1.json",
     "new_manager_failure": "Confirmed six unguarded default-lock-directory readers; exact failing thread interleaving remains unobserved. Narrow diagnostics passed 1/1 and 17/17; aggregate failure retained.",
     "pending_scope_request": "manager-lock-fixture-guard-followup",
-    "delivery_status": "implementation locally committed; acceptance remains incomplete",
+    "delivery_status": "locally committed; task remains in_progress with acceptance gaps",
     "delivery_authorization": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json#delivery_authorization",
     "work_commits": [
       "c4d38e5154edf6a8fa1c781f91d31ce6aa4bb5ad",

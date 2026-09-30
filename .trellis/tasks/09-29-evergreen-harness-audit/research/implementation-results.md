@@ -9,10 +9,10 @@
 
 | 任务 | 实际结果 | 证据 |
 | --- | --- | --- |
-| T01 | OMP 注入和缓存覆盖 PRD/design/implement/info；仅交付必要扩展源 | [T01](../../09-29-harness-omp-context/research/implementation-results.md) |
-| T02 | 五工具说明、角色权限和默认并行对齐；新增共享契约检查器 | [T02](../../09-29-harness-contract-alignment/research/implementation-results.md) |
+| T01 | OMP 注入和缓存覆盖 PRD/design/implement/info；仅交付必要扩展源 | [T01](../../archive/2026-09/09-29-harness-omp-context/research/implementation-results.md) |
+| T02 | 五工具说明、角色权限和默认并行对齐；新增共享契约检查器 | [T02](../../archive/2026-09/09-29-harness-contract-alignment/research/implementation-results.md) |
 | T03 | UI/docs 使用 Bun Dependabot；缺失、重复和错配均受治理检查 | [T03](../../09-29-harness-dependabot-bun/research/implementation-results.md) |
-| T04 | Copilot 解析兼容 LF/CRLF/BOM，保留缺字段及格式负例 | [T04](../../09-29-harness-copilot-crlf/research/implementation-results.md) |
+| T04 | Copilot 解析兼容 LF/CRLF/BOM，保留缺字段及格式负例 | [T04](../../archive/2026-09/09-29-harness-copilot-crlf/research/implementation-results.md) |
 | T05 | VSIX 13 源文件、15 ZIP 条目允许范围；扩展仅更新两个传递锁节点 | [T05](../../09-29-harness-vsix-package/research/dependency-patch-results.md) |
 | T06 | 三平台同序 16 项只读源码验证；补齐工具、安全和包内容入口 | [T06](../../09-29-harness-readonly-gates/research/implementation-results.md) |
 | T07 | 历史失败复验、覆盖率/MSRV、九条告警诊断；缺失环境仍未完成 | [T07](../../09-29-harness-ci-evidence/research/implementation-results.md) |

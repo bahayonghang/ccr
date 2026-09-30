@@ -33,7 +33,7 @@
     "approval_record": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json",
     "local_implementation": "passed_local; hosted Dependabot unverified",
     "independent_review": "../09-29-evergreen-harness-audit/research/final-integration-review.md",
-    "delivery_status": "implementation locally committed; acceptance remains incomplete",
+    "delivery_status": "locally committed; task remains in_progress with acceptance gaps",
     "delivery_authorization": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json#delivery_authorization",
     "work_commits": [
       "c4d38e5154edf6a8fa1c781f91d31ce6aa4bb5ad",

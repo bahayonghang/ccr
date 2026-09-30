@@ -65,4 +65,4 @@ python scripts/quality/check_harness_contracts.py
 
 ## 独立审查后补充
 
-独立强模型发现 HC005 漏检独立行的 RUST_TEST_THREADS 赋值，已在原批准的两个 Python 文件内修复。新增 Bash、PowerShell、CMD 共 8 个负例，最新套件为 21/21。初轮 20/20 凭证保留；最终源码与测试证据见 [集成审查](../../09-29-evergreen-harness-audit/research/final-integration-review.md)。
+独立强模型发现 HC005 漏检独立行的 RUST_TEST_THREADS 赋值，已在原批准的两个 Python 文件内修复。新增 Bash、PowerShell、CMD 共 8 个负例，最新套件为 21/21。初轮 20/20 凭证保留；最终源码与测试证据见 [集成审查](../../../../09-29-evergreen-harness-audit/research/final-integration-review.md)。
