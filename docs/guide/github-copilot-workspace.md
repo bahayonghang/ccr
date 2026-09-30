@@ -10,7 +10,8 @@ CCR 现在在仓库内补齐了 GitHub Copilot for VS Code 的官方工作区资
 | `.github/instructions/*.instructions.md` | 按 Rust、UI、文档范围追加说明 |
 | `.github/prompts/*.prompt.md` | 可复用的任务提示模板 |
 | `.github/agents/*.agent.md` | 可复用的 Copilot 自定义 agent |
-| `.claude/skills/` | 共享项目 skills 的单一事实来源 |
+| `AGENTS.md` | 已跟踪的共享项目规则 |
+| `.codex/skills/*/SKILL.md` | 已跟踪的项目检查与工作流说明 |
 
 ## 关键边界
 
@@ -26,11 +27,11 @@ CCR 现在在仓库内补齐了 GitHub Copilot for VS Code 的官方工作区资
 - CCR 的 Unified profile 位于 `~/.ccr/platforms/codex/profiles.toml`
 - 与 GitHub Copilot 工作区资产不是同一套机制
 
-## 为什么不加 `.github/skills/`
+## 共享规则与本地安装
 
-GitHub Copilot 支持从 `.claude/skills/`、`.github/skills/`、`.agents/skills/` 读取共享项目 skills。这个仓库刻意保留 `.claude/skills/` 作为单一事实来源，避免把同一份 skills 复制到多个目录后产生漂移。
+仓库共享规则引用 `AGENTS.md` 和 Git 已跟踪的 `.codex/skills/*/SKILL.md`。Claude Code、Codex、Grok Build、Kimi Code、OMP 均可读取这些说明并运行相同检查命令；客户端的自动发现与加载行为由各自配置决定。
 
-如果未来确实需要拆分 GitHub Copilot 专用 skill，再单独评估是否引入 `.github/skills/`。
+`.claude/skills/` 属于被 Git 忽略的本地安装内容。全新检出的资产检查直接验证已跟踪共享来源。新增 GitHub Copilot 专用 skill 时，需要单独确认文件归属与交付范围。
 
 ## 当前提供的内容
 
@@ -43,9 +44,11 @@ GitHub Copilot 支持从 `.claude/skills/`、`.github/skills/`、`.agents/skills
 ## 维护约定
 
 1. 新增或重命名 `.github/*` 资产时，同时更新本页和 VitePress 侧边栏。
-2. 共享项目 skills 默认只维护 `.claude/skills/`。
+2. 共享规则维护在 `AGENTS.md` 和已跟踪的 `.codex/skills/*/SKILL.md`；本地安装目录按工具配置管理。
 3. 文档里提到 GitHub Copilot 时，指的是 VS Code 工作区能力；提到 Codex 时，指的是 Codex CLI。
-4. 提交前运行 `just copilot-check`。
+4. 修改资产或检查器后运行 `node --test scripts/quality/check-copilot-assets.test.mjs`、`just copilot-check` 和 `just docs-check`。五套执行工具均使用这些入口。
+
+检查器在内存中统一 LF 与 CRLF，并接受文件开头的单个 UTF-8 BOM。文档字节保持不变。Frontmatter 使用独立的 `---` 行作为首尾分隔符；结束分隔符可以位于文件末尾。当前资产使用单行标量字段，必填值必须非空。缺字段、空白或注释空值、未闭合分隔符、重复字段和格式错误的引号均使命令非零退出。
 
 ## 官方参考
 

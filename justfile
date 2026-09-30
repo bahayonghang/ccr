@@ -493,11 +493,12 @@ lint: fmt clippy
     @just header "代码质量检查"
     @just success "代码质量检查全部通过"
 
-# 🔒 安全审计 (cargo audit) - 二进制缺失时安装 GitHub CI 同版本
+# 🔒 安全审计 (cargo audit) - 两个独立 lockfile，缺少工具时报告前置要求
 audit:
     @just header "🔒 运行安全审计"
     @just _ensure-cargo-audit-{{os()}}
-    cargo audit
+    cargo audit --file Cargo.lock
+    cargo audit --file ccr-ui/src-tauri/Cargo.lock
     @just success "安全审计步骤完成"
 
 [private]
@@ -505,14 +506,8 @@ _ensure-cargo-audit-windows:
     #!pwsh.exe
     $ErrorActionPreference = 'Stop'
     if (-not (Get-Command cargo-audit -ErrorAction SilentlyContinue)) {
-        Write-Host "cargo-audit 未安装或二进制缺失，正在安装 {{CARGO_AUDIT_VERSION}}"
-        if (Get-Command cargo-binstall -ErrorAction SilentlyContinue) {
-            cargo binstall cargo-audit --version {{CARGO_AUDIT_VERSION}} --no-confirm --force
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-        } else {
-            cargo +{{RUST_TOOLCHAIN}} install cargo-audit --version {{CARGO_AUDIT_VERSION}} --locked --force
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-        }
+        Write-Host "需要 cargo-audit {{CARGO_AUDIT_VERSION}}。请先单独安装：cargo +{{RUST_TOOLCHAIN}} install cargo-audit --version {{CARGO_AUDIT_VERSION}} --locked"
+        exit 1
     }
 
 [private]
@@ -520,12 +515,8 @@ _ensure-cargo-audit-linux:
     #!/usr/bin/env bash
     set -euo pipefail
     if ! command -v cargo-audit >/dev/null 2>&1; then
-      printf 'cargo-audit 未安装或二进制缺失，正在安装 %s\n' "{{CARGO_AUDIT_VERSION}}"
-      if command -v cargo-binstall >/dev/null 2>&1; then
-        cargo binstall cargo-audit --version {{CARGO_AUDIT_VERSION}} --no-confirm --force
-      else
-        cargo +{{RUST_TOOLCHAIN}} install cargo-audit --version {{CARGO_AUDIT_VERSION}} --locked --force
-      fi
+      printf '需要 cargo-audit %s。请先单独安装：cargo +%s install cargo-audit --version %s --locked\n' "{{CARGO_AUDIT_VERSION}}" "{{RUST_TOOLCHAIN}}" "{{CARGO_AUDIT_VERSION}}" >&2
+      exit 1
     fi
 
 [private]
@@ -533,12 +524,8 @@ _ensure-cargo-audit-macos:
     #!/usr/bin/env bash
     set -euo pipefail
     if ! command -v cargo-audit >/dev/null 2>&1; then
-      printf 'cargo-audit 未安装或二进制缺失，正在安装 %s\n' "{{CARGO_AUDIT_VERSION}}"
-      if command -v cargo-binstall >/dev/null 2>&1; then
-        cargo binstall cargo-audit --version {{CARGO_AUDIT_VERSION}} --no-confirm --force
-      else
-        cargo +{{RUST_TOOLCHAIN}} install cargo-audit --version {{CARGO_AUDIT_VERSION}} --locked --force
-      fi
+      printf '需要 cargo-audit %s。请先单独安装：cargo +%s install cargo-audit --version %s --locked\n' "{{CARGO_AUDIT_VERSION}}" "{{RUST_TOOLCHAIN}}" "{{CARGO_AUDIT_VERSION}}" >&2
+      exit 1
     fi
 
 # ═══════════════════════════════════════════════════════════
@@ -556,7 +543,7 @@ watch:
     @just info "📌 使用 cargo-watch (需要安装: cargo install cargo-watch)"
     cargo watch -x check -x test
 
-# 🎯 完整 CI 流程 (版本同步 + 自动格式化 + 格式检查 + 严格 Clippy + 测试 + 构建 + 安全审计 + 前端完整检查 + VSCode 扩展检查)
+# 🎯 完整 CI 检查 (版本/格式 + 工具契约 + Rust/Tauri + 双 lock 审计 + 前端安全/覆盖率 + VSIX)
 # 每步计时，最后输出汇总表
 ci:
     @just _ci-timed-{{os()}}
@@ -568,10 +555,11 @@ _ci-timed-windows:
     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
     chcp 65001 | Out-Null
     $steps = @(
-        @{ Name = "version-sync";    Label = "Version Sync" },
         @{ Name = "version-check";   Label = "Version Check" },
-        @{ Name = "fmt";             Label = "Format" },
         @{ Name = "fmt-check";       Label = "Format Check" },
+        @{ Name = "omp-check";       Label = "OMP Check" },
+        @{ Name = "harness-check";   Label = "Harness Check" },
+        @{ Name = "copilot-check";   Label = "Copilot Check" },
         @{ Name = "lint-strict";     Label = "Strict Clippy" },
         @{ Name = "check-workspace"; Label = "Workspace Check" },
         @{ Name = "test";            Label = "Test" },
@@ -580,6 +568,7 @@ _ci-timed-windows:
         @{ Name = "ci-governance-check"; Label = "CI Governance" },
         @{ Name = "tauri-ci";       Label = "Tauri CI" },
         @{ Name = "frontend-check";  Label = "Frontend Check" },
+        @{ Name = "frontend-audit";  Label = "Frontend Audit" },
         @{ Name = "frontend-coverage"; Label = "Frontend Coverage" },
         @{ Name = "vscode-ci";       Label = "VSCode CI" }
     )
@@ -636,8 +625,8 @@ _ci-timed-windows:
 _ci-timed-linux:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-sync" "version-check" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-ci" "frontend-check" "frontend-coverage" "vscode-ci")
-    labels=("Version Sync" "Version Check" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "Tauri CI" "Frontend Check" "Frontend Coverage" "VSCode CI")
+    steps=("version-check" "fmt-check" "omp-check" "harness-check" "copilot-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-ci" "frontend-check" "frontend-audit" "frontend-coverage" "vscode-ci")
+    labels=("Version Check" "Format Check" "OMP Check" "Harness Check" "Copilot Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "Tauri CI" "Frontend Check" "Frontend Audit" "Frontend Coverage" "VSCode CI")
     PAD=20
     times=()
     statuses=()
@@ -697,8 +686,8 @@ _ci-timed-linux:
 _ci-timed-macos:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-sync" "version-check" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-ci" "frontend-check" "frontend-coverage" "vscode-ci")
-    labels=("Version Sync" "Version Check" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "Tauri CI" "Frontend Check" "Frontend Coverage" "VSCode CI")
+    steps=("version-check" "fmt-check" "omp-check" "harness-check" "copilot-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-ci" "frontend-check" "frontend-audit" "frontend-coverage" "vscode-ci")
+    labels=("Version Check" "Format Check" "OMP Check" "Harness Check" "Copilot Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "Tauri CI" "Frontend Check" "Frontend Audit" "Frontend Coverage" "VSCode CI")
     PAD=20
     times=()
     statuses=()
@@ -777,6 +766,7 @@ frontend-test:
     @just success "前端 Smoke Tests 通过"
 
 # 🏗️ 前端构建
+[env('CCR_SKIP_ICON_GENERATION', '1')]
 frontend-build:
     @just header "🏗️ 前端构建"
     cd ccr-ui && bun install --frozen-lockfile && bun run build
@@ -792,8 +782,32 @@ docs-check:
 # 🤖 GitHub Copilot 工作区资产检查
 copilot-check:
     @just header "🤖 GitHub Copilot 工作区资产检查"
+    node --test scripts/quality/check-copilot-assets.test.mjs
     node scripts/quality/check-copilot-assets.mjs
     @just success "GitHub Copilot 工作区资产检查通过"
+
+# 🤖 OMP 上下文回归检查
+omp-check:
+    bun test scripts/trellis/omp-context.test.ts
+
+# 🤖 五套工具共享契约回归和检查
+harness-check:
+    @just _harness-check-{{os()}}
+
+[private]
+_harness-check-windows:
+    python -m unittest scripts.quality.test_check_harness_contracts
+    python scripts/quality/check_harness_contracts.py
+
+[private]
+_harness-check-linux:
+    python3 -m unittest scripts.quality.test_check_harness_contracts
+    python3 scripts/quality/check_harness_contracts.py
+
+[private]
+_harness-check-macos:
+    python3 -m unittest scripts.quality.test_check_harness_contracts
+    python3 scripts/quality/check_harness_contracts.py
 
 # 🌐 前端完整检查 (类型检查 + Lint + 构建 + 文档构建)
 frontend-check: frontend-typecheck frontend-lint frontend-check-cycles frontend-check-arch-boundaries frontend-test frontend-build docs-check

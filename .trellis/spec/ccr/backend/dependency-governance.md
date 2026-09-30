@@ -8,7 +8,7 @@
 
 ### 1. Scope / Trigger
 - Trigger: changing version surfaces, UI shell version labels, `scripts/version/version-sync.ps1`, `scripts/version/version-sync.sh`, or paths listed in either script's `SYNC_TARGETS`.
-- Applies because `just ci` starts with `just version-sync`; stale required paths fail the full gate before Rust or frontend checks run.
+- Applies because `just ci` starts with read-only version validation; stale required paths fail the full gate before Rust or frontend checks run. `just version-sync` is an explicit maintenance command.
 
 ### 2. Signatures
 - Windows sync: `scripts/version/version-sync.ps1 [-Check] [-Verbose]`
@@ -22,7 +22,7 @@
 - Keep `scripts/version/version-sync.Tests.ps1`, `scripts/version/version-sync.bats`, and `scripts/README.md` aligned with the active target list.
 
 ### 4. Validation & Error Matrix
-- Target path listed but missing -> fail in `just version-sync`.
+- Target path listed but missing -> fail in `just version-check` and `just version-sync`.
 - Target path exists but has neither `CCR UI v...` nor package-driven version marker -> fail while extracting UI version.
 - Bash and PowerShell target lists differ -> cross-platform CI drift risk; update both before accepting the change.
 - Tests or README still create/document a removed target -> stale contract; update them with the script change.
@@ -35,7 +35,7 @@
 ### 6. Tests Required
 - Run `./scripts/version/version-sync.ps1 -Check -Verbose` after editing Windows sync behavior.
 - Run `bash -n scripts/version/version-sync.sh` after editing Bash sync behavior.
-- Run `just version-sync` to prove the first `just ci` step no longer fails.
+- Run `just version-check` to prove the first `just ci` step succeeds without rewriting version files. Run `just version-sync` only when a version update is authorized.
 - Run final `just ci` for release-ready version-sync changes.
 
 ### 7. Wrong vs Correct
@@ -359,7 +359,8 @@ authenticate the publisher; automatic updates remain disabled.
 - Stable branch-protection contexts are `Root Workspace Required`, `Vue and Docs Required`, `Tauri Linux Required`, and `VS Code Required`. Each is a final aggregator: irrelevant changes pass after change detection, while relevant changes pass only when every heavy validation, coverage, audit, and platform matrix dependency succeeds.
 - Change detection checks out full history and uses the pull request's merge-base diff (`base...head`). Changing `scripts/ci/ci_surface_policy.py` makes all four surfaces relevant. Detection failure must fail the aggregator; an empty or failed relevance output must never silently skip a required validation.
 - Rust development, ordinary CI, and release jobs are pinned to 1.98.0; crate MSRV stays at 1.95 and `ci.yml` retains a required Rust 1.95.0 workspace check. Bun is pinned to 1.4.0, Node to 24.20.0, just to 1.58.0, and cargo-llvm-cov to 0.9.0.
-- `ccr-ui/package.json#packageManager` is the canonical Bun version source. `docs/package.json` and the frontend, Tauri, and release workflow `bun-version` inputs must mirror that exact pin; governance rejects missing, duplicate, or divergent workflow inputs.
+- `ccr-ui/package.json#packageManager` is the canonical Bun version source. `docs/package.json` and the root, frontend, Tauri, and release workflow `bun-version` inputs must mirror that exact pin; governance rejects missing, duplicate, or divergent workflow inputs. The root quality job installs Bun for the OMP contract and Node for Copilot checks.
+- Dependabot uses the `bun` ecosystem for `/ccr-ui` and `/docs`, matching their Bun manifests and `bun.lock` files. `/ccr-vscode` keeps `npm` and `package-lock.json`. The existing workflow governance gate checks the directory, declared package manager, lockfile, and update ecosystem together. Missing, duplicate, or mismatched JavaScript mappings fail. Preserve the schedules and Cargo entries. Claude Code, Codex, Grok Build, Kimi Code, and OMP use this same contract. A local configuration check does not prove that a hosted Dependabot update succeeded.
 - Root Rust, React frontend, and VS Code line coverage must be at least 70%; root and Tauri process gateways must be at least 85%. The stable hosted context name `Vue and Docs Required` remains unchanged for branch-protection compatibility.
 - Tauri uploads its full coverage baseline while the hard security threshold remains the gateway; a broad command-wrapper percentage cannot hide a gateway regression.
 - Root workspace tests use default parallelism. `scripts/ci/check_workflow_governance.py` counts `#[serial]` / `#[serial_test::serial]`; current and target counts are both 0.
@@ -367,11 +368,16 @@ authenticate the publisher; automatic updates remain disabled.
 - The Tauri Rust gate runs direct Cargo fmt/check/clippy/test plus repository governance recipes. Its Linux job installs canonical Bun 1.4.0 because `tauri-bindings-check` formats and compares generated TypeScript; it does not install the frontend dependency graph.
 - Windows/Linux/macOS `just ci` runs `tauri-ci` once: strict binary Clippy, all behavior tests, bindings drift and inventory. Desktop test failure must make the aggregate nonzero.
 - Root/Tauri tests and coverage remain parallel with only `--skip export_bindings`; the transactional generator owns exports. Existing thresholds and hosted lanes remain unchanged.
-- `ci` includes mutating `version-sync`/`fmt`; read-only review uses `version-check`/`fmt-check`. Binding checks restore caller bytes on every result; direct generation retains output only on success.
+- Windows/Linux/macOS `ci` validates source without running `version-sync` or `fmt`. The aggregate uses `version-check` and `fmt-check`; the repair recipes remain separate, explicit commands. Preserve the same ordered checks and first failure exit on all three platforms.
+- The aggregate includes OMP injection tests, shared harness contract tests and validation, Copilot parser tests and validation, frontend advisory checks, and final VSIX inventory validation through `vscode-ci`. `frontend-build` sets `CCR_SKIP_ICON_GENERATION=1` at recipe scope, so validation uses committed icons. Explicit asset generation remains separate.
+- `audit` scans both `Cargo.lock` and `ccr-ui/src-tauri/Cargo.lock`. A missing cargo-audit prerequisite fails with installation guidance; the check must not install a global tool. Preserve advisory warnings and database-fetch failures.
+- Binding checks restore caller bytes on every result; direct generation retains output only on success. A full `just ci` receipt records command, tool versions, source hashes before/after, and actual executed gates. Rust/Tauri coverage, MSRV, hosted OS lanes, and native client trust remain separate evidence unless the recorded command executed them.
 - Fresh checkouts run Tauri Rust compile/test/coverage commands with `.cargo/tauri-ci.toml`, which overrides `frontendDist` to the tracked `ccr-ui/src-tauri/ci-dist/index.html` fixture. Production Tauri builds keep using `ccr-ui/dist`; the fixture must never replace the real `beforeBuildCommand` output in release packaging.
 - Hosted frontend dependency audit calls the repository-owned `frontend-audit` recipe and parses Bun's JSON report. Unexpected, expired, duplicate, package-mismatched, or stale advisory exceptions fail closed.
 - Frontend advisory exceptions require non-empty owner/rationale, ISO expiry, explicit patched versions, and must stay within `maxActiveExceptions` (currently 0).
-- Prefer upstream patched releases. Current frontend overrides pin `fast-uri` 3.1.5, `js-yaml` 4.3.1, and `nanoid` 3.3.17; `dompurify` tracks `^3.4.13`. Nested `brace-expansion` copies are lockfile-pinned per major: `1.1.18`, `2.1.4`, and `5.0.9`.
+- Prefer upstream patched releases within the existing dependency ranges. `ccr-ui/bun.lock` owns resolved transitive versions; `ccr-ui/package.json` currently has no overrides. Change the manifest only when its existing ranges cannot select a compatible fix.
+- Claude Code, Codex, Grok Build, Kimi Code, and OMP use the same audit policy. Each security update records advisory IDs, old/new versions, dependency chains, development/runtime scope, and verified registry integrity. Keep production reachability and native client validation as separate evidence fields.
+- Audit results are time-specific evidence. If a later audit fails with unchanged lockfile hashes, preserve both receipts and capture advisory publication times. Do not infer that the advisories were newly published. Recheck all affected ranges, parent compatibility, and archive integrity before a patch; rerun the failed aggregate after the scoped checks pass.
 - Bun manifests use only top-level overrides. Do not force one `brace-expansion` major across `minimatch` 3.x/9.x/10.x: 5.x exports `{ expand }`, while the legacy consumers require the module itself as a function. When a nested copy needs a patched release, bump that lockfile path inside its existing major instead of adding a Bun patch or alias.
 
 ### 4. Validation & Error Matrix
@@ -393,7 +399,7 @@ authenticate the publisher; automatic updates remain disabled.
 - Good: `tauri-linux-required` installs pinned Bun before `just tauri-ci`, so the bindings drift gate runs in a fresh hosted checkout without installing frontend packages.
 - Good: a docs-only PR creates all four required contexts but runs only the frontend heavy gate; a `ccr-vscode/**` PR runs VS Code validation/coverage before `VS Code Required` succeeds.
 - Base: Tauri overall coverage is reported separately while its security gateway remains above 85%.
-- Base: nested `brace-expansion` stays on patched majors `1.1.18` / `2.1.4` / `5.0.9`, `bun audit --json` is empty, and `maxActiveExceptions` remains 0.
+- Base: each nested `brace-expansion` resolution keeps its existing major and satisfies every resolved parent range. Verify the patched release against the current advisory snapshot; `bun audit --json` is empty and `maxActiveExceptions` remains 0.
 - Bad: keeping a PR-level `paths` filter on a branch-protected workflow, because an unrelated PR never creates the required context and remains pending forever.
 - Bad: copying lint/test commands into workflow YAML, pinning `actions/checkout@v6`, lowering the gateway threshold, or globally overriding all `brace-expansion` consumers to 5.x.
 - Bad: creating an ignored `ccr-ui/dist` locally before testing and treating that residue-dependent pass as fresh-checkout evidence.
@@ -401,10 +407,10 @@ authenticate the publisher; automatic updates remain disabled.
 ### 6. Tests Required
 - `python -m unittest scripts.ci.test_check_workflow_governance` -> path matching, event parsing, and duplicate-key cases pass.
 - `python -m unittest scripts.ci.test_architecture_contract_gates` runs the actual aggregate graph with failing/successful Cargo fixtures and checks platform lists/export ownership. The fixture proves propagation, not real Rust suite success.
-- The workflow-governance unit suite asserts that root/UI Tauri Cargo recipes use `.cargo/tauri-ci.toml`, the tracked CI frontend fixture exists, every governed manifest/workflow mirrors canonical Bun 1.4.0, and the three Node setup inputs are exactly Node 24.20.0.
-- `python scripts/ci/check_workflow_governance.py` -> 45 immutable action references, stable relevance routing, required Rust 1.95 MSRV lane, Tauri Linux Bun setup, and serial-only count 0.
+- The workflow-governance unit suite asserts that root/UI Tauri Cargo recipes use `.cargo/tauri-ci.toml`, the tracked CI frontend fixture exists, every governed manifest/workflow mirrors canonical Bun 1.4.0, and all four Node setup inputs are exactly Node 24.20.0. Controlled command stubs verify each OS aggregate order, first failure propagation, and omission guards without requiring a complete host toolchain.
+- `python scripts/ci/check_workflow_governance.py` -> immutable action references, stable relevance routing, required Rust 1.95 MSRV lane, root/Tauri Bun setup, and serial-only count 0.
 - `just ci-governance-check` -> dependency, workflow, and handler inventory gates pass.
-- `cd ccr-ui && bun install --frozen-lockfile && bun run audit:dependencies` -> nested `brace-expansion` is 1.1.18/2.1.4/5.0.9, the audit JSON is empty, and the allowlist has 0/0 active exceptions.
+- `cd ccr-ui && bun install --frozen-lockfile && bun run audit:dependencies` -> the lockfile bytes stay unchanged during installation, only approved lock nodes differ from the pre-fix snapshot, the audit JSON is empty, and the allowlist has 0/0 active exceptions.
 - `cd ccr-ui && bun run test:smoke -- tests/quality/frontend-dependency-audit.smoke.test.ts` -> exception limit, expiry, package match, stale detection, and GHSA extraction pass.
 - `just coverage-rust`, `just coverage-tauri`, `just frontend-coverage`, and `just vscode-coverage` -> configured line/gateway thresholds pass.
 - `just tauri-ci`, `just vscode-ci`, and final `just ci` when unrelated workspace metadata is clean.
@@ -444,15 +450,14 @@ jobs:
       - run: test "${{ needs.workspace-quality.result }}" = success
 ```
 
-```json
-{
-  "dependencies": {"dompurify":"^3.4.13"},
-  "overrides": {
-    "fast-uri":"3.1.5",
-    "js-yaml":"4.3.1",
-    "nanoid":"3.3.17"
-  }
-}
+```sh
+cd ccr-ui
+bun pm why undici
+bun install --frozen-lockfile
+cd ..
+just frontend-audit
+just frontend-check
+just frontend-coverage
 ```
 
 ## Scenario: internal crates do not depend on the umbrella facade

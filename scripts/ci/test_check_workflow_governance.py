@@ -1,23 +1,37 @@
 from __future__ import annotations
 
 import json
+import os
+import re
 import shutil
 import subprocess
+import sys
+import tempfile
+import textwrap
 import unittest
+from pathlib import Path
 
 from scripts.common import REPO_ROOT
 from scripts.ci.ci_surface_policy import SURFACE_PATHS, is_relevant, path_matches
 from scripts.ci.check_workflow_governance import (
     DEVELOPMENT_RUST_TOOLCHAIN,
+    EXPECTED_CI_STEPS,
     EXPECTED_BUN_WORKFLOWS,
     EXPECTED_NODE_WORKFLOW_INPUTS,
     MSRV_RUST_TOOLCHAIN,
     NODE_TOOLCHAIN,
     bun_version_inputs,
     canonical_bun_version,
+    check_relevance_failures,
+    dependabot_failures,
+    dependabot_update_fields,
     duplicate_mapping_keys,
+    hosted_gate_failures,
+    local_aggregate_failures,
+    local_gate_failures,
     node_pin_failures,
     node_version_inputs,
+    recipe_block,
     rust_toolchain_inputs,
     setup_node_version_inputs,
     workflow_event_values,
@@ -72,6 +86,349 @@ def _workflow_step_fields(text: str, needle: str) -> dict[str, str]:
         key, value = stripped.split(":", 1)
         fields[key.strip()] = value.strip()
     return fields
+
+
+class DependabotGovernanceTests(unittest.TestCase):
+    CONFIG = """version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+  - package-ecosystem: cargo
+    directory: /
+  - package-ecosystem: cargo
+    directory: /ccr-ui/src-tauri
+  - package-ecosystem: bun
+    directory: /ccr-ui
+  - package-ecosystem: bun
+    directory: /docs
+  - package-ecosystem: npm
+    directory: /ccr-vscode
+"""
+
+    def setUp(self) -> None:
+        temporary = tempfile.TemporaryDirectory(prefix="ccr-dependabot-test-")
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.config = self.root / ".github" / "dependabot.yml"
+        self.config.parent.mkdir()
+        self.config.write_text(self.CONFIG, encoding="utf-8")
+        for directory, lockfile, manifest in (
+            ("ccr-ui", "bun.lock", {"packageManager": "bun@1.4.0"}),
+            ("docs", "bun.lock", {"packageManager": "bun@1.4.0"}),
+            ("ccr-vscode", "package-lock.json", {}),
+        ):
+            package = self.root / directory
+            package.mkdir()
+            (package / lockfile).write_text("{}\n", encoding="utf-8")
+            (package / "package.json").write_text(json.dumps(manifest), encoding="utf-8")
+        (self.root / "Cargo.lock").write_text("# fixture\n", encoding="utf-8")
+        tauri = self.root / "ccr-ui" / "src-tauri"
+        tauri.mkdir()
+        (tauri / "Cargo.lock").write_text("# fixture\n", encoding="utf-8")
+
+    def test_valid_mapping_allows_actions_and_cargo_at_root(self) -> None:
+        self.assertEqual(dependabot_failures(self.root), [])
+        self.assertEqual(dependabot_failures(REPO_ROOT), [])
+
+    def test_quotes_comments_field_order_and_nested_schedule_are_supported(self) -> None:
+        config = self.CONFIG.replace(
+            "  - package-ecosystem: bun\n    directory: /docs\n",
+            '  - directory: "/docs" # documentation\n'
+            "    package-ecosystem: 'bun'\n"
+            "    schedule:\n      interval: weekly\n    labels: [dependencies, docs]\n",
+        )
+        self.config.write_text(config, encoding="utf-8")
+        self.assertIn(
+            {"directory": "/docs", "package-ecosystem": "bun"},
+            dependabot_update_fields(config),
+        )
+        self.assertEqual(dependabot_failures(self.root), [])
+
+    def test_wrong_or_missing_javascript_mapping_fails(self) -> None:
+        for directory, ecosystem, wrong in (
+            ("/ccr-ui", "bun", "npm"),
+            ("/docs", "bun", "npm"),
+            ("/ccr-vscode", "npm", "bun"),
+        ):
+            entry = f"  - package-ecosystem: {ecosystem}\n    directory: {directory}\n"
+            for replacement in ("", entry.replace(ecosystem, wrong, 1)):
+                with self.subTest(directory=directory, replacement=replacement):
+                    self.config.write_text(self.CONFIG.replace(entry, replacement), encoding="utf-8")
+                    self.assertIn(
+                        f"Dependabot {directory}: expected exactly one {ecosystem} mapping",
+                        dependabot_failures(self.root),
+                    )
+
+    def test_duplicate_directory_fails_for_same_and_different_ecosystems(self) -> None:
+        for ecosystem in ("bun", "npm"):
+            with self.subTest(ecosystem=ecosystem):
+                self.config.write_text(
+                    self.CONFIG + f"  - package-ecosystem: {ecosystem}\n    directory: /docs\n",
+                    encoding="utf-8",
+                )
+                failures = dependabot_failures(self.root)
+                self.assertIn("Dependabot /docs: expected exactly one bun mapping", failures)
+                if ecosystem == "bun":
+                    self.assertIn("duplicate Dependabot mapping: bun /docs", failures)
+
+    def test_missing_file_and_update_fields_fail(self) -> None:
+        entry = "  - package-ecosystem: bun\n    directory: /docs\n"
+        for incomplete in ("  - package-ecosystem: bun\n", "  - directory: /docs\n"):
+            self.config.write_text(self.CONFIG.replace(entry, incomplete), encoding="utf-8")
+            self.assertTrue(any(
+                "missing ecosystem or directory" in failure
+                for failure in dependabot_failures(self.root)
+            ))
+        self.config.unlink()
+        self.assertTrue(any("dependabot.yml" in failure for failure in dependabot_failures(self.root)))
+
+    def test_missing_actions_and_cargo_mappings_fail(self) -> None:
+        for ecosystem, directory in (
+            ("github-actions", "/"),
+            ("cargo", "/"),
+            ("cargo", "/ccr-ui/src-tauri"),
+        ):
+            with self.subTest(ecosystem=ecosystem, directory=directory):
+                entry = f"  - package-ecosystem: {ecosystem}\n    directory: {directory}\n"
+                self.config.write_text(self.CONFIG.replace(entry, ""), encoding="utf-8")
+                self.assertIn(
+                    f"missing Dependabot mapping: {ecosystem} {directory}",
+                    dependabot_failures(self.root),
+                )
+
+    def test_duplicate_yaml_field_fails(self) -> None:
+        self.config.write_text(
+            self.CONFIG.replace("    directory: /docs\n", "    directory: /docs\n    directory: /docs\n"),
+            encoding="utf-8",
+        )
+        self.assertTrue(any("duplicate YAML mapping key 'directory'" in failure for failure in dependabot_failures(self.root)))
+
+    def test_missing_authoritative_locks_fail(self) -> None:
+        for relative in ("ccr-ui/bun.lock", "docs/bun.lock", "ccr-vscode/package-lock.json", "Cargo.lock", "ccr-ui/src-tauri/Cargo.lock"):
+            with self.subTest(lockfile=relative):
+                lockfile = self.root / relative
+                original = lockfile.read_bytes()
+                lockfile.unlink()
+                self.assertTrue(any(f"{lockfile.name} is missing" in failure for failure in dependabot_failures(self.root)))
+                lockfile.write_bytes(original)
+
+    def test_competing_javascript_locks_fail(self) -> None:
+        for relative in ("ccr-ui/package-lock.json", "docs/package-lock.json", "ccr-vscode/bun.lock"):
+            with self.subTest(lockfile=relative):
+                lockfile = self.root / relative
+                lockfile.write_text("{}", encoding="utf-8")
+                self.assertTrue(any("conflicting lockfile" in failure for failure in dependabot_failures(self.root)))
+                lockfile.unlink()
+
+    def test_package_manager_mismatch_and_pin_drift_fail(self) -> None:
+        for directory, manager in (("ccr-ui", "npm@11.0.0"), ("docs", "npm@11.0.0"), ("docs", "bun@1.3.0"), ("ccr-vscode", "bun@1.4.0")):
+            with self.subTest(directory=directory, manager=manager):
+                manifest = self.root / directory / "package.json"
+                original = manifest.read_bytes()
+                manifest.write_text(json.dumps({"packageManager": manager}), encoding="utf-8")
+                self.assertTrue(any("packageManager" in failure for failure in dependabot_failures(self.root)))
+                manifest.write_bytes(original)
+
+    def test_invalid_manifests_fail_without_crashing(self) -> None:
+        for directory in ("ccr-ui", "docs", "ccr-vscode"):
+            for invalid in ("[", "[]"):
+                with self.subTest(directory=directory, invalid=invalid):
+                    manifest = self.root / directory / "package.json"
+                    original = manifest.read_bytes()
+                    manifest.write_text(invalid, encoding="utf-8")
+                    self.assertTrue(dependabot_failures(self.root))
+                    manifest.write_bytes(original)
+
+
+class ReadonlyAggregateTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.source = (REPO_ROOT / "justfile").read_text(encoding="utf-8")
+        cls.extension = (REPO_ROOT / "ccr-vscode/justfile").read_text(encoding="utf-8")
+        cls.scripts = json.loads((REPO_ROOT / "ccr-vscode/package.json").read_text(encoding="utf-8"))["scripts"]
+        cls.workflows = {
+            name: (REPO_ROOT / ".github/workflows" / name).read_text(encoding="utf-8")
+            for name in ("ci.yml", "frontend-ci.yml", "vscode-ci.yml")
+        }
+
+    def run_body(self, platform: str, recipe: str, stub: str) -> subprocess.CompletedProcess[str]:
+        shell = shutil.which("pwsh" if platform == "windows" else "bash")
+        if shell is None:
+            self.skipTest(f"{platform} recipe probe requires its shell, not the product toolchain")
+        block = recipe_block(self.source, recipe)
+        self.assertTrue(block, recipe)
+        body = textwrap.dedent("\n".join(block.splitlines()[2:]))
+        body = body.replace("{{CARGO_AUDIT_VERSION}}", "0.22.2").replace("{{RUST_TOOLCHAIN}}", DEVELOPMENT_RUST_TOOLCHAIN)
+        script = stub + "\n" + body
+        # stdin avoids a second expansion through Windows' legacy WSL bash.exe -c.
+        args = ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script] if platform == "windows" else ["--noprofile", "--norc", "-s"]
+        result = subprocess.run(
+            [shell, *args], input=None if platform == "windows" else script.encode("utf-8"), cwd=REPO_ROOT,
+            capture_output=True, timeout=30,
+        )
+        return subprocess.CompletedProcess(
+            result.args, result.returncode,
+            result.stdout.decode("utf-8", errors="replace"),
+            result.stderr.decode("utf-8", errors="replace"),
+        )
+
+    def check_platform_execution(self, platform: str) -> None:
+        # Execute each real timing body. Only its leaf command is a stub.
+        for failed in (None, EXPECTED_CI_STEPS[0], "harness-check", "audit", "tauri-ci", "frontend-audit", EXPECTED_CI_STEPS[-1]):
+            with self.subTest(platform=platform, failure=failed):
+                if platform == "windows":
+                    stub = f"""
+function chcp {{}}
+function just {{
+    param([string]$Name)
+    Write-Output "__CCR_STEP__$Name"
+    $global:LASTEXITCODE = if ($Name -eq '{failed or ''}') {{ 37 }} else {{ 0 }}
+}}
+"""
+                else:
+                    stub = f"""
+just() {{
+    printf '__CCR_STEP__%s\\n' "$1"
+    if [ "$1" = '{failed or ''}' ]; then return 37; fi
+    return 0
+}}
+"""
+                result = self.run_body(platform, f"_ci-timed-{platform}", stub)
+                self.assertEqual(result.returncode, 37 if failed else 0, result.stdout + result.stderr)
+                calls = re.findall(r"__CCR_STEP__([a-z-]+)", result.stdout)
+                count = EXPECTED_CI_STEPS.index(failed) + 1 if failed else len(EXPECTED_CI_STEPS)
+                self.assertEqual(calls, list(EXPECTED_CI_STEPS[:count]))
+                self.assertFalse({"version-sync", "fmt"}.intersection(calls))
+
+    def test_windows_aggregate_order_and_first_failure(self) -> None:
+        self.check_platform_execution("windows")
+
+    def test_linux_aggregate_order_and_first_failure(self) -> None:
+        self.check_platform_execution("linux")
+
+    def test_macos_aggregate_order_and_first_failure(self) -> None:
+        self.check_platform_execution("macos")
+
+    def test_audit_prerequisite_never_installs_tools(self) -> None:
+        for platform in ("windows", "linux", "macos"):
+            for installed in (False, True):
+                with self.subTest(platform=platform, installed=installed):
+                    if platform == "windows":
+                        stub = (
+                            "function Get-Command { " + ("return 'fixture'" if installed else "return $null") + " }\n"
+                            "function cargo { Write-Output 'UNEXPECTED_INSTALL'; exit 79 }"
+                        )
+                    else:
+                        stub = (
+                            f"command() {{ return {0 if installed else 1}; }}\n"
+                            "cargo() { printf 'UNEXPECTED_INSTALL'; exit 79; }"
+                        )
+                    result = self.run_body(platform, f"_ensure-cargo-audit-{platform}", stub)
+                    self.assertEqual(result.returncode, 0 if installed else 1, result.stdout + result.stderr)
+                    self.assertNotIn("UNEXPECTED_INSTALL", result.stdout + result.stderr)
+                    if not installed:
+                        self.assertIn("cargo-audit", result.stdout + result.stderr)
+                        self.assertIn("0.22.2", result.stdout + result.stderr)
+                        self.assertIn("--locked", result.stdout + result.stderr)
+
+    def test_every_platform_rejects_omission_reorder_and_repair(self) -> None:
+        self.assertEqual(local_aggregate_failures(self.source), [])
+        for platform in ("windows", "linux", "macos"):
+            block = recipe_block(self.source, f"_ci-timed-{platform}")
+            for step in EXPECTED_CI_STEPS:
+                with self.subTest(platform=platform, missing=step):
+                    broken = self.source.replace(block, block.replace(f'"{step}"', '"omitted"', 1))
+                    self.assertEqual(len(local_aggregate_failures(broken)), 1)
+            for check, repair in (("fmt-check", "fmt"), ("version-check", "version-sync")):
+                broken = self.source.replace(block, block.replace(f'"{check}"', f'"{repair}"', 1))
+                self.assertTrue(local_aggregate_failures(broken))
+            swapped = block.replace('"omp-check"', '"SWAP"').replace('"harness-check"', '"omp-check"').replace('"SWAP"', '"harness-check"')
+            self.assertTrue(local_aggregate_failures(self.source.replace(block, swapped)))
+
+    def test_leaf_check_commands_cannot_be_omitted(self) -> None:
+        self.assertEqual(local_gate_failures(self.source, self.extension, self.scripts), [])
+        commands = (
+            "bun test scripts/trellis/omp-context.test.ts",
+            "-m unittest scripts.quality.test_check_harness_contracts",
+            "python scripts/quality/check_harness_contracts.py",
+            "python3 scripts/quality/check_harness_contracts.py",
+            "node --test scripts/quality/check-copilot-assets.test.mjs",
+            "node scripts/quality/check-copilot-assets.mjs",
+            "cargo audit --file Cargo.lock",
+            "cargo audit --file ccr-ui/src-tauri/Cargo.lock",
+            "just _ensure-cargo-audit-{{os()}}",
+            "bun run audit:dependencies",
+            "[env('CCR_SKIP_ICON_GENERATION', '1')]",
+            "just _vscode-run ci",
+        )
+        for command in commands:
+            with self.subTest(omitted=command):
+                self.assertIn(command, self.source)
+                broken = self.source.replace(command, "OMITTED")
+                self.assertTrue(local_gate_failures(broken, self.extension, self.scripts))
+        for platform in ("windows", "linux", "macos"):
+            block = recipe_block(self.source, f"_ensure-cargo-audit-{platform}")
+            broken = self.source.replace(block, block.replace("exit 1", "cargo install cargo-audit\n        exit 1"))
+            self.assertTrue(local_gate_failures(broken, self.extension, self.scripts))
+
+    def test_final_vsix_chain_cannot_be_shortened(self) -> None:
+        for original, replacement in (("ci: install lint test build", "ci: install lint test"), ("npm run package", "npm run build")):
+            self.assertTrue(local_gate_failures(self.source, self.extension.replace(original, replacement), self.scripts))
+        for key in ("package", "check:vsix"):
+            scripts = {**self.scripts, key: "echo omitted"}
+            self.assertTrue(local_gate_failures(self.source, self.extension, scripts))
+        scripts = {**self.scripts, "package": "npm run check:vsix && npm run build:package && vsce package --no-dependencies -o ccr-vscode.vsix"}
+        self.assertTrue(local_gate_failures(self.source, self.extension, scripts))
+
+    def test_hosted_checks_and_runtime_prerequisites_cannot_be_omitted(self) -> None:
+        self.assertEqual(hosted_gate_failures(self.workflows, "1.4.0"), [])
+        required = {
+            "ci.yml": ("bun-version: 1.4.0", "node-version: 24.20.0", "run: just omp-check", "run: just harness-check", "run: just copilot-check", "cargo audit --file Cargo.lock", "cargo audit --file ccr-ui/src-tauri/Cargo.lock"),
+            "frontend-ci.yml": ("run: just frontend-check", "run: just frontend-coverage", "run: just frontend-audit", "CCR_SKIP_ICON_GENERATION: '1'"),
+            "vscode-ci.yml": ("run: just vscode-ci",),
+        }
+        for name, commands in required.items():
+            for command in commands:
+                with self.subTest(workflow=name, omitted=command):
+                    self.assertIn(command, self.workflows[name])
+                    broken = {**self.workflows, name: self.workflows[name].replace(command, "OMITTED")}
+                    self.assertTrue(hosted_gate_failures(broken, "1.4.0"))
+
+    def test_new_checker_inputs_are_in_the_relevance_policy(self) -> None:
+        self.assertEqual(check_relevance_failures(SURFACE_PATHS), [])
+        for surface in SURFACE_PATHS:
+            with self.subTest(surface=surface):
+                self.assertTrue(check_relevance_failures({**SURFACE_PATHS, surface: ()}))
+
+    def test_frontend_build_sets_icon_skip_for_both_bun_commands(self) -> None:
+        just = shutil.which("just")
+        self.assertIsNotNone(just, "just is required to verify recipe environment propagation")
+        with tempfile.TemporaryDirectory(prefix="ccr-icon-env-") as temporary:
+            root = Path(temporary)
+            (root / "ccr-ui").mkdir()
+            (root / "fixture.py").write_text(
+                "import os, sys\nassert os.environ.get('CCR_SKIP_ICON_GENERATION') == '1'\nprint('__BUN__' + ' '.join(sys.argv[1:]))\n",
+                encoding="utf-8",
+            )
+            if os.name == "nt":
+                (root / "bun.cmd").write_text(f'@"{sys.executable}" "%~dp0fixture.py" %*\n', encoding="utf-8")
+            else:
+                shim = root / "bun"
+                shim.write_text(f'#!/bin/sh\nexec "{sys.executable}" "{root / "fixture.py"}" "$@"\n', encoding="utf-8")
+                shim.chmod(0o755)
+            settings = re.findall(r"^set (?:windows-shell|shell) := .*", self.source, re.MULTILINE)
+            block = recipe_block(self.source, "frontend-build")
+            attributes = re.search(r"^(\[env[^\n]+\]\n)frontend-build:", self.source, re.MULTILINE)
+            self.assertIsNotNone(attributes)
+            (root / "justfile").write_text(
+                "\n".join(settings) + "\n" + attributes.group(1) + block + "\nheader message:\n    @echo header\nsuccess message:\n    @echo success\n",
+                encoding="utf-8",
+            )
+            env = {**os.environ, "PATH": str(root) + os.pathsep + os.environ["PATH"], "CCR_SKIP_ICON_GENERATION": "0"}
+            result = subprocess.run([just, "frontend-build"], cwd=root, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("__BUN__install --frozen-lockfile", result.stdout)
+            self.assertIn("__BUN__run build", result.stdout)
 
 
 class WorkflowGovernanceParserTests(unittest.TestCase):
@@ -282,7 +639,7 @@ class WorkflowGovernanceParserTests(unittest.TestCase):
     with:
       node-version: 24.20.0
 """,
-            "ci.yml": """steps:
+            "unexpected.yml": """steps:
   - uses: actions/setup-node@0123456789012345678901234567890123456789
     with:
       node-version: 26.8.1
@@ -295,7 +652,7 @@ class WorkflowGovernanceParserTests(unittest.TestCase):
             any("release.yml: expected 2 Node 24.20.0" in item for item in failures)
         )
         self.assertTrue(
-            any("ci.yml: unexpected Node setup input" in item for item in failures)
+            any("unexpected.yml: unexpected Node setup input" in item for item in failures)
         )
 
     def test_unrelated_node_version_cannot_mask_an_unpinned_setup_step(self) -> None:

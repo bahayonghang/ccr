@@ -42,6 +42,8 @@ jobs:
       - name: Install just
         run: cargo install just --version 1.58.0 --locked
       - name: Run local frontend gate
+        env:
+          CCR_SKIP_ICON_GENERATION: '1'
         run: just frontend-check
       - name: Run Vue coverage gate
         run: just frontend-coverage

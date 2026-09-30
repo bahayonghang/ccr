@@ -43,7 +43,7 @@ jobs:
           toolchain: 1.98.0
       - name: Install just
         run: cargo install just --version 1.58.0 --locked
-      - name: Run local VS Code gate
+      - name: Run local VS Code gate and validate final VSIX
         run: just vscode-ci
       - name: Run VS Code coverage gate
         run: just vscode-coverage | tee vscode-coverage.txt

@@ -2,6 +2,12 @@
 
 > Process-wide environment and filesystem fixtures for root `ccr` integration tests.
 
+Historical workflow failures retain the original run ID, commit SHA, failed command, and diagnostic output. Record current reproduction results separately. A successful current test does not establish the cause of an old failure. Apply this evidence rule in Claude Code, Codex, Grok Build, Kimi Code, and OMP.
+
+Keep Windows process tests, Linux coverage, macOS process tests, MSRV checks, frontend/jsdom tests, native client loading, and hosted workflows as separate validation boundaries. Run each required suite with its existing filters and thresholds. A missing environment remains unverified.
+
+When a failure reproduces, collect bounded, sanitized diagnostics in the owning fixture: report outcome, process exit status, timeout state, output byte counts, truncation flags, and cleanup state as applicable. Preserve the first failure. Do not add global serialization, broad retries, threshold changes, or unrelated production changes to close an evidence gap.
+
 ---
 
 ## Scenario: CcrIntegrationTestEnv for root integration test environment isolation
