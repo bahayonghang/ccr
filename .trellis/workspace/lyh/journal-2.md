@@ -1862,3 +1862,47 @@ TuiTheme 新增 Auto 并设为默认值：启动时持久化 auto 或 env=auto �
 ### Next Steps
 
 - 任务按用户要求行政关闭；未补做 1920×1080 设计对照、指定 frontend-quality-reviewer、跨 renderer 生成确定性或完整 CI。历史验收限制继续保留。
+
+
+## Session 117: 常青项目已批准改动提交与部分归档
+<!-- trellis-session: v=2 fp=28781a8be6cdc7dc -->
+
+**Date**: 2026-09-30
+**Task**: 常青项目已批准改动提交与部分归档
+**Branch**: `dev`
+
+### Summary
+
+本地提交 32 个交付路径及九任务证据，归档 T01/T02/T04；父任务与其余五个子任务保留未完成验收。
+
+### Main Changes
+
+- 四个工程提交分别覆盖工具契约、只读 CI、扩展打包和 UI 兼容依赖。
+- 证据提交保存 438 个任务工件，包含 165 份原始日志；三个生成缓存文件未纳入。
+- 部分归档提交 9e6e2f7d34797c3202111ed1debba3b85684bd15 保留父子关系，修复导航与 JSONL 路径。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c4d38e5154edf6a8fa1c781f91d31ce6aa4bb5ad` | fix(工具契约): 🐛 补齐 OMP 上下文与五工具说明 |
+| `f68116ecd22bb74b86011b01d14b72cfc8a855d0` | ci(验证门禁): 👷 统一只读 CI 与跨平台检查 |
+| `c1453c7b1f5405f93eaecf67ff0d074bb1e9db1d` | fix(扩展打包): 🐛 限制 VSIX 内容并更新已批准依赖 |
+| `30cbeddf730ed01b312c3396ba7b8691853be859` | fix(前端依赖): 🐛 应用七项兼容锁文件补丁 |
+| `a693176fee1abc0093c054af020615fe97ac8119` | chore(审查证据): 🔧 保存五工具审查与部分验收记录 |
+
+### Testing
+
+- [OK] 新提交 git archive 三文件夹具：OMP 14 tests / 99 assertions，通过。
+- [OK] 归档后九任务上下文及 135 处 Markdown 链接通过；334 个原始工件哈希未变。
+- [OK] 完整 just ci 仍为 FAILED：最近一次停在 Rust managers FileLockError，后续门槛未执行。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 扩展新增依赖补丁及 managers 六处夹具绑定仍待范围批准，候选未应用。
+- T03/T05/T06/T07/T08 和父任务继续保留未完成验收；未推送、未创建 PR、未发布。
+- 1,164,069 字节的 tauri-advisory-commands.json 单项提交确认尚未收到，文件保留本地且未跟踪。

@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 116
-- **Last Active**: 2026-09-29
+- **Total Sessions**: 117
+- **Last Active**: 2026-09-30
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1864 | Active |
+| `journal-2.md` | ~1908 | Active |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 117 | 2026-09-30 | 常青项目已批准改动提交与部分归档 | `c4d38e5154edf6a8fa1c781f91d31ce6aa4bb5ad`, `f68116ecd22bb74b86011b01d14b72cfc8a855d0`, `c1453c7b1f5405f93eaecf67ff0d074bb1e9db1d`, `30cbeddf730ed01b312c3396ba7b8691853be859`, `a693176fee1abc0093c054af020615fe97ac8119` | `dev` |
 | 116 | 2026-09-29 | 剩余改动全部提交及 Insights 任务归档 | `c256f84b9f327293f4db8d5766545c832298b17b`, `55e00031185713f5f34948aee44f27f025cc5af2`, `1a30e10cf496e056eaae232aed0c6b0c5a70efef` | `dev` |
 | 115 | 2026-09-28 | CLI 与 Tauri 架构提交及行政归档 | `f22732fc319a11adc38338603ea627def13c6348` | `dev` |
 | 114 | 2026-09-25 | 首页 Insights 前端提交与后端设计归档 | `76bae516`, `5443d95d` | `dev` |
