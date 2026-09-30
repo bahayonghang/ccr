@@ -122,8 +122,8 @@
 - Bad: replacing `npm ci` with mutable install behavior or testing only during tag release.
 
 ### 6. Tests Required
-- `just vscode-ci` -> clean install, compile, 50 tests, package, and VSIX collection pass.
-- `just vscode-coverage` -> line coverage at least 70% (current observed 91.79%).
+- `just vscode-ci` -> clean install, compile, package-file tests, 51 extension tests, package, and VSIX collection pass.
+- `just vscode-coverage` -> line and function coverage at least 70%; record measured results with the test runtime version.
 - `python -m unittest scripts.ci.test_check_workflow_governance` and `python scripts/ci/check_workflow_governance.py` -> path policy, stable context, and pinned actions pass.
 - Inspect an actual PR check run and protected-branch required-check list when remote permission is available.
 
@@ -143,3 +143,40 @@ on:
 # scripts/ci/ci_surface_policy.py owns the heavy-job path policy; the stable
 # required aggregator is created for every pull request.
 ```
+
+## Scenario: Runtime package allowlist
+
+### 1. Scope / Trigger
+- Applies to Claude Code, Codex, Grok Build, Kimi Code, and OMP when changing extension packaging or release assets.
+- Trigger: editing `.vscodeignore`, packaging scripts, runtime files, icons, or package metadata.
+
+### 2. Signatures
+- `.vscodeignore` excludes all files except the exact runtime allowlist.
+- `scripts/check-package-files.mjs` validates both `vsce ls --no-dependencies` output and final VSIX entry names.
+- `npm run check:package` checks source paths; `node scripts/check-package-files.mjs --vsix <path>` checks any final archive.
+- `npm run package` builds, packages, and checks the final archive. The local `just build` and PR `just vscode-ci` use that command before artifact collection.
+
+### 3. Contracts
+- Keep the exact allowlists in `.vscodeignore` and the checker aligned. The package requires `package.json`, `dist/extension.js`, `icon.png`, seven named resource icons, `LICENSE`, `README.md`, and `CHANGELOG.md`.
+- VSCE changes `README.md` to `extension/readme.md`, `CHANGELOG.md` to `extension/changelog.md`, and `LICENSE` to `extension/LICENSE.txt`. The archive also requires `[Content_Types].xml` and `extension.vsixmanifest`.
+- Reject unexpected, duplicate, missing, and noncanonical entries. Reject local tool state, `*.local.*`, source maps, internal agent instructions, and unapproved runtime files.
+- Read archive entry names only. Resolve the existing ZIP reader from the declared `@vscode/vsce` dependency. A reader or archive error fails the check.
+- Use synthetic temporary directories for local-configuration negative tests. Do not inspect real local configuration contents.
+- `vscode:prepublish` runs the source-list check for direct `vsce package` calls, including the existing release workflow. The current direct release workflow has no final-archive check; a passing prepublish check does not provide that evidence.
+- Changes to the release workflow or publication behavior require the matching approved task scope. Do not publish as part of package verification.
+
+### 4. Tests Required
+- `node --test ccr-vscode/scripts/check-package-files.test.mjs` covers synthetic local files, missing assets, duplicate and noncanonical paths, final archive contamination, and invalid archives.
+- `just vscode-ci` runs package-file tests, the existing extension tests, and both package checks.
+- `cd ccr-vscode && npx --no-install vsce ls` exposes the selected source inventory for review.
+- `cd ccr-vscode && npm run check:vsix` validates the actual local package.
+- Package success does not prove native extension activation, Marketplace acceptance, or hosted release validation. Record those boundaries separately.
+
+## Scenario: Approved packaging dependency patches
+
+- Applies to Claude Code, Codex, Grok Build, Kimi Code, and OMP when updating the extension lockfile.
+- Verify the approved target versions against official advisory ranges and registry metadata. Hash downloaded registry tarballs and compare the result with the published integrity before changing lock nodes.
+- Keep the existing parent dependency ranges. For a scoped patch, change only the approved lock nodes and record the exact changed fields. Do not replace that patch with a bulk update or an audit exception.
+- Preserve the initial failing audit receipt. Save the corrected audit result as separate evidence. Package success and dependency audit success remain separate checks.
+- Run clean `npm ci`, explicit `npm audit`, `just vscode-ci`, `just vscode-coverage`, and the final VSIX file check. Keep the existing 70% line and function thresholds.
+- Record the actual Node version and local versus hosted evidence. A local pass does not prove hosted or native extension behavior.

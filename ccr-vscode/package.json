@@ -247,10 +247,13 @@
     "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node18 --charset=utf8",
     "build:package": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node18 --charset=utf8 --minify --legal-comments=none",
     "watch": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node18 --charset=utf8 --watch --sourcemap",
-    "package": "npm run build:package && vsce package --no-dependencies -o ccr-vscode.vsix",
+    "vscode:prepublish": "npm run check:package",
+    "check:package": "node scripts/check-package-files.mjs",
+    "check:vsix": "node scripts/check-package-files.mjs --vsix ccr-vscode.vsix",
+    "package": "npm run build:package && vsce package --no-dependencies -o ccr-vscode.vsix && npm run check:vsix",
     "lint": "tsc --noEmit && tsc -p tsconfig.test.json --noEmit",
     "pretest": "npm run build",
-    "test": "node --import tsx --test src/**/*.test.ts"
+    "test": "node --test scripts/check-package-files.test.mjs && node --import tsx --test src/**/*.test.ts"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
