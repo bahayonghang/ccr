@@ -94,8 +94,8 @@ async-trait = "0.1.92"
 # Home directory detection
 dirs = "6.0.0"
 
-# TOML parsing (for slash commands)
-toml = "0.9.8"
+# TOML parsing (for slash commands). Matches workspace toml 1.1.
+toml = "1.1.4"
 
 # Directory walking (for slash commands)
 walkdir = "2.5"
