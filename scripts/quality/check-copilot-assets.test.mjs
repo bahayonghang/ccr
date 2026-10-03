@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 const checker = fileURLToPath(new URL('./check-copilot-assets.mjs', import.meta.url))
 const ownedRoot = mkdtempSync(path.join(tmpdir(), 'ccr-copilot-assets-'))
 const instruction = '.github/instructions/rust.instructions.md'
-const sharedSkill = '.codex/skills/ccr-gate-recovery/SKILL.md'
+const sharedSkill = '.github/skills/ccr-gate-recovery/SKILL.md'
 const scopedFiles = [
   ...['rust', 'ui', 'docs'].map((name) => ({
     file: `.github/instructions/${name}.instructions.md`,
@@ -44,7 +44,7 @@ function fixture({ newline = '\n', bom = '' } = {}) {
   const files = new Map([
     ['AGENTS.md', '# Shared project rules\n'],
     [sharedSkill, '# Shared gate workflow\n'],
-    ['.github/copilot-instructions.md', '# Read AGENTS.md and .codex/skills/\n'],
+    ['.github/copilot-instructions.md', '# Read AGENTS.md and .github/skills/\n'],
     ['docs/guide/github-copilot-workspace.md', '# Workspace guide\n'],
     ['docs/en/guide/github-copilot-workspace.md', '# Workspace guide\n'],
     ...scopedFiles.map(({ file, fields }) => [file, `---\n${fields}\n---\n\n# Fixture\n`])

@@ -1,8 +1,29 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import registerTrellis from "../../.omp/extensions/trellis/index.ts";
+import { fileURLToPath } from "node:url";
+
+type TrellisApi = {
+  on: (event: string, handler: (...args: never[]) => unknown) => void;
+  sendMessage: (message: {
+    customType?: string;
+    content?: string;
+    display?: boolean;
+  }) => Promise<void>;
+};
+type RegisterTrellis = (pi: TrellisApi) => void;
+
+// `trellis update` generates this extension into `.omp/`, which is a local
+// install directory rather than a tracked source. A fresh checkout without an
+// OMP install has no extension to exercise, so the suite reports itself as
+// skipped instead of failing on a missing generated file.
+const EXTENSION_URL = new URL("../../.omp/extensions/trellis/index.ts", import.meta.url);
+const hasTrellisExtension = existsSync(fileURLToPath(EXTENSION_URL));
+const registerTrellis: RegisterTrellis | null = hasTrellisExtension
+  ? ((await import(EXTENSION_URL.href)).default as RegisterTrellis)
+  : null;
+const extensionSuite = hasTrellisExtension ? describe : describe.skip;
 
 const PRD_MARKER = "OMP_CTX_PRD_MARKER";
 const DESIGN_MARKER = "OMP_CTX_DESIGN_MARKER";
@@ -114,7 +135,7 @@ async function startSession(cwd: string, role: SessionRole) {
       process.env.PI_BLOCKED_AGENT = role;
     }
 
-    registerTrellis(mock.api as Parameters<typeof registerTrellis>[0]);
+    registerTrellis(mock.api);
   } finally {
     if (previousBlocked === undefined) {
       delete process.env.PI_BLOCKED_AGENT;
@@ -209,7 +230,7 @@ afterAll(() => {
   rmSync(ownedRoot, { recursive: true, force: true });
 });
 
-describe("OMP Trellis buildTaskContext", () => {
+extensionSuite("OMP Trellis buildTaskContext", () => {
   test("main and each role receive prd/design/implement markers", async () => {
     const roles: SessionRole[] = [
       "main",

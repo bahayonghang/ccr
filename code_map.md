@@ -10,7 +10,7 @@ Minimal navigation for this repository. Keep behavior rules in `AGENTS.md` / `CL
 - `ccr-vscode/` — VS Code extension (`src/providers`, `src/services`, extension tests).
 - `docs/` — VitePress documentation site. Agent harness routing: `docs/agents/harnesses.md`.
 - `scripts/` — version synchronization checks and repo automation.
-- `.codex/skills/` — project-local Codex skills (several are five-tool; see the harnesses page).
+- `.github/skills/` — tracked shared skill sources (several are five-tool; local clients install them into gitignored paths such as `.codex/skills/`; see the harnesses page).
 
 ## Verification anchors
 

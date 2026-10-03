@@ -110,10 +110,10 @@ for (const file of expectedFiles) {
 }
 
 const trackedSkills = trackedFiles.filter((file) =>
-  file.startsWith('.codex/skills/') && file.endsWith('/SKILL.md')
+  file.startsWith('.github/skills/') && file.endsWith('/SKILL.md')
 )
 if (trackedSkills.length === 0) {
-  errors.push('Missing tracked shared skills: .codex/skills/*/SKILL.md')
+  errors.push('Missing tracked shared skills: .github/skills/*/SKILL.md')
 }
 for (const file of ['AGENTS.md', ...trackedSkills]) {
   if (!trackedFiles.includes(file) || !existsSync(path.join(repoRoot, file))) {

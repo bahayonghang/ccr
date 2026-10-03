@@ -11,7 +11,7 @@ CCR now ships the official GitHub Copilot for VS Code workspace assets in-repo a
 | `.github/prompts/*.prompt.md` | reusable prompt starters |
 | `.github/agents/*.agent.md` | reusable custom Copilot agents |
 | `AGENTS.md` | tracked shared project rules |
-| `.codex/skills/*/SKILL.md` | tracked project checks and workflow guidance |
+| `.github/skills/*/SKILL.md` | tracked source of shared checks and workflow guidance |
 
 ## Important Boundary
 
@@ -29,7 +29,7 @@ CCR now ships the official GitHub Copilot for VS Code workspace assets in-repo a
 
 ## Shared Rules and Local Installation
 
-Shared rules reference `AGENTS.md` and Git-tracked `.codex/skills/*/SKILL.md` files. Claude Code, Codex, Grok Build, Kimi Code, and OMP can read that guidance and run the same checks. Each client configuration controls automatic skill discovery and loading.
+Shared rules reference `AGENTS.md` and Git-tracked `.github/skills/*/SKILL.md` files. Claude Code, Codex, Grok Build, Kimi Code, and OMP can read that guidance and run the same checks. Each client installs them into its own local skill directory (such as `.codex/skills/`, excluded by Git), and each client configuration controls automatic skill discovery and loading.
 
 `.claude/skills/` contains optional local installation files excluded by Git. The asset check validates the tracked shared sources in a fresh checkout. New GitHub Copilot-specific skills require an explicit ownership and delivery decision.
 
@@ -44,7 +44,7 @@ Shared rules reference `AGENTS.md` and Git-tracked `.codex/skills/*/SKILL.md` fi
 ## Maintenance Rules
 
 1. When you add or rename `.github/*` assets, update this page and the VitePress sidebar in the same change.
-2. Maintain shared rules in `AGENTS.md` and tracked `.codex/skills/*/SKILL.md` files. Manage local installation directories through each tool configuration.
+2. Maintain shared rules in `AGENTS.md` and tracked `.github/skills/*/SKILL.md` files. Manage local installation directories through each tool configuration.
 3. In docs, `GitHub Copilot` means the VS Code workspace features; `Codex` means Codex CLI.
 4. After changing assets or the checker, run `node --test scripts/quality/check-copilot-assets.test.mjs`, `just copilot-check`, and `just docs-check`. All five execution tools use these commands.
 

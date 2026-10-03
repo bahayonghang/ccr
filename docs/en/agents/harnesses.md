@@ -35,12 +35,12 @@ Local Trellis files may be customized (see `.agents/skills/trellis-meta/referenc
 
 ## Shared skills and command side effects
 
-Skills under `.codex/skills/` below apply to **all five tools**, not Codex only. Do not install new hooks just to match official capability, and do not copy the full rule set five times.
+The skill sources below are tracked under `.github/skills/` and apply to **all five tools**, not Codex only. Each client installs them into its own local skill directory (`.codex/skills/` and similar are gitignored local paths). Do not install new hooks just to match official capability, and do not copy the full rule set five times.
 
 | Skill | Applies to | Notes |
 |---|---|---|
-| `.codex/skills/ccr-ui-visual-workflow/SKILL.md` | `ccr-ui` visual work on any of the five | React + `DESIGN.md`. Default to the web preview, not the Tauri desktop shell. UI tools available ≠ UI operation authorization. |
-| `.codex/skills/ccr-gate-recovery/SKILL.md` | local gate recovery on any of the five | Rust tests use default parallelism and `--skip export_bindings`. Fixtures isolate shared environment state. The separate generation gate owns bindings. |
+| `.github/skills/ccr-ui-visual-workflow/SKILL.md` | `ccr-ui` visual work on any of the five | React + `DESIGN.md`. Default to the web preview, not the Tauri desktop shell. UI tools available ≠ UI operation authorization. |
+| `.github/skills/ccr-gate-recovery/SKILL.md` | local gate recovery on any of the five | Rust tests use default parallelism and `--skip export_bindings`. Fixtures isolate shared environment state. The separate generation gate owns bindings. |
 | Trellis start / implement / check / research | each tool’s agents or Kimi/Grok pull skills | “No hook” on Grok/Kimi means **this repo did not install them**, not a platform ceiling. |
 
 Command classes:
@@ -51,7 +51,7 @@ Command classes:
 
 ## Git delivery and fresh checkouts
 
-Repository delivery includes shared guidance, the two CCR-specific skills, and `.omp/extensions/trellis/index.ts`. Other local agents, hooks, skills, and settings remain generated assets under `.gitignore`. Files on the audit machine do not establish fresh-checkout installation.
+Repository delivery covers shared guidance and the text of the two CCR-specific skills, tracked under `.github/skills/`. Local install directories such as `.codex/` and `.omp/` remain generated assets under `.gitignore`, so `trellis update` can rewrite them without dirtying the working tree. Files on the audit machine do not establish fresh-checkout installation.
 
 1. Check the installed Trellis CLI against the project version and read `trellis init --help`. Record version differences. Do not automatically upgrade global tools.
 2. In a workspace authorized for initialization, use a matching CLI version and select `--claude`, `--codex`, `--grok`, `--kimi`, or `--omp`. Add `--skip-existing` to preserve repository customizations. Example: `trellis init --kimi --skip-existing`.

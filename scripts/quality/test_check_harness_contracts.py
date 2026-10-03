@@ -15,7 +15,7 @@ SHARED_FILES = (
     "CLAUDE.md",
     "docs/agents/harnesses.md",
     "docs/en/agents/harnesses.md",
-    ".codex/skills/ccr-gate-recovery/SKILL.md",
+    ".github/skills/ccr-gate-recovery/SKILL.md",
     ".trellis/workflow.md",
 )
 PAGES = SHARED_FILES[2:4]
@@ -217,7 +217,7 @@ class HarnessContractTests(unittest.TestCase):
 
     def test_fresh_checkout_instructions_and_native_evidence_boundary_are_required(self) -> None:
         for path in PAGES:
-            for old in ("trellis init --help", "--skip-existing", ".omp/extensions/trellis/index.ts"):
+            for old in ("trellis init --help", "--skip-existing", ".github/skills/ccr-gate-recovery/SKILL.md"):
                 with self.subTest(path=path, old=old):
                     self.replace(path, old, "removed-contract")
                     self.assert_failure("HC007", path)

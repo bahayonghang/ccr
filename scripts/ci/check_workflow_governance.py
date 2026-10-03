@@ -442,9 +442,9 @@ def check_relevance_failures(paths: dict[str, tuple[str, ...]]) -> list[str]:
     required = {
         "root": (
             "AGENTS.md", "CLAUDE.md", ".trellis/workflow.md",
-            ".codex/skills/ccr-gate-recovery/SKILL.md",
-            ".codex/skills/ccr-ui-visual-workflow/SKILL.md",
-            ".omp/extensions/trellis/index.ts", "scripts/trellis/omp-context.test.ts",
+            ".github/skills/ccr-gate-recovery/SKILL.md",
+            ".github/skills/ccr-ui-visual-workflow/SKILL.md",
+            "scripts/trellis/omp-context.test.ts",
             "scripts/quality/check_harness_contracts.py",
             "scripts/quality/test_check_harness_contracts.py",
             "scripts/quality/check-copilot-assets.mjs",

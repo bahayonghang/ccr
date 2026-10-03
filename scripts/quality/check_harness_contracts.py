@@ -10,7 +10,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 HARNESS_PAGES = ("docs/agents/harnesses.md", "docs/en/agents/harnesses.md")
-GATE_SKILL = ".codex/skills/ccr-gate-recovery/SKILL.md"
+GATE_SKILL = ".github/skills/ccr-gate-recovery/SKILL.md"
 SHARED_FILES = ("AGENTS.md", "CLAUDE.md", *HARNESS_PAGES, GATE_SKILL, ".trellis/workflow.md")
 TOOLS = ("Claude Code", "Codex", "Grok Build", "Kimi Code", "OMP")
 PRE_APPROVAL = re.compile(r"before\b[^.;|。\n]{0,50}\bapprov(?:al|es|ed)\b|pre-approval|(?:审批|批准)(?:实施)?前", re.I)
@@ -125,7 +125,7 @@ def check_contracts(root: Path) -> list[str]:
             else:
                 require(bool(PRE_APPROVAL.search(when)) and bool(re.search(r"do not (?:change|edit|write).{0,16}product|不改.{0,8}产品", permissions, re.I)), "HC006", path, "pre-approval reviewer must remain read-only for product files")
 
-        required = (".gitignore", ".omp/extensions/trellis/index.ts", "trellis init --help", "--skip-existing", "--claude", "--codex", "--grok", "--kimi", "--omp")
+        required = (".gitignore", ".github/skills/ccr-gate-recovery/SKILL.md", "trellis init --help", "--skip-existing", "--claude", "--codex", "--grok", "--kimi", "--omp")
         require(all(token in text for token in required), "HC007", path, "document delivered files and the version-aware fresh-checkout initialization steps")
         if path.startswith("docs/en/"):
             boundary = bool(re.search(r"(?:does not|do not).{0,30}(?:prove|establish).{0,50}native", text, re.I))

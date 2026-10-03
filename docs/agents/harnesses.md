@@ -35,12 +35,12 @@ Grok 内置 `plan` / `explore` 没有 shell/edit，不能承担需要跑测试�
 
 ## 共用技能与命令副作用
 
-下列技能路径在 `.codex/skills/` 下，**五套工具都适用**（不只 Codex）。不要为对齐官方能力去新铺 hooks 或复制五份正文。
+下列技能正文跟踪在 `.github/skills/` 下，**五套工具都适用**（不只 Codex）；各客户端把它安装到自己的本地技能目录（`.codex/skills/` 等已按 `.gitignore` 忽略）。不要为对齐官方能力去新铺 hooks 或复制五份正文。
 
 | 技能 | 适用 | 注意 |
 |---|---|---|
-| `.codex/skills/ccr-ui-visual-workflow/SKILL.md` | 五工具的 `ccr-ui` 视觉工作 | React + `DESIGN.md`。默认网页预览，不要默认 Tauri 桌面壳。UI 工具可用 ≠ UI 操作授权。 |
-| `.codex/skills/ccr-gate-recovery/SKILL.md` | 五工具的本地门禁恢复 | Rust 默认并行，使用 `--skip export_bindings`；共享环境由测试夹具局部隔离，绑定由独立生成门禁负责。 |
+| `.github/skills/ccr-ui-visual-workflow/SKILL.md` | 五工具的 `ccr-ui` 视觉工作 | React + `DESIGN.md`。默认网页预览，不要默认 Tauri 桌面壳。UI 工具可用 ≠ UI 操作授权。 |
+| `.github/skills/ccr-gate-recovery/SKILL.md` | 五工具的本地门禁恢复 | Rust 默认并行，使用 `--skip export_bindings`；共享环境由测试夹具局部隔离，绑定由独立生成门禁负责。 |
 | Trellis start / implement / check / research | 各工具自己的 agents 或 Kimi/Grok 的 pull 技能 | Grok/Kimi 的「无 hook」指**本仓库未安装**，不是平台上限。 |
 
 命令分类：
@@ -51,7 +51,7 @@ Grok 内置 `plan` / `explore` 没有 shell/edit，不能承担需要跑测试�
 
 ## Git 交付与新检出
 
-共享说明、两项 CCR 专用 skill 和 `.omp/extensions/trellis/index.ts` 属于仓库交付范围。其余本地 agents、hooks、skills 和设置按 `.gitignore` 保持本地生成；审查机器上的文件不能代表新检出已经安装。
+共享说明与两项 CCR 专用 skill 的正文以 `.github/skills/` 为仓库跟踪的交付来源。`.codex/`、`.omp/` 等本地安装目录整体保持本地生成并按 `.gitignore` 忽略，`trellis update` 重写其中文件不会污染工作树；审查机器上的文件不能代表新检出已经安装。
 
 1. 核对安装的 Trellis CLI 与项目版本，并查看 `trellis init --help`。版本不匹配时保留环境差异；不要自动升级全局工具。
 2. 在已授权初始化的工作区，用匹配版本选择所需平台：`--claude`、`--codex`、`--grok`、`--kimi` 或 `--omp`，配合 `--skip-existing` 保留仓库定制。例如 `trellis init --kimi --skip-existing`。
