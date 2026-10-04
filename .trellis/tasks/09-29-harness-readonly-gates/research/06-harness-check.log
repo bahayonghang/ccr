@@ -1,9 +1,0 @@
-python -m unittest scripts.quality.test_check_harness_contracts
-....................
-----------------------------------------------------------------------
-Ran 20 tests in 0.708s
-
-OK
-python scripts/quality/check_harness_contracts.py
-Harness contract check passed: 6 shared files, 5 harnesses
-Static guidance only; native loading, trust, and account settings remain unverified.
