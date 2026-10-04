@@ -104,3 +104,6 @@ ccr-ui/src-tauri/bin/
 .codegraph/
 .planning/
 .playwright-mcp/
+
+/.trellis/tasks/09-29-harness-ci-evidence/research/tauri-advisory-commands.json
+/.trellis/tasks/archive/2026-10/09-29-harness-ci-evidence/research/tauri-advisory-commands.json
