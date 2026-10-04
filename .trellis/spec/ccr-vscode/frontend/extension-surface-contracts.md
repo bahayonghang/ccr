@@ -176,7 +176,53 @@ on:
 
 - Applies to Claude Code, Codex, Grok Build, Kimi Code, and OMP when updating the extension lockfile.
 - Verify the approved target versions against official advisory ranges and registry metadata. Hash downloaded registry tarballs and compare the result with the published integrity before changing lock nodes.
-- Keep the existing parent dependency ranges. For a scoped patch, change only the approved lock nodes and record the exact changed fields. Do not replace that patch with a bulk update or an audit exception.
+- Keep the existing parent dependency ranges. For a scoped patch, change only the approved lock nodes and record the exact changed fields. Do not replace that patch with a bulk update or an audit exception. An approved packaging-tool major migration is a separate scenario. It does not relax this scoped-patch rule.
 - Preserve the initial failing audit receipt. Save the corrected audit result as separate evidence. Package success and dependency audit success remain separate checks.
 - Run clean `npm ci`, explicit `npm audit`, `just vscode-ci`, `just vscode-coverage`, and the final VSIX file check. Keep the existing 70% line and function thresholds.
 - Record the actual Node version and local versus hosted evidence. A local pass does not prove hosted or native extension behavior.
+
+## Scenario: Approved packaging-tool major migration
+
+### 1. Scope / Trigger
+- Applies to Claude Code, Codex, Grok Build, Kimi Code, and OMP.
+- Trigger: an approved major change of the extension packaging tool. The approved 2026-10-04 target is `@vscode/vsce` `^4.0.0` in `ccr-vscode/package.json` and the matching `ccr-vscode/package-lock.json` closure.
+- A two-node lock patch stays in the previous scenario. Do not use this scenario to widen a scoped patch, and do not replace either approval with an audit exception.
+
+### 2. Signatures
+- Dev dependency: `@vscode/vsce` `^4.0.0`.
+- VSCE 4 `engines.node`: `>=22`.
+- Fixed local evidence runtime for that migration: Node `v24.20.0`, npm `12.2.0`.
+- `validateManifestForPackaging` in `@vscode/vsce` `out/package.js` decides whether `activationEvents` is required.
+
+### 3. Contracts
+- If `main` or `browser` is set, and `activationEvents` is absent, packaging still succeeds when `engines.vscode` is `*` or `>=1.74` and `contributes` has `languages`, `commands`, `authentication`, `customEditors`, or `views`. Those contributions are implicit activation events.
+- The product manifest has `main` and no `activationEvents` field. It meets the implicit-event condition, so do not add an empty `activationEvents` array to match a synthetic fixture.
+- A synthetic manifest that sets `main` without those contributions fails with `Manifest needs the 'activationEvents' property, given it has a 'main' property.` Keep the first failing receipt. A later fixture may set `activationEvents` to `[]`.
+- Default `vsce package` rejects a GitHub token and a `.env` file. Negative tests must not pass `--allow-package-secrets`, `--allow-package-all-secrets`, or `--allow-package-env-file`.
+- npm 12 may skip postinstall of `@vscode/vsce-sign` and `esbuild` when `allowScripts` does not list them. Do not add `allowScripts` entries without a new approved scope. Packaging can still succeed.
+- Record the fixed Node 24.20.0 gates separately from a `just ci` run on the machine default Node. The default-Node pass does not replace the fixed-runtime gate.
+
+### 4. Validation & Error Matrix
+- Synthetic `main` without `activationEvents` or implicit contributions -> exit 1, and the stderr text above. Keep that receipt.
+- Packaged GitHub token -> exit 1, rule `github`, no `.vsix`.
+- Packaged `.env` -> exit 1, rule `@secretlint/secretlint-rule-no-dotenv`, no `.vsix`.
+- Nonzero `npm audit`, or any reported extension advisory -> this migration gate fails. Do not close it with an exception here.
+- Local pass -> hosted CI, Marketplace acceptance, and native activation stay UNVERIFIED.
+
+### 5. Good/Base/Bad Cases
+- Good: change only the two approved package files, then run the fixed Node 24.20.0 gates and `just ci`.
+- Base: scoped lock-node patches continue to use the previous scenario.
+- Bad: passing a secret-allow flag so a negative package exits 0.
+- Bad: adding product `activationEvents` only because a synthetic fixture failed.
+- Bad: adding `allowScripts` so blocked install scripts run without a new approval.
+
+### 6. Tests Required
+- `npm ci`, `npm audit`, `just vscode-ci`, `just vscode-coverage` at the existing 70% line and 70% function thresholds, `vsce ls --no-dependencies`, the final VSIX allowlist, and `git diff --check`.
+- Synthetic secret and `.env` package commands exit 1 and write no `.vsix`.
+
+### 7. Wrong vs Correct
+#### Wrong
+Replace the recorded braces-chain audit failure with an exception, or apply the old two-node fast-uri/undici edit after the approved scope is the VSCE 4 closure.
+
+#### Correct
+Keep the failing braces-chain receipt. Apply the approved `package.json` and `package-lock.json` bytes. Save the new audit as separate evidence. Leave hosted, Marketplace, and native activation unverified until their own runs exist.
