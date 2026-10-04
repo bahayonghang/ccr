@@ -42,6 +42,7 @@
     ],
     "archive_eligibility": "eligible_after_committed_fixture",
     "committed_source_fixture": "research/committed-source-fixture.json",
-    "archived_with_unverified_boundaries_preserved": true
+    "archived_with_unverified_boundaries_preserved": true,
+    "acceptance_adjustment_2026_10_04": "Approved generated-client contract execution boundary; historical repository-only acceptance retained as history"
   }
 }

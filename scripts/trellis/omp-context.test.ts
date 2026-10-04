@@ -24,6 +24,13 @@ const registerTrellis: RegisterTrellis | null = hasTrellisExtension
   ? ((await import(EXTENSION_URL.href)).default as RegisterTrellis)
   : null;
 const extensionSuite = hasTrellisExtension ? describe : describe.skip;
+if (!hasTrellisExtension) {
+  console.warn(
+    "SKIPPED_UNVERIFIED: OMP Trellis extension missing. All 14 contract tests remain unexecuted. " +
+    "Generate the extension with a matching Trellis version before contract acceptance. " +
+    "Native loading and trust require separate checks.",
+  );
+}
 
 const PRD_MARKER = "OMP_CTX_PRD_MARKER";
 const DESIGN_MARKER = "OMP_CTX_DESIGN_MARKER";

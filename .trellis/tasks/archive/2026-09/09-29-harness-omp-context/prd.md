@@ -23,3 +23,7 @@ Codex 或 Claude Code 强模型负责注入边界和信任根审查；低成本�
 
 ## 完成后的知识回写
 T02 回写 docs/agents/harnesses.md 与英文镜像，明确 OMP 适用；保持本地定制与 Trellis 更新保留策略。
+
+## 2026-10-04 后续验收调整（用户已批准）
+
+保留上方 2026-09-30 原验收与归档历史。2026-10-03 的交付调整后，后续 T01-AC3 按本附录验证：本地目录保持生成资产；匹配版本生成扩展存在且 14 项契约测试实际执行才能标记 PASS。缺少扩展时记录 SKIPPED_UNVERIFIED，退出 0 和 14 skip 不构成契约验收。原生客户端加载、trust 和新检出生成流程独立记录。用户批准与新证据见父任务 research/resume-2026-10-04-acceptance-proposal.md 及 approval.json。
