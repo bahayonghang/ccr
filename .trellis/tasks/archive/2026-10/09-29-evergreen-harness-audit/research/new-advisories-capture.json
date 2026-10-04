@@ -1,0 +1,128 @@
+{
+  "started_utc": "2026-09-30T03:33:42.827503+00:00",
+  "sources_before": {
+    "ccr-ui/bun.lock": "87a80e33cdbdaf8ed72516419ece312de1134d94a3e0495d92139580ca65ae07",
+    "ccr-ui/package.json": "c9f7e5f78730643ca444fa1191feceb66bc1cf56509bf3e60edf85dbabf3a0cf",
+    "docs/bun.lock": "fcc99d04e4ebe06c175db3744907db9bace0f0ee22c7a5cb1100051bf07b6434",
+    "docs/package.json": "786d7ddf7793d63faa3fe22befb8109da2e008b4693e1cdb298c0e1ac330636c",
+    "ccr-vscode/package-lock.json": "846b84a475e48c9e7f335a87121a1894dc64548f41449d2dd54a5b932174fdd4",
+    "ccr-vscode/package.json": "ae72468d025b9714f8870a04cbdeaec4041290bc86d489b478e2080b74d49c50"
+  },
+  "results": [
+    {
+      "name": "GHSA-qhr7-859c-m2p7",
+      "source": "https://api.github.com/advisories/GHSA-qhr7-859c-m2p7",
+      "requested_utc": "2026-09-30T03:33:42.828933+00:00",
+      "fetched_utc": "2026-09-30T03:33:43.672451+00:00",
+      "http_status": 200,
+      "date": "Wed, 30 Sep 2026 03:33:44 GMT",
+      "last_modified": "Tue, 29 Sep 2026 23:45:19 GMT",
+      "etag": "W/\"ce88a353039657c9188c005cd743b55eeea9beaee291738f4a6c6cd71ae730e4\"",
+      "sha256": "dcd6ac737253c9bc0c24eacfb25e03c892f7884517f1fb5cc2931b91c8436699"
+    },
+    {
+      "name": "GHSA-hrr3-gc8f-f4qj",
+      "source": "https://api.github.com/advisories/GHSA-hrr3-gc8f-f4qj",
+      "requested_utc": "2026-09-30T03:33:42.830329+00:00",
+      "fetched_utc": "2026-09-30T03:33:44.062860+00:00",
+      "http_status": 200,
+      "date": "Wed, 30 Sep 2026 03:33:45 GMT",
+      "last_modified": "Tue, 29 Sep 2026 23:54:26 GMT",
+      "etag": "W/\"119dc24b684ad471346b6f75958ade735438fda8065bbc00a363a907c7f1652b\"",
+      "sha256": "c0ac406e74ed680d5eae55ab11ba94d157a835cf2b6441a70ef10bf991b42a5a"
+    },
+    {
+      "name": "GHSA-6j4f-fj2g-mc7p",
+      "source": "https://api.github.com/advisories/GHSA-6j4f-fj2g-mc7p",
+      "requested_utc": "2026-09-30T03:33:42.829573+00:00",
+      "fetched_utc": "2026-09-30T03:33:44.092070+00:00",
+      "http_status": 200,
+      "date": "Wed, 30 Sep 2026 03:33:45 GMT",
+      "last_modified": "Tue, 29 Sep 2026 23:44:59 GMT",
+      "etag": "W/\"bb262f0dc43fcaff5182362fb019528fb0fabb821ea1351dfe0f0b3962451e9b\"",
+      "sha256": "3b8b182a6417941eca2b1fc7a11b9d7d6e8170466f8f533ca9160dc44daea0bb"
+    },
+    {
+      "name": "GHSA-q2hr-2g5m-vwhr",
+      "source": "https://api.github.com/advisories/GHSA-q2hr-2g5m-vwhr",
+      "requested_utc": "2026-09-30T03:33:42.829911+00:00",
+      "fetched_utc": "2026-09-30T03:33:44.103853+00:00",
+      "http_status": 200,
+      "date": "Wed, 30 Sep 2026 03:33:45 GMT",
+      "last_modified": "Tue, 29 Sep 2026 23:45:39 GMT",
+      "etag": "W/\"259fa4290db0603bf7c1561719837d3043a45abc08228b52a35884a92728841f\"",
+      "sha256": "4853153106d37920705e2284212482dc60fb7d5126bf62695b7575b7851c9b02"
+    },
+    {
+      "name": "fast-uri-registry",
+      "source": "https://registry.npmjs.org/fast-uri",
+      "requested_utc": "2026-09-30T03:33:42.830774+00:00",
+      "fetched_utc": "2026-09-30T03:33:44.265446+00:00",
+      "http_status": 200,
+      "date": "Wed, 30 Sep 2026 03:33:44 GMT",
+      "last_modified": "Fri, 18 Sep 2026 11:36:13 GMT",
+      "etag": "\"e9169de752546b64e8083dbbed4cf5d6\"",
+      "sha256": "3399dc3cd5061bd714090b97d5e8ef56557878583d38e0c4183837d5020c0c20"
+    },
+    {
+      "name": "brace-expansion-registry",
+      "source": "https://registry.npmjs.org/brace-expansion",
+      "requested_utc": "2026-09-30T03:33:42.830544+00:00",
+      "fetched_utc": "2026-09-30T03:33:44.297241+00:00",
+      "http_status": 200,
+      "date": "Wed, 30 Sep 2026 03:33:44 GMT",
+      "last_modified": "Mon, 14 Sep 2026 22:03:00 GMT",
+      "etag": "\"9de2125437cdc80b2a7a246cbcd7c3e4\"",
+      "sha256": "d64701dc19c759f500c7db606ff5bef33cdc1061ef16e01db42549b202d2739a"
+    },
+    {
+      "name": "ccr-ui-audit",
+      "command": [
+        "bun",
+        "audit",
+        "--json"
+      ],
+      "executable": "C:\\Users\\lyh\\scoop\\shims\\bun.EXE",
+      "cwd": "ccr-ui",
+      "exit_code": 1,
+      "seconds": 0.686,
+      "stdout_sha256": "894792f34b228a4f32bd60b96e32aee51f8a74f7403b7c1d691bd9914d06ed96"
+    },
+    {
+      "name": "docs-audit",
+      "command": [
+        "bun",
+        "audit",
+        "--json"
+      ],
+      "executable": "C:\\Users\\lyh\\scoop\\shims\\bun.EXE",
+      "cwd": "docs",
+      "exit_code": 0,
+      "seconds": 0.734,
+      "stdout_sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+    },
+    {
+      "name": "ccr-vscode-audit",
+      "command": [
+        "npm",
+        "audit",
+        "--json"
+      ],
+      "executable": "C:\\home\\lyh\\.npm-global\\npm.CMD",
+      "cwd": "ccr-vscode",
+      "exit_code": 1,
+      "seconds": 2.535,
+      "stdout_sha256": "b658001a6f5aed90ba1c1d4b62c502c45d047b80da4d7c53c767c9b38f9f967f"
+    }
+  ],
+  "sources_after": {
+    "ccr-ui/bun.lock": "87a80e33cdbdaf8ed72516419ece312de1134d94a3e0495d92139580ca65ae07",
+    "ccr-ui/package.json": "c9f7e5f78730643ca444fa1191feceb66bc1cf56509bf3e60edf85dbabf3a0cf",
+    "docs/bun.lock": "fcc99d04e4ebe06c175db3744907db9bace0f0ee22c7a5cb1100051bf07b6434",
+    "docs/package.json": "786d7ddf7793d63faa3fe22befb8109da2e008b4693e1cdb298c0e1ac330636c",
+    "ccr-vscode/package-lock.json": "846b84a475e48c9e7f335a87121a1894dc64548f41449d2dd54a5b932174fdd4",
+    "ccr-vscode/package.json": "ae72468d025b9714f8870a04cbdeaec4041290bc86d489b478e2080b74d49c50"
+  },
+  "changed_source_paths": [],
+  "finished_utc": "2026-09-30T03:33:46.629801+00:00"
+}

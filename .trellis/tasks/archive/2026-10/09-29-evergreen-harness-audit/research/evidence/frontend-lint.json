@@ -1,0 +1,8 @@
+{
+  "command": "just frontend-lint",
+  "exit_code": 0,
+  "started": "2026-09-29T20:59:55.5604464-05:00",
+  "ended": "2026-09-29T21:00:36.3293598-05:00",
+  "boundary": "Windows local",
+  "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/frontend-lint.log"
+}

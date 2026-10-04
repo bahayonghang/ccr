@@ -1,0 +1,205 @@
+{
+  "baseline": "fe9d65972376dbb4c332fde9860c1e42ff2f2005",
+  "source_path_count": 32,
+  "unapproved_paths": [],
+  "paths": [
+    {
+      "path": ".codex/skills/ccr-gate-recovery/SKILL.md",
+      "approved_tasks": [
+        "09-29-harness-contract-alignment"
+      ]
+    },
+    {
+      "path": ".github/dependabot.yml",
+      "approved_tasks": [
+        "09-29-harness-dependabot-bun"
+      ]
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "approved_tasks": [
+        "09-29-harness-readonly-gates"
+      ]
+    },
+    {
+      "path": ".github/workflows/frontend-ci.yml",
+      "approved_tasks": [
+        "09-29-harness-readonly-gates"
+      ]
+    },
+    {
+      "path": ".github/workflows/vscode-ci.yml",
+      "approved_tasks": [
+        "09-29-harness-readonly-gates"
+      ]
+    },
+    {
+      "path": ".gitignore",
+      "approved_tasks": [
+        "09-29-harness-omp-context"
+      ]
+    },
+    {
+      "path": ".omp/extensions/trellis/index.ts",
+      "approved_tasks": [
+        "09-29-harness-omp-context"
+      ]
+    },
+    {
+      "path": ".trellis/spec/ccr-vscode/frontend/extension-surface-contracts.md",
+      "approved_tasks": [
+        "09-29-harness-vsix-package"
+      ]
+    },
+    {
+      "path": ".trellis/spec/ccr/backend/dependency-governance.md",
+      "approved_tasks": [
+        "09-29-harness-ci-evidence",
+        "09-29-harness-dependabot-bun",
+        "09-29-harness-frontend-security",
+        "09-29-harness-readonly-gates"
+      ]
+    },
+    {
+      "path": ".trellis/spec/ccr/backend/test-fixtures.md",
+      "approved_tasks": [
+        "09-29-harness-ci-evidence"
+      ]
+    },
+    {
+      "path": "AGENTS.md",
+      "approved_tasks": [
+        "09-29-harness-contract-alignment"
+      ]
+    },
+    {
+      "path": "CLAUDE.md",
+      "approved_tasks": [
+        "09-29-harness-contract-alignment"
+      ]
+    },
+    {
+      "path": "ccr-ui/bun.lock",
+      "approved_tasks": [
+        "09-29-harness-frontend-security"
+      ]
+    },
+    {
+      "path": "ccr-vscode/.vscodeignore",
+      "approved_tasks": [
+        "09-29-harness-vsix-package"
+      ]
+    },
+    {
+      "path": "ccr-vscode/justfile",
+      "approved_tasks": [
+        "09-29-harness-vsix-package"
+      ]
+    },
+    {
+      "path": "ccr-vscode/package-lock.json",
+      "approved_tasks": [
+        "09-29-harness-vsix-package"
+      ]
+    },
+    {
+      "path": "ccr-vscode/package.json",
+      "approved_tasks": [
+        "09-29-harness-vsix-package"
+      ]
+    },
+    {
+      "path": "ccr-vscode/scripts/check-package-files.mjs",
+      "approved_tasks": [
+        "09-29-harness-vsix-package"
+      ]
+    },
+    {
+      "path": "ccr-vscode/scripts/check-package-files.test.mjs",
+      "approved_tasks": [
+        "09-29-harness-vsix-package"
+      ]
+    },
+    {
+      "path": "docs/agents/harnesses.md",
+      "approved_tasks": [
+        "09-29-harness-contract-alignment"
+      ]
+    },
+    {
+      "path": "docs/en/agents/harnesses.md",
+      "approved_tasks": [
+        "09-29-harness-contract-alignment"
+      ]
+    },
+    {
+      "path": "docs/en/guide/github-copilot-workspace.md",
+      "approved_tasks": [
+        "09-29-harness-copilot-crlf"
+      ]
+    },
+    {
+      "path": "docs/guide/github-copilot-workspace.md",
+      "approved_tasks": [
+        "09-29-harness-copilot-crlf"
+      ]
+    },
+    {
+      "path": "justfile",
+      "approved_tasks": [
+        "09-29-harness-readonly-gates"
+      ]
+    },
+    {
+      "path": "scripts/ci/check_workflow_governance.py",
+      "approved_tasks": [
+        "09-29-harness-dependabot-bun",
+        "09-29-harness-readonly-gates"
+      ]
+    },
+    {
+      "path": "scripts/ci/ci_surface_policy.py",
+      "approved_tasks": [
+        "09-29-harness-readonly-gates"
+      ]
+    },
+    {
+      "path": "scripts/ci/test_check_workflow_governance.py",
+      "approved_tasks": [
+        "09-29-harness-dependabot-bun",
+        "09-29-harness-readonly-gates"
+      ]
+    },
+    {
+      "path": "scripts/quality/check-copilot-assets.mjs",
+      "approved_tasks": [
+        "09-29-harness-copilot-crlf"
+      ]
+    },
+    {
+      "path": "scripts/quality/check-copilot-assets.test.mjs",
+      "approved_tasks": [
+        "09-29-harness-copilot-crlf"
+      ]
+    },
+    {
+      "path": "scripts/quality/check_harness_contracts.py",
+      "approved_tasks": [
+        "09-29-harness-contract-alignment"
+      ]
+    },
+    {
+      "path": "scripts/quality/test_check_harness_contracts.py",
+      "approved_tasks": [
+        "09-29-harness-contract-alignment"
+      ]
+    },
+    {
+      "path": "scripts/trellis/omp-context.test.ts",
+      "approved_tasks": [
+        "09-29-harness-omp-context"
+      ]
+    }
+  ],
+  "evidence_and_task_artifacts": "The nine approved task directories are evaluated separately."
+}

@@ -1,0 +1,78 @@
+{
+  "recorded_at_utc": "2026-09-30T03:42:05.804518+00:00",
+  "results": [
+    {
+      "task": ".trellis/tasks/09-29-evergreen-harness-audit",
+      "exit_code": 0,
+      "stdout": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-29-evergreen-harness-audit\n\n  \u001b[0;32mimplement.jsonl: ✓ (3 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (3 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "stderr": "",
+      "status": "in_progress",
+      "approved": true
+    },
+    {
+      "task": ".trellis/tasks/09-29-harness-ci-evidence",
+      "exit_code": 0,
+      "stdout": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-29-harness-ci-evidence\n\n  \u001b[0;32mimplement.jsonl: ✓ (3 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (3 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "stderr": "",
+      "status": "in_progress",
+      "approved": true
+    },
+    {
+      "task": ".trellis/tasks/09-29-harness-contract-alignment",
+      "exit_code": 0,
+      "stdout": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-29-harness-contract-alignment\n\n  \u001b[0;32mimplement.jsonl: ✓ (3 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (3 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "stderr": "",
+      "status": "in_progress",
+      "approved": true
+    },
+    {
+      "task": ".trellis/tasks/09-29-harness-copilot-crlf",
+      "exit_code": 0,
+      "stdout": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-29-harness-copilot-crlf\n\n  \u001b[0;32mimplement.jsonl: ✓ (3 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (3 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "stderr": "",
+      "status": "in_progress",
+      "approved": true
+    },
+    {
+      "task": ".trellis/tasks/09-29-harness-dependabot-bun",
+      "exit_code": 0,
+      "stdout": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-29-harness-dependabot-bun\n\n  \u001b[0;32mimplement.jsonl: ✓ (3 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (3 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "stderr": "",
+      "status": "in_progress",
+      "approved": true
+    },
+    {
+      "task": ".trellis/tasks/09-29-harness-frontend-security",
+      "exit_code": 0,
+      "stdout": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-29-harness-frontend-security\n\n  \u001b[0;32mimplement.jsonl: ✓ (3 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (3 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "stderr": "",
+      "status": "in_progress",
+      "approved": true
+    },
+    {
+      "task": ".trellis/tasks/09-29-harness-omp-context",
+      "exit_code": 0,
+      "stdout": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-29-harness-omp-context\n\n  \u001b[0;32mimplement.jsonl: ✓ (3 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (3 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "stderr": "",
+      "status": "in_progress",
+      "approved": true
+    },
+    {
+      "task": ".trellis/tasks/09-29-harness-readonly-gates",
+      "exit_code": 0,
+      "stdout": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-29-harness-readonly-gates\n\n  \u001b[0;32mimplement.jsonl: ✓ (3 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (3 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "stderr": "",
+      "status": "in_progress",
+      "approved": true
+    },
+    {
+      "task": ".trellis/tasks/09-29-harness-vsix-package",
+      "exit_code": 0,
+      "stdout": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-29-harness-vsix-package\n\n  \u001b[0;32mimplement.jsonl: ✓ (3 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (3 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "stderr": "",
+      "status": "in_progress",
+      "approved": true
+    }
+  ],
+  "boundary": "Context validation before the new advisory patch and final aggregate retry; not a test success claim."
+}

@@ -1,8 +1,0 @@
-{
-  "command": "just tauri-ci",
-  "exit_code": 0,
-  "started": "2026-09-29T21:02:48.7499800-05:00",
-  "ended": "2026-09-29T21:08:32.6723366-05:00",
-  "boundary": "Windows local backend; no GUI",
-  "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/tauri-ci.log"
-}

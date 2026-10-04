@@ -1,0 +1,8 @@
+{
+  "command": "bun test scripts/trellis/omp-context.test.ts (only tracked test file in owned temporary fixture)",
+  "exit_code": 1,
+  "started": "2026-09-30T02:07:58.537175+00:00",
+  "ended": "2026-09-30T02:07:58.689179+00:00",
+  "boundary": "tracked-source import fixture; not a full clean clone",
+  "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/omp-tracked-fixture.log"
+}

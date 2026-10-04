@@ -1,8 +1,0 @@
-{
-  "command": "just ci-governance-check",
-  "exit_code": 0,
-  "started": "2026-09-29T20:59:37.4379842-05:00",
-  "ended": "2026-09-29T21:00:16.3067639-05:00",
-  "boundary": "Windows local",
-  "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/ci-governance-check.log"
-}

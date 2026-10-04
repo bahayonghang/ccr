@@ -1,8 +1,0 @@
-{
-  "command": "just test",
-  "exit_code": 0,
-  "started": "2026-09-29T21:00:40.2521341-05:00",
-  "ended": "2026-09-29T21:04:53.0511538-05:00",
-  "boundary": "Windows local",
-  "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/test.log"
-}

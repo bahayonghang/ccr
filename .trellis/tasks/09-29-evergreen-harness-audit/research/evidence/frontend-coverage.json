@@ -1,8 +1,0 @@
-{
-  "command": "just frontend-coverage",
-  "exit_code": 0,
-  "started": "2026-09-29T21:04:09.4303932-05:00",
-  "ended": "2026-09-29T21:06:26.1530881-05:00",
-  "boundary": "Windows jsdom",
-  "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/frontend-coverage.log"
-}

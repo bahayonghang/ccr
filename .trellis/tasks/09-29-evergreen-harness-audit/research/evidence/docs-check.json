@@ -1,8 +1,0 @@
-{
-  "command": "just docs-check",
-  "exit_code": 0,
-  "started": "2026-09-29T20:59:37.4378970-05:00",
-  "ended": "2026-09-29T20:59:48.8304613-05:00",
-  "boundary": "Windows local",
-  "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/docs-check.log"
-}

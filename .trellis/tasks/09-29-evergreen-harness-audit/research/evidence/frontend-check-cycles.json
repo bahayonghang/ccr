@@ -1,8 +1,0 @@
-{
-  "command": "just frontend-check-cycles",
-  "exit_code": 0,
-  "started": "2026-09-29T21:02:32.7368363-05:00",
-  "ended": "2026-09-29T21:02:38.3675540-05:00",
-  "boundary": "Windows local",
-  "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/frontend-check-cycles.log"
-}

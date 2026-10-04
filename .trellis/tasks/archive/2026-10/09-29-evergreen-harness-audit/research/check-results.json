@@ -1,0 +1,232 @@
+[
+  {
+    "command": "actionlint -color",
+    "exit_code": 0,
+    "started": "2026-09-29T21:02:16.1943229-05:00",
+    "ended": "2026-09-29T21:02:16.4377787-05:00",
+    "boundary": "Windows local",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/actionlint.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "seconds": 0.24
+  },
+  {
+    "command": "cargo audit",
+    "exit_code": 0,
+    "started": "2026-09-29T21:02:08.5377618-05:00",
+    "ended": "2026-09-29T21:02:12.2552653-05:00",
+    "boundary": "Windows local",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/cargo-audit-root.log",
+    "sha256": "7d192d3b93c6276c02ed3ed9dcc28288b65f1d8c2ba621006fbf9e337dcfde1c",
+    "seconds": 3.72
+  },
+  {
+    "command": "cargo audit --file ccr-ui/src-tauri/Cargo.lock",
+    "exit_code": 0,
+    "started": "2026-09-29T21:02:12.2754592-05:00",
+    "ended": "2026-09-29T21:02:16.1877212-05:00",
+    "boundary": "Windows local",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/cargo-audit-tauri.log",
+    "sha256": "ba7223a71cfb8246ae5b96d3ffaade5b69bd87699b76f464f9cf5f12a4d54189",
+    "seconds": 3.91
+  },
+  {
+    "command": "just check-workspace",
+    "exit_code": 0,
+    "started": "2026-09-29T21:04:53.0562239-05:00",
+    "ended": "2026-09-29T21:05:17.6888236-05:00",
+    "boundary": "Windows local",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/check-workspace.log",
+    "sha256": "368e4464ed61d2f5a1aac3169beb59067ef52ee6027dc9143c0952f644cc35bb",
+    "seconds": 24.63
+  },
+  {
+    "command": "just ci-governance-check",
+    "exit_code": 0,
+    "started": "2026-09-29T20:59:37.4379842-05:00",
+    "ended": "2026-09-29T21:00:16.3067639-05:00",
+    "boundary": "Windows local",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/ci-governance-check.log",
+    "sha256": "1b056f0f8a43cd6d4b324fcff18d0763f35bb1688c67aa1c5808d7fd1ff402dc",
+    "seconds": 38.87
+  },
+  {
+    "command": "just copilot-check",
+    "exit_code": 1,
+    "started": "2026-09-29T21:00:16.3305362-05:00",
+    "ended": "2026-09-29T21:00:21.2986279-05:00",
+    "boundary": "Windows local",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/copilot-check.log",
+    "sha256": "cb1c838dbebe2c531b1ac1c0fbb83942a216710414b82a013e33d44b2c000a06",
+    "seconds": 4.97
+  },
+  {
+    "command": "just docs-check",
+    "exit_code": 0,
+    "started": "2026-09-29T20:59:37.4378970-05:00",
+    "ended": "2026-09-29T20:59:48.8304613-05:00",
+    "boundary": "Windows local",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/docs-check.log",
+    "sha256": "8b785ed402aa8330438c2cef27501b29419cc27f345cf01e70f53b870c2a4033",
+    "seconds": 11.39
+  },
+  {
+    "command": "just fmt-check",
+    "exit_code": 0,
+    "started": "2026-09-29T20:59:04.8862391-05:00",
+    "ended": "2026-09-29T20:59:11.3651104-05:00",
+    "boundary": "Windows local",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/fmt-check.log",
+    "sha256": "c904941ab32f21ebe0bc5dbb4a9b41ef6b9ad5f950fd7fbeeeb9399d73899a93",
+    "seconds": 6.48
+  },
+  {
+    "command": "just frontend-audit",
+    "exit_code": 1,
+    "started": "2026-09-29T21:07:58.3748642-05:00",
+    "ended": "2026-09-29T21:08:02.9123462-05:00",
+    "boundary": "Windows; network advisory query",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/frontend-audit.log",
+    "sha256": "282683ad6991d61705e2bee8945fc957ab35a702adbdb3495ca898ed92505e64",
+    "seconds": 4.54
+  },
+  {
+    "command": "CCR_SKIP_ICON_GENERATION=1 just frontend-build",
+    "exit_code": 0,
+    "started": "2026-09-29T21:05:31.1620664-05:00",
+    "ended": "2026-09-29T21:05:42.3050678-05:00",
+    "boundary": "Windows web build with committed icons",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/frontend-build.log",
+    "sha256": "78aa277e601fbec88f1e0bf30d1c838fbd5403debaac5cd034bc4a019cfd0f2c",
+    "seconds": 11.14
+  },
+  {
+    "command": "just frontend-check-arch-boundaries",
+    "exit_code": 0,
+    "started": "2026-09-29T21:02:38.3711305-05:00",
+    "ended": "2026-09-29T21:02:59.5531063-05:00",
+    "boundary": "Windows local",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/frontend-check-arch-boundaries.log",
+    "sha256": "af8c9efb9669999d88ffbb28a6170483ec0fdaf5387d92b45d0783bc7b1facf2",
+    "seconds": 21.18
+  },
+  {
+    "command": "just frontend-check-cycles",
+    "exit_code": 0,
+    "started": "2026-09-29T21:02:32.7368363-05:00",
+    "ended": "2026-09-29T21:02:38.3675540-05:00",
+    "boundary": "Windows local",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/frontend-check-cycles.log",
+    "sha256": "d747bb86c5c15a9c83b9749730e1aa59df7b38652b237c0650640a4dab1d1ad8",
+    "seconds": 5.63
+  },
+  {
+    "command": "just frontend-coverage",
+    "exit_code": 0,
+    "started": "2026-09-29T21:04:09.4303932-05:00",
+    "ended": "2026-09-29T21:06:26.1530881-05:00",
+    "boundary": "Windows jsdom",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/frontend-coverage.log",
+    "sha256": "82a5872760c6af83825e97f02f3f8514b6f56c3f4b536ba8457919c135d568c6",
+    "seconds": 136.72
+  },
+  {
+    "command": "just frontend-lint",
+    "exit_code": 0,
+    "started": "2026-09-29T20:59:55.5604464-05:00",
+    "ended": "2026-09-29T21:00:36.3293598-05:00",
+    "boundary": "Windows local",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/frontend-lint.log",
+    "sha256": "fdfd78bf7d443ae75bf26f2685d791a834dc53ef81278a505e74a04f9ca50318",
+    "seconds": 40.77
+  },
+  {
+    "command": "just frontend-test",
+    "exit_code": 0,
+    "started": "2026-09-29T21:00:36.3348403-05:00",
+    "ended": "2026-09-29T21:02:32.7192946-05:00",
+    "boundary": "Windows local",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/frontend-test.log",
+    "sha256": "bfd84c294f52bda2dcbaf823a4c77f4246e5ca586b69745f030e0e0da8a7c95a",
+    "seconds": 116.38
+  },
+  {
+    "command": "just frontend-typecheck",
+    "exit_code": 0,
+    "started": "2026-09-29T20:59:37.4098857-05:00",
+    "ended": "2026-09-29T20:59:55.5266853-05:00",
+    "boundary": "Windows local",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/frontend-typecheck.log",
+    "sha256": "e9701a815fc542f3edc634c068efc7f3118eefc5eb6ff5f21c79cd1eefa3df31",
+    "seconds": 18.12
+  },
+  {
+    "command": "just lint-strict",
+    "exit_code": 0,
+    "started": "2026-09-29T20:59:37.4379241-05:00",
+    "ended": "2026-09-29T21:00:40.2334589-05:00",
+    "boundary": "Windows local",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/lint-strict.log",
+    "sha256": "459a0569fbbff17d6b2b1305dc2167ccb63721429283b8b1a51d8bd365c5d325",
+    "seconds": 62.8
+  },
+  {
+    "command": "bun test scripts/trellis/omp-context.test.ts",
+    "exit_code": 1,
+    "started": "2026-09-29T21:02:16.4417586-05:00",
+    "ended": "2026-09-29T21:02:17.5155413-05:00",
+    "boundary": "Windows local",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/omp-context.log",
+    "sha256": "d0767303d1d29f01be5db6733cece587f8ebab173ccb18cd442ca929a5122de6",
+    "seconds": 1.07
+  },
+  {
+    "command": "bun test scripts/trellis/omp-context.test.ts (only tracked test file in owned temporary fixture)",
+    "exit_code": 1,
+    "started": "2026-09-30T02:07:58.537175+00:00",
+    "ended": "2026-09-30T02:07:58.689179+00:00",
+    "boundary": "tracked-source import fixture; not a full clean clone",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/omp-tracked-fixture.log",
+    "sha256": "789f5d2180857e4c64793eba224c3f3e38e90c2d859a75d010c7d3d9458ef56c",
+    "seconds": 0.15
+  },
+  {
+    "command": "just tauri-ci",
+    "exit_code": 0,
+    "started": "2026-09-29T21:02:48.7499800-05:00",
+    "ended": "2026-09-29T21:08:32.6723366-05:00",
+    "boundary": "Windows local backend; no GUI",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/tauri-ci.log",
+    "sha256": "967b55d3357b4654ffe293d03cec21531ca94e8118816cbfa68be01022ca59d4",
+    "seconds": 343.92
+  },
+  {
+    "command": "just test",
+    "exit_code": 0,
+    "started": "2026-09-29T21:00:40.2521341-05:00",
+    "ended": "2026-09-29T21:04:53.0511538-05:00",
+    "boundary": "Windows local",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/test.log",
+    "sha256": "9791462c0908050303f5f145edab96dd31d85fa8c005703cf592a4e73d87113f",
+    "seconds": 252.8
+  },
+  {
+    "command": "just version-check",
+    "exit_code": 0,
+    "started": "2026-09-29T20:59:02.6316246-05:00",
+    "ended": "2026-09-29T20:59:04.8737026-05:00",
+    "boundary": "Windows local",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/version-check.log",
+    "sha256": "473c8670c5061c064f379d6c97fa544a6f5db14b8e4b3348035aaf60bc45010d",
+    "seconds": 2.24
+  },
+  {
+    "command": "just vscode-ci",
+    "exit_code": 0,
+    "started": "2026-09-29T20:59:48.8585891-05:00",
+    "ended": "2026-09-29T21:00:14.8281540-05:00",
+    "boundary": "Windows local",
+    "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/evidence/vscode-ci.log",
+    "sha256": "c0ee03697123fd1db9b10c0b1582ecf9af84cd2b4d0c0eb6a09296dad86950db",
+    "seconds": 25.97
+  }
+]

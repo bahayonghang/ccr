@@ -1,0 +1,61 @@
+{
+  "id": "evergreen-harness-audit",
+  "name": "evergreen-harness-audit",
+  "title": "CCR 常青项目五套 harness 审查与改造",
+  "description": "审查项目结构、运行现有门禁、追踪失败根因并建立审批后执行的五工具父子任务计划",
+  "status": "completed",
+  "dev_type": null,
+  "scope": "audit-remediation",
+  "package": null,
+  "priority": "P1",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-09-29",
+  "completedAt": "2026-10-04",
+  "branch": "dev",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": "30cbeddf730ed01b312c3396ba7b8691853be859",
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "09-29-harness-omp-context",
+    "09-29-harness-contract-alignment",
+    "09-29-harness-dependabot-bun",
+    "09-29-harness-copilot-crlf",
+    "09-29-harness-vsix-package",
+    "09-29-harness-readonly-gates",
+    "09-29-harness-ci-evidence",
+    "09-29-harness-frontend-security"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "2026-10-04 迁移后 just ci 退出 0，15:06.415，16 步全 OK，2509 源文件字节保持。VSCE 4、六处夹具和 T08 聚合的主会话复核已写入。Frontend Audit 为 1/1，不关闭 T08 原 0 例外。T01 匹配版本补丁未批准。T03 真实 Dependabot、macOS、fresh-client、hosted、Marketplace、原生激活仍为 UNVERIFIED。本轮改动尚未提交。推送、PR、发布与全局配置仍未授权。",
+  "meta": {
+    "baseline_sha": "fe9d65972376dbb4c332fde9860c1e42ff2f2005",
+    "audit_date": "2026-09-29",
+    "timezone": "America/Chicago",
+    "implementation_approved": true,
+    "approval_record": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json",
+    "final_aggregate": "2026-10-04 just ci FAIL at Tauri bindings-check: 6 generated files drift; source bytes restored",
+    "aggregate_receipts": [
+      ".trellis/tasks/09-29-evergreen-harness-audit/research/final-ci.json",
+      ".trellis/tasks/09-29-evergreen-harness-audit/research/final-ci-retry1.json",
+      ".trellis/tasks/09-29-evergreen-harness-audit/research/resume-2026-10-04-full-ci.json",
+      ".trellis/tasks/09-29-evergreen-harness-audit/research/resume-2026-10-04-vsce4-full-ci.json"
+    ],
+    "delivery_status": "locally committed; task remains in_progress with acceptance gaps",
+    "delivery_authorization": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json#delivery_authorization",
+    "work_commits": [
+      "c4d38e5154edf6a8fa1c781f91d31ce6aa4bb5ad",
+      "f68116ecd22bb74b86011b01d14b72cfc8a855d0",
+      "c1453c7b1f5405f93eaecf67ff0d074bb1e9db1d",
+      "30cbeddf730ed01b312c3396ba7b8691853be859"
+    ],
+    "archive_eligibility": "not_eligible",
+    "remaining_acceptance": "T01 匹配版本生成后 6 项失败、T03 真实 Dependabot、T08 例外批准，以及 macOS、fresh-client、hosted、Marketplace、原生激活待完成。2026-10-04 绑定漂移复验通过，迁移后 just ci 通过，VSCE 4 主会话复核已写入。",
+    "current_status_date": "2026-10-04",
+    "latest_aggregate_receipt": "research/resume-2026-10-04-vsce4-full-ci.json",
+    "latest_aggregate_result": "2026-10-04 just ci PASS in 15:06.415; 2509 source hashes unchanged"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "recorded_at_utc": "2026-09-30T03:51:02.747346+00:00",
+  "json_parsed": 159,
+  "json_errors": [],
+  "checked_links": 111,
+  "broken_links": [],
+  "markdown_whitespace_findings": [],
+  "boundary": "Task JSON and authored Markdown. Canonical context excerpts excluded from relative-link checks; raw command logs preserved unchanged. Captured command results do not imply passing checks."
+}
