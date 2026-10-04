@@ -34,6 +34,7 @@ When a failure reproduces, collect bounded, sanitized diagnostics in the owning 
 - `Drop` restores every captured environment variable in reverse order while the env lock is still held.
 - The shared support module exports only the core fixture type; each test binary defines only the aliases/setup functions it actually uses to keep `clippy -D warnings` clean.
 - The fixture is intentionally narrow; subprocess CLI tests that pass env vars directly to `Command` should keep doing so instead of mutating process-global env.
+- Tests that call `ConfigManager::save`, `PlatformConfigManager::save`, or `SettingsManager::save_atomic` / `restore` must hold a named `CcrIntegrationTestEnv` binding for the full operation scope. These calls reach `guarded_write`, which reads `CCR_LOCK_DIR` even when target paths or a `SettingsManager` lock argument are explicit. Apply this rule in Claude Code, Codex, Grok Build, Kimi Code, and OMP.
 
 ### 4. Validation & Error Matrix
 - Temp root cannot be created -> test setup fails immediately.

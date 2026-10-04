@@ -37,6 +37,7 @@ fn create_test_config_section(name: &str) -> ConfigSection {
 
 #[test]
 fn test_config_manager_lifecycle() {
+    let _env = crate::setup_ccr_test_env();
     let temp_dir = tempdir().unwrap();
     let config_path = temp_dir.path().join("config.toml");
 
@@ -70,6 +71,7 @@ fn test_config_manager_lifecycle() {
 
 #[test]
 fn test_config_manager_section_operations() {
+    let _env = crate::setup_ccr_test_env();
     let temp_dir = tempdir().unwrap();
     let config_path = temp_dir.path().join("config.toml");
 
@@ -185,6 +187,7 @@ fn test_config_sorting_and_filtering() {
 
 #[test]
 fn test_settings_manager_atomic_operations() {
+    let _env = crate::setup_ccr_test_env();
     let temp_dir = tempdir().unwrap();
     let settings_path = temp_dir.path().join("settings.json");
     let backup_dir = temp_dir.path().join("backups");
@@ -251,6 +254,7 @@ fn test_settings_update_from_config() {
 
 #[test]
 fn test_settings_backup_and_restore() {
+    let _env = crate::setup_ccr_test_env();
     let temp_dir = tempdir().unwrap();
     let settings_path = temp_dir.path().join("settings.json");
     let backup_dir = temp_dir.path().join("backups");
@@ -559,6 +563,7 @@ fn test_history_entry_env_changes() {
 
 #[test]
 fn test_config_and_settings_integration() {
+    let _env = crate::setup_ccr_test_env();
     let temp_dir = tempdir().unwrap();
     let config_path = temp_dir.path().join("config.toml");
     let settings_path = temp_dir.path().join("settings.json");
