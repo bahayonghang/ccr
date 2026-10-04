@@ -1,0 +1,1290 @@
+{
+  "started_utc": "2026-09-30T03:41:25.319923+00:00",
+  "authorization": "Main confirmed original T08 dynamic security remediation permits only the four UI lock nodes; extension remains pending",
+  "source_sha256_before": {
+    "ccr-ui/bun.lock": "87a80e33cdbdaf8ed72516419ece312de1134d94a3e0495d92139580ca65ae07",
+    "ccr-ui/package.json": "c9f7e5f78730643ca444fa1191feceb66bc1cf56509bf3e60edf85dbabf3a0cf",
+    "docs/bun.lock": "fcc99d04e4ebe06c175db3744907db9bace0f0ee22c7a5cb1100051bf07b6434",
+    "docs/package.json": "786d7ddf7793d63faa3fe22befb8109da2e008b4693e1cdb298c0e1ac330636c",
+    "ccr-vscode/package-lock.json": "846b84a475e48c9e7f335a87121a1894dc64548f41449d2dd54a5b932174fdd4",
+    "ccr-vscode/package.json": "ae72468d025b9714f8870a04cbdeaec4041290bc86d489b478e2080b74d49c50"
+  },
+  "changes": [
+    {
+      "file": "ccr-ui/bun.lock",
+      "node": "brace-expansion",
+      "package": "brace-expansion",
+      "old_version": "1.1.18",
+      "new_version": "1.1.21",
+      "parents": [
+        {
+          "node": "minimatch",
+          "package": "minimatch@3.1.5",
+          "range": "^1.1.7"
+        }
+      ],
+      "dev": "transitive; root dev path verified separately",
+      "affected_advisories": [
+        {
+          "advisory": "GHSA-qhr7-859c-m2p7",
+          "range": "< 1.1.20",
+          "first_patched_version": "1.1.20"
+        },
+        {
+          "advisory": "GHSA-6j4f-fj2g-mc7p",
+          "range": "< 1.1.19",
+          "first_patched_version": "1.1.19"
+        },
+        {
+          "advisory": "GHSA-q2hr-2g5m-vwhr",
+          "range": "< 1.1.21",
+          "first_patched_version": "1.1.21"
+        }
+      ],
+      "all_new_advisory_ranges_checked": [
+        {
+          "advisory": "GHSA-qhr7-859c-m2p7",
+          "range": ">= 4.0.0  < 5.0.11",
+          "first_patched_version": "5.0.11"
+        },
+        {
+          "advisory": "GHSA-qhr7-859c-m2p7",
+          "range": ">= 3.0.0  < 3.0.8",
+          "first_patched_version": "3.0.8"
+        },
+        {
+          "advisory": "GHSA-qhr7-859c-m2p7",
+          "range": ">= 2.0.0  < 2.1.6",
+          "first_patched_version": "2.1.6"
+        },
+        {
+          "advisory": "GHSA-qhr7-859c-m2p7",
+          "range": "< 1.1.20",
+          "first_patched_version": "1.1.20"
+        },
+        {
+          "advisory": "GHSA-6j4f-fj2g-mc7p",
+          "range": ">= 4.0.0  < 5.0.10",
+          "first_patched_version": "5.0.10"
+        },
+        {
+          "advisory": "GHSA-6j4f-fj2g-mc7p",
+          "range": ">= 3.0.0  < 3.0.7",
+          "first_patched_version": "3.0.7"
+        },
+        {
+          "advisory": "GHSA-6j4f-fj2g-mc7p",
+          "range": ">= 2.0.0  < 2.1.5",
+          "first_patched_version": "2.1.5"
+        },
+        {
+          "advisory": "GHSA-6j4f-fj2g-mc7p",
+          "range": "< 1.1.19",
+          "first_patched_version": "1.1.19"
+        },
+        {
+          "advisory": "GHSA-q2hr-2g5m-vwhr",
+          "range": ">= 4.0.0  < 5.0.12",
+          "first_patched_version": "5.0.12"
+        },
+        {
+          "advisory": "GHSA-q2hr-2g5m-vwhr",
+          "range": ">= 3.0.0  < 3.0.9",
+          "first_patched_version": "3.0.9"
+        },
+        {
+          "advisory": "GHSA-q2hr-2g5m-vwhr",
+          "range": ">= 2.0.0  < 2.1.7",
+          "first_patched_version": "2.1.7"
+        },
+        {
+          "advisory": "GHSA-q2hr-2g5m-vwhr",
+          "range": "< 1.1.21",
+          "first_patched_version": "1.1.21"
+        }
+      ],
+      "old_integrity": "sha512-Edep/X9fGqVNmzKBVsDYIOtD+z1tuezV70LBjdCst9Tqu76lsnvRiZ6oTic1n+/BIwX6QDGAO94PN4N2SADvtw==",
+      "new_integrity": "sha512-9zeA+KLZNNzglF2TPKRQEDyx6Yby7daAkuy8MiPzpXPsYDWi/DRM8jmwUDxokQjYqBpv5DgPiwD4h4ZZSy1Ujw==",
+      "tarball": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-1.1.21.tgz",
+      "old_published": "2026-07-30T10:17:06.961Z",
+      "new_published": "2026-09-14T21:59:28.332Z",
+      "dependencies_unchanged": true,
+      "engines_unchanged": true,
+      "old_metadata": {
+        "name": "brace-expansion",
+        "version": "1.1.18",
+        "keywords": [],
+        "author": {
+          "url": "http://juliangruber.com",
+          "name": "Julian Gruber",
+          "email": "mail@juliangruber.com"
+        },
+        "license": "MIT",
+        "_id": "brace-expansion@1.1.18",
+        "maintainers": [
+          {
+            "name": "juliangruber",
+            "email": "julian@juliangruber.com"
+          },
+          {
+            "name": "isaacs",
+            "email": "i@izs.me"
+          }
+        ],
+        "homepage": "https://github.com/juliangruber/brace-expansion",
+        "bugs": {
+          "url": "https://github.com/juliangruber/brace-expansion/issues"
+        },
+        "dist": {
+          "shasum": "3ce74d89885136be1535341f8c3d4425c29a5cab",
+          "tarball": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-1.1.18.tgz",
+          "fileCount": 4,
+          "integrity": "sha512-Edep/X9fGqVNmzKBVsDYIOtD+z1tuezV70LBjdCst9Tqu76lsnvRiZ6oTic1n+/BIwX6QDGAO94PN4N2SADvtw==",
+          "signatures": [
+            {
+              "sig": "MEUCIC0v6UulVH8Fx8t8LbAHmkmodKNbQdMaLfdag8B/SEEAAiEA7lQ3D6rF3nDgM++siTDOFYWlu0JQQoOe8tsQvo1uVxI=",
+              "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+            },
+            {
+              "sig": "MEYCIQCZIAso2MaWcrIiCD9CRLsh61jshJLHSxXXB3vp9g4XBAIhAIpJC6aHlyXrAJlW33pLigErK/0MwrTwlaANEUuvaamm",
+              "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+            }
+          ],
+          "unpackedSize": 18677
+        },
+        "main": "index.js",
+        "scripts": {
+          "test": "tape test/*.js",
+          "bench": "matcha test/perf/bench.js",
+          "gentest": "bash test/generate.sh"
+        },
+        "_npmUser": {
+          "name": "juliangruber",
+          "email": "julian@juliangruber.com"
+        },
+        "testling": {
+          "files": "test/*.js",
+          "browsers": [
+            "ie/8..latest",
+            "firefox/20..latest",
+            "firefox/nightly",
+            "chrome/25..latest",
+            "chrome/canary",
+            "opera/12..latest",
+            "opera/next",
+            "safari/5.1..latest",
+            "ipad/6.0..latest",
+            "iphone/6.0..latest",
+            "android-browser/4.2..latest"
+          ]
+        },
+        "repository": {
+          "url": "git://github.com/juliangruber/brace-expansion.git",
+          "type": "git"
+        },
+        "_npmVersion": "11.13.0",
+        "description": "Brace expansion as known from sh/bash",
+        "directories": {},
+        "_nodeVersion": "24.16.0",
+        "dependencies": {
+          "concat-map": "0.0.1",
+          "balanced-match": "^1.0.0"
+        },
+        "publishConfig": {
+          "tag": "1.x"
+        },
+        "_hasShrinkwrap": false,
+        "readmeFilename": "README.md",
+        "devDependencies": {
+          "tape": "^4.6.0",
+          "matcha": "^0.7.0"
+        },
+        "_npmOperationalInternal": {
+          "tmp": "tmp/brace-expansion_1.1.18_1785406626875_0.013880488685869663",
+          "host": "s3://npm-registry-packages-npm-production"
+        }
+      },
+      "new_metadata": {
+        "name": "brace-expansion",
+        "version": "1.1.21",
+        "keywords": [],
+        "author": {
+          "url": "http://juliangruber.com",
+          "name": "Julian Gruber",
+          "email": "mail@juliangruber.com"
+        },
+        "license": "MIT",
+        "_id": "brace-expansion@1.1.21",
+        "maintainers": [
+          {
+            "name": "juliangruber",
+            "email": "julian@juliangruber.com"
+          },
+          {
+            "name": "isaacs",
+            "email": "i@izs.me"
+          }
+        ],
+        "homepage": "https://github.com/juliangruber/brace-expansion",
+        "bugs": {
+          "url": "https://github.com/juliangruber/brace-expansion/issues"
+        },
+        "dist": {
+          "shasum": "edf4fab5c64d051aea5a8def49aba1c7522279f3",
+          "tarball": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-1.1.21.tgz",
+          "fileCount": 4,
+          "integrity": "sha512-9zeA+KLZNNzglF2TPKRQEDyx6Yby7daAkuy8MiPzpXPsYDWi/DRM8jmwUDxokQjYqBpv5DgPiwD4h4ZZSy1Ujw==",
+          "signatures": [
+            {
+              "sig": "MEUCIEpGNO6Ap5gYaU6eqeOpeU4bhJKXytH4Lqv+qn8tWP70AiEAgmtv6dYJ/sbiMeioq8VTAvlpDMIOF2bV7ojJ6qTtCIk=",
+              "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+            },
+            {
+              "sig": "MEUCIQCsE4a0+wmILmbniwNtbsZAwHHlEiC/u0HpBs9/R0pwvgIgATLztBHUYS81VxfEvVfmSjwIFwwRSJAP8SlYYJWwn3A=",
+              "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+            }
+          ],
+          "unpackedSize": 21359
+        },
+        "main": "index.js",
+        "gitHead": "8e81e187b6e9c6c723d16c042657c00acefc2483",
+        "scripts": {
+          "test": "tape test/*.js",
+          "bench": "matcha test/perf/bench.js",
+          "gentest": "bash test/generate.sh"
+        },
+        "_npmUser": {
+          "name": "juliangruber",
+          "email": "julian@juliangruber.com"
+        },
+        "testling": {
+          "files": "test/*.js",
+          "browsers": [
+            "ie/8..latest",
+            "firefox/20..latest",
+            "firefox/nightly",
+            "chrome/25..latest",
+            "chrome/canary",
+            "opera/12..latest",
+            "opera/next",
+            "safari/5.1..latest",
+            "ipad/6.0..latest",
+            "iphone/6.0..latest",
+            "android-browser/4.2..latest"
+          ]
+        },
+        "repository": {
+          "url": "git://github.com/juliangruber/brace-expansion.git",
+          "type": "git"
+        },
+        "_npmVersion": "11.13.0",
+        "description": "Brace expansion as known from sh/bash",
+        "directories": {},
+        "_nodeVersion": "24.16.0",
+        "dependencies": {
+          "concat-map": "0.0.1",
+          "balanced-match": "^1.0.0"
+        },
+        "publishConfig": {
+          "tag": "1.x"
+        },
+        "_hasShrinkwrap": false,
+        "readmeFilename": "README.md",
+        "devDependencies": {
+          "tape": "^4.6.0",
+          "matcha": "^0.7.0"
+        },
+        "_npmOperationalInternal": {
+          "tmp": "tmp/brace-expansion_1.1.21_1789423168188_0.1868014003023355",
+          "host": "s3://npm-registry-packages-npm-production"
+        }
+      }
+    },
+    {
+      "file": "ccr-ui/bun.lock",
+      "node": "fast-uri",
+      "package": "fast-uri",
+      "old_version": "3.1.7",
+      "new_version": "3.1.8",
+      "parents": [
+        {
+          "node": "table/ajv",
+          "package": "ajv@8.20.0",
+          "range": "^3.0.1"
+        }
+      ],
+      "dev": "transitive; root dev path verified separately",
+      "affected_advisories": [
+        {
+          "advisory": "GHSA-hrr3-gc8f-f4qj",
+          "range": ">= 3.0.0  < 3.1.8",
+          "first_patched_version": "3.1.8"
+        }
+      ],
+      "all_new_advisory_ranges_checked": [
+        {
+          "advisory": "GHSA-hrr3-gc8f-f4qj",
+          "range": "< 2.4.7",
+          "first_patched_version": "2.4.7"
+        },
+        {
+          "advisory": "GHSA-hrr3-gc8f-f4qj",
+          "range": ">= 3.0.0  < 3.1.8",
+          "first_patched_version": "3.1.8"
+        },
+        {
+          "advisory": "GHSA-hrr3-gc8f-f4qj",
+          "range": ">= 4.0.0  < 4.1.5",
+          "first_patched_version": "4.1.5"
+        }
+      ],
+      "old_integrity": "sha512-dOvZVzjdZdz7phd9v6jCbwxrBW3fK6n8Rc0CtdmM4bumzMnxywBYhuph6J819RRw/ku+rLbelwfMunktuzVVHg==",
+      "new_integrity": "sha512-GZMtZUTNRpOVIECoXwLNZS5xUGE+mVNbTB8h/7Rwh2TFWcBQiPzTgyZi05BF9UMZKkLJv8XBRJTlU7zg8+ZfMg==",
+      "tarball": "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.8.tgz",
+      "old_published": "2026-09-02T11:06:41.962Z",
+      "new_published": "2026-09-15T07:36:25.444Z",
+      "dependencies_unchanged": true,
+      "engines_unchanged": true,
+      "old_metadata": {
+        "name": "fast-uri",
+        "version": "3.1.7",
+        "author": {
+          "url": "https://github.com/zekth",
+          "name": "Vincent Le Goff",
+          "email": "vince.legoff@gmail.com"
+        },
+        "license": "BSD-3-Clause",
+        "_id": "fast-uri@3.1.7",
+        "maintainers": [
+          {
+            "name": "jsumners",
+            "email": "james.sumners@gmail.com"
+          },
+          {
+            "name": "delvedor",
+            "email": "tommydelved@gmail.com"
+          },
+          {
+            "name": "matteo.collina",
+            "email": "hello@matteocollina.com"
+          },
+          {
+            "name": "eomm",
+            "email": "behemoth89@gmail.com"
+          },
+          {
+            "name": "metcoder95",
+            "email": "me@metcoder.dev"
+          },
+          {
+            "name": "climba03003",
+            "email": "kaka@kakawebsitedemo.com"
+          },
+          {
+            "name": "gurgunday",
+            "email": "hey@gurgun.day"
+          },
+          {
+            "name": "ivan-tymoshenko",
+            "email": "ivan@tymoshenko.me"
+          },
+          {
+            "name": "fdawgs",
+            "email": "frazer.dev@icloud.com"
+          },
+          {
+            "name": "zekth",
+            "email": "vince.legoff@gmail.com"
+          }
+        ],
+        "contributors": [
+          {
+            "name": "Matteo Collina",
+            "email": "hello@matteocollina.com"
+          },
+          {
+            "url": "https://heyhey.to/G",
+            "name": "Gürgün Dayıoğlu",
+            "email": "hey@gurgun.day"
+          },
+          {
+            "name": "Aras Abbasi",
+            "email": "aras.abbasi@gmail.com"
+          },
+          {
+            "url": "https://github.com/fdawgs",
+            "name": "Frazer Smith",
+            "email": "frazer.dev@icloud.com"
+          }
+        ],
+        "homepage": "https://github.com/fastify/fast-uri",
+        "bugs": {
+          "url": "https://github.com/fastify/fast-uri/issues"
+        },
+        "dist": {
+          "shasum": "743157d957f3cbb4c65310e033dc2ad4ad7dc60a",
+          "tarball": "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.7.tgz",
+          "fileCount": 44,
+          "integrity": "sha512-dOvZVzjdZdz7phd9v6jCbwxrBW3fK6n8Rc0CtdmM4bumzMnxywBYhuph6J819RRw/ku+rLbelwfMunktuzVVHg==",
+          "signatures": [
+            {
+              "sig": "MEUCIE8aifeSxcgfi+bjld6HsUpXpz7YL6t5Hk8HaKiluhjRAiEA1o+is3O/QeQUVDPi4j2MUTCBXNFusFvKaYMt5Enr5vs=",
+              "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+            },
+            {
+              "sig": "MEYCIQDHgpBDvD8evg3/2kfVhHrJg9m23Xri450S1n7WfveKAgIhAPle6Y0Vldvx8sMQCne7nFUFr5P/0uVcefu+aPRo3yYP",
+              "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+            }
+          ],
+          "unpackedSize": 218619
+        },
+        "main": "index.js",
+        "type": "commonjs",
+        "types": "types/index.d.ts",
+        "funding": [
+          {
+            "url": "https://github.com/sponsors/fastify",
+            "type": "github"
+          },
+          {
+            "url": "https://opencollective.com/fastify",
+            "type": "opencollective"
+          }
+        ],
+        "gitHead": "412e40abd4eb8beabfb952d80abf949a2baf27a3",
+        "scripts": {
+          "lint": "eslint",
+          "test": "npm run test:unit && npm run test:typescript",
+          "lint:fix": "eslint --fix",
+          "test:unit": "tape test/**/*.js",
+          "test:browser": "npm run test:browser:chromium && npm run test:browser:firefox && npm run test:browser:webkit",
+          "test:unit:dev": "npm run test:unit -- --coverage-report=html",
+          "test:typescript": "tsd",
+          "test:browser:webkit": "playwright-test ./test/* --runner tape --browser=webkit",
+          "test:browser:firefox": "playwright-test ./test/* --runner tape --browser=firefox",
+          "test:browser:chromium": "playwright-test ./test/* --runner tape --browser=chromium"
+        },
+        "_npmUser": {
+          "name": "matteo.collina",
+          "email": "hello@matteocollina.com"
+        },
+        "repository": {
+          "url": "git+https://github.com/fastify/fast-uri.git",
+          "type": "git"
+        },
+        "_npmVersion": "11.16.0",
+        "description": "Dependency-free RFC 3986 URI toolbox",
+        "directories": {},
+        "_nodeVersion": "24.18.0",
+        "_hasShrinkwrap": false,
+        "readmeFilename": "README.md",
+        "devDependencies": {
+          "ajv": "^8.16.0",
+          "tsd": "^0.33.0",
+          "tape": "^5.8.1",
+          "eslint": "^9.17.0",
+          "neostandard": "^0.13.0",
+          "playwright-test": "^14.1.12"
+        },
+        "_npmOperationalInternal": {
+          "tmp": "tmp/fast-uri_3.1.7_1788347201866_0.7398132088129097",
+          "host": "s3://npm-registry-packages-npm-production"
+        }
+      },
+      "new_metadata": {
+        "name": "fast-uri",
+        "version": "3.1.8",
+        "author": {
+          "url": "https://github.com/zekth",
+          "name": "Vincent Le Goff",
+          "email": "vince.legoff@gmail.com"
+        },
+        "license": "BSD-3-Clause",
+        "_id": "fast-uri@3.1.8",
+        "maintainers": [
+          {
+            "name": "jsumners",
+            "email": "james.sumners@gmail.com"
+          },
+          {
+            "name": "delvedor",
+            "email": "tommydelved@gmail.com"
+          },
+          {
+            "name": "matteo.collina",
+            "email": "hello@matteocollina.com"
+          },
+          {
+            "name": "eomm",
+            "email": "behemoth89@gmail.com"
+          },
+          {
+            "name": "metcoder95",
+            "email": "me@metcoder.dev"
+          },
+          {
+            "name": "climba03003",
+            "email": "kaka@kakawebsitedemo.com"
+          },
+          {
+            "name": "gurgunday",
+            "email": "hey@gurgun.day"
+          },
+          {
+            "name": "ivan-tymoshenko",
+            "email": "ivan@tymoshenko.me"
+          },
+          {
+            "name": "fdawgs",
+            "email": "frazer.dev@icloud.com"
+          },
+          {
+            "name": "zekth",
+            "email": "vince.legoff@gmail.com"
+          }
+        ],
+        "contributors": [
+          {
+            "name": "Matteo Collina",
+            "email": "hello@matteocollina.com"
+          },
+          {
+            "url": "https://heyhey.to/G",
+            "name": "Gürgün Dayıoğlu",
+            "email": "hey@gurgun.day"
+          },
+          {
+            "name": "Aras Abbasi",
+            "email": "aras.abbasi@gmail.com"
+          },
+          {
+            "url": "https://github.com/fdawgs",
+            "name": "Frazer Smith",
+            "email": "frazer.dev@icloud.com"
+          }
+        ],
+        "homepage": "https://github.com/fastify/fast-uri",
+        "bugs": {
+          "url": "https://github.com/fastify/fast-uri/issues"
+        },
+        "dist": {
+          "shasum": "f7db8d942e20eead3cfe93b0beeb4eb0169e938b",
+          "tarball": "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.8.tgz",
+          "fileCount": 44,
+          "integrity": "sha512-GZMtZUTNRpOVIECoXwLNZS5xUGE+mVNbTB8h/7Rwh2TFWcBQiPzTgyZi05BF9UMZKkLJv8XBRJTlU7zg8+ZfMg==",
+          "signatures": [
+            {
+              "sig": "MEQCIAFY8R/oklnujz86Qp91RCMZ7Q4UKVpOIyK6SVQucORxAiB3QAr2EGigSFZvLpNSMnMTSU+e6xRonnMOqbVfgCgmGw==",
+              "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+            },
+            {
+              "sig": "MEQCIBapYWmwkYVjiNluF7sQZV/v5LCo8e8ABySbJBEICb0CAiAIZoX7yNR4Bh0DuxT3O6hMiBK+fJMbXyEtMYKHbj+Fkg==",
+              "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+            }
+          ],
+          "unpackedSize": 220886
+        },
+        "main": "index.js",
+        "type": "commonjs",
+        "types": "types/index.d.ts",
+        "funding": [
+          {
+            "url": "https://github.com/sponsors/fastify",
+            "type": "github"
+          },
+          {
+            "url": "https://opencollective.com/fastify",
+            "type": "opencollective"
+          }
+        ],
+        "gitHead": "ead3ab7bb134c989e972c8174632d0670023f269",
+        "scripts": {
+          "lint": "eslint",
+          "test": "npm run test:unit && npm run test:typescript",
+          "lint:fix": "eslint --fix",
+          "test:unit": "tape test/**/*.js",
+          "test:browser": "npm run test:browser:chromium && npm run test:browser:firefox && npm run test:browser:webkit",
+          "test:unit:dev": "npm run test:unit -- --coverage-report=html",
+          "test:typescript": "tsd",
+          "test:browser:webkit": "playwright-test ./test/* --runner tape --browser=webkit",
+          "test:browser:firefox": "playwright-test ./test/* --runner tape --browser=firefox",
+          "test:browser:chromium": "playwright-test ./test/* --runner tape --browser=chromium"
+        },
+        "_npmUser": {
+          "name": "matteo.collina",
+          "email": "hello@matteocollina.com"
+        },
+        "repository": {
+          "url": "git+https://github.com/fastify/fast-uri.git",
+          "type": "git"
+        },
+        "_npmVersion": "11.16.0",
+        "description": "Dependency-free RFC 3986 URI toolbox",
+        "directories": {},
+        "_nodeVersion": "24.18.0",
+        "_hasShrinkwrap": false,
+        "readmeFilename": "README.md",
+        "devDependencies": {
+          "ajv": "^8.16.0",
+          "tsd": "^0.33.0",
+          "tape": "^5.8.1",
+          "eslint": "^9.17.0",
+          "neostandard": "^0.13.0",
+          "playwright-test": "^14.1.12"
+        },
+        "_npmOperationalInternal": {
+          "tmp": "tmp/fast-uri_3.1.8_1789457785353_0.9627518832501254",
+          "host": "s3://npm-registry-packages-npm-production"
+        }
+      }
+    },
+    {
+      "file": "ccr-ui/bun.lock",
+      "node": "@typescript-eslint/typescript-estree/minimatch/brace-expansion",
+      "package": "brace-expansion",
+      "old_version": "5.0.9",
+      "new_version": "5.0.12",
+      "parents": [
+        {
+          "node": "@typescript-eslint/typescript-estree/minimatch",
+          "package": "minimatch@10.2.5",
+          "range": "^5.0.5"
+        }
+      ],
+      "dev": "transitive; root dev path verified separately",
+      "affected_advisories": [
+        {
+          "advisory": "GHSA-qhr7-859c-m2p7",
+          "range": ">= 4.0.0  < 5.0.11",
+          "first_patched_version": "5.0.11"
+        },
+        {
+          "advisory": "GHSA-6j4f-fj2g-mc7p",
+          "range": ">= 4.0.0  < 5.0.10",
+          "first_patched_version": "5.0.10"
+        },
+        {
+          "advisory": "GHSA-q2hr-2g5m-vwhr",
+          "range": ">= 4.0.0  < 5.0.12",
+          "first_patched_version": "5.0.12"
+        }
+      ],
+      "all_new_advisory_ranges_checked": [
+        {
+          "advisory": "GHSA-qhr7-859c-m2p7",
+          "range": ">= 4.0.0  < 5.0.11",
+          "first_patched_version": "5.0.11"
+        },
+        {
+          "advisory": "GHSA-qhr7-859c-m2p7",
+          "range": ">= 3.0.0  < 3.0.8",
+          "first_patched_version": "3.0.8"
+        },
+        {
+          "advisory": "GHSA-qhr7-859c-m2p7",
+          "range": ">= 2.0.0  < 2.1.6",
+          "first_patched_version": "2.1.6"
+        },
+        {
+          "advisory": "GHSA-qhr7-859c-m2p7",
+          "range": "< 1.1.20",
+          "first_patched_version": "1.1.20"
+        },
+        {
+          "advisory": "GHSA-6j4f-fj2g-mc7p",
+          "range": ">= 4.0.0  < 5.0.10",
+          "first_patched_version": "5.0.10"
+        },
+        {
+          "advisory": "GHSA-6j4f-fj2g-mc7p",
+          "range": ">= 3.0.0  < 3.0.7",
+          "first_patched_version": "3.0.7"
+        },
+        {
+          "advisory": "GHSA-6j4f-fj2g-mc7p",
+          "range": ">= 2.0.0  < 2.1.5",
+          "first_patched_version": "2.1.5"
+        },
+        {
+          "advisory": "GHSA-6j4f-fj2g-mc7p",
+          "range": "< 1.1.19",
+          "first_patched_version": "1.1.19"
+        },
+        {
+          "advisory": "GHSA-q2hr-2g5m-vwhr",
+          "range": ">= 4.0.0  < 5.0.12",
+          "first_patched_version": "5.0.12"
+        },
+        {
+          "advisory": "GHSA-q2hr-2g5m-vwhr",
+          "range": ">= 3.0.0  < 3.0.9",
+          "first_patched_version": "3.0.9"
+        },
+        {
+          "advisory": "GHSA-q2hr-2g5m-vwhr",
+          "range": ">= 2.0.0  < 2.1.7",
+          "first_patched_version": "2.1.7"
+        },
+        {
+          "advisory": "GHSA-q2hr-2g5m-vwhr",
+          "range": "< 1.1.21",
+          "first_patched_version": "1.1.21"
+        }
+      ],
+      "old_integrity": "sha512-ScQ4IuvIEF1TMlP7Zt+vjJ//9zlPb2SDcxWxM3bk8s6t6GGdJ7KO1dCcTidOPJKePW30LE/2cT7wCyPho9/Wxg==",
+      "new_integrity": "sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ==",
+      "tarball": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.12.tgz",
+      "old_published": "2026-07-30T10:00:32.762Z",
+      "new_published": "2026-09-14T21:59:00.288Z",
+      "dependencies_unchanged": true,
+      "engines_unchanged": true,
+      "old_metadata": {
+        "name": "brace-expansion",
+        "version": "5.0.9",
+        "license": "MIT",
+        "_id": "brace-expansion@5.0.9",
+        "maintainers": [
+          {
+            "name": "juliangruber",
+            "email": "julian@juliangruber.com"
+          },
+          {
+            "name": "isaacs",
+            "email": "i@izs.me"
+          }
+        ],
+        "homepage": "https://github.com/juliangruber/brace-expansion#readme",
+        "bugs": {
+          "url": "https://github.com/juliangruber/brace-expansion/issues"
+        },
+        "dist": {
+          "shasum": "7c72438809b5fa5babf54199a1f1c281a6984fcf",
+          "tarball": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.9.tgz",
+          "fileCount": 13,
+          "integrity": "sha512-ScQ4IuvIEF1TMlP7Zt+vjJ//9zlPb2SDcxWxM3bk8s6t6GGdJ7KO1dCcTidOPJKePW30LE/2cT7wCyPho9/Wxg==",
+          "signatures": [
+            {
+              "sig": "MEUCIAgdIZoGt/rOarHA5ZF22kENZifkkVBzBWMSxSOzfRaEAiEA4fifGUXsu32uOIvE9dw/7T6NzHGzDDvV9CCL6S0Xi6E=",
+              "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+            },
+            {
+              "sig": "MEYCIQCoNjL+4MyTrsPgTXWe/jh5JFsJixo02eboSGatPQ+UagIhANWlmimfI9B6DeEWfkQcJMBj17DYF2t5L3D7QvifLiRo",
+              "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+            }
+          ],
+          "unpackedSize": 70705
+        },
+        "main": "./dist/commonjs/index.js",
+        "tshy": {
+          "exports": {
+            ".": "./src/index.ts",
+            "./package.json": "./package.json"
+          }
+        },
+        "type": "module",
+        "types": "./dist/commonjs/index.d.ts",
+        "module": "./dist/esm/index.js",
+        "engines": {
+          "node": "20 || >=22"
+        },
+        "exports": {
+          ".": {
+            "import": {
+              "types": "./dist/esm/index.d.ts",
+              "default": "./dist/esm/index.js"
+            },
+            "require": {
+              "types": "./dist/commonjs/index.d.ts",
+              "default": "./dist/commonjs/index.js"
+            }
+          },
+          "./package.json": "./package.json"
+        },
+        "gitHead": "fbcf8ec75b88c79374b4aac06559b1a5288a1223",
+        "scripts": {
+          "snap": "tap",
+          "test": "tap",
+          "format": "prettier --write .",
+          "prepare": "tshy",
+          "presnap": "npm run prepare",
+          "pretest": "npm run prepare",
+          "typedoc": "typedoc --tsconfig .tshy/esm.json ./src/*.ts",
+          "benchmark": "node benchmark/index.js",
+          "preversion": "npm test",
+          "postversion": "npm publish",
+          "prepublishOnly": "git push origin --follow-tags"
+        },
+        "_npmUser": {
+          "name": "juliangruber",
+          "email": "julian@juliangruber.com"
+        },
+        "repository": {
+          "url": "git+https://github.com/juliangruber/brace-expansion.git",
+          "type": "git"
+        },
+        "_npmVersion": "11.13.0",
+        "description": "Brace expansion as known from sh/bash",
+        "directories": {},
+        "_nodeVersion": "24.16.0",
+        "dependencies": {
+          "balanced-match": "^4.0.2"
+        },
+        "_hasShrinkwrap": false,
+        "devDependencies": {
+          "tap": "^21.6.2",
+          "tshy": "^3.0.2",
+          "mkdirp": "^3.0.1",
+          "typedoc": "^0.28.5",
+          "prettier": "^3.3.2",
+          "@types/node": "^25.2.1",
+          "@types/brace-expansion": "^1.1.2"
+        },
+        "_npmOperationalInternal": {
+          "tmp": "tmp/brace-expansion_5.0.9_1785405632689_0.7859694356111775",
+          "host": "s3://npm-registry-packages-npm-production"
+        }
+      },
+      "new_metadata": {
+        "name": "brace-expansion",
+        "version": "5.0.12",
+        "license": "MIT",
+        "_id": "brace-expansion@5.0.12",
+        "maintainers": [
+          {
+            "name": "juliangruber",
+            "email": "julian@juliangruber.com"
+          },
+          {
+            "name": "isaacs",
+            "email": "i@izs.me"
+          }
+        ],
+        "homepage": "https://github.com/juliangruber/brace-expansion#readme",
+        "bugs": {
+          "url": "https://github.com/juliangruber/brace-expansion/issues"
+        },
+        "dist": {
+          "shasum": "995fbb4750a77c4d16a7dc942ff2ca6ef8e675ec",
+          "tarball": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.12.tgz",
+          "fileCount": 13,
+          "integrity": "sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ==",
+          "signatures": [
+            {
+              "sig": "MEQCIAMXX2WNJDJJkVHQORu87Mi5BGgEzbA21nhoBLCd5pVbAiAty43mX29opG/0V0Oh41VVzPRs+bijBdQ3ao+wyviCsg==",
+              "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+            },
+            {
+              "sig": "MEUCIQDZemgdCtGEvGCCV16aS9sGD8McnOAM5EM80gowpoytHwIgNLc7QYBEXho5Tgpn5+IY2fXgSrvXlQejMT/jf5f+++o=",
+              "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+            }
+          ],
+          "unpackedSize": 84997
+        },
+        "main": "./dist/commonjs/index.js",
+        "tshy": {
+          "exports": {
+            ".": "./src/index.ts",
+            "./package.json": "./package.json"
+          }
+        },
+        "type": "module",
+        "types": "./dist/commonjs/index.d.ts",
+        "module": "./dist/esm/index.js",
+        "engines": {
+          "node": "20 || >=22"
+        },
+        "exports": {
+          ".": {
+            "import": {
+              "types": "./dist/esm/index.d.ts",
+              "default": "./dist/esm/index.js"
+            },
+            "require": {
+              "types": "./dist/commonjs/index.d.ts",
+              "default": "./dist/commonjs/index.js"
+            }
+          },
+          "./package.json": "./package.json"
+        },
+        "gitHead": "f3410159d768f56c9d9f4511d3e1b46425fc1099",
+        "scripts": {
+          "snap": "tap",
+          "test": "tap",
+          "format": "prettier --write .",
+          "prepare": "tshy",
+          "presnap": "npm run prepare",
+          "pretest": "npm run prepare",
+          "typedoc": "typedoc --tsconfig .tshy/esm.json ./src/*.ts",
+          "benchmark": "node benchmark/index.js",
+          "preversion": "npm test",
+          "postversion": "npm publish",
+          "format:check": "prettier --check .",
+          "prepublishOnly": "git push origin --follow-tags"
+        },
+        "_npmUser": {
+          "name": "juliangruber",
+          "email": "julian@juliangruber.com"
+        },
+        "repository": {
+          "url": "git+https://github.com/juliangruber/brace-expansion.git",
+          "type": "git"
+        },
+        "_npmVersion": "11.13.0",
+        "description": "Brace expansion as known from sh/bash",
+        "directories": {},
+        "_nodeVersion": "24.16.0",
+        "dependencies": {
+          "balanced-match": "^4.0.2"
+        },
+        "_hasShrinkwrap": false,
+        "devDependencies": {
+          "tap": "^21.6.2",
+          "tshy": "^3.0.2",
+          "mkdirp": "^3.0.1",
+          "typedoc": "^0.28.5",
+          "prettier": "^3.3.2",
+          "@types/node": "^25.2.1",
+          "@types/brace-expansion": "^1.1.2"
+        },
+        "_npmOperationalInternal": {
+          "tmp": "tmp/brace-expansion_5.0.12_1789423140204_0.170643808293506",
+          "host": "s3://npm-registry-packages-npm-production"
+        }
+      }
+    },
+    {
+      "file": "ccr-ui/bun.lock",
+      "node": "glob/minimatch/brace-expansion",
+      "package": "brace-expansion",
+      "old_version": "5.0.9",
+      "new_version": "5.0.12",
+      "parents": [
+        {
+          "node": "glob/minimatch",
+          "package": "minimatch@10.2.5",
+          "range": "^5.0.5"
+        }
+      ],
+      "dev": "transitive; root dev path verified separately",
+      "affected_advisories": [
+        {
+          "advisory": "GHSA-qhr7-859c-m2p7",
+          "range": ">= 4.0.0  < 5.0.11",
+          "first_patched_version": "5.0.11"
+        },
+        {
+          "advisory": "GHSA-6j4f-fj2g-mc7p",
+          "range": ">= 4.0.0  < 5.0.10",
+          "first_patched_version": "5.0.10"
+        },
+        {
+          "advisory": "GHSA-q2hr-2g5m-vwhr",
+          "range": ">= 4.0.0  < 5.0.12",
+          "first_patched_version": "5.0.12"
+        }
+      ],
+      "all_new_advisory_ranges_checked": [
+        {
+          "advisory": "GHSA-qhr7-859c-m2p7",
+          "range": ">= 4.0.0  < 5.0.11",
+          "first_patched_version": "5.0.11"
+        },
+        {
+          "advisory": "GHSA-qhr7-859c-m2p7",
+          "range": ">= 3.0.0  < 3.0.8",
+          "first_patched_version": "3.0.8"
+        },
+        {
+          "advisory": "GHSA-qhr7-859c-m2p7",
+          "range": ">= 2.0.0  < 2.1.6",
+          "first_patched_version": "2.1.6"
+        },
+        {
+          "advisory": "GHSA-qhr7-859c-m2p7",
+          "range": "< 1.1.20",
+          "first_patched_version": "1.1.20"
+        },
+        {
+          "advisory": "GHSA-6j4f-fj2g-mc7p",
+          "range": ">= 4.0.0  < 5.0.10",
+          "first_patched_version": "5.0.10"
+        },
+        {
+          "advisory": "GHSA-6j4f-fj2g-mc7p",
+          "range": ">= 3.0.0  < 3.0.7",
+          "first_patched_version": "3.0.7"
+        },
+        {
+          "advisory": "GHSA-6j4f-fj2g-mc7p",
+          "range": ">= 2.0.0  < 2.1.5",
+          "first_patched_version": "2.1.5"
+        },
+        {
+          "advisory": "GHSA-6j4f-fj2g-mc7p",
+          "range": "< 1.1.19",
+          "first_patched_version": "1.1.19"
+        },
+        {
+          "advisory": "GHSA-q2hr-2g5m-vwhr",
+          "range": ">= 4.0.0  < 5.0.12",
+          "first_patched_version": "5.0.12"
+        },
+        {
+          "advisory": "GHSA-q2hr-2g5m-vwhr",
+          "range": ">= 3.0.0  < 3.0.9",
+          "first_patched_version": "3.0.9"
+        },
+        {
+          "advisory": "GHSA-q2hr-2g5m-vwhr",
+          "range": ">= 2.0.0  < 2.1.7",
+          "first_patched_version": "2.1.7"
+        },
+        {
+          "advisory": "GHSA-q2hr-2g5m-vwhr",
+          "range": "< 1.1.21",
+          "first_patched_version": "1.1.21"
+        }
+      ],
+      "old_integrity": "sha512-ScQ4IuvIEF1TMlP7Zt+vjJ//9zlPb2SDcxWxM3bk8s6t6GGdJ7KO1dCcTidOPJKePW30LE/2cT7wCyPho9/Wxg==",
+      "new_integrity": "sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ==",
+      "tarball": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.12.tgz",
+      "old_published": "2026-07-30T10:00:32.762Z",
+      "new_published": "2026-09-14T21:59:00.288Z",
+      "dependencies_unchanged": true,
+      "engines_unchanged": true,
+      "old_metadata": {
+        "name": "brace-expansion",
+        "version": "5.0.9",
+        "license": "MIT",
+        "_id": "brace-expansion@5.0.9",
+        "maintainers": [
+          {
+            "name": "juliangruber",
+            "email": "julian@juliangruber.com"
+          },
+          {
+            "name": "isaacs",
+            "email": "i@izs.me"
+          }
+        ],
+        "homepage": "https://github.com/juliangruber/brace-expansion#readme",
+        "bugs": {
+          "url": "https://github.com/juliangruber/brace-expansion/issues"
+        },
+        "dist": {
+          "shasum": "7c72438809b5fa5babf54199a1f1c281a6984fcf",
+          "tarball": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.9.tgz",
+          "fileCount": 13,
+          "integrity": "sha512-ScQ4IuvIEF1TMlP7Zt+vjJ//9zlPb2SDcxWxM3bk8s6t6GGdJ7KO1dCcTidOPJKePW30LE/2cT7wCyPho9/Wxg==",
+          "signatures": [
+            {
+              "sig": "MEUCIAgdIZoGt/rOarHA5ZF22kENZifkkVBzBWMSxSOzfRaEAiEA4fifGUXsu32uOIvE9dw/7T6NzHGzDDvV9CCL6S0Xi6E=",
+              "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+            },
+            {
+              "sig": "MEYCIQCoNjL+4MyTrsPgTXWe/jh5JFsJixo02eboSGatPQ+UagIhANWlmimfI9B6DeEWfkQcJMBj17DYF2t5L3D7QvifLiRo",
+              "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+            }
+          ],
+          "unpackedSize": 70705
+        },
+        "main": "./dist/commonjs/index.js",
+        "tshy": {
+          "exports": {
+            ".": "./src/index.ts",
+            "./package.json": "./package.json"
+          }
+        },
+        "type": "module",
+        "types": "./dist/commonjs/index.d.ts",
+        "module": "./dist/esm/index.js",
+        "engines": {
+          "node": "20 || >=22"
+        },
+        "exports": {
+          ".": {
+            "import": {
+              "types": "./dist/esm/index.d.ts",
+              "default": "./dist/esm/index.js"
+            },
+            "require": {
+              "types": "./dist/commonjs/index.d.ts",
+              "default": "./dist/commonjs/index.js"
+            }
+          },
+          "./package.json": "./package.json"
+        },
+        "gitHead": "fbcf8ec75b88c79374b4aac06559b1a5288a1223",
+        "scripts": {
+          "snap": "tap",
+          "test": "tap",
+          "format": "prettier --write .",
+          "prepare": "tshy",
+          "presnap": "npm run prepare",
+          "pretest": "npm run prepare",
+          "typedoc": "typedoc --tsconfig .tshy/esm.json ./src/*.ts",
+          "benchmark": "node benchmark/index.js",
+          "preversion": "npm test",
+          "postversion": "npm publish",
+          "prepublishOnly": "git push origin --follow-tags"
+        },
+        "_npmUser": {
+          "name": "juliangruber",
+          "email": "julian@juliangruber.com"
+        },
+        "repository": {
+          "url": "git+https://github.com/juliangruber/brace-expansion.git",
+          "type": "git"
+        },
+        "_npmVersion": "11.13.0",
+        "description": "Brace expansion as known from sh/bash",
+        "directories": {},
+        "_nodeVersion": "24.16.0",
+        "dependencies": {
+          "balanced-match": "^4.0.2"
+        },
+        "_hasShrinkwrap": false,
+        "devDependencies": {
+          "tap": "^21.6.2",
+          "tshy": "^3.0.2",
+          "mkdirp": "^3.0.1",
+          "typedoc": "^0.28.5",
+          "prettier": "^3.3.2",
+          "@types/node": "^25.2.1",
+          "@types/brace-expansion": "^1.1.2"
+        },
+        "_npmOperationalInternal": {
+          "tmp": "tmp/brace-expansion_5.0.9_1785405632689_0.7859694356111775",
+          "host": "s3://npm-registry-packages-npm-production"
+        }
+      },
+      "new_metadata": {
+        "name": "brace-expansion",
+        "version": "5.0.12",
+        "license": "MIT",
+        "_id": "brace-expansion@5.0.12",
+        "maintainers": [
+          {
+            "name": "juliangruber",
+            "email": "julian@juliangruber.com"
+          },
+          {
+            "name": "isaacs",
+            "email": "i@izs.me"
+          }
+        ],
+        "homepage": "https://github.com/juliangruber/brace-expansion#readme",
+        "bugs": {
+          "url": "https://github.com/juliangruber/brace-expansion/issues"
+        },
+        "dist": {
+          "shasum": "995fbb4750a77c4d16a7dc942ff2ca6ef8e675ec",
+          "tarball": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.12.tgz",
+          "fileCount": 13,
+          "integrity": "sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ==",
+          "signatures": [
+            {
+              "sig": "MEQCIAMXX2WNJDJJkVHQORu87Mi5BGgEzbA21nhoBLCd5pVbAiAty43mX29opG/0V0Oh41VVzPRs+bijBdQ3ao+wyviCsg==",
+              "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+            },
+            {
+              "sig": "MEUCIQDZemgdCtGEvGCCV16aS9sGD8McnOAM5EM80gowpoytHwIgNLc7QYBEXho5Tgpn5+IY2fXgSrvXlQejMT/jf5f+++o=",
+              "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+            }
+          ],
+          "unpackedSize": 84997
+        },
+        "main": "./dist/commonjs/index.js",
+        "tshy": {
+          "exports": {
+            ".": "./src/index.ts",
+            "./package.json": "./package.json"
+          }
+        },
+        "type": "module",
+        "types": "./dist/commonjs/index.d.ts",
+        "module": "./dist/esm/index.js",
+        "engines": {
+          "node": "20 || >=22"
+        },
+        "exports": {
+          ".": {
+            "import": {
+              "types": "./dist/esm/index.d.ts",
+              "default": "./dist/esm/index.js"
+            },
+            "require": {
+              "types": "./dist/commonjs/index.d.ts",
+              "default": "./dist/commonjs/index.js"
+            }
+          },
+          "./package.json": "./package.json"
+        },
+        "gitHead": "f3410159d768f56c9d9f4511d3e1b46425fc1099",
+        "scripts": {
+          "snap": "tap",
+          "test": "tap",
+          "format": "prettier --write .",
+          "prepare": "tshy",
+          "presnap": "npm run prepare",
+          "pretest": "npm run prepare",
+          "typedoc": "typedoc --tsconfig .tshy/esm.json ./src/*.ts",
+          "benchmark": "node benchmark/index.js",
+          "preversion": "npm test",
+          "postversion": "npm publish",
+          "format:check": "prettier --check .",
+          "prepublishOnly": "git push origin --follow-tags"
+        },
+        "_npmUser": {
+          "name": "juliangruber",
+          "email": "julian@juliangruber.com"
+        },
+        "repository": {
+          "url": "git+https://github.com/juliangruber/brace-expansion.git",
+          "type": "git"
+        },
+        "_npmVersion": "11.13.0",
+        "description": "Brace expansion as known from sh/bash",
+        "directories": {},
+        "_nodeVersion": "24.16.0",
+        "dependencies": {
+          "balanced-match": "^4.0.2"
+        },
+        "_hasShrinkwrap": false,
+        "devDependencies": {
+          "tap": "^21.6.2",
+          "tshy": "^3.0.2",
+          "mkdirp": "^3.0.1",
+          "typedoc": "^0.28.5",
+          "prettier": "^3.3.2",
+          "@types/node": "^25.2.1",
+          "@types/brace-expansion": "^1.1.2"
+        },
+        "_npmOperationalInternal": {
+          "tmp": "tmp/brace-expansion_5.0.12_1789423140204_0.170643808293506",
+          "host": "s3://npm-registry-packages-npm-production"
+        }
+      }
+    }
+  ],
+  "source_sha256_after": {
+    "ccr-ui/bun.lock": "f4d25c2659543ffbc3c439a92813f0d67d9c44c2bc3d881d7e3710bb52adbf1e",
+    "ccr-ui/package.json": "c9f7e5f78730643ca444fa1191feceb66bc1cf56509bf3e60edf85dbabf3a0cf",
+    "docs/bun.lock": "fcc99d04e4ebe06c175db3744907db9bace0f0ee22c7a5cb1100051bf07b6434",
+    "docs/package.json": "786d7ddf7793d63faa3fe22befb8109da2e008b4693e1cdb298c0e1ac330636c",
+    "ccr-vscode/package-lock.json": "846b84a475e48c9e7f335a87121a1894dc64548f41449d2dd54a5b932174fdd4",
+    "ccr-vscode/package.json": "ae72468d025b9714f8870a04cbdeaec4041290bc86d489b478e2080b74d49c50"
+  },
+  "changed_source_paths": [
+    "ccr-ui/bun.lock"
+  ],
+  "package_count_before": 743,
+  "package_count_after": 743,
+  "changed_nodes": [
+    "brace-expansion",
+    "fast-uri",
+    "@typescript-eslint/typescript-estree/minimatch/brace-expansion",
+    "glob/minimatch/brace-expansion"
+  ],
+  "finished_utc": "2026-09-30T03:41:25.406052+00:00"
+}

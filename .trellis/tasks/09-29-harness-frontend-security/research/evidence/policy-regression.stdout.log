@@ -1,9 +1,0 @@
-
- RUN  v4.1.11 D:/Documents/Code/Github/ccr/ccr-ui
-
-
- Test Files  1 passed (1)
-      Tests  3 passed (3)
-   Start at  21:32:20
-   Duration  1.18s (transform 41ms, setup 169ms, import 21ms, tests 3ms, environment 840ms)
-
