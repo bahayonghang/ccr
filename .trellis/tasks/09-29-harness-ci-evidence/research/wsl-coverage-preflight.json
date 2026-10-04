@@ -1,6 +1,0 @@
-{
-  "command": "WSL Ubuntu-24.04 coverage prerequisites",
-  "exit_code": 0,
-  "stdout": "{\"llvm_cov_exists\": false, \"components\": {\"exit\": 0, \"stdout\": \"cargo-x86_64-unknown-linux-gnu\\nclippy-x86_64-unknown-linux-gnu\\nllvm-tools-x86_64-unknown-linux-gnu\\nrust-docs-x86_64-unknown-linux-gnu\\nrust-std-x86_64-unknown-linux-gnu\\nrustc-x86_64-unknown-linux-gnu\\nrustfmt-x86_64-unknown-linux-gnu\\n\", \"stderr\": \"\"}}\n",
-  "stderr": ""
-}

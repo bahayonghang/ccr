@@ -1,0 +1,6 @@
+{
+  "command": "WSL Ubuntu-24.04 installed rustup toolchain list",
+  "exit_code": 0,
+  "stdout": "{\"exit_code\": 0, \"stdout\": \"stable-x86_64-unknown-linux-gnu (default)\\n1.88.0-x86_64-unknown-linux-gnu\\n1.98.0-x86_64-unknown-linux-gnu (active)\\n\", \"stderr\": \"\"}\n",
+  "stderr": ""
+}
