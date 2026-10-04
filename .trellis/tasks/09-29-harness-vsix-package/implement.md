@@ -37,8 +37,29 @@
 
 ## 当前追加公告状态
 
-上方两个补丁的 PASS 是历史快照。2026-09-30 UTC 的后续 npm audit 报告 brace-expansion 与 fast-uri 两个受影响包。新的 5.0.12 / 3.1.8 兼容目标已由强模型复核，正在等待补充批准；未应用新增扩展节点。详见父任务 [追加方案](../09-29-evergreen-harness-audit/research/new-advisories-proposal.md) 与 [独立复核](../09-29-evergreen-harness-audit/research/new-advisories-independent-review.md)。
+上方两个补丁的 PASS 是历史快照。2026-09-30 UTC 的后续 npm audit 报告 brace-expansion 与 fast-uri 两个受影响包。新的 5.0.12 / 3.1.8 兼容目标已由强模型复核。当时记录为等待补充批准，且未按两节点补丁应用。详见父任务 [追加方案](../09-29-evergreen-harness-audit/research/new-advisories-proposal.md) 与 [独立复核](../09-29-evergreen-harness-audit/research/new-advisories-independent-review.md)。
 
 - [ ] 用户批准两个新目标。
 - [ ] 批准后只改上述两个解析节点，保留 undici 7.29.1。
 - [ ] 完成 npm ci、npm audit、扩展 CI、覆盖率、最终 VSIX 与完整聚合检查。
+
+2026-10-04 用户改为批准 VSCE 4 两文件迁移。上面三行两节点续作未按该范围实施，勾选保持未完成。`brace-expansion` 5.0.12 在候选闭包保留记录中；`fast-uri` 与 `undici` 为 null。见 `research/resume-2026-10-04-vsix-candidate-diff.json` 的 `approved_targets_retained`。
+
+## 2026-10-04 续作检查点
+
+- [x] 用户要求继续固定补丁范围，见父任务 approval.json。
+- [ ] 核验保存的版本完整性与父依赖范围，仅修改两个节点。
+- [ ] npm ci、npm audit、just vscode-ci、just vscode-coverage 和最终 VSIX 清单通过。
+- [ ] 独立复核及父任务完整聚合验收；保留历史失败。
+
+本检查点的两节点步骤被下一节 VSCE 4 迁移取代，保持未勾选。
+
+## 2026-10-04 VSCE 4 迁移检查点
+
+- [x] 用户明确批准两文件主版本与依赖闭包迁移。
+- [x] 等当前完整 CI 快照结束后应用候选，不混用旧快照。
+- [x] 固定 Node 24.20.0 安装与审计；验证 CLI 路径和 Node engines。
+- [x] 真实默认扫描拒绝合成 secret 与 .env；普通允许包通过。
+- [x] 扩展 CI、覆盖率、源码清单及最终 VSIX 通过，保留原失败。
+- [x] 最终 full CI：2026-10-04 `just ci` 退出 0，15:06.415，16 步全 OK；2509 个交付源文件字节保持。回执 `../09-29-evergreen-harness-audit/research/resume-2026-10-04-vsce4-full-ci.json`。
+- [x] 独立复核；本机固定版本不替代 hosted/native。见 `research/resume-2026-10-04-vsce4-independent-review.md`。hosted CI、Marketplace、原生激活仍为 UNVERIFIED。

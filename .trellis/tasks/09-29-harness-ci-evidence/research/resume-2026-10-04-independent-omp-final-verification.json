@@ -1,0 +1,36 @@
+{
+  "recorded_at_utc": "2026-10-04T13:28:45.297454+00:00",
+  "receipts": {
+    "local": {
+      "exit_code": 0,
+      "receipt_sha256": "8892c7001afd33e238aea0b7f1c177ef1db4ee7d33a44e00b4d9a0779798a6dd",
+      "logs_and_inputs_match": true
+    },
+    "absent": {
+      "exit_code": 0,
+      "receipt_sha256": "50bf7b46e2f431cd9bc9e3d5cf134872e02aeab1c0cda9cefae55a28f09e7821",
+      "logs_and_inputs_match": true
+    },
+    "diff-check": {
+      "exit_code": 0,
+      "receipt_sha256": "ef71a9719d42d1e72b95635a9b4a5a40f3add2b860f5cd29b4c42acb1c1ef573",
+      "logs_and_inputs_match": true
+    },
+    "version": {
+      "exit_code": 0,
+      "receipt_sha256": "f387aa934fa4a14080c269a28d657f35141dd7a269130ea976fe42c57a58caaa",
+      "logs_and_inputs_match": true
+    }
+  },
+  "matching_generation": {
+    "project_version": "0.7.0-beta.4",
+    "installed_cli_version": "0.6.17",
+    "status": "UNVERIFIED"
+  },
+  "final_default_diff_check": {
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "warning: in the working copy of '.trellis/spec/ccr/backend/test-fixtures.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.trellis/tasks/09-29-evergreen-harness-audit/approval.json', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.trellis/tasks/09-29-harness-ci-evidence/design.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.trellis/tasks/09-29-harness-ci-evidence/implement.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.trellis/tasks/09-29-harness-ci-evidence/task.json', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.trellis/tasks/09-29-harness-frontend-security/prd.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.trellis/tasks/09-29-harness-frontend-security/task.json', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.trellis/tasks/09-29-harness-vsix-package/design.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.trellis/tasks/09-29-harness-vsix-package/implement.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.trellis/tasks/09-29-harness-vsix-package/task.json', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.trellis/tasks/archive/2026-09/09-29-harness-omp-context/prd.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.trellis/tasks/archive/2026-09/09-29-harness-omp-context/task.json', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'ccr-vscode/package-lock.json', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'scripts/trellis/omp-context.test.ts', LF will be replaced by CRLF the next time Git touches it\n"
+  },
+  "boundary": "T01 local generated tests14pass; absent14skip status marker; matching generation UNVERIFIED; fullCI checked separately."
+}

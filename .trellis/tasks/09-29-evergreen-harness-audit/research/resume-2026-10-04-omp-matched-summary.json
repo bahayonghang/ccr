@@ -1,0 +1,64 @@
+{
+  "generated_extension_sha256": "5fbd4cfe2461f5457c6ba93fb168ad0dbdfc0e76d6626fd0407eebc13baf8a35",
+  "saved_extension_path": "resume-2026-10-04-omp-matched-generated-extension.ts",
+  "artifact_path_occurrences": [
+    {
+      "line": 300,
+      "text": "// Task context \u2014 prd.md, info.md, and jsonl-referenced spec/research files"
+    },
+    {
+      "line": 316,
+      "text": "      join(taskDir, \"prd.md\"),"
+    },
+    {
+      "line": 317,
+      "text": "      join(taskDir, \"info.md\"),"
+    },
+    {
+      "line": 643,
+      "text": "   // prd.md and info.md \u2014 always included"
+    },
+    {
+      "line": 644,
+      "text": "   const prdPath = join(taskDir, \"prd.md\");"
+    },
+    {
+      "line": 650,
+      "text": "   const infoPath = join(taskDir, \"info.md\");"
+    }
+  ],
+  "project_version": "0.7.0-beta.4",
+  "installed_cli_node": {
+    "version": "0.7.0-beta.4",
+    "resolved": "https://registry.npmjs.org/@mindfoldhq/trellis/-/trellis-0.7.0-beta.4.tgz",
+    "integrity": "sha512-lMyT42xwL+HxX8UP38XaEIyC/X7QhhQi4Hg7P7TiUDpaFvE/2uEzdM0vI7QPJWtr2swa63bWruI0jBKUFc6Clg==",
+    "license": "AGPL-3.0-only",
+    "dependencies": {
+      "@mindfoldhq/trellis-core": "0.7.0-beta.4",
+      "chalk": "^5.3.0",
+      "commander": "^12.1.0",
+      "figlet": "^1.9.4",
+      "giget": "^3.1.1",
+      "inquirer": "^9.3.7",
+      "undici": "^6.21.0",
+      "zod": "^4.4.2"
+    },
+    "bin": {
+      "tl": "bin/trellis.js",
+      "trellis": "bin/trellis.js"
+    },
+    "engines": {
+      "node": ">=18.17.0"
+    }
+  },
+  "installed_core_version": "0.7.0-beta.4",
+  "fixture_test_sha256": "61ba8ec1861c4dd234d0a994b01f19d7368340df960d4b8ca2676b3c562f738a",
+  "all_14_tests_executed": true,
+  "pass": 8,
+  "fail": 6,
+  "expect_calls": 50,
+  "skip": 0,
+  "fresh_generation_contract_status": "FAIL",
+  "native_loading_trust": "UNVERIFIED",
+  "product_files_changed": false
+}

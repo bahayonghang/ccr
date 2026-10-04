@@ -1,0 +1,18 @@
+{
+  "started_utc": "2026-10-04T13:43:24.801768+00:00",
+  "finished_utc": "2026-10-04T13:43:30.656042+00:00",
+  "outer_exit_code": 0,
+  "streams": {
+    "stdout": {
+      "path": "resume-2026-10-04-independent-bindings.stdout.log",
+      "bytes": 16274,
+      "sha256": "0884db5ba37877bc8d8c6c6af3adf7434692aa66c4ec77e3e84b8affdaadd30f"
+    },
+    "stderr": {
+      "path": "resume-2026-10-04-independent-bindings.stderr.log",
+      "bytes": 1186,
+      "sha256": "afe166dc1c4bcd8c53aa746d2d3b27b6574ed4a015975ef9dc2b187fb3c126b9"
+    }
+  },
+  "boundary": "Official binding check diagnostic; raw first failure captured and original bytes restored."
+}

@@ -1,0 +1,46 @@
+{
+  "started_utc": "2026-10-04T13:21:25.044900+00:00",
+  "finished_utc": "2026-10-04T13:21:25.118475+00:00",
+  "elapsed_seconds": 0.074,
+  "argv": [
+    "git",
+    "diff",
+    "--check",
+    "--",
+    "scripts/trellis/omp-context.test.ts",
+    "docs/agents/harnesses.md",
+    "docs/en/agents/harnesses.md"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "os": "Windows-11-10.0.26300-SP0",
+  "head": "c50716b5ed1bcd1c5b4950a746a8621258d0e0b5",
+  "bun_version": "1.4.2",
+  "input_sha256_before": {
+    "scripts\\trellis\\omp-context.test.ts": "61ba8ec1861c4dd234d0a994b01f19d7368340df960d4b8ca2676b3c562f738a",
+    ".omp\\extensions\\trellis\\index.ts": "a9ef13beb1bb7214e2ada5cb43fea596065ab296b68a8da171220a77840c5851",
+    "docs\\agents\\harnesses.md": "49e23c24c9ee60191f16e5ca9a8eae6c1a058d435bb6e125dfda26ed8da65b7b",
+    "docs\\en\\agents\\harnesses.md": "d97002c42537fa16a080546f238b5ac4eccef031f4c60e40013c8bef11b1c44d"
+  },
+  "input_sha256_after": {
+    "scripts\\trellis\\omp-context.test.ts": "61ba8ec1861c4dd234d0a994b01f19d7368340df960d4b8ca2676b3c562f738a",
+    ".omp\\extensions\\trellis\\index.ts": "a9ef13beb1bb7214e2ada5cb43fea596065ab296b68a8da171220a77840c5851",
+    "docs\\agents\\harnesses.md": "49e23c24c9ee60191f16e5ca9a8eae6c1a058d435bb6e125dfda26ed8da65b7b",
+    "docs\\en\\agents\\harnesses.md": "d97002c42537fa16a080546f238b5ac4eccef031f4c60e40013c8bef11b1c44d"
+  },
+  "exit_code": 0,
+  "streams": {
+    "stdout": {
+      "path": "resume-2026-10-04-omp-adjustment-diff-check.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stderr": {
+      "path": "resume-2026-10-04-omp-adjustment-diff-check.stderr.log",
+      "bytes": 128,
+      "sha256": "d28ad61c6f745f37d90af0d22b08d9f48b0ffdeaa0ae322eaca203da368c6736"
+    }
+  },
+  "summary": [],
+  "native_loading_trust": "UNVERIFIED",
+  "boundary": "scoped whitespace check"
+}

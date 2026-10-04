@@ -16,3 +16,7 @@
 
 ## 依赖
 T06。父子层级不代替执行顺序。
+
+## 2026-10-04 继续实施范围
+
+用户在未完成清单后要求继续实施。新增白名单：`crates/ccr/tests/managers/general.rs`、`crates/ccr/tests/managers/legacy_registry.rs`，仅应用已复核候选的六个命名环境夹具绑定；`.gitignore` 精确忽略本任务的 `research/tauri-advisory-commands.json`。保留原始 JSON、诊断失败、测试并行度与生产锁逻辑。

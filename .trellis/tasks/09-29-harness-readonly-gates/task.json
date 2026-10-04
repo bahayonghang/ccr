@@ -44,8 +44,11 @@
     "latest_full_aggregate_receipt": "../09-29-evergreen-harness-audit/research/final-ci-retry1.json",
     "aggregate_receipts": [
       ".trellis/tasks/09-29-evergreen-harness-audit/research/final-ci.json",
-      ".trellis/tasks/09-29-evergreen-harness-audit/research/final-ci-retry1.json"
+      ".trellis/tasks/09-29-evergreen-harness-audit/research/final-ci-retry1.json",
+      ".trellis/tasks/09-29-evergreen-harness-audit/research/resume-2026-10-04-vsce4-full-ci.json"
     ],
+    "latest_pass_aggregate": "2026-10-04 just ci PASS in 15:06.415; 2509 source hashes unchanged",
+    "latest_pass_aggregate_receipt": "../09-29-evergreen-harness-audit/research/resume-2026-10-04-vsce4-full-ci.json",
     "delivery_authorization": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json#delivery_authorization",
     "work_commits": [
       "c4d38e5154edf6a8fa1c781f91d31ce6aa4bb5ad",
@@ -54,6 +57,6 @@
       "30cbeddf730ed01b312c3396ba7b8691853be859"
     ],
     "archive_eligibility": "not_eligible",
-    "remaining_acceptance": "正式完整 CI 仍为 FAILED。"
+    "remaining_acceptance": "2026-10-04 迁移后 just ci 退出 0，源哈希无漂移，四条本地 AC 已按实际执行项勾选。hosted CI 仍 UNVERIFIED。前置 T03 AC3、T01 原生加载和 T08 原 0 例外未关闭，任务不归档。"
   }
 }

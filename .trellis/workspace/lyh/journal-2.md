@@ -1906,3 +1906,37 @@ TuiTheme 新增 Auto 并设为默认值：启动时持久化 auto 或 env=auto �
 - 扩展新增依赖补丁及 managers 六处夹具绑定仍待范围批准，候选未应用。
 - T03/T05/T06/T07/T08 和父任务继续保留未完成验收；未推送、未创建 PR、未发布。
 - 1,164,069 字节的 tauri-advisory-commands.json 单项提交确认尚未收到，文件保留本地且未跟踪。
+
+## Session 118: 常青项目剩余本地复核
+<!-- trellis-session: v=2 fp=01a1073b-3362-7160 -->
+
+**Date**: 2026-10-04
+**Task**: 09-29-evergreen-harness-audit
+**Branch**: `dev`
+
+### Summary
+
+补写 T05 VSCE 4、T07 六处夹具和 T08 聚合的主会话复核。按已有 `just ci` 回执勾选 T06 本地 AC。五个子任务和父任务仍为 `in_progress`。未提交。
+
+### Main Changes
+
+- T05 复核确认两个包文件哈希与候选一致。hosted、Marketplace、原生激活保持 UNVERIFIED。
+- T06 记录 15:06.415 的 16 步 OK 和 2509 个源文件字节不变。
+- T07 规范新增一句具名夹具绑定。AC3 的 macOS、fresh-client、hosted 仍缺。
+- T08 Frontend Audit 为 1/1，不满足原 0 例外。未改政策，未加深度回归测试。
+- T01 匹配版本补丁未应用。T03 未触发 Dependabot。
+
+### Testing
+
+- [OK] 复核当前 `package.json` 与 `package-lock.json` SHA-256，与候选相同。
+- 未重跑 `just ci`。使用回执 `research/resume-2026-10-04-vsce4-full-ci.json`。
+
+### Status
+
+[OK] **Partial** — 可在本机关闭的复核已写入；缺环境或缺批准的验收保持打开。
+
+### Next Steps
+
+- 需要用户明确句子后，才能接受 T08 唯一例外或应用 T01 匹配版本补丁。
+- T03 下一次真实 Dependabot、macOS、fresh-client、hosted、Marketplace、原生激活仍为 UNVERIFIED。
+- 本轮工作区改动尚未提交。未推送，未创建 PR，未发布。

@@ -1,0 +1,37 @@
+{
+  "captured_utc": "2026-10-04T13:23:29.199659+00:00",
+  "argv": [
+    "trellis",
+    "--version"
+  ],
+  "exit_code": 0,
+  "os": "Windows-11-10.0.26300-SP0",
+  "head": "c50716b5ed1bcd1c5b4950a746a8621258d0e0b5",
+  "streams": {
+    "stdout": {
+      "bytes": 96,
+      "sha256": "34355be78c44a022fb3d0c81d57c30c595d7b4bb4ce994c0302e1295f7e34d5b",
+      "path": "resume-2026-10-04-omp-adjustment-version.stdout.log"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "path": "resume-2026-10-04-omp-adjustment-version.stderr.log"
+    }
+  },
+  "input_sha256_before": {
+    "scripts/trellis/omp-context.test.ts": "61ba8ec1861c4dd234d0a994b01f19d7368340df960d4b8ca2676b3c562f738a",
+    ".omp/extensions/trellis/index.ts": "a9ef13beb1bb7214e2ada5cb43fea596065ab296b68a8da171220a77840c5851",
+    ".trellis/.version": "cb4fc7434e06f0d48f7feca29e9e138ddf0799948de46245c55ceea8ec479061"
+  },
+  "input_sha256_after": {
+    "scripts/trellis/omp-context.test.ts": "61ba8ec1861c4dd234d0a994b01f19d7368340df960d4b8ca2676b3c562f738a",
+    ".omp/extensions/trellis/index.ts": "a9ef13beb1bb7214e2ada5cb43fea596065ab296b68a8da171220a77840c5851",
+    ".trellis/.version": "cb4fc7434e06f0d48f7feca29e9e138ddf0799948de46245c55ceea8ec479061"
+  },
+  "project_version": "0.7.0-beta.4",
+  "installed_cli_version": "0.6.17",
+  "matching_version_generation": "UNVERIFIED",
+  "reason": "CLI and project versions differ; generated extension has no embedded generation version",
+  "upgrade_or_regeneration_performed": false
+}

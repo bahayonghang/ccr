@@ -49,7 +49,7 @@
     {
       "id": "new-advisories-vscode-compatible-followup",
       "recorded_at_utc": "2026-09-30T03:50:27.481872+00:00",
-      "status": "awaiting_user",
+      "status": "approved_for_resumption",
       "task": "T05",
       "file": "ccr-vscode/package-lock.json",
       "versions": {
@@ -65,12 +65,13 @@
         "just vscode-coverage",
         "final VSIX inventory",
         "full just ci after all source edits"
-      ]
+      ],
+      "approval_basis": "2026-10-04 user continuation after the preceding concrete status report"
     },
     {
       "id": "manager-lock-fixture-guard-followup",
       "recorded_at_utc": "2026-09-30T04:03:35.667202+00:00",
-      "status": "awaiting_user",
+      "status": "approved_for_resumption",
       "task": "T07",
       "files": [
         "crates/ccr/tests/managers/general.rs",
@@ -98,7 +99,31 @@
         "T07 context validation",
         "independent final diff review"
       ],
-      "independent_review": "../09-29-harness-ci-evidence/research/manager-lock-independent-review.md"
+      "independent_review": "../09-29-harness-ci-evidence/research/manager-lock-independent-review.md",
+      "approval_basis": "2026-10-04 user continuation after the preceding concrete status report"
+    },
+    {
+      "id": "vsce4-braces-chain-followup",
+      "date": "2026-10-04",
+      "status": "approved_for_implementation",
+      "task": "T05",
+      "files": [
+        "ccr-vscode/package.json",
+        "ccr-vscode/package-lock.json"
+      ],
+      "change_summary": "@vscode/vsce ^3.9.2 -> ^4.0.0 and required dependency closure; candidate only",
+      "proposal": "../09-29-harness-vsix-package/research/resume-2026-10-04-vsix-braces-proposal.md",
+      "reason": "No upstream braces patched release; major tooling migration exceeds the two-node approval.",
+      "user_answer": "批准 VSCE 4 迁移和完整验证（推荐）",
+      "required_checks": [
+        "fixed Node 24.20.0 install",
+        "synthetic secret and .env scanner negative cases",
+        "npm audit",
+        "just vscode-ci",
+        "just vscode-coverage",
+        "final VSIX allowlist",
+        "full just ci and independent review"
+      ]
     }
   ],
   "delivery_authorization": {
@@ -113,7 +138,7 @@
       "commit",
       "archive"
     ],
-    "pending_scope_requests_remain_awaiting_user": true,
+    "pending_scope_requests_remain_awaiting_user": false,
     "not_authorized": [
       "push",
       "pull request",
@@ -124,7 +149,33 @@
     "large_evidence_file": {
       "path": ".trellis/tasks/09-29-harness-ci-evidence/research/tauri-advisory-commands.json",
       "bytes": 1164069,
-      "status": "awaiting_user_commit_choice"
+      "status": "user_requested_exact_ignore"
     }
-  }
+  },
+  "resumption_authorizations": [
+    {
+      "date": "2026-10-04",
+      "user_message": "Tauri 诊断 JSON需要忽略，然后继续实施trellis任务",
+      "scope": [
+        "exact ignore for tauri-advisory-commands.json",
+        "T05 two compatible lock node targets reported in prior response",
+        "T07 six named environment fixture bindings reported in prior response",
+        "required checks, independent review and task evidence writeback"
+      ],
+      "acceptance_changes_not_inferred": [
+        "T08 maxActiveExceptions 0 -> 1",
+        "T01 repository-only fixture -> generated-client integration"
+      ]
+    }
+  ],
+  "acceptance_adjustments": [
+    {
+      "date": "2026-10-04",
+      "task": "T01",
+      "user_answer": "批准保留本地生成并调整验收（推荐）",
+      "approved": true,
+      "contract": "Matching generated extension must execute all 14 tests. Missing extension is SKIPPED_UNVERIFIED. Native loading/trust remains separate.",
+      "proposal": "research/resume-2026-10-04-acceptance-proposal.md"
+    }
+  ]
 }

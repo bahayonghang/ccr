@@ -1,0 +1,52 @@
+{
+  "recordedUtc": "2026-10-04T13:38:10.018837+00:00",
+  "toolsPath": "/mnt/d/Documents/Code/Github/ccr/target/evergreen-linux-tools/bin",
+  "targetDir": "/mnt/d/Documents/Code/Github/ccr/target/evergreen-linux-coverage",
+  "toolsBinaryExists": true,
+  "commands": [
+    {
+      "argv": [
+        "rustc",
+        "--version",
+        "--verbose"
+      ],
+      "nativeExit": 0,
+      "stdout": "resume-2026-10-04-formal-linux-rustc-version.stdout.log"
+    },
+    {
+      "argv": [
+        "cargo",
+        "--version"
+      ],
+      "nativeExit": 0,
+      "stdout": "resume-2026-10-04-formal-linux-cargo-version.stdout.log"
+    },
+    {
+      "argv": [
+        "cargo",
+        "llvm-cov",
+        "--version"
+      ],
+      "nativeExit": 0,
+      "stdout": "resume-2026-10-04-formal-linux-llvm-cov-version.stdout.log"
+    },
+    {
+      "argv": [
+        "rustup",
+        "component",
+        "list",
+        "--installed"
+      ],
+      "nativeExit": 0,
+      "stdout": "resume-2026-10-04-formal-linux-rust-components.stdout.log"
+    },
+    {
+      "argv": [
+        "python3",
+        "--version"
+      ],
+      "nativeExit": 0,
+      "stdout": "resume-2026-10-04-formal-linux-python-version.stdout.log"
+    }
+  ]
+}

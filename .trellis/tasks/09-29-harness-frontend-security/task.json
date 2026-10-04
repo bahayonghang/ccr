@@ -49,6 +49,10 @@
       "30cbeddf730ed01b312c3396ba7b8691853be859"
     ],
     "archive_eligibility": "not_eligible",
-    "remaining_acceptance": "最终 LF 完整前端门槛及任务声明的最终完整 CI 尚未完成。"
+    "remaining_acceptance": "原 AC1 的 0 例外未满足。2026-10-04 just ci 的 Frontend Audit 为 1/1，不关闭 AC1。例外批准与持久深度回归测试未批准。",
+    "current_acceptance": "Original AC1 maxActiveExceptions=0 unmet by current committed 1/1 exception; adjustment awaits explicit reply.",
+    "aggregate_review_2026_10_04": "research/resume-2026-10-04-aggregate-review.md",
+    "research_2026_10_04": "research/resume-2026-10-04-ui-contract-report.md",
+    "current_status_date": "2026-10-04"
   }
 }

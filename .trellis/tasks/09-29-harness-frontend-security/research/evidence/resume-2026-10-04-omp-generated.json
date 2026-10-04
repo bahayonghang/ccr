@@ -1,0 +1,31 @@
+{
+  "command": [
+    "bun",
+    "test",
+    "scripts/trellis/omp-context.test.ts"
+  ],
+  "executable": "C:\\Users\\lyh\\scoop\\shims\\bun.EXE",
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "started_utc": "2026-10-04T12:32:13.146330+00:00",
+  "finished_utc": "2026-10-04T12:32:14.045593+00:00",
+  "duration_seconds": 0.899,
+  "environment_overrides": {},
+  "exit_code": 0,
+  "input_sha256_before": {
+    "ccr-ui/package.json": "9c5dd80eb0f48ded67fed038dd65f0d4b98dab9e2f5d48760d4f30e23db248e5",
+    "ccr-ui/bun.lock": "2cc27709fcd10c18d1dfff536b63ac234db12644e742226afa563d86a4ef547d",
+    "ccr-ui/scripts/frontend-audit-allowlist.json": "72f0b9f7c644332ecea775f559b996d435bd29657410ff185a3ce9062126cf04",
+    "ccr-ui/scripts/audit-dependencies.mjs": "08c993e5689828795216fa875eed8279df1c54fa168c806d6efe07b83a11e071",
+    "justfile": "6bd6ee7903b875b0c3f6ecfce6984484e96c3f0f96658c700a29539456f724a6"
+  },
+  "input_sha256_after": {
+    "ccr-ui/package.json": "9c5dd80eb0f48ded67fed038dd65f0d4b98dab9e2f5d48760d4f30e23db248e5",
+    "ccr-ui/bun.lock": "2cc27709fcd10c18d1dfff536b63ac234db12644e742226afa563d86a4ef547d",
+    "ccr-ui/scripts/frontend-audit-allowlist.json": "72f0b9f7c644332ecea775f559b996d435bd29657410ff185a3ce9062126cf04",
+    "ccr-ui/scripts/audit-dependencies.mjs": "08c993e5689828795216fa875eed8279df1c54fa168c806d6efe07b83a11e071",
+    "justfile": "6bd6ee7903b875b0c3f6ecfce6984484e96c3f0f96658c700a29539456f724a6"
+  },
+  "stdout_sha256": "6043908c8d26d62698476b88f737f39d5d3e91008d4155a81730902f5a37479c",
+  "stderr_sha256": "2ff01c995d3f9e8eedfe5bee9d46fef6787b89bd282bfb40581ed46ad02f65d2"
+}

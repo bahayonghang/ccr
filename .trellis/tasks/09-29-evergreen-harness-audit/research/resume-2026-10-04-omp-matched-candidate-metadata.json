@@ -1,0 +1,17 @@
+{
+  "generated_utc": "2026-10-04T13:31:09.496376+00:00",
+  "original_sha256": "5fbd4cfe2461f5457c6ba93fb168ad0dbdfc0e76d6626fd0407eebc13baf8a35",
+  "custom_sha256": "a9ef13beb1bb7214e2ada5cb43fea596065ab296b68a8da171220a77840c5851",
+  "patch_sha256": "e70526c73eedb4562587a77895f8d5f32a01b896f5b7f9137ca791d50d35268e",
+  "added_lines": 16,
+  "removed_lines": 14,
+  "original_crlf": 0,
+  "custom_crlf": 0,
+  "candidate_only": true,
+  "scope": [
+    "shared planning artifact list",
+    "cache input paths",
+    "trusted artifact materialization"
+  ],
+  "actual_repo_application": false
+}

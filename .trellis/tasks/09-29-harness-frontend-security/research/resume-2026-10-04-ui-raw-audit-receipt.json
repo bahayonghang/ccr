@@ -1,0 +1,6 @@
+{
+  "command": "bun audit --json --audit-level=high",
+  "exitCode": 1,
+  "expectedNonzeroForKnownAdvisory": 1,
+  "lockSha256": "2CC27709FCD10C18D1DFFF536B63AC234DB12644E742226AFA563D86A4EF547D"
+}

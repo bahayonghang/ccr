@@ -75,3 +75,7 @@ Windows recipe 使用 PowerShell；Linux/macOS recipe body 在 Windows 主机的
 | AC4 | 本报告只认领实际执行项 | 主会话分别归集 coverage-rust、coverage-tauri、MSRV、hosted、原生运行时证据 |
 
 共享知识回写由主会话负责，目标为 `.trellis/spec/ccr/backend/dependency-governance.md` 和五工具说明。以上命令与边界适用于 Claude Code、Codex、Grok Build、Kimi Code、OMP。没有提交、归档、推送、远端触发或发布。
+
+## 2026-10-04 主会话聚合
+
+迁移后 `just ci` 退出 0，TOTAL 15:06.415，16 步 OK。2509 个交付源文件前后哈希一致，`changed_source_paths` 为空，`source_bytes_preserved` 为 true。回执 `../09-29-evergreen-harness-audit/research/resume-2026-10-04-vsce4-full-ci.json`。AC4 只覆盖这次实际执行项。历史 FAIL 回执保留。hosted CI 仍为 UNVERIFIED。本段没有重跑 `just ci`。

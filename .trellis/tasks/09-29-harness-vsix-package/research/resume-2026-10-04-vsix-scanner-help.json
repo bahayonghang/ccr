@@ -1,0 +1,41 @@
+{
+  "started_utc": "2026-10-04T13:44:13.974385+00:00",
+  "finished_utc": "2026-10-04T13:44:14.394537+00:00",
+  "elapsed_seconds": 0.42,
+  "os": "Windows-11-10.0.26300-SP0",
+  "head": "c50716b5ed1bcd1c5b4950a746a8621258d0e0b5",
+  "argv": [
+    "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-vscode-node24-qj3077e2\\node.exe",
+    "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-vsce4-scanner-8j01z3o1\\cli\\node_modules\\@vscode\\vsce\\vsce",
+    "package",
+    "--help"
+  ],
+  "cwd": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-vsce4-scanner-8j01z3o1\\cli",
+  "exit_code": 0,
+  "streams": {
+    "stdout": {
+      "path": "resume-2026-10-04-vsix-scanner-help.stdout.log",
+      "bytes": 4956,
+      "sha256": "be99fa06441a4a45efcea6687c1336f02d69ebe34e24fb2e2fb46421c06c354c"
+    },
+    "stderr": {
+      "path": "resume-2026-10-04-vsix-scanner-help.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "input_sha256_before": {
+    "ccr-vscode/package.json": "2772ba01e054ad6b98c02338c1c6426b5ae2ff15af56221b3b2a8dbc876d34ec",
+    "ccr-vscode/package-lock.json": "eac58599d926c08ca203ae96541955111f2e5202032d2641a1805916b8fc016d",
+    "scripts/trellis/omp-context.test.ts": "61ba8ec1861c4dd234d0a994b01f19d7368340df960d4b8ca2676b3c562f738a",
+    ".omp/extensions/trellis/index.ts": "a9ef13beb1bb7214e2ada5cb43fea596065ab296b68a8da171220a77840c5851"
+  },
+  "input_sha256_after": {
+    "ccr-vscode/package.json": "2772ba01e054ad6b98c02338c1c6426b5ae2ff15af56221b3b2a8dbc876d34ec",
+    "ccr-vscode/package-lock.json": "eac58599d926c08ca203ae96541955111f2e5202032d2641a1805916b8fc016d",
+    "scripts/trellis/omp-context.test.ts": "61ba8ec1861c4dd234d0a994b01f19d7368340df960d4b8ca2676b3c562f738a",
+    ".omp/extensions/trellis/index.ts": "a9ef13beb1bb7214e2ada5cb43fea596065ab296b68a8da171220a77840c5851"
+  },
+  "node_version": "24.20.0",
+  "boundary": "temporary synthetic VSCE 4 packaging; no account operation"
+}

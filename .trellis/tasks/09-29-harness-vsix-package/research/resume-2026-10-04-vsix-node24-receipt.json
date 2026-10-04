@@ -1,0 +1,25 @@
+{
+  "started_utc": "2026-10-04T13:33:39.058986+00:00",
+  "finished_utc": "2026-10-04T13:39:15.160295+00:00",
+  "os": "Windows-11-10.0.26300-SP0",
+  "head": "c50716b5ed1bcd1c5b4950a746a8621258d0e0b5",
+  "manifest_url": "https://nodejs.org/dist/v24.20.0/SHASUMS256.txt",
+  "manifest_http_status": 200,
+  "manifest_sha256": "c614a913a302d35d1c3a1348d07d84c52e28dceb0b97fd91e4ade05906ca2bd7",
+  "binary_url": "https://nodejs.org/dist/v24.20.0/win-x64/node.exe",
+  "binary_http_status": 200,
+  "binary_bytes": 93381448,
+  "binary_sha256": "5c976096e04e5c2c1f091938926234cc9fbebfe9787ddd149351b3b0ecc707b5",
+  "expected_sha256": "5c976096e04e5c2c1f091938926234cc9fbebfe9787ddd149351b3b0ecc707b5",
+  "temporary_executable": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-vscode-node24-qj3077e2\\node.exe",
+  "argv": [
+    "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-vscode-node24-qj3077e2\\node.exe",
+    "--version"
+  ],
+  "actual_version": "v24.20.0",
+  "exit_code": 0,
+  "input_lock_sha256_before": "54d4c87d656c896c4e80742e2e1c682abb2ea17a671500184eab6969baf792eb",
+  "input_lock_sha256_after": "54d4c87d656c896c4e80742e2e1c682abb2ea17a671500184eab6969baf792eb",
+  "global_installation": false,
+  "actual_extension_node_modules_changed": false
+}

@@ -28,12 +28,12 @@
     ".trellis/spec/ccr/backend/test-fixtures.md",
     ".trellis/spec/ccr/backend/dependency-governance.md"
   ],
-  "notes": "用户已批准实施并授权本地提交和验收完成后的归档。推送、PR、发布和两个新增补丁仍未授权。历史批准记录见父任务 approval.json。",
+  "notes": "2026-10-04 用户要求精确忽略 Tauri 诊断 JSON 并继续实施报告中的固定剩余补丁。当前验收结果待新的正式回执。历史授权与边界见父任务 approval.json。",
   "meta": {
     "implementation_approved": true,
     "parent_plan": ".trellis/tasks/09-29-evergreen-harness-audit",
     "approval_record": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json",
-    "local_implementation": "validation_and_writeback_complete",
+    "local_implementation": "six named fixture bindings and exact diagnostic ignore applied; six narrow gates, workspace test and strict lint passed",
     "acceptance": {
       "AC1": "passed with historical root causes preserved as unknown",
       "AC2": "passed at unchanged local full-suite thresholds",
@@ -48,7 +48,7 @@
     "results": "research/implementation-results.md",
     "latest_full_aggregate": "final-ci-retry1: failed at Test, managers legacy_registry file-lock path missing; 2509 source hashes unchanged",
     "latest_full_aggregate_receipt": "../09-29-evergreen-harness-audit/research/final-ci-retry1.json",
-    "new_manager_failure": "Confirmed six unguarded default-lock-directory readers; exact failing thread interleaving remains unobserved. Narrow diagnostics passed 1/1 and 17/17; aggregate failure retained.",
+    "new_manager_failure": "Confirmed shared-environment isolation gap fixed; historical exact interleaving remains unobserved. Current exact 1/1 and suites 17/17 passed.",
     "pending_scope_request": "manager-lock-fixture-guard-followup",
     "delivery_status": "locally committed; task remains in_progress with acceptance gaps",
     "delivery_authorization": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json#delivery_authorization",
@@ -59,6 +59,15 @@
       "30cbeddf730ed01b312c3396ba7b8691853be859"
     ],
     "archive_eligibility": "not_eligible",
-    "remaining_acceptance": "managers 夹具候选待批准；macOS 与原生客户端等证据未齐。"
+    "remaining_acceptance": "首轮完整 CI 的绑定漂移失败保留。同日复验 just tauri-bindings-check 退出 0，迁移后 just ci 退出 0。macOS、fresh-client、hosted 仍 UNVERIFIED。",
+    "resumption_date": "2026-10-04",
+    "continuation_status": "implementation_and_verification_in_progress",
+    "pending_scope_request_status": "approved_for_resumption",
+    "latest_manager_results": "research/resume-2026-10-04-manager-results.md",
+    "large_diagnostic_evidence": "Ignored exactly at user request; bytes retained.",
+    "current_status_date": "2026-10-04",
+    "latest_aggregate_receipt": "../09-29-evergreen-harness-audit/research/resume-2026-10-04-full-ci.json",
+    "latest_pass_aggregate_receipt": "../09-29-evergreen-harness-audit/research/resume-2026-10-04-vsce4-full-ci.json",
+    "post_apply_review": "research/resume-2026-10-04-manager-independent-review.md"
   }
 }

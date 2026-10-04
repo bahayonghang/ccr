@@ -36,6 +36,6 @@
 - [x] 首次冻结安装、audit 0、policy 回归3/3通过。
 - [x] 完整前端和覆盖率检查：169 文件/904 测试；Lines 75.21%（13083/17395），Statements 72.93%（14655/20092）；回执注明首次 CRLF SHA。
 - [x] 独立审查发现首次补丁把 LF 写为 CRLF；已恢复原 LF，四行反向替换逐字节还原原文件，最终冻结安装、审计 0 与定向 diff 检查通过。
-- [ ] 主会话独立复核与最终完整 CI。
+- [x] 主会话独立复核与最终完整 CI。2026-10-04 `just ci` 退出 0，Frontend Audit 为 1/1。复核见 `research/resume-2026-10-04-aggregate-review.md`。该结果不满足原 AC1 的 0 例外，任务不归档。
 
 后续记录：[research/new-advisories-implementation-results.md](research/new-advisories-implementation-results.md)。任务继续保持 `in_progress`，不提交或归档。

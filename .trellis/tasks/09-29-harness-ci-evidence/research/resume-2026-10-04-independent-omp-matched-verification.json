@@ -1,0 +1,50 @@
+{
+  "recorded_at_utc": "2026-10-04T13:31:28.846469+00:00",
+  "receipts": {
+    "install": {
+      "exit_code": 0,
+      "receipt_sha256": "b4c2d7a5b450cc4801568599b36204312dd21d263112a9287736fdf6c3cb1c95",
+      "logs_and_recorded_real_product_inputs_match": true
+    },
+    "version": {
+      "exit_code": 0,
+      "receipt_sha256": "89b360d1d42aede4faaa5d6c3e029f0cc60433089337bbf8baf3028b2c7e1f62",
+      "logs_and_recorded_real_product_inputs_match": true
+    },
+    "help": {
+      "exit_code": 0,
+      "receipt_sha256": "d201b87cca6b737140a67f813c5ee2b3e9c4dcab7d1b6f2f879e39565bd08059",
+      "logs_and_recorded_real_product_inputs_match": true
+    },
+    "init": {
+      "exit_code": 0,
+      "receipt_sha256": "6101ca3e1786b1c9b75a153985d46720df34310a69a39b64cd9e2c00f9890a4c",
+      "logs_and_recorded_real_product_inputs_match": true
+    },
+    "test": {
+      "exit_code": 1,
+      "receipt_sha256": "012e012079b64c35ffbc5bae401edeb641e59ed39b01eee79d3bbb2d4b94bebb",
+      "logs_and_recorded_real_product_inputs_match": true
+    }
+  },
+  "fresh_generation_contract_status": "FAILED",
+  "failed_test_names": [
+    "OMP Trellis buildTaskContext > main and each role receive prd/design/implement markers",
+    "OMP Trellis buildTaskContext > design and implementation edits refresh the existing session cache",
+    "OMP Trellis buildTaskContext > explicit trusted roots permit artifact and manifest symlinks",
+    "OMP Trellis buildTaskContext > artifact and file caps truncate on complete UTF-8 characters",
+    "OMP Trellis buildTaskContext > total context cap emits a required-read notice without oversized content",
+    "OMP Trellis buildTaskContext > binary and malformed UTF-8 artifacts stay omitted"
+  ],
+  "pass": 8,
+  "fail": 6,
+  "expect_calls": 50,
+  "skip": 0,
+  "generated_source_sha256": "5fbd4cfe2461f5457c6ba93fb168ad0dbdfc0e76d6626fd0407eebc13baf8a35",
+  "generated_version": "0.7.0-beta.4",
+  "source_cause": "Generated cache input and materialization paths include prd/info but omit design/implement. All six first failing assertions require design materialization.",
+  "official_registry_and_installed_lock_match": true,
+  "official_tarball_raw_bytes": "Original download not retained in this independent scope; original integrity receipt retained. No re-download.",
+  "native_loading_trust": "UNVERIFIED",
+  "boundary": "Owned temporary project generation; real ignored extension and product inputs unchanged during these receipts; no native-client failure claim."
+}

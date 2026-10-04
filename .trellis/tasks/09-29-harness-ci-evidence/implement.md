@@ -37,4 +37,22 @@
 - [ ] 批准后更新精确白名单、应用候选并完成定向、工作区和完整 just ci 门槛。
 - [ ] 在已有 test-fixtures 规范写回传递环境读取及适用五工具，完成独立复核。
 
-六行候选已通过 [独立静态审查](research/manager-lock-independent-review.md)。批准后必须保留该报告列出的现有 fixture 专门检查和完整入口；候选仍未应用。
+六行候选已通过 [独立静态审查](research/manager-lock-independent-review.md)。批准后必须保留该报告列出的现有 fixture 专门检查和完整入口。上列三项是批准前清单。2026-10-04 检查点已应用六个绑定；不要按本段再次改源码。
+
+## 2026-10-04 续作检查点
+
+- [x] 用户要求忽略诊断 JSON 并继续现有任务，固定候选范围见父任务 approval.json。
+- [x] 核对候选 SHA 与当前源码，应用六个绑定及精确忽略规则。
+- [x] 执行独立审查报告列出的定向、完整 managers、platforms、commands sync_content、clippy 门槛。
+- [x] 父任务执行 lint-strict、just test、governance 与完整 just ci，保留新回执。2026-10-04 迁移后 `just ci` 退出 0，见 `../09-29-evergreen-harness-audit/research/resume-2026-10-04-vsce4-full-ci.json`。
+- [x] 独立复核和规范回写；macOS、hosted、fresh-client 证据缺失继续单列。复核见 `research/resume-2026-10-04-manager-independent-review.md`。规范新增句在 `.trellis/spec/ccr/backend/test-fixtures.md`，尚未提交。AC3 仍使任务保持未完成。
+
+## 2026-10-04 首轮完整 CI 结果
+
+`just version-check`、`just fmt-check`、`just lint-strict` 和 `just test` 分别通过；工作区测试 1867 passed、16 ignored、0 failed。六个夹具补充门槛见 `research/resume-2026-10-04-manager-results.md`。
+
+首轮 `just ci` 退出 1，耗时 809.32 秒，在 Tauri bindings-check 失败，6 个生成文件漂移；此前 11 个阶段通过。2509 个交付源文件运行前后哈希一致，绑定校验恢复了原始源码。原始失败、stdout/stderr 和父任务回执 `../09-29-evergreen-harness-audit/research/resume-2026-10-04-full-ci.json` 保留。
+
+Tauri 绑定修复超出当前白名单，先收集和独立复核具体生成差异，再提交补充范围。Linux 正式 coverage 和本机 MSRV/Tauri coverage 本轮证据尚在收集中，不能使用历史结果代替。
+
+2026-10-04 稍后复验：串行再生成差异为 0，正式 `just tauri-bindings-check` 退出 0。记录见 `research/resume-2026-10-04-bindings-recheck.md`。首轮失败保留，原因未查明，没有产品补丁。

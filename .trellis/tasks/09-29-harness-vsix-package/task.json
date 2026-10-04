@@ -29,17 +29,17 @@
     ".trellis/spec/ccr-vscode/frontend/extension-surface-contracts.md",
     "ccr-vscode/package-lock.json"
   ],
-  "notes": "用户已批准实施并授权本地提交和验收完成后的归档。推送、PR、发布和两个新增补丁仍未授权。历史批准记录见父任务 approval.json。",
+  "notes": "2026-10-04 VSCE 4 本地门禁、迁移后 just ci 与主会话复核已写入。hosted、Marketplace、原生激活仍为 UNVERIFIED。本轮改动尚未提交。",
   "meta": {
     "implementation_approved": true,
     "parent_plan": ".trellis/tasks/09-29-evergreen-harness-audit",
     "approval_record": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json",
     "extension_dependency_patch_approved": true,
-    "local_implementation": "passed",
+    "local_implementation": "two additional lock nodes applied; extension CI, coverage and package gates passed",
     "independent_review": "../09-29-evergreen-harness-audit/research/independent-review.md",
     "delivery_status": "locally committed; task remains in_progress with acceptance gaps",
-    "latest_security_audit": "failed: brace-expansion and fast-uri; further compatible targets await user approval",
-    "pending_scope_request": "new-advisories-vscode-compatible-followup",
+    "latest_security_audit": "FAILED: 6 high affected packages in braces -> micromatch -> fast-glob -> globby -> secretlint -> @vscode/vsce chain",
+    "pending_scope_request": "vsce4-braces-chain-followup",
     "delivery_authorization": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json#delivery_authorization",
     "work_commits": [
       "c4d38e5154edf6a8fa1c781f91d31ce6aa4bb5ad",
@@ -48,6 +48,15 @@
       "30cbeddf730ed01b312c3396ba7b8691853be859"
     ],
     "archive_eligibility": "not_eligible",
-    "remaining_acceptance": "新增扩展依赖补丁仍待批准，当前审计两个受影响包。"
+    "remaining_acceptance": "VSCE 4 本地门禁、迁移后 just ci 与主会话复核已完成。hosted CI、Marketplace、原生激活仍为 UNVERIFIED。历史两节点续作未按该范围实施。",
+    "resumption_date": "2026-10-04",
+    "continuation_status": "local_vsce4_gates_full_ci_and_main_session_review_recorded",
+    "independent_review_2026_10_04": "research/resume-2026-10-04-vsce4-independent-review.md",
+    "latest_aggregate_receipt": "../09-29-evergreen-harness-audit/research/resume-2026-10-04-vsce4-full-ci.json",
+    "results_node24": "research/resume-2026-10-04-vsix-node24-results.md",
+    "pending_scope_request_status": "approved_for_implementation",
+    "results_2026_10_04": "research/resume-2026-10-04-vsix-results.md",
+    "current_status_date": "2026-10-04",
+    "vsce4_migration_approved": true
   }
 }

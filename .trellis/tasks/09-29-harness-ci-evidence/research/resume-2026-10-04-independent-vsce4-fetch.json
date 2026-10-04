@@ -1,0 +1,13 @@
+{
+  "fetched_utc": "2026-10-04T13:22:05.011701+00:00",
+  "url": "https://registry.npmjs.org/@vscode/vsce/-/vsce-4.0.0.tgz",
+  "http_status": 200,
+  "bytes": 56482,
+  "first_attempt": {
+    "tool": "curl.exe",
+    "exit_code": 35,
+    "error": "schannel: failed to receive handshake, SSL/TLS connection failed"
+  },
+  "transport": "Python urllib default TLS verification",
+  "code_executed": false
+}
