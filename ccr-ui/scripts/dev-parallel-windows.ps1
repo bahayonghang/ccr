@@ -48,6 +48,22 @@ Set-Location $RootDir
 
 # ========== ANSI Escape Sequence Handling ==========
 
+# 用 netstat 查监听进程。Get-NetTCPConnection 会卡住，Ctrl+C 收尾清理时还会打出警告。
+function Get-ListeningProcessId {
+    param([int]$Port)
+
+    $pattern = "^\s*TCP\s+\S+:$Port\s+\S+\s+LISTENING\s+(\d+)\s*$"
+    $line = netstat -ano -p tcp | Select-String -Pattern $pattern | Select-Object -First 1
+    if (-not $line -or $line.Matches.Count -eq 0) {
+        return $null
+    }
+    $processId = [int]$line.Matches[0].Groups[1].Value
+    if ($processId -le 0) {
+        return $null
+    }
+    return $processId
+}
+
 # Remove ANSI escape sequences from text
 function Remove-AnsiEscapeSequences {
     param([string]$Text)
@@ -79,9 +95,9 @@ function Write-CleanLog {
                 }
                 if ($script:FrontendPidFile -and ($portChanged -or -not $script:FrontendPid)) {
                     try {
-                        $frontendConn = Get-NetTCPConnection -LocalPort $detectedPort -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
-                        if ($frontendConn) {
-                            $script:FrontendPid = $frontendConn.OwningProcess
+                        $frontendListener = Get-ListeningProcessId -Port ([int]$detectedPort)
+                        if ($frontendListener) {
+                            $script:FrontendPid = $frontendListener
                             Set-Content -Path $script:FrontendPidFile -Value $script:FrontendPid -Encoding ASCII -ErrorAction SilentlyContinue
                         }
                     } catch {
@@ -201,9 +217,9 @@ for ($i = 0; $i -lt $maxWait; $i++) {
             Write-Host "[Backend] Ready!" -ForegroundColor Green
             $backendReady = $true
             try {
-                $backendConn = Get-NetTCPConnection -LocalPort $BackendPort -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
-                if ($backendConn) {
-                    $script:BackendPid = $backendConn.OwningProcess
+                $backendListener = Get-ListeningProcessId -Port ([int]$BackendPort)
+                if ($backendListener) {
+                    $script:BackendPid = $backendListener
                     if ($script:BackendPidFile) {
                         Set-Content -Path $script:BackendPidFile -Value $script:BackendPid -Encoding ASCII -ErrorAction SilentlyContinue
                     }
@@ -240,16 +256,20 @@ Write-Host ""
 # 服务器启动时直接命中缓存，跳过优化阶段
 Write-Host "[Frontend] Pre-bundling Vite dependencies..." -ForegroundColor Yellow
 Push-Location $RootDir
+$previousErrorAction = $ErrorActionPreference
 try {
-    $prebundleResult = & cmd /c "bun run prebundle" 2>&1
+    # Continue：成功时写到 stderr 的状态行不能变成终止错误。
+    $ErrorActionPreference = 'Continue'
+    & cmd /c "bun run prebundle"
     if ($LASTEXITCODE -eq 0) {
         Write-Host "[Frontend] Pre-bundling complete" -ForegroundColor Green
     } else {
-        Write-Host "[WARN] Vite pre-bundling had warnings (non-fatal), continuing..." -ForegroundColor Yellow
+        Write-Host "[WARN] Vite pre-bundling failed (exit $LASTEXITCODE); continuing." -ForegroundColor Yellow
     }
 } catch {
     Write-Host "[WARN] Vite pre-bundling skipped: $_" -ForegroundColor Yellow
 } finally {
+    $ErrorActionPreference = $previousErrorAction
     Pop-Location
 }
 Write-Host ""
@@ -307,9 +327,9 @@ try {
             if (-not $frontendPort) {
                 $frontendPort = $VitePort
             }
-            $frontendConn = Get-NetTCPConnection -LocalPort $frontendPort -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($frontendConn) {
-                $frontendPid = $frontendConn.OwningProcess
+            $frontendListener = Get-ListeningProcessId -Port ([int]$frontendPort)
+            if ($frontendListener) {
+                $frontendPid = $frontendListener
             }
         }
         if ($frontendPid) {
@@ -331,9 +351,9 @@ try {
     $backendPid = $script:BackendPid
     if (-not $backendPid) {
         try {
-            $backendConn = Get-NetTCPConnection -LocalPort $BackendPort -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($backendConn) {
-                $backendPid = $backendConn.OwningProcess
+            $backendListener = Get-ListeningProcessId -Port ([int]$BackendPort)
+            if ($backendListener) {
+                $backendPid = $backendListener
             }
         } catch {
             # Ignore errors during PID capture
@@ -353,9 +373,9 @@ try {
 
     # Fallback: ensure backend is not still listening
     try {
-        $backendConn = Get-NetTCPConnection -LocalPort $BackendPort -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($backendConn) {
-            $fallbackPid = $backendConn.OwningProcess
+        $fallbackListener = Get-ListeningProcessId -Port ([int]$BackendPort)
+        if ($fallbackListener) {
+            $fallbackPid = $fallbackListener
             if ($fallbackPid -and $fallbackPid -ne $backendPid) {
                 Write-Host "[Cleanup] Stopping backend process (PID: $fallbackPid)..." -ForegroundColor Yellow
                 Stop-Process -Id $fallbackPid -Force -ErrorAction SilentlyContinue
