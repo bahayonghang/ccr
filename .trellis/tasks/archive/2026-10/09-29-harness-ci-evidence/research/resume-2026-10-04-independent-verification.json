@@ -1,0 +1,396 @@
+{
+  "recorded_at_utc": "2026-10-04T12:40:00.435275+00:00",
+  "head": "c50716b5ed1bcd1c5b4950a746a8621258d0e0b5",
+  "cargo_receipts": {
+    "exact": {
+      "receipt_sha256": "b7f447fd305cb184a8079e77472eb097bf9dbe8c691f759c5b3676f824e82c5d",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "ccr",
+        "--all-features",
+        "--test",
+        "managers",
+        "legacy_registry::legacy_registry_fields_load_without_becoming_clean_write_routing_truth",
+        "--",
+        "--exact",
+        "--skip",
+        "export_bindings"
+      ],
+      "exit_code": 0,
+      "parallelism": "Cargo and Rust test harness defaults; no thread override",
+      "log_checks": {
+        "stdout": {
+          "bytes": 213,
+          "sha256": "4086b3ef31cf2bbd12bc41a01c486d6160f306699834dd8a5746b0aff2c180d0"
+        },
+        "stderr": {
+          "bytes": 398,
+          "sha256": "c0f5c74e9eb7a33974ae925b970e664949884bcc5f38f83f1f7c12703ff83655"
+        }
+      },
+      "source_checks": {
+        "Cargo.lock": true,
+        "rust-toolchain.toml": true,
+        "crates/ccr/Cargo.toml": true,
+        "crates/ccr/tests/managers.rs": true,
+        "crates/ccr/tests/managers/legacy_registry.rs": true,
+        "crates/ccr/tests/managers/general.rs": true,
+        "crates/ccr/tests/support/env.rs": true,
+        "crates/ccr-config/src/managers/platform_config.rs": true,
+        "crates/ccr-config/src/managers/config/manager.rs": true,
+        "crates/ccr-config/src/managers/config_file_handler.rs": true,
+        "crates/ccr-cli/src/managers/settings.rs": true,
+        "crates/ccr-core/src/core/fileio.rs": true,
+        "crates/ccr-core/src/core/guarded_write.rs": true,
+        "crates/ccr-core/src/core/lock.rs": true
+      },
+      "test_counts": [
+        {
+          "status": "ok",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered_out": 16
+        }
+      ]
+    },
+    "suite": {
+      "receipt_sha256": "6f57a95649072cec9a0b56821eae245d744c31fec6982a7cef15e5af4f109b7e",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "ccr",
+        "--all-features",
+        "--test",
+        "managers",
+        "--",
+        "--skip",
+        "export_bindings"
+      ],
+      "exit_code": 0,
+      "parallelism": "Cargo and Rust test harness defaults; no thread override",
+      "log_checks": {
+        "stdout": {
+          "bytes": 1137,
+          "sha256": "61649315f32ee6a6801902c7d6d011b023aea7d17586e1be11adfe4e36e72f34"
+        },
+        "stderr": {
+          "bytes": 154,
+          "sha256": "854c58eed9d142ce002101c91a05ab5a3d674b21a0b1ab37b67c33135a7cd1bd"
+        }
+      },
+      "source_checks": {
+        "Cargo.lock": true,
+        "rust-toolchain.toml": true,
+        "crates/ccr/Cargo.toml": true,
+        "crates/ccr/tests/managers.rs": true,
+        "crates/ccr/tests/managers/legacy_registry.rs": true,
+        "crates/ccr/tests/managers/general.rs": true,
+        "crates/ccr/tests/support/env.rs": true,
+        "crates/ccr-config/src/managers/platform_config.rs": true,
+        "crates/ccr-config/src/managers/config/manager.rs": true,
+        "crates/ccr-config/src/managers/config_file_handler.rs": true,
+        "crates/ccr-cli/src/managers/settings.rs": true,
+        "crates/ccr-core/src/core/fileio.rs": true,
+        "crates/ccr-core/src/core/guarded_write.rs": true,
+        "crates/ccr-core/src/core/lock.rs": true
+      },
+      "test_counts": [
+        {
+          "status": "ok",
+          "passed": 17,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered_out": 0
+        }
+      ],
+      "executed_names_match_source": true
+    },
+    "platforms": {
+      "receipt_sha256": "1a1c904a7acdac33355371da205bd9c1f58a35fb37f0df9d9f83881116afe9f8",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "ccr",
+        "--test",
+        "platforms",
+        "--",
+        "--nocapture",
+        "--skip",
+        "export_bindings"
+      ],
+      "exit_code": 0,
+      "parallelism": "Cargo and Rust test harness defaults; no thread override",
+      "log_checks": {
+        "stdout": {
+          "bytes": 2152,
+          "sha256": "1551a626ee9574909029d1ddb536f55cdcfd36a68295b31679de0eb57581833b"
+        },
+        "stderr": {
+          "bytes": 427,
+          "sha256": "de19820c0806bc6cf5717f0e1d0bf1a4820e1af49c43f94e481e82d5f3aea30b"
+        }
+      },
+      "source_checks": {
+        "Cargo.lock": true,
+        "rust-toolchain.toml": true,
+        "crates/ccr/Cargo.toml": true,
+        "crates/ccr/tests/managers.rs": true,
+        "crates/ccr/tests/managers/legacy_registry.rs": true,
+        "crates/ccr/tests/managers/general.rs": true,
+        "crates/ccr/tests/support/env.rs": true,
+        "crates/ccr-config/src/managers/platform_config.rs": true,
+        "crates/ccr-config/src/managers/config/manager.rs": true,
+        "crates/ccr-config/src/managers/config_file_handler.rs": true,
+        "crates/ccr-cli/src/managers/settings.rs": true,
+        "crates/ccr-core/src/core/fileio.rs": true,
+        "crates/ccr-core/src/core/guarded_write.rs": true,
+        "crates/ccr-core/src/core/lock.rs": true
+      },
+      "test_counts": [
+        {
+          "status": "ok",
+          "passed": 35,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered_out": 0
+        }
+      ]
+    },
+    "commands": {
+      "receipt_sha256": "9d43f0af005dcd521f239125a8ba82b539f9d7c862f23e4a3670127a516191c6",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "ccr",
+        "--test",
+        "commands",
+        "--",
+        "sync_content",
+        "--nocapture",
+        "--skip",
+        "export_bindings"
+      ],
+      "exit_code": 0,
+      "parallelism": "Cargo and Rust test harness defaults; no thread override",
+      "log_checks": {
+        "stdout": {
+          "bytes": 293,
+          "sha256": "72d8d060e092f25c53e3fe06a6eac15c72aca93bfed2fbdf85f125d59407315a"
+        },
+        "stderr": {
+          "bytes": 504,
+          "sha256": "1602f7a85b113cc6dafb5f5b6f7ae009787e59040b48fb93f855da3e055fc52e"
+        }
+      },
+      "source_checks": {
+        "Cargo.lock": true,
+        "rust-toolchain.toml": true,
+        "crates/ccr/Cargo.toml": true,
+        "crates/ccr/tests/managers.rs": true,
+        "crates/ccr/tests/managers/legacy_registry.rs": true,
+        "crates/ccr/tests/managers/general.rs": true,
+        "crates/ccr/tests/support/env.rs": true,
+        "crates/ccr-config/src/managers/platform_config.rs": true,
+        "crates/ccr-config/src/managers/config/manager.rs": true,
+        "crates/ccr-config/src/managers/config_file_handler.rs": true,
+        "crates/ccr-cli/src/managers/settings.rs": true,
+        "crates/ccr-core/src/core/fileio.rs": true,
+        "crates/ccr-core/src/core/guarded_write.rs": true,
+        "crates/ccr-core/src/core/lock.rs": true
+      },
+      "test_counts": [
+        {
+          "status": "ok",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered_out": 114
+        }
+      ]
+    },
+    "default": {
+      "receipt_sha256": "5da1eeb9eaa116f0521a0e84a0af34dcdb56e85929468a0c635654143b5b95fb",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "ccr",
+        "--test",
+        "managers",
+        "--",
+        "--nocapture",
+        "--skip",
+        "export_bindings"
+      ],
+      "exit_code": 0,
+      "parallelism": "Cargo and Rust test harness defaults; no thread override",
+      "log_checks": {
+        "stdout": {
+          "bytes": 1137,
+          "sha256": "a7abba148da7c24a073a94c6bf6e6b98436636ae6cdcebfddacb003789fe6e43"
+        },
+        "stderr": {
+          "bytes": 154,
+          "sha256": "f2fcb923a7e8cde5d34370072f59d86ad310b57a96463e956b609e5851ff85d2"
+        }
+      },
+      "source_checks": {
+        "Cargo.lock": true,
+        "rust-toolchain.toml": true,
+        "crates/ccr/Cargo.toml": true,
+        "crates/ccr/tests/managers.rs": true,
+        "crates/ccr/tests/managers/legacy_registry.rs": true,
+        "crates/ccr/tests/managers/general.rs": true,
+        "crates/ccr/tests/support/env.rs": true,
+        "crates/ccr-config/src/managers/platform_config.rs": true,
+        "crates/ccr-config/src/managers/config/manager.rs": true,
+        "crates/ccr-config/src/managers/config_file_handler.rs": true,
+        "crates/ccr-cli/src/managers/settings.rs": true,
+        "crates/ccr-core/src/core/fileio.rs": true,
+        "crates/ccr-core/src/core/guarded_write.rs": true,
+        "crates/ccr-core/src/core/lock.rs": true
+      },
+      "test_counts": [
+        {
+          "status": "ok",
+          "passed": 17,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered_out": 0
+        }
+      ],
+      "executed_names_match_source": true
+    },
+    "clippy": {
+      "receipt_sha256": "a44681c10b8902dbb4f0752879921b41b5c4868a866a01245b03eb105128e901",
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "ccr",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "parallelism": "Cargo and Rust test harness defaults; no thread override",
+      "log_checks": {
+        "stdout": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stderr": {
+          "bytes": 1401,
+          "sha256": "269cd83ead083eb08e2bd9a8e83ff333f50bb2a24231a4b9ed5e7a52e4c46771"
+        }
+      },
+      "source_checks": {
+        "Cargo.lock": true,
+        "rust-toolchain.toml": true,
+        "crates/ccr/Cargo.toml": true,
+        "crates/ccr/tests/managers.rs": true,
+        "crates/ccr/tests/managers/legacy_registry.rs": true,
+        "crates/ccr/tests/managers/general.rs": true,
+        "crates/ccr/tests/support/env.rs": true,
+        "crates/ccr-config/src/managers/platform_config.rs": true,
+        "crates/ccr-config/src/managers/config/manager.rs": true,
+        "crates/ccr-config/src/managers/config_file_handler.rs": true,
+        "crates/ccr-cli/src/managers/settings.rs": true,
+        "crates/ccr-core/src/core/fileio.rs": true,
+        "crates/ccr-core/src/core/guarded_write.rs": true,
+        "crates/ccr-core/src/core/lock.rs": true
+      },
+      "test_counts": []
+    }
+  },
+  "checks": [
+    {
+      "command": [
+        "git",
+        "check-ignore",
+        "-v",
+        "--",
+        ".trellis/tasks/09-29-harness-ci-evidence/research/tauri-advisory-commands.json"
+      ],
+      "exit_code": 0,
+      "stdout": ".gitignore:108:/.trellis/tasks/09-29-harness-ci-evidence/research/tauri-advisory-commands.json\t.trellis/tasks/09-29-harness-ci-evidence/research/tauri-advisory-commands.json\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 2,
+      "stdout": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json:52: trailing whitespace.\n+      \"status\": \"approved_for_resumption\",\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:68: trailing whitespace.\n+      ],\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:69: trailing whitespace.\n+      \"approval_basis\": \"2026-10-04 user continuation after the preceding concrete status report\"\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:74: trailing whitespace.\n+      \"status\": \"approved_for_resumption\",\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:102: trailing whitespace.\n+      \"independent_review\": \"../09-29-harness-ci-evidence/research/manager-lock-independent-review.md\",\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:103: trailing whitespace.\n+      \"approval_basis\": \"2026-10-04 user continuation after the preceding concrete status report\"\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:118: trailing whitespace.\n+    \"pending_scope_requests_remain_awaiting_user\": false,\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:129: trailing whitespace.\n+      \"status\": \"user_requested_exact_ignore\"\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:130: trailing whitespace.\n+    }\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:131: trailing whitespace.\n+  },\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:132: trailing whitespace.\n+  \"resumption_authorizations\": [\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:133: trailing whitespace.\n+    {\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:134: trailing whitespace.\n+      \"date\": \"2026-10-04\",\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:135: trailing whitespace.\n+      \"user_message\": \"Tauri 诊断 JSON需要忽略，然后继续实施trellis任务\",\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:136: trailing whitespace.\n+      \"scope\": [\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:137: trailing whitespace.\n+        \"exact ignore for tauri-advisory-commands.json\",\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:138: trailing whitespace.\n+        \"T05 two compatible lock node targets reported in prior response\",\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:139: trailing whitespace.\n+        \"T07 six named environment fixture bindings reported in prior response\",\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:140: trailing whitespace.\n+        \"required checks, independent review and task evidence writeback\"\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:141: trailing whitespace.\n+      ],\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:142: trailing whitespace.\n+      \"acceptance_changes_not_inferred\": [\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:143: trailing whitespace.\n+        \"T08 maxActiveExceptions 0 -> 1\",\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:144: trailing whitespace.\n+        \"T01 repository-only fixture -> generated-client integration\"\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:145: trailing whitespace.\n+      ]\n.trellis/tasks/09-29-evergreen-harness-audit/approval.json:147: trailing whitespace.\n+  ]\n.trellis/tasks/09-29-harness-ci-evidence/implement.md:41: trailing whitespace.\n+\n.trellis/tasks/09-29-harness-ci-evidence/implement.md:42: trailing whitespace.\n+## 2026-10-04 续作检查点\n.trellis/tasks/09-29-harness-ci-evidence/implement.md:43: trailing whitespace.\n+\n.trellis/tasks/09-29-harness-ci-evidence/implement.md:44: trailing whitespace.\n+- [x] 用户要求忽略诊断 JSON 并继续现有任务，固定候选范围见父任务 approval.json。\n.trellis/tasks/09-29-harness-ci-evidence/implement.md:45: trailing whitespace.\n+- [ ] 核对候选 SHA 与当前源码，应用六个绑定及精确忽略规则。\n.trellis/tasks/09-29-harness-ci-evidence/implement.md:46: trailing whitespace.\n+- [ ] 执行独立审查报告列出的定向、完整 managers、platforms、commands sync_content、clippy 门槛。\n.trellis/tasks/09-29-harness-ci-evidence/implement.md:47: trailing whitespace.\n+- [ ] 父任务执行 lint-strict、just test、governance 与完整 just ci，保留新回执。\n.trellis/tasks/09-29-harness-ci-evidence/implement.md:48: trailing whitespace.\n+- [ ] 独立复核和规范回写；macOS、hosted、fresh-client 证据缺失继续单列。\n.trellis/tasks/09-29-harness-ci-evidence/task.json:31: trailing whitespace.\n+  \"notes\": \"2026-10-04 用户要求精确忽略 Tauri 诊断 JSON 并继续实施报告中的固定剩余补丁。当前验收结果待新的正式回执。历史授权与边界见父任务 approval.json。\",\n.trellis/tasks/09-29-harness-ci-evidence/task.json:62: trailing whitespace.\n+    \"remaining_acceptance\": \"managers 夹具候选待批准；macOS 与原生客户端等证据未齐。\",\n.trellis/tasks/09-29-harness-ci-evidence/task.json:63: trailing whitespace.\n+    \"resumption_date\": \"2026-10-04\",\n.trellis/tasks/09-29-harness-ci-evidence/task.json:64: trailing whitespace.\n+    \"continuation_status\": \"implementation_and_verification_in_progress\",\n.trellis/tasks/09-29-harness-ci-evidence/task.json:65: trailing whitespace.\n+    \"pending_scope_request_status\": \"approved_for_resumption\"\n.trellis/tasks/09-29-harness-vsix-package/implement.md:45: trailing whitespace.\n+\n.trellis/tasks/09-29-harness-vsix-package/implement.md:46: trailing whitespace.\n+## 2026-10-04 续作检查点\n.trellis/tasks/09-29-harness-vsix-package/implement.md:47: trailing whitespace.\n+\n.trellis/tasks/09-29-harness-vsix-package/implement.md:48: trailing whitespace.\n+- [x] 用户要求继续固定补丁范围，见父任务 approval.json。\n.trellis/tasks/09-29-harness-vsix-package/implement.md:49: trailing whitespace.\n+- [ ] 核验保存的版本完整性与父依赖范围，仅修改两个节点。\n.trellis/tasks/09-29-harness-vsix-package/implement.md:50: trailing whitespace.\n+- [ ] npm ci、npm audit、just vscode-ci、just vscode-coverage 和最终 VSIX 清单通过。\n.trellis/tasks/09-29-harness-vsix-package/implement.md:51: trailing whitespace.\n+- [ ] 独立复核及父任务完整聚合验收；保留历史失败。\n.trellis/tasks/09-29-harness-vsix-package/task.json:32: trailing whitespace.\n+  \"notes\": \"2026-10-04 用户要求精确忽略 Tauri 诊断 JSON 并继续实施报告中的固定剩余补丁。当前验收结果待新的正式回执。历史授权与边界见父任务 approval.json。\",\n.trellis/tasks/09-29-harness-vsix-package/task.json:51: trailing whitespace.\n+    \"remaining_acceptance\": \"新增扩展依赖补丁仍待批准，当前审计两个受影响包。\",\n.trellis/tasks/09-29-harness-vsix-package/task.json:52: trailing whitespace.\n+    \"resumption_date\": \"2026-10-04\",\n.trellis/tasks/09-29-harness-vsix-package/task.json:53: trailing whitespace.\n+    \"continuation_status\": \"implementation_and_verification_in_progress\",\n.trellis/tasks/09-29-harness-vsix-package/task.json:54: trailing whitespace.\n+    \"pending_scope_request_status\": \"approved_for_resumption\"\n",
+      "stderr": "warning: in the working copy of '.trellis/spec/ccr/backend/test-fixtures.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'ccr-vscode/package-lock.json', LF will be replaced by CRLF the next time Git touches it\n"
+    },
+    {
+      "command": [
+        "python",
+        ".trellis/scripts/task.py",
+        "validate",
+        ".trellis/tasks/09-29-harness-ci-evidence"
+      ],
+      "exit_code": 0,
+      "stdout": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-29-harness-ci-evidence\n\n  \u001b[0;32mimplement.jsonl: ✓ (3 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (3 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "python",
+        ".trellis/scripts/task.py",
+        "validate",
+        ".trellis/tasks/09-29-evergreen-harness-audit"
+      ],
+      "exit_code": 0,
+      "stdout": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-29-evergreen-harness-audit\n\n  \u001b[0;32mimplement.jsonl: ✓ (3 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (3 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "python",
+        "scripts/ci/check_workflow_governance.py"
+      ],
+      "exit_code": 0,
+      "stdout": "CI governance check passed (47 immutable action references)\nSerial-only test annotations: 0 (target: 0)\n",
+      "stderr": ""
+    }
+  ],
+  "diagnostic_json": {
+    "bytes": 1164069,
+    "sha256": "fd50a44aab9e7d9ab269425ceaa6c691004db9390147cf3be9ad273c7d43bd96"
+  },
+  "candidate_sha256": "a7082c421018a9b54167b3069ec3000cc21210bdebe3ca135cf6d7f52e775738",
+  "baseline_matches_four_historical_input_lists": true,
+  "source_delta": {
+    "general_added_guards": 5,
+    "legacy_added_guards": 1,
+    "other_changes": 0
+  },
+  "historical_ci": {
+    "exit_code": 1,
+    "head": "fe9d65972376dbb4c332fde9860c1e42ff2f2005",
+    "log_sha256": "acaa41ae374ef61a8d44733e49e09e5ef59f0800fafc78febaec2195c1fe1cc2"
+  },
+  "omp": {
+    "generated": "14 pass, 99 assertions; local generated extension",
+    "source_only": "0 pass, 14 skip, 0 fail; SKIPPED_UNVERIFIED"
+  },
+  "receipt_integrity_status": "PASS",
+  "boundary": "Independent static and evidence verification. Cargo tests and clippy were not rerun. Full CI and external/native boundaries are owned by the parent."
+}

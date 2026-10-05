@@ -1,9 +1,10 @@
 use ccr::cli::dispatch::TuiLaunchers;
-use ccr::cli::{Cli, CommandDispatcher, build_cli_command};
+use ccr::cli::{Cli, CommandDispatcher, Commands, build_cli_command};
 #[cfg(feature = "tui")]
 use ccr::init_file_only_logger;
 use ccr::init_logger;
 use clap::FromArgMatches;
+use std::process::ExitCode;
 
 /// 🎯 主函数入口
 ///
@@ -13,9 +14,28 @@ use clap::FromArgMatches;
 /// 3. 🚀 路由并执行对应命令（TUI 启动器由二进制入口注入，见下）
 /// 4. ❌ 处理错误并返回退出码
 #[tokio::main]
-async fn main() {
+async fn main() -> ExitCode {
     let matches = build_cli_command().get_matches();
     let cli = Cli::from_arg_matches(&matches).unwrap_or_else(|err| err.exit());
+
+    // Diagnostics must not create log directories or rewrite user files. Their
+    // services return typed reports; process status belongs to this boundary.
+    match &cli.command {
+        Some(Commands::Validate) => {
+            let report = ccr_cli::commands::validate_report_command();
+            return ExitCode::from(report.exit_code() as u8);
+        }
+        Some(Commands::Doctor(args)) => {
+            return match ccr_cli::commands::doctor_cmd::doctor_report_command(args.clone()).await {
+                Ok(report) => ExitCode::from(u8::from(report.has_failures())),
+                Err(error) => {
+                    eprintln!("{error}");
+                    ExitCode::from(error.exit_code() as u8)
+                }
+            };
+        }
+        _ => {}
+    }
 
     // 🔧 根据模式初始化日志系统
     // TUI 模式下仅输出到文件，避免日志覆盖 TUI 界面
@@ -47,6 +67,7 @@ async fn main() {
     if let Err(e) = CommandDispatcher::dispatch(&cli, tui_launchers).await {
         ccr::cli::dispatch::handle_error(e);
     }
+    ExitCode::SUCCESS
 }
 
 #[cfg(test)]

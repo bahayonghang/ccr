@@ -12,6 +12,11 @@ use crate::services::config_service::ValidationReport;
 use ccr_core::core::error::Result;
 use std::sync::Arc;
 
+mod diagnostics;
+pub use diagnostics::{
+    DiagnosticCategory, DiagnosticCheck, DiagnosticReport, DiagnosticSeverity, diagnose,
+};
+
 /// 🔍 完整验证报告
 ///
 /// 包含配置文件和设置文件的验证结果

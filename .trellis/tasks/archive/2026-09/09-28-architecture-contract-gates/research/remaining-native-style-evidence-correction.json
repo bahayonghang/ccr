@@ -1,0 +1,19 @@
+{
+  "recorded_at_utc": "2026-09-29T03:57:25.514725+00:00",
+  "basis": "Independent reviewer matched the styles_after_save capture to window.__ccrNativeStyleCspEvents in the native harness.",
+  "incorrect_inference": "An empty styles_after_save list proves dynamic style nodes were removed or body scroll-lock restored.",
+  "supported_result": "No captured post-save style CSP violations; editor DOM closed and process group cleanup succeeded as separately asserted.",
+  "unmeasured": [
+    "style DOM removal",
+    "body scroll-lock restoration"
+  ],
+  "historical_derived_report": "remaining-native-acceptance.json",
+  "historical_derived_report_sha256": "53ab777a06e297562080eea4e2e513cc7342f00fab371f730b96467d9f52f05d",
+  "current_report": "remaining-native-acceptance-final.json",
+  "current_report_before_correction_sha256": "f4601401465fb24a97f4526da74b206774889719ea5d2343ac42ca811dd18129",
+  "current_report_sha256": "f37b469aa66deaf3123ca4fb2a25b587b03770cf20db82f48c31aee083a73191",
+  "raw_receipts_unchanged": [
+    "remaining-native-webview-6.json",
+    "remaining-native-webview-7.json"
+  ]
+}

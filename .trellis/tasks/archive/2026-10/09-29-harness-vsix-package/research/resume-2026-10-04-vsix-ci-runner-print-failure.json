@@ -1,0 +1,10 @@
+{
+  "wrapper_exit_code": 1,
+  "gate_exit_code": 0,
+  "error": "UnicodeEncodeError in console summary print: gbk cannot encode U+2139",
+  "gate_receipt_saved_before_print": true,
+  "gate_receipt": "resume-2026-10-04-vsix-ci.json",
+  "raw_streams_preserved": true,
+  "repair": "JSON console summary uses ASCII escapes",
+  "gate_repeated": false
+}

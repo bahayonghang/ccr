@@ -1,0 +1,14 @@
+{
+  "command": [
+    "cargo",
+    "audit",
+    "--file",
+    "Cargo.lock"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "environment_overrides": {},
+  "started_at": "2026-09-28T23:01:06.277193+00:00",
+  "exit_code": 0,
+  "seconds": 3.016,
+  "log": "continuation-security-root-audit-after.log"
+}

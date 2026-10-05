@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ccr-ui/frontend/dashboard-presentation-contracts.md", "reason": "验收：会话诚实状态与首屏三个 dashboard smoke 测试"}
+{"file": ".trellis/spec/ccr-ui/frontend/react-rerender-discipline.md", "reason": "验收：lint 强制项与四条审查项"}
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "验收：feature 代码不直接 import generated client 或 invoke"}
+{"file": "ccr-ui/DESIGN.md", "reason": "验收：Insights 区块形式、高度、颜色与空态以此为准"}

@@ -1,0 +1,68 @@
+{
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "-p",
+        "ccr-cli",
+        "validate",
+        "--",
+        "--skip",
+        "export_bindings"
+      ],
+      "log": "check-validate-service-final.log",
+      "exit_code": 0,
+      "passed": 5,
+      "seconds": 16.51
+    },
+    {
+      "command": [
+        "cargo",
+        "check",
+        "--offline",
+        "--locked",
+        "-p",
+        "ccr",
+        "-p",
+        "ccr-cli",
+        "-p",
+        "ccr-config",
+        "--all-targets",
+        "--all-features"
+      ],
+      "log": "check-rust-types-final.log",
+      "exit_code": 0,
+      "passed": 0,
+      "seconds": 13.34
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "--offline",
+        "--locked",
+        "-p",
+        "ccr",
+        "-p",
+        "ccr-cli",
+        "-p",
+        "ccr-config",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings",
+        "-D",
+        "clippy::unwrap_used"
+      ],
+      "log": "check-strict-clippy-final.log",
+      "exit_code": 0,
+      "passed": 0,
+      "seconds": 7.48
+    }
+  ],
+  "cargo_lock_sha256": "ca1f03e85b5e0d888109ac8af7e7943fc1ceecd20a0f6eeb6a60052c5155db79"
+}

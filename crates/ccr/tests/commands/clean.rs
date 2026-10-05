@@ -322,6 +322,13 @@ fn clean_menu_number_can_run_backups_target() {
     );
     assert!(temp_dir.path().join("task_plan.md").exists());
     assert!(!old_backup.exists());
+    assert!(stdout.contains("确认执行清理操作?"));
+    assert!(
+        !home_dir
+            .path()
+            .join(".ccr/platforms/claude/profiles.toml")
+            .exists()
+    );
 }
 
 #[test]
@@ -417,4 +424,34 @@ fn clean_backups_subcommand_dry_run_keeps_old_backup() {
     );
     assert!(stdout.contains("将删除文件: 1 个"));
     assert!(old_backup.exists());
+    assert!(
+        !home_dir
+            .path()
+            .join(".ccr/platforms/claude/profiles.toml")
+            .exists()
+    );
+}
+
+#[test]
+fn clean_backups_corrupt_config_fails_without_deleting_backup() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let home_dir = tempfile::tempdir().unwrap();
+    let old_backup = write_old_backup(home_dir.path(), "old.bak");
+    let config_path = home_dir.path().join(".ccr/platforms/claude/profiles.toml");
+    write_file(&config_path, "invalid = [");
+
+    let output = run_clean(
+        &["clean", "backups", "--days", "7", "--force"],
+        temp_dir.path(),
+        home_dir.path(),
+    );
+
+    assert_eq!(
+        output.status.code(),
+        Some(ccr_core::core::error::exit_codes::CONFIG_FORMAT_INVALID)
+    );
+    assert!(String::from_utf8_lossy(&output.stdout).contains("清理备份文件"));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("配置格式无效"));
+    assert!(old_backup.exists());
+    assert_eq!(fs::read_to_string(config_path).unwrap(), "invalid = [");
 }

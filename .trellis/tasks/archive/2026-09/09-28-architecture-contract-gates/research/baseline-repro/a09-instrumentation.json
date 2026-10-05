@@ -1,0 +1,8 @@
+{
+  "baseline": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "instrumentation": "only LlmusageSync descriptor duration changed 3600000ms to30ms; original streaming/execution/cleanup logic unchanged",
+  "gateway_original_sha256": "8cef0cfed576069472f31d30d4ae0b5f29111d7f0476fa2ab03fc03e022667a8",
+  "gateway_instrumented_sha256": "c469edc718bb48192782f65b6f9599cbdafb4939fb3eb77e3d23e6b77e0e941b",
+  "real_process": "silent_child.exe, synthetic temporary --home, explicit cancellation/reap after outer300ms observation",
+  "no_main_product_changes": true
+}

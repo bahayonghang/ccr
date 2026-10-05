@@ -41,7 +41,8 @@
 
   // Canonical stored/wire ids:
   // claude, codex, opencode, antigravity, kimi_code, pi, grok, zcode, deepseek_harness.
-  // gemini and existing Gemini spellings remain input aliases for Antigravity.
+  // gemini, existing Gemini spellings, and antigravity_ide are input aliases for Antigravity;
+  // omp is an alias for Pi; kimi is an alias for KimiCode (SourceKind::parse_id and serde).
 
   pub struct QueryFilter {
       pub source: Option<SourceKind>,
@@ -65,7 +66,7 @@
   // Dashboard owns the full read-only query surface:
   // overview / trends_daily / model_breakdown / provider_breakdown /
   // project_breakdown / source_breakdown / heatmap / logs / diagnostics /
-  // home_overview, all gated through ensure_feature_for_filter.
+  // home_overview / insights, all gated through ensure_feature_for_filter.
   pub fn provider_breakdown(
       &self,
       filter: &QueryFilter,
@@ -167,8 +168,8 @@
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml services::usage::service_tests -- --nocapture --test-threads=1`
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry -- --nocapture`
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml --test llmusage_no_crate_guard -- --nocapture`
-- `cd ccr-ui && bun run test:smoke -- tests/usage-dashboard-payload.smoke.test.ts tests/usage-dashboard-toolbar.smoke.test.ts tests/usage-source-summary-card.smoke.test.ts tests/home-usage-overview.store.smoke.test.ts`
-- `cd ccr-ui && bun run test:smoke -- tests/api-facade-boundary.smoke.test.ts`
+- `cd ccr-ui && bun run test:smoke -- tests/usage/usage-dashboard-payload.smoke.test.ts tests/usage-dashboard-toolbar.smoke.test.ts tests/usage-source-summary-card.smoke.test.ts tests/home-usage-overview.store.smoke.test.ts`
+- `cd ccr-ui && bun run test:smoke -- tests/api/api-facade-boundary.smoke.test.ts`
 - `cd ccr-ui && bun run type-check`
 - `cd ccr-ui && bun run lint`
 
@@ -326,3 +327,146 @@ if matches!(normalized.as_str(), "claude-fable-5" | "fable-5") {
 ```
 
 Exact aliases are priced, and unrelated ids stay `unpriced`.
+
+## Scenario: Home Insights snapshot (`get_home_insights`)
+
+### 1. Scope / Trigger
+
+- Trigger: changing `Dashboard::insights`, `FeatureKey::Insights`, the Insights DTOs, `services::home_insights`, the `get_home_insights` command, the session-archive platform counts, or a `SourceKind::parse_id` alias.
+- Applies to `crates/ccr-usage/src/{insights.rs,db.rs,source.rs,capabilities.rs,timezone.rs}`, `crates/ccr-db/src/database/repositories/usage_repo.rs`, `ccr-ui/src-tauri/src/services/home_insights.rs`, `ccr-ui/src-tauri/src/commands/usage.rs`, and the generated types under `ccr-ui/src/types/generated/usage/`.
+- The command is a cross-layer contract: one IPC call returns the full home Insights block. The frontend must not send a second statistics request for the block.
+
+### 2. Signatures
+
+```rust
+// crates/ccr-usage
+pub const INSIGHTS_WEEKS: usize = 53;
+
+impl Dashboard {
+    pub fn insights(&self, filter: &QueryFilter, as_of: NaiveDate) -> Result<InsightsPayload, UsageError>;
+}
+
+// crates/ccr-db/src/database/repositories/usage_repo.rs (read-only)
+pub fn has_any_session_archive(conn: &Connection) -> Result<bool, rusqlite::Error>;
+pub fn count_session_archive_by_platform(conn: &Connection) -> Result<Vec<SessionArchivePlatformSummary>, rusqlite::Error>;
+pub fn count_session_archive_by_platform_between(
+    conn: &Connection,
+    start: DateTime<Utc>,
+    end: DateTime<Utc>,
+) -> Result<Vec<SessionArchivePlatformSummary>, rusqlite::Error>;
+
+// ccr-ui/src-tauri/src/services/home_insights.rs (no State, no clock)
+pub fn compute_home_insights(
+    llmusage: &LlmusageRuntime,
+    pool: &ccr_db::database::DbPool,
+    as_of: NaiveDate,
+    generated_at: DateTime<Utc>,
+) -> Result<HomeInsightsResponse, String>;
+
+// ccr-ui/src-tauri/src/commands/usage.rs, registry module usage_v2
+#[ccr_tauri_command_macros::command]
+pub async fn get_home_insights(state: State<'_, AppState>) -> Result<HomeInsightsResponse, String>;
+```
+
+```typescript
+// ccr-ui/src/api/generated/usageV2.ts (generated from the registry row)
+export const getHomeInsights = (): Promise<HomeInsightsResponse> => invoke('get_home_insights')
+```
+
+### 3. Contracts
+
+- Wire DTO `HomeInsightsResponse`. Every `i64` field carries `#[ts(as = "f64")]` or `#[ts(as = "Vec<f64>")]`, so no generated file contains `bigint`.
+  - `as_of`, `first_date?`, `trend_start`: `YYYY-MM-DD` local dates. `generated_at`: RFC 3339 UTC.
+  - `totals { requests, tokens, sessions, agents, projects, active_days }`.
+  - `sessions_indexed: boolean`; `last_7_days` and `previous_7_days { requests, sessions, active_days }`.
+  - `daily: InsightsDay[]`: only days with requests inside the 53-week window, ascending. `current_streak`, `longest_streak` (`u32`), `busiest_day?`.
+  - `hourly` (24 items), `weekday` (7 items, Monday first), `monthly` (12 items, January first).
+  - `trend: InsightsTrendSeries[]`: `weekly` has 53 items; the last item is the week of `as_of`.
+  - `agents: InsightsAgentTally[] { source, requests, tokens, sessions, unmapped }`; `projects` and `models: InsightsTally[] { key, label, requests, tokens }`.
+- Clock ownership: only the command reads the clock (`chrono::Local::now().date_naive()` for `as_of`). The service and the projection receive `as_of` and `generated_at` as arguments, so tests are deterministic.
+- Time rules. All dates use the report zone of `QueryFilter::timezone` with historical IANA offsets.
+  - Weeks start on Monday. `trend_start` is the Monday of the week of `as_of`, minus 52 weeks.
+  - `last_7_days` is `[as_of-6, as_of]`. `previous_7_days` is `[as_of-13, as_of-7]`.
+  - `current_streak` counts back from `as_of`. When `as_of` has no requests, it counts back from `as_of-1`. `longest_streak` and `busiest_day` scan the full history. A `busiest_day` tie resolves to the earlier day.
+  - Rows dated after `as_of`, and rows whose `hour_start` does not parse, count only in `totals.requests`, `totals.tokens`, and the source totals. `first_date` ignores rows after `as_of`.
+- Source keys: the time query groups by the raw stored `source`. Rust maps each value through `SourceKind::parse_id` (`canonical_source_key`). Stored `gemini*` and `antigravity_ide` go to `antigravity`, `omp` goes to `pi`, and `kimi` goes to `kimi_code`. A value that `parse_id` rejects keeps its raw label. The alias table is shared, so the aliases also apply to usage filters and to the import and sync commands.
+- `trend` contains only sources with requests in the window. It is ordered by window total descending, then by source key ascending. Presentation rules such as "top 4 plus other" belong to the frontend.
+- Agent rows: one row per key. `requests` and `tokens` come from usage. `sessions` come from the session archive; the archive `platform` goes through the same `parse_id`. `unmapped = SourceKind::parse_id(&key).is_none()` on both sides. Rows are ordered by requests descending, then sessions descending, then key ascending.
+- `totals.agents` counts the usage sources with requests or tokens. `agents` is the union of usage keys and session keys, so `agents.length` can be larger than `totals.agents`. `totals.sessions` is the sum of all archive platform counts, including unmapped platforms.
+- `sessions_indexed` comes from `has_any_session_archive`. When it is `false`, every session count on the wire is `0`, and the frontend shows `—`.
+- Session windows reuse `InsightsUsageWindow.start_utc` and `end_utc` from the projection. Request counts and session counts therefore use the same zone and the same bounds. `created_at` is compared as a half-open `[start, end)` range of `DateTime<Utc>::to_rfc3339()` strings, the same format that `upsert_session_archive_entry` writes.
+- `projects` skips empty `project_hash` values. A project with an empty label uses its hash as the label. `totals.projects == projects.len()`. `projects` and `models` are ordered by requests descending, then key ascending.
+- `FeatureKey::Insights` (`"insights"`) requires `usage_bucket_30m.{source, model, hour_start, project_hash, project_label, event_count, total_tokens}` and is part of `DB_BACKED_FEATURES`.
+- Cache: the key is `usage:snapshot:home_insights:<as_of>` under `USAGE_SNAPSHOT_CACHE_PREFIX`, with TTL `USAGE_SNAPSHOT_CACHE_TTL_SECS` (30 s) and a single-flight fill. Every path calls `finish_cache_fill`, including a serialization error. The command skips the cache while a usage import job or a session index job is active. `invalidate_usage_snapshot_cache` clears the key through the prefix.
+- The computation runs inside `tokio::task::spawn_blocking`. It records the command duration and `db_ms`. On a 1.4 GB llmusage database the first call took 39.9–139.1 ms and warm calls took 30.5–34.7 ms.
+- Query plans with the bundled SQLite: the full-history count scans the covering index `idx_usage_session_archive_platform_state`. The range count scans the covering index `idx_usage_session_archive_platform_created_at`. The range count cannot seek by time because it has no `platform =` predicate. Neither plan uses `TEMP B-TREE`.
+
+### 4. Validation & Error Matrix
+
+- llmusage DB missing or unreadable -> `Err("Dashboard open error: …")`. Never return an empty snapshot.
+- Required Insights column missing -> `UsageError::FeatureUnavailable { feature: "insights", … }` -> `Err("Insights query error: …")`.
+- Unknown or unavailable IANA zone -> `UsageError::Query`. No current-offset fallback.
+- Session archive empty -> success with `sessions_indexed = false` and every session count `0`.
+- ccr-db pool checkout fails -> `Err("DB error: …")`. A session count query fails -> `Err("Session archive … query error: …")`.
+- The blocking task panics or is cancelled -> `Err("Task join error: …")`. The cache fill still finishes.
+
+### 5. Good / Base / Bad Cases
+
+- Good: stored `omp`, `kimi`, `gemini`, and `antigravity_ide` rows appear under `pi`, `kimi_code`, and `antigravity` in `trend` and `agents`, with no duplicate row.
+- Good: a session created at 23:30 local time on `as_of` counts in `last_7_days` when that instant is the next day in UTC.
+- Good: an unregistered key with both usage rows and session rows is one `agents` row with `unmapped = true`, its requests, and its sessions.
+- Base: sessions are not indexed -> `sessions_indexed = false`. The UI shows `—`, not `0`.
+- Base: a platform with sessions and no usage -> an `agents` row with `requests = 0`. `totals.agents` does not count it.
+- Bad: a SQL `CASE` that folds only `gemini`. Stored `omp` then shows next to `pi`.
+- Bad: reading the clock inside the service or the projection. Tests then depend on the current date.
+- Bad: comparing `created_at` with an inclusive end date string such as `created_at <= 'YYYY-MM-DD'`. Sessions on the end day are dropped.
+- Bad: keying agent rows by `(unmapped, key)`. One unregistered key then shows as two rows.
+
+### 6. Tests Required
+
+- `cargo test -p ccr-usage --all-features -- --test-threads=1`:
+  - `insights::tests`: zero snapshot; fixed-offset and IANA zones; window bounds; Monday weeks and 53 buckets; 53-week trimming; streak from the previous day; longest streak over the full history; busiest-day tie; future rows; 7-day split; trend order.
+  - `insights::tests::dashboard`: a trend series for every source; the `gemini` merge; alias canonicalization with `antigravity_ide` and an unknown label; the project total equals the ranking length.
+  - `capabilities::tests::insights_capability_reports_missing_bucket_column`; the `source` alias test asserts `kimi`, `omp`, and `antigravity_ide`.
+- `cargo test -p ccr-db --all-features -- --test-threads=1`: `session_archive_counts_group_full_history_by_platform`, `session_archive_range_counts_use_half_open_utc_bounds`, and `session_archive_platform_counts_use_covering_platform_indexes` (asserts the two plans above and no `TEMP B-TREE`).
+- `cd ccr-ui && bun run tauri:test`: `services::home_insights::tests` (platform mapping and unknown rows; one row per unmapped key across usage and sessions; the as-of-day session in the last 7 days; unindexed sessions; cache round trip; missing DB error).
+- `just tauri-bindings-check` and `cd ccr-ui && bun run test:smoke -- tests/api/api-facade-coverage.smoke.test.ts`: the registry counts and the generated client stay in sync.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```sql
+SELECT hour_start,
+       CASE WHEN source = 'gemini' THEN 'antigravity' ELSE source END AS canonical_source,
+       SUM(event_count)
+FROM usage_bucket_30m
+GROUP BY hour_start, canonical_source
+```
+
+The SQL knows only one alias. Stored `omp` and `antigravity_ide` rows are not folded, and the SQL alias list drifts away from `SourceKind::parse_id`.
+
+#### Correct
+
+```rust
+// SQL groups by the raw `source`; Rust owns the one alias table.
+let key = canonical_source_key(&raw_source); // SourceKind::parse_id, raw label on a miss
+```
+
+#### Wrong
+
+```rust
+let key = (SourceKind::parse_id(&platform).is_none(), platform.clone());
+rows.entry(key).or_default().sessions += count;
+```
+
+The usage side and the session side produce different keys for one unregistered source, so the leaderboard shows two rows.
+
+#### Correct
+
+```rust
+let key = SourceKind::parse_id(&platform.platform)
+    .map(|kind| kind.as_str().to_string())
+    .unwrap_or_else(|| platform.platform.clone());
+row_for(&mut rows, key).sessions += platform.session_count.max(0);
+```

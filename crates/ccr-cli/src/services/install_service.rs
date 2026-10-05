@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use tokio::sync::{RwLock, mpsc};
+use tokio::sync::{OwnedSemaphorePermit, RwLock, mpsc};
 use tokio_util::sync::CancellationToken;
 
 use crate::services::install_catalog;
@@ -26,6 +26,17 @@ const EXPECTED_EFFECT: &str = "Install the llmusage executable for the current u
 
 type Clock = Arc<dyn Fn() -> ClockReading + Send + Sync>;
 type HostProbe = Arc<dyn Fn() -> HostCapabilities + Send + Sync>;
+type AttemptRunner = Arc<
+    dyn Fn(
+            InstallAction,
+            InstallPlanView,
+            AttemptId,
+            CancellationToken,
+            RingBufferHandle,
+        ) -> (mpsc::Receiver<InstallEvent>, tokio::task::JoinHandle<()>)
+        + Send
+        + Sync,
+>;
 
 #[derive(Debug, Clone, Copy)]
 struct ClockReading {
@@ -147,11 +158,12 @@ fn plan_error(code: InstallPlanConsumeErrorCode, plan_id: PlanId) -> InstallFlow
 
 /// Service managing llmusage detection, planning, installation, and cancellation.
 pub struct InstallService {
-    slot: RwLock<Option<AttemptSlot>>,
+    slot: Arc<RwLock<Option<AttemptSlot>>>,
     ring: RingBufferHandle,
     registry: Mutex<InstallPlanRegistry>,
     clock: Clock,
     host_probe: HostProbe,
+    runner: AttemptRunner,
 }
 
 impl InstallService {
@@ -164,11 +176,12 @@ impl InstallService {
 
     fn with_environment(clock: Clock, host_probe: HostProbe) -> Self {
         Self {
-            slot: RwLock::new(None),
+            slot: Arc::new(RwLock::new(None)),
             ring: RingBufferHandle::new(),
             registry: Mutex::new(InstallPlanRegistry::default()),
             clock,
             host_probe,
+            runner: Arc::new(install_exec::run_attempt),
         }
     }
 
@@ -261,6 +274,16 @@ impl InstallService {
 
     /// Consume a canonical plan and start an install attempt.
     pub async fn execute(&self, plan_id: PlanId) -> Result<InstallAttempt, InstallFlowError> {
+        self.execute_with_admission(plan_id, None).await
+    }
+
+    /// The desktop passes its shared process permit to the actual attempt
+    /// owner. Event delivery cannot release execution admission.
+    pub async fn execute_with_admission(
+        &self,
+        plan_id: PlanId,
+        admission: Option<OwnedSemaphorePermit>,
+    ) -> Result<InstallAttempt, InstallFlowError> {
         let mut slot = self.slot.write().await;
         if slot.is_some() {
             return Err(InstallFlowError::AlreadyRunning);
@@ -292,7 +315,11 @@ impl InstallService {
         );
 
         self.ring.clear();
-        let events = install_exec::run_attempt(
+        *slot = Some(AttemptSlot {
+            attempt_id,
+            cancel_token: cancel_token.clone(),
+        });
+        let (events, completion) = (self.runner)(
             plan.action,
             plan.view,
             attempt_id,
@@ -300,9 +327,17 @@ impl InstallService {
             self.ring.clone(),
         );
 
-        *slot = Some(AttemptSlot {
-            attempt_id,
-            cancel_token,
+        let owner_slot = Arc::clone(&self.slot);
+        tokio::spawn(async move {
+            let _ = completion.await;
+            let mut slot = owner_slot.write().await;
+            if slot
+                .as_ref()
+                .is_some_and(|current| current.attempt_id == attempt_id)
+            {
+                *slot = None;
+            }
+            drop(admission);
         });
 
         Ok(InstallAttempt { attempt_id, events })
@@ -328,11 +363,6 @@ impl InstallService {
         })
     }
 
-    pub async fn clear_slot(&self) {
-        let mut slot = self.slot.write().await;
-        *slot = None;
-    }
-
     pub async fn is_running(&self) -> bool {
         self.slot.read().await.is_some()
     }
@@ -347,6 +377,47 @@ impl InstallService {
 
     pub fn manual_catalog(&self) -> Result<ManualCatalog, InstallFlowError> {
         install_catalog::build_catalog()
+    }
+
+    /// Isolated executor seam for desktop ownership tests. No host detection
+    /// or package manager runs in this fixture.
+    #[cfg(any(test, feature = "test-support"))]
+    pub fn test_with_runner(
+        runner: impl Fn(
+            AttemptId,
+            CancellationToken,
+            RingBufferHandle,
+        ) -> (mpsc::Receiver<InstallEvent>, tokio::task::JoinHandle<()>)
+        + Send
+        + Sync
+        + 'static,
+    ) -> Result<(Self, PlanId), InstallFlowError> {
+        use crate::services::install_types::{AbsentReason, Platform};
+        let capabilities = HostCapabilities {
+            platform: Platform::Linux,
+            has_cargo: true,
+            has_homebrew: false,
+            has_scoop: false,
+            has_winget: false,
+            cargo_path: Some("synthetic-cargo".into()),
+            homebrew_path: None,
+        };
+        let probe = capabilities.clone();
+        let mut service =
+            Self::with_environment(Arc::new(system_clock), Arc::new(move || probe.clone()));
+        service.runner = Arc::new(move |_, _, id, token, ring| runner(id, token, ring));
+        let absent = DetectionResult::Absent {
+            reason: AbsentReason::NotOnPath,
+            data_root_warning: None,
+        };
+        let PlanOutcome::Plan(plan) =
+            service.plan_with_detection(&absent, &capabilities, &absent)?
+        else {
+            return Err(InstallFlowError::Internal {
+                message: "fixture_plan_unsupported".into(),
+            });
+        };
+        Ok((service, plan.plan_id))
     }
 }
 

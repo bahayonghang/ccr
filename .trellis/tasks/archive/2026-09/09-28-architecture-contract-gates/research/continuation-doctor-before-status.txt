@@ -1,0 +1,262 @@
+ M .trellis/spec/ccr-cli/backend/grok-profile-runtime.md
+ M .trellis/spec/ccr-cli/backend/index.md
+ M .trellis/spec/ccr-cli/backend/profile-off-login-prep.md
+ M .trellis/spec/ccr-codex/backend/backend-guidelines.md
+ M .trellis/spec/ccr-config/backend/backend-guidelines.md
+ M .trellis/spec/ccr-config/backend/index.md
+ M .trellis/spec/ccr-core/backend/atomic-writer.md
+ M .trellis/spec/ccr-core/backend/managed-process.md
+ M .trellis/spec/ccr-tui/backend/backend-guidelines.md
+ M .trellis/spec/ccr-ui/frontend/api-facade-boundary.md
+ M .trellis/spec/ccr-ui/frontend/grok-settings-contracts.md
+ M .trellis/spec/ccr-ui/frontend/index.md
+ M .trellis/spec/ccr-ui/frontend/platform-surface-contracts.md
+ M .trellis/spec/ccr-ui/frontend/raw-config-editor-contracts.md
+ M .trellis/spec/ccr-ui/frontend/react-rerender-discipline.md
+ M .trellis/spec/ccr/backend/backend-guidelines.md
+ M .trellis/spec/ccr/backend/dependency-governance.md
+ M .trellis/spec/ccr/backend/index.md
+ M .trellis/spec/ccr/backend/llmusage-provider-adapter.md
+ M .trellis/spec/ccr/backend/tauri-handler-registry.md
+ M .trellis/spec/ccr/backend/typed-ipc-bindings.md
+ M Cargo.lock
+ M ccr-ui/code_map.md
+ M ccr-ui/justfile
+ M ccr-ui/package.json
+ M ccr-ui/scripts/check-generated-bindings.mjs
+ M ccr-ui/src-tauri/Cargo.lock
+ M ccr-ui/src-tauri/Cargo.toml
+ M ccr-ui/src-tauri/gen/schemas/acl-manifests.json
+ M ccr-ui/src-tauri/gen/schemas/desktop-schema.json
+ M ccr-ui/src-tauri/gen/schemas/windows-schema.json
+ M ccr-ui/src-tauri/permissions/command-inventory.toml
+ M ccr-ui/src-tauri/src/commands/claude.rs
+ M ccr-ui/src-tauri/src/commands/claude_profiles.rs
+ M ccr-ui/src-tauri/src/commands/claude_settings.rs
+ M ccr-ui/src-tauri/src/commands/codex.rs
+ M ccr-ui/src-tauri/src/commands/codex_auth.rs
+ M ccr-ui/src-tauri/src/commands/codex_profiles.rs
+ M ccr-ui/src-tauri/src/commands/codex_settings.rs
+ M ccr-ui/src-tauri/src/commands/command_exec.rs
+ M ccr-ui/src-tauri/src/commands/config.rs
+ M ccr-ui/src-tauri/src/commands/grok.rs
+ M ccr-ui/src-tauri/src/commands/handler_registry.rs
+ M ccr-ui/src-tauri/src/commands/install.rs
+ M ccr-ui/src-tauri/src/commands/profile_lifecycle.rs
+ M ccr-ui/src-tauri/src/commands/runtime_policy.rs
+ M ccr-ui/src-tauri/src/commands/usage.rs
+ M ccr-ui/src-tauri/src/llmusage_adapter/cli.rs
+ M ccr-ui/src-tauri/src/llmusage_adapter/error.rs
+ M ccr-ui/src-tauri/src/main.rs
+ M ccr-ui/src-tauri/src/process/gateway.rs
+ M ccr-ui/src-tauri/src/process/mod.rs
+ M ccr-ui/src-tauri/src/state.rs
+ M ccr-ui/src-tauri/src/usage_jobs.rs
+ M ccr-ui/src/api/domains/claude.ts
+ M ccr-ui/src/api/domains/codex.ts
+ M ccr-ui/src/api/domains/config.ts
+ M ccr-ui/src/api/generated/claude.ts
+ M ccr-ui/src/api/generated/command-manifest.json
+ M ccr-ui/src/api/generated/commandCapabilities.ts
+ M ccr-ui/src/api/generated/config.ts
+ M ccr-ui/src/api/generated/usageV2.ts
+ M ccr-ui/src/api/tauri.ts
+ M ccr-ui/src/configs/auth.ts
+ M ccr-ui/src/configs/profileEditorAdapter.ts
+ M ccr-ui/src/configs/profiles.ts
+ M ccr-ui/src/configs/settings-claude.ts
+ M ccr-ui/src/configs/settings-codex-map.ts
+ M ccr-ui/src/configs/settings-codex.ts
+ M ccr-ui/src/configs/settings-grok.ts
+ M ccr-ui/src/configs/settings-opencode.ts
+ M ccr-ui/src/configs/settings-types.ts
+ M ccr-ui/src/configs/settings.ts
+ M ccr-ui/src/features/claude/profiles/claudeProfileEditorAdapter.ts
+ M ccr-ui/src/features/claude/profiles/useClaudeProfilesPage.ts
+ M ccr-ui/src/features/codex/profiles/codexProfileEditorAdapter.ts
+ M ccr-ui/src/features/codex/profiles/useCodexProfilesPage.ts
+ M ccr-ui/src/features/commands/CommandsComposer.tsx
+ M ccr-ui/src/features/commands/CommandsLedger.tsx
+ M ccr-ui/src/features/commands/CommandsView.tsx
+ M ccr-ui/src/features/commands/queries.ts
+ M ccr-ui/src/features/commands/stores.ts
+ M ccr-ui/src/features/commands/useCommandsPage.ts
+ M ccr-ui/src/features/configs/ConfigsView.tsx
+ M ccr-ui/src/features/configs/components/AddConfigModal.tsx
+ M ccr-ui/src/features/configs/components/ConfigBadges.tsx
+ M ccr-ui/src/features/configs/components/ConfigCard.tsx
+ M ccr-ui/src/features/configs/components/ConfigFilters.tsx
+ M ccr-ui/src/features/configs/components/ConfigList.tsx
+ M ccr-ui/src/features/configs/components/ConfigsRuntimeBadge.tsx
+ M ccr-ui/src/features/configs/components/ConfigsSubnav.tsx
+ M ccr-ui/src/features/configs/components/EditConfigModal.tsx
+ M ccr-ui/src/features/configs/hooks/useConfigsPage.ts
+ M ccr-ui/src/features/configs/lib/configForm.ts
+ M ccr-ui/src/features/configs/queries.ts
+ M ccr-ui/src/features/editor/CodeSourceEditor.tsx
+ M ccr-ui/src/features/editor/ConfigSourcePanel.tsx
+ M ccr-ui/src/features/editor/cspNonce.ts
+ M ccr-ui/src/features/editor/editorExtensions.ts
+ M ccr-ui/src/features/editor/editorTheme.ts
+ M ccr-ui/src/features/editor/locale.ts
+ D ccr-ui/src/features/editor/styles/code-source-editor.css
+ D ccr-ui/src/features/editor/styles/config-source-panel.css
+ M ccr-ui/src/features/grok/profiles/useGrokProfilesPage.ts
+ M ccr-ui/src/features/platform/SurfacePage.tsx
+ M ccr-ui/src/features/platform/auth/BaseAuth.tsx
+ M ccr-ui/src/features/platform/profiles/useProfileEditor.ts
+ M ccr-ui/src/features/platform/settings-model.ts
+ M ccr-ui/src/features/platform/settings/BaseSettings.tsx
+ M ccr-ui/src/features/platform/settings/SettingsFieldControl.tsx
+ M ccr-ui/src/features/usage/useUsageImport.ts
+ M ccr-ui/src/i18n/locales/en-US.ts
+ M ccr-ui/src/i18n/locales/zh-CN.ts
+ M ccr-ui/src/shell/eventBridge.ts
+ M ccr-ui/src/types/generated/config/ConfigInfo.ts
+ M ccr-ui/src/types/generated/grok/GrokProfileActionResponse.ts
+ M ccr-ui/src/types/generated/usage/UsageImportJobStage.ts
+ M ccr-ui/src/types/generated/usage/UsageImportJobStatus.ts
+ M ccr-ui/src/utils/usageImportNormalization.ts
+ M ccr-ui/src/views/usage/dateWindow.ts
+ M ccr-ui/tests/api/api-domain-idle.smoke.test.ts
+ M ccr-ui/tests/api/api-facade-boundary.smoke.test.ts
+ M ccr-ui/tests/api/typed-config-client.smoke.test.ts
+ M ccr-ui/tests/configs/config-domain-api.smoke.test.ts
+ M ccr-ui/tests/configs/config-form-schema.smoke.test.ts
+ M ccr-ui/tests/configs/edit-config-draft.smoke.test.tsx
+ M ccr-ui/tests/i18n.test.cjs
+ M ccr-ui/tests/platforms/platform-base-settings.smoke.test.tsx
+ M ccr-ui/tests/platforms/platform-surface-unify.smoke.test.ts
+ M ccr-ui/tests/quality/hardcode-px-rgba.smoke.test.ts
+ M ccr-ui/tests/shell/cache-route.smoke.test.ts
+ M ccr-ui/tests/shell/event-bridge-leak.smoke.test.tsx
+ M ccr-ui/tests/ui/code-source-editor.smoke.test.tsx
+ M ccr-ui/tests/usage/usage-date-window.smoke.test.ts
+ M code_map.md
+ M crates/ccr-cli/Cargo.toml
+ M crates/ccr-cli/src/application/mod.rs
+ M crates/ccr-cli/src/application/profile_off.rs
+ M crates/ccr-cli/src/application/profile_switch.rs
+ M crates/ccr-cli/src/application/types.rs
+ M crates/ccr-cli/src/commands/doctor_cmd.rs
+ M crates/ccr-cli/src/commands/lifecycle/clean.rs
+ M crates/ccr-cli/src/commands/lifecycle/mod.rs
+ M crates/ccr-cli/src/commands/lifecycle/validate.rs
+ M crates/ccr-cli/src/commands/mod.rs
+ M crates/ccr-cli/src/commands/profile/switch.rs
+ M crates/ccr-cli/src/lib.rs
+ M crates/ccr-cli/src/platforms/claude.rs
+ M crates/ccr-cli/src/platforms/droid.rs
+ M crates/ccr-cli/src/platforms/gemini.rs
+ M crates/ccr-cli/src/platforms/grok.rs
+ M crates/ccr-cli/src/services/doctor_service.rs
+ M crates/ccr-cli/src/services/install_exec.rs
+ M crates/ccr-cli/src/services/install_service.rs
+ M crates/ccr-cli/src/services/validate_service.rs
+ M crates/ccr-cli/tests/dispatch_routing.rs
+ M crates/ccr-codex/src/managers/codex_config.rs
+ M crates/ccr-codex/src/platforms/codex.rs
+ M crates/ccr-codex/src/services/codex_process_service.rs
+ M crates/ccr-codex/src/services/codex_runtime_service.rs
+ M crates/ccr-codex/src/services/mod.rs
+ M crates/ccr-config/src/lib.rs
+ M crates/ccr-config/src/managers/config/manager.rs
+ M crates/ccr-config/src/managers/config/mod.rs
+ M crates/ccr-config/src/managers/config_file_handler.rs
+ M crates/ccr-config/src/managers/config_validator.rs
+ M crates/ccr-config/src/managers/provider_activation.rs
+ M crates/ccr-config/src/models/platform.rs
+ M crates/ccr-config/src/platforms/base.rs
+ M crates/ccr-config/src/services/config_service.rs
+ M crates/ccr-core/Cargo.toml
+ M crates/ccr-core/src/core/atomic_writer.rs
+ M crates/ccr-core/src/core/guarded_write.rs
+ M crates/ccr-core/src/core/lock.rs
+ M crates/ccr-core/src/core/mod.rs
+ M crates/ccr-core/src/core/process_gateway.rs
+ M crates/ccr-tui/Cargo.toml
+ M crates/ccr-tui/src/tui/app.rs
+ M crates/ccr-tui/src/tui/grok_auth/tests.rs
+ M crates/ccr-tui/src/tui/mod.rs
+ M crates/ccr-usage/src/db.rs
+ M crates/ccr/Cargo.toml
+ M crates/ccr/src/main.rs
+ M crates/ccr/tests/commands/claude_profile.rs
+ M crates/ccr/tests/commands/clean.rs
+ M crates/ccr/tests/commands/doctor.rs
+ M docs/en/reference/commands/doctor.md
+ M docs/en/reference/commands/validate.md
+ M docs/en/reference/tauri-command-inventory.md
+ M docs/reference/commands/doctor.md
+ M docs/reference/commands/validate.md
+ M docs/reference/tauri-command-inventory.md
+ M justfile
+ M scripts/ci/check_workflow_governance.py
+ M scripts/ci/test_check_workflow_governance.py
+ M scripts/quality/check_secret_writes.py
+?? .trellis/spec/ccr-cli/backend/diagnostics-contract.md
+?? .trellis/spec/ccr-cli/backend/profile-application-lifecycle.md
+?? .trellis/spec/ccr-config/backend/profile-repository.md
+?? .trellis/spec/ccr-ui/frontend/command-job-lifecycle.md
+?? .trellis/spec/ccr/backend/usage-job-lifecycle.md
+?? .trellis/tasks/09-28-architecture-contract-gates/
+?? .trellis/tasks/09-28-cli-diagnostics-contract/
+?? .trellis/tasks/09-28-cli-tauri-architecture/
+?? .trellis/tasks/09-28-command-workbench-lifecycle/
+?? .trellis/tasks/09-28-config-repository-consistency/
+?? .trellis/tasks/09-28-desktop-control-oauth-lifecycle/
+?? .trellis/tasks/09-28-frontend-query-error-contracts/
+?? .trellis/tasks/09-28-profile-application-usecases/
+?? .trellis/tasks/09-28-safe-persistence-backups/
+?? .trellis/tasks/09-28-settings-lossless-capabilities/
+?? .trellis/tasks/09-28-tauri-config-adapter/
+?? .trellis/tasks/09-28-usage-job-lifecycle/
+?? ccr-ui/.tmp-desktop-probe.mjs
+?? ccr-ui/.tmp-insights-visual.mjs
+?? ccr-ui/scripts/bindings-transaction.d.mts
+?? ccr-ui/scripts/bindings-transaction.mjs
+?? ccr-ui/scripts/check-generated-bindings.d.mts
+?? ccr-ui/scripts/generate-bindings.d.mts
+?? ccr-ui/scripts/generate-bindings.mjs
+?? ccr-ui/src-tauri/src/commands/claude_settings_tests.rs
+?? ccr-ui/src-tauri/src/commands/codex_auth/
+?? ccr-ui/src-tauri/src/commands/config/
+?? ccr-ui/src-tauri/src/llmusage_adapter/cli_lifecycle_tests.rs
+?? ccr-ui/src/configs/environmentSession.ts
+?? ccr-ui/src/configs/settings-patch.ts
+?? ccr-ui/src/features/commands/commandJobState.ts
+?? ccr-ui/src/features/commands/commandJobStore.ts
+?? ccr-ui/src/features/platform/editor/
+?? ccr-ui/src/features/platform/settings/SettingsFormBody.tsx
+?? ccr-ui/src/features/platform/settings/SettingsSessionNotice.tsx
+?? ccr-ui/src/features/platform/settings/SettingsSource.tsx
+?? ccr-ui/src/features/platform/settings/useSettingsSession.ts
+?? ccr-ui/src/types/generated/config/ConfigMutationResult.ts
+?? ccr-ui/src/types/generated/config/ConfigPatchInput.ts
+?? ccr-ui/src/types/generated/config/ConfigPlatform.ts
+?? ccr-ui/src/types/generated/profiles/
+?? ccr-ui/src/utils/profileOutcome.ts
+?? ccr-ui/tests/commands/
+?? ccr-ui/tests/configs/configs-actions.smoke.test.tsx
+?? ccr-ui/tests/platforms/auth-probe-recovery-check.smoke.test.tsx
+?? ccr-ui/tests/platforms/auth-query-contract.smoke.test.tsx
+?? ccr-ui/tests/platforms/query-contract-baseline.smoke.test.tsx
+?? ccr-ui/tests/platforms/settings-capabilities.smoke.test.tsx
+?? ccr-ui/tests/platforms/settings-lossless.smoke.test.ts
+?? ccr-ui/tests/platforms/settings-return-cache-check.smoke.test.tsx
+?? ccr-ui/tests/platforms/settings-session.smoke.test.tsx
+?? ccr-ui/tests/platforms/settings-source-session.smoke.test.tsx
+?? ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx
+?? ccr-ui/tests/profiles/profile-outcome.smoke.test.tsx
+?? ccr-ui/tests/quality/bindings-transaction.smoke.test.ts
+?? ccr-ui/tests/usage/usage-import-lifecycle.smoke.test.tsx
+?? crates/ccr-cli/src/application/profile_contract.rs
+?? crates/ccr-cli/src/application/profile_lifecycle.rs
+?? crates/ccr-cli/src/services/validate_service/
+?? crates/ccr-codex/src/services/codex_oauth_pending_store.rs
+?? crates/ccr-config/src/managers/config/repository.rs
+?? crates/ccr-config/src/managers/config/repository_tests.rs
+?? crates/ccr-core/src/core/write_journal.rs
+?? crates/ccr-tui/src/tui/profile_backend.rs
+?? crates/ccr/tests/diagnostics_contract.rs
+?? scripts/ci/test_architecture_contract_gates.py

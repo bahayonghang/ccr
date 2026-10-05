@@ -6,6 +6,7 @@ pub mod platforms;
 pub mod services;
 
 pub use ccr_core::{AutoCompletable, CcrError, Result, Validatable};
+pub use managers::config::{ConfigPatch, ConfigSnapshot, FieldPatch};
 pub use managers::{
     CcsConfig, ConfigManager, ConfigSection, ConfigValidator, GlobalSettings, PlatformConfigEntry,
     PlatformConfigManager, ProviderType, TuiConfig, TuiConfigManager, TuiLanguage, TuiTabId,

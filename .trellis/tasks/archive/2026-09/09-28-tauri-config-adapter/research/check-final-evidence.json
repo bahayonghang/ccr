@@ -1,0 +1,173 @@
+{
+  "captured_at": "2026-09-28T14:47:38.030389+00:00",
+  "reviewer": "/root/check_t03",
+  "baseline_commit": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "source_files": {
+    "crates/ccr-cli/src/application/profile_lifecycle.rs": {
+      "sha256": "c9af01c835016ad10688893bcd89a61b06c219956c389707e23e85954b58ba98",
+      "size": 16301
+    },
+    "crates/ccr-cli/src/application/profile_contract.rs": {
+      "sha256": "079736b3d418195d2085e8f2ecfff2f4cb0d5735cf8f55bf4006c648b7d5349e",
+      "size": 22223
+    },
+    "ccr-ui/src-tauri/src/commands/config.rs": {
+      "sha256": "ac9088268a0d7f8d30543dfb0efd755d15851746cdbc89fcc8df7449f986af0e",
+      "size": 19533
+    },
+    "ccr-ui/src-tauri/src/commands/config/adapter.rs": {
+      "sha256": "b00d2fb17791dc68f685e910d862dd180ad582f4af627e3d13a5e88ca4a973dd",
+      "size": 9149
+    },
+    "ccr-ui/src-tauri/src/commands/config/contract_tests.rs": {
+      "sha256": "ce55e7f4f2c7fc738f4141857e5d486093de41897e19342aa5d2b1bf071d2f17",
+      "size": 16006
+    },
+    "ccr-ui/src-tauri/src/commands/handler_registry.rs": {
+      "sha256": "390f22ab67b6955c5e8506d43a5c3a75f610870c2b7d4dae680a9495b06102e5",
+      "size": 156204
+    },
+    "ccr-ui/src/api/domains/config.ts": {
+      "sha256": "dc16d2e5f1c750dc8e99e996fd37424d03f4315d2c419aa14d28981134e67155",
+      "size": 3893
+    },
+    "ccr-ui/src/api/generated/config.ts": {
+      "sha256": "bf248806dca215c1d35fab8525ba7105175fa4a04e5daafd24bb1e44425e6c43",
+      "size": 2986
+    },
+    "ccr-ui/src/api/generated/command-manifest.json": {
+      "sha256": "5807a1905b9b0cb4d5fe50714902af7b3f1808b5b4a83615c38a7f574dc4b477",
+      "size": 200711
+    },
+    "ccr-ui/src/api/tauri.ts": {
+      "sha256": "1da8c63ef46939959be7c97c21cebdd6a9f90115060a36a3704d2cdf548bb693",
+      "size": 25268
+    },
+    "ccr-ui/src/features/configs/ConfigsView.tsx": {
+      "sha256": "8eaf2ff6f010aa047a0f4ae47bc80cec60fe8710d2a89caf4587354bd4f9e4eb",
+      "size": 6963
+    },
+    "ccr-ui/src/features/configs/hooks/useConfigsPage.ts": {
+      "sha256": "24fd301090da1890daeb64f093544ea9c5086991f58eb1c8d0e44f015c1395c2",
+      "size": 7061
+    },
+    "ccr-ui/src/features/configs/components/EditConfigModal.tsx": {
+      "sha256": "b7e322b96249c8218fba691a0835f2e52ec56729f5f5708fc6423a07dfbef613",
+      "size": 7134
+    },
+    "ccr-ui/src/features/configs/components/AddConfigModal.tsx": {
+      "sha256": "eae79fcd7000190540d058df8cbadcaadd9b8b30334fbf1322caf218f3f72f2b",
+      "size": 6210
+    },
+    "ccr-ui/src/features/configs/components/ConfigList.tsx": {
+      "sha256": "2d93193601feeae7683272299a8643f433ff57628b1811c27d76879a5ecb5cb0",
+      "size": 2003
+    },
+    "ccr-ui/src/features/configs/components/ConfigCard.tsx": {
+      "sha256": "9739d2099af33dff1525d50d55c9b36d6ea63568c96e725c2f5d6b198f90847c",
+      "size": 5062
+    },
+    "ccr-ui/src/features/configs/lib/configForm.ts": {
+      "sha256": "042e6ea95a306f90292c7a3ed951d477fef74e87634599717160348120fdb5ac",
+      "size": 4616
+    },
+    "ccr-ui/src/features/configs/queries.ts": {
+      "sha256": "0d15f20d25801265eadef75ad6c59af6ecb586edfde32fef4fea66a0464d95c0",
+      "size": 1664
+    },
+    "ccr-ui/tests/configs/configs-actions.smoke.test.tsx": {
+      "sha256": "259c1cca4ed38ead054b2dcfc71cd99aab1c404fbb7b46db7a7648282b271d4a",
+      "size": 7104
+    },
+    "ccr-ui/tests/configs/edit-config-draft.smoke.test.tsx": {
+      "sha256": "4efd64ba3d40a9b1fe22d68068f0660d21778a108ca9253cbe3859554e2197f4",
+      "size": 5866
+    },
+    "ccr-ui/tests/api/api-domain-idle.smoke.test.ts": {
+      "sha256": "f4e31c7b0e269fb8995382cc7e62f9662f19a04c163dae50eaa174a98de6ffc9",
+      "size": 4811
+    },
+    "ccr-ui/src/types/generated/config/ConfigPlatform.ts": {
+      "sha256": "373c660d032129af08e664303ae50ad56028bb2dc7ac34700892f84161d77016",
+      "size": 149
+    },
+    "ccr-ui/src/types/generated/config/ConfigPatchInput.ts": {
+      "sha256": "4de2ed8f6228b3926dedb00634ba79fa1047f2ba7740eb45017d708ddcfe34f2",
+      "size": 498
+    },
+    "ccr-ui/src/types/generated/config/ConfigMutationResult.ts": {
+      "sha256": "e28e68a400659ab56e853f1d4730ba763568afb6c97078247306cdedf9080a59",
+      "size": 338
+    },
+    "ccr-ui/src/types/generated/config/ConfigInfo.ts": {
+      "sha256": "1cd339d1b72d5c042feb116cd8615aa8879779236635bd6783e996130b830df4",
+      "size": 464
+    },
+    ".trellis/spec/ccr/backend/typed-ipc-bindings.md": {
+      "sha256": "dc55f58d02e490b8ff0853d5b8114e15ce0a284ddb8bda3ef50136e39d53f1f2",
+      "size": 28430
+    },
+    ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md": {
+      "sha256": "7ab9f19902632fb22af14a787a8354da782391e38b739fe3e712cd52c572427f",
+      "size": 14960
+    },
+    ".trellis/spec/ccr-cli/backend/profile-application-lifecycle.md": {
+      "sha256": "c5a7cde3aad89892157950daaedf2131bb9efafb101d20aec05fbb0a9b83440a",
+      "size": 9162
+    }
+  },
+  "protected_files": {
+    "ccr-ui/.tmp-desktop-probe.mjs": {
+      "sha256": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+      "size": 3779,
+      "baseline_sha256": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+      "matches_baseline": true
+    },
+    "ccr-ui/.tmp-insights-visual.mjs": {
+      "sha256": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53",
+      "size": 14099,
+      "baseline_sha256": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53",
+      "matches_baseline": true
+    }
+  },
+  "git_diff_check_exit_code": 0,
+  "checks": {
+    "backend_config": {
+      "passed": 17,
+      "ignored_child_helper": 1,
+      "log": "check-backend-final.log"
+    },
+    "enable_compensation": {
+      "passed": 1,
+      "log": "check-enable-final.log"
+    },
+    "frontend_config_api": {
+      "files_passed": 26,
+      "tests_passed": 90,
+      "log": "check-frontend-verified.log"
+    },
+    "page_action_subset": {
+      "tests_passed": 7,
+      "log": "check-actions-final.log"
+    },
+    "typecheck": {
+      "exit_code": 0,
+      "log": "check-typecheck-final.log"
+    },
+    "tauri_strict_clippy": {
+      "exit_code": 0,
+      "log": "check-clippy-initial.log"
+    },
+    "fmt_check": {
+      "exit_code": 0,
+      "log": "check-fmt-final.log"
+    },
+    "formal_frontend_lint": {
+      "exit_code": 1,
+      "protected_file_errors": 5,
+      "t03_errors": 0,
+      "log": "check-lint-final.log",
+      "stylelint_and_style_lines": "not reached due to &&"
+    }
+  }
+}

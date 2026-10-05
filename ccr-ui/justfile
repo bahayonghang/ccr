@@ -398,8 +398,11 @@ _dev-clean-linux:
             lsof -ti:"$port" 2>/dev/null | xargs -r kill -9 2>/dev/null || true
         done
     fi
-    # 清理缓存目录
-    rm -rf "$JDIR/node_modules/.vite" 2>/dev/null || true
+    # 常规启动保留 Vite 依赖缓存。强制重建时才删除。
+    if [ "${CCR_DEV_RESET_VITE_CACHE:-}" = "1" ]; then
+        echo "... 清理前端构建目录..."
+        rm -rf "$JDIR/node_modules/.vite" 2>/dev/null || true
+    fi
     echo "✅ 清理完成"
 
 # 清理开发环境 - macOS
@@ -443,17 +446,20 @@ _dev-clean-macos:
             lsof -ti:"$port" 2>/dev/null | xargs kill -9 2>/dev/null || true
         done
     fi
-    # 清理缓存目录
-    rm -rf "$JDIR/node_modules/.vite" 2>/dev/null || true
+    # 常规启动保留 Vite 依赖缓存。强制重建时才删除。
+    if [ "${CCR_DEV_RESET_VITE_CACHE:-}" = "1" ]; then
+        echo "... 清理前端构建目录..."
+        rm -rf "$JDIR/node_modules/.vite" 2>/dev/null || true
+    fi
     echo "✅ 清理完成"
 
 # 清理开发环境 - Windows
-# 优化：仅清理本项目配置的端口，避免误杀其他项目
+# 仅清理本项目端口。Vite 依赖缓存默认保留，CCR_DEV_RESET_VITE_CACHE=1 才删除。
+# 删除走 rmdir：Remove-Item -Recurse 的进度条在 Windows 上会停住。
 _dev-clean-windows:
     @powershell -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Write-Host '🧹 开始清理开发环境...' -ForegroundColor Cyan"
     @powershell -ExecutionPolicy Bypass -File scripts/clean_dev.ps1 -BackendPort "{{backend_port}}" -VitePort "{{vite_port}}"
-    @powershell -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Write-Host '... 清理前端构建目录...' -ForegroundColor Gray"
-    @if (Test-Path 'node_modules/.vite') { Remove-Item -Recurse -Force 'node_modules/.vite' }
+    @if ($env:CCR_DEV_RESET_VITE_CACHE -eq '1' -and (Test-Path -LiteralPath 'node_modules/.vite')) { Write-Host '... 清理前端构建目录...' -ForegroundColor Gray; cmd /c 'rmdir /s /q node_modules\.vite' | Out-Null }; exit 0
     @powershell -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Write-Host '✅ 清理完成' -ForegroundColor Green"
 
 # 启动前清理（端口 + 缓存 + 残留进程）
@@ -852,15 +858,15 @@ test-backend:
 
 _test-backend-linux:
     @echo "🧪 运行后端测试..."
-    cd src-tauri && cargo test
+    cd src-tauri && cargo test -- --skip export_bindings
 
 _test-backend-macos:
     @echo "🧪 运行后端测试..."
-    cd src-tauri && cargo test
+    cd src-tauri && cargo test -- --skip export_bindings
 
 _test-backend-windows:
     @Write-Output '🧪 运行后端测试...'
-    @Set-Location src-tauri; cargo test
+    @Set-Location src-tauri; cargo test -- --skip export_bindings
 
 # 运行前端测试
 test-frontend:
@@ -1350,7 +1356,7 @@ _ensure-frontend-deps:
 
 _ensure-frontend-deps-linux:
     #!/usr/bin/env bash
-    if [ ! -d "node_modules" ] || [ ! -d "node_modules/vue-i18n" ]; then
+    if [ ! -d "node_modules" ] || [ ! -d "node_modules/react-i18next" ]; then
         echo "📦 检测到依赖缺失，正在安装前端依赖..."
         if command -v bun >/dev/null 2>&1; then
             bun install
@@ -1364,7 +1370,7 @@ _ensure-frontend-deps-linux:
 
 _ensure-frontend-deps-macos:
     #!/usr/bin/env bash
-    if [ ! -d "node_modules" ] || [ ! -d "node_modules/vue-i18n" ]; then
+    if [ ! -d "node_modules" ] || [ ! -d "node_modules/react-i18next" ]; then
         echo "📦 检测到依赖缺失，正在安装前端依赖..."
         bun install
         echo "✅ 前端依赖安装完成"
@@ -1373,7 +1379,7 @@ _ensure-frontend-deps-macos:
     fi
 
 _ensure-frontend-deps-windows:
-    @if (-not (Test-Path 'node_modules') -or -not (Test-Path 'node_modules/vue-i18n')) { Write-Output '📦 检测到依赖缺失，正在安装前端依赖...'; bun install; Write-Output '✅ 前端依赖安装完成' } else { Write-Output '✅ 前端依赖已就绪' }
+    @if (-not (Test-Path 'node_modules') -or -not (Test-Path 'node_modules/react-i18next')) { Write-Output '📦 检测到依赖缺失，正在安装前端依赖...'; bun install; Write-Output '✅ 前端依赖安装完成' } else { Write-Output '✅ 前端依赖已就绪' }
 
 _tauri-build-linux:
     @echo "🏗️  构建 Tauri 桌面应用（生产版本）..."
@@ -1536,37 +1542,15 @@ bindings:
     @just _bindings-{{os()}}
 
 _bindings-linux:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    echo "🔄 重新生成 TypeScript 绑定..."
-    rm -rf src/types/generated
-    cargo test --manifest-path ../Cargo.toml -p ccr-cli --features ts export_bindings
-    cargo test --manifest-path ../Cargo.toml -p ccr-usage --features ts export_bindings
-    cargo --config ../.cargo/tauri-ci.toml test --manifest-path src-tauri/Cargo.toml export_bindings
-    bun ./scripts/normalize-generated-bindings.mjs
-    echo "✅ 绑定已生成: src/types/generated/"
+    @bun ./scripts/generate-bindings.mjs
 
 _bindings-macos:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    echo "🔄 重新生成 TypeScript 绑定..."
-    rm -rf src/types/generated
-    cargo test --manifest-path ../Cargo.toml -p ccr-cli --features ts export_bindings
-    cargo test --manifest-path ../Cargo.toml -p ccr-usage --features ts export_bindings
-    cargo --config ../.cargo/tauri-ci.toml test --manifest-path src-tauri/Cargo.toml export_bindings
-    bun ./scripts/normalize-generated-bindings.mjs
-    echo "✅ 绑定已生成: src/types/generated/"
+    @bun ./scripts/generate-bindings.mjs
 
 _bindings-windows:
-    @Write-Output '🔄 重新生成 TypeScript 绑定...'
-    @if (Test-Path src/types/generated) { Remove-Item -Recurse -Force src/types/generated }
-    @cargo test --manifest-path ../Cargo.toml -p ccr-cli --features ts export_bindings
-    @cargo test --manifest-path ../Cargo.toml -p ccr-usage --features ts export_bindings
-    @cargo --config ../.cargo/tauri-ci.toml test --manifest-path src-tauri/Cargo.toml export_bindings
-    @bun ./scripts/normalize-generated-bindings.mjs
-    @Write-Output '✅ 绑定已生成: src/types/generated/'
+    @bun ./scripts/generate-bindings.mjs
 
-# 🧪 TypeScript 绑定漂移守卫：先自动规范化空白，再验证重新生成与当前工作区生成物一致
+# 🧪 TypeScript 绑定漂移守卫：比较规范化结果，并在所有结果下恢复调用前生成物
 bindings-check:
     @just _bindings-check-{{os()}}
 

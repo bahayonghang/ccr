@@ -1,0 +1,23 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "-p",
+    "ccr-cli",
+    "--all-features",
+    "--lib",
+    "commands::codex::fix::tests::doctor_timeout_terminates_parent_and_grandchild",
+    "--",
+    "--exact",
+    "--nocapture"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "source_before_sha256": "2615ff8ef43b62d659b9e1604c56ece8161fd6552d93096b6ea07a751d2b667a",
+  "started_at_utc": "2026-09-28T23:27:25.813089+00:00",
+  "exit_code": 0,
+  "seconds": 35.819,
+  "source_after_sha256": "2615ff8ef43b62d659b9e1604c56ece8161fd6552d93096b6ea07a751d2b667a",
+  "finished_at_utc": "2026-09-28T23:28:01.632468+00:00",
+  "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-baseline.log",
+  "log_sha256": "d70bfaf5490b463e30f3826ac8e788984a6699a2e869d3451b795aec95b75a5b"
+}

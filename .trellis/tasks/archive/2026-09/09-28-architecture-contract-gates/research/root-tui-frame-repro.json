@@ -1,0 +1,15 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "-p",
+    "ccr-tui",
+    "--all-features",
+    "--lib",
+    "grok_frames_keep_actions_and_local_evidence_across_sizes_and_languages",
+    "--",
+    "--nocapture"
+  ],
+  "exit_code": 101,
+  "seconds": 14.11
+}

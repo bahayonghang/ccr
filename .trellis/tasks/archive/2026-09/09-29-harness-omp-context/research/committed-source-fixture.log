@@ -1,0 +1,22 @@
+bun test v1.4.2 (744846f84)
+
+scripts\trellis\omp-context.test.ts:
+(pass) OMP Trellis buildTaskContext > main and each role receive prd/design/implement markers [27.77ms]
+(pass) OMP Trellis buildTaskContext > jsonl files stay isolated by role [21.65ms]
+(pass) OMP Trellis buildTaskContext > lightweight task without design/implement still reads PRD [2.56ms]
+(pass) OMP Trellis buildTaskContext > missing task files do not crash session_start [2.43ms]
+(pass) OMP Trellis buildTaskContext > out-of-trust jsonl paths stay rejected [8.49ms]
+(pass) OMP Trellis buildTaskContext > legacy info.md remains available to every role [21.34ms]
+(pass) OMP Trellis buildTaskContext > design and implementation edits refresh the existing session cache [24.41ms]
+(pass) OMP Trellis buildTaskContext > artifact and referenced-file symlinks cannot read outside trusted roots [8.92ms]
+(pass) OMP Trellis buildTaskContext > explicit trusted roots permit artifact and manifest symlinks [10.95ms]
+(pass) OMP Trellis buildTaskContext > artifact and file caps truncate on complete UTF-8 characters [8.77ms]
+(pass) OMP Trellis buildTaskContext > total context cap emits a required-read notice without oversized content [5.92ms]
+(pass) OMP Trellis buildTaskContext > a cap smaller than the wrapper emits no malformed payload [4.18ms]
+(pass) OMP Trellis buildTaskContext > binary and malformed UTF-8 artifacts stay omitted [6.69ms]
+(pass) OMP Trellis buildTaskContext > oversized manifests are omitted before parsing their entries [11.78ms]
+
+ 14 pass
+ 0 fail
+ 99 expect() calls
+Ran 14 tests across 1 file. [210.00ms]

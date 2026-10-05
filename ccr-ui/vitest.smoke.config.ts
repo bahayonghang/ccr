@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { availableParallelism } from 'node:os'
-import vue from '@vitejs/plugin-vue'
+import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 
 export const resolveSmokeMaxWorkers = (
@@ -22,7 +22,7 @@ export const resolveSmokeMaxWorkers = (
 }
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [react()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
@@ -31,12 +31,30 @@ export default defineConfig({
   test: {
     name: 'smoke',
     environment: 'jsdom',
-    include: ['tests/**/*.smoke.test.ts'],
-    setupFiles: ['./tests/setup/localStorage.ts'],
+    include: ['tests/**/*.smoke.test.{ts,tsx}'],
+    setupFiles: ['./tests/setup/localStorage.ts', './tests/setup/react-cleanup.ts'],
     restoreMocks: true,
     clearMocks: true,
     fileParallelism: true,
     maxWorkers: resolveSmokeMaxWorkers(),
-    testTimeout: 15_000
+    testTimeout: 15_000,
+    // 覆盖率门（08-22-arch-quality-perf 批次 5）：阈值从 justfile CLI 参数移入此处，
+    // 使 `bun run test:smoke --coverage` 直接生效。lines ≥70% 为 2026-08-23 复核后保留值
+    // （React 基座实测 lines 72.86%，迁移前基线 75.4%，接近 70% 故保留，未显著偏离）。
+    // design.md §4 禁止新增 functions/branches/statements 阈值，故仅设 lines。
+    coverage: {
+      // 只统计测试实际加载的源码；文案目录 / 资源 / 生成类型不进分母。
+      exclude: [
+        '**/*.css',
+        '**/*.d.ts',
+        '**/package.json',
+        'src/i18n/locales/**',
+        'src/assets/**',
+        'src/types/generated/**',
+      ],
+      thresholds: {
+        lines: 70
+      }
+    }
   }
 })

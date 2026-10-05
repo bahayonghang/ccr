@@ -1,0 +1,21 @@
+{
+  "command": [
+    "git",
+    "apply",
+    "--check",
+    "D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-29-harness-ci-evidence\\research\\manager-lock-candidate.patch"
+  ],
+  "exit_code": 0,
+  "applied": false,
+  "source_hashes_before": {
+    "crates/ccr/tests/managers/general.rs": "7ce7164c69ca883cf612ea440c51f2b40207ac4220694c68de42c3ab6a6ca4b2",
+    "crates/ccr/tests/managers/legacy_registry.rs": "685cb2972188d005e7f314ecd38e14515b76b3f5f10bebffa1f94b1122163d67"
+  },
+  "source_hashes_after": {
+    "crates/ccr/tests/managers/general.rs": "7ce7164c69ca883cf612ea440c51f2b40207ac4220694c68de42c3ab6a6ca4b2",
+    "crates/ccr/tests/managers/legacy_registry.rs": "685cb2972188d005e7f314ecd38e14515b76b3f5f10bebffa1f94b1122163d67"
+  },
+  "patch_sha256": "a7082c421018a9b54167b3069ec3000cc21210bdebe3ca135cf6d7f52e775738",
+  "added_lines": 6,
+  "removed_lines": 0
+}

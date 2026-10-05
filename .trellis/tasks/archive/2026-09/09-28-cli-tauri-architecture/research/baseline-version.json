@@ -1,0 +1,11 @@
+{
+  "check": "version",
+  "command": [
+    "just",
+    "version-check"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "exit_code": 0,
+  "seconds": 2.29,
+  "log": "baseline-version.log"
+}

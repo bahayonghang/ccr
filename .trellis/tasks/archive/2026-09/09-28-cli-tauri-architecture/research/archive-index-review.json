@@ -1,0 +1,149 @@
+{
+  "reviewed_at_utc": "2026-09-29T04:56:49.621432+00:00",
+  "full_archive_diff_check_exit": 2,
+  "findings": [
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/continuation-doctor-final.diff",
+      "line": 19,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/continuation-doctor-final.diff",
+      "line": 55,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/continuation-doctor-final.diff",
+      "line": 75,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/continuation-security-lock-diff.patch",
+      "line": 6,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/continuation-security-lock-diff.patch",
+      "line": 18,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/continuation-security-lock-diff.patch",
+      "line": 34,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/continuation-security-lock-diff.patch",
+      "line": 46,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-doctor-change.diff",
+      "line": 4,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-doctor-change.diff",
+      "line": 15,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-linux-store-path-change.diff",
+      "line": 7,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-linux-store-path-change.diff",
+      "line": 33,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-permissions-fix.diff",
+      "line": 4,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-permissions-fix.diff",
+      "line": 189,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-permissions-fix.diff",
+      "line": 196,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-permissions-fix.diff",
+      "line": 251,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-permissions-fix.diff",
+      "line": 298,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-permissions-fix.diff",
+      "line": 302,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-permissions-fix.diff",
+      "line": 385,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-permissions-fix.diff",
+      "line": 387,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-permissions-fix.diff",
+      "line": 394,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-permissions-fix.diff",
+      "line": 404,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-permissions-fix.diff",
+      "line": 406,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-windows-script-changes.diff",
+      "line": 16,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-windows-script-changes.diff",
+      "line": 20,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-windows-script-changes.diff",
+      "line": 38,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-desktop-control-oauth-lifecycle/bindings-corrupt-output.diff",
+      "line": 28,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-desktop-control-oauth-lifecycle/bindings-corrupt-output.diff",
+      "line": 109,
+      "content": "single space: blank unified-diff context line"
+    },
+    {
+      "path": ".trellis/tasks/archive/2026-09/09-28-desktop-control-oauth-lifecycle/bindings-corrupt-output.diff",
+      "line": 118,
+      "content": "single space: blank unified-diff context line"
+    }
+  ],
+  "classification": "All 28 findings are required blank context-line markers inside seven historical unified-diff evidence files. The original evidence bytes are preserved.",
+  "remaining_archive_diff_check_exit": 0,
+  "product_source_diff_check_exit": 0
+}

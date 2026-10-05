@@ -16,8 +16,7 @@ install:
 
 # 🔨 构建扩展 — esbuild 打包 + vsce 生成 .vsix + 复制到 outputs/
 build:
-    npm run build:package
-    npx --no-install vsce package --no-dependencies -o ccr-vscode.vsix
+    npm run package
     @just _copy-outputs-{{os()}}
 
 [private]

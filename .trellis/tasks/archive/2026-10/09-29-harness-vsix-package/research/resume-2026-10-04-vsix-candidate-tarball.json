@@ -1,0 +1,25 @@
+{
+  "fetched_utc": "2026-10-04T12:40:01.248390+00:00",
+  "url": "https://registry.npmjs.org/@vscode/vsce/-/vsce-4.0.0.tgz",
+  "http_status": 200,
+  "bytes": 56482,
+  "sha256": "de32bbd17a76ff3471a36e0feff4e07510b3783065b77b1c094685b0accb1d7f",
+  "integrity": "sha512-NImwuLaenMmb5D5Jer9/lzi/F9ZQUBOp8Azhj/BVYcTFgixv8KehFXqEUDjQlD2tAiw2E6dDGyjTuAB//di60A==",
+  "package_metadata": {
+    "name": "@vscode/vsce",
+    "version": "4.0.0",
+    "engines": {
+      "node": ">= 22"
+    },
+    "exports": null,
+    "bin": {
+      "vsce": "vsce"
+    },
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/Microsoft/vsce"
+    }
+  },
+  "tarball_code_executed": false,
+  "archive_extracted_to_filesystem": false
+}

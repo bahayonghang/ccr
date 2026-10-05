@@ -1,0 +1,15 @@
+{
+  "check": "coverage",
+  "command": [
+    "just",
+    "frontend-coverage"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "started_at": "2026-09-28T15:58:32.353575+00:00",
+  "exit_code": 0,
+  "seconds": 106.23,
+  "log": "root-final-coverage.log",
+  "command_environment_override": {
+    "CCR_SKIP_ICON_GENERATION": "1"
+  }
+}

@@ -19,9 +19,11 @@
 
 ### 3. Contracts
 
-- Unix children start in a new process group; cancellation signals the group, waits for `grace`, then escalates to `SIGKILL` and reaps the direct child.
-- Windows children are attached to a Job Object with `KILL_ON_JOB_CLOSE`; cancellation terminates the job and waits for the direct child.
-- `wait` and successful `terminate_tree` set the reaped state. Dropping an unreaped process force-terminates the owned tree as a last resort, but callers must still await a terminal method.
+- Unix children start in a new process group. Cancellation reserves half of `grace` for graceful direct-child exit, then sends `SIGKILL` to the group even if the direct child has already exited. Forceful termination, reap, and group-exit confirmation use the remaining deadline.
+- Windows children are attached to a Job Object with `KILL_ON_JOB_CLOSE`; cancellation terminates the job, reaps the direct child, and confirms `ActiveProcesses == 0` through Job Object accounting.
+- Direct-child reap and tree cleanup are separate states. Only successful child wait records reap; only an absent Unix process group or an empty Windows Job Object records completed tree cleanup.
+- `wait` also terminates remaining owned descendants after direct-child exit and allows at most five seconds for tree-exit confirmation. An enclosing execution deadline can cancel this wait. A missing cleanup proof returns an error.
+- Drop force-terminates an unconfirmed tree even when the direct child was reaped. Drop is a last resort and does not prove successful cleanup; callers must still await a terminal method.
 - No production caller may mark a job terminal before `wait` or `terminate_tree` returns.
 - Child stdout/stderr that is not consumed by the foreground capped reader must use `read_bounded_line`; bounded queues do not bound `AsyncBufReadExt::lines()` before a newline arrives.
 
@@ -31,6 +33,8 @@
 - Job/process-group attachment fails -> return the OS error and do not expose an unmanaged child.
 - Graceful termination exceeds `grace` -> force-terminate the tree, then wait/reap.
 - Tree termination or wait fails -> caller reports cleanup failure; it must not report cancellation success.
+- Direct child exits while a descendant ignores `SIGTERM` -> force the owned group, then confirm group exit before reporting completion.
+- Tree-exit confirmation reaches the deadline -> return `process_tree_cleanup_timeout`; leave cleanup unconfirmed for the Drop fallback.
 - Unterminated line exceeds `max_bytes` -> consume through newline/EOF with constant retained memory and return `BoundedLine.truncated = true`.
 
 ### 5. Good/Base/Bad Cases
@@ -45,6 +49,9 @@
 
 - Windows fixture: parent starts a grandchild, `terminate_tree` completes, and the grandchild PID is no longer running.
 - Unix CI fixture: the same assertion targets a dedicated process group.
+- Unix fixtures: parent exits on `SIGTERM` while a descendant ignores it; parent exits normally before `wait`; Drop follows direct-child reap with outstanding descendants.
+- Windows fixture: normal `wait` and Drop both clean descendants after the direct child was reaped.
+- A live-tree confirmation fixture must time out without marking cleanup complete, then explicitly clean up its process.
 - Bounded-line fixture: an unterminated input larger than the cap returns only the capped prefix with `truncated = true`.
 - Run `cargo test -p ccr-core process_gateway -- --test-threads=1`.
 - Run `cargo clippy -p ccr-core --all-targets --all-features -- -D warnings`.

@@ -20,7 +20,7 @@ use ccr_skills::{PromptPreset, PromptsManager};
 use ccr_store::{BudgetManager, CostTracker};
 
 use crate::platform::local::LocalEnvironment;
-use crate::platform::{EnvError, EnvironmentType, ExecutionEnvironment};
+use crate::platform::{EnvError, EnvironmentRegistry, EnvironmentType, ExecutionEnvironment};
 use crate::state::AppState;
 
 use super::wire::OpenJsonValueDto;
@@ -39,6 +39,37 @@ async fn active_environment(state: &AppState) -> Arc<dyn ExecutionEnvironment> {
     registry
         .active()
         .unwrap_or_else(|| Arc::new(LocalEnvironment::new()))
+}
+
+/// Bind a settings request before its first I/O. Environment IDs identify the
+/// logical target; the captured Arc also survives registry refresh/replacement.
+async fn capture_settings_environment(
+    registry: &tokio::sync::RwLock<EnvironmentRegistry>,
+    expected_environment_id: Option<&str>,
+) -> Result<Arc<dyn ExecutionEnvironment>, String> {
+    let registry = registry.read().await;
+    let environment = match registry.active() {
+        Some(environment) => environment,
+        None if expected_environment_id.is_none() => Arc::new(LocalEnvironment::new()),
+        None => return Err(settings_environment_changed()),
+    };
+    if expected_environment_id.is_some_and(|expected| expected != environment.env_id()) {
+        return Err(settings_environment_changed());
+    }
+    Ok(environment)
+}
+
+fn settings_environment_changed() -> String {
+    "settings_environment_changed: active environment does not match the settings session"
+        .to_string()
+}
+
+async fn read_settings_from_registry(
+    registry: &tokio::sync::RwLock<EnvironmentRegistry>,
+    expected_environment_id: Option<&str>,
+) -> Result<Value, String> {
+    let environment = capture_settings_environment(registry, expected_environment_id).await?;
+    read_claude_settings_from_env(environment).await
 }
 
 async fn read_claude_settings_from_env(
@@ -92,14 +123,6 @@ async fn write_claude_settings_to_env(
         })
 }
 
-async fn write_active_claude_settings_raw(
-    state: &AppState,
-    settings: &Value,
-) -> Result<(), String> {
-    let env = active_environment(state).await;
-    write_claude_settings_to_env(env, settings).await
-}
-
 fn merge_settings_patch(current: &mut Value, patch: Value) -> Result<(), String> {
     let current_obj = current
         .as_object_mut()
@@ -120,28 +143,35 @@ async fn load_settings(state: &AppState) -> Result<ccr_types::ClaudeSettings, St
     serde_json::from_value(raw).map_err(|e| format!("Failed to parse settings: {e}"))
 }
 
-async fn save_settings(
-    state: &AppState,
-    settings: &ccr_types::ClaudeSettings,
-) -> Result<(), String> {
-    let raw =
-        serde_json::to_value(settings).map_err(|e| format!("Failed to serialize settings: {e}"))?;
-    write_active_claude_settings_raw(state, &raw).await
-}
-
-async fn update_settings<T, F>(state: &AppState, mut update: F) -> Result<T, String>
+async fn update_settings<T, F>(state: &AppState, update: F) -> Result<T, String>
 where
     T: Send + 'static,
     F: FnMut(&mut ccr_types::ClaudeSettings) -> Result<T, String> + Send + 'static,
 {
-    let environment = active_environment(state).await;
+    update_settings_from_registry(&state.env_registry, None, update).await
+}
+
+async fn update_settings_from_registry<T, F>(
+    registry: &tokio::sync::RwLock<EnvironmentRegistry>,
+    expected_environment_id: Option<&str>,
+    mut update: F,
+) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnMut(&mut ccr_types::ClaudeSettings) -> Result<T, String> + Send + 'static,
+{
+    let environment = capture_settings_environment(registry, expected_environment_id).await?;
     if environment.env_type() == EnvironmentType::Local {
         return update_local_settings(update).await;
     }
 
-    let mut settings = load_settings(state).await?;
+    let raw = read_claude_settings_from_env(environment.clone()).await?;
+    let mut settings = serde_json::from_value(raw)
+        .map_err(|error| format!("Failed to parse settings: {error}"))?;
     let result = update(&mut settings)?;
-    save_settings(state, &settings).await?;
+    let raw = serde_json::to_value(settings)
+        .map_err(|error| format!("Failed to serialize settings: {error}"))?;
+    write_claude_settings_to_env(environment, &raw).await?;
     Ok(result)
 }
 
@@ -200,6 +230,10 @@ pub use plugins::*;
 pub use profiles::*;
 pub use settings::*;
 pub use slash::*;
+
+#[cfg(test)]
+#[path = "claude_settings_tests.rs"]
+mod environment_tests;
 
 // ═══════════════════════════════════════════════════════════
 // ── Output Styles（~/.claude/output-styles/*.md）──
@@ -688,12 +722,11 @@ mod tests {
                 .and_then(Value::as_str),
             Some("https://example.com")
         );
-        assert_eq!(
+        assert!(
             result
                 .get("statusLine")
                 .and_then(Value::as_object)
-                .is_some(),
-            true
+                .is_some()
         );
     }
 

@@ -1,0 +1,17 @@
+{
+  "client_date": "2026-10-04",
+  "head": "c50716b5ed1bcd1c5b4950a746a8621258d0e0b5",
+  "command": [
+    "bun",
+    "test",
+    "scripts/trellis/omp-context.test.ts"
+  ],
+  "fixture": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-omp-resume-2026-10-04-dvgldqgn",
+  "fixture_source_sha256": "30e27a769c38b3d13ef4c042ab16487104efdec9d851aaed05c88d7995a57915",
+  "tracked_extension": "",
+  "extension_exists": false,
+  "exit_code": 0,
+  "stdout_sha256": "6043908c8d26d62698476b88f737f39d5d3e91008d4155a81730902f5a37479c",
+  "stderr_sha256": "7173454da2212d5326a46702a19dba998cae17c79270e34fdea96ade6968380f",
+  "boundary": "Repository source-only fixture; no generated OMP installation. Skip output is not contract execution PASS."
+}

@@ -25,6 +25,7 @@ pub mod logging;
 pub mod process_gateway;
 pub mod secret;
 pub mod sqlite;
+pub mod write_journal;
 
 /// GitHub 仓库标识（owner/repo）
 pub const CCR_GITHUB_REPO: &str = "bahayonghang/ccr";

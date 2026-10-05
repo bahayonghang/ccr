@@ -1,0 +1,181 @@
+{
+  "recorded_at_utc": "2026-09-30T02:26:36.328530+00:00",
+  "user_message": "批准实施",
+  "approved_tasks": [
+    "09-29-harness-omp-context",
+    "09-29-harness-contract-alignment",
+    "09-29-harness-dependabot-bun",
+    "09-29-harness-copilot-crlf",
+    "09-29-harness-vsix-package",
+    "09-29-harness-readonly-gates",
+    "09-29-harness-ci-evidence",
+    "09-29-harness-frontend-security"
+  ],
+  "authorized": [
+    "scoped implementation",
+    "required checks and local fixes",
+    "project guidance and skill/spec writeback"
+  ],
+  "not_authorized": [
+    "commit",
+    "archive",
+    "push",
+    "pull request",
+    "release",
+    "GUI operation",
+    "account or trust changes",
+    "external workflow dispatch"
+  ],
+  "scope_additions": [
+    {
+      "recorded_at_utc": "2026-09-30T02:39:14.530595+00:00",
+      "user_reply": "纳入本次兼容补丁修复（推荐）",
+      "task": "T05",
+      "file": "ccr-vscode/package-lock.json",
+      "versions": {
+        "fast-uri": "3.1.6 -> 3.1.7",
+        "undici": "7.29.0 -> 7.29.1"
+      },
+      "required_checks": [
+        "npm ci",
+        "npm audit",
+        "just vscode-ci",
+        "just vscode-coverage",
+        "final VSIX inventory"
+      ]
+    }
+  ],
+  "pending_scope_requests": [
+    {
+      "id": "new-advisories-vscode-compatible-followup",
+      "recorded_at_utc": "2026-09-30T03:50:27.481872+00:00",
+      "status": "approved_for_resumption",
+      "task": "T05",
+      "file": "ccr-vscode/package-lock.json",
+      "versions": {
+        "brace-expansion": "5.0.9 -> 5.0.12",
+        "fast-uri": "3.1.7 -> 3.1.8"
+      },
+      "reason": "The previous additional approval fixed two node targets, fast-uri 3.1.7 and undici 7.29.1. Both new targets were explicitly included in the pending question.",
+      "review": "research/new-advisories-independent-review.md",
+      "required_checks": [
+        "npm ci",
+        "npm audit",
+        "just vscode-ci",
+        "just vscode-coverage",
+        "final VSIX inventory",
+        "full just ci after all source edits"
+      ],
+      "approval_basis": "2026-10-04 user continuation after the preceding concrete status report"
+    },
+    {
+      "id": "manager-lock-fixture-guard-followup",
+      "recorded_at_utc": "2026-09-30T04:03:35.667202+00:00",
+      "status": "approved_for_resumption",
+      "task": "T07",
+      "files": [
+        "crates/ccr/tests/managers/general.rs",
+        "crates/ccr/tests/managers/legacy_registry.rs"
+      ],
+      "change_summary": "Add six named bindings to the existing setup_ccr_test_env RAII fixture; no production lock logic or global parallelism changes.",
+      "patch_sha256": "a7082c421018a9b54167b3069ec3000cc21210bdebe3ca135cf6d7f52e775738",
+      "reason": "Both test files are outside the original T07 design whitelist.",
+      "diagnosis": "../09-29-harness-ci-evidence/research/manager-lock-diagnosis.md",
+      "required_checks": [
+        "verify 14 diagnostic input hashes and candidate SHA-256",
+        "just version-check",
+        "just fmt-check",
+        "cargo test -p ccr --all-features --test managers legacy_registry::legacy_registry_fields_load_without_becoming_clean_write_routing_truth -- --exact --skip export_bindings",
+        "cargo test -p ccr --all-features --test managers -- --skip export_bindings",
+        "cargo test -p ccr --test platforms -- --nocapture --skip export_bindings",
+        "cargo test -p ccr --test commands -- sync_content --nocapture --skip export_bindings",
+        "cargo test -p ccr --test managers -- --nocapture --skip export_bindings",
+        "cargo clippy -p ccr --all-targets --all-features -- -D warnings",
+        "just lint-strict",
+        "just test",
+        "python scripts/ci/check_workflow_governance.py",
+        "just ci",
+        "git diff --check",
+        "T07 context validation",
+        "independent final diff review"
+      ],
+      "independent_review": "../09-29-harness-ci-evidence/research/manager-lock-independent-review.md",
+      "approval_basis": "2026-10-04 user continuation after the preceding concrete status report"
+    },
+    {
+      "id": "vsce4-braces-chain-followup",
+      "date": "2026-10-04",
+      "status": "approved_for_implementation",
+      "task": "T05",
+      "files": [
+        "ccr-vscode/package.json",
+        "ccr-vscode/package-lock.json"
+      ],
+      "change_summary": "@vscode/vsce ^3.9.2 -> ^4.0.0 and required dependency closure; candidate only",
+      "proposal": "../09-29-harness-vsix-package/research/resume-2026-10-04-vsix-braces-proposal.md",
+      "reason": "No upstream braces patched release; major tooling migration exceeds the two-node approval.",
+      "user_answer": "批准 VSCE 4 迁移和完整验证（推荐）",
+      "required_checks": [
+        "fixed Node 24.20.0 install",
+        "synthetic secret and .env scanner negative cases",
+        "npm audit",
+        "just vscode-ci",
+        "just vscode-coverage",
+        "final VSIX allowlist",
+        "full just ci and independent review"
+      ]
+    }
+  ],
+  "delivery_authorization": {
+    "recorded_at_utc": "2026-09-30T05:32:47.561323+00:00",
+    "user_message": "请提交并归档",
+    "authorized": [
+      "local commits of approved implementation and task evidence",
+      "archive acceptance-complete subtasks",
+      "update task links and session journal"
+    ],
+    "supersedes_initial_not_authorized": [
+      "commit",
+      "archive"
+    ],
+    "pending_scope_requests_remain_awaiting_user": false,
+    "not_authorized": [
+      "push",
+      "pull request",
+      "release",
+      "external workflow dispatch",
+      "global configuration changes"
+    ],
+    "large_evidence_file": {
+      "path": ".trellis/tasks/09-29-harness-ci-evidence/research/tauri-advisory-commands.json",
+      "bytes": 1164069,
+      "status": "user_requested_exact_ignore"
+    }
+  },
+  "resumption_authorizations": [
+    {
+      "date": "2026-10-04",
+      "user_message": "Tauri 诊断 JSON需要忽略，然后继续实施trellis任务",
+      "scope": [
+        "exact ignore for tauri-advisory-commands.json",
+        "T05 two compatible lock node targets reported in prior response",
+        "T07 six named environment fixture bindings reported in prior response",
+        "required checks, independent review and task evidence writeback"
+      ],
+      "acceptance_changes_not_inferred": [
+        "T08 maxActiveExceptions 0 -> 1",
+        "T01 repository-only fixture -> generated-client integration"
+      ]
+    }
+  ],
+  "acceptance_adjustments": [
+    {
+      "date": "2026-10-04",
+      "task": "T01",
+      "user_answer": "批准保留本地生成并调整验收（推荐）",
+      "approved": true,
+      "contract": "Matching generated extension must execute all 14 tests. Missing extension is SKIPPED_UNVERIFIED. Native loading/trust remains separate.",
+      "proposal": "research/resume-2026-10-04-acceptance-proposal.md"
+    }
+  ]
+}

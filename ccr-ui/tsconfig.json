@@ -4,6 +4,7 @@
     "useDefineForClassFields": true,
     "module": "ESNext",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "types": ["node"],
     "skipLibCheck": true,
 
     /* Bundler mode */
@@ -12,7 +13,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
 
     /* Linting */
     "strict": true,
@@ -28,21 +29,21 @@
     "noUncheckedIndexedAccess": false,
 
     /* Path alias */
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "vueCompilerOptions": {
-    "strictTemplates": true
-  },
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
-    "src/**/*.vue",
     "tests/**/*.ts",
     "tests/**/*.mts",
-    "vitest.shims.d.ts"
+    "tests/**/*.tsx"
+  ],
+  "exclude": [
+    // 架构边界违规夹具（tests/fixtures/arch-violations）故意违反依赖方向、类型上不成立，
+    // 只供 check:arch-boundaries / check:cycles --self-check 定向自检，不进常规 tsc
+    "tests/fixtures/arch-violations"
   ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

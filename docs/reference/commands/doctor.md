@@ -16,7 +16,7 @@ ccr doctor --platform codex
 ## 默认行为
 
 - 默认只做**本地优先、只读、无副作用**检查。
-- 默认范围是：**全局 CCR 状态 + 当前平台深度检查**。
+- 默认范围是：**全局 CCR 状态 + 已配置 Claude/Codex/Grok 平台检查**。
 - 不会自动修复、初始化或改写任何配置文件。
 - 只有 `--online` 时才会执行在线 Provider 探活。
 
@@ -28,14 +28,16 @@ ccr doctor --platform codex
 - `--all-platforms`：检查所有已配置平台
 - `--platform <name>`：只检查指定平台
 
-> `--platform` 与 `--all-platforms` 互斥。
+> `--platform` 与 `--all-platforms` 互斥。平台取值从共享 `Platform` 枚举派生，包括 `grok`。
+
+Claude/Codex/Grok 支持 auth/profile 命令。Gemini/Droid 保留已有只读兼容检查，报告 `legacy_adapter`，没有新增 writer 调用或 auth/profile 命令。Qwen 报告未实现。Grok 配置检查覆盖 TOML 和受管路由一致性；官方会话真实性仍由 Grok 负责。
 
 ## 检查范围
 
 ### 全局检查
 
 - CCR root 与 registry 路径是否存在且可读
-- 当前平台是否可解析且为已实现平台
+- 平台能力是否属于当前支持、保留的 legacy adapter 或未实现
 - 已配置平台列表是否可解析
 - 本地冲突扫描（复用 `ccr check conflicts` 的事实源）
 
@@ -73,7 +75,7 @@ Results: X passed, Y warnings, Z failed, K skipped
 
 ## 退出码
 
-- 有 `failed` 项时返回非 0
+- 有 `failed` 项时返回 `1`，保留既有 doctor 退出码
 - 只有 `warning` 时仍返回 0
 
 ## JSON 输出
@@ -107,7 +109,7 @@ Results: X passed, Y warnings, Z failed, K skipped
 ## 示例
 
 ```bash
-# 默认：全局 + 当前平台，本地只读检查
+# 默认：全局 + 已配置 Claude/Codex/Grok，本地只读检查
 ccr doctor
 
 # 对 Codex 做完整本地体检

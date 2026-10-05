@@ -1,0 +1,14 @@
+{
+  "test": "commands::claude::environment_tests::settings_update_remains_on_captured_environment_after_switch",
+  "result": "0 passed, 1 failed; captured environment has 0 writes, expected 1",
+  "source": {
+    "claude.rs": {
+      "sha256": "8121e3eaec9c268498fb9a8aab933b893645d8d884efde431e17e2e01d6808d4",
+      "snapshot": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-t09-settings-generated-e8kvsjpn\\claude.rs"
+    },
+    "claude_settings_tests.rs": {
+      "sha256": "571d15723c9812a59c23e975d28fa10e429d03ee489f7b42f5671de77f9d61dc",
+      "snapshot": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-t09-settings-generated-e8kvsjpn\\claude_settings_tests.rs"
+    }
+  }
+}

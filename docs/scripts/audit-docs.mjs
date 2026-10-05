@@ -15,7 +15,7 @@ const readIfExists = (...segments) => {
 const configText = readIfExists('docs', '.vitepress', 'config.mjs')
 const cliDefinitions = read('crates', 'ccr-cli', 'src', 'cli', 'definitions.rs')
 const workspaceManifest = read('Cargo.toml')
-const uiRouter = read('ccr-ui', 'src', 'router', 'index.ts')
+const uiRouter = read('ccr-ui', 'src', 'shell', 'routeCatalog.ts')
 
 const failures = new Set()
 const internalOnlyFiles = new Set(['README.md', 'AGENTS.md', 'TODO.md'])

@@ -2,10 +2,10 @@
 //!
 //! 聚合 CCR 本地环境、平台配置、当前 profile、认证状态与可选在线探活。
 
+use crate::models::Platform;
 use crate::services::doctor_service::{DoctorReport, DoctorRunOptions, DoctorService};
 use ccr_core::core::error::Result;
 use clap::Args;
-use std::io::{self, Write};
 
 #[derive(Args, Debug, Clone)]
 pub struct DoctorArgs {
@@ -26,11 +26,22 @@ pub struct DoctorArgs {
     pub all_platforms: bool,
 
     /// 仅检查指定平台
-    #[arg(long, value_parser = ["claude", "codex", "gemini", "qwen", "droid"], conflicts_with = "all_platforms")]
+    #[arg(long, value_parser = clap::builder::PossibleValuesParser::new(Platform::all().into_iter().map(|platform| platform.short_name())), conflicts_with = "all_platforms")]
     pub platform: Option<String>,
 }
 
 pub async fn doctor_command(args: DoctorArgs) -> Result<()> {
+    let report = doctor_report_command(args).await?;
+    if report.has_failures() {
+        return Err(ccr_core::CcrError::ValidationError(
+            "Doctor reported failed checks".into(),
+        ));
+    }
+    Ok(())
+}
+
+/// Render a typed report; only the binary chooses the process exit code.
+pub async fn doctor_report_command(args: DoctorArgs) -> Result<DoctorReport> {
     let service = DoctorService::new();
     let report = service
         .run(&DoctorRunOptions {
@@ -46,12 +57,7 @@ pub async fn doctor_command(args: DoctorArgs) -> Result<()> {
         render_report(&report, args.verbose);
     }
 
-    if report.has_failures() {
-        let _ = io::stdout().flush();
-        std::process::exit(1);
-    }
-
-    Ok(())
+    Ok(report)
 }
 
 fn render_report(report: &DoctorReport, verbose: bool) {

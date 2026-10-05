@@ -148,6 +148,10 @@ pub enum CodexAction {
         /// 运行上游 `codex doctor` 作为补充证据（默认不运行）
         #[arg(long)]
         doctor: bool,
+
+        /// 测试隔离：跳过系统进程枚举与清理
+        #[arg(long, hide = true)]
+        skip_process_cleanup: bool,
     },
 }
 

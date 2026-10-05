@@ -1,0 +1,17 @@
+{
+  "command": [
+    "cargo",
+    "update",
+    "--offline",
+    "-p",
+    "rustls-webpki@0.103.15",
+    "--precise",
+    "0.103.14"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "environment_overrides": {},
+  "started_at": "2026-09-28T23:00:17.779040+00:00",
+  "exit_code": 0,
+  "seconds": 0.945,
+  "log": "continuation-security-root-update-webpki-minimum.log"
+}

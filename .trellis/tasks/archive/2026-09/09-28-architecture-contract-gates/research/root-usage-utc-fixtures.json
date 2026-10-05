@@ -1,0 +1,19 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "-p",
+    "ccr-usage",
+    "--all-features",
+    "--lib",
+    "--",
+    "--skip",
+    "export_bindings"
+  ],
+  "exit_code": 0,
+  "seconds": 3.6,
+  "source": "crates/ccr-usage/src/db.rs",
+  "source_sha256": "c3127cfd84caf63266601b98ae2bed55dbe1f5d4db08129867a1e62502039d89",
+  "change": "Two UTC-dated aggregation fixtures now explicitly select ReportTimezone::Utc. Production Local default and every original expected date/token/source/sort assertion remain unchanged.",
+  "old_failure": "../../09-28-cli-tauri-architecture/research/root-delivery-test.log"
+}

@@ -1,0 +1,6 @@
+{
+  "files_checked": 131,
+  "changed": [],
+  "basis": "T10/research/delivery-copy.json exact-source SHA before successful isolated just frontend-check",
+  "excludes": "Backend test-only changes and specs do not change frontend input."
+}

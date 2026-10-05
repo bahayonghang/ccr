@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "wsl.exe",
+    "-d",
+    "Ubuntu-24.04",
+    "--cd",
+    "/mnt/d/Documents/Code/Github/ccr",
+    "python3",
+    ".trellis/tasks/09-29-harness-ci-evidence/research/resume-2026-10-04-formal-linux-coverage-run.py"
+  ],
+  "startedUtc": "2026-10-04T13:38:58.4211271+00:00",
+  "finishedUtc": "2026-10-04T13:44:14.3758886+00:00",
+  "os": "Microsoft Windows 10.0.26300",
+  "outerExit": 0,
+  "stdoutSha256": "BB8F20E97D44E98D9D5CBFD722CFCA7D102D3EE25C17050A5EA80662323AAC04",
+  "stderrSha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+}

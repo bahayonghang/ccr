@@ -1,0 +1,505 @@
+{
+  "source": "https://registry.npmjs.org/colord",
+  "fetched_utc": "2026-09-30T02:30:40.195589+00:00",
+  "old": {
+    "name": "colord",
+    "version": "2.9.3",
+    "keywords": [
+      "color",
+      "parser",
+      "convert",
+      "tiny",
+      "hex",
+      "rgb",
+      "hsl",
+      "hsv",
+      "hwb",
+      "lab",
+      "lch",
+      "xyz",
+      "css",
+      "color-names",
+      "a11y",
+      "cmyk",
+      "mix",
+      "minify",
+      "harmonies"
+    ],
+    "author": {
+      "name": "Vlad Shilov",
+      "email": "omgovich@ya.ru"
+    },
+    "license": "MIT",
+    "_id": "colord@2.9.3",
+    "maintainers": [
+      {
+        "name": "omgovich",
+        "email": "omgovich@ya.ru"
+      }
+    ],
+    "homepage": "https://github.com/omgovich/colord#readme",
+    "bugs": {
+      "url": "https://github.com/omgovich/colord/issues"
+    },
+    "dist": {
+      "shasum": "4f8ce919de456f1d5c1c368c307fe20f3e59fb43",
+      "tarball": "https://registry.npmjs.org/colord/-/colord-2.9.3.tgz",
+      "fileCount": 44,
+      "integrity": "sha512-jeC1axXpnb0/2nn/Y1LPuLdgXBLH7aDcHu4KEKfqw3CUhX7ZpfBSlPKyqXE6btIgEzfWtrX3/tyBCaCvXvMkOw==",
+      "signatures": [
+        {
+          "sig": "MEYCIQCJpn9EWltEPmUS0M8ApeuTMWmTN/3TJkODUbfiL/nfCgIhAItS+Bf6YwozfrNd0zlvhcadsrxwhNgDqzAxuixN17Bt",
+          "keyid": "SHA256:jl3bwswu80PjjokCgh0o2w5c2U4LhQAE57gj9cz1kzA"
+        }
+      ],
+      "unpackedSize": 113812,
+      "npm-signature": "-----BEGIN PGP SIGNATURE-----\r\nVersion: OpenPGP.js v4.10.10\r\nComment: https://openpgpjs.org\r\n\r\nwsFzBAEBCAAGBQJi87gMACEJED1NWxICdlZqFiEECWMYAoorWMhJKdjhPU1b\r\nEgJ2VmrQ0hAAlmZ/zEC8YA3qKRhsiVcU3NMTuNhFy9QILfheTeag0aJI22FE\r\ndSuQNm2HiJwkrlq9DeQ0JFgU1coeZrJmdIjQ5fU71ohK3B05snkCIq1JS+tH\r\neoUWlJDQArvJpYplYRkzPsavpJHV1u5mVFoq8vG5kQMcoxtDgIb3DSRRgLRS\r\nKdhOCY5OJ3wq+z8noTlzavZweeJU7v9ALuwgM3TrOjTNRFV5E7jdWbFAy11v\r\nrBUYuVWL3wGGSdWS0wJfMUjKyYZHE0WBx1lJ9mbEzzY+ONT7YCW2vTkYPCVS\r\nCuM6XsOuMrc6/oIntJeeWIePMNM3xmLPCYZ6X/WgwQ7nU9z6cH1w3MdUwev8\r\n5wjAXCtxdZoqntNluYb1G4XoiJn8hV03P3W30/z2gPpbmTr8tqYS14PgSXyM\r\nAcgz7QfnbntlNXNGAvpFHQGq4E2Dx7tZqkFdPJZw/ZhSWLBj661elZNvAdBt\r\nhf1W03tO+y2Cp0F65g6BabZx3y6Uqhutpmc2dh5ioOrnr6qCEe7Taq1Bf4H6\r\n+QAfaUPM7MgsTmxXPYfsALniMVgxkaNZyeX0M3991bWiK63CTbHol1qMuc3a\r\nnYA4zSaeshwwKlVZ3UEoxJ2z3RC37+/F8qyRLy3dWfrCo20ArlOobT6ih8Cv\r\ntfzxJK4VaKvZsrhsb0dLX/4Y7WvyVVkOOpY=\r\n=V7Gu\r\n-----END PGP SIGNATURE-----\r\n"
+    },
+    "jest": {
+      "verbose": true,
+      "transform": {
+        "^.+\\.ts$": "ts-jest"
+      }
+    },
+    "main": "./index.js",
+    "types": "index.d.ts",
+    "module": "./index.mjs",
+    "exports": {
+      ".": {
+        "types": "./index.d.ts",
+        "import": "./index.mjs",
+        "default": "./index.mjs",
+        "require": "./index.js"
+      },
+      "./plugins/hwb": {
+        "types": "./plugins/hwb.d.ts",
+        "import": "./plugins/hwb.mjs",
+        "default": "./plugins/hwb.mjs",
+        "require": "./plugins/hwb.js"
+      },
+      "./plugins/lab": {
+        "types": "./plugins/lab.d.ts",
+        "import": "./plugins/lab.mjs",
+        "default": "./plugins/lab.mjs",
+        "require": "./plugins/lab.js"
+      },
+      "./plugins/lch": {
+        "types": "./plugins/lch.d.ts",
+        "import": "./plugins/lch.mjs",
+        "default": "./plugins/lch.mjs",
+        "require": "./plugins/lch.js"
+      },
+      "./plugins/mix": {
+        "types": "./plugins/mix.d.ts",
+        "import": "./plugins/mix.mjs",
+        "default": "./plugins/mix.mjs",
+        "require": "./plugins/mix.js"
+      },
+      "./plugins/xyz": {
+        "types": "./plugins/xyz.d.ts",
+        "import": "./plugins/xyz.mjs",
+        "default": "./plugins/xyz.mjs",
+        "require": "./plugins/xyz.js"
+      },
+      "./package.json": "./package.json",
+      "./plugins/a11y": {
+        "types": "./plugins/a11y.d.ts",
+        "import": "./plugins/a11y.mjs",
+        "default": "./plugins/a11y.mjs",
+        "require": "./plugins/a11y.js"
+      },
+      "./plugins/cmyk": {
+        "types": "./plugins/cmyk.d.ts",
+        "import": "./plugins/cmyk.mjs",
+        "default": "./plugins/cmyk.mjs",
+        "require": "./plugins/cmyk.js"
+      },
+      "./plugins/names": {
+        "types": "./plugins/names.d.ts",
+        "import": "./plugins/names.mjs",
+        "default": "./plugins/names.mjs",
+        "require": "./plugins/names.js"
+      },
+      "./plugins/minify": {
+        "types": "./plugins/minify.d.ts",
+        "import": "./plugins/minify.mjs",
+        "default": "./plugins/minify.mjs",
+        "require": "./plugins/minify.js"
+      },
+      "./plugins/harmonies": {
+        "types": "./plugins/harmonies.d.ts",
+        "import": "./plugins/harmonies.mjs",
+        "default": "./plugins/harmonies.mjs",
+        "require": "./plugins/harmonies.js"
+      }
+    },
+    "scripts": {
+      "lint": "eslint src/**/*.ts",
+      "size": "npm run build && size-limit",
+      "test": "jest tests --coverage",
+      "build": "rm -rf ./dist/* && rollup --config",
+      "release": "npm run build && cp *.json dist && cp *.md dist && npm publish dist",
+      "benchmark": "tsc --outDir bench --skipLibCheck --esModuleInterop ./tests/benchmark.ts && node ./bench/tests/benchmark.js && rm -rf ./bench",
+      "check-types": "tsc --noEmit true",
+      "check-release": "npm run release -- --dry-run"
+    },
+    "_npmUser": {
+      "name": "omgovich",
+      "email": "omgovich@ya.ru"
+    },
+    "prettier": {
+      "printWidth": 100
+    },
+    "repository": {
+      "url": "git+https://github.com/omgovich/colord.git",
+      "type": "git"
+    },
+    "size-limit": [
+      {
+        "path": "dist/index.mjs",
+        "limit": "2 KB",
+        "import": "{ colord }"
+      },
+      {
+        "path": "dist/plugins/a11y.mjs",
+        "limit": "0.5 KB"
+      },
+      {
+        "path": "dist/plugins/cmyk.mjs",
+        "limit": "1 KB"
+      },
+      {
+        "path": "dist/plugins/harmonies.mjs",
+        "limit": "0.5 KB"
+      },
+      {
+        "path": "dist/plugins/hwb.mjs",
+        "limit": "1 KB"
+      },
+      {
+        "path": "dist/plugins/lab.mjs",
+        "limit": "1.5 KB"
+      },
+      {
+        "path": "dist/plugins/lch.mjs",
+        "limit": "1.5 KB"
+      },
+      {
+        "path": "dist/plugins/minify.mjs",
+        "limit": "0.6 KB"
+      },
+      {
+        "path": "dist/plugins/mix.mjs",
+        "limit": "1 KB"
+      },
+      {
+        "path": "dist/plugins/names.mjs",
+        "limit": "1.5 KB"
+      },
+      {
+        "path": "dist/plugins/xyz.mjs",
+        "limit": "1 KB"
+      }
+    ],
+    "_npmVersion": "6.14.15",
+    "description": "👑 A tiny yet powerful tool for high-performance color manipulations and conversions",
+    "directories": {},
+    "sideEffects": false,
+    "_nodeVersion": "14.18.2",
+    "dependencies": {},
+    "eslintConfig": {
+      "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/eslint-recommended",
+        "plugin:@typescript-eslint/recommended",
+        "plugin:prettier/recommended",
+        "prettier/@typescript-eslint"
+      ],
+      "plugins": [
+        "prettier"
+      ]
+    },
+    "_hasShrinkwrap": false,
+    "devDependencies": {
+      "glob": "^7.1.6",
+      "jest": "^26.6.3",
+      "benny": "^3.6.15",
+      "color": "^3.1.3",
+      "tslib": "^2.1.0",
+      "eslint": "^7.14.0",
+      "rollup": "^2.43.1",
+      "ts-jest": "^26.5.4",
+      "ts-node": "^9.1.1",
+      "prettier": "^2.2.0",
+      "ac-colors": "^1.4.2",
+      "chroma-js": "^2.1.1",
+      "size-limit": "^4.10.1",
+      "tinycolor2": "^1.4.2",
+      "typescript": "^4.2.3",
+      "@types/jest": "^26.0.22",
+      "rollup-plugin-terser": "^7.0.2",
+      "eslint-config-prettier": "^6.15.0",
+      "eslint-plugin-prettier": "^3.1.4",
+      "@typescript-eslint/parser": "^4.19.0",
+      "rollup-plugin-typescript2": "^0.30.0",
+      "@size-limit/preset-small-lib": "^4.10.1",
+      "@typescript-eslint/eslint-plugin": "^4.19.0"
+    },
+    "_npmOperationalInternal": {
+      "tmp": "tmp/colord_2.9.3_1660139532379_0.5463782596659674",
+      "host": "s3://npm-registry-packages"
+    }
+  },
+  "new": {
+    "name": "colord",
+    "version": "2.9.4",
+    "keywords": [
+      "color",
+      "parser",
+      "convert",
+      "tiny",
+      "hex",
+      "rgb",
+      "hsl",
+      "hsv",
+      "hwb",
+      "lab",
+      "lch",
+      "xyz",
+      "css",
+      "color-names",
+      "a11y",
+      "cmyk",
+      "mix",
+      "minify",
+      "harmonies"
+    ],
+    "author": {
+      "name": "Vlad Shilov",
+      "email": "omgovich@ya.ru"
+    },
+    "license": "MIT",
+    "_id": "colord@2.9.4",
+    "maintainers": [
+      {
+        "name": "omgovich",
+        "email": "omgovich@ya.ru"
+      }
+    ],
+    "homepage": "https://github.com/omgovich/colord#readme",
+    "bugs": {
+      "url": "https://github.com/omgovich/colord/issues"
+    },
+    "dist": {
+      "shasum": "1ad8184b18baf9fa948acf2b9531d2ce126fb31c",
+      "tarball": "https://registry.npmjs.org/colord/-/colord-2.9.4.tgz",
+      "fileCount": 67,
+      "integrity": "sha512-z0nTt5300AIviCn9FTEL4G2DzPkfEDfghx6Do0ZfM3u0rOINBtfw2H8lD4VXyZF/o8HTzzyiCztaG2X/+IMeZA==",
+      "signatures": [
+        {
+          "sig": "MEUCIQDMyEkgxvmmWXlCfwf8bsDYI2lzgxss024tRYta6xqeBgIgRZya7ndgdUev4DM8+i6XgEQeyvwnhLfNiY1/tKjzluA=",
+          "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+        },
+        {
+          "sig": "MEUCID9VkGorcgvt88eYej/NFWBYanbGFFVALFrnZ/kjNjFbAiEAjyocJvwmzYgLlm0Z5Jwd0V7ZmZUwWRFtnV+40rMs9qw=",
+          "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+        }
+      ],
+      "unpackedSize": 124651
+    },
+    "jest": {
+      "verbose": true,
+      "transform": {
+        "^.+\\.ts$": "ts-jest"
+      }
+    },
+    "main": "./index.js",
+    "types": "index.d.ts",
+    "module": "./index.mjs",
+    "exports": {
+      ".": {
+        "types": "./index.d.ts",
+        "import": "./index.mjs",
+        "default": "./index.mjs",
+        "require": "./index.js"
+      },
+      "./plugins/hwb": {
+        "types": "./plugins/hwb.d.ts",
+        "import": "./plugins/hwb.mjs",
+        "default": "./plugins/hwb.mjs",
+        "require": "./plugins/hwb.js"
+      },
+      "./plugins/lab": {
+        "types": "./plugins/lab.d.ts",
+        "import": "./plugins/lab.mjs",
+        "default": "./plugins/lab.mjs",
+        "require": "./plugins/lab.js"
+      },
+      "./plugins/lch": {
+        "types": "./plugins/lch.d.ts",
+        "import": "./plugins/lch.mjs",
+        "default": "./plugins/lch.mjs",
+        "require": "./plugins/lch.js"
+      },
+      "./plugins/mix": {
+        "types": "./plugins/mix.d.ts",
+        "import": "./plugins/mix.mjs",
+        "default": "./plugins/mix.mjs",
+        "require": "./plugins/mix.js"
+      },
+      "./plugins/xyz": {
+        "types": "./plugins/xyz.d.ts",
+        "import": "./plugins/xyz.mjs",
+        "default": "./plugins/xyz.mjs",
+        "require": "./plugins/xyz.js"
+      },
+      "./package.json": "./package.json",
+      "./plugins/a11y": {
+        "types": "./plugins/a11y.d.ts",
+        "import": "./plugins/a11y.mjs",
+        "default": "./plugins/a11y.mjs",
+        "require": "./plugins/a11y.js"
+      },
+      "./plugins/cmyk": {
+        "types": "./plugins/cmyk.d.ts",
+        "import": "./plugins/cmyk.mjs",
+        "default": "./plugins/cmyk.mjs",
+        "require": "./plugins/cmyk.js"
+      },
+      "./plugins/names": {
+        "types": "./plugins/names.d.ts",
+        "import": "./plugins/names.mjs",
+        "default": "./plugins/names.mjs",
+        "require": "./plugins/names.js"
+      },
+      "./plugins/minify": {
+        "types": "./plugins/minify.d.ts",
+        "import": "./plugins/minify.mjs",
+        "default": "./plugins/minify.mjs",
+        "require": "./plugins/minify.js"
+      },
+      "./plugins/harmonies": {
+        "types": "./plugins/harmonies.d.ts",
+        "import": "./plugins/harmonies.mjs",
+        "default": "./plugins/harmonies.mjs",
+        "require": "./plugins/harmonies.js"
+      }
+    },
+    "gitHead": "7a5bf8e2b3def7310e4a66b9c3ee7025b957844e",
+    "scripts": {
+      "lint": "eslint src/**/*.ts",
+      "size": "npm run build && size-limit",
+      "test": "jest tests --coverage",
+      "build": "rm -rf ./dist/* && rollup --config",
+      "release": "npm run build && cp *.json dist && cp *.md dist && npm publish ./dist",
+      "benchmark": "tsc --outDir bench --skipLibCheck --esModuleInterop ./tests/benchmark.ts && node ./bench/tests/benchmark.js && rm -rf ./bench",
+      "check-types": "tsc --noEmit true",
+      "check-release": "npm run release -- --dry-run"
+    },
+    "_npmUser": {
+      "name": "omgovich",
+      "email": "omgovich@ya.ru"
+    },
+    "prettier": {
+      "printWidth": 100
+    },
+    "repository": {
+      "url": "git+https://github.com/omgovich/colord.git",
+      "type": "git"
+    },
+    "size-limit": [
+      {
+        "path": "dist/index.mjs",
+        "limit": "2 KB",
+        "import": "{ colord }"
+      },
+      {
+        "path": "dist/plugins/a11y.mjs",
+        "limit": "0.5 KB"
+      },
+      {
+        "path": "dist/plugins/cmyk.mjs",
+        "limit": "1 KB"
+      },
+      {
+        "path": "dist/plugins/harmonies.mjs",
+        "limit": "0.5 KB"
+      },
+      {
+        "path": "dist/plugins/hwb.mjs",
+        "limit": "1 KB"
+      },
+      {
+        "path": "dist/plugins/lab.mjs",
+        "limit": "1.5 KB"
+      },
+      {
+        "path": "dist/plugins/lch.mjs",
+        "limit": "1.5 KB"
+      },
+      {
+        "path": "dist/plugins/minify.mjs",
+        "limit": "0.6 KB"
+      },
+      {
+        "path": "dist/plugins/mix.mjs",
+        "limit": "1 KB"
+      },
+      {
+        "path": "dist/plugins/names.mjs",
+        "limit": "1.5 KB"
+      },
+      {
+        "path": "dist/plugins/xyz.mjs",
+        "limit": "1 KB"
+      }
+    ],
+    "_npmVersion": "10.9.7",
+    "description": "👑 A tiny yet powerful tool for high-performance color manipulations and conversions",
+    "directories": {},
+    "sideEffects": false,
+    "_nodeVersion": "22.22.2",
+    "eslintConfig": {
+      "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/eslint-recommended",
+        "plugin:@typescript-eslint/recommended",
+        "plugin:prettier/recommended",
+        "prettier/@typescript-eslint"
+      ],
+      "plugins": [
+        "prettier"
+      ]
+    },
+    "_hasShrinkwrap": false,
+    "devDependencies": {
+      "glob": "^7.1.6",
+      "jest": "^26.6.3",
+      "benny": "^3.6.15",
+      "color": "^3.1.3",
+      "tslib": "^2.1.0",
+      "eslint": "^7.14.0",
+      "rollup": "^2.80.0",
+      "ts-jest": "^26.5.4",
+      "ts-node": "^9.1.1",
+      "prettier": "^2.2.0",
+      "ac-colors": "^1.4.2",
+      "chroma-js": "^2.1.1",
+      "size-limit": "^11.2.0",
+      "tinycolor2": "^1.4.2",
+      "typescript": "^4.2.3",
+      "@types/jest": "^26.0.22",
+      "rollup-plugin-terser": "^7.0.2",
+      "eslint-config-prettier": "^6.15.0",
+      "eslint-plugin-prettier": "^3.1.4",
+      "@typescript-eslint/parser": "^4.19.0",
+      "rollup-plugin-typescript2": "^0.36.0",
+      "@size-limit/preset-small-lib": "^11.2.0",
+      "@typescript-eslint/eslint-plugin": "^4.19.0"
+    },
+    "_npmOperationalInternal": {
+      "tmp": "tmp/colord_2.9.4_1787151542238_0.0006899020374862008",
+      "host": "s3://npm-registry-packages-npm-production"
+    }
+  }
+}

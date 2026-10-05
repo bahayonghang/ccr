@@ -1,42 +1,48 @@
 # CCR UI Tests
 
+Smoke tests are grouped by domain. Shared harness files stay at the tests root.
+
+```
+tests/
+  i18n.test.cjs     locale consistency (Node, not Vitest)
+  setup/            Vitest setupFiles
+  helpers/          shared test helpers
+  fixtures/         fixtures and architecture-violation samples
+  api/              typed IPC, facade, Tauri inventory
+  checkin/
+  configs/          CCR configs, settings, providers, converter
+  dashboard/
+  i18n/             runtime locale smoke
+  mcp/
+  platforms/        Claude / Codex / Grok / Gemini / OpenCode surfaces
+  profiles/
+  quality/          architecture, lint-like, and tooling contracts
+  shell/            router, layout, runtime, logging
+  state/
+  sync/
+  theme/
+  ui/               primitives, modal, confirm, source editor
+  usage/
+```
+
+Vitest include is `tests/**/*.smoke.test.{ts,tsx}`. Put new smoke files in the matching domain folder, not at `tests/` root. Walkthrough PNGs under `__screenshots__/` are gitignored.
+
 ## Overview
 
-This directory now hosts the CCR UI baseline test suite:
+This directory hosts the CCR UI baseline test suite:
 
 - `i18n.test.cjs`: translation consistency checks
-- `*.smoke.test.ts`: lightweight Vitest smoke coverage for the router and key Pinia stores
+- `**/*.smoke.test.ts(x)`: lightweight Vitest smoke coverage by domain
 
-## Test Files
+## Smoke tests
 
-### i18n.test.cjs
+The smoke suite validates a high-value UI baseline without introducing a full browser E2E stack. Files live in the domain folders listed above.
 
-A comprehensive Node.js CommonJS test script that validates the i18n translation files (`zh-CN.ts` and `en-US.ts`).
+## i18n.test.cjs
 
-**Test Coverage:**
-- ✓ File existence and accessibility
-- ✓ File size comparison (detects major discrepancies)
-- ✓ Namespace extraction and validation
-- ✓ Required namespace presence check
-- ✓ Variable placeholder extraction and overlap analysis
-- ✓ Syntax validation (export default, balanced braces)
-- ✓ Coverage statistics and reporting
-
-**Exit Codes:**
-- `0`: All critical tests passed
-- `1`: Critical tests failed (missing files, syntax errors, missing required namespaces)
-
-### Smoke tests
-
-The smoke suite validates a minimal but high-value UI baseline without introducing a full browser E2E stack:
-
-- Router manifest coverage for critical named routes
-- `/stats -> /usage` redirect protection
-- `usage` store default/computed state behavior
+Node script that checks `zh-CN.ts` and `en-US.ts` for existence, size drift, namespaces, placeholders, syntax, and leaf-key counts.
 
 ## Usage
-
-### Run via Bun
 
 ```bash
 # Run the full frontend baseline

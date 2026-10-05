@@ -1,0 +1,30 @@
+{
+  "checks": [
+    {
+      "name": "continuation-linux-tauri-process",
+      "exit_code": 0,
+      "seconds": 201.494,
+      "source_changes": [],
+      "generated_types_unchanged": true
+    },
+    {
+      "name": "continuation-linux-core-process-final",
+      "exit_code": 0,
+      "seconds": 0.679,
+      "source_changes": [],
+      "generated_types_unchanged": true
+    }
+  ],
+  "schema_backup": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-linux-tauri-schema-before.json",
+  "schema_backup_sha256": "9aa09480f485790c273a98d1355396ce6febe24371fd7ba4263362ccf4cc4d64",
+  "generated_schema_changes": [
+    {
+      "path": "ccr-ui/src-tauri/gen/schemas/linux-schema.json",
+      "before_sha256": null,
+      "after_sha256": "32261c7f53df73489e0b5ff5cea42fc1d873125a4ca1e04184af78a397021e68",
+      "action": "remove_new_build_generated_linux_schema"
+    }
+  ],
+  "final_source_changes": [],
+  "completed_at": "2026-09-29T00:14:44.526238+00:00"
+}

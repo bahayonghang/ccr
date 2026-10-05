@@ -1,0 +1,10 @@
+{"file":".trellis/tasks/08-29-ui-agents-page/research/agentsview-scope.md","reason":"实施必须遵守 AgentsView 能力保留、简化和排除边界"}
+{"file":".trellis/tasks/08-29-ui-agents-page/research/agent-provider-matrix.md","reason":"八 Agent 的 canonical roots、source kinds、variants、fixture 与 fidelity 降级合同以此矩阵为准"}
+{"file":".trellis/spec/ccr-db/backend/backend-guidelines.md","reason":"usage_session_archive 增加列、索引、迁移和 repository 必须保持 ccr-db 边界"}
+{"file":".trellis/spec/ccr-store/backend/backend-guidelines.md","reason":"session parser 和 bounded transcript adapter 必须留在 ccr-store 并使用现有 SQLite/日志合同"}
+{"file":".trellis/spec/ccr/backend/typed-ipc-bindings.md","reason":"新 Agent Sessions 命令域使用命名 Rust DTO、ts-rs 和 generated client"}
+{"file":".trellis/spec/ccr/backend/tauri-handler-registry.md","reason":"新命令需注册风险/类型/运行时策略并保持 registry 计数"}
+{"file":".trellis/spec/ccr-ui/frontend/api-facade-boundary.md","reason":"前端只通过 agentSessions 域门面调生成 client，不直接 invoke"}
+{"file":".trellis/spec/ccr-ui/frontend/layering-contracts.md","reason":"features/agent-sessions 、api、ui 和 shell 保持单向依赖"}
+{"file":".trellis/spec/ccr-ui/frontend/react-rerender-discipline.md","reason":"虚拟列表/transcript 行使用 memo、稳定 key 和稳定回调"}
+{"file":".trellis/spec/ccr-ui/frontend/theme-token-contracts.md","reason":"新页使用现有语义 token，滚动区不用 glass，兼容 reduced motion"}

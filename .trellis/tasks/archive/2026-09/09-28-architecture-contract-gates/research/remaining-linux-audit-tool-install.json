@@ -1,0 +1,29 @@
+{
+  "state": "finished",
+  "started_at_utc": "2026-09-29T03:34:19.782162+00:00",
+  "command": [
+    "wsl",
+    "-d",
+    "Ubuntu-24.04",
+    "--",
+    "/usr/bin/env",
+    "RUSTUP_TOOLCHAIN=1.98.0",
+    "PATH=/home/lyh/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "/home/lyh/.cargo/bin/cargo",
+    "install",
+    "cargo-audit",
+    "--version",
+    "0.22.2",
+    "--locked",
+    "--root",
+    "/tmp/ccr-architecture-tools-01a0e781",
+    "--target-dir",
+    "/tmp/ccr-architecture-audit-build-01a0e781"
+  ],
+  "purpose": "Match ci.yml cargo-audit 0.22.2 in existing task-local tools without changing repository dependencies",
+  "log": "remaining-linux-audit-tool-install.log",
+  "exit_code": 0,
+  "seconds": 47.756,
+  "finished_at_utc": "2026-09-29T03:35:07.538823+00:00",
+  "log_sha256": "9b92c9b12d11e2dce45cb3948272bc5637e1b059b18ac6d7e9dbb435da919850"
+}

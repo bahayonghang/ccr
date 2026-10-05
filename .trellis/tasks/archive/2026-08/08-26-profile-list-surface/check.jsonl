@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "核对骨架顺序、Off 位置、QuickSwitch 语义与 Filters 维度未退化"}
+{"file": ".trellis/spec/ccr-ui/frontend/raw-config-editor-contracts.md", "reason": "核对 source mode 四项逐条成立"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "核对无硬编码 hex"}
+{"file": ".trellis/spec/ccr-ui/frontend/react-rerender-discipline.md", "reason": "核对派生与列表渲染无多余重渲染"}
+{"file": ".trellis/spec/ccr-ui/frontend/layering-contracts.md", "reason": "核对分层边界"}
+{"file": ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md", "reason": "核对新增文件无平台名字面量分支"}

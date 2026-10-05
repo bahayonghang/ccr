@@ -29,6 +29,8 @@ ccr grok auth
 | `Enter` / `Space` | apply the selected profile and stay in the TUI (result shown in the Focus panel) |
 | `q` / `Esc` | quit |
 
+The Grok Auth tab uses account actions: `s` saves, `Enter` opens switch confirmation, `d` deletes a saved entry, `o` logs out all runtime credentials, and `r` reloads. Confirmations default to cancel; press `y` to confirm. Saving is allowed while Grok runs. End the current Grok session yourself before switching, then use a new session. Navigation and exit wait for a pending operation to finish; language changes and resize remain available. See [`grok`](./grok.md).
+
 ## Current Role
 
 - best for profile browsing and switching inside a terminal
@@ -40,7 +42,7 @@ ccr grok auth
 - the default build enables the `tui` feature
 - entry detection lives in `Cli::is_tui_mode()`
 - no-subcommand behavior lives in `CommandDispatcher::handle_no_subcommand()`
-- the Grok Auth tab shows official session status and supports `o` to log out the official runtime
+- the Grok Auth tab separates saved accounts, selection, and local session matches; authentication validity is unverified and third-party profiles remain unchanged
 
 ## Example
 
@@ -51,7 +53,8 @@ ccr
 # Enter/Space to apply and stay (press q or Esc to quit)
 
 ccr grok auth
-# Press o on the Grok Auth tab to log out the current official runtime
+# s saves the current account copy; Enter opens switch confirmation
+# d deletes only a saved entry; o opens confirmation for logout of the entire runtime
 ```
 
 ## See Also

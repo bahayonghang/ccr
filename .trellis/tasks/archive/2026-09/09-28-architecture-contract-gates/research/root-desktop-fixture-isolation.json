@@ -1,0 +1,38 @@
+{
+  "reason": "Shared CLI profile test fixture mutated process-global environment under CLI lock only. Existing desktop fixtures use a different desktop lock. The failed rename snapshot contains paths from two independent temporary CCR_ROOT values.",
+  "failed_gate": ".trellis/tasks/09-28-cli-tauri-architecture/research/root-final-after-fixtures-tauri.log",
+  "failed_cases": [
+    "commands::claude::profiles::application_rename_contract::profile_rename_each_write_contract",
+    "commands::claude::tests::local_settings_update_replays_concurrent_cli_mutation",
+    "commands::codex::profiles::update_tests::codex_update_profile_rename_migrates_profile_secret_and_current_profile",
+    "commands::codex::profiles::update_tests::codex_update_profile_rename_rejects_conflicting_target_without_writing_partial_state",
+    "commands::codex::profiles::update_tests::codex_update_profile_same_target_name_updates_in_place"
+  ],
+  "change": "Acquire existing desktop lock before shared CLI fixtures in nine test entry points, matching prior T03 fixture order. No production code, global runner serial mode, skipped tests or relaxed assertions.",
+  "lock_order": [
+    "desktop test environment lock",
+    "CLI test environment lock"
+  ],
+  "files": {
+    "ccr-ui/src-tauri/src/commands/profile_lifecycle.rs": "83c3b279ab87c9b0da604a6dfba8a5adf7d1a9262a2697fc2a3ffc0a2101fd71",
+    "ccr-ui/src-tauri/src/commands/claude_profiles.rs": "ae370f415e28c296778f7525cc07977eda1167e57e25c874564af5931ba1dd33",
+    "ccr-ui/src-tauri/src/commands/codex_profiles.rs": "a1206b18a17627a6ae395d3bcef499940a95e1c16e91be9b8e6d9ce93a9f3bb3"
+  },
+  "rerun_gate": ".trellis/tasks/09-28-cli-tauri-architecture/research/root-final-after-isolation-tauri.log",
+  "rerun_status": "failed_404_passed_2_failed_retained",
+  "final_rerun_gate": ".trellis/tasks/09-28-cli-tauri-architecture/research/root-acceptance-after-tui-tauri.log",
+  "final_rerun_status": "passed_full_tauri_ci",
+  "final_behavior_result": {
+    "passed": 406,
+    "failed": 0,
+    "ignored": 1,
+    "exports_filtered": 197,
+    "additional_guard_tests_passed": 2
+  },
+  "final_files": {
+    "ccr-ui/src-tauri/src/commands/profile_lifecycle.rs": "83c3b279ab87c9b0da604a6dfba8a5adf7d1a9262a2697fc2a3ffc0a2101fd71",
+    "ccr-ui/src-tauri/src/commands/claude_profiles.rs": "ae370f415e28c296778f7525cc07977eda1167e57e25c874564af5931ba1dd33",
+    "ccr-ui/src-tauri/src/commands/codex_profiles.rs": "9864092123558b1a20687193e34e78551ebedcced8dd422cb930641fee83cb2c",
+    "ccr-ui/src-tauri/src/commands/grok.rs": "5be7313e651ab6c798435787cac05b09d9a91f397c09227a4426c796c7461307"
+  }
+}

@@ -1,4 +1,13 @@
 {
-  "maxActiveExceptions": 0,
-  "exceptions": []
+  "maxActiveExceptions": 1,
+  "exceptions": [
+    {
+      "id": "GHSA-vfj7-8cjw-p6xm",
+      "package": "braces",
+      "owner": "frontend-platform",
+      "rationale": "braces 3.0.3 has no upstream release. The local patch rejects brace nesting deeper than 100 during parse, which bounds the recursive compile and expand walkers.",
+      "expires": "2027-01-03",
+      "patchedVersions": ["3.0.3"]
+    }
+  ]
 }

@@ -1,0 +1,22 @@
+{
+  "date": "2026-09-28",
+  "baseline_commit": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "manifest_counts": {
+    "base": 340,
+    "windows": 348,
+    "typed": 278,
+    "exact": 278,
+    "base_modules": 38
+  },
+  "extraction": {
+    "source": ".trellis/spec/ccr/backend/llmusage-provider-adapter.md",
+    "target": ".trellis/spec/ccr/backend/usage-job-lifecycle.md",
+    "before_sha256": "4af2cee1ed024dc85a39f37c6099ba81d87bb32e304629f138bed2051b2077a1",
+    "after_sha256": "77d08a9536e3dae9c2ad86244371577460f820722de7a08375a534d2b0590d13",
+    "before_bytes": 37537,
+    "after_bytes": 32727,
+    "extracted_bytes": 4810,
+    "new_bytes": 4922,
+    "existing_analytics_and_home_insights_bytes_preserved": true
+  }
+}

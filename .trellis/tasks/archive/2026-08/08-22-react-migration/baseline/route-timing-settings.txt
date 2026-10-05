@@ -1,0 +1,31 @@
+{
+  "route": "/settings",
+  "serverReadyAndWarmMs": 12101,
+  "fetchResults": [
+    {
+      "path": "/",
+      "status": 200,
+      "ms": 1017
+    },
+    {
+      "path": "/settings",
+      "status": 200,
+      "ms": 16
+    },
+    {
+      "path": "/src/views/AppSettingsView.vue",
+      "status": 200,
+      "ms": 133
+    }
+  ],
+  "browser": null,
+  "viteProcess": [
+    {
+      "pid": 57968,
+      "cpu": 5.75,
+      "workingSetMB": 558.1,
+      "privateMB": 985.1,
+      "commandLine": "C:\\Users\\lyh\\scoop\\apps\\bun\\1.4.0\\bun.exe D:\\Documents\\Code\\Github\\ccr\\ccr-ui\\node_modules\\vite\\bin\\vite.js --port 5173 --host 127.0.0.1 --strictPort"
+    }
+  ]
+}

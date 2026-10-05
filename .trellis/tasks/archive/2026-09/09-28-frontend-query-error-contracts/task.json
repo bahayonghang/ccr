@@ -1,0 +1,49 @@
+{
+  "id": "frontend-query-error-contracts",
+  "name": "frontend-query-error-contracts",
+  "title": "前端查询、编辑会话与错误状态契约",
+  "description": "修复 Grok Auth 错误状态、Settings 草稿刷新及 Configs 语言订阅，保持前端分层。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-09-28",
+  "completedAt": "2026-09-28",
+  "branch": "dev",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": "f22732fc319a11adc38338603ea627def13c6348",
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "09-28-cli-tauri-architecture",
+  "relatedFiles": [
+    "ccr-ui/src/features/platform/auth/BaseAuth.tsx",
+    "ccr-ui/src/features/platform/settings/BaseSettings.tsx"
+  ],
+  "notes": "",
+  "meta": {
+    "architecture_task_key": "T09",
+    "depends_on": [
+      "09-28-tauri-config-adapter",
+      "09-28-settings-lossless-capabilities"
+    ],
+    "planning_only": false,
+    "review_baseline": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+    "implementation_authorized": true,
+    "approval_date": "2026-09-28",
+    "approval_inherited_from": "09-28-cli-tauri-architecture",
+    "closure": {
+      "kind": "user_authorized_administrative_archive",
+      "authorization": "请提交改动和归档任务",
+      "closed_at_utc": "2026-09-29T04:55:33.470880+00:00",
+      "acceptance": "partial_required_acceptance_remains_open",
+      "scope": "aggregate architecture acceptance; see parent closure",
+      "record": ".trellis/tasks/archive/2026-09/09-28-cli-tauri-architecture/closure.json",
+      "original_parent": "09-28-cli-tauri-architecture"
+    }
+  }
+}

@@ -48,20 +48,21 @@ pub async fn llmusage_install_execute(
     svc: State<'_, Arc<InstallService>>,
     plan_id: PlanId,
 ) -> Result<AttemptId, String> {
-    let attempt = svc.execute(plan_id).await.map_err(|e| e.to_string())?;
+    let admission = super::runtime_policy::take_background_admission("llmusage_install_execute")?;
+    let attempt = svc
+        .execute_with_admission(plan_id, Some(admission))
+        .await
+        .map_err(|e| e.to_string())?;
     let attempt_id = attempt.attempt_id;
     let mut rx = attempt.events;
 
     // Spawn a task to forward events to the Tauri event channel.
-    let svc_clone = Arc::clone(svc.inner());
     tokio::spawn(async move {
         while let Some(event) = rx.recv().await {
             let is_terminal = event.is_terminal();
             // Best-effort emit to frontend.
             let _ = app.emit("llmusage.install", &event);
             if is_terminal {
-                // Clear the attempt slot so a new attempt can start.
-                svc_clone.clear_slot().await;
                 break;
             }
         }

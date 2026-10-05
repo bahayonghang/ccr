@@ -1,0 +1,11 @@
+{
+  "instrumented_full_cli_log": "root-doctor-cli-instrumented.log",
+  "instrumented_full_cli_passed": 344,
+  "root_tui_log": "root-tui-full-final.log",
+  "root_tui_passed": 246,
+  "cause": "unconfirmed",
+  "temporary_instrumentation_removed": true,
+  "restored_sha256": "2615ff8ef43b62d659b9e1604c56ece8161fd6552d93096b6ea07a751d2b667a",
+  "baseline_equal": true,
+  "note": "Startup trace added only to Windows fixture. Full default-parallel CLI passed during diagnostic run; this does not establish the prior missing-PID cause or a production fix. Original fixture and timeout restored byte-for-byte before final aggregate."
+}

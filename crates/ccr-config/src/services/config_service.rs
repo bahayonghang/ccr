@@ -5,9 +5,8 @@ use crate::managers::config::{CcsConfig, ConfigManager, ConfigSection};
 use crate::managers::config_validator::ConfigValidator;
 use ccr_core::Validatable;
 use ccr_core::core::error::{CcrError, Result};
-use ccr_core::core::lock::{CONFIG_LOCK, LockManager};
+use ccr_core::core::lock::FileLock;
 use std::sync::Arc;
-use std::time::Duration;
 
 /// 📋 配置信息(用于展示)
 #[derive(Debug, Clone)]
@@ -87,27 +86,15 @@ impl ConfigService {
         Ok(Self::new(config_manager))
     }
 
-    /// 🔐 获取配置锁（跨进程 + 进程内）
-    fn lock_config(
-        &self,
-    ) -> Result<(
-        ccr_core::core::lock::FileLock,
-        std::sync::MutexGuard<'static, ()>,
-    )> {
-        let lock_manager = LockManager::with_default_path()?;
-        let file_lock = lock_manager.lock_resource("ccr_config", Duration::from_secs(10))?;
-        let guard = CONFIG_LOCK.lock().unwrap_or_else(|poisoned| {
-            tracing::warn!("配置锁已中毒，尝试恢复");
-            poisoned.into_inner()
-        });
-        Ok((file_lock, guard))
+    /// 🔐 获取配置锁（跨进程资源路径锁）
+    fn lock_config(&self) -> Result<FileLock> {
+        self.config_manager.lock_mutation()
     }
 
     /// 📋 列出所有配置
     /// 🎯 优化：配合 config.rs 的优化，减少不必要的克隆
     pub fn list_configs(&self) -> Result<ConfigList> {
-        let (_file_lock, _guard) = self.lock_config()?;
-        let config = self.config_manager.load_with_autofix()?;
+        let config = self.config_manager.load()?;
 
         let configs: Vec<ConfigInfo> = config
             .list_sections()
@@ -146,8 +133,7 @@ impl ConfigService {
 
     /// 🔍 获取当前配置信息
     pub fn get_current(&self) -> Result<ConfigInfo> {
-        let (_file_lock, _guard) = self.lock_config()?;
-        let config = self.config_manager.load_with_autofix()?;
+        let config = self.config_manager.load()?;
         let section = config.get_current_section()?;
 
         Ok(ConfigInfo {
@@ -174,8 +160,7 @@ impl ConfigService {
     /// 🔍 获取指定配置信息
     #[allow(dead_code)]
     pub fn get_config(&self, name: &str) -> Result<ConfigInfo> {
-        let (_file_lock, _guard) = self.lock_config()?;
-        let config = self.config_manager.load_with_autofix()?;
+        let config = self.config_manager.load()?;
         let section = config.get_section(name)?;
 
         Ok(ConfigInfo {
@@ -201,115 +186,113 @@ impl ConfigService {
 
     /// ➕ 添加新配置
     ///
-    /// 🔐 **并发安全**: 使用跨进程锁 + CONFIG_LOCK 保护整个 RMW 序列
+    /// 🔐 **并发安全**: 使用资源路径锁 保护整个 RMW 序列
     pub fn add_config(&self, name: String, section: ConfigSection) -> Result<()> {
-        // 验证配置
-        section.validate()?;
-
-        let (_file_lock, _guard) = self.lock_config()?;
-        let mut config = self.config_manager.load_with_autofix()?;
-
-        // 检查是否已存在
-        if config.sections.contains_key(&name) {
-            return Err(CcrError::ConfigError(format!("配置 '{}' 已存在", name)));
-        }
-
-        config.set_section(name, section);
-        self.config_manager.save(&config)?;
-
-        Ok(())
+        self.config_manager.mutate_or_create(|config| {
+            crate::managers::config::repository::validate_profile_name(&name)?;
+            section.validate()?;
+            if config.sections.contains_key(&name) {
+                return Err(CcrError::ConfigError(format!("配置 '{}' 已存在", name)));
+            }
+            if config.sections.is_empty() {
+                config.default_config = name.clone();
+                if !config.current_config.is_empty() {
+                    config.current_config = name.clone();
+                }
+            }
+            config.set_section(name, section);
+            Ok(())
+        })
     }
 
     /// ✏️ 更新现有配置
     ///
-    /// 🔐 **并发安全**: 使用跨进程锁 + CONFIG_LOCK 保护整个 RMW 序列
+    /// 🔐 **并发安全**: 使用资源路径锁 保护整个 RMW 序列
     #[allow(dead_code)]
     pub fn update_config(
         &self,
         old_name: &str,
         new_name: String,
-        section: ConfigSection,
+        mut section: ConfigSection,
     ) -> Result<()> {
-        // 验证配置
-        section.validate()?;
-
-        let (_file_lock, _guard) = self.lock_config()?;
-        let mut config = self.config_manager.load_with_autofix()?;
-
-        // 如果名称改变,需要删除旧配置
-        if old_name != new_name {
-            config.remove_section(old_name)?;
-
-            // 更新引用
-            if config.current_config == old_name {
-                config.current_config = new_name.clone();
+        self.config_manager.mutate(|config| {
+            crate::managers::config::repository::validate_profile_name(&new_name)?;
+            let previous = config.get_section(old_name)?;
+            if old_name != new_name && config.sections.contains_key(&new_name) {
+                return Err(CcrError::ValidationError("目标配置名称已存在".into()));
             }
-            if config.default_config == old_name {
-                config.default_config = new_name.clone();
+            // This legacy method replaces typed fields. Keep extension fields that
+            // the caller does not know; partial editors use patch_config instead.
+            for (key, value) in &previous.other {
+                section
+                    .other
+                    .entry(key.clone())
+                    .or_insert_with(|| value.clone());
             }
-        }
+            section.validate()?;
+            if old_name != new_name {
+                config.remove_section(old_name)?;
+                if config.current_config == old_name {
+                    config.current_config = new_name.clone();
+                }
+                if config.default_config == old_name {
+                    config.default_config = new_name.clone();
+                }
+            }
+            config.set_section(new_name, section);
+            Ok(())
+        })
+    }
 
-        config.set_section(new_name, section);
-        self.config_manager.save(&config)?;
-
-        Ok(())
+    /// Strict partial edit. Platform adapters pass their auth-mode validator.
+    pub fn patch_config(
+        &self,
+        name: &str,
+        new_name: Option<&str>,
+        patch: &crate::managers::config::ConfigPatch,
+        expected: &str,
+        validate: impl FnOnce(&ConfigSection) -> Result<()>,
+    ) -> Result<()> {
+        self.config_manager
+            .patch(name, new_name, patch, expected, validate)
     }
 
     /// ➖ 删除配置
     ///
-    /// 🔐 **并发安全**: 使用跨进程锁 + CONFIG_LOCK 保护整个 RMW 序列
+    /// 🔐 **并发安全**: 使用资源路径锁 保护整个 RMW 序列
     pub fn delete_config(&self, name: &str) -> Result<()> {
-        let (_file_lock, _guard) = self.lock_config()?;
-        let mut config = self.config_manager.load_with_autofix()?;
-
-        // 不允许删除当前或默认配置
-        if name == config.current_config {
-            return Err(CcrError::ValidationError("不能删除当前配置".into()));
-        }
-        if name == config.default_config {
-            return Err(CcrError::ValidationError("不能删除默认配置".into()));
-        }
-
-        config.remove_section(name)?;
-        self.config_manager.save(&config)?;
-
-        Ok(())
+        self.config_manager.mutate(|config| {
+            if name == config.current_config {
+                return Err(CcrError::ValidationError("不能删除当前配置".into()));
+            }
+            if name == config.default_config {
+                return Err(CcrError::ValidationError("不能删除默认配置".into()));
+            }
+            config.remove_section(name)?;
+            Ok(())
+        })
     }
 
     #[allow(dead_code)]
     pub fn set_current(&self, name: &str) -> Result<()> {
-        let (_file_lock, _guard) = self.lock_config()?;
-        let mut config = self.config_manager.load_with_autofix()?;
-
-        if let Ok(section) = config.get_section(name)
-            && !section.is_enabled()
-        {
-            return Err(CcrError::ConfigError(format!(
-                "配置 '{}' 已被禁用，无法切换到此配置",
-                name
-            )));
-        }
-
-        if let Ok(section) = config.get_section_mut(name) {
+        self.config_manager.mutate(|config| {
+            let section = config.get_section_mut(name)?;
+            if !section.is_enabled() {
+                return Err(CcrError::ConfigError(format!(
+                    "配置 '{}' 已被禁用，无法切换到此配置",
+                    name
+                )));
+            }
             section.increment_usage();
-            tracing::debug!(
-                "📊 递增配置 '{}' 的使用次数: {}",
-                name,
-                section.usage_count()
-            );
-        }
-
-        config.set_current(name)?;
-        self.config_manager.save(&config)?;
-        Ok(())
+            config.set_current(name)
+        })
     }
 
     /// ✅ 验证所有配置
     ///
     /// 委托给 ConfigValidator 执行验证，返回统一的验证报告
     pub fn validate_all(&self) -> Result<ValidationReport> {
-        let (_file_lock, _guard) = self.lock_config()?;
-        let config = self.config_manager.load_with_autofix()?;
+        let config = self.config_manager.load()?;
 
         // 🎯 使用 ConfigValidator 执行验证
         let validator_report = self.validator.validate_all_sections(&config);
@@ -340,30 +323,29 @@ impl ConfigService {
         &self.config_manager
     }
 
-    /// 📖 加载配置（含自动补全）
+    /// 📖 加载配置（纯读取）
     pub fn load_config(&self) -> Result<CcsConfig> {
-        let (_file_lock, _guard) = self.lock_config()?;
-        self.config_manager.load_with_autofix()
+        self.config_manager.load()
     }
 
     /// 💾 保存配置
     pub fn save_config(&self, config: &CcsConfig) -> Result<()> {
-        let (_file_lock, _guard) = self.lock_config()?;
+        let _lock = self.lock_config()?;
         self.config_manager.save(config)
     }
 
     /// 💾 备份配置文件
     pub fn backup_config(&self, tag: Option<&str>) -> Result<std::path::PathBuf> {
-        let (_file_lock, _guard) = self.lock_config()?;
+        let _lock = self.lock_config()?;
         self.config_manager.backup(tag)
     }
 
     /// 🔄 从已解析的配置备份恢复
     ///
-    /// 🔐 **并发安全**: 在同一个跨进程锁 + CONFIG_LOCK 内完成“备份当前配置 + 保存恢复配置”，
+    /// 🔐 **并发安全**: 在同一个资源路径锁 内完成“备份当前配置 + 保存恢复配置”，
     /// 避免调用方分两次进入 service 造成恢复窗口中配置被其他写入打断。
     pub fn restore_config_from_backup(&self, backup_config: &CcsConfig) -> Result<()> {
-        let (_file_lock, _guard) = self.lock_config()?;
+        let _lock = self.lock_config()?;
         self.config_manager.backup(Some("pre_restore"))?;
         self.config_manager.save(backup_config)
     }
@@ -372,8 +354,7 @@ impl ConfigService {
     ///
     /// 返回配置的 TOML 字符串
     pub fn export_config(&self, include_secrets: bool) -> Result<String> {
-        let (_file_lock, _guard) = self.lock_config()?;
-        let mut config = self.config_manager.load_with_autofix()?;
+        let mut config = self.config_manager.load()?;
 
         // 🎯 掩码处理：Secret 的 Display 即统一掩码；用掩码串重建 Secret，
         // 经 expose_plaintext 注解序列化后导出的就是掩码文本（行为与旧版一致）
@@ -401,11 +382,10 @@ impl ConfigService {
         mode: ImportMode,
         backup: bool,
     ) -> Result<ImportResult> {
-        let (_file_lock, _guard) = self.lock_config()?;
+        let _lock = self.lock_config()?;
 
         // 解析导入的配置
-        let import_config: CcsConfig = toml::from_str(content)
-            .map_err(|e| CcrError::ConfigFormatInvalid(format!("解析 TOML 失败: {}", e)))?;
+        let import_config = crate::platforms::base::parse_config_from_str(content)?;
 
         // 备份当前配置（如果需要）
         if backup && self.config_manager.config_path().exists() {
@@ -417,7 +397,7 @@ impl ConfigService {
             ImportMode::Merge => {
                 // 合并模式
                 if self.config_manager.config_path().exists() {
-                    let mut current_config = self.config_manager.load_with_autofix()?;
+                    let mut current_config = self.config_manager.load()?;
                     merge_configs(
                         &mut current_config,
                         import_config,
@@ -456,17 +436,12 @@ impl ConfigService {
     /// - `name`: 配置名称
     ///
     /// # 并发安全
-    /// 使用跨进程锁 + CONFIG_LOCK 保护整个 read-modify-write 序列
+    /// 使用资源路径锁 保护整个 read-modify-write 序列
     pub fn enable_config(&self, name: &str) -> Result<()> {
-        let (_file_lock, _guard) = self.lock_config()?;
-
-        let mut config = self.config_manager.load_with_autofix()?;
-        let section = config.get_section_mut(name)?;
-        section.enable();
-
-        tracing::info!("✅ 配置 '{}' 已启用", name);
-        self.config_manager.save(&config)?;
-        Ok(())
+        self.config_manager.mutate(|config| {
+            config.get_section_mut(name)?.enable();
+            Ok(())
+        })
     }
 
     /// ❌ 禁用指定配置
@@ -482,17 +457,12 @@ impl ConfigService {
     /// 但会在下次切换时发出警告。
     ///
     /// # 并发安全
-    /// 使用跨进程锁 + CONFIG_LOCK 保护整个 read-modify-write 序列
+    /// 使用资源路径锁 保护整个 read-modify-write 序列
     pub fn disable_config(&self, name: &str) -> Result<()> {
-        let (_file_lock, _guard) = self.lock_config()?;
-
-        let mut config = self.config_manager.load_with_autofix()?;
-        let section = config.get_section_mut(name)?;
-        section.disable();
-
-        tracing::info!("❌ 配置 '{}' 已禁用", name);
-        self.config_manager.save(&config)?;
-        Ok(())
+        self.config_manager.mutate(|config| {
+            config.get_section_mut(name)?.disable();
+            Ok(())
+        })
     }
 }
 

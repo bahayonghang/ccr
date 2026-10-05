@@ -942,11 +942,13 @@ mod tests {
                         dry_run,
                         repair_runtime,
                         doctor,
+                        skip_process_cleanup,
                     }),
             }) => {
                 assert!(!dry_run);
                 assert!(!repair_runtime);
                 assert!(!doctor);
+                assert!(!skip_process_cleanup);
             }
             other => panic!("unexpected command: {:?}", other.map(|_| "other")),
         }
@@ -962,11 +964,13 @@ mod tests {
                         dry_run,
                         repair_runtime,
                         doctor,
+                        skip_process_cleanup,
                     }),
             }) => {
                 assert!(dry_run);
                 assert!(!repair_runtime);
                 assert!(!doctor);
+                assert!(!skip_process_cleanup);
             }
             other => panic!("unexpected command: {:?}", other.map(|_| "other")),
         }
@@ -983,11 +987,13 @@ mod tests {
                         dry_run,
                         repair_runtime,
                         doctor,
+                        skip_process_cleanup,
                     }),
             }) => {
                 assert!(dry_run);
                 assert!(repair_runtime);
                 assert!(!doctor);
+                assert!(!skip_process_cleanup);
             }
             other => panic!("unexpected command: {:?}", other.map(|_| "other")),
         }
@@ -1003,11 +1009,13 @@ mod tests {
                         dry_run,
                         repair_runtime,
                         doctor,
+                        skip_process_cleanup,
                     }),
             }) => {
                 assert!(!dry_run);
                 assert!(!repair_runtime);
                 assert!(doctor);
+                assert!(!skip_process_cleanup);
             }
             other => panic!("unexpected command: {:?}", other.map(|_| "other")),
         }
@@ -1023,11 +1031,13 @@ mod tests {
                         dry_run,
                         repair_runtime,
                         doctor,
+                        skip_process_cleanup,
                     }),
             }) => {
                 assert!(dry_run);
                 assert!(!repair_runtime);
                 assert!(doctor);
+                assert!(!skip_process_cleanup);
             }
             other => panic!("unexpected command: {:?}", other.map(|_| "other")),
         }
@@ -1043,14 +1053,44 @@ mod tests {
                         dry_run,
                         repair_runtime,
                         doctor,
+                        skip_process_cleanup,
                     }),
             }) => {
                 assert!(!dry_run);
                 assert!(repair_runtime);
                 assert!(!doctor);
+                assert!(!skip_process_cleanup);
             }
             other => panic!("unexpected command: {:?}", other.map(|_| "other")),
         }
+    }
+
+    #[test]
+    fn codex_fix_skip_process_cleanup_is_isolated_and_hidden() {
+        let cli = Cli::try_parse_from(["ccr", "codex", "fix", "--skip-process-cleanup"]).unwrap();
+        match cli.command {
+            Some(Commands::Codex {
+                action:
+                    Some(CodexAction::Fix {
+                        dry_run,
+                        repair_runtime,
+                        doctor,
+                        skip_process_cleanup,
+                    }),
+            }) => {
+                assert!(!dry_run);
+                assert!(!repair_runtime);
+                assert!(!doctor);
+                assert!(skip_process_cleanup);
+            }
+            other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+
+        let help = match Cli::try_parse_from(["ccr", "codex", "fix", "--help"]) {
+            Err(error) => error.to_string(),
+            Ok(_) => panic!("--help must return clap's display-help error"),
+        };
+        assert!(!help.contains("--skip-process-cleanup"));
     }
 
     #[test]

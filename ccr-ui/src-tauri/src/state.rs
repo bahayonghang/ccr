@@ -25,7 +25,7 @@ use crate::events::{EventLog, EventLogStats};
 use crate::llmusage_adapter::LlmusageRuntime;
 use crate::platform::EnvironmentRegistry;
 use crate::session_index_jobs::{SessionIndexJobSnapshot, SessionIndexJobStatus};
-use crate::usage_jobs::{UsageImportJobSnapshot, UsageImportJobStatus};
+use crate::usage_jobs::{UsageImportCompletion, UsageImportJobSnapshot, UsageImportJobs};
 
 pub const DEFAULT_CACHE_MAX_ENTRIES: usize = 1000;
 pub const DEFAULT_SSH_STATE_TTL_SECS: i64 = 30 * 60;
@@ -132,15 +132,8 @@ pub struct AppState {
     /// 签到任务快照
     pub checkin_jobs: RwLock<HashMap<String, CheckinJobSnapshot>>,
 
-    /// Usage 导入后台任务快照
-    pub usage_import_jobs: RwLock<HashMap<String, UsageImportJobSnapshot>>,
-
-    /// Usage 导入任务的 cancel token（job_id -> token）
-    /// 用于 cancel 路径同时向子进程发 kill 信号，本地标记与子进程退出双轨。
-    usage_import_cancel_tokens: RwLock<HashMap<String, CancellationToken>>,
-
-    /// 当前活跃的 Usage 导入任务 ID
-    active_usage_import_job_id: RwLock<Option<String>>,
+    /// Usage lifecycle owns admission until execution and cleanup complete.
+    usage_import_jobs: RwLock<UsageImportJobs>,
 
     /// Session 索引后台任务快照
     pub session_index_jobs: RwLock<HashMap<String, SessionIndexJobSnapshot>>,
@@ -363,9 +356,7 @@ impl AppState {
             ssh_password_cache: RwLock::new(HashMap::new()),
             monitoring_logs: LogPersistenceService::new(LogStorageConfig::default()),
             checkin_jobs: RwLock::new(HashMap::new()),
-            usage_import_jobs: RwLock::new(HashMap::new()),
-            usage_import_cancel_tokens: RwLock::new(HashMap::new()),
-            active_usage_import_job_id: RwLock::new(None),
+            usage_import_jobs: RwLock::new(UsageImportJobs::default()),
             session_index_jobs: RwLock::new(HashMap::new()),
             active_session_index_job_id: RwLock::new(None),
             settings: ArcSwap::from_pointee(settings),
@@ -673,76 +664,51 @@ impl AppState {
         Some((new_snapshot, delta))
     }
 
-    pub async fn insert_usage_import_job(&self, snapshot: UsageImportJobSnapshot) {
-        let mut jobs = self.usage_import_jobs.write().await;
-        jobs.insert(snapshot.job_id.clone(), snapshot.clone());
-        let mut active = self.active_usage_import_job_id.write().await;
-        *active = Some(snapshot.job_id);
+    pub async fn admit_usage_import_job(
+        &self,
+        snapshot: UsageImportJobSnapshot,
+    ) -> (UsageImportJobSnapshot, Option<CancellationToken>) {
+        self.usage_import_jobs.write().await.admit(snapshot)
     }
 
-    /// 登记 cancel token；当前 job 启动子进程前调用一次。
-    pub async fn register_usage_import_cancel_token(&self, job_id: &str, token: CancellationToken) {
-        let mut tokens = self.usage_import_cancel_tokens.write().await;
-        tokens.insert(job_id.to_string(), token);
-    }
-
-    /// 移除并取出 cancel token；cancel 命令调用以触发子进程退出，
-    /// 子进程自然结束的清理路径也会调用以避免泄漏。
-    pub async fn take_usage_import_cancel_token(&self, job_id: &str) -> Option<CancellationToken> {
-        let mut tokens = self.usage_import_cancel_tokens.write().await;
-        tokens.remove(job_id)
+    pub async fn request_usage_import_cancel(
+        &self,
+        job_id: &str,
+    ) -> Option<UsageImportJobSnapshot> {
+        self.usage_import_jobs.write().await.request_cancel(job_id)
     }
 
     pub async fn get_usage_import_job(&self, job_id: &str) -> Option<UsageImportJobSnapshot> {
-        let jobs = self.usage_import_jobs.read().await;
-        jobs.get(job_id).cloned()
+        self.usage_import_jobs.read().await.get(job_id)
     }
 
     pub async fn get_active_usage_import_job(&self) -> Option<UsageImportJobSnapshot> {
-        // 锁顺序统一为 jobs → active，避免与 update_usage_import_job 反向序导致 read/write 死锁。
-        let jobs = self.usage_import_jobs.read().await;
-        let active_job_id = self.active_usage_import_job_id.read().await.clone()?;
-        let snapshot = jobs.get(&active_job_id)?.clone();
-        if matches!(
-            snapshot.status,
-            UsageImportJobStatus::Finished
-                | UsageImportJobStatus::Failed
-                | UsageImportJobStatus::Cancelled
-        ) {
-            return None;
-        }
-        Some(snapshot)
+        self.usage_import_jobs.read().await.active()
     }
 
     pub async fn update_usage_import_job<F>(
         &self,
         job_id: &str,
-        mutator: F,
+        updater: F,
     ) -> Option<UsageImportJobSnapshot>
     where
         F: FnOnce(&mut UsageImportJobSnapshot),
     {
-        // 持 jobs 写锁期间一并完成 active_id 同步，统一锁序 jobs → active，
-        // 避免在 drop(jobs) 与拿 active 之间出现窗口让其他写者把 active 改向其他 job
-        // 然后被本调用错误清空。
-        let mut jobs = self.usage_import_jobs.write().await;
-        let snapshot = jobs.get_mut(job_id)?;
-        mutator(snapshot);
-        let cloned = snapshot.clone();
+        self.usage_import_jobs
+            .write()
+            .await
+            .progress(job_id, updater)
+    }
 
-        if matches!(
-            cloned.status,
-            UsageImportJobStatus::Finished
-                | UsageImportJobStatus::Failed
-                | UsageImportJobStatus::Cancelled
-        ) {
-            let mut active = self.active_usage_import_job_id.write().await;
-            if active.as_deref() == Some(job_id) {
-                *active = None;
-            }
-        }
-
-        Some(cloned)
+    pub async fn complete_usage_import_job(
+        &self,
+        job_id: &str,
+        completion: UsageImportCompletion,
+    ) -> Option<UsageImportJobSnapshot> {
+        self.usage_import_jobs
+            .write()
+            .await
+            .complete(job_id, completion)
     }
 
     pub async fn insert_session_index_job(&self, snapshot: SessionIndexJobSnapshot) {
@@ -845,6 +811,29 @@ impl AppState {
     }
 }
 
+pub enum CacheFillRegistration {
+    Leader,
+    Wait(Arc<Notify>),
+}
+
+fn push_sample(samples: &mut VecDeque<f64>, value: f64) {
+    if samples.len() >= METRIC_SAMPLE_CAPACITY {
+        samples.pop_front();
+    }
+    samples.push_back(value.max(0.0));
+}
+
+fn percentile_95(samples: &VecDeque<f64>) -> Option<f64> {
+    if samples.is_empty() {
+        return None;
+    }
+    let mut sorted: Vec<f64> = samples.iter().copied().collect();
+    sorted.sort_by(|a, b| a.total_cmp(b));
+    let idx = ((sorted.len() as f64) * 0.95).ceil() as usize;
+    let idx = idx.saturating_sub(1).min(sorted.len() - 1);
+    Some(sorted[idx])
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
@@ -904,27 +893,4 @@ mod tests {
         assert!(!loaded.open_panel_on_tray_click);
         assert_eq!(loaded.tray_panel, TrayPanelPlacementState::default());
     }
-}
-
-pub enum CacheFillRegistration {
-    Leader,
-    Wait(Arc<Notify>),
-}
-
-fn push_sample(samples: &mut VecDeque<f64>, value: f64) {
-    if samples.len() >= METRIC_SAMPLE_CAPACITY {
-        samples.pop_front();
-    }
-    samples.push_back(value.max(0.0));
-}
-
-fn percentile_95(samples: &VecDeque<f64>) -> Option<f64> {
-    if samples.is_empty() {
-        return None;
-    }
-    let mut sorted: Vec<f64> = samples.iter().copied().collect();
-    sorted.sort_by(|a, b| a.total_cmp(b));
-    let idx = ((sorted.len() as f64) * 0.95).ceil() as usize;
-    let idx = idx.saturating_sub(1).min(sorted.len() - 1);
-    Some(sorted[idx])
 }

@@ -1,0 +1,35 @@
+{
+  "command": [
+    "/home/lyh/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo",
+    "test",
+    "--offline",
+    "--locked",
+    "-p",
+    "ccr-core",
+    "guarded_write",
+    "--",
+    "--test-threads=1"
+  ],
+  "exit_code": 0,
+  "elapsed_seconds": 7.36,
+  "fingerprints_before": {
+    "Cargo.lock": "ca1f03e85b5e0d888109ac8af7e7943fc1ceecd20a0f6eeb6a60052c5155db79",
+    "crates/ccr-core/src/core/atomic_writer.rs": "54d4b2773e9f386a773b8aee9c59bec96895514f9608588caec7d372e2cffbd4",
+    "crates/ccr-core/src/core/guarded_write.rs": "5c7dc32c51340360a2cffb5019821aa134ff94ebbc24b3069ec34aaff92ae3cc",
+    "crates/ccr-core/src/core/write_journal.rs": "8d57b9a1f307acb1fc75636014dd78b8b8978142d5537610b81cd449d6f730a5",
+    "crates/ccr-config/src/managers/config/repository.rs": "be8c61e0a0cc03748457d694e911e458e0106e0287125d49176aae5f109643cb"
+  },
+  "fingerprints_after": {
+    "Cargo.lock": "ca1f03e85b5e0d888109ac8af7e7943fc1ceecd20a0f6eeb6a60052c5155db79",
+    "crates/ccr-core/src/core/atomic_writer.rs": "54d4b2773e9f386a773b8aee9c59bec96895514f9608588caec7d372e2cffbd4",
+    "crates/ccr-core/src/core/guarded_write.rs": "5c7dc32c51340360a2cffb5019821aa134ff94ebbc24b3069ec34aaff92ae3cc",
+    "crates/ccr-core/src/core/write_journal.rs": "8d57b9a1f307acb1fc75636014dd78b8b8978142d5537610b81cd449d6f730a5",
+    "crates/ccr-config/src/managers/config/repository.rs": "be8c61e0a0cc03748457d694e911e458e0106e0287125d49176aae5f109643cb"
+  },
+  "source_unchanged": true,
+  "summaries": [
+    "test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 91 filtered out; finished in 4.20s"
+  ],
+  "toolchain": "/home/lyh/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin",
+  "output": "\nrunning 24 tests\ntest core::guarded_write::tests::test_backup_collision_retries_without_overwriting ... ok\ntest core::guarded_write::tests::test_backup_failure_preserves_target_and_removes_temporary ... ok\ntest core::guarded_write::tests::test_backup_guarded_none_policy_and_missing_source ... ok\ntest core::guarded_write::tests::test_backup_preserves_private_unix_mode ... ok\ntest core::guarded_write::tests::test_content_version_token_is_stable_and_content_sensitive ... ok\ntest core::guarded_write::tests::test_dir_backup_naming ... ok\ntest core::guarded_write::tests::test_dir_backup_rotation_keeps_ten ... ok\ntest core::guarded_write::tests::test_fixed_clock_backup_child ... ok\ntest core::guarded_write::tests::test_fixed_clock_multiprocess_backups_preserve_every_version ... ok\ntest core::guarded_write::tests::test_fixed_clock_preserves_each_preimage_and_legacy_backup ... ok\ntest core::guarded_write::tests::test_lock_resource_name_format_and_stability ... ok\ntest core::guarded_write::tests::test_rotation_ties_are_stable_for_old_and_new_names ... ok\ntest core::guarded_write::tests::test_same_dir_backup_naming ... ok\ntest core::guarded_write::tests::test_same_dir_backup_rotation_keeps_ten ... ok\ntest core::guarded_write::tests::test_write_guarded_async_basic ... ok\ntest core::guarded_write::tests::test_write_guarded_basic_and_overwrite ... ok\ntest core::guarded_write::tests::test_write_guarded_fails_when_parent_is_file ... ok\ntest core::guarded_write::tests::test_write_guarded_lock_contention_times_out ... ok\ntest core::guarded_write::tests::test_write_guarded_multithreaded_no_torn_writes ... ok\ntest core::guarded_write::tests::test_write_guarded_secret_sets_owner_only_mode ... ok\ntest core::guarded_write::tests::test_write_guarded_versioned_allows_only_one_concurrent_cas_writer ... ok\ntest core::guarded_write::tests::test_write_guarded_versioned_empty_token_only_creates_missing_file ... ok\ntest core::guarded_write::tests::test_write_guarded_versioned_rejects_conflict_without_backup ... ok\ntest core::guarded_write::tests::test_write_guarded_versioned_writes_matching_version_with_backup ... ok\n\ntest result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 91 filtered out; finished in 4.20s\n\n   Compiling ccr-core v7.3.0 (/mnt/d/Documents/Code/Github/ccr/crates/ccr-core)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.11s\n     Running unittests src/lib.rs (/tmp/ccr-architecture-linux-01a0e781/debug/deps/ccr_core-7311ed9bcd7bc86c)\n"
+}

@@ -1,0 +1,63 @@
+.trend-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 14rem;
+  border-radius: 1rem;
+  background: rgb(var(--color-bg-elevated-rgb) / 52%);
+  border: var(--space-px) dashed rgb(var(--color-border-default-rgb) / 78%);
+  color: var(--text-secondary);
+}
+
+.trend-chart-container {
+  position: relative;
+  width: 100%;
+  min-height: 13.75rem;
+}
+
+.trend-svg {
+  width: 100%;
+  height: 13.75rem;
+  display: block;
+}
+
+.baseline {
+  stroke: rgb(var(--color-border-default-rgb) / 72%);
+  stroke-width: 1;
+}
+
+.bar-checked {
+  fill: var(--accent-primary);
+}
+
+.bar-checked-flat {
+  fill: rgb(var(--color-border-strong-rgb) / 42%);
+}
+
+.bar-missed {
+  fill: transparent;
+  stroke: rgb(var(--color-border-default-rgb) / 68%);
+  stroke-dasharray: 2 2;
+}
+
+.chart-axis {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.55rem 0.5rem 0;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.chart-tooltip {
+  position: absolute;
+  min-width: 11rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-elevated);
+  border: var(--space-px) solid var(--color-border-default);
+  box-shadow: var(--shadow-lg);
+  pointer-events: none;
+  z-index: var(--layer-raised);
+}

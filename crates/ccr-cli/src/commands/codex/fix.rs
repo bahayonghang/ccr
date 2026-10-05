@@ -32,15 +32,28 @@ const DOCTOR_MAX_TOTAL_BYTES: usize = 2 * 1024 * 1024;
 /// 本地 profile/runtime 漂移（未修复或修复后仍不一致）。
 const LOCAL_DRIFT_EXIT_CODE: i32 = 3;
 
-pub async fn fix_command(dry_run: bool, repair_runtime: bool, doctor: bool) -> Result<()> {
+pub async fn fix_command(
+    dry_run: bool,
+    repair_runtime: bool,
+    doctor: bool,
+    skip_process_cleanup: bool,
+) -> Result<()> {
     // A. 进程清理（dry-run 时只枚举、不终止）。
     let cleanup_started = Instant::now();
-    let cleanup_report = CodexProcessService::new().cleanup_report(dry_run);
-    ColorOutput::step(&format!(
-        "进程清理（{} ms）",
-        cleanup_started.elapsed().as_millis()
-    ));
-    render_cleanup(&cleanup_report);
+    let cleanup_report = if skip_process_cleanup {
+        CodexAppServerCleanupReport::default()
+    } else {
+        CodexProcessService::new().cleanup_report(dry_run)
+    };
+    if skip_process_cleanup {
+        ColorOutput::step("进程清理（skipped）");
+    } else {
+        ColorOutput::step(&format!(
+            "进程清理（{} ms）",
+            cleanup_started.elapsed().as_millis()
+        ));
+    }
+    render_cleanup(&cleanup_report, skip_process_cleanup);
 
     // B. 在调用任何会 reconcile pointer 的路径前，采集只读 profile/runtime 快照。
     let mut runtime_failed = false;
@@ -160,6 +173,7 @@ pub async fn fix_command(dry_run: bool, repair_runtime: bool, doctor: bool) -> R
     // G. 固定优先级：127（仅 --doctor 且 PATH 缺失，已提前返回）> process(2) > runtime failure(1) > local drift(3)。
     if let Some(code) = diagnostic_exit_code(
         &cleanup_report,
+        skip_process_cleanup,
         final_diagnostic.as_ref(),
         runtime_failed,
         snapshot_changed,
@@ -198,11 +212,14 @@ fn decide_runtime_repair(
 
 fn diagnostic_exit_code(
     report: &CodexAppServerCleanupReport,
+    skip_process_cleanup: bool,
     diagnostic: Option<&CodexRuntimeDiagnostic>,
     runtime_failed: bool,
     snapshot_changed: bool,
 ) -> Option<i32> {
-    if report.discovery_issue.is_some() || !report.cleanup.respawned.is_empty() {
+    if !skip_process_cleanup
+        && (report.discovery_issue.is_some() || !report.cleanup.respawned.is_empty())
+    {
         Some(2)
     } else if runtime_failed {
         Some(1)
@@ -221,12 +238,16 @@ fn exit_after_flush(code: i32) -> ! {
 
 // ==================== 进程清理渲染 ====================
 
-fn render_cleanup(report: &CodexAppServerCleanupReport) {
+fn render_cleanup(report: &CodexAppServerCleanupReport, skip_process_cleanup: bool) {
     let cleanup = &report.cleanup;
     ColorOutput::info(&format!(
         "process_state = {}",
-        cleanup_process_state(report)
+        cleanup_process_state(report, skip_process_cleanup)
     ));
+    if skip_process_cleanup {
+        ColorOutput::info("系统进程枚举与清理已跳过；继续本地 runtime 诊断");
+        return;
+    }
     if let Some(issue) = report.discovery_issue {
         ColorOutput::warning(&format!(
             "无法安全完成当前用户的 app-server 发现/清理（{}）",
@@ -282,7 +303,13 @@ fn render_cleanup(report: &CodexAppServerCleanupReport) {
     }
 }
 
-fn cleanup_process_state(report: &CodexAppServerCleanupReport) -> &'static str {
+fn cleanup_process_state(
+    report: &CodexAppServerCleanupReport,
+    skip_process_cleanup: bool,
+) -> &'static str {
+    if skip_process_cleanup {
+        return "skipped";
+    }
     if report.discovery_issue.is_some() {
         return "unavailable";
     }
@@ -586,14 +613,24 @@ async fn capture_doctor(
     args: &[&str],
     timeout: Duration,
 ) -> std::result::Result<Vec<u8>, DoctorError> {
+    let child = spawn_doctor(bin, args)?;
+    capture_doctor_output(child, timeout).await
+}
+
+fn spawn_doctor(bin: &Path, args: &[&str]) -> std::result::Result<ManagedProcess, DoctorError> {
     let mut cmd = tokio::process::Command::new(bin);
     cmd.args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
-    let mut child =
-        ManagedProcess::spawn(cmd).map_err(|error| DoctorError::Spawn(error.to_string()))?;
+    ManagedProcess::spawn(cmd).map_err(|error| DoctorError::Spawn(error.to_string()))
+}
+
+async fn capture_doctor_output(
+    mut child: ManagedProcess,
+    timeout: Duration,
+) -> std::result::Result<Vec<u8>, DoctorError> {
     let stdout = child.take_stdout();
     let stderr = child.take_stderr();
     let stdout_task = tokio::spawn(drain_bounded_pipe(stdout));
@@ -851,9 +888,9 @@ fn render_doctor(outcome: &DoctorOutcome, profile: Option<&str>, snapshot_change
 mod tests {
     use super::{
         DoctorError, LOCAL_DRIFT_EXIT_CODE, RuntimeRepairAction, capture_doctor,
-        cleanup_process_state, decide_runtime_repair, diagnostic_exit_code, extract_highlights,
-        run_codex_doctor, runtime_diagnostic_lines, sanitize_doctor_json, sanitize_doctor_text,
-        value_to_display,
+        capture_doctor_output, cleanup_process_state, decide_runtime_repair, diagnostic_exit_code,
+        extract_highlights, run_codex_doctor, runtime_diagnostic_lines, sanitize_doctor_json,
+        sanitize_doctor_text, spawn_doctor, value_to_display,
     };
     use ccr_codex::{
         CodexAppServer, CodexAppServerCleanupReport, CodexProcessDiscoveryIssue,
@@ -1016,12 +1053,12 @@ mod tests {
         let diagnostic = test_diagnostic(RuntimeMatchStatus::Mismatch, true);
         let mut report = CodexAppServerCleanupReport::default();
         assert_eq!(
-            diagnostic_exit_code(&report, Some(&diagnostic), false, false),
+            diagnostic_exit_code(&report, false, Some(&diagnostic), false, false),
             Some(LOCAL_DRIFT_EXIT_CODE)
         );
         let consistent = test_diagnostic(RuntimeMatchStatus::Match, false);
         assert_eq!(
-            diagnostic_exit_code(&report, Some(&consistent), false, true),
+            diagnostic_exit_code(&report, false, Some(&consistent), false, true),
             Some(LOCAL_DRIFT_EXIT_CODE)
         );
 
@@ -1030,10 +1067,10 @@ mod tests {
             cmdline: "codex app-server".to_string(),
         });
         assert_eq!(
-            diagnostic_exit_code(&report, Some(&diagnostic), true, true),
+            diagnostic_exit_code(&report, false, Some(&diagnostic), true, true),
             Some(2)
         );
-        assert_eq!(cleanup_process_state(&report), "respawned");
+        assert_eq!(cleanup_process_state(&report, false), "respawned");
     }
 
     #[test]
@@ -1042,16 +1079,35 @@ mod tests {
         let mut report = CodexAppServerCleanupReport::default();
 
         assert_eq!(
-            diagnostic_exit_code(&report, Some(&diagnostic), true, false),
+            diagnostic_exit_code(&report, false, Some(&diagnostic), true, false),
             Some(1)
         );
 
         report.discovery_issue = Some(CodexProcessDiscoveryIssue::CurrentOwnerUnavailable);
         assert_eq!(
-            diagnostic_exit_code(&report, Some(&diagnostic), true, false),
+            diagnostic_exit_code(&report, false, Some(&diagnostic), true, false),
             Some(2)
         );
-        assert_eq!(cleanup_process_state(&report), "unavailable");
+        assert_eq!(cleanup_process_state(&report, false), "unavailable");
+    }
+
+    #[test]
+    fn skipped_process_cleanup_is_explicit_and_cannot_produce_exit_two() {
+        let consistent = test_diagnostic(RuntimeMatchStatus::Match, false);
+        let mut report = CodexAppServerCleanupReport {
+            discovery_issue: Some(CodexProcessDiscoveryIssue::CurrentOwnerUnavailable),
+            ..CodexAppServerCleanupReport::default()
+        };
+        report.cleanup.respawned.push(CodexAppServer {
+            pid: 42,
+            cmdline: "codex app-server".to_string(),
+        });
+
+        assert_eq!(cleanup_process_state(&report, true), "skipped");
+        assert_eq!(
+            diagnostic_exit_code(&report, true, Some(&consistent), false, false),
+            None
+        );
     }
 
     #[tokio::test]
@@ -1118,26 +1174,55 @@ mod tests {
 
     #[tokio::test]
     async fn doctor_timeout_terminates_parent_and_grandchild() {
+        #[cfg(windows)]
+        let mut host_env = crate::test_support::TestHostEnv::new();
+        #[cfg(windows)]
+        host_env.set_env("PATH", std::ffi::OsStr::new(""));
         let temp = tempfile::tempdir().expect("tempdir");
         let parent_pid = temp.path().join("parent.pid");
         let child_pid = temp.path().join("grandchild.pid");
         let (bin, args) = hanging_doctor_command(&parent_pid, &child_pid);
         let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
-        let timeout = if cfg!(windows) {
-            Duration::from_secs(20)
-        } else {
-            Duration::from_secs(2)
-        };
+        let child = spawn_doctor(&bin, &arg_refs).expect("spawn managed doctor fixture");
 
-        // 在超时杀树的同时等 pid 文件，避免 Windows 并行负载下 PowerShell 还没写完就被杀掉。
-        let (result, parent, grandchild) = tokio::join!(
-            capture_doctor(&bin, &arg_refs, timeout),
-            wait_for_pid_file(&parent_pid),
-            wait_for_pid_file(&child_pid),
-        );
+        // Confirm the controlled fixture is ready before testing timeout cleanup.
+        let parent = wait_for_pid_file(&parent_pid).await;
+        assert!(test_process_is_running(parent));
+        assert!(!child_pid.exists());
+        std::fs::write(temp.path().join("start-child"), b"ready").expect("release child startup");
+        let grandchild = wait_for_pid_file(&child_pid).await;
+        assert!(test_process_is_running(grandchild));
+
+        let result = capture_doctor_output(child, Duration::from_millis(200)).await;
         assert_eq!(result, Err(DoctorError::Timeout));
         wait_until_process_gone(parent).await;
         wait_until_process_gone(grandchild).await;
+    }
+
+    #[tokio::test]
+    async fn doctor_deadline_applies_before_fixture_is_ready() {
+        #[cfg(windows)]
+        let mut host_env = crate::test_support::TestHostEnv::new();
+        #[cfg(windows)]
+        host_env.set_env("PATH", std::ffi::OsStr::new(""));
+        let temp = tempfile::tempdir().expect("tempdir");
+        let parent_pid = temp.path().join("parent.pid");
+        let child_pid = temp.path().join("grandchild.pid");
+        let (bin, args) = hanging_doctor_command(&parent_pid, &child_pid);
+        let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
+
+        // Keep child startup blocked to exercise the production entrypoint deadline.
+        let result = tokio::time::timeout(
+            Duration::from_secs(5),
+            capture_doctor(&bin, &arg_refs, Duration::from_millis(200)),
+        )
+        .await
+        .expect("production doctor deadline must bound an unready fixture");
+        assert_eq!(result, Err(DoctorError::Timeout));
+        assert!(!child_pid.exists());
+        if let Ok(raw) = std::fs::read_to_string(parent_pid) {
+            wait_until_process_gone(raw.trim().parse().expect("parent PID")).await;
+        }
     }
 
     struct FakeDoctorScript {
@@ -1210,21 +1295,26 @@ mod tests {
         parent_pid: &std::path::Path,
         child_pid: &std::path::Path,
     ) -> (PathBuf, Vec<String>) {
+        let powershell = PathBuf::from(std::env::var_os("SystemRoot").expect("Windows SystemRoot"))
+            .join(r"System32\WindowsPowerShell\v1.0\powershell.exe");
+        assert!(powershell.is_absolute() && powershell.is_file());
         let dir = parent_pid.parent().expect("pid file parent");
         let script_path = dir.join("hanging-doctor.ps1");
         let script = format!(
             "$ErrorActionPreference = 'Stop'\n\
              [IO.File]::WriteAllText({parent}, [string]$PID)\n\
-             $child = Start-Process -FilePath $env:ComSpec -ArgumentList '/C','ping -n 30 127.0.0.1 >NUL' -PassThru -WindowStyle Hidden\n\
+             while (-not [IO.File]::Exists({release})) {{ [Threading.Thread]::Sleep(10) }}\n\
+             $child = Start-Process -FilePath (Join-Path $PSHOME 'powershell.exe') -ArgumentList '-NoProfile','-NonInteractive','-Command','Start-Sleep -Seconds 30' -PassThru -WindowStyle Hidden\n\
              if (-not $child -or $child.Id -le 0) {{ throw 'failed to start grandchild' }}\n\
              [IO.File]::WriteAllText({child}, [string]$child.Id)\n\
              Start-Sleep -Seconds 30\n",
             parent = ps_single_quote(parent_pid),
             child = ps_single_quote(child_pid),
+            release = ps_single_quote(&dir.join("start-child")),
         );
         std::fs::write(&script_path, script).expect("write hanging doctor");
         (
-            PathBuf::from("powershell.exe"),
+            powershell,
             vec![
                 "-NoProfile".to_string(),
                 "-NonInteractive".to_string(),
@@ -1245,9 +1335,10 @@ mod tests {
         let dir = parent_pid.parent().expect("pid file parent");
         let bin = dir.join("hanging-doctor");
         let script = format!(
-            "#!/bin/sh\nprintf '%s\\n' \"$$\" > {parent}\n/bin/sleep 30 &\nprintf '%s\\n' \"$!\" > {child}\nwait\n",
+            "#!/bin/sh\nprintf '%s\\n' \"$$\" > {parent}\nwhile [ ! -f {release} ]; do /bin/sleep 0.01; done\n/bin/sleep 30 &\nprintf '%s\\n' \"$!\" > {child}\nwait\n",
             parent = sh_single_quote(parent_pid),
             child = sh_single_quote(child_pid),
+            release = sh_single_quote(&dir.join("start-child")),
         );
         std::fs::write(&bin, script).expect("write hanging doctor");
         let mut permissions = std::fs::metadata(&bin)

@@ -1,0 +1,20 @@
+{
+  "command": [
+    "cargo",
+    "install",
+    "cargo-llvm-cov",
+    "--version",
+    "0.9.0",
+    "--locked",
+    "--root",
+    "/mnt/d/Documents/Code/Github/ccr/target/evergreen-linux-tools"
+  ],
+  "started_at_utc": "2026-09-30T02:49:51.619942+00:00",
+  "duration_seconds": 42.15,
+  "exit_code": 0,
+  "os": "WSL Ubuntu-24.04",
+  "toolchain": "Rust 1.98.0 / cargo-llvm-cov 0.9.0",
+  "boundary": "Linux local coverage; not hosted CI or macOS evidence. Tool installation is confined to ignored project target directory.",
+  "log": "linux-llvm-cov-install.log",
+  "log_sha256": "6470e5a2b850da363c39375c0e8155edbb34217aaa2d2b5108ae4743d3eeff46"
+}

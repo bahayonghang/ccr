@@ -8,6 +8,7 @@
 # 构建程序：just build (Debug) 或 just release (优化版)
 # 运行程序：just run -- <参数> 或 just run-release -- <参数>
 # 本地安装：just install (安装到 ~/.cargo/bin)
+# 清理产物：just clean（构建产物）或 just clean-all（含 node_modules）
 # 前置要求：Rust工具链 (cargo, rustc)
 # 提示事项：修改二进制名需同步更新 BIN 变量
 
@@ -17,6 +18,8 @@ CLI_CRATE_PATH := "crates/ccr"
 OUTPUTS_DIR := "outputs"
 # 与 .github/workflows/ci.yml security-audit 任务保持同一版本
 CARGO_AUDIT_VERSION := "0.22.2"
+# 与 rust-toolchain.toml channel 保持一致。cargo install 必须写 +channel，否则 rustup 1.28+ 会警告 default toolchain 被 toolchain file 隐式覆盖。
+RUST_TOOLCHAIN := "1.98.0"
 
 # 🧭 跨平台 Shell 配置
 # Windows 使用 PowerShell with UTF-8 encoding; -NoProfile 避免交互式配置污染 CI 输出
@@ -153,6 +156,10 @@ _help-windows:
     @Write-Host "                                → 测试 → 构建 → 安全审计"
     @Write-Host "                                → 前端完整检查"
     @Write-Host ""
+    @Write-Host "   🧹 清理命令："
+    @Write-Host "     • just clean              清理构建产物（Cargo/Tauri target、dist、outputs）"
+    @Write-Host "     • just clean-all          上述内容 + node_modules"
+    @Write-Host ""
     @Write-Host ""
 
 [private]
@@ -189,6 +196,10 @@ _help-linux:
     @printf '%s\n' "                                版本同步 → 格式检查 → Clippy"
     @printf '%s\n' "                                → 测试 → 构建 → 安全审计"
     @printf '%s\n' "                                → 前端完整检查"
+    @printf '%s\n' ""
+    @printf '%s\n' "   🧹 清理命令："
+    @printf '%s\n' "     • just clean              清理构建产物（Cargo/Tauri target、dist、outputs）"
+    @printf '%s\n' "     • just clean-all          上述内容 + node_modules"
     @printf '%s\n' ""
 
     @printf '\n'
@@ -227,6 +238,10 @@ _help-macos:
     @printf '%s\n' "                                版本同步 → 格式检查 → Clippy"
     @printf '%s\n' "                                → 测试 → 构建 → 安全审计"
     @printf '%s\n' "                                → 前端完整检查"
+    @printf '%s\n' ""
+    @printf '%s\n' "   🧹 清理命令："
+    @printf '%s\n' "     • just clean              清理构建产物（Cargo/Tauri target、dist、outputs）"
+    @printf '%s\n' "     • just clean-all          上述内容 + node_modules"
     @printf '%s\n' ""
 
     @printf '\n'
@@ -383,14 +398,14 @@ test:
     @just header "✅ 运行测试套件"
     @just info "📊 模式: 完整工作区测试"
     @just info "并行策略: 默认并行；仅共享进程状态的用例使用显式 crate 内锁"
-    cargo test --workspace --all-features
+    cargo test --workspace --all-features -- --skip export_bindings
     @just success "所有测试通过"
 
 # 🧪 运行所有测试 (包括忽略的测试)
 test-all:
     @just info "🧪 运行完整测试套件"
     @just info "📊 模式: 包含被忽略的测试"
-    cargo test --workspace --all-features -- --include-ignored
+    cargo test --workspace --all-features -- --include-ignored --skip export_bindings
     @just success "完整测试通过"
 
 # 📊 运行基准测试
@@ -478,11 +493,12 @@ lint: fmt clippy
     @just header "代码质量检查"
     @just success "代码质量检查全部通过"
 
-# 🔒 安全审计 (cargo audit) - 二进制缺失时安装 GitHub CI 同版本
+# 🔒 安全审计 (cargo audit) - 两个独立 lockfile，缺少工具时报告前置要求
 audit:
     @just header "🔒 运行安全审计"
     @just _ensure-cargo-audit-{{os()}}
-    cargo audit
+    cargo audit --file Cargo.lock
+    cargo audit --file ccr-ui/src-tauri/Cargo.lock
     @just success "安全审计步骤完成"
 
 [private]
@@ -490,14 +506,8 @@ _ensure-cargo-audit-windows:
     #!pwsh.exe
     $ErrorActionPreference = 'Stop'
     if (-not (Get-Command cargo-audit -ErrorAction SilentlyContinue)) {
-        Write-Host "cargo-audit 未安装或二进制缺失，正在安装 {{CARGO_AUDIT_VERSION}}"
-        if (Get-Command cargo-binstall -ErrorAction SilentlyContinue) {
-            cargo binstall cargo-audit --version {{CARGO_AUDIT_VERSION}} --no-confirm --force
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-        } else {
-            cargo install cargo-audit --version {{CARGO_AUDIT_VERSION}} --locked --force
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-        }
+        Write-Host "需要 cargo-audit {{CARGO_AUDIT_VERSION}}。请先单独安装：cargo +{{RUST_TOOLCHAIN}} install cargo-audit --version {{CARGO_AUDIT_VERSION}} --locked"
+        exit 1
     }
 
 [private]
@@ -505,12 +515,8 @@ _ensure-cargo-audit-linux:
     #!/usr/bin/env bash
     set -euo pipefail
     if ! command -v cargo-audit >/dev/null 2>&1; then
-      printf 'cargo-audit 未安装或二进制缺失，正在安装 %s\n' "{{CARGO_AUDIT_VERSION}}"
-      if command -v cargo-binstall >/dev/null 2>&1; then
-        cargo binstall cargo-audit --version {{CARGO_AUDIT_VERSION}} --no-confirm --force
-      else
-        cargo install cargo-audit --version {{CARGO_AUDIT_VERSION}} --locked --force
-      fi
+      printf '需要 cargo-audit %s。请先单独安装：cargo +%s install cargo-audit --version %s --locked\n' "{{CARGO_AUDIT_VERSION}}" "{{RUST_TOOLCHAIN}}" "{{CARGO_AUDIT_VERSION}}" >&2
+      exit 1
     fi
 
 [private]
@@ -518,12 +524,8 @@ _ensure-cargo-audit-macos:
     #!/usr/bin/env bash
     set -euo pipefail
     if ! command -v cargo-audit >/dev/null 2>&1; then
-      printf 'cargo-audit 未安装或二进制缺失，正在安装 %s\n' "{{CARGO_AUDIT_VERSION}}"
-      if command -v cargo-binstall >/dev/null 2>&1; then
-        cargo binstall cargo-audit --version {{CARGO_AUDIT_VERSION}} --no-confirm --force
-      else
-        cargo install cargo-audit --version {{CARGO_AUDIT_VERSION}} --locked --force
-      fi
+      printf '需要 cargo-audit %s。请先单独安装：cargo +%s install cargo-audit --version %s --locked\n' "{{CARGO_AUDIT_VERSION}}" "{{RUST_TOOLCHAIN}}" "{{CARGO_AUDIT_VERSION}}" >&2
+      exit 1
     fi
 
 # ═══════════════════════════════════════════════════════════
@@ -541,7 +543,7 @@ watch:
     @just info "📌 使用 cargo-watch (需要安装: cargo install cargo-watch)"
     cargo watch -x check -x test
 
-# 🎯 完整 CI 流程 (版本同步 + 自动格式化 + 格式检查 + 严格 Clippy + 测试 + 构建 + 安全审计 + 前端完整检查 + VSCode 扩展检查)
+# 🎯 完整 CI 检查 (版本/格式 + 工具契约 + Rust/Tauri + 双 lock 审计 + 前端安全/覆盖率 + VSIX)
 # 每步计时，最后输出汇总表
 ci:
     @just _ci-timed-{{os()}}
@@ -553,18 +555,21 @@ _ci-timed-windows:
     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
     chcp 65001 | Out-Null
     $steps = @(
-        @{ Name = "version-sync";    Label = "Version Sync" },
         @{ Name = "version-check";   Label = "Version Check" },
-        @{ Name = "fmt";             Label = "Format" },
         @{ Name = "fmt-check";       Label = "Format Check" },
+        @{ Name = "omp-check";       Label = "OMP Check" },
+        @{ Name = "harness-check";   Label = "Harness Check" },
+        @{ Name = "copilot-check";   Label = "Copilot Check" },
         @{ Name = "lint-strict";     Label = "Strict Clippy" },
         @{ Name = "check-workspace"; Label = "Workspace Check" },
         @{ Name = "test";            Label = "Test" },
         @{ Name = "release";         Label = "Release Build" },
         @{ Name = "audit";           Label = "Security Audit" },
         @{ Name = "ci-governance-check"; Label = "CI Governance" },
-        @{ Name = "tauri-bindings-check"; Label = "TS Bindings Drift" },
+        @{ Name = "tauri-ci";       Label = "Tauri CI" },
         @{ Name = "frontend-check";  Label = "Frontend Check" },
+        @{ Name = "frontend-audit";  Label = "Frontend Audit" },
+        @{ Name = "frontend-coverage"; Label = "Frontend Coverage" },
         @{ Name = "vscode-ci";       Label = "VSCode CI" }
     )
     $PAD = 20
@@ -620,8 +625,8 @@ _ci-timed-windows:
 _ci-timed-linux:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-sync" "version-check" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-bindings-check" "frontend-check" "vscode-ci")
-    labels=("Version Sync" "Version Check" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "TS Bindings Drift" "Frontend Check" "VSCode CI")
+    steps=("version-check" "fmt-check" "omp-check" "harness-check" "copilot-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-ci" "frontend-check" "frontend-audit" "frontend-coverage" "vscode-ci")
+    labels=("Version Check" "Format Check" "OMP Check" "Harness Check" "Copilot Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "Tauri CI" "Frontend Check" "Frontend Audit" "Frontend Coverage" "VSCode CI")
     PAD=20
     times=()
     statuses=()
@@ -681,8 +686,8 @@ _ci-timed-linux:
 _ci-timed-macos:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-sync" "version-check" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-bindings-check" "frontend-check" "vscode-ci")
-    labels=("Version Sync" "Version Check" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "TS Bindings Drift" "Frontend Check" "VSCode CI")
+    steps=("version-check" "fmt-check" "omp-check" "harness-check" "copilot-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-ci" "frontend-check" "frontend-audit" "frontend-coverage" "vscode-ci")
+    labels=("Version Check" "Format Check" "OMP Check" "Harness Check" "Copilot Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "Tauri CI" "Frontend Check" "Frontend Audit" "Frontend Coverage" "VSCode CI")
     PAD=20
     times=()
     statuses=()
@@ -761,6 +766,7 @@ frontend-test:
     @just success "前端 Smoke Tests 通过"
 
 # 🏗️ 前端构建
+[env('CCR_SKIP_ICON_GENERATION', '1')]
 frontend-build:
     @just header "🏗️ 前端构建"
     cd ccr-ui && bun install --frozen-lockfile && bun run build
@@ -776,20 +782,56 @@ docs-check:
 # 🤖 GitHub Copilot 工作区资产检查
 copilot-check:
     @just header "🤖 GitHub Copilot 工作区资产检查"
+    node --test scripts/quality/check-copilot-assets.test.mjs
     node scripts/quality/check-copilot-assets.mjs
     @just success "GitHub Copilot 工作区资产检查通过"
 
+# 🤖 OMP 上下文回归检查
+omp-check:
+    bun test scripts/trellis/omp-context.test.ts
+
+# 🤖 五套工具共享契约回归和检查
+harness-check:
+    @just _harness-check-{{os()}}
+
+[private]
+_harness-check-windows:
+    python -m unittest scripts.quality.test_check_harness_contracts
+    python scripts/quality/check_harness_contracts.py
+
+[private]
+_harness-check-linux:
+    python3 -m unittest scripts.quality.test_check_harness_contracts
+    python3 scripts/quality/check_harness_contracts.py
+
+[private]
+_harness-check-macos:
+    python3 -m unittest scripts.quality.test_check_harness_contracts
+    python3 scripts/quality/check_harness_contracts.py
+
 # 🌐 前端完整检查 (类型检查 + Lint + 构建 + 文档构建)
-frontend-check: frontend-typecheck frontend-lint frontend-test frontend-build docs-check
+frontend-check: frontend-typecheck frontend-lint frontend-check-cycles frontend-check-arch-boundaries frontend-test frontend-build docs-check
     @just success "前端检查全部通过"
+
+# 🔄 前端循环依赖检查（08-22-arch-quality-perf：独立脚本，只在 CI / frontend-check 中跑）
+frontend-check-cycles:
+    @just header "🔄 前端循环依赖检查"
+    cd ccr-ui && bun install --frozen-lockfile && bun run check:cycles
+    @just success "前端循环依赖检查通过"
+
+# 🧱 前端架构边界规则自检（08-22-arch-quality-perf：夹具定向 lint，AC2）
+frontend-check-arch-boundaries:
+    @just header "🧱 前端架构边界规则自检"
+    cd ccr-ui && bun install --frozen-lockfile && bun run check:arch-boundaries
+    @just success "前端架构边界规则自检通过"
 
 # 🌐 前端快速检查 (类型检查 + Lint，不含构建和文档)
 frontend-check-quick: frontend-typecheck frontend-lint frontend-test
     @just success "前端快速检查通过"
 
-# 📊 Vue/Vitest 行覆盖率门禁（lines ≥70%）
+# 📊 Vitest 行覆盖率门禁（lines ≥70%，阈值在 ccr-ui/vitest.smoke.config.ts 的 coverage.thresholds，不再由 justfile 传参）
 frontend-coverage:
-    cd ccr-ui && bun run vitest -- run --config vitest.smoke.config.ts --coverage --coverage.thresholds.lines=70
+    cd ccr-ui && bun run vitest -- run --config vitest.smoke.config.ts --coverage
 
 # 🔐 前端依赖安全审计（与 hosted workflow 共用入口）
 frontend-audit:
@@ -804,14 +846,14 @@ install:
     @just header "📦 安装到本地"
     @just info "📍 目标路径: ~/.cargo/bin/{{BIN}}"
     @just info "🔒 模式: 锁定依赖版本 (--locked)"
-    cargo install --path {{CLI_CRATE_PATH}} --locked
+    cargo +{{RUST_TOOLCHAIN}} install --path {{CLI_CRATE_PATH}} --locked
     @just success "安装完成"
 
 # ♻️ 强制重新安装
 reinstall:
     @just info "♻️ 强制重新安装"
     @just warn "模式: 覆盖现有安装"
-    cargo install --path {{CLI_CRATE_PATH}} --locked --force
+    cargo +{{RUST_TOOLCHAIN}} install --path {{CLI_CRATE_PATH}} --locked --force
     @just success "重新安装完成"
 
 # 🗑️ 卸载已安装的二进制
@@ -824,12 +866,12 @@ uninstall:
 # 📚 文档命令
 # ═══════════════════════════════════════════════════════════
 
-# 🌐 启动 VitePress 文档站
+# 🌐 构建 VitePress 文档站
 docs:
-    @just header "🌐 启动文档站"
+    @just header "🌐 构建文档站"
     @just info "📍 项目路径: docs"
-    @just info "📝 将转到 docs/ 并执行 npm run dev"
-    cd docs && npm install && npm run dev
+    @just info "📝 使用 docs/bun.lock 冻结安装并构建"
+    cd docs && bun install --frozen-lockfile && bun run build
 
 # 🌐 构建并在浏览器中打开文档
 doc-open:
@@ -970,12 +1012,28 @@ _outputs-collect-ui-sync-windows:
 # 🧹 清理与维护命令
 # ═══════════════════════════════════════════════════════════
 
-# 🧹 清理构建产物
+# 可再生构建产物目录（不含 Cargo target 与 node_modules）
+CLEAN_ARTIFACT_DIRS := "ccr-ui/dist ccr-ui/coverage ccr-ui/.vite ccr-ui/node_modules/.vite ccr-ui/storybook-static ccr-ui/test-results ccr-ui/playwright-report ccr-ui/tests/artifacts ccr-ui/output ccr-ui/src-tauri/ci-dist ccr-ui/src-tauri/bin docs/.vitepress/dist docs/.vitepress/cache docs/node_modules/.cache ccr-vscode/dist ccr-vscode/.vscode-test coverage " + OUTPUTS_DIR
+CLEAN_NODE_MODULE_DIRS := "ccr-ui/node_modules docs/node_modules ccr-vscode/node_modules"
+
+# 🧹 清理构建产物（CLI/Tauri target、前端/文档/扩展产物、outputs）
 clean:
-    @just info "🧹 清理构建产物"
-    @just info "📂 清理目标: target/ 目录"
+    @just header "清理构建产物"
+    @just info "清理 Cargo workspace target/"
     cargo clean
-    @just success "清理完成"
+    @just info "清理 Tauri workspace ccr-ui/src-tauri/target/"
+    cargo clean --manifest-path ccr-ui/src-tauri/Cargo.toml
+    @just info "清理前端/文档/扩展产物与 outputs/"
+    @just _clean-dirs-{{os()}} "{{CLEAN_ARTIFACT_DIRS}}"
+    @just _clean-artifact-files-{{os()}}
+    @just success "构建产物已清理。删除 node_modules 请运行 just clean-all"
+
+# 🧹 清理构建产物和 JS 依赖目录（之后需 bun install / npm ci）
+clean-all: clean
+    @just header "清理 JS 依赖目录"
+    @just warn "将删除 ccr-ui、docs、ccr-vscode 的 node_modules"
+    @just _clean-dirs-{{os()}} "{{CLEAN_NODE_MODULE_DIRS}}"
+    @just success "node_modules 已删除。请按需重新执行 bun install / npm ci"
 
 # 🗂️ 清理归档产物
 outputs-clean:
@@ -996,19 +1054,66 @@ _outputs-clean-windows:
     @if (Test-Path "{{OUTPUTS_DIR}}") { Remove-Item "{{OUTPUTS_DIR}}" -Recurse -Force }
     @just success "Collected outputs cleaned"
 
+[private]
+_clean-dirs-linux dirs:
+    @just _clean-dirs-unix "{{dirs}}"
+
+[private]
+_clean-dirs-macos dirs:
+    @just _clean-dirs-unix "{{dirs}}"
+
+[private]
+_clean-dirs-unix dirs:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # shellcheck disable=SC2086
+    rm -rf {{dirs}}
+
+[private]
+_clean-dirs-windows dirs:
+    #!pwsh.exe
+    $ErrorActionPreference = 'Stop'
+    foreach ($d in '{{dirs}}'.Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries)) {
+        if (Test-Path -LiteralPath $d) {
+            Remove-Item -LiteralPath $d -Recurse -Force
+        }
+    }
+
+[private]
+_clean-artifact-files-linux:
+    @just _clean-artifact-files-unix
+
+[private]
+_clean-artifact-files-macos:
+    @just _clean-artifact-files-unix
+
+[private]
+_clean-artifact-files-unix:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    rm -f ccr-ui/*.tsbuildinfo ccr-vscode/*.tsbuildinfo ccr-vscode/*.vsix
+
+[private]
+_clean-artifact-files-windows:
+    #!pwsh.exe
+    $ErrorActionPreference = 'Stop'
+    foreach ($root in @('ccr-ui', 'ccr-vscode')) {
+        if (Test-Path -LiteralPath $root) {
+            Get-ChildItem -LiteralPath $root -Filter '*.tsbuildinfo' -File -ErrorAction SilentlyContinue | Remove-Item -Force
+        }
+    }
+    if (Test-Path -LiteralPath 'ccr-vscode') {
+        Get-ChildItem -LiteralPath 'ccr-vscode' -Filter '*.vsix' -File -ErrorAction SilentlyContinue | Remove-Item -Force
+    }
+
 # 📦 检查依赖更新
 update-deps:
     @just info "📦 检查依赖更新"
     @just info "📌 使用 cargo-outdated (需要安装: cargo install cargo-outdated)"
     cargo outdated
 
-# 💣 深度清理 (包括 Cargo 缓存和目标文件)
-deep-clean: clean outputs-clean
-    @just header "💣 深度清理"
-    @just warn "警告：将清理 Cargo 缓存"
-    @just info "🗑️  清理 Cargo 注册表缓存"
-    cargo clean
-    @just success "深度清理完成"
+# 💣 深度清理（兼容旧名称，等同 just clean-all）
+deep-clean: clean-all
 
 # ═══════════════════════════════════════════════════════════
 # 🔧 版本号同步命令
@@ -1044,8 +1149,8 @@ _version-sync-macos:
 _version-check-windows:
     @just info "🔍 检查版本号一致性"
     @.\scripts\version\version-sync.ps1 -Check -Verbose
-    @python scripts/drift/check_doc_drift.py --verbose
-    @python scripts/drift/check_dependency_drift.py --verbose
+    @python -X utf8 scripts/drift/check_doc_drift.py --verbose
+    @python -X utf8 scripts/drift/check_dependency_drift.py --verbose
 
 [private]
 _version-check-linux:
@@ -1067,17 +1172,17 @@ workflow-governance-check:
 
 [private]
 _workflow-governance-check-windows:
-    @python -m unittest scripts.ci.test_check_workflow_governance
+    @python -m unittest scripts.ci.test_check_workflow_governance scripts.ci.test_architecture_contract_gates
     @python scripts/ci/check_workflow_governance.py
 
 [private]
 _workflow-governance-check-linux:
-    @python3 -m unittest scripts.ci.test_check_workflow_governance
+    @python3 -m unittest scripts.ci.test_check_workflow_governance scripts.ci.test_architecture_contract_gates
     @python3 scripts/ci/check_workflow_governance.py
 
 [private]
 _workflow-governance-check-macos:
-    @python3 -m unittest scripts.ci.test_check_workflow_governance
+    @python3 -m unittest scripts.ci.test_check_workflow_governance scripts.ci.test_architecture_contract_gates
     @python3 scripts/ci/check_workflow_governance.py
 
 # 🔐 Root/Tauri dependency drift、例外 metadata 和 MSRV 治理
@@ -1104,7 +1209,7 @@ ci-governance-check: workflow-governance-check dependency-governance-check tauri
 
 # 📊 Rust workspace 覆盖率：总体 70%，安全 gateway 85%
 coverage-rust:
-    cargo llvm-cov --workspace --all-features --json --output-path target/coverage-workspace.json
+    cargo llvm-cov --workspace --all-features --json --output-path target/coverage-workspace.json -- --skip export_bindings
     @just _coverage-rust-check-{{os()}}
 
 [private]
@@ -1121,7 +1226,7 @@ _coverage-rust-check-macos:
 
 # 📊 Tauri backend 覆盖率：生成完整报告，安全 gateway ≥85%
 coverage-tauri:
-    cargo --config .cargo/tauri-ci.toml llvm-cov --manifest-path ccr-ui/src-tauri/Cargo.toml --json --output-path ccr-ui/src-tauri/target/coverage-tauri.json
+    cargo --config .cargo/tauri-ci.toml llvm-cov --manifest-path ccr-ui/src-tauri/Cargo.toml --json --output-path ccr-ui/src-tauri/target/coverage-tauri.json -- --skip export_bindings
     @just _coverage-tauri-check-{{os()}}
 
 [private]
@@ -1427,7 +1532,7 @@ tauri-test:
 tauri-bindings:
     @just _ui-run bindings
 
-# 🧪 TypeScript 绑定漂移守卫（自动修复空白后验证重新生成结果；结构漂移仍阻断）
+# 🧪 TypeScript 绑定漂移守卫（比较规范化生成结果并恢复原字节；结构漂移仍阻断）
 tauri-bindings-check:
     @just _ui-run bindings-check
 
@@ -1455,7 +1560,7 @@ tauri-ci: dependency-governance-check
     cargo fmt --manifest-path ccr-ui/src-tauri/Cargo.toml -- --check
     cargo --config .cargo/tauri-ci.toml check --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop
     cargo --config .cargo/tauri-ci.toml clippy --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop -- -D warnings
-    cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml --all-features
+    cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml --all-features -- --skip export_bindings
     just tauri-bindings-check
     just tauri-command-inventory-check
     @just success "Tauri Rust CI passed"

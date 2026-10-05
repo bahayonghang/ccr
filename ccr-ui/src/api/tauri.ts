@@ -38,10 +38,6 @@ import {
   startCcrCommandJob as startTypedCcrCommandJob,
 } from './generated/commandExec'
 import {
-  listConfigsTyped,
-  switchConfigTyped,
-} from './generated/config'
-import {
   getSkipExitConfirm as getSkipExitConfirmTyped,
   setSkipExitConfirm as setSkipExitConfirmTyped,
 } from './generated/exitConfirm'
@@ -160,6 +156,9 @@ export const TauriAPI = {
 // 推荐新代码使用 `from '@/api/domains/config'` 或 `configApi.*`。
 export {
   listConfigs,
+  getConfig,
+  enableConfig,
+  disableConfig,
   switchConfig,
   addConfig,
   updateConfig,
@@ -617,23 +616,6 @@ export const getCcrCommandJobStatus = async (jobId: string): Promise<CommandJobS
 /** 取消 CCR 命令后台任务 */
 export const cancelCcrCommandJob = async (jobId: string): Promise<CommandJobSnapshot> => {
   return cancelTypedCcrCommandJob(jobId)
-}
-
-/** 启用配置（等价于 switchConfig） */
-export const enableConfig = async (name: string): Promise<string> => {
-  return switchConfigTyped(name)
-}
-
-/** 禁用配置（通过 update_config 设置 enabled=false） */
-export const disableConfig = async <T = UnknownRecord>(name: string): Promise<T> => {
-  return invoke('update_config', { name, data: { enabled: false } })
-}
-
-/** 获取单个配置详情（通过列表后过滤实现） */
-export const getConfig = async (name: string) => {
-  const configs = await listConfigsTyped()
-  const found = configs.find((item) => isRecord(item) && String(item.name ?? '') === name)
-  return found ?? null
 }
 
 // ── MCP 预设 / 同步 / 内置提示词 ──

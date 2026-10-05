@@ -1,0 +1,9 @@
+{
+  "tools_root": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-vsce4-scanner-8j01z3o1\\cli",
+  "projects": {
+    "clean": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-vsce4-scanner-8j01z3o1\\clean",
+    "secret": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-vsce4-scanner-8j01z3o1\\secret",
+    "dotenv": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-vsce4-scanner-8j01z3o1\\dotenv"
+  },
+  "temporary_root": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-vsce4-scanner-8j01z3o1"
+}

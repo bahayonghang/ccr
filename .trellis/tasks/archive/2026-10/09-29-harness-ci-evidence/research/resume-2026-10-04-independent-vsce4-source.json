@@ -1,0 +1,140 @@
+{
+  "tarball": {
+    "source": "https://registry.npmjs.org/@vscode/vsce/-/vsce-4.0.0.tgz",
+    "sha256": "de32bbd17a76ff3471a36e0feff4e07510b3783065b77b1c094685b0accb1d7f",
+    "integrity": "sha512-NImwuLaenMmb5D5Jer9/lzi/F9ZQUBOp8Azhj/BVYcTFgixv8KehFXqEUDjQlD2tAiw2E6dDGyjTuAB//di60A=="
+  },
+  "entries": {
+    "package.json": {
+      "sha256": "578509ac7ec727cb2fc105be03e750da82be07a31c6298862422d65a1008bd1b",
+      "bytes": 2391,
+      "evidence": "resume-2026-10-04-independent-vsce4-package.json"
+    },
+    "out/secretLint.js": {
+      "sha256": "1fc6fd90841dc4caf2b232e853610829e9b8ca8deafeb45551f89c648dcba318",
+      "bytes": 8303,
+      "evidence": "resume-2026-10-04-independent-vsce4-out-secretLint.js"
+    },
+    "out/package.js": {
+      "sha256": "5f791bd7d0123c7f6b5e101e84065ee48f7f78b51231ecb2bd105e12017255f6",
+      "bytes": 79238,
+      "evidence": "resume-2026-10-04-independent-vsce4-out-package.js"
+    },
+    "out/store.js": {
+      "sha256": "669bf1b8e4259a1280cc7d762c49087c7df2f0c95875639e856b70f965cd47a5",
+      "bytes": 9463,
+      "evidence": "resume-2026-10-04-independent-vsce4-out-store.js"
+    },
+    "out/main.js": {
+      "sha256": "f74c60a6eb617c340926dcb4d9a5834e4ca7d79ccc9cf84c951c1ba19be667d8",
+      "bytes": 20004,
+      "evidence": "resume-2026-10-04-independent-vsce4-out-main.js"
+    },
+    "vsce": {
+      "sha256": "3253616e7d950d94c3a339a6cb90e6257f85943801f0dbc50fa4b8ffabe24966",
+      "bytes": 57,
+      "evidence": "resume-2026-10-04-independent-vsce4-vsce"
+    }
+  },
+  "package_code_executed": false,
+  "credential_access": false,
+  "metadata": {
+    "name": "@vscode/vsce",
+    "version": "4.0.0",
+    "description": "VS Code Extensions Manager",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/Microsoft/vsce"
+    },
+    "type": "commonjs",
+    "homepage": "https://code.visualstudio.com",
+    "bugs": "https://github.com/Microsoft/vsce/issues",
+    "keywords": [
+      "vscode",
+      "vsce",
+      "extension"
+    ],
+    "publishConfig": {
+      "access": "public"
+    },
+    "contributors": [
+      "Microsoft Corporation"
+    ],
+    "author": "Microsoft Corporation",
+    "license": "MIT",
+    "main": "out/api.js",
+    "typings": "dist/vsce.d.ts",
+    "bin": {
+      "vsce": "vsce"
+    },
+    "scripts": {
+      "compile": "tsc",
+      "api": "api-extractor run --local --verbose",
+      "build": "npm run compile && npm run api",
+      "watch:build": "npm run compile -- --watch",
+      "test": "mocha",
+      "watch:test": "npm run test -- --watch"
+    },
+    "engines": {
+      "node": ">= 22"
+    },
+    "dependencies": {
+      "@azure/identity": "^4.13.2",
+      "@napi-rs/keyring": "^1.3.0",
+      "@secretlint/core": "^10.2.2",
+      "@secretlint/secretlint-rule-no-dotenv": "^10.2.2",
+      "@secretlint/secretlint-rule-preset-recommend": "^10.2.2",
+      "@secretlint/source-creator": "^10.2.2",
+      "@secretlint/types": "^10.2.2",
+      "@vscode/vsce-sign": "^2.1.0",
+      "azure-devops-node-api": "^12.5.0",
+      "cockatiel": "^3.2.1",
+      "commander": "^12.1.0",
+      "hosted-git-info": "^4.1.0",
+      "jsonc-parser": "^3.3.1",
+      "marked": "^18.0.11",
+      "mime": "^1.6.0",
+      "minimatch": "^10.2.6",
+      "parse5": "^8.0.1",
+      "proper-lockfile": "^4.1.2",
+      "read": "^1.0.7",
+      "semver": "^7.8.5",
+      "tinyglobby": "^0.2.17",
+      "typed-rest-client": "^1.8.11",
+      "url-join": "^4.0.1",
+      "xml2js": "^0.5.0",
+      "yauzl": "^3.4.0",
+      "yazl": "^2.5.1"
+    },
+    "devDependencies": {
+      "@microsoft/api-extractor": "^7.59.0",
+      "@types/hosted-git-info": "^3.0.5",
+      "@types/mime": "^1.3.5",
+      "@types/mocha": "^7.0.2",
+      "@types/node": "^22.20.1",
+      "@types/picomatch": "^4.0.3",
+      "@types/proper-lockfile": "^4.1.4",
+      "@types/read": "^0.0.28",
+      "@types/semver": "^6.2.7",
+      "@types/url-join": "^4.0.3",
+      "@types/xml2js": "^0.4.14",
+      "@types/yauzl": "^2.10.3",
+      "@types/yazl": "^2.4.6",
+      "mocha": "^11.8.0",
+      "ts-node": "^10.9.2",
+      "typescript": "~5.9.3"
+    },
+    "mocha": {
+      "require": [
+        "ts-node/register"
+      ],
+      "watch-files": "src/**",
+      "spec": "src/test/**/*.ts"
+    },
+    "overrides": {
+      "serialize-javascript": "7.x",
+      "diff": "^9.0.0",
+      "@azure/msal-common": "16.14.0"
+    }
+  }
+}

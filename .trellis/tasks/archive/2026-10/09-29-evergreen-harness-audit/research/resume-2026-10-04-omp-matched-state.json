@@ -1,0 +1,13 @@
+{
+  "temporary_root": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-omp-matched-wdbl9kmr",
+  "tools_root": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-omp-matched-wdbl9kmr\\cli",
+  "project": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-omp-matched-wdbl9kmr\\project",
+  "requested_version": "0.7.0-beta.4",
+  "product_sha256": {
+    "scripts/trellis/omp-context.test.ts": "61ba8ec1861c4dd234d0a994b01f19d7368340df960d4b8ca2676b3c562f738a",
+    ".omp/extensions/trellis/index.ts": "a9ef13beb1bb7214e2ada5cb43fea596065ab296b68a8da171220a77840c5851",
+    "docs/agents/harnesses.md": "49e23c24c9ee60191f16e5ca9a8eae6c1a058d435bb6e125dfda26ed8da65b7b",
+    "docs/en/agents/harnesses.md": "d97002c42537fa16a080546f238b5ac4eccef031f4c60e40013c8bef11b1c44d",
+    "ccr-vscode/package-lock.json": "54d4c87d656c896c4e80742e2e1c682abb2ea17a671500184eab6969baf792eb"
+  }
+}

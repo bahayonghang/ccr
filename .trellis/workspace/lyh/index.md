@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 98
-- **Last Active**: 2026-08-22
+- **Total Sessions**: 117
+- **Last Active**: 2026-09-30
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1355 | Active |
+| `journal-2.md` | ~1908 | Active |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,25 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 117 | 2026-09-30 | 常青项目已批准改动提交与部分归档 | `c4d38e5154edf6a8fa1c781f91d31ce6aa4bb5ad`, `f68116ecd22bb74b86011b01d14b72cfc8a855d0`, `c1453c7b1f5405f93eaecf67ff0d074bb1e9db1d`, `30cbeddf730ed01b312c3396ba7b8691853be859`, `a693176fee1abc0093c054af020615fe97ac8119` | `dev` |
+| 116 | 2026-09-29 | 剩余改动全部提交及 Insights 任务归档 | `c256f84b9f327293f4db8d5766545c832298b17b`, `55e00031185713f5f34948aee44f27f025cc5af2`, `1a30e10cf496e056eaae232aed0c6b0c5a70efef` | `dev` |
+| 115 | 2026-09-28 | CLI 与 Tauri 架构提交及行政归档 | `f22732fc319a11adc38338603ea627def13c6348` | `dev` |
+| 114 | 2026-09-25 | 首页 Insights 前端提交与后端设计归档 | `76bae516`, `5443d95d` | `dev` |
+| 113 | 2026-09-19 | TUI 终端主题自适应（auto 持久化选项） | `d4306d0`, `72cc37e` | `dev` |
+| 112 | 2026-09-08 | Grok Auth CLI 全部提交与归档 | `7963c73f` | `dev` |
+| 111 | 2026-09-08 | Grok Auth CLI 核心命令完成，CI 被既有 Windows 锁测试阻塞 | - | `dev` |
+| 110 | 2026-09-08 | Grok 账号任务全部提交与归档 | `f601d6df`, `1ef4c56b`, `2c991689`, `582702f6` | `dev` |
+| 109 | 2026-09-08 | Grok 多账号父子任务源码实施与静态审查 | - | `dev` |
+| 108 | 2026-09-08 | Codex Auth 配额条与用量展示优化 | `ee867a1a`, `26fc4dff`, `61b8562a` | `dev` |
+| 107 | 2026-09-08 | Codex Auth 配额条与用量展示优化 | - | `dev` |
+| 106 | 2026-09-03 | UI 视觉世界替换：行情终端 | - | `dev` |
+| 105 | 2026-09-02 | 优化 Usage 页 hero 区布局消除大片空白 | `dfb2f5a0` | `dev` |
+| 104 | 2026-09-02 | 修复 Overview 空用量与 Agent Sessions 缺失源 | `69119e1d` | `dev` |
+| 103 | 2026-08-31 | 完成全项目依赖安全优先分批升级 | `0463be658cba8934c3477ad5e53efc42e94f1746` | `dev` |
+| 102 | 2026-08-30 | 重构 ccr-ui Sync 页布局与交互门控 | `343f2e26`, `b2434cdf`, `cbafaa16` | `dev` |
+| 101 | 2026-08-29 | 实现八类 Agent 会话浏览页面 | `f1e9b873`, `3a46ee61` | `dev` |
+| 100 | 2026-08-27 | Usage 表格扫读与日柱窗口 | `04536d90` | `dev` |
+| 99 | 2026-08-25 | React 首页 1b/1c 重设计 | `0ebc75a0`, `1147e6ac`, `a6c22e40`, `00e6704f`, `8c71743a`, `3d467d44` | `dev` |
 | 98 | 2026-08-22 | Codex 首页趋势图横轴标签与图标优化 | `fcf30d0a` | `dev` |
 | 97 | 2026-08-21 | Claude Codex Grok auth off | `b4f5e462`, `dc71784b`, `66eb0b8e`, `8cf64419`, `feab8669` | `dev` |
 | 96 | 2026-08-19 | Codex Auth 周限展示改为 7d | `b59299641f6b3827bc8cf23d2d9604a1c7ba16a3` | `dev` |

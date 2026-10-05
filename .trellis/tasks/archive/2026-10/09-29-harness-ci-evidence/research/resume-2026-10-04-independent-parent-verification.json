@@ -1,0 +1,167 @@
+{
+  "parent_gates": {
+    "workspace-test": {
+      "command": [
+        "just",
+        "test"
+      ],
+      "exit_code": 0,
+      "receipt_sha256": "1f6917e4be4bbf6d02981b246f0e0060be174835d7a2bb59d1637e5e8d459f87",
+      "stdout_sha256": "4e4e8521104bec2df361b739011af6ad2b760d3b18d9f9d87099b9a0a47f557b",
+      "stderr_sha256": "b1aaa1e5a39be20dccc2cd83361ec541f26ea9250d6c6f5c8697003a5e2db17c",
+      "input_snapshot_scope": [
+        "ccr-ui/package.json",
+        "ccr-ui/bun.lock",
+        "ccr-ui/scripts/frontend-audit-allowlist.json",
+        "ccr-ui/scripts/audit-dependencies.mjs",
+        "justfile"
+      ],
+      "test_counts": {
+        "passed": 1867,
+        "failed": 0,
+        "ignored": 16,
+        "result_blocks": 41
+      }
+    },
+    "lint-strict": {
+      "command": [
+        "just",
+        "lint-strict"
+      ],
+      "exit_code": 0,
+      "receipt_sha256": "40ed272641f6fd5e6a3fcbea7f2df07cef3bde31ee696ca723e9c35c44b70fe4",
+      "stdout_sha256": "aeabb56c061b3ab93eee283776f8f29dddd12f6db68089667806c5b5132bf659",
+      "stderr_sha256": "c8c54a17afe93fcf15174839b9a0a62ece6124e0350140a4f5f5228f97438f5f",
+      "input_snapshot_scope": [
+        "ccr-ui/package.json",
+        "ccr-ui/bun.lock",
+        "ccr-ui/scripts/frontend-audit-allowlist.json",
+        "ccr-ui/scripts/audit-dependencies.mjs",
+        "justfile"
+      ]
+    }
+  },
+  "vsix": {
+    "lock_differences": [
+      {
+        "path": [
+          "packages",
+          "node_modules/brace-expansion",
+          "version"
+        ],
+        "before": "5.0.9",
+        "after": "5.0.12"
+      },
+      {
+        "path": [
+          "packages",
+          "node_modules/brace-expansion",
+          "resolved"
+        ],
+        "before": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.9.tgz",
+        "after": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.12.tgz"
+      },
+      {
+        "path": [
+          "packages",
+          "node_modules/brace-expansion",
+          "integrity"
+        ],
+        "before": "sha512-ScQ4IuvIEF1TMlP7Zt+vjJ//9zlPb2SDcxWxM3bk8s6t6GGdJ7KO1dCcTidOPJKePW30LE/2cT7wCyPho9/Wxg==",
+        "after": "sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ=="
+      },
+      {
+        "path": [
+          "packages",
+          "node_modules/fast-uri",
+          "version"
+        ],
+        "before": "3.1.7",
+        "after": "3.1.8"
+      },
+      {
+        "path": [
+          "packages",
+          "node_modules/fast-uri",
+          "resolved"
+        ],
+        "before": "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.7.tgz",
+        "after": "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.8.tgz"
+      },
+      {
+        "path": [
+          "packages",
+          "node_modules/fast-uri",
+          "integrity"
+        ],
+        "before": "sha512-dOvZVzjdZdz7phd9v6jCbwxrBW3fK6n8Rc0CtdmM4bumzMnxywBYhuph6J819RRw/ku+rLbelwfMunktuzVVHg==",
+        "after": "sha512-GZMtZUTNRpOVIECoXwLNZS5xUGE+mVNbTB8h/7Rwh2TFWcBQiPzTgyZi05BF9UMZKkLJv8XBRJTlU7zg8+ZfMg=="
+      }
+    ],
+    "audit-before": {
+      "exit_code": 1,
+      "receipt_sha256": "6afdf850baaef72a914466c74ce08931f16322b9363a157c181fdf35e61cb93a",
+      "vulnerability_counts": {
+        "info": 0,
+        "low": 0,
+        "moderate": 1,
+        "high": 7,
+        "critical": 0,
+        "total": 8
+      }
+    },
+    "audit-after": {
+      "exit_code": 1,
+      "receipt_sha256": "a9ce16183d458af88a4adad9ecf27ea3393aa94176dcd8284867892366bebeae",
+      "vulnerability_counts": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 6,
+        "critical": 0,
+        "total": 6
+      }
+    },
+    "npm-ci": {
+      "exit_code": 0,
+      "receipt_sha256": "f61c086f439f72a0220d959a9ccf5a45d3b5dcc0e4ba8c4b8ba159068b49a3f4",
+      "vulnerability_counts": null
+    },
+    "ci": {
+      "exit_code": 0,
+      "receipt_sha256": "6ccde604db110cc554b01c00acea71df75c10bd066aa23ea67d9ef0b2ef67e64",
+      "vulnerability_counts": null
+    }
+  },
+  "boundary": "Existing receipts verified; no gate rerun.",
+  "whitespace_checks": [
+    {
+      "command": [
+        "git",
+        "-c",
+        "core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "warning: in the working copy of '.trellis/spec/ccr/backend/test-fixtures.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.trellis/tasks/09-29-evergreen-harness-audit/approval.json', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.trellis/tasks/09-29-harness-ci-evidence/design.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.trellis/tasks/09-29-harness-ci-evidence/implement.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.trellis/tasks/09-29-harness-ci-evidence/task.json', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.trellis/tasks/09-29-harness-vsix-package/design.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.trellis/tasks/09-29-harness-vsix-package/implement.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.trellis/tasks/09-29-harness-vsix-package/task.json', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.trellis/tasks/archive/2026-09/09-29-harness-omp-context/prd.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.trellis/tasks/archive/2026-09/09-29-harness-omp-context/task.json', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'ccr-vscode/package-lock.json', LF will be replaced by CRLF the next time Git touches it\n"
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        ".gitignore",
+        "crates/ccr/tests/managers/general.rs",
+        "crates/ccr/tests/managers/legacy_registry.rs",
+        ".trellis/spec/ccr/backend/test-fixtures.md",
+        "ccr-vscode/package-lock.json"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "warning: in the working copy of '.trellis/spec/ccr/backend/test-fixtures.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'ccr-vscode/package-lock.json', LF will be replaced by CRLF the next time Git touches it\n"
+    }
+  ]
+}

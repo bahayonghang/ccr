@@ -1,0 +1,171 @@
+{
+  "captured_at": "2026-09-28T23:36:12.985791+00:00",
+  "task_contexts": [
+    {
+      "task": "09-28-cli-tauri-architecture",
+      "command": [
+        "C:\\Program Files\\Python314\\python.exe",
+        ".trellis/scripts/task.py",
+        "validate",
+        ".trellis/tasks/09-28-cli-tauri-architecture"
+      ],
+      "exit_code": 0,
+      "status": "in_progress",
+      "log": "continuation-context-09-28-cli-tauri-architecture.log",
+      "log_sha256": "41e951f898f6d632ac421b4f1cfbba08bff94f8bf2fa6d5dc5cffbb847744bc1"
+    },
+    {
+      "task": "09-28-config-repository-consistency",
+      "command": [
+        "C:\\Program Files\\Python314\\python.exe",
+        ".trellis/scripts/task.py",
+        "validate",
+        ".trellis/tasks/09-28-config-repository-consistency"
+      ],
+      "exit_code": 0,
+      "status": "in_progress",
+      "log": "continuation-context-09-28-config-repository-consistency.log",
+      "log_sha256": "34420fb5a327e527f9e0e6bec75cfe3b12557acedef7fa8cfb17fc17eecc3786"
+    },
+    {
+      "task": "09-28-profile-application-usecases",
+      "command": [
+        "C:\\Program Files\\Python314\\python.exe",
+        ".trellis/scripts/task.py",
+        "validate",
+        ".trellis/tasks/09-28-profile-application-usecases"
+      ],
+      "exit_code": 0,
+      "status": "in_progress",
+      "log": "continuation-context-09-28-profile-application-usecases.log",
+      "log_sha256": "70d5aa73af75bd03de62732cecbdb88fb994381664fb6f1d6f63f282150f5d92"
+    },
+    {
+      "task": "09-28-tauri-config-adapter",
+      "command": [
+        "C:\\Program Files\\Python314\\python.exe",
+        ".trellis/scripts/task.py",
+        "validate",
+        ".trellis/tasks/09-28-tauri-config-adapter"
+      ],
+      "exit_code": 0,
+      "status": "in_progress",
+      "log": "continuation-context-09-28-tauri-config-adapter.log",
+      "log_sha256": "975ee6bf999827383976c117bfe2cf21554f3f599e7e7e9ba2915a49cafec302"
+    },
+    {
+      "task": "09-28-cli-diagnostics-contract",
+      "command": [
+        "C:\\Program Files\\Python314\\python.exe",
+        ".trellis/scripts/task.py",
+        "validate",
+        ".trellis/tasks/09-28-cli-diagnostics-contract"
+      ],
+      "exit_code": 0,
+      "status": "in_progress",
+      "log": "continuation-context-09-28-cli-diagnostics-contract.log",
+      "log_sha256": "1dbccaf0eb7e4f2cc2bb3905cf8e12ce74d09dd846dea154a53fd17463e21835"
+    },
+    {
+      "task": "09-28-safe-persistence-backups",
+      "command": [
+        "C:\\Program Files\\Python314\\python.exe",
+        ".trellis/scripts/task.py",
+        "validate",
+        ".trellis/tasks/09-28-safe-persistence-backups"
+      ],
+      "exit_code": 0,
+      "status": "in_progress",
+      "log": "continuation-context-09-28-safe-persistence-backups.log",
+      "log_sha256": "01a186a0cd45b5c2740675ee4db29c98d8d69319bd17c8f8ba18257651dcdbd9"
+    },
+    {
+      "task": "09-28-usage-job-lifecycle",
+      "command": [
+        "C:\\Program Files\\Python314\\python.exe",
+        ".trellis/scripts/task.py",
+        "validate",
+        ".trellis/tasks/09-28-usage-job-lifecycle"
+      ],
+      "exit_code": 0,
+      "status": "in_progress",
+      "log": "continuation-context-09-28-usage-job-lifecycle.log",
+      "log_sha256": "9e9ff5966e37c65bd74330d1035d80f2224ecc18c3a36f646b9c360b021a67fb"
+    },
+    {
+      "task": "09-28-command-workbench-lifecycle",
+      "command": [
+        "C:\\Program Files\\Python314\\python.exe",
+        ".trellis/scripts/task.py",
+        "validate",
+        ".trellis/tasks/09-28-command-workbench-lifecycle"
+      ],
+      "exit_code": 0,
+      "status": "in_progress",
+      "log": "continuation-context-09-28-command-workbench-lifecycle.log",
+      "log_sha256": "c61e7f99c9337dae09576257089ca9ac70aab268c88d0eb407dbdb3c829296df"
+    },
+    {
+      "task": "09-28-settings-lossless-capabilities",
+      "command": [
+        "C:\\Program Files\\Python314\\python.exe",
+        ".trellis/scripts/task.py",
+        "validate",
+        ".trellis/tasks/09-28-settings-lossless-capabilities"
+      ],
+      "exit_code": 0,
+      "status": "in_progress",
+      "log": "continuation-context-09-28-settings-lossless-capabilities.log",
+      "log_sha256": "f66de41429a0c8f4528107a651c49b2b52f303fab66a483602a3eabfbdc27d7f"
+    },
+    {
+      "task": "09-28-frontend-query-error-contracts",
+      "command": [
+        "C:\\Program Files\\Python314\\python.exe",
+        ".trellis/scripts/task.py",
+        "validate",
+        ".trellis/tasks/09-28-frontend-query-error-contracts"
+      ],
+      "exit_code": 0,
+      "status": "in_progress",
+      "log": "continuation-context-09-28-frontend-query-error-contracts.log",
+      "log_sha256": "7147a93bab25cd6d3311fe6b094b37d6748c519ebf8014262253269ad96a6464"
+    },
+    {
+      "task": "09-28-architecture-contract-gates",
+      "command": [
+        "C:\\Program Files\\Python314\\python.exe",
+        ".trellis/scripts/task.py",
+        "validate",
+        ".trellis/tasks/09-28-architecture-contract-gates"
+      ],
+      "exit_code": 0,
+      "status": "in_progress",
+      "log": "continuation-context-09-28-architecture-contract-gates.log",
+      "log_sha256": "953f12a818e731ee5a530622597f6be6427ffc8dc68a1ed545cce006fd9d5ac0"
+    },
+    {
+      "task": "09-28-desktop-control-oauth-lifecycle",
+      "command": [
+        "C:\\Program Files\\Python314\\python.exe",
+        ".trellis/scripts/task.py",
+        "validate",
+        ".trellis/tasks/09-28-desktop-control-oauth-lifecycle"
+      ],
+      "exit_code": 0,
+      "status": "in_progress",
+      "log": "continuation-context-09-28-desktop-control-oauth-lifecycle.log",
+      "log_sha256": "ae2a337bac56fd11b4dcf77efd74c9dc8d3593d1c530a15e763de7f7f6ddc515"
+    }
+  ],
+  "protected_files": {
+    "ccr-ui/.tmp-desktop-probe.mjs": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+    "ccr-ui/.tmp-insights-visual.mjs": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53"
+  },
+  "existing_task_statuses": {
+    "09-24-home-insights-redesign": "planning",
+    "09-24-home-insights-frontend": "in_progress"
+  },
+  "all_contexts_passed": true,
+  "all_architecture_in_progress": true
+}

@@ -1,0 +1,966 @@
+{
+  "metadata": {
+    "cargo-version": "cargo 1.98.0 (797e8a9bc 2026-08-05)",
+    "rustc-version": "rustc 1.98.0 (88d9e12ae 2026-08-18)\nbinary: rustc\ncommit-hash: 88d9e12ae178fab0fb5cc050a94da85685d449ea\ncommit-date: 2026-08-18\nhost: x86_64-pc-windows-msvc\nrelease: 1.98.0\nLLVM version: 22.1.8",
+    "audit-version": "cargo-audit-audit 0.22.2",
+    "head": "fe9d65972376dbb4c332fde9860c1e42ff2f2005",
+    "advisory-db-head": "f23b768236fe2880e4cfa167da662cad8ca79240",
+    "advisory-db-status": "?? crates/stable-vec/RUSTSEC-0000-0000.md"
+  },
+  "matrix": [
+    {
+      "target": "x86_64-pc-windows-msvc",
+      "features": "default",
+      "edges": "normal,build",
+      "exit_code": 0,
+      "warnings": {
+        "RUSTSEC-2025-0057": {
+          "package": "fxhash",
+          "version": "0.2.1",
+          "present": true,
+          "feature_lines": [
+            "fxhash v0.2.1|features="
+          ]
+        },
+        "RUSTSEC-2024-0370": {
+          "package": "proc-macro-error",
+          "version": "1.0.4",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2025-0081": {
+          "package": "unic-char-property",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-property v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2025-0075": {
+          "package": "unic-char-range",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-range v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0080": {
+          "package": "unic-common",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-common v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0100": {
+          "package": "unic-ucd-ident",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-ident v0.9.0|features=default,id,xid"
+          ]
+        },
+        "RUSTSEC-2025-0098": {
+          "package": "unic-ucd-version",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-version v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2024-0429": {
+          "package": "glib",
+          "version": "0.18.5",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2026-0097": {
+          "package": "rand",
+          "version": "0.7.3",
+          "present": true,
+          "feature_lines": [
+            "rand v0.7.3|features=alloc,default,getrandom,getrandom_package,libc,rand_pcg,small_rng,std"
+          ]
+        }
+      }
+    },
+    {
+      "target": "x86_64-pc-windows-msvc",
+      "features": "default",
+      "edges": "normal,no-proc-macro",
+      "exit_code": 0,
+      "warnings": {
+        "RUSTSEC-2025-0057": {
+          "package": "fxhash",
+          "version": "0.2.1",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2024-0370": {
+          "package": "proc-macro-error",
+          "version": "1.0.4",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2025-0081": {
+          "package": "unic-char-property",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-property v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2025-0075": {
+          "package": "unic-char-range",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-range v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0080": {
+          "package": "unic-common",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-common v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0100": {
+          "package": "unic-ucd-ident",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-ident v0.9.0|features=default,id,xid"
+          ]
+        },
+        "RUSTSEC-2025-0098": {
+          "package": "unic-ucd-version",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-version v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2024-0429": {
+          "package": "glib",
+          "version": "0.18.5",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2026-0097": {
+          "package": "rand",
+          "version": "0.7.3",
+          "present": false,
+          "feature_lines": []
+        }
+      }
+    },
+    {
+      "target": "x86_64-pc-windows-msvc",
+      "features": "all-features",
+      "edges": "normal,build",
+      "exit_code": 0,
+      "warnings": {
+        "RUSTSEC-2025-0057": {
+          "package": "fxhash",
+          "version": "0.2.1",
+          "present": true,
+          "feature_lines": [
+            "fxhash v0.2.1|features="
+          ]
+        },
+        "RUSTSEC-2024-0370": {
+          "package": "proc-macro-error",
+          "version": "1.0.4",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2025-0081": {
+          "package": "unic-char-property",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-property v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2025-0075": {
+          "package": "unic-char-range",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-range v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0080": {
+          "package": "unic-common",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-common v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0100": {
+          "package": "unic-ucd-ident",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-ident v0.9.0|features=default,id,xid"
+          ]
+        },
+        "RUSTSEC-2025-0098": {
+          "package": "unic-ucd-version",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-version v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2024-0429": {
+          "package": "glib",
+          "version": "0.18.5",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2026-0097": {
+          "package": "rand",
+          "version": "0.7.3",
+          "present": true,
+          "feature_lines": [
+            "rand v0.7.3|features=alloc,default,getrandom,getrandom_package,libc,rand_pcg,small_rng,std"
+          ]
+        }
+      }
+    },
+    {
+      "target": "x86_64-pc-windows-msvc",
+      "features": "all-features",
+      "edges": "normal,no-proc-macro",
+      "exit_code": 0,
+      "warnings": {
+        "RUSTSEC-2025-0057": {
+          "package": "fxhash",
+          "version": "0.2.1",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2024-0370": {
+          "package": "proc-macro-error",
+          "version": "1.0.4",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2025-0081": {
+          "package": "unic-char-property",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-property v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2025-0075": {
+          "package": "unic-char-range",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-range v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0080": {
+          "package": "unic-common",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-common v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0100": {
+          "package": "unic-ucd-ident",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-ident v0.9.0|features=default,id,xid"
+          ]
+        },
+        "RUSTSEC-2025-0098": {
+          "package": "unic-ucd-version",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-version v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2024-0429": {
+          "package": "glib",
+          "version": "0.18.5",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2026-0097": {
+          "package": "rand",
+          "version": "0.7.3",
+          "present": false,
+          "feature_lines": []
+        }
+      }
+    },
+    {
+      "target": "x86_64-unknown-linux-gnu",
+      "features": "default",
+      "edges": "normal,build",
+      "exit_code": 0,
+      "warnings": {
+        "RUSTSEC-2025-0057": {
+          "package": "fxhash",
+          "version": "0.2.1",
+          "present": true,
+          "feature_lines": [
+            "fxhash v0.2.1|features="
+          ]
+        },
+        "RUSTSEC-2024-0370": {
+          "package": "proc-macro-error",
+          "version": "1.0.4",
+          "present": true,
+          "feature_lines": [
+            "proc-macro-error v1.0.4|features=default,syn,syn-error",
+            "proc-macro-error v1.0.4|features=default,syn,syn-error (*)"
+          ]
+        },
+        "RUSTSEC-2025-0081": {
+          "package": "unic-char-property",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-property v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2025-0075": {
+          "package": "unic-char-range",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-range v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0080": {
+          "package": "unic-common",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-common v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0100": {
+          "package": "unic-ucd-ident",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-ident v0.9.0|features=default,id,xid"
+          ]
+        },
+        "RUSTSEC-2025-0098": {
+          "package": "unic-ucd-version",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-version v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2024-0429": {
+          "package": "glib",
+          "version": "0.18.5",
+          "present": true,
+          "feature_lines": [
+            "glib v0.18.5|features=default,gio,gio_ffi,v2_58,v2_60,v2_62,v2_64,v2_66,v2_68,v2_70",
+            "glib v0.18.5|features=default,gio,gio_ffi,v2_58,v2_60,v2_62,v2_64,v2_66,v2_68,v2_70 (*)"
+          ]
+        },
+        "RUSTSEC-2026-0097": {
+          "package": "rand",
+          "version": "0.7.3",
+          "present": true,
+          "feature_lines": [
+            "rand v0.7.3|features=alloc,default,getrandom,getrandom_package,libc,rand_pcg,small_rng,std"
+          ]
+        }
+      }
+    },
+    {
+      "target": "x86_64-unknown-linux-gnu",
+      "features": "default",
+      "edges": "normal,no-proc-macro",
+      "exit_code": 0,
+      "warnings": {
+        "RUSTSEC-2025-0057": {
+          "package": "fxhash",
+          "version": "0.2.1",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2024-0370": {
+          "package": "proc-macro-error",
+          "version": "1.0.4",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2025-0081": {
+          "package": "unic-char-property",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-property v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2025-0075": {
+          "package": "unic-char-range",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-range v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0080": {
+          "package": "unic-common",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-common v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0100": {
+          "package": "unic-ucd-ident",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-ident v0.9.0|features=default,id,xid"
+          ]
+        },
+        "RUSTSEC-2025-0098": {
+          "package": "unic-ucd-version",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-version v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2024-0429": {
+          "package": "glib",
+          "version": "0.18.5",
+          "present": true,
+          "feature_lines": [
+            "glib v0.18.5|features=default,gio,gio_ffi,v2_58,v2_60,v2_62,v2_64,v2_66,v2_68,v2_70",
+            "glib v0.18.5|features=default,gio,gio_ffi,v2_58,v2_60,v2_62,v2_64,v2_66,v2_68,v2_70 (*)"
+          ]
+        },
+        "RUSTSEC-2026-0097": {
+          "package": "rand",
+          "version": "0.7.3",
+          "present": false,
+          "feature_lines": []
+        }
+      }
+    },
+    {
+      "target": "x86_64-unknown-linux-gnu",
+      "features": "all-features",
+      "edges": "normal,build",
+      "exit_code": 0,
+      "warnings": {
+        "RUSTSEC-2025-0057": {
+          "package": "fxhash",
+          "version": "0.2.1",
+          "present": true,
+          "feature_lines": [
+            "fxhash v0.2.1|features="
+          ]
+        },
+        "RUSTSEC-2024-0370": {
+          "package": "proc-macro-error",
+          "version": "1.0.4",
+          "present": true,
+          "feature_lines": [
+            "proc-macro-error v1.0.4|features=default,syn,syn-error",
+            "proc-macro-error v1.0.4|features=default,syn,syn-error (*)"
+          ]
+        },
+        "RUSTSEC-2025-0081": {
+          "package": "unic-char-property",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-property v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2025-0075": {
+          "package": "unic-char-range",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-range v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0080": {
+          "package": "unic-common",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-common v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0100": {
+          "package": "unic-ucd-ident",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-ident v0.9.0|features=default,id,xid"
+          ]
+        },
+        "RUSTSEC-2025-0098": {
+          "package": "unic-ucd-version",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-version v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2024-0429": {
+          "package": "glib",
+          "version": "0.18.5",
+          "present": true,
+          "feature_lines": [
+            "glib v0.18.5|features=default,gio,gio_ffi,v2_58,v2_60,v2_62,v2_64,v2_66,v2_68,v2_70",
+            "glib v0.18.5|features=default,gio,gio_ffi,v2_58,v2_60,v2_62,v2_64,v2_66,v2_68,v2_70 (*)"
+          ]
+        },
+        "RUSTSEC-2026-0097": {
+          "package": "rand",
+          "version": "0.7.3",
+          "present": true,
+          "feature_lines": [
+            "rand v0.7.3|features=alloc,default,getrandom,getrandom_package,libc,rand_pcg,small_rng,std"
+          ]
+        }
+      }
+    },
+    {
+      "target": "x86_64-unknown-linux-gnu",
+      "features": "all-features",
+      "edges": "normal,no-proc-macro",
+      "exit_code": 0,
+      "warnings": {
+        "RUSTSEC-2025-0057": {
+          "package": "fxhash",
+          "version": "0.2.1",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2024-0370": {
+          "package": "proc-macro-error",
+          "version": "1.0.4",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2025-0081": {
+          "package": "unic-char-property",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-property v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2025-0075": {
+          "package": "unic-char-range",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-range v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0080": {
+          "package": "unic-common",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-common v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0100": {
+          "package": "unic-ucd-ident",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-ident v0.9.0|features=default,id,xid"
+          ]
+        },
+        "RUSTSEC-2025-0098": {
+          "package": "unic-ucd-version",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-version v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2024-0429": {
+          "package": "glib",
+          "version": "0.18.5",
+          "present": true,
+          "feature_lines": [
+            "glib v0.18.5|features=default,gio,gio_ffi,v2_58,v2_60,v2_62,v2_64,v2_66,v2_68,v2_70",
+            "glib v0.18.5|features=default,gio,gio_ffi,v2_58,v2_60,v2_62,v2_64,v2_66,v2_68,v2_70 (*)"
+          ]
+        },
+        "RUSTSEC-2026-0097": {
+          "package": "rand",
+          "version": "0.7.3",
+          "present": false,
+          "feature_lines": []
+        }
+      }
+    },
+    {
+      "target": "aarch64-apple-darwin",
+      "features": "default",
+      "edges": "normal,build",
+      "exit_code": 0,
+      "warnings": {
+        "RUSTSEC-2025-0057": {
+          "package": "fxhash",
+          "version": "0.2.1",
+          "present": true,
+          "feature_lines": [
+            "fxhash v0.2.1|features="
+          ]
+        },
+        "RUSTSEC-2024-0370": {
+          "package": "proc-macro-error",
+          "version": "1.0.4",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2025-0081": {
+          "package": "unic-char-property",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-property v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2025-0075": {
+          "package": "unic-char-range",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-range v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0080": {
+          "package": "unic-common",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-common v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0100": {
+          "package": "unic-ucd-ident",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-ident v0.9.0|features=default,id,xid"
+          ]
+        },
+        "RUSTSEC-2025-0098": {
+          "package": "unic-ucd-version",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-version v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2024-0429": {
+          "package": "glib",
+          "version": "0.18.5",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2026-0097": {
+          "package": "rand",
+          "version": "0.7.3",
+          "present": true,
+          "feature_lines": [
+            "rand v0.7.3|features=alloc,default,getrandom,getrandom_package,libc,rand_pcg,small_rng,std"
+          ]
+        }
+      }
+    },
+    {
+      "target": "aarch64-apple-darwin",
+      "features": "default",
+      "edges": "normal,no-proc-macro",
+      "exit_code": 0,
+      "warnings": {
+        "RUSTSEC-2025-0057": {
+          "package": "fxhash",
+          "version": "0.2.1",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2024-0370": {
+          "package": "proc-macro-error",
+          "version": "1.0.4",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2025-0081": {
+          "package": "unic-char-property",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-property v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2025-0075": {
+          "package": "unic-char-range",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-range v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0080": {
+          "package": "unic-common",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-common v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0100": {
+          "package": "unic-ucd-ident",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-ident v0.9.0|features=default,id,xid"
+          ]
+        },
+        "RUSTSEC-2025-0098": {
+          "package": "unic-ucd-version",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-version v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2024-0429": {
+          "package": "glib",
+          "version": "0.18.5",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2026-0097": {
+          "package": "rand",
+          "version": "0.7.3",
+          "present": false,
+          "feature_lines": []
+        }
+      }
+    },
+    {
+      "target": "aarch64-apple-darwin",
+      "features": "all-features",
+      "edges": "normal,build",
+      "exit_code": 0,
+      "warnings": {
+        "RUSTSEC-2025-0057": {
+          "package": "fxhash",
+          "version": "0.2.1",
+          "present": true,
+          "feature_lines": [
+            "fxhash v0.2.1|features="
+          ]
+        },
+        "RUSTSEC-2024-0370": {
+          "package": "proc-macro-error",
+          "version": "1.0.4",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2025-0081": {
+          "package": "unic-char-property",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-property v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2025-0075": {
+          "package": "unic-char-range",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-range v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0080": {
+          "package": "unic-common",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-common v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0100": {
+          "package": "unic-ucd-ident",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-ident v0.9.0|features=default,id,xid"
+          ]
+        },
+        "RUSTSEC-2025-0098": {
+          "package": "unic-ucd-version",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-version v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2024-0429": {
+          "package": "glib",
+          "version": "0.18.5",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2026-0097": {
+          "package": "rand",
+          "version": "0.7.3",
+          "present": true,
+          "feature_lines": [
+            "rand v0.7.3|features=alloc,default,getrandom,getrandom_package,libc,rand_pcg,small_rng,std"
+          ]
+        }
+      }
+    },
+    {
+      "target": "aarch64-apple-darwin",
+      "features": "all-features",
+      "edges": "normal,no-proc-macro",
+      "exit_code": 0,
+      "warnings": {
+        "RUSTSEC-2025-0057": {
+          "package": "fxhash",
+          "version": "0.2.1",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2024-0370": {
+          "package": "proc-macro-error",
+          "version": "1.0.4",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2025-0081": {
+          "package": "unic-char-property",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-property v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2025-0075": {
+          "package": "unic-char-range",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-char-range v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0080": {
+          "package": "unic-common",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-common v0.9.0|features=default"
+          ]
+        },
+        "RUSTSEC-2025-0100": {
+          "package": "unic-ucd-ident",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-ident v0.9.0|features=default,id,xid"
+          ]
+        },
+        "RUSTSEC-2025-0098": {
+          "package": "unic-ucd-version",
+          "version": "0.9.0",
+          "present": true,
+          "feature_lines": [
+            "unic-ucd-version v0.9.0|features="
+          ]
+        },
+        "RUSTSEC-2024-0429": {
+          "package": "glib",
+          "version": "0.18.5",
+          "present": false,
+          "feature_lines": []
+        },
+        "RUSTSEC-2026-0097": {
+          "package": "rand",
+          "version": "0.7.3",
+          "present": false,
+          "feature_lines": []
+        }
+      }
+    }
+  ],
+  "input_sha256_before": {
+    "Cargo.toml": "5d20db4553ddc8e5ff80253097c5b9e66e52fd2d385802f7342cb31a72a91782",
+    "Cargo.lock": "0479f15cb8e406ab181f0da867461dcec50cfe99ca3c4d9a6cd5551cccdfe305",
+    "ccr-ui/src-tauri/Cargo.toml": "35196c50bef0e96bf584ac90a03e6b6a32243ce44c2746125f67fe6c4dc8e2db",
+    "ccr-ui/src-tauri/Cargo.lock": "7225e63865b8315c3955c653e9cb9d755cc3019ada51bf4c0ed2a6d77de95c97",
+    "ccr-ui/src-tauri/command-macros/Cargo.toml": "03a3f276457a8e06dad2596587aca623f68b83ce104159dcf2789e391ba32a80",
+    ".cargo/config.toml": "6846516aa1f8e902ffe7e176c272f607cf104b1c36721d60af1ee26ea6f3a949",
+    ".cargo/audit.toml": "b015e9228fd85984d7f433744fcb9bfe1a2ab0c71d04043d9e00fc2ce2fcd712",
+    "rust-toolchain.toml": "961b6190f4aad6120ca3fffe218389b991933141c90c362b5bbe92f6622540d9",
+    "crates/ccr-checkin/Cargo.toml": "be513c47815a9912f42ec3aede370dcf50755747f13588daf2e3f27d6a23bca6",
+    "crates/ccr-cli/Cargo.toml": "90e4e01b1915ea1abecdb19260d80d98e3e2c6cc7ff5bb7853acbbdafc113f4e",
+    "crates/ccr-codex/Cargo.toml": "3f39698fe3135494d9a23008e521600bac7028a4997f7421081a53305da5d974",
+    "crates/ccr-config/Cargo.toml": "7d1db73061a01cd2fba00bcce324df836d5dc39d908a813fb94b10ed9d8c4d22",
+    "crates/ccr-core/Cargo.toml": "a4e47d451f72b1bf044335d58b4dfcbf7bc40889eda1b6c1dc3c33b007a73c5f",
+    "crates/ccr-db/Cargo.toml": "7b8e49d28f2c86dc69f7eee80876462cfe1bcd7085d0756528ca87883e883ffa",
+    "crates/ccr-skills/Cargo.toml": "6238715fbaa56236cb0c0651d1cfe22011a79cc10b0f3ab471142c1a0e520611",
+    "crates/ccr-store/Cargo.toml": "aec6ff5743c07bb9b4c15d81bc0eb0afd306d43c3549a885c01be368210fa21f",
+    "crates/ccr-sync/Cargo.toml": "020a0e6a8773c0cf7607c95013d3b6a4db8045531d4b67039f20b579331c92fc",
+    "crates/ccr-tui/Cargo.toml": "fdacf7d251f97f88bc61bf591e7d2654933d805d3f05fca119a0fceff8a24c16",
+    "crates/ccr-types/Cargo.toml": "b51887ea73b6a543c2fd0eabdef18c1b3797cf319d0b39feb0dea9b8372a6dfa",
+    "crates/ccr-usage/Cargo.toml": "3556341491abf82c0334e213683d53cf176bca18eb7056a212452b266b40eb2a",
+    "crates/ccr/Cargo.toml": "e0d7fbbdc6cc7e0ed28f11424046c2fd8bf4c84b159daf6cd5d6991754adcdc7"
+  },
+  "input_sha256_after": {
+    "Cargo.toml": "5d20db4553ddc8e5ff80253097c5b9e66e52fd2d385802f7342cb31a72a91782",
+    "Cargo.lock": "0479f15cb8e406ab181f0da867461dcec50cfe99ca3c4d9a6cd5551cccdfe305",
+    "ccr-ui/src-tauri/Cargo.toml": "35196c50bef0e96bf584ac90a03e6b6a32243ce44c2746125f67fe6c4dc8e2db",
+    "ccr-ui/src-tauri/Cargo.lock": "7225e63865b8315c3955c653e9cb9d755cc3019ada51bf4c0ed2a6d77de95c97",
+    "ccr-ui/src-tauri/command-macros/Cargo.toml": "03a3f276457a8e06dad2596587aca623f68b83ce104159dcf2789e391ba32a80",
+    ".cargo/config.toml": "6846516aa1f8e902ffe7e176c272f607cf104b1c36721d60af1ee26ea6f3a949",
+    ".cargo/audit.toml": "b015e9228fd85984d7f433744fcb9bfe1a2ab0c71d04043d9e00fc2ce2fcd712",
+    "rust-toolchain.toml": "961b6190f4aad6120ca3fffe218389b991933141c90c362b5bbe92f6622540d9",
+    "crates/ccr-checkin/Cargo.toml": "be513c47815a9912f42ec3aede370dcf50755747f13588daf2e3f27d6a23bca6",
+    "crates/ccr-cli/Cargo.toml": "90e4e01b1915ea1abecdb19260d80d98e3e2c6cc7ff5bb7853acbbdafc113f4e",
+    "crates/ccr-codex/Cargo.toml": "3f39698fe3135494d9a23008e521600bac7028a4997f7421081a53305da5d974",
+    "crates/ccr-config/Cargo.toml": "7d1db73061a01cd2fba00bcce324df836d5dc39d908a813fb94b10ed9d8c4d22",
+    "crates/ccr-core/Cargo.toml": "a4e47d451f72b1bf044335d58b4dfcbf7bc40889eda1b6c1dc3c33b007a73c5f",
+    "crates/ccr-db/Cargo.toml": "7b8e49d28f2c86dc69f7eee80876462cfe1bcd7085d0756528ca87883e883ffa",
+    "crates/ccr-skills/Cargo.toml": "6238715fbaa56236cb0c0651d1cfe22011a79cc10b0f3ab471142c1a0e520611",
+    "crates/ccr-store/Cargo.toml": "aec6ff5743c07bb9b4c15d81bc0eb0afd306d43c3549a885c01be368210fa21f",
+    "crates/ccr-sync/Cargo.toml": "020a0e6a8773c0cf7607c95013d3b6a4db8045531d4b67039f20b579331c92fc",
+    "crates/ccr-tui/Cargo.toml": "fdacf7d251f97f88bc61bf591e7d2654933d805d3f05fca119a0fceff8a24c16",
+    "crates/ccr-types/Cargo.toml": "b51887ea73b6a543c2fd0eabdef18c1b3797cf319d0b39feb0dea9b8372a6dfa",
+    "crates/ccr-usage/Cargo.toml": "3556341491abf82c0334e213683d53cf176bca18eb7056a212452b266b40eb2a",
+    "crates/ccr/Cargo.toml": "e0d7fbbdc6cc7e0ed28f11424046c2fd8bf4c84b159daf6cd5d6991754adcdc7"
+  },
+  "unchanged_inputs": true,
+  "scope": "Static target/feature graphs on a Windows host; not compilation, runtime use, or exploitability proof"
+}

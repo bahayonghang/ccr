@@ -4,12 +4,13 @@ Minimal navigation for this repository. Keep behavior rules in `AGENTS.md` / `CL
 
 ## Top-level areas
 
-- `crates/` — Rust workspace with the CLI/TUI entry point in `crates/ccr` and shared crates such as `ccr-core`, `ccr-config`, `ccr-codex`, `ccr-db`, and `ccr-types`.
-- `ccr-ui/` — Vue 3 + Tauri desktop UI (`src/`, `src-tauri/`, `tests/`).
+- `crates/` — Rust workspace with the CLI/TUI entry point in `crates/ccr` and shared crates such as `ccr-core`, `ccr-config`, `ccr-codex`, `ccr-db`, `ccr-usage`, and `ccr-types`.
+- `crates/ccr-usage/` — sole owner of usage SQL and read-only SQLite projections consumed by CLI/TUI/Tauri. Contracts: `.trellis/spec/ccr/backend/llmusage-provider-adapter.md` and `.trellis/spec/ccr/backend/usage-job-lifecycle.md`. Desktop `llmusage_adapter/` owns installed-CLI sync, NDJSON, and DTO/error mapping only; do not link the upstream `llmusage` Rust crate.
+- `ccr-ui/` — React 19 + Tauri desktop UI (`src/shell`, `src/features`, `src/api`, `src-tauri/`, `tests/`).
 - `ccr-vscode/` — VS Code extension (`src/providers`, `src/services`, extension tests).
-- `docs/` — VitePress documentation site.
+- `docs/` — VitePress documentation site. Agent harness routing: `docs/agents/harnesses.md`.
 - `scripts/` — version synchronization checks and repo automation.
-- `.codex/skills/` — project-local Codex skills.
+- `.github/skills/` — tracked shared skill sources (several are five-tool; local clients install them into gitignored paths such as `.codex/skills/`; see the harnesses page).
 
 ## Verification anchors
 

@@ -4,15 +4,13 @@
 
 #![allow(clippy::unused_async)]
 
+use crate::commands::common::new_utf8_table;
 use crate::models::AuthIntent;
 use crate::services::CodexAuthService;
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
 use chrono::Local;
-use comfy_table::{
-    Attribute, Cell, CellAlignment, Color as TableColor, ContentArrangement, Table,
-    presets::UTF8_FULL,
-};
+use comfy_table::{Attribute, Cell, CellAlignment, Color as TableColor, ContentArrangement};
 
 /// 📋 列出所有已保存的账号
 ///
@@ -83,9 +81,8 @@ pub async fn list_command() -> Result<()> {
     println!();
 
     // 创建表格
-    let mut table = Table::new();
+    let mut table = new_utf8_table();
     table
-        .load_preset(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::DynamicFullWidth)
         .set_header(vec![
             Cell::new("状态")

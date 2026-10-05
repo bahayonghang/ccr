@@ -1,0 +1,5 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ccr-ui/frontend/usage-chart-stability-contracts.md", "reason": "图表稳定性既有契约，修复不得违反"}
+{"file": ".trellis/spec/ccr-ui/frontend/dashboard-presentation-contracts.md", "reason": "dashboard 呈现层契约"}
+{"file": ".trellis/spec/ccr-ui/frontend/environment-scoped-dashboard-contracts.md", "reason": "环境作用域 dashboard 契约"}
+{"file": ".trellis/tasks/09-03-ui-visual-world-replacement/research/overview-page-analysis.md", "reason": "图表膨胀链与信息可信度根因"}

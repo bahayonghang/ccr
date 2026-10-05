@@ -1,0 +1,15 @@
+{
+  "check": "vscode",
+  "command": [
+    "just",
+    "vscode-ci"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "started_at": "2026-09-28T15:38:36.505996+00:00",
+  "exit_code": 0,
+  "seconds": 14.99,
+  "log": "root-final-vscode.log",
+  "command_environment_override": {
+    "CCR_SKIP_ICON_GENERATION": "1"
+  }
+}

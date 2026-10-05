@@ -1,0 +1,11 @@
+{"type":"connected","url":"http://tauri.localhost/","dwellMs":60000}
+{"type":"sample","route":"/","how":"click:/","path":"/","jsHeapUsed":6282120,"jsEventListeners":332,"nodes":736,"soak":{"queries":2,"active":2,"mutations":0,"historyLength":2}}
+{"type":"sample","route":"/codex","how":"click:/","path":"/codex","jsHeapUsed":6755616,"jsEventListeners":335,"nodes":575,"soak":{"queries":5,"active":4,"mutations":0,"historyLength":3}}
+{"type":"sample","route":"/codex/settings","how":"click:/codex","path":"/codex/settings","jsHeapUsed":7932072,"jsEventListeners":327,"nodes":386,"soak":{"queries":7,"active":3,"mutations":0,"historyLength":4}}
+{"type":"dwell-start","on":"/codex/settings","ms":60000}
+{"type":"dwell-end","path":"/codex/settings","jsHeapUsed":40858952,"jsEventListeners":327,"nodes":386,"soak":{"queries":7,"active":3,"mutations":0,"historyLength":4}}
+{"type":"sample","route":"/codex/mcp","how":"push:/codex/mcp","path":"/codex/mcp","jsHeapUsed":42027232,"jsEventListeners":319,"nodes":339,"soak":{"queries":8,"active":2,"mutations":0,"historyLength":5}}
+{"type":"dwell-start","on":"/codex/mcp","ms":60000}
+{"type":"dwell-end","path":"/codex/mcp","jsHeapUsed":72032064,"jsEventListeners":319,"nodes":339,"soak":{"queries":4,"active":2,"mutations":0,"historyLength":5}}
+{"type":"sample","route":"/converter","how":"push:/converter","path":"/converter","jsHeapUsed":73261660,"jsEventListeners":331,"nodes":471,"soak":{"queries":4,"active":1,"mutations":0,"historyLength":6}}
+{"type":"sample","route":"/sync","how":"click:/converter","path":"/sync","jsHeapUsed":74604256,"jsEventListeners":339,"nodes":749,"soak":{"queries":4,"active":1,"mutations":0,"historyLength":7}}

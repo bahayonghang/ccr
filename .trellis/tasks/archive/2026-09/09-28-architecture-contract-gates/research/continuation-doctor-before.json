@@ -1,0 +1,8 @@
+{
+  "recorded_at_utc": "2026-09-28T23:27:25.692158+00:00",
+  "file": "crates/ccr-cli/src/commands/codex/fix.rs",
+  "sha256": "2615ff8ef43b62d659b9e1604c56ece8161fd6552d93096b6ea07a751d2b667a",
+  "original_log": ".trellis/tasks/09-28-cli-tauri-architecture/research/root-continuation-ci.log",
+  "original_log_sha256": "46eec7542dddc6b7a4b460747a86e1a076ed4d0bfe467b145ef61093b24ed0c5",
+  "git_head": "34d8a85e0e48b793733835e0304c8ed33940fcee"
+}

@@ -42,6 +42,8 @@ impl TuiLanguage {
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum TuiTheme {
     #[default]
+    #[serde(rename = "auto")]
+    Auto,
     #[serde(rename = "mocha")]
     Mocha,
     #[serde(rename = "latte")]
@@ -51,6 +53,7 @@ pub enum TuiTheme {
 impl TuiTheme {
     pub fn as_str(self) -> &'static str {
         match self {
+            Self::Auto => "auto",
             Self::Mocha => "mocha",
             Self::Latte => "latte",
         }
@@ -58,6 +61,7 @@ impl TuiTheme {
 
     pub fn toggled(self) -> Self {
         match self {
+            Self::Auto => Self::Mocha,
             Self::Mocha => Self::Latte,
             Self::Latte => Self::Mocha,
         }
@@ -85,21 +89,22 @@ where
     }
 }
 
-fn deserialize_theme_or_mocha<'de, D>(deserializer: D) -> std::result::Result<TuiTheme, D::Error>
+fn deserialize_theme_or_auto<'de, D>(deserializer: D) -> std::result::Result<TuiTheme, D::Error>
 where
     D: Deserializer<'de>,
 {
     let value = toml::Value::deserialize(deserializer)?;
     match value.as_str() {
+        Some("auto") => Ok(TuiTheme::Auto),
         Some("mocha") => Ok(TuiTheme::Mocha),
         Some("latte") => Ok(TuiTheme::Latte),
         Some(value) => {
-            tracing::warn!("Unsupported TUI theme `{value}`; falling back to Mocha");
-            Ok(TuiTheme::Mocha)
+            tracing::warn!("Unsupported TUI theme `{value}`; falling back to auto");
+            Ok(TuiTheme::Auto)
         }
         None => {
-            tracing::warn!("TUI theme must be a string; falling back to Mocha");
-            Ok(TuiTheme::Mocha)
+            tracing::warn!("TUI theme must be a string; falling back to auto");
+            Ok(TuiTheme::Auto)
         }
     }
 }
@@ -118,11 +123,6 @@ pub enum TuiTabId {
     CodexAuth,
     ClaudeAuth,
     GrokAuth,
-    /// Deprecated: OpenCode Auth tab 已下线。
-    /// 仅为解析旧版 `tui.toml` 保留;`load()` 会过滤该项并记录 warn,
-    /// 不得因它出现而丢弃用户的自定义排序。
-    #[doc(hidden)]
-    OpencodeAuth,
 }
 
 impl TuiTabId {
@@ -135,7 +135,6 @@ impl TuiTabId {
             TuiTabId::CodexAuth => "codex_auth",
             TuiTabId::ClaudeAuth => "claude_auth",
             TuiTabId::GrokAuth => "grok_auth",
-            TuiTabId::OpencodeAuth => "opencode_auth",
         }
     }
 
@@ -148,7 +147,7 @@ impl TuiTabId {
 pub struct TuiConfig {
     #[serde(default, deserialize_with = "deserialize_language_or_english")]
     pub language: TuiLanguage,
-    #[serde(default, deserialize_with = "deserialize_theme_or_mocha")]
+    #[serde(default, deserialize_with = "deserialize_theme_or_auto")]
     pub theme: TuiTheme,
     #[serde(default = "default_tab_order")]
     pub tab_order: Vec<TuiTabId>,
@@ -207,15 +206,6 @@ impl TuiConfigManager {
                 self.config_path.display()
             );
             config.tab_order.retain(|tab_id| *tab_id != TuiTabId::Usage);
-        }
-        if config.tab_order.contains(&TuiTabId::OpencodeAuth) {
-            tracing::warn!(
-                "TUI config {} contains deprecated `opencode_auth` tab; ignoring it",
-                self.config_path.display()
-            );
-            config
-                .tab_order
-                .retain(|tab_id| *tab_id != TuiTabId::OpencodeAuth);
         }
 
         let missing = DEFAULT_TAB_ORDER
@@ -336,10 +326,12 @@ mod tests {
     }
 
     #[test]
-    fn default_theme_is_mocha() {
-        assert_eq!(TuiConfig::default().theme, TuiTheme::Mocha);
+    fn default_theme_is_auto() {
+        assert_eq!(TuiConfig::default().theme, TuiTheme::Auto);
+        assert_eq!(TuiTheme::Auto.as_str(), "auto");
         assert_eq!(TuiTheme::Mocha.as_str(), "mocha");
         assert_eq!(TuiTheme::Latte.as_str(), "latte");
+        assert_eq!(TuiTheme::Auto.toggled(), TuiTheme::Mocha);
         assert_eq!(TuiTheme::Mocha.toggled(), TuiTheme::Latte);
     }
 
@@ -359,7 +351,6 @@ mod tests {
             ]
         );
         assert!(!order.contains(&TuiTabId::Usage));
-        assert!(!order.contains(&TuiTabId::OpencodeAuth));
     }
 
     #[test]
@@ -374,7 +365,7 @@ mod tests {
   "codex_profile",
   "codex_auth",
   "claude_auth",
-  "opencode_auth",
+  "grok_auth",
 ]
 "#,
         )
@@ -389,8 +380,8 @@ mod tests {
                 TuiTabId::CodexProfile,
                 TuiTabId::CodexAuth,
                 TuiTabId::ClaudeAuth,
-                TuiTabId::GrokProfile,
                 TuiTabId::GrokAuth,
+                TuiTabId::GrokProfile,
             ]
         );
     }
@@ -408,7 +399,7 @@ tab_order = [
   "claude_profile",
   "codex_auth",
   "claude_auth",
-  "opencode_auth",
+  "grok_auth",
 ]
 "#,
         )
@@ -433,7 +424,7 @@ tab_order = [
   "codex_profile",
   "codex_auth",
   "claude_auth",
-  "opencode_auth",
+  "grok_auth",
 ]
 "#,
         )
@@ -458,7 +449,7 @@ tab_order = [
   "codex_profile",
   "codex_auth",
   "claude_auth",
-  "opencode_auth",
+  "grok_auth",
 ]
 "#,
         )
@@ -525,7 +516,7 @@ tab_order = [
   "claude_profile",
   "usage",
   "codex_auth",
-  "opencode_auth",
+  "grok_auth",
 ]
 "#,
         )
@@ -539,8 +530,8 @@ tab_order = [
                 TuiTabId::CodexProfile,
                 TuiTabId::ClaudeProfile,
                 TuiTabId::CodexAuth,
-                TuiTabId::GrokProfile,
                 TuiTabId::GrokAuth,
+                TuiTabId::GrokProfile,
             ]
         );
     }
@@ -603,20 +594,24 @@ tab_order = [
 
         std::fs::write(
             manager.config_path(),
-            r#"tab_order = [
+            r#"language = "zh_cn"
+theme = "latte"
+tab_order = [
   "codex_profile",
   "claude_profile",
-  "usage",
+  "grok_profile",
   "codex_auth",
   "claude_auth",
-  "claude_runtime"
+  "unknown_tab"
 ]
 "#,
         )
         .unwrap();
 
+        let original = std::fs::read(manager.config_path()).unwrap();
         assert!(manager.load().is_err());
         assert_eq!(manager.load_or_default(), TuiConfig::default());
+        assert_eq!(std::fs::read(manager.config_path()).unwrap(), original);
     }
 
     #[test]
@@ -633,14 +628,56 @@ tab_order = [
   "codex_profile",
   "codex_auth",
   "claude_auth",
-  "opencode_auth",
+  "grok_auth",
 ]
 "#,
         )
         .unwrap();
 
         let config = manager.load().unwrap();
-        assert_eq!(config.theme, TuiTheme::Mocha);
+        assert_eq!(config.theme, TuiTheme::Auto);
+        assert_eq!(config.language, TuiLanguage::SimplifiedChinese);
+        assert_eq!(config.tab_order[0], TuiTabId::ClaudeProfile);
+    }
+
+    #[test]
+    fn auto_theme_round_trips_through_save_and_load() {
+        let env = TestCcrEnv::new();
+        let manager = TuiConfigManager::new(env.root().join("tui.toml"));
+        let config = TuiConfig {
+            theme: TuiTheme::Auto,
+            ..TuiConfig::default()
+        };
+
+        manager.save(&config).unwrap();
+
+        let saved = std::fs::read_to_string(manager.config_path()).unwrap();
+        assert!(saved.contains("theme = \"auto\""));
+        assert_eq!(manager.load().unwrap().theme, TuiTheme::Auto);
+    }
+
+    #[test]
+    fn non_string_theme_falls_back_to_auto_without_discarding_other_preferences() {
+        let env = TestCcrEnv::new();
+        let manager = TuiConfigManager::new(env.root().join("tui.toml"));
+
+        std::fs::write(
+            manager.config_path(),
+            r#"language = "zh_cn"
+theme = 42
+tab_order = [
+  "claude_profile",
+  "codex_profile",
+  "codex_auth",
+  "claude_auth",
+  "grok_auth",
+]
+"#,
+        )
+        .unwrap();
+
+        let config = manager.load().unwrap();
+        assert_eq!(config.theme, TuiTheme::Auto);
         assert_eq!(config.language, TuiLanguage::SimplifiedChinese);
         assert_eq!(config.tab_order[0], TuiTabId::ClaudeProfile);
     }

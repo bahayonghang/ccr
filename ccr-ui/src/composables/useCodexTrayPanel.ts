@@ -1,4 +1,6 @@
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { codexKeys } from '@/features/codex/queries'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { getCodexTraySnapshot, switchCodexAuth } from '@/api'
 import {
@@ -10,6 +12,17 @@ import {
 import type { CodexTraySnapshot } from '@/types'
 import { logger } from '@/utils/logger'
 import { getCurrentWindowSafe } from '@/utils/tauriWindow'
+
+// Codex 托盘面板的 React 迁移（08-22-state-logic-port 批次 5b-ii）。
+// - snapshot → Query（codexKeys.tray.snapshot，staleTime Infinity：仅挂载拉取 +
+//   显式 loadSnapshot + 事件推送写入，无自动 refetch）；force 参数经 forceRef
+//   在重跑 queryFn 时消费一次（与 useCodexDashboard 同款透传）；
+// - `codex-tray:refresh` 为组件级窗口事件（独立托盘窗口，不进全局桥接层），payload
+//   含完整快照 → setQueryData 直写缓存（event-adjudication.md §5 判定）。订阅走
+//   取消协议：cleanup 已跑过时迟到的 unlisten 立即调用；
+// - screen / isDragging / busyAccount → useState；computed → useMemo。
+//
+// 签名变化（消费方 CodexTrayPanelView.vue 待迁移）：Ref<T> → 普通值。
 
 const TRAY_PANEL_MANUAL_MOVE_THRESHOLD_PX = 12
 
@@ -33,49 +46,66 @@ export const shouldPersistTrayPanelManualPosition = (
 }
 
 export function useCodexTrayPanel() {
-  const snapshot = ref<CodexTraySnapshot | null>(null)
-  const screen = ref<'overview' | 'switch'>('overview')
-  const loading = ref(false)
-  const busyAccount = ref<string | null>(null)
-  const error = ref<string | null>(null)
-  const isDragging = ref(false)
+  const queryClient = useQueryClient()
 
-  let stopRefreshEvent: (() => void) | null = null
+  // force 透传：refetch 重跑 queryFn 时消费一次（原 loadSnapshot(force) 语义）。
+  const forceRef = useRef(false)
 
-  const currentAccount = computed(() => snapshot.value?.current_account ?? null)
-  const accounts = computed(() => snapshot.value?.accounts ?? [])
-  const canManageAccounts = computed(() => snapshot.value?.can_manage_accounts ?? false)
-  const canOpenSwitchScreen = computed(() => canManageAccounts.value)
+  const snapshotQuery = useQuery({
+    queryKey: codexKeys.tray.snapshot(),
+    staleTime: Infinity,
+    queryFn: () => {
+      const force = forceRef.current
+      forceRef.current = false
+      return getCodexTraySnapshot(force)
+    },
+  })
 
-  const loadSnapshot = async (force = false) => {
-    loading.value = true
-    error.value = null
+  const [screen, setScreen] = useState<'overview' | 'switch'>('overview')
+  const [busyAccount, setBusyAccount] = useState<string | null>(null)
+  const [switchError, setSwitchError] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
 
-    try {
-      snapshot.value = await getCodexTraySnapshot(force)
-    } catch (loadError) {
-      logger.error('Failed to load Codex tray snapshot:', loadError)
-      error.value = getErrorMessage(loadError)
-    } finally {
-      loading.value = false
-    }
-  }
+  const snapshot = snapshotQuery.data ?? null
 
-  const switchAccount = async (name: string) => {
-    busyAccount.value = name
-    error.value = null
+  const currentAccount = useMemo(() => snapshot?.current_account ?? null, [snapshot])
+  const accounts = useMemo(() => snapshot?.accounts ?? [], [snapshot])
+  const canManageAccounts = useMemo(() => snapshot?.can_manage_accounts ?? false, [snapshot])
+  const canOpenSwitchScreen = canManageAccounts
 
-    try {
-      await switchCodexAuth(name)
-      await loadSnapshot(true)
-      screen.value = 'overview'
-    } catch (switchError) {
-      logger.error('Failed to switch Codex tray account:', switchError)
-      error.value = getErrorMessage(switchError)
-    } finally {
-      busyAccount.value = null
-    }
-  }
+  const loading = snapshotQuery.isFetching
+  const error =
+    switchError ?? (snapshotQuery.error ? getErrorMessage(snapshotQuery.error) : null)
+
+  const { refetch: refetchSnapshot } = snapshotQuery
+
+  const loadSnapshot = useCallback(
+    async (force = false) => {
+      forceRef.current = force
+      await refetchSnapshot()
+    },
+    [refetchSnapshot]
+  )
+
+  const switchAccount = useCallback(
+    async (name: string) => {
+      setBusyAccount(name)
+      setSwitchError(null)
+
+      try {
+        await switchCodexAuth(name)
+        forceRef.current = true
+        await refetchSnapshot()
+        setScreen('overview')
+      } catch (switchError) {
+        logger.error('Failed to switch Codex tray account:', switchError)
+        setSwitchError(getErrorMessage(switchError))
+      } finally {
+        setBusyAccount(null)
+      }
+    },
+    [refetchSnapshot]
+  )
 
   const openMain = async (targetRoute?: string) => {
     await shellShowMainWindow(targetRoute)
@@ -106,7 +136,7 @@ export function useCodexTrayPanel() {
       logger.warn('Failed to read tray panel position before dragging:', positionError)
     }
 
-    isDragging.value = true
+    setIsDragging(true)
 
     try {
       await shellBeginTrayPanelDrag()
@@ -124,39 +154,52 @@ export function useCodexTrayPanel() {
         logger.warn('Failed to clear tray panel drag state:', cleanupError)
       }
     } finally {
-      isDragging.value = false
+      setIsDragging(false)
     }
   }
 
   const goToSwitchScreen = () => {
-    if (!canOpenSwitchScreen.value) {
+    if (!canOpenSwitchScreen) {
       return
     }
-    screen.value = 'switch'
+    setScreen('switch')
   }
 
   const goToOverview = () => {
-    screen.value = 'overview'
+    setScreen('overview')
   }
 
-  onMounted(async () => {
-    await loadSnapshot(false)
+  // 组件级 `codex-tray:refresh` 订阅（原 onMounted 内 win.listen + onUnmounted 解绑），
+  // 带取消协议：cleanup 先于 listen resolve 时迟到的 unlisten 立即调用。
+  useEffect(() => {
+    let disposed = false
+    const unlistens: Array<() => void> = []
+    const track = (pending: Promise<() => void>) =>
+      pending.then((unlisten) => {
+        if (disposed) unlisten()
+        else unlistens.push(unlisten)
+      })
 
-    const win = await getCurrentWindowSafe()
-    if (!win) {
-      return
+    void (async () => {
+      const win = await getCurrentWindowSafe()
+      if (!win || disposed) {
+        return
+      }
+
+      track(
+        win.listen<CodexTraySnapshot>('codex-tray:refresh', (event) => {
+          queryClient.setQueryData<CodexTraySnapshot>(codexKeys.tray.snapshot(), event.payload)
+          setSwitchError(null)
+        })
+      )
+    })()
+
+    return () => {
+      disposed = true
+      unlistens.forEach((unlisten) => unlisten())
+      unlistens.length = 0
     }
-
-    stopRefreshEvent = await win.listen<CodexTraySnapshot>('codex-tray:refresh', (event) => {
-      snapshot.value = event.payload
-      error.value = null
-    })
-  })
-
-  onUnmounted(() => {
-    stopRefreshEvent?.()
-    stopRefreshEvent = null
-  })
+  }, [queryClient])
 
   return {
     accounts,

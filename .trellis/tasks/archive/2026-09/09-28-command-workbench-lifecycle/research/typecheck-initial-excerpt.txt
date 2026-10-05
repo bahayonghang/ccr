@@ -1,0 +1,4 @@
+Captured tool output from the first T07 type-check; duplicate locale key was corrected before the final passing run.
+$ tsc --noEmit
+src/i18n/locales/en-US.ts(2335,5): error TS1117: An object literal cannot have multiple properties with the same name.
+src/i18n/locales/zh-CN.ts(2276,5): error TS1117: An object literal cannot have multiple properties with the same name.

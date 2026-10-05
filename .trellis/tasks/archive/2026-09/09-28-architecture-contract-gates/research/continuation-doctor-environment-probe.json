@@ -1,0 +1,61 @@
+{
+  "purpose": "Isolate Start-Process behavior under synthetic inherited environment changes; no process-global environment mutation",
+  "command": [
+    "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "-NoProfile",
+    "-NonInteractive",
+    "-Command",
+    "$ErrorActionPreference='Stop'; try { $child=Start-Process -FilePath $env:ComSpec -ArgumentList '/C','exit 0' -PassThru -WindowStyle Hidden; 'child-created'; $child.WaitForExit() } catch { $_.Exception.GetType().FullName; $_.ToString(); exit 1 }"
+  ],
+  "results": [
+    {
+      "scenario": "normal",
+      "modified_child_env_keys": [],
+      "exit_code": 0,
+      "seconds": 0.317,
+      "stdout": "child-created\n",
+      "stderr": ""
+    },
+    {
+      "scenario": "missing_home",
+      "modified_child_env_keys": [
+        "HOME"
+      ],
+      "exit_code": 0,
+      "seconds": 0.306,
+      "stdout": "child-created\n",
+      "stderr": ""
+    },
+    {
+      "scenario": "missing_userprofile",
+      "modified_child_env_keys": [
+        "USERPROFILE"
+      ],
+      "exit_code": 0,
+      "seconds": 0.429,
+      "stdout": "child-created\n",
+      "stderr": ""
+    },
+    {
+      "scenario": "missing_both",
+      "modified_child_env_keys": [
+        "HOME",
+        "USERPROFILE"
+      ],
+      "exit_code": 0,
+      "seconds": 0.414,
+      "stdout": "child-created\n",
+      "stderr": ""
+    },
+    {
+      "scenario": "isolated_path",
+      "modified_child_env_keys": [
+        "PATH"
+      ],
+      "exit_code": 0,
+      "seconds": 0.302,
+      "stdout": "child-created\n",
+      "stderr": ""
+    }
+  ]
+}

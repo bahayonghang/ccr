@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate ccr-ui README, Bun lock, and Tauri manifest facts."""
+"""Validate UI/docs README facts, Bun lock authority, and Tauri manifest facts."""
 
 from __future__ import annotations
 
@@ -26,14 +26,28 @@ REQUIRED_FILES = (
     "ccr-ui/package.json",
     "ccr-ui/bun.lock",
     "ccr-ui/src-tauri/Cargo.toml",
+    "docs/README.md",
+    "docs/package.json",
+    "docs/bun.lock",
 )
-NPM_LOCK = "ccr-ui/package-lock.json"
-PACKAGE_MANAGER_RE = re.compile(r"^bun@[0-9]")
+FORBIDDEN_NPM_LOCKS = (
+    ("ccr-ui/package-lock.json", "ccr-ui 只维护 Bun/bun.lock"),
+    ("docs/package-lock.json", "docs 只维护 Bun/bun.lock"),
+)
+DOCS_LOCK_AUTHORITY = (
+    "`docs/bun.lock` is the only maintained docs dependency lockfile"
+)
+DOCS_PACKAGE_MANAGER_AUTHORITY = (
+    "`docs/package.json#packageManager` must mirror the canonical "
+    "`ccr-ui/package.json#packageManager` Bun pin"
+)
+PACKAGE_MANAGER_RE = re.compile(r"^bun@\d+\.\d+\.\d+$")
 RUST_VERSION_RE = re.compile(r'(?m)^\s*rust-version\s*=\s*"([^"]+)"')
 EDITION_RE = re.compile(r'(?m)^\s*edition\s*=\s*"([^"]+)"')
 STALE_PATTERNS = (
     "version-2.5.0",
     "TypeScript-5.7",
+    "TypeScript-5.9",
     "Rust >= 1.70",
     "Edition 2021",
     "Tokio 1.48",
@@ -69,8 +83,9 @@ def check_doc_drift(root: Path = REPO_ROOT) -> list[str]:
     for relative in REQUIRED_FILES:
         if not (root / relative).is_file():
             failures.append(f"文件不存在: {relative}")
-    if (root / NPM_LOCK).is_file():
-        failures.append("ccr-ui/package-lock.json 存在；ccr-ui 只维护 Bun/bun.lock")
+    for relative, rationale in FORBIDDEN_NPM_LOCKS:
+        if (root / relative).is_file():
+            failures.append(f"{relative} 存在；{rationale}")
     if failures:
         return failures
 
@@ -87,6 +102,24 @@ def check_doc_drift(root: Path = REPO_ROOT) -> list[str]:
     if not PACKAGE_MANAGER_RE.match(package_manager):
         failures.append(
             f"ccr-ui/package.json#packageManager 必须声明 bun@x.y.z，当前: {package_manager}"
+        )
+
+    docs_package_path = root / "docs" / "package.json"
+    try:
+        docs_package = json.loads(docs_package_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        return [f"docs/package.json: {error}"]
+    docs_package_manager = str(docs_package.get("packageManager") or "").strip()
+    if not PACKAGE_MANAGER_RE.fullmatch(docs_package_manager):
+        failures.append(
+            "docs/package.json#packageManager 必须声明 bun@x.y.z，"
+            f"当前: {docs_package_manager}"
+        )
+    elif docs_package_manager != package_manager:
+        failures.append(
+            "docs/package.json#packageManager 必须与 "
+            "ccr-ui/package.json#packageManager 一致，"
+            f"当前: {docs_package_manager} != {package_manager}"
         )
 
     tauri_cargo = (root / "ccr-ui" / "src-tauri" / "Cargo.toml").read_text(
@@ -112,6 +145,16 @@ def check_doc_drift(root: Path = REPO_ROOT) -> list[str]:
     for pattern in STALE_PATTERNS:
         if pattern in readme:
             failures.append(f"ccr-ui/README.md 仍包含过期描述: {pattern}")
+    docs_readme = (root / "docs" / "README.md").read_text(encoding="utf-8")
+    if DOCS_LOCK_AUTHORITY not in docs_readme:
+        failures.append(
+            f"docs/README.md 缺少锁文件权威声明: {DOCS_LOCK_AUTHORITY}"
+        )
+    if DOCS_PACKAGE_MANAGER_AUTHORITY not in docs_readme:
+        failures.append(
+            "docs/README.md 缺少 Bun 版本权威声明: "
+            f"{DOCS_PACKAGE_MANAGER_AUTHORITY}"
+        )
     return failures
 
 
@@ -131,18 +174,22 @@ def main() -> int:
         package = json.loads(
             (REPO_ROOT / "ccr-ui" / "package.json").read_text(encoding="utf-8")
         )
+        docs_package = json.loads(
+            (REPO_ROOT / "docs" / "package.json").read_text(encoding="utf-8")
+        )
         tauri_cargo = (REPO_ROOT / "ccr-ui" / "src-tauri" / "Cargo.toml").read_text(
             encoding="utf-8"
         )
         rust_match = RUST_VERSION_RE.search(tauri_cargo)
         edition_match = EDITION_RE.search(tauri_cargo)
         print(f"📄 ccr-ui/README.md version: {package.get('version')}")
-        print(f"📦 package manager: {package.get('packageManager')}")
+        print(f"📦 canonical package manager: {package.get('packageManager')}")
+        print(f"📚 docs package manager mirror: {docs_package.get('packageManager')}")
         print(
             f"🦀 rust-version: {rust_match.group(1) if rust_match else '?'}, "
             f"edition: {edition_match.group(1) if edition_match else '?'}"
         )
-        print("🔒 JS lock strategy: bun.lock only")
+        print("🔒 JS lock strategy: ccr-ui/bun.lock and docs/bun.lock only")
     print("✅ 文档/锁文件 drift 检查通过")
     return 0
 

@@ -18,9 +18,9 @@ Success means a user can inspect state, make a scoped change, understand risk, v
 
 ## Brand Personality
 
-Calm, precise, editorial.
+Calm, precise, terminal.
 
-The product should feel purpose-built, quiet, and trustworthy under high information density. It should resemble an Anthropic-like operational workbench for expert users, not a generic SaaS dashboard or a decorative AI toy.
+The product should feel purpose-built, quiet, and trustworthy under high information density. It should resemble a market terminal for expert operators — warm-dark, hairline-ruled, amber-commanded — not a generic SaaS dashboard or a decorative AI toy.
 
 ## Anti-references
 
@@ -32,7 +32,7 @@ Existing legacy `guofeng`, `neko`, anime, and heavy-glass branches are not paral
 
 1. Power-first density: preserve expert scanning speed and avoid simplifying away real configuration scope.
 2. Truthful operational state: distinguish backend state, web-preview limitations, loading, warnings, failures, and destructive actions clearly.
-3. One visual language: converge on the calm editorial surface and do not add new guofeng, neko, anime, purple-tech, or decorative glass variants.
+3. One visual language: converge on the market-terminal surface defined in `DESIGN.md` and do not add new guofeng, neko, anime, purple-tech, or decorative glass variants.
 4. Safety before automation: protect local tool config, tokens, backups, and destructive command paths with explicit state and confirmations.
 5. Distinctive restraint: express identity through precise typography, restrained surfaces, meaningful color, and consistent component vocabulary.
 

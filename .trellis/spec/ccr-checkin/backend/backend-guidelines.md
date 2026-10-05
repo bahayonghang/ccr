@@ -152,7 +152,7 @@ if selection.is_complete() {
 
 - `cargo test -p ccr-checkin -- --test-threads=1` — golden tests (22-site identity table with order, standard-site invariants, special-site full-field equality), serde roundtrip, schemaVersion rejection, platforms secret scan.
 - `cargo test -p ccr-db -- --test-threads=1` — migration v15 guard/idempotency, NULL-row compat, `set_provider_builtin_id_if_missing` only fills NULL.
-- `cd ccr-ui && bun run test:smoke -- tests/providers-catalog.smoke.test.ts` — schemaVersion rejection, `BuiltinProvider` mirror-field consistency against the same JSON, secret scan, builtin_id rename scenarios.
+- `cd ccr-ui && bun run test:smoke -- tests/configs/providers-catalog.smoke.test.ts` — schemaVersion rejection, `BuiltinProvider` mirror-field consistency against the same JSON, secret scan, builtin_id rename scenarios.
 
 ### 7. Wrong vs Correct
 

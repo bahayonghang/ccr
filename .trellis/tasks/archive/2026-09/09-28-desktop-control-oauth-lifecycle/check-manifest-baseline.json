@@ -1,0 +1,57 @@
+{
+  "baseline": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "count_before": 348,
+  "count_after": 348,
+  "added": [],
+  "removed": [],
+  "changes": {
+    "codex_oauth_login_start": {
+      "timeout_enforcement": {
+        "before": "completion_aware",
+        "after": "business_owned"
+      }
+    },
+    "llmusage_install_cancel": {
+      "concurrency": {
+        "before": "singleton",
+        "after": "parallel"
+      }
+    },
+    "cancel_ccr_command_job": {
+      "concurrency": {
+        "before": "singleton",
+        "after": "parallel"
+      }
+    },
+    "cancel_usage_import_job_v2": {
+      "concurrency": {
+        "before": "module_exclusive",
+        "after": "parallel"
+      }
+    },
+    "codex_oauth_login_cancel": {
+      "concurrency": {
+        "before": "module_exclusive",
+        "after": "parallel"
+      }
+    },
+    "codex_oauth_submit_callback_url": {
+      "concurrency": {
+        "before": "module_exclusive",
+        "after": "parallel"
+      }
+    },
+    "codex_oauth_login_completed": {
+      "concurrency": {
+        "before": "module_exclusive",
+        "after": "parallel"
+      }
+    },
+    "codex_release_oauth_port": {
+      "concurrency": {
+        "before": "module_exclusive",
+        "after": "parallel"
+      }
+    }
+  }
+}

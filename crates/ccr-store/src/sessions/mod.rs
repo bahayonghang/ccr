@@ -25,7 +25,13 @@
 pub mod indexer;
 pub mod models;
 pub mod parser;
+pub mod providers;
 
 pub use indexer::SessionIndexer;
 #[allow(unused_imports)]
 pub use models::{Session, SessionEvent, SessionFilter, SessionSummary};
+pub use providers::{
+    AgentSessionAgentId, AgentSessionFidelity, AgentSessionMessage, AgentSessionMessagePage,
+    AgentSessionProviderDefinition, AgentSessionProviderRegistry, AgentSessionProviderStatus,
+    AgentSessionSourceKind, AgentSessionSourceRef, AgentSessionSummary, ProviderAvailability,
+};

@@ -1353,3 +1353,590 @@ Codex Auth TUI 的 quota 面板把周限文案改为 7d limit，同时保留 5h 
 ### Status
 
 [OK] **Completed**
+
+
+## Session 99: React 首页 1b/1c 重设计
+
+**Date**: 2026-08-25
+**Task**: React 首页 1b/1c 重设计
+**Branch**: `dev`
+
+### Summary
+
+完成父任务 08-25-react-home-style-redesign 与六个子任务：首页落地设计稿 1b 运行时布局，1c 令牌写入 tokens.css。发布门 version-check/fmt-check/frontend-check 均为 0。XC3 四组合走查已写入 research/regression-walkthrough.md。Cargo.toml 未进入 a4d3e480..HEAD。
+
+### Main Changes
+
+- 六叶子产品提交后各自 archive
+- 父任务阶段4 XC1-XC6 与 Web 预览走查
+- 父任务 archive 457dd01d
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0ebc75a0` | (see git log) |
+| `1147e6ac` | (see git log) |
+| `a6c22e40` | (see git log) |
+| `00e6704f` | (see git log) |
+| `8c71743a` | (see git log) |
+| `3d467d44` | (see git log) |
+
+### Testing
+
+- [OK] just version-check=0
+- [OK] just fmt-check=0
+- [OK] just frontend-check=0
+- [OK] XC3 32组合 overflowX=0 且 theme/flavor 对齐
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 无；父任务已归档
+
+
+## Session 100: Usage 表格扫读与日柱窗口
+
+**Date**: 2026-08-27
+**Task**: Usage 表格扫读与日柱窗口
+**Branch**: `dev`
+
+### Summary
+
+Usage 子页从粘连文本改成操作员 ledger，并修好 Last 30 Days 日柱画出全年历史的问题。
+
+### Main Changes
+
+- UsageLedger 接上 Models/Projects/Providers 与 Tokens 日表；Overview/Cost 排行补回索引列。
+- Tokens/Cost 日柱接入 datetime 工厂；store 初态 last_30d 带本地 30 日窗口。
+- chart-stability 契约去掉 Tokens/Cost category 轴偏差。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `04536d90` | (see git log) |
+
+### Testing
+
+- [OK] ccr-ui vitest usage-tabs / usage-table-layout / usage-daily-bar-chart / state-store-actions / usage-chart-stability / platform-usage-trend-chart
+- [OK] bun run type-check
+- [OK] bun run lint:ci
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 桌面壳走查 AC10（web 预览无法加载用量）；未要求则不要 push。
+
+
+## Session 101: 实现八类 Agent 会话浏览页面
+
+**Date**: 2026-08-29
+**Task**: 实现八类 Agent 会话浏览页面
+**Branch**: `dev`
+
+### Summary
+
+新增 Grok、Claude、Codex、OpenCode、Pi、OMP、Antigravity、Kimi 的本地会话发现、增量归档、Typed IPC 与独立 React 页面；完成有界分页、虚拟化、环境隔离、跨层规范及完整 CI 验证。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f1e9b873` | (see git log) |
+| `3a46ee61` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 102: 重构 ccr-ui Sync 页布局与交互门控
+
+**Date**: 2026-08-30
+**Task**: 重构 ccr-ui Sync 页布局与交互门控
+**Branch**: `dev`
+
+### Summary
+
+重新设计 ccr-ui 同步界面：修复 scope strip/console intro 文字重叠，侧栏重排为 WebDAV 配置→操作输出→关于同步折叠区，移除 Back to Home，资产卡片操作分级（Sync 主/Push Pull 次/Force 条件），新增 connectionState 门控（未配置引导卡+禁用、不可达警告横幅、未测试不门控），修复全局忙碌时全卡旋转的状态归属问题。type-check/lint/test 全绿，Playwright 四场景截图验证通过。spec 固化门控真值表与 Playwright addInitScript 单参数陷阱。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `343f2e26` | (see git log) |
+| `b2434cdf` | (see git log) |
+| `cbafaa16` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 103: 完成全项目依赖安全优先分批升级
+
+**Date**: 2026-08-31
+**Task**: 完成全项目依赖安全优先分批升级
+**Branch**: `dev`
+
+### Summary
+
+优先修复 Rust、UI、docs 与 VS Code 安全风险，再按风险递增升级依赖与工具链；完成兼容迁移、全生态复扫和逐批完整 CI，保留有明确解锁条件的延期项。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0463be658cba8934c3477ad5e53efc42e94f1746` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 104: 修复 Overview 空用量与 Agent Sessions 缺失源
+
+**Date**: 2026-09-02
+**Task**: 修复 Overview 空用量与 Agent Sessions 缺失源
+**Branch**: `dev`
+
+### Summary
+
+修复启动期 window 错误误报、会话源校验映射、过期 7 天窗口用量导入，以及 Agent Sessions 进页自动刷新并跳过不可读源。桌面实机刷新仍为 UNVERIFIED。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `69119e1d` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 105: 优化 Usage 页 hero 区布局消除大片空白
+
+**Date**: 2026-09-02
+**Task**: 优化 Usage 页 hero 区布局消除大片空白
+**Branch**: `dev`
+
+### Summary
+
+Usage 页 hero 区结构重排：成本结论卡从 7fr/5fr 双列拉伸布局改为通栏两行带（身份区 + 新增成本 sparkline 趋势区/average/peak + 既有 token 构成区），3 张指标卡改 auto-fit 整行排开消除空格子；移除页头重复的 Total Cost StatTile。零数据管道改动、零新增 i18n key。type-check/lint/usage 冒烟 70 项全绿，impeccable layout 检测零发现；2 个 /agent-sessions 失败为既有问题与本任务无关。桌面端视觉验收（AC7）由用户自行确认。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `dfb2f5a0` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 106: UI 视觉世界替换：行情终端
+
+**Date**: 2026-09-03
+**Task**: UI 视觉世界替换：行情终端
+**Branch**: `dev`
+
+### Summary
+
+完成 ccr-ui 视觉世界替换（09-03 任务树，4 子任务全绿归档）：暖色 token 体系（dark #100f0c/#171410/#1f1b14/#2a251b，琥珀 #f0a32b/#8f650e，danger 对比度修至 4.65-4.79）、首页重构（图表 clamp 限高、平台行情带、Sessions 诚实态、底部命令状态条）、设置页中文化 52+ 值并修复 stale-memo 切换失效、设置坞双行重构；DESIGN.md 按建成结果重写，PRODUCT.md/AGENTS.md 清除旧世界语言，i18n 叶计数 4409，新增 2 个回归测试。impeccable finish reviewer 裁决 fix→修复后 ship。残留：/agent-sessions 2 个 pre-existing 测试失败、浅色 Loader spinner 待评审。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 107: Codex Auth 配额条与用量展示优化
+
+**Date**: 2026-09-08
+**Task**: Codex Auth 配额条与用量展示优化
+**Branch**: `dev`
+
+### Summary
+
+完成剩余配额条、范围说明与低高度布局，独立检查修复真实失败消息缓存保持及错误恢复；必需门禁通过，未提交。
+
+### Main Changes
+
+- 彩色剩余配额、明确窗口存在状态与缓存刷新错误；中性账号范围说明、全局回退警告及对齐用量表。
+- 真实后台失败消息保留成功缓存和获取时间；同账号成功清除旧错误；中英文组合布局覆盖低高度。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] TUI 228 / CLI 201 / usage 45 tests PASS；version-check、fmt-check、lint-strict PASS。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 按后续明确授权提交与归档；真实终端观感和私人运行时数据仍UNVERIFIED。
+
+
+## Session 108: Codex Auth 配额条与用量展示优化
+
+**Date**: 2026-09-08
+**Task**: Codex Auth 配额条与用量展示优化
+**Branch**: `dev`
+
+### Summary
+
+提交 Codex Auth 配额进度条、用量范围说明与低高度布局，以及 TUI spec 与 cargo install 工具链固定；随后归档任务。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ee867a1a` | (see git log) |
+| `26fc4dff` | (see git log) |
+| `61b8562a` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 109: Grok 多账号父子任务源码实施与静态审查
+
+**Date**: 2026-09-08
+**Task**: Grok 多账号父子任务源码实施与静态审查
+**Branch**: `dev`
+
+### Summary
+
+完成 OpenCode Auth 遗留清理、Grok OAuth 账号服务和 TUI 接入；修正独立静态审查发现。仅源码格式化/静态检查，测试编译运行时均按用户要求跳过。
+
+### Main Changes
+
+- 三个子任务源码、测试源码及中英文文档已交付，父级实施审查记录已落盘。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] PASS 静态审查与 git diff --check；SKIPPED 测试、构建、lint、just ci；UNVERIFIED 动态及真实认证。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 父子任务保持 in_progress，行为 AC 未勾选；后续获得验证证据再验收。未提交或归档。
+
+
+## Session 110: Grok 账号任务全部提交与归档
+
+**Date**: 2026-09-08
+**Task**: Grok 账号任务全部提交与归档
+**Branch**: `dev`
+
+### Summary
+
+按用户明确要求提交所有改动并归档父任务及三个子任务；仅本地提交，未推送。归档不代表动态验收通过。
+
+### Main Changes
+
+- 完成清理、账号服务与 TUI、文档规范、任务审查记录四组提交。
+- 四个任务归档至 .trellis/tasks/archive/2026-09，保留未勾选的行为 AC 和审查记录。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f601d6df` | (see git log) |
+| `1ef4c56b` | (see git log) |
+| `2c991689` | (see git log) |
+| `582702f6` | (see git log) |
+
+### Testing
+
+- [OK] git diff --check 通过；沿用独立静态审查；测试/构建/lint 按用户要求 SKIPPED，动态行为 UNVERIFIED。
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 111: Grok Auth CLI 核心命令完成，CI 被既有 Windows 锁测试阻塞
+
+**Date**: 2026-09-08
+**Task**: Grok Auth CLI 核心命令完成，CI 被既有 Windows 锁测试阻塞
+**Branch**: `dev`
+
+### Summary
+
+补齐 save/list/switch/delete 并同步帮助、文档和规范；原命令红绿回归通过。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] Grok CLI 8 passed; help 17 passed; ccr-cli 342 passed, 1 ignored; docs-check passed; fmt/clippy/workspace check passed
+- [FAIL] just ci failed at existing ccr-core lock.rs:319 Windows OS error 33; isolated repro also failed; no changes to lock.rs
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 完整 CI 验收仍待既有锁测试修复；任务保持 in_progress。未全局安装、提交或推送。
+
+
+## Session 112: Grok Auth CLI 全部提交与归档
+
+**Date**: 2026-09-08
+**Task**: Grok Auth CLI 全部提交与归档
+**Branch**: `dev`
+
+### Summary
+
+用户明确授权提交全部改动并归档；已提交 Grok Auth CLI、回归、帮助、双语文档与规范并归档任务。完整 CI 仍被既有 ccr-core Windows 锁测试阻塞，归档不代表该 gate 通过。未安装全局二进制，未推送。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7963c73f` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 113: TUI 终端主题自适应（auto 持久化选项）
+
+**Date**: 2026-09-19
+**Task**: TUI 终端主题自适应（auto 持久化选项）
+**Branch**: `dev`
+
+### Summary
+
+TuiTheme 新增 Auto 并设为默认值：启动时持久化 auto 或 env=auto 经 termbg 探测终端亮暗背景，亮→Latte 暗→Mocha，失败回退 Mocha；固定主题零探测。改动 tui_config.rs + theme.rs，同步两份 backend spec，测试全绿；AC6 真机冒烟待用户验证。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d4306d0` | (see git log) |
+| `72cc37e` | (see git log) |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 114: 首页 Insights 前端提交与后端设计归档
+<!-- trellis-session: v=2 fp=999b414d33cb368f -->
+
+**Date**: 2026-09-25
+**Task**: 首页 Insights 前端提交与后端设计归档
+**Branch**: `dev`
+
+### Summary
+
+提交首页 Insights 前端实现，归档已完成的 backend 与 design 子任务。frontend 与父任务仍打开。
+
+### Main Changes
+
+- 首页 DashboardView 挂载 Insights，数据来自一次 getHomeInsights，查询在空闲后发起。
+- 归档 09-24-home-insights-backend 与 09-24-home-insights-design。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `76bae516` | feat(ccr-ui): ✨ 首页挂载 Insights 区块 |
+| `5443d95d` | chore(trellis): 🔧 标记 Insights 前端任务进行中 |
+
+### Testing
+
+- [OK] ccr-ui type-check 通过。tests/dashboard 60 项通过。check:i18n 词条 4501。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- frontend 仍缺 1920x1080 视觉核对、frontend-check-quick、bundle-budget、build 与 frontend-quality-reviewer。父任务 AC-P6 的 just ci 未跑。这两项先不归档。
+
+
+## Session 115: CLI 与 Tauri 架构提交及行政归档
+<!-- trellis-session: v=2 fp=e6064f953abcee21 -->
+
+**Date**: 2026-09-28
+**Task**: CLI 与 Tauri 架构提交及行政归档
+**Branch**: `dev`
+
+### Summary
+
+源码已本地提交，父任务及 11 个子任务按用户要求行政归档。Windows 与 Linux 已有门禁通过；macOS、历史 0xc0000005 原因及原生/真实环境验收边界保留。未推送。
+
+### Main Changes
+
+- 归档提交 bd74244e 保存 654 个文件，包含中央验收矩阵、关闭记录、路径映射及证据完整性清单。
+- 57 个图标和 2 个原有本地临时脚本保持原状；两个 Insights 任务不变。7 个大型原始产物和已忽略日志仅本地保留。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f22732fc319a11adc38338603ea627def13c6348` | refactor(架构): ♻️ 统一 CLI 与 Tauri 业务边界和回归门禁 |
+
+### Testing
+
+- [OK] 沿用冻结验证：Windows just ci 14 阶段、前端 904 测试、VS Code 51 测试、Linux workspace/Tauri/coverage。提交归档阶段未重跑完整门禁。
+- [OK] 归档前后 1237 个原始非元数据文件 SHA256 一致，654 个暂存 blob 与归档提交一致。
+- [OK] 源码暂存检查通过。归档完整 diff 检查保留 7 个历史补丁的 28 个必需空上下文标记提示；其余归档路径检查通过。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 如继续技术验收，补齐 macOS 必需矩阵并调查历史 exporter 0xc0000005 原因，按 closure.json 保留其余未验边界。
+
+
+## Session 116: 剩余改动全部提交及 Insights 任务归档
+<!-- trellis-session: v=2 fp=4ac23dbc45998111 -->
+
+**Date**: 2026-09-29
+**Task**: 剩余改动全部提交及 Insights 任务归档
+**Branch**: `dev`
+
+### Summary
+
+按用户要求提交全部 66 个原有剩余改动，并行政归档 9 月 24 日的首页 Insights 父任务及前端子任务。未推送。
+
+### Main Changes
+
+- 分组提交 57 个图标、2 个现有探针脚本、7 个此前仅本地保存的原始产物；补充证据保存范围调整说明。
+- 归档提交 85e3d39f 保留 9 个原始规划/研究文件、已有 backend/design 归档及完整父子关系。父任务关闭分支补记为 dev，原始元数据保存在关闭记录。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c256f84b9f327293f4db8d5766545c832298b17b` | chore(证据): 🔧 提交架构验收原始产物并更新保存说明 |
+| `55e00031185713f5f34948aee44f27f025cc5af2` | chore(品牌资源): 🔧 同步桌面端与站点图标 |
+| `1a30e10cf496e056eaae232aed0c6b0c5a70efef` | chore(ccr-ui): 🔧 保存 Insights 视觉与桌面探针脚本 |
+
+### Testing
+
+- [OK] 57 个图标解码与尺寸检查通过，55 PNG、ICO 六尺寸、ICNS 八图层有效；7 份派生 SVG 与品牌源一致。
+- [OK] 两个脚本 node --check 及 targeted ESLint 通过；59 个图标/脚本 SHA 与起始清单一致。未执行探针、图标生成或界面操作。
+- [OK] 7 个原始产物格式和 SHA 校验通过，限定凭据模式扫描未发现匹配；原有文件字节保留。所有本轮暂存 diff 检查通过。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 任务按用户要求行政关闭；未补做 1920×1080 设计对照、指定 frontend-quality-reviewer、跨 renderer 生成确定性或完整 CI。历史验收限制继续保留。
+
+
+## Session 117: 常青项目已批准改动提交与部分归档
+<!-- trellis-session: v=2 fp=28781a8be6cdc7dc -->
+
+**Date**: 2026-09-30
+**Task**: 常青项目已批准改动提交与部分归档
+**Branch**: `dev`
+
+### Summary
+
+本地提交 32 个交付路径及九任务证据，归档 T01/T02/T04；父任务与其余五个子任务保留未完成验收。
+
+### Main Changes
+
+- 四个工程提交分别覆盖工具契约、只读 CI、扩展打包和 UI 兼容依赖。
+- 证据提交保存 438 个任务工件，包含 165 份原始日志；三个生成缓存文件未纳入。
+- 部分归档提交 9e6e2f7d34797c3202111ed1debba3b85684bd15 保留父子关系，修复导航与 JSONL 路径。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c4d38e5154edf6a8fa1c781f91d31ce6aa4bb5ad` | fix(工具契约): 🐛 补齐 OMP 上下文与五工具说明 |
+| `f68116ecd22bb74b86011b01d14b72cfc8a855d0` | ci(验证门禁): 👷 统一只读 CI 与跨平台检查 |
+| `c1453c7b1f5405f93eaecf67ff0d074bb1e9db1d` | fix(扩展打包): 🐛 限制 VSIX 内容并更新已批准依赖 |
+| `30cbeddf730ed01b312c3396ba7b8691853be859` | fix(前端依赖): 🐛 应用七项兼容锁文件补丁 |
+| `a693176fee1abc0093c054af020615fe97ac8119` | chore(审查证据): 🔧 保存五工具审查与部分验收记录 |
+
+### Testing
+
+- [OK] 新提交 git archive 三文件夹具：OMP 14 tests / 99 assertions，通过。
+- [OK] 归档后九任务上下文及 135 处 Markdown 链接通过；334 个原始工件哈希未变。
+- [OK] 完整 just ci 仍为 FAILED：最近一次停在 Rust managers FileLockError，后续门槛未执行。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 扩展新增依赖补丁及 managers 六处夹具绑定仍待范围批准，候选未应用。
+- T03/T05/T06/T07/T08 和父任务继续保留未完成验收；未推送、未创建 PR、未发布。
+- 1,164,069 字节的 tauri-advisory-commands.json 单项提交确认尚未收到，文件保留本地且未跟踪。
+
+## Session 118: 常青项目剩余本地复核
+<!-- trellis-session: v=2 fp=01a1073b-3362-7160 -->
+
+**Date**: 2026-10-04
+**Task**: 09-29-evergreen-harness-audit
+**Branch**: `dev`
+
+### Summary
+
+补写 T05 VSCE 4、T07 六处夹具和 T08 聚合的主会话复核。按已有 `just ci` 回执勾选 T06 本地 AC。五个子任务和父任务仍为 `in_progress`。未提交。
+
+### Main Changes
+
+- T05 复核确认两个包文件哈希与候选一致。hosted、Marketplace、原生激活保持 UNVERIFIED。
+- T06 记录 15:06.415 的 16 步 OK 和 2509 个源文件字节不变。
+- T07 规范新增一句具名夹具绑定。AC3 的 macOS、fresh-client、hosted 仍缺。
+- T08 Frontend Audit 为 1/1，不满足原 0 例外。未改政策，未加深度回归测试。
+- T01 匹配版本补丁未应用。T03 未触发 Dependabot。
+
+### Testing
+
+- [OK] 复核当前 `package.json` 与 `package-lock.json` SHA-256，与候选相同。
+- 未重跑 `just ci`。使用回执 `research/resume-2026-10-04-vsce4-full-ci.json`。
+
+### Status
+
+[OK] **Partial** — 可在本机关闭的复核已写入；缺环境或缺批准的验收保持打开。
+
+### Next Steps
+
+- 需要用户明确句子后，才能接受 T08 唯一例外或应用 T01 匹配版本补丁。
+- T03 下一次真实 Dependabot、macOS、fresh-client、hosted、Marketplace、原生激活仍为 UNVERIFIED。
+- 本轮工作区改动尚未提交。未推送，未创建 PR，未发布。

@@ -1,0 +1,40 @@
+{
+  "started_at": "2026-09-28T23:49:16.318308+00:00",
+  "command": [
+    "wsl.exe",
+    "-d",
+    "Ubuntu-24.04",
+    "--exec",
+    "/usr/bin/env",
+    "RUSTUP_TOOLCHAIN=1.98.0",
+    "PATH=/home/lyh/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "CARGO_TARGET_DIR=/tmp/ccr-architecture-linux-01a0e781",
+    "CARGO_BUILD_JOBS=2",
+    "/home/lyh/.cargo/bin/cargo",
+    "test",
+    "--locked",
+    "-p",
+    "ccr-cli",
+    "--all-features",
+    "--lib",
+    "commands::codex::fix::tests::doctor_",
+    "--",
+    "--nocapture"
+  ],
+  "source_freeze": ".trellis\\tasks\\09-28-architecture-contract-gates\\research\\continuation-final-source-freeze.json",
+  "source_freeze_sha256": "a531395a7d9857c1739491af54b8a781c840199a43c5e8e0bd9ad7959ed60f54",
+  "source_before_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+  "exit_code": 0,
+  "seconds": 65.33,
+  "log": ".trellis\\tasks\\09-28-architecture-contract-gates\\research\\continuation-linux-doctor.log",
+  "log_sha256": "96b6f9da560dcd027b7e1c3d636c0c43375275bfc829da3857bec74e7ca93398",
+  "source_after_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+  "completed_at": "2026-09-28T23:50:21.649653+00:00",
+  "passed_selectors": [
+    "commands::codex::fix::tests::doctor_reports_redact_sensitive_values_before_render_or_save",
+    "commands::codex::fix::tests::doctor_deadline_applies_before_fixture_is_ready",
+    "commands::codex::fix::tests::doctor_timeout_terminates_parent_and_grandchild"
+  ],
+  "passed_count": 3,
+  "scope": "Linux Rust 1.98 doctor test subset; not a full platform lane"
+}

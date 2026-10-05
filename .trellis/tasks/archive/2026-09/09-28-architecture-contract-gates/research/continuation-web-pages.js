@@ -1,0 +1,1 @@
+return {owned:pages().map(p=>({url:p.url(),closed:p.isClosed()})),current:page.url()};

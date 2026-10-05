@@ -26,6 +26,7 @@
 - Codex login-prep inspects the resolved Codex dir (`CCR_CODEX_DIR` / `CODEX_HOME` / `~/.codex`). `CCR_CODEX_DIR` is an explicit override and stays the only target. When `CODEX_HOME` redirects away from the default home and `CCR_CODEX_DIR` is unset, off also inspects and clears `%USERPROFILE%\.codex` or `$HOME/.codex`. Official `codex login` and Codex Desktop read that default home. CLI JSON may list `runtime_dirs` and `removed_auth_json` as paths only.
 - Grok: true when `inspect_activation_state` is not `Inactive`. Off removes `[model.custom]` and `[models].default`, restores the entry `models.default_reasoning_effort`, and preserves unrelated TOML. When entry state is missing, off performs the same bounded route cleanup but leaves `models.default_reasoning_effort` unchanged. Direct profile deletion still fails closed until off completes.
 - Backup dir is `$CCR_ROOT/backups/profile-off/` (fallback `~/.ccr`). Snapshots use `AtomicWriter.secret(true)`. Unix backup dir mode is `0o700`. Codex snapshots include `profiles.toml`, registry, `config.toml`, and `auth.json`.
+- Each operation allocates a fresh `{label}-{UTC timestamp}-{unique suffix}` directory with create-new semantics. Same-second operations must retain separate snapshots. Keep existing operation directories readable; do not rename or remove them during the naming change.
 - `ConfigFileHandler::save` writes `profiles.toml` with `secret: true`.
 - JSON/DTO/logs contain no credential values.
 
@@ -33,7 +34,7 @@
 
 - No leftover and no pointer -> success, `changed=false`, no backup dir.
 - Grok missing entry state -> remove only `[model.custom]` and `[models].default`, preserve other runtime values, then clear pointers.
-- TUI apply/auth switch: off `Err` aborts apply/`switch_account`.
+- TUI auth switch: off `Err` aborts `switch_account`. Profile apply calls the shared `profile_lifecycle::apply_profile` without an independent off. The application owns preflight, runtime replacement, and version-protected compensation; see `profile-application-lifecycle.md`.
 - Non-local Tauri env -> `unsupported_environment`, no write.
 
 ### 5. Good / Base / Bad Cases

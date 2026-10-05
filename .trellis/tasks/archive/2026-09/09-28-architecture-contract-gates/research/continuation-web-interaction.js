@@ -1,0 +1,12 @@
+const model = page.getByLabel('默认模型',{exact:true});
+await model.fill('codex-after');
+const save = page.locator('main').first().getByRole('button',{name:/codex.settings.save|保存/});
+await expect(save).toBeEnabled();
+await save.click();
+await page.waitForFunction(()=>globalThis.ccrFixture.calls.some(c=>c.cmd==='codex_update_settings'));
+const patch = await page.evaluate(()=>ccrFixture.calls.filter(c=>c.cmd==='codex_update_settings').map(c=>c.args));
+expect(patch).toEqual([{settings:{model:'codex-after'}}]);
+expect(await page.evaluate(()=>ccrFixture.settings.tui.notifications)).toEqual(['agent-turn-complete','approval-requested']);
+await page.getByRole('button',{name:'源文件',exact:true}).click();
+await expect(page.locator('.cm-editor')).toBeVisible();
+return {patch, editorCount:await page.locator('.cm-editor').count(), main:(await page.locator('main').first().innerText()).slice(0,6500), calls:await page.evaluate(()=>ccrFixture.calls.map(c=>c.cmd)), untranslated:await page.locator('body').innerText().then(t=>t.match(/⟦[^⟧]+⟧/g)||[]),errors:ccrWebErrors};

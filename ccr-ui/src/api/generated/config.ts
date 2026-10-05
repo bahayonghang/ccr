@@ -6,28 +6,22 @@ import type { ExportResult } from '@/types/generated/config/ExportResult'
 import type { HistoryEntry } from '@/types/generated/config/HistoryEntry'
 import type { ImportResult } from '@/types/generated/config/ImportResult'
 
-export type AddConfigInput = {
-  name: string
-  description?: string | null
-  baseUrl: string
-  authToken: string
-  model?: string | null
-  smallFastModel?: string | null
-  provider?: string | null
-  providerType?: string | null
-  account?: string | null
-  tags?: string[] | null
-}
+import type { ConfigPlatform } from '@/types/generated/config/ConfigPlatform'
+import type { ConfigPatchInput } from '@/types/generated/config/ConfigPatchInput'
+import type { ConfigMutationResult } from '@/types/generated/config/ConfigMutationResult'
+export type AddConfigInput = { platform: ConfigPlatform; name: string; data: ConfigPatchInput }
+export type UpdateConfigInput = AddConfigInput & { expectedVersion?: string }
 export type ImportConfigInput = { content: string; mode?: string; backup?: boolean }
 
 const confirmationTokenFor = (action: 'delete_config' | 'import_config' | 'restore_config') => `desktop-confirm:${action}`
 
-export const listConfigsTyped = (): Promise<ConfigInfo[]> => invoke('list_configs')
-export const switchConfigTyped = (name: string): Promise<string> => invoke('switch_config', { name })
-export const addConfigTyped = (input: AddConfigInput): Promise<string> => invoke('add_config', input)
-export const deleteConfigTyped = (name: string): Promise<string> => invoke('delete_config', { name, confirmationToken: confirmationTokenFor('delete_config') })
-export const renameConfigTyped = (oldName: string, newName: string): Promise<string> => invoke('rename_config', { oldName, newName })
-export const duplicateConfigTyped = (source: string, target: string): Promise<string> => invoke('duplicate_config', { source, target })
+export const listConfigsTyped = (platform: ConfigPlatform): Promise<ConfigInfo[]> => invoke('list_configs', { platform })
+export const switchConfigTyped = (platform: ConfigPlatform, name: string, enable = false): Promise<ConfigMutationResult> => invoke('switch_config', { platform, name, enable })
+export const addConfigTyped = (input: AddConfigInput): Promise<ConfigMutationResult> => invoke('add_config', input)
+export const deleteConfigTyped = (platform: ConfigPlatform, name: string): Promise<ConfigMutationResult> => invoke('delete_config', { platform, name, confirmationToken: confirmationTokenFor('delete_config') })
+export const renameConfigTyped = (platform: ConfigPlatform, oldName: string, newName: string): Promise<ConfigMutationResult> => invoke('rename_config', { platform, oldName, newName })
+export const duplicateConfigTyped = (platform: ConfigPlatform, source: string, target: string): Promise<ConfigMutationResult> => invoke('duplicate_config', { platform, source, target })
+export const updateConfigTyped = (input: UpdateConfigInput): Promise<ConfigMutationResult> => invoke('update_config', input)
 export const validateConfigsTyped = (): Promise<string> => invoke('validate_configs')
 export const importConfigTyped = (input: ImportConfigInput): Promise<ImportResult> => invoke('import_config', { content: input.content, mode: input.mode ?? 'merge', backup: input.backup ?? true, confirmationToken: confirmationTokenFor('import_config') })
 export const restoreConfigTyped = (backupPath: string): Promise<string> => invoke('restore_config', { backupPath, confirmationToken: confirmationTokenFor('restore_config') })

@@ -1,0 +1,33 @@
+{
+  "id": "profile-design-language",
+  "name": "profile-design-language",
+  "title": "统一 Profile 页面设计语言",
+  "description": "",
+  "status": "completed",
+  "dev_type": "frontend",
+  "scope": "ccr-ui",
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-08-26",
+  "completedAt": "2026-08-26",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "08-26-profile-registry-tokens",
+    "08-26-profile-list-surface",
+    "08-26-profile-editor",
+    "08-26-profile-rollout"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "description": "统一 claude/codex/grok 及后续平台的 Profile 页面设计语言：列表、统计、筛选、新建与编辑"
+  }
+}

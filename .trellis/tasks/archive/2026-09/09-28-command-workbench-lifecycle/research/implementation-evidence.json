@@ -1,0 +1,106 @@
+{
+  "captured_at": "2026-09-28T09:53:22.208367-05:00",
+  "baseline_commit": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "commit_created": false,
+  "source_frozen_at": "2026-09-28 09:46 local",
+  "owned_files": {
+    "ccr-ui/src/features/commands/commandJobState.ts": "3ef64dc45c0807193c7b8fd5636d0944aade6938be7d5b7244434632dbc3399e",
+    "ccr-ui/src/features/commands/commandJobStore.ts": "dad5ebdfda949f6837073ae0ffad776fb8053da79c84ae2e304d5ed19efa264b",
+    "ccr-ui/src/features/commands/stores.ts": "5aca041451a7575075b567b5e283ac65b9e1cddea1bc0a3e3270b334ed83f6d8",
+    "ccr-ui/src/features/commands/useCommandsPage.ts": "c0112f4088d05e164232537f95888852897d23dcb049591c70eadc60899f1f70",
+    "ccr-ui/src/features/commands/CommandsComposer.tsx": "3bbc075b56580fa033e07adc8bc5847808013273abb46beb04e4ed286aa896a5",
+    "ccr-ui/src/features/commands/CommandsLedger.tsx": "40a9c2c4f9aa965580ede2ec2fb80e5e4741aef12721068adb8139728f8cc63a",
+    "ccr-ui/src/features/commands/CommandsView.tsx": "044b55bdc07243d36bcfc4a1e8cfcb728ebdf53651cf79f5eb0f6eb76f846f66",
+    "ccr-ui/src/features/commands/queries.ts": "c81fd758e9a635cd69fc526225fe8bdcb41e981e324dac1fbbb3c1dca2b5a7c3",
+    "ccr-ui/tests/commands/command-workbench-lifecycle.smoke.test.tsx": "fa21d3fde8118a24c90f7eadfd9dce247a897145703b22c11ccc4e2fb5a2b7e9",
+    "ccr-ui/tests/commands/command-job-reducer.smoke.test.ts": "9c98e178b0474a53ac51970146e1213d6ab69cd14dfb6b94b6c90791e55c09a3",
+    "ccr-ui/tests/shell/cache-route.smoke.test.ts": "0e3717fb3d209aa1c0b2331a434f841ed032dc2903d93eca9418f260323cb66f",
+    "ccr-ui/tests/shell/event-bridge-leak.smoke.test.tsx": "68063a2c1d5b4e1caa2e1b3c01f293e5c1fd4dc661f1e5bf487b4802c119265f",
+    ".trellis/spec/ccr-ui/frontend/command-job-lifecycle.md": "717af859787caa860ef725fa3036a1751b300a6a75429502dc4294af300769c6"
+  },
+  "shared_files_at_capture": {
+    "ccr-ui/src/shell/eventBridge.ts": "0832b463e3dcffcad805c9e245f0498aabeef425d2df4a15e2652764d8016726",
+    "ccr-ui/src/i18n/locales/en-US.ts": "63dcc9fbf7dffa1472c9dbf9ddeb72bb935cdb10700c858a839d3cb078c3fdf8",
+    "ccr-ui/src/i18n/locales/zh-CN.ts": "7b0f34616afb3cdbf502ce115106acaf24aebd2ccd1e5c654bd3a0c5ac64bf10",
+    "ccr-ui/tests/i18n.test.cjs": "7a694afb2e2459a0bb057e39870f27b3372bac8b611e2c69003f8612e9feb0b9",
+    ".trellis/spec/ccr-ui/frontend/index.md": "9276387f1cc2d37d09d1d1145d11fc73443102b19a4545011d7a7e3b7521256f"
+  },
+  "shared_file_note": "T09 owns later env:changed and locale changes after T07 handoff; do not attribute the full shared-file diff to T07.",
+  "protected_files": {
+    "ccr-ui/.tmp-desktop-probe.mjs": {
+      "sha256": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+      "matches_baseline": true
+    },
+    "ccr-ui/.tmp-insights-visual.mjs": {
+      "sha256": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53",
+      "matches_baseline": true
+    }
+  },
+  "checks": {
+    "initial_red": {
+      "passed": 0,
+      "failed": 3,
+      "log": "initial-red.log"
+    },
+    "final_smoke": {
+      "files": 19,
+      "passed": 98,
+      "failed": 0,
+      "log": "commands-shell-final.log"
+    },
+    "failure_recovery": {
+      "files": 4,
+      "passed": 34,
+      "failed": 0,
+      "log": "failure-recovery-tests.log"
+    },
+    "typecheck": {
+      "exit_code": 0,
+      "log": "typecheck.log"
+    },
+    "production_build": {
+      "exit_code": 0,
+      "env": {
+        "CCR_SKIP_ICON_GENERATION": "1"
+      },
+      "log": "build.log"
+    },
+    "formal_lint": {
+      "exit_code": 1,
+      "baseline_errors": 5,
+      "log": "formal-lint.log"
+    },
+    "i18n": {
+      "passed": 24,
+      "leaf_keys": 4511,
+      "log": "i18n.log"
+    },
+    "boundaries": {
+      "passed": 4,
+      "log": "arch-boundaries.log"
+    },
+    "cycles": {
+      "files": 734,
+      "cycles": 0,
+      "log": "cycles.log"
+    },
+    "style": {
+      "exit_code": 0,
+      "log": "style.log"
+    },
+    "diff_check": {
+      "exit_code": 0,
+      "log": "diff-check.log"
+    },
+    "style_lines": {
+      "exit_code": 0,
+      "log": "style-lines.log"
+    }
+  },
+  "unrun": [
+    "native Tauri WebView",
+    "browser visual inspection for T07",
+    "full repository CI"
+  ],
+  "independent_check": "pending check_t07 final report"
+}

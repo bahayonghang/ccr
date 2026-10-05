@@ -1,0 +1,16 @@
+{
+  "command": [
+    "cargo",
+    "update",
+    "-p",
+    "rustls@0.23.40",
+    "--precise",
+    "0.23.45"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "environment_overrides": {},
+  "started_at": "2026-09-28T22:58:05.313236+00:00",
+  "exit_code": 101,
+  "seconds": 53.947,
+  "log": "continuation-security-root-update-rustls.log"
+}

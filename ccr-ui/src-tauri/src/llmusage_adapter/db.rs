@@ -93,6 +93,16 @@ impl Dashboard {
     ) -> Result<ccr_usage::HomeOverviewPayload, LlmusageAdapterError> {
         self.inner.home_overview(filter).map_err(shared_usage_error)
     }
+
+    pub fn insights(
+        &self,
+        filter: &QueryFilter,
+        as_of: chrono::NaiveDate,
+    ) -> Result<ccr_usage::InsightsPayload, LlmusageAdapterError> {
+        self.inner
+            .insights(filter, as_of)
+            .map_err(shared_usage_error)
+    }
 }
 
 fn shared_usage_error(error: ccr_usage::UsageError) -> LlmusageAdapterError {

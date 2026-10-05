@@ -1,0 +1,17 @@
+{
+  "command": [
+    "just",
+    "ci"
+  ],
+  "head": "c50716b5ed1bcd1c5b4950a746a8621258d0e0b5",
+  "os": "Windows local",
+  "outer_exit_code": 0,
+  "aggregate_exit_code": 0,
+  "command_receipt": ".trellis\\tasks\\09-29-harness-frontend-security\\research\\evidence\\resume-2026-10-04-vsce4-full-ci.json",
+  "source_file_count_before": 2509,
+  "source_file_count_after": 2509,
+  "changed_source_paths": [],
+  "source_bytes_preserved": true,
+  "scope": "Tracked and unignored deliverables; task evidence and journals excluded.",
+  "boundary": "Post VSCE 4 local aggregate. Fixed Node 24.20.0 extension gates are separate. Hosted CI, native clients, and exception approval retain independent status."
+}

@@ -1,0 +1,52 @@
+{
+  "verified_at_utc": "2026-09-29T03:55:15.064285+00:00",
+  "status": "passed_scoped_native_linux_final_source",
+  "artifacts": {
+    "remaining-native-webview-7.json": "18fe1b7ab7725eed9f8c3b49548b78fef1f2613d145da26b87ea37ff6fdc0d0c",
+    "remaining-native-webview-7.log": "6ae9fc07d0c9c3a1a36985194a71370c482ec3112205b8d225d3aaedc6b24ce0",
+    "remaining-native-webview-7.png": "13c62cd593fb2ca9a3babdb49d73e9b221b579124f7e5fcc129a1130e2db8bf7",
+    "remaining-native-webview-after-path.py": "16d7d0b19357bf33dd7580e539478bc13cbe633e2f1583e7e48476d44bf053fd",
+    "remaining-linux-native-after-path.json": "7a413db6d0102ede529ffaaf52b7123983263c09d1fc51358606d22b9f46551b",
+    "remaining-linux-native-after-path.log": "27e9ea8f1ed836d00ecc3a43edb0440f4266d32c486c7709cf5a7ea69e4ab828",
+    "remaining-csp-ui-build.json": "d2efa648280e075866aa78b1f874f7a348af402154743877c2889889fd99dd20",
+    "remaining-csp-ui-build.log": "72928b9df947254b541923774897b2dbc0d40ed0b56e7dd1d016b17d756ca8bc",
+    "remaining-platform-tests-source-freeze.json": "a31c8730384c91076a051f226d3201e1b6cd2d9efa7ec63f881b8899601db273"
+  },
+  "checks": [
+    "native_boot",
+    "plaintext_confirmation",
+    "native_scroll_lock",
+    "native_editor",
+    "production_csp",
+    "native_save_roundtrip"
+  ],
+  "source_paths": 269,
+  "frontend_input_paths": 1060,
+  "frontend_assets": 284,
+  "generated_types": 230,
+  "roundtrip_semantic_match": true,
+  "live_process_group_members_after_cleanup": [],
+  "post_run_binary_and_fixture_observation": {
+    "binary_sha256": "7b72d615f1909baece92bc60c9c327daf9eacbbd692e73dc0ba5797e462c8918",
+    "saved_sha256": "b57aed982cf108e3ee2f9e2f153fdaa68a2e00c47a62411d1ae00d403235db10",
+    "saved": {
+      "model": "haiku",
+      "env": {
+        "CCR_NATIVE_FIXTURE": "preserve"
+      },
+      "native_fixture": {
+        "unknown": true,
+        "count": 7
+      }
+    }
+  },
+  "visual_review": "Root viewed remaining-native-webview-7.png: settings source text, syntax colors and aligned line gutter visible. The screenshot precedes the model-only save; the receipt and independent disk read prove saved haiku value and preserved env/unknown object.",
+  "limits": [
+    "Linux WSLg native WebKitGTK; debug executable with production custom-protocol assets/CSP",
+    "Synthetic local Claude settings; environment redirection is not an OS filesystem sandbox",
+    "No Windows WebView2, macOS native, physical input, release package, real SSH or provider OAuth acceptance",
+    "Post-save style DOM removal and body scroll-lock restoration were not measured; styles_after_save is the captured style CSP violation event list only."
+  ],
+  "post_save_style_csp_violations_empty": true,
+  "reporting_correction": "The earlier derived nonce_style_cleanup label overstates the native measurement; raw native receipts are unchanged."
+}

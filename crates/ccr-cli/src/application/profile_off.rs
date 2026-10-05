@@ -59,7 +59,7 @@ impl ProfileOffResult {
 
 /// `profile_off` 写盘事务的 RAII 守卫。
 ///
-/// 构造时把所有要写入的文件快照到 `~/.ccr/backups/profile-off/{label}-{timestamp}/`。
+/// 构造时把所有要写入的文件快照到 `~/.ccr/backups/profile-off/{label}-{timestamp}-{id}/`。
 /// 三步全部成功后由调用方 `commit()`；否则在 `Drop` 时按相反顺序回滚——已存在的
 /// 文件用快照覆盖回去，原本不存在但被新建的文件直接删除。备份目录不在成功路径上
 /// 删除，保留作 undo 历史，便于事后排查。
@@ -78,16 +78,26 @@ enum FileSnapshot {
 
 impl ProfileOffBackup {
     fn new(label: &str) -> Result<Self> {
+        Self::new_at(
+            label,
+            &chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string(),
+        )
+    }
+
+    fn new_at(label: &str, timestamp: &str) -> Result<Self> {
         let root = profile_off_backup_root()?;
-        let timestamp = chrono::Utc::now().format("%Y%m%dT%H%M%SZ");
-        let backup_dir = root
-            .join("backups")
-            .join("profile-off")
-            .join(format!("{label}-{timestamp}"));
-        std::fs::create_dir_all(&backup_dir).map_err(|error| {
+        let parent = root.join("backups").join("profile-off");
+        std::fs::create_dir_all(&parent).map_err(|error| {
             CcrError::ConfigError(format!("创建 profile-off 备份目录失败: {error}"))
         })?;
-        restrict_directory_to_owner(&backup_dir)?;
+        let directory = tempfile::Builder::new()
+            .prefix(&format!("{label}-{timestamp}-"))
+            .tempdir_in(parent)
+            .map_err(|error| {
+                CcrError::ConfigError(format!("创建 profile-off 备份目录失败: {error}"))
+            })?;
+        restrict_directory_to_owner(directory.path())?;
+        let backup_dir = directory.keep();
         Ok(Self {
             backup_dir,
             snapshots: Vec::new(),
@@ -197,6 +207,7 @@ pub fn needs_login_prep(platform: Platform) -> Result<bool> {
 }
 
 pub fn profile_off_for_platform(platform: Platform) -> Result<ProfileOffResult> {
+    let _operation = super::profile_lifecycle::operation_lock(platform)?;
     match platform {
         Platform::Codex => codex_profile_off(),
         Platform::Claude => claude_profile_off(),
@@ -404,10 +415,7 @@ fn clear_platform_registry_pointer(platform_name: &str) -> Result<()> {
 }
 
 fn clear_profiles_file_pointer(platform_name: &str) -> Result<()> {
-    let manager = ConfigManager::for_platform(platform_name)?;
-    let mut config = manager.load_with_autofix()?;
-    config.current_config.clear();
-    manager.save(&config)
+    ConfigManager::for_platform(platform_name)?.clear_current_if_present()
 }
 
 fn platform_previous_profile_hint(platform_name: &str) -> Result<Option<String>> {
@@ -451,6 +459,75 @@ mod tests {
     use crate::test_support::TestHome;
     use ccr_config::PlatformConfig;
     use ccr_types::{ClaudeSettings, env_keys};
+
+    #[test]
+    fn profile_off_same_second_operations_keep_independent_snapshots() {
+        let home = TestHome::new();
+        let target = home.root().join("runtime.json");
+        let mut directories = Vec::new();
+        for content in ["first", "second", "third"] {
+            std::fs::write(&target, content).unwrap();
+            let mut backup = ProfileOffBackup::new_at("codex", "20260928T120000Z").unwrap();
+            backup.snapshot(&target).unwrap();
+            directories.push(backup.backup_dir.clone());
+            backup.commit();
+        }
+        assert_ne!(directories[0], directories[1]);
+        assert_ne!(directories[1], directories[2]);
+        for (directory, content) in directories.iter().zip(["first", "second", "third"]) {
+            assert_eq!(
+                std::fs::read_to_string(directory.join("00-runtime.json")).unwrap(),
+                content
+            );
+        }
+        let mut rollback = ProfileOffBackup::new_at("codex", "20260928T120000Z").unwrap();
+        rollback.snapshot(&target).unwrap();
+        std::fs::write(&target, "uncommitted").unwrap();
+        drop(rollback);
+        assert_eq!(std::fs::read_to_string(target).unwrap(), "third");
+    }
+
+    #[test]
+    fn profile_off_backup_consumers_discover_and_restore_old_and_unique_names() {
+        use ccr_core::core::guarded_write::{BackupPolicy, backup_guarded};
+        let home = TestHome::new();
+        let manager = SettingsManager::with_default().unwrap();
+        let mut first = ClaudeSettings::new();
+        first
+            .env
+            .insert("ANTHROPIC_BASE_URL".into(), "https://first.invalid".into());
+        manager.save_atomic(&first).unwrap();
+        let legacy = home.backup_dir().join("settings.20260927_120000.json.bak");
+        AtomicWriter::new(&legacy)
+            .secret(true)
+            .write(&serde_json::to_vec(&first).unwrap())
+            .unwrap();
+        let mut second = first.clone();
+        second
+            .env
+            .insert("ANTHROPIC_BASE_URL".into(), "https://second.invalid".into());
+        manager.save_atomic(&second).unwrap();
+        let backups = manager.list_backups().unwrap();
+        assert_eq!(backups.len(), 2);
+        assert!(backups.contains(&legacy));
+        assert!(backups.iter().any(|path| path != &legacy));
+        for backup in backups {
+            manager.restore(&backup).unwrap();
+            assert_eq!(manager.load().unwrap().env, first.env);
+        }
+
+        let source = home.root().join("profiles.toml");
+        std::fs::write(&source, "old").unwrap();
+        let legacy = home.root().join("profiles.toml.20260927_120000.bak");
+        std::fs::write(&legacy, "legacy").unwrap();
+        let unique = backup_guarded(&source, &BackupPolicy::SameDir { tag: None })
+            .unwrap()
+            .unwrap();
+        let discovered = ConfigManager::new(source).list_backups().unwrap();
+        assert_eq!(discovered.len(), 2);
+        assert!(discovered.contains(&legacy));
+        assert!(discovered.contains(&unique));
+    }
 
     #[test]
     fn clear_claude_profile_settings_removes_managed_and_keeps_user_env() {

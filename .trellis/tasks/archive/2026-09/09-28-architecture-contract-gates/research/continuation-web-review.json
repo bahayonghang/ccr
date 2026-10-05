@@ -1,0 +1,309 @@
+{
+  "recorded_at": "2026-09-28T23:32:08.749951+00:00",
+  "status": "passed_web_synthetic_and_unavailable",
+  "route": "http://127.0.0.1:49173/codex/settings",
+  "runtime": "Tabbit Browser, Vite web preview; official @tauri-apps/api/mocks",
+  "checks": {
+    "patches": 1,
+    "dirty_fields": [
+      "model"
+    ],
+    "notifications_preserved": true,
+    "unknown_reasoning_value_preserved": true,
+    "visible_translation_keys_absent": true,
+    "raw_reads": 1,
+    "code_mirror_visible": true,
+    "web_scroller_display": "flex",
+    "web_gutter_and_content_top_equal": true,
+    "page_errors": 0,
+    "unknown_mock_commands": 0,
+    "plain_web_runtime_unavailable_and_retry": true
+  },
+  "boundaries": [
+    "Synthetic IPC responses; no native IPC or actual config writes",
+    "Disk roundtrip is a separate backend helper test",
+    "No native WebView/CSP, external provider login, or real environment switch acceptance",
+    "No screenshot artifact; evidence consists of actual browser interaction and DOM assertions"
+  ],
+  "receipts": [
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-web-fixture-final.log",
+      "sha256": "54dcf206af16d0b1d15cb99ae09ee135087b5107a84b769b4c160996690bd0dd",
+      "receipt": {
+        "result": {
+          "elapsedMs": 2579,
+          "requestId": "web-fixture-final",
+          "value": {
+            "errors": [],
+            "fixture": {
+              "calls": [
+                "shell_get_preferences",
+                "shell_get_preferences",
+                "plugin:window|show",
+                "plugin:window|show",
+                "health_check",
+                "get_current_environment",
+                "list_environments",
+                "list_environments",
+                "get_current_environment",
+                "codex_get_settings",
+                "get_current_environment"
+              ],
+              "unknown": []
+            },
+            "state": {
+              "focus": {
+                "active": null,
+                "chain": [],
+                "page": {
+                  "id": "p1",
+                  "url": "http://127.0.0.1:49173/codex/settings"
+                }
+              },
+              "frames": [],
+              "framesTruncated": false,
+              "page": {
+                "id": "p1",
+                "title": "CCR UI",
+                "url": "http://127.0.0.1:49173/codex/settings"
+              },
+              "pages": [
+                {
+                  "id": "p1",
+                  "url": "http://127.0.0.1:49173/codex/settings"
+                }
+              ],
+              "revision": {
+                "documentGeneration": 2,
+                "targetEpoch": 2
+              },
+              "snapshot": "- generic [ref=e4] [box=0,0,1718,1015]:\n  - link \"跳到主要内容\" [ref=e5] [cursor=pointer] [box=16,-1015,144,49]:\n    - /url: \"#main-content\"\n  - generic [ref=e6] [box=0,0,240,1015]:\n    - button \"调整侧边栏宽度\" [ref=e7] [box=227,0,20,1015]\n    - generic [ref=e10] [box=16,30,111,47]:\n      - img \"CCR UI\" [ref=e11] [box=16,34,40,40]\n      - generic [ref=e12] [box=68,30,59,47]:\n        - heading \"CCR UI\" [level=1] [ref=e13] [box=68,30,59,27]\n        - paragraph [ref=e14] [box=68,61,59,16]: 运行工作台\n    - navigation \"Primary navigation\" [ref=e15] [box=0,84,239,834]:\n      - link \"运行概览\" [ref=e18] [cursor=pointer] [box=12,96,215,43]:\n        - /url: /\n      - generic [ref=e23] [box=12,159,215,114]:\n        - generic [ref=e24] [box=12,159,215,17]: 配置中心\n        - generic [ref=e26] [box=12,185,215,89]:\n          - link \"Agent 会话\" [ref=e27] [cursor=pointer] [box=12,185,215,43]:\n            - /url: /agent-sessions\n          - link \"MCP 管理\" [ref=e29] [cursor=pointer] [box=12,230,215,43]:\n            - /url: /mcp-manager\n      - generic [ref=e34] [box=12,293,215,250]:\n        - generic [ref=e35] [box=12,293,215,17]: 平台\n        - generic [ref=e37] [box=12,319,215,225]:\n          - link \"Claude Code\" [ref=e38] [cursor=pointer] [box=12,319,215,43]:\n            - /url: /claude-code\n          - link \"Codex\" [ref=e44] [cursor=pointer] [box=12,364,215,43]:\n            - /url: /codex\n          - link \"Grok\" [ref=e50] [cursor=pointer] [box=12,409,215,43]:\n            - /url: /grok\n          - link \"Antigravity\" [ref=e56] [cursor=pointer] [box=12,455,215,43]:\n            - /url: /antigravity\n          - link \"OpenCode\" [ref=e64] [cursor=pointer] [box=12,500,215,43]:\n            - /url: /opencode\n      - generic [ref=e70] [box=12,564,215,205]:\n        - generic [ref=e71] [box=12,564,215,17]: 工具\n        - generic [ref=e73] [box=12,589,215,180]:\n          - link \"命令\" [ref=e74] [cursor=pointer] [box=12,589,215,43]:\n            - /url: /commands\n          - link \"签到管理\" [ref=e80] [cursor=pointer] [box=12,634,215,43]:\n            - /url: /checkin\n          - link \"同步\" [ref=e86] [cursor=pointer] [box=12,680,215,43]:\n            - /url: /sync\n          - link \"用量\" [ref=e91] [cursor=pointer] [box=12,725,215,43]:\n            - /url: /usage\n    - link \"设置 浅色模式·中性·中文·v7.3.0\" [ref=e97] [cursor=pointer] [box=12,931,215,65]:\n      - /url: /settings\n      - generic [ref=e102] [box=69,941,146,43]:\n        - generic \"设置\" [ref=e104] [box=69,941,28,22]\n        - generic \"浅色模式 · 中性 · 中文 · v7.3.0\" [ref=e105] [box=69,967,146,17]:\n          - text: 浅色模式·中性·中文·\n          - generic [ref=e106] [box=188,970,27,11]: v7.3.0\n  - main [ref=e107] [box=240,0,1478,1015]:\n    - generic [ref=e108] [box=240,0,1478,78]:\n      - generic [ref=e109] [box=264,41,34,19]: Codex\n      - button \"本地\" [ref=e113] [cursor=pointer] [box=1602,36,92,30]\n    - generic [ref=e124] [box=288,126,1382,764]:\n      - generic [ref=e126] [box=288,126,1382,62]:\n        - generic [ref=e127] [box=288,126,1194,62]:\n          - heading \"Codex 设置\" [level=1] [ref=e128] [box=288,126,1194,29]\n          - paragraph [ref=e129] [box=288,163,768,25]: Codex 全局配置：模型、安全、工具链、界面与功能开关。\n        - generic [ref=e131] [box=1498,126,171,44]:\n          - button \"源文件\" [ref=e132] [cursor=pointer] [box=1498,126,90,44]\n          - button \"保存\" [disabled] [ref=e133] [box=1596,126,74,44]\n      - generic [ref=e134] [box=288,208,1382,682]:\n        - generic [ref=e135] [box=288,208,1382,36]:\n          - button \"模型与推理\" [ref=e136] [cursor=pointer] [box=288,208,91,36]\n          - button \"安全与权限\" [ref=e137] [cursor=pointer] [box=387,208,91,36]\n          - button \"工具与搜索\" [ref=e138] [cursor=pointer] [box=485,208,91,36]\n          - button \"界面设置\" [ref=e139] [cursor=pointer] [box=584,208,78,36]\n          - button \"功能开关\" [ref=e140] [cursor=pointer] [box=669,208,78,36]\n        - generic [ref=e141] [box=288,280,1382,610]:\n          - generic [ref=e143] [box=288,280,1382,59]:\n            - generic [ref=e144] [box=288,280,1382,19]: 默认模型\n            - textbox \"默认模型\" [ref=e145] [box=288,302,1382,36]: codex-before\n          - generic [ref=e147] [box=288,359,1382,59]:\n            - generic [ref=e148] [box=288,359,1382,19]: 运行时命名空间\n            - textbox \"运行时命名空间\" [ref=e149] [box=288,381,1382,36]\n          - generic [ref=e151] [box=288,437,1382,55]:\n            - generic [ref=e152] [box=288,437,1382,19]: 推理深度\n            - combobox \"推理深度\" [ref=e153] [box=288,460,1382,32]:\n              - option \"未设置\" [box=0,0,0,0]\n              - option \"future-effort\" [selected] [box=0,0,0,0]\n              - option \"最低\" [box=0,0,0,0]\n              - option \"低\" [box=0,0,0,0]\n            ",
+              "snapshotTruncated": true
+            }
+          }
+        },
+        "status": "succeeded",
+        "transition": {
+          "closedPages": [],
+          "documentGeneration": 2,
+          "openedPages": [],
+          "pageCount": 1,
+          "targetEpoch": 2,
+          "url": "http://127.0.0.1:49173/codex/settings",
+          "urlChanged": true
+        }
+      }
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-web-save-readback.log",
+      "sha256": "b5cb1329a13ba0fa563c0150e782d5cfe2a45163617921f7e1ee39e9d8cfcaf5",
+      "receipt": {
+        "result": {
+          "elapsedMs": 11,
+          "requestId": "web-save-readback",
+          "value": {
+            "errors": [],
+            "sourceButton": true,
+            "value": {
+              "settings": {
+                "model": "codex-after",
+                "model_reasoning_effort": "future-effort",
+                "tui": {
+                  "notifications": [
+                    "agent-turn-complete",
+                    "approval-requested"
+                  ]
+                }
+              },
+              "unknown": [],
+              "updates": [
+                {
+                  "args": {
+                    "confirmationToken": "desktop-confirm:codex_update_settings",
+                    "settings": {
+                      "model": "codex-after"
+                    }
+                  },
+                  "cmd": "codex_update_settings"
+                }
+              ]
+            }
+          }
+        },
+        "status": "succeeded",
+        "transition": {
+          "closedPages": [],
+          "documentGeneration": 2,
+          "openedPages": [],
+          "pageCount": 1,
+          "targetEpoch": 2,
+          "url": "http://127.0.0.1:49173/codex/settings",
+          "urlChanged": false
+        }
+      }
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-web-open-source-final.log",
+      "sha256": "9710bc68736bad044649692e67537ec459bf7920cd441060f6c63bfd878eb460",
+      "receipt": {
+        "result": {
+          "elapsedMs": 1878,
+          "requestId": "web-open-source-final",
+          "value": {
+            "buttons": [
+              "取消",
+              "继续查看"
+            ],
+            "errors": [],
+            "text": "查看原始配置\n\n源文件可能包含 API Key、Token 或其他明文凭据。内容只在当前页面内存中保留，请确认周围环境安全。\n\n源文件可能包含 API Key、Token 或其他明文凭据。内容只在当前页面内存中保留，请确认周围环境安全。\n\n取消\n继续查看"
+          }
+        },
+        "status": "succeeded",
+        "transition": {
+          "closedPages": [],
+          "documentGeneration": 2,
+          "openedPages": [],
+          "pageCount": 1,
+          "targetEpoch": 2,
+          "url": "http://127.0.0.1:49173/codex/settings",
+          "urlChanged": false
+        }
+      }
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-web-editor-final.log",
+      "sha256": "ba233c6214120f64a2ebd9aee1a0467f6b8b00ab1974f48b173c66eab3055950",
+      "receipt": {
+        "result": {
+          "elapsedMs": 1091,
+          "nextAction": "For independent known searches, open 3–6 scratch tabs with context.newPage(), run bounded probes with Promise.allSettled(), close them in finally, and return only a deduplicated title/url/summary candidate table.",
+          "requestId": "web-editor-final",
+          "value": {
+            "content": "model = \"codex-after\"\n[tui]\nnotifications = [\"agent-turn-complete\", \"approval-requested\"]\n\n",
+            "errors": [],
+            "fixture": {
+              "reads": [
+                {
+                  "args": {},
+                  "cmd": "codex_get_config_raw_text"
+                }
+              ],
+              "unknown": [],
+              "updates": [
+                {
+                  "args": {
+                    "confirmationToken": "desktop-confirm:codex_update_settings",
+                    "settings": {
+                      "model": "codex-after"
+                    }
+                  },
+                  "cmd": "codex_update_settings"
+                }
+              ]
+            },
+            "main": "Codex\n本地\nCodex 设置\n\nCodex 全局配置：模型、安全、工具链、界面与功能开关。\n\n配置文件\n/synthetic/config.toml\n返回\n重新加载\n保存源文件\n当前编辑的是磁盘原文，可能包含明文凭据；内容不会写入浏览器存储或日志。\n1\n2\n3\n4\nmodel = \"codex-after\"\n[tui]\nnotifications = [\"agent-turn-complete\", \"approval-requested\"]\n\n\n配置层级\n\n按平台优先级展示当前可发现的配置来源。\n\n0",
+            "styles": {
+              "contentTop": 330.88751220703125,
+              "display": "flex",
+              "editorTop": 330.88751220703125,
+              "gutterTop": 330.88751220703125
+            }
+          }
+        },
+        "status": "succeeded",
+        "transition": {
+          "closedPages": [],
+          "documentGeneration": 2,
+          "openedPages": [],
+          "pageCount": 1,
+          "targetEpoch": 2,
+          "url": "http://127.0.0.1:49173/codex/settings",
+          "urlChanged": false
+        }
+      }
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-web-unavailable-final.log",
+      "sha256": "cbbd5fa517c7afe3984cca50516265e3324236959b9399c6f9934b03c7d541f6",
+      "receipt": {
+        "result": {
+          "elapsedMs": 1592,
+          "requestId": "web-unavailable-final",
+          "value": {
+            "errors": [],
+            "hasFixture": false,
+            "main": "Codex\nCodex 设置\n\nCodex 全局配置：模型、安全、工具链、界面与功能开关。\n\nCodex 设置\n\nTauri runtime is unavailable for get_current_environment\n\n重试",
+            "retry": 1
+          }
+        },
+        "status": "succeeded",
+        "transition": {
+          "closedPages": [],
+          "documentGeneration": 3,
+          "openedPages": [],
+          "pageCount": 1,
+          "targetEpoch": 2,
+          "url": "http://127.0.0.1:49173/codex/settings",
+          "urlChanged": false
+        }
+      }
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-web-close.log",
+      "sha256": "94ab9d7226b81a5866138b36a204afa181affe8404635978b932801bdc368617",
+      "receipt": {
+        "result": {
+          "elapsedMs": 20,
+          "requestId": "web-close-final",
+          "value": {
+            "closedTaskScratchPage": true,
+            "remaining": []
+          }
+        },
+        "status": "succeeded",
+        "transition": {
+          "closedPages": [
+            {
+              "id": "p1",
+              "url": "http://127.0.0.1:49173/codex/settings"
+            }
+          ],
+          "documentGeneration": 3,
+          "openedPages": [],
+          "pageCount": 0,
+          "targetEpoch": 2,
+          "url": null,
+          "urlChanged": true
+        }
+      }
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-web-finish.log",
+      "sha256": "f6b3b7d52da956f561328660e5bbeb358e97c19a854e2a019ce1e9aa4c220939",
+      "receipt": {
+        "artifacts": [],
+        "closedTabIds": [],
+        "downloads": [],
+        "finished": true,
+        "forcedCleanup": false,
+        "issues": [],
+        "keep": true,
+        "recommendedScreenshotLimit": 3,
+        "screenshotCount": 0,
+        "taskId": "task-7ab77617-8abd-409e-b7a6-ba88e95827ae"
+      }
+    }
+  ],
+  "preserved_harness_failures": [
+    "Original fixture route did not match Vite timestamp query",
+    "Initial patch expectation omitted confirmationToken",
+    "Hidden dialog node caused broad CSS selector strict-mode error",
+    "Task ownership expired during context continuation; resumed tab attachment failed, so a fresh owned scratch page ran the final complete sequence",
+    "Cross-realm deepEqual failed after a successful save; read-only JSON comparison confirmed one save without resubmission"
+  ],
+  "cleanup": {
+    "owned_scratch_page_closed": true,
+    "tabbit_finished": true,
+    "vite_stop_requested": true
+  }
+}

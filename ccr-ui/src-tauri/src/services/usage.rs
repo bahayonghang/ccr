@@ -667,6 +667,24 @@ pub fn detect_home_empty_reason(
     None
 }
 
+/// 当前窗口没有 usage 事件，且最近一次 llmusage sync 早于窗口起点（或缺失）时，
+/// 首页应触发增量导入。有历史数据但 7 天窗口全零时，不能再当成 is_warm。
+pub fn window_usage_needs_refresh(
+    total_requests: u64,
+    recent_completed_at: Option<&str>,
+    window_start: chrono::NaiveDate,
+) -> bool {
+    if total_requests > 0 {
+        return false;
+    }
+    let Some(completed) = recent_completed_at else {
+        return true;
+    };
+    DateTime::parse_from_rfc3339(completed)
+        .map(|timestamp| timestamp.with_timezone(&Local).date_naive() < window_start)
+        .unwrap_or(true)
+}
+
 /// 探测 ~/.claude 等真实目录是否存在原始 session 文件（同步 FS 扫描）。
 /// 仅供命令层在 spawn_blocking 内调用；service 计算函数只接收布尔结果，
 /// 保持无真实用户目录依赖、可单测。
@@ -1124,7 +1142,12 @@ pub fn compute_home_overview(
     let mut archive =
         load_llmusage_archive_diagnostics(&dashboard, count_archived_sessions(pool)?)?;
     let has_any_sessions = session_snapshot.has_any_sessions;
-    let needs_usage_import = !has_any_usage;
+    let needs_usage_import = !has_any_usage
+        || window_usage_needs_refresh(
+            usage_snapshot.total_requests,
+            archive.recent_completed_at.as_deref(),
+            start_day,
+        );
     let needs_session_index = !has_any_sessions && ctx.raw_sessions_present;
 
     for (platform_name, session_stats) in &session_snapshot.by_platform {
@@ -1276,6 +1299,27 @@ mod tests {
         );
         assert_eq!(detect_home_empty_reason(5, 3, true, true), None);
         assert_eq!(detect_home_empty_reason(0, 0, true, true), None);
+    }
+
+    #[test]
+    fn window_usage_needs_refresh_when_sync_predates_empty_window() {
+        let window_start = chrono::NaiveDate::from_ymd_opt(2026, 8, 27).expect("valid date");
+        assert!(!window_usage_needs_refresh(
+            12,
+            Some("2026-08-20T12:00:00Z"),
+            window_start
+        ));
+        assert!(window_usage_needs_refresh(
+            0,
+            Some("2026-08-20T12:00:00Z"),
+            window_start
+        ));
+        assert!(!window_usage_needs_refresh(
+            0,
+            Some("2026-08-28T12:00:00Z"),
+            window_start
+        ));
+        assert!(window_usage_needs_refresh(0, None, window_start));
     }
 
     #[test]
@@ -2168,6 +2212,39 @@ mod service_tests {
             response.snapshot.readiness.state,
             UsageReadinessState::Ready
         );
+    }
+
+    #[test]
+    fn compute_home_overview_marks_stale_empty_window_as_needs_import() {
+        let temp = TempDir::new().expect("temp dir should be created");
+        let (runtime, conn) = open_fixture(&temp);
+        let today = Local::now().date_naive();
+        let stale_day = today - Duration::days(10);
+        seed_bucket(
+            &conn,
+            &SeedBucket {
+                hour_start: local_noon_utc(stale_day),
+                event_count: 8,
+                total_tokens: 80,
+                ..SeedBucket::default()
+            },
+        );
+        seed_source_file(&conn, "codex", "live");
+        seed_run_log(
+            &conn,
+            "codex",
+            "recent",
+            &format!("{}T04:00:00Z", stale_day.format("%Y-%m-%d")),
+        );
+        drop(conn);
+        let pool = temp_usage_pool(&temp);
+
+        let response = compute_home_overview(&runtime, &pool, 7, empty_home_ctx())
+            .expect("home overview should compute");
+
+        assert_eq!(response.summary.total_requests, 0);
+        assert!(response.bootstrap.needs_usage_import);
+        assert!(!response.bootstrap.is_warm);
     }
 
     #[test]

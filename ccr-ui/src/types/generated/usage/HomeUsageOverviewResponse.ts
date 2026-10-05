@@ -6,4 +6,4 @@ import type { HomeOverviewSummary } from "./HomeOverviewSummary";
 import type { UsageArchiveDiagnostics } from "./UsageArchiveDiagnostics";
 import type { UsageSnapshotProjection } from "./UsageSnapshotProjection";
 
-export type HomeUsageOverviewResponse = { summary: HomeOverviewSummary, by_platform: { [key in string]?: HomeOverviewPlatformStats }, series: Array<HomeOverviewSeriesItem>, bootstrap: HomeOverviewBootstrap, archive: UsageArchiveDiagnostics, snapshot: UsageSnapshotProjection, empty_reason: string | null, last_updated: string, };
+export type HomeUsageOverviewResponse = { summary: HomeOverviewSummary, by_platform: { [key in string]: HomeOverviewPlatformStats }, series: Array<HomeOverviewSeriesItem>, bootstrap: HomeOverviewBootstrap, archive: UsageArchiveDiagnostics, snapshot: UsageSnapshotProjection, empty_reason: string | null, last_updated: string, };

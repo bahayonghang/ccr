@@ -8,13 +8,12 @@
 
 #![allow(clippy::unused_async)]
 
+use crate::commands::common::new_utf8_table;
 use crate::managers::SettingsManager;
 use crate::services::ConfigService;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
-use comfy_table::{
-    Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
-};
+use comfy_table::{Attribute, Cell, Color as TableColor, ContentArrangement};
 
 /// 🧹 清理 ccr 写入的配置
 ///
@@ -60,9 +59,8 @@ pub async fn clear_command(force: bool) -> Result<()> {
     ));
     println!();
 
-    let mut table = Table::new();
+    let mut table = new_utf8_table();
     table
-        .load_preset(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::DynamicFullWidth)
         .set_header(vec![
             Cell::new("环境变量")

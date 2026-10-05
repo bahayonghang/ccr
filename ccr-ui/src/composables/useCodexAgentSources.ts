@@ -1,181 +1,184 @@
-import { computed, ref } from 'vue'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
-  addCodexAgentSource,
   acceptLocalCodexSourceInstall,
+  addCodexAgentSource,
   forceSyncCodexSourceInstall,
-  getCodexAgentSourceCatalog,
   installCodexSourceAgent,
-  listCodexAgentSources,
   removeCodexAgentSource,
   syncCodexAgentSource,
   syncCodexSourceInstall,
   untrackCodexSourceInstall,
 } from '@/api'
-import type {
-  CodexAgentSourceCatalogResponse,
-  CodexAgentSourceRecord,
-} from '@/types'
+import {
+  codexKeys,
+  fetchCodexAgentSourceCatalog,
+  fetchCodexAgentSources,
+} from '@/features/codex/queries'
+import type { CodexAgentSourceRecord } from '@/types'
+
+// Codex agent source 管理的 React 迁移（08-22-state-logic-port 批次 5，
+// 服务端数据 → Query）。sources / catalog 为查询；selectedSourceId 为选中瞬态
+// （useState），catalog 派生自 selectedSourceId（原 loadCatalog 的显式清空语义
+// 由「无选中 → catalog=null」的派生规则承担）。
+// 签名变化：返回对象中的 Ref<T> 改为普通值；loading/mutating 由 Query
+// fetchStatus 与本地 useState 承载（消费方均为待迁移 .vue 视图）。
 
 export function useCodexAgentSources() {
-  const sources = ref<CodexAgentSourceRecord[]>([])
-  const selectedSourceId = ref<string | null>(null)
-  const catalog = ref<CodexAgentSourceCatalogResponse | null>(null)
-  const loading = ref(false)
-  const mutating = ref(false)
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
+  const [mutating, setMutating] = useState(false)
 
-  const selectedSource = computed(() => {
-    return sources.value.find((source) => source.id === selectedSourceId.value) ?? null
+  // 原实现每次进面板都全量刷新、无 TTL → staleTime 0
+  const sourcesQuery = useQuery({
+    queryKey: codexKeys.agentSources.list(),
+    queryFn: async () => {
+      const response = await fetchCodexAgentSources()
+      return (response.sources ?? []) as CodexAgentSourceRecord[]
+    },
+    staleTime: 0,
   })
 
-  async function refreshSources() {
-    loading.value = true
-    try {
-      const response = await listCodexAgentSources()
-      sources.value = response.sources ?? []
-      if (!selectedSourceId.value && sources.value.length > 0) {
-        selectedSourceId.value = sources.value[0]!.id
-      }
-    } finally {
-      loading.value = false
-    }
-  }
+  const sources = sourcesQuery.data
 
-  async function loadCatalog(sourceId?: string | null) {
-    const targetId = sourceId ?? selectedSourceId.value
-    if (!targetId) {
-      catalog.value = null
-      return
+  // 原 refreshSources 内联的自动选中：列表就绪且未选中时选第一项
+  useEffect(() => {
+    if (!selectedSourceId && sources && sources.length > 0) {
+      setSelectedSourceId(sources[0]!.id)
     }
+  }, [selectedSourceId, sources])
 
-    loading.value = true
-    try {
-      selectedSourceId.value = targetId
-      catalog.value = await getCodexAgentSourceCatalog(targetId)
-    } finally {
-      loading.value = false
-    }
-  }
+  const catalogQuery = useQuery({
+    queryKey: codexKeys.agentSources.catalog(selectedSourceId),
+    queryFn: () => fetchCodexAgentSourceCatalog(selectedSourceId!),
+    enabled: selectedSourceId !== null,
+    staleTime: 0,
+  })
 
-  async function refreshSelectedSourceLifecycle(options: {
+  const selectedSource = useMemo(
+    () => sources?.find((source) => source.id === selectedSourceId) ?? null,
+    [sources, selectedSourceId]
+  )
+
+  const loading = sourcesQuery.isFetching || catalogQuery.isFetching
+
+  /** 原刷新入口：重拉列表；选中态保持（自动选中由 effect 承担）。 */
+  const refreshSources = useCallback(async () => {
+    await sourcesQuery.refetch()
+  }, [sourcesQuery])
+
+  /**
+   * 原 loadCatalog：切换选中即触发 catalog 拉取（key 变化自动 refetch）；
+   * 无目标时清空选中，catalog 派生为 null（等价原 catalog.value = null 分支）。
+   */
+  const loadCatalog = useCallback(async (sourceId?: string | null) => {
+    setSelectedSourceId(sourceId ?? null)
+  }, [])
+
+  const refreshSelectedSourceLifecycle = useCallback(async (options: {
     sourceId?: string | null
     sync?: boolean
     reloadSources?: boolean
-  } = {}) {
-    const sourceId = options.sourceId ?? selectedSourceId.value
-    if (!sourceId) {
-      catalog.value = null
+  } = {}) => {
+    const targetId = options.sourceId ?? selectedSourceId
+    if (!targetId) {
+      setSelectedSourceId(null)
       return
     }
 
     if (options.sync) {
-      await syncCodexAgentSource(sourceId)
+      await syncCodexAgentSource(targetId)
     }
     if (options.reloadSources ?? true) {
-      await refreshSources()
+      await sourcesQuery.refetch()
     }
-    await loadCatalog(sourceId)
-  }
+    setSelectedSourceId(targetId)
+  }, [selectedSourceId, sourcesQuery])
 
-  async function addSource(url: string) {
-    mutating.value = true
+  const addSource = useCallback(async (url: string) => {
+    setMutating(true)
     try {
       const source = await addCodexAgentSource(url)
-      selectedSourceId.value = source.id
       await refreshSelectedSourceLifecycle({ sourceId: source.id })
     } finally {
-      mutating.value = false
+      setMutating(false)
     }
-  }
+  }, [refreshSelectedSourceLifecycle])
 
-  async function removeSource(sourceId: string) {
-    mutating.value = true
+  const removeSource = useCallback(async (sourceId: string) => {
+    setMutating(true)
     try {
       await removeCodexAgentSource(sourceId)
-      if (selectedSourceId.value === sourceId) {
-        selectedSourceId.value = null
-        catalog.value = null
+      if (selectedSourceId === sourceId) {
+        setSelectedSourceId(null)
       }
-      await refreshSources()
+      await sourcesQuery.refetch()
       await refreshSelectedSourceLifecycle({ reloadSources: false })
     } finally {
-      mutating.value = false
+      setMutating(false)
     }
-  }
+  }, [refreshSelectedSourceLifecycle, selectedSourceId, sourcesQuery])
 
-  async function syncSource(sourceId: string) {
-    mutating.value = true
+  const syncSource = useCallback(async (sourceId: string) => {
+    setMutating(true)
     try {
       await refreshSelectedSourceLifecycle({ sourceId, sync: true })
     } finally {
-      mutating.value = false
+      setMutating(false)
     }
-  }
+  }, [refreshSelectedSourceLifecycle])
 
-  async function installAgent(payload: {
+  const runMutation = useCallback(
+    async (action: () => Promise<unknown>) => {
+      setMutating(true)
+      try {
+        return await action()
+      } finally {
+        setMutating(false)
+      }
+    },
+    []
+  )
+
+  const installAgent = useCallback((payload: {
     sourceId: string
     agentId: string
     targetName?: string | null
     conflictMode?: string | null
-  }) {
-    mutating.value = true
-    try {
-      const result = await installCodexSourceAgent(payload)
-      await loadCatalog(payload.sourceId)
-      return result
-    } finally {
-      mutating.value = false
-    }
-  }
+  }) => runMutation(async () => {
+    const result = await installCodexSourceAgent(payload)
+    setSelectedSourceId(payload.sourceId)
+    return result
+  }), [runMutation])
 
-  async function syncInstall(installId: string) {
-    mutating.value = true
-    try {
-      const result = await syncCodexSourceInstall(installId)
-      await refreshSelectedSourceLifecycle({ sync: true })
-      return result
-    } finally {
-      mutating.value = false
-    }
-  }
+  const syncInstall = useCallback((installId: string) => runMutation(async () => {
+    const result = await syncCodexSourceInstall(installId)
+    await refreshSelectedSourceLifecycle({ sync: true })
+    return result
+  }), [refreshSelectedSourceLifecycle, runMutation])
 
-  async function forceSyncInstall(installId: string) {
-    mutating.value = true
-    try {
-      const result = await forceSyncCodexSourceInstall(installId)
-      await refreshSelectedSourceLifecycle({ sync: true })
-      return result
-    } finally {
-      mutating.value = false
-    }
-  }
+  const forceSyncInstall = useCallback((installId: string) => runMutation(async () => {
+    const result = await forceSyncCodexSourceInstall(installId)
+    await refreshSelectedSourceLifecycle({ sync: true })
+    return result
+  }), [refreshSelectedSourceLifecycle, runMutation])
 
-  async function acceptLocalInstall(installId: string) {
-    mutating.value = true
-    try {
-      const result = await acceptLocalCodexSourceInstall(installId)
-      await refreshSelectedSourceLifecycle({ reloadSources: false })
-      return result
-    } finally {
-      mutating.value = false
-    }
-  }
+  const acceptLocalInstall = useCallback((installId: string) => runMutation(async () => {
+    const result = await acceptLocalCodexSourceInstall(installId)
+    await refreshSelectedSourceLifecycle({ reloadSources: false })
+    return result
+  }), [refreshSelectedSourceLifecycle, runMutation])
 
-  async function untrackInstall(installId: string) {
-    mutating.value = true
-    try {
-      const result = await untrackCodexSourceInstall(installId)
-      await refreshSelectedSourceLifecycle({ reloadSources: false })
-      return result
-    } finally {
-      mutating.value = false
-    }
-  }
+  const untrackInstall = useCallback((installId: string) => runMutation(async () => {
+    const result = await untrackCodexSourceInstall(installId)
+    await refreshSelectedSourceLifecycle({ reloadSources: false })
+    return result
+  }), [refreshSelectedSourceLifecycle, runMutation])
 
   return {
-    sources,
+    sources: sources ?? [],
     selectedSourceId,
     selectedSource,
-    catalog,
+    catalog: selectedSourceId !== null ? catalogQuery.data ?? null : null,
     loading,
     mutating,
     refreshSources,

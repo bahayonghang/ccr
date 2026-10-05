@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<style>
+@font-face{font-family:'JBMono';src:url('assets/JetBrainsMono-Regular.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'JBMono';src:url('assets/JetBrainsMono-Medium.woff2') format('woff2');font-weight:500;font-display:swap}
+@font-face{font-family:'JBMono';src:url('assets/JetBrainsMono-SemiBold.woff2') format('woff2');font-weight:600;font-display:swap}
+body{margin:0;background:#0e0d0c;color:#f3eadf;font-family:'SF Pro Text','PingFang SC','Microsoft YaHei UI',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#e8835b;text-decoration:none}
+a:hover{color:#f0926c}
+</style>
+</helmet>
+
+<section style="display:flex;flex-direction:column;gap:28px;padding:56px 56px 20px">
+  <div style="display:flex;align-items:baseline;gap:16px">
+    <h2 style="margin:0;font-size:26px;font-weight:600;letter-spacing:-0.02em;color:#f3eadf">重设计 · 两个方向</h2>
+    <p style="margin:0;font-size:14px;color:#b9a695;max-width:70ch">同一套 clay 暗色令牌，统一到单一圆角梯度与实色边框。差别在信息架构：<a href="#1a">1a</a> 把平台台账做成主体，<a href="#1b">1b</a> 把运行时做成卡片阵列 + 大图表。</p>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+
+    <div id="1a" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;background:#e8835b;color:#1d1207;font-family:'JBMono',monospace;font-size:12px;font-weight:600">1a</span>
+        <span style="font-size:15px;font-weight:600;color:#f3eadf">台账优先 · Ledger</span>
+        <span style="font-size:13px;color:#977f6d">单列纵向，平台台账是主体</span>
+      </div>
+
+      <div style="width:1440px;height:920px;display:flex;overflow:hidden;border:1px solid #3a302a;border-radius:12px;background:#17120f;box-shadow:0 28px 60px rgb(0 0 0 / 44%)">
+
+        <!-- sidebar -->
+        <div style="width:236px;flex:none;display:flex;flex-direction:column;border-right:1px solid #322a25;background:#1c1613">
+          <div style="display:flex;align-items:center;gap:12px;height:76px;flex:none;padding:0 16px;border-bottom:1px solid #322a25">
+            <img src="assets/icon.svg" alt="CCR UI" style="width:34px;height:34px;border-radius:10px">
+            <div style="min-width:0">
+              <div style="font-size:15px;font-weight:600;letter-spacing:-0.02em;color:#f3eadf">CCR UI</div>
+              <div style="margin-top:2px;font-family:'JBMono',monospace;font-size:10px;font-weight:500;letter-spacing:0.14em;color:#977f6d">OPERATOR</div>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:20px;padding:14px 10px;overflow:hidden">
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <div style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;background:#33231b;color:#f3eadf;font-size:14px;font-weight:500">
+                <svg width="17" height="17" viewBox="0 0 24 24" style="flex:none;color:#e8835b"><path fill="currentColor" d="M2 12c0-4.714 0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12" opacity=".5"/><path fill="currentColor" d="M14.5 10.75a.75.75 0 0 1 0-1.5H17a.75.75 0 0 1 .75.75v2.5a.75.75 0 0 1-1.5 0v-.69l-2.013 2.013a1.75 1.75 0 0 1-2.474 0l-1.586-1.586a.25.25 0 0 0-.354 0L7.53 14.53a.75.75 0 0 1-1.06-1.06l2.293-2.293a1.75 1.75 0 0 1 2.474 0l1.586 1.586a.25.25 0 0 0 .354 0l2.012-2.013z"/></svg>
+                <span>总览</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;gap:8px;padding:0 10px"><span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">平台</span><span style="flex:1;height:1px;background:#322a25"></span></div>
+              <div style="display:flex;flex-direction:column;gap:1px">
+                <div style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500"><span style="width:6px;height:6px;flex:none;border-radius:2px;background:#d97757"></span><span>Claude Code</span></div>
+                <div style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500"><span style="width:6px;height:6px;flex:none;border-radius:2px;background:#7cab82"></span><span>Codex</span></div>
+                <div style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500"><span style="width:6px;height:6px;flex:none;border-radius:2px;background:#8b839c"></span><span>Grok</span></div>
+                <div style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500"><span style="width:6px;height:6px;flex:none;border-radius:2px;background:#98afc9"></span><span>Antigravity</span></div>
+                <div style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500"><span style="width:6px;height:6px;flex:none;border-radius:2px;background:#735f52"></span><span>OpenCode</span></div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;gap:8px;padding:0 10px"><span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">配置</span><span style="flex:1;height:1px;background:#322a25"></span></div>
+              <div style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500">
+                <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none;color:#b9a695"><path fill="currentColor" d="M6 13h12c1.886 0 2.828 0 3.414.586S22 15.114 22 17s0 2.828-.586 3.414S19.886 21 18 21H6c-1.886 0-2.828 0-3.414-.586S2 18.886 2 17s0-2.828.586-3.414S4.114 13 6 13M6 3h12c1.886 0 2.828 0 3.414.586S22 5.114 22 7s0 2.828-.586 3.414S19.886 11 18 11H6c-1.886 0-2.828 0-3.414-.586S2 8.886 2 7s0-2.828.586-3.414S4.114 3 6 3" opacity=".5"/><path fill="currentColor" d="M10.25 7a.75.75 0 0 1 .75-.75h7a.75.75 0 0 1 0 1.5h-7a.75.75 0 0 1-.75-.75m-5 0A.75.75 0 0 1 6 6.25h2a.75.75 0 0 1 0 1.5H6A.75.75 0 0 1 5.25 7m5 10a.75.75 0 0 1 .75-.75h7a.75.75 0 0 1 0 1.5h-7a.75.75 0 0 1-.75-.75m-5 0a.75.75 0 0 1 .75-.75h2a.75.75 0 0 1 0 1.5H6a.75.75 0 0 1-.75-.75"/></svg>
+                <span>MCP 管理</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;gap:8px;padding:0 10px"><span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">工具</span><span style="flex:1;height:1px;background:#322a25"></span></div>
+              <div style="display:flex;flex-direction:column;gap:1px">
+                <div style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500">
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none;color:#b9a695"><path fill="currentColor" d="M16 16h3a3 3 0 1 1-3 3.001zM5 16l3 .001v3a3 3 0 1 1-3-3"/><path fill="currentColor" fill-rule="evenodd" d="M19 8h-3V5a3 3 0 1 1 3 3M8 8V5a3 3 0 1 0-3 3z" clip-rule="evenodd"/><path fill="currentColor" d="M16 8H8v8h8z" opacity=".5"/></svg>
+                  <span>命令</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500">
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none;color:#b9a695"><path fill="currentColor" d="M21 15.998v-6c0-2.828 0-4.242-.879-5.121C19.353 4.109 18.175 4.012 16 4H8c-2.175.012-3.353.109-4.121.877C3 5.756 3 7.17 3 9.998v6c0 2.829 0 4.243.879 5.122c.878.878 2.293.878 5.121.878h6c2.828 0 4.243 0 5.121-.878c.879-.88.879-2.293.879-5.122" opacity=".5"/><path fill="currentColor" d="M8 3.5A1.5 1.5 0 0 1 9.5 2h5A1.5 1.5 0 0 1 16 3.5v1A1.5 1.5 0 0 1 14.5 6h-5A1.5 1.5 0 0 1 8 4.5z"/></svg>
+                  <span>签到</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500">
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none;color:#b9a695"><path fill="currentColor" fill-rule="evenodd" d="M22 14.353C22 17.472 19.442 20 16.286 20h-5.787a7.5 7.5 0 0 1 7.487-11.853q.119.422.17.868C20.392 9.78 22 11.881 22 14.353" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M12.476 4C9.32 4 6.762 6.528 6.762 9.647c0 .69.125 1.35.354 1.962a4.4 4.4 0 0 0-.83-.08C3.919 11.53 2 13.426 2 15.765S3.919 20 6.286 20H10.5a7.5 7.5 0 0 1 7.487-11.853l-.047-.158C17.224 5.68 15.048 4 12.476 4"/></svg>
+                  <span>同步</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500">
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none;color:#b9a695"><path fill="currentColor" d="M2 12c0-4.714 0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12" opacity=".5"/><path fill="currentColor" d="M14.5 10.75a.75.75 0 0 1 0-1.5H17a.75.75 0 0 1 .75.75v2.5a.75.75 0 0 1-1.5 0v-.69l-2.013 2.013a1.75 1.75 0 0 1-2.474 0l-1.586-1.586a.25.25 0 0 0-.354 0L7.53 14.53a.75.75 0 0 1-1.06-1.06l2.293-2.293a1.75 1.75 0 0 1 2.474 0l1.586 1.586a.25.25 0 0 0 .354 0l2.012-2.013z"/></svg>
+                  <span>用量</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="flex:none;padding:10px;border-top:1px solid #322a25">
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid #322a25;border-radius:8px;background:#221b18">
+              <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;flex:none;border-radius:8px;background:#2c2420">
+                <svg width="15" height="15" viewBox="0 0 24 24" style="color:#b9a695"><path fill="currentColor" d="M13.752 14.5a3 3 0 1 1 6 0a3 3 0 0 1-6 0m-10-5a3 3 0 1 0 6 0a3 3 0 0 0-6 0"/><path fill="currentColor" d="M7.462 6.584a3 3 0 0 0-1.5.021V2a.75.75 0 0 1 1.5 0zm-1.5 5.81a3 3 0 0 0 1.5.021V22a.75.75 0 0 1-1.5 0zm10 5V22a.75.75 0 0 0 1.5 0v-4.585a3 3 0 0 1-1.5-.021m1.5-5.81V2a.75.75 0 0 0-1.5 0v9.605a3 3 0 0 1 1.5-.021" opacity=".5"/></svg>
+              </span>
+              <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                <div style="font-size:13px;font-weight:600;color:#f3eadf">设置</div>
+                <div style="font-family:'JBMono',monospace;font-size:10px;color:#977f6d">Dark · Clay · v7.2.0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- main -->
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;background:#17120f">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;height:60px;flex:none;padding:0 24px;border-bottom:1px solid #322a25;background:#1c1613">
+            <div style="display:flex;align-items:center;gap:10px;font-size:14px">
+              <span style="color:#977f6d">总览</span>
+              <span style="color:#4d3f36">/</span>
+              <span style="font-weight:600;color:#f3eadf">今日</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;border:1px solid #3a302a;border-radius:8px;background:#221b18">
+                <span style="width:7px;height:7px;border-radius:50%;background:#7cab82"></span>
+                <span style="font-size:13px;font-weight:500;color:#dacbbc">本机</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" style="color:#977f6d"><path fill="currentColor" d="m8.303 12.404l3.327 3.431c.213.22.527.22.74 0l6.43-6.63C19.201 8.79 18.958 8 18.43 8h-5.723z"/><path fill="currentColor" d="M11.293 8H5.57c-.528 0-.771.79-.37 1.205l2.406 2.481z" opacity=".5"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:16px;padding:24px;overflow:hidden">
+
+            <!-- status strip -->
+            <div style="flex:none;display:grid;grid-template-columns:auto 1px 1fr 1fr 1fr auto;align-items:center;gap:24px;padding:18px 22px;border:1px solid #3a302a;border-radius:12px;background:#221b18">
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">就绪</div>
+                <div style="display:flex;align-items:baseline;gap:8px">
+                  <span style="font-family:'JBMono',monospace;font-size:34px;font-weight:600;line-height:1;letter-spacing:-0.02em;color:#7cab82">3</span>
+                  <span style="font-family:'JBMono',monospace;font-size:16px;color:#735f52">/3</span>
+                </div>
+              </div>
+              <div style="width:1px;height:46px;background:#322a25"></div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">今日请求</div>
+                <div style="display:flex;align-items:baseline;gap:8px">
+                  <span style="font-family:'JBMono',monospace;font-size:28px;font-weight:600;line-height:1;letter-spacing:-0.02em;color:#f3eadf">1,412</span>
+                  <span style="font-family:'JBMono',monospace;font-size:12px;font-weight:600;color:#7cab82">+12%</span>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">本周 Token</div>
+                <div style="display:flex;align-items:baseline;gap:8px">
+                  <span style="font-family:'JBMono',monospace;font-size:28px;font-weight:600;line-height:1;letter-spacing:-0.02em;color:#f3eadf">3.9B</span>
+                  <span style="font-family:'JBMono',monospace;font-size:12px;font-weight:600;color:#b9a695">≈ 峰值 3.5K/日</span>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">预估成本</div>
+                <div style="display:flex;align-items:baseline;gap:8px">
+                  <span style="font-family:'JBMono',monospace;font-size:28px;font-weight:600;line-height:1;letter-spacing:-0.02em;color:#f3eadf">$128.40</span>
+                  <span style="font-family:'JBMono',monospace;font-size:12px;font-weight:600;color:#d6a76d">+4%</span>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="display:flex;align-items:center;height:38px;padding:0 14px;border:1px solid #3a302a;border-radius:9999px;background:#2a221e;font-size:13px;font-weight:500;color:#dacbbc">查看用量</div>
+                <div style="display:flex;align-items:center;height:38px;padding:0 16px;border-radius:9999px;background:#e8835b;font-size:13px;font-weight:600;color:#1d1207">同步配置</div>
+              </div>
+            </div>
+
+            <!-- ledger -->
+            <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px">
+                <div style="display:flex;align-items:baseline;gap:12px">
+                  <h3 style="margin:0;font-size:17px;font-weight:600;letter-spacing:-0.01em;color:#f3eadf">平台台账</h3>
+                  <span style="font-size:13px;color:#977f6d">版本、就绪、七日用量，阻塞项排在最前</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:4px;padding:3px;border:1px solid #322a25;border-radius:9999px;background:#221b18">
+                  <span style="display:flex;align-items:center;height:26px;padding:0 12px;border-radius:9999px;background:#33231b;font-family:'JBMono',monospace;font-size:12px;font-weight:600;color:#f3eadf">7D</span>
+                  <span style="display:flex;align-items:center;height:26px;padding:0 12px;border-radius:9999px;font-family:'JBMono',monospace;font-size:12px;font-weight:500;color:#977f6d">30D</span>
+                  <span style="display:flex;align-items:center;height:26px;padding:0 12px;border-radius:9999px;font-family:'JBMono',monospace;font-size:12px;font-weight:500;color:#977f6d">90D</span>
+                </div>
+              </div>
+
+              <div style="border:1px solid #3a302a;border-radius:12px;background:#221b18;overflow:hidden">
+                <div style="display:grid;grid-template-columns:4px 200px 96px 1fr 108px 108px 132px 28px;align-items:center;gap:16px;padding:10px 18px 10px 0;border-bottom:1px solid #322a25;background:#1e1815">
+                  <span></span>
+                  <span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">平台</span>
+                  <span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">状态</span>
+                  <span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">范围</span>
+                  <span style="text-align:right;font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">请求</span>
+                  <span style="text-align:right;font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">TOKEN</span>
+                  <span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">七日</span>
+                  <span></span>
+                </div>
+
+                <div style="display:grid;grid-template-columns:4px 200px 96px 1fr 108px 108px 132px 28px;align-items:center;gap:16px;padding:0 18px 0 0;height:64px;border-bottom:1px solid #2a231f;background:#241d19">
+                  <span style="align-self:stretch;background:#98afc9"></span>
+                  <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                    <span style="font-size:14px;font-weight:600;color:#f3eadf">Antigravity</span>
+                    <span style="font-family:'JBMono',monospace;font-size:11px;color:#977f6d">v1.1.19</span>
+                  </div>
+                  <span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:6px;background:#3a2a20;font-size:12px;font-weight:600;color:#d6a76d"><span style="width:6px;height:6px;border-radius:50%;background:#d6a76d"></span>未追踪</span>
+                  <span style="font-size:13px;color:#b9a695;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">CLI 配置、MCP、技能与插件迁移</span>
+                  <span style="text-align:right;font-family:'JBMono',monospace;font-size:14px;font-weight:600;color:#735f52">—</span>
+                  <span style="text-align:right;font-family:'JBMono',monospace;font-size:14px;font-weight:600;color:#735f52">—</span>
+                  <div style="display:flex;align-items:center;height:12px"><span style="flex:1;height:1px;border-top:1px dashed #4d3f36"></span></div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="color:#977f6d"><path fill="currentColor" fill-rule="evenodd" d="M3.25 12a.75.75 0 0 1 .75-.75h9.25v1.5H4a.75.75 0 0 1-.75-.75" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M13.25 12.75V18a.75.75 0 0 0 1.28.53l6-6a.75.75 0 0 0 0-1.06l-6-6a.75.75 0 0 0-1.28.53z"/></svg>
+                </div>
+
+                <div style="display:grid;grid-template-columns:4px 200px 96px 1fr 108px 108px 132px 28px;align-items:center;gap:16px;padding:0 18px 0 0;height:64px;border-bottom:1px solid #2a231f">
+                  <span style="align-self:stretch;background:#d97757"></span>
+                  <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                    <span style="font-size:14px;font-weight:600;color:#f3eadf">Claude Code</span>
+                    <span style="font-family:'JBMono',monospace;font-size:11px;color:#977f6d">v2.1.243</span>
+                  </div>
+                  <span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:6px;background:#25332a;font-size:12px;font-weight:600;color:#7cab82"><span style="width:6px;height:6px;border-radius:50%;background:#7cab82"></span>就绪</span>
+                  <span style="font-size:13px;color:#b9a695;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">配置、Profile、MCP、插件与同步</span>
+                  <span style="text-align:right;font-family:'JBMono',monospace;font-size:14px;font-weight:600;color:#f3eadf">1.3K</span>
+                  <span style="text-align:right;font-family:'JBMono',monospace;font-size:14px;font-weight:600;color:#f3eadf">239.2M</span>
+                  <div style="display:flex;align-items:flex-end;gap:2px;height:26px">
+                    <span style="flex:1;height:32%;border-radius:2px 2px 0 0;background:#5c4a40"></span><span style="flex:1;height:48%;border-radius:2px 2px 0 0;background:#5c4a40"></span><span style="flex:1;height:38%;border-radius:2px 2px 0 0;background:#5c4a40"></span><span style="flex:1;height:62%;border-radius:2px 2px 0 0;background:#5c4a40"></span><span style="flex:1;height:54%;border-radius:2px 2px 0 0;background:#5c4a40"></span><span style="flex:1;height:88%;border-radius:2px 2px 0 0;background:#d97757"></span><span style="flex:1;height:70%;border-radius:2px 2px 0 0;background:#8a6a58"></span>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="color:#977f6d"><path fill="currentColor" fill-rule="evenodd" d="M3.25 12a.75.75 0 0 1 .75-.75h9.25v1.5H4a.75.75 0 0 1-.75-.75" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M13.25 12.75V18a.75.75 0 0 0 1.28.53l6-6a.75.75 0 0 0 0-1.06l-6-6a.75.75 0 0 0-1.28.53z"/></svg>
+                </div>
+
+                <div style="display:grid;grid-template-columns:4px 200px 96px 1fr 108px 108px 132px 28px;align-items:center;gap:16px;padding:0 18px 0 0;height:64px;border-bottom:1px solid #2a231f">
+                  <span style="align-self:stretch;background:#7cab82"></span>
+                  <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                    <span style="font-size:14px;font-weight:600;color:#f3eadf">Codex</span>
+                    <span style="font-family:'JBMono',monospace;font-size:11px;color:#977f6d">cli 0.149.1</span>
+                  </div>
+                  <span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:6px;background:#25332a;font-size:12px;font-weight:600;color:#7cab82"><span style="width:6px;height:6px;border-radius:50%;background:#7cab82"></span>就绪</span>
+                  <span style="font-size:13px;color:#b9a695;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">认证、Profile、MCP 与全局设置</span>
+                  <span style="text-align:right;font-family:'JBMono',monospace;font-size:14px;font-weight:600;color:#f3eadf">9.8K</span>
+                  <span style="text-align:right;font-family:'JBMono',monospace;font-size:14px;font-weight:600;color:#f3eadf">1.2B</span>
+                  <div style="display:flex;align-items:flex-end;gap:2px;height:26px">
+                    <span style="flex:1;height:52%;border-radius:2px 2px 0 0;background:#5c4a40"></span><span style="flex:1;height:66%;border-radius:2px 2px 0 0;background:#5c4a40"></span><span style="flex:1;height:44%;border-radius:2px 2px 0 0;background:#5c4a40"></span><span style="flex:1;height:74%;border-radius:2px 2px 0 0;background:#5c4a40"></span><span style="flex:1;height:96%;border-radius:2px 2px 0 0;background:#7cab82"></span><span style="flex:1;height:82%;border-radius:2px 2px 0 0;background:#5d7a62"></span><span style="flex:1;height:60%;border-radius:2px 2px 0 0;background:#5c4a40"></span>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="color:#977f6d"><path fill="currentColor" fill-rule="evenodd" d="M3.25 12a.75.75 0 0 1 .75-.75h9.25v1.5H4a.75.75 0 0 1-.75-.75" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M13.25 12.75V18a.75.75 0 0 0 1.28.53l6-6a.75.75 0 0 0 0-1.06l-6-6a.75.75 0 0 0-1.28.53z"/></svg>
+                </div>
+
+                <div style="display:grid;grid-template-columns:4px 200px 96px 1fr 108px 108px 132px 28px;align-items:center;gap:16px;padding:0 18px 0 0;height:64px">
+                  <span style="align-self:stretch;background:#735f52"></span>
+                  <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                    <span style="font-size:14px;font-weight:600;color:#f3eadf">OpenCode</span>
+                    <span style="font-family:'JBMono',monospace;font-size:11px;color:#977f6d">应用内托管</span>
+                  </div>
+                  <span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:6px;background:#252d33;font-size:12px;font-weight:600;color:#98afc9"><span style="width:6px;height:6px;border-radius:50%;background:#98afc9"></span>托管</span>
+                  <span style="font-size:13px;color:#b9a695;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">供应商、MCP、Agent、命令与运行时设置</span>
+                  <span style="text-align:right;font-family:'JBMono',monospace;font-size:14px;font-weight:600;color:#f3eadf">73</span>
+                  <span style="text-align:right;font-family:'JBMono',monospace;font-size:14px;font-weight:600;color:#f3eadf">2.7M</span>
+                  <div style="display:flex;align-items:flex-end;gap:2px;height:26px">
+                    <span style="flex:1;height:18%;border-radius:2px 2px 0 0;background:#4a3d35"></span><span style="flex:1;height:12%;border-radius:2px 2px 0 0;background:#4a3d35"></span><span style="flex:1;height:26%;border-radius:2px 2px 0 0;background:#4a3d35"></span><span style="flex:1;height:16%;border-radius:2px 2px 0 0;background:#4a3d35"></span><span style="flex:1;height:34%;border-radius:2px 2px 0 0;background:#4a3d35"></span><span style="flex:1;height:22%;border-radius:2px 2px 0 0;background:#4a3d35"></span><span style="flex:1;height:14%;border-radius:2px 2px 0 0;background:#4a3d35"></span>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="color:#977f6d"><path fill="currentColor" fill-rule="evenodd" d="M3.25 12a.75.75 0 0 1 .75-.75h9.25v1.5H4a.75.75 0 0 1-.75-.75" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M13.25 12.75V18a.75.75 0 0 0 1.28.53l6-6a.75.75 0 0 0 0-1.06l-6-6a.75.75 0 0 0-1.28.53z"/></svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- bottom row -->
+            <div style="flex:none;display:grid;grid-template-columns:1.15fr 1fr;gap:16px">
+              <div style="display:flex;flex-direction:column;gap:12px;padding:18px;border:1px solid #3a302a;border-radius:12px;background:#221b18">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+                  <h3 style="margin:0;font-size:15px;font-weight:600;color:#f3eadf">需要注意</h3>
+                  <span style="font-family:'JBMono',monospace;font-size:12px;font-weight:600;color:#977f6d">2 警告 · 1 错误</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <div style="display:grid;grid-template-columns:3px 1fr auto;align-items:center;gap:12px;padding:10px 12px 10px 0;border-radius:8px;background:#2b1f1c;overflow:hidden">
+                    <span style="align-self:stretch;background:#db8a73"></span>
+                    <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                      <span style="font-size:13px;font-weight:600;color:#f3eadf">用量导入任务失败</span>
+                      <span style="font-family:'JBMono',monospace;font-size:11px;color:#b9a695">runtime · 08:40 PM</span>
+                    </div>
+                    <span style="font-size:12px;font-weight:600;color:#db8a73">重试</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:3px 1fr auto;align-items:center;gap:12px;padding:10px 12px 10px 0;border-radius:8px;background:#2a231d;overflow:hidden">
+                    <span style="align-self:stretch;background:#d6a76d"></span>
+                    <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                      <span style="font-size:13px;font-weight:600;color:#f3eadf">claudeObserver 查询返回空数组</span>
+                      <span style="font-family:'JBMono',monospace;font-size:11px;color:#b9a695">frontend · 08:40 PM · ×3</span>
+                    </div>
+                    <span style="font-size:12px;font-weight:600;color:#b9a695">查看</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:3px 1fr auto;align-items:center;gap:12px;padding:10px 12px 10px 0;border-radius:8px;background:#2a231d;overflow:hidden">
+                    <span style="align-self:stretch;background:#d6a76d"></span>
+                    <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                      <span style="font-size:13px;font-weight:600;color:#f3eadf">Antigravity 用量未被追踪</span>
+                      <span style="font-family:'JBMono',monospace;font-size:11px;color:#b9a695">usage · 08:13 AM</span>
+                    </div>
+                    <span style="font-size:12px;font-weight:600;color:#b9a695">配置</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:12px;padding:18px;border:1px solid #3a302a;border-radius:12px;background:#221b18">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+                  <h3 style="margin:0;font-size:15px;font-weight:600;color:#f3eadf">下一步</h3>
+                  <span style="font-size:12px;color:#977f6d">按风险排序</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <div style="display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:11px 12px;border:1px solid #4d3020;border-radius:8px;background:#33231b">
+                    <svg width="17" height="17" viewBox="0 0 24 24" style="color:#e8835b"><path fill="currentColor" d="M16 16h3a3 3 0 1 1-3 3.001zM5 16l3 .001v3a3 3 0 1 1-3-3"/><path fill="currentColor" fill-rule="evenodd" d="M19 8h-3V5a3 3 0 1 1 3 3M8 8V5a3 3 0 1 0-3 3z" clip-rule="evenodd"/><path fill="currentColor" d="M16 8H8v8h8z" opacity=".5"/></svg>
+                    <span style="font-size:13px;font-weight:600;color:#f3eadf">运行常用 CLI 命令并查看输出</span>
+                    <svg width="15" height="15" viewBox="0 0 24 24" style="color:#e8835b"><path fill="currentColor" fill-rule="evenodd" d="M3.25 12a.75.75 0 0 1 .75-.75h9.25v1.5H4a.75.75 0 0 1-.75-.75" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M13.25 12.75V18a.75.75 0 0 0 1.28.53l6-6a.75.75 0 0 0 0-1.06l-6-6a.75.75 0 0 0-1.28.53z"/></svg>
+                  </div>
+                  <div style="display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:11px 12px;border:1px solid transparent;border-radius:8px">
+                    <svg width="17" height="17" viewBox="0 0 24 24" style="color:#b9a695"><path fill="currentColor" fill-rule="evenodd" d="M14.279 2.152C13.909 2 13.439 2 12.5 2s-1.408 0-1.779.152a2 2 0 0 0-1.09 1.083c-.094.223-.13.484-.145.863a1.62 1.62 0 0 1-.796 1.353a1.64 1.64 0 0 1-1.579.008c-.338-.178-.583-.276-.825-.308a2.03 2.03 0 0 0-1.49.396c-.318.242-.553.646-1.022 1.453c-.47.807-.704 1.21-.757 1.605c-.07.526.074 1.058.4 1.479c.148.192.357.353.68.555c.477.297.783.803.783 1.361s-.306 1.064-.782 1.36c-.324.203-.533.364-.682.556a2 2 0 0 0-.399 1.479c.053.394.287.798.757 1.605s.704 1.21 1.022 1.453c.424.323.96.465 1.49.396c.242-.032.487-.13.825-.308a1.64 1.64 0 0 1 1.58.008c.486.28.774.795.795 1.353c.015.38.051.64.145.863c.204.49.596.88 1.09 1.083c.37.152.84.152 1.779.152s1.409 0 1.779-.152a2 2 0 0 0 1.09-1.083c.094-.223.13-.483.145-.863c.02-.558.309-1.074.796-1.353a1.64 1.64 0 0 1 1.579-.008c.338.178.583.276.825.308c.53.07 1.066-.073 1.49-.396c.318-.242.553-.646 1.022-1.453c.47-.807.704-1.21.757-1.605a2 2 0 0 0-.4-1.479c-.148-.192-.357-.353-.68-.555c-.477-.297-.783-.803-.783-1.361s.306-1.064.782-1.36c.324-.203.533-.364.682-.556a2 2 0 0 0 .399-1.479c-.053-.394-.287-.798-.757-1.605s-.704-1.21-1.022-1.453a2.03 2.03 0 0 0-1.49-.396c-.242.032-.487.13-.825.308a1.64 1.64 0 0 1-1.58-.008a1.62 1.62 0 0 1-.795-1.353c-.015-.38-.051-.64-.145-.863a2 2 0 0 0-1.09-1.083" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M15.523 12c0 1.657-1.354 3-3.023 3s-3.023-1.343-3.023-3S10.83 9 12.5 9s3.023 1.343 3.023 3"/></svg>
+                    <span style="font-size:13px;font-weight:500;color:#dacbbc">检查默认值、认证与平台路由</span>
+                    <svg width="15" height="15" viewBox="0 0 24 24" style="color:#735f52"><path fill="currentColor" fill-rule="evenodd" d="M3.25 12a.75.75 0 0 1 .75-.75h9.25v1.5H4a.75.75 0 0 1-.75-.75" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M13.25 12.75V18a.75.75 0 0 0 1.28.53l6-6a.75.75 0 0 0 0-1.06l-6-6a.75.75 0 0 0-1.28.53z"/></svg>
+                  </div>
+                  <div style="display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:11px 12px;border:1px solid transparent;border-radius:8px">
+                    <svg width="17" height="17" viewBox="0 0 24 24" style="color:#b9a695"><path fill="currentColor" fill-rule="evenodd" d="M22 14.353C22 17.472 19.442 20 16.286 20h-5.787a7.5 7.5 0 0 1 7.487-11.853q.119.422.17.868C20.392 9.78 22 11.881 22 14.353" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M12.476 4C9.32 4 6.762 6.528 6.762 9.647c0 .69.125 1.35.354 1.962a4.4 4.4 0 0 0-.83-.08C3.919 11.53 2 13.426 2 15.765S3.919 20 6.286 20H10.5a7.5 7.5 0 0 1 7.487-11.853l-.047-.158C17.224 5.68 15.048 4 12.476 4"/></svg>
+                    <span style="font-size:13px;font-weight:500;color:#dacbbc">同步或备份配置</span>
+                    <svg width="15" height="15" viewBox="0 0 24 24" style="color:#735f52"><path fill="currentColor" fill-rule="evenodd" d="M3.25 12a.75.75 0 0 1 .75-.75h9.25v1.5H4a.75.75 0 0 1-.75-.75" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M13.25 12.75V18a.75.75 0 0 0 1.28.53l6-6a.75.75 0 0 0 0-1.06l-6-6a.75.75 0 0 0-1.28.53z"/></svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1b" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;background:#e8835b;color:#1d1207;font-family:'JBMono',monospace;font-size:12px;font-weight:600">1b</span>
+        <span style="font-size:15px;font-weight:600;color:#f3eadf">运行时卡 · Runtime</span>
+        <span style="font-size:13px;color:#977f6d">卡片阵列 + 大图表，顶部常驻环境切换</span>
+      </div>
+
+      <div style="width:1440px;height:920px;display:flex;overflow:hidden;border:1px solid #3a302a;border-radius:12px;background:#17120f;box-shadow:0 28px 60px rgb(0 0 0 / 44%)">
+
+        <div style="width:236px;flex:none;display:flex;flex-direction:column;border-right:1px solid #322a25;background:#1c1613">
+          <div style="display:flex;align-items:center;gap:12px;height:76px;flex:none;padding:0 16px;border-bottom:1px solid #322a25">
+            <img src="assets/icon.svg" alt="CCR UI" style="width:34px;height:34px;border-radius:10px">
+            <div style="min-width:0">
+              <div style="font-size:15px;font-weight:600;letter-spacing:-0.02em;color:#f3eadf">CCR UI</div>
+              <div style="margin-top:2px;font-family:'JBMono',monospace;font-size:10px;font-weight:500;letter-spacing:0.14em;color:#977f6d">OPERATOR</div>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:20px;padding:14px 10px;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;background:#33231b;color:#f3eadf;font-size:14px;font-weight:500">
+              <svg width="17" height="17" viewBox="0 0 24 24" style="flex:none;color:#e8835b"><path fill="currentColor" d="M2 12c0-4.714 0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12" opacity=".5"/><path fill="currentColor" d="M14.5 10.75a.75.75 0 0 1 0-1.5H17a.75.75 0 0 1 .75.75v2.5a.75.75 0 0 1-1.5 0v-.69l-2.013 2.013a1.75 1.75 0 0 1-2.474 0l-1.586-1.586a.25.25 0 0 0-.354 0L7.53 14.53a.75.75 0 0 1-1.06-1.06l2.293-2.293a1.75 1.75 0 0 1 2.474 0l1.586 1.586a.25.25 0 0 0 .354 0l2.012-2.013z"/></svg>
+              <span>总览</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;gap:8px;padding:0 10px"><span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">平台</span><span style="flex:1;height:1px;background:#322a25"></span></div>
+              <div style="display:flex;flex-direction:column;gap:1px">
+                <div style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500"><span style="width:6px;height:6px;flex:none;border-radius:2px;background:#d97757"></span><span>Claude Code</span></div>
+                <div style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500"><span style="width:6px;height:6px;flex:none;border-radius:2px;background:#7cab82"></span><span>Codex</span></div>
+                <div style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500"><span style="width:6px;height:6px;flex:none;border-radius:2px;background:#8b839c"></span><span>Grok</span></div>
+                <div style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500"><span style="width:6px;height:6px;flex:none;border-radius:2px;background:#98afc9"></span><span>Antigravity</span></div>
+                <div style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500"><span style="width:6px;height:6px;flex:none;border-radius:2px;background:#735f52"></span><span>OpenCode</span></div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;gap:8px;padding:0 10px"><span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">配置</span><span style="flex:1;height:1px;background:#322a25"></span></div>
+              <div style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500">
+                <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none;color:#b9a695"><path fill="currentColor" d="M6 13h12c1.886 0 2.828 0 3.414.586S22 15.114 22 17s0 2.828-.586 3.414S19.886 21 18 21H6c-1.886 0-2.828 0-3.414-.586S2 18.886 2 17s0-2.828.586-3.414S4.114 13 6 13M6 3h12c1.886 0 2.828 0 3.414.586S22 5.114 22 7s0 2.828-.586 3.414S19.886 11 18 11H6c-1.886 0-2.828 0-3.414-.586S2 8.886 2 7s0-2.828.586-3.414S4.114 3 6 3" opacity=".5"/><path fill="currentColor" d="M10.25 7a.75.75 0 0 1 .75-.75h7a.75.75 0 0 1 0 1.5h-7a.75.75 0 0 1-.75-.75m-5 0A.75.75 0 0 1 6 6.25h2a.75.75 0 0 1 0 1.5H6A.75.75 0 0 1 5.25 7m5 10a.75.75 0 0 1 .75-.75h7a.75.75 0 0 1 0 1.5h-7a.75.75 0 0 1-.75-.75m-5 0a.75.75 0 0 1 .75-.75h2a.75.75 0 0 1 0 1.5H6a.75.75 0 0 1-.75-.75"/></svg>
+                <span>MCP 管理</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;gap:8px;padding:0 10px"><span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">工具</span><span style="flex:1;height:1px;background:#322a25"></span></div>
+              <div style="display:flex;flex-direction:column;gap:1px">
+                <div style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500">
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none;color:#b9a695"><path fill="currentColor" d="M16 16h3a3 3 0 1 1-3 3.001zM5 16l3 .001v3a3 3 0 1 1-3-3"/><path fill="currentColor" fill-rule="evenodd" d="M19 8h-3V5a3 3 0 1 1 3 3M8 8V5a3 3 0 1 0-3 3z" clip-rule="evenodd"/><path fill="currentColor" d="M16 8H8v8h8z" opacity=".5"/></svg>
+                  <span>命令</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500">
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none;color:#b9a695"><path fill="currentColor" d="M21 15.998v-6c0-2.828 0-4.242-.879-5.121C19.353 4.109 18.175 4.012 16 4H8c-2.175.012-3.353.109-4.121.877C3 5.756 3 7.17 3 9.998v6c0 2.829 0 4.243.879 5.122c.878.878 2.293.878 5.121.878h6c2.828 0 4.243 0 5.121-.878c.879-.88.879-2.293.879-5.122" opacity=".5"/><path fill="currentColor" d="M8 3.5A1.5 1.5 0 0 1 9.5 2h5A1.5 1.5 0 0 1 16 3.5v1A1.5 1.5 0 0 1 14.5 6h-5A1.5 1.5 0 0 1 8 4.5z"/></svg>
+                  <span>签到</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500">
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none;color:#b9a695"><path fill="currentColor" fill-rule="evenodd" d="M22 14.353C22 17.472 19.442 20 16.286 20h-5.787a7.5 7.5 0 0 1 7.487-11.853q.119.422.17.868C20.392 9.78 22 11.881 22 14.353" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M12.476 4C9.32 4 6.762 6.528 6.762 9.647c0 .69.125 1.35.354 1.962a4.4 4.4 0 0 0-.83-.08C3.919 11.53 2 13.426 2 15.765S3.919 20 6.286 20H10.5a7.5 7.5 0 0 1 7.487-11.853l-.047-.158C17.224 5.68 15.048 4 12.476 4"/></svg>
+                  <span>同步</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500">
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none;color:#b9a695"><path fill="currentColor" d="M2 12c0-4.714 0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12" opacity=".5"/><path fill="currentColor" d="M14.5 10.75a.75.75 0 0 1 0-1.5H17a.75.75 0 0 1 .75.75v2.5a.75.75 0 0 1-1.5 0v-.69l-2.013 2.013a1.75 1.75 0 0 1-2.474 0l-1.586-1.586a.25.25 0 0 0-.354 0L7.53 14.53a.75.75 0 0 1-1.06-1.06l2.293-2.293a1.75 1.75 0 0 1 2.474 0l1.586 1.586a.25.25 0 0 0 .354 0l2.012-2.013z"/></svg>
+                  <span>用量</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="flex:none;padding:10px;border-top:1px solid #322a25">
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid #322a25;border-radius:8px;background:#221b18">
+              <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;flex:none;border-radius:8px;background:#2c2420">
+                <svg width="15" height="15" viewBox="0 0 24 24" style="color:#b9a695"><path fill="currentColor" d="M13.752 14.5a3 3 0 1 1 6 0a3 3 0 0 1-6 0m-10-5a3 3 0 1 0 6 0a3 3 0 0 0-6 0"/><path fill="currentColor" d="M7.462 6.584a3 3 0 0 0-1.5.021V2a.75.75 0 0 1 1.5 0zm-1.5 5.81a3 3 0 0 0 1.5.021V22a.75.75 0 0 1-1.5 0zm10 5V22a.75.75 0 0 0 1.5 0v-4.585a3 3 0 0 1-1.5-.021m1.5-5.81V2a.75.75 0 0 0-1.5 0v9.605a3 3 0 0 1 1.5-.021" opacity=".5"/></svg>
+              </span>
+              <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                <div style="font-size:13px;font-weight:600;color:#f3eadf">设置</div>
+                <div style="font-family:'JBMono',monospace;font-size:10px;color:#977f6d">Dark · Clay · v7.2.0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;background:#17120f">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;height:60px;flex:none;padding:0 24px;border-bottom:1px solid #322a25;background:#1c1613">
+            <div style="display:flex;align-items:center;gap:14px">
+              <span style="font-size:15px;font-weight:600;color:#f3eadf">总览</span>
+              <span style="width:1px;height:20px;background:#322a25"></span>
+              <div style="display:flex;align-items:center;gap:8px;height:32px;padding:0 10px 0 12px;border:1px solid #3a302a;border-radius:8px;background:#221b18">
+                <span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.14em;color:#977f6d">环境</span>
+                <span style="font-size:13px;font-weight:600;color:#f3eadf">本机</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" style="color:#977f6d"><path fill="currentColor" d="m8.303 12.404l3.327 3.431c.213.22.527.22.74 0l6.43-6.63C19.201 8.79 18.958 8 18.43 8h-5.723z"/><path fill="currentColor" d="M11.293 8H5.57c-.528 0-.771.79-.37 1.205l2.406 2.481z" opacity=".5"/></svg>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;height:32px;padding:0 10px 0 12px;border:1px solid #3a302a;border-radius:8px;background:#221b18">
+                <span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.14em;color:#977f6d">PROFILE</span>
+                <span style="font-size:13px;font-weight:600;color:#f3eadf">default</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" style="color:#977f6d"><path fill="currentColor" d="m8.303 12.404l3.327 3.431c.213.22.527.22.74 0l6.43-6.63C19.201 8.79 18.958 8 18.43 8h-5.723z"/><path fill="currentColor" d="M11.293 8H5.57c-.528 0-.771.79-.37 1.205l2.406 2.481z" opacity=".5"/></svg>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px;border-radius:9999px;background:#25332a;font-size:12px;font-weight:600;color:#7cab82"><span style="width:6px;height:6px;border-radius:50%;background:#7cab82"></span>3/3 就绪</span>
+              <div style="display:flex;align-items:center;height:34px;padding:0 15px;border-radius:9999px;background:#e8835b;font-size:13px;font-weight:600;color:#1d1207">同步配置</div>
+            </div>
+          </div>
+
+          <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:16px;padding:24px;overflow:hidden">
+
+            <div style="flex:none;display:flex;align-items:baseline;justify-content:space-between;gap:16px">
+              <div style="display:flex;align-items:baseline;gap:12px">
+                <h3 style="margin:0;font-size:17px;font-weight:600;letter-spacing:-0.01em;color:#f3eadf">运行时</h3>
+                <span style="font-size:13px;color:#977f6d">四个平台的版本、就绪与七日用量</span>
+              </div>
+              <span style="font-size:13px;color:#b9a695">全部平台 →</span>
+            </div>
+
+            <div style="flex:none;display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+
+              <div style="display:flex;flex-direction:column;overflow:hidden;border:1px solid #3a302a;border-radius:12px;background:#221b18">
+                <div style="height:3px;background:#d97757"></div>
+                <div style="display:flex;flex-direction:column;gap:14px;padding:16px">
+                  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+                    <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+                      <span style="font-size:15px;font-weight:600;color:#f3eadf">Claude Code</span>
+                      <span style="font-family:'JBMono',monospace;font-size:11px;color:#977f6d">v2.1.243</span>
+                    </div>
+                    <span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;flex:none;border-radius:6px;background:#25332a;font-size:11px;font-weight:600;color:#7cab82"><span style="width:5px;height:5px;border-radius:50%;background:#7cab82"></span>就绪</span>
+                  </div>
+                  <div style="display:flex;align-items:flex-end;gap:3px;height:38px">
+                    <span style="flex:1;height:32%;border-radius:2px 2px 0 0;background:#4a3a32"></span><span style="flex:1;height:48%;border-radius:2px 2px 0 0;background:#4a3a32"></span><span style="flex:1;height:38%;border-radius:2px 2px 0 0;background:#4a3a32"></span><span style="flex:1;height:62%;border-radius:2px 2px 0 0;background:#4a3a32"></span><span style="flex:1;height:54%;border-radius:2px 2px 0 0;background:#4a3a32"></span><span style="flex:1;height:100%;border-radius:2px 2px 0 0;background:#d97757"></span><span style="flex:1;height:74%;border-radius:2px 2px 0 0;background:#8a6a58"></span>
+                  </div>
+                  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px;padding-top:12px;border-top:1px solid #322a25">
+                    <div style="display:flex;flex-direction:column;gap:3px">
+                      <span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.14em;color:#977f6d">请求</span>
+                      <span style="font-family:'JBMono',monospace;font-size:20px;font-weight:600;line-height:1;color:#f3eadf">1.3K</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:3px;text-align:right">
+                      <span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.14em;color:#977f6d">TOKEN</span>
+                      <span style="font-family:'JBMono',monospace;font-size:20px;font-weight:600;line-height:1;color:#f3eadf">239M</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;overflow:hidden;border:1px solid #3a302a;border-radius:12px;background:#221b18">
+                <div style="height:3px;background:#7cab82"></div>
+                <div style="display:flex;flex-direction:column;gap:14px;padding:16px">
+                  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+                    <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+                      <span style="font-size:15px;font-weight:600;color:#f3eadf">Codex</span>
+                      <span style="font-family:'JBMono',monospace;font-size:11px;color:#977f6d">cli 0.149.1</span>
+                    </div>
+                    <span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;flex:none;border-radius:6px;background:#25332a;font-size:11px;font-weight:600;color:#7cab82"><span style="width:5px;height:5px;border-radius:50%;background:#7cab82"></span>就绪</span>
+                  </div>
+                  <div style="display:flex;align-items:flex-end;gap:3px;height:38px">
+                    <span style="flex:1;height:52%;border-radius:2px 2px 0 0;background:#4a3a32"></span><span style="flex:1;height:66%;border-radius:2px 2px 0 0;background:#4a3a32"></span><span style="flex:1;height:44%;border-radius:2px 2px 0 0;background:#4a3a32"></span><span style="flex:1;height:74%;border-radius:2px 2px 0 0;background:#4a3a32"></span><span style="flex:1;height:100%;border-radius:2px 2px 0 0;background:#7cab82"></span><span style="flex:1;height:82%;border-radius:2px 2px 0 0;background:#5d7a62"></span><span style="flex:1;height:60%;border-radius:2px 2px 0 0;background:#4a3a32"></span>
+                  </div>
+                  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px;padding-top:12px;border-top:1px solid #322a25">
+                    <div style="display:flex;flex-direction:column;gap:3px">
+                      <span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.14em;color:#977f6d">请求</span>
+                      <span style="font-family:'JBMono',monospace;font-size:20px;font-weight:600;line-height:1;color:#f3eadf">9.8K</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:3px;text-align:right">
+                      <span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.14em;color:#977f6d">TOKEN</span>
+                      <span style="font-family:'JBMono',monospace;font-size:20px;font-weight:600;line-height:1;color:#f3eadf">1.2B</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;overflow:hidden;border:1px solid #4a3a2a;border-radius:12px;background:#241d19">
+                <div style="height:3px;background:#98afc9"></div>
+                <div style="display:flex;flex-direction:column;gap:14px;padding:16px">
+                  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+                    <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+                      <span style="font-size:15px;font-weight:600;color:#f3eadf">Antigravity</span>
+                      <span style="font-family:'JBMono',monospace;font-size:11px;color:#977f6d">v1.1.19</span>
+                    </div>
+                    <span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;flex:none;border-radius:6px;background:#3a2a20;font-size:11px;font-weight:600;color:#d6a76d"><span style="width:5px;height:5px;border-radius:50%;background:#d6a76d"></span>未追踪</span>
+                  </div>
+                  <div style="display:flex;align-items:center;height:38px"><span style="flex:1;height:1px;border-top:1px dashed #4d3f36"></span></div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:12px;border-top:1px solid #322a25">
+                    <span style="font-size:12px;color:#b9a695">用量未接入本地归档</span>
+                    <span style="font-size:12px;font-weight:600;color:#d6a76d">配置 →</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;overflow:hidden;border:1px solid #3a302a;border-radius:12px;background:#221b18">
+                <div style="height:3px;background:#735f52"></div>
+                <div style="display:flex;flex-direction:column;gap:14px;padding:16px">
+                  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+                    <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+                      <span style="font-size:15px;font-weight:600;color:#f3eadf">OpenCode</span>
+                      <span style="font-family:'JBMono',monospace;font-size:11px;color:#977f6d">应用内托管</span>
+                    </div>
+                    <span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;flex:none;border-radius:6px;background:#252d33;font-size:11px;font-weight:600;color:#98afc9"><span style="width:5px;height:5px;border-radius:50%;background:#98afc9"></span>托管</span>
+                  </div>
+                  <div style="display:flex;align-items:flex-end;gap:3px;height:38px">
+                    <span style="flex:1;height:20%;border-radius:2px 2px 0 0;background:#3d332c"></span><span style="flex:1;height:14%;border-radius:2px 2px 0 0;background:#3d332c"></span><span style="flex:1;height:30%;border-radius:2px 2px 0 0;background:#3d332c"></span><span style="flex:1;height:18%;border-radius:2px 2px 0 0;background:#3d332c"></span><span style="flex:1;height:40%;border-radius:2px 2px 0 0;background:#3d332c"></span><span style="flex:1;height:26%;border-radius:2px 2px 0 0;background:#3d332c"></span><span style="flex:1;height:16%;border-radius:2px 2px 0 0;background:#3d332c"></span>
+                  </div>
+                  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px;padding-top:12px;border-top:1px solid #322a25">
+                    <div style="display:flex;flex-direction:column;gap:3px">
+                      <span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.14em;color:#977f6d">请求</span>
+                      <span style="font-family:'JBMono',monospace;font-size:20px;font-weight:600;line-height:1;color:#f3eadf">73</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:3px;text-align:right">
+                      <span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.14em;color:#977f6d">TOKEN</span>
+                      <span style="font-family:'JBMono',monospace;font-size:20px;font-weight:600;line-height:1;color:#f3eadf">2.7M</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <div style="flex:1;min-height:0;display:grid;grid-template-columns:1.85fr 1fr;gap:16px">
+
+              <div style="display:flex;flex-direction:column;gap:16px;padding:20px;border:1px solid #3a302a;border-radius:12px;background:#221b18">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
+                  <div style="display:flex;flex-direction:column;gap:4px">
+                    <h3 style="margin:0;font-size:17px;font-weight:600;letter-spacing:-0.01em;color:#f3eadf">用量与成本</h3>
+                    <p style="margin:0;font-size:13px;color:#977f6d">仅统计本地用量归档 · 更新于 8月25日 11:09</p>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:4px;padding:3px;border:1px solid #322a25;border-radius:9999px;background:#1e1815">
+                    <span style="display:flex;align-items:center;height:26px;padding:0 12px;border-radius:9999px;background:#33231b;font-family:'JBMono',monospace;font-size:12px;font-weight:600;color:#f3eadf">7D</span>
+                    <span style="display:flex;align-items:center;height:26px;padding:0 12px;border-radius:9999px;font-family:'JBMono',monospace;font-size:12px;font-weight:500;color:#977f6d">30D</span>
+                    <span style="display:flex;align-items:center;height:26px;padding:0 12px;border-radius:9999px;font-family:'JBMono',monospace;font-size:12px;font-weight:500;color:#977f6d">90D</span>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:flex-end;gap:32px">
+                  <div style="display:flex;flex-direction:column;gap:6px">
+                    <span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">请求</span>
+                    <div style="display:flex;align-items:baseline;gap:8px">
+                      <span style="font-family:'JBMono',monospace;font-size:38px;font-weight:600;line-height:1;letter-spacing:-0.02em;color:#f3eadf">16.8K</span>
+                      <span style="font-family:'JBMono',monospace;font-size:13px;font-weight:600;color:#7cab82">+12%</span>
+                    </div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:5px">
+                    <span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">TOKEN</span>
+                    <span style="font-family:'JBMono',monospace;font-size:19px;font-weight:600;line-height:1;color:#dacbbc">3.9B</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:5px">
+                    <span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">成本</span>
+                    <span style="font-family:'JBMono',monospace;font-size:19px;font-weight:600;line-height:1;color:#dacbbc">$128.40</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:5px">
+                    <span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">会话</span>
+                    <span style="font-family:'JBMono',monospace;font-size:19px;font-weight:600;line-height:1;color:#735f52">0</span>
+                  </div>
+                  <div style="flex:1"></div>
+                  <div style="display:flex;align-items:center;gap:14px;padding-bottom:3px">
+                    <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#b9a695"><span style="width:8px;height:8px;border-radius:2px;background:#d97757"></span>Claude</span>
+                    <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#b9a695"><span style="width:8px;height:8px;border-radius:2px;background:#7cab82"></span>Codex</span>
+                    <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#b9a695"><span style="width:8px;height:8px;border-radius:2px;background:#735f52"></span>OpenCode</span>
+                  </div>
+                </div>
+                <div style="flex:1;min-height:0;display:flex;align-items:flex-end;gap:10px;padding:0 2px 22px;border-bottom:1px solid #322a25;position:relative">
+                  <span style="position:absolute;left:0;right:0;top:20%;height:1px;border-top:1px dashed #322a25"></span>
+                  <span style="position:absolute;left:0;right:0;top:60%;height:1px;border-top:1px dashed #322a25"></span>
+                  <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:34%;position:relative"><span style="height:38%;background:#d97757;border-radius:3px 3px 0 0"></span><span style="height:44%;background:#7cab82"></span><span style="height:18%;background:#735f52"></span></div>
+                  <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:46%"><span style="height:34%;background:#d97757;border-radius:3px 3px 0 0"></span><span style="height:52%;background:#7cab82"></span><span style="height:14%;background:#735f52"></span></div>
+                  <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:38%"><span style="height:40%;background:#d97757;border-radius:3px 3px 0 0"></span><span style="height:46%;background:#7cab82"></span><span style="height:14%;background:#735f52"></span></div>
+                  <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:26%"><span style="height:44%;background:#d97757;border-radius:3px 3px 0 0"></span><span style="height:42%;background:#7cab82"></span><span style="height:14%;background:#735f52"></span></div>
+                  <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:88%"><span style="height:36%;background:#d97757;border-radius:3px 3px 0 0"></span><span style="height:52%;background:#7cab82"></span><span style="height:12%;background:#735f52"></span></div>
+                  <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%"><span style="height:42%;background:#d97757;border-radius:3px 3px 0 0"></span><span style="height:46%;background:#7cab82"></span><span style="height:12%;background:#735f52"></span></div>
+                  <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:30%"><span style="height:40%;background:#d97757;border-radius:3px 3px 0 0"></span><span style="height:48%;background:#7cab82"></span><span style="height:12%;background:#735f52"></span></div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+                  <div style="display:flex;gap:10px;font-family:'JBMono',monospace;font-size:11px;color:#735f52">
+                    <span>8/19</span><span>8/20</span><span>8/21</span><span>8/22</span><span>8/23</span><span>8/24</span><span>8/25</span>
+                  </div>
+                  <span style="font-size:13px;font-weight:500;color:#dacbbc">打开完整报表 →</span>
+                </div>
+              </div>
+
+              <div style="min-height:0;display:grid;grid-template-rows:auto 1fr;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:10px;padding:18px;border:1px solid #3a302a;border-radius:12px;background:#221b18">
+                  <h3 style="margin:0;font-size:15px;font-weight:600;color:#f3eadf">下一步</h3>
+                  <div style="display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:11px;padding:11px 12px;border:1px solid #4d3020;border-radius:8px;background:#33231b">
+                    <svg width="17" height="17" viewBox="0 0 24 24" style="color:#e8835b"><path fill="currentColor" d="M16 16h3a3 3 0 1 1-3 3.001zM5 16l3 .001v3a3 3 0 1 1-3-3"/><path fill="currentColor" fill-rule="evenodd" d="M19 8h-3V5a3 3 0 1 1 3 3M8 8V5a3 3 0 1 0-3 3z" clip-rule="evenodd"/><path fill="currentColor" d="M16 8H8v8h8z" opacity=".5"/></svg>
+                    <span style="font-size:13px;font-weight:600;color:#f3eadf">运行常用 CLI 命令</span>
+                    <svg width="15" height="15" viewBox="0 0 24 24" style="color:#e8835b"><path fill="currentColor" fill-rule="evenodd" d="M3.25 12a.75.75 0 0 1 .75-.75h9.25v1.5H4a.75.75 0 0 1-.75-.75" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M13.25 12.75V18a.75.75 0 0 0 1.28.53l6-6a.75.75 0 0 0 0-1.06l-6-6a.75.75 0 0 0-1.28.53z"/></svg>
+                  </div>
+                  <div style="display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:11px;padding:11px 12px">
+                    <svg width="17" height="17" viewBox="0 0 24 24" style="color:#b9a695"><path fill="currentColor" fill-rule="evenodd" d="M22 14.353C22 17.472 19.442 20 16.286 20h-5.787a7.5 7.5 0 0 1 7.487-11.853q.119.422.17.868C20.392 9.78 22 11.881 22 14.353" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M12.476 4C9.32 4 6.762 6.528 6.762 9.647c0 .69.125 1.35.354 1.962a4.4 4.4 0 0 0-.83-.08C3.919 11.53 2 13.426 2 15.765S3.919 20 6.286 20H10.5a7.5 7.5 0 0 1 7.487-11.853l-.047-.158C17.224 5.68 15.048 4 12.476 4"/></svg>
+                    <span style="font-size:13px;font-weight:500;color:#dacbbc">同步或备份配置</span>
+                    <svg width="15" height="15" viewBox="0 0 24 24" style="color:#735f52"><path fill="currentColor" fill-rule="evenodd" d="M3.25 12a.75.75 0 0 1 .75-.75h9.25v1.5H4a.75.75 0 0 1-.75-.75" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M13.25 12.75V18a.75.75 0 0 0 1.28.53l6-6a.75.75 0 0 0 0-1.06l-6-6a.75.75 0 0 0-1.28.53z"/></svg>
+                  </div>
+                </div>
+
+                <div style="min-height:0;display:flex;flex-direction:column;gap:12px;padding:18px;border:1px solid #3a302a;border-radius:12px;background:#221b18">
+                  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+                    <h3 style="margin:0;font-size:15px;font-weight:600;color:#f3eadf">事件流</h3>
+                    <div style="display:flex;align-items:center;gap:8px;font-family:'JBMono',monospace;font-size:11px;font-weight:600">
+                      <span style="color:#db8a73">1 错误</span><span style="color:#4d3f36">·</span><span style="color:#d6a76d">2 警告</span>
+                    </div>
+                  </div>
+                  <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:2px">
+                    <div style="display:grid;grid-template-columns:auto auto 1fr;align-items:baseline;gap:9px;padding:7px 8px;border-radius:6px;background:#2b1f1c">
+                      <span style="font-family:'JBMono',monospace;font-size:11px;color:#b9a695">20:40</span>
+                      <span style="width:6px;height:6px;border-radius:50%;background:#db8a73;transform:translateY(-1px)"></span>
+                      <span style="font-size:13px;color:#f3eadf">用量导入任务失败</span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:auto auto 1fr;align-items:baseline;gap:9px;padding:7px 8px;border-radius:6px;background:#2a231d">
+                      <span style="font-family:'JBMono',monospace;font-size:11px;color:#b9a695">20:40</span>
+                      <span style="width:6px;height:6px;border-radius:50%;background:#d6a76d;transform:translateY(-1px)"></span>
+                      <span style="font-size:13px;color:#dacbbc">claudeObserver 返回空数组 ×3</span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:auto auto 1fr;align-items:baseline;gap:9px;padding:7px 8px;border-radius:6px">
+                      <span style="font-family:'JBMono',monospace;font-size:11px;color:#977f6d">08:13</span>
+                      <span style="width:6px;height:6px;border-radius:50%;background:#98afc9;transform:translateY(-1px)"></span>
+                      <span style="font-size:13px;color:#b9a695">已导入 6,424 条用量记录</span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:auto auto 1fr;align-items:baseline;gap:9px;padding:7px 8px;border-radius:6px">
+                      <span style="font-family:'JBMono',monospace;font-size:11px;color:#977f6d">11:09</span>
+                      <span style="width:6px;height:6px;border-radius:50%;background:#98afc9;transform:translateY(-1px)"></span>
+                      <span style="font-size:13px;color:#b9a695">React 外壳已挂载</span>
+                    </div>
+                  </div>
+                  <div style="display:flex;justify-content:flex-end;padding-top:10px;border-top:1px solid #322a25">
+                    <span style="font-size:13px;font-weight:500;color:#dacbbc">打开监控 →</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<section style="display:flex;flex-direction:column;gap:28px;padding:20px 56px">
+  <div style="display:flex;align-items:baseline;gap:16px">
+    <h2 style="margin:0;font-size:26px;font-weight:600;letter-spacing:-0.02em;color:#f3eadf">样式配置</h2>
+    <p style="margin:0;font-size:14px;color:#b9a695;max-width:70ch">左边是令牌提案（收紧圆角梯度、把 alpha 边框换成实色、给数字一套等宽字级），右边是外观设置页的亮色重排。</p>
+  </div>
+
+  <div id="1c" style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+
+    <div style="width:660px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;background:#e8835b;color:#1d1207;font-family:'JBMono',monospace;font-size:12px;font-weight:600">1c</span>
+        <span style="font-size:15px;font-weight:600;color:#f3eadf">令牌提案</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:20px;padding:24px;border:1px solid #3a302a;border-radius:12px;background:#221b18">
+
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">表面层级 · 暗色 clay</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+            <div style="display:flex;flex-direction:column;gap:6px"><div style="height:52px;border:1px solid #3a302a;border-radius:8px;background:#17120f"></div><div style="font-family:'JBMono',monospace;font-size:11px;color:#b9a695">base #17120F</div></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><div style="height:52px;border:1px solid #3a302a;border-radius:8px;background:#1c1613"></div><div style="font-family:'JBMono',monospace;font-size:11px;color:#b9a695">chrome #1C1613</div></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><div style="height:52px;border:1px solid #3a302a;border-radius:8px;background:#221b18"></div><div style="font-family:'JBMono',monospace;font-size:11px;color:#b9a695">card #221B18</div></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><div style="height:52px;border:1px solid #3a302a;border-radius:8px;background:#2a221e"></div><div style="font-family:'JBMono',monospace;font-size:11px;color:#b9a695">raised #2A221E</div></div>
+          </div>
+          <p style="margin:0;font-size:12px;line-height:1.5;color:#977f6d">改动：边框从 <span style="font-family:'JBMono',monospace">rgb(243 234 223 / 14%)</span> 换成实色 <span style="font-family:'JBMono',monospace">#3A302A</span> / <span style="font-family:'JBMono',monospace">#322A25</span>——半透明边框在深底上糊成一团，实色才有边。</p>
+        </div>
+
+        <div style="height:1px;background:#322a25"></div>
+
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">语义色 · 只用在状态上</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <span style="display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px;border-radius:8px;background:#33231b;font-size:13px;font-weight:600;color:#e8835b"><span style="width:9px;height:9px;border-radius:3px;background:#e8835b"></span>accent E8835B</span>
+            <span style="display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px;border-radius:8px;background:#25332a;font-size:13px;font-weight:600;color:#7cab82"><span style="width:9px;height:9px;border-radius:3px;background:#7cab82"></span>success 7CAB82</span>
+            <span style="display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px;border-radius:8px;background:#3a2a20;font-size:13px;font-weight:600;color:#d6a76d"><span style="width:9px;height:9px;border-radius:3px;background:#d6a76d"></span>warning D6A76D</span>
+            <span style="display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px;border-radius:8px;background:#2b1f1c;font-size:13px;font-weight:600;color:#db8a73"><span style="width:9px;height:9px;border-radius:3px;background:#db8a73"></span>danger DB8A73</span>
+            <span style="display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px;border-radius:8px;background:#252d33;font-size:13px;font-weight:600;color:#98afc9"><span style="width:9px;height:9px;border-radius:3px;background:#98afc9"></span>info 98AFC9</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <span style="display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 11px;border:1px solid #3a302a;border-radius:6px;font-family:'JBMono',monospace;font-size:12px;color:#dacbbc"><span style="width:8px;height:8px;border-radius:2px;background:#d97757"></span>claude</span>
+            <span style="display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 11px;border:1px solid #3a302a;border-radius:6px;font-family:'JBMono',monospace;font-size:12px;color:#dacbbc"><span style="width:8px;height:8px;border-radius:2px;background:#7cab82"></span>codex</span>
+            <span style="display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 11px;border:1px solid #3a302a;border-radius:6px;font-family:'JBMono',monospace;font-size:12px;color:#dacbbc"><span style="width:8px;height:8px;border-radius:2px;background:#8b839c"></span>grok</span>
+            <span style="display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 11px;border:1px solid #3a302a;border-radius:6px;font-family:'JBMono',monospace;font-size:12px;color:#dacbbc"><span style="width:8px;height:8px;border-radius:2px;background:#98afc9"></span>antigravity</span>
+          </div>
+          <p style="margin:0;font-size:12px;line-height:1.5;color:#977f6d">平台色只出现在 3–4px 的识别标记与图表分层里，不去染整块卡片。</p>
+        </div>
+
+        <div style="height:1px;background:#322a25"></div>
+
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">圆角 · 从 8 档收到 4 档</div>
+          <div style="display:flex;align-items:flex-end;gap:12px">
+            <div style="display:flex;flex-direction:column;gap:6px;align-items:center"><div style="width:64px;height:44px;border:1px solid #4a3d35;border-radius:6px;background:#2a221e"></div><span style="font-family:'JBMono',monospace;font-size:11px;color:#b9a695">6 chip</span></div>
+            <div style="display:flex;flex-direction:column;gap:6px;align-items:center"><div style="width:64px;height:44px;border:1px solid #4a3d35;border-radius:8px;background:#2a221e"></div><span style="font-family:'JBMono',monospace;font-size:11px;color:#b9a695">8 控件</span></div>
+            <div style="display:flex;flex-direction:column;gap:6px;align-items:center"><div style="width:64px;height:44px;border:1px solid #4a3d35;border-radius:12px;background:#2a221e"></div><span style="font-family:'JBMono',monospace;font-size:11px;color:#b9a695">12 卡片</span></div>
+            <div style="display:flex;flex-direction:column;gap:6px;align-items:center"><div style="width:80px;height:38px;border:1px solid #4a3d35;border-radius:9999px;background:#2a221e"></div><span style="font-family:'JBMono',monospace;font-size:11px;color:#b9a695">pill 按钮</span></div>
+          </div>
+          <p style="margin:0;font-size:12px;line-height:1.5;color:#977f6d">删掉 4 / 10 / 16 三档。现在同屏出现 0.375rem / 0.5rem / 12px / 16px 四种，所以看起来不齐。</p>
+        </div>
+
+        <div style="height:1px;background:#322a25"></div>
+
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">字体 · 文字 sans / 数据等宽</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:baseline;gap:16px"><span style="width:96px;flex:none;font-family:'JBMono',monospace;font-size:11px;color:#977f6d">页标题 17/600</span><span style="font-size:17px;font-weight:600;letter-spacing:-0.01em;color:#f3eadf">平台台账</span></div>
+            <div style="display:flex;align-items:baseline;gap:16px"><span style="width:96px;flex:none;font-family:'JBMono',monospace;font-size:11px;color:#977f6d">正文 14/400</span><span style="font-size:14px;color:#dacbbc">配置、Profile、MCP、插件与同步</span></div>
+            <div style="display:flex;align-items:baseline;gap:16px"><span style="width:96px;flex:none;font-family:'JBMono',monospace;font-size:11px;color:#977f6d">标签 10/600</span><span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#977f6d">READY · 就绪</span></div>
+            <div style="display:flex;align-items:baseline;gap:16px"><span style="width:96px;flex:none;font-family:'JBMono',monospace;font-size:11px;color:#977f6d">数据 mono</span><span style="display:flex;align-items:baseline;gap:14px"><span style="font-family:'JBMono',monospace;font-size:28px;font-weight:600;letter-spacing:-0.02em;color:#f3eadf">16.8K</span><span style="font-family:'JBMono',monospace;font-size:20px;font-weight:600;color:#dacbbc">3.9B</span><span style="font-family:'JBMono',monospace;font-size:14px;font-weight:600;color:#7cab82">+12%</span></span></div>
+          </div>
+          <p style="margin:0;font-size:12px;line-height:1.5;color:#977f6d">一屏只允许一个 28px 以上的数字。其余降到 20 / 14，靠等宽对齐而不是靠字号抢注意力。</p>
+        </div>
+
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:15px;font-weight:600;color:#f3eadf">外观设置 · 亮色</span>
+        <span style="font-size:13px;color:#977f6d">同一套令牌在 neutral 亮色下的样子</span>
+      </div>
+      <div style="width:700px;display:flex;flex-direction:column;gap:16px;padding:28px;border:1px solid #d4d6db;border-radius:12px;background:#f7f8fa;box-shadow:0 28px 60px rgb(0 0 0 / 44%)">
+
+        <div style="display:flex;flex-direction:column;gap:16px;padding:22px;border:1px solid #dcdee3;border-radius:12px;background:#fff">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#5f646e">主题</span>
+            <h3 style="margin:0;font-size:17px;font-weight:600;letter-spacing:-0.01em;color:#191b20">明暗与底色族</h3>
+            <p style="margin:0;font-size:13px;color:#3f434c">跟随系统时，深浅由操作系统决定；底色族与明暗正交。</p>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+            <div style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #dcdee3;border-radius:8px;background:#fbfcfd">
+              <svg width="18" height="18" viewBox="0 0 24 24" style="color:#5f646e"><path fill="currentColor" d="M18 12a6 6 0 1 1-12 0a6 6 0 0 1 12 0"/><path fill="currentColor" fill-rule="evenodd" d="M12 1.25a.75.75 0 0 1 .75.75v1a.75.75 0 0 1-1.5 0V2a.75.75 0 0 1 .75-.75M1.25 12a.75.75 0 0 1 .75-.75h1a.75.75 0 0 1 0 1.5H2a.75.75 0 0 1-.75-.75m19 0a.75.75 0 0 1 .75-.75h1a.75.75 0 0 1 0 1.5h-1a.75.75 0 0 1-.75-.75M12 20.25a.75.75 0 0 1 .75.75v1a.75.75 0 0 1-1.5 0v-1a.75.75 0 0 1 .75-.75" clip-rule="evenodd" opacity=".5"/></svg>
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px;font-weight:600;color:#191b20">亮色</span><span style="font-size:11px;color:#5f646e">白天与投屏</span></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #cf6239;border-radius:8px;background:#fbf1ec">
+              <svg width="18" height="18" viewBox="0 0 24 24" style="color:#cf6239"><path fill="currentColor" fill-rule="evenodd" d="M22 12c0 5.523-4.477 10-10 10a10 10 0 0 1-3.321-.564A9 9 0 0 1 8 18a8.97 8.97 0 0 1 2.138-5.824A6.5 6.5 0 0 0 15.5 15a6.5 6.5 0 0 0 5.567-3.143c.24-.396.933-.32.933.143" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M2 12c0 4.359 2.789 8.066 6.679 9.435A9 9 0 0 1 8 18c0-2.221.805-4.254 2.138-5.824A6.47 6.47 0 0 1 9 8.5a6.5 6.5 0 0 1 3.143-5.567C12.54 2.693 12.463 2 12 2C6.477 2 2 6.477 2 12"/></svg>
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px;font-weight:600;color:#191b20">暗色</span><span style="font-size:11px;color:#5f646e">长时间值守</span></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #dcdee3;border-radius:8px;background:#fbfcfd">
+              <svg width="18" height="18" viewBox="0 0 24 24" style="color:#5f646e"><path fill="currentColor" d="M10 2h4c3.771 0 5.657 0 6.828 1.172S22 6.229 22 10v1c0 .552 0 1.55-.006 2H2.007C2 12.55 2 11.552 2 11v-1c0-3.771 0-5.657 1.172-6.828S6.229 2 10 2" opacity=".5"/><path fill="currentColor" d="M7.985 17.5c-2.84 0-4.26 0-5.141-.879C2.272 16.052 2.07 15.258 2 14v-1h20v1c-.07 1.258-.272 2.052-.844 2.621c-.882.879-2.301.879-5.14.879h-3.263v4h3.262c.416 0 .753.336.753.75s-.337.75-.753.75h-8.03a.75.75 0 0 1-.753-.75c0-.414.337-.75.753-.75h3.262v-4z"/></svg>
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px;font-weight:600;color:#191b20">跟随系统</span><span style="font-size:11px;color:#5f646e">当前解析为暗色</span></div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+            <div style="display:flex;gap:12px;padding:12px;border:1px solid #dcdee3;border-radius:8px;background:#fbfcfd">
+              <div style="display:flex;flex-direction:column;width:56px;flex:none;border:1px solid #dcdee3;border-radius:6px;overflow:hidden">
+                <span style="height:14px;background:#e8e9ec"></span><span style="height:14px;background:#f2f3f5"></span><span style="height:14px;background:#fbfcfd"></span><span style="height:8px;background:#cf6239"></span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:13px;font-weight:600;color:#191b20">Neutral</span><span style="font-size:11px;line-height:1.45;color:#5f646e">冷中性底色，数据密集时更安静</span></div>
+            </div>
+            <div style="display:flex;gap:12px;padding:12px;border:1px solid #cf6239;border-radius:8px;background:#fbf1ec">
+              <div style="display:flex;flex-direction:column;width:56px;flex:none;border:1px solid #e2d6c3;border-radius:6px;overflow:hidden">
+                <span style="height:14px;background:#ebe1d0"></span><span style="height:14px;background:#f5eee1"></span><span style="height:14px;background:#fefaf2"></span><span style="height:8px;background:#cf6239"></span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:13px;font-weight:600;color:#191b20">Clay</span><span style="font-size:11px;line-height:1.45;color:#5f646e">暖纸面，产品默认身份</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;padding:22px;border:1px solid #dcdee3;border-radius:12px;background:#fff">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <span style="font-family:'JBMono',monospace;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#5f646e">字体</span>
+            <h3 style="margin:0;font-size:17px;font-weight:600;letter-spacing:-0.01em;color:#191b20">界面与数据字体</h3>
+            <p style="margin:0;font-size:13px;color:#3f434c">界面走 sans，数字与代码走等宽——这是本次样式改动的核心。</p>
+          </div>
+          <div style="display:grid;grid-template-columns:112px 1fr;align-items:center;gap:14px">
+            <span style="font-size:13px;font-weight:600;color:#191b20">界面字体</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;height:38px;padding:0 12px;border:1px solid #dcdee3;border-radius:8px;background:#fbfcfd;font-size:13px;color:#191b20">
+              <span>系统默认（SF Pro / PingFang SC）</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" style="color:#5f646e"><path fill="currentColor" d="m8.303 12.404l3.327 3.431c.213.22.527.22.74 0l6.43-6.63C19.201 8.79 18.958 8 18.43 8h-5.723z"/><path fill="currentColor" d="M11.293 8H5.57c-.528 0-.771.79-.37 1.205l2.406 2.481z" opacity=".5"/></svg>
+            </div>
+            <span style="font-size:13px;font-weight:600;color:#191b20">数据字体</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;height:38px;padding:0 12px;border:1px solid #cf6239;border-radius:8px;background:#fff;font-family:'JBMono',monospace;font-size:13px;color:#191b20">
+              <span>JetBrains Mono</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" style="color:#5f646e"><path fill="currentColor" d="m8.303 12.404l3.327 3.431c.213.22.527.22.74 0l6.43-6.63C19.201 8.79 18.958 8 18.43 8h-5.723z"/><path fill="currentColor" d="M11.293 8H5.57c-.528 0-.771.79-.37 1.205l2.406 2.481z" opacity=".5"/></svg>
+            </div>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:20px;padding:14px 16px;border-radius:8px;background:#f2f3f5">
+            <span style="font-family:'JBMono',monospace;font-size:26px;font-weight:600;letter-spacing:-0.02em;color:#191b20">16.8K</span>
+            <span style="font-family:'JBMono',monospace;font-size:18px;font-weight:600;color:#3f434c">3.9B</span>
+            <span style="font-family:'JBMono',monospace;font-size:18px;font-weight:600;color:#3f434c">$128.40</span>
+            <span style="font-family:'JBMono',monospace;font-size:13px;font-weight:600;color:#5b8a62">+12%</span>
+            <span style="font-size:14px;color:#3f434c">中文与 Latin 混排预览</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid #dcdee3;border-radius:8px;background:#fbfcfd">
+            <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none;margin-top:1px;color:#cf6239"><path fill="currentColor" d="M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2s10 4.477 10 10" opacity=".5"/><path fill="currentColor" d="M12 17.75a.75.75 0 0 0 .75-.75v-6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75M12 7a1 1 0 1 1 0 2a1 1 0 0 1 0-2"/></svg>
+            <p style="margin:0;font-size:12px;line-height:1.5;color:#3f434c">留空即回退到内置字体栈；缺字形会逐级回退，不会出现方块。</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:24px;padding:20px 56px 72px">
+  <div style="display:flex;align-items:baseline;gap:16px">
+    <h2 style="margin:0;font-size:26px;font-weight:600;letter-spacing:-0.02em;color:#f3eadf">当前界面 · 还原</h2>
+    <p style="margin:0;font-size:14px;color:#b9a695;max-width:70ch">按 <span style="font-family:'JBMono',monospace">DashboardView.tsx</span>、<span style="font-family:'JBMono',monospace">dashboard-*.css</span>、<span style="font-family:'JBMono',monospace">MainLayoutChrome.tsx</span>、<span style="font-family:'JBMono',monospace">tokens.css</span> 里的实际数值还原，作为改动的对照基线。</p>
+  </div>
+
+  <div id="0a" style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;background:#4a3d35;color:#f3eadf;font-family:'JBMono',monospace;font-size:12px;font-weight:600">0a</span>
+      <span style="font-size:15px;font-weight:600;color:#f3eadf">Overview · v7.2.0 现状</span>
+    </div>
+
+    <div style="width:1680px;display:flex;flex-direction:column;overflow:hidden;border:1px solid #3a302a;border-radius:10px;background:#17120f;box-shadow:0 28px 60px rgb(0 0 0 / 44%);font-family:'JBMono','SF Mono',monospace">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;height:30px;flex:none;padding:0 0 0 10px;background:#0f0c0a">
+        <div style="display:flex;align-items:center;gap:8px">
+          <img src="assets/icon.svg" alt="" style="width:14px;height:14px;border-radius:3px">
+          <span style="font-size:11px;color:#b9a695">CCR Desktop - Claude Code Configuration Manager</span>
+        </div>
+        <div style="display:flex;align-items:center">
+          <span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px;color:#b9a695;font-size:11px">—</span>
+          <span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px;color:#b9a695;font-size:10px">▢</span>
+          <span style="display:flex;align-items:center;justify-content:center;width:40px;height:30px;color:#b9a695;font-size:12px">✕</span>
+        </div>
+      </div>
+
+      <div style="display:flex;min-height:1160px">
+
+        <div style="width:217px;flex:none;display:flex;flex-direction:column;border-right:1px solid rgb(243 234 223 / 22%);background:#221b18">
+          <div style="display:flex;align-items:center;height:84px;flex:none;padding:24px 16px 0;border-bottom:1px solid rgb(243 234 223 / 12%)">
+            <div style="display:flex;align-items:center;gap:12px">
+              <img src="assets/icon.svg" alt="CCR UI" style="width:40px;height:40px;border-radius:14px">
+              <div style="min-width:0">
+                <div style="font-size:17px;font-weight:500;letter-spacing:-0.045em;color:#f3eadf">CCR UI</div>
+                <div style="margin-top:4px;font-size:10px;font-weight:600;letter-spacing:0.18em;color:#b9a695">Operator Workbench</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="flex:1;display:flex;flex-direction:column;gap:20px;padding:12px 12px 16px;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid rgb(232 131 91 / 24%);border-radius:8px;background:rgb(232 131 91 / 10%);color:#f3eadf;font-size:14px;font-weight:500">
+              <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none"><path fill="currentColor" d="M2 12c0-4.714 0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12" opacity=".5"/><path fill="currentColor" d="M14.5 10.75a.75.75 0 0 1 0-1.5H17a.75.75 0 0 1 .75.75v2.5a.75.75 0 0 1-1.5 0v-.69l-2.013 2.013a1.75 1.75 0 0 1-2.474 0l-1.586-1.586a.25.25 0 0 0-.354 0L7.53 14.53a.75.75 0 0 1-1.06-1.06l2.293-2.293a1.75 1.75 0 0 1 2.474 0l1.586 1.586a.25.25 0 0 0 .354 0l2.012-2.013z"/></svg>
+              <span>Overview</span>
+            </div>
+
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:0 12px;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#b9a695">Configuration<span style="flex:1;height:1px;background:rgb(243 234 223 / 15%)"></span></div>
+              <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid transparent;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500">
+                <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none;color:#d0ae86"><path fill="currentColor" d="M6 13h12c1.886 0 2.828 0 3.414.586S22 15.114 22 17s0 2.828-.586 3.414S19.886 21 18 21H6c-1.886 0-2.828 0-3.414-.586S2 18.886 2 17s0-2.828.586-3.414S4.114 13 6 13M6 3h12c1.886 0 2.828 0 3.414.586S22 5.114 22 7s0 2.828-.586 3.414S19.886 11 18 11H6c-1.886 0-2.828 0-3.414-.586S2 8.886 2 7s0-2.828.586-3.414S4.114 3 6 3" opacity=".5"/><path fill="currentColor" d="M10.25 7a.75.75 0 0 1 .75-.75h7a.75.75 0 0 1 0 1.5h-7a.75.75 0 0 1-.75-.75m-5 0A.75.75 0 0 1 6 6.25h2a.75.75 0 0 1 0 1.5H6A.75.75 0 0 1 5.25 7m5 10a.75.75 0 0 1 .75-.75h7a.75.75 0 0 1 0 1.5h-7a.75.75 0 0 1-.75-.75m-5 0a.75.75 0 0 1 .75-.75h2a.75.75 0 0 1 0 1.5H6a.75.75 0 0 1-.75-.75"/></svg>
+                <span>MCP Manager</span>
+              </div>
+            </div>
+
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:0 12px;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#b9a695">Platforms<span style="flex:1;height:1px;background:rgb(243 234 223 / 15%)"></span></div>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500">
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none;color:#d97757"><path fill="currentColor" d="M2 12c0-4.714 0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12" opacity=".5"/><path fill="currentColor" d="M6.424 9.52a.75.75 0 0 1 1.056-.096l.277.23c.605.504 1.12.933 1.476 1.328c.379.42.674.901.674 1.518s-.295 1.099-.674 1.518c-.356.395-.871.824-1.476 1.328l-.277.23a.75.75 0 1 1-.96-1.152l.234-.195c.659-.55 1.09-.91 1.366-1.216c.262-.29.287-.427.287-.513s-.025-.222-.287-.513c-.277-.306-.707-.667-1.366-1.216l-.234-.195a.75.75 0 0 1-.096-1.056M17.75 15a.75.75 0 0 1-.75.75h-5a.75.75 0 0 1 0-1.5h5a.75.75 0 0 1 .75.75"/></svg>
+                  <span>Claude Code</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500">
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none;color:#5b8a62"><path fill="currentColor" fill-rule="evenodd" d="M14.279 2.152C13.909 2 13.439 2 12.5 2s-1.408 0-1.779.152a2 2 0 0 0-1.09 1.083c-.094.223-.13.484-.145.863a1.62 1.62 0 0 1-.796 1.353a1.64 1.64 0 0 1-1.579.008c-.338-.178-.583-.276-.825-.308a2.03 2.03 0 0 0-1.49.396c-.318.242-.553.646-1.022 1.453c-.47.807-.704 1.21-.757 1.605c-.07.526.074 1.058.4 1.479c.148.192.357.353.68.555c.477.297.783.803.783 1.361s-.306 1.064-.782 1.36c-.324.203-.533.364-.682.556a2 2 0 0 0-.399 1.479c.053.394.287.798.757 1.605s.704 1.21 1.022 1.453c.424.323.96.465 1.49.396c.242-.032.487-.13.825-.308a1.64 1.64 0 0 1 1.58.008c.486.28.774.795.795 1.353c.015.38.051.64.145.863c.204.49.596.88 1.09 1.083c.37.152.84.152 1.779.152s1.409 0 1.779-.152a2 2 0 0 0 1.09-1.083c.094-.223.13-.483.145-.863c.02-.558.309-1.074.796-1.353a1.64 1.64 0 0 1 1.579-.008c.338.178.583.276.825.308c.53.07 1.066-.073 1.49-.396c.318-.242.553-.646 1.022-1.453c.47-.807.704-1.21.757-1.605a2 2 0 0 0-.4-1.479c-.148-.192-.357-.353-.68-.555c-.477-.297-.783-.803-.783-1.361s.306-1.064.782-1.36c.324-.203.533-.364.682-.556a2 2 0 0 0 .399-1.479c-.053-.394-.287-.798-.757-1.605s-.704-1.21-1.022-1.453a2.03 2.03 0 0 0-1.49-.396c-.242.032-.487.13-.825.308a1.64 1.64 0 0 1-1.58-.008a1.62 1.62 0 0 1-.795-1.353c-.015-.38-.051-.64-.145-.863a2 2 0 0 0-1.09-1.083" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M15.523 12c0 1.657-1.354 3-3.023 3s-3.023-1.343-3.023-3S10.83 9 12.5 9s3.023 1.343 3.023 3"/></svg>
+                  <span>Codex</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500">
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none;color:#716b80"><path fill="currentColor" fill-rule="evenodd" d="M8.732 5.771L5.67 9.914c-1.285 1.739-1.928 2.608-1.574 3.291l.018.034c.375.673 1.485.673 3.704.673c1.233 0 1.85 0 2.236.363l.02.02l3.872-4.57l-.02-.02c-.379-.371-.379-.963-.379-2.148v-.31c0-3.285 0-4.927-.923-5.21s-1.913 1.056-3.892 3.734" clip-rule="evenodd"/><path fill="currentColor" d="M10.453 16.443v.31c0 3.284 0 4.927.923 5.21s1.913-1.056 3.893-3.734l3.062-4.143c1.284-1.739 1.927-2.608 1.573-3.291l-.018-.034c-.375-.673-1.485-.673-3.704-.673c-1.233 0-1.85 0-2.236-.363l-3.872 4.57c.379.371.379.963.379 2.148" opacity=".5"/></svg>
+                  <span>Grok</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500">
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none;color:#7d97b6"><path fill="currentColor" d="M10.277 16.515c.005-.11.186-.154.24-.058c.254.45.686 1.111 1.176 1.412s1.276.386 1.792.408c.11.005.153.186.057.24c-.45.254-1.11.686-1.411 1.176s-.386 1.276-.408 1.792c-.005.11-.187.153-.24.057c-.254-.45-.686-1.11-1.177-1.411c-.49-.301-1.276-.386-1.791-.408c-.11-.005-.154-.187-.058-.24c.45-.254 1.111-.686 1.412-1.177c.3-.49.386-1.276.408-1.791"/><path fill="currentColor" d="m14.703 4.002l-.242-.306c-.937-1.183-1.405-1.775-1.95-1.688c-.544.088-.805.796-1.326 2.213l-.135.366c-.148.403-.222.604-.364.752s-.336.225-.724.38l-.353.141l-.247.1c-1.2.48-1.804.753-1.882 1.283c-.082.565.49 1.049 1.634 2.016l.296.25c.326.275.488.413.581.6c.094.187.107.403.133.835l.024.393c.094 1.52.14 2.28.635 2.542c.494.262 1.108-.147 2.336-.966l.318-.212c.349-.233.523-.35.723-.381s.401.024.806.136l.367.102c1.423.394 2.134.591 2.521.188c.388-.403.195-1.14-.19-2.613l-.1-.381c-.109-.419-.164-.628-.134-.835s.142-.389.366-.752l.203-.33c.785-1.276 1.178-1.914.924-2.426c-.255-.51-.988-.557-2.454-.648l-.38-.024c-.416-.026-.624-.039-.805-.135s-.314-.264-.58-.6"/></svg>
+                  <span>Antigravity</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;color:#b9a695;font-size:14px;font-weight:500">
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none"><path fill="currentColor" d="M2 12c0-4.714 0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12" opacity=".5"/><path fill="currentColor" d="M13.488 6.446a.75.75 0 0 1 .53.918l-2.588 9.66a.75.75 0 0 1-1.449-.389l2.589-9.659a.75.75 0 0 1 .918-.53M14.97 8.47a.75.75 0 0 1 1.06 0l.209.208c.635.635 1.165 1.165 1.529 1.642c.384.504.654 1.036.654 1.68s-.27 1.176-.654 1.68c-.364.477-.894 1.007-1.53 1.642l-.208.208a.75.75 0 1 1-1.06-1.06l.171-.172c.682-.682 1.139-1.14 1.434-1.528c.283-.37.347-.586.347-.77s-.064-.4-.347-.77c-.295-.387-.752-.846-1.434-1.528l-.171-.172a.75.75 0 0 1 0-1.06m-7 0a.75.75 0 0 1 1.06 1.06l-.171.172c-.682.682-1.138 1.14-1.434 1.528c-.283.37-.346.586-.346.77s.063.4.346.77c.296.387.752.846 1.434 1.528l.172.172a.75.75 0 1 1-1.061 1.06l-.208-.208c-.636-.635-1.166-1.165-1.53-1.642c-.384-.504-.653-1.036-.653-1.68s.27-1.176.653-1.68c.364-.477.894-1.007 1.53-1.642z"/></svg>
+                  <span>OpenCode</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:0 12px;font-size:10px;font-weight:600;letter-spacing:0.16em;color:#b9a695">Tools<span style="flex:1;height:1px;background:rgb(243 234 223 / 15%)"></span></div>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500">
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none"><path fill="currentColor" d="M16 16h3a3 3 0 1 1-3 3.001zM5 16l3 .001v3a3 3 0 1 1-3-3"/><path fill="currentColor" fill-rule="evenodd" d="M19 8h-3V5a3 3 0 1 1 3 3M8 8V5a3 3 0 1 0-3 3z" clip-rule="evenodd"/><path fill="currentColor" d="M16 8H8v8h8z" opacity=".5"/></svg>
+                  <span>Commands</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500">
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none"><path fill="currentColor" d="M21 15.998v-6c0-2.828 0-4.242-.879-5.121C19.353 4.109 18.175 4.012 16 4H8c-2.175.012-3.353.109-4.121.877C3 5.756 3 7.17 3 9.998v6c0 2.829 0 4.243.879 5.122c.878.878 2.293.878 5.121.878h6c2.828 0 4.243 0 5.121-.878c.879-.88.879-2.293.879-5.122" opacity=".5"/><path fill="currentColor" d="M8 3.5A1.5 1.5 0 0 1 9.5 2h5A1.5 1.5 0 0 1 16 3.5v1A1.5 1.5 0 0 1 14.5 6h-5A1.5 1.5 0 0 1 8 4.5z"/></svg>
+                  <span>Check-ins</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500">
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none"><path fill="currentColor" fill-rule="evenodd" d="M22 14.353C22 17.472 19.442 20 16.286 20h-5.787a7.5 7.5 0 0 1 7.487-11.853q.119.422.17.868C20.392 9.78 22 11.881 22 14.353" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M12.476 4C9.32 4 6.762 6.528 6.762 9.647c0 .69.125 1.35.354 1.962a4.4 4.4 0 0 0-.83-.08C3.919 11.53 2 13.426 2 15.765S3.919 20 6.286 20H10.5a7.5 7.5 0 0 1 7.487-11.853l-.047-.158C17.224 5.68 15.048 4 12.476 4"/></svg>
+                  <span>Sync</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;color:#dacbbc;font-size:14px;font-weight:500">
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="flex:none"><path fill="currentColor" d="M2 12c0-4.714 0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12" opacity=".5"/><path fill="currentColor" d="M14.5 10.75a.75.75 0 0 1 0-1.5H17a.75.75 0 0 1 .75.75v2.5a.75.75 0 0 1-1.5 0v-.69l-2.013 2.013a1.75 1.75 0 0 1-2.474 0l-1.586-1.586a.25.25 0 0 0-.354 0L7.53 14.53a.75.75 0 0 1-1.06-1.06l2.293-2.293a1.75 1.75 0 0 1 2.474 0l1.586 1.586a.25.25 0 0 0 .354 0l2.012-2.013z"/></svg>
+                  <span>Usage</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="flex:none;padding:12px 12px 20px;border-top:1px solid rgb(243 234 223 / 13%)">
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid rgb(243 234 223 / 14%);border-radius:8px;background:#2a221e">
+              <span style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;flex:none;border:1px solid rgb(243 234 223 / 22%);border-radius:8px;background:#221b18">
+                <svg width="16" height="16" viewBox="0 0 24 24" style="color:#dacbbc"><path fill="currentColor" d="M13.752 14.5a3 3 0 1 1 6 0a3 3 0 0 1-6 0m-10-5a3 3 0 1 0 6 0a3 3 0 0 0-6 0"/><path fill="currentColor" d="M7.462 6.584a3 3 0 0 0-1.5.021V2a.75.75 0 0 1 1.5 0zm-1.5 5.81a3 3 0 0 0 1.5.021V22a.75.75 0 0 1-1.5 0zm10 5V22a.75.75 0 0 0 1.5 0v-4.585a3 3 0 0 1-1.5-.021m1.5-5.81V2a.75.75 0 0 0-1.5 0v9.605a3 3 0 0 1 1.5-.021" opacity=".5"/></svg>
+              </span>
+              <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:14px;font-weight:600;color:#f3eadf">Settings</span>
+                <span style="font-size:11px;line-height:1.35;color:#dacbbc">Dark mode · Neutral · English · CCR UI v7.2.0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:78px;flex:none;padding:24px 24px 0;border-bottom:1px solid rgb(243 234 223 / 13%);background:#221b18">
+            <span style="font-size:14px;color:#dacbbc;opacity:0.5">Overview</span>
+            <div style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border:1px solid rgb(243 234 223 / 22%);border-radius:10px;background:#2a221e;margin-bottom:16px">
+              <svg width="15" height="15" viewBox="0 0 24 24" style="color:#7cab82"><path fill="currentColor" d="M10 2h4c3.771 0 5.657 0 6.828 1.172S22 6.229 22 10v1c0 .552 0 1.55-.006 2H2.007C2 12.55 2 11.552 2 11v-1c0-3.771 0-5.657 1.172-6.828S6.229 2 10 2" opacity=".5"/><path fill="currentColor" d="M7.985 17.5c-2.84 0-4.26 0-5.141-.879C2.272 16.052 2.07 15.258 2 14v-1h20v1c-.07 1.258-.272 2.052-.844 2.621c-.882.879-2.301.879-5.14.879h-3.263v4h3.262c.416 0 .753.336.753.75s-.337.75-.753.75h-8.03a.75.75 0 0 1-.753-.75c0-.414.337-.75.753-.75h3.262v-4z"/></svg>
+              <span style="font-size:13px;font-weight:500;color:#dacbbc">Local</span>
+              <svg width="13" height="13" viewBox="0 0 24 24" style="color:#b9a695"><path fill="currentColor" d="m8.303 12.404l3.327 3.431c.213.22.527.22.74 0l6.43-6.63C19.201 8.79 18.958 8 18.43 8h-5.723z"/><path fill="currentColor" d="M11.293 8H5.57c-.528 0-.771.79-.37 1.205l2.406 2.481z" opacity=".5"/></svg>
+            </div>
+          </div>
+
+          <div style="flex:1;display:flex;flex-direction:column;gap:20px;padding:24px">
+
+            <div style="display:flex;flex-direction:column;gap:12px;padding:16px;border:1px solid rgb(243 234 223 / 14%);border-radius:12px;background:#2a221e">
+              <div style="display:grid;gap:3px">
+                <p style="margin:0;font-size:13px;font-weight:500;line-height:1.24;color:#b9a695">Action queue</p>
+                <h2 style="margin:0;font-size:17px;font-weight:600;line-height:1.3;color:#f3eadf">Next step</h2>
+                <p style="margin:0;font-size:13px;line-height:1.5;color:#dacbbc">Sorted by risk, with only the most useful entries visible.</p>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px">
+                <div style="display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;padding:8px 10px;border:1px solid rgb(232 131 91 / 18%);border-radius:8px;background:rgb(232 131 91 / 10%)">
+                  <span style="display:grid;place-items:center;width:24px;height:24px;color:#dacbbc"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M16 16h3a3 3 0 1 1-3 3.001zM5 16l3 .001v3a3 3 0 1 1-3-3"/><path fill="currentColor" fill-rule="evenodd" d="M19 8h-3V5a3 3 0 1 1 3 3M8 8V5a3 3 0 1 0-3 3z" clip-rule="evenodd"/><path fill="currentColor" d="M16 8H8v8h8z" opacity=".5"/></svg></span>
+                  <span style="display:grid;gap:2px;min-width:0"><strong style="font-size:14px;font-weight:600;color:#f3eadf">Commands</strong><span style="font-size:12px;line-height:1.4;color:#b9a695">Run common CLI commands and inspect output.</span></span>
+                  <span style="color:#b9a695"><svg width="15" height="15" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M3.25 12a.75.75 0 0 1 .75-.75h9.25v1.5H4a.75.75 0 0 1-.75-.75" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M13.25 12.75V18a.75.75 0 0 0 1.28.53l6-6a.75.75 0 0 0 0-1.06l-6-6a.75.75 0 0 0-1.28.53z"/></svg></span>
+                </div>
+                <div style="display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;padding:8px 10px;border:1px solid transparent;border-radius:8px">
+                  <span style="display:grid;place-items:center;width:24px;height:24px;color:#dacbbc"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M14.279 2.152C13.909 2 13.439 2 12.5 2s-1.408 0-1.779.152a2 2 0 0 0-1.09 1.083c-.094.223-.13.484-.145.863a1.62 1.62 0 0 1-.796 1.353a1.64 1.64 0 0 1-1.579.008c-.338-.178-.583-.276-.825-.308a2.03 2.03 0 0 0-1.49.396c-.318.242-.553.646-1.022 1.453c-.47.807-.704 1.21-.757 1.605c-.07.526.074 1.058.4 1.479c.148.192.357.353.68.555c.477.297.783.803.783 1.361s-.306 1.064-.782 1.36c-.324.203-.533.364-.682.556a2 2 0 0 0-.399 1.479c.053.394.287.798.757 1.605s.704 1.21 1.022 1.453c.424.323.96.465 1.49.396c.242-.032.487-.13.825-.308a1.64 1.64 0 0 1 1.58.008c.486.28.774.795.795 1.353c.015.38.051.64.145.863c.204.49.596.88 1.09 1.083c.37.152.84.152 1.779.152s1.409 0 1.779-.152a2 2 0 0 0 1.09-1.083c.094-.223.13-.483.145-.863c.02-.558.309-1.074.796-1.353a1.64 1.64 0 0 1 1.579-.008c.338.178.583.276.825.308c.53.07 1.066-.073 1.49-.396c.318-.242.553-.646 1.022-1.453c.47-.807.704-1.21.757-1.605a2 2 0 0 0-.4-1.479c-.148-.192-.357-.353-.68-.555c-.477-.297-.783-.803-.783-1.361s.306-1.064.782-1.36c.324-.203.533-.364.682-.556a2 2 0 0 0 .399-1.479c-.053-.394-.287-.798-.757-1.605s-.704-1.21-1.022-1.453a2.03 2.03 0 0 0-1.49-.396c-.242.032-.487.13-.825.308a1.64 1.64 0 0 1-1.58-.008a1.62 1.62 0 0 1-.795-1.353c-.015-.38-.051-.64-.145-.863a2 2 0 0 0-1.09-1.083" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M15.523 12c0 1.657-1.354 3-3.023 3s-3.023-1.343-3.023-3S10.83 9 12.5 9s3.023 1.343 3.023 3"/></svg></span>
+                  <span style="display:grid;gap:2px;min-width:0"><strong style="font-size:14px;font-weight:600;color:#f3eadf">Config</strong><span style="font-size:12px;line-height:1.4;color:#b9a695">Check defaults, auth, and platform routing.</span></span>
+                  <span style="color:#b9a695"><svg width="15" height="15" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M3.25 12a.75.75 0 0 1 .75-.75h9.25v1.5H4a.75.75 0 0 1-.75-.75" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M13.25 12.75V18a.75.75 0 0 0 1.28.53l6-6a.75.75 0 0 0 0-1.06l-6-6a.75.75 0 0 0-1.28.53z"/></svg></span>
+                </div>
+                <div style="display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;padding:8px 10px;border:1px solid transparent;border-radius:8px">
+                  <span style="display:grid;place-items:center;width:24px;height:24px;color:#dacbbc"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M22 14.353C22 17.472 19.442 20 16.286 20h-5.787a7.5 7.5 0 0 1 7.487-11.853q.119.422.17.868C20.392 9.78 22 11.881 22 14.353" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M12.476 4C9.32 4 6.762 6.528 6.762 9.647c0 .69.125 1.35.354 1.962a4.4 4.4 0 0 0-.83-.08C3.919 11.53 2 13.426 2 15.765S3.919 20 6.286 20H10.5a7.5 7.5 0 0 1 7.487-11.853l-.047-.158C17.224 5.68 15.048 4 12.476 4"/></svg></span>
+                  <span style="display:grid;gap:2px;min-width:0"><strong style="font-size:14px;font-weight:600;color:#f3eadf">Sync</strong><span style="font-size:12px;line-height:1.4;color:#b9a695">Sync or back up configuration.</span></span>
+                  <span style="color:#b9a695"><svg width="15" height="15" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M3.25 12a.75.75 0 0 1 .75-.75h9.25v1.5H4a.75.75 0 0 1-.75-.75" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M13.25 12.75V18a.75.75 0 0 0 1.28.53l6-6a.75.75 0 0 0 0-1.06l-6-6a.75.75 0 0 0-1.28.53z"/></svg></span>
+                </div>
+                <div style="display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;padding:8px 10px;border:1px solid transparent;border-radius:8px">
+                  <span style="display:grid;place-items:center;width:24px;height:24px;color:#dacbbc"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M2 12c0-4.714 0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12" opacity=".5"/><path fill="currentColor" d="M14.5 10.75a.75.75 0 0 1 0-1.5H17a.75.75 0 0 1 .75.75v2.5a.75.75 0 0 1-1.5 0v-.69l-2.013 2.013a1.75 1.75 0 0 1-2.474 0l-1.586-1.586a.25.25 0 0 0-.354 0L7.53 14.53a.75.75 0 0 1-1.06-1.06l2.293-2.293a1.75 1.75 0 0 1 2.474 0l1.586 1.586a.25.25 0 0 0 .354 0l2.012-2.013z"/></svg></span>
+                  <span style="display:grid;gap:2px;min-width:0"><strong style="font-size:14px;font-weight:600;color:#f3eadf">Usage</strong><span style="font-size:12px;line-height:1.4;color:#b9a695">Open trends, models, projects, and diagnostics.</span></span>
+                  <span style="color:#b9a695"><svg width="15" height="15" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M3.25 12a.75.75 0 0 1 .75-.75h9.25v1.5H4a.75.75 0 0 1-.75-.75" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M13.25 12.75V18a.75.75 0 0 0 1.28.53l6-6a.75.75 0 0 0 0-1.06l-6-6a.75.75 0 0 0-1.28.53z"/></svg></span>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:12px;align-items:stretch">
+
+              <div style="grid-column:span 7;display:grid;gap:14px;padding:16px;border:1px solid rgb(243 234 223 / 14%);border-radius:12px;background:#2a221e">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
+                  <div style="display:grid;gap:3px;min-width:0">
+                    <h2 style="margin:0;font-size:17px;font-weight:600;line-height:1.3;color:#f3eadf">Usage trend</h2>
+                    <p style="margin:0;font-size:14px;line-height:1.5;color:#dacbbc">Sessions, requests, and tokens are summarized from the local usage archive only.</p>
+                  </div>
+                  <div style="display:inline-flex;align-items:center;gap:4px;flex:none;padding:4px;border:1px solid rgb(243 234 223 / 14%);border-radius:9999px;background:#221b18">
+                    <span style="display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:4px 12px;border:1px solid rgb(232 131 91 / 18%);border-radius:9999px;background:rgb(232 131 91 / 10%);font-size:13px;font-weight:500;color:#f3eadf">7D</span>
+                    <span style="display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:4px 12px;border-radius:9999px;font-size:13px;font-weight:500;color:#dacbbc">30D</span>
+                    <span style="display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:4px 12px;border-radius:9999px;font-size:13px;font-weight:500;color:#dacbbc">90D</span>
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,3.5fr) minmax(0,8.5fr);gap:14px">
+                  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px;align-content:start">
+                    <div style="display:flex;flex-direction:column;gap:4px;min-width:0"><p style="margin:0;font-size:13px;font-weight:500;color:#b9a695">Sessions</p><p style="margin:0;display:inline-flex;align-items:center;align-self:start;gap:6px;padding:2px 8px;border:1px solid rgb(243 234 223 / 14%);border-radius:8px;background:#342b26;font-size:24px;font-weight:600;color:#f3eadf"><span style="width:6px;height:6px;flex:none;border-radius:9999px;background:#b9a695"></span>0</p></div>
+                    <div style="display:flex;flex-direction:column;gap:4px;min-width:0"><p style="margin:0;font-size:13px;font-weight:500;color:#b9a695">Requests</p><p style="margin:0;display:inline-flex;align-items:center;align-self:start;gap:6px;padding:2px 8px;border:1px solid rgb(243 234 223 / 14%);border-radius:8px;background:#342b26;font-size:24px;font-weight:600;color:#f3eadf"><span style="width:6px;height:6px;flex:none;border-radius:9999px;background:#b9a695"></span>16.8K</p></div>
+                    <div style="display:flex;flex-direction:column;gap:4px;min-width:0"><p style="margin:0;font-size:13px;font-weight:500;color:#b9a695">Tokens</p><p style="margin:0;display:inline-flex;align-items:center;align-self:start;gap:6px;padding:2px 8px;border:1px solid rgb(243 234 223 / 14%);border-radius:8px;background:#342b26;font-size:24px;font-weight:600;color:#f3eadf"><span style="width:6px;height:6px;flex:none;border-radius:9999px;background:#b9a695"></span>3.9B</p></div>
+                    <div style="display:flex;flex-direction:column;gap:4px;min-width:0"><p style="margin:0;font-size:13px;font-weight:500;color:#b9a695">Platforms</p><p style="margin:0;display:inline-flex;align-items:center;align-self:start;gap:6px;padding:2px 8px;border:1px solid rgb(243 234 223 / 14%);border-radius:8px;background:#342b26;font-size:24px;font-weight:600;color:#f3eadf"><span style="width:6px;height:6px;flex:none;border-radius:9999px;background:#b9a695"></span>8</p></div>
+                  </div>
+                  <div style="display:grid;grid-template-rows:auto 1fr;gap:9px;min-width:0">
+                    <div style="display:inline-flex;align-items:center;justify-self:end;gap:4px;padding:4px;border:1px solid rgb(243 234 223 / 14%);border-radius:9999px;background:#221b18">
+                      <span style="display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:4px 12px;border-radius:9999px;font-size:13px;font-weight:500;color:#dacbbc">Sessions</span>
+                      <span style="display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:4px 12px;border:1px solid rgb(232 131 91 / 18%);border-radius:9999px;background:rgb(232 131 91 / 10%);font-size:13px;font-weight:500;color:#f3eadf">Requests</span>
+                      <span style="display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:4px 12px;border-radius:9999px;font-size:13px;font-weight:500;color:#dacbbc">Tokens</span>
+                    </div>
+                    <div style="position:relative;display:flex;align-items:flex-end;gap:4px;min-height:160px;padding:24px 12px 8px;overflow:hidden;border:1px solid rgb(243 234 223 / 14%);border-radius:8px;background:#221b18">
+                      <span style="position:absolute;top:7px;left:12px;right:12px;display:flex;align-items:baseline;gap:7px;font-size:12px;font-weight:500;color:#b9a695"><span>Peak</span><span style="font-size:13px;font-weight:600;color:#f3eadf">3.5K</span><span>Aug 23</span></span>
+                      <span style="position:absolute;left:12px;right:12px;top:24px;border-top:1px dashed rgb(243 234 223 / 16%)"></span>
+                      <span style="position:absolute;left:12px;right:12px;bottom:8px;border-top:1px dashed rgb(243 234 223 / 16%)"></span>
+                      <div style="position:relative;z-index:1;display:flex;align-items:flex-end;gap:4px;width:100%;height:100%">
+                        <span style="flex:1;height:22%;border-radius:2px 2px 0 0;background:rgb(185 166 149 / 28%)"></span>
+                        <span style="flex:1;height:38%;border-radius:2px 2px 0 0;background:rgb(185 166 149 / 28%)"></span>
+                        <span style="flex:1;height:30%;border-radius:2px 2px 0 0;background:rgb(185 166 149 / 28%)"></span>
+                        <span style="flex:1;height:14%;border-radius:2px 2px 0 0;background:rgb(185 166 149 / 28%)"></span>
+                        <span style="flex:1;height:100%;border-radius:2px 2px 0 0;background:rgb(185 166 149 / 28%)"></span>
+                        <span style="flex:1;height:88%;border-radius:2px 2px 0 0;background:rgb(185 166 149 / 28%)"></span>
+                        <span style="flex:1;height:6%;border-radius:2px 2px 0 0;background:rgb(185 166 149 / 28%)"></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:6px;border-top:1px solid rgb(243 234 223 / 14%)">
+                  <span style="font-size:12px;font-weight:500;color:#b9a695">Updated Aug 25, 11:09 AM</span>
+                  <span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:#dacbbc">Open full report<svg width="15" height="15" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M3.25 12a.75.75 0 0 1 .75-.75h9.25v1.5H4a.75.75 0 0 1-.75-.75" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M13.25 12.75V18a.75.75 0 0 0 1.28.53l6-6a.75.75 0 0 0 0-1.06l-6-6a.75.75 0 0 0-1.28.53z"/></svg></span>
+                </div>
+              </div>
+
+              <div style="grid-column:span 5;display:flex;flex-direction:column;gap:12px;padding:16px;border:1px solid rgb(243 234 223 / 14%);border-radius:12px;background:#2a221e">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+                  <div style="display:grid;gap:3px">
+                    <p style="margin:0;font-size:13px;font-weight:500;line-height:1.24;color:#b9a695">Event stream</p>
+                    <h2 style="margin:0;font-size:17px;font-weight:600;line-height:1.3;color:#f3eadf">Event stream</h2>
+                  </div>
+                  <div style="display:inline-flex;align-items:center;gap:4px;flex:none;padding:4px;border:1px solid rgb(243 234 223 / 14%);border-radius:9999px;background:#221b18">
+                    <span style="display:inline-flex;align-items:center;min-height:32px;padding:4px 12px;border:1px solid rgb(232 131 91 / 18%);border-radius:9999px;background:rgb(232 131 91 / 10%);font-size:13px;font-weight:500;color:#f3eadf">All 5</span>
+                    <span style="display:inline-flex;align-items:center;min-height:32px;padding:4px 12px;border-radius:9999px;font-size:13px;font-weight:500;color:#dacbbc">Warn+ 2</span>
+                    <span style="display:inline-flex;align-items:center;min-height:32px;padding:4px 12px;border-radius:9999px;font-size:13px;font-weight:500;color:#dacbbc">Error 1</span>
+                  </div>
+                </div>
+                <div style="flex:1;display:grid;gap:2px;align-content:start">
+                  <div style="display:grid;grid-template-columns:auto auto auto minmax(0,1fr);align-items:start;gap:8px;padding:6px 6px;border-radius:8px">
+                    <span style="margin-top:2px;min-width:45px;font-size:12px;font-weight:500;color:#b9a695">11:09 AM</span>
+                    <span style="margin-top:5px;width:7px;height:7px;border-radius:9999px;background:#98afc9"></span>
+                    <span style="margin-top:2px;font-size:11px;font-weight:500;color:#735f52">frontend</span>
+                    <p style="margin:0;font-size:14px;line-height:1.4;color:#dacbbc">[Perf]</p>
+                  </div>
+                  <div style="display:grid;grid-template-columns:auto auto auto minmax(0,1fr);align-items:start;gap:8px;padding:6px 6px;border-radius:8px">
+                    <span style="margin-top:2px;min-width:45px;font-size:12px;font-weight:500;color:#b9a695">11:09 AM</span>
+                    <span style="margin-top:5px;width:7px;height:7px;border-radius:9999px;background:#98afc9"></span>
+                    <span style="margin-top:2px;font-size:11px;font-weight:500;color:#735f52">frontend</span>
+                    <p style="margin:0;font-size:14px;line-height:1.4;color:#dacbbc">[startup] react shell mounting</p>
+                  </div>
+                  <div style="display:grid;grid-template-columns:auto auto auto minmax(0,1fr);align-items:start;gap:8px;padding:6px 6px;border-radius:8px">
+                    <span style="margin-top:2px;min-width:45px;font-size:12px;font-weight:500;color:#b9a695">08:13 AM</span>
+                    <span style="margin-top:5px;width:7px;height:7px;border-radius:9999px;background:#98afc9"></span>
+                    <span style="margin-top:2px;font-size:11px;font-weight:500;color:#735f52">usage</span>
+                    <p style="margin:0;font-size:14px;line-height:1.4;color:#dacbbc">Imported 6424 usage records for all</p>
+                  </div>
+                  <div style="display:grid;grid-template-columns:auto auto auto minmax(0,1fr);align-items:start;gap:8px;padding:6px 6px;border-radius:8px">
+                    <span style="margin-top:2px;min-width:45px;font-size:12px;font-weight:500;color:#b9a695">08:40 PM</span>
+                    <span style="margin-top:5px;width:7px;height:7px;border-radius:9999px;background:#db8a73"></span>
+                    <span style="margin-top:2px;font-size:11px;font-weight:500;color:#735f52">runtime</span>
+                    <p style="margin:0;font-size:14px;line-height:1.4;color:#dacbbc">Usage import job failed</p>
+                  </div>
+                  <div style="display:grid;grid-template-columns:auto auto auto minmax(0,1fr);align-items:start;gap:8px;padding:6px 6px;border-radius:8px">
+                    <span style="margin-top:2px;min-width:45px;font-size:12px;font-weight:500;color:#b9a695">08:40 PM</span>
+                    <span style="margin-top:5px;width:7px;height:7px;border-radius:9999px;background:#d6a76d"></span>
+                    <span style="margin-top:2px;font-size:11px;font-weight:500;color:#735f52">frontend</span>
+                    <span style="display:flex;align-items:flex-start;gap:6px;min-width:0"><p style="margin:0;flex:1;font-size:14px;line-height:1.4;color:#dacbbc">[claudeObserver] Query returned empty array</p><span style="flex:none;font-size:12px;font-weight:500;color:#b9a695">×3</span></span>
+                  </div>
+                </div>
+                <div style="display:flex;justify-content:flex-end;padding-top:6px;border-top:1px solid rgb(243 234 223 / 14%)">
+                  <span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:#b9a695">Open monitoring<svg width="15" height="15" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M3.25 12a.75.75 0 0 1 .75-.75h9.25v1.5H4a.75.75 0 0 1-.75-.75" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M13.25 12.75V18a.75.75 0 0 0 1.28.53l6-6a.75.75 0 0 0 0-1.06l-6-6a.75.75 0 0 0-1.28.53z"/></svg></span>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:grid;gap:14px">
+              <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px">
+                <div style="display:grid;gap:3px;min-width:0">
+                  <p style="margin:0;font-size:13px;font-weight:500;line-height:1.24;color:#b9a695">Platform state</p>
+                  <h2 style="margin:0;font-size:17px;font-weight:600;line-height:1.3;color:#f3eadf">Platform state</h2>
+                  <p style="margin:0;font-size:14px;line-height:1.5;color:#dacbbc">Summarize versions, readiness, and local usage, with blockers first.</p>
+                </div>
+                <span style="display:inline-flex;align-items:baseline;gap:8px;flex:none;padding:5px 10px;border:1px solid rgb(243 234 223 / 14%);border-radius:8px;background:#221b18"><strong style="font-size:14px;font-weight:600;color:#f3eadf">3/3</strong><span style="font-size:12px;font-weight:500;color:#b9a695">detected</span></span>
+              </div>
+              <div style="display:grid;gap:6px">
+
+                <div style="display:grid;grid-template-columns:auto auto minmax(144px,1.2fr) auto minmax(96px,0.6fr) minmax(192px,2fr) repeat(3,minmax(72px,0.55fr)) auto;align-items:center;gap:10px;padding:10px 14px;border:1px solid rgb(243 234 223 / 14%);border-radius:12px;background:#2a221e">
+                  <span style="width:8px;height:8px;border-radius:2px;background:#d97757"></span>
+                  <span style="display:grid;place-items:center;width:26px;height:26px;color:#dacbbc"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M2 12c0-4.714 0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12" opacity=".5"/><path fill="currentColor" d="M6.424 9.52a.75.75 0 0 1 1.056-.096l.277.23c.605.504 1.12.933 1.476 1.328c.379.42.674.901.674 1.518s-.295 1.099-.674 1.518c-.356.395-.871.824-1.476 1.328l-.277.23a.75.75 0 1 1-.96-1.152l.234-.195c.659-.55 1.09-.91 1.366-1.216c.262-.29.287-.427.287-.513s-.025-.222-.287-.513c-.277-.306-.707-.667-1.366-1.216l-.234-.195a.75.75 0 0 1-.096-1.056M17.75 15a.75.75 0 0 1-.75.75h-5a.75.75 0 0 1 0-1.5h5a.75.75 0 0 1 .75.75"/></svg></span>
+                  <span style="display:grid;gap:2px;min-width:0"><strong style="font-size:14px;font-weight:600;color:#f3eadf">Claude Code</strong><span style="font-size:12px;font-weight:500;color:#b9a695">v2.1.243 (Claude Code)</span></span>
+                  <span style="display:inline-flex;align-items:center;justify-self:start;gap:6px;padding:3px 7px;border:1px solid rgb(243 234 223 / 14%);border-radius:6px;background:#221b18;font-size:12px;font-weight:500;color:#7cab82"><span style="width:6px;height:6px;border-radius:9999px;background:#7cab82"></span>Ready</span>
+                  <span style="font-size:12px;font-weight:500;color:#b9a695">Core CLI</span>
+                  <span style="font-size:12px;color:#dacbbc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Config, profiles, MCP, plugins, and sync.</span>
+                  <span style="display:grid;gap:2px"><span style="font-size:12px;font-weight:500;color:#b9a695">Req</span><strong style="font-size:13px;font-weight:600;color:#f3eadf">1.3K</strong></span>
+                  <span style="display:grid;gap:2px"><span style="font-size:12px;font-weight:500;color:#b9a695">Sess</span><strong style="font-size:13px;font-weight:600;color:#f3eadf">0</strong></span>
+                  <span style="display:grid;gap:2px"><span style="font-size:12px;font-weight:500;color:#b9a695">Tok</span><strong style="font-size:13px;font-weight:600;color:#f3eadf">239.2M</strong></span>
+                  <span style="width:16px"></span>
+                </div>
+
+                <div style="display:grid;grid-template-columns:auto auto minmax(144px,1.2fr) auto minmax(96px,0.6fr) minmax(192px,2fr) repeat(3,minmax(72px,0.55fr)) auto;align-items:center;gap:10px;padding:10px 14px;border:1px solid rgb(243 234 223 / 14%);border-radius:12px;background:#2a221e">
+                  <span style="width:8px;height:8px;border-radius:2px;background:#5b8a62"></span>
+                  <span style="display:grid;place-items:center;width:26px;height:26px;color:#dacbbc"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M14.279 2.152C13.909 2 13.439 2 12.5 2s-1.408 0-1.779.152a2 2 0 0 0-1.09 1.083c-.094.223-.13.484-.145.863a1.62 1.62 0 0 1-.796 1.353a1.64 1.64 0 0 1-1.579.008c-.338-.178-.583-.276-.825-.308a2.03 2.03 0 0 0-1.49.396c-.318.242-.553.646-1.022 1.453c-.47.807-.704 1.21-.757 1.605c-.07.526.074 1.058.4 1.479c.148.192.357.353.68.555c.477.297.783.803.783 1.361s-.306 1.064-.782 1.36c-.324.203-.533.364-.682.556a2 2 0 0 0-.399 1.479c.053.394.287.798.757 1.605s.704 1.21 1.022 1.453c.424.323.96.465 1.49.396c.242-.032.487-.13.825-.308a1.64 1.64 0 0 1 1.58.008c.486.28.774.795.795 1.353c.015.38.051.64.145.863c.204.49.596.88 1.09 1.083c.37.152.84.152 1.779.152s1.409 0 1.779-.152a2 2 0 0 0 1.09-1.083c.094-.223.13-.483.145-.863c.02-.558.309-1.074.796-1.353a1.64 1.64 0 0 1 1.579-.008c.338.178.583.276.825.308c.53.07 1.066-.073 1.49-.396c.318-.242.553-.646 1.022-1.453c.47-.807.704-1.21.757-1.605a2 2 0 0 0-.4-1.479c-.148-.192-.357-.353-.68-.555c-.477-.297-.783-.803-.783-1.361s.306-1.064.782-1.36c.324-.203.533-.364.682-.556a2 2 0 0 0 .399-1.479c-.053-.394-.287-.798-.757-1.605s-.704-1.21-1.022-1.453a2.03 2.03 0 0 0-1.49-.396c-.242.032-.487.13-.825.308a1.64 1.64 0 0 1-1.58-.008a1.62 1.62 0 0 1-.795-1.353c-.015-.38-.051-.64-.145-.863a2 2 0 0 0-1.09-1.083" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M15.523 12c0 1.657-1.354 3-3.023 3s-3.023-1.343-3.023-3S10.83 9 12.5 9s3.023 1.343 3.023 3"/></svg></span>
+                  <span style="display:grid;gap:2px;min-width:0"><strong style="font-size:14px;font-weight:600;color:#f3eadf">Codex</strong><span style="font-size:12px;font-weight:500;color:#b9a695">vcodex-cli 0.149.1</span></span>
+                  <span style="display:inline-flex;align-items:center;justify-self:start;gap:6px;padding:3px 7px;border:1px solid rgb(243 234 223 / 14%);border-radius:6px;background:#221b18;font-size:12px;font-weight:500;color:#7cab82"><span style="width:6px;height:6px;border-radius:9999px;background:#7cab82"></span>Ready</span>
+                  <span style="font-size:12px;font-weight:500;color:#b9a695">Core CLI</span>
+                  <span style="font-size:12px;color:#dacbbc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Auth, profiles, MCP, and global settings.</span>
+                  <span style="display:grid;gap:2px"><span style="font-size:12px;font-weight:500;color:#b9a695">Req</span><strong style="font-size:13px;font-weight:600;color:#f3eadf">9.8K</strong></span>
+                  <span style="display:grid;gap:2px"><span style="font-size:12px;font-weight:500;color:#b9a695">Sess</span><strong style="font-size:13px;font-weight:600;color:#f3eadf">0</strong></span>
+                  <span style="display:grid;gap:2px"><span style="font-size:12px;font-weight:500;color:#b9a695">Tok</span><strong style="font-size:13px;font-weight:600;color:#f3eadf">1.2B</strong></span>
+                  <span style="width:16px"></span>
+                </div>
+
+                <div style="display:grid;grid-template-columns:auto auto minmax(144px,1.2fr) auto minmax(96px,0.6fr) minmax(192px,2fr) repeat(3,minmax(72px,0.55fr)) auto;align-items:center;gap:10px;padding:10px 14px;border:1px solid rgb(243 234 223 / 14%);border-radius:12px;background:#2a221e">
+                  <span style="width:8px;height:8px;border-radius:2px;background:#7d97b6"></span>
+                  <span style="display:grid;place-items:center;width:26px;height:26px;color:#dacbbc"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M10.277 16.515c.005-.11.186-.154.24-.058c.254.45.686 1.111 1.176 1.412s1.276.386 1.792.408c.11.005.153.186.057.24c-.45.254-1.11.686-1.411 1.176s-.386 1.276-.408 1.792c-.005.11-.187.153-.24.057c-.254-.45-.686-1.11-1.177-1.411c-.49-.301-1.276-.386-1.791-.408c-.11-.005-.154-.187-.058-.24c.45-.254 1.111-.686 1.412-1.177c.3-.49.386-1.276.408-1.791"/><path fill="currentColor" d="m14.703 4.002l-.242-.306c-.937-1.183-1.405-1.775-1.95-1.688c-.544.088-.805.796-1.326 2.213l-.135.366c-.148.403-.222.604-.364.752s-.336.225-.724.38l-.353.141l-.247.1c-1.2.48-1.804.753-1.882 1.283c-.082.565.49 1.049 1.634 2.016l.296.25c.326.275.488.413.581.6c.094.187.107.403.133.835l.024.393c.094 1.52.14 2.28.635 2.542c.494.262 1.108-.147 2.336-.966l.318-.212c.349-.233.523-.35.723-.381s.401.024.806.136l.367.102c1.423.394 2.134.591 2.521.188c.388-.403.195-1.14-.19-2.613l-.1-.381c-.109-.419-.164-.628-.134-.835s.142-.389.366-.752l.203-.33c.785-1.276 1.178-1.914.924-2.426c-.255-.51-.988-.557-2.454-.648l-.38-.024c-.416-.026-.624-.039-.805-.135s-.314-.264-.58-.6"/></svg></span>
+                  <span style="display:grid;gap:2px;min-width:0"><strong style="font-size:14px;font-weight:600;color:#f3eadf">Antigravity</strong><span style="font-size:12px;font-weight:500;color:#b9a695">v1.1.19</span></span>
+                  <span style="display:inline-flex;align-items:center;justify-self:start;gap:6px;padding:3px 7px;border:1px solid rgb(243 234 223 / 14%);border-radius:6px;background:#221b18;font-size:12px;font-weight:500;color:#7cab82"><span style="width:6px;height:6px;border-radius:9999px;background:#7cab82"></span>Ready</span>
+                  <span style="font-size:12px;font-weight:500;color:#b9a695">Core CLI</span>
+                  <span style="font-size:12px;color:#dacbbc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Antigravity CLI config, MCP, skills, and plugin migration.</span>
+                  <span style="display:grid;gap:2px"><span style="font-size:12px;font-weight:500;color:#b9a695">Req</span><strong style="font-size:13px;font-weight:600;color:#f3eadf">Untracked</strong></span>
+                  <span style="display:grid;gap:2px"><span style="font-size:12px;font-weight:500;color:#b9a695">Sess</span><strong style="font-size:13px;font-weight:600;color:#f3eadf">Untracked</strong></span>
+                  <span style="display:grid;gap:2px"><span style="font-size:12px;font-weight:500;color:#b9a695">Tok</span><strong style="font-size:13px;font-weight:600;color:#f3eadf">Untracked</strong></span>
+                  <span style="width:16px"></span>
+                </div>
+
+                <div style="display:grid;grid-template-columns:auto auto minmax(144px,1.2fr) auto minmax(96px,0.6fr) minmax(192px,2fr) repeat(3,minmax(72px,0.55fr)) auto;align-items:center;gap:10px;padding:10px 14px;border:1px solid rgb(243 234 223 / 14%);border-radius:12px;background:#2a221e">
+                  <span style="width:8px;height:8px;border-radius:2px;background:#98afc9"></span>
+                  <span style="display:grid;place-items:center;width:26px;height:26px;color:#dacbbc"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M2 12c0-4.714 0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12" opacity=".5"/><path fill="currentColor" d="M13.488 6.446a.75.75 0 0 1 .53.918l-2.588 9.66a.75.75 0 0 1-1.449-.389l2.589-9.659a.75.75 0 0 1 .918-.53M14.97 8.47a.75.75 0 0 1 1.06 0l.209.208c.635.635 1.165 1.165 1.529 1.642c.384.504.654 1.036.654 1.68s-.27 1.176-.654 1.68c-.364.477-.894 1.007-1.53 1.642l-.208.208a.75.75 0 1 1-1.06-1.06l.171-.172c.682-.682 1.139-1.14 1.434-1.528c.283-.37.347-.586.347-.77s-.064-.4-.347-.77c-.295-.387-.752-.846-1.434-1.528l-.171-.172a.75.75 0 0 1 0-1.06m-7 0a.75.75 0 0 1 1.06 1.06l-.171.172c-.682.682-1.138 1.14-1.434 1.528c-.283.37-.346.586-.346.77s.063.4.346.77c.296.387.752.846 1.434 1.528l.172.172a.75.75 0 1 1-1.061 1.06l-.208-.208c-.636-.635-1.166-1.165-1.53-1.642c-.384-.504-.653-1.036-.653-1.68s.27-1.176.653-1.68c.364-.477.894-1.007 1.53-1.642z"/></svg></span>
+                  <span style="display:grid;gap:2px;min-width:0"><strong style="font-size:14px;font-weight:600;color:#f3eadf">OpenCode</strong><span style="font-size:12px;font-weight:500;color:#b9a695">Managed in app</span></span>
+                  <span style="display:inline-flex;align-items:center;justify-self:start;gap:6px;padding:3px 7px;border:1px solid rgb(243 234 223 / 14%);border-radius:6px;background:#221b18;font-size:12px;font-weight:500;color:#98afc9"><span style="width:6px;height:6px;border-radius:9999px;background:#98afc9"></span>Managed in app</span>
+                  <span style="font-size:12px;font-weight:500;color:#b9a695">Managed</span>
+                  <span style="font-size:12px;color:#dacbbc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Providers, MCP, agents, commands, plugins, and runtime settings.</span>
+                  <span style="display:grid;gap:2px"><span style="font-size:12px;font-weight:500;color:#b9a695">Req</span><strong style="font-size:13px;font-weight:600;color:#f3eadf">73</strong></span>
+                  <span style="display:grid;gap:2px"><span style="font-size:12px;font-weight:500;color:#b9a695">Sess</span><strong style="font-size:13px;font-weight:600;color:#f3eadf">0</strong></span>
+                  <span style="display:grid;gap:2px"><span style="font-size:12px;font-weight:500;color:#b9a695">Tok</span><strong style="font-size:13px;font-weight:600;color:#f3eadf">2.7M</strong></span>
+                  <span style="color:#b9a695"><svg width="15" height="15" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M3.25 12a.75.75 0 0 1 .75-.75h9.25v1.5H4a.75.75 0 0 1-.75-.75" clip-rule="evenodd" opacity=".5"/><path fill="currentColor" d="M13.25 12.75V18a.75.75 0 0 0 1.28.53l6-6a.75.75 0 0 0 0-1.06l-6-6a.75.75 0 0 0-1.28.53z"/></svg></span>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1600,&quot;height&quot;:1100}}"></script>
+</body>
+</html>

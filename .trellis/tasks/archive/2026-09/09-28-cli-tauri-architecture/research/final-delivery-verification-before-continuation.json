@@ -1,0 +1,83 @@
+{
+  "date": "2026-09-28",
+  "baseline_commit": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "source_snapshot": "root-delivery-after-utc-source-input.json",
+  "source_files_checked": 248,
+  "source_changed": [],
+  "intended_deletions_absent": [
+    "ccr-ui/src/features/editor/styles/code-source-editor.css",
+    "ccr-ui/src/features/editor/styles/config-source-panel.css"
+  ],
+  "generated_types_checked": 230,
+  "generated_matches_successful_formal_guard": true,
+  "frontend_inputs_checked": 129,
+  "frontend_input_changes": [],
+  "protected_files": {
+    "ccr-ui/.tmp-desktop-probe.mjs": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+    "ccr-ui/.tmp-insights-visual.mjs": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53"
+  },
+  "existing_task_statuses": {
+    "09-24-home-insights-redesign": "planning",
+    "09-24-home-insights-frontend": "in_progress"
+  },
+  "architecture_task_statuses": {
+    "09-28-config-repository-consistency": "in_progress",
+    "09-28-profile-application-usecases": "in_progress",
+    "09-28-tauri-config-adapter": "in_progress",
+    "09-28-cli-diagnostics-contract": "in_progress",
+    "09-28-safe-persistence-backups": "in_progress",
+    "09-28-usage-job-lifecycle": "in_progress",
+    "09-28-command-workbench-lifecycle": "in_progress",
+    "09-28-settings-lossless-capabilities": "in_progress",
+    "09-28-frontend-query-error-contracts": "in_progress",
+    "09-28-architecture-contract-gates": "in_progress",
+    "09-28-desktop-control-oauth-lifecycle": "in_progress",
+    "09-28-cli-tauri-architecture": "in_progress"
+  },
+  "context_validation_evidence": "final-context-preservation.json",
+  "task_context_validations_passed": 12,
+  "diff_check_exit": 0,
+  "final_root_ci": {
+    "check": "ci",
+    "command": [
+      "just",
+      "ci"
+    ],
+    "cwd": "D:\\Documents\\Code\\Github\\ccr",
+    "started_at": "2026-09-28T17:13:41.944262+00:00",
+    "exit_code": 1,
+    "seconds": 419.15,
+    "log": "root-delivery-after-utc-ci.log",
+    "command_environment_override": {
+      "CCR_SKIP_ICON_GENERATION": "1"
+    }
+  },
+  "final_root_ci_steps": [
+    "Release Build ....... 02:43.550  OK",
+    "Version Sync ........ 00:02.153  OK",
+    "Version Check ....... 00:01.973  OK",
+    "Format .............. 00:04.593  OK",
+    "Format Check ........ 00:05.629  OK",
+    "Strict Clippy ....... 00:07.604  OK",
+    "Test ................ 03:41.331  OK",
+    "Release Build ....... 02:43.550  OK",
+    "TOTAL .............. 06:58.540"
+  ],
+  "root_ci_failure": "Security Audit: existing rustls 0.23.40, RUSTSEC-2026-0285",
+  "standalone_tauri_gate": "root-acceptance-after-tui-tauri.json",
+  "original_frontend_gate": "root-final-frontend.json",
+  "isolated_frontend_gate": "isolated-final-frontend.json",
+  "committed": false,
+  "pushed": false,
+  "archived": false,
+  "limits": [
+    "Formal aggregate remains failed; known security audit and protected frontend baseline failures retained",
+    "Dedicated T10 checker dispatch blocked; scoped non-author cross-review recorded",
+    "Native/cross-platform acceptance remains as listed in integration-report.md"
+  ],
+  "frontend_deleted_paths_checked": [
+    "ccr-ui/src/features/editor/styles/code-source-editor.css",
+    "ccr-ui/src/features/editor/styles/config-source-panel.css"
+  ],
+  "frontend_relevant_paths_total": 131
+}

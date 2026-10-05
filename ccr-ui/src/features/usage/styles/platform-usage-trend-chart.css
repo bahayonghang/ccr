@@ -1,0 +1,77 @@
+/* migrated from PlatformUsageTrendChart.vue; px converted to rem */
+.platform-usage-chart {
+  display: grid;
+  gap: 0.9rem;
+  min-width: 0;
+  border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 13%);
+  border-radius: 1.25rem;
+  background: var(--color-bg-surface);
+  padding: 1rem;
+}
+
+.platform-usage-chart__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.platform-usage-chart__head p {
+  color: var(--color-text-muted);
+  font-size: 0.66rem;
+  font-weight: 760;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.platform-usage-chart__head h3 {
+  margin-top: 0.18rem;
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  font-weight: 730;
+  letter-spacing: -0.02em;
+}
+
+.platform-usage-chart__head span {
+  flex: none;
+  border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 13%);
+  border-radius: 62.4375rem;
+  padding: 0.26rem 0.55rem;
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  font-weight: 690;
+}
+
+.platform-usage-chart__apex {
+  min-height: 17.875rem;
+}
+
+.platform-usage-chart__empty,
+.platform-usage-chart__fallback {
+  min-height: 17.875rem;
+  border: 0.0625rem dashed rgb(var(--color-border-default-rgb) / 16%);
+  border-radius: 1rem;
+}
+
+.platform-usage-chart__empty {
+  display: grid;
+  place-items: center;
+  color: var(--color-text-muted);
+  font-size: 0.84rem;
+  text-align: center;
+}
+
+.platform-usage-chart__fallback {
+  display: flex;
+  align-items: end;
+  gap: 0.22rem;
+  padding: 1rem;
+  background: transparent;
+}
+
+.platform-usage-chart__fallback span {
+  flex: 1;
+  min-width: 0.16rem;
+  border-radius: 62.4375rem 62.4375rem 0 0;
+  background: rgb(var(--color-accent-primary-rgb) / 55%);
+}

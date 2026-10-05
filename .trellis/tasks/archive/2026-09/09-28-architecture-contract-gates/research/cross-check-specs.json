@@ -1,0 +1,1437 @@
+{
+  "timestamp": "2026-09-28T11:59:17.363737-05:00",
+  "reviewer": "/root/implement_t10_gates",
+  "reviewed_author": "/root/implement_t10_specs",
+  "status": "passed_scoped",
+  "requirements": 39,
+  "test_groups": 33,
+  "p1_groups": 9,
+  "artifacts_checked": {
+    ".trellis/tasks/09-28-cli-tauri-architecture/research/p1-evidence-ledger.json": {
+      "sha256": "8763a656e3609be2bed179fde73bb65cdd0ec0e60a8a21fc4aebf0ce09c39a60",
+      "bytes": 94153
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/evidence-index.json": {
+      "sha256": "e25bc36f2606b99b844628174048948f01b7f01614614d279848796b9c3e4800",
+      "bytes": 3328
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/cli-baseline.log": {
+      "sha256": "dc1a3838ce5e217f421b5b1098b45fd7fee7051c86eb7ab9633fc823129ada1e",
+      "bytes": 4874
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/a09-baseline.log": {
+      "sha256": "d8b6379154d89af97222c13127afd65743abffe4ba3e79e32878febc2bfccde3",
+      "bytes": 3965
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/a14-baseline.log": {
+      "sha256": "b1f0b3673cc9bc41de52a05e17ada033c5b13ae1d5764504f738440ff1407c42",
+      "bytes": 1070
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/a15-baseline.log": {
+      "sha256": "fe7bdf6c1bf6fa6c8768b2cedfc4595d7c8261fdd8b226de937af990ceb19cc1",
+      "bytes": 1567
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/spec-validation.json": {
+      "sha256": "3aca893652abc0a509110531f219e0c6a3aba6c1bb99d688ad0ea70015e39310",
+      "bytes": 5873
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/spec-convergence-evidence.json": {
+      "sha256": "4a66617759f092dc981cd7657778949eaaa0432ea54f5f1f55499e4a453e8087",
+      "bytes": 746
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/spec-context-09-28-usage-job-lifecycle.log": {
+      "sha256": "9e9ff5966e37c65bd74330d1035d80f2224ecc18c3a36f646b9c360b021a67fb",
+      "bytes": 261
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/spec-context-09-28-architecture-contract-gates.log": {
+      "sha256": "e8b11f4c1f68fedc947186b5d1b8e37fd5369382f82e56d3072dcffeb0276849",
+      "bytes": 269
+    },
+    ".trellis/tasks/09-28-cli-tauri-architecture/research/baseline-lint.json": {
+      "sha256": "6e6dce24dabf0c3accd9b0f1e5d4be7cc58b090d44f8108103887fc111641440",
+      "bytes": 211
+    },
+    ".trellis/tasks/09-28-cli-tauri-architecture/research/baseline-lint-tracked-diagnostic.json": {
+      "sha256": "55555175d0f2452b71517a5d646cb2c2af7552717d88f378a1a6f946546ea41d",
+      "bytes": 403
+    },
+    ".trellis/tasks/09-28-cli-tauri-architecture/research/root-final-frontend.json": {
+      "sha256": "cdd97a694f222742ef7dc8ab5a70ddf0357658025689cc64d0e31adfe67359b9",
+      "bytes": 342
+    },
+    ".trellis/tasks/09-28-cli-tauri-architecture/research/root-final-frontend.log": {
+      "sha256": "e34c5cd42560576c12121d58ac2a389fccd85375c4bb889357b5337bf5a7ebb5",
+      "bytes": 1625
+    },
+    ".trellis/tasks/09-28-cli-tauri-architecture/research/isolated-final-frontend.json": {
+      "sha256": "4f8c14026a1a0b6772a9a05b2ed4c5f1a4fb9065f067733a7d6036b3f49288ec",
+      "bytes": 442
+    },
+    ".trellis/tasks/09-28-cli-tauri-architecture/research/isolated-final-frontend.log": {
+      "sha256": "30d41f6dd21bfea1e0139a468c2f39e1ecb44a61972a80a75f8aed90f198fbc7",
+      "bytes": 33909
+    },
+    "crates/ccr-config/src/managers/config/repository_tests.rs": {
+      "sha256": "cadd49b08699426da5dd506aed28e7b6a6ca504b9ffffeee2b80b567dd2ec20d",
+      "bytes": 24761
+    },
+    ".trellis/tasks/09-28-profile-application-usecases/check-repository-alias-final.log": {
+      "sha256": "7bd7bcbb0b1cbed7b118a4b1e34b9c7856f2a457aaadb8cd9ea05c927f0244b2",
+      "bytes": 3331
+    },
+    ".trellis/tasks/09-28-profile-application-usecases/root-linux-repository-final-alias.json": {
+      "sha256": "45c2e18a42055d420e21a18290c0953e8f4b08dbe7a1dc2f0c89c8875180b580",
+      "bytes": 4236
+    },
+    "crates/ccr-cli/src/application/profile_contract.rs": {
+      "sha256": "079736b3d418195d2085e8f2ecfff2f4cb0d5735cf8f55bf4006c648b7d5349e",
+      "bytes": 22223
+    },
+    ".trellis/tasks/09-28-profile-application-usecases/check-cli-alias-final.log": {
+      "sha256": "eaff805d8b3dc831182372d967f86b993b633bde24ff1d803b87f4607f1d007b",
+      "bytes": 3250
+    },
+    "crates/ccr-tui/src/tui/profile_backend.rs": {
+      "sha256": "835e296e4dfe920c36f7727bbdeb7964276d9d03ebf346fef5efa329b9fb3292",
+      "bytes": 3571
+    },
+    ".trellis/tasks/09-28-profile-application-usecases/check-tui-alias-final.log": {
+      "sha256": "0b4c7c2a0c7ea9b41812a13f24f6fca01140ccdf409342a92349f02889e5d6d5",
+      "bytes": 2464
+    },
+    "ccr-ui/src-tauri/src/commands/profile_lifecycle.rs": {
+      "sha256": "83c3b279ab87c9b0da604a6dfba8a5adf7d1a9262a2697fc2a3ffc0a2101fd71",
+      "bytes": 12920
+    },
+    ".trellis/tasks/09-28-profile-application-usecases/check-desktop-alias-final.log": {
+      "sha256": "53c6033d5d75427774ecb6a63d6fb2b810c0ac31dda92ea22cecdf1ef0dc90a3",
+      "bytes": 2802
+    },
+    "crates/ccr/tests/commands/claude_profile.rs": {
+      "sha256": "ba5ae3dc6bff422b60e600f8af4c2f61b4f5f39fcfb6138207703d433988e49e",
+      "bytes": 21007
+    },
+    ".trellis/tasks/09-28-profile-application-usecases/check-cli-warning-output.log": {
+      "sha256": "bf6c7b87b2770faf8f7d701bfdf56f9cb95f902f4c383c22c03888fe89a0102a",
+      "bytes": 1168
+    },
+    "crates/ccr-core/src/core/write_journal.rs": {
+      "sha256": "8d57b9a1f307acb1fc75636014dd78b8b8978142d5537610b81cd449d6f730a5",
+      "bytes": 23216
+    },
+    ".trellis/tasks/09-28-profile-application-usecases/check-journal-alias-final.log": {
+      "sha256": "09c68f89ea8983c0374009a08089c263159df5d28416779474975d90aef48b47",
+      "bytes": 1445
+    },
+    ".trellis/tasks/09-28-profile-application-usecases/root-linux-write-journal-faults-final-alias.json": {
+      "sha256": "467feef43e5e39f718599c3849d881d17c65061bc11f614d2a1671bf15c654a6",
+      "bytes": 8870
+    },
+    "ccr-ui/src-tauri/src/commands/config/contract_tests.rs": {
+      "sha256": "ce55e7f4f2c7fc738f4141857e5d486093de41897e19342aa5d2b1bf071d2f17",
+      "bytes": 16006
+    },
+    ".trellis/tasks/09-28-tauri-config-adapter/check-backend-final.log": {
+      "sha256": "a67a96ef2a24832b0506e787a623a1412a8c71bb8dc15f5f5f44f0dcf26ac96b",
+      "bytes": 2571
+    },
+    ".trellis/tasks/09-28-tauri-config-adapter/check-enable-final.log": {
+      "sha256": "8d23e2a81d7afad848997067f1e7de4f05e1b43c3eb0691bb44823cbfbb687aa",
+      "bytes": 1055
+    },
+    "ccr-ui/tests/configs/configs-actions.smoke.test.tsx": {
+      "sha256": "0fb38b766f05b6ec97b46217c02be8d57f2fcd7bae81db90e935c39ee7a0d3ec",
+      "bytes": 9313
+    },
+    ".trellis/tasks/09-28-frontend-query-error-contracts/research/check-frontend-smoke.log": {
+      "sha256": "99426489a83e4f4f994561851a927d26cbdf9a41de5d13d5662bd25fa85de153",
+      "bytes": 441
+    },
+    "crates/ccr/tests/diagnostics_contract.rs": {
+      "sha256": "793bb6f12e770b0462a00c7ef184f7642edbec8359c38ae4359167d6e3b55ccf",
+      "bytes": 19006
+    },
+    ".trellis/tasks/09-28-cli-diagnostics-contract/check-binary-final.log": {
+      "sha256": "4537470f655be0bfdd8c558c412211298527d2b56378df53ec1fdffe0caa7adc",
+      "bytes": 2081
+    },
+    "crates/ccr-core/src/core/guarded_write.rs": {
+      "sha256": "5c7dc32c51340360a2cffb5019821aa134ff94ebbc24b3069ec34aaff92ae3cc",
+      "bytes": 48390
+    },
+    ".trellis/tasks/09-28-profile-application-usecases/check-guarded-alias-final.log": {
+      "sha256": "7631e62d1fe1ea411332143b37d28b25ce686815bac9edbfa8c6c60b1473d7e6",
+      "bytes": 2599
+    },
+    ".trellis/tasks/09-28-profile-application-usecases/root-linux-guarded-write-final-alias.json": {
+      "sha256": "1a79189af0cbeeb8f02aa897f5d1e9572358912490ff3b19a3179609763e73d9",
+      "bytes": 4229
+    },
+    "crates/ccr-codex/src/services/codex_oauth_pending_store.rs": {
+      "sha256": "6f4ccc7384183467d07ca78056325954fcbf6430cda41ce71b93861c270e8627",
+      "bytes": 14683
+    },
+    ".trellis/tasks/09-28-safe-persistence-backups/check-linux-oauth-pending.json": {
+      "sha256": "ad40368ca8c53b6cec80caa9dce8d954d381bb58123cebebdd78bf8eb7653d68",
+      "bytes": 9750
+    },
+    "ccr-ui/src-tauri/src/usage_jobs.rs": {
+      "sha256": "cac0d8838f9e905dd32eb21894d631b4674433e031e9f2eb2de7ecfada6031d4",
+      "bytes": 16240
+    },
+    ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-usage.log": {
+      "sha256": "389049a41877094a1911d172fff66ef6085505ee574ebc1a017469d067193cf2",
+      "bytes": 7827
+    },
+    "ccr-ui/src-tauri/src/llmusage_adapter/cli_lifecycle_tests.rs": {
+      "sha256": "08ae71265e03d3f30dc9f1abbc28113f0dad770a6d24b890ca2e201f45e7532e",
+      "bytes": 11024
+    },
+    "crates/ccr-core/src/core/process_gateway.rs": {
+      "sha256": "bd8890b9cae7707f9e523f31123a1bb045e1553f0947669e3b55a859f97634f6",
+      "bytes": 27136
+    },
+    ".trellis/tasks/09-28-usage-job-lifecycle/check-core-process-linux-final.log": {
+      "sha256": "865d07a6f511fb2c05d71491ba584c8470c93a7d97106818d1ca6267fed06799",
+      "bytes": 7144
+    },
+    ".trellis/tasks/09-28-usage-job-lifecycle/check-process-smoke-final.log": {
+      "sha256": "1c9f4b3b6af1c04d0c593b4e72ddcbfb3a99b810b9266f3d2e21096462b781d1",
+      "bytes": 8265
+    },
+    "ccr-ui/tests/commands/command-workbench-lifecycle.smoke.test.tsx": {
+      "sha256": "0b7af0d4b341f5af29ea7d8bf2b8d5c422358da1bdd4db8470de861e9b15db23",
+      "bytes": 24726
+    },
+    ".trellis/tasks/09-28-command-workbench-lifecycle/research/check-final-regression.log": {
+      "sha256": "29cc25cca4b0a815d985df1c40567002168f09754510bb3d1eaeb3349e1da5ce",
+      "bytes": 392
+    },
+    "ccr-ui/tests/shell/event-bridge-leak.smoke.test.tsx": {
+      "sha256": "68063a2c1d5b4e1caa2e1b3c01f293e5c1fd4dc661f1e5bf487b4802c119265f",
+      "bytes": 7763
+    },
+    "ccr-ui/src-tauri/src/commands/command_exec.rs": {
+      "sha256": "75215f5fcc8762b395a01efe2f7d2bb896ffc2380185fb322675e687b43975fa",
+      "bytes": 81957
+    },
+    ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-command-exec.log": {
+      "sha256": "f5333c298b30dbf5407b9e0d9bd48dbb1973a3487917bbeecd0776b24b06f2b5",
+      "bytes": 8224
+    },
+    "ccr-ui/tests/platforms/settings-lossless.smoke.test.ts": {
+      "sha256": "4d87030ffbb91f788b64be4e9ba623affc0b480bd8ff15360a5c91d658c70778",
+      "bytes": 10552
+    },
+    "ccr-ui/src-tauri/src/commands/codex.rs": {
+      "sha256": "63ecad05a6dd2af59021cc87ccdb6a22a23cce201688e1bb36a90c1691705da4",
+      "bytes": 83098
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/../09-28-cli-tauri-architecture/research/root-acceptance-after-tui-tauri.log": {
+      "sha256": "f87233d4312929bdfc2dbd80d262cd34310844a2aac9d8bd3b035550abe3b333",
+      "bytes": 63825
+    },
+    "ccr-ui/tests/platforms/settings-capabilities.smoke.test.tsx": {
+      "sha256": "98d3b136cb44a5e7e032c29fa2c6a44eb8cef937f7dbd8b9c594117bd9c8a135",
+      "bytes": 22633
+    },
+    "ccr-ui/src-tauri/src/commands/grok.rs": {
+      "sha256": "5be7313e651ab6c798435787cac05b09d9a91f397c09227a4426c796c7461307",
+      "bytes": 84776
+    },
+    ".trellis/tasks/09-28-settings-lossless-capabilities/grok-rust.log": {
+      "sha256": "2465c384a2891a672e2588539b7d2346a87afa5de5615e375736b6077085cd13",
+      "bytes": 6203
+    },
+    "ccr-ui/tests/platforms/auth-query-contract.smoke.test.tsx": {
+      "sha256": "be464d4e1427bc517bd6cb31d300b87edc7a33d8c9c455d040a7f1e1dc7e2269",
+      "bytes": 6830
+    },
+    "ccr-ui/tests/platforms/auth-probe-recovery-check.smoke.test.tsx": {
+      "sha256": "383b2ec09cc96de49bf62475395c2edaa4da2a29925b4c951fa6c48e15c7cf46",
+      "bytes": 2092
+    },
+    ".trellis/tasks/09-28-frontend-query-error-contracts/research/check-auth-probe-production-cache.log": {
+      "sha256": "01e2402e7841d6562330298c3e3c8dac1529ce9dd5703a499683b21b5feeaf5e",
+      "bytes": 3806
+    },
+    "ccr-ui/tests/platforms/settings-session.smoke.test.tsx": {
+      "sha256": "cfb79e961b8ddeb4e91e0db9933284e7a17938dcb2d99f5365908285226e46ae",
+      "bytes": 13208
+    },
+    "ccr-ui/tests/platforms/settings-source-session.smoke.test.tsx": {
+      "sha256": "b8ed921a9a436b13d9e9eda36e73fcd510ecd9453fe3d2064359dce7680b9329",
+      "bytes": 7044
+    },
+    "ccr-ui/src-tauri/src/commands/claude_settings_tests.rs": {
+      "sha256": "464a39f9501c11244277982814c3bd52e7ea8b0649f0ac39d1a3de7ba6e3e658",
+      "bytes": 9821
+    },
+    ".trellis/tasks/09-28-frontend-query-error-contracts/research/check-backend-behavior.log": {
+      "sha256": "925a675ffefd111edb804d7da672a5bb67813002dab86877f034a271bb0361d0",
+      "bytes": 3998
+    },
+    "ccr-ui/src-tauri/src/commands/runtime_policy.rs": {
+      "sha256": "5646dde1cf89c45cf26567ecf27d6d6283e117d6f023474201cc8f18fed5dc64",
+      "bytes": 22354
+    },
+    ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-runtime_policy.log": {
+      "sha256": "9afd052e2d8a665fe98e9221661685dd7d174088a0a5cd80fe7ecd2be6622d9e",
+      "bytes": 2063
+    },
+    "ccr-ui/src-tauri/src/commands/codex_auth/oauth_tests.rs": {
+      "sha256": "743c45b9c3d6bc58bdb80bbcd0df6423274176dc809cbc45bef9509ce6e21668",
+      "bytes": 31275
+    },
+    ".trellis/tasks/09-28-desktop-control-oauth-lifecycle/check-oauth-green.log": {
+      "sha256": "5db242b16f0ed3b3eed0fee6e41013e548e7ff68f5e54c8bf2a9a8e39ba7359e",
+      "bytes": 5150
+    },
+    "ccr-ui/src-tauri/src/commands/handler_registry.rs": {
+      "sha256": "97e1b1ca74e56af2852d7b2fabef17f2ed7bd3f34d3bbfd66db7f4df34c92890",
+      "bytes": 156420
+    },
+    ".trellis/tasks/09-28-frontend-query-error-contracts/research/check-backend-registry.log": {
+      "sha256": "f7ac8e209e3bba74ecb8900e6f54d00cf0a14d226ac46883da0c76e34b3a2431",
+      "bytes": 3105
+    },
+    "ccr-ui/tests/usage/usage-import-lifecycle.smoke.test.tsx": {
+      "sha256": "f0eba57631eccc5a8b68318e97cc6524b198d00229845a07388658614b8002e3",
+      "bytes": 4090
+    },
+    ".trellis/tasks/09-28-usage-job-lifecycle/check-frontend-lifecycle.log": {
+      "sha256": "0fad1500b17dce9ff3af760aaeb7b10a28898ccad593eece1d880674247a5d7c",
+      "bytes": 382
+    },
+    "scripts/ci/test_architecture_contract_gates.py": {
+      "sha256": "dbea51132386eab0d1865654f7422ad46c701c69975f92078858d958ab10df5a",
+      "bytes": 5370
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/gates-governance-final.log": {
+      "sha256": "8ccc109c8d18590fc2f6c77f4b7262fdbec0f94ca3a8f71bb19fd4fd24c0b3b7",
+      "bytes": 132
+    },
+    "ccr-ui/tests/quality/bindings-transaction.smoke.test.ts": {
+      "sha256": "0b56d7e06e33a3ea79a405016a319f966bf0b4112f6417bcce00129076ac043a",
+      "bytes": 5925
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/gates-frontend-final.log": {
+      "sha256": "fdee0dc88c2720c05263e1e422de68849fb23c9e0b898dc8662383eab148fa7e",
+      "bytes": 372
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/gates-full-bindings-final.json": {
+      "sha256": "014c286514a769cf74fc1c3fc0155ac3737bda0c1566dc9b469437e8c9a5b55e",
+      "bytes": 49563
+    },
+    "ccr-ui/tests/usage/usage-date-window.smoke.test.ts": {
+      "sha256": "07d97d455aa78442d1f4fb66d82cb9ff3314c21dd95480885c9ab5991863f4db",
+      "bytes": 3889
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/architecture_baseline_tests.rs": {
+      "sha256": "54ce43326bfbfc64fbe3c874160870d0debbab943324b6e3bc09e724e924be35",
+      "bytes": 4020
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/cli-baseline.json": {
+      "sha256": "344aa1479818398a40d404e2c636d4bfa378ed2547b023683389556cfe372a53",
+      "bytes": 549
+    },
+    "ccr-ui/src-tauri/src/commands/config.rs": {
+      "sha256": "ac9088268a0d7f8d30543dfb0efd755d15851746cdbc89fcc8df7449f986af0e",
+      "bytes": 19533
+    },
+    "ccr-ui/src-tauri/src/commands/config/adapter.rs": {
+      "sha256": "b00d2fb17791dc68f685e910d862dd180ad582f4af627e3d13a5e88ca4a973dd",
+      "bytes": 9149
+    },
+    "ccr-ui/src/features/configs/hooks/useConfigsPage.ts": {
+      "sha256": "57255bad5e65aa5a52529f5a33d80fc8bdd2b04065bcffab302c5bf59d16a759",
+      "bytes": 7280
+    },
+    "crates/ccr-config/src/managers/config/repository.rs": {
+      "sha256": "be8c61e0a0cc03748457d694e911e458e0106e0287125d49176aae5f109643cb",
+      "bytes": 12722
+    },
+    "crates/ccr-config/src/platforms/base.rs": {
+      "sha256": "2bf0a4b49434abbd06df62edf2023d3747fe328dfb6a53e95bd1718c52e46a2f",
+      "bytes": 45192
+    },
+    "crates/ccr-config/src/services/config_service.rs": {
+      "sha256": "e2dfbd893e629194caf2288e59fafc10834579acc7466455eba363be8d6c5b47",
+      "bytes": 21214
+    },
+    "crates/ccr-cli/src/application/profile_lifecycle.rs": {
+      "sha256": "c9af01c835016ad10688893bcd89a61b06c219956c389707e23e85954b58ba98",
+      "bytes": 16301
+    },
+    "crates/ccr-cli/src/application/profile_switch.rs": {
+      "sha256": "d06944ff39a37a870deb840ef5b465984049f35d660e8c5e08a908e493a394e2",
+      "bytes": 2506
+    },
+    ".trellis/tasks/09-28-usage-job-lifecycle/baseline-tests.log": {
+      "sha256": "2820ffa663c3ca48f6597fc21982cbb16b22c674f76b7a5eab17f23f7967f979",
+      "bytes": 6198
+    },
+    "ccr-ui/src-tauri/src/commands/usage.rs": {
+      "sha256": "6ba53bd0182618f9723cade3db055f2db7f654d5c451233dcec87dea7c138c78",
+      "bytes": 59014
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/a09_baseline_test.rs": {
+      "sha256": "d7a554c287071d31d1419df8e6cd2fa341da6a26bfea2fce42e2061b58ea2157",
+      "bytes": 1276
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/a09-instrumentation.json": {
+      "sha256": "6ee9854c1c2f4159a216e531c2719dab79e23158850639813bfeea6701122691",
+      "bytes": 564
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/a09-baseline.json": {
+      "sha256": "a4ff7d1ff3d4ddda6bca56b43d2fbc33f5fb0baf8fd1c84fbf50cba9dc404da5",
+      "bytes": 607
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/silent_child.rs": {
+      "sha256": "24db00deb44ca9688dbed9d19a31f854bec79d48c55dadd30081f1fa6e00279f",
+      "bytes": 260
+    },
+    "ccr-ui/src-tauri/src/llmusage_adapter/cli.rs": {
+      "sha256": "21fe8e44a06174e331d63bebe1272cf436cd7b2fa2c155e6035278cb809ec1d1",
+      "bytes": 19950
+    },
+    "ccr-ui/src-tauri/src/process/gateway.rs": {
+      "sha256": "d67dd0684071c82926002c6f5c71a6d289cf5f0a98757cc9f17d1fc0e95f269b",
+      "bytes": 32694
+    },
+    "ccr-ui/src-tauri/src/commands/codex_auth.rs": {
+      "sha256": "0720f229c18ff4facec1e46a2b039a476215124fa34985c2d58b895aa81bfe97",
+      "bytes": 62235
+    },
+    "crates/ccr-core/src/core/atomic_writer.rs": {
+      "sha256": "54d4b2773e9f386a773b8aee9c59bec96895514f9608588caec7d372e2cffbd4",
+      "bytes": 37718
+    },
+    ".trellis/tasks/09-28-command-workbench-lifecycle/research/initial-red.log": {
+      "sha256": "cf8e081a8c475a70848acdae24a1a289e52bac835def9a08094dca6252bc0063",
+      "bytes": 27295
+    },
+    ".trellis/tasks/09-28-cli-tauri-architecture/research/frontend-audit.evidence.test.tsx": {
+      "sha256": "fe7f25ba9d38dd0c055099b373a22b42181d4cca3fb6b43e5069406e7f0d100a",
+      "bytes": 7265
+    },
+    ".trellis/tasks/09-28-cli-tauri-architecture/research/frontend-audit.md": {
+      "sha256": "ad26b83825e055743c560e4b6755eeec5d859d230c7658b73f85d0c81d614d0c",
+      "bytes": 25677
+    },
+    "ccr-ui/src/features/commands/useCommandsPage.ts": {
+      "sha256": "c0112f4088d05e164232537f95888852897d23dcb049591c70eadc60899f1f70",
+      "bytes": 9806
+    },
+    "ccr-ui/src/shell/eventBridge.ts": {
+      "sha256": "18f768dc8f4bd9c6e9c39f8519013b9646a1daa99aa3b1510933f18a9cb4017f",
+      "bytes": 8254
+    },
+    "ccr-ui/src/features/commands/stores.ts": {
+      "sha256": "5aca041451a7575075b567b5e283ac65b9e1cddea1bc0a3e3270b334ed83f6d8",
+      "bytes": 3108
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/a14-baseline.test.ts": {
+      "sha256": "c9b02db9464c39ade3263be2944b95bb5ca1cd19d746b0d783d4fa059eed2370",
+      "bytes": 445
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/a14-baseline.json": {
+      "sha256": "90adffefde846a7b47d5eb5932ba8038a945e28f6a3399478f525e4aaca57b29",
+      "bytes": 659
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/settings-codex-map-baseline.ts": {
+      "sha256": "4c120be0c30bed997b70bc435671a7a12a125f0b3c11831143e0a6c51791cbce",
+      "bytes": 5555
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/settings-helpers-baseline.ts": {
+      "sha256": "c2bd9f4f75b9ffbfae3a4933df8255f84ea6373bc81cbb25fde5dca729c7a9b4",
+      "bytes": 1105
+    },
+    "ccr-ui/src/configs/settings-codex-map.ts": {
+      "sha256": "05d62e0275cfa8634eb3b5183df55f5f75f0759d065a75af2cf4cb3f67277641",
+      "bytes": 7305
+    },
+    "ccr-ui/src/configs/settings-codex.ts": {
+      "sha256": "ae0701d198a1dbc9ade71ed5b332cccb0cb1ef98697f95788b4bc00aabc85245",
+      "bytes": 5308
+    },
+    "ccr-ui/src/configs/settings-patch.ts": {
+      "sha256": "f3f7def39fa5fbf71cd2be8a490b1507e1b9850214af9a9b9893d34585a4a532",
+      "bytes": 1283
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/baseline-capabilities-input.tsx": {
+      "sha256": "98d3b136cb44a5e7e032c29fa2c6a44eb8cef937f7dbd8b9c594117bd9c8a135",
+      "bytes": 22633
+    },
+    ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/a15-baseline.json": {
+      "sha256": "bf333a3869084aa9a04aaabca9fe3d4c4e44c48b1f81cbe9765261710f63fe75",
+      "bytes": 439
+    },
+    "ccr-ui/src/features/platform/settings/BaseSettings.tsx": {
+      "sha256": "f1bb786dca76c2745d4dc9499a905167ffe15a9a02a9a21c29e7d8d049522cb6",
+      "bytes": 5897
+    },
+    "ccr-ui/src/configs/settings-grok.ts": {
+      "sha256": "76803f1fef3bcc9faa72147c9804593dffa76aabca177ef536ff729d7041c250",
+      "bytes": 5571
+    },
+    "ccr-ui/src/features/platform/settings/SettingsSource.tsx": {
+      "sha256": "9bfe7c799b4d0ed795b09b9152eae7562d8cd58f6f1fa57b0fc2269ff0365c4d",
+      "bytes": 3631
+    },
+    ".trellis/spec/ccr/backend/dependency-governance.md": {
+      "sha256": "c5d4068b3f7bdff793e79ba03de46515f133776ae43ffe81ece9d82117c6bab2",
+      "bytes": 32568
+    },
+    ".trellis/spec/ccr/backend/tauri-handler-registry.md": {
+      "sha256": "e1b3bb5734e686180f59aa407baaef7a5ef6cf6e06b32c2f7c797f7d00df01e9",
+      "bytes": 14597
+    },
+    ".trellis/spec/ccr/backend/typed-ipc-bindings.md": {
+      "sha256": "ea7c2c0872c0f83f8d2652534061cdaf7853c99a3e49752c8d4d8d3f054d4a3a",
+      "bytes": 28968
+    },
+    ".trellis/spec/ccr/backend/index.md": {
+      "sha256": "9b2e3635af0dbe09fde32c33a5495b5dd726d4ff4e8e7632b56e0e219ce99eca",
+      "bytes": 4470
+    },
+    ".trellis/spec/ccr/backend/llmusage-provider-adapter.md": {
+      "sha256": "77d08a9536e3dae9c2ad86244371577460f820722de7a08375a534d2b0590d13",
+      "bytes": 32727
+    },
+    ".trellis/spec/ccr/backend/usage-job-lifecycle.md": {
+      "sha256": "8a16f2161336cba86bc3fd1878d40fe0298eddec5e6d0da7d28eed5ca9414485",
+      "bytes": 5116
+    },
+    "code_map.md": {
+      "sha256": "492b729515ec84ffb5ea05f56c685e6d3a27ccc752ff9879ce4f225cbaa38b3a",
+      "bytes": 1715
+    },
+    "ccr-ui/code_map.md": {
+      "sha256": "62de6add91c60a9f3d3e6033132e8825bcfe5b0f386c691f537a7a3b1157a17d",
+      "bytes": 5698
+    },
+    "ccr-ui/.tmp-desktop-probe.mjs": {
+      "sha256": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+      "bytes": 3779
+    },
+    "ccr-ui/.tmp-insights-visual.mjs": {
+      "sha256": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53",
+      "bytes": 14099
+    }
+  },
+  "selectors_checked": [
+    {
+      "group": "repository",
+      "selector": "platform_and_service_processes_keep_both_updates",
+      "line": 419,
+      "matched": true
+    },
+    {
+      "group": "repository",
+      "selector": "desktop_and_service_processes_keep_both_updates",
+      "line": 424,
+      "matched": true
+    },
+    {
+      "group": "repository",
+      "selector": "windows_verbatim_and_service_processes_keep_both_updates",
+      "line": 430,
+      "matched": true
+    },
+    {
+      "group": "repository",
+      "selector": "reads_do_not_initialize_autofix_or_lock_files",
+      "line": 54,
+      "matched": true
+    },
+    {
+      "group": "repository",
+      "selector": "explicit_platform_and_legacy_claude_ignore_registry_order",
+      "line": 131,
+      "matched": true
+    },
+    {
+      "group": "repository",
+      "selector": "strict_patch_rejects_invalid_missing_duplicate_and_stale_without_writes",
+      "line": 157,
+      "matched": true
+    },
+    {
+      "group": "repository",
+      "selector": "patch_preserves_unedited_fields_and_renames_current_and_default",
+      "line": 193,
+      "matched": true
+    },
+    {
+      "group": "profile_cli",
+      "selector": "profile_preflight_contract",
+      "line": 532,
+      "matched": true
+    },
+    {
+      "group": "profile_cli",
+      "selector": "profile_each_write_contract",
+      "line": 544,
+      "matched": true
+    },
+    {
+      "group": "profile_cli",
+      "selector": "profile_success_replay_contract",
+      "line": 536,
+      "matched": true
+    },
+    {
+      "group": "profile_cli",
+      "selector": "profile_ancillary_contract",
+      "line": 540,
+      "matched": true
+    },
+    {
+      "group": "profile_cli",
+      "selector": "profile_external_version_contract",
+      "line": 548,
+      "matched": true
+    },
+    {
+      "group": "profile_cli",
+      "selector": "profile_rename_each_write_contract",
+      "line": 552,
+      "matched": true
+    },
+    {
+      "group": "profile_cli",
+      "selector": "profile_adapters_keep_application_boundary",
+      "line": 490,
+      "matched": true
+    },
+    {
+      "group": "profile_tui",
+      "selector": "apply_preflight_contract",
+      "line": 79,
+      "matched": true
+    },
+    {
+      "group": "profile_tui",
+      "selector": "apply_each_write_contract",
+      "line": 91,
+      "matched": true
+    },
+    {
+      "group": "profile_tui",
+      "selector": "apply_ancillary_contract",
+      "line": 87,
+      "matched": true
+    },
+    {
+      "group": "profile_tui",
+      "selector": "apply_success_replay_contract",
+      "line": 83,
+      "matched": true
+    },
+    {
+      "group": "profile_desktop",
+      "selector": "profile_preflight_contract",
+      "line": 46,
+      "matched": true
+    },
+    {
+      "group": "profile_desktop",
+      "selector": "profile_success_replay_contract",
+      "line": 51,
+      "matched": true
+    },
+    {
+      "group": "profile_desktop",
+      "selector": "profile_ancillary_contract",
+      "line": 56,
+      "matched": true
+    },
+    {
+      "group": "profile_desktop",
+      "selector": "profile_each_write_contract",
+      "line": 61,
+      "matched": true
+    },
+    {
+      "group": "profile_warning_binary",
+      "selector": "claude_profile_switch_reports_committed_history_warning",
+      "line": 369,
+      "matched": true
+    },
+    {
+      "group": "journal",
+      "selector": "journal_restores_post_publish_failure",
+      "line": 381,
+      "matched": true
+    },
+    {
+      "group": "journal",
+      "selector": "journal_rollback_obeys_windows_alias_leaf_lock",
+      "line": 448,
+      "matched": true
+    },
+    {
+      "group": "config_handlers",
+      "selector": "actual_handlers_switch_and_enable_commit_runtime_and_policy",
+      "line": 27,
+      "matched": true
+    },
+    {
+      "group": "config_handlers",
+      "selector": "legacy_and_unsupported_platform_requests_never_write",
+      "line": 77,
+      "matched": true
+    },
+    {
+      "group": "config_handlers",
+      "selector": "strict_patch_rejects_unknown_wrong_types_missing_collision_without_write",
+      "line": 145,
+      "matched": true
+    },
+    {
+      "group": "config_handlers",
+      "selector": "patch_retains_secret_unknown_fields_inactive_marker_and_checks_version",
+      "line": 194,
+      "matched": true
+    },
+    {
+      "group": "config_handlers",
+      "selector": "desktop_and_service_processes_preserve_independent_changes",
+      "line": 449,
+      "matched": true
+    },
+    {
+      "group": "config_page",
+      "selector": "switches an enabled row with an explicit platform",
+      "line": 121,
+      "matched": true
+    },
+    {
+      "group": "config_page",
+      "selector": "exposes an enable action for a disabled row",
+      "line": 133,
+      "matched": true
+    },
+    {
+      "group": "config_page",
+      "selector": "refreshes a committed warning",
+      "line": 163,
+      "matched": true
+    },
+    {
+      "group": "config_page",
+      "selector": "updates tabs, summaries and mounted cards",
+      "line": 91,
+      "matched": true
+    },
+    {
+      "group": "diagnostics",
+      "selector": "validate_binary_six_state_matrix_is_read_only",
+      "line": 143,
+      "matched": true
+    },
+    {
+      "group": "diagnostics",
+      "selector": "validate_binary_applied_api_and_subscription_profiles_follow_domain_rules",
+      "line": 196,
+      "matched": true
+    },
+    {
+      "group": "diagnostics",
+      "selector": "validate_binary_native_denied_read_is_distinct_from_missing",
+      "line": 328,
+      "matched": true
+    },
+    {
+      "group": "diagnostics",
+      "selector": "doctor_binary_default_scope_includes_grok_and_preserves_simplified_profiles",
+      "line": 367,
+      "matched": true
+    },
+    {
+      "group": "diagnostics",
+      "selector": "doctor_binary_grok_is_supported_and_legacy_adapters_are_explicit",
+      "line": 504,
+      "matched": true
+    },
+    {
+      "group": "diagnostics",
+      "selector": "validate_binary_claude_current_uses_valid_marker_precedence_without_repair",
+      "line": 476,
+      "matched": true
+    },
+    {
+      "group": "backups",
+      "selector": "test_fixed_clock_preserves_each_preimage_and_legacy_backup",
+      "line": 577,
+      "matched": true
+    },
+    {
+      "group": "backups",
+      "selector": "test_fixed_clock_multiprocess_backups_preserve_every_version",
+      "line": 669,
+      "matched": true
+    },
+    {
+      "group": "backups",
+      "selector": "test_rotation_ties_are_stable_for_old_and_new_names",
+      "line": 746,
+      "matched": true
+    },
+    {
+      "group": "backups",
+      "selector": "test_backup_preserves_windows_readonly_attribute",
+      "line": 798,
+      "matched": true
+    },
+    {
+      "group": "backups",
+      "selector": "test_backup_preserves_private_windows_dacl",
+      "line": 825,
+      "matched": true
+    },
+    {
+      "group": "backups",
+      "selector": "test_backup_preserves_private_unix_mode",
+      "line": 853,
+      "matched": true
+    },
+    {
+      "group": "backups",
+      "selector": "test_dir_backup_rotation_keeps_ten",
+      "line": 990,
+      "matched": true
+    },
+    {
+      "group": "pending",
+      "selector": "oauth_pending_create_replace_cancel_and_expiry_never_make_copies",
+      "line": 192,
+      "matched": true
+    },
+    {
+      "group": "pending",
+      "selector": "oauth_pending_permission_failure_preserves_old_or_missing_target",
+      "line": 222,
+      "matched": true
+    },
+    {
+      "group": "pending",
+      "selector": "oauth_pending_errors_and_default_output_redact_sentinels",
+      "line": 302,
+      "matched": true
+    },
+    {
+      "group": "pending",
+      "selector": "oauth_pending_preserves_owner_only_permissions",
+      "line": 355,
+      "matched": true
+    },
+    {
+      "group": "usage_registry",
+      "selector": "cancelled_result_rejects_late_failure",
+      "line": 340,
+      "matched": true
+    },
+    {
+      "group": "usage_registry",
+      "selector": "failed_result_rejects_cancel_and_late_progress",
+      "line": 350,
+      "matched": true
+    },
+    {
+      "group": "usage_registry",
+      "selector": "cancel_before_runner_start_prevents_spawn_and_keeps_admission",
+      "line": 378,
+      "matched": true
+    },
+    {
+      "group": "usage_registry",
+      "selector": "all_terminal_results_reject_duplicate_cancel_progress_and_completion",
+      "line": 420,
+      "matched": true
+    },
+    {
+      "group": "usage_registry",
+      "selector": "running_cancel_keeps_token_and_reports_cleanup_failure",
+      "line": 443,
+      "matched": true
+    },
+    {
+      "group": "usage_executor",
+      "selector": "silent_process_obeys_descriptor_deadline",
+      "line": 111,
+      "matched": true
+    },
+    {
+      "group": "usage_executor",
+      "selector": "stdout_eof_does_not_disable_deadline_while_child_lives",
+      "line": 123,
+      "matched": true
+    },
+    {
+      "group": "usage_executor",
+      "selector": "cleanup_error_and_hung_reap_override_cancelled",
+      "line": 160,
+      "matched": true
+    },
+    {
+      "group": "usage_executor",
+      "selector": "externally_held_stderr_has_bounded_join_and_cleanup_error",
+      "line": 228,
+      "matched": true
+    },
+    {
+      "group": "usage_executor",
+      "selector": "stdout_flood_without_eof_fails_at_one_mebibyte",
+      "line": 257,
+      "matched": true
+    },
+    {
+      "group": "usage_executor",
+      "selector": "stderr_retains_at_most_sixty_four_capped_lines",
+      "line": 278,
+      "matched": true
+    },
+    {
+      "group": "usage_executor",
+      "selector": "native_windows_silent_child_times_out_and_is_reaped",
+      "line": 296,
+      "matched": true
+    },
+    {
+      "group": "usage_executor",
+      "selector": "native_windows_running_cancel_reaps_the_child",
+      "line": 328,
+      "matched": true
+    },
+    {
+      "group": "process_tree",
+      "selector": "live_tree_confirmation_times_out_without_claiming_cleanup",
+      "line": 536,
+      "matched": true
+    },
+    {
+      "group": "process_tree",
+      "selector": "reaped_windows_parent_still_cleans_its_descendant_tree",
+      "line": 624,
+      "matched": true
+    },
+    {
+      "group": "process_tree",
+      "selector": "termination_escalates_after_unix_parent_exits_on_term",
+      "line": 698,
+      "matched": true
+    },
+    {
+      "group": "process_tree",
+      "selector": "dropping_reaped_unix_parent_still_terminates_descendants",
+      "line": 731,
+      "matched": true
+    },
+    {
+      "group": "command_page",
+      "selector": "restores the running job and output after a real route unmount",
+      "line": 109,
+      "matched": true
+    },
+    {
+      "group": "command_page",
+      "selector": "blocks synchronous duplicate submission",
+      "line": 142,
+      "matched": true
+    },
+    {
+      "group": "command_page",
+      "selector": "records terminal history once",
+      "line": 126,
+      "matched": true
+    },
+    {
+      "group": "command_page",
+      "selector": "shows a failed terminal subscription",
+      "line": 354,
+      "matched": true
+    },
+    {
+      "group": "command_page",
+      "selector": "keeps a failed history summary visible",
+      "line": 377,
+      "matched": true
+    },
+    {
+      "group": "command_page",
+      "selector": "keeps recovery suspended when a pending start resolves",
+      "line": 404,
+      "matched": true
+    },
+    {
+      "group": "command_listener",
+      "selector": "卸载之后 listen 才 resolve",
+      "line": 107,
+      "matched": true
+    },
+    {
+      "group": "command_listener",
+      "selector": "ignores command callbacks after shell cleanup",
+      "line": 168,
+      "matched": true
+    },
+    {
+      "group": "command_owner",
+      "selector": "command_owner_receives_cancel_before_cleanup_and_keeps_start_admission",
+      "line": 2005,
+      "matched": true
+    },
+    {
+      "group": "command_owner",
+      "selector": "foreground_barrier_does_not_block_existing_command_owner_controls",
+      "line": 1958,
+      "matched": true
+    },
+    {
+      "group": "command_owner",
+      "selector": "terminal_snapshot_keeps_non_zero_exit_as_failed_with_output",
+      "line": 2288,
+      "matched": true
+    },
+    {
+      "group": "settings_mapping",
+      "selector": "changes only Codex model and preserves notifications array",
+      "line": 84,
+      "matched": true
+    },
+    {
+      "group": "settings_mapping",
+      "selector": "does not resend stale Codex sibling values",
+      "line": 102,
+      "matched": true
+    },
+    {
+      "group": "settings_mapping",
+      "selector": "keeps OpenCode notify",
+      "line": 134,
+      "matched": true
+    },
+    {
+      "group": "settings_mapping",
+      "selector": "does not issue any mutation when no field is dirty",
+      "line": 189,
+      "matched": true
+    },
+    {
+      "group": "codex_settings_backend",
+      "selector": "read_codex_config_accepts_tui_notifications_event_array",
+      "line": 2137,
+      "matched": true
+    },
+    {
+      "group": "codex_settings_backend",
+      "selector": "apply_codex_settings_update_preserves_tui_notifications_event_array",
+      "line": 2177,
+      "matched": true
+    },
+    {
+      "group": "codex_settings_backend",
+      "selector": "apply_codex_settings_update_clears_nested_fields_with_nulls",
+      "line": 2233,
+      "matched": true
+    },
+    {
+      "group": "settings_page",
+      "selector": "disables managed model inputs",
+      "line": 129,
+      "matched": true
+    },
+    {
+      "group": "settings_page",
+      "selector": "shows Codex unknown enums and notification arrays",
+      "line": 148,
+      "matched": true
+    },
+    {
+      "group": "settings_page",
+      "selector": "preserves the raw draft on conflict",
+      "line": 257,
+      "matched": true
+    },
+    {
+      "group": "settings_page",
+      "selector": "waits for plaintext confirmation",
+      "line": 324,
+      "matched": true
+    },
+    {
+      "group": "settings_page",
+      "selector": "does not read source files in a remote environment",
+      "line": 306,
+      "matched": true
+    },
+    {
+      "group": "grok_settings",
+      "selector": "settings_and_raw_saves_preserve_the_configured_backup_inventory",
+      "line": 2209,
+      "matched": true
+    },
+    {
+      "group": "auth_query",
+      "selector": "preserves authoritative backend unsupported",
+      "line": 33,
+      "matched": true
+    },
+    {
+      "group": "auth_query",
+      "selector": "keeps pending distinct",
+      "line": 41,
+      "matched": true
+    },
+    {
+      "group": "auth_query",
+      "selector": "keeps confirmed session data marked stale",
+      "line": 61,
+      "matched": true
+    },
+    {
+      "group": "auth_query",
+      "selector": "claims the off action before confirmation",
+      "line": 90,
+      "matched": true
+    },
+    {
+      "group": "auth_cache",
+      "selector": "it(",
+      "line": 10,
+      "matched": true
+    },
+    {
+      "group": "settings_session",
+      "selector": "freezes synchronously from the real shell environment event",
+      "line": 55,
+      "matched": true
+    },
+    {
+      "group": "settings_session",
+      "selector": "keeps the original baseline after refetch",
+      "line": 94,
+      "matched": true
+    },
+    {
+      "group": "settings_session",
+      "selector": "rejects a late initial response",
+      "line": 189,
+      "matched": true
+    },
+    {
+      "group": "settings_session",
+      "selector": "does not apply an old save completion",
+      "line": 221,
+      "matched": true
+    },
+    {
+      "group": "settings_raw_session",
+      "selector": "retains the same raw editor and token",
+      "line": 60,
+      "matched": true
+    },
+    {
+      "group": "settings_raw_session",
+      "selector": "does not discard a raw draft until",
+      "line": 98,
+      "matched": true
+    },
+    {
+      "group": "settings_environment",
+      "selector": "settings_expected_environment_mismatch_rejects_read_and_update_before_io",
+      "line": 126,
+      "matched": true
+    },
+    {
+      "group": "settings_environment",
+      "selector": "settings_expected_environment_update_keeps_original_arc_after_a_b_a_replacement",
+      "line": 184,
+      "matched": true
+    },
+    {
+      "group": "settings_environment",
+      "selector": "settings_matching_local_environment_keeps_atomic_settings_manager",
+      "line": 242,
+      "matched": true
+    },
+    {
+      "group": "control_policy",
+      "selector": "control_matrix_command_and_install_delivery",
+      "line": 162,
+      "matched": true
+    },
+    {
+      "group": "control_policy",
+      "selector": "control_matrix_usage_delivery",
+      "line": 185,
+      "matched": true
+    },
+    {
+      "group": "control_policy",
+      "selector": "control_matrix_oauth_delivery",
+      "line": 199,
+      "matched": true
+    },
+    {
+      "group": "control_policy",
+      "selector": "background_permit_transfer_is_single_use_and_preserves_shared_process_exclusion",
+      "line": 214,
+      "matched": true
+    },
+    {
+      "group": "control_policy",
+      "selector": "usage_owner_controls_reach_existing_job_during_each_foreground_import",
+      "line": 368,
+      "matched": true
+    },
+    {
+      "group": "control_policy",
+      "selector": "install_owner_cancel_and_recent_reach_attempt_before_cleanup",
+      "line": 282,
+      "matched": true
+    },
+    {
+      "group": "oauth",
+      "selector": "bind_race_and_save_failure_never_publish_active_login",
+      "line": 295,
+      "matched": true
+    },
+    {
+      "group": "oauth",
+      "selector": "start_owns_listener_and_storage_before_return_and_reuses_live_id",
+      "line": 263,
+      "matched": true
+    },
+    {
+      "group": "oauth",
+      "selector": "silent_socket_times_out_and_releases_listener_without_success",
+      "line": 378,
+      "matched": true
+    },
+    {
+      "group": "oauth",
+      "selector": "slow_http_body_is_cancelled_and_server_observes_closed_connection",
+      "line": 738,
+      "matched": true
+    },
+    {
+      "group": "oauth",
+      "selector": "successful_completion_is_unique_and_does_not_expose_sentinels",
+      "line": 495,
+      "matched": true
+    },
+    {
+      "group": "oauth",
+      "selector": "stale_cleanup_retry_cannot_clear_a_replacement_login",
+      "line": 695,
+      "matched": true
+    },
+    {
+      "group": "registry",
+      "selector": "command_registry_shape_matches_current_handler_surface",
+      "line": 1812,
+      "matched": true
+    },
+    {
+      "group": "registry",
+      "selector": "command_inventory_document_matches_registry",
+      "line": 2388,
+      "matched": true
+    },
+    {
+      "group": "usage_ui",
+      "selector": "it(",
+      "line": 52,
+      "matched": true
+    },
+    {
+      "group": "aggregate",
+      "selector": "test_all_local_platforms_reuse_complete_desktop_gate",
+      "line": 17,
+      "matched": true
+    },
+    {
+      "group": "aggregate",
+      "selector": "test_real_aggregate_propagates_desktop_test_failure",
+      "line": 28,
+      "matched": true
+    },
+    {
+      "group": "aggregate",
+      "selector": "test_ui_behavior_entries_do_not_write_bindings",
+      "line": 82,
+      "matched": true
+    },
+    {
+      "group": "bindings",
+      "selector": "restores exact bytes after direct",
+      "line": 40,
+      "matched": true
+    },
+    {
+      "group": "bindings",
+      "selector": "check preserves original bytes",
+      "line": 66,
+      "matched": true
+    },
+    {
+      "group": "bindings",
+      "selector": "reports restoration failure",
+      "line": 105,
+      "matched": true
+    },
+    {
+      "group": "calendar",
+      "selector": "counts calendar days across DST",
+      "line": 83,
+      "matched": true
+    }
+  ],
+  "relative_links_checked": [
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./backend-guidelines.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./desktop-command-policy.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./dependency-governance.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./llmusage-provider-adapter.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./usage-job-lifecycle.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./module-decomposition.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./public-api-boundary.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./repository-json-formatting.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./ssh-security.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./tauri-handler-registry.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./test-fixtures.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./typed-ipc-bindings.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./backend-guidelines.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./public-api-boundary.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./test-fixtures.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./dependency-governance.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./module-decomposition.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./repository-json-formatting.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./desktop-command-policy.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./tauri-handler-registry.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./ssh-security.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./llmusage-provider-adapter.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./usage-job-lifecycle.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./llmusage-provider-adapter.md"
+    },
+    {
+      "source": ".trellis/spec/ccr/backend/index.md",
+      "target": "./typed-ipc-bindings.md"
+    }
+  ],
+  "manifest_counts": {
+    "base_command_count": 340,
+    "windows_command_count": 348,
+    "typed_command_count": 278,
+    "exact_wire_type_count": 278
+  },
+  "context_results": [
+    {
+      "task": "09-28-usage-job-lifecycle",
+      "exit_code": 0,
+      "log": "cross-spec-context-09-28-usage-job-lifecycle.log"
+    },
+    {
+      "task": "09-28-architecture-contract-gates",
+      "exit_code": 0,
+      "log": "cross-spec-context-09-28-architecture-contract-gates.log"
+    }
+  ],
+  "baseline_review": {
+    "a14_mapper_matches_blob_except_runtime_import": true,
+    "a14_helper_matches_blob": true,
+    "a14_log_passed": 0,
+    "a14_log_failed": 1,
+    "a09_gateway_blob_lf_sha256": "7e6ec640561e8272aed36def4bf9a812c3d91aaafc5ff163f319e76afaf0496e",
+    "a09_gateway_checkout_crlf_sha256": "8cef0cfed576069472f31d30d4ae0b5f29111d7f0476fa2ab03fc03e022667a8",
+    "limits": "A14 checks mapper behavior with original helper, without native transport. A09 compares baseline identity only; separate execution evidence belongs to the root."
+  },
+  "p1_red_statuses": {
+    "A01": "executed_scoped_counterexample",
+    "A02": "executed_scoped_counterexample",
+    "A03": "executed_scoped_counterexample",
+    "A08": "executed_scoped_counterexample",
+    "A09": "executed_scoped_counterexample",
+    "A11": "executed_scoped_counterexample",
+    "A13": "executed_scoped_counterexample",
+    "A14": "executed_scoped_counterexample",
+    "A15": "executed_scoped_counterexample"
+  },
+  "matrix_sha256": "31be211283bae7ea932cc6081ed799fe6bec6129a5fb6245df5d1136b739cccf",
+  "ledger_sha256": "8763a656e3609be2bed179fde73bb65cdd0ec0e60a8a21fc4aebf0ce09c39a60",
+  "errors": [],
+  "limits": "Verifies captured paths, hashes, source selectors, scope and context loadability. Does not execute product, Cargo, exports, native UI, or replace final root gates. Root-owned clean regression assertions require the root focused rerun."
+}

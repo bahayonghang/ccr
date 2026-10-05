@@ -1,0 +1,138 @@
+{
+  "command_count": 23,
+  "security_and_wire_unchanged": true,
+  "rows": [
+    {
+      "id": "execute_ccr_command",
+      "changes": {}
+    },
+    {
+      "id": "start_ccr_command_job",
+      "changes": {}
+    },
+    {
+      "id": "get_ccr_command_job_status",
+      "changes": {}
+    },
+    {
+      "id": "cancel_ccr_command_job",
+      "changes": {
+        "concurrency": [
+          "singleton",
+          "parallel"
+        ]
+      }
+    },
+    {
+      "id": "llmusage_install_detect",
+      "changes": {}
+    },
+    {
+      "id": "llmusage_install_probe_capabilities",
+      "changes": {}
+    },
+    {
+      "id": "llmusage_install_plan",
+      "changes": {}
+    },
+    {
+      "id": "llmusage_install_execute",
+      "changes": {}
+    },
+    {
+      "id": "llmusage_install_cancel",
+      "changes": {
+        "concurrency": [
+          "singleton",
+          "parallel"
+        ]
+      }
+    },
+    {
+      "id": "llmusage_install_recent",
+      "changes": {}
+    },
+    {
+      "id": "llmusage_install_manual_catalog",
+      "changes": {}
+    },
+    {
+      "id": "llmusage_install_check",
+      "changes": {}
+    },
+    {
+      "id": "import_usage_v2",
+      "changes": {}
+    },
+    {
+      "id": "import_all_usage_v2",
+      "changes": {}
+    },
+    {
+      "id": "start_usage_import_job_v2",
+      "changes": {}
+    },
+    {
+      "id": "get_usage_import_job_status_v2",
+      "changes": {}
+    },
+    {
+      "id": "cancel_usage_import_job_v2",
+      "changes": {
+        "concurrency": [
+          "module_exclusive",
+          "parallel"
+        ]
+      }
+    },
+    {
+      "id": "codex_oauth_login_start",
+      "changes": {
+        "timeout_enforcement": [
+          "completion_aware",
+          "business_owned"
+        ]
+      }
+    },
+    {
+      "id": "codex_oauth_login_completed",
+      "changes": {
+        "concurrency": [
+          "module_exclusive",
+          "parallel"
+        ]
+      }
+    },
+    {
+      "id": "codex_oauth_login_cancel",
+      "changes": {
+        "concurrency": [
+          "module_exclusive",
+          "parallel"
+        ]
+      }
+    },
+    {
+      "id": "codex_oauth_submit_callback_url",
+      "changes": {
+        "concurrency": [
+          "module_exclusive",
+          "parallel"
+        ]
+      }
+    },
+    {
+      "id": "codex_is_oauth_port_in_use",
+      "changes": {}
+    },
+    {
+      "id": "codex_release_oauth_port",
+      "changes": {
+        "concurrency": [
+          "module_exclusive",
+          "parallel"
+        ]
+      }
+    }
+  ]
+}

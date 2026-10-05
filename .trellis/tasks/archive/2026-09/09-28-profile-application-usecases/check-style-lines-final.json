@@ -1,0 +1,10 @@
+{
+  "command": [
+    "bun",
+    "run",
+    "check:style-lines"
+  ],
+  "cwd": "ccr-ui",
+  "exit_code": 0,
+  "seconds": 0.19
+}

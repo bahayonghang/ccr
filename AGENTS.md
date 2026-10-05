@@ -1,12 +1,13 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-`crates/` is the Rust workspace. `crates/ccr` is the installable CLI/TUI entry point, while shared logic lives in crates such as `ccr-core`, `ccr-config`, `ccr-codex`, `ccr-db`, and `ccr-types`. `ccr-ui/` contains the Vue 3 + Tauri app (`src/`, `src-tauri/`, `tests/`). `ccr-vscode/` contains the VS Code extension (`src/providers`, `src/services`). `docs/` holds VitePress docs. `scripts/` holds repo automation and version-sync checks. Before broad repo searches, read `./code_map.md` to identify the relevant module and verification anchors. Usage analytics depend on the external [`llmusage`](https://github.com/bahayonghang/llmuasage) crate, declared as a pinned `rev` git dependency in `ccr-ui/src-tauri/Cargo.toml` and wrapped by `ccr-ui/src-tauri/src/llmusage_adapter/`.
+`crates/` is the Rust workspace. `crates/ccr` is the installable CLI/TUI entry point, while shared logic lives in crates such as `ccr-core`, `ccr-config`, `ccr-codex`, `ccr-db`, `ccr-usage`, and `ccr-types`. `ccr-ui/` contains the React 19 + TanStack Query + Tauri typed-IPC app (`src/`, `src-tauri/`, `tests/`). Visual direction for that app is `ccr-ui/AGENTS.md` and `ccr-ui/DESIGN.md` (market terminal). `ccr-vscode/` contains the VS Code extension (`src/providers`, `src/services`). `docs/` holds VitePress docs. `scripts/` holds repo automation and version-sync checks. Before broad repo searches, read `./code_map.md` to identify the relevant module and verification anchors. Five-tool harness entry files, load chains, and reviewer vs implementer permissions are in `docs/agents/harnesses.md` (English: `docs/en/agents/harnesses.md`). Usage analytics invoke the installed [`llmusage`](https://github.com/bahayonghang/llmuasage) CLI and read its SQLite database; the shared projection owner is `crates/ccr-usage` (all usage SQL). `ccr-ui/src-tauri/src/llmusage_adapter/` is CLI sync, NDJSON events, and DTO/error mapping only — do not link the upstream `llmusage` Rust crate.
 
 ## Build, Test, and Development Commands
 - `just build` — build the Rust CLI in debug mode.
 - `just test` — run Rust workspace tests.
 - `just ci` — run the repo-wide CI path: version checks, fmt, clippy, tests, build, audit, and frontend checks.
+- `just clean` — remove rebuildable artifacts (Cargo/Tauri `target`, frontend/docs/vscode dist, coverage, outputs). `just clean-all` also deletes `node_modules`.
 - `just ui-dev` / `just ui-check` — develop or validate the Tauri UI.
 - `cd ccr-ui && bun run dev` — run the web UI locally.
 - `cd ccr-ui && bun run test` — run i18n and Vitest smoke tests.
@@ -23,12 +24,20 @@ Quick-check priority:
 ## Coding Style & Naming Conventions
 Rust code must stay `cargo fmt` and clippy clean. Prefer `Result`-based error handling. Do not add `unwrap` or `expect` in production paths. Rust files and modules use `snake_case`; structs, enums, and traits use `PascalCase`.
 
-Frontend and extension code use 2-space indentation, single quotes, and no semicolons. Vue components use `PascalCase.vue`. Follow existing store, service, and component patterns before adding new abstractions.
+Frontend and extension code use 2-space indentation, single quotes, and no semicolons. Frontend components use `PascalCase.tsx`. Follow existing store, service, and component patterns before adding new abstractions.
 
 ## Testing Guidelines
-Keep Rust integration tests under `crates/*/tests` and group them by feature area. UI smoke tests belong in `ccr-ui/tests/*.smoke.test.ts`. VS Code tests live beside source as `*.test.ts`. Start with the narrowest relevant check, then escalate by impact scope: subsystem checks for local changes, `just frontend-check` or `just vscode-ci` for full frontend/extension coverage, and `just ci` for cross-module changes or delivery-ready validation.
+Keep Rust integration tests under `crates/*/tests` and group them by feature area. UI smoke tests belong in `ccr-ui/tests/**/*.smoke.test.{ts,tsx}`. VS Code tests live beside source as `*.test.ts`. Start with the narrowest relevant check, then escalate by impact scope: subsystem checks for local changes, `just frontend-check` or `just vscode-ci` for full frontend/extension coverage, and `just ci` for cross-module changes or delivery-ready validation.
 
-Project-local Codex skills live under `.codex/skills/`; prefer the narrowest failing gate first before escalating to full `just ci`.
+Shared skill sources are tracked under `.github/skills/`; several also apply to Claude Code, Codex, Grok, Kimi, and OMP, and each client installs them into its own local skill directory (`.codex/skills/` and similar are gitignored local paths that `trellis update` may rewrite). Prefer the narrowest failing gate first before escalating to full `just ci`. See `docs/agents/harnesses.md` for routing and permissions.
+
+## Five-Harness Execution Contract
+These rules apply to Claude Code, Codex, Grok Build, Kimi Code, and OMP.
+- Root and Tauri Rust tests use default parallelism with `--skip export_bindings`. The separate binding-generation gate owns exports.
+- A read-only reviewer inspects the approved scope. Run checks and write task evidence only when authorized. The Trellis check role may write and self-fix after implementation approval.
+- Strong-model review owns root cause, security, permission boundaries, and final acceptance. Lower-cost execution follows fixed files, acceptance criteria, and commands. Model choice does not change permissions.
+- Distinguish repository-delivered files, locally generated integration, and verified native loading. A fresh checkout needs the matching Trellis integration and a separate client loading/trust check.
+- Keep repair commands (`just fmt`, `just version-sync`) separate from validation. Preserve required coverage thresholds, default parallelism, and hosted context names.
 
 ## Commit & Pull Request Guidelines
 Recent history uses Chinese Conventional Commits with scopes and emoji, for example `feat(认证TUI): ✨ ...`, `docs(帮助文档): 📝 ...`, and `chore(release): 🔧 ...`. Keep commits atomic and scoped to one surface.

@@ -8,13 +8,12 @@
 
 #![allow(clippy::unused_async)]
 
+use crate::commands::common::new_utf8_table;
 use crate::managers::SettingsManager;
 use crate::managers::temp_override::{TempOverride, TempOverrideManager};
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
-use comfy_table::{
-    Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
-};
+use comfy_table::{Attribute, Cell, Color as TableColor, ContentArrangement};
 
 /// 🎯 设置临时token
 ///
@@ -140,9 +139,8 @@ pub async fn temp_token_clear() -> Result<()> {
 
 /// 📊 显示临时配置详情表格
 fn display_temp_override(temp_override: &TempOverride) {
-    let mut table = Table::new();
+    let mut table = new_utf8_table();
     table
-        .load_preset(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::DynamicFullWidth)
         .set_header(vec![
             Cell::new("字段")

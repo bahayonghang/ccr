@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/ccr/backend/dependency-governance.md", "reason": "核对升级清单与治理规则一致"}
+{"file": ".trellis/spec/ccr/backend/typed-ipc-bindings.md", "reason": "核对绑定 diff 判定完整性"}

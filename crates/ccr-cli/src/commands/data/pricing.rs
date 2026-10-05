@@ -1,12 +1,13 @@
 // 💰 CCR 价格表命令实现
 // 提供模型定价配置和管理功能
 
+use crate::commands::common::new_table;
 use crate::managers::PricingManager;
 use crate::models::stats::ModelPricing;
 use ccr_core::core::ColorOutput;
 use ccr_core::core::error::{CcrError, Result};
 use clap::{Args, Subcommand};
-use comfy_table::{Cell, CellAlignment, Color, ContentArrangement, Table};
+use comfy_table::{Cell, CellAlignment, Color, ContentArrangement};
 
 /// 💰 价格表命令
 #[derive(Args, Clone)]
@@ -126,7 +127,7 @@ async fn list_command(args: ListArgs) -> Result<()> {
     println!();
 
     // 创建定价表格
-    let mut table = Table::new();
+    let mut table = new_table();
     table.set_content_arrangement(ContentArrangement::Dynamic);
 
     // 根据 verbose 参数决定表头

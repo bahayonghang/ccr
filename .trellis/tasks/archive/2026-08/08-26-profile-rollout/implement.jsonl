@@ -1,0 +1,8 @@
+{"file": ".trellis/tasks/08-26-profile-design-language/prd.md", "reason": "父任务的跨子任务验收标准 AC1-AC28"}
+{"file": ".trellis/tasks/08-26-profile-design-language/design.md", "reason": "组件处置决策表、可扩展性两层口径、视觉与响应式验收条件"}
+{"file": ".trellis/tasks/08-26-profile-design-language/research/design-source.md", "reason": "三平台走查的结构清单"}
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "Grok 状态信封、delete/rename 分支、Local-only fail-closed 与必跑测试清单；退役旧路径时不得破坏"}
+{"file": ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md", "reason": "descriptor 层与 per-surface config 的两层约定、75 路径断言、薄壳行数上限"}
+{"file": ".trellis/spec/ccr-ui/frontend/raw-config-editor-contracts.md", "reason": "Claude 与 Codex 的 raw-source capability 接线要求"}
+{"file": ".trellis/spec/ccr-ui/frontend/layering-contracts.md", "reason": "删除与级联清理后的分层与导出面"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "整体验收阶段的主题矩阵与无硬编码 hex"}

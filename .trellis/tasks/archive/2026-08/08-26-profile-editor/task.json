@@ -1,0 +1,28 @@
+{
+  "id": "profile-editor",
+  "name": "profile-editor",
+  "title": "统一 Profile 新建与编辑模态",
+  "description": "",
+  "status": "completed",
+  "dev_type": "frontend",
+  "scope": "ccr-ui",
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-08-26",
+  "completedAt": "2026-08-26",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "08-26-profile-design-language",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "description": "实现三平台共用的 Profile 新建与编辑模态，含高级字段折叠与密钥掩码"
+  }
+}

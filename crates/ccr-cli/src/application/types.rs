@@ -9,8 +9,9 @@ pub struct SwitchProfileRequest {
     pub platform_name: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct SwitchProfileResult {
+    pub outcome: super::profile_lifecycle::ProfileOutcome,
     pub platform_name: String,
     pub platform: Platform,
     pub previous_profile: Option<String>,
@@ -18,6 +19,16 @@ pub struct SwitchProfileResult {
     pub target_section: ConfigSection,
     pub old_env: HashMap<String, Option<String>>,
     pub new_env: HashMap<String, Option<String>>,
+}
+
+impl std::fmt::Debug for SwitchProfileResult {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("SwitchProfileResult")
+            .field("outcome", &self.outcome)
+            .field("platform", &self.platform)
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Debug, Clone)]

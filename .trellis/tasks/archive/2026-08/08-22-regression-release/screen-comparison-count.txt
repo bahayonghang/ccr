@@ -1,0 +1,8 @@
+FILE=.trellis/tasks/archive/2026-08/08-22-regression-release/screen-comparison.md
+DATA_ROWS=185
+VERDICTs={'可接受差异': 39, '一致': 146}
+UNRESOLVED=0
+DEFECT=0
+MIN_ID=1 MAX_ID=185
+MISSING=[]
+CONSISTENT=146 ACCEPTABLE=39 DEFECT=0 UNRESOLVED=0 TOTAL=185

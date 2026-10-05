@@ -1,6 +1,7 @@
 // ☁️ sync 命令实现 - WebDAV 配置同步
 // 📁 支持配置文件的云端同步功能
 
+use crate::commands::common::new_utf8_table;
 use crate::services::MultiBackupService;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
@@ -9,9 +10,7 @@ use ccr_sync::{
     SyncContentSelection, SyncContentSelector, SyncFolder, SyncFolderManager, SyncService,
 };
 use colored::Colorize;
-use comfy_table::{
-    Cell, CellAlignment, Color, ColumnConstraint, ContentArrangement, Table, presets::UTF8_FULL,
-};
+use comfy_table::{Cell, CellAlignment, Color, ColumnConstraint, ContentArrangement};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
@@ -242,7 +241,7 @@ pub async fn sync_config_command() -> Result<()> {
 /// 📊 显示同步状态
 pub async fn sync_status_command() -> Result<()> {
     use colored::*;
-    use comfy_table::{Attribute, Cell, Color as TableColor, Table};
+    use comfy_table::{Attribute, Cell, Color as TableColor};
 
     ColorOutput::title("☁️  WebDAV 同步状态");
     println!();
@@ -252,8 +251,7 @@ pub async fn sync_status_command() -> Result<()> {
 
     if sync_config.enabled {
         // 使用 comfy-table 创建表格
-        let mut table = Table::new();
-        table.load_preset(comfy_table::presets::UTF8_FULL);
+        let mut table = new_utf8_table();
         table.set_header(vec![
             Cell::new("配置项").add_attribute(Attribute::Bold),
             Cell::new("值").add_attribute(Attribute::Bold),
@@ -923,10 +921,8 @@ pub fn sync_folder_list_command() -> Result<()> {
     }
 
     // 创建表格
-    let mut table = Table::new();
-    table
-        .load_preset(UTF8_FULL)
-        .set_content_arrangement(ContentArrangement::DynamicFullWidth);
+    let mut table = new_utf8_table();
+    table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
 
     // 表头
     table.set_header(vec![
@@ -1335,10 +1331,8 @@ pub async fn sync_all_status_command() -> Result<()> {
     }
 
     // 创建表格
-    let mut table = Table::new();
-    table
-        .load_preset(UTF8_FULL)
-        .set_content_arrangement(ContentArrangement::DynamicFullWidth);
+    let mut table = new_utf8_table();
+    table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
 
     // 表头
     table.set_header(vec![

@@ -29,7 +29,7 @@ export interface CheckinProvider {
  * - Rust struct: crates/ccr-checkin/src/managers/checkin/builtin_providers.rs 的 BuiltinProvider
  *   （由 catalog 条目投影，经 list_builtin_providers 命令 serde 全字段序列化）
  *
- * 字段集合一致性由 tests/providers-catalog.smoke.test.ts 防漂移测试守护。
+ * 字段集合一致性由 tests/providers-catalog 防漂移测试守护。
  */
 export interface BuiltinProvider {
   id: string

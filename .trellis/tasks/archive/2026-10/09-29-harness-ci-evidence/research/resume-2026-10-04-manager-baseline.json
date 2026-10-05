@@ -1,0 +1,43 @@
+{
+  "recorded_at_utc": "2026-10-04T12:32:00.063031+00:00",
+  "head": "c50716b5ed1bcd1c5b4950a746a8621258d0e0b5",
+  "os": "Windows-11-10.0.26300-SP0",
+  "candidate_sha256": "a7082c421018a9b54167b3069ec3000cc21210bdebe3ca135cf6d7f52e775738",
+  "candidate_matches_approved_sha": true,
+  "diagnostic_input_count": 14,
+  "diagnostic_input_sha256": {
+    "Cargo.lock": "0479f15cb8e406ab181f0da867461dcec50cfe99ca3c4d9a6cd5551cccdfe305",
+    "rust-toolchain.toml": "961b6190f4aad6120ca3fffe218389b991933141c90c362b5bbe92f6622540d9",
+    "crates/ccr/Cargo.toml": "e0d7fbbdc6cc7e0ed28f11424046c2fd8bf4c84b159daf6cd5d6991754adcdc7",
+    "crates/ccr/tests/managers.rs": "d3744c9345f50262b02b0734ac37874b3536ef653b79d3e7d773c00724202237",
+    "crates/ccr/tests/managers/legacy_registry.rs": "685cb2972188d005e7f314ecd38e14515b76b3f5f10bebffa1f94b1122163d67",
+    "crates/ccr/tests/managers/general.rs": "7ce7164c69ca883cf612ea440c51f2b40207ac4220694c68de42c3ab6a6ca4b2",
+    "crates/ccr/tests/support/env.rs": "bcc44dcffc92929270df1ca5cf131a44153e2ac10339bc8bbb978f2bb9b94ca4",
+    "crates/ccr-config/src/managers/platform_config.rs": "1c965cf992ddc0be70a85271dd4ddd0094fbb4c80e7696aad8c2e8849b4d345a",
+    "crates/ccr-config/src/managers/config/manager.rs": "7047f42407d870a66954c4ea6c40392fd62a1ec4179886bc6b374a9835eb1068",
+    "crates/ccr-config/src/managers/config_file_handler.rs": "785c3b9412b4565d6341a4565e08902f6e7eb21a22185c1eb983cee1b03b84cb",
+    "crates/ccr-cli/src/managers/settings.rs": "36873c196babc2137d6014b8e8c739ea397d991920a5e1fc4d1c756b2291b737",
+    "crates/ccr-core/src/core/fileio.rs": "182d74b7628fdcd6dc897f80d184ef9a489f3451bf88987438766605eb1f7aba",
+    "crates/ccr-core/src/core/guarded_write.rs": "74a5e4f1908f0ea8c05baec658330c0c9edcd3d5dd67950ae4e11ae4597ce176",
+    "crates/ccr-core/src/core/lock.rs": "91441b874a7b776772a9164b9cbc81f7a86c0a34694f934d5965bd2878f9031f"
+  },
+  "differences_from_historical_inputs": {
+    "exact-before": [],
+    "exact-after": [],
+    "suite-before": [],
+    "suite-after": []
+  },
+  "diagnostic_json_sha256": "fd50a44aab9e7d9ab269425ceaa6c691004db9390147cf3be9ad273c7d43bd96",
+  "diagnostic_json_bytes": 1164069,
+  "check_ignore_argv": [
+    "git",
+    "check-ignore",
+    "-v",
+    "--",
+    ".trellis/tasks/09-29-harness-ci-evidence/research/tauri-advisory-commands.json"
+  ],
+  "check_ignore_exit_code": 1,
+  "check_ignore_stdout": "",
+  "check_ignore_stderr": "",
+  "historical_evidence_preserved": true
+}

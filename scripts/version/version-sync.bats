@@ -10,7 +10,7 @@ setup() {
   mkdir -p "$ROOT_DIR/crates/ccr-types"
   mkdir -p "$ROOT_DIR/crates/ccr-db"
   mkdir -p "$ROOT_DIR/ccr-ui/src-tauri"
-  mkdir -p "$ROOT_DIR/ccr-ui/src/components"
+  mkdir -p "$ROOT_DIR/ccr-ui/src/config"
   mkdir -p "$ROOT_DIR/ccr-vscode"
 
   # 创建根 Cargo.toml
@@ -64,11 +64,13 @@ EOF
 }
 EOF
 
-  # 创建 Vue 组件
-  cat > "$ROOT_DIR/ccr-ui/src/components/MainLayout.vue" <<EOF
-<template>
-  <div class="footer">CCR UI v1.2.3</div>
-</template>
+  # 创建 UI 版本源（APP_VERSION_LABEL 由 package.json 派生）
+  cat > "$ROOT_DIR/ccr-ui/src/config/appMeta.ts" <<'EOF'
+import packageJson from '../../package.json'
+
+export const APP_NAME = 'CCR UI'
+export const APP_VERSION = packageJson.version
+export const APP_VERSION_LABEL = `${APP_NAME} v${APP_VERSION}`
 EOF
 
   # 创建 VSCode package.json

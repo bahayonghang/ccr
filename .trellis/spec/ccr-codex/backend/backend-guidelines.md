@@ -25,9 +25,64 @@ Keep this split:
 
 ## Filesystem And Security
 
-Use `CodexPaths`/`OpenCodePaths` instead of direct home-directory joins. Preserve `CCR_CODEX_DIR`, `CCR_DATA_DIR`, and `CCR_LOCK_DIR` overrides for tests and controlled environments.
+Use `CodexPaths` instead of direct Codex home-directory joins. The retired OpenCode Auth `OpenCodePaths` helper has been removed; this does not remove other OpenCode configuration or usage consumers. Preserve `CCR_CODEX_DIR`, `CCR_DATA_DIR`, and `CCR_LOCK_DIR` overrides for tests and controlled environments.
 
 Auth files and exported account snapshots are security-sensitive. Preserve masking, private-file permissions, backup-before-destructive-change behavior, and repair/sync flows.
+
+Pending OAuth login credentials are an explicit no-backup domain.
+`services::CodexOAuthPendingStore` owns `oauth_pending.json` under
+`CodexPaths::ccr_codex_dir`. CLI/desktop consumers use `save`, `load(now)`, and
+`clear`; the desktop owns its listener and events. The existing desktop
+adapter passes its published `PlatformPaths` / `CCR_ROOT` path to `with_path`
+so a distinct `CCR_DATA_DIR` does not silently move pending credentials.
+No credential copies or path migration are part of this change. A store operation lock
+serializes save with cancellation and expiry cleanup; the guarded path lock
+remains a leaf lock. Saves explicitly use `secret: true` and
+`BackupPolicy::None`. Never copy verifier/state to a backup or history file.
+Creation/replacement permissions are established by the existing secret writer
+before payload bytes; read, permission, write, and cleanup errors propagate.
+Callers publish an in-memory state only after persistence succeeds.
+
+`CodexOAuthPendingState` uses `Secret` for verifier/state and URLs that contain
+credentials. Default Debug/serialization is masked. Only the private disk DTO
+opts into plaintext serialization; the login-start response explicitly exposes
+the browser authorization URL. Parse errors report line/column without quoting
+input values. Preserve the existing camelCase disk format.
+
+Pending-store tests cover create/replace/cancel/expiry, permission denial,
+no-copy filesystem scans, legacy plaintext load, and redacted errors. Run
+native Windows ACL/cleanup-denial tests and Unix mode tests on their respective
+platforms; source checks cannot replace native permission checks.
+
+The desktop OAuth controller is `commands/codex_auth/oauth.rs`. It owns the
+already-bound listener, pending state, cancel token, one completion request,
+and terminal cleanup. Bind and secret persistence must succeed before an ID
+or authorization URL is published. Startup restore follows the same path.
+An active ID can be reused without binding or saving again.
+
+One monotonic deadline and cancellation token cover accept, accepted socket
+reads/writes, the token request, and the complete HTTP body. A callback must
+match the current ID, state, loopback port, and callback path; duplicate or
+expired callbacks cannot replace the accepted callback. A restored callback
+is validated before listener publication. Account commit is completion-aware:
+the controller cannot detach a secret writer through cancellation. A cancel
+request during commit returns `oauth_commit_in_progress`; admission stays held
+until the commit and cleanup finish. Pending
+cleanup failure is visible and blocks a new login until cleanup succeeds.
+Cleanup retry first verifies the same owner still occupies the slot and claims
+one retry. Disk cleanup runs without holding the slot or login-state mutex;
+a concurrent retry returns `oauth_cleanup_in_progress`. A stale retry must not
+clear a replacement login's pending record. Restore re-reads persisted state
+after admission and rejects a record cancelled during queueing with
+`oauth_saved_login_missing`; restore never recreates a captured old snapshot.
+
+OAuth token errors report status or a fixed diagnostic, never response bodies
+or credential values. Existing callback-received and timeout events retain
+their payload shape. A callback-received event does not claim token exchange
+or account commit succeeded. Port release cancels the controller's own
+listener and proven ProcessGateway owners only; unrelated PIDs remain
+report-only. Tests use synthetic accounts and loopback servers, never real
+OpenAI endpoints or user credentials.
 
 ## Error Handling
 

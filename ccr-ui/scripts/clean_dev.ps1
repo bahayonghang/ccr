@@ -123,36 +123,21 @@ function Stop-CcrDesktopProcesses {
 function Get-ListeningProcessIdsByPort {
     param([int]$Port)
 
+    # 只用 netstat。Get-NetTCPConnection 会加载 NetTCPIP，清理时可能一直停住，并写出警告。
     $processIds = @()
     $seen = @{}
-
-    try {
-        $conns = @(Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue |
-            Where-Object { $_.State -in @('Listen', 'Bound') })
-        foreach ($conn in $conns) {
-            $portProcessId = [int]$conn.OwningProcess
-            if (-not $seen.ContainsKey($portProcessId)) {
-                $seen[$portProcessId] = $true
-                $processIds += $portProcessId
-            }
+    $pattern = "^\s*TCP\s+\S+:$Port\s+\S+\s+LISTENING\s+(\d+)\s*$"
+    $netstatLines = netstat -ano -p tcp | Select-String -Pattern $pattern
+    foreach ($line in $netstatLines) {
+        if ($line.Matches.Count -eq 0) {
+            continue
         }
-    } catch {
-        # Ignore and fall back to netstat.
-    }
-
-    if ($processIds.Count -eq 0) {
-        $pattern = "^\s*TCP\s+\S+:$Port\s+\S+\s+LISTENING\s+(\d+)\s*$"
-        $netstatLines = netstat -ano -p tcp | Select-String -Pattern $pattern
-        foreach ($line in $netstatLines) {
-            if ($line.Matches.Count -eq 0) {
-                continue
-            }
-            $portProcessId = [int]$line.Matches[0].Groups[1].Value
-            if (-not $seen.ContainsKey($portProcessId)) {
-                $seen[$portProcessId] = $true
-                $processIds += $portProcessId
-            }
+        $portProcessId = [int]$line.Matches[0].Groups[1].Value
+        if ($portProcessId -le 0 -or $seen.ContainsKey($portProcessId)) {
+            continue
         }
+        $seen[$portProcessId] = $true
+        $processIds += $portProcessId
     }
 
     return @($processIds)
@@ -171,9 +156,8 @@ if (Test-Path $backendPidFile) {
         $backendPid = [int]$backendPid
         $backendProc = Get-Process -Id $backendPid -ErrorAction SilentlyContinue
         if ($backendProc) {
-            $backendListening = Get-NetTCPConnection -OwningProcess $backendPid -State Listen -ErrorAction SilentlyContinue |
-                Where-Object { $_.LocalPort -eq [int]$BackendPort } | Select-Object -First 1
-            if ($backendListening) {
+            $backendListeners = @(Get-ListeningProcessIdsByPort -Port ([int]$BackendPort))
+            if ($backendListeners -contains $backendPid) {
                 Write-Output ("  - Stopping backend process (PID: " + $backendPid + ") from PID file ...")
                 Stop-Process -Id $backendPid -Force -ErrorAction SilentlyContinue
             }
@@ -192,9 +176,8 @@ if (Test-Path $frontendPidFile) {
             if ($actualVitePort) {
                 $frontendPortToCheck = $actualVitePort
             }
-            $frontendListening = Get-NetTCPConnection -OwningProcess $frontendPid -State Listen -ErrorAction SilentlyContinue |
-                Where-Object { $_.LocalPort -eq [int]$frontendPortToCheck } | Select-Object -First 1
-            if ($frontendListening) {
+            $frontendListeners = @(Get-ListeningProcessIdsByPort -Port ([int]$frontendPortToCheck))
+            if ($frontendListeners -contains $frontendPid) {
                 Write-Output ("  - Stopping frontend process (PID: " + $frontendPid + ") from PID file ...")
                 Stop-Process -Id $frontendPid -Force -ErrorAction SilentlyContinue
             }

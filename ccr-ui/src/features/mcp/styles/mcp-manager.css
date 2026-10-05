@@ -1,0 +1,90 @@
+.mcp-manager-view {
+  min-width: 0;
+}
+
+.mcp-presets-drawer {
+  border-bottom: var(--space-px) solid rgb(var(--color-border-default-rgb) / 36%);
+  padding: 0 1.75rem;
+}
+
+.mcp-presets-drawer summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  padding: 0.85rem 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  list-style: none;
+}
+
+.mcp-presets-drawer summary::-webkit-details-marker {
+  display: none;
+}
+
+.mcp-presets-drawer summary span {
+  color: var(--color-text-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.mcp-presets-drawer summary em {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  font-style: normal;
+}
+
+.mcp-presets-drawer__content {
+  max-height: 32rem;
+  overflow-y: auto;
+  padding: 0.4rem 0 1rem;
+}
+
+.mcp-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.25rem;
+  border-radius: 999px;
+  padding: 0 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.mcp-action--ghost {
+  border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 48%);
+  background: rgb(var(--color-bg-surface-rgb) / 56%);
+  color: var(--color-text-secondary);
+}
+
+.mcp-action--primary {
+  border: var(--space-px) solid transparent;
+  background: var(--color-accent-primary);
+  color: var(--color-accent-primary-contrast);
+}
+
+.mcp-scope-rail {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.mcp-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 1.75rem 0;
+  border-radius: 0.85rem;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.82rem;
+}
+
+.mcp-alert--error {
+  border: var(--space-px) solid rgb(var(--color-danger-rgb) / 26%);
+  background: rgb(var(--color-danger-rgb) / 8%);
+  color: var(--color-danger);
+}
+
+.mcp-manager-view .master-detail {
+  flex: 1;
+  min-height: 0;
+}

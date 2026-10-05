@@ -1,0 +1,130 @@
+{
+  "verified_utc": "2026-09-30T03:44:50.507Z",
+  "original_official_unique_ghsa": 18,
+  "new_unique_ghsa": 4,
+  "union_unique_ghsa": 22,
+  "union_declared_ranges": 57,
+  "reports": [
+    {
+      "file": "ccr-ui/bun.lock",
+      "entries": 743,
+      "cumulative_changed_nodes": [
+        {
+          "node": "brace-expansion",
+          "from": "brace-expansion@1.1.18",
+          "to": "brace-expansion@1.1.21",
+          "fields": [
+            "version",
+            "integrity"
+          ]
+        },
+        {
+          "node": "colord",
+          "from": "colord@2.9.3",
+          "to": "colord@2.9.4",
+          "fields": [
+            "version",
+            "integrity"
+          ]
+        },
+        {
+          "node": "fast-uri",
+          "from": "fast-uri@3.1.5",
+          "to": "fast-uri@3.1.8",
+          "fields": [
+            "version",
+            "integrity"
+          ]
+        },
+        {
+          "node": "js-yaml",
+          "from": "js-yaml@4.3.1",
+          "to": "js-yaml@4.3.2",
+          "fields": [
+            "version",
+            "integrity"
+          ]
+        },
+        {
+          "node": "undici",
+          "from": "undici@8.10.0",
+          "to": "undici@8.10.2",
+          "fields": [
+            "version",
+            "integrity"
+          ]
+        },
+        {
+          "node": "@typescript-eslint/typescript-estree/minimatch/brace-expansion",
+          "from": "brace-expansion@5.0.9",
+          "to": "brace-expansion@5.0.12",
+          "fields": [
+            "version",
+            "integrity"
+          ]
+        },
+        {
+          "node": "glob/minimatch/brace-expansion",
+          "from": "brace-expansion@5.0.9",
+          "to": "brace-expansion@5.0.12",
+          "fields": [
+            "version",
+            "integrity"
+          ]
+        }
+      ],
+      "advisory_range_evaluations": 81,
+      "matches": [],
+      "extension_is_proposed_only": false
+    },
+    {
+      "file": "ccr-vscode/package-lock.json",
+      "entries": 327,
+      "cumulative_changed_nodes": [
+        {
+          "node": "node_modules/brace-expansion",
+          "from": "5.0.9",
+          "to": "5.0.12",
+          "fields": [
+            "version",
+            "resolved",
+            "integrity"
+          ]
+        },
+        {
+          "node": "node_modules/fast-uri",
+          "from": "3.1.6",
+          "to": "3.1.8",
+          "fields": [
+            "version",
+            "resolved",
+            "integrity"
+          ]
+        },
+        {
+          "node": "node_modules/undici",
+          "from": "7.29.0",
+          "to": "7.29.1",
+          "fields": [
+            "version",
+            "resolved",
+            "integrity"
+          ]
+        }
+      ],
+      "advisory_range_evaluations": 56,
+      "matches": [],
+      "extension_is_proposed_only": true
+    },
+    {
+      "file": "docs/bun.lock",
+      "entries": 179,
+      "cumulative_changed_nodes": [],
+      "advisory_range_evaluations": 0,
+      "matches": [],
+      "extension_is_proposed_only": false
+    }
+  ],
+  "dependency_manifest_ranges_unchanged": true,
+  "mode": "Read-only proposed final state; extension not applied"
+}

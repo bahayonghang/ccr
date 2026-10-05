@@ -6,7 +6,7 @@ const startedAt = Date.now()
 
 try {
   await resolveConfig({}, 'serve')
-  process.stderr.write(`[prebundle] Vite optimizeDeps will run automatically at dev-server startup (${Date.now() - startedAt}ms)
+  process.stdout.write(`[prebundle] Vite optimizeDeps will run automatically at dev-server startup (${Date.now() - startedAt}ms)
 `)
 } catch (error) {
   const message = error instanceof Error ? error.stack || error.message : String(error)

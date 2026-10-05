@@ -89,7 +89,7 @@ The detector sorts observed sources in this order:
 - `cargo test -p ccr-tui claude_auth -- --test-threads=1`
   - Assert diagnosis rendering and both structured/fallback action warnings.
 - Tauri Claude Auth DTO/export tests plus `just tauri-bindings-check` after the generated baseline is committed.
-- `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/claude-auth-view.smoke.test.ts`
+- `cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/platforms/claude-auth-view.smoke.test.tsx`
   - Assert confidence/evidence/ownership/boundary rendering and post-switch warnings.
 - Final cross-layer gates: `just lint-strict`, `just test`, `just frontend-check-quick`, `cargo fmt --all -- --check`, and `git diff --check`.
 

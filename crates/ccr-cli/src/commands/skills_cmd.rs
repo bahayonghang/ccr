@@ -1,9 +1,10 @@
+use crate::commands::common::new_utf8_table;
 use crate::managers::skills_manager::SkillsManager;
 use crate::models::Platform;
 use crate::models::skill::SkillRepository;
 use ccr_core::core::error::Result;
 use clap::{Args, Subcommand};
-use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table, presets::UTF8_FULL};
+use comfy_table::{Attribute, Cell, Color, ContentArrangement};
 use std::str::FromStr;
 
 #[derive(Args, Clone)]
@@ -95,9 +96,8 @@ pub async fn skills_command(args: SkillsArgs) -> Result<()> {
                 return Ok(());
             }
 
-            let mut table = Table::new();
+            let mut table = new_utf8_table();
             table
-                .load_preset(UTF8_FULL)
                 .set_content_arrangement(ContentArrangement::Dynamic)
                 .set_header(vec![
                     Cell::new("Name").add_attribute(Attribute::Bold),
@@ -123,9 +123,8 @@ pub async fn skills_command(args: SkillsArgs) -> Result<()> {
                     return Ok(());
                 }
 
-                let mut table = Table::new();
+                let mut table = new_utf8_table();
                 table
-                    .load_preset(UTF8_FULL)
                     .set_content_arrangement(ContentArrangement::Dynamic)
                     .set_header(vec![
                         Cell::new("Name").add_attribute(Attribute::Bold),
@@ -176,9 +175,8 @@ pub async fn skills_command(args: SkillsArgs) -> Result<()> {
                 return Ok(());
             }
 
-            let mut table = Table::new();
+            let mut table = new_utf8_table();
             table
-                .load_preset(UTF8_FULL)
                 .set_content_arrangement(ContentArrangement::Dynamic)
                 .set_header(vec![
                     Cell::new("Name").add_attribute(Attribute::Bold),

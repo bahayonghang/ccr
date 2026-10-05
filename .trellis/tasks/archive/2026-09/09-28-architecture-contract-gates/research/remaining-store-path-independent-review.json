@@ -1,0 +1,167 @@
+{
+  "reviewed_at_utc": "2026-09-29T03:33:14.254382+00:00",
+  "reviewer": "/root/check_t01",
+  "author": "/root/remaining_gates",
+  "status": "passed_delta_review_pending_new_epoch_formal_gates",
+  "path": "crates/ccr-store/src/sessions/providers.rs",
+  "source_sha256": "93d816299b3d24abba4cbe02597d0cd91d5d258a865ea84a3fe79267c39c22c0",
+  "head_source_sha256": "9f9c8188b81cd587d8703a22988202f546f75a9ffac001f0cc9d1bc52b85b0ec",
+  "outside_single_test_exactly_matches_head": true,
+  "production_source_unchanged": true,
+  "test_contract": {
+    "native_path_success_all_platforms": "retained",
+    "canonical_path_success_all_platforms": "retained",
+    "windows_backslash_success": "retained_and_executed",
+    "unix_backslash_missing": "new_explicit_assertion",
+    "unix_backslash_rejection": "new_platform_correct_assertion",
+    "macos_execution": "not_run"
+  },
+  "receipts": [
+    {
+      "path": "remaining-store-path-diff-check.json",
+      "sha256": "a390afd8d7fcc8ab15b0eef4f0a4fb9046584480da71acc6879571175da4401b",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "crates/ccr-store/src/sessions/providers.rs"
+      ],
+      "exit_code": 0,
+      "seconds": 0.046,
+      "source_count": 4,
+      "source_before_after_current_equal": true,
+      "log": "remaining-store-path-diff-check.log",
+      "log_sha256": "a5be36549f1c229c7a9605982d4a9710dd071ada2ace0130fe50777146bbe1f9",
+      "log_hash_verified": true,
+      "results": []
+    },
+    {
+      "path": "remaining-store-path-format.json",
+      "sha256": "134fe7d95b894c05564495407959d92f57b40dbd29f0192d8b9d0e49cd979c89",
+      "command": [
+        "rustfmt",
+        "--edition",
+        "2024",
+        "--check",
+        "crates/ccr-store/src/sessions/providers.rs"
+      ],
+      "exit_code": 0,
+      "seconds": 0.133,
+      "source_count": 4,
+      "source_before_after_current_equal": true,
+      "log": "remaining-store-path-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_hash_verified": true,
+      "results": []
+    },
+    {
+      "path": "remaining-store-path-linux-clippy.json",
+      "sha256": "1c72012e0ce33ddfb6355501e8416f4bd282a3d297186df78cc5d9f570a8f980",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "ccr-store",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 3.526,
+      "source_count": 4,
+      "source_before_after_current_equal": true,
+      "log": "remaining-store-path-linux-clippy.log",
+      "log_sha256": "9f82fd4c6cf5e9a2bd2111f5e1aa6c1db4718e82b7ff7dc576deeaab8ee9abb7",
+      "log_hash_verified": true,
+      "results": []
+    },
+    {
+      "path": "remaining-store-path-linux-exact.json",
+      "sha256": "60411ecf14ea0e3150e095f2f8c145fe45dec5cedfc002f6057b650728a4e676",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "ccr-store",
+        "--all-features",
+        "--lib",
+        "sessions::providers::tests::restores_codex_live_jsonl_under_tempfile_with_windows_path_shapes",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "seconds": 2.221,
+      "source_count": 4,
+      "source_before_after_current_equal": true,
+      "log": "remaining-store-path-linux-exact.log",
+      "log_sha256": "e6a324fdfdfff532670a57a642bb4b587da40e0b09810a2828c05fa391d01ee1",
+      "log_hash_verified": true,
+      "results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 82 filtered out; finished in 0.00s"
+      ]
+    },
+    {
+      "path": "remaining-store-path-linux-lib.json",
+      "sha256": "af6af58a890620e209222ca447c288cedb8c626acd0ff1fbb33e9c9fb4d86fdd",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "ccr-store",
+        "--all-features",
+        "--lib"
+      ],
+      "exit_code": 0,
+      "seconds": 0.768,
+      "source_count": 4,
+      "source_before_after_current_equal": true,
+      "log": "remaining-store-path-linux-lib.log",
+      "log_sha256": "48a67433288aae9b5c2b798e97e13f9723fe1c7d14fa462ae6162a7b88c424a0",
+      "log_hash_verified": true,
+      "results": [
+        "test result: ok. 81 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.33s"
+      ]
+    },
+    {
+      "path": "remaining-store-path-windows-exact.json",
+      "sha256": "44dba4fe450516a8c5db064a4bc6353b93db4d4fcb04fb9c2481a5eab1f0130d",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "ccr-store",
+        "--all-features",
+        "--lib",
+        "sessions::providers::tests::restores_codex_live_jsonl_under_tempfile_with_windows_path_shapes",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "seconds": 8.824,
+      "source_count": 4,
+      "source_before_after_current_equal": true,
+      "log": "remaining-store-path-windows-exact.log",
+      "log_sha256": "71f1708a359be03e386da43056d15e9df7b5433412c11f15dc084efaeb61d9f5",
+      "log_hash_verified": true,
+      "results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 83 filtered out; finished in 0.01s"
+      ]
+    }
+  ],
+  "spec_sync": "No production behavior or interface changed; no new spec contract is required.",
+  "boundaries": [
+    "These receipts cover four source paths each; they are not a new full freeze. Root owns the next 269-path freeze and broad gates.",
+    "Original Linux quality-after-octal exit 101 remains retained under 49801f.",
+    "macOS process/native matrix and unauthorized fix commit remain open."
+  ],
+  "source_edited_by_reviewer": false
+}

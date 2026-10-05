@@ -1,0 +1,742 @@
+{
+  "timestamp": "2026-09-28T18:05:40.264051-05:00",
+  "owner": "/root/implement_t10_gates",
+  "status": "implemented_and_scoped_checks_passed",
+  "scope": "Only Cargo.lock and ccr-ui/src-tauri/Cargo.lock product changes; report/evidence under the assigned T10 research directory",
+  "advisory": {
+    "file": {
+      "path": "C:/Users/lyh/.cargo/advisory-db/crates/rustls/RUSTSEC-2026-0285.md",
+      "sha256": "cbdf838e35f584bf622c66cd3658cc2cb9ce057da10356800e794296e901b560",
+      "bytes": 1264
+    },
+    "database_remote": "https://github.com/RustSec/advisory-db.git",
+    "database_commit": "ef03605143a913024f864d2edf476adad5720c93",
+    "patched": [
+      ">= 0.23.45"
+    ],
+    "unaffected": [
+      "< 0.23.13"
+    ]
+  },
+  "official_sources": [
+    "https://rustsec.org/advisories/RUSTSEC-2026-0285",
+    "https://crates.io/api/v1/crates/rustls/0.23.45",
+    "https://crates.io/api/v1/crates/rustls/0.23.45/dependencies",
+    "https://crates.io/api/v1/crates/rustls-webpki/0.103.14"
+  ],
+  "locks": {
+    "root": {
+      "before": {
+        "path": "Cargo.lock",
+        "sha256": "ca1f03e85b5e0d888109ac8af7e7943fc1ceecd20a0f6eeb6a60052c5155db79",
+        "bytes": 120866
+      },
+      "after": {
+        "path": "Cargo.lock",
+        "sha256": "22acbf9e8cad08d4a0653484681cc2ac3441f7c5f9357b1c824b8844d9dae1d3",
+        "bytes": 120866
+      },
+      "package_count_before": 491,
+      "package_count_after": 491,
+      "changed_packages": [
+        {
+          "name": "rustls",
+          "before_version": "0.23.40",
+          "after_version": "0.23.45",
+          "before_checksum": "ef86cd5876211988985292b91c96a8f2d298df24e75989a43a3c73f2d4d8168b",
+          "after_checksum": "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634",
+          "dependencies_unchanged": true
+        },
+        {
+          "name": "rustls-webpki",
+          "before_version": "0.103.13",
+          "after_version": "0.103.14",
+          "before_checksum": "61c429a8649f110dddef65e2a5ad240f747e85f7758a6bccc7e5777bd33f756e",
+          "after_checksum": "0527518605e68109d875e248ea259b6758801cf165e4b2c2733ae3b51f12535a",
+          "dependencies_unchanged": true
+        }
+      ],
+      "only_version_and_checksum_changed": true
+    },
+    "tauri": {
+      "before": {
+        "path": "ccr-ui/src-tauri/Cargo.lock",
+        "sha256": "a21024dae2f7c909e24b70ee5296cd7ceb0821cab5c9f530a92fecaf818984d7",
+        "bytes": 174234
+      },
+      "after": {
+        "path": "ccr-ui/src-tauri/Cargo.lock",
+        "sha256": "a211d3c584b853c3f038912bbfba10303d4d5f9505cfea5cda39d2a82926ae28",
+        "bytes": 174234
+      },
+      "package_count_before": 678,
+      "package_count_after": 678,
+      "changed_packages": [
+        {
+          "name": "rustls",
+          "before_version": "0.23.40",
+          "after_version": "0.23.45",
+          "before_checksum": "ef86cd5876211988985292b91c96a8f2d298df24e75989a43a3c73f2d4d8168b",
+          "after_checksum": "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634",
+          "dependencies_unchanged": true
+        },
+        {
+          "name": "rustls-webpki",
+          "before_version": "0.103.13",
+          "after_version": "0.103.14",
+          "before_checksum": "61c429a8649f110dddef65e2a5ad240f747e85f7758a6bccc7e5777bd33f756e",
+          "after_checksum": "0527518605e68109d875e248ea259b6758801cf165e4b2c2733ae3b51f12535a",
+          "dependencies_unchanged": true
+        }
+      ],
+      "only_version_and_checksum_changed": true
+    }
+  },
+  "commands": [
+    {
+      "command": [
+        "cargo",
+        "audit",
+        "--no-fetch",
+        "--file",
+        "ccr-ui/src-tauri/Cargo.lock"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T22:57:11.589743+00:00",
+      "exit_code": 1,
+      "seconds": 1.971,
+      "log": "continuation-security-tauri-audit-before.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-audit-before.json",
+        "sha256": "bbeac9648e42cc52e7be9af2aa9468704a88838fa390065403fdbc544af81147",
+        "bytes": 353
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-audit-before.log",
+        "sha256": "698096ccb402ab59ccdacdf35b5054435cf8329b184a2e7495f1721962e445cb",
+        "bytes": 2698
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "tree",
+        "--locked",
+        "--offline",
+        "--all-features",
+        "--target",
+        "all",
+        "-i",
+        "rustls@0.23.40"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T22:57:11.589812+00:00",
+      "exit_code": 0,
+      "seconds": 1.473,
+      "log": "continuation-security-root-tree-before.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-tree-before.json",
+        "sha256": "460cefafb69c4dc63964ac0d823a663c72185e5cccf031dcdd405ba8cd36451a",
+        "bytes": 401
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-tree-before.log",
+        "sha256": "4dc8e4fe7f86c681d8b81d94c4e76a3dda13457f37def5513d5850195a7778f6",
+        "bytes": 176
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "audit",
+        "--no-fetch",
+        "--file",
+        "Cargo.lock"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T22:57:11.589926+00:00",
+      "exit_code": 1,
+      "seconds": 1.67,
+      "log": "continuation-security-root-audit-before.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-audit-before.json",
+        "sha256": "034523533a48e083fd74cabac0baf280734761617e9a48905b8de487b3af250b",
+        "bytes": 334
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-audit-before.log",
+        "sha256": "a0ad87c948f895eca3c449dd639a90b6007e052b665d0aa985b2de5bc95084ad",
+        "bytes": 782
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "tree",
+        "--manifest-path",
+        "ccr-ui/src-tauri/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--workspace",
+        "--all-features",
+        "--target",
+        "all",
+        "-i",
+        "rustls@0.23.40"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T22:57:47.282155+00:00",
+      "exit_code": 0,
+      "seconds": 1.334,
+      "log": "continuation-security-tauri-tree-before.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-tree-before.json",
+        "sha256": "4c23adc60a793f5dd32fe0a8856b310d48ca25a0da50099caf2d002618140124",
+        "bytes": 482
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-tree-before.log",
+        "sha256": "7410cde5bdeaf299c2e7e32edde7fa1e5e836aad1ff9cbf087c2e82a51a143dc",
+        "bytes": 280
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "tree",
+        "--locked",
+        "--offline",
+        "--workspace",
+        "--all-features",
+        "--target",
+        "all",
+        "-i",
+        "rustls@0.23.40"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T22:57:47.322983+00:00",
+      "exit_code": 0,
+      "seconds": 1.485,
+      "log": "continuation-security-root-tree-workspace-before.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-tree-workspace-before.json",
+        "sha256": "15de8f3c457731424c17a22512f5b37dd7d7447bc69343a5b124e3e31537ac04",
+        "bytes": 431
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-tree-workspace-before.log",
+        "sha256": "a8238e87815bfe6e076e854b8118356a281b6783fc798ea5e20ae3803d5d79d5",
+        "bytes": 332
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "update",
+        "-p",
+        "rustls@0.23.40",
+        "--precise",
+        "0.23.45"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T22:58:05.313236+00:00",
+      "exit_code": 101,
+      "seconds": 53.947,
+      "log": "continuation-security-root-update-rustls.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-update-rustls.json",
+        "sha256": "945547b37e4520bee59d0ee64d1da7cae796453946dcee36388bcc77dc547fb9",
+        "bytes": 355
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-update-rustls.log",
+        "sha256": "860918125acf0d72feabd74190aa0a976106e423f73c3c19cd0382960d136077",
+        "bytes": 22566
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "update",
+        "--offline",
+        "-p",
+        "rustls@0.23.40",
+        "--precise",
+        "0.23.45"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T22:59:39.676362+00:00",
+      "exit_code": 0,
+      "seconds": 1.152,
+      "log": "continuation-security-root-update-rustls-offline.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-update-rustls-offline.json",
+        "sha256": "6a2b3fcfe34a0deb25c74d8b91b340a333120bfda97115c0707834ce3944a051",
+        "bytes": 378
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-update-rustls-offline.log",
+        "sha256": "c3ffcf4aee18b02d77acd63343f7bed1f277906ba2b1e04ae9ab60f438d8a0d1",
+        "bytes": 162
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "update",
+        "--offline",
+        "-p",
+        "rustls-webpki@0.103.15",
+        "--precise",
+        "0.103.14"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T23:00:17.779040+00:00",
+      "exit_code": 0,
+      "seconds": 0.945,
+      "log": "continuation-security-root-update-webpki-minimum.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-update-webpki-minimum.json",
+        "sha256": "c0744f267493ff1cb953899e6e0146fd0d77caeb80e251fd2c07be7fd9abd0dc",
+        "bytes": 387
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-update-webpki-minimum.log",
+        "sha256": "78690205abf2290c17a13e1ecd04ae6f0996dac91dca3ec9b9aa91c09c1a1bb2",
+        "bytes": 121
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "update",
+        "--manifest-path",
+        "ccr-ui/src-tauri/Cargo.toml",
+        "--offline",
+        "-p",
+        "rustls-webpki@0.103.13",
+        "--precise",
+        "0.103.14"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T23:00:19.577235+00:00",
+      "exit_code": 0,
+      "seconds": 1.314,
+      "log": "continuation-security-tauri-update-webpki-minimum.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-update-webpki-minimum.json",
+        "sha256": "29855b769b31b1adff88c0a731c76d507a84dc0bf58e3e8ee5d3a47f141fa1c1",
+        "bytes": 448
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-update-webpki-minimum.log",
+        "sha256": "a29879f42e97d0c4222a13bdada4e7ac4c6dccc8aa4d7a49038823237057056f",
+        "bytes": 121
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "update",
+        "--manifest-path",
+        "ccr-ui/src-tauri/Cargo.toml",
+        "--offline",
+        "-p",
+        "rustls@0.23.40",
+        "--precise",
+        "0.23.45"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T23:00:21.728442+00:00",
+      "exit_code": 0,
+      "seconds": 1.242,
+      "log": "continuation-security-tauri-update-rustls-offline.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-update-rustls-offline.json",
+        "sha256": "e6946599e3f9b07d51b12379c5fc3658aa3320d68badb397ce749e1428514a06",
+        "bytes": 439
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-update-rustls-offline.log",
+        "sha256": "4fb1e36776b717362afb4cc55c88229753c9c22c140d153d17d4623bfe2237f8",
+        "bytes": 112
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "audit",
+        "--file",
+        "Cargo.lock"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T23:01:06.277193+00:00",
+      "exit_code": 0,
+      "seconds": 3.016,
+      "log": "continuation-security-root-audit-after.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-audit-after.json",
+        "sha256": "cb7d75e4d932bf8fc1d6cb6a8bbfeb881b1f573c45a6566c0a4ce380dec46f73",
+        "bytes": 315
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-audit-after.log",
+        "sha256": "e0edf3a3224d6b490210798e257311165d9314efb15fbcc2b5795cdf6b3d166b",
+        "bytes": 349
+      }
+    },
+    {
+      "command": [
+        "just",
+        "dependency-governance-check"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T23:01:06.277211+00:00",
+      "exit_code": 0,
+      "seconds": 0.996,
+      "log": "continuation-security-dependency-governance.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-dependency-governance.json",
+        "sha256": "f0131fb7ba9bfaecc482a48be809de3b2f5b9ab8cd240a8a3245d77c9ed03963",
+        "bytes": 307
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-dependency-governance.log",
+        "sha256": "2132a0c73d86563fbd985e712f7a4ac187e4324a07e4d3fd5c7c3fa96511c8ea",
+        "bytes": 255
+      }
+    },
+    {
+      "command": [
+        "just",
+        "version-check"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T23:01:06.298682+00:00",
+      "exit_code": 0,
+      "seconds": 2.092,
+      "log": "continuation-security-version-check.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-version-check.json",
+        "sha256": "df23c6e7f32d05a6dd00cd8a62870ae84b6d27dbc784cf32ac7fe8e4e194ee03",
+        "bytes": 285
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-version-check.log",
+        "sha256": "ef34cc63b96d6b41b542267d0a033f0f5e969d3ec17d2d0b6fbbf8f6638991de",
+        "bytes": 780
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "audit",
+        "--file",
+        "ccr-ui/src-tauri/Cargo.lock"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T23:01:19.835347+00:00",
+      "exit_code": 0,
+      "seconds": 4.877,
+      "log": "continuation-security-tauri-audit-after.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-audit-after.json",
+        "sha256": "322126a0e1759d97cff5f7244d039ad1bc67337c44570a3c87ac412740397598",
+        "bytes": 333
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-audit-after.log",
+        "sha256": "587a230dba922da2f2211a931200aa027ba104303179aa1c7bd42cc74ae6f523",
+        "bytes": 2360
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "check",
+        "--locked",
+        "--offline",
+        "-p",
+        "ccr-sync",
+        "--all-targets",
+        "--all-features"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {},
+      "started_at": "2026-09-28T23:01:53.830519+00:00",
+      "exit_code": 0,
+      "seconds": 5.665,
+      "log": "continuation-security-root-sync-check.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-sync-check.json",
+        "sha256": "24ef77eda880a3e5f6c881520ba2ed3f290833446c336803eaa4e35fadb9ae60",
+        "bytes": 388
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-sync-check.log",
+        "sha256": "c705195c6fe22f779902a533638cc72c104519af72d1873656982623772c4d8e",
+        "bytes": 1001
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "--config",
+        ".cargo/tauri-ci.toml",
+        "check",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "ccr-ui/src-tauri/Cargo.toml",
+        "--bin",
+        "ccr-desktop"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "environment_overrides": {
+        "CCR_SKIP_ICON_GENERATION": "1"
+      },
+      "started_at": "2026-09-28T23:02:10.454301+00:00",
+      "exit_code": 0,
+      "seconds": 11.702,
+      "log": "continuation-security-tauri-bin-check.log",
+      "metadata": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-bin-check.json",
+        "sha256": "f2cdeaa6693a03aab2e177bf6191651fe7bf0f2c0e275087859b9def09dcb106",
+        "bytes": 497
+      },
+      "raw_log": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-bin-check.log",
+        "sha256": "c8dff134bd9005ce5c9e0b60cd241b23a51901766aa1665b743bea268d2a215b",
+        "bytes": 1748
+      }
+    }
+  ],
+  "lock_diff": {
+    "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-lock-diff.patch",
+    "sha256": "5ce6ea3262ddd21c659295c3aac0e48db3e1db424865610d3c1d996f753687d4",
+    "bytes": 1850
+  },
+  "dependency_path": {
+    "lock_edges": [
+      "reqwest 0.13.4 -> hyper-rustls 0.27.9 -> rustls",
+      "reqwest 0.13.4 -> hyper-rustls 0.27.9 -> tokio-rustls 0.26.4 -> rustls"
+    ],
+    "root_owner_example": "ccr-sync -> reqwest_dav 0.3.3 -> reqwest 0.13.4",
+    "active_graph_checks": "Root and Tauri cargo tree --workspace --all-features --target all -i rustls@0.23.40 both printed nothing to print. The lockfile includes optional Rustls dependencies; no active Rustls runtime exposure is asserted."
+  },
+  "minimal_version_reason": "rustls 0.23.45 is the first patched version and requires rustls-webpki ^0.103.14. Cargo first selected 0.103.15; an explicit precise update narrowed it to 0.103.14. Existing advisory ranges and final audits accept 0.103.14. No package or feature was added.",
+  "network_recovery": "Initial online cargo update failed on crates.io config.json with Schannel SSL/TLS connection failure. Existing registry cache entries matched the independently fetched official crates.io API checksums. Exact offline updates succeeded without editing the cache or changing TLS validation. Both final audits fetched the official advisory database and updated the index successfully.",
+  "audits": {
+    "root": {
+      "exit_code": 0,
+      "vulnerabilities": 0,
+      "warnings": 0
+    },
+    "tauri": {
+      "exit_code": 0,
+      "vulnerabilities": 0,
+      "warnings": [
+        {
+          "crate": "fxhash",
+          "version": "0.2.1",
+          "warning": "unmaintained",
+          "id": "RUSTSEC-2025-0057"
+        },
+        {
+          "crate": "proc-macro-error",
+          "version": "1.0.4",
+          "warning": "unmaintained",
+          "id": "RUSTSEC-2024-0370"
+        },
+        {
+          "crate": "unic-char-property",
+          "version": "0.9.0",
+          "warning": "unmaintained",
+          "id": "RUSTSEC-2025-0081"
+        },
+        {
+          "crate": "unic-char-range",
+          "version": "0.9.0",
+          "warning": "unmaintained",
+          "id": "RUSTSEC-2025-0075"
+        },
+        {
+          "crate": "unic-common",
+          "version": "0.9.0",
+          "warning": "unmaintained",
+          "id": "RUSTSEC-2025-0080"
+        },
+        {
+          "crate": "unic-ucd-ident",
+          "version": "0.9.0",
+          "warning": "unmaintained",
+          "id": "RUSTSEC-2025-0100"
+        },
+        {
+          "crate": "unic-ucd-version",
+          "version": "0.9.0",
+          "warning": "unmaintained",
+          "id": "RUSTSEC-2025-0098"
+        },
+        {
+          "crate": "glib",
+          "version": "0.18.5",
+          "warning": "unsound",
+          "id": "RUSTSEC-2024-0429"
+        },
+        {
+          "crate": "rand",
+          "version": "0.7.3",
+          "warning": "unsound",
+          "id": "RUSTSEC-2026-0097"
+        }
+      ],
+      "warnings_unchanged": true
+    },
+    "ignore_list": [],
+    "advisory_database_after": "ef03605143a913024f864d2edf476adad5720c93"
+  },
+  "protected_inputs": [
+    {
+      "before": {
+        "path": "Cargo.toml",
+        "sha256": "c4a71f50dee5cbdc4e477cb66e47f33a0e6e5d1fe78de46a41f51a6015790dd4",
+        "bytes": 2745
+      },
+      "after": {
+        "path": "Cargo.toml",
+        "sha256": "c4a71f50dee5cbdc4e477cb66e47f33a0e6e5d1fe78de46a41f51a6015790dd4",
+        "bytes": 2745
+      },
+      "unchanged": true
+    },
+    {
+      "before": {
+        "path": "ccr-ui/src-tauri/Cargo.toml",
+        "sha256": "9c7c095139e2c85cd61e28471dd799c6fc79c0e677c3de539ee3004652974701",
+        "bytes": 3844
+      },
+      "after": {
+        "path": "ccr-ui/src-tauri/Cargo.toml",
+        "sha256": "9c7c095139e2c85cd61e28471dd799c6fc79c0e677c3de539ee3004652974701",
+        "bytes": 3844
+      },
+      "unchanged": true
+    },
+    {
+      "before": {
+        "path": "rust-toolchain.toml",
+        "sha256": "961b6190f4aad6120ca3fffe218389b991933141c90c362b5bbe92f6622540d9",
+        "bytes": 178
+      },
+      "after": {
+        "path": "rust-toolchain.toml",
+        "sha256": "961b6190f4aad6120ca3fffe218389b991933141c90c362b5bbe92f6622540d9",
+        "bytes": 178
+      },
+      "unchanged": true
+    },
+    {
+      "before": {
+        "path": ".cargo/audit.toml",
+        "sha256": "b015e9228fd85984d7f433744fcb9bfe1a2ab0c71d04043d9e00fc2ce2fcd712",
+        "bytes": 118
+      },
+      "after": {
+        "path": ".cargo/audit.toml",
+        "sha256": "b015e9228fd85984d7f433744fcb9bfe1a2ab0c71d04043d9e00fc2ce2fcd712",
+        "bytes": 118
+      },
+      "unchanged": true
+    },
+    {
+      "before": {
+        "path": "ccr-ui/.tmp-desktop-probe.mjs",
+        "sha256": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+        "bytes": 3779
+      },
+      "after": {
+        "path": "ccr-ui/.tmp-desktop-probe.mjs",
+        "sha256": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+        "bytes": 3779
+      },
+      "unchanged": true
+    },
+    {
+      "before": {
+        "path": "ccr-ui/.tmp-insights-visual.mjs",
+        "sha256": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53",
+        "bytes": 14099
+      },
+      "after": {
+        "path": "ccr-ui/.tmp-insights-visual.mjs",
+        "sha256": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53",
+        "bytes": 14099
+      },
+      "unchanged": true
+    }
+  ],
+  "verification": {
+    "version_check": "passed",
+    "dependency_governance": "passed; 6 unit tests, 19 shared dependencies, existing toml exception retained",
+    "root_narrow_check": "passed; cargo check -p ccr-sync --all-targets --all-features --locked --offline",
+    "tauri_narrow_check": "passed; cargo --config .cargo/tauri-ci.toml check --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop --locked --offline",
+    "git_diff_check": "passed for both lockfiles; observed tool result exit 0",
+    "rust_compiler": "1.98.0",
+    "dependency_msrv_metadata": "Both changed packages declare Rust 1.71; repository manifests remain Rust 1.95",
+    "actual_msrv_195_check": "not run in this slice"
+  },
+  "concurrent_work_boundary": {
+    "tauri_check_started_utc": "2026-09-28T23:02:10.454301+00:00",
+    "tauri_check_completed_utc": "2026-09-28T23:02:22.156301+00:00",
+    "tauri_manifest_observed_after_check_sha256": "9c7c095139e2c85cd61e28471dd799c6fc79c0e677c3de539ee3004652974701",
+    "tauri_dev_dependency_test_feature_at_report_snapshot": null,
+    "parent_notice": "implement_t09 is authorized to add the exact-version Tauri test feature and real Codex handler roundtrip tests. This owner did not modify that manifest. The bin check does not validate subsequent fixture or test-feature changes. Root owns integrated revalidation."
+  },
+  "remaining_gaps": [
+    "Root full just ci not run by this owner",
+    "Full Tauri tests, strict lint, bindings and frontend gates not run by this owner",
+    "Actual Rust 1.95 compilation not run; Rust 1.98 success is not MSRV proof",
+    "Nine existing Tauri advisory warnings remain visible",
+    "No live TLS handshake or vulnerability reproduction was performed; audit and dependency metadata establish the patched resolution",
+    "Later concurrent Tauri test-feature and handler fixture changes require root integration checks"
+  ],
+  "actions_not_taken": [
+    "No manifest/source/feature/platform/MSRV edits",
+    "No audit ignore or warning suppression",
+    "No new dependency",
+    "No protected .tmp script or Insights-state edit",
+    "No parent report, original evidence matrix or render_plans.py edit",
+    "No commit, push, release or archive"
+  ],
+  "intermediate_package_states": [
+    {
+      "lock": "Cargo.lock",
+      "package": {
+        "name": "rustls-webpki",
+        "vers": "0.103.15",
+        "cksum": "f3c3cf1d8b1e7d4927e2d154c3fcb02979afb9939629c62cd9048d4f07b60ac2",
+        "yanked": false,
+        "rust_version": "1.71",
+        "pubtime": "2026-08-21T16:40:00Z"
+      },
+      "final_version": "0.103.14",
+      "reason": "Cargo selected the newest compatible transitive release; narrowed with precise update to the minimum required patch version",
+      "registry_index_path": "C:/Users/lyh/.cargo/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/ru/st/rustls-webpki"
+    }
+  ]
+}

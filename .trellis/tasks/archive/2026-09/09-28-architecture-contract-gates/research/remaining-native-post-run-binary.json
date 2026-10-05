@@ -1,0 +1,19 @@
+{
+  "observed_at_utc": "2026-09-29T02:42:19.132487+00:00",
+  "path": "/tmp/ccr-architecture-linux-01a0e781/debug/ccr-desktop",
+  "current_sha256": "bc18bf573c3b5cd67fe6c4933df32dd27ce7dc47aa323de7f190fb6561cfdbe2",
+  "current_mtime_utc": "2026-09-29T02:38:05.757923+00:00",
+  "native_receipt_binary_sha256": "e97fe3f4aed28ab17873bfeeceb7178ab46f179a20e787516ae0aacfe22ebec4",
+  "native_finished_at_utc": "2026-09-29T02:32:41.977557+00:00",
+  "later_gate": "remaining-linux-tauri-ci-final.json",
+  "later_gate_sha256": "35b095d9db906949f5779df1d44714caa69d2faf6b6d64eb6abce841e0d2ef89",
+  "later_gate_started_at_utc": "2026-09-29T02:35:24.382862+00:00",
+  "later_gate_finished_at_utc": "2026-09-29T02:38:21.705494+00:00",
+  "later_gate_command": [
+    "just",
+    "tauri-ci"
+  ],
+  "gate_config": ".cargo/tauri-ci.toml",
+  "interpretation": "The reused debug output now differs from the native-run executable. Its mtime lies inside the later Tauri gate. Cargo build replacement is consistent with this provenance; no process-level writer trace was captured. Native acceptance remains bound to its execution-time hash and original build receipt.",
+  "mtime_within_later_gate": true
+}

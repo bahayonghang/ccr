@@ -16,7 +16,7 @@ ccr doctor --platform codex
 ## Current behavior
 
 - defaults to local-first, read-only checks
-- defaults to configured Claude/Codex runtime targets rather than a legacy global current platform
+- defaults to configured Claude/Codex/Grok runtime targets
 - runs provider online probing only with `--online`
 
 ## What it checks
@@ -32,3 +32,11 @@ ccr doctor --platform codex
 - [validate](./validate)
 - [current](./current)
 - [Migration Guide](/en/reference/migration)
+
+## Capability and Exit Contract
+
+Platform choices come from the shared `Platform` enum and include `grok`. Claude, Codex, and Grok support auth/profile commands. Gemini and Droid retain read-only compatibility checks with a `legacy_adapter` label. Qwen remains unimplemented. No additional legacy writer is called.
+
+Grok checks cover config TOML and managed route consistency. Grok owns official session authentication; offline checks do not prove a valid login.
+
+Failed checks return `1`. Warnings alone return `0`. The binary chooses process status from the typed report. Embedded services never terminate the host process. Local diagnostics do not create log directories or mutate configuration files.

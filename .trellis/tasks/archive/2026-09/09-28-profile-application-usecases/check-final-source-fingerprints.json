@@ -1,0 +1,7 @@
+{
+  "Cargo.lock": "ca1f03e85b5e0d888109ac8af7e7943fc1ceecd20a0f6eeb6a60052c5155db79",
+  "crates/ccr-core/src/core/atomic_writer.rs": "54d4b2773e9f386a773b8aee9c59bec96895514f9608588caec7d372e2cffbd4",
+  "crates/ccr-core/src/core/guarded_write.rs": "5c7dc32c51340360a2cffb5019821aa134ff94ebbc24b3069ec34aaff92ae3cc",
+  "crates/ccr-core/src/core/write_journal.rs": "8d57b9a1f307acb1fc75636014dd78b8b8978142d5537610b81cd449d6f730a5",
+  "crates/ccr-config/src/managers/config/repository.rs": "be8c61e0a0cc03748457d694e911e458e0106e0287125d49176aae5f109643cb"
+}

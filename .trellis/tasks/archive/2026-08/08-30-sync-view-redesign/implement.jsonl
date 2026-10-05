@@ -1,0 +1,7 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ccr-ui/frontend/index.md", "reason": "ccr-ui 前端指南索引与质量检查入口"}
+{"file": ".trellis/spec/ccr-ui/frontend/sync-security-contracts.md", "reason": "同步 IPC/WebDAV 配置所有权/passphrase 生命周期，重构不得破坏"}
+{"file": ".trellis/spec/ccr-ui/frontend/layering-contracts.md", "reason": "src 下模块依赖方向与组件分层约束"}
+{"file": ".trellis/spec/ccr-ui/frontend/react-rerender-discipline.md", "reason": "视图层 React memo/useCallback 重渲染纪律"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "主题 token 分层与视觉验证红线，新样式只用现有 tokens"}
+{"file": ".trellis/spec/ccr-ui/frontend/confirm-interaction-contracts.md", "reason": "断开连接等确认交互契约，禁止原生对话框"}

@@ -1,0 +1,19 @@
+{
+  "command": [
+    "git",
+    "diff",
+    "--check",
+    "--",
+    "crates/ccr-cli/src/commands/codex/fix.rs"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "source_before_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+  "started_at_utc": "2026-09-28T23:42:35.630351+00:00",
+  "default_parallelism": true,
+  "exit_code": 0,
+  "seconds": 0.044,
+  "source_after_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+  "finished_at_utc": "2026-09-28T23:42:35.674342+00:00",
+  "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-final-diff-check.log",
+  "log_sha256": "3ee2af8f5ed215ddd419a4a9b8190007c3ca6dd3052b789a8d3be83ed31444ca"
+}

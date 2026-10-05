@@ -1,0 +1,10 @@
+{
+  "command": [
+    "bun",
+    "run",
+    "lint:style"
+  ],
+  "cwd": "ccr-ui",
+  "exit_code": 0,
+  "seconds": 1.36
+}

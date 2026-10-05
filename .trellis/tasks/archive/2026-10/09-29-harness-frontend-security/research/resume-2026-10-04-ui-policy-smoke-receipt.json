@@ -1,0 +1,7 @@
+{
+  "command": "cd ccr-ui && bun run test:smoke -- tests/quality/frontend-dependency-audit.smoke.test.ts",
+  "startedUtc": "2026-10-04T12:32:50.5720107+00:00",
+  "finishedUtc": "2026-10-04T12:32:52.6109924+00:00",
+  "exitCode": 0,
+  "log": "resume-2026-10-04-ui-policy-smoke.log"
+}

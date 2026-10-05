@@ -626,13 +626,17 @@ impl ManagedChild {
 
     pub async fn wait(&mut self) -> io::Result<ExitStatus> {
         let status = self.child.wait().await;
-        self.unregister();
+        if status.is_ok() {
+            self.unregister();
+        }
         status
     }
 
     pub async fn terminate_tree(&mut self, grace: Duration) -> io::Result<ExitStatus> {
         let status = self.child.terminate_tree(grace).await;
-        self.unregister();
+        if status.is_ok() {
+            self.unregister();
+        }
         status
     }
 

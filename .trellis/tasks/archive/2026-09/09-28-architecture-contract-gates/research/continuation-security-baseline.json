@@ -1,0 +1,168 @@
+{
+  "timestamp": "2026-09-28T17:56:43.269307-05:00",
+  "scope": "Only minimal same-line security lock updates; no manifest, feature, platform, MSRV, ignore, protected-script or parent-artifact changes",
+  "locks": {
+    "root": {
+      "before": {
+        "path": "Cargo.lock",
+        "sha256": "ca1f03e85b5e0d888109ac8af7e7943fc1ceecd20a0f6eeb6a60052c5155db79",
+        "bytes": 120866
+      },
+      "snapshot": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-root-before.lock",
+        "sha256": "ca1f03e85b5e0d888109ac8af7e7943fc1ceecd20a0f6eeb6a60052c5155db79",
+        "bytes": 120866
+      },
+      "rustls": [
+        {
+          "name": "rustls",
+          "version": "0.23.40",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "ef86cd5876211988985292b91c96a8f2d298df24e75989a43a3c73f2d4d8168b",
+          "dependencies": [
+            "once_cell",
+            "rustls-pki-types",
+            "rustls-webpki",
+            "subtle",
+            "zeroize"
+          ]
+        },
+        {
+          "name": "rustls-pki-types",
+          "version": "1.14.0",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "be040f8b0a225e40375822a563fa9524378b9d63112f53e19ffff34df5d33fdd",
+          "dependencies": [
+            "zeroize"
+          ]
+        },
+        {
+          "name": "rustls-webpki",
+          "version": "0.103.13",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "61c429a8649f110dddef65e2a5ad240f747e85f7758a6bccc7e5777bd33f756e",
+          "dependencies": [
+            "ring",
+            "rustls-pki-types",
+            "untrusted"
+          ]
+        }
+      ]
+    },
+    "tauri": {
+      "before": {
+        "path": "ccr-ui/src-tauri/Cargo.lock",
+        "sha256": "a21024dae2f7c909e24b70ee5296cd7ceb0821cab5c9f530a92fecaf818984d7",
+        "bytes": 174234
+      },
+      "snapshot": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-tauri-before.lock",
+        "sha256": "a21024dae2f7c909e24b70ee5296cd7ceb0821cab5c9f530a92fecaf818984d7",
+        "bytes": 174234
+      },
+      "rustls": [
+        {
+          "name": "rustls",
+          "version": "0.23.40",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "ef86cd5876211988985292b91c96a8f2d298df24e75989a43a3c73f2d4d8168b",
+          "dependencies": [
+            "once_cell",
+            "rustls-pki-types",
+            "rustls-webpki",
+            "subtle",
+            "zeroize"
+          ]
+        },
+        {
+          "name": "rustls-pki-types",
+          "version": "1.14.0",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "be040f8b0a225e40375822a563fa9524378b9d63112f53e19ffff34df5d33fdd",
+          "dependencies": [
+            "zeroize"
+          ]
+        },
+        {
+          "name": "rustls-webpki",
+          "version": "0.103.13",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "61c429a8649f110dddef65e2a5ad240f747e85f7758a6bccc7e5777bd33f756e",
+          "dependencies": [
+            "ring",
+            "rustls-pki-types",
+            "untrusted"
+          ]
+        }
+      ]
+    }
+  },
+  "protected_inputs": [
+    {
+      "path": "Cargo.toml",
+      "sha256": "c4a71f50dee5cbdc4e477cb66e47f33a0e6e5d1fe78de46a41f51a6015790dd4",
+      "bytes": 2745
+    },
+    {
+      "path": "ccr-ui/src-tauri/Cargo.toml",
+      "sha256": "9c7c095139e2c85cd61e28471dd799c6fc79c0e677c3de539ee3004652974701",
+      "bytes": 3844
+    },
+    {
+      "path": "rust-toolchain.toml",
+      "sha256": "961b6190f4aad6120ca3fffe218389b991933141c90c362b5bbe92f6622540d9",
+      "bytes": 178
+    },
+    {
+      "path": ".cargo/audit.toml",
+      "sha256": "b015e9228fd85984d7f433744fcb9bfe1a2ab0c71d04043d9e00fc2ce2fcd712",
+      "bytes": 118
+    },
+    {
+      "path": "ccr-ui/.tmp-desktop-probe.mjs",
+      "sha256": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+      "bytes": 3779
+    },
+    {
+      "path": "ccr-ui/.tmp-insights-visual.mjs",
+      "sha256": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53",
+      "bytes": 14099
+    }
+  ],
+  "observed_toolchain": {
+    "cargo": "1.98.0 (797e8a9bc 2026-08-05)",
+    "rustc": "1.98.0 (88d9e12ae 2026-08-18)",
+    "cargo_audit": "0.22.2"
+  },
+  "advisory": {
+    "file": {
+      "path": "C:/Users/lyh/.cargo/advisory-db/crates/rustls/RUSTSEC-2026-0285.md",
+      "sha256": "cbdf838e35f584bf622c66cd3658cc2cb9ce057da10356800e794296e901b560",
+      "bytes": 1264
+    },
+    "database_remote": "https://github.com/RustSec/advisory-db.git",
+    "database_commit": "ef03605143a913024f864d2edf476adad5720c93",
+    "patched": [
+      ">= 0.23.45"
+    ],
+    "unaffected": [
+      "< 0.23.13"
+    ]
+  },
+  "registry_version": {
+    "url": "https://crates.io/api/v1/crates/rustls/0.23.45",
+    "file": {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-rustls-0.23.45-version.json",
+      "sha256": "350effc51bf2156df2da4936b239747a158e651b39c2b843d91ba0a436138fd3",
+      "bytes": 2125
+    }
+  },
+  "registry_dependencies": {
+    "url": "https://crates.io/api/v1/crates/rustls/0.23.45/dependencies",
+    "file": {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-security-rustls-0.23.45-dependencies.json",
+      "sha256": "5fc8511d6cda28aeee7aaa81aa9cefb5bb4cd9bd32a7b5d2a112ddd7b5796d17",
+      "bytes": 4552
+    }
+  }
+}

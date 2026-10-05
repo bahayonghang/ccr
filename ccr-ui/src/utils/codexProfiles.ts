@@ -2,14 +2,14 @@
 // 与 utils/claudeProfiles.ts 对称，卡片 / 列表行 / 检查器 / 确认框全部引用这里的解析结果，
 // 避免同一份 fallback 与查表逻辑散落到多个组件。
 import type { CodexProfile } from '@/types'
-import type { ProfileRowDescriptor } from '@/components/profiles/ProfileListRow.vue'
 import type {
+  ProfileRowDescriptor,
   ProfilesInspectorDescriptor,
   ProfilesInspectorField,
-} from '@/components/profiles/ProfilesInspector.vue'
+} from '@/utils/profileDescriptors'
 import type { ProfileDiffField } from '@/utils/profileDiff'
 import { formatBaseUrlDisplay } from '@/utils/text'
-import { useCodexProfilesInsights } from '@/composables/useCodexProfilesInsights'
+import { buildCodexProfilesInsights } from '@/utils/codexProfilesInsights'
 
 /** 字段缺失时的统一展示占位符（卡片/行/检查器共用） */
 export const CODEX_FIELD_PLACEHOLDER = '—'
@@ -137,7 +137,7 @@ export const createCodexInspectorDescriptor = (
   t: CodexTranslate
 ): ProfilesInspectorDescriptor<CodexProfile> => ({
   editIcon: 'Edit2',
-  useInsights: useCodexProfilesInsights,
+  useInsights: buildCodexProfilesInsights,
   activeFields: (profile) => codexInspectorFields(profile, t),
   diffFields: createCodexDiffFields(t),
   authModeLabel: (mode) => codexAuthModeLabel(t, mode),

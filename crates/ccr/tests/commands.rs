@@ -13,6 +13,9 @@ mod codex_fix;
 #[path = "commands/grok_profile.rs"]
 mod grok_profile;
 
+#[path = "commands/grok_auth.rs"]
+mod grok_auth;
+
 #[path = "commands/claude_profile.rs"]
 mod claude_profile;
 

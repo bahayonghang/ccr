@@ -1,6 +1,34 @@
 # Dashboard Presentation Contracts
 
-> Executable contracts for `ccr-ui/src/views/dashboard/dashboardPresentation.ts` and the five `DashboardView.vue` child components it feeds (`DashboardReadinessLedger`, `DashboardNextActions`, `DashboardUsageMovement`, `DashboardSignalStream`, `DashboardPlatformMatrix`).
+> Executable contracts for `ccr-ui/src/views/dashboard/dashboardPresentation.ts` and the `DashboardView.tsx` children it feeds (`DashboardNextActions`, `DashboardUsageMovement`, `DashboardSignalStream`, `DashboardPlatformMatrix`) under `ccr-ui/src/features/usage/dashboard/`. Readiness copy, pill, and reason checklist render in `DashboardView` itself (`08-25-home-runtime-layout` removed `DashboardReadinessLedger`).
+
+---
+
+## Scenario: Sessions honesty state (`sessionIndexState`) — never render a fake 0
+
+### 1. Scope / Trigger
+
+- Trigger: touching sessions rendering on the Overview home (usage panel metric row, platform ticker cells), or changing `compute_home_overview`'s `needs_session_index` / `active_session_index` flags.
+- Introduced by `09-03-overview-home-restructure`: requests/tokens come from the external `llmusage` crate while sessions come from ccr-db `session_archive` (`src-tauri/src/services/usage.rs:1151`). When the archive is not indexed, the backend returns `total_sessions: 0` — indistinguishable from a real zero without the bootstrap flag.
+
+### 2. Signatures
+
+- `DashboardSessionIndexState = 'indexing' | 'unindexed' | null` (`dashboardPresentation.ts`).
+- `DashboardPresentation.sessionIndexState` — `null` when indexed (numbers trustworthy); `'unindexed'` when `bootstrap.needs_session_index` is true and no index job is running; `'indexing'` when `snapshot.readiness.active_session_index` is also true.
+- Consumed as props by `DashboardUsageMovement` (`UsageSessionMetricCell` in `DashboardUsageMetricsRow.tsx`) and `DashboardPlatformMatrix` (`sessionsCellMetric`).
+
+### 3. Contracts
+
+- When `sessionIndexState` is non-null, the usage panel sessions cell renders the honesty label (`dashboard.usage.sessionsUnindexed` / `sessionsIndexing`) as an info-colored link to `/usage` with the `sessionsUnindexedHint` tooltip — **not** the placeholder `0`.
+- Platform ticker cells render `–` (en dash, muted, same tooltip) for sessions instead of `0`.
+- When `sessionIndexState` is `null`, a real `0` renders normally (indexed archive, zero sessions is honest).
+- Do not extend the IPC contract for this: `bootstrap.needs_session_index` and `snapshot.readiness.active_session_index` already ship in `HomeUsageOverviewResponse`.
+
+### 4. Tests Required
+
+- `ccr-ui/tests/dashboard/dashboard-presentation.smoke.test.ts` — `sessionIndexState` null / unindexed / indexing derivation.
+- `ccr-ui/tests/dashboard/dashboard-usage-movement.smoke.test.tsx` — honesty label + `/usage` link in both states.
+- `ccr-ui/tests/dashboard/dashboard-platform-matrix.smoke.test.tsx` — third metric group renders; `–` under `unindexed`.
 
 ---
 
@@ -9,7 +37,7 @@
 ### 1. Scope / Trigger
 
 - Trigger: changing `countSignals`, `buildReadiness`, or `buildActions` in `dashboardPresentation.ts`, or adding a new aggregate health/alert indicator anywhere on the Dashboard that's driven by `MonitoringEntry[]`.
-- Introduced by `07-07-ui-shell-home` to fix a screenshot-confirmed bug: a single frontend retry-log error (e.g. `logger.error('Failed to save Claude profile:', ...)` in `ClaudeCodeProfilesView.vue`) was simultaneously flipping the readiness card to "attention", turning the signals tile red, and injecting an "open monitoring" action — three amplifications of one piece of noise.
+- Introduced by `07-07-ui-shell-home` to fix a screenshot-confirmed bug: a single frontend retry-log error (e.g. `logger.error('Failed to save Claude profile:', ...)` in `ClaudeCodeProfilesView`) was simultaneously flipping the readiness card to "attention", turning the signals tile red, and injecting an "open monitoring" action — three amplifications of one piece of noise.
 
 ### 2. Signatures
 
@@ -20,7 +48,7 @@
 ### 3. Contracts
 
 - `signalCounts` (and therefore the readiness "attention" branch, the signals status tile's tone, and the `open-monitoring` action) must only be driven by non-diagnostic channels.
-- `DashboardSignalStream.vue` must keep rendering **all** entries including `frontend` and `runtime`.
+- `DashboardSignalStream` must keep rendering **all** entries including `frontend` and `runtime`.
 - Genuine backend/checkin/sync-channel errors still drive all three surfaces.
 
 ### 4. Validation & Error Matrix
@@ -35,7 +63,7 @@
 
 ### 6. Tests Required
 
-- `ccr-ui/tests/dashboard-presentation.smoke.test.ts` — extend the existing `logs`-based test case (`createLog` helper) if adding a new channel or counting path; the current suite's `createLog` defaults to `channel: 'usage'` (a core channel) specifically so the frontend-exclusion logic isn't accidentally exercised by unrelated tests.
+- `ccr-ui/tests/dashboard/dashboard-presentation.smoke.test.ts` — extend the existing `logs`-based test case (`createLog` helper) if adding a new channel or counting path; the current suite's `createLog` defaults to `channel: 'usage'` (a core channel) specifically so the frontend-exclusion logic isn't accidentally exercised by unrelated tests.
 
 ### 7. Wrong vs Correct
 
@@ -65,13 +93,13 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 
 ### 1. Scope / Trigger
 
-- Trigger: adding, removing, or reordering a reason in `buildReadiness()`, or changing how `DashboardReadinessLedger.vue` renders the reason list.
+- Trigger: adding, removing, or reordering a reason in `buildReadiness()`, or changing how `DashboardView.tsx` renders the header reason checklist.
 
 ### 2. Signatures
 
 - `DashboardReadinessReason = { key: string; ok: boolean }` (`dashboardPresentation.ts`).
 - `DashboardReadiness.reasons: DashboardReadinessReason[]` (renamed from the pre-`07-07-ui-shell-home` `reasonKeys: string[]`).
-- Consumed by `DashboardReadinessLedger.vue`: `reason.ok` picks `SIcon` name (`Check` vs `AlertTriangle`) and the icon's color class; `stripTrailingPeriod()` strips a trailing `。`/`.` from the translated string so rows read as a checklist, not sentences.
+- Consumed by `DashboardView.tsx` header checklist: `reason.ok` picks `SIcon` name (`Check` vs `AlertTriangle`) and the icon's color class; `stripTrailingPeriod()` strips a trailing `。`/`.` from the translated string so rows read as a checklist, not sentences.
 
 ### 3. Contracts
 
@@ -81,7 +109,7 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 ### 4. Validation & Error Matrix
 
 - Adding a reason without a paired `ok` boolean -> TypeScript error (`DashboardReadinessReason` requires both fields) — this is intentionally not optional.
-- Renaming/removing a reason key -> update `ccr-ui/tests/dashboard-presentation.smoke.test.ts`'s assertion (`presentation.readiness.reasons.map(r => r.key)).toContain(...)`).
+- Renaming/removing a reason key -> update `ccr-ui/tests/dashboard/dashboard-presentation.smoke.test.ts`'s assertion (`presentation.readiness.reasons.map(r => r.key)).toContain(...)`).
 
 ### 5. Good/Base/Bad Cases
 
@@ -94,7 +122,7 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 
 ### 1. Scope / Trigger
 
-- Trigger: any "is this a fresh install / has the user configured anything yet" check on the Dashboard (currently `DashboardPresentation.isFirstRun`, consumed by `DashboardNextActions.vue`'s `showOnboarding` prop).
+- Trigger: any "is this a fresh install / has the user configured anything yet" check on the Dashboard (currently `DashboardPresentation.isFirstRun`, consumed by `DashboardNextActions.tsx`'s `showOnboarding` prop).
 
 ### 2. Signatures
 
@@ -102,14 +130,14 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 
 ### 3. Contracts
 
-- `installedCliCount` only counts `isRuntimeCli: true` platforms (`claude-code`, `codex`, `antigravity` per `DashboardView.vue`'s `platforms` computed) — `opencode` is `mode: 'managed', isRuntimeCli: false` and is **never** counted, regardless of how actively it's used. Do not use `installedCliCount === 0` alone as a "nothing configured" signal; a managed-only (OpenCode) user will always read as 0.
+- `installedCliCount` only counts `isRuntimeCli: true` platforms (`claude-code`, `codex`, `antigravity` per `DashboardView.tsx`'s `platforms` list) — `opencode` is `mode: 'managed', isRuntimeCli: false` and is **never** counted, regardless of how actively it's used. Do not use `installedCliCount === 0` alone as a "nothing configured" signal; a managed-only (OpenCode) user will always read as 0.
 - Pair any CLI-install-based "empty" check with a usage-based fallback (`overview.summary.total_requests === 0` or equivalent) so a user who has real activity through a managed platform isn't permanently misidentified as first-run.
 - Gate on both `cliVersionsLoaded` and `!usageLoading` before evaluating — otherwise the flag can flip `true` for one tick while usage is still in flight (even for a returning user with history), then flip back once the overview loads.
 - There is no dedicated "profile count" signal in `DashboardPresentationInput` today. If a future task adds one (e.g. via a new IPC call), prefer it over this heuristic and update this contract.
 
 ### 4. Validation & Error Matrix
 
-- New managed-mode platform added to `DashboardView.vue`'s `platforms` array -> re-check whether `isFirstRun`'s usage-fallback still covers it (it will, as long as that platform's activity flows into `overview.summary.total_requests`).
+- New managed-mode platform added to `DashboardView.tsx`'s `platforms` array -> re-check whether `isFirstRun`'s usage-fallback still covers it (it will, as long as that platform's activity flows into `overview.summary.total_requests`).
 - `isFirstRun` used to gate anything more disruptive than a card's onboarding content (e.g. a modal or redirect) -> reconsider; this is a soft heuristic, not a guaranteed "zero configuration" proof.
 
 ### 5. Good/Base/Bad Cases
@@ -119,7 +147,7 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 
 ---
 
-## Scenario: Compact card empty/onboarding states should not import `EmptyState.vue`
+## Scenario: Compact card empty/onboarding states should not import `EmptyState`
 
 ### 1. Scope / Trigger
 
@@ -127,13 +155,13 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 
 ### 2. Contracts
 
-- `ccr-ui/src/components/ui/EmptyState.vue` has `min-h-[300px]` and full-page/section-level padding (`p-12`) — designed for a whole view's empty state, not a card slot that shares height with a sibling action/readiness card.
-- For a card-scoped empty/onboarding state, replicate `EmptyState.vue`'s visual language inline (icon circle, title, description, optional numbered steps) sized to the card's existing padding/gap tokens (`--home-card-pad`, `--home-text-*`), rather than importing the component. See `DashboardNextActions.vue`'s `dashboard-actions__onboarding` block for the pattern.
+- `ccr-ui/src/ui/empty-state.tsx` has `min-h-[300px]` and full-page/section-level padding (`p-12`) — designed for a whole view's empty state, not a card slot that shares height with a sibling action/readiness card.
+- For a card-local empty/onboarding state, replicate `EmptyState`'s visual language inline (icon circle, title, description, optional numbered steps) sized to the card's existing padding/gap tokens (`--home-card-pad`, `--home-text-*`), rather than importing the component. See `DashboardNextActions.tsx`'s `ONBOARDING_STEPS` / `dashboard-actions__onboarding` block for the pattern.
 
 ### 3. Good/Base/Bad Cases
 
-- Good: `DashboardNextActions.vue` renders its 3-step onboarding list inline, reusing `.dashboard-action`-adjacent styling at the card's own scale.
-- Bad: `<EmptyState v-if="showOnboarding" .../>` inside a `dashboard-grid__actions` slot — forces the card (and, via `align-items: stretch`, its sibling) to at least 300px+ regardless of the grid's actual space budget.
+- Good: `DashboardNextActions.tsx` renders its 3-step onboarding list inline, reusing `.dashboard-action`-adjacent styling at the card's own scale.
+- Bad: `{showOnboarding ? <EmptyState .../> : null}` inside a `dashboard-grid__actions` slot — forces the card (and, via `align-items: stretch`, its sibling) to at least 300px+ regardless of the grid's actual space budget.
 
 ---
 
@@ -141,14 +169,14 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 
 ### 1. Scope / Trigger
 
-- Trigger: changing `StatTile.vue` badge rendering, wiring `tone` in `DashboardReadinessLedger.vue` / `DashboardUsageMovement.vue`, or changing `buildStatusMetrics()` tone assignment.
+- Trigger: changing `src/ui/stat-tile.tsx` badge rendering, wiring `tone` in `DashboardUsageMovement.tsx`, or changing `buildStatusMetrics()` tone assignment. Home no longer consumes `statusMetrics` (`08-25-home-runtime-layout`); `buildDashboardPresentation` still produces the array.
 - Introduced by `08-18-overview-home-visual`: `DashboardStatusMetric.tone` was already computed, but the ledger dropped it and usage summary tiles stayed bare.
 
 ### 2. Signatures
 
 - `DashboardStatusMetric.tone: DashboardTone` (`neutral | success | warning | danger | accent`) — assigned in `buildStatusMetrics()`.
 - `StatTile` optional `tone?: 'neutral' | 'success' | 'warning' | 'danger' | 'accent'` — the union lives on the primitive. Do not import `DashboardTone` into `StatTile`.
-- Ledger: `:tone="metric.tone"`. Usage summary tiles: `:tone="'neutral'"`.
+- Home no longer wires `statusMetrics` into StatTile. Usage summary tiles: `tone="neutral"`.
 
 ### 3. Contracts
 
@@ -159,5 +187,66 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 
 ### 4. Tests Required
 
-- `ccr-ui/tests/ui-primitives.smoke.test.ts` — bare tile without `tone`; `tone: 'success'` has `data-tone`, the badge class, no `ui-card`, and source still contains `tabular-nums`.
-- `ccr-ui/tests/dashboard-presentation.smoke.test.ts` — existing judgment expectations stay green.
+- `ccr-ui/tests/ui/ui-primitives.smoke.test.tsx` — bare tile without `tone`; `tone: 'success'` has `data-tone`, the badge class, no `ui-card`, and source still contains `tabular-nums`.
+- `ccr-ui/tests/dashboard/dashboard-presentation.smoke.test.ts` — existing judgment expectations stay green.
+- `ccr-ui/tests/shell/react-shell.smoke.test.tsx` — root route mounts `DashboardView` (`.dashboard-view`).
+
+---
+
+## Scenario: Platform sparkline and trackingHealth must not treat all-zero series as untracked
+
+### 1. Scope / Trigger
+
+- Trigger: adding fields to `DashboardPlatformRow`, changing `buildPlatformRows()`, or changing how `DashboardPlatformMatrix` decides the untracked placeholder.
+
+### 2. Signatures
+
+- `DashboardPlatformRow.sparkline?: number[]` — per-day `requests` from `overview.series`, mapped by `usageKey` (`gemini` → `antigravity`).
+- `DashboardPlatformRow.trackingHealth?: 'live' | 'degraded' | 'missing'` — from `overview.archive.source_health`, matching `source === usageKey` or the canonical source id (`gemini` also matches `antigravity`).
+
+### 3. Contracts
+
+- `overview == null` or empty `series` → omit `sparkline` (leave `undefined`). Do not invent a zero array.
+- Backend home series pads every homepage platform to the selected day count, including untracked ones. **All-zero `sparkline` is not an untracked signal.**
+- Untracked placeholder is `trackingHealth === 'missing'` only. `degraded` still shows data. Empty `source_health` leaves `trackingHealth` undefined and must not show the placeholder.
+- When `trackingHealth === 'missing'`, do not emit `sparkline` and do not surface `0` as requests/tokens.
+
+### 4. Tests Required
+
+- `ccr-ui/tests/dashboard/dashboard-presentation.smoke.test.ts` — date-order sparkline; `gemini` → `antigravity`; `overview == null` / empty `series` → `undefined`; all-zero series with empty `source_health` is not missing.
+- `ccr-ui/tests/dashboard/dashboard-platform-matrix.smoke.test.tsx` — `state: 'missing'` shows the placeholder; all-zero series does not.
+
+## Scenario: Empty selected window with stale llmusage sync is not usageReady
+
+### 1. Scope / Trigger
+
+- Trigger: changing `compute_home_overview` bootstrap flags, `window_usage_needs_refresh`, or DashboardView bootstrap import.
+- Symptom: 7D totals are 0 while readiness says "Local usage archive returned real data", because `has_any_usage` is true from older events outside the window and last `llmusage` sync predates the window start.
+
+### 2. Signatures
+
+- `window_usage_needs_refresh(total_requests, recent_completed_at, window_start) -> bool`
+- `HomeOverviewBootstrap.needs_usage_import`
+- `useUsageBootstrapImport({ needsImport })`
+
+### 3. Contracts
+
+- `needs_usage_import` is true when there is no usage DB at all, **or** the selected window has `total_requests == 0` and `archive.recent_completed_at` is missing or local-date-before `window_start`.
+- `is_warm` stays `!needs_usage_import && !needs_session_index`. A stale empty 7D window must not present `usageReady`.
+- `DashboardView` starts the same bootstrap import job as the Usage page (`recentDays: 30`) when `needs_usage_import` is true. Completely empty DBs still bootstrap; historical data outside the window no longer suppresses import.
+- Do not delete user `llmusage.db` or `log_entries` to hide empty windows.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Window has requests | `needs_usage_import` false (unless cold DB) |
+| Window 0 requests, last sync inside window | no extra import |
+| Window 0 requests, last sync before window start | `needs_usage_import` true; dashboard bootstrap import |
+
+### 5. Tests Required
+
+- `window_usage_needs_refresh_when_sync_predates_empty_window`
+- `compute_home_overview_marks_stale_empty_window_as_needs_import`
+- `compute_home_overview_joins_usage_series_and_marks_warm_bootstrap` stays warm when today has events
+

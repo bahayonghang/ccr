@@ -1,0 +1,14 @@
+{
+  "failure": "Case-sensitive Unsaved assertion contradicts standard layout description containing unsaved; compact layout starts Unsaved.",
+  "baseline_test_has_same_assertion": true,
+  "fix": "Normalize case and terminal-cell whitespace only inside the rendered confirmation body; preserve both warning clauses and all 48 frames.",
+  "source": "crates/ccr-tui/src/tui/grok_auth/tests.rs",
+  "baseline_sha256": "c348d771906fadb61d88c880efd16c2709b7fcfd6ee6fbdc1f2fce143e918228",
+  "final_sha256": "5da8d0c6ca3570eea098f7e891b3dc09679b732ce5f559db10887c7de9b63cd3",
+  "original_failure_log": "../../09-28-cli-tauri-architecture/research/root-acceptance-ci.log",
+  "additional_failure": "Chinese wide-character continuation cells and wrapped CCR/retained-accounts text defeat flattened exact substrings.",
+  "diagnostic_log": "root-tui-frame-layout-repro.log",
+  "success_log": "root-tui-frame-normalized-fix.log",
+  "before_root_ci_format_sha256": "9e0963b3c3eeafe50ea7aacb2673d3e3d61ee0018bd33c4eb0eaf97454541db1",
+  "final_sha_note": "Refreshed after root just ci Format step; final root TUI full-suite evidence is recorded separately."
+}

@@ -1,0 +1,15 @@
+{
+  "check": "test",
+  "command": [
+    "just",
+    "test"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "started_at": "2026-09-28T17:08:28.746251+00:00",
+  "exit_code": 1,
+  "seconds": 201.98,
+  "log": "root-delivery-test.log",
+  "command_environment_override": {
+    "CCR_SKIP_ICON_GENERATION": "1"
+  }
+}

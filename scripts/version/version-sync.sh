@@ -17,7 +17,7 @@ SYNC_TARGETS=(
   "frontend:ccr-ui/package.json:json"
   "tauri-cargo:ccr-ui/src-tauri/Cargo.toml:cargo"
   "tauri-conf:ccr-ui/src-tauri/tauri.conf.json:json"
-  "ui-component:ccr-ui/src/components/MainLayout.vue:vue"
+  "ui-component:ccr-ui/src/config/appMeta.ts:vue"
   "ui-readme:ccr-ui/README.md:readme"
   "vscode:ccr-vscode/package.json:json"
 )
@@ -40,7 +40,7 @@ CCR_DB_CARGO="$ROOT_DIR/crates/ccr-db/Cargo.toml"
 FRONTEND_PKG="$ROOT_DIR/ccr-ui/package.json"
 TAURI_CARGO="$ROOT_DIR/ccr-ui/src-tauri/Cargo.toml"
 TAURI_CONF="$ROOT_DIR/ccr-ui/src-tauri/tauri.conf.json"
-COMPONENT_MAIN_LAYOUT="$ROOT_DIR/ccr-ui/src/components/MainLayout.vue"
+COMPONENT_MAIN_LAYOUT="$ROOT_DIR/ccr-ui/src/config/appMeta.ts"
 UI_README="$ROOT_DIR/ccr-ui/README.md"
 VSCODE_PKG="$ROOT_DIR/ccr-vscode/package.json"
 
@@ -268,7 +268,7 @@ extract_ui_footer_version() {
 }
 
 UI_COMPONENT_VER="$(extract_ui_footer_version "$COMPONENT_MAIN_LAYOUT")"
-[[ "$VERBOSE" == true ]] && echo "🖼️  MainLayout.vue (components) 版本: $UI_COMPONENT_VER"
+[[ "$VERBOSE" == true ]] && echo "🖼️  appMeta.ts (config) 版本: $UI_COMPONENT_VER"
 
 # 获取 ccr-ui/README.md 徽章版本
 extract_ui_readme_version() {
@@ -311,7 +311,7 @@ if [[ "$CHECK_ONLY" == true ]]; then
     echo "  ccr-ui/package.json:           $FRONTEND_VER"
     echo "  ccr-ui/src-tauri/Cargo.toml:   $TAURI_CARGO_VER"
     echo "  ccr-ui/src-tauri/tauri.conf.json: $TAURI_CONF_VER"
-    echo "  ccr-ui/src/components/MainLayout.vue: $UI_COMPONENT_VER"
+    echo "  ccr-ui/src/config/appMeta.ts: $UI_COMPONENT_VER"
     echo "  ccr-ui/README.md:              $UI_README_VER"
     echo "  ccr-vscode/package.json:       $VSCODE_VER"
     exit 1
@@ -382,7 +382,7 @@ if [[ "$TAURI_CONF_VER" != "$ROOT_VER" ]]; then
 fi
 
 if [[ "$UI_COMPONENT_VER" != "$ROOT_VER" ]]; then
-  echo "  - 前端 MainLayout (components): $UI_COMPONENT_VER -> $ROOT_VER"
+  echo "  - 前端 appMeta (config): $UI_COMPONENT_VER -> $ROOT_VER"
   update_ui_footer_version "$COMPONENT_MAIN_LAYOUT"
 fi
 

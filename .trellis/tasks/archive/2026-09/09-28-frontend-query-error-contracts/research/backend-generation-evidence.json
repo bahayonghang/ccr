@@ -1,0 +1,23 @@
+{
+  "command": [
+    "cargo",
+    "--config",
+    ".cargo/tauri-ci.toml",
+    "test",
+    "--manifest-path",
+    "ccr-ui/src-tauri/Cargo.toml",
+    "commands::handler_registry::tests::command_inventory_document_matches_registry",
+    "--",
+    "--exact",
+    "--test-threads=1"
+  ],
+  "exit_code": 0,
+  "snapshot_files": 260,
+  "changed": [
+    "ccr-ui/src/api/generated/claude.ts",
+    "ccr-ui/src/api/generated/command-manifest.json",
+    "ccr-ui/src/api/generated/commandCapabilities.ts"
+  ],
+  "missing": [],
+  "restored": []
+}

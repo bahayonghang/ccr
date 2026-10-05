@@ -1,0 +1,345 @@
+.checkin-accounts-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.checkin-accounts-tab__panel {
+  padding: 1rem;
+}
+
+.checkin-accounts-tab__toolbar,
+.checkin-accounts-tab__filters,
+.checkin-accounts-tab__actions,
+.checkin-accounts-tab__action-button {
+  display: flex;
+  align-items: center;
+}
+
+.checkin-accounts-tab__toolbar {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.checkin-accounts-tab__title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.checkin-accounts-tab__filters {
+  flex: 1 1 16rem;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.checkin-accounts-tab__search {
+  position: relative;
+}
+
+.checkin-accounts-tab__input {
+  border-radius: 0.75rem;
+  border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 72%);
+  color: var(--text-primary);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease;
+  background: rgb(var(--color-bg-elevated-rgb) / 36%);
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.checkin-accounts-tab__input::placeholder {
+  color: var(--text-muted);
+}
+
+.checkin-accounts-tab__input:focus {
+  outline: none;
+  border-color: rgb(var(--color-accent-primary-rgb) / 88%);
+  box-shadow: var(--shadow-md);
+}
+
+.checkin-accounts-tab__input--search {
+  width: 12rem;
+  padding-left: 2.25rem;
+}
+
+.checkin-accounts-tab__search-icon {
+  position: absolute;
+  top: 50%;
+  left: 0.75rem;
+  width: 1rem;
+  height: 1rem;
+  color: var(--text-muted);
+  transform: translateY(-50%);
+}
+
+.checkin-accounts-tab__select {
+  padding-inline: 0.75rem;
+}
+
+.checkin-accounts-tab__actions {
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.checkin-accounts-tab__action-button {
+  border-radius: 0.75rem;
+  min-height: 2.75rem;
+  gap: 0.5rem;
+  border: var(--space-px) solid transparent;
+  padding: 0.5rem 1rem;
+  color: var(--color-accent-primary-contrast);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.checkin-accounts-tab__action-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+  filter: grayscale(0.35);
+}
+
+.checkin-accounts-tab__action-button--primary {
+  background: var(--accent-primary);
+}
+
+.checkin-accounts-tab__action-button--secondary {
+  border-color: var(--color-border-default);
+  background: var(--color-bg-surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.checkin-accounts-tab__empty {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.checkin-accounts-tab__table-shell {
+  overflow: hidden;
+}
+
+.checkin-accounts-tab__table {
+  width: 100%;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.checkin-accounts-tab__table-head {
+  position: sticky;
+  top: 0;
+  background: var(--color-bg-surface);
+}
+
+.checkin-accounts-tab__table-head tr,
+.checkin-accounts-tab__table-body tr + tr td {
+  border-top: var(--space-px) solid var(--color-border-subtle);
+}
+
+.checkin-accounts-tab__th,
+.checkin-accounts-tab__cell {
+  padding: 0.75rem 1rem;
+}
+
+.checkin-accounts-tab__th {
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.checkin-accounts-tab__th--right,
+.checkin-accounts-tab__cell--right {
+  text-align: right;
+}
+
+.checkin-accounts-tab__th--actions {
+  width: 9rem;
+  text-align: center;
+}
+
+.checkin-accounts-tab__row {
+  cursor: pointer;
+}
+
+.checkin-accounts-tab__row:hover {
+  background: rgb(var(--color-accent-primary-rgb) / 6%);
+}
+
+.checkin-accounts-tab__account {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.checkin-accounts-tab__account-row,
+.checkin-accounts-tab__row-actions {
+  display: flex;
+  align-items: center;
+}
+
+.checkin-accounts-tab__account-row {
+  gap: 0.5rem;
+}
+
+.checkin-accounts-tab__status-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.checkin-accounts-tab__account-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.checkin-accounts-tab__provider-chip {
+  width: fit-content;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-overlay);
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.checkin-accounts-tab__metric,
+.checkin-accounts-tab__cell--mono {
+  font-family: var(--font-mono);
+}
+
+.checkin-accounts-tab__metric {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.checkin-accounts-tab__metric--balance {
+  color: var(--accent-success);
+}
+
+.checkin-accounts-tab__metric--quota {
+  color: var(--accent-primary);
+}
+
+.checkin-accounts-tab__metric--consumed {
+  color: var(--accent-warning);
+}
+
+.checkin-accounts-tab__placeholder,
+.checkin-accounts-tab__cell--mono {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.checkin-accounts-tab__row-actions {
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.checkin-accounts-tab__mini-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-width: 5.75rem;
+  min-height: 2.25rem;
+  border-radius: var(--radius-md);
+  border: var(--space-px) solid var(--color-border-default);
+  padding: 0.375rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.checkin-accounts-tab__mini-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.checkin-accounts-tab__mini-button-label {
+  white-space: nowrap;
+}
+
+.checkin-accounts-tab__menu-wrap {
+  position: relative;
+  z-index: 1;
+}
+
+.checkin-accounts-tab__menu-trigger {
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  border-radius: var(--radius-lg);
+  border: var(--space-px) solid transparent;
+  color: var(--text-muted);
+  background: rgb(var(--color-bg-elevated-rgb) / 20%);
+}
+
+.checkin-accounts-tab__menu-trigger:hover,
+.checkin-accounts-tab__menu-trigger--active {
+  border-color: rgb(var(--color-accent-primary-rgb) / 30%);
+  background: rgb(var(--color-bg-elevated-rgb) / 52%);
+  color: var(--text-primary);
+}
+
+.checkin-accounts-tab__menu {
+  z-index: var(--z-popover);
+  padding: 0.35rem;
+  border-radius: var(--radius-lg);
+  border: var(--space-px) solid var(--color-border-default);
+  background: var(--color-bg-elevated);
+  box-shadow: var(--shadow-lg);
+  overflow-y: auto;
+}
+
+.checkin-accounts-tab__menu--floating {
+  min-width: 10.5rem;
+}
+
+.checkin-accounts-tab__menu-item {
+  width: 100%;
+  border-radius: var(--radius-md);
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.checkin-accounts-tab__menu-item:hover,
+.checkin-accounts-tab__menu-item:focus {
+  background: rgb(var(--color-accent-primary-rgb) / 12%);
+  color: var(--text-primary);
+}
+
+.checkin-accounts-tab__menu-item--danger {
+  color: rgb(var(--color-danger-rgb) / 92%);
+}
+
+.checkin-accounts-tab__menu-item--danger:hover,
+.checkin-accounts-tab__menu-item--danger:focus {
+  background: rgb(var(--color-danger-rgb) / 14%);
+  color: rgb(var(--color-danger-rgb) / 100%);
+}
+
+@media (width <= 56.25rem) {
+  .checkin-accounts-tab__table-shell {
+    overflow-x: auto;
+  }
+
+  .checkin-accounts-tab__search,
+  .checkin-accounts-tab__input--search {
+    width: 100%;
+  }
+}

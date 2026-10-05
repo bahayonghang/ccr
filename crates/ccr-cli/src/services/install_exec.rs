@@ -63,10 +63,10 @@ pub(crate) fn run_attempt(
     attempt_id: AttemptId,
     cancel_token: CancellationToken,
     ring: RingBufferHandle,
-) -> mpsc::Receiver<InstallEvent> {
+) -> (mpsc::Receiver<InstallEvent>, tokio::task::JoinHandle<()>) {
     let (tx, rx) = mpsc::channel(64);
 
-    tokio::spawn(async move {
+    let owner = tokio::spawn(async move {
         let action_kind = action.kind();
         let plan_id = plan.plan_id;
         let span = tracing::info_span!("llmusage.install", %attempt_id, %plan_id);
@@ -223,7 +223,7 @@ pub(crate) fn run_attempt(
         emit(&tx, &ring, &terminal).await;
     });
 
-    rx
+    (rx, owner)
 }
 
 enum ChildOutcome {

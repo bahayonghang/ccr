@@ -1,0 +1,21 @@
+{
+  "command": [
+    "python3",
+    "scripts/quality/check_coverage_thresholds.py",
+    "target/evergreen-linux-coverage-workspace.json",
+    "--overall",
+    "70",
+    "--gateway",
+    "85",
+    "--gateway-pattern",
+    "crates/ccr-core/src/core/process_gateway.rs"
+  ],
+  "started_at_utc": "2026-09-30T02:55:27.529202+00:00",
+  "duration_seconds": 0.46,
+  "exit_code": 0,
+  "os": "WSL Ubuntu-24.04",
+  "toolchain": "Rust 1.98.0 / cargo-llvm-cov 0.9.0",
+  "boundary": "Linux local coverage; not hosted CI or macOS evidence. Tool installation is confined to ignored project target directory.",
+  "log": "linux-workspace-thresholds.log",
+  "log_sha256": "c1f9926721ea09d9d19870f86bb1bad917572e6385e7988e90621292bd4c4a0d"
+}

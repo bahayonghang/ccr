@@ -6,6 +6,7 @@ use std::fs;
 
 #[test]
 fn legacy_registry_fields_load_without_becoming_clean_write_routing_truth() {
+    let _env = setup_ccr_test_env();
     let temp_dir = tempfile::tempdir().unwrap();
     let config_path = temp_dir.path().join("config.toml");
     fs::write(

@@ -11,6 +11,7 @@ import { asRecord, type UnknownRecord } from '../_shared'
 export {
   cancelUsageImportJobV2,
   ensureSessionIndexV2,
+  getHomeInsights,
   getHomeUsageOverviewV2,
   getSessionIndexJobStatusV2,
   getUsageByModelV2,

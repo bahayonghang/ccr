@@ -1,0 +1,236 @@
+{
+  "task": "T09",
+  "snapshot_utc": "2026-09-28T15:32:48.304658+00:00",
+  "baseline_commit": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "scope_note": "Complete current-file hashes in a shared working tree. Files may also contain authorized prerequisite/shared-owner changes; these hashes do not claim exclusive T09 ownership. Backend/generated files are recorded by the backend owner.",
+  "shared_scope": {
+    "ccr-ui/src/shell/eventBridge.ts": "T09 environment branch; T07 command event branch owned separately.",
+    "ccr-ui/src/i18n/locales/en-US.ts": "T09 six added keys; existing T07/T08 changes retained.",
+    "ccr-ui/src/i18n/locales/zh-CN.ts": "T09 six added keys; existing T07/T08 changes retained.",
+    "ccr-ui/tests/platforms/settings-capabilities.smoke.test.tsx": "Existing 25 T08 cases retained; T09 adds four remote capability and one IPC payload cases.",
+    "ccr-ui/tests/platforms/query-contract-baseline.smoke.test.tsx": "Root-authored red baseline; T09 adapts query context while retaining behavior assertions.",
+    "ccr-ui/tests/configs/configs-actions.smoke.test.tsx": "T03 action behavior retained; T09 adds same-instance locale regression."
+  },
+  "frontend_touched_files": [
+    {
+      "path": "ccr-ui/src/configs/auth.ts",
+      "sha256": "6025c3977f3e8ac3dd3b8ba310fb92035c9b46b8c9da9d5c0c1247e6a3ef32df",
+      "bytes": 3657
+    },
+    {
+      "path": "ccr-ui/src/configs/environmentSession.ts",
+      "sha256": "698ffd8cd440da00c527659a707080fbc8c1fe9f10cf61c5e8a7c830e78db0fe",
+      "bytes": 1574
+    },
+    {
+      "path": "ccr-ui/src/configs/settings-types.ts",
+      "sha256": "64c6e5e0dde009d5d3f6c3bb71db26085e7a4e27adc6076d0cd72439dfc14e31",
+      "bytes": 2994
+    },
+    {
+      "path": "ccr-ui/src/configs/settings-claude.ts",
+      "sha256": "c5cc1142a14e7043c823843ccf99c8b89cdf6fb94d28b78660fb3a71d1ae499b",
+      "bytes": 11135
+    },
+    {
+      "path": "ccr-ui/src/configs/settings-codex.ts",
+      "sha256": "ae0701d198a1dbc9ade71ed5b332cccb0cb1ef98697f95788b4bc00aabc85245",
+      "bytes": 5308
+    },
+    {
+      "path": "ccr-ui/src/configs/settings-opencode.ts",
+      "sha256": "9580e7f8b4f444d1b0ff579c1964e8586fb20e6ba88cbe1ff6b8fdac1d56ff1e",
+      "bytes": 6110
+    },
+    {
+      "path": "ccr-ui/src/api/domains/claude.ts",
+      "sha256": "147a85e569bc929025df1050d1b98fe9f506b114319c7f645c2631e8898007de",
+      "bytes": 21776
+    },
+    {
+      "path": "ccr-ui/src/features/platform/SurfacePage.tsx",
+      "sha256": "a5b8367ac045597aa4afa5b4ed452bf7472aac0f92b168a89a357791466d03fe",
+      "bytes": 1605
+    },
+    {
+      "path": "ccr-ui/src/features/platform/auth/BaseAuth.tsx",
+      "sha256": "7269c73476eb602ad92650d0a351efc00df7f96745ad6c7f5c24fa5ce8292700",
+      "bytes": 6137
+    },
+    {
+      "path": "ccr-ui/src/features/platform/settings/BaseSettings.tsx",
+      "sha256": "f1bb786dca76c2745d4dc9499a905167ffe15a9a02a9a21c29e7d8d049522cb6",
+      "bytes": 5897
+    },
+    {
+      "path": "ccr-ui/src/features/platform/settings/SettingsFormBody.tsx",
+      "sha256": "b0e3afc41b2fde664275f70e203ae283f58dff9a9323302b27138eee6b729029",
+      "bytes": 2734
+    },
+    {
+      "path": "ccr-ui/src/features/platform/settings/SettingsSource.tsx",
+      "sha256": "9bfe7c799b4d0ed795b09b9152eae7562d8cd58f6f1fa57b0fc2269ff0365c4d",
+      "bytes": 3631
+    },
+    {
+      "path": "ccr-ui/src/features/platform/settings/SettingsSessionNotice.tsx",
+      "sha256": "9e6188ad5cf43e98d583d3c757f4eaacf7eaeabe487dd8a5bb5bb1a9916d2938",
+      "bytes": 1295
+    },
+    {
+      "path": "ccr-ui/src/features/platform/settings/useSettingsSession.ts",
+      "sha256": "12a28a8a9505bd1741af89ae454de8afd1b5fc862fc70516c407144370ef1d82",
+      "bytes": 9518
+    },
+    {
+      "path": "ccr-ui/src/features/platform/editor/ConfigSourcePanel.tsx",
+      "sha256": "5d4cd1fe7ced9ec72a824d0ad14bd51c8d1a559b82b74b312283f293c59a097d",
+      "bytes": 12201
+    },
+    {
+      "path": "ccr-ui/src/features/configs/ConfigsView.tsx",
+      "sha256": "2791c3a5478cadd3d46fa2864da126a253a3098fc41441f7875ffe84a780e1e4",
+      "bytes": 7011
+    },
+    {
+      "path": "ccr-ui/src/features/configs/hooks/useConfigsPage.ts",
+      "sha256": "57255bad5e65aa5a52529f5a33d80fc8bdd2b04065bcffab302c5bf59d16a759",
+      "bytes": 7280
+    },
+    {
+      "path": "ccr-ui/src/features/configs/components/ConfigCard.tsx",
+      "sha256": "1dcee548688a8c2fdefdbf990ae85776f46e678235452fd623acd28a9bd3de8f",
+      "bytes": 5211
+    },
+    {
+      "path": "ccr-ui/src/features/configs/components/ConfigBadges.tsx",
+      "sha256": "976d4eeb354dcf4f07dab9b86a6c7661702c1587ab04d3411ac1052258214da4",
+      "bytes": 1922
+    },
+    {
+      "path": "ccr-ui/src/features/configs/components/ConfigFilters.tsx",
+      "sha256": "7aeb8e976898e3c10e39b4331c0a187f9bb88c04ddae1e7440ad09d1730d143c",
+      "bytes": 4253
+    },
+    {
+      "path": "ccr-ui/src/features/configs/components/ConfigList.tsx",
+      "sha256": "04473a27b43ecf584056f35b889e91c8ff236dc5aa07086cd9785b447b74ac3d",
+      "bytes": 2035
+    },
+    {
+      "path": "ccr-ui/src/features/configs/components/ConfigsRuntimeBadge.tsx",
+      "sha256": "a8d2dbf4b722eed84b02d721845d2e3ef466880c4543cfca5acb57beb92f6200",
+      "bytes": 1433
+    },
+    {
+      "path": "ccr-ui/src/features/configs/components/ConfigsSubnav.tsx",
+      "sha256": "ce2f7d8405ea7f50fb54534d8c4706df5368e7446401992fa95ced472fcdac59",
+      "bytes": 2749
+    },
+    {
+      "path": "ccr-ui/src/shell/eventBridge.ts",
+      "sha256": "18f768dc8f4bd9c6e9c39f8519013b9646a1daa99aa3b1510933f18a9cb4017f",
+      "bytes": 8254
+    },
+    {
+      "path": "ccr-ui/src/i18n/locales/en-US.ts",
+      "sha256": "f4b8bbbe50e3b1573193e8ddaa065efb15b6b889565252a50162519de0661b1c",
+      "bytes": 234599
+    },
+    {
+      "path": "ccr-ui/src/i18n/locales/zh-CN.ts",
+      "sha256": "68dc1720bf8302e7cdf2d5436cc59969639560c6b64f9c1fea2fe5917c53325f",
+      "bytes": 225905
+    },
+    {
+      "path": "ccr-ui/tests/platforms/auth-query-contract.smoke.test.tsx",
+      "sha256": "be464d4e1427bc517bd6cb31d300b87edc7a33d8c9c455d040a7f1e1dc7e2269",
+      "bytes": 6830
+    },
+    {
+      "path": "ccr-ui/tests/platforms/settings-session.smoke.test.tsx",
+      "sha256": "cfb79e961b8ddeb4e91e0db9933284e7a17938dcb2d99f5365908285226e46ae",
+      "bytes": 13208
+    },
+    {
+      "path": "ccr-ui/tests/platforms/settings-source-session.smoke.test.tsx",
+      "sha256": "b8ed921a9a436b13d9e9eda36e73fcd510ecd9453fe3d2064359dce7680b9329",
+      "bytes": 7044
+    },
+    {
+      "path": "ccr-ui/tests/platforms/query-contract-baseline.smoke.test.tsx",
+      "sha256": "13062de57fc40adbf48c0822851b1e6d1d923965aa79cc58042a696f797c61c2",
+      "bytes": 4655
+    },
+    {
+      "path": "ccr-ui/tests/platforms/settings-capabilities.smoke.test.tsx",
+      "sha256": "98d3b136cb44a5e7e032c29fa2c6a44eb8cef937f7dbd8b9c594117bd9c8a135",
+      "bytes": 22633
+    },
+    {
+      "path": "ccr-ui/tests/platforms/platform-base-settings.smoke.test.tsx",
+      "sha256": "2ba443b5c03df1a5657bb1eb01ce0b2ab35574aeb0416b637e9e79ccdc5fa50f",
+      "bytes": 2168
+    },
+    {
+      "path": "ccr-ui/tests/platforms/platform-surface-unify.smoke.test.ts",
+      "sha256": "4348c12e36dbafaa0280ace3d5d830964c9bdc53a7b6a013de5d15e7f2240257",
+      "bytes": 5346
+    },
+    {
+      "path": "ccr-ui/tests/configs/configs-actions.smoke.test.tsx",
+      "sha256": "0fb38b766f05b6ec97b46217c02be8d57f2fcd7bae81db90e935c39ee7a0d3ec",
+      "bytes": 9313
+    },
+    {
+      "path": "ccr-ui/tests/i18n.test.cjs",
+      "sha256": "f033e8f6fc097b7fe23fd8a602813e198780d2bcc0254c9b9e021c00e8f24d76",
+      "bytes": 29659
+    },
+    {
+      "path": ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md",
+      "sha256": "50dfaad8776716c25e1da408a521e1eb94e08cd325135e79e5d50548121560fa",
+      "bytes": 11573
+    },
+    {
+      "path": ".trellis/spec/ccr-ui/frontend/raw-config-editor-contracts.md",
+      "sha256": "3a65579c72f01e41daa6fd068f08b5dae5ec07a287a63d6710dc7021e235f9af",
+      "bytes": 9147
+    },
+    {
+      "path": ".trellis/spec/ccr-ui/frontend/react-rerender-discipline.md",
+      "sha256": "5a8456d717fc4c68f29570a22b80548b0746440160ea636dd758884b95ed4721",
+      "bytes": 6324
+    }
+  ],
+  "independent_checker_owned_files": [
+    {
+      "path": "ccr-ui/tests/platforms/auth-probe-recovery-check.smoke.test.tsx",
+      "sha256": "383b2ec09cc96de49bf62475395c2edaa4da2a29925b4c951fa6c48e15c7cf46",
+      "bytes": 2092
+    },
+    {
+      "path": "ccr-ui/tests/platforms/settings-return-cache-check.smoke.test.tsx",
+      "sha256": "f2f78e6a7a3ab97ba788a8ded6872a8bd84bdf9c755bac19cdb0c37a26db6b9d",
+      "bytes": 6227
+    }
+  ],
+  "protected_files": [
+    {
+      "path": "ccr-ui/.tmp-desktop-probe.mjs",
+      "sha256": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+      "bytes": 3779,
+      "expected_sha256": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+      "unchanged": true
+    },
+    {
+      "path": "ccr-ui/.tmp-insights-visual.mjs",
+      "sha256": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53",
+      "bytes": 14099,
+      "expected_sha256": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53",
+      "unchanged": true
+    }
+  ],
+  "backend_evidence": "research/backend-verification.json",
+  "fix_commit": null
+}

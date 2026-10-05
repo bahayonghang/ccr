@@ -101,56 +101,28 @@ pub async fn claude_update_profile(
     request: OpenJsonValueDto,
 ) -> Result<OpenJsonValueDto, String> {
     let request: Value = request.into();
-    tokio::task::spawn_blocking(move || -> Result<Value, String> {
-        let platform = ClaudePlatform::new().map_err(|e| format!("初始化 Claude 平台失败: {e}"))?;
-        let profiles = platform
-            .load_profiles()
-            .map_err(|e| format!("读取 Claude profiles 失败: {e}"))?;
-        let current_profile = platform
-            .get_current_profile()
-            .map_err(|e| format!("读取当前 Claude profile 失败: {e}"))?;
-        let existing = profiles
-            .get(&name)
-            .cloned()
-            .ok_or_else(|| format!("Claude Profile '{name}' 不存在"))?;
+    tokio::task::spawn_blocking(move || update_claude_profile_payload(name, request))
+        .await
+        .map_err(|e| format!("任务执行失败: {e}"))??
+        .try_into()
+}
 
-        let target_name = resolve_profile_target_name("Claude", &name, &request)?;
-        if target_name != name && profiles.contains_key(&target_name) {
-            return Err(format!("Claude Profile '{target_name}' 已存在"));
-        }
-
-        let mut profile = existing;
-        patch_profile_with_config(&mut profile, &request)?;
-
-        platform
-            .save_profile(&target_name, &profile)
-            .map_err(|e| format!("更新 Claude Profile 失败: {e}"))?;
-
-        if target_name != name {
-            platform
-                .delete_profile(&name)
-                .map_err(|e| format!("删除旧 Claude Profile 失败: {e}"))?;
-
-            if current_profile.as_deref() == Some(name.as_str()) {
-                platform
-                    .apply_profile(&target_name)
-                    .map_err(|e| format!("同步当前 Claude Profile 失败: {e}"))?;
-            }
-        }
-
-        let latest_current = platform
-            .get_current_profile()
-            .map_err(|e| format!("读取当前 Claude profile 失败: {e}"))?;
-
-        Ok(profile_to_json(
-            latest_current.as_deref(),
-            target_name,
-            profile,
-        ))
-    })
-    .await
-    .map_err(|e| format!("任务执行失败: {e}"))??
-    .try_into()
+/// Mutation responses contain status and identifiers, never profile secrets.
+fn update_claude_profile_payload(name: String, request: Value) -> Result<Value, String> {
+    let target_name = resolve_profile_target_name("Claude", &name, &request)?;
+    let outcome = ccr_cli::application::profile_lifecycle::update_profile(
+        Platform::Claude,
+        &name,
+        &target_name,
+        |profile| {
+            patch_profile_with_config(profile, &request)
+                .map_err(ccr_core::CcrError::ValidationError)
+        },
+    )
+    .map_err(|error| error.to_string())?;
+    let mut response = crate::commands::profile_lifecycle::profile_outcome_payload(outcome);
+    response["name"] = json!(target_name);
+    Ok(response)
 }
 
 /// 删除 Profile。
@@ -294,17 +266,37 @@ pub async fn claude_profile_off(state: State<'_, AppState>) -> Result<OpenJsonVa
 #[ccr_tauri_command_macros::command]
 pub async fn claude_apply_profile(name: String) -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(move || -> Result<Value, String> {
-        let platform = ClaudePlatform::new().map_err(|e| format!("初始化 Claude 平台失败: {e}"))?;
-        platform
-            .apply_profile(&name)
-            .map_err(|e| format!("应用 Claude Profile 失败: {e}"))?;
-        Ok(json!({
-            "success": true,
-            "applied_profile": name,
-            "message": format!("Claude Profile 已应用"),
-        }))
+        crate::commands::profile_lifecycle::apply_profile_payload(
+            ccr_cli::application::profile_lifecycle::ApplyProfileRequest::new(
+                Platform::Claude,
+                name,
+            ),
+        )
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))??
     .try_into()
+}
+
+#[cfg(test)]
+mod application_rename_contract {
+    use super::*;
+    #[test]
+    fn profile_rename_each_write_contract() {
+        let _desktop = crate::test_support::lock_env();
+        ccr_cli::application::profile_contract::rename_failures(
+            &[Platform::Claude],
+            |_, name, target| {
+                let payload = update_claude_profile_payload(name.into(), json!({"name": target}))
+                    .map_err(ccr_core::CcrError::ConfigError)?;
+                assert!(
+                    !payload
+                        .to_string()
+                        .contains(ccr_cli::application::profile_contract::SENTINEL)
+                );
+                serde_json::from_value(payload["outcome"].clone())
+                    .map_err(|_| ccr_core::CcrError::ConfigError("Invalid outcome".into()))
+            },
+        );
+    }
 }

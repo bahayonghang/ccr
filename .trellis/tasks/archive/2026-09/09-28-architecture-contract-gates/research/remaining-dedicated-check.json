@@ -1,0 +1,2007 @@
+{
+  "schema_version": 1,
+  "reviewer": "/root/check_t01",
+  "role": "trellis-check",
+  "task": ".trellis/tasks/09-28-architecture-contract-gates",
+  "updated_at_utc": "2026-09-29T04:24:06.468446+00:00",
+  "status": "review_complete_scoped_gates_passed_required_acceptance_open",
+  "independence": {
+    "T01": "Previous checker-authored fixes and self-review; not fully author-independent.",
+    "T02_T09_T11": "Non-author inspection of current ownership paths, selected behavioral assertions, and evidence mappings.",
+    "T10": "Non-author gate/source/evidence review; reviewer fixed one coordinated documentation path only.",
+    "reused_review": "remaining-independent-check.md/json; collaborator historical authorship boundaries retained.",
+    "permission_delta": "Reviewer authored the six-file permission repair; root independently reviewed the delta. Do not describe this increment as author-independent review by this agent."
+  },
+  "source_freeze": {
+    "path": "remaining-platform-tests-source-freeze.json",
+    "sha256": "a31c8730384c91076a051f226d3201e1b6cd2d9efa7ec63f881b8899601db273",
+    "path_count": 269,
+    "existing_files": 267,
+    "deletion_markers": 2,
+    "current_mismatches": [],
+    "previous_268_paths_unchanged": true,
+    "scope_addition": "crates/ccr-store/src/sessions/providers.rs",
+    "scope_note": "Existing file newly added to frozen review scope; not a newly created production file."
+  },
+  "fixed_findings": [
+    {
+      "id": "DC-01",
+      "path": ".trellis/spec/ccr/backend/typed-ipc-bindings.md",
+      "line": 148,
+      "issue": "Current install-dialog scope pointed to a deleted Vue component.",
+      "fix": "Use ccr-ui/src/features/usage/components/LlmusageInstallDialog.tsx.",
+      "coordination": "Root authorized this single-line fix before final freeze.",
+      "sha256": "02210764d615498d48377ffa0f42db93cb2bb8d3b01d02a0fcd68b76f1f6ec45"
+    },
+    {
+      "id": "DC-02",
+      "severity": "blocking",
+      "file": "crates/ccr-config/src/managers/config/repository.rs:208",
+      "issue": "An explicit semantically unchanged profile mutation returns before secret writer permission hardening. The real Linux owner-only permissions regression assertion fails after chmod 0644 then update_current_config(default).",
+      "evidence": "remaining-linux-workspace-coverage-final.log; crates/ccr-config/src/platforms/base.rs:1171-1199",
+      "recommendation": "Coordinate a new source epoch and preserve no-op bytes/backups while enforcing existing secret-file permissions at the shared owner. Do not modify the test to avoid the no-op case.",
+      "status": "fixed_focused_checks_passed",
+      "fix": "Repository no-op now uses a shared guarded leaf-lock/handle CAS metadata-only permission helper. Unix mode policy is shared with sync/async atomic writers. Existing content journal rollback policy remains unchanged.",
+      "fixed_by": "/root/check_t01"
+    },
+    {
+      "id": "DC-03",
+      "path": "crates/ccr-store/src/sessions/providers.rs",
+      "line": 2646,
+      "issue": "The test required successful native restoration of a Windows backslash shape on Unix, where the transformed filename is absent.",
+      "fix": "Retain all-platform native/canonical success; retain Windows backslash success; assert Unix transformed path absence and restore rejection. Production bytes unchanged.",
+      "fixed_by": "/root/remaining_gates",
+      "non_author_review": "remaining-store-path-independent-review.json",
+      "status": "fixed_focused_and_linux_workspace_quality_passed"
+    }
+  ],
+  "static_verification": {
+    "ac_ids_and_text_match": {
+      "expected": 39,
+      "mapped": 39,
+      "missing": [],
+      "extra": [],
+      "different_text": []
+    },
+    "test_selector_index": {
+      "groups": 48,
+      "selectors": 164,
+      "exact_captured_lines_match": true,
+      "source_hash_mismatches": []
+    },
+    "p1_baseline_hashes": {
+      "groups": 9,
+      "unique_files": 20,
+      "mismatches": []
+    },
+    "referenced_artifact_hashes": {
+      "unique_repository_path_hash_pairs": 393,
+      "mismatches": [],
+      "runtime_linux_paths_excluded": 2
+    },
+    "continuation_runs": 86,
+    "historical_canonical_run_fingerprints_preserved": 41,
+    "immutable_source_manifests_verified": 7,
+    "current_source_epoch_exit_zero_lanes": 8,
+    "frozen_matrix_review": {
+      "path": "remaining-final-matrix-independent-review.json",
+      "sha256": "1508c39e69c2946a7ea0e406ca3d484735b6cc8870066b8747ade6d59945d22f"
+    }
+  },
+  "manual_source_review": [
+    {
+      "path": "crates/ccr-cli/src/application/profile_lifecycle.rs",
+      "sha256": "c9af01c835016ad10688893bcd89a61b06c219956c389707e23e85954b58ba98"
+    },
+    {
+      "path": "crates/ccr-cli/src/application/profile_contract.rs",
+      "sha256": "079736b3d418195d2085e8f2ecfff2f4cb0d5735cf8f55bf4006c648b7d5349e"
+    },
+    {
+      "path": "crates/ccr-tui/src/tui/profile_backend.rs",
+      "sha256": "835e296e4dfe920c36f7727bbdeb7964276d9d03ebf346fef5efa329b9fb3292"
+    },
+    {
+      "path": "ccr-ui/src-tauri/src/commands/profile_lifecycle.rs",
+      "sha256": "83c3b279ab87c9b0da604a6dfba8a5adf7d1a9262a2697fc2a3ffc0a2101fd71"
+    },
+    {
+      "path": "ccr-ui/src-tauri/src/commands/config/adapter.rs",
+      "sha256": "b00d2fb17791dc68f685e910d862dd180ad582f4af627e3d13a5e88ca4a973dd"
+    },
+    {
+      "path": "crates/ccr-cli/src/services/validate_service/diagnostics.rs",
+      "sha256": "15db55f329c8c4d66ad10bf06db619971d1f723ce0264d30ca48e25f2822cc4e"
+    },
+    {
+      "path": "crates/ccr-cli/src/commands/lifecycle/validate.rs",
+      "sha256": "31f91aff28cb28cf9a5b4f09f687ab93b17ce223e5d7525c8570b420b1fd058b"
+    },
+    {
+      "path": "crates/ccr/src/main.rs",
+      "sha256": "c4440da9e9c7b41e9add6df31650162c3035e57603010035b01b5e1f22dfcace"
+    },
+    {
+      "path": "crates/ccr/tests/diagnostics_contract.rs",
+      "sha256": "793bb6f12e770b0462a00c7ef184f7642edbec8359c38ae4359167d6e3b55ccf"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_oauth_pending_store.rs",
+      "sha256": "6f4ccc7384183467d07ca78056325954fcbf6430cda41ce71b93861c270e8627"
+    },
+    {
+      "path": "ccr-ui/src-tauri/src/usage_jobs.rs",
+      "sha256": "cac0d8838f9e905dd32eb21894d631b4674433e031e9f2eb2de7ecfada6031d4"
+    },
+    {
+      "path": "ccr-ui/src-tauri/src/llmusage_adapter/cli.rs",
+      "sha256": "21fe8e44a06174e331d63bebe1272cf436cd7b2fa2c155e6035278cb809ec1d1"
+    },
+    {
+      "path": "ccr-ui/src-tauri/src/commands/codex_auth/oauth.rs",
+      "sha256": "02eed2c9abf9aa3d48600dbd4b5abed409c4b7ce7bb1bc99cc3d33e45300a2ed"
+    },
+    {
+      "path": "ccr-ui/src-tauri/src/commands/handler_registry.rs",
+      "sha256": "97e1b1ca74e56af2852d7b2fabef17f2ed7bd3f34d3bbfd66db7f4df34c92890"
+    },
+    {
+      "path": "ccr-ui/src-tauri/src/commands/system.rs",
+      "sha256": "ca2423b8f9badcee29de9b20ac97c968e6c057e876c27ffb4871542d67b12404"
+    },
+    {
+      "path": "ccr-ui/src-tauri/src/test_support.rs",
+      "sha256": "2f35e2b8f53de0a49ea25e67c595bacaa24f870ecbf1ce77687a84188f6a8878"
+    },
+    {
+      "path": "ccr-ui/src/features/commands/commandJobState.ts",
+      "sha256": "3ef64dc45c0807193c7b8fd5636d0944aade6938be7d5b7244434632dbc3399e"
+    },
+    {
+      "path": "ccr-ui/src/features/commands/commandJobStore.ts",
+      "sha256": "e047353c0c4c575d148d647d4a7b7376848d89902776a957ba8febdbe50551c2"
+    },
+    {
+      "path": "ccr-ui/src/features/commands/useCommandsPage.ts",
+      "sha256": "c0112f4088d05e164232537f95888852897d23dcb049591c70eadc60899f1f70"
+    },
+    {
+      "path": "ccr-ui/src/features/platform/settings/useSettingsSession.ts",
+      "sha256": "12a28a8a9505bd1741af89ae454de8afd1b5fc862fc70516c407144370ef1d82"
+    },
+    {
+      "path": "ccr-ui/src/features/platform/settings/BaseSettings.tsx",
+      "sha256": "f1bb786dca76c2745d4dc9499a905167ffe15a9a02a9a21c29e7d8d049522cb6"
+    },
+    {
+      "path": "ccr-ui/src/features/platform/settings/SettingsSource.tsx",
+      "sha256": "9bfe7c799b4d0ed795b09b9152eae7562d8cd58f6f1fa57b0fc2269ff0365c4d"
+    },
+    {
+      "path": "ccr-ui/src/features/platform/auth/BaseAuth.tsx",
+      "sha256": "7269c73476eb602ad92650d0a351efc00df7f96745ad6c7f5c24fa5ce8292700"
+    },
+    {
+      "path": "ccr-ui/src/configs/settings-patch.ts",
+      "sha256": "f3f7def39fa5fbf71cd2be8a490b1507e1b9850214af9a9b9893d34585a4a532"
+    },
+    {
+      "path": "ccr-ui/src/configs/environmentSession.ts",
+      "sha256": "698ffd8cd440da00c527659a707080fbc8c1fe9f10cf61c5e8a7c830e78db0fe"
+    },
+    {
+      "path": "ccr-ui/src/configs/settings-codex.ts",
+      "sha256": "07238c7472357c1931fb5f786b291e6e44b37e5f0b1af6fdd551def487c31728"
+    },
+    {
+      "path": "ccr-ui/src/configs/settings-opencode.ts",
+      "sha256": "9580e7f8b4f444d1b0ff579c1964e8586fb20e6ba88cbe1ff6b8fdac1d56ff1e"
+    },
+    {
+      "path": "ccr-ui/scripts/bindings-transaction.mjs",
+      "sha256": "b010d060842312aa8b8d9ef78323f411d0de102ebfaad7491d845586dcfe4180"
+    },
+    {
+      "path": "ccr-ui/scripts/check-generated-bindings.mjs",
+      "sha256": "a9afa2cff60bfc2b265ae2efe77b123a22cfdde54f7ca1359f2309f0fa2e8b94"
+    },
+    {
+      "path": "ccr-ui/scripts/generate-bindings.mjs",
+      "sha256": "6583ca7cd146e09ac0105d880c5a4fe9443c21f841a58df658441199b386c77c"
+    },
+    {
+      "path": "scripts/ci/test_architecture_contract_gates.py",
+      "sha256": "dbea51132386eab0d1865654f7422ad46c701c69975f92078858d958ab10df5a"
+    },
+    {
+      "path": "justfile",
+      "sha256": "354fdd0eb109dba69bcd1721ba02e9c567cb8f2156e17d5f3ad7ae5ea6eb568f"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "T01.AC1",
+      "requirement": "两个独立进程经不同 adapter 并发修改不同 profile 后，两项修改都存在。",
+      "mechanism": "资源身份统一；锁内read/validate/mutate/leaf CAS；并发不同字段均保留",
+      "test_groups": [
+        "repository",
+        "config_handlers"
+      ],
+      "source_references": [
+        "crates/ccr-config/src/managers/config/repository_tests.rs",
+        "ccr-ui/src-tauri/src/commands/config/contract_tests.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T01.AC2",
+      "requirement": "registry 排序变化不改变指定平台结果；list/current/validate 前后文件清单与内容相同。",
+      "mechanism": "显式平台和同源current投影；读取不bootstrap/autofix",
+      "test_groups": [
+        "repository",
+        "diagnostics"
+      ],
+      "source_references": [
+        "crates/ccr-config/src/managers/config/repository_tests.rs",
+        "crates/ccr/tests/diagnostics_contract.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T01.AC3",
+      "requirement": "非法 patch、重名和版本冲突均返回明确错误且磁盘不变；合法更新保留未编辑字段。",
+      "mechanism": "严格patch与version conflict拒绝；unknown TOML/secret/marker保留",
+      "test_groups": [
+        "repository",
+        "config_handlers"
+      ],
+      "source_references": [
+        "crates/ccr-config/src/managers/config/repository_tests.rs",
+        "ccr-ui/src-tauri/src/commands/config/contract_tests.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T02.AC1",
+      "requirement": "无效、被删除或禁用目标在三个入口均无写入；写入阶段故障产生可验证的回滚或显式可恢复结果。",
+      "mechanism": "共享application预检与已发布写journal；逐写故障逆序补偿，外部新版保留",
+      "test_groups": [
+        "profile_cli",
+        "profile_tui",
+        "profile_desktop",
+        "journal"
+      ],
+      "source_references": [
+        "crates/ccr-cli/src/application/profile_contract.rs",
+        "crates/ccr-tui/src/tui/profile_backend.rs",
+        "ccr-ui/src-tauri/src/commands/profile_lifecycle.rs",
+        "crates/ccr-core/src/core/write_journal.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T02.AC2",
+      "requirement": "相同 fixture 和请求在三个入口产生相同持久状态；实际未生效不得增加成功计数或成功历史。",
+      "mechanism": "同一contract harness比较持久状态；operation ID重放不重复计数",
+      "test_groups": [
+        "profile_cli",
+        "profile_tui",
+        "profile_desktop"
+      ],
+      "source_references": [
+        "crates/ccr-cli/src/application/profile_contract.rs",
+        "crates/ccr-tui/src/tui/profile_backend.rs",
+        "ccr-ui/src-tauri/src/commands/profile_lifecycle.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T02.AC3",
+      "requirement": "历史写失败时结果明确标记 activation 已提交及附属失败，三端均显示相应结果且不自动重做激活。",
+      "mechanism": "committed outcome与ancillary warning分离；页面不自动再激活",
+      "test_groups": [
+        "profile_warning_binary",
+        "profile_tui",
+        "config_page"
+      ],
+      "source_references": [
+        "crates/ccr/tests/commands/claude_profile.rs",
+        "crates/ccr-tui/src/tui/profile_backend.rs",
+        "ccr-ui/tests/configs/configs-actions.smoke.test.tsx"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T02.AC4",
+      "requirement": "profile 的桌面与 TUI 路径均调用同一 application 用例；共享入口没有 stdin、print 或 process::exit。",
+      "mechanism": "三个adapter委托同一同步application owner；边界guard检查无终端IO/exit",
+      "test_groups": [
+        "profile_cli",
+        "profile_tui",
+        "profile_desktop"
+      ],
+      "source_references": [
+        "crates/ccr-cli/src/application/profile_contract.rs",
+        "crates/ccr-tui/src/tui/profile_backend.rs",
+        "ccr-ui/src-tauri/src/commands/profile_lifecycle.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T02.AC5",
+      "requirement": "rename 在 save-new、delete-old、apply 各阶段失败时结果可解释，current/default 不悬空，CLI/Tauri 同 fixture 后果一致。",
+      "mechanism": "rename纳入同一journal，current/default与unknown值在逐写故障下保持可解释",
+      "test_groups": [
+        "profile_cli",
+        "config_handlers"
+      ],
+      "source_references": [
+        "crates/ccr-cli/src/application/profile_contract.rs",
+        "ccr-ui/src-tauri/src/commands/config/contract_tests.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T03.AC1",
+      "requirement": "隔离 fixture 中从配置页发起切换和启用均成功，runtime 与当前 profile 一致。",
+      "mechanism": "explicit Claude配置页switch/enable进入共享application，enabled/runtime/current一致",
+      "test_groups": [
+        "config_handlers",
+        "config_page"
+      ],
+      "source_references": [
+        "ccr-ui/src-tauri/src/commands/config/contract_tests.rs",
+        "ccr-ui/tests/configs/configs-actions.smoke.test.tsx"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T03.AC2",
+      "requirement": "未知 key、错误类型、目标缺失和重名均拒绝且无写入；并发独立修改不丢失。",
+      "mechanism": "对象形状/absent/null验证；active保护在operation lock内重读；多进程合并",
+      "test_groups": [
+        "config_handlers",
+        "repository"
+      ],
+      "source_references": [
+        "ccr-ui/src-tauri/src/commands/config/contract_tests.rs",
+        "crates/ccr-config/src/managers/config/repository_tests.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T03.AC3",
+      "requirement": "命令清单和客户端生成无漂移；旧请求缺乏可确定平台时返回明确 platform_required 或兼容迁移错误，且不修改状态。",
+      "mechanism": "缺失平台明确失败无写；typed client/registry同步；完整bindings另列",
+      "test_groups": [
+        "config_handlers",
+        "registry"
+      ],
+      "source_references": [
+        "ccr-ui/src-tauri/src/commands/config/contract_tests.rs",
+        "ccr-ui/src-tauri/src/commands/handler_registry.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T04.AC1",
+      "requirement": "invalid、corrupt、unreadable fixture 的 ccr validate 非零退出；合法配置和 warning-only 按已记录策略退出。",
+      "mechanism": "binary统一返回诊断ExitCode；invalid/corrupt/unreadable与warning分类",
+      "test_groups": [
+        "diagnostics"
+      ],
+      "source_references": [
+        "crates/ccr/tests/diagnostics_contract.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T04.AC2",
+      "requirement": "合法 subscription 与 API-key fixture 在 validate/apply 预检中一致；缺失、损坏和权限错误分类不同。",
+      "mechanism": "validate/apply复用领域auth validator；原生denied read不降为missing",
+      "test_groups": [
+        "diagnostics",
+        "profile_cli"
+      ],
+      "source_references": [
+        "crates/ccr/tests/diagnostics_contract.rs",
+        "crates/ccr-cli/src/application/profile_contract.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T04.AC3",
+      "requirement": "诊断前后 fixture 文件不变；doctor 覆盖当前支持的 Claude/Codex/Grok，保留 adapter 的支持状态明确。",
+      "mechanism": "只读前后路径/字节/mtime相同；Grok支持、Gemini/Droid保留adapter状态明确",
+      "test_groups": [
+        "diagnostics",
+        "repository"
+      ],
+      "source_references": [
+        "crates/ccr/tests/diagnostics_contract.rs",
+        "crates/ccr-config/src/managers/config/repository_tests.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T05.AC1",
+      "requirement": "固定时钟下连续三次修改保留三份不同的前镜像，且轮换数遵守现有限额。",
+      "mechanism": "固定时钟下UUID no-clobber备份，每次前镜像独立，保留keep-10",
+      "test_groups": [
+        "backups"
+      ],
+      "source_references": [
+        "crates/ccr-core/src/core/guarded_write.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T05.AC2",
+      "requirement": "旧/新格式混合目录的列出、恢复、轮换测试通过，敏感前镜像权限满足既有规则。",
+      "mechanism": "旧新命名稳定reader/rotation；DACL和mode在payload前建立，readonly发布后恢复",
+      "test_groups": [
+        "backups"
+      ],
+      "source_references": [
+        "crates/ccr-core/src/core/guarded_write.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_windows_linux_pending_macos",
+      "remaining_platform_boundary": "macOS not run; Windows/Linux evidence remains scoped."
+    },
+    {
+      "id": "T05.AC3",
+      "requirement": "OAuth pending 使用 secret:true 和 BackupPolicy::None；创建、替换、取消、过期清理及权限失败后，目标目录和配置的备份目录不得新增 verifier/state 的备份或历史副本。权限失败不发布不受保护的新凭据文件，handler 返回明确失败，原有目标字节保持完整。",
+      "mechanism": "pending secret:true/BackupPolicy::None；disk-first发布、失败保留旧目标",
+      "test_groups": [
+        "pending",
+        "oauth"
+      ],
+      "source_references": [
+        "crates/ccr-codex/src/services/codex_oauth_pending_store.rs",
+        "ccr-ui/src-tauri/src/commands/codex_auth/oauth_tests.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_windows_linux_pending_macos",
+      "remaining_platform_boundary": "macOS not run; Windows/Linux evidence remains scoped."
+    },
+    {
+      "id": "T05.AC4",
+      "requirement": "合成 secret sentinel 在失败、取消、过期清理的可见输出中均不存在。",
+      "mechanism": "Debug/Serialize/errors/events不含合成verifier/token sentinel",
+      "test_groups": [
+        "pending",
+        "oauth"
+      ],
+      "source_references": [
+        "crates/ccr-codex/src/services/codex_oauth_pending_store.rs",
+        "ccr-ui/src-tauri/src/commands/codex_auth/oauth_tests.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T06.AC1",
+      "requirement": "runner 被 barrier 暂停时立即取消，释放 barrier 后 spawn 次数为零；active 占用直到 runner 真正完成。",
+      "mechanism": "一次锁内发布snapshot/token；cancel_requested保留active直到runner cleanup完成",
+      "test_groups": [
+        "usage_registry",
+        "control_policy"
+      ],
+      "source_references": [
+        "ccr-ui/src-tauri/src/usage_jobs.rs",
+        "ccr-ui/src-tauri/src/commands/runtime_policy.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T06.AC2",
+      "requirement": "Cancelled、Finished、Failed 的已终结记录不被迟到事件或重复 cancel 覆盖；清理失败可见。",
+      "mechanism": "五种terminal不可回退；取消请求与清理完成分开；诊断保留",
+      "test_groups": [
+        "usage_registry",
+        "usage_ui"
+      ],
+      "source_references": [
+        "ccr-ui/src-tauri/src/usage_jobs.rs",
+        "ccr-ui/tests/usage/usage-import-lifecycle.smoke.test.tsx"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T06.AC3",
+      "requirement": "静默、EOF 后仍存活、持有 stderr 和清理失败的假进程均在配置期限加清理宽限内结束，返回真实结果。",
+      "mechanism": "execution deadline覆盖stdout/callback/wait/stderr；cleanup共享预算并回报失败",
+      "test_groups": [
+        "usage_executor",
+        "process_tree"
+      ],
+      "source_references": [
+        "ccr-ui/src-tauri/src/llmusage_adapter/cli_lifecycle_tests.rs",
+        "crates/ccr-core/src/core/process_gateway.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped",
+      "remaining_platform_boundary": "macOS not run; Windows/Linux evidence remains scoped."
+    },
+    {
+      "id": "T06.AC4",
+      "requirement": "stdout 无换行 flood 仍受 1 MiB 单行限制；stderr 保留上限和 DTO secret 规则不退化；adapter 不新增 usage SQL。",
+      "mechanism": "stdout 1MiB+1、stderr 64×64KiB有界；no-crate guards验证SQL owner",
+      "test_groups": [
+        "usage_executor",
+        "usage_registry"
+      ],
+      "source_references": [
+        "ccr-ui/src-tauri/src/llmusage_adapter/cli_lifecycle_tests.rs",
+        "ccr-ui/src-tauri/src/usage_jobs.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T07.AC1",
+      "requirement": "任务运行中离开命令页再返回，job ID、状态、输出和取消能力恢复。",
+      "mechanism": "shell/store持有job；路由重挂载对账snapshot并恢复取消",
+      "test_groups": [
+        "command_page",
+        "command_owner"
+      ],
+      "source_references": [
+        "ccr-ui/tests/commands/command-workbench-lifecycle.smoke.test.tsx",
+        "ccr-ui/src-tauri/src/commands/command_exec.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T07.AC2",
+      "requirement": "终态先于 start 响应、重复/乱序事件均不回退终态或重复写 history；旧 job 事件不能覆盖新 job，提交期间禁止重复启动。",
+      "mechanism": "同步提交锁、job-ID隔离、terminal优先；history pending/saved/failed且单次写尝试",
+      "test_groups": [
+        "command_page",
+        "command_owner"
+      ],
+      "source_references": [
+        "ccr-ui/tests/commands/command-workbench-lifecycle.smoke.test.tsx",
+        "ccr-ui/src-tauri/src/commands/command_exec.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T07.AC3",
+      "requirement": "listen Promise 在卸载后才 resolve 时仍调用 unlisten，重新进入不会新增重复监听。",
+      "mechanism": "disposed协议释放迟到listen；shell暂停隔离迟到start/cancel响应",
+      "test_groups": [
+        "command_listener",
+        "command_page"
+      ],
+      "source_references": [
+        "ccr-ui/tests/shell/event-bridge-leak.smoke.test.tsx",
+        "ccr-ui/tests/commands/command-workbench-lifecycle.smoke.test.tsx"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T08.AC1",
+      "requirement": "已有 Codex tui.notifications 数组时只修改 model，保存后数组逐项不变；OpenCode 原值 notify 时只修改其他字段，保存请求不携带 autoupdate。",
+      "mechanism": "snapshot与dirty leaves无损映射；只发送编辑字段，保留union/unknown/default语义；Codex helper真实磁盘往返",
+      "test_groups": [
+        "settings_mapping",
+        "settings_page",
+        "codex_settings_backend",
+        "codex_settings_persistence"
+      ],
+      "source_references": [
+        "ccr-ui/tests/platforms/settings-lossless.smoke.test.ts",
+        "ccr-ui/tests/platforms/settings-capabilities.smoke.test.tsx",
+        "ccr-ui/src-tauri/src/commands/codex.rs",
+        "ccr-ui/src-tauri/src/commands/codex_settings.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T08.AC2",
+      "requirement": "Grok managed_keys_locked 对应输入禁用并说明原因；未知合法枚举显示当前值且保存其他字段不覆盖。",
+      "mechanism": "managed metadata进入可执行capability；disabled+原因+未知枚举当前值",
+      "test_groups": [
+        "settings_page",
+        "grok_settings",
+        "settings_visible_i18n"
+      ],
+      "source_references": [
+        "ccr-ui/tests/platforms/settings-capabilities.smoke.test.tsx",
+        "ccr-ui/src-tauri/src/commands/grok.rs",
+        "ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T08.AC3",
+      "requirement": "支持 raw source 的平台可以从 Settings 打开现有编辑器并处理 CAS 冲突；非 Local 环境不调用 Local-only 设置接口。 Grok typed/raw 保存及 invalid/stale 等失败路径均不产生备份，页面保留现有无备份提示。",
+      "mechanism": "真实raw editor入口、确认/CAS/invalid草稿；Local能力约束与Grok无备份",
+      "test_groups": [
+        "settings_page",
+        "grok_settings",
+        "settings_raw_session"
+      ],
+      "source_references": [
+        "ccr-ui/tests/platforms/settings-capabilities.smoke.test.tsx",
+        "ccr-ui/src-tauri/src/commands/grok.rs",
+        "ccr-ui/tests/platforms/settings-source-session.smoke.test.tsx"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_automated_and_web_mock_native_pending"
+    },
+    {
+      "id": "T09.AC1",
+      "requirement": "probe 或 load 拒绝后出现错误及正确重试入口，不显示确定的 signedOut 或无限 loading；退出失败保留旧状态且不重复提交。",
+      "mechanism": "probe/load状态明确；stale成功数据仍可见，off pending阻止重复并保留失败前状态",
+      "test_groups": [
+        "auth_query",
+        "auth_cache"
+      ],
+      "source_references": [
+        "ccr-ui/tests/platforms/auth-query-contract.smoke.test.tsx",
+        "ccr-ui/tests/platforms/auth-probe-recovery-check.smoke.test.tsx"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T09.AC2",
+      "requirement": "dirty 表单收到后台 refetch 时保留已编辑字段；旧环境响应不覆盖新会话；仅保存成功或用户明确放弃后重置。",
+      "mechanism": "snapshot/baseline/draft分离；环境身份/世代冻结旧会话，后端捕获同一目标",
+      "test_groups": [
+        "settings_session",
+        "settings_raw_session",
+        "settings_environment"
+      ],
+      "source_references": [
+        "ccr-ui/tests/platforms/settings-session.smoke.test.tsx",
+        "ccr-ui/tests/platforms/settings-source-session.smoke.test.tsx",
+        "ccr-ui/src-tauri/src/commands/claude_settings_tests.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T09.AC3",
+      "requirement": "保持配置数据引用不变，从 zh-CN 切换 en-US 后 tab、summary 和已挂载卡片文案全部更新。",
+      "mechanism": "实际翻译订阅参与memo依赖，同一Query引用和挂载卡片语言切换",
+      "test_groups": [
+        "config_page"
+      ],
+      "source_references": [
+        "ccr-ui/tests/configs/configs-actions.smoke.test.tsx"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T10.AC1",
+      "requirement": "文档化 aggregate 包含 desktop clippy 和全量行为测试；注入 desktop 测试失败时 aggregate 非零退出。",
+      "mechanism": "跨workspace aggregate复用tauri-ci；已运行故障fixture非零；root正式完整gate单独验收",
+      "test_groups": [
+        "aggregate",
+        "bindings",
+        "calendar",
+        "lint_main_tests",
+        "lint_state_tests",
+        "lint_claude_test",
+        "lint_codex_profile_test",
+        "doctor_deadline",
+        "tauri_process_gateway",
+        "oauth_windows_pending_failure"
+      ],
+      "source_references": [
+        "scripts/ci/test_architecture_contract_gates.py",
+        "ccr-ui/tests/quality/bindings-transaction.smoke.test.ts",
+        "ccr-ui/tests/usage/usage-date-window.smoke.test.ts",
+        "ccr-ui/src-tauri/src/main.rs",
+        "ccr-ui/src-tauri/src/state.rs",
+        "ccr-ui/src-tauri/src/commands/claude.rs",
+        "ccr-ui/src-tauri/src/commands/codex.rs",
+        "crates/ccr-cli/src/commands/codex/fix.rs",
+        "ccr-ui/src-tauri/src/process/gateway.rs",
+        "ccr-ui/src-tauri/src/commands/codex_auth.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_windows_contract_full_aggregate_still_non_green"
+    },
+    {
+      "id": "T10.AC2",
+      "requirement": "所有 P1 在 evidence ledger 关联旧反例、测试、修复 commit 和结果；不存在仅凭 mock 成功或静态计数验收的条目。",
+      "mechanism": "39AC及9P1逐项映射，旧源码/实际红例/修后行为分开；缺失红例不提升验收",
+      "test_groups": [],
+      "source_references": [],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "partial_mapping_fix_commit_pending",
+      "ledger_status_at_capture": "partial_mapping_fix_commit_pending"
+    },
+    {
+      "id": "T10.AC3",
+      "requirement": "过期 Vue 当前路径、336/315/323 等冲突描述得到修订；规范链接可解析，ccr-usage 职责在索引可找到。",
+      "mechanism": "registry/manifest权威计数；现行路径与usage owner导航；生命周期契约无损抽取",
+      "test_groups": [],
+      "source_references": [],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T10.AC4",
+      "requirement": "正式 lint 与受控诊断分别记录；原有临时脚本和 Insights 任务状态保持独立处理。",
+      "mechanism": "正式失败原样保留；保护脚本哈希和Insights状态单独核对；不创建commit",
+      "test_groups": [],
+      "source_references": [],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_preservation_and_separate_gate_reporting"
+    },
+    {
+      "id": "T11.AC1",
+      "requirement": "逐 ID 执行 control-command-matrix.md 的 C01-C06：command、install、usage、OAuth 四个命令族的现有控制入口在 barrier 释放前到达 owner；已有 Parallel 查询保持可达。后台 start 已返回时，资源 admission 仍由真实 owner 持到完成与清理；同资源第二次 start 被拒绝、排队或按现有协议幂等复用同一 job，不创建并发作业。不存在的 get/status 操作明确标为不适用；ACL、确认和资源互斥保持。",
+      "mechanism": "控制投递与执行admission分离；真实owner持permit到cleanup/join结束",
+      "test_groups": [
+        "control_policy",
+        "command_owner",
+        "usage_registry",
+        "oauth"
+      ],
+      "source_references": [
+        "ccr-ui/src-tauri/src/commands/runtime_policy.rs",
+        "ccr-ui/src-tauri/src/commands/command_exec.rs",
+        "ccr-ui/src-tauri/src/usage_jobs.rs",
+        "ccr-ui/src-tauri/src/commands/codex_auth/oauth_tests.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T11.AC2",
+      "requirement": "端口占用、bind 或 pending 保存失败均不返回可用 URL，不留下虚假活动登录；每个 login ID 仅一个终态。",
+      "mechanism": "bind和disk先成功后发布URL；单controller负责唯一terminal及active reuse",
+      "test_groups": [
+        "oauth",
+        "pending"
+      ],
+      "source_references": [
+        "ccr-ui/src-tauri/src/commands/codex_auth/oauth_tests.rs",
+        "crates/ccr-codex/src/services/codex_oauth_pending_store.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T11.AC3",
+      "requirement": "silent socket、慢 HTTP body 和取消均在期限加宽限内释放 listener/pending；失败和取消不会伪造登录成功。",
+      "mechanism": "listener/socket/body/exchange有界取消；commit_in_progress拒绝伪取消",
+      "test_groups": [
+        "oauth"
+      ],
+      "source_references": [
+        "ccr-ui/src-tauri/src/commands/codex_auth/oauth_tests.rs"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    },
+    {
+      "id": "T11.AC4",
+      "requirement": "受影响 generated artifacts 无漂移，auxiliary-window ACL/确认测试不变，verifier/token sentinel 不进入事件或日志。",
+      "mechanism": "ACL/confirmation元数据保持；sentinel不外泄；完整binding guard保留调用前230文件",
+      "test_groups": [
+        "registry",
+        "oauth",
+        "pending",
+        "bindings"
+      ],
+      "source_references": [
+        "ccr-ui/src-tauri/src/commands/handler_registry.rs",
+        "ccr-ui/src-tauri/src/commands/codex_auth/oauth_tests.rs",
+        "crates/ccr-codex/src/services/codex_oauth_pending_store.rs",
+        "ccr-ui/tests/quality/bindings-transaction.smoke.test.ts"
+      ],
+      "review_boundary": "T01 includes previous reviewer-authored fixes; other tasks received non-author source-path and representative assertion review. Selector existence does not establish execution.",
+      "acceptance": "review_complete_scoped_evidence_only_full_acceptance_not_granted",
+      "ledger_status_at_capture": "passed_scoped"
+    }
+  ],
+  "gate_execution_policy": "Initial source review did not execute Cargo. After Windows prior-epoch CI completed, root authorized the six-file repair and focused ccr-config/core tests, Clippy, check and formatting verification. Root owns broad gates, exporters, bindings generation, builds and native browser execution.",
+  "current_open_boundaries": [
+    "Required macOS process matrix not run; Windows and Linux evidence does not establish macOS execution.",
+    "No commit authorized or created; fix_commit remains null and T10.AC2 remains partial.",
+    "Historical exporter 0xc0000005 access violation cause remains unknown.",
+    "Native evidence covers Linux WebKitGTK/WSLg, synthetic Local Claude raw editor, debug automation binary with production custom-protocol/CSP and WebDriver input. Windows/macOS WebViews, physical input, release installer, native Codex/Grok and real SSH/provider OAuth remain outside the receipt.",
+    "Native post-save evidence establishes no captured style CSP violation events; style DOM removal and body scroll-lock restoration were not measured.",
+    "T01 includes reviewer-authored work; the six-file permission delta authored by this reviewer received root non-author review.",
+    "Context validators passed with the existing dependency-governance.md injection-size warning; the reviewer used a full-file read."
+  ],
+  "verification": {
+    "lint": "Pass for current a31c recorded scope: Windows full just ci, Linux workspace and Tauri strict Clippy/fmt, frontend lint and VS Code aggregate.",
+    "typecheck": "Pass for current a31c recorded scope: Windows full just ci, Linux workspace check, actual Rust 1.95.0 locked all-targets/all-features MSRV check, Tauri desktop-bin check and frontend/extension checks.",
+    "tests": "Pass for recorded scope: Linux workspace 1869 passed,16 ignored,33 filtered across41 harness results; Linux Tauri397 behavior,2 guards,230 exporters,1 inventory and1 ignored helper; Windows full just ci all14 stages with407 Tauri behavior; frontend smoke and coverage each169 files/904 tests; native7 six scoped checks. Required macOS process matrix remains unrun.",
+    "audit": "Pass: current Windows Security Audit stage and Linux cargo audit; Linux cargo-audit0.22.2 task-local installation and executable were independently verified.",
+    "coverage": "Pass against recorded thresholds: workspace74554/99931=74.60547777966798%>=70%; core gateway393/409=96.08801955990221%>=85%; Tauri gateway654/703=93.0298719772404%>=85%; frontend13081/17395=75.19977004886461%>=70%, displayed75.19%. Tauri overall17964/34456=52.1360575806826% is baseline only.",
+    "evidence_graph": "Pass:39 unchanged ACs,48 groups/164 selectors,9 P1,86 runs,393 repository artifacts,41 unchanged historical run fingerprints and7 immutable source manifests.",
+    "overall_task_acceptance": "Not granted. Required macOS and fix-commit clauses remain open."
+  },
+  "lifecycle": "No task state, commit, push, archive, cleanup, or reset performed.",
+  "native_verification": {
+    "receipt": "remaining-native-webview-6.json",
+    "receipt_sha256": "7d7938ff5914509ff01b66f7dc64a9ff14ac6b6ac704f8ae7062d4760b0f7f31",
+    "log_sha256": "384725aee0a826c331d2246306c46e77385f1fdc1598fd73ec1dd590671c70cd",
+    "build_receipt": "remaining-linux-native-after-csp.json",
+    "build_receipt_sha256": "1666cf2e0e19da748cf66cc61d6d5ab395dd1f6844a038aa3eb8665df66aa1ca",
+    "build_command": [
+      "cargo",
+      "build",
+      "--manifest-path",
+      "ccr-ui/src-tauri/Cargo.toml",
+      "--bin",
+      "ccr-desktop",
+      "--features",
+      "custom-protocol"
+    ],
+    "build_seconds": 18.629,
+    "harness_sha256": "7e4ccd29109ffe48dfe8ddf8381c5b802801cfe4d5906570c7cca7177ae79c53",
+    "harness_ast": "pass",
+    "source_maps_match_final_freeze": true,
+    "source_paths_each": 268,
+    "generated_files_each": 230,
+    "dist_paths_each": 284,
+    "checks": {
+      "native_boot": {
+        "title": "CCR UI",
+        "native": true,
+        "url": "tauri://localhost"
+      },
+      "plaintext_confirmation": {
+        "visible": true,
+        "editorCount": 0
+      },
+      "native_scroll_lock": {
+        "pageNonce": "175180234352363958",
+        "bodyOverflow": "hidden",
+        "nonce": "175180234352363958",
+        "rules": 7,
+        "locked": true,
+        "sheetReadable": true
+      },
+      "native_editor": {
+        "editorHeight": 448,
+        "tokenSpans": 4,
+        "editorMinHeight": 448,
+        "text": "{\n  \"model\": \"sonnet\",\n  \"env\": {\n    \"CCR_NATIVE_FIXTURE\": \"preserve\"\n  },\n  \"native_fixture\": {\n    \"unknown\": true,\n    \"count\": 7\n  }\n}\n\n",
+        "editorDisplay": "flex",
+        "noncedStyles": 2,
+        "contentMinHeight": 448,
+        "styleSheets": 8,
+        "url": "tauri://localhost/claude-code/settings",
+        "editorFontSize": "13px",
+        "rootFontSize": 16,
+        "styleCspViolations": []
+      },
+      "production_csp": {
+        "inlineExecuted": false,
+        "meta": [],
+        "events": [
+          {
+            "directive": "script-src-elem",
+            "blockedURI": "inline"
+          }
+        ]
+      },
+      "native_save_roundtrip": {
+        "expected": {
+          "model": "haiku",
+          "env": {
+            "CCR_NATIVE_FIXTURE": "preserve"
+          },
+          "native_fixture": {
+            "unknown": true,
+            "count": 7
+          }
+        },
+        "actual": {
+          "model": "haiku",
+          "env": {
+            "CCR_NATIVE_FIXTURE": "preserve"
+          },
+          "native_fixture": {
+            "unknown": true,
+            "count": 7
+          }
+        },
+        "path": "/tmp/ccr-native-fixture-8w6__kgn/home/.claude/settings.json",
+        "sha256": "b57aed982cf108e3ee2f9e2f153fdaa68a2e00c47a62411d1ae00d403235db10"
+      }
+    },
+    "style_events_after_save": [],
+    "live_process_group_members_after_cleanup": [],
+    "driver_exit_code": -15,
+    "screenshot": {
+      "path": "remaining-native-webview-6.png",
+      "sha256": "960d034f790cb84c098fd7c73e2512fa27fd0a5aa5484daa59c8588e9630c3e7",
+      "reviewed_visually": true
+    },
+    "recorded_execution_binary_sha256": "e97fe3f4aed28ab17873bfeeceb7178ab46f179a20e787516ae0aacfe22ebec4",
+    "later_live_binary_sha256": "bb84963fe2f8329404d42dc4b940f624b4e0c7bb91108972d81c208da37d7709",
+    "later_binary_note": "Read after native completion while subsequent Linux gates ran. Historical harness validates actual binary before launch. Later output is not substituted into the historical receipt.",
+    "live_fixture_file_sha256": "b57aed982cf108e3ee2f9e2f153fdaa68a2e00c47a62411d1ae00d403235db10",
+    "scope": "Native Linux WebKitGTK under WSLg; debug binary with production custom-protocol assets/CSP; WebDriver synthetic input; no Windows WebView2/macOS/physical input/release package/account coverage.",
+    "root_acceptance": {
+      "receipt": "remaining-native-acceptance.json",
+      "receipt_sha256": "53ab777a06e297562080eea4e2e513cc7342f00fab371f730b96467d9f52f05d",
+      "artifact_references_checked": 9,
+      "artifact_hash_mismatches": []
+    },
+    "post_run_binary_observation": {
+      "receipt": "remaining-native-post-run-binary.json",
+      "receipt_sha256": "e7db284898ab558ccf9149e9e599fa20aaf53e9df0ac47a9d22d6169c54b780d",
+      "current_sha256_independently_checked": "bc18bf573c3b5cd67fe6c4933df32dd27ce7dc47aa323de7f190fb6561cfdbe2",
+      "current_mtime_utc_independently_checked": "2026-09-29T02:38:05.757923+00:00",
+      "mtime_within_later_gate_verified": true,
+      "gate_receipt_hash_verified": true,
+      "limit": "mtime is consistent with the later Tauri build; no process-level writer tracing exists. Earlier bb8496 observation and native execution e97fe3 hashes remain historical."
+    }
+  },
+  "native_attempts": [
+    {
+      "attempt": 1,
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-native-webview-1.json",
+      "sha256": "75d6f2beae5e6c9578ba223b86f2ddf7947aaa36af3e6b997bf3fc57b903d9fd",
+      "state": "failed",
+      "error": "Timed out waiting for native page: None",
+      "check_names": [],
+      "harness_sha256_at_execution": null,
+      "cleanup_live_members": []
+    },
+    {
+      "attempt": 2,
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-native-webview-2.json",
+      "sha256": "4d0cb921ea85c055a1a70f4379c1fc8efdc8f754e68688c1f9137a0983141201",
+      "state": "failed",
+      "error": "Timed out waiting for settings source action: None",
+      "check_names": [
+        "native_boot"
+      ],
+      "harness_sha256_at_execution": null,
+      "cleanup_live_members": []
+    },
+    {
+      "attempt": 3,
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-native-webview-3.json",
+      "sha256": "9ddd33de1a27c333388eee6b7b34836c4132896cb4e32d0fe2663b07779bf305",
+      "state": "failed",
+      "error": "{'editorHeight': 448, 'tokenSpans': 4, 'editorMinHeight': 448, 'text': '{\\n  \"model\": \"sonnet\",\\n  \"env\": {\\n    \"CCR_NATIVE_FIXTURE\": \"preserve\"\\n  },\\n  \"native_fixture\": {\\n    \"unknown\": true,\\n    \"count\": 7\\n  }\\n}\\n\\n', 'editorDisplay': 'flex', 'noncedStyles': 2, 'contentMinHeight': 448, 'styleSheets': 8, 'url': 'tauri://localhost/claude-code/settings', 'editorFontSize': '13px', 'rootFontSize': 16, 'styleCspViolations': [{'directive': 'style-src-elem', 'blockedURI': 'inline'}]}",
+      "check_names": [
+        "native_boot",
+        "plaintext_confirmation",
+        "native_editor"
+      ],
+      "harness_sha256_at_execution": "7c6ad6ffa8156cedc26f0b6a5c1124e0418aa15797da68362d27c6f7dbc49c8a",
+      "cleanup_live_members": []
+    },
+    {
+      "attempt": 4,
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-native-webview-4.json",
+      "sha256": "59c49201ef76f7c56f9fb55d9386b11916c4f4cc51ffd24a2523c9da96dd456f",
+      "state": "failed",
+      "error": "{'editorHeight': 448, 'tokenSpans': 4, 'editorMinHeight': 448, 'text': '{\\n  \"model\": \"sonnet\",\\n  \"env\": {\\n    \"CCR_NATIVE_FIXTURE\": \"preserve\"\\n  },\\n  \"native_fixture\": {\\n    \"unknown\": true,\\n    \"count\": 7\\n  }\\n}\\n\\n', 'editorDisplay': 'flex', 'noncedStyles': 2, 'contentMinHeight': 448, 'styleSheets': 8, 'url': 'tauri://localhost/claude-code/settings', 'editorFontSize': '13px', 'rootFontSize': 16, 'styleCspViolations': [{'lineNumber': 1, 'directive': 'style-src-elem', 'columnNumber': 24813, 'sourceFile': 'tauri://localhost/assets/base-modal-CepZGn4m.js', 'sample': '', 'originalPolicy': \"connect-src ipc: http://ipc.localhost; img-src 'self' asset: http://asset.localhost blob: data:; default-src 'self' customprotocol: asset:; style-src 'unsafe-inline' 'self' 'nonce-15713538874386341371'; script-src 'self' 'sha256-5plyvfN0TA1YzvBLycZN2aTAKvkrdirDZ7m+ar5iYGw=' 'sha256-odTstW4MtUWjZv2wryUjstKumGcEoX/TRr3mKkz7U+I=' 'sha256-PbFEEIsA0tjmNW8fX26sjLU48HSFzhLeBljImIuhnhE=' 'sha256-LzGqb/4E/sTOZUuVDnqHP/f+ZsT2ytGeiDoct/XnipI=' 'sha256-xwQGIDoTrgQQ67yv0ZqJAtDjnKbiSYMFLCXaOvBduxk=' 'sha256-H76Rltc54Za6uPWNqBo5en8Zj86+sllwwFOAjwbPrtY=' 'sha256-riCleGE/kfakXfUxW8vhrjaX5kKfIZzH6UT5aiNPkC4=' 'sha256-K6bL1TcWDgFgPBQgysANs0nODUDABeOpbKqBJaTOmC0=' 'sha256-xOYg9G1TXKzQh8PKjd8TvdHiqTzfHFCO053qGkG5i5g=' 'sha256-NPZhzfPr4wJu7n+Rx75XDprswBSYv+iM6JapzxNWg1c=' 'sha256-RKl63JrZwoBsuLxAENNQa+Ab6IzFe8JGqhMR+pM/hmI=' 'sha256-c0q0boZ8KkkzWcRB7M/POcPQmP9Eyjz5S+iudkj3MJI=' 'sha256-RgCoMgpROtt/dBW9T1Pk2FwIIjrO0pcESuWbtdMGNuQ=' 'sha256-kMYBdzAAAHghL7aZcYhoILj58SxKU/Q6w1dwDngLzkI=' 'sha256-weKiqD2ehnOyFZTuQwuho7qbf75GBfEiic2twnWotgM=' 'sha256-8wvKYycGs5E7ptV2Hhcjg0QpOdNbEk+KnylpQLvmm1o=' 'sha256-I6q1SfOrLY6F1zTF3/fdNCbGtZE2YVY2Kd96K+ZoGEM=' 'sha256-YLbuYxwdr2vVodBM9QPj8j/+te53+68buSfa6ehQ1FM=' 'sha256-6WI+oOh2qU1tRkmIDrhvKR8Szbvi4PJO7AE2C29DY20=' 'sha256-2PSKqoql4zotqEk0jZ1Ch4emKGho/XIrwC3ffwPunSg=' 'sha256-wPJ9CMfAwgX+O0erC/sZPTV6D0FrpSeNcVgJJ+FQ/BY=' 'sha256-v6P2vs0LY6cqR4JR1XcQTfFBO8IYyoJhY/XvLCmHC6o=' 'sha256-LrQJIUgttrAqWb+WeqY0Luxg1md6LpteoO70mVCjbgY=' 'sha256-7W43F9Ab60JaProJlKh+OeBg0cC31OV9usjZ6wSjQew=' 'sha256-XG87q10PZPcd5buf4AbbUsQA6E6oQXUrqbYQn/o99Ck=' 'sha256-GF52bwiWsaDLLfCCPMUPAoMH6ErEoE4mXDfRT2SZMeU=' 'sha256-0zdfQEFB6aoHDrMHJvUY0IO6L6EY4lhbIEDbORBhf0s=' 'sha256-/+ytsRo5PVaXmpx0vz/pkeVg2LPs4gObkY5j8O+Mb0w=' 'sha256-ClftLDCjwkxfFBJhtCnHq62vRdKcY65KSrcAFz6hu44=' 'sha256-hZ0xqU8ZgTK7MWS5XOibaT+vO3ibPo1B0SORRHHkF24=' 'sha256-aL1EfuyWujuKxqez4yZ8y4X8OVidgWC84OSQt7zobJI=' 'sha256-czJTz9RVodm8VleDZrVNa+XPiHsUmOxuBhuYpNIXqrQ=' 'sha256-2G8eqCteklbUtcMUpivMUIlp8krGQh+gXbpFFMCCaO4=' 'sha256-VuuCCMTNnUB8RNixX/HvdQjrpopLS8Zg6XeG+tx9ndI=' 'sha256-E7Hoxle/AIBDU+uWG1lR28gNHucmoxtoS+pz5i3Iqbw=' 'sha256-s1Fbg+HCr48JgSK8b3RO/FTgPerkgZE5otr+pWjrH0k=' 'sha256-h/VMOJGJaSMRLdxskehDAJJpWgXzLBzjcC9cldiz6e8=' 'sha256-BnOxuADUGd3rkYWDVKRepkjtBrzxvCR1hiHNpAaGnKA=' 'sha256-70gMi/nxWsSRaIPsv3qGv9Ge/od2ZPmWOEf/9+guYhk=' 'sha256-ROKRa7jk+Oe8SrV0TeH5bOBHcUcDKvEJIXP+VGQh9U0=' 'sha256-pSuStZnR7dHF3L7KUycodFyT+SbCJu1M9HXLiHNsHZc=' 'sha256-OYSJBpDlhSjmF8PEK6zrVuLadnIdD+JotdvCyfIOPsk=' 'sha256-NfjtOK5tSHOvt9okjRol6bhyiwffpRDgPekG9s16Oc0=' 'sha256-C/8Qi2hz7y+45yi0kcNErixqpEZeADZaOhZpa841VE4=' 'sha256-7OzTmZrtdW/93pV2Of8coCLAhyBp5mWRRAFCb1ETh2o=' 'sha256-Y4zUal5shmmft5/kSKJTCHtEU7Ad4NfwQco7s3Q1LIk=' 'sha256-wT/4SDaM3EoE55S2Brmuk/FYMzK5E+xLWoUKpkIPHM4=' 'sha256-NfuQ/8fPaqOcal8Ux4hNEbfl13rPFn67QlwhnYoxiBE=' 'sha256-xrsjdMA7+rGcGKTnoR1sUzzODdtO2AkSmWznuBhI+VE=' 'sha256-Y8pTsMcT4lcQx7KzSt/pKEjYh9/XtbfevQCqKvVnbBo=' 'sha256-J0FOjTjST6SKKQMjSg19ShCJgiVYxsYARQ287Amy0q0=' 'sha256-Cqbrx/6icYGyWh7LBnOFHBDhdBWVa4U8SWYb3YbjEpI=' 'sha256-EvUabG58t8Kp6uTUnZq8XyLXA1UOBEjBnsM7L+0xwK0=' 'sha256-SBNX90iItymvGRaVj47RU4whXjPX6obR3wgl32EE/hY=' 'sha256-7tMqQb05QcPxXS347PDB9HmsJbX7zdndVaZ6utG3JkU=' 'sha256-Mh9WVnIvtbdAopv63hAoFAkfMvU3m1jwFfrnEnAhj5w=' 'sha256-1bw022KDgaSF5kQ9wJZ90XoNkRMkptY4kvJAu1iufjM=' 'sha256-D1pnbEhs3XM0i+20dSVB8w8cm6PVvwhJsMenyPuFtEA=' 'sha256-2OpXQZWYvJMbqkrtePA5M1PGKqjaWQMqnQtGOgyUMiw=' 'sha256-kfXlfbI1VmXYMP4afZ9hxKDUp1uMl/EXVE1rERwrnsI=' 'sha256-ayyqXd1HGBdvfHkZMIs4pdeMymzF4NhrowrD7utpHe4=' 'sha256-uVQ8ifocd66QzZpLBpOS7H6nUEk0Z7nrWNU+w6yaUO0=' 'sha256-tEfsjkBkqc+ZdqYxrdOuEwhWcOlETNKuVmcjGV8m2JA=' 'sha256-Y98ngJMIbY6ihzi8+pYy/eHuxl/F2NSrG6i+iQghr6Q=' 'sha256-wyk76BNvPihU1JV8bOJf65DLa1Mjzz4WWTyqA+3jqhs=' 'sha256-c0A6hJ3Zr7IAWvsZvtU0naJ4+B3MfF+ihEsfhIz2zOU=' 'sha256-SJWB9yS8kEgy99NsCK2nh9E0RTS4N+OW+oxCyWVzCSw=' 'sha256-d3bEMajIauwFTgm1UMGCwll9iirPKfx5Za0iwETZjnY=' 'sha256-SvbQHDOIsuIzeUqcJvZxRIy4iAh/J+JIIcpQl5Y6YEs=' 'sha256-Zi7Wn+4bC9Sc9K6BjT7FG+QgLXFdp/7pYzR+qjF6Riw=' 'sha256-60JWNBKI/FmK2sMXvIfMeQ7nb7lDSH7orEGvd75qIFw=' 'sha256-pvJ/a1qs6F747+opOsMvPycTmFwbG3/FSwbFVr/ynfk=' 'sha256-Jjf+J4+Y0o9ryEbcHlvZt988W2kWEhzrzxvhC0SDMpg=' 'sha256-DrONtp3fCdknasALQ3ckvGPOcqZPzEebiwI/Lpq+8TE=' 'sha256-N5InOYj23sB6l3bEW6RlRcyt4F1tf85mP4SGx1PzYp0=' 'sha256-2pV97gjSChUoFczNO2o56hsZgsrnTmftnyzrca9APmo=' 'sha256-FmaPGD3Tf78HboZR2SsgBuewd8SIBlw9zio3kHZuXuE=' 'sha256-7Mv5ng8VyhShJNt6G51yS++OP5iU7v12a4S2YFRhEoE=' 'sha256-YzLOnEf7fMDNebY8Ig4lJnCEgxneSXhIRbVIRFTA3nU=' 'sha256-CETXupJjqJXjY5Acg3fIwWDiXkaVxAlaHNAKaFLSyII=' 'sha256-iftLKHbDdnKA7Po6FOebOuYWTIW3geU2N3zpDcCh1F8=' 'sha256-MjIXFHSK7Mi73gh5K3lWK1CHaWNdiiepoHGZjwhwK2E=' 'sha256-k8vjD3PqVugQW2nCvITylz5Ksm+xJG/LuB8RvOR5Yeg=' 'sha256-U1VhFnGX9vuXvOO7ooQYXot10ZA+LkAf3OENeAcvG7w=' 'sha256-jDZEiNc4JxDFv24UBZqhnYuIwe3/qhK/Z36nFTmofJM=' 'sha256-0nHiRf+RZeim+PxLdvjbN0gndi+HgbEnk6o2VG+Xvgw=' 'sha256-5SfqzIgQgh17FMxbcNGBxrezAn+ZWairrHyKHf7YPgo=' 'sha256-S73+/ynQW8ls9IufBYTmwnHi+AB8CtsOURYf+ok4xwo=' 'sha256-OILa2qZShIAnNaAzXM0mH245flW093M9uW9ln/c4DRs=' 'sha256-Dr7klXf4k7WVSQHbXu7KtjNArdi0f5wah0iZ5F8k9yU=' 'sha256-rapIgOnRm0wWgzbucyIvi+dva8cSZBztmv1vgBt8HqQ=' 'sha256-txc8J13le0zg8dRTrRJ4SjIVPWFgn9lshw/JkUKTZVE=' 'sha256-mGQF9Orln6Ydktrh8geJTqY69jk/iolaEL6qyVvemPY=' 'sha256-WArYxYBhpN3pm94KVpBeOC8FaFFu4vW4Tb+1IIVwkCE=' 'sha256-0rpkG7if0wIgV7drbLTDjFvbV2xZofsgqqataSopm8M=' 'sha256-83/SZ8Lv5KV6VSWLlSvObHYYlAqPLS3dUWraACcW+hQ=' 'sha256-qEspGOn7qYgbhlm0lu2ewV30D2XWgC2wrOtt97OCnTw=' 'sha256-+8Z5msM0gxrqA1HRiReJ07vDr3U6F0h8mAxf+xCbnDA=' 'sha256-P3yhEWdcvUnBgaFhXkOwbCt7XcyJtGuRePdB4FwlLo4=' 'sha256-+pergxQ+ga7vyqO9ikQJdIZwiOshAHxq3n91cdJdqXA=' 'sha256-7Y2M5m60ErjBKxteoOdZVFu6c5miYtrcbukUCi0iJXE=' 'sha256-7THngkzoDVUtZWC8xb/ap38QummQJPuHyNVTqSWeZBA=' 'sha256-an4HEVzcpP/px1SM4o0UigHsy4orbvgFOQmHysOIyDM=' 'sha256-RXBTIsxDN8YSieNKGQirDRwN553D3lohkL0yj+fZfsI=' 'sha256-2ucxL/HD680ZzwrN1EClE3VbyrYb6onC9nVrLYLAIUc=' 'sha256-HMj1K00t8bErE0SpYZhjPCIR3yTrQPDREZ8mMHafm60=' 'sha256-thK/j1kgVID61CtSX+Zwy6Dcm4Mfriqge3NjtqIUz1o=' 'sha256-+9FuTrNaF9uYI1yNUCeTODtJUElve00DMeIHKpuRmwo=' 'sha256-xoUDZaklJqmti9mlYbC2mcsJFAwc0Hu1/OI60yaoRdk=' 'sha256-d4V8XTtkNZSkIxt7TN9QiMSOA82fa22WGVO7Ik0UOkw=' 'sha256-Dg54IjjpamhLiRz7TeyIIpuSCT4RbeeaaOr2M5m8uI4=' 'sha256-iU7PKcOPm+R+8gwR5Ge9Cpy+s8eKGqmhAzvgQE0h1/o=' 'sha256-DLV0vNA5jgwjGPwnxp7l7N2gXlWLBhpZuanuN/1PIoY=' 'sha256-fHTtIUwh67KC35T6WPexHWFlxP5NWRmRkFZ86eb8mTY=' 'sha256-YuiJ545ny1AauZ4KjpjDRMYjcTG25D+9wHVlI1dhZPo=' 'sha256-8e84izYS+m9GEadUR38DgzdgT9zG2t404wAiFeyjjGI=' 'sha256-29tPJhPCq84o5AK9bdxlqAdhvEuVhTjazvXs8OrMlXI=' 'sha256-f0k2RAIzrEIwGwSTXkqKTT0gA3tEoCu8Zdm/LDX4A3g=' 'sha256-uwTrkGymptFcVrSzhhaqymDklh54u8Zs8QM3b2kLudM=' 'sha256-jXAEybNqksYSH7rSaRoDiiqN4z+RHhnJCOv+Th40O0k=' 'sha256-LK/BGdJprbfL5+syMsQjOaXUTA03I8ed61JgvGoJTN0=' 'sha256-Z9V0fxli4ZwlbJmLH41wXkQphBF3LNvBfeYDZnfcdOk=' 'sha256-3EXPhHBG4fqoqtKlW0SXvvAN2dxe85A7RZxDmoBDbtg=' 'sha256-X107R9v5D/2VBjosx6HYDMzTT9pP0BRcLiku8DVfJic=' 'sha256-p1pIZ46b57u8BS/zStZV7VSKpZq2WMWgr2TZQYGKcLU=' 'sha256-IbbCaoNWr8s8KMaNqgmIIiEaICd4WMGtD/s0/l4XWwU='\", 'blockedURI': 'inline'}]}",
+      "check_names": [
+        "native_boot",
+        "plaintext_confirmation",
+        "native_editor"
+      ],
+      "harness_sha256_at_execution": "52017af47c690fbca0a3cb9f24781d043ea5df629f5069bc9c77c29167a13bc2",
+      "cleanup_live_members": []
+    },
+    {
+      "attempt": 5,
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-native-webview-5.json",
+      "sha256": "528fa00a6457747051763444a51f6c6f8d8d32dfebdee761389874b03051df55",
+      "state": "failed",
+      "error": "{\"value\":{\"error\":\"element not interactable\",\"message\":\"\",\"stacktrace\":\"\"}}",
+      "check_names": [
+        "native_boot",
+        "plaintext_confirmation",
+        "native_scroll_lock",
+        "native_editor",
+        "production_csp"
+      ],
+      "harness_sha256_at_execution": "475797bf8466010dabc223cf2f1fda3663487e6b55c2ca726901fa8f4c0da7c1",
+      "cleanup_live_members": []
+    },
+    {
+      "attempt": 6,
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-native-webview-6.json",
+      "sha256": "7d7938ff5914509ff01b66f7dc64a9ff14ac6b6ac704f8ae7062d4760b0f7f31",
+      "state": "passed",
+      "error": null,
+      "check_names": [
+        "native_boot",
+        "plaintext_confirmation",
+        "native_scroll_lock",
+        "native_editor",
+        "production_csp",
+        "native_save_roundtrip"
+      ],
+      "harness_sha256_at_execution": "7e4ccd29109ffe48dfe8ddf8381c5b802801cfe4d5906570c7cca7177ae79c53",
+      "cleanup_live_members": []
+    }
+  ],
+  "focused_cli_version": {
+    "receipt": "remaining-cli-versions-focused.json",
+    "receipt_sha256": "2484da499339fc0752fe087340a2a1a3b5314ad4b32204874d7f27b4f57e6127",
+    "log_hash_verified": true,
+    "command": [
+      "cargo",
+      "--config",
+      ".cargo/tauri-ci.toml",
+      "test",
+      "--manifest-path",
+      "ccr-ui/src-tauri/Cargo.toml",
+      "--bin",
+      "ccr-desktop",
+      "--all-features",
+      "commands::system::tests::cli_versions_fast_mode_returns_expected_shape",
+      "--",
+      "--exact",
+      "--nocapture"
+    ],
+    "exit_code": 0,
+    "seconds": 59.976,
+    "source_before": "ca2423b8f9badcee29de9b20ac97c968e6c057e876c27ffb4871542d67b12404",
+    "source_after": "ca2423b8f9badcee29de9b20ac97c968e6c057e876c27ffb4871542d67b12404",
+    "result_lines": [
+      "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 604 filtered out; finished in 0.05s"
+    ]
+  },
+  "formal_gate_verification": {
+    "linux_tauri_ci": {
+      "receipt": "remaining-linux-tauri-ci-final.json",
+      "receipt_sha256": "35b095d9db906949f5779df1d44714caa69d2faf6b6d64eb6abce841e0d2ef89",
+      "command": [
+        "just",
+        "tauri-ci"
+      ],
+      "exit_code": 0,
+      "seconds": 160.107,
+      "log_sha256": "a4cf1c7f640b9a7e1f05fd5d34d1d268bd394f809e891261e7c2eb7abe16c5a3",
+      "log_hash_verified": true,
+      "source_maps_equal_final_freeze": true,
+      "source_paths_each": 268,
+      "generated_before_after_current_equal": true,
+      "generated_files_each": 230,
+      "source_changes": [],
+      "generated_changes": [],
+      "rust_check": "pass",
+      "strict_clippy": "pass",
+      "fmt": "pass",
+      "governance_python_tests": 6,
+      "behavior_tests": 397,
+      "ignored_helpers": 1,
+      "llmusage_guard_tests": 2,
+      "exporter_tests": [
+        24,
+        9,
+        197
+      ],
+      "inventory_tests": 1,
+      "zero_match_targets_not_counted": true,
+      "scope": "Linux Tauri aggregate; not Windows root aggregate or macOS process acceptance.",
+      "source_freeze_epoch": "remaining-final-source-freeze.json",
+      "source_freeze_epoch_sha256": "d8ee10c2ad87fcc4061fa636ef82a35372e6cac4a8d4c081dbe1553b0a24a70d"
+    },
+    "linux_tauri_coverage": {
+      "receipt": "remaining-linux-coverage-tauri-final.json",
+      "receipt_sha256": "441bb1f3ea471eb0caf0107efb4fc161fdb366bcc06e551ed2a3da486efc3e6a",
+      "command": [
+        "just",
+        "coverage-tauri"
+      ],
+      "exit_code": 0,
+      "seconds": 166.679,
+      "log_sha256": "bb7dd33e3917c3d6358ad83585e705190d50639000984807b3993c2c71da3b91",
+      "log_hash_verified": true,
+      "source_maps_equal_final_freeze": true,
+      "source_paths_each": 268,
+      "generated_before_after_equal": true,
+      "generated_files_each": 230,
+      "source_changes": [],
+      "generated_changes": [],
+      "behavior_tests": 397,
+      "ignored_helpers": 1,
+      "llmusage_guard_tests": 2,
+      "raw_report": "remaining-linux-coverage-report-final.json",
+      "raw_report_sha256": "55cd4a62be3bc291aa041531180ae485c771f68e9b92961b6046d29e824cb5d3",
+      "gateway": {
+        "count": 703,
+        "covered": 654,
+        "percent": 93.0298719772404
+      },
+      "gateway_threshold": 85,
+      "gateway_pass": true,
+      "overall": {
+        "count": 34456,
+        "covered": 17964,
+        "percent": 52.1360575806826
+      },
+      "overall_scope": "Tauri baseline only; recipe has no overall threshold. Not proof of root workspace 70 percent.",
+      "source_freeze_epoch": "remaining-final-source-freeze.json",
+      "source_freeze_epoch_sha256": "d8ee10c2ad87fcc4061fa636ef82a35372e6cac4a8d4c081dbe1553b0a24a70d"
+    },
+    "linux_root_coverage_first_final": {
+      "receipt": "remaining-linux-workspace-coverage-final.json",
+      "receipt_sha256": "09a8f6088fc4c645004e690d1f397df47fe2aebc593d6dbbcb6a5061640df47c",
+      "command": [
+        "just",
+        "coverage-rust"
+      ],
+      "exit_code": 101,
+      "seconds": 194.99,
+      "log_sha256": "8eb1a6c5e167af4501c664a562bf609de7d1d1c269d31f635c6328742a90845c",
+      "log_hash_verified": true,
+      "source_before_equals_final_freeze": true,
+      "source_changes": [
+        "ccr-ui/src/types/generated/config/ConfigInfo.ts",
+        "ccr-ui/src/types/generated/config/ConfigMutationResult.ts",
+        "ccr-ui/src/types/generated/config/ConfigPatchInput.ts",
+        "ccr-ui/src/types/generated/config/ConfigPlatform.ts",
+        "ccr-ui/src/types/generated/grok/GrokProfileActionResponse.ts",
+        "ccr-ui/src/types/generated/usage/UsageImportJobStage.ts",
+        "ccr-ui/src/types/generated/usage/UsageImportJobStatus.ts"
+      ],
+      "generated_changes_count": 201,
+      "generated_after_count": 33,
+      "generated_after_note": "Snapshot overlaps a Windows aggregate bindings phase. Source-after differs on seven generated paths; final restoration requires separate verification, not an assumed zero-change assertion.",
+      "failing_test": "platforms::base::tests::test_profile_structured_writes_keep_owner_only_permissions",
+      "failure_location": "crates/ccr-config/src/platforms/base.rs:1192",
+      "actual_mode": "0644",
+      "required_mode": "0600",
+      "failing_target_summary": "97 passed; 1 failed; 1 ignored",
+      "result_lines": [
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 119 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.24s",
+        "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.83s",
+        "test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s",
+        "test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.73s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s",
+        "test result: ok. 89 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s",
+        "test result: ok. 346 passed; 0 failed; 0 ignored; 0 measured; 24 filtered out; finished in 103.59s",
+        "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s",
+        "test result: ok. 227 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 2.27s",
+        "test result: FAILED. 97 passed; 1 failed; 1 ignored; 0 measured; 0 filtered out; finished in 5.09s"
+      ],
+      "coverage_thresholds_reached": false,
+      "raw_coverage_report_sha256": null,
+      "source_freeze_epoch": "remaining-final-source-freeze.json",
+      "source_freeze_epoch_sha256": "d8ee10c2ad87fcc4061fa636ef82a35372e6cac4a8d4c081dbe1553b0a24a70d"
+    },
+    "windows_ci_prior_permission_fix": {
+      "receipt": "remaining-windows-ci-final.json",
+      "receipt_sha256": "89395ca76954df0da66ec1cc9adc546b0f88a88921cfd66eea71025e0fbf40da",
+      "command": [
+        "just",
+        "ci"
+      ],
+      "exit_code": 0,
+      "seconds": 930.453,
+      "log_sha256": {
+        "stdout": "599767fec692e8f994d67289fe701796201e138d0b487f46932865df11abf648",
+        "stderr": "e5224a05384e9e1f1a8ae9c40bd34138c60f3c8e3c332ea09f5d4aa6607e9df8",
+        "combined": "3b7cd8a898314225878c150a575fd03b51872bf2c96819c93f3c1d89624abc2f"
+      },
+      "all_three_log_hashes_verified": true,
+      "source_maps_equal_prior_final_freeze": true,
+      "source_paths_each": 268,
+      "source_changes": [],
+      "generated_before_count": 230,
+      "generated_after_count": 230,
+      "generated_changes": [],
+      "tauri_behavior_tests": 407,
+      "tauri_ignored_helper": 1,
+      "tauri_guards": 2,
+      "exporter_tests": [
+        24,
+        9,
+        197
+      ],
+      "frontend_smoke_tests_per_run": 904,
+      "frontend_test_files": 169,
+      "frontend_smoke_runs": 2,
+      "frontend_line_coverage_percent": 75.19,
+      "limitations": "Successful old source epoch before DC-02 repair. Not a substitute for post-fix final gates.",
+      "source_freeze_epoch": "remaining-final-source-freeze.json",
+      "source_freeze_epoch_sha256": "d8ee10c2ad87fcc4061fa636ef82a35372e6cac4a8d4c081dbe1553b0a24a70d"
+    },
+    "linux_root_quality_python_prerequisite_failure": {
+      "receipt": "remaining-linux-workspace-quality-after-permissions.json",
+      "receipt_sha256": "d42006e0a3cb2fec9acfee76c8c2bb36d385e6e8ac2db06a934b3cdc966ae6e5",
+      "source_freeze_epoch": "remaining-permissions-source-freeze.json",
+      "source_freeze_epoch_sha256": "db558b278b92936895543e274352d5034adcd800852998aa19fbfb418b3f5891",
+      "command": [
+        "just",
+        "version-check",
+        "workflow-governance-check",
+        "fmt-check",
+        "lint-strict",
+        "test",
+        "check-workspace"
+      ],
+      "exit_code": 127,
+      "seconds": 6.372,
+      "log_sha256": "9995716cb27b754d19449b1bdf4aab49984c1bbdff2da6a187f17f76a3ccc304",
+      "log_hash_verified": true,
+      "source_changes": [],
+      "generated_changes": [],
+      "passed_before_failure": [
+        "version-check",
+        "workflow-governance-check",
+        "fmt-check"
+      ],
+      "failure": "lint-strict invoked python scripts/quality/check_secret_writes.py; python executable absent in isolated Linux PATH",
+      "not_executed": [
+        "full workspace Clippy",
+        "workspace tests",
+        "workspace check"
+      ],
+      "scope": "Environment prerequisite failure; original recipe and source unchanged. Fresh receipt needed after prerequisite restoration."
+    },
+    "linux_root_quality_unix_test_literal_failure": {
+      "receipt": "remaining-linux-workspace-quality-after-python.json",
+      "receipt_sha256": "3326b81b9a7ada40026232016ad10b76f7a9be95ff46be8f7cf3c17533687b38",
+      "source_freeze_epoch": "remaining-permissions-source-freeze.json",
+      "source_freeze_epoch_sha256": "db558b278b92936895543e274352d5034adcd800852998aa19fbfb418b3f5891",
+      "command": [
+        "just",
+        "version-check",
+        "workflow-governance-check",
+        "fmt-check",
+        "lint-strict",
+        "test",
+        "check-workspace"
+      ],
+      "exit_code": 101,
+      "seconds": 29.196,
+      "log_sha256": "c12b9a48cb59b5a8f4d373077278f22f1f92513ebde0f57e3c9ceb97091f65c7",
+      "log_hash_verified": true,
+      "source_changes": [],
+      "generated_changes": [],
+      "failure": "crates/ccr/tests/diagnostics_contract.rs:357 from_mode(0) triggers clippy::non_octal_unix_permissions; octal 0o0 is the equivalent repair.",
+      "not_executed": [
+        "workspace tests",
+        "workspace check"
+      ],
+      "repair_owner": "root; outside the six permission-repair files"
+    },
+    "linux_root_quality_after_octal": {
+      "receipt": "remaining-linux-workspace-quality-after-octal.json",
+      "receipt_sha256": "ada15b43241693b4cc088f19195182d5eddb8855482e11105b1a11d08f4bbc5f",
+      "command": [
+        "just",
+        "version-check",
+        "workflow-governance-check",
+        "fmt-check",
+        "lint-strict",
+        "test",
+        "check-workspace"
+      ],
+      "exit_code": 101,
+      "seconds": 186.517,
+      "log": "remaining-linux-workspace-quality-after-octal.log",
+      "log_sha256": "e0eac7ca333972777e1c2de13b2d731aeda967f5184d88a8366acb0ffd30dcc3",
+      "log_hash_verified": true,
+      "sources_before_after_equal_freeze": true,
+      "source_changes": [],
+      "generated_before_after_current_equal": true,
+      "generated_count": 230,
+      "generated_changes": [],
+      "version_governance_fmt": "passed",
+      "workspace_strict_clippy": "passed",
+      "workspace_tests": "failed",
+      "workspace_check": "not_reached",
+      "failing_test": "sessions::providers::tests::restores_codex_live_jsonl_under_tempfile_with_windows_path_shapes",
+      "failure_location": "crates/ccr-store/src/sessions/providers.rs:2647",
+      "store_result": {
+        "passed": 80,
+        "failed": 1,
+        "ignored": 2
+      },
+      "ccr_cli_result": {
+        "passed": 346,
+        "failed": 0,
+        "filtered": 24,
+        "seconds": 104.17
+      },
+      "lock_review": "The over-60-second profile cases subsequently passed. TestHome holds a crate-global environment Mutex across each fixture. The permission helper holds a guarded leaf lock and before_write uses thread-local RefCell state and reads; no reverse lock acquisition was found. No thread wait trace was collected, so individual waits are not attributed conclusively to the environment Mutex.",
+      "source_freeze_epoch": "remaining-portability-source-freeze.json",
+      "source_freeze_epoch_sha256": "49801fe0931bcdf156ce4718d5fae5ca844b4ff29988661318ce556a4d292a7d"
+    },
+    "linux_root_quality_after_path": {
+      "command": [
+        "just",
+        "version-check",
+        "workflow-governance-check",
+        "fmt-check",
+        "lint-strict",
+        "test",
+        "check-workspace"
+      ],
+      "exit_code": 0,
+      "seconds": 224.101,
+      "log": "remaining-linux-workspace-quality-after-path.log",
+      "log_sha256": "4e025bdd792ebfd220ad2f0a7508798d2416636aaaac46ad6cbb8747ba779196",
+      "source_freeze_reference": "remaining-platform-tests-source-freeze.json",
+      "source_freeze_sha256": "a31c8730384c91076a051f226d3201e1b6cd2d9efa7ec63f881b8899601db273",
+      "receipt": "remaining-linux-workspace-quality-after-path.json",
+      "receipt_sha256": "0fe1cde13faa41157ead266d8c28752c6a650090cfcff89464f6af00dbf92da6",
+      "source_maps_equal_freeze": true,
+      "source_count": 269,
+      "generated_maps_before_after_current_equal": true,
+      "generated_count": 230,
+      "log_hash_verified": true,
+      "source_changes": [],
+      "generated_changes": [],
+      "test_harnesses_reported": 41,
+      "test_passed_sum": 1869,
+      "test_failed_sum": 0,
+      "test_ignored_sum": 16,
+      "test_filtered_sum": 33,
+      "stages": {
+        "version": "pass",
+        "governance": "pass",
+        "fmt": "pass",
+        "workspace_strict_clippy": "pass",
+        "workspace_tests": "pass",
+        "workspace_cargo_check": "pass"
+      }
+    },
+    "linux_root_audit_after_path": {
+      "command": [
+        "cargo",
+        "audit"
+      ],
+      "exit_code": 0,
+      "seconds": 3.849,
+      "log": "remaining-linux-workspace-audit-after-path.log",
+      "log_sha256": "78f1fb372d0cd8a3596d7fe885c5f9cb4aaad817675cf873cfacf8fc81cb369e",
+      "source_freeze_reference": "remaining-platform-tests-source-freeze.json",
+      "source_freeze_sha256": "a31c8730384c91076a051f226d3201e1b6cd2d9efa7ec63f881b8899601db273",
+      "receipt": "remaining-linux-workspace-audit-after-path.json",
+      "receipt_sha256": "c067c372c591d83f848a6042303af4ede49058aa71cf14abe8be6edc8cac0616",
+      "source_maps_equal_freeze": true,
+      "source_count": 269,
+      "generated_maps_before_after_current_equal": true,
+      "generated_count": 230,
+      "log_hash_verified": true,
+      "source_changes": [],
+      "generated_changes": [],
+      "cargo_audit_version": "cargo-audit 0.22.2",
+      "cargo_audit_path": "/tmp/ccr-architecture-tools-01a0e781/bin/cargo-audit",
+      "cargo_audit_sha256": "a9d56d64202b1f38368d3abe63ce078d8be1374160a4d2c4d3621a7ca0db55e4",
+      "current_audit_executable_sha_and_version_verified": true
+    },
+    "linux_root_coverage_after_path": {
+      "command": [
+        "just",
+        "coverage-rust"
+      ],
+      "exit_code": 0,
+      "seconds": 213.25,
+      "log": "remaining-linux-workspace-coverage-after-path.log",
+      "log_sha256": "3c7bb681c4f56fbfda35c4c25ff79de5852c8b8323f6b767dcd59dfea3197426",
+      "rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+      "environment_overrides": {
+        "PATH": "/tmp/ccr-architecture-tools-01a0e781/bin:/home/lyh/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "RUSTUP_TOOLCHAIN": "1.98.0",
+        "CARGO_TARGET_DIR": "/tmp/ccr-architecture-linux-01a0e781",
+        "CCR_SKIP_ICON_GENERATION": "1"
+      },
+      "source_freeze_reference": "remaining-platform-tests-source-freeze.json",
+      "source_freeze_sha256": "a31c8730384c91076a051f226d3201e1b6cd2d9efa7ec63f881b8899601db273",
+      "receipt": "remaining-linux-workspace-coverage-after-path.json",
+      "receipt_sha256": "396320b6012eac1639086cc21d668f064c164c2c61a57ef8564677a1cf2a02ec",
+      "log_hash_verified": true,
+      "source_maps_equal_freeze": true,
+      "source_count": 269,
+      "generated_maps_before_after_equal": true,
+      "generated_count": 230,
+      "current_generated_not_resampled_during_running_tauri_gate": true,
+      "source_changes": [],
+      "generated_changes": [],
+      "raw_report": "remaining-linux-coverage-workspace-after-path-report.json",
+      "raw_report_sha256": "0f59ba2a17de26c0ea21910e6605d9df6c3535653b5cffe9e73c37e2442f7d7e",
+      "overall": {
+        "count": 99931,
+        "covered": 74554,
+        "percent": 74.60547777966798,
+        "recomputed_percent": 74.60547777966796,
+        "threshold": 70,
+        "pass": true
+      },
+      "gateway": {
+        "count": 409,
+        "covered": 393,
+        "percent": 96.08801955990221,
+        "recomputed_percent": 96.08801955990221,
+        "threshold": 85,
+        "pass": true,
+        "path": "/mnt/d/Documents/Code/Github/ccr/crates/ccr-core/src/core/process_gateway.rs"
+      },
+      "gate_scope": "Rust workspace overall and ccr-core process gateway; distinct from Tauri overall baseline."
+    },
+    "linux_root_msrv_after_path": {
+      "command": [
+        "cargo",
+        "check",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "seconds": 4.96,
+      "log": "remaining-linux-workspace-msrv-after-path.log",
+      "log_sha256": "62e62c88126e094d8c045a5409bae8230dfe333d32b69579ca251084a7213b7b",
+      "rustc": "rustc 1.95.0 (59807616e 2026-04-14)",
+      "environment_overrides": {
+        "PATH": "/tmp/ccr-architecture-tools-01a0e781/bin:/home/lyh/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "RUSTUP_TOOLCHAIN": "stable",
+        "CARGO_TARGET_DIR": "/tmp/ccr-architecture-linux-01a0e781",
+        "CCR_SKIP_ICON_GENERATION": "1"
+      },
+      "source_freeze_reference": "remaining-platform-tests-source-freeze.json",
+      "source_freeze_sha256": "a31c8730384c91076a051f226d3201e1b6cd2d9efa7ec63f881b8899601db273",
+      "receipt": "remaining-linux-workspace-msrv-after-path.json",
+      "receipt_sha256": "53b6d5c65378a972557a498052c943ebcef82bda0132c6d7c85af7172008c712",
+      "log_hash_verified": true,
+      "source_maps_equal_freeze": true,
+      "source_count": 269,
+      "generated_maps_before_after_equal": true,
+      "generated_count": 230,
+      "current_generated_not_resampled_during_running_tauri_gate": true,
+      "source_changes": [],
+      "generated_changes": [],
+      "msrv": "1.95.0",
+      "version_basis": "Captured rustc version 1.95.0; do not infer MSRV from mutable stable toolchain alias alone."
+    },
+    "linux_tauri_ci_after_path": {
+      "reviewed_at_utc": "2026-09-29T03:50:30.632639+00:00",
+      "reviewer": "/root/check_t01",
+      "receipt": "remaining-linux-tauri-ci-after-path.json",
+      "receipt_sha256": "e7abbed0805987a7376d3dc38cd1664f4a0fd779144b51136a93431618e57732",
+      "command": [
+        "just",
+        "tauri-ci"
+      ],
+      "exit_code": 0,
+      "seconds": 216.576,
+      "log": "remaining-linux-tauri-ci-after-path.log",
+      "log_sha256": "18eeed22ef5c70426b85e98731bf08af834b57abb7f14c3c856b1ea1b01a3a6f",
+      "log_hash_verified": true,
+      "source_freeze": "remaining-platform-tests-source-freeze.json",
+      "source_freeze_sha256": "a31c8730384c91076a051f226d3201e1b6cd2d9efa7ec63f881b8899601db273",
+      "source_before_after_equal_freeze": true,
+      "source_count": 269,
+      "generated_before_after_equal": true,
+      "generated_count": 230,
+      "current_generated_not_resampled_during_running_coverage": true,
+      "source_changes": [],
+      "generated_changes": [],
+      "governance_python_tests": 6,
+      "stages": {
+        "fmt": "passed",
+        "cargo_check_desktop_bin": "passed",
+        "strict_clippy_desktop_bin": "passed",
+        "behavior_tests": 397,
+        "guard_tests": 2,
+        "ignored_helper": 1,
+        "exporter_tests": [
+          24,
+          9,
+          197
+        ],
+        "inventory_test": 1,
+        "bindings_baseline_restoration": "passed"
+      },
+      "zero_match_targets_not_counted": true,
+      "scope": "Local WSL Tauri aggregate. Does not replace Windows full ci, Tauri coverage, native attempt7 or macOS."
+    },
+    "linux_tauri_coverage_after_path": {
+      "receipt": "remaining-linux-coverage-tauri-after-path.json",
+      "receipt_sha256": "e4fffdf8d8a224c14cdac87328e28adb6f0a3e283199bdf5d920dab6e774c232",
+      "exit_code": 0,
+      "seconds": 166.002,
+      "log_sha256": "de2739b7f8c546fac6363e7f5e0d066cd11078fbd10d84c63f8f1bb2d697834e",
+      "source_before_after_equal_freeze": true,
+      "generated_before_after_equal": true,
+      "raw_report": "remaining-linux-coverage-tauri-after-path-report.json",
+      "raw_report_sha256": "dd9194758676c4d888805c96b3127a6ff45feabeec822a900fc5766135d690ba",
+      "gateway": {
+        "count": 703,
+        "covered": 654,
+        "percent": 93.0298719772404,
+        "recomputed_percent": 93.0298719772404,
+        "threshold": 85,
+        "pass": true
+      },
+      "overall": {
+        "count": 34456,
+        "covered": 17964,
+        "percent": 52.1360575806826,
+        "recomputed_percent": 52.13605758068261,
+        "scope": "Tauri baseline only; recipe has no overall threshold."
+      }
+    }
+  },
+  "preservation_verification": {
+    "schema": {
+      "receipt": "remaining-schema-restoration-final.json",
+      "receipt_sha256": "8d2b4d0998ced858b08593ecbf77771d2567a3ca3a30de5918494927671bfe40",
+      "baseline": "continuation-linux-tauri-schema-before.json",
+      "baseline_sha256": "9aa09480f485790c273a98d1355396ce6febe24371fd7ba4263362ccf4cc4d64",
+      "original_files": 4,
+      "original_bytes_match": true,
+      "preexisting_schema_hashes": {
+        "ccr-ui/src-tauri/gen/schemas/acl-manifests.json": "4597aef2e1a06c8a8cf285f283e37d8ba0f5ea12e0b333618156929fc32afcc3",
+        "ccr-ui/src-tauri/gen/schemas/capabilities.json": "6934cae7bfc299c4ce98b6d9c99b51b8b4b4ba6fff375d2889764568fa11319a",
+        "ccr-ui/src-tauri/gen/schemas/desktop-schema.json": "32261c7f53df73489e0b5ff5cea42fc1d873125a4ca1e04184af78a397021e68",
+        "ccr-ui/src-tauri/gen/schemas/windows-schema.json": "32261c7f53df73489e0b5ff5cea42fc1d873125a4ca1e04184af78a397021e68"
+      },
+      "removed_path_absent": true,
+      "preserved_copy": "remaining-linux-generated-schema-final.json",
+      "preserved_copy_sha256": "32261c7f53df73489e0b5ff5cea42fc1d873125a4ca1e04184af78a397021e68"
+    },
+    "contexts": {
+      "receipt": ".trellis/tasks/09-28-cli-tauri-architecture/research/remaining-context-preservation-final.json",
+      "receipt_sha256": "40f99c2864c6171bb5eb88a018765bbc995c23cc732f260cb02e4d9a46d67a8e",
+      "recorded_exit_zero_validations": 12,
+      "current_jsonl_hashes_verified": 24,
+      "task_statuses_preserved": 12,
+      "insights_statuses_preserved": {
+        "09-24-home-insights-redesign": "planning",
+        "09-24-home-insights-frontend": "in_progress"
+      },
+      "warning": "dependency-governance.md is 33513 bytes, above the 32768-byte context injection limit; explicit full-file review is separately recorded."
+    },
+    "generated_types": {
+      "snapshot": "remaining-windows-ci-after-path.generated-before.json",
+      "snapshot_sha256": "1ebc696363e75e15b3b2419d7d710cecd825233f3ccc696aadb03572f97323d0",
+      "files": 230,
+      "exact_path_set_match": true,
+      "original_bytes_match": true
+    }
+  },
+  "permission_fix": {
+    "receipt": "remaining-permissions-fix.json",
+    "sha256": "38d310db7d0e31018d1006d2034524b6e6ff4fa7775ea5266ec792d55d301dc9",
+    "delta": "remaining-permissions-fix.diff",
+    "delta_sha256": "a65fd1cb41b3ea8ccd0b84bc6675f5cc594d97ac35b1df7ab5635c7ed26d533d",
+    "author": "/root/check_t01",
+    "independent_review_owner": "/root",
+    "focused_checks": "passed",
+    "old_base_assertion_unchanged": true,
+    "final_epoch_gates": "Current a31c Linux full workspace quality and audit pass; remaining formal gates pending.",
+    "independent_review": {
+      "receipt": "remaining-permissions-independent-review.json",
+      "sha256": "ac61bcb69f1012aea7c3c2c2630b7c85a290ec11498b34debbec51396c7e6941",
+      "reviewer": "root, non-author of the six-file permission delta",
+      "result": "passed_delta_review_pending_formal_gates"
+    },
+    "final_focused_receipts_all_source_maps_equal_new_freeze": true,
+    "generated_exact_baseline_bytes_verified": 230
+  },
+  "initial_source_freeze": {
+    "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-final-source-freeze.json",
+    "sha256": "d8ee10c2ad87fcc4061fa636ef82a35372e6cac4a8d4c081dbe1553b0a24a70d",
+    "path_count": 268,
+    "existing_files": 266,
+    "deletion_markers": 2,
+    "mismatches_at_initial_review": []
+  },
+  "python_prerequisite": {
+    "receipt": "remaining-python-launcher.json",
+    "sha256": "5a62e4ed08ec347f0f793f0ffb196b6fcfd0ab6b2b6e5070a5ec9e0a1fe11e0f",
+    "scope": "Task-local python symlink to the existing Python 3.12 interpreter; recipe and global environment remain unchanged."
+  },
+  "permission_source_freeze": {
+    "path": "remaining-permissions-source-freeze.json",
+    "sha256": "db558b278b92936895543e274352d5034adcd800852998aa19fbfb418b3f5891",
+    "path_count": 268,
+    "existing_files": 266,
+    "deletion_markers": 2,
+    "current_mismatches": [],
+    "difference_from_initial": "Six authorized permission-repair files; original base.rs failing assertion unchanged."
+  },
+  "portability_review": {
+    "path": "remaining-portability-review.json",
+    "sha256": "f9b7f3c106944a5b888213d10b53734690a3b8060908abe195c6aae310eb9688",
+    "octal_fix": {
+      "receipt": "remaining-octal-test-fix.json",
+      "receipt_sha256": "fd4b6e211cde69e116f30395c0a8923a02de5e1f65203861748b78eec0575e2f",
+      "path": "crates/ccr/tests/diagnostics_contract.rs",
+      "before_sha256": "793bb6f12e770b0462a00c7ef184f7642edbec8359c38ae4359167d6e3b55ccf",
+      "after_sha256": "230f1711ce599e4173daa39992ee900ee3e3216522b12c4a495bbf9d7b3b4455",
+      "unique_raw_byte_replacement": true,
+      "line_endings_preserved": true,
+      "semantic_change": false,
+      "author": "/root"
+    }
+  },
+  "store_path_review": {
+    "path": "remaining-store-path-independent-review.json",
+    "sha256": "ba72139cba9035dd0eb068cb91bfaa70447f9031cf2b260bee7c56392de67d2a",
+    "status": "passed_delta_review_pending_new_epoch_formal_gates",
+    "source_sha256": "93d816299b3d24abba4cbe02597d0cd91d5d258a865ea84a3fe79267c39c22c0",
+    "bound_red_review": {
+      "path": "remaining-store-path-red-independent-review.json",
+      "sha256": "72cca7cd2d05a5d7c88715dd663755aade73f5ad8a99033f9c8e31ce4a393597"
+    }
+  },
+  "octal_source_freeze": {
+    "path": "remaining-portability-source-freeze.json",
+    "sha256": "49801fe0931bcdf156ce4718d5fae5ca844b4ff29988661318ce556a4d292a7d",
+    "path_count": 268,
+    "existing_files": 266,
+    "deletion_markers": 2,
+    "current_mismatches": [],
+    "difference_from_permission_epoch": "One root-authored equivalent octal test literal; exact bytes independently verified."
+  },
+  "after_path_gate_review": {
+    "path": "remaining-after-path-gate-review.json",
+    "sha256": "8878262c2cb95671b458a3ee53ccb82714b82c5f4ecfdc704c732555df915305"
+  },
+  "after_path_coverage_msrv_review": {
+    "path": "remaining-after-path-coverage-msrv-review.json",
+    "sha256": "b7940f0342a0ab0fba13b6f8a4b13202fd6b55f17960c7e513d59db3e2e0c16f"
+  },
+  "after_path_tauri_ci_review": {
+    "path": "remaining-after-path-tauri-ci-review.json",
+    "sha256": "cee18510bd831bfb0c3ca9d344b62c1464c61bad277eb482a04dff94dc68127e"
+  },
+  "native7_verification": {
+    "reviewed_at_utc": "2026-09-29T03:59:49.052115+00:00",
+    "reviewer": "/root/check_t01",
+    "status": "passed_scoped_linux_native7_and_tauri_coverage_windows_pending",
+    "source_freeze": "remaining-platform-tests-source-freeze.json",
+    "source_freeze_sha256": "a31c8730384c91076a051f226d3201e1b6cd2d9efa7ec63f881b8899601db273",
+    "source_count": 269,
+    "tauri_coverage": {
+      "receipt": "remaining-linux-coverage-tauri-after-path.json",
+      "receipt_sha256": "e4fffdf8d8a224c14cdac87328e28adb6f0a3e283199bdf5d920dab6e774c232",
+      "exit_code": 0,
+      "seconds": 166.002,
+      "log_sha256": "de2739b7f8c546fac6363e7f5e0d066cd11078fbd10d84c63f8f1bb2d697834e",
+      "source_before_after_equal_freeze": true,
+      "generated_before_after_equal": true,
+      "raw_report": "remaining-linux-coverage-tauri-after-path-report.json",
+      "raw_report_sha256": "dd9194758676c4d888805c96b3127a6ff45feabeec822a900fc5766135d690ba",
+      "gateway": {
+        "count": 703,
+        "covered": 654,
+        "percent": 93.0298719772404,
+        "recomputed_percent": 93.0298719772404,
+        "threshold": 85,
+        "pass": true
+      },
+      "overall": {
+        "count": 34456,
+        "covered": 17964,
+        "percent": 52.1360575806826,
+        "recomputed_percent": 52.13605758068261,
+        "scope": "Tauri baseline only; recipe has no overall threshold."
+      }
+    },
+    "native_build": {
+      "receipt": "remaining-linux-native-after-path.json",
+      "receipt_sha256": "7a413db6d0102ede529ffaaf52b7123983263c09d1fc51358606d22b9f46551b",
+      "exit_code": 0,
+      "seconds": 38.995,
+      "log_sha256": "27e9ea8f1ed836d00ecc3a43edb0440f4266d32c486c7709cf5a7ea69e4ab828",
+      "source_before_after_equal_freeze": true,
+      "generated_before_after_equal": true,
+      "frontend_dist_before_after_equal_ui_build": true,
+      "assets": 284,
+      "csp_config_sha256": "09eeed6614d24a8ca2232671df7327d7271af10e1f3d53fc0ceb5c994f9de48c",
+      "csp_config_current_hash_separately_verified": true,
+      "binary_sha256": "7b72d615f1909baece92bc60c9c327daf9eacbbd692e73dc0ba5797e462c8918",
+      "current_binary_hash_independently_verified": true
+    },
+    "native_run": {
+      "receipt": "remaining-native-webview-7.json",
+      "receipt_sha256": "18fe1b7ab7725eed9f8c3b49548b78fef1f2613d145da26b87ea37ff6fdc0d0c",
+      "log_sha256": "6ae9fc07d0c9c3a1a36985194a71370c482ec3112205b8d225d3aaedc6b24ce0",
+      "harness": "remaining-native-webview-after-path.py",
+      "harness_sha256": "16d7d0b19357bf33dd7580e539478bc13cbe633e2f1583e7e48476d44bf053fd",
+      "harness_delta_from_reviewed_attempt6": "After normalizing line endings, the only logical text change adds the after-path build receipt name to the allowlist; no assertions or actions changed. Raw bytes also change LF to CRLF.",
+      "state": "passed",
+      "checks": [
+        "native_boot",
+        "plaintext_confirmation",
+        "native_scroll_lock",
+        "native_editor",
+        "production_csp",
+        "native_save_roundtrip"
+      ],
+      "save_actual_equals_expected": true,
+      "current_saved_file_sha256_independently_verified": "b57aed982cf108e3ee2f9e2f153fdaa68a2e00c47a62411d1ae00d403235db10",
+      "current_saved_json_independently_read": true,
+      "screenshot": "remaining-native-webview-7.png",
+      "screenshot_sha256": "13c62cd593fb2ca9a3babdb49d73e9b221b579124f7e5fcc129a1130e2db8bf7",
+      "visual_review": "Native Local Claude settings source editor, syntax highlighting and aligned gutter visible; screenshot is before editing and displays sonnet. Save proof comes from WebDriver actions and exact disk JSON/hash.",
+      "post_save_style_csp_violations_empty": true,
+      "style_dom_removal_and_scroll_unlock_not_measured": true,
+      "live_process_group_members_after_cleanup": [],
+      "driver_exit_code": -15,
+      "harness_line_endings": {
+        "before_file": "remaining-native-webview.py",
+        "before_sha256": "7e4ccd29109ffe48dfe8ddf8381c5b802801cfe4d5906570c7cca7177ae79c53",
+        "before_bytes": 17334,
+        "before_lf": 227,
+        "before_crlf": 0,
+        "after_file": "remaining-native-webview-after-path.py",
+        "after_sha256": "16d7d0b19357bf33dd7580e539478bc13cbe633e2f1583e7e48476d44bf053fd",
+        "after_bytes": 17603,
+        "after_lf": 227,
+        "after_crlf": 227,
+        "raw_change_exactly_allowlist_extension_plus_lf_to_crlf": true
+      }
+    },
+    "frontend_input_binding": {
+      "ui_build_receipt": "remaining-csp-ui-build.json",
+      "ui_build_receipt_sha256": "d2efa648280e075866aa78b1f874f7a348af402154743877c2889889fd99dd20",
+      "input_count": 1060,
+      "before_after_equal": true,
+      "nongenerated_current_paths_verified": 830,
+      "generated_paths_bound_to_native_build_stable_snapshot": 230,
+      "current_generated_or_dist_not_sampled_during_windows_ci": true
+    },
+    "root_acceptance": {
+      "receipt": "remaining-native-acceptance-final.json",
+      "receipt_sha256": "f37b469aa66deaf3123ca4fb2a25b587b03770cf20db82f48c31aee083a73191",
+      "artifact_hashes_verified": 9,
+      "field_semantics": "Corrected to post-save style CSP events only; DOM-removal and scroll-unlock remain unmeasured.",
+      "historical_correction_receipt": "remaining-native-style-evidence-correction.json",
+      "historical_correction_sha256": "0b182cab258e2df7c0400b14f57e86430aabebbee3916f3473f70b23f9253980"
+    },
+    "limits": [
+      "Linux WebKitGTK/WSLg, debug automation binary with production custom-protocol assets/CSP.",
+      "Synthetic local settings and WebDriver input; environment redirection is not an OS filesystem sandbox.",
+      "No Windows WebView2/macOS native, physical input, release installer, real SSH or provider OAuth acceptance."
+    ]
+  },
+  "after_path_native_coverage_review": {
+    "path": "remaining-after-path-native-coverage-review.json",
+    "sha256": "dd7c7f834230f83bde8fc3d543f68086bf93122a76cd63458985cd34f53e8d6d"
+  },
+  "initial_static_verification": {
+    "ac_ids_and_text_match": {
+      "expected": 39,
+      "mapped": 39,
+      "missing": [],
+      "extra": [],
+      "different_text": []
+    },
+    "test_selector_index": {
+      "groups": 42,
+      "selectors": 148,
+      "missing": [],
+      "changed_index_hash": [
+        "doctor_deadline: crates/ccr-cli/src/commands/codex/fix.rs; subsequent fixture delta is separately reviewed"
+      ]
+    },
+    "p1_baseline_hashes": {
+      "groups": 9,
+      "unique_files": 20,
+      "mismatches": []
+    },
+    "referenced_artifact_hashes": {
+      "unique_path_hash_pairs": 166,
+      "mismatches": []
+    },
+    "spec_path_exists": true,
+    "scoped_git_diff_check": {
+      "exit_code": 0,
+      "scope": ".trellis/spec/ccr/backend/typed-ipc-bindings.md"
+    }
+  },
+  "windows_final_review": {
+    "path": "remaining-windows-final-independent-review.json",
+    "sha256": "91f12fc53ba2685b4a0813db97bb71dc38d4faf4aa7a18028c36787b356c874d",
+    "status": "passed_recorded_windows_gate_and_preservation",
+    "exit_code": 0,
+    "seconds": 1078.351,
+    "passed_stages": 14,
+    "tauri_behavior_passed": 407,
+    "frontend_coverage": {
+      "path": "ccr-ui/coverage/coverage-final.json",
+      "sha256": "c9927a8ca003474477c74fb68e6cf0fd50fff7a2fd9c5f3b8691002337f80fdc",
+      "file_records": 661,
+      "covered_lines": 13081,
+      "total_lines": 17395,
+      "computed_percent": 75.19977004886461,
+      "displayed_line_percent": 75.19,
+      "displayed_statement_percent": 72.92,
+      "line_threshold": 70,
+      "method": "Per file, group statement counters by statement start line and use the maximum hit count for each line. Count each resulting line once.",
+      "tests": {
+        "files": 169,
+        "passed": 904
+      }
+    }
+  },
+  "final_matrix_review": {
+    "path": "remaining-final-matrix-independent-review.json",
+    "sha256": "1508c39e69c2946a7ea0e406ca3d484735b6cc8870066b8747ade6d59945d22f",
+    "status": "passed_frozen_evidence_graph_required_acceptance_open",
+    "counts": {
+      "requirements": 39,
+      "groups": 48,
+      "selectors": 164,
+      "p1_groups": 9,
+      "runs": 86,
+      "verified_repository_artifacts": 393,
+      "original_counterexample_artifacts": 20,
+      "historical_canonical_run_objects": 41,
+      "immutable_source_manifests": 7,
+      "current_zero_exit_lanes": 8
+    },
+    "frozen_artifacts": {
+      ".trellis/tasks/09-28-architecture-contract-gates/research/requirements-evidence.json": "1fda82c5eb3ad3f3bb1d48ad1e1145e5d7f95ad3c653f4b6e142938bfbab5db0",
+      ".trellis/tasks/09-28-architecture-contract-gates/research/requirements-evidence.md": "a877b4383b09a0c930ab44384ea328faef09be214560b4cdbe067781ad309fa3",
+      ".trellis/tasks/09-28-architecture-contract-gates/research/evidence-mapping-validation.json": "97063da84a1db420cc4f13a0b51f2caf2e3987e8a5e5681d71c6358888e61500",
+      ".trellis/tasks/09-28-cli-tauri-architecture/research/p1-evidence-ledger.json": "4d1fd9b120448df213763e58c531ac5faa59dc646c50458bc22996c6ecca9560"
+    },
+    "remaining_required_acceptance": [
+      "macOS native process matrix: required_not_run",
+      "fix_commit remains null; T10.AC2 remains partial_mapping_fix_commit_pending"
+    ]
+  },
+  "current_gate_receipts": [
+    {
+      "key": "remaining_windows_ci_after_path",
+      "receipt": "remaining-windows-ci-after-path.json",
+      "sha256": "657b581fd6bbe1d10d52256f43d1130ebb6078e8edb4ce7359491abd3ca2795f",
+      "exit_code": 0,
+      "source_paths": 269
+    },
+    {
+      "key": "remaining_linux_tauri_ci_after_path",
+      "receipt": "remaining-linux-tauri-ci-after-path.json",
+      "sha256": "e7abbed0805987a7376d3dc38cd1664f4a0fd779144b51136a93431618e57732",
+      "exit_code": 0,
+      "source_paths": 269
+    },
+    {
+      "key": "remaining_linux_coverage_after_path",
+      "receipt": "remaining-linux-coverage-tauri-after-path.json",
+      "sha256": "e4fffdf8d8a224c14cdac87328e28adb6f0a3e283199bdf5d920dab6e774c232",
+      "exit_code": 0,
+      "source_paths": 269
+    },
+    {
+      "key": "remaining_linux_native_after_path",
+      "receipt": "remaining-linux-native-after-path.json",
+      "sha256": "7a413db6d0102ede529ffaaf52b7123983263c09d1fc51358606d22b9f46551b",
+      "exit_code": 0,
+      "source_paths": 269
+    },
+    {
+      "key": "remaining_linux_workspace_quality_after_path",
+      "receipt": "remaining-linux-workspace-quality-after-path.json",
+      "sha256": "0fe1cde13faa41157ead266d8c28752c6a650090cfcff89464f6af00dbf92da6",
+      "exit_code": 0,
+      "source_paths": 269
+    },
+    {
+      "key": "remaining_linux_workspace_coverage_after_path",
+      "receipt": "remaining-linux-workspace-coverage-after-path.json",
+      "sha256": "396320b6012eac1639086cc21d668f064c164c2c61a57ef8564677a1cf2a02ec",
+      "exit_code": 0,
+      "source_paths": 269
+    },
+    {
+      "key": "remaining_linux_workspace_audit_after_path",
+      "receipt": "remaining-linux-workspace-audit-after-path.json",
+      "sha256": "c067c372c591d83f848a6042303af4ede49058aa71cf14abe8be6edc8cac0616",
+      "exit_code": 0,
+      "source_paths": 269
+    },
+    {
+      "key": "remaining_linux_workspace_msrv_after_path",
+      "receipt": "remaining-linux-workspace-msrv-after-path.json",
+      "sha256": "53b6d5c65378a972557a498052c943ebcef82bda0132c6d7c85af7172008c712",
+      "exit_code": 0,
+      "source_paths": 269
+    }
+  ],
+  "verification_record_semantics": {
+    "current_status_fields": [
+      "status",
+      "verification",
+      "current_open_boundaries",
+      "windows_final_review",
+      "final_matrix_review",
+      "current_gate_receipts",
+      "preservation_verification"
+    ],
+    "historical_records_preserved": [
+      "initial_static_verification",
+      "formal_gate_verification",
+      "native_verification",
+      "native_attempts",
+      "native7_verification"
+    ],
+    "rule": "Timestamped historical records retain their original source epoch and pending status at that observation. Read the current status fields for final review completion. Capture-time labels in the frozen matrix are not overwritten."
+  },
+  "completion_boundary": {
+    "review_complete": true,
+    "all_eight_current_lanes_verified": true,
+    "new_source_findings_in_final_evidence_pass": [],
+    "task_acceptance_granted": false,
+    "lifecycle_changed": false,
+    "fix_commit": null,
+    "matrix_files_modified_by_reviewer": false,
+    "passing_gates_rerun": false
+  }
+}

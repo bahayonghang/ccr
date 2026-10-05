@@ -1,0 +1,25 @@
+{
+  "source": "ccr-ui/src/views/usage/dateWindow.ts:20-21",
+  "source_modified_by_this_task": false,
+  "diagnostic": "Real helper imported with isolated TZ process environment; not a test expectation change",
+  "results": [
+    {
+      "timezone": "UTC",
+      "exit_code": 0,
+      "stdout": "{\"allTime\":100,\"march\":31,\"zone\":\"UTC\"}",
+      "stderr": ""
+    },
+    {
+      "timezone": "America/Chicago",
+      "exit_code": 0,
+      "stdout": "{\"allTime\":99,\"march\":30,\"zone\":\"America/Chicago\"}",
+      "stderr": ""
+    },
+    {
+      "timezone": "Asia/Shanghai",
+      "exit_code": 0,
+      "stdout": "{\"allTime\":100,\"march\":31,\"zone\":\"Asia/Shanghai\"}",
+      "stderr": ""
+    }
+  ]
+}

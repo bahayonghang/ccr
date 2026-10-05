@@ -1,0 +1,143 @@
+{
+  "captured_at_utc": "2026-09-29T02:44:13.868304+00:00",
+  "validations": [
+    {
+      "task": "09-28-cli-tauri-architecture",
+      "exit_code": 0,
+      "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-cli-tauri-architecture\n\n  \u001b[1;33mimplement.jsonl:2: Warning: .trellis/spec/ccr/backend/dependency-governance.md is 33513 bytes, exceeds context_injection.max_file_bytes (32768); injection will truncate it\u001b[0m\n  \u001b[0;32mimplement.jsonl: ✓ (9 entries)\u001b[0m\n  \u001b[1;33mcheck.jsonl:2: Warning: .trellis/spec/ccr/backend/dependency-governance.md is 33513 bytes, exceeds context_injection.max_file_bytes (32768); injection will truncate it\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (9 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "context_hashes": {
+        "check.jsonl": "07d826e1b7fd4ad768215a8796869ef7d1ee6167e8c74716311f0bffb1626bb5",
+        "implement.jsonl": "07d826e1b7fd4ad768215a8796869ef7d1ee6167e8c74716311f0bffb1626bb5"
+      },
+      "context_unchanged": true,
+      "lifecycle": "in_progress"
+    },
+    {
+      "task": "09-28-config-repository-consistency",
+      "exit_code": 0,
+      "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-config-repository-consistency\n\n  \u001b[0;32mimplement.jsonl: ✓ (6 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (6 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "context_hashes": {
+        "check.jsonl": "0762bd36715a9cff44cd8d308f5597044e6230b1ca78f94a358800b6d64124fa",
+        "implement.jsonl": "0762bd36715a9cff44cd8d308f5597044e6230b1ca78f94a358800b6d64124fa"
+      },
+      "context_unchanged": true,
+      "lifecycle": "in_progress"
+    },
+    {
+      "task": "09-28-profile-application-usecases",
+      "exit_code": 0,
+      "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-profile-application-usecases\n\n  \u001b[0;32mimplement.jsonl: ✓ (9 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (9 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "context_hashes": {
+        "check.jsonl": "148ce08f6c6ee3269a45b18c9e0861635f123b382bd31eb5b6601a10dac790d5",
+        "implement.jsonl": "148ce08f6c6ee3269a45b18c9e0861635f123b382bd31eb5b6601a10dac790d5"
+      },
+      "context_unchanged": true,
+      "lifecycle": "in_progress"
+    },
+    {
+      "task": "09-28-tauri-config-adapter",
+      "exit_code": 0,
+      "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-tauri-config-adapter\n\n  \u001b[0;32mimplement.jsonl: ✓ (11 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (11 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "context_hashes": {
+        "check.jsonl": "777442a4bba8e2313c49ee116cea56b1673e49dfdf0a5022d83cb17b2dabd8cc",
+        "implement.jsonl": "777442a4bba8e2313c49ee116cea56b1673e49dfdf0a5022d83cb17b2dabd8cc"
+      },
+      "context_unchanged": true,
+      "lifecycle": "in_progress"
+    },
+    {
+      "task": "09-28-cli-diagnostics-contract",
+      "exit_code": 0,
+      "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-cli-diagnostics-contract\n\n  \u001b[0;32mimplement.jsonl: ✓ (8 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (9 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "context_hashes": {
+        "check.jsonl": "ec3dc74b23dee9a2a280eabf63e9b27c99b88ecd81c95fbb09e65a4fe29bf7fc",
+        "implement.jsonl": "be3f3ec02ceb14aa80afad3ac7f5d2b89320a6c5579e0e2e3cc0eb50cf01ff12"
+      },
+      "context_unchanged": true,
+      "lifecycle": "in_progress"
+    },
+    {
+      "task": "09-28-safe-persistence-backups",
+      "exit_code": 0,
+      "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-safe-persistence-backups\n\n  \u001b[0;32mimplement.jsonl: ✓ (7 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (7 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "context_hashes": {
+        "check.jsonl": "78e5024073a4a4ad1c8acfcb59472ad6a3de10e65bf5705edc9c7496b6a93097",
+        "implement.jsonl": "78e5024073a4a4ad1c8acfcb59472ad6a3de10e65bf5705edc9c7496b6a93097"
+      },
+      "context_unchanged": true,
+      "lifecycle": "in_progress"
+    },
+    {
+      "task": "09-28-usage-job-lifecycle",
+      "exit_code": 0,
+      "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-usage-job-lifecycle\n\n  \u001b[0;32mimplement.jsonl: ✓ (8 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (8 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "context_hashes": {
+        "check.jsonl": "de4dba1251056e72a17a03d831d9bfb0971ac6555f7be0e940c17939016867dd",
+        "implement.jsonl": "de4dba1251056e72a17a03d831d9bfb0971ac6555f7be0e940c17939016867dd"
+      },
+      "context_unchanged": true,
+      "lifecycle": "in_progress"
+    },
+    {
+      "task": "09-28-command-workbench-lifecycle",
+      "exit_code": 0,
+      "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-command-workbench-lifecycle\n\n  \u001b[0;32mimplement.jsonl: ✓ (10 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (10 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "context_hashes": {
+        "check.jsonl": "7575e8f3167270a7da6764fe1c474ce077728021bba9aa55abf53543b6104165",
+        "implement.jsonl": "7575e8f3167270a7da6764fe1c474ce077728021bba9aa55abf53543b6104165"
+      },
+      "context_unchanged": true,
+      "lifecycle": "in_progress"
+    },
+    {
+      "task": "09-28-settings-lossless-capabilities",
+      "exit_code": 0,
+      "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-settings-lossless-capabilities\n\n  \u001b[0;32mimplement.jsonl: ✓ (7 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (7 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "context_hashes": {
+        "check.jsonl": "6594b124be6fa8a6d765ce5b9a6efe4fe02769e9bf3772e7a45d9bc11a6a2c07",
+        "implement.jsonl": "6594b124be6fa8a6d765ce5b9a6efe4fe02769e9bf3772e7a45d9bc11a6a2c07"
+      },
+      "context_unchanged": true,
+      "lifecycle": "in_progress"
+    },
+    {
+      "task": "09-28-frontend-query-error-contracts",
+      "exit_code": 0,
+      "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-frontend-query-error-contracts\n\n  \u001b[0;32mimplement.jsonl: ✓ (8 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (8 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "context_hashes": {
+        "check.jsonl": "7e3c2daa1855fce5fd8c4ee87ad1b679e549c8fa1cbda3469c6f6fc128139bb6",
+        "implement.jsonl": "7e3c2daa1855fce5fd8c4ee87ad1b679e549c8fa1cbda3469c6f6fc128139bb6"
+      },
+      "context_unchanged": true,
+      "lifecycle": "in_progress"
+    },
+    {
+      "task": "09-28-architecture-contract-gates",
+      "exit_code": 0,
+      "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-architecture-contract-gates\n\n  \u001b[1;33mimplement.jsonl:1: Warning: .trellis/spec/ccr/backend/dependency-governance.md is 33513 bytes, exceeds context_injection.max_file_bytes (32768); injection will truncate it\u001b[0m\n  \u001b[0;32mimplement.jsonl: ✓ (9 entries)\u001b[0m\n  \u001b[1;33mcheck.jsonl:1: Warning: .trellis/spec/ccr/backend/dependency-governance.md is 33513 bytes, exceeds context_injection.max_file_bytes (32768); injection will truncate it\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (9 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "context_hashes": {
+        "check.jsonl": "abe71fc1111ac4a4a3d7683609d9cdcaa4ebcfdbccf7e2e13389e888a7ded5aa",
+        "implement.jsonl": "abe71fc1111ac4a4a3d7683609d9cdcaa4ebcfdbccf7e2e13389e888a7ded5aa"
+      },
+      "context_unchanged": true,
+      "lifecycle": "in_progress"
+    },
+    {
+      "task": "09-28-desktop-control-oauth-lifecycle",
+      "exit_code": 0,
+      "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-desktop-control-oauth-lifecycle\n\n  \u001b[0;32mimplement.jsonl: ✓ (8 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (8 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n",
+      "context_hashes": {
+        "check.jsonl": "31b38a6fe92d3b3601c7954a642818a9a4d3061c0f49b70b8b7e4b224ccfe3fb",
+        "implement.jsonl": "31b38a6fe92d3b3601c7954a642818a9a4d3061c0f49b70b8b7e4b224ccfe3fb"
+      },
+      "context_unchanged": true,
+      "lifecycle": "in_progress"
+    }
+  ],
+  "passed": 12,
+  "all_contexts_unchanged": true,
+  "existing_tasks": {
+    "09-24-home-insights-redesign": "planning",
+    "09-24-home-insights-frontend": "in_progress"
+  }
+}

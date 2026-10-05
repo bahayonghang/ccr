@@ -1,12 +1,16 @@
-import {
-  ref,
-  watch,
-  onMounted,
-  onBeforeUnmount,
-  getCurrentInstance,
-  type Ref,
-  type WatchSource,
-} from 'vue'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPoller, type Poller } from '@/utils/poller'
+
+// 轮询 composable 的 React 迁移（08-22-state-logic-port 批次 5）。
+// 框架无关核心在 `utils/poller.ts`（createPoller）；本文件是薄 React 接线：
+// useState 镜像 data/loading/error/isActive，useRef 持有 poller 单例，
+// effect 承担原 onMounted/onBeforeUnmount（启动/停表+解绑监听）。
+//
+// 签名变化（相对 Vue 版，消费方均为待迁移 .vue 视图）：
+// - 返回对象中的 Ref<T> 读取改为普通值（React 状态）；
+// - pauseWhen 由 `WatchSource<boolean> | (() => boolean)` 改为
+//   `boolean | (() => boolean)`：布尔源经 effect 调用 poller.onPauseChange
+//   即时反应（原 watch 分支）；函数源由核心每 tick 求值。
 
 export interface UsePolledDataOptions {
   /** 去重 key；相同 key 的轮询请求共用同一个 in-flight Promise */
@@ -15,8 +19,8 @@ export interface UsePolledDataOptions {
   intervalMs: number | (() => number)
   /** 页面隐藏时暂停轮询（默认 true） */
   pauseWhenHidden?: boolean
-  /** 自定义暂停条件（Ref<boolean> 或返回 boolean 的函数） */
-  pauseWhen?: WatchSource<boolean> | (() => boolean)
+  /** 自定义暂停条件：响应式布尔值或每 tick 求值的纯函数 */
+  pauseWhen?: boolean | (() => boolean)
   /** 是否立即执行一次（默认 true） */
   immediate?: boolean
   /** 页面重新可见时的附加回调 */
@@ -27,11 +31,11 @@ export interface UsePolledDataOptions {
 
 export interface UsePolledDataReturn<T> {
   /** 轮询数据 */
-  data: Ref<T | null>
+  data: T | null
   /** 是否正在加载 */
-  loading: Ref<boolean>
+  loading: boolean
   /** 最近一次错误 */
-  error: Ref<Error | null>
+  error: Error | null
   /** 手动刷新 */
   refresh: () => Promise<void>
   /** 暂停轮询 */
@@ -39,205 +43,89 @@ export interface UsePolledDataReturn<T> {
   /** 恢复轮询；默认恢复时立即刷新，可通过 immediate=false 只重启定时器 */
   resume: (options?: { immediate?: boolean }) => void
   /** 轮询是否活跃 */
-  isActive: Ref<boolean>
+  isActive: boolean
 }
 
 export function usePolledData<T>(
   fetcher: () => Promise<T>,
   options: UsePolledDataOptions
 ): UsePolledDataReturn<T> {
-  const {
-    key,
-    intervalMs,
-    pauseWhenHidden = true,
-    pauseWhen,
-    immediate = true,
-    onVisibilityResume,
-    onError,
-  } = options
+  const { pauseWhen } = options
 
-  const data = ref<T | null>(null) as Ref<T | null>
-  const loading = ref(false)
-  const error = ref<Error | null>(null)
-  const isActive = ref(false)
+  const [data, setData] = useState<T | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+  const [isActive, setIsActive] = useState(false)
 
-  let timer: ReturnType<typeof setInterval> | null = null
-  let inFlight = false
-  let visibilityListenerAttached = false
-  // 间隔为函数时走递归 setTimeout（每轮重新求值），需用 clearTimeout 取消
-  const dynamicInterval = typeof intervalMs === 'function'
-  const resolveInterval = (): number =>
-    typeof intervalMs === 'function' ? intervalMs() : intervalMs
+  // options/fetcher 经 ref 惰性读取：poller 只创建一次（原 setup 时读一次 options）
+  const fetcherRef = useRef(fetcher)
+  fetcherRef.current = fetcher
+  const optionsRef = useRef(options)
+  optionsRef.current = options
 
-  const inFlightByKey = usePolledDataInflightMap
-
-  const shouldPause = (): boolean => {
-    if (pauseWhenHidden && typeof document !== 'undefined' && document.hidden) {
-      return true
-    }
-    if (pauseWhen !== undefined) {
-      if (typeof pauseWhen === 'function') {
-        return pauseWhen()
-      }
-      // WatchSource — treat as a Ref-like with .value
-      const src = pauseWhen as { value: boolean }
-      if (src && typeof src === 'object' && 'value' in src) {
-        return src.value
-      }
-    }
-    return false
-  }
-
-  const doFetch = async (): Promise<void> => {
-    if (inFlight) return
-    inFlight = true
-    loading.value = true
-    error.value = null
-    try {
-      if (key) {
-        const sharedPromise = (inFlightByKey.get(key) as Promise<T> | undefined) ?? fetcher()
-        if (!inFlightByKey.has(key)) {
-          inFlightByKey.set(key, sharedPromise as Promise<unknown>)
+  const pollerRef = useRef<Poller<T> | null>(null)
+  if (!pollerRef.current) {
+    const initial = optionsRef.current
+    pollerRef.current = createPoller<T>(
+      async () => {
+        // 状态镜像由包装 fetcher 维护；错误归一化后抛回核心走 onError 分支
+        setLoading(true)
+        setError(null)
+        try {
+          const result = await fetcherRef.current()
+          setData(result)
+          return result
+        } catch (err) {
+          throw err instanceof Error ? err : new Error(String(err))
+        } finally {
+          setLoading(false)
         }
-        data.value = await sharedPromise
-      } else {
-        data.value = await fetcher()
-      }
-    } catch (err) {
-      const e = err instanceof Error ? err : new Error(String(err))
-      error.value = e
-      onError?.(e)
-    } finally {
-      if (key) {
-        inFlightByKey.delete(key)
-      }
-      loading.value = false
-      inFlight = false
+      },
+      {
+        key: initial.key,
+        intervalMs: initial.intervalMs,
+        pauseWhenHidden: initial.pauseWhenHidden,
+        pauseWhen: typeof initial.pauseWhen === 'function' ? initial.pauseWhen : undefined,
+        immediate: initial.immediate,
+        onVisibilityResume: initial.onVisibilityResume,
+        onError: (e) => {
+          setError(e)
+          optionsRef.current.onError?.(e)
+        },
+      },
+    )
+  }
+  const poller = pollerRef.current
+
+  // 挂载启动 / 卸载清理（原 onMounted/onBeforeUnmount：停表 + 解绑 visibility 监听）；
+  // StrictMode 双挂载下 start/stop 幂等（监听去重 + 定时器判空重建）
+  useEffect(() => {
+    poller.start()
+    setIsActive(poller.isActive())
+    return () => {
+      poller.stop()
     }
-  }
+  }, [poller])
 
-  const startTimer = (): void => {
-    if (timer) return
-    if (dynamicInterval) {
-      // 递归 setTimeout：每轮按最新间隔重新调度，停止时由 stopTimer 走 clearTimeout
-      const tick = (): void => {
-        timer = setTimeout(() => {
-          if (!shouldPause()) {
-            void doFetch()
-          }
-          tick()
-        }, resolveInterval())
-      }
-      tick()
-      return
+  // 原 watch(pauseWhen as WatchSource<boolean>)（无选项）：布尔源变化的即时反应；
+  // isActive 不受该分支影响（与原实现一致，仅显式 pause 会置 false）
+  useEffect(() => {
+    if (typeof pauseWhen === 'boolean') {
+      poller.onPauseChange(pauseWhen)
     }
-    timer = setInterval(() => {
-      if (!shouldPause()) {
-        void doFetch()
-      }
-    }, resolveInterval())
-  }
+  }, [pauseWhen, poller])
 
-  const stopTimer = (): void => {
-    if (timer) {
-      if (dynamicInterval) {
-        clearTimeout(timer)
-      } else {
-        clearInterval(timer)
-      }
-      timer = null
-    }
-  }
+  const refresh = useCallback(() => poller.refresh(), [poller])
 
-  const attachVisibilityListener = (): void => {
-    if (!pauseWhenHidden || typeof document === 'undefined' || visibilityListenerAttached) {
-      return
-    }
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    visibilityListenerAttached = true
-  }
+  const pause = useCallback(() => {
+    poller.pause()
+    setIsActive(poller.isActive())
+  }, [poller])
 
-  const detachVisibilityListener = (): void => {
-    if (!pauseWhenHidden || typeof document === 'undefined' || !visibilityListenerAttached) {
-      return
-    }
-    document.removeEventListener('visibilitychange', handleVisibilityChange)
-    visibilityListenerAttached = false
-  }
-
-  const pause = (): void => {
-    isActive.value = false
-    stopTimer()
-    detachVisibilityListener()
-  }
-
-  const resume = (resumeOptions: { immediate?: boolean } = {}): void => {
-    attachVisibilityListener()
-    if (shouldPause()) return
-    isActive.value = true
-    if (resumeOptions.immediate ?? true) {
-      void doFetch()
-    }
-    startTimer()
-  }
-
-  const refresh = async (): Promise<void> => {
-    await doFetch()
-  }
-
-  const handleVisibilityChange = (): void => {
-    if (shouldPause()) {
-      stopTimer()
-    } else if (isActive.value) {
-      void doFetch()
-      void onVisibilityResume?.()
-      startTimer()
-    }
-  }
-
-  // Watch pauseWhen if it is a reactive source (Ref)
-  if (pauseWhen !== undefined && typeof pauseWhen !== 'function') {
-    watch(pauseWhen as WatchSource<boolean>, (paused) => {
-      if (paused) {
-        stopTimer()
-      } else if (isActive.value) {
-        void doFetch()
-        startTimer()
-      }
-    })
-  }
-
-  const instance = getCurrentInstance()
-
-  if (instance) {
-    onMounted(() => {
-      attachVisibilityListener()
-      if (immediate) {
-        isActive.value = true
-        if (!shouldPause()) {
-          void doFetch()
-          startTimer()
-        }
-      }
-    })
-
-    onBeforeUnmount(() => {
-      stopTimer()
-      detachVisibilityListener()
-    })
-  } else {
-    // Called outside component context — auto-start if immediate
-    if (immediate) {
-      isActive.value = true
-      attachVisibilityListener()
-      if (!shouldPause()) {
-        void doFetch()
-        startTimer()
-      }
-    }
-  }
+  const resume = useCallback((resumeOptions?: { immediate?: boolean }) => {
+    poller.resume(resumeOptions)
+    setIsActive(poller.isActive())
+  }, [poller])
 
   return { data, loading, error, refresh, pause, resume, isActive }
 }
-
-const usePolledDataInflightMap = new Map<string, Promise<unknown>>()

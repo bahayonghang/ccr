@@ -5,7 +5,7 @@ description: "Frontend, Tauri UI, and VS Code extension conventions for CCR"
 
 # UI Instructions
 
-- Preserve the existing Vue 3, Tauri, and extension patterns already used in the repository.
+- Preserve the existing React 19 + TanStack Query, Tauri, and extension patterns already used in the repository. Do not add Vue SFCs or Pinia stores.
 - Keep 2-space indentation, no semicolons, and single quotes in frontend code.
 - Reuse existing components, stores, and styles before adding new patterns.
 - Do not conflate GitHub Copilot workspace assets under `.github/` with Codex CLI runtime files under `~/.codex/`.

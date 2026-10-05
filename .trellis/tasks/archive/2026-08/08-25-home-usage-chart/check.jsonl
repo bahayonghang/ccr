@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/ccr-ui/frontend/dashboard-presentation-contracts.md", "reason": "buildDashboardPresentation 的输出契约；新增 sparkline 字段须在此契约内"}
+{"file": ".trellis/spec/ccr-ui/frontend/usage-chart-stability-contracts.md", "reason": "用量图表的既有稳定性契约与卸载要求"}
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "src/api 封装边界；本任务不得新增 IPC 或绕过 facade"}
+{"file": ".trellis/spec/ccr-ui/frontend/react-rerender-discipline.md", "reason": "首屏渲染与延迟发起查询的既有约束"}
+{"file": ".trellis/tasks/08-25-react-home-style-redesign/research/plan-review-adjudication.md", "reason": "2026-08-25 规划审阅的逐条裁定与证据；含名称冻结、测试断言、未跟踪信号、成本区间等已核验事实"}

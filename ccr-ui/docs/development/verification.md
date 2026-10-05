@@ -16,7 +16,7 @@ This checks the maintained document structure, archive lifecycle, local Markdown
 |---|---|
 | TypeScript, Vue, router, store, or composable | `bun run type-check`, `bun run lint`, `bun run test:smoke` |
 | Visible or localized copy | `bun run test:i18n`, `bun run check:i18n` |
-| API wrapper or invoke boundary | `bun run test:smoke -- tests/api-facade-boundary.smoke.test.ts`, then type-check and lint |
+| API wrapper or invoke boundary | `bun run test:smoke -- tests/api/api-facade-boundary.smoke.test.ts`, then type-check and lint |
 | Theme, tokens, fonts, or semantic surfaces | relevant theme smoke tests, type-check, lint, and browser inspection |
 | Production bundling or dependency shape | `bun run build`, optionally `bun run check:bundle-budget` |
 

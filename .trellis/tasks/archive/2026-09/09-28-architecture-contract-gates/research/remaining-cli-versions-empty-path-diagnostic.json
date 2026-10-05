@@ -1,0 +1,20 @@
+{
+  "command": [
+    "D:\\Documents\\Code\\Github\\ccr\\ccr-ui\\src-tauri\\target\\debug\\deps\\ccr_desktop-ed91dd2d4c06f58c.exe",
+    "commands::system::tests::cli_versions_fast_mode_returns_expected_shape",
+    "--exact",
+    "--nocapture"
+  ],
+  "cwd": "ccr-ui/src-tauri",
+  "started_at_utc": "2026-09-29T02:16:27.168117+00:00",
+  "seconds": 0.041,
+  "exit_code": 0,
+  "environment_overrides": {
+    "PATH": ""
+  },
+  "binary_sha256": "f291d5182dc27e9353ddf96c762ced1d20d6f493ed04a32fbae62cd849104ced",
+  "source_sha256": "46b389ad971af8cec13e7ada2dd4690f491b9b44d65eb27e3b797cea492e6c21",
+  "log": "remaining-cli-versions-empty-path-diagnostic.log",
+  "log_sha256": "0564c3b3c0d5a5b214cee5c3c42f26ef81d2b891c3607fbf9b259b94d55f6bbd",
+  "scope": "Original CI executable with child-process empty PATH. This diagnostic distinguishes host executable discovery from payload shape; it does not identify the slow tool in the historical failure."
+}

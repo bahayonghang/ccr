@@ -1,0 +1,221 @@
+{
+  "reviewer": "/root/independent_check",
+  "reviewed_at_utc": "2026-09-30T05:31:06.721637+00:00",
+  "head_before_commit": "fe9d65972376dbb4c332fde9860c1e42ff2f2005",
+  "boundary": "Read-only delivery review. Only delivery-preflight-review.md/json may be written. No tests, installs, product changes, staging, commits, archives or push.",
+  "authorization_interpretation": "Local commit and partial archive of completed approved work. Two pending follow-up patches remain unapproved.",
+  "deliverable_inventory": {
+    "count": 32,
+    "matches_final_delivery_validation": true,
+    "matches_last_aggregate_source_hashes": true,
+    "missing": [],
+    "unexpected": [],
+    "source_sha256": {
+      ".codex/skills/ccr-gate-recovery/SKILL.md": "ae53cf515bbcd9e80e3130baa092506d56730495d914a23b991f5f12096122d0",
+      ".github/dependabot.yml": "d8d8596d07817406da0b9f9c9dbe8ec4ec8570a37eab0becd512ec7ea2fbde5d",
+      ".github/workflows/ci.yml": "5b1b1aa7d30bbe8844404920489965b0eb566b27e41fcb27bcf08c16caa7681c",
+      ".github/workflows/frontend-ci.yml": "5ac71dc6cd5bcd94f78430f6bbf7434d7205060fdc99eca6a62c444acde10129",
+      ".github/workflows/vscode-ci.yml": "f99712b0cbb95faca2a0f6f4b1dd05d80b34a71daa01ae6ba9c77a0ddc50255f",
+      ".gitignore": "1f88bef2316f91b9b2e030ccc1b24cd3e2917f058320b5bffc5ad995655b4aac",
+      ".omp/extensions/trellis/index.ts": "a9ef13beb1bb7214e2ada5cb43fea596065ab296b68a8da171220a77840c5851",
+      ".trellis/spec/ccr-vscode/frontend/extension-surface-contracts.md": "5ee86916666361fe9f4a19958fda53287c5c438503e34b89062c3107b33ca8e0",
+      ".trellis/spec/ccr/backend/dependency-governance.md": "a30515eb1d2e75b97fd3feb2f76650bd62385fb4bd053b3f9f2cf93ca275dafe",
+      ".trellis/spec/ccr/backend/test-fixtures.md": "622f8126470cc549559579fe961d105055667d3267fc9062f589debde7539789",
+      "AGENTS.md": "2c2febeb0db0b668e9b261339815ccdf4b324fb511d9ec59ae75e72230f50f5f",
+      "CLAUDE.md": "302daf55b51b039d26a74213b689001472d4555db3f08e271db7fe01813b1786",
+      "ccr-ui/bun.lock": "c4301a8d1909ac7db2f92930e5d91172195d3ad51c84b4e163c16909a2528025",
+      "ccr-vscode/.vscodeignore": "e5915522103ceab774aa320558ad54953b7bc76dc018b547df39618e99230e94",
+      "ccr-vscode/justfile": "1510d26061209398e2def7cff4b9a5abad5182a3ba41bad02f5a9475b27f4367",
+      "ccr-vscode/package-lock.json": "846b84a475e48c9e7f335a87121a1894dc64548f41449d2dd54a5b932174fdd4",
+      "ccr-vscode/package.json": "ae72468d025b9714f8870a04cbdeaec4041290bc86d489b478e2080b74d49c50",
+      "ccr-vscode/scripts/check-package-files.mjs": "cc79f72fa9dc9724deddc30ec254cc3a1cc7b9d49108829b03d851dcf01f3af0",
+      "ccr-vscode/scripts/check-package-files.test.mjs": "68b9775242d37605697b8728aed31dfbad9d0e8614076009249da848b43208a0",
+      "docs/agents/harnesses.md": "c7bd99a95fb1a7572915d3ad6cd0244909b5a912f9150c18187b2e27048703f6",
+      "docs/en/agents/harnesses.md": "9a3d204149fe308f9c94bc026b1a2aa6cc11acb05d3fcb251b85002ab69cd31e",
+      "docs/en/guide/github-copilot-workspace.md": "9b4089e0ecb41abdf59c2dd822193fa46b3fe6a42dab4defc20f263224219719",
+      "docs/guide/github-copilot-workspace.md": "952518144ee172392d60022c85c24309d9c7195bf40d203ca20f0a0b99cf6766",
+      "justfile": "6bd6ee7903b875b0c3f6ecfce6984484e96c3f0f96658c700a29539456f724a6",
+      "scripts/ci/check_workflow_governance.py": "04ee49b793ae8c78a6962f6aa95d7c23e81195b0f42ce6359c63104e25c233be",
+      "scripts/ci/ci_surface_policy.py": "005463e0e49a7a79243771bdb5624ee6aa569dd2681b58125c20400677a3c5fa",
+      "scripts/ci/test_check_workflow_governance.py": "e6efa6ca118b22c786d01830cc9c256ab7aa090b372b45ae348cfd0560c73efc",
+      "scripts/quality/check-copilot-assets.mjs": "19c9db374c9e2f1da4941a35fe42bd335ecadec8dfbfaccc16687bedc6e91696",
+      "scripts/quality/check-copilot-assets.test.mjs": "e35d8c0079538951d8e9103e79acbfc4feddd0ec5e6398b085cab9dbb159851b",
+      "scripts/quality/check_harness_contracts.py": "20696898a364d6bfe9ef6e736c78bd9cb4849a24272252bc2ecbd68c711188b2",
+      "scripts/quality/test_check_harness_contracts.py": "f6eb2a9f8ae0bb3643968f71c9dbcf9863c0599d791b3047f88116c200fe9a64",
+      "scripts/trellis/omp-context.test.ts": "427ff9c29ccccaf94554eece9eff042d5201a087c49b500d947139aba275da1b"
+    }
+  },
+  "pending_repairs": {
+    "manager": {
+      "unapplied": true,
+      "source_sha256": {
+        "crates/ccr/tests/managers/general.rs": "7ce7164c69ca883cf612ea440c51f2b40207ac4220694c68de42c3ab6a6ca4b2",
+        "crates/ccr/tests/managers/legacy_registry.rs": "685cb2972188d005e7f314ecd38e14515b76b3f5f10bebffa1f94b1122163d67"
+      },
+      "diff_from_HEAD_empty": true,
+      "candidate_sha256": "a7082c421018a9b54167b3069ec3000cc21210bdebe3ca135cf6d7f52e775738"
+    },
+    "extension": {
+      "unapplied": true,
+      "lock_sha256": "846b84a475e48c9e7f335a87121a1894dc64548f41449d2dd54a5b932174fdd4",
+      "versions": {
+        "node_modules/brace-expansion": "5.0.9",
+        "node_modules/fast-uri": "3.1.7",
+        "node_modules/undici": "7.29.1"
+      }
+    }
+  },
+  "context_excerpt_sha256_matches_current": true,
+  "revalidated_existing_integration_receipts": [
+    {
+      "name": "workflow-governance",
+      "exit_code": 0,
+      "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/final-review-workflow-governance.log",
+      "log_sha256_verified": true
+    },
+    {
+      "name": "harness",
+      "exit_code": 0,
+      "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/final-review-harness.log",
+      "log_sha256_verified": true
+    },
+    {
+      "name": "actionlint",
+      "exit_code": 0,
+      "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/final-review-actionlint.log",
+      "log_sha256_verified": true
+    },
+    {
+      "name": "python-compile",
+      "exit_code": 0,
+      "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/final-review-python-compile.log",
+      "log_sha256_verified": true
+    },
+    {
+      "name": "tracked-whitespace",
+      "exit_code": 0,
+      "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/final-review-tracked-whitespace.log",
+      "log_sha256_verified": true
+    },
+    {
+      "name": "harness-checker-whitespace",
+      "exit_code": 1,
+      "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/final-review-harness-checker-whitespace.log",
+      "log_sha256_verified": true
+    },
+    {
+      "name": "harness-tests-whitespace",
+      "exit_code": 1,
+      "log": ".trellis/tasks/09-29-evergreen-harness-audit/research/final-review-harness-tests-whitespace.log",
+      "log_sha256_verified": true
+    }
+  ],
+  "revalidated_fixture_receipts": [
+    {
+      "task": "09-29-harness-omp-context",
+      "checked_source_count": 3,
+      "checked_log_count": 8,
+      "current_source_matches": true,
+      "committed_fixture_proven": false
+    },
+    {
+      "task": "09-29-harness-copilot-crlf",
+      "checked_source_count": 4,
+      "checked_log_count": 11,
+      "current_source_matches": true,
+      "committed_fixture_proven": false
+    }
+  ],
+  "ui_boundary": {
+    "final_LF_sha256": "c4301a8d1909ac7db2f92930e5d91172195d3ad51c84b4e163c16909a2528025",
+    "prior_full_check_CRLF_sha256": "f4d25c2659543ffbc3c439a92813f0d67d9c44c2bc3d881d7e3710bb52adbf1e",
+    "newline_only_equivalence_rechecked": true,
+    "final_LF_full_frontend_execution_not_claimed": true
+  },
+  "acceptance": {
+    "T01": {
+      "AC1": "PASS",
+      "AC2": "PASS",
+      "AC3": "PASS_candidate_only; committed-source fixture required before archive",
+      "archive": "CONDITIONAL_AFTER_COMMIT_FIXTURE"
+    },
+    "T02": {
+      "AC1": "PASS_local_static",
+      "AC2": "PASS",
+      "AC3": "PASS_21_tests",
+      "AC4": "PASS",
+      "archive": "ELIGIBLE_AFTER_LOCAL_COMMIT; archive after T01 prerequisite receipt"
+    },
+    "T03": {
+      "AC1": "PASS",
+      "AC2": "PASS_local",
+      "AC3": "UNVERIFIED_real_Dependabot",
+      "archive": "KEEP_IN_PROGRESS"
+    },
+    "T04": {
+      "AC1": "PASS",
+      "AC2": "PASS",
+      "AC3": "PASS_local_tracked_fixture",
+      "archive": "ELIGIBLE_AFTER_LOCAL_COMMIT"
+    },
+    "T05": {
+      "AC1": "PASS",
+      "AC2": "PASS",
+      "AC3": "PASS_scoped",
+      "AC4": "original_patch_passed; latest_audit_failed; new_targets_pending",
+      "archive": "KEEP_IN_PROGRESS"
+    },
+    "T06": {
+      "AC1": "PASS_source_preservation",
+      "AC2": "PASS_stubs",
+      "AC3": "PASS_static",
+      "AC4": "full_aggregate_FAILED",
+      "archive": "KEEP_IN_PROGRESS"
+    },
+    "T07": {
+      "AC1": "PASS_history_preserved",
+      "AC2": "PASS_recorded_full_suites",
+      "AC3": "UNVERIFIED_required_environments",
+      "AC4": "PASS_warnings_and_failures_retained",
+      "manager_gap": "unapproved_candidate_unapplied",
+      "archive": "KEEP_IN_PROGRESS"
+    },
+    "T08": {
+      "AC1": "PASS_last_recorded_UI_audit",
+      "AC2": "PASS",
+      "AC3": "full_frontend_passed_on_CRLF; final_LF_frozen_audit_passed; final_LF_full_execution_unverified",
+      "implementation_checklist": "final full CI explicitly unchecked",
+      "archive": "KEEP_IN_PROGRESS_UNTIL_DECLARED_FINAL_ACCEPTANCE"
+    }
+  },
+  "parent_acceptance": {
+    "AC1": "PASS_evidence",
+    "AC2": "PASS_static_and_writeback",
+    "AC3": "PASS_task_structure",
+    "AC4": "INCOMPLETE",
+    "AC5": "PASS_with_new_commit_archive_authorization_recorded_by_main"
+  },
+  "T01_committed_fixture": {
+    "minimum_source_files": [
+      ".gitignore",
+      ".omp/extensions/trellis/index.ts",
+      "scripts/trellis/omp-context.test.ts"
+    ],
+    "extract_from": "new committed SHA using git archive; no working-tree source copy",
+    "commands": [
+      "git ls-tree -r --name-only <delivery-commit> -- .gitignore .omp/extensions/trellis/index.ts scripts/trellis/omp-context.test.ts",
+      "git archive --format=tar <delivery-commit> -- .gitignore .omp/extensions/trellis/index.ts scripts/trellis/omp-context.test.ts",
+      "bun test scripts/trellis/omp-context.test.ts",
+      "bun build .omp/extensions/trellis/index.ts --target=bun --outfile <fixture>/extension.js"
+    ],
+    "required_results": "Exactly three committed sources; 14 passed, 0 failed, 0 skipped; isolated Bun build succeeds; no personal/node_modules/Trellis installation source."
+  },
+  "report_corrections_for_main": [
+    "Append current local commit/archive approval without overwriting historical authorization snapshots.",
+    "Do not mark parent or T03/T05/T06/T07/T08 complete.",
+    "After T01 committed fixture passes, archive T01/T02/T04 only unless new acceptance evidence changes eligibility.",
+    "Update live task links and JSONL references after archive; preserve historical receipt/log bytes.",
+    "Keep both failed full-CI receipts and both pending scope requests."
+  ],
+  "new_test_executions": 0
+}

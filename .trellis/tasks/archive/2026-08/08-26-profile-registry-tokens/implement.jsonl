@@ -1,0 +1,6 @@
+{"file": ".trellis/tasks/08-26-profile-design-language/design.md", "reason": "ProfileDisplayRecord、ProfilePresentation、ProfileEditorAdapter、凭据剥离、供应商 canonical key 五个契约的权威定义"}
+{"file": ".trellis/tasks/08-26-profile-design-language/research/design-source.md", "reason": "平台元数据表与平台色四件套的权威取值"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "token 命名治理、冻结段登记、层一/@theme 归属判定与必跑的主题测试"}
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "Codex 序列化契约与 Grok DTO 权威字段（base_url_display 只读、profile_kind 来源）"}
+{"file": ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md", "reason": "两层平台成本口径与配置对象不带平台标识字段的约定"}
+{"file": ".trellis/spec/ccr-ui/frontend/layering-contracts.md", "reason": "configs/ 不得依赖 features/ 与 components/，四个新文件的依赖方向约束"}

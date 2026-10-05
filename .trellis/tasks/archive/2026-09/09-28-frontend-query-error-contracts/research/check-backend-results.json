@@ -1,0 +1,67 @@
+[
+  {
+    "label": "check-backend-behavior",
+    "command": [
+      "cargo",
+      "--config",
+      ".cargo/tauri-ci.toml",
+      "test",
+      "--manifest-path",
+      "ccr-ui/src-tauri/Cargo.toml",
+      "commands::claude::",
+      "--",
+      "--skip",
+      "export_bindings",
+      "--test-threads=1"
+    ],
+    "exit_code": 0,
+    "seconds": 94.51
+  },
+  {
+    "label": "check-backend-registry",
+    "command": [
+      "cargo",
+      "--config",
+      ".cargo/tauri-ci.toml",
+      "test",
+      "--manifest-path",
+      "ccr-ui/src-tauri/Cargo.toml",
+      "commands::handler_registry::tests::",
+      "--",
+      "--test-threads=1"
+    ],
+    "exit_code": 0,
+    "seconds": 0.99
+  },
+  {
+    "label": "check-backend-clippy",
+    "command": [
+      "cargo",
+      "--config",
+      ".cargo/tauri-ci.toml",
+      "clippy",
+      "--manifest-path",
+      "ccr-ui/src-tauri/Cargo.toml",
+      "--bin",
+      "ccr-desktop",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 0,
+    "seconds": 1.4
+  },
+  {
+    "label": "check-backend-fmt",
+    "command": [
+      "cargo",
+      "fmt",
+      "--manifest-path",
+      "ccr-ui/src-tauri/Cargo.toml",
+      "--",
+      "--check"
+    ],
+    "exit_code": 0,
+    "seconds": 0.7
+  }
+]

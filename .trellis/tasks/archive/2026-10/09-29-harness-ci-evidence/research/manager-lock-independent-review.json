@@ -1,0 +1,165 @@
+{
+  "reviewer": "/root/independent_check",
+  "reviewed_at_utc": "2026-09-30T04:02:14.760177+00:00",
+  "boundary": "Read-only candidate review; no source/spec changes; no new test, lint, type-check, or probabilistic reproduction executions.",
+  "candidate": {
+    "path": "manager-lock-candidate.patch",
+    "sha256": "a7082c421018a9b54167b3069ec3000cc21210bdebe3ca135cf6d7f52e775738",
+    "files": [
+      "crates/ccr/tests/managers/general.rs",
+      "crates/ccr/tests/managers/legacy_registry.rs"
+    ],
+    "added_lines": 6,
+    "removed_lines": 0,
+    "independent_git_apply_check": {
+      "exit_code": 0,
+      "applied": false,
+      "stdout": "",
+      "stderr": "",
+      "record": "Executed independently before writing this receipt; source hashes checked again here."
+    }
+  },
+  "inventory": {
+    "total": 17,
+    "unguarded_readers": {
+      "general::test_config_manager_lifecycle": "config_save",
+      "general::test_config_manager_section_operations": "config_save",
+      "general::test_settings_manager_atomic_operations": "settings_save",
+      "general::test_settings_backup_and_restore": "settings_save_and_restore",
+      "general::test_config_and_settings_integration": "config_and_settings_save",
+      "legacy_registry::legacy_registry_fields_load_without_becoming_clean_write_routing_truth": "platform_config_save"
+    },
+    "existing_guarded_test": {
+      "legacy_registry::config_manager_default_ignores_legacy_current_platform_routing": "existing_fixture"
+    },
+    "unrelated_to_ccr_root_and_lock_dir": {
+      "general::test_config_section_validation": "in_memory_config_validation",
+      "general::test_config_sorting_and_filtering": "in_memory_sorting",
+      "general::test_settings_update_from_config": "in_memory_settings_mapping",
+      "general::test_settings_validation": "in_memory_settings_validation",
+      "general::test_history_manager_add_and_load": "explicit_sqlite_path",
+      "general::test_history_manager_filtering": "explicit_sqlite_path",
+      "general::test_history_manager_recent_limit": "explicit_sqlite_path",
+      "general::test_history_manager_stats": "explicit_sqlite_path",
+      "general::test_history_entry_env_changes": "in_memory_masked_history_data",
+      "legacy_registry::per_platform_current_profile_helpers_round_trip": "in_memory_unified_config"
+    }
+  },
+  "existing_diagnostics": [
+    {
+      "variant": "exact",
+      "exit_code": 0,
+      "started_at_utc": "2026-09-30T03:55:59.143184+00:00",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "ccr",
+        "--all-features",
+        "--test",
+        "managers",
+        "legacy_registry::legacy_registry_fields_load_without_becoming_clean_write_routing_truth",
+        "--",
+        "--exact",
+        "--skip",
+        "export_bindings"
+      ],
+      "logs": {
+        "stdout": {
+          "path": "manager-lock-exact.stdout.log",
+          "sha256": "4086b3ef31cf2bbd12bc41a01c486d6160f306699834dd8a5746b0aff2c180d0"
+        },
+        "stderr": {
+          "path": "manager-lock-exact.stderr.log",
+          "sha256": "587afeea519b8c8c48aa39296e04daea8b653488349a2fe2869f54c62de7e64b"
+        }
+      },
+      "results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 16 filtered out; finished in 0.01s"
+      ],
+      "source_count": 14,
+      "before_after_current_equal": true,
+      "fixture_files": [
+        "locks\\gw_config_39e5c8efa2ccdc43.lock"
+      ],
+      "retries": 0
+    },
+    {
+      "variant": "suite",
+      "exit_code": 0,
+      "started_at_utc": "2026-09-30T03:56:47.581206+00:00",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "ccr",
+        "--all-features",
+        "--test",
+        "managers",
+        "--",
+        "--skip",
+        "export_bindings"
+      ],
+      "logs": {
+        "stdout": {
+          "path": "manager-lock-suite.stdout.log",
+          "sha256": "30c7c4e8267185b62c61f34e6379f1cd08ce79d78e3a6f9f49c69f7cc9be83dc"
+        },
+        "stderr": {
+          "path": "manager-lock-suite.stderr.log",
+          "sha256": "d54969bb9a8ef22677730bf675e158d2cb3ccf2af46295bda9f65a94fcdc8f7d"
+        }
+      },
+      "results": [
+        "test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s"
+      ],
+      "source_count": 14,
+      "before_after_current_equal": true,
+      "fixture_files": [
+        "locks\\gw_config_1ebd992a1a6f51cf.lock",
+        "locks\\gw_config_624e45ad555abb35.lock",
+        "locks\\gw_config_7223ef2f69a20de4.lock",
+        "locks\\gw_config_c0e00b6a3d1b95c8.lock",
+        "locks\\gw_settings_0ad0166a15255bf8.lock",
+        "locks\\gw_settings_4bbc63b7ba6b7225.lock",
+        "locks\\gw_settings_d3890005e7a709a4.lock"
+      ],
+      "retries": 0
+    }
+  ],
+  "original_aggregate": {
+    "receipt": ".trellis\\tasks\\09-29-evergreen-harness-audit\\research\\final-ci-retry1.json",
+    "exit_code": 1,
+    "started_at_utc": "2026-09-30T03:49:38.114489+00:00",
+    "verified_log_sha256": "acaa41ae374ef61a8d44733e49e09e5ef59f0800fafc78febaec2195c1fe1cc2",
+    "receipt_source_count": 2509,
+    "receipt_source_bytes_preserved": true,
+    "failure_retained": true
+  },
+  "current_diagnostic_source_hashes": {
+    "Cargo.lock": "0479f15cb8e406ab181f0da867461dcec50cfe99ca3c4d9a6cd5551cccdfe305",
+    "rust-toolchain.toml": "961b6190f4aad6120ca3fffe218389b991933141c90c362b5bbe92f6622540d9",
+    "crates/ccr/Cargo.toml": "e0d7fbbdc6cc7e0ed28f11424046c2fd8bf4c84b159daf6cd5d6991754adcdc7",
+    "crates/ccr/tests/managers.rs": "d3744c9345f50262b02b0734ac37874b3536ef653b79d3e7d773c00724202237",
+    "crates/ccr/tests/managers/legacy_registry.rs": "685cb2972188d005e7f314ecd38e14515b76b3f5f10bebffa1f94b1122163d67",
+    "crates/ccr/tests/managers/general.rs": "7ce7164c69ca883cf612ea440c51f2b40207ac4220694c68de42c3ab6a6ca4b2",
+    "crates/ccr/tests/support/env.rs": "bcc44dcffc92929270df1ca5cf131a44153e2ac10339bc8bbb978f2bb9b94ca4",
+    "crates/ccr-config/src/managers/platform_config.rs": "1c965cf992ddc0be70a85271dd4ddd0094fbb4c80e7696aad8c2e8849b4d345a",
+    "crates/ccr-config/src/managers/config/manager.rs": "7047f42407d870a66954c4ea6c40392fd62a1ec4179886bc6b374a9835eb1068",
+    "crates/ccr-config/src/managers/config_file_handler.rs": "785c3b9412b4565d6341a4565e08902f6e7eb21a22185c1eb983cee1b03b84cb",
+    "crates/ccr-cli/src/managers/settings.rs": "36873c196babc2137d6014b8e8c739ea397d991920a5e1fc4d1c756b2291b737",
+    "crates/ccr-core/src/core/fileio.rs": "182d74b7628fdcd6dc897f80d184ef9a489f3451bf88987438766605eb1f7aba",
+    "crates/ccr-core/src/core/guarded_write.rs": "74a5e4f1908f0ea8c05baec658330c0c9edcd3d5dd67950ae4e11ae4597ce176",
+    "crates/ccr-core/src/core/lock.rs": "91441b874a7b776772a9164b9cbc81f7a86c0a34694f934d5965bd2878f9031f"
+  },
+  "conclusions": {
+    "confirmed_fixture_gap": true,
+    "historical_interleaving_observed": false,
+    "historical_failure_root_cause_confirmed": false,
+    "candidate_static_review": "pass_pending_scope_approval_and_post_patch_gates",
+    "new_source_files_require_scope_approval": [
+      "crates/ccr/tests/managers/general.rs",
+      "crates/ccr/tests/managers/legacy_registry.rs"
+    ]
+  }
+}

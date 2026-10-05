@@ -1,0 +1,4 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "主题 token 契约：本任务直接改写对象"}
+{"file": ".trellis/spec/ccr-ui/frontend/index.md", "reason": "前端 spec 索引与 Pre-Development Checklist"}
+{"file": ".trellis/tasks/09-03-ui-visual-world-replacement/research/theme-shell-analysis.md", "reason": "token 架构、遗留隐患与平台色孤儿分析"}

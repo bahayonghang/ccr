@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "核对 token 命名、明暗覆盖、名称增量登记与对比度"}
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "核对 project() 未破坏 Grok display URL 与 Codex 序列化契约"}
+{"file": ".trellis/spec/ccr-ui/frontend/layering-contracts.md", "reason": "核对 configs/ 新文件的依赖方向"}
+{"file": ".trellis/tasks/08-26-profile-design-language/design.md", "reason": "核对四个新文件与五个契约的定义一致"}

@@ -1,4 +1,4 @@
-// Grok Auth TUI — official session status and auth off
+// Grok Auth TUI — saved OAuth accounts and explicit runtime operations
 
 mod app;
 pub(crate) mod ui;

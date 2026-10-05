@@ -1,0 +1,19 @@
+{
+  "command": [
+    "cargo",
+    "tree",
+    "--locked",
+    "--offline",
+    "--all-features",
+    "--target",
+    "all",
+    "-i",
+    "rustls@0.23.40"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "environment_overrides": {},
+  "started_at": "2026-09-28T22:57:11.589812+00:00",
+  "exit_code": 0,
+  "seconds": 1.473,
+  "log": "continuation-security-root-tree-before.log"
+}

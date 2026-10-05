@@ -18,7 +18,11 @@
 - Read result: `{ status: 'ok', content, token, path, exists } | { status: 'unsupported_environment', envType }`.
 - Save result: `{ status: 'saved', token } | { status: 'conflict' } | { status: 'invalid', kind, message, line?, column? } | unsupported`.
 - Profile save result additionally supports `{ status: 'saved', token, profiles_count } | { status: 'activation_conflict', current }`.
-- Shared editor: `CodeSourceEditor(modelValue, language: 'json' | 'toml' | 'markdown', readonly?, errorMarker?)`.
+- Shared editor: `CodeSourceEditor(value, language: 'json' | 'toml' | 'markdown', readOnly?, errorMarker?)`.
+- Shared implementation: `src/features/platform/editor/`; the former
+  `src/features/editor/` modules re-export the existing entry points.
+  `SettingsConfig.rawSource` supplies the existing domain callbacks, language,
+  Local probe, and optional platform notices.
 - Production CSP integration: `EditorView.cspNonce.of(pageNonce)`, where `pageNonce` comes from the current document's `style[nonce]` or `script[nonce]`.
 
 ### 3. Contracts
@@ -32,6 +36,9 @@
 - On `conflict`, offer reload/cancel only. Never silently refresh the token and overwrite external changes.
 - Profile source saves reject an empty parsed profile collection as `invalid/semantic`. If the active profile is absent and `force` is false, return `activation_conflict`; only an explicit danger confirmation may retry the same content and token with `force: true`.
 - After a successful source save, clear dirty state, leave source mode, then reload the managed form. This order avoids remounting the editor and repeating plaintext confirmation.
+- A Settings source editor binds to the acknowledged environment. Keep an opened `ConfigSourcePanel` mounted during environment changes and later probe errors or unsupported results. Make the same editor read-only; preserve content, token, and dirty state. Probe Retry must not repeat plaintext confirmation or read over a draft.
+- Settings source wrappers check environment identity and Query revision before/after each request. Old completions cannot replace content, update the token, report save success, or close a newer session. Backend Local-only checks and CAS remain authoritative.
+- Confirmed environment discard closes the raw editor only after the target typed snapshot loads. Cancelled confirmation and failed target loads retain the original editor and draft.
 - After a successful profile source save, close the editor and perform the owning Profiles view's full refresh so cards, current-profile state, quick switching, and distribution data cannot remain stale.
 - Frontend wrappers live in `src/api/domains/*`; shared discriminated unions live in a domain-adjacent type module.
 - CodeMirror injects its base layout and theme through runtime `<style>` elements. In Tauri production builds, pass the page CSP nonce through `EditorView.cspNonce`; otherwise WebView2 rejects the entire stylesheet and can lay out editor content below the gutter even though the DOM text and computed foreground color are present.
@@ -64,7 +71,11 @@
 
 - Backend: syntax and semantic rejection, empty-profile rejection, activation-conflict force protocol, line/column, probe-content non-leakage, stale-token preservation, first creation, backup generation, secret permissions, and Local environment guard.
 - Frontend: editor v-model/save/error marker; panel read-token/save-token flow; activation-conflict confirmation and force retry; conflict reload behavior; successful close plus full refresh; API facade guard.
+- `tests/platforms/settings-source-session.smoke.test.tsx` requires the same real CodeMirror instance and original token through environment changes and probe errors, with no duplicate plaintext confirmation.
 - Frontend editor CSP guard: seed a bootstrap `<style nonce="test-nonce">`, mount `CodeSourceEditor`, then assert the generated CodeMirror runtime style has `nonce === 'test-nonce'`.
+- Identify the runtime stylesheet by its `.cm-scroller` rules and require a
+  readable `style.sheet`. CodeMirror uses a generated class for the editor root;
+  the runtime sheet need not contain a literal `.cm-editor` selector.
 - Run `bun run type-check`, `bun run lint`, `bun run test:i18n`, focused smoke tests, Tauri command tests, and `cargo check`.
 - Use the ccr-ui web preview for ordinary visual evidence, but verify runtime-style or CSP changes against a production Tauri build (`just tbuild` / `just tdev`). Record that the generated style has a nonce, `style.sheet` is readable, `.cm-scroller` is flex, and gutter/content top coordinates align.
 - Before diagnosing a production-only editor failure, rebuild the desktop binary from the current checkout and record the binary timestamp relative to the suspected fix commit. A pre-fix release EXE is not evidence about current source behavior.

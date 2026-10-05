@@ -4,6 +4,7 @@
 
 #![allow(clippy::unused_async)]
 
+use crate::commands::common::new_utf8_table;
 use crate::managers::ConfigManager;
 use crate::managers::PlatformConfigManager;
 use crate::models::{
@@ -19,9 +20,7 @@ use ccr_config::profile_to_section;
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
 use colored::Colorize;
-use comfy_table::{
-    Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
-};
+use comfy_table::{Attribute, Cell, Color as TableColor, ContentArrangement};
 use std::str::FromStr;
 
 fn print_runtime_overview(overview: &RuntimeOverview) {
@@ -35,9 +34,8 @@ fn print_runtime_overview(overview: &RuntimeOverview) {
 }
 
 fn print_status_card(card: &PlatformStatusCard) {
-    let mut table = Table::new();
+    let mut table = new_utf8_table();
     table
-        .load_preset(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::DynamicFullWidth)
         .set_header(vec![
             Cell::new(card.display_name.as_str())
@@ -180,9 +178,8 @@ async fn current_command_verbose() -> Result<()> {
     let platform = Platform::from_str(platform_name)?;
     let paths = PlatformPaths::new(platform)?;
 
-    let mut platform_table = Table::new();
+    let mut platform_table = new_utf8_table();
     platform_table
-        .load_preset(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::DynamicFullWidth)
         .set_header(vec![
             Cell::new("属性")
@@ -296,9 +293,8 @@ async fn current_command_verbose() -> Result<()> {
     ColorOutput::step("📋 配置详情");
     println!();
 
-    let mut config_table = Table::new();
+    let mut config_table = new_utf8_table();
     config_table
-        .load_preset(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::DynamicFullWidth)
         .set_header(vec![
             Cell::new("属性")
@@ -472,9 +468,8 @@ async fn current_command_verbose() -> Result<()> {
             None
         };
 
-        let mut env_table = Table::new();
+        let mut env_table = new_utf8_table();
         env_table
-            .load_preset(UTF8_FULL)
             .set_content_arrangement(ContentArrangement::DynamicFullWidth)
             .set_header(vec![
                 Cell::new("环境变量")

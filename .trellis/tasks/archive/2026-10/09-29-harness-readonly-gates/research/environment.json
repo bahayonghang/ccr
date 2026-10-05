@@ -1,0 +1,50 @@
+{
+  "date_utc": "2026-09-30T03:13:11.622473+00:00",
+  "os": "Windows-11-10.0.26200-SP0",
+  "versions": {
+    "just": {
+      "executable": "C:\\Users\\lyh\\scoop\\shims\\just.EXE",
+      "exit_code": 0,
+      "output": "just 1.58.0"
+    },
+    "bun": {
+      "executable": "C:\\Users\\lyh\\scoop\\shims\\bun.EXE",
+      "exit_code": 0,
+      "output": "1.4.2"
+    },
+    "node": {
+      "executable": "D:\\GreenSoftware\\node\\node.EXE",
+      "exit_code": 0,
+      "output": "v26.7.0"
+    },
+    "actionlint": {
+      "executable": "C:\\Users\\lyh\\AppData\\Local\\Microsoft\\WinGet\\Links\\actionlint.EXE",
+      "exit_code": 0,
+      "output": "1.7.12\ninstalled by downloading from release page\nbuilt with go1.26.1 compiler for windows/amd64"
+    },
+    "cargo-audit": {
+      "executable": "C:\\Users\\lyh\\.cargo\\bin\\cargo-audit.EXE",
+      "exit_code": 0,
+      "output": "cargo-audit 0.22.2"
+    },
+    "pwsh": {
+      "executable": "C:\\Users\\lyh\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.EXE",
+      "exit_code": 0,
+      "output": "7.6.5"
+    },
+    "bash": {
+      "executable": "C:\\WINDOWS\\System32\\bash.EXE",
+      "exit_code": 0,
+      "output": "GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)\nCopyright (C) 2022 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n\nThis is free software; you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law."
+    }
+  },
+  "lock_hashes": {
+    "Cargo.lock": "0479f15cb8e406ab181f0da867461dcec50cfe99ca3c4d9a6cd5551cccdfe305",
+    "ccr-ui/src-tauri/Cargo.lock": "7225e63865b8315c3955c653e9cb9d755cc3019ada51bf4c0ed2a6d77de95c97",
+    "ccr-ui/bun.lock": "87a80e33cdbdaf8ed72516419ece312de1134d94a3e0495d92139580ca65ae07"
+  },
+  "advisory_db_revision": {
+    "exit_code": 0,
+    "revision": "f23b768236fe2880e4cfa167da662cad8ca79240"
+  }
+}

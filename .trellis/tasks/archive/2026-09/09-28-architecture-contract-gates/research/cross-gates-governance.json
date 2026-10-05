@@ -1,0 +1,13 @@
+{
+  "command": [
+    "python",
+    "-m",
+    "unittest",
+    "scripts.ci.test_check_workflow_governance",
+    "scripts.ci.test_architecture_contract_gates"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "exit_code": 0,
+  "seconds": 14.88,
+  "log": "cross-gates-governance.log"
+}

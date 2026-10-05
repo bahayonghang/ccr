@@ -1,0 +1,40 @@
+{
+  "recorded_at_utc": "2026-09-29T01:29:39.724370+00:00",
+  "scope": "Pinned tools only; no Cargo gate or source generation started",
+  "tools": [
+    {
+      "name": "bun",
+      "url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.0/bun-linux-x64.zip",
+      "archive_sha256": "2d03fb5fb83ac8b567aca0a281b2ce1a1a19d488f56c2968d88c3f25e92fe452",
+      "binary_sha256": "33d56b070be6a9e3da0ab013038b43d1645d0534ca811ecdba4472599117eb4b",
+      "version": "1.4.0",
+      "path": "/tmp/ccr-architecture-tools-01a0e781/bin/bun"
+    },
+    {
+      "name": "just",
+      "url": "https://github.com/casey/just/releases/download/1.58.0/just-1.58.0-x86_64-unknown-linux-musl.tar.gz",
+      "archive_sha256": "4a5cc2f53e6f0f8c59092a6cc38291eb729d46a7dd95d3ae582008881b84931d",
+      "binary_sha256": "3ad66571feae522db2cad31b9613bf21035b8a06d2738d6fc8fe6089856f2042",
+      "version": "just 1.58.0",
+      "path": "/tmp/ccr-architecture-tools-01a0e781/bin/just"
+    },
+    {
+      "name": "cargo-llvm-cov",
+      "url": "https://github.com/taiki-e/cargo-llvm-cov/releases/download/v0.9.0/cargo-llvm-cov-x86_64-unknown-linux-gnu.tar.gz",
+      "archive_sha256": "b068f7c98841aacb9c4f382b4a0c184ae82f49b56a32d442b429b2961c73be15",
+      "binary_sha256": "2e99eec78b055c30d42a62e80ed384f619438e6b0640cd109808fda8bfe00625",
+      "version": "cargo-llvm-cov 0.9.0",
+      "path": "/tmp/ccr-architecture-tools-01a0e781/bin/cargo-llvm-cov"
+    }
+  ],
+  "rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+  "rustup_components": [
+    "cargo-x86_64-unknown-linux-gnu",
+    "clippy-x86_64-unknown-linux-gnu",
+    "rust-docs-x86_64-unknown-linux-gnu",
+    "rust-std-x86_64-unknown-linux-gnu",
+    "rustc-x86_64-unknown-linux-gnu",
+    "rustfmt-x86_64-unknown-linux-gnu"
+  ],
+  "disk": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/sdf       1007G  185G  772G  20% /\n"
+}

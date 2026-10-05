@@ -1,0 +1,7 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🤖 GitHub Copilot 工作区资产检查
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Validated 12 GitHub Copilot workspace assets.
+Scanned 4807 tracked files for terminology drift.
+✅ GitHub Copilot 工作区资产检查通过
+node scripts/quality/check-copilot-assets.mjs

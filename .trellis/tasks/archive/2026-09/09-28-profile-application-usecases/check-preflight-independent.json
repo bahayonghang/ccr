@@ -1,0 +1,12 @@
+{
+  "command": [
+    "target\\debug\\deps\\ccr_cli-b17029ceed214288.exe",
+    "--exact",
+    "application::profile_contract::tests::profile_preflight_contract",
+    "--test-threads=1"
+  ],
+  "binary_sha256": "e15a3747aec9196a680eb413f4df811b15f4a73ea6316770366858776ee69f24",
+  "source_note": "binary compiled by independent platforms validation before later journal repairs",
+  "exit_code": 0,
+  "seconds": 0.4964821000030497
+}

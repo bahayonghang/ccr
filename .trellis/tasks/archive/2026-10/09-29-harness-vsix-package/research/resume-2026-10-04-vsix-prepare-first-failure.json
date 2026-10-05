@@ -1,0 +1,17 @@
+{
+  "recorded_utc": "2026-10-04T12:34:35.260376+00:00",
+  "argv": [
+    "python",
+    ".trellis/tasks/09-29-harness-vsix-package/research/resume-2026-10-04-vsix-run.py",
+    "prepare"
+  ],
+  "os": "Windows-11-10.0.26300-SP0",
+  "head": "c50716b5ed1bcd1c5b4950a746a8621258d0e0b5",
+  "exit_code": 1,
+  "error": "UnicodeDecodeError: gbk codec cannot decode byte 0x80 in position 129098: illegal multibyte sequence",
+  "location": "saved brace-expansion registry read_text at prepare line 121",
+  "lock_sha256": "846b84a475e48c9e7f335a87121a1894dc64548f41449d2dd54a5b932174fdd4",
+  "product_write_performed": false,
+  "stdout_stderr_logs": "NOT_CAPTURED; initial tool output was returned directly",
+  "repair": "use explicit UTF-8 for saved registry reads; preserve existing verified response bytes"
+}

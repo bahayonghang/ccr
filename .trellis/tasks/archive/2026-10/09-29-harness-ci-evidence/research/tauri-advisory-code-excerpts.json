@@ -1,0 +1,626 @@
+[
+  {
+    "path": "C:\\Users\\lyh\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\rand-0.7.3\\src\\lib.rs",
+    "sha256": "588e35ffc5c859b588d99de6d331251939440383b09da92b1017ddced19a3f41",
+    "matches": [
+      {
+        "line": 60,
+        "text": ""
+      },
+      {
+        "line": 61,
+        "text": "#[allow(unused)]"
+      },
+      {
+        "line": 62,
+        "text": "macro_rules! trace { ($($x:tt)*) => ("
+      },
+      {
+        "line": 63,
+        "text": "    #[cfg(feature = \"log\")] {"
+      },
+      {
+        "line": 64,
+        "text": "        log::trace!($($x)*)"
+      },
+      {
+        "line": 65,
+        "text": "    }"
+      },
+      {
+        "line": 66,
+        "text": ") }"
+      },
+      {
+        "line": 67,
+        "text": "#[allow(unused)]"
+      },
+      {
+        "line": 68,
+        "text": "macro_rules! debug { ($($x:tt)*) => ("
+      },
+      {
+        "line": 69,
+        "text": "    #[cfg(feature = \"log\")] {"
+      },
+      {
+        "line": 70,
+        "text": "        log::debug!($($x)*)"
+      },
+      {
+        "line": 71,
+        "text": "    }"
+      },
+      {
+        "line": 72,
+        "text": ") }"
+      },
+      {
+        "line": 73,
+        "text": "#[allow(unused)]"
+      },
+      {
+        "line": 74,
+        "text": "macro_rules! info { ($($x:tt)*) => ("
+      },
+      {
+        "line": 75,
+        "text": "    #[cfg(feature = \"log\")] {"
+      },
+      {
+        "line": 76,
+        "text": "        log::info!($($x)*)"
+      },
+      {
+        "line": 77,
+        "text": "    }"
+      },
+      {
+        "line": 78,
+        "text": ") }"
+      },
+      {
+        "line": 79,
+        "text": "#[allow(unused)]"
+      },
+      {
+        "line": 80,
+        "text": "macro_rules! warn { ($($x:tt)*) => ("
+      },
+      {
+        "line": 81,
+        "text": "    #[cfg(feature = \"log\")] {"
+      },
+      {
+        "line": 82,
+        "text": "        log::warn!($($x)*)"
+      },
+      {
+        "line": 83,
+        "text": "    }"
+      },
+      {
+        "line": 84,
+        "text": ") }"
+      },
+      {
+        "line": 85,
+        "text": "#[allow(unused)]"
+      },
+      {
+        "line": 86,
+        "text": "macro_rules! error { ($($x:tt)*) => ("
+      },
+      {
+        "line": 87,
+        "text": "    #[cfg(feature = \"log\")] {"
+      },
+      {
+        "line": 88,
+        "text": "        log::error!($($x)*)"
+      },
+      {
+        "line": 89,
+        "text": "    }"
+      },
+      {
+        "line": 90,
+        "text": ") }"
+      }
+    ]
+  },
+  {
+    "path": "C:\\Users\\lyh\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\rand-0.7.3\\src\\rngs\\mod.rs",
+    "sha256": "9ae5e9aa965d3393ef90983ab85834599432c9fc2c1d40de1b9237ab3fc91eb1",
+    "matches": [
+      {
+        "line": 54,
+        "text": "//!     source. Typically the operating system uses a CSPRNG with entropy"
+      },
+      {
+        "line": 55,
+        "text": "//!     provided by a TRNG and some type of on-going re-seeding."
+      },
+      {
+        "line": 56,
+        "text": "//! -   [`ThreadRng`], provided by the [`thread_rng`] function, is a handle to a"
+      },
+      {
+        "line": 57,
+        "text": "//!     thread-local CSPRNG with periodic seeding from [`OsRng`]. Because this"
+      },
+      {
+        "line": 58,
+        "text": "//!     is local, it is typically much faster than [`OsRng`]. It should be"
+      },
+      {
+        "line": 59,
+        "text": "//!     secure, though the paranoid may prefer [`OsRng`]."
+      },
+      {
+        "line": 61,
+        "text": "//!     (based on reviews, maturity and usage). The current algorithm is ChaCha20,"
+      },
+      {
+        "line": 62,
+        "text": "//!     which is well established and rigorously analysed."
+      },
+      {
+        "line": 63,
+        "text": "//!     [`StdRng`] provides the algorithm used by [`ThreadRng`] but without"
+      },
+      {
+        "line": 64,
+        "text": "//!     periodic reseeding."
+      },
+      {
+        "line": 65,
+        "text": "//! -   [`SmallRng`] is an **insecure** PRNG designed to be fast, simple, require"
+      },
+      {
+        "line": 66,
+        "text": "//!     little memory, and have good output quality."
+      },
+      {
+        "line": 99,
+        "text": "pub mod adapter;"
+      },
+      {
+        "line": 100,
+        "text": ""
+      },
+      {
+        "line": 101,
+        "text": "#[cfg(feature = \"std\")] mod entropy;"
+      },
+      {
+        "line": 102,
+        "text": "pub mod mock; // Public so we don't export `StepRng` directly, making it a bit"
+      },
+      {
+        "line": 103,
+        "text": "              // more clear it is intended for testing."
+      },
+      {
+        "line": 104,
+        "text": "#[cfg(feature = \"small_rng\")] mod small;"
+      },
+      {
+        "line": 105,
+        "text": "mod std;"
+      },
+      {
+        "line": 106,
+        "text": "#[cfg(feature = \"std\")] pub(crate) mod thread;"
+      },
+      {
+        "line": 107,
+        "text": ""
+      },
+      {
+        "line": 108,
+        "text": "#[allow(deprecated)]"
+      },
+      {
+        "line": 109,
+        "text": "#[cfg(feature = \"std\")]"
+      },
+      {
+        "line": 110,
+        "text": "pub use self::entropy::EntropyRng;"
+      },
+      {
+        "line": 111,
+        "text": ""
+      },
+      {
+        "line": 112,
+        "text": "#[cfg(feature = \"small_rng\")] pub use self::small::SmallRng;"
+      },
+      {
+        "line": 113,
+        "text": "pub use self::std::StdRng;"
+      },
+      {
+        "line": 114,
+        "text": "#[cfg(feature = \"std\")] pub use self::thread::ThreadRng;"
+      },
+      {
+        "line": 115,
+        "text": ""
+      },
+      {
+        "line": 116,
+        "text": "#[cfg(feature = \"getrandom\")] pub use rand_core::OsRng;"
+      }
+    ]
+  },
+  {
+    "path": "C:\\Users\\lyh\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\phf_generator-0.8.0\\src\\lib.rs",
+    "sha256": "d3aa5204fe852c55361d589fe6eb843aebcf8a9d3254d5b6449cbd1678eae9c8",
+    "matches": [
+      {
+        "line": 3,
+        "text": "use rand::{SeedableRng, Rng};"
+      },
+      {
+        "line": 4,
+        "text": "use rand::distributions::Standard;"
+      },
+      {
+        "line": 5,
+        "text": "use rand::rngs::SmallRng;"
+      },
+      {
+        "line": 6,
+        "text": ""
+      },
+      {
+        "line": 7,
+        "text": "const DEFAULT_LAMBDA: usize = 5;"
+      },
+      {
+        "line": 8,
+        "text": ""
+      },
+      {
+        "line": 16,
+        "text": ""
+      },
+      {
+        "line": 17,
+        "text": "pub fn generate_hash<H: PhfHash>(entries: &[H]) -> HashState {"
+      },
+      {
+        "line": 18,
+        "text": "    SmallRng::seed_from_u64(FIXED_SEED)"
+      },
+      {
+        "line": 19,
+        "text": "        .sample_iter(Standard)"
+      },
+      {
+        "line": 20,
+        "text": "        .find_map(|key| try_generate_hash(entries, key))"
+      },
+      {
+        "line": 21,
+        "text": "        .expect(\"failed to solve PHF\")"
+      }
+    ]
+  },
+  {
+    "path": "C:\\Users\\lyh\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\glib-0.18.5\\src\\variant_iter.rs",
+    "sha256": "1fd02859333761c45321b32f28b24233446b97d0022a90d3a937ed162585b90e",
+    "matches": [
+      {
+        "line": 100,
+        "text": "/// Iterator over items in a variant of type `as`."
+      },
+      {
+        "line": 101,
+        "text": "#[derive(Debug)]"
+      },
+      {
+        "line": 102,
+        "text": "pub struct VariantStrIter<'a> {"
+      },
+      {
+        "line": 103,
+        "text": "    variant: &'a Variant,"
+      },
+      {
+        "line": 104,
+        "text": "    head: usize,"
+      },
+      {
+        "line": 105,
+        "text": "    tail: usize,"
+      },
+      {
+        "line": 106,
+        "text": "}"
+      },
+      {
+        "line": 107,
+        "text": ""
+      },
+      {
+        "line": 108,
+        "text": "impl<'a> VariantStrIter<'a> {"
+      },
+      {
+        "line": 109,
+        "text": "    pub(crate) fn new(variant: &'a Variant) -> Self {"
+      },
+      {
+        "line": 110,
+        "text": "        let tail = variant.n_children();"
+      },
+      {
+        "line": 111,
+        "text": "        Self {"
+      },
+      {
+        "line": 116,
+        "text": "    }"
+      },
+      {
+        "line": 117,
+        "text": ""
+      },
+      {
+        "line": 118,
+        "text": "    fn impl_get(&self, i: usize) -> &'a str {"
+      },
+      {
+        "line": 119,
+        "text": "        unsafe {"
+      },
+      {
+        "line": 120,
+        "text": "            let p: *mut libc::c_char = std::ptr::null_mut();"
+      },
+      {
+        "line": 121,
+        "text": "            let s = b\"&s\\0\";"
+      },
+      {
+        "line": 122,
+        "text": "            ffi::g_variant_get_child("
+      },
+      {
+        "line": 123,
+        "text": "                self.variant.to_glib_none().0,"
+      },
+      {
+        "line": 124,
+        "text": "                i,"
+      },
+      {
+        "line": 125,
+        "text": "                s as *const u8 as *const _,"
+      },
+      {
+        "line": 126,
+        "text": "                &p,"
+      },
+      {
+        "line": 127,
+        "text": "                std::ptr::null::<i8>(),"
+      },
+      {
+        "line": 128,
+        "text": "            );"
+      },
+      {
+        "line": 129,
+        "text": "            let p = std::ffi::CStr::from_ptr(p);"
+      },
+      {
+        "line": 130,
+        "text": "            p.to_str().unwrap()"
+      },
+      {
+        "line": 131,
+        "text": "        }"
+      },
+      {
+        "line": 132,
+        "text": "    }"
+      },
+      {
+        "line": 133,
+        "text": "}"
+      },
+      {
+        "line": 134,
+        "text": ""
+      },
+      {
+        "line": 135,
+        "text": "impl<'a> Iterator for VariantStrIter<'a> {"
+      },
+      {
+        "line": 136,
+        "text": "    type Item = &'a str;"
+      },
+      {
+        "line": 137,
+        "text": ""
+      },
+      {
+        "line": 138,
+        "text": "    fn next(&mut self) -> Option<&'a str> {"
+      },
+      {
+        "line": 140,
+        "text": "            None"
+      },
+      {
+        "line": 141,
+        "text": "        } else {"
+      },
+      {
+        "line": 142,
+        "text": "            let v = self.impl_get(self.head);"
+      },
+      {
+        "line": 143,
+        "text": "            self.head += 1;"
+      },
+      {
+        "line": 144,
+        "text": "            Some(v)"
+      },
+      {
+        "line": 145,
+        "text": "        }"
+      },
+      {
+        "line": 162,
+        "text": "        } else {"
+      },
+      {
+        "line": 163,
+        "text": "            self.head = end + 1;"
+      },
+      {
+        "line": 164,
+        "text": "            Some(self.impl_get(end))"
+      },
+      {
+        "line": 165,
+        "text": "        }"
+      },
+      {
+        "line": 166,
+        "text": "    }"
+      },
+      {
+        "line": 167,
+        "text": ""
+      },
+      {
+        "line": 170,
+        "text": "            None"
+      },
+      {
+        "line": 171,
+        "text": "        } else {"
+      },
+      {
+        "line": 172,
+        "text": "            Some(self.impl_get(self.tail - 1))"
+      },
+      {
+        "line": 173,
+        "text": "        }"
+      },
+      {
+        "line": 174,
+        "text": "    }"
+      },
+      {
+        "line": 175,
+        "text": "}"
+      },
+      {
+        "line": 176,
+        "text": ""
+      },
+      {
+        "line": 177,
+        "text": "impl<'a> DoubleEndedIterator for VariantStrIter<'a> {"
+      },
+      {
+        "line": 178,
+        "text": "    fn next_back(&mut self) -> Option<&'a str> {"
+      },
+      {
+        "line": 179,
+        "text": "        if self.head == self.tail {"
+      },
+      {
+        "line": 180,
+        "text": "            None"
+      },
+      {
+        "line": 181,
+        "text": "        } else {"
+      },
+      {
+        "line": 182,
+        "text": "            self.tail -= 1;"
+      },
+      {
+        "line": 183,
+        "text": "            Some(self.impl_get(self.tail))"
+      },
+      {
+        "line": 184,
+        "text": "        }"
+      },
+      {
+        "line": 185,
+        "text": "    }"
+      },
+      {
+        "line": 186,
+        "text": ""
+      },
+      {
+        "line": 192,
+        "text": "        } else {"
+      },
+      {
+        "line": 193,
+        "text": "            self.tail = end - 1;"
+      },
+      {
+        "line": 194,
+        "text": "            Some(self.impl_get(end - 1))"
+      },
+      {
+        "line": 195,
+        "text": "        }"
+      },
+      {
+        "line": 196,
+        "text": "    }"
+      },
+      {
+        "line": 197,
+        "text": "}"
+      },
+      {
+        "line": 198,
+        "text": ""
+      },
+      {
+        "line": 199,
+        "text": "impl<'a> ExactSizeIterator for VariantStrIter<'a> {}"
+      },
+      {
+        "line": 200,
+        "text": ""
+      },
+      {
+        "line": 201,
+        "text": "impl<'a> FusedIterator for VariantStrIter<'a> {}"
+      },
+      {
+        "line": 202,
+        "text": ""
+      },
+      {
+        "line": 203,
+        "text": "#[cfg(test)]"
+      },
+      {
+        "line": 204,
+        "text": "mod tests {"
+      }
+    ]
+  }
+]

@@ -1,5 +1,7 @@
-import { computed, onMounted, ref, unref, watch, type MaybeRef } from 'vue'
+import { useCallback, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { getUsageDashboardV2 } from '@/api'
+import { usageKeys } from '@/features/usage/queries'
 import type { UsageDashboardResponse } from '@/types/usage'
 import type {
   PlatformUsageId,
@@ -13,15 +15,25 @@ import {
 } from '@/views/platform-usage/platformUsagePresentation'
 
 export interface UsePlatformUsageInsightOptions {
-  platform: MaybeRef<PlatformUsageId>
-  days?: MaybeRef<number>
-  enabled?: MaybeRef<boolean>
-  labels?: MaybeRef<Partial<PlatformUsageInsightLabels>>
-  tone?: MaybeRef<PlatformUsageTone>
+  platform: PlatformUsageId
+  days?: number
+  enabled?: boolean
+  labels?: Partial<PlatformUsageInsightLabels>
+  tone?: PlatformUsageTone
 }
 
 const resolveErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : String(error || 'Usage insight unavailable')
+
+// 平台用量洞察卡的 React 迁移（08-22-state-logic-port 批次 5，服务端数据 → Query）。
+//
+// 签名变化（消费方均为待迁移 .vue 视图）：MaybeRef<...> 参数改为普通值；
+// 返回对象中的 Ref<T> 改为普通值。
+//
+// watch/onMounted 映射（composable-classification.md §2 登记）：
+// 原 onMounted(refresh) 与 watch([platform, days, enabled])（无 immediate/deep/flush
+// 选项）由 Query 承担——挂载自动拉取覆盖 onMounted；key（platform+日期窗口）与
+// enabled 变化自动重拉覆盖 watch。原 requestId 竞态防护由 Query 单飞请求承担。
 
 export const usePlatformUsageInsight = ({
   platform,
@@ -30,69 +42,35 @@ export const usePlatformUsageInsight = ({
   labels,
   tone = 'neutral',
 }: UsePlatformUsageInsightOptions) => {
-  const loading = ref(false)
-  const error = ref<string | null>(null)
-  const dashboard = ref<UsageDashboardResponse | null>(null)
-  let requestId = 0
+  const dateWindow = useMemo(() => getLocalDateWindow(days), [days])
+  const resolvedLabels = useMemo(() => buildPlatformUsageLabels(labels), [labels])
 
-  const dateWindow = computed(() => getLocalDateWindow(unref(days)))
-  const resolvedLabels = computed(() => buildPlatformUsageLabels(unref(labels)))
-  const presentation = computed(() =>
-    buildPlatformUsageInsight({
-      data: dashboard.value,
-      labels: resolvedLabels.value,
-      tone: unref(tone),
-    }),
-  )
-
-  const refresh = async () => {
-    if (!unref(enabled)) return
-
-    const currentRequestId = ++requestId
-    loading.value = true
-    error.value = null
-
-    try {
-      const window = dateWindow.value
-      const data = await getUsageDashboardV2(
-        unref(platform),
-        window.start,
-        window.end,
-        0,
-        false,
-      )
-
-      if (currentRequestId === requestId) {
-        dashboard.value = data
-      }
-    } catch (caught) {
-      if (currentRequestId === requestId) {
-        error.value = resolveErrorMessage(caught)
-      }
-    } finally {
-      if (currentRequestId === requestId) {
-        loading.value = false
-      }
-    }
-  }
-
-  onMounted(() => {
-    void refresh()
+  // 原实现挂载与参数变化时总是重新拉取、无 TTL → staleTime 0
+  const query = useQuery({
+    queryKey: usageKeys.insightDashboard(platform, dateWindow.start, dateWindow.end),
+    queryFn: () => getUsageDashboardV2(platform, dateWindow.start, dateWindow.end, 0, false),
+    enabled,
+    staleTime: 0,
   })
 
-  watch(
-    () => [unref(platform), unref(days), unref(enabled)] as const,
-    ([, , isEnabled]) => {
-      if (isEnabled) {
-        void refresh()
-      }
-    },
+  const presentation = useMemo(
+    () => buildPlatformUsageInsight({
+      data: query.data ?? null,
+      labels: resolvedLabels,
+      tone,
+    }),
+    [query.data, resolvedLabels, tone]
   )
 
+  const { refetch } = query
+  const refresh = useCallback(async () => {
+    await refetch()
+  }, [refetch])
+
   return {
-    loading,
-    error,
-    dashboard,
+    loading: query.isFetching,
+    error: query.error ? resolveErrorMessage(query.error) : null,
+    dashboard: (query.data ?? null) as UsageDashboardResponse | null,
     dateWindow,
     presentation,
     refresh,

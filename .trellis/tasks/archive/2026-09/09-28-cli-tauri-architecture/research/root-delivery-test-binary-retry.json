@@ -1,0 +1,10 @@
+{
+  "binary": "target\\debug\\deps\\commands-51c0e4bab096d014.exe",
+  "before_sha256": "1c0ff89ac3b2372f1c73ac060b90a73d622fb8250063544305f80b358d179d84",
+  "after_sha256": "1c0ff89ac3b2372f1c73ac060b90a73d622fb8250063544305f80b358d179d84",
+  "unchanged": true,
+  "original_failed_aggregate": "root-delivery-ci.log",
+  "separate_test": "root-delivery-test.log",
+  "cause": "unconfirmed",
+  "limits": "This establishes the binary hash before/after the separate test rerun only; the failed invocation did not capture a pre-run binary hash."
+}

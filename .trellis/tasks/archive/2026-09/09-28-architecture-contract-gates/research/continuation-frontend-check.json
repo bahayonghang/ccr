@@ -1,0 +1,542 @@
+{
+  "status": "passed_for_five_file_continuation_and_new_spec_clauses",
+  "reviewer": "/root/implement_t10_specs",
+  "scope": [
+    "ccr-ui/src/i18n/locales/zh-CN.ts",
+    "ccr-ui/src/i18n/locales/en-US.ts",
+    "ccr-ui/tests/i18n.test.cjs",
+    "ccr-ui/src/configs/settings-codex.ts",
+    "ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx"
+  ],
+  "files": [
+    {
+      "path": "ccr-ui/src/i18n/locales/zh-CN.ts",
+      "before_reconstructed_sha256": "68dc1720bf8302e7cdf2d5436cc59969639560c6b64f9c1fea2fe5917c53325f",
+      "before_recorded_sha256": "68dc1720bf8302e7cdf2d5436cc59969639560c6b64f9c1fea2fe5917c53325f",
+      "before_sha_matches": true,
+      "after_sha256": "e43214412d83ecabeceed1e3d7559f7ff965bf2729871fe26c5f4c5120308604",
+      "after_matches_owner": true,
+      "after_matches_root_freeze": true,
+      "before_evidence": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-review-before.json",
+      "normalized_slice_diff": "--- before/ccr-ui/src/i18n/locales/zh-CN.ts\n+++ after/ccr-ui/src/i18n/locales/zh-CN.ts\n@@ -1491,6 +1491,7 @@\n   },\n   claudeSettings: {\n     title: 'Claude Code 全局设置',\n+    subtitle: '管理模型、权限、环境变量、界面、沙箱与 Git 归属设置。',\n     back: '返回',\n     save: '保存设置',\n     saving: '保存中...',\n@@ -4190,6 +4191,7 @@\n     settings: {\n       title: 'Codex 设置',\n       subtitle: 'Codex 全局配置：模型、安全、工具链、界面与功能开关。',\n+      save: '保存',\n       saving: '保存中...',\n       tabs: {\n         model: '模型与推理',\n@@ -4204,6 +4206,12 @@\n         modelProvider: '运行时命名空间',\n         modelProviderPlaceholder: '保留命名空间，如 custom',\n         reasoningEffort: '推理深度',\n+        reasoningEffortOptions: {\n+          minimal: '最低',\n+          low: '低',\n+          medium: '中',\n+          high: '高',\n+        },\n         reasoningSummary: '推理摘要模式',\n         verbosity: '详细程度',\n         contextWindow: '上下文窗口',\n"
+    },
+    {
+      "path": "ccr-ui/src/i18n/locales/en-US.ts",
+      "before_reconstructed_sha256": "f4b8bbbe50e3b1573193e8ddaa065efb15b6b889565252a50162519de0661b1c",
+      "before_recorded_sha256": "f4b8bbbe50e3b1573193e8ddaa065efb15b6b889565252a50162519de0661b1c",
+      "before_sha_matches": true,
+      "after_sha256": "e56e7b998465b81af5646e657850716040e64c81ca10500ce4e6ad4346e93b4e",
+      "after_matches_owner": true,
+      "after_matches_root_freeze": true,
+      "before_evidence": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-review-before.json",
+      "normalized_slice_diff": "--- before/ccr-ui/src/i18n/locales/en-US.ts\n+++ after/ccr-ui/src/i18n/locales/en-US.ts\n@@ -1536,6 +1536,7 @@\n   },\n   claudeSettings: {\n     title: 'Claude Code Global Settings',\n+    subtitle: 'Manage model, permissions, environment variables, interface, sandbox, and Git attribution settings.',\n     back: 'Back',\n     save: 'Save Settings',\n     saving: 'Saving...',\n@@ -4328,6 +4329,7 @@\n       title: 'Codex Settings',\n       subtitle:\n         'Global Codex configuration for model, security, toolchain, interface, and feature toggles.',\n+      save: 'Save',\n       saving: 'Saving...',\n       tabs: {\n         model: 'Model & Reasoning',\n@@ -4342,6 +4344,12 @@\n         modelProvider: 'Runtime Namespace',\n         modelProviderPlaceholder: 'reserved namespace, e.g. custom',\n         reasoningEffort: 'Reasoning Effort',\n+        reasoningEffortOptions: {\n+          minimal: 'Minimal',\n+          low: 'Low',\n+          medium: 'Medium',\n+          high: 'High',\n+        },\n         reasoningSummary: 'Reasoning Summary',\n         verbosity: 'Verbosity',\n         contextWindow: 'Context Window',\n"
+    },
+    {
+      "path": "ccr-ui/tests/i18n.test.cjs",
+      "before_reconstructed_sha256": "f033e8f6fc097b7fe23fd8a602813e198780d2bcc0254c9b9e021c00e8f24d76",
+      "before_recorded_sha256": "f033e8f6fc097b7fe23fd8a602813e198780d2bcc0254c9b9e021c00e8f24d76",
+      "before_sha_matches": true,
+      "after_sha256": "7c39a2a82b0bab7917ad07110f8eabfa84bb535f58b683bea2acd63cded412e0",
+      "after_matches_owner": true,
+      "after_matches_root_freeze": true,
+      "before_evidence": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-review-before.json",
+      "normalized_slice_diff": "--- before/ccr-ui/tests/i18n.test.cjs\n+++ after/ccr-ui/tests/i18n.test.cjs\n@@ -317,7 +317,7 @@\n   return messages;\n }\n \n-const EXPECTED_LEAF_COUNT = 4517;\n+const EXPECTED_LEAF_COUNT = 4523;\n \n /**\n  * Calculate overlap percentage between two arrays\n"
+    },
+    {
+      "path": "ccr-ui/src/configs/settings-codex.ts",
+      "before_reconstructed_sha256": "ae0701d198a1dbc9ade71ed5b332cccb0cb1ef98697f95788b4bc00aabc85245",
+      "before_recorded_sha256": "ae0701d198a1dbc9ade71ed5b332cccb0cb1ef98697f95788b4bc00aabc85245",
+      "before_sha_matches": true,
+      "after_sha256": "07238c7472357c1931fb5f786b291e6e44b37e5f0b1af6fdd551def487c31728",
+      "after_matches_owner": true,
+      "after_matches_root_freeze": true,
+      "before_evidence": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-settings-labels-before.json",
+      "normalized_slice_diff": "--- before/ccr-ui/src/configs/settings-codex.ts\n+++ after/ccr-ui/src/configs/settings-codex.ts\n@@ -7,10 +7,10 @@\n import type { SettingsConfig, SettingsFieldOption } from '@/configs/settings-types'\n \n const CODEX_EFFORT: SettingsFieldOption[] = [\n-  { value: 'minimal', labelKey: 'minimal' },\n-  { value: 'low', labelKey: 'low' },\n-  { value: 'medium', labelKey: 'medium' },\n-  { value: 'high', labelKey: 'high' },\n+  { value: 'minimal', labelKey: 'codex.settings.model.reasoningEffortOptions.minimal' },\n+  { value: 'low', labelKey: 'codex.settings.model.reasoningEffortOptions.low' },\n+  { value: 'medium', labelKey: 'codex.settings.model.reasoningEffortOptions.medium' },\n+  { value: 'high', labelKey: 'codex.settings.model.reasoningEffortOptions.high' },\n ]\n \n export const codexSettingsConfig: SettingsConfig = {\n"
+    },
+    {
+      "path": "ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx",
+      "before_reconstructed_sha256": null,
+      "before_recorded_sha256": null,
+      "before_sha_matches": true,
+      "after_sha256": "412e89f38c510048e93a1dd912432b24379ccaf9cd3df556dbe134a40bc7ae8b",
+      "after_matches_owner": true,
+      "after_matches_root_freeze": true,
+      "before_evidence": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-settings-labels-before.json",
+      "normalized_slice_diff": "--- before/ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx\n+++ after/ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx\n@@ -0,0 +1,46 @@\n+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'\n+import { act, render, screen, waitFor } from '@testing-library/react'\n+import { beforeEach, describe, expect, it, vi } from 'vitest'\n+import { CodexSettingsView } from '@/features/codex/CodexSettingsView'\n+import { setLocale } from '@/i18n'\n+\n+const bridge = vi.hoisted(() => ({ invoke: vi.fn() }))\n+\n+vi.mock('@tauri-apps/api/core', () => ({ invoke: bridge.invoke }))\n+vi.mock('@/utils/tauriRuntime', async (original) => ({ ...await original<object>(), isTauriRuntime: () => true }))\n+\n+beforeEach(async () => {\n+  bridge.invoke.mockReset().mockImplementation(async (command: string) => {\n+    if (command === 'get_current_environment') return { id: 'local', env_type: 'local', name: 'Local', available: true }\n+    if (command === 'codex_get_settings') return { model: 'fixture-model', model_reasoning_effort: 'future-effort' }\n+    throw new Error('Unexpected fixture command: ' + command)\n+  })\n+  await setLocale('zh-CN')\n+})\n+\n+describe('Settings visible labels with the real translator', () => {\n+  it('translates Codex save and known effort options in both locales while preserving an unknown value', async () => {\n+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })\n+    const { container } = render(<QueryClientProvider client={client}><CodexSettingsView /></QueryClientProvider>)\n+    await screen.findByDisplayValue('fixture-model')\n+\n+    for (const [locale, fieldLabel, expected] of [\n+      ['zh-CN', '推理深度', ['保存', '最低', '低', '中', '高']],\n+      ['en-US', 'Reasoning Effort', ['Save', 'Minimal', 'Low', 'Medium', 'High']],\n+    ] as const) {\n+      await act(async () => { await setLocale(locale) })\n+      await waitFor(() => {\n+        const effort = screen.getByLabelText(fieldLabel) as HTMLSelectElement\n+        expect(effort.value).toBe('future-effort')\n+        expect(effort.querySelector('option[value=\"future-effort\"]')?.textContent).toBe('future-effort')\n+        const save = container.querySelector('button[form=\"platform-settings-form\"]')\n+        const labels = [save?.textContent, ...['minimal', 'low', 'medium', 'high'].map((value) => (\n+          Array.from(effort.options).find((option) => option.value === value)?.textContent\n+        ))]\n+        expect(labels).toEqual(expected)\n+        expect(labels.join(' ')).not.toMatch(/⟦|codex\\.settings\\.save/)\n+      })\n+    }\n+    expect(bridge.invoke.mock.calls.filter(([command]) => command === 'codex_get_settings')).toHaveLength(1)\n+  })\n+})\n"
+    }
+  ],
+  "baseline_method": "For four existing files, reverse only the explicit current-slice additions/label-key replacements and restore CRLF in their touched contexts in memory; reconstructed bytes match the original before SHA exactly. No baseline or product file is written. The new test has a recorded null before hash.",
+  "root_freeze_sha256": "587c700f28931c636d46fb81cfbbfb1c2c54fa1637d0a6e8c82d40b36a126f09",
+  "root_freeze_file_count": 262,
+  "owner_report_sha256": "2c906c2395067bcf154d0ab9a473b6f17c3ad029074d569cd9fb2c3e49f73d90",
+  "reviewer_execution": {
+    "source_hashes_before": {
+      "ccr-ui/src/i18n/locales/zh-CN.ts": "e43214412d83ecabeceed1e3d7559f7ff965bf2729871fe26c5f4c5120308604",
+      "ccr-ui/src/i18n/locales/en-US.ts": "e56e7b998465b81af5646e657850716040e64c81ca10500ce4e6ad4346e93b4e",
+      "ccr-ui/tests/i18n.test.cjs": "7c39a2a82b0bab7917ad07110f8eabfa84bb535f58b683bea2acd63cded412e0",
+      "ccr-ui/src/configs/settings-codex.ts": "07238c7472357c1931fb5f786b291e6e44b37e5f0b1af6fdd551def487c31728",
+      "ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx": "412e89f38c510048e93a1dd912432b24379ccaf9cd3df556dbe134a40bc7ae8b"
+    },
+    "source_hashes_after": {
+      "ccr-ui/src/i18n/locales/zh-CN.ts": "e43214412d83ecabeceed1e3d7559f7ff965bf2729871fe26c5f4c5120308604",
+      "ccr-ui/src/i18n/locales/en-US.ts": "e56e7b998465b81af5646e657850716040e64c81ca10500ce4e6ad4346e93b4e",
+      "ccr-ui/tests/i18n.test.cjs": "7c39a2a82b0bab7917ad07110f8eabfa84bb535f58b683bea2acd63cded412e0",
+      "ccr-ui/src/configs/settings-codex.ts": "07238c7472357c1931fb5f786b291e6e44b37e5f0b1af6fdd551def487c31728",
+      "ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx": "412e89f38c510048e93a1dd912432b24379ccaf9cd3df556dbe134a40bc7ae8b"
+    },
+    "five_sources_unchanged_through_checks": true,
+    "bun_executable": "C:\\Users\\lyh\\scoop\\shims\\bun.EXE",
+    "commands": [
+      {
+        "command_argv": [
+          "bun",
+          "run",
+          "test:smoke",
+          "--",
+          "tests/platforms/settings-visible-i18n.smoke.test.tsx"
+        ],
+        "cwd": "D:/Documents/Code/Github/ccr/ccr-ui",
+        "started_at_utc": "2026-09-28T23:30:43.395074+00:00",
+        "finished_at_utc": "2026-09-28T23:30:46.250258+00:00",
+        "seconds": 2.855,
+        "exit_code": 0,
+        "stdout": "\n RUN  v4.1.11 D:/Documents/Code/Github/ccr/ccr-ui\n\n\n Test Files  1 passed (1)\n      Tests  1 passed (1)\n   Start at  18:30:43\n   Duration  2.36s (transform 1.12s, setup 103ms, import 1.45s, tests 193ms, environment 477ms)\n\n",
+        "stderr": "$ vitest run --config vitest.smoke.config.ts \"tests/platforms/settings-visible-i18n.smoke.test.tsx\"\n",
+        "stdout_sha256": "be6a85757169841c1f0f1946fde4405b5dd7ba95c6d01fe08db74c7465160fb9",
+        "stderr_sha256": "5c2e7285538469e684086ea18f461aae70b9ccd111300cbc7d9ed60b4dfe387d"
+      },
+      {
+        "command_argv": [
+          "bun",
+          "run",
+          "test:i18n"
+        ],
+        "cwd": "D:/Documents/Code/Github/ccr/ccr-ui",
+        "started_at_utc": "2026-09-28T23:30:43.395404+00:00",
+        "finished_at_utc": "2026-09-28T23:30:43.892035+00:00",
+        "seconds": 0.497,
+        "exit_code": 0,
+        "stdout": "\u001b[1m\u001b[36m\n╔═══════════════════════════════════════════════════════════════════════════════╗\u001b[0m\u001b[0m\n\u001b[1m\u001b[36m║                   i18n Translation Files Validation Test                     ║\u001b[0m\u001b[0m\n\u001b[1m\u001b[36m╚═══════════════════════════════════════════════════════════════════════════════╝\u001b[0m\u001b[0m\n\u001b[36m\nTest Configuration:\u001b[0m\n\u001b[36m  zh-CN file: D:\\Documents\\Code\\Github\\ccr\\ccr-ui\\src\\i18n\\locales\\zh-CN.ts\u001b[0m\n\u001b[36m  en-US file: D:\\Documents\\Code\\Github\\ccr\\ccr-ui\\src\\i18n\\locales\\en-US.ts\u001b[0m\n\u001b[36m  Required namespaces: common, nav, configs, mcp, agents, slashCommands, plugins\u001b[0m\n\u001b[36m  Max size difference: 35%\u001b[0m\n\n\u001b[36m================================================================================\u001b[0m\n\u001b[1m\u001b[36m  Test 1: File Existence Check\u001b[0m\u001b[0m\n\u001b[36m================================================================================\u001b[0m\n\u001b[32m✓\u001b[0m zh-CN.ts file exists\n\u001b[2m  Path: D:\\Documents\\Code\\Github\\ccr\\ccr-ui\\src\\i18n\\locales\\zh-CN.ts\u001b[0m\n\u001b[32m✓\u001b[0m en-US.ts file exists\n\u001b[2m  Path: D:\\Documents\\Code\\Github\\ccr\\ccr-ui\\src\\i18n\\locales\\en-US.ts\u001b[0m\n\n\u001b[36m================================================================================\u001b[0m\n\u001b[1m\u001b[36m  Test 2: File Size Comparison\u001b[0m\u001b[0m\n\u001b[36m================================================================================\u001b[0m\n\u001b[36m  zh-CN.ts: 220.86 KB\u001b[0m\n\u001b[36m  en-US.ts: 229.37 KB\u001b[0m\n\u001b[36m  Size difference: 8.51 KB (3.78%)\u001b[0m\n\u001b[32m✓\u001b[0m File sizes are reasonably similar\n\u001b[2m  Files are within acceptable size range\u001b[0m\n\n\u001b[36m================================================================================\u001b[0m\n\u001b[1m\u001b[36m  Test 3: Namespace Extraction and Validation\u001b[0m\u001b[0m\n\u001b[36m================================================================================\u001b[0m\n\u001b[36m  zh-CN namespaces (549): auth, common, language, shell, about, backend, environment, historyPanel, versionManager, updateModal, ccrControl, status, time, editor, variables, nav, user, checkin, actions, tabs, dialog, stats, result, progress, waf, detail, skipReasons, info, errors, hints, labels, accounts, columns, modal, fields, waf, cdk, help, errors, account_manager, account_list, token_config, history, status, records, providers, oauthWizard, oauthTypes, steps, summary, errors, dashboard, insights, totals, compare, views, heatmap, trend, distribution, leaderboard, weekdays, months, empty, webPreview, readiness, reasons, metrics, actions, platforms, metrics, usage, signals, statusBar, claudeCode, hero, features, modules, profiles, auth, settings, mcpServers, slashCommands, agents, plugins, quickActions, tips, observer, tab, metric, chart, subscription, tokenDetail, behavior, empty, claudeProfiles, authTokenActions, sections, basic, connection, auth, status, actions, runtimeBanner, confirm, messages, groups, statStrip, toolbar, fields, inspector, issues, commandPalette, settingsSession, settingsRaw, profilesRaw, systemPrompts, files, platforms, claudeSettings, tabs, model, permissions, env, ui, sandbox, git, mcp, breadcrumb, presets, sync, manager, hero, actions, metrics, presetsDrawer, scopes, approvals, state, list, bulkDelete, confirm, messages, detail, form, import, errors, monitoring, levels, prompts, builtin, categories, agents, folders, search, validation, messages, form, models, breadcrumb, slashCommands, folders, search, form, breadcrumb, viewControls, plugins, form, breadcrumb, configs, breadcrumb, buttons, tabs, filters, sidebar, sort, provider, sortModes, form, addConfig, commands, catalog, status, converter, formatDescriptions, usageNotes, sync, breadcrumb, gating, about, assets, passphrase, assetGroups, ccr, claude, codex, assetActions, assetStatus, output, webdav, account, features, supportedServices, messages, theme, language, settings, dock, summary, appearance, theme, flavor, typography, language, shell, diagnostics, errors, notifications, usage, platforms, actions, filters, timeRange, model, summaryCards, trends, states, emptyState, unsupported, cli_missing, db_missing, db_unreadable, schema_unsupported, missing_table, missing_column, waiting_for_llmusage, install, dialog, stage, duration, dashboard, range, importJobBanner, toolbar, tabs, cards, tokenStrip, sources, ops, states, ready, syncing, stale, degraded, needs_import, needs_session_index, empty, health, freshness, sourceStates, sourceStateHints, actions, alerts, age, cost, providers, chart, bucket, highlights, rankings, models, tokens, modes, projects, meta, table, logs, diagnostics, status, pricing, actions, boundary, fields, default, models, form, operations, empty, states, confirm, messages, stats, timeRange, actions, summaryCards, tokenDetails, sections, units, states, codex, overview, features, modules, mcp, agents, profiles, slashCommands, auth, settings, plugins, config, tips, capabilities, dashboard, header, statusLabels, readiness, auth, profiles, config, usage, usageFreshness, actionConsole, actions, login, createProfile, selectProfile, completeSettings, addMcp, openSessions, ready, refresh, management, auth, profiles, settings, mcp, agents, sessions, usage, empty, error, actions, states, mcp, types, placeholders, validation, messages, agents, sources, freshness, stats, status, confirm, messages, validation, form, messages, profiles, fields, actions, runtimeBanner, confirm, placeholders, authModes, authTokenHints, templateSelector, sections, sectionHints, tokenActions, providers, validation, messages, empty, groups, statStrip, toolbar, commandPalette, inspector, issues, status, settings, tabs, model, reasoningEffortOptions, security, tools, ui, features, messages, slashCommands, folders, validation, messages, auth, off, profileGuard, status, loginState, fields, placeholders, validation, table, messages, tray, rename, filters, statusOptions, freshnessOptions, planOptions, sortOptions, plugins, folders, validation, messages, messages, gemini, overview, stats, hero, tags, terminal, modules, quick, mcp, validation, messages, agents, folders, validation, messages, slashCommands, folders, validation, messages, plugins, validation, messages, grok, overview, auth, dashboard, header, localOnly, readiness, installation, profiles, config, actions, install, createProfile, activateProfile, repairDrift, inspectUnsafe, openSettings, management, profiles, settings, commands, statusLabels, empty, error, profiles, actions, statStrip, toolbar, empty, groups, fields, profileKinds, authModes, credentialActions, editor, validation, confirm, messages, driftBanner, inactive, active, drifted, unsafe_missing_entry_state, renameRecovery, rename_apply_failed, rename_cleanup_failed, unsafeDelete, commandPalette, inspector, issues, missing, settings, localOnly, tabs, status, managed, conflict, model, sessionUi, cli, worktrees, fields, placeholders, helpers, options, themeOptions, worktreeOptions, customModels, source, footer, validation, messages, states, activation, activationWarning, authMode, version, placeholder, platformUsage, tabs, cards, metrics, rank, units, empty, platforms, codex, antigravity, opencode, usageStats, viewModes, profilePresentation, name, configPath, fields, auth, badges, profilesSurface, stats, empty, view, table, toolbar, inspector, commandPalette, agentSessions, roles, agents, errors, profileEditor, validation\u001b[0m\n\u001b[36m  en-US namespaces (549): auth, common, language, shell, about, backend, environment, historyPanel, versionManager, updateModal, ccrControl, status, time, editor, variables, nav, user, checkin, actions, tabs, dialog, stats, result, progress, waf, detail, skipReasons, info, errors, hints, labels, accounts, columns, modal, fields, waf, cdk, help, errors, account_manager, account_list, token_config, history, status, records, providers, oauthWizard, oauthTypes, steps, summary, errors, dashboard, insights, totals, compare, views, heatmap, trend, distribution, leaderboard, weekdays, months, empty, webPreview, readiness, reasons, metrics, actions, platforms, metrics, usage, signals, statusBar, claudeCode, hero, features, modules, profiles, auth, settings, mcpServers, slashCommands, agents, plugins, quickActions, tips, observer, tab, metric, chart, subscription, tokenDetail, behavior, empty, claudeProfiles, authTokenActions, sections, basic, connection, auth, status, actions, runtimeBanner, confirm, messages, groups, statStrip, toolbar, fields, inspector, issues, commandPalette, settingsSession, settingsRaw, profilesRaw, systemPrompts, files, platforms, claudeSettings, tabs, model, permissions, env, ui, sandbox, git, mcp, breadcrumb, presets, sync, manager, hero, actions, metrics, presetsDrawer, scopes, approvals, state, list, bulkDelete, confirm, messages, detail, form, import, errors, monitoring, levels, prompts, builtin, categories, agents, folders, search, validation, messages, form, models, breadcrumb, slashCommands, folders, search, form, breadcrumb, viewControls, plugins, form, breadcrumb, configs, breadcrumb, buttons, tabs, filters, sidebar, sort, provider, sortModes, form, addConfig, commands, catalog, status, converter, formatDescriptions, usageNotes, sync, breadcrumb, gating, about, assets, passphrase, assetGroups, ccr, claude, codex, assetActions, assetStatus, output, webdav, account, features, supportedServices, messages, errors, theme, language, settings, dock, summary, appearance, theme, flavor, typography, language, shell, diagnostics, notifications, usage, platforms, actions, filters, timeRange, model, summaryCards, trends, states, emptyState, unsupported, cli_missing, db_missing, db_unreadable, schema_unsupported, missing_table, missing_column, waiting_for_llmusage, install, dialog, stage, duration, dashboard, range, importJobBanner, toolbar, tabs, cards, tokenStrip, sources, ops, states, ready, syncing, stale, degraded, needs_import, needs_session_index, empty, health, freshness, sourceStates, sourceStateHints, actions, alerts, age, cost, providers, chart, bucket, highlights, rankings, models, tokens, modes, projects, meta, table, logs, diagnostics, status, pricing, actions, boundary, fields, default, models, form, operations, empty, states, confirm, messages, stats, timeRange, actions, summaryCards, tokenDetails, sections, units, states, codex, overview, features, modules, mcp, agents, profiles, slashCommands, auth, settings, plugins, config, tips, capabilities, dashboard, header, statusLabels, readiness, auth, profiles, config, usage, usageFreshness, actionConsole, actions, login, createProfile, selectProfile, completeSettings, addMcp, openSessions, ready, refresh, management, auth, profiles, settings, mcp, agents, sessions, usage, empty, error, actions, states, mcp, types, placeholders, validation, messages, agents, sources, freshness, stats, status, confirm, messages, validation, form, messages, profiles, fields, actions, runtimeBanner, confirm, placeholders, authModes, authTokenHints, templateSelector, sections, sectionHints, tokenActions, providers, validation, messages, empty, groups, statStrip, toolbar, commandPalette, inspector, issues, status, settings, tabs, model, reasoningEffortOptions, security, tools, ui, features, messages, slashCommands, folders, validation, messages, auth, off, profileGuard, status, loginState, fields, placeholders, validation, table, messages, tray, rename, filters, statusOptions, freshnessOptions, planOptions, sortOptions, plugins, folders, validation, messages, messages, gemini, overview, stats, hero, tags, terminal, modules, quick, mcp, validation, messages, agents, folders, validation, messages, slashCommands, folders, validation, messages, plugins, validation, messages, grok, overview, auth, dashboard, header, localOnly, readiness, installation, profiles, config, actions, install, createProfile, activateProfile, repairDrift, inspectUnsafe, openSettings, management, profiles, settings, commands, statusLabels, empty, error, profiles, actions, statStrip, toolbar, empty, groups, fields, profileKinds, authModes, credentialActions, editor, validation, confirm, messages, driftBanner, inactive, active, drifted, unsafe_missing_entry_state, renameRecovery, rename_apply_failed, rename_cleanup_failed, unsafeDelete, commandPalette, inspector, issues, missing, settings, localOnly, tabs, status, managed, conflict, model, sessionUi, cli, worktrees, fields, placeholders, helpers, options, themeOptions, worktreeOptions, customModels, source, footer, validation, messages, states, activation, activationWarning, authMode, version, placeholder, platformUsage, tabs, cards, metrics, rank, units, empty, platforms, codex, antigravity, opencode, usageStats, viewModes, profilePresentation, name, configPath, fields, auth, badges, profilesSurface, stats, empty, view, table, toolbar, inspector, commandPalette, agentSessions, roles, agents, errors, profileEditor, validation\u001b[0m\n\u001b[32m✓\u001b[0m Namespace counts match\n\u001b[2m  Both files have 549 namespaces\u001b[0m\n\u001b[32m✓\u001b[0m All namespaces are consistent\n\u001b[2m  Perfect namespace alignment\u001b[0m\n\n\u001b[36m================================================================================\u001b[0m\n\u001b[1m\u001b[36m  Test 4: Required Namespaces Check\u001b[0m\u001b[0m\n\u001b[36m================================================================================\u001b[0m\n\u001b[36m  Required namespaces: common, nav, configs, mcp, agents, slashCommands, plugins\u001b[0m\n\u001b[32m✓\u001b[0m Required namespace: common\n\u001b[2m  Present in both files\u001b[0m\n\u001b[32m✓\u001b[0m Required namespace: nav\n\u001b[2m  Present in both files\u001b[0m\n\u001b[32m✓\u001b[0m Required namespace: configs\n\u001b[2m  Present in both files\u001b[0m\n\u001b[32m✓\u001b[0m Required namespace: mcp\n\u001b[2m  Present in both files\u001b[0m\n\u001b[32m✓\u001b[0m Required namespace: agents\n\u001b[2m  Present in both files\u001b[0m\n\u001b[32m✓\u001b[0m Required namespace: slashCommands\n\u001b[2m  Present in both files\u001b[0m\n\u001b[32m✓\u001b[0m Required namespace: plugins\n\u001b[2m  Present in both files\u001b[0m\n\n\u001b[36m================================================================================\u001b[0m\n\u001b[1m\u001b[36m  Test 5: Variable Placeholders Analysis\u001b[0m\u001b[0m\n\u001b[36m================================================================================\u001b[0m\n\u001b[36m  zh-CN placeholders (94): name, time, count, id, code, provider, reward, current, total, account...\u001b[0m\n\u001b[36m  en-US placeholders (94): name, time, count, id, code, provider, reward, current, total, account...\u001b[0m\n\u001b[36m  Placeholder overlap: 100.00%\u001b[0m\n\u001b[32m✓\u001b[0m Placeholder overlap is good\n\u001b[2m  100.00% overlap indicates consistent variable usage\u001b[0m\n\n\u001b[36m================================================================================\u001b[0m\n\u001b[1m\u001b[36m  Test 6: Syntax Validation\u001b[0m\u001b[0m\n\u001b[36m================================================================================\u001b[0m\n\u001b[32m✓\u001b[0m zh-CN has export default statement\n\u001b[2m  Found export default\u001b[0m\n\u001b[32m✓\u001b[0m en-US has export default statement\n\u001b[2m  Found export default\u001b[0m\n\u001b[32m✓\u001b[0m zh-CN has balanced braces\n\u001b[2m  971 opening, 971 closing\u001b[0m\n\u001b[32m✓\u001b[0m en-US has balanced braces\n\u001b[2m  971 opening, 971 closing\u001b[0m\n\n\u001b[36m================================================================================\u001b[0m\n\u001b[1m\u001b[36m  Test 7: i18n @ Literal Safety\u001b[0m\u001b[0m\n\u001b[36m================================================================================\u001b[0m\n\u001b[32m✓\u001b[0m zh-CN.ts has no unsafe bare @\n\u001b[2m  All @ usages are explicit literals or linked syntax\u001b[0m\n\u001b[32m✓\u001b[0m en-US.ts has no unsafe bare @\n\u001b[2m  All @ usages are explicit literals or linked syntax\u001b[0m\n\n\u001b[36m================================================================================\u001b[0m\n\u001b[1m\u001b[36m  Test 8: Leaf Key Count\u001b[0m\u001b[0m\n\u001b[36m================================================================================\u001b[0m\n\u001b[32m✓\u001b[0m zh-CN.ts has 4523 leaf keys\n\u001b[2m  counted 4523 string leaves\u001b[0m\n\u001b[32m✓\u001b[0m en-US.ts has 4523 leaf keys\n\u001b[2m  counted 4523 string leaves\u001b[0m\n\u001b[32m✓\u001b[0m zh-CN and en-US leaf key counts match\n\u001b[2m  4523 vs 4523\u001b[0m\n\n\u001b[36m================================================================================\u001b[0m\n\u001b[1m\u001b[36m  Test 9: Placeholder Binding Validation\u001b[0m\u001b[0m\n\u001b[36m================================================================================\u001b[0m\n\u001b[32m✓\u001b[0m Simple i18n placeholder bindings are aligned\n\u001b[2m  Checked 967 source files\u001b[0m\n\n\u001b[36m================================================================================\u001b[0m\n\u001b[1m\u001b[36m  Test 10: Coverage Statistics\u001b[0m\u001b[0m\n\u001b[36m================================================================================\u001b[0m\n\u001b[36m\n  Translation Coverage:\u001b[0m\n\u001b[36m    zh-CN: 4538 keys, 5726 lines, 50 comments\u001b[0m\n\u001b[36m    en-US: 4550 keys, 5885 lines, 49 comments\u001b[0m\n\u001b[36m    Key difference: 12 (0.26%)\u001b[0m\n\u001b[32m✓\u001b[0m Translation key coverage is good\n\u001b[2m  Key counts are very close\u001b[0m\n\n\u001b[36m================================================================================\u001b[0m\n\u001b[1m\u001b[36m  Test Summary\u001b[0m\u001b[0m\n\u001b[36m================================================================================\u001b[0m\n\u001b[36m\n  Results:\u001b[0m\n    Total tests:    \u001b[1m24\u001b[0m\n\u001b[32m    Passed:         24\u001b[0m\n\u001b[36m    Pass rate:      100.00%\u001b[0m\n\n\u001b[36m────────────────────────────────────────────────────────────────────────────────\u001b[0m\n\u001b[32m\n✓ All tests passed! i18n files are valid and consistent.\n\u001b[0m\n✅ underscore key: \"checkin.stats.total_accounts\" → [\"checkin.stats.total_accounts\"]\n✅ two-segment key: \"common.save\" → [\"common.save\"]\n✅ translated copy: \"保存\" → []\n✅ key-shaped non-catalog text: \"package.json example.com\" → []\n✅ key leak detector self-test passed（集合 4523 个叶子 key）\n",
+        "stderr": "$ bun tests/i18n.test.cjs && bun ./scripts/detect-i18n-key-leak.mjs --self-test\n",
+        "stdout_sha256": "e5d4c34582563ded182e5e11a0cc7ceec220b1d9b39a5d47a0e9f1616f29035a",
+        "stderr_sha256": "e08cf4f635e41b201ced1a0064c9edc30685b39d58c361eb6cb731ad51a9f16b"
+      },
+      {
+        "command_argv": [
+          "bun",
+          "./node_modules/eslint/bin/eslint.js",
+          "src/configs/settings-codex.ts",
+          "src/i18n/locales/en-US.ts",
+          "src/i18n/locales/zh-CN.ts",
+          "tests/platforms/settings-visible-i18n.smoke.test.tsx",
+          "tests/i18n.test.cjs"
+        ],
+        "cwd": "D:/Documents/Code/Github/ccr/ccr-ui",
+        "started_at_utc": "2026-09-28T23:30:43.395570+00:00",
+        "finished_at_utc": "2026-09-28T23:30:46.690263+00:00",
+        "seconds": 3.295,
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "cargo_commands": 0,
+    "full_ci_commands": 0,
+    "output_order_note": "stdout and stderr were captured separately; the saved grouping is not event chronology.",
+    "results": {
+      "targeted_visible_label_test_passed": 1,
+      "i18n_assertions_passed": 24,
+      "i18n_leaves_per_locale": 4523,
+      "key_leak_detector_self_test": "passed",
+      "scoped_eslint": "passed",
+      "source_hashes_unchanged": true
+    }
+  },
+  "reviewed_at_utc": "2026-09-28T23:32:26.319333+00:00",
+  "date": "2026-09-28",
+  "input_evidence": [
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-tauri-lint-implementation.json",
+      "sha256": "2c906c2395067bcf154d0ab9a473b6f17c3ad029074d569cd9fb2c3e49f73d90",
+      "bytes": 38970
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-review-before.json",
+      "sha256": "c4906f5de7ec0ec68e385b2f55f025560a047e0b52a0b4ed4c202172fadc0c0d",
+      "bytes": 588
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-settings-labels-before.json",
+      "sha256": "cf16922c199c60657a2f85cedd670bddadc660f21b4387fdbc319d757f8cc51f",
+      "bytes": 259
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-source-freeze.json",
+      "sha256": "587c700f28931c636d46fb81cfbbfb1c2c54fa1637d0a6e8c82d40b36a126f09",
+      "bytes": 31842
+    }
+  ],
+  "owner_validation_checked": [
+    {
+      "label": "settings_smoke",
+      "command_argv": [
+        "bun",
+        "run",
+        "test:smoke",
+        "--",
+        "tests/platforms/settings-visible-i18n.smoke.test.tsx",
+        "tests/platforms/settings-capabilities.smoke.test.tsx",
+        "tests/platforms/settings-session.smoke.test.tsx",
+        "tests/platforms/settings-source-session.smoke.test.tsx"
+      ],
+      "cwd": "D:/Documents/Code/Github/ccr/ccr-ui",
+      "exit_code": 0,
+      "exit_code_source": "executor completion observed in this implementation session; no separate raw executor response JSON was saved",
+      "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-settings-smoke.log",
+      "log_sha256": "7d029d219ab0a5f7b99c0a02b01af09887b6bac099d846f39f49594897b61373",
+      "matched_passed": 45,
+      "test_files_passed": 4,
+      "runner_reported_seconds": 7.14
+    },
+    {
+      "label": "i18n",
+      "command_argv": [
+        "bun",
+        "run",
+        "test:i18n"
+      ],
+      "cwd": "D:/Documents/Code/Github/ccr/ccr-ui",
+      "exit_code": 0,
+      "exit_code_source": "executor completion observed in this implementation session; no separate raw executor response JSON was saved",
+      "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-i18n-final.log",
+      "log_sha256": "d35396928f6b9aa816fc94a7bb0207d7684e99f27fda992e30154e1587d37a15",
+      "matched_passed": 24,
+      "locale_leaf_keys": 4523,
+      "key_leak_self_test": "passed"
+    },
+    {
+      "label": "typescript",
+      "command_argv": [
+        "bun",
+        "run",
+        "type-check"
+      ],
+      "cwd": "D:/Documents/Code/Github/ccr/ccr-ui",
+      "exit_code": 0,
+      "exit_code_source": "executor completion observed in this implementation session; no separate raw executor response JSON was saved",
+      "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-type-check.log",
+      "log_sha256": "5a3973f79ed9becd5f23c4feff467513814de7ea381d75a4d2e339aa8b8edca9"
+    },
+    {
+      "label": "scoped_eslint",
+      "command_argv": [
+        "bun",
+        "./node_modules/eslint/bin/eslint.js",
+        "src/configs/settings-codex.ts",
+        "src/i18n/locales/en-US.ts",
+        "src/i18n/locales/zh-CN.ts",
+        "tests/platforms/settings-visible-i18n.smoke.test.tsx",
+        "tests/i18n.test.cjs"
+      ],
+      "cwd": "D:/Documents/Code/Github/ccr/ccr-ui",
+      "exit_code": 0,
+      "exit_code_source": "executor completion observed in this implementation session; no separate raw executor response JSON was saved",
+      "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-scoped-eslint.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "scope_note": "Scoped diagnosis; not the formal complete frontend lint gate"
+    }
+  ],
+  "original_failure": {
+    "command_argv": [
+      "bun",
+      "run",
+      "test:smoke",
+      "--",
+      "tests/platforms/settings-visible-i18n.smoke.test.tsx"
+    ],
+    "cwd": "D:/Documents/Code/Github/ccr/ccr-ui",
+    "exit_code": 1,
+    "matched_failed": 1,
+    "observed_failures": "Save label plus all four known effort labels returned translation keys",
+    "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-settings-i18n-red.log",
+    "log_sha256": "fc31dbfb2026db5616ea3493be7a3770fca0206e96683ace8fb9db814e0c9ffc",
+    "source_capture_mode": "not_captured",
+    "source_note": "The original failing version differs from final sources. No exact full failing-version source hash snapshot was retained; final hashes must not be attributed to this red run.",
+    "current_log_hash_matches": true
+  },
+  "scope_changes": [
+    {
+      "path": "ccr-ui/src/i18n/locales/zh-CN.ts",
+      "changes": [
+        "Add claudeSettings.subtitle",
+        "Add codex.settings.save",
+        "Add four codex.settings.model.reasoningEffortOptions leaves"
+      ],
+      "new_leaf_count": 6
+    },
+    {
+      "path": "ccr-ui/src/i18n/locales/en-US.ts",
+      "changes": [
+        "Add the same six leaf keys with English translations"
+      ],
+      "new_leaf_count": 6
+    },
+    {
+      "path": "ccr-ui/tests/i18n.test.cjs",
+      "changes": [
+        "EXPECTED_LEAF_COUNT changes from 4517 to 4523; all other assertions retained"
+      ]
+    },
+    {
+      "path": "ccr-ui/src/configs/settings-codex.ts",
+      "changes": [
+        "Replace only four CODEX_EFFORT labelKey strings; option values remain minimal/low/medium/high"
+      ]
+    },
+    {
+      "path": "ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx",
+      "changes": [
+        "New one-test real CodexSettingsView + translator regression; mocked IPC; mounted locale switch; retained unknown value; one settings query"
+      ]
+    }
+  ],
+  "excluded_historical_changes": [
+    "auth.stale and settingsSession translations",
+    "raw-settings unsupported-clear copy",
+    "commands job/history copy",
+    "profilesSurface outcome copy",
+    "settings-codex raw source capabilities, dirty patch, environment probe, unset handling and load/save behavior",
+    "i18n leaf-count changes before 4517"
+  ],
+  "requirements_checked": [
+    {
+      "id": "F1",
+      "requirement": "Claude Settings subtitle resolves in both catalogs",
+      "evidence": [
+        "ccr-ui/src/configs/settings-claude.ts:44",
+        "ccr-ui/src/features/platform/settings/BaseSettings.tsx:60",
+        "ccr-ui/src/features/platform/settings/BaseSettings.tsx:93",
+        "ccr-ui/src/i18n/locales/zh-CN.ts:1494",
+        "ccr-ui/src/i18n/locales/en-US.ts:1539"
+      ],
+      "result": "passed catalog and consumer check; no new Claude page-render test asserted"
+    },
+    {
+      "id": "F2",
+      "requirement": "Codex save label and four effort labels use namespaced bilingual strings",
+      "evidence": [
+        "ccr-ui/src/configs/settings-codex.ts:10",
+        "ccr-ui/src/features/platform/settings/BaseSettings.tsx:64",
+        "ccr-ui/src/features/platform/settings/SettingsFieldControl.tsx:31",
+        "ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx:40"
+      ],
+      "result": "passed real view and real translator in jsdom for zh-CN and en-US"
+    },
+    {
+      "id": "F3",
+      "requirement": "Existing unknown effort is retained while labels change",
+      "evidence": [
+        "ccr-ui/src/features/platform/settings/SettingsFieldControl.tsx:30",
+        "ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx:34"
+      ],
+      "result": "passed display/value checks for future-effort; no save or disk claim"
+    },
+    {
+      "id": "F4",
+      "requirement": "Locale switching re-renders the mounted form without another settings load",
+      "evidence": [
+        "ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx:24",
+        "ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx:31",
+        "ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx:44",
+        ".trellis/spec/ccr-ui/frontend/react-rerender-discipline.md:36"
+      ],
+      "result": "passed both locales with one codex_get_settings call"
+    },
+    {
+      "id": "F5",
+      "requirement": "Leaf-count baseline follows the real additions without suppressing checks",
+      "evidence": [
+        "ccr-ui/tests/i18n.test.cjs:320"
+      ],
+      "result": "4517 + 6 = 4523; each locale count and all 24 i18n checks passed"
+    }
+  ],
+  "acceptance_boundaries": [
+    "Only this five-file continuation increment was reviewed; same-file historical architecture changes were excluded.",
+    "New test mounts the real React view and translator in jsdom with mocked Tauri IPC. It is not native WebView or browser visual evidence.",
+    "The test verifies preservation of the unknown field value in the displayed form; it does not test save, IPC dispatch success, filesystem persistence or actual accounts.",
+    "Original red log is preserved, but the failing-version full source bytes were not captured. Final hashes are not attributed to that red run.",
+    "Owner command sources are post-run confirmations, not per-command complete compiler-input snapshots. Independent reruns recorded the five source hashes both before and after.",
+    "Scoped ESLint and narrow smoke checks do not replace the full frontend or root aggregate gate. Root owns the currently unresolved aggregate result."
+  ],
+  "line_ending_note": "The source patch also converted context lines near the touched chunks from CRLF to LF. Those byte changes were included when reconstructing the before SHA; normalized diffs isolate semantic changes. No reviewer newline conversion was written to source files.",
+  "read_only_diff_check": {
+    "argv": [
+      "git",
+      "diff",
+      "--check",
+      "--",
+      "ccr-ui/src/i18n/locales/zh-CN.ts",
+      "ccr-ui/src/i18n/locales/en-US.ts",
+      "ccr-ui/tests/i18n.test.cjs",
+      "ccr-ui/src/configs/settings-codex.ts",
+      "ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "warning: in the working copy of 'ccr-ui/src/configs/settings-codex.ts', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'ccr-ui/src/i18n/locales/en-US.ts', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'ccr-ui/src/i18n/locales/zh-CN.ts', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'ccr-ui/tests/i18n.test.cjs', LF will be replaced by CRLF the next time Git touches it\n"
+  },
+  "new_test_git_index_evidence": {
+    "currently_untracked": true,
+    "before_report_hash": null,
+    "note": "The before evidence identifies a new test; no pre-creation byte file exists. No absence claim stronger than that metadata is made."
+  },
+  "findings": [],
+  "blocking_findings": 0,
+  "actions_not_taken": [
+    "No product source edits",
+    "No Cargo or full CI",
+    "No native desktop/browser launch",
+    "No task-state, matrix or parent-report updates",
+    "No agents spawned",
+    "No commits or archive"
+  ],
+  "spec_appendix": {
+    "scope": "Only the new root-authored security and Settings test clauses; prior content remains outside independent review",
+    "specs": [
+      {
+        "file": {
+          "path": ".trellis/spec/ccr/backend/dependency-governance.md",
+          "sha256": "16f9fc4d4d5b50d42ed9f38a04ca423b711bc88b8cbe86ba60e6f582b97413da",
+          "bytes": 33513
+        },
+        "before_reconstructed_sha256": "c5d4068b3f7bdff793e79ba03de46515f133776ae43ffe81ece9d82117c6bab2",
+        "before_matches_root_freeze": true,
+        "reviewed_additions": [
+          "- Security updates to either `Cargo.lock` also require verification of both independent lockfiles.",
+          "- Lockfile security checks: `cargo audit --file Cargo.lock` and `cargo audit --file ccr-ui/src-tauri/Cargo.lock`. Record the advisory database revision and whether fetching succeeded.",
+          "- For a narrow security update, record each lockfile's before/after package versions, checksums, dependency lists, and package count. Verify checksums against the registry. Preserve existing audit warnings and failed attempts; do not add ignores to obtain a passing result.",
+          "- A vulnerable package in a lockfile does not establish that the package is active in the built feature/target graph. Record that boundary separately from the audit result. A successful development-toolchain check does not replace the MSRV check.",
+          "- Only one independent lockfile audited, fetch failed, or the checked lockfile differs from the delivered file -> incomplete security evidence."
+        ],
+        "evidence": [
+          "continuation-security-check.md",
+          "continuation-security-check.json"
+        ],
+        "conclusion": "Both independent locks, default-fetch audits, advisory revision, exact resolution changes, checksum verification, warning/failure retention, active-graph limitation and real MSRV boundary match the verified security slice.",
+        "writes_by_reviewer": 0
+      },
+      {
+        "file": {
+          "path": ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md",
+          "sha256": "cf2e742f8cfc96f386a0b90f8b2cd70b02e66eb2c8c2f12151a8a59643dc5575",
+          "bytes": 12326
+        },
+        "before_reconstructed_sha256": "50dfaad8776716c25e1da408a521e1eb94e08cd325135e79e5d50548121560fa",
+        "before_matches_root_freeze": true,
+        "reviewed_additions": [
+          "- Codex model-only persistence requires a temporary-file save and reread through",
+          "  the production `update_codex_settings_at_path` helper. Assert the new model,",
+          "  every notification array entry, and semantic equality of all non-model TOML",
+          "  fields. Read/projection or in-memory merge tests alone do not cover disk writes.",
+          "  An explicit temporary path avoids Windows KnownFolder home resolution; this",
+          "  helper test does not establish `State`, IPC admission, cache invalidation, or",
+          "  native WebView behavior.",
+          "- `tests/platforms/settings-visible-i18n.smoke.test.tsx`: mount the real Settings",
+          "  view and translator, switch Chinese/English within one loaded session, and",
+          "  assert visible field labels, save actions, enum labels, and preserved unknown values."
+        ],
+        "evidence": [
+          "ccr-ui/src-tauri/src/commands/codex_settings.rs:25",
+          "ccr-ui/src-tauri/src/commands/codex_settings.rs:34",
+          "ccr-ui/src-tauri/src/commands/codex_settings.rs:46",
+          "ccr-ui/src-tauri/src/commands/codex_settings.rs:78",
+          "ccr-ui/src-tauri/src/commands/codex_settings.rs:87",
+          "ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx"
+        ],
+        "conclusion": "Production helper performs read/merge/write at explicit TempDir path; the test rereads and compares every notification array entry and all TOML values except model. State, admission, cache and native WebView exclusions are accurate. Field-label wording matches the real translated view test.",
+        "writes_by_reviewer": 0
+      }
+    ],
+    "findings": [
+      {
+        "id": "DOC1",
+        "severity": "low",
+        "initial_text": "assert visible headings",
+        "reason": "The actual new test asserts field labels, Save, options and retained value; it has no heading assertion.",
+        "requested_correction": "visible field labels",
+        "status": "resolved_by_root",
+        "verified_reference": ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md:107"
+      }
+    ]
+  },
+  "formal_frontend_gate_context": {
+    "metadata": {
+      "check": "frontend",
+      "command": [
+        "just",
+        "frontend-check"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "started_at": "2026-09-28T23:32:08.826174+00:00",
+      "exit_code": 1,
+      "seconds": 28.6,
+      "log": "root-continuation-frontend.log",
+      "command_environment_override": {
+        "CCR_SKIP_ICON_GENERATION": "1"
+      }
+    },
+    "metadata_file": {
+      "path": ".trellis/tasks/09-28-cli-tauri-architecture/research/root-continuation-frontend.json",
+      "sha256": "770392e2459d73060c5d407a77e854d2da0484413d6b048b52fd64332b4d858b",
+      "bytes": 348
+    },
+    "raw_log": {
+      "path": ".trellis/tasks/09-28-cli-tauri-architecture/research/root-continuation-frontend.log",
+      "sha256": "96027b1fd4d3f1b2e2f1500c0f5f52048168498201d15b959c58ea908017dbcc",
+      "bytes": 1625
+    },
+    "unexpected_console_errors": 5,
+    "affected_files": [
+      "ccr-ui/.tmp-desktop-probe.mjs",
+      "ccr-ui/.tmp-insights-visual.mjs"
+    ],
+    "protected_file_snapshots": [
+      {
+        "path": "ccr-ui/.tmp-desktop-probe.mjs",
+        "sha256": "02e1aea2ad36cfd1d56e62852f1462d0f9c96a439a1380eaf03e0d4b14912c85",
+        "bytes": 3779,
+        "matches_continuation_baseline": true
+      },
+      {
+        "path": "ccr-ui/.tmp-insights-visual.mjs",
+        "sha256": "ac8fe1e9e9de9738fbc5b2ce44f4d66322eb7d83b83823a38168314c41f47d53",
+        "bytes": 14099,
+        "matches_continuation_baseline": true
+      }
+    ],
+    "not_reclassified_as_pass": true,
+    "no_script_edits_by_reviewer": true
+  },
+  "source_anchors": [
+    "ccr-ui/src/i18n/locales/zh-CN.ts:1494",
+    "ccr-ui/src/i18n/locales/en-US.ts:1539",
+    "ccr-ui/src/configs/settings-codex.ts:10",
+    "ccr-ui/tests/i18n.test.cjs:320",
+    "ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx:24",
+    "ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx:31",
+    "ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx:34",
+    "ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx:40",
+    "ccr-ui/tests/platforms/settings-visible-i18n.smoke.test.tsx:44"
+  ],
+  "resolved_documentation_findings": 1,
+  "open_findings": 0,
+  "review_completed_at_utc": "2026-09-28T23:37:05.451606+00:00",
+  "markdown_report": {
+    "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-frontend-check.md",
+    "sha256": "cf6cd52bdfcfec7a395b38cf6d017bdf765c5917d1bbe6da4dac68ea9de80557",
+    "bytes": 6802
+  }
+}

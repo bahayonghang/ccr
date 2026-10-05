@@ -1,0 +1,12 @@
+{
+  "command": [
+    "just",
+    "version-check"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "environment_overrides": {},
+  "started_at": "2026-09-28T23:01:06.298682+00:00",
+  "exit_code": 0,
+  "seconds": 2.092,
+  "log": "continuation-security-version-check.log"
+}

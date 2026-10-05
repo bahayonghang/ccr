@@ -3,9 +3,35 @@
 
 use ccr_types::ModelRateCatalog;
 use chrono::{DateTime, Utc};
-use rusqlite::{Connection, Row, params};
+use rusqlite::{Connection, OptionalExtension, Row, params};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
+
+fn parse_datetime(value: &str) -> DateTime<Utc> {
+    DateTime::parse_from_rfc3339(value)
+        .map(|value| value.with_timezone(&Utc))
+        .unwrap_or_else(|_| Utc::now())
+}
+
+/// Stable opaque identity for a provider-owned archived source.
+///
+/// The physical path stays private in SQLite and must never be embedded in the
+/// renderer-visible archive id.
+pub fn agent_session_archive_id(platform: &str, file_path: &str, member_id: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(platform.as_bytes());
+    hasher.update([0]);
+    hasher.update(file_path.as_bytes());
+    hasher.update([0]);
+    hasher.update(member_id.as_bytes());
+    let digest = hasher.finalize();
+    let suffix = digest[..16]
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    format!("as-{suffix}")
+}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
@@ -127,13 +153,79 @@ pub struct UsageSessionArchiveEntry {
     pub cwd: String,
     pub file_path: String,
     pub file_hash: Option<String>,
+    pub source_variant: String,
+    pub source_kind: String,
+    pub source_member_id: String,
+    pub source_size: Option<i64>,
+    pub source_mtime_ns: Option<i64>,
+    pub source_stat_hash: Option<String>,
     pub message_count: i64,
+    pub user_message_count: i64,
+    pub assistant_message_count: i64,
+    pub tool_use_count: i64,
+    pub source_fidelity: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub source_state: UsageSourceState,
     pub last_seen_at: Option<DateTime<Utc>>,
     pub raw_deleted_at: Option<DateTime<Utc>>,
     pub archived_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentSessionArchiveRow {
+    pub archive_id: String,
+    pub session_id: String,
+    pub platform: String,
+    pub source_variant: String,
+    pub title: Option<String>,
+    pub cwd: String,
+    pub message_count: i64,
+    pub user_message_count: i64,
+    pub assistant_message_count: i64,
+    pub tool_use_count: i64,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub source_state: UsageSourceState,
+    pub source_fidelity: String,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct AgentSessionArchiveQuery {
+    pub platforms: Vec<String>,
+    pub query: Option<String>,
+    pub cwd_prefix: Option<String>,
+    pub started_at: Option<String>,
+    pub ended_at: Option<String>,
+    pub source_state: Option<String>,
+    pub source_fidelity: Option<String>,
+    pub cursor_updated_at: Option<String>,
+    pub cursor_archive_id: Option<String>,
+    pub limit: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentSessionArchiveSource {
+    pub archive_id: String,
+    pub platform: String,
+    pub source_variant: String,
+    pub source_kind: String,
+    pub file_path: String,
+    pub source_member_id: String,
+    pub source_fidelity: String,
+    pub source_stat_hash: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentSessionSourceState {
+    pub platform: String,
+    pub source_path: String,
+    pub source_kind: String,
+    pub source_size: Option<i64>,
+    pub source_mtime_ns: Option<i64>,
+    pub source_stat_hash: String,
+    pub last_success_at: Option<DateTime<Utc>>,
+    pub last_error_code: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -821,16 +913,27 @@ pub fn upsert_session_archive_entry(
     conn.execute(
         "INSERT INTO usage_session_archive (
             archive_id, session_id, platform, title, cwd, file_path, file_hash,
-            message_count, created_at, updated_at, source_state, last_seen_at, raw_deleted_at, archived_at
-         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
-         ON CONFLICT(file_path) DO UPDATE SET
-            archive_id = excluded.archive_id,
+            source_variant, source_kind, source_member_id, source_size, source_mtime_ns,
+            source_stat_hash, message_count, user_message_count, assistant_message_count,
+            tool_use_count, source_fidelity, created_at, updated_at, source_state,
+            last_seen_at, raw_deleted_at, archived_at
+         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12,
+                   ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24)
+         ON CONFLICT(platform, file_path, source_member_id) DO UPDATE SET
             session_id = excluded.session_id,
-            platform = excluded.platform,
             title = excluded.title,
             cwd = excluded.cwd,
             file_hash = excluded.file_hash,
+            source_variant = excluded.source_variant,
+            source_kind = excluded.source_kind,
+            source_size = excluded.source_size,
+            source_mtime_ns = excluded.source_mtime_ns,
+            source_stat_hash = excluded.source_stat_hash,
             message_count = excluded.message_count,
+            user_message_count = excluded.user_message_count,
+            assistant_message_count = excluded.assistant_message_count,
+            tool_use_count = excluded.tool_use_count,
+            source_fidelity = excluded.source_fidelity,
             created_at = excluded.created_at,
             updated_at = excluded.updated_at,
             source_state = excluded.source_state,
@@ -845,13 +948,222 @@ pub fn upsert_session_archive_entry(
             entry.cwd,
             entry.file_path,
             entry.file_hash,
+            entry.source_variant,
+            entry.source_kind,
+            entry.source_member_id,
+            entry.source_size,
+            entry.source_mtime_ns,
+            entry.source_stat_hash,
             entry.message_count,
+            entry.user_message_count,
+            entry.assistant_message_count,
+            entry.tool_use_count,
+            entry.source_fidelity,
             entry.created_at.to_rfc3339(),
             entry.updated_at.to_rfc3339(),
             entry.source_state.as_str(),
             entry.last_seen_at.map(|value| value.to_rfc3339()),
             entry.raw_deleted_at.map(|value| value.to_rfc3339()),
             entry.archived_at.to_rfc3339(),
+        ],
+    )?;
+    Ok(())
+}
+
+pub fn get_agent_session_archive_page(
+    conn: &Connection,
+    query: &AgentSessionArchiveQuery,
+) -> Result<Vec<AgentSessionArchiveRow>, rusqlite::Error> {
+    let mut clauses = Vec::<String>::new();
+    let mut values = Vec::<Box<dyn rusqlite::types::ToSql>>::new();
+    if !query.platforms.is_empty() {
+        clauses.push(format!(
+            "platform IN ({})",
+            std::iter::repeat_n("?", query.platforms.len())
+                .collect::<Vec<_>>()
+                .join(",")
+        ));
+        for platform in &query.platforms {
+            values.push(Box::new(platform.clone()));
+        }
+    }
+    if let Some(search) = query.query.as_deref() {
+        clauses.push(
+            "(session_id LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\' OR cwd LIKE ? ESCAPE '\\')"
+                .into(),
+        );
+        let pattern = format!("%{}%", search.replace('%', "\\%").replace('_', "\\_"));
+        values.push(Box::new(pattern.clone()));
+        values.push(Box::new(pattern.clone()));
+        values.push(Box::new(pattern));
+    }
+    if let Some(prefix) = query.cwd_prefix.as_deref() {
+        clauses.push("cwd LIKE ? ESCAPE '\\'".into());
+        values.push(Box::new(format!(
+            "{}%",
+            prefix.replace('%', "\\%").replace('_', "\\_")
+        )));
+    }
+    if let Some(start) = query.started_at.as_deref() {
+        clauses.push("updated_at >= ?".into());
+        values.push(Box::new(start.to_string()));
+    }
+    if let Some(end) = query.ended_at.as_deref() {
+        clauses.push("updated_at <= ?".into());
+        values.push(Box::new(end.to_string()));
+    }
+    if let Some(state) = query.source_state.as_deref() {
+        clauses.push("source_state = ?".into());
+        values.push(Box::new(state.to_string()));
+    }
+    if let Some(fidelity) = query.source_fidelity.as_deref() {
+        clauses.push("source_fidelity = ?".into());
+        values.push(Box::new(fidelity.to_string()));
+    }
+    if let (Some(updated_at), Some(archive_id)) = (
+        query.cursor_updated_at.as_deref(),
+        query.cursor_archive_id.as_deref(),
+    ) {
+        clauses.push("(updated_at < ? OR (updated_at = ? AND archive_id < ?))".into());
+        values.push(Box::new(updated_at.to_string()));
+        values.push(Box::new(updated_at.to_string()));
+        values.push(Box::new(archive_id.to_string()));
+    }
+    let where_sql = if clauses.is_empty() {
+        String::new()
+    } else {
+        format!(" WHERE {}", clauses.join(" AND "))
+    };
+    values.push(Box::new(query.limit.clamp(1, 200) as i64));
+    let sql = format!(
+        "SELECT archive_id, session_id, platform, source_variant, title, cwd,
+                message_count, user_message_count, assistant_message_count,
+                tool_use_count, created_at, updated_at, source_state, source_fidelity
+         FROM usage_session_archive{where_sql}
+         ORDER BY updated_at DESC, archive_id DESC LIMIT ?"
+    );
+    let parameters: Vec<&dyn rusqlite::types::ToSql> =
+        values.iter().map(|value| value.as_ref()).collect();
+    let mut stmt = conn.prepare(&sql)?;
+    let rows = stmt.query_map(parameters.as_slice(), |row| {
+        let created_at: String = row.get(10)?;
+        let updated_at: String = row.get(11)?;
+        Ok(AgentSessionArchiveRow {
+            archive_id: row.get(0)?,
+            session_id: row.get(1)?,
+            platform: row.get(2)?,
+            source_variant: row.get(3)?,
+            title: row.get(4)?,
+            cwd: row.get(5)?,
+            message_count: row.get(6)?,
+            user_message_count: row.get(7)?,
+            assistant_message_count: row.get(8)?,
+            tool_use_count: row.get(9)?,
+            created_at: parse_datetime(&created_at),
+            updated_at: parse_datetime(&updated_at),
+            source_state: UsageSourceState::from_raw(&row.get::<_, String>(12)?),
+            source_fidelity: row.get(13)?,
+        })
+    })?;
+    rows.collect()
+}
+
+pub fn get_agent_session_archive_source(
+    conn: &Connection,
+    archive_id: &str,
+) -> Result<Option<AgentSessionArchiveSource>, rusqlite::Error> {
+    conn.query_row(
+        "SELECT archive_id, platform, source_variant, source_kind, file_path,
+                source_member_id, source_fidelity, source_stat_hash
+         FROM usage_session_archive WHERE archive_id = ?1",
+        [archive_id],
+        |row| {
+            Ok(AgentSessionArchiveSource {
+                archive_id: row.get(0)?,
+                platform: row.get(1)?,
+                source_variant: row.get(2)?,
+                source_kind: row.get(3)?,
+                file_path: row.get(4)?,
+                source_member_id: row.get(5)?,
+                source_fidelity: row.get(6)?,
+                source_stat_hash: row.get(7)?,
+            })
+        },
+    )
+    .optional()
+}
+
+pub fn get_all_agent_session_archive_sources(
+    conn: &Connection,
+) -> Result<Vec<AgentSessionArchiveSource>, rusqlite::Error> {
+    let mut stmt = conn.prepare(
+        "SELECT archive_id, platform, source_variant, source_kind, file_path,
+                source_member_id, source_fidelity, source_stat_hash
+         FROM usage_session_archive",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        Ok(AgentSessionArchiveSource {
+            archive_id: row.get(0)?,
+            platform: row.get(1)?,
+            source_variant: row.get(2)?,
+            source_kind: row.get(3)?,
+            file_path: row.get(4)?,
+            source_member_id: row.get(5)?,
+            source_fidelity: row.get(6)?,
+            source_stat_hash: row.get(7)?,
+        })
+    })?;
+    rows.collect()
+}
+
+pub fn get_agent_session_source_states(
+    conn: &Connection,
+) -> Result<Vec<AgentSessionSourceState>, rusqlite::Error> {
+    let mut stmt = conn.prepare(
+        "SELECT platform, source_path, source_kind, source_size, source_mtime_ns,
+                source_stat_hash, last_success_at, last_error_code
+         FROM usage_session_source_state",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        let last_success: Option<String> = row.get(6)?;
+        Ok(AgentSessionSourceState {
+            platform: row.get(0)?,
+            source_path: row.get(1)?,
+            source_kind: row.get(2)?,
+            source_size: row.get(3)?,
+            source_mtime_ns: row.get(4)?,
+            source_stat_hash: row.get(5)?,
+            last_success_at: last_success.as_deref().map(parse_datetime),
+            last_error_code: row.get(7)?,
+        })
+    })?;
+    rows.collect()
+}
+
+pub fn upsert_agent_session_source_state(
+    conn: &Connection,
+    state: &AgentSessionSourceState,
+) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "INSERT INTO usage_session_source_state (
+            platform, source_path, source_kind, source_size, source_mtime_ns,
+            source_stat_hash, last_success_at, last_error_code
+         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+         ON CONFLICT(platform, source_path, source_kind) DO UPDATE SET
+            source_size = excluded.source_size,
+            source_mtime_ns = excluded.source_mtime_ns,
+            source_stat_hash = excluded.source_stat_hash,
+            last_success_at = excluded.last_success_at,
+            last_error_code = excluded.last_error_code",
+        params![
+            state.platform,
+            state.source_path,
+            state.source_kind,
+            state.source_size,
+            state.source_mtime_ns,
+            state.source_stat_hash,
+            state.last_success_at.map(|value| value.to_rfc3339()),
+            state.last_error_code,
         ],
     )?;
     Ok(())
@@ -886,6 +1198,41 @@ pub fn mark_session_archive_missing_by_platform(
 
     drop(stmt);
     tx.commit()?;
+    Ok(changed)
+}
+
+pub fn mark_agent_session_archive_missing_by_identity(
+    conn: &Connection,
+    platform: &str,
+    seen: &[(String, String)],
+) -> Result<usize, rusqlite::Error> {
+    let seen: HashSet<(&str, &str)> = seen
+        .iter()
+        .map(|(path, member)| (path.as_str(), member.as_str()))
+        .collect();
+    let mut stmt = conn.prepare_cached(
+        "SELECT file_path, source_member_id FROM usage_session_archive
+         WHERE platform = ?1 AND source_state = 'live'",
+    )?;
+    let rows = stmt.query_map([platform], |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+    })?;
+    let identities: Vec<(String, String)> = rows.collect::<Result<_, _>>()?;
+    drop(stmt);
+    let now = Utc::now().to_rfc3339();
+    let mut changed = 0;
+    for (path, member) in identities {
+        if seen.contains(&(path.as_str(), member.as_str())) {
+            continue;
+        }
+        changed += conn.execute(
+            "UPDATE usage_session_archive
+             SET source_state = 'missing', raw_deleted_at = COALESCE(raw_deleted_at, ?1),
+                 updated_at = ?1
+             WHERE platform = ?2 AND file_path = ?3 AND source_member_id = ?4",
+            params![now, platform, path, member],
+        )?;
+    }
     Ok(changed)
 }
 
@@ -999,6 +1346,50 @@ pub fn get_session_archive_daily_trends(
         .filter_map(|row| row.ok())
         .collect();
     Ok(rows)
+}
+
+const SESSION_ARCHIVE_PLATFORM_COUNT_SQL: &str = "SELECT platform, COUNT(*)
+     FROM usage_session_archive
+     GROUP BY platform
+     ORDER BY platform ASC";
+
+const SESSION_ARCHIVE_PLATFORM_RANGE_COUNT_SQL: &str = "SELECT platform, COUNT(*)
+     FROM usage_session_archive
+     WHERE created_at >= ?1 AND created_at < ?2
+     GROUP BY platform
+     ORDER BY platform ASC";
+
+/// Counts archived sessions per platform across the full history.
+pub fn count_session_archive_by_platform(
+    conn: &Connection,
+) -> Result<Vec<SessionArchivePlatformSummary>, rusqlite::Error> {
+    let mut stmt = conn.prepare(SESSION_ARCHIVE_PLATFORM_COUNT_SQL)?;
+    let rows = stmt.query_map([], |row| {
+        Ok(SessionArchivePlatformSummary {
+            platform: row.get(0)?,
+            session_count: row.get(1)?,
+        })
+    })?;
+    rows.collect()
+}
+
+/// Counts archived sessions per platform whose `created_at` falls in the
+/// half-open UTC range `[start, end)`.
+pub fn count_session_archive_by_platform_between(
+    conn: &Connection,
+    start: DateTime<Utc>,
+    end: DateTime<Utc>,
+) -> Result<Vec<SessionArchivePlatformSummary>, rusqlite::Error> {
+    // created_at 由 upsert_session_archive_entry 以 DateTime<Utc>::to_rfc3339() 写入
+    // （`+00:00` 后缀），边界用同一格式，字符串比较与时间先后一致。
+    let mut stmt = conn.prepare(SESSION_ARCHIVE_PLATFORM_RANGE_COUNT_SQL)?;
+    let rows = stmt.query_map(params![start.to_rfc3339(), end.to_rfc3339()], |row| {
+        Ok(SessionArchivePlatformSummary {
+            platform: row.get(0)?,
+            session_count: row.get(1)?,
+        })
+    })?;
+    rows.collect()
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2242,5 +2633,218 @@ mod tests {
         let offset_ids: Vec<&str> = offset_page.records.iter().map(|r| r.id.as_str()).collect();
         let cursor_ids: Vec<&str> = cursor_page.records.iter().map(|r| r.id.as_str()).collect();
         assert_eq!(offset_ids, cursor_ids);
+    }
+
+    fn agent_archive_entry(archive_id: &str, member_id: &str) -> UsageSessionArchiveEntry {
+        let now = DateTime::parse_from_rfc3339("2026-08-29T08:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        UsageSessionArchiveEntry {
+            archive_id: archive_id.to_string(),
+            session_id: member_id.to_string(),
+            platform: "opencode".to_string(),
+            title: Some(format!("Session {member_id}")),
+            cwd: "/workspace".to_string(),
+            file_path: "/data/opencode.db".to_string(),
+            file_hash: Some(format!("hash-{member_id}")),
+            source_variant: "opencode-sqlite".to_string(),
+            source_kind: "sqlite_member".to_string(),
+            source_member_id: member_id.to_string(),
+            source_size: Some(1024),
+            source_mtime_ns: Some(42),
+            source_stat_hash: Some(format!("stat-{member_id}")),
+            message_count: 2,
+            user_message_count: 1,
+            assistant_message_count: 1,
+            tool_use_count: 0,
+            source_fidelity: "full".to_string(),
+            created_at: now,
+            updated_at: now,
+            source_state: UsageSourceState::Live,
+            last_seen_at: Some(now),
+            raw_deleted_at: None,
+            archived_at: now,
+        }
+    }
+
+    fn archive_entry_created_at(
+        archive_id: &str,
+        platform: &str,
+        created_at: &str,
+    ) -> UsageSessionArchiveEntry {
+        let mut entry = agent_archive_entry(archive_id, archive_id);
+        entry.platform = platform.to_string();
+        entry.file_path = format!("/data/{archive_id}.jsonl");
+        entry.created_at = DateTime::parse_from_rfc3339(created_at)
+            .unwrap()
+            .with_timezone(&Utc);
+        entry
+    }
+
+    #[test]
+    fn session_archive_counts_group_full_history_by_platform() {
+        let conn = setup_test_db();
+        for (id, platform, created_at) in [
+            ("a", "claude", "2026-09-01T10:00:00Z"),
+            ("b", "claude", "2026-09-20T10:00:00Z"),
+            ("c", "omp", "2025-01-01T10:00:00Z"),
+        ] {
+            upsert_session_archive_entry(
+                &conn,
+                &archive_entry_created_at(id, platform, created_at),
+            )
+            .unwrap();
+        }
+
+        let counts = count_session_archive_by_platform(&conn).unwrap();
+
+        assert_eq!(counts.len(), 2);
+        assert_eq!(counts[0].platform, "claude");
+        assert_eq!(counts[0].session_count, 2);
+        assert_eq!(counts[1].platform, "omp");
+        assert_eq!(counts[1].session_count, 1);
+    }
+
+    #[test]
+    fn session_archive_range_counts_use_half_open_utc_bounds() {
+        let conn = setup_test_db();
+        for (id, created_at) in [
+            ("before", "2026-09-17T23:59:59Z"),
+            ("start", "2026-09-18T00:00:00Z"),
+            ("end-day-morning", "2026-09-24T00:30:00Z"),
+            ("end-day-night", "2026-09-24T23:59:59.500Z"),
+            ("end", "2026-09-25T00:00:00Z"),
+        ] {
+            upsert_session_archive_entry(&conn, &archive_entry_created_at(id, "codex", created_at))
+                .unwrap();
+        }
+        let start = DateTime::parse_from_rfc3339("2026-09-18T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        let end = DateTime::parse_from_rfc3339("2026-09-25T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+
+        let counts = count_session_archive_by_platform_between(&conn, start, end).unwrap();
+
+        // 结束日当天的全部会话都计入；区间终点与起点前的会话不计入。
+        assert_eq!(counts.len(), 1);
+        assert_eq!(counts[0].platform, "codex");
+        assert_eq!(counts[0].session_count, 3);
+    }
+
+    #[test]
+    fn session_archive_platform_counts_use_covering_platform_indexes() {
+        let conn = setup_test_db();
+        let start = "2026-09-18T00:00:00+00:00";
+        let end = "2026-09-25T00:00:00+00:00";
+        // 全历史计数只读 platform，规划器选更窄的 (platform, source_state) 覆盖索引；
+        // 范围计数没有 platform 等值条件，(platform, created_at) 索引只能做覆盖扫描，不能做范围定位。
+        for (sql, bounds, expected_index) in [
+            (
+                SESSION_ARCHIVE_PLATFORM_COUNT_SQL,
+                Vec::new(),
+                "idx_usage_session_archive_platform_state",
+            ),
+            (
+                SESSION_ARCHIVE_PLATFORM_RANGE_COUNT_SQL,
+                vec![start, end],
+                "idx_usage_session_archive_platform_created_at",
+            ),
+        ] {
+            let mut stmt = conn
+                .prepare(&format!("EXPLAIN QUERY PLAN {sql}"))
+                .expect("query plan should prepare");
+            let details = stmt
+                .query_map(rusqlite::params_from_iter(bounds), |row| {
+                    row.get::<_, String>(3)
+                })
+                .expect("query plan rows should execute")
+                .collect::<rusqlite::Result<Vec<_>>>()
+                .expect("query plan rows should decode")
+                .join("\n");
+            assert!(
+                details.contains(&format!("USING COVERING INDEX {expected_index}")),
+                "unexpected plan: {details}"
+            );
+            // 覆盖索引按 platform 有序，GROUP BY / ORDER BY 不需要临时 B 树。
+            assert!(
+                !details.contains("TEMP B-TREE"),
+                "unexpected plan: {details}"
+            );
+        }
+    }
+
+    #[test]
+    fn agent_session_archive_ids_are_stable_opaque_and_member_scoped() {
+        let first = agent_session_archive_id("opencode", "C:/Users/demo/opencode.db", "s1");
+        let repeated = agent_session_archive_id("opencode", "C:/Users/demo/opencode.db", "s1");
+        let second = agent_session_archive_id("opencode", "C:/Users/demo/opencode.db", "s2");
+        assert_eq!(first, repeated);
+        assert_ne!(first, second);
+        assert!(first.starts_with("as-"));
+        assert!(!first.contains("Users"));
+        assert!(!first.contains("opencode.db"));
+    }
+
+    #[test]
+    fn agent_session_archive_supports_shared_container_and_stable_keyset() {
+        let conn = setup_test_db();
+        let first = agent_archive_entry("archive-a", "session-a");
+        let second = agent_archive_entry("archive-b", "session-b");
+        upsert_session_archive_entry(&conn, &first).unwrap();
+        upsert_session_archive_entry(&conn, &second).unwrap();
+
+        let first_page = get_agent_session_archive_page(
+            &conn,
+            &AgentSessionArchiveQuery {
+                platforms: vec!["opencode".to_string()],
+                query: None,
+                cwd_prefix: None,
+                started_at: None,
+                ended_at: None,
+                source_state: Some("live".to_string()),
+                source_fidelity: None,
+                cursor_updated_at: None,
+                cursor_archive_id: None,
+                limit: 1,
+            },
+        )
+        .unwrap();
+        assert_eq!(first_page.len(), 1);
+        assert_eq!(first_page[0].archive_id, "archive-b");
+
+        let second_page = get_agent_session_archive_page(
+            &conn,
+            &AgentSessionArchiveQuery {
+                platforms: vec!["opencode".to_string()],
+                query: None,
+                cwd_prefix: None,
+                started_at: None,
+                ended_at: None,
+                source_state: Some("live".to_string()),
+                source_fidelity: None,
+                cursor_updated_at: Some(first_page[0].updated_at.to_rfc3339()),
+                cursor_archive_id: Some(first_page[0].archive_id.clone()),
+                limit: 1,
+            },
+        )
+        .unwrap();
+        assert_eq!(second_page.len(), 1);
+        assert_eq!(second_page[0].archive_id, "archive-a");
+
+        let mut updated = first;
+        updated.archive_id = "replacement-id-must-not-win".to_string();
+        updated.message_count = 3;
+        upsert_session_archive_entry(&conn, &updated).unwrap();
+        let stored = get_agent_session_archive_source(&conn, "archive-a")
+            .unwrap()
+            .unwrap();
+        assert_eq!(stored.source_member_id, "session-a");
+        assert!(
+            get_agent_session_archive_source(&conn, "replacement-id-must-not-win")
+                .unwrap()
+                .is_none()
+        );
     }
 }

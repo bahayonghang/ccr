@@ -26,9 +26,11 @@ New platform config behavior should flow through `PlatformPaths` and the manager
 
 ## Persistence Rules
 
-Unified config is rooted at `CCR_ROOT` when set, otherwise under `~/.ccr`. Platform profiles live under `~/.ccr/platforms/<platform>/profiles.toml`. Preserve `ConfigManager::for_platform` for per-platform callers and `with_default` for current-platform callers.
+Unified config is rooted at `CCR_ROOT` when set, otherwise under `~/.ccr`. Platform profiles live under `~/.ccr/platforms/<platform>/profiles.toml`. New callers use `ConfigManager::for_platform` with an explicit platform. `with_default` is a legacy Claude-domain adapter; registry order and retired current-platform routing do not select its domain. Neither constructor creates or repairs files.
 
 Use `ccr_core::fileio`/manager save methods for TOML writes. Do not bypass manager helpers for profile writes because they preserve autofix and path conventions.
+
+Read [Profile Repository Transactions](./profile-repository.md) before changing profile CRUD, partial edits, current-marker resolution, or configuration reads. Ordinary updates use the repository mutation API. Autofix and full replacement are explicit operations.
 
 ## Managed Env Mapping Contract
 
@@ -250,20 +252,25 @@ let sections = match profile_document_shape(&document) {
 - `TuiConfigManager::load_or_default(&self) -> TuiConfig`
 - `TuiConfigManager::save(&self, config: &TuiConfig) -> Result<()>`
 - `TuiLanguage::{English, SimplifiedChinese}`
-- `TuiTheme::{Mocha, Latte}`
+- `TuiTheme::{Auto, Mocha, Latte}`
 - `TuiConfig { language: TuiLanguage, theme: TuiTheme, tab_order: Vec<TuiTabId> }`
 
 ### 3. Contracts
 
 - `tab_order` is a complete ordered list of known tab ids.
 - `language` serializes as `en` or `zh_cn`; a missing value defaults to English.
-- `theme` serializes as `mocha` or `latte`; a missing value defaults to Mocha.
+- `theme` serializes as `auto`, `mocha`, or `latte`; a missing value defaults
+  to `auto` (the TUI auto-detects the terminal light/dark background at startup).
 - An unsupported or non-string `language` falls back to English independently
   of `tab_order`, so an otherwise valid custom order is preserved.
-- An unsupported or non-string `theme` falls back to Mocha independently of
+- An unsupported or non-string `theme` falls back to `auto` independently of
   `language` and `tab_order`, preserving all other valid preferences.
 - Current tab ids, in built-in order: `codex_profile`, `claude_profile`,
-  `grok_profile`, `codex_auth`, `claude_auth`, `opencode_auth`.
+  `grok_profile`, `codex_auth`, `claude_auth`, `grok_auth`.
+- The retired `opencode_auth` id is no longer recognized. It follows the
+  existing unknown-enum error path: `load` fails and `load_or_default` uses the
+  full default configuration, including language and theme. Initial loading
+  does not rewrite the file; there is no OpenCode Auth migration or filtering.
 - Deprecated id `usage` (standalone Usage tab retired 2026-07) stays parse-tolerant: the enum variant is kept `#[doc(hidden)]`, `load()` filters it out with a `tracing::warn!` **before** validation, and the user's custom order of the remaining tabs is preserved — never fall back to defaults just because `usage` appears.
 - `load()` treats a list that omits known current ids as an older configuration:
   it preserves the listed order, appends every missing id in built-in relative
@@ -280,15 +287,15 @@ let sections = match profile_document_shape(&document) {
 - Missing `language` -> English, preserving the loaded tab order.
 - Unknown or non-string `language` -> warn and use English, preserving the
   loaded tab order.
-- Missing `theme` -> Mocha, preserving language and tab order.
-- Unknown or non-string `theme` -> warn and use Mocha, preserving language and
+- Missing `theme` -> Auto, preserving language and tab order.
+- Unknown or non-string `theme` -> warn and use Auto, preserving language and
   tab order.
 - `tab_order` containing deprecated `usage` -> filter + warn, then validate the remaining list normally (custom order preserved).
 - Missing `tab_order` -> use the full default order.
 - Incomplete list after `usage` filtering -> preserve the listed order and
   append missing known ids in built-in relative order.
 - Duplicate ids or unknown ids -> reject `load`; `load_or_default` returns the
-  full default configuration.
+  full default configuration without rewriting the source file.
 - Incomplete list passed directly to `save` -> reject before writing and keep
   the existing file unchanged.
 - TOML parse failure -> return the full default order and let the TUI continue.
@@ -306,7 +313,7 @@ let sections = match profile_document_shape(&document) {
 - Good (legacy): a 6-item order containing `usage` loads with `usage` dropped and the custom order intact.
 - Good (migration): an older 5-item custom order loads unchanged in its first
   five positions with `grok_profile` appended.
-- Base: no `tui.toml` exists, so English, Mocha, and the default order are used.
+- Base: no `tui.toml` exists, so English, Auto, and the default order are used.
 - Bad: `language = "fr"` with a valid order must fall back only the language;
   it must not replace the valid order.
 - Bad: `theme = "solarized"` must not discard a valid Chinese language or
@@ -319,8 +326,9 @@ let sections = match profile_document_shape(&document) {
 
 - Unit tests for missing/English/Chinese/unknown/non-string language values,
   including assertions that valid custom ordering survives language fallback.
-- Unit tests for default/Latte/unknown/non-string theme values, including
-  assertions that language and custom ordering survive theme fallback.
+- Unit tests for default (Auto)/auto/Latte/unknown/non-string theme values,
+  including an `auto` save/load round-trip and assertions that language and
+  custom ordering survive theme fallback.
 - Unit tests for missing file, valid custom order, duplicate ids, unknown ids,
   and legacy orders containing `usage` (order preserved, `usage` filtered).
 - The built-in-order test must assert the complete vector so moving one

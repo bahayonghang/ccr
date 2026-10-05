@@ -1,0 +1,18 @@
+{
+  "command": [
+    "C:\\Users\\lyh\\AppData\\Local\\mbx\\targets\\v1\\6b736f3e8608d890383d61470c216d50cd84b38db0e955508f465ce6ab4ea1b5\\debug\\deps\\ccr_cli-74d992b21dfc8d04.exe",
+    "commands::codex::fix::tests::doctor_",
+    "--nocapture"
+  ],
+  "started_at_utc": "2026-09-29T01:48:02.642920+00:00",
+  "seconds": 0.043,
+  "exit_code": 101,
+  "environment_overrides": {
+    "PATH": ""
+  },
+  "binary_sha256": "d1650c249f650890617fd34204619c60d14d4c3a8bd2059a26b487c05352d654",
+  "source_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+  "log": "remaining-doctor-empty-path-red.log",
+  "log_sha256": "802eecb9a50f1346643570c7cd002e0fa2e76abde8304f2373cac70082cbf96e",
+  "reason": "Run the exact failing CI unit-test binary with an isolated child-process empty PATH; parent environment is unchanged."
+}

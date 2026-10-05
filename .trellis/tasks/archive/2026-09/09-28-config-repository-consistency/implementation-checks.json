@@ -1,0 +1,59 @@
+[
+  {
+    "name": "cargo-config",
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "ccr-config"
+    ],
+    "exit_code": 0,
+    "summary": [
+      "test result: ok. 94 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 5.61s",
+      "test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+    ]
+  },
+  {
+    "name": "clippy-config",
+    "command": [
+      "cargo",
+      "clippy",
+      "-p",
+      "ccr-config",
+      "--all-targets",
+      "--all-features",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 0,
+    "summary": []
+  },
+  {
+    "name": "cargo-cli-profile",
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "ccr-cli",
+      "profile"
+    ],
+    "exit_code": 0,
+    "summary": [
+      "test result: ok. 60 passed; 0 failed; 0 ignored; 0 measured; 272 filtered out; finished in 2.49s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.00s"
+    ]
+  },
+  {
+    "name": "cargo-codex-profile",
+    "command": [
+      "cargo",
+      "test",
+      "-p",
+      "ccr-codex",
+      "profile"
+    ],
+    "exit_code": 5,
+    "summary": []
+  }
+]

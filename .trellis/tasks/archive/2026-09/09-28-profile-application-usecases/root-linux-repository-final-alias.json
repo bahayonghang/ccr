@@ -1,0 +1,35 @@
+{
+  "command": [
+    "/home/lyh/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo",
+    "test",
+    "--offline",
+    "--locked",
+    "-p",
+    "ccr-config",
+    "repository",
+    "--",
+    "--test-threads=1"
+  ],
+  "exit_code": 0,
+  "elapsed_seconds": 8.93,
+  "fingerprints_before": {
+    "Cargo.lock": "ca1f03e85b5e0d888109ac8af7e7943fc1ceecd20a0f6eeb6a60052c5155db79",
+    "crates/ccr-core/src/core/atomic_writer.rs": "54d4b2773e9f386a773b8aee9c59bec96895514f9608588caec7d372e2cffbd4",
+    "crates/ccr-core/src/core/guarded_write.rs": "5c7dc32c51340360a2cffb5019821aa134ff94ebbc24b3069ec34aaff92ae3cc",
+    "crates/ccr-core/src/core/write_journal.rs": "8d57b9a1f307acb1fc75636014dd78b8b8978142d5537610b81cd449d6f730a5",
+    "crates/ccr-config/src/managers/config/repository.rs": "be8c61e0a0cc03748457d694e911e458e0106e0287125d49176aae5f109643cb"
+  },
+  "fingerprints_after": {
+    "Cargo.lock": "ca1f03e85b5e0d888109ac8af7e7943fc1ceecd20a0f6eeb6a60052c5155db79",
+    "crates/ccr-core/src/core/atomic_writer.rs": "54d4b2773e9f386a773b8aee9c59bec96895514f9608588caec7d372e2cffbd4",
+    "crates/ccr-core/src/core/guarded_write.rs": "5c7dc32c51340360a2cffb5019821aa134ff94ebbc24b3069ec34aaff92ae3cc",
+    "crates/ccr-core/src/core/write_journal.rs": "8d57b9a1f307acb1fc75636014dd78b8b8978142d5537610b81cd449d6f730a5",
+    "crates/ccr-config/src/managers/config/repository.rs": "be8c61e0a0cc03748457d694e911e458e0106e0287125d49176aae5f109643cb"
+  },
+  "source_unchanged": true,
+  "summaries": [
+    "test result: ok. 17 passed; 0 failed; 1 ignored; 0 measured; 81 filtered out; finished in 4.61s"
+  ],
+  "toolchain": "/home/lyh/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin",
+  "output": "\nrunning 18 tests\ntest managers::config::repository_tests::adding_to_empty_inactive_document_preserves_current_marker ... ok\ntest managers::config::repository_tests::clear_current_keeps_missing_absent_and_propagates_corrupt_or_unreadable ... ok\ntest managers::config::repository_tests::corrupt_and_readonly_queries_leave_files_unchanged ... ok\ntest managers::config::repository_tests::current_marker_reads_only_declared_marker_without_modifying_profiles ... ok\ntest managers::config::repository_tests::current_resolution_reports_repair_without_changing_input ... ok\ntest managers::config::repository_tests::desktop_and_service_processes_keep_both_updates ... ok\ntest managers::config::repository_tests::explicit_platform_and_legacy_claude_ignore_registry_order ... ok\ntest managers::config::repository_tests::leaf_cas_detects_nonparticipating_replacement ... ok\ntest managers::config::repository_tests::patch_preserves_unedited_fields_and_renames_current_and_default ... ok\ntest managers::config::repository_tests::platform_adapter_keeps_unedited_toml_datetime_extensions ... ok\ntest managers::config::repository_tests::platform_and_service_processes_keep_both_updates ... ok\ntest managers::config::repository_tests::platform_validation_runs_inside_patch_before_persistence ... ok\ntest managers::config::repository_tests::reads_do_not_initialize_autofix_or_lock_files ... ok\ntest managers::config::repository_tests::resource_identity_uses_normalized_path_and_separates_roots ... ok\ntest managers::config::repository_tests::service_queries_do_not_infer_current_from_simplified_profile_order ... ok\ntest managers::config::repository_tests::strict_patch_rejects_invalid_missing_duplicate_and_stale_without_writes ... ok\ntest managers::config::repository_tests::subprocess_adapter_worker ... ignored, child process used by the two cross-process tests\ntest managers::config::repository_tests::unrelated_service_edits_preserve_absent_current_until_explicit_activation ... ok\n\ntest result: ok. 17 passed; 0 failed; 1 ignored; 0 measured; 81 filtered out; finished in 4.61s\n\n   Compiling ccr-types v7.3.0 (/mnt/d/Documents/Code/Github/ccr/crates/ccr-types)\n   Compiling ccr-core v7.3.0 (/mnt/d/Documents/Code/Github/ccr/crates/ccr-core)\n   Compiling ccr-config v7.3.0 (/mnt/d/Documents/Code/Github/ccr/crates/ccr-config)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.27s\n     Running unittests src/lib.rs (/tmp/ccr-architecture-linux-01a0e781/debug/deps/ccr_config-ea7be16040202463)\n"
+}

@@ -1,0 +1,6 @@
+{
+  "command": "cd ccr-ui; bun run docs:audit",
+  "phase": "preintegration; before T10 changes",
+  "exit_code": 0,
+  "elapsed_seconds": 0.13
+}

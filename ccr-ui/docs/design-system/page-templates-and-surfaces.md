@@ -10,7 +10,7 @@ All templates must support light and dark themes, reduced motion, reduced transp
 
 ## Shell Ownership
 
-[`MainLayout`](../../src/components/MainLayout.vue) owns viewport-level navigation and application chrome. Routes own only their workspace content.
+[`MainLayout`](../../src/shell/MainLayout.tsx) owns viewport-level navigation and application chrome. Routes own only their workspace content.
 
 Routes must not add:
 
@@ -75,7 +75,7 @@ Before changing a shared alias, search all consumers. Repoint the specific compo
 - `EmptyState` is appropriate when an empty collection needs a primary recovery action.
 - `PageHeaderCard` owns the route title, supporting copy, and primary actions.
 - `ModuleSubnav` owns navigation between pages in one module family.
-- Shared controls under `components/ui/` own consistent buttons, inputs, cards, dialogs, and feedback.
+- Shared controls under `src/ui/` own consistent buttons, inputs, cards, dialogs, and feedback.
 
 Small inline regions may use compact text feedback, but route-level states must not be hand-built repeatedly.
 

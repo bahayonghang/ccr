@@ -1,0 +1,12 @@
+{
+  "command": [
+    "just",
+    "frontend-check"
+  ],
+  "cwd": "C:\\Users\\lyh\\.codex\\worktrees\\ccr-architecture-baseline\\ccr",
+  "exit_code": 0,
+  "seconds": 161.85,
+  "log": "isolated-final-frontend.log",
+  "scope": "Exact authorized source copy in managed worktree; original unrelated .tmp scripts absent; main workspace unchanged",
+  "copy_manifest": "../../09-28-architecture-contract-gates/research/delivery-copy.json"
+}

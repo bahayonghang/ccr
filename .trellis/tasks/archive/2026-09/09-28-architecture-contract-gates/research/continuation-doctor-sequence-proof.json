@@ -1,0 +1,8 @@
+{
+  "original_wait_pipe_cleanup_sequence_equals_after": true,
+  "original_command_stdio_setup_equals_after": true,
+  "production_entrypoint": "spawn_doctor(bin, args)? then capture_doctor_output(child, timeout).await; no readiness await in production",
+  "source_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+  "shared_gateway_sha256": "bd8890b9cae7707f9e523f31123a1bb045e1553f0947669e3b55a859f97634f6",
+  "temporary_instrumentation_removed": true
+}

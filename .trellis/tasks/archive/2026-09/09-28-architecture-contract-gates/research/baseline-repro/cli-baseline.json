@@ -1,0 +1,20 @@
+{
+  "command": [
+    "C:\\Users\\lyh\\AppData\\Local\\mbx\\bin\\cargo.EXE",
+    "test",
+    "-p",
+    "ccr-cli",
+    "--lib",
+    "architecture_baseline_tests",
+    "--target-dir",
+    "D:/Documents/Code/Github/ccr/target",
+    "--",
+    "--nocapture"
+  ],
+  "cwd": "C:\\Users\\lyh\\.codex\\worktrees\\ccr-architecture-baseline\\ccr",
+  "baseline_commit": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "exit_code": 101,
+  "seconds": 47.98,
+  "log": "cli-baseline.log",
+  "expected": "four failed behavior assertions on baseline"
+}

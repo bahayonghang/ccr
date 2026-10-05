@@ -1,0 +1,25 @@
+{
+  "command_count": 28,
+  "all_exit_zero": true,
+  "warning_counts": {
+    "unmaintained": 7,
+    "unsound": 2
+  },
+  "warning_ids_match_original": true,
+  "original_audit_sha256": "ba7223a71cfb8246ae5b96d3ffaade5b69bd87699b76f464f9cf5f12a4d54189",
+  "input_hashes_unchanged": true,
+  "recorded_stream_hashes_verified": true,
+  "default_and_all_features_match": true,
+  "json_and_script_syntax": "PASS",
+  "new_artifact_whitespace": "PASS",
+  "artifacts": [
+    ".trellis\\tasks\\09-29-harness-ci-evidence\\research\\tauri-advisory-audit.json",
+    ".trellis\\tasks\\09-29-harness-ci-evidence\\research\\tauri-advisory-capture.py",
+    ".trellis\\tasks\\09-29-harness-ci-evidence\\research\\tauri-advisory-code-excerpts.json",
+    ".trellis\\tasks\\09-29-harness-ci-evidence\\research\\tauri-advisory-commands.json",
+    ".trellis\\tasks\\09-29-harness-ci-evidence\\research\\tauri-advisory-reachability.json",
+    ".trellis\\tasks\\09-29-harness-ci-evidence\\research\\tauri-advisory-review.md",
+    ".trellis\\tasks\\09-29-harness-ci-evidence\\research\\tauri-advisory-source-inspection.json",
+    ".trellis\\tasks\\09-29-harness-ci-evidence\\research\\tauri-advisory-sources.json"
+  ]
+}

@@ -5,6 +5,7 @@ use crate::cli::subcommands::profile_args::{
     ProfileCreateActionArgs, ProfileDisableActionArgs, ProfileNameJsonActionArgs,
     ProfileSetFieldActionArgs,
 };
+use crate::commands::common::new_utf8_table;
 use crate::commands::platform::{
     PlatformProfileCreateArgs, platform_profile_create_command, platform_profile_delete_command,
     platform_profile_disable_command, platform_profile_enable_command,
@@ -17,9 +18,7 @@ use crate::services::RuntimeOverviewService;
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
 use colored::Colorize;
-use comfy_table::{
-    Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
-};
+use comfy_table::{Attribute, Cell, Color as TableColor, ContentArrangement};
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
@@ -105,9 +104,8 @@ pub async fn list_command(json: bool) -> Result<()> {
         return Ok(());
     }
 
-    let mut table = Table::new();
+    let mut table = new_utf8_table();
     table
-        .load_preset(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::DynamicFullWidth)
         .set_header(vec![
             Cell::new("状态")

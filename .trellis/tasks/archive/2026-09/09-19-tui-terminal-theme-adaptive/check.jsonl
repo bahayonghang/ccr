@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/ccr-tui/backend/backend-guidelines.md", "reason": "验收：固定主题零探测、auto 路径探测与回退、样式测试隔离约束需逐条核对"}
+{"file": ".trellis/spec/ccr-config/backend/backend-guidelines.md", "reason": "验收：tui.toml 序列化/反序列化回退规则与 warn 行为需逐条核对"}

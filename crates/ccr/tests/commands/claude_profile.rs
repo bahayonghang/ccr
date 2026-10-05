@@ -365,6 +365,62 @@ fn claude_profile_switch_and_off_keep_official_auth_current() {
     );
 }
 
+#[test]
+fn claude_profile_switch_reports_committed_history_warning() {
+    let fixture = ClaudeProfileFixture::new();
+    fixture.write_unified_claude_profile(Some("subscription"));
+    fixture.save_claude_profiles("subscription");
+    fs::create_dir(fixture.root.join("data.db")).unwrap();
+
+    let output = fixture
+        .command()
+        .env("CCR_DATA_DIR", &fixture.root)
+        .args(["claude", "profile", "switch", "proxy"])
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{:?}", output.status);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("配置已生效；计数或历史记录未完整完成，请勿重复激活"));
+    assert!(!stdout.contains("操作历史已记录"));
+    assert!(!output_contains_secret(&output, "sk-claude-proxy"));
+
+    let profiles = ConfigManager::new(fixture.root.join("platforms/claude/profiles.toml"))
+        .load()
+        .unwrap();
+    assert_eq!(profiles.current_config, "proxy");
+    assert_eq!(profiles.sections["proxy"].usage_count, Some(1));
+    let registry = PlatformConfigManager::new(fixture.root.join("config.toml"))
+        .load()
+        .unwrap();
+    assert_eq!(
+        registry
+            .get_platform("claude")
+            .unwrap()
+            .current_profile
+            .as_deref(),
+        Some("proxy")
+    );
+    let settings: Value =
+        serde_json::from_slice(&fs::read(fixture.claude_dir.join("settings.json")).unwrap())
+            .unwrap();
+    assert_eq!(settings["env"]["ANTHROPIC_AUTH_TOKEN"], "sk-claude-proxy");
+
+    let records: Vec<_> = fs::read_dir(fixture.root.join("platforms/claude/profile-operations"))
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .collect();
+    assert_eq!(records.len(), 1, "CLI must not repeat committed activation");
+    let record: Value = serde_json::from_slice(&fs::read(&records[0]).unwrap()).unwrap();
+    assert_eq!(record["status"], "applied_with_warning");
+    assert_eq!(record["activation_committed"], true);
+    assert!(
+        record["warnings"]
+            .as_array()
+            .unwrap()
+            .contains(&Value::String("history_failed".into()))
+    );
+}
+
 #[cfg(not(target_os = "macos"))]
 #[test]
 fn claude_profile_off_is_idempotent_when_no_active_profile() {

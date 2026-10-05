@@ -1,0 +1,134 @@
+{
+  "created_at_utc": "2026-09-29T03:33:35.930875+00:00",
+  "git_head": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "target": "crates/ccr-store/src/sessions/providers.rs",
+  "before_sha256": "9f9c8188b81cd587d8703a22988202f546f75a9ffac001f0cc9d1bc52b85b0ec",
+  "after_sha256": "93d816299b3d24abba4cbe02597d0cd91d5d258a865ea84a3fe79267c39c22c0",
+  "before_equals_head_bytes": true,
+  "unchanged_outside_target_test": true,
+  "production_bytes_unchanged": true,
+  "root_cause": "The test converts Linux directory separators to literal backslashes and unconditionally expects successful native filesystem restoration. On Unix that transformed relative filename does not exist. The provider validates local filesystem paths with canonicalize, so rejection is required.",
+  "scope": "Only one existing test changed; no production, dependency, spec, exporter, or aggregate edits/runs.",
+  "historical_identity_boundary": "providers.rs is absent from the 49801f 268-path historical freeze; no old receipt was modified and no historical source identity is backfilled.",
+  "new_red_receipt": "remaining-linux-store-path-repro.json",
+  "before_bytes_receipt": "remaining-linux-store-path-before.json",
+  "diff": "remaining-linux-store-path-change.diff",
+  "checks": {
+    "linux-exact": {
+      "receipt": "remaining-store-path-linux-exact.json",
+      "receipt_sha256": "60411ecf14ea0e3150e095f2f8c145fe45dec5cedfc002f6057b650728a4e676",
+      "exit_code": 0,
+      "seconds": 2.221,
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "ccr-store",
+        "--all-features",
+        "--lib",
+        "sessions::providers::tests::restores_codex_live_jsonl_under_tempfile_with_windows_path_shapes",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "source_changes": [],
+      "log": "remaining-store-path-linux-exact.log",
+      "log_sha256": "e6a324fdfdfff532670a57a642bb4b587da40e0b09810a2828c05fa391d01ee1"
+    },
+    "windows-exact": {
+      "receipt": "remaining-store-path-windows-exact.json",
+      "receipt_sha256": "44dba4fe450516a8c5db064a4bc6353b93db4d4fcb04fb9c2481a5eab1f0130d",
+      "exit_code": 0,
+      "seconds": 8.824,
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "ccr-store",
+        "--all-features",
+        "--lib",
+        "sessions::providers::tests::restores_codex_live_jsonl_under_tempfile_with_windows_path_shapes",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "source_changes": [],
+      "log": "remaining-store-path-windows-exact.log",
+      "log_sha256": "71f1708a359be03e386da43056d15e9df7b5433412c11f15dc084efaeb61d9f5"
+    },
+    "linux-lib": {
+      "receipt": "remaining-store-path-linux-lib.json",
+      "receipt_sha256": "af6af58a890620e209222ca447c288cedb8c626acd0ff1fbb33e9c9fb4d86fdd",
+      "exit_code": 0,
+      "seconds": 0.768,
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "ccr-store",
+        "--all-features",
+        "--lib"
+      ],
+      "source_changes": [],
+      "log": "remaining-store-path-linux-lib.log",
+      "log_sha256": "48a67433288aae9b5c2b798e97e13f9723fe1c7d14fa462ae6162a7b88c424a0"
+    },
+    "linux-clippy": {
+      "receipt": "remaining-store-path-linux-clippy.json",
+      "receipt_sha256": "1c72012e0ce33ddfb6355501e8416f4bd282a3d297186df78cc5d9f570a8f980",
+      "exit_code": 0,
+      "seconds": 3.526,
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "ccr-store",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "source_changes": [],
+      "log": "remaining-store-path-linux-clippy.log",
+      "log_sha256": "9f82fd4c6cf5e9a2bd2111f5e1aa6c1db4718e82b7ff7dc576deeaab8ee9abb7"
+    },
+    "format": {
+      "receipt": "remaining-store-path-format.json",
+      "receipt_sha256": "134fe7d95b894c05564495407959d92f57b40dbd29f0192d8b9d0e49cd979c89",
+      "exit_code": 0,
+      "seconds": 0.133,
+      "command": [
+        "rustfmt",
+        "--edition",
+        "2024",
+        "--check",
+        "crates/ccr-store/src/sessions/providers.rs"
+      ],
+      "source_changes": [],
+      "log": "remaining-store-path-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "diff-check": {
+      "receipt": "remaining-store-path-diff-check.json",
+      "receipt_sha256": "a390afd8d7fcc8ab15b0eef4f0a4fb9046584480da71acc6879571175da4401b",
+      "exit_code": 0,
+      "seconds": 0.046,
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "crates/ccr-store/src/sessions/providers.rs"
+      ],
+      "source_changes": [],
+      "log": "remaining-store-path-diff-check.log",
+      "log_sha256": "a5be36549f1c229c7a9605982d4a9710dd071ada2ace0130fe50777146bbe1f9"
+    }
+  },
+  "remaining": "Root must include providers.rs in a new source freeze and run the approved full gates. macOS execution and historical exporter access violation are not resolved by this test-only change."
+}

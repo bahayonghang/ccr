@@ -1,0 +1,18 @@
+{
+  "command": [
+    "bun",
+    "run",
+    "build"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+  "started_at": "2026-09-28T23:50:49.546899+00:00",
+  "source_freeze": ".trellis\\tasks\\09-28-architecture-contract-gates\\research\\continuation-final-source-freeze.json",
+  "source_freeze_sha256": "a531395a7d9857c1739491af54b8a781c840199a43c5e8e0bd9ad7959ed60f54",
+  "exit_code": 0,
+  "seconds": 4.43,
+  "log": "root-continuation-ui-build.log",
+  "log_sha256": "5f9c64c954d3cf303c5e4682ac3aa90768bd935ef4a1ec3dd758c1cc99f5200f",
+  "source_changes": [],
+  "capture_wrapper_exit_code": 1,
+  "capture_wrapper_error": "After command exit 0 and metadata write, rendering the Unicode log tail to the GBK console failed. Build was not rerun."
+}

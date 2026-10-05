@@ -1,0 +1,341 @@
+{
+  "captured_at_utc": "2026-09-29T04:26:27.463127+00:00",
+  "status": "local_gates_and_evidence_review_complete_required_acceptance_open",
+  "baseline_commit": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "branch": "dev",
+  "source_snapshot": {
+    "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-platform-tests-source-freeze.json",
+    "sha256": "a31c8730384c91076a051f226d3201e1b6cd2d9efa7ec63f881b8899601db273",
+    "bytes": 33730
+  },
+  "source_paths_checked": 269,
+  "source_existing_files_checked": 267,
+  "source_deleted_paths_checked": [
+    "ccr-ui/src/features/editor/styles/code-source-editor.css",
+    "ccr-ui/src/features/editor/styles/config-source-panel.css"
+  ],
+  "source_changed": [],
+  "completed_current_source_lanes": [
+    {
+      "key": "remaining_windows_ci_after_path",
+      "receipt": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-windows-ci-after-path.json",
+        "sha256": "657b581fd6bbe1d10d52256f43d1130ebb6078e8edb4ce7359491abd3ca2795f",
+        "bytes": 79605
+      },
+      "exit_code": 0,
+      "seconds": 1078.351,
+      "command": [
+        "just",
+        "ci"
+      ],
+      "source_changes": [],
+      "generated_changes": []
+    },
+    {
+      "key": "remaining_linux_tauri_ci_after_path",
+      "receipt": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-linux-tauri-ci-after-path.json",
+        "sha256": "e7abbed0805987a7376d3dc38cd1664f4a0fd779144b51136a93431618e57732",
+        "bytes": 114851
+      },
+      "exit_code": 0,
+      "seconds": 216.576,
+      "command": [
+        "just",
+        "tauri-ci"
+      ],
+      "source_changes": [],
+      "generated_changes": []
+    },
+    {
+      "key": "remaining_linux_coverage_after_path",
+      "receipt": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-linux-coverage-tauri-after-path.json",
+        "sha256": "e4fffdf8d8a224c14cdac87328e28adb6f0a3e283199bdf5d920dab6e774c232",
+        "bytes": 114959
+      },
+      "exit_code": 0,
+      "seconds": 166.002,
+      "command": [
+        "just",
+        "coverage-tauri"
+      ],
+      "source_changes": [],
+      "generated_changes": []
+    },
+    {
+      "key": "remaining_linux_native_after_path",
+      "receipt": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-linux-native-after-path.json",
+        "sha256": "7a413db6d0102ede529ffaaf52b7123983263c09d1fc51358606d22b9f46551b",
+        "bytes": 180139
+      },
+      "exit_code": 0,
+      "seconds": 38.995,
+      "command": [
+        "cargo",
+        "build",
+        "--manifest-path",
+        "ccr-ui/src-tauri/Cargo.toml",
+        "--bin",
+        "ccr-desktop",
+        "--features",
+        "custom-protocol"
+      ],
+      "source_changes": [],
+      "generated_changes": []
+    },
+    {
+      "key": "remaining_linux_workspace_quality_after_path",
+      "receipt": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-linux-workspace-quality-after-path.json",
+        "sha256": "0fe1cde13faa41157ead266d8c28752c6a650090cfcff89464f6af00dbf92da6",
+        "bytes": 115310
+      },
+      "exit_code": 0,
+      "seconds": 224.101,
+      "command": [
+        "just",
+        "version-check",
+        "workflow-governance-check",
+        "fmt-check",
+        "lint-strict",
+        "test",
+        "check-workspace"
+      ],
+      "source_changes": [],
+      "generated_changes": []
+    },
+    {
+      "key": "remaining_linux_workspace_coverage_after_path",
+      "receipt": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-linux-workspace-coverage-after-path.json",
+        "sha256": "396320b6012eac1639086cc21d668f064c164c2c61a57ef8564677a1cf2a02ec",
+        "bytes": 115389
+      },
+      "exit_code": 0,
+      "seconds": 213.25,
+      "command": [
+        "just",
+        "coverage-rust"
+      ],
+      "source_changes": [],
+      "generated_changes": []
+    },
+    {
+      "key": "remaining_linux_workspace_audit_after_path",
+      "receipt": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-linux-workspace-audit-after-path.json",
+        "sha256": "c067c372c591d83f848a6042303af4ede49058aa71cf14abe8be6edc8cac0616",
+        "bytes": 115412
+      },
+      "exit_code": 0,
+      "seconds": 3.849,
+      "command": [
+        "cargo",
+        "audit"
+      ],
+      "source_changes": [],
+      "generated_changes": []
+    },
+    {
+      "key": "remaining_linux_workspace_msrv_after_path",
+      "receipt": {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-linux-workspace-msrv-after-path.json",
+        "sha256": "53b6d5c65378a972557a498052c943ebcef82bda0132c6d7c85af7172008c712",
+        "bytes": 115271
+      },
+      "exit_code": 0,
+      "seconds": 4.96,
+      "command": [
+        "cargo",
+        "check",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features"
+      ],
+      "source_changes": [],
+      "generated_changes": []
+    }
+  ],
+  "generated_types_checked": 230,
+  "generated_matches_successful_formal_guard_original_bytes": true,
+  "generated_guard_snapshot": {
+    "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-windows-ci-after-path.generated-before.json",
+    "sha256": "1ebc696363e75e15b3b2419d7d710cecd825233f3ccc696aadb03572f97323d0",
+    "bytes": 140584
+  },
+  "final_schema_restoration": {
+    "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-schema-restoration-final.json",
+    "sha256": "8d2b4d0998ced858b08593ecbf77771d2567a3ca3a30de5918494927671bfe40",
+    "bytes": 1922
+  },
+  "schema_original_files_preserved": 4,
+  "schema_regenerated_copy": {
+    "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-linux-generated-schema-final.json",
+    "sha256": "32261c7f53df73489e0b5ff5cea42fc1d873125a4ca1e04184af78a397021e68",
+    "bytes": 359659
+  },
+  "native_acceptance": {
+    "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-native-acceptance-final.json",
+    "sha256": "f37b469aa66deaf3123ca4fb2a25b587b03770cf20db82f48c31aee083a73191",
+    "bytes": 2897
+  },
+  "published_evidence": [
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/requirements-evidence.json",
+      "sha256": "1fda82c5eb3ad3f3bb1d48ad1e1145e5d7f95ad3c653f4b6e142938bfbab5db0",
+      "bytes": 2911302
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/requirements-evidence.md",
+      "sha256": "a877b4383b09a0c930ab44384ea328faef09be214560b4cdbe067781ad309fa3",
+      "bytes": 21312
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/evidence-mapping-validation.json",
+      "sha256": "97063da84a1db420cc4f13a0b51f2caf2e3987e8a5e5681d71c6358888e61500",
+      "bytes": 2016
+    },
+    {
+      "path": ".trellis/tasks/09-28-cli-tauri-architecture/research/p1-evidence-ledger.json",
+      "sha256": "4d1fd9b120448df213763e58c531ac5faa59dc646c50458bc22996c6ecca9560",
+      "bytes": 223859
+    }
+  ],
+  "evidence_counts": {
+    "requirements": 39,
+    "test_groups": 48,
+    "p1_groups": 9,
+    "verified_artifacts": 393,
+    "continuation_runs": 86
+  },
+  "dedicated_review": {
+    "status": "review_complete_scoped_gates_passed_required_acceptance_open",
+    "reports": [
+      {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-dedicated-check.md",
+        "sha256": "33c38b8ef56af7b294f3b8d5d0a7c17a93a875bc0835b713ef2c02a1151c30ff",
+        "bytes": 14298
+      },
+      {
+        "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-dedicated-check.json",
+        "sha256": "a7cfdc595956d567d5cff303f8796da7f9998261288094369479282d40a10fe2",
+        "bytes": 107564
+      }
+    ],
+    "independence": {
+      "T01": "Previous checker-authored fixes and self-review; not fully author-independent.",
+      "T02_T09_T11": "Non-author inspection of current ownership paths, selected behavioral assertions, and evidence mappings.",
+      "T10": "Non-author gate/source/evidence review; reviewer fixed one coordinated documentation path only.",
+      "reused_review": "remaining-independent-check.md/json; collaborator historical authorship boundaries retained.",
+      "permission_delta": "Reviewer authored the six-file permission repair; root independently reviewed the delta. Do not describe this increment as author-independent review by this agent."
+    }
+  },
+  "final_independent_receipts": [
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-windows-final-independent-review.json",
+      "sha256": "91f12fc53ba2685b4a0813db97bb71dc38d4faf4aa7a18028c36787b356c874d",
+      "bytes": 4243
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-final-matrix-independent-review.json",
+      "sha256": "1508c39e69c2946a7ea0e406ca3d484735b6cc8870066b8747ade6d59945d22f",
+      "bytes": 70128
+    }
+  ],
+  "historical_preservation": {
+    "baseline": {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-mapping-baseline.json",
+      "sha256": "8b6c7b5ff254e393ef81a8326b60947124efd8d15f89b7fc8cdb6979166d0cc1",
+      "bytes": 7423
+    },
+    "canonical_runs_preserved": 41,
+    "source_epoch_manifests_preserved": 7,
+    "raw_evidence_hash_validation": {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/evidence-mapping-validation.json",
+      "sha256": "97063da84a1db420cc4f13a0b51f2caf2e3987e8a5e5681d71c6358888e61500",
+      "bytes": 2016
+    },
+    "failed_runs_are_not_overwritten_or_reclassified": true
+  },
+  "context_validation": {
+    "receipt": {
+      "path": ".trellis/tasks/09-28-cli-tauri-architecture/research/remaining-context-preservation-final.json",
+      "sha256": "40f99c2864c6171bb5eb88a018765bbc995c23cc732f260cb02e4d9a46d67a8e",
+      "bytes": 9959
+    },
+    "passed_tasks": 12,
+    "jsonl_files_preserved": 24,
+    "warnings_retained": 4,
+    "warning": "dependency-governance.md is 33513 bytes, above the 32768-byte context injection limit; explicit full-file review is separately recorded."
+  },
+  "architecture_task_statuses": {
+    "09-28-cli-tauri-architecture": "in_progress",
+    "09-28-config-repository-consistency": "in_progress",
+    "09-28-profile-application-usecases": "in_progress",
+    "09-28-tauri-config-adapter": "in_progress",
+    "09-28-cli-diagnostics-contract": "in_progress",
+    "09-28-safe-persistence-backups": "in_progress",
+    "09-28-usage-job-lifecycle": "in_progress",
+    "09-28-command-workbench-lifecycle": "in_progress",
+    "09-28-settings-lossless-capabilities": "in_progress",
+    "09-28-frontend-query-error-contracts": "in_progress",
+    "09-28-architecture-contract-gates": "in_progress",
+    "09-28-desktop-control-oauth-lifecycle": "in_progress"
+  },
+  "existing_insights_task_statuses": {
+    "09-24-home-insights-redesign": "planning",
+    "09-24-home-insights-frontend": "in_progress"
+  },
+  "diff_check": {
+    "exit_code": 0,
+    "log": {
+      "path": ".trellis/tasks/09-28-cli-tauri-architecture/research/remaining-final-diff-check.log",
+      "sha256": "1bd43f18243a81a97de14a55e848a8032a1c60e867e47f1278769ef411910bf4",
+      "bytes": 22377
+    },
+    "scope": "Tracked worktree check; source scope has not changed since this check. Final task reports were additionally read and checked for trailing whitespace."
+  },
+  "final_reports": [
+    {
+      "path": ".trellis/tasks/09-28-cli-tauri-architecture/integration-report.md",
+      "sha256": "bff47fd8c79214f024c2dbf5e581f96d80c208a9f79214f53e8f6bc94cdf538a",
+      "bytes": 9257
+    },
+    {
+      "path": ".trellis/tasks/09-28-cli-tauri-architecture/remaining-integration-report.md",
+      "sha256": "bff47fd8c79214f024c2dbf5e581f96d80c208a9f79214f53e8f6bc94cdf538a",
+      "bytes": 9257
+    },
+    {
+      "path": ".trellis/tasks/09-28-cli-tauri-architecture/execution-ledger.json",
+      "sha256": "eac7d8c85f2a46be87cc77f2e4df85760c6511a80f6620d6e187f64ebe9fdf3f",
+      "bytes": 43751
+    },
+    {
+      "path": ".trellis/tasks/09-28-cli-tauri-architecture/implementation-progress.md",
+      "sha256": "761e38f251f7322f8274482ebdfa61820b9a6382f08eaafcb0251798b6018181",
+      "bytes": 23819
+    }
+  ],
+  "invalid_selector_runs_excluded_from_behavior_acceptance": [
+    "continuation-linux-tauri-oauth-final.json",
+    "continuation-windows-oauth-after-import.json"
+  ],
+  "acceptance_boundaries": [
+    "Required macOS process/workspace matrix has not run. Local WSL checks are not GitHub required-status evidence.",
+    "Historical exporter 0xc0000005 cause remains unknown; failed-process binary SHA was not captured. Passing reruns do not resolve causation.",
+    "Native evidence is limited to Linux WSLg WebKitGTK debug execution with production custom-protocol/CSP and synthetic local Claude raw settings.",
+    "Style CSP events were observed with no post-save violations. Post-save style DOM removal and body scroll-lock restoration were not measured.",
+    "Windows/macOS WebViews, native Profiles/Configs/Commands, real SSH/remote WSL/provider OAuth, interactive TUI, physical input and release packages remain unverified.",
+    "Some P1 original failure branches retain source-only evidence; exact old-baseline execution limits remain in the published matrix.",
+    "Dedicated review authorship limits are retained. Required repair commits are absent; no global acceptance or lifecycle transition is asserted."
+  ],
+  "committed": false,
+  "pushed": false,
+  "archived": false,
+  "fix_commit": null
+}

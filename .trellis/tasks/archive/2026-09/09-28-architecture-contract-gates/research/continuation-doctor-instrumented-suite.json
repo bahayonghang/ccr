@@ -1,0 +1,22 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "-p",
+    "ccr-cli",
+    "--all-features",
+    "--",
+    "--skip",
+    "export_bindings"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "source_before_sha256": "6d3faf63736bb24b9fd5db46cc13358d714abecd9f3ae1a95468b4a5fa5a20d0",
+  "started_at_utc": "2026-09-28T23:29:46.491141+00:00",
+  "source_stage": "temporary fixture instrumentation",
+  "exit_code": 0,
+  "seconds": 123.44,
+  "source_after_sha256": "6d3faf63736bb24b9fd5db46cc13358d714abecd9f3ae1a95468b4a5fa5a20d0",
+  "finished_at_utc": "2026-09-28T23:31:49.931013+00:00",
+  "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-instrumented-suite.log",
+  "log_sha256": "f02d953882a9a959b01d3de29f0dff01c5c702625dbdc340aad69da88bc03a27"
+}

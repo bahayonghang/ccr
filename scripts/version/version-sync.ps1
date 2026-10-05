@@ -19,7 +19,7 @@ $SYNC_TARGETS = @(
     @{ Name = "frontend";       Path = "ccr-ui\package.json";                     Type = "json"   }
     @{ Name = "tauri-cargo";    Path = "ccr-ui\src-tauri\Cargo.toml";             Type = "cargo"  }
     @{ Name = "tauri-conf";     Path = "ccr-ui\src-tauri\tauri.conf.json";        Type = "json"   }
-    @{ Name = "ui-component";   Path = "ccr-ui\src\components\MainLayout.vue";    Type = "vue"    }
+    @{ Name = "ui-component";   Path = "ccr-ui\src\config\appMeta.ts";            Type = "vue"    }
     @{ Name = "ui-readme";      Path = "ccr-ui\README.md";                        Type = "readme" }
     @{ Name = "vscode";         Path = "ccr-vscode\package.json";                 Type = "json"   }
 )
@@ -45,7 +45,7 @@ $CCR_DB_CARGO = Join-Path $ROOT_DIR "crates\ccr-db\Cargo.toml"
 $FRONTEND_PKG = Join-Path $ROOT_DIR "ccr-ui\package.json"
 $TAURI_CARGO = Join-Path $ROOT_DIR "ccr-ui\src-tauri\Cargo.toml"
 $TAURI_CONF = Join-Path $ROOT_DIR "ccr-ui\src-tauri\tauri.conf.json"
-$COMPONENT_MAIN_LAYOUT = Join-Path $ROOT_DIR "ccr-ui\src\components\MainLayout.vue"
+$COMPONENT_MAIN_LAYOUT = Join-Path $ROOT_DIR "ccr-ui\src\config\appMeta.ts"
 $UI_README = Join-Path $ROOT_DIR "ccr-ui\README.md"
 $VSCODE_PKG = Join-Path $ROOT_DIR "ccr-vscode\package.json"
 
@@ -247,7 +247,7 @@ if ($Verbose) {
     Write-Host "⚛️  前端版本: $FRONTEND_VER"
     Write-Host "🖥️  Tauri Cargo 版本: $TAURI_CARGO_VER"
     Write-Host "🖥️  Tauri Conf 版本: $TAURI_CONF_VER"
-    Write-Host "🖼️  MainLayout.vue (components) 版本: $UI_COMPONENT_VER"
+    Write-Host "🖼️  appMeta.ts (config) 版本: $UI_COMPONENT_VER"
     Write-Host "📘 ccr-ui/README.md 徽章版本: $UI_README_VER"
     Write-Host "🔌 VSCode 扩展版本: $VSCODE_VER"
 }
@@ -272,7 +272,7 @@ if ($Check) {
         Write-Host "  ccr-ui/package.json:           $FRONTEND_VER"
         Write-Host "  ccr-ui/src-tauri/Cargo.toml:   $TAURI_CARGO_VER"
         Write-Host "  ccr-ui/src-tauri/tauri.conf.json: $TAURI_CONF_VER"
-        Write-Host "  ccr-ui/src/components/MainLayout.vue: $UI_COMPONENT_VER"
+        Write-Host "  ccr-ui/src/config/appMeta.ts: $UI_COMPONENT_VER"
         Write-Host "  ccr-ui/README.md:              $UI_README_VER"
         Write-Host "  ccr-vscode/package.json:       $VSCODE_VER"
         exit 1
@@ -324,7 +324,7 @@ if ($TAURI_CONF_VER -ne $ROOT_VER) {
 }
 
 if ($UI_COMPONENT_VER -ne $ROOT_VER) {
-    Write-Host "  - MainLayout (components): $UI_COMPONENT_VER -> $ROOT_VER"
+    Write-Host "  - appMeta (config): $UI_COMPONENT_VER -> $ROOT_VER"
     Set-UiVersion $COMPONENT_MAIN_LAYOUT $ROOT_VER
 }
 

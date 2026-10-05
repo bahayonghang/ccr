@@ -1,0 +1,19 @@
+{
+  "verified_at_utc": "2026-09-29T02:43:39.641020+00:00",
+  "status": "restored_original_schema_set",
+  "baseline": "continuation-linux-tauri-schema-before.json",
+  "baseline_sha256": "9aa09480f485790c273a98d1355396ce6febe24371fd7ba4263362ccf4cc4d64",
+  "preexisting_schema_hashes": {
+    "ccr-ui/src-tauri/gen/schemas/acl-manifests.json": "4597aef2e1a06c8a8cf285f283e37d8ba0f5ea12e0b333618156929fc32afcc3",
+    "ccr-ui/src-tauri/gen/schemas/capabilities.json": "6934cae7bfc299c4ce98b6d9c99b51b8b4b4ba6fff375d2889764568fa11319a",
+    "ccr-ui/src-tauri/gen/schemas/desktop-schema.json": "32261c7f53df73489e0b5ff5cea42fc1d873125a4ca1e04184af78a397021e68",
+    "ccr-ui/src-tauri/gen/schemas/windows-schema.json": "32261c7f53df73489e0b5ff5cea42fc1d873125a4ca1e04184af78a397021e68"
+  },
+  "preexisting_files_unchanged": true,
+  "removed_generated_path": "ccr-ui/src-tauri/gen/schemas/linux-schema.json",
+  "removed_generated_sha256": "32261c7f53df73489e0b5ff5cea42fc1d873125a4ca1e04184af78a397021e68",
+  "preserved_copy": "remaining-linux-generated-schema.json",
+  "preserved_copy_sha256": "32261c7f53df73489e0b5ff5cea42fc1d873125a4ca1e04184af78a397021e68",
+  "removed_path_absent": true,
+  "limits": "Only the Linux build-generated schema absent from the recorded baseline was removed; existing user schema modifications remain intact."
+}

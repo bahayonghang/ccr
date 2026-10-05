@@ -1,0 +1,14 @@
+[
+  {
+    "exit_code": 0,
+    "command": "just version-check"
+  },
+  {
+    "exit_code": 1,
+    "command": "just fmt-check"
+  },
+  {
+    "exit_code": 0,
+    "command": "git diff --check"
+  }
+]

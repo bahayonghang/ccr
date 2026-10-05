@@ -1,0 +1,1 @@
+return {dialogs:await page.locator('[role="dialog"], [role="alertdialog"]').allTextContents(),buttons:await page.getByRole('button').allTextContents(),text:(await page.locator('body').innerText()).slice(-4500)};

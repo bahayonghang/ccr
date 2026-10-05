@@ -15,7 +15,7 @@
 - Compatibility facade: `ccr-ui/src/api/tauri.ts`
 - Domain modules: `ccr-ui/src/api/domains/<domain>.ts`
 - Public frontend entry: `ccr-ui/src/api/index.ts`
-- Guard test: `ccr-ui/tests/api-facade-boundary.smoke.test.ts`
+- Guard test: `ccr-ui/tests/api/api-facade-boundary.smoke.test.ts`
 
 ### 3. Contracts
 - New business API wrappers must live in `src/api/domains/*` or a generated typed client.
@@ -40,7 +40,7 @@
 - Bad: update the allowlist without documenting why the command cannot live in a domain module.
 
 ### 6. Tests Required
-- `cd ccr-ui && bun run test:smoke -- tests/api-facade-boundary.smoke.test.ts`
+- `cd ccr-ui && bun run test:smoke -- tests/api/api-facade-boundary.smoke.test.ts`
 - `cd ccr-ui && bun run type-check`
 - `cd ccr-ui && bun run lint`
 - For broad API changes, also run `cd ccr-ui && bun run test`.
@@ -109,7 +109,7 @@ Only `src/api/invokeRuntime.ts` may import core `invoke`; domain wrappers and ge
 
 ### 6. Tests Required
 
-- `cd ccr-ui && bun run test:smoke -- tests/command-runtime-policy.smoke.test.ts tests/api-facade-boundary.smoke.test.ts`.
+- `cd ccr-ui && bun run test:smoke -- tests/api/command-runtime-policy.smoke.test.ts tests/api/api-facade-boundary.smoke.test.ts`.
 - `cd ccr-ui && bun run type-check`.
 - Search `src/api/**` and assert `invokeRuntime.ts` is the only core invoke import.
 - For broad generated-client changes, run `just frontend-check`.
@@ -187,3 +187,87 @@ await addOpenCodeProvider('openai', {
   },
 })
 ```
+
+## Scenario: config mutation outcomes and versioned edit drafts
+
+### 1. Scope / Trigger
+
+- Trigger: changing `api/domains/config.ts`, `features/configs/**`, generic config actions, or edit draft persistence.
+- The generic page uses explicit `claude` requests. Dedicated platform profile pages retain their own APIs.
+
+### 2. Signatures
+
+```typescript
+enableConfig(platform: ConfigPlatform, name: string): Promise<ConfigMutationResult>
+disableConfig(platform: ConfigPlatform, name: string): Promise<ConfigMutationResult>
+getConfig(platform: ConfigPlatform, name: string): Promise<ConfigInfo | null>
+
+type ConfigEditDraft = {
+  values: ConfigFormValues
+  baseline: ConfigFormValues
+  version: string
+}
+readConfigEditDraft(value: unknown, name: string): ConfigEditDraft | null
+toConfigPatch(values: ConfigFormValues, baseline?: ConfigFormValues): ConfigPatchInput
+```
+
+The domain delegates to generated clients. `tauri.ts` re-exports compatibility names. `enableConfig` sends `enable: true`; disable sends a typed patch with `enabled: false`.
+
+### 3. Contracts
+
+- Visible disabled rows expose Enable through `ConfigsView -> ConfigList -> ConfigCard`. The view obtains warning confirmation before `handleEnable`. A historically current but disabled row must remain enableable.
+- Switch/enable refresh the query after receiving an outcome. Only a committed activation updates the current-config store. `applied_with_warning` shows warning severity; unchanged/recovery shows an error and no success toast. Never activate twice to handle a warning.
+- A form baseline binds the loaded name, values, and repository version. Save sends only changed fields plus that original `expectedVersion`. Changed empty optional fields become null; unchanged fields are omitted.
+- Drafts preserve `{ values, baseline, version }` together. Validate the complete schema and matching target name. A draft with no bound version is not restored as an editable snapshot.
+- Reopening a draft after an external change retains the draft's old baseline and old token. A fresh read must not authorize a stale draft with a new token. CAS failure retains the draft for user review.
+- Reload requires confirmation before discarding the draft. After confirmation, clear the old baseline and loaded-name capability, read the current profile, and bind the new token to that fresh baseline.
+- At every load start, clear the baseline and loaded-name capability. Missing/failed reads keep Save disabled; the submit handler checks snapshot/name again so direct form submission cannot bypass the guard.
+- `valuesFromConfig` sets `auth_token` to an empty string instead of copying the masked response. Add/Edit global drafts remove plaintext auth_token. New credentials stay in component form state and are excluded from restored drafts.
+- Keep refresh ownership in the action hook/mutation path. Do not add an extra activation or duplicate refresh in the view after a completed mutation.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| Enable action confirmed | One generated switch request with explicit Claude and enable true |
+| Enable confirmation cancelled | No mutation request |
+| Committed warning | Refresh, warning toast, no retry |
+| Unchanged/recovery outcome | Refresh, error toast, no current-store success update |
+| Draft token is stale | Send old token; backend rejects; retain draft |
+| Draft lacks schema/token/name binding | Ignore invalid draft; load a fresh baseline |
+| Read fails after selecting a different name | No save capability; no update even on direct submit |
+| User confirms Reload | Discard draft and load a fresh baseline/token |
+| Secret entered | Mutation may include the new secret; global drafts contain no plaintext secret |
+
+### 5. Good/Base/Bad Cases
+
+- Good: edit description at version A, close, observe external version B, reopen, save with A, and preserve the draft after CAS rejection. Confirm Reload before editing from B.
+- Base: an untouched masked token is omitted from the patch and remains unchanged on disk.
+- Bad: reopen an old draft, assign the latest version, then overwrite external edits without conflict.
+- Bad: an enabled-only hook exists but the disabled row still dispatches ordinary switch.
+
+### 6. Tests Required
+
+- `tests/configs/configs-actions.smoke.test.tsx`: click actual page buttons through the domain/generated/runtime path; assert explicit platform, enable flag, confirmation cancellation, current-store updates, and warning/recovery behavior.
+- `tests/configs/edit-config-draft.smoke.test.tsx`: real form edit/unmount/external update/reopen/conflict/reload/save; assert both baseline and token remain bound. Cover failed target loads, direct submit rejection, and no secret in global drafts.
+- API smoke: config wrappers use registry-generated clients; no new direct core invoke or typed-command exceptions.
+- Backend fixtures separately prove runtime/current/enabled consistency; mocked UI IPC success alone cannot prove backend persistence.
+- Run frontend type-check, the config/API smoke set, and formal lint. Keep native WebView and visual verification as separate evidence.
+
+### 7. Wrong vs Correct
+
+Wrong: restoring draft values and replacing `draft.version` with the version returned by a later read.
+
+Correct:
+
+```typescript
+const patch = toConfigPatch(draft.values, draft.baseline)
+await updateConfig({
+  platform: 'claude',
+  name,
+  data: patch,
+  expectedVersion: draft.version,
+})
+```
+
+Acquire a new version only when the user accepts discarding the old draft and the fresh load succeeds.

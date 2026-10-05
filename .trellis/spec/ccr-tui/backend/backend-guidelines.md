@@ -149,7 +149,7 @@ When changing tab ordering, add or keep regression tests that assert:
 - Trigger: adding or changing TUI-owned labels, status/error/loading text,
   overlays, toasts, shortcut footers, or post-exit summaries.
 - Applies to the main profile surface and embedded Claude Auth, Codex Auth, and
-  OpenCode Auth surfaces. CLI-only output and raw lower-layer errors are outside
+  Grok Auth surfaces. CLI-only output and raw lower-layer errors are outside
   the translation catalog.
 
 ### 2. Signatures
@@ -249,7 +249,7 @@ Use a synthetic `PlatformTab` only when a tab is not a profile/auth surface but 
 - Give the synthetic tab an empty `profiles` list and route it before profile selection/apply behavior in `handle_key`, mouse handlers, activation, ticks, and `ui::draw`.
 - Lazily initialize the embedded app from `App::with_task_executor(...)`; load external data with `AsyncTaskExecutor::spawn_blocking()` and a message channel so the terminal render loop never blocks on filesystem or SQLite work.
 - Keep the tab read-only unless the PRD explicitly asks for mutations. For usage/statistics views, show unsupported, missing-data, empty, and query-error states inside the view rather than panicking or falling back to profile UI.
-- When retiring a synthetic tab, keep its `TuiTabId` variant parse-tolerant (`#[doc(hidden)]`, filtered on load with a warn) so existing `tui.toml` custom orders survive; see the ccr-config guidelines.
+- Only the retired Usage identifier retains parse-tolerant compatibility. Removed `opencode_auth` is unknown and causes the existing whole-config default fallback; initial loading does not rewrite the file. Do not add a migration layer.
 
 Wrong:
 
@@ -303,10 +303,13 @@ Provider usage lives inside the Claude/Codex profile detail panel, powered by an
 - Startup loads `tui.toml` once, applies its language and theme to App
   construction, constructs the App before entering the alternate screen, then
   draws the first frame immediately.
-- Mocha is the deterministic default. `mocha` and `latte` environment values
-  override the persisted theme. Terminal background detection runs only for
-  explicit `CCR_TUI_THEME=auto`; an unset or invalid value must not call
-  `termbg`.
+- `auto` is the default persisted theme; Mocha stays the deterministic fallback
+  when detection is unavailable. `mocha` and `latte` environment values
+  override and pin the theme. Terminal background detection runs when
+  `CCR_TUI_THEME=auto` or the persisted theme is `auto`; a pinned theme (env
+  `mocha`/`latte` or persisted `mocha`/`latte`) must never call `termbg`.
+  Detection failure falls back silently: env `auto` keeps the persisted
+  Mocha/Latte pin; other auto-path failures fall back to Mocha.
 - `Ctrl+T` changes the active palette immediately and saves the full loaded
   config so language and custom tab order survive the theme change.
 - Profile builders assign every important value an explicit `DetailTone`.
@@ -327,8 +330,10 @@ Provider usage lives inside the Claude/Codex profile detail panel, powered by an
 ### 4. Validation & Error Matrix
 
 - Missing/invalid TUI config -> continue with default preferences.
-- Invalid `CCR_TUI_THEME` -> warn and use the persisted theme without probing.
-- `CCR_TUI_THEME=auto` probe failure -> use the persisted theme.
+- Invalid `CCR_TUI_THEME` -> warn and follow the persisted theme: pinned
+  values apply without probing; `auto` still probes.
+- Probe failure on an auto path -> env `auto` keeps the persisted Mocha/Latte
+  pin; persisted `auto` falls back to Mocha.
 - Theme save failure -> keep the new palette for the session, log a warning,
   and leave the previous guarded config file intact.
 - Missing/blank reasoning effort -> muted `-`; unknown string -> raw normalized
@@ -342,16 +347,20 @@ Provider usage lives inside the Claude/Codex profile detail panel, powered by an
   beside the model with an emphasized Codex tone.
 - Good: a 140x30 wide page gives the detail rail more width and omits an empty
   Status strip; 80x20 and 100x30 retain compact/standard behavior.
-- Base: no theme env/config exists, so Mocha is selected without terminal I/O.
-- Bad: calling `termbg` whenever `CCR_TUI_THEME` is unset adds a fixed
-  approximately 100ms wait before the first frame.
+- Base: no theme env/config exists, so the theme resolves as `auto` and the
+  terminal background is probed once (bounded ~100ms, TTY only).
+- Bad: calling `termbg` on a pinned-theme path (env `mocha`/`latte` or
+  persisted `mocha`/`latte`) adds a fixed approximately 100ms wait before
+  the first frame for no benefit.
 - Bad: styling fields with `label.contains("model")` makes new keys and
   localized labels silently lose semantic hierarchy.
 
 ### 6. Tests Required
 
-- Theme resolution tests assert that persisted Mocha/Latte avoids the detector,
-  explicit overrides win, and only `auto` invokes the detector.
+- Theme resolution tests assert that pinned themes (persisted Mocha/Latte or env
+  `mocha`/`latte`) avoid the detector, explicit overrides win, only auto paths
+  (env `auto` or persisted `auto`) invoke the detector, and probe failure falls
+  back to the persisted pin or Mocha.
 - Persistence tests assert `Ctrl+T`-equivalent saving preserves language and
   custom tab order.
 - Reasoning tests cover missing, blank, uppercase known values, every supported
@@ -381,6 +390,65 @@ let field = DetailField::new(DetailKey::Model, value, DetailTone::Accent {
 });
 ```
 
+## Scenario: Codex Auth Quota And Local Usage
+
+The main Codex Auth tab and `run_codex_auth_tui()` both reach the main `App`
+and `codex_auth::ui::draw_embedded`. Exercise that composed path when testing
+CLI auth entry behavior; the legacy `codex_auth::ui::draw` is not its substitute.
+
+### Quota presentation
+
+- Read selected-account quota through `CodexAuthApp::selected_quota()`. A valid
+  preview snapshot can exist while `QuotaState` is `Idle`; render the snapshot
+  before adding refresh/error status, rather than replacing it with idle help.
+- `hourly_percentage` and `weekly_percentage` are **remaining** percentages.
+  Render a numeric value and a colored bar from the same value, using the active
+  theme's quota palette. Keep unfilled cells muted and clamp bar geometry at
+  the presentation boundary.
+- `window_present = Some(true)` permits a bar, `Some(false)` means not provided,
+  and `None` means unknown. Missing/unknown windows must not appear full or empty.
+  Account-list previews and selected-account details must agree.
+- Keep cached values visible during refresh, and retain a visible failure when
+  refresh fails with cached data. Display `fetched_at` as quota acquisition time;
+  auth `last_refresh` is a separate timestamp. Do not invent another cache TTL.
+- Enforce that retention at the existing background-message cache write boundary,
+  including batch preview errors, failed quota snapshots carried by `Ok`, and
+  outer task errors. A later valid batch result clears a stale error only for
+  the same account. A manually constructed `QuotaState::Error` render fixture
+  alone does not test this message path.
+
+### Local usage scope and severity
+
+`CodexUsageAttributionState` owns scope-note severity. An
+`AccountAttributed` result is a successful filtered aggregate, so its ordinary
+coverage note is muted/informational. `VirtualAccount` and
+`UnattributedFallback` retain a warning and explicitly identify the displayed
+numbers as global local usage. Load failures retain error styling.
+
+Do not infer missing or corrupt history merely because the global count exceeds
+the selected account's count: other accounts also explain that difference.
+Do not change `records_for_account` or mix global records into account totals to
+remove a warning. CCR activation-window attribution is local history, not an
+official account bill or a conversion from tokens to server-side quota.
+
+### Space budget and regression evidence
+
+- Size auth content from the actual `content_area`, including the space already
+  consumed by the main header, runtime banner, and footer. `ViewportMode::Wide`
+  alone does not imply enough height for two right-side panels.
+- Prefer quota, scope, core statistics, and real errors over secondary metadata.
+  Never show global fallback numbers without their scope. Omitted/truncated
+  content must be apparent; labels, numbers, and ellipses use terminal width.
+- Cover English/Chinese at 80×24, 100×22, 100×30, 120×22, 140×40, and 180×50;
+  additionally verify graceful degradation below those sizes. Assert buffer
+  cells and colors, not only that rendering succeeds.
+- Include cached `Idle`, cached refresh failure, all three window-presence
+  states, low/full remaining percentages, successful attribution with another
+  account's records, true global fallback, and load-error fixtures. Use isolated
+  directories and synthetic records; do not read personal auth or usage data.
+- TestBackend evidence proves buffer composition; native terminal appearance and
+  private runtime correctness require separate direct evidence.
+
 ## Logging
 
 Use `tracing::warn!` for recoverable loading failures and diagnostics. Do not print directly from TUI code during active terminal rendering.
@@ -401,11 +469,11 @@ Use `tracing::warn!` for recoverable loading failures and diagnostics. Do not pr
   sanitization.
 - `GrokPlatform::profile_auth_mode(&ProfileConfig) -> Result<GrokProfileAuthMode>`
   owns credential-source classification.
-- `PlatformConfig::apply_profile(&str)` remains the shared apply entry point.
+- `tui::profile_backend::apply(ApplyProfileRequest)` calls the shared `ccr_cli::application::profile_lifecycle::apply_profile` use case. `PlatformConfig::apply_profile(&str)` remains a platform mechanism inside that use case.
 
 ### 3. Contracts
 
-- Grok contributes exactly one `TabVariant::Profile`; it has no auth tab,
+- Grok contributes exactly one `TabVariant::Profile` alongside its independent `GrokAuth` tab. The profile view has no
   Claude runtime summary, Codex runtime summary, or embedded usage section.
 - Its full and compact labels are `Grok Profile` / `Grok 配置` and `Grok`.
 - Details show description, sanitized base URL, model, API backend, auth mode,
@@ -417,6 +485,7 @@ Use `tracing::warn!` for recoverable loading failures and diagnostics. Do not pr
 - Enter/Space use the existing profile apply path (apply and stay; quit via
   `q` / `Esc`), toast reporting, reload, current marker, and per-tab selection
   behavior without a Grok-only mutation path.
+- The shared use case owns preflight, activation, counts, and history. The TUI must not compose an independent off with apply or save its own success count. Present committed warnings and recovery outcomes with localized toasts; do not retry activation automatically.
 
 ### 4. Validation & Error Matrix
 
@@ -468,6 +537,34 @@ let auth_mode = GrokPlatform::profile_auth_mode(config);
 ```
 
 ## Testing
+
+### Grok Auth accounts
+
+- Consume only the secret-free `GrokAuthService` snapshot. Selection is independent
+  of each scope's local match; local metadata never proves effective authentication.
+- Save copies a selected OAuth source to CCR while Grok may continue running.
+  Multiple sources require selection; an existing alias requires explicit overwrite.
+- Switch confirmation requires stopping Grok first and states that local credentials
+  serve new sessions; it preserves the profile route and MCP. Read activation only
+  through `GrokPlatform::inspect_activation_state`.
+- Delete removes only a saved item; logout explicitly removes all runtime auth.json
+  credentials, preserving the account library. Confirmations default to cancellation;
+  Enter/n/Esc cancel and only y submits. Do not reuse a delete-only modal title.
+- Freeze the revision, scope and alias in the request. Use the shared executor's
+  blocking task path and one result channel; disable duplicate operations and normal
+  navigation/exit until the result is collected. Ctrl+L and resize remain responsive.
+  Cancel unsubmitted dialogs on tab navigation. Never describe an in-flight action as
+  canceled. A disabled executor submits nothing; a disconnected channel reports an
+  unknown outcome and rereads once without replaying the mutation.
+- Keep the previous snapshot on read errors and show stale state. Keep mutation
+  success/failure separate from subsequent read failure. Store semantic actions for
+  summaries and translate on the TUI thread. No raw credential JSON enters UI state.
+- Render list/details side by side on wide screens, stacked on standard screens,
+  and prioritize selection and feedback on compact screens. Keep necessary action
+  hints and exit visible at 40×12; truncate identifiers by display width.
+- Tests use an injected backend and TestBackend, never personal credentials. The
+  September 8 implementation delivery explicitly skips execution at user request;
+  static review and maintained test sources do not establish runtime acceptance.
 
 Prefer unit tests for state transitions, formatting, and helpers. Use temp dirs and fixture data for auth/config state; do not read real home-directory auth files.
 

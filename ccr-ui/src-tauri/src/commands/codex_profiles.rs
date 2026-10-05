@@ -128,44 +128,19 @@ pub async fn codex_add_profile(
 
 /// 更新 Codex profile（核心字段覆盖 + extra/platform_data 整体替换）
 fn update_codex_profile_payload(name: String, config: Value) -> Result<Value, String> {
-    let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
-    let profiles = platform
-        .load_profiles()
-        .map_err(|e| format!("读取 Codex profiles 失败: {e}"))?;
-    let current_profile = platform
-        .get_current_profile()
-        .map_err(|e| format!("读取当前 Codex profile 失败: {e}"))?;
-    let mut profile = profiles
-        .get(&name)
-        .cloned()
-        .ok_or_else(|| format!("Codex Profile '{name}' 不存在"))?;
     let target_name = resolve_profile_target_name("Codex", &name, &config)?;
-
-    if target_name != name && profiles.contains_key(&target_name) {
-        return Err(format!("Codex Profile '{target_name}' 已存在"));
-    }
-
-    patch_profile_with_config(&mut profile, &config)?;
-    platform
-        .save_profile(&target_name, &profile)
-        .map_err(|e| format!("更新 Codex Profile 失败: {e}"))?;
-
-    if target_name != name {
-        platform
-            .delete_profile(&name)
-            .map_err(|e| format!("删除旧 Codex Profile 失败: {e}"))?;
-
-        if current_profile.as_deref() == Some(name.as_str()) {
-            platform
-                .apply_profile(&target_name)
-                .map_err(|e| format!("同步当前 Codex Profile 失败: {e}"))?;
-        }
-    }
-
-    Ok(json!({
-        "message": format!("Codex Profile '{target_name}' 已更新"),
-        "name": target_name,
-    }))
+    let outcome = ccr_cli::application::profile_lifecycle::update_profile(
+        Platform::Codex,
+        &name,
+        &target_name,
+        |profile| {
+            patch_profile_with_config(profile, &config).map_err(ccr_core::CcrError::ValidationError)
+        },
+    )
+    .map_err(|error| error.to_string())?;
+    let mut response = crate::commands::profile_lifecycle::profile_outcome_payload(outcome);
+    response["name"] = json!(target_name);
+    Ok(response)
 }
 
 #[ccr_tauri_command_macros::command]
@@ -233,11 +208,12 @@ pub async fn codex_apply_profile(
     name: String,
 ) -> Result<OpenJsonValueDto, String> {
     let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
-        let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
-        platform
-            .apply_profile(&name)
-            .map_err(|e| format!("应用 Codex Profile 失败: {e}"))?;
-        Ok(json!({ "message": format!("Codex Profile '{name}' 已应用") }))
+        crate::commands::profile_lifecycle::apply_profile_payload(
+            ccr_cli::application::profile_lifecycle::ApplyProfileRequest::new(
+                Platform::Codex,
+                name,
+            ),
+        )
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))??;
@@ -314,15 +290,6 @@ mod update_tests {
     use serde_json::json;
     use std::path::Path;
 
-    fn restore_env_var(key: &str, previous: Option<String>) {
-        unsafe {
-            match previous {
-                Some(value) => std::env::set_var(key, value),
-                None => std::env::remove_var(key),
-            }
-        }
-    }
-
     fn write_file_store_config(codex_dir: &Path) {
         fs::write(
             codex_dir.join("config.toml"),
@@ -361,20 +328,16 @@ mod update_tests {
 
     #[test]
     fn codex_update_profile_rename_migrates_profile_secret_and_current_profile() {
-        let _guard = crate::test_support::lock_env();
+        let mut process_env = crate::test_support::TestProcessEnv::new();
         let temp_dir = tempfile::tempdir().unwrap();
         let ccr_root = temp_dir.path().join("ccr-root");
         let codex_dir = temp_dir.path().join("codex-home");
         fs::create_dir_all(&ccr_root).unwrap();
         fs::create_dir_all(&codex_dir).unwrap();
 
-        let previous_root = std::env::var("CCR_ROOT").ok();
-        let previous_codex_dir = std::env::var("CCR_CODEX_DIR").ok();
-
-        unsafe {
-            std::env::set_var("CCR_ROOT", &ccr_root);
-            std::env::set_var("CCR_CODEX_DIR", &codex_dir);
-        }
+        process_env.set("CCR_ROOT", ccr_root.as_os_str());
+        process_env.set("CCR_CODEX_DIR", codex_dir.as_os_str());
+        process_env.set("CCR_LOCK_DIR", temp_dir.path().join("locks").as_os_str());
 
         let result = (|| -> Result<(), String> {
             write_file_store_config(&codex_dir);
@@ -444,27 +407,21 @@ mod update_tests {
             Ok(())
         })();
 
-        restore_env_var("CCR_ROOT", previous_root);
-        restore_env_var("CCR_CODEX_DIR", previous_codex_dir);
         result.unwrap();
     }
 
     #[test]
     fn codex_update_profile_rename_rejects_conflicting_target_without_writing_partial_state() {
-        let _guard = crate::test_support::lock_env();
+        let mut process_env = crate::test_support::TestProcessEnv::new();
         let temp_dir = tempfile::tempdir().unwrap();
         let ccr_root = temp_dir.path().join("ccr-root");
         let codex_dir = temp_dir.path().join("codex-home");
         fs::create_dir_all(&ccr_root).unwrap();
         fs::create_dir_all(&codex_dir).unwrap();
 
-        let previous_root = std::env::var("CCR_ROOT").ok();
-        let previous_codex_dir = std::env::var("CCR_CODEX_DIR").ok();
-
-        unsafe {
-            std::env::set_var("CCR_ROOT", &ccr_root);
-            std::env::set_var("CCR_CODEX_DIR", &codex_dir);
-        }
+        process_env.set("CCR_ROOT", ccr_root.as_os_str());
+        process_env.set("CCR_CODEX_DIR", codex_dir.as_os_str());
+        process_env.set("CCR_LOCK_DIR", temp_dir.path().join("locks").as_os_str());
 
         let result = (|| -> Result<(), String> {
             write_file_store_config(&codex_dir);
@@ -484,7 +441,11 @@ mod update_tests {
                 }),
             )
             .unwrap_err();
-            assert!(error.contains("已存在"));
+            assert_eq!(
+                error,
+                ccr_core::CcrError::ValidationError("Invalid or existing profile target".into())
+                    .to_string()
+            );
 
             let paths = PlatformPaths::new(Platform::Codex)
                 .map_err(|e| format!("解析 Codex 路径失败: {e}"))?;
@@ -504,27 +465,21 @@ mod update_tests {
             Ok(())
         })();
 
-        restore_env_var("CCR_ROOT", previous_root);
-        restore_env_var("CCR_CODEX_DIR", previous_codex_dir);
         result.unwrap();
     }
 
     #[test]
     fn codex_update_profile_same_target_name_updates_in_place() {
-        let _guard = crate::test_support::lock_env();
+        let mut process_env = crate::test_support::TestProcessEnv::new();
         let temp_dir = tempfile::tempdir().unwrap();
         let ccr_root = temp_dir.path().join("ccr-root");
         let codex_dir = temp_dir.path().join("codex-home");
         fs::create_dir_all(&ccr_root).unwrap();
         fs::create_dir_all(&codex_dir).unwrap();
 
-        let previous_root = std::env::var("CCR_ROOT").ok();
-        let previous_codex_dir = std::env::var("CCR_CODEX_DIR").ok();
-
-        unsafe {
-            std::env::set_var("CCR_ROOT", &ccr_root);
-            std::env::set_var("CCR_CODEX_DIR", &codex_dir);
-        }
+        process_env.set("CCR_ROOT", ccr_root.as_os_str());
+        process_env.set("CCR_CODEX_DIR", codex_dir.as_os_str());
+        process_env.set("CCR_LOCK_DIR", temp_dir.path().join("locks").as_os_str());
 
         let result = (|| -> Result<(), String> {
             write_file_store_config(&codex_dir);
@@ -561,27 +516,21 @@ mod update_tests {
             Ok(())
         })();
 
-        restore_env_var("CCR_ROOT", previous_root);
-        restore_env_var("CCR_CODEX_DIR", previous_codex_dir);
         result.unwrap();
     }
 
     #[test]
     fn codex_update_profile_rejects_blank_target_name() {
-        let _guard = crate::test_support::lock_env();
+        let mut process_env = crate::test_support::TestProcessEnv::new();
         let temp_dir = tempfile::tempdir().unwrap();
         let ccr_root = temp_dir.path().join("ccr-root");
         let codex_dir = temp_dir.path().join("codex-home");
         fs::create_dir_all(&ccr_root).unwrap();
         fs::create_dir_all(&codex_dir).unwrap();
 
-        let previous_root = std::env::var("CCR_ROOT").ok();
-        let previous_codex_dir = std::env::var("CCR_CODEX_DIR").ok();
-
-        unsafe {
-            std::env::set_var("CCR_ROOT", &ccr_root);
-            std::env::set_var("CCR_CODEX_DIR", &codex_dir);
-        }
+        process_env.set("CCR_ROOT", ccr_root.as_os_str());
+        process_env.set("CCR_CODEX_DIR", codex_dir.as_os_str());
+        process_env.set("CCR_LOCK_DIR", temp_dir.path().join("locks").as_os_str());
 
         let result = (|| -> Result<(), String> {
             write_file_store_config(&codex_dir);
@@ -609,8 +558,6 @@ mod update_tests {
             Ok(())
         })();
 
-        restore_env_var("CCR_ROOT", previous_root);
-        restore_env_var("CCR_CODEX_DIR", previous_codex_dir);
         result.unwrap();
     }
 }
@@ -635,4 +582,27 @@ pub async fn codex_get_profile_env(name: String) -> Result<OpenJsonValueDto, Str
     .await
     .map_err(|e| format!("任务执行失败: {e}"))??
     .try_into()
+}
+
+#[cfg(test)]
+mod application_rename_contract {
+    use super::*;
+    #[test]
+    fn profile_rename_each_write_contract() {
+        let _desktop = crate::test_support::lock_env();
+        ccr_cli::application::profile_contract::rename_failures(
+            &[Platform::Codex],
+            |_, name, target| {
+                let payload = update_codex_profile_payload(name.into(), json!({"name": target}))
+                    .map_err(ccr_core::CcrError::ConfigError)?;
+                assert!(
+                    !payload
+                        .to_string()
+                        .contains(ccr_cli::application::profile_contract::SENTINEL)
+                );
+                serde_json::from_value(payload["outcome"].clone())
+                    .map_err(|_| ccr_core::CcrError::ConfigError("Invalid outcome".into()))
+            },
+        );
+    }
 }

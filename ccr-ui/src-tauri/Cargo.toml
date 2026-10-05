@@ -3,14 +3,14 @@ members = ["command-macros"]
 
 [package]
 name = "ccr-desktop"
-version = "7.2.0"
+version = "7.4.0"
 description = "CCR Desktop - Tauri Application"
 authors = ["Geekyhang"]
 edition = "2024"
 rust-version = "1.95"
 
 [build-dependencies]
-tauri-build = { version = "=2.6.2", features = [] }
+tauri-build = { version = "=2.6.3", features = [] }
 serde_json = "1.0.150"
 
 [dependencies]
@@ -34,19 +34,19 @@ ccr-types = { path = "../../crates/ccr-types" }
 ccr-db = { path = "../../crates/ccr-db" }
 
 # Tauri framework
-tauri = { version = "=2.11.2", features = ["tray-icon"] }
+tauri = { version = "=2.11.5", features = ["tray-icon"] }
 tauri-plugin-dialog = "2"
 
 # Serialization
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.150"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
 serde_yaml = "0.9"
 
 # TypeScript 绑定生成（usage V2 试点：DTO 单一来源，生成物入库 + 漂移守卫）
-ts-rs = { version = "11", features = ["no-serde-warnings"] }
+ts-rs = { version = "12.0.1", features = ["no-serde-warnings"] }
 
 # Async runtime
-tokio = { version = "1.52.3", features = [
+tokio = { version = "1.53.1", features = [
     "rt-multi-thread",
     "io-util",
     "net",
@@ -56,7 +56,7 @@ tokio = { version = "1.52.3", features = [
     "process",
 ] }
 # 子进程取消信号（用于 llmusage sync 的 cancel 路径）
-tokio-util = { version = "0.7", features = ["rt"] }
+tokio-util = { version = "0.7.19", features = ["rt"] }
 
 # HTTP client
 # http2: AppState.http_client 与 ccr-checkin 共用该依赖，通过 ALPN 协商 HTTP/2（native-tls 已内置 alpn）
@@ -69,33 +69,33 @@ reqwest = { version = "0.13.4", default-features = false, features = [
 ] }
 
 # Logging
-tracing = "0.1.43"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 # System info
-sysinfo = "0.39.3"
+sysinfo = "0.39.6"
 
 # Encryption (for checkin account credentials)
-aes-gcm = "0.10"
+aes-gcm = "0.11"
 
 # UUID
-uuid = { version = "1.23.2", features = ["serde", "v4"] }
-chrono = { version = "0.4.44", features = ["serde"] }
-base64 = "0.22.1"
+uuid = { version = "1.26.0", features = ["serde", "v4"] }
+chrono = { version = "0.4.45", features = ["serde"] }
+base64 = "0.23.1"
 sha2 = "0.11.0"
 
 # Database (direct access for AppState)
 r2d2 = "0.8"
-rusqlite = { version = "0.39.0", features = ["bundled"] }
+rusqlite = { version = "0.40.2", features = ["bundled"] }
 
 # Async trait support
-async-trait = "0.1"
+async-trait = "0.1.92"
 
 # Home directory detection
 dirs = "6.0.0"
 
-# TOML parsing (for slash commands)
-toml = "0.9.8"
+# TOML parsing (for slash commands). Matches workspace toml 1.1.
+toml = "1.1.4"
 
 # Directory walking (for slash commands)
 walkdir = "2.5"
@@ -104,15 +104,15 @@ walkdir = "2.5"
 tempfile = "3.27.0"
 
 # Error handling
-thiserror = "2.0.18"
-lru = "0.18.2"
+thiserror = "2.0.20"
+lru = "0.18.3"
 notify = "8.2.0"
 
 # Lock-free 配置快照（供同步 tray/回调读取 AppState 偏好）
-arc-swap = "1"
+arc-swap = "1.9.2"
 
 # 高并发缓存（替代 RwLock<LruCache>，读路径无需 write 锁、内置分段）
-moka = { version = "0.12", features = ["future"] }
+moka = { version = "0.12.16", features = ["future"] }
 
 # File locking for cache
 fs4 = "1.1.0"
@@ -126,6 +126,7 @@ winreg = "0.56.0"
 # russh-sftp = "2.1.1"
 
 [dev-dependencies]
+ccr-cli = { path = "../../crates/ccr-cli", features = ["test-support"] }
 # 服务层单测的 llmusage 投影 fixture（与主依赖 features 合并生效：ts + test-fixtures）
 ccr-usage = { path = "../../crates/ccr-usage", features = ["test-fixtures"] }
 

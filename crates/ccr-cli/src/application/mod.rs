@@ -1,5 +1,8 @@
 pub mod auth_off;
 pub mod platform_switch;
+#[cfg(any(test, feature = "test-support"))]
+pub mod profile_contract;
+pub mod profile_lifecycle;
 pub mod profile_off;
 pub mod profile_switch;
 pub mod types;

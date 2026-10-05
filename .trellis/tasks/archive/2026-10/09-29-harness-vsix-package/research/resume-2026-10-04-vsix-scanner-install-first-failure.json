@@ -1,0 +1,12 @@
+{
+  "recorded_utc": "2026-10-04T13:44:02.538142+00:00",
+  "wrapper_exit_code": 1,
+  "command_exit_code": "UNVERIFIED_NOT_CAPTURED",
+  "error": "AssertionError: inputs before/after differed because authorized actual VSCE manifest/lock migration overlapped temporary scanner installation",
+  "streams_preserved": [
+    "resume-2026-10-04-vsix-scanner-install.stdout.log",
+    "resume-2026-10-04-vsix-scanner-install.stderr.log"
+  ],
+  "product_failure": false,
+  "repair": "Save receipt before source drift assertion; retry scoped temporary npm ci after actual files stabilize"
+}

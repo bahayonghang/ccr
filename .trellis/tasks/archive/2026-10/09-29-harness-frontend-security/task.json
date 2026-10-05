@@ -1,0 +1,58 @@
+{
+  "id": "harness-frontend-security",
+  "name": "harness-frontend-security",
+  "title": "T08 前端依赖安全审计修复",
+  "description": "定位并修复 frontend-audit 的 18 条未批准公告，按运行时和开发工具依赖分层验证",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P1",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-09-29",
+  "completedAt": "2026-10-04",
+  "branch": "dev",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": "30cbeddf730ed01b312c3396ba7b8691853be859",
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "09-29-evergreen-harness-audit",
+  "relatedFiles": [
+    "ccr-ui/package.json",
+    "ccr-ui/bun.lock",
+    ".trellis/spec/ccr/backend/dependency-governance.md"
+  ],
+  "notes": "用户已批准实施并授权本地提交和验收完成后的归档。推送、PR、发布和两个新增补丁仍未授权。历史批准记录见父任务 approval.json。",
+  "meta": {
+    "implementation_approved": true,
+    "parent_plan": ".trellis/tasks/09-29-evergreen-harness-audit",
+    "approval_record": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json",
+    "local_implementation": "passed",
+    "independent_review": "../09-29-evergreen-harness-audit/research/independent-review.md",
+    "delivery_status": "locally committed; task remains in_progress with acceptance gaps",
+    "final_aggregate": "failed at Rust managers Test in final-ci-retry1; root cause investigation in progress",
+    "source_preservation": "2509 source hashes unchanged in actual full CI",
+    "latest_full_aggregate": "final-ci-retry1: failed at Test, managers legacy_registry file-lock path missing; 2509 source hashes unchanged",
+    "latest_full_aggregate_receipt": "../09-29-evergreen-harness-audit/research/final-ci-retry1.json",
+    "aggregate_receipts": [
+      ".trellis/tasks/09-29-evergreen-harness-audit/research/final-ci.json",
+      ".trellis/tasks/09-29-evergreen-harness-audit/research/final-ci-retry1.json"
+    ],
+    "delivery_authorization": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json#delivery_authorization",
+    "work_commits": [
+      "c4d38e5154edf6a8fa1c781f91d31ce6aa4bb5ad",
+      "f68116ecd22bb74b86011b01d14b72cfc8a855d0",
+      "c1453c7b1f5405f93eaecf67ff0d074bb1e9db1d",
+      "30cbeddf730ed01b312c3396ba7b8691853be859"
+    ],
+    "archive_eligibility": "not_eligible",
+    "remaining_acceptance": "原 AC1 的 0 例外未满足。2026-10-04 just ci 的 Frontend Audit 为 1/1，不关闭 AC1。例外批准与持久深度回归测试未批准。",
+    "current_acceptance": "Original AC1 maxActiveExceptions=0 unmet by current committed 1/1 exception; adjustment awaits explicit reply.",
+    "aggregate_review_2026_10_04": "research/resume-2026-10-04-aggregate-review.md",
+    "research_2026_10_04": "research/resume-2026-10-04-ui-contract-report.md",
+    "current_status_date": "2026-10-04"
+  }
+}

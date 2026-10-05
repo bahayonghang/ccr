@@ -1,0 +1,210 @@
+/* migrated from UsageDiagnosticsDrawer.vue; px converted to rem */
+.usage-diag {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.usage-diag__scope {
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+}
+
+.usage-diag__section {
+  display: grid;
+  gap: 0.62rem;
+}
+
+.usage-diag__section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.usage-diag__section-head span {
+  color: var(--color-text-primary);
+  font-size: 0.86rem;
+  font-weight: 740;
+}
+
+.usage-diag__section-head small {
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  font-weight: 650;
+}
+
+.usage-diag__health-grid {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.usage-diag-health {
+  --usage-diag-item-rgb: var(--color-info-rgb);
+
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  min-width: 0;
+  gap: 0.6rem;
+  border-radius: 0.95rem;
+  border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 12%);
+  background: rgb(var(--color-bg-surface-rgb) / 54%);
+  padding: 0.65rem 0.7rem;
+}
+
+.usage-diag-health--success {
+  --usage-diag-item-rgb: var(--color-success-rgb);
+}
+
+.usage-diag-health--warning {
+  --usage-diag-item-rgb: var(--color-warning-rgb);
+}
+
+.usage-diag-health--danger {
+  --usage-diag-item-rgb: var(--color-danger-rgb);
+}
+
+.usage-diag-health--info {
+  --usage-diag-item-rgb: var(--color-info-rgb);
+}
+
+.usage-diag-health--muted {
+  --usage-diag-item-rgb: var(--color-text-muted-rgb);
+}
+
+.usage-diag-health__axis {
+  width: 0.1875rem;
+  flex: none;
+  border-radius: 62.4375rem;
+  background: rgb(var(--usage-diag-item-rgb) / 74%);
+}
+
+.usage-diag-health__label {
+  color: var(--color-text-muted);
+  font-size: 0.64rem;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.usage-diag-health strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 0.16rem;
+  color: var(--color-text-primary);
+  font-size: 0.92rem;
+  font-weight: 730;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usage-diag-health p {
+  margin-top: 0.2rem;
+  color: var(--color-text-secondary);
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
+.usage-diag-sources {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.usage-diag-source,
+.usage-diag-alert {
+  --usage-diag-item-rgb: var(--color-info-rgb);
+
+  border-radius: 0.9rem;
+  border: 0.0625rem solid rgb(var(--usage-diag-item-rgb) / 14%);
+  background: rgb(var(--usage-diag-item-rgb) / 6%);
+  padding: 0.62rem 0.7rem;
+}
+
+.usage-diag-source--success,
+.usage-diag-alert--success {
+  --usage-diag-item-rgb: var(--color-success-rgb);
+}
+
+.usage-diag-source--warning,
+.usage-diag-alert--warning {
+  --usage-diag-item-rgb: var(--color-warning-rgb);
+}
+
+.usage-diag-source--danger,
+.usage-diag-alert--danger {
+  --usage-diag-item-rgb: var(--color-danger-rgb);
+}
+
+.usage-diag-source--info,
+.usage-diag-alert--info {
+  --usage-diag-item-rgb: var(--color-info-rgb);
+}
+
+.usage-diag-source--muted,
+.usage-diag-alert--muted {
+  --usage-diag-item-rgb: var(--color-text-muted-rgb);
+}
+
+.usage-diag-source__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.usage-diag-source strong,
+.usage-diag-alert strong {
+  color: var(--color-text-primary);
+  font-size: 0.82rem;
+  font-weight: 740;
+}
+
+.usage-diag-source p,
+.usage-diag-alert p {
+  margin-top: 0.34rem;
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.usage-diag-source__hint {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.usage-diag-source__refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  margin-top: 0.5rem;
+  border-radius: 62.4375rem;
+  border: 0.0625rem solid rgb(var(--usage-diag-item-rgb) / 22%);
+  background: rgb(var(--usage-diag-item-rgb) / 10%);
+  padding: 0.26rem 0.62rem;
+  color: rgb(var(--usage-diag-item-rgb));
+  font-size: 0.7rem;
+  font-weight: 720;
+  transition:
+    background-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    transform var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.usage-diag-source__refresh:hover {
+  transform: translateY(-0.0625rem);
+  background: rgb(var(--usage-diag-item-rgb) / 16%);
+}
+
+.usage-diag__empty {
+  border-radius: 0.9rem;
+  border: 0.0625rem dashed rgb(var(--color-border-default-rgb) / 14%);
+  padding: 0.72rem;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+}
+
+@media (width < 40rem) {
+  .usage-diag__health-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

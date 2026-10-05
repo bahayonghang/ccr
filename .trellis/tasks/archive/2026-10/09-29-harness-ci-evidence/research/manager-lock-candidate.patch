@@ -1,0 +1,52 @@
+--- a/crates/ccr/tests/managers/general.rs
++++ b/crates/ccr/tests/managers/general.rs
+@@ -37,6 +37,7 @@
+ 
+ #[test]
+ fn test_config_manager_lifecycle() {
++    let _env = crate::setup_ccr_test_env();
+     let temp_dir = tempdir().unwrap();
+     let config_path = temp_dir.path().join("config.toml");
+ 
+@@ -70,6 +71,7 @@
+ 
+ #[test]
+ fn test_config_manager_section_operations() {
++    let _env = crate::setup_ccr_test_env();
+     let temp_dir = tempdir().unwrap();
+     let config_path = temp_dir.path().join("config.toml");
+ 
+@@ -185,6 +187,7 @@
+ 
+ #[test]
+ fn test_settings_manager_atomic_operations() {
++    let _env = crate::setup_ccr_test_env();
+     let temp_dir = tempdir().unwrap();
+     let settings_path = temp_dir.path().join("settings.json");
+     let backup_dir = temp_dir.path().join("backups");
+@@ -251,6 +254,7 @@
+ 
+ #[test]
+ fn test_settings_backup_and_restore() {
++    let _env = crate::setup_ccr_test_env();
+     let temp_dir = tempdir().unwrap();
+     let settings_path = temp_dir.path().join("settings.json");
+     let backup_dir = temp_dir.path().join("backups");
+@@ -559,6 +563,7 @@
+ 
+ #[test]
+ fn test_config_and_settings_integration() {
++    let _env = crate::setup_ccr_test_env();
+     let temp_dir = tempdir().unwrap();
+     let config_path = temp_dir.path().join("config.toml");
+     let settings_path = temp_dir.path().join("settings.json");
+--- a/crates/ccr/tests/managers/legacy_registry.rs
++++ b/crates/ccr/tests/managers/legacy_registry.rs
+@@ -6,6 +6,7 @@
+ 
+ #[test]
+ fn legacy_registry_fields_load_without_becoming_clean_write_routing_truth() {
++    let _env = setup_ccr_test_env();
+     let temp_dir = tempfile::tempdir().unwrap();
+     let config_path = temp_dir.path().join("config.toml");
+     fs::write(

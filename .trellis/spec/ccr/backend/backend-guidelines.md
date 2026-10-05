@@ -28,7 +28,7 @@ When adding a new cross-crate type that must be public, first ask whether it bel
 
 ## Error Handling
 
-The binary catches errors at the dispatcher boundary and routes them through `ccr::cli::dispatch::handle_error`. Do not add panics or process exits inside root glue code. Production paths should return `ccr_core::CcrError`/`Result` through the lower-level crate boundary.
+The binary catches ordinary command errors at the dispatcher boundary and routes them through `ccr::cli::dispatch::handle_error`. Diagnostic commands return typed reports and the binary returns `ExitCode` before file logging initializes. Doctor retains code 1 for failed checks; validate keeps the existing `CcrError` mapping. Do not add panics or process exits inside reusable services or adapters. Production paths return `ccr_core::CcrError`/`Result` or typed diagnostic reports through the lower-level crate boundary.
 
 The only expected `unwrap_or_else(|err| err.exit())` pattern is Clap parse handling in `src/main.rs`, where Clap owns the process exit.
 

@@ -1,0 +1,78 @@
+[
+  {
+    "label": "codex",
+    "command": [
+      "cargo",
+      "--config",
+      ".cargo/tauri-ci.toml",
+      "test",
+      "--manifest-path",
+      "ccr-ui/src-tauri/Cargo.toml",
+      "commands::codex::",
+      "--",
+      "--skip",
+      "export_bindings"
+    ],
+    "exit_code": 0,
+    "seconds": 98.97,
+    "matched_passed": 56,
+    "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-codex-tests.log"
+  },
+  {
+    "label": "state",
+    "command": [
+      "cargo",
+      "--config",
+      ".cargo/tauri-ci.toml",
+      "test",
+      "--manifest-path",
+      "ccr-ui/src-tauri/Cargo.toml",
+      "state::tests::",
+      "--",
+      "--skip",
+      "export_bindings"
+    ],
+    "exit_code": 0,
+    "seconds": 1.03,
+    "matched_passed": 3,
+    "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-state-tests.log"
+  },
+  {
+    "label": "close-action",
+    "command": [
+      "cargo",
+      "--config",
+      ".cargo/tauri-ci.toml",
+      "test",
+      "--manifest-path",
+      "ccr-ui/src-tauri/Cargo.toml",
+      "tests::close_action",
+      "--",
+      "--skip",
+      "export_bindings"
+    ],
+    "exit_code": 0,
+    "seconds": 1.19,
+    "matched_passed": 2,
+    "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-close-action-tests.log"
+  },
+  {
+    "label": "claude-read",
+    "command": [
+      "cargo",
+      "--config",
+      ".cargo/tauri-ci.toml",
+      "test",
+      "--manifest-path",
+      "ccr-ui/src-tauri/Cargo.toml",
+      "commands::claude::tests::read_claude_settings_from_env_reads_top_level_env",
+      "--",
+      "--skip",
+      "export_bindings"
+    ],
+    "exit_code": 0,
+    "seconds": 0.92,
+    "matched_passed": 1,
+    "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-claude-read-tests.log"
+  }
+]

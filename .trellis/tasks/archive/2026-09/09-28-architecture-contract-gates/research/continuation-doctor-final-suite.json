@@ -1,0 +1,22 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "-p",
+    "ccr-cli",
+    "--all-features",
+    "--",
+    "--skip",
+    "export_bindings"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "source_before_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+  "started_at_utc": "2026-09-28T23:40:23.307019+00:00",
+  "default_parallelism": true,
+  "exit_code": 0,
+  "seconds": 120.612,
+  "source_after_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+  "finished_at_utc": "2026-09-28T23:42:23.919818+00:00",
+  "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-doctor-final-suite.log",
+  "log_sha256": "a5e9fa385b6548bf566f2ec450ba88195b712c75346e03efd6eebfa5b0a4eb30"
+}

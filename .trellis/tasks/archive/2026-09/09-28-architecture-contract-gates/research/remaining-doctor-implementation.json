@@ -1,0 +1,64 @@
+{
+  "completed_at_utc": "2026-09-29T01:55:07.054336+00:00",
+  "owner": "remaining_gates",
+  "source_file": "crates/ccr-cli/src/commands/codex/fix.rs",
+  "before_sha256": "9975befad77e14eef324ead6c1ac634819884a7b433f534b22c56304ab9898ce",
+  "after_sha256": "9d2a321acb63ab1563b51cddc56cd3c4c6b02cd141b9fdd18ee8b02ef762194c",
+  "change_scope": "Windows test fixture and two existing tests only; production prefix unchanged.",
+  "confirmed_defect": "Bare powershell.exe required PATH while concurrent TestHostEnv fixtures could clear or replace PATH. Doctor tests did not acquire the shared env lock. Empty PATH reproduces both recorded Spawn(program not found) failures using the original CI binary.",
+  "causality_boundary": "The full CI run did not record the exact PATH value or lock owner at failure; the specific concurrent scheduling interleaving is not observed. Historical exporter startup STATUS_ACCESS_VIOLATION remains unexplained and is a separate failure.",
+  "fix": [
+    "Resolve parent PowerShell by absolute SystemRoot path.",
+    "Resolve descendant PowerShell through PSHOME and use its built-in Start-Sleep.",
+    "Both existing Windows tests set PATH to empty using the shared TestHostEnv lock and restore it on Drop.",
+    "Preserve production deadlines, fixture ready barrier, PID liveness and eventual cleanup assertions."
+  ],
+  "checks": {
+    "old_empty_path_reproduction": {
+      "exit_code": 101,
+      "passed": 1,
+      "failed": 2
+    },
+    "focused": {
+      "exit_code": 0,
+      "passed": 3
+    },
+    "cli_library": {
+      "exit_code": 0,
+      "passed": 345,
+      "filtered_export_tests": 24
+    },
+    "clippy_all_targets_all_features": {
+      "exit_code": 0
+    },
+    "rustfmt": {
+      "exit_code": 0
+    },
+    "diff_check": {
+      "exit_code": 0
+    }
+  },
+  "test_parallelism": "Repository default; no test-threads override or serial annotation added. Existing environment mutation lock is used by the two fixture-owning tests.",
+  "test_runs_are_not_full_ci": true,
+  "remaining_validation": "Root coordinates the next full CI / Linux Tauri lane; this child ran no bindings or full CI after the fixture repair.",
+  "windows_cargo_released": true,
+  "product_writes_finished": true,
+  "fix_commit": null,
+  "task_status_changed": false,
+  "evidence_sha256": {
+    "remaining-doctor-before.json": "8eac7a514642f341df88c9782d312043f6c270a0ca0922896224d5e9e81f8bc8",
+    "remaining-doctor-change.diff": "27927a775dca732e71dfb22659ad4400b3e1c8c2e292d4f4cf1f1bc99c12c977",
+    "remaining-doctor-empty-path-red.json": "d33cecb0ffc58e0f01d9d4a7b94d2e5611c32b67efa0a394484d522d65f97b47",
+    "remaining-doctor-empty-path-red.log": "802eecb9a50f1346643570c7cd002e0fa2e76abde8304f2373cac70082cbf96e",
+    "remaining-doctor-focused.json": "f611dc5e71aa4faa1c3f442b62d8207adaf5c836e5ac731ffb510348be1d5efc",
+    "remaining-doctor-focused.log": "148789d365b3472d12d1d70c0163296439fb776de94f3a41470173b0bdfbe44c",
+    "remaining-doctor-lib.json": "2f55f614716e1fabaca11da40802f1dfec9fa77de069bc73f3b0f6a4cdd3a045",
+    "remaining-doctor-lib.log": "79dd3243fe9655c723d5ef5427a9c26abb0d6f339cb9c4c3fd6906ccdaa62f5d",
+    "remaining-doctor-clippy.json": "83b2ce881895300d05b60fad89db1df6482206e5e7377d671bf92ff663daaf8f",
+    "remaining-doctor-clippy.log": "ab77613e3730d607278ee5ff04e4bc95d8ecd7751e5ec866e79b5732dc3192c4",
+    "remaining-doctor-static-checks.json": "e48043f1d86b78ecb2f100cc77f6de555192181d08d29e4c66275cecb7b46c3e",
+    "remaining-windows-ci.json": "c59afb4d24a66193a1635aec4351101512cef9d0cacb17d1df6c903ccd155c4a",
+    "remaining-windows-ci.stdout.log": "cabe76e09210807b7d2132c280359cc54ab5f88c9e372088b2df0b43059c73c0",
+    "remaining-windows-ci.stderr.log": "abfbf272f74fe916aac949072dbb9f8ac99e37446a5afbb1bbc60968c77788a2"
+  }
+}

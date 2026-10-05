@@ -2,8 +2,8 @@
 
 > Claude Code / Codex / Grok Profiles 页面的共享骨架契约，以及平台 profile 表单的序列化契约。
 >
-> 适用范围：`ccr-ui/src/views/{ClaudeCodeProfilesView,CodexProfilesView,grok/GrokProfilesView}.vue`、
-> `ccr-ui/src/components/profiles/*`、`ccr-ui/src/components/{claude,codex,grok}/` 下的 profile 卡片与编辑器模态、
+> 适用范围：`ccr-ui/src/features/claude/ClaudeProfilesView.tsx`、`ccr-ui/src/features/codex/CodexProfilesView.tsx`、`ccr-ui/src/features/grok/GrokProfilesView.tsx`、
+> `ccr-ui/src/components/profiles/*`、`ccr-ui/src/features/{claude,codex,grok}/` 下的 profile 卡片与编辑器模态、
 > `ccr-ui/src/utils/{claudeProfiles,claudeProfileEditor,codexProfiles,codexProfileEditor,grokProfiles,grokProfileEditor}.ts`。
 
 ---
@@ -144,11 +144,12 @@ openai_login_method: authModeToLoginMethod(form.auth_mode) ?? null,
 ### Convention：平台页只注入策略，不重写骨架
 
 **What**：Claude Code 与 Codex 两个 Profiles 页面消费同一套 `components/profiles/*` 组件族，
-布局骨架必须完全一致：`ProfilesHeader`（`actions-menu`）→ 可选 Off 横幅 → `ProfilesStatStrip`（四槽）→
-`ProfilesQuickRail` → `ProfilesToolbar`（`compact-filters`）→ 主列表 → `ProfilesInspector` 右栏。
-平台差异只允许出现在三个地方：StatStrip 的**特色槽**、字段集、i18n 前缀。
-Off 横幅仅在后端 `can_off === true` 时出现，放在 Header 与 StatStrip 之间；确认框 `type=warning`。
+布局骨架必须完全一致：`ProfilesPageHeader`（或过渡期 `ProfilesHeader`）→ 可选 Off 横幅 → `ProfilesStatStrip`（四卡：总数 / 运行中 / 标签 / 认证方式）→
+`ProfilesQuickRail` → `ProfilesToolbar`（搜索 + 标签 pill + 视图切换；Filters 弹层保留 provider 与排序）→ 主列表（卡片或表格）→ `ProfilesInspector` 右栏。
+平台差异只允许出现在三个地方：`ProfilePresentation` 注入的字段集、认证分布（第四卡）、i18n 前缀。
+Off 横幅仅在 `canOff === true` 时出现，放在 Header 与 StatStrip 之间；确认框 `type=warning`。
 命令面板可加 `__off`，不得把 Off 放进 Header 溢出菜单。
+source mode 入口在页头次按钮组，由 raw-source capability 控制；capability 缺席时不渲染。
 
 **Why**：两页此前各自演化出不同的信息架构与视觉语言，是 Profiles 重构要解决的核心问题。
 骨架同构是可验证的验收标准，不是审美偏好。
@@ -157,10 +158,12 @@ Off 横幅仅在后端 `can_off === true` 时出现，放在 Header 与 StatStri
 
 | 维度 | Claude Code | Codex |
 | --- | --- | --- |
-| StatStrip 特色槽 | Auth 分布（订阅/API Key 计数） | Config mode（official / custom relay） |
-| Filters 弹层内容 | 标签 + provider + 排序 | 标签 + 排序（无 provider 维度） |
-| 卡片额外操作 | 无 | env-export 复制图标按钮 |
-| 卡片额外字段 | 多模型回退链 | `auth_source` / `env_key` / `openai_login_method` 徽章 |
+| StatStrip 认证方式卡 | `authKey` 分布（订阅 / API Key 等） | `authKey` 分布（official / openai / env_key 等） |
+| Filters 弹层内容 | 标签 + provider + 排序 | 标签 + 排序（无 provider 维度，或 vendorKey 为空时隐藏下拉） |
+| 卡片额外操作 | 无 | env-export 复制图标按钮（仍由 rollout 接线保留） |
+| 卡片额外字段 | `presentation.fieldSlots` 第四槽（provider） | `presentation.fieldSlots` 第四槽（wire_api） |
+
+**字段呈现**：`ProfileFieldSlot.kind` 为 `'text' | 'url' | 'chip'`（主契约）。卡片 `dt` 用 `FieldLabel`；`url` 用 `UrlText`；`chip` 用 `Badge mode="static"`。表格只渲染 `slots[0..2]`，不渲染第四字段列。页头/Off/空态/编辑器脚动作用 `@/ui` `Button`；禁止再写 `.cp-btn` / `.pe-btn`（含 alias）。`chip?: boolean` 仅作 Inspector 兼容，不得作为新代码的判断条件。
 
 **策略注入位置**：行/检查器/diff 描述符统一由 `utils/{platform}Profiles.ts` 组装并注入组件，
 不在组件内写平台分支。表单序列化留在 `utils/{platform}ProfileEditor.ts`，与展示策略分文件。
@@ -320,8 +323,8 @@ DTO authority: `GrokProfileDto` exposes `profile_kind`, `base_url_display`,
 
 ### 6. Tests Required
 
-- `tests/grok-profile-editor.smoke.test.ts`: reasoning-only patch exclusion, display URL non-serialization, credential action field exclusivity, official-only controls, and explicit model clear.
-- `tests/grok-profiles-view.smoke.test.ts`: Local-only fail-closed/pin preservation, delete blocked/force branches, no force loop, rename recovery pin timing, and enabled/total health summary.
+- `tests/profiles/grok-profile-editor.smoke.test.ts`: reasoning-only patch exclusion, display URL non-serialization, credential action field exclusivity, official-only controls, and explicit model clear.
+- `tests/profiles/grok-profiles-view.smoke.test.tsx`: Local-only fail-closed/pin preservation, delete blocked/force branches, no force loop, rename recovery pin timing, and enabled/total health summary.
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::grok::tests -- --test-threads=1`: Tauri patch/status/redaction/local-only contracts.
 - Run the shared Profiles matrix, `bun run type-check`, `bun run lint`, `node scripts/check-i18n.mjs`, `just tauri-bindings-check`, and `just frontend-check-quick`.
 
@@ -349,10 +352,9 @@ const patch = buildGrokPatch(form, dirtyFields)
 改动本文件覆盖的范围后运行：
 
 ```bash
-cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/codex-profiles-view.smoke.test.ts tests/codex-profile-editor.smoke.test.ts tests/claude-profiles-view.smoke.test.ts tests/profiles-quick-switch.smoke.test.ts tests/profiles-quick-rail.smoke.test.ts tests/profiles-hotkeys.smoke.test.ts tests/profiles-toolbar.smoke.test.ts tests/profile-diff.smoke.test.ts
+cd ccr-ui && bunx vitest run --config vitest.smoke.config.ts tests/profiles
 ```
 
 再跑 `cd ccr-ui && bun run type-check`、`bun run lint`、`bun run test:i18n`（改动 i18n 键时）。
 
-Grok Profiles 改动还必须把 `tests/grok-profile-editor.smoke.test.ts` 与
-`tests/grok-profiles-view.smoke.test.ts` 加入同一次矩阵。
+Grok Profiles 改动覆盖同一目录下的 `grok-profile-editor` 与 `grok-profiles-view` 用例。

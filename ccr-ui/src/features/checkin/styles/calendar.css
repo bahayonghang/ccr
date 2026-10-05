@@ -1,0 +1,116 @@
+.calendar-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.calendar-weekdays {
+  gap: 0.45rem;
+}
+
+.weekday-label {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.calendar-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 11rem;
+  border-radius: 1rem;
+  background: rgb(var(--color-bg-elevated-rgb) / 56%);
+  border: var(--space-px) dashed rgb(var(--color-border-default-rgb) / 78%);
+  color: var(--text-secondary);
+}
+
+.calendar-grid {
+  gap: 0.5rem;
+}
+
+.calendar-cell {
+  position: relative;
+  min-height: 3.9rem;
+  border-radius: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.22rem;
+  border: var(--space-px) solid transparent;
+}
+
+.cell-checked {
+  background: rgb(var(--color-accent-primary-rgb) / 12%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 34%);
+}
+
+.cell-unchecked {
+  background: rgb(var(--color-bg-elevated-rgb) / 62%);
+  border-color: rgb(var(--color-border-default-rgb) / 56%);
+}
+
+.cell-today {
+  border-color: rgb(var(--color-accent-primary-rgb) / 62%);
+}
+
+.day-number {
+  color: var(--text-primary);
+  font-size: 0.92rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.cell-checked .day-number {
+  color: var(--accent-primary);
+}
+
+.day-increment {
+  color: var(--accent-primary);
+  font-size: 0.6rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.legend-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: var(--radius-full);
+}
+
+.legend-dot.checked {
+  background: var(--accent-primary);
+}
+
+.legend-dot.unchecked {
+  background: rgb(var(--color-border-default-rgb) / 82%);
+}
+
+.legend-dot.today {
+  background: transparent;
+  border: 0.125rem solid var(--accent-primary);
+}

@@ -2277,8 +2277,12 @@ status_line = ["model-with-reasoning"]
         assert!(config.features.is_none());
     }
 
-    #[tokio::test]
-    async fn codex_list_profiles_reads_only_ccr_profiles_source() {
+    #[test]
+    fn codex_list_profiles_reads_only_ccr_profiles_source() {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
         let _guard = crate::test_support::lock_env();
         let temp_dir = tempfile::tempdir().unwrap();
         let ccr_root = temp_dir.path().join("ccr-root");
@@ -2294,7 +2298,7 @@ status_line = ["model-with-reasoning"]
             std::env::set_var("CCR_CODEX_DIR", &codex_dir);
         }
 
-        let result = async {
+        let result = runtime.block_on(async {
             fs::write(
                 codex_dir.join("config.toml"),
                 r#"[profiles.legacy]
@@ -2328,8 +2332,7 @@ model = "legacy-model"
             );
 
             Ok::<(), String>(())
-        }
-        .await;
+        });
 
         restore_env_var("CCR_ROOT", previous_root);
         restore_env_var("CCR_CODEX_DIR", previous_codex_dir);

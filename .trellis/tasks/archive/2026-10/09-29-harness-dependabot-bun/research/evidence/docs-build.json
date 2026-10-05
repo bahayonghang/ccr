@@ -1,0 +1,31 @@
+{
+  "command": [
+    "bun",
+    "run",
+    "build"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr\\docs",
+  "started_utc": "2026-09-30T02:52:00.770651+00:00",
+  "duration_seconds": 4.738,
+  "exit_code": 0,
+  "input_sha256_before": {
+    ".github/dependabot.yml": "d8d8596d07817406da0b9f9c9dbe8ec4ec8570a37eab0becd512ec7ea2fbde5d",
+    "scripts/ci/check_workflow_governance.py": "3e08072376933e632542caf08a3b507b83e79d89ec0f7764661c739254088f91",
+    "scripts/ci/test_check_workflow_governance.py": "0dae1a10016048edf73513e1d713db1ab9f3708ab4f07587d51660622370b0b3",
+    "ccr-ui/package.json": "c9f7e5f78730643ca444fa1191feceb66bc1cf56509bf3e60edf85dbabf3a0cf",
+    "ccr-ui/bun.lock": "87a80e33cdbdaf8ed72516419ece312de1134d94a3e0495d92139580ca65ae07",
+    "docs/package.json": "786d7ddf7793d63faa3fe22befb8109da2e008b4693e1cdb298c0e1ac330636c",
+    "docs/bun.lock": "fcc99d04e4ebe06c175db3744907db9bace0f0ee22c7a5cb1100051bf07b6434"
+  },
+  "input_sha256_after": {
+    ".github/dependabot.yml": "d8d8596d07817406da0b9f9c9dbe8ec4ec8570a37eab0becd512ec7ea2fbde5d",
+    "scripts/ci/check_workflow_governance.py": "3e08072376933e632542caf08a3b507b83e79d89ec0f7764661c739254088f91",
+    "scripts/ci/test_check_workflow_governance.py": "0dae1a10016048edf73513e1d713db1ab9f3708ab4f07587d51660622370b0b3",
+    "ccr-ui/package.json": "c9f7e5f78730643ca444fa1191feceb66bc1cf56509bf3e60edf85dbabf3a0cf",
+    "ccr-ui/bun.lock": "87a80e33cdbdaf8ed72516419ece312de1134d94a3e0495d92139580ca65ae07",
+    "docs/package.json": "786d7ddf7793d63faa3fe22befb8109da2e008b4693e1cdb298c0e1ac330636c",
+    "docs/bun.lock": "fcc99d04e4ebe06c175db3744907db9bace0f0ee22c7a5cb1100051bf07b6434"
+  },
+  "stdout_sha256": "2e243098c08feba31f229e4c90d8e6d85c04566dc5d256fa971d1709ec106e44",
+  "stderr_sha256": "374180291a2a2100874f6d582d6fd2303982f972c7480edb2402d0e4a0379e29"
+}

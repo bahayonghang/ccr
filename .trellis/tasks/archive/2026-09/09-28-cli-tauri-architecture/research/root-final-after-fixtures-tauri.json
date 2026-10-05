@@ -1,0 +1,15 @@
+{
+  "check": "tauri",
+  "command": [
+    "just",
+    "tauri-ci"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "started_at": "2026-09-28T16:19:59.383755+00:00",
+  "exit_code": 1,
+  "seconds": 215.44,
+  "log": "root-final-after-fixtures-tauri.log",
+  "command_environment_override": {
+    "CCR_SKIP_ICON_GENERATION": "1"
+  }
+}

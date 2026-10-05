@@ -4,6 +4,7 @@ import { invoke } from '@/api/invokeRuntime'
 import type { CapabilityReport } from '@/types/generated/usage/CapabilityReport'
 import type { DailyTrendDto } from '@/types/generated/usage/DailyTrendDto'
 import type { HeatmapResponseDto } from '@/types/generated/usage/HeatmapResponseDto'
+import type { HomeInsightsResponse } from '@/types/generated/usage/HomeInsightsResponse'
 import type { HomeUsageOverviewResponse } from '@/types/generated/usage/HomeUsageOverviewResponse'
 import type { ImportAllUsageResponse } from '@/types/generated/usage/ImportAllUsageResponse'
 import type { ModelStatDto } from '@/types/generated/usage/ModelStatDto'
@@ -45,6 +46,7 @@ export const getUsageLogsV2 = (platformOrQuery?: string | UsageLogsQuery, page?:
 export const getUsageDashboardV2 = (platform?: string, startDate?: string, endDate?: string, heatmapDays?: number, includeHeatmap?: boolean, provider?: string): Promise<UsageDashboardResponse> =>
   invoke('get_usage_dashboard_v2', { platform, provider, startDate, endDate, heatmapDays, includeHeatmap })
 export const getHomeUsageOverviewV2 = (days?: number): Promise<HomeUsageOverviewResponse> => invoke('get_home_usage_overview_v2', { days })
+export const getHomeInsights = (): Promise<HomeInsightsResponse> => invoke('get_home_insights')
 export const ensureSessionIndexV2 = (): Promise<StartSessionIndexJobResponse> => invoke('ensure_session_index_v2')
 export const getSessionIndexJobStatusV2 = (jobId: string): Promise<SessionIndexJobSnapshot> => invoke('get_session_index_job_status_v2', { jobId })
 export const startUsageImportJobV2 = (platform?: string, recentDays?: number, resetSources?: boolean): Promise<StartUsageImportJobResponse> =>

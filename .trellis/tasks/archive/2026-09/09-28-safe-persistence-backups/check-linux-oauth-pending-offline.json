@@ -1,0 +1,23 @@
+{
+  "command": [
+    "/home/lyh/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo",
+    "test",
+    "--offline",
+    "--locked",
+    "-p",
+    "ccr-codex",
+    "oauth_pending",
+    "--",
+    "--test-threads=1"
+  ],
+  "distribution": "Ubuntu-24.04",
+  "cwd": "/mnt/d/Documents/Code/Github/ccr",
+  "toolchain": "/home/lyh/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin",
+  "target_dir": "/tmp/ccr-architecture-linux-01a0e781",
+  "exit_code": 101,
+  "duration_seconds": 4.48,
+  "lock_before": "ca1f03e85b5e0d888109ac8af7e7943fc1ceecd20a0f6eeb6a60052c5155db79",
+  "lock_after": "ca1f03e85b5e0d888109ac8af7e7943fc1ceecd20a0f6eeb6a60052c5155db79",
+  "stdout": "rustc 1.95.0 (59807616e 2026-04-14)\n",
+  "stderr": "error: failed to download `aead v0.6.1`\n\nCaused by:\n  attempting to make an HTTP request, but --offline was specified\n"
+}

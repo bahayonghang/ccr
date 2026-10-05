@@ -1,6 +1,6 @@
 # UI 模块地图
 
-本页按用户任务整理当前 `ccr-ui/src/router/index.ts` 暴露的页面。重定向入口不会被描述成独立功能。
+本页按用户任务整理当前 `ccr-ui/src/shell/routeCatalog.ts` 暴露的页面。重定向入口不会被描述成独立功能。
 
 ## 平台工作区
 

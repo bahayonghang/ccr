@@ -1,0 +1,44 @@
+{
+  "task": "09-28-frontend-query-error-contracts",
+  "reviewer": "/root/check_t09",
+  "date": "2026-09-28",
+  "baseline_commit": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "fix_commit": null,
+  "status": "passed_scoped",
+  "backend_behavior": {
+    "passed": 22,
+    "skipped_export_bindings": 17
+  },
+  "backend_registry": {
+    "passed": 21
+  },
+  "frontend_smoke": {
+    "files": 67,
+    "passed": 279
+  },
+  "typescript": "pass",
+  "formal_frontend_lint": "fail: protected baseline scripts, five no-console errors",
+  "backend_formal_bin_clippy": "pass",
+  "extra_all_targets_clippy": "fail: four pre-existing test lint findings, owner-run evidence reviewed",
+  "diff_check": "pass",
+  "i18n": {
+    "passed": 24,
+    "leaf_keys": 4517
+  },
+  "cycles": {
+    "passed": true,
+    "files": 737
+  },
+  "boundaries": {
+    "passed": true,
+    "fixtures": 4
+  },
+  "source_fingerprints": {
+    "before": "check-source-before.json",
+    "after": "check-source-after.json",
+    "count": 100,
+    "changed": []
+  },
+  "native_or_real_remote_tested": false,
+  "full_bindings_guard_tested": false
+}

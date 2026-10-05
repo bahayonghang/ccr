@@ -18,7 +18,9 @@ bun run preview
 
 Equivalent local recipes are available through `just dev`, `just audit`, `just build`, and `just verify`. Use `just security-audit` for the dependency vulnerability check.
 
-From the repository root, `just docs-check` installs the locked docs dependencies, runs the product documentation audit, builds VitePress, and runs the `ccr-ui` engineering documentation audit.
+`docs/bun.lock` is the only maintained docs dependency lockfile; do not generate or maintain `docs/package-lock.json`. `docs/package.json#packageManager` must mirror the canonical `ccr-ui/package.json#packageManager` Bun pin.
+
+From the repository root, `just docs` performs a frozen Bun install and builds VitePress. `just docs-check` additionally runs the product documentation audit and the `ccr-ui` engineering documentation audit.
 
 ## Published Structure
 

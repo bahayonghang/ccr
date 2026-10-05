@@ -1,0 +1,13 @@
+{
+  "command": [
+    "C:\\Users\\lyh\\scoop\\shims\\bun.EXE",
+    "test",
+    "D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-architecture-contract-gates\\research\\baseline-repro\\a14-baseline.test.ts"
+  ],
+  "exit_code": 1,
+  "baseline_commit": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "original_mapper_sha256": "8db2d21da51c6033494d3eb4d52404fd06655bb706ac9e8924fb6fc3540e58a1",
+  "original_helper_sha256": "c2bd9f4f75b9ffbfae3a4933df8255f84ea6373bc81cbb25fde5dca729c7a9b4",
+  "instrumentation": "only runtime helper import rewritten to the same baseline helper in research; no mapper logic change",
+  "log": "a14-baseline.log"
+}

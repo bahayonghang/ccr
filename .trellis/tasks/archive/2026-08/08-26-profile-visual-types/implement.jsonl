@@ -1,0 +1,9 @@
+{"file": ".trellis/tasks/08-26-profile-visual-types/research/visual-language.md", "reason": "Button/Badge/FieldLabel/UrlText 的变体、排版与明确不抽清单"}
+{"file": ".trellis/tasks/08-26-profile-visual-types/prd.md", "reason": "父任务需求、决策、子任务地图与跨子任务 AC"}
+{"file": ".trellis/tasks/08-26-profile-visual-types/design.md", "reason": "原语 API、fieldSlots kind、分层与依赖边界"}
+{"file": ".trellis/spec/ccr-ui/frontend/layering-contracts.md", "reason": "ui-primitive 只能依赖 types/utils/shared；Button 示例路径"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "禁止新增 token 名；密排字号下限 0.75rem；warning-tint 已存在"}
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "骨架顺序、Off 横幅 warning、字段槽与表格列契约"}
+{"file": ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md", "reason": "共享呈现层不得比较平台名字面量"}
+{"file": ".trellis/spec/ccr-ui/frontend/confirm-interaction-contracts.md", "reason": "Off 横幅确认框 type=warning 不得改成 native dialog"}
+{"file": ".trellis/spec/ccr-ui/frontend/react-rerender-discipline.md", "reason": "features 层列表项不要内联 handler；ui 原语可以"}

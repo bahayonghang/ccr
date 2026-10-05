@@ -1,0 +1,1602 @@
+Tauri Smoke (windows-2025)	UNKNOWN STEP	锘?026-08-24T02:46:31.8863974Z Current runner version: '2.336.0'
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9181508Z ##[group]Runner Image Provisioner
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9182373Z Hosted Compute Agent
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9182924Z Version: 20260729.566
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9183527Z Commit: cf7153fe6e25b664e8693c24944bf2b00355d109
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9184691Z Build Date: 2026-07-29T19:17:02Z
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9185353Z Worker ID: {15fe55c1-f9d1-44d5-803a-668facfc7db7}
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9186058Z Azure Region: eastus
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9186598Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9187923Z ##[group]Operating System
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9188609Z Microsoft Windows Server 2025
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9189191Z 10.0.26100
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9189686Z Datacenter
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9190182Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9190686Z ##[group]Runner Image
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9191270Z Image: windows-2025-vs2026
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9191843Z Version: 20260818.207.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9193414Z Included Software: https://github.com/actions/runner-images/blob/win25-vs2026/20260818.207/images/windows/Windows2025-VS2026-Readme.md
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9194988Z Image Release: https://github.com/actions/runner-images/releases/tag/win25-vs2026%2F20260818.207
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9195944Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9197025Z ##[group]GITHUB_TOKEN Permissions
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9198911Z Contents: read
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9199468Z Metadata: read
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9200060Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9202358Z Secret source: Dependabot
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:31.9203388Z Prepare workflow directory
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:32.0422647Z Prepare all required actions
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:32.0471383Z Getting action download info
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:32.1993554Z Download action repository 'actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803' (SHA:d23441a48e516b6c34aea4fa41551a30e30af803)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:32.3885871Z Download action repository 'dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4' (SHA:4cda84d5c5c54efe2404f9d843567869ab1699d4)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:33.7679803Z Complete job name: Tauri Smoke (windows-2025)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:34.6592630Z ##[group]Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:34.6593952Z with:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:34.6594392Z   repository: bahayonghang/ccr
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:34.6598627Z   token: ***
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:34.6599038Z   ssh-strict: true
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:34.6599629Z   ssh-user: git
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:34.6600058Z   persist-credentials: true
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:34.6600516Z   clean: true
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:34.6600942Z   sparse-checkout-cone-mode: true
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:34.6601441Z   fetch-depth: 1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:34.6601852Z   fetch-tags: false
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:34.6602278Z   show-progress: true
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:34.6602690Z   lfs: false
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:34.6603076Z   submodules: false
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:34.6603509Z   set-safe-directory: true
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:34.6603986Z   allow-unsafe-pr-checkout: false
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:34.6604729Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:34.9238336Z Syncing repository: bahayonghang/ccr
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:34.9240797Z ##[group]Getting Git version info
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:34.9241671Z Working directory is 'D:\a\ccr\ccr'
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:35.0246265Z [command]"C:\Program Files\Git\bin\git.exe" version
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:35.4119145Z git version 2.55.0.windows.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:35.4165918Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:35.4221082Z Temporarily overriding HOME='D:\a\_temp\260e98e3-8034-449c-af23-25be9736b689' before making global git config changes
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:35.4225887Z Adding repository directory to the temporary git global config as a safe directory
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:35.4228510Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\ccr\ccr
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:35.4842229Z Deleting the contents of 'D:\a\ccr\ccr'
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:35.4849149Z ##[group]Determining repository object format
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:35.4852650Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:35.4854008Z ##[group]Initializing the repository
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:35.4865115Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\ccr\ccr
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:35.5777381Z Initialized empty Git repository in D:/a/ccr/ccr/.git/
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:35.5836654Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/bahayonghang/ccr
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:35.6519042Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:35.6521531Z ##[group]Disabling automatic garbage collection
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:35.6528496Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:35.6884831Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:35.6892753Z ##[group]Setting up auth
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:35.6895139Z Removing SSH command configuration
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:35.6901188Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:35.7247574Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:37.1448936Z Removing HTTP extra header
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:37.1462722Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:37.1809592Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:37.7363979Z Removing includeIf entries pointing to credentials config files
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:37.7365036Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:37.7735001Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:38.3244272Z [command]"C:\Program Files\Git\bin\git.exe" config --file D:\a\_temp\git-credentials-270c35bf-7945-44b7-964e-be820644cb2f.config http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:38.3480623Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:D:/a/ccr/ccr/.git.path D:\a\_temp\git-credentials-270c35bf-7945-44b7-964e-be820644cb2f.config
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:38.3804708Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:D:/a/ccr/ccr/.git/worktrees/*.path D:\a\_temp\git-credentials-270c35bf-7945-44b7-964e-be820644cb2f.config
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:38.4164648Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-270c35bf-7945-44b7-964e-be820644cb2f.config
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:38.4496172Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-270c35bf-7945-44b7-964e-be820644cb2f.config
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:38.4887371Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:38.4887902Z ##[group]Fetching the repository
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:38.4888915Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +3f573681dbf9efe9a25eb62b0eff51ed97646faf:refs/remotes/pull/77/merge
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:41.4052941Z From https://github.com/bahayonghang/ccr
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:41.4054650Z  * [new ref]         3f573681dbf9efe9a25eb62b0eff51ed97646faf -> pull/77/merge
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:41.4101685Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:41.4102346Z ##[group]Determining the checkout info
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:41.4103322Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:41.4113023Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:41.4567796Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:41.4851472Z ##[group]Checking out the ref
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:41.4860601Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force refs/remotes/pull/77/merge
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.5436960Z Updating files:  59% (1713/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.5498199Z Updating files:  60% (1725/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.5558156Z Updating files:  61% (1754/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.5617400Z Updating files:  62% (1782/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.5676327Z Updating files:  63% (1811/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.5742335Z Updating files:  64% (1840/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.5801290Z Updating files:  65% (1869/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.5884210Z Updating files:  66% (1897/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.5985256Z Updating files:  67% (1926/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.6133540Z Updating files:  68% (1955/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.6257682Z Updating files:  69% (1984/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.6382089Z Updating files:  70% (2012/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.6483990Z Updating files:  71% (2041/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.6593268Z Updating files:  72% (2070/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.6693347Z Updating files:  73% (2099/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.6792396Z Updating files:  74% (2127/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.6888721Z Updating files:  75% (2156/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.6993420Z Updating files:  76% (2185/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.7091460Z Updating files:  77% (2213/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.7208732Z Updating files:  78% (2242/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.7309395Z Updating files:  79% (2271/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.7406677Z Updating files:  80% (2300/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.7510833Z Updating files:  81% (2328/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.7583067Z Updating files:  82% (2357/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.7701895Z Updating files:  83% (2386/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.7848596Z Updating files:  84% (2415/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.7966098Z Updating files:  85% (2443/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.8083818Z Updating files:  86% (2472/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.8199943Z Updating files:  87% (2501/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.8321277Z Updating files:  88% (2530/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.8439021Z Updating files:  89% (2558/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.8577360Z Updating files:  90% (2587/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.8705538Z Updating files:  91% (2616/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.8866499Z Updating files:  92% (2645/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9021041Z Updating files:  93% (2673/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9109110Z Updating files:  94% (2702/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9193041Z Updating files:  95% (2731/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9293063Z Updating files:  96% (2760/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9408720Z Updating files:  97% (2788/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9516069Z Updating files:  98% (2817/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9618177Z Updating files:  99% (2846/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9618549Z Updating files: 100% (2874/2874)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9618900Z Updating files: 100% (2874/2874), done.
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9757681Z Note: switching to 'refs/remotes/pull/77/merge'.
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9758060Z 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9758349Z You are in 'detached HEAD' state. You can look around, make experimental
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9759052Z changes and commit them, and you can discard any commits you make in this
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9759648Z state without impacting any branches by switching back to a branch.
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9760030Z 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9760296Z If you want to create a new branch to retain commits you create, you may
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9760908Z do so (now or later) by using -c with the switch command. Example:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9761266Z 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9761410Z   git switch -c <new-branch-name>
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9761648Z 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9761782Z Or undo this operation with:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9762013Z 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9762124Z   git switch -
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9762290Z 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9762584Z Turn off this advice by setting config variable advice.detachedHead to false
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9763061Z 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9763600Z HEAD is now at 3f57368 Merge 8fb8f20ac551f2133e4e9c5190fe6f82ac9d8455 into 7ab923ecfb302ba041128de852d90d6a5aca8c86
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:42.9996989Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.0457760Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.0828169Z 3f573681dbf9efe9a25eb62b0eff51ed97646faf
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.5653920Z ##[group]Run dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.5654395Z with:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.5654600Z   toolchain: 1.95.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.5654797Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.5828574Z ##[start-action display=Run : parse toolchain version;id=__dtolnay_rust-toolchain.parse]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8092454Z ##[group]Run : parse toolchain version
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8092862Z ^[[36;1m: parse toolchain version^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8093135Z ^[[36;1mif [[ -z $toolchain ]]; then^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8093664Z ^[[36;1m  # GitHub does not enforce `required: true` inputs itself. https://github.com/actions/runner/issues/1070^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8094215Z ^[[36;1m  echo "'toolchain' is a required input" >&2^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8094501Z ^[[36;1m  exit 1^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8094832Z ^[[36;1melif [[ $toolchain =~ ^stable' '[0-9]+' '(year|month|week|day)s?' 'ago$ ]]; then^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8095298Z ^[[36;1m  if [[ Windows == macOS ]]; then^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8095813Z ^[[36;1m    echo "toolchain=1.$((($(date -v-$(sed 's/stable \([0-9]*\) \(.\).*/\1\2/' <<< $toolchain) +%s)/60/60/24-16569)/7/6))" >> $GITHUB_OUTPUT^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8096285Z ^[[36;1m  else^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8096659Z ^[[36;1m    echo "toolchain=1.$((($(date --date "${toolchain#stable }" +%s)/60/60/24-16569)/7/6))" >> $GITHUB_OUTPUT^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8097078Z ^[[36;1m  fi^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8097350Z ^[[36;1melif [[ $toolchain =~ ^stable' 'minus' '[0-9]+' 'releases?$ ]]; then^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8097843Z ^[[36;1m  echo "toolchain=1.$((($(date +%s)/60/60/24-16569)/7/6-${toolchain//[^0-9]/}))" >> $GITHUB_OUTPUT^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8098273Z ^[[36;1melif [[ $toolchain =~ ^1\.[0-9]+$ ]]; then^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8098760Z ^[[36;1m  echo "toolchain=1.$((i=${toolchain#1.}, c=($(date +%s)/60/60/24-16569)/7/6, i+9*i*(10*i<=c)+90*i*(100*i<=c)))" >> $GITHUB_OUTPUT^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8099210Z ^[[36;1melse^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8099443Z ^[[36;1m  echo "toolchain=$toolchain" >> $GITHUB_OUTPUT^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8099715Z ^[[36;1mfi^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8202989Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8203394Z env:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8203596Z   toolchain: 1.95.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:43.8203806Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.1266197Z ##[end-action id=__dtolnay_rust-toolchain.parse;outcome=success;conclusion=success;duration_ms=543]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.1369099Z ##[start-action display=Run : construct rustup command line;id=__dtolnay_rust-toolchain.flags]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.3598593Z ##[group]Run : construct rustup command line
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.3598980Z ^[[36;1m: construct rustup command line^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.3599423Z ^[[36;1mecho "targets=$(for t in ${targets//,/ }; do echo -n ' --target' $t; done)" >> $GITHUB_OUTPUT^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.3600040Z ^[[36;1mecho "components=$(for c in ${components//,/ }; do echo -n ' --component' $c; done)" >> $GITHUB_OUTPUT^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.3600539Z ^[[36;1mecho "downgrade=" >> $GITHUB_OUTPUT^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.3712118Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.3712531Z env:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.3712717Z   targets: 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.3712903Z   components: 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.3713086Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.5357235Z ##[end-action id=__dtolnay_rust-toolchain.flags;outcome=success;conclusion=success;duration_ms=398]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.5445656Z ##[start-action display=Run : set $CARGO_HOME;id=__dtolnay_rust-toolchain.__run]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.7706316Z ##[group]Run : set $CARGO_HOME
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.7706638Z ^[[36;1m: set $CARGO_HOME^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.7706989Z ^[[36;1mecho CARGO_HOME=${CARGO_HOME:-"$USERPROFILE\.cargo"} >> $GITHUB_ENV^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.7815374Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.7815779Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.9575732Z ##[end-action id=__dtolnay_rust-toolchain.__run;outcome=success;conclusion=success;duration_ms=376]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.9713809Z ##[start-action display=Run : install rustup if needed;id=__dtolnay_rust-toolchain.__run_2]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.9885993Z ##[end-action id=__dtolnay_rust-toolchain.__run_2;outcome=skipped;conclusion=skipped;duration_ms=0]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:44.9974919Z ##[start-action display=Run : install rustup if needed on windows;id=__dtolnay_rust-toolchain.__run_3]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:45.2267215Z ##[group]Run : install rustup if needed on windows
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:45.2267621Z ^[[36;1m: install rustup if needed on windows^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:45.2267925Z ^[[36;1mif ! command -v rustup &>/dev/null; then^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:45.2268670Z ^[[36;1m  curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused --location --silent --show-error --fail https://win.rustup.rs/x86_64 --output 'D:\a\_temp\rustup-init.exe'^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:45.2269511Z ^[[36;1m  'D:\a\_temp\rustup-init.exe' --default-toolchain none --no-modify-path -y^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:45.2269928Z ^[[36;1m  echo "$CARGO_HOME\bin" >> $GITHUB_PATH^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:45.2270181Z ^[[36;1mfi^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:45.2370848Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:45.2371255Z env:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:45.2371473Z   CARGO_HOME: C:\Users\runneradmin\.cargo
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:45.2371730Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:45.4215224Z ##[end-action id=__dtolnay_rust-toolchain.__run_3;outcome=success;conclusion=success;duration_ms=423]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:45.4298600Z ##[start-action display=rustup toolchain install 1.95.0;id=__dtolnay_rust-toolchain.__run_4]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:45.6514431Z ##[group]Run rustup toolchain install 1.95.0 --profile minimal --no-self-update
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:45.6515026Z ^[[36;1mrustup toolchain install 1.95.0 --profile minimal --no-self-update^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:45.6615714Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:45.6616122Z env:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:45.6616361Z   CARGO_HOME: C:\Users\runneradmin\.cargo
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:45.6616640Z   RUSTUP_PERMIT_COPY_RENAME: 1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:45.6616858Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:46.4513640Z info: syncing channel updates for 1.95.0-x86_64-pc-windows-msvc
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:47.0900701Z info: latest update on 2026-04-16 for version 1.95.0 (59807616e 2026-04-14)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:46:47.1050280Z info: downloading 3 components
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.7343052Z 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.7671365Z   1.95.0-x86_64-pc-windows-msvc installed - rustc 1.95.0 (59807616e 2026-04-14)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.7672413Z 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.7834657Z ##[end-action id=__dtolnay_rust-toolchain.__run_4;outcome=success;conclusion=success;duration_ms=15353]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.7838955Z ##[start-action display=Run rustup default 1.95.0;id=__dtolnay_rust-toolchain.__run_5]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.7996415Z ##[group]Run rustup default 1.95.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.7996792Z ^[[36;1mrustup default 1.95.0^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.8010031Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.8010425Z env:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.8010615Z   CARGO_HOME: C:\Users\runneradmin\.cargo
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.8010866Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.8719552Z info: using existing install for 1.95.0-x86_64-pc-windows-msvc
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.8795867Z info: default toolchain set to 1.95.0-x86_64-pc-windows-msvc
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.8796306Z 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.9012224Z   1.95.0-x86_64-pc-windows-msvc unchanged - rustc 1.95.0 (59807616e 2026-04-14)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.9012589Z 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.9016081Z info: note that the toolchain '1.95.0-x86_64-pc-windows-msvc' is currently in use (overridden by 'D:\a\ccr\ccr\rust-toolchain.toml')
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.9094520Z ##[end-action id=__dtolnay_rust-toolchain.__run_5;outcome=success;conclusion=success;duration_ms=125]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.9099846Z ##[start-action display=Run : create cachekey;id=__dtolnay_rust-toolchain.rustc-version]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.9230750Z ##[group]Run : create cachekey
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.9231906Z ^[[36;1m: create cachekey^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.9232416Z ^[[36;1mDATE=$(rustc +1.95.0 --version --verbose | sed -ne 's/^commit-date: \(20[0-9][0-9]\)-\([01][0-9]\)-\([0-3][0-9]\)$/\1\2\3/p')^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.9233019Z ^[[36;1mHASH=$(rustc +1.95.0 --version --verbose | sed -ne 's/^commit-hash: //p')^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.9233482Z ^[[36;1mecho "cachekey=$(echo $DATE$HASH | head -c12)" >> $GITHUB_OUTPUT^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.9245298Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.9245678Z env:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.9245870Z   CARGO_HOME: C:\Users\runneradmin\.cargo
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:00.9246123Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7073578Z ##[end-action id=__dtolnay_rust-toolchain.rustc-version;outcome=success;conclusion=success;duration_ms=797]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7076165Z ##[start-action display=Run : disable incremental compilation;id=__dtolnay_rust-toolchain.__run_6]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7200788Z ##[group]Run : disable incremental compilation
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7201133Z ^[[36;1m: disable incremental compilation^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7201431Z ^[[36;1mif [ -z "${CARGO_INCREMENTAL+set}" ]; then^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7201732Z ^[[36;1m  echo CARGO_INCREMENTAL=0 >> $GITHUB_ENV^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7201986Z ^[[36;1mfi^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7214588Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7214960Z env:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7215154Z   CARGO_HOME: C:\Users\runneradmin\.cargo
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7215404Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7627057Z ##[end-action id=__dtolnay_rust-toolchain.__run_6;outcome=success;conclusion=success;duration_ms=55]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7629468Z ##[start-action display=Run : enable colors in Cargo output;id=__dtolnay_rust-toolchain.__run_7]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7752224Z ##[group]Run : enable colors in Cargo output
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7752560Z ^[[36;1m: enable colors in Cargo output^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7752877Z ^[[36;1mif [ -z "${CARGO_TERM_COLOR+set}" ]; then^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7753199Z ^[[36;1m  echo CARGO_TERM_COLOR=always >> $GITHUB_ENV^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7753465Z ^[[36;1mfi^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7766494Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7766874Z env:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7767071Z   CARGO_HOME: C:\Users\runneradmin\.cargo
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7767335Z   CARGO_INCREMENTAL: 0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.7767527Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.8166773Z ##[end-action id=__dtolnay_rust-toolchain.__run_7;outcome=success;conclusion=success;duration_ms=53]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.8171018Z ##[start-action display=Run : enable Cargo sparse registry;id=__dtolnay_rust-toolchain.__run_8]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.8291715Z ##[group]Run : enable Cargo sparse registry
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.8292050Z ^[[36;1m: enable Cargo sparse registry^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.8292394Z ^[[36;1m# implemented in 1.66, stabilized in 1.68, made default in 1.70^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.8293060Z ^[[36;1mif [ -z "${CARGO_REGISTRIES_CRATES_IO_PROTOCOL+set}" -o -f "D:\a\_temp"/.implicit_cargo_registries_crates_io_protocol ]; then^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.8293698Z ^[[36;1m  if rustc +1.95.0 --version --verbose | grep -q '^release: 1\.6[89]\.'; then^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.8294163Z ^[[36;1m    touch "D:\a\_temp"/.implicit_cargo_registries_crates_io_protocol || true^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.8294617Z ^[[36;1m    echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse >> $GITHUB_ENV^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.8295074Z ^[[36;1m  elif rustc +1.95.0 --version --verbose | grep -q '^release: 1\.6[67]\.'; then^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.8295711Z ^[[36;1m    touch "D:\a\_temp"/.implicit_cargo_registries_crates_io_protocol || true^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.8296171Z ^[[36;1m    echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=git >> $GITHUB_ENV^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.8296490Z ^[[36;1m  fi^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.8296661Z ^[[36;1mfi^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.8310382Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.8310909Z env:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.8311101Z   CARGO_HOME: C:\Users\runneradmin\.cargo
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.8311359Z   CARGO_INCREMENTAL: 0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.8311554Z   CARGO_TERM_COLOR: always
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:01.8311756Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.0082184Z ##[end-action id=__dtolnay_rust-toolchain.__run_8;outcome=success;conclusion=success;duration_ms=191]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.0086552Z ##[start-action display=Run : work around spurious network errors in curl 8.0;id=__dtolnay_rust-toolchain.__run_9]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.0212046Z ##[group]Run : work around spurious network errors in curl 8.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.0212477Z ^[[36;1m: work around spurious network errors in curl 8.0^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.0213017Z ^[[36;1m# https://rust-lang.zulipchat.com/#narrow/stream/246057-t-cargo/topic/timeout.20investigation^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.0213593Z ^[[36;1mif rustc +1.95.0 --version --verbose | grep -q '^release: 1\.7[01]\.'; then^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.0214027Z ^[[36;1m  echo CARGO_HTTP_MULTIPLEXING=false >> $GITHUB_ENV^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.0214338Z ^[[36;1mfi^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.0226569Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.0226947Z env:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.0227142Z   CARGO_HOME: C:\Users\runneradmin\.cargo
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.0227393Z   CARGO_INCREMENTAL: 0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.0227601Z   CARGO_TERM_COLOR: always
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.0227801Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.1362362Z ##[end-action id=__dtolnay_rust-toolchain.__run_9;outcome=success;conclusion=success;duration_ms=127]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.1366645Z ##[start-action display=Run rustc +1.95.0 --version --verbose;id=__dtolnay_rust-toolchain.__run_10]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.1496816Z ##[group]Run rustc +1.95.0 --version --verbose
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.1497149Z ^[[36;1mrustc +1.95.0 --version --verbose^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.1509456Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.1509857Z env:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.1510049Z   CARGO_HOME: C:\Users\runneradmin\.cargo
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.1510304Z   CARGO_INCREMENTAL: 0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.1510507Z   CARGO_TERM_COLOR: always
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.1510705Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.2370640Z rustc 1.95.0 (59807616e 2026-04-14)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.2371379Z binary: rustc
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.2371727Z commit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.2372113Z commit-date: 2026-04-14
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.2372467Z host: x86_64-pc-windows-msvc
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.2385877Z release: 1.95.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.2386231Z LLVM version: 22.1.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.2501327Z ##[end-action id=__dtolnay_rust-toolchain.__run_10;outcome=success;conclusion=success;duration_ms=113]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.2667965Z ##[group]Run cargo install just --version 1.57.0 --locked
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.2668533Z ^[[36;1mcargo install just --version 1.57.0 --locked^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.4413282Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.4413658Z env:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.4413866Z   CARGO_HOME: C:\Users\runneradmin\.cargo
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.4414125Z   CARGO_INCREMENTAL: 0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.4414329Z   CARGO_TERM_COLOR: always
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:02.4414534Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:03.4621018Z info: syncing channel updates for 1.95.0-x86_64-pc-windows-msvc
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:03.9097426Z info: latest update on 2026-04-16 for version 1.95.0 (59807616e 2026-04-14)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:03.9399525Z info: downloading component clippy
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:05.0933132Z ^[[1m^[[92m    Updating^[[0m crates.io index
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:05.1671902Z ^[[1m^[[92m Downloading^[[0m crates ...
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:06.4517808Z ^[[1m^[[92m  Downloaded^[[0m just v1.57.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:06.8549240Z ^[[1m^[[92m  Installing^[[0m just v1.57.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:06.8587608Z ^[[1m^[[92m    Updating^[[0m crates.io index
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:07.4684438Z ^[[1m^[[92m    Updating^[[0m crates.io index
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:07.6489764Z ^[[1m^[[92m Downloading^[[0m crates ...
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:07.7432227Z ^[[1m^[[92m  Downloaded^[[0m anstyle-query v1.1.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:07.7582393Z ^[[1m^[[92m  Downloaded^[[0m percent-encoding v2.3.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:07.7712729Z ^[[1m^[[92m  Downloaded^[[0m utf8parse v0.2.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:07.7819897Z ^[[1m^[[92m  Downloaded^[[0m snafu-derive v0.9.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:07.8007715Z ^[[1m^[[92m  Downloaded^[[0m unicode-ident v1.0.24
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:07.8331881Z ^[[1m^[[92m  Downloaded^[[0m strum_macros v0.28.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:08.1993766Z ^[[1m^[[92m  Downloaded^[[0m windows-link v0.2.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:08.2103524Z ^[[1m^[[92m  Downloaded^[[0m zmij v1.0.23
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:08.2285972Z ^[[1m^[[92m  Downloaded^[[0m sha2 v0.11.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:08.2803396Z ^[[1m^[[92m  Downloaded^[[0m uuid v1.24.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:08.3160015Z ^[[1m^[[92m  Downloaded^[[0m serde_json v1.0.150
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:08.4044078Z ^[[1m^[[92m  Downloaded^[[0m blake3 v1.8.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:08.4844146Z ^[[1m^[[92m  Downloaded^[[0m tempfile v3.27.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:08.5044052Z ^[[1m^[[92m  Downloaded^[[0m syn v3.0.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:08.5945594Z ^[[1m^[[92m  Downloaded^[[0m similar v3.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:08.6290490Z ^[[1m^[[92m  Downloaded^[[0m unicode-segmentation v1.13.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:08.6480806Z ^[[1m^[[92m  Downloaded^[[0m bstr v1.13.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:08.7126664Z ^[[1m^[[92m  Downloaded^[[0m regex-syntax v0.8.11
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:08.9447533Z ^[[1m^[[92m  Downloaded^[[0m regex v1.13.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:08.9930928Z ^[[1m^[[92m  Downloaded^[[0m pulldown-cmark v0.13.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:09.0353636Z ^[[1m^[[92m  Downloaded^[[0m typenum v1.20.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:09.0609932Z ^[[1m^[[92m  Downloaded^[[0m clap_builder v4.6.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:09.1220762Z ^[[1m^[[92m  Downloaded^[[0m cc v1.3.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:09.1464794Z ^[[1m^[[92m  Downloaded^[[0m syn v2.0.119
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:09.7726319Z ^[[1m^[[92m  Downloaded^[[0m unicode-width v0.2.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:09.8026516Z ^[[1m^[[92m  Downloaded^[[0m chrono v0.4.45
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:09.8708955Z ^[[1m^[[92m  Downloaded^[[0m shellexpand v3.1.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:09.8854538Z ^[[1m^[[92m  Downloaded^[[0m rayon-core v1.13.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:09.9254492Z ^[[1m^[[92m  Downloaded^[[0m memmap2 v0.9.11
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:09.9391107Z ^[[1m^[[92m  Downloaded^[[0m regex-automata v0.4.16
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:10.0380602Z ^[[1m^[[92m  Downloaded^[[0m clap_complete v4.6.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:10.0682451Z ^[[1m^[[92m  Downloaded^[[0m chacha20 v0.10.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:10.0894486Z ^[[1m^[[92m  Downloaded^[[0m camino v1.2.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:10.1081256Z ^[[1m^[[92m  Downloaded^[[0m aho-corasick v1.1.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:10.1506030Z ^[[1m^[[92m  Downloaded^[[0m rand v0.10.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:10.1860220Z ^[[1m^[[92m  Downloaded^[[0m memchr v2.8.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:10.2387807Z ^[[1m^[[92m  Downloaded^[[0m unicase v2.9.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:10.2509457Z ^[[1m^[[92m  Downloaded^[[0m snafu v0.9.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:10.3300340Z ^[[1m^[[92m  Downloaded^[[0m proc-macro2 v1.0.107
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:10.3969149Z ^[[1m^[[92m  Downloaded^[[0m is_executable v1.0.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:10.4151260Z ^[[1m^[[92m  Downloaded^[[0m libc v0.2.186
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:11.6822858Z ^[[1m^[[92m  Downloaded^[[0m colorchoice v1.0.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:11.7382382Z ^[[1m^[[92m  Downloaded^[[0m clap_lex v1.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:11.7640401Z ^[[1m^[[92m  Downloaded^[[0m arrayvec v0.7.8
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:11.8592572Z ^[[1m^[[92m  Downloaded^[[0m terminal_size v0.4.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:11.9120764Z ^[[1m^[[92m  Downloaded^[[0m serde_derive v1.0.229
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:12.0164178Z ^[[1m^[[92m  Downloaded^[[0m serde v1.0.229
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:12.5539186Z ^[[1m^[[92m  Downloaded^[[0m num-traits v0.2.19
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:12.5955004Z ^[[1m^[[92m  Downloaded^[[0m hybrid-array v0.4.13
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:12.6781842Z ^[[1m^[[92m  Downloaded^[[0m getrandom v0.4.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:12.8927302Z ^[[1m^[[92m  Downloaded^[[0m find-msvc-tools v0.1.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:12.9897833Z ^[[1m^[[92m  Downloaded^[[0m digest v0.11.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:13.0969659Z ^[[1m^[[92m  Downloaded^[[0m crossbeam-utils v0.8.22
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:13.1381236Z ^[[1m^[[92m  Downloaded^[[0m const-oid v0.10.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:13.1650049Z ^[[1m^[[92m  Downloaded^[[0m clap v4.6.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:13.2823278Z ^[[1m^[[92m  Downloaded^[[0m anstyle v1.0.14
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:13.2953458Z ^[[1m^[[92m  Downloaded^[[0m strsim v0.11.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:13.3351453Z ^[[1m^[[92m  Downloaded^[[0m once_cell_polyfill v1.70.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:13.3524415Z ^[[1m^[[92m  Downloaded^[[0m num_cpus v1.17.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:13.4154709Z ^[[1m^[[92m  Downloaded^[[0m dotenvy v0.15.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:13.4557240Z ^[[1m^[[92m  Downloaded^[[0m crossbeam-deque v0.8.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:13.4695265Z ^[[1m^[[92m  Downloaded^[[0m clap_derive v4.6.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:13.4952915Z ^[[1m^[[92m  Downloaded^[[0m arrayref v0.3.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:13.5092555Z ^[[1m^[[92m  Downloaded^[[0m shlex v2.0.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:13.5200916Z ^[[1m^[[92m  Downloaded^[[0m serde_core v1.0.229
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.1211452Z ^[[1m^[[92m  Downloaded^[[0m option-ext v0.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.1294047Z ^[[1m^[[92m  Downloaded^[[0m is_terminal_polyfill v1.70.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.1375323Z ^[[1m^[[92m  Downloaded^[[0m dirs-sys v0.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.1481235Z ^[[1m^[[92m  Downloaded^[[0m cpufeatures v0.3.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.1645918Z ^[[1m^[[92m  Downloaded^[[0m bitflags v2.13.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.2204863Z ^[[1m^[[92m  Downloaded^[[0m anstyle-wincon v3.0.11
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.2348623Z ^[[1m^[[92m  Downloaded^[[0m anstyle-parse v1.0.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.2474184Z ^[[1m^[[92m  Downloaded^[[0m semver v1.0.28
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.2769499Z ^[[1m^[[92m  Downloaded^[[0m roff v1.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.2870708Z ^[[1m^[[92m  Downloaded^[[0m rand_core v0.10.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.3067331Z ^[[1m^[[92m  Downloaded^[[0m once_cell v1.21.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.3316403Z ^[[1m^[[92m  Downloaded^[[0m itoa v1.0.18
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.3446636Z ^[[1m^[[92m  Downloaded^[[0m hex v0.4.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.3621377Z ^[[1m^[[92m  Downloaded^[[0m heck v0.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.3860944Z ^[[1m^[[92m  Downloaded^[[0m fastrand v2.4.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.4360723Z ^[[1m^[[92m  Downloaded^[[0m digest-io v0.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.4498209Z ^[[1m^[[92m  Downloaded^[[0m crossbeam-epoch v0.9.20
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.4827454Z ^[[1m^[[92m  Downloaded^[[0m anstream v1.0.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.5011775Z ^[[1m^[[92m  Downloaded^[[0m typed-arena v2.0.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.5118102Z ^[[1m^[[92m  Downloaded^[[0m strum v0.28.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.5235727Z ^[[1m^[[92m  Downloaded^[[0m quote v1.0.47
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.5502692Z ^[[1m^[[92m  Downloaded^[[0m nu-ansi-term v0.50.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.5840338Z ^[[1m^[[92m  Downloaded^[[0m crypto-common v0.2.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.5947657Z ^[[1m^[[92m  Downloaded^[[0m constant_time_eq v0.4.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.6214768Z ^[[1m^[[92m  Downloaded^[[0m autocfg v1.5.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.6413982Z ^[[1m^[[92m  Downloaded^[[0m dirs v6.0.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.6530188Z ^[[1m^[[92m  Downloaded^[[0m ctrlc v3.5.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.6733170Z ^[[1m^[[92m  Downloaded^[[0m clap_mangen v0.3.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.6836854Z ^[[1m^[[92m  Downloaded^[[0m cfg-if v1.0.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.6972373Z ^[[1m^[[92m  Downloaded^[[0m block-buffer v0.12.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:14.7137701Z ^[[1m^[[92m  Downloaded^[[0m windows-sys v0.61.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:15.9745221Z ^[[1m^[[92m   Compiling^[[0m windows-link v0.2.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:15.9745922Z ^[[1m^[[92m   Compiling^[[0m proc-macro2 v1.0.107
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:15.9746484Z ^[[1m^[[92m   Compiling^[[0m unicode-ident v1.0.24
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:15.9747054Z ^[[1m^[[92m   Compiling^[[0m quote v1.0.47
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:16.0451580Z ^[[1m^[[92m   Compiling^[[0m windows-sys v0.61.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:16.1049550Z ^[[1m^[[92m   Compiling^[[0m heck v0.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:16.4341275Z ^[[1m^[[92m   Compiling^[[0m cfg-if v1.0.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:16.4876626Z ^[[1m^[[92m   Compiling^[[0m once_cell_polyfill v1.70.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:16.5755591Z ^[[1m^[[92m   Compiling^[[0m crossbeam-utils v0.8.22
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:18.0950768Z ^[[1m^[[92m   Compiling^[[0m utf8parse v0.2.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:18.1784594Z ^[[1m^[[92m   Compiling^[[0m typenum v1.20.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:18.2211261Z ^[[1m^[[92m   Compiling^[[0m anstyle v1.0.14
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:18.5379322Z ^[[1m^[[92m   Compiling^[[0m anstyle-parse v1.0.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:18.8402647Z ^[[1m^[[92m   Compiling^[[0m anstyle-wincon v3.0.11
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:19.3291809Z ^[[1m^[[92m   Compiling^[[0m anstyle-query v1.1.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:19.4312531Z ^[[1m^[[92m   Compiling^[[0m memchr v2.8.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:19.5031001Z ^[[1m^[[92m   Compiling^[[0m crossbeam-epoch v0.9.20
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:19.7918404Z ^[[1m^[[92m   Compiling^[[0m syn v2.0.119
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:19.9208892Z ^[[1m^[[92m   Compiling^[[0m hybrid-array v0.4.13
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:19.9618394Z ^[[1m^[[92m   Compiling^[[0m colorchoice v1.0.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:20.1575879Z ^[[1m^[[92m   Compiling^[[0m is_terminal_polyfill v1.70.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:20.2893123Z ^[[1m^[[92m   Compiling^[[0m getrandom v0.4.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:20.8694951Z ^[[1m^[[92m   Compiling^[[0m serde_core v1.0.229
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:20.8931963Z ^[[1m^[[92m   Compiling^[[0m rand_core v0.10.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:21.3902432Z ^[[1m^[[92m   Compiling^[[0m anstream v1.0.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:21.7328792Z ^[[1m^[[92m   Compiling^[[0m terminal_size v0.4.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:21.9196363Z ^[[1m^[[92m   Compiling^[[0m rayon-core v1.13.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:22.1726340Z ^[[1m^[[92m   Compiling^[[0m find-msvc-tools v0.1.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:22.1977983Z ^[[1m^[[92m   Compiling^[[0m crossbeam-deque v0.8.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:22.4157351Z ^[[1m^[[92m   Compiling^[[0m clap_lex v1.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:22.5148594Z ^[[1m^[[92m   Compiling^[[0m shlex v2.0.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:22.8200257Z ^[[1m^[[92m   Compiling^[[0m autocfg v1.5.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:22.8836941Z ^[[1m^[[92m   Compiling^[[0m cpufeatures v0.3.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:23.1556416Z ^[[1m^[[92m   Compiling^[[0m strsim v0.11.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:23.4747289Z ^[[1m^[[92m   Compiling^[[0m num-traits v0.2.19
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:23.5992804Z ^[[1m^[[92m   Compiling^[[0m clap_builder v4.6.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:23.9703870Z ^[[1m^[[92m   Compiling^[[0m cc v1.3.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:26.4007980Z ^[[1m^[[92m   Compiling^[[0m crypto-common v0.2.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:26.5739106Z ^[[1m^[[92m   Compiling^[[0m clap_derive v4.6.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:28.2974829Z ^[[1m^[[92m   Compiling^[[0m block-buffer v0.12.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:28.4919174Z ^[[1m^[[92m   Compiling^[[0m syn v3.0.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:28.9348411Z ^[[1m^[[92m   Compiling^[[0m zmij v1.0.23
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:29.2504540Z ^[[1m^[[92m   Compiling^[[0m option-ext v0.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:29.3559347Z ^[[1m^[[92m   Compiling^[[0m const-oid v0.10.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:29.5693651Z ^[[1m^[[92m   Compiling^[[0m serde v1.0.229
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:29.6516643Z ^[[1m^[[92m   Compiling^[[0m clap v4.6.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:29.7399678Z ^[[1m^[[92m   Compiling^[[0m digest v0.11.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:29.9873633Z ^[[1m^[[92m   Compiling^[[0m dirs-sys v0.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:30.1138968Z ^[[1m^[[92m   Compiling^[[0m blake3 v1.8.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:30.5678509Z ^[[1m^[[92m   Compiling^[[0m aho-corasick v1.1.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:30.6000484Z ^[[1m^[[92m   Compiling^[[0m libc v0.2.186
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:31.1018395Z ^[[1m^[[92m   Compiling^[[0m regex-syntax v0.8.11
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:32.4123962Z ^[[1m^[[92m   Compiling^[[0m serde_derive v1.0.229
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:36.6070207Z ^[[1m^[[92m   Compiling^[[0m camino v1.2.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:36.6631693Z ^[[1m^[[92m   Compiling^[[0m pulldown-cmark v0.13.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:36.9226368Z ^[[1m^[[92m   Compiling^[[0m serde_json v1.0.150
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:37.0575260Z ^[[1m^[[92m   Compiling^[[0m regex-automata v0.4.16
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:40.0202486Z ^[[1m^[[92m   Compiling^[[0m dirs v6.0.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:40.0671187Z ^[[1m^[[92m   Compiling^[[0m snafu-derive v0.9.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:40.1392181Z ^[[1m^[[92m   Compiling^[[0m strum_macros v0.28.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:40.2462584Z ^[[1m^[[92m   Compiling^[[0m chacha20 v0.10.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:40.6248976Z ^[[1m^[[92m   Compiling^[[0m is_executable v1.0.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:41.0721758Z ^[[1m^[[92m   Compiling^[[0m unicase v2.9.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:41.3901123Z ^[[1m^[[92m   Compiling^[[0m constant_time_eq v0.4.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:41.5690097Z ^[[1m^[[92m   Compiling^[[0m arrayvec v0.7.8
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:41.8972496Z ^[[1m^[[92m   Compiling^[[0m once_cell v1.21.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:42.1779243Z ^[[1m^[[92m   Compiling^[[0m roff v1.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:42.6494579Z ^[[1m^[[92m   Compiling^[[0m unicode-segmentation v1.13.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:43.4521744Z ^[[1m^[[92m   Compiling^[[0m arrayref v0.3.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:43.5201126Z ^[[1m^[[92m   Compiling^[[0m bitflags v2.13.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:43.5508842Z ^[[1m^[[92m   Compiling^[[0m itoa v1.0.18
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:43.6784065Z ^[[1m^[[92m   Compiling^[[0m memmap2 v0.9.11
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:43.8096558Z ^[[1m^[[92m   Compiling^[[0m just v1.57.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:43.9252736Z ^[[1m^[[92m   Compiling^[[0m fastrand v2.4.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:44.4506616Z ^[[1m^[[92m   Compiling^[[0m tempfile v3.27.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:45.3857901Z ^[[1m^[[92m   Compiling^[[0m clap_complete v4.6.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:47.2645358Z ^[[1m^[[92m   Compiling^[[0m strum v0.28.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:47.3752832Z ^[[1m^[[92m   Compiling^[[0m snafu v0.9.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:48.0744282Z ^[[1m^[[92m   Compiling^[[0m similar v3.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:49.3881428Z ^[[1m^[[92m   Compiling^[[0m clap_mangen v0.3.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:50.3491765Z ^[[1m^[[92m   Compiling^[[0m regex v1.13.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:51.5628990Z ^[[1m^[[92m   Compiling^[[0m rand v0.10.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:51.7538452Z ^[[1m^[[92m   Compiling^[[0m shellexpand v3.1.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:51.9652509Z ^[[1m^[[92m   Compiling^[[0m chrono v0.4.45
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:52.6773826Z ^[[1m^[[92m   Compiling^[[0m digest-io v0.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:52.8096976Z ^[[1m^[[92m   Compiling^[[0m sha2 v0.11.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:52.9097987Z ^[[1m^[[92m   Compiling^[[0m uuid v1.24.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:53.5468499Z ^[[1m^[[92m   Compiling^[[0m ctrlc v3.5.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:53.7529089Z ^[[1m^[[92m   Compiling^[[0m nu-ansi-term v0.50.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:54.3502739Z ^[[1m^[[92m   Compiling^[[0m dotenvy v0.15.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:55.3830532Z ^[[1m^[[92m   Compiling^[[0m typed-arena v2.0.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:55.4006359Z ^[[1m^[[92m   Compiling^[[0m num_cpus v1.17.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:55.5269717Z ^[[1m^[[92m   Compiling^[[0m unicode-width v0.2.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:55.6214670Z ^[[1m^[[92m   Compiling^[[0m hex v0.4.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:55.6277965Z ^[[1m^[[92m   Compiling^[[0m percent-encoding v2.3.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:47:55.8941088Z ^[[1m^[[92m   Compiling^[[0m semver v1.0.28
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:37.2378235Z ^[[1m^[[92m    Finished^[[0m `release` profile [optimized] target(s) in 2m 32s
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:37.2502927Z ^[[1m^[[92m  Installing^[[0m C:\Users\runneradmin\.cargo\bin\just.exe
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:37.2508793Z ^[[1m^[[92m   Installed^[[0m package `just v1.57.0` (executable `just.exe`)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:37.6897309Z ##[group]Run just tauri-process-smoke
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:37.6897754Z ^[[36;1mjust tauri-process-smoke^[[0m
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:37.6995281Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:37.6995709Z env:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:37.6995986Z   CARGO_HOME: C:\Users\runneradmin\.cargo
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:37.6996336Z   CARGO_INCREMENTAL: 0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:37.6996622Z   CARGO_TERM_COLOR: always
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:37.6996907Z ##[endgroup]
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:37.9814716Z cargo --config .cargo/tauri-ci.toml test --manifest-path ccr-ui/src-tauri/Cargo.toml process::gateway
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:38.3966931Z ^[[1m^[[92m    Updating^[[0m crates.io index
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:40.0717392Z ^[[1m^[[92m Downloading^[[0m crates ...
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:40.2318085Z ^[[1m^[[92m  Downloaded^[[0m bit-set v0.8.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:40.2477395Z ^[[1m^[[92m  Downloaded^[[0m num-conv v0.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:40.2623090Z ^[[1m^[[92m  Downloaded^[[0m parking_lot_core v0.9.12
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:40.2957025Z ^[[1m^[[92m  Downloaded^[[0m r2d2 v0.8.10
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:40.3177103Z ^[[1m^[[92m  Downloaded^[[0m potential_utf v0.1.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:40.3352012Z ^[[1m^[[92m  Downloaded^[[0m r2d2_sqlite v0.34.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:40.3556694Z ^[[1m^[[92m  Downloaded^[[0m thiserror-impl v2.0.18
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:40.4896121Z ^[[1m^[[92m  Downloaded^[[0m tagptr v0.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:40.5084335Z ^[[1m^[[92m  Downloaded^[[0m version_check v0.9.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:40.5232861Z ^[[1m^[[92m  Downloaded^[[0m zerofrom-derive v0.1.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:40.5344539Z ^[[1m^[[92m  Downloaded^[[0m zerovec-derive v0.11.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:40.5507338Z ^[[1m^[[92m  Downloaded^[[0m xml-rs v0.8.28
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:40.5795416Z ^[[1m^[[92m  Downloaded^[[0m zmij v1.0.21
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:40.5945650Z ^[[1m^[[92m  Downloaded^[[0m unsafe-libyaml v0.2.11
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:40.6249270Z ^[[1m^[[92m  Downloaded^[[0m tokio-util v0.7.18
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:40.7218512Z ^[[1m^[[92m  Downloaded^[[0m typenum v1.19.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:40.7423337Z ^[[1m^[[92m  Downloaded^[[0m serde_with v3.17.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:40.8731135Z ^[[1m^[[92m  Downloaded^[[0m tower v0.5.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:40.9587286Z ^[[1m^[[92m  Downloaded^[[0m tracing-subscriber v0.3.22
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:41.0244816Z ^[[1m^[[92m  Downloaded^[[0m tower-http v0.6.8
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:41.1050940Z ^[[1m^[[92m  Downloaded^[[0m tokio v1.52.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:41.5025647Z ^[[1m^[[92m  Downloaded^[[0m tracing v0.1.44
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:41.5808086Z ^[[1m^[[92m  Downloaded^[[0m zerotrie v0.2.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:41.6114617Z ^[[1m^[[92m  Downloaded^[[0m url v2.5.8
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:41.6302080Z ^[[1m^[[92m  Downloaded^[[0m unicode-segmentation v1.12.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:41.6473028Z ^[[1m^[[92m  Downloaded^[[0m tauri-runtime-wry v2.11.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:41.6681314Z ^[[1m^[[92m  Downloaded^[[0m zerovec v0.11.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:41.7212957Z ^[[1m^[[92m  Downloaded^[[0m tauri-plugin-dialog v2.6.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:41.7631172Z ^[[1m^[[92m  Downloaded^[[0m winnow v0.7.15
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:42.4871635Z ^[[1m^[[92m  Downloaded^[[0m wry v0.55.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:42.5494730Z ^[[1m^[[92m  Downloaded^[[0m winnow v1.0.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:42.6318368Z ^[[1m^[[92m  Downloaded^[[0m vcpkg v0.2.15
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:43.1809254Z ^[[1m^[[92m  Downloaded^[[0m time v0.3.47
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:43.5276502Z ^[[1m^[[92m  Downloaded^[[0m zerocopy v0.8.40
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:43.6085694Z ^[[1m^[[92m  Downloaded^[[0m tauri v2.11.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:43.7293344Z ^[[1m^[[92m  Downloaded^[[0m tao v0.35.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:43.8488431Z ^[[1m^[[92m  Downloaded^[[0m syn v2.0.117
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:43.9327398Z ^[[1m^[[92m  Downloaded^[[0m tauri-plugin-fs v2.4.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.0034169Z ^[[1m^[[92m  Downloaded^[[0m syn v1.0.109
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.0774946Z ^[[1m^[[92m  Downloaded^[[0m serde v1.0.228
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.1038292Z ^[[1m^[[92m  Downloaded^[[0m rusqlite v0.39.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.1567488Z ^[[1m^[[92m  Downloaded^[[0m ts-rs v11.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.2228903Z ^[[1m^[[92m  Downloaded^[[0m tray-icon v0.23.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.2412378Z ^[[1m^[[92m  Downloaded^[[0m tracing-core v0.1.36
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.2650182Z ^[[1m^[[92m  Downloaded^[[0m toml_parser v1.1.2+spec-1.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.2831717Z ^[[1m^[[92m  Downloaded^[[0m toml v1.1.2+spec-1.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.3192767Z ^[[1m^[[92m  Downloaded^[[0m toml v0.9.12+spec-1.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.3739704Z ^[[1m^[[92m  Downloaded^[[0m tokio-rustls v0.26.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.3954743Z ^[[1m^[[92m  Downloaded^[[0m windows-future v0.3.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.4134775Z ^[[1m^[[92m  Downloaded^[[0m windows-future v0.2.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.4287975Z ^[[1m^[[92m  Downloaded^[[0m windows-core v0.62.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.4577549Z ^[[1m^[[92m  Downloaded^[[0m windows-core v0.61.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.4845300Z ^[[1m^[[92m  Downloaded^[[0m windows-collections v0.3.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.4944419Z ^[[1m^[[92m  Downloaded^[[0m winapi-util v0.1.11
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.5087136Z ^[[1m^[[92m  Downloaded^[[0m whoami v2.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.5287933Z ^[[1m^[[92m  Downloaded^[[0m webview2-com v0.38.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.5382994Z ^[[1m^[[92m  Downloaded^[[0m web_atoms v0.2.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.5468080Z ^[[1m^[[92m  Downloaded^[[0m uuid v1.23.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.5725115Z ^[[1m^[[92m  Downloaded^[[0m tracing-log v0.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:44.5841562Z ^[[1m^[[92m  Downloaded^[[0m tracing-attributes v0.1.31
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.1148007Z ^[[1m^[[92m  Downloaded^[[0m tracing-appender v0.2.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.1996022Z ^[[1m^[[92m  Downloaded^[[0m toml_writer v1.1.1+spec-1.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.2099751Z ^[[1m^[[92m  Downloaded^[[0m toml_datetime v1.1.1+spec-1.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.2193378Z ^[[1m^[[92m  Downloaded^[[0m windows_x86_64_msvc v0.53.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.2407062Z ^[[1m^[[92m  Downloaded^[[0m windows_x86_64_msvc v0.52.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.2618434Z ^[[1m^[[92m  Downloaded^[[0m tendril v0.4.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.2774151Z ^[[1m^[[92m  Downloaded^[[0m tauri-runtime v2.11.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.2881950Z ^[[1m^[[92m  Downloaded^[[0m zeroize v1.8.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.2984399Z ^[[1m^[[92m  Downloaded^[[0m yoke v0.8.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.3130930Z ^[[1m^[[92m  Downloaded^[[0m winreg v0.56.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.3476090Z ^[[1m^[[92m  Downloaded^[[0m windows-targets v0.53.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.3563796Z ^[[1m^[[92m  Downloaded^[[0m windows-result v0.4.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.3705550Z ^[[1m^[[92m  Downloaded^[[0m windows-link v0.1.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.3783417Z ^[[1m^[[92m  Downloaded^[[0m windows-interface v0.59.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.3862189Z ^[[1m^[[92m  Downloaded^[[0m windows-implement v0.60.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.3949204Z ^[[1m^[[92m  Downloaded^[[0m windows-collections v0.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.4049562Z ^[[1m^[[92m  Downloaded^[[0m webview2-com-macros v0.8.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.4126165Z ^[[1m^[[92m  Downloaded^[[0m want v0.3.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.4213929Z ^[[1m^[[92m  Downloaded^[[0m walkdir v2.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.4349608Z ^[[1m^[[92m  Downloaded^[[0m urlpattern v0.3.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.4509943Z ^[[1m^[[92m  Downloaded^[[0m winapi v0.3.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.7135427Z ^[[1m^[[92m  Downloaded^[[0m libsqlite3-sys v0.37.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.8065547Z ^[[1m^[[92m  Downloaded^[[0m typeid v1.0.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.8175165Z ^[[1m^[[92m  Downloaded^[[0m ts-rs-macros v11.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.8339737Z ^[[1m^[[92m  Downloaded^[[0m try-lock v0.2.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.8419509Z ^[[1m^[[92m  Downloaded^[[0m tower-service v0.3.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.8502279Z ^[[1m^[[92m  Downloaded^[[0m tower-layer v0.3.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.8577663Z ^[[1m^[[92m  Downloaded^[[0m toml_datetime v0.7.5+spec-1.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.8668694Z ^[[1m^[[92m  Downloaded^[[0m tauri-winres v0.3.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:45.8873445Z ^[[1m^[[92m  Downloaded^[[0m sysinfo v0.39.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:46.5587516Z ^[[1m^[[92m  Downloaded^[[0m sysinfo v0.38.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:46.6716225Z ^[[1m^[[92m  Downloaded^[[0m syn v3.0.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:46.7488659Z ^[[1m^[[92m  Downloaded^[[0m string_cache v0.9.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:46.7638412Z ^[[1m^[[92m  Downloaded^[[0m smallvec v1.15.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:46.7856418Z ^[[1m^[[92m  Downloaded^[[0m slab v0.4.12
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:46.7968325Z ^[[1m^[[92m  Downloaded^[[0m selectors v0.36.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:46.8122627Z ^[[1m^[[92m  Downloaded^[[0m schemars v1.2.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:46.9858306Z ^[[1m^[[92m  Downloaded^[[0m ryu v1.0.23
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.0136066Z ^[[1m^[[92m  Downloaded^[[0m zerofrom v0.1.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.0216307Z ^[[1m^[[92m  Downloaded^[[0m window-vibrancy v0.6.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.0543195Z ^[[1m^[[92m  Downloaded^[[0m yoke-derive v0.8.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.0630423Z ^[[1m^[[92m  Downloaded^[[0m writeable v0.6.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.0791466Z ^[[1m^[[92m  Downloaded^[[0m winreg v0.55.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.1104770Z ^[[1m^[[92m  Downloaded^[[0m windows-version v0.1.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.1191734Z ^[[1m^[[92m  Downloaded^[[0m windows-threading v0.2.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.1278535Z ^[[1m^[[92m  Downloaded^[[0m windows-threading v0.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.1369325Z ^[[1m^[[92m  Downloaded^[[0m windows-targets v0.52.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.1475133Z ^[[1m^[[92m  Downloaded^[[0m windows-strings v0.5.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.1634692Z ^[[1m^[[92m  Downloaded^[[0m windows-strings v0.4.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.1788237Z ^[[1m^[[92m  Downloaded^[[0m windows-result v0.3.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.1921128Z ^[[1m^[[92m  Downloaded^[[0m windows-numerics v0.3.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.2044960Z ^[[1m^[[92m  Downloaded^[[0m windows-numerics v0.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.2166871Z ^[[1m^[[92m  Downloaded^[[0m vswhom-sys v0.1.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.2276046Z ^[[1m^[[92m  Downloaded^[[0m vswhom v0.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.2375320Z ^[[1m^[[92m  Downloaded^[[0m utf8_iter v1.0.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.2464980Z ^[[1m^[[92m  Downloaded^[[0m utf-8 v0.7.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.2564715Z ^[[1m^[[92m  Downloaded^[[0m urlencoding v2.1.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.2678314Z ^[[1m^[[92m  Downloaded^[[0m untrusted v0.9.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.2810110Z ^[[1m^[[92m  Downloaded^[[0m universal-hash v0.5.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.2885938Z ^[[1m^[[92m  Downloaded^[[0m unic-ucd-version v0.9.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.2966618Z ^[[1m^[[92m  Downloaded^[[0m unic-ucd-ident v0.9.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.3127611Z ^[[1m^[[92m  Downloaded^[[0m unic-common v0.9.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.6304140Z ^[[1m^[[92m  Downloaded^[[0m unic-char-range v0.9.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.6440654Z ^[[1m^[[92m  Downloaded^[[0m tokio-macros v2.7.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.6525592Z ^[[1m^[[92m  Downloaded^[[0m tinystr v0.8.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.6701636Z ^[[1m^[[92m  Downloaded^[[0m time-macros v0.2.27
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.6921110Z ^[[1m^[[92m  Downloaded^[[0m time-core v0.1.8
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.7006537Z ^[[1m^[[92m  Downloaded^[[0m thiserror-impl v1.0.69
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.7151001Z ^[[1m^[[92m  Downloaded^[[0m thiserror v2.0.18
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.7909261Z ^[[1m^[[92m  Downloaded^[[0m thiserror v1.0.69
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.8567105Z ^[[1m^[[92m  Downloaded^[[0m tauri-plugin v2.5.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.8654392Z ^[[1m^[[92m  Downloaded^[[0m tauri-codegen v2.6.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.8760976Z ^[[1m^[[92m  Downloaded^[[0m socket2 v0.6.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.8881912Z ^[[1m^[[92m  Downloaded^[[0m selectors v0.24.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:47.9015602Z ^[[1m^[[92m  Downloaded^[[0m schemars v0.9.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:48.1299185Z ^[[1m^[[92m  Downloaded^[[0m ring v0.17.14
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.0305304Z ^[[1m^[[92m  Downloaded^[[0m regex-syntax v0.8.10
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.0664518Z ^[[1m^[[92m  Downloaded^[[0m unic-char-property v0.9.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.0835607Z ^[[1m^[[92m  Downloaded^[[0m windows-sys v0.59.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.3736975Z ^[[1m^[[92m  Downloaded^[[0m tokio-native-tls v0.3.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.3988138Z ^[[1m^[[92m  Downloaded^[[0m thread_local v1.1.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.4159329Z ^[[1m^[[92m  Downloaded^[[0m termcolor v1.4.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.4252359Z ^[[1m^[[92m  Downloaded^[[0m tendril v0.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.4415916Z ^[[1m^[[92m  Downloaded^[[0m tauri-utils v2.9.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.4705506Z ^[[1m^[[92m  Downloaded^[[0m tauri-macros v2.6.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.4817133Z ^[[1m^[[92m  Downloaded^[[0m tauri-build v2.6.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.4950777Z ^[[1m^[[92m  Downloaded^[[0m synstructure v0.13.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.5029096Z ^[[1m^[[92m  Downloaded^[[0m sync_wrapper v1.0.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.5098942Z ^[[1m^[[92m  Downloaded^[[0m string_cache v0.8.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.5250727Z ^[[1m^[[92m  Downloaded^[[0m stable_deref_trait v1.2.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.5334675Z ^[[1m^[[92m  Downloaded^[[0m shlex v1.3.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.5445410Z ^[[1m^[[92m  Downloaded^[[0m serde_yaml v0.9.34+deprecated
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.5835925Z ^[[1m^[[92m  Downloaded^[[0m serde_with_macros v3.17.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.5988702Z ^[[1m^[[92m  Downloaded^[[0m serde_urlencoded v0.7.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.6124491Z ^[[1m^[[92m  Downloaded^[[0m serde_repr v0.1.20
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.6307069Z ^[[1m^[[92m  Downloaded^[[0m serde_derive_internals v0.29.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.6440196Z ^[[1m^[[92m  Downloaded^[[0m serde_derive v1.0.228
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.6770434Z ^[[1m^[[92m  Downloaded^[[0m scopeguard v1.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.6912671Z ^[[1m^[[92m  Downloaded^[[0m scheduled-thread-pool v0.2.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.7079855Z ^[[1m^[[92m  Downloaded^[[0m rustls v0.23.40
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.8072583Z ^[[1m^[[92m  Downloaded^[[0m rustc_version v0.4.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.8179028Z ^[[1m^[[92m  Downloaded^[[0m rustc-hash v2.1.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.8285070Z ^[[1m^[[92m  Downloaded^[[0m reqwest v0.13.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.8711422Z ^[[1m^[[92m  Downloaded^[[0m rayon v1.11.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:49.9557466Z ^[[1m^[[92m  Downloaded^[[0m libc v0.2.183
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:50.6955027Z ^[[1m^[[92m  Downloaded^[[0m subtle v2.6.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:50.7051783Z ^[[1m^[[92m  Downloaded^[[0m string_cache_codegen v0.6.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:50.7121180Z ^[[1m^[[92m  Downloaded^[[0m string_cache_codegen v0.5.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:50.7190362Z ^[[1m^[[92m  Downloaded^[[0m windows-sys v0.60.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.0042586Z ^[[1m^[[92m  Downloaded^[[0m softbuffer v0.4.8
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.0428605Z ^[[1m^[[92m  Downloaded^[[0m siphasher v1.0.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.0536241Z ^[[1m^[[92m  Downloaded^[[0m siphasher v0.3.11
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.0636368Z ^[[1m^[[92m  Downloaded^[[0m simd-adler32 v0.3.8
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.0826202Z ^[[1m^[[92m  Downloaded^[[0m shell-words v1.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.0905766Z ^[[1m^[[92m  Downloaded^[[0m sharded-slab v0.1.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.1198266Z ^[[1m^[[92m  Downloaded^[[0m servo_arc v0.4.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.1267833Z ^[[1m^[[92m  Downloaded^[[0m servo_arc v0.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.1332978Z ^[[1m^[[92m  Downloaded^[[0m serialize-to-javascript-impl v0.1.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.1398519Z ^[[1m^[[92m  Downloaded^[[0m serialize-to-javascript v0.1.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.1508913Z ^[[1m^[[92m  Downloaded^[[0m serde_spanned v1.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.1594705Z ^[[1m^[[92m  Downloaded^[[0m serde_core v1.0.228
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.1829556Z ^[[1m^[[92m  Downloaded^[[0m serde-xml-rs v0.6.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.2050970Z ^[[1m^[[92m  Downloaded^[[0m serde-untagged v0.1.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.2180309Z ^[[1m^[[92m  Downloaded^[[0m schemars_derive v0.8.22
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.2333537Z ^[[1m^[[92m  Downloaded^[[0m rustls-webpki v0.103.13
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.2574076Z ^[[1m^[[92m  Downloaded^[[0m regex-automata v0.4.14
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.3370612Z ^[[1m^[[92m  Downloaded^[[0m regex v1.12.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.3814328Z ^[[1m^[[92m  Downloaded^[[0m rand v0.10.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.4112959Z ^[[1m^[[92m  Downloaded^[[0m rand v0.8.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.4423044Z ^[[1m^[[92m  Downloaded^[[0m rand v0.7.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.4792367Z ^[[1m^[[92m  Downloaded^[[0m quick-xml v0.38.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.5174031Z ^[[1m^[[92m  Downloaded^[[0m publicsuffix v2.3.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.5314738Z ^[[1m^[[92m  Downloaded^[[0m ntapi v0.4.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:51.5593116Z ^[[1m^[[92m  Downloaded^[[0m muda v0.19.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:52.1303919Z ^[[1m^[[92m  Downloaded^[[0m moka v0.12.15
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:52.1877193Z ^[[1m^[[92m  Downloaded^[[0m mio v1.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:52.2348616Z ^[[1m^[[92m  Downloaded^[[0m indexmap v2.14.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:52.2648176Z ^[[1m^[[92m  Downloaded^[[0m idna v1.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:52.2842496Z ^[[1m^[[92m  Downloaded^[[0m icu_properties_data v2.1.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:52.3959110Z ^[[1m^[[92m  Downloaded^[[0m icu_collections v2.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:52.4545621Z ^[[1m^[[92m  Downloaded^[[0m hyper-util v0.1.20
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:52.4977158Z ^[[1m^[[92m  Downloaded^[[0m hyper v1.8.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:52.5467317Z ^[[1m^[[92m  Downloaded^[[0m hashbrown v0.16.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:52.5779693Z ^[[1m^[[92m  Downloaded^[[0m h2 v0.4.16
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:52.6311557Z ^[[1m^[[92m  Downloaded^[[0m futures-util v0.3.32
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:52.7553585Z ^[[1m^[[92m  Downloaded^[[0m sha2 v0.10.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:52.7858110Z ^[[1m^[[92m  Downloaded^[[0m semver v1.0.27
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:52.8075545Z ^[[1m^[[92m  Downloaded^[[0m schemars v0.8.22
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.3558726Z ^[[1m^[[92m  Downloaded^[[0m schannel v0.1.28
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.3851489Z ^[[1m^[[92m  Downloaded^[[0m same-file v1.0.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.3979666Z ^[[1m^[[92m  Downloaded^[[0m rustversion v1.0.22
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.4289093Z ^[[1m^[[92m  Downloaded^[[0m rustls-pki-types v1.14.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.4559228Z ^[[1m^[[92m  Downloaded^[[0m rtoolbox v0.0.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.4691241Z ^[[1m^[[92m  Downloaded^[[0m rpassword v7.5.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.4917601Z ^[[1m^[[92m  Downloaded^[[0m rfd v0.16.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.5392761Z ^[[1m^[[92m  Downloaded^[[0m reqwest_dav v0.3.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.5533195Z ^[[1m^[[92m  Downloaded^[[0m ref-cast-impl v1.0.25
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.5605549Z ^[[1m^[[92m  Downloaded^[[0m ref-cast v1.0.25
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.5906121Z ^[[1m^[[92m  Downloaded^[[0m raw-window-handle v0.6.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.6096102Z ^[[1m^[[92m  Downloaded^[[0m rand_pcg v0.2.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.6205200Z ^[[1m^[[92m  Downloaded^[[0m rand_core v0.10.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.6353127Z ^[[1m^[[92m  Downloaded^[[0m rand_core v0.6.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.6453824Z ^[[1m^[[92m  Downloaded^[[0m rand_core v0.5.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.6557246Z ^[[1m^[[92m  Downloaded^[[0m rand_chacha v0.3.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.6648998Z ^[[1m^[[92m  Downloaded^[[0m rand_chacha v0.2.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.6769327Z ^[[1m^[[92m  Downloaded^[[0m portable-atomic v1.13.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.7470454Z ^[[1m^[[92m  Downloaded^[[0m png v0.17.16
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.7806511Z ^[[1m^[[92m  Downloaded^[[0m parking_lot v0.12.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.8007297Z ^[[1m^[[92m  Downloaded^[[0m open v5.4.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.8140614Z ^[[1m^[[92m  Downloaded^[[0m notify v8.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.8275030Z ^[[1m^[[92m  Downloaded^[[0m miniz_oxide v0.8.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.8463047Z ^[[1m^[[92m  Downloaded^[[0m log v0.4.29
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.8656756Z ^[[1m^[[92m  Downloaded^[[0m litemap v0.8.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.8880882Z ^[[1m^[[92m  Downloaded^[[0m kuchikiki v0.8.8-speedreader
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.9094289Z ^[[1m^[[92m  Downloaded^[[0m keyboard-types v0.7.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.9251434Z ^[[1m^[[92m  Downloaded^[[0m jsonptr v0.6.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.9496147Z ^[[1m^[[92m  Downloaded^[[0m indexmap v1.9.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.9734847Z ^[[1m^[[92m  Downloaded^[[0m icu_provider v2.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:53.9927741Z ^[[1m^[[92m  Downloaded^[[0m icu_properties v2.1.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:54.0077989Z ^[[1m^[[92m  Downloaded^[[0m icu_normalizer v2.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:54.0382107Z ^[[1m^[[92m  Downloaded^[[0m iana-time-zone v0.1.65
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:54.0614218Z ^[[1m^[[92m  Downloaded^[[0m hyper-rustls v0.27.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:54.0748679Z ^[[1m^[[92m  Downloaded^[[0m hybrid-array v0.4.8
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:54.0933632Z ^[[1m^[[92m  Downloaded^[[0m httparse v1.10.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:54.1110558Z ^[[1m^[[92m  Downloaded^[[0m getrandom v0.4.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:54.1447067Z ^[[1m^[[92m  Downloaded^[[0m getrandom v0.3.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:54.1791304Z ^[[1m^[[92m  Downloaded^[[0m getrandom v0.1.16
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:54.1997973Z ^[[1m^[[92m  Downloaded^[[0m futures-core v0.3.32
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:54.2102238Z ^[[1m^[[92m  Downloaded^[[0m fs4 v0.13.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:54.2531931Z ^[[1m^[[92m  Downloaded^[[0m flate2 v1.1.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:54.2960996Z ^[[1m^[[92m  Downloaded^[[0m derive_more v2.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:54.7424508Z ^[[1m^[[92m  Downloaded^[[0m crossterm v0.29.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:54.8039961Z ^[[1m^[[92m  Downloaded^[[0m clap_builder v4.6.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:54.8586319Z ^[[1m^[[92m  Downloaded^[[0m chrono-tz v0.10.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:54.8983862Z ^[[1m^[[92m  Downloaded^[[0m brotli v8.0.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:54.9669557Z ^[[1m^[[92m  Downloaded^[[0m quote v1.0.45
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:54.9917606Z ^[[1m^[[92m  Downloaded^[[0m psl-types v2.0.11
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:55.0498827Z ^[[1m^[[92m  Downloaded^[[0m proc-macro-hack v0.5.20+deprecated
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:55.0688312Z ^[[1m^[[92m  Downloaded^[[0m precomputed-hash v0.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:55.0748642Z ^[[1m^[[92m  Downloaded^[[0m ppv-lite86 v0.2.21
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:55.0849584Z ^[[1m^[[92m  Downloaded^[[0m powerfmt v0.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:55.0963688Z ^[[1m^[[92m  Downloaded^[[0m polyval v0.6.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:55.1088115Z ^[[1m^[[92m  Downloaded^[[0m plist v1.8.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:55.1317529Z ^[[1m^[[92m  Downloaded^[[0m pin-utils v0.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:55.1418316Z ^[[1m^[[92m  Downloaded^[[0m pin-project-lite v0.2.17
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:55.2071840Z ^[[1m^[[92m  Downloaded^[[0m phf_shared v0.13.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:55.2173607Z ^[[1m^[[92m  Downloaded^[[0m phf_shared v0.12.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:55.2256630Z ^[[1m^[[92m  Downloaded^[[0m phf_shared v0.11.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:55.2333761Z ^[[1m^[[92m  Downloaded^[[0m phf_shared v0.10.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:55.2394694Z ^[[1m^[[92m  Downloaded^[[0m phf_shared v0.8.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:55.2463488Z ^[[1m^[[92m  Downloaded^[[0m phf_generator v0.13.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:55.2551894Z ^[[1m^[[92m  Downloaded^[[0m phf_generator v0.10.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:55.2630361Z ^[[1m^[[92m  Downloaded^[[0m opaque-debug v0.3.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:55.8285200Z ^[[1m^[[92m  Downloaded^[[0m notify-types v2.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.0119716Z ^[[1m^[[92m  Downloaded^[[0m new_debug_unreachable v1.0.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.0212869Z ^[[1m^[[92m  Downloaded^[[0m md-5 v0.10.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.0331055Z ^[[1m^[[92m  Downloaded^[[0m matchers v0.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.0420292Z ^[[1m^[[92m  Downloaded^[[0m match_token v0.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.0504997Z ^[[1m^[[92m  Downloaded^[[0m mac v0.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.0611040Z ^[[1m^[[92m  Downloaded^[[0m lru v0.18.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.0702647Z ^[[1m^[[92m  Downloaded^[[0m lock_api v0.4.14
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.0822236Z ^[[1m^[[92m  Downloaded^[[0m json-patch v3.0.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.1051754Z ^[[1m^[[92m  Downloaded^[[0m ident_case v1.0.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.1128831Z ^[[1m^[[92m  Downloaded^[[0m html5ever v0.38.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.1455727Z ^[[1m^[[92m  Downloaded^[[0m futures-task v0.3.32
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.1577769Z ^[[1m^[[92m  Downloaded^[[0m futf v0.1.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.1663172Z ^[[1m^[[92m  Downloaded^[[0m event-listener v5.4.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.1799311Z ^[[1m^[[92m  Downloaded^[[0m dom_query v0.27.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.2226086Z ^[[1m^[[92m  Downloaded^[[0m displaydoc v0.2.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.2552773Z ^[[1m^[[92m  Downloaded^[[0m derive_more-impl v2.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.2976199Z ^[[1m^[[92m  Downloaded^[[0m darling_core v0.21.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.3485021Z ^[[1m^[[92m  Downloaded^[[0m crc32fast v1.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.3638166Z ^[[1m^[[92m  Downloaded^[[0m comfy-table v7.2.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.4191713Z ^[[1m^[[92m  Downloaded^[[0m cipher v0.4.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.4328191Z ^[[1m^[[92m  Downloaded^[[0m chrono v0.4.44
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.4739468Z ^[[1m^[[92m  Downloaded^[[0m cc v1.2.56
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.4954909Z ^[[1m^[[92m  Downloaded^[[0m camino v1.2.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.5091111Z ^[[1m^[[92m  Downloaded^[[0m brotli-decompressor v5.0.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.5392652Z ^[[1m^[[92m  Downloaded^[[0m bitflags v2.11.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.5821375Z ^[[1m^[[92m  Downloaded^[[0m pkg-config v0.3.32
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.5943634Z ^[[1m^[[92m  Downloaded^[[0m phf_macros v0.10.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.6000091Z ^[[1m^[[92m  Downloaded^[[0m phf_generator v0.11.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.6091810Z ^[[1m^[[92m  Downloaded^[[0m phf_generator v0.8.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.6167846Z ^[[1m^[[92m  Downloaded^[[0m phf_codegen v0.13.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.6242626Z ^[[1m^[[92m  Downloaded^[[0m phf_codegen v0.11.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.6316542Z ^[[1m^[[92m  Downloaded^[[0m phf_codegen v0.8.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.6371869Z ^[[1m^[[92m  Downloaded^[[0m phf v0.13.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.6490972Z ^[[1m^[[92m  Downloaded^[[0m phf v0.12.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.6614397Z ^[[1m^[[92m  Downloaded^[[0m phf v0.10.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.6727635Z ^[[1m^[[92m  Downloaded^[[0m phf v0.8.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.6802825Z ^[[1m^[[92m  Downloaded^[[0m parking v2.2.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.6898746Z ^[[1m^[[92m  Downloaded^[[0m nodrop v0.1.14
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.6972368Z ^[[1m^[[92m  Downloaded^[[0m mime v0.3.17
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.7074369Z ^[[1m^[[92m  Downloaded^[[0m litrs v1.0.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.7337250Z ^[[1m^[[92m  Downloaded^[[0m itoa v1.0.17
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.7448462Z ^[[1m^[[92m  Downloaded^[[0m ipnet v2.12.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.7588896Z ^[[1m^[[92m  Downloaded^[[0m inout v0.1.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.7691822Z ^[[1m^[[92m  Downloaded^[[0m idna_adapter v1.2.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.7770906Z ^[[1m^[[92m  Downloaded^[[0m icu_normalizer_data v2.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.7916310Z ^[[1m^[[92m  Downloaded^[[0m icu_locale_core v2.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.8548639Z ^[[1m^[[92m  Downloaded^[[0m ico v0.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.8839058Z ^[[1m^[[92m  Downloaded^[[0m hyper-tls v0.6.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.8948057Z ^[[1m^[[92m  Downloaded^[[0m httpdate v1.0.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:56.9044079Z ^[[1m^[[92m  Downloaded^[[0m webview2-com-sys v0.38.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.0047751Z ^[[1m^[[92m  Downloaded^[[0m hashbrown v0.17.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.5357908Z ^[[1m^[[92m  Downloaded^[[0m hashbrown v0.12.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.5595102Z ^[[1m^[[92m  Downloaded^[[0m glob v0.3.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.5738467Z ^[[1m^[[92m  Downloaded^[[0m ghash v0.5.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.5835103Z ^[[1m^[[92m  Downloaded^[[0m getrandom v0.2.17
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.6125614Z ^[[1m^[[92m  Downloaded^[[0m generic-array v0.14.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.6264965Z ^[[1m^[[92m  Downloaded^[[0m fxhash v0.2.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.6326625Z ^[[1m^[[92m  Downloaded^[[0m futures-macro v0.3.32
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.6413159Z ^[[1m^[[92m  Downloaded^[[0m futures-io v0.3.32
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.6488319Z ^[[1m^[[92m  Downloaded^[[0m futures-executor v0.3.32
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.6617987Z ^[[1m^[[92m  Downloaded^[[0m futures v0.3.32
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.7096548Z ^[[1m^[[92m  Downloaded^[[0m form_urlencoded v1.2.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.7193584Z ^[[1m^[[92m  Downloaded^[[0m fallible-streaming-iterator v0.1.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.7277283Z ^[[1m^[[92m  Downloaded^[[0m erased-serde v0.4.10
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.7483786Z ^[[1m^[[92m  Downloaded^[[0m encode_unicode v1.0.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.7741090Z ^[[1m^[[92m  Downloaded^[[0m dyn-clone v1.0.20
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.7883503Z ^[[1m^[[92m  Downloaded^[[0m dtoa v1.0.11
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.8002296Z ^[[1m^[[92m  Downloaded^[[0m digest v0.10.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.8161193Z ^[[1m^[[92m  Downloaded^[[0m derive_more v0.99.20
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.8591724Z ^[[1m^[[92m  Downloaded^[[0m deranged v0.5.8
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.8684143Z ^[[1m^[[92m  Downloaded^[[0m darling v0.21.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.9293025Z ^[[1m^[[92m  Downloaded^[[0m ctor-proc-macro v0.0.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.9366366Z ^[[1m^[[92m  Downloaded^[[0m ctor v0.8.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.9453795Z ^[[1m^[[92m  Downloaded^[[0m cssparser v0.29.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.9657701Z ^[[1m^[[92m  Downloaded^[[0m crypto-common v0.2.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.9757419Z ^[[1m^[[92m  Downloaded^[[0m crypto-common v0.1.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:57.9837096Z ^[[1m^[[92m  Downloaded^[[0m crossbeam-utils v0.8.21
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.0117217Z ^[[1m^[[92m  Downloaded^[[0m crossbeam-deque v0.8.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.0220421Z ^[[1m^[[92m  Downloaded^[[0m crossbeam-channel v0.5.15
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.0563724Z ^[[1m^[[92m  Downloaded^[[0m cpufeatures v0.2.17
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.0693936Z ^[[1m^[[92m  Downloaded^[[0m cookie_store v0.22.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.0899383Z ^[[1m^[[92m  Downloaded^[[0m cookie v0.18.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.1120326Z ^[[1m^[[92m  Downloaded^[[0m console v0.16.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.1261212Z ^[[1m^[[92m  Downloaded^[[0m concurrent-queue v2.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.1388792Z ^[[1m^[[92m  Downloaded^[[0m compression-core v0.4.31
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.1493593Z ^[[1m^[[92m  Downloaded^[[0m compression-codecs v0.4.37
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.1837636Z ^[[1m^[[92m  Downloaded^[[0m colored v3.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.2096082Z ^[[1m^[[92m  Downloaded^[[0m colorchoice v1.0.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.2173034Z ^[[1m^[[92m  Downloaded^[[0m clap v4.6.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.3162237Z ^[[1m^[[92m  Downloaded^[[0m chacha20 v0.10.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.3354899Z ^[[1m^[[92m  Downloaded^[[0m cfb v0.7.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.3677998Z ^[[1m^[[92m  Downloaded^[[0m cargo_toml v0.22.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.3815099Z ^[[1m^[[92m  Downloaded^[[0m cargo-platform v0.1.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.3911094Z ^[[1m^[[92m  Downloaded^[[0m bytes v1.11.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.7309020Z ^[[1m^[[92m  Downloaded^[[0m byteorder v1.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.7430510Z ^[[1m^[[92m  Downloaded^[[0m block-buffer v0.12.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.7543957Z ^[[1m^[[92m  Downloaded^[[0m block-buffer v0.10.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.7630252Z ^[[1m^[[92m  Downloaded^[[0m bitflags v1.3.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.7951128Z ^[[1m^[[92m  Downloaded^[[0m alloc-no-stdlib v2.0.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.8103679Z ^[[1m^[[92m  Downloaded^[[0m proc-macro2 v1.0.106
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.8373222Z ^[[1m^[[92m  Downloaded^[[0m phf_macros v0.13.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.8448990Z ^[[1m^[[92m  Downloaded^[[0m phf v0.11.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.8574586Z ^[[1m^[[92m  Downloaded^[[0m password-hash v0.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.8773378Z ^[[1m^[[92m  Downloaded^[[0m memchr v2.8.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.9162505Z ^[[1m^[[92m  Downloaded^[[0m markup5ever v0.38.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.9258495Z ^[[1m^[[92m  Downloaded^[[0m iri-string v0.7.10
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.9906464Z ^[[1m^[[92m  Downloaded^[[0m http-body v1.0.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:58.9995348Z ^[[1m^[[92m  Downloaded^[[0m http v1.4.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.0288316Z ^[[1m^[[92m  Downloaded^[[0m hashlink v0.11.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.0459549Z ^[[1m^[[92m  Downloaded^[[0m fs4 v1.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.0902885Z ^[[1m^[[92m  Downloaded^[[0m foldhash v0.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.0998661Z ^[[1m^[[92m  Downloaded^[[0m filetime v0.2.27
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.1158685Z ^[[1m^[[92m  Downloaded^[[0m fdeflate v0.3.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.1319874Z ^[[1m^[[92m  Downloaded^[[0m fastrand v2.3.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.1418200Z ^[[1m^[[92m  Downloaded^[[0m fallible-iterator v0.3.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.1520792Z ^[[1m^[[92m  Downloaded^[[0m event-listener-strategy v0.5.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.1608795Z ^[[1m^[[92m  Downloaded^[[0m equivalent v1.0.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.1697757Z ^[[1m^[[92m  Downloaded^[[0m embed-resource v3.0.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.1880503Z ^[[1m^[[92m  Downloaded^[[0m either v1.15.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.2014046Z ^[[1m^[[92m  Downloaded^[[0m dunce v1.0.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.2102939Z ^[[1m^[[92m  Downloaded^[[0m dtor v0.3.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.2186404Z ^[[1m^[[92m  Downloaded^[[0m dpi v0.1.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.2289598Z ^[[1m^[[92m  Downloaded^[[0m digest_auth v0.3.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.2376902Z ^[[1m^[[92m  Downloaded^[[0m darling_macro v0.21.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.2442045Z ^[[1m^[[92m  Downloaded^[[0m ctr v0.9.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.2600272Z ^[[1m^[[92m  Downloaded^[[0m cssparser-macros v0.6.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.2658408Z ^[[1m^[[92m  Downloaded^[[0m crossterm_winapi v0.9.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.2859882Z ^[[1m^[[92m  Downloaded^[[0m cargo_metadata v0.19.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.3014126Z ^[[1m^[[92m  Downloaded^[[0m blake2 v0.10.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.3192179Z ^[[1m^[[92m  Downloaded^[[0m bit-vec v0.8.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.3339654Z ^[[1m^[[92m  Downloaded^[[0m aes-gcm v0.10.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.3499064Z ^[[1m^[[92m  Downloaded^[[0m aes v0.8.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.3778811Z ^[[1m^[[92m  Downloaded^[[0m native-tls v0.2.18
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.3882412Z ^[[1m^[[92m  Downloaded^[[0m matches v0.1.10
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.3961932Z ^[[1m^[[92m  Downloaded^[[0m markup5ever v0.14.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.4101401Z ^[[1m^[[92m  Downloaded^[[0m lazy_static v1.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.4295029Z ^[[1m^[[92m  Downloaded^[[0m infer v0.19.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.4478355Z ^[[1m^[[92m  Downloaded^[[0m http-body-util v0.1.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.4672303Z ^[[1m^[[92m  Downloaded^[[0m html5ever v0.29.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.5000823Z ^[[1m^[[92m  Downloaded^[[0m fnv v1.0.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.5105260Z ^[[1m^[[92m  Downloaded^[[0m dtor-proc-macro v0.0.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.5355887Z ^[[1m^[[92m  Downloaded^[[0m dtoa-short v0.3.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.5451457Z ^[[1m^[[92m  Downloaded^[[0m digest v0.11.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.5638912Z ^[[1m^[[92m  Downloaded^[[0m dialoguer v0.12.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.5972133Z ^[[1m^[[92m  Downloaded^[[0m cssparser v0.36.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.6154576Z ^[[1m^[[92m  Downloaded^[[0m crossbeam-epoch v0.9.18
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.6345168Z ^[[1m^[[92m  Downloaded^[[0m convert_case v0.4.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.6419193Z ^[[1m^[[92m  Downloaded^[[0m clap_lex v1.0.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.6500364Z ^[[1m^[[92m  Downloaded^[[0m base64 v0.22.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.6800143Z ^[[1m^[[92m  Downloaded^[[0m autocfg v1.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.6973276Z ^[[1m^[[92m  Downloaded^[[0m async-trait v0.1.92
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.7331159Z ^[[1m^[[92m  Downloaded^[[0m async-lock v3.4.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:49:59.7526780Z ^[[1m^[[92m  Downloaded^[[0m async-compression v0.4.41
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:00.4884097Z ^[[1m^[[92m  Downloaded^[[0m arc-swap v1.9.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:00.5285223Z ^[[1m^[[92m  Downloaded^[[0m futures-sink v0.3.32
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:00.5361235Z ^[[1m^[[92m  Downloaded^[[0m futures-channel v0.3.32
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:00.5519613Z ^[[1m^[[92m  Downloaded^[[0m document-features v0.2.12
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:00.5621117Z ^[[1m^[[92m  Downloaded^[[0m base64ct v1.8.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:00.6131872Z ^[[1m^[[92m  Downloaded^[[0m arrayvec v0.7.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:00.6364485Z ^[[1m^[[92m  Downloaded^[[0m argon2 v0.5.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:00.6527686Z ^[[1m^[[92m  Downloaded^[[0m anyhow v1.0.104
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:00.6897458Z ^[[1m^[[92m  Downloaded^[[0m anstyle v1.0.13
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:00.7031368Z ^[[1m^[[92m  Downloaded^[[0m allocator-api2 v0.2.21
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:00.7268108Z ^[[1m^[[92m  Downloaded^[[0m atomic-waker v1.1.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:00.7364113Z ^[[1m^[[92m  Downloaded^[[0m alloc-stdlib v0.2.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:00.7520370Z ^[[1m^[[92m  Downloaded^[[0m aead v0.5.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:00.7641585Z ^[[1m^[[92m  Downloaded^[[0m adler2 v2.0.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:00.7850604Z ^[[1m^[[92m  Downloaded^[[0m windows v0.62.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:02.3842089Z ^[[1m^[[92m  Downloaded^[[0m windows v0.61.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:04.9794392Z ^[[1m^[[92m   Compiling^[[0m proc-macro2 v1.0.106
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:04.9795013Z ^[[1m^[[92m   Compiling^[[0m quote v1.0.45
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:04.9795551Z ^[[1m^[[92m   Compiling^[[0m unicode-ident v1.0.24
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:04.9796085Z ^[[1m^[[92m   Compiling^[[0m cfg-if v1.0.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:05.0357812Z ^[[1m^[[92m   Compiling^[[0m windows-link v0.2.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:05.1107579Z ^[[1m^[[92m   Compiling^[[0m memchr v2.8.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:05.1109553Z ^[[1m^[[92m   Compiling^[[0m serde_core v1.0.228
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:05.3160014Z ^[[1m^[[92m   Compiling^[[0m itoa v1.0.17
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:05.5845267Z ^[[1m^[[92m   Compiling^[[0m windows-sys v0.61.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:06.7446835Z ^[[1m^[[92m   Compiling^[[0m syn v2.0.117
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:06.7547463Z ^[[1m^[[92m   Compiling^[[0m getrandom v0.2.17
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:06.9261727Z ^[[1m^[[92m   Compiling^[[0m rand_core v0.6.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:07.1925822Z ^[[1m^[[92m   Compiling^[[0m siphasher v1.0.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:07.4178951Z ^[[1m^[[92m   Compiling^[[0m writeable v0.6.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:07.6333912Z ^[[1m^[[92m   Compiling^[[0m litemap v0.8.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:08.2897442Z ^[[1m^[[92m   Compiling^[[0m version_check v0.9.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:08.9457617Z ^[[1m^[[92m   Compiling^[[0m parking_lot_core v0.9.12
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:09.2170123Z ^[[1m^[[92m   Compiling^[[0m icu_normalizer_data v2.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:09.4397898Z ^[[1m^[[92m   Compiling^[[0m icu_properties_data v2.1.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:09.7113241Z ^[[1m^[[92m   Compiling^[[0m scopeguard v1.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:09.7932652Z ^[[1m^[[92m   Compiling^[[0m zerocopy v0.8.40
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:10.3614784Z ^[[1m^[[92m   Compiling^[[0m lock_api v0.4.14
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:10.8870411Z ^[[1m^[[92m   Compiling^[[0m bytes v1.11.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:12.0030101Z ^[[1m^[[92m   Compiling^[[0m synstructure v0.13.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:12.1262001Z ^[[1m^[[92m   Compiling^[[0m fnv v1.0.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:12.8896456Z ^[[1m^[[92m   Compiling^[[0m equivalent v1.0.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:12.9570539Z ^[[1m^[[92m   Compiling^[[0m zmij v1.0.21
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:13.7480445Z ^[[1m^[[92m   Compiling^[[0m thiserror v2.0.18
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:14.2668208Z ^[[1m^[[92m   Compiling^[[0m utf8_iter v1.0.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:14.4415797Z ^[[1m^[[92m   Compiling^[[0m smallvec v1.15.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:14.7044866Z ^[[1m^[[92m   Compiling^[[0m time-core v0.1.8
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:14.8939763Z ^[[1m^[[92m   Compiling^[[0m num-conv v0.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:14.9898630Z ^[[1m^[[92m   Compiling^[[0m serde_derive v1.0.228
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:15.0439560Z ^[[1m^[[92m   Compiling^[[0m zerofrom-derive v0.1.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:17.1493107Z ^[[1m^[[92m   Compiling^[[0m zerofrom v0.1.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:17.2789703Z ^[[1m^[[92m   Compiling^[[0m yoke-derive v0.8.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:17.8055504Z ^[[1m^[[92m   Compiling^[[0m zerovec-derive v0.11.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:18.8790356Z ^[[1m^[[92m   Compiling^[[0m displaydoc v0.2.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:19.4012925Z ^[[1m^[[92m   Compiling^[[0m ppv-lite86 v0.2.21
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:19.8319425Z ^[[1m^[[92m   Compiling^[[0m thiserror-impl v2.0.18
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:19.9361209Z ^[[1m^[[92m   Compiling^[[0m powerfmt v0.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:19.9445375Z ^[[1m^[[92m   Compiling^[[0m serde v1.0.228
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:20.2016202Z ^[[1m^[[92m   Compiling^[[0m deranged v0.5.8
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:20.3598982Z ^[[1m^[[92m   Compiling^[[0m http v1.4.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:21.9169318Z ^[[1m^[[92m   Compiling^[[0m pin-project-lite v0.2.17
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:22.0107225Z ^[[1m^[[92m   Compiling^[[0m aho-corasick v1.1.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:22.3005803Z ^[[1m^[[92m   Compiling^[[0m regex-syntax v0.8.10
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:22.7865865Z ^[[1m^[[92m   Compiling^[[0m autocfg v1.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:23.6363609Z ^[[1m^[[92m   Compiling^[[0m libc v0.2.183
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:24.0845177Z ^[[1m^[[92m   Compiling^[[0m stable_deref_trait v1.2.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:24.1675123Z ^[[1m^[[92m   Compiling^[[0m winnow v1.0.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:24.5300824Z ^[[1m^[[92m   Compiling^[[0m rand_chacha v0.3.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:24.7033798Z ^[[1m^[[92m   Compiling^[[0m toml_parser v1.1.2+spec-1.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:25.3680517Z ^[[1m^[[92m   Compiling^[[0m generic-array v0.14.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:25.5769648Z ^[[1m^[[92m   Compiling^[[0m phf_shared v0.13.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:25.9067151Z ^[[1m^[[92m   Compiling^[[0m shlex v1.3.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:26.0557226Z ^[[1m^[[92m   Compiling^[[0m toml_writer v1.1.1+spec-1.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:26.1236504Z ^[[1m^[[92m   Compiling^[[0m base64 v0.22.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:26.3082117Z ^[[1m^[[92m   Compiling^[[0m find-msvc-tools v0.1.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:26.6231654Z ^[[1m^[[92m   Compiling^[[0m fastrand v2.3.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:26.6989708Z ^[[1m^[[92m   Compiling^[[0m yoke v0.8.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:26.8122856Z ^[[1m^[[92m   Compiling^[[0m phf_generator v0.13.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:26.9332878Z ^[[1m^[[92m   Compiling^[[0m cc v1.2.56
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:27.0528979Z ^[[1m^[[92m   Compiling^[[0m once_cell v1.21.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:27.3068736Z ^[[1m^[[92m   Compiling^[[0m zerovec v0.11.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:27.6210827Z ^[[1m^[[92m   Compiling^[[0m foldhash v0.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:27.8300020Z ^[[1m^[[92m   Compiling^[[0m typenum v1.19.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:28.1463362Z ^[[1m^[[92m   Compiling^[[0m windows_x86_64_msvc v0.52.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:28.3194671Z ^[[1m^[[92m   Compiling^[[0m anyhow v1.0.104
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:29.0553255Z ^[[1m^[[92m   Compiling^[[0m crossbeam-utils v0.8.21
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:29.1887629Z ^[[1m^[[92m   Compiling^[[0m windows-targets v0.52.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:29.2437697Z ^[[1m^[[92m   Compiling^[[0m tinystr v0.8.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:29.4453290Z ^[[1m^[[92m   Compiling^[[0m rand v0.8.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:29.4840378Z ^[[1m^[[92m   Compiling^[[0m siphasher v0.3.11
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:29.7199730Z ^[[1m^[[92m   Compiling^[[0m strsim v0.11.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:29.7867591Z ^[[1m^[[92m   Compiling^[[0m new_debug_unreachable v1.0.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:29.8495386Z ^[[1m^[[92m   Compiling^[[0m icu_locale_core v2.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:30.4983279Z ^[[1m^[[92m   Compiling^[[0m potential_utf v0.1.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:30.6725997Z ^[[1m^[[92m   Compiling^[[0m zerotrie v0.2.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:30.6853862Z ^[[1m^[[92m   Compiling^[[0m bitflags v2.11.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:30.9970930Z ^[[1m^[[92m   Compiling^[[0m log v0.4.29
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:31.0934741Z ^[[1m^[[92m   Compiling^[[0m getrandom v0.1.16
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:31.2733946Z ^[[1m^[[92m   Compiling^[[0m percent-encoding v2.3.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:31.2736471Z ^[[1m^[[92m   Compiling^[[0m thiserror v1.0.69
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:31.4048525Z ^[[1m^[[92m   Compiling^[[0m icu_provider v2.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:31.5555314Z ^[[1m^[[92m   Compiling^[[0m icu_collections v2.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:31.7171996Z ^[[1m^[[92m   Compiling^[[0m phf_macros v0.13.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:31.7681502Z ^[[1m^[[92m   Compiling^[[0m thiserror-impl v1.0.69
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:32.4191995Z ^[[1m^[[92m   Compiling^[[0m rand_core v0.10.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:32.5849802Z ^[[1m^[[92m   Compiling^[[0m precomputed-hash v0.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:32.6507423Z ^[[1m^[[92m   Compiling^[[0m allocator-api2 v0.2.21
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:32.8074508Z ^[[1m^[[92m   Compiling^[[0m byteorder v1.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:33.1067774Z ^[[1m^[[92m   Compiling^[[0m getrandom v0.4.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:33.1189153Z ^[[1m^[[92m   Compiling^[[0m hashbrown v0.17.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:33.6006406Z ^[[1m^[[92m   Compiling^[[0m tracing-core v0.1.36
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:34.0683072Z ^[[1m^[[92m   Compiling^[[0m windows-implement v0.60.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:34.0780484Z ^[[1m^[[92m   Compiling^[[0m windows-interface v0.59.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:34.7122577Z ^[[1m^[[92m   Compiling^[[0m phf_shared v0.11.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:34.9376274Z ^[[1m^[[92m   Compiling^[[0m futures-core v0.3.32
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:35.0313915Z ^[[1m^[[92m   Compiling^[[0m adler2 v2.0.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:35.1010840Z ^[[1m^[[92m   Compiling^[[0m cpufeatures v0.3.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:35.1114747Z ^[[1m^[[92m   Compiling^[[0m crc32fast v1.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:35.1792638Z ^[[1m^[[92m   Compiling^[[0m parking_lot v0.12.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:35.1882646Z ^[[1m^[[92m   Compiling^[[0m rand_core v0.5.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:35.4181874Z ^[[1m^[[92m   Compiling^[[0m icu_properties v2.1.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:35.4405723Z ^[[1m^[[92m   Compiling^[[0m icu_normalizer v2.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:35.7157017Z ^[[1m^[[92m   Compiling^[[0m phf_codegen v0.13.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:35.8388179Z ^[[1m^[[92m   Compiling^[[0m mio v1.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:35.9576644Z ^[[1m^[[92m   Compiling^[[0m socket2 v0.6.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:36.5396380Z ^[[1m^[[92m   Compiling^[[0m tracing-attributes v0.1.31
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:36.8217601Z ^[[1m^[[92m   Compiling^[[0m tokio-macros v2.7.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:37.3580516Z ^[[1m^[[92m   Compiling^[[0m serde_json v1.0.150
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:37.5902313Z ^[[1m^[[92m   Compiling^[[0m syn v1.0.109
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:37.7002657Z ^[[1m^[[92m   Compiling^[[0m option-ext v0.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:37.7690312Z ^[[1m^[[92m   Compiling^[[0m typeid v1.0.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:37.7774275Z ^[[1m^[[92m   Compiling^[[0m ident_case v1.0.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:37.9034653Z ^[[1m^[[92m   Compiling^[[0m darling_core v0.21.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:37.9996621Z ^[[1m^[[92m   Compiling^[[0m tokio v1.52.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:38.1393758Z ^[[1m^[[92m   Compiling^[[0m idna_adapter v1.2.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:38.5894799Z ^[[1m^[[92m   Compiling^[[0m tracing v0.1.44
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:39.1052371Z ^[[1m^[[92m   Compiling^[[0m winapi-util v0.1.11
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:39.4465394Z ^[[1m^[[92m   Compiling^[[0m indexmap v2.14.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:40.9053762Z ^[[1m^[[92m   Compiling^[[0m time-macros v0.2.27
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:41.1963728Z ^[[1m^[[92m   Compiling^[[0m futures-sink v0.3.32
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:41.5284444Z ^[[1m^[[92m   Compiling^[[0m utf-8 v0.7.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:41.6950371Z ^[[1m^[[92m   Compiling^[[0m erased-serde v0.4.10
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:42.0738351Z ^[[1m^[[92m   Compiling^[[0m futures-channel v0.3.32
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:42.4961788Z ^[[1m^[[92m   Compiling^[[0m darling_macro v0.21.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:42.5792232Z ^[[1m^[[92m   Compiling^[[0m time v0.3.47
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:42.9920236Z ^[[1m^[[92m   Compiling^[[0m idna v1.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:45.8100336Z ^[[1m^[[92m   Compiling^[[0m rand_chacha v0.2.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:46.1617175Z ^[[1m^[[92m   Compiling^[[0m rand_pcg v0.2.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:46.2943171Z ^[[1m^[[92m   Compiling^[[0m chacha20 v0.10.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:46.4222416Z ^[[1m^[[92m   Compiling^[[0m phf_generator v0.11.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:46.6398787Z ^[[1m^[[92m   Compiling^[[0m form_urlencoded v1.2.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:46.6746686Z ^[[1m^[[92m   Compiling^[[0m phf_shared v0.8.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:46.8622862Z ^[[1m^[[92m   Compiling^[[0m futures-macro v0.3.32
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:46.8665440Z ^[[1m^[[92m   Compiling^[[0m dtoa v1.0.11
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:47.0174988Z ^[[1m^[[92m   Compiling^[[0m proc-macro-hack v0.5.20+deprecated
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:47.3577445Z ^[[1m^[[92m   Compiling^[[0m unic-char-range v0.9.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:47.4789211Z ^[[1m^[[92m   Compiling^[[0m unic-common v0.9.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:47.5759626Z ^[[1m^[[92m   Compiling^[[0m futures-task v0.3.32
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:47.7934987Z ^[[1m^[[92m   Compiling^[[0m futures-io v0.3.32
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:48.0056375Z ^[[1m^[[92m   Compiling^[[0m slab v0.4.12
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:48.0168606Z ^[[1m^[[92m   Compiling^[[0m unic-ucd-version v0.9.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:48.0736066Z ^[[1m^[[92m   Compiling^[[0m unic-char-property v0.9.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:48.1729999Z ^[[1m^[[92m   Compiling^[[0m futures-util v0.3.32
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:48.2326184Z ^[[1m^[[92m   Compiling^[[0m dtoa-short v0.3.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:48.3728147Z ^[[1m^[[92m   Compiling^[[0m rand v0.10.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:49.4452348Z ^[[1m^[[92m   Compiling^[[0m rand v0.7.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:49.9378074Z ^[[1m^[[92m   Compiling^[[0m darling v0.21.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:50.0381488Z ^[[1m^[[92m   Compiling^[[0m phf v0.13.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:50.2130940Z ^[[1m^[[92m   Compiling^[[0m phf_shared v0.10.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:50.4163816Z ^[[1m^[[92m   Compiling^[[0m string_cache_codegen v0.6.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:50.5993182Z ^[[1m^[[92m   Compiling^[[0m cssparser-macros v0.6.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:51.1356408Z ^[[1m^[[92m   Compiling^[[0m alloc-no-stdlib v2.0.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:51.7947970Z ^[[1m^[[92m   Compiling^[[0m alloc-stdlib v0.2.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:51.8999881Z ^[[1m^[[92m   Compiling^[[0m web_atoms v0.2.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:52.3285333Z ^[[1m^[[92m   Compiling^[[0m phf_generator v0.8.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:52.3406943Z ^[[1m^[[92m   Compiling^[[0m phf_generator v0.10.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:52.4307953Z ^[[1m^[[92m   Compiling^[[0m serde_with_macros v3.17.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:52.4429882Z ^[[1m^[[92m   Compiling^[[0m uuid v1.23.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:52.6048097Z ^[[1m^[[92m   Compiling^[[0m unic-ucd-ident v0.9.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:52.9483330Z ^[[1m^[[92m   Compiling^[[0m url v2.5.8
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:53.1942115Z ^[[1m^[[92m   Compiling^[[0m string_cache_codegen v0.5.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:53.5544015Z ^[[1m^[[92m   Compiling^[[0m phf_codegen v0.11.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:54.0285204Z ^[[1m^[[92m   Compiling^[[0m crypto-common v0.1.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:54.1490500Z ^[[1m^[[92m   Compiling^[[0m regex-automata v0.4.14
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:54.6626286Z ^[[1m^[[92m   Compiling^[[0m serde_spanned v1.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:54.8052012Z ^[[1m^[[92m   Compiling^[[0m cookie v0.18.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:54.8178695Z ^[[1m^[[92m   Compiling^[[0m quick-xml v0.38.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:55.0503914Z ^[[1m^[[92m   Compiling^[[0m dunce v1.0.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:55.2846547Z ^[[1m^[[92m   Compiling^[[0m mac v0.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:55.3480599Z ^[[1m^[[92m   Compiling^[[0m futf v0.1.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:55.6715334Z ^[[1m^[[92m   Compiling^[[0m markup5ever v0.14.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:56.1110353Z ^[[1m^[[92m   Compiling^[[0m phf_macros v0.10.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:56.5740690Z ^[[1m^[[92m   Compiling^[[0m cssparser v0.29.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:56.8214936Z ^[[1m^[[92m   Compiling^[[0m phf_codegen v0.8.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:56.9329052Z ^[[1m^[[92m   Compiling^[[0m brotli-decompressor v5.0.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:59.0036836Z ^[[1m^[[92m   Compiling^[[0m string_cache v0.9.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:59.0041057Z ^[[1m^[[92m   Compiling^[[0m semver v1.0.27
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:59.1165559Z ^[[1m^[[92m   Compiling^[[0m ctor-proc-macro v0.0.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:59.2337690Z ^[[1m^[[92m   Compiling^[[0m bitflags v1.3.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:59.3149597Z ^[[1m^[[92m   Compiling^[[0m cpufeatures v0.2.17
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:59.4787173Z ^[[1m^[[92m   Compiling^[[0m ctor v0.8.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:50:59.7128249Z ^[[1m^[[92m   Compiling^[[0m brotli v8.0.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:00.5077243Z ^[[1m^[[92m   Compiling^[[0m phf v0.10.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:00.6517667Z ^[[1m^[[92m   Compiling^[[0m selectors v0.24.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:02.1875317Z ^[[1m^[[92m   Compiling^[[0m tendril v0.4.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:02.2732384Z ^[[1m^[[92m   Compiling^[[0m tendril v0.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:02.4862535Z ^[[1m^[[92m   Compiling^[[0m selectors v0.36.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:02.6463829Z ^[[1m^[[92m   Compiling^[[0m string_cache v0.8.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:02.8947517Z ^[[1m^[[92m   Compiling^[[0m phf v0.11.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:02.9490950Z ^[[1m^[[92m   Compiling^[[0m crossbeam-channel v0.5.15
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:03.0751897Z ^[[1m^[[92m   Compiling^[[0m indexmap v1.9.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:03.3416384Z ^[[1m^[[92m   Compiling^[[0m derive_more-impl v2.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:03.7674602Z ^[[1m^[[92m   Compiling^[[0m matches v0.1.10
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:03.8248959Z ^[[1m^[[92m   Compiling^[[0m convert_case v0.4.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:04.3475952Z ^[[1m^[[92m   Compiling^[[0m glob v0.3.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:05.0181111Z ^[[1m^[[92m   Compiling^[[0m nodrop v0.1.14
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:05.0802264Z ^[[1m^[[92m   Compiling^[[0m camino v1.2.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:05.0973898Z ^[[1m^[[92m   Compiling^[[0m servo_arc v0.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:05.1967538Z ^[[1m^[[92m   Compiling^[[0m derive_more v2.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:05.2993097Z ^[[1m^[[92m   Compiling^[[0m derive_more v0.99.20
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:06.3549109Z ^[[1m^[[92m   Compiling^[[0m markup5ever v0.38.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:06.6659144Z ^[[1m^[[92m   Compiling^[[0m cssparser v0.36.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:07.0997067Z ^[[1m^[[92m   Compiling^[[0m phf v0.8.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:07.2213522Z ^[[1m^[[92m   Compiling^[[0m fxhash v0.2.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:07.7952153Z ^[[1m^[[92m   Compiling^[[0m servo_arc v0.4.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:07.9712479Z ^[[1m^[[92m   Compiling^[[0m match_token v0.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:08.3180432Z ^[[1m^[[92m   Compiling^[[0m serde_derive_internals v0.29.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:08.7940914Z ^[[1m^[[92m   Compiling^[[0m subtle v2.6.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:08.9542636Z ^[[1m^[[92m   Compiling^[[0m bit-vec v0.8.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:09.2898465Z ^[[1m^[[92m   Compiling^[[0m winnow v0.7.15
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:09.8724919Z ^[[1m^[[92m   Compiling^[[0m schemars v0.8.22
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:09.8725519Z ^[[1m^[[92m   Compiling^[[0m rustc-hash v2.1.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:09.9800657Z ^[[1m^[[92m   Compiling^[[0m hashbrown v0.12.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:11.2840818Z ^[[1m^[[92m   Compiling^[[0m regex v1.12.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:11.6568481Z ^[[1m^[[92m   Compiling^[[0m schemars_derive v0.8.22
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:12.1565509Z ^[[1m^[[92m   Compiling^[[0m bit-set v0.8.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:12.3337685Z ^[[1m^[[92m   Compiling^[[0m html5ever v0.29.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:12.6098154Z ^[[1m^[[92m   Compiling^[[0m html5ever v0.38.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:13.3426693Z ^[[1m^[[92m   Compiling^[[0m cfb v0.7.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:13.5402175Z ^[[1m^[[92m   Compiling^[[0m jsonptr v0.6.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:13.6009594Z ^[[1m^[[92m   Compiling^[[0m tokio-util v0.7.18
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:14.4688849Z ^[[1m^[[92m   Compiling^[[0m same-file v1.0.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:14.6352467Z ^[[1m^[[92m   Compiling^[[0m windows-sys v0.59.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:14.6419223Z ^[[1m^[[92m   Compiling^[[0m cargo-platform v0.1.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:14.7586884Z ^[[1m^[[92m   Compiling^[[0m num-traits v0.2.19
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:14.9765015Z ^[[1m^[[92m   Compiling^[[0m http-body v1.0.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:15.1187726Z ^[[1m^[[92m   Compiling^[[0m toml_datetime v1.1.1+spec-1.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:15.5847801Z ^[[1m^[[92m   Compiling^[[0m toml_datetime v0.7.5+spec-1.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:16.0957441Z ^[[1m^[[92m   Compiling^[[0m httparse v1.10.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:16.3683832Z ^[[1m^[[92m   Compiling^[[0m dyn-clone v1.0.20
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:16.5453671Z ^[[1m^[[92m   Compiling^[[0m simd-adler32 v0.3.8
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:16.7250593Z ^[[1m^[[92m   Compiling^[[0m windows-link v0.1.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:16.7836007Z ^[[1m^[[92m   Compiling^[[0m miniz_oxide v0.8.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:16.8258909Z ^[[1m^[[92m   Compiling^[[0m dom_query v0.27.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:17.4880080Z ^[[1m^[[92m   Compiling^[[0m plist v1.8.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:18.0386026Z ^[[1m^[[92m   Compiling^[[0m toml v1.1.2+spec-1.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:19.2158371Z ^[[1m^[[92m   Compiling^[[0m toml v0.9.12+spec-1.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:20.1126046Z ^[[1m^[[92m   Compiling^[[0m cargo_metadata v0.19.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:21.3400348Z ^[[1m^[[92m   Compiling^[[0m walkdir v2.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:22.0630891Z ^[[1m^[[92m   Compiling^[[0m serde-untagged v0.1.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:22.3876987Z ^[[1m^[[92m   Compiling^[[0m infer v0.19.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:22.4957949Z ^[[1m^[[92m   Compiling^[[0m json-patch v3.0.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:22.5134931Z ^[[1m^[[92m   Compiling^[[0m kuchikiki v0.8.8-speedreader
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:22.7872553Z ^[[1m^[[92m   Compiling^[[0m urlpattern v0.3.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:23.2119072Z ^[[1m^[[92m   Compiling^[[0m serde_with v3.17.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:23.3335188Z ^[[1m^[[92m   Compiling^[[0m try-lock v0.2.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:23.3883777Z ^[[1m^[[92m   Compiling^[[0m litrs v1.0.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:23.4223393Z ^[[1m^[[92m   Compiling^[[0m native-tls v0.2.18
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:23.6759269Z ^[[1m^[[92m   Compiling^[[0m pkg-config v0.3.32
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:24.1506421Z ^[[1m^[[92m   Compiling^[[0m tower-service v0.3.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:24.2329914Z ^[[1m^[[92m   Compiling^[[0m vcpkg v0.2.15
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:24.4676781Z ^[[1m^[[92m   Compiling^[[0m atomic-waker v1.1.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:24.5868262Z ^[[1m^[[92m   Compiling^[[0m h2 v0.4.16
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:24.9294364Z ^[[1m^[[92m   Compiling^[[0m document-features v0.2.12
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:25.2709088Z ^[[1m^[[92m   Compiling^[[0m libsqlite3-sys v0.37.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:25.7000554Z ^[[1m^[[92m   Compiling^[[0m want v0.3.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:25.9054500Z ^[[1m^[[92m   Compiling^[[0m tauri-utils v2.9.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:26.4405574Z ^[[1m^[[92m   Compiling^[[0m flate2 v1.1.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:26.7596580Z ^[[1m^[[92m   Compiling^[[0m dirs-sys v0.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:26.9402746Z ^[[1m^[[92m   Compiling^[[0m vswhom-sys v0.1.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:27.0860946Z ^[[1m^[[92m   Compiling^[[0m schannel v0.1.28
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:27.6006119Z ^[[1m^[[92m   Compiling^[[0m heck v0.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:28.0123832Z ^[[1m^[[92m   Compiling^[[0m pin-utils v0.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:28.0723483Z ^[[1m^[[92m   Compiling^[[0m compression-core v0.4.31
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:28.2342713Z ^[[1m^[[92m   Compiling^[[0m compression-codecs v0.4.37
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:28.6006531Z ^[[1m^[[92m   Compiling^[[0m hyper v1.8.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:30.5179683Z ^[[1m^[[92m   Compiling^[[0m dirs v6.0.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:30.6117217Z ^[[1m^[[92m   Compiling^[[0m chrono v0.4.44
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:32.6042497Z ^[[1m^[[92m   Compiling^[[0m windows-strings v0.4.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:32.9758603Z ^[[1m^[[92m   Compiling^[[0m windows-result v0.3.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:33.0776107Z ^[[1m^[[92m   Compiling^[[0m http-body-util v0.1.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:33.3422464Z ^[[1m^[[92m   Compiling^[[0m sync_wrapper v1.0.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:33.3806676Z ^[[1m^[[92m   Compiling^[[0m hashbrown v0.16.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:33.4342148Z ^[[1m^[[92m   Compiling^[[0m ryu v1.0.23
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:33.7147560Z ^[[1m^[[92m   Compiling^[[0m ipnet v2.12.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:34.2493855Z ^[[1m^[[92m   Compiling^[[0m psl-types v2.0.11
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:34.3811361Z ^[[1m^[[92m   Compiling^[[0m zeroize v1.8.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:34.6044481Z ^[[1m^[[92m   Compiling^[[0m tower-layer v0.3.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:34.7344926Z ^[[1m^[[92m   Compiling^[[0m publicsuffix v2.3.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:34.7980624Z ^[[1m^[[92m   Compiling^[[0m tower v0.5.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:34.9068824Z ^[[1m^[[92m   Compiling^[[0m hashlink v0.11.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:35.2889466Z ^[[1m^[[92m   Compiling^[[0m hyper-util v0.1.20
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:35.5641390Z ^[[1m^[[92m   Compiling^[[0m windows-core v0.61.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:36.3605527Z ^[[1m^[[92m   Compiling^[[0m async-compression v0.4.41
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:36.6312942Z ^[[1m^[[92m   Compiling^[[0m tokio-native-tls v0.3.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:36.8476746Z ^[[1m^[[92m   Compiling^[[0m iri-string v0.7.10
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:38.1256905Z ^[[1m^[[92m   Compiling^[[0m lazy_static v1.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:38.2050430Z ^[[1m^[[92m   Compiling^[[0m fallible-streaming-iterator v0.1.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:38.3526015Z ^[[1m^[[92m   Compiling^[[0m fallible-iterator v0.3.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:38.8197590Z ^[[1m^[[92m   Compiling^[[0m rusqlite v0.39.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:40.0261633Z ^[[1m^[[92m   Compiling^[[0m tower-http v0.6.8
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:41.0611993Z ^[[1m^[[92m   Compiling^[[0m sharded-slab v0.1.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:41.5776779Z ^[[1m^[[92m   Compiling^[[0m winreg v0.55.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:41.6951728Z ^[[1m^[[92m   Compiling^[[0m hyper-tls v0.6.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:41.8583302Z ^[[1m^[[92m   Compiling^[[0m vswhom v0.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:41.9826750Z ^[[1m^[[92m   Compiling^[[0m cookie_store v0.22.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:42.0032488Z ^[[1m^[[92m   Compiling^[[0m rustls-pki-types v1.14.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:42.0477556Z ^[[1m^[[92m   Compiling^[[0m serde_urlencoded v0.7.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:42.3982532Z ^[[1m^[[92m   Compiling^[[0m rustc_version v0.4.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:42.7705497Z ^[[1m^[[92m   Compiling^[[0m matchers v0.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:42.8878611Z ^[[1m^[[92m   Compiling^[[0m scheduled-thread-pool v0.2.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:42.9581716Z ^[[1m^[[92m   Compiling^[[0m tracing-log v0.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:43.2942197Z ^[[1m^[[92m   Compiling^[[0m blake3 v1.8.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:43.3515882Z ^[[1m^[[92m   Compiling^[[0m nu-ansi-term v0.50.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:43.4113782Z ^[[1m^[[92m   Compiling^[[0m windows-strings v0.5.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:43.7000126Z ^[[1m^[[92m   Compiling^[[0m windows-result v0.4.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:43.9503728Z ^[[1m^[[92m   Compiling^[[0m thread_local v1.1.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:44.1143957Z ^[[1m^[[92m   Compiling^[[0m unicode-segmentation v1.12.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:44.2916024Z ^[[1m^[[92m   Compiling^[[0m winapi v0.3.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:44.7465393Z ^[[1m^[[92m   Compiling^[[0m tempfile v3.27.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:44.7524507Z ^[[1m^[[92m   Compiling^[[0m tracing-subscriber v0.3.22
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:44.8710493Z ^[[1m^[[92m   Compiling^[[0m windows-core v0.62.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:45.6473081Z ^[[1m^[[92m   Compiling^[[0m r2d2 v0.8.10
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:45.8812474Z ^[[1m^[[92m   Compiling^[[0m embed-resource v3.0.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:45.9597382Z ^[[1m^[[92m   Compiling^[[0m reqwest v0.13.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:46.2478458Z ^[[1m^[[92m   Compiling^[[0m windows-threading v0.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:46.3719425Z ^[[1m^[[92m   Compiling^[[0m block-buffer v0.10.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:46.6367267Z ^[[1m^[[92m   Compiling^[[0m arrayref v0.3.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:46.7095628Z ^[[1m^[[92m   Compiling^[[0m constant_time_eq v0.4.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:46.9278750Z ^[[1m^[[92m   Compiling^[[0m arrayvec v0.7.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:48.0641554Z ^[[1m^[[92m   Compiling^[[0m tracing-appender v0.2.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:49.5435494Z ^[[1m^[[92m   Compiling^[[0m digest v0.10.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:49.7975954Z ^[[1m^[[92m   Compiling^[[0m windows-future v0.2.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:49.9019888Z ^[[1m^[[92m   Compiling^[[0m tauri-winres v0.3.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:50.2732905Z ^[[1m^[[92m   Compiling^[[0m r2d2_sqlite v0.34.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:51.5233216Z ^[[1m^[[92m   Compiling^[[0m windows-collections v0.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:51.8314636Z ^[[1m^[[92m   Compiling^[[0m windows-numerics v0.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:52.0787714Z ^[[1m^[[92m   Compiling^[[0m cargo_toml v0.22.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:52.7012919Z ^[[1m^[[92m   Compiling^[[0m fs4 v0.13.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:53.0173674Z ^[[1m^[[92m   Compiling^[[0m inout v0.1.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:53.1476856Z ^[[1m^[[92m   Compiling^[[0m colored v3.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:53.9745968Z ^[[1m^[[92m   Compiling^[[0m raw-window-handle v0.6.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:54.1419503Z ^[[1m^[[92m   Compiling^[[0m tauri-build v2.6.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:54.3019228Z ^[[1m^[[92m   Compiling^[[0m ccr-core v7.2.0 (D:\a\ccr\ccr\crates\ccr-core)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:56.1622556Z ^[[1m^[[92m   Compiling^[[0m cipher v0.4.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:56.4141426Z ^[[1m^[[92m   Compiling^[[0m windows v0.61.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:57.2663188Z ^[[1m^[[92m   Compiling^[[0m ccr-types v7.2.0 (D:\a\ccr\ccr\crates\ccr-types)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:57.2928911Z ^[[1m^[[92m   Compiling^[[0m universal-hash v0.5.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:57.4389330Z ^[[1m^[[92m   Compiling^[[0m dpi v0.1.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:57.9217175Z ^[[1m^[[92m   Compiling^[[0m webview2-com-sys v0.38.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:58.2328310Z ^[[1m^[[92m   Compiling^[[0m opaque-debug v0.3.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:58.2876125Z ^[[1m^[[92m   Compiling^[[0m polyval v0.6.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:59.6016787Z ^[[1m^[[92m   Compiling^[[0m ghash v0.5.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:51:59.7083007Z ^[[1m^[[92m   Compiling^[[0m tauri v2.11.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:00.1319435Z ^[[1m^[[92m   Compiling^[[0m aes v0.8.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:00.1399569Z ^[[1m^[[92m   Compiling^[[0m ctr v0.9.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:00.3232009Z ^[[1m^[[92m   Compiling^[[0m fdeflate v0.3.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:01.0099703Z ^[[1m^[[92m   Compiling^[[0m tauri-plugin v2.5.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:01.3187582Z ^[[1m^[[92m   Compiling^[[0m aead v0.5.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:02.6334374Z ^[[1m^[[92m   Compiling^[[0m crossbeam-epoch v0.9.18
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:02.8483198Z ^[[1m^[[92m   Compiling^[[0m webview2-com-macros v0.8.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:03.1359029Z ^[[1m^[[92m   Compiling^[[0m windows-version v0.1.7
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:03.2448531Z ^[[1m^[[92m   Compiling^[[0m windows-threading v0.2.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:03.3029659Z ^[[1m^[[92m   Compiling^[[0m ntapi v0.4.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:03.3964470Z ^[[1m^[[92m   Compiling^[[0m windows_x86_64_msvc v0.53.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:03.4882882Z ^[[1m^[[92m   Compiling^[[0m windows-future v0.3.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:04.5432186Z ^[[1m^[[92m   Compiling^[[0m aes-gcm v0.10.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:04.8998048Z ^[[1m^[[92m   Compiling^[[0m png v0.17.16
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:05.1955743Z ^[[1m^[[92m   Compiling^[[0m ccr-config v7.2.0 (D:\a\ccr\ccr\crates\ccr-config)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:06.4125791Z ^[[1m^[[92m   Compiling^[[0m windows-collections v0.3.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:06.6670930Z ^[[1m^[[92m   Compiling^[[0m windows-numerics v0.3.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:08.6448271Z ^[[1m^[[92m   Compiling^[[0m hybrid-array v0.4.8
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:09.4439449Z ^[[1m^[[92m   Compiling^[[0m anstyle v1.0.13
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:09.7487537Z ^[[1m^[[92m   Compiling^[[0m rayon-core v1.13.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:09.8339177Z ^[[1m^[[92m   Compiling^[[0m base64ct v1.8.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:09.9671424Z ^[[1m^[[92m   Compiling^[[0m utf8parse v0.2.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:10.0696547Z ^[[1m^[[92m   Compiling^[[0m unicode-width v0.2.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:10.2319268Z ^[[1m^[[92m   Compiling^[[0m tauri-runtime v2.11.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:10.4197700Z ^[[1m^[[92m   Compiling^[[0m wry v0.55.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:10.8737730Z ^[[1m^[[92m   Compiling^[[0m once_cell_polyfill v1.70.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:10.9696105Z ^[[1m^[[92m   Compiling^[[0m anstyle-wincon v3.0.11
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:11.4083998Z ^[[1m^[[92m   Compiling^[[0m password-hash v0.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:12.1451562Z ^[[1m^[[92m   Compiling^[[0m anstyle-parse v1.0.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:12.2497416Z ^[[1m^[[92m   Compiling^[[0m windows v0.62.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:12.3694896Z ^[[1m^[[92m   Compiling^[[0m ico v0.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:13.2021888Z ^[[1m^[[92m   Compiling^[[0m sha2 v0.10.9
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:15.9725093Z ^[[1m^[[92m   Compiling^[[0m crossbeam-deque v0.8.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:16.1794905Z ^[[1m^[[92m   Compiling^[[0m tauri-plugin-fs v2.4.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:19.5957477Z ^[[1m^[[92m   Compiling^[[0m crossterm_winapi v0.9.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:20.2359112Z ^[[1m^[[92m   Compiling^[[0m blake2 v0.10.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:21.1380103Z ^[[1m^[[92m   Compiling^[[0m md-5 v0.10.6
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:22.1124556Z ^[[1m^[[92m   Compiling^[[0m keyboard-types v0.7.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:24.6295438Z ^[[1m^[[92m   Compiling^[[0m futures-executor v0.3.32
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:25.1057975Z ^[[1m^[[92m   Compiling^[[0m termcolor v1.4.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:26.9302949Z ^[[1m^[[92m   Compiling^[[0m anstyle-query v1.1.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:27.2028354Z ^[[1m^[[92m   Compiling^[[0m syn v3.0.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:33.9664958Z ^[[1m^[[92m   Compiling^[[0m colorchoice v1.0.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:34.0686931Z ^[[1m^[[92m   Compiling^[[0m tauri-runtime-wry v2.11.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:34.1947611Z ^[[1m^[[92m   Compiling^[[0m hex v0.4.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:34.3093509Z ^[[1m^[[92m   Compiling^[[0m xml-rs v0.8.28
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:34.5427123Z ^[[1m^[[92m   Compiling^[[0m getrandom v0.3.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:35.0321286Z ^[[1m^[[92m   Compiling^[[0m is_terminal_polyfill v1.70.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:35.1902910Z ^[[1m^[[92m   Compiling^[[0m serde-xml-rs v0.6.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:35.7150510Z ^[[1m^[[92m   Compiling^[[0m anstream v1.0.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:36.4705504Z ^[[1m^[[92m   Compiling^[[0m digest_auth v0.3.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:36.8157197Z ^[[1m^[[92m   Compiling^[[0m async-trait v0.1.92
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:37.8429293Z ^[[1m^[[92m   Compiling^[[0m ts-rs-macros v11.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:38.4346440Z ^[[1m^[[92m   Compiling^[[0m futures v0.3.32
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:38.5180007Z ^[[1m^[[92m   Compiling^[[0m muda v0.19.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:40.6472376Z ^[[1m^[[92m   Compiling^[[0m argon2 v0.5.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:41.7072541Z ^[[1m^[[92m   Compiling^[[0m crossterm v0.29.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:43.0857928Z ^[[1m^[[92m   Compiling^[[0m windows-targets v0.53.5
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:43.1900757Z ^[[1m^[[92m   Compiling^[[0m tauri-codegen v2.6.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:47.0491058Z ^[[1m^[[92m   Compiling^[[0m tao v0.35.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:53.2432361Z ^[[1m^[[92m   Compiling^[[0m webview2-com v0.38.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:53.5706104Z ^[[1m^[[92m   Compiling^[[0m crypto-common v0.2.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:55.7213587Z ^[[1m^[[92m   Compiling^[[0m block-buffer v0.12.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:52:55.9336044Z ^[[1m^[[92m   Compiling^[[0m softbuffer v0.4.8
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:00.1208814Z ^[[1m^[[92m   Compiling^[[0m concurrent-queue v2.5.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:00.3699319Z ^[[1m^[[92m   Compiling^[[0m serialize-to-javascript-impl v0.1.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:00.8559895Z ^[[1m^[[92m   Compiling^[[0m const-oid v0.10.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:00.9757568Z ^[[1m^[[92m   Compiling^[[0m parking v2.2.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:01.1291968Z ^[[1m^[[92m   Compiling^[[0m httpdate v1.0.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:01.1649341Z ^[[1m^[[92m   Compiling^[[0m encode_unicode v1.0.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:01.3936999Z ^[[1m^[[92m   Compiling^[[0m clap_lex v1.0.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:01.5072907Z ^[[1m^[[92m   Compiling^[[0m either v1.15.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:01.7051632Z ^[[1m^[[92m   Compiling^[[0m rayon v1.11.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:01.7799445Z ^[[1m^[[92m   Compiling^[[0m console v0.16.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:01.8598134Z ^[[1m^[[92m   Compiling^[[0m clap_builder v4.6.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:02.9856263Z ^[[1m^[[92m   Compiling^[[0m reqwest_dav v0.3.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:04.6424329Z ^[[1m^[[92m   Compiling^[[0m event-listener v5.4.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:04.9344969Z ^[[1m^[[92m   Compiling^[[0m digest v0.11.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:04.9585482Z ^[[1m^[[92m   Compiling^[[0m serialize-to-javascript v0.1.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:05.1523779Z ^[[1m^[[92m   Compiling^[[0m tauri-macros v2.6.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:07.5349784Z ^[[1m^[[92m   Compiling^[[0m sysinfo v0.38.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:07.9309006Z ^[[1m^[[92m   Compiling^[[0m windows-sys v0.60.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:09.8269706Z ^[[1m^[[92m   Compiling^[[0m comfy-table v7.2.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:10.1490986Z ^[[1m^[[92m   Compiling^[[0m ts-rs v11.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:11.4581011Z ^[[1m^[[92m   Compiling^[[0m tray-icon v0.23.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:12.0203405Z ^[[1m^[[92m   Compiling^[[0m window-vibrancy v0.6.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:12.2495543Z ^[[1m^[[92m   Compiling^[[0m tauri-plugin-dialog v2.6.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:12.5597779Z ^[[1m^[[92m   Compiling^[[0m clap_derive v4.6.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:13.2304128Z ^[[1m^[[92m   Compiling^[[0m rtoolbox v0.0.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:13.5826229Z ^[[1m^[[92m   Compiling^[[0m serde_repr v0.1.20
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:13.6809738Z ^[[1m^[[92m   Compiling^[[0m phf_shared v0.12.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:13.9123815Z ^[[1m^[[92m   Compiling^[[0m filetime v0.2.27
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:14.1186379Z ^[[1m^[[92m   Compiling^[[0m unsafe-libyaml v0.2.11
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:14.2267198Z ^[[1m^[[92m   Compiling^[[0m mime v0.3.17
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:14.6711447Z ^[[1m^[[92m   Compiling^[[0m shell-words v1.1.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:14.8867155Z ^[[1m^[[92m   Compiling^[[0m whoami v2.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:15.5546720Z ^[[1m^[[92m   Compiling^[[0m chrono-tz v0.10.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:15.6496348Z ^[[1m^[[92m   Compiling^[[0m rfd v0.16.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:15.7739774Z ^[[1m^[[92m   Compiling^[[0m rustversion v1.0.22
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:15.8357472Z ^[[1m^[[92m   Compiling^[[0m urlencoding v2.1.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:15.9054850Z ^[[1m^[[92m   Compiling^[[0m portable-atomic v1.13.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:16.1265817Z ^[[1m^[[92m   Compiling^[[0m ccr-skills v7.2.0 (D:\a\ccr\ccr\crates\ccr-skills)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:16.2704851Z ^[[1m^[[92m   Compiling^[[0m clap v4.6.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:16.3754000Z ^[[1m^[[92m   Compiling^[[0m ccr-store v7.2.0 (D:\a\ccr\ccr\crates\ccr-store)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:16.5841425Z ^[[1m^[[92m   Compiling^[[0m serde_yaml v0.9.34+deprecated
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:20.1361205Z ^[[1m^[[92m   Compiling^[[0m dialoguer v0.12.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:23.6097430Z ^[[1m^[[92m   Compiling^[[0m ccr-codex v7.2.0 (D:\a\ccr\ccr\crates\ccr-codex)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:23.6992920Z ^[[1m^[[92m   Compiling^[[0m phf v0.12.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:23.9190351Z ^[[1m^[[92m   Compiling^[[0m rpassword v7.5.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:24.5016496Z ^[[1m^[[92m   Compiling^[[0m ccr-sync v7.2.0 (D:\a\ccr\ccr\crates\ccr-sync)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:27.8618001Z ^[[1m^[[92m   Compiling^[[0m sha2 v0.11.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:29.1614978Z ^[[1m^[[92m   Compiling^[[0m event-listener-strategy v0.5.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:29.3015880Z ^[[1m^[[92m   Compiling^[[0m ccr v7.2.0 (D:\a\ccr\ccr\crates\ccr)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:29.5303037Z ^[[1m^[[92m   Compiling^[[0m open v5.4.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:29.5558662Z ^[[1m^[[92m   Compiling^[[0m async-lock v3.4.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:29.9259313Z ^[[1m^[[92m   Compiling^[[0m ccr-db v7.2.0 (D:\a\ccr\ccr\crates\ccr-db)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:30.4942206Z ^[[1m^[[92m   Compiling^[[0m ccr-cli v7.2.0 (D:\a\ccr\ccr\crates\ccr-cli)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:46.1391930Z ^[[1m^[[92m   Compiling^[[0m ccr-desktop v7.2.0 (D:\a\ccr\ccr\ccr-ui\src-tauri)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:47.7260111Z ^[[1m^[[92m   Compiling^[[0m iana-time-zone v0.1.65
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:47.8771646Z ^[[1m^[[92m   Compiling^[[0m notify-types v2.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:48.4540869Z ^[[1m^[[92m   Compiling^[[0m tagptr v0.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:48.6231989Z ^[[1m^[[92m   Compiling^[[0m moka v0.12.15
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:50.4901301Z ^[[1m^[[92m   Compiling^[[0m notify v8.2.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:51.0868657Z ^[[1m^[[92m   Compiling^[[0m ccr-usage v7.2.0 (D:\a\ccr\ccr\crates\ccr-usage)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:52.7581070Z ^[[1m^[[92m   Compiling^[[0m arc-swap v1.9.1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:53.3966151Z ^[[1m^[[92m   Compiling^[[0m ccr-checkin v7.2.0 (D:\a\ccr\ccr\crates\ccr-checkin)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:54.3796402Z ^[[1m^[[92m   Compiling^[[0m sysinfo v0.39.3
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:55.2091747Z ^[[1m^[[92m   Compiling^[[0m lru v0.18.2
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:55.4169905Z ^[[1m^[[92m   Compiling^[[0m winreg v0.56.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:56.1672464Z ^[[1m^[[92m   Compiling^[[0m fs4 v1.1.0
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:53:56.5356459Z ^[[1m^[[92m   Compiling^[[0m ccr-tauri-command-macros v0.1.0 (D:\a\ccr\ccr\ccr-ui\src-tauri\command-macros)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:26.1444881Z ^[[1m^[[92m    Finished^[[0m `test` profile [unoptimized + debuginfo] target(s) in 6m 47s
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:26.3525518Z ^[[1m^[[92m     Running^[[0m unittests src\main.rs (ccr-ui\src-tauri\target\debug\deps\ccr_desktop-322991b3b580a5c8.exe)
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:26.3758966Z 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:26.3759869Z running 10 tests
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:26.3777526Z test process::gateway::tests::descriptor_catalog_is_closed_and_resolves_expected_tools ... ok
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:26.3834727Z test process::gateway::tests::development_sidecar_and_hash_validation_are_deterministic ... ok
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:26.3843630Z test process::gateway::tests::oauth_url_policy_accepts_authorize_and_fixed_loopback_callback ... ok
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:26.3846543Z test process::gateway::tests::oauth_url_policy_rejects_unsafe_schemes_and_host_confusion ... ok
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:26.3850380Z test process::gateway::tests::owned_process_registry_filters_ports_and_requests_cancellation ... ok
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:26.4054538Z test process::gateway::tests::release_sidecar_resolution_requires_hash_and_never_falls_back_to_path ... ok
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:26.4099693Z test process::gateway::tests::sidecar_hash_mismatch_is_rejected ... ok
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:26.5066955Z test process::gateway::tests::foreground_timeout_terminates_and_reaps_process ... ok
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4074458Z test process::gateway::tests::foreground_stdin_is_written_and_streams_are_collected ... FAILED
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4127924Z test process::gateway::tests::foreground_output_flood_is_capped_and_terminated ... FAILED
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4128632Z 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4128784Z failures:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4129477Z 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4130083Z ---- process::gateway::tests::foreground_stdin_is_written_and_streams_are_collected stdout ----
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4130715Z 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4131409Z thread 'process::gateway::tests::foreground_stdin_is_written_and_streams_are_collected' (8672) panicked at src\process\gateway.rs:941:9:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4133313Z assertion failed: output.status.success()
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4133939Z note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4134383Z 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4134823Z ---- process::gateway::tests::foreground_output_flood_is_capped_and_terminated stdout ----
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4135353Z 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4135916Z thread 'process::gateway::tests::foreground_output_flood_is_capped_and_terminated' (7172) panicked at src\process\gateway.rs:969:9:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4136893Z assertion failed: output.stdout_truncated
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4137233Z 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4137238Z 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4137417Z failures:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4137961Z     process::gateway::tests::foreground_output_flood_is_capped_and_terminated
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4138837Z     process::gateway::tests::foreground_stdin_is_written_and_streams_are_collected
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4139374Z 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4139883Z test result: FAILED. 8 passed; 2 failed; 0 ignored; 0 measured; 480 filtered out; finished in 5.04s
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4140544Z 
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4171874Z ^[[1m^[[91merror^[[0m: test failed, to rerun pass `--bin ccr-desktop`
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.4682405Z error: recipe `tauri-process-smoke` failed on line 1464 with exit code 1
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.6269398Z ##[error]Process completed with exit code 1.
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.6612988Z Post job cleanup.
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.8813477Z [command]"C:\Program Files\Git\bin\git.exe" version
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.9163904Z git version 2.55.0.windows.4
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.9239956Z Temporarily overriding HOME='D:\a\_temp\64147e01-1854-4afa-b5de-2341f9789cd6' before making global git config changes
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.9241254Z Adding repository directory to the temporary git global config as a safe directory
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.9251850Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\ccr\ccr
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.9631371Z Removing SSH command configuration
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:31.9642107Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:32.0005459Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:32.7880487Z Removing HTTP extra header
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:32.7893952Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:32.8314106Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:33.7021452Z Removing includeIf entries pointing to credentials config files
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:33.7035185Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:33.8735242Z includeif.gitdir:D:/a/ccr/ccr/.git.path
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:33.8735944Z includeif.gitdir:D:/a/ccr/ccr/.git/worktrees/*.path
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:33.8736590Z includeif.gitdir:/github/workspace/.git.path
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:33.8737244Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:33.8788687Z [command]"C:\Program Files\Git\bin\git.exe" config --local --get-all includeif.gitdir:D:/a/ccr/ccr/.git.path
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:33.9091886Z D:\a\_temp\git-credentials-270c35bf-7945-44b7-964e-be820644cb2f.config
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:33.9153731Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset includeif.gitdir:D:/a/ccr/ccr/.git.path D:\a\_temp\git-credentials-270c35bf-7945-44b7-964e-be820644cb2f.config
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:33.9505809Z [command]"C:\Program Files\Git\bin\git.exe" config --local --get-all includeif.gitdir:D:/a/ccr/ccr/.git/worktrees/*.path
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:33.9859149Z D:\a\_temp\git-credentials-270c35bf-7945-44b7-964e-be820644cb2f.config
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:33.9909329Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset includeif.gitdir:D:/a/ccr/ccr/.git/worktrees/*.path D:\a\_temp\git-credentials-270c35bf-7945-44b7-964e-be820644cb2f.config
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:34.0333986Z [command]"C:\Program Files\Git\bin\git.exe" config --local --get-all includeif.gitdir:/github/workspace/.git.path
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:34.0632613Z /github/runner_temp/git-credentials-270c35bf-7945-44b7-964e-be820644cb2f.config
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:34.0680409Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset includeif.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-270c35bf-7945-44b7-964e-be820644cb2f.config
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:34.1099808Z [command]"C:\Program Files\Git\bin\git.exe" config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:34.1440660Z /github/runner_temp/git-credentials-270c35bf-7945-44b7-964e-be820644cb2f.config
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:34.1499297Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-270c35bf-7945-44b7-964e-be820644cb2f.config
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:34.1926107Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:34.8399230Z Removing credentials config 'D:\a\_temp\git-credentials-270c35bf-7945-44b7-964e-be820644cb2f.config'
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:34.8671560Z Cleaning up orphan processes
+Tauri Smoke (windows-2025)	UNKNOWN STEP	2026-08-24T02:56:34.9166602Z Terminate orphan process: pid (2272) (vctip)
+Tauri Linux Required	UNKNOWN STEP	锘?026-08-24T02:59:33.1722227Z Current runner version: '2.336.0'
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1749590Z ##[group]Runner Image Provisioner
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1750477Z Hosted Compute Agent
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1751237Z Version: 20260729.566
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1751912Z Commit: cf7153fe6e25b664e8693c24944bf2b00355d109
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1752666Z Build Date: 2026-07-29T19:17:02Z
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1753487Z Worker ID: {20a2a2a2-21a0-4a4f-acf5-bdfc2b6d49c7}
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1754241Z Azure Region: eastus2
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1755014Z ##[endgroup]
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1756565Z ##[group]Operating System
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1757208Z Ubuntu
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1757857Z 24.04.4
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1758446Z LTS
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1759060Z ##[endgroup]
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1759651Z ##[group]Runner Image
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1760274Z Image: ubuntu-24.04
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1760951Z Version: 20260816.277.1
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1762255Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260816.277/images/ubuntu/Ubuntu2404-Readme.md
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1763887Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260816.277
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1765150Z ##[endgroup]
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1766367Z ##[group]GITHUB_TOKEN Permissions
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1768617Z Contents: read
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1769323Z Metadata: read
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1769937Z ##[endgroup]
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1772111Z Secret source: Dependabot
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.1773614Z Prepare workflow directory
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.2449286Z Prepare all required actions
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.2594980Z Complete job name: Tauri Linux Required
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.3773946Z ##[group]Run set -eu
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.3774976Z ^[[36;1mset -eu^[[0m
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.3775678Z ^[[36;1mtest "$DETECTION" = success^[[0m
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.3776537Z ^[[36;1mif [ "$RELEVANT" != true ]; then^[[0m
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.3777367Z ^[[36;1m  echo "Tauri validation is not relevant to this pull request."^[[0m
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.3778236Z ^[[36;1m  exit 0^[[0m
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.3778690Z ^[[36;1mfi^[[0m
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.3779262Z ^[[36;1mfor result in "$LINUX" "$PLATFORM" "$COVERAGE"; do^[[0m
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.3779938Z ^[[36;1m  test "$result" = success^[[0m
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.3780469Z ^[[36;1mdone^[[0m
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.6699320Z shell: /usr/bin/bash -e {0}
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.6700601Z env:
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.6701350Z   DETECTION: success
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.6702164Z   RELEVANT: true
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.6702944Z   LINUX: success
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.6703762Z   PLATFORM: failure
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.6704586Z   COVERAGE: success
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.6705560Z ##[endgroup]
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.6957103Z ##[error]Process completed with exit code 1.
+Tauri Linux Required	UNKNOWN STEP	2026-08-24T02:59:33.7120053Z Cleaning up orphan processes

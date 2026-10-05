@@ -1,0 +1,10 @@
+{"file":".trellis/tasks/08-29-ui-agents-page/research/agentsview-scope.md","reason":"审查是否越界纳入 FTS/semantic/Recall/remote sync 或漏掉会话浏览闭环"}
+{"file":".trellis/tasks/08-29-ui-agents-page/research/agent-provider-matrix.md","reason":"逐一审查 Grok、Claude、Codex、OpenCode、Pi、OMP、Antigravity、Kimi 是否有真实 fixture、正确 identity 与诚实 fidelity"}
+{"file":".trellis/spec/ccr-db/backend/backend-guidelines.md","reason":"审查 fresh/upgrade schema 一致、guarded additive migration、事务与连接池边界"}
+{"file":".trellis/spec/ccr-store/backend/backend-guidelines.md","reason":"审查 parser 分层、批量操作、错误上下文和禁止日志记录 transcript"}
+{"file":".trellis/spec/ccr/backend/typed-ipc-bindings.md","reason":"审查无 Value 类型擦除、数字/Option 生成正确且绑定无漂移"}
+{"file":".trellis/spec/ccr/backend/tauri-handler-registry.md","reason":"审查命令 registry 分类、runtime policy、生成 client 声明与计数"}
+{"file":".trellis/spec/ccr-ui/frontend/api-facade-boundary.md","reason":"拒绝任何 direct invoke 或绕过 generated client 的前端消费者"}
+{"file":".trellis/spec/ccr-ui/frontend/layering-contracts.md","reason":"拒绝 feature 跨域导入、ui 反向依赖和新循环"}
+{"file":".trellis/spec/ccr-ui/frontend/react-rerender-discipline.md","reason":"拒绝无虚拟化长列表、index key、inline row props 和过度 query 失效"}
+{"file":".trellis/spec/ccr-ui/frontend/theme-token-contracts.md","reason":"拒绝新 token、滚动区 glass、对比度或 reduced-motion 回归"}

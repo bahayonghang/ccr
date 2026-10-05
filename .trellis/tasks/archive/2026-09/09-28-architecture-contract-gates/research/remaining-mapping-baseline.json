@@ -1,0 +1,95 @@
+{
+  "scope": "Previous published mapping before additive remaining evidence integration. Historical run objects and validation count retained; current source indices may change.",
+  "published_artifacts": {
+    "requirements-evidence.json": "2153bbff149b7f0b78565642320a2e8ae3f14ed00bbd3adac4ad1639ddaa6b4d",
+    "requirements-evidence.md": "839ced4ff7fe66a180aad2ee508e5e36adc94b76f17bd5fff4e0fadd24acc7da",
+    "evidence-mapping-validation.json": "8da6b23dbcc064f27e82c00c348643783b06973f468b6776cc24f048fbc05d9f"
+  },
+  "prior_run_count": 41,
+  "prior_verified_artifact_count": 227,
+  "prior_run_fingerprints": {
+    "tauri_all_targets_clippy": "ce48a00a06697cbfaa07740c00defade1496e2fcb28441fa509c4819e3ae1052",
+    "tauri_codex": "df304fbdd0f7e06139c704b227ef0cd84c002657c9f420a5a375ddfdc20dac61",
+    "tauri_state": "60a6cb352d7ee2e3e213c3e7803cddc37325153af7beb25926f0f1b2d5871c60",
+    "tauri_close-action": "d36950fa30231e77ba431bddaf2bb3c70e0f5f50001f9848d7471bfad8553199",
+    "tauri_claude-read": "6ef116d94ca5f978de3d3870d0efb0195a2add2dc593bbd9271a192917dbd914",
+    "settings_smoke": "3c6e9bf3feef69aac347802a371efcb28f3d1178432d60c3eceb6981d24ebcbc",
+    "i18n": "01876a52ab5069543a8197b57d67261c4c5c101594043b7e4cddfafd1737aec0",
+    "typescript": "959f724b629866227a3b2605e9137f45bb140b2278a7c58fc1b0b74beb0dbe7b",
+    "scoped_eslint": "333f3e4cb29a70b14bf7f2d0c897ea4915a59e9f3079846cc84535ce5303e912",
+    "linux_198_process": "b20fe58914532b097627b2e0cbc7a92d381a7706bfa189d2125992f11383ff76",
+    "linux_198_codex_clippy": "85a69818847d74c12e7d87a5cd29979cab27ad1d95f5f6f46b7eac267bcd2034",
+    "security_root_audit": "bf63774066aaa1329d9f585a982b5d8d567a9932f057bb767b4e07aa2dea60e7",
+    "security_tauri_audit": "5bbdeaabb0a862990cafcc2f66b70b0825e9ac29e88c7c3f63900009207b96bb",
+    "security_dependency_governance": "a08a1b8eeea8053a6dddb3eb40ba22079810f66628e4030ada08eb064b01e218",
+    "doctor_original_narrow": "499649ae3076e5c1ea97db4eacc75822b851a2fb75c12ef4f25dc0486a695914",
+    "doctor_controlled_red": "488a4545416ab0e05c7447d9261aa78bdf902495d5b7743006e62e43436e2d49",
+    "doctor_startup_failure": "9cba6bc2d8dc1b0538877f8db82ebc92ebc9746f4fc3e227413b2b960ad050f4",
+    "doctor_focused_retry": "caa04fd8c0bf2207c4b6bd8c617444b3381449ecd252c5c17c2fdb9c987684d1",
+    "doctor_package": "5d6c2ac4e53325a2a7ac29c5a068774888cf11fc2690f1f54cdf03a6ab12df23",
+    "doctor_clippy": "0a2c3c4e37b5e16e75974621261996361db0df25d1567875f2cbd114ad61673d",
+    "linux_198_doctor": "0b9124d4d58d454abb1f69520c5c5fcaef72173baa175eb9dc26f1185ec724b4",
+    "root_full_ci_before_doctor": "9715237c002e5e504b1ba883bbf1097aae8aab54701b16404886d59855483eac",
+    "root_full_ci_after_doctor": "b95ec50680f98d96526c2a46365081b2895ca0e429cfbb4e0b65c3348a9151c3",
+    "formal_frontend_gate": "0811d06a7a8568d75a850eb07eb4ff0673f8a0b0efe875c3ad813809a91772b7",
+    "linux_195_workspace_msrv": "b9af1180e2eaeda042050df0c517e7be6c0d4f780bf076b6224b6663fd6826ec",
+    "windows_195_tauri_msrv": "fe47d3a0dd0d08701ea02dca2f6bea29f78e47ffefcfe837b0e4762790532dd0",
+    "ui_production_build": "8252d39600a99ec72676840d512c00bf2f9b08dba25b0c76649885dcd1292867",
+    "bindings_followup": "3a95550a4790be42ea7817817eedd4ad9975e23b8ca2750112afeef365cc7736",
+    "standalone_tauri_ci": "aea429303c6902d48bb25fe87802ee7c479b8a8a1eb70150a27ff5a5576eae45",
+    "linux_198_tauri_process_before_import_fix": "7a7f1e1a5cc624cb309737ded6ec1262a144699e025b70c608f6d7086558f674",
+    "linux_198_core_process_before_import_fix": "d4348358c4b8f322130168a541c6030147761a14780679ba0996e23e6f3911b8",
+    "linux_198_tauri_strict_final": "c4d7a25f146aba3d6c3df15895b5be5ff15a825aedece3df7698b3e243f78e48",
+    "linux_oauth_zero_match": "a9d9c9bcbf280661d0797a4dcb28fea45ce0103157c17bf2aac9db0eaa6febe2",
+    "linux_198_tauri_process_final": "6001cde6b70e536627af30ea60790b367909d75bd134ccb59c8f99d0df92591d",
+    "windows_195_tauri_msrv_final": "b4d80eccad23f3261ca8f1b8b391eaa69db061dfadecaca905c74d84e4d6c317",
+    "windows_oauth_zero_match": "631102f5079b9e4ca86af130c21f496f8e058db123e3181bec4447ddc77dfd1e",
+    "tauri_fmt_final": "bf6a00b3c9b2880aa1a72033db88b34f0c8c89dca425c72953e11739a8a55940",
+    "linux_oauth_corrected": "6f1c8bc0014853dbf8ce46d6aa7195664e9133a0dd37a3016470f598acbb536c",
+    "windows_oauth_corrected": "45ea13bf44aeebe58dd323a7e35c77de5546319f84e028e2c5a89898205812be",
+    "frontend_full_tests": "dc9270c861dbedaf4d88e7073a6be1ddb2111aa83510812e1595ee7842fdeb82",
+    "frontend_coverage": "209d505f11d826abb803b037621b183cf742b648974c49f201ea9ca9c0be64d3"
+  },
+  "prior_final_evidence": {
+    "status": "local_check_records_complete_required_acceptance_open",
+    "pending": [],
+    "lifecycle_acceptance_granted": false,
+    "remaining_required_acceptance": [
+      "Latest recorded root aggregate exit 1 at export startup; no full root aggregate rerun on the final platform freeze",
+      "Independent formal frontend gate exit 1 with five protected-script errors",
+      "macOS native process matrix: required_not_run",
+      "Native WebView/CSP: not_verified",
+      "fix_commit remains null; T10.AC2 remains partial_mapping_fix_commit_pending"
+    ]
+  },
+  "prior_global_limits": [
+    "The planned macOS process matrix is required and not run",
+    "Native WebView and CSP acceptance are not verified",
+    "No real remote SSH/WSL accounts or provider OAuth login",
+    "Linux 1.95 historical tests and Linux 1.98 directed process/Clippy runs are separate; neither is full Linux CI",
+    "Formal frontend lint retains five protected-script errors; authorization to edit those scripts has not been received",
+    "The final root full CI exited 1 during CLI export_bindings process startup with STATUS_ACCESS_VIOLATION; its original doctor failure remains in the preceding full-CI record. Formal frontend was not reached in this final run",
+    "Original Windows Tauri Clippy uses post-run source confirmation. New Linux strict Clippy uses its own command-start map on the final platform freeze; older runs are not rebound"
+  ],
+  "prior_final_source_freeze": {
+    "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-platform-final-source-freeze.json",
+    "sha256": "fa79dd6fc1f9f1142d63e7c20a72d161ef398f1f683388d2ba49c7d71c3bfaaa",
+    "bytes": 32758,
+    "captured_at": "2026-09-29T00:17:56.827358+00:00",
+    "files": 263,
+    "present_files": 261,
+    "absent_paths": [
+      "ccr-ui/src/features/editor/styles/code-source-editor.css",
+      "ccr-ui/src/features/editor/styles/config-source-panel.css"
+    ],
+    "matches_current_sources": true,
+    "current_differences": [],
+    "role": "Current root capture after the platform-specific test-import change; earlier runs keep their original source identities; files counts all registered paths, including explicit null deletion markers",
+    "provenance_correction": {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-platform-freeze-provenance.json",
+      "sha256": "73cd33508ad99b7942fb8261f9252859c72b6a40820bab7f5de97236382ac98c",
+      "bytes": 1760
+    },
+    "lineage_rule": "Use immutable files and explicit parent_source_freeze SHA / changes_from_parent. Inherited previous_freeze/changes_since_previous omit the added import correction; their count is not authoritative."
+  }
+}

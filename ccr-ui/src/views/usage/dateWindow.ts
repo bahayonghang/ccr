@@ -17,8 +17,11 @@ export const DEFAULT_USAGE_RANGE_PRESET: UsageRangePreset = 'last_30d'
 const startOfLocalDay = (date: Date) =>
   new Date(date.getFullYear(), date.getMonth(), date.getDate())
 
+const localCalendarDay = (date: Date) =>
+  Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86_400_000
+
 const getInclusiveLocalDaySpan = (start: Date, end: Date) =>
-  Math.max(1, Math.floor((startOfLocalDay(end).getTime() - startOfLocalDay(start).getTime()) / 86_400_000) + 1)
+  Math.max(1, localCalendarDay(end) - localCalendarDay(start) + 1)
 
 const startOfLocalWeek = (date: Date) => {
   const start = startOfLocalDay(date)
@@ -86,7 +89,7 @@ export const getUsageRangePresetSpanDays = (
     const sortedDates = [...trendDates].filter(Boolean).sort()
     if (sortedDates.length >= 2) {
       const start = new Date(`${sortedDates[0]}T00:00:00`)
-      const end = new Date(`${sortedDates.at(-1)}T00:00:00`)
+      const end = new Date(`${sortedDates[sortedDates.length - 1]}T00:00:00`)
       return getInclusiveLocalDaySpan(start, end)
     }
 

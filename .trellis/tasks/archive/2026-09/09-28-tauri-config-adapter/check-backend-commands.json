@@ -1,0 +1,41 @@
+[
+  {
+    "name": "check-backend-final",
+    "command": [
+      "cargo",
+      "--config",
+      ".cargo/tauri-ci.toml",
+      "test",
+      "--offline",
+      "--locked",
+      "--manifest-path",
+      "ccr-ui/src-tauri/Cargo.toml",
+      "--bin",
+      "ccr-desktop",
+      "commands::config::",
+      "--",
+      "--skip",
+      "export_bindings"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 9.99
+  },
+  {
+    "name": "check-enable-final",
+    "command": [
+      "cargo",
+      "test",
+      "--offline",
+      "--locked",
+      "-p",
+      "ccr-cli",
+      "--lib",
+      "enable_policy_activation_and_compensation",
+      "--",
+      "--skip",
+      "export_bindings"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 18.26
+  }
+]

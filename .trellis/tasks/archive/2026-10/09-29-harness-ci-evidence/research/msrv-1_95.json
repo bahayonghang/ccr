@@ -1,0 +1,24 @@
+{
+  "command": [
+    "rustup",
+    "run",
+    "1.95",
+    "cargo",
+    "check",
+    "--workspace",
+    "--all-targets",
+    "--all-features"
+  ],
+  "started_at_utc": "2026-09-30T02:31:22.304217+00:00",
+  "duration_seconds": 55.2,
+  "exit_code": 0,
+  "os": "Windows",
+  "toolchain": "rustc 1.95.0 (59807616e 2026-04-14), installed alias 1.95",
+  "env_overrides": {
+    "RUSTUP_AUTO_INSTALL": "0",
+    "CARGO_TARGET_DIR": "target/evergreen-msrv-1_95"
+  },
+  "log": "msrv-1_95.log",
+  "log_sha256": "2be4fe7797d5a6cb8d6a44b29a01b5e90f0e0f9c026e72532dbdf298a0a9506f",
+  "boundary": "Installed MSRV Windows check. Does not replace Linux/MSRV hosted result."
+}

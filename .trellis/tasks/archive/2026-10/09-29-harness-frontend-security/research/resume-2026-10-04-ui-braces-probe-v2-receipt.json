@@ -1,0 +1,765 @@
+{
+  "startedUtc": "2026-10-04T12:35:04.688Z",
+  "command": "node .trellis/tasks/09-29-harness-frontend-security/research/resume-2026-10-04-ui-braces-probe-v2.cjs",
+  "node": "v26.7.0",
+  "installedBraces": "3.0.3",
+  "installedParsePath": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui\\node_modules\\braces\\lib\\parse.js",
+  "patchPresent": true,
+  "timeoutMsPerCase": 5000,
+  "compatibility": [
+    {
+      "input": "a/{b,c}/d",
+      "beforeCompile": "a/(b|c)/d",
+      "afterCompile": "a/(b|c)/d",
+      "compileEqual": true,
+      "beforeExpand": [
+        "a/b/d",
+        "a/c/d"
+      ],
+      "afterExpand": [
+        "a/b/d",
+        "a/c/d"
+      ],
+      "expandEqual": true
+    },
+    {
+      "input": "file-{1..3}.txt",
+      "beforeCompile": "file-([1-3]).txt",
+      "afterCompile": "file-([1-3]).txt",
+      "compileEqual": true,
+      "beforeExpand": [
+        "file-1.txt",
+        "file-2.txt",
+        "file-3.txt"
+      ],
+      "afterExpand": [
+        "file-1.txt",
+        "file-2.txt",
+        "file-3.txt"
+      ],
+      "expandEqual": true
+    },
+    {
+      "input": "{a,{b,c}}",
+      "beforeCompile": "(a|(b|c))",
+      "afterCompile": "(a|(b|c))",
+      "compileEqual": true,
+      "beforeExpand": [
+        "a",
+        "b",
+        "c"
+      ],
+      "afterExpand": [
+        "a",
+        "b",
+        "c"
+      ],
+      "expandEqual": true
+    },
+    {
+      "input": "\\{a,b\\}",
+      "beforeCompile": "{a,b}",
+      "afterCompile": "{a,b}",
+      "compileEqual": true,
+      "beforeExpand": [
+        "{a,b}"
+      ],
+      "afterExpand": [
+        "{a,b}"
+      ],
+      "expandEqual": true
+    },
+    {
+      "input": "a/(b|c)/d",
+      "beforeCompile": "a/(b|c)/d",
+      "afterCompile": "a/(b|c)/d",
+      "compileEqual": true,
+      "beforeExpand": [
+        "a/(b|c)/d"
+      ],
+      "afterExpand": [
+        "a/(b|c)/d"
+      ],
+      "expandEqual": true
+    },
+    {
+      "input": "${a,b}",
+      "beforeCompile": "${a,b}",
+      "afterCompile": "${a,b}",
+      "compileEqual": true,
+      "beforeExpand": [
+        "${a,b}"
+      ],
+      "afterExpand": [
+        "${a,b}"
+      ],
+      "expandEqual": true
+    },
+    {
+      "input": "{01..03}",
+      "beforeCompile": "(0[1-3])",
+      "afterCompile": "(0[1-3])",
+      "compileEqual": true,
+      "beforeExpand": [
+        "01",
+        "02",
+        "03"
+      ],
+      "afterExpand": [
+        "01",
+        "02",
+        "03"
+      ],
+      "expandEqual": true
+    },
+    {
+      "input": "{a,b}{c,d}",
+      "beforeCompile": "(a|b)(c|d)",
+      "afterCompile": "(a|b)(c|d)",
+      "compileEqual": true,
+      "beforeExpand": [
+        "ac",
+        "ad",
+        "bc",
+        "bd"
+      ],
+      "afterExpand": [
+        "ac",
+        "ad",
+        "bc",
+        "bd"
+      ],
+      "expandEqual": true
+    }
+  ],
+  "results": [
+    {
+      "runtime": "node",
+      "name": "brace-parse-100",
+      "method": "parse",
+      "depth": 100,
+      "kind": "brace",
+      "wallMs": 110.8528,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "brace-parse-100",
+        "method": "parse",
+        "depth": 100,
+        "kind": "brace",
+        "inputLength": 401,
+        "status": "success",
+        "elapsedMs": 0.9877000000000002,
+        "resultLength": null
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "node",
+      "name": "brace-parse-101",
+      "method": "parse",
+      "depth": 101,
+      "kind": "brace",
+      "wallMs": 160.68869999999998,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "brace-parse-101",
+        "method": "parse",
+        "depth": 101,
+        "kind": "brace",
+        "inputLength": 405,
+        "status": "error",
+        "elapsedMs": 1.2574000000000005,
+        "errorName": "SyntaxError",
+        "errorMessage": "Input brace depth (101) exceeds max depth (100)"
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "node",
+      "name": "brace-parse-2000",
+      "method": "parse",
+      "depth": 2000,
+      "kind": "brace",
+      "wallMs": 131.59179999999998,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "brace-parse-2000",
+        "method": "parse",
+        "depth": 2000,
+        "kind": "brace",
+        "inputLength": 8001,
+        "status": "error",
+        "elapsedMs": 1.1137000000000015,
+        "errorName": "SyntaxError",
+        "errorMessage": "Input brace depth (101) exceeds max depth (100)"
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "node",
+      "name": "paren-parse-4999",
+      "method": "parse",
+      "depth": 4999,
+      "kind": "paren",
+      "wallMs": 126.4282,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "paren-parse-4999",
+        "method": "parse",
+        "depth": 4999,
+        "kind": "paren",
+        "inputLength": 9999,
+        "status": "success",
+        "elapsedMs": 4.171900000000001,
+        "resultLength": null
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "node",
+      "name": "brace-compile-100",
+      "method": "compile",
+      "depth": 100,
+      "kind": "brace",
+      "wallMs": 111.1997,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "brace-compile-100",
+        "method": "compile",
+        "depth": 100,
+        "kind": "brace",
+        "inputLength": 401,
+        "status": "success",
+        "elapsedMs": 1.1205999999999996,
+        "resultLength": 401
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "node",
+      "name": "brace-compile-101",
+      "method": "compile",
+      "depth": 101,
+      "kind": "brace",
+      "wallMs": 106.3451,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "brace-compile-101",
+        "method": "compile",
+        "depth": 101,
+        "kind": "brace",
+        "inputLength": 405,
+        "status": "error",
+        "elapsedMs": 1.0947999999999993,
+        "errorName": "SyntaxError",
+        "errorMessage": "Input brace depth (101) exceeds max depth (100)"
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "node",
+      "name": "brace-compile-2000",
+      "method": "compile",
+      "depth": 2000,
+      "kind": "brace",
+      "wallMs": 106.0548,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "brace-compile-2000",
+        "method": "compile",
+        "depth": 2000,
+        "kind": "brace",
+        "inputLength": 8001,
+        "status": "error",
+        "elapsedMs": 0.9428000000000019,
+        "errorName": "SyntaxError",
+        "errorMessage": "Input brace depth (101) exceeds max depth (100)"
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "node",
+      "name": "paren-compile-4999",
+      "method": "compile",
+      "depth": 4999,
+      "kind": "paren",
+      "wallMs": 115.77179999999998,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "paren-compile-4999",
+        "method": "compile",
+        "depth": 4999,
+        "kind": "paren",
+        "inputLength": 9999,
+        "status": "success",
+        "elapsedMs": 7.360800000000001,
+        "resultLength": 9999
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "node",
+      "name": "brace-expand-100",
+      "method": "expand",
+      "depth": 100,
+      "kind": "brace",
+      "wallMs": 108.91910000000007,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "brace-expand-100",
+        "method": "expand",
+        "depth": 100,
+        "kind": "brace",
+        "inputLength": 401,
+        "status": "success",
+        "elapsedMs": 2.7070000000000007,
+        "resultLength": 101
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "node",
+      "name": "brace-expand-101",
+      "method": "expand",
+      "depth": 101,
+      "kind": "brace",
+      "wallMs": 105.80390000000011,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "brace-expand-101",
+        "method": "expand",
+        "depth": 101,
+        "kind": "brace",
+        "inputLength": 405,
+        "status": "error",
+        "elapsedMs": 0.9035000000000011,
+        "errorName": "SyntaxError",
+        "errorMessage": "Input brace depth (101) exceeds max depth (100)"
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "node",
+      "name": "brace-expand-2000",
+      "method": "expand",
+      "depth": 2000,
+      "kind": "brace",
+      "wallMs": 119.57330000000002,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "brace-expand-2000",
+        "method": "expand",
+        "depth": 2000,
+        "kind": "brace",
+        "inputLength": 8001,
+        "status": "error",
+        "elapsedMs": 1.0157999999999987,
+        "errorName": "SyntaxError",
+        "errorMessage": "Input brace depth (101) exceeds max depth (100)"
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "node",
+      "name": "paren-expand-4999",
+      "method": "expand",
+      "depth": 4999,
+      "kind": "paren",
+      "wallMs": 273.85040000000004,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "paren-expand-4999",
+        "method": "expand",
+        "depth": 4999,
+        "kind": "paren",
+        "inputLength": 9999,
+        "status": "success",
+        "elapsedMs": 165.6149,
+        "resultLength": 1
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "node",
+      "name": "ast-paren-compile-4999",
+      "method": "compile",
+      "depth": 4999,
+      "kind": "ast-paren",
+      "wallMs": 115.91290000000004,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "ast-paren-compile-4999",
+        "method": "compile",
+        "depth": 4999,
+        "kind": "ast-paren",
+        "inputLength": 9999,
+        "status": "success",
+        "elapsedMs": 7.047200000000004,
+        "resultLength": 9999
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "node",
+      "name": "ast-paren-expand-4999",
+      "method": "expand",
+      "depth": 4999,
+      "kind": "ast-paren",
+      "wallMs": 274.74440000000004,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "ast-paren-expand-4999",
+        "method": "expand",
+        "depth": 4999,
+        "kind": "ast-paren",
+        "inputLength": 9999,
+        "status": "success",
+        "elapsedMs": 162.8757,
+        "resultLength": 1
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "name": "brace-parse-100",
+      "method": "parse",
+      "depth": 100,
+      "kind": "brace",
+      "wallMs": 1332.4693,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "brace-parse-100",
+        "method": "parse",
+        "depth": 100,
+        "kind": "brace",
+        "inputLength": 401,
+        "status": "success",
+        "elapsedMs": 4.984000000000002,
+        "resultLength": null
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "name": "brace-parse-101",
+      "method": "parse",
+      "depth": 101,
+      "kind": "brace",
+      "wallMs": 113.24409999999989,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "brace-parse-101",
+        "method": "parse",
+        "depth": 101,
+        "kind": "brace",
+        "inputLength": 405,
+        "status": "error",
+        "elapsedMs": 5.0153,
+        "errorName": "SyntaxError",
+        "errorMessage": "Input brace depth (101) exceeds max depth (100)"
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "name": "brace-parse-2000",
+      "method": "parse",
+      "depth": 2000,
+      "kind": "brace",
+      "wallMs": 111.15200000000004,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "brace-parse-2000",
+        "method": "parse",
+        "depth": 2000,
+        "kind": "brace",
+        "inputLength": 8001,
+        "status": "error",
+        "elapsedMs": 5.401599999999998,
+        "errorName": "SyntaxError",
+        "errorMessage": "Input brace depth (101) exceeds max depth (100)"
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "name": "paren-parse-4999",
+      "method": "parse",
+      "depth": 4999,
+      "kind": "paren",
+      "wallMs": 127.28710000000001,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "paren-parse-4999",
+        "method": "parse",
+        "depth": 4999,
+        "kind": "paren",
+        "inputLength": 9999,
+        "status": "success",
+        "elapsedMs": 6.696300000000001,
+        "resultLength": null
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "name": "brace-compile-100",
+      "method": "compile",
+      "depth": 100,
+      "kind": "brace",
+      "wallMs": 109.04549999999972,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "brace-compile-100",
+        "method": "compile",
+        "depth": 100,
+        "kind": "brace",
+        "inputLength": 401,
+        "status": "success",
+        "elapsedMs": 5.964000000000002,
+        "resultLength": 401
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "name": "brace-compile-101",
+      "method": "compile",
+      "depth": 101,
+      "kind": "brace",
+      "wallMs": 129.63420000000042,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "brace-compile-101",
+        "method": "compile",
+        "depth": 101,
+        "kind": "brace",
+        "inputLength": 405,
+        "status": "error",
+        "elapsedMs": 4.861899999999999,
+        "errorName": "SyntaxError",
+        "errorMessage": "Input brace depth (101) exceeds max depth (100)"
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "name": "brace-compile-2000",
+      "method": "compile",
+      "depth": 2000,
+      "kind": "brace",
+      "wallMs": 109.93719999999985,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "brace-compile-2000",
+        "method": "compile",
+        "depth": 2000,
+        "kind": "brace",
+        "inputLength": 8001,
+        "status": "error",
+        "elapsedMs": 4.999700000000001,
+        "errorName": "SyntaxError",
+        "errorMessage": "Input brace depth (101) exceeds max depth (100)"
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "name": "paren-compile-4999",
+      "method": "compile",
+      "depth": 4999,
+      "kind": "paren",
+      "wallMs": 109.67730000000029,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "paren-compile-4999",
+        "method": "compile",
+        "depth": 4999,
+        "kind": "paren",
+        "inputLength": 9999,
+        "status": "success",
+        "elapsedMs": 7.5548,
+        "resultLength": 9999
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "name": "brace-expand-100",
+      "method": "expand",
+      "depth": 100,
+      "kind": "brace",
+      "wallMs": 113.42279999999937,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "brace-expand-100",
+        "method": "expand",
+        "depth": 100,
+        "kind": "brace",
+        "inputLength": 401,
+        "status": "success",
+        "elapsedMs": 6.190899999999999,
+        "resultLength": 101
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "name": "brace-expand-101",
+      "method": "expand",
+      "depth": 101,
+      "kind": "brace",
+      "wallMs": 140.4368999999997,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "brace-expand-101",
+        "method": "expand",
+        "depth": 101,
+        "kind": "brace",
+        "inputLength": 405,
+        "status": "error",
+        "elapsedMs": 6.612100000000005,
+        "errorName": "SyntaxError",
+        "errorMessage": "Input brace depth (101) exceeds max depth (100)"
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "name": "brace-expand-2000",
+      "method": "expand",
+      "depth": 2000,
+      "kind": "brace",
+      "wallMs": 133.8112000000001,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "brace-expand-2000",
+        "method": "expand",
+        "depth": 2000,
+        "kind": "brace",
+        "inputLength": 8001,
+        "status": "error",
+        "elapsedMs": 5.0893000000000015,
+        "errorName": "SyntaxError",
+        "errorMessage": "Input brace depth (101) exceeds max depth (100)"
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "name": "paren-expand-4999",
+      "method": "expand",
+      "depth": 4999,
+      "kind": "paren",
+      "wallMs": 204.14159999999993,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "paren-expand-4999",
+        "method": "expand",
+        "depth": 4999,
+        "kind": "paren",
+        "inputLength": 9999,
+        "status": "success",
+        "elapsedMs": 88.40520000000001,
+        "resultLength": 1
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "name": "ast-paren-compile-4999",
+      "method": "compile",
+      "depth": 4999,
+      "kind": "ast-paren",
+      "wallMs": 125.54559999999947,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "ast-paren-compile-4999",
+        "method": "compile",
+        "depth": 4999,
+        "kind": "ast-paren",
+        "inputLength": 9999,
+        "status": "success",
+        "elapsedMs": 7.989700000000003,
+        "resultLength": 9999
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "name": "ast-paren-expand-4999",
+      "method": "expand",
+      "depth": 4999,
+      "kind": "ast-paren",
+      "wallMs": 203.96539999999914,
+      "processExit": 0,
+      "signal": null,
+      "processError": null,
+      "payload": {
+        "name": "ast-paren-expand-4999",
+        "method": "expand",
+        "depth": 4999,
+        "kind": "ast-paren",
+        "inputLength": 9999,
+        "status": "success",
+        "elapsedMs": 87.8284,
+        "resultLength": 1
+      },
+      "stderr": ""
+    }
+  ]
+}

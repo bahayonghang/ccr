@@ -1,0 +1,409 @@
+{
+  "timestamp": "2026-09-28T11:36:42.336892-05:00",
+  "reviewer": "/root/implement_t10_gates",
+  "source_review_status": "passed_scoped",
+  "reviewed_entries": [
+    {
+      "source": "ccr-ui/src-tauri/src/commands/profile_lifecycle.rs",
+      "test": "profile_post_publish_failure_contract",
+      "line": 36,
+      "desktop_guard_first_statement": true
+    },
+    {
+      "source": "ccr-ui/src-tauri/src/commands/profile_lifecycle.rs",
+      "test": "profile_deleted_after_prepare_contract",
+      "line": 41,
+      "desktop_guard_first_statement": true
+    },
+    {
+      "source": "ccr-ui/src-tauri/src/commands/profile_lifecycle.rs",
+      "test": "profile_preflight_contract",
+      "line": 46,
+      "desktop_guard_first_statement": true
+    },
+    {
+      "source": "ccr-ui/src-tauri/src/commands/profile_lifecycle.rs",
+      "test": "profile_success_replay_contract",
+      "line": 51,
+      "desktop_guard_first_statement": true
+    },
+    {
+      "source": "ccr-ui/src-tauri/src/commands/profile_lifecycle.rs",
+      "test": "profile_ancillary_contract",
+      "line": 56,
+      "desktop_guard_first_statement": true
+    },
+    {
+      "source": "ccr-ui/src-tauri/src/commands/profile_lifecycle.rs",
+      "test": "profile_each_write_contract",
+      "line": 61,
+      "desktop_guard_first_statement": true
+    },
+    {
+      "source": "ccr-ui/src-tauri/src/commands/profile_lifecycle.rs",
+      "test": "profile_external_version_contract",
+      "line": 66,
+      "desktop_guard_first_statement": true
+    },
+    {
+      "source": "ccr-ui/src-tauri/src/commands/claude_profiles.rs",
+      "test": "profile_rename_each_write_contract",
+      "line": 285,
+      "desktop_guard_first_statement": true
+    },
+    {
+      "source": "ccr-ui/src-tauri/src/commands/codex_profiles.rs",
+      "test": "profile_rename_each_write_contract",
+      "line": 591,
+      "desktop_guard_first_statement": true
+    }
+  ],
+  "sources": [
+    {
+      "path": "ccr-ui/src-tauri/src/commands/profile_lifecycle.rs",
+      "sha256": "83c3b279ab87c9b0da604a6dfba8a5adf7d1a9262a2697fc2a3ffc0a2101fd71",
+      "bytes": 12920
+    },
+    {
+      "path": "ccr-ui/src-tauri/src/commands/claude_profiles.rs",
+      "sha256": "ae370f415e28c296778f7525cc07977eda1167e57e25c874564af5931ba1dd33",
+      "bytes": 12175
+    },
+    {
+      "path": "ccr-ui/src-tauri/src/commands/codex_profiles.rs",
+      "sha256": "9864092123558b1a20687193e34e78551ebedcced8dd422cb930641fee83cb2c",
+      "bytes": 24575
+    },
+    {
+      "path": "ccr-ui/src-tauri/src/test_support.rs",
+      "sha256": "2f35e2b8f53de0a49ea25e67c595bacaa24f870ecbf1ce77687a84188f6a8878",
+      "bytes": 1575
+    },
+    {
+      "path": "crates/ccr-cli/src/lib.rs",
+      "sha256": "428136895f42ad33afd49f453d2233aedad6b01e55469a09beaa7b45bf475283",
+      "bytes": 11065
+    },
+    {
+      "path": "crates/ccr-cli/src/application/profile_contract.rs",
+      "sha256": "079736b3d418195d2085e8f2ecfff2f4cb0d5735cf8f55bf4006c648b7d5349e",
+      "bytes": 22223
+    },
+    {
+      "path": "ccr-ui/src-tauri/src/commands/config/contract_tests.rs",
+      "sha256": "ce55e7f4f2c7fc738f4141857e5d486093de41897e19342aa5d2b1bf071d2f17",
+      "bytes": 16006
+    },
+    {
+      "path": ".trellis/spec/ccr-cli/backend/profile-application-lifecycle.md",
+      "sha256": "4fc3ace0afc1df6a39e57e7c7a8ab13f6d906ea2b41e2baf6149660d6dde9bf4",
+      "bytes": 9818
+    }
+  ],
+  "lock_order": "desktop ENV_LOCK -> CLI ENV_LOCK; restore CLI variables before CLI release; desktop release follows fixture return",
+  "reentrancy_review": "Actual adapter callbacks contain no desktop lock acquisition or TestProcessEnv::new; CLI fixture cannot call desktop test support; T03 follows the same order.",
+  "execution_evidence": [
+    {
+      "log": ".trellis/tasks/09-28-cli-tauri-architecture/research/root-final-after-fixtures-tauri.log",
+      "sha256": "222ea12251a7715a34005b5ef91e54e86130f04fe9357b2f818a11b270e352f1",
+      "test_result_lines": [
+        "test result: FAILED. 401 passed; 5 failed; 1 ignored; 0 measured; 197 filtered out; finished in 105.46s"
+      ],
+      "command_metadata": {
+        "check": "tauri",
+        "command": [
+          "just",
+          "tauri-ci"
+        ],
+        "cwd": "D:\\Documents\\Code\\Github\\ccr",
+        "started_at": "2026-09-28T16:19:59.383755+00:00",
+        "exit_code": 1,
+        "seconds": 215.44,
+        "log": "root-final-after-fixtures-tauri.log",
+        "command_environment_override": {
+          "CCR_SKIP_ICON_GENERATION": "1"
+        }
+      }
+    },
+    {
+      "log": ".trellis/tasks/09-28-cli-tauri-architecture/research/root-final-after-isolation-tauri.log",
+      "sha256": "862c9cd3e881f484e9f9264e620e9d89fa07a73e09cce4dc566dfa8cfcbae301",
+      "test_result_lines": [
+        "test result: FAILED. 404 passed; 2 failed; 1 ignored; 0 measured; 197 filtered out; finished in 106.54s"
+      ],
+      "command_metadata": {
+        "check": "tauri",
+        "command": [
+          "just",
+          "tauri-ci"
+        ],
+        "cwd": "D:\\Documents\\Code\\Github\\ccr",
+        "started_at": "2026-09-28T16:27:15.260258+00:00",
+        "exit_code": 1,
+        "seconds": 205.03,
+        "log": "root-final-after-isolation-tauri.log",
+        "command_environment_override": {
+          "CCR_SKIP_ICON_GENERATION": "1"
+        }
+      }
+    }
+  ],
+  "overall_tauri_gate": "formal_tauri_ci_passed_406_behavior_and_2_guard",
+  "remaining_findings": [
+    "Final root just ci acceptance remains root-owned",
+    "Original Grok os error 3 interleaving and doctor PID observation causes remain unproven"
+  ],
+  "limits": "No Cargo/exports executed by reviewer. No business code or tests modified by reviewer. Doctor PID observation cause remains unknown.",
+  "followup_review": {
+    "timestamp": "2026-09-28T11:41:43.536973-05:00",
+    "source_review_status": "passed_scoped",
+    "execution_status": "focused_passed_aggregate_pending",
+    "codex_tests": [
+      {
+        "source": "ccr-ui/src-tauri/src/commands/codex_profiles.rs",
+        "test": "codex_update_profile_rename_migrates_profile_secret_and_current_profile",
+        "line": 330,
+        "raii_owner_count": 1,
+        "additional_desktop_lock": false,
+        "isolated_keys": [
+          "CCR_ROOT",
+          "CCR_CODEX_DIR",
+          "CCR_LOCK_DIR"
+        ]
+      },
+      {
+        "source": "ccr-ui/src-tauri/src/commands/codex_profiles.rs",
+        "test": "codex_update_profile_rename_rejects_conflicting_target_without_writing_partial_state",
+        "line": 414,
+        "raii_owner_count": 1,
+        "additional_desktop_lock": false,
+        "isolated_keys": [
+          "CCR_ROOT",
+          "CCR_CODEX_DIR",
+          "CCR_LOCK_DIR"
+        ]
+      },
+      {
+        "source": "ccr-ui/src-tauri/src/commands/codex_profiles.rs",
+        "test": "codex_update_profile_same_target_name_updates_in_place",
+        "line": 472,
+        "raii_owner_count": 1,
+        "additional_desktop_lock": false,
+        "isolated_keys": [
+          "CCR_ROOT",
+          "CCR_CODEX_DIR",
+          "CCR_LOCK_DIR"
+        ]
+      },
+      {
+        "source": "ccr-ui/src-tauri/src/commands/codex_profiles.rs",
+        "test": "codex_update_profile_rejects_blank_target_name",
+        "line": 523,
+        "raii_owner_count": 1,
+        "additional_desktop_lock": false,
+        "isolated_keys": [
+          "CCR_ROOT",
+          "CCR_CODEX_DIR",
+          "CCR_LOCK_DIR"
+        ]
+      }
+    ],
+    "grok_tests": [
+      {
+        "source": "ccr-ui/src-tauri/src/commands/grok.rs",
+        "test": "rename_updates_real_inactive_and_active_profile_state",
+        "line": 1809,
+        "desktop_guard_count": 1,
+        "raii_owner_count": 0
+      },
+      {
+        "source": "ccr-ui/src-tauri/src/commands/grok.rs",
+        "test": "settings_patch_preserves_unknown_tables_and_writes_no_backup",
+        "line": 2014,
+        "desktop_guard_count": 1,
+        "raii_owner_count": 0
+      },
+      {
+        "source": "ccr-ui/src-tauri/src/commands/grok.rs",
+        "test": "settings_patch_retries_after_concurrent_write_and_preserves_external_keys",
+        "line": 2044,
+        "desktop_guard_count": 1,
+        "raii_owner_count": 0
+      },
+      {
+        "source": "ccr-ui/src-tauri/src/commands/grok.rs",
+        "test": "settings_patch_rechecks_managed_lock_after_concurrent_apply",
+        "line": 2091,
+        "desktop_guard_count": 1,
+        "raii_owner_count": 0
+      },
+      {
+        "source": "ccr-ui/src-tauri/src/commands/grok.rs",
+        "test": "settings_patch_returns_conflict_after_three_attempts",
+        "line": 2136,
+        "desktop_guard_count": 1,
+        "raii_owner_count": 0
+      },
+      {
+        "source": "ccr-ui/src-tauri/src/commands/grok.rs",
+        "test": "settings_and_raw_saves_preserve_the_configured_backup_inventory",
+        "line": 2209,
+        "desktop_guard_count": 0,
+        "raii_owner_count": 1
+      }
+    ],
+    "sources": [
+      {
+        "path": "ccr-ui/src-tauri/src/commands/codex_profiles.rs",
+        "sha256": "9864092123558b1a20687193e34e78551ebedcced8dd422cb930641fee83cb2c",
+        "bytes": 24575
+      },
+      {
+        "path": "ccr-ui/src-tauri/src/commands/grok.rs",
+        "sha256": "5be7313e651ab6c798435787cac05b09d9a91f397c09227a4426c796c7461307",
+        "bytes": 84776
+      },
+      {
+        "path": "ccr-ui/src-tauri/src/test_support.rs",
+        "sha256": "2f35e2b8f53de0a49ea25e67c595bacaa24f870ecbf1ce77687a84188f6a8878",
+        "bytes": 1575
+      },
+      {
+        "path": "crates/ccr-cli/src/application/profile_lifecycle.rs",
+        "sha256": "c9af01c835016ad10688893bcd89a61b06c219956c389707e23e85954b58ba98",
+        "bytes": 16301
+      },
+      {
+        "path": ".trellis/tasks/09-28-profile-application-usecases/prd.md",
+        "sha256": "44eaf4b5451fb91269bdf58eef48b05bc756c0d329a66d136fc201118bde835e",
+        "bytes": 3382
+      },
+      {
+        "path": ".trellis/tasks/09-28-profile-application-usecases/design.md",
+        "sha256": "a013b359b751d99ae7760d97a258e73f08a322a95f9ecc7217c6368c908b69c5",
+        "bytes": 3652
+      },
+      {
+        "path": ".trellis/tasks/09-28-profile-application-usecases/check-report.md",
+        "sha256": "55edff60422b4b38edce4bcad79ec5d801536fe620bffe8f831185e937f4b394",
+        "bytes": 13869
+      }
+    ],
+    "grok_rename_planning_scope": {
+      "prd_r5_line": 32,
+      "prd_ac5_line": 40,
+      "design_r5_ac5_line": 15,
+      "check_report_ac5_line": 70,
+      "approved_migration_platforms": [
+        "Claude",
+        "Codex"
+      ],
+      "grok_existing_named_partial_results_retained": true
+    }
+  },
+  "focused_validation": {
+    "reviewed_at": "2026-09-28T11:44:00.500424-05:00",
+    "status": "passed",
+    "results": [
+      {
+        "command_metadata": {
+          "command": [
+            "C:\\Users\\lyh\\AppData\\Local\\mbx\\bin\\cargo.EXE",
+            "test",
+            "-p",
+            "ccr-cli",
+            "--test",
+            "dispatch_routing"
+          ],
+          "exit_code": 0,
+          "seconds": 4.13,
+          "log": "root-final-dispatch-typed-inventory.log"
+        },
+        "metadata_sha256": "254e446c7a99f706be4f4cfc410fe0034e339b0122217a6fd256c257e209f7f6",
+        "log_path": ".trellis/tasks/09-28-architecture-contract-gates/research/root-final-dispatch-typed-inventory.log",
+        "log_sha256": "b56b2d67aa70b77432516fa87dee57618fcac3c08a5e2f91529e64f64c1f309e",
+        "executed_passed": 12,
+        "test_result_lines": [
+          "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s"
+        ],
+        "zero_matched_targets_counted": false
+      },
+      {
+        "command_metadata": {
+          "command": [
+            "C:\\Users\\lyh\\AppData\\Local\\mbx\\bin\\cargo.EXE",
+            "--config",
+            ".cargo/tauri-ci.toml",
+            "test",
+            "--manifest-path",
+            "ccr-ui/src-tauri/Cargo.toml",
+            "--all-features",
+            "profile",
+            "--",
+            "--skip",
+            "export_bindings"
+          ],
+          "exit_code": 0,
+          "seconds": 152.75,
+          "log": "root-tauri-profile-regression.log"
+        },
+        "metadata_sha256": "ba90082208ae5518fdedf74e8985ff5a9f2ac9fce90022487051ccc0caea11a6",
+        "log_path": ".trellis/tasks/09-28-architecture-contract-gates/research/root-tauri-profile-regression.log",
+        "log_sha256": "fbfed3a1056206b90f198f58eb1c45e92e4bf79c68c93a01aa90b19ec931df3e",
+        "executed_passed": 41,
+        "test_result_lines": [
+          "test result: ok. 41 passed; 0 failed; 0 ignored; 0 measured; 563 filtered out; finished in 98.38s",
+          "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s"
+        ],
+        "zero_matched_targets_counted": false
+      },
+      {
+        "command_metadata": {
+          "command": [
+            "C:\\Users\\lyh\\AppData\\Local\\mbx\\bin\\cargo.EXE",
+            "--config",
+            ".cargo/tauri-ci.toml",
+            "test",
+            "--manifest-path",
+            "ccr-ui/src-tauri/Cargo.toml",
+            "--all-features",
+            "commands::grok::tests",
+            "--",
+            "--skip",
+            "export_bindings"
+          ],
+          "exit_code": 0,
+          "seconds": 1.38,
+          "log": "root-tauri-grok-regression.log"
+        },
+        "metadata_sha256": "6cac9726c3899e13d1126b13bedf977bd9addb7027d48f425acf4639b2228a3c",
+        "log_path": ".trellis/tasks/09-28-architecture-contract-gates/research/root-tauri-grok-regression.log",
+        "log_sha256": "0084c2d66faa306d001e6807e776384f78d1880afba8f4a35c3078d3dd7bf90a",
+        "executed_passed": 16,
+        "test_result_lines": [
+          "test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 588 filtered out; finished in 0.41s",
+          "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s"
+        ],
+        "zero_matched_targets_counted": false
+      }
+    ],
+    "count_note": "Profile and Grok filters overlap; do not add them as unique tests. Zero-match integration targets are not passing behavior evidence. No concurrency setting was changed."
+  },
+  "final_tauri_execution": {
+    "metadata": {
+      "path": ".trellis/tasks/09-28-cli-tauri-architecture/research/root-acceptance-after-tui-tauri.json",
+      "sha256": "67cbb4ae36aa1c3fc92c1bdf003caf44ea78f69f76824e678f9a7bd01c2b621c",
+      "bytes": 346
+    },
+    "log": {
+      "path": ".trellis/tasks/09-28-cli-tauri-architecture/research/root-acceptance-after-tui-tauri.log",
+      "sha256": "f87233d4312929bdfc2dbd80d262cd34310844a2aac9d8bd3b035550abe3b333",
+      "bytes": 63825
+    },
+    "exit_code": 0,
+    "behavior_passed": 406,
+    "guard_passed": 2,
+    "ignored_helpers": 1,
+    "count_note": "A14 three cases are part of 406; filtered zero-match targets and generated exports are not extra behavior tests."
+  }
+}

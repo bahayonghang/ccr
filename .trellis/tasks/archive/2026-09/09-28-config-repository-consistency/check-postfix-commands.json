@@ -1,0 +1,20 @@
+[
+  {
+    "exit_code": 0,
+    "command": "cargo clippy -p ccr-config -p ccr-cli -p ccr-codex --all-targets --all-features -- -D warnings",
+    "log": ".trellis/tasks/09-28-config-repository-consistency/check-clippy-final.log",
+    "name": "clippy"
+  },
+  {
+    "exit_code": 0,
+    "command": "cargo check -p ccr-config -p ccr-cli -p ccr-codex --all-targets --all-features",
+    "log": ".trellis/tasks/09-28-config-repository-consistency/check-typecheck-final.log",
+    "name": "typecheck"
+  },
+  {
+    "exit_code": 0,
+    "command": "cargo test -p ccr --test managers config_manager_default_ignores_legacy_current_platform_routing",
+    "log": ".trellis/tasks/09-28-config-repository-consistency/check-legacy-adapter-final.log",
+    "name": "legacy-adapter"
+  }
+]

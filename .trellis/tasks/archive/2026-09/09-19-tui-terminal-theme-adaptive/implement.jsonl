@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/ccr-config/backend/backend-guidelines.md", "reason": "TuiTheme/TuiConfig 序列化契约（默认值、未知值回退）必须遵守并同步更新"}
+{"file": ".trellis/spec/ccr-tui/backend/backend-guidelines.md", "reason": "Startup Theme 场景规定探测触发条件与测试隔离约束，本任务要改写该契约"}

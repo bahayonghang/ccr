@@ -1,0 +1,12 @@
+{
+  "check": "cycles",
+  "command": [
+    "bun",
+    "run",
+    "check:cycles"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+  "exit_code": 0,
+  "seconds": 2.45,
+  "log": "baseline-cycles.log"
+}

@@ -1,0 +1,47 @@
+{
+  "started_utc": "2026-10-04T13:21:24.836379+00:00",
+  "finished_utc": "2026-10-04T13:21:24.940765+00:00",
+  "elapsed_seconds": 0.104,
+  "argv": [
+    "bun",
+    "test",
+    "scripts/trellis/omp-context.test.ts"
+  ],
+  "cwd": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-omp-contract-source-only-d3gucbd8",
+  "os": "Windows-11-10.0.26300-SP0",
+  "head": "c50716b5ed1bcd1c5b4950a746a8621258d0e0b5",
+  "bun_version": "1.4.2",
+  "input_sha256_before": {
+    "scripts\\trellis\\omp-context.test.ts": "61ba8ec1861c4dd234d0a994b01f19d7368340df960d4b8ca2676b3c562f738a",
+    ".omp\\extensions\\trellis\\index.ts": "a9ef13beb1bb7214e2ada5cb43fea596065ab296b68a8da171220a77840c5851",
+    "docs\\agents\\harnesses.md": "49e23c24c9ee60191f16e5ca9a8eae6c1a058d435bb6e125dfda26ed8da65b7b",
+    "docs\\en\\agents\\harnesses.md": "d97002c42537fa16a080546f238b5ac4eccef031f4c60e40013c8bef11b1c44d"
+  },
+  "input_sha256_after": {
+    "scripts\\trellis\\omp-context.test.ts": "61ba8ec1861c4dd234d0a994b01f19d7368340df960d4b8ca2676b3c562f738a",
+    ".omp\\extensions\\trellis\\index.ts": "a9ef13beb1bb7214e2ada5cb43fea596065ab296b68a8da171220a77840c5851",
+    "docs\\agents\\harnesses.md": "49e23c24c9ee60191f16e5ca9a8eae6c1a058d435bb6e125dfda26ed8da65b7b",
+    "docs\\en\\agents\\harnesses.md": "d97002c42537fa16a080546f238b5ac4eccef031f4c60e40013c8bef11b1c44d"
+  },
+  "exit_code": 0,
+  "streams": {
+    "stdout": {
+      "path": "resume-2026-10-04-omp-adjustment-absent.stdout.log",
+      "bytes": 28,
+      "sha256": "6043908c8d26d62698476b88f737f39d5d3e91008d4155a81730902f5a37479c"
+    },
+    "stderr": {
+      "path": "resume-2026-10-04-omp-adjustment-absent.stderr.log",
+      "bytes": 1642,
+      "sha256": "7856b3767de168353574593947f7a4b8e1305576a2b95bf4721818f41d07ba40"
+    }
+  },
+  "summary": [
+    "SKIPPED_UNVERIFIED: OMP Trellis extension missing. All 14 contract tests remain unexecuted. Generate the extension with a matching Trellis version before contract acceptance. Native loading and trust require separate checks.",
+    " 0 pass",
+    " 14 skip",
+    " 0 fail"
+  ],
+  "native_loading_trust": "UNVERIFIED",
+  "boundary": "source-only missing-extension fixture"
+}

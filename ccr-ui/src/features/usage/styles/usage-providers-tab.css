@@ -1,0 +1,23 @@
+/* migrated from UsageProvidersTab.vue; px converted to rem */
+.providers-tab {
+  display: grid;
+  min-width: 0;
+  gap: 1rem;
+}
+
+.providers-tab h3 {
+  margin-top: 0.18rem;
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  font-weight: 730;
+  letter-spacing: -0.02em;
+}
+
+.providers-tab__empty {
+  display: grid;
+  min-height: 16rem;
+  place-items: center;
+  border-radius: 1.2rem;
+  border: 0.0625rem dashed rgb(var(--color-border-default-rgb) / 18%);
+  color: var(--color-text-muted);
+}

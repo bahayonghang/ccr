@@ -5,7 +5,9 @@ use crate::process::{ProcessDescriptor, ProcessGateway};
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use ccr_cli::application::{auth_off_for_platform, needs_auth_off};
-use ccr_codex::services::CodexModelProviderStoreService;
+use ccr_codex::services::{
+    CodexModelProviderStoreService, CodexOAuthPendingState, CodexOAuthPendingStore,
+};
 use ccr_codex::{
     CodexAuthJson, CodexAuthService, CodexModelProviderApiKey, CodexModelProviderRecord,
     ImportMode, OpenAiAuthMethod, Platform, PlatformPaths,
@@ -17,9 +19,12 @@ use serde_json::{Map as JsonMap, Value as JsonValue, json};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::ffi::OsString;
-use std::io::ErrorKind;
-use std::path::PathBuf;
-use std::sync::{LazyLock, Mutex};
+#[cfg(all(test, windows))]
+use std::sync::Mutex;
+use std::sync::{Arc, LazyLock};
+
+#[path = "codex_auth/oauth.rs"]
+mod oauth;
 use tauri::{AppHandle, Emitter, State};
 use ts_rs::TS;
 use uuid::Uuid;
@@ -31,25 +36,10 @@ const OAUTH_SCOPE: &str = "openid profile email offline_access";
 const OAUTH_ORIGINATOR: &str = "codex_vscode";
 const OAUTH_CALLBACK_PORT: u16 = 1455;
 const OAUTH_TIMEOUT_SECONDS: i64 = 300;
-const OAUTH_PENDING_FILE: &str = "oauth_pending.json";
 
-static OAUTH_PENDING_STATE: LazyLock<Mutex<Option<CodexOAuthPendingState>>> =
-    LazyLock::new(|| Mutex::new(None));
+static OAUTH_CONTROLLER: LazyLock<oauth::Controller> = LazyLock::new(oauth::Controller::default);
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct CodexOAuthPendingState {
-    login_id: String,
-    auth_url: String,
-    redirect_uri: String,
-    code_verifier: String,
-    state: String,
-    port: u16,
-    expires_at: i64,
-    callback_url: Option<String>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Clone, Deserialize)]
 struct CodexOAuthTokenResponse {
     id_token: String,
     access_token: String,
@@ -482,81 +472,29 @@ fn now_ts() -> i64 {
     Utc::now().timestamp()
 }
 
-fn oauth_pending_path() -> Result<PathBuf, String> {
-    let paths =
-        PlatformPaths::new(Platform::Codex).map_err(|e| format!("解析 Codex 平台路径失败: {e}"))?;
-    Ok(paths.platform_dir.join(OAUTH_PENDING_FILE))
+fn oauth_pending_store() -> Result<CodexOAuthPendingStore, String> {
+    // Preserve the desktop's published CCR_ROOT path when CCR_DATA_DIR differs.
+    let paths = PlatformPaths::new(Platform::Codex).map_err(|error| error.to_string())?;
+    Ok(CodexOAuthPendingStore::with_path(
+        paths.platform_dir.join("oauth_pending.json"),
+    ))
 }
 
+#[cfg(test)]
 fn load_oauth_pending_from_disk() -> Result<Option<CodexOAuthPendingState>, String> {
-    let path = oauth_pending_path()?;
-    if !path.exists() {
-        return Ok(None);
-    }
-
-    let content =
-        std::fs::read_to_string(&path).map_err(|e| format!("读取 OAuth pending 状态失败: {e}"))?;
-    let state: CodexOAuthPendingState =
-        serde_json::from_str(&content).map_err(|e| format!("解析 OAuth pending 状态失败: {e}"))?;
-    if state.expires_at <= now_ts() {
-        let _ = std::fs::remove_file(path);
-        return Ok(None);
-    }
-    Ok(Some(state))
+    oauth_pending_store()?
+        .load(now_ts())
+        .map_err(|error| error.to_string())
 }
 
+#[cfg(test)]
 fn persist_oauth_pending(state: Option<&CodexOAuthPendingState>) -> Result<(), String> {
-    let path = oauth_pending_path()?;
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| format!("创建 OAuth 状态目录失败: {e}"))?;
-    }
-
+    let store = oauth_pending_store()?;
     match state {
-        Some(value) => {
-            let content = serde_json::to_string_pretty(value)
-                .map_err(|e| format!("序列化 OAuth pending 状态失败: {e}"))?;
-            ccr_core::core::AtomicWriter::new(&path)
-                .write_string(&content)
-                .map_err(|e| format!("写入 OAuth pending 状态失败: {e}"))?;
-            ccr_codex::utils::ensure_private_permissions(&path);
-        }
-        None => {
-            if path.exists() {
-                std::fs::remove_file(&path)
-                    .map_err(|e| format!("清理 OAuth pending 状态失败: {e}"))?;
-            }
-        }
+        Some(value) => store.save(value),
+        None => store.clear(),
     }
-
-    Ok(())
-}
-
-fn hydrate_oauth_pending_if_needed() -> Result<(), String> {
-    let mut guard = OAUTH_PENDING_STATE
-        .lock()
-        .map_err(|_| "OAuth pending 状态锁定失败".to_string())?;
-    if guard.is_none() {
-        *guard = load_oauth_pending_from_disk()?;
-    }
-    Ok(())
-}
-
-fn set_oauth_pending(state: Option<CodexOAuthPendingState>) -> Result<(), String> {
-    {
-        let mut guard = OAUTH_PENDING_STATE
-            .lock()
-            .map_err(|_| "OAuth pending 状态锁定失败".to_string())?;
-        *guard = state.clone();
-    }
-    persist_oauth_pending(state.as_ref())
-}
-
-fn current_pending_state() -> Result<Option<CodexOAuthPendingState>, String> {
-    hydrate_oauth_pending_if_needed()?;
-    let guard = OAUTH_PENDING_STATE
-        .lock()
-        .map_err(|_| "OAuth pending 状态锁定失败".to_string())?;
-    Ok(guard.clone())
+    .map_err(|error| error.to_string())
 }
 
 fn generate_code_verifier() -> String {
@@ -592,19 +530,6 @@ fn build_oauth_authorize_url(
     Ok(url.to_string())
 }
 
-fn find_available_oauth_port() -> Result<u16, String> {
-    match std::net::TcpListener::bind(("127.0.0.1", OAUTH_CALLBACK_PORT)) {
-        Ok(listener) => {
-            drop(listener);
-            Ok(OAUTH_CALLBACK_PORT)
-        }
-        Err(error) if error.kind() == ErrorKind::AddrInUse => {
-            Err(format!("无法绑定端口 {OAUTH_CALLBACK_PORT}: {}", error))
-        }
-        Err(error) => Err(format!("无法绑定端口 {OAUTH_CALLBACK_PORT}: {error}")),
-    }
-}
-
 fn callback_url_from_path(path: &str, port: u16) -> Result<Url, String> {
     let raw = path.trim();
     if raw.is_empty() {
@@ -627,12 +552,6 @@ fn callback_url_from_path(path: &str, port: u16) -> Result<Url, String> {
     .map_err(|e| format!("回调地址格式无效: {e}"))
 }
 
-fn html_response(title: &str, description: &str) -> String {
-    format!(
-        "<!doctype html><html><head><meta charset=\"utf-8\"><title>{title}</title></head><body style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 24px; background: #0f172a; color: #e2e8f0;\"><h2 style=\"margin:0 0 8px;\">{title}</h2><p style=\"margin:0; color:#cbd5e1;\">{description}</p><p style=\"margin-top:16px; font-size:12px; color:#94a3b8;\">You can return to CCR now.</p></body></html>"
-    )
-}
-
 fn parse_http_request_path(request: &str) -> Option<String> {
     let first_line = request.lines().next()?;
     let mut parts = first_line.split_whitespace();
@@ -645,132 +564,156 @@ fn parse_http_request_path(request: &str) -> Option<String> {
     }
 }
 
-async fn start_oauth_callback_listener(
-    app: AppHandle,
-    state: CodexOAuthPendingState,
-) -> Result<(), String> {
-    let listener = tokio::net::TcpListener::bind(("127.0.0.1", state.port))
-        .await
-        .map_err(|e| format!("启动 OAuth 回调监听失败: {e}"))?;
+struct DesktopOAuthBackend {
+    store: CodexOAuthPendingStore,
+}
 
-    while let Some(current) = current_pending_state()? {
-        if current.login_id != state.login_id || current.state != state.state {
-            break;
-        }
-        if current.expires_at <= now_ts() {
-            set_oauth_pending(None)?;
-            let payload = json!({
-                "loginId": state.login_id,
-                "callbackUrl": state.redirect_uri,
-                "timeoutSeconds": OAUTH_TIMEOUT_SECONDS,
-            });
-            let _ = app.emit("codex-oauth-login-timeout", payload);
-            break;
-        }
-
-        let accepted =
-            tokio::time::timeout(std::time::Duration::from_secs(1), listener.accept()).await;
-
-        let Ok(Ok((mut stream, _))) = accepted else {
-            continue;
-        };
-
-        let mut buffer = vec![0_u8; 8192];
-        let size = tokio::io::AsyncReadExt::read(&mut stream, &mut buffer)
-            .await
-            .unwrap_or(0);
-        let request_text = String::from_utf8_lossy(&buffer[..size]).to_string();
-        let Some(path) = parse_http_request_path(&request_text) else {
-            let _ = tokio::io::AsyncWriteExt::write_all(
-                &mut stream,
-                format!(
-                    "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-                    html_response("Invalid request", "CCR expected an OAuth callback request.").len(),
-                    html_response("Invalid request", "CCR expected an OAuth callback request.")
-                )
-                .as_bytes(),
-            )
-            .await;
-            continue;
-        };
-
-        let parsed_url = callback_url_from_path(&path, state.port)?;
-        let code = parsed_url
-            .query_pairs()
-            .find(|(key, _)| key == "code")
-            .map(|(_, value)| value.to_string())
-            .unwrap_or_default();
-        let callback_state = parsed_url
-            .query_pairs()
-            .find(|(key, _)| key == "state")
-            .map(|(_, value)| value.to_string())
-            .unwrap_or_default();
-
-        let (status_line, body) = if callback_state != state.state {
-            (
-                "HTTP/1.1 400 Bad Request",
-                html_response(
-                    "OAuth state mismatch",
-                    "The callback state does not match the current CCR login request.",
-                ),
-            )
-        } else if code.is_empty() {
-            (
-                "HTTP/1.1 400 Bad Request",
-                html_response(
-                    "OAuth code missing",
-                    "OpenAI returned without an authorization code.",
-                ),
-            )
-        } else {
-            let callback_url = parsed_url.to_string();
-            let next = CodexOAuthPendingState {
-                callback_url: Some(callback_url.clone()),
-                ..state.clone()
-            };
-            set_oauth_pending(Some(next))?;
-            let payload = json!({ "loginId": state.login_id });
-            let _ = app.emit("codex-oauth-login-completed", payload);
-            (
-                "HTTP/1.1 200 OK",
-                html_response(
-                    "Authorization received",
-                    "CCR captured the OpenAI callback. Finish the login back in the app.",
-                ),
-            )
-        };
-
-        let response = format!(
-            "{status_line}\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-            body.len(),
-            body
-        );
-        let _ = tokio::io::AsyncWriteExt::write_all(&mut stream, response.as_bytes()).await;
+impl oauth::Backend for DesktopOAuthBackend {
+    fn now(&self) -> i64 {
+        now_ts()
     }
+    fn load(&self) -> Result<Option<CodexOAuthPendingState>, String> {
+        self.store.load(now_ts()).map_err(|e| e.to_string())
+    }
+    fn save(&self, pending: &CodexOAuthPendingState) -> Result<(), String> {
+        self.store.save(pending).map_err(|e| e.to_string())
+    }
+    fn clear(&self) -> Result<(), String> {
+        self.store.clear().map_err(|e| e.to_string())
+    }
+    fn bind(&self, port: u16) -> Result<std::net::TcpListener, String> {
+        std::net::TcpListener::bind(("127.0.0.1", port))
+            .map_err(|e| format!("oauth_bind_failed:{port}: {e}"))
+    }
+    fn exchange(
+        &self,
+        pending: CodexOAuthPendingState,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<CodexOAuthTokenResponse, String>> + Send>,
+    > {
+        Box::pin(async move {
+            let callback = pending.callback_url.ok_or("oauth_callback_not_ready")?;
+            let url = Url::parse(callback.expose()).map_err(|_| "oauth_invalid_callback")?;
+            let code = url
+                .query_pairs()
+                .find(|(key, _)| key == "code")
+                .map(|(_, value)| value.to_string())
+                .ok_or("oauth_code_missing")?;
+            exchange_oauth_tokens_at(
+                OAUTH_TOKEN_URL,
+                &code,
+                pending.code_verifier.expose(),
+                &pending.redirect_uri,
+            )
+            .await
+        })
+    }
+    fn commit(
+        &self,
+        tokens: CodexOAuthTokenResponse,
+        name: Option<String>,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<CodexAuthMutationResponse, String>> + Send>,
+    > {
+        Box::pin(async move {
+            tokio::task::spawn_blocking(move || {
+                let auth = CodexAuthJson {
+                    openai_api_key: None,
+                    tokens: Some(ccr_codex::CodexAuthTokens {
+                        id_token: Some(tokens.id_token),
+                        access_token: Some(tokens.access_token),
+                        refresh_token: tokens.refresh_token,
+                        account_id: None,
+                    }),
+                    last_refresh: Some(Utc::now().to_rfc3339()),
+                };
+                let service = CodexAuthService::new()
+                    .map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
+                let export = service
+                    .build_export_account_from_auth_json(auth, None, None, None, None)
+                    .map_err(|e| format!("构建 OAuth 账号失败: {e}"))?;
+                finalize_account_mutation(&service, export, name, true)
+            })
+            .await
+            .map_err(|_| "oauth_commit_join_failed".to_string())?
+        })
+    }
+}
 
-    Ok(())
+fn oauth_events(app: AppHandle) -> oauth::Events {
+    Arc::new(move |event| match event {
+        oauth::Event::Callback { login_id } => {
+            let _ = app.emit(
+                "codex-oauth-login-completed",
+                json!({ "loginId": login_id }),
+            );
+        }
+        oauth::Event::Timeout {
+            login_id,
+            callback_url,
+        } => {
+            let _ = app.emit("codex-oauth-login-timeout", json!({ "loginId": login_id, "callbackUrl": callback_url, "timeoutSeconds": OAUTH_TIMEOUT_SECONDS }));
+        }
+    })
+}
+
+fn new_oauth_pending() -> Result<CodexOAuthPendingState, String> {
+    let login_id = Uuid::new_v4().to_string();
+    let state = Uuid::new_v4().to_string();
+    let code_verifier = generate_code_verifier();
+    let redirect_uri = format!("http://localhost:{OAUTH_CALLBACK_PORT}/auth/callback");
+    let auth_url = build_oauth_authorize_url(
+        &redirect_uri,
+        &generate_code_challenge(&code_verifier),
+        &state,
+    )?;
+    Ok(CodexOAuthPendingState {
+        login_id,
+        auth_url: auth_url.into(),
+        redirect_uri,
+        code_verifier: code_verifier.into(),
+        state: state.into(),
+        port: OAUTH_CALLBACK_PORT,
+        expires_at: now_ts() + OAUTH_TIMEOUT_SECONDS,
+        callback_url: None,
+    })
 }
 
 pub fn restore_pending_oauth_listener(app: AppHandle) {
-    let Ok(Some(state)) = load_oauth_pending_from_disk() else {
-        return;
-    };
-    if state.expires_at <= now_ts() {
-        let _ = persist_oauth_pending(None);
-        return;
-    }
-    let _ = set_oauth_pending(Some(state.clone()));
     tauri::async_runtime::spawn(async move {
-        let _ = start_oauth_callback_listener(app, state).await;
+        let result = async {
+            crate::commands::runtime_policy::execute("codex_oauth_login_start", async move {
+                let backend = Arc::new(DesktopOAuthBackend {
+                    store: oauth_pending_store()?,
+                });
+                OAUTH_CONTROLLER
+                    .restore_admitted(
+                        backend,
+                        oauth_events(app),
+                        crate::commands::runtime_policy::acquire_oauth_admission(),
+                    )
+                    .await?;
+                Ok::<_, String>(())
+            })
+            .await
+        }
+        .await;
+        if result.is_err() {
+            tracing::warn!("oauth_restore_failed");
+        }
     });
 }
 
-async fn exchange_oauth_tokens(
+async fn exchange_oauth_tokens_at(
+    endpoint: &str,
     code: &str,
     code_verifier: &str,
     redirect_uri: &str,
 ) -> Result<CodexOAuthTokenResponse, String> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .map_err(|_| "oauth_http_client_failed")?;
     let params = [
         ("grant_type", "authorization_code"),
         ("code", code),
@@ -778,35 +721,28 @@ async fn exchange_oauth_tokens(
         ("client_id", OAUTH_CLIENT_ID),
         ("code_verifier", code_verifier),
     ];
-
-    let response = client
-        .post(OAUTH_TOKEN_URL)
+    let mut response = client
+        .post(endpoint)
         .form(&params)
         .send()
         .await
-        .map_err(|e| format!("Token 请求失败: {e}"))?;
-
+        .map_err(|_| "oauth_token_request_failed")?;
     let status = response.status();
-    let body = response
-        .text()
-        .await
-        .map_err(|e| format!("读取 Token 响应失败: {e}"))?;
-
     if !status.is_success() {
-        return Err(format!("Token 交换失败: status={status}, body={body}"));
+        return Err(format!("oauth_token_exchange_failed: status={status}"));
     }
-
-    serde_json::from_str::<CodexOAuthTokenResponse>(&body)
-        .map_err(|e| format!("解析 Token 响应失败: {e}"))
-}
-
-fn oauth_state_from_login_id(login_id: &str) -> Result<CodexOAuthPendingState, String> {
-    let state =
-        current_pending_state()?.ok_or_else(|| "当前没有进行中的 Codex OAuth 流程".to_string())?;
-    if state.login_id != login_id {
-        return Err("OAuth 登录流程已变化，请刷新授权链接后重试".to_string());
+    let mut body = Vec::new();
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|_| "oauth_token_body_failed")?
+    {
+        if body.len() + chunk.len() > 1024 * 1024 {
+            return Err("oauth_token_body_too_large".into());
+        }
+        body.extend_from_slice(&chunk);
     }
-    Ok(state)
+    serde_json::from_slice(&body).map_err(|_| "oauth_token_response_invalid".into())
 }
 
 fn json_value_to_auth(value: JsonValue) -> Result<CodexAuthJson, String> {
@@ -1394,42 +1330,21 @@ pub async fn codex_detect_process() -> Result<CodexAuthProcessResponse, String> 
 
 #[ccr_tauri_command_macros::command]
 pub async fn codex_oauth_login_start(app: AppHandle) -> Result<CodexOAuthStartResponse, String> {
-    hydrate_oauth_pending_if_needed()?;
-    if let Some(existing) = current_pending_state()? {
-        if existing.expires_at > now_ts() {
-            return Ok(CodexOAuthStartResponse {
-                login_id: existing.login_id,
-                auth_url: existing.auth_url,
-            });
-        }
-        set_oauth_pending(None)?;
-    }
-
-    let port = find_available_oauth_port()?;
-    let login_id = Uuid::new_v4().to_string();
-    let state = Uuid::new_v4().to_string();
-    let code_verifier = generate_code_verifier();
-    let code_challenge = generate_code_challenge(&code_verifier);
-    let redirect_uri = format!("http://localhost:{port}/auth/callback");
-    let auth_url = build_oauth_authorize_url(&redirect_uri, &code_challenge, &state)?;
-
-    let pending = CodexOAuthPendingState {
-        login_id: login_id.clone(),
-        auth_url: auth_url.clone(),
-        redirect_uri,
-        code_verifier,
-        state,
-        port,
-        expires_at: now_ts() + OAUTH_TIMEOUT_SECONDS,
-        callback_url: None,
-    };
-    set_oauth_pending(Some(pending.clone()))?;
-
-    tauri::async_runtime::spawn(async move {
-        let _ = start_oauth_callback_listener(app, pending).await;
+    let backend = Arc::new(DesktopOAuthBackend {
+        store: oauth_pending_store()?,
     });
-
-    Ok(CodexOAuthStartResponse { login_id, auth_url })
+    let pending = OAUTH_CONTROLLER
+        .start_admitted(
+            backend,
+            oauth_events(app),
+            new_oauth_pending,
+            crate::commands::runtime_policy::acquire_oauth_admission(),
+        )
+        .await?;
+    Ok(CodexOAuthStartResponse {
+        login_id: pending.login_id,
+        auth_url: pending.auth_url.expose().to_string(),
+    })
 }
 
 #[ccr_tauri_command_macros::command]
@@ -1439,55 +1354,9 @@ pub async fn codex_oauth_login_completed(
     login_id: String,
     preferred_account_name: Option<String>,
 ) -> Result<CodexAuthMutationResponse, String> {
-    let pending = oauth_state_from_login_id(&login_id)?;
-    let callback_url = pending
-        .callback_url
-        .clone()
-        .ok_or_else(|| "尚未收到 OAuth 回调，请在浏览器授权后重试".to_string())?;
-    let parsed = Url::parse(&callback_url).map_err(|e| format!("解析回调地址失败: {e}"))?;
-    let callback_state = parsed
-        .query_pairs()
-        .find(|(key, _)| key == "state")
-        .map(|(_, value)| value.to_string())
-        .unwrap_or_default();
-    if callback_state != pending.state {
-        return Err("OAuth state 校验失败，请重新发起授权".to_string());
-    }
-
-    let code = parsed
-        .query_pairs()
-        .find(|(key, _)| key == "code")
-        .map(|(_, value)| value.to_string())
-        .unwrap_or_default();
-    if code.is_empty() {
-        return Err("OAuth 回调中缺少 code 参数".to_string());
-    }
-
-    let tokens =
-        exchange_oauth_tokens(&code, &pending.code_verifier, &pending.redirect_uri).await?;
-    let auth = CodexAuthJson {
-        openai_api_key: None,
-        tokens: Some(ccr_codex::CodexAuthTokens {
-            id_token: Some(tokens.id_token),
-            access_token: Some(tokens.access_token),
-            refresh_token: tokens.refresh_token,
-            account_id: None,
-        }),
-        last_refresh: Some(Utc::now().to_rfc3339()),
-    };
-
-    let response = tokio::task::spawn_blocking(move || {
-        let service =
-            CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
-        let export = service
-            .build_export_account_from_auth_json(auth, None, None, None, None)
-            .map_err(|e| format!("构建 OAuth 账号失败: {e}"))?;
-        finalize_account_mutation(&service, export, preferred_account_name, true)
-    })
-    .await
-    .map_err(|e| format!("任务执行失败: {e}"))??;
-
-    set_oauth_pending(None)?;
+    let response = OAUTH_CONTROLLER
+        .complete(&login_id, preferred_account_name)
+        .await?;
     invalidate_codex_dashboard_overview_cache(&state).await;
     let _ = desktop_shell::refresh_codex_tray(&app, true).await;
     Ok(response)
@@ -1495,52 +1364,23 @@ pub async fn codex_oauth_login_completed(
 
 #[ccr_tauri_command_macros::command]
 pub async fn codex_oauth_login_cancel(login_id: Option<String>) -> Result<(), String> {
-    let Some(current) = current_pending_state()? else {
-        return Ok(());
-    };
-    if let Some(login_id) = login_id
-        && current.login_id != login_id
-    {
-        return Err("指定的 OAuth 登录会话已变化".to_string());
-    }
-    set_oauth_pending(None)
+    OAUTH_CONTROLLER
+        .cancel_or_clear_saved(
+            login_id.as_deref(),
+            Arc::new(DesktopOAuthBackend {
+                store: oauth_pending_store()?,
+            }),
+        )
+        .await
 }
 
 #[ccr_tauri_command_macros::command]
 pub async fn codex_oauth_submit_callback_url(
-    app: AppHandle,
+    _app: AppHandle,
     login_id: String,
     callback_url: String,
 ) -> Result<(), String> {
-    let current = oauth_state_from_login_id(&login_id)?;
-    let parsed = Url::parse(&callback_url).map_err(|e| format!("解析回调地址失败: {e}"))?;
-    let callback_state = parsed
-        .query_pairs()
-        .find(|(key, _)| key == "state")
-        .map(|(_, value)| value.to_string())
-        .unwrap_or_default();
-    let code = parsed
-        .query_pairs()
-        .find(|(key, _)| key == "code")
-        .map(|(_, value)| value.to_string())
-        .unwrap_or_default();
-
-    if callback_state != current.state {
-        return Err("OAuth state 校验失败，请确认复制的是当前授权链接完成后的回调地址".to_string());
-    }
-    if code.is_empty() {
-        return Err("回调地址中缺少 code 参数".to_string());
-    }
-
-    set_oauth_pending(Some(CodexOAuthPendingState {
-        callback_url: Some(callback_url),
-        ..current.clone()
-    }))?;
-    let _ = app.emit(
-        "codex-oauth-login-completed",
-        json!({ "loginId": login_id }),
-    );
-    Ok(())
+    OAUTH_CONTROLLER.submit(&login_id, &callback_url)
 }
 
 #[ccr_tauri_command_macros::command]
@@ -1550,6 +1390,14 @@ pub async fn codex_is_oauth_port_in_use() -> Result<bool, String> {
 
 #[ccr_tauri_command_macros::command]
 pub async fn codex_release_oauth_port() -> Result<OAuthPortReleaseReport, String> {
+    OAUTH_CONTROLLER
+        .cancel_or_clear_saved(
+            None,
+            Arc::new(DesktopOAuthBackend {
+                store: oauth_pending_store()?,
+            }),
+        )
+        .await?;
     let discovered = discover_port_processes(OAUTH_CALLBACK_PORT).await?;
     let owned = ProcessGateway::owned_processes_for_port(&discovered, OAUTH_CALLBACK_PORT);
     for process in &owned {
@@ -1802,6 +1650,151 @@ pub async fn codex_delete_model_provider(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn oauth_pending_adapter_preserves_legacy_root_when_data_dir_differs() {
+        let mut env = crate::test_support::TestProcessEnv::new();
+        let directory = tempfile::tempdir().expect("test directory");
+        let root = directory.path().join("root");
+        let data = directory.path().join("data");
+        env.set("CCR_ROOT", root.as_os_str());
+        env.set("CCR_DATA_DIR", data.as_os_str());
+        env.set("CCR_LOCK_DIR", directory.path().join("locks").as_os_str());
+        let pending = CodexOAuthPendingState {
+            login_id: "path-fixture".into(),
+            auth_url: "https://example.invalid".into(),
+            redirect_uri: "http://localhost:1455/auth/callback".into(),
+            code_verifier: "synthetic-verifier".into(),
+            state: "synthetic-state".into(),
+            port: 1455,
+            expires_at: now_ts() + 300,
+            callback_url: None,
+        };
+        persist_oauth_pending(Some(&pending)).expect("save at legacy path");
+        assert!(root.join("platforms/codex/oauth_pending.json").is_file());
+        assert!(!data.join("platforms/codex/oauth_pending.json").exists());
+        assert_eq!(
+            load_oauth_pending_from_disk()
+                .expect("load")
+                .expect("pending")
+                .login_id,
+            pending.login_id
+        );
+        persist_oauth_pending(None).expect("clear");
+        assert!(!root.join("platforms/codex/oauth_pending.json").exists());
+    }
+
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn oauth_pending_storage_failure_preserves_memory_and_redacts_output() {
+        use crate::test_support::TestProcessEnv;
+        use std::os::windows::fs::OpenOptionsExt;
+        use std::sync::Arc;
+
+        #[derive(Clone)]
+        struct LogBuffer(Arc<Mutex<Vec<u8>>>);
+        impl std::io::Write for LogBuffer {
+            fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+                self.0
+                    .lock()
+                    .unwrap_or_else(|error| error.into_inner())
+                    .extend_from_slice(bytes);
+                Ok(bytes.len())
+            }
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+
+        let mut env = TestProcessEnv::new();
+        let directory = tempfile::tempdir().expect("test directory");
+        for key in ["CCR_ROOT", "CCR_DATA_DIR", "CCR_CODEX_DIR"] {
+            env.set(key, directory.path().as_os_str());
+        }
+        env.set("CCR_LOCK_DIR", directory.path().join("locks").as_os_str());
+        let bytes = Arc::new(Mutex::new(Vec::new()));
+        let output = LogBuffer(bytes.clone());
+        let subscriber = tracing_subscriber::fmt()
+            .with_ansi(false)
+            .with_max_level(tracing::Level::DEBUG)
+            .with_writer(move || output.clone())
+            .finish();
+        let _capture = tracing::subscriber::set_default(subscriber);
+        let verifier = "synthetic-handler-verifier-0123456789";
+        let state = "synthetic-handler-state-9876543210";
+        let original = CodexOAuthPendingState {
+            login_id: "old-login".into(),
+            auth_url: format!("https://example.invalid/?state={state}").into(),
+            redirect_uri: "http://localhost:1455/auth/callback".into(),
+            code_verifier: verifier.into(),
+            state: state.into(),
+            port: 1455,
+            expires_at: now_ts() + 300,
+            callback_url: None,
+        };
+        let controller = oauth::Controller::default();
+        let reservation = std::net::TcpListener::bind(("127.0.0.1", 0)).expect("reserve test port");
+        let mut original = original;
+        original.port = reservation.local_addr().expect("port").port();
+        original.redirect_uri = format!("http://localhost:{}/auth/callback", original.port);
+        drop(reservation);
+        let backend = Arc::new(DesktopOAuthBackend {
+            store: oauth_pending_store().expect("store"),
+        });
+        controller
+            .start(backend, Arc::new(|_| {}), || Ok(original.clone()), None)
+            .expect("initial save");
+        let target = directory.path().join("platforms/codex/oauth_pending.json");
+        let before = std::fs::read(&target).expect("initial disk bytes");
+        let held = std::fs::OpenOptions::new()
+            .read(true)
+            .share_mode(3)
+            .open(&target)
+            .expect("deny delete sharing");
+        let callback = format!(
+            "http://localhost:{}/auth/callback?state={state}&code=sentinel-code",
+            original.port
+        );
+        let save_error = controller
+            .submit("old-login", &callback)
+            .expect_err("replacement must fail");
+        let cancel_error = controller
+            .cancel(Some("old-login"))
+            .await
+            .expect_err("cleanup must fail");
+        assert_eq!(
+            controller
+                .current()
+                .expect("memory")
+                .expect("old login")
+                .login_id,
+            "old-login"
+        );
+        assert_eq!(std::fs::read(&target).expect("disk"), before);
+        tracing::debug!(?original, %save_error, %cancel_error, "OAuth persistence test");
+        for visible in [
+            &save_error,
+            &cancel_error,
+            &serde_json::to_string(&save_error).expect("IPC error"),
+        ] {
+            assert!(!visible.contains(verifier));
+            assert!(!visible.contains(state));
+        }
+        drop(held);
+        controller.cancel(Some("old-login")).await.expect("cancel");
+        assert!(controller.current().expect("cleared memory").is_none());
+        assert_eq!(
+            std::fs::read_dir(target.parent().expect("parent"))
+                .expect("directory")
+                .count(),
+            0
+        );
+        let captured =
+            String::from_utf8(bytes.lock().expect("captured logs").clone()).expect("UTF-8 logs");
+        assert!(captured.contains("OAuth persistence test"));
+        assert!(!captured.contains(verifier));
+        assert!(!captured.contains(state));
+    }
 
     #[test]
     fn port_release_report_never_claims_unknown_processes() {

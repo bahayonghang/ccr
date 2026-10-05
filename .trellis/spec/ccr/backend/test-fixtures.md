@@ -2,6 +2,12 @@
 
 > Process-wide environment and filesystem fixtures for root `ccr` integration tests.
 
+Historical workflow failures retain the original run ID, commit SHA, failed command, and diagnostic output. Record current reproduction results separately. A successful current test does not establish the cause of an old failure. Apply this evidence rule in Claude Code, Codex, Grok Build, Kimi Code, and OMP.
+
+Keep Windows process tests, Linux coverage, macOS process tests, MSRV checks, frontend/jsdom tests, native client loading, and hosted workflows as separate validation boundaries. Run each required suite with its existing filters and thresholds. A missing environment remains unverified.
+
+When a failure reproduces, collect bounded, sanitized diagnostics in the owning fixture: report outcome, process exit status, timeout state, output byte counts, truncation flags, and cleanup state as applicable. Preserve the first failure. Do not add global serialization, broad retries, threshold changes, or unrelated production changes to close an evidence gap.
+
 ---
 
 ## Scenario: CcrIntegrationTestEnv for root integration test environment isolation
@@ -28,6 +34,7 @@
 - `Drop` restores every captured environment variable in reverse order while the env lock is still held.
 - The shared support module exports only the core fixture type; each test binary defines only the aliases/setup functions it actually uses to keep `clippy -D warnings` clean.
 - The fixture is intentionally narrow; subprocess CLI tests that pass env vars directly to `Command` should keep doing so instead of mutating process-global env.
+- Tests that call `ConfigManager::save`, `PlatformConfigManager::save`, or `SettingsManager::save_atomic` / `restore` must hold a named `CcrIntegrationTestEnv` binding for the full operation scope. These calls reach `guarded_write`, which reads `CCR_LOCK_DIR` even when target paths or a `SettingsManager` lock argument are explicit. Apply this rule in Claude Code, Codex, Grok Build, Kimi Code, and OMP.
 
 ### 4. Validation & Error Matrix
 - Temp root cannot be created -> test setup fails immediately.

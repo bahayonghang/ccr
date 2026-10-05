@@ -1,0 +1,205 @@
+{
+  "closed_at_utc": "2026-09-29T04:55:33.470880+00:00",
+  "authorization": "请提交改动和归档任务",
+  "closure_kind": "user_authorized_administrative_archive",
+  "source_commit": "f22732fc319a11adc38338603ea627def13c6348",
+  "source_parent_commit": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "branch": "dev",
+  "pushed": false,
+  "lifecycle_status": "completed",
+  "acceptance_status": "partial_required_acceptance_remains_open",
+  "task_count": 12,
+  "original_parent_children": {
+    "09-28-cli-tauri-architecture": [
+      "09-28-config-repository-consistency",
+      "09-28-profile-application-usecases",
+      "09-28-tauri-config-adapter",
+      "09-28-cli-diagnostics-contract",
+      "09-28-safe-persistence-backups",
+      "09-28-usage-job-lifecycle",
+      "09-28-command-workbench-lifecycle",
+      "09-28-settings-lossless-capabilities",
+      "09-28-frontend-query-error-contracts",
+      "09-28-architecture-contract-gates",
+      "09-28-desktop-control-oauth-lifecycle"
+    ]
+  },
+  "path_mapping": {
+    ".trellis/tasks/09-28-config-repository-consistency": ".trellis/tasks/archive/2026-09/09-28-config-repository-consistency",
+    ".trellis/tasks/09-28-profile-application-usecases": ".trellis/tasks/archive/2026-09/09-28-profile-application-usecases",
+    ".trellis/tasks/09-28-tauri-config-adapter": ".trellis/tasks/archive/2026-09/09-28-tauri-config-adapter",
+    ".trellis/tasks/09-28-cli-diagnostics-contract": ".trellis/tasks/archive/2026-09/09-28-cli-diagnostics-contract",
+    ".trellis/tasks/09-28-safe-persistence-backups": ".trellis/tasks/archive/2026-09/09-28-safe-persistence-backups",
+    ".trellis/tasks/09-28-usage-job-lifecycle": ".trellis/tasks/archive/2026-09/09-28-usage-job-lifecycle",
+    ".trellis/tasks/09-28-command-workbench-lifecycle": ".trellis/tasks/archive/2026-09/09-28-command-workbench-lifecycle",
+    ".trellis/tasks/09-28-settings-lossless-capabilities": ".trellis/tasks/archive/2026-09/09-28-settings-lossless-capabilities",
+    ".trellis/tasks/09-28-frontend-query-error-contracts": ".trellis/tasks/archive/2026-09/09-28-frontend-query-error-contracts",
+    ".trellis/tasks/09-28-architecture-contract-gates": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates",
+    ".trellis/tasks/09-28-desktop-control-oauth-lifecycle": ".trellis/tasks/archive/2026-09/09-28-desktop-control-oauth-lifecycle",
+    ".trellis/tasks/09-28-cli-tauri-architecture": ".trellis/tasks/archive/2026-09/09-28-cli-tauri-architecture"
+  },
+  "history_policy": "Preserve historical reports, matrices, failure evidence and raw file bytes. Old paths identify execution-time locations; resolve them with path_mapping. Historical committed=false and fix_commit=null fields remain pre-commit snapshots.",
+  "git_normalization_policy": "Integrity hashes apply to local raw bytes. Git may normalize text according to existing attributes and core.autocrlf; no raw-byte equivalence with normalized Git blobs is claimed.",
+  "verification_policy": "Reuse the frozen gate receipts and source commit receipt. No product source change or full gate rerun occurs during administrative closure.",
+  "completed_local_gates": [
+    "Windows just ci: 14 phases, 1078.351 seconds",
+    "Frontend: 169 files / 904 tests, 24 i18n, line coverage 75.19%",
+    "VS Code: 51 tests; docs checks",
+    "Linux workspace quality, Rust 1.95 MSRV, cargo-audit 0.22.2, coverage and Tauri gates",
+    "Coverage: root 74.61%, core gateway 96.09%, Tauri gateway 93.03%; Tauri overall 52.14% has no overall threshold",
+    "native7: six bounded acceptance checks"
+  ],
+  "acceptance_limits": [
+    "必需的 macOS process/workspace matrix 未执行。",
+    "历史 exporter 0xc0000005 原因未查明，失败前 exe SHA 缺失。后续通过记录不替代历史失败。",
+    "原生验证限于 Linux WSLg WebKitGTK、debug binary、生产 custom-protocol/CSP 和合成本地 Claude raw settings。",
+    "保存后 style DOM 移除、body scroll-lock 恢复未验证。",
+    "Windows/macOS 原生交互、Profiles/Configs/Commands 原生交互、真实 SSH/远程 WSL/OAuth、交互式 TUI、物理输入及发布包未验证。",
+    "部分旧基线反例只有源码证据；审查作者独立性以各报告记载为准。",
+    "12 个 context validations / 24 个 JSONL 保留 4 条注入大小警告：33513 > 32768 字节。"
+  ],
+  "central_matrix": [
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/requirements-evidence.json",
+      "bytes": 2911302,
+      "sha256": "1fda82c5eb3ad3f3bb1d48ad1e1145e5d7f95ad3c653f4b6e142938bfbab5db0",
+      "policy": "include_reviewed_central_acceptance_matrix"
+    }
+  ],
+  "local_only_artifacts": [
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/silent_child.exe",
+      "bytes": 169984,
+      "sha256": "770a4d3908bb874d6dcbf80120956b6c7292e3f8cb270f0c0faf45c823858d53",
+      "policy": "preserve_local_exclude_from_git"
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/baseline-repro/silent_child.pdb",
+      "bytes": 1347584,
+      "sha256": "9d0f74cd29fbc28d998d0decf8373a7a4c1ff9788aa4054f1df8a8a97cfef7ea",
+      "policy": "preserve_local_exclude_from_git"
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-linux-tauri-schema-before.json",
+      "bytes": 1270154,
+      "sha256": "9aa09480f485790c273a98d1355396ce6febe24371fd7ba4263362ccf4cc4d64",
+      "policy": "preserve_local_exclude_from_git"
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-linux-coverage-report-final.json",
+      "bytes": 10664881,
+      "sha256": "55cd4a62be3bc291aa041531180ae485c771f68e9b92961b6046d29e824cb5d3",
+      "policy": "preserve_local_exclude_from_git"
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-linux-coverage-report.json",
+      "bytes": 10658871,
+      "sha256": "e347b83c3e5ec8527ed021c6a61f9800cf00fee4814cb9dc83f3064ce4b584a2",
+      "policy": "preserve_local_exclude_from_git"
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-linux-coverage-tauri-after-path-report.json",
+      "bytes": 10664881,
+      "sha256": "dd9194758676c4d888805c96b3127a6ff45feabeec822a900fc5766135d690ba",
+      "policy": "preserve_local_exclude_from_git"
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-linux-coverage-workspace-after-path-report.json",
+      "bytes": 21966618,
+      "sha256": "0f59ba2a17de26c0ea21910e6605d9df6c3535653b5cffe9e73c37e2442f7d7e",
+      "policy": "preserve_local_exclude_from_git"
+    }
+  ],
+  "preserved_other_dirty_paths": {
+    "ccr-ui/public/icons/icon.png": "ee3e5f97825eb7bfbcfa09cf25117707b88fe569aef12f7fe4d5cea55ebeef57",
+    "ccr-ui/public/icons/logo.png": "4ecd0dedd41251f1c1397bd34b129d229f56944e65d1a04efb94ac07985e424d",
+    "ccr-ui/src-tauri/icons/128x128.png": "9634cc1478e659b491969a5e51c201bb9047866bb32ee1a66ad0c2af757ad26b",
+    "ccr-ui/src-tauri/icons/128x128@2x.png": "3bc57b56f94cb0f6c01268b0b333d08d7f9b01310540ed9bd1709853100c682d",
+    "ccr-ui/src-tauri/icons/32x32.png": "6543006393efb0432a5c55ab6e7eba2c9ef64637c195c12d07d7b71371d0abf1",
+    "ccr-ui/src-tauri/icons/64x64.png": "21a6d019fd7dbdab42453151ac642ed79e88d2da6f0edca2b4267f3af8aec1c4",
+    "ccr-ui/src-tauri/icons/Square107x107Logo.png": "935d36e4b98f5df243fe11735ea07e30aa542d533800e3953611cca27561095d",
+    "ccr-ui/src-tauri/icons/Square142x142Logo.png": "70cb422b95f67b9ee3dab97135edbe16573d9459924dbb14b31b4654cb43ad53",
+    "ccr-ui/src-tauri/icons/Square150x150Logo.png": "d4949e289e8e07145e31c7f67d282227c8089d960fec4aedb2c10d2852d7812a",
+    "ccr-ui/src-tauri/icons/Square284x284Logo.png": "8b2df9cf7532d0c99f2ec89f44116b3a08a3bc11ef4225ff2ed7cae481a7a85d",
+    "ccr-ui/src-tauri/icons/Square30x30Logo.png": "0d88649e6f699d925888504c606184f3327903b8e36da328f25e057c419204f7",
+    "ccr-ui/src-tauri/icons/Square310x310Logo.png": "5e3549e8addba7f590855bf45208e56218569f2ab3c132085d64e5f5d3458101",
+    "ccr-ui/src-tauri/icons/Square44x44Logo.png": "4f0056bd9a65511a42526a9173dc2c8e67f9583649210f34c8e43a43b805c966",
+    "ccr-ui/src-tauri/icons/Square71x71Logo.png": "8c9637757bf9eb0de0ea474c44e404e4e0dd8e840f39e354bb3feae374331b27",
+    "ccr-ui/src-tauri/icons/Square89x89Logo.png": "edcf727065345365d9f0fe6fae932d099205da799445f83bc80eebf119dd257f",
+    "ccr-ui/src-tauri/icons/StoreLogo.png": "89c23cbe56f080fafdd0e5826c5bf40ab149e63b2fe7a3113e49ccbae3d0a324",
+    "ccr-ui/src-tauri/icons/android/mipmap-hdpi/ic_launcher.png": "f5f01ee4a88f7f529a3e2c919d5b6cdccffa78063f791118f2c32dfeb9eb0942",
+    "ccr-ui/src-tauri/icons/android/mipmap-hdpi/ic_launcher_foreground.png": "fe0f9ad0cc5a77c33ea48d712454878749537a4bcb4a60a86646093328218c81",
+    "ccr-ui/src-tauri/icons/android/mipmap-hdpi/ic_launcher_round.png": "f5f01ee4a88f7f529a3e2c919d5b6cdccffa78063f791118f2c32dfeb9eb0942",
+    "ccr-ui/src-tauri/icons/android/mipmap-mdpi/ic_launcher.png": "82f3af61582d7adaadef8a09c945b36eb660758a47c5570e45b0103d4c8fee18",
+    "ccr-ui/src-tauri/icons/android/mipmap-mdpi/ic_launcher_foreground.png": "a71dd93e1bd09eafe5e05c09865053a5e342fb262229c84c4b786facbc7520da",
+    "ccr-ui/src-tauri/icons/android/mipmap-mdpi/ic_launcher_round.png": "82f3af61582d7adaadef8a09c945b36eb660758a47c5570e45b0103d4c8fee18",
+    "ccr-ui/src-tauri/icons/android/mipmap-xhdpi/ic_launcher.png": "6a2a6d5c42c89506a10e5aaa1a5a1a2ef566fd0f1f9f60004c1e41afa06b7e99",
+    "ccr-ui/src-tauri/icons/android/mipmap-xhdpi/ic_launcher_foreground.png": "cbaee6b709c770a3f348f3a8c4ad3e55e5752a05ffc6852763305cdedd6645d7",
+    "ccr-ui/src-tauri/icons/android/mipmap-xhdpi/ic_launcher_round.png": "6a2a6d5c42c89506a10e5aaa1a5a1a2ef566fd0f1f9f60004c1e41afa06b7e99",
+    "ccr-ui/src-tauri/icons/android/mipmap-xxhdpi/ic_launcher.png": "dc854d4a4db64e5955672822bf940bf423dcd7e2869d93c6a662d3db0e3cec26",
+    "ccr-ui/src-tauri/icons/android/mipmap-xxhdpi/ic_launcher_foreground.png": "de82b5bde5b69a021168e72955f3f729d064b4acf4e5d8c0fd99731e38e58820",
+    "ccr-ui/src-tauri/icons/android/mipmap-xxhdpi/ic_launcher_round.png": "dc854d4a4db64e5955672822bf940bf423dcd7e2869d93c6a662d3db0e3cec26",
+    "ccr-ui/src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher.png": "27c064f8ba189d65bedc596f287faff8e5ab5095df0e888fdad03a83943086fe",
+    "ccr-ui/src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher_foreground.png": "223187686d957c6d70d8cfe1e46fd2573289db85c400ec04e10fbd3b951cf8e5",
+    "ccr-ui/src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher_round.png": "27c064f8ba189d65bedc596f287faff8e5ab5095df0e888fdad03a83943086fe",
+    "ccr-ui/src-tauri/icons/icon.icns": "4e4d7669bf58f77ae9b883b936a15fdb8e158a674266532af9e2bca785e7ba5e",
+    "ccr-ui/src-tauri/icons/icon.ico": "de9b8ebcbde4e994558646995ee669b6b5d773a9cb630114e106cb4198053249",
+    "ccr-ui/src-tauri/icons/icon.png": "ee3e5f97825eb7bfbcfa09cf25117707b88fe569aef12f7fe4d5cea55ebeef57",
+    "ccr-ui/src-tauri/icons/icon@2x.png": "e14fb4368d734bb5397c8dc9e2ce092397809b60f4532e180ec2bba77fd85ccc",
+    "ccr-ui/src-tauri/icons/ios/AppIcon-20x20@1x.png": "4c9c037e8b129a7aa9ae9be17f450fce961465cd82a2b8c2a89fa55894f087c8",
+    "ccr-ui/src-tauri/icons/ios/AppIcon-20x20@2x-1.png": "f5069aebd6818f98d52f53b790039e2ec82002eb86d9650f3f6542e99314a7ed",
+    "ccr-ui/src-tauri/icons/ios/AppIcon-20x20@2x.png": "f5069aebd6818f98d52f53b790039e2ec82002eb86d9650f3f6542e99314a7ed",
+    "ccr-ui/src-tauri/icons/ios/AppIcon-20x20@3x.png": "e243300c7dd011d3384dba2f2e58d9c6a2eccfdfbdb12b86bb51cc68224d1c4e",
+    "ccr-ui/src-tauri/icons/ios/AppIcon-29x29@1x.png": "09fe37f6b41ab9e698852135cfe4fbeea183f4e38d75c73d45dc5887809866b5",
+    "ccr-ui/src-tauri/icons/ios/AppIcon-29x29@2x-1.png": "bd94ea3d2a2f11946c9a154d23ac5c4609ec544eec705242c533c3db8aea4a04",
+    "ccr-ui/src-tauri/icons/ios/AppIcon-29x29@2x.png": "bd94ea3d2a2f11946c9a154d23ac5c4609ec544eec705242c533c3db8aea4a04",
+    "ccr-ui/src-tauri/icons/ios/AppIcon-29x29@3x.png": "efd079b56b5c5296fe80b62804d28118d187c61d19ffa1af8443cb396c961a18",
+    "ccr-ui/src-tauri/icons/ios/AppIcon-40x40@1x.png": "f5069aebd6818f98d52f53b790039e2ec82002eb86d9650f3f6542e99314a7ed",
+    "ccr-ui/src-tauri/icons/ios/AppIcon-40x40@2x-1.png": "11a7325cca8e973134b0e23a40020fe02521661f67d485243ff6eef33f6a0f05",
+    "ccr-ui/src-tauri/icons/ios/AppIcon-40x40@2x.png": "11a7325cca8e973134b0e23a40020fe02521661f67d485243ff6eef33f6a0f05",
+    "ccr-ui/src-tauri/icons/ios/AppIcon-40x40@3x.png": "aa3dd431d7f74cdcb39117dce35242abc12a4bf8edb02fc16dc106afe4386cc7",
+    "ccr-ui/src-tauri/icons/ios/AppIcon-512@2x.png": "e14fb4368d734bb5397c8dc9e2ce092397809b60f4532e180ec2bba77fd85ccc",
+    "ccr-ui/src-tauri/icons/ios/AppIcon-60x60@2x.png": "aa3dd431d7f74cdcb39117dce35242abc12a4bf8edb02fc16dc106afe4386cc7",
+    "ccr-ui/src-tauri/icons/ios/AppIcon-60x60@3x.png": "1f95812205cd18432e0726a92a62fda8c12fc8ecbf412c0ed1da894a1ccca43a",
+    "ccr-ui/src-tauri/icons/ios/AppIcon-76x76@1x.png": "bd43b35e6a72e7bb7de9bfafaf546e8b17bdec063798150046bf8559c456d026",
+    "ccr-ui/src-tauri/icons/ios/AppIcon-76x76@2x.png": "bdb00e496cd52d18533bf644cb79b09127a5983805458a942844a90329a6be26",
+    "ccr-ui/src-tauri/icons/ios/AppIcon-83.5x83.5@2x.png": "9fb83b16f9f65eed774015f618f66af9d61d8e65faa1d3ece486365d9df79f39",
+    "ccr-ui/src/assets/logo.png": "5ab214c81f9b92a112e22f7b47724ef5818435bc1cd6af6dfa62c0a676bc2b96",
+    "ccr-vscode/icon.png": "3bc57b56f94cb0f6c01268b0b333d08d7f9b01310540ed9bd1709853100c682d",
+    "docs/public/favicon.png": "3bc57b56f94cb0f6c01268b0b333d08d7f9b01310540ed9bd1709853100c682d",
+    "icon.png": "ee3e5f97825eb7bfbcfa09cf25117707b88fe569aef12f7fe4d5cea55ebeef57",
+    "ccr-ui/.tmp-desktop-probe.mjs": "369137cd419a0a9ac81d79387c1c8ff037ea1078d22e2a795613b7858270d7b9",
+    "ccr-ui/.tmp-insights-visual.mjs": "6d00d2d08f1c707ed888b27ace419f92720a5de0a214fdb836bd9d4e66fe5d61"
+  },
+  "other_task_sha256": {
+    ".trellis/tasks/09-24-home-insights-redesign/task.json": "6255a121aa238c64ff897c676d4cedea78cada491c81e636d2812babb9353bba",
+    ".trellis/tasks/09-24-home-insights-frontend/task.json": "ec85faa245a91d43832b0996c7e3e696a9ee0fd6ec5a06fe1a5550ea08f06156"
+  },
+  "evidence_inventory": {
+    "acceptance_criteria": 39,
+    "groups": 48,
+    "selectors": 164,
+    "p1_items": 9,
+    "runs": 86,
+    "artifacts": 393,
+    "historical_run_fingerprints": 41,
+    "source_epoch_manifests": 7
+  },
+  "frozen_receipts": [
+    {
+      "path": ".trellis/tasks/09-28-cli-tauri-architecture/research/remaining-final-delivery-verification.json",
+      "sha256": "a4e59ae13a312310072e03902de64f654c6b866b36b6cceac49c937a961d7365"
+    },
+    {
+      "path": ".trellis/tasks/09-28-architecture-contract-gates/research/remaining-platform-tests-source-freeze.json",
+      "sha256": "a31c8730384c91076a051f226d3201e1b6cd2d9efa7ec63f881b8899601db273"
+    }
+  ],
+  "archive_index_review": {
+    "record": ".trellis/tasks/archive/2026-09/09-28-cli-tauri-architecture/research/archive-index-review.json",
+    "full_check_exit": 2,
+    "historical_patch_context_marker_findings": 28,
+    "affected_evidence_files": 7,
+    "remaining_paths_check_exit": 0
+  }
+}

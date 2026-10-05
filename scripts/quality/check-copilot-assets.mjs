@@ -95,6 +95,12 @@ const basenameAllowlist = new Set([
 ])
 
 const errors = []
+const trackedFiles = execFileSync('git', ['ls-files', '-z'], {
+  cwd: repoRoot,
+  encoding: 'utf8'
+})
+  .split('\0')
+  .filter(Boolean)
 
 for (const file of expectedFiles) {
   const fullPath = path.join(repoRoot, file)
@@ -103,26 +109,27 @@ for (const file of expectedFiles) {
   }
 }
 
-const sharedSkillsPath = path.join(repoRoot, '.claude', 'skills')
-if (!existsSync(sharedSkillsPath)) {
-  errors.push('Missing canonical shared skills directory: .claude/skills')
+const trackedSkills = trackedFiles.filter((file) =>
+  file.startsWith('.github/skills/') && file.endsWith('/SKILL.md')
+)
+if (trackedSkills.length === 0) {
+  errors.push('Missing tracked shared skills: .github/skills/*/SKILL.md')
+}
+for (const file of ['AGENTS.md', ...trackedSkills]) {
+  if (!trackedFiles.includes(file) || !existsSync(path.join(repoRoot, file))) {
+    errors.push(`Missing tracked shared rule: ${file}`)
+  }
 }
 
 for (const spec of frontmatterSpecs) {
   const frontmatter = parseFrontmatter(spec.file)
+  if (frontmatter === null) continue
   for (const key of spec.required) {
-    if (!(key in frontmatter) || String(frontmatter[key]).trim() === '') {
+    if (!Object.hasOwn(frontmatter, key) || frontmatter[key].trim() === '') {
       errors.push(`Missing frontmatter key "${key}" in ${spec.file}`)
     }
   }
 }
-
-const trackedFiles = execFileSync('git', ['ls-files', '-z'], {
-  cwd: repoRoot,
-  encoding: 'utf8'
-})
-  .split('\0')
-  .filter(Boolean)
 
 for (const relativePath of trackedFiles) {
   if (relativePath === 'scripts/quality/check-copilot-assets.mjs') {
@@ -160,39 +167,64 @@ console.log(`Scanned ${trackedFiles.length} tracked files for terminology drift.
 function parseFrontmatter(relativePath) {
   const fullPath = path.join(repoRoot, relativePath)
   const content = readUtf8(fullPath)
-  if (content === null || !content.startsWith('---\n')) {
-    return {}
+  if (content === null) {
+    errors.push(`Cannot read frontmatter in ${relativePath}`)
+    return null
+  }
+  const lines = content.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').split('\n')
+  if (lines[0] !== '---') {
+    errors.push(`Missing opening frontmatter delimiter in ${relativePath}`)
+    return null
   }
 
-  const endIndex = content.indexOf('\n---\n', 4)
+  const endIndex = lines.indexOf('---', 1)
   if (endIndex === -1) {
-    return {}
+    errors.push(`Unclosed frontmatter in ${relativePath}`)
+    return null
   }
 
-  const frontmatter = content.slice(4, endIndex)
-  const parsed = {}
+  const parsed = Object.create(null)
 
-  for (const line of frontmatter.split('\n')) {
+  for (const [index, line] of lines.slice(1, endIndex).entries()) {
     const trimmed = line.trim()
     if (!trimmed || trimmed.startsWith('#')) {
       continue
     }
 
-    const separatorIndex = trimmed.indexOf(':')
-    if (separatorIndex === -1) {
-      continue
+    const field = trimmed.match(/^([A-Za-z][\w-]*)\s*:\s*(.*)$/)
+    if (!field || Object.hasOwn(parsed, field[1])) {
+      errors.push(`Malformed frontmatter field in ${relativePath}:${index + 2}`)
+      return null
     }
 
-    const key = trimmed.slice(0, separatorIndex).trim()
-    const value = trimmed
-      .slice(separatorIndex + 1)
-      .trim()
-      .replace(/^['"]|['"]$/g, '')
-
-    parsed[key] = value
+    const value = parseScalar(field[2])
+    if (value === null) {
+      errors.push(`Malformed frontmatter value in ${relativePath}:${index + 2}`)
+      return null
+    }
+    parsed[field[1]] = value
   }
 
   return parsed
+}
+
+function parseScalar(rawValue) {
+  if (rawValue.startsWith("'")) {
+    const quoted = rawValue.match(/^'((?:[^']|'')*)'(?:\s+#.*)?$/)
+    return quoted ? quoted[1].replace(/''/g, "'") : null
+  }
+  if (rawValue.startsWith('"')) {
+    const quoted = rawValue.match(/^("(?:[^"\\]|\\.)*")(?:\s+#.*)?$/)
+    if (!quoted) return null
+    try {
+      return JSON.parse(quoted[1])
+    } catch {
+      return null
+    }
+  }
+  const value = rawValue.replace(/(?:^|\s+)#.*$/, '').trim()
+  if (/^[\[\]{|>]/.test(value) || /:\s/.test(value)) return null
+  return /^(?:null|Null|NULL|~)$/.test(value) ? '' : value
 }
 
 function shouldScan(relativePath) {

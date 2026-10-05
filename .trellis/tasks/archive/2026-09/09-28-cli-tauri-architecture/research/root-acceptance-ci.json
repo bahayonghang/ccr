@@ -1,0 +1,15 @@
+{
+  "check": "ci",
+  "command": [
+    "just",
+    "ci"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr",
+  "started_at": "2026-09-28T16:41:00.517254+00:00",
+  "exit_code": 1,
+  "seconds": 242.01,
+  "log": "root-acceptance-ci.log",
+  "command_environment_override": {
+    "CCR_SKIP_ICON_GENERATION": "1"
+  }
+}

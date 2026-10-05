@@ -1,0 +1,1009 @@
+{
+  "baseline_commit": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "files": {
+    ".trellis/spec/ccr-cli/backend/diagnostics-contract.md": {
+      "sha256": "de0fe16af6563dd8013abc9163011d7705af1e8b3c4e548607c0bf71767dfb1a",
+      "bytes": 4318
+    },
+    ".trellis/spec/ccr-cli/backend/grok-profile-runtime.md": {
+      "sha256": "dbdcccd7487f587a973504fa56cde959230e8593bedaeebb504797035e5d1d52",
+      "bytes": 16565
+    },
+    ".trellis/spec/ccr-cli/backend/index.md": {
+      "sha256": "0bd9631c7a47c9b0e87a7069d9789f120876e1d8f873c2099ade74971c3018ee",
+      "bytes": 2968
+    },
+    ".trellis/spec/ccr-cli/backend/profile-application-lifecycle.md": {
+      "sha256": "98ef85b700352e4af08d8ee514289f353aa36fb840587d117d58f1778135fb08",
+      "bytes": 10215
+    },
+    ".trellis/spec/ccr-cli/backend/profile-off-login-prep.md": {
+      "sha256": "af472a95ebf3caa5d68c176cf13e8ff2773d5e73593b79204a909d2483a77911",
+      "bytes": 5144
+    },
+    ".trellis/spec/ccr-codex/backend/backend-guidelines.md": {
+      "sha256": "1618bf1bd92b15648c50d37399905eb0f2f5243dfe6331e08f718ada2d47a61b",
+      "bytes": 5866
+    },
+    ".trellis/spec/ccr-config/backend/backend-guidelines.md": {
+      "sha256": "ef2444c4fe2431e43e4d245247d8ba1662bbc70bb00491fa116851386f193f8f",
+      "bytes": 19368
+    },
+    ".trellis/spec/ccr-config/backend/index.md": {
+      "sha256": "0ac274ae9fa3eeef5db95c7e72a3ed9de0c927a5c50ac96ad18f148bc568d262",
+      "bytes": 1044
+    },
+    ".trellis/spec/ccr-config/backend/profile-repository.md": {
+      "sha256": "144c78a6b9126e3942939430ee704c2d7bb0ece000ff4ee6667623a0f2031ed7",
+      "bytes": 8673
+    },
+    ".trellis/spec/ccr-core/backend/atomic-writer.md": {
+      "sha256": "d5e2324b3f96b623ad8b277e022eb311ea5488261ecb500c255a300eb593de01",
+      "bytes": 22010
+    },
+    ".trellis/spec/ccr-core/backend/managed-process.md": {
+      "sha256": "925198020add2d033def751fec42c2d16836a2831273cfcc3e0211d79a1815bb",
+      "bytes": 4585
+    },
+    ".trellis/spec/ccr-tui/backend/backend-guidelines.md": {
+      "sha256": "b0c150bfc65db9cb52cbc48abd71304598b7dc9fa9440861aea78e3db5044cde",
+      "bytes": 30920
+    },
+    ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md": {
+      "sha256": "7ab9f19902632fb22af14a787a8354da782391e38b739fe3e712cd52c572427f",
+      "bytes": 14960
+    },
+    ".trellis/spec/ccr-ui/frontend/command-job-lifecycle.md": {
+      "sha256": "eca041a29cba757e5b1703634303f35145d8b6d3baca7a5b6ae10fc6d455321e",
+      "bytes": 6797
+    },
+    ".trellis/spec/ccr-ui/frontend/grok-settings-contracts.md": {
+      "sha256": "8d39703f3354693eaa894502d3dce8c3899bf289026f58e0c7c21b65a43acd5a",
+      "bytes": 9037
+    },
+    ".trellis/spec/ccr-ui/frontend/index.md": {
+      "sha256": "9276387f1cc2d37d09d1d1145d11fc73443102b19a4545011d7a7e3b7521256f",
+      "bytes": 10981
+    },
+    ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md": {
+      "sha256": "50dfaad8776716c25e1da408a521e1eb94e08cd325135e79e5d50548121560fa",
+      "bytes": 11573
+    },
+    ".trellis/spec/ccr-ui/frontend/raw-config-editor-contracts.md": {
+      "sha256": "3a65579c72f01e41daa6fd068f08b5dae5ec07a287a63d6710dc7021e235f9af",
+      "bytes": 9147
+    },
+    ".trellis/spec/ccr-ui/frontend/react-rerender-discipline.md": {
+      "sha256": "5a8456d717fc4c68f29570a22b80548b0746440160ea636dd758884b95ed4721",
+      "bytes": 6324
+    },
+    ".trellis/spec/ccr/backend/backend-guidelines.md": {
+      "sha256": "d65327e8d78d7205c3566750c76b8468a8d78aa328f86002e9794700aec429eb",
+      "bytes": 2901
+    },
+    ".trellis/spec/ccr/backend/dependency-governance.md": {
+      "sha256": "c5d4068b3f7bdff793e79ba03de46515f133776ae43ffe81ece9d82117c6bab2",
+      "bytes": 32568
+    },
+    ".trellis/spec/ccr/backend/index.md": {
+      "sha256": "9b2e3635af0dbe09fde32c33a5495b5dd726d4ff4e8e7632b56e0e219ce99eca",
+      "bytes": 4470
+    },
+    ".trellis/spec/ccr/backend/tauri-handler-registry.md": {
+      "sha256": "e1b3bb5734e686180f59aa407baaef7a5ef6cf6e06b32c2f7c797f7d00df01e9",
+      "bytes": 14597
+    },
+    ".trellis/spec/ccr/backend/typed-ipc-bindings.md": {
+      "sha256": "ea7c2c0872c0f83f8d2652534061cdaf7853c99a3e49752c8d4d8d3f054d4a3a",
+      "bytes": 28968
+    },
+    ".trellis/spec/ccr/backend/usage-job-lifecycle.md": {
+      "sha256": "8a16f2161336cba86bc3fd1878d40fe0298eddec5e6d0da7d28eed5ca9414485",
+      "bytes": 5116
+    },
+    "ccr-ui/code_map.md": {
+      "sha256": "62de6add91c60a9f3d3e6033132e8825bcfe5b0f386c691f537a7a3b1157a17d",
+      "bytes": 5698
+    },
+    "ccr-ui/justfile": {
+      "sha256": "54d766fd7fe86bbce57e6081d406b2c389c3189811dc51578152405dba3a480e",
+      "bytes": 53425
+    },
+    "ccr-ui/package.json": {
+      "sha256": "cd8a79cdd853c9a3999acb14db1f177f0a0538edfedc1cc7d73589aaea0467d2",
+      "bytes": 4849
+    },
+    "ccr-ui/scripts/bindings-transaction.d.mts": {
+      "sha256": "76a0d88e223448489c403c0b69dcd49a03ee91b5d41ceaf29270ca889df6764f",
+      "bytes": 666
+    },
+    "ccr-ui/scripts/bindings-transaction.mjs": {
+      "sha256": "b010d060842312aa8b8d9ef78323f411d0de102ebfaad7491d845586dcfe4180",
+      "bytes": 2533
+    },
+    "ccr-ui/scripts/check-generated-bindings.d.mts": {
+      "sha256": "984b8f7a4305c495e3c70f386081dc063c5e81cd7fc88207ad3d1ef438eafba3",
+      "bytes": 289
+    },
+    "ccr-ui/scripts/check-generated-bindings.mjs": {
+      "sha256": "a9afa2cff60bfc2b265ae2efe77b123a22cfdde54f7ca1359f2309f0fa2e8b94",
+      "bytes": 1825
+    },
+    "ccr-ui/scripts/generate-bindings.d.mts": {
+      "sha256": "e0ae1f9677ba85f6513e9c76a6a2541a9dc5326fee5635443818f5f76e69f4f9",
+      "bytes": 541
+    },
+    "ccr-ui/scripts/generate-bindings.mjs": {
+      "sha256": "6583ca7cd146e09ac0105d880c5a4fe9443c21f841a58df658441199b386c77c",
+      "bytes": 2377
+    },
+    "ccr-ui/src-tauri/Cargo.toml": {
+      "sha256": "9c7c095139e2c85cd61e28471dd799c6fc79c0e677c3de539ee3004652974701",
+      "bytes": 3844
+    },
+    "ccr-ui/src-tauri/gen/schemas/acl-manifests.json": {
+      "sha256": "4597aef2e1a06c8a8cf285f283e37d8ba0f5ea12e0b333618156929fc32afcc3",
+      "bytes": 231816
+    },
+    "ccr-ui/src-tauri/gen/schemas/desktop-schema.json": {
+      "sha256": "32261c7f53df73489e0b5ff5cea42fc1d873125a4ca1e04184af78a397021e68",
+      "bytes": 359659
+    },
+    "ccr-ui/src-tauri/gen/schemas/windows-schema.json": {
+      "sha256": "32261c7f53df73489e0b5ff5cea42fc1d873125a4ca1e04184af78a397021e68",
+      "bytes": 359659
+    },
+    "ccr-ui/src-tauri/permissions/command-inventory.toml": {
+      "sha256": "2bad634caee2169fd67a006a618a65eef18b6d518cb99bd96324fb41af4becc2",
+      "bytes": 11822
+    },
+    "ccr-ui/src-tauri/src/commands/claude.rs": {
+      "sha256": "c673c58cf65a9a2f30399a06b63364f8e66564fd0e50e928f8521e022d585d6f",
+      "bytes": 35139
+    },
+    "ccr-ui/src-tauri/src/commands/claude_profiles.rs": {
+      "sha256": "ae370f415e28c296778f7525cc07977eda1167e57e25c874564af5931ba1dd33",
+      "bytes": 12175
+    },
+    "ccr-ui/src-tauri/src/commands/claude_settings.rs": {
+      "sha256": "6422475dd70b4fbcd0a666f2b46d6d0429c621d3c4f192dc263e3aee317e79fe",
+      "bytes": 12359
+    },
+    "ccr-ui/src-tauri/src/commands/claude_settings_tests.rs": {
+      "sha256": "464a39f9501c11244277982814c3bd52e7ea8b0649f0ac39d1a3de7ba6e3e658",
+      "bytes": 9821
+    },
+    "ccr-ui/src-tauri/src/commands/codex_auth.rs": {
+      "sha256": "0720f229c18ff4facec1e46a2b039a476215124fa34985c2d58b895aa81bfe97",
+      "bytes": 62235
+    },
+    "ccr-ui/src-tauri/src/commands/codex_auth/oauth.rs": {
+      "sha256": "02eed2c9abf9aa3d48600dbd4b5abed409c4b7ce7bb1bc99cc3d33e45300a2ed",
+      "bytes": 20972
+    },
+    "ccr-ui/src-tauri/src/commands/codex_auth/oauth_tests.rs": {
+      "sha256": "743c45b9c3d6bc58bdb80bbcd0df6423274176dc809cbc45bef9509ce6e21668",
+      "bytes": 31275
+    },
+    "ccr-ui/src-tauri/src/commands/codex_profiles.rs": {
+      "sha256": "9864092123558b1a20687193e34e78551ebedcced8dd422cb930641fee83cb2c",
+      "bytes": 24575
+    },
+    "ccr-ui/src-tauri/src/commands/command_exec.rs": {
+      "sha256": "75215f5fcc8762b395a01efe2f7d2bb896ffc2380185fb322675e687b43975fa",
+      "bytes": 81957
+    },
+    "ccr-ui/src-tauri/src/commands/config.rs": {
+      "sha256": "ac9088268a0d7f8d30543dfb0efd755d15851746cdbc89fcc8df7449f986af0e",
+      "bytes": 19533
+    },
+    "ccr-ui/src-tauri/src/commands/config/adapter.rs": {
+      "sha256": "b00d2fb17791dc68f685e910d862dd180ad582f4af627e3d13a5e88ca4a973dd",
+      "bytes": 9149
+    },
+    "ccr-ui/src-tauri/src/commands/config/contract_tests.rs": {
+      "sha256": "ce55e7f4f2c7fc738f4141857e5d486093de41897e19342aa5d2b1bf071d2f17",
+      "bytes": 16006
+    },
+    "ccr-ui/src-tauri/src/commands/grok.rs": {
+      "sha256": "5be7313e651ab6c798435787cac05b09d9a91f397c09227a4426c796c7461307",
+      "bytes": 84776
+    },
+    "ccr-ui/src-tauri/src/commands/handler_registry.rs": {
+      "sha256": "97e1b1ca74e56af2852d7b2fabef17f2ed7bd3f34d3bbfd66db7f4df34c92890",
+      "bytes": 156420
+    },
+    "ccr-ui/src-tauri/src/commands/install.rs": {
+      "sha256": "2997d2a9b4241da6dd581b524730fbd6f62e05a87d75893a66c4502474c2ae50",
+      "bytes": 3623
+    },
+    "ccr-ui/src-tauri/src/commands/profile_lifecycle.rs": {
+      "sha256": "83c3b279ab87c9b0da604a6dfba8a5adf7d1a9262a2697fc2a3ffc0a2101fd71",
+      "bytes": 12920
+    },
+    "ccr-ui/src-tauri/src/commands/runtime_policy.rs": {
+      "sha256": "5646dde1cf89c45cf26567ecf27d6d6283e117d6f023474201cc8f18fed5dc64",
+      "bytes": 22354
+    },
+    "ccr-ui/src-tauri/src/commands/usage.rs": {
+      "sha256": "6ba53bd0182618f9723cade3db055f2db7f654d5c451233dcec87dea7c138c78",
+      "bytes": 59014
+    },
+    "ccr-ui/src-tauri/src/llmusage_adapter/cli.rs": {
+      "sha256": "21fe8e44a06174e331d63bebe1272cf436cd7b2fa2c155e6035278cb809ec1d1",
+      "bytes": 19950
+    },
+    "ccr-ui/src-tauri/src/llmusage_adapter/cli_lifecycle_tests.rs": {
+      "sha256": "08ae71265e03d3f30dc9f1abbc28113f0dad770a6d24b890ca2e201f45e7532e",
+      "bytes": 11024
+    },
+    "ccr-ui/src-tauri/src/llmusage_adapter/error.rs": {
+      "sha256": "32d59c87f26322b2eef6bafe446c5ea250c3733306f818a3bbcec4099a25707b",
+      "bytes": 1109
+    },
+    "ccr-ui/src-tauri/src/process/gateway.rs": {
+      "sha256": "d67dd0684071c82926002c6f5c71a6d289cf5f0a98757cc9f17d1fc0e95f269b",
+      "bytes": 32694
+    },
+    "ccr-ui/src-tauri/src/process/mod.rs": {
+      "sha256": "f5f7b2dea683bf2ce2e5d178dddcb75c11695f8dbad0054cef52ee72679fcb16",
+      "bytes": 1991
+    },
+    "ccr-ui/src-tauri/src/state.rs": {
+      "sha256": "d44ba1f2b244a82af6a8f7fa5567e72c4b272543ed18618e1545ea05ba5a10cf",
+      "bytes": 32173
+    },
+    "ccr-ui/src-tauri/src/usage_jobs.rs": {
+      "sha256": "cac0d8838f9e905dd32eb21894d631b4674433e031e9f2eb2de7ecfada6031d4",
+      "bytes": 16240
+    },
+    "ccr-ui/src/api/domains/claude.ts": {
+      "sha256": "147a85e569bc929025df1050d1b98fe9f506b114319c7f645c2631e8898007de",
+      "bytes": 21776
+    },
+    "ccr-ui/src/api/domains/codex.ts": {
+      "sha256": "e451d02444d4e69bad08dd4ae96bb21b468ba0d0bd371433c5d026ab849e4b38",
+      "bytes": 36119
+    },
+    "ccr-ui/src/api/domains/config.ts": {
+      "sha256": "dc16d2e5f1c750dc8e99e996fd37424d03f4315d2c419aa14d28981134e67155",
+      "bytes": 3893
+    },
+    "ccr-ui/src/api/generated/claude.ts": {
+      "sha256": "d72fc37824f1660f346b6d97239ecc00b0b3d989b7c2472e48cf048585adcd3f",
+      "bytes": 5178
+    },
+    "ccr-ui/src/api/generated/command-manifest.json": {
+      "sha256": "2c89bdd2c7c2dbbe9bbd3c9b4d28f3c21c54f625bd8799b3815a0abadb745417",
+      "bytes": 200801
+    },
+    "ccr-ui/src/api/generated/commandCapabilities.ts": {
+      "sha256": "eb686b8a7c00d249f4005e466590a956348e179654141bb9e69c54f61e1a966b",
+      "bytes": 202025
+    },
+    "ccr-ui/src/api/generated/config.ts": {
+      "sha256": "bf248806dca215c1d35fab8525ba7105175fa4a04e5daafd24bb1e44425e6c43",
+      "bytes": 2986
+    },
+    "ccr-ui/src/api/tauri.ts": {
+      "sha256": "1da8c63ef46939959be7c97c21cebdd6a9f90115060a36a3704d2cdf548bb693",
+      "bytes": 25268
+    },
+    "ccr-ui/src/configs/auth.ts": {
+      "sha256": "6025c3977f3e8ac3dd3b8ba310fb92035c9b46b8c9da9d5c0c1247e6a3ef32df",
+      "bytes": 3657
+    },
+    "ccr-ui/src/configs/environmentSession.ts": {
+      "sha256": "698ffd8cd440da00c527659a707080fbc8c1fe9f10cf61c5e8a7c830e78db0fe",
+      "bytes": 1574
+    },
+    "ccr-ui/src/configs/profileEditorAdapter.ts": {
+      "sha256": "4c0d561c9608196da63ca8880ccfc08cdcb78d0dc4719e4f6afe0d31fce6706c",
+      "bytes": 2206
+    },
+    "ccr-ui/src/configs/profiles.ts": {
+      "sha256": "6c985209197eed8f6fbd1a2ad3b62eae720c4957c76b51b0335cdd7cd6960a5a",
+      "bytes": 8106
+    },
+    "ccr-ui/src/configs/settings-claude.ts": {
+      "sha256": "c5cc1142a14e7043c823843ccf99c8b89cdf6fb94d28b78660fb3a71d1ae499b",
+      "bytes": 11135
+    },
+    "ccr-ui/src/configs/settings-codex-map.ts": {
+      "sha256": "05d62e0275cfa8634eb3b5183df55f5f75f0759d065a75af2cf4cb3f67277641",
+      "bytes": 7305
+    },
+    "ccr-ui/src/configs/settings-codex.ts": {
+      "sha256": "ae0701d198a1dbc9ade71ed5b332cccb0cb1ef98697f95788b4bc00aabc85245",
+      "bytes": 5308
+    },
+    "ccr-ui/src/configs/settings-grok.ts": {
+      "sha256": "76803f1fef3bcc9faa72147c9804593dffa76aabca177ef536ff729d7041c250",
+      "bytes": 5571
+    },
+    "ccr-ui/src/configs/settings-opencode.ts": {
+      "sha256": "9580e7f8b4f444d1b0ff579c1964e8586fb20e6ba88cbe1ff6b8fdac1d56ff1e",
+      "bytes": 6110
+    },
+    "ccr-ui/src/configs/settings-patch.ts": {
+      "sha256": "f3f7def39fa5fbf71cd2be8a490b1507e1b9850214af9a9b9893d34585a4a532",
+      "bytes": 1283
+    },
+    "ccr-ui/src/configs/settings-types.ts": {
+      "sha256": "64c6e5e0dde009d5d3f6c3bb71db26085e7a4e27adc6076d0cd72439dfc14e31",
+      "bytes": 2994
+    },
+    "ccr-ui/src/configs/settings.ts": {
+      "sha256": "221654afbf760f458dacf0232e294682d1751e154190b86444124b12a6b84c26",
+      "bytes": 1019
+    },
+    "ccr-ui/src/features/claude/profiles/claudeProfileEditorAdapter.ts": {
+      "sha256": "022df1155e71894ce1fb6a7edf0349302e7913a3c3d921f0d8155fa1d006578a",
+      "bytes": 5911
+    },
+    "ccr-ui/src/features/claude/profiles/useClaudeProfilesPage.ts": {
+      "sha256": "7fb37d9c253316293414209941a41bebad709fbdf027b474b4506382ed940e9b",
+      "bytes": 7824
+    },
+    "ccr-ui/src/features/codex/profiles/codexProfileEditorAdapter.ts": {
+      "sha256": "a332dca2f7624f61106da8e20528a676d6afa084a9e150f8e8a76435dda6f145",
+      "bytes": 7368
+    },
+    "ccr-ui/src/features/codex/profiles/useCodexProfilesPage.ts": {
+      "sha256": "748ad1953e1eddbb257281c8c74fd7f3919ff0657ff81ddc134e1f65cb4b1941",
+      "bytes": 7894
+    },
+    "ccr-ui/src/features/commands/CommandsComposer.tsx": {
+      "sha256": "3bbc075b56580fa033e07adc8bc5847808013273abb46beb04e4ed286aa896a5",
+      "bytes": 7035
+    },
+    "ccr-ui/src/features/commands/CommandsLedger.tsx": {
+      "sha256": "40a9c2c4f9aa965580ede2ec2fb80e5e4741aef12721068adb8139728f8cc63a",
+      "bytes": 5226
+    },
+    "ccr-ui/src/features/commands/CommandsView.tsx": {
+      "sha256": "044b55bdc07243d36bcfc4a1e8cfcb728ebdf53651cf79f5eb0f6eb76f846f66",
+      "bytes": 2461
+    },
+    "ccr-ui/src/features/commands/commandJobState.ts": {
+      "sha256": "3ef64dc45c0807193c7b8fd5636d0944aade6938be7d5b7244434632dbc3399e",
+      "bytes": 3835
+    },
+    "ccr-ui/src/features/commands/commandJobStore.ts": {
+      "sha256": "e047353c0c4c575d148d647d4a7b7376848d89902776a957ba8febdbe50551c2",
+      "bytes": 10123
+    },
+    "ccr-ui/src/features/commands/queries.ts": {
+      "sha256": "c81fd758e9a635cd69fc526225fe8bdcb41e981e324dac1fbbb3c1dca2b5a7c3",
+      "bytes": 1328
+    },
+    "ccr-ui/src/features/commands/stores.ts": {
+      "sha256": "5aca041451a7575075b567b5e283ac65b9e1cddea1bc0a3e3270b334ed83f6d8",
+      "bytes": 3108
+    },
+    "ccr-ui/src/features/commands/useCommandsPage.ts": {
+      "sha256": "c0112f4088d05e164232537f95888852897d23dcb049591c70eadc60899f1f70",
+      "bytes": 9806
+    },
+    "ccr-ui/src/features/configs/ConfigsView.tsx": {
+      "sha256": "2791c3a5478cadd3d46fa2864da126a253a3098fc41441f7875ffe84a780e1e4",
+      "bytes": 7011
+    },
+    "ccr-ui/src/features/configs/components/AddConfigModal.tsx": {
+      "sha256": "eae79fcd7000190540d058df8cbadcaadd9b8b30334fbf1322caf218f3f72f2b",
+      "bytes": 6210
+    },
+    "ccr-ui/src/features/configs/components/ConfigBadges.tsx": {
+      "sha256": "976d4eeb354dcf4f07dab9b86a6c7661702c1587ab04d3411ac1052258214da4",
+      "bytes": 1922
+    },
+    "ccr-ui/src/features/configs/components/ConfigCard.tsx": {
+      "sha256": "1dcee548688a8c2fdefdbf990ae85776f46e678235452fd623acd28a9bd3de8f",
+      "bytes": 5211
+    },
+    "ccr-ui/src/features/configs/components/ConfigFilters.tsx": {
+      "sha256": "7aeb8e976898e3c10e39b4331c0a187f9bb88c04ddae1e7440ad09d1730d143c",
+      "bytes": 4253
+    },
+    "ccr-ui/src/features/configs/components/ConfigList.tsx": {
+      "sha256": "04473a27b43ecf584056f35b889e91c8ff236dc5aa07086cd9785b447b74ac3d",
+      "bytes": 2035
+    },
+    "ccr-ui/src/features/configs/components/ConfigsRuntimeBadge.tsx": {
+      "sha256": "a8d2dbf4b722eed84b02d721845d2e3ef466880c4543cfca5acb57beb92f6200",
+      "bytes": 1433
+    },
+    "ccr-ui/src/features/configs/components/ConfigsSubnav.tsx": {
+      "sha256": "ce2f7d8405ea7f50fb54534d8c4706df5368e7446401992fa95ced472fcdac59",
+      "bytes": 2749
+    },
+    "ccr-ui/src/features/configs/components/EditConfigModal.tsx": {
+      "sha256": "b7e322b96249c8218fba691a0835f2e52ec56729f5f5708fc6423a07dfbef613",
+      "bytes": 7134
+    },
+    "ccr-ui/src/features/configs/hooks/useConfigsPage.ts": {
+      "sha256": "57255bad5e65aa5a52529f5a33d80fc8bdd2b04065bcffab302c5bf59d16a759",
+      "bytes": 7280
+    },
+    "ccr-ui/src/features/configs/lib/configForm.ts": {
+      "sha256": "042e6ea95a306f90292c7a3ed951d477fef74e87634599717160348120fdb5ac",
+      "bytes": 4616
+    },
+    "ccr-ui/src/features/configs/queries.ts": {
+      "sha256": "0d15f20d25801265eadef75ad6c59af6ecb586edfde32fef4fea66a0464d95c0",
+      "bytes": 1664
+    },
+    "ccr-ui/src/features/editor/CodeSourceEditor.tsx": {
+      "sha256": "a83285a93c3890419c838dcdbca3e0dccc1b250da4c0e231c5d65011efcc8800",
+      "bytes": 60
+    },
+    "ccr-ui/src/features/editor/ConfigSourcePanel.tsx": {
+      "sha256": "ff0f962d3889067bb7b10bdbdfa1b2de0593eb91fcaaec04fdf76d788daba5e3",
+      "bytes": 61
+    },
+    "ccr-ui/src/features/editor/cspNonce.ts": {
+      "sha256": "dc652f23764b923b43d2bd4559c9a4339c16a97c09d398cabab67e82691b0c91",
+      "bytes": 52
+    },
+    "ccr-ui/src/features/editor/editorExtensions.ts": {
+      "sha256": "399649f0b03f5d83dc9f9949c4f30ec686572f4f0d4cf77decff75c636c958e9",
+      "bytes": 60
+    },
+    "ccr-ui/src/features/editor/editorTheme.ts": {
+      "sha256": "4d0dd684d67a566622ad60b6a5b1fa2a96186b0b131d3d6e7e6c7aaa7f604faf",
+      "bytes": 55
+    },
+    "ccr-ui/src/features/editor/locale.ts": {
+      "sha256": "56f739b788ebcf1e40ba67e422ecb0b80a8352d6ecc076e11f81524ecfb11ca6",
+      "bytes": 50
+    },
+    "ccr-ui/src/features/grok/profiles/useGrokProfilesPage.ts": {
+      "sha256": "3b686119096ddc047f913e9e10121394e1b34bf84cf97f465d6bbca698fd5a15",
+      "bytes": 12338
+    },
+    "ccr-ui/src/features/platform/SurfacePage.tsx": {
+      "sha256": "a5b8367ac045597aa4afa5b4ed452bf7472aac0f92b168a89a357791466d03fe",
+      "bytes": 1605
+    },
+    "ccr-ui/src/features/platform/auth/BaseAuth.tsx": {
+      "sha256": "7269c73476eb602ad92650d0a351efc00df7f96745ad6c7f5c24fa5ce8292700",
+      "bytes": 6137
+    },
+    "ccr-ui/src/features/platform/editor/CodeSourceEditor.tsx": {
+      "sha256": "8928ed91ea4a79731142452fdfbae082a34aff6be5d84bb2c8b1563991fdb78a",
+      "bytes": 2921
+    },
+    "ccr-ui/src/features/platform/editor/ConfigSourcePanel.tsx": {
+      "sha256": "5d4cd1fe7ced9ec72a824d0ad14bd51c8d1a559b82b74b312283f293c59a097d",
+      "bytes": 12201
+    },
+    "ccr-ui/src/features/platform/editor/cspNonce.ts": {
+      "sha256": "a787637b83f2ee4310ee7b586448e35787bb4985b1f4de411b6a5361bf9a5ee5",
+      "bytes": 357
+    },
+    "ccr-ui/src/features/platform/editor/editorExtensions.ts": {
+      "sha256": "8eb5d2586ac77308ec3380a8587117d14a9f8f762ad3ec70231a0fe7853e4fb6",
+      "bytes": 1897
+    },
+    "ccr-ui/src/features/platform/editor/editorTheme.ts": {
+      "sha256": "3027e2c8ed3eb1cf0062b59a40c3cd21795380a669c24c6d7aa5ace555cc7f9e",
+      "bytes": 889
+    },
+    "ccr-ui/src/features/platform/editor/locale.ts": {
+      "sha256": "02c7af735f66571443f4d629683bae35674ed2a0af1685be5ea592a134d83d68",
+      "bytes": 163
+    },
+    "ccr-ui/src/features/platform/editor/styles/code-source-editor.css": {
+      "sha256": "3834ba50390288b1465b101f597c9824f5db5c534d980db0998697c200634eb0",
+      "bytes": 588
+    },
+    "ccr-ui/src/features/platform/editor/styles/config-source-panel.css": {
+      "sha256": "eb997947f1c7bdb0627b5b46e1915f06bc7234c728a4489f259be63935747dd4",
+      "bytes": 3517
+    },
+    "ccr-ui/src/features/platform/profiles/useProfileEditor.ts": {
+      "sha256": "53ed9a00584d2e7f9de1f46d4c284cace56348b5892e14eca09ed98f7e38a9e1",
+      "bytes": 4259
+    },
+    "ccr-ui/src/features/platform/settings-model.ts": {
+      "sha256": "27359f476eeab9a85025111ce130f170ed677b830ae5aac54e97dec4f68efc1b",
+      "bytes": 1866
+    },
+    "ccr-ui/src/features/platform/settings/BaseSettings.tsx": {
+      "sha256": "f1bb786dca76c2745d4dc9499a905167ffe15a9a02a9a21c29e7d8d049522cb6",
+      "bytes": 5897
+    },
+    "ccr-ui/src/features/platform/settings/SettingsFieldControl.tsx": {
+      "sha256": "4bb2cd46027287757644336212127db15161790de67d99757d6f566e6b1e4eb0",
+      "bytes": 3443
+    },
+    "ccr-ui/src/features/platform/settings/SettingsFormBody.tsx": {
+      "sha256": "b0e3afc41b2fde664275f70e203ae283f58dff9a9323302b27138eee6b729029",
+      "bytes": 2734
+    },
+    "ccr-ui/src/features/platform/settings/SettingsSessionNotice.tsx": {
+      "sha256": "9e6188ad5cf43e98d583d3c757f4eaacf7eaeabe487dd8a5bb5bb1a9916d2938",
+      "bytes": 1295
+    },
+    "ccr-ui/src/features/platform/settings/SettingsSource.tsx": {
+      "sha256": "9bfe7c799b4d0ed795b09b9152eae7562d8cd58f6f1fa57b0fc2269ff0365c4d",
+      "bytes": 3631
+    },
+    "ccr-ui/src/features/platform/settings/useSettingsSession.ts": {
+      "sha256": "12a28a8a9505bd1741af89ae454de8afd1b5fc862fc70516c407144370ef1d82",
+      "bytes": 9518
+    },
+    "ccr-ui/src/features/usage/useUsageImport.ts": {
+      "sha256": "39fa728b1c47ed5999e47926ed9c9c668c24fe9230392dba6da222633da4e993",
+      "bytes": 5614
+    },
+    "ccr-ui/src/i18n/locales/en-US.ts": {
+      "sha256": "f4b8bbbe50e3b1573193e8ddaa065efb15b6b889565252a50162519de0661b1c",
+      "bytes": 234599
+    },
+    "ccr-ui/src/i18n/locales/zh-CN.ts": {
+      "sha256": "68dc1720bf8302e7cdf2d5436cc59969639560c6b64f9c1fea2fe5917c53325f",
+      "bytes": 225905
+    },
+    "ccr-ui/src/shell/eventBridge.ts": {
+      "sha256": "18f768dc8f4bd9c6e9c39f8519013b9646a1daa99aa3b1510933f18a9cb4017f",
+      "bytes": 8254
+    },
+    "ccr-ui/src/types/generated/config/ConfigInfo.ts": {
+      "sha256": "1cd339d1b72d5c042feb116cd8615aa8879779236635bd6783e996130b830df4",
+      "bytes": 464
+    },
+    "ccr-ui/src/types/generated/config/ConfigMutationResult.ts": {
+      "sha256": "e28e68a400659ab56e853f1d4730ba763568afb6c97078247306cdedf9080a59",
+      "bytes": 338
+    },
+    "ccr-ui/src/types/generated/config/ConfigPatchInput.ts": {
+      "sha256": "4de2ed8f6228b3926dedb00634ba79fa1047f2ba7740eb45017d708ddcfe34f2",
+      "bytes": 498
+    },
+    "ccr-ui/src/types/generated/config/ConfigPlatform.ts": {
+      "sha256": "373c660d032129af08e664303ae50ad56028bb2dc7ac34700892f84161d77016",
+      "bytes": 149
+    },
+    "ccr-ui/src/types/generated/grok/GrokProfileActionResponse.ts": {
+      "sha256": "9fbb2cd22b0dd0833d6b8c2da142ab2647aeee5ee96c6c6c2a0a17e1ef461439",
+      "bytes": 1014
+    },
+    "ccr-ui/src/types/generated/profiles/ProfileOutcome.ts": {
+      "sha256": "960afdf1c0bdcede63ac339a04dc94b76aed366ab4e7877b7be31cbe586e174f",
+      "bytes": 552
+    },
+    "ccr-ui/src/types/generated/profiles/ProfileStatus.ts": {
+      "sha256": "4f829f86376089c211fd9ffbb6db54e7518b8ef7d38b192677db5ad5295ecd7d",
+      "bytes": 210
+    },
+    "ccr-ui/src/types/generated/profiles/ProfileWarning.ts": {
+      "sha256": "3b40c640d7652aab613953f353fcde413e334a23055b540105d92da1904c2fc3",
+      "bytes": 314
+    },
+    "ccr-ui/src/types/generated/usage/UsageImportJobStage.ts": {
+      "sha256": "63509b05d7beb7ff92d70988e83d4f004bd65e8b4cd3a2f47bc6ff136f921c2f",
+      "bytes": 289
+    },
+    "ccr-ui/src/types/generated/usage/UsageImportJobStatus.ts": {
+      "sha256": "acc309104669d736711cdc732fc3e88fe1326b100a6ed2bd75342a674524ec0f",
+      "bytes": 277
+    },
+    "ccr-ui/src/utils/profileOutcome.ts": {
+      "sha256": "45fb0b79ad6d8cdc1340213638b7dca93718c96a347c34e508de813186712895",
+      "bytes": 1480
+    },
+    "ccr-ui/src/utils/usageImportNormalization.ts": {
+      "sha256": "da81f7084f98424fbdd05e24d32ccb984922f0fe010a29853590f851fe461a9a",
+      "bytes": 3580
+    },
+    "ccr-ui/src/views/usage/dateWindow.ts": {
+      "sha256": "d43f52608d955b0f4864e92b146748c34ba9098014e63ddcf3799277b9273759",
+      "bytes": 3580
+    },
+    "ccr-ui/tests/api/api-domain-idle.smoke.test.ts": {
+      "sha256": "f4e31c7b0e269fb8995382cc7e62f9662f19a04c163dae50eaa174a98de6ffc9",
+      "bytes": 4811
+    },
+    "ccr-ui/tests/api/api-facade-boundary.smoke.test.ts": {
+      "sha256": "aeb24d6fe64fbd1132535686e2fbd6c83db64f4834861c9d84666ce64284c81c",
+      "bytes": 4555
+    },
+    "ccr-ui/tests/api/typed-config-client.smoke.test.ts": {
+      "sha256": "c25713b85fec928c73281dd3a342c00612fe2c27588743d4b23d307acde3f786",
+      "bytes": 1848
+    },
+    "ccr-ui/tests/commands/command-job-reducer.smoke.test.ts": {
+      "sha256": "9c98e178b0474a53ac51970146e1213d6ab69cd14dfb6b94b6c90791e55c09a3",
+      "bytes": 2816
+    },
+    "ccr-ui/tests/commands/command-workbench-lifecycle.smoke.test.tsx": {
+      "sha256": "0b7af0d4b341f5af29ea7d8bf2b8d5c422358da1bdd4db8470de861e9b15db23",
+      "bytes": 24726
+    },
+    "ccr-ui/tests/configs/config-domain-api.smoke.test.ts": {
+      "sha256": "7a38594477c0a7655fccc9d95820c158bb354ff90b5fc5bb8a6ed483f6f76574",
+      "bytes": 1312
+    },
+    "ccr-ui/tests/configs/config-form-schema.smoke.test.ts": {
+      "sha256": "2a3b2da9e5a8076901734c88c6b37500a5404d71ad86dfe0fb6d3e98957fd221",
+      "bytes": 1921
+    },
+    "ccr-ui/tests/configs/configs-actions.smoke.test.tsx": {
+      "sha256": "0fb38b766f05b6ec97b46217c02be8d57f2fcd7bae81db90e935c39ee7a0d3ec",
+      "bytes": 9313
+    },
+    "ccr-ui/tests/configs/edit-config-draft.smoke.test.tsx": {
+      "sha256": "4efd64ba3d40a9b1fe22d68068f0660d21778a108ca9253cbe3859554e2197f4",
+      "bytes": 5866
+    },
+    "ccr-ui/tests/i18n.test.cjs": {
+      "sha256": "f033e8f6fc097b7fe23fd8a602813e198780d2bcc0254c9b9e021c00e8f24d76",
+      "bytes": 29659
+    },
+    "ccr-ui/tests/platforms/auth-probe-recovery-check.smoke.test.tsx": {
+      "sha256": "383b2ec09cc96de49bf62475395c2edaa4da2a29925b4c951fa6c48e15c7cf46",
+      "bytes": 2092
+    },
+    "ccr-ui/tests/platforms/auth-query-contract.smoke.test.tsx": {
+      "sha256": "be464d4e1427bc517bd6cb31d300b87edc7a33d8c9c455d040a7f1e1dc7e2269",
+      "bytes": 6830
+    },
+    "ccr-ui/tests/platforms/platform-base-settings.smoke.test.tsx": {
+      "sha256": "2ba443b5c03df1a5657bb1eb01ce0b2ab35574aeb0416b637e9e79ccdc5fa50f",
+      "bytes": 2168
+    },
+    "ccr-ui/tests/platforms/platform-surface-unify.smoke.test.ts": {
+      "sha256": "4348c12e36dbafaa0280ace3d5d830964c9bdc53a7b6a013de5d15e7f2240257",
+      "bytes": 5346
+    },
+    "ccr-ui/tests/platforms/query-contract-baseline.smoke.test.tsx": {
+      "sha256": "13062de57fc40adbf48c0822851b1e6d1d923965aa79cc58042a696f797c61c2",
+      "bytes": 4655
+    },
+    "ccr-ui/tests/platforms/settings-capabilities.smoke.test.tsx": {
+      "sha256": "98d3b136cb44a5e7e032c29fa2c6a44eb8cef937f7dbd8b9c594117bd9c8a135",
+      "bytes": 22633
+    },
+    "ccr-ui/tests/platforms/settings-lossless.smoke.test.ts": {
+      "sha256": "4d87030ffbb91f788b64be4e9ba623affc0b480bd8ff15360a5c91d658c70778",
+      "bytes": 10552
+    },
+    "ccr-ui/tests/platforms/settings-return-cache-check.smoke.test.tsx": {
+      "sha256": "f2f78e6a7a3ab97ba788a8ded6872a8bd84bdf9c755bac19cdb0c37a26db6b9d",
+      "bytes": 6227
+    },
+    "ccr-ui/tests/platforms/settings-session.smoke.test.tsx": {
+      "sha256": "cfb79e961b8ddeb4e91e0db9933284e7a17938dcb2d99f5365908285226e46ae",
+      "bytes": 13208
+    },
+    "ccr-ui/tests/platforms/settings-source-session.smoke.test.tsx": {
+      "sha256": "b8ed921a9a436b13d9e9eda36e73fcd510ecd9453fe3d2064359dce7680b9329",
+      "bytes": 7044
+    },
+    "ccr-ui/tests/profiles/profile-outcome.smoke.test.tsx": {
+      "sha256": "29b4843517f6ca4015316846ac9162f8205f79bb8f3ed7423ec031ac42a3475e",
+      "bytes": 6573
+    },
+    "ccr-ui/tests/quality/bindings-transaction.smoke.test.ts": {
+      "sha256": "0b56d7e06e33a3ea79a405016a319f966bf0b4112f6417bcce00129076ac043a",
+      "bytes": 5925
+    },
+    "ccr-ui/tests/quality/hardcode-px-rgba.smoke.test.ts": {
+      "sha256": "4a33fd6df57a696c8e1021bfd1acfe7a8f8dc557b270548f185bdd5928d82643",
+      "bytes": 8072
+    },
+    "ccr-ui/tests/shell/cache-route.smoke.test.ts": {
+      "sha256": "0e3717fb3d209aa1c0b2331a434f841ed032dc2903d93eca9418f260323cb66f",
+      "bytes": 4453
+    },
+    "ccr-ui/tests/shell/event-bridge-leak.smoke.test.tsx": {
+      "sha256": "68063a2c1d5b4e1caa2e1b3c01f293e5c1fd4dc661f1e5bf487b4802c119265f",
+      "bytes": 7763
+    },
+    "ccr-ui/tests/ui/code-source-editor.smoke.test.tsx": {
+      "sha256": "7dba21b8bc220460ebafd9fcd87f83c995507a3b13ad62e309605099815109aa",
+      "bytes": 1273
+    },
+    "ccr-ui/tests/usage/usage-date-window.smoke.test.ts": {
+      "sha256": "07d97d455aa78442d1f4fb66d82cb9ff3314c21dd95480885c9ab5991863f4db",
+      "bytes": 3889
+    },
+    "ccr-ui/tests/usage/usage-import-lifecycle.smoke.test.tsx": {
+      "sha256": "f0eba57631eccc5a8b68318e97cc6524b198d00229845a07388658614b8002e3",
+      "bytes": 4090
+    },
+    "code_map.md": {
+      "sha256": "492b729515ec84ffb5ea05f56c685e6d3a27ccc752ff9879ce4f225cbaa38b3a",
+      "bytes": 1715
+    },
+    "crates/ccr-cli/Cargo.toml": {
+      "sha256": "90e4e01b1915ea1abecdb19260d80d98e3e2c6cc7ff5bb7853acbbdafc113f4e",
+      "bytes": 2052
+    },
+    "crates/ccr-cli/src/application/mod.rs": {
+      "sha256": "9c65a5c8b2ab6f2cdc23d3d4295eee7fa48ff4d969b37142c169f6c1e064be7e",
+      "bytes": 453
+    },
+    "crates/ccr-cli/src/application/profile_contract.rs": {
+      "sha256": "079736b3d418195d2085e8f2ecfff2f4cb0d5735cf8f55bf4006c648b7d5349e",
+      "bytes": 22223
+    },
+    "crates/ccr-cli/src/application/profile_lifecycle.rs": {
+      "sha256": "c9af01c835016ad10688893bcd89a61b06c219956c389707e23e85954b58ba98",
+      "bytes": 16301
+    },
+    "crates/ccr-cli/src/application/profile_off.rs": {
+      "sha256": "ded35ddb22ca562f2c0ad83be3f62558b66e846f62240e60d68480dd42c3dc4d",
+      "bytes": 27207
+    },
+    "crates/ccr-cli/src/application/profile_switch.rs": {
+      "sha256": "d06944ff39a37a870deb840ef5b465984049f35d660e8c5e08a908e493a394e2",
+      "bytes": 2506
+    },
+    "crates/ccr-cli/src/application/types.rs": {
+      "sha256": "1a267daa89edcec3f5011549b96e8696aa2991c2fb7a8636596b99d207a6e148",
+      "bytes": 1246
+    },
+    "crates/ccr-cli/src/commands/doctor_cmd.rs": {
+      "sha256": "e6feee6f4b640aeead9a37e8ca72ee9e81346c57d599374b090f0cd4868746e2",
+      "bytes": 3985
+    },
+    "crates/ccr-cli/src/commands/lifecycle/clean.rs": {
+      "sha256": "c26c825c40ad2a6993e327ca191e8477a100915fc02f6cb7d1ff72a33cc377e8",
+      "bytes": 31961
+    },
+    "crates/ccr-cli/src/commands/lifecycle/mod.rs": {
+      "sha256": "d3459a1bfa31b262ac06b86523a953bac93f870db0ccb3d49f1333e6d2892409",
+      "bytes": 419
+    },
+    "crates/ccr-cli/src/commands/lifecycle/validate.rs": {
+      "sha256": "31f91aff28cb28cf9a5b4f09f687ab93b17ce223e5d7525c8570b420b1fd058b",
+      "bytes": 1360
+    },
+    "crates/ccr-cli/src/commands/mod.rs": {
+      "sha256": "d530ea3356c59204c789e32f3f4efada7bb7aad51434f894b51a68d07580e5f5",
+      "bytes": 2477
+    },
+    "crates/ccr-cli/src/commands/profile/switch.rs": {
+      "sha256": "7402e98edd71ea422ce83e356441b7a392f3c127d8dfd8f2f5e68db203fc51f2",
+      "bytes": 12954
+    },
+    "crates/ccr-cli/src/lib.rs": {
+      "sha256": "428136895f42ad33afd49f453d2233aedad6b01e55469a09beaa7b45bf475283",
+      "bytes": 11065
+    },
+    "crates/ccr-cli/src/platforms/claude.rs": {
+      "sha256": "cd9b3aaa950dfb7551fcfaed8cf7254c281871d31fd3f564e94bf99dbb45ce87",
+      "bytes": 44120
+    },
+    "crates/ccr-cli/src/platforms/droid.rs": {
+      "sha256": "fe1ca2e8ccb13221ed6a3b63ef8b86adcbfd8ac53433adf37c68774bce084010",
+      "bytes": 14124
+    },
+    "crates/ccr-cli/src/platforms/gemini.rs": {
+      "sha256": "b00c7d9ce361218ce68e212ffc92416418ba89a1454c88031265c0a498ddf122",
+      "bytes": 12381
+    },
+    "crates/ccr-cli/src/platforms/grok.rs": {
+      "sha256": "40384c71370037231025a3b68de358c9aed8724b436a91dc4f182fce53cb5e1f",
+      "bytes": 76311
+    },
+    "crates/ccr-cli/src/services/doctor_service.rs": {
+      "sha256": "47bd2729ace8563b7648676d009ba1c7be9104ced2ca7f06734a3ccf811f138f",
+      "bytes": 77391
+    },
+    "crates/ccr-cli/src/services/install_exec.rs": {
+      "sha256": "4ea9de153f423117484de812a2a7f3e934c22417314d753009bd74071d27e9d4",
+      "bytes": 13489
+    },
+    "crates/ccr-cli/src/services/install_service.rs": {
+      "sha256": "ad1c8431d23018b1e8df6b54c1ce593cd42464f669d411466040984fb5a15a40",
+      "bytes": 24826
+    },
+    "crates/ccr-cli/src/services/validate_service.rs": {
+      "sha256": "ca704808ad62b66ce732aa14bdc3f99783f85fd624c8d394d239dc4e871383f0",
+      "bytes": 5980
+    },
+    "crates/ccr-cli/src/services/validate_service/diagnostics.rs": {
+      "sha256": "15db55f329c8c4d66ad10bf06db619971d1f723ce0264d30ca48e25f2822cc4e",
+      "bytes": 12981
+    },
+    "crates/ccr-cli/tests/dispatch_routing.rs": {
+      "sha256": "268afb71d98d92ca60e83e35e28a32a3a0d7b5eff6277fc1e3d339be6c097645",
+      "bytes": 14637
+    },
+    "crates/ccr-codex/src/managers/codex_config.rs": {
+      "sha256": "c9e1f5561ea01094e186445ad380a3e55e7d00ac08ad87a56c1c483ce8b37520",
+      "bytes": 23452
+    },
+    "crates/ccr-codex/src/platforms/codex.rs": {
+      "sha256": "3f4754823ef00172ef990db0176e878a2e8e9c3593747eb611cd862a153d98da",
+      "bytes": 183911
+    },
+    "crates/ccr-codex/src/services/codex_oauth_pending_store.rs": {
+      "sha256": "6f4ccc7384183467d07ca78056325954fcbf6430cda41ce71b93861c270e8627",
+      "bytes": 14683
+    },
+    "crates/ccr-codex/src/services/codex_runtime_service.rs": {
+      "sha256": "f7b9cc8bfef750cb51a44693d5c08907b3fdba5b20df94d734d545ab032cce66",
+      "bytes": 12613
+    },
+    "crates/ccr-codex/src/services/mod.rs": {
+      "sha256": "f4ace6ace4acd61db59d2a99a7a0b48002edd4dfe6a18074f092811d897bd7f3",
+      "bytes": 1920
+    },
+    "crates/ccr-config/src/lib.rs": {
+      "sha256": "8358be1968fdbd44db07c598fa263dd4f97e12e0ee6deb1393dd2d21503ddb75",
+      "bytes": 5108
+    },
+    "crates/ccr-config/src/managers/config/manager.rs": {
+      "sha256": "7047f42407d870a66954c4ea6c40392fd62a1ec4179886bc6b374a9835eb1068",
+      "bytes": 3384
+    },
+    "crates/ccr-config/src/managers/config/mod.rs": {
+      "sha256": "d43bbe8d5470b5d5250c51716eb0de0ea59705fd41ab10116cf6d04b40160561",
+      "bytes": 604
+    },
+    "crates/ccr-config/src/managers/config/repository.rs": {
+      "sha256": "be8c61e0a0cc03748457d694e911e458e0106e0287125d49176aae5f109643cb",
+      "bytes": 12722
+    },
+    "crates/ccr-config/src/managers/config/repository_tests.rs": {
+      "sha256": "cadd49b08699426da5dd506aed28e7b6a6ca504b9ffffeee2b80b567dd2ec20d",
+      "bytes": 24761
+    },
+    "crates/ccr-config/src/managers/config_file_handler.rs": {
+      "sha256": "785c3b9412b4565d6341a4565e08902f6e7eb21a22185c1eb983cee1b03b84cb",
+      "bytes": 10137
+    },
+    "crates/ccr-config/src/managers/config_validator.rs": {
+      "sha256": "4354fb75abeff7a2bc1dcc4dab11f4f9731f472f72e4f545a13ccdd60ffc79a0",
+      "bytes": 14016
+    },
+    "crates/ccr-config/src/managers/provider_activation.rs": {
+      "sha256": "6412a8c95e4400bc5d0d72598af3be9b4022f4956cde56a29855699604198b9a",
+      "bytes": 12868
+    },
+    "crates/ccr-config/src/models/platform.rs": {
+      "sha256": "2eb4707caf7bb61c97755c2cfa5f80cca7c85ce2c6b4801699a300a4d4ed206a",
+      "bytes": 23531
+    },
+    "crates/ccr-config/src/platforms/base.rs": {
+      "sha256": "2bf0a4b49434abbd06df62edf2023d3747fe328dfb6a53e95bd1718c52e46a2f",
+      "bytes": 45192
+    },
+    "crates/ccr-config/src/services/config_service.rs": {
+      "sha256": "e2dfbd893e629194caf2288e59fafc10834579acc7466455eba363be8d6c5b47",
+      "bytes": 21214
+    },
+    "crates/ccr-core/Cargo.toml": {
+      "sha256": "a4e47d451f72b1bf044335d58b4dfcbf7bc40889eda1b6c1dc3c33b007a73c5f",
+      "bytes": 1072
+    },
+    "crates/ccr-core/src/core/atomic_writer.rs": {
+      "sha256": "54d4b2773e9f386a773b8aee9c59bec96895514f9608588caec7d372e2cffbd4",
+      "bytes": 37718
+    },
+    "crates/ccr-core/src/core/guarded_write.rs": {
+      "sha256": "5c7dc32c51340360a2cffb5019821aa134ff94ebbc24b3069ec34aaff92ae3cc",
+      "bytes": 48390
+    },
+    "crates/ccr-core/src/core/lock.rs": {
+      "sha256": "91441b874a7b776772a9164b9cbc81f7a86c0a34694f934d5965bd2878f9031f",
+      "bytes": 16273
+    },
+    "crates/ccr-core/src/core/mod.rs": {
+      "sha256": "6d3ca8c8f29ff327f841573bfd7f271e5fd0e762562707c3e6b48c654910f73d",
+      "bytes": 2482
+    },
+    "crates/ccr-core/src/core/process_gateway.rs": {
+      "sha256": "bd8890b9cae7707f9e523f31123a1bb045e1553f0947669e3b55a859f97634f6",
+      "bytes": 27136
+    },
+    "crates/ccr-core/src/core/write_journal.rs": {
+      "sha256": "8d57b9a1f307acb1fc75636014dd78b8b8978142d5537610b81cd449d6f730a5",
+      "bytes": 23216
+    },
+    "crates/ccr-tui/Cargo.toml": {
+      "sha256": "fdacf7d251f97f88bc61bf591e7d2654933d805d3f05fca119a0fceff8a24c16",
+      "bytes": 899
+    },
+    "crates/ccr-tui/src/tui/app.rs": {
+      "sha256": "ae1f3af926100801897277e18e6e6a0c577ed0499f94f4d3ee289fd797ebf8d3",
+      "bytes": 97447
+    },
+    "crates/ccr-tui/src/tui/mod.rs": {
+      "sha256": "0bcf551af875a9a1d5b493e3f19a1120495d92d233f736866c85ad19d930ad28",
+      "bytes": 8050
+    },
+    "crates/ccr-tui/src/tui/profile_backend.rs": {
+      "sha256": "835e296e4dfe920c36f7727bbdeb7964276d9d03ebf346fef5efa329b9fb3292",
+      "bytes": 3571
+    },
+    "crates/ccr/src/main.rs": {
+      "sha256": "c4440da9e9c7b41e9add6df31650162c3035e57603010035b01b5e1f22dfcace",
+      "bytes": 2819
+    },
+    "crates/ccr/tests/commands/claude_profile.rs": {
+      "sha256": "ba5ae3dc6bff422b60e600f8af4c2f61b4f5f39fcfb6138207703d433988e49e",
+      "bytes": 21007
+    },
+    "crates/ccr/tests/commands/clean.rs": {
+      "sha256": "430e08d57bc87ce6b9842605734c7bd0795d9d99d17be17c0b5bd4e26dd77660",
+      "bytes": 15680
+    },
+    "crates/ccr/tests/commands/doctor.rs": {
+      "sha256": "7840477f8429f9e8b7ef2a7333b5c8a408fc4992e23b07e49be0c875a026feb5",
+      "bytes": 20239
+    },
+    "crates/ccr/tests/diagnostics_contract.rs": {
+      "sha256": "793bb6f12e770b0462a00c7ef184f7642edbec8359c38ae4359167d6e3b55ccf",
+      "bytes": 19006
+    },
+    "docs/en/reference/commands/doctor.md": {
+      "sha256": "7ba69dc13e80b30df3ae95eb527ec791556f574a21da7651a634c33801007332",
+      "bytes": 1476
+    },
+    "docs/en/reference/commands/validate.md": {
+      "sha256": "4d8f98d08ebb966dd08be20a138d81efab29c7b4c8f5cf8894b0092cb2aba961",
+      "bytes": 3133
+    },
+    "docs/en/reference/tauri-command-inventory.md": {
+      "sha256": "b068a19dee49c2f2915ec343b4330e319a0c52d0dd1600c1a81b96bce61d82b7",
+      "bytes": 3371
+    },
+    "docs/reference/commands/doctor.md": {
+      "sha256": "2d23a768a230016899c6e334b81ed718b8b6c9bce417c9dc118aa6950f5f0b14",
+      "bytes": 3323
+    },
+    "docs/reference/commands/validate.md": {
+      "sha256": "0265ab14057c7a7f3ef2872bd486765247d3ecccc0f28b8a1bd3fcfc815fa3af",
+      "bytes": 3393
+    },
+    "docs/reference/tauri-command-inventory.md": {
+      "sha256": "b068a19dee49c2f2915ec343b4330e319a0c52d0dd1600c1a81b96bce61d82b7",
+      "bytes": 3371
+    },
+    "justfile": {
+      "sha256": "354fdd0eb109dba69bcd1721ba02e9c567cb8f2156e17d5f3ad7ae5ea6eb568f",
+      "bytes": 70534
+    },
+    "scripts/ci/check_workflow_governance.py": {
+      "sha256": "4b3d4b2c000ee183e533a59c843b312fa503dff4157fb1ee4a823cc6cf5d772d",
+      "bytes": 18923
+    },
+    "scripts/ci/test_architecture_contract_gates.py": {
+      "sha256": "dbea51132386eab0d1865654f7422ad46c701c69975f92078858d958ab10df5a",
+      "bytes": 5370
+    },
+    "scripts/ci/test_check_workflow_governance.py": {
+      "sha256": "11d99acc998995c190779c38a60f49d7f0f20aea53433f4ea574dcb8c9ba92dd",
+      "bytes": 16803
+    },
+    "scripts/quality/check_secret_writes.py": {
+      "sha256": "5ac9c6eeb8aa9803852e282bce35fdc03b454b6d181997792f788bc40a934535",
+      "bytes": 2234
+    },
+    "crates/ccr-tui/src/tui/grok_auth/tests.rs": {
+      "sha256": "5da8d0c6ca3570eea098f7e891b3dc09679b732ce5f559db10887c7de9b63cd3",
+      "bytes": 13871
+    }
+  },
+  "deleted": [
+    "ccr-ui/src/features/editor/styles/code-source-editor.css",
+    "ccr-ui/src/features/editor/styles/config-source-panel.css"
+  ],
+  "excludes": [
+    "ccr-ui/.tmp-desktop-probe.mjs",
+    "ccr-ui/.tmp-insights-visual.mjs"
+  ],
+  "note": "Source snapshot during final root-delivery-ci after its format phase. Doctor temporary diagnostics removed; fix.rs equals HEAD. Final verification compares all files after aggregate stops.",
+  "changed_since_root_acceptance_input": [
+    "crates/ccr-cli/tests/dispatch_routing.rs",
+    "crates/ccr-tui/src/tui/grok_auth/tests.rs"
+  ],
+  "changed_since_previous_source_input": [
+    "crates/ccr-tui/src/tui/grok_auth/tests.rs"
+  ]
+}

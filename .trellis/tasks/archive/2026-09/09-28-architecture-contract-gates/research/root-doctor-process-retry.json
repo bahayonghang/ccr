@@ -1,0 +1,14 @@
+{
+  "command": [
+    "D:\\Documents\\Code\\Github\\ccr\\target\\debug\\deps\\ccr_cli-74d992b21dfc8d04.exe",
+    "commands::codex::fix::tests::doctor_timeout_terminates_parent_and_grandchild",
+    "--exact",
+    "--nocapture"
+  ],
+  "exit_code": 0,
+  "seconds": 20.06,
+  "binary_sha256_before_retry": "d690db51d10924cd9d1673d4e071bd2d3b0dd395540e7933b9e8bdb15e40143d",
+  "log": "root-doctor-process-retry.log",
+  "earlier_failure": "parent research/root-final-after-fixtures-test.log",
+  "note": "No source or test changes to fix.rs. Earlier aggregate run did not capture executable SHA before execution; cause unconfirmed."
+}

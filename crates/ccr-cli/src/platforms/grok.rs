@@ -265,16 +265,6 @@ impl GrokPlatform {
         base::load_profiles_from_toml(&self.paths.profiles_file)
     }
 
-    fn save_profiles_to_file(&self, profiles: &IndexMap<String, ProfileConfig>) -> Result<()> {
-        let preserve_inactive = self.current_profile_from_registry()?.is_none()
-            && self.fallback_current_profile_from_file()?.is_none();
-        base::save_profiles_to_toml(&self.paths.profiles_file, profiles, "grok", &self.paths)?;
-        if preserve_inactive {
-            self.clear_profiles_current_config()?;
-        }
-        Ok(())
-    }
-
     fn trimmed(value: Option<&String>) -> Option<String> {
         value
             .map(|value| value.trim())
@@ -843,37 +833,10 @@ impl GrokPlatform {
         if !self.paths.profiles_file.exists() {
             return Ok(());
         }
-        for attempt in 0..2 {
-            let (mut value, token) = Self::load_config_value(&self.paths.profiles_file)?;
-            Self::root_table_mut(&mut value)?
-                .insert("current_config".into(), toml::Value::String(String::new()));
-            let content = toml::to_string_pretty(&value).map_err(|error| {
-                CcrError::ConfigError(format!("序列化 Grok profiles.toml 失败: {error}"))
-            })?;
-            let outcome = write_guarded_versioned(
-                &self.paths.profiles_file,
-                content.as_bytes(),
-                &token,
-                &WriteOptions {
-                    backup: BackupPolicy::Dir {
-                        dir: self.paths.backups_dir.clone(),
-                        prefix: "profiles".into(),
-                    },
-                    secret: true,
-                    ..Default::default()
-                },
-            )?;
-            match outcome {
-                VersionedWriteOutcome::Written => return Ok(()),
-                VersionedWriteOutcome::Conflict if attempt == 0 => continue,
-                VersionedWriteOutcome::Conflict => {
-                    return Err(CcrError::ValidationError(
-                        "Grok profiles.toml 被并发修改，请重试".into(),
-                    ));
-                }
-            }
-        }
-        Ok(())
+        ccr_config::ConfigManager::new(&self.paths.profiles_file).mutate(|config| {
+            config.current_config.clear();
+            Ok(())
+        })
     }
 
     fn clear_current_profile_registry(&self) -> Result<()> {
@@ -900,16 +863,7 @@ impl GrokPlatform {
     }
 
     fn fallback_current_profile_from_file(&self) -> Result<Option<String>> {
-        if !self.paths.profiles_file.exists() {
-            return Ok(None);
-        }
-        let (value, _) = Self::load_config_value(&self.paths.profiles_file)?;
-        let current = value
-            .get("current_config")
-            .and_then(toml::Value::as_str)
-            .map(str::trim)
-            .filter(|value| !value.is_empty());
-        Ok(current.map(str::to_string))
+        base::load_current_profile_marker(&self.paths.profiles_file)
     }
 
     fn runtime_matches_profile(&self, name: &str, profile: &ProfileConfig) -> Result<bool> {
@@ -927,13 +881,11 @@ impl GrokPlatform {
         let profiles = self.load_profiles()?;
         if let Some(current) = self.current_profile_from_registry()? {
             let Some(profile) = profiles.get(&current) else {
-                self.clear_current_profile_registry()?;
                 return Ok(None);
             };
             if self.runtime_matches_profile(&current, profile)? {
                 return Ok(Some(current));
             }
-            self.clear_current_profile_registry()?;
             return Ok(None);
         }
 
@@ -964,54 +916,65 @@ impl PlatformConfig for GrokPlatform {
 
     fn save_profile(&self, name: &str, profile: &ProfileConfig) -> Result<()> {
         let _operation_lock = self.lock_profile_operation()?;
-        let mut normalized = profile.clone();
-        if let Some(reasoning_effort) = Self::profile_reasoning_effort(profile)? {
-            normalized.platform_data.insert(
-                "reasoning_effort".into(),
-                JsonValue::String(reasoning_effort),
-            );
-        }
-        self.validate_profile(&normalized)?;
-        let mut profiles = self.load_profiles()?;
-        profiles.insert(name.to_string(), normalized);
-        self.save_profiles_to_file(&profiles)
+        base::mutate_profiles_with_current(&self.paths.profiles_file, |profiles, current| {
+            if self.current_profile_from_registry()?.is_none() && !profiles.contains_key(current) {
+                current.clear();
+            }
+            let mut normalized = profile.clone();
+            if let Some(reasoning_effort) = Self::profile_reasoning_effort(profile)? {
+                normalized.platform_data.insert(
+                    "reasoning_effort".into(),
+                    JsonValue::String(reasoning_effort),
+                );
+            }
+            self.validate_profile(&normalized)?;
+            profiles.insert(name.to_string(), normalized);
+            Ok(())
+        })
     }
 
     fn delete_profile(&self, name: &str) -> Result<()> {
         let _operation_lock = self.lock_profile_operation()?;
-        let profiles = self.load_profiles()?;
-        let fallback_current = self.fallback_current_profile_from_file()?;
-        let active_by_intent = self.current_profile_from_registry()?.as_deref() == Some(name)
-            || fallback_current.as_deref() == Some(name);
-        if self.load_entry_state()?.is_none()
-            && (active_by_intent || self.runtime_has_managed_shape()?)
-        {
-            return Err(CcrError::ConfigError(
+        let profiles = base::mutate_profiles_with_current(
+            &self.paths.profiles_file,
+            |profiles, current| {
+                let fallback_current = (!current.is_empty()).then(|| current.clone());
+                let active_by_intent = self.current_profile_from_registry()?.as_deref()
+                    == Some(name)
+                    || fallback_current.as_deref() == Some(name);
+                if self.load_entry_state()?.is_none()
+                    && (active_by_intent || self.runtime_has_managed_shape()?)
+                {
+                    return Err(CcrError::ConfigError(
                 "Grok 入口配置状态缺失，拒绝删除 profile 以避免遗留凭据；请先备份 config.toml 并手工清理 [model.custom] 与 [models].default"
                     .into(),
             ));
-        }
-        let active_by_runtime = match profiles.get(name) {
-            Some(profile) => self.runtime_matches_profile(name, profile)?,
-            None => false,
-        };
-        if active_by_intent || active_by_runtime {
-            return Err(CcrError::ValidationError(format!(
-                "Grok profile '{name}' 当前处于激活状态，请先执行 off 或切换到其他 profile"
-            )));
-        }
-        let preserve_fallback_pointer = match fallback_current.as_deref() {
-            Some(current) => match profiles.get(current) {
-                Some(profile) => self.runtime_matches_profile(current, profile)?,
-                None => false,
+                }
+                let active_by_runtime = match profiles.get(name) {
+                    Some(profile) => self.runtime_matches_profile(name, profile)?,
+                    None => false,
+                };
+                if active_by_intent || active_by_runtime {
+                    return Err(CcrError::ValidationError(format!(
+                        "Grok profile '{name}' 当前处于激活状态，请先执行 off 或切换到其他 profile"
+                    )));
+                }
+                let preserve_fallback_pointer = match fallback_current.as_deref() {
+                    Some(current) => match profiles.get(current) {
+                        Some(profile) => self.runtime_matches_profile(current, profile)?,
+                        None => false,
+                    },
+                    None => false,
+                };
+                if profiles.shift_remove(name).is_none() {
+                    return Err(CcrError::ProfileNotFound(name.to_string()));
+                }
+                if !preserve_fallback_pointer && self.current_profile_from_registry()?.is_none() {
+                    current.clear();
+                }
+                Ok(profiles.clone())
             },
-            None => false,
-        };
-        let mut profiles = profiles;
-        if profiles.shift_remove(name).is_none() {
-            return Err(CcrError::ProfileNotFound(name.to_string()));
-        }
-        self.save_profiles_to_file(&profiles)?;
+        )?;
         base::reconcile_registry_current_profile_after_delete_with_paths(
             &self.paths.registry_file,
             &self.registry_lock_dir(),
@@ -1019,9 +982,6 @@ impl PlatformConfig for GrokPlatform {
             name,
             &profiles,
         )?;
-        if !preserve_fallback_pointer && self.current_profile_from_registry()?.is_none() {
-            self.clear_profiles_current_config()?;
-        }
         Ok(())
     }
 
@@ -1315,6 +1275,45 @@ api_key = "INLINE_SECRET_SENTINEL"
             ),
             "api.example.com/v1"
         );
+    }
+
+    #[test]
+    fn profile_save_preserves_missing_current_marker_in_simplified_file() {
+        let (_home, platform) = platform();
+        let profiles = IndexMap::from([(
+            "relay".to_string(),
+            base::profile_to_section(&third_party_profile()).unwrap(),
+        )]);
+        fs::create_dir_all(platform.paths.profiles_file.parent().unwrap()).unwrap();
+        fs::write(
+            &platform.paths.profiles_file,
+            toml::to_string(&profiles).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(platform.fallback_current_profile_from_file().unwrap(), None);
+        let mut changed = third_party_profile();
+        changed.description = Some("updated".into());
+        platform.save_profile("relay", &changed).unwrap();
+        assert_eq!(platform.fallback_current_profile_from_file().unwrap(), None);
+    }
+
+    #[test]
+    fn profile_delete_accepts_inactive_simplified_file_without_current_marker() {
+        let (_home, platform) = platform();
+        let profiles = IndexMap::from([(
+            "relay".to_string(),
+            base::profile_to_section(&third_party_profile()).unwrap(),
+        )]);
+        fs::create_dir_all(platform.paths.profiles_file.parent().unwrap()).unwrap();
+        fs::write(
+            &platform.paths.profiles_file,
+            toml::to_string(&profiles).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(platform.fallback_current_profile_from_file().unwrap(), None);
+        platform.delete_profile("relay").unwrap();
+        assert!(platform.load_profiles().unwrap().is_empty());
+        assert_eq!(platform.fallback_current_profile_from_file().unwrap(), None);
     }
 
     #[test]
@@ -1829,7 +1828,7 @@ nested = "keep-me-too"
     }
 
     #[test]
-    fn runtime_drift_clears_registry_pointer() {
+    fn runtime_drift_query_preserves_registry_pointer() {
         let (_home, platform) = platform();
         platform
             .save_profile("relay", &third_party_profile())
@@ -1842,8 +1841,24 @@ nested = "keep-me-too"
             toml::to_string_pretty(&config).unwrap(),
         )
         .unwrap();
+        let before = fs::read(&platform.paths.registry_file).unwrap();
+        let modified = fs::metadata(&platform.paths.registry_file)
+            .unwrap()
+            .modified()
+            .unwrap();
         assert_eq!(platform.get_current_profile().unwrap(), None);
-        assert_eq!(platform.current_profile_from_registry().unwrap(), None);
+        assert_eq!(
+            platform.current_profile_from_registry().unwrap().as_deref(),
+            Some("relay")
+        );
+        assert_eq!(before, fs::read(&platform.paths.registry_file).unwrap());
+        assert_eq!(
+            modified,
+            fs::metadata(&platform.paths.registry_file)
+                .unwrap()
+                .modified()
+                .unwrap()
+        );
     }
 
     #[test]

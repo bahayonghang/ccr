@@ -1,0 +1,48 @@
+{
+  "id": "harness-omp-context",
+  "name": "harness-omp-context",
+  "title": "T01 OMP 上下文完整性与可复现交付",
+  "description": "修复设计和实施文档漏注入，建立可复现的已跟踪 OMP 运行源及契约测试",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P1",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-09-29",
+  "completedAt": "2026-09-30",
+  "branch": "dev",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": "30cbeddf730ed01b312c3396ba7b8691853be859",
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "09-29-evergreen-harness-audit",
+  "relatedFiles": [
+    ".gitignore",
+    ".omp/extensions/trellis/index.ts",
+    "scripts/trellis/omp-context.test.ts"
+  ],
+  "notes": "用户已批准实施并授权本地提交和验收完成后的归档。推送、PR、发布和两个新增补丁仍未授权。历史批准记录见父任务 approval.json。",
+  "meta": {
+    "implementation_approved": true,
+    "parent_plan": ".trellis/tasks/09-29-evergreen-harness-audit",
+    "approval_record": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json",
+    "local_implementation": "passed",
+    "independent_review": "../../../09-29-evergreen-harness-audit/research/independent-review.md",
+    "delivery_status": "locally committed and archived after local acceptance",
+    "delivery_authorization": ".trellis/tasks/09-29-evergreen-harness-audit/approval.json#delivery_authorization",
+    "work_commits": [
+      "c4d38e5154edf6a8fa1c781f91d31ce6aa4bb5ad",
+      "f68116ecd22bb74b86011b01d14b72cfc8a855d0",
+      "c1453c7b1f5405f93eaecf67ff0d074bb1e9db1d",
+      "30cbeddf730ed01b312c3396ba7b8691853be859"
+    ],
+    "archive_eligibility": "eligible_after_committed_fixture",
+    "committed_source_fixture": "research/committed-source-fixture.json",
+    "archived_with_unverified_boundaries_preserved": true,
+    "acceptance_adjustment_2026_10_04": "Approved generated-client contract execution boundary; historical repository-only acceptance retained as history"
+  }
+}

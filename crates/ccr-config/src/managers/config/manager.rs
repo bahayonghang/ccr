@@ -1,10 +1,9 @@
 // 🔧 配置管理器
 // 负责配置文件的加载、保存和管理
 
-use crate::managers::config::{CcsConfig, GlobalSettings};
-use ccr_core::core::error::{CcrError, Result};
-use ccr_core::core::fileio;
-use indexmap::IndexMap;
+use crate::managers::config::CcsConfig;
+use ccr_core::AutoCompletable;
+use ccr_core::core::error::Result;
 use std::path::{Path, PathBuf};
 
 /// 🔧 配置管理器
@@ -28,92 +27,22 @@ impl ConfigManager {
         }
     }
 
-    /// 🏠 使用默认配置路径创建管理器 (Unified 模式)
-    ///
-    /// 根据 `current_platform` 自动选择平台配置
+    /// Legacy callers retain the Claude domain. New callers must name a platform.
+    /// Opening a repository never initializes or repairs files.
     pub fn with_default() -> Result<Self> {
-        let (unified_root, unified_path) = Self::resolve_unified_root()?;
-
-        let platform_config_manager = crate::managers::PlatformConfigManager::new(unified_path);
-        let unified_config = platform_config_manager.load_or_create_default()?;
-
-        let platform = unified_config
-            .list_enabled_platforms()
-            .into_iter()
-            .next()
-            .cloned()
-            .unwrap_or_else(|| "claude".to_string());
-        Self::build_for_platform(&unified_root, &platform)
+        Self::for_platform("claude")
     }
 
-    /// 🎯 为指定平台创建 ConfigManager
-    ///
-    /// 直接加载指定平台的 profiles.toml，不依赖 `current_platform`。
-    /// 适用于 UI 等需要按平台独立展示配置的场景。
-    ///
-    /// # 参数
-    /// - `platform_name`: 平台名称 ("claude", "codex", "gemini" 等)
+    /// Open the named platform without inspecting registry order or writing files.
     pub fn for_platform(platform_name: &str) -> Result<Self> {
-        let (unified_root, _) = Self::resolve_unified_root()?;
-        Self::build_for_platform(&unified_root, platform_name)
+        let platform: crate::models::Platform = platform_name.parse()?;
+        let paths = crate::models::PlatformPaths::new(platform)?;
+        Ok(Self::new(paths.profiles_file))
     }
 
-    /// 🔍 解析 Unified 模式根目录
-    fn resolve_unified_root() -> Result<(PathBuf, PathBuf)> {
-        let (is_unified, unified_config_path) = Self::detect_unified_mode();
-
-        if !is_unified {
-            return Err(CcrError::ConfigError(
-                "未找到 Unified 模式配置。请先运行 'ccr init' 初始化配置。".into(),
-            ));
-        }
-
-        let unified_path = unified_config_path
-            .ok_or_else(|| CcrError::ConfigError("无法获取 Unified 配置路径".into()))?;
-
-        let unified_root = unified_path
-            .parent()
-            .ok_or_else(|| CcrError::ConfigError("无法获取 CCR 根目录".into()))?
-            .to_path_buf();
-
-        Ok((unified_root, unified_path))
-    }
-
-    /// 🏗️ 根据平台名称构建 ConfigManager（内部共用逻辑）
-    fn build_for_platform(unified_root: &Path, platform: &str) -> Result<Self> {
-        let platform_profiles_path = unified_root
-            .join("platforms")
-            .join(platform)
-            .join("profiles.toml");
-
-        // 如果 profiles.toml 不存在，创建默认空配置
-        if !platform_profiles_path.exists() {
-            tracing::debug!(
-                "⚙️  未找到平台 profiles 文件: {:?}，正在创建默认空配置",
-                platform_profiles_path
-            );
-
-            if let Some(parent_dir) = platform_profiles_path.parent() {
-                std::fs::create_dir_all(parent_dir)
-                    .map_err(|e| CcrError::ConfigError(format!("创建平台目录失败: {}", e)))?;
-            }
-
-            let default_ccs = CcsConfig {
-                default_config: "default".to_string(),
-                current_config: "default".to_string(),
-                settings: GlobalSettings::default(),
-                sections: IndexMap::new(),
-            };
-
-            fileio::write_toml(&platform_profiles_path, &default_ccs)?;
-        }
-
-        tracing::debug!(
-            "🔄 Unified 模式: 使用平台 {} 的配置路径: {:?}",
-            platform,
-            platform_profiles_path
-        );
-        Ok(Self::new(platform_profiles_path))
+    /// Explicit initialization. Existing files, including invalid files, stay intact.
+    pub fn ensure_initialized(&self) -> Result<()> {
+        self.mutate_or_create(|_| Ok(()))
     }
 
     /// 📁 获取配置文件路径
@@ -129,7 +58,12 @@ impl ConfigManager {
 
     /// 🔄 加载配置并自动补全缺失字段（必要时写回）
     pub fn load_with_autofix(&self) -> Result<CcsConfig> {
-        self.file_handler.load_with_autofix()
+        self.mutate(|config| {
+            for section in config.sections.values_mut() {
+                section.auto_complete();
+            }
+            Ok(config.clone())
+        })
     }
 
     /// 💾 保存配置文件

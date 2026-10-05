@@ -1,0 +1,28 @@
+{
+  "recorded_utc": "2026-09-30T03:51:51.373759+00:00",
+  "checks": [
+    {
+      "file": ".trellis\\tasks\\09-29-harness-frontend-security\\research\\new-advisories-implementation-results.md",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "",
+      "whitespace_diagnostics_absent": true
+    },
+    {
+      "file": ".trellis\\tasks\\09-29-harness-frontend-security\\implement.md",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "",
+      "whitespace_diagnostics_absent": true
+    }
+  ],
+  "initial_verifier_errors": [
+    "The first verifier required exit 0 from git diff --no-index --check. No-index implies an exit-code comparison against the empty file. The call returned exit 1, no stdout, and only the autocrlf warning.",
+    "The second verifier disabled autocrlf only for the command. Existing CRLF in implement.md was then reported as trailing whitespace. The final read-only check explicitly recognizes CR at end of line; no artifact line endings were changed."
+  ],
+  "per_command_git_configuration": "Read-only no-index document checks use core.autocrlf=false and core.whitespace with cr-at-eol; no configuration file modified",
+  "final_lock_sha256": "c4301a8d1909ac7db2f92930e5d91172195d3ad51c84b4e163c16909a2528025",
+  "final_crlf_count": 0,
+  "final_lf_receipts_pass_and_hash_stable": true,
+  "report_metrics_match_receipts": true
+}

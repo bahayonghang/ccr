@@ -1,0 +1,173 @@
+{
+  "recorded_at_utc": "2026-09-30T02:35:22.990825+00:00",
+  "os": "Windows-11-10.0.26200-SP0",
+  "head": "fe9d65972376dbb4c332fde9860c1e42ff2f2005",
+  "bun_version": "1.4.2",
+  "source_sha256": {
+    ".gitignore": "1f88bef2316f91b9b2e030ccc1b24cd3e2917f058320b5bffc5ad995655b4aac",
+    ".omp/extensions/trellis/index.ts": "a9ef13beb1bb7214e2ada5cb43fea596065ab296b68a8da171220a77840c5851",
+    "scripts/trellis/omp-context.test.ts": "427ff9c29ccccaf94554eece9eff042d5201a087c49b500d947139aba275da1b"
+  },
+  "runtime_imports": [
+    "node:fs",
+    "node:path",
+    "node:child_process",
+    "node:crypto"
+  ],
+  "type_only_imports": [
+    "@oh-my-pi/pi-coding-agent"
+  ],
+  "ignored_probe_paths": [
+    "\".omp/extensions/trellis/index.ts\\r\"",
+    "\".omp/settings.local.json\\r\"",
+    "\".omp/agents/trellis-implement.md\\r\"",
+    "\".omp/extensions/other/index.ts\\r\"",
+    "\".omp/extensions/trellis/local-config.json\\r\"",
+    "\".omp/extensions/trellis/cache/data.json\\r\"",
+    "\"nested/.omp/private.json\\r\""
+  ],
+  "checks": [
+    {
+      "name": "selected-sources",
+      "command": [
+        "git",
+        "ls-files",
+        "--cached",
+        "--others",
+        "--exclude-standard",
+        "--",
+        ".gitignore",
+        ".omp/extensions/trellis/index.ts",
+        "scripts/trellis/omp-context.test.ts"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "exit_code": 0,
+      "seconds": 0.066,
+      "log": "attempt-1-selected-sources.log",
+      "log_sha256": "642109f6dfd7fbf6e814d4e412634bc12120d3e20c00c8923024cfff5e149059",
+      "status": "PASS"
+    },
+    {
+      "name": "worktree-bun",
+      "command": [
+        "C:\\Users\\lyh\\scoop\\shims\\bun.EXE",
+        "test",
+        "scripts/trellis/omp-context.test.ts"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "exit_code": 0,
+      "seconds": 1.371,
+      "log": "attempt-1-worktree-bun.log",
+      "log_sha256": "029a5dbc629e1b846710cb6f332d7501a1cac5adf270c169f82a64d03aab2e49",
+      "status": "PASS"
+    },
+    {
+      "name": "ignore-boundary",
+      "command": [
+        "git",
+        "check-ignore",
+        "--no-index",
+        "--stdin"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "exit_code": 0,
+      "seconds": 0.059,
+      "log": "attempt-1-ignore-boundary.log",
+      "log_sha256": "b9a5d996b481430878c65fa861021f41dea456d8d579ff0a1b4c131c5701bc48",
+      "status": "FAIL"
+    },
+    {
+      "name": "selected-source-bun",
+      "command": [
+        "C:\\Users\\lyh\\scoop\\shims\\bun.EXE",
+        "test",
+        "scripts/trellis/omp-context.test.ts"
+      ],
+      "cwd": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-omp-selected-source-ncrotw8h",
+      "exit_code": 0,
+      "seconds": 0.692,
+      "log": "attempt-1-selected-source-bun.log",
+      "log_sha256": "767999776b16d71c38695a62d5df7fa6d68fe65b9d433a3bd52d24d540481477",
+      "status": "PASS",
+      "copied_files": [
+        ".gitignore",
+        ".omp/extensions/trellis/index.ts",
+        "scripts/trellis/omp-context.test.ts"
+      ],
+      "node_modules_present": false,
+      "scope": "Uncommitted working-tree bytes selected by Git; not a committed clone or native OMP session."
+    },
+    {
+      "name": "runtime-build",
+      "command": [
+        "C:\\Users\\lyh\\scoop\\shims\\bun.EXE",
+        "build",
+        ".omp/extensions/trellis/index.ts",
+        "--target=bun",
+        "--outfile",
+        "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-omp-selected-source-ncrotw8h\\extension.js"
+      ],
+      "cwd": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-omp-selected-source-ncrotw8h",
+      "exit_code": 0,
+      "seconds": 0.099,
+      "log": "attempt-1-runtime-build.log",
+      "log_sha256": "10313569f90cc19774442c6f68c020facaccbdb6988a302ee4168fec50ce186a",
+      "status": "PASS",
+      "type_only_import_erased": true
+    },
+    {
+      "name": "tracked-diff-check",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        ".gitignore",
+        "scripts/trellis/omp-context.test.ts"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "exit_code": 0,
+      "seconds": 0.062,
+      "log": "attempt-1-tracked-diff-check.log",
+      "log_sha256": "687f5b8ca2ced0e604f36c2b6857ed43edbc8a6345b4ec23a39d3b0db8973ff0",
+      "status": "PASS"
+    },
+    {
+      "name": "new-source-diff-check",
+      "command": [
+        "git",
+        "-c",
+        "core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol",
+        "diff",
+        "--no-index",
+        "--check",
+        "--",
+        "nul",
+        ".omp/extensions/trellis/index.ts"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "exit_code": 1,
+      "seconds": 0.057,
+      "log": "attempt-1-new-source-diff-check.log",
+      "log_sha256": "378750f6c53d52110e25409f5963ee21f29d907cb982352de42708d2336da6ca",
+      "status": "FAIL"
+    },
+    {
+      "name": "task-context-validate",
+      "command": [
+        "python",
+        ".trellis/scripts/task.py",
+        "validate",
+        ".trellis/tasks/09-29-harness-omp-context"
+      ],
+      "cwd": "D:\\Documents\\Code\\Github\\ccr",
+      "exit_code": 0,
+      "seconds": 0.282,
+      "log": "attempt-1-task-context-validate.log",
+      "log_sha256": "36273fe5b99cd424b851b286a85762552e1f76f22db260353cfcdb3505ae414b",
+      "status": "PASS"
+    }
+  ],
+  "native_omp_runtime": "UNVERIFIED",
+  "attempt_note": "Evidence-runner defects: CRLF stdin altered Git probe filenames; no-index new-file diff exit 1 was classified as failure. Product contract and selected-source tests passed."
+}

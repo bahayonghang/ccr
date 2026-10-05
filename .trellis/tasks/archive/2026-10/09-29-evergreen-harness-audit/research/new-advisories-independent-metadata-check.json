@@ -1,0 +1,327 @@
+{
+  "verified_utc": "2026-09-30T03:41:33.526Z",
+  "source_hashes_before": {
+    "ccr-ui/bun.lock": "f4d25c2659543ffbc3c439a92813f0d67d9c44c2bc3d881d7e3710bb52adbf1e",
+    "docs/bun.lock": "fcc99d04e4ebe06c175db3744907db9bace0f0ee22c7a5cb1100051bf07b6434",
+    "ccr-vscode/package-lock.json": "846b84a475e48c9e7f335a87121a1894dc64548f41449d2dd54a5b932174fdd4"
+  },
+  "source_hashes_after": {
+    "ccr-ui/bun.lock": "f4d25c2659543ffbc3c439a92813f0d67d9c44c2bc3d881d7e3710bb52adbf1e",
+    "docs/bun.lock": "fcc99d04e4ebe06c175db3744907db9bace0f0ee22c7a5cb1100051bf07b6434",
+    "ccr-vscode/package-lock.json": "846b84a475e48c9e7f335a87121a1894dc64548f41449d2dd54a5b932174fdd4"
+  },
+  "raw_evidence_hashes": [
+    {
+      "file": "new-advisories-GHSA-qhr7-859c-m2p7.json",
+      "sha256": "dcd6ac737253c9bc0c24eacfb25e03c892f7884517f1fb5cc2931b91c8436699"
+    },
+    {
+      "file": "new-advisories-GHSA-hrr3-gc8f-f4qj.json",
+      "sha256": "c0ac406e74ed680d5eae55ab11ba94d157a835cf2b6441a70ef10bf991b42a5a"
+    },
+    {
+      "file": "new-advisories-GHSA-6j4f-fj2g-mc7p.json",
+      "sha256": "3b8b182a6417941eca2b1fc7a11b9d7d6e8170466f8f533ca9160dc44daea0bb"
+    },
+    {
+      "file": "new-advisories-GHSA-q2hr-2g5m-vwhr.json",
+      "sha256": "4853153106d37920705e2284212482dc60fb7d5126bf62695b7575b7851c9b02"
+    },
+    {
+      "file": "new-advisories-fast-uri-registry.json",
+      "sha256": "3399dc3cd5061bd714090b97d5e8ef56557878583d38e0c4183837d5020c0c20"
+    },
+    {
+      "file": "new-advisories-brace-expansion-registry.json",
+      "sha256": "d64701dc19c759f500c7db606ff5bef33cdc1061ef16e01db42549b202d2739a"
+    }
+  ],
+  "final_ci_log_hash_verified": true,
+  "GHSA_dates": [
+    {
+      "ghsa": "GHSA-qhr7-859c-m2p7",
+      "published_at": "2026-09-29T23:45:17Z",
+      "updated_at": "2026-09-29T23:45:19Z",
+      "github_reviewed_at": "2026-09-29T23:45:17Z",
+      "nvd_published_at": "2026-09-28T21:17:16Z"
+    },
+    {
+      "ghsa": "GHSA-hrr3-gc8f-f4qj",
+      "published_at": "2026-09-29T23:54:25Z",
+      "updated_at": "2026-09-29T23:54:26Z",
+      "github_reviewed_at": "2026-09-29T23:54:25Z",
+      "nvd_published_at": "2026-09-15T11:17:12Z"
+    },
+    {
+      "ghsa": "GHSA-6j4f-fj2g-mc7p",
+      "published_at": "2026-09-29T23:44:58Z",
+      "updated_at": "2026-09-29T23:44:59Z",
+      "github_reviewed_at": "2026-09-29T23:44:58Z",
+      "nvd_published_at": "2026-09-28T21:17:16Z"
+    },
+    {
+      "ghsa": "GHSA-q2hr-2g5m-vwhr",
+      "published_at": "2026-09-29T23:45:39Z",
+      "updated_at": "2026-09-29T23:45:39Z",
+      "github_reviewed_at": "2026-09-29T23:45:39Z",
+      "nvd_published_at": "2026-09-28T21:17:16Z"
+    }
+  ],
+  "inventories": [
+    {
+      "file": "ccr-ui/bun.lock",
+      "entries": 743,
+      "targets": [
+        {
+          "node": "brace-expansion",
+          "version": "1.1.21"
+        },
+        {
+          "node": "fast-uri",
+          "version": "3.1.8"
+        },
+        {
+          "node": "@typescript-eslint/typescript-estree/minimatch/brace-expansion",
+          "version": "5.0.12"
+        },
+        {
+          "node": "glob/minimatch/brace-expansion",
+          "version": "5.0.12"
+        }
+      ]
+    },
+    {
+      "file": "docs/bun.lock",
+      "entries": 179,
+      "targets": []
+    },
+    {
+      "file": "ccr-vscode/package-lock.json",
+      "entries": 327,
+      "targets": [
+        {
+          "node": "node_modules/brace-expansion",
+          "version": "5.0.9"
+        },
+        {
+          "node": "node_modules/fast-uri",
+          "version": "3.1.7"
+        }
+      ]
+    }
+  ],
+  "node_checks": [
+    {
+      "file": "ccr-ui/bun.lock",
+      "node": "brace-expansion",
+      "observed_version": "1.1.21",
+      "old_version": "1.1.18",
+      "new_version": "1.1.21",
+      "parents": [
+        {
+          "node": "minimatch",
+          "range": "^1.1.7",
+          "satisfied": true
+        }
+      ],
+      "old_matching_ghsa": [
+        "GHSA-qhr7-859c-m2p7",
+        "GHSA-6j4f-fj2g-mc7p",
+        "GHSA-q2hr-2g5m-vwhr"
+      ],
+      "candidate_matching_ghsa": [],
+      "lowest_compatible_stable": true,
+      "unchanged_metadata_fields": [
+        "dependencies",
+        "optionalDependencies",
+        "peerDependencies",
+        "engines",
+        "main",
+        "exports",
+        "type"
+      ],
+      "planned_fields": [
+        "version",
+        "integrity"
+      ]
+    },
+    {
+      "file": "ccr-ui/bun.lock",
+      "node": "fast-uri",
+      "observed_version": "3.1.8",
+      "old_version": "3.1.7",
+      "new_version": "3.1.8",
+      "parents": [
+        {
+          "node": "table/ajv",
+          "range": "^3.0.1",
+          "satisfied": true
+        }
+      ],
+      "old_matching_ghsa": [
+        "GHSA-hrr3-gc8f-f4qj"
+      ],
+      "candidate_matching_ghsa": [],
+      "lowest_compatible_stable": true,
+      "unchanged_metadata_fields": [
+        "dependencies",
+        "optionalDependencies",
+        "peerDependencies",
+        "engines",
+        "main",
+        "exports",
+        "type"
+      ],
+      "planned_fields": [
+        "version",
+        "integrity"
+      ]
+    },
+    {
+      "file": "ccr-ui/bun.lock",
+      "node": "@typescript-eslint/typescript-estree/minimatch/brace-expansion",
+      "observed_version": "5.0.12",
+      "old_version": "5.0.9",
+      "new_version": "5.0.12",
+      "parents": [
+        {
+          "node": "@typescript-eslint/typescript-estree/minimatch",
+          "range": "^5.0.5",
+          "satisfied": true
+        }
+      ],
+      "old_matching_ghsa": [
+        "GHSA-qhr7-859c-m2p7",
+        "GHSA-6j4f-fj2g-mc7p",
+        "GHSA-q2hr-2g5m-vwhr"
+      ],
+      "candidate_matching_ghsa": [],
+      "lowest_compatible_stable": true,
+      "unchanged_metadata_fields": [
+        "dependencies",
+        "optionalDependencies",
+        "peerDependencies",
+        "engines",
+        "main",
+        "exports",
+        "type"
+      ],
+      "planned_fields": [
+        "version",
+        "integrity"
+      ]
+    },
+    {
+      "file": "ccr-ui/bun.lock",
+      "node": "glob/minimatch/brace-expansion",
+      "observed_version": "5.0.12",
+      "old_version": "5.0.9",
+      "new_version": "5.0.12",
+      "parents": [
+        {
+          "node": "glob/minimatch",
+          "range": "^5.0.5",
+          "satisfied": true
+        }
+      ],
+      "old_matching_ghsa": [
+        "GHSA-qhr7-859c-m2p7",
+        "GHSA-6j4f-fj2g-mc7p",
+        "GHSA-q2hr-2g5m-vwhr"
+      ],
+      "candidate_matching_ghsa": [],
+      "lowest_compatible_stable": true,
+      "unchanged_metadata_fields": [
+        "dependencies",
+        "optionalDependencies",
+        "peerDependencies",
+        "engines",
+        "main",
+        "exports",
+        "type"
+      ],
+      "planned_fields": [
+        "version",
+        "integrity"
+      ]
+    },
+    {
+      "file": "ccr-vscode/package-lock.json",
+      "node": "node_modules/brace-expansion",
+      "observed_version": "5.0.9",
+      "old_version": "5.0.9",
+      "new_version": "5.0.12",
+      "parents": [
+        {
+          "node": "node_modules/minimatch",
+          "range": "^5.0.8",
+          "satisfied": true
+        }
+      ],
+      "old_matching_ghsa": [
+        "GHSA-qhr7-859c-m2p7",
+        "GHSA-6j4f-fj2g-mc7p",
+        "GHSA-q2hr-2g5m-vwhr"
+      ],
+      "candidate_matching_ghsa": [],
+      "lowest_compatible_stable": true,
+      "unchanged_metadata_fields": [
+        "dependencies",
+        "optionalDependencies",
+        "peerDependencies",
+        "engines",
+        "main",
+        "exports",
+        "type"
+      ],
+      "planned_fields": [
+        "version",
+        "resolved",
+        "integrity"
+      ]
+    },
+    {
+      "file": "ccr-vscode/package-lock.json",
+      "node": "node_modules/fast-uri",
+      "observed_version": "3.1.7",
+      "old_version": "3.1.7",
+      "new_version": "3.1.8",
+      "parents": [
+        {
+          "node": "node_modules/ajv",
+          "range": "^3.0.1",
+          "satisfied": true
+        }
+      ],
+      "old_matching_ghsa": [
+        "GHSA-hrr3-gc8f-f4qj"
+      ],
+      "candidate_matching_ghsa": [],
+      "lowest_compatible_stable": true,
+      "unchanged_metadata_fields": [
+        "dependencies",
+        "optionalDependencies",
+        "peerDependencies",
+        "engines",
+        "main",
+        "exports",
+        "type"
+      ],
+      "planned_fields": [
+        "version",
+        "resolved",
+        "integrity"
+      ]
+    }
+  ],
+  "ui_audit_records": 7,
+  "ui_unique_ghsa": 4,
+  "extension_affected_packages": 2,
+  "docs_audit": {},
+  "patch_paths": [
+    "ccr-ui/bun.lock",
+    "ccr-vscode/package-lock.json"
+  ],
+  "source_writes": false,
+  "scope": "Read-only proposal review; UI worker may apply approved changes in parallel; extension changes remain approval-gated."
+}

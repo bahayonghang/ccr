@@ -80,16 +80,24 @@
   `models.default_reasoning_effort` unchanged, and clears profile pointers.
 - Delete checks raw registry and profiles intent plus runtime equality without
   calling drift detection. A drifted active profile still requires `off`.
+- `get_current_profile` is a pure query. Runtime drift returns no active profile
+  without clearing either stored marker. Save/delete read the declared profiles
+  marker under the repository resource lock; a simplified map without that
+  marker has no file-based activation intent.
 - `inspect_activation_state` is the only activation-state authority for UI
   callers. It reports `Inactive`, `Active`, `Drifted`, or
   `UnsafeMissingEntryState` from raw registry/profile intent, runtime equality,
   and entry-state presence. It is read-only, has no pointer reconciliation or
   other side effects, and never exposes credential values.
 - `mcp_credentials.json` is never read, written, backed up, or validated.
-- `auth.json` is existence-read, secret-backed-up, and deleted only by
-  `auth_off_for_platform(Grok)` / `ccr grok auth off`. Other Grok profile
-  operations still must not read, write, backup, or validate `auth.json`.
-  Grok owns session authentication.
+- `GrokAuthService` owns controlled OAuth parsing and the CCR single-file account
+  store. Save copies one complete official scope without an official lock or any
+  runtime write. Switch protects uniquely recognized outgoing credentials, then
+  CAS-replaces only the selected scope. It never refreshes tokens, changes time
+  fields, or disables profiles. Grok owns actual session authentication.
+- `auth_off_for_platform(Grok)` shares the service lock coordinator and existing
+  whole-file deletion/backup kernel. Grok profile operations still must not read,
+  write, back up, or validate `auth.json`.
 - Errors and logs never contain tokens, complete credential-bearing TOML
   parser errors, or unsafe base URLs. CLI/TUI URL display uses the shared safe
   helper; inline tokens are not rendered, even masked.
@@ -130,8 +138,8 @@
   Grok choose its upstream default.
 - Good: editing an official profile sends `model: null`, the Tauri patch helper
   clears the stored model, and the next apply removes `models.default`.
-- Bad: delete through `get_current_profile()` after drift, because that helper
-  clears the registry and can bypass the active-intent guard.
+- Bad: delete through `get_current_profile()` after drift, because the query
+  returns no active profile while stored activation intent can remain.
 - Bad: interpolate `toml::de::Error` into a terminal error; its display text can
   include an `api_key` source line.
 - Bad: back up runtime `config.toml` beside itself on each switch; that creates
@@ -164,8 +172,9 @@ if self.get_current_profile()?.as_deref() != Some(name) {
 }
 ```
 
-Drift detection can clear the registry before this check, leaving an inline
-runtime credential orphaned.
+Drift detection can return no active profile while a stored marker still
+requires runtime cleanup. This check can leave an inline runtime credential
+orphaned.
 
 ### Correct
 

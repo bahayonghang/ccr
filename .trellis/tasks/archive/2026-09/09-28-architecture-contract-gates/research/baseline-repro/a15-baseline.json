@@ -1,0 +1,16 @@
+{
+  "command": [
+    "C:\\Users\\lyh\\scoop\\shims\\bun.EXE",
+    "run",
+    "test:smoke",
+    "--",
+    "tests/platforms/t10-baseline-capabilities.smoke.test.tsx",
+    "-t",
+    "disables managed model inputs"
+  ],
+  "cwd": "C:\\Users\\lyh\\.codex\\worktrees\\ccr-architecture-baseline\\ccr\\ccr-ui",
+  "exit_code": 1,
+  "seconds": 2.86,
+  "log": "a15-baseline.log",
+  "expected": "red managed field editable on old code"
+}

@@ -1,0 +1,42 @@
+{
+  "declared_direct_parents": [
+    {
+      "file": "ccr-ui/bun.lock",
+      "parent": "minimatch",
+      "package": "brace-expansion",
+      "range": "^1.1.7"
+    },
+    {
+      "file": "ccr-ui/bun.lock",
+      "parent": "@typescript-eslint/typescript-estree/minimatch",
+      "package": "brace-expansion",
+      "range": "^5.0.5"
+    },
+    {
+      "file": "ccr-ui/bun.lock",
+      "parent": "glob/minimatch",
+      "package": "brace-expansion",
+      "range": "^5.0.5"
+    },
+    {
+      "file": "ccr-ui/bun.lock",
+      "parent": "table/ajv",
+      "package": "fast-uri",
+      "range": "^3.0.1"
+    },
+    {
+      "file": "ccr-vscode/package-lock.json",
+      "parent": "node_modules/ajv",
+      "package": "fast-uri",
+      "range": "^3.0.1"
+    },
+    {
+      "file": "ccr-vscode/package-lock.json",
+      "parent": "node_modules/minimatch",
+      "package": "brace-expansion",
+      "range": "^5.0.8"
+    }
+  ],
+  "proposal_covers_all_declared_direct_parents": true,
+  "root_manifests_need_change": false
+}

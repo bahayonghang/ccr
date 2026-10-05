@@ -6,6 +6,10 @@ use crate::{
     capabilities::{
         DbCapabilitySnapshot, MIN_SUPPORTED_SCHEMA_VERSION, read_schema_version, table_exists,
     },
+    insights::{
+        InsightsPayload, InsightsTally, TimeRow, aggregate_time_rows, build_payload,
+        canonical_source_key,
+    },
     queries::{
         DailyTrendDto, HeatmapPoint, HomeOverviewPayload, HomeOverviewPlatformStats,
         HomeOverviewSeriesItem, HomeOverviewSummary, ModelBreakdown, OverviewPayload,
@@ -13,7 +17,7 @@ use crate::{
         TokenSummary, UsageRecordDto, generated_at,
     },
     source::{SourceKind, parse_source_filter},
-    timezone::{ResolvedZone, register_functions},
+    timezone::{ResolvedZone, parse_stored_timestamp, register_functions},
 };
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -866,6 +870,114 @@ impl Dashboard {
             series,
         })
     }
+
+    /// Home Insights snapshot as of the local date `as_of`.
+    ///
+    /// Runs one coarse time query plus the model and project rankings over
+    /// `usage_bucket_30m`; every time dimension is derived in Rust in the
+    /// report zone of `filter.timezone`.
+    pub fn insights(
+        &self,
+        filter: &QueryFilter,
+        as_of: NaiveDate,
+    ) -> Result<InsightsPayload, UsageError> {
+        self.ensure_feature_for_filter(FeatureKey::Insights, filter)?;
+        let zone = self.zone(filter.timezone);
+        let schema_version = self.schema_version();
+
+        // Q1：按 (桶, 存储来源) 粗分组，本地日/小时/周在 Rust 侧换算；
+        // 来源键在 Rust 侧归一（gemini→antigravity、omp→pi，未知来源保留原值）。
+        let time_filter = filter.bucket_filter(None, &zone, schema_version)?;
+        let time_sql = format!(
+            r#"
+            SELECT
+                hour_start,
+                source,
+                COALESCE(SUM(event_count), 0),
+                COALESCE(SUM(total_tokens), 0)
+            FROM usage_bucket_30m
+            {}
+            GROUP BY hour_start, source
+        "#,
+            time_filter.where_sql()
+        );
+        let mut stmt = self.conn.prepare(&time_sql)?;
+        let rows = stmt
+            .query_map(params_from_iter(time_filter.param_refs()), |row| {
+                let hour_start: String = row.get(0)?;
+                let source: String = row.get(1)?;
+                Ok(TimeRow {
+                    instant: parse_stored_timestamp(&hour_start),
+                    source: canonical_source_key(&source),
+                    requests: row.get(2)?,
+                    tokens: row.get(3)?,
+                })
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        let aggregate = aggregate_time_rows(rows, &zone, as_of);
+
+        // Q2：模型榜，排除空模型名。
+        let mut model_filter = filter.bucket_filter(None, &zone, schema_version)?;
+        model_filter.push_raw("model <> ''");
+        let model_sql = format!(
+            r#"
+            SELECT model, COALESCE(SUM(event_count), 0), COALESCE(SUM(total_tokens), 0)
+            FROM usage_bucket_30m
+            {}
+            GROUP BY model
+            ORDER BY SUM(event_count) DESC, model ASC
+        "#,
+            model_filter.where_sql()
+        );
+        let mut stmt = self.conn.prepare(&model_sql)?;
+        let models = stmt
+            .query_map(params_from_iter(model_filter.param_refs()), |row| {
+                let model: String = row.get(0)?;
+                Ok(InsightsTally {
+                    label: model.clone(),
+                    key: model,
+                    requests: row.get(1)?,
+                    tokens: row.get(2)?,
+                })
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+
+        // Q3：项目榜；项目总数取本榜行数，两者共用非空 project_hash 谓词。
+        let mut project_filter = filter.bucket_filter(None, &zone, schema_version)?;
+        project_filter.push_raw("project_hash <> ''");
+        let project_sql = format!(
+            r#"
+            SELECT
+                project_hash,
+                MAX(project_label),
+                COALESCE(SUM(event_count), 0),
+                COALESCE(SUM(total_tokens), 0)
+            FROM usage_bucket_30m
+            {}
+            GROUP BY project_hash
+            ORDER BY SUM(event_count) DESC, project_hash ASC
+        "#,
+            project_filter.where_sql()
+        );
+        let mut stmt = self.conn.prepare(&project_sql)?;
+        let projects = stmt
+            .query_map(params_from_iter(project_filter.param_refs()), |row| {
+                let key: String = row.get(0)?;
+                let label = row
+                    .get::<_, Option<String>>(1)?
+                    .and_then(non_empty)
+                    .unwrap_or_else(|| key.clone());
+                Ok(InsightsTally {
+                    key,
+                    label,
+                    requests: row.get(2)?,
+                    tokens: row.get(3)?,
+                })
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+
+        build_payload(aggregate, &zone, as_of, projects, models)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -1503,7 +1615,10 @@ mod tests {
         let dashboard = Dashboard::open(AppPaths::from_root(temp.path()))
             .expect("dashboard should open test db");
         let trends = dashboard
-            .trends_daily(&QueryFilter::default())
+            .trends_daily(&QueryFilter {
+                timezone: ReportTimezone::Utc,
+                ..QueryFilter::default()
+            })
             .expect("daily trends should query");
 
         assert_eq!(trends.len(), 2);
@@ -1595,6 +1710,7 @@ mod tests {
                 source: Some(SourceKind::Claude),
                 since: NaiveDate::from_ymd_opt(2026, 5, 20),
                 until: NaiveDate::from_ymd_opt(2026, 5, 21),
+                timezone: ReportTimezone::Utc,
                 ..QueryFilter::default()
             })
             .expect("source breakdown should query");

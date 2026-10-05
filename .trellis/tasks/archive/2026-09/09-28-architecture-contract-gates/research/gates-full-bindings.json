@@ -1,0 +1,14 @@
+{
+  "command": [
+    "just",
+    "tauri-bindings-check"
+  ],
+  "exit_code": 1,
+  "elapsed_seconds": 106.17649388313293,
+  "before_count": 230,
+  "after_count": 230,
+  "changed": [],
+  "missing": [],
+  "added": [],
+  "backup": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-t10-generated-8dew0w1s"
+}

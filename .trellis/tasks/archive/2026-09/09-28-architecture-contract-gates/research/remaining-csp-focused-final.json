@@ -1,0 +1,29 @@
+{
+  "command": [
+    "bunx",
+    "vitest",
+    "run",
+    "--config",
+    "vitest.smoke.config.ts",
+    "tests/ui/runtime-style-nonce.smoke.test.tsx",
+    "tests/ui/code-source-editor.smoke.test.tsx",
+    "tests/ui/confirm-interaction.smoke.test.tsx"
+  ],
+  "started_at_utc": "2026-09-29T02:15:40.285539+00:00",
+  "sources_before": {
+    "src/utils/cspNonce.ts": "9102abf17c251cee147d526625765d5ed81baeff033b3d22ab8e04ac61754548",
+    "src/main.tsx": "58c02122dbcac4bcd623f62a74c1848cb455507815870589c1768ab71e8acefc",
+    "src/features/platform/editor/cspNonce.ts": "6af38c654eb31f80aae67f94c64be48cfa16e7842484e9c64e82443b5118868d",
+    "tests/ui/runtime-style-nonce.smoke.test.tsx": "57a3043d8b27593cd27dc0ae7d781b8e2d0aabd5469c96cc3cb9a0669b91c494"
+  },
+  "exit_code": 0,
+  "finished_at_utc": "2026-09-29T02:15:42.862600+00:00",
+  "seconds": 2.577,
+  "sources_after": {
+    "src/utils/cspNonce.ts": "9102abf17c251cee147d526625765d5ed81baeff033b3d22ab8e04ac61754548",
+    "src/main.tsx": "58c02122dbcac4bcd623f62a74c1848cb455507815870589c1768ab71e8acefc",
+    "src/features/platform/editor/cspNonce.ts": "6af38c654eb31f80aae67f94c64be48cfa16e7842484e9c64e82443b5118868d",
+    "tests/ui/runtime-style-nonce.smoke.test.tsx": "57a3043d8b27593cd27dc0ae7d781b8e2d0aabd5469c96cc3cb9a0669b91c494"
+  },
+  "log_sha256": "89de8cdfac0a6750db4cd0f3a3a824534fe9b21fa8ba46d5c0c3176cde8a8ea1"
+}

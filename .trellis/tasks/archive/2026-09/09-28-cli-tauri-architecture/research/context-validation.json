@@ -1,0 +1,62 @@
+[
+  {
+    "task": "09-28-cli-tauri-architecture",
+    "exit_code": 0,
+    "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-cli-tauri-architecture\n\n  \u001b[0;32mimplement.jsonl: ✓ (9 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (9 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n"
+  },
+  {
+    "task": "09-28-config-repository-consistency",
+    "exit_code": 0,
+    "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-config-repository-consistency\n\n  \u001b[0;32mimplement.jsonl: ✓ (6 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (6 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n"
+  },
+  {
+    "task": "09-28-profile-application-usecases",
+    "exit_code": 0,
+    "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-profile-application-usecases\n\n  \u001b[0;32mimplement.jsonl: ✓ (9 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (9 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n"
+  },
+  {
+    "task": "09-28-tauri-config-adapter",
+    "exit_code": 0,
+    "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-tauri-config-adapter\n\n  \u001b[0;32mimplement.jsonl: ✓ (9 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (9 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n"
+  },
+  {
+    "task": "09-28-cli-diagnostics-contract",
+    "exit_code": 0,
+    "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-cli-diagnostics-contract\n\n  \u001b[0;32mimplement.jsonl: ✓ (7 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (7 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n"
+  },
+  {
+    "task": "09-28-safe-persistence-backups",
+    "exit_code": 0,
+    "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-safe-persistence-backups\n\n  \u001b[0;32mimplement.jsonl: ✓ (7 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (7 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n"
+  },
+  {
+    "task": "09-28-usage-job-lifecycle",
+    "exit_code": 0,
+    "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-usage-job-lifecycle\n\n  \u001b[0;32mimplement.jsonl: ✓ (7 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (7 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n"
+  },
+  {
+    "task": "09-28-command-workbench-lifecycle",
+    "exit_code": 0,
+    "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-command-workbench-lifecycle\n\n  \u001b[0;32mimplement.jsonl: ✓ (8 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (8 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n"
+  },
+  {
+    "task": "09-28-settings-lossless-capabilities",
+    "exit_code": 0,
+    "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-settings-lossless-capabilities\n\n  \u001b[0;32mimplement.jsonl: ✓ (7 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (7 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n"
+  },
+  {
+    "task": "09-28-frontend-query-error-contracts",
+    "exit_code": 0,
+    "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-frontend-query-error-contracts\n\n  \u001b[0;32mimplement.jsonl: ✓ (7 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (7 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n"
+  },
+  {
+    "task": "09-28-architecture-contract-gates",
+    "exit_code": 0,
+    "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-architecture-contract-gates\n\n  \u001b[0;32mimplement.jsonl: ✓ (9 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (9 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n"
+  },
+  {
+    "task": "09-28-desktop-control-oauth-lifecycle",
+    "exit_code": 0,
+    "output": "\u001b[0;34m=== Validating Context Files ===\u001b[0m\nTarget dir: D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\09-28-desktop-control-oauth-lifecycle\n\n  \u001b[0;32mimplement.jsonl: ✓ (8 entries)\u001b[0m\n  \u001b[0;32mcheck.jsonl: ✓ (8 entries)\u001b[0m\n\n\u001b[0;32m✓ All validations passed\u001b[0m\n"
+  }
+]

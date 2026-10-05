@@ -1,7 +1,17 @@
 import type { IconName } from '@/config/icons'
-import type { MonitoringEntry } from '@/composables/useMonitoringFeed'
 import type { CliVersionEntry, SystemInfo } from '@/types'
-import type { HomeOverviewPlatformStats, HomeUsageOverviewResponse } from '@/types/usage'
+import type {
+  HomeOverviewPlatformStats,
+  HomeOverviewSeriesItem,
+  HomeUsageOverviewResponse,
+  UsageSourceHealthState,
+} from '@/types/usage'
+
+/** 看板信号条目：只消费 channel / level，避免展示层依赖 monitoring composable。 */
+export interface DashboardLogEntry {
+  channel: string
+  level: string
+}
 
 export type DashboardTone = 'neutral' | 'success' | 'warning' | 'danger' | 'accent'
 export type DashboardActionTone =
@@ -25,6 +35,13 @@ export type DashboardPlatformMode = 'cli' | 'managed'
 export type DashboardPlatformState = 'ready' | 'scanning' | 'attention' | 'managed'
 export type DashboardUsageMetric = 'sessions' | 'requests' | 'tokens'
 
+/**
+ * 会话索引诚实态：responses 里 sessions 走 ccr-db session_archive 独立通路，
+ * 未索引时后端会给出 0 —— 展示层必须区分"真实的 0"与"未索引的未知"。
+ * null = 索引正常（数字可信）；'unindexed' = 原始会话存在但未索引；'indexing' = 索引进行中。
+ */
+export type DashboardSessionIndexState = 'indexing' | 'unindexed' | null
+
 export interface DashboardPlatformSource {
   title: string
   desc: string
@@ -44,12 +61,17 @@ export interface DashboardMetricValue {
   valueKey?: string
 }
 
+export type DashboardPlatformUsageKey = NonNullable<DashboardPlatformSource['usageKey']>
+export type DashboardTrackingHealth = UsageSourceHealthState
+
 export interface DashboardPlatformRow extends DashboardPlatformSource {
   state: DashboardPlatformState
   stateKey: string
   version?: string
   versionKey?: string
   metrics: DashboardMetricValue[]
+  sparkline?: number[]
+  trackingHealth?: DashboardTrackingHealth
 }
 
 export interface DashboardStatusMetric {
@@ -103,7 +125,7 @@ export interface DashboardPresentationInput {
   overview: HomeUsageOverviewResponse | null
   usageLoading: boolean
   usageError: string | null
-  logs: MonitoringEntry[]
+  logs: DashboardLogEntry[]
 }
 
 export interface DashboardPresentation {
@@ -116,6 +138,8 @@ export interface DashboardPresentation {
   runtimeCliCount: number
   /** 桌面运行时下 CLI 探测已完成但一个都未安装：视为首次使用，行动队列改渲染引导态 */
   isFirstRun: boolean
+  /** 会话归档索引状态；非 null 时所有 sessions 数字不可信，必须渲染诚实态而非 0 */
+  sessionIndexState: DashboardSessionIndexState
 }
 
 const DASHBOARD_DEFAULT_ACTIONS: DashboardAction[] = [
@@ -240,10 +264,61 @@ const getPlatformMetric = (
   return { value: formatCompact(stats[metric]) }
 }
 
+const USAGE_KEY_TO_SERIES_FIELD = {
+  claude: 'claude',
+  codex: 'codex',
+  gemini: 'antigravity',
+  opencode: 'opencode',
+} as const satisfies Record<DashboardPlatformUsageKey, keyof Omit<HomeOverviewSeriesItem, 'date'>>
+
+const USAGE_KEY_TO_SOURCE_ID: Record<DashboardPlatformUsageKey, string> = {
+  claude: 'claude',
+  codex: 'codex',
+  gemini: 'antigravity',
+  opencode: 'opencode',
+}
+
+const isPlatformUsageKey = (value: string | undefined): value is DashboardPlatformUsageKey =>
+  value === 'claude' || value === 'codex' || value === 'gemini' || value === 'opencode'
+
+const getPlatformStats = (
+  platform: DashboardPlatformSource,
+  overview: HomeUsageOverviewResponse | null,
+): HomeOverviewPlatformStats | undefined => {
+  if (!platform.usageKey || !overview?.by_platform) return undefined
+  const direct = overview.by_platform[platform.usageKey]
+  if (direct) return direct
+  if (!isPlatformUsageKey(platform.usageKey)) return undefined
+  return overview.by_platform[USAGE_KEY_TO_SOURCE_ID[platform.usageKey]]
+}
+
+const buildSparkline = (
+  usageKey: DashboardPlatformSource['usageKey'],
+  series: HomeOverviewSeriesItem[] | undefined,
+): number[] | undefined => {
+  if (!usageKey || !isPlatformUsageKey(usageKey) || !series?.length) return undefined
+  const field = USAGE_KEY_TO_SERIES_FIELD[usageKey]
+  return series.map((item) => item[field].requests)
+}
+
+const resolveTrackingHealth = (
+  usageKey: DashboardPlatformSource['usageKey'],
+  overview: HomeUsageOverviewResponse | null,
+): DashboardTrackingHealth | undefined => {
+  if (!usageKey || !isPlatformUsageKey(usageKey)) return undefined
+  const sourceHealth = overview?.archive.source_health
+  if (!sourceHealth?.length) return undefined
+  const sourceId = USAGE_KEY_TO_SOURCE_ID[usageKey]
+  const hit = sourceHealth.find((entry) => entry.source === sourceId || entry.source === usageKey)
+  return hit?.state
+}
+
 const buildPlatformRows = (input: DashboardPresentationInput): DashboardPlatformRow[] => {
   return input.platforms.map((platform) => {
     const state = getPlatformState(platform, input.cliVersions, input.cliVersionsLoaded)
-    const stats = platform.usageKey ? input.overview?.by_platform[platform.usageKey] : undefined
+    const trackingHealth = resolveTrackingHealth(platform.usageKey, input.overview)
+    // missing 平台即便 series 被补成全零，也不能把 0 当真实用量展示。
+    const stats = trackingHealth === 'missing' ? undefined : getPlatformStats(platform, input.overview)
 
     return {
       ...platform,
@@ -264,6 +339,12 @@ const buildPlatformRows = (input: DashboardPresentationInput): DashboardPlatform
           ...getPlatformMetric(stats, 'tokens'),
         },
       ],
+      // missing 时 series 仍可能是全零；不把零数组写进 sparkline，避免下游误当真实用量。
+      sparkline:
+        trackingHealth === 'missing'
+          ? undefined
+          : buildSparkline(platform.usageKey, input.overview?.series),
+      trackingHealth,
     }
   })
 }
@@ -271,9 +352,9 @@ const buildPlatformRows = (input: DashboardPresentationInput): DashboardPlatform
 // 前端 UI 日志与 tracing 桥接的 runtime 诊断只归入事件流展示，
 // 不参与阻塞叙事 / 红色 tile / 行动队列的驱动。
 const DIAGNOSTIC_CHANNELS = new Set(['frontend', 'runtime'])
-const isCoreSignal = (entry: MonitoringEntry) => !DIAGNOSTIC_CHANNELS.has(entry.channel)
+const isCoreSignal = (entry: DashboardLogEntry) => !DIAGNOSTIC_CHANNELS.has(entry.channel)
 
-const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
+const countSignals = (logs: DashboardLogEntry[]): DashboardSignalCounts => {
   const coreLogs = logs.filter(isCoreSignal)
   const errors = coreLogs.filter((entry) => entry.level === 'error').length
   const warnings = coreLogs.filter((entry) => entry.level === 'warn').length
@@ -290,7 +371,7 @@ const getUsageReasonKey = (input: DashboardPresentationInput) => {
   if (input.usageLoading) return 'dashboard.readiness.reasons.usageLoading'
   if (!input.overview) return 'dashboard.readiness.reasons.usageLoading'
   if (input.overview.empty_reason) return 'dashboard.readiness.reasons.usageEmpty'
-  if (input.overview.bootstrap.needs_session_index || input.overview.bootstrap.needs_usage_import || !input.overview.bootstrap.is_warm) {
+  if (input.overview.bootstrap?.needs_session_index || input.overview.bootstrap?.needs_usage_import || !input.overview.bootstrap?.is_warm) {
     return 'dashboard.readiness.reasons.usageWarmup'
   }
   return 'dashboard.readiness.reasons.usageReady'
@@ -342,8 +423,8 @@ const buildReadiness = (
     || signalCounts.errors > 0
     || missingRuntimeRows.length > 0
     || input.overview?.empty_reason
-    || input.overview?.bootstrap.needs_session_index
-    || input.overview?.bootstrap.needs_usage_import
+    || input.overview?.bootstrap?.needs_session_index
+    || input.overview?.bootstrap?.needs_usage_import
   ) {
     return {
       status: 'attention',
@@ -360,7 +441,7 @@ const buildReadiness = (
     || scanningRuntimeRows.length > 0
     || input.usageLoading
     || !input.overview
-    || input.overview.bootstrap.is_warm === false
+    || input.overview.bootstrap?.is_warm === false
   ) {
     return {
       status: 'warming',
@@ -447,8 +528,8 @@ const buildActions = (
     || input.usageLoading
     || !input.overview
     || input.overview.empty_reason
-    || input.overview.bootstrap.needs_session_index
-    || input.overview.bootstrap.needs_usage_import
+    || input.overview.bootstrap?.needs_session_index
+    || input.overview.bootstrap?.needs_usage_import
   ) {
     addUniqueAction(actions, {
       id: 'open-usage',
@@ -582,7 +663,7 @@ const buildStatusMetrics = (
         : {
             id: 'usage',
             labelKey: 'dashboard.metrics.usage',
-            value: formatCompact(input.overview.summary.total_requests),
+            value: formatCompact(input.overview.summary?.total_requests),
             hintKey: 'dashboard.readiness.reasons.usageReady',
             tone: 'accent',
           }
@@ -631,6 +712,13 @@ const buildStatusMetrics = (
   ]
 }
 
+const resolveSessionIndexState = (
+  overview: HomeUsageOverviewResponse | null,
+): DashboardSessionIndexState => {
+  if (!overview || !overview.bootstrap?.needs_session_index) return null
+  return overview.snapshot?.readiness?.active_session_index ? 'indexing' : 'unindexed'
+}
+
 export const buildDashboardPresentation = (input: DashboardPresentationInput): DashboardPresentation => {
   const signalCounts = countSignals(input.logs)
   const platformRows = buildPlatformRows(input)
@@ -657,7 +745,8 @@ export const buildDashboardPresentation = (input: DashboardPresentationInput): D
       && input.cliVersionsLoaded
       && !input.usageLoading
       && installedCliCount === 0
-      && (!input.overview || input.overview.summary.total_requests === 0),
+      && (!input.overview || input.overview.summary?.total_requests === 0),
+    sessionIndexState: resolveSessionIndexState(input.overview),
   }
 }
 

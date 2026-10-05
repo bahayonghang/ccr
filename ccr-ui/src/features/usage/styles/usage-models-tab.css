@@ -1,0 +1,29 @@
+/* migrated from UsageModelsTab.vue; px converted to rem */
+.models-tab {
+  display: grid;
+  min-width: 0;
+  gap: 1rem;
+}
+
+.models-tab__title {
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.models-tab__subtitle {
+  margin-top: 0.35rem;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.models-tab__empty {
+  display: flex;
+  min-height: 16rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1.2rem;
+  border: 0.0625rem dashed rgb(var(--color-accent-primary-rgb) / 16%);
+  color: var(--color-text-muted);
+}

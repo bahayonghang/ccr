@@ -15,7 +15,7 @@ ccr-types = { path = "../ccr-types" }
 blake3 = { workspace = true }
 chrono = { workspace = true }
 dirs = { workspace = true }
-rayon = "1.11"
+rayon = "1.12.0"
 r2d2 = { workspace = true }
 r2d2_sqlite = { workspace = true }
 rusqlite = { workspace = true }
@@ -25,7 +25,7 @@ tempfile = { workspace = true }
 toml = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true }
-whoami = "=2.1.0"
+whoami = "=2.1.3"
 
 [lib]
 name = "ccr_store"

@@ -32,6 +32,42 @@ pub enum GrokAuthAction {
     /// Show Grok Auth command help
     Help,
 
+    /// Save one official OAuth source in the CCR account library
+    Save {
+        name: String,
+        /// Required when more than one OAuth source is available
+        #[arg(long)]
+        scope: Option<String>,
+        /// Replace an existing saved alias
+        #[arg(short, long)]
+        force: bool,
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// List saved accounts and local OAuth sources (not server login validity)
+    List {
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Restore an account for a new session after stopping Grok
+    Switch {
+        name: String,
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Delete a saved account without logging out the runtime
+    Delete {
+        name: String,
+        /// Skip deletion confirmation
+        #[arg(short, long)]
+        force: bool,
+        #[arg(long)]
+        json: bool,
+    },
+
     /// Show whether a Grok official session file exists
     Current {
         #[arg(long)]

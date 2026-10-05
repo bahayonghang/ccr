@@ -1,0 +1,414 @@
+--- before/crates/ccr-config/src/managers/config/repository.rs
++++ after/crates/ccr-config/src/managers/config/repository.rs
+@@ -2,7 +2,8 @@
+ 
+ use super::{CcsConfig, ConfigManager, ConfigSection};
+ use ccr_core::core::guarded_write::{
+-    VersionedWriteOutcome, content_version_token, normalized_resource_path, write_guarded_versioned,
++    VersionedWriteOutcome, content_version_token, enforce_secret_permissions_versioned,
++    normalized_resource_path, write_guarded_versioned,
+ };
+ use ccr_core::core::{BackupPolicy, FileLock, LockManager, WriteOptions};
+ use ccr_core::{CcrError, Result};
+@@ -206,6 +207,13 @@
+         let mut after = toml::Value::try_from(&config)
+             .map_err(|_| CcrError::ConfigError("无法序列化配置".into()))?;
+         if bytes.is_some() && before == after {
++            if !enforce_secret_permissions_versioned(
++                self.config_path(),
++                &token,
++                profile_write_options(self.config_path()).lock_timeout,
++            )? {
++                return Err(version_conflict());
++            }
+             return Ok(result);
+         }
+         // Keep unknown settings and unedited values from the original document.
+--- before/crates/ccr-config/src/managers/config/repository_tests.rs
++++ after/crates/ccr-config/src/managers/config/repository_tests.rs
+@@ -125,6 +125,161 @@
+     service.validate_all().unwrap();
+     assert_eq!(before, inventory(env.root()));
+     fs::set_permissions(path, original).unwrap();
++}
++
++#[test]
++fn no_op_mutations_preserve_content_time_and_backups() {
++    let env = TestCcrEnv::new();
++    let service = service();
++    service.add_config("main".into(), section()).unwrap();
++    let manager = service.config_manager();
++    let before = inventory(env.root());
++    manager.mutate(|_| Ok(())).unwrap();
++    assert_eq!(inventory(env.root()), before);
++}
++
++#[test]
++fn no_op_mutations_reject_a_leaf_replacement() {
++    let env = TestCcrEnv::new();
++    let service = service();
++    service.add_config("main".into(), section()).unwrap();
++    let manager = service.config_manager();
++    let path = manager.config_path();
++    let backups = inventory(&env.root().join("backups"));
++    let error = manager
++        .mutate(|_| {
++            ccr_core::core::guarded_write::write_guarded(
++                path,
++                b"external replacement",
++                &ccr_core::core::WriteOptions::default(),
++            )?;
++            Ok(())
++        })
++        .unwrap_err();
++    assert!(matches!(error, CcrError::ValidationError(message) if message.contains("版本冲突")));
++    assert_eq!(fs::read(path).unwrap(), b"external replacement");
++    assert_eq!(inventory(&env.root().join("backups")), backups);
++}
++
++#[cfg(unix)]
++#[test]
++fn no_op_mutations_enforce_secret_mode_without_replacing_the_file() {
++    use std::os::unix::fs::{MetadataExt, PermissionsExt};
++
++    let env = TestCcrEnv::new();
++    let service = service();
++    service.add_config("main".into(), section()).unwrap();
++    let manager = service.config_manager();
++    let path = manager.config_path();
++    for (initial, required) in [
++        (0o644, 0o600),
++        (0o400, 0o400),
++        (0o600, 0o600),
++        (0o4600, 0o600),
++    ] {
++        fs::set_permissions(path, fs::Permissions::from_mode(initial)).unwrap();
++        let before = inventory(env.root());
++        let inode = fs::metadata(path).unwrap().ino();
++        let version = manager.snapshot().unwrap().version;
++        service
++            .patch_config(
++                "main",
++                None,
++                &ConfigPatch::default(),
++                &version,
++                Validatable::validate,
++            )
++            .unwrap();
++        let metadata = fs::metadata(path).unwrap();
++        assert_eq!(metadata.permissions().mode() & 0o7777, required);
++        assert_eq!(metadata.ino(), inode);
++        assert_eq!(inventory(env.root()), before);
++    }
++}
++
++#[cfg(unix)]
++#[test]
++fn rejected_mutations_and_queries_preserve_existing_permissions() {
++    use std::os::unix::fs::PermissionsExt;
++
++    let env = TestCcrEnv::new();
++    let service = service();
++    service.add_config("main".into(), section()).unwrap();
++    let manager = service.config_manager();
++    let path = manager.config_path();
++    fs::set_permissions(path, fs::Permissions::from_mode(0o644)).unwrap();
++    let before = inventory(env.root());
++    service.list_configs().unwrap();
++    service.get_current().unwrap();
++    service.validate_all().unwrap();
++    let version = manager.snapshot().unwrap().version;
++    let patch = ConfigPatch::default();
++    assert!(
++        service
++            .patch_config("main", None, &patch, "stale", Validatable::validate)
++            .is_err()
++    );
++    assert!(
++        service
++            .patch_config("main", None, &patch, &version, |_| {
++                Err(CcrError::ValidationError("rejected fixture".into()))
++            })
++            .is_err()
++    );
++    assert_eq!(
++        fs::metadata(path).unwrap().permissions().mode() & 0o777,
++        0o644
++    );
++    assert_eq!(inventory(env.root()), before);
++}
++
++#[cfg(unix)]
++#[test]
++fn no_op_hardening_survives_uncommitted_journal_rollback() {
++    use ccr_core::core::write_journal::WriteJournal;
++    use std::os::unix::fs::PermissionsExt;
++
++    let env = TestCcrEnv::new();
++    let service = service();
++    service.add_config("main".into(), section()).unwrap();
++    let manager = service.config_manager();
++    let path = manager.config_path();
++    fs::set_permissions(path, fs::Permissions::from_mode(0o644)).unwrap();
++    let before = inventory(env.root());
++    let journal = WriteJournal::begin(&[path.to_path_buf()]).unwrap();
++    manager.mutate(|_| Ok(())).unwrap();
++    assert!(journal.changed_paths().is_empty());
++    journal.verify().unwrap();
++    drop(journal);
++    assert_eq!(
++        fs::metadata(path).unwrap().permissions().mode() & 0o777,
++        0o600
++    );
++    assert_eq!(inventory(env.root()), before);
++}
++
++#[cfg(unix)]
++#[test]
++fn no_op_hardening_rejects_an_active_journal_version_conflict() {
++    use ccr_core::core::write_journal::WriteJournal;
++    use std::os::unix::fs::PermissionsExt;
++
++    let env = TestCcrEnv::new();
++    let service = service();
++    service.add_config("main".into(), section()).unwrap();
++    let manager = service.config_manager();
++    let path = manager.config_path();
++    fs::set_permissions(path, fs::Permissions::from_mode(0o644)).unwrap();
++    let journal = WriteJournal::begin(&[path.to_path_buf()]).unwrap();
++    journal.expect_version(path, "stale".into()).unwrap();
++    let before = inventory(env.root());
++    assert!(manager.mutate(|_| Ok(())).is_err());
++    drop(journal);
++    assert_eq!(
++        fs::metadata(path).unwrap().permissions().mode() & 0o777,
++        0o644
++    );
++    assert_eq!(inventory(env.root()), before);
+ }
+ 
+ #[test]
+--- before/crates/ccr-core/src/core/atomic_writer.rs
++++ after/crates/ccr-core/src/core/atomic_writer.rs
+@@ -45,6 +45,14 @@
+     secret: bool,
+ }
+ 
++#[cfg(unix)]
++pub(crate) fn secret_unix_mode(existing_mode: Option<u32>) -> u32 {
++    existing_mode
++        .filter(|mode| mode & 0o077 == 0)
++        .map(|mode| mode & 0o777)
++        .unwrap_or(0o600)
++}
++
+ /// Metadata captured under a guarded leaf lock for compensation.
+ #[derive(Clone)]
+ pub(crate) struct FileMetadata {
+@@ -239,10 +247,9 @@
+         #[cfg(unix)]
+         if self.secret {
+             use std::os::unix::fs::{MetadataExt, PermissionsExt};
+-            let mode = match fs::metadata(&self.target_path) {
+-                Ok(metadata) if metadata.mode() & 0o077 == 0 => metadata.mode() & 0o777,
+-                Ok(_) => 0o600,
+-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => 0o600,
++            let existing_mode = match fs::metadata(&self.target_path) {
++                Ok(metadata) => Some(metadata.mode()),
++                Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+                 Err(error) => {
+                     return Err(CcrError::IoError(std::io::Error::other(format!(
+                         "读取目标文件权限失败: {}",
+@@ -252,7 +259,7 @@
+             };
+             temp_file
+                 .as_file()
+-                .set_permissions(fs::Permissions::from_mode(mode))
++                .set_permissions(fs::Permissions::from_mode(secret_unix_mode(existing_mode)))
+                 .map_err(|e| {
+                     CcrError::IoError(std::io::Error::other(format!(
+                         "设置临时文件权限失败: {}",
+@@ -443,9 +450,7 @@
+                 None
+             };
+             let mode = if self.options.secret {
+-                existing_mode
+-                    .filter(|mode| mode & 0o077 == 0)
+-                    .unwrap_or(0o600)
++                secret_unix_mode(existing_mode)
+             } else {
+                 existing_mode.unwrap_or(0o666)
+             };
+--- before/crates/ccr-core/src/core/guarded_write.rs
++++ after/crates/ccr-core/src/core/guarded_write.rs
+@@ -19,6 +19,7 @@
+ use crate::core::lock::LockManager;
+ use chrono::Local;
+ use std::fs;
++use std::io::Read;
+ use std::path::{Component, Path, PathBuf};
+ use std::time::Duration;
+ 
+@@ -143,6 +144,47 @@
+     opts: &WriteOptions,
+ ) -> Result<VersionedWriteOutcome> {
+     write_versioned_inner(path, bytes, expected_token, opts, None)
++}
++
++/// Enforce the existing secret-file policy without replacing matching content.
++/// Returns false if the file is missing or its content version differs.
++/// The leaf lock covers the handle read and permission update. Unix owner-only
++/// modes and existing Windows DACLs are retained. No backup is created, and
++/// content, inode and modification time remain unchanged.
++pub fn enforce_secret_permissions_versioned(
++    path: &Path,
++    expected_token: &str,
++    lock_timeout: Duration,
++) -> Result<bool> {
++    let target = absolute_path(path)?;
++    let manager = LockManager::with_default_path()?;
++    let _lock = manager.lock_resource(&lock_resource_name(&target), lock_timeout)?;
++    let mut file = match fs::File::open(&target) {
++        Ok(file) => file,
++        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
++        Err(error) => return Err(error.into()),
++    };
++    let mut bytes = Vec::new();
++    file.read_to_end(&mut bytes)?;
++    if content_version_token(&bytes) != expected_token {
++        return Ok(false);
++    }
++    #[cfg(unix)]
++    {
++        use std::os::unix::fs::PermissionsExt;
++
++        let mode = file.metadata()?.permissions().mode();
++        let required = super::atomic_writer::secret_unix_mode(Some(mode));
++        if mode & 0o7777 != required {
++            // Check journal versions and faults before the metadata change.
++            // Hardening adds no content rollback entry. Existing content
++            // entries retain their original metadata restoration policy.
++            let _ = super::write_journal::before_write(&target)?;
++            file.set_permissions(fs::Permissions::from_mode(required))?;
++            file.sync_all()?;
++        }
++    }
++    Ok(true)
+ }
+ 
+ pub(super) fn restore_guarded_versioned(
+@@ -1109,6 +1151,77 @@
+     }
+ 
+     #[test]
++    fn test_secret_permission_no_op_requires_an_existing_matching_version() {
++        let temp_dir = tempdir().unwrap();
++        let _lock_dir = TestLockDirEnv::new(temp_dir.path().join("locks").as_path());
++        let target = temp_dir.path().join("settings.json");
++        let timeout = Duration::from_secs(1);
++        assert!(!enforce_secret_permissions_versioned(&target, "", timeout).unwrap());
++        assert!(!target.exists());
++        fs::write(&target, b"current").unwrap();
++        let before = fs::metadata(&target).unwrap().modified().unwrap();
++        assert!(
++            !enforce_secret_permissions_versioned(
++                &target,
++                &content_version_token(b"stale"),
++                timeout,
++            )
++            .unwrap()
++        );
++        assert_eq!(fs::read(&target).unwrap(), b"current");
++        assert_eq!(fs::metadata(&target).unwrap().modified().unwrap(), before);
++    }
++
++    #[test]
++    fn test_secret_permission_no_op_waits_for_the_guarded_leaf_lock() {
++        let temp_dir = tempdir().unwrap();
++        let _lock_dir = TestLockDirEnv::new(temp_dir.path().join("locks").as_path());
++        let target = temp_dir.path().join("settings.json");
++        fs::write(&target, b"current").unwrap();
++        let manager = LockManager::with_default_path().unwrap();
++        let _held = manager
++            .lock_resource(&lock_resource_name(&target), Duration::from_secs(1))
++            .unwrap();
++        let result = enforce_secret_permissions_versioned(
++            &target,
++            &content_version_token(b"current"),
++            Duration::from_millis(100),
++        );
++        assert!(matches!(result, Err(CcrError::LockTimeout(_))));
++        assert_eq!(fs::read(&target).unwrap(), b"current");
++    }
++
++    #[cfg(all(unix, feature = "test-support"))]
++    #[test]
++    fn test_secret_permission_no_op_policy_fault_preserves_metadata() {
++        use std::os::unix::fs::PermissionsExt;
++
++        let temp_dir = tempdir().unwrap();
++        let _lock_dir = TestLockDirEnv::new(temp_dir.path().join("locks").as_path());
++        let target = temp_dir.path().join("settings.json");
++        fs::write(&target, b"current").unwrap();
++        fs::set_permissions(&target, fs::Permissions::from_mode(0o644)).unwrap();
++        let before = fs::metadata(&target).unwrap().modified().unwrap();
++        let _fault = crate::core::write_journal::fault::install(|_| {
++            Err(CcrError::FileIoError(
++                "injected permission policy failure".into(),
++            ))
++        });
++        assert!(
++            enforce_secret_permissions_versioned(
++                &target,
++                &content_version_token(b"current"),
++                Duration::from_secs(1),
++            )
++            .is_err()
++        );
++        let metadata = fs::metadata(&target).unwrap();
++        assert_eq!(metadata.permissions().mode() & 0o777, 0o644);
++        assert_eq!(metadata.modified().unwrap(), before);
++        assert_eq!(fs::read(&target).unwrap(), b"current");
++    }
++
++    #[test]
+     fn test_write_guarded_versioned_writes_matching_version_with_backup() {
+         let temp_dir = tempdir().unwrap();
+         let _lock_dir = TestLockDirEnv::new(temp_dir.path().join("locks").as_path());
+--- before/.trellis/spec/ccr-core/backend/atomic-writer.md
++++ after/.trellis/spec/ccr-core/backend/atomic-writer.md
+@@ -126,6 +126,7 @@
+ - `fileio::write_toml_opts / write_json_opts (+ _async)` — serialization wrappers that forward `WriteOptions`
+ - `pub(crate) lock_resource_name(path) -> String` — `gw_{sanitized_stem}_{fnv1a64(lowercased absolute path):016x}`
+ - `normalized_resource_path(path: &Path) -> std::io::Result<PathBuf>` owns lexical resource identity for repository locks and Windows leaf locks/journals.
++- `enforce_secret_permissions_versioned(path, expected_token, lock_timeout) -> Result<bool>` verifies an existing file through an open handle under the guarded leaf lock. Missing or stale content returns false without a metadata change.
+ 
+ ### 3. Contracts
+ 
+@@ -142,6 +143,7 @@
+   - On Windows, restore the source read-only attribute after `persist_noclobber`, which clears file attributes during publication. The DACL remains established before copying payload bytes.
+   - Rotation sorts by descending modification time, then descending path for equal timestamps. Keep the existing keep-10 policy.
+ - `secret: true` → private permissions before temporary-file content is written: Unix owner-only mode; Windows current-user DACL for new targets and preserved existing DACL. Required for WebDAV credentials (`sync.toml`), checkin crypto keys, and any new API-key/token file.
++- Explicit no-op mutations use the same Unix mode decision as sync and async secret writers. Apply metadata-only hardening through the verified file handle, with no replacement or backup. Preserve bytes, inode, mtime, stricter owner-only modes, and existing Windows DACLs. Check an active journal version before hardening and add no content rollback entry. Existing content entries still restore their recorded metadata under the original compensation contract.
+ - `fs4 1.x` exposes `try_lock()` as `Ok(())` = acquired, `TryLockError::WouldBlock` = held elsewhere, and `TryLockError::Error` = real I/O failure. `ccr-core` normalizes that through a local `io::Result<bool>` adapter so the established acquisition loop remains `Ok(true)` = acquired, `Ok(false)` = contended, `Err` = I/O failure. Treating any non-error result as acquired silently disables cross-process locking; keep the contention, release-and-retry, and adapter error regressions.
+ 
+ ### 4. Validation & Error Matrix
+--- before/.trellis/spec/ccr-config/backend/profile-repository.md
++++ after/.trellis/spec/ccr-config/backend/profile-repository.md
+@@ -53,6 +53,8 @@
+ - Legacy `ConfigService::update_config` replaces typed fields and retains omitted extension fields. New editors use a patch with the read token.
+ - Auth rules stay in the platform owner. Pass the platform's validator to `patch_config`; do not apply legacy API-key validation to every auth mode.
+ - Invalid patches, stale versions, missing sources, and rename collisions do not change the target or backups. No-op updates do not rewrite the file.
++- A successful explicit no-op mutation rechecks the content token under the guarded leaf lock and enforces the existing secret-file permission policy through the open file handle. Unix broad modes become 0600; stricter owner-only modes and existing Windows DACLs remain unchanged. Bytes, inode, modification time, and backups are preserved. Queries and rejected mutations do not change permissions.
++- Metadata-only hardening checks active journal versions before changing permissions and adds no content rollback entry. A journal with no content entries does not undo that repair. Existing content entries retain their original metadata restoration contract, including the recorded prior mode; the no-op helper does not change that contract.
+ 
+ ## Required evidence
+ 
+@@ -61,6 +63,7 @@
+ - Reverse registry order and assert explicit platform paths stay fixed; the documented legacy adapter stays Claude.
+ - Cover wrong field types, missing source, duplicate target, invalid name, stale token, unknown fields, current/default rename, explicit deletion, auth validator failure, and secret-safe errors.
+ - Force a leaf-only replacement between repository read and commit. CAS rejects the stale mutation and preserves the external bytes without a backup.
++- Cover the same leaf conflict during a semantic no-op. Verify 0644 becomes 0600 without content, inode, mtime, or backup changes; retain 0400. Rejected mutations and queries retain existing permissions. An abandoned journal with no content entries retains the hardened mode; a journal version mismatch blocks hardening.
+ - Cover missing-file deactivation and corruption propagation. Keep existing profile-off behavior tests.
+ - Query a simplified map through the service and snapshot APIs, then apply an unrelated patch and typed update. Assert no current profile and no new marker keys; explicit activation must still work.
+ - On Windows, compare ordinary/verbatim drive and UNC resource identities and run the canonical-path/service process pair. Cover Grok edit/delete on simplified maps with no current marker and first creation in an existing empty inactive document.

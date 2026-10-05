@@ -1,0 +1,16 @@
+{
+  "check": "frontend-tests",
+  "command": [
+    "bun",
+    "run",
+    "test"
+  ],
+  "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+  "started_at": "2026-09-28T23:26:42.223895+00:00",
+  "exit_code": 0,
+  "seconds": 91.82,
+  "log": "root-continuation-frontend-tests.log",
+  "command_environment_override": {
+    "CCR_SKIP_ICON_GENERATION": "1"
+  }
+}

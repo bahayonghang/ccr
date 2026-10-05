@@ -1,0 +1,10 @@
+{
+  "date_utc": "2026-09-28T23:03:56.923131+00:00",
+  "source": "root independent acceptance review follow-up",
+  "files": {
+    "crates/ccr-codex/src/services/codex_process_service.rs": "d84540362de0c573241630c1336870c61e05c6516964fe6f222e00af3b8e527d",
+    "ccr-ui/src/i18n/locales/zh-CN.ts": "68dc1720bf8302e7cdf2d5436cc59969639560c6b64f9c1fea2fe5917c53325f",
+    "ccr-ui/src/i18n/locales/en-US.ts": "f4b8bbbe50e3b1573193e8ddaa065efb15b6b889565252a50162519de0661b1c",
+    "ccr-ui/tests/i18n.test.cjs": "f033e8f6fc097b7fe23fd8a602813e198780d2bcc0254c9b9e021c00e8f24d76"
+  }
+}

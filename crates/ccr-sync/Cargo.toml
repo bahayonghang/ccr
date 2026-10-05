@@ -16,7 +16,7 @@ ccr-config = { path = "../ccr-config" }
 ccr-core = { path = "../ccr-core" }
 chrono = { workspace = true }
 colored = "3.1.1"
-comfy-table = "7.2.2"
+comfy-table = "8.0.0"
 dirs = { workspace = true }
 reqwest_dav = { version = "0.3.3", default-features = false, features = ["native-tls"] }
 serde = { workspace = true }

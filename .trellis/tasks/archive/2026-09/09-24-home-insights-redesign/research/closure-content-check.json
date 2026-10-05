@@ -1,0 +1,570 @@
+{
+  "reviewer": "/root/check_t01",
+  "reviewed_at_utc": "2026-09-29T06:28:25.802781+00:00",
+  "status": "passed_read_only_content_review_with_documented_limits",
+  "starting_snapshot": ".git/ccr-remaining-closure/starting-snapshot.json",
+  "starting_snapshot_sha256": "fa0d6246d1a306c2081e8540419d352d7e0436bcd72de279285242add44ff35b",
+  "starting_head": "09adfb0645d62f9d292c91f112bf242b983af432",
+  "head_at_review": "1a30e10cf496e056eaae232aed0c6b0c5a70efef",
+  "scope": {
+    "icons": 57,
+    "scripts": 2,
+    "all_59_current_bytes_match_starting_snapshot": true,
+    "files": [
+      {
+        "state": " M",
+        "path": "ccr-ui/public/icons/icon.png",
+        "bytes": 39430,
+        "sha256": "ee3e5f97825eb7bfbcfa09cf25117707b88fe569aef12f7fe4d5cea55ebeef57"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/public/icons/logo.png",
+        "bytes": 90990,
+        "sha256": "4ecd0dedd41251f1c1397bd34b129d229f56944e65d1a04efb94ac07985e424d"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/128x128.png",
+        "bytes": 8477,
+        "sha256": "9634cc1478e659b491969a5e51c201bb9047866bb32ee1a66ad0c2af757ad26b"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/128x128@2x.png",
+        "bytes": 18253,
+        "sha256": "3bc57b56f94cb0f6c01268b0b333d08d7f9b01310540ed9bd1709853100c682d"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/32x32.png",
+        "bytes": 1839,
+        "sha256": "6543006393efb0432a5c55ab6e7eba2c9ef64637c195c12d07d7b71371d0abf1"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/64x64.png",
+        "bytes": 4013,
+        "sha256": "21a6d019fd7dbdab42453151ac642ed79e88d2da6f0edca2b4267f3af8aec1c4"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/Square107x107Logo.png",
+        "bytes": 7035,
+        "sha256": "935d36e4b98f5df243fe11735ea07e30aa542d533800e3953611cca27561095d"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/Square142x142Logo.png",
+        "bytes": 9542,
+        "sha256": "70cb422b95f67b9ee3dab97135edbe16573d9459924dbb14b31b4654cb43ad53"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/Square150x150Logo.png",
+        "bytes": 10198,
+        "sha256": "d4949e289e8e07145e31c7f67d282227c8089d960fec4aedb2c10d2852d7812a"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/Square284x284Logo.png",
+        "bytes": 20764,
+        "sha256": "8b2df9cf7532d0c99f2ec89f44116b3a08a3bc11ef4225ff2ed7cae481a7a85d"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/Square30x30Logo.png",
+        "bytes": 1791,
+        "sha256": "0d88649e6f699d925888504c606184f3327903b8e36da328f25e057c419204f7"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/Square310x310Logo.png",
+        "bytes": 22730,
+        "sha256": "5e3549e8addba7f590855bf45208e56218569f2ab3c132085d64e5f5d3458101"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/Square44x44Logo.png",
+        "bytes": 2685,
+        "sha256": "4f0056bd9a65511a42526a9173dc2c8e67f9583649210f34c8e43a43b805c966"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/Square71x71Logo.png",
+        "bytes": 4510,
+        "sha256": "8c9637757bf9eb0de0ea474c44e404e4e0dd8e840f39e354bb3feae374331b27"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/Square89x89Logo.png",
+        "bytes": 5769,
+        "sha256": "edcf727065345365d9f0fe6fae932d099205da799445f83bc80eebf119dd257f"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/StoreLogo.png",
+        "bytes": 3085,
+        "sha256": "89c23cbe56f080fafdd0e5826c5bf40ab149e63b2fe7a3113e49ccbae3d0a324"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/android/mipmap-hdpi/ic_launcher.png",
+        "bytes": 4605,
+        "sha256": "f5f01ee4a88f7f529a3e2c919d5b6cdccffa78063f791118f2c32dfeb9eb0942"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/android/mipmap-hdpi/ic_launcher_foreground.png",
+        "bytes": 8119,
+        "sha256": "fe0f9ad0cc5a77c33ea48d712454878749537a4bcb4a60a86646093328218c81"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/android/mipmap-hdpi/ic_launcher_round.png",
+        "bytes": 4605,
+        "sha256": "f5f01ee4a88f7f529a3e2c919d5b6cdccffa78063f791118f2c32dfeb9eb0942"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/android/mipmap-mdpi/ic_launcher.png",
+        "bytes": 2868,
+        "sha256": "82f3af61582d7adaadef8a09c945b36eb660758a47c5570e45b0103d4c8fee18"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/android/mipmap-mdpi/ic_launcher_foreground.png",
+        "bytes": 5133,
+        "sha256": "a71dd93e1bd09eafe5e05c09865053a5e342fb262229c84c4b786facbc7520da"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/android/mipmap-mdpi/ic_launcher_round.png",
+        "bytes": 2868,
+        "sha256": "82f3af61582d7adaadef8a09c945b36eb660758a47c5570e45b0103d4c8fee18"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/android/mipmap-xhdpi/ic_launcher.png",
+        "bytes": 6324,
+        "sha256": "6a2a6d5c42c89506a10e5aaa1a5a1a2ef566fd0f1f9f60004c1e41afa06b7e99"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/android/mipmap-xhdpi/ic_launcher_foreground.png",
+        "bytes": 11049,
+        "sha256": "cbaee6b709c770a3f348f3a8c4ad3e55e5752a05ffc6852763305cdedd6645d7"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/android/mipmap-xhdpi/ic_launcher_round.png",
+        "bytes": 6324,
+        "sha256": "6a2a6d5c42c89506a10e5aaa1a5a1a2ef566fd0f1f9f60004c1e41afa06b7e99"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/android/mipmap-xxhdpi/ic_launcher.png",
+        "bytes": 9790,
+        "sha256": "dc854d4a4db64e5955672822bf940bf423dcd7e2869d93c6a662d3db0e3cec26"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/android/mipmap-xxhdpi/ic_launcher_foreground.png",
+        "bytes": 17354,
+        "sha256": "de82b5bde5b69a021168e72955f3f729d064b4acf4e5d8c0fd99731e38e58820"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/android/mipmap-xxhdpi/ic_launcher_round.png",
+        "bytes": 9790,
+        "sha256": "dc854d4a4db64e5955672822bf940bf423dcd7e2869d93c6a662d3db0e3cec26"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher.png",
+        "bytes": 13404,
+        "sha256": "27c064f8ba189d65bedc596f287faff8e5ab5095df0e888fdad03a83943086fe"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher_foreground.png",
+        "bytes": 24099,
+        "sha256": "223187686d957c6d70d8cfe1e46fd2573289db85c400ec04e10fbd3b951cf8e5"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher_round.png",
+        "bytes": 13404,
+        "sha256": "27c064f8ba189d65bedc596f287faff8e5ab5095df0e888fdad03a83943086fe"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/icon.icns",
+        "bytes": 283321,
+        "sha256": "4e4d7669bf58f77ae9b883b936a15fdb8e158a674266532af9e2bca785e7ba5e"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/icon.ico",
+        "bytes": 45810,
+        "sha256": "de9b8ebcbde4e994558646995ee669b6b5d773a9cb630114e106cb4198053249"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/icon.png",
+        "bytes": 39430,
+        "sha256": "ee3e5f97825eb7bfbcfa09cf25117707b88fe569aef12f7fe4d5cea55ebeef57"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/icon@2x.png",
+        "bytes": 88922,
+        "sha256": "e14fb4368d734bb5397c8dc9e2ce092397809b60f4532e180ec2bba77fd85ccc"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/ios/AppIcon-20x20@1x.png",
+        "bytes": 1070,
+        "sha256": "4c9c037e8b129a7aa9ae9be17f450fce961465cd82a2b8c2a89fa55894f087c8"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/ios/AppIcon-20x20@2x-1.png",
+        "bytes": 2430,
+        "sha256": "f5069aebd6818f98d52f53b790039e2ec82002eb86d9650f3f6542e99314a7ed"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/ios/AppIcon-20x20@2x.png",
+        "bytes": 2430,
+        "sha256": "f5069aebd6818f98d52f53b790039e2ec82002eb86d9650f3f6542e99314a7ed"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/ios/AppIcon-20x20@3x.png",
+        "bytes": 3848,
+        "sha256": "e243300c7dd011d3384dba2f2e58d9c6a2eccfdfbdb12b86bb51cc68224d1c4e"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/ios/AppIcon-29x29@1x.png",
+        "bytes": 1689,
+        "sha256": "09fe37f6b41ab9e698852135cfe4fbeea183f4e38d75c73d45dc5887809866b5"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/ios/AppIcon-29x29@2x-1.png",
+        "bytes": 3636,
+        "sha256": "bd94ea3d2a2f11946c9a154d23ac5c4609ec544eec705242c533c3db8aea4a04"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/ios/AppIcon-29x29@2x.png",
+        "bytes": 3636,
+        "sha256": "bd94ea3d2a2f11946c9a154d23ac5c4609ec544eec705242c533c3db8aea4a04"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/ios/AppIcon-29x29@3x.png",
+        "bytes": 5650,
+        "sha256": "efd079b56b5c5296fe80b62804d28118d187c61d19ffa1af8443cb396c961a18"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/ios/AppIcon-40x40@1x.png",
+        "bytes": 2430,
+        "sha256": "f5069aebd6818f98d52f53b790039e2ec82002eb86d9650f3f6542e99314a7ed"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/ios/AppIcon-40x40@2x-1.png",
+        "bytes": 5157,
+        "sha256": "11a7325cca8e973134b0e23a40020fe02521661f67d485243ff6eef33f6a0f05"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/ios/AppIcon-40x40@2x.png",
+        "bytes": 5157,
+        "sha256": "11a7325cca8e973134b0e23a40020fe02521661f67d485243ff6eef33f6a0f05"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/ios/AppIcon-40x40@3x.png",
+        "bytes": 8050,
+        "sha256": "aa3dd431d7f74cdcb39117dce35242abc12a4bf8edb02fc16dc106afe4386cc7"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/ios/AppIcon-512@2x.png",
+        "bytes": 88922,
+        "sha256": "e14fb4368d734bb5397c8dc9e2ce092397809b60f4532e180ec2bba77fd85ccc"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/ios/AppIcon-60x60@2x.png",
+        "bytes": 8050,
+        "sha256": "aa3dd431d7f74cdcb39117dce35242abc12a4bf8edb02fc16dc106afe4386cc7"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/ios/AppIcon-60x60@3x.png",
+        "bytes": 12361,
+        "sha256": "1f95812205cd18432e0726a92a62fda8c12fc8ecbf412c0ed1da894a1ccca43a"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/ios/AppIcon-76x76@1x.png",
+        "bytes": 4959,
+        "sha256": "bd43b35e6a72e7bb7de9bfafaf546e8b17bdec063798150046bf8559c456d026"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/ios/AppIcon-76x76@2x.png",
+        "bytes": 10213,
+        "sha256": "bdb00e496cd52d18533bf644cb79b09127a5983805458a942844a90329a6be26"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src-tauri/icons/ios/AppIcon-83.5x83.5@2x.png",
+        "bytes": 11433,
+        "sha256": "9fb83b16f9f65eed774015f618f66af9d61d8e65faa1d3ece486365d9df79f39"
+      },
+      {
+        "state": " M",
+        "path": "ccr-ui/src/assets/logo.png",
+        "bytes": 52079,
+        "sha256": "5ab214c81f9b92a112e22f7b47724ef5818435bc1cd6af6dfa62c0a676bc2b96"
+      },
+      {
+        "state": " M",
+        "path": "ccr-vscode/icon.png",
+        "bytes": 18253,
+        "sha256": "3bc57b56f94cb0f6c01268b0b333d08d7f9b01310540ed9bd1709853100c682d"
+      },
+      {
+        "state": " M",
+        "path": "docs/public/favicon.png",
+        "bytes": 18253,
+        "sha256": "3bc57b56f94cb0f6c01268b0b333d08d7f9b01310540ed9bd1709853100c682d"
+      },
+      {
+        "state": " M",
+        "path": "icon.png",
+        "bytes": 39430,
+        "sha256": "ee3e5f97825eb7bfbcfa09cf25117707b88fe569aef12f7fe4d5cea55ebeef57"
+      },
+      {
+        "state": "??",
+        "path": "ccr-ui/.tmp-desktop-probe.mjs",
+        "bytes": 3817,
+        "sha256": "369137cd419a0a9ac81d79387c1c8ff037ea1078d22e2a795613b7858270d7b9"
+      },
+      {
+        "state": "??",
+        "path": "ccr-ui/.tmp-insights-visual.mjs",
+        "bytes": 14131,
+        "sha256": "6d00d2d08f1c707ed888b27ace419f92720a5de0a214fdb836bd9d4e66fe5d61"
+      }
+    ]
+  },
+  "eslint": {
+    "command": [
+      "node",
+      "./node_modules/eslint/bin/eslint.js",
+      "--no-cache",
+      "--report-unused-disable-directives",
+      "--max-warnings",
+      "0",
+      ".tmp-desktop-probe.mjs",
+      ".tmp-insights-visual.mjs"
+    ],
+    "cwd": "ccr-ui",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "run_by_reviewer": true
+  },
+  "syntax_check": {
+    "run_by_reviewer": false,
+    "parent_reported": "node --check already passed; not rerun"
+  },
+  "image_checks": {
+    "all_57_open_and_decode": true,
+    "png": {
+      "count": 55,
+      "format": "PNG",
+      "mode": "RGBA",
+      "dimensions_match_generator_output_maps": true,
+      "complete_declared_png_output_set": true,
+      "all_four_outer_corner_alpha_zero": true
+    },
+    "ico": {
+      "count": 1,
+      "decoded_sizes": [
+        16,
+        24,
+        32,
+        48,
+        64,
+        256
+      ],
+      "sizes_match_generator": true,
+      "corner_alpha_by_size": {
+        "16": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "24": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "32": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "48": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "64": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "256": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "all_frame_corner_alpha_matches_HEAD": true
+    },
+    "icns": {
+      "count": 1,
+      "decoded_advertised_sizes": [
+        [
+          16,
+          16,
+          2
+        ],
+        [
+          32,
+          32,
+          2
+        ],
+        [
+          128,
+          128,
+          1
+        ],
+        [
+          128,
+          128,
+          2
+        ],
+        [
+          256,
+          256,
+          1
+        ],
+        [
+          256,
+          256,
+          2
+        ],
+        [
+          512,
+          512,
+          1
+        ],
+        [
+          512,
+          512,
+          2
+        ]
+      ],
+      "decoded_pixel_sizes": [
+        32,
+        64,
+        128,
+        256,
+        256,
+        512,
+        512,
+        1024
+      ],
+      "all_four_outer_corner_alpha_zero": true
+    },
+    "visual_samples": [
+      "ICO 16px frame magnified in memory using nearest-neighbor",
+      "ccr-ui/src-tauri/icons/32x32.png",
+      "icon.png (512px)",
+      "ccr-ui/public/icons/logo.png (1024px)"
+    ],
+    "visual_observation": "Existing C/route/arrow mark, warm dark rounded tile, cream/clay/sage shapes visible at reviewed sizes; no new clipping or incorrect asset identity observed. Static image review only."
+  },
+  "brand_contract": {
+    "path": ".trellis/spec/ccr-ui/frontend/brand-asset-pipeline.md",
+    "sha256": "c70a344fca89ea64d6a1769a721dbb60b8402bec8216812816b2165bfca38f2c",
+    "source_xml_files": 4,
+    "derived_svg_copies": 7,
+    "all_xml_parse": true,
+    "all_derived_svg_text_matches_owning_source": true,
+    "activity_bar_glyph_contains_currentColor": true,
+    "source_and_generator_context_text_unchanged_from_HEAD": [
+      "branding/master.svg",
+      "branding/app-icon.svg",
+      "branding/display-logo.svg",
+      "branding/vscode-icon.svg",
+      "ccr-ui/scripts/generate_icons.py",
+      "ccr-ui/scripts/ensure-icons.cjs",
+      ".trellis/spec/ccr-ui/frontend/brand-asset-pipeline.md"
+    ],
+    "generation_not_executed": true,
+    "two_run_determinism_not_measured": true,
+    "cairo_pillow_renderer_equivalence_not_measured": true
+  },
+  "script_provenance": {
+    "freeze": ".trellis/tasks/archive/2026-09/09-28-architecture-contract-gates/research/remaining-platform-tests-source-freeze.json",
+    "freeze_sha256": "a31c8730384c91076a051f226d3201e1b6cd2d9efa7ec63f881b8899601db273",
+    "current_scripts_equal_architecture_freeze": true,
+    "script_sha256": {
+      "ccr-ui/.tmp-desktop-probe.mjs": "369137cd419a0a9ac81d79387c1c8ff037ea1078d22e2a795613b7858270d7b9",
+      "ccr-ui/.tmp-insights-visual.mjs": "6d00d2d08f1c707ed888b27ace419f92720a5de0a214fdb836bd9d4e66fe5d61"
+    }
+  },
+  "historical_probe_limits": [
+    "Desktop probe assumes an existing CDP endpoint at 127.0.0.1:9222 and target URL prefix 127.0.0.1:15173; screenshots use the existing user-specific temporary paths.",
+    "Web probe requires SHOT_DIR and INSIGHTS_JSON. Existing default TARGET is http://127.0.0.1:5173/; mock Tauri responses and supplied fixture data do not establish native execution.",
+    "Scripts retain their historical fixed waits, selectors, paths and defaults. This review did not execute the probes or inspect their runtime input data."
+  ],
+  "findings_not_fixed": [
+    {
+      "kind": "existing_alpha_boundary",
+      "path": "ccr-ui/src-tauri/icons/icon.ico",
+      "detail": "The 16px frame has alpha 1/255 at all four outer corners, matching HEAD. A strict alpha==0 corner assertion fails for that existing frame. No new regression or material content blocker found; bytes preserved."
+    }
+  ],
+  "material_blockers": [],
+  "actions_not_performed": [
+    "product/spec/evidence modification",
+    "Git index/history mutation",
+    "task start/create/archive",
+    "probe execution",
+    "browser/native UI operation",
+    "icon regeneration",
+    "broad gate rerun",
+    "private runtime config inspection"
+  ],
+  "only_written_file": ".git/ccr-remaining-closure/content-review.json"
+}

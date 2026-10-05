@@ -1,0 +1,4 @@
+{"file":".agents/skills/trellis-meta/references/platform-files/agents.md","reason":"相关跨层或代理契约；阶段详情按get_context.py读取，避免整份workflow注入截断"}
+{"file":".trellis/tasks/09-06-evergreen-harness-audit/research/audit.md","reason":"当前失败证据、测试基线和不扩大范围约束"}
+{"file":".trellis/tasks/09-06-evergreen-harness-audit/research/harnesses.md","reason":"五工具能力与强模型审查分工"}
+{"file":".agents/skills/trellis-meta/references/local-architecture/generated-files.md","reason":"本仓库已安装Trellis文件可定制，不修改模板hash或上游"}

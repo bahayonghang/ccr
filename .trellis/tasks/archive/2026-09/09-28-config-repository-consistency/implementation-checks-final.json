@@ -1,0 +1,36 @@
+[
+  {
+    "name": "clippy-cli-codex-final",
+    "command": [
+      "cargo",
+      "clippy",
+      "-p",
+      "ccr-cli",
+      "-p",
+      "ccr-codex",
+      "--all-targets",
+      "--all-features",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "fmt-check",
+    "command": [
+      "just",
+      "fmt-check"
+    ],
+    "exit_code": 1
+  },
+  {
+    "name": "diff-check",
+    "command": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "exit_code": 0
+  }
+]

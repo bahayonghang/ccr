@@ -1,0 +1,17 @@
+{
+  "captured_at_utc": "2026-09-29T00:01:14.6799311+00:00",
+  "target_executable": "ccr_cli-957d4a190e1b8043.exe",
+  "filter": {
+    "log_name": "Application",
+    "provider": "Application Error",
+    "event_id": 1000,
+    "start_utc": "2026-09-28T23:43:55.8497410Z",
+    "end_utc": "2026-09-28T23:55:46.6397410Z"
+  },
+  "query_status": "no_events_in_time_window",
+  "query_error": null,
+  "matching_event_count": 0,
+  "matching_events": [],
+  "correction_note": "Preserve initial no-event query separately; exact ISO timestamps avoid PowerShell automatic JSON DateTime string conversion losing fractions",
+  "scope": "Only target-executable crash fields within original CI time window; no other application events emitted"
+}

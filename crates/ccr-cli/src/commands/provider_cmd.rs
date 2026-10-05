@@ -2,12 +2,13 @@
 //!
 //! 提供 Provider 测试相关的 CLI 命令。
 
+use crate::commands::common::new_utf8_table;
 use crate::services::ConfigService;
 use crate::services::health_check::{HealthCheckService, HealthStatus};
 use ccr_core::core::ColorOutput;
 use ccr_core::core::error::Result;
 use clap::{Args, Subcommand};
-use comfy_table::{Cell, Color, Table, presets::UTF8_FULL};
+use comfy_table::{Cell, Color};
 
 /// Provider 命令参数
 #[derive(Args, Debug, Clone)]
@@ -89,8 +90,7 @@ async fn cmd_test(name: &str, verbose: bool) -> Result<()> {
                 HealthStatus::Unknown => Color::White,
             };
 
-            let mut table = Table::new();
-            table.load_preset(UTF8_FULL);
+            let mut table = new_utf8_table();
 
             table.add_row(vec![
                 Cell::new("状态").fg(Color::Cyan),
@@ -149,8 +149,7 @@ async fn cmd_test_all(verbose: bool) -> Result<()> {
 
     let service = HealthCheckService::new();
 
-    let mut table = Table::new();
-    table.load_preset(UTF8_FULL);
+    let mut table = new_utf8_table();
 
     table.set_header(vec![
         Cell::new("名称").fg(Color::Cyan),

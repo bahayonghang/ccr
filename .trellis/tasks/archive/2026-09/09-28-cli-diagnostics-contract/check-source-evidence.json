@@ -1,0 +1,85 @@
+{
+  "files": [
+    {
+      "sha256": "c4440da9e9c7b41e9add6df31650162c3035e57603010035b01b5e1f22dfcace",
+      "path": "crates/ccr/src/main.rs"
+    },
+    {
+      "sha256": "31f91aff28cb28cf9a5b4f09f687ab93b17ce223e5d7525c8570b420b1fd058b",
+      "path": "crates/ccr-cli/src/commands/lifecycle/validate.rs"
+    },
+    {
+      "sha256": "d3459a1bfa31b262ac06b86523a953bac93f870db0ccb3d49f1333e6d2892409",
+      "path": "crates/ccr-cli/src/commands/lifecycle/mod.rs"
+    },
+    {
+      "sha256": "d530ea3356c59204c789e32f3f4efada7bb7aad51434f894b51a68d07580e5f5",
+      "path": "crates/ccr-cli/src/commands/mod.rs"
+    },
+    {
+      "sha256": "e6feee6f4b640aeead9a37e8ca72ee9e81346c57d599374b090f0cd4868746e2",
+      "path": "crates/ccr-cli/src/commands/doctor_cmd.rs"
+    },
+    {
+      "sha256": "ca704808ad62b66ce732aa14bdc3f99783f85fd624c8d394d239dc4e871383f0",
+      "path": "crates/ccr-cli/src/services/validate_service.rs"
+    },
+    {
+      "sha256": "15db55f329c8c4d66ad10bf06db619971d1f723ce0264d30ca48e25f2822cc4e",
+      "path": "crates/ccr-cli/src/services/validate_service/diagnostics.rs"
+    },
+    {
+      "sha256": "47bd2729ace8563b7648676d009ba1c7be9104ced2ca7f06734a3ccf811f138f",
+      "path": "crates/ccr-cli/src/services/doctor_service.rs"
+    },
+    {
+      "sha256": "4354fb75abeff7a2bc1dcc4dab11f4f9731f472f72e4f545a13ccdd60ffc79a0",
+      "path": "crates/ccr-config/src/managers/config_validator.rs"
+    },
+    {
+      "sha256": "2eb4707caf7bb61c97755c2cfa5f80cca7c85ce2c6b4801699a300a4d4ed206a",
+      "path": "crates/ccr-config/src/models/platform.rs"
+    },
+    {
+      "sha256": "793bb6f12e770b0462a00c7ef184f7642edbec8359c38ae4359167d6e3b55ccf",
+      "path": "crates/ccr/tests/diagnostics_contract.rs"
+    },
+    {
+      "sha256": "7840477f8429f9e8b7ef2a7333b5c8a408fc4992e23b07e49be0c875a026feb5",
+      "path": "crates/ccr/tests/commands/doctor.rs"
+    },
+    {
+      "sha256": "0265ab14057c7a7f3ef2872bd486765247d3ecccc0f28b8a1bd3fcfc815fa3af",
+      "path": "docs/reference/commands/validate.md"
+    },
+    {
+      "sha256": "4d8f98d08ebb966dd08be20a138d81efab29c7b4c8f5cf8894b0092cb2aba961",
+      "path": "docs/en/reference/commands/validate.md"
+    },
+    {
+      "sha256": "2d23a768a230016899c6e334b81ed718b8b6c9bce417c9dc118aa6950f5f0b14",
+      "path": "docs/reference/commands/doctor.md"
+    },
+    {
+      "sha256": "7ba69dc13e80b30df3ae95eb527ec791556f574a21da7651a634c33801007332",
+      "path": "docs/en/reference/commands/doctor.md"
+    },
+    {
+      "sha256": "de0fe16af6563dd8013abc9163011d7705af1e8b3c4e548607c0bf71767dfb1a",
+      "path": ".trellis/spec/ccr-cli/backend/diagnostics-contract.md"
+    },
+    {
+      "sha256": "ca9d0fe044d01a3171fe2644d1bef22d66d4af34900f2183f7dd9fc021ce97fe",
+      "path": ".trellis/spec/ccr-cli/backend/index.md"
+    },
+    {
+      "sha256": "d65327e8d78d7205c3566750c76b8468a8d78aa328f86002e9794700aec429eb",
+      "path": ".trellis/spec/ccr/backend/backend-guidelines.md"
+    }
+  ],
+  "cargo_lock_sha256": "ca1f03e85b5e0d888109ac8af7e7943fc1ceecd20a0f6eeb6a60052c5155db79",
+  "head": "34d8a85e0e48b793733835e0304c8ed33940fcee",
+  "scoped_diff_exit_code": 0,
+  "captured_at": "2026-09-28T08:42:03.5028234-05:00",
+  "rustfmt_exit_code": 0
+}

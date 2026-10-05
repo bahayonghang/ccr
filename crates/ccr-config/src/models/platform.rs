@@ -23,7 +23,7 @@ use std::str::FromStr;
 /// ## 支持状态
 /// - ✅ **Claude**: 完全支持（Claude Code）
 /// - ✅ **Codex**: 完全支持（Codex CLI）
-/// - ✅ **Gemini**: 完全支持（Antigravity CLI，内部 key 保持 gemini）
+/// - **Gemini/Droid**: retained legacy adapters; no auth/profile CLI surface
 /// - ✅ **Grok**: 完全支持（xAI Grok Build）
 /// - 🚧 **Qwen**: 计划支持（阿里通义千问 CLI）
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -45,7 +45,7 @@ pub enum Platform {
 
 impl Platform {
     /// 获取平台的显示名称
-    pub fn display_name(&self) -> &str {
+    pub fn display_name(&self) -> &'static str {
         match self {
             Platform::Claude => "Claude Code",
             Platform::Codex => "Codex",
@@ -57,7 +57,7 @@ impl Platform {
     }
 
     /// 获取平台的简短名称（用于文件系统路径）
-    pub fn short_name(&self) -> &str {
+    pub fn short_name(&self) -> &'static str {
         match self {
             Platform::Claude => "claude",
             Platform::Codex => "codex",
@@ -118,6 +118,22 @@ impl Platform {
     /// valid in usage, sync, and session domains.
     pub fn auth_profile_supported() -> &'static [Platform] {
         &[Platform::Claude, Platform::Codex, Platform::Grok]
+    }
+
+    /// Public command support is distinct from a retained adapter implementation.
+    pub fn supports_auth_profile(self) -> bool {
+        Self::auth_profile_supported().contains(&self)
+    }
+
+    /// Stable capability label used by read-only diagnostics.
+    pub fn diagnostic_support(self) -> &'static str {
+        if self.supports_auth_profile() {
+            "supported"
+        } else if self.is_implemented() {
+            "legacy_adapter"
+        } else {
+            "not_implemented"
+        }
     }
 }
 

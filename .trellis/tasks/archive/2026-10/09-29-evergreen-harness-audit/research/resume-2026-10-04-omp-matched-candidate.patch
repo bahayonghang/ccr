@@ -1,0 +1,56 @@
+--- a/.omp/extensions/trellis/index.ts
++++ b/.omp/extensions/trellis/index.ts
+@@ -297,10 +297,17 @@
+ }
+ 
+ // ---------------------------------------------------------------------------
+-// Task context — prd.md, info.md, and jsonl-referenced spec/research files
++// Task context — planning artifacts and jsonl-referenced spec/research files
+ // ---------------------------------------------------------------------------
+ 
+ type AgentType = "trellis-implement" | "trellis-check" | "trellis-research" | null;
++
++const TASK_CONTEXT_ARTIFACTS = [
++   ["prd.md", "Requirements document"],
++   ["design.md", "Technical design"],
++   ["implement.md", "Execution plan"],
++   ["info.md", "Task information"],
++] as const;
+ 
+ function taskContextJsonlNames(agentType?: AgentType): string[] {
+    if (agentType === "trellis-implement") return ["implement.jsonl"];
+@@ -313,8 +320,7 @@
+    const trustedRoots = resolveTrustedRoots(projectRoot);
+    const paths = new Set<string>([
+       join(projectRoot, ".trellis", "config.yaml"),
+-      join(taskDir, "prd.md"),
+-      join(taskDir, "info.md"),
++      ...TASK_CONTEXT_ARTIFACTS.map(([name]) => join(taskDir, name)),
+    ]);
+    for (const jsonlName of taskContextJsonlNames(agentType)) {
+       const jsonlPath = join(taskDir, jsonlName);
+@@ -640,17 +646,13 @@
+       if (output !== null) parts.push(output);
+    };
+ 
+-   // prd.md and info.md — always included
+-   const prdPath = join(taskDir, "prd.md");
+-   const relativePrdPath = displayProjectPath(projectRoot, prdPath, taskDir);
+-   if (existsSync(prdPath)) {
+-      const artifact = materialize(prdPath, relativePrdPath, "Requirements document", limits.max_artifact_bytes, "artifact");
+-      appendCandidate(artifact.block, artifact.notice);
+-   }
+-   const infoPath = join(taskDir, "info.md");
+-   const relativeInfoPath = displayProjectPath(projectRoot, infoPath, taskDir);
+-   if (existsSync(infoPath)) {
+-      const artifact = materialize(infoPath, relativeInfoPath, "Task information", limits.max_artifact_bytes, "artifact");
++   // Planning artifacts are shared by all roles; info.md remains compatible.
++   for (const [name, reason] of TASK_CONTEXT_ARTIFACTS) {
++      const artifactPath = join(taskDir, name);
++      const targetPath = resolveProjectFile(projectRoot, artifactPath, trustedRoots);
++      if (!targetPath) continue;
++      const displayPath = displayProjectPath(projectRoot, artifactPath, taskDir);
++      const artifact = materialize(targetPath, displayPath, reason, limits.max_artifact_bytes, "artifact");
+       appendCandidate(artifact.block, artifact.notice);
+    }
+ 

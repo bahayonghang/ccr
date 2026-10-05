@@ -1,0 +1,144 @@
+{
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "-p",
+        "ccr",
+        "--test",
+        "commands",
+        "doctor",
+        "--",
+        "--skip",
+        "export_bindings"
+      ],
+      "log": "check-doctor-binary.log",
+      "exit_code": 0,
+      "passed": 16,
+      "seconds": 5.93
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "-p",
+        "ccr",
+        "--test",
+        "commands",
+        "validate",
+        "--",
+        "--skip",
+        "export_bindings"
+      ],
+      "log": "check-validate-binary.log",
+      "exit_code": 0,
+      "passed": 2,
+      "seconds": 1.5
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "-p",
+        "ccr-cli",
+        "doctor",
+        "--",
+        "--skip",
+        "export_bindings"
+      ],
+      "log": "check-doctor-service.log",
+      "exit_code": 0,
+      "passed": 14,
+      "seconds": 33.67
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "-p",
+        "ccr-cli",
+        "validate",
+        "--",
+        "--skip",
+        "export_bindings"
+      ],
+      "log": "check-validate-service.log",
+      "exit_code": 0,
+      "passed": 5,
+      "seconds": 1.22
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "-p",
+        "ccr-config",
+        "validator",
+        "--",
+        "--skip",
+        "export_bindings"
+      ],
+      "log": "check-config-validator.log",
+      "exit_code": 0,
+      "passed": 6,
+      "seconds": 1.01
+    },
+    {
+      "command": [
+        "cargo",
+        "check",
+        "--offline",
+        "--locked",
+        "-p",
+        "ccr",
+        "-p",
+        "ccr-cli",
+        "-p",
+        "ccr-config",
+        "--all-targets",
+        "--all-features"
+      ],
+      "log": "check-rust-types.log",
+      "exit_code": 0,
+      "passed": 0,
+      "seconds": 13.71
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "--offline",
+        "--locked",
+        "-p",
+        "ccr",
+        "-p",
+        "ccr-cli",
+        "-p",
+        "ccr-config",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings",
+        "-D",
+        "clippy::unwrap_used"
+      ],
+      "log": "check-strict-clippy.log",
+      "exit_code": 0,
+      "passed": 0,
+      "seconds": 19.03
+    }
+  ],
+  "cargo_lock_sha256": "ca1f03e85b5e0d888109ac8af7e7943fc1ceecd20a0f6eeb6a60052c5155db79"
+}

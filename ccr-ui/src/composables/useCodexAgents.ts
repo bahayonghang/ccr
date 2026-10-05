@@ -1,29 +1,39 @@
-import { computed, ref } from 'vue'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
   addCodexAgent,
   copyCodexAgent,
   deleteCodexAgent,
-  getCodexDashboardOverview,
-  listCodexAgents,
-  listCodexModels,
   renameCodexAgent,
   updateCodexAgent,
   validateCodexAgentToml,
 } from '@/api'
+import {
+  codexKeys,
+  fetchCodexAgents,
+  fetchCodexDashboardOverview,
+  fetchCodexModels,
+} from '@/features/codex/queries'
+import type { CodexDashboardOverview } from '@/api'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { logger } from '@/utils/logger'
 import type {
   CodexAgentContext,
   CodexAgentContextRequest,
-  CodexAgentDiagnostic,
-  CodexAgentRecord,
   CodexAgentUpsertRequest,
+  CodexAgentsResponse,
 } from '@/types'
 
-const LAST_PROJECT_ROOT_KEY = 'ccr.codexAgents.lastProjectRoot'
+// Codex agents 管理的 React 迁移（08-22-state-logic-port 批次 5，服务端数据 → Query）。
+// agents/diagnostics/context 来自 list 查询（key 含 context mode/projectRoot）；
+// models 与 runtime summary（复用 dashboard overview 缓存）为独立查询；
+// lastProjectRoot 为 localStorage 偏好（useState 初始化 + 同步写回，原语义）。
+//
+// 签名变化：返回对象中的 Ref<T> 改为普通值；原 refresh(context) 的「显式上下文
+// 单次拉取」映射为 requestedContext 状态切换 → key 变化自动拉取（消费方均为
+// 待迁移 .vue 视图）。
 
-function getErrorMessage(error: unknown) {
-  return getErrorMessage(error)
-}
+const LAST_PROJECT_ROOT_KEY = 'ccr.codexAgents.lastProjectRoot'
 
 function readLastProjectRoot(): string | null {
   if (typeof window === 'undefined') {
@@ -58,67 +68,104 @@ export const builtInCodexAgents = [
   },
 ] as const
 
+/** 列表仅由显式刷新与 mutation 失效驱动；原实现无 TTL → staleTime 0。 */
+const CODEX_AGENTS_STALE_TIME = 0
+
+const GLOBAL_CONTEXT_REQUEST: CodexAgentContextRequest = { mode: 'global' }
+
+/** 返回对象的查询数据切片默认值（抽离以控制主 hook 复杂度）。 */
+function toCodexAgentsState(options: {
+  listData: CodexAgentsResponse | undefined
+  modelsData: { models?: string[] } | undefined
+  overviewData: CodexDashboardOverview | undefined
+  listFetching: boolean
+}) {
+  const { listData, modelsData, overviewData, listFetching } = options
+  return {
+    agents: listData?.agents ?? [],
+    diagnostics: listData?.diagnostics ?? [],
+    availableModels: modelsData?.models ?? [],
+    loading: listFetching,
+    sessionsTotal: overviewData?.inventory?.sessions_total ?? null,
+  }
+}
+
 export function useCodexAgents() {
-  const agents = ref<CodexAgentRecord[]>([])
-  const diagnostics = ref<CodexAgentDiagnostic[]>([])
-  const activeContext = ref<CodexAgentContext | null>(null)
-  const lastProjectRoot = ref<string | null>(readLastProjectRoot())
-  const loading = ref(false)
-  const mutating = ref(false)
-  const availableModels = ref<string[]>([])
-  const sessionsTotal = ref<number | null>(null)
+  const [activeContext, setActiveContext] = useState<CodexAgentContext | null>(null)
+  // 查询的显式上下文（初始 global，与原 activeContext=null 的派生一致）
+  const [requestedContext, setRequestedContext] = useState<CodexAgentContextRequest>(GLOBAL_CONTEXT_REQUEST)
+  const [lastProjectRoot, setLastProjectRoot] = useState<string | null>(readLastProjectRoot())
+  const [mutating, setMutating] = useState(false)
 
-  const currentContextRequest = computed<CodexAgentContextRequest>(() => {
-    if (activeContext.value?.mode === 'project' && activeContext.value.projectRoot) {
-      return {
-        mode: 'project',
-        projectRoot: activeContext.value.projectRoot,
-      }
-    }
+  // 原 computed currentContextRequest：来源为 activeContext.mode / projectRoot
+  const currentContextRequest = useMemo<CodexAgentContextRequest>(
+    () => (activeContext?.mode === 'project' && activeContext.projectRoot
+      ? { mode: 'project', projectRoot: activeContext.projectRoot }
+      : { mode: 'global' }),
+    [activeContext?.mode, activeContext?.projectRoot]
+  )
 
-    return { mode: 'global' }
+  const hasProjectShortcut = useMemo(() => !!lastProjectRoot, [lastProjectRoot])
+  const isProjectMode = useMemo(() => activeContext?.mode === 'project', [activeContext?.mode])
+  const contextLabel = useMemo(() => activeContext?.label ?? 'Global', [activeContext])
+  const activeMode = useMemo(() => activeContext?.mode ?? 'global', [activeContext?.mode])
+
+  const listQuery = useQuery({
+    queryKey: codexKeys.agents.list(
+      requestedContext.mode ?? 'global',
+      requestedContext.mode === 'project' && requestedContext.projectRoot ? requestedContext.projectRoot : null
+    ),
+    queryFn: () => fetchCodexAgents(requestedContext),
+    staleTime: CODEX_AGENTS_STALE_TIME,
   })
 
-  const hasProjectShortcut = computed(() => !!lastProjectRoot.value)
-  const isProjectMode = computed(() => activeContext.value?.mode === 'project')
-  const contextLabel = computed(() => activeContext.value?.label ?? 'Global')
-
-  const refresh = async (context?: CodexAgentContextRequest) => {
-    loading.value = true
-    try {
-      const response = await listCodexAgents(context ?? currentContextRequest.value)
-      agents.value = response.agents ?? []
-      diagnostics.value = response.diagnostics ?? []
-      activeContext.value = response.context
-      if (response.context?.mode === 'project' && response.context.projectRoot) {
-        lastProjectRoot.value = response.context.projectRoot
-        writeLastProjectRoot(response.context.projectRoot)
-      }
-    } finally {
-      loading.value = false
+  // 原 refresh() 内联的状态回写：response.context 驱动 activeContext 与项目根记忆
+  useEffect(() => {
+    const response = listQuery.data
+    if (!response) return
+    setActiveContext(response.context)
+    if (response.context?.mode === 'project' && response.context.projectRoot) {
+      setLastProjectRoot(response.context.projectRoot)
+      writeLastProjectRoot(response.context.projectRoot)
     }
-  }
+  }, [listQuery.data])
 
-  const loadModels = async () => {
-    try {
-      const response = await listCodexModels()
-      availableModels.value = response.models ?? []
-    } catch (error) {
-      logger.error(`Failed to load Codex models: ${getErrorMessage(error)}`, error)
+  const modelsQuery = useQuery({
+    queryKey: codexKeys.agents.models(),
+    queryFn: fetchCodexModels,
+    staleTime: CODEX_AGENTS_STALE_TIME,
+    // 原 loadModels 失败仅记日志、保留旧值
+    retry: false,
+    throwOnError: false,
+  })
+
+  const overviewQuery = useQuery({
+    queryKey: codexKeys.dashboard.overview(),
+    queryFn: fetchCodexDashboardOverview,
+    staleTime: CODEX_AGENTS_STALE_TIME,
+    retry: false,
+    throwOnError: false,
+  })
+
+  const loadModels = useCallback(async () => {
+    await modelsQuery.refetch()
+  }, [modelsQuery])
+
+  const loadRuntimeSummary = useCallback(async () => {
+    await overviewQuery.refetch()
+  }, [overviewQuery])
+
+  /** 原 refresh(context?)：带上下文时切换查询上下文（key 变化自动拉取），否则重拉当前。 */
+  const refresh = useCallback(async (context?: CodexAgentContextRequest) => {
+    if (context) {
+      setRequestedContext(context)
+      return
     }
-  }
+    await listQuery.refetch()
+  }, [listQuery])
 
-  const loadRuntimeSummary = async () => {
-    try {
-      const response = await getCodexDashboardOverview()
-      sessionsTotal.value = response.inventory?.sessions_total ?? null
-    } catch (error) {
-      logger.error(`Failed to load Codex runtime summary: ${getErrorMessage(error)}`, error)
-    }
-  }
-
-  const chooseProjectContext = async () => {
-    const initialValue = lastProjectRoot.value ?? ''
+  const chooseProjectContext = useCallback(async () => {
+    const initialValue = lastProjectRoot ?? ''
     const path = typeof window !== 'undefined' && typeof window.prompt === 'function'
       ? window.prompt('Enter Codex project root path', initialValue)
       : null
@@ -126,138 +173,141 @@ export function useCodexAgents() {
       return false
     }
 
-    lastProjectRoot.value = path
+    setLastProjectRoot(path)
     writeLastProjectRoot(path)
     await refresh({
       mode: 'project',
       projectRoot: path,
     })
     return true
-  }
+  }, [lastProjectRoot, refresh])
 
-  const switchToProjectContext = async (projectRoot?: string | null) => {
-    const path = projectRoot ?? lastProjectRoot.value
+  const switchToProjectContext = useCallback(async (projectRoot?: string | null) => {
+    const path = projectRoot ?? lastProjectRoot
     if (!path) {
       return false
     }
 
-    lastProjectRoot.value = path
+    setLastProjectRoot(path)
     writeLastProjectRoot(path)
     await refresh({
       mode: 'project',
       projectRoot: path,
     })
     return true
-  }
+  }, [lastProjectRoot, refresh])
 
-  const switchToGlobalContext = async () => {
+  const switchToGlobalContext = useCallback(async () => {
     await refresh({ mode: 'global' })
-  }
+  }, [refresh])
 
-  const createAgent = async (request: CodexAgentUpsertRequest) => {
-    mutating.value = true
-    try {
-      const { name, ...rest } = request
-      await addCodexAgent({
-        name,
-        ...rest,
-        context: currentContextRequest.value,
-      })
-      await refresh()
-    } finally {
-      mutating.value = false
-    }
-  }
+  const runMutation = useCallback(
+    async (action: () => Promise<unknown>) => {
+      setMutating(true)
+      try {
+        await action()
+        await listQuery.refetch()
+      } finally {
+        setMutating(false)
+      }
+    },
+    [listQuery]
+  )
 
-  const updateAgentRecord = async (name: string, request: CodexAgentUpsertRequest) => {
-    mutating.value = true
-    try {
-      const { name: requestedName, ...rest } = request
-      await updateCodexAgent({
-        name,
-        ...(requestedName ? { name: requestedName } : {}),
-        ...rest,
-        context: currentContextRequest.value,
-      })
-      await refresh()
-    } finally {
-      mutating.value = false
-    }
-  }
+  const createAgent = useCallback((request: CodexAgentUpsertRequest) => runMutation(async () => {
+    const { name, ...rest } = request
+    await addCodexAgent({
+      name,
+      ...rest,
+      context: currentContextRequest,
+    })
+  }), [currentContextRequest, runMutation])
 
-  const renameAgentRecord = async (name: string, newName: string) => {
-    mutating.value = true
-    try {
-      await renameCodexAgent({
-        name,
-        newName,
-        context: currentContextRequest.value,
-      })
-      await refresh()
-    } finally {
-      mutating.value = false
-    }
-  }
+  const updateAgentRecord = useCallback((name: string, request: CodexAgentUpsertRequest) => runMutation(async () => {
+    const { name: requestedName, ...rest } = request
+    await updateCodexAgent({
+      name,
+      ...(requestedName ? { name: requestedName } : {}),
+      ...rest,
+      context: currentContextRequest,
+    })
+  }), [currentContextRequest, runMutation])
 
-  const deleteAgentRecord = async (name: string) => {
-    mutating.value = true
-    try {
-      await deleteCodexAgent({
-        name,
-        context: currentContextRequest.value,
-      })
-      await refresh()
-    } finally {
-      mutating.value = false
-    }
-  }
+  const renameAgentRecord = useCallback((name: string, newName: string) => runMutation(async () => {
+    await renameCodexAgent({
+      name,
+      newName,
+      context: currentContextRequest,
+    })
+  }), [currentContextRequest, runMutation])
 
-  const validateAgentRecord = async (name: string) => {
+  const deleteAgentRecord = useCallback((name: string) => runMutation(async () => {
+    await deleteCodexAgent({
+      name,
+      context: currentContextRequest,
+    })
+  }), [currentContextRequest, runMutation])
+
+  const validateAgentRecord = useCallback(async (name: string) => {
     return validateCodexAgentToml({
       name,
-      context: currentContextRequest.value,
+      context: currentContextRequest,
     })
-  }
+  }, [currentContextRequest])
 
-  const copyAgentRecord = async (name: string, targetContext: CodexAgentContextRequest, targetName?: string) => {
-    mutating.value = true
-    try {
-      await copyCodexAgent({
-        name,
-        targetName,
-        sourceContext: currentContextRequest.value,
-        targetContext,
-      })
-      await refresh()
-    } finally {
-      mutating.value = false
-    }
-  }
+  const copyAgentRecord = useCallback((
+    name: string,
+    targetContext: CodexAgentContextRequest,
+    targetName?: string
+  ) => runMutation(async () => {
+    await copyCodexAgent({
+      name,
+      targetName,
+      sourceContext: currentContextRequest,
+      targetContext,
+    })
+  }), [currentContextRequest, runMutation])
 
-  const refreshAll = async () => {
+  const refreshAll = useCallback(async () => {
     await Promise.all([
       refresh(),
       loadModels(),
       loadRuntimeSummary(),
     ])
-  }
+  }, [loadModels, loadRuntimeSummary, refresh])
+
+  // models/overview 失败走日志降级（原 loadModels/loadRuntimeSummary catch 分支）
+  useEffect(() => {
+    if (modelsQuery.error) {
+      logger.error(`Failed to load Codex models: ${getErrorMessage(modelsQuery.error)}`, modelsQuery.error)
+    }
+  }, [modelsQuery.error])
+  useEffect(() => {
+    if (overviewQuery.error) {
+      logger.error(`Failed to load Codex runtime summary: ${getErrorMessage(overviewQuery.error)}`, overviewQuery.error)
+    }
+  }, [overviewQuery.error])
+
+
+  const state = toCodexAgentsState({
+    listData: listQuery.data,
+    modelsData: modelsQuery.data,
+    overviewData: overviewQuery.data,
+    listFetching: listQuery.isFetching,
+  })
 
   return {
-    agents,
-    diagnostics,
+    ...state,
     activeContext,
     context: activeContext,
-    activeMode: computed(() => activeContext.value?.mode ?? 'global'),
-    availableModels,
+    activeMode,
     builtInCodexAgents,
     contextLabel,
     currentContextRequest,
     hasProjectShortcut,
     isProjectMode,
     lastProjectRoot,
-    loading,
     mutating,
-    sessionsTotal,
     refresh,
     loadAgents: refresh,
     refreshAll,

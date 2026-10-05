@@ -1,0 +1,10 @@
+{"file": ".trellis/spec/ccr-ui/frontend/layering-contracts.md", "reason": "本任务必须保留的现行领域契约"}
+{"file": ".trellis/spec/ccr-ui/frontend/react-rerender-discipline.md", "reason": "本任务必须保留的现行领域契约"}
+{"file": ".trellis/spec/ccr/backend/desktop-command-policy.md", "reason": "本任务必须保留的现行领域契约"}
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "本任务必须保留的现行领域契约"}
+{"file": ".trellis/tasks/09-28-cli-tauri-architecture/research/architecture-audit.md", "reason": "已验证发现、作用范围和反例验收"}
+{"file": ".trellis/tasks/09-28-cli-tauri-architecture/research/governance-audit.md", "reason": "已验证发现、作用范围和反例验收"}
+{"file": ".trellis/tasks/09-28-cli-tauri-architecture/research/tauri-audit.md", "reason": "已验证发现、作用范围和反例验收"}
+{"file": ".trellis/tasks/09-28-cli-tauri-architecture/research/frontend-audit.md", "reason": "已验证发现、作用范围和反例验收"}
+{"file": ".trellis/spec/ccr/backend/tauri-handler-registry.md", "reason": "T11 control delivery and admission ownership contract"}
+{"file": ".trellis/spec/ccr-ui/frontend/command-job-lifecycle.md", "reason": "T07 shell-owned command state, recovery and history persistence failure contracts"}

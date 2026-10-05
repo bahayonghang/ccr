@@ -1,0 +1,36 @@
+{
+  "verified_at_utc": "2026-09-29T02:37:14.401737+00:00",
+  "status": "passed_scoped_native_linux",
+  "artifacts": {
+    "remaining-native-webview-6.json": "7d7938ff5914509ff01b66f7dc64a9ff14ac6b6ac704f8ae7062d4760b0f7f31",
+    "remaining-native-webview-6.log": "384725aee0a826c331d2246306c46e77385f1fdc1598fd73ec1dd590671c70cd",
+    "remaining-native-webview-6.png": "960d034f790cb84c098fd7c73e2512fa27fd0a5aa5484daa59c8588e9630c3e7",
+    "remaining-native-webview.py": "7e4ccd29109ffe48dfe8ddf8381c5b802801cfe4d5906570c7cca7177ae79c53",
+    "remaining-linux-native-after-csp.json": "1666cf2e0e19da748cf66cc61d6d5ab395dd1f6844a038aa3eb8665df66aa1ca",
+    "remaining-linux-native-after-csp.log": "2877d5715f478328387870265fcdcf0dac1a652f34bc3f3c63308d69ec1b6095",
+    "remaining-csp-ui-build.json": "d2efa648280e075866aa78b1f874f7a348af402154743877c2889889fd99dd20",
+    "remaining-csp-ui-build.log": "72928b9df947254b541923774897b2dbc0d40ed0b56e7dd1d016b17d756ca8bc",
+    "remaining-final-source-freeze.json": "d8ee10c2ad87fcc4061fa636ef82a35372e6cac4a8d4c081dbe1553b0a24a70d"
+  },
+  "checks": [
+    "native_boot",
+    "plaintext_confirmation",
+    "native_scroll_lock",
+    "native_editor",
+    "production_csp",
+    "native_save_roundtrip"
+  ],
+  "source_paths": 268,
+  "frontend_input_paths": 1060,
+  "frontend_assets": 284,
+  "generated_types": 230,
+  "roundtrip_semantic_match": true,
+  "nonce_style_cleanup": true,
+  "live_process_group_members_after_cleanup": [],
+  "visual_review": "Root viewed remaining-native-webview-6.png; settings labels, syntax tokens and aligned line gutter are visible. Image is before the model-only save; JSON receipt proves persisted save.",
+  "limits": [
+    "Linux WSLg native WebKitGTK with debug executable and production custom-protocol assets/CSP",
+    "Synthetic local Claude settings only; environment redirection is not an OS filesystem sandbox",
+    "No Windows WebView2, macOS, physical input, release package, real SSH or provider OAuth acceptance"
+  ]
+}

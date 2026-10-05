@@ -24,7 +24,7 @@ export const listCheckinProviders = async <T = UnknownRecord>(): Promise<T> => {
 /** 获取签到 Provider 详情（前端侧从列表过滤，后端无单条查询命令） */
 export const getCheckinProvider = async <T = UnknownRecord>(id: string): Promise<T> => {
   const result = await invoke<unknown>('list_providers')
-  const providers = Array.isArray(result) ? result : pickArray(result, 'providers')
+  const providers: unknown[] = Array.isArray(result) ? result : pickArray(result, 'providers')
   const found = providers.find((item) => isRecord(item) && String(item.id ?? '') === id)
   return (found ?? null) as T
 }
@@ -62,7 +62,7 @@ export const listCheckinAccounts = async <T = UnknownRecord>(providerId?: string
 /** 获取签到账号详情（前端侧从列表过滤） */
 export const getCheckinAccount = async <T = UnknownRecord>(id: string): Promise<T> => {
   const result = await invoke<unknown>('list_accounts', { providerId: null })
-  const accounts = Array.isArray(result) ? result : pickArray(result, 'accounts')
+  const accounts: unknown[] = Array.isArray(result) ? result : pickArray(result, 'accounts')
   const found = accounts.find((item) => isRecord(item) && String(item.id ?? '') === id)
   return (found ?? null) as T
 }

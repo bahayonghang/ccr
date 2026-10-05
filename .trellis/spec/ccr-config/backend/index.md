@@ -8,8 +8,10 @@
 |-------|-------------|--------|
 | [Backend Guidelines](./backend-guidelines.md) | Config crate boundaries, Claude runtime paths, TOML persistence, errors, logs, and verification | Complete |
 | [Test Fixtures](./test-fixtures.md) | Process-wide CCR env fixtures for config tests | Complete |
+| [Profile Repository Transactions](./profile-repository.md) | Path-scoped RMW, strict patches, CAS, and pure reads | Complete |
 
 ## Pre-Development Checklist
 
 - Read [Backend Guidelines](./backend-guidelines.md) before changing `Platform`, `PlatformPaths`, profile TOML helpers, config managers, or config services.
 - Read [Test Fixtures](./test-fixtures.md) before adding tests that mutate `CCR_ROOT`, `CCR_LOCK_DIR`, or home-directory config resolution.
+- Read [Profile Repository Transactions](./profile-repository.md) before changing profile CRUD, current markers, or config reads.

@@ -157,6 +157,7 @@ pub enum GrokProfileActionResponse {
     },
     Applied {
         profile: String,
+        outcome: ccr_cli::application::profile_lifecycle::ProfileOutcome,
     },
     Off {
         previous_profile: Option<String>,
@@ -1346,12 +1347,17 @@ pub async fn grok_apply_profile(
         return Ok(GrokProfileActionResponse::UnsupportedEnvironment { env_type });
     }
     tokio::task::spawn_blocking(move || {
-        let platform =
-            GrokPlatform::new().map_err(|error| format!("初始化 Grok 平台失败: {error}"))?;
-        platform
-            .apply_profile(&name)
-            .map_err(|error| format!("切换 Grok profile '{name}' 失败: {error}"))?;
-        Ok(GrokProfileActionResponse::Applied { profile: name })
+        let outcome = ccr_cli::application::profile_lifecycle::apply_profile(
+            ccr_cli::application::profile_lifecycle::ApplyProfileRequest::new(
+                Platform::Grok,
+                &name,
+            ),
+        )
+        .map_err(|error| error.to_string())?;
+        Ok(GrokProfileActionResponse::Applied {
+            profile: name,
+            outcome,
+        })
     })
     .await
     .map_err(|error| format!("切换 Grok profile 后台任务失败: {error}"))?
@@ -1801,6 +1807,7 @@ mod tests {
 
     #[test]
     fn rename_updates_real_inactive_and_active_profile_state() {
+        let _desktop = crate::test_support::lock_env();
         let inactive_temp = tempdir().unwrap();
         let inactive_platform = test_platform(
             inactive_temp.path().join("config.toml"),
@@ -2005,6 +2012,7 @@ mod tests {
 
     #[test]
     fn settings_patch_preserves_unknown_tables_and_writes_no_backup() {
+        let _desktop = crate::test_support::lock_env();
         let temp = tempdir().unwrap();
         let path = temp.path().join("config.toml");
         fs::write(&path, "[ui]\ntheme = 'dark'\n[unknown]\nkeep = 'yes'\n").unwrap();
@@ -2034,6 +2042,7 @@ mod tests {
 
     #[test]
     fn settings_patch_retries_after_concurrent_write_and_preserves_external_keys() {
+        let _desktop = crate::test_support::lock_env();
         let temp = tempdir().unwrap();
         let path = temp.path().join("config.toml");
         fs::write(&path, "[ui]\ntheme = 'dark'\n[unknown]\nkeep = 'yes'\n").unwrap();
@@ -2080,6 +2089,7 @@ mod tests {
 
     #[test]
     fn settings_patch_rechecks_managed_lock_after_concurrent_apply() {
+        let _desktop = crate::test_support::lock_env();
         let temp = tempdir().unwrap();
         let path = temp.path().join("config.toml");
         fs::write(&path, "[ui]\ntheme = 'dark'\n").unwrap();
@@ -2124,6 +2134,7 @@ mod tests {
 
     #[test]
     fn settings_patch_returns_conflict_after_three_attempts() {
+        let _desktop = crate::test_support::lock_env();
         let temp = tempdir().unwrap();
         let path = temp.path().join("config.toml");
         fs::write(&path, "[ui]\ntheme = 'dark'\n").unwrap();
@@ -2176,6 +2187,83 @@ mod tests {
                 .unwrap()
                 .all(|entry| { !entry.unwrap().file_name().to_string_lossy().contains("bak") })
         );
+    }
+
+    fn non_config_fixture_files(root: &Path, config: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
+        let mut files = BTreeMap::new();
+        for entry in fs::read_dir(root).unwrap() {
+            let path = entry.unwrap().path();
+            if path == config || path.file_name().unwrap() == "locks" {
+                continue;
+            }
+            if path.is_dir() {
+                files.extend(non_config_fixture_files(&path, config));
+            } else {
+                files.insert(path.clone(), fs::read(path).unwrap());
+            }
+        }
+        files
+    }
+
+    #[test]
+    fn settings_and_raw_saves_preserve_the_configured_backup_inventory() {
+        let temp = tempdir().unwrap();
+        let path = temp.path().join("config.toml");
+        let backup_dir = temp.path().join("backups");
+        let lock_dir = temp.path().join("locks");
+        let mut process_env = crate::test_support::TestProcessEnv::new();
+        process_env.set("CCR_BACKUP_DIR", backup_dir.as_os_str());
+        process_env.set("CCR_LOCK_DIR", lock_dir.as_os_str());
+        for dir in [&backup_dir, &temp.path().join("ccr/backups/grok")] {
+            fs::create_dir_all(dir).unwrap();
+            fs::write(dir.join("existing.bak"), "UNCHANGED_BACKUP_SENTINEL").unwrap();
+        }
+        let platform = test_platform(path.clone(), temp.path().join("ccr"));
+        fs::write(&path, "[ui]\ntheme = 'dark'\n").unwrap();
+        let before = non_config_fixture_files(temp.path(), &path);
+        let patch = GrokSettingsPatchDto {
+            set: BTreeMap::from([(
+                "ui.theme".to_string(),
+                OpenJsonValueDto::String("light".to_string()),
+            )]),
+            unset: Vec::new(),
+        };
+        assert!(matches!(
+            update_settings(&platform, patch).unwrap(),
+            GrokSettingsUpdateResponse::Saved
+        ));
+        assert_eq!(non_config_fixture_files(temp.path(), &path), before);
+
+        let typed = fs::read(&path).unwrap();
+        let invalid_patch = GrokSettingsPatchDto {
+            set: BTreeMap::from([(
+                "session.auto_compact_threshold_percent".to_string(),
+                OpenJsonValueDto::Number(101.into()),
+            )]),
+            unset: Vec::new(),
+        };
+        assert!(update_settings(&platform, invalid_patch).is_err());
+        assert_eq!(fs::read(&path).unwrap(), typed);
+        assert_eq!(non_config_fixture_files(temp.path(), &path), before);
+
+        let raw = "# Preserve this comment\n[ui]\ntheme = 'dark'\n";
+        let token = content_version_token(&typed);
+        assert!(matches!(
+            save_raw_config(&path, raw, &token).unwrap(),
+            GrokRawSaveResponse::Saved { .. }
+        ));
+        assert_eq!(fs::read_to_string(&path).unwrap(), raw);
+        assert_eq!(non_config_fixture_files(temp.path(), &path), before);
+        assert!(matches!(
+            save_raw_config(&path, "[invalid", &content_version_token(raw.as_bytes())).unwrap(),
+            GrokRawSaveResponse::Invalid { .. }
+        ));
+        assert!(matches!(
+            save_raw_config(&path, "[ui]\ntheme = 'light'\n", &token).unwrap(),
+            GrokRawSaveResponse::Conflict
+        ));
+        assert_eq!(fs::read_to_string(&path).unwrap(), raw);
+        assert_eq!(non_config_fixture_files(temp.path(), &path), before);
     }
 
     #[test]

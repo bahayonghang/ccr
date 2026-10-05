@@ -3,18 +3,18 @@
 
 use super::app::{
     CodexAuthApp, CodexAuthUsagePanelData, CodexUsageAttributionState, CodexUsageScope,
-    PreviewMetricWindow, QuotaPreviewCellState, QuotaState, UsageState,
+    PreviewMetricWindow, QuotaPreviewCellState, UsageState,
 };
 use crate::tui::footer::{ShortcutHint, shortcut_line};
 use crate::tui::overlay::{Overlay, render_overlay};
 use crate::tui::theme;
 use crate::tui::toast::ToastKind;
-use ccr_cli::services::{CodexQuotaService, CodexUsageService};
+use ccr_cli::services::CodexQuotaService;
 use chrono::Local;
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Cell, Paragraph, Row, Table, Wrap},
 };
@@ -160,7 +160,7 @@ struct AccountListRegions {
 }
 
 const ACCOUNT_COLUMN_SPACING: u16 = 1;
-const DETAIL_LABEL_WIDTH: usize = 12;
+const DETAIL_LABEL_WIDTH: usize = 14;
 
 fn resolve_table_widths(
     inner_width: u16,
@@ -206,7 +206,7 @@ fn resolve_table_widths(
 fn detail_label_span(label: &str) -> Span<'static> {
     let label = localized_detail_label(label);
     Span::styled(
-        pad_text(label, DETAIL_LABEL_WIDTH),
+        pad_text(label, DETAIL_LABEL_WIDTH.max(label.width() + 1)),
         Style::default()
             .fg(theme::subtext())
             .add_modifier(Modifier::BOLD),
@@ -231,7 +231,7 @@ fn localized_detail_label(label: &str) -> &str {
         "Email:" => crate::tui_text!("Email:", "邮箱："),
         "Plan:" => crate::tui_text!("Plan:", "属性："),
         "Saved at:" => crate::tui_text!("Saved at:", "保存时间："),
-        "Last refresh:" => crate::tui_text!("Last refresh:", "最近刷新："),
+        "Last refresh:" => crate::tui_text!("Auth refresh:", "认证刷新："),
         "Quota scope:" => crate::tui_text!("Quota scope:", "配额范围："),
         "Usage scope:" => crate::tui_text!("Usage scope:", "用量范围："),
         "Attribution:" => crate::tui_text!("Attribution:", "归因："),
@@ -310,25 +310,6 @@ fn account_property_display(
     }
 }
 
-fn preview_reset_detail_line(
-    label: &str,
-    preview_value: String,
-    preview_style: Style,
-    reset_value: String,
-) -> Line<'static> {
-    detail_spans_line(
-        label,
-        vec![
-            Span::styled(preview_value, preview_style),
-            Span::styled(
-                crate::tui_text!("  Reset ", "  重置 "),
-                theme::muted_style(),
-            ),
-            Span::styled(reset_value, theme::muted_style()),
-        ],
-    )
-}
-
 fn detail_spans_line(label: &str, mut spans: Vec<Span<'static>>) -> Line<'static> {
     let mut all = vec![detail_label_span(label)];
     all.append(&mut spans);
@@ -343,14 +324,18 @@ fn render_account_list_panel(f: &mut Frame, area: Rect, app: &mut CodexAuthApp, 
         .title_style(theme::codex_style());
 
     let inner = block.inner(area);
-    if !app.accounts.is_empty() && inner.height >= 2 {
+    if !app.accounts.is_empty() && inner.height >= 1 {
         let regions = account_list_regions(inner);
         app.sync_page_size(crate::tui::pagination::visible_page_size(
             regions.body.height,
         ));
     }
 
-    let block = block.title_bottom(account_list_footer_line(app));
+    let block = if inner.height >= 4 {
+        block.title_bottom(account_list_footer_line(app))
+    } else {
+        block
+    };
     f.render_widget(block, area);
 
     if app.accounts.is_empty() {
@@ -365,7 +350,7 @@ fn render_account_list_panel(f: &mut Frame, area: Rect, app: &mut CodexAuthApp, 
         return;
     }
 
-    if inner.height < 2 {
+    if inner.height == 0 {
         app.list_area.set(Some(inner));
         return;
     }
@@ -379,73 +364,25 @@ fn render_account_list_panel(f: &mut Frame, area: Rect, app: &mut CodexAuthApp, 
 }
 
 fn account_list_footer_line(app: &CodexAuthApp) -> Line<'static> {
-    let selected_name = app
-        .selected_account()
-        .map(|account| account.name.clone())
-        .unwrap_or_else(|| "-".to_string());
-    let selected_style = app
-        .selected_account()
-        .map(|account| {
-            if account.is_virtual {
-                theme::warning_style()
-            } else if account.is_current {
-                theme::success_style()
-            } else {
-                Style::default()
-                    .fg(theme::text())
-                    .add_modifier(Modifier::BOLD)
-            }
-        })
-        .unwrap_or_else(theme::muted_style);
-
-    let preview_hint = if app.is_activation_gate_pending() {
-        crate::tui_text!("  ·  preview expands after 1s ", "  ·  速览将在 1s 后展开 ")
-    } else if app.selected_preview_entry().is_some() {
-        crate::tui_text!("  ·  all-account preview ready ", "  ·  全账号速览已就绪 ")
-    } else {
-        crate::tui_text!("  ·  preview idle ", "  ·  速览待命 ")
-    };
-
-    Line::from(vec![
-        Span::styled(
-            crate::tui_text!(" Selected: ", " 已选择："),
-            theme::muted_style(),
+    Line::from(Span::styled(
+        crate::tui_format!(
+            " Page {}/{} · {} accounts ",
+            " 第 {}/{} 页 · {} 个账号 ",
+            app.current_page + 1,
+            app.total_pages(),
+            app.accounts.len()
         ),
-        Span::styled(selected_name, selected_style),
-        Span::styled(
-            crate::tui_text!("  ·  Legend: ", "  ·  图例："),
-            theme::muted_style(),
-        ),
-        Span::styled(
-            crate::tui_text!("🟢 fresh", "🟢 新鲜"),
-            theme::success_style(),
-        ),
-        Span::styled(" · ", theme::muted_style()),
-        Span::styled(
-            crate::tui_text!("🟡 stale", "🟡 陈旧"),
-            theme::warning_style(),
-        ),
-        Span::styled(" · ", theme::muted_style()),
-        Span::styled(crate::tui_text!("🔴 old", "🔴 过期"), theme::error_style()),
-        Span::styled(
-            crate::tui_format!(
-                "  ·  Page {}/{}  ·  {} accounts ",
-                "  ·  第 {}/{} 页  ·  {} 个账号 ",
-                app.current_page + 1,
-                app.total_pages(),
-                app.accounts.len()
-            ),
-            theme::muted_style(),
-        ),
-        Span::styled(preview_hint, theme::muted_style()),
-    ])
-    .alignment(Alignment::Left)
+        theme::muted_style(),
+    ))
 }
 
 fn account_list_regions(inner: Rect) -> AccountListRegions {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(1), Constraint::Min(0)])
+        .constraints([
+            Constraint::Length(u16::from(inner.height >= 2)),
+            Constraint::Min(0),
+        ])
         .split(inner);
 
     AccountListRegions {
@@ -680,8 +617,13 @@ fn reset_duration_text(
         .quota
         .as_ref()?;
     let ts = match window {
-        QuotaWindow::Hourly => quota.hourly_reset_time?,
-        QuotaWindow::Weekly => quota.weekly_reset_time?,
+        QuotaWindow::Hourly if quota.hourly_window_present == Some(true) => {
+            quota.hourly_reset_time?
+        }
+        QuotaWindow::Weekly if quota.weekly_window_present == Some(true) => {
+            quota.weekly_reset_time?
+        }
+        _ => return None,
     };
     Some(CodexQuotaService::format_reset_duration(ts))
 }
@@ -791,29 +733,6 @@ fn pad_text(value: &str, width: usize) -> String {
     result
 }
 
-fn login_status_text(app: &CodexAuthApp) -> String {
-    match &app.login_state {
-        ccr_cli::models::LoginState::NotLoggedIn => {
-            crate::tui_text!("Not logged in", "未登录").to_string()
-        }
-        ccr_cli::models::LoginState::LoggedInUnsaved => {
-            crate::tui_text!("Logged in (unsaved)", "已登录（未保存）").to_string()
-        }
-        ccr_cli::models::LoginState::LoggedInSaved(name) => {
-            crate::tui_format!("Logged in: {}", "已登录：{}", name)
-        }
-        ccr_cli::models::LoginState::ApiKeyActive => {
-            crate::tui_text!("API Key mode", "API Key 模式").to_string()
-        }
-        ccr_cli::models::LoginState::ProviderKeyActive { env_key } => {
-            crate::tui_format!("Provider Key: {}", "提供商密钥：{}", env_key)
-        }
-        ccr_cli::models::LoginState::Unknown { type_name, .. } => {
-            crate::tui_format!("Unknown state: {}", "未知状态：{}", type_name)
-        }
-    }
-}
-
 fn login_status_style(login_state: &ccr_cli::models::LoginState) -> Style {
     match login_state {
         ccr_cli::models::LoginState::NotLoggedIn | ccr_cli::models::LoginState::Unknown { .. } => {
@@ -868,279 +787,440 @@ fn draw_status_bar(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     f.render_widget(status, area);
 }
 
-/// Draw usage panel (quota + local stats)
+/// The legacy renderer and embedded compact layout share the same content.
 fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
-    let title = Line::from(vec![
-        Span::styled("📊 ", theme::card_block_style()),
-        Span::styled(
-            crate::tui_text!("Usage & Quota", "用量与配额"),
-            Style::default()
-                .fg(theme::text())
-                .add_modifier(Modifier::BOLD),
+    draw_combined_panel(f, area, app);
+}
+
+fn clipped_line(line: Line<'static>, width: usize) -> Line<'static> {
+    if line.width() <= width {
+        return line;
+    }
+    let mut remaining = width.saturating_sub(1);
+    let mut spans = Vec::new();
+    let mut ellipsis_style = line.style;
+    for span in line.spans {
+        ellipsis_style = span.style;
+        let mut content = String::new();
+        for ch in span.content.chars() {
+            let columns = ch.width().unwrap_or(0);
+            if columns > remaining {
+                break;
+            }
+            content.push(ch);
+            remaining -= columns;
+        }
+        let complete = content == span.content;
+        spans.push(Span::styled(content, span.style));
+        if !complete || remaining == 0 {
+            break;
+        }
+    }
+    if width > 0 {
+        spans.push(Span::styled("…", ellipsis_style));
+    }
+    Line::from(spans).style(line.style)
+}
+
+fn render_detail_card(f: &mut Frame, area: Rect, title: &'static str, lines: Vec<Line<'static>>) {
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(theme::border()))
+        .title(title)
+        .title_style(theme::codex_style());
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+    f.render_widget(
+        Paragraph::new(
+            lines
+                .into_iter()
+                .map(|line| clipped_line(line, usize::from(inner.width)))
+                .collect::<Vec<_>>(),
         ),
-    ]);
+        inner,
+    );
+}
 
-    let mut content: Vec<Line> = Vec::new();
+/// Clamp remaining quota once at the presentation boundary, before filling cells.
+fn quota_window_line(
+    label: &str,
+    percentage: i32,
+    present: Option<bool>,
+    reset: Option<i64>,
+    width: usize,
+) -> Line<'static> {
+    let mut spans = vec![Span::styled(format!("{label} "), theme::info_style())];
+    if present != Some(true) {
+        spans.push(Span::styled(
+            if present == Some(false) {
+                crate::tui_text!("Not provided", "未提供")
+            } else {
+                crate::tui_text!("Unknown window", "窗口未知")
+            },
+            theme::muted_style(),
+        ));
+        return Line::from(spans);
+    }
+    let percentage = percentage.clamp(0, 100);
+    let color = Style::default().fg(theme::quota_color(percentage));
+    let relative = if width >= 64 {
+        CodexAuthApp::quota_reset_detail_text(reset)
+    } else {
+        reset
+            .map(CodexQuotaService::format_reset_duration)
+            .unwrap_or_else(|| "-".to_string())
+    };
+    let reset_text = crate::tui_format!(" Reset {}", " 重置 {}", relative);
+    let fixed_width = label.width() + 1 + 5 + reset_text.width();
+    let bar_width = width.saturating_sub(fixed_width + 1).min(20);
+    if bar_width >= 3 {
+        let filled = percentage as usize * bar_width / 100;
+        spans.push(Span::styled("█".repeat(filled), color));
+        spans.push(Span::styled(
+            "░".repeat(bar_width - filled),
+            theme::muted_style(),
+        ));
+        spans.push(Span::raw(" "));
+    }
+    spans.push(Span::styled(format!("{percentage:>3}%"), color));
+    spans.push(Span::styled(reset_text, theme::muted_style()));
+    clipped_line(Line::from(spans), width)
+}
 
-    // ── 配额刷新确认提示 ──
+fn quota_lines(app: &CodexAuthApp, width: usize) -> Vec<Line<'static>> {
+    if let Some(quota) = app.selected_quota().and_then(|entry| entry.quota.as_ref()) {
+        return vec![
+            quota_window_line(
+                "5h",
+                quota.hourly_percentage,
+                quota.hourly_window_present,
+                quota.hourly_reset_time,
+                width,
+            ),
+            quota_window_line(
+                "7d",
+                quota.weekly_percentage,
+                quota.weekly_window_present,
+                quota.weekly_reset_time,
+                width,
+            ),
+        ];
+    }
+    let preview_loading = app.selected_account().is_some_and(|account| {
+        app.preview_cell_for_account(&account.name, PreviewMetricWindow::FiveHour)
+            .state
+            == QuotaPreviewCellState::Loading
+    });
+    let (text, style) = if app.selected_quota_error().is_some() {
+        (
+            crate::tui_text!("Unavailable", "不可用"),
+            theme::error_style(),
+        )
+    } else if app.is_selected_quota_loading() || preview_loading {
+        (
+            crate::tui_text!("Loading…", "加载中…"),
+            theme::muted_style(),
+        )
+    } else if app.is_activation_gate_pending() {
+        (
+            crate::tui_text!("Waiting…", "等待中…"),
+            theme::muted_style(),
+        )
+    } else {
+        (
+            crate::tui_text!("No cached quota", "暂无配额缓存"),
+            theme::muted_style(),
+        )
+    };
+    ["5h", "7d"]
+        .into_iter()
+        .map(|label| {
+            Line::from(vec![
+                Span::styled(format!("{label} "), theme::info_style()),
+                Span::styled(text, style),
+            ])
+        })
+        .collect()
+}
+
+fn quota_status_line(app: &CodexAuthApp) -> Line<'static> {
+    let cached = app
+        .selected_quota()
+        .filter(|entry| entry.quota.is_some())
+        .map(|entry| {
+            crate::tui_format!(
+                "Cached {}",
+                "缓存 {}",
+                entry.fetched_at.with_timezone(&Local).format("%m/%d %H:%M")
+            )
+        });
+    let mut spans = Vec::new();
     if app.pending_quota_confirm {
-        content.push(Line::from(Span::styled(
+        spans.push(Span::styled(
             crate::tui_text!(
-                "  Query quota? Press y to confirm or any other key to cancel",
-                "  确认查询配额？按 y 确认 / 其他键取消"
+                "Query quota? y confirm / any key cancel",
+                "查询配额？y 确认 / 其他键取消"
             ),
             theme::warning_style(),
+        ));
+    } else if let Some(error) = app.selected_quota_error() {
+        spans.push(Span::styled(
+            crate::tui_format!("Quota error: {}", "配额错误：{}", error),
+            theme::error_style(),
+        ));
+    } else if app.is_selected_quota_loading() {
+        spans.push(Span::styled(
+            crate::tui_text!("Refreshing", "刷新中"),
+            theme::info_style(),
+        ));
+    } else if app.is_quota_preview_loading() {
+        spans.push(Span::styled(
+            crate::tui_text!("Refreshing previews", "速览刷新中"),
+            theme::info_style(),
+        ));
+    }
+    if let Some(cached) = cached {
+        // Keep the timestamp visible even when a raw error needs truncation.
+        if !spans.is_empty() {
+            spans.insert(
+                0,
+                Span::styled(format!("{cached} · "), theme::muted_style()),
+            );
+        } else {
+            spans.push(Span::styled(cached, theme::muted_style()));
+        }
+    }
+    Line::from(spans)
+}
+
+fn format_compact_count(value: u64) -> String {
+    const UNITS: [&str; 5] = ["", "K", "M", "B", "T"];
+    let mut scaled = value as f64;
+    let mut unit = 0;
+    while scaled >= 1000.0 && unit < UNITS.len() - 1 {
+        scaled /= 1000.0;
+        unit += 1;
+    }
+    if unit == 0 {
+        return value.to_string();
+    }
+    scaled = (scaled * 10.0).round() / 10.0;
+    if scaled >= 1000.0 && unit < UNITS.len() - 1 {
+        scaled /= 1000.0;
+        unit += 1;
+    }
+    if scaled.fract() == 0.0 {
+        format!("{scaled:.0}{}", UNITS[unit])
+    } else {
+        format!("{scaled:.1}{}", UNITS[unit])
+    }
+}
+
+fn usage_scope_line(panel: &CodexAuthUsagePanelData) -> Line<'static> {
+    let (scope, style) = match &panel.scope {
+        CodexUsageScope::AccountAttributed { account_name } => (
+            crate::tui_format!(
+                "Local: account {} · CCR ledger",
+                "本地：账号 {} · CCR 账本",
+                account_name
+            ),
+            theme::info_style(),
+        ),
+        CodexUsageScope::GlobalRuntime => (
+            if panel.attribution_state == CodexUsageAttributionState::GlobalOnly {
+                crate::tui_text!("Local: global", "本地：全局").to_string()
+            } else {
+                crate::tui_format!(
+                    "Local: global (not selected) · {}",
+                    "本地：全局（非所选账号）· {}",
+                    panel.fallback_reason.as_deref().unwrap_or("-")
+                )
+            },
+            usage_attribution_style(panel.attribution_state),
+        ),
+    };
+    Line::from(Span::styled(scope, style))
+}
+
+fn usage_table_lines(panel: &CodexAuthUsagePanelData, header: bool) -> Vec<Line<'static>> {
+    let mut lines = Vec::new();
+    let label_width = 8;
+    if header {
+        lines.push(Line::from(Span::styled(
+            format!(
+                "{} {:>8}  {}{}",
+                pad_text(crate::tui_text!("Window", "时段"), label_width),
+                "Tokens",
+                " ".repeat(8usize.saturating_sub(crate::tui_text!("Requests", "请求数").width())),
+                crate::tui_text!("Requests", "请求数")
+            ),
+            theme::muted_style(),
         )));
     }
-
-    content.push(Line::from(Span::styled(
-        crate::tui_text!(
-            "  The list shows all-account previews; this panel focuses on the selected account's full quota and local usage.",
-            "  列表已用于全账号速览；此处聚焦当前选中账号的完整配额与本地 usage。"
+    for (label, usage) in [
+        ("5h", &panel.rolling.five_hour),
+        ("7d", &panel.rolling.seven_day),
+        (
+            crate::tui_text!("All time", "累计"),
+            &panel.rolling.all_time,
         ),
-        theme::muted_style(),
-    )));
-
-    // ── 配额余额区域 ──
-    content.push(scope_line(
-        "Quota scope:",
-        crate::tui_text!("selected account", "所选账号"),
-        theme::success_style(),
-    ));
-
-    match &app.quota_state {
-        QuotaState::Idle => {
-            let idle_message = if app.is_activation_gate_pending() {
-                crate::tui_text!(
-                    "  All-account previews and selected account details load after 1s",
-                    "  停留 1s 后自动展开全账号速览，并同步带出当前账号详情"
-                )
-            } else {
-                crate::tui_text!(
-                    "  All-account previews cached; press b to force-refresh the selected account or r to reload accounts and local statistics",
-                    "  已缓存全账号速览；按 b 强刷当前账号，按 r 刷新账号与本地统计"
-                )
-            };
-            content.push(Line::from(Span::styled(idle_message, theme::muted_style())));
-        }
-        QuotaState::Loading { .. } if app.selected_quota().is_none() => {
-            content.push(Line::from(Span::styled(
-                crate::tui_text!(
-                    "  Querying the selected account quota...",
-                    "  正在查询当前账号配额..."
+    ] {
+        lines.push(Line::from(vec![
+            Span::styled(pad_text(label, label_width), theme::muted_style()),
+            Span::styled(
+                format!(
+                    " {:>8}  {:>8}",
+                    format_compact_count(usage.total_input_tokens + usage.total_output_tokens),
+                    format_compact_count(usage.total_requests)
                 ),
-                theme::warning_style(),
-            )));
-        }
-        QuotaState::Error { .. } if app.selected_quota().is_none() => {
-            if let Some(err) = app.selected_quota_error() {
-                content.push(Line::from(Span::styled(
-                    crate::tui_format!("  Quota query failed: {}", "  配额查询失败：{}", err),
-                    theme::error_style(),
-                )));
-                if is_refresh_token_reused_error(err) {
-                    content.push(Line::from(Span::styled(
-                        crate::tui_text!(
-                            "  Token rotated; press R to attempt repair. If it still fails, log in again and save the account",
-                            "  Token 已轮换，可按 R 尝试修复；仍失败请重新登录后保存账号"
-                        ),
-                        theme::warning_style(),
-                    )));
-                }
-            }
-        }
-        _ => {
-            if let Some(aq) = app.selected_quota() {
-                if let Some(ref quota) = aq.quota {
-                    let account_label = aq.email.as_deref().unwrap_or(&aq.account_name);
-                    content.push(Line::from(vec![
-                        Span::styled(crate::tui_text!("  Quota ", "  配额 "), theme::info_style()),
-                        Span::styled(format!("({})", account_label), theme::muted_style()),
-                    ]));
-
-                    if app.is_selected_quota_loading() {
-                        content.push(Line::from(Span::styled(
-                            crate::tui_text!(
-                                "  Refreshing the selected account quota...",
-                                "  正在刷新选中账号配额..."
-                            ),
-                            theme::warning_style(),
-                        )));
-                    }
-
-                    let h_color = theme::quota_color(quota.hourly_percentage);
-                    let h_bar = progress_bar(quota.hourly_percentage, 10);
-                    let h_reset = quota
-                        .hourly_reset_time
-                        .map(|t| {
-                            crate::tui_format!(
-                                "  Reset: {}",
-                                "  重置：{}",
-                                CodexQuotaService::format_reset_duration(t)
-                            )
-                        })
-                        .unwrap_or_default();
-                    content.push(Line::from(vec![
-                        Span::styled(
-                            crate::tui_text!("  5h limit: ", "  5h限额："),
-                            Style::default().fg(theme::text()),
-                        ),
-                        Span::styled(h_bar, Style::default().fg(h_color)),
-                        Span::styled(
-                            format!(" {}%", quota.hourly_percentage),
-                            Style::default().fg(h_color),
-                        ),
-                        Span::styled(h_reset, theme::muted_style()),
-                    ]));
-
-                    let w_color = theme::quota_color(quota.weekly_percentage);
-                    let w_bar = progress_bar(quota.weekly_percentage, 10);
-                    let w_reset = quota
-                        .weekly_reset_time
-                        .map(|t| {
-                            let relative = CodexQuotaService::format_reset_duration(t);
-                            let dt = chrono::DateTime::from_timestamp(t, 0)
-                                .map(|d| d.with_timezone(&chrono::Local));
-                            if let Some(local) = dt {
-                                crate::tui_format!(
-                                    "  Reset: {} ({})",
-                                    "  重置：{}（{}）",
-                                    relative,
-                                    local.format("%m/%d %H:%M")
-                                )
-                            } else {
-                                crate::tui_format!("  Reset: {}", "  重置：{}", relative)
-                            }
-                        })
-                        .unwrap_or_default();
-                    content.push(Line::from(vec![
-                        Span::styled(
-                            crate::tui_text!("  7d limit: ", "  7d限额："),
-                            Style::default().fg(theme::text()),
-                        ),
-                        Span::styled(w_bar, Style::default().fg(w_color)),
-                        Span::styled(
-                            format!(" {}%", quota.weekly_percentage),
-                            Style::default().fg(w_color),
-                        ),
-                        Span::styled(w_reset, theme::muted_style()),
-                    ]));
-
-                    if let Some(plan) = quota.plan_type.as_deref().or_else(|| {
-                        app.selected_account()
-                            .and_then(|account| account.plan_type.as_deref())
-                    }) {
-                        content.push(Line::from(vec![
-                            Span::styled(
-                                crate::tui_text!("  Plan: ", "  订阅："),
-                                Style::default().fg(theme::text()),
-                            ),
-                            Span::styled(plan.to_string(), theme::info_style()),
-                        ]));
-                    }
-                } else if let Some(ref err) = aq.error {
-                    content.push(Line::from(Span::styled(
-                        format!("  ⚠️ {}: {}", aq.account_name, err),
-                        theme::error_style(),
-                    )));
-                }
-            } else {
-                content.push(Line::from(Span::styled(
-                    crate::tui_text!(
-                        "  No cached quota for the selected account; querying on demand...",
-                        "  选中账号暂无配额缓存，正在按需查询..."
-                    ),
-                    theme::muted_style(),
-                )));
-            }
-        }
+                Style::default().fg(theme::text()),
+            ),
+        ]));
     }
-
-    // ── 分隔线 ──
-    content.push(Line::from(Span::styled(
-        "  ────────────────────────────────",
-        theme::muted_style(),
-    )));
-
-    // ── 本地统计区域 ──
-    if let Some(panel) = app.usage_panel_data() {
-        let (scope_label, scope_style) = usage_scope_badge(&panel);
-        content.push(scope_line("Usage scope:", scope_label, scope_style));
-        content.push(scope_line(
-            "Attribution:",
-            usage_attribution_label(panel.attribution_state),
-            usage_attribution_style(panel.attribution_state),
-        ));
-        if let Some(reason) = &panel.fallback_reason {
-            content.push(Line::from(Span::styled(
-                crate::tui_format!("  Note: {}", "  说明：{}", reason),
-                theme::warning_style(),
-            )));
-        }
-        content.extend(usage_digest_lines(&panel));
-    } else {
-        if app.is_activation_gate_pending() {
-            content.push(Line::from(Span::styled(
-                crate::tui_text!(
-                    "  Local usage and list previews load after 1s",
-                    "  停留 1s 后自动加载本地 usage，并与列表速览一起就位"
-                ),
-                theme::muted_style(),
-            )));
-        } else {
-            match &app.usage_state {
-                UsageState::NoData => {
-                    content.push(Line::from(Span::styled(
-                        crate::tui_text!("  No local usage data", "  暂无本地使用数据"),
-                        theme::muted_style(),
-                    )));
-                }
-                UsageState::Error(err) => {
-                    content.push(Line::from(Span::styled(
-                        crate::tui_format!(
-                            "  Failed to load statistics: {}",
-                            "  统计加载失败：{}",
-                            err
-                        ),
-                        theme::error_style(),
-                    )));
-                }
-                UsageState::Loaded(_) => {}
-                UsageState::Loading => {
-                    content.push(Line::from(Span::styled(
-                        crate::tui_text!("  Loading...", "  加载中..."),
-                        theme::muted_style(),
-                    )));
-                }
-            }
-        }
-    }
-
-    let panel = Paragraph::new(content)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme::border()))
-                .title(title)
-                .title_style(Style::default().fg(theme::codex())),
-        )
-        .alignment(Alignment::Left)
-        .wrap(Wrap { trim: true });
-
-    f.render_widget(panel, area);
+    lines
 }
 
-/// 百分比颜色：使用主题的5级渐变
-#[allow(dead_code)]
-fn percent_color(pct: i32) -> Color {
-    theme::quota_color(pct)
+fn usage_note_line(panel: &CodexAuthUsagePanelData) -> Option<Line<'static>> {
+    panel.fallback_reason.as_ref().map(|reason| {
+        Line::from(Span::styled(
+            reason.clone(),
+            if panel.attribution_state == CodexUsageAttributionState::AccountAttributed {
+                theme::muted_style()
+            } else {
+                usage_attribution_style(panel.attribution_state)
+            },
+        ))
+    })
 }
 
-/// 生成文本进度条
-fn progress_bar(pct: i32, width: usize) -> String {
-    let filled = ((pct as usize) * width / 100).min(width);
-    let empty = width - filled;
-    format!("{}{}", "█".repeat(filled), "░".repeat(empty))
+fn usage_state_line(app: &CodexAuthApp) -> Line<'static> {
+    let (text, style) = match &app.usage_state {
+        UsageState::Error(error) => (
+            crate::tui_format!("Local usage error: {}", "本地用量错误：{}", error),
+            theme::error_style(),
+        ),
+        UsageState::NoData => (
+            crate::tui_text!("No local usage records", "暂无本地用量记录").to_string(),
+            theme::muted_style(),
+        ),
+        _ => (
+            crate::tui_text!("Loading local usage…", "本地用量加载中…").to_string(),
+            theme::muted_style(),
+        ),
+    };
+    Line::from(Span::styled(text, style))
+}
+
+fn top_model_line(panel: &CodexAuthUsagePanelData) -> Line<'static> {
+    Line::from(Span::styled(
+        crate::tui_format!(
+            "Top model: {}",
+            "主要模型：{}",
+            panel
+                .top_model
+                .as_ref()
+                .map(|model| model.model.as_str())
+                .unwrap_or("-")
+        ),
+        theme::info_style(),
+    ))
+}
+
+fn local_usage_lines(app: &CodexAuthApp, budget: usize) -> Vec<Line<'static>> {
+    let Some(panel) = app.usage_panel_data() else {
+        return vec![usage_state_line(app)];
+    };
+    let mut lines = vec![usage_scope_line(&panel)];
+    if budget < 4 {
+        lines.push(Line::from(Span::styled(
+            crate::tui_text!(
+                "More space needed; statistics omitted",
+                "空间不足，统计已省略"
+            ),
+            theme::muted_style(),
+        )));
+        return lines;
+    }
+    lines.extend(usage_table_lines(&panel, budget >= 5));
+    if lines.len() < budget {
+        lines.push(top_model_line(&panel));
+    }
+    if lines.len() < budget
+        && let Some(note) = usage_note_line(&panel)
+    {
+        lines.push(note);
+    }
+    lines
+}
+
+fn draw_local_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
+    render_detail_card(
+        f,
+        area,
+        crate::tui_text!(
+            " Local usage · Tokens / Requests ",
+            " 本地用量 · Tokens / 请求数 "
+        ),
+        local_usage_lines(app, usize::from(area.height.saturating_sub(2))),
+    );
+}
+
+fn draw_combined_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
+    let budget = usize::from(area.height.saturating_sub(2));
+    let width = usize::from(area.width.saturating_sub(2));
+    let mut lines = quota_lines(app, width);
+    let status = quota_status_line(app);
+    let status_rows = usize::from(status.width() > 0);
+    if budget < 6 + status_rows {
+        let mut minimal = Vec::new();
+        if status_rows > 0 {
+            minimal.push(status);
+        }
+        minimal.append(&mut lines);
+        minimal.push(
+            app.usage_panel_data()
+                .map(|panel| usage_scope_line(&panel))
+                .unwrap_or_else(|| usage_state_line(app)),
+        );
+        minimal.truncate(budget.saturating_sub(1));
+        minimal.push(Line::from(Span::styled(
+            crate::tui_text!(
+                "More space needed; statistics omitted",
+                "空间不足，统计已省略"
+            ),
+            theme::muted_style(),
+        )));
+        render_detail_card(
+            f,
+            area,
+            crate::tui_text!(" Quota remaining · Local usage ", " 剩余配额 · 本地用量 "),
+            minimal,
+        );
+        return;
+    }
+    // Six rows are the indivisible quota + scope + three-statistic core.
+    // Below it, explicitly omit numbers instead of losing their scope.
+    let local_budget = budget.saturating_sub(2 + status_rows);
+    lines.extend(local_usage_lines(app, local_budget));
+    if status_rows > 0 {
+        lines.push(status);
+    }
+    if lines.len() > budget {
+        lines.truncate(budget.saturating_sub(1));
+        lines.push(Line::from(Span::styled(
+            crate::tui_text!("More space needed; details omitted", "空间不足，详情已省略"),
+            theme::muted_style(),
+        )));
+    }
+    render_detail_card(
+        f,
+        area,
+        crate::tui_text!(
+            " Quota remaining · Local usage (Tokens / Requests) ",
+            " 剩余配额 · 本地用量（Tokens / 请求数） "
+        ),
+        lines,
+    );
 }
 
 fn account_snapshot_lines(
@@ -1164,27 +1244,9 @@ fn account_snapshot_lines(
         Style::default().fg(theme::text())
     };
     let (refresh_text, refresh_style) = format_expires_at(account);
-    let preview_five = app.preview_cell_for_account(&account.name, PreviewMetricWindow::FiveHour);
-    let preview_seven = app.preview_cell_for_account(&account.name, PreviewMetricWindow::SevenDay);
-    let preview_five_style = preview_cell_style(&preview_five, false);
-    let preview_seven_style = preview_cell_style(&preview_seven, false);
     let (plan_text, plan_style) = quota_plan_for_account(app, account)
         .map(|plan| (plan, theme::info_style()))
         .unwrap_or_else(|| ("-".to_string(), theme::muted_style()));
-    let (hourly_reset, weekly_reset) = app
-        .selected_quota()
-        .and_then(|quota| quota.quota.as_ref())
-        .map(|quota| {
-            (
-                crate::tui::codex_auth::app::CodexAuthApp::quota_reset_detail_text(
-                    quota.hourly_reset_time,
-                ),
-                crate::tui::codex_auth::app::CodexAuthApp::quota_reset_detail_text(
-                    quota.weekly_reset_time,
-                ),
-            )
-        })
-        .unwrap_or_else(|| ("-".to_string(), "-".to_string()));
 
     vec![
         detail_line("Account:", account.name.clone(), account_style),
@@ -1213,57 +1275,7 @@ fn account_snapshot_lines(
             Style::default().fg(theme::text()),
         ),
         detail_line("Last refresh:", refresh_text, refresh_style),
-        preview_reset_detail_line("5h:", preview_five.text, preview_five_style, hourly_reset),
-        preview_reset_detail_line("7d:", preview_seven.text, preview_seven_style, weekly_reset),
     ]
-}
-
-fn usage_digest_lines(panel: &CodexAuthUsagePanelData) -> Vec<Line<'static>> {
-    let usage = &panel.rolling;
-    let five_total = usage.five_hour.total_input_tokens + usage.five_hour.total_output_tokens;
-    let seven_total = usage.seven_day.total_input_tokens + usage.seven_day.total_output_tokens;
-    let all_time = usage.all_time.total_input_tokens + usage.all_time.total_output_tokens;
-
-    let top_model = panel
-        .top_model
-        .as_ref()
-        .map(|top| {
-            crate::tui_format!(
-                "  Top model: {} ({}, {} req)",
-                "  主要模型：{}（{}，{} 次请求）",
-                top.model,
-                CodexUsageService::format_tokens(top.total_tokens),
-                top.total_requests
-            )
-        })
-        .unwrap_or_else(|| crate::tui_text!("  Top model: -", "  主要模型：-").to_string());
-
-    vec![
-        Line::from(crate::tui_format!(
-            "  5 hours: {} tokens ({} requests)",
-            "  5小时：{} tokens（{} 请求）",
-            CodexUsageService::format_tokens(five_total),
-            usage.five_hour.total_requests
-        )),
-        Line::from(crate::tui_format!(
-            "  7 days:  {} tokens ({} requests)",
-            "  7天：  {} tokens（{} 请求）",
-            CodexUsageService::format_tokens(seven_total),
-            usage.seven_day.total_requests
-        )),
-        Line::from(crate::tui_format!(
-            "  All time: {} tokens ({} requests)",
-            "  全时段：{} tokens（{} 请求）",
-            CodexUsageService::format_tokens(all_time),
-            usage.all_time.total_requests
-        )),
-        Line::from(top_model),
-    ]
-}
-
-fn is_refresh_token_reused_error(message: &str) -> bool {
-    let lower = message.to_ascii_lowercase();
-    lower.contains("refresh_token_reused") || lower.contains("invalid_grant")
 }
 
 /// Draw help bar (overlay-aware)
@@ -1308,19 +1320,17 @@ pub fn draw_embedded(
     mode: crate::tui::theme::ViewportMode,
 ) {
     match mode {
-        crate::tui::theme::ViewportMode::Compact => {
+        crate::tui::theme::ViewportMode::Compact | crate::tui::theme::ViewportMode::Standard => {
+            let list_height = if content_area.height <= 12 {
+                3
+            } else if content_area.height <= 16 {
+                4
+            } else {
+                6
+            };
             let content_chunks = Layout::default()
                 .direction(Direction::Vertical)
-                .constraints([Constraint::Min(8), Constraint::Length(12)])
-                .split(content_area);
-
-            draw_account_list_with_status(f, content_chunks[0], app);
-            draw_usage_panel(f, content_chunks[1], app);
-        }
-        crate::tui::theme::ViewportMode::Standard => {
-            let content_chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Min(10), Constraint::Length(14)])
+                .constraints([Constraint::Length(list_height), Constraint::Min(0)])
                 .split(content_area);
 
             draw_account_list_with_status(f, content_chunks[0], app);
@@ -1329,17 +1339,21 @@ pub fn draw_embedded(
         crate::tui::theme::ViewportMode::Wide => {
             let columns = Layout::default()
                 .direction(Direction::Horizontal)
-                .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
                 .split(content_area);
 
             draw_account_list_with_status(f, columns[0], app);
 
-            let right = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Length(13), Constraint::Min(12)])
-                .split(columns[1]);
-            draw_account_snapshot_panel(f, right[0], app);
-            draw_usage_panel(f, right[1], app);
+            if content_area.height < 23 {
+                draw_combined_panel(f, columns[1], app);
+            } else {
+                let right = Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([Constraint::Length(12), Constraint::Min(0)])
+                    .split(columns[1]);
+                draw_account_snapshot_panel(f, right[0], app);
+                draw_local_usage_panel(f, right[1], app);
+            }
         }
     }
 
@@ -1411,12 +1425,12 @@ pub fn draw_loading_placeholder(
 }
 
 fn draw_account_list_with_status(f: &mut Frame, area: Rect, app: &mut CodexAuthApp) {
-    let title = crate::tui_format!(" Accounts · {} ", " 账号列表 · {} ", login_status_text(app));
+    let title = crate::tui_text!(" Accounts ", " 账号列表 ").to_string();
     render_account_list_panel(f, area, app, title);
 }
 
 fn draw_account_snapshot_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
-    let lines = app
+    let mut lines = app
         .selected_account()
         .map(|account| account_snapshot_lines(app, account))
         .unwrap_or_else(|| {
@@ -1426,17 +1440,18 @@ fn draw_account_snapshot_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
             ]
         });
 
-    let panel = Paragraph::new(lines)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme::codex()))
-                .title(crate::tui_text!(" Focus ", " 当前焦点 "))
-                .title_style(theme::codex_style()),
-        )
-        .wrap(Wrap { trim: true });
-
-    f.render_widget(panel, area);
+    lines.push(Line::from(Span::styled(
+        crate::tui_text!("Quota remaining", "剩余配额"),
+        theme::info_style(),
+    )));
+    lines.extend(quota_lines(app, usize::from(area.width.saturating_sub(2))));
+    lines.push(quota_status_line(app));
+    render_detail_card(
+        f,
+        area,
+        crate::tui_text!(" Account & quota ", " 账号与配额 "),
+        lines,
+    );
 }
 
 fn draw_footer_strip(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
@@ -1486,40 +1501,6 @@ fn draw_footer_strip(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     f.render_widget(help, area);
 }
 
-fn scope_line(label: &str, value: impl Into<String>, style: Style) -> Line<'static> {
-    detail_line(label, value.into(), style)
-}
-
-fn usage_scope_badge(panel: &CodexAuthUsagePanelData) -> (String, Style) {
-    match &panel.scope {
-        CodexUsageScope::GlobalRuntime => (
-            crate::tui_text!("global runtime", "全局运行时").to_string(),
-            theme::info_style(),
-        ),
-        CodexUsageScope::AccountAttributed { account_name } => (
-            crate::tui_format!("attributed to {}", "归因到 {}", account_name),
-            theme::success_style(),
-        ),
-    }
-}
-
-fn usage_attribution_label(state: CodexUsageAttributionState) -> &'static str {
-    match state {
-        CodexUsageAttributionState::GlobalOnly => {
-            crate::tui_text!("global aggregate", "全局汇总")
-        }
-        CodexUsageAttributionState::AccountAttributed => {
-            crate::tui_text!("CCR ledger matched", "CCR 账本已匹配")
-        }
-        CodexUsageAttributionState::VirtualAccount => {
-            crate::tui_text!("unsaved runtime login", "未保存的运行时登录")
-        }
-        CodexUsageAttributionState::UnattributedFallback => {
-            crate::tui_text!("global fallback", "全局回退")
-        }
-    }
-}
-
 fn usage_attribution_style(state: CodexUsageAttributionState) -> Style {
     match state {
         CodexUsageAttributionState::AccountAttributed => theme::success_style(),
@@ -1530,11 +1511,324 @@ fn usage_attribution_style(state: CodexUsageAttributionState) -> Style {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
+    use super::super::app::QuotaState;
     use super::*;
     use chrono::{TimeZone, Utc};
     use ratatui::{Terminal, backend::TestBackend};
     use std::path::PathBuf;
+
+    pub(crate) fn presentation_fixture() -> (tempfile::TempDir, CodexAuthApp) {
+        let dir = tempfile::tempdir().expect("isolated Codex Auth fixture directory");
+        let service = ccr_cli::services::CodexAuthService::from_dirs(
+            dir.path().join("ccr"),
+            dir.path().join("codex"),
+        );
+        let mut app = CodexAuthApp::from_service(service).expect("injected Codex Auth service");
+        let account = sample_account();
+        app.accounts = vec![account.clone()];
+        app.selected_index = 0;
+        app.auth_registry
+            .accounts
+            .insert(account.name.clone(), sample_registry_account(None));
+        let now = Utc::now();
+        app.auth_registry.record_usage_activation(
+            &account.name,
+            "acc-codexcn",
+            now - chrono::Duration::hours(2),
+        );
+        app.auth_registry.record_usage_activation(
+            "other",
+            "acc-other",
+            now - chrono::Duration::minutes(45),
+        );
+        let records = vec![
+            ccr_cli::services::CodexUsageRecord {
+                session_id: "selected".into(),
+                timestamp: now - chrono::Duration::hours(1),
+                input_tokens: 12_000,
+                output_tokens: 345,
+                model: Some("gpt-example".into()),
+            },
+            ccr_cli::services::CodexUsageRecord {
+                session_id: "other".into(),
+                timestamp: now - chrono::Duration::minutes(30),
+                input_tokens: 900_000,
+                output_tokens: 0,
+                model: Some("other-model".into()),
+            },
+        ];
+        app.usage_state = UsageState::Loaded(super::super::app::CodexUsageDataset {
+            global: ccr_cli::services::CodexUsageService::compute_rolling_usage_for_records(
+                &records,
+            ),
+            records,
+        });
+        app.preview_cache.insert(
+            account.name.clone(),
+            super::super::app::QuotaPreviewEntry {
+                quota: ccr_cli::models::CodexAccountQuota {
+                    account_name: account.name,
+                    email: account.email,
+                    quota: Some(ccr_cli::models::CodexQuota {
+                        hourly_percentage: 80,
+                        weekly_percentage: 10,
+                        hourly_reset_time: Some((now + chrono::Duration::hours(2)).timestamp()),
+                        weekly_reset_time: Some((now + chrono::Duration::days(3)).timestamp()),
+                        hourly_window_present: Some(true),
+                        weekly_window_present: Some(true),
+                        hourly_window_minutes: Some(300),
+                        weekly_window_minutes: Some(10080),
+                        plan_type: Some("pro".into()),
+                        raw_data: None,
+                    }),
+                    error: None,
+                    fetched_at: now - chrono::Duration::minutes(5),
+                },
+            },
+        );
+        (dir, app)
+    }
+
+    pub(crate) fn set_fixture_quota_error(app: &mut CodexAuthApp) {
+        app.quota_state = QuotaState::Error {
+            account_name: "codexcn".into(),
+            message: "fixture unavailable".into(),
+            cache: Default::default(),
+        };
+    }
+
+    #[test]
+    fn remaining_quota_bar_fill_colors_and_presence_share_the_value() {
+        for percentage in [0, 10, 50, 80, 100, -1, 101] {
+            let line = quota_window_line("5h", percentage, Some(true), None, 80);
+            let text = plain_line_text(&line);
+            let value = percentage.clamp(0, 100);
+            assert_eq!(text.matches('█').count(), value as usize / 5, "{text}");
+            assert_eq!(text.matches('░').count(), 20 - value as usize / 5, "{text}");
+            assert!(text.contains(&format!("{value:>3}%")));
+            assert_eq!(line.spans[1].style.fg, Some(theme::quota_color(value)));
+            assert_eq!(line.spans[2].style.fg, Some(theme::muted()));
+            assert_eq!(line.spans[4].style.fg, Some(theme::quota_color(value)));
+        }
+        let (_dir, mut app) = presentation_fixture();
+        for present in [Some(false), None, Some(true)] {
+            let entry = app
+                .preview_cache
+                .get_mut("codexcn")
+                .expect("fixture preview");
+            let quota = entry.quota.quota.as_mut().expect("fixture quota");
+            quota.hourly_window_present = present;
+            quota.weekly_window_present = present;
+            for (index, window) in [PreviewMetricWindow::FiveHour, PreviewMetricWindow::SevenDay]
+                .into_iter()
+                .enumerate()
+            {
+                let preview = app.preview_cell_for_account("codexcn", window);
+                let detail = plain_line_text(&quota_lines(&app, 80)[index]);
+                assert_eq!(preview.text.contains('%'), present == Some(true));
+                assert_eq!(detail.contains('░'), present == Some(true));
+                if present == Some(false) {
+                    assert!(detail.contains("Not provided"));
+                }
+                if present.is_none() {
+                    assert!(detail.contains("Unknown window"));
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn cached_idle_refresh_and_failure_keep_bars_and_fetch_time() {
+        let (_dir, mut app) = presentation_fixture();
+        for state in [
+            QuotaState::Idle,
+            QuotaState::Loading {
+                account_name: "codexcn".into(),
+                cache: Default::default(),
+            },
+            QuotaState::Error {
+                account_name: "codexcn".into(),
+                message: "network unavailable".into(),
+                cache: Default::default(),
+            },
+        ] {
+            app.quota_state = state;
+            let mut terminal = Terminal::new(TestBackend::new(70, 12)).unwrap();
+            terminal
+                .draw(|frame| draw_combined_panel(frame, frame.area(), &app))
+                .unwrap();
+            let text = buffer_text(terminal.backend());
+            assert!(text.contains('█'), "{text}");
+            assert!(text.contains("Cached"), "{text}");
+            assert!(text.contains("12.3K"), "{text}");
+            if app.is_selected_quota_loading() {
+                assert!(text.contains("Refreshing"), "{text}");
+            }
+            if app.selected_quota_error().is_some() {
+                assert!(text.contains("Quota error: network unavailable"), "{text}");
+                let cell = terminal
+                    .backend()
+                    .buffer()
+                    .content
+                    .iter()
+                    .find(|cell| cell.symbol() == "Q" && cell.fg == theme::error());
+                assert!(cell.is_some(), "{text}");
+            }
+        }
+        app.preview_cache.clear();
+        assert!(
+            quota_lines(&app, 60)
+                .iter()
+                .all(|line| !plain_line_text(line).contains('█'))
+        );
+        assert!(plain_line_text(&quota_status_line(&app)).contains("network unavailable"));
+        app.quota_state = QuotaState::Loading {
+            account_name: "codexcn".into(),
+            cache: Default::default(),
+        };
+        assert!(plain_line_text(&quota_lines(&app, 60)[0]).contains("Loading"));
+        app.quota_state = QuotaState::Idle;
+        assert!(plain_line_text(&quota_lines(&app, 60)[0]).contains("No cached quota"));
+    }
+
+    #[test]
+    fn attribution_notes_are_neutral_and_fallback_scope_stays_with_numbers() {
+        let (_dir, mut app) = presentation_fixture();
+        let panel = app.usage_panel_data().expect("fixture usage panel");
+        let note = usage_note_line(&panel).expect("fixture coverage note");
+        assert_eq!(note.spans[0].style.fg, Some(theme::muted()));
+        assert!(plain_line_text(&note).contains("other accounts"));
+        assert_eq!(panel.rolling.all_time.total_input_tokens, 12_000);
+        for fallback in 0..3 {
+            let (_dir, mut fallback_app) = presentation_fixture();
+            match fallback {
+                0 => fallback_app.auth_registry.accounts.clear(),
+                1 => fallback_app.auth_registry.usage_ledger.clear(),
+                _ => fallback_app.accounts[0].is_virtual = true,
+            }
+            let panel = fallback_app
+                .usage_panel_data()
+                .expect("fixture global fallback panel");
+            let lines = local_usage_lines(&fallback_app, 4);
+            assert!(plain_line_text(&lines[0]).contains("Local: global (not selected)"));
+            assert_eq!(lines[0].spans[0].style.fg, Some(theme::warning()));
+            assert!(
+                plain_line_text(&lines[0]).contains(
+                    panel
+                        .fallback_reason
+                        .as_deref()
+                        .expect("fixture fallback reason")
+                )
+            );
+            assert_eq!(panel.rolling.all_time.total_input_tokens, 912_000);
+            assert_eq!(lines.len(), 4);
+        }
+        app.usage_state = UsageState::Error("fixture read failure".into());
+        assert_eq!(
+            usage_state_line(&app).spans[0].style.fg,
+            Some(theme::error())
+        );
+        app.usage_state = UsageState::NoData;
+        assert_eq!(
+            usage_state_line(&app).spans[0].style.fg,
+            Some(theme::muted())
+        );
+    }
+
+    #[test]
+    fn long_cjk_identity_model_and_error_are_clipped_without_hiding_statistics() {
+        let (_dir, mut app) = presentation_fixture();
+        let name = "测试账号".repeat(20);
+        app.accounts[0].name = name.clone();
+        let account = app
+            .auth_registry
+            .accounts
+            .shift_remove("codexcn")
+            .expect("fixture registered account");
+        app.auth_registry.accounts.insert(name.clone(), account);
+        let mut quota = app
+            .preview_cache
+            .shift_remove("codexcn")
+            .expect("fixture cached quota");
+        quota.quota.account_name = name.clone();
+        app.preview_cache.insert(name.clone(), quota);
+        if let UsageState::Loaded(dataset) = &mut app.usage_state {
+            dataset.records[0].model = Some("非常长的模型名称".repeat(20));
+        }
+        app.quota_state = QuotaState::Error {
+            account_name: name,
+            message: "long fixture failure ".repeat(20),
+            cache: Default::default(),
+        };
+        let mut terminal = Terminal::new(TestBackend::new(70, 12)).unwrap();
+        terminal
+            .draw(|frame| draw_combined_panel(frame, frame.area(), &app))
+            .unwrap();
+        let text = buffer_text(terminal.backend());
+        assert_eq!(text.matches("12.3K").count(), 3, "{text}");
+        assert!(text.contains("Local: account"), "{text}");
+        assert!(text.contains("Top model:"), "{text}");
+        assert!(text.contains("Quota error:"), "{text}");
+        assert!(text.matches('…').count() >= 3, "{text}");
+        for y in 1..11 {
+            assert_eq!(
+                terminal
+                    .backend()
+                    .buffer()
+                    .cell((69, y))
+                    .expect("right border cell within fixture")
+                    .symbol(),
+                "│"
+            );
+        }
+        app.pending_quota_confirm = true;
+        assert!(plain_line_text(&quota_status_line(&app)).contains("y confirm"));
+    }
+
+    #[test]
+    fn compact_counts_promote_rounded_units_and_columns_align_in_both_languages() {
+        for (value, expected) in [
+            (0, "0"),
+            (999, "999"),
+            (1_000, "1K"),
+            (999_950, "1M"),
+            (1_234_567, "1.2M"),
+            (6_371_200_000, "6.4B"),
+            (1_000_000_000_000, "1T"),
+        ] {
+            assert_eq!(format_compact_count(value), expected);
+        }
+        let (_dir, app) = presentation_fixture();
+        for language in [
+            ccr_cli::managers::TuiLanguage::English,
+            ccr_cli::managers::TuiLanguage::SimplifiedChinese,
+        ] {
+            crate::tui::i18n::set_language(language);
+            let rows =
+                usage_table_lines(&app.usage_panel_data().expect("fixture usage panel"), true);
+            let widths: Vec<_> = rows.iter().map(Line::width).collect();
+            assert!(widths.iter().all(|width| *width == 27), "{widths:?}");
+            for line in &rows[1..] {
+                assert_eq!(line.spans[0].width(), 8);
+                assert!(plain_line_text(line).ends_with("         1"));
+            }
+            let line = clipped_line(
+                Line::from(vec![
+                    Span::raw("账号："),
+                    Span::styled("很长的模型名字".repeat(10), theme::error_style()),
+                ]),
+                23,
+            );
+            assert!(plain_line_text(&line).ends_with('…'));
+            assert!(line.width() <= 23);
+            assert_eq!(
+                line.spans.last().expect("truncated line ellipsis").style.fg,
+                Some(theme::error())
+            );
+        }
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
+    }
 
     fn sample_account() -> ccr_cli::models::CodexAuthItem {
         ccr_cli::models::CodexAuthItem {
@@ -1707,15 +2001,14 @@ mod tests {
         assert!(plain_line_text(&lines[0]).contains("codexcn"));
         assert!(plain_line_text(&lines[3]).contains("PLUS"));
         assert!(plain_line_text(&lines[4]).contains("Saved at:"));
-        assert!(plain_line_text(&lines[5]).contains("Last refresh:"));
-        assert!(plain_line_text(&lines[6]).contains("5h:"));
-        assert!(plain_line_text(&lines[6]).contains("95%"));
-        assert!(plain_line_text(&lines[6]).contains("Reset"));
-        assert!(plain_line_text(&lines[6]).contains("m"));
-        assert!(plain_line_text(&lines[7]).contains("7d:"));
-        assert!(plain_line_text(&lines[7]).contains("33%"));
-        assert!(plain_line_text(&lines[7]).contains("Reset"));
-        assert!(plain_line_text(&lines[7]).contains("m"));
+        assert!(plain_line_text(&lines[5]).contains("Auth refresh:"));
+        let quota = quota_lines(&app, 80);
+        assert!(plain_line_text(&quota[0]).contains("5h "));
+        assert!(plain_line_text(&quota[0]).contains("95%"));
+        assert!(plain_line_text(&quota[0]).contains("Reset"));
+        assert!(plain_line_text(&quota[1]).contains("7d "));
+        assert!(plain_line_text(&quota[1]).contains("33%"));
+        assert!(plain_line_text(&quota[1]).contains("Reset"));
         assert_eq!(lines[0].spans[0].style.fg, Some(theme::subtext()));
         assert_eq!(lines[0].spans[1].style.fg, Some(theme::success()));
         assert_eq!(lines[2].spans[1].style.fg, Some(theme::info()));
@@ -2065,9 +2358,13 @@ mod tests {
             .unwrap();
 
         let rendered = buffer_text(terminal.backend());
-        assert!(rendered.contains("7d:"), "{rendered}");
+        assert!(rendered.contains("7d "), "{rendered}");
         assert!(rendered.contains("Reset"), "{rendered}");
         assert!(rendered.contains("5d6h13m"), "{rendered}");
+        assert!(
+            rendered.contains('█'),
+            "cached Idle quota must show a bar: {rendered}"
+        );
     }
 
     #[test]
@@ -2096,15 +2393,16 @@ mod tests {
             fallback_reason: None,
         };
 
-        let lines: Vec<String> = usage_digest_lines(&panel)
+        let lines: Vec<String> = usage_table_lines(&panel, true)
             .into_iter()
+            .chain([top_model_line(&panel)])
             .map(|line| plain_line_text(&line))
             .collect();
 
         assert!(
-            lines
-                .iter()
-                .any(|line| line.contains("All time: 60.0K tokens"))
+            lines.iter().any(|line| line.contains("All time")
+                && line.contains("60K")
+                && line.contains("42"))
         );
         assert!(lines.iter().any(|line| line.contains("Top model: gpt-5.4")));
     }
@@ -2170,11 +2468,11 @@ mod tests {
 
         let rendered = buffer_text(terminal.backend());
         let compact = compact_text(&rendered);
-        assert!(compact.contains("Usage&Quota"), "{rendered}");
-        assert!(compact.contains("Quotascope:selectedaccount"), "{rendered}");
-        assert!(compact.contains("Reset:"), "{rendered}");
-        assert!(compact.contains("7dlimit:"), "{rendered}");
-        assert!(compact.contains("Attribution:globalfallback"), "{rendered}");
-        assert!(compact.contains("Note:CCR"), "{rendered}");
+        assert!(compact.contains("Quotaremaining"), "{rendered}");
+        assert!(compact.contains("Localusage"), "{rendered}");
+        assert!(compact.contains("Reset"), "{rendered}");
+        assert!(compact.contains("7d"), "{rendered}");
+        assert!(compact.contains("Local:global(notselected)"), "{rendered}");
+        assert!(compact.contains("MissingCCRaccountmetadata"), "{rendered}");
     }
 }

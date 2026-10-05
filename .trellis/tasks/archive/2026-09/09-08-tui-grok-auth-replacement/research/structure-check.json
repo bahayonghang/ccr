@@ -1,0 +1,498 @@
+{
+  "repo_root": "D:/Documents/Code/Github/ccr",
+  "review_scope": {
+    "mode": "task-tree",
+    "root": "09-08-tui-grok-auth-replacement",
+    "task_count": 4,
+    "members": [
+      {
+        "name": "09-08-tui-grok-auth-replacement",
+        "path": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-08-tui-grok-auth-replacement",
+        "location": "active",
+        "status": "planning"
+      },
+      {
+        "name": "09-08-opencode-auth-residual-cleanup",
+        "path": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-08-opencode-auth-residual-cleanup",
+        "location": "active",
+        "status": "planning"
+      },
+      {
+        "name": "09-08-grok-auth-account-service",
+        "path": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-08-grok-auth-account-service",
+        "location": "active",
+        "status": "planning"
+      },
+      {
+        "name": "09-08-grok-auth-multi-account-tui",
+        "path": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-08-grok-auth-multi-account-tui",
+        "location": "active",
+        "status": "planning"
+      }
+    ],
+    "edges": [
+      {
+        "parent": "09-08-tui-grok-auth-replacement",
+        "child": "09-08-opencode-auth-residual-cleanup"
+      },
+      {
+        "parent": "09-08-tui-grok-auth-replacement",
+        "child": "09-08-grok-auth-account-service"
+      },
+      {
+        "parent": "09-08-tui-grok-auth-replacement",
+        "child": "09-08-grok-auth-multi-account-tui"
+      }
+    ],
+    "legacy_fallback_tasks": []
+  },
+  "tasks": [
+    {
+      "task_dir": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-08-tui-grok-auth-replacement",
+      "task_status": "planning",
+      "artifacts": {
+        "present": {
+          "prd.md": true,
+          "design.md": true,
+          "implement.md": true,
+          "implement.jsonl": true,
+          "check.jsonl": true,
+          "task.json": true
+        },
+        "shape": "complex",
+        "note": ""
+      },
+      "placeholders": [],
+      "citations": {
+        "total": 4,
+        "by_status": {
+          "resolved": 4
+        },
+        "entries": [
+          {
+            "artifact": "prd.md",
+            "artifact_line": 9,
+            "citation": "crates/ccr/src/main.rs:38",
+            "status": "resolved",
+            "resolved_path": "crates/ccr/src/main.rs",
+            "file_lines": 58
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 9,
+            "citation": "crates/ccr-tui/src/tui/app.rs:586",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-tui/src/tui/app.rs",
+            "file_lines": 2627
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 10,
+            "citation": "crates/ccr-cli/src/services/grok_auth_service.rs:25",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-cli/src/services/grok_auth_service.rs",
+            "file_lines": 42
+          },
+          {
+            "artifact": "prd.md",
+            "artifact_line": 59,
+            "citation": "crates/ccr-config/src/managers/tui_config.rs:200",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-config/src/managers/tui_config.rs",
+            "file_lines": 647
+          }
+        ]
+      },
+      "identifiers": {
+        "requirements": [
+          "R1",
+          "R2",
+          "R3",
+          "R4",
+          "R5",
+          "R6",
+          "R7",
+          "R8",
+          "R9"
+        ],
+        "criteria": [
+          {
+            "id": "AC1",
+            "requirements": [
+              "R1",
+              "R2"
+            ],
+            "clause_hint": 3
+          },
+          {
+            "id": "AC2",
+            "requirements": [
+              "R3"
+            ],
+            "clause_hint": 8
+          },
+          {
+            "id": "AC3",
+            "requirements": [
+              "R4",
+              "R7"
+            ],
+            "clause_hint": 6
+          },
+          {
+            "id": "AC4",
+            "requirements": [
+              "R4",
+              "R8"
+            ],
+            "clause_hint": 4
+          },
+          {
+            "id": "AC5",
+            "requirements": [
+              "R5"
+            ],
+            "clause_hint": 4
+          },
+          {
+            "id": "AC6",
+            "requirements": [
+              "R6"
+            ],
+            "clause_hint": 4
+          },
+          {
+            "id": "AC7",
+            "requirements": [
+              "R6",
+              "R7"
+            ],
+            "clause_hint": 3
+          },
+          {
+            "id": "AC8",
+            "requirements": [
+              "R7"
+            ],
+            "clause_hint": 4
+          },
+          {
+            "id": "AC9",
+            "requirements": [
+              "R1",
+              "R9"
+            ],
+            "clause_hint": 3
+          },
+          {
+            "id": "AC10",
+            "requirements": [
+              "R1",
+              "R9"
+            ],
+            "clause_hint": 3
+          }
+        ],
+        "criteria_without_requirement": [],
+        "requirements_without_criterion": [],
+        "referenced_but_undefined": []
+      },
+      "blocking": [],
+      "drift_pass_required": false,
+      "task_name": "09-08-tui-grok-auth-replacement",
+      "location": "active"
+    },
+    {
+      "task_dir": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-08-opencode-auth-residual-cleanup",
+      "task_status": "planning",
+      "artifacts": {
+        "present": {
+          "prd.md": true,
+          "design.md": true,
+          "implement.md": true,
+          "implement.jsonl": true,
+          "check.jsonl": true,
+          "task.json": true
+        },
+        "shape": "complex",
+        "note": ""
+      },
+      "placeholders": [],
+      "citations": {
+        "total": 4,
+        "by_status": {
+          "resolved": 4
+        },
+        "entries": [
+          {
+            "artifact": "design.md",
+            "artifact_line": 4,
+            "citation": "crates/ccr-config/src/managers/tui_config.rs:121",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-config/src/managers/tui_config.rs",
+            "file_lines": 647
+          },
+          {
+            "artifact": "design.md",
+            "artifact_line": 5,
+            "citation": "crates/ccr-codex/src/utils.rs:62",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-codex/src/utils.rs",
+            "file_lines": 293
+          },
+          {
+            "artifact": "design.md",
+            "artifact_line": 6,
+            "citation": "crates/ccr-tui/src/tui/theme.rs:81",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-tui/src/tui/theme.rs",
+            "file_lines": 817
+          },
+          {
+            "artifact": "design.md",
+            "artifact_line": 12,
+            "citation": "README.md:12",
+            "status": "resolved",
+            "resolved_path": "README.md",
+            "file_lines": 74
+          }
+        ]
+      },
+      "identifiers": {
+        "requirements": [
+          "R1",
+          "R2",
+          "R3"
+        ],
+        "criteria": [
+          {
+            "id": "AC1",
+            "requirements": [
+              "R1"
+            ],
+            "clause_hint": 2
+          },
+          {
+            "id": "AC2",
+            "requirements": [
+              "R2"
+            ],
+            "clause_hint": 2
+          },
+          {
+            "id": "AC3",
+            "requirements": [
+              "R3"
+            ],
+            "clause_hint": 4
+          }
+        ],
+        "criteria_without_requirement": [],
+        "requirements_without_criterion": [],
+        "referenced_but_undefined": []
+      },
+      "blocking": [],
+      "drift_pass_required": false,
+      "task_name": "09-08-opencode-auth-residual-cleanup",
+      "location": "active"
+    },
+    {
+      "task_dir": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-08-grok-auth-account-service",
+      "task_status": "planning",
+      "artifacts": {
+        "present": {
+          "prd.md": true,
+          "design.md": true,
+          "implement.md": true,
+          "implement.jsonl": true,
+          "check.jsonl": true,
+          "task.json": true
+        },
+        "shape": "complex",
+        "note": ""
+      },
+      "placeholders": [],
+      "citations": {
+        "total": 1,
+        "by_status": {
+          "resolved": 1
+        },
+        "entries": [
+          {
+            "artifact": "design.md",
+            "artifact_line": 7,
+            "citation": "application/auth_off.rs:341",
+            "status": "resolved",
+            "resolved_path": "crates/ccr-cli/src/application/auth_off.rs",
+            "file_lines": 767
+          }
+        ]
+      },
+      "identifiers": {
+        "requirements": [
+          "R1",
+          "R2",
+          "R3",
+          "R4",
+          "R5",
+          "R6"
+        ],
+        "criteria": [
+          {
+            "id": "AC1",
+            "requirements": [
+              "R1",
+              "R2"
+            ],
+            "clause_hint": 8
+          },
+          {
+            "id": "AC2",
+            "requirements": [
+              "R3"
+            ],
+            "clause_hint": 4
+          },
+          {
+            "id": "AC3",
+            "requirements": [
+              "R3",
+              "R6"
+            ],
+            "clause_hint": 3
+          },
+          {
+            "id": "AC4",
+            "requirements": [
+              "R4"
+            ],
+            "clause_hint": 3
+          },
+          {
+            "id": "AC5",
+            "requirements": [
+              "R5"
+            ],
+            "clause_hint": 8
+          },
+          {
+            "id": "AC6",
+            "requirements": [
+              "R5"
+            ],
+            "clause_hint": 4
+          },
+          {
+            "id": "AC7",
+            "requirements": [
+              "R6"
+            ],
+            "clause_hint": 3
+          },
+          {
+            "id": "AC8",
+            "requirements": [
+              "R1",
+              "R6"
+            ],
+            "clause_hint": 3
+          }
+        ],
+        "criteria_without_requirement": [],
+        "requirements_without_criterion": [],
+        "referenced_but_undefined": []
+      },
+      "blocking": [],
+      "drift_pass_required": false,
+      "task_name": "09-08-grok-auth-account-service",
+      "location": "active"
+    },
+    {
+      "task_dir": "D:/Documents/Code/Github/ccr/.trellis/tasks/09-08-grok-auth-multi-account-tui",
+      "task_status": "planning",
+      "artifacts": {
+        "present": {
+          "prd.md": true,
+          "design.md": true,
+          "implement.md": true,
+          "implement.jsonl": true,
+          "check.jsonl": true,
+          "task.json": true
+        },
+        "shape": "complex",
+        "note": ""
+      },
+      "placeholders": [],
+      "citations": {
+        "total": 0,
+        "by_status": {},
+        "entries": []
+      },
+      "identifiers": {
+        "requirements": [
+          "R1",
+          "R2",
+          "R3",
+          "R4",
+          "R5"
+        ],
+        "criteria": [
+          {
+            "id": "AC1",
+            "requirements": [
+              "R1"
+            ],
+            "clause_hint": 2
+          },
+          {
+            "id": "AC2",
+            "requirements": [
+              "R2"
+            ],
+            "clause_hint": 4
+          },
+          {
+            "id": "AC3",
+            "requirements": [
+              "R3"
+            ],
+            "clause_hint": 4
+          },
+          {
+            "id": "AC4",
+            "requirements": [
+              "R4"
+            ],
+            "clause_hint": 6
+          },
+          {
+            "id": "AC5",
+            "requirements": [
+              "R4"
+            ],
+            "clause_hint": 3
+          },
+          {
+            "id": "AC6",
+            "requirements": [
+              "R5"
+            ],
+            "clause_hint": 3
+          }
+        ],
+        "criteria_without_requirement": [],
+        "requirements_without_criterion": [],
+        "referenced_but_undefined": []
+      },
+      "blocking": [],
+      "drift_pass_required": false,
+      "task_name": "09-08-grok-auth-multi-account-tui",
+      "location": "active"
+    }
+  ],
+  "reviews_git": {
+    "path": ".trellis/reviews/09-08-tui-grok-auth-replacement.md",
+    "state": "ignored"
+  },
+  "blocking": []
+}

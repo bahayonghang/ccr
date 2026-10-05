@@ -1,0 +1,423 @@
+[
+  {
+    "package": "rand-0.7.3",
+    "manifest": "C:\\Users\\lyh\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\rand-0.7.3\\Cargo.toml",
+    "sha256": "4bc436e4b01131f4809c2d3dbdd3ede6987135d3fb53f718cd4a85cafa240224",
+    "repository": "https://github.com/rust-random/rand",
+    "selected_dependencies": {
+      "dependencies": {
+        "log": {
+          "version": "0.4.4",
+          "optional": true
+        }
+      },
+      "build-dependencies": {}
+    },
+    "features": {
+      "alloc": [
+        "rand_core/alloc"
+      ],
+      "default": [
+        "std"
+      ],
+      "getrandom": [
+        "getrandom_package",
+        "rand_core/getrandom"
+      ],
+      "nightly": [
+        "simd_support"
+      ],
+      "serde1": [],
+      "simd_support": [
+        "packed_simd"
+      ],
+      "small_rng": [
+        "rand_pcg"
+      ],
+      "std": [
+        "rand_core/std",
+        "rand_chacha/std",
+        "alloc",
+        "getrandom",
+        "libc"
+      ],
+      "stdweb": [
+        "getrandom_package/stdweb"
+      ],
+      "wasm-bindgen": [
+        "getrandom_package/wasm-bindgen"
+      ]
+    }
+  },
+  {
+    "package": "phf_generator-0.8.0",
+    "manifest": "C:\\Users\\lyh\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\phf_generator-0.8.0\\Cargo.toml",
+    "sha256": "ec1eb2e9f9c5a019eb9a45c09dad75a7b1a47423ca1af19909c2767aab66aa8a",
+    "repository": "https://github.com/sfackler/rust-phf",
+    "selected_dependencies": {
+      "dependencies": {
+        "rand": {
+          "version": "0.7",
+          "features": [
+            "small_rng"
+          ]
+        }
+      },
+      "build-dependencies": {}
+    },
+    "features": {}
+  },
+  {
+    "package": "phf_codegen-0.8.0",
+    "manifest": "C:\\Users\\lyh\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\phf_codegen-0.8.0\\Cargo.toml",
+    "sha256": "beb84099249ec78df70970f4ee8f61d65ef3ec960bc221972641ac98dac2f465",
+    "repository": "https://github.com/sfackler/rust-phf",
+    "selected_dependencies": {
+      "dependencies": {
+        "phf_generator": {
+          "version": "0.8.0"
+        }
+      },
+      "build-dependencies": {}
+    },
+    "features": {}
+  },
+  {
+    "package": "selectors-0.24.0",
+    "manifest": "C:\\Users\\lyh\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\selectors-0.24.0\\Cargo.toml",
+    "sha256": "91c32902a8dc9d10d7192360b2ac3b06a88b23247976804979c4449d349520dc",
+    "repository": "https://github.com/servo/servo",
+    "selected_dependencies": {
+      "dependencies": {
+        "fxhash": {
+          "version": "0.2"
+        },
+        "log": {
+          "version": "0.4"
+        }
+      },
+      "build-dependencies": {
+        "phf_codegen": {
+          "version": "0.8"
+        }
+      }
+    },
+    "features": {
+      "bench": [],
+      "shmem": [
+        "dep:to_shmem",
+        "dep:to_shmem_derive"
+      ]
+    }
+  },
+  {
+    "package": "kuchikiki-0.8.8-speedreader",
+    "manifest": "C:\\Users\\lyh\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\kuchikiki-0.8.8-speedreader\\Cargo.toml",
+    "sha256": "94b94b17400ad1408fa4fdab7884fce16e1d2219663e26a595b216a69f41c94d",
+    "repository": "https://github.com/brave/kuchikiki",
+    "selected_dependencies": {
+      "dependencies": {
+        "selectors": {
+          "version": "0.24"
+        }
+      },
+      "build-dependencies": {}
+    },
+    "features": {}
+  },
+  {
+    "package": "tauri-utils-2.9.3",
+    "manifest": "C:\\Users\\lyh\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\tauri-utils-2.9.3\\Cargo.toml",
+    "sha256": "6fba2793fa0b11e4695d1c0b71ae81487c2ba1d554bfb6b16c3034cfd85ecf2c",
+    "repository": "https://github.com/tauri-apps/tauri",
+    "selected_dependencies": {
+      "dependencies": {
+        "log": {
+          "version": "0.4.21"
+        },
+        "urlpattern": {
+          "version": "0.3"
+        },
+        "kuchiki": {
+          "version": "0.8.8-speedreader",
+          "optional": true,
+          "package": "kuchikiki"
+        }
+      },
+      "build-dependencies": {}
+    },
+    "features": {
+      "build": [
+        "proc-macro2",
+        "quote",
+        "cargo_metadata",
+        "schema",
+        "swift-rs",
+        "html-manipulation"
+      ],
+      "build-2": [
+        "proc-macro2",
+        "quote",
+        "cargo_metadata",
+        "schema",
+        "swift-rs",
+        "html-manipulation-2"
+      ],
+      "compression": [
+        "brotli"
+      ],
+      "config-json5": [
+        "json5"
+      ],
+      "config-toml": [],
+      "html-manipulation": [
+        "dep:html5ever",
+        "dep:kuchiki"
+      ],
+      "html-manipulation-2": [
+        "dep:dom_query"
+      ],
+      "isolation": [
+        "aes-gcm",
+        "getrandom",
+        "serialize-to-javascript"
+      ],
+      "process-relaunch-dangerous-allow-symlink-macos": [],
+      "resources": [
+        "walkdir"
+      ],
+      "schema": [
+        "schemars"
+      ]
+    }
+  },
+  {
+    "package": "urlpattern-0.3.0",
+    "manifest": "C:\\Users\\lyh\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\urlpattern-0.3.0\\Cargo.toml",
+    "sha256": "bfedb3d710fdccde80e0938828f81ab9279d509c87165379c991ac8281d48f0c",
+    "repository": "https://github.com/denoland/rust-urlpattern",
+    "selected_dependencies": {
+      "dependencies": {
+        "unic-ucd-ident": {
+          "version": "0.9.0",
+          "features": [
+            "id"
+          ]
+        }
+      },
+      "build-dependencies": {}
+    },
+    "features": {}
+  },
+  {
+    "package": "gtk-0.18.2",
+    "manifest": "C:\\Users\\lyh\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\gtk-0.18.2\\Cargo.toml",
+    "sha256": "dacc3e0ef2555a573d2ab1cfdb9237acd5ebfebb385ac1b4d45a72ba9e141af9",
+    "repository": "https://github.com/gtk-rs/gtk3-rs",
+    "selected_dependencies": {
+      "dependencies": {
+        "glib": {
+          "version": "0.18"
+        }
+      },
+      "build-dependencies": {}
+    },
+    "features": {
+      "gio_v2_58": [
+        "gio/v2_58"
+      ],
+      "unsafe-assume-initialized": [],
+      "v3_24": [
+        "ffi/v3_24"
+      ],
+      "v3_24_1": [
+        "v3_24",
+        "ffi/v3_24_1"
+      ],
+      "v3_24_11": [
+        "v3_24_9",
+        "ffi/v3_24_11"
+      ],
+      "v3_24_30": [
+        "v3_24_11",
+        "ffi/v3_24_30"
+      ],
+      "v3_24_8": [
+        "v3_24_1",
+        "ffi/v3_24_8"
+      ],
+      "v3_24_9": [
+        "v3_24_8",
+        "ffi/v3_24_9"
+      ]
+    }
+  },
+  {
+    "package": "glib-0.18.5",
+    "manifest": "C:\\Users\\lyh\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\glib-0.18.5\\Cargo.toml",
+    "sha256": "bcd52d812b4c111864ae8e88ba6c0a8311eb0cf781b5e81634950b4619592132",
+    "repository": "https://github.com/gtk-rs/gtk-rs-core",
+    "selected_dependencies": {
+      "dependencies": {
+        "glib-macros": {
+          "version": "0.18"
+        }
+      },
+      "build-dependencies": {}
+    },
+    "features": {
+      "compiletests": [],
+      "default": [
+        "gio"
+      ],
+      "gio": [
+        "gio_ffi"
+      ],
+      "log": [
+        "rs-log"
+      ],
+      "log_macros": [
+        "log"
+      ],
+      "v2_58": [
+        "ffi/v2_58",
+        "gobject_ffi/v2_58"
+      ],
+      "v2_60": [
+        "v2_58",
+        "ffi/v2_60"
+      ],
+      "v2_62": [
+        "v2_60",
+        "ffi/v2_62",
+        "gobject_ffi/v2_62"
+      ],
+      "v2_64": [
+        "v2_62",
+        "ffi/v2_64"
+      ],
+      "v2_66": [
+        "v2_64",
+        "ffi/v2_66",
+        "gobject_ffi/v2_66"
+      ],
+      "v2_68": [
+        "v2_66",
+        "ffi/v2_68",
+        "gobject_ffi/v2_68"
+      ],
+      "v2_70": [
+        "v2_68",
+        "ffi/v2_70",
+        "gobject_ffi/v2_70"
+      ],
+      "v2_72": [
+        "v2_70",
+        "ffi/v2_72",
+        "gobject_ffi/v2_72"
+      ],
+      "v2_74": [
+        "v2_72",
+        "ffi/v2_74",
+        "gobject_ffi/v2_74"
+      ],
+      "v2_76": [
+        "v2_74",
+        "ffi/v2_76",
+        "gobject_ffi/v2_76"
+      ],
+      "v2_78": [
+        "v2_76",
+        "ffi/v2_78",
+        "gobject_ffi/v2_78"
+      ]
+    }
+  },
+  {
+    "package": "glib-macros-0.18.5",
+    "manifest": "C:\\Users\\lyh\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\glib-macros-0.18.5\\Cargo.toml",
+    "sha256": "1d7cd2a7224a56fed7c8865d76e4837aaad9daabc0b80a2387c0047fe59bc3e3",
+    "repository": "https://github.com/gtk-rs/gtk-rs-core",
+    "selected_dependencies": {
+      "dependencies": {
+        "proc-macro-error": {
+          "version": "1.0"
+        }
+      },
+      "build-dependencies": {}
+    },
+    "features": {}
+  },
+  {
+    "package": "gtk3-macros-0.18.2",
+    "manifest": "C:\\Users\\lyh\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\gtk3-macros-0.18.2\\Cargo.toml",
+    "sha256": "1f16acd147741cfc2edbe4475fccd34ee4d7da7428d1aa4f995786ead7bdcb04",
+    "repository": "https://github.com/gtk-rs/gtk3-rs",
+    "selected_dependencies": {
+      "dependencies": {
+        "proc-macro-error": {
+          "version": "1.0"
+        }
+      },
+      "build-dependencies": {}
+    },
+    "features": {}
+  },
+  {
+    "package": "wry-0.55.1",
+    "manifest": "C:\\Users\\lyh\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\wry-0.55.1\\Cargo.toml",
+    "sha256": "bd17f58e514f6099a7f1e0cfa6aedf414102d1fe8fa130beca81e7030b705588",
+    "repository": "https://github.com/tauri-apps/wry",
+    "selected_dependencies": {
+      "dependencies": {},
+      "build-dependencies": {},
+      "cfg(any(target_os = \"linux\", target_os = \"dragonfly\", target_os = \"freebsd\", target_os = \"openbsd\", target_os = \"netbsd\")) dependencies": {
+        "gtk": {
+          "version": "0.18",
+          "optional": true
+        },
+        "webkit2gtk": {
+          "version": "=2.0.2",
+          "features": [
+            "v2_38"
+          ],
+          "optional": true
+        }
+      }
+    },
+    "features": {
+      "default": [
+        "protocol",
+        "os-webview",
+        "x11"
+      ],
+      "devtools": [],
+      "fullscreen": [],
+      "linux-body": [
+        "webkit2gtk/v2_40",
+        "os-webview"
+      ],
+      "mac-proxy": [],
+      "os-webview": [
+        "javascriptcore-rs",
+        "webkit2gtk",
+        "webkit2gtk-sys",
+        "dep:gtk",
+        "soup3"
+      ],
+      "protocol": [],
+      "serde": [
+        "dpi/serde"
+      ],
+      "tracing": [
+        "dep:tracing"
+      ],
+      "transparent": [],
+      "x11": [
+        "x11-dl",
+        "gdkx11",
+        "tao/x11"
+      ]
+    }
+  }
+]

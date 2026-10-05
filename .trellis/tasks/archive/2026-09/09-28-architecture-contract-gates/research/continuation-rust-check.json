@@ -1,0 +1,608 @@
+{
+  "captured_at_utc": "2026-09-28T23:20:37.508564+00:00",
+  "reviewer": "/root/implement_t10_gates",
+  "author": "/root/implement_t09",
+  "active_task": ".trellis/tasks/09-28-architecture-contract-gates",
+  "status": "passed_scoped_no_new_defect_with_documented_provenance_limits",
+  "dispatch": "Dedicated trellis-check dispatch failed with agent thread limit reached; existing non-author agent performed this independent source/log review.",
+  "scope": "Only the six listed continuation Rust increments. Earlier state/Claude architecture changes and all frontend/i18n changes are excluded.",
+  "self_owned_exclusion": "Reviewer-authored Cargo.lock rustls and rustls-webpki changes are excluded from this independent review.",
+  "write_boundary": "Only continuation-rust-check.md and continuation-rust-check.json. No product code, logs, matrix, parent report, task state, commit, push, or archive changes.",
+  "reviewer_checks": [
+    "Read selected source/spec/artifacts",
+    "Reverse increment in memory and compare all six original raw SHA-256 values",
+    "Parse actual test selectors and summary counts",
+    "Compare Linux metadata source/lock hash with current reviewed files",
+    "Verify handler/helper/registry/cache ordering by source inspection"
+  ],
+  "reviewer_did_not_run": [
+    "Cargo",
+    "bindings or exports",
+    "full CI",
+    "Tauri UI or native WebView",
+    "real provider OAuth"
+  ],
+  "source_snapshots": [
+    {
+      "path": "ccr-ui/src-tauri/src/main.rs",
+      "before_sha256": "28005807860811e598088679ba333e29ea4cd62391abda60dc53b9b9a225bcff",
+      "reviewed_sha256": "28c50b30308f75ff7849f5ebf2c382bb6d338a0d68f1d778c4683bfaee7561ba",
+      "change": "move_tests_to_file_end",
+      "review_lines": [
+        500,
+        546
+      ],
+      "reverse_transformation_matches_before_raw_sha256": true,
+      "current_newlines": {
+        "crlf": 0,
+        "lf": 546
+      },
+      "reconstruction_note": "Exact reverse of this increment; no file was modified",
+      "matches_root_freeze": true
+    },
+    {
+      "path": "ccr-ui/src-tauri/src/state.rs",
+      "before_sha256": "d44ba1f2b244a82af6a8f7fa5567e72c4b272543ed18618e1545ea05ba5a10cf",
+      "reviewed_sha256": "f6e70e52869d33c47761f1afff110013f2e3a9defe0e6445d5c1955a6cb8ff03",
+      "change": "move_items_before_tests",
+      "review_lines": [
+        814,
+        896
+      ],
+      "reverse_transformation_matches_before_raw_sha256": true,
+      "current_newlines": {
+        "crlf": 0,
+        "lf": 896
+      },
+      "reconstruction_note": "Exact reverse of this increment; no file was modified",
+      "matches_root_freeze": true
+    },
+    {
+      "path": "ccr-ui/src-tauri/src/commands/claude.rs",
+      "before_sha256": "c673c58cf65a9a2f30399a06b63364f8e66564fd0e50e928f8521e022d585d6f",
+      "reviewed_sha256": "836c39cef0ec12358c92b5612cb72dd9337c38ef06815f321a6146b735e70683",
+      "change": "equivalent_boolean_assertion",
+      "review_lines": [
+        699,
+        732
+      ],
+      "reverse_transformation_matches_before_raw_sha256": true,
+      "current_newlines": {
+        "crlf": 0,
+        "lf": 993
+      },
+      "reconstruction_note": "Exact reverse of this increment; no file was modified",
+      "matches_root_freeze": true
+    },
+    {
+      "path": "ccr-ui/src-tauri/src/commands/codex.rs",
+      "before_sha256": "63ecad05a6dd2af59021cc87ccdb6a22a23cce201688e1bb36a90c1691705da4",
+      "reviewed_sha256": "fb92a42121089b5a43af3c27c5ec9ec138f381f97cd78892e09d8b6506d19401",
+      "change": "synchronous_test_with_current_thread_runtime",
+      "review_lines": [
+        2280,
+        2340
+      ],
+      "reverse_transformation_matches_before_raw_sha256": true,
+      "current_newlines": {
+        "crlf": 0,
+        "lf": 2435
+      },
+      "reconstruction_note": "Exact reverse of this increment; no file was modified",
+      "matches_root_freeze": true
+    },
+    {
+      "path": "ccr-ui/src-tauri/src/commands/codex_settings.rs",
+      "before_sha256": "9e12030f565b0c74fdacffc975ea447b9d9648f4603960e4931cac6c2fd4122f",
+      "reviewed_sha256": "a9103e9a2e1b9f9b63fded41631aa93575303dcb65f71c9121b8e26622613e7c",
+      "change": "extract_private_persistence_helper_and_disk_roundtrip",
+      "review_lines": [
+        18,
+        89
+      ],
+      "reverse_transformation_matches_before_raw_sha256": true,
+      "current_newlines": {
+        "crlf": 19,
+        "lf": 89
+      },
+      "reconstruction_note": "Preserve existing mixed line endings; original lines 23-34 CRLF and 35-36 LF",
+      "matches_root_freeze": true
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_process_service.rs",
+      "before_sha256": "d84540362de0c573241630c1336870c61e05c6516964fe6f222e00af3b8e527d",
+      "reviewed_sha256": "bc10aa1cf8b17af5b49f337963a703b8ece68c63283ea8219f53ee42f2013cea",
+      "change": "windows_only_test_imports",
+      "review_lines": [
+        566,
+        578
+      ],
+      "reverse_transformation_matches_before_raw_sha256": true,
+      "current_newlines": {
+        "crlf": 1021,
+        "lf": 1200
+      },
+      "reconstruction_note": "Exact reverse of this increment; no file was modified",
+      "matches_root_freeze": true
+    }
+  ],
+  "tauri_test_executions": [
+    {
+      "label": "codex",
+      "command": [
+        "cargo",
+        "--config",
+        ".cargo/tauri-ci.toml",
+        "test",
+        "--manifest-path",
+        "ccr-ui/src-tauri/Cargo.toml",
+        "commands::codex::",
+        "--",
+        "--skip",
+        "export_bindings"
+      ],
+      "exit_code": 0,
+      "seconds": 98.97,
+      "matched_passed": 56,
+      "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-codex-tests.log",
+      "execution_owner": "author_or_root_existing_run",
+      "reviewer_reran": false,
+      "log_sha256": "2260095439dace08984110375c94226c7cd18cd78a070053fc4aac0eb39d0d55",
+      "actual_passed_selectors": [
+        {
+          "selector": "commands::codex::agent_sources::tests::github_repo_parser_strips_tree_suffix",
+          "log_line": 30
+        },
+        {
+          "selector": "commands::codex::agent_sources::tests::github_repo_parser_accepts_basic_repo_url",
+          "log_line": 31
+        },
+        {
+          "selector": "commands::codex::agents::tests::merge_structured_config_preserves_unknown_fields",
+          "log_line": 32
+        },
+        {
+          "selector": "commands::codex::agent_sources::tests::infer_category_prefers_categories_segment",
+          "log_line": 33
+        },
+        {
+          "selector": "commands::codex::agents::tests::merge_structured_config_preserves_existing_skills_config_when_omitted",
+          "log_line": 34
+        },
+        {
+          "selector": "commands::codex::agents::tests::raw_toml_can_be_overridden_by_structured_name",
+          "log_line": 35
+        },
+        {
+          "selector": "commands::codex::auth::tests::port_release_report_is_noop_when_no_owned_process_matches",
+          "log_line": 36
+        },
+        {
+          "selector": "commands::codex::auth::tests::port_release_report_never_claims_unknown_processes",
+          "log_line": 37
+        },
+        {
+          "selector": "commands::codex::auth::tests::port_discovery_parsers_deduplicate_listener_pids",
+          "log_line": 38
+        },
+        {
+          "selector": "commands::codex::agent_sources::tests::evaluate_install_status_marks_conflict_when_both_changed",
+          "log_line": 39
+        },
+        {
+          "selector": "commands::codex::agents::tests::resolve_global_context_defaults_to_codex_home",
+          "log_line": 40
+        },
+        {
+          "selector": "commands::codex::auth::oauth::tests::restore_waiting_for_admission_does_not_resurrect_cancelled_pending",
+          "log_line": 41
+        },
+        {
+          "selector": "commands::codex::auth::oauth::tests::bind_race_and_save_failure_never_publish_active_login",
+          "log_line": 42
+        },
+        {
+          "selector": "commands::codex::auth::oauth::tests::recovered_callback_must_match_state_before_listener_publication",
+          "log_line": 43
+        },
+        {
+          "selector": "commands::codex::auth::oauth::tests::expired_restore_creates_fresh_id_and_cleanup_failure_is_visible",
+          "log_line": 44
+        },
+        {
+          "selector": "commands::codex::auth::oauth::tests::wrong_id_state_origin_and_duplicate_callback_leave_owner_unchanged",
+          "log_line": 45
+        },
+        {
+          "selector": "commands::codex::auth::oauth::tests::start_owns_listener_and_storage_before_return_and_reuses_live_id",
+          "log_line": 46
+        },
+        {
+          "selector": "commands::codex::auth::oauth::tests::cleanup_retry_has_one_owner_without_blocking_control_locks",
+          "log_line": 47
+        },
+        {
+          "selector": "commands::codex::tests::apply_codex_settings_update_accepts_boolean_tui_notifications",
+          "log_line": 48
+        },
+        {
+          "selector": "commands::codex::auth::oauth::tests::successful_completion_is_unique_and_does_not_expose_sentinels",
+          "log_line": 49
+        },
+        {
+          "selector": "commands::codex::auth::oauth::tests::stale_cleanup_retry_cannot_clear_a_replacement_login",
+          "log_line": 50
+        },
+        {
+          "selector": "commands::codex::tests::apply_codex_settings_update_clears_nested_fields_with_nulls",
+          "log_line": 51
+        },
+        {
+          "selector": "commands::codex::tests::codex_model_catalog_keeps_target_presets_and_legacy_custom_models_distinct",
+          "log_line": 52
+        },
+        {
+          "selector": "commands::codex::tests::apply_codex_settings_update_patches_nested_fields",
+          "log_line": 53
+        },
+        {
+          "selector": "commands::codex::tests::parse_mcp_server_accepts_legacy_disabled_alias_and_merge_keeps_unknown_fields",
+          "log_line": 54
+        },
+        {
+          "selector": "commands::codex::tests::parse_mcp_server_supports_official_fields_and_preserves_unknown_fields",
+          "log_line": 55
+        },
+        {
+          "selector": "commands::codex::tests::patch_profile_with_config_clears_platform_data_when_extra_is_empty_object",
+          "log_line": 56
+        },
+        {
+          "selector": "commands::codex::auth::oauth::tests::commit_rejects_cancellation_and_retains_admission_until_completion",
+          "log_line": 57
+        },
+        {
+          "selector": "commands::codex::tests::patch_profile_with_config_clears_platform_data_when_extra_is_null",
+          "log_line": 58
+        },
+        {
+          "selector": "commands::codex::tests::patch_profile_with_config_accepts_deepseek_platform_fields",
+          "log_line": 59
+        },
+        {
+          "selector": "commands::codex::tests::apply_codex_settings_update_preserves_tui_notifications_event_array",
+          "log_line": 60
+        },
+        {
+          "selector": "commands::codex::tests::patch_profile_with_config_prefers_platform_data_over_extra",
+          "log_line": 61
+        },
+        {
+          "selector": "commands::codex::tests::patch_profile_with_config_removes_missing_platform_data_keys",
+          "log_line": 62
+        },
+        {
+          "selector": "commands::codex::tray::tests::tray_snapshot_only_attaches_quota_to_current_account",
+          "log_line": 63
+        },
+        {
+          "selector": "commands::codex::profiles::export_tests::codex_export_profiles_reports_missing_file",
+          "log_line": 64
+        },
+        {
+          "selector": "commands::codex::tray::tests::tray_snapshot_skips_quota_lookup_for_profile_only_mode",
+          "log_line": 65
+        },
+        {
+          "selector": "commands::codex::profiles::export_tests::codex_export_profiles_rejects_redacted_mode",
+          "log_line": 66
+        },
+        {
+          "selector": "commands::codex::profiles::export_tests::codex_export_profiles_reads_raw_toml_and_filename",
+          "log_line": 67
+        },
+        {
+          "selector": "commands::codex::auth::oauth::tests::slow_http_body_is_cancelled_and_server_observes_closed_connection",
+          "log_line": 68
+        },
+        {
+          "selector": "commands::codex::tests::read_codex_config_accepts_tui_notifications_event_array",
+          "log_line": 69
+        },
+        {
+          "selector": "commands::codex::auth::oauth::tests::token_endpoint_error_and_invalid_body_never_return_secret_content",
+          "log_line": 70
+        },
+        {
+          "selector": "commands::codex::auth::oauth::tests::oauth_start_reuses_live_id_before_waiting_for_same_module_admission",
+          "log_line": 71
+        },
+        {
+          "selector": "commands::codex::auth::oauth::tests::cancel_exchange_keeps_admission_until_cleanup_finishes",
+          "log_line": 72
+        },
+        {
+          "selector": "commands::codex::settings::tests::model_only_update_preserves_notifications_and_untouched_fields_on_disk",
+          "log_line": 73
+        },
+        {
+          "selector": "commands::codex::tests::codex_config_write_preserves_deepseek_flatten_fields",
+          "log_line": 74
+        },
+        {
+          "selector": "commands::codex::auth::oauth::tests::silent_socket_times_out_and_releases_listener_without_success",
+          "log_line": 75
+        },
+        {
+          "selector": "commands::codex::auth::oauth::tests::slow_http_body_and_silent_accepted_socket_share_the_login_deadline",
+          "log_line": 76
+        },
+        {
+          "selector": "commands::codex::auth::tests::oauth_pending_storage_failure_preserves_memory_and_redacts_output",
+          "log_line": 77
+        },
+        {
+          "selector": "commands::codex::auth::tests::oauth_pending_adapter_preserves_legacy_root_when_data_dir_differs",
+          "log_line": 78
+        },
+        {
+          "selector": "commands::codex::profiles::application_rename_contract::profile_rename_each_write_contract",
+          "log_line": 81
+        },
+        {
+          "selector": "commands::codex::profiles::update_tests::codex_update_profile_rejects_blank_target_name",
+          "log_line": 82
+        },
+        {
+          "selector": "commands::codex::profiles::update_tests::codex_update_profile_rename_migrates_profile_secret_and_current_profile",
+          "log_line": 83
+        },
+        {
+          "selector": "commands::codex::profiles::update_tests::codex_update_profile_rename_rejects_conflicting_target_without_writing_partial_state",
+          "log_line": 84
+        },
+        {
+          "selector": "commands::codex::profiles::update_tests::codex_update_profile_same_target_name_updates_in_place",
+          "log_line": 85
+        },
+        {
+          "selector": "commands::codex::tests::codex_list_profiles_reads_only_ccr_profiles_source",
+          "log_line": 86
+        },
+        {
+          "selector": "commands::codex::tests::profile_to_json_projects_deepseek_fields_without_duplicating_extra",
+          "log_line": 87
+        }
+      ],
+      "actual_passed_count": 56,
+      "summaries": [
+        "test result: ok. 56 passed; 0 failed; 0 ignored; 0 measured; 549 filtered out; finished in 32.41s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s"
+      ],
+      "zero_test_targets_excluded": 1,
+      "execution_time_source_snapshot": "post_run_confirmed_unchanged; author states sources frozen before execution; reviewer independently matches all six current sources to root freeze. No command-start hash snapshot.",
+      "author_metadata_path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-tauri-lint-implementation.json",
+      "cwd": "D:/Documents/Code/Github/ccr",
+      "executor_session_id": 13919,
+      "parallelism_attribution": "Cargo default; no --test-threads override"
+    },
+    {
+      "label": "state",
+      "command": [
+        "cargo",
+        "--config",
+        ".cargo/tauri-ci.toml",
+        "test",
+        "--manifest-path",
+        "ccr-ui/src-tauri/Cargo.toml",
+        "state::tests::",
+        "--",
+        "--skip",
+        "export_bindings"
+      ],
+      "exit_code": 0,
+      "seconds": 1.03,
+      "matched_passed": 3,
+      "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-state-tests.log",
+      "execution_owner": "author_or_root_existing_run",
+      "reviewer_reran": false,
+      "log_sha256": "adcf3f37cefbb288735087a416dfe61087b6b5bf2708096691b2baac0b558a94",
+      "actual_passed_selectors": [
+        {
+          "selector": "state::tests::desktop_shell_preferences_defaults_when_file_is_missing",
+          "log_line": 10
+        },
+        {
+          "selector": "state::tests::desktop_shell_preferences_load_legacy_files_with_default_tray_panel_state",
+          "log_line": 11
+        },
+        {
+          "selector": "state::tests::desktop_shell_preferences_round_trip_via_json_file",
+          "log_line": 12
+        }
+      ],
+      "actual_passed_count": 3,
+      "summaries": [
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 602 filtered out; finished in 0.02s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s"
+      ],
+      "zero_test_targets_excluded": 1,
+      "execution_time_source_snapshot": "post_run_confirmed_unchanged; author states sources frozen before execution; reviewer independently matches all six current sources to root freeze. No command-start hash snapshot.",
+      "author_metadata_path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-tauri-lint-implementation.json",
+      "cwd": "D:/Documents/Code/Github/ccr",
+      "executor_session_id": 13919,
+      "parallelism_attribution": "Cargo default; no --test-threads override"
+    },
+    {
+      "label": "close-action",
+      "command": [
+        "cargo",
+        "--config",
+        ".cargo/tauri-ci.toml",
+        "test",
+        "--manifest-path",
+        "ccr-ui/src-tauri/Cargo.toml",
+        "tests::close_action",
+        "--",
+        "--skip",
+        "export_bindings"
+      ],
+      "exit_code": 0,
+      "seconds": 1.19,
+      "matched_passed": 2,
+      "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-close-action-tests.log",
+      "execution_owner": "author_or_root_existing_run",
+      "reviewer_reran": false,
+      "log_sha256": "e8c32e3f0f778605ab8623a9d67efcc1d3ca4eaa3dc2823408af1ad6c100b9ed",
+      "actual_passed_selectors": [
+        {
+          "selector": "tests::close_action_hides_main_window_to_tray_when_enabled",
+          "log_line": 10
+        },
+        {
+          "selector": "tests::close_action_requests_quit_when_close_to_tray_and_confirm_are_disabled",
+          "log_line": 11
+        }
+      ],
+      "actual_passed_count": 2,
+      "summaries": [
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 603 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s"
+      ],
+      "zero_test_targets_excluded": 1,
+      "execution_time_source_snapshot": "post_run_confirmed_unchanged; author states sources frozen before execution; reviewer independently matches all six current sources to root freeze. No command-start hash snapshot.",
+      "author_metadata_path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-tauri-lint-implementation.json",
+      "cwd": "D:/Documents/Code/Github/ccr",
+      "executor_session_id": 13919,
+      "parallelism_attribution": "Cargo default; no --test-threads override"
+    },
+    {
+      "label": "claude-read",
+      "command": [
+        "cargo",
+        "--config",
+        ".cargo/tauri-ci.toml",
+        "test",
+        "--manifest-path",
+        "ccr-ui/src-tauri/Cargo.toml",
+        "commands::claude::tests::read_claude_settings_from_env_reads_top_level_env",
+        "--",
+        "--skip",
+        "export_bindings"
+      ],
+      "exit_code": 0,
+      "seconds": 0.92,
+      "matched_passed": 1,
+      "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-claude-read-tests.log",
+      "execution_owner": "author_or_root_existing_run",
+      "reviewer_reran": false,
+      "log_sha256": "8f873b3b1bacd5588eff0f57c892386c4a8fef396369ff5cbcdf2146fe134451",
+      "actual_passed_selectors": [
+        {
+          "selector": "commands::claude::tests::read_claude_settings_from_env_reads_top_level_env",
+          "log_line": 10
+        }
+      ],
+      "actual_passed_count": 1,
+      "summaries": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 604 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s"
+      ],
+      "zero_test_targets_excluded": 1,
+      "execution_time_source_snapshot": "post_run_confirmed_unchanged; author states sources frozen before execution; reviewer independently matches all six current sources to root freeze. No command-start hash snapshot.",
+      "author_metadata_path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-tauri-lint-implementation.json",
+      "cwd": "D:/Documents/Code/Github/ccr",
+      "executor_session_id": 13919,
+      "parallelism_attribution": "Cargo default; no --test-threads override"
+    }
+  ],
+  "unique_tauri_passed_selectors": 62,
+  "tauri_clippy": {
+    "log": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-tauri-all-targets-clippy.log",
+    "log_sha256": "2b3f0efedf10fc7bc70ab20847876df699d7a8a665b06291dcb2b6bb20f5025b",
+    "finished_marker": "Finished `dev` profile [unoptimized + debuginfo] target(s) in 40.69s",
+    "has_finished_marker": true,
+    "rust_error_lines": [],
+    "command": [
+      "cargo",
+      "--config",
+      ".cargo/tauri-ci.toml",
+      "clippy",
+      "--manifest-path",
+      "ccr-ui/src-tauri/Cargo.toml",
+      "--all-targets",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 0,
+    "provenance_status": "Author execution record plus original compiler log; no separately persisted raw executor completion JSON. Sources independently match current root freeze; hashes are post-run confirmations.",
+    "warnings_retained": [
+      "linker_messages warning (explicitly ignores -D warnings)",
+      "mbx cache mapping warnings"
+    ],
+    "cwd": "D:/Documents/Code/Github/ccr",
+    "exit_code_source": "executor completion observed in this implementation session; no separate raw executor response JSON was saved",
+    "executor_session_id": 50695,
+    "capture_mode": "post_run_confirmed_unchanged"
+  },
+  "linux_codex_clippy": {
+    "command": [
+      "wsl.exe",
+      "-d",
+      "Ubuntu-24.04",
+      "--exec",
+      "/usr/bin/env",
+      "RUSTUP_TOOLCHAIN=1.98.0",
+      "PATH=/home/lyh/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "CARGO_TARGET_DIR=/tmp/ccr-architecture-linux-01a0e781",
+      "/home/lyh/.cargo/bin/cargo",
+      "clippy",
+      "--locked",
+      "-p",
+      "ccr-codex",
+      "--all-targets",
+      "--all-features",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "started_at": "2026-09-28T23:07:47.355245+00:00",
+    "source_sha": "bc10aa1cf8b17af5b49f337963a703b8ece68c63283ea8219f53ee42f2013cea",
+    "lock_sha": "22acbf9e8cad08d4a0653484681cc2ac3441f7c5f9357b1c824b8844d9dae1d3",
+    "exit_code": 0,
+    "seconds": 23.89,
+    "log": "continuation-linux-codex-clippy-online.log",
+    "metadata_path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-linux-codex-clippy-online.json",
+    "log_sha256": "2f8187b5be7243980b52124c5818c55db9ce4cf776276d1b729ee9eee3add582",
+    "source_hash_matches_reviewed_file": true,
+    "lock_hash_matches_current": true,
+    "reviewer_reran": false,
+    "toolchain": "Rust 1.98.0 from execution command; not Rust 1.95 MSRV evidence"
+  },
+  "findings": [],
+  "limits": [
+    "Clippy exit 0 is preserved in author execution metadata and original compiler log ends successfully; no raw executor completion JSON was saved. Per-command source hashes are post-run confirmations, not command-start or complete dependency snapshots.",
+    "Disk roundtrip calls the same private persistence helper used by the production handler; no Tauri invoke, State/cache, or native WebView execution is claimed.",
+    "toml::Value equality proves fixture semantic fields, not comments/order/formatting or arbitrary TOML equivalence.",
+    "macOS window and process tests were not run here; Windows/Linux evidence does not satisfy the planned macOS matrix.",
+    "Runtime test retains pre-existing manual environment restore behavior, including the pre-existing panic-restoration boundary.",
+    "No full CI result is issued by this review."
+  ],
+  "report": {
+    "path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-rust-check.md",
+    "sha256": "84b6ca1538b8271243b9a65a272874e916bf1eeffe5473930508796032e7eedf"
+  },
+  "finalized_at_utc": "2026-09-28T23:22:05.847934+00:00",
+  "source_attribution": {
+    "capture_mode": "post_run_confirmed_unchanged",
+    "capture_note": "Hashes were collected after execution. These owned Rust sources were frozen before Clippy and the four test groups; the owned frontend sources were frozen before the final frontend checks. No subsequent source edits by this owner occurred. Current owned-source hashes match the root freeze. Dedicated command-start snapshots were not captured.",
+    "hash_scope": "owned changed source and test files only; not a complete dependency or compiler-input snapshot",
+    "root_freeze": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-source-freeze.json",
+    "root_freeze_sha256": "587c700f28931c636d46fb81cfbbfb1c2c54fa1637d0a6e8c82d40b36a126f09",
+    "root_freeze_file_count": 262,
+    "metadata_path": ".trellis/tasks/09-28-architecture-contract-gates/research/continuation-tauri-lint-implementation.json",
+    "metadata_sha256": "2c906c2395067bcf154d0ab9a473b6f17c3ad029074d569cd9fb2c3e49f73d90",
+    "independent_current_six_file_match": true
+  }
+}

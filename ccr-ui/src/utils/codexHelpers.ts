@@ -37,12 +37,12 @@ export function getProviderColor(provider: string): string {
 export function handleCardHover(el: HTMLElement, hover: boolean): void {
   if (hover) {
     el.style.background = 'var(--glass-bg-strong)'
-    el.style.borderColor = 'rgba(var(--color-accent-primary-rgb), 0.3)'
-    el.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)'
-    el.style.transform = 'translateY(-4px)'
+    el.style.borderColor = 'rgb(var(--color-accent-primary-rgb) / 30%)'
+    el.style.boxShadow = 'var(--shadow-md)'
+    el.style.transform = 'translateY(-0.25rem)'
   } else {
     el.style.background = 'var(--glass-bg-medium)'
-    el.style.borderColor = 'rgba(var(--color-accent-primary-rgb), 0.12)'
+    el.style.borderColor = 'rgb(var(--color-accent-primary-rgb) / 12%)'
     el.style.boxShadow = 'none'
     el.style.transform = 'translateY(0)'
   }
@@ -151,16 +151,16 @@ export function getModelDisplayName(modelId: string): string {
 export const CodexCardStyles = {
   base: {
     background: 'var(--glass-bg-medium)',
-    border: '1px solid rgba(var(--color-accent-primary-rgb), 0.12)',
-    borderRadius: '12px',
-    padding: '20px',
+    border: 'var(--space-px) solid rgb(var(--color-accent-primary-rgb) / 12%)',
+    borderRadius: 'var(--radius-2xl)',
+    padding: 'var(--space-5)',
     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   },
   hover: {
     background: 'var(--glass-bg-strong)',
-    borderColor: 'rgba(var(--color-accent-primary-rgb), 0.3)',
-    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
-    transform: 'translateY(-4px)',
+    borderColor: 'rgb(var(--color-accent-primary-rgb) / 30%)',
+    boxShadow: 'var(--shadow-md)',
+    transform: 'translateY(-0.25rem)',
   },
 }
 

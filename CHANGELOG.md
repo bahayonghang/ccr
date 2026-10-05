@@ -7,27 +7,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [7.3.0] - 2026-09-02
+
 ### ✨ 新功能
 
-- **`ccr <claude|codex|grok> profile open`**：用 `$VISUAL`/`$EDITOR` 或系统关联程序打开该平台的 `profiles.toml`；文件不存在时自动从内嵌模板创建。`--json` 输出含 `ok` / `platform` / `profiles_file` / `created` / `registered` / `editor` 字段。
+- **ccr-ui 迁到 React**：
+  - Claude / Codex / CheckIn / Usage / Dashboard 及其余视图迁 React，75 条路由接到真实页面
+  - 共享状态从 Vue composable / Pinia 迁到 Zustand、TanStack Query 与 hooks
+  - React 外壳、Tauri 接线、react-i18next 与前端契约重写
+  - MCP 共享层 4 面板、Profiles 共享层迁 React
+
+- **首页运行时卡布局**：
+  - 首页改为运行时卡
+  - 用量区改为堆叠日柱与成本指标
+  - 右侧栏改为紧凑动作与事件行
+
+- **统一 Profile 列表与编辑器**：
+  - 三平台统一列表呈现层、编辑器外壳与 adapter
+  - Profile 呈现契约与凭据剥离
+  - 六平台色 token 四角色、视觉类型原语、按钮标签与 URL 原语
+  - 操作页动作按钮迁到共享原语
+
+- **Agent 会话页**：
+  - 新增八类本地会话浏览（来源只读、增量归档、虚拟化）
+  - 五条 typed IPC、独立页面、中英文状态
+
+- **Sync 页重构**：
+  - 重构界面布局、操作层级与 WebDAV 门控
+
+- **Usage 操作员表格**：
+  - 恢复操作员表格并修好日柱窗口
 
 ### 🔧 改进
 
-- **TUI Profile 键位语义调整（UX 破坏性变更）**：
-  - `Enter` 应用选中 profile 后不再退出 TUI，与 `Space` 同义（应用并停留）；不再存在任何单键「应用并退出」路径，退出请按 `q` / `Esc`
-  - 应用结果常驻显示在 Focus 面板（「已切换到 X」/ "Switched to X"，失败显示错误详情），三档视口均可见；Wide 视口的 Status strip 改为纯 toast 通道
-  - 页脚标注同步为 `Enter/Space apply`、`o deactivate` /「o 解绑」，并新增 `x` 键展开/折叠详情面板中未设置的字段
-- **ccr-ui 使用统计迁移到 llmusage**：
-  - Usage Dashboard / Home Overview / Logs / Heatmap / Import Job 改由 llmusage 0.5.1 本地 SQLite 运行时提供数据
-  - llmusage 数据默认遵循 `LLMUSAGE_HOME`，未设置时写入 `~/.llmusage/llmusage.db`；不自动读取、合并或迁移旧 `~/.ccr/llmusage`
-  - 模型双价、`cache_savings`、`recorded_at`、分页日志等字段由后端适配层直接返回，前端移除旧的二次成本 fallback 派生
-  - 导入任务保留既有 `usage:job-progress` / `usage:job-recent-ready` / `usage:job-finished` / `usage:job-failed` 事件，并新增取消命令桥接到 llmusage JobRegistry
+- 外观设置页分区重排，flavor 预览取值加守护
+- 令牌层收敛为实色边框与四档圆角；组件内 `px` / `rgba` 收口并登记豁免
+- 设计系统：Radix `BaseModal` 唯一弹层底座、自定义 accent 变量族、动画与 `prefers-reduced-motion` 收口
 
-### ⚠️ 弃用
+### 📦 依赖更新
 
-- `ccr-db` 中旧的 usage dashboard 聚合查询与 `usage_import_service` 已标记为 legacy 兼容面；新的 ccr-ui 使用统计链路应走 llmusage 适配层。
+- 分批升级全项目依赖并修复安全风险
+
+### 🐛 修复
+
+- 表格名称列长描述改为省略号截断
+- 图表卸载销毁与 Query 缓存回收，抑制长时间浸泡堆增长
+- 去掉全页 `AnimatePresence`；Iconify 改离线 / React 缓存；去掉仪表盘 refresh 循环
+- 动态导入原生窗口外观
+- VS Code `package-lock` 镜像直链改回官方源，修复 npm 12 `EALLOWREMOTE` 门禁失败
+- 覆盖率门改为读 `vitest.smoke.config`；版本同步目标改为 `appMeta.ts`
+
+---
+
+## [7.2.0] - 2026-08-21
+
+本节收录 7.1.3 之后、7.2.0 发布前写在 Unreleased 中的条目。
 
 ### ✨ 新功能
+
+- **`ccr <claude|codex|grok> profile open`**：用 `$VISUAL`/`$EDITOR` 或系统关联程序打开该平台的 `profiles.toml`；文件不存在时自动从内嵌模板创建。`--json` 输出含 `ok` / `platform` / `profiles_file` / `created` / `registered` / `editor` 字段。
 
 - **TUI 鼠标支持**：
   - 新增 `SelectAt(usize)` 动作，支持鼠标点击直接选中列表项
@@ -45,12 +85,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🔧 改进
 
+- **TUI Profile 键位语义调整（UX 破坏性变更）**：
+  - `Enter` 应用选中 profile 后不再退出 TUI，与 `Space` 同义（应用并停留）；不再存在任何单键「应用并退出」路径，退出请按 `q` / `Esc`
+  - 应用结果常驻显示在 Focus 面板（「已切换到 X」/ "Switched to X"，失败显示错误详情），三档视口均可见；Wide 视口的 Status strip 改为纯 toast 通道
+  - 页脚标注同步为 `Enter/Space apply`、`o deactivate` /「o 解绑」，并新增 `x` 键展开/折叠详情面板中未设置的字段
+- **ccr-ui 使用统计迁移到 llmusage**：
+  - Usage Dashboard / Home Overview / Logs / Heatmap / Import Job 改由 llmusage 0.5.1 本地 SQLite 运行时提供数据
+  - llmusage 数据默认遵循 `LLMUSAGE_HOME`，未设置时写入 `~/.llmusage/llmusage.db`；不自动读取、合并或迁移旧 `~/.ccr/llmusage`
+  - 模型双价、`cache_savings`、`recorded_at`、分页日志等字段由后端适配层直接返回，前端移除旧的二次成本 fallback 派生
+  - 导入任务保留既有 `usage:job-progress` / `usage:job-recent-ready` / `usage:job-finished` / `usage:job-failed` 事件，并新增取消命令桥接到 llmusage JobRegistry
+
 - **后端架构优化**：
   - `config` / `stats` handler 移除对 executor 的直接依赖，改用 Service 层
   - `sync_status` 实现真实平台状态查询并补全全部平台列表
 
 - **前端交互升级**：
   - 新增智能路由过渡动画系统，提升页面切换体验（基于 CSS transition + Vue router hooks）
+
+### ⚠️ 弃用
+
+- `ccr-db` 中旧的 usage dashboard 聚合查询与 `usage_import_service` 已标记为 legacy 兼容面；新的 ccr-ui 使用统计链路应走 llmusage 适配层。
 
 ### 📦 依赖更新
 

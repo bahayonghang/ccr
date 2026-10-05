@@ -1,0 +1,8 @@
+{"file": ".trellis/spec/ccr-ui/frontend/api-facade-boundary.md", "reason": "本任务必须保留的现行领域契约"}
+{"file": ".trellis/spec/ccr-ui/frontend/environment-scoped-dashboard-contracts.md", "reason": "本任务必须保留的现行领域契约"}
+{"file": ".trellis/spec/ccr-ui/frontend/confirm-interaction-contracts.md", "reason": "本任务必须保留的现行领域契约"}
+{"file": ".trellis/spec/ccr-ui/frontend/dashboard-presentation-contracts.md", "reason": "本任务必须保留的现行领域契约"}
+{"file": ".trellis/tasks/09-28-cli-tauri-architecture/research/architecture-audit.md", "reason": "已验证发现、作用范围和反例验收"}
+{"file": ".trellis/tasks/09-28-cli-tauri-architecture/research/governance-audit.md", "reason": "已验证发现、作用范围和反例验收"}
+{"file": ".trellis/tasks/09-28-cli-tauri-architecture/research/frontend-audit.md", "reason": "已验证发现、作用范围和反例验收"}
+{"file": ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md", "reason": "T08 verified snapshot dirty-leaf and unsupported-clear semantics"}

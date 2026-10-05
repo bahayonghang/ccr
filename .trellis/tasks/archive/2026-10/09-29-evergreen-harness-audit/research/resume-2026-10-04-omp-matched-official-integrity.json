@@ -1,0 +1,35 @@
+{
+  "fetched_utc": "2026-10-04T13:25:40.008806+00:00",
+  "registry_url": "https://registry.npmjs.org/@mindfoldhq/trellis/0.7.0-beta.4",
+  "registry_http_status": 200,
+  "registry_bytes": 3610,
+  "registry_sha256": "0cefc6606dc5fe9aa946b1745bba5bbf108280eb18958f91230b4a00a634271e",
+  "tarball_url": "https://registry.npmjs.org/@mindfoldhq/trellis/-/trellis-0.7.0-beta.4.tgz",
+  "tarball_http_status": 200,
+  "tarball_bytes": 905811,
+  "tarball_sha256": "f570f4d562b10334b4f4a86379b12fc95766d8bcc3ffc1dc443736288a859ab0",
+  "tarball_integrity": "sha512-lMyT42xwL+HxX8UP38XaEIyC/X7QhhQi4Hg7P7TiUDpaFvE/2uEzdM0vI7QPJWtr2swa63bWruI0jBKUFc6Clg==",
+  "metadata": {
+    "name": "@mindfoldhq/trellis",
+    "version": "0.7.0-beta.4",
+    "bin": {
+      "tl": "bin/trellis.js",
+      "trellis": "bin/trellis.js"
+    },
+    "engines": {
+      "node": ">=18.17.0"
+    },
+    "dependencies": {
+      "zod": "^4.4.2",
+      "chalk": "^5.3.0",
+      "giget": "^3.1.1",
+      "figlet": "^1.9.4",
+      "undici": "^6.21.0",
+      "inquirer": "^9.3.7",
+      "commander": "^12.1.0",
+      "@mindfoldhq/trellis-core": "0.7.0-beta.4"
+    },
+    "optionalDependencies": null
+  },
+  "code_executed": false
+}

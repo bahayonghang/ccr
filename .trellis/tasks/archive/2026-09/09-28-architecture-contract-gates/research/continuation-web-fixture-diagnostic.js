@@ -1,0 +1,1 @@
+return { state: await page.evaluate(() => ({fixture: globalThis.ccrFixture ?? null, scripts: [...document.scripts].map(n=>n.src), inputs: [...document.querySelectorAll('input')].map(n=>({id:n.id,value:n.value})), text:document.body.innerText.slice(-6000)})),errors:ccrWebErrors };
