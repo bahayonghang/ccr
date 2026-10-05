@@ -93,7 +93,7 @@ jobs:
         shell: bash
 
       - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@5113cdc90fd4d541c801c55356214017bf5ae34b # v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           files: |
             ${{ env.PROJECT_NAME }}-${{ steps.get_version.outputs.version }}-${{ matrix.target }}.${{ matrix.archive }}
@@ -200,7 +200,7 @@ jobs:
           sha256sum ccr-vscode-${{ steps.get_version.outputs.version }}.vsix > ccr-vscode-${{ steps.get_version.outputs.version }}.vsix.sha256
 
       - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@5113cdc90fd4d541c801c55356214017bf5ae34b # v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           files: |
             ccr-vscode/ccr-vscode-${{ steps.get_version.outputs.version }}.vsix
