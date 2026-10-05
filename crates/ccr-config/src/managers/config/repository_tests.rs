@@ -511,6 +511,28 @@ fn wait_for(path: &Path) {
     }
 }
 
+fn assert_blocked(child: &mut Child) {
+    match child.try_wait() {
+        Ok(None) => {}
+        Ok(Some(status)) => {
+            let mut stdout = Vec::new();
+            let mut stderr = Vec::new();
+            if let Some(mut pipe) = child.stdout.take() {
+                let _ = std::io::Read::read_to_end(&mut pipe, &mut stdout);
+            }
+            if let Some(mut pipe) = child.stderr.take() {
+                let _ = std::io::Read::read_to_end(&mut pipe, &mut stderr);
+            }
+            panic!(
+                "child exited with {status}\nstdout:\n{}\nstderr:\n{}",
+                String::from_utf8_lossy(&stdout),
+                String::from_utf8_lossy(&stderr)
+            );
+        }
+        Err(error) => panic!("failed to poll child: {error}"),
+    }
+}
+
 fn spawn_adapter(env: &TestCcrEnv, barrier: &Path, kind: &str, name: &str) -> Child {
     Command::new(std::env::current_exe().unwrap())
         .args([
@@ -550,8 +572,8 @@ fn concurrent_adapters(first_kind: &str) {
         // Both independent processes must wait for the same resource lock.
         let deadline = Instant::now() + Duration::from_millis(200);
         while Instant::now() < deadline {
-            assert!(first.try_wait().unwrap().is_none());
-            assert!(second.try_wait().unwrap().is_none());
+            assert_blocked(&mut first);
+            assert_blocked(&mut second);
             std::thread::sleep(Duration::from_millis(10));
         }
         drop(lock);

@@ -363,10 +363,13 @@ pub(crate) fn lock_resource_name(path: &Path) -> String {
 
 /// Return the lexical identity shared by configuration resource locks.
 ///
-/// Windows disk/UNC verbatim prefixes and case aliases use the same identity.
-/// This does not resolve symlinks and does not require the target to exist.
+/// Windows disk/UNC verbatim prefixes, case aliases, and 8.3 short names of an
+/// existing ancestor use the same identity. This does not resolve symlinks and
+/// does not require the final target to exist.
 pub fn normalized_resource_path(path: &Path) -> std::io::Result<PathBuf> {
     let absolute = std::path::absolute(path)?;
+    #[cfg(windows)]
+    let absolute = expand_existing_short_names(&absolute);
     let mut normalized = PathBuf::new();
     for component in absolute.components() {
         match component {
@@ -399,6 +402,68 @@ pub fn normalized_resource_path(path: &Path) -> std::io::Result<PathBuf> {
     {
         Ok(normalized)
     }
+}
+
+/// 把已经存在的祖先从 8.3 短名展开成长名，再接上尚未创建的尾部。
+///
+/// `GetLongPathNameW` 不跟随符号链接。最终目标不存在时展开父目录，避免
+/// 文件创建前后锁身份变化。展开失败时保留调用方路径。
+#[cfg(windows)]
+fn expand_existing_short_names(path: &Path) -> PathBuf {
+    let mut pending = Vec::new();
+    let mut existing = path.to_path_buf();
+    while !existing.as_os_str().is_empty() && fs::symlink_metadata(&existing).is_err() {
+        let Some(name) = existing.file_name() else {
+            return path.to_path_buf();
+        };
+        pending.push(name.to_os_string());
+        if !existing.pop() {
+            return path.to_path_buf();
+        }
+    }
+    if existing.as_os_str().is_empty() {
+        return path.to_path_buf();
+    }
+    let mut expanded = long_path_name(&existing).unwrap_or(existing);
+    for name in pending.into_iter().rev() {
+        expanded.push(name);
+    }
+    expanded
+}
+
+#[cfg(windows)]
+fn long_path_name(path: &Path) -> std::io::Result<PathBuf> {
+    use std::os::windows::ffi::{OsStrExt, OsStringExt};
+
+    let input: Vec<u16> = path.as_os_str().encode_wide().chain(Some(0)).collect();
+    let mut capacity = 512u32;
+    loop {
+        let mut buffer = vec![0u16; capacity as usize];
+        // SAFETY: `input` is nul-terminated and lives for the call. `buffer`
+        // is writable for `capacity` wide characters. GetLongPathNameW does
+        // not retain either pointer.
+        let length = unsafe { GetLongPathNameW(input.as_ptr(), buffer.as_mut_ptr(), capacity) };
+        if length == 0 {
+            return Err(std::io::Error::last_os_error());
+        }
+        if length < capacity {
+            buffer.truncate(length as usize);
+            return Ok(PathBuf::from(std::ffi::OsString::from_wide(&buffer)));
+        }
+        if length > 32_768 {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Windows long path exceeds 32768 characters",
+            ));
+        }
+        capacity = length;
+    }
+}
+
+#[cfg(windows)]
+#[link(name = "kernel32")]
+unsafe extern "system" {
+    fn GetLongPathNameW(short_path: *const u16, long_path: *mut u16, buffer_length: u32) -> u32;
 }
 
 /// FNV-1a 64-bit（跨进程稳定的路径哈希）
@@ -600,6 +665,19 @@ mod tests {
         assert!(segment[..8].chars().all(|c| c.is_ascii_digit()));
         assert_eq!(&segment[8..9], "_");
         assert!(segment[9..].chars().all(|c| c.is_ascii_digit()));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_canonical_path_keeps_resource_identity() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("profiles.toml");
+        fs::write(&path, b"before").unwrap();
+        let canonical = fs::canonicalize(&path).unwrap();
+        assert_eq!(
+            normalized_resource_path(&path).unwrap(),
+            normalized_resource_path(&canonical).unwrap()
+        );
     }
 
     #[test]

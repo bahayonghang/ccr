@@ -22,14 +22,14 @@ Sources: `managers/config/repository.rs`, `services/config_service.rs`, and `pla
 ## Lock and write contract
 
 1. A caller may hold a platform operation lock.
-2. The repository derives a resource name from `ccr_core::core::guarded_write::normalized_resource_path`. The core helper owns the existing absolute, lexical normalization algorithm. Windows names are case-folded; ordinary and verbatim drive/UNC prefixes identify the same resource. The FNV-1a hash is stable across processes. No platform label or adapter-specific lock name selects the resource.
+2. The repository derives a resource name from `ccr_core::core::guarded_write::normalized_resource_path`. The core helper owns absolute normalization. Windows names are case-folded; ordinary and verbatim drive/UNC prefixes identify the same resource. An existing ancestor's 8.3 short name identifies that same resource. The helper does not follow symlinks and does not require the final target to exist. The FNV-1a hash is stable across processes. No platform label or adapter-specific lock name selects the resource.
 3. The repository acquires the resource lock before reading.
 4. The closure runs once. The repository does not replay domain or external effects. Cross-file recovery remains an application responsibility.
 5. Guarded CAS acquires the leaf lock, checks the read token, takes the configured backup, and replaces the file with secret permissions.
 
 The order is **operation lock → resource lock → guarded leaf lock**. Do not re-enter mutation while holding the same resource guard. `CONFIG_LOCK` and the old `ccr_config` / `platform_profiles_<name>` locks do not protect repository transactions.
 
-Paths can be absent. Resource identity is lexical; callers must not introduce multiple symlink aliases for one managed target. A non-cooperating external process can still write after CCR commits. Observed CAS conflicts return an actionable error; the repository never falls back to an unconditional replacement.
+Paths can be absent. Resource identity follows `normalized_resource_path`; callers must not introduce multiple symlink aliases for one managed target. A non-cooperating external process can still write after CCR commits. Observed CAS conflicts return an actionable error; the repository never falls back to an unconditional replacement.
 
 Standard profile files use the existing platform backup directory and `profiles` prefix. On Windows, case-only path aliases retain that policy and directory. All profile content is secret. Full `save` / `save_config` / `save_profiles_to_toml` replacement remains for initialization or recovery compatibility, not ordinary read-modify-write. The writer algorithm and backup naming remain owned by `ccr-core`.
 
