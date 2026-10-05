@@ -2,10 +2,9 @@ import { fileURLToPath, URL } from 'node:url'
 import path from 'node:path'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
-import devWarmTargets from './scripts/dev-warm-targets.json'
+import devWarmTargets from './scripts/dev-warm-targets.json' with { type: 'json' }
 
-const dirname =
-  typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url))
+const dirname = import.meta.dirname
 
 // https://vite.dev/config/
 // React 基座配置：映射见 .trellis/tasks/08-22-react-foundation/design.md §3。
