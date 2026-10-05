@@ -78,10 +78,23 @@ describe('Vite development resource contracts', () => {
   })
 
   it('preserves the Vite cache unless the explicit reset switch is set', () => {
-    const source = readFileSync(path.join(root, 'scripts/dev-web-windows.ps1'), 'utf8')
+    const webDev = readFileSync(path.join(root, 'scripts/dev-web-windows.ps1'), 'utf8')
+    const justfile = readFileSync(path.join(root, 'justfile'), 'utf8')
 
-    expect(source).toContain("$env:CCR_DEV_RESET_VITE_CACHE -eq '1'")
-    expect(source.match(/Remove-Item[^\r\n]*node_modules\/\.vite/g)).toHaveLength(1)
+    expect(webDev).toContain("$env:CCR_DEV_RESET_VITE_CACHE -eq '1'")
+    expect(webDev.match(/rmdir \/s \/q node_modules\\\.vite/g)).toHaveLength(1)
+    expect(webDev).not.toMatch(/Remove-Item[^\r\n]*node_modules\/\.vite/)
+
+    for (const recipe of ['_dev-clean-linux', '_dev-clean-macos', '_dev-clean-windows']) {
+      const start = justfile.indexOf(`${recipe}:`)
+      expect(start).toBeGreaterThanOrEqual(0)
+      const rest = justfile.slice(start + recipe.length)
+      const next = rest.search(/\n(?:_dev-clean-|dev-backend:|# 启动前)/)
+      const body = next === -1 ? rest : rest.slice(0, next)
+      expect(body).toContain('CCR_DEV_RESET_VITE_CACHE')
+      expect(body).toContain('node_modules')
+    }
+    expect(justfile).not.toMatch(/Remove-Item[^\r\n]*node_modules\/\.vite/)
   })
 })
 

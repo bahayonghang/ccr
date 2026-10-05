@@ -26,9 +26,10 @@ Set-Location $RootDir
 function Invoke-CleanDevEnvironment {
     Write-Output '[WebDev] Cleaning browser web dev environment...'
     & powershell -ExecutionPolicy Bypass -File (Join-Path $RootDir 'scripts/clean_dev.ps1') -BackendPort $BackendPort -VitePort $VitePort -StopTauriDesktop
-    if ($env:CCR_DEV_RESET_VITE_CACHE -eq '1' -and (Test-Path 'node_modules/.vite')) {
+    if ($env:CCR_DEV_RESET_VITE_CACHE -eq '1' -and (Test-Path -LiteralPath 'node_modules/.vite')) {
         Write-Output '[WebDev] CCR_DEV_RESET_VITE_CACHE=1; removing the Vite dependency cache...'
-        Remove-Item -Recurse -Force 'node_modules/.vite'
+        # 不用 Remove-Item -Recurse，它的进度条会让这一步停住。
+        cmd /c 'rmdir /s /q node_modules\.vite' | Out-Null
     }
     Write-Output '[WebDev] Cleanup complete'
     Write-Output ''
@@ -40,36 +41,7 @@ function Get-PortOwners {
     $owners = @()
     $seen = @{}
 
-    try {
-        $connections = @(Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue |
-            Where-Object { $_.State -in @('Listen', 'Bound') })
-        foreach ($connection in $connections) {
-            $portProcessId = [int]$connection.OwningProcess
-            if ($seen.ContainsKey($portProcessId)) {
-                continue
-            }
-            $seen[$portProcessId] = $true
-            try {
-                $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$portProcessId" -ErrorAction Stop
-                $owners += [pscustomobject]@{
-                    ProcessId = $portProcessId
-                    Name = $proc.Name
-                    ExecutablePath = $proc.ExecutablePath
-                    CommandLine = $proc.CommandLine
-                }
-            } catch {
-                $owners += [pscustomobject]@{
-                    ProcessId = $portProcessId
-                    Name = $null
-                    ExecutablePath = $null
-                    CommandLine = $null
-                }
-            }
-        }
-    } catch {
-        # Ignore and fall back to netstat below.
-    }
-
+    # 只用 netstat。Get-NetTCPConnection 会让清理停住，并写出警告。
     $pattern = "^\s*TCP\s+\S+:$Port\s+\S+\s+LISTENING\s+(\d+)\s*$"
     $matches = netstat -ano -p tcp | Select-String -Pattern $pattern
 
