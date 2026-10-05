@@ -398,8 +398,11 @@ _dev-clean-linux:
             lsof -ti:"$port" 2>/dev/null | xargs -r kill -9 2>/dev/null || true
         done
     fi
-    # 清理缓存目录
-    rm -rf "$JDIR/node_modules/.vite" 2>/dev/null || true
+    # 常规启动保留 Vite 依赖缓存。强制重建时才删除。
+    if [ "${CCR_DEV_RESET_VITE_CACHE:-}" = "1" ]; then
+        echo "... 清理前端构建目录..."
+        rm -rf "$JDIR/node_modules/.vite" 2>/dev/null || true
+    fi
     echo "✅ 清理完成"
 
 # 清理开发环境 - macOS
@@ -443,17 +446,20 @@ _dev-clean-macos:
             lsof -ti:"$port" 2>/dev/null | xargs kill -9 2>/dev/null || true
         done
     fi
-    # 清理缓存目录
-    rm -rf "$JDIR/node_modules/.vite" 2>/dev/null || true
+    # 常规启动保留 Vite 依赖缓存。强制重建时才删除。
+    if [ "${CCR_DEV_RESET_VITE_CACHE:-}" = "1" ]; then
+        echo "... 清理前端构建目录..."
+        rm -rf "$JDIR/node_modules/.vite" 2>/dev/null || true
+    fi
     echo "✅ 清理完成"
 
 # 清理开发环境 - Windows
-# 优化：仅清理本项目配置的端口，避免误杀其他项目
+# 仅清理本项目端口。Vite 依赖缓存默认保留，CCR_DEV_RESET_VITE_CACHE=1 才删除。
+# 删除走 rmdir：Remove-Item -Recurse 的进度条在 Windows 上会停住。
 _dev-clean-windows:
     @powershell -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Write-Host '🧹 开始清理开发环境...' -ForegroundColor Cyan"
     @powershell -ExecutionPolicy Bypass -File scripts/clean_dev.ps1 -BackendPort "{{backend_port}}" -VitePort "{{vite_port}}"
-    @powershell -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Write-Host '... 清理前端构建目录...' -ForegroundColor Gray"
-    @if (Test-Path 'node_modules/.vite') { Remove-Item -Recurse -Force 'node_modules/.vite' }
+    @if ($env:CCR_DEV_RESET_VITE_CACHE -eq '1' -and (Test-Path -LiteralPath 'node_modules/.vite')) { Write-Host '... 清理前端构建目录...' -ForegroundColor Gray; cmd /c 'rmdir /s /q node_modules\.vite' | Out-Null }; exit 0
     @powershell -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Write-Host '✅ 清理完成' -ForegroundColor Green"
 
 # 启动前清理（端口 + 缓存 + 残留进程）
