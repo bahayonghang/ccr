@@ -238,6 +238,72 @@ let uncached = input.checked_sub(cache_read.checked_add(cache_write)?)?;
 catalog.calculate(model, uncached, output, cache_read, cache_write);
 ```
 
+## Scenario: Codex Auth Runtime And Snapshot Token Sync
+
+### 1. Scope / Trigger
+
+Apply this section when a change touches `CodexAuthService::switch_account`, `sync_runtime_with_saved_account*`, `CodexOAuthTokenService::plan_runtime_sync` / `repair_saved_account`, the quota fetch path for saved accounts, or `ccr codex auth off` / TUI `o`.
+
+OpenAI OAuth refresh tokens are single-use. Every refresh rotates the token, and the old value is rejected with `refresh_token_reused`. `codex login` and `codex logout` call `/oauth/revoke` on the credentials already in the runtime file. A revoked token returns `refresh_token_invalidated`. No local copy can recover a revoked token.
+
+### 2. Signatures
+
+- `CodexOAuthTokenService::plan_runtime_sync(&self) -> Result<RuntimeSyncPlan>` is read-only.
+- `RuntimeSyncPlan`: `NoOp`, `Unchanged`, `WriteSnapshot`, `WriteRuntime`, `SkipStaleRuntime`.
+- `CodexAuthService::sync_runtime_with_saved_account(&self) -> Result<RuntimeSyncOutcome>`.
+- `CodexAuthService::sync_runtime_with_saved_account_best_effort(&self, context: &str) -> RuntimeSyncOutcome` logs a warning and returns `NoOp` on error.
+- `codex_quota_service::RELOGIN_REQUIRED_PREFIX` and `relogin_required_detail(error) -> Option<&str>`.
+
+### 3. Contracts
+
+- Identity: match the runtime to a saved account by `account_id` only (from `tokens.account_id`, else the access-token JWT). If several accounts share the `account_id`, select `current_auth` first, then the latest `last_used`. A missing or unknown `account_id` is `NoOp`.
+- Freshness: `effective_ts = last_refresh`, else file mtime. Equal tokens (trimmed refresh/access/id/account_id) are `Unchanged` and write nothing. If the runtime is not older than the snapshot, write the snapshot. If the snapshot is newer and the account is `current_auth`, write the runtime through `CodexRuntimeService::commit_plan` (backup + atomic write) and keep the other runtime keys. If the snapshot is newer and the account is not `current_auth`, skip.
+- Observation points run the best-effort sync: TUI load and reload, `switch_account` before the switch-out, quota routing for the active account, `ccr codex auth sync`, and the file-store branch of `auth off` before it deletes the runtime file.
+- Non-file credential stores are `NoOp`. The keyring/auto branch of `auth off` still spawns `codex logout`, which revokes.
+- Quota for the account that is `current_auth` and owns the runtime uses the runtime file as its credential source, then syncs the snapshot. Other accounts use their snapshot.
+- Repair writes the snapshot only when the source is newer (`(refresh_changed && latest_ts >= current_ts) || latest_ts > current_ts`). The quota path retries only after a repair that updated the snapshot.
+- `refresh_token_reused`, `refresh_token_invalidated`, `refresh_token_expired`, and `invalid_grant` without a newer repair source return an error prefixed with `RELOGIN_REQUIRED_PREFIX`. The account and the snapshot stay. The TUI shows "re-login required" / 「需重新登录」 with the hint to press `o` before `codex login`.
+- Backups share the auth prefix pool of 10 files across labels. Do not assume `runtime_switch` backups are kept separately.
+
+### 4. Validation & Error Matrix
+
+| Condition                                  | Result                                      |
+| ------------------------------------------ | ------------------------------------------- |
+| Runtime newer than snapshot                | `SnapshotUpdated`                           |
+| Snapshot newer, account is `current_auth`  | `RuntimeUpdated`, runtime backup created    |
+| Snapshot newer, account not `current_auth` | `SkippedStaleRuntime`, no write             |
+| Tokens equal                               | `Unchanged`, bytes and mtime unchanged      |
+| Runtime `account_id` missing or not saved  | `NoOp`                                      |
+| Target snapshot corrupt during switch      | error; runtime and `current_auth` unchanged |
+| Permanent refresh failure, no newer source | `需重新登录：` + original error             |
+
+### 5. Good/Base/Bad Cases
+
+- Good: codex rotates A, CCR observes it, an external login writes B, switch back to A, quota succeeds.
+- Base: codex rotates A, no observation, `codex login B` revokes A. Quota for A reports re-login; nothing is overwritten.
+- Bad: refreshing quota for the active account from its snapshot. The snapshot consumes the token and the runtime keeps the consumed value.
+
+### 6. Tests Required
+
+- `codex_auth_service` tests for switch-out write-back, unchanged sync, both newer-snapshot branches, identity rules, duplicate `account_id`, failed switch, and the non-file store.
+- `codex_oauth_token_service` test: an older repair source does not overwrite a newer snapshot.
+- `codex_quota_service` end-to-end tests with a loopback stub (`std::net::TcpListener`) and `openai_quota_core::TEST_ENDPOINTS.scope(...)`. Use unique `account_id` values because `QUOTA_CACHE` is process-wide.
+- `ccr-cli` `auth_off` sync-before-delete test and the `ccr-tui` EN/ZH re-login rendering test.
+
+### 7. Wrong vs Correct
+
+```rust
+// Wrong: the snapshot refresh consumes the token that the runtime still holds.
+let auth_path = self.account_auth_path(account_name);
+
+// Correct: route the active account to the runtime, then sync the snapshot.
+let auth_path = if self.route_active_account_to_runtime(account_name).await {
+    self.current_auth_path()
+} else {
+    self.account_auth_path(account_name)
+};
+```
+
 ## Verification
 
 For Codex/OpenCode domain changes, run:
