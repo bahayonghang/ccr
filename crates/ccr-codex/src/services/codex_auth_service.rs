@@ -26,6 +26,7 @@ use crate::models::{
 };
 use crate::platforms::codex::CodexPlatform;
 use crate::utils::CodexPaths;
+use ccr_core::core::atomic_writer::AtomicWriter;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::lock::LockManager;
 use chrono::{DateTime, Utc};
@@ -33,9 +34,6 @@ use std::path::PathBuf;
 use std::{env, fs};
 use tracing::{debug, warn};
 
-/// 备份保留数量
-#[allow(dead_code)]
-const MAX_BACKUPS: usize = 10;
 const OPENAI_DEFAULT_BASE_URL: &str = "https://api.openai.com/v1";
 const THIRD_PARTY_RUNTIME_PROVIDER_KEY: &str = "custom";
 
@@ -913,10 +911,14 @@ impl CodexAuthService {
         fs::create_dir_all(&auth_storage)
             .map_err(|e| CcrError::ConfigError(format!("创建存储目录失败: {}", e)))?;
 
-        // 复制 auth.json
+        // 复制 auth.json（原子替换，写入内容前设置私有权限）
         let src = self.auth_json_path();
         let dst = self.account_auth_path(name);
-        fs::copy(&src, &dst)
+        let content = fs::read(&src)
+            .map_err(|e| CcrError::ConfigError(format!("复制 auth.json 失败: {}", e)))?;
+        AtomicWriter::new(&dst)
+            .secret(true)
+            .write(&content)
             .map_err(|e| CcrError::ConfigError(format!("复制 auth.json 失败: {}", e)))?;
 
         // 设置文件权限（仅当前用户可读写）
@@ -1307,35 +1309,6 @@ impl CodexAuthService {
 
     // ==================== 备份管理 ====================
 
-    /// 备份当前 auth.json
-    #[allow(dead_code)]
-    pub fn backup_current_auth(&self) -> Result<PathBuf> {
-        let auth_path = self.auth_json_path();
-        if !auth_path.exists() {
-            return Err(CcrError::ConfigError("没有可备份的 auth.json".into()));
-        }
-
-        // 确保备份目录存在
-        let backup_dir = self.backup_dir();
-        fs::create_dir_all(&backup_dir)
-            .map_err(|e| CcrError::ConfigError(format!("创建备份目录失败: {}", e)))?;
-
-        // 生成带时间戳的备份文件名
-        let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
-        let backup_name = format!("auth_{}.json", timestamp);
-        let backup_path = backup_dir.join(&backup_name);
-
-        // 复制文件
-        fs::copy(&auth_path, &backup_path)
-            .map_err(|e| CcrError::ConfigError(format!("备份失败: {}", e)))?;
-
-        // 清理旧备份
-        self.cleanup_old_backups()?;
-
-        debug!("已备份到: {}", backup_path.display());
-        Ok(backup_path)
-    }
-
     fn backup_registry(&self) -> Result<Option<PathBuf>> {
         let registry_path = self.registry_path();
         if !registry_path.exists() {
@@ -1370,46 +1343,15 @@ impl CodexAuthService {
         let backup_name = format!("auth_account_{}_{}.json", name, timestamp);
         let backup_path = backup_dir.join(&backup_name);
 
-        fs::copy(&auth_path, &backup_path)
+        // 快照含 tokens：写入内容前设置私有权限（fs::copy 在 Windows 上继承目录 ACL）
+        let content = fs::read(&auth_path)
+            .map_err(|e| CcrError::ConfigError(format!("备份 auth 文件失败: {}", e)))?;
+        AtomicWriter::new(&backup_path)
+            .secret(true)
+            .write(&content)
             .map_err(|e| CcrError::ConfigError(format!("备份 auth 文件失败: {}", e)))?;
 
         Ok(Some(backup_path))
-    }
-
-    /// 清理旧备份，保留最新的 MAX_BACKUPS 个
-    #[allow(dead_code)]
-    fn cleanup_old_backups(&self) -> Result<()> {
-        let backup_dir = self.backup_dir();
-        if !backup_dir.exists() {
-            return Ok(());
-        }
-
-        let mut backups: Vec<_> = fs::read_dir(&backup_dir)
-            .map_err(|e| CcrError::ConfigError(format!("读取备份目录失败: {}", e)))?
-            .filter_map(|e| e.ok())
-            .filter(|e| {
-                e.path()
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .is_some_and(|n| n.starts_with("auth_") && n.ends_with(".json"))
-            })
-            .collect();
-
-        // 按修改时间排序 (最新的在前)
-        backups.sort_by(|a, b| {
-            let time_a = a.metadata().and_then(|m| m.modified()).ok();
-            let time_b = b.metadata().and_then(|m| m.modified()).ok();
-            time_b.cmp(&time_a)
-        });
-
-        // 删除超出限制的旧备份
-        for backup in backups.iter().skip(MAX_BACKUPS) {
-            if let Err(e) = fs::remove_file(backup.path()) {
-                warn!("删除旧备份失败: {}", e);
-            }
-        }
-
-        Ok(())
     }
 
     // ==================== 进程检测 ====================
@@ -2045,9 +1987,12 @@ impl CodexAuthService {
 
                 let auth_content = serde_json::to_string_pretty(auth_data)
                     .map_err(|e| CcrError::ConfigError(format!("序列化 auth 数据失败: {}", e)))?;
-                fs::write(&auth_path, auth_content).map_err(|e| {
-                    CcrError::ConfigError(format!("写入 auth 文件失败 (账号: {}): {}", name, e))
-                })?;
+                AtomicWriter::new(&auth_path)
+                    .secret(true)
+                    .write_string(&auth_content)
+                    .map_err(|e| {
+                        CcrError::ConfigError(format!("写入 auth 文件失败 (账号: {}): {}", name, e))
+                    })?;
 
                 // 设置文件权限（仅当前用户可读写）
                 crate::utils::ensure_private_permissions(&auth_path);
@@ -3131,47 +3076,52 @@ requires_openai_auth = true
     // ==================== 备份测试 ====================
 
     #[test]
-    fn test_backup_current_auth() {
+    fn save_current_snapshot_matches_runtime_bytes() {
         let (service, _ccr, codex) = create_test_service();
-
-        // 创建 auth.json
         let auth_path = codex.path().join("auth.json");
         let auth_content = create_test_auth_json("test-id", "2026-01-08T03:09:53.894843900Z");
-        fs::write(&auth_path, auth_content).unwrap();
-
-        // 备份
-        let backup_path = service.backup_current_auth().unwrap();
-        assert!(backup_path.exists());
-        assert!(backup_path.to_string_lossy().contains("auth_"));
-    }
-
-    #[test]
-    fn test_backup_rotation() {
-        let (service, ccr, codex) = create_test_service();
-
-        // 创建 auth.json
-        let auth_path = codex.path().join("auth.json");
-        let auth_content = create_test_auth_json("test-id", "2026-01-08T03:09:53.894843900Z");
-        fs::write(&auth_path, auth_content).unwrap();
-
-        // 创建备份目录和 15 个旧备份
-        let backup_dir = ccr.path().join("auth/backups");
-        fs::create_dir_all(&backup_dir).unwrap();
-
-        for i in 0..15 {
-            let backup_name = format!("auth_20260101_{:06}.json", i);
-            fs::write(backup_dir.join(&backup_name), "{}").unwrap();
+        fs::write(&auth_path, &auth_content).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&auth_path, fs::Permissions::from_mode(0o644)).unwrap();
         }
 
-        // 执行新备份 (会触发清理)
-        service.backup_current_auth().unwrap();
+        service.save_current("first", None, false).unwrap();
+        // force 覆盖已有快照同样走原子替换
+        service.save_current("first", None, true).unwrap();
 
-        // 验证只保留 MAX_BACKUPS 个
-        let backups: Vec<_> = fs::read_dir(&backup_dir)
-            .unwrap()
-            .filter_map(|e| e.ok())
-            .collect();
-        assert!(backups.len() <= MAX_BACKUPS + 1); // +1 for the new backup
+        let snapshot = service.account_auth_path("first");
+        assert_eq!(fs::read_to_string(&snapshot).unwrap(), auth_content);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mode = fs::metadata(&snapshot).unwrap().permissions().mode() & 0o777;
+            assert_eq!(mode, 0o600);
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn account_snapshot_backup_is_owner_only() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let (service, _ccr, _codex) = create_test_service();
+        let snapshot = service.account_auth_path("acct");
+        fs::create_dir_all(snapshot.parent().unwrap()).unwrap();
+        fs::write(
+            &snapshot,
+            create_test_auth_json("acc-1", "2026-01-08T03:09:53Z"),
+        )
+        .unwrap();
+        // 快照权限偏宽时，fs::copy 会把 0o644 复制到备份
+        fs::set_permissions(&snapshot, fs::Permissions::from_mode(0o644)).unwrap();
+
+        let backup = service.backup_account_auth("acct").unwrap().unwrap();
+
+        let mode = fs::metadata(&backup).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600);
+        assert_eq!(fs::read(&backup).unwrap(), fs::read(&snapshot).unwrap());
     }
 
     // ==================== JWT 解析测试 ====================

@@ -71,7 +71,9 @@ impl CodexRegistryStore {
         // 写入前备份
         let _ = self.backup();
 
+        // 写入内容前设置私有权限，消除写入后再 chmod 的默认权限窗口
         AtomicWriter::new(&self.registry_path)
+            .secret(true)
             .write_string(&content)
             .map_err(|e| CcrError::ConfigError(format!("写入注册表失败: {}", e)))?;
 
@@ -150,6 +152,26 @@ mod tests {
         let loaded = store.load().unwrap();
         assert_eq!(loaded.current_auth, Some("test".to_string()));
         assert!(loaded.accounts.contains_key("test"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn save_writes_owner_only_registry() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp = tempfile::tempdir().unwrap();
+        let store = CodexRegistryStore::new(temp.path());
+        store.save(&CodexAuthRegistry::default()).unwrap();
+        // 既有宽权限文件被替换后同样收紧
+        fs::set_permissions(&store.registry_path, fs::Permissions::from_mode(0o644)).unwrap();
+        store.save(&CodexAuthRegistry::default()).unwrap();
+
+        let mode = fs::metadata(&store.registry_path)
+            .unwrap()
+            .permissions()
+            .mode()
+            & 0o777;
+        assert_eq!(mode, 0o600);
     }
 
     #[test]
