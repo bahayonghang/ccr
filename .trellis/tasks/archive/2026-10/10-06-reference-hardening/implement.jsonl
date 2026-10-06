@@ -1,0 +1,6 @@
+{"file":".trellis/spec/ccr-codex/backend/backend-guidelines.md","reason":"Auth safety, masking, permissions, backup-before-destructive contracts to audit against"}
+{"file":".trellis/spec/ccr-codex/backend/test-fixtures.md","reason":"Synthetic isolated homes for audit experiments"}
+{"file":".trellis/spec/ccr-core/backend/atomic-writer.md","reason":"Atomic write requirements to verify coverage"}
+{"file":".trellis/spec/ccr-core/backend/ccr-error-freeze.md","reason":"Frozen error variants for fix classification"}
+{"file":".trellis/tasks/10-06-codex-auth-switch-panel-hardening/research/codex-auth-reference.md","reason":"Reference implementation mechanisms and comparison baseline"}
+{"file":".trellis/tasks/10-06-reference-hardening/design.md","reason":"Audit dimension table, fix classes and evidence requirements"}

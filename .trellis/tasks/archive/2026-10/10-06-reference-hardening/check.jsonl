@@ -1,0 +1,4 @@
+{"file":".trellis/spec/ccr-codex/backend/backend-guidelines.md","reason":"Verify hardening fixes keep auth safety and no secret exposure"}
+{"file":".trellis/spec/ccr-core/backend/ccr-error-freeze.md","reason":"Verify no new error variants introduced"}
+{"file":".trellis/tasks/10-06-codex-auth-switch-panel-hardening/research/codex-auth-reference.md","reason":"Verify findings map to evidenced reference differences"}
+{"file":".trellis/tasks/10-06-reference-hardening/design.md","reason":"Verify report covers all dimensions and class A fixes stay behavior-neutral"}
