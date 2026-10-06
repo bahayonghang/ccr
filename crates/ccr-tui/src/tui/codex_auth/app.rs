@@ -221,6 +221,7 @@ impl CodexAuthApp {
         service: CodexAuthService,
         task_executor: AsyncTaskExecutor,
     ) -> Result<Self> {
+        service.sync_runtime_with_saved_account_best_effort("tui load");
         let snapshot = service.read_auth_snapshot()?;
         let login_state = snapshot.login_state.clone();
         let accounts = service.build_account_items(&snapshot)?;
@@ -324,6 +325,8 @@ impl CodexAuthApp {
 
     /// Reload account list
     pub fn reload_accounts(&mut self) -> Result<()> {
+        self.service
+            .sync_runtime_with_saved_account_best_effort("tui reload");
         let snapshot = self.service.read_auth_snapshot()?;
         self.apply_snapshot(snapshot)?;
         self.arm_activation_gate();

@@ -325,6 +325,10 @@ fn codex_auth_off() -> Result<AuthOffResult> {
     let warnings = codex_pointer_warning(pointer.as_deref());
     match detect_codex_credential_store()? {
         CredentialStoreKind::File => {
+            // 本地删除不调用 revoke；删除前把 runtime 中轮换后的 tokens 回写已保存快照
+            if let Ok(service) = ccr_codex::CodexAuthService::new() {
+                service.sync_runtime_with_saved_account_best_effort("auth off");
+            }
             let paths = codex_auth_json_paths()?;
             let mut result = delete_credential_files(Platform::Codex, "codex", &paths)?;
             result.profile_pointer = pointer;
@@ -767,5 +771,41 @@ mod tests {
         assert!(!result.changed);
         assert_eq!(result.path, AuthOffPath::File);
         assert!(!marker.exists());
+    }
+
+    #[test]
+    fn codex_file_off_syncs_rotated_runtime_tokens_before_delete() {
+        let home = TestHome::new_with_home_env();
+        fs::write(
+            home.codex_dir().join("config.toml"),
+            "cli_auth_credentials_store = \"file\"\n",
+        )
+        .unwrap();
+        let auth = home.codex_dir().join("auth.json");
+        let oauth = |refresh: &str, last_refresh: &str| {
+            format!(
+                r#"{{"auth_mode":"chatgpt","tokens":{{"id_token":"synthetic-id","access_token":"access-{refresh}","refresh_token":"{refresh}","account_id":"acc-off"}},"last_refresh":"{last_refresh}"}}"#
+            )
+        };
+        write_json(&auth, &oauth("rt-off-1", "2026-10-01T00:00:00Z"));
+        ccr_codex::CodexAuthService::new()
+            .unwrap()
+            .save_current("work", None, false)
+            .unwrap();
+        // codex 运行期间轮换 refresh_token，快照尚未观测
+        write_json(&auth, &oauth("rt-off-2", "2026-10-02T00:00:00Z"));
+
+        let result = auth_off_for_platform(Platform::Codex).unwrap();
+
+        assert!(result.changed);
+        assert!(!auth.exists());
+        let snapshot = ccr_codex::utils::CodexPaths::resolve()
+            .unwrap()
+            .ccr_codex_dir
+            .join("auth")
+            .join("work.json");
+        let saved: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(snapshot).unwrap()).unwrap();
+        assert_eq!(saved["tokens"]["refresh_token"], "rt-off-2");
     }
 }

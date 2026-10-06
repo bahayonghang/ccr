@@ -10,6 +10,7 @@ use crate::tui::overlay::{Overlay, render_overlay};
 use crate::tui::theme;
 use crate::tui::toast::ToastKind;
 use ccr_cli::services::CodexQuotaService;
+use ccr_codex::services::codex_quota_service::relogin_required_detail;
 use ccr_codex::services::codex_usage_estimation::{
     CodexCapacityEstimate, CodexCostStatus, CodexCostSummary, CodexEstimateRange,
     CodexEstimateStatus,
@@ -968,10 +969,15 @@ fn quota_status_line(app: &CodexAuthApp) -> Line<'static> {
             theme::warning_style(),
         ));
     } else if let Some(error) = app.selected_quota_error() {
-        spans.push(Span::styled(
-            crate::tui_format!("Quota error: {}", "配额错误：{}", error),
-            theme::error_style(),
-        ));
+        let text = match relogin_required_detail(error) {
+            Some(detail) => crate::tui_format!(
+                "Quota error: re-login required (refresh token revoked or used); press o before codex login · {}",
+                "配额错误：需重新登录（refresh token 已吊销或已使用）；codex login 前先按 o 本地登出 · {}",
+                detail
+            ),
+            None => crate::tui_format!("Quota error: {}", "配额错误：{}", error),
+        };
+        spans.push(Span::styled(text, theme::error_style()));
     } else if app.is_selected_quota_loading() {
         spans.push(Span::styled(
             crate::tui_text!("Refreshing", "刷新中"),
@@ -3292,5 +3298,39 @@ pub(crate) mod tests {
             compact.contains("NomatchingCCRattributionrecords"),
             "{rendered}"
         );
+    }
+
+    #[test]
+    fn relogin_quota_error_shows_local_logout_hint_in_both_languages() {
+        let (_dir, mut app) = presentation_fixture();
+        app.quota_state = QuotaState::Error {
+            account_name: "codexcn".into(),
+            message: format!(
+                "{}Token 刷新失败 (401) [refresh_token_invalidated]",
+                ccr_codex::services::codex_quota_service::RELOGIN_REQUIRED_PREFIX
+            ),
+            cache: Default::default(),
+        };
+        for (language, expected) in [
+            (
+                ccr_cli::managers::TuiLanguage::English,
+                "re-login required (refresh token revoked or used); press o before codex login",
+            ),
+            (
+                ccr_cli::managers::TuiLanguage::SimplifiedChinese,
+                "需重新登录（refresh token 已吊销或已使用）；codex login 前先按 o 本地登出",
+            ),
+        ] {
+            crate::tui::i18n::set_language(language);
+            let text = plain_line_text(&quota_status_line(&app));
+            assert!(text.contains(expected), "{text}");
+            assert!(text.contains("[refresh_token_invalidated]"), "{text}");
+            // 前缀只出现一次（标记被剥离后再以本地化文案呈现）
+            assert_eq!(
+                text.matches("需重新登录").count(),
+                usize::from(expected.contains("需重新登录"))
+            );
+        }
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
     }
 }
