@@ -23,7 +23,9 @@ pub use codex_history_sync_service::{
 };
 pub use codex_model_provider_store::CodexModelProviderStoreService;
 pub use codex_oauth_pending_store::{CodexOAuthPendingState, CodexOAuthPendingStore};
-pub use codex_oauth_token_service::{CodexOAuthTokenService, OAuthRepairOutcome};
+pub use codex_oauth_token_service::{
+    CodexOAuthTokenService, OAuthRepairOutcome, RuntimeSyncOutcome, RuntimeSyncPlan,
+};
 pub use codex_process_service::{
     CodexAppServer, CodexAppServerCleanup, CodexAppServerCleanupReport, CodexProcessDiscoveryIssue,
     CodexProcessService, CodexSignalFailure, CodexSignalStage, TerminationKind,

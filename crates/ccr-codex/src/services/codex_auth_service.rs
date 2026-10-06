@@ -8,6 +8,9 @@
 // - ⏰ 计算 Token 新鲜度
 // - 🔄 进程检测与备份管理
 
+use super::codex_oauth_token_service::{
+    CodexOAuthTokenService, RuntimeSyncOutcome, RuntimeSyncPlan,
+};
 use super::codex_runtime_service::{
     CodexAuthCacheAction, CodexRuntimeCommitPlan, CodexRuntimeService,
 };
@@ -78,6 +81,18 @@ impl CodexAuthService {
             codex_dir: paths.codex_dir,
             lock_dir,
         })
+    }
+
+    /// 从显式路径构造，锁目录解析与 `new()` 一致（CCR_LOCK_DIR 优先）
+    pub(crate) fn from_dirs_with_env_lock(ccr_codex_dir: PathBuf, codex_dir: PathBuf) -> Self {
+        let lock_dir = env::var_os("CCR_LOCK_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| codex_dir.join(".locks"));
+        Self {
+            ccr_codex_dir,
+            codex_dir,
+            lock_dir,
+        }
     }
 
     /// 从显式路径构造（用于测试注入与非标准工作目录场景）
@@ -1102,6 +1117,52 @@ impl CodexAuthService {
         Ok(items)
     }
 
+    /// 观测点同步：runtime auth.json 与匹配的已保存快照按新鲜度对齐
+    ///
+    /// runtime 较新 → 写快照；快照较新且为 current_auth → 经 commit_plan（备份 + 原子写）写回 runtime；
+    /// tokens 相同不写文件。非 file 凭据存储时不处理。
+    pub fn sync_runtime_with_saved_account(&self) -> Result<RuntimeSyncOutcome> {
+        if !Self::supports_managed_auth_accounts(self.detect_credential_store()) {
+            return Ok(RuntimeSyncOutcome::NoOp);
+        }
+
+        let oauth =
+            CodexOAuthTokenService::from_dirs(self.ccr_codex_dir.clone(), self.codex_dir.clone());
+        Ok(match oauth.plan_runtime_sync()? {
+            RuntimeSyncPlan::NoOp => RuntimeSyncOutcome::NoOp,
+            RuntimeSyncPlan::Unchanged { account } => RuntimeSyncOutcome::Unchanged(account),
+            RuntimeSyncPlan::WriteSnapshot { account, doc } => {
+                oauth.apply_snapshot_write(&account, &doc)?;
+                RuntimeSyncOutcome::SnapshotUpdated(account)
+            }
+            RuntimeSyncPlan::WriteRuntime { account, auth } => {
+                self.runtime_service()?
+                    .commit_plan(CodexRuntimeCommitPlan {
+                        config: None,
+                        auth_cache: CodexAuthCacheAction::Write(auth),
+                    })?;
+                debug!("Wrote newer saved tokens of '{}' back to runtime", account);
+                RuntimeSyncOutcome::RuntimeUpdated(account)
+            }
+            RuntimeSyncPlan::SkipStaleRuntime { account } => {
+                debug!(
+                    "Runtime tokens of '{}' are older than its snapshot; skip sync",
+                    account
+                );
+                RuntimeSyncOutcome::SkippedStaleRuntime(account)
+            }
+        })
+    }
+
+    /// 观测点同步（失败只记录 warn，不阻断调用方主流程）
+    pub fn sync_runtime_with_saved_account_best_effort(&self, context: &str) -> RuntimeSyncOutcome {
+        self.sync_runtime_with_saved_account()
+            .unwrap_or_else(|err| {
+                warn!("Codex auth snapshot sync failed ({}): {}", context, err);
+                RuntimeSyncOutcome::NoOp
+            })
+    }
+
     /// 切换到指定账号
     pub fn switch_account(&self, name: &str) -> Result<()> {
         self.ensure_managed_auth_supported("切换账号")?;
@@ -1122,6 +1183,9 @@ impl CodexAuthService {
             .get(name)
             .cloned()
             .ok_or_else(|| CcrError::ConfigError(format!("账号 '{}' 不存在", name)))?;
+
+        // 覆盖 runtime 前回写换出账号的轮换 tokens
+        self.sync_runtime_with_saved_account_best_effort("switch-out");
 
         let src = self.account_auth_path(name);
         let incoming = self.load_auth_raw_map(&src)?;
@@ -1179,9 +1243,34 @@ impl CodexAuthService {
         }
         self.save_registry(&registry)?;
         let _ = self.sync_current_auth_registry();
+        self.verify_runtime_matches(name, &normalized);
 
         debug!("已切换到账号: {}", name);
         Ok(())
+    }
+
+    /// 写后校验：runtime refresh_token 应与写入值一致，不一致只记录 warn
+    fn verify_runtime_matches(
+        &self,
+        name: &str,
+        expected: &serde_json::Map<String, serde_json::Value>,
+    ) {
+        let refresh_of = |map: &serde_json::Map<String, serde_json::Value>| {
+            map.get("tokens")
+                .and_then(|tokens| tokens.get("refresh_token"))
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_string)
+        };
+        let actual = self
+            .load_auth_raw_map(&self.auth_json_path())
+            .ok()
+            .and_then(|runtime| refresh_of(&runtime));
+        if actual != refresh_of(expected) {
+            warn!(
+                "Runtime auth.json does not hold the tokens written for '{}' after switch",
+                name
+            );
+        }
     }
 
     /// 删除指定账号
@@ -3633,5 +3722,384 @@ requires_openai_auth = true
         // 应该返回错误
         let result = service.import_accounts(invalid_json, ImportMode::Merge, false);
         assert!(result.is_err());
+    }
+
+    // ==================== 观测点同步（10-06 切换可靠性） ====================
+
+    fn oauth_auth_json(account_id: &str, refresh: &str, last_refresh: &str) -> String {
+        json!({
+            "auth_mode": "chatgpt",
+            "OPENAI_API_KEY": null,
+            "tokens": {
+                "id_token": "synthetic-id",
+                "access_token": format!("access-{refresh}"),
+                "refresh_token": refresh,
+                "account_id": account_id
+            },
+            "last_refresh": last_refresh
+        })
+        .to_string()
+    }
+
+    fn refresh_token_of(path: &std::path::Path) -> Option<String> {
+        let value: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(path).unwrap()).unwrap();
+        value["tokens"]["refresh_token"]
+            .as_str()
+            .map(str::to_string)
+    }
+
+    fn save_oauth_account(
+        service: &CodexAuthService,
+        auth_path: &std::path::Path,
+        name: &str,
+        account_id: &str,
+        refresh: &str,
+        last_refresh: &str,
+    ) {
+        fs::write(
+            auth_path,
+            oauth_auth_json(account_id, refresh, last_refresh),
+        )
+        .unwrap();
+        service.save_current(name, None, false).unwrap();
+    }
+
+    #[test]
+    fn switch_writes_rotated_outgoing_tokens_to_snapshot() {
+        let (service, _ccr, codex) = create_test_service();
+        let auth_path = codex.path().join("auth.json");
+        save_oauth_account(
+            &service,
+            &auth_path,
+            "a",
+            "acc-a",
+            "rt-a1",
+            "2026-10-01T00:00:00Z",
+        );
+        save_oauth_account(
+            &service,
+            &auth_path,
+            "b",
+            "acc-b",
+            "rt-b1",
+            "2026-10-01T00:00:00Z",
+        );
+        service.switch_account("a").unwrap();
+
+        // codex 在 A 活动期间轮换 refresh_token
+        fs::write(
+            &auth_path,
+            oauth_auth_json("acc-a", "rt-a2", "2026-10-02T00:00:00Z"),
+        )
+        .unwrap();
+
+        service.switch_account("b").unwrap();
+
+        assert_eq!(
+            refresh_token_of(&service.account_auth_path("a")).as_deref(),
+            Some("rt-a2")
+        );
+        assert_eq!(refresh_token_of(&auth_path).as_deref(), Some("rt-b1"));
+        let registry = service.load_registry().unwrap();
+        assert_eq!(registry.current_auth.as_deref(), Some("b"));
+    }
+
+    #[test]
+    fn sync_does_not_write_when_tokens_match() {
+        let (service, _ccr, codex) = create_test_service();
+        let auth_path = codex.path().join("auth.json");
+        save_oauth_account(
+            &service,
+            &auth_path,
+            "a",
+            "acc-a",
+            "rt-a1",
+            "2026-10-01T00:00:00Z",
+        );
+        let snapshot_path = service.account_auth_path("a");
+        let before = fs::read(&snapshot_path).unwrap();
+        let before_mtime = fs::metadata(&snapshot_path).unwrap().modified().unwrap();
+        let runtime_before = fs::read(&auth_path).unwrap();
+
+        let outcome = service.sync_runtime_with_saved_account().unwrap();
+
+        assert_eq!(outcome, RuntimeSyncOutcome::Unchanged("a".into()));
+        assert_eq!(fs::read(&snapshot_path).unwrap(), before);
+        assert_eq!(
+            fs::metadata(&snapshot_path).unwrap().modified().unwrap(),
+            before_mtime
+        );
+        assert_eq!(fs::read(&auth_path).unwrap(), runtime_before);
+    }
+
+    #[test]
+    fn newer_snapshot_of_current_account_is_written_back_to_runtime() {
+        let (service, _ccr, codex) = create_test_service();
+        let auth_path = codex.path().join("auth.json");
+        save_oauth_account(
+            &service,
+            &auth_path,
+            "a",
+            "acc-a",
+            "rt-a1",
+            "2026-10-01T00:00:00Z",
+        );
+        // CCR 配额刷新消费了 rt-a1，快照持有新值，runtime 仍为旧值
+        fs::write(
+            service.account_auth_path("a"),
+            oauth_auth_json("acc-a", "rt-a2", "2026-10-02T00:00:00Z"),
+        )
+        .unwrap();
+
+        let outcome = service.sync_runtime_with_saved_account().unwrap();
+
+        assert_eq!(outcome, RuntimeSyncOutcome::RuntimeUpdated("a".into()));
+        let runtime: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&auth_path).unwrap()).unwrap();
+        assert_eq!(runtime["tokens"]["refresh_token"], "rt-a2");
+        assert_eq!(runtime["last_refresh"], "2026-10-02T00:00:00Z");
+        // runtime 中 codex 写入的其他字段保留
+        assert_eq!(runtime["auth_mode"], "chatgpt");
+        // 写回经 commit_plan：写前备份旧 runtime
+        let backups: Vec<_> = fs::read_dir(codex.path().join("backups"))
+            .unwrap()
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| {
+                entry
+                    .file_name()
+                    .to_string_lossy()
+                    .starts_with("auth.runtime_switch.")
+            })
+            .collect();
+        assert!(!backups.is_empty());
+        assert_eq!(
+            service.sync_runtime_with_saved_account().unwrap(),
+            RuntimeSyncOutcome::Unchanged("a".into())
+        );
+    }
+
+    #[test]
+    fn newer_snapshot_of_non_current_account_is_left_alone() {
+        let (service, _ccr, codex) = create_test_service();
+        let auth_path = codex.path().join("auth.json");
+        save_oauth_account(
+            &service,
+            &auth_path,
+            "a",
+            "acc-a",
+            "rt-a1",
+            "2026-10-01T00:00:00Z",
+        );
+        save_oauth_account(
+            &service,
+            &auth_path,
+            "b",
+            "acc-b",
+            "rt-b1",
+            "2026-10-01T00:00:00Z",
+        );
+        // runtime 被外部改回 A 的旧 tokens，current_auth 仍指向 b
+        fs::write(
+            &auth_path,
+            oauth_auth_json("acc-a", "rt-a0", "2026-09-01T00:00:00Z"),
+        )
+        .unwrap();
+        let snapshot_before = fs::read(service.account_auth_path("a")).unwrap();
+        let runtime_before = fs::read(&auth_path).unwrap();
+
+        let outcome = service.sync_runtime_with_saved_account().unwrap();
+
+        assert_eq!(outcome, RuntimeSyncOutcome::SkippedStaleRuntime("a".into()));
+        assert_eq!(
+            fs::read(service.account_auth_path("a")).unwrap(),
+            snapshot_before
+        );
+        assert_eq!(fs::read(&auth_path).unwrap(), runtime_before);
+    }
+
+    #[test]
+    fn sync_identity_rules_never_write_another_account() {
+        let (service, _ccr, codex) = create_test_service();
+        let auth_path = codex.path().join("auth.json");
+        save_oauth_account(
+            &service,
+            &auth_path,
+            "a",
+            "acc-a",
+            "rt-a1",
+            "2026-10-01T00:00:00Z",
+        );
+        save_oauth_account(
+            &service,
+            &auth_path,
+            "b",
+            "acc-b",
+            "rt-b1",
+            "2026-10-01T00:00:00Z",
+        );
+        let a_before = fs::read(service.account_auth_path("a")).unwrap();
+        let b_before = fs::read(service.account_auth_path("b")).unwrap();
+
+        // 缺失 account_id（且 access_token 不是 JWT）
+        fs::write(
+            &auth_path,
+            json!({"tokens": {"access_token": "opaque", "refresh_token": "rt-x"},
+                       "last_refresh": "2026-10-03T00:00:00Z"})
+            .to_string(),
+        )
+        .unwrap();
+        assert_eq!(
+            service.sync_runtime_with_saved_account().unwrap(),
+            RuntimeSyncOutcome::NoOp
+        );
+
+        // account_id 变化为未保存的账号
+        fs::write(
+            &auth_path,
+            oauth_auth_json("acc-new", "rt-n1", "2026-10-03T00:00:00Z"),
+        )
+        .unwrap();
+        assert_eq!(
+            service.sync_runtime_with_saved_account().unwrap(),
+            RuntimeSyncOutcome::NoOp
+        );
+        assert_eq!(fs::read(service.account_auth_path("a")).unwrap(), a_before);
+        assert_eq!(fs::read(service.account_auth_path("b")).unwrap(), b_before);
+    }
+
+    #[test]
+    fn sync_with_duplicate_account_id_targets_current_then_latest_used() {
+        let (service, _ccr, codex) = create_test_service();
+        let auth_path = codex.path().join("auth.json");
+        save_oauth_account(
+            &service,
+            &auth_path,
+            "one",
+            "acc-dup",
+            "rt-1",
+            "2026-10-01T00:00:00Z",
+        );
+        save_oauth_account(
+            &service,
+            &auth_path,
+            "two",
+            "acc-dup",
+            "rt-1",
+            "2026-10-01T00:00:00Z",
+        );
+        let mut registry = service.load_registry().unwrap();
+        registry.current_auth = Some("one".into());
+        registry.accounts.get_mut("one").unwrap().last_used = Some(Utc::now() - Duration::days(2));
+        registry.accounts.get_mut("two").unwrap().last_used = Some(Utc::now());
+        service.save_registry(&registry).unwrap();
+
+        fs::write(
+            &auth_path,
+            oauth_auth_json("acc-dup", "rt-2", "2026-10-02T00:00:00Z"),
+        )
+        .unwrap();
+        assert_eq!(
+            service.sync_runtime_with_saved_account().unwrap(),
+            RuntimeSyncOutcome::SnapshotUpdated("one".into())
+        );
+        assert_eq!(
+            refresh_token_of(&service.account_auth_path("two")).as_deref(),
+            Some("rt-1")
+        );
+
+        // 无 current 指针时取 last_used 最新者
+        let mut registry = service.load_registry().unwrap();
+        registry.current_auth = None;
+        service.save_registry(&registry).unwrap();
+        fs::write(
+            &auth_path,
+            oauth_auth_json("acc-dup", "rt-3", "2026-10-03T00:00:00Z"),
+        )
+        .unwrap();
+        assert_eq!(
+            service.sync_runtime_with_saved_account().unwrap(),
+            RuntimeSyncOutcome::SnapshotUpdated("two".into())
+        );
+        assert_eq!(
+            refresh_token_of(&service.account_auth_path("one")).as_deref(),
+            Some("rt-2")
+        );
+    }
+
+    #[test]
+    fn failed_switch_keeps_runtime_and_registry_consistent() {
+        let (service, _ccr, codex) = create_test_service();
+        let auth_path = codex.path().join("auth.json");
+        save_oauth_account(
+            &service,
+            &auth_path,
+            "a",
+            "acc-a",
+            "rt-a1",
+            "2026-10-01T00:00:00Z",
+        );
+        save_oauth_account(
+            &service,
+            &auth_path,
+            "b",
+            "acc-b",
+            "rt-b1",
+            "2026-10-01T00:00:00Z",
+        );
+        service.switch_account("a").unwrap();
+        fs::write(
+            &auth_path,
+            oauth_auth_json("acc-a", "rt-a2", "2026-10-02T00:00:00Z"),
+        )
+        .unwrap();
+        fs::write(service.account_auth_path("b"), "{ corrupt").unwrap();
+        let runtime_before = fs::read(&auth_path).unwrap();
+
+        assert!(service.switch_account("b").is_err());
+
+        assert_eq!(fs::read(&auth_path).unwrap(), runtime_before);
+        assert_eq!(
+            service.load_registry().unwrap().current_auth.as_deref(),
+            Some("a")
+        );
+        // 换出同步是完整写入：A 快照与 runtime 一致
+        assert_eq!(
+            refresh_token_of(&service.account_auth_path("a")).as_deref(),
+            Some("rt-a2")
+        );
+    }
+
+    #[test]
+    fn sync_skips_non_file_credential_store() {
+        let (service, _ccr, codex) = create_test_service();
+        let auth_path = codex.path().join("auth.json");
+        save_oauth_account(
+            &service,
+            &auth_path,
+            "a",
+            "acc-a",
+            "rt-a1",
+            "2026-10-01T00:00:00Z",
+        );
+        fs::write(
+            &auth_path,
+            oauth_auth_json("acc-a", "rt-a2", "2026-10-02T00:00:00Z"),
+        )
+        .unwrap();
+        fs::write(
+            codex.path().join("config.toml"),
+            "cli_auth_credentials_store = \"keyring\"\n",
+        )
+        .unwrap();
+
+        assert_eq!(
+            service.sync_runtime_with_saved_account().unwrap(),
+            RuntimeSyncOutcome::NoOp
+        );
+        assert_eq!(
+            refresh_token_of(&service.account_auth_path("a")).as_deref(),
+            Some("rt-a1")
+        );
     }
 }

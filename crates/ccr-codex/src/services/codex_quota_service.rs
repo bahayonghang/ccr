@@ -18,6 +18,22 @@ use super::openai_quota_core::{
 /// 并发查询上限
 const MAX_CONCURRENT: usize = 5;
 
+/// refresh_token 永久失效（已吊销/已使用/已过期）且无可用修复来源时的错误前缀
+pub const RELOGIN_REQUIRED_PREFIX: &str = "需重新登录：";
+
+/// 若错误带有「需重新登录」前缀，返回去掉前缀后的原始错误
+pub fn relogin_required_detail(error: &str) -> Option<&str> {
+    error.strip_prefix(RELOGIN_REQUIRED_PREFIX)
+}
+
+fn mark_relogin_if_permanent(error: String) -> String {
+    if OpenAiQuotaCore::should_repair_tokens(&error) && relogin_required_detail(&error).is_none() {
+        format!("{RELOGIN_REQUIRED_PREFIX}{error}")
+    } else {
+        error
+    }
+}
+
 fn observations_from_outcome(
     outcome: &OpenAiQuotaFetchOutcome,
 ) -> Vec<crate::managers::codex_quota_observation::CodexQuotaObservation> {
@@ -175,7 +191,13 @@ impl CodexQuotaService {
         force_refresh: bool,
     ) -> CodexAccountQuota {
         let fetched_at = Utc::now();
-        let auth_path = self.account_auth_path(account_name);
+        // 活动已保存账号以 runtime 为凭据源，避免 CCR 消费快照 refresh_token 后与 runtime 分裂
+        let runtime_route = self.route_active_account_to_runtime(account_name).await;
+        let auth_path = if runtime_route {
+            self.current_auth_path()
+        } else {
+            self.account_auth_path(account_name)
+        };
         let snapshot = match Self::load_snapshot_from_path(&auth_path).await {
             Ok(snapshot) => snapshot,
             Err(error) => {
@@ -190,15 +212,27 @@ impl CodexQuotaService {
             }
         };
 
-        match self
-            .fetch_saved_snapshot_with_repair(
+        let result = if runtime_route {
+            let result = Self::fetch_snapshot_quota(snapshot.clone(), force_refresh, |tokens| {
+                let auth_path = auth_path.clone();
+                async move { Self::update_auth_file(&auth_path, &tokens).await }
+            })
+            .await
+            .map_err(mark_relogin_if_permanent);
+            // runtime 刷新落盘后把新 tokens 同步到快照（内容相同则不写）
+            self.sync_runtime_snapshot("quota refresh").await;
+            result
+        } else {
+            self.fetch_saved_snapshot_with_repair(
                 account_name,
                 auth_path.clone(),
                 snapshot.clone(),
                 force_refresh,
             )
             .await
-        {
+        };
+
+        match result {
             Ok(outcome) => self.build_success(account_name, outcome).await,
             Err(error) => CodexAccountQuota {
                 account_name: account_name.to_string(),
@@ -261,32 +295,41 @@ impl CodexQuotaService {
         {
             Ok(outcome) => Ok(outcome),
             Err(error) if OpenAiQuotaCore::should_repair_tokens(&error) => {
-                if let Ok(oauth) = CodexOAuthTokenService::new() {
-                    match oauth.repair_saved_account(account_name) {
-                        Ok(outcome) if outcome.updated => {
-                            debug!(
-                                "Repaired OAuth tokens for '{}' from {}",
-                                account_name,
-                                outcome
-                                    .source
-                                    .as_ref()
-                                    .map(|source| source.label())
-                                    .unwrap_or_else(|| "-".to_string())
-                            );
-                        }
-                        Ok(outcome) => {
-                            debug!(
-                                "OAuth repair skipped for '{}': {}",
-                                account_name, outcome.message
-                            );
-                        }
-                        Err(repair_error) => {
-                            warn!(
-                                "OAuth repair failed for '{}': {}",
-                                account_name, repair_error
-                            );
-                        }
+                let oauth = CodexOAuthTokenService::from_dirs(
+                    self.ccr_codex_dir.clone(),
+                    self.codex_dir.clone(),
+                );
+                let repaired = match oauth.repair_saved_account(account_name) {
+                    Ok(outcome) if outcome.updated => {
+                        debug!(
+                            "Repaired OAuth tokens for '{}' from {}",
+                            account_name,
+                            outcome
+                                .source
+                                .as_ref()
+                                .map(|source| source.label())
+                                .unwrap_or_else(|| "-".to_string())
+                        );
+                        true
                     }
+                    Ok(outcome) => {
+                        debug!(
+                            "OAuth repair skipped for '{}': {}",
+                            account_name, outcome.message
+                        );
+                        false
+                    }
+                    Err(repair_error) => {
+                        warn!(
+                            "OAuth repair failed for '{}': {}",
+                            account_name, repair_error
+                        );
+                        false
+                    }
+                };
+                // 无更新的修复来源时重试只会再次提交同一失效 token
+                if !repaired {
+                    return Err(mark_relogin_if_permanent(error));
                 }
 
                 let repaired_snapshot = Self::load_snapshot_from_path(&auth_path)
@@ -297,6 +340,7 @@ impl CodexQuotaService {
                     async move { Self::update_auth_file(&auth_path, &tokens).await }
                 })
                 .await
+                .map_err(mark_relogin_if_permanent)
             }
             Err(error) => Err(error),
         }
@@ -449,6 +493,47 @@ impl CodexQuotaService {
 
     fn current_auth_path(&self) -> PathBuf {
         self.codex_dir.join("auth.json")
+    }
+
+    /// 账号为 current_auth 且 runtime 属于该账号时返回 true；判断前先做一次观测点同步
+    async fn route_active_account_to_runtime(&self, account_name: &str) -> bool {
+        let ccr_codex_dir = self.ccr_codex_dir.clone();
+        let codex_dir = self.codex_dir.clone();
+        let account_name = account_name.to_string();
+        tokio::task::spawn_blocking(move || {
+            let registry = super::codex_registry_store::CodexRegistryStore::new(&ccr_codex_dir)
+                .load()
+                .ok()?;
+            if registry.current_auth.as_deref() != Some(account_name.as_str()) {
+                return None;
+            }
+            let account_id = registry.accounts.get(&account_name)?.account_id.clone();
+            super::codex_auth_service::CodexAuthService::from_dirs_with_env_lock(
+                ccr_codex_dir.clone(),
+                codex_dir.clone(),
+            )
+            .sync_runtime_with_saved_account_best_effort("quota route");
+            let runtime_id =
+                CodexOAuthTokenService::from_dirs(ccr_codex_dir, codex_dir).runtime_account_id()?;
+            (runtime_id == account_id).then_some(())
+        })
+        .await
+        .ok()
+        .flatten()
+        .is_some()
+    }
+
+    async fn sync_runtime_snapshot(&self, context: &'static str) {
+        let ccr_codex_dir = self.ccr_codex_dir.clone();
+        let codex_dir = self.codex_dir.clone();
+        let _ = tokio::task::spawn_blocking(move || {
+            super::codex_auth_service::CodexAuthService::from_dirs_with_env_lock(
+                ccr_codex_dir,
+                codex_dir,
+            )
+            .sync_runtime_with_saved_account_best_effort(context)
+        })
+        .await;
     }
 
     fn account_auth_path(&self, name: &str) -> PathBuf {
@@ -795,5 +880,404 @@ mod tests {
             .load()
             .unwrap();
         assert!(history.iter().all(|sample| !sample.scope_supported));
+    }
+    // ==================== 本地 OAuth/usage stub 端到端（10-06 切换可靠性） ====================
+
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    enum StubTokenState {
+        Valid,
+        Consumed,
+        Revoked,
+    }
+
+    #[derive(Default)]
+    struct StubState {
+        refresh_tokens: std::collections::HashMap<String, (String, StubTokenState)>,
+        access_tokens: std::collections::HashSet<String>,
+        issued: usize,
+    }
+
+    impl StubState {
+        fn add(&mut self, refresh: &str, account_id: &str) {
+            self.refresh_tokens.insert(
+                refresh.to_string(),
+                (account_id.to_string(), StubTokenState::Valid),
+            );
+        }
+
+        fn set(&mut self, refresh: &str, state: StubTokenState) {
+            if let Some(entry) = self.refresh_tokens.get_mut(refresh) {
+                entry.1 = state;
+            }
+        }
+
+        /// 模拟 OAuth 轮换：旧 refresh_token 标记为已使用，签发新 token 对
+        fn rotate(&mut self, refresh: &str) -> std::result::Result<(String, String), String> {
+            let (account_id, state) = self
+                .refresh_tokens
+                .get(refresh)
+                .cloned()
+                .ok_or_else(|| "refresh_token_invalidated".to_string())?;
+            match state {
+                StubTokenState::Valid => {}
+                StubTokenState::Consumed => return Err("refresh_token_reused".to_string()),
+                StubTokenState::Revoked => return Err("refresh_token_invalidated".to_string()),
+            }
+            self.set(refresh, StubTokenState::Consumed);
+            self.issued += 1;
+            let new_refresh = format!("{refresh}-r{}", self.issued);
+            self.add(&new_refresh, &account_id);
+            let access = live_access_token(&account_id, self.issued);
+            self.access_tokens.insert(access.clone());
+            Ok((access, new_refresh))
+        }
+    }
+
+    struct OAuthStub {
+        state: std::sync::Arc<std::sync::Mutex<StubState>>,
+        endpoints: crate::services::openai_quota_core::TestEndpoints,
+    }
+
+    fn live_access_token(account_id: &str, nonce: usize) -> String {
+        fake_jwt(json!({
+            "exp": Utc::now().timestamp() + 3600,
+            "chatgpt_account_id": account_id,
+            "nonce": nonce
+        }))
+    }
+
+    fn expired_access_token(account_id: &str) -> String {
+        fake_jwt(json!({
+            "exp": Utc::now().timestamp() - 3600,
+            "chatgpt_account_id": account_id
+        }))
+    }
+
+    fn header_value(head: &str, name: &str) -> Option<String> {
+        head.lines().find_map(|line| {
+            let (key, value) = line.split_once(':')?;
+            key.trim()
+                .eq_ignore_ascii_case(name)
+                .then(|| value.trim().to_string())
+        })
+    }
+
+    fn stub_response(
+        state: &std::sync::Mutex<StubState>,
+        head: &str,
+        body: &str,
+    ) -> (&'static str, serde_json::Value) {
+        let path = head.split_whitespace().nth(1).unwrap_or("");
+        if path == "/oauth/token" {
+            let request: serde_json::Value = serde_json::from_str(body).unwrap_or_default();
+            let refresh = request["refresh_token"].as_str().unwrap_or("");
+            return match state.lock().unwrap().rotate(refresh) {
+                Ok((access, new_refresh)) => (
+                    "200 OK",
+                    json!({
+                        "access_token": access,
+                        "id_token": "synthetic-id",
+                        "refresh_token": new_refresh
+                    }),
+                ),
+                Err(code) => ("401 Unauthorized", json!({"error": {"code": code}})),
+            };
+        }
+        if path == "/usage" {
+            let bearer = header_value(head, "authorization").unwrap_or_default();
+            let bearer = bearer.trim_start_matches("Bearer ");
+            if state.lock().unwrap().access_tokens.contains(bearer) {
+                return (
+                    "200 OK",
+                    json!({
+                        "plan_type": "plus",
+                        "rate_limit": {
+                            "primary_window": {
+                                "used_percent": 10.0,
+                                "limit_window_seconds": 18000,
+                                "reset_after_seconds": 600
+                            }
+                        }
+                    }),
+                );
+            }
+            return (
+                "401 Unauthorized",
+                json!({"error": {"code": "token_expired"}}),
+            );
+        }
+        ("404 Not Found", json!({}))
+    }
+
+    fn start_oauth_stub() -> OAuthStub {
+        use std::io::{Read, Write};
+
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let state = std::sync::Arc::new(std::sync::Mutex::new(StubState::default()));
+        let server_state = state.clone();
+        std::thread::spawn(move || {
+            for stream in listener.incoming() {
+                let Ok(mut stream) = stream else { continue };
+                let mut buffer = Vec::new();
+                let mut chunk = [0_u8; 4096];
+                let header_end = loop {
+                    let read = stream.read(&mut chunk).unwrap_or(0);
+                    if read == 0 {
+                        break None;
+                    }
+                    buffer.extend_from_slice(&chunk[..read]);
+                    if let Some(pos) = buffer.windows(4).position(|w| w == b"\r\n\r\n") {
+                        break Some(pos + 4);
+                    }
+                };
+                let Some(header_end) = header_end else {
+                    continue;
+                };
+                let head = String::from_utf8_lossy(&buffer[..header_end]).to_string();
+                let content_length = header_value(&head, "content-length")
+                    .and_then(|value| value.parse::<usize>().ok())
+                    .unwrap_or(0);
+                while buffer.len() < header_end + content_length {
+                    let read = stream.read(&mut chunk).unwrap_or(0);
+                    if read == 0 {
+                        break;
+                    }
+                    buffer.extend_from_slice(&chunk[..read]);
+                }
+                let body = String::from_utf8_lossy(&buffer[header_end..]).to_string();
+                let (status, payload) = stub_response(&server_state, &head, &body);
+                let payload = payload.to_string();
+                let response = format!(
+                    "HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{payload}",
+                    payload.len()
+                );
+                let _ = stream.write_all(response.as_bytes());
+            }
+        });
+        OAuthStub {
+            state,
+            endpoints: crate::services::openai_quota_core::TestEndpoints {
+                usage: format!("{base}/usage"),
+                token: format!("{base}/oauth/token"),
+            },
+        }
+    }
+
+    struct E2eFixture {
+        env: crate::test_support::TestCodexEnv,
+        auth: crate::services::codex_auth_service::CodexAuthService,
+        quota: CodexQuotaService,
+        stub: OAuthStub,
+    }
+
+    impl E2eFixture {
+        fn new() -> Self {
+            let env = crate::test_support::TestCodexEnv::new();
+            std::fs::write(
+                env.codex_dir().join("config.toml"),
+                "cli_auth_credentials_store = \"file\"\n",
+            )
+            .unwrap();
+            let auth = crate::services::codex_auth_service::CodexAuthService::from_dirs(
+                env.ccr_codex_dir().to_path_buf(),
+                env.codex_dir().to_path_buf(),
+            );
+            let quota = CodexQuotaService {
+                ccr_codex_dir: env.ccr_codex_dir().to_path_buf(),
+                codex_dir: env.codex_dir().to_path_buf(),
+            };
+            Self {
+                env,
+                auth,
+                quota,
+                stub: start_oauth_stub(),
+            }
+        }
+
+        fn runtime_path(&self) -> PathBuf {
+            self.env.codex_dir().join("auth.json")
+        }
+
+        fn snapshot_path(&self, name: &str) -> PathBuf {
+            self.quota.account_auth_path(name)
+        }
+
+        /// 以过期 access_token 写入 runtime，迫使配额查询走 refresh
+        fn write_runtime(&self, account_id: &str, refresh: &str, last_refresh: &str) {
+            let auth = json!({
+                "auth_mode": "chatgpt",
+                "OPENAI_API_KEY": null,
+                "tokens": {
+                    "id_token": "synthetic-id",
+                    "access_token": expired_access_token(account_id),
+                    "refresh_token": refresh,
+                    "account_id": account_id
+                },
+                "last_refresh": last_refresh
+            });
+            std::fs::write(self.runtime_path(), auth.to_string()).unwrap();
+        }
+
+        fn login_and_save(&self, name: &str, account_id: &str, refresh: &str) {
+            self.stub.state.lock().unwrap().add(refresh, account_id);
+            self.write_runtime(account_id, refresh, "2026-10-01T00:00:00Z");
+            self.auth.save_current(name, None, false).unwrap();
+        }
+
+        /// 模拟 codex 自身轮换 refresh_token 并写回 runtime
+        fn codex_rotates_runtime(&self, account_id: &str, refresh: &str) -> String {
+            let (_, new_refresh) = self.stub.state.lock().unwrap().rotate(refresh).unwrap();
+            self.write_runtime(account_id, &new_refresh, "2026-10-02T00:00:00Z");
+            new_refresh
+        }
+
+        fn fetch_quota(&self, name: &str) -> CodexAccountQuota {
+            tokio::runtime::Runtime::new().unwrap().block_on(
+                crate::services::openai_quota_core::TEST_ENDPOINTS.scope(
+                    self.stub.endpoints.clone(),
+                    self.quota.fetch_account_quota(name),
+                ),
+            )
+        }
+    }
+
+    fn unique_account_id(label: &str) -> String {
+        format!("acc-{label}-{}", uuid::Uuid::new_v4())
+    }
+
+    fn file_refresh_token(path: &Path) -> String {
+        let value: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        value["tokens"]["refresh_token"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    }
+
+    #[test]
+    fn e2e_rotation_observed_then_external_login_then_switch_back_succeeds() {
+        let fixture = E2eFixture::new();
+        let account_a = unique_account_id("a");
+        let account_b = unique_account_id("b");
+        fixture.login_and_save("a", &account_a, "rt-a1");
+        let rotated = fixture.codex_rotates_runtime(&account_a, "rt-a1");
+
+        // CCR 观察点（TUI 加载 / 切换前同步）
+        assert_eq!(
+            fixture.auth.sync_runtime_with_saved_account().unwrap(),
+            crate::services::RuntimeSyncOutcome::SnapshotUpdated("a".into())
+        );
+        assert_eq!(file_refresh_token(&fixture.snapshot_path("a")), rotated);
+
+        // 外部 codex login B 覆盖 runtime，随后切回 A
+        fixture.stub.state.lock().unwrap().add("rt-b1", &account_b);
+        fixture.write_runtime(&account_b, "rt-b1", "2026-10-03T00:00:00Z");
+        fixture.auth.switch_account("a").unwrap();
+        assert_eq!(file_refresh_token(&fixture.runtime_path()), rotated);
+
+        let result = fixture.fetch_quota("a");
+
+        assert!(result.error.is_none(), "{:?}", result.error);
+        assert!(result.quota.is_some());
+        // 活动账号经 runtime 刷新：runtime 与快照持有同一新 token，旧值不再出现
+        let runtime_refresh = file_refresh_token(&fixture.runtime_path());
+        assert_ne!(runtime_refresh, rotated);
+        assert_eq!(
+            file_refresh_token(&fixture.snapshot_path("a")),
+            runtime_refresh
+        );
+        for stale in ["rt-a1", rotated.as_str()] {
+            for path in [fixture.runtime_path(), fixture.snapshot_path("a")] {
+                let text = std::fs::read_to_string(&path).unwrap();
+                assert!(!text.contains(&format!("\"{stale}\"")));
+            }
+        }
+    }
+
+    #[test]
+    fn e2e_rotation_without_observation_reports_relogin_and_keeps_snapshot() {
+        let fixture = E2eFixture::new();
+        let account_a = unique_account_id("a");
+        let account_b = unique_account_id("b");
+        fixture.login_and_save("a", &account_a, "rt-a1");
+        let rotated = fixture.codex_rotates_runtime(&account_a, "rt-a1");
+        // codex login B 在写入新凭据前吊销旧 refresh_token
+        {
+            let mut state = fixture.stub.state.lock().unwrap();
+            state.set(&rotated, StubTokenState::Revoked);
+            state.add("rt-b1", &account_b);
+        }
+        fixture.write_runtime(&account_b, "rt-b1", "2026-10-03T00:00:00Z");
+        let snapshot_before = std::fs::read(fixture.snapshot_path("a")).unwrap();
+
+        let result = fixture.fetch_quota("a");
+
+        let error = result.error.expect("consumed snapshot token must fail");
+        assert!(relogin_required_detail(&error).is_some(), "{error}");
+        assert!(result.quota.is_none());
+        assert_eq!(
+            std::fs::read(fixture.snapshot_path("a")).unwrap(),
+            snapshot_before
+        );
+        let registry = fixture.auth.load_registry().unwrap();
+        assert!(registry.accounts.contains_key("a"));
+        // runtime 中的 B 未被改写
+        assert_eq!(file_refresh_token(&fixture.runtime_path()), "rt-b1");
+    }
+
+    #[test]
+    fn e2e_invalidated_snapshot_token_is_repaired_from_newer_backup() {
+        let fixture = E2eFixture::new();
+        let account_a = unique_account_id("a");
+        let account_b = unique_account_id("b");
+        fixture.login_and_save("a", &account_a, "rt-a1");
+        fixture.login_and_save("b", &account_b, "rt-b1");
+        {
+            let mut state = fixture.stub.state.lock().unwrap();
+            state.set("rt-a1", StubTokenState::Revoked);
+            state.add("rt-a9", &account_a);
+        }
+        let backups = fixture.env.codex_dir().join("backups");
+        std::fs::create_dir_all(&backups).unwrap();
+        std::fs::write(
+            backups.join("auth.runtime_switch.20261005_000000.json.bak"),
+            json!({
+                "tokens": {
+                    "access_token": expired_access_token(&account_a),
+                    "refresh_token": "rt-a9",
+                    "account_id": account_a
+                },
+                "last_refresh": "2026-10-05T00:00:00Z"
+            })
+            .to_string(),
+        )
+        .unwrap();
+
+        let result = fixture.fetch_quota("a");
+
+        assert!(result.error.is_none(), "{:?}", result.error);
+        let snapshot_refresh = file_refresh_token(&fixture.snapshot_path("a"));
+        assert!(
+            snapshot_refresh.starts_with("rt-a9-r"),
+            "{snapshot_refresh}"
+        );
+        assert_eq!(file_refresh_token(&fixture.runtime_path()), "rt-b1");
+    }
+
+    #[test]
+    fn relogin_marker_wraps_only_permanent_refresh_errors_once() {
+        let marked = mark_relogin_if_permanent(
+            "Token 刷新失败 (401) [refresh_token_invalidated]: x".to_string(),
+        );
+        assert_eq!(
+            relogin_required_detail(&marked),
+            Some("Token 刷新失败 (401) [refresh_token_invalidated]: x")
+        );
+        assert_eq!(mark_relogin_if_permanent(marked.clone()), marked);
+        assert_eq!(
+            mark_relogin_if_permanent("配额请求失败: timeout".to_string()),
+            "配额请求失败: timeout"
+        );
     }
 }

@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 use tracing::debug;
 
 /// 全局复用的 HTTP 客户端（内部为 Arc，clone 开销极低）
-static HTTP_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
+static HTTP_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(build_http_client);
 /// 账号级 quota 共享缓存；用于跨 Codex/OpenCode 页签复用最近一次查询结果。
 static QUOTA_CACHE: LazyLock<Mutex<HashMap<String, CachedQuotaEntry>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
@@ -28,6 +28,47 @@ const TOKEN_REFRESH_URL: &str = "https://auth.openai.com/oauth/token";
 const OAUTH_CLIENT_ID: &str = "app_EMoamEEZ73f0CkXaXp7hrann";
 /// 共享 quota 缓存有效期。
 const QUOTA_CACHE_TTL: Duration = Duration::from_secs(30);
+
+fn build_http_client() -> reqwest::Client {
+    if cfg!(test) {
+        // 测试只访问本地 stub，避免系统代理拦截 loopback 请求
+        reqwest::Client::builder()
+            .no_proxy()
+            .build()
+            .unwrap_or_default()
+    } else {
+        reqwest::Client::new()
+    }
+}
+
+/// 测试注入的本地 stub 端点（仅测试构建，按 tokio 任务作用域生效）
+#[cfg(test)]
+#[derive(Debug, Clone)]
+pub(crate) struct TestEndpoints {
+    pub(crate) usage: String,
+    pub(crate) token: String,
+}
+
+#[cfg(test)]
+tokio::task_local! {
+    pub(crate) static TEST_ENDPOINTS: TestEndpoints;
+}
+
+fn usage_url() -> String {
+    #[cfg(test)]
+    if let Ok(url) = TEST_ENDPOINTS.try_with(|endpoints| endpoints.usage.clone()) {
+        return url;
+    }
+    USAGE_URL.to_string()
+}
+
+fn token_refresh_url() -> String {
+    #[cfg(test)]
+    if let Ok(url) = TEST_ENDPOINTS.try_with(|endpoints| endpoints.token.clone()) {
+        return url;
+    }
+    TOKEN_REFRESH_URL.to_string()
+}
 
 /// 使用率窗口（5小时/周）
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -347,10 +388,13 @@ impl OpenAiQuotaCore {
             || lower.contains("401")
     }
 
-    /// 判断错误是否属于 refresh token 已轮换，需要上层补做修复。
+    /// 判断错误是否属于 refresh token 永久不可用（已轮换/已吊销/已过期），需要上层补做修复。
     pub(crate) fn should_repair_tokens(error_message: &str) -> bool {
         let lower = error_message.to_ascii_lowercase();
-        lower.contains("refresh_token_reused") || lower.contains("invalid_grant")
+        lower.contains("refresh_token_reused")
+            || lower.contains("refresh_token_invalidated")
+            || lower.contains("refresh_token_expired")
+            || lower.contains("invalid_grant")
     }
 
     async fn call_usage_api(
@@ -376,13 +420,14 @@ impl OpenAiQuotaCore {
             headers.insert("ChatGPT-Account-Id", value);
         }
 
+        let url = usage_url();
         debug!(
             "OpenAI quota request: {} (account_id: {:?})",
-            USAGE_URL, effective_id
+            url, effective_id
         );
 
         let response = HTTP_CLIENT
-            .get(USAGE_URL)
+            .get(url)
             .headers(headers)
             .send()
             .await
@@ -426,7 +471,7 @@ impl OpenAiQuotaCore {
         };
 
         let response = HTTP_CLIENT
-            .post(TOKEN_REFRESH_URL)
+            .post(token_refresh_url())
             .json(&request)
             .send()
             .await
@@ -862,5 +907,26 @@ mod tests {
         .unwrap();
         assert_eq!(quota.hourly_window_present, Some(false));
         assert_eq!(quota.weekly_window_present, Some(false));
+    }
+
+    #[test]
+    fn should_repair_tokens_covers_permanent_refresh_failures() {
+        for code in [
+            "refresh_token_reused",
+            "refresh_token_invalidated",
+            "refresh_token_expired",
+            "invalid_grant",
+        ] {
+            assert!(
+                OpenAiQuotaCore::should_repair_tokens(&format!("Token 刷新失败 (401) [{code}]")),
+                "{code}"
+            );
+        }
+        assert!(!OpenAiQuotaCore::should_repair_tokens(
+            "配额请求失败: timeout"
+        ));
+        assert!(!OpenAiQuotaCore::should_repair_tokens(
+            "API 返回错误 401 [token_expired]"
+        ));
     }
 }

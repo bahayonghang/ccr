@@ -50,6 +50,37 @@ pub struct ResolvedOAuthDoc {
     pub source: OAuthDocSource,
 }
 
+/// runtime ↔ 已保存快照的新鲜度定向同步动作
+#[derive(Debug, Clone)]
+pub enum RuntimeSyncPlan {
+    /// 无可同步对象（无 runtime / 非 OAuth / 缺 account_id / 无匹配账号或快照）
+    NoOp,
+    /// tokens 相同，无需写入
+    Unchanged { account: String },
+    /// runtime 不旧于快照：写快照
+    WriteSnapshot {
+        account: String,
+        doc: ResolvedOAuthDoc,
+    },
+    /// 快照较新且目标为 current_auth：写回 runtime
+    WriteRuntime {
+        account: String,
+        auth: serde_json::Map<String, serde_json::Value>,
+    },
+    /// 快照较新但目标非 current_auth：跳过
+    SkipStaleRuntime { account: String },
+}
+
+/// 观测点同步的执行结果（账号名均为已保存账号）
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RuntimeSyncOutcome {
+    NoOp,
+    Unchanged(String),
+    SnapshotUpdated(String),
+    RuntimeUpdated(String),
+    SkippedStaleRuntime(String),
+}
+
 /// 修复结果
 #[derive(Debug, Clone)]
 pub struct OAuthRepairOutcome {
@@ -329,22 +360,176 @@ impl CodexOAuthTokenService {
 
     /// 将当前 runtime OAuth tokens 回写到匹配的已保存账号
     ///
-    /// 返回: Ok(Some(account_name)) 表示已回写；Ok(None) 表示无可回写对象
+    /// 仅在 runtime 不旧于快照时写入（新鲜度定向，见 [`Self::plan_runtime_sync`]）。
+    /// 返回: Ok(Some(account_name)) 表示快照已与 runtime 一致；Ok(None) 表示无可回写对象或快照较新
     pub fn sync_runtime_tokens_to_saved_account(&self) -> Result<Option<String>> {
+        match self.plan_runtime_sync()? {
+            RuntimeSyncPlan::WriteSnapshot { account, doc } => {
+                self.apply_snapshot_write(&account, &doc)?;
+                Ok(Some(account))
+            }
+            RuntimeSyncPlan::Unchanged { account } => Ok(Some(account)),
+            RuntimeSyncPlan::WriteRuntime { account, .. }
+            | RuntimeSyncPlan::SkipStaleRuntime { account } => {
+                debug!(
+                    "Saved snapshot for '{}' is newer than runtime; runtime tokens not copied",
+                    account
+                );
+                Ok(None)
+            }
+            RuntimeSyncPlan::NoOp => Ok(None),
+        }
+    }
+
+    /// 执行快照方向的回写（快照 + 注册表 last_refresh）
+    pub fn apply_snapshot_write(&self, name: &str, doc: &ResolvedOAuthDoc) -> Result<()> {
+        debug!("Sync runtime OAuth tokens to saved account '{}'", name);
+        self.sync_account_auth_file(name, doc)?;
+        self.update_registry_metadata(name, doc)
+    }
+
+    /// 计算 runtime auth.json 与匹配的已保存快照之间的新鲜度定向同步动作（只读）
+    ///
+    /// 规则:
+    /// - runtime 不存在 / 无 tokens / 无 account_id / 无匹配账号 → NoOp
+    /// - 同 account_id 多个账号 → 目标取 current_auth，其次 last_used 最新者，其余不写
+    /// - tokens 相同 → Unchanged（不写文件）
+    /// - runtime 不旧于快照 → WriteSnapshot
+    /// - 快照较新且目标为 current_auth → WriteRuntime（保留 runtime 其他字段，仅替换 tokens/last_refresh）
+    /// - 快照较新且非 current_auth → SkipStaleRuntime
+    pub fn plan_runtime_sync(&self) -> Result<RuntimeSyncPlan> {
         let runtime_path = self.runtime_auth_json_path();
         if !runtime_path.exists() {
-            return Ok(None);
+            return Ok(RuntimeSyncPlan::NoOp);
         }
 
         let content = fs::read_to_string(&runtime_path)
             .map_err(|e| CcrError::ConfigError(format!("读取 runtime auth.json 失败: {}", e)))?;
-        let auth: CodexAuthJson = serde_json::from_str(&content)
-            .map_err(|e| CcrError::ConfigError(format!("解析 runtime auth.json 失败: {}", e)))?;
+        let runtime_raw: serde_json::Map<String, serde_json::Value> =
+            serde_json::from_str(&content).map_err(|e| {
+                CcrError::ConfigError(format!("解析 runtime auth.json 失败: {}", e))
+            })?;
+        let auth: CodexAuthJson = serde_json::from_value(serde_json::Value::Object(
+            runtime_raw.clone(),
+        ))
+        .map_err(|e| CcrError::ConfigError(format!("解析 runtime auth.json 失败: {}", e)))?;
         let Some(tokens) = auth.tokens else {
-            return Ok(None);
+            return Ok(RuntimeSyncPlan::NoOp);
+        };
+        let Some(account_id) = Self::tokens_account_id(&tokens) else {
+            debug!("Runtime OAuth tokens have no account_id; skip snapshot sync");
+            return Ok(RuntimeSyncPlan::NoOp);
         };
 
-        let account_id = tokens
+        let registry = self.load_registry()?;
+        let Some(name) = Self::select_sync_target(&registry, &account_id) else {
+            return Ok(RuntimeSyncPlan::NoOp);
+        };
+
+        let snapshot_path = self.account_auth_path(&name);
+        let Ok(snapshot_content) = fs::read_to_string(&snapshot_path) else {
+            debug!(
+                "Saved snapshot for '{}' is missing; skip snapshot sync",
+                name
+            );
+            return Ok(RuntimeSyncPlan::NoOp);
+        };
+        let Ok(snapshot_raw) =
+            serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(&snapshot_content)
+        else {
+            debug!(
+                "Saved snapshot for '{}' is unreadable; skip snapshot sync",
+                name
+            );
+            return Ok(RuntimeSyncPlan::NoOp);
+        };
+        let Ok(snapshot) = serde_json::from_value::<CodexAuthJson>(serde_json::Value::Object(
+            snapshot_raw.clone(),
+        )) else {
+            return Ok(RuntimeSyncPlan::NoOp);
+        };
+        let Some(snapshot_tokens) = snapshot.tokens else {
+            return Ok(RuntimeSyncPlan::NoOp);
+        };
+
+        if Self::tokens_equal(&tokens, &snapshot_tokens) {
+            return Ok(RuntimeSyncPlan::Unchanged { account: name });
+        }
+
+        let runtime_last_refresh = Self::parse_rfc3339(auth.last_refresh.as_deref());
+        let runtime_ts = Self::effective_ts(runtime_last_refresh, Self::mtime(&runtime_path));
+        let snapshot_ts = Self::effective_ts(
+            Self::parse_rfc3339(snapshot.last_refresh.as_deref()),
+            Self::mtime(&snapshot_path),
+        );
+
+        if runtime_ts >= snapshot_ts {
+            return Ok(RuntimeSyncPlan::WriteSnapshot {
+                account: name,
+                doc: ResolvedOAuthDoc {
+                    tokens,
+                    last_refresh: runtime_last_refresh,
+                    source: OAuthDocSource::RuntimeAuthJson,
+                },
+            });
+        }
+
+        if registry.current_auth.as_deref() != Some(name.as_str()) {
+            return Ok(RuntimeSyncPlan::SkipStaleRuntime { account: name });
+        }
+
+        let mut merged = runtime_raw;
+        if let Some(snapshot_tokens) = snapshot_raw.get("tokens") {
+            merged.insert("tokens".to_string(), snapshot_tokens.clone());
+        }
+        match snapshot_raw.get("last_refresh") {
+            Some(value) => {
+                merged.insert("last_refresh".to_string(), value.clone());
+            }
+            None => {
+                merged.remove("last_refresh");
+            }
+        }
+        Ok(RuntimeSyncPlan::WriteRuntime {
+            account: name,
+            auth: merged,
+        })
+    }
+
+    /// runtime auth.json 中 OAuth tokens 的 account_id（无 runtime / 无 tokens 时为 None）
+    pub fn runtime_account_id(&self) -> Option<String> {
+        let content = fs::read_to_string(self.runtime_auth_json_path()).ok()?;
+        let auth: CodexAuthJson = serde_json::from_str(&content).ok()?;
+        Self::tokens_account_id(auth.tokens.as_ref()?)
+    }
+
+    /// 同 account_id 多账号时的确定性目标选择
+    fn select_sync_target(registry: &CodexAuthRegistry, account_id: &str) -> Option<String> {
+        let mut matches = registry
+            .accounts
+            .iter()
+            .filter(|(_, account)| account.account_id == account_id);
+        if let Some(current) = registry.current_auth.as_deref()
+            && registry
+                .accounts
+                .get(current)
+                .is_some_and(|account| account.account_id == account_id)
+        {
+            return Some(current.to_string());
+        }
+        let first = matches.next()?;
+        let best = matches.fold(first, |best, candidate| {
+            if candidate.1.last_used > best.1.last_used {
+                candidate
+            } else {
+                best
+            }
+        });
+        Some(best.0.clone())
+    }
+
+    fn tokens_account_id(tokens: &CodexAuthTokens) -> Option<String> {
+        tokens
             .account_id
             .as_deref()
             .map(str::trim)
@@ -355,35 +540,21 @@ impl CodexOAuthTokenService {
                     .access_token
                     .as_deref()
                     .and_then(Self::extract_account_id_from_jwt)
-            });
-        let Some(account_id) = account_id else {
-            return Ok(None);
-        };
+            })
+    }
 
-        let last_refresh = Self::parse_rfc3339(auth.last_refresh.as_deref());
-        let doc = ResolvedOAuthDoc {
-            tokens,
-            last_refresh,
-            source: OAuthDocSource::RuntimeAuthJson,
-        };
+    fn tokens_equal(left: &CodexAuthTokens, right: &CodexAuthTokens) -> bool {
+        fn norm(value: &Option<String>) -> Option<&str> {
+            value.as_deref().map(str::trim).filter(|s| !s.is_empty())
+        }
+        norm(&left.refresh_token) == norm(&right.refresh_token)
+            && norm(&left.access_token) == norm(&right.access_token)
+            && norm(&left.id_token) == norm(&right.id_token)
+            && norm(&left.account_id) == norm(&right.account_id)
+    }
 
-        let registry = self.load_registry()?;
-        let matched = registry
-            .accounts
-            .iter()
-            .find_map(|(name, account)| (account.account_id == account_id).then(|| name.clone()));
-
-        let Some(name) = matched else {
-            return Ok(None);
-        };
-
-        debug!(
-            "Sync runtime OAuth tokens to saved account '{}' (account_id: {})",
-            name, account_id
-        );
-        self.sync_account_auth_file(&name, &doc)?;
-        self.update_registry_metadata(&name, &doc)?;
-        Ok(Some(name))
+    fn mtime(path: &Path) -> Option<SystemTime> {
+        fs::metadata(path).ok().and_then(|m| m.modified().ok())
     }
 
     /// 修复指定账号快照中的 OAuth tokens（从 runtime/backups 中找最新副本）
@@ -463,7 +634,8 @@ impl CodexOAuthTokenService {
             .filter(|s| !s.is_empty());
         let refresh_changed = latest_refresh != current_refresh;
 
-        let should_update = refresh_changed || latest_ts > current_ts;
+        // 新鲜度决定胜者：来源旧于快照时不回写，避免用已消费的旧 refresh_token 覆盖较新快照
+        let should_update = (refresh_changed && latest_ts >= current_ts) || latest_ts > current_ts;
         if !should_update {
             return Ok(OAuthRepairOutcome {
                 updated: false,
@@ -653,5 +825,46 @@ mod tests {
         let registry2 = service.load_registry().unwrap();
         let acc = registry2.accounts.get("team").unwrap();
         assert!(acc.last_refresh.is_some());
+    }
+
+    #[test]
+    fn test_repair_does_not_overwrite_newer_snapshot_with_older_source() {
+        let (_ccr_root, ccr_codex_dir, _codex_root, codex_dir) = setup_dirs();
+        let service = CodexOAuthTokenService::from_dirs(ccr_codex_dir, codex_dir);
+
+        // 快照持有 CCR 自身轮换得到的较新 token
+        let saved = service.account_auth_path("team");
+        write_json(
+            &saved,
+            &json!({
+                "tokens": {
+                    "access_token": "header.payload.sig",
+                    "refresh_token": "rt_newer",
+                    "account_id": "acc-1"
+                },
+                "last_refresh": "2026-03-26T00:00:00Z"
+            }),
+        );
+        // 备份中只有较旧（已被消费）的 token
+        let backup = service
+            .codex_backups_dir()
+            .join("auth.runtime_switch.20260301_000000.json.bak");
+        write_json(
+            &backup,
+            &json!({
+                "tokens": {
+                    "access_token": "header.payload.sig",
+                    "refresh_token": "rt_consumed",
+                    "account_id": "acc-1"
+                },
+                "last_refresh": "2026-03-01T00:00:00Z"
+            }),
+        );
+        let before = fs::read(&saved).unwrap();
+
+        let outcome = service.repair_saved_account("team").unwrap();
+
+        assert!(!outcome.updated);
+        assert_eq!(fs::read(&saved).unwrap(), before);
     }
 }
