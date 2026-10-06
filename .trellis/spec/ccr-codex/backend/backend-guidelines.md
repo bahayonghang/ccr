@@ -264,13 +264,16 @@ OpenAI OAuth refresh tokens are single-use. Every refresh rotates the token, and
 - Repair writes the snapshot only when the source is newer (`(refresh_changed && latest_ts >= current_ts) || latest_ts > current_ts`). The quota path retries only after a repair that updated the snapshot.
 - `refresh_token_reused`, `refresh_token_invalidated`, `refresh_token_expired`, and `invalid_grant` without a newer repair source return an error prefixed with `RELOGIN_REQUIRED_PREFIX`. The account and the snapshot stay. The TUI shows "re-login required" / 「需重新登录」 with the hint to press `o` before `codex login`.
 - Backups share the auth prefix pool of 10 files across labels. Do not assume `runtime_switch` backups are kept separately.
+- `CodexConfigManager::backup_file` deduplicates by content. If the newest backup with the same prefix has the same bytes as the source, it refreshes that file's mtime and returns that existing path. It writes no new file and runs no cleanup. `commit_plan` rollback restores from the returned path, so a dedup hit must always return a path whose bytes equal the pre-write source. If the read or the mtime refresh fails, it creates a new backup as before.
+- A new backup name is `{prefix}.{label}.{YYYYmmdd_HHMMSS}.{ext}.bak`. If that name exists (two writes in the same second), the name becomes `{prefix}.{label}.{ts}_{N}.{ext}.bak` with the first free `N >= 1`. Never overwrite an existing backup. Backup readers filter by prefix/suffix and sort by mtime, then by name; they must not parse the timestamp from the name.
+- Account snapshots and their backups (`save_current`, import, `backup_account_auth`, rollback `restore_optional_backup`) and the registry file are written with `AtomicWriter::secret(true)`. Do not use `fs::copy` or `fs::write` followed by chmod for files that hold tokens.
 
 ### 4. Validation & Error Matrix
 
 | Condition                                  | Result                                      |
 | ------------------------------------------ | ------------------------------------------- |
 | Runtime newer than snapshot                | `SnapshotUpdated`                           |
-| Snapshot newer, account is `current_auth`  | `RuntimeUpdated`, runtime backup created    |
+| Snapshot newer, account is `current_auth`  | `RuntimeUpdated`, runtime backup created or newest identical backup reused |
 | Snapshot newer, account not `current_auth` | `SkippedStaleRuntime`, no write             |
 | Tokens equal                               | `Unchanged`, bytes and mtime unchanged      |
 | Runtime `account_id` missing or not saved  | `NoOp`                                      |
@@ -287,6 +290,8 @@ OpenAI OAuth refresh tokens are single-use. Every refresh rotates the token, and
 
 - `codex_auth_service` tests for switch-out write-back, unchanged sync, both newer-snapshot branches, identity rules, duplicate `account_id`, failed switch, and the non-file store.
 - `codex_oauth_token_service` test: an older repair source does not overwrite a newer snapshot.
+- `codex_config` backup tests: identical content returns the existing path with a refreshed mtime (`backup_reuses_latest_identical_backup_path`); changed content in the same second creates a distinct file (`backup_creates_distinct_file_when_content_changes`, `unique_backup_path_appends_counter_on_collision`); the pool keeps 10 (`backup_retention_pool_keeps_ten_distinct_versions`).
+- `codex_runtime_service` rollback test: a failed auth write restores the config from the deduplicated backup path (`commit_plan_rollback_restores_config_from_deduplicated_backup`).
 - `codex_quota_service` end-to-end tests with a loopback stub (`std::net::TcpListener`) and `openai_quota_core::TEST_ENDPOINTS.scope(...)`. Use unique `account_id` values because `QUOTA_CACHE` is process-wide.
 - `ccr-cli` `auth_off` sync-before-delete test and the `ccr-tui` EN/ZH re-login rendering test.
 
