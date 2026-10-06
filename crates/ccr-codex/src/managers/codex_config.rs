@@ -249,12 +249,22 @@ impl CodexConfigManager {
         fs::create_dir_all(&self.backup_dir)
             .map_err(|e| CcrError::SettingsError(format!("创建备份目录失败: {}", e)))?;
 
-        let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
-        let filename = format!("{}.{}.{}.{}.bak", prefix, label, timestamp, ext);
-        let backup_path = self.backup_dir.join(filename);
-
         let content = fs::read(source)
             .map_err(|e| CcrError::SettingsError(format!("读取备份源文件失败: {}", e)))?;
+
+        // 内容去重：与同前缀最新备份字节一致时复用该备份路径（commit_plan 回滚仍可从该路径恢复），
+        // 并刷新其 mtime，保持「最新备份」排序与保留池语义不变
+        if let Some(existing) = self.sorted_backups(prefix)?.into_iter().next()
+            && fs::read(&existing).is_ok_and(|bytes| bytes == content)
+            && filetime::set_file_mtime(&existing, filetime::FileTime::now()).is_ok()
+        {
+            tracing::debug!("备份内容未变化，复用最新备份: {:?}", existing);
+            return Ok(Some(existing));
+        }
+
+        let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S").to_string();
+        let backup_path = self.unique_backup_path(prefix, label, &timestamp, ext);
+
         AtomicWriter::new(&backup_path)
             .secret(true)
             .write(&content)?;
@@ -267,10 +277,29 @@ impl CodexConfigManager {
         Ok(Some(backup_path))
     }
 
-    /// 🧹 清理旧备份 (只保留最近 MAX_BACKUPS 个同前缀的备份)
-    fn cleanup_old_backups(&self, prefix: &str) -> Result<()> {
+    /// 📁 生成备份路径；同秒同名时追加 `_N` 序号，避免覆盖既有备份
+    fn unique_backup_path(&self, prefix: &str, label: &str, timestamp: &str, ext: &str) -> PathBuf {
+        let base = self
+            .backup_dir
+            .join(format!("{}.{}.{}.{}.bak", prefix, label, timestamp, ext));
+        if !base.exists() {
+            return base;
+        }
+        (1u32..)
+            .map(|n| {
+                self.backup_dir.join(format!(
+                    "{}.{}.{}_{}.{}.bak",
+                    prefix, label, timestamp, n, ext
+                ))
+            })
+            .find(|candidate| !candidate.exists())
+            .unwrap_or(base)
+    }
+
+    /// 📋 列出同前缀备份，按修改时间倒序（最新在前），同时间按文件名倒序
+    fn sorted_backups(&self, prefix: &str) -> Result<Vec<PathBuf>> {
         if !self.backup_dir.exists() {
-            return Ok(());
+            return Ok(Vec::new());
         }
 
         let mut backups: Vec<PathBuf> = fs::read_dir(&self.backup_dir)
@@ -284,12 +313,18 @@ impl CodexConfigManager {
             })
             .collect();
 
-        // 按修改时间倒序 (最新在前)
         backups.sort_by(|a, b| {
             let a_time = fs::metadata(a).and_then(|m| m.modified()).ok();
             let b_time = fs::metadata(b).and_then(|m| m.modified()).ok();
-            b_time.cmp(&a_time)
+            b_time.cmp(&a_time).then_with(|| b.cmp(a))
         });
+
+        Ok(backups)
+    }
+
+    /// 🧹 清理旧备份 (只保留最近 MAX_BACKUPS 个同前缀的备份)
+    fn cleanup_old_backups(&self, prefix: &str) -> Result<()> {
+        let backups = self.sorted_backups(prefix)?;
 
         if backups.len() > MAX_BACKUPS {
             for old in &backups[MAX_BACKUPS..] {
@@ -576,6 +611,90 @@ mod tests {
         // 备份目录应包含备份文件
         let backup_dir = temp_dir.path().join("backups");
         assert!(backup_dir.exists());
+    }
+
+    fn backups_with_prefix(manager: &CodexConfigManager, prefix: &str) -> Vec<PathBuf> {
+        manager.sorted_backups(prefix).unwrap()
+    }
+
+    #[test]
+    fn backup_reuses_latest_identical_backup_path() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let manager = create_test_manager(temp_dir.path());
+        let mut auth = JsonMap::new();
+        auth.insert("OPENAI_API_KEY".into(), JsonValue::String("sk-a".into()));
+        manager.save_auth_atomic(&auth).unwrap();
+
+        let first = manager.backup_auth("runtime_switch").unwrap().unwrap();
+        // 回拨 mtime，验证去重命中会刷新为最新
+        let old = filetime::FileTime::from_unix_time(1_600_000_000, 0);
+        filetime::set_file_mtime(&first, old).unwrap();
+
+        let second = manager.backup_auth("other_label").unwrap().unwrap();
+
+        assert_eq!(second, first);
+        assert_eq!(backups_with_prefix(&manager, "auth"), vec![first.clone()]);
+        assert_eq!(
+            std::fs::read(&first).unwrap(),
+            std::fs::read(manager.auth_path()).unwrap()
+        );
+        let refreshed =
+            filetime::FileTime::from_last_modification_time(&std::fs::metadata(&first).unwrap());
+        assert!(refreshed > old);
+    }
+
+    #[test]
+    fn backup_creates_distinct_file_when_content_changes() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let manager = create_test_manager(temp_dir.path());
+        let mut auth = JsonMap::new();
+        auth.insert("OPENAI_API_KEY".into(), JsonValue::String("sk-a".into()));
+        manager.save_auth_atomic(&auth).unwrap();
+        let first_bytes = std::fs::read(manager.auth_path()).unwrap();
+        let first = manager.backup_auth("runtime_switch").unwrap().unwrap();
+
+        auth.insert("OPENAI_API_KEY".into(), JsonValue::String("sk-b".into()));
+        manager.save_auth_atomic(&auth).unwrap();
+        let second_bytes = std::fs::read(manager.auth_path()).unwrap();
+        let second = manager.backup_auth("runtime_switch").unwrap().unwrap();
+
+        // 同秒内的第二次备份不得覆盖第一次备份
+        assert_ne!(first, second);
+        assert_eq!(std::fs::read(&first).unwrap(), first_bytes);
+        assert_eq!(std::fs::read(&second).unwrap(), second_bytes);
+    }
+
+    #[test]
+    fn unique_backup_path_appends_counter_on_collision() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let manager = create_test_manager(temp_dir.path());
+        std::fs::create_dir_all(temp_dir.path().join("backups")).unwrap();
+        let base = manager.unique_backup_path("auth", "runtime_switch", "20261006_120000", "json");
+        std::fs::write(&base, b"{}").unwrap();
+
+        let next = manager.unique_backup_path("auth", "runtime_switch", "20261006_120000", "json");
+
+        assert_eq!(
+            next.file_name().and_then(|n| n.to_str()),
+            Some("auth.runtime_switch.20261006_120000_1.json.bak")
+        );
+    }
+
+    #[test]
+    fn backup_retention_pool_keeps_ten_distinct_versions() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let manager = create_test_manager(temp_dir.path());
+        for i in 0..12 {
+            let mut auth = JsonMap::new();
+            auth.insert(
+                "OPENAI_API_KEY".into(),
+                JsonValue::String(format!("sk-{i}")),
+            );
+            manager.save_auth_atomic(&auth).unwrap();
+            manager.backup_auth("runtime_switch").unwrap().unwrap();
+        }
+
+        assert_eq!(backups_with_prefix(&manager, "auth").len(), MAX_BACKUPS);
     }
 
     #[test]

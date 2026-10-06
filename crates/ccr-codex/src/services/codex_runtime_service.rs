@@ -6,6 +6,7 @@ use crate::models::{
     CodexProfileAuthMode, CodexProfileSecret, CodexProfileSecretStore, CredentialStoreKind,
     Platform, PlatformPaths, ProfileConfig,
 };
+use ccr_core::core::atomic_writer::AtomicWriter;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::guarded_write::{WriteOptions, delete_guarded, write_guarded};
 use chrono::Utc;
@@ -369,9 +370,15 @@ fn restore_optional_backup(
     }
     match backup {
         Some(backup) if backup.exists() => {
-            fs::copy(backup, target).map_err(|e| {
+            // 原子替换并在写入内容前设置私有权限（替代非原子的 fs::copy）
+            let rollback_error = |e: &dyn std::fmt::Display| {
                 CcrError::ConfigError(format!("回滚文件失败 {:?} <- {:?}: {}", target, backup, e))
-            })?;
+            };
+            let content = fs::read(backup).map_err(|e| rollback_error(&e))?;
+            AtomicWriter::new(target)
+                .secret(true)
+                .write(&content)
+                .map_err(|e| rollback_error(&e))?;
         }
         _ if !existed_before => {
             remove_if_exists(target)?;
@@ -384,4 +391,67 @@ fn restore_optional_backup(
 fn shell_quote(value: &str) -> String {
     let escaped = value.replace('\'', "'\"'\"'");
     format!("'{}'", escaped)
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use crate::test_support::TestCodexEnv;
+    use ccr_core::core::lock::LockManager;
+
+    #[test]
+    fn commit_plan_rollback_restores_config_from_deduplicated_backup() {
+        let env = TestCodexEnv::new();
+        let codex_dir = env.codex_dir().to_path_buf();
+        let backup_dir = codex_dir.join("backups");
+        // auth.json 的父路径是普通文件，使 auth 写入在 config 写入成功后失败
+        let blocker = env.home().join("blocker");
+        fs::write(&blocker, b"not a directory").unwrap();
+        let manager = CodexConfigManager::new(
+            codex_dir.join("config.toml"),
+            blocker.join("auth.json"),
+            &backup_dir,
+            LockManager::new(env.lock_dir()),
+        );
+        let original = "cli_auth_credentials_store = \"file\"\nmodel = \"before\"\n";
+        fs::write(manager.config_path(), original).unwrap();
+        let seeded = manager.backup_config("seed").unwrap().unwrap();
+
+        let service = CodexRuntimeService::from_parts(
+            PlatformPaths::new(Platform::Codex).unwrap(),
+            codex_dir.clone(),
+            manager,
+        );
+        let next: toml::Value =
+            toml::from_str("cli_auth_credentials_store = \"file\"\nmodel = \"after\"\n").unwrap();
+        let mut auth = JsonMap::new();
+        auth.insert(
+            "OPENAI_API_KEY".into(),
+            JsonValue::String("sk-synthetic".into()),
+        );
+
+        let result = service.commit_plan(CodexRuntimeCommitPlan {
+            config: Some(next),
+            auth_cache: CodexAuthCacheAction::Write(auth),
+        });
+
+        assert!(result.is_err());
+        assert_eq!(
+            fs::read_to_string(codex_dir.join("config.toml")).unwrap(),
+            original
+        );
+        let config_backups: Vec<PathBuf> = fs::read_dir(&backup_dir)
+            .unwrap()
+            .filter_map(|entry| entry.ok())
+            .map(|entry| entry.path())
+            .filter(|path| {
+                path.file_name()
+                    .and_then(|name| name.to_str())
+                    .is_some_and(|name| name.starts_with("config"))
+            })
+            .collect();
+        assert_eq!(config_backups, vec![seeded.clone()]);
+        assert_eq!(fs::read_to_string(&seeded).unwrap(), original);
+    }
 }
