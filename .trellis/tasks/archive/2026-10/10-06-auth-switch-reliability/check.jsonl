@@ -1,0 +1,6 @@
+{"file":".trellis/spec/ccr-codex/backend/backend-guidelines.md","reason":"Verify auth safety, masking, permissions, backup-before-destructive and repair flows"}
+{"file":".trellis/spec/ccr-codex/backend/test-fixtures.md","reason":"Verify tests use isolated synthetic homes and process environment contracts"}
+{"file":".trellis/spec/ccr-core/backend/atomic-writer.md","reason":"Verify snapshot/registry writes stay atomic and secret-safe"}
+{"file":".trellis/spec/ccr-core/backend/ccr-error-freeze.md","reason":"Verify no new error variants and actionable error mapping"}
+{"file":".trellis/spec/ccr-tui/backend/backend-guidelines.md","reason":"Verify TUI switch/repair behavior stays within state and sizing boundaries"}
+{"file":".trellis/tasks/10-06-auth-switch-reliability/research/current-auth-switching-state.md","reason":"Verify every acceptance criterion against the verified failure chain and anchors"}

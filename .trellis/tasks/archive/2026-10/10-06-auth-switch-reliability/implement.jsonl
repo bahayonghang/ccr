@@ -1,0 +1,7 @@
+{"file":".trellis/spec/ccr-codex/backend/backend-guidelines.md","reason":"Codex domain ownership, auth safety, masking/permissions/backup/repair flows, quota contract"}
+{"file":".trellis/spec/ccr-codex/backend/test-fixtures.md","reason":"Synthetic isolated homes and environment fixture contracts for auth tests"}
+{"file":".trellis/spec/ccr-core/backend/atomic-writer.md","reason":"Atomic writes for snapshots and registry with secret handling"}
+{"file":".trellis/spec/ccr-core/backend/ccr-error-freeze.md","reason":"Frozen CcrError variant set; map failures to existing variants"}
+{"file":".trellis/spec/ccr-tui/backend/backend-guidelines.md","reason":"TUI state boundaries, bilingual text and responsive sizing for switch/repair flows"}
+{"file":".trellis/tasks/10-06-codex-auth-switch-panel-hardening/research/codex-auth-reference.md","reason":"Reference mechanisms: login isolation and continuous active-account snapshot sync"}
+{"file":".trellis/tasks/10-06-auth-switch-reliability/research/current-auth-switching-state.md","reason":"Verified current-state analysis with file:line anchors and failure chain"}
