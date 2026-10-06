@@ -10,6 +10,7 @@ pub mod codex_registry_store;
 pub mod codex_runtime_service;
 pub mod codex_session_service;
 pub mod codex_session_trash_service;
+pub mod codex_usage_estimation;
 pub mod codex_usage_service;
 pub mod openai_quota_core;
 
@@ -40,6 +41,12 @@ pub use codex_session_trash_service::{
     CodexSessionRestoreSummary, CodexSessionTrashService, CodexSessionTrashSummary,
     CodexTrashedSessionRecord,
 };
+pub use codex_usage_estimation::{
+    CodexAuthUsageSnapshot, CodexCapacityEstimate, CodexCostStatus, CodexCostSummary,
+    CodexEstimateRange, CodexEstimateStatus, CodexJointEstimate, CodexUsageEstimationService,
+    CodexUsageScope,
+};
 pub use codex_usage_service::{
-    CodexRollingUsage, CodexUsageRecord, CodexUsageService, CodexUsageStats,
+    CodexRollingUsage, CodexScanDiagnostics, CodexUsageDetails, CodexUsageRecord, CodexUsageScan,
+    CodexUsageService, CodexUsageStatDetails, CodexUsageStats,
 };

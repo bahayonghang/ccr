@@ -807,7 +807,7 @@ pub struct CodexQuota {
 }
 
 /// 单个账号的配额查询结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CodexAccountQuota {
     /// 账号名称
     pub account_name: String,
@@ -822,6 +822,19 @@ pub struct CodexAccountQuota {
     pub error: Option<String>,
     /// 查询时间
     pub fetched_at: DateTime<Utc>,
+    /// Acquisition provenance. Legacy payloads have no observation metadata.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub observation: Option<CodexQuotaProvenance>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CodexQuotaProvenance {
+    pub account_id: Option<String>,
+    pub request_started_at: DateTime<Utc>,
+    pub network_acquired_at: DateTime<Utc>,
+    pub returned_at: DateTime<Utc>,
+    pub cache_hit: bool,
+    pub history_warning: Option<String>,
 }
 
 /// 配额查询错误信息

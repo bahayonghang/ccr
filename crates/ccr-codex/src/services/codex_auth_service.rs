@@ -63,6 +63,10 @@ pub struct AuthReadSnapshot {
 }
 
 impl CodexAuthService {
+    /// Returns the resolved usage and observation directories, including test overrides.
+    pub fn usage_paths(&self) -> (PathBuf, PathBuf) {
+        (self.codex_dir.clone(), self.ccr_codex_dir.clone())
+    }
     /// 创建新的 CodexAuthService 实例
     pub fn new() -> Result<Self> {
         let paths = CodexPaths::resolve()?;

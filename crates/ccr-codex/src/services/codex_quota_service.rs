@@ -18,6 +18,77 @@ use super::openai_quota_core::{
 /// 并发查询上限
 const MAX_CONCURRENT: usize = 5;
 
+fn observations_from_outcome(
+    outcome: &OpenAiQuotaFetchOutcome,
+) -> Vec<crate::managers::codex_quota_observation::CodexQuotaObservation> {
+    use crate::managers::codex_quota_observation::CodexQuotaObservation;
+
+    let Some(account_id) = outcome
+        .account_id
+        .as_ref()
+        .filter(|id| !id.is_empty() && !outcome.cache_hit)
+    else {
+        return Vec::new();
+    };
+    let raw = outcome.quota.raw_data.as_ref();
+    let limit = raw.and_then(|value| value.get("rate_limit"));
+    let explicit_id = limit
+        .and_then(|value| value.get("limit_id").or_else(|| value.get("id")))
+        .or_else(|| raw.and_then(|value| value.get("limit_id")))
+        .and_then(serde_json::Value::as_str)
+        .map(str::to_string);
+    let has_unsupported_additional_bucket = raw
+        .and_then(|value| value.get("additional_rate_limits"))
+        .is_some_and(|value| value.as_array().is_none_or(|values| !values.is_empty()));
+
+    ["primary_window", "secondary_window"]
+        .into_iter()
+        .filter_map(|role| {
+            let window = limit.and_then(|value| value.get(role))?;
+            let seconds = window
+                .get("limit_window_seconds")
+                .and_then(serde_json::Value::as_i64);
+            let reset_at = window.get("reset_at").and_then(serde_json::Value::as_i64);
+            let reset_after = window
+                .get("reset_after_seconds")
+                .and_then(serde_json::Value::as_i64)
+                .filter(|value| *value >= 0);
+            let resets_at = reset_at.or_else(|| {
+                reset_after.map(|value| outcome.network_acquired_at.timestamp() + value)
+            });
+            // A countdown is not a stable reset identity. Keep its display time,
+            // but do not calibrate across responses without a server reset ID.
+            let reset_generation = reset_at.map(|value| format!("reset_at:{value}"));
+            Some(CodexQuotaObservation {
+                account_id: account_id.clone(),
+                plan: outcome.quota.plan_type.clone(),
+                source: "network".into(),
+                bucket_source: if explicit_id.is_some() {
+                    "wham_limit_id"
+                } else {
+                    "wham_main"
+                }
+                .into(),
+                bucket_id: explicit_id.clone(),
+                window_role: role.into(),
+                duration_minutes: seconds
+                    .filter(|value| *value > 0 && *value % 60 == 0)
+                    .map(|value| value / 60),
+                limit_window_seconds: seconds,
+                used_percent: window
+                    .get("used_percent")
+                    .and_then(serde_json::Value::as_f64),
+                resets_at,
+                reset_generation,
+                network_acquired_at: outcome.network_acquired_at,
+                returned_at: outcome.returned_at,
+                scope_supported: !has_unsupported_additional_bucket,
+                ..Default::default()
+            })
+        })
+        .collect()
+}
+
 /// Codex 配额查询服务。
 pub struct CodexQuotaService {
     /// CCR Codex 数据目录 (~/.ccr/platforms/codex/)
@@ -114,6 +185,7 @@ impl CodexQuotaService {
                     quota: None,
                     error: Some(error.to_string()),
                     fetched_at,
+                    observation: None,
                 };
             }
         };
@@ -127,13 +199,14 @@ impl CodexQuotaService {
             )
             .await
         {
-            Ok(outcome) => Self::build_success(account_name, outcome, fetched_at),
+            Ok(outcome) => self.build_success(account_name, outcome).await,
             Err(error) => CodexAccountQuota {
                 account_name: account_name.to_string(),
                 email: snapshot.email,
                 quota: None,
                 error: Some(error),
                 fetched_at,
+                observation: None,
             },
         }
     }
@@ -150,6 +223,7 @@ impl CodexQuotaService {
                     quota: None,
                     error: Some(error.to_string()),
                     fetched_at,
+                    observation: None,
                 };
             }
         };
@@ -160,13 +234,14 @@ impl CodexQuotaService {
         })
         .await
         {
-            Ok(outcome) => Self::build_success("default", outcome, fetched_at),
+            Ok(outcome) => self.build_success("default", outcome).await,
             Err(error) => CodexAccountQuota {
                 account_name: "default".to_string(),
                 email: snapshot.email,
                 quota: None,
                 error: Some(error),
                 fetched_at,
+                observation: None,
             },
         }
     }
@@ -249,6 +324,7 @@ impl CodexQuotaService {
                     quota: None,
                     error: Some(format!("加载注册表失败: {error}")),
                     fetched_at: Utc::now(),
+                    observation: None,
                 }];
             }
         };
@@ -296,6 +372,7 @@ impl CodexQuotaService {
                                 quota: None,
                                 error: Some(format!("获取并发许可失败: {error}")),
                                 fetched_at: Utc::now(),
+                                observation: None,
                             };
                         }
                     };
@@ -318,17 +395,55 @@ impl CodexQuotaService {
         join_all(tasks).await
     }
 
-    fn build_success(
+    async fn build_success(
+        &self,
         account_name: &str,
         outcome: OpenAiQuotaFetchOutcome,
-        fetched_at: chrono::DateTime<Utc>,
     ) -> CodexAccountQuota {
+        let mut observations = observations_from_outcome(&outcome);
+        let route_supported = match fs::read_to_string(self.codex_dir.join("config.toml")).await {
+            Ok(text) => super::codex_usage_estimation::config_route_supported(&text),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => true,
+            Err(_) => false,
+        };
+        for observation in &mut observations {
+            observation.scope_supported &= route_supported;
+        }
+        let history_warning = if !outcome.cache_hit {
+            if observations.is_empty() {
+                Some("quota_observation_identity_missing".to_string())
+            } else {
+                let path = self.ccr_codex_dir.join("quota_observations.json");
+                match tokio::task::spawn_blocking(move || {
+                    crate::managers::codex_quota_observation::CodexQuotaObservationStore::with_path(
+                        path,
+                    )
+                    .record(observations, Utc::now())
+                })
+                .await
+                {
+                    Ok(Ok(())) => None,
+                    _ => Some("quota_history_write_failed".to_string()),
+                }
+            }
+        } else {
+            None
+        };
+        let observation = crate::models::CodexQuotaProvenance {
+            account_id: outcome.account_id,
+            request_started_at: outcome.request_started_at,
+            network_acquired_at: outcome.network_acquired_at,
+            returned_at: outcome.returned_at,
+            cache_hit: outcome.cache_hit,
+            history_warning,
+        };
         CodexAccountQuota {
             account_name: account_name.to_string(),
             email: outcome.email,
             quota: Some(outcome.quota),
             error: None,
-            fetched_at,
+            fetched_at: outcome.network_acquired_at,
+            observation: Some(observation),
         }
     }
 
@@ -530,5 +645,155 @@ mod tests {
                 .and_then(serde_json::Value::as_str),
             Some("rotated-refresh")
         );
+    }
+
+    fn outcome(acquired_at: chrono::DateTime<Utc>) -> OpenAiQuotaFetchOutcome {
+        OpenAiQuotaFetchOutcome {
+            email: Some("synthetic@example.invalid".into()),
+            account_id: Some("stable-account".into()),
+            request_started_at: acquired_at - Duration::seconds(1),
+            network_acquired_at: acquired_at,
+            returned_at: acquired_at + Duration::milliseconds(1),
+            cache_hit: false,
+            quota: crate::models::CodexQuota {
+                hourly_percentage: 50,
+                hourly_reset_time: Some(acquired_at.timestamp() + 18000),
+                hourly_window_minutes: Some(300),
+                hourly_window_present: Some(true),
+                weekly_percentage: 80,
+                weekly_reset_time: Some(acquired_at.timestamp() + 604800),
+                weekly_window_minutes: Some(10080),
+                weekly_window_present: Some(true),
+                plan_type: Some("plus".into()),
+                raw_data: Some(
+                    json!({"rate_limit":{"primary_window":{"used_percent":20.25,"limit_window_seconds":604800,"reset_at":acquired_at.timestamp()+604800},"secondary_window":{"used_percent":50.125,"limit_window_seconds":18000,"reset_at":acquired_at.timestamp()+18000}},"code_review_rate_limit":{"primary_window":{"used_percent":99,"limit_window_seconds":18000}},"email":"raw-secret","access_token":"raw-secret"}),
+                ),
+            },
+        }
+    }
+
+    #[test]
+    fn observation_metadata_uses_actual_duration_raw_percent_and_reset_identity() {
+        let acquired = Utc::now();
+        let mut value = outcome(acquired);
+        let observations = observations_from_outcome(&value);
+        assert_eq!(observations.len(), 2);
+        assert_eq!(observations[0].duration_minutes, Some(10080));
+        assert_eq!(observations[1].duration_minutes, Some(300));
+        assert_eq!(observations[1].used_percent, Some(50.125));
+        assert_eq!(observations[0].bucket_source, "wham_main");
+        assert!(
+            observations
+                .iter()
+                .all(|sample| sample.reset_generation.is_some())
+        );
+        let raw = value.quota.raw_data.as_mut().unwrap();
+        raw["rate_limit"]["secondary_window"]
+            .as_object_mut()
+            .unwrap()
+            .remove("reset_at");
+        raw["rate_limit"]["secondary_window"]["reset_after_seconds"] = json!(3000);
+        raw["rate_limit"]["limit_id"] = json!("explicit-model-bucket");
+        raw["additional_rate_limits"] = json!([{"limit_id":"other"}]);
+        let observations = observations_from_outcome(&value);
+        assert_eq!(observations[1].resets_at, Some(acquired.timestamp() + 3000));
+        assert!(observations[1].reset_generation.is_none());
+        assert_eq!(observations[1].bucket_source, "wham_limit_id");
+        assert!(!observations[1].scope_supported);
+        assert!(
+            !serde_json::to_string(&observations)
+                .unwrap()
+                .contains("raw-secret")
+        );
+        value.cache_hit = true;
+        assert!(observations_from_outcome(&value).is_empty());
+        value.cache_hit = false;
+        value.account_id = None;
+        assert!(observations_from_outcome(&value).is_empty());
+    }
+
+    #[test]
+    fn success_cache_and_rename_preserve_real_acquisition_and_single_history_sample() {
+        let env = crate::test_support::TestCodexEnv::new();
+        let service = CodexQuotaService {
+            ccr_codex_dir: env.ccr_codex_dir().to_path_buf(),
+            codex_dir: env.codex_dir().to_path_buf(),
+        };
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        let acquired = Utc::now();
+        let value = outcome(acquired);
+        let first = runtime.block_on(service.build_success("old-name", value.clone()));
+        assert_eq!(first.fetched_at, acquired);
+        assert!(!first.observation.as_ref().unwrap().cache_hit);
+        assert!(
+            first
+                .observation
+                .as_ref()
+                .unwrap()
+                .history_warning
+                .is_none()
+        );
+        let path = env.ccr_codex_dir().join("quota_observations.json");
+        let before = std::fs::read(&path).unwrap();
+        let mut cached = value.clone();
+        cached.cache_hit = true;
+        cached.returned_at += Duration::seconds(10);
+        let second = runtime.block_on(service.build_success("new-name", cached));
+        assert_eq!(second.fetched_at, first.fetched_at);
+        assert_eq!(second.account_name, "new-name");
+        assert_eq!(
+            second.observation.as_ref().unwrap().account_id,
+            first.observation.as_ref().unwrap().account_id
+        );
+        assert!(second.observation.as_ref().unwrap().cache_hit);
+        assert_eq!(std::fs::read(&path).unwrap(), before);
+        let history =
+            crate::managers::codex_quota_observation::CodexQuotaObservationStore::with_path(path)
+                .load()
+                .unwrap();
+        assert_eq!(history.len(), 2);
+        let text = String::from_utf8(before).unwrap();
+        assert!(!text.contains("raw-secret"));
+        assert!(!text.contains("synthetic@example.invalid"));
+        assert!(!text.contains("old-name"));
+    }
+
+    #[test]
+    fn successful_quota_survives_history_failure_and_custom_route_scope() {
+        let env = crate::test_support::TestCodexEnv::new();
+        let service = CodexQuotaService {
+            ccr_codex_dir: env.ccr_codex_dir().to_path_buf(),
+            codex_dir: env.codex_dir().to_path_buf(),
+        };
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        let path = env.ccr_codex_dir().join("quota_observations.json");
+        std::fs::write(&path, b"corrupt synthetic history").unwrap();
+        let result = runtime.block_on(service.build_success("main", outcome(Utc::now())));
+        assert!(result.quota.is_some());
+        assert!(result.error.is_none());
+        assert_eq!(
+            result.observation.unwrap().history_warning.as_deref(),
+            Some("quota_history_write_failed")
+        );
+        assert_eq!(std::fs::read(&path).unwrap(), b"corrupt synthetic history");
+        // A separate target establishes route rejection without replacing corrupt history.
+        let service = CodexQuotaService {
+            ccr_codex_dir: env.ccr_codex_dir().join("custom-route"),
+            codex_dir: env.codex_dir().to_path_buf(),
+        };
+        std::fs::write(
+            env.codex_dir().join("config.toml"),
+            "model_provider='custom'",
+        )
+        .unwrap();
+        let result = runtime.block_on(service.build_success("main", outcome(Utc::now())));
+        assert!(result.quota.is_some());
+        let history =
+            crate::managers::codex_quota_observation::CodexQuotaObservationStore::with_path(
+                service.ccr_codex_dir.join("quota_observations.json"),
+            )
+            .load()
+            .unwrap();
+        assert!(history.iter().all(|sample| !sample.scope_supported));
     }
 }

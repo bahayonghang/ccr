@@ -15,16 +15,19 @@ pub use models::codex_runtime_diagnostic::*;
 pub use platforms::CodexPlatform;
 pub use services::{
     AuthReadSnapshot, CodexAppServer, CodexAppServerCleanup, CodexAppServerCleanupReport,
-    CodexAuthCacheAction, CodexAuthService, CodexHistoryBackupPruneResult,
-    CodexHistoryBackupSummary, CodexHistoryProviderBuckets, CodexHistoryRestoreResult,
-    CodexHistorySyncOptions, CodexHistorySyncResult, CodexHistorySyncService,
-    CodexHistorySyncStatus, CodexHistoryVisibilityDiagnostics, CodexModelProviderStoreService,
-    CodexOAuthTokenService, CodexProcessDiscoveryIssue, CodexProcessService, CodexQuotaService,
-    CodexRegistryStore, CodexRollingUsage, CodexRuntimeCommitPlan, CodexRuntimeService,
-    CodexSessionDetail, CodexSessionExport, CodexSessionMessage, CodexSessionRestoreSummary,
-    CodexSessionService, CodexSessionSummary, CodexSessionTrashService, CodexSessionTrashSummary,
-    CodexSignalFailure, CodexSignalStage, CodexTrashedSessionRecord, CodexUsageRecord,
-    CodexUsageService, CodexUsageStats, OAuthRepairOutcome, TerminationKind,
+    CodexAuthCacheAction, CodexAuthService, CodexAuthUsageSnapshot, CodexCapacityEstimate,
+    CodexCostStatus, CodexCostSummary, CodexEstimateRange, CodexEstimateStatus,
+    CodexHistoryBackupPruneResult, CodexHistoryBackupSummary, CodexHistoryProviderBuckets,
+    CodexHistoryRestoreResult, CodexHistorySyncOptions, CodexHistorySyncResult,
+    CodexHistorySyncService, CodexHistorySyncStatus, CodexHistoryVisibilityDiagnostics,
+    CodexJointEstimate, CodexModelProviderStoreService, CodexOAuthTokenService,
+    CodexProcessDiscoveryIssue, CodexProcessService, CodexQuotaService, CodexRegistryStore,
+    CodexRollingUsage, CodexRuntimeCommitPlan, CodexRuntimeService, CodexSessionDetail,
+    CodexSessionExport, CodexSessionMessage, CodexSessionRestoreSummary, CodexSessionService,
+    CodexSessionSummary, CodexSessionTrashService, CodexSessionTrashSummary, CodexSignalFailure,
+    CodexSignalStage, CodexTrashedSessionRecord, CodexUsageDetails, CodexUsageEstimationService,
+    CodexUsageRecord, CodexUsageScope, CodexUsageService, CodexUsageStats, OAuthRepairOutcome,
+    TerminationKind,
 };
 
 #[cfg(test)]

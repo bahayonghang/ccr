@@ -2,7 +2,7 @@
 // 复用 wham/usage API 查询、JWT 解析与 token 刷新逻辑。
 
 use crate::models::CodexQuota;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use reqwest::header::{ACCEPT, AUTHORIZATION, HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -32,7 +32,7 @@ const QUOTA_CACHE_TTL: Duration = Duration::from_secs(30);
 /// 使用率窗口（5小时/周）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct WindowInfo {
-    used_percent: Option<i32>,
+    used_percent: Option<f64>,
     limit_window_seconds: Option<i64>,
     reset_after_seconds: Option<i64>,
     reset_at: Option<i64>,
@@ -90,6 +90,11 @@ pub(crate) struct OpenAiQuotaSnapshot {
 pub(crate) struct OpenAiQuotaFetchOutcome {
     pub(crate) email: Option<String>,
     pub(crate) quota: CodexQuota,
+    pub(crate) account_id: Option<String>,
+    pub(crate) request_started_at: DateTime<Utc>,
+    pub(crate) network_acquired_at: DateTime<Utc>,
+    pub(crate) returned_at: DateTime<Utc>,
+    pub(crate) cache_hit: bool,
 }
 
 /// 统一格式化 OpenAI 账号类型标签。
@@ -127,6 +132,7 @@ impl OpenAiQuotaCore {
         F: FnMut(TokenRefreshResponse) -> Fut,
         Fut: Future<Output = std::result::Result<(), String>>,
     {
+        let request_started_at = Utc::now();
         let mut access_token = snapshot.access_token.trim().to_string();
         if access_token.is_empty() {
             return Err("账号缺少 access_token".to_string());
@@ -155,7 +161,10 @@ impl OpenAiQuotaCore {
                 Instant::now(),
             )
         {
-            return Ok(outcome);
+            return Ok(OpenAiQuotaFetchOutcome {
+                request_started_at,
+                ..outcome
+            });
         }
 
         if force_refresh || Self::is_token_expired(&access_token) {
@@ -175,8 +184,16 @@ impl OpenAiQuotaCore {
         }
 
         match Self::call_usage_api(&access_token, account_id.as_deref()).await {
-            Ok(quota) => {
-                let outcome = OpenAiQuotaFetchOutcome { email, quota };
+            Ok((quota, network_acquired_at)) => {
+                let outcome = OpenAiQuotaFetchOutcome {
+                    email,
+                    quota,
+                    account_id: account_id.clone(),
+                    request_started_at,
+                    network_acquired_at,
+                    returned_at: Utc::now(),
+                    cache_hit: false,
+                };
                 Self::write_cached_quota(
                     account_id.as_deref(),
                     outcome.email.as_deref(),
@@ -201,8 +218,17 @@ impl OpenAiQuotaCore {
                         account_id = Self::extract_account_id(&access_token);
                     }
                     email = Self::extract_email(&access_token).or(email);
-                    let quota = Self::call_usage_api(&access_token, account_id.as_deref()).await?;
-                    let outcome = OpenAiQuotaFetchOutcome { email, quota };
+                    let (quota, network_acquired_at) =
+                        Self::call_usage_api(&access_token, account_id.as_deref()).await?;
+                    let outcome = OpenAiQuotaFetchOutcome {
+                        email,
+                        quota,
+                        account_id: account_id.clone(),
+                        request_started_at,
+                        network_acquired_at,
+                        returned_at: Utc::now(),
+                        cache_hit: false,
+                    };
                     Self::write_cached_quota(
                         account_id.as_deref(),
                         outcome.email.as_deref(),
@@ -330,7 +356,7 @@ impl OpenAiQuotaCore {
     async fn call_usage_api(
         access_token: &str,
         account_id: Option<&str>,
-    ) -> std::result::Result<CodexQuota, String> {
+    ) -> std::result::Result<(CodexQuota, DateTime<Utc>), String> {
         let mut headers = HeaderMap::new();
         headers.insert(
             AUTHORIZATION,
@@ -386,7 +412,8 @@ impl OpenAiQuotaCore {
         let usage: UsageResponse =
             serde_json::from_str(&body).map_err(|error| format!("解析配额 JSON 失败: {error}"))?;
 
-        Self::parse_quota(&usage, &body)
+        let network_acquired_at = Utc::now();
+        Self::parse_quota(&usage, &body).map(|quota| (quota, network_acquired_at))
     }
 
     async fn refresh_access_token(
@@ -434,8 +461,42 @@ impl OpenAiQuotaCore {
         raw_body: &str,
     ) -> std::result::Result<CodexQuota, String> {
         let rate_limit = usage.rate_limit.as_ref();
-        let primary = rate_limit.and_then(|limit| limit.primary_window.as_ref());
-        let secondary = rate_limit.and_then(|limit| limit.secondary_window.as_ref());
+        let windows = [
+            rate_limit.and_then(|limit| limit.primary_window.as_ref()),
+            rate_limit.and_then(|limit| limit.secondary_window.as_ref()),
+        ];
+        let select = |duration| {
+            let matches: Vec<_> = windows
+                .iter()
+                .flatten()
+                .filter(|window| Self::window_minutes(window) == Some(duration))
+                .copied()
+                .collect();
+            let selected = if matches.len() == 1 {
+                matches.first().copied().filter(|window| {
+                    window.used_percent.is_some_and(|percent| {
+                        percent.is_finite() && (0.0..=100.0).contains(&percent)
+                    })
+                })
+            } else {
+                None
+            };
+            let present = if selected.is_some() {
+                Some(true)
+            } else if !matches.is_empty()
+                || windows
+                    .iter()
+                    .flatten()
+                    .any(|window| Self::window_minutes(window).is_none())
+            {
+                None
+            } else {
+                Some(false)
+            };
+            (selected, present)
+        };
+        let (primary, hourly_present) = select(300);
+        let (secondary, weekly_present) = select(10080);
 
         let (hourly_percentage, hourly_reset_time, hourly_window_minutes) =
             if let Some(window) = primary {
@@ -465,11 +526,11 @@ impl OpenAiQuotaCore {
             hourly_percentage,
             hourly_reset_time,
             hourly_window_minutes,
-            hourly_window_present: Some(primary.is_some()),
+            hourly_window_present: hourly_present,
             weekly_percentage,
             weekly_reset_time,
             weekly_window_minutes,
-            weekly_window_present: Some(secondary.is_some()),
+            weekly_window_present: weekly_present,
             plan_type: usage
                 .plan_type
                 .as_deref()
@@ -480,16 +541,16 @@ impl OpenAiQuotaCore {
     }
 
     fn remaining_percentage(window: &WindowInfo) -> i32 {
-        let used = window.used_percent.unwrap_or(0).clamp(0, 100);
-        100 - used
+        let used = window.used_percent.unwrap_or(0.0).clamp(0.0, 100.0);
+        (100.0 - used).round() as i32
     }
 
     fn window_minutes(window: &WindowInfo) -> Option<i64> {
         let seconds = window.limit_window_seconds?;
-        if seconds <= 0 {
+        if seconds <= 0 || seconds % 60 != 0 {
             return None;
         }
-        Some((seconds + 59) / 60)
+        Some(seconds / 60)
     }
 
     fn reset_time(window: &WindowInfo) -> Option<i64> {
@@ -526,7 +587,12 @@ impl OpenAiQuotaCore {
         let cache_key = Self::cache_key(account_id, email, refresh_token, access_token);
         let mut cache = QUOTA_CACHE.lock().ok()?;
         cache.retain(|_, entry| now.saturating_duration_since(entry.cached_at) <= QUOTA_CACHE_TTL);
-        cache.get(&cache_key).map(|entry| entry.outcome.clone())
+        cache.get(&cache_key).map(|entry| {
+            let mut outcome = entry.outcome.clone();
+            outcome.cache_hit = true;
+            outcome.returned_at = Utc::now();
+            outcome
+        })
     }
 
     fn write_cached_quota(
@@ -585,6 +651,11 @@ mod tests {
 
     fn sample_outcome() -> OpenAiQuotaFetchOutcome {
         OpenAiQuotaFetchOutcome {
+            account_id: Some("synthetic-account".into()),
+            request_started_at: Utc::now(),
+            network_acquired_at: Utc::now(),
+            returned_at: Utc::now(),
+            cache_hit: false,
             email: Some("user@example.com".to_string()),
             quota: CodexQuota {
                 hourly_percentage: 75,
@@ -599,13 +670,6 @@ mod tests {
                 raw_data: None,
             },
         }
-    }
-
-    fn clear_quota_cache() {
-        QUOTA_CACHE
-            .lock()
-            .expect("quota cache mutex should not be poisoned in tests")
-            .clear();
     }
 
     fn fake_jwt(payload: serde_json::Value) -> String {
@@ -668,13 +732,13 @@ mod tests {
                 allowed: Some(true),
                 limit_reached: Some(false),
                 primary_window: Some(WindowInfo {
-                    used_percent: Some(48),
+                    used_percent: Some(48.0),
                     limit_window_seconds: Some(5 * 3600),
                     reset_after_seconds: Some(3600),
                     reset_at: None,
                 }),
                 secondary_window: Some(WindowInfo {
-                    used_percent: Some(17),
+                    used_percent: Some(17.0),
                     limit_window_seconds: Some(7 * 24 * 3600),
                     reset_after_seconds: Some(7200),
                     reset_at: None,
@@ -711,7 +775,6 @@ mod tests {
 
     #[test]
     fn quota_cache_reuses_recent_entry_for_same_account_id() {
-        clear_quota_cache();
         let now = Instant::now();
         let outcome = sample_outcome();
 
@@ -737,11 +800,13 @@ mod tests {
 
         assert_eq!(cached.email.as_deref(), Some("user@example.com"));
         assert_eq!(cached.quota.hourly_percentage, 75);
+        assert!(cached.cache_hit);
+        assert_eq!(cached.network_acquired_at, outcome.network_acquired_at);
+        assert!(cached.returned_at >= outcome.returned_at);
     }
 
     #[test]
     fn quota_cache_expires_stale_entry() {
-        clear_quota_cache();
         let now = Instant::now();
 
         OpenAiQuotaCore::write_cached_quota(
@@ -762,5 +827,40 @@ mod tests {
         );
 
         assert!(cached.is_none());
+    }
+
+    #[test]
+    fn quota_window_roles_follow_duration_and_missing_percent_stays_unknown() {
+        let raw = json!({"plan_type":"plus","rate_limit":{"primary_window":{"used_percent":94.25,"limit_window_seconds":604800},"secondary_window":{"used_percent":41.125,"limit_window_seconds":18000}}});
+        let usage: UsageResponse = serde_json::from_value(raw.clone()).unwrap();
+        let quota = OpenAiQuotaCore::parse_quota(&usage, &raw.to_string()).unwrap();
+        assert_eq!(quota.hourly_percentage, 59);
+        assert_eq!(quota.weekly_percentage, 6);
+        assert_eq!(quota.hourly_window_present, Some(true));
+        assert_eq!(quota.weekly_window_present, Some(true));
+        for percent in [serde_json::Value::Null, json!(-1), json!(101)] {
+            let mut raw = raw.clone();
+            raw["rate_limit"]["secondary_window"]["used_percent"] = percent;
+            let usage = serde_json::from_value(raw.clone()).unwrap();
+            let quota = OpenAiQuotaCore::parse_quota(&usage, &raw.to_string()).unwrap();
+            assert_eq!(quota.hourly_window_present, None);
+            assert_eq!(quota.weekly_window_present, Some(true));
+        }
+        let raw = json!({"rate_limit":{"primary_window":{"used_percent":20}}});
+        let quota = OpenAiQuotaCore::parse_quota(
+            &serde_json::from_value(raw.clone()).unwrap(),
+            &raw.to_string(),
+        )
+        .unwrap();
+        assert_eq!(quota.hourly_window_present, None);
+        assert_eq!(quota.weekly_window_present, None);
+        let raw = json!({"rate_limit":{"primary_window":{"used_percent":20,"limit_window_seconds":36000}}});
+        let quota = OpenAiQuotaCore::parse_quota(
+            &serde_json::from_value(raw.clone()).unwrap(),
+            &raw.to_string(),
+        )
+        .unwrap();
+        assert_eq!(quota.hourly_window_present, Some(false));
+        assert_eq!(quota.weekly_window_present, Some(false));
     }
 }

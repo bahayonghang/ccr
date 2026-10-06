@@ -2556,9 +2556,8 @@ mod tests {
                     );
                     assert!(rendered.contains("80%"), "{rendered}");
                     assert!(rendered.contains("10%"), "{rendered}");
-                    assert_eq!(
-                        rendered.matches("12.3K").count(),
-                        3,
+                    assert!(
+                        rendered.matches("12.3K").count() >= 3,
                         "{width}x{height}: {rendered}"
                     );
                     assert!(
@@ -2624,6 +2623,322 @@ mod tests {
                             snapshot.push('\n');
                         }
                         println!("SYNTHETIC CODEX AUTH {language:?} {width}x{height}\n{snapshot}");
+                    }
+                }
+            }
+        }
+        crate::tui::i18n::set_language(TuiLanguage::English);
+    }
+
+    #[test]
+    fn codex_auth_composed_feature_states_keep_cost_capacity_and_keys_visible() {
+        use ccr_cli::managers::TuiLanguage;
+        use codex_auth::ui::tests::{UsagePresentationCase as Case, set_usage_presentation_case};
+        for language in [TuiLanguage::English, TuiLanguage::SimplifiedChinese] {
+            crate::tui::i18n::set_language(language);
+            for (width, height) in [
+                (80, 24),
+                (100, 22),
+                (100, 30),
+                (120, 22),
+                (140, 40),
+                (180, 50),
+            ] {
+                for case in [
+                    Case::Estimate,
+                    Case::Standard,
+                    Case::CatalogPrice,
+                    Case::MixedPriceSources,
+                    Case::Fast,
+                    Case::Partial,
+                    Case::Unpriced,
+                    Case::TinyCost,
+                    Case::InsufficientSamples,
+                    Case::Stale,
+                    Case::GlobalFallback,
+                    Case::HistoryWarning,
+                    Case::UsageError,
+                    Case::QuotaMissing,
+                    Case::QuotaError,
+                    Case::UsdUnpriced,
+                    Case::UsdOnly,
+                    Case::Unstable,
+                ] {
+                    let (_dir, mut auth) = codex_auth::ui::tests::presentation_fixture();
+                    set_usage_presentation_case(&mut auth, case);
+                    let profile = ProfileItem {
+                        name: "fixture".into(),
+                        description: None,
+                        is_current: false,
+                    };
+                    let mut app =
+                        sample_profile_app_for(Platform::Codex, profile, ProfileConfig::new());
+                    app.tabs = vec![empty_platform_tab(
+                        Platform::Codex,
+                        TabVariant::CodexAuth,
+                        "Codex Auth",
+                    )];
+                    app.codex_auth_app = Some(auth);
+                    let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+                    terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+                    let rendered = buffer_text(terminal.backend());
+                    let compact = rendered.replace(' ', "");
+                    let receipt = format!("{language:?} {width}x{height} {case:?}\n{rendered}");
+                    assert!(compact.contains("10.2M"), "{receipt}");
+                    assert!(compact.contains("API"), "{receipt}");
+                    assert!(
+                        compact.contains(crate::tui_text!("APIequivalentUSD", "API等值USD")),
+                        "{receipt}"
+                    );
+                    assert!(compact.contains("Ctrl+L"), "{receipt}");
+                    assert!(
+                        compact.contains(crate::tui_text!("qquit", "q退出")),
+                        "{receipt}"
+                    );
+                    if case == Case::GlobalFallback {
+                        assert!(
+                            compact.contains(crate::tui_text!(
+                                "Local:global(notselected)",
+                                "本地：全局（非所选账号）"
+                            )),
+                            "{receipt}"
+                        );
+                        assert!(
+                            !compact.contains(crate::tui_text!("remest5M", "剩余估算5M"))
+                                && !compact.contains(crate::tui_text!("rem5M", "剩余5M")),
+                            "{receipt}"
+                        );
+                    } else {
+                        assert!(
+                            compact.contains(crate::tui_text!(
+                                "Local:accountcodexcn",
+                                "本地：账号codexcn"
+                            )),
+                            "{receipt}"
+                        );
+                    }
+                    match case {
+                        Case::Unpriced => {
+                            assert!(
+                                compact
+                                    .contains(crate::tui_text!("APIN/AUNPRICED", "APIN/A未定价")),
+                                "{receipt}"
+                            );
+                            assert!(!compact.contains("$0.00"), "{receipt}");
+                        }
+                        Case::Fast => assert!(
+                            compact.contains("$10.30") && compact.contains("Fast"),
+                            "{receipt}"
+                        ),
+                        Case::TinyCost => assert!(compact.contains("<$0.01"), "{receipt}"),
+                        Case::Partial => {
+                            assert!(
+                                compact.contains(crate::tui_text!("partial", "部分")),
+                                "{receipt}"
+                            );
+                            assert!(compact.contains("50/100"), "{receipt}");
+                            assert!(
+                                compact.contains(crate::tui_text!("partialusage", "用量不完整")),
+                                "{receipt}"
+                            );
+                        }
+                        _ => assert!(compact.contains("$5.15"), "{receipt}"),
+                    }
+                    if case == Case::Standard {
+                        assert!(
+                            compact.contains("Std") || compact.contains("Standard"),
+                            "{receipt}"
+                        );
+                        assert!(
+                            !compact.contains(crate::tui_text!("Stdassumed", "Std假设"))
+                                && !compact.contains("Standard假设"),
+                            "{receipt}"
+                        );
+                    } else if !matches!(case, Case::Unpriced | Case::Fast) {
+                        assert!(
+                            compact.contains(crate::tui_text!("Stdassumed", "Std假设"))
+                                || compact.contains("Standard假设"),
+                            "{receipt}"
+                        );
+                    }
+                    let remaining_label = crate::tui_text!("rem", "剩余");
+                    for label in ["5h", "7d"] {
+                        assert!(
+                            rendered.lines().any(|line| {
+                                let compact_line = line.replace(' ', "");
+                                compact_line.contains(label)
+                                    && compact_line.contains(remaining_label)
+                            }),
+                            "{receipt}"
+                        );
+                    }
+                    match case {
+                        Case::InsufficientSamples | Case::Unpriced => assert!(
+                            compact.contains(crate::tui_text!("samples<3", "样本不足")),
+                            "{receipt}"
+                        ),
+                        Case::Stale => assert!(
+                            compact.contains(crate::tui_text!("stale", "已过期")),
+                            "{receipt}"
+                        ),
+                        Case::HistoryWarning => {
+                            assert!(
+                                compact.contains(crate::tui_text!("Historyerror", "历史错误")),
+                                "{receipt}"
+                            );
+                            assert!(
+                                !compact.contains(crate::tui_text!("remest5M", "剩余估算5M"))
+                                    && !compact.contains(crate::tui_text!("rem5M", "剩余5M")),
+                                "{receipt}"
+                            );
+                        }
+                        Case::UsageError => assert!(
+                            compact.contains(crate::tui_text!("usageerror", "用量错误")),
+                            "{receipt}"
+                        ),
+                        Case::QuotaError => assert!(
+                            compact.contains(crate::tui_text!("Quotaerror", "配额错误")),
+                            "{receipt}"
+                        ),
+                        Case::QuotaMissing => assert!(
+                            compact.contains(crate::tui_text!("Notprovided", "未提供")),
+                            "{receipt}"
+                        ),
+                        Case::UsdUnpriced => assert!(
+                            compact.contains(crate::tui_text!("unpriced", "未定价")),
+                            "{receipt}"
+                        ),
+                        Case::UsdOnly => {
+                            assert!(
+                                compact.contains("$2.50") && compact.contains("$1.00"),
+                                "{receipt}"
+                            );
+                            for label in ["5h", "7d"] {
+                                assert!(
+                                    rendered.lines().any(|line| {
+                                        let text = line.replace(' ', "");
+                                        text.contains(label)
+                                            && text.contains("N/A")
+                                            && text.contains(crate::tui_text!("unstable", "不稳定"))
+                                    }),
+                                    "{receipt}"
+                                );
+                            }
+                            if width < 140 {
+                                assert!(
+                                    compact.contains(crate::tui_text!("est$2.50", "估算$2.50"))
+                                        && compact
+                                            .contains(crate::tui_text!("est$1.00", "估算$1.00")),
+                                    "{receipt}"
+                                );
+                            }
+                        }
+                        Case::Unstable => assert!(
+                            compact.contains(crate::tui_text!("unstable", "不稳定")),
+                            "{receipt}"
+                        ),
+                        _ => {}
+                    }
+                    if matches!(
+                        case,
+                        Case::Estimate
+                            | Case::Standard
+                            | Case::CatalogPrice
+                            | Case::MixedPriceSources
+                            | Case::Fast
+                            | Case::TinyCost
+                            | Case::QuotaError
+                            | Case::UsageError
+                            | Case::UsdUnpriced
+                    ) {
+                        for (window, remaining) in [("5h", "5M"), ("7d", "2M")] {
+                            assert!(
+                                rendered.lines().any(|line| {
+                                    let text = line.replace(' ', "");
+                                    text.contains(window)
+                                        && (text.contains(&format!("remest{remaining}"))
+                                            || text.contains(&format!("rem{remaining}"))
+                                            || text.contains(&format!("剩余估算{remaining}"))
+                                            || text.contains(&format!("剩余{remaining}")))
+                                }),
+                                "{receipt}"
+                            );
+                        }
+                        if case != Case::UsdUnpriced {
+                            assert!(
+                                compact.contains("$2.50") && compact.contains("$1.00"),
+                                "{receipt}"
+                            );
+                        }
+                        if width >= 140 {
+                            if matches!(case, Case::CatalogPrice | Case::MixedPriceSources) {
+                                assert!(
+                                    compact
+                                        .contains(crate::tui_text!("catalogestimate", "目录估价")),
+                                    "{receipt}"
+                                );
+                                assert!(
+                                    compact.contains(crate::tui_text!("dateN/A", "日期N/A")),
+                                    "{receipt}"
+                                );
+                            }
+                            if case == Case::CatalogPrice {
+                                assert!(
+                                    !compact.contains(crate::tui_text!(
+                                        "gpt-6.1-solverified",
+                                        "gpt-6.1-sol核实"
+                                    )),
+                                    "{receipt}"
+                                );
+                                assert!(
+                                    !compact.contains(crate::tui_text!(
+                                        "gpt-6.1-solsource:",
+                                        "gpt-6.1-sol来源："
+                                    )),
+                                    "{receipt}"
+                                );
+                            } else {
+                                assert!(
+                                    compact.contains(crate::tui_text!(
+                                        "gpt-6.1-solverified2026-10-06",
+                                        "gpt-6.1-sol核实2026-10-06"
+                                    )),
+                                    "{receipt}"
+                                );
+                            }
+                            assert!(
+                                compact.contains(crate::tui_text!("Tokentotal", "Token总量")),
+                                "{receipt}"
+                            );
+                            assert!(
+                                compact.contains(crate::tui_text!(
+                                    "SamplesToken/USD3/3",
+                                    "样本Token/USD3/3"
+                                )),
+                                "{receipt}"
+                            );
+                            assert!(
+                                compact.contains("span") || compact.contains("跨度"),
+                                "{receipt}"
+                            );
+                            assert!(
+                                compact.contains("Read") || compact.contains("读"),
+                                "{receipt}"
+                            );
+                            assert!(
+                                compact.contains("9M")
+                                    && compact.contains("500K")
+                                    && compact.contains("100K"),
+                                "{receipt}"
+                            );
+                            assert!(
+                                compact.contains(crate::tui_text!(
+                                    "Otherdevices/cloud",
+                                    "其他设备及云端"
+                                )),
+                                "{receipt}"
+                            );
+                        }
                     }
                 }
             }

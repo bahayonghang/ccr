@@ -198,6 +198,7 @@ mod tests {
             }),
             error: None,
             fetched_at: Utc::now(),
+            ..Default::default()
         };
 
         let (accounts, current_account) = build_tray_account_rows(items, Some(&quota), true);
