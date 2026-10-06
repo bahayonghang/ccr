@@ -219,6 +219,19 @@ fn official_rate(
     model: &str,
     prompt_tokens: i64,
 ) -> Option<(ModelRate, &'static str, &'static str)> {
+    if model == "gpt-6.1-sol" {
+        let input_multiplier = if prompt_tokens > 272_000 { 2.0 } else { 1.0 };
+        return Some((
+            ModelRate {
+                input_per_million: 2.0 * input_multiplier,
+                cache_read_per_million: 0.10 * input_multiplier,
+                cache_creation_per_million: Some(2.50 * input_multiplier),
+                output_per_million: if prompt_tokens > 272_000 { 15.0 } else { 10.0 },
+            },
+            "official:openai",
+            "priced",
+        ));
+    }
     if model.starts_with("claude-opus-4-5")
         || model.starts_with("claude-opus-4-6")
         || model.starts_with("claude-opus-4-7")
@@ -449,6 +462,17 @@ mod tests {
     fn applies_long_context_tiers_per_record() {
         assert_cost("gpt-5.4", 273_000, 1_000_000, 0, 23.865);
         assert_cost("gemini-3.1-pro-preview", 201_000, 1_000_000, 0, 18.804);
+    }
+
+    #[test]
+    fn prices_gpt_6_1_sol_at_the_verified_context_boundary() {
+        assert_cost("gpt-6.1-sol", 272_000, 0, 0, 0.544);
+        assert_cost("gpt-6.1-sol", 272_001, 0, 0, 1.088004);
+
+        let catalog = ModelRateCatalog::official();
+        let result = catalog.calculate("gpt-6.1-sol", 5_000, 2_000, 90_000, 5_000);
+        assert!((result.cost_with_cache_usd - 0.0515).abs() < 0.000_001);
+        assert!((result.cost_without_cache_usd - 0.22).abs() < 0.000_001);
     }
 
     #[test]
