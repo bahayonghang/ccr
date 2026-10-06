@@ -1,0 +1,4 @@
+{"file":".trellis/spec/ccr-tui/backend/backend-guidelines.md","reason":"TUI quota/local usage scope, bilingual UI, sizing and state boundaries"}
+{"file":".trellis/spec/ccr-tui/backend/index.md","reason":"ccr-tui spec layer index for check routing"}
+{"file":".trellis/tasks/10-06-usage-panel-display/research/panel-inventory.md","reason":"Panel line inventory, redundancy analysis and data-source anchors"}
+{"file":".trellis/tasks/10-06-usage-panel-display/prd.md","reason":"Display requirements and acceptance criteria"}
