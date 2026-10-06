@@ -1,0 +1,30 @@
+{
+  "id": "codex-auth-switch-panel-hardening",
+  "name": "codex-auth-switch-panel-hardening",
+  "title": "Codex Auth 切换可靠性、用量面板与实现加固",
+  "description": "修复 Codex Auth 账号切换失效与 refresh_token 轮换失同步；优化本地用量统计面板显示；参考 Loongphy/codex-auth 审计并加固实现。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P1",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-10-06",
+  "completedAt": "2026-10-06",
+  "branch": "dev",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "10-06-auth-switch-reliability",
+    "10-06-usage-panel-display",
+    "10-06-reference-hardening"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}
