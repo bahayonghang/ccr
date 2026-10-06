@@ -1940,3 +1940,43 @@ TuiTheme 新增 Auto 并设为默认值：启动时持久化 auto 或 env=auto �
 - 需要用户明确句子后，才能接受 T08 唯一例外或应用 T01 匹配版本补丁。
 - T03 下一次真实 Dependabot、macOS、fresh-client、hosted、Marketplace、原生激活仍为 UNVERIFIED。
 - 本轮工作区改动尚未提交。未推送，未创建 PR，未发布。
+
+
+## Session 119: Codex Auth 周期 Token、费用与容量估算
+<!-- trellis-session: v=2 fp=aa586e8b282ee3db -->
+
+**Date**: 2026-10-06
+**Task**: Codex Auth 周期 Token、费用与容量估算
+**Branch**: `dev`
+
+### Summary
+
+拆分提交 Codex Auth 周期 Token、API 等值费用与容量估算，并归档对应 Trellis 任务。未推送。
+
+### Main Changes
+
+- 两份 JS 锁文件只升级 postcss-selector-parser 与 source-map-js。
+- 价格目录收录 gpt-6.1-sol 官方参考价。
+- Codex 领域与 Auth TUI 增加周期 Token、逐请求 API 等值费用、quota 观测和经验容量。
+- ccr-codex 与 ccr-tui 规范写回用量计价和容量合同。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c91008ebdeec6e1cc6d9dee48d128d7b68577b31` | fix(依赖): 🐛 升级 postcss-selector-parser 与 source-map-js |
+| `02b7f66e7744d77570d3aa9b90e2ee7b71b948f4` | feat(价格): ✨ 收录 gpt-6.1-sol 官方参考价 |
+| `f6a2300865d39c04ca8afa8a38ab7b00259d554c` | feat(Codex认证): ✨ 估算周期 Token、API 等值费用与容量 |
+| `ef24fa5e1b9928efc4a7731bc3ffbe7ad3853813` | docs(规范): 📝 写回 Codex 用量计价与容量合同 |
+
+### Testing
+
+- [OK] 沿用第六轮 just ci：退出 0，16 项步骤通过，用时 12:30.169。本轮只提交既有结果，未重跑。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 未推送、未创建 PR、未发布。真实 OpenAI 账户、Linux/macOS 与 hosted CI 仍为 NOT_RUN。
