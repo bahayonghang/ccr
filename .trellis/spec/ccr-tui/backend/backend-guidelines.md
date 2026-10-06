@@ -449,6 +449,64 @@ official account bill or a conversion from tokens to server-side quota.
 - TestBackend evidence proves buffer composition; native terminal appearance and
   private runtime correctness require separate direct evidence.
 
+## Scenario: Codex Auth Token Cost And Capacity
+
+### 1. Scope / Trigger
+
+Consume `ccr-codex` DTOs for Auth Token/cost/capacity.
+
+### 2. Signatures
+
+- `UsageLoader = Arc<dyn Fn(&CodexAuthRegistry, &str) -> UsageState + Send + Sync>`.
+- `CodexAuthTaskMessage::Usage { generation, account_name, state }`.
+
+### 3. Contracts
+
+Run IO through `spawn_blocking`. Accept only the current account/generation;
+queue changed selections. Retain snapshots with stale/refresh labels. Render
+`for_display(now).with_quota(quota)`.
+
+Show 5h/7d/all totals, records, API equivalent USD, assumptions, and coverage.
+Unknown values use `N/A`/`UNPRICED`; positive sub-cent costs use `<$0.01`.
+Wide rows add classification, capacity ranges, samples/span, and model-specific
+sources/dates. Catalog dates remain unknown. Keep remaining reasons and shortcuts
+visible; mark omitted details.
+
+### 4. Validation & Error Matrix
+
+| Condition | Presentation |
+| --- | --- |
+| History warning | Warning; remaining `N/A` |
+| Acquisition mismatch | Remaining `N/A:stale` |
+| Invalid estimate | Domain N/A reason |
+
+### 5. Good/Base/Bad Cases
+
+- Good: aligned estimates.
+- Base: insufficient samples.
+- Bad: late account A result after selecting B.
+
+### 6. Tests Required
+
+Use the six-size EN/ZH matrix above. Cover price/estimate states, mixed sources,
+coverage, and sub-cent costs. Assert remaining values/reasons and the equivalent
+title. Test slow input and late results. Use default parallelism,
+`--skip export_bindings`, and `just ci`; record native status separately.
+
+### 7. Wrong vs Correct
+
+```rust
+// Wrong
+self.usage_state = *state;
+
+// Correct
+if generation == self.usage_generation
+    && account_name == self.selected_quota_key().unwrap_or_default()
+{
+    self.usage_state = *state;
+}
+```
+
 ## Logging
 
 Use `tracing::warn!` for recoverable loading failures and diagnostics. Do not print directly from TUI code during active terminal rendering.
@@ -587,7 +645,8 @@ assert_eq!(background_style_for_palette(&MOCHA).bg, Some(MOCHA.bg));
 For TUI changes, run:
 
 - `just fmt-check`
-- `cargo test -p ccr-tui -- --test-threads=1`
-- `cargo test -p ccr -- --test-threads=1` when the binary/TUI feature surface changes
+- `cargo test -p ccr-tui --all-features -- --skip export_bindings`
+- `cargo test -p ccr -- --skip export_bindings` when the binary/TUI feature surface changes
 - `just lint-strict`
 - For usage/statistics surfaces, also run `cargo test -p ccr-usage`
+- `just ci` for cross-crate final acceptance

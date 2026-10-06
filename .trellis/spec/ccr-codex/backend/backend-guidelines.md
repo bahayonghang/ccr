@@ -96,11 +96,154 @@ Use `tracing` for diagnostics. Never log access tokens, refresh tokens, provider
 
 Tests that mutate Codex-related env vars must use `test_support::TestCodexEnv`. Prefer temp homes and fixture files over touching real `~/.codex` state.
 
+## Scenario: Codex Auth Token Cost And Quota Capacity
+
+### 1. Scope / Trigger
+
+Apply this contract to Codex JSONL usage, Auth API equivalent prices, quota
+observations, and empirical capacity. `CodexUsageService` owns parsing and scan
+quality. `CodexUsageEstimationService` owns attribution, prices, and estimates.
+`CodexQuotaObservationStore` owns bounded private metadata. Callers consume typed
+results. Keep the existing `ccr-usage` SQL projection and llmusage database intact.
+
+### 2. Signatures
+
+```rust
+CodexUsageService::scan(as_of: DateTime<Utc>) -> Result<CodexUsageScan>
+CodexUsageService::compute_rolling_usage_at(records: &[CodexUsageRecord], as_of: DateTime<Utc>) -> CodexRollingUsage
+CodexUsageEstimationService::load(registry: &CodexAuthRegistry, account_name: &str, as_of: DateTime<Utc>) -> Result<CodexAuthUsageSnapshot>
+price_record(record: &CodexUsageRecord) -> CodexRecordPrice
+estimate_window(observations: &[CodexQuotaObservation], scan: &CodexUsageScan, records: &[CodexUsageRecord], ledger: &[CodexUsageActivation], account_id: &str, duration: i64, as_of: DateTime<Utc>) -> CodexCapacityEstimate
+CodexQuotaObservationStore::record(observations: Vec<CodexQuotaObservation>, now: DateTime<Utc>) -> Result<()>
+CodexAuthUsageSnapshot::with_quota(quota: &CodexAccountQuota) -> Self
+CodexAuthUsageSnapshot::for_display(now: DateTime<Utc>) -> Self
+```
+
+### 3. Contracts
+
+Usage input `I` includes cache read `R` and cache write `W`. Output `O` includes
+reasoning `Q`. Require `R + W <= I` and `Q <= O`. Total Token count is `I + O`.
+Price the exclusive input `I - R - W`, cache read, cache write, and inclusive
+output once. Preserve explicit zero and missing classification as different
+states. Invalid classification adds diagnostics and partial status.
+
+Choose one authoritative measurement per proven request/turn identity. Preserve
+unrelated turns in files that contain completed events. The persisted
+`token_usage_record` uses its request `usage` and response ID; turn/thread
+cumulative fields cannot add another charge. Both `context_compacted` and
+top-level `compacted` mark unproven epoch boundaries. Use cumulative deltas
+only within a proven monotonic epoch. Unproven rollback, model/tier changes, and
+compaction retain partial status. Source copies use deterministic session/event
+identity. A fork prefix requires matching parent records and a proven boundary.
+All same-request merge paths preserve explicit scope evidence. Conflicting
+account/model/provider/speed/tier/bucket metadata marks partial; completed Token
+authority cannot clear that conflict or a known route mismatch.
+Missing, invalid, inferred, and future event times cannot calibrate capacity.
+Upgrade the rebuildable usage cache; preserve source JSONL and activation history.
+
+Compute rolling windows against fixed UTC `as_of`. Account attribution uses the
+stable account ID and local activation timeline, with inferred scope. Global
+fallback never calibrates a selected account. Explicit API/custom route, account,
+provider, bucket, or pre-activation session evidence invalidates calibration.
+Provider visibility repair cannot prove original billing ownership.
+
+Price each request before aggregation. Canonical `gpt-6.1-sol` uses the verified
+2026-10-06 USD/MTok rates: input 2, cache read 0.10, cache write 2.50, output 10.
+Inclusive request input above 272000 doubles all input-side rates and multiplies
+output by 1.5. Fast doubles the request cost. Period totals cannot select a
+request context tier. Preserve model match, price version/source, tier, context
+assumption, and record/Token coverage. Unknown models remain unpriced. Older
+catalog entries retain catalog-estimate provenance. Missing tier or request
+length requires an explicit assumption. Missing classification excludes USD
+calibration while Token calibration can remain valid.
+
+Quota acquisition time is fixed when the network response completes. A 30-second
+cache hit preserves that time and does not create a new observation. The additive
+`CodexAccountQuota.observation` envelope carries provenance and history warnings.
+Map main windows by duration: 300 minutes means 5h; 10080 means 7d. Preserve main
+and explicit limit-ID buckets separately. Missing percent keeps window presence
+unknown. A reset countdown alone cannot identify a stable reset generation.
+
+Store `quota_observations.json` under `CodexPaths::ccr_codex_dir`. Preserve
+`CCR_CODEX_DIR`, `CCR_ROOT`/`CCR_DATA_DIR`, and `CCR_LOCK_DIR` path resolution.
+Use a normalized operation lock before the guarded writer's leaf lock. Writes
+use `secret: true` and `BackupPolicy::None`. Retain at most 35 days, 4096 rows,
+and 8 MiB. Reject corrupt, oversized, or unknown-schema input without replacing
+the old file. The schema contains quota metadata only. Credentials, emails,
+response bodies, prompts, headers, and source paths cannot enter the schema.
+History write failure retains successful quota and reports a warning. Keep
+sampling on the existing quota query path.
+
+For each interval `[acquisition0, acquisition1)`, require a complete scan whose
+watermark covers both endpoints, one account activation, one plan/bucket/window/
+reset/model/tier/price basis, a positive Token delta, and at least 5 percentage
+points of raw usage increase. Recompute intervals from each completed scan so
+late records cannot retain stale capacity. Require three independent intervals;
+use at most the last 20. Capacity is `local_delta / (percent_delta / 100)`.
+Compute Token and USD median/min/max independently. A max/min ratio above 2
+suppresses the affected metric. Remaining capacity scales by `1-used_percent/100`.
+Current acquisition must be within five minutes and before reset. Joint remaining
+capacity uses the lower compatible window value. The result remains a local
+workload estimate with unavailable consumption from other devices and cloud jobs.
+
+### 4. Validation & Error Matrix
+
+| Condition | Domain outcome |
+| --- | --- |
+| No valid independent intervals or fewer than three | `insufficient_samples` |
+| Incomplete scan, ambiguous usage, or invalid classification | `partial_usage` for calibration |
+| Known account/route/bucket mismatch | `invalid_scope` |
+| Missing duration/reset identity or unsupported window | `unsupported_window` |
+| Percent rollback or incompatible segment | Reset baseline; do not use the crossing interval |
+| Positive quota delta without local Tokens | `unexplained_quota_change` |
+| Unknown or incomplete prices | USD `unpriced`; Token validity remains independent |
+| Empirical max/min exceeds 2 | Affected metric `unstable` |
+| Acquisition expires or reset passes | Remaining capacity `stale` |
+| History read/write fails | Visible `history_error`; preserve successful quota and old bytes |
+| Displayed quota differs from the estimate acquisition | Suppress remaining capacity |
+
+### 5. Good/Base/Bad Cases
+
+- Good: three synthetic intervals yield total medians 10M Token and USD 5,
+  ranges 8M–12M and USD 4–6, and 50% remaining medians 5M and USD 2.50.
+- Base: the first network observation provides a baseline and no capacity.
+- Bad: a cached reread has a later return time. Preserve its original acquisition
+  and leave the independent sample count unchanged.
+
+### 6. Tests Required
+
+Assert flat/nested inclusive fields, explicit zero, missing fields, invalid
+subsets, mixed completions, cumulative repeats, source copies, fork proof,
+rollback/model boundaries, and UTC time bounds. Verify original bytes and legacy
+cache rebuilds. Assert Standard USD 5.15 and Fast USD 10.30 for the synthetic
+10.2M Token example, plus 272000/272001 per-request boundaries and cache-write
+rates. Cover every estimate status, independent Token/USD validity, joint bucket
+constraints, scan generations, and stale/history reconciliation.
+
+Store tests must exercise concurrent writes, retention/row/byte bounds, unknown
+fields, replacement failure, and native Windows create/replace private ACLs.
+Unix permission tests run on Unix. All fixtures use temporary directories and
+`TestCodexEnv`; preserve default parallelism and `--skip export_bindings`. Run
+`just ci` for cross-crate acceptance. Real-account and native-terminal evidence
+require separate receipts.
+
+### 7. Wrong vs Correct
+
+```rust
+// Wrong: inclusive input plus cache read bills cached input twice.
+catalog.calculate(model, input, output, cache_read, cache_write);
+
+// Correct: validate the subsets and pass exclusive input.
+let uncached = input.checked_sub(cache_read.checked_add(cache_write)?)?;
+catalog.calculate(model, uncached, output, cache_read, cache_write);
+```
+
 ## Verification
 
 For Codex/OpenCode domain changes, run:
 
 - `just fmt-check`
-- `cargo test -p ccr-codex -- --test-threads=1`
-- Relevant `cargo test -p ccr --test commands -- --test-threads=1` when CLI surfaces change
+- `cargo test -p ccr-codex --all-features -- --skip export_bindings`
+- Relevant `cargo test -p ccr --test commands -- --skip export_bindings` when CLI surfaces change
 - `just lint-strict`
+- `just ci` for cross-crate final acceptance
