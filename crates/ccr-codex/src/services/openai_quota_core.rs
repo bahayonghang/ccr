@@ -153,6 +153,11 @@ pub(crate) fn normalize_openai_plan(plan: &str) -> String {
         .join(" ")
 }
 
+/// 截取错误响应体预览：最多 `max_bytes` 字节，且不切断 UTF-8 字符（避免切片 panic）
+fn body_preview(body: &str, max_bytes: usize) -> &str {
+    &body[..body.floor_char_boundary(max_bytes)]
+}
+
 #[derive(Debug, Clone)]
 struct CachedQuotaEntry {
     outcome: OpenAiQuotaFetchOutcome,
@@ -440,11 +445,7 @@ impl OpenAiQuotaCore {
             .map_err(|error| format!("读取配额响应失败: {error}"))?;
 
         if !status.is_success() {
-            let body_preview = if body.len() > 200 {
-                &body[..200]
-            } else {
-                &body
-            };
+            let body_preview = body_preview(&body, 200);
             let error_code = Self::extract_error_code(&body);
             let mut message = format!("API 返回错误 {status}");
             if let Some(code) = error_code {
@@ -484,11 +485,7 @@ impl OpenAiQuotaCore {
             .map_err(|error| format!("读取 Token 刷新响应失败: {error}"))?;
 
         if !status.is_success() {
-            let body_preview = if body.len() > 300 {
-                &body[..300]
-            } else {
-                &body
-            };
+            let body_preview = body_preview(&body, 300);
             let error_code = Self::extract_error_code(&body);
             let mut message = format!("Token 刷新失败 ({status})");
             if let Some(code) = error_code {
@@ -693,6 +690,19 @@ mod tests {
     use super::*;
     use chrono::Duration as ChronoDuration;
     use serde_json::json;
+
+    #[test]
+    fn body_preview_keeps_ascii_prefix_and_never_splits_multibyte_chars() {
+        let ascii = "a".repeat(250);
+        assert_eq!(body_preview(&ascii, 200), &ascii[..200]);
+        assert_eq!(body_preview("short", 200), "short");
+
+        // 第 200 字节落在多字节字符内部：旧实现 `&body[..200]` 会 panic
+        let mixed = format!("{}中{}", "a".repeat(199), "b".repeat(20));
+        assert_eq!(body_preview(&mixed, 200), "a".repeat(199));
+        let mixed_refresh = format!("{}错误{}", "a".repeat(299), "b".repeat(20));
+        assert_eq!(body_preview(&mixed_refresh, 300), "a".repeat(299));
+    }
 
     fn sample_outcome() -> OpenAiQuotaFetchOutcome {
         OpenAiQuotaFetchOutcome {
