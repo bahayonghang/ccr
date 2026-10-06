@@ -1,0 +1,9 @@
+{"file":".trellis/spec/ccr-codex/backend/backend-guidelines.md","reason":"Codex domain ownership, auth safety, CodexPaths and service boundaries"}
+{"file":".trellis/spec/ccr-codex/backend/test-fixtures.md","reason":"Synthetic isolated homes and process environment fixture contracts"}
+{"file":".trellis/spec/ccr-tui/backend/backend-guidelines.md","reason":"Quota/local usage scope, bilingual UI, sizing and state boundaries"}
+{"file":".trellis/spec/ccr-types/backend/backend-guidelines.md","reason":"Additive serializable contracts and pure model rate catalog"}
+{"file":".trellis/spec/ccr-core/backend/atomic-writer.md","reason":"Protected atomic observation persistence without original-file loss"}
+{"file":".trellis/spec/ccr/backend/llmusage-provider-adapter.md","reason":"Keep Auth ledger separate from read-only provider SQL and upstream prices"}
+{"file":".trellis/tasks/10-05-codex-cycle-token-cost-estimation/research/ccr-current-state.md","reason":"Verified current usage, attribution, cache and pricing gaps with source anchors"}
+{"file":".trellis/tasks/10-05-codex-cycle-token-cost-estimation/research/sub2api-reference.md","reason":"Reference token normalization, per-request prices, quota and dedup limits"}
+{"file":".trellis/tasks/10-05-codex-cycle-token-cost-estimation/research/official-and-open-source.md","reason":"Verified official API prices and empirical estimation boundaries"}
