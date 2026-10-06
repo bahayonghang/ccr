@@ -2720,8 +2720,7 @@ mod tests {
                     match case {
                         Case::Unpriced => {
                             assert!(
-                                compact
-                                    .contains(crate::tui_text!("APIN/AUNPRICED", "APIN/A未定价")),
+                                compact.contains(crate::tui_text!("UNPRICED", "未定价")),
                                 "{receipt}"
                             );
                             assert!(!compact.contains("$0.00"), "{receipt}");
@@ -2758,6 +2757,28 @@ mod tests {
                         assert!(
                             compact.contains(crate::tui_text!("Stdassumed", "Std假设"))
                                 || compact.contains("Standard假设"),
+                            "{receipt}"
+                        );
+                    }
+                    // 计价状态只在徽标出现一次；URL 要么完整出现，要么不出现
+                    // 中文「未定价」同时是容量状态词，只对英文的计价徽标计数
+                    for status in [crate::tui_text!("Stdassumed", "Std假设"), "UNPRICED"] {
+                        let rows = compact.matches(status).count();
+                        assert!(rows <= 1, "{status} x{rows}: {receipt}");
+                    }
+                    if compact.contains("https://") {
+                        assert!(
+                            compact.contains(
+                                ccr_codex::services::codex_usage_estimation::AUTH_PRICE_SOURCE
+                            ),
+                            "{receipt}"
+                        );
+                    }
+                    if (width, height) == (180, 50) && case == Case::Estimate {
+                        assert!(
+                            compact.contains(
+                                ccr_codex::services::codex_usage_estimation::AUTH_PRICE_SOURCE
+                            ),
                             "{receipt}"
                         );
                     }
@@ -2891,10 +2912,7 @@ mod tests {
                                     "{receipt}"
                                 );
                                 assert!(
-                                    !compact.contains(crate::tui_text!(
-                                        "gpt-6.1-solsource:",
-                                        "gpt-6.1-sol来源："
-                                    )),
+                                    !compact.contains(crate::tui_text!("Source:", "来源：")),
                                     "{receipt}"
                                 );
                             } else {
@@ -2907,18 +2925,12 @@ mod tests {
                                 );
                             }
                             assert!(
-                                compact.contains(crate::tui_text!("Tokentotal", "Token总量")),
+                                compact.contains(crate::tui_text!("total10M/", "总量10M/")),
                                 "{receipt}"
                             );
+                            // 样本数后接采样跨度
                             assert!(
-                                compact.contains(crate::tui_text!(
-                                    "SamplesToken/USD3/3",
-                                    "样本Token/USD3/3"
-                                )),
-                                "{receipt}"
-                            );
-                            assert!(
-                                compact.contains("span") || compact.contains("跨度"),
+                                compact.contains(crate::tui_text!("samples3/3·", "样本3/3·")),
                                 "{receipt}"
                             );
                             assert!(

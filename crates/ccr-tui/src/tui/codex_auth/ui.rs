@@ -1034,40 +1034,74 @@ fn format_api_usd(value: Option<f64>) -> String {
     }
 }
 
-fn optional_token_count(value: Option<u64>) -> String {
-    value
-        .map(format_compact_count)
-        .unwrap_or_else(|| "N/A".into())
+/// 只渲染有值的子类；括号内为包含关系（输入含缓存读写，输出含推理）
+fn token_total_with_parts(total: u64, parts: &[(&str, Option<u64>)]) -> String {
+    let parts: Vec<String> = parts
+        .iter()
+        .filter_map(|(label, value)| {
+            value.map(|value| format!("{label} {}", format_compact_count(value)))
+        })
+        .collect();
+    if parts.is_empty() {
+        format_compact_count(total)
+    } else {
+        crate::tui_format!(
+            "{} ({})",
+            "{}（{}）",
+            format_compact_count(total),
+            parts.join(" · ")
+        )
+    }
 }
 
 fn token_classification_lines(panel: &CodexAuthUsagePanelData) -> Vec<Line<'static>> {
-    let mut lines = vec![Line::from(Span::styled(
-        crate::tui_text!(
-            "Input includes Read/Write; Output includes Reasoning",
-            "输入包含缓存读写；输出包含推理"
-        ),
-        theme::muted_style(),
-    ))];
-    for (label, usage) in [
+    let rows = [
         ("5h", &panel.rolling.five_hour),
         ("7d", &panel.rolling.seven_day),
         (crate::tui_text!("All", "累计"), &panel.rolling.all_time),
-    ] {
-        lines.push(Line::from(Span::styled(
-            crate::tui_format!(
-                "{} In {} Read {} Write {} Out {} Reason {}",
-                "{} 输入{} 读{} 写{} 输出{} 推理{}",
-                label,
-                format_compact_count(usage.total_input_tokens),
-                optional_token_count(usage.details.cache_read_tokens),
-                optional_token_count(usage.details.cache_write_tokens),
-                format_compact_count(usage.total_output_tokens),
-                optional_token_count(usage.details.reasoning_tokens),
-            ),
-            theme::info_style(),
-        )));
+    ];
+    // 全部子类缺失时整区省略，不渲染 N/A 占位行
+    if rows.iter().all(|(_, usage)| {
+        usage.details.cache_read_tokens.is_none()
+            && usage.details.cache_write_tokens.is_none()
+            && usage.details.reasoning_tokens.is_none()
+    }) {
+        return Vec::new();
     }
-    lines
+    rows.into_iter()
+        .map(|(label, usage)| {
+            let input = token_total_with_parts(
+                usage.total_input_tokens,
+                &[
+                    (
+                        crate::tui_text!("Read", "读"),
+                        usage.details.cache_read_tokens,
+                    ),
+                    (
+                        crate::tui_text!("Write", "写"),
+                        usage.details.cache_write_tokens,
+                    ),
+                ],
+            );
+            let output = token_total_with_parts(
+                usage.total_output_tokens,
+                &[(
+                    crate::tui_text!("Reasoning", "推理"),
+                    usage.details.reasoning_tokens,
+                )],
+            );
+            Line::from(Span::styled(
+                crate::tui_format!(
+                    "{} In {} · Out {}",
+                    "{} 输入{} · 输出{}",
+                    label,
+                    input,
+                    output
+                ),
+                theme::info_style(),
+            ))
+        })
+        .collect()
 }
 
 fn usage_scope_line(panel: &CodexAuthUsagePanelData) -> Line<'static> {
@@ -1110,20 +1144,66 @@ fn price_mode_label(cost: &CodexCostSummary) -> &'static str {
         "fast" => "Fast",
         "standard" => "Standard",
         "mixed" => crate::tui_text!("mixed", "混合"),
-        _ => crate::tui_text!("Std assumed", "Standard假设"),
+        _ => crate::tui_text!("Std assumed", "Std假设"),
     }
 }
 
-fn cost_display(cost: &CodexCostSummary) -> String {
-    if cost.status == CodexCostStatus::Unpriced {
-        format!("API N/A {}", cost_status_label(cost))
-    } else {
-        format!(
-            "API {} {}/{}",
-            format_api_usd(cost.subtotal_usd),
-            cost_status_label(cost),
+fn cost_severity(status: CodexCostStatus) -> u8 {
+    match status {
+        CodexCostStatus::Unpriced => 3,
+        CodexCostStatus::Partial => 2,
+        CodexCostStatus::AssumedStandard => 1,
+        CodexCostStatus::CompletePriced => 0,
+    }
+}
+
+fn cost_is_warning(cost: &CodexCostSummary) -> bool {
+    matches!(
+        cost.status,
+        CodexCostStatus::Unpriced | CodexCostStatus::Partial
+    )
+}
+
+/// 计价状态徽标：取各窗口最严重状态（unpriced > partial > Std assumed > priced），面板内只出现一次
+fn cost_badge(panel: &CodexAuthUsagePanelData) -> Span<'static> {
+    let cost = [
+        &panel.rolling.seven_day.details.cost,
+        &panel.rolling.five_hour.details.cost,
+    ]
+    .into_iter()
+    .fold(&panel.rolling.all_time.details.cost, |worst, cost| {
+        if cost_severity(cost.status) > cost_severity(worst.status) {
+            cost
+        } else {
+            worst
+        }
+    });
+    let text = match cost.status {
+        CodexCostStatus::Unpriced => cost_status_label(cost).to_string(),
+        CodexCostStatus::Partial => crate::tui_format!(
+            "partly priced {}/{} · {}",
+            "部分估值 {}/{} · {}",
+            cost.priced_records,
+            cost.total_records,
             price_mode_label(cost)
-        )
+        ),
+        _ => price_mode_label(cost).to_string(),
+    };
+    Span::styled(
+        text,
+        if cost_is_warning(cost) {
+            theme::warning_style()
+        } else {
+            theme::info_style()
+        },
+    )
+}
+
+fn row_cost(cost: &CodexCostSummary) -> String {
+    if cost.status == CodexCostStatus::Unpriced {
+        "N/A".into()
+    } else {
+        format_api_usd(cost.subtotal_usd)
     }
 }
 
@@ -1202,29 +1282,6 @@ fn compact_capacity(estimate: &CodexCapacityEstimate) -> String {
     format!("{token} / {usd}")
 }
 
-fn compact_cost(cost: &CodexCostSummary) -> String {
-    if cost.status == CodexCostStatus::Unpriced {
-        return format!("API N/A {}", cost_status_label(cost));
-    }
-    let mode = match cost.tier_basis.as_str() {
-        "fast" => "Fast",
-        "standard" => "Std",
-        "mixed" => crate::tui_text!("mixed", "混合"),
-        _ => crate::tui_text!("Std assumed", "Std假设"),
-    };
-    let status = if cost.status == CodexCostStatus::Partial {
-        format!(
-            " {} {}/{}",
-            cost_status_label(cost),
-            cost.priced_records,
-            cost.total_records
-        )
-    } else {
-        String::new()
-    };
-    format!("API {} {mode}{status}", format_api_usd(cost.subtotal_usd))
-}
-
 fn compact_usage_lines(
     panel: &CodexAuthUsagePanelData,
     inline_capacity: bool,
@@ -1254,7 +1311,7 @@ fn compact_usage_lines(
             label,
             format_compact_count(usage.total_tokens()),
             format_compact_count(usage.total_requests),
-            compact_cost(&usage.details.cost),
+            row_cost(&usage.details.cost),
         );
         if inline_capacity && let Some(estimate) = estimate {
             text.push_str(&crate::tui_format!(
@@ -1268,9 +1325,7 @@ fn compact_usage_lines(
         }
         Line::from(Span::styled(
             text,
-            if usage.details.cost.status == CodexCostStatus::Partial
-                || usage.details.cost.status == CodexCostStatus::Unpriced
-            {
+            if cost_is_warning(&usage.details.cost) {
                 theme::warning_style()
             } else {
                 theme::info_style()
@@ -1286,7 +1341,7 @@ fn usage_table_lines(panel: &CodexAuthUsagePanelData, header: bool) -> Vec<Line<
     if header {
         lines.push(Line::from(Span::styled(
             format!(
-                "{} {:>8}  {}{}  API equivalent USD",
+                "{} {:>8}  {}{}  API USD",
                 pad_text(crate::tui_text!("Window", "时段"), label_width),
                 "Tokens",
                 " ".repeat(8usize.saturating_sub(crate::tui_text!("Records", "记录数").width())),
@@ -1318,10 +1373,8 @@ fn usage_table_lines(panel: &CodexAuthUsagePanelData, header: bool) -> Vec<Line<
                 Style::default().fg(theme::text()),
             ),
             Span::styled(
-                cost_display(&usage.details.cost),
-                if usage.details.cost.status == CodexCostStatus::Unpriced
-                    || usage.details.cost.status == CodexCostStatus::Partial
-                {
+                format!("{:>8}", row_cost(&usage.details.cost)),
+                if cost_is_warning(&usage.details.cost) {
                     theme::warning_style()
                 } else {
                     theme::info_style()
@@ -1332,23 +1385,97 @@ fn usage_table_lines(panel: &CodexAuthUsagePanelData, header: bool) -> Vec<Line<
     lines
 }
 
-fn price_basis_line(panel: &CodexAuthUsagePanelData) -> Line<'static> {
-    let cost = &panel.rolling.all_time.details.cost;
-    Line::from(Span::styled(
+/// compact 路径无表头时的单行计价徽标
+fn cost_badge_line(panel: &CodexAuthUsagePanelData) -> Line<'static> {
+    Line::from(vec![
+        Span::styled("API ", theme::muted_style()),
+        cost_badge(panel),
+    ])
+}
+
+fn has_capacity_estimate(estimate: &CodexCapacityEstimate) -> bool {
+    estimate.status == CodexEstimateStatus::LocalEstimate
+        || estimate.usd_status == CodexEstimateStatus::LocalEstimate
+}
+
+fn joint_capacity_line(panel: &CodexAuthUsagePanelData) -> Line<'static> {
+    let joint = &panel.estimate.joint;
+    let text = if joint.token_remaining.is_none() && joint.usd_remaining.is_none() {
         crate::tui_format!(
-            "{} · records {}/{}; tokens {}/{} priced",
-            "{} · 估值记录{}/{}；Token {}/{}",
-            price_mode_label(cost),
-            cost.priced_records,
-            cost.total_records,
-            format_compact_count(cost.priced_tokens),
-            format_compact_count(cost.total_tokens),
-        ),
-        theme::muted_style(),
-    ))
+            "Joint remaining: N/A ({})",
+            "联合剩余：N/A（{}）",
+            estimate_status_label(joint.status),
+        )
+    } else {
+        crate::tui_format!(
+            "Joint remaining ≈ {} / {} ({})",
+            "联合剩余约{} / {}（{}）",
+            token_range(joint.token_remaining),
+            usd_range(joint.usd_remaining),
+            estimate_status_label(joint.status),
+        )
+    };
+    Line::from(Span::styled(text, theme::info_style()))
 }
 
 fn capacity_lines(panel: &CodexAuthUsagePanelData) -> Vec<Line<'static>> {
+    let windows = [
+        ("5h", &panel.estimate.five_hour),
+        ("7d", &panel.estimate.seven_day),
+    ];
+    if !windows
+        .iter()
+        .any(|(_, estimate)| has_capacity_estimate(estimate))
+    {
+        // 无估算时折叠：同一状态合并为一行，联合剩余同状态时并入
+        let status = panel.estimate.five_hour.status;
+        let uniform = windows
+            .iter()
+            .all(|(_, estimate)| estimate.status == status && estimate.usd_status == status);
+        if !uniform {
+            let mut lines: Vec<Line<'static>> = windows
+                .into_iter()
+                .map(|(label, estimate)| {
+                    Line::from(Span::styled(
+                        crate::tui_format!(
+                            "{} rem {}",
+                            "{} 剩余{}",
+                            label,
+                            compact_capacity(estimate)
+                        ),
+                        theme::muted_style(),
+                    ))
+                })
+                .collect();
+            lines.push(joint_capacity_line(panel));
+            return lines;
+        }
+        let joint = &panel.estimate.joint;
+        if joint.status == status
+            && joint.token_remaining.is_none()
+            && joint.usd_remaining.is_none()
+        {
+            return vec![Line::from(Span::styled(
+                crate::tui_format!(
+                    "Capacity 5h/7d/joint rem: N/A ({})",
+                    "容量 5h/7d/联合 剩余：N/A（{}）",
+                    estimate_status_label(status),
+                ),
+                theme::muted_style(),
+            ))];
+        }
+        return vec![
+            Line::from(Span::styled(
+                crate::tui_format!(
+                    "Capacity 5h/7d rem: N/A ({})",
+                    "容量 5h/7d 剩余：N/A（{}）",
+                    estimate_status_label(status),
+                ),
+                theme::muted_style(),
+            )),
+            joint_capacity_line(panel),
+        ];
+    }
     let mut lines = vec![Line::from(Span::styled(
         crate::tui_text!(
             "Capacity · recent local workload estimate",
@@ -1356,68 +1483,46 @@ fn capacity_lines(panel: &CodexAuthUsagePanelData) -> Vec<Line<'static>> {
         ),
         theme::info_style(),
     ))];
-    for (label, estimate) in [
-        ("5h", &panel.estimate.five_hour),
-        ("7d", &panel.estimate.seven_day),
-    ] {
-        lines.push(Line::from(Span::styled(
-            crate::tui_format!(
-                "{} Token total {} rem {} {}",
-                "{} Token总量{} 剩余{} {}",
-                label,
-                token_range(estimate.token_total),
-                token_range(estimate.token_remaining),
-                if estimate.status == CodexEstimateStatus::LocalEstimate {
-                    ""
-                } else {
-                    estimate_status_label(estimate.status)
-                },
-            ),
-            theme::info_style(),
-        )));
-        lines.push(Line::from(Span::styled(
-            crate::tui_format!(
-                "   USD total {} rem {} {}",
-                "   USD总量{} 剩余{} {}",
-                usd_range(estimate.usd_total),
-                usd_range(estimate.usd_remaining),
-                if estimate.usd_status == CodexEstimateStatus::LocalEstimate {
-                    ""
-                } else {
-                    estimate_status_label(estimate.usd_status)
-                },
-            ),
-            theme::muted_style(),
-        )));
-        let span = match (estimate.span_start, estimate.span_end) {
-            (Some(start), Some(end)) => format!(
-                "{}–{}",
-                start.with_timezone(&Local).format("%m/%d %H:%M"),
-                end.with_timezone(&Local).format("%m/%d %H:%M")
-            ),
-            _ => "N/A".into(),
+    for (label, estimate) in windows {
+        let token = if estimate.status == CodexEstimateStatus::LocalEstimate {
+            token_range(estimate.token_remaining)
+        } else {
+            format!("N/A:{}", estimate_status_label(estimate.status))
+        };
+        let usd = if estimate.usd_status == CodexEstimateStatus::LocalEstimate {
+            usd_range(estimate.usd_remaining)
+        } else {
+            format!("N/A:{}", estimate_status_label(estimate.usd_status))
         };
         lines.push(Line::from(Span::styled(
-            crate::tui_format!(
-                "   Samples Token/USD {}/{} · span {}",
-                "   样本Token/USD {}/{} · 跨度{}",
-                estimate.sample_count,
-                estimate.usd_sample_count,
-                span,
-            ),
-            theme::muted_style(),
+            crate::tui_format!("{} rem {} / {}", "{} 剩余{} / {}", label, token, usd),
+            theme::info_style(),
         )));
+        // 样本为 0 时不渲染样本/跨度明细
+        if estimate.sample_count == 0 && estimate.usd_sample_count == 0 {
+            continue;
+        }
+        let mut detail = crate::tui_format!(
+            "   total {} / {} · samples {}/{}",
+            "   总量{} / {} · 样本{}/{}",
+            estimate
+                .token_total
+                .map(|value| format_compact_count(value.median.max(0.0) as u64))
+                .unwrap_or_else(|| "N/A".into()),
+            format_api_usd(estimate.usd_total.map(|value| value.median)),
+            estimate.sample_count,
+            estimate.usd_sample_count,
+        );
+        if let (Some(start), Some(end)) = (estimate.span_start, estimate.span_end) {
+            detail.push_str(&format!(
+                " · {}–{}",
+                start.with_timezone(&Local).format("%m/%d %H:%M"),
+                end.with_timezone(&Local).format("%m/%d %H:%M")
+            ));
+        }
+        lines.push(Line::from(Span::styled(detail, theme::muted_style())));
     }
-    lines.push(Line::from(Span::styled(
-        crate::tui_format!(
-            "Joint remaining ≈ {} / {} ({})",
-            "联合剩余约{} / {}（{}）",
-            token_range(panel.estimate.joint.token_remaining),
-            usd_range(panel.estimate.joint.usd_remaining),
-            estimate_status_label(panel.estimate.joint.status),
-        ),
-        theme::info_style(),
-    )));
+    lines.push(joint_capacity_line(panel));
     lines.push(Line::from(Span::styled(
         crate::tui_text!(
             "Other devices/cloud usage unavailable; no guaranteed capacity",
@@ -1426,6 +1531,45 @@ fn capacity_lines(panel: &CodexAuthUsagePanelData) -> Vec<Line<'static>> {
         theme::muted_style(),
     )));
     lines
+}
+
+/// 价格版本、来源与上下文假设：一行放得下时合并，否则来源另起一行；URL 仅在完整可见时渲染
+fn price_source_lines(cost: &CodexCostSummary, width: usize) -> Vec<Line<'static>> {
+    let mut price = crate::tui_format!("Price {}", "价格{}", cost.price_version);
+    if cost.context_assumption {
+        price.push_str(crate::tui_text!(" · context assumed", " · 上下文假设"));
+    }
+    let mut provenance = Vec::new();
+    if cost.pricing_sources.contains("official_verified") {
+        provenance.push(crate::tui_format!(
+            "gpt-6.1-sol verified {}",
+            "gpt-6.1-sol核实{}",
+            cost.verified_date.as_deref().unwrap_or("N/A"),
+        ));
+    }
+    if cost.pricing_sources.contains("catalog_estimate") {
+        provenance.push(crate::tui_text!("catalog estimate; date N/A", "目录估价；日期N/A").into());
+    }
+    if provenance.is_empty() {
+        provenance.push(crate::tui_text!("provenance N/A", "来源N/A").into());
+    }
+    let provenance = provenance.join(" · ");
+    let combined = format!("{price} · {provenance}");
+    let mut lines = if combined.width() <= width {
+        vec![combined]
+    } else {
+        vec![price, provenance]
+    };
+    if let Some(source) = &cost.source_url {
+        let source = crate::tui_format!("Source: {}", "来源：{}", source);
+        if source.width() <= width {
+            lines.push(source);
+        }
+    }
+    lines
+        .into_iter()
+        .map(|text| Line::from(Span::styled(text, theme::muted_style())))
+        .collect()
 }
 
 fn usage_note_line(panel: &CodexAuthUsagePanelData) -> Option<Line<'static>> {
@@ -1510,11 +1654,23 @@ fn local_usage_lines(app: &CodexAuthApp, budget: usize, width: usize) -> Vec<Lin
     let inline_capacity = budget < 6;
     // Each required value occupies its own short row when the panel is narrow.
     // A four-row panel keeps the remaining value beside its matching window.
-    lines.extend(if full {
-        usage_table_lines(&panel, false)
+    let mut badge_below_table = false;
+    if full {
+        let mut table = usage_table_lines(&panel, true);
+        // 徽标完整放得下时并入表头，否则在表格下方单独一行，避免截断状态
+        let badge = cost_badge(&panel);
+        if table[0].width() + 3 + badge.width() <= width {
+            table[0]
+                .spans
+                .push(Span::styled(" · ", theme::muted_style()));
+            table[0].spans.push(badge);
+        } else {
+            badge_below_table = true;
+        }
+        lines.extend(table);
     } else {
-        compact_usage_lines(&panel, inline_capacity)
-    });
+        lines.extend(compact_usage_lines(&panel, inline_capacity));
+    }
     // Errors take precedence over secondary metadata at every supported size.
     if app.usage_error.is_some() {
         lines[0].spans.insert(
@@ -1539,51 +1695,15 @@ fn local_usage_lines(app: &CodexAuthApp, budget: usize, width: usize) -> Vec<Lin
         ));
     }
     if full {
-        lines.push(price_basis_line(&panel));
-        lines.extend(token_classification_lines(&panel));
+        if badge_below_table {
+            lines.push(cost_badge_line(&panel));
+        }
         lines.extend(capacity_lines(&panel));
-        let cost = &panel.rolling.all_time.details.cost;
-        lines.push(Line::from(Span::styled(
-            crate::tui_format!(
-                "Price {} · context {}",
-                "价格{} · 上下文{}",
-                cost.price_version,
-                if cost.context_assumption {
-                    crate::tui_text!("assumed", "假设")
-                } else {
-                    crate::tui_text!("request", "逐请求")
-                },
-            ),
-            theme::muted_style(),
-        )));
-        let mut provenance = if cost.pricing_sources.contains("official_verified") {
-            crate::tui_format!(
-                "gpt-6.1-sol verified {}",
-                "gpt-6.1-sol核实{}",
-                cost.verified_date.as_deref().unwrap_or("N/A"),
-            )
-        } else {
-            String::new()
-        };
-        if cost.pricing_sources.contains("catalog_estimate") {
-            if !provenance.is_empty() {
-                provenance.push_str(" · ");
-            }
-            provenance.push_str(crate::tui_text!(
-                "catalog estimate; date N/A",
-                "目录估价；日期N/A"
-            ));
-        }
-        if provenance.is_empty() {
-            provenance = crate::tui_text!("Price provenance N/A", "价格来源N/A").into();
-        }
-        lines.push(Line::from(Span::styled(provenance, theme::muted_style())));
-        if let Some(source) = &cost.source_url {
-            lines.push(Line::from(Span::styled(
-                crate::tui_format!("gpt-6.1-sol source: {}", "gpt-6.1-sol来源：{}", source),
-                theme::muted_style(),
-            )));
-        }
+        lines.extend(token_classification_lines(&panel));
+        lines.extend(price_source_lines(
+            &panel.rolling.all_time.details.cost,
+            width,
+        ));
     } else {
         if !inline_capacity {
             for (label, estimate) in [
@@ -1596,8 +1716,14 @@ fn local_usage_lines(app: &CodexAuthApp, budget: usize, width: usize) -> Vec<Lin
                 )));
             }
         }
+        // 无表头时徽标单独一行；放不下则并入首行，保证计价状态只出现一次且可见
         if lines.len() < budget {
-            lines.push(price_basis_line(&panel));
+            lines.push(cost_badge_line(&panel));
+        } else {
+            lines[0]
+                .spans
+                .push(Span::styled(" · API ", theme::muted_style()));
+            lines[0].spans.push(cost_badge(&panel));
         }
     }
     if lines.len() < budget {
@@ -3330,6 +3456,87 @@ pub(crate) mod tests {
                 text.matches("需重新登录").count(),
                 usize::from(expected.contains("需重新登录"))
             );
+        }
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
+    }
+
+    #[test]
+    fn full_usage_panel_states_cost_mode_once_and_never_truncates_the_source_url() {
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
+        let (_dir, mut app) = presentation_fixture();
+        set_usage_presentation_case(&mut app, UsagePresentationCase::Estimate);
+        let source = ccr_codex::services::codex_usage_estimation::AUTH_PRICE_SOURCE;
+        for width in [60, 68, 88] {
+            let lines: Vec<String> = local_usage_lines(&app, 30, width)
+                .iter()
+                .map(plain_line_text)
+                .collect();
+            let text = lines.join("\n");
+            assert_eq!(text.matches("Std assumed").count(), 1, "{text}");
+            let url_lines = lines
+                .iter()
+                .filter(|line| line.contains("https://"))
+                .count();
+            assert_eq!(url_lines, usize::from(width >= 68), "{text}");
+            if url_lines > 0 {
+                assert!(text.contains(source), "{text}");
+            }
+            // 表格行内不再重复计价状态
+            for line in lines
+                .iter()
+                .filter(|line| line.starts_with("5h ") && line.contains('$'))
+            {
+                assert!(!line.contains("assumed"), "{line}");
+            }
+        }
+    }
+
+    #[test]
+    fn insufficient_samples_capacity_folds_and_missing_token_classes_are_omitted() {
+        for language in [
+            ccr_cli::managers::TuiLanguage::English,
+            ccr_cli::managers::TuiLanguage::SimplifiedChinese,
+        ] {
+            crate::tui::i18n::set_language(language);
+            let (_dir, mut app) = presentation_fixture();
+            set_usage_presentation_case(&mut app, UsagePresentationCase::InsufficientSamples);
+            let mut panel = app.usage_panel_data().expect("fixture usage panel");
+            panel.estimate.joint = Default::default();
+            let capacity: Vec<String> =
+                capacity_lines(&panel).iter().map(plain_line_text).collect();
+            assert_eq!(capacity.len(), 1, "{capacity:?}");
+            assert!(
+                capacity[0].contains(crate::tui_text!("joint", "联合"))
+                    && capacity[0].contains(crate::tui_text!("samples<3", "样本不足")),
+                "{capacity:?}"
+            );
+            panel.estimate.joint.status = CodexEstimateStatus::Stale;
+            let capacity: Vec<String> =
+                capacity_lines(&panel).iter().map(plain_line_text).collect();
+            assert_eq!(capacity.len(), 2, "{capacity:?}");
+            assert!(
+                capacity[1].contains(crate::tui_text!("Joint remaining", "联合剩余")),
+                "{capacity:?}"
+            );
+
+            for usage in [
+                &mut panel.rolling.five_hour,
+                &mut panel.rolling.seven_day,
+                &mut panel.rolling.all_time,
+            ] {
+                usage.details.cache_read_tokens = None;
+                usage.details.cache_write_tokens = None;
+                usage.details.reasoning_tokens = None;
+            }
+            assert!(token_classification_lines(&panel).is_empty());
+            panel.rolling.all_time.details.reasoning_tokens = Some(100_000);
+            let rows: Vec<String> = token_classification_lines(&panel)
+                .iter()
+                .map(plain_line_text)
+                .collect();
+            assert_eq!(rows.len(), 3);
+            assert!(rows.iter().all(|row| !row.contains("N/A")), "{rows:?}");
+            assert!(rows[2].contains("100K"), "{rows:?}");
         }
         crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
     }
