@@ -472,13 +472,30 @@ Wide rows add classification, capacity ranges, samples/span, and model-specific
 sources/dates. Catalog dates remain unknown. Keep remaining reasons and shortcuts
 visible; mark omitted details.
 
+Panel hierarchy (`local_usage_lines`):
+
+- The window table comes first. Rows show `row_cost` only (`N/A` when unpriced).
+  The pricing state appears once as `cost_badge`: the worst state across the
+  windows (unpriced > partly priced `n/m` > mode label). Append it to the table
+  header when it fits, else render it on its own line.
+- Capacity without any local estimate folds to one `N/A (status)` line, or two
+  lines when the joint status differs. Mixed statuses render one compact line
+  plus the joint line. Estimates render per-window ranges; the samples/span
+  detail line appears only when samples > 0. The joint remaining line is always
+  present.
+- Omit token classification when cache read, cache write, and reasoning are all
+  `None`; otherwise render only the parts that have values.
+- Combine price version and provenance on one line when it fits. Render the
+  source URL only when the full `Source: <url>` fits the inner width; never
+  clip a URL.
+
 ### 4. Validation & Error Matrix
 
-| Condition | Presentation |
-| --- | --- |
-| History warning | Warning; remaining `N/A` |
-| Acquisition mismatch | Remaining `N/A:stale` |
-| Invalid estimate | Domain N/A reason |
+| Condition            | Presentation             |
+| -------------------- | ------------------------ |
+| History warning      | Warning; remaining `N/A` |
+| Acquisition mismatch | Remaining `N/A:stale`    |
+| Invalid estimate     | Domain N/A reason        |
 
 ### 5. Good/Base/Bad Cases
 
