@@ -82,6 +82,8 @@ cmake-build-*/
 .omp/
 .grok/
 .kimi-code/
+# Local skill-installer lock. Shared skill sources stay under .github/skills/.
+skills-lock.json
 
 
 
