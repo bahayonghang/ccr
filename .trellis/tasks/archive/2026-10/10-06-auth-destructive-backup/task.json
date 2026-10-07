@@ -1,0 +1,32 @@
+{
+  "id": "auth-destructive-backup",
+  "name": "auth-destructive-backup",
+  "title": "Codex Auth 注册表备份策略与破坏性操作前备份",
+  "description": "P3：注册表/账号备份去重、同秒序号与私有写；删除前备份，强制重命名备份失败时中止；本轮保留全部旧备份，不清理。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-10-06",
+  "completedAt": "2026-10-06",
+  "branch": "dev",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "10-06-codex-auth-followups",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "user_decision": "2026-10-06: 保留全部旧备份；不清理；实施去重、防覆盖与可靠备份",
+    "execution_status": "VERIFIED_LOCAL_PENDING_DELIVERY",
+    "acceptance": "AC1-AC5 local PASS; final parent just ci 16 stages PASS, workspace 2038/0/16",
+    "evidence": "research/independent-check.md",
+    "parent_gate_evidence": "../10-06-codex-auth-followups/research/integration-validation.md"
+  }
+}

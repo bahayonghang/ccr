@@ -1,0 +1,15 @@
+{
+  "crates/ccr-codex/src/services/mod.rs": "3a31f79e917374e11d60d8e4522c91f5945e9c77aa5563b9e01bec73d42eef97",
+  "crates/ccr-codex/src/services/codex_auth_backup.rs": "66e094e7ffbc39986cc46d060d2dba63ac9f8666dacefc100200acb66d39bfa1",
+  "crates/ccr-codex/src/services/codex_registry_store.rs": "ef1cf97764606b3196f42c7264dc19e84986d3c6299f9880af8c9f3e7015957c",
+  "crates/ccr-codex/src/services/codex_auth_service.rs": "d9250702c8e60f8810d63ee6e19889a89527fcb15c0fc0ba691a596469f36535",
+  ".trellis/tasks/10-06-auth-destructive-backup/research/clippy-corrected-validation.log": "3aabdc1fcebeadd0e1d36cb2047b0d9f40a13a9e0110f04a354e8a7fc6d81e44",
+  ".trellis/tasks/10-06-auth-destructive-backup/research/clippy-validation.log": "0d1bc2e8d2b8389c68bc8061225217d3c975a4c8972f889885c9b1059a2e086a",
+  ".trellis/tasks/10-06-auth-destructive-backup/research/codex-validation.log": "07f7051c86ce32a9195049ce0fa704c5bf2c3cdba23f8e91fcfe4765ef5a0d08",
+  ".trellis/tasks/10-06-auth-destructive-backup/research/first-failure.log": "197756f0fb3793d0b7e115d8a981b4e6a3ac5977bff4bfbfd37de721f9ae890b",
+  ".trellis/tasks/10-06-auth-destructive-backup/research/first-retest.log": "9c1ccbf1b3e7ab0ef1ad5d0025dcf90190ad467e4b35fb661e815ce193690c9d",
+  ".trellis/tasks/10-06-auth-destructive-backup/research/fmt-validation.log": "1a9142124a11a9fecaaaba736ab6c675d55ff81dcb4076193041b0260287fbf2",
+  ".trellis/tasks/10-06-auth-destructive-backup/research/lifecycle-corrected-retest.log": "40991c5b14b0e92baea50f6b07f25ae6e75ed6473f791c40222cc6cbfe4cd72f",
+  ".trellis/tasks/10-06-auth-destructive-backup/research/lifecycle-retest.log": "75f84c55c8a3972a181ca66cc8490f0da3189933f96dd9004c35c114e6ff484f",
+  ".trellis/tasks/10-06-auth-destructive-backup/research/public-dedup-retest.log": "fc5354d2d3c32c5bd71ba71fa28acfc9551ee03a9942726f898451ebefdfde0b"
+}
