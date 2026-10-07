@@ -1,0 +1,28 @@
+{
+  "id": "codex-daemon-restart",
+  "name": "codex-daemon-restart",
+  "title": "Codex 切换后感知并重启 app-server 守护进程",
+  "description": "ccr 切换 codex 账号后检测共享 app-server 守护进程并支持经确认重启，使切换对 codex 客户端生效",
+  "status": "completed",
+  "dev_type": null,
+  "scope": "ccr-codex 守护进程检测与重启；ccr-cli 与 ccr-tui 切换接线；codex-app-server-cleanup spec 更新",
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-10-07",
+  "completedAt": "2026-10-07",
+  "branch": "dev",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "planning_consent": "confirmed 2026-10-07"
+  }
+}

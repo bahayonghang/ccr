@@ -1,0 +1,10 @@
+{"file": ".trellis/spec/ccr-codex/backend/index.md", "reason": "Codex domain 指南索引与开发前清单"}
+{"file": ".trellis/spec/ccr-codex/backend/codex-app-server-cleanup.md", "reason": "CodexProcessService 窄匹配、owner 边界与信号合同"}
+{"file": ".trellis/spec/ccr-codex/backend/backend-guidelines.md", "reason": "ccr-codex 域边界、auth 安全与测试约定"}
+{"file": ".trellis/spec/ccr-codex/backend/test-fixtures.md", "reason": "Codex 路径与 env 测试隔离"}
+{"file": ".trellis/spec/ccr-core/backend/managed-process.md", "reason": "ManagedProcess 子进程树与超时回收合同"}
+{"file": ".trellis/spec/ccr-cli/backend/backend-guidelines.md", "reason": "CLI 输出、JSON 与退出码规则"}
+{"file": ".trellis/spec/ccr-cli/backend/test-fixtures.md", "reason": "CLI 测试环境隔离"}
+{"file": ".trellis/spec/ccr-tui/backend/index.md", "reason": "TUI 指南索引与开发前清单"}
+{"file": ".trellis/spec/ccr/backend/test-fixtures.md", "reason": "根进程测试与默认并行"}
+{"file": ".trellis/tasks/10-07-codex-daemon-restart/research/codex-daemon-auth-cache.md", "reason": "事件证据链与守护进程重读机制"}
