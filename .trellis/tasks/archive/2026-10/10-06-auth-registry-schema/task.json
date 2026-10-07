@@ -3,7 +3,7 @@
   "name": "auth-registry-schema",
   "title": "Codex Auth 注册表版本门与未知字段保留",
   "description": "P2：CodexAuthRegistry 增加 schema_version 门或保留未知字段，防止较旧 CCR 重写时丢失新字段（F14）。",
-  "status": "planning",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -11,8 +11,8 @@
   "creator": "lyh",
   "assignee": "lyh",
   "createdAt": "2026-10-06",
-  "completedAt": null,
-  "branch": null,
+  "completedAt": "2026-10-06",
+  "branch": "dev",
   "base_branch": "main",
   "worktree_path": null,
   "commit": null,
@@ -22,5 +22,10 @@
   "parent": "10-06-codex-auth-followups",
   "relatedFiles": [],
   "notes": "",
-  "meta": {}
+  "meta": {
+    "execution_status": "VERIFIED_LOCAL_PENDING_DELIVERY",
+    "acceptance": "AC1-AC7 local PASS; final parent just ci 16 stages PASS, workspace 2038/0/16",
+    "evidence": "research/independent-check.md",
+    "parent_gate_evidence": "../10-06-codex-auth-followups/research/integration-validation.md"
+  }
 }
