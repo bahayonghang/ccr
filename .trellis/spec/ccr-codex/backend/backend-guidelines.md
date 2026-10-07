@@ -256,11 +256,12 @@ OpenAI OAuth refresh tokens are single-use. Every refresh rotates the token, and
 
 ### 3. Contracts
 
-- Identity: match the runtime to a saved account by `account_id` only (from `tokens.account_id`, else the access-token JWT). If several accounts share the `account_id`, select `current_auth` first, then the latest `last_used`. A missing or unknown `account_id` is `NoOp`.
-- Freshness: `effective_ts = last_refresh`, else file mtime. Equal tokens (trimmed refresh/access/id/account_id) are `Unchanged` and write nothing. If the runtime is not older than the snapshot, write the snapshot. If the snapshot is newer and the account is `current_auth`, write the runtime through `CodexRuntimeService::commit_plan` (backup + atomic write) and keep the other runtime keys. If the snapshot is newer and the account is not `current_auth`, skip.
+- Identity: match OAuth runtime and saved snapshots by the complete `chatgpt_user_id::chatgpt_account_id` identity. Read the user from id/access JWT claims and prefer `tokens.account_id` for the account context. Missing or conflicting user claims cannot select an OAuth target. If aliases share one complete identity, select `current_auth` first, then the latest `last_used`, preserving insertion order on ties. Validate the selected snapshot identity before token comparison or writes. API key/provider matching retains its existing credential fingerprint rule.
+- Freshness: `effective_ts = last_refresh`, else file mtime. Equal tokens (trimmed refresh/access/id/account_id) are `Unchanged` and write no payload. If the runtime is not older than the snapshot, write the snapshot after identity/freshness revalidation and a version check. If the snapshot is newer and the account is `current_auth`, replan at execution and write through crate-private `CodexRuntimeService::commit_synced_auth_versioned` (runtime_switch backup + secret versioned write), keeping other runtime keys. A conflict leaves the changed runtime intact; do not restore an old auth/config backup. If the snapshot is newer and the account is not `current_auth`, skip.
 - Observation points run the best-effort sync: TUI load and reload, `switch_account` before the switch-out, quota routing for the active account, `ccr codex auth sync`, and the file-store branch of `auth off` before it deletes the runtime file.
 - Non-file credential stores are `NoOp`. The keyring/auto branch of `auth off` still spawns `codex logout`, which revokes.
 - Quota for the account that is `current_auth` and owns the runtime uses the runtime file as its credential source, then syncs the snapshot. Other accounts use their snapshot.
+- Manual quota refresh bypasses the quota cache. Query with an unexpired access token first; refresh OAuth credentials only when the token is expired or the quota endpoint rejects authentication. A saved snapshot can remain present while the server rejects its credentials.
 - Repair writes the snapshot only when the source is newer (`(refresh_changed && latest_ts >= current_ts) || latest_ts > current_ts`). The quota path retries only after a repair that updated the snapshot.
 - `refresh_token_reused`, `refresh_token_invalidated`, `refresh_token_expired`, and `invalid_grant` without a newer repair source return an error prefixed with `RELOGIN_REQUIRED_PREFIX`. The account and the snapshot stay. The TUI shows "re-login required" / 「需重新登录」 with the hint to press `o` before `codex login`.
 - Backups share the auth prefix pool of 10 files across labels. Do not assume `runtime_switch` backups are kept separately.
@@ -276,7 +277,7 @@ OpenAI OAuth refresh tokens are single-use. Every refresh rotates the token, and
 | Snapshot newer, account is `current_auth`  | `RuntimeUpdated`, runtime backup created or newest identical backup reused |
 | Snapshot newer, account not `current_auth` | `SkippedStaleRuntime`, no write             |
 | Tokens equal                               | `Unchanged`, bytes and mtime unchanged      |
-| Runtime `account_id` missing or not saved  | `NoOp`                                      |
+| Runtime complete OAuth identity missing or not saved | `NoOp`; credential files unchanged |
 | Target snapshot corrupt during switch      | error; runtime and `current_auth` unchanged |
 | Permanent refresh failure, no newer source | `需重新登录：` + original error             |
 
@@ -307,6 +308,341 @@ let auth_path = if self.route_active_account_to_runtime(account_name).await {
 } else {
     self.account_auth_path(account_name)
 };
+```
+
+## Scenario: Saved Auth Backup Pools And Destructive Preconditions
+
+### 1. Scope / Trigger
+
+Apply to auth registry saves, explicit registry/account backups, saved-account deletion, and forced rename.
+
+### 2. Signatures
+
+- Crate-private `backup_auth_file(source: &Path, directory: &Path, pool: AuthBackupPool) -> Result<Option<PathBuf>>`.
+- `AuthBackupPool::{Registry, Account(&str)}` selects the exact backup pool.
+- `CodexRegistryStore::update_with_prepared_backup<T>(update: impl FnOnce(&mut CodexAuthRegistry) -> Result<T>) -> Result<T>` owns the locked destructive callback and final private publication.
+
+### 3. Contracts
+
+Keep every existing auth backup. The registry has one pool; each account has a separate exact pool. Match the full alias before the timestamp and optional numeric sequence, so foo and foo_bar cannot share a pool. Windows physical case aliases share the pool resource and matching rule; Unix names remain case-sensitive. Preserve the existing backup directory, prefixes, and extensions.
+
+Use the shared lock root and a hashed pool resource. Under the pool lock, read the source and compare only the latest matching backup. Matching bytes reuse that path and refresh mtime. If the candidate cannot be read or touched, create another backup. Allocate a timestamp name with an unused numeric suffix and publish through a secret guarded atomic writer. Do not rotate or delete old backups. Missing sources return None; other source/backup errors propagate.
+
+Ordinary registry save propagates prewrite backup failure. Delete and force rename first acquire the P1 source-path/known-identity operation resources. Then the registry write lock covers reread, writable-version validation, all required backups, destructive changes, and final publication. Check each locked source against its captured identity. Delete backs up registry and any existing source snapshot. Force rename backs up any existing target, source, and registry before removing either snapshot. The prepared callback does not perform a second registry backup after destruction.
+
+Lock order is credential resources, registry lock, backup pool, then guarded writer leaf. Independent backup takes pool and leaf locks only. Read-only command preflight precedes operation-lock creation. The final file move or registry publication can fail after earlier effects; these operations do not provide a general multi-file transaction.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Latest backup has equal bytes | Reuse existing path; no new backup |
+| Same second, different preimage | Allocate distinct path; preserve each old payload |
+| Existing snapshot or registry backup fails | Abort before snapshot removal/move; original bytes remain |
+| Registry changes through another cooperating save | Destructive callback rereads under the same registry lock |
+| Final move/publication fails | Return error; report possible partial completion and matching backup recovery |
+
+### 5. Good/Base/Bad Cases
+
+- Good: successful OAuth rotation completes before rename moves the source snapshot.
+- Base: an explicit backup of a missing source returns None.
+- Bad: ignore a target backup error, delete the target, then try to back up the source.
+
+### 6. Tests Required
+
+Use an existing older timestamp filename to prove public backup deduplication; same-second file counts alone cannot distinguish deduplication from overwrite. Check each preimage's bytes, similar aliases, retained old files, thread/process collisions, and Windows case contention/DACL. Inject each force-rename backup failure locally and verify source/target/registry bytes. Block the backup directory after successful prebackups to prove final publication does not repeat backup. Cover quota refresh overlapping rename, P2 read-only refusal, and recoverable delete backups. Unix permission evidence remains separate from Windows native evidence.
+
+### 7. Wrong vs Correct
+
+```rust
+// Wrong: a failed backup does not block destruction.
+let _ = self.backup_account_auth(new_name);
+
+// Correct: complete all required backups inside the held registry callback.
+self.backup_account_auth(new_name)?;
+self.backup_account_auth(old_name)?;
+self.backup_registry()?;
+```
+
+## Scenario: Auth Registry Compatibility And Read-Only Mode
+
+### 1. Scope / Trigger
+
+Apply when changing `CodexAuthRegistry`, `CodexAuthAccount`, registry persistence, or account commands that write the registry.
+
+### 2. Signatures
+
+- `CodexAuthRegistry::is_read_only() -> bool`.
+- `CodexRegistryStore::load() -> Result<CodexAuthRegistry>` and `save(&CodexAuthRegistry) -> Result<()>`.
+- `registry_read_only_message(version: &str) -> String` and `registry_read_only_version(error: &str) -> Option<&str>` in `codex_registry_store`.
+- The service uses `ensure_registry_writable(&CodexAuthRegistry) -> Result<()>` before command side effects.
+
+### 3. Contracts
+
+Both models preserve unrecognized TOML values in flattened `extra: toml::Table`. An ordinary load/save retains unknown top-level keys, tables, and account fields. Replacing an account with `save_current --force` creates a new record and discards that record's old unknown fields. Export DTOs do not include extras.
+
+New registries use `version = "1.0"`. Saves preserve the loaded version. Additive fields do not increase the major version. Parse the first dot-separated component as a trimmed `u32`; a major greater than `SUPPORTED_REGISTRY_MAJOR = 1`, or a parse failure, makes the registry read-only. Missing version uses the existing 1.0 default.
+
+Save, switch, delete, description update, rename, and import must reject read-only registries before snapshot, runtime, backup, profile, or configuration side effects. In the TUI, switch preflight precedes `profile_off_for_platform`. Store save also rejects read-only values inside the registry lock before backup/write. Keep secret atomic writes and the existing error variant set.
+
+Background registry metadata updates warn and skip read-only writes. Runtime/snapshot token synchronization remains available. List and account reads remain available. The service error starts with `REGISTRY_READ_ONLY_PREFIX`; TUI save/switch/delete/rename error toasts localize that error in EN/ZH and include the original version. Parse the prefix inside the full `CcrError` Display text.
+
+### 4. Validation & Error Matrix
+
+| Input | Result |
+| --- | --- |
+| Missing version or 1.x | Writable; loaded minor version preserved |
+| Major greater than 1 or unparseable version | Readable structure remains available; account writes rejected |
+| Unsupported version and incompatible structure | Parse error retains `解析注册表失败: ` and includes an upgrade hint |
+| Supported version and invalid structure | Existing parse error text retained |
+| Read-only background metadata update | Warning and successful return; registry bytes unchanged |
+
+### 5. Good/Base/Bad Cases
+
+- Good: load 1.7 with future account fields and save 1.7 with those fields intact.
+- Base: list accounts from a structurally compatible 2.0 registry.
+- Bad: clear a profile or write a snapshot before detecting the read-only version.
+
+### 6. Tests Required
+
+Test unknown key/table round trips, account replacement, version preservation, all six command rejection paths, unchanged filesystem trees, background metadata skipping, both token synchronization directions under read-only mode, and EN/ZH error version rendering. Use synthetic isolated filesystem fixtures. Earlier published CCR builds do not implement these protections.
+
+### 7. Wrong vs Correct
+
+```rust
+// Wrong: a side effect precedes the compatibility check.
+write_snapshot()?;
+ensure_registry_writable(&registry)?;
+
+// Correct: reject the command before its first side effect.
+ensure_registry_writable(&registry)?;
+write_snapshot()?;
+```
+
+## Scenario: Complete OAuth Identity Association
+
+### 1. Scope / Trigger
+
+Apply to saved-account matching, current account reconciliation, token synchronization/repair, and quota credential routing or caching.
+
+### 2. Signatures
+
+- Crate-private `OAuthIdentity::from_tokens(&CodexAuthTokens) -> Option<OAuthIdentity>` and `identity_from_auth(&CodexAuthJson) -> Option<OAuthIdentity>` in `services/codex_auth_identity.rs`.
+- `OAuthIdentity::key() -> String`; `CodexAuthAccount.identity_key: Option<String>` is an additive registry field.
+- `CodexOAuthTokenService::resolve_latest_oauth_doc(identity_key: &str)` filters repair candidates by the complete key.
+- `backfill_identity_keys()` persists legacy metadata only at execution observation points. `plan_runtime_sync` and read-only account snapshots do not persist metadata.
+
+### 3. Contracts
+
+Read nonempty `chatgpt_user_id` from id/access JWT top-level or `https://api.openai.com/auth` claims. Conflicting user claims produce unknown identity. Account context prefers `tokens.account_id`, then supported account claims. Do not infer user identity from email or bare `sub`. JWT decoding provides local association only; the decoder does not verify signatures.
+
+Derive each legacy account's missing key from that account's own saved snapshot. Never copy the current runtime user into another account record. Missing/corrupt snapshots retain unknown identity. A stored key conflicting with its snapshot prevents automatic association. Safe metadata backfill keeps names and current_auth unchanged; P2 read-only registries skip backfill. A synchronization NoOp leaves credential files unchanged, while a permitted execution observation can independently backfill valid snapshot metadata.
+
+Runtime/snapshot sync, repair candidates, display matching, current_auth reconciliation, and quota runtime routing use complete identity. If an OAuth runtime lacks complete identity, reconciliation returns no proven match and preserves the existing current_auth pointer. A known unmatched identity or a logged-out runtime retains the existing pointer-clearing behavior. Recheck snapshot identity before writing tokens. Preserve freshness, runtime extra keys, backup and private atomic writes. Read-only registry metadata does not block safe token synchronization.
+
+Quota cache keys use complete identity, with credential fingerprints when identity is unavailable. An account_id-only key cannot isolate users sharing a workspace. HTTP `ChatGPT-Account-Id`, usage ledger and quota observation schemas keep their existing account_id fields.
+
+Quota refresh persistence verifies all expected token fields and known complete identity against the actual destination, then verifies the refreshed identity. Use a secret versioned guarded write to reject changes between read and replace. Unknown-identity same-file refresh remains available under token/version checks and cannot select another file by workspace identity. Synchronization snapshot writes recheck source freshness and retain the existing no-backup contract.
+
+Do not add the complete key to public CLI/Tauri DTOs, exports, errors or logs. Debug hides identity values. API key/provider matching remains available without an OAuth key.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Same workspace, different user | Separate sync/repair/cache targets |
+| Missing/conflicting user identity | OAuth target association unavailable; no credential overwrite |
+| Legacy record, valid own snapshot | Read-only in-memory association; permitted execution backfill |
+| Registry key conflicts with own snapshot | Skip association; fixed diagnostic without identity values |
+| Duplicate complete identity | current_auth, then latest last_used, then insertion order |
+
+### 5. Good/Base/Bad Cases
+
+- Good: user A runtime synchronizes only with user A snapshots in a shared workspace.
+- Base: an API key account retains its existing fingerprint identity.
+- Bad: use account_id alone for repair or cached quota after fixing only the sync planner.
+
+### 6. Tests Required
+
+Cover top-level/namespaced claims, fallback sources, empty/bad/conflicting user claims, same-workspace user isolation in both sync directions and repair, own-snapshot legacy backfill, read-only planners and P2 read-only registries, alias precedence, quota routing/cache isolation, CLI auth-off rotation, and secret/key output boundaries. Synthetic OAuth success fixtures need complete user claims; keep explicit incomplete-identity NoOp cases.
+
+### 7. Wrong vs Correct
+
+```rust
+// Wrong: workspace identity alone selects a user's credentials.
+account.account_id == runtime_account_id
+
+// Correct: compare complete identities derived from validated local sources.
+saved_identity.as_ref() == Some(&runtime_identity)
+```
+
+## Scenario: Credential Operations Across Queries And Saved-Account Switches
+
+### 1. Scope / Trigger
+
+Apply to quota credential selection and refresh, saved-account save/switch, and OAuth synchronization. Delete/rename/import must join the same lock protocol when those operations replace or remove credential files.
+
+### 2. Signatures
+
+- Crate-private `CredentialResource::{path, from_tokens, from_path}` derives hashed source resources.
+- `CredentialLocks::acquire_sources` and `acquire_async_sources` hold sorted, deduplicated source-path and known-identity resources.
+- `CredentialLocks::verify_path` compares each source with that source's captured identity resource.
+- Internal `_locked` helpers run under caller-held operation locks. `prepare_current_quota_locked` prepares current quota credentials through the existing versioned auth commit.
+
+### 3. Contracts
+
+Use `LockManager::with_default_path` and the shared `CCR_LOCK_DIR`. Resource names contain a stable hash, with no credential or complete identity value. Every source keeps a stable path resource across missing-file creation and identity completion. Known complete identities add a shared resource across runtime and saved aliases. Unknown identities permit no cross-file association. Async acquisition uses `spawn_blocking`.
+
+Acquire operation resources in sorted order before registry, backup-pool, or guarded-write leaf locks. Keep the operation guard through source reread, quota HTTP, refresh persistence, and required snapshot synchronization. Saved-account switch holds outgoing and target resources through the final runtime commit. Recheck each path against the captured source; membership in the complete lock set does not prove that a target still contains the selected account. Reject P2 read-only save/switch before creating operation locks.
+
+Under a known identity lock, quota selection can reuse a newer registered alias with the same complete identity. Preserve the existing last_refresh-first, mtime-fallback freshness rule. Compare full timestamp precision and retain fractional last_refresh values during writeback. Keep public runtime sync outcomes unchanged; quota preparation remains internal.
+
+When same-file refresh first supplies a complete identity, persist the refreshed file and return a private control result before quota GET, another refresh, or cross-file synchronization. Release the old guard and retry at most once under the new source/identity lock set. Keep the newly persisted complete identity as the retry expectation. A replacement with another identity rejects the original request. Do not expose the control result through errors, logs, or DTOs.
+
+Save snapshot bytes and metadata from one captured runtime document. Existing content-version and identity guards remain required because external Codex/login writers do not use CCR locks. These locks do not serialize arbitrary external writers or the complete platform-profile/auth-off replacement intervals.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Concurrent queries of one known token chain | Waiting query rereads persisted tokens; one submission of each consumed refresh token |
+| Same workspace, different users | Separate identity resources and credential files |
+| Source changes identity while waiting | Fixed conflict before quota HTTP |
+| Unknown source gains identity | One bounded retry; no alias work under the old path-only guard |
+| Lock acquisition fails | Explicit error; no token POST or credential write |
+| External writer changes content | Existing identity/version guards reject unsafe persistence; external operations remain outside lock coverage |
+
+### 5. Good/Base/Bad Cases
+
+- Good: a saved-account switch waits for outgoing refresh persistence before replacing runtime.
+- Base: an incomplete OAuth source can refresh the same file without selecting another account by workspace.
+- Bad: serialize HTTP but reread an unchanged old alias and submit the consumed token again.
+
+### 6. Tests Required
+
+Cover one-source concurrency, alias reuse, shared-workspace user independence, outgoing refresh/switch overlap, lock-wait source drift, save metadata from captured bytes, same-second rotation, and unknown-to-known identity completion with alias overlap and retry-source replacement. A real child process must first prove OS lock contention, then acquire after release and reread the changed source. Keep the child lock/reread evidence separate from same-process loopback HTTP evidence. Synthetic checks do not establish real-account authentication recovery.
+
+### 7. Wrong vs Correct
+
+```rust
+// Wrong: the target changed to the outgoing account, which is also locked.
+held_resources.contains(&CredentialResource::from_path(&target))
+
+// Correct: verify the target against the target's captured source resource.
+held.verify_path(&target)?;
+```
+
+## Scenario: Auth Permission And Diagnostic Boundaries
+
+### 1. Scope / Trigger
+
+Use when observing unchanged OAuth files, moving snapshots, formatting auth Debug values, or reporting quota/refresh failures.
+
+### 2. Signatures
+
+- `utils::ensure_private_permissions(path: &Path) -> Result<()>`.
+- Execution uses `enforce_owner_only_permissions_versioned` with raw file bytes and their content token.
+- `OpenAiQuotaCore::extract_error_code(body: &str) -> Option<&'static str>` is private and returns a fixed allowed code.
+
+### 3. Contracts
+
+- Permission failures propagate or receive explicit handling. Do not invoke USERNAME/icacls or ignore a failed required permission operation.
+- `plan_runtime_sync` stays read-only. Unchanged execution revalidates the selected complete identity and token pair, then hardens the observed runtime and snapshot through versioned metadata operations.
+- Preserve credential bytes, mtime, and file identity during metadata hardening. A runtime DACL can already be stricter when the later snapshot operation conflicts or fails; the pair has no ACL transaction.
+- For an existing broad target, harden its observed version before a private CAS write. Do not rely on the old secret writer to narrow an existing Windows DACL.
+- Rename fallback publishes the private atomic target before removing the source. Publication errors can leave a complete target visible. Native rename success followed by permission failure can already have moved the file; retain the P3 backup recovery boundary.
+- Auth JSON/tokens, raw auth maps, registry/account raw TOML extension fields, identity keys, refresh request/response tokens, runtime plan config and provider secrets must have redacted Debug. Keep persistence serialization unchanged.
+- HTTP errors expose status and only `token_invalidated`, `refresh_token_reused`, `refresh_token_invalidated`, `refresh_token_expired`, or `invalid_grant`. Do not expose arbitrary code, message or response-body text.
+- Map the internally recognized fixed token-invalidated phrase to `token_invalidated` so existing refresh classification remains. Preserve the fixed relogin marker. Forced manual quota bypasses cache; valid access tokens retain the P1 refresh behavior.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Observed content/identity changes | Safe skip or fixed retry error; no stale credential overwrite |
+| Required permission operation fails | Existing error; report any earlier operation effects |
+| Fallback publication fails before replacement | Source and previous target bytes remain |
+| Unknown HTTP code/body, Unicode or long message | Status only; no response content |
+| Known refresh code or fixed invalidation phrase | Fixed code retained for refresh/repair/relogin classification |
+
+### 5. Good/Base/Bad Cases
+
+- Good: use the original raw bytes for permission version checks, then retain the original Unchanged result when the pair still matches.
+- Base: API key and incomplete-identity matching retain their existing contracts.
+- Bad: harden permissions in a planner, copy payload before setting privacy, or format a raw auth map in Debug.
+
+### 6. Tests Required
+
+Cover both Unchanged execution entry points, quota-only preparation, raw-byte conflict, native Windows wide-DACL hardening, deterministic rename fallback and publication-before-failure source preservation. Verify Debug and HTTP errors with synthetic secret markers. Preserve known force/repair/relogin behavior and disk round trips. TestBackend checks must cover EN/ZH relogin status and error colors at the formal six sizes plus compact degradation. Separate those results from interactive or real-account evidence.
+
+### 7. Wrong vs Correct
+
+```rust
+// Wrong: response content can contain credentials or personal data.
+message.push_str(&body);
+
+// Correct: emit only a fixed code from the private allowlist.
+if let Some(code) = Self::extract_error_code(&body) {
+    message.push_str(&format!(" [{code}]"));
+}
+```
+
+## Scenario: Auth Import Identity And Credential Admission
+
+### 1. Scope / Trigger
+
+Apply to plaintext and encrypted saved-account import. Preserve the existing export envelope, ImportResult fields and CLI encrypted-export rule.
+
+### 2. Signatures
+
+- `CodexAuthService::import_accounts(content: &str, mode: ImportMode, force: bool) -> Result<ImportResult>`.
+- `import_accounts_encrypted` decrypts and calls the same import method.
+- Crate-private `token_account_id` retains the P1 account-source priority. `has_conflicting_claims` detects contradictory known user/account values for import.
+- `CredentialLocks::acquire_sources_with_resources` adds incoming identity resources to the existing sorted source/path lock set.
+
+### 3. Contracts
+
+Deserialize the entire typed CodexAuthExport before selecting pending entries. A malformed typed entry remains a parse failure even when its name would be skipped. Parse diagnostics contain line/column, without input values. Keep legacy provider skips and Merge/no-force existing-account skips; skipped entries do not undergo credential-identity validation.
+
+Validate every pending name and credential before creating directories, backups or operation locks. Known OAuth account context must exactly match account_id metadata. Reject contradictory known user/account claims and an incompatible auth_method. API-key metadata must match the existing fingerprint and API method rules. Reject extra metadata whitespace when identity is known. Missing claims and metadata-only entries retain their compatibility behavior; do not infer identity from name/email. Complete keys come from tokens and remain outside public export DTOs/errors.
+
+Capture each target's original bytes/version and source resource before admission. Lock stable paths, original identities and incoming complete identities together. After acquisition, re-read the registry, reject read-only state, and recheck each captured source, raw content version and record presence. A token rotation with the same identity also requires retry. Hold operation locks through credential replacement and registry save. Force/Replace can intentionally change identity; the incoming identity protects its other registered aliases.
+
+For auth_data, retain the target until secret versioned atomic publication succeeds. Harden an existing target using the captured expected version. A permission/version conflict returns the fixed retry error. Metadata-only force retains the existing backup-then-delete behavior. Replace covers matching names and preserves unrelated records; Replace/no-force metadata-only retains the previous snapshot. Only force of an existing account creates the existing snapshot preimage; Replace/no-force has no new snapshot-backup guarantee. Ordinary registry save retains its backup contract.
+
+Input rejection has no file/directory side effects. Later lock/I/O failures can leave lock files, backups, permission changes or earlier imported files. There is no whole-bundle I/O transaction, general registry read-modify-write transaction or external-writer serialization.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Pending metadata/token/claim or method conflict | Fixed ValidationError before any write or lock creation |
+| Later entry invalid | Entire pending input rejected; no earlier entry written |
+| Existing entry, Merge/no-force | Skip identity validation; preserve typed parse rejection |
+| Source/version/presence changes while waiting | Fixed retry error; preserve changed credential |
+| Registry becomes read-only during admission | Reject before credential write |
+| Missing complete identity or metadata-only | Preserve compatibility; no claimed token validation for missing auth_data |
+| Encrypted input conflict | Same preflight rejection after decryption |
+
+### 5. Good/Base/Bad Cases
+
+- Good: an invalid second account leaves the valid first account and all backup directories unchanged.
+- Base: a metadata-only force import backs up and removes the old credential under the existing semantics.
+- Bad: delete the previous auth_data before the replacement writer succeeds, or compare only identity after a same-user token rotation.
+
+### 6. Tests Required
+
+Cover exact and conflicting metadata, top-level/namespaced claims, contradictory known users, method/API fingerprint mismatches, extra whitespace, missing claims and metadata-only input. Preserve Merge/force/Replace counts and unrelated records. Assert full tree equality after a valid-first/invalid-second failure and encrypted conflict. Verify old/incoming identity contention, lock-wait raw-version change, read-only admission change and force-backup failure. CLI plaintext helper must return the service Err. Keep synthetic loopback/file evidence separate from real-account recovery.
+
+### 7. Wrong vs Correct
+
+```rust
+// Wrong: removing the old credential creates a failure window.
+fs::remove_file(&auth_path)?;
+writer.write_bytes(&payload)?;
+
+// Correct: publish against the captured original version without pre-delete.
+write_guarded_versioned(&auth_path, &payload, &expected_version, &secret_options)?;
 ```
 
 ## Verification

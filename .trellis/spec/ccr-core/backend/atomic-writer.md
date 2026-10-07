@@ -317,3 +317,60 @@ match write_guarded_versioned(path, bytes, expected_token, opts)? {
 - Restoration applies captured Unix permissions or Windows DACL to the temporary before payload writes. Preserve Windows read-only attributes after publication. Metadata restoration errors require recovery.
 - The journal does not undo backup rotation or supply an OS multi-file transaction. Keep preimages in memory only. The application owns persisted interruption markers and recovery outcomes.
 - Required tests: missing and unlisted paths, repeated writes/delete/recreate, external versions, source token conflicts, nested/unwind boundaries, thread isolation, async rejection, Windows case/verbatim aliases, post-publication failure, Unix 0400, Windows DACL, and Windows read-only restoration.
+
+## Scenario: Versioned owner-only permission hardening
+
+### 1. Scope / Trigger
+
+- Use when an observed credential file requires a stricter owner-only policy without content replacement.
+- Keep `AtomicWriter::secret` and `enforce_secret_permissions_versioned` under their existing Windows DACL preservation contract.
+
+### 2. Signatures
+
+- `ccr_core::core::guarded_write::enforce_owner_only_permissions_versioned(path: &Path, expected_token: &str, lock_timeout: Duration) -> Result<bool>`.
+- Derive `expected_token` with `content_version_token` from the original file bytes.
+
+### 3. Contracts
+
+- The guarded leaf lock covers opening the file, reading its content version, and updating metadata through the same handle.
+- Windows opens with `GENERIC_READ | WRITE_DAC`. The protected DACL grants FullControl only to the current process token user SID. Do not read `USERNAME` or launch `icacls`.
+- Unix clears group/other access and retains stricter owner-only modes such as `0400`.
+- Do not write payload bytes, replace the file, create a backup, or add a content journal entry. Preserve bytes, modification time, and file identity.
+- Preserve the existing journal version/fault check before changing metadata. Metadata hardening has no separate compensation entry.
+- The leaf lock coordinates CCR writers. External writers do not join the lock protocol.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Missing file or stale content token | `Ok(false)`; no permission change |
+| Matching readable file with permission access | `Ok(true)` after owner-only metadata update |
+| Leaf lock timeout, read failure, or permission failure | Existing `CcrError`; propagate the failure |
+| Journal policy/version rejection | Return the error before metadata changes |
+
+Do not map I/O failures to a content conflict. A metadata update followed by a sync failure can return an error after permissions changed.
+
+### 5. Good/Base/Bad Cases
+
+- Good: harden an observed unchanged credential file using its raw content token.
+- Base: a missing file returns false; the helper does not create a credential file.
+- Bad: hash reserialized JSON, or replace unchanged content solely to apply permissions.
+- Bad: change the old preserve-DACL writer policy to implement one consumer's owner-only requirement.
+
+### 6. Tests Required
+
+- Windows native DACL: protected, one current-token-user Allow FullControl ACE, bytes/mtime/file identity unchanged, repeat call unchanged.
+- Missing file, stale token, held leaf lock, native `WRITE_DAC` denial, and journal rejection.
+- A child process without `USERNAME` obtains the same current-token-user policy without mutating the test host environment.
+- Unix native: `0644` becomes `0600`; `0400` and `0600` remain; bytes and mtime remain. Report native platform gaps separately.
+
+### 7. Wrong vs Correct
+
+```rust
+// Wrong: replacement changes file identity and can change mtime.
+AtomicWriter::new(path).secret(true).write(&observed_bytes)?;
+
+// Correct: metadata-only hardening uses the observed version.
+let expected = content_version_token(&observed_bytes);
+let matched = enforce_owner_only_permissions_versioned(path, &expected, timeout)?;
+```

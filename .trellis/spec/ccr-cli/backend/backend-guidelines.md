@@ -92,6 +92,8 @@ Command handlers should return `ccr_core::Result<T>` or `anyhow::Result<T>` wher
 
 Do not use panics for invalid user input. Clap validation, typed command enums, and `CcrError` should carry invalid states.
 
+Codex Auth plaintext import must return the service error after printing its failure. The dispatcher receives Err and preserves failure status. Encrypted import uses the same domain preflight after decryption. Preserve the existing rule that CLI exports containing credentials use encrypted export; `--no-secrets` exports metadata. No new plaintext credential-export flag or password DTO is implied by import validation.
+
 ## Scenario: Project Workflow Bootstrap
 
 ### 1. Scope / Trigger

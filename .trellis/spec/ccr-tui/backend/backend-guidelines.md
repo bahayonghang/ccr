@@ -417,6 +417,10 @@ CLI auth entry behavior; the legacy `codex_auth::ui::draw` is not its substitute
   the same account. A manually constructed `QuotaState::Error` render fixture
   alone does not test this message path.
 
+- Relogin errors retain the shared fixed marker and allowed HTTP error code.
+  Localize the owned relogin/action hint in EN/ZH on the TUI thread. Do not
+  translate or render arbitrary server response bodies.
+
 ### Local usage scope and severity
 
 `CodexUsageAttributionState` owns scope-note severity. An
@@ -442,6 +446,8 @@ official account bill or a conversion from tokens to server-side quota.
 - Cover English/Chinese at 80×24, 100×22, 100×30, 120×22, 140×40, and 180×50;
   additionally verify graceful degradation below those sizes. Assert buffer
   cells and colors, not only that rendering succeeds.
+- Include relogin text and error-color assertions in the composed EN/ZH matrix,
+  plus compact degradation. TestBackend cells prove composition only.
 - Include cached `Idle`, cached refresh failure, all three window-presence
   states, low/full remaining percentages, successful attribution with another
   account's records, true global fallback, and load-error fixtures. Use isolated
