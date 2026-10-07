@@ -1,0 +1,290 @@
+{
+  "schemaVersion": 1,
+  "status": "VERIFIED_LOCAL_PENDING_DELIVERY",
+  "generatedUtc": "2026-10-07T03:12:52.0936381Z",
+  "sourceFreezeUtc": "2026-10-07 02:33:43 UTC",
+  "branch": "dev",
+  "head": "c524ac07e77e94587399d969546ed75f13cfaf19",
+  "gate": {
+    "command": "just ci",
+    "nativeExitCode": 0,
+    "shellExitCode": 0,
+    "stagesPassed": 16,
+    "duration": "22:07.899",
+    "workspaceSuites": 41,
+    "workspacePassed": 2038,
+    "workspaceFailed": 0,
+    "workspaceIgnored": 16,
+    "codexPassed": 381,
+    "codexIgnored": 2,
+    "tuiPassed": 253,
+    "tauriPassed": 407,
+    "tauriIgnored": 1,
+    "frontendPassed": 904,
+    "vscodePassed": 51
+  },
+  "sources": [
+    {
+      "path": "crates/ccr-cli/src/application/auth_off.rs",
+      "sha256": "da869dcc4e28bab22731099788ecb1d607645d4e0aa5df32658e956a2aefc9f4"
+    },
+    {
+      "path": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "sha256": "8e9f152a0ba42c821dfbb76dd7285c1af4316aa7d433b9a28f34b22e02a4031b"
+    },
+    {
+      "path": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "sha256": "11197b8cdb56709233defb5bab70340d22cbd5fa9a3d733077fd18dfcc507b42"
+    },
+    {
+      "path": "crates/ccr-codex/src/models/codex_auth.rs",
+      "sha256": "e4ad12f408f270c6b44f64af1753df04d2777ea33ccee1e7c30b6134246b137d"
+    },
+    {
+      "path": "crates/ccr-codex/src/platforms/codex.rs",
+      "sha256": "00a9ad5d2e807cc420c45bef7c25d2886bed29bd9f58978e1a8980e69dfe096e"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_auth_backup.rs",
+      "sha256": "66e094e7ffbc39986cc46d060d2dba63ac9f8666dacefc100200acb66d39bfa1"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_auth_identity.rs",
+      "sha256": "22fccbeb10626998637bef7925a4f11bae3f66ff18d881d949e5fe3b22a770aa"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_auth_refresh_lock.rs",
+      "sha256": "fd1fbb64d499a896e2087a848634cd96fa6f15bfec5c0ed1cda3bd76df8cfd3d"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_auth_service.rs",
+      "sha256": "d0ba7f0924fdfdb6e714476624a3f69d3d25dd630fe1be95598c08aa5fa3112b"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_model_provider_store.rs",
+      "sha256": "18a9d85a5e98c3817c1685f5d516df04902d2809a1f66346b133f03e22a6c2c1"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_oauth_token_service.rs",
+      "sha256": "f7453a34c9c13ad7261e616c927aefd90cad8d42b7c050ecb2ffadfffd3d3124"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_quota_service.rs",
+      "sha256": "053013df34b54c603a08d2f40d05e3a8837fe161e35616af053c87e1e7d2aca7"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_registry_store.rs",
+      "sha256": "d5dcdb9415c537b783aabab3eebf03931a68ab87a3299f4a1aac1c4ea9c14abd"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_runtime_service.rs",
+      "sha256": "0a3ceadc3e6a7f1623981bc95fad1dc244ece02d535d9f31db09ae8c671a8884"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/mod.rs",
+      "sha256": "3a31f79e917374e11d60d8e4522c91f5945e9c77aa5563b9e01bec73d42eef97"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/openai_quota_core.rs",
+      "sha256": "2a8a03d295809c6f552d95296d9a7d22c29a989ae98d4a6df35e26fbb4ecd720"
+    },
+    {
+      "path": "crates/ccr-codex/src/utils.rs",
+      "sha256": "1e86b3e7bb199b81566e853059ac1e7fe5c79092db427ec8279f4f12b7a99f8b"
+    },
+    {
+      "path": "crates/ccr-core/src/core/atomic_writer.rs",
+      "sha256": "bf35a7c546aa08c66f6542479e7e31f9fd5a60e496074fcd9f69090bb4e3108a"
+    },
+    {
+      "path": "crates/ccr-core/src/core/guarded_write.rs",
+      "sha256": "28c10c615969be537a0fa165f9231df2b37fe75781f0182a75f83879726db00e"
+    },
+    {
+      "path": "crates/ccr-tui/src/tui/codex_auth/app.rs",
+      "sha256": "e5de0953ceabfde55160bb6e03c3139d137a06fd094c1ff28854c4c706b6f32b"
+    },
+    {
+      "path": "crates/ccr-tui/src/tui/codex_auth/ui.rs",
+      "sha256": "e0a9f0a90ac1d0937ff9c50221ef815e8548b5aa38c65b07f86fa21fbc4c1237"
+    },
+    {
+      "path": "crates/ccr-tui/src/tui/ui.rs",
+      "sha256": "4012f5d2064f10cebb834269282b93d660cd60a7c651817a73494f069722360c"
+    }
+  ],
+  "specs": [
+    {
+      "path": ".trellis/spec/ccr-cli/backend/backend-guidelines.md",
+      "sha256": "5864fa8433b4b36bac83d49f983706e83becbd803ec7f19869f9df58933237ee"
+    },
+    {
+      "path": ".trellis/spec/ccr-codex/backend/backend-guidelines.md",
+      "sha256": "d544ab28312ffb70b6c5d6309a97a05a3b2cb82f99a6a234b953cef62d2e09ff"
+    },
+    {
+      "path": ".trellis/spec/ccr-core/backend/atomic-writer.md",
+      "sha256": "177868e2502922d212041fed7cc3c24373ef4caf4b13bb0226e96acb673e3a4d"
+    },
+    {
+      "path": ".trellis/spec/ccr-tui/backend/backend-guidelines.md",
+      "sha256": "e712860dc91bb1b8a2bcb1ae211e7aa43cc68085f03e15148c7dbaf5db6597d9"
+    }
+  ],
+  "taskRecords": [
+    {
+      "path": ".trellis/tasks/10-06-codex-auth-followups/task.json",
+      "sha256": "e0e8f8f3d706044e5398a9c0b76ce12085b5bb37031a87481c725196d4d5a44f"
+    },
+    {
+      "path": ".trellis/tasks/10-06-codex-auth-followups/prd.md",
+      "sha256": "41cbe036347ca21fe9bdb6f941711b3494aee16d58b0bf19056880ac569eaee1"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-identity-key/task.json",
+      "sha256": "1b871133d593d2904199bf2851f9920ada0e6eacdb677a14b67d7f2037c3a932"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-identity-key/prd.md",
+      "sha256": "94ffb4a5c7e85dc8a66ac0e75d7e5eab70e60b68a7e02df82dcbfaef782d4896"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-registry-schema/task.json",
+      "sha256": "05874037ee7251d98d774fb786ac74e73590e29c2e645e98403c589980179f75"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-registry-schema/prd.md",
+      "sha256": "1f069971489063622c04545f944c68370d9add8c9b56484c69d8ae66ec245066"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-destructive-backup/task.json",
+      "sha256": "dc7bb2d4f33a58f37490c6465d0fbd4bb126404675485aa2731591c3c8c699f2"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-destructive-backup/prd.md",
+      "sha256": "e27018b5380abada481e39379fec07e04ef78cc15892f0513ec444bef3838ab8"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-defense-in-depth/task.json",
+      "sha256": "5fe391196e52b74f1f9106158c5223716c0b2f96e048fe6f9795434ff40d3d3d"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-defense-in-depth/prd.md",
+      "sha256": "8427286520b55f82f8216f27820fa08d500de0a8132b804b42cf2f51faab6e93"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-snapshot-naming/task.json",
+      "sha256": "c1ea169b205d0c67d507c97cef8983803b268341b4fc94cbc10d1a12ca5b46e0"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-snapshot-naming/prd.md",
+      "sha256": "95738565944401957975b83d72eabd42a1c595104ccb4d0a04835a29836e491f"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/task.json",
+      "sha256": "d8248f27ba1388d6274661fff7f54586cb5b945df2226469f725a9b3f5a0f8b3"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/prd.md",
+      "sha256": "1ee6e7c5ce7fac92c34be73fa42222235f8890abb4ef77e870634ad66e5144a5"
+    },
+    {
+      "path": ".trellis/tasks/10-06-codex-auth-followups/execution-status.md",
+      "sha256": "105071bd521844f3c4fdd845452ebfd736bead62d7f05dbcb5dc7c165beb67e1"
+    },
+    {
+      "path": ".trellis/tasks/10-06-codex-auth-followups/design.md",
+      "sha256": "823b79b4cfe209492be6c8f4b24a5e8c3f5774b6305f7a46bb51a3087b31416c"
+    },
+    {
+      "path": ".trellis/tasks/10-06-codex-auth-followups/implement.md",
+      "sha256": "3d4fd6d55d5c422dc97deba3f099741bd5de7665b08d5b94f4c9160b4ec4f19c"
+    },
+    {
+      "path": ".trellis/tasks/10-06-codex-auth-followups/research/integration-validation.md",
+      "sha256": "bc649e32e6bce96464e8e07db695762f2561824f789d99c74f961c416dff4429"
+    }
+  ],
+  "historicalEvidence": [
+    {
+      "path": ".trellis/tasks/10-06-auth-identity-key/research/account-lifecycle-check.md",
+      "sha256": "58db539582bc052d7c56f285d9dd6e7e9c86164fa02ba8f06deead5afba1e6fd"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-identity-key/research/account-lifecycle-independent-hashes.json",
+      "sha256": "450c6a12a852a83e9e9b69b8606d02d28e878517ce486c9d1e004695c45d0751"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-registry-schema/research/independent-check.md",
+      "sha256": "81417d3240cae3c536089f86b93a19ad4788d17f2bc68c24935741592961014f"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-registry-schema/research/workspace-validation.md",
+      "sha256": "2e62beccd3d5430af67471d16009a2227d3b609d80efd9c3c1992d86af57d34c"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-destructive-backup/research/independent-check.md",
+      "sha256": "509ece70d8c36d533a589fd6f469dd61677d175eaa277e7b792f379dd585827d"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-destructive-backup/research/independent-hashes.json",
+      "sha256": "a9a65262f5f033baffa3485ec40ba4b82d9735d31ca7676358f2ddf3b6eda105"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-defense-in-depth/research/core-independent-check.md",
+      "sha256": "c9051592e201a7ebcac9ffaa7de72bd89093f1185cf7bd537c57edc14e0d80c0"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-defense-in-depth/research/core-implementation-hashes.json",
+      "sha256": "5db0f7348d400ba132b4acc17ef2c72f4dbf6291130ec5c0626c0470c689d2ad"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-defense-in-depth/research/independent-check.md",
+      "sha256": "7545688a2ac681164db3988de7fae5f04321f414457627bc22c5f07d2ed33a99"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-defense-in-depth/research/independent-hashes.json",
+      "sha256": "ec0c8c53d284929c61285e7a3ac4e297fa18a9f6ee89cafb1482308d166145ef"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-snapshot-naming/research/independent-check.md",
+      "sha256": "374998c5374e494b5f2c3f99d1b24b0790f61bd944b1df8432a14c0916b8e0ed"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-snapshot-naming/research/snapshot-naming-assessment.md",
+      "sha256": "6990cdd84d13db7366964f3c8cac36e9dc1e335fcf20846f63cf7bde676efc62"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/independent-check.md",
+      "sha256": "5cf4026689fb2171f1a6fcfca79c29b9df723d3323614d66107b6bd21611d5f8"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/independent-hashes.json",
+      "sha256": "c752aebc4337a4ab5d65a4a1ad5e49e1a187bfdc8acc18aa5e7ec23290d2d139"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/encrypted-export-assessment.md",
+      "sha256": "bfc44cd905bb369201d9e1150cb2183d6971f9024efd26cabc71ecd28a685153"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/implementation-validation.md",
+      "sha256": "1fafd419e2a8646c13af11df9ca400abc2700536bbdff7c927182a967823c934"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/independent-whitespace-first-failure.md",
+      "sha256": "d7935ac9600da92010102dfb6a9d9e8d33591194710d4cb7e850da905193f83a"
+    }
+  ],
+  "finalGateEvidence": [
+    {
+      "path": ".trellis/tasks/10-06-codex-auth-followups/checks/ci-final-first-attempt.log",
+      "sha256": "330a6d113fd2950d7d15b51bd5affb29144bc1c78c38a39c089c517c00144ca5"
+    }
+  ],
+  "limitations": [
+    "P5 assessment only; migration not authorized",
+    "Task statuses remain in_progress; commit/archive/distribution not authorized",
+    "Real-account recovery, installed runtime, interactive TUI, Unix and hosted CI NOT_RUN",
+    "Historical manifests retain their original status and source boundaries; final status writeback intentionally changes task record hashes"
+  ]
+}

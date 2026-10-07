@@ -6,6 +6,8 @@
 
 ## Authorization and Status
 
+2026-10-06 用户授权按顺序实施现有父子任务；实施顺序为 P2 → P1 → P3 → P4 → P5 → P6。父任务已进入集成协调阶段，子任务在设计审阅后逐项启动。P1 的缺失身份规则已确认：先由快照补全，完整身份仍不可得时跳过同步。P3 已确认保留全部旧备份，不运行清理；P6 已确认拒绝冲突输入、保留现有加密导出规则；P5 首先交付评估。用户补充要求修复旧账号查询，并参考 ref/repo/cockpit-tools 深入分析账号生命周期。详情见 execution-status.md。提交、归档、推送、PR 和发布等待单独授权。
+
 2026-10-06 用户要求为 10-06-reference-hardening 审计报告的后续任务提案 P1–P6 创建 Trellis 任务。本版为规划种子，未开始实施；需求与待决问题需经 brainstorm 收敛，复杂任务补齐 design.md 与 implement.md，并经用户评审后 `task.py start`。规划基线：dev @ 73b47563。证据锚点取自审计报告（.trellis/tasks/archive/2026-10/10-06-reference-hardening/research/codex-auth-audit.md），实施前需复核行号。
 
 ## Task Map
@@ -31,11 +33,13 @@
 ## Cross-Child Acceptance Criteria
 
 - [ ] 每个子任务各自验收通过并归档；决定不实施的子任务记录决定与原因后归档。
-- [ ] 子任务之间的改动遵守 Ordering Constraints。
-- [ ] 改变用户可见文本的子任务同步 EN/ZH，并更新对应断言。
-- [ ] 保持私有权限、原子写、secret 脱敏、backup-before-destructive-change；错误变体集冻结（ccr-error-freeze）。
-- [ ] 集成复核：`just lint-strict`、`just test` 通过；涉及 TUI 文本时 Codex Auth TUI EN/ZH 与尺寸矩阵通过。
-- [ ] 未推送、未创建 PR、未发布（除非用户另行要求）。
+- [x] 子任务之间的改动遵守 Ordering Constraints。
+- [x] 改变用户可见文本的子任务同步 EN/ZH，并更新对应断言。
+- [x] 保持私有权限、原子写、secret 脱敏、backup-before-destructive-change；错误变体集冻结（ccr-error-freeze）。
+- [x] 集成复核：`just lint-strict`、`just test` 通过；涉及 TUI 文本时 Codex Auth TUI EN/ZH 与尺寸矩阵通过。
+- [x] 未推送、未创建 PR、未发布（除非用户另行要求）。
+
+2026-10-06 本地技术验收：P1/P2/P3/P4/P6 独立检查与最终 `just ci` 通过；P5 评估验收通过，建议暂缓迁移，迁移未授权。最终 CI 16 阶段 PASS，Rust workspace 2038 passed、0 failed、16 ignored。TUI EN/ZH 六尺寸与 compact 矩阵通过。批准变更路径的权限、写入、备份和诊断合同及剩余边界见 `research/integration-validation.md`。首项包含归档要求，继续保持未完成；各任务保留 `in_progress`。
 
 ## Out of Scope
 

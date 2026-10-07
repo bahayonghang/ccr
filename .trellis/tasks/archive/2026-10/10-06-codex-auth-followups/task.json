@@ -3,7 +3,7 @@
   "name": "codex-auth-followups",
   "title": "Codex Auth 参考审计后续加固（P1–P6）",
   "description": "承接 10-06-reference-hardening 审计报告第 5 节类别 B 后续任务提案 P1–P6；父任务负责任务地图、子任务顺序与跨子任务验收。",
-  "status": "planning",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -11,8 +11,8 @@
   "creator": "lyh",
   "assignee": "lyh",
   "createdAt": "2026-10-06",
-  "completedAt": null,
-  "branch": null,
+  "completedAt": "2026-10-06",
+  "branch": "dev",
   "base_branch": "main",
   "worktree_path": null,
   "commit": null,
@@ -29,5 +29,12 @@
   "parent": null,
   "relatedFiles": [],
   "notes": "",
-  "meta": {}
+  "meta": {
+    "implementation_authorized": "2026-10-06: 开始按顺序实施trellis父任务与子任务",
+    "execution_status": "VERIFIED_LOCAL_PENDING_DELIVERY",
+    "acceptance": "P1/P2/P3/P4/P6 local PASS; P5 assessment PASS, migration not authorized; final just ci 16 stages PASS, workspace 2038/0/16",
+    "evidence": "research/integration-validation.md",
+    "source_freeze_utc": "2026-10-07 02:33:43 UTC",
+    "delivery": "2026-10-07 user authorized split commits and archive; push, PR, release and installation remain unauthorized"
+  }
 }
