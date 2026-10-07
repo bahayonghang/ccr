@@ -248,6 +248,9 @@ impl ColorOutput {
 }
 
 fn get_log_dir() -> Option<PathBuf> {
+    if let Some(root) = std::env::var_os("CCR_ROOT").filter(|value| !value.is_empty()) {
+        return Some(PathBuf::from(root).join("logs"));
+    }
     dirs::home_dir().map(|home| home.join(".ccr").join("logs"))
 }
 
@@ -481,6 +484,27 @@ mod tests {
     use std::ffi::OsStr;
     use std::fs::{File, FileTimes};
     use std::time::{Duration, SystemTime};
+
+    #[test]
+    fn log_dir_uses_nonempty_ccr_root() {
+        let mut env = TestLogEnv::new();
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("custom-ccr");
+        env.set_env("CCR_ROOT", root.as_os_str());
+
+        assert_eq!(get_log_dir(), Some(root.join("logs")));
+        assert!(!root.exists());
+    }
+
+    #[test]
+    fn empty_or_unset_log_root_retains_system_home_fallback() {
+        let mut env = TestLogEnv::new();
+        let expected = dirs::home_dir().map(|home| home.join(".ccr/logs"));
+        env.remove_env("CCR_ROOT");
+        assert_eq!(get_log_dir(), expected);
+        env.set_env("CCR_ROOT", OsStr::new(""));
+        assert_eq!(get_log_dir(), expected);
+    }
 
     #[test]
     fn test_resolve_log_filter_precedence() {

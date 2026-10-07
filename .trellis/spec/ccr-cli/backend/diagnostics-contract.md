@@ -23,12 +23,59 @@
 11. Doctor current-marker conflict messages identify the selected source: Claude uses a valid file marker before a valid registry marker; Codex/Grok use registry-first diagnostic selection.
 12. Validate reuses `base::resolve_file_current_profile` for Claude. A valid file candidate wins over a valid registry candidate, including a disabled candidate. A selected existing but disabled profile fails with 90; no enabled-profile fallback is permitted. A stale or conflicting explicit marker alongside a valid candidate emits `warning/invalid` without repair. Explicit candidates with no existing target fail with 62; absent markers remain inactive. Codex/Grok retain their existing recorded-intent policy.
 
+## Scenario: ConflictChecker settings paths
+
+### 1. Scope / Trigger
+
+Change `managers::conflict_checker`, Doctor conflict reads, or their process fixtures.
+
+### 2. Signatures
+
+- `ConflictChecker::check_conflicts(&self) -> Result<ConflictReport>` retains the report DTO.
+- Private `collect_env_vars(&self, platform: Platform) -> Result<IndexMap<String, String>>` reads one selected settings file.
+
+### 3. Contracts
+
+- Claude uses `ClaudeRuntimePaths::from_env()?.settings_file`: nonempty `CCR_SETTINGS_PATH`, then nonempty `CLAUDE_CONFIG_DIR` plus `settings.json`, then the existing system-home fallback.
+- Codex uses `CodexConfigManager::resolve_codex_dir()?.join("settings.json")`: existing nonblank `CCR_CODEX_DIR`, then `CODEX_HOME`, then the existing system-home fallback. Retain the legacy `settings.json` filename.
+- Gemini uses nonempty `HOME`, then nonempty `USERPROFILE`, then `dirs::home_dir()`. Append `.gemini/antigravity-cli/settings.json`.
+- Keep key extraction, conflict severity, suggestions, warnings, and report serialization. Reads do not create settings files or directories.
+- Windows home overrides alone cannot replace the Claude/Codex Known Folder fallback. Synthetic fixtures must select explicit platform paths as well as Gemini home.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Selected settings file missing | Empty map; no write or fallback file read |
+| Selected file unreadable | Existing IO error, collected as the existing warning |
+| Selected JSON invalid | Existing JSON error, collected as the existing warning |
+| Multiple synthetic models differ | Existing warning conflict and original platform values |
+| Platform unsupported | Existing `PlatformNotSupported` error |
+
+### 5. Good / Base / Bad Cases
+
+- Good: isolate Claude/Codex with explicit paths and Gemini with a temporary home.
+- Base: an ordinary invocation without overrides retains existing platform fallbacks.
+- Bad: hardcode `<system home>/.claude/settings.json` while the caller selected `CCR_SETTINGS_PATH`.
+
+### 6. Tests Required
+
+- `cargo test -p ccr-cli --lib managers::conflict_checker -- --skip export_bindings`: path priority, empty override fallback, missing settings, unchanged synthetic conflict values, and no writes.
+- Actual Doctor binary tests use synthetic settings and assert JSON, status text, stdout, exit 0/1, and unchanged file inventory.
+- Default parallelism applies. Use the existing `TestHome` lock for parent-process environment tests.
+
+### 7. Wrong vs Correct
+
+Wrong: build the Claude settings path directly from `dirs::home_dir()`.
+
+Correct: read `ClaudeRuntimePaths::from_env()?.settings_file` and keep the existing parsing and conflict algorithm.
+
 ## Required checks
 
 - Actual binary fixtures with isolated child HOME/USERPROFILE/CCR_ROOT and platform paths: platform × auth mode × valid/warning/invalid/corrupt/unreadable/missing.
 - Actual profile switch followed by validation for API-key and subscription/session modes.
 - Disabled current, ordinary disabled, missing marker, empty file, stale marker, and registry order cases.
-- Before/after inventories include file paths, bytes, modification times, and directories.
+- Before/after inventories include file paths, bytes, modification times, and directories. On Windows, read each path with `fs::metadata(&path)` for fresh timestamps; `DirEntry::metadata()` can return cached directory timestamps. Retain directory timestamp assertions.
 - Windows denied sharing and Unix denied read permission tests; missing and denied access must differ.
 - Doctor Grok default/explicit routes, legacy capability labels, warning zero exit, failed nonzero exit, and secret-safe malformed documents.
 - Run affected unit/binary tests, strict Clippy, formatting, and task-level aggregate checks. Record unrun platforms separately.

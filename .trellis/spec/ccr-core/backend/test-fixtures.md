@@ -8,7 +8,7 @@
 
 ### 1. Scope / Trigger
 - Trigger: adding or changing `ccr-core` tests that mutate logging-related process environment variables.
-- Applies to tests touching `CCR_LOG_LEVEL` or `RUST_LOG`.
+- Applies to tests touching `CCR_LOG_LEVEL`, `RUST_LOG`, or `CCR_ROOT` as the log destination.
 - This fixture is crate-local because `ccr-core` owns logging infrastructure and should not depend on CLI/config test helpers.
 - Do not remove global serial test gates until env-heavy tests across crates are migrated and measured.
 
@@ -27,7 +27,7 @@
 ### 4. Validation & Error Matrix
 - Test panics -> Rust still drops `TestLogEnv` and restores captured env vars.
 - A test mutates `CCR_LOG_LEVEL` / `RUST_LOG` without `TestLogEnv` -> unsafe for future concurrent test execution.
-- A test needs non-logging environment keys -> create a separate narrow fixture rather than expanding `TestLogEnv`.
+- A test needs non-logging environment keys -> create a separate narrow fixture rather than expanding `TestLogEnv`. `CCR_ROOT` is a logging key when testing `get_log_dir`; logger IO tests should use child env overrides and temporary directories.
 
 ### 5. Good/Base/Bad Cases
 - Good: `let mut env = TestLogEnv::new(); env.set_env("RUST_LOG", OsStr::new("warn"));`.

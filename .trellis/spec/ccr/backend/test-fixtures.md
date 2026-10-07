@@ -34,6 +34,8 @@ When a failure reproduces, collect bounded, sanitized diagnostics in the owning 
 - `Drop` restores every captured environment variable in reverse order while the env lock is still held.
 - The shared support module exports only the core fixture type; each test binary defines only the aliases/setup functions it actually uses to keep `clippy -D warnings` clean.
 - The fixture is intentionally narrow; subprocess CLI tests that pass env vars directly to `Command` should keep doing so instead of mutating process-global env.
+- Every child invocation that reaches logger initialization sets temporary `CCR_ROOT`; `HOME`, `USERPROFILE`, and `CCR_LOG_LEVEL=off` alone do not isolate Windows log creation or cleanup. The `version` subcommand reaches logger initialization; Clap `--version` and `--help` return before initialization.
+- Doctor fixtures also select Claude/Codex settings paths and Gemini home. Follow [diagnostic path contracts](../../ccr-cli/backend/diagnostics-contract.md).
 - Tests that call `ConfigManager::save`, `PlatformConfigManager::save`, or `SettingsManager::save_atomic` / `restore` must hold a named `CcrIntegrationTestEnv` binding for the full operation scope. These calls reach `guarded_write`, which reads `CCR_LOCK_DIR` even when target paths or a `SettingsManager` lock argument are explicit. Apply this rule in Claude Code, Codex, Grok Build, Kimi Code, and OMP.
 
 ### 4. Validation & Error Matrix
