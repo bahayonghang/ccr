@@ -2,10 +2,10 @@
 
 #![allow(clippy::unused_async)]
 
+use crate::commands::common::print_next_steps;
 use crate::services::ClaudeAuthService;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
-use colored::Colorize;
 use std::io::{self, Write};
 
 pub async fn delete_command(name: &str, force: bool) -> Result<()> {
@@ -15,26 +15,23 @@ pub async fn delete_command(name: &str, force: bool) -> Result<()> {
 
     if account.is_none() {
         ColorOutput::error(&format!("账号 '{}' 不存在", name));
-        println!();
-        ColorOutput::info("使用以下命令查看可用账号:");
-        println!("  ccr claude auth list");
+        print_next_steps(&[("查看可用账号", "ccr claude auth list")]);
         return Ok(());
     }
 
     let account = account.ok_or_else(|| CcrError::ConfigError("account should exist".into()))?;
 
     if !force {
-        println!();
-        ColorOutput::warning(&format!("即将删除账号: {}", name.bright_yellow().bold()));
+        ColorOutput::warning(&format!("即将删除账号 {name}"));
         if let Some(email) = &account.email {
-            ColorOutput::info(&format!("邮箱: {}", email));
+            ColorOutput::key_value("邮箱", email, 2);
         }
         if let Some(description) = &account.description {
-            ColorOutput::info(&format!("描述: {}", description));
+            ColorOutput::key_value("描述", description, 2);
         }
         if account.is_current {
             println!();
-            ColorOutput::warning("注意: 这是当前匹配到的运行时官方账号");
+            ColorOutput::warning("这是当前匹配到的运行时官方账号");
             ColorOutput::info(
                 "删除后不会修改 ~/.claude/.credentials.json，但 CCR 将不再跟踪这个快照",
             );
@@ -59,11 +56,8 @@ pub async fn delete_command(name: &str, force: bool) -> Result<()> {
 
     match service.delete_account(name) {
         Ok(()) => {
-            println!();
-            ColorOutput::success(&format!(
-                "已删除 Claude 官方账号: {}",
-                name.bright_red().bold()
-            ));
+            ColorOutput::success(&format!("已删除 Claude 官方账号 {name}"));
+            print_next_steps(&[("查看剩余账号", "ccr claude auth list")]);
         }
         Err(e) => ColorOutput::error(&format!("删除失败: {}", e)),
     }

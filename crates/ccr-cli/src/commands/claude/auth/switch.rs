@@ -2,11 +2,11 @@
 
 #![allow(clippy::unused_async)]
 
+use crate::commands::common::print_next_steps;
 use crate::models::ClaudeLoginState;
 use crate::services::ClaudeAuthService;
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
-use colored::Colorize;
 
 pub async fn switch_command(name: &str) -> Result<()> {
     let service = ClaudeAuthService::new()?;
@@ -17,22 +17,20 @@ pub async fn switch_command(name: &str) -> Result<()> {
 
     match service.switch_account(name) {
         Ok(outcome) => {
-            println!();
-            ColorOutput::success(&format!(
-                "已切换到 Claude 官方账号: {}",
-                name.bright_green().bold()
-            ));
-            println!();
-            ColorOutput::info("提示:");
-            println!("  • 已更新 ~/.claude/.credentials.json");
+            ColorOutput::success(&format!("已切换到 Claude 官方账号 {name}"));
+            ColorOutput::key_value("凭据文件", "已更新 ~/.claude/.credentials.json", 2);
             if had_api_key_override || !outcome.cleared_managed_sources.is_empty() {
-                println!(
-                    "  • 已清理 settings.json 中 {} 个当前 Profile 托管覆盖",
-                    outcome.cleared_managed_sources.len()
+                ColorOutput::key_value(
+                    "Profile 托管覆盖",
+                    &format!(
+                        "已清理 settings.json 中 {} 个",
+                        outcome.cleared_managed_sources.len()
+                    ),
+                    2,
                 );
             }
             if outcome.remaining_suppressors.is_empty() && outcome.warnings.is_empty() {
-                println!("  • 本进程可见范围内未发现其他订阅压制源");
+                ColorOutput::info("本进程可见范围内未发现其他订阅压制源");
             } else if !outcome.remaining_suppressors.is_empty() {
                 ColorOutput::warning("仍存在 CCR 不会自动清理的认证来源（请按置信度判断）:");
                 for source in &outcome.remaining_suppressors {
@@ -45,20 +43,19 @@ pub async fn switch_command(name: &str) -> Result<()> {
                         source.ownership.as_str()
                     );
                 }
-                println!("  • 以上结论仅覆盖本 ccr 进程可见的 env 与已解析用户配置");
+                ColorOutput::info("以上结论仅覆盖本 ccr 进程可见的 env 与已解析用户配置");
             } else {
                 ColorOutput::warning("切换后认证来源诊断未完成:");
                 for warning in &outcome.warnings {
                     println!("  • {warning}");
                 }
             }
+            print_next_steps(&[("查看当前认证", "ccr claude auth current")]);
         }
         Err(e) => {
             ColorOutput::error(&format!("切换失败: {}", e));
             if e.to_string().contains("不存在") {
-                println!();
-                ColorOutput::info("使用以下命令查看可用账号:");
-                println!("  ccr claude auth list");
+                print_next_steps(&[("查看可用账号", "ccr claude auth list")]);
             }
         }
     }

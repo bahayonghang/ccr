@@ -4,6 +4,7 @@
 
 #![allow(clippy::unused_async)]
 
+use crate::commands::common::print_next_steps;
 use crate::services::CodexAuthService;
 use ccr_codex::services::RuntimeSyncOutcome;
 use ccr_core::core::error::Result;
@@ -15,25 +16,29 @@ pub async fn sync_command() -> Result<()> {
     match service.sync_runtime_with_saved_account()? {
         RuntimeSyncOutcome::SnapshotUpdated(name) => {
             ColorOutput::success("已同步 OAuth tokens");
-            ColorOutput::info(&format!("账号: {}", name));
+            ColorOutput::key_value("账号", &name, 2);
         }
         RuntimeSyncOutcome::Unchanged(name) => {
-            ColorOutput::success("OAuth tokens 已是最新");
-            ColorOutput::info(&format!("账号: {}", name));
+            ColorOutput::info("OAuth tokens 已是最新");
+            ColorOutput::key_value("账号", &name, 2);
         }
         RuntimeSyncOutcome::RuntimeUpdated(name) => {
             ColorOutput::success("已将较新的账号快照写回 ~/.codex/auth.json");
-            ColorOutput::info(&format!("账号: {}", name));
+            ColorOutput::key_value("账号", &name, 2);
         }
         RuntimeSyncOutcome::SkippedStaleRuntime(name) => {
             ColorOutput::warning("账号快照比 runtime 更新，未覆盖快照");
-            ColorOutput::info(&format!("账号: {}", name));
+            ColorOutput::key_value("账号", &name, 2);
         }
         RuntimeSyncOutcome::NoOp => {
             ColorOutput::warning("未找到可同步的 OAuth tokens");
-            ColorOutput::info("提示:");
-            println!("  • 确认当前 ~/.codex/auth.json 为 ChatGPT 登录态（包含 tokens）");
-            println!("  • 确认该账号已通过 `ccr codex auth save <name>` 保存");
+            ColorOutput::info(
+                "当前 ~/.codex/auth.json 需要包含 ChatGPT 登录态的 tokens，并匹配已保存账号",
+            );
+            print_next_steps(&[
+                ("查看当前账号", "ccr codex auth current"),
+                ("查看保存帮助", "ccr codex auth save --help"),
+            ]);
         }
     }
     Ok(())

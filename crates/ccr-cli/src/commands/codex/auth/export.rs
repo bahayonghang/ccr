@@ -5,11 +5,11 @@
 
 #![allow(clippy::unused_async)]
 
+use crate::commands::common::print_next_steps;
 use crate::services::CodexAuthService;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
 use chrono::Local;
-use colored::Colorize;
 use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
@@ -56,7 +56,7 @@ fn read_user_path() -> Option<String> {
 /// 返回 `Ok(password)` 或错误
 fn read_and_confirm_password() -> Result<String> {
     println!();
-    ColorOutput::info("🔐 导出包含敏感信息，需要设置加密密码");
+    ColorOutput::info("导出包含敏感信息，需要设置加密密码");
 
     let password = rpassword::prompt_password("请输入密码: ")
         .map_err(|e| CcrError::FileIoError(format!("读取密码失败: {}", e)))?;
@@ -99,21 +99,15 @@ pub async fn export_command(no_secrets: bool) -> Result<()> {
     let saved_count = accounts.iter().filter(|a| !a.is_virtual).count();
 
     if saved_count == 0 {
-        ColorOutput::warning("没有已保存的账号可导出");
-        println!();
-        ColorOutput::info("提示:");
-        println!("  • 使用 'ccr codex auth save <名称>' 保存当前登录");
+        ColorOutput::info("没有已保存的账号可导出");
+        print_next_steps(&[("查看保存帮助", "ccr codex auth save --help")]);
         return Ok(());
     }
 
     // 获取默认导出路径
     let default_path = get_default_export_path()?;
 
-    println!();
-    ColorOutput::info(&format!(
-        "默认导出路径: {}",
-        default_path.display().to_string().bright_cyan()
-    ));
+    ColorOutput::key_value("默认导出路径", &default_path.display().to_string(), 2);
 
     let default_path_for_task = default_path.clone();
     let export_path = tokio::task::spawn_blocking(move || -> Result<PathBuf> {
@@ -179,24 +173,18 @@ pub async fn export_command(no_secrets: bool) -> Result<()> {
     fs::write(&export_path, &json)
         .map_err(|e| CcrError::FileIoError(format!("写入文件失败: {}", e)))?;
 
-    println!();
-    ColorOutput::success(&format!(
-        "已导出到: {}",
-        export_path.display().to_string().bright_green()
-    ));
-    ColorOutput::info(&format!("账号数量: {}", saved_count));
+    ColorOutput::success("已导出账号");
+    ColorOutput::key_value("导出文件", &export_path.display().to_string(), 2);
+    ColorOutput::key_value("账号数量", &saved_count.to_string(), 2);
 
     if include_secrets {
-        println!();
-        ColorOutput::success("🔐 导出文件已加密 (AES-256-GCM + Argon2id)");
+        ColorOutput::key_value("加密", "AES-256-GCM + Argon2id", 2);
         ColorOutput::info("导入时需要输入相同的密码");
     } else {
         ColorOutput::info("导出不包含敏感信息 (仅元数据)");
     }
 
-    println!();
-    ColorOutput::info("提示:");
-    println!("  • 使用 'ccr codex auth import' 导入账号");
+    print_next_steps(&[("导入账号", "ccr codex auth import")]);
 
     Ok(())
 }

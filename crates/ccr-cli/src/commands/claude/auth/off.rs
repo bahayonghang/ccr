@@ -67,3 +67,23 @@ pub(crate) fn print_auth_off(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn auth_off_json_retains_native_path_pointer_and_warnings() {
+        let value = serde_json::to_value(super::AuthOffJson {
+            ok: true,
+            changed: true,
+            path: "native_logout",
+            profile_pointer: Some("provider".into()),
+            warnings: vec!["Profile 仍保留".into()],
+        });
+        assert_eq!(
+            value.ok(),
+            Some(serde_json::json!({
+                "ok":true, "changed":true, "path":"native_logout", "profile_pointer":"provider", "warnings":["Profile 仍保留"]
+            }))
+        );
+    }
+}

@@ -4,10 +4,10 @@
 
 #![allow(clippy::unused_async)]
 
+use crate::commands::common::print_next_steps;
 use crate::services::CodexAuthService;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
-use colored::Colorize;
 use std::io::{self, Write};
 
 /// 🗑️ 删除指定账号
@@ -32,9 +32,7 @@ pub async fn delete_command(name: &str, force: bool) -> Result<()> {
 
     if account.is_none() {
         ColorOutput::error(&format!("账号 '{}' 不存在", name));
-        println!();
-        ColorOutput::info("使用以下命令查看可用账号:");
-        println!("  ccr codex auth list");
+        print_next_steps(&[("查看可用账号", "ccr codex auth list")]);
         return Ok(());
     }
 
@@ -42,20 +40,19 @@ pub async fn delete_command(name: &str, force: bool) -> Result<()> {
 
     // 确认删除
     if !force {
-        println!();
-        ColorOutput::warning(&format!("即将删除账号: {}", name.bright_yellow().bold()));
+        ColorOutput::warning(&format!("即将删除账号 {name}"));
 
         if let Some(email) = &account.email {
-            ColorOutput::info(&format!("邮箱: {}", email));
+            ColorOutput::key_value("邮箱", email, 2);
         }
         if let Some(desc) = &account.description {
-            ColorOutput::info(&format!("描述: {}", desc));
+            ColorOutput::key_value("描述", desc, 2);
         }
 
         // 检查是否是当前账号
         if account.is_current {
             println!();
-            ColorOutput::warning("注意: 这是当前正在使用的账号！");
+            ColorOutput::warning("这是当前正在使用的账号");
             ColorOutput::info("删除后当前登录状态不会受影响，但无法再切换回此账号");
         }
 
@@ -80,11 +77,8 @@ pub async fn delete_command(name: &str, force: bool) -> Result<()> {
     // 执行删除
     match service.delete_account(name) {
         Ok(()) => {
-            println!();
-            ColorOutput::success(&format!("已删除账号: {}", name.bright_red().bold()));
-            println!();
-            ColorOutput::info("提示:");
-            println!("  • 使用 'ccr codex auth list' 查看剩余账号");
+            ColorOutput::success(&format!("已删除账号 {name}"));
+            print_next_steps(&[("查看剩余账号", "ccr codex auth list")]);
         }
         Err(e) => {
             ColorOutput::error(&format!("删除失败: {}", e));

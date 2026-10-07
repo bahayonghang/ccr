@@ -3,6 +3,7 @@
 #![allow(clippy::unused_async)]
 
 use crate::commands::claude::auth::off::print_auth_off;
+use crate::commands::common::print_next_steps;
 use crate::services::GrokAuthService;
 use crate::services::grok_auth_service::{GrokAuthMutation, GrokAuthSnapshot};
 use ccr_core::core::error::{CcrError, Result};
@@ -66,7 +67,7 @@ fn print_mutation(
     } else if cancelled {
         ColorOutput::info("已取消删除");
     } else {
-        ColorOutput::success(&format!("{action}: {name}"));
+        ColorOutput::success(&format!("{action} {name}"));
         if result.outgoing_saved {
             ColorOutput::info("已回存原账号的最新运行时凭据");
         }
@@ -114,7 +115,11 @@ pub async fn save_command(name: &str, scope: Option<&str>, force: bool, json: bo
     let snapshot = service.read_snapshot()?;
     let scope = select_scope(&snapshot, scope)?;
     let result = service.save_current(name, scope, &snapshot.revision, force)?;
-    print_mutation(name, "已保存 Grok 账号", result, json, false)
+    print_mutation(name, "已保存 Grok 账号", result, json, false)?;
+    if !json {
+        print_next_steps(&[("查看账号", "ccr grok auth list")]);
+    }
+    Ok(())
 }
 
 pub async fn list_command(json: bool) -> Result<()> {
@@ -171,8 +176,19 @@ pub async fn list_command(json: bool) -> Result<()> {
                 source.matched_account.as_deref().unwrap_or("未匹配")
             );
         }
+        if snapshot.accounts.is_empty() {
+            ColorOutput::info("暂无已保存账号");
+        }
         if let Some(error) = &snapshot.runtime_error {
             ColorOutput::warning(error);
+        }
+        if snapshot.accounts.is_empty() {
+            print_next_steps(&[("查看保存帮助", "ccr grok auth save --help")]);
+        } else {
+            print_next_steps(&[
+                ("查看官方会话", "ccr grok auth current"),
+                ("查看切换帮助", "ccr grok auth switch --help"),
+            ]);
         }
     }
     Ok(())
@@ -182,13 +198,12 @@ pub async fn switch_command(name: &str, json: bool) -> Result<()> {
     let service = GrokAuthService::new();
     let snapshot = service.read_snapshot()?;
     let result = service.switch_account(name, &snapshot.revision)?;
-    print_mutation(
-        name,
-        "已切换 Grok 账号；请启动新的 Grok 会话",
-        result,
-        json,
-        false,
-    )
+    print_mutation(name, "已切换 Grok 账号", result, json, false)?;
+    if !json {
+        ColorOutput::info("请启动新的 Grok 会话");
+        print_next_steps(&[("查看官方会话", "ccr grok auth current")]);
+    }
+    Ok(())
 }
 
 pub async fn delete_command(name: &str, force: bool, json: bool) -> Result<()> {
@@ -218,13 +233,12 @@ pub async fn delete_command(name: &str, force: bool, json: bool) -> Result<()> {
         }
     }
     let result = service.delete_account(name, &snapshot.revision)?;
-    print_mutation(
-        name,
-        "已删除 Grok 保存账号（运行时未登出）",
-        result,
-        json,
-        false,
-    )
+    print_mutation(name, "已删除 Grok 保存账号", result, json, false)?;
+    if !json {
+        ColorOutput::info("运行时未登出");
+        print_next_steps(&[("查看剩余账号", "ccr grok auth list")]);
+    }
+    Ok(())
 }
 
 #[derive(Debug, Serialize)]

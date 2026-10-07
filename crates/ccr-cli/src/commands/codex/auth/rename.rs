@@ -4,10 +4,10 @@
 
 #![allow(clippy::unused_async)]
 
+use crate::commands::common::print_next_steps;
 use crate::services::CodexAuthService;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
-use colored::Colorize;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
@@ -58,15 +58,8 @@ pub async fn rename_command(old_name: &str, new_name: &str, force: bool, json: b
         return Ok(());
     }
 
-    ColorOutput::success(&format!(
-        "已重命名: {} -> {}",
-        old_name.bright_yellow(),
-        new_name.bright_green().bold()
-    ));
-
-    println!();
-    ColorOutput::info("提示:");
-    println!("  • 使用 'ccr codex auth list' 查看账号");
+    ColorOutput::success(&format!("已重命名账号 {old_name} -> {new_name}"));
+    print_next_steps(&[("查看账号", "ccr codex auth list")]);
 
     Ok(())
 }

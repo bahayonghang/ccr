@@ -4,10 +4,10 @@
 
 #![allow(clippy::unused_async)]
 
+use crate::commands::common::print_next_steps;
 use crate::services::CodexAuthService;
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
-use colored::Colorize;
 
 /// 💾 保存当前登录到指定名称
 ///
@@ -32,45 +32,43 @@ pub async fn save_command(name: &str, description: Option<String>, force: bool) 
         crate::models::AuthStateStatus::Unsupported
     ) {
         ColorOutput::error("当前凭据存储模式暂不支持 CCR 保存账号");
-        println!();
-        ColorOutput::info(&format!("凭据存储: {}", auth_state.store.as_str()));
-        ColorOutput::info(&format!("状态说明: {}", auth_state.reason));
-        ColorOutput::info(
-            "请使用 `codex login` / `codex logout`，或先把 cli_auth_credentials_store 切换为 file",
-        );
+        ColorOutput::key_value("凭据存储", auth_state.store.as_str(), 2);
+        ColorOutput::key_value("状态说明", &auth_state.reason, 2);
+        ColorOutput::info("多账号管理需要将 cli_auth_credentials_store 切换为 file");
+        print_next_steps(&[
+            ("使用官方登录", "codex login"),
+            ("使用官方登出", "codex logout"),
+        ]);
         return Ok(());
     }
 
     // 检查是否已登录
     if !service.is_logged_in() {
         ColorOutput::error("未登录 Codex");
-        println!();
-        ColorOutput::info("请先运行以下命令登录:");
-        println!("  codex login");
+        print_next_steps(&[("登录 Codex", "codex login")]);
         return Ok(());
     }
 
     // 执行保存
     match service.save_current(name, description.clone(), force) {
         Ok(()) => {
-            println!();
-            ColorOutput::success(&format!("已保存账号: {}", name.bright_green().bold()));
+            ColorOutput::success(&format!("已保存账号 {name}"));
 
-            if let Some(desc) = description {
-                ColorOutput::info(&format!("描述: {}", desc));
+            if let Some(desc) = description
+                && !desc.is_empty()
+            {
+                ColorOutput::key_value("描述", &desc, 2);
             }
 
             // 显示当前账号信息
             if let Ok(info) = service.get_current_auth_info()
                 && let Some(email) = &info.email
+                && !email.is_empty()
             {
-                ColorOutput::info(&format!("邮箱: {}", service.mask_email(email)));
+                ColorOutput::key_value("邮箱", &service.mask_email(email), 2);
             }
 
-            println!();
-            ColorOutput::info("提示:");
-            println!("  • 使用 'ccr codex auth list' 查看所有账号");
-            println!("  • 使用 'ccr codex auth switch <名称>' 切换账号");
+            print_next_steps(&[("查看账号", "ccr codex auth list")]);
         }
         Err(e) => {
             ColorOutput::error(&format!("保存失败: {}", e));
@@ -78,9 +76,11 @@ pub async fn save_command(name: &str, description: Option<String>, force: bool) 
             // 如果是因为账号已存在，提示使用 --force
             let err_msg = e.to_string();
             if err_msg.contains("已存在") {
-                println!();
-                ColorOutput::info("提示: 使用 --force 参数覆盖已存在的账号");
-                println!("  ccr codex auth save {} --force", name);
+                ColorOutput::info("覆盖会替换该账号已保存的凭据快照");
+                print_next_steps(&[(
+                    "覆盖已保存账号",
+                    &format!("ccr codex auth save --force -- {name}"),
+                )]);
             }
         }
     }

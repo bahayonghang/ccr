@@ -3,6 +3,7 @@
 #![allow(clippy::unused_async)]
 
 use crate::commands::common::new_utf8_table;
+use crate::commands::common::print_next_steps;
 use crate::services::ClaudeAuthService;
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
@@ -15,19 +16,15 @@ pub async fn list_command() -> Result<()> {
     let runtime_summary = service.get_runtime_summary().ok();
     let accounts = service.build_account_items(&snapshot, runtime_summary.as_ref())?;
 
-    println!();
     ColorOutput::title("Claude 官方账号列表");
     println!();
 
     if accounts.is_empty() {
         ColorOutput::info("尚未保存任何官方账号快照");
         if snapshot.current_info.is_some() {
-            println!();
-            ColorOutput::info("当前存在官方登录，可执行:");
-            println!("  ccr claude auth save <名称>");
+            print_next_steps(&[("查看保存帮助", "ccr claude auth save --help")]);
         } else {
-            println!();
-            ColorOutput::info("请先运行 `claude login`，然后再保存账号快照");
+            print_next_steps(&[("登录 Claude", "claude login")]);
         }
         return Ok(());
     }
@@ -100,15 +97,14 @@ pub async fn list_command() -> Result<()> {
 
     if snapshot.current_info.is_some() {
         if let Some(summary) = runtime_summary {
-            ColorOutput::info(&format!("当前 Profile: {}", summary.profile_label()));
-            ColorOutput::info(&format!("当前官方登录: {}", summary.official_login_label()));
-            ColorOutput::info(&format!("当前生效认证: {}", summary.auth_label()));
-            println!();
+            ColorOutput::key_value("当前 Profile", &summary.profile_label(), 2);
+            ColorOutput::key_value("当前官方登录", &summary.official_login_label(), 2);
+            ColorOutput::key_value("当前生效认证", &summary.auth_label(), 2);
         }
-        ColorOutput::info("提示:");
-        println!("  • 使用 'ccr claude auth current' 查看当前官方登录详情");
-        println!("  • 使用 'ccr claude auth switch <名称>' 切换官方账号");
-        println!("  • 使用 'ccr claude auth delete <名称>' 删除账号快照");
+        print_next_steps(&[
+            ("查看当前认证", "ccr claude auth current"),
+            ("查看切换帮助", "ccr claude auth switch --help"),
+        ]);
     } else {
         ColorOutput::warning(
             "当前未检测到可用的官方登录，切换后请确认 Claude Code 能正常刷新/续期",

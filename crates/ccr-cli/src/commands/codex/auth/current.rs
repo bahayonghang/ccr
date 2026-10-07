@@ -4,12 +4,12 @@
 
 #![allow(clippy::unused_async)]
 
+use crate::commands::common::print_next_steps;
 use crate::models::{AuthIntent, AuthState, LoginState};
 use crate::services::CodexAuthService;
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
 use chrono::{DateTime, Utc};
-use colored::Colorize;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
@@ -93,7 +93,6 @@ pub async fn current_command(json: bool) -> Result<()> {
     let login_state = service.get_login_state()?;
     let auth_state = service.get_auth_state();
 
-    println!();
     ColorOutput::title("Codex 当前账号");
     println!();
 
@@ -102,92 +101,75 @@ pub async fn current_command(json: bool) -> Result<()> {
         crate::models::AuthStateStatus::Unsupported
     ) {
         ColorOutput::warning("当前凭据存储模式暂不支持 CCR 多账号管理");
-        ColorOutput::info(&format!("凭据存储: {}", auth_state.store.as_str()));
-        ColorOutput::info(&format!("状态说明: {}", auth_state.reason));
-        println!();
-        ColorOutput::info("建议:");
-        println!("  codex login");
-        println!("  codex logout");
-        println!("  # 或将 cli_auth_credentials_store 切换为 file");
+        ColorOutput::key_value("凭据存储", auth_state.store.as_str(), 2);
+        ColorOutput::key_value("状态说明", &auth_state.reason, 2);
+        ColorOutput::info("多账号管理需要将 cli_auth_credentials_store 切换为 file");
+        print_next_steps(&[
+            ("使用官方登录", "codex login"),
+            ("使用官方登出", "codex logout"),
+        ]);
         return Ok(());
     }
 
     match login_state {
         LoginState::NotLoggedIn => {
             ColorOutput::warning("未登录 Codex");
-            ColorOutput::info(&format!(
-                "认证状态: {} / {}",
-                render_intent(&auth_state.intent),
-                auth_state.store.as_str()
-            ));
-            ColorOutput::info(&format!("原因: {}", auth_state.reason));
-            println!();
-            ColorOutput::info("请先运行以下命令登录:");
-            println!("  codex login");
+            ColorOutput::key_value(
+                "认证状态",
+                &format!(
+                    "{} / {}",
+                    render_intent(&auth_state.intent),
+                    auth_state.store.as_str()
+                ),
+                2,
+            );
+            ColorOutput::key_value("原因", &auth_state.reason, 2);
+            print_next_steps(&[("登录 Codex", "codex login")]);
         }
         LoginState::LoggedInUnsaved => {
-            ColorOutput::info("登录状态: 已登录 (未保存)");
+            ColorOutput::warning("当前登录尚未保存");
 
             // 显示详细信息
             if let Ok(info) = service.get_current_auth_info() {
-                println!();
                 display_auth_info(&service, &info, &auth_state);
-
-                println!();
-                ColorOutput::warning("当前登录尚未保存");
-                ColorOutput::info("使用以下命令保存当前登录:");
-                println!("  ccr codex auth save <名称>");
             }
+            print_next_steps(&[("查看保存帮助", "ccr codex auth save --help")]);
         }
         LoginState::LoggedInSaved(name) => {
-            ColorOutput::success(&format!(
-                "登录状态: 已登录 (已保存为 '{}')",
-                name.bright_green().bold()
-            ));
+            ColorOutput::success(&format!("登录状态: 已登录 (已保存为 '{name}')"));
 
             // 显示详细信息
             if let Ok(info) = service.get_current_auth_info() {
-                println!();
                 display_auth_info(&service, &info, &auth_state);
             }
 
-            println!();
-            ColorOutput::info("提示:");
-            println!("  • 使用 'ccr codex auth list' 查看所有账号");
-            println!("  • 使用 'ccr codex auth switch <名称>' 切换账号");
+            print_next_steps(&[("查看账号", "ccr codex auth list")]);
         }
         LoginState::Unknown { type_name, .. } => {
             ColorOutput::warning(&format!("登录状态: 未知 ({})", type_name));
 
             if let Ok(info) = service.get_current_auth_info() {
-                println!();
                 display_auth_info(&service, &info, &auth_state);
             }
         }
         LoginState::ApiKeyActive => {
-            ColorOutput::info("认证模式: API Key");
+            ColorOutput::key_value("认证模式", "API Key", 2);
 
             if let Ok(info) = service.get_current_auth_info() {
-                println!();
                 display_auth_info(&service, &info, &auth_state);
             }
 
-            println!();
-            ColorOutput::info("提示:");
-            println!("  • API Key 模式无需保存账号");
-            println!("  • 使用 'ccr codex auth list' 查看已保存的 OAuth 账号");
+            ColorOutput::info("API Key 模式无需保存账号");
+            print_next_steps(&[("查看已保存的 OAuth 账号", "ccr codex auth list")]);
         }
         LoginState::ProviderKeyActive { env_key } => {
-            ColorOutput::info(&format!("认证模式: Provider Key ({})", env_key));
+            ColorOutput::key_value("认证模式", &format!("Provider Key ({env_key})"), 2);
 
             if let Ok(info) = service.get_current_auth_info() {
-                println!();
                 display_auth_info(&service, &info, &auth_state);
             }
 
-            println!();
-            ColorOutput::info("提示:");
-            println!("  • Provider Key 模式无需保存账号");
+            ColorOutput::info("Provider Key 模式无需保存账号");
         }
     }
 
@@ -200,33 +182,31 @@ fn display_auth_info(
     info: &crate::models::CurrentAuthInfo,
     auth_state: &AuthState,
 ) {
-    ColorOutput::info(&format!("认证意图: {}", render_intent(&auth_state.intent)));
-    ColorOutput::info(&format!("凭据存储: {}", auth_state.store.as_str()));
-    ColorOutput::info(&format!("状态说明: {}", auth_state.reason));
+    ColorOutput::key_value("认证意图", &render_intent(&auth_state.intent), 2);
+    ColorOutput::key_value("凭据存储", auth_state.store.as_str(), 2);
+    ColorOutput::key_value("状态说明", &auth_state.reason, 2);
 
     // 邮箱
     if let Some(email) = &info.email {
-        ColorOutput::info(&format!("邮箱: {}", service.mask_email(email)));
+        ColorOutput::key_value("邮箱", &service.mask_email(email), 2);
     } else {
-        ColorOutput::info("邮箱: (未知)");
+        ColorOutput::key_value("邮箱", "(未知)", 2);
     }
 
     // Account ID
-    ColorOutput::info(&format!(
-        "Account ID: {}",
-        mask_account_id(&info.account_id)
-    ));
+    ColorOutput::key_value("Account ID", &mask_account_id(&info.account_id), 2);
     if let Some(plan_type) = &info.plan_type {
-        ColorOutput::info(&format!("套餐: {}", plan_type));
+        ColorOutput::key_value("套餐", plan_type, 2);
     }
 
     // 最后刷新时间
     if let Some(last_refresh) = &info.last_refresh {
         let local_time = last_refresh.with_timezone(&chrono::Local);
-        ColorOutput::info(&format!(
-            "最后刷新: {}",
-            local_time.format("%Y-%m-%d %H:%M:%S")
-        ));
+        ColorOutput::key_value(
+            "最后刷新",
+            &local_time.format("%Y-%m-%d %H:%M:%S").to_string(),
+            2,
+        );
     }
 }
 

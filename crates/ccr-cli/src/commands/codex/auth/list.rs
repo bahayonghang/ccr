@@ -5,6 +5,7 @@
 #![allow(clippy::unused_async)]
 
 use crate::commands::common::new_utf8_table;
+use crate::commands::common::print_next_steps;
 use crate::models::AuthIntent;
 use crate::services::CodexAuthService;
 use ccr_core::core::error::Result;
@@ -28,34 +29,35 @@ pub async fn list_command() -> Result<()> {
         auth_state.status,
         crate::models::AuthStateStatus::Unsupported
     ) {
-        println!();
         ColorOutput::title("Codex 账号列表");
         ColorOutput::warning("当前凭据存储模式暂不支持 CCR 多账号管理");
-        ColorOutput::info(&format!("凭据存储: {}", auth_state.store.as_str()));
-        ColorOutput::info(&format!("状态说明: {}", auth_state.reason));
-        println!();
-        ColorOutput::info("建议:");
-        println!("  codex login");
-        println!("  codex logout");
-        println!("  # 或将 cli_auth_credentials_store 切换为 file");
+        ColorOutput::key_value("凭据存储", auth_state.store.as_str(), 2);
+        ColorOutput::key_value("状态说明", &auth_state.reason, 2);
+        ColorOutput::info("多账号管理需要将 cli_auth_credentials_store 切换为 file");
+        print_next_steps(&[
+            ("使用官方登录", "codex login"),
+            ("使用官方登出", "codex logout"),
+        ]);
         return Ok(());
     }
 
     // 检查登录状态
     if !service.is_logged_in() {
         ColorOutput::warning("未登录 Codex");
-        ColorOutput::info(&format!(
-            "认证状态: {} / {}",
-            render_intent(&auth_state.intent),
-            auth_state.store.as_str()
-        ));
-        ColorOutput::info(&format!("原因: {}", auth_state.reason));
-        println!();
-        ColorOutput::info("请先运行以下命令登录:");
-        println!("  codex login");
-        println!();
-        ColorOutput::info("登录后可以使用以下命令保存账号:");
-        println!("  ccr codex auth save <名称>");
+        ColorOutput::key_value(
+            "认证状态",
+            &format!(
+                "{} / {}",
+                render_intent(&auth_state.intent),
+                auth_state.store.as_str()
+            ),
+            2,
+        );
+        ColorOutput::key_value("原因", &auth_state.reason, 2);
+        print_next_steps(&[
+            ("登录 Codex", "codex login"),
+            ("查看保存帮助", "ccr codex auth save --help"),
+        ]);
         return Ok(());
     }
 
@@ -64,20 +66,21 @@ pub async fn list_command() -> Result<()> {
 
     if accounts.is_empty() {
         ColorOutput::info("没有已保存的账号");
-        println!();
-        ColorOutput::info("使用以下命令保存当前登录:");
-        println!("  ccr codex auth save <名称>");
+        print_next_steps(&[("查看保存帮助", "ccr codex auth save --help")]);
         return Ok(());
     }
 
     // 显示标题
-    println!();
     ColorOutput::title("Codex 账号列表");
-    ColorOutput::info(&format!(
-        "当前认证: {} / {}",
-        render_intent(&auth_state.intent),
-        auth_state.store.as_str()
-    ));
+    ColorOutput::key_value(
+        "当前认证",
+        &format!(
+            "{} / {}",
+            render_intent(&auth_state.intent),
+            auth_state.store.as_str()
+        ),
+        2,
+    );
     println!();
 
     // 创建表格
@@ -189,18 +192,18 @@ pub async fn list_command() -> Result<()> {
             "共 {} 个已保存账号，{} 个未保存的当前登录",
             saved_count, virtual_count
         ));
-        println!();
-        ColorOutput::warning("* 标记的账号为未保存的当前登录，使用以下命令保存:");
-        println!("  ccr codex auth save <名称>");
+        ColorOutput::warning("* 标记的账号为未保存的当前登录");
+        print_next_steps(&[
+            ("查看保存帮助", "ccr codex auth save --help"),
+            ("查看当前账号", "ccr codex auth current"),
+        ]);
     } else {
-        ColorOutput::success(&format!("共 {} 个已保存账号", saved_count));
+        ColorOutput::info(&format!("共 {} 个已保存账号", saved_count));
+        print_next_steps(&[
+            ("查看当前账号", "ccr codex auth current"),
+            ("查看切换帮助", "ccr codex auth switch --help"),
+        ]);
     }
-
-    println!();
-    ColorOutput::info("提示:");
-    println!("  • 使用 'ccr codex auth switch <名称>' 切换账号");
-    println!("  • 使用 'ccr codex auth current' 查看当前账号详情");
-    println!("  • 使用 'ccr codex auth delete <名称>' 删除账号");
 
     Ok(())
 }
