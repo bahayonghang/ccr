@@ -30,3 +30,44 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 121: Codex Auth 后续加固提交与归档
+<!-- trellis-session: v=2 fp=be2a8c8670393b3a -->
+
+**Date**: 2026-10-06
+**Task**: Codex Auth 后续加固提交与归档
+**Branch**: `dev`
+
+### Summary
+
+按用户授权拆分提交 Codex Auth P1–P6 已验收改动并归档父任务与六个子任务。P5 只归档评估，快照文件名迁移未实施。未推送、未建 PR、未发布。
+
+### Main Changes
+
+- ccr-core 增加版本校验后的 owner-only 权限加固
+- Codex 认证落地复合身份、注册表兼容、破坏性备份、导入校验与脱敏
+- 写回 core/Codex/CLI/TUI 规范合同
+- 归档 10-06-codex-auth-followups 及 P1–P6
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `dac00bacc8a137ffd0bc670a5a62f33f2dc2d4eb` | fix(核心写保护): 🔒 按进程用户 SID 做版本校验后的 owner-only 权限加固 |
+| `1420d8db317cd6bea36766886b4ab3da1d48acc8` | feat(Codex认证): ✨ 复合身份、注册表兼容、破坏性备份与导入校验 |
+| `1f284bd2281f097586085802707e63644d62eeba` | docs(规范): 📝 写回 Codex Auth 身份、注册表、备份、权限与导入合同 |
+
+### Testing
+
+- [OK] 沿用源码冻结后的 just ci 16 阶段 PASS（workspace 2038/0/16）；本次拆分提交未单独重跑
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 推送、PR、发布与安装仍未授权
+- P5 快照文件名迁移仍待用户决定
+- k12 真实账号恢复仍为 UNVERIFIED
