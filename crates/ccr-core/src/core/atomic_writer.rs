@@ -625,6 +625,12 @@ fn secret_windows_dacl(path: &Path) -> std::io::Result<Vec<u8>> {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
         Err(e) => return Err(e),
     }
+    owner_only_windows_dacl()
+}
+
+/// Construct a protected DACL granting access only to the process token user.
+#[cfg(windows)]
+fn owner_only_windows_dacl() -> std::io::Result<Vec<u8>> {
     // SAFETY: All WinAPI pointers reference owned, aligned buffers. Handles and
     // LocalAlloc buffers are released on every path after acquisition.
     unsafe {
@@ -676,6 +682,21 @@ fn secret_windows_dacl(path: &Path) -> std::io::Result<Vec<u8>> {
 #[cfg(windows)]
 #[link(name = "advapi32")]
 unsafe extern "system" {
+    fn GetSecurityDescriptorDacl(
+        descriptor: *const std::ffi::c_void,
+        present: *mut i32,
+        dacl: *mut *mut std::ffi::c_void,
+        defaulted: *mut i32,
+    ) -> i32;
+    fn SetSecurityInfo(
+        handle: *mut std::ffi::c_void,
+        object_type: u32,
+        security_information: u32,
+        owner: *const std::ffi::c_void,
+        group: *const std::ffi::c_void,
+        dacl: *const std::ffi::c_void,
+        sacl: *const std::ffi::c_void,
+    ) -> u32;
     fn GetSecurityDescriptorControl(
         descriptor: *const std::ffi::c_void,
         control: *mut u16,
@@ -693,6 +714,51 @@ unsafe extern "system" {
         security_information: u32,
         security_descriptor: *const std::ffi::c_void,
     ) -> i32;
+}
+
+/// Apply owner-only permissions to the same handle used for content validation.
+#[cfg(windows)]
+pub(super) fn enforce_owner_only_windows_permissions(file: &fs::File) -> std::io::Result<()> {
+    use std::os::windows::io::AsRawHandle;
+
+    let descriptor = owner_only_windows_dacl()?;
+    let mut present = 0;
+    let mut defaulted = 0;
+    let mut dacl = std::ptr::null_mut();
+    // SAFETY: The descriptor comes from the SDDL converter and owns the DACL
+    // until SetSecurityInfo returns. The caller keeps the file handle open.
+    let ok = unsafe {
+        GetSecurityDescriptorDacl(
+            descriptor.as_ptr().cast(),
+            &mut present,
+            &mut dacl,
+            &mut defaulted,
+        )
+    };
+    if ok == 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    if present == 0 || dacl.is_null() {
+        return Err(std::io::Error::other("Owner-only DACL is missing"));
+    }
+    // SAFETY: Set only the verified file's DACL and protection flag. Owner,
+    // group and SACL pointers are null because those fields are unchanged.
+    let status = unsafe {
+        SetSecurityInfo(
+            file.as_raw_handle(),
+            1,                                       // SE_FILE_OBJECT
+            DACL_SECURITY_INFORMATION | 0x8000_0000, // PROTECTED_DACL_SECURITY_INFORMATION
+            std::ptr::null(),
+            std::ptr::null(),
+            dacl,
+            std::ptr::null(),
+        )
+    };
+    if status == 0 {
+        Ok(())
+    } else {
+        Err(std::io::Error::from_raw_os_error(status as i32))
+    }
 }
 
 #[cfg(windows)]

@@ -187,6 +187,63 @@ pub fn enforce_secret_permissions_versioned(
     Ok(true)
 }
 
+/// Restrict matching content to the current user without replacing the file.
+///
+/// The guarded leaf lock covers the handle read and metadata update. Missing
+/// or stale content returns false without changing permissions. Windows uses
+/// a protected process-token-user DACL; Unix retains stricter owner-only modes.
+/// Content, file identity and modification time remain unchanged. No backup
+/// or content journal entry is created.
+pub fn enforce_owner_only_permissions_versioned(
+    path: &Path,
+    expected_token: &str,
+    lock_timeout: Duration,
+) -> Result<bool> {
+    let target = absolute_path(path)?;
+    let manager = LockManager::with_default_path()?;
+    let _lock = manager.lock_resource(&lock_resource_name(&target), lock_timeout)?;
+    #[cfg(windows)]
+    let opened = {
+        use std::os::windows::fs::OpenOptionsExt;
+
+        fs::OpenOptions::new()
+            .access_mode(0x8000_0000 | 0x0004_0000) // GENERIC_READ | WRITE_DAC
+            .open(&target)
+    };
+    #[cfg(not(windows))]
+    let opened = fs::File::open(&target);
+    let mut file = match opened {
+        Ok(file) => file,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(error) => return Err(error.into()),
+    };
+    let mut bytes = Vec::new();
+    file.read_to_end(&mut bytes)?;
+    if content_version_token(&bytes) != expected_token {
+        return Ok(false);
+    }
+    #[cfg(windows)]
+    {
+        // Preserve the existing journal version/fault boundary. Metadata-only
+        // hardening does not add a content compensation entry.
+        let _ = super::write_journal::before_write(&target)?;
+        super::atomic_writer::enforce_owner_only_windows_permissions(&file)?;
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+
+        let mode = file.metadata()?.permissions().mode();
+        let required = super::atomic_writer::secret_unix_mode(Some(mode));
+        if mode & 0o7777 != required {
+            let _ = super::write_journal::before_write(&target)?;
+            file.set_permissions(fs::Permissions::from_mode(required))?;
+            file.sync_all()?;
+        }
+    }
+    Ok(true)
+}
+
 pub(super) fn restore_guarded_versioned(
     path: &Path,
     bytes: &[u8],
@@ -1267,6 +1324,437 @@ mod tests {
         );
         assert!(matches!(result, Err(CcrError::LockTimeout(_))));
         assert_eq!(fs::read(&target).unwrap(), b"current");
+    }
+
+    #[cfg(windows)]
+    fn windows_set_test_dacl(path: &Path, sddl: &str) {
+        #[link(name = "advapi32")]
+        unsafe extern "system" {
+            fn ConvertStringSecurityDescriptorToSecurityDescriptorW(
+                text: *const u16,
+                revision: u32,
+                descriptor: *mut *mut std::ffi::c_void,
+                length: *mut u32,
+            ) -> i32;
+        }
+        #[link(name = "kernel32")]
+        unsafe extern "system" {
+            fn LocalFree(memory: *mut std::ffi::c_void) -> *mut std::ffi::c_void;
+        }
+        let sddl: Vec<u16> = sddl.encode_utf16().chain(std::iter::once(0)).collect();
+        let mut descriptor = std::ptr::null_mut();
+        let mut size = 0;
+        // SAFETY: The converter owns the allocated descriptor until LocalFree.
+        let ok = unsafe {
+            ConvertStringSecurityDescriptorToSecurityDescriptorW(
+                sddl.as_ptr(),
+                1,
+                &mut descriptor,
+                &mut size,
+            )
+        };
+        assert_ne!(ok, 0);
+        // SAFETY: The successful converter reports the allocated buffer size.
+        let bytes =
+            unsafe { std::slice::from_raw_parts(descriptor.cast::<u8>(), size as usize).to_vec() };
+        // SAFETY: Release the converter's allocation after copying the bytes.
+        unsafe { LocalFree(descriptor) };
+        super::super::atomic_writer::apply_windows_dacl(path, &bytes).unwrap();
+    }
+
+    #[cfg(windows)]
+    fn windows_process_user_sid() -> Vec<u8> {
+        #[link(name = "kernel32")]
+        unsafe extern "system" {
+            fn GetCurrentProcess() -> *mut std::ffi::c_void;
+            fn CloseHandle(handle: *mut std::ffi::c_void) -> i32;
+        }
+        #[link(name = "advapi32")]
+        unsafe extern "system" {
+            fn OpenProcessToken(
+                process: *mut std::ffi::c_void,
+                access: u32,
+                token: *mut *mut std::ffi::c_void,
+            ) -> i32;
+            fn GetTokenInformation(
+                token: *mut std::ffi::c_void,
+                class: u32,
+                data: *mut std::ffi::c_void,
+                length: u32,
+                needed: *mut u32,
+            ) -> i32;
+            fn GetLengthSid(sid: *const std::ffi::c_void) -> u32;
+        }
+        // SAFETY: TOKEN_USER storage is aligned. The SID lives in that storage
+        // until copied. Close the token handle before assertions.
+        unsafe {
+            let mut token = std::ptr::null_mut();
+            assert_ne!(OpenProcessToken(GetCurrentProcess(), 0x0008, &mut token), 0);
+            let mut needed = 0;
+            GetTokenInformation(token, 1, std::ptr::null_mut(), 0, &mut needed);
+            let mut info = vec![0_usize; (needed as usize).div_ceil(std::mem::size_of::<usize>())];
+            let ok = GetTokenInformation(token, 1, info.as_mut_ptr().cast(), needed, &mut needed);
+            CloseHandle(token);
+            assert_ne!(ok, 0);
+            let sid = *(info.as_ptr().cast::<*const std::ffi::c_void>());
+            std::slice::from_raw_parts(sid.cast::<u8>(), GetLengthSid(sid) as usize).to_vec()
+        }
+    }
+
+    #[cfg(windows)]
+    fn assert_windows_owner_only_dacl(path: &Path) {
+        let descriptor = super::super::atomic_writer::capture_windows_dacl(path).unwrap();
+        let control = u16::from_le_bytes(descriptor[2..4].try_into().unwrap());
+        assert_ne!(control & 0x1000, 0, "the DACL must be protected");
+        let offset = u32::from_le_bytes(descriptor[16..20].try_into().unwrap()) as usize;
+        let ace_count = u16::from_le_bytes(descriptor[offset + 4..offset + 6].try_into().unwrap());
+        assert_eq!(ace_count, 1, "only the process user receives access");
+        let ace = &descriptor[offset + 8..];
+        assert_eq!(ace[0], 0, "the single ACE must allow access");
+        assert_eq!(ace[1], 0, "the ACE must not be inherited");
+        let ace_size = u16::from_le_bytes(ace[2..4].try_into().unwrap()) as usize;
+        let mask = u32::from_le_bytes(ace[4..8].try_into().unwrap());
+        assert_eq!(mask, 0x001f_01ff, "the process user receives full control");
+        // Do not print either SID if the equality assertion fails.
+        assert!(
+            ace[8..ace_size] == windows_process_user_sid(),
+            "the ACE must match the independently queried process token user"
+        );
+    }
+
+    #[cfg(windows)]
+    fn windows_file_identity(path: &Path) -> (u32, u32, u32) {
+        use std::os::windows::io::AsRawHandle;
+
+        #[link(name = "kernel32")]
+        unsafe extern "system" {
+            fn GetFileInformationByHandle(
+                file: *mut std::ffi::c_void,
+                information: *mut u32,
+            ) -> i32;
+        }
+        let file = fs::File::open(path).unwrap();
+        // BY_HANDLE_FILE_INFORMATION consists of 13 DWORDs, including FILETIMEs.
+        let mut information = [0_u32; 13];
+        // SAFETY: The live file handle and aligned DWORD buffer cover the call.
+        let ok =
+            unsafe { GetFileInformationByHandle(file.as_raw_handle(), information.as_mut_ptr()) };
+        assert_ne!(ok, 0);
+        (information[7], information[11], information[12])
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn owner_only_permissions_tighten_windows_dacl_without_replacement() {
+        let directory = tempdir().unwrap();
+        let _locks = TestLockDirEnv::new(&directory.path().join("locks"));
+        let target = directory.path().join("auth.json");
+        fs::write(&target, b"synthetic credential bytes").unwrap();
+        windows_set_test_dacl(&target, "D:P(A;;FA;;;WD)");
+        let before = fs::metadata(&target).unwrap().modified().unwrap();
+        let identity = windows_file_identity(&target);
+        assert!(
+            enforce_owner_only_permissions_versioned(
+                &target,
+                &content_version_token(b"synthetic credential bytes"),
+                Duration::from_secs(1),
+            )
+            .unwrap()
+        );
+        assert_eq!(fs::read(&target).unwrap(), b"synthetic credential bytes");
+        assert_eq!(fs::metadata(&target).unwrap().modified().unwrap(), before);
+        assert_eq!(windows_file_identity(&target), identity);
+        assert_windows_owner_only_dacl(&target);
+        assert!(
+            enforce_owner_only_permissions_versioned(
+                &target,
+                &content_version_token(b"synthetic credential bytes"),
+                Duration::from_secs(1),
+            )
+            .unwrap()
+        );
+        assert_eq!(fs::metadata(&target).unwrap().modified().unwrap(), before);
+        assert_eq!(windows_file_identity(&target), identity);
+        assert_eq!(fs::read_dir(directory.path()).unwrap().count(), 2);
+        assert_windows_owner_only_dacl(&target);
+    }
+
+    #[test]
+    fn owner_only_permissions_require_an_existing_matching_version() {
+        let directory = tempdir().unwrap();
+        let _locks = TestLockDirEnv::new(&directory.path().join("locks"));
+        let target = directory.path().join("auth.json");
+        assert!(
+            !enforce_owner_only_permissions_versioned(&target, "", Duration::from_secs(1)).unwrap()
+        );
+        assert!(!target.exists());
+        fs::write(&target, b"current").unwrap();
+        #[cfg(windows)]
+        windows_set_test_dacl(&target, "D:P(A;;FA;;;WD)");
+        #[cfg(windows)]
+        let dacl = super::super::atomic_writer::capture_windows_dacl(&target).unwrap();
+        #[cfg(windows)]
+        let identity = windows_file_identity(&target);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&target, fs::Permissions::from_mode(0o644)).unwrap();
+        }
+        let before = fs::metadata(&target).unwrap().modified().unwrap();
+        assert!(
+            !enforce_owner_only_permissions_versioned(
+                &target,
+                &content_version_token(b"stale"),
+                Duration::from_secs(1),
+            )
+            .unwrap()
+        );
+        assert_eq!(fs::read(&target).unwrap(), b"current");
+        assert_eq!(fs::metadata(&target).unwrap().modified().unwrap(), before);
+        #[cfg(windows)]
+        {
+            assert_eq!(windows_file_identity(&target), identity);
+            assert!(super::super::atomic_writer::capture_windows_dacl(&target).unwrap() == dacl);
+        }
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                fs::metadata(&target).unwrap().permissions().mode() & 0o777,
+                0o644
+            );
+        }
+        assert_eq!(fs::read_dir(directory.path()).unwrap().count(), 2);
+    }
+
+    #[test]
+    fn owner_only_permissions_wait_for_the_guarded_leaf_lock() {
+        let directory = tempdir().unwrap();
+        let _locks = TestLockDirEnv::new(&directory.path().join("locks"));
+        let target = directory.path().join("auth.json");
+        fs::write(&target, b"current").unwrap();
+        let manager = LockManager::with_default_path().unwrap();
+        let _held = manager
+            .lock_resource(&lock_resource_name(&target), Duration::from_secs(1))
+            .unwrap();
+        let result = enforce_owner_only_permissions_versioned(
+            &target,
+            &content_version_token(b"current"),
+            Duration::from_millis(100),
+        );
+        assert!(matches!(result, Err(CcrError::LockTimeout(_))));
+        assert_eq!(fs::read(&target).unwrap(), b"current");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn owner_only_permissions_username_independent_child() {
+        let Some(target) = std::env::var_os("CCR_OWNER_ONLY_TEST_CHILD") else {
+            return;
+        };
+        assert!(std::env::var_os("USERNAME").is_none());
+        let target = PathBuf::from(target);
+        assert!(
+            enforce_owner_only_permissions_versioned(
+                &target,
+                &content_version_token(b"current"),
+                Duration::from_secs(1),
+            )
+            .unwrap()
+        );
+        assert_windows_owner_only_dacl(&target);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn owner_only_permissions_use_the_token_user_without_username() {
+        let directory = tempdir().unwrap();
+        let target = directory.path().join("auth.json");
+        fs::write(&target, b"current").unwrap();
+        windows_set_test_dacl(&target, "D:P(A;;FA;;;WD)");
+        let before = fs::metadata(&target).unwrap().modified().unwrap();
+        let identity = windows_file_identity(&target);
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "core::guarded_write::tests::owner_only_permissions_username_independent_child",
+                "--nocapture",
+            ])
+            .env("CCR_OWNER_ONLY_TEST_CHILD", &target)
+            .env("CCR_LOCK_DIR", directory.path().join("locks"))
+            .env_remove("USERNAME")
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "USERNAME-independent child failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(fs::read(&target).unwrap(), b"current");
+        assert_eq!(fs::metadata(&target).unwrap().modified().unwrap(), before);
+        assert_eq!(windows_file_identity(&target), identity);
+        assert_windows_owner_only_dacl(&target);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn owner_only_permissions_propagate_native_write_dac_denial() {
+        use std::os::windows::fs::OpenOptionsExt;
+
+        let directory = tempdir().unwrap();
+        let _locks = TestLockDirEnv::new(&directory.path().join("locks"));
+        let target = directory.path().join("auth.json");
+        fs::write(&target, b"current").unwrap();
+        // Keep a granted handle so the fixture can restore its DACL after
+        // denying WRITE_DAC, including the owner's normally implicit right.
+        let restoration = fs::OpenOptions::new()
+            .access_mode(0x8000_0000 | 0x0004_0000)
+            .open(&target)
+            .unwrap();
+        windows_set_test_dacl(&target, "D:P(D;;WD;;;OW)(A;;FR;;;WD)");
+        let before_dacl = super::super::atomic_writer::capture_windows_dacl(&target).unwrap();
+        let before = fs::metadata(&target).unwrap().modified().unwrap();
+        let identity = windows_file_identity(&target);
+        let result = enforce_owner_only_permissions_versioned(
+            &target,
+            &content_version_token(b"current"),
+            Duration::from_secs(1),
+        );
+        let unchanged_dacl =
+            super::super::atomic_writer::capture_windows_dacl(&target).unwrap() == before_dacl;
+        super::super::atomic_writer::enforce_owner_only_windows_permissions(&restoration).unwrap();
+        assert!(
+            matches!(result, Err(CcrError::IoError(error)) if error.kind() == std::io::ErrorKind::PermissionDenied)
+        );
+        assert!(unchanged_dacl);
+        assert_eq!(fs::read(&target).unwrap(), b"current");
+        assert_eq!(fs::metadata(&target).unwrap().modified().unwrap(), before);
+        assert_eq!(windows_file_identity(&target), identity);
+        assert_windows_owner_only_dacl(&target);
+    }
+
+    #[cfg(all(any(unix, windows), feature = "test-support"))]
+    #[test]
+    fn owner_only_permissions_policy_failure_preserves_metadata() {
+        let directory = tempdir().unwrap();
+        let _locks = TestLockDirEnv::new(&directory.path().join("locks"));
+        let target = directory.path().join("auth.json");
+        fs::write(&target, b"current").unwrap();
+        #[cfg(windows)]
+        windows_set_test_dacl(&target, "D:P(A;;FA;;;WD)");
+        #[cfg(windows)]
+        let dacl = super::super::atomic_writer::capture_windows_dacl(&target).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&target, fs::Permissions::from_mode(0o644)).unwrap();
+        }
+        let before = fs::metadata(&target).unwrap().modified().unwrap();
+        let _fault = crate::core::write_journal::fault::install(|_| {
+            Err(CcrError::FileIoError(
+                "injected permission policy failure".into(),
+            ))
+        });
+        assert!(
+            enforce_owner_only_permissions_versioned(
+                &target,
+                &content_version_token(b"current"),
+                Duration::from_secs(1),
+            )
+            .is_err()
+        );
+        assert_eq!(fs::read(&target).unwrap(), b"current");
+        assert_eq!(fs::metadata(&target).unwrap().modified().unwrap(), before);
+        #[cfg(windows)]
+        assert!(super::super::atomic_writer::capture_windows_dacl(&target).unwrap() == dacl);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                fs::metadata(&target).unwrap().permissions().mode() & 0o777,
+                0o644
+            );
+        }
+    }
+
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn owner_only_permissions_check_journal_version_without_a_content_entry() {
+        let directory = tempdir().unwrap();
+        let _locks = TestLockDirEnv::new(&directory.path().join("locks"));
+        let target = directory.path().join("auth.json");
+        fs::write(&target, b"current").unwrap();
+        #[cfg(windows)]
+        windows_set_test_dacl(&target, "D:P(A;;FA;;;WD)");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&target, fs::Permissions::from_mode(0o644)).unwrap();
+        }
+        let journal =
+            crate::core::write_journal::WriteJournal::begin(std::slice::from_ref(&target)).unwrap();
+        journal
+            .expect_version(&target, content_version_token(b"older"))
+            .unwrap();
+        assert!(
+            enforce_owner_only_permissions_versioned(
+                &target,
+                &content_version_token(b"current"),
+                Duration::from_secs(1),
+            )
+            .is_err()
+        );
+        journal
+            .expect_version(&target, content_version_token(b"current"))
+            .unwrap();
+        assert!(
+            enforce_owner_only_permissions_versioned(
+                &target,
+                &content_version_token(b"current"),
+                Duration::from_secs(1),
+            )
+            .unwrap()
+        );
+        assert!(journal.changed_paths().is_empty());
+        assert!(journal.rollback().is_empty());
+        #[cfg(windows)]
+        assert_windows_owner_only_dacl(&target);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                fs::metadata(&target).unwrap().permissions().mode() & 0o777,
+                0o600
+            );
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn owner_only_permissions_preserve_stricter_unix_modes_and_inode() {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+
+        let directory = tempdir().unwrap();
+        let _locks = TestLockDirEnv::new(&directory.path().join("locks"));
+        for (mode, expected) in [(0o644, 0o600), (0o600, 0o600), (0o400, 0o400)] {
+            let target = directory.path().join(format!("auth-{mode:o}.json"));
+            fs::write(&target, b"current").unwrap();
+            fs::set_permissions(&target, fs::Permissions::from_mode(mode)).unwrap();
+            let before = fs::metadata(&target).unwrap();
+            assert!(
+                enforce_owner_only_permissions_versioned(
+                    &target,
+                    &content_version_token(b"current"),
+                    Duration::from_secs(1),
+                )
+                .unwrap()
+            );
+            let after = fs::metadata(&target).unwrap();
+            assert_eq!(after.permissions().mode() & 0o777, expected);
+            assert_eq!(after.ino(), before.ino());
+            assert_eq!(after.modified().unwrap(), before.modified().unwrap());
+            assert_eq!(fs::read(&target).unwrap(), b"current");
+        }
     }
 
     #[cfg(all(unix, feature = "test-support"))]
