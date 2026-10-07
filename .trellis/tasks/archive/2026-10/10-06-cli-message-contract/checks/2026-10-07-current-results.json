@@ -1,0 +1,44 @@
+[
+  {
+    "command": "cargo test -p ccr-core core::logging -- --skip export_bindings",
+    "exit_code": 0,
+    "started_utc": "2026-10-07T14:06:48.5798467Z",
+    "ended_utc": "2026-10-07T14:06:49.2159741Z",
+    "receipt": "2026-10-07-18-core-logging.txt"
+  },
+  {
+    "command": "cargo test -p ccr-core --test output_presentation -- --skip export_bindings",
+    "exit_code": 0,
+    "started_utc": "2026-10-07T14:06:49.2467448Z",
+    "ended_utc": "2026-10-07T14:06:49.9047114Z",
+    "receipt": "2026-10-07-19-output-presentation.txt"
+  },
+  {
+    "command": "cargo test -p ccr-cli commands::common::feedback -- --skip export_bindings",
+    "exit_code": 0,
+    "started_utc": "2026-10-07T14:06:49.9095404Z",
+    "ended_utc": "2026-10-07T14:06:59.2902329Z",
+    "receipt": "2026-10-07-20-feedback.txt"
+  },
+  {
+    "command": "cargo test -p ccr-core core::log_writer -- --skip export_bindings",
+    "exit_code": 0,
+    "started_utc": "2026-10-07T14:06:59.2971957Z",
+    "ended_utc": "2026-10-07T14:06:59.8952860Z",
+    "receipt": "2026-10-07-21-log-writer.txt"
+  },
+  {
+    "command": "cargo check -p ccr -p ccr-cli -p ccr-sync -p ccr-codex --all-features",
+    "exit_code": 0,
+    "started_utc": "2026-10-07T14:06:59.9006069Z",
+    "ended_utc": "2026-10-07T14:07:13.1581987Z",
+    "receipt": "2026-10-07-22-consumer-check.txt"
+  },
+  {
+    "command": "cargo clippy -p ccr-core --all-targets --all-features -- -D warnings -D clippy::unwrap_used",
+    "exit_code": 0,
+    "started_utc": "2026-10-07T14:07:13.1610474Z",
+    "ended_utc": "2026-10-07T14:07:15.5286831Z",
+    "receipt": "2026-10-07-23-core-clippy.txt"
+  }
+]

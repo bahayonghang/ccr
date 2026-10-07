@@ -1,0 +1,15 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.40s
+     Running tests\output_presentation.rs (target\debug\deps\output_presentation-33c512ed52c89a01.exe)
+
+running 8 tests
+test output_probe ... ignored, invoked by isolated child-process output tests
+test forced_color_styles_only_markers_and_field_names_on_captured_streams ... ok
+test startup_dumb_policy_disables_existing_decorations_even_with_force ... ok
+test formatting_does_not_write_to_either_stream ... ok
+test captured_messages_keep_streams_plain_text_fields_and_masking ... ok
+test dumb_terminal_uses_words_without_ansi_even_when_color_is_forced ... ok
+test no_color_keeps_terminal_symbols_for_nonempty_and_empty_values ... ok
+test startup_regular_policy_preserves_color_environment_precedence ... ok
+
+test result: ok. 7 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.12s
+

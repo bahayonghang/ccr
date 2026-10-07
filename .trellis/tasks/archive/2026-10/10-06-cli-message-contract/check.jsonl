@@ -1,0 +1,9 @@
+{"file": ".trellis/spec/ccr-cli/backend/backend-guidelines.md", "reason": "CLI 展示、表格边界与 JSON 规则"}
+{"file": ".trellis/spec/ccr-cli/backend/test-fixtures.md", "reason": "CLI 测试环境隔离"}
+{"file": ".trellis/spec/ccr-core/backend/backend-guidelines.md", "reason": "共享基础设施与脱敏边界"}
+{"file": ".trellis/spec/ccr-core/backend/logging-contracts.md", "reason": "保持 logger、writer 与 bridge 契约"}
+{"file": ".trellis/spec/ccr/backend/test-fixtures.md", "reason": "根进程测试与默认并行"}
+{"file": ".trellis/tasks/10-06-cli-output-presentation/research/repository-assessment.md", "reason": "当前源码证据与范围外问题"}
+{"file": ".trellis/tasks/10-06-cli-output-presentation/research/web-research.md", "reason": "公开来源与选定机制"}
+{"file": ".trellis/tasks/10-06-cli-output-presentation/research/scope-inventory.md", "reason": "精确调用范围与责任"}
+{"file": ".trellis/spec/ccr-core/backend/test-fixtures.md", "reason": "core 全局 env 锁与恢复规则"}

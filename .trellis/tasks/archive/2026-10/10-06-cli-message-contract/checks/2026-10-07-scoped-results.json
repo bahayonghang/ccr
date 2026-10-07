@@ -1,0 +1,6 @@
+{
+  "fmt_command": "rustfmt --check --edition 2024 crates/ccr-core/src/core/logging.rs crates/ccr-core/tests/output_presentation.rs crates/ccr/src/main.rs crates/ccr-cli/src/commands/common/feedback.rs",
+  "fmt_exit": 0,
+  "diff_command": "git diff --check -- <five C1 source files>",
+  "diff_exit": 0
+}

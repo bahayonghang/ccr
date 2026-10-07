@@ -1,0 +1,25 @@
+{
+  "head": "528d4bae1b145fd74d7bbc97454caac249a4b896",
+  "c1_commit": "c72ba99f4970b0b2e11ddc0f5a74a08ec200263c",
+  "assertions": {
+    "logging_current_equals_c72ba99f_and_head": true,
+    "logger_production_region_unchanged_from_pre_c1": true,
+    "existing_coloroutput_signatures_preserved": true,
+    "retained_helpers_unchanged": true,
+    "single_override_in_startup_method_only": true,
+    "startup_method_committed_in_c72ba99f": true,
+    "main_only_adds_startup_call_to_current_head": true,
+    "startup_call_before_clap": true,
+    "integration_test_no_parent_env_or_override_mutation": true,
+    "feedback_and_registration_unchanged_from_committed_c1": true,
+    "root_facade_and_core_exports_unchanged": true
+  },
+  "file_sha256": {
+    "crates/ccr-core/src/core/logging.rs": "524edd6797e322611bc2f339f4af4b881f4d93767a39160dcdbdc12fcf8040fa",
+    "crates/ccr/src/main.rs": "ece1df09c5e175b6eb42a27a15d9284ddf4e8dab6d8146ce0a9eb952e533e104",
+    "crates/ccr-core/tests/output_presentation.rs": "da6e4fb0596af5682390689d46ce715c28949469b70697fca85e5dc96e03e51d",
+    "crates/ccr-cli/src/commands/common/feedback.rs": "14ccab539c2618b7a4aa1bbb6c506003e4aea91b4e52bd3ac35f1b90e9cbd6f6",
+    "crates/ccr-cli/src/commands/common/mod.rs": "8b11a3820f8e2fe643746efb8fb2220a31ce8447ab57e3dcc3240f6f075a3bef"
+  },
+  "boundary": "C1 only; preserves HEAD daemon restart and current C2/C3 files"
+}

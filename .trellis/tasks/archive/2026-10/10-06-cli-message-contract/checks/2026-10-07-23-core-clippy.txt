@@ -1,0 +1,2 @@
+    Checking ccr-core v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-core)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.12s

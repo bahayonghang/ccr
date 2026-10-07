@@ -1,0 +1,23 @@
+   Compiling ccr-core v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-core)
+   Compiling ccr-config v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-config)
+   Compiling ccr-skills v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-skills)
+   Compiling ccr-sync v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-sync)
+   Compiling ccr-store v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-store)
+   Compiling ccr-codex v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-codex)
+   Compiling ccr-cli v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-cli)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.19s
+     Running unittests src\lib.rs (target\debug\deps\ccr_cli-174f211b337450c8.exe)
+
+running 3 tests
+test commands::common::feedback::tests::empty_suggestions_have_no_heading_or_whitespace ... ok
+test commands::common::feedback::tests::suggestions_separate_actions_from_complete_commands ... ok
+test commands::common::feedback::tests::suggestions_keep_multiline_and_long_text ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 351 filtered out; finished in 0.00s
+
+     Running tests\dispatch_routing.rs (target\debug\deps\dispatch_routing-29e4c91da5c99193.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.00s
+
