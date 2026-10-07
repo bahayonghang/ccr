@@ -102,7 +102,7 @@ pub fn confirm(message: &str, default: bool) -> bool {
 #[expect(dead_code)]
 pub fn confirm_dangerous(message: &str) -> bool {
     println!();
-    ColorOutput::warning("⚠️  此操作可能造成数据丢失！");
+    ColorOutput::warning("此操作可能造成数据丢失！");
     println!();
 
     print!("{} (y/N): ", message.bright_yellow().bold());
@@ -124,7 +124,7 @@ pub fn confirm_dangerous(message: &str) -> bool {
 #[expect(dead_code)]
 pub fn confirm_overwrite(target: &str) -> bool {
     println!();
-    ColorOutput::warning(&format!("⚠️  {} 已存在，将被覆盖", target));
+    ColorOutput::warning(&format!("{} 已存在，将被覆盖", target));
     println!();
 
     print!("确认覆盖? (y/N): ");

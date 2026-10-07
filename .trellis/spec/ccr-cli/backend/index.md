@@ -7,6 +7,7 @@
 | Guide | Description | Status |
 |-------|-------------|--------|
 | [Backend Guidelines](./backend-guidelines.md) | CLI command boundaries, output/logging rules, errors, tests, and verification | Complete |
+| [CLI Output Presentation](./cli-output-presentation.md) | Status markers, fields, suggestions, output capabilities, and machine-output compatibility | Complete |
 | [Test Fixtures](./test-fixtures.md) | Process-wide env and filesystem fixtures for CLI tests | Complete |
 | [CLI Diagnostics](./diagnostics-contract.md) | Typed reports, pure reads, auth rules, platform capabilities, and exit codes | Complete |
 | [Profile Initialization](./profile-init.md) | Claude/Codex/Grok profile scaffolding, templates, guarded creation, and registry registration | Complete |
@@ -19,6 +20,7 @@
 ## Pre-Development Checklist
 
 - Read [Backend Guidelines](./backend-guidelines.md) before changing command definitions, command handlers, CLI services, CLI managers, or command output.
+- Read [CLI Output Presentation](./cli-output-presentation.md) before changing human result lines, fields, progress, warnings, errors, Doctor status rendering, or command suggestions.
 - Read [Test Fixtures](./test-fixtures.md) before adding tests that mutate process env or home-directory paths.
 - Read [CLI Diagnostics](./diagnostics-contract.md) before changing validate, doctor, their reports, or binary status.
 - Read [Profile Initialization](./profile-init.md) before changing profile init commands, embedded examples, or platform registry bootstrap.

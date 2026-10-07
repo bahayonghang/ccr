@@ -15,6 +15,7 @@ use std::process::ExitCode;
 /// 4. ❌ 处理错误并返回退出码
 #[tokio::main]
 async fn main() -> ExitCode {
+    ccr_core::core::logging::ColorOutput::configure_cli_output();
     let matches = build_cli_command().get_matches();
     let cli = Cli::from_arg_matches(&matches).unwrap_or_else(|err| err.exit());
 
