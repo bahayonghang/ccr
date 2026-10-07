@@ -1902,6 +1902,10 @@ fn draw_help_bar(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
         Some(Overlay::Confirm { .. }) => {
             crate::tui_text!("y confirm delete | n/Esc cancel", "y 确认删除 | n/Esc 取消")
         }
+        Some(Overlay::ConfirmRestartDaemon { .. }) => crate::tui_text!(
+            "y restart daemon | n/Esc cancel",
+            "y 重启守护进程 | n/Esc 取消"
+        ),
         Some(Overlay::Input { .. }) => {
             crate::tui_text!("Enter confirm | Esc cancel", "Enter 确认 | Esc 取消")
         }

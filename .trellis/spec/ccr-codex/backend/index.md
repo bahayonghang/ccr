@@ -8,7 +8,7 @@
 | --------------------------------------------------------- | ------------------------------------------------------------------------------------ | -------- |
 | [Backend Guidelines](./backend-guidelines.md)             | Codex/OpenCode domain boundaries, auth safety, runtime/snapshot token sync, Token pricing, quota observations/capacity, tests, and verification | Complete |
 | [Codex Session Recovery](./codex-session-recovery.md)     | sync-history visibility repair and recoverable session trash contracts               | Complete |
-| [Codex App-Server Cleanup](./codex-app-server-cleanup.md) | `ccr codex fix` process cleanup, local runtime reconciliation/repair, and doctor contracts | Complete |
+| [Codex App-Server Cleanup](./codex-app-server-cleanup.md) | `ccr codex fix` process cleanup, managed daemon detection/restart, local runtime reconciliation/repair, and doctor contracts | Complete |
 | [Codex Provider Bearer Runtime](./codex-provider-bearer-runtime.md) | Provider bearer auth, DeepSeek root fields, secret writes, cleanup, and diagnosis | Complete |
 | [Test Fixtures](./test-fixtures.md)                       | Process-wide Codex and CCR env fixtures for tests                                    | Complete |
 

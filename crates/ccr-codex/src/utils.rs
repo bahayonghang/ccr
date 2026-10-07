@@ -59,6 +59,53 @@ impl CodexPaths {
     }
 }
 
+/// Search for a binary on PATH without spawning a process.
+///
+/// Mirrors the CLI-side lookup so ccr-codex does not depend on ccr-cli.
+pub(crate) fn which_on_path(name: &str) -> Option<PathBuf> {
+    let path_var = std::env::var_os("PATH")?;
+    for dir in std::env::split_paths(&path_var) {
+        for exe_name in executable_names(name) {
+            let candidate = dir.join(exe_name);
+            if is_executable(&candidate) {
+                return Some(candidate);
+            }
+        }
+    }
+    None
+}
+
+#[cfg(windows)]
+fn executable_names(name: &str) -> Vec<String> {
+    vec![
+        format!("{name}.exe"),
+        format!("{name}.cmd"),
+        format!("{name}.bat"),
+        name.to_string(),
+    ]
+}
+
+#[cfg(not(windows))]
+fn executable_names(name: &str) -> Vec<String> {
+    vec![name.to_string()]
+}
+
+/// Check whether the path exists and is executable.
+#[cfg(unix)]
+fn is_executable(path: &Path) -> bool {
+    use std::os::unix::fs::PermissionsExt;
+    path.is_file()
+        && path
+            .metadata()
+            .map(|metadata| metadata.permissions().mode() & 0o111 != 0)
+            .unwrap_or(false)
+}
+
+#[cfg(not(unix))]
+fn is_executable(path: &Path) -> bool {
+    path.is_file()
+}
+
 /// Base64 URL-safe 解码
 ///
 /// 处理带/不带 padding 的 base64url 输入，自动补齐后解码。
@@ -144,6 +191,11 @@ mod tests {
             PathBuf::from("/tmp/ccr/platforms/codex")
         );
         assert_eq!(paths.codex_dir, PathBuf::from("/tmp/codex"));
+    }
+
+    #[test]
+    fn which_on_path_returns_none_for_nonexistent() {
+        assert!(which_on_path("__ccr_nonexistent_codex_probe__").is_none());
     }
 
     #[test]

@@ -564,9 +564,10 @@ impl CommandDispatcher {
                 CodexAuthAction::Repair { name } => {
                     crate::commands::codex::auth::repair_command(name).await
                 }
-                CodexAuthAction::Switch { name } => {
-                    crate::commands::codex::auth::switch_command(name).await
-                }
+                CodexAuthAction::Switch {
+                    name,
+                    restart_daemon,
+                } => crate::commands::codex::auth::switch_command(name, *restart_daemon).await,
                 CodexAuthAction::Delete { name, force } => {
                     crate::commands::codex::auth::delete_command(name, *force).await
                 }

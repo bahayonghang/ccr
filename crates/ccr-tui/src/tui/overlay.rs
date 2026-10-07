@@ -44,6 +44,13 @@ pub enum Overlay {
         /// Input constraint hint
         hint: String,
     },
+    /// Restart-daemon confirmation dialog
+    ConfirmRestartDaemon {
+        /// Dialog title
+        title: String,
+        /// Description lines
+        message: Vec<String>,
+    },
 }
 
 impl Overlay {
@@ -58,6 +65,27 @@ impl Overlay {
                 crate::tui_text!("This action cannot be undone!", "此操作不可撤销！").to_string(),
             ],
             subject,
+        }
+    }
+
+    /// Create a confirmation overlay for restarting the app-server daemon
+    pub fn confirm_restart_daemon(pid: u32) -> Self {
+        Self::ConfirmRestartDaemon {
+            title: crate::tui_text!("Restart app-server daemon", "重启 app-server 守护进程")
+                .to_string(),
+            message: vec![
+                crate::tui_format!(
+                    "Managed app-server daemon (PID {}) still uses the previous account",
+                    "托管 app-server 守护进程 (PID {}) 仍在使用切换前的账号",
+                    pid
+                ),
+                String::new(),
+                crate::tui_text!(
+                    "Restart applies the switch to new Codex sessions; running sessions are interrupted",
+                    "重启后 Codex 新会话使用新账号；正在运行的会话会被中断"
+                )
+                .to_string(),
+            ],
         }
     }
 
@@ -185,6 +213,39 @@ pub fn render_overlay(f: &mut Frame, overlay: &Overlay) {
 
             f.render_widget(
                 style_dialog(Paragraph::new(lines), title, theme::error()),
+                area,
+            );
+        }
+        Overlay::ConfirmRestartDaemon { title, message } => {
+            let area = centered_rect(50, 30, full_area);
+            f.render_widget(Clear, area);
+
+            let mut lines = vec![
+                Line::from(""),
+                Line::from(Span::styled(
+                    crate::tui_text!("⚠ Restart app-server daemon", "⚠ 重启 app-server 守护进程"),
+                    Style::default()
+                        .fg(theme::warning())
+                        .add_modifier(Modifier::BOLD),
+                )),
+                Line::from(""),
+            ];
+
+            for msg in message {
+                lines.push(Line::from(msg.as_str()));
+            }
+
+            lines.push(Line::from(""));
+            lines.push(Line::from(Span::styled(
+                crate::tui_text!(
+                    "Press y to confirm | n or Esc to cancel",
+                    "按 y 确认 | 按 n 或 Esc 取消"
+                ),
+                Style::default().fg(theme::muted()),
+            )));
+
+            f.render_widget(
+                style_dialog(Paragraph::new(lines), title, theme::warning()),
                 area,
             );
         }

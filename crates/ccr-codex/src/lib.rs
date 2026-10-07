@@ -16,7 +16,7 @@ pub use platforms::CodexPlatform;
 pub use services::{
     AuthReadSnapshot, CodexAppServer, CodexAppServerCleanup, CodexAppServerCleanupReport,
     CodexAuthCacheAction, CodexAuthService, CodexAuthUsageSnapshot, CodexCapacityEstimate,
-    CodexCostStatus, CodexCostSummary, CodexEstimateRange, CodexEstimateStatus,
+    CodexCostStatus, CodexCostSummary, CodexDaemon, CodexEstimateRange, CodexEstimateStatus,
     CodexHistoryBackupPruneResult, CodexHistoryBackupSummary, CodexHistoryProviderBuckets,
     CodexHistoryRestoreResult, CodexHistorySyncOptions, CodexHistorySyncResult,
     CodexHistorySyncService, CodexHistorySyncStatus, CodexHistoryVisibilityDiagnostics,
@@ -26,8 +26,8 @@ pub use services::{
     CodexSessionExport, CodexSessionMessage, CodexSessionRestoreSummary, CodexSessionService,
     CodexSessionSummary, CodexSessionTrashService, CodexSessionTrashSummary, CodexSignalFailure,
     CodexSignalStage, CodexTrashedSessionRecord, CodexUsageDetails, CodexUsageEstimationService,
-    CodexUsageRecord, CodexUsageScope, CodexUsageService, CodexUsageStats, OAuthRepairOutcome,
-    TerminationKind,
+    CodexUsageRecord, CodexUsageScope, CodexUsageService, CodexUsageStats, DaemonRestartOutcome,
+    OAuthRepairOutcome, TerminationKind, restart_codex_daemon,
 };
 
 #[cfg(test)]

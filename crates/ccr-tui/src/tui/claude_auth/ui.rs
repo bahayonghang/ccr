@@ -641,6 +641,10 @@ fn draw_footer_strip(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
             ShortcutHint::new("y", crate::tui_text!("confirm delete", "确认删除")),
             ShortcutHint::new("n/Esc", crate::tui_text!("cancel", "取消")),
         ],
+        Some(Overlay::ConfirmRestartDaemon { .. }) => vec![
+            ShortcutHint::new("y", crate::tui_text!("restart daemon", "重启守护进程")),
+            ShortcutHint::new("n/Esc", crate::tui_text!("cancel", "取消")),
+        ],
         Some(Overlay::Input { .. }) => vec![
             ShortcutHint::new("", crate::tui_text!("enter account name", "输入账号名")),
             ShortcutHint::new("Enter", crate::tui_text!("save", "保存")),

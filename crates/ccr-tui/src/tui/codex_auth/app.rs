@@ -16,6 +16,7 @@ use ccr_codex::services::codex_registry_store::registry_read_only_version;
 use ccr_codex::services::codex_usage_estimation::{
     CodexAuthUsageSnapshot, CodexUsageScope as DomainUsageScope,
 };
+use ccr_codex::services::{CodexProcessService, DaemonRestartOutcome, restart_codex_daemon};
 use ccr_core::core::error::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::Frame;
@@ -43,6 +44,34 @@ fn localized_service_error(error: &str) -> String {
             version
         ),
         None => error.to_string(),
+    }
+}
+
+/// 守护进程重启四态结果 → toast（EN/ZH 同步）。
+fn daemon_restart_toast(outcome: &DaemonRestartOutcome) -> Toast {
+    match outcome {
+        DaemonRestartOutcome::Restarted { pid: Some(pid) } => Toast::success(crate::tui_format!(
+            "app-server daemon restarted (new PID {})",
+            "app-server 守护进程已重启（新 PID {}）",
+            pid
+        )),
+        DaemonRestartOutcome::Restarted { pid: None } => Toast::success(crate::tui_text!(
+            "app-server daemon restarted",
+            "app-server 守护进程已重启"
+        )),
+        DaemonRestartOutcome::Failed { detail } => Toast::warning(crate::tui_format!(
+            "app-server daemon restart failed: {}",
+            "app-server 守护进程重启失败：{}",
+            detail
+        )),
+        DaemonRestartOutcome::Timeout => Toast::warning(crate::tui_text!(
+            "app-server daemon restart timed out; run codex app-server daemon restart manually",
+            "app-server 守护进程重启超时；请手动运行 codex app-server daemon restart"
+        )),
+        DaemonRestartOutcome::Unavailable => Toast::warning(crate::tui_text!(
+            "codex not found on PATH; run codex app-server daemon restart manually",
+            "PATH 中找不到 codex；请手动运行 codex app-server daemon restart"
+        )),
     }
 }
 
@@ -132,6 +161,7 @@ enum CodexAuthTaskMessage {
     },
     Preview(Vec<CodexAccountQuota>),
     Quota(Box<std::result::Result<CodexAccountQuota, (String, String)>>),
+    DaemonRestart(Box<DaemonRestartOutcome>),
 }
 
 /// Quota query state
@@ -996,6 +1026,9 @@ impl CodexAuthApp {
     fn handle_overlay_key(&mut self, key: KeyEvent) -> Result<bool> {
         match &self.overlay {
             Some(Overlay::Confirm { .. }) => self.handle_confirm_key(key),
+            Some(Overlay::ConfirmRestartDaemon { .. }) => {
+                self.handle_daemon_restart_confirm_key(key)
+            }
             Some(Overlay::RenameInput { .. }) => self.handle_rename_input_key(key),
             _ => self.handle_input_key(key),
         }
@@ -1042,6 +1075,36 @@ impl CodexAuthApp {
             _ => {}
         }
         Ok(false)
+    }
+
+    /// Handle restart-daemon confirm overlay keys
+    fn handle_daemon_restart_confirm_key(&mut self, key: KeyEvent) -> Result<bool> {
+        match key.code {
+            KeyCode::Char('y') | KeyCode::Char('Y') => {
+                self.overlay = None;
+                self.toasts.push(Toast::info(crate::tui_text!(
+                    "Restarting app-server daemon...",
+                    "正在重启 app-server 守护进程..."
+                )));
+                let executor = self.task_executor.clone();
+                let tx = self.task_tx.clone();
+                executor.spawn(async move {
+                    let outcome = restart_codex_daemon().await;
+                    let _ = tx.send(CodexAuthTaskMessage::DaemonRestart(Box::new(outcome)));
+                });
+                Ok(false)
+            }
+            KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
+                self.overlay = None;
+                self.toasts.push(Toast::info(crate::tui_text!(
+                    "Daemon restart skipped; run codex app-server daemon restart to apply",
+                    "已跳过守护进程重启；运行 codex app-server daemon restart 生效"
+                )));
+                self.should_quit = true;
+                Ok(true)
+            }
+            _ => Ok(false),
+        }
     }
 
     /// Handle input overlay keys
@@ -1340,6 +1403,15 @@ impl CodexAuthApp {
                         "已切换到账号：{}",
                         account.name
                     )));
+                    if let Some(daemon) = CodexProcessService::new().find_managed_daemon() {
+                        self.toasts.push(Toast::warning(crate::tui_format!(
+                            "Managed app-server daemon (PID {}) still uses the previous account",
+                            "托管 app-server 守护进程 (PID {}) 仍在使用切换前的账号",
+                            daemon.pid
+                        )));
+                        self.overlay = Some(Overlay::confirm_restart_daemon(daemon.pid));
+                        return Ok(false);
+                    }
                     self.should_quit = true;
                     return Ok(true);
                 }
@@ -1628,6 +1700,10 @@ impl CodexAuthApp {
                         }
                     }
                     self.quota_task_active = false;
+                    changed = true;
+                }
+                Ok(CodexAuthTaskMessage::DaemonRestart(outcome)) => {
+                    self.toasts.push(daemon_restart_toast(&outcome));
                     changed = true;
                 }
                 Err(TryRecvError::Empty) => break,
@@ -2103,6 +2179,67 @@ mod tests {
             preview_task_active: false,
             quota_task_active: false,
         }
+    }
+
+    #[test]
+    fn daemon_restart_confirm_decline_cancels_and_quits() {
+        let mut app = make_test_app(vec![sample_saved_account("A", "acc-a")], 0);
+        app.task_executor = AsyncTaskExecutor::Disabled;
+        app.overlay = Some(Overlay::confirm_restart_daemon(4321));
+
+        let quit = app
+            .handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE))
+            .expect("decline key handled");
+
+        assert!(quit);
+        assert!(app.should_quit);
+        assert!(app.overlay.is_none());
+    }
+
+    #[test]
+    fn daemon_restart_confirm_accept_spawns_background_restart() {
+        let mut app = make_test_app(vec![sample_saved_account("A", "acc-a")], 0);
+        app.task_executor = AsyncTaskExecutor::Disabled;
+        app.overlay = Some(Overlay::confirm_restart_daemon(4321));
+
+        let quit = app
+            .handle_key(KeyEvent::new(KeyCode::Char('y'), KeyModifiers::NONE))
+            .expect("confirm key handled");
+
+        assert!(!quit);
+        assert!(!app.should_quit);
+        assert!(app.overlay.is_none());
+        assert!(app.toasts.active().is_some());
+    }
+
+    #[test]
+    fn daemon_restart_task_message_drains_into_toast() {
+        let mut app = make_test_app(vec![sample_saved_account("A", "acc-a")], 0);
+        app.task_tx
+            .send(CodexAuthTaskMessage::DaemonRestart(Box::new(
+                DaemonRestartOutcome::Restarted { pid: Some(99) },
+            )))
+            .expect("daemon restart message sent");
+
+        assert!(app.drain_task_messages());
+        let toast = app.toasts.active().expect("daemon restart toast");
+        assert!(toast.message.contains("99"));
+    }
+
+    #[test]
+    fn daemon_restart_failure_toast_carries_detail() {
+        let mut app = make_test_app(vec![sample_saved_account("A", "acc-a")], 0);
+        app.task_tx
+            .send(CodexAuthTaskMessage::DaemonRestart(Box::new(
+                DaemonRestartOutcome::Failed {
+                    detail: "exit code 7".to_string(),
+                },
+            )))
+            .expect("daemon restart message sent");
+
+        assert!(app.drain_task_messages());
+        let toast = app.toasts.active().expect("daemon restart failure toast");
+        assert!(toast.message.contains("exit code 7"));
     }
 
     #[test]

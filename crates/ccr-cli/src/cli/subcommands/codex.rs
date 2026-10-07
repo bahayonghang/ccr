@@ -362,6 +362,10 @@ pub enum CodexAuthAction {
     Switch {
         /// 要切换到的账号名称
         name: String,
+
+        /// 切换成功后直接重启 app-server 守护进程（跳过确认）
+        #[arg(long)]
+        restart_daemon: bool,
     },
 
     /// 删除指定账号

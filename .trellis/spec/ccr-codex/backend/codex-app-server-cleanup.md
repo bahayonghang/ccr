@@ -135,3 +135,76 @@ if repair_runtime && before.repairable {
     let after = platform.inspect_runtime()?;
 }
 ```
+
+## Scenario: managed app-server daemon detection and restart
+
+> Contract for post-switch handling of the shared Codex app-server daemon, which caches `auth.json` at startup and does not reload it while running (see task research `codex-daemon-auth-cache.md`).
+
+### 1. Scope / Trigger
+
+- Trigger: changing `CodexProcessService::find_managed_daemon`, `restart_codex_daemon`, `DaemonRestartOutcome`, the `ccr codex auth switch` command, or the Codex Auth TUI switch flow.
+- Applies when a successful account switch must reach the Codex clients served by a live shared daemon; a file-only switch does not.
+
+### 2. Signatures
+
+- `CodexProcessService::find_managed_daemon(&self) -> Option<CodexDaemon>` — read-only detection. Reads `CodexPaths::resolve().codex_dir/app-server-daemon/daemon.pid` (serde; only `pid` decides, `processStartTime` / `executableIdentity` stay diagnostic) and cross-checks the PID against the existing owner-scoped narrow argv target set from `discover()`. Missing file, unparsable JSON, or a PID outside the target set returns `None` with a debug log.
+- `restart_codex_daemon() -> DaemonRestartOutcome` (async) — spawns `codex app-server daemon restart` through `ccr_core::core::process_gateway::ManagedProcess::spawn_detached` so the new daemon outlives the command (stdin null, concurrent bounded stdout/stderr drain, 30-second injectable deadline). On success the new PID is confirmed best-effort via `find_managed_daemon()`.
+- `DaemonRestartOutcome { Restarted { pid: Option<u32> }, Failed { detail }, Timeout, Unavailable }` — data-only; each surface renders its own text. No new `CcrError` variants.
+- `CodexDaemon { pid: u32, cmdline: String }` — `cmdline` is the redacted display summary, never the raw command line.
+
+### 3. Contracts
+
+- Detection sends no signals and starts no external processes.
+- Restart goes only through the official `codex app-server daemon restart` command; never `kill` on the daemon PID (the daemon owns lock files and child processes; the official command owns its lifecycle).
+- The restart command runs through `spawn_detached`: on the success path the new daemon (the command's product) must survive the command's exit and the `ManagedProcess` Drop; on timeout the spawned tree is still reclaimed via `terminate_tree`, and the pre-existing daemon is never signalled directly.
+- Drain guardrail: every restart branch bounds its wait on the stdout/stderr drain tasks (`DAEMON_RESTART_DRAIN_WAIT`, 2 s) and proceeds once the bound elapses, so a pipe held open by a surviving descendant delays the outcome by at most the bound instead of hanging the caller. The healthy path is unaffected: the 0.160.1 probe (2026-10-07) measured both pipes reaching EOF at command exit (stdout 315 bytes, stderr 0 bytes, within 5 s). Pipe holding depends on launcher handle inheritance, so the bound, not an unbounded await, is the contract (check probe 2026-10-07: a `Start-Process -NoNewWindow` PowerShell descendant keeps the inherited pipe write ends open for its lifetime).
+- Observable side effect (live-verified 2026-10-07): a shell pipeline around the switch command (`ccr ... | tail`) can stay open while the new daemon lives; use file redirection when scripting this command.
+- Restart failure never rolls back the account switch, never changes exit codes, and never retries.
+- `codex` missing from PATH returns `Unavailable` (warning plus manual command); no exit 127, no panic.
+- `Failed` / `Timeout` details are bounded summaries (first non-empty stderr line, control characters stripped, 160 chars max); raw stderr is never stored or printed in full.
+- Surfaces: CLI prompts interactively with `--restart-daemon` to skip; non-interactive or `--json` prints a stderr warning plus the manual command and leaves the JSON DTO unchanged; TUI shows a warning toast plus a confirm overlay and runs the restart off the UI thread.
+
+### 4. Validation & Error Matrix
+
+| Case | Result | Surface behavior |
+|---|---|---|
+| `daemon.pid` missing | `None` | zero output, zero side effects |
+| `daemon.pid` bad JSON / no `pid` field | `None` (debug log) | same as missing |
+| PID alive but not a matching app-server target | `None` | same as missing |
+| restart exit 0 | `Restarted` | success with new PID when confirmable |
+| restart non-zero | `Failed { detail }` | warning plus manual command |
+| restart exceeds deadline | `Timeout` | warning plus manual command; tree reclaimed |
+| `codex` not on PATH | `Unavailable` | warning plus manual command |
+
+### 5. Good/Base/Bad Cases
+
+- Good: daemon running, interactive switch, user confirms — daemon restarts, new PID reported, new sessions use the new account.
+- Base: no daemon on the machine — detection returns `None`, the switch flow is unchanged.
+- Bad: user declines or restart fails — the switch stays successful; the manual command is shown; exit code unchanged.
+
+### 6. Tests Required
+
+- `daemon.pid` parse/cross-check: missing file, bad JSON, missing `pid` field, live PID outside the target set (current test process), stale PID (`u32::MAX`) → `None`.
+- Hit path: owner-scoped fixture app-server (Unix `sh` arg0 trick / Windows `codex.exe` fixture copy) plus matching `daemon.pid` → `Some` with `cmdline == "codex app-server"` and no sentinel leak.
+- Restart: fake CLI success (stale pid file → `Restarted { pid: None }`), non-zero exit → `Failed` containing the exit code, short deadline with a hanging fixture → `Timeout` plus parent and grandchild reclaimed, missing binary → `Unavailable`.
+- All daemon tests redirect `CCR_CODEX_DIR` via `TestCodexEnv` so they never read the real `~/.codex/app-server-daemon/daemon.pid`; restart tests call the private injectable seam, never PATH.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```rust
+// 直接 kill daemon.pid，绕过官方托管生命周期（锁文件、updater、子进程）
+let pid = read_daemon_pid();
+signal_process(pid, Signal::Term)?;
+```
+
+#### Correct
+
+```rust
+// 检测只读；重启走官方命令 + ManagedProcess 截止时间
+if let Some(daemon) = CodexProcessService::new().find_managed_daemon() {
+    prompt_restart(&daemon); // 交互确认或 --restart-daemon
+}
+let outcome = restart_codex_daemon().await;
+```

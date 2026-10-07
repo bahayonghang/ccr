@@ -7,13 +7,19 @@
 use std::collections::{HashMap, HashSet};
 use std::ffi::{OsStr, OsString};
 use std::path::Path;
+use std::process::Stdio;
 use std::thread;
 use std::time::Duration;
 
+use ccr_core::core::process_gateway::{ManagedProcess, read_bounded_line};
+use serde::Deserialize;
 use sysinfo::{
     Pid, Process, ProcessRefreshKind, ProcessesToUpdate, Signal, System, Uid, UpdateKind,
     get_current_pid,
 };
+use tokio::io::BufReader;
+
+use crate::utils::{CodexPaths, which_on_path};
 
 /// A Codex app-server process visible to the caller.
 ///
@@ -96,6 +102,26 @@ pub struct CodexAppServerCleanupReport {
     pub discovered_during_cleanup: Vec<CodexAppServer>,
     pub signal_failures: Vec<CodexSignalFailure>,
     pub discovery_issue: Option<CodexProcessDiscoveryIssue>,
+}
+
+/// The managed Codex app-server daemon detected through `daemon.pid`.
+///
+/// `cmdline` is a redacted display summary, not the raw process command line.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CodexDaemon {
+    pub pid: u32,
+    pub cmdline: String,
+}
+
+/// `daemon.pid` 的最小解析结构：判定只依赖 `pid` 字段，
+/// `processStartTime` 与 `executableIdentity` 仅作诊断保留。
+#[derive(Debug, Deserialize)]
+struct DaemonPidRecord {
+    pid: u32,
+    #[serde(rename = "processStartTime")]
+    process_start_time: Option<String>,
+    #[serde(rename = "executableIdentity")]
+    _executable_identity: Option<serde_json::Value>,
 }
 
 /// SIGTERM polling interval.
@@ -273,6 +299,221 @@ impl CodexProcessService {
     pub fn cleanup_report(&self, dry_run: bool) -> CodexAppServerCleanupReport {
         let mut backend = SysinfoProcessBackend::default();
         cleanup_with_backend(&mut backend, dry_run, CleanupTiming::default())
+    }
+
+    /// Detect the managed app-server daemon from `daemon.pid`.
+    ///
+    /// Reads `app-server-daemon/daemon.pid` under the resolved Codex home and
+    /// cross-checks the recorded PID against the owner-scoped narrow argv match.
+    /// A missing file, unparsable JSON, or a PID outside the target set returns
+    /// `None`. Detection sends no signals and starts no external processes.
+    pub fn find_managed_daemon(&self) -> Option<CodexDaemon> {
+        let paths = match CodexPaths::resolve() {
+            Ok(paths) => paths,
+            Err(error) => {
+                tracing::debug!(%error, "解析 Codex 路径失败，跳过守护进程检测");
+                return None;
+            }
+        };
+        let pid_path = paths.codex_dir.join("app-server-daemon").join("daemon.pid");
+        let raw = match std::fs::read_to_string(&pid_path) {
+            Ok(raw) => raw,
+            Err(error) => {
+                tracing::debug!(%error, path = %pid_path.display(), "未找到守护进程 pid 文件");
+                return None;
+            }
+        };
+        let record: DaemonPidRecord = match serde_json::from_str(&raw) {
+            Ok(record) => record,
+            Err(error) => {
+                tracing::debug!(%error, path = %pid_path.display(), "守护进程 pid 文件解析失败");
+                return None;
+            }
+        };
+        let mut backend = SysinfoProcessBackend::default();
+        let discovery = match backend.discover() {
+            Ok(discovery) => discovery,
+            Err(issue) => {
+                tracing::debug!(issue = issue.as_str(), "进程枚举不可用，跳过守护进程检测");
+                return None;
+            }
+        };
+        let target = discovery
+            .targets
+            .iter()
+            .find(|process| process.identity.pid == record.pid)?;
+        tracing::debug!(
+            pid = record.pid,
+            start_time = ?record.process_start_time,
+            "已确认托管 app-server 守护进程"
+        );
+        Some(CodexDaemon {
+            pid: target.identity.pid,
+            cmdline: target.display.cmdline.clone(),
+        })
+    }
+}
+
+/// Deadline for the official daemon restart command.
+const DAEMON_RESTART_TIMEOUT: Duration = Duration::from_secs(30);
+/// Grace period for reclaiming the restart process tree after the deadline.
+const DAEMON_RESTART_TERMINATE_GRACE: Duration = Duration::from_secs(1);
+const DAEMON_RESTART_MAX_LINE_BYTES: usize = 16 * 1024;
+const DAEMON_RESTART_MAX_TOTAL_BYTES: usize = 32 * 1024;
+/// 等待排空任务的固定上限；超时按已收集内容继续，防止存活后代持有管道写端时挂起调用方。
+const DAEMON_RESTART_DRAIN_WAIT: Duration = Duration::from_secs(2);
+
+/// Outcome of a managed app-server daemon restart attempt.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DaemonRestartOutcome {
+    /// The official restart command succeeded.
+    ///
+    /// `pid` is the new daemon PID when it could be confirmed, `None` when the
+    /// new process was not visible yet.
+    Restarted { pid: Option<u32> },
+    /// The restart command failed or could not start.
+    Failed { detail: String },
+    /// The restart command exceeded its deadline; its process tree was reclaimed.
+    Timeout,
+    /// The `codex` binary is not available on PATH.
+    Unavailable,
+}
+
+/// Restart the managed app-server daemon through the official CLI.
+///
+/// Runs `codex app-server daemon restart` as one detached managed process with
+/// a 30-second deadline: the new daemon is the command's product and must
+/// survive the command's exit; a timeout still reclaims the spawned tree.
+/// Detection sends no signals.
+pub async fn restart_codex_daemon() -> DaemonRestartOutcome {
+    let Some(bin) = which_on_path("codex") else {
+        tracing::debug!("PATH 中找不到 codex，无法重启守护进程");
+        return DaemonRestartOutcome::Unavailable;
+    };
+    restart_codex_daemon_at(&bin, DAEMON_RESTART_TIMEOUT).await
+}
+
+/// 带可注入截止时间的重启入口（测试 seam）。
+async fn restart_codex_daemon_at(bin: &Path, timeout: Duration) -> DaemonRestartOutcome {
+    let mut command = tokio::process::Command::new(bin);
+    command
+        .args(["app-server", "daemon", "restart"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+
+    // 守护进程是本命令的产物：成功路径必须让它比命令活得更久，
+    // 使用分离模式（成功等待与 Drop 都不清理后代；超时仍显式回收整棵树）。
+    let mut child = match ManagedProcess::spawn_detached(command) {
+        Ok(child) => child,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            tracing::debug!(%error, "codex 可执行文件不可用，无法重启守护进程");
+            return DaemonRestartOutcome::Unavailable;
+        }
+        Err(error) => {
+            return DaemonRestartOutcome::Failed {
+                detail: format!("spawn failed: {error}"),
+            };
+        }
+    };
+
+    // 并发排空受限 stdout/stderr，防止管道写满阻塞子进程。
+    let stdout_task = tokio::spawn(drain_bounded_pipe(child.take_stdout()));
+    let stderr_task = tokio::spawn(drain_bounded_pipe(child.take_stderr()));
+
+    match tokio::time::timeout(timeout, child.wait()).await {
+        Ok(Ok(status)) => {
+            let _ = drain_within_bound(stdout_task).await;
+            let stderr_bytes = drain_within_bound(stderr_task).await;
+            if status.success() {
+                DaemonRestartOutcome::Restarted {
+                    pid: confirmed_daemon_pid(),
+                }
+            } else {
+                DaemonRestartOutcome::Failed {
+                    detail: daemon_restart_exit_detail(status, &stderr_bytes),
+                }
+            }
+        }
+        Ok(Err(error)) => {
+            let _ = drain_within_bound(stdout_task).await;
+            let _ = drain_within_bound(stderr_task).await;
+            DaemonRestartOutcome::Failed {
+                detail: format!("wait failed: {error}"),
+            }
+        }
+        Err(_) => {
+            // 超时只回收本次 spawn 的进程树，不触碰守护进程自身。
+            if let Err(error) = child.terminate_tree(DAEMON_RESTART_TERMINATE_GRACE).await {
+                tracing::warn!(%error, "守护进程重启进程树回收失败");
+            }
+            let _ = drain_within_bound(stdout_task).await;
+            let _ = drain_within_bound(stderr_task).await;
+            DaemonRestartOutcome::Timeout
+        }
+    }
+}
+
+/// 尽力确认重启后的新守护进程 PID（未就绪时返回 None）。
+fn confirmed_daemon_pid() -> Option<u32> {
+    CodexProcessService::new()
+        .find_managed_daemon()
+        .map(|daemon| daemon.pid)
+}
+
+/// 失败摘要：退出码 + 受限的 stderr 首行（不落全量输出）。
+fn daemon_restart_exit_detail(status: std::process::ExitStatus, stderr_bytes: &[u8]) -> String {
+    let code = status
+        .code()
+        .map_or_else(|| "unknown".to_string(), |code| code.to_string());
+    match stderr_summary_line(stderr_bytes) {
+        Some(line) => format!("exit code {code}: {line}"),
+        None => format!("exit code {code}"),
+    }
+}
+
+/// 提取首行非空 stderr 作为受限摘要（去控制字符，最多 160 字符）。
+fn stderr_summary_line(bytes: &[u8]) -> Option<String> {
+    let text = String::from_utf8_lossy(bytes);
+    let line = text.lines().map(str::trim).find(|line| !line.is_empty())?;
+    let summary: String = line
+        .chars()
+        .filter(|ch| !ch.is_control())
+        .take(160)
+        .collect();
+    (!summary.is_empty()).then_some(summary)
+}
+
+/// 受限排空管道：单行与总量都有上限，超限只截断不阻塞。
+async fn drain_bounded_pipe<R>(pipe: Option<R>) -> Vec<u8>
+where
+    R: tokio::io::AsyncRead + Unpin + Send + 'static,
+{
+    let Some(pipe) = pipe else {
+        return Vec::new();
+    };
+    let mut reader = BufReader::new(pipe);
+    let mut out = Vec::new();
+    while let Ok(Some(line)) = read_bounded_line(&mut reader, DAEMON_RESTART_MAX_LINE_BYTES).await {
+        if out.len() >= DAEMON_RESTART_MAX_TOTAL_BYTES {
+            break;
+        }
+        let remaining = DAEMON_RESTART_MAX_TOTAL_BYTES - out.len();
+        let bytes = line.text.as_bytes();
+        let take = bytes.len().min(remaining);
+        out.extend_from_slice(&bytes[..take]);
+        if out.len() < DAEMON_RESTART_MAX_TOTAL_BYTES {
+            out.push(b'\n');
+        }
+    }
+    out
+}
+
+/// 在 [`DAEMON_RESTART_DRAIN_WAIT`] 内等待排空任务；超时或任务失败返回已收集内容。
+async fn drain_within_bound(task: tokio::task::JoinHandle<Vec<u8>>) -> Vec<u8> {
+    match tokio::time::timeout(DAEMON_RESTART_DRAIN_WAIT, task).await {
+        Ok(Ok(bytes)) => bytes,
+        Ok(Err(_)) | Err(_) => Vec::new(),
     }
 }
 
@@ -567,12 +808,13 @@ fn app_server_display_summary(args: &[OsString]) -> String {
 mod tests {
     use std::collections::{HashMap, HashSet, VecDeque};
     use std::ffi::OsString;
+    use std::path::PathBuf;
     use std::time::Duration;
 
     use super::{
-        CleanupTiming, CodexProcessDiscoveryIssue, CodexSignalStage, ProcessBackend,
-        ProcessDiscovery, ProcessIdentity, SignalAttempt, TerminationKind, TrackedProcess,
-        cleanup_with_backend, is_codex_app_server,
+        CleanupTiming, CodexProcessDiscoveryIssue, CodexSignalStage, DaemonRestartOutcome,
+        ProcessBackend, ProcessDiscovery, ProcessIdentity, SignalAttempt, TerminationKind,
+        TrackedProcess, cleanup_with_backend, is_codex_app_server, restart_codex_daemon_at,
     };
     #[cfg(windows)]
     use super::{SysinfoProcessBackend, process_refresh_kind};
@@ -1196,5 +1438,454 @@ mod tests {
             targets,
             alive_identities,
         }
+    }
+
+    #[test]
+    fn managed_daemon_requires_pid_file_and_matching_target() {
+        use super::CodexProcessService;
+
+        let env = crate::test_support::TestCodexEnv::new();
+        let service = CodexProcessService::new();
+
+        // 文件缺失 → None
+        assert_eq!(service.find_managed_daemon(), None);
+
+        let daemon_dir = env.codex_dir().join("app-server-daemon");
+        std::fs::create_dir_all(&daemon_dir).expect("daemon dir should be created");
+        let pid_path = daemon_dir.join("daemon.pid");
+
+        // 坏 JSON → None
+        std::fs::write(&pid_path, b"{ not json").expect("bad json should be written");
+        assert_eq!(service.find_managed_daemon(), None);
+
+        // 缺少 pid 字段 → None
+        std::fs::write(&pid_path, b"{\"processStartTime\":\"134358165894314170\"}")
+            .expect("missing pid field should be written");
+        assert_eq!(service.find_managed_daemon(), None);
+
+        // 存活但不在目标集（当前测试进程）→ None
+        std::fs::write(&pid_path, format!("{{\"pid\":{}}}", std::process::id()))
+            .expect("current pid should be written");
+        assert_eq!(service.find_managed_daemon(), None);
+
+        // 无对应进程的 pid → None
+        std::fs::write(&pid_path, format!("{{\"pid\":{}}}", u32::MAX))
+            .expect("stale pid should be written");
+        assert_eq!(service.find_managed_daemon(), None);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn detects_managed_daemon_from_pid_file() {
+        use super::CodexProcessService;
+        use std::os::unix::process::CommandExt;
+        use std::process::Command;
+        use std::thread;
+
+        let env = crate::test_support::TestCodexEnv::new();
+        let sentinel = "CODEX_DAEMON_SENTINEL_SECRET";
+        let mut command = Command::new("sh");
+        command.arg0("codex").args([
+            "-c",
+            "trap 'exit 0' TERM; while :; do sleep 1; done",
+            "app-server",
+            sentinel,
+        ]);
+        let child = command.spawn().expect("fixture app-server should start");
+        let child_pid = child.id();
+        let _guard = ChildGuard(child);
+        thread::sleep(Duration::from_millis(100));
+
+        let daemon_dir = env.codex_dir().join("app-server-daemon");
+        std::fs::create_dir_all(&daemon_dir).expect("daemon dir should be created");
+        std::fs::write(
+            daemon_dir.join("daemon.pid"),
+            format!(
+                "{{\"pid\":{child_pid},\"processStartTime\":\"134358165894314170\",\"executableIdentity\":{{\"digest\":[\"fixture\"]}}}}"
+            ),
+        )
+        .expect("daemon.pid should be written");
+
+        let daemon = CodexProcessService::new()
+            .find_managed_daemon()
+            .expect("managed daemon fixture should be detected");
+        assert_eq!(daemon.pid, child_pid);
+        assert_eq!(daemon.cmdline, "codex app-server");
+        assert!(!daemon.cmdline.contains(sentinel));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn detects_managed_daemon_from_pid_file() {
+        use super::CodexProcessService;
+        use std::process::{Command, Stdio};
+
+        let env = crate::test_support::TestCodexEnv::new();
+        let fixture_dir = tempfile::tempdir().expect("fixture directory should be created");
+        let fixture_exe = fixture_dir.path().join("codex.exe");
+        std::fs::copy(
+            std::env::current_exe().expect("current test executable should be available"),
+            &fixture_exe,
+        )
+        .expect("controlled Codex fixture should be copied");
+
+        let child = Command::new(&fixture_exe)
+            .arg("app_server_fixture_child")
+            .arg("--nocapture")
+            .arg("--skip")
+            .arg("app-server")
+            .env("CCR_SYSINFO_PROCESS_FIXTURE", "1")
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .expect("controlled Codex fixture should start");
+        let child_pid = child.id();
+        let _guard = ChildGuard(child);
+
+        let daemon_dir = env.codex_dir().join("app-server-daemon");
+        std::fs::create_dir_all(&daemon_dir).expect("daemon dir should be created");
+        std::fs::write(
+            daemon_dir.join("daemon.pid"),
+            format!("{{\"pid\":{child_pid}}}"),
+        )
+        .expect("daemon.pid should be written");
+
+        let mut daemon = None;
+        for _ in 0..50 {
+            if let Some(found) = CodexProcessService::new().find_managed_daemon() {
+                daemon = Some(found);
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        let daemon = daemon.expect("managed daemon fixture should be detected");
+        assert_eq!(daemon.pid, child_pid);
+        assert_eq!(daemon.cmdline, "codex app-server");
+    }
+
+    #[tokio::test]
+    async fn restart_success_reports_restarted_without_stale_pid() {
+        let env = crate::test_support::TestCodexEnv::new();
+        let temp = tempfile::tempdir().expect("tempdir");
+        let bin = write_fake_codex_exit(temp.path(), 0);
+
+        // 过期 pid 文件不得被当作新守护进程上报
+        let daemon_dir = env.codex_dir().join("app-server-daemon");
+        std::fs::create_dir_all(&daemon_dir).expect("daemon dir should be created");
+        std::fs::write(
+            daemon_dir.join("daemon.pid"),
+            format!("{{\"pid\":{}}}", u32::MAX),
+        )
+        .expect("stale daemon.pid should be written");
+
+        let outcome = restart_codex_daemon_at(&bin, Duration::from_secs(10)).await;
+        assert_eq!(outcome, DaemonRestartOutcome::Restarted { pid: None });
+    }
+
+    #[tokio::test]
+    async fn restart_nonzero_exit_reports_bounded_failure_detail() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let bin = write_fake_codex_failure(temp.path(), 7);
+
+        let outcome = restart_codex_daemon_at(&bin, Duration::from_secs(10)).await;
+        match outcome {
+            DaemonRestartOutcome::Failed { detail } => {
+                assert!(
+                    detail.contains('7'),
+                    "failure detail should carry the exit code: {detail}"
+                );
+            }
+            other => panic!("expected Failed outcome, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn restart_timeout_reclaims_process_tree() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let parent_pid_file = temp.path().join("parent.pid");
+        let child_pid_file = temp.path().join("grandchild.pid");
+        let bin = write_hanging_fake_codex(temp.path(), &parent_pid_file, &child_pid_file);
+
+        let outcome = restart_codex_daemon_at(&bin, Duration::from_secs(3)).await;
+        assert_eq!(outcome, DaemonRestartOutcome::Timeout);
+
+        let parent = wait_for_pid_file(&parent_pid_file).await;
+        let grandchild = wait_for_pid_file(&child_pid_file).await;
+        wait_until_process_gone(parent).await;
+        wait_until_process_gone(grandchild).await;
+    }
+
+    #[tokio::test]
+    async fn restart_missing_binary_is_unavailable() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let missing = temp.path().join("missing-codex-binary");
+
+        let outcome = restart_codex_daemon_at(&missing, Duration::from_secs(5)).await;
+        assert_eq!(outcome, DaemonRestartOutcome::Unavailable);
+    }
+
+    #[tokio::test]
+    async fn restart_success_is_bounded_when_descendant_holds_pipes() {
+        let env = crate::test_support::TestCodexEnv::new();
+        let temp = tempfile::tempdir().expect("tempdir");
+        let holder_pid_file = temp.path().join("pipe-holder.pid");
+        let bin = write_pipe_holding_fake_codex(temp.path(), &holder_pid_file);
+
+        // 过期 pid 文件避免把既有守护进程当作新守护进程上报
+        let daemon_dir = env.codex_dir().join("app-server-daemon");
+        std::fs::create_dir_all(&daemon_dir).expect("daemon dir should be created");
+        std::fs::write(
+            daemon_dir.join("daemon.pid"),
+            format!("{{\"pid\":{}}}", u32::MAX),
+        )
+        .expect("stale daemon.pid should be written");
+
+        let started = std::time::Instant::now();
+        let outcome = restart_codex_daemon_at(&bin, Duration::from_secs(10)).await;
+        let elapsed = started.elapsed();
+
+        assert_eq!(outcome, DaemonRestartOutcome::Restarted { pid: None });
+        let holder = wait_for_pid_file(&holder_pid_file).await;
+        assert!(
+            test_process_is_running(holder),
+            "持有管道的后代在结果返回时仍应存活 (pid {holder})"
+        );
+        assert!(
+            elapsed < Duration::from_secs(15),
+            "排空等待应有界，实际耗时 {elapsed:?}"
+        );
+
+        terminate_holder(holder);
+        wait_until_process_gone(holder).await;
+    }
+
+    #[cfg(windows)]
+    fn write_fake_codex_exit(dir: &std::path::Path, code: i32) -> PathBuf {
+        let bin = dir.join("codex.cmd");
+        std::fs::write(&bin, format!("@echo off\r\nexit /b {code}\r\n"))
+            .expect("fake codex script should be written");
+        bin
+    }
+
+    #[cfg(unix)]
+    fn write_fake_codex_exit(dir: &std::path::Path, code: i32) -> PathBuf {
+        write_executable_script(dir, "codex", &format!("#!/bin/sh\nexit {code}\n"))
+    }
+
+    #[cfg(windows)]
+    fn write_fake_codex_failure(dir: &std::path::Path, code: i32) -> PathBuf {
+        let bin = dir.join("codex.cmd");
+        std::fs::write(
+            &bin,
+            format!("@echo off\r\necho restart fixture failure 1>&2\r\nexit /b {code}\r\n"),
+        )
+        .expect("fake codex script should be written");
+        bin
+    }
+
+    #[cfg(unix)]
+    fn write_fake_codex_failure(dir: &std::path::Path, code: i32) -> PathBuf {
+        write_executable_script(
+            dir,
+            "codex",
+            &format!("#!/bin/sh\necho 'restart fixture failure' 1>&2\nexit {code}\n"),
+        )
+    }
+
+    #[cfg(unix)]
+    fn write_executable_script(dir: &std::path::Path, name: &str, body: &str) -> PathBuf {
+        use std::os::unix::fs::PermissionsExt;
+
+        let bin = dir.join(name);
+        std::fs::write(&bin, body).expect("fake script should be written");
+        let mut permissions = std::fs::metadata(&bin)
+            .expect("fake script metadata should be readable")
+            .permissions();
+        permissions.set_mode(0o755);
+        std::fs::set_permissions(&bin, permissions).expect("fake script should be executable");
+        bin
+    }
+
+    #[cfg(unix)]
+    fn write_hanging_fake_codex(
+        dir: &std::path::Path,
+        parent_pid: &std::path::Path,
+        child_pid: &std::path::Path,
+    ) -> PathBuf {
+        write_executable_script(
+            dir,
+            "codex",
+            &format!(
+                "#!/bin/sh\nprintf '%s\\n' \"$$\" > {parent}\n/bin/sleep 30 &\nprintf '%s\\n' \"$!\" > {child}\nwait\n",
+                parent = sh_single_quote(parent_pid),
+                child = sh_single_quote(child_pid),
+            ),
+        )
+    }
+
+    #[cfg(windows)]
+    fn write_hanging_fake_codex(
+        dir: &std::path::Path,
+        parent_pid: &std::path::Path,
+        child_pid: &std::path::Path,
+    ) -> PathBuf {
+        let powershell = PathBuf::from(std::env::var_os("SystemRoot").expect("Windows SystemRoot"))
+            .join(r"System32\WindowsPowerShell\v1.0\powershell.exe");
+        assert!(powershell.is_absolute() && powershell.is_file());
+        let script_path = dir.join("hanging-codex.ps1");
+        let script = format!(
+            "$ErrorActionPreference = 'Stop'\n\
+             [IO.File]::WriteAllText({parent}, [string]$PID)\n\
+             $child = Start-Process -FilePath (Join-Path $PSHOME 'powershell.exe') -ArgumentList '-NoProfile','-NonInteractive','-Command','Start-Sleep -Seconds 30' -PassThru -WindowStyle Hidden\n\
+             if (-not $child -or $child.Id -le 0) {{ throw 'failed to start grandchild' }}\n\
+             [IO.File]::WriteAllText({child}, [string]$child.Id)\n\
+             Start-Sleep -Seconds 30\n",
+            parent = ps_single_quote(parent_pid),
+            child = ps_single_quote(child_pid),
+        );
+        std::fs::write(&script_path, script).expect("hanging codex script should be written");
+        let bin = dir.join("codex.cmd");
+        std::fs::write(
+            &bin,
+            format!(
+                "@echo off\r\n\"{}\" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"{}\"\r\n",
+                powershell.display(),
+                script_path.display()
+            ),
+        )
+        .expect("fake codex launcher should be written");
+        bin
+    }
+
+
+    #[cfg(unix)]
+    fn write_pipe_holding_fake_codex(
+        dir: &std::path::Path,
+        holder_pid: &std::path::Path,
+    ) -> PathBuf {
+        write_executable_script(
+            dir,
+            "codex",
+            &format!(
+                "#!/bin/sh\n/bin/sleep 30 &\nprintf '%s\n' \"$!\" > {holder}\nexit 0\n",
+                holder = sh_single_quote(holder_pid),
+            ),
+        )
+    }
+
+    #[cfg(windows)]
+    fn write_pipe_holding_fake_codex(
+        dir: &std::path::Path,
+        holder_pid: &std::path::Path,
+    ) -> PathBuf {
+        let powershell = PathBuf::from(std::env::var_os("SystemRoot").expect("Windows SystemRoot"))
+            .join(r"System32\WindowsPowerShell\v1.0\powershell.exe");
+        assert!(powershell.is_absolute() && powershell.is_file());
+        let script_path = dir.join("pipe-holder-codex.ps1");
+        let script = format!(
+            "$ErrorActionPreference = 'Stop'\n\
+             $holder = Start-Process -FilePath (Join-Path $PSHOME 'powershell.exe') -ArgumentList '-NoProfile','-NonInteractive','-Command','Start-Sleep -Seconds 30' -PassThru -NoNewWindow\n\
+             if (-not $holder -or $holder.Id -le 0) {{ throw 'failed to start pipe holder' }}\n\
+             [IO.File]::WriteAllText({holder}, [string]$holder.Id)\n",
+            holder = ps_single_quote(holder_pid),
+        );
+        std::fs::write(&script_path, script).expect("pipe holder script should be written");
+        let bin = dir.join("codex.cmd");
+        std::fs::write(
+            &bin,
+            format!(
+                "@echo off\r\n\"{}\" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"{}\"\r\n",
+                powershell.display(),
+                script_path.display()
+            ),
+        )
+        .expect("fake codex launcher should be written");
+        bin
+    }
+
+    #[cfg(windows)]
+    fn terminate_holder(pid: u32) {
+        let pid_arg = pid.to_string();
+        let _ = std::process::Command::new("taskkill")
+            .args(["/PID", pid_arg.as_str(), "/T", "/F"])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status();
+    }
+
+    #[cfg(unix)]
+    fn terminate_holder(pid: u32) {
+        let pid_arg = pid.to_string();
+        let _ = std::process::Command::new("kill")
+            .args(["-9", pid_arg.as_str()])
+            .status();
+    }
+
+    #[cfg(unix)]
+    fn sh_single_quote(path: &std::path::Path) -> String {
+        format!("'{}'", path.display().to_string().replace('\'', "'\\''"))
+    }
+
+    #[cfg(windows)]
+    fn ps_single_quote(path: &std::path::Path) -> String {
+        format!("'{}'", path.display().to_string().replace('\'', "''"))
+    }
+
+    async fn wait_for_pid_file(path: &std::path::Path) -> u32 {
+        for _ in 0..200 {
+            if let Ok(raw) = std::fs::read_to_string(path)
+                && let Ok(pid) = raw.trim().parse()
+            {
+                return pid;
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        panic!("pid file was not written: {}", path.display());
+    }
+
+    async fn wait_until_process_gone(pid: u32) {
+        for _ in 0..200 {
+            if !test_process_is_running(pid) {
+                return;
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        panic!("process {pid} is still running");
+    }
+
+    #[cfg(windows)]
+    fn test_process_is_running(pid: u32) -> bool {
+        const SYNCHRONIZE: u32 = 0x0010_0000;
+        const WAIT_TIMEOUT: u32 = 258;
+        unsafe extern "system" {
+            fn OpenProcess(
+                desired_access: u32,
+                inherit_handle: i32,
+                process_id: u32,
+            ) -> *mut std::ffi::c_void;
+            fn WaitForSingleObject(handle: *mut std::ffi::c_void, milliseconds: u32) -> u32;
+            fn CloseHandle(handle: *mut std::ffi::c_void) -> i32;
+        }
+
+        // SAFETY: 同步句柄在返回前关闭；pid 来自本测试启动的子进程。
+        unsafe {
+            let handle = OpenProcess(SYNCHRONIZE, 0, pid);
+            if handle.is_null() {
+                return false;
+            }
+            let running = WaitForSingleObject(handle, 0) == WAIT_TIMEOUT;
+            CloseHandle(handle);
+            running
+        }
+    }
+
+    #[cfg(unix)]
+    fn test_process_is_running(pid: u32) -> bool {
+        unsafe extern "C" {
+            fn kill(pid: i32, signal: i32) -> i32;
+        }
+        // SAFETY: signal 0 只检查进程是否存在，不发送信号。
+        unsafe { kill(pid as i32, 0) == 0 }
     }
 }
