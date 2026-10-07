@@ -1,0 +1,284 @@
+{
+  "binary": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-cli-native-artifact-tw_65xcm\\ccr.exe",
+  "sha256": "26560b7ae47654a54f12e90cc75f99622439bd21a6af04c15c876a139a7475c6",
+  "fixture": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-output-evidence-fqc1ak_x",
+  "environment_overrides": {
+    "HOME": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-output-evidence-fqc1ak_x",
+    "USERPROFILE": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-output-evidence-fqc1ak_x",
+    "CCR_ROOT": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-output-evidence-fqc1ak_x\\ccr",
+    "CCR_DATA_DIR": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-output-evidence-fqc1ak_x\\ccr",
+    "CCR_CONFIG_PATH": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-output-evidence-fqc1ak_x\\ccr\\config.toml",
+    "CCR_CODEX_DIR": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-output-evidence-fqc1ak_x\\codex",
+    "CODEX_HOME": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-output-evidence-fqc1ak_x\\codex",
+    "CLAUDE_CONFIG_DIR": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-output-evidence-fqc1ak_x\\claude",
+    "CLAUDE_JSON_PATH": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-output-evidence-fqc1ak_x\\.claude.json",
+    "CCR_SETTINGS_PATH": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-output-evidence-fqc1ak_x\\claude\\settings.json",
+    "CCR_BACKUP_DIR": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-output-evidence-fqc1ak_x\\backups",
+    "GROK_HOME": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-output-evidence-fqc1ak_x\\grok",
+    "CCR_LOCK_DIR": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-output-evidence-fqc1ak_x\\locks",
+    "CCR_LOG_LEVEL": "off",
+    "TERM": "xterm-256color",
+    "CLICOLOR": "0",
+    "COLUMNS": "120"
+  },
+  "cases": [
+    {
+      "arguments": [
+        "codex",
+        "auth",
+        "list"
+      ],
+      "exit_code": 0,
+      "stdout": "\nCodex 账号列表\n==========\n  当前认证: OpenAI / ChatGPT / file\n\n┌─────────┬───────────┬─────────────────────┬──────────────────┬──────────┬────────────────────┐\n│ 状态    ┆ 名称      ┆ 邮箱                ┆     最近刷新     ┆ 添加日期 ┆ 描述               │\n╞═════════╪═══════════╪═════════════════════╪══════════════════╪══════════╪════════════════════╡\n│ >> 当前 ┆ default * ┆ tea***@example.test ┆ 2026-01-07 21:09 ┆     -    ┆ (未保存的当前登录) │\n└─────────┴───────────┴─────────────────────┴──────────────────┴──────────┴────────────────────┘\n\n共 0 个已保存账号，1 个未保存的当前登录\n警告: * 标记的账号为未保存的当前登录\n\n下一步\n  查看保存帮助\n    ccr codex auth save --help\n  查看当前账号\n    ccr codex auth current\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "codex",
+        "auth",
+        "current",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"runtime_summary\": {\n    \"mode\": \"runtime_only\",\n    \"current_profile_name\": null,\n    \"current_profile_provider\": null,\n    \"current_profile_auth_mode\": null,\n    \"current_profile_auth_source\": null,\n    \"current_auth_name\": null,\n    \"login_state\": {\n      \"type\": \"LoggedInUnsaved\"\n    },\n    \"auth_state\": {\n      \"intent\": {\n        \"kind\": \"open_ai_auth\",\n        \"method\": \"chatgpt\"\n      },\n      \"store\": \"file\",\n      \"status\": \"valid\",\n      \"reason\": \"检测到 OpenAI ChatGPT 会话令牌\"\n    },\n    \"profile_label\": \"未绑定\",\n    \"auth_label\": \"未保存账号 · OpenAI / ChatGPT\"\n  },\n  \"auth_state\": {\n    \"intent\": {\n      \"kind\": \"open_ai_auth\",\n      \"method\": \"chatgpt\"\n    },\n    \"store\": \"file\",\n    \"status\": \"valid\",\n    \"reason\": \"检测到 OpenAI ChatGPT 会话令牌\"\n  },\n  \"current_auth_info\": {\n    \"account_id\": \"synthetic-account\",\n    \"auth_method\": \"chatgpt\",\n    \"email\": \"teacher@example.test\",\n    \"last_refresh\": \"2026-01-08T03:09:53Z\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "codex",
+        "auth",
+        "save",
+        "teacher"
+      ],
+      "exit_code": 0,
+      "stdout": "成功: 已保存账号 teacher\n  邮箱: tea***@example.test\n\n下一步\n  查看账号\n    ccr codex auth list\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "codex",
+        "auth",
+        "save",
+        "teacher"
+      ],
+      "exit_code": 0,
+      "stdout": "覆盖会替换该账号已保存的凭据快照\n\n下一步\n  覆盖已保存账号\n    ccr codex auth save --force -- teacher\n",
+      "stderr": "错误: 保存失败: 配置文件错误: 账号 'teacher' 已存在，使用 --force 覆盖\n"
+    },
+    {
+      "arguments": [
+        "codex",
+        "auth",
+        "current",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"runtime_summary\": {\n    \"mode\": \"runtime_only\",\n    \"current_profile_name\": null,\n    \"current_profile_provider\": null,\n    \"current_profile_auth_mode\": null,\n    \"current_profile_auth_source\": null,\n    \"current_auth_name\": null,\n    \"login_state\": {\n      \"type\": \"LoggedInUnsaved\"\n    },\n    \"auth_state\": {\n      \"intent\": {\n        \"kind\": \"open_ai_auth\",\n        \"method\": \"chatgpt\"\n      },\n      \"store\": \"file\",\n      \"status\": \"valid\",\n      \"reason\": \"检测到 OpenAI ChatGPT 会话令牌\"\n    },\n    \"profile_label\": \"未绑定\",\n    \"auth_label\": \"未保存账号 · OpenAI / ChatGPT\"\n  },\n  \"auth_state\": {\n    \"intent\": {\n      \"kind\": \"open_ai_auth\",\n      \"method\": \"chatgpt\"\n    },\n    \"store\": \"file\",\n    \"status\": \"valid\",\n    \"reason\": \"检测到 OpenAI ChatGPT 会话令牌\"\n  },\n  \"current_auth_info\": {\n    \"account_id\": \"synthetic-account\",\n    \"auth_method\": \"chatgpt\",\n    \"email\": \"teacher@example.test\",\n    \"last_refresh\": \"2026-01-08T03:09:53Z\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "codex",
+        "auth",
+        "list"
+      ],
+      "exit_code": 0,
+      "stdout": "\nCodex 账号列表\n==========\n  当前认证: OpenAI / ChatGPT / file\n\n┌─────────┬───────────┬─────────────────────┬──────────────────┬────────────┬────────────────────┐\n│ 状态    ┆ 名称      ┆ 邮箱                ┆     最近刷新     ┆  添加日期  ┆ 描述               │\n╞═════════╪═══════════╪═════════════════════╪══════════════════╪════════════╪════════════════════╡\n│ >> 当前 ┆ default * ┆ tea***@example.test ┆ 2026-01-07 21:09 ┆      -     ┆ (未保存的当前登录) │\n├╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\n│         ┆ teacher   ┆ tea***@example.test ┆ 2026-01-07 21:09 ┆ 2026-10-07 ┆ -                  │\n└─────────┴───────────┴─────────────────────┴──────────────────┴────────────┴────────────────────┘\n\n共 1 个已保存账号，1 个未保存的当前登录\n警告: * 标记的账号为未保存的当前登录\n\n下一步\n  查看保存帮助\n    ccr codex auth save --help\n  查看当前账号\n    ccr codex auth current\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "codex",
+        "auth",
+        "delete",
+        "teacher"
+      ],
+      "exit_code": 0,
+      "stdout": "警告: 即将删除账号 teacher\n  邮箱: tea***@example.test\n\n确认删除? (输入 'yes' 确认): 已取消删除\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "claude",
+        "auth",
+        "list"
+      ],
+      "exit_code": 0,
+      "stdout": "\nClaude 官方账号列表\n=============\n\n尚未保存任何官方账号快照\n\n下一步\n  查看保存帮助\n    ccr claude auth save --help\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "claude",
+        "auth",
+        "current",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"runtime_summary\": {\n    \"mode\": \"runtime_only\",\n    \"official_login_state\": {\n      \"type\": \"LoggedInUnsaved\"\n    },\n    \"login_state\": {\n      \"type\": \"LoggedInUnsaved\"\n    },\n    \"auth_diagnosis\": {\n      \"observations\": [\n        {\n          \"kind\": \"subscription_oauth\",\n          \"location\": \"credentials_file\",\n          \"confidence\": \"confirmed\",\n          \"evidence\": \"official_contract\",\n          \"ownership\": \"external_runtime\",\n          \"suppresses_subscription\": false\n        }\n      ],\n      \"presumed_effective_source\": {\n        \"kind\": \"subscription_oauth\",\n        \"location\": \"credentials_file\",\n        \"confidence\": \"confirmed\",\n        \"evidence\": \"official_contract\",\n        \"ownership\": \"external_runtime\",\n        \"suppresses_subscription\": false\n      },\n      \"custom_api_key_responses_present\": false,\n      \"unobservable\": [\n        \"other_shell_environment\",\n        \"project_settings_for_unknown_working_directories\",\n        \"external_process_cli_arguments\",\n        \"managed_settings_dynamic_policy\",\n        \"api_key_helper_result_and_external_secret_store\",\n        \"macos_keychain_contents\"\n      ]\n    }\n  },\n  \"current_auth_info\": {\n    \"account_uuid\": \"synthetic-account\",\n    \"email\": \"teacher@example.test\",\n    \"billing_type\": \"apple_subscription\",\n    \"subscription_type\": \"pro\",\n    \"rate_limit_tier\": \"default_claude_ai\",\n    \"expires_at\": \"2099-01-01T00:00:00Z\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "claude",
+        "auth",
+        "save",
+        "teacher"
+      ],
+      "exit_code": 0,
+      "stdout": "成功: 已保存 Claude 官方账号 teacher\n  邮箱: tea***@example.test\n  订阅类型: pro\n  Access Token 到期: 2099-01-01T00:00:00+00:00\n\n下一步\n  查看账号\n    ccr claude auth list\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "claude",
+        "auth",
+        "save",
+        "teacher"
+      ],
+      "exit_code": 0,
+      "stdout": "覆盖会替换该账号已保存的凭据快照\n\n下一步\n  覆盖已保存账号\n    ccr claude auth save --force -- teacher\n",
+      "stderr": "错误: 保存失败: 资源已存在: Claude auth account 'teacher' 已存在\n"
+    },
+    {
+      "arguments": [
+        "claude",
+        "auth",
+        "current",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"runtime_summary\": {\n    \"mode\": \"runtime_only\",\n    \"current_login_name\": \"teacher\",\n    \"official_login_state\": {\n      \"type\": \"LoggedInSaved\",\n      \"account_name\": \"teacher\"\n    },\n    \"current_auth_name\": \"teacher\",\n    \"login_state\": {\n      \"type\": \"LoggedInSaved\",\n      \"account_name\": \"teacher\"\n    },\n    \"auth_diagnosis\": {\n      \"observations\": [\n        {\n          \"kind\": \"subscription_oauth\",\n          \"location\": \"credentials_file\",\n          \"confidence\": \"confirmed\",\n          \"evidence\": \"official_contract\",\n          \"ownership\": \"external_runtime\",\n          \"suppresses_subscription\": false\n        }\n      ],\n      \"presumed_effective_source\": {\n        \"kind\": \"subscription_oauth\",\n        \"location\": \"credentials_file\",\n        \"confidence\": \"confirmed\",\n        \"evidence\": \"official_contract\",\n        \"ownership\": \"external_runtime\",\n        \"suppresses_subscription\": false\n      },\n      \"custom_api_key_responses_present\": false,\n      \"unobservable\": [\n        \"other_shell_environment\",\n        \"project_settings_for_unknown_working_directories\",\n        \"external_process_cli_arguments\",\n        \"managed_settings_dynamic_policy\",\n        \"api_key_helper_result_and_external_secret_store\",\n        \"macos_keychain_contents\"\n      ]\n    }\n  },\n  \"current_auth_info\": {\n    \"account_uuid\": \"synthetic-account\",\n    \"email\": \"teacher@example.test\",\n    \"billing_type\": \"apple_subscription\",\n    \"subscription_type\": \"pro\",\n    \"rate_limit_tier\": \"default_claude_ai\",\n    \"expires_at\": \"2099-01-01T00:00:00Z\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "claude",
+        "auth",
+        "list"
+      ],
+      "exit_code": 0,
+      "stdout": "\nClaude 官方账号列表\n=============\n\n┌─────────┬─────────┬─────────────────────┬──────┬──────────────────┬──────┐\n│ 状态    ┆ 名称    ┆ 邮箱                ┆ 订阅 ┆ 到期             ┆ 描述 │\n╞═════════╪═════════╪═════════════════════╪══════╪══════════════════╪══════╡\n│ >> 生效 ┆ teacher ┆ tea***@example.test ┆ pro  ┆ 2098-12-31 18:00 ┆ -    │\n└─────────┴─────────┴─────────────────────┴──────┴──────────────────┴──────┘\n\n  当前 Profile: 未绑定\n  当前官方登录: 已登录: teacher\n  当前生效认证: Official / teacher\n\n下一步\n  查看当前认证\n    ccr claude auth current\n  查看切换帮助\n    ccr claude auth switch --help\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "claude",
+        "auth",
+        "delete",
+        "teacher"
+      ],
+      "exit_code": 0,
+      "stdout": "警告: 即将删除账号 teacher\n  邮箱: tea***@example.test\n\n警告: 这是当前匹配到的运行时官方账号\n删除后不会修改 ~/.claude/.credentials.json，但 CCR 将不再跟踪这个快照\n\n确认删除? (输入 'yes' 确认): 已取消删除\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "grok",
+        "auth",
+        "list"
+      ],
+      "exit_code": 0,
+      "stdout": "\nGrok 已保存账号（本地匹配不代表服务端登录有效）\n==========================\n+------+-------+------+----------+--------+\n| 名称 | Scope | 邮箱 | 本地匹配 | 已过期 |\n+=========================================+\n+------+-------+------+----------+--------+\n可保存的 OAuth 来源:\n  https://auth.x.ai::client  未匹配\n暂无已保存账号\n\n下一步\n  查看保存帮助\n    ccr grok auth save --help\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "grok",
+        "auth",
+        "current",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"logged_in\": true\n}\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "grok",
+        "auth",
+        "save",
+        "teacher"
+      ],
+      "exit_code": 0,
+      "stdout": "成功: 已保存 Grok 账号 teacher\n\n下一步\n  查看账号\n    ccr grok auth list\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "grok",
+        "auth",
+        "save",
+        "teacher"
+      ],
+      "exit_code": 90,
+      "stdout": "",
+      "stderr": "\n错误: 验证失败: Account already exists; explicit overwrite confirmation is required\n建议: 运行 'ccr validate' 查看详细的验证报告\n\n"
+    },
+    {
+      "arguments": [
+        "grok",
+        "auth",
+        "current",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"logged_in\": true\n}\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "grok",
+        "auth",
+        "list"
+      ],
+      "exit_code": 0,
+      "stdout": "\nGrok 已保存账号（本地匹配不代表服务端登录有效）\n==========================\n+---------+---------------------------+------+----------+--------+\n| 名称    | Scope                     | 邮箱 | 本地匹配 | 已过期 |\n+================================================================+\n| teacher | https://auth.x.ai::client |      | true     | false  |\n+---------+---------------------------+------+----------+--------+\n可保存的 OAuth 来源:\n  https://auth.x.ai::client  teacher\n\n下一步\n  查看官方会话\n    ccr grok auth current\n  查看切换帮助\n    ccr grok auth switch --help\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "grok",
+        "auth",
+        "delete",
+        "teacher"
+      ],
+      "exit_code": 0,
+      "stdout": "已取消删除\n",
+      "stderr": "删除保存账号不会登出运行时。确认删除? [y/N]: "
+    },
+    {
+      "arguments": [
+        "platform",
+        "list",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"config_file\": \"C:\\\\Users\\\\lyh\\\\AppData\\\\Local\\\\Temp\\\\ccr-output-evidence-fqc1ak_x\\\\ccr\\\\config.toml\",\n  \"platforms\": [\n    {\n      \"name\": \"claude\",\n      \"enabled\": true,\n      \"current_profile\": null,\n      \"description\": \"Claude Code AI Assistant\"\n    },\n    {\n      \"name\": \"codex\",\n      \"enabled\": false,\n      \"current_profile\": null,\n      \"description\": \"Codex\"\n    },\n    {\n      \"name\": \"gemini\",\n      \"enabled\": false,\n      \"current_profile\": null,\n      \"description\": \"Antigravity CLI\"\n    },\n    {\n      \"name\": \"qwen\",\n      \"enabled\": false,\n      \"current_profile\": null,\n      \"description\": \"Qwen CLI\"\n    },\n    {\n      \"name\": \"droid\",\n      \"enabled\": false,\n      \"current_profile\": null,\n      \"description\": \"Factory Droid\"\n    },\n    {\n      \"name\": \"grok\",\n      \"enabled\": false,\n      \"current_profile\": null,\n      \"description\": \"Grok Build\"\n    }\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "doctor",
+        "--platform",
+        "codex",
+        "--json"
+      ],
+      "exit_code": 1,
+      "stdout": "{\n  \"scope\": \"global + platform (codex)\",\n  \"online\": false,\n  \"summary\": {\n    \"passed\": 7,\n    \"warnings\": 0,\n    \"failed\": 1,\n    \"skipped\": 4\n  },\n  \"checks\": [\n    {\n      \"id\": \"global.ccr_root\",\n      \"status\": \"ok\",\n      \"summary\": \"CCR root directory is present.\",\n      \"path\": \"C:\\\\Users\\\\lyh\\\\AppData\\\\Local\\\\Temp\\\\ccr-output-evidence-fqc1ak_x\\\\ccr\"\n    },\n    {\n      \"id\": \"global.registry\",\n      \"status\": \"ok\",\n      \"summary\": \"CCR registry file is readable.\",\n      \"path\": \"C:\\\\Users\\\\lyh\\\\AppData\\\\Local\\\\Temp\\\\ccr-output-evidence-fqc1ak_x\\\\ccr\\\\config.toml\"\n    },\n    {\n      \"id\": \"global.configured_platforms\",\n      \"status\": \"ok\",\n      \"summary\": \"Configured platforms: claude.\",\n      \"detail\": \"Discovered 1 configured platform(s).\"\n    },\n    {\n      \"id\": \"global.claude.runtime\",\n      \"status\": \"ok\",\n      \"summary\": \"Claude Code runtime target is configured.\"\n    },\n    {\n      \"id\": \"global.codex.runtime\",\n      \"status\": \"skip\",\n      \"summary\": \"Codex runtime target is not configured.\",\n      \"recommendation\": \"Create a codex profile before expecting runtime/profile validation for this platform.\"\n    },\n    {\n      \"id\": \"global.grok.runtime\",\n      \"status\": \"skip\",\n      \"summary\": \"Grok Build runtime target is not configured.\",\n      \"recommendation\": \"Create a grok profile before expecting runtime/profile validation for this platform.\"\n    },\n    {\n      \"id\": \"global.conflicts\",\n      \"status\": \"ok\",\n      \"summary\": \"No local cross-platform conflicts were detected.\"\n    },\n    {\n      \"id\": \"platform.codex.profiles_file\",\n      \"status\": \"fail\",\n      \"summary\": \"Codex profiles file is missing.\",\n      \"path\": \"C:\\\\Users\\\\lyh\\\\AppData\\\\Local\\\\Temp\\\\ccr-output-evidence-fqc1ak_x\\\\ccr\\\\platforms\\\\codex\\\\profiles.toml\",\n      \"recommendation\": \"Create Codex profiles under C:\\\\Users\\\\lyh\\\\AppData\\\\Local\\\\Temp\\\\ccr-output-evidence-fqc1ak_x\\\\ccr\\\\platforms\\\\codex\\\\profiles.toml before rerunning doctor.\"\n    },\n    {\n      \"id\": \"platform.codex.current_profile\",\n      \"status\": \"skip\",\n      \"summary\": \"No valid current codex profile could be resolved.\",\n      \"detail\": \"profiles.toml current_config = None, registry current_profile = None.\",\n      \"recommendation\": \"Set a current codex profile and rerun doctor.\"\n    },\n    {\n      \"id\": \"platform.codex.settings_path\",\n      \"status\": \"ok\",\n      \"summary\": \"Codex settings path resolved.\",\n      \"path\": \"C:\\\\Users\\\\lyh\\\\AppData\\\\Local\\\\Temp\\\\ccr-output-evidence-fqc1ak_x\\\\codex\\\\config.toml\"\n    },\n    {\n      \"id\": \"platform.codex.settings_file\",\n      \"status\": \"ok\",\n      \"summary\": \"Codex config.toml is readable.\",\n      \"path\": \"C:\\\\Users\\\\lyh\\\\AppData\\\\Local\\\\Temp\\\\ccr-output-evidence-fqc1ak_x\\\\codex\\\\config.toml\"\n    },\n    {\n      \"id\": \"platform.codex.runtime_auth\",\n      \"status\": \"skip\",\n      \"summary\": \"Skipped Codex runtime/auth validation because no current profile is resolved.\",\n      \"recommendation\": \"Set a current codex profile and rerun doctor.\"\n    }\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "doctor",
+        "--platform",
+        "codex",
+        "--verbose"
+      ],
+      "exit_code": 1,
+      "stdout": "CCR doctor\n==========\n\nScope: global + platform (codex)\nOnline checks: disabled\n\n成功: CCR root directory is present.\n       path: C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-output-evidence-fqc1ak_x\\ccr\n成功: CCR registry file is readable.\n       path: C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-output-evidence-fqc1ak_x\\ccr\\config.toml\n成功: Configured platforms: claude.\n       detail: Discovered 1 configured platform(s).\n成功: Claude Code runtime target is configured.\n跳过: Codex runtime target is not configured.\n       recommendation: Create a codex profile before expecting runtime/profile validation for this platform.\n跳过: Grok Build runtime target is not configured.\n       recommendation: Create a grok profile before expecting runtime/profile validation for this platform.\n成功: No local cross-platform conflicts were detected.\n错误: Codex profiles file is missing.\n       path: C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-output-evidence-fqc1ak_x\\ccr\\platforms\\codex\\profiles.toml\n       recommendation: Create Codex profiles under C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-output-evidence-fqc1ak_x\\ccr\\platforms\\codex\\profiles.toml before rerunning doctor.\n跳过: No valid current codex profile could be resolved.\n       detail: profiles.toml current_config = None, registry current_profile = None.\n       recommendation: Set a current codex profile and rerun doctor.\n成功: Codex settings path resolved.\n       path: C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-output-evidence-fqc1ak_x\\codex\\config.toml\n成功: Codex config.toml is readable.\n       path: C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-output-evidence-fqc1ak_x\\codex\\config.toml\n跳过: Skipped Codex runtime/auth validation because no current profile is resolved.\n       recommendation: Set a current codex profile and rerun doctor.\n\nResults: 7 passed, 0 warnings, 1 failed, 4 skipped\n",
+      "stderr": ""
+    }
+  ],
+  "doctor": "RUN"
+}

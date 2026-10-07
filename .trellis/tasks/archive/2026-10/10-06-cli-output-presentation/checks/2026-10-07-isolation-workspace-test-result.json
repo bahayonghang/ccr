@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "gate": "just ci step Test",
+  "command": "cargo test --workspace --all-features -- --skip export_bindings",
+  "suite_results": 43,
+  "passed": 2101,
+  "failed": 0,
+  "ignored": 19,
+  "filtered_out": 33,
+  "log": "2026-10-07-isolation-just-ci-retest.txt",
+  "note": "Ignored and filtered cases are not counted as passed; aggregate includes unit, integration and doc-test results."
+}

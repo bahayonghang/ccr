@@ -1,0 +1,78 @@
+[
+  {
+    "mode": "normal",
+    "stdout": "\nrunning 1 test\nOUTPUT_PROBE_BEGIN\n\u001b[1;32m成功:\u001b[0m saved teacher\naccount details\n\u001b[1;33m警告:\u001b[0m check account\n\u001b[1;36m进度:\u001b[0m saving\n  \u001b[1m邮箱\u001b[0m: tea***@example.test\n  \u001b[1m描述\u001b[0m: first\n    second\n  \u001b[1m密钥\u001b[0m: sk-t...cdef\nOUTPUT_PROBE_END\ntest output_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s\n\n",
+    "redirected": "stdout",
+    "exit_code": 0
+  },
+  {
+    "mode": "normal",
+    "stderr": "错误: save failed\r\n",
+    "redirected": "stderr",
+    "exit_code": 0
+  },
+  {
+    "mode": "normal",
+    "stderr": "错误: save failed\r\n",
+    "stdout": "\nrunning 1 test\nOUTPUT_PROBE_BEGIN\n\u001b[1;32m成功:\u001b[0m saved teacher\naccount details\n\u001b[1;33m警告:\u001b[0m check account\n\u001b[1;36m进度:\u001b[0m saving\n  \u001b[1m邮箱\u001b[0m: tea***@example.test\n  \u001b[1m描述\u001b[0m: first\n    second\n  \u001b[1m密钥\u001b[0m: sk-t...cdef\nOUTPUT_PROBE_END\ntest output_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s\n\n",
+    "redirected": "both",
+    "exit_code": 0
+  },
+  {
+    "mode": "force",
+    "stdout": "\nrunning 1 test\nOUTPUT_PROBE_BEGIN\n\u001b[1;32m成功:\u001b[0m saved teacher\naccount details\n\u001b[1;33m警告:\u001b[0m check account\n\u001b[1;36m进度:\u001b[0m saving\n  \u001b[1m邮箱\u001b[0m: tea***@example.test\n  \u001b[1m描述\u001b[0m: first\n    second\n  \u001b[1m密钥\u001b[0m: sk-t...cdef\nOUTPUT_PROBE_END\ntest output_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s\n\n",
+    "redirected": "stdout",
+    "exit_code": 0
+  },
+  {
+    "mode": "force",
+    "stderr": "错误: save failed\r\n",
+    "redirected": "stderr",
+    "exit_code": 0
+  },
+  {
+    "mode": "force",
+    "stderr": "错误: save failed\r\n",
+    "stdout": "\nrunning 1 test\nOUTPUT_PROBE_BEGIN\n\u001b[1;32m成功:\u001b[0m saved teacher\naccount details\n\u001b[1;33m警告:\u001b[0m check account\n\u001b[1;36m进度:\u001b[0m saving\n  \u001b[1m邮箱\u001b[0m: tea***@example.test\n  \u001b[1m描述\u001b[0m: first\n    second\n  \u001b[1m密钥\u001b[0m: sk-t...cdef\nOUTPUT_PROBE_END\ntest output_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s\n\n",
+    "redirected": "both",
+    "exit_code": 0
+  },
+  {
+    "mode": "dumb-force",
+    "stdout": "\nrunning 1 test\nOUTPUT_PROBE_BEGIN\n成功: saved teacher\naccount details\n警告: check account\n进度: saving\n  邮箱: tea***@example.test\n  描述: first\n    second\n  密钥: sk-t...cdef\nOUTPUT_PROBE_END\ntest output_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s\n\n",
+    "redirected": "stdout",
+    "exit_code": 0
+  },
+  {
+    "mode": "dumb-force",
+    "stderr": "错误: save failed\r\n",
+    "redirected": "stderr",
+    "exit_code": 0
+  },
+  {
+    "mode": "dumb-force",
+    "stderr": "错误: save failed\r\n",
+    "stdout": "\nrunning 1 test\nOUTPUT_PROBE_BEGIN\n成功: saved teacher\naccount details\n警告: check account\n进度: saving\n  邮箱: tea***@example.test\n  描述: first\n    second\n  密钥: sk-t...cdef\nOUTPUT_PROBE_END\ntest output_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s\n\n",
+    "redirected": "both",
+    "exit_code": 0
+  },
+  {
+    "mode": "no-color",
+    "stdout": "\nrunning 1 test\nOUTPUT_PROBE_BEGIN\n\u001b[1;32m成功:\u001b[0m saved teacher\naccount details\n\u001b[1;33m警告:\u001b[0m check account\n\u001b[1;36m进度:\u001b[0m saving\n  \u001b[1m邮箱\u001b[0m: tea***@example.test\n  \u001b[1m描述\u001b[0m: first\n    second\n  \u001b[1m密钥\u001b[0m: sk-t...cdef\nOUTPUT_PROBE_END\ntest output_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s\n\n",
+    "redirected": "stdout",
+    "exit_code": 0
+  },
+  {
+    "mode": "no-color",
+    "stderr": "错误: save failed\r\n",
+    "redirected": "stderr",
+    "exit_code": 0
+  },
+  {
+    "mode": "no-color",
+    "stderr": "错误: save failed\r\n",
+    "stdout": "\nrunning 1 test\nOUTPUT_PROBE_BEGIN\n\u001b[1;32m成功:\u001b[0m saved teacher\naccount details\n\u001b[1;33m警告:\u001b[0m check account\n\u001b[1;36m进度:\u001b[0m saving\n  \u001b[1m邮箱\u001b[0m: tea***@example.test\n  \u001b[1m描述\u001b[0m: first\n    second\n  \u001b[1m密钥\u001b[0m: sk-t...cdef\nOUTPUT_PROBE_END\ntest output_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s\n\n",
+    "redirected": "both",
+    "exit_code": 0
+  }
+]

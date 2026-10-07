@@ -1,0 +1,1 @@
+First receipt assertion exited 1 with AssertionError. The assertion searched for an uninterrupted error label and message while the forced-color receipt contains a reset sequence between them. No product failure was found. The corrected assertion removes ANSI before comparing the textual label.

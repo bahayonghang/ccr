@@ -1,0 +1,9 @@
+{
+  "source": "C:\\Users\\lyh\\AppData\\Local\\mbx\\targets\\v1\\6b736f3e8608d890383d61470c216d50cd84b38db0e955508f465ce6ab4ea1b5\\release\\ccr.exe",
+  "copy": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-output-baseline-fdwc7k7j\\ccr-baseline.exe",
+  "sha256": "af10d7fc91d82973095d5c28bc22960c405bdd7eb6071a76f94136ff56fa0f99",
+  "length": 20364800,
+  "kind": "existing release artifact; current-source baseline identity not rebuilt",
+  "repository_head_at_copy": "9fafc1116bc7d54004ab3b224b33c2f08cae6fcb",
+  "source_identity": "Existing local release artifact; HEAD identity was not rebuilt or proven. Used only as supplemental prior-output evidence."
+}

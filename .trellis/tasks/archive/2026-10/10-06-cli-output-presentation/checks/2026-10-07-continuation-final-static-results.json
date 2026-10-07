@@ -1,0 +1,26 @@
+[
+  {
+    "command": "just version-check",
+    "exit_code": 0,
+    "elapsed_seconds": 2.6950296,
+    "receipt": "D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\10-06-cli-output-presentation\\checks\\2026-10-07-continuation-version-check-final.txt"
+  },
+  {
+    "command": "just fmt-check",
+    "exit_code": 1,
+    "elapsed_seconds": 5.254849,
+    "receipt": "D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\10-06-cli-output-presentation\\checks\\2026-10-07-continuation-fmt-check-final.txt"
+  },
+  {
+    "command": "just lint-strict",
+    "exit_code": 0,
+    "elapsed_seconds": 11.6956115,
+    "receipt": "D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\10-06-cli-output-presentation\\checks\\2026-10-07-continuation-lint-strict-final.txt"
+  },
+  {
+    "command": "just check-workspace",
+    "exit_code": 0,
+    "elapsed_seconds": 8.040474,
+    "receipt": "D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\10-06-cli-output-presentation\\checks\\2026-10-07-continuation-check-workspace-final.txt"
+  }
+]

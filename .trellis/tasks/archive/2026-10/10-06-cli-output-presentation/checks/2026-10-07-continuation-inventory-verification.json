@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "baseline_calls": 931,
+  "current_calls": 1091,
+  "baseline_semantic": 452,
+  "current_semantic": 961,
+  "inventory_source_hashes": 72,
+  "changed_source_files": 72,
+  "source_manifest": "2026-10-07-continuation-source-manifest.json"
+}

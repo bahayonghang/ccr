@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "head": "528d4bae1b145fd74d7bbc97454caac249a4b896",
+  "files": 82,
+  "unexpected_product_paths": [],
+  "new_staged_files": 0,
+  "deleted_files": 0,
+  "source_manifest": "2026-10-07-isolation-final-source-manifest.json",
+  "git_status": "2026-10-07-isolation-final-git-status.txt",
+  "task_delivery_authorized": false
+}

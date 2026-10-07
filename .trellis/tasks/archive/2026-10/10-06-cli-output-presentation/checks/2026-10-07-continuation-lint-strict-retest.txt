@@ -1,0 +1,11 @@
+🔥 运行严格 Clippy 检查
+⚠️  模式: 所有警告视为错误 + 禁止 unwrap
+📌 注意: 测试代码中的 unwrap 会产生警告
+python scripts/quality/check_secret_writes.py
+Sensitive persistence policy check passed
+cargo clippy --workspace --all-targets --all-features -- -D warnings -D clippy::unwrap_used
+    Checking ccr-cli v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-cli)
+    Checking ccr-tui v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-tui)
+    Checking ccr v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.04s
+✅ 严格 Clippy 检查通过

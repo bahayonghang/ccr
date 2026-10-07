@@ -1,0 +1,50 @@
+{
+  "binary": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-cli-native-artifact-tw_65xcm\\ccr.exe",
+  "sha256": "26560b7ae47654a54f12e90cc75f99622439bd21a6af04c15c876a139a7475c6",
+  "width": 40,
+  "height": 40,
+  "background": "dark",
+  "mode": "no-color",
+  "stdin_redirected": false,
+  "stdout_redirected": false,
+  "stderr_redirected": false,
+  "cases": [
+    "save-long-multiline",
+    "duplicate-error",
+    "copy-normal",
+    "current-runtime",
+    "doctor-statuses",
+    "missing-fields",
+    "leading-seed",
+    "duplicate-leading",
+    "copy-leading"
+  ],
+  "copied_commands": [
+    {
+      "source_snapshot": "D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-40-dark-no-color-duplicate-screen.json",
+      "text": "ccr codex auth save --force -- teacher",
+      "exit_code": 0,
+      "result_snapshot": "D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-40-dark-no-color-copy-normal-screen.json"
+    },
+    {
+      "source_snapshot": "D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-40-dark-no-color-duplicate-leading-screen.json",
+      "text": "ccr codex auth save --force -- -teacher",
+      "exit_code": 0,
+      "result_snapshot": "D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-40-dark-no-color-copy-leading-screen.json"
+    }
+  ],
+  "doctor": "RUN",
+  "exit_codes": [
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0
+  ],
+  "description": "long-field-abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789\n多行描述保持完整",
+  "snapshot_prefix": "D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-40-dark-no-color"
+}

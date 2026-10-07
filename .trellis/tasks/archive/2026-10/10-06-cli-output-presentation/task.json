@@ -1,0 +1,64 @@
+{
+  "id": "cli-output-presentation",
+  "name": "cli-output-presentation",
+  "title": "CLI 信息展示优化",
+  "description": "统一 CLI 状态、详情、进度和操作建议；实施三个已批准子任务并记录兼容性验收",
+  "status": "completed",
+  "dev_type": "backend",
+  "scope": "CLI 提示展示",
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-10-06",
+  "completedAt": "2026-10-07",
+  "branch": "dev",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "10-06-cli-message-contract",
+    "10-06-auth-cli-feedback",
+    "10-06-cli-feedback-rollout"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "2026-10-07: Shared/Auth/rollout implementation and approved path repair verified. FullCI16/16 exit0, workspace2101 pass, native18x9/copy36/mixed12. AC7 Unknown/import interactive gaps retained. In progress; no commit/archive.",
+  "meta": {
+    "planning_consent": "confirmed 2026-10-06",
+    "presentation_style": "user-selected compact symbols and grouping",
+    "implementation_authorized": true,
+    "implementation_approval": "审阅完毕开始实施 (2026-10-06)",
+    "continuation_approval": "请根据这里检查的结果继续实施trellis任务 (2026-10-07)",
+    "verification_status": "LOCAL_GATES_PASS_AC7_UNVERIFIED",
+    "verification_receipt": ".trellis/tasks/10-06-cli-output-presentation/checks/verification.md",
+    "scope_extension": {
+      "status": "APPROVED_2026-10-07",
+      "approval": "批准最小范围扩展（推荐）",
+      "proposal": ".trellis/tasks/10-06-cli-output-presentation/research/windows-fixture-isolation-scope.md",
+      "areas": [
+        "logger path",
+        "ConflictChecker paths",
+        "corresponding process fixtures"
+      ],
+      "delivery_authorized": false,
+      "verification": "PASS_PATH_INDEPENDENT_BINARY_NATIVE_FULL_CI"
+    },
+    "final_gate": "just ci: PASS 16/16, exit 0 (2026-10-07)",
+    "final_gate_receipt": ".trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-isolation-final-gate-verification.json",
+    "acceptance_status": {
+      "AC1": "PASS",
+      "AC2": "PASS_BOUNDED",
+      "AC3": "PASS",
+      "AC4": "PASS_BOUNDED",
+      "AC5": "PASS",
+      "AC6": "PASS_BOUNDED",
+      "AC7": "UNVERIFIED",
+      "AC8": "PASS",
+      "AC9": "PASS",
+      "AC10": "PASS"
+    }
+  }
+}

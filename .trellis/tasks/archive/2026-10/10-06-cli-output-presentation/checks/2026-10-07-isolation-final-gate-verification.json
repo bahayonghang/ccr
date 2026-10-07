@@ -1,0 +1,94 @@
+{
+  "status": "PASS",
+  "command": "just ci",
+  "exit_code": 0,
+  "steps": [
+    {
+      "name": "Version Check",
+      "time": "00:02.383",
+      "status": "PASS"
+    },
+    {
+      "name": "Format Check",
+      "time": "00:06.570",
+      "status": "PASS"
+    },
+    {
+      "name": "OMP Check",
+      "time": "00:01.053",
+      "status": "PASS"
+    },
+    {
+      "name": "Harness Check",
+      "time": "00:01.724",
+      "status": "PASS"
+    },
+    {
+      "name": "Copilot Check",
+      "time": "00:16.885",
+      "status": "PASS"
+    },
+    {
+      "name": "Strict Clippy",
+      "time": "00:06.196",
+      "status": "PASS"
+    },
+    {
+      "name": "Workspace Check",
+      "time": "00:04.058",
+      "status": "PASS"
+    },
+    {
+      "name": "Test",
+      "time": "04:19.178",
+      "status": "PASS"
+    },
+    {
+      "name": "Release Build",
+      "time": "03:17.223",
+      "status": "PASS"
+    },
+    {
+      "name": "Security Audit",
+      "time": "00:15.657",
+      "status": "PASS"
+    },
+    {
+      "name": "CI Governance",
+      "time": "02:15.681",
+      "status": "PASS"
+    },
+    {
+      "name": "Tauri CI",
+      "time": "04:38.121",
+      "status": "PASS"
+    },
+    {
+      "name": "Frontend Check",
+      "time": "03:00.140",
+      "status": "PASS"
+    },
+    {
+      "name": "Frontend Audit",
+      "time": "00:04.705",
+      "status": "PASS"
+    },
+    {
+      "name": "Frontend Coverage",
+      "time": "01:52.882",
+      "status": "PASS"
+    },
+    {
+      "name": "VSCode CI",
+      "time": "00:14.498",
+      "status": "PASS"
+    }
+  ],
+  "source_manifest": "2026-10-07-isolation-final-source-manifest.json",
+  "source_files": 82,
+  "source_hashes_unchanged": true,
+  "head_unchanged": true,
+  "elapsed": "20:36.985",
+  "first_failure_retained": "2026-10-07-isolation-just-ci-first.txt",
+  "native_identity_separate": "2026-10-07-isolation-binary-identity.json"
+}

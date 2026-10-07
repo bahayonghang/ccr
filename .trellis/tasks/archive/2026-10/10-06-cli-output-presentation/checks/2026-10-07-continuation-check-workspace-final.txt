@@ -1,0 +1,9 @@
+🔍 运行工作区类型检查...
+💡 覆盖新拆分 crates，避免旁路 crate 漂移
+cargo check --workspace
+    Checking ccr-sync v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-sync)
+    Checking ccr-cli v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-cli)
+    Checking ccr-tui v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-tui)
+    Checking ccr v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.59s
+✅ 工作区类型检查通过

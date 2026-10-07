@@ -1,0 +1,234 @@
+## dev...origin/dev [ahead 6]
+ M .trellis/spec/ccr-cli/backend/index.md
+ M crates/ccr-cli/src/commands/check_cmd.rs
+ M crates/ccr-cli/src/commands/claude/auth/current.rs
+ M crates/ccr-cli/src/commands/claude/auth/delete.rs
+ M crates/ccr-cli/src/commands/claude/auth/list.rs
+ M crates/ccr-cli/src/commands/claude/auth/off.rs
+ M crates/ccr-cli/src/commands/claude/auth/save.rs
+ M crates/ccr-cli/src/commands/claude/auth/switch.rs
+ M crates/ccr-cli/src/commands/claude/profile.rs
+ M crates/ccr-cli/src/commands/codex/auth/current.rs
+ M crates/ccr-cli/src/commands/codex/auth/delete.rs
+ M crates/ccr-cli/src/commands/codex/auth/export.rs
+ M crates/ccr-cli/src/commands/codex/auth/import.rs
+ M crates/ccr-cli/src/commands/codex/auth/list.rs
+ M crates/ccr-cli/src/commands/codex/auth/rename.rs
+ M crates/ccr-cli/src/commands/codex/auth/repair.rs
+ M crates/ccr-cli/src/commands/codex/auth/save.rs
+ M crates/ccr-cli/src/commands/codex/auth/sync.rs
+ M crates/ccr-cli/src/commands/codex/env.rs
+ M crates/ccr-cli/src/commands/codex/fix.rs
+ M crates/ccr-cli/src/commands/codex/profile.rs
+ M crates/ccr-cli/src/commands/codex/quota.rs
+ M crates/ccr-cli/src/commands/codex/sessions.rs
+ M crates/ccr-cli/src/commands/codex/sync_history.rs
+ M crates/ccr-cli/src/commands/common/prompt.rs
+ M crates/ccr-cli/src/commands/data/budget.rs
+ M crates/ccr-cli/src/commands/data/export.rs
+ M crates/ccr-cli/src/commands/data/history.rs
+ M crates/ccr-cli/src/commands/data/import.rs
+ M crates/ccr-cli/src/commands/data/pricing.rs
+ M crates/ccr-cli/src/commands/data/stats.rs
+ M crates/ccr-cli/src/commands/doctor_cmd.rs
+ M crates/ccr-cli/src/commands/grok/auth.rs
+ M crates/ccr-cli/src/commands/grok/profile.rs
+ M crates/ccr-cli/src/commands/lifecycle/clean.rs
+ M crates/ccr-cli/src/commands/lifecycle/clear.rs
+ M crates/ccr-cli/src/commands/lifecycle/init.rs
+ M crates/ccr-cli/src/commands/lifecycle/optimize.rs
+ M crates/ccr-cli/src/commands/platform/current.rs
+ M crates/ccr-cli/src/commands/platform/info.rs
+ M crates/ccr-cli/src/commands/platform/init.rs
+ M crates/ccr-cli/src/commands/platform/list.rs
+ M crates/ccr-cli/src/commands/platform/profile_init.rs
+ M crates/ccr-cli/src/commands/platform/profile_open.rs
+ M crates/ccr-cli/src/commands/platform/switch.rs
+ M crates/ccr-cli/src/commands/profile/add.rs
+ M crates/ccr-cli/src/commands/profile/current.rs
+ M crates/ccr-cli/src/commands/profile/delete.rs
+ M crates/ccr-cli/src/commands/profile/disable.rs
+ M crates/ccr-cli/src/commands/profile/enable.rs
+ M crates/ccr-cli/src/commands/profile/list.rs
+ M crates/ccr-cli/src/commands/profile/switch.rs
+ M crates/ccr-cli/src/commands/project/init.rs
+ M crates/ccr-cli/src/commands/provider_cmd.rs
+ M crates/ccr-cli/src/commands/sessions_cmd.rs
+ M crates/ccr-cli/src/commands/temp_cmd.rs
+ M crates/ccr-cli/src/commands/temp_token.rs
+ M crates/ccr-cli/src/commands/update.rs
+ M crates/ccr-cli/src/commands/update_failure.rs
+ M crates/ccr-cli/src/services/ui_service.rs
+ M crates/ccr-cli/src/sync/commands.rs
+ M crates/ccr-sync/src/sync/content_selector.rs
+ M crates/ccr/src/main.rs
+ M crates/ccr/tests/commands.rs
+ M docs/en/reference/commands/clean.md
+ M docs/en/reference/commands/doctor.md
+ M docs/reference/commands/clean.md
+ M docs/reference/commands/doctor.md
+?? .trellis/spec/ccr-cli/backend/cli-output-presentation.md
+?? .trellis/tasks/10-06-auth-cli-feedback/check.jsonl
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-boundary-audit.json
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-claude-regression-first.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-claude-regression-first.txt.raw
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-claude-unit-first.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-claude-unit-first.txt.raw
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-codex-regression-first.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-codex-regression-first.txt.raw
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-codex-unit-first.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-codex-unit-first.txt.raw
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-diff-check.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-diff-check.txt.raw
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-empty-import-first.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-empty-import-first.txt.raw
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-empty-import-retest.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-empty-import-retest.txt.raw
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-fmt-check.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-fmt-check.txt.raw
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-grok-regression-first.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-grok-regression-first.txt.raw
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-presentation-first.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-presentation-retest-1.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-presentation-retest-1.txt.raw
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-presentation-retest-2.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-presentation-retest-2.txt.raw
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-receipt-secret-audit.json
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-source-manifest.json
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-state-scan.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/auth-boundary-audit.json
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/auth-callsite-disposition.json
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/auth-semantic-disposition.json
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/binary-final-retest.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/binary-final.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/binary-first.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/binary-retest-2.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/binary-retest.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/claude-regression.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/claude-unit.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/clippy-first.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/codex-regression.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/codex-unit-first.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/codex-unit-retest.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/diff-check.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/fmt-first.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/grok-regression.txt
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/independent-review.md
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/test-results.json
+?? .trellis/tasks/10-06-auth-cli-feedback/checks/verification.md
+?? .trellis/tasks/10-06-auth-cli-feedback/design.md
+?? .trellis/tasks/10-06-auth-cli-feedback/implement.jsonl
+?? .trellis/tasks/10-06-auth-cli-feedback/implement.md
+?? .trellis/tasks/10-06-auth-cli-feedback/prd.md
+?? .trellis/tasks/10-06-auth-cli-feedback/task.json
+?? .trellis/tasks/10-06-cli-feedback-rollout/check.jsonl
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/2026-10-07-docs-audit.txt
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/2026-10-07-docs-build.txt
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/2026-10-07-independent-doctor-renderer-first.txt
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/2026-10-07-independent-doctor-renderer-result.json
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/2026-10-07-independent-scoped-diff-first.txt
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/2026-10-07-independent-scoped-diff-result.json
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/2026-10-07-independent-scoped-fmt-repair.txt
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/2026-10-07-independent-source-flow.json
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/2026-10-07-inventory-summary.json
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/2026-10-07-legacy-label-audit.json
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/2026-10-07-receipt-redaction-audit.json
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/2026-10-07-rollout-binary-first.txt
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/2026-10-07-rollout-binary-retest.txt
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/2026-10-07-rollout-compile.txt
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/complete_inventories.py
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/fix_migration_lint.py
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/independent-review.md
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/initial-transforms.json
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/migrate_calls.py
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/migrate_remaining_semantics.py
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/migrate_semantics.py
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/migrate_sync_direct.py
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/review_calls.py
+?? .trellis/tasks/10-06-cli-feedback-rollout/checks/verification.md
+?? .trellis/tasks/10-06-cli-feedback-rollout/design.md
+?? .trellis/tasks/10-06-cli-feedback-rollout/implement.jsonl
+?? .trellis/tasks/10-06-cli-feedback-rollout/implement.md
+?? .trellis/tasks/10-06-cli-feedback-rollout/prd.md
+?? .trellis/tasks/10-06-cli-feedback-rollout/task.json
+?? .trellis/tasks/10-06-cli-message-contract/check.jsonl
+?? .trellis/tasks/10-06-cli-message-contract/checks/12-startup-output-tests.txt
+?? .trellis/tasks/10-06-cli-message-contract/checks/2026-10-07-18-core-logging.txt
+?? .trellis/tasks/10-06-cli-message-contract/checks/2026-10-07-19-output-presentation.txt
+?? .trellis/tasks/10-06-cli-message-contract/checks/2026-10-07-20-feedback.txt
+?? .trellis/tasks/10-06-cli-message-contract/checks/2026-10-07-21-log-writer.txt
+?? .trellis/tasks/10-06-cli-message-contract/checks/2026-10-07-22-consumer-check.txt
+?? .trellis/tasks/10-06-cli-message-contract/checks/2026-10-07-23-core-clippy.txt
+?? .trellis/tasks/10-06-cli-message-contract/checks/2026-10-07-24-current-boundaries.json
+?? .trellis/tasks/10-06-cli-message-contract/checks/2026-10-07-25-scoped-fmt.txt
+?? .trellis/tasks/10-06-cli-message-contract/checks/2026-10-07-26-scoped-diff.txt
+?? .trellis/tasks/10-06-cli-message-contract/checks/2026-10-07-current-results.json
+?? .trellis/tasks/10-06-cli-message-contract/checks/2026-10-07-independent-current-source-review.md
+?? .trellis/tasks/10-06-cli-message-contract/checks/2026-10-07-scoped-results.json
+?? .trellis/tasks/10-06-cli-message-contract/checks/independent-review.md
+?? .trellis/tasks/10-06-cli-message-contract/checks/independent-startup-supplement-review.md
+?? .trellis/tasks/10-06-cli-message-contract/checks/verification.md
+?? .trellis/tasks/10-06-cli-message-contract/design.md
+?? .trellis/tasks/10-06-cli-message-contract/implement.jsonl
+?? .trellis/tasks/10-06-cli-message-contract/implement.md
+?? .trellis/tasks/10-06-cli-message-contract/prd.md
+?? .trellis/tasks/10-06-cli-message-contract/task.json
+?? .trellis/tasks/10-06-cli-output-presentation/check.jsonl
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-continuation-check-workspace-final.txt
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-continuation-check-workspace-first.txt
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-continuation-check-workspace-retest.txt
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-continuation-diff-check.txt
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-continuation-final-git-status.txt
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-continuation-final-static-results.json
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-continuation-fmt-check-final.txt
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-continuation-fmt-check-first.txt
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-continuation-fmt-check-retest.txt
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-continuation-inventory-verification.json
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-continuation-lint-strict-final.txt
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-continuation-lint-strict-first.txt
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-continuation-lint-strict-retest.txt
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-continuation-source-manifest.json
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-continuation-static-results.json
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-continuation-static-retest-results.json
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-continuation-version-check-final.txt
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-continuation-version-check-first.txt
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-native-preflight.json
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-native-probe-build.txt
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-native-probe-identity.json
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-native-stream-files.json
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-native-stream-pty.json
+?? .trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-native-stream-verification.json
+?? .trellis/tasks/10-06-cli-output-presentation/checks/ConsoleEvidence.cs
+?? .trellis/tasks/10-06-cli-output-presentation/checks/baseline-binary.json
+?? .trellis/tasks/10-06-cli-output-presentation/checks/baseline-process.json
+?? .trellis/tasks/10-06-cli-output-presentation/checks/native-buffer-probe-pty.json
+?? .trellis/tasks/10-06-cli-output-presentation/checks/native-buffer-probe.json
+?? .trellis/tasks/10-06-cli-output-presentation/checks/native-decoration-dumb-retest.json
+?? .trellis/tasks/10-06-cli-output-presentation/checks/native-decoration-dumb.json
+?? .trellis/tasks/10-06-cli-output-presentation/checks/native-smoke.ps1
+?? .trellis/tasks/10-06-cli-output-presentation/checks/native-stream-assert-first.txt
+?? .trellis/tasks/10-06-cli-output-presentation/checks/native-stream-files-retest.json
+?? .trellis/tasks/10-06-cli-output-presentation/checks/native-stream-files.json
+?? .trellis/tasks/10-06-cli-output-presentation/checks/native-stream-probe.ps1
+?? .trellis/tasks/10-06-cli-output-presentation/checks/native-stream-pty-retest.json
+?? .trellis/tasks/10-06-cli-output-presentation/checks/native-stream-pty.json
+?? .trellis/tasks/10-06-cli-output-presentation/checks/native-stream-verification.md
+?? .trellis/tasks/10-06-cli-output-presentation/checks/process_evidence.py
+?? .trellis/tasks/10-06-cli-output-presentation/checks/verification.md
+?? .trellis/tasks/10-06-cli-output-presentation/design.md
+?? .trellis/tasks/10-06-cli-output-presentation/implement.jsonl
+?? .trellis/tasks/10-06-cli-output-presentation/implement.md
+?? .trellis/tasks/10-06-cli-output-presentation/prd.md
+?? .trellis/tasks/10-06-cli-output-presentation/research/auth-presentation-boundaries.md
+?? .trellis/tasks/10-06-cli-output-presentation/research/output-callsite-inventory.json
+?? .trellis/tasks/10-06-cli-output-presentation/research/planning-validation.md
+?? .trellis/tasks/10-06-cli-output-presentation/research/repository-assessment.md
+?? .trellis/tasks/10-06-cli-output-presentation/research/scope-inventory.md
+?? .trellis/tasks/10-06-cli-output-presentation/research/semantic-review-inventory.json
+?? .trellis/tasks/10-06-cli-output-presentation/research/term-dumb-acceptance-gap.md
+?? .trellis/tasks/10-06-cli-output-presentation/research/web-research.md
+?? .trellis/tasks/10-06-cli-output-presentation/research/windows-fixture-isolation-scope.md
+?? .trellis/tasks/10-06-cli-output-presentation/task.json
+?? crates/ccr-core/tests/output_presentation.rs
+?? crates/ccr/tests/commands/output_presentation.rs
+?? crates/ccr/tests/commands/output_presentation_rollout.rs

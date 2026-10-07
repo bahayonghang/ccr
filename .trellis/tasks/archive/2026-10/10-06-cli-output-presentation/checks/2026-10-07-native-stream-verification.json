@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "cases": 12,
+  "scope": "Native Windows shared output probe; target-stream redirection and color modes",
+  "binary_identity": "2026-10-07-native-probe-identity.json",
+  "pty_receipt": "2026-10-07-native-stream-pty.json",
+  "raw_streams": "2026-10-07-native-stream-files.json",
+  "handler_matrix": "NOT_RUN_WINDOWS_LOGGER_ISOLATION",
+  "full_ci": "NOT_RUN_WINDOWS_LOGGER_ISOLATION"
+}

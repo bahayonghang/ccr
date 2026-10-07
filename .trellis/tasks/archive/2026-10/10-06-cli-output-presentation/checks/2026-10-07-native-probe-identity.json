@@ -1,0 +1,5 @@
+{
+  "executable": "D:\\Documents\\Code\\Github\\ccr\\target\\debug\\deps\\output_presentation-33c512ed52c89a01.exe",
+  "sha256": "12ffea3c1ba64402852c2ea922c4769e121e4faf3873b1677372447e9e3739c0",
+  "command": "cargo test -p ccr-core --test output_presentation --no-run --message-format=json"
+}

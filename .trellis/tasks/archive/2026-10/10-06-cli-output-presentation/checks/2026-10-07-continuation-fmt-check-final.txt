@@ -1,0 +1,47 @@
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.011s
+
+OK
+JSON configuration formatting checked: 11 files
+🔍 检查代码格式
+📌 模式: 仅验证，不修改文件
+cargo fmt -- --check
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\doctor_cmd.rs:143:
+                 (DoctorStatus::Skip, "skipped check"),
+             ]
+             .into_iter()
+-            .map(|(status, summary)| crate::services::doctor_service::DoctorCheck {
+-                id: summary.to_string(),
+-                status,
+-                summary: summary.to_string(),
+-                path: None,
+-                detail: None,
+-                recommendation: None,
+-            })
++            .map(
++                |(status, summary)| crate::services::doctor_service::DoctorCheck {
++                    id: summary.to_string(),
++                    status,
++                    summary: summary.to_string(),
++                    path: None,
++                    detail: None,
++                    recommendation: None,
++                },
++            )
+             .collect(),
+         };
+         println!("DOCTOR_RENDER_BEGIN");
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\platform\init.rs:115:
+ 
+     println!();
+     ColorOutput::success("平台初始化完成！");
+-    crate::commands::common::print_next_steps(&[(
+-        "查看平台命令帮助",
+-        "ccr platform --help",
+-    )]);
++    crate::commands::common::print_next_steps(&[("查看平台命令帮助", "ccr platform --help")]);
+ 
+     Ok(())
+ }
+error: recipe `fmt-check` failed on line 467 with exit code 1

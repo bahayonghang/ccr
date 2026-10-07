@@ -1,0 +1,8 @@
+{
+  "binary": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-cli-native-artifact-tw_65xcm\\ccr.exe",
+  "build_artifact": "C:\\Users\\lyh\\AppData\\Local\\mbx\\targets\\v1\\6b736f3e8608d890383d61470c216d50cd84b38db0e955508f465ce6ab4ea1b5\\debug\\ccr.exe",
+  "sha256": "26560b7ae47654a54f12e90cc75f99622439bd21a6af04c15c876a139a7475c6",
+  "source_manifest": "2026-10-07-isolation-source-manifest.json",
+  "build_command": "cargo test -p ccr --test commands -- output_presentation --skip export_bindings",
+  "purpose": "Immutable local evidence copy; no installed or release state claim"
+}

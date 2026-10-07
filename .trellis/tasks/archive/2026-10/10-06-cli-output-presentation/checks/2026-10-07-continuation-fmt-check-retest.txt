@@ -1,0 +1,11 @@
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.009s
+
+OK
+JSON configuration formatting checked: 11 files
+🔍 检查代码格式
+📌 模式: 仅验证，不修改文件
+cargo fmt -- --check
+cargo fmt --manifest-path ccr-ui/src-tauri/Cargo.toml -- --check
+✅ 代码格式符合规范

@@ -1,0 +1,20 @@
+[
+  {
+    "command": "just fmt-check",
+    "exit_code": 0,
+    "elapsed_seconds": 6.9141773,
+    "receipt": "D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\10-06-cli-output-presentation\\checks\\2026-10-07-continuation-fmt-check-retest.txt"
+  },
+  {
+    "command": "just lint-strict",
+    "exit_code": 0,
+    "elapsed_seconds": 10.8360634,
+    "receipt": "D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\10-06-cli-output-presentation\\checks\\2026-10-07-continuation-lint-strict-retest.txt"
+  },
+  {
+    "command": "just check-workspace",
+    "exit_code": 0,
+    "elapsed_seconds": 6.7019047,
+    "receipt": "D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\10-06-cli-output-presentation\\checks\\2026-10-07-continuation-check-workspace-retest.txt"
+  }
+]

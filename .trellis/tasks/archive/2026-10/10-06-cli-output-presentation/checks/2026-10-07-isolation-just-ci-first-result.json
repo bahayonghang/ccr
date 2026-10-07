@@ -1,0 +1,8 @@
+{
+  "command": "just ci",
+  "exit_code": 1,
+  "started_utc": "2026-10-07T15:12:18.5046921Z",
+  "finished_utc": "2026-10-07T15:14:08.8620908Z",
+  "log": ".trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-isolation-just-ci-first.txt",
+  "source_manifest": "2026-10-07-isolation-source-manifest.json"
+}

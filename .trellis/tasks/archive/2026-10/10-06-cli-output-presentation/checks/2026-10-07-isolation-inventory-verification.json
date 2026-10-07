@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "baseline_calls": 931,
+  "current_calls": 1091,
+  "baseline_semantic": 452,
+  "current_semantic": 961,
+  "inventory_source_hashes": 72,
+  "final_source_files": 82,
+  "manifest": "2026-10-07-isolation-final-source-manifest.json",
+  "hashes_current": true
+}

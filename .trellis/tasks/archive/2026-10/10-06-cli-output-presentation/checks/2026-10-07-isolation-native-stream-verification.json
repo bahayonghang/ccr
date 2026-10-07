@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "cases": 12,
+  "identity": "2026-10-07-isolation-native-probe-identity.json",
+  "raw_streams": "2026-10-07-isolation-native-stream-files.json",
+  "pty": "2026-10-07-isolation-native-stream-pty.json",
+  "scope": "Shared-output native 4 color modes x stdout/stderr/both redirection; actual handlers separately verified.",
+  "audit_wrapper_failures": [
+    {
+      "cause": "An inspection used Windows default GBK instead of explicit UTF-8",
+      "product_failure": false
+    },
+    {
+      "cause": "First audit expected a different error message; current probe emits save failed",
+      "product_failure": false
+    }
+  ]
+}
