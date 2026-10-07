@@ -69,7 +69,7 @@ impl CodexModelProviderStoreService {
             .map_err(|e| {
                 CcrError::ConfigError(format!("写入 Codex model providers 失败: {}", e))
             })?;
-        ensure_private_permissions(&self.store_path);
+        ensure_private_permissions(&self.store_path)?;
         Ok(())
     }
 

@@ -784,7 +784,7 @@ mod tests {
         let auth = home.codex_dir().join("auth.json");
         let oauth = |refresh: &str, last_refresh: &str| {
             format!(
-                r#"{{"auth_mode":"chatgpt","tokens":{{"id_token":"synthetic-id","access_token":"access-{refresh}","refresh_token":"{refresh}","account_id":"acc-off"}},"last_refresh":"{last_refresh}"}}"#
+                r#"{{"auth_mode":"chatgpt","tokens":{{"id_token":"header.eyJjaGF0Z3B0X3VzZXJfaWQiOiJ1c2VyLW9mZiJ9.signature","access_token":"access-{refresh}","refresh_token":"{refresh}","account_id":"acc-off"}},"last_refresh":"{last_refresh}"}}"#
             )
         };
         write_json(&auth, &oauth("rt-off-1", "2026-10-01T00:00:00Z"));

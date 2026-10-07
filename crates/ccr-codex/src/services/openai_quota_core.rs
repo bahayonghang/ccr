@@ -1,7 +1,8 @@
 // 💰 OpenAI OAuth 配额共享核心
 // 复用 wham/usage API 查询、JWT 解析与 token 刷新逻辑。
 
-use crate::models::CodexQuota;
+use super::codex_auth_identity::OAuthIdentity;
+use crate::models::{CodexAuthTokens, CodexQuota};
 use chrono::{DateTime, Utc};
 use reqwest::header::{ACCEPT, AUTHORIZATION, HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
@@ -100,15 +101,25 @@ struct UsageResponse {
 }
 
 /// OAuth token 刷新请求
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 struct TokenRefreshRequest {
     grant_type: String,
     refresh_token: String,
     client_id: String,
 }
 
+impl std::fmt::Debug for TokenRefreshRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TokenRefreshRequest")
+            .field("grant_type", &self.grant_type)
+            .field("refresh_token", &"[REDACTED]")
+            .field("client_id", &self.client_id)
+            .finish()
+    }
+}
+
 /// OAuth token 刷新响应
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Clone, Deserialize)]
 pub(crate) struct TokenRefreshResponse {
     pub(crate) access_token: String,
     #[serde(default)]
@@ -117,13 +128,26 @@ pub(crate) struct TokenRefreshResponse {
     pub(crate) refresh_token: Option<String>,
 }
 
+impl std::fmt::Debug for TokenRefreshResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("TokenRefreshResponse([REDACTED])")
+    }
+}
+
 /// 共享 quota 查询所需的最小快照。
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub(crate) struct OpenAiQuotaSnapshot {
+    pub(crate) id_token: Option<String>,
     pub(crate) access_token: String,
     pub(crate) refresh_token: Option<String>,
     pub(crate) account_id: Option<String>,
     pub(crate) email: Option<String>,
+}
+
+impl std::fmt::Debug for OpenAiQuotaSnapshot {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("OpenAiQuotaSnapshot([REDACTED])")
+    }
 }
 
 /// quota 查询成功结果。
@@ -153,11 +177,6 @@ pub(crate) fn normalize_openai_plan(plan: &str) -> String {
         .join(" ")
 }
 
-/// 截取错误响应体预览：最多 `max_bytes` 字节，且不切断 UTF-8 字符（避免切片 panic）
-fn body_preview(body: &str, max_bytes: usize) -> &str {
-    &body[..body.floor_char_boundary(max_bytes)]
-}
-
 #[derive(Debug, Clone)]
 struct CachedQuotaEntry {
     outcome: OpenAiQuotaFetchOutcome,
@@ -169,6 +188,7 @@ pub(crate) struct OpenAiQuotaCore;
 
 impl OpenAiQuotaCore {
     /// 查询 quota；必要时刷新 access token，并通过调用方回写新 token。
+    /// `force_refresh` 仅绕过配额缓存；access token 过期或认证被拒绝时才刷新。
     pub(crate) async fn fetch_quota<F, Fut>(
         snapshot: OpenAiQuotaSnapshot,
         force_refresh: bool,
@@ -188,6 +208,7 @@ impl OpenAiQuotaCore {
             .refresh_token
             .map(|value| value.trim().to_string())
             .filter(|value| !value.is_empty());
+        let mut id_token = snapshot.id_token;
         let mut account_id = snapshot.account_id;
         if account_id.is_none() {
             account_id = Self::extract_account_id(&access_token);
@@ -201,7 +222,7 @@ impl OpenAiQuotaCore {
         if !force_refresh
             && let Some(outcome) = Self::read_cached_quota(
                 account_id.as_deref(),
-                email.as_deref(),
+                id_token.as_deref(),
                 refresh_token.as_deref(),
                 &access_token,
                 Instant::now(),
@@ -213,12 +234,15 @@ impl OpenAiQuotaCore {
             });
         }
 
-        if force_refresh || Self::is_token_expired(&access_token) {
+        if Self::is_token_expired(&access_token) {
             let rt = refresh_token
                 .as_deref()
                 .ok_or_else(|| "Token 已过期且缺少 refresh_token".to_string())?;
             let new_tokens = Self::refresh_access_token(rt).await?;
             persist_tokens(new_tokens.clone()).await?;
+            if let Some(new_id) = new_tokens.id_token.clone() {
+                id_token = Some(new_id);
+            }
             access_token = new_tokens.access_token.clone();
             if let Some(new_refresh) = new_tokens.refresh_token.clone() {
                 refresh_token = Some(new_refresh);
@@ -242,7 +266,7 @@ impl OpenAiQuotaCore {
                 };
                 Self::write_cached_quota(
                     account_id.as_deref(),
-                    outcome.email.as_deref(),
+                    id_token.as_deref(),
                     refresh_token.as_deref(),
                     &access_token,
                     outcome.clone(),
@@ -256,6 +280,9 @@ impl OpenAiQuotaCore {
                 {
                     let new_tokens = Self::refresh_access_token(rt).await?;
                     persist_tokens(new_tokens.clone()).await?;
+                    if let Some(new_id) = new_tokens.id_token.clone() {
+                        id_token = Some(new_id);
+                    }
                     access_token = new_tokens.access_token.clone();
                     if let Some(new_refresh) = new_tokens.refresh_token.clone() {
                         refresh_token = Some(new_refresh);
@@ -277,7 +304,7 @@ impl OpenAiQuotaCore {
                     };
                     Self::write_cached_quota(
                         account_id.as_deref(),
-                        outcome.email.as_deref(),
+                        id_token.as_deref(),
                         refresh_token.as_deref(),
                         &access_token,
                         outcome.clone(),
@@ -445,18 +472,16 @@ impl OpenAiQuotaCore {
             .map_err(|error| format!("读取配额响应失败: {error}"))?;
 
         if !status.is_success() {
-            let body_preview = body_preview(&body, 200);
             let error_code = Self::extract_error_code(&body);
             let mut message = format!("API 返回错误 {status}");
             if let Some(code) = error_code {
                 message.push_str(&format!(" [{code}]"));
             }
-            message.push_str(&format!(" - {body_preview}"));
             return Err(message);
         }
 
         let usage: UsageResponse =
-            serde_json::from_str(&body).map_err(|error| format!("解析配额 JSON 失败: {error}"))?;
+            serde_json::from_str(&body).map_err(|_| "解析配额 JSON 失败".to_string())?;
 
         let network_acquired_at = Utc::now();
         Self::parse_quota(&usage, &body).map(|quota| (quota, network_acquired_at))
@@ -485,17 +510,15 @@ impl OpenAiQuotaCore {
             .map_err(|error| format!("读取 Token 刷新响应失败: {error}"))?;
 
         if !status.is_success() {
-            let body_preview = body_preview(&body, 300);
             let error_code = Self::extract_error_code(&body);
             let mut message = format!("Token 刷新失败 ({status})");
             if let Some(code) = error_code {
                 message.push_str(&format!(" [{code}]"));
             }
-            message.push_str(&format!(": {body_preview}"));
             return Err(message);
         }
 
-        serde_json::from_str(&body).map_err(|error| format!("解析 Token 刷新响应失败: {error}"))
+        serde_json::from_str(&body).map_err(|_| "解析 Token 刷新响应失败".to_string())
     }
 
     fn parse_quota(
@@ -608,25 +631,41 @@ impl OpenAiQuotaCore {
         Some(Utc::now().timestamp() + reset_after)
     }
 
-    fn extract_error_code(body: &str) -> Option<String> {
-        let value: serde_json::Value = serde_json::from_str(body).ok()?;
-        value
-            .get("detail")
-            .and_then(|detail| detail.get("code"))
-            .or_else(|| value.get("error").and_then(|error| error.get("code")))
-            .or_else(|| value.get("code"))
-            .and_then(|code| code.as_str())
-            .map(str::to_string)
+    fn extract_error_code(body: &str) -> Option<&'static str> {
+        if let Ok(value) = serde_json::from_str::<serde_json::Value>(body) {
+            for code in [
+                value.get("detail").and_then(|detail| detail.get("code")),
+                value.get("error").and_then(|error| error.get("code")),
+                value.get("code"),
+                value.get("error"),
+            ]
+            .into_iter()
+            .flatten()
+            .filter_map(serde_json::Value::as_str)
+            {
+                match code {
+                    "token_invalidated" => return Some("token_invalidated"),
+                    "refresh_token_reused" => return Some("refresh_token_reused"),
+                    "refresh_token_invalidated" => return Some("refresh_token_invalidated"),
+                    "refresh_token_expired" => return Some("refresh_token_expired"),
+                    "invalid_grant" => return Some("invalid_grant"),
+                    _ => {}
+                }
+            }
+        }
+        body.to_ascii_lowercase()
+            .contains("authentication token has been invalidated")
+            .then_some("token_invalidated")
     }
 
     fn read_cached_quota(
         account_id: Option<&str>,
-        email: Option<&str>,
+        id_token: Option<&str>,
         refresh_token: Option<&str>,
         access_token: &str,
         now: Instant,
     ) -> Option<OpenAiQuotaFetchOutcome> {
-        let cache_key = Self::cache_key(account_id, email, refresh_token, access_token);
+        let cache_key = Self::cache_key(account_id, id_token, refresh_token, access_token);
         let mut cache = QUOTA_CACHE.lock().ok()?;
         cache.retain(|_, entry| now.saturating_duration_since(entry.cached_at) <= QUOTA_CACHE_TTL);
         cache.get(&cache_key).map(|entry| {
@@ -639,13 +678,13 @@ impl OpenAiQuotaCore {
 
     fn write_cached_quota(
         account_id: Option<&str>,
-        email: Option<&str>,
+        id_token: Option<&str>,
         refresh_token: Option<&str>,
         access_token: &str,
         outcome: OpenAiQuotaFetchOutcome,
         cached_at: Instant,
     ) {
-        let cache_key = Self::cache_key(account_id, email, refresh_token, access_token);
+        let cache_key = Self::cache_key(account_id, id_token, refresh_token, access_token);
         if let Ok(mut cache) = QUOTA_CACHE.lock() {
             cache.insert(cache_key, CachedQuotaEntry { outcome, cached_at });
         }
@@ -653,16 +692,18 @@ impl OpenAiQuotaCore {
 
     fn cache_key(
         account_id: Option<&str>,
-        email: Option<&str>,
+        id_token: Option<&str>,
         refresh_token: Option<&str>,
         access_token: &str,
     ) -> String {
-        if let Some(account_id) = Self::normalized_identity(account_id) {
-            return format!("account:{account_id}");
-        }
-
-        if let Some(email) = Self::normalized_identity(email) {
-            return format!("email:{}", email.to_ascii_lowercase());
+        let tokens = CodexAuthTokens {
+            id_token: id_token.map(str::to_string),
+            access_token: Some(access_token.to_string()),
+            refresh_token: None,
+            account_id: account_id.map(str::to_string),
+        };
+        if let Some(identity) = OAuthIdentity::from_tokens(&tokens) {
+            return format!("identity:{}", identity.key());
         }
 
         if let Some(refresh_token) = Self::normalized_identity(refresh_token) {
@@ -692,16 +733,197 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn body_preview_keeps_ascii_prefix_and_never_splits_multibyte_chars() {
-        let ascii = "a".repeat(250);
-        assert_eq!(body_preview(&ascii, 200), &ascii[..200]);
-        assert_eq!(body_preview("short", 200), "short");
+    fn p4_http_code_extraction_allows_only_fixed_diagnostics() {
+        for body in [
+            json!({"error":{"code":"p4-private-code"}}).to_string(),
+            json!({"detail":{"code":"unknown_invalid_grant_marker"}}).to_string(),
+            "中".repeat(5000),
+        ] {
+            assert!(OpenAiQuotaCore::extract_error_code(&body).is_none());
+        }
+        for code in [
+            "token_invalidated",
+            "refresh_token_reused",
+            "refresh_token_invalidated",
+            "refresh_token_expired",
+            "invalid_grant",
+        ] {
+            for body in [
+                json!({"detail":{"code":code}}),
+                json!({"error":{"code":code}}),
+                json!({"code":code}),
+                json!({"error":code}),
+            ] {
+                assert_eq!(
+                    OpenAiQuotaCore::extract_error_code(&body.to_string()),
+                    Some(code)
+                );
+            }
+        }
+        assert_eq!(OpenAiQuotaCore::extract_error_code(&json!({"error":{"message":"authentication token has been invalidated; p4-private-body"}}).to_string()), Some("token_invalidated"));
+    }
 
-        // 第 200 字节落在多字节字符内部：旧实现 `&body[..200]` 会 panic
-        let mixed = format!("{}中{}", "a".repeat(199), "b".repeat(20));
-        assert_eq!(body_preview(&mixed, 200), "a".repeat(199));
-        let mixed_refresh = format!("{}错误{}", "a".repeat(299), "b".repeat(20));
-        assert_eq!(body_preview(&mixed_refresh, 300), "a".repeat(299));
+    #[test]
+    fn p4_token_http_debug_hides_refresh_and_response_credentials() {
+        let request = TokenRefreshRequest {
+            grant_type: "refresh_token".into(),
+            refresh_token: "p4-private-request".into(),
+            client_id: "client-id".into(),
+        };
+        let response = TokenRefreshResponse {
+            access_token: "p4-private-access".into(),
+            refresh_token: Some("p4-private-refresh".into()),
+            id_token: Some("p4-private-id".into()),
+        };
+        assert!(!format!("{request:?}").contains("p4-private-"));
+        assert!(!format!("{response:?}").contains("p4-private-"));
+    }
+
+    #[tokio::test]
+    async fn p4_http_errors_never_echo_unknown_codes_messages_or_unicode_bodies() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        for body in [
+            json!({"error":{"code":"p4-private-code","message":"p4-private-message@example.invalid"}}).to_string(),
+            format!("{}p4-private-body{}", "中".repeat(199), "文".repeat(5000)),
+            json!({"error":"invalid_grant","error_description":"p4-private-description"}).to_string(),
+        ] {
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let base = format!("http://{}", listener.local_addr().unwrap());
+            let endpoints = TestEndpoints { usage:format!("{base}/usage"), token:format!("{base}/token") };
+            let server_body = body.clone();
+            let server = tokio::spawn(async move {
+                for _ in 0..2 {
+                    let (mut stream, _) = listener.accept().await.unwrap();
+                    let mut buffer = [0u8; 4096];
+                    let length = stream.read(&mut buffer).await.unwrap();
+                    assert!(length > 0);
+                    let response = format!("HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{server_body}", server_body.len());
+                    stream.write_all(response.as_bytes()).await.unwrap();
+                }
+            });
+            let (quota, refresh) = TEST_ENDPOINTS.scope(endpoints, async {
+                (OpenAiQuotaCore::call_usage_api("synthetic-access", None).await.unwrap_err(), OpenAiQuotaCore::refresh_access_token("synthetic-refresh").await.unwrap_err())
+            }).await;
+            server.await.unwrap();
+            for error in [quota, refresh] {
+                assert!(error.contains("400"));
+                assert!(!error.contains("p4-private-") && !error.contains('中') && !error.contains('文'));
+                if body.contains("invalid_grant") { assert!(error.contains("[invalid_grant]")); }
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn p4_invalidated_phrase_on_403_still_refreshes_and_retries() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let endpoints = TestEndpoints {
+            usage: format!("{base}/usage"),
+            token: format!("{base}/token"),
+        };
+        let server = tokio::spawn(async move {
+            let mut methods = Vec::new();
+            for (status, payload) in [
+                (
+                    "403 Forbidden",
+                    json!({"error":{"message":"authentication token has been invalidated; p4-private-body"}}),
+                ),
+                (
+                    "200 OK",
+                    json!({"access_token":"synthetic-new-access", "refresh_token":"synthetic-new-refresh"}),
+                ),
+                (
+                    "200 OK",
+                    json!({"rate_limit":{"primary_window":{"used_percent":15, "limit_window_seconds":18000}}}),
+                ),
+            ] {
+                let (mut stream, _) = listener.accept().await.unwrap();
+                let mut buffer = [0u8; 4096];
+                let length = stream.read(&mut buffer).await.unwrap();
+                methods.push(
+                    String::from_utf8_lossy(&buffer[..length])
+                        .lines()
+                        .next()
+                        .unwrap()
+                        .to_string(),
+                );
+                let body = payload.to_string();
+                stream.write_all(format!("HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+            }
+            methods
+        });
+        let mut persisted = 0;
+        let result = TEST_ENDPOINTS
+            .scope(
+                endpoints,
+                OpenAiQuotaCore::fetch_quota(
+                    OpenAiQuotaSnapshot {
+                        id_token: None,
+                        access_token: fake_jwt(json!({"exp":Utc::now().timestamp()+3600})),
+                        refresh_token: Some("synthetic-old-refresh".into()),
+                        account_id: None,
+                        email: None,
+                    },
+                    true,
+                    |_| {
+                        persisted += 1;
+                        std::future::ready(Ok(()))
+                    },
+                ),
+            )
+            .await
+            .unwrap();
+        assert_eq!(result.quota.hourly_percentage, 85);
+        assert_eq!(persisted, 1);
+        assert_eq!(
+            server.await.unwrap(),
+            [
+                "GET /usage HTTP/1.1",
+                "POST /token HTTP/1.1",
+                "GET /usage HTTP/1.1"
+            ]
+        );
+    }
+
+    #[tokio::test]
+    async fn p4_success_status_parse_errors_do_not_echo_invalid_response_values() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let endpoints = TestEndpoints {
+            usage: format!("{base}/usage"),
+            token: format!("{base}/token"),
+        };
+        let server = tokio::spawn(async move {
+            for payload in [
+                json!({"rate_limit":{"primary_window":{"used_percent":"p4-private-invalid-number"}}}),
+                json!({"access_token":123456789}),
+            ] {
+                let (mut stream, _) = listener.accept().await.unwrap();
+                let mut buffer = [0u8; 4096];
+                let length = stream.read(&mut buffer).await.unwrap();
+                assert!(length > 0);
+                let body = payload.to_string();
+                stream.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+            }
+        });
+        let errors = TEST_ENDPOINTS
+            .scope(endpoints, async {
+                [
+                    OpenAiQuotaCore::call_usage_api("synthetic-access", None)
+                        .await
+                        .unwrap_err(),
+                    OpenAiQuotaCore::refresh_access_token("synthetic-refresh")
+                        .await
+                        .unwrap_err(),
+                ]
+            })
+            .await;
+        server.await.unwrap();
+        for error in errors {
+            assert!(!error.contains("p4-private-") && !error.contains("123456789"));
+        }
     }
 
     fn sample_outcome() -> OpenAiQuotaFetchOutcome {
@@ -737,6 +959,291 @@ mod tests {
                 payload.to_string()
             )
         )
+    }
+
+    #[derive(Default)]
+    struct ManualQuotaRequests {
+        usage_tokens: Vec<String>,
+        refresh_calls: usize,
+    }
+
+    struct ManualQuotaStub {
+        snapshot: OpenAiQuotaSnapshot,
+        refreshed_access: String,
+        endpoints: TestEndpoints,
+        requests: std::sync::Arc<Mutex<ManualQuotaRequests>>,
+        server: tokio::task::JoinHandle<()>,
+    }
+
+    impl Drop for ManualQuotaStub {
+        fn drop(&mut self) {
+            self.server.abort();
+        }
+    }
+
+    impl ManualQuotaStub {
+        async fn start(
+            expired: bool,
+            reject_access: bool,
+            refresh_error: Option<&'static str>,
+        ) -> Self {
+            use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+            let account_id = format!("manual-quota-{}", uuid::Uuid::new_v4());
+            let access = |expiry, nonce| {
+                fake_jwt(json!({
+                    "chatgpt_user_id": format!("user-{account_id}"),
+                    "chatgpt_account_id": account_id,
+                    "exp": expiry,
+                    "nonce": nonce
+                }))
+            };
+            let original_access = access(
+                Utc::now().timestamp() + if expired { -3600 } else { 3600 },
+                0,
+            );
+            let refreshed_access = access(Utc::now().timestamp() + 3600, 1);
+            let snapshot = OpenAiQuotaSnapshot {
+                id_token: Some(original_access.clone()),
+                access_token: original_access.clone(),
+                refresh_token: Some("synthetic-old-refresh".into()),
+                account_id: Some(account_id),
+                email: None,
+            };
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let base = format!("http://{}", listener.local_addr().unwrap());
+            let requests = std::sync::Arc::new(Mutex::new(ManualQuotaRequests::default()));
+            let server_requests = requests.clone();
+            let new_access = refreshed_access.clone();
+            let server = tokio::spawn(async move {
+                while let Ok((mut stream, _)) = listener.accept().await {
+                    let mut buffer = Vec::new();
+                    let mut chunk = [0_u8; 4096];
+                    let header_end = loop {
+                        let read = stream.read(&mut chunk).await.unwrap();
+                        if read == 0 {
+                            return;
+                        }
+                        buffer.extend_from_slice(&chunk[..read]);
+                        if let Some(position) = buffer.windows(4).position(|v| v == b"\r\n\r\n") {
+                            break position + 4;
+                        }
+                    };
+                    let head = String::from_utf8_lossy(&buffer[..header_end]);
+                    let header = |name: &str| {
+                        head.lines().find_map(|line| {
+                            let (key, value) = line.split_once(':')?;
+                            key.eq_ignore_ascii_case(name).then(|| value.trim())
+                        })
+                    };
+                    let body_length = header("content-length")
+                        .and_then(|value| value.parse::<usize>().ok())
+                        .unwrap_or(0);
+                    let method_path = head.lines().next().unwrap().to_string();
+                    let bearer = header("authorization")
+                        .unwrap_or("")
+                        .trim_start_matches("Bearer ")
+                        .to_string();
+                    while buffer.len() < header_end + body_length {
+                        let read = stream.read(&mut chunk).await.unwrap();
+                        if read == 0 {
+                            return;
+                        }
+                        buffer.extend_from_slice(&chunk[..read]);
+                    }
+                    let (status, payload) = {
+                        let mut requests = server_requests.lock().unwrap();
+                        if method_path.starts_with("GET /usage ") {
+                            requests.usage_tokens.push(bearer.clone());
+                            if reject_access && bearer == original_access {
+                                (
+                                    "401 Unauthorized",
+                                    json!({"error":{"code":"token_invalidated"}}),
+                                )
+                            } else {
+                                (
+                                    "200 OK",
+                                    json!({"rate_limit":{"primary_window":{
+                                        "used_percent": requests.usage_tokens.len() * 10,
+                                        "limit_window_seconds": 18000
+                                    }}}),
+                                )
+                            }
+                        } else if method_path.starts_with("POST /oauth/token ") {
+                            requests.refresh_calls += 1;
+                            match refresh_error {
+                                Some(code) => ("401 Unauthorized", json!({"error":{"code":code}})),
+                                None => (
+                                    "200 OK",
+                                    json!({
+                                        "access_token": new_access,
+                                        "id_token": new_access,
+                                        "refresh_token": "synthetic-new-refresh"
+                                    }),
+                                ),
+                            }
+                        } else {
+                            ("404 Not Found", json!({}))
+                        }
+                    };
+                    let body = payload.to_string();
+                    let response = format!(
+                        "HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                        body.len()
+                    );
+                    stream.write_all(response.as_bytes()).await.unwrap();
+                }
+            });
+            Self {
+                snapshot,
+                refreshed_access,
+                endpoints: TestEndpoints {
+                    usage: format!("{base}/usage"),
+                    token: format!("{base}/oauth/token"),
+                },
+                requests,
+                server,
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn manual_quota_uses_live_access_without_refresh_or_persistence() {
+        let stub = ManualQuotaStub::start(false, false, Some("refresh_token_invalidated")).await;
+        let mut persisted = 0;
+        let result = TEST_ENDPOINTS
+            .scope(
+                stub.endpoints.clone(),
+                OpenAiQuotaCore::fetch_quota(stub.snapshot.clone(), true, |_| {
+                    persisted += 1;
+                    std::future::ready(Ok(()))
+                }),
+            )
+            .await;
+
+        assert!(result.is_ok(), "live access should query quota: {result:?}");
+        let outcome = result.unwrap();
+        assert_eq!(outcome.quota.hourly_percentage, 90);
+        assert!(!outcome.cache_hit);
+        assert_eq!(persisted, 0);
+        let requests = stub.requests.lock().unwrap();
+        assert_eq!(requests.refresh_calls, 0);
+        assert_eq!(requests.usage_tokens.len(), 1);
+        assert!(requests.usage_tokens[0] == stub.snapshot.access_token);
+    }
+
+    #[tokio::test]
+    async fn manual_quota_bypasses_cache_without_refreshing_live_access() {
+        let stub = ManualQuotaStub::start(false, false, Some("refresh_token_reused")).await;
+        let mut persisted = 0;
+        TEST_ENDPOINTS
+            .scope(stub.endpoints.clone(), async {
+                let first = OpenAiQuotaCore::fetch_quota(stub.snapshot.clone(), false, |_| {
+                    persisted += 1;
+                    std::future::ready(Ok(()))
+                })
+                .await
+                .unwrap();
+                let cached = OpenAiQuotaCore::fetch_quota(stub.snapshot.clone(), false, |_| {
+                    persisted += 1;
+                    std::future::ready(Ok(()))
+                })
+                .await
+                .unwrap();
+                assert!(cached.cache_hit);
+                assert_eq!(cached.network_acquired_at, first.network_acquired_at);
+                let fresh = OpenAiQuotaCore::fetch_quota(stub.snapshot.clone(), true, |_| {
+                    persisted += 1;
+                    std::future::ready(Ok(()))
+                })
+                .await
+                .unwrap();
+                assert!(!fresh.cache_hit);
+                assert_eq!(fresh.quota.hourly_percentage, 80);
+            })
+            .await;
+        assert_eq!(persisted, 0);
+        let requests = stub.requests.lock().unwrap();
+        assert_eq!(requests.usage_tokens.len(), 2);
+        assert_eq!(requests.refresh_calls, 0);
+    }
+
+    #[tokio::test]
+    async fn manual_quota_refreshes_expired_access_before_query() {
+        let stub = ManualQuotaStub::start(true, false, None).await;
+        let mut persisted = Vec::new();
+        let result = TEST_ENDPOINTS
+            .scope(
+                stub.endpoints.clone(),
+                OpenAiQuotaCore::fetch_quota(stub.snapshot.clone(), true, |tokens| {
+                    persisted.push(tokens.access_token);
+                    std::future::ready(Ok(()))
+                }),
+            )
+            .await;
+        assert!(result.is_ok());
+        assert_eq!(persisted.len(), 1);
+        assert!(persisted[0] == stub.refreshed_access);
+        let requests = stub.requests.lock().unwrap();
+        assert_eq!(requests.refresh_calls, 1);
+        assert_eq!(requests.usage_tokens.len(), 1);
+        assert!(requests.usage_tokens[0] == stub.refreshed_access);
+    }
+
+    #[tokio::test]
+    async fn manual_quota_refreshes_rejected_access_and_retries_query() {
+        let stub = ManualQuotaStub::start(false, true, None).await;
+        let mut persisted = 0;
+        let result = TEST_ENDPOINTS
+            .scope(
+                stub.endpoints.clone(),
+                OpenAiQuotaCore::fetch_quota(stub.snapshot.clone(), true, |_| {
+                    persisted += 1;
+                    std::future::ready(Ok(()))
+                }),
+            )
+            .await;
+        assert!(result.is_ok());
+        assert_eq!(persisted, 1);
+        let requests = stub.requests.lock().unwrap();
+        assert_eq!(requests.refresh_calls, 1);
+        assert_eq!(requests.usage_tokens.len(), 2);
+        assert!(requests.usage_tokens[0] == stub.snapshot.access_token);
+        assert!(requests.usage_tokens[1] == stub.refreshed_access);
+    }
+
+    #[tokio::test]
+    async fn manual_quota_does_not_report_success_when_required_refresh_fails() {
+        for expired in [false, true] {
+            let stub =
+                ManualQuotaStub::start(expired, true, Some("refresh_token_invalidated")).await;
+            let mut persisted = 0;
+            let result = TEST_ENDPOINTS
+                .scope(
+                    stub.endpoints.clone(),
+                    OpenAiQuotaCore::fetch_quota(stub.snapshot.clone(), true, |_| {
+                        persisted += 1;
+                        std::future::ready(Ok(()))
+                    }),
+                )
+                .await;
+            let error = result.unwrap_err();
+            assert!(OpenAiQuotaCore::should_repair_tokens(&error));
+            assert_eq!(persisted, 0);
+            assert!(
+                OpenAiQuotaCore::read_cached_quota(
+                    stub.snapshot.account_id.as_deref(),
+                    stub.snapshot.id_token.as_deref(),
+                    stub.snapshot.refresh_token.as_deref(),
+                    &stub.snapshot.access_token,
+                    Instant::now()
+                )
+                .is_none()
+            );
+            let requests = stub.requests.lock().unwrap();
+            assert_eq!(requests.refresh_calls, 1);
+            assert_eq!(requests.usage_tokens.len(), usize::from(!expired));
+        }
     }
 
     #[test]
@@ -811,16 +1318,20 @@ mod tests {
     }
 
     #[test]
-    fn cache_key_prefers_account_id_for_cross_surface_reuse() {
+    fn cache_key_prefers_complete_identity_for_cross_surface_reuse() {
         let saved_key = OpenAiQuotaCore::cache_key(
             Some("acc-shared"),
-            Some("saved@example.com"),
+            Some(&super::super::codex_auth_identity::test_jwt(
+                json!({"chatgpt_user_id":"cache-user"}),
+            )),
             Some("refresh-a"),
             "access-a",
         );
         let runtime_key = OpenAiQuotaCore::cache_key(
             Some("acc-shared"),
-            Some("runtime@example.com"),
+            Some(&super::super::codex_auth_identity::test_jwt(
+                json!({"chatgpt_user_id":"cache-user"}),
+            )),
             Some("refresh-b"),
             "access-b",
         );
@@ -829,13 +1340,15 @@ mod tests {
     }
 
     #[test]
-    fn quota_cache_reuses_recent_entry_for_same_account_id() {
+    fn quota_cache_reuses_recent_entry_for_same_complete_identity() {
         let now = Instant::now();
         let outcome = sample_outcome();
 
         OpenAiQuotaCore::write_cached_quota(
             Some("acc-shared"),
-            Some("saved@example.com"),
+            Some(&super::super::codex_auth_identity::test_jwt(
+                json!({"chatgpt_user_id":"cache-user"}),
+            )),
             Some("refresh-a"),
             "access-a",
             outcome.clone(),
@@ -844,7 +1357,9 @@ mod tests {
 
         let cached = OpenAiQuotaCore::read_cached_quota(
             Some("acc-shared"),
-            Some("runtime@example.com"),
+            Some(&super::super::codex_auth_identity::test_jwt(
+                json!({"chatgpt_user_id":"cache-user"}),
+            )),
             Some("refresh-b"),
             "access-b",
             now + ChronoDuration::seconds(5)
@@ -870,7 +1385,7 @@ mod tests {
             Some("refresh-token"),
             "access-token",
             sample_outcome(),
-            now,
+            now - QUOTA_CACHE_TTL - std::time::Duration::from_secs(1),
         );
 
         let cached = OpenAiQuotaCore::read_cached_quota(
@@ -878,10 +1393,90 @@ mod tests {
             Some("user@example.com"),
             Some("refresh-token"),
             "access-token",
-            now + QUOTA_CACHE_TTL + std::time::Duration::from_secs(1),
+            now,
         );
 
         assert!(cached.is_none());
+    }
+
+    #[test]
+    fn quota_cache_isolates_users_and_unknown_identities_in_one_workspace() {
+        let now = Instant::now();
+        let user_a = super::super::codex_auth_identity::test_jwt(
+            json!({"chatgpt_user_id":"cache-isolation-a"}),
+        );
+        let user_b = super::super::codex_auth_identity::test_jwt(
+            json!({"chatgpt_user_id":"cache-isolation-b"}),
+        );
+        OpenAiQuotaCore::write_cached_quota(
+            Some("workspace-isolation"),
+            Some(&user_a),
+            Some("refresh-a-isolation"),
+            "access-a-isolation",
+            sample_outcome(),
+            now,
+        );
+        assert!(
+            OpenAiQuotaCore::read_cached_quota(
+                Some("workspace-isolation"),
+                Some(&user_a),
+                Some("refresh-a2-isolation"),
+                "access-a2-isolation",
+                now
+            )
+            .is_some()
+        );
+        assert!(
+            OpenAiQuotaCore::read_cached_quota(
+                Some("workspace-isolation"),
+                Some(&user_b),
+                Some("refresh-b-isolation"),
+                "access-b-isolation",
+                now
+            )
+            .is_none()
+        );
+        assert!(
+            OpenAiQuotaCore::read_cached_quota(
+                Some("workspace-isolation"),
+                None,
+                Some("refresh-b-isolation"),
+                "access-b-isolation",
+                now
+            )
+            .is_none()
+        );
+        assert_ne!(
+            OpenAiQuotaCore::cache_key(
+                Some("workspace"),
+                None,
+                Some("refresh-unknown-a"),
+                "access"
+            ),
+            OpenAiQuotaCore::cache_key(
+                Some("workspace"),
+                None,
+                Some("refresh-unknown-b"),
+                "access"
+            )
+        );
+        assert_ne!(
+            OpenAiQuotaCore::cache_key(Some("workspace"), None, None, "access-unknown-a"),
+            OpenAiQuotaCore::cache_key(Some("workspace"), None, None, "access-unknown-b")
+        );
+        let snapshot = OpenAiQuotaSnapshot {
+            id_token: Some(user_a.clone()),
+            access_token: "access-secret".into(),
+            refresh_token: Some("refresh-secret".into()),
+            account_id: Some("workspace".into()),
+            email: None,
+        };
+        let debug = format!("{snapshot:?}");
+        assert!(
+            !debug.contains(&user_a)
+                && !debug.contains("access-secret")
+                && !debug.contains("refresh-secret")
+        );
     }
 
     #[test]

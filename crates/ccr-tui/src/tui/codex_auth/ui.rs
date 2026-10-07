@@ -2254,6 +2254,17 @@ pub(crate) mod tests {
         };
     }
 
+    pub(crate) fn set_fixture_relogin_error(app: &mut CodexAuthApp) {
+        app.quota_state = QuotaState::Error {
+            account_name: "codexcn".into(),
+            message: format!(
+                "{}Token 刷新失败 (401 Unauthorized) [refresh_token_invalidated]",
+                ccr_codex::services::codex_quota_service::RELOGIN_REQUIRED_PREFIX
+            ),
+            cache: Default::default(),
+        };
+    }
+
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     pub(crate) enum UsagePresentationCase {
         Estimate,
@@ -2785,6 +2796,7 @@ pub(crate) mod tests {
         ccr_cli::models::CodexAuthAccount {
             description: Some("Primary account".to_string()),
             account_id: "acc-codexcn".to_string(),
+            identity_key: None,
             auth_method,
             api_base_url: None,
             api_provider_name: None,
@@ -2794,6 +2806,7 @@ pub(crate) mod tests {
             last_used: None,
             last_refresh: None,
             expires_at: None,
+            extra: toml::Table::new(),
         }
     }
 

@@ -63,13 +63,24 @@ impl CodexProfileAuthMode {
 }
 
 /// Profile 级别的 secret 记录
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CodexProfileSecret {
     pub auth_mode: CodexProfileAuthMode,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub env_key: Option<String>,
     pub secret: String,
     pub updated_at: DateTime<Utc>,
+}
+
+impl std::fmt::Debug for CodexProfileSecret {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CodexProfileSecret")
+            .field("auth_mode", &self.auth_mode)
+            .field("env_key", &self.env_key)
+            .field("secret", &"[REDACTED]")
+            .field("updated_at", &self.updated_at)
+            .finish()
+    }
 }
 
 /// CCR 管理的 Codex profile secret store
@@ -224,7 +235,7 @@ pub struct AuthState {
 /// Codex 账号元数据
 ///
 /// 存储在 auth_registry.toml 中的账号信息
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct CodexAuthAccount {
     /// 账号描述
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -232,6 +243,10 @@ pub struct CodexAuthAccount {
 
     /// 账号 ID (从 auth.json 提取)
     pub account_id: String,
+
+    /// Internal OAuth association key. Public account DTOs omit this field.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub identity_key: Option<String>,
 
     /// OpenAI 登录方式
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -267,6 +282,33 @@ pub struct CodexAuthAccount {
     /// 到期时间 (可选)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<DateTime<Utc>>,
+
+    /// 保留较新版本写入的未知账号字段。
+    #[serde(flatten)]
+    pub extra: toml::Table,
+}
+
+impl std::fmt::Debug for CodexAuthAccount {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CodexAuthAccount")
+            .field("description", &self.description)
+            .field("account_id", &self.account_id)
+            .field(
+                "identity_key",
+                &self.identity_key.as_ref().map(|_| "[REDACTED]"),
+            )
+            .field("auth_method", &self.auth_method)
+            .field("api_base_url", &self.api_base_url)
+            .field("api_provider_name", &self.api_provider_name)
+            .field("email", &self.email)
+            .field("plan_type", &self.plan_type)
+            .field("saved_at", &self.saved_at)
+            .field("last_used", &self.last_used)
+            .field("last_refresh", &self.last_refresh)
+            .field("expires_at", &self.expires_at)
+            .field("extra", &"[REDACTED]")
+            .finish()
+    }
 }
 
 /// Codex 使用量归因激活记录
@@ -288,7 +330,7 @@ pub struct CodexUsageActivation {
 /// Codex 账号注册表
 ///
 /// 存储在 ~/.ccr/platforms/codex/auth_registry.toml
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct CodexAuthRegistry {
     /// 版本号
     #[serde(default = "default_version")]
@@ -305,6 +347,22 @@ pub struct CodexAuthRegistry {
     /// CCR 维护的 usage 归因账本
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub usage_ledger: Vec<CodexUsageActivation>,
+
+    /// 保留较新版本写入的未知注册表字段。
+    #[serde(flatten)]
+    pub extra: toml::Table,
+}
+
+impl std::fmt::Debug for CodexAuthRegistry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CodexAuthRegistry")
+            .field("version", &self.version)
+            .field("current_auth", &self.current_auth)
+            .field("accounts", &self.accounts)
+            .field("usage_ledger", &self.usage_ledger)
+            .field("extra", &"[REDACTED]")
+            .finish()
+    }
 }
 
 fn default_version() -> String {
@@ -318,6 +376,7 @@ impl Default for CodexAuthRegistry {
             current_auth: None,
             accounts: IndexMap::new(),
             usage_ledger: Vec::new(),
+            extra: toml::Table::new(),
         }
     }
 }
@@ -569,7 +628,7 @@ pub enum InputMode {
 /// Codex auth.json 文件结构
 ///
 /// 用于解析 ~/.codex/auth.json
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct CodexAuthJson {
     /// OpenAI API Key (可选)
     #[serde(rename = "OPENAI_API_KEY")]
@@ -584,8 +643,14 @@ pub struct CodexAuthJson {
     pub last_refresh: Option<String>,
 }
 
+impl std::fmt::Debug for CodexAuthJson {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("CodexAuthJson([REDACTED])")
+    }
+}
+
 /// Codex OAuth tokens 结构
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct CodexAuthTokens {
     /// ID Token (JWT)
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -602,6 +667,12 @@ pub struct CodexAuthTokens {
     /// 账号 ID
     #[serde(skip_serializing_if = "Option::is_none")]
     pub account_id: Option<String>,
+}
+
+impl std::fmt::Debug for CodexAuthTokens {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("CodexAuthTokens([REDACTED])")
+    }
 }
 
 // ==================== 导入/导出数据结构 ====================
@@ -853,6 +924,70 @@ pub struct CodexQuotaError {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
+    #[test]
+    fn p4_registry_and_account_extra_debug_redact_raw_values() {
+        use super::*;
+        let mut account: CodexAuthAccount = serde_json::from_value(serde_json::json!({"account_id":"synthetic-workspace", "saved_at":"2026-10-01T00:00:00Z"})).unwrap();
+        account.extra.insert(
+            "credential_marker".into(),
+            toml::Value::String("p4-private-account-extra".into()),
+        );
+        let mut registry = CodexAuthRegistry::default();
+        registry.extra.insert(
+            "credential_marker".into(),
+            toml::Value::String("p4-private-registry-extra".into()),
+        );
+        registry
+            .accounts
+            .insert("synthetic".into(), account.clone());
+        let account_marker = format!("{account:?}").contains("p4-private-");
+        let registry_marker = format!("{registry:?}").contains("p4-private-");
+        println!(
+            "synthetic extra marker visible: account={account_marker} registry={registry_marker}"
+        );
+        assert!(!account_marker && !registry_marker);
+        assert!(
+            toml::to_string(&account)
+                .unwrap()
+                .contains("p4-private-account-extra")
+        );
+        let disk = toml::to_string(&registry).unwrap();
+        assert!(
+            disk.contains("p4-private-account-extra") && disk.contains("p4-private-registry-extra")
+        );
+    }
+
+    #[test]
+    fn p4_auth_and_profile_debug_redact_credentials_without_changing_serde() {
+        use super::*;
+        let auth: CodexAuthJson = serde_json::from_value(serde_json::json!({
+            "OPENAI_API_KEY":"p4-private-key", "tokens":{
+                "id_token":"p4-private-id", "access_token":"p4-private-access",
+                "refresh_token":"p4-private-refresh", "account_id":"p4-private-account"
+            }, "last_refresh":"2026-10-06T00:00:00Z"
+        }))
+        .unwrap();
+        let profile = CodexProfileSecret {
+            auth_mode: CodexProfileAuthMode::OpenAiApiKey,
+            env_key: None,
+            secret: "p4-private-profile".into(),
+            updated_at: Utc::now(),
+        };
+        for debug in [
+            format!("{auth:?}"),
+            format!("{:?}", auth.tokens),
+            format!("{profile:?}"),
+        ] {
+            assert!(!debug.contains("p4-private-"));
+        }
+        let disk = serde_json::to_string(&auth).unwrap();
+        assert!(disk.contains("p4-private-refresh"));
+        assert!(
+            serde_json::to_string(&profile)
+                .unwrap()
+                .contains("p4-private-profile")
+        );
+    }
     use super::*;
 
     #[test]
@@ -1001,6 +1136,7 @@ mod tests {
         let account = CodexAuthAccount {
             description: Some("Test account".to_string()),
             account_id: "acc-123".to_string(),
+            identity_key: None,
             auth_method: Some(OpenAiAuthMethod::Api),
             api_base_url: None,
             api_provider_name: None,
@@ -1010,6 +1146,7 @@ mod tests {
             last_used: None,
             last_refresh: Some(Utc::now()),
             expires_at: Some(Utc::now() + chrono::Duration::days(30)),
+            extra: toml::Table::new(),
         };
 
         // Test serialization
@@ -1028,6 +1165,7 @@ mod tests {
         let account = CodexAuthAccount {
             description: None,
             account_id: "acc-456".to_string(),
+            identity_key: None,
             auth_method: None,
             api_base_url: None,
             api_provider_name: None,
@@ -1037,16 +1175,34 @@ mod tests {
             last_used: None,
             last_refresh: None,
             expires_at: None,
+            extra: toml::Table::new(),
         };
 
         // Test serialization - expires_at should be omitted
         let toml_str = toml::to_string(&account).unwrap();
         assert!(!toml_str.contains("expires_at"));
+        assert!(!toml_str.contains("identity_key"));
 
         // Test deserialization
         let parsed: CodexAuthAccount = toml::from_str(&toml_str).unwrap();
         assert_eq!(parsed.account_id, "acc-456");
         assert!(parsed.expires_at.is_none());
+    }
+
+    #[test]
+    fn registry_identity_key_round_trips_without_debug_disclosure() {
+        let mut account: CodexAuthAccount = serde_json::from_value(
+            serde_json::json!({"account_id":"workspace","saved_at":"2026-10-01T00:00:00Z"}),
+        )
+        .unwrap();
+        assert!(account.identity_key.is_none());
+        account.identity_key = Some("synthetic-user::workspace".into());
+        let content = toml::to_string(&account).unwrap();
+        let parsed: CodexAuthAccount = toml::from_str(&content).unwrap();
+        assert_eq!(parsed.identity_key, account.identity_key);
+        let debug = format!("{parsed:?}");
+        assert!(debug.contains("[REDACTED]"));
+        assert!(!debug.contains("synthetic-user"));
     }
 
     #[test]
@@ -1060,6 +1216,7 @@ mod tests {
             CodexAuthAccount {
                 description: Some("Main account".to_string()),
                 account_id: "acc-main".to_string(),
+                identity_key: None,
                 auth_method: Some(OpenAiAuthMethod::Chatgpt),
                 api_base_url: None,
                 api_provider_name: None,
@@ -1069,6 +1226,7 @@ mod tests {
                 last_used: Some(Utc::now()),
                 last_refresh: Some(Utc::now()),
                 expires_at: Some(Utc::now() + chrono::Duration::days(7)),
+                extra: toml::Table::new(),
             },
         );
         registry.record_usage_activation("main", "acc-main", Utc::now());

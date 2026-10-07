@@ -3041,6 +3041,7 @@ requires_openai_auth = true
                     crate::models::CodexAuthAccount {
                         description: None,
                         account_id: "acc-1".to_string(),
+                        identity_key: None,
                         auth_method: Some(OpenAiAuthMethod::Chatgpt),
                         api_base_url: None,
                         api_provider_name: None,
@@ -3050,11 +3051,13 @@ requires_openai_auth = true
                         last_used: None,
                         last_refresh: None,
                         expires_at: None,
+                        extra: toml::Table::new(),
                     },
                 );
                 m
             },
             usage_ledger: Vec::new(),
+            extra: toml::Table::new(),
         };
         let registry_path = ccr_codex_dir.join("auth_registry.toml");
         std::fs::write(&registry_path, toml::to_string_pretty(&registry).unwrap()).unwrap();
@@ -3064,6 +3067,7 @@ requires_openai_auth = true
             &snapshot_path,
             serde_json::to_string_pretty(&json!({
                 "tokens": {
+                    "id_token": crate::services::codex_auth_identity::test_jwt(json!({"chatgpt_user_id":"test-user"})),
                     "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaGF0Z3B0X2FjY291bnRfaWQiOiJhY2MtMSIsImV4cCI6MjAwMDAwMDAwMH0.sig",
                     "refresh_token": "rt_old",
                     "account_id": "acc-1"
@@ -3085,6 +3089,7 @@ requires_openai_auth = true
             codex_dir.join("auth.json"),
             serde_json::to_string_pretty(&json!({
                 "tokens": {
+                    "id_token": crate::services::codex_auth_identity::test_jwt(json!({"chatgpt_user_id":"test-user"})),
                     "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaGF0Z3B0X2FjY291bnRfaWQiOiJhY2MtMSIsImV4cCI6MjAwMDAwMDAwMH0.sig",
                     "refresh_token": "rt_latest",
                     "account_id": "acc-1"

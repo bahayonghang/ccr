@@ -12,6 +12,7 @@ use ccr_cli::models::{
 };
 use ccr_cli::services::AuthReadSnapshot;
 use ccr_cli::services::{CodexAuthService, CodexQuotaService, CodexRollingUsage};
+use ccr_codex::services::codex_registry_store::registry_read_only_version;
 use ccr_codex::services::codex_usage_estimation::{
     CodexAuthUsageSnapshot, CodexUsageScope as DomainUsageScope,
 };
@@ -33,6 +34,17 @@ const ACTIVATION_DELAY_TICKS: u32 = 4;
 const QUOTA_REFRESH_INTERVAL_TICKS: u32 = 4;
 const PREVIEW_TTL_SECS: i64 = 60;
 const CURRENT_RUNTIME_ACCOUNT_KEY: &str = "default";
+
+fn localized_service_error(error: &str) -> String {
+    match registry_read_only_version(error) {
+        Some(version) => crate::tui_format!(
+            "registry is read-only: version {} was written by a newer CCR; upgrade CCR to change accounts",
+            "注册表只读：版本 {} 由更新版本的 CCR 写入；升级 CCR 后才能修改账号",
+            version
+        ),
+        None => error.to_string(),
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct CodexUsageDataset {
@@ -1014,7 +1026,7 @@ impl CodexAuthApp {
                         self.toasts.push(Toast::error(crate::tui_format!(
                             "Delete failed: {}",
                             "删除失败：{}",
-                            e
+                            localized_service_error(&e.to_string())
                         )));
                     }
                 }
@@ -1057,7 +1069,7 @@ impl CodexAuthApp {
                             self.toasts.push(Toast::error(crate::tui_format!(
                                 "Save failed: {}",
                                 "保存失败：{}",
-                                e
+                                localized_service_error(&e.to_string())
                             )));
                         }
                     }
@@ -1190,7 +1202,7 @@ impl CodexAuthApp {
                     self.toasts.push(Toast::error(crate::tui_format!(
                         "Rename failed: {}",
                         "重命名失败：{}",
-                        e
+                        localized_service_error(&e.to_string())
                     )));
                 }
             }
@@ -1265,6 +1277,15 @@ impl CodexAuthApp {
     /// Switch to selected account
     /// Returns true if switch succeeded and TUI should exit
     fn switch_selected_account(&mut self) -> Result<bool> {
+        self.switch_selected_account_with_profile_off(|| {
+            profile_off_for_platform(Platform::Codex).map(|_| ())
+        })
+    }
+
+    fn switch_selected_account_with_profile_off(
+        &mut self,
+        profile_off: impl FnOnce() -> Result<()>,
+    ) -> Result<bool> {
         if let Some(account) = self.selected_account().cloned() {
             if account.is_virtual {
                 self.toasts.push(Toast::info(crate::tui_text!(
@@ -1282,6 +1303,15 @@ impl CodexAuthApp {
                 return Ok(false);
             }
 
+            if let Err(error) = self.service.ensure_registry_writable() {
+                self.toasts.push(Toast::error(crate::tui_format!(
+                    "Switch failed: {}",
+                    "切换失败：{}",
+                    localized_service_error(&error.to_string())
+                )));
+                return Ok(false);
+            }
+
             // Detect running Codex processes
             let running = self.service.detect_codex_process();
             if !running.is_empty() {
@@ -1292,7 +1322,7 @@ impl CodexAuthApp {
                 )));
             }
 
-            if let Err(error) = profile_off_for_platform(Platform::Codex) {
+            if let Err(error) = profile_off() {
                 self.toasts.push(Toast::error(crate::tui_format!(
                     "Exit profile failed: {}",
                     "退出 Profile 失败：{}",
@@ -1317,7 +1347,7 @@ impl CodexAuthApp {
                     self.toasts.push(Toast::error(crate::tui_format!(
                         "Switch failed: {}",
                         "切换失败：{}",
-                        e
+                        localized_service_error(&e.to_string())
                     )));
                 }
             }
@@ -1701,6 +1731,114 @@ mod tests {
     use super::*;
     use chrono::{Duration, TimeZone, Utc};
     use std::path::PathBuf;
+
+    #[test]
+    fn registry_read_only_errors_are_localized_with_original_version() {
+        use crate::tui::i18n::{active_language, set_language};
+        use ccr_cli::managers::TuiLanguage;
+        use ccr_codex::services::codex_registry_store::registry_read_only_message;
+        use ccr_core::core::error::CcrError;
+
+        let previous = active_language();
+        for version in ["2.0", "abc", "abc 由future"] {
+            let error = CcrError::ConfigError(registry_read_only_message(version)).to_string();
+            set_language(TuiLanguage::English);
+            assert_eq!(
+                localized_service_error(&error),
+                format!(
+                    "registry is read-only: version {version} was written by a newer CCR; upgrade CCR to change accounts"
+                )
+            );
+            set_language(TuiLanguage::SimplifiedChinese);
+            assert_eq!(
+                localized_service_error(&error),
+                format!(
+                    "注册表只读：版本 {version} 由更新版本的 CCR 写入；升级 CCR 后才能修改账号"
+                )
+            );
+        }
+        for language in [TuiLanguage::English, TuiLanguage::SimplifiedChinese] {
+            set_language(language);
+            assert_eq!(localized_service_error("原始服务错误"), "原始服务错误");
+        }
+        set_language(previous);
+    }
+
+    #[test]
+    fn read_only_switch_keeps_profile_and_runtime_before_localized_toast() {
+        use crate::tui::i18n::{active_language, set_language};
+        use ccr_cli::managers::TuiLanguage;
+        use std::fs;
+
+        let previous = active_language();
+        for language in [TuiLanguage::English, TuiLanguage::SimplifiedChinese] {
+            set_language(language);
+            for version in ["2.0", "abc", "abc 由future"] {
+                let (_dir, mut app) = super::super::ui::tests::presentation_fixture();
+                let (codex_dir, ccr_dir) = app.service.usage_paths();
+                fs::create_dir_all(&codex_dir).expect("fixture runtime directory");
+                fs::create_dir_all(&ccr_dir).expect("fixture CCR directory");
+                let runtime = codex_dir.join("auth.json");
+                let profile = ccr_dir.join("profiles.toml");
+                let config = codex_dir.join("config.toml");
+                let registry = ccr_dir.join("auth_registry.toml");
+                fs::write(&runtime, b"synthetic runtime credentials").expect("fixture runtime");
+                fs::write(&profile, b"synthetic active profile").expect("fixture profile");
+                fs::write(&config, b"synthetic runtime config").expect("fixture config");
+                let registry_content = format!("version = {version:?}\n");
+                fs::write(&registry, &registry_content).expect("fixture registry");
+                app.accounts[0].is_current = false;
+                let profile_off_called = Cell::new(false);
+
+                assert!(
+                    !app.switch_selected_account_with_profile_off(|| {
+                        profile_off_called.set(true);
+                        // 替代真实 Profile 操作，回归失败也只修改临时夹具。
+                        fs::write(&runtime, b"changed")?;
+                        fs::write(&profile, b"changed")?;
+                        Ok(())
+                    })
+                    .expect("read-only switch handled")
+                );
+
+                assert!(!profile_off_called.get());
+                assert_eq!(
+                    fs::read(&runtime).expect("runtime retained"),
+                    b"synthetic runtime credentials"
+                );
+                assert_eq!(
+                    fs::read(&profile).expect("profile retained"),
+                    b"synthetic active profile"
+                );
+                assert_eq!(
+                    fs::read(&config).expect("config retained"),
+                    b"synthetic runtime config"
+                );
+                assert_eq!(
+                    fs::read_to_string(&registry).expect("registry retained"),
+                    registry_content
+                );
+                assert!(!app.should_quit);
+                assert!(app.last_action.is_none());
+                let expected = match language {
+                    TuiLanguage::English => format!(
+                        "Switch failed: registry is read-only: version {version} was written by a newer CCR; upgrade CCR to change accounts"
+                    ),
+                    TuiLanguage::SimplifiedChinese => format!(
+                        "切换失败：注册表只读：版本 {version} 由更新版本的 CCR 写入；升级 CCR 后才能修改账号"
+                    ),
+                };
+                assert_eq!(
+                    app.toasts
+                        .active()
+                        .expect("localized failure toast")
+                        .message,
+                    expected
+                );
+            }
+        }
+        set_language(previous);
+    }
 
     #[test]
     fn quota_failure_messages_preserve_successful_snapshot_and_recover() {

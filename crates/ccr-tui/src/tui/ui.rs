@@ -2631,6 +2631,73 @@ mod tests {
     }
 
     #[test]
+    fn p4_codex_relogin_composed_matrix_keeps_localized_status_and_error_color() {
+        use ccr_cli::managers::TuiLanguage;
+        for language in [TuiLanguage::English, TuiLanguage::SimplifiedChinese] {
+            crate::tui::i18n::set_language(language);
+            for (width, height) in [
+                (80, 24),
+                (100, 22),
+                (100, 30),
+                (120, 22),
+                (140, 40),
+                (180, 50),
+                (60, 18),
+            ] {
+                let (_dir, mut auth) = codex_auth::ui::tests::presentation_fixture();
+                codex_auth::ui::tests::set_fixture_relogin_error(&mut auth);
+                let profile = ProfileItem {
+                    name: "fixture".into(),
+                    description: None,
+                    is_current: false,
+                };
+                let mut app =
+                    sample_profile_app_for(Platform::Codex, profile, ProfileConfig::new());
+                app.tabs = vec![empty_platform_tab(
+                    Platform::Codex,
+                    TabVariant::CodexAuth,
+                    "Codex Auth",
+                )];
+                app.codex_auth_app = Some(auth);
+                let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+                terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+                let rendered = buffer_text(terminal.backend());
+                assert!(
+                    rendered
+                        .replace(' ', "")
+                        .contains(crate::tui_text!("re-loginrequired", "需重新登录")),
+                    "{language:?} {width}x{height}: {rendered}"
+                );
+                assert!(
+                    terminal
+                        .backend()
+                        .buffer()
+                        .content
+                        .iter()
+                        .any(|cell| cell.fg == theme::error()
+                            && cell.symbol() == crate::tui_text!("r", "需")),
+                    "missing localized error-colored status at {width}x{height}: {rendered}"
+                );
+                assert!(
+                    !rendered.contains(
+                        ccr_codex::services::codex_quota_service::RELOGIN_REQUIRED_PREFIX
+                    )
+                );
+                if width == 60 {
+                    assert!(
+                        rendered
+                            .replace(' ', "")
+                            .contains(crate::tui_text!("statisticsomitted", "统计已省略")),
+                        "{rendered}"
+                    );
+                    assert!(!rendered.contains("12.3K"));
+                }
+            }
+        }
+        crate::tui::i18n::set_language(TuiLanguage::English);
+    }
+
+    #[test]
     fn codex_auth_composed_feature_states_keep_cost_capacity_and_keys_visible() {
         use ccr_cli::managers::TuiLanguage;
         use codex_auth::ui::tests::{UsagePresentationCase as Case, set_usage_presentation_case};

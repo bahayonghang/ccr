@@ -8,9 +8,15 @@
 // - ⏰ 计算 Token 新鲜度
 // - 🔄 进程检测与备份管理
 
+use super::codex_auth_backup::{AuthBackupPool, backup_auth_file};
+use super::codex_auth_identity::{
+    OAuthIdentity, has_conflicting_claims, identity_from_auth, token_account_id,
+};
+use super::codex_auth_refresh_lock::{CredentialLocks, CredentialResource};
 use super::codex_oauth_token_service::{
     CodexOAuthTokenService, RuntimeSyncOutcome, RuntimeSyncPlan,
 };
+use super::codex_registry_store::{REGISTRY_READ_ONLY_PREFIX, ensure_registry_writable};
 use super::codex_runtime_service::{
     CodexAuthCacheAction, CodexRuntimeCommitPlan, CodexRuntimeService,
 };
@@ -28,9 +34,13 @@ use crate::platforms::codex::CodexPlatform;
 use crate::utils::CodexPaths;
 use ccr_core::core::atomic_writer::AtomicWriter;
 use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::guarded_write::{
+    VersionedWriteOutcome, WriteOptions, content_version_token,
+    enforce_owner_only_permissions_versioned, write_guarded_versioned,
+};
 use ccr_core::core::lock::LockManager;
 use chrono::{DateTime, Utc};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::{env, fs};
 use tracing::{debug, warn};
 
@@ -173,6 +183,7 @@ impl CodexAuthService {
     }
 
     /// 获取 auth_registry.toml 路径
+    #[cfg(test)]
     fn registry_path(&self) -> PathBuf {
         self.ccr_codex_dir.join("auth_registry.toml")
     }
@@ -553,7 +564,7 @@ impl CodexAuthService {
         };
 
         let current_account_name =
-            Self::matched_saved_account_name(&registry, current_info.as_ref());
+            self.matched_saved_account_name(&registry, current_info.as_ref());
         let login_state = Self::compute_login_state(
             &auth_state,
             current_info.as_ref(),
@@ -680,10 +691,18 @@ impl CodexAuthService {
     }
 
     fn matched_saved_account_name(
+        &self,
         registry: &CodexAuthRegistry,
         current_info: Option<&CurrentAuthInfo>,
     ) -> Option<String> {
         let info = current_info?;
+        if info.auth_method == Some(OpenAiAuthMethod::Chatgpt) {
+            let oauth = CodexOAuthTokenService::from_dirs(
+                self.ccr_codex_dir.clone(),
+                self.codex_dir.clone(),
+            );
+            return oauth.select_sync_target(registry, &oauth.runtime_identity()?);
+        }
         registry.accounts.iter().find_map(|(name, account)| {
             (account.account_id == info.account_id).then(|| name.clone())
         })
@@ -725,14 +744,27 @@ impl CodexAuthService {
 
     /// 根据当前 runtime auth 对账 current_auth 指针
     pub fn sync_current_auth_registry(&self) -> Result<Option<String>> {
+        CodexOAuthTokenService::from_dirs(self.ccr_codex_dir.clone(), self.codex_dir.clone())
+            .backfill_identity_keys()?;
         let mut registry = self.load_registry()?;
         let state = self.get_auth_state();
+        if state.status == AuthStateStatus::Valid
+            && matches!(
+                state.intent,
+                AuthIntent::OpenAiAuth {
+                    method: OpenAiAuthMethod::Chatgpt
+                }
+            )
+            && CodexOAuthTokenService::from_dirs(self.ccr_codex_dir.clone(), self.codex_dir.clone())
+                .runtime_identity()
+                .is_none()
+        {
+            return Ok(None);
+        }
         let new_current = match state.intent {
             AuthIntent::OpenAiAuth { .. } if matches!(state.status, AuthStateStatus::Valid) => {
                 let info = self.get_current_auth_info()?;
-                registry.accounts.iter().find_map(|(name, account)| {
-                    (account.account_id == info.account_id).then(|| name.clone())
-                })
+                self.matched_saved_account_name(&registry, Some(&info))
             }
             _ => None,
         };
@@ -748,7 +780,14 @@ impl CodexAuthService {
                     Utc::now(),
                 );
             }
-            self.save_registry(&registry)?;
+            match self.save_registry(&registry) {
+                Err(CcrError::ConfigError(message))
+                    if message.starts_with(REGISTRY_READ_ONLY_PREFIX) =>
+                {
+                    warn!("Skipped current auth registry update: {}", message);
+                }
+                result => result?,
+            }
         }
 
         Ok(new_current)
@@ -874,31 +913,13 @@ impl CodexAuthService {
     /// 保存当前登录到指定名称
     pub fn save_current(&self, name: &str, description: Option<String>, force: bool) -> Result<()> {
         self.ensure_managed_auth_supported("保存账号")?;
-        let auth_state = self.get_auth_state();
-
-        // 检查是否已登录
-        if auth_state.status != AuthStateStatus::Valid {
-            return Err(CcrError::ConfigError(
-                "未登录 Codex，请先运行 `codex login`".into(),
-            ));
-        }
-
-        let auth_method = match auth_state.intent {
-            AuthIntent::OpenAiAuth { method } => method,
-            AuthIntent::ProviderEnvKey { .. }
-            | AuthIntent::ProviderBearerToken
-            | AuthIntent::NoAuth => {
-                return Err(CcrError::ValidationError(
-                    "当前 runtime 不是 OpenAI 登录态，不能保存为 Codex Auth 账号".into(),
-                ));
-            }
-        };
 
         // 验证名称
         self.validate_account_name(name)?;
 
         // 检查是否已存在
-        let mut registry = self.load_registry()?;
+        let registry = self.load_registry()?;
+        ensure_registry_writable(&registry)?;
         if registry.accounts.contains_key(name) && !force {
             return Err(CcrError::ConfigError(format!(
                 "账号 '{}' 已存在，使用 --force 覆盖",
@@ -906,31 +927,78 @@ impl CodexAuthService {
             )));
         }
 
+        let src = self.auth_json_path();
+        let dst = self.account_auth_path(name);
+        let locks = CredentialLocks::acquire_sources(vec![
+            (src.clone(), CredentialResource::from_path(&src)),
+            (dst.clone(), CredentialResource::from_path(&dst)),
+        ])?;
+        locks.verify_path(&src)?;
+        locks.verify_path(&dst)?;
+        let registry = self.load_registry()?;
+        ensure_registry_writable(&registry)?;
+        if registry.accounts.contains_key(name) && !force {
+            return Err(CcrError::ConfigError(format!(
+                "账号 '{}' 已存在，使用 --force 覆盖",
+                name
+            )));
+        }
+        let content = fs::read(&src)
+            .map_err(|e| CcrError::ConfigError(format!("复制 auth.json 失败: {}", e)))?;
+        self.save_current_content(name, description, registry, &content)
+    }
+
+    fn save_current_content(
+        &self,
+        name: &str,
+        description: Option<String>,
+        mut registry: CodexAuthRegistry,
+        content: &[u8],
+    ) -> Result<()> {
+        let raw = serde_json::from_slice::<serde_json::Map<String, serde_json::Value>>(content)
+            .map_err(|_| CcrError::ConfigError("保存的 auth.json 无法解析".into()))?;
+        let auth = serde_json::from_value(serde_json::Value::Object(raw.clone()))
+            .map_err(|_| CcrError::ConfigError("保存的 auth.json 无法解析".into()))?;
+        let docs = CurrentAuthDocuments { raw, auth };
+        let auth_state = Self::build_auth_state_from_raw(CredentialStoreKind::File, &docs.raw);
+        if auth_state.status != AuthStateStatus::Valid {
+            return Err(CcrError::ConfigError(
+                "未登录 Codex，请先运行 `codex login`".into(),
+            ));
+        }
+        let auth_method = match auth_state.intent {
+            AuthIntent::OpenAiAuth { method } => method,
+            _ => {
+                return Err(CcrError::ValidationError(
+                    "当前 runtime 不是 OpenAI 登录态，不能保存为 Codex Auth 账号".into(),
+                ));
+            }
+        };
+        let current_info = self.build_current_auth_info_from_documents(&auth_state, &docs)?;
+
         // 确保目录存在
         let auth_storage = self.auth_storage_dir();
         fs::create_dir_all(&auth_storage)
             .map_err(|e| CcrError::ConfigError(format!("创建存储目录失败: {}", e)))?;
 
         // 复制 auth.json（原子替换，写入内容前设置私有权限）
-        let src = self.auth_json_path();
         let dst = self.account_auth_path(name);
-        let content = fs::read(&src)
-            .map_err(|e| CcrError::ConfigError(format!("复制 auth.json 失败: {}", e)))?;
+        if dst.try_exists()? {
+            crate::utils::ensure_private_permissions(&dst)?;
+        }
         AtomicWriter::new(&dst)
             .secret(true)
-            .write(&content)
+            .write(content)
             .map_err(|e| CcrError::ConfigError(format!("复制 auth.json 失败: {}", e)))?;
 
         // 设置文件权限（仅当前用户可读写）
-        crate::utils::ensure_private_permissions(&dst);
-
-        // 获取当前账号信息
-        let current_info = self.get_current_auth_info()?;
+        crate::utils::ensure_private_permissions(&dst)?;
 
         // 更新注册表
         let account = CodexAuthAccount {
             description,
             account_id: current_info.account_id,
+            identity_key: identity_from_auth(&docs.auth).map(|identity| identity.key()),
             auth_method: Some(auth_method),
             api_base_url: None,
             api_provider_name: None,
@@ -940,6 +1008,7 @@ impl CodexAuthService {
             last_used: Some(Utc::now()),
             last_refresh: current_info.last_refresh,
             expires_at: None,
+            extra: toml::Table::new(),
         };
 
         registry.accounts.insert(name.to_string(), account);
@@ -1128,23 +1197,39 @@ impl CodexAuthService {
             return Ok(RuntimeSyncOutcome::NoOp);
         }
 
+        let path = self.auth_json_path();
+        let locks = CredentialLocks::acquire_sources(vec![(
+            path.clone(),
+            CredentialResource::from_path(&path),
+        )])?;
+        locks.verify_path(&path)?;
+        self.sync_runtime_with_saved_account_locked()
+    }
+
+    /// Caller holds the runtime credential resource until synchronization completes.
+    pub(crate) fn sync_runtime_with_saved_account_locked(&self) -> Result<RuntimeSyncOutcome> {
+        if !Self::supports_managed_auth_accounts(self.detect_credential_store()) {
+            return Ok(RuntimeSyncOutcome::NoOp);
+        }
+
         let oauth =
             CodexOAuthTokenService::from_dirs(self.ccr_codex_dir.clone(), self.codex_dir.clone());
+        oauth.backfill_identity_keys()?;
         Ok(match oauth.plan_runtime_sync()? {
             RuntimeSyncPlan::NoOp => RuntimeSyncOutcome::NoOp,
-            RuntimeSyncPlan::Unchanged { account } => RuntimeSyncOutcome::Unchanged(account),
+            RuntimeSyncPlan::Unchanged { account } => {
+                if oauth.harden_unchanged_auth_locked(&account)? {
+                    RuntimeSyncOutcome::Unchanged(account)
+                } else {
+                    RuntimeSyncOutcome::NoOp
+                }
+            }
             RuntimeSyncPlan::WriteSnapshot { account, doc } => {
-                oauth.apply_snapshot_write(&account, &doc)?;
+                oauth.apply_snapshot_write_locked(&account, &doc)?;
                 RuntimeSyncOutcome::SnapshotUpdated(account)
             }
             RuntimeSyncPlan::WriteRuntime { account, auth } => {
-                self.runtime_service()?
-                    .commit_plan(CodexRuntimeCommitPlan {
-                        config: None,
-                        auth_cache: CodexAuthCacheAction::Write(auth),
-                    })?;
-                debug!("Wrote newer saved tokens of '{}' back to runtime", account);
-                RuntimeSyncOutcome::RuntimeUpdated(account)
+                self.apply_runtime_sync_write(&account, &auth)?
             }
             RuntimeSyncPlan::SkipStaleRuntime { account } => {
                 debug!(
@@ -1154,6 +1239,63 @@ impl CodexAuthService {
                 RuntimeSyncOutcome::SkippedStaleRuntime(account)
             }
         })
+    }
+
+    fn apply_runtime_sync_write(
+        &self,
+        account: &str,
+        auth: &serde_json::Map<String, serde_json::Value>,
+    ) -> Result<RuntimeSyncOutcome> {
+        let runtime_path = self.auth_json_path();
+        let current = fs::read(&runtime_path)
+            .map_err(|e| CcrError::ConfigError(format!("读取 runtime auth.json 失败: {}", e)))?;
+        let runtime: CodexAuthJson = serde_json::from_slice(&current)
+            .map_err(|_| CcrError::ConfigError("runtime auth 身份无法解析，跳过同步".into()))?;
+        let planned: CodexAuthJson =
+            serde_json::from_value(serde_json::Value::Object(auth.clone()))
+                .map_err(|_| CcrError::ConfigError("同步 auth 身份无法解析，跳过同步".into()))?;
+        let identity = identity_from_auth(&runtime);
+        if identity.is_none() || identity_from_auth(&planned) != identity {
+            return Ok(RuntimeSyncOutcome::NoOp);
+        }
+        let oauth =
+            CodexOAuthTokenService::from_dirs(self.ccr_codex_dir.clone(), self.codex_dir.clone());
+        if !matches!(oauth.plan_runtime_sync()?, RuntimeSyncPlan::WriteRuntime { account: current_account, auth: current_auth } if current_account == account && &current_auth == auth)
+        {
+            return Ok(RuntimeSyncOutcome::NoOp);
+        }
+        let expected_version = ccr_core::core::guarded_write::content_version_token(&current);
+        match self
+            .runtime_service()?
+            .commit_synced_auth_versioned(auth, &expected_version)?
+        {
+            ccr_core::core::guarded_write::VersionedWriteOutcome::Conflict => {
+                Ok(RuntimeSyncOutcome::NoOp)
+            }
+            ccr_core::core::guarded_write::VersionedWriteOutcome::Written => {
+                debug!("Wrote newer saved tokens of '{}' back to runtime", account);
+                Ok(RuntimeSyncOutcome::RuntimeUpdated(account.to_string()))
+            }
+        }
+    }
+
+    /// Caller holds the runtime path and complete identity resources.
+    pub(crate) fn prepare_current_quota_locked(&self, identity: &OAuthIdentity) -> Result<()> {
+        let oauth =
+            CodexOAuthTokenService::from_dirs(self.ccr_codex_dir.clone(), self.codex_dir.clone());
+        let Some((auth, expected_version)) = oauth.plan_quota_runtime_preparation(identity)? else {
+            return oauth.harden_quota_runtime_locked(identity);
+        };
+        if self
+            .runtime_service()?
+            .commit_synced_auth_versioned(&auth, &expected_version)?
+            == ccr_core::core::guarded_write::VersionedWriteOutcome::Conflict
+        {
+            return Err(CcrError::ConfigError(
+                "auth 文件已变化，跳过配额准备".into(),
+            ));
+        }
+        Ok(())
     }
 
     /// 观测点同步（失败只记录 warn，不阻断调用方主流程）
@@ -1168,10 +1310,11 @@ impl CodexAuthService {
     /// 切换到指定账号
     pub fn switch_account(&self, name: &str) -> Result<()> {
         self.ensure_managed_auth_supported("切换账号")?;
+        let registry = self.load_registry()?;
+        ensure_registry_writable(&registry)?;
         self.ensure_current_runtime_supports_openai_switch()?;
 
         // 检查账号是否存在
-        let registry = self.load_registry()?;
         if !registry.accounts.contains_key(name) {
             let available: Vec<_> = registry.accounts.keys().collect();
             return Err(CcrError::ConfigError(format!(
@@ -1180,6 +1323,21 @@ impl CodexAuthService {
             )));
         }
 
+        let runtime_path = self.auth_json_path();
+        let src = self.account_auth_path(name);
+        let locks = CredentialLocks::acquire_sources(vec![
+            (
+                runtime_path.clone(),
+                CredentialResource::from_path(&runtime_path),
+            ),
+            (src.clone(), CredentialResource::from_path(&src)),
+        ])?;
+        locks.verify_path(&runtime_path)?;
+        locks.verify_path(&src)?;
+        let registry = self.load_registry()?;
+        ensure_registry_writable(&registry)?;
+        self.ensure_current_runtime_supports_openai_switch()?;
+
         let account = registry
             .accounts
             .get(name)
@@ -1187,9 +1345,13 @@ impl CodexAuthService {
             .ok_or_else(|| CcrError::ConfigError(format!("账号 '{}' 不存在", name)))?;
 
         // 覆盖 runtime 前回写换出账号的轮换 tokens
-        self.sync_runtime_with_saved_account_best_effort("switch-out");
+        if let Err(error) = self.sync_runtime_with_saved_account_locked() {
+            warn!("Codex auth snapshot sync failed (switch-out): {}", error);
+        }
+        CodexOAuthTokenService::from_dirs(self.ccr_codex_dir.clone(), self.codex_dir.clone())
+            .repair_saved_account_locked(name)?;
 
-        let src = self.account_auth_path(name);
+        locks.verify_path(&src)?;
         let incoming = self.load_auth_raw_map(&src)?;
         let (target_intent, _, _) = Self::infer_auth_intent(&incoming);
         let auth_method = match target_intent {
@@ -1279,29 +1441,38 @@ impl CodexAuthService {
     pub fn delete_account(&self, name: &str) -> Result<()> {
         self.ensure_managed_auth_supported("删除账号")?;
 
-        let mut registry = self.load_registry()?;
+        let registry = self.load_registry()?;
+        ensure_registry_writable(&registry)?;
 
         // 检查账号是否存在
         if !registry.accounts.contains_key(name) {
             return Err(CcrError::ConfigError(format!("账号 '{}' 不存在", name)));
         }
 
-        // 删除 auth 文件
         let auth_path = self.account_auth_path(name);
-        if auth_path.exists() {
-            fs::remove_file(&auth_path)
-                .map_err(|e| CcrError::ConfigError(format!("删除 auth 文件失败: {}", e)))?;
-        }
-
-        // 从注册表移除
-        registry.accounts.shift_remove(name);
-
-        // 如果删除的是当前账号，清除 current_auth
-        if registry.current_auth.as_deref() == Some(name) {
-            registry.current_auth = None;
-        }
-
-        self.save_registry(&registry)?;
+        let locks = CredentialLocks::acquire_sources(vec![(
+            auth_path.clone(),
+            CredentialResource::from_path(&auth_path),
+        )])?;
+        super::CodexRegistryStore::new(&self.ccr_codex_dir).update_with_prepared_backup(
+            |registry| {
+                locks.verify_path(&auth_path)?;
+                if !registry.accounts.contains_key(name) {
+                    return Err(CcrError::ConfigError(format!("账号 '{}' 不存在", name)));
+                }
+                self.backup_registry()?;
+                self.backup_account_auth(name)?;
+                if auth_path.try_exists()? {
+                    fs::remove_file(&auth_path)
+                        .map_err(|e| CcrError::ConfigError(format!("删除 auth 文件失败: {}", e)))?;
+                }
+                registry.accounts.shift_remove(name);
+                if registry.current_auth.as_deref() == Some(name) {
+                    registry.current_auth = None;
+                }
+                Ok(())
+            },
+        )?;
 
         debug!("已删除账号: {}", name);
         Ok(())
@@ -1310,48 +1481,15 @@ impl CodexAuthService {
     // ==================== 备份管理 ====================
 
     fn backup_registry(&self) -> Result<Option<PathBuf>> {
-        let registry_path = self.registry_path();
-        if !registry_path.exists() {
-            return Ok(None);
-        }
-
-        let backup_dir = self.backup_dir();
-        fs::create_dir_all(&backup_dir)
-            .map_err(|e| CcrError::ConfigError(format!("创建备份目录失败: {}", e)))?;
-
-        let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
-        let backup_name = format!("auth_registry_{}.toml", timestamp);
-        let backup_path = backup_dir.join(&backup_name);
-
-        fs::copy(&registry_path, &backup_path)
-            .map_err(|e| CcrError::ConfigError(format!("备份注册表失败: {}", e)))?;
-
-        Ok(Some(backup_path))
+        super::CodexRegistryStore::new(&self.ccr_codex_dir).backup()
     }
 
     fn backup_account_auth(&self, name: &str) -> Result<Option<PathBuf>> {
-        let auth_path = self.account_auth_path(name);
-        if !auth_path.exists() {
-            return Ok(None);
-        }
-
-        let backup_dir = self.backup_dir();
-        fs::create_dir_all(&backup_dir)
-            .map_err(|e| CcrError::ConfigError(format!("创建备份目录失败: {}", e)))?;
-
-        let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
-        let backup_name = format!("auth_account_{}_{}.json", name, timestamp);
-        let backup_path = backup_dir.join(&backup_name);
-
-        // 快照含 tokens：写入内容前设置私有权限（fs::copy 在 Windows 上继承目录 ACL）
-        let content = fs::read(&auth_path)
-            .map_err(|e| CcrError::ConfigError(format!("备份 auth 文件失败: {}", e)))?;
-        AtomicWriter::new(&backup_path)
-            .secret(true)
-            .write(&content)
-            .map_err(|e| CcrError::ConfigError(format!("备份 auth 文件失败: {}", e)))?;
-
-        Ok(Some(backup_path))
+        backup_auth_file(
+            &self.account_auth_path(name),
+            &self.backup_dir(),
+            AuthBackupPool::Account(name),
+        )
     }
 
     // ==================== 进程检测 ====================
@@ -1410,6 +1548,11 @@ impl CodexAuthService {
 
     // ==================== 注册表管理 ====================
 
+    /// 在调用方修改 Profile 或 runtime 之前检查注册表写入权限。
+    pub fn ensure_registry_writable(&self) -> Result<()> {
+        ensure_registry_writable(&self.load_registry()?)
+    }
+
     /// 加载注册表
     pub fn load_registry(&self) -> Result<CodexAuthRegistry> {
         self.registry_store().load()
@@ -1439,6 +1582,7 @@ impl CodexAuthService {
         self.ensure_managed_auth_supported("更新账号描述")?;
 
         let mut registry = self.load_registry()?;
+        ensure_registry_writable(&registry)?;
         let account = registry
             .accounts
             .get_mut(name)
@@ -1451,8 +1595,8 @@ impl CodexAuthService {
 
     /// 重命名已保存的 Codex 账号
     ///
-    /// 原子性地迁移 auth 文件、registry 键顺序以及 usage_ledger 归因记录，
-    /// 保证 auth.json 本身不变（因为账号身份由 account_id 决定，而非名称）。
+    /// 迁移 auth 快照、registry 键顺序和 usage_ledger 归因记录，保持快照字节。
+    /// 备份失败时在文件变更前中止；最终多文件 I/O 失败可能部分完成。
     ///
     /// # 参数
     /// * `old_name` - 当前账号名称（必须已存在）
@@ -1470,11 +1614,25 @@ impl CodexAuthService {
         new_name: &str,
         force: bool,
     ) -> Result<CodexAuthAccount> {
+        self.rename_account_with_backup(old_name, new_name, force, |name| match name {
+            Some(name) => self.backup_account_auth(name),
+            None => self.backup_registry(),
+        })
+    }
+
+    fn rename_account_with_backup(
+        &self,
+        old_name: &str,
+        new_name: &str,
+        force: bool,
+        backup: impl Fn(Option<&str>) -> Result<Option<PathBuf>>,
+    ) -> Result<CodexAuthAccount> {
         self.ensure_managed_auth_supported("重命名账号")?;
 
         // 空操作：同名直接返回
         if old_name == new_name {
             let registry = self.load_registry()?;
+            ensure_registry_writable(&registry)?;
             return registry.accounts.get(old_name).cloned().ok_or_else(|| {
                 CcrError::ResourceNotFound(format!("Codex auth account '{}'", old_name))
             });
@@ -1483,95 +1641,95 @@ impl CodexAuthService {
         // 校验目标名称
         self.validate_account_name(new_name)?;
 
-        let mut registry = self.load_registry()?;
-
-        // 源账号必须存在
+        let registry = self.load_registry()?;
+        ensure_registry_writable(&registry)?;
         if !registry.accounts.contains_key(old_name) {
             return Err(CcrError::ResourceNotFound(format!(
                 "Codex auth account '{}'",
                 old_name
             )));
         }
-
-        // 处理目标名称冲突
-        let needs_conflict_cleanup = registry.accounts.contains_key(new_name);
-        if needs_conflict_cleanup {
-            if !force {
-                return Err(CcrError::ConfigError(format!(
-                    "账号 '{}' 已存在，使用 force 覆盖或先删除",
-                    new_name
-                )));
-            }
-
-            // 备份即将被覆盖的目标，留下可恢复痕迹
-            let _ = self.backup_account_auth(new_name);
-
-            let conflict_auth = self.account_auth_path(new_name);
-            if conflict_auth.exists() {
-                fs::remove_file(&conflict_auth)
-                    .map_err(|e| CcrError::ConfigError(format!("删除冲突 auth 文件失败: {}", e)))?;
-            }
-
-            registry.accounts.shift_remove(new_name);
+        if registry.accounts.contains_key(new_name) && !force {
+            return Err(CcrError::ConfigError(format!(
+                "账号 '{}' 已存在，使用 force 覆盖或先删除",
+                new_name
+            )));
         }
-
-        // 备份源 auth 与 registry，再执行文件搬迁
-        let _ = self.backup_account_auth(old_name);
-        let _ = self.backup_registry();
-
         let src_path = self.account_auth_path(old_name);
         let dst_path = self.account_auth_path(new_name);
-        if src_path.exists() {
-            if let Some(parent) = dst_path.parent() {
-                fs::create_dir_all(parent)
-                    .map_err(|e| CcrError::ConfigError(format!("创建存储目录失败: {}", e)))?;
-            }
-            if let Err(rename_err) = fs::rename(&src_path, &dst_path) {
-                // 跨卷或锁定场景下的兼容回退：copy + remove
-                fs::copy(&src_path, &dst_path).map_err(|copy_err| {
-                    CcrError::ConfigError(format!(
-                        "移动 auth 文件失败 (rename: {}, copy: {})",
-                        rename_err, copy_err
-                    ))
-                })?;
-                fs::remove_file(&src_path)
-                    .map_err(|e| CcrError::ConfigError(format!("清理旧 auth 文件失败: {}", e)))?;
-            }
-            crate::utils::ensure_private_permissions(&dst_path);
-        }
+        let locks = CredentialLocks::acquire_sources(vec![
+            (src_path.clone(), CredentialResource::from_path(&src_path)),
+            (dst_path.clone(), CredentialResource::from_path(&dst_path)),
+        ])?;
+        let updated = super::CodexRegistryStore::new(&self.ccr_codex_dir)
+            .update_with_prepared_backup(|registry| {
+                locks.verify_path(&src_path)?;
+                locks.verify_path(&dst_path)?;
+                if !registry.accounts.contains_key(old_name) {
+                    return Err(CcrError::ResourceNotFound(format!(
+                        "Codex auth account '{}'",
+                        old_name
+                    )));
+                }
+                let needs_conflict_cleanup = registry.accounts.contains_key(new_name);
+                if needs_conflict_cleanup && !force {
+                    return Err(CcrError::ConfigError(format!(
+                        "账号 '{}' 已存在，使用 force 覆盖或先删除",
+                        new_name
+                    )));
+                }
+                // Complete every backup before removing or moving either snapshot.
+                backup(Some(new_name))?;
+                backup(Some(old_name))?;
+                backup(None)?;
+                if needs_conflict_cleanup {
+                    if dst_path.try_exists()? {
+                        fs::remove_file(&dst_path).map_err(|e| {
+                            CcrError::ConfigError(format!("删除冲突 auth 文件失败: {}", e))
+                        })?;
+                    }
+                    registry.accounts.shift_remove(new_name);
+                }
+                if src_path.try_exists()? {
+                    if let Some(parent) = dst_path.parent() {
+                        fs::create_dir_all(parent).map_err(|e| {
+                            CcrError::ConfigError(format!("创建存储目录失败: {}", e))
+                        })?;
+                    }
+                    move_auth_snapshot_with(&src_path, &dst_path, |source, target| {
+                        fs::rename(source, target)
+                    })?;
+                }
+                // 重建 accounts IndexMap，保持原插入顺序
+                let original_accounts = std::mem::take(&mut registry.accounts);
+                let mut rebuilt: indexmap::IndexMap<String, CodexAuthAccount> =
+                    indexmap::IndexMap::with_capacity(original_accounts.len());
+                let mut renamed_account: Option<CodexAuthAccount> = None;
+                for (key, value) in original_accounts {
+                    if key == old_name {
+                        renamed_account = Some(value.clone());
+                        rebuilt.insert(new_name.to_string(), value);
+                    } else {
+                        rebuilt.insert(key, value);
+                    }
+                }
+                registry.accounts = rebuilt;
 
-        // 重建 accounts IndexMap，保持原插入顺序
-        let original_accounts = std::mem::take(&mut registry.accounts);
-        let mut rebuilt: indexmap::IndexMap<String, CodexAuthAccount> =
-            indexmap::IndexMap::with_capacity(original_accounts.len());
-        let mut renamed_account: Option<CodexAuthAccount> = None;
-        for (key, value) in original_accounts {
-            if key == old_name {
-                renamed_account = Some(value.clone());
-                rebuilt.insert(new_name.to_string(), value);
-            } else {
-                rebuilt.insert(key, value);
-            }
-        }
-        registry.accounts = rebuilt;
+                // 更新 current_auth 指针
+                if registry.current_auth.as_deref() == Some(old_name) {
+                    registry.current_auth = Some(new_name.to_string());
+                }
 
-        // 更新 current_auth 指针
-        if registry.current_auth.as_deref() == Some(old_name) {
-            registry.current_auth = Some(new_name.to_string());
-        }
-
-        // 同步 usage_ledger 中的 account_name，避免归因断层
-        for entry in registry.usage_ledger.iter_mut() {
-            if entry.account_name == old_name {
-                entry.account_name = new_name.to_string();
-            }
-        }
-
-        self.save_registry(&registry)?;
-
-        let updated = renamed_account
-            .ok_or_else(|| CcrError::ConfigError("rename 内部错误：未找到重命名后的账号".into()))?;
-
+                // 同步 usage_ledger 中的 account_name，避免归因断层
+                for entry in registry.usage_ledger.iter_mut() {
+                    if entry.account_name == old_name {
+                        entry.account_name = new_name.to_string();
+                    }
+                }
+                renamed_account.ok_or_else(|| {
+                    CcrError::ConfigError("rename 内部错误：未找到重命名后的账号".into())
+                })
+            })?;
         debug!("已重命名 Codex 账号: {} -> {}", old_name, new_name);
         Ok(updated)
     }
@@ -1579,7 +1737,7 @@ impl CodexAuthService {
     // ==================== 辅助方法 ====================
 
     /// 验证账号名称
-    fn validate_account_name(&self, name: &str) -> Result<()> {
+    pub(crate) fn validate_account_name(&self, name: &str) -> Result<()> {
         if name.is_empty() {
             return Err(CcrError::ValidationError("账号名称不能为空".into()));
         }
@@ -1889,121 +2047,207 @@ impl CodexAuthService {
         mode: ImportMode,
         force: bool,
     ) -> Result<ImportResult> {
+        self.import_accounts_with_locks(
+            content,
+            mode,
+            force,
+            CredentialLocks::acquire_sources_with_resources,
+        )
+    }
+
+    fn import_accounts_with_locks(
+        &self,
+        content: &str,
+        mode: ImportMode,
+        force: bool,
+        acquire: impl FnOnce(
+            Vec<(PathBuf, CredentialResource)>,
+            Vec<CredentialResource>,
+        ) -> Result<CredentialLocks>,
+    ) -> Result<ImportResult> {
         self.ensure_managed_auth_supported("导入账号")?;
 
-        // 解析导入数据
-        let import_data: CodexAuthExport = serde_json::from_str(content)
-            .map_err(|e| CcrError::ConfigError(format!("解析导入数据失败: {}", e)))?;
+        let import_data: CodexAuthExport = serde_json::from_str(content).map_err(|error| {
+            CcrError::ConfigError(format!(
+                "解析导入数据失败: 无效格式（行 {}，列 {}）",
+                error.line(),
+                error.column()
+            ))
+        })?;
 
-        let mut registry = self.load_registry()?;
+        let registry = self.load_registry()?;
         let mut result = ImportResult::default();
-
-        // 确保存储目录存在
-        let auth_storage = self.auth_storage_dir();
-        fs::create_dir_all(&auth_storage)
-            .map_err(|e| CcrError::ConfigError(format!("创建存储目录失败: {}", e)))?;
-
-        let mut registry_backed_up = false;
-
+        ensure_registry_writable(&registry)?;
+        let mut pending = Vec::new();
+        let mut sources = Vec::new();
+        let mut incoming = Vec::new();
+        // Complete input validation before creating directories, backups, or lock files.
         for (name, import_account) in import_data.accounts {
-            // 验证账号名称
             self.validate_account_name(&name)?;
-
             if import_account.auth_method.is_none()
                 && import_account.account_id.starts_with("provider:")
             {
-                debug!("跳过旧版 provider auth 账号: {}", name);
                 result.skipped += 1;
                 continue;
             }
-
             let exists = registry.accounts.contains_key(&name);
-
-            if force && exists && !registry_backed_up {
-                if let Some(path) = self.backup_registry()? {
-                    debug!("已备份注册表: {}", path.display());
-                }
-                registry_backed_up = true;
+            if mode == ImportMode::Merge && exists && !force {
+                result.skipped += 1;
+                continue;
             }
-
-            match mode {
-                ImportMode::Merge => {
-                    if exists && !force {
-                        debug!("跳过已存在的账号: {}", name);
-                        result.skipped += 1;
-                        continue;
+            let identity_key = if let Some(auth) = &import_account.auth_data {
+                if let Some(api_key) = auth
+                    .openai_api_key
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                {
+                    if (api_key.len() > 6
+                        && (!api_key.is_char_boundary(3)
+                            || !api_key.is_char_boundary(api_key.len() - 3)))
+                        || import_account.account_id
+                            != format!("api:{}", Self::key_fingerprint(api_key))
+                        || import_account.auth_method == Some(OpenAiAuthMethod::Chatgpt)
+                    {
+                        return Err(CcrError::ValidationError("导入账号身份与凭据不一致".into()));
                     }
-                    if exists && force {
-                        debug!("强制覆盖已存在的账号: {}", name);
-                        result.overwritten.push(name.clone());
-                    }
+                } else if let Some(tokens) = &auth.tokens
+                    && (has_conflicting_claims(tokens)
+                        || token_account_id(tokens)
+                            .is_some_and(|account| account != import_account.account_id)
+                        || import_account.auth_method == Some(OpenAiAuthMethod::Api))
+                {
+                    return Err(CcrError::ValidationError("导入账号身份与凭据不一致".into()));
                 }
-                ImportMode::Replace => {
-                    if exists {
-                        debug!("替换模式覆盖账号: {}", name);
-                        result.overwritten.push(name.clone());
-                    }
+                if identity_from_auth(auth).is_some() {
+                    incoming.push(CredentialResource::from_tokens(
+                        auth.tokens.as_ref(),
+                        &self.account_auth_path(&name),
+                    ));
                 }
+                identity_from_auth(auth).map(|identity| identity.key())
+            } else {
+                None
+            };
+            let auth_content = import_account
+                .auth_data
+                .as_ref()
+                .map(serde_json::to_vec_pretty)
+                .transpose()
+                .map_err(|_| CcrError::ConfigError("序列化导入凭据失败".into()))?;
+            let path = self.account_auth_path(&name);
+            let previous = match fs::read(&path) {
+                Ok(bytes) => Some(bytes),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+                Err(error) => return Err(error.into()),
+            };
+            let old_auth = previous
+                .as_deref()
+                .and_then(|bytes| serde_json::from_slice::<CodexAuthJson>(bytes).ok());
+            sources.push((
+                path,
+                CredentialResource::from_tokens(
+                    old_auth.as_ref().and_then(|auth| auth.tokens.as_ref()),
+                    &self.account_auth_path(&name),
+                ),
+            ));
+            let expected_version = previous.as_deref().map(content_version_token);
+            pending.push((
+                name,
+                import_account,
+                auth_content,
+                identity_key,
+                exists,
+                expected_version,
+            ));
+        }
+        if pending.is_empty() {
+            return Ok(result);
+        }
+        let locks = acquire(sources, incoming)?;
+        let mut registry = self.load_registry()?;
+        ensure_registry_writable(&registry)?;
+        // A same-identity token rotation also invalidates the captured import preimage.
+        for (name, _, _, _, existed, expected_version) in &pending {
+            let path = self.account_auth_path(name);
+            locks.verify_path(&path)?;
+            let actual_version = match fs::read(&path) {
+                Ok(bytes) => Some(content_version_token(&bytes)),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+                Err(error) => return Err(error.into()),
+            };
+            if actual_version != *expected_version
+                || registry.accounts.contains_key(name) != *existed
+            {
+                return Err(CcrError::ConfigError("导入目标已变化，请重试导入".into()));
             }
-
+        }
+        let mut registry_backed_up = false;
+        for (name, import_account, auth_content, identity_key, exists, expected_version) in pending
+        {
+            let auth_path = self.account_auth_path(&name);
+            if exists {
+                result.overwritten.push(name.clone());
+            }
             if force && exists {
-                if let Some(path) = self.backup_account_auth(&name)? {
-                    debug!("已备份账号 {} 的 auth 文件: {}", name, path.display());
+                if !registry_backed_up {
+                    self.backup_registry()?;
+                    registry_backed_up = true;
                 }
-
-                let auth_path = self.account_auth_path(&name);
-                if auth_path.exists() {
-                    let metadata = fs::metadata(&auth_path)
-                        .map_err(|e| CcrError::ConfigError(format!("无法读取文件元数据: {}", e)))?;
-                    if metadata.permissions().readonly() {
-                        return Err(CcrError::ConfigError(format!(
-                            "无法覆盖账号 '{}': 文件为只读",
-                            name
-                        )));
-                    }
-
-                    fs::remove_file(&auth_path)
-                        .map_err(|e| CcrError::ConfigError(format!("删除 auth 文件失败: {}", e)))?;
+                self.backup_account_auth(&name)?;
+            }
+            if (auth_content.is_some() || (force && exists))
+                && auth_path.try_exists()?
+                && fs::metadata(&auth_path)?.permissions().readonly()
+            {
+                return Err(CcrError::ConfigError("无法覆盖导入账号: 文件为只读".into()));
+            }
+            if let Some(auth_content) = auth_content {
+                if expected_version.is_some()
+                    && !enforce_owner_only_permissions_versioned(
+                        &auth_path,
+                        expected_version.as_deref().unwrap_or_default(),
+                        std::time::Duration::from_secs(10),
+                    )?
+                {
+                    return Err(CcrError::ConfigError("导入目标已变化，请重试导入".into()));
                 }
-
+                if write_guarded_versioned(
+                    &auth_path,
+                    &auth_content,
+                    expected_version.as_deref().unwrap_or_default(),
+                    &WriteOptions {
+                        secret: true,
+                        ..Default::default()
+                    },
+                )? == VersionedWriteOutcome::Conflict
+                {
+                    return Err(CcrError::ConfigError("导入目标已变化，请重试导入".into()));
+                }
+                crate::utils::ensure_private_permissions(&auth_path)?;
+            } else if force && exists && auth_path.try_exists()? {
+                // Metadata-only force imports historically remove the old credential after backup.
+                fs::remove_file(&auth_path)?;
+            }
+            if force && exists {
                 registry.accounts.shift_remove(&name);
             }
-
-            // 保存 auth 文件（如果有）
-            if let Some(auth_data) = &import_account.auth_data {
-                let auth_path = self.account_auth_path(&name);
-
-                // 检查文件写入权限
-                if auth_path.exists() {
-                    let metadata = fs::metadata(&auth_path)
-                        .map_err(|e| CcrError::ConfigError(format!("无法读取文件元数据: {}", e)))?;
-                    if metadata.permissions().readonly() {
-                        return Err(CcrError::ConfigError(format!(
-                            "无法覆盖账号 '{}': 文件为只读",
-                            name
-                        )));
-                    }
-                }
-
-                let auth_content = serde_json::to_string_pretty(auth_data)
-                    .map_err(|e| CcrError::ConfigError(format!("序列化 auth 数据失败: {}", e)))?;
-                AtomicWriter::new(&auth_path)
-                    .secret(true)
-                    .write_string(&auth_content)
-                    .map_err(|e| {
-                        CcrError::ConfigError(format!("写入 auth 文件失败 (账号: {}): {}", name, e))
-                    })?;
-
-                // 设置文件权限（仅当前用户可读写）
-                crate::utils::ensure_private_permissions(&auth_path);
-
-                debug!("已写入账号 {} 的 auth 文件", name);
-            }
-
-            // 更新注册表
             let account = CodexAuthAccount {
                 description: import_account.description,
                 account_id: import_account.account_id,
+                identity_key: identity_key.or_else(|| {
+                    if import_account.auth_data.is_none() && !(force && exists) {
+                        fs::read_to_string(&auth_path)
+                            .ok()
+                            .and_then(|content| {
+                                serde_json::from_str::<CodexAuthJson>(&content).ok()
+                            })
+                            .and_then(|auth| identity_from_auth(&auth))
+                            .map(|identity| identity.key())
+                    } else {
+                        None
+                    }
+                }),
                 auth_method: import_account.auth_method,
                 api_base_url: import_account.api_base_url,
                 api_provider_name: import_account.api_provider_name,
@@ -2013,6 +2257,7 @@ impl CodexAuthService {
                 last_used: import_account.last_used,
                 last_refresh: import_account.last_refresh,
                 expires_at: import_account.expires_at,
+                extra: toml::Table::new(),
             };
 
             registry.accounts.insert(name.clone(), account);
@@ -2032,6 +2277,58 @@ impl CodexAuthService {
     }
 }
 
+/// Publish a private fallback snapshot before removing the source.
+fn move_auth_snapshot_with(
+    source: &Path,
+    target: &Path,
+    rename: impl FnOnce(&Path, &Path) -> std::io::Result<()>,
+) -> Result<()> {
+    use ccr_core::core::guarded_write::{
+        VersionedWriteOutcome, WriteOptions, content_version_token,
+        enforce_owner_only_permissions_versioned, write_guarded_versioned,
+    };
+    if rename(source, target).is_ok() {
+        return crate::utils::ensure_private_permissions(target);
+    }
+    let content = fs::read(source)?;
+    let previous = match fs::read(target) {
+        Ok(content) => Some(content),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(error) => return Err(error.into()),
+    };
+    let expected_version = previous
+        .as_deref()
+        .map(content_version_token)
+        .unwrap_or_default();
+    if previous.is_some()
+        && !enforce_owner_only_permissions_versioned(
+            target,
+            &expected_version,
+            std::time::Duration::from_secs(10),
+        )?
+    {
+        return Err(CcrError::ConfigError(
+            "目标 auth 文件已变化，跳过移动".into(),
+        ));
+    }
+    if write_guarded_versioned(
+        target,
+        &content,
+        &expected_version,
+        &WriteOptions {
+            secret: true,
+            ..Default::default()
+        },
+    )? == VersionedWriteOutcome::Conflict
+    {
+        return Err(CcrError::ConfigError(
+            "目标 auth 文件已变化，跳过移动".into(),
+        ));
+    }
+    fs::remove_file(source)
+        .map_err(|error| CcrError::ConfigError(format!("清理旧 auth 文件失败: {error}")))
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
@@ -2043,7 +2340,13 @@ mod tests {
     use tempfile::TempDir;
 
     /// 创建测试用的 service 实例
-    fn create_test_service() -> (CodexAuthService, TempDir, TempDir) {
+    fn create_test_service() -> (CodexAuthService, (TempDir, TestCodexEnv), TempDir) {
+        let env = TestCodexEnv::new();
+        let (service, ccr_dir, codex_dir) = create_test_service_with_env_held();
+        (service, (ccr_dir, env), codex_dir)
+    }
+
+    fn create_test_service_with_env_held() -> (CodexAuthService, TempDir, TempDir) {
         let ccr_dir = TempDir::new().unwrap();
         let codex_dir = TempDir::new().unwrap();
         fs::write(
@@ -2062,19 +2365,326 @@ mod tests {
 
     /// 创建测试用的 auth.json 内容
     fn create_test_auth_json(account_id: &str, last_refresh: &str) -> String {
-        format!(
-            r#"{{
-                "OPENAI_API_KEY": null,
-                "tokens": {{
-                    "id_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJzdWIiOiIxMjM0NTY3ODkwIn0.signature",
-                    "access_token": "eyJ...",
-                    "refresh_token": "rt_test",
-                    "account_id": "{}"
-                }},
-                "last_refresh": "{}"
-            }}"#,
-            account_id, last_refresh
+        json!({
+            "OPENAI_API_KEY": null,
+            "tokens": {
+                "id_token": super::super::codex_auth_identity::test_jwt(json!({"email":"test@example.com","sub":"1234567890","chatgpt_user_id":format!("user-{account_id}")})),
+                "access_token": "eyJ...",
+                "refresh_token": "rt_test",
+                "account_id": account_id
+            },
+            "last_refresh": last_refresh
+        }).to_string()
+    }
+
+    #[test]
+    fn lifecycle_save_metadata_uses_captured_content_after_runtime_changes() {
+        let (service, _env, _temp) = create_test_service();
+        let token = fake_jwt(serde_json::json!({
+            "chatgpt_user_id":"captured-save-user", "email":"captured@example.invalid"
+        }));
+        let captured = serde_json::json!({"tokens":{
+            "id_token":token, "access_token":token, "refresh_token":"captured-refresh",
+            "account_id":"captured-save-workspace"
+        }, "last_refresh":"2026-10-01T00:00:00Z"})
+        .to_string();
+        fs::write(
+            service.auth_json_path(),
+            create_test_auth_json("replacement-workspace", "2026-10-02T00:00:00Z"),
         )
+        .unwrap();
+        service
+            .save_current_content(
+                "captured",
+                None,
+                service.load_registry().unwrap(),
+                captured.as_bytes(),
+            )
+            .unwrap();
+        let registry = service.load_registry().unwrap();
+        let account = &registry.accounts["captured"];
+        assert_eq!(
+            fs::read(service.account_auth_path("captured")).unwrap(),
+            captured.as_bytes()
+        );
+        assert_eq!(account.account_id, "captured-save-workspace");
+        assert_eq!(
+            account.identity_key.as_deref(),
+            Some("captured-save-user::captured-save-workspace")
+        );
+        assert_eq!(
+            account.email,
+            Some(service.mask_email("captured@example.invalid"))
+        );
+        assert_eq!(
+            account.last_refresh.unwrap().to_rfc3339(),
+            "2026-10-01T00:00:00+00:00"
+        );
+    }
+
+    fn registry_version_fixture(
+        version: &str,
+        with_snapshots: bool,
+    ) -> (TestCodexEnv, CodexAuthService) {
+        let env = TestCodexEnv::new();
+        let service = CodexAuthService::from_dirs(
+            env.ccr_codex_dir().to_path_buf(),
+            env.codex_dir().to_path_buf(),
+        );
+        fs::write(
+            env.codex_dir().join("config.toml"),
+            "cli_auth_credentials_store = \"file\"\n",
+        )
+        .unwrap();
+        fs::write(
+            service.auth_json_path(),
+            create_test_auth_json("acc-first", "2026-10-06T00:00:00Z")
+                .replace("rt_test", "rt_runtime"),
+        )
+        .unwrap();
+        fs::write(
+            service.registry_path(),
+            format!(
+                r#"version = "{version}"
+current_auth = "first"
+future_key = "retained"
+
+[accounts.first]
+account_id = "acc-first"
+auth_method = "chatgpt"
+saved_at = "2026-10-05T00:00:00Z"
+future_account_key = "retained"
+
+[accounts.second]
+account_id = "acc-second"
+auth_method = "chatgpt"
+saved_at = "2026-10-05T00:00:00Z"
+"#
+            ),
+        )
+        .unwrap();
+        if with_snapshots {
+            fs::create_dir_all(service.auth_storage_dir()).unwrap();
+            for name in ["first", "second"] {
+                fs::write(
+                    service.account_auth_path(name),
+                    create_test_auth_json(&format!("acc-{name}"), "2026-10-05T00:00:00Z")
+                        .replace("rt_test", "rt_snapshot"),
+                )
+                .unwrap();
+            }
+        }
+        (env, service)
+    }
+
+    fn fixture_tree(
+        root: &std::path::Path,
+    ) -> std::collections::BTreeMap<PathBuf, Option<Vec<u8>>> {
+        fn visit(
+            root: &std::path::Path,
+            dir: &std::path::Path,
+            entries: &mut std::collections::BTreeMap<PathBuf, Option<Vec<u8>>>,
+        ) {
+            for entry in fs::read_dir(dir).unwrap() {
+                let path = entry.unwrap().path();
+                let relative = path.strip_prefix(root).unwrap().to_path_buf();
+                if path.is_dir() {
+                    entries.insert(relative, None);
+                    visit(root, &path, entries);
+                } else {
+                    entries.insert(relative, Some(fs::read(path).unwrap()));
+                }
+            }
+        }
+        let mut entries = std::collections::BTreeMap::new();
+        visit(root, root, &mut entries);
+        entries
+    }
+
+    fn assert_read_only_command(operation: impl Fn(&CodexAuthService) -> Result<()>) {
+        for version in ["2.0", "abc"] {
+            for with_snapshots in [false, true] {
+                let (env, service) = registry_version_fixture(version, with_snapshots);
+                let before = fixture_tree(env.home());
+                let error = operation(&service).unwrap_err();
+                assert!(matches!(error, CcrError::ConfigError(ref message)
+                    if message.starts_with(REGISTRY_READ_ONLY_PREFIX)));
+                assert_eq!(fixture_tree(env.home()), before, "version {version}");
+            }
+        }
+    }
+
+    #[test]
+    fn save_current_rejects_read_only_registry_before_file_changes() {
+        assert_read_only_command(|service| service.save_current("first", None, true));
+    }
+
+    #[test]
+    fn switch_account_rejects_read_only_registry_before_file_changes() {
+        assert_read_only_command(|service| service.switch_account("second"));
+    }
+
+    #[test]
+    fn delete_account_rejects_read_only_registry_before_file_changes() {
+        assert_read_only_command(|service| service.delete_account("first"));
+    }
+
+    #[test]
+    fn update_description_rejects_read_only_registry_before_file_changes() {
+        assert_read_only_command(|service| {
+            service
+                .update_account_description("first", Some("changed".into()))
+                .map(|_| ())
+        });
+    }
+
+    #[test]
+    fn rename_account_rejects_read_only_registry_before_file_changes() {
+        assert_read_only_command(|service| {
+            service.rename_account("first", "second", true).map(|_| ())
+        });
+        assert_read_only_command(|service| {
+            service.rename_account("first", "first", false).map(|_| ())
+        });
+    }
+
+    #[test]
+    fn import_accounts_rejects_read_only_registry_before_file_changes() {
+        assert_read_only_command(|service| {
+            let mut export: CodexAuthExport =
+                serde_json::from_str(&service.export_accounts(false)?)?;
+            export.accounts.get_mut("first").unwrap().auth_data = Some(serde_json::from_slice(
+                &fs::read(service.auth_json_path())?,
+            )?);
+            let export = serde_json::to_string(&export)?;
+            service
+                .import_accounts(&export, ImportMode::Replace, true)
+                .map(|_| ())
+        });
+    }
+
+    #[test]
+    fn read_only_registry_keeps_account_listing_and_reads_available() {
+        for version in ["2.0", "abc"] {
+            let (env, service) = registry_version_fixture(version, true);
+            let before = fixture_tree(env.home());
+            let items = service.list_accounts().unwrap();
+            assert_eq!(items.len(), 2);
+            assert!(
+                items
+                    .iter()
+                    .any(|item| item.name == "first" && item.is_current)
+            );
+            assert_eq!(
+                service.get_current_auth_info().unwrap().account_id,
+                "acc-first"
+            );
+            assert_eq!(service.load_registry().unwrap().accounts.len(), 2);
+            assert_eq!(fixture_tree(env.home()), before);
+        }
+    }
+
+    #[test]
+    fn sync_current_auth_skips_read_only_registry_and_returns_computed_account() {
+        for version in ["2.0", "abc"] {
+            let (env, service) = registry_version_fixture(version, true);
+            let content = fs::read_to_string(service.registry_path()).unwrap();
+            fs::write(
+                service.registry_path(),
+                content.replace("current_auth = \"first\"", "current_auth = \"second\""),
+            )
+            .unwrap();
+            let registry_before = fs::read(service.registry_path()).unwrap();
+            let before = fixture_tree(env.home());
+            assert_eq!(
+                service.sync_current_auth_registry().unwrap(),
+                Some("first".into())
+            );
+            assert_eq!(fs::read(service.registry_path()).unwrap(), registry_before);
+            // save 的只读兜底在锁内执行，允许创建注册表锁目录与空锁文件。
+            let mut after = fixture_tree(env.home());
+            let locks = service.ccr_codex_dir.join(".locks");
+            after.remove(locks.strip_prefix(env.home()).unwrap());
+            after.remove(
+                locks
+                    .join("codex_auth_registry.lock")
+                    .strip_prefix(env.home())
+                    .unwrap(),
+            );
+            assert_eq!(after, before);
+            assert!(!service.backup_dir().exists());
+            assert_eq!(
+                service.load_registry().unwrap().current_auth.as_deref(),
+                Some("second")
+            );
+        }
+    }
+
+    #[test]
+    fn token_sync_continues_in_both_directions_with_read_only_registry() {
+        for version in ["2.0", "abc"] {
+            let (_env, service) = registry_version_fixture(version, true);
+            let registry_before = fs::read(service.registry_path()).unwrap();
+            assert_eq!(
+                service.sync_runtime_with_saved_account().unwrap(),
+                RuntimeSyncOutcome::SnapshotUpdated("first".into())
+            );
+            let snapshot: CodexAuthJson =
+                serde_json::from_slice(&fs::read(service.account_auth_path("first")).unwrap())
+                    .unwrap();
+            assert_eq!(
+                snapshot.tokens.unwrap().refresh_token.as_deref(),
+                Some("rt_runtime")
+            );
+            assert_eq!(fs::read(service.registry_path()).unwrap(), registry_before);
+
+            fs::write(
+                service.account_auth_path("first"),
+                create_test_auth_json("acc-first", "2026-10-07T00:00:00Z")
+                    .replace("rt_test", "rt_newer_snapshot"),
+            )
+            .unwrap();
+            assert_eq!(
+                service.sync_runtime_with_saved_account().unwrap(),
+                RuntimeSyncOutcome::RuntimeUpdated("first".into())
+            );
+            let runtime: CodexAuthJson =
+                serde_json::from_slice(&fs::read(service.auth_json_path()).unwrap()).unwrap();
+            assert_eq!(
+                runtime.tokens.unwrap().refresh_token.as_deref(),
+                Some("rt_newer_snapshot")
+            );
+            assert_eq!(fs::read(service.registry_path()).unwrap(), registry_before);
+        }
+    }
+
+    #[test]
+    fn save_current_force_discards_replaced_account_extensions_only() {
+        let (_env, service) = registry_version_fixture("1.7", true);
+        let registry = service.load_registry().unwrap();
+        assert!(
+            registry.accounts["first"]
+                .extra
+                .contains_key("future_account_key")
+        );
+        let other_account = toml::to_string(&registry.accounts["second"]).unwrap();
+
+        service
+            .save_current("first", Some("replacement".into()), true)
+            .unwrap();
+
+        let updated = service.load_registry().unwrap();
+        assert!(updated.accounts["first"].extra.is_empty());
+        assert_eq!(updated.extra, registry.extra);
+        assert_eq!(updated.version, "1.7");
+        assert_eq!(
+            toml::to_string(&updated.accounts["second"]).unwrap(),
+            other_account
+        );
+        assert_eq!(
+            fs::read(service.account_auth_path("first")).unwrap(),
+            fs::read(service.auth_json_path()).unwrap()
+        );
     }
 
     fn fake_jwt(payload: serde_json::Value) -> String {
@@ -2286,7 +2896,7 @@ mod tests {
             .unwrap();
         manager.save(&global_registry).unwrap();
 
-        let (service, _ccr, _codex) = create_test_service();
+        let (service, _ccr, _codex) = create_test_service_with_env_held();
         let platform = service.platform().unwrap();
         platform
             .save_profile("duck", &provider_env_profile())
@@ -2469,6 +3079,7 @@ mod tests {
             CodexAuthAccount {
                 description: Some("Test".to_string()),
                 account_id: "acc-123".to_string(),
+                identity_key: None,
                 auth_method: Some(OpenAiAuthMethod::Chatgpt),
                 api_base_url: None,
                 api_provider_name: None,
@@ -2478,6 +3089,7 @@ mod tests {
                 last_used: None,
                 last_refresh: None,
                 expires_at: None,
+                extra: toml::Table::new(),
             },
         );
 
@@ -3076,6 +3688,261 @@ requires_openai_auth = true
     // ==================== 备份测试 ====================
 
     #[test]
+    fn p3_delete_preserves_snapshot_bytes_in_backup() {
+        let (service, _ccr, codex) = create_test_service();
+        let original = create_test_auth_json("delete-backup", "2026-10-01T00:00:00Z");
+        fs::write(codex.path().join("auth.json"), &original).unwrap();
+        service.save_current("saved", None, false).unwrap();
+        service.delete_account("saved").unwrap();
+        assert!(!service.account_auth_path("saved").exists());
+        assert!(fs::read_dir(service.backup_dir()).unwrap().any(|entry| {
+            let path = entry.unwrap().path();
+            path.file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with("auth_account_saved_")
+                && fs::read(path).unwrap() == original.as_bytes()
+        }));
+    }
+
+    #[test]
+    fn p3_force_rename_stops_at_each_backup_failure_before_removing_files() {
+        let (service, _ccr, codex) = create_test_service();
+        for (name, id) in [("source", "rename-source"), ("target", "rename-target")] {
+            fs::write(
+                codex.path().join("auth.json"),
+                create_test_auth_json(id, "2026-10-01T00:00:00Z"),
+            )
+            .unwrap();
+            service.save_current(name, None, false).unwrap();
+        }
+        let source = fs::read(service.account_auth_path("source")).unwrap();
+        let target = fs::read(service.account_auth_path("target")).unwrap();
+        let registry = fs::read(service.registry_path()).unwrap();
+        for failed_stage in 0..3 {
+            let stage = std::cell::Cell::new(0);
+            let result = service.rename_account_with_backup("source", "target", true, |name| {
+                let current = stage.replace(stage.get() + 1);
+                if current == failed_stage {
+                    return Err(CcrError::ConfigError("合成备份失败".into()));
+                }
+                match name {
+                    Some(name) => service.backup_account_auth(name),
+                    None => service.backup_registry(),
+                }
+            });
+            assert!(result.is_err(), "backup stage {failed_stage}");
+            assert_eq!(
+                fs::read(service.account_auth_path("source")).unwrap(),
+                source
+            );
+            assert_eq!(
+                fs::read(service.account_auth_path("target")).unwrap(),
+                target
+            );
+            assert_eq!(fs::read(service.registry_path()).unwrap(), registry);
+        }
+    }
+
+    #[test]
+    fn p3_rename_commits_without_a_second_registry_backup_after_file_changes() {
+        let (service, _ccr, codex) = create_test_service();
+        fs::write(
+            codex.path().join("auth.json"),
+            create_test_auth_json("rename-commit", "2026-10-01T00:00:00Z"),
+        )
+        .unwrap();
+        service.save_current("source", None, false).unwrap();
+        let calls = std::cell::Cell::new(0);
+        service
+            .rename_account_with_backup("source", "target", false, |name| {
+                calls.set(calls.get() + 1);
+                let result = match name {
+                    Some(name) => service.backup_account_auth(name),
+                    None => service.backup_registry(),
+                }?;
+                if name.is_none() {
+                    fs::rename(
+                        service.backup_dir(),
+                        service.ccr_codex_dir.join("retained-backups"),
+                    )
+                    .unwrap();
+                    fs::write(service.backup_dir(), b"no more backups allowed").unwrap();
+                }
+                Ok(result)
+            })
+            .unwrap();
+        assert_eq!(calls.get(), 3);
+        assert!(!service.account_auth_path("source").exists());
+        assert!(service.account_auth_path("target").exists());
+        assert!(
+            service
+                .load_registry()
+                .unwrap()
+                .accounts
+                .contains_key("target")
+        );
+    }
+
+    #[test]
+    fn p3_delete_stops_when_real_backup_directory_is_blocked() {
+        let (service, _ccr, codex) = create_test_service();
+        fs::write(
+            codex.path().join("auth.json"),
+            create_test_auth_json("delete-failure", "2026-10-01T00:00:00Z"),
+        )
+        .unwrap();
+        service.save_current("source", None, false).unwrap();
+        let snapshot = fs::read(service.account_auth_path("source")).unwrap();
+        let registry = fs::read(service.registry_path()).unwrap();
+        fs::write(service.backup_dir(), b"blocked").unwrap();
+        assert!(service.delete_account("source").is_err());
+        assert_eq!(
+            fs::read(service.account_auth_path("source")).unwrap(),
+            snapshot
+        );
+        assert_eq!(fs::read(service.registry_path()).unwrap(), registry);
+    }
+
+    #[test]
+    fn p3_rename_waits_for_quota_refresh_and_keeps_rotated_snapshot() {
+        use std::io::{Read, Write};
+        use std::net::TcpListener;
+        use std::sync::mpsc;
+        use std::time::{Duration as StdDuration, Instant};
+
+        let env = TestCodexEnv::new();
+        fs::write(
+            env.codex_dir().join("config.toml"),
+            "cli_auth_credentials_store = \"file\"\n",
+        )
+        .unwrap();
+        let service = CodexAuthService::from_dirs(
+            env.ccr_codex_dir().to_path_buf(),
+            env.codex_dir().to_path_buf(),
+        );
+        let account_id = format!("p3-rotation-{}", uuid::Uuid::new_v4());
+        let expired =
+            fake_jwt(json!({"chatgpt_user_id":"p3-user", "exp":Utc::now().timestamp()-3600}));
+        let live =
+            fake_jwt(json!({"chatgpt_user_id":"p3-user", "exp":Utc::now().timestamp()+3600}));
+        fs::write(service.auth_json_path(), json!({"tokens":{
+            "id_token":expired,"access_token":expired,"refresh_token":"p3-old-refresh","account_id":account_id
+        },"last_refresh":"2026-10-01T00:00:00Z"}).to_string()).unwrap();
+        service.save_current("source", None, false).unwrap();
+        fs::write(
+            service.auth_json_path(),
+            create_test_auth_json("other-runtime", "2026-10-01T00:00:00Z"),
+        )
+        .unwrap();
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        listener.set_nonblocking(true).unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let endpoints = super::super::openai_quota_core::TestEndpoints {
+            usage: format!("{base}/usage"),
+            token: format!("{base}/token"),
+        };
+        let (entered_tx, entered_rx) = mpsc::channel();
+        let (release_tx, release_rx) = mpsc::channel();
+        let server = std::thread::spawn(move || {
+            for index in 0..2 {
+                let start = Instant::now();
+                let mut stream = loop {
+                    match listener.accept() {
+                        Ok((stream, _)) => break stream,
+                        Err(error)
+                            if error.kind() == std::io::ErrorKind::WouldBlock
+                                && start.elapsed() < StdDuration::from_secs(5) =>
+                        {
+                            std::thread::sleep(StdDuration::from_millis(5))
+                        }
+                        Err(error) => panic!("loopback accept failed: {error}"),
+                    }
+                };
+                stream.set_nonblocking(false).unwrap();
+                stream
+                    .set_read_timeout(Some(StdDuration::from_secs(5)))
+                    .unwrap();
+                let mut bytes = Vec::new();
+                let mut chunk = [0u8; 2048];
+                loop {
+                    let count = stream.read(&mut chunk).unwrap();
+                    assert!(count > 0);
+                    bytes.extend_from_slice(&chunk[..count]);
+                    if let Some(end) = bytes.windows(4).position(|part| part == b"\r\n\r\n") {
+                        let head = String::from_utf8_lossy(&bytes[..end]);
+                        let length = head
+                            .lines()
+                            .find_map(|line| {
+                                let (name, value) = line.split_once(':')?;
+                                name.eq_ignore_ascii_case("content-length")
+                                    .then(|| value.trim().parse::<usize>().unwrap())
+                            })
+                            .unwrap_or(0);
+                        if bytes.len() >= end + 4 + length {
+                            break;
+                        }
+                    }
+                }
+                let payload = if index == 0 {
+                    assert!(bytes.starts_with(b"POST /token "));
+                    entered_tx.send(()).unwrap();
+                    release_rx.recv_timeout(StdDuration::from_secs(5)).unwrap();
+                    json!({"access_token":live,"id_token":live,"refresh_token":"p3-new-refresh"})
+                } else {
+                    assert!(bytes.starts_with(b"GET /usage "));
+                    json!({"plan_type":"plus","rate_limit":{"allowed":true,"limit_reached":false}})
+                }
+                .to_string();
+                write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{payload}", payload.len()).unwrap();
+            }
+        });
+        let ccr_dir = env.ccr_codex_dir().to_path_buf();
+        let codex_dir = env.codex_dir().to_path_buf();
+        let controller = std::thread::spawn(move || {
+            entered_rx.recv_timeout(StdDuration::from_secs(5)).unwrap();
+            let (done_tx, done_rx) = mpsc::channel();
+            let worker = std::thread::spawn(move || {
+                let auth = CodexAuthService::from_dirs(ccr_dir, codex_dir);
+                done_tx
+                    .send(auth.rename_account("source", "renamed", false))
+                    .unwrap();
+            });
+            let early = done_rx.recv_timeout(StdDuration::from_millis(150));
+            release_tx.send(()).unwrap();
+            let waited = early.is_err();
+            early
+                .unwrap_or_else(|_| done_rx.recv_timeout(StdDuration::from_secs(5)).unwrap())
+                .unwrap();
+            worker.join().unwrap();
+            assert!(waited, "rename must wait for the quota credential guard");
+        });
+        let quota = super::super::codex_quota_service::CodexQuotaService::new().unwrap();
+        let result = tokio::runtime::Runtime::new().unwrap().block_on(
+            super::super::openai_quota_core::TEST_ENDPOINTS
+                .scope(endpoints, quota.fetch_account_quota_force_refresh("source")),
+        );
+        controller.join().unwrap();
+        server.join().unwrap();
+        assert!(result.error.is_none(), "quota failed");
+        assert!(!service.account_auth_path("source").exists());
+        let snapshot: CodexAuthJson =
+            serde_json::from_slice(&fs::read(service.account_auth_path("renamed")).unwrap())
+                .unwrap();
+        assert_eq!(
+            snapshot.tokens.unwrap().refresh_token.as_deref(),
+            Some("p3-new-refresh")
+        );
+        assert!(
+            service
+                .load_registry()
+                .unwrap()
+                .accounts
+                .contains_key("renamed")
+        );
+    }
+
+    #[test]
     fn save_current_snapshot_matches_runtime_bytes() {
         let (service, _ccr, codex) = create_test_service();
         let auth_path = codex.path().join("auth.json");
@@ -3258,6 +4125,7 @@ requires_openai_auth = true
             CodexAuthAccount {
                 description: Some("Test".to_string()),
                 account_id: "acc-123".to_string(),
+                identity_key: None,
                 auth_method: Some(OpenAiAuthMethod::Chatgpt),
                 api_base_url: None,
                 api_provider_name: None,
@@ -3267,6 +4135,7 @@ requires_openai_auth = true
                 last_used: None,
                 last_refresh: None,
                 expires_at: Some(expires_at),
+                extra: toml::Table::new(),
             },
         );
 
@@ -3292,6 +4161,7 @@ requires_openai_auth = true
             CodexAuthAccount {
                 description: Some("Test".to_string()),
                 account_id: "acc-123".to_string(),
+                identity_key: None,
                 auth_method: Some(OpenAiAuthMethod::Chatgpt),
                 api_base_url: None,
                 api_provider_name: None,
@@ -3301,6 +4171,7 @@ requires_openai_auth = true
                 last_used: None,
                 last_refresh: None,
                 expires_at: None,
+                extra: toml::Table::new(),
             },
         );
 
@@ -3400,6 +4271,544 @@ requires_openai_auth = true
     }
 
     // ==================== 导入账号测试 ====================
+
+    fn p6_import_entry(
+        account_id: &str,
+        auth_data: Option<serde_json::Value>,
+    ) -> serde_json::Value {
+        json!({"account_id":account_id,"saved_at":"2026-10-01T00:00:00Z","auth_data":auth_data})
+    }
+
+    fn p6_import_bundle(entries: Vec<(&str, serde_json::Value)>) -> String {
+        let accounts: indexmap::IndexMap<_, _> = entries.into_iter().collect();
+        format!(
+            r#"{{"version":"1.0","exported_at":"2026-10-01T00:00:00Z","accounts":{}}}"#,
+            serde_json::to_string(&accounts).unwrap()
+        )
+    }
+
+    fn p6_import_service() -> (TestCodexEnv, CodexAuthService) {
+        let env = TestCodexEnv::new();
+        fs::write(
+            env.codex_dir().join("config.toml"),
+            "cli_auth_credentials_store = \"file\"\n",
+        )
+        .unwrap();
+        let service = CodexAuthService::from_dirs(
+            env.ccr_codex_dir().to_path_buf(),
+            env.codex_dir().to_path_buf(),
+        );
+        (env, service)
+    }
+
+    #[test]
+    fn p6_import_rejects_metadata_conflict_before_any_filesystem_change() {
+        let (env, service) = p6_import_service();
+        let auth: serde_json::Value = serde_json::from_str(&create_test_auth_json(
+            "private-token-workspace",
+            "2026-10-01T00:00:00Z",
+        ))
+        .unwrap();
+        let bundle = p6_import_bundle(vec![(
+            "conflict",
+            p6_import_entry("private-metadata-id", Some(auth)),
+        )]);
+        let before = fixture_tree(env.home());
+        let error = service
+            .import_accounts(&bundle, ImportMode::Merge, false)
+            .unwrap_err();
+        assert_eq!(fixture_tree(env.home()), before);
+        let diagnostic = format!("{error:?} {error}");
+        assert!(
+            !diagnostic.contains("private-token-workspace")
+                && !diagnostic.contains("private-metadata-id")
+        );
+    }
+
+    #[test]
+    fn p6_import_valid_first_invalid_second_preserves_complete_tree() {
+        let (env, service) = p6_import_service();
+        let auth = serde_json::from_str(&create_test_auth_json("first-id", "2026-10-01T00:00:00Z"))
+            .unwrap();
+        let bundle = p6_import_bundle(vec![
+            ("first", p6_import_entry("first-id", Some(auth))),
+            ("invalid name", p6_import_entry("second-id", None)),
+        ]);
+        let before = fixture_tree(env.home());
+        assert!(
+            service
+                .import_accounts(&bundle, ImportMode::Merge, false)
+                .is_err()
+        );
+        assert_eq!(fixture_tree(env.home()), before);
+    }
+
+    #[test]
+    fn p6_import_rejects_conflicting_token_claims() {
+        let (env, service) = p6_import_service();
+        let jwt = fake_jwt(
+            json!({"chatgpt_user_id":"private-user","chatgpt_account_id":"claim-workspace"}),
+        );
+        let auth = json!({"tokens":{"id_token":jwt,"account_id":"explicit-workspace"}});
+        let bundle = p6_import_bundle(vec![(
+            "claim-conflict",
+            p6_import_entry("explicit-workspace", Some(auth)),
+        )]);
+        let before = fixture_tree(env.home());
+        assert!(
+            service
+                .import_accounts(&bundle, ImportMode::Merge, false)
+                .is_err()
+        );
+        assert_eq!(fixture_tree(env.home()), before);
+    }
+
+    #[test]
+    fn p6_import_waiting_on_credentials_retains_same_identity_rotation() {
+        use std::sync::mpsc;
+        use std::time::Duration as StdDuration;
+        let (_env, service) = p6_import_service();
+        let original = create_test_auth_json("same-workspace", "2026-10-01T00:00:00Z");
+        fs::write(service.auth_json_path(), &original).unwrap();
+        service.save_current("target", None, false).unwrap();
+        let path = service.account_auth_path("target");
+        let held = CredentialLocks::acquire_sources(vec![(
+            path.clone(),
+            CredentialResource::from_path(&path),
+        )])
+        .unwrap();
+        let auth: serde_json::Value = serde_json::from_str(&original).unwrap();
+        let bundle = p6_import_bundle(vec![(
+            "target",
+            p6_import_entry("same-workspace", Some(auth)),
+        )]);
+        let ccr = service.ccr_codex_dir.clone();
+        let codex = service.codex_dir.clone();
+        let (started_tx, started_rx) = mpsc::channel();
+        let (done_tx, done_rx) = mpsc::channel();
+        let worker = std::thread::spawn(move || {
+            let service = CodexAuthService::from_dirs(ccr, codex);
+            let result = service.import_accounts_with_locks(
+                &bundle,
+                ImportMode::Merge,
+                true,
+                |sources, incoming| {
+                    started_tx.send(()).unwrap();
+                    CredentialLocks::acquire_sources_with_resources(sources, incoming)
+                },
+            );
+            done_tx.send(result).unwrap();
+        });
+        started_rx.recv_timeout(StdDuration::from_secs(5)).unwrap();
+        let early = done_rx.recv_timeout(StdDuration::from_millis(300)).ok();
+        let rotated = original.replace("rt_test", "p6-rotated-refresh");
+        fs::write(&path, &rotated).unwrap();
+        let registry = fs::read(service.registry_path()).unwrap();
+        drop(held);
+        let waited = early.is_none();
+        let result =
+            early.unwrap_or_else(|| done_rx.recv_timeout(StdDuration::from_secs(5)).unwrap());
+        worker.join().unwrap();
+        assert!(waited, "import must wait for the held credential lock");
+        assert!(result.is_err(), "import must stop after source rotation");
+        assert_eq!(fs::read_to_string(path).unwrap(), rotated);
+        assert_eq!(fs::read(service.registry_path()).unwrap(), registry);
+    }
+
+    #[test]
+    fn p6_import_claim_matrix_preserves_legacy_and_api_compatibility() {
+        let (env, service) = p6_import_service();
+        let user = fake_jwt(
+            json!({"https://api.openai.com/auth":{"chatgpt_user_id":"matrix-user","chatgpt_account_id":"matrix-workspace"}}),
+        );
+        let other_user = fake_jwt(
+            json!({"chatgpt_user_id":"other-user","chatgpt_account_id":"matrix-workspace"}),
+        );
+        let other_account = fake_jwt(
+            json!({"chatgpt_user_id":"matrix-user","chatgpt_account_id":"other-workspace"}),
+        );
+        let dual_accounts = fake_jwt(
+            json!({"chatgpt_user_id":"matrix-user","chatgpt_account_id":"matrix-workspace","account_id":"other-workspace"}),
+        );
+        for auth in [
+            json!({"tokens":{"id_token":user,"access_token":other_user,"account_id":"matrix-workspace"}}),
+            json!({"tokens":{"id_token":user,"access_token":other_account}}),
+            json!({"tokens":{"id_token":dual_accounts}}),
+        ] {
+            let before = fixture_tree(env.home());
+            let bundle = p6_import_bundle(vec![(
+                "rejected",
+                p6_import_entry("matrix-workspace", Some(auth)),
+            )]);
+            assert!(
+                service
+                    .import_accounts(&bundle, ImportMode::Merge, false)
+                    .is_err()
+            );
+            assert_eq!(fixture_tree(env.home()), before);
+        }
+        for (account_id, auth, method) in [
+            (
+                "matrix-workspace",
+                json!({"tokens":{"account_id":"matrix-workspace"}}),
+                "api",
+            ),
+            (
+                "api:syn..key:len17",
+                json!({"OPENAI_API_KEY":"synthetic-api-key"}),
+                "chatgpt",
+            ),
+        ] {
+            let mut entry = p6_import_entry(account_id, Some(auth));
+            entry["auth_method"] = json!(method);
+            let before = fixture_tree(env.home());
+            let bundle = p6_import_bundle(vec![("method-conflict", entry)]);
+            assert!(
+                service
+                    .import_accounts(&bundle, ImportMode::Merge, false)
+                    .is_err()
+            );
+            assert_eq!(fixture_tree(env.home()), before);
+        }
+        for (name, account_id, auth, expected_key) in [
+            (
+                "complete",
+                "matrix-workspace",
+                json!({"tokens":{"id_token":user,"access_token":user,"account_id":"matrix-workspace"}}),
+                Some("matrix-user::matrix-workspace"),
+            ),
+            (
+                "fallback",
+                "matrix-workspace",
+                json!({"tokens":{"access_token":user}}),
+                Some("matrix-user::matrix-workspace"),
+            ),
+            (
+                "incomplete",
+                "matrix-workspace",
+                json!({"tokens":{"id_token":"opaque","account_id":"matrix-workspace"}}),
+                None,
+            ),
+            (
+                "missing-context",
+                "metadata-context",
+                json!({"tokens":{"id_token":fake_jwt(json!({"chatgpt_user_id":"matrix-user"}))}}),
+                None,
+            ),
+            (
+                "api",
+                "api:syn..key:len17",
+                json!({"OPENAI_API_KEY":"synthetic-api-key"}),
+                None,
+            ),
+        ] {
+            let bundle = p6_import_bundle(vec![(name, p6_import_entry(account_id, Some(auth)))]);
+            assert_eq!(
+                service
+                    .import_accounts(&bundle, ImportMode::Merge, false)
+                    .unwrap()
+                    .added,
+                1
+            );
+            assert_eq!(
+                service.load_registry().unwrap().accounts[name]
+                    .identity_key
+                    .as_deref(),
+                expected_key
+            );
+        }
+        let before = fixture_tree(env.home());
+        let bad_api = p6_import_bundle(vec![(
+            "bad-api",
+            p6_import_entry(
+                "api:wrong",
+                Some(json!({"OPENAI_API_KEY":"synthetic-api-key"})),
+            ),
+        )]);
+        assert!(
+            service
+                .import_accounts(&bad_api, ImportMode::Merge, false)
+                .is_err()
+        );
+        assert_eq!(fixture_tree(env.home()), before);
+    }
+
+    #[test]
+    fn p6_import_rejects_whitespace_metadata_identity_before_side_effects() {
+        let (env, service) = p6_import_service();
+        for entry in [
+            p6_import_entry(
+                " workspace",
+                Some(json!({"tokens":{"account_id":"workspace"}})),
+            ),
+            p6_import_entry(
+                "workspace ",
+                Some(json!({"tokens":{"account_id":"workspace"}})),
+            ),
+            p6_import_entry(
+                " api:syn..key:len17",
+                Some(json!({"OPENAI_API_KEY":"synthetic-api-key"})),
+            ),
+            p6_import_entry(
+                "api:syn..key:len17 ",
+                Some(json!({"OPENAI_API_KEY":"synthetic-api-key"})),
+            ),
+        ] {
+            let before = fixture_tree(env.home());
+            let bundle = p6_import_bundle(vec![("whitespace", entry)]);
+            assert!(
+                service
+                    .import_accounts(&bundle, ImportMode::Merge, false)
+                    .is_err()
+            );
+            assert_eq!(fixture_tree(env.home()), before);
+        }
+    }
+
+    #[test]
+    fn p6_import_skipped_entries_keep_typed_shape_validation() {
+        let (env, service) = p6_import_service();
+        fs::write(
+            service.auth_json_path(),
+            create_test_auth_json("existing-id", "2026-10-01T00:00:00Z"),
+        )
+        .unwrap();
+        service.save_current("existing", None, false).unwrap();
+        let before = fixture_tree(env.home());
+        let conflict = p6_import_entry(
+            "different-metadata",
+            Some(json!({"tokens":{"account_id":"token-context"}})),
+        );
+        let provider = p6_import_entry(
+            "provider:SYNTHETIC_KEY:fingerprint",
+            Some(json!({"tokens":{"account_id":"ignored-context"}})),
+        );
+        let bundle = p6_import_bundle(vec![("existing", conflict), ("old-provider", provider)]);
+        let result = service
+            .import_accounts(&bundle, ImportMode::Merge, false)
+            .unwrap();
+        assert_eq!(result.skipped, 2);
+        assert_eq!(fixture_tree(env.home()), before);
+        let malformed = p6_import_bundle(vec![(
+            "existing",
+            p6_import_entry(
+                "existing-id",
+                Some(json!({"tokens":"synthetic-secret-marker"})),
+            ),
+        )]);
+        let error = service
+            .import_accounts(&malformed, ImportMode::Merge, false)
+            .unwrap_err();
+        assert!(!error.to_string().contains("synthetic-secret-marker"));
+        assert_eq!(fixture_tree(env.home()), before);
+    }
+
+    #[test]
+    fn p6_import_metadata_only_force_and_replace_keep_existing_semantics() {
+        let (_env, service) = p6_import_service();
+        let original = create_test_auth_json("existing-id", "2026-10-01T00:00:00Z");
+        fs::write(service.auth_json_path(), &original).unwrap();
+        for name in ["force-target", "replace-target", "unrelated"] {
+            service.save_current(name, None, false).unwrap();
+        }
+        let bundle = p6_import_bundle(vec![(
+            "force-target",
+            p6_import_entry("metadata-only-id", None),
+        )]);
+        let result = service
+            .import_accounts(&bundle, ImportMode::Merge, true)
+            .unwrap();
+        assert_eq!(result.updated, 1);
+        assert_eq!(result.overwritten, vec!["force-target"]);
+        assert!(!service.account_auth_path("force-target").exists());
+        let registry = service.load_registry().unwrap();
+        assert_eq!(registry.accounts["force-target"].identity_key, None);
+        assert!(fs::read_dir(service.backup_dir()).unwrap().any(|entry| {
+            let path = entry.unwrap().path();
+            path.file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with("auth_account_force-target_")
+                && fs::read(path).unwrap() == original.as_bytes()
+        }));
+        let bundle = p6_import_bundle(vec![(
+            "replace-target",
+            p6_import_entry("changed-metadata", None),
+        )]);
+        let result = service
+            .import_accounts(&bundle, ImportMode::Replace, false)
+            .unwrap();
+        assert_eq!(result.updated, 1);
+        assert_eq!(
+            fs::read_to_string(service.account_auth_path("replace-target")).unwrap(),
+            original
+        );
+        assert!(
+            service
+                .load_registry()
+                .unwrap()
+                .accounts
+                .contains_key("unrelated")
+        );
+    }
+
+    #[test]
+    fn p6_import_intentional_identity_replacement_and_order_are_preserved() {
+        let (_env, service) = p6_import_service();
+        fs::write(
+            service.auth_json_path(),
+            create_test_auth_json("old-id", "2026-10-01T00:00:00Z"),
+        )
+        .unwrap();
+        for name in ["second", "first", "unrelated"] {
+            service.save_current(name, None, false).unwrap();
+        }
+        let auth = json!({"tokens":{"id_token":fake_jwt(json!({"chatgpt_user_id":"replacement-user"})),"account_id":"new-id"}});
+        let bundle = p6_import_bundle(vec![
+            ("first", p6_import_entry("new-id", Some(auth.clone()))),
+            ("second", p6_import_entry("new-id", Some(auth))),
+        ]);
+        let result = service
+            .import_accounts(&bundle, ImportMode::Replace, false)
+            .unwrap();
+        assert_eq!(result.updated, 2);
+        assert_eq!(result.overwritten, vec!["first", "second"]);
+        let registry = service.load_registry().unwrap();
+        assert_eq!(
+            registry.accounts["first"].identity_key.as_deref(),
+            Some("replacement-user::new-id")
+        );
+        assert!(registry.accounts.contains_key("unrelated"));
+    }
+
+    #[test]
+    fn p6_import_encrypted_conflict_uses_identical_preflight() {
+        let (env, service) = p6_import_service();
+        let bundle = p6_import_bundle(vec![(
+            "encrypted",
+            p6_import_entry("metadata", Some(json!({"tokens":{"account_id":"tokens"}}))),
+        )]);
+        let value: serde_json::Value = serde_json::from_str(&bundle).unwrap();
+        let encrypted = super::super::codex_auth_crypto::ExportCrypto::encrypt_export(
+            &value["accounts"].to_string(),
+            "synthetic-password",
+            Utc::now(),
+            1,
+        )
+        .unwrap();
+        let before = fixture_tree(env.home());
+        assert!(
+            service
+                .import_accounts_encrypted(
+                    &serde_json::to_string(&encrypted).unwrap(),
+                    "synthetic-password",
+                    ImportMode::Merge,
+                    false
+                )
+                .is_err()
+        );
+        assert_eq!(fixture_tree(env.home()), before);
+    }
+
+    #[test]
+    fn p6_import_locks_incoming_identity_shared_with_another_alias() {
+        use std::sync::mpsc;
+        use std::time::Duration as StdDuration;
+        let (_env, service) = p6_import_service();
+        let source = create_test_auth_json("incoming-workspace", "2026-10-01T00:00:00Z");
+        fs::write(service.auth_json_path(), &source).unwrap();
+        service.save_current("alias", None, false).unwrap();
+        let alias = service.account_auth_path("alias");
+        let incoming_resource = CredentialResource::from_path(&alias);
+        let held = CredentialLocks::acquire(vec![incoming_resource.clone()]).unwrap();
+        let bundle = p6_import_bundle(vec![(
+            "new-target",
+            p6_import_entry(
+                "incoming-workspace",
+                Some(serde_json::from_str(&source).unwrap()),
+            ),
+        )]);
+        let ccr = service.ccr_codex_dir.clone();
+        let codex = service.codex_dir.clone();
+        let (ready_tx, ready_rx) = mpsc::channel();
+        let (done_tx, done_rx) = mpsc::channel();
+        let worker = std::thread::spawn(move || {
+            let service = CodexAuthService::from_dirs(ccr, codex);
+            let result = service.import_accounts_with_locks(
+                &bundle,
+                ImportMode::Merge,
+                false,
+                |sources, incoming| {
+                    assert!(incoming.contains(&incoming_resource));
+                    ready_tx.send(()).unwrap();
+                    CredentialLocks::acquire_sources_with_resources(sources, incoming)
+                },
+            );
+            done_tx.send(result).unwrap();
+        });
+        ready_rx.recv_timeout(StdDuration::from_secs(5)).unwrap();
+        let early = done_rx.recv_timeout(StdDuration::from_millis(300)).ok();
+        let waited = early.is_none();
+        drop(held);
+        let result =
+            early.unwrap_or_else(|| done_rx.recv_timeout(StdDuration::from_secs(5)).unwrap());
+        worker.join().unwrap();
+        assert!(waited);
+        assert_eq!(result.unwrap().added, 1);
+    }
+
+    #[test]
+    fn p6_import_force_backup_failure_keeps_snapshot_and_registry() {
+        let (_env, service) = p6_import_service();
+        let original = create_test_auth_json("existing-id", "2026-10-01T00:00:00Z");
+        fs::write(service.auth_json_path(), &original).unwrap();
+        service.save_current("target", None, false).unwrap();
+        let registry = fs::read(service.registry_path()).unwrap();
+        fs::write(service.backup_dir(), b"blocked backup directory").unwrap();
+        let replacement =
+            serde_json::from_str(&create_test_auth_json("new-id", "2026-10-02T00:00:00Z")).unwrap();
+        let bundle = p6_import_bundle(vec![(
+            "target",
+            p6_import_entry("new-id", Some(replacement)),
+        )]);
+        assert!(
+            service
+                .import_accounts(&bundle, ImportMode::Merge, true)
+                .is_err()
+        );
+        assert_eq!(
+            fs::read_to_string(service.account_auth_path("target")).unwrap(),
+            original
+        );
+        assert_eq!(fs::read(service.registry_path()).unwrap(), registry);
+    }
+
+    #[test]
+    fn p6_import_rechecks_registry_version_after_credential_admission() {
+        let (_env, service) = p6_import_service();
+        let bundle = p6_import_bundle(vec![("target", p6_import_entry("metadata-only", None))]);
+        let result = service.import_accounts_with_locks(
+            &bundle,
+            ImportMode::Merge,
+            false,
+            |sources, incoming| {
+                let locks = CredentialLocks::acquire_sources_with_resources(sources, incoming)?;
+                fs::write(service.registry_path(), "version = \"2.0\"\n").unwrap();
+                Ok(locks)
+            },
+        );
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains(REGISTRY_READ_ONLY_PREFIX)
+        );
+        assert_eq!(
+            fs::read_to_string(service.registry_path()).unwrap(),
+            "version = \"2.0\"\n"
+        );
+        assert!(!service.auth_storage_dir().exists());
+    }
 
     #[test]
     fn test_import_accounts_merge_without_force() {
@@ -3681,7 +5090,7 @@ requires_openai_auth = true
             "auth_mode": "chatgpt",
             "OPENAI_API_KEY": null,
             "tokens": {
-                "id_token": "synthetic-id",
+                "id_token": super::super::codex_auth_identity::test_jwt(json!({"chatgpt_user_id":format!("user-{account_id}")})),
                 "access_token": format!("access-{refresh}"),
                 "refresh_token": refresh,
                 "account_id": account_id
@@ -3689,6 +5098,485 @@ requires_openai_auth = true
             "last_refresh": last_refresh
         })
         .to_string()
+    }
+
+    fn user_oauth_auth_json(user: &str, refresh: &str, last_refresh: &str) -> String {
+        let mut auth: serde_json::Value =
+            serde_json::from_str(&oauth_auth_json("shared-workspace", refresh, last_refresh))
+                .unwrap();
+        auth["tokens"]["id_token"] =
+            super::super::codex_auth_identity::test_jwt(json!({"chatgpt_user_id":user})).into();
+        auth.to_string()
+    }
+
+    #[cfg(windows)]
+    fn set_broad_auth_permissions(path: &std::path::Path) {
+        let status = std::process::Command::new("powershell.exe")
+            .args(["-NoProfile", "-NonInteractive", "-Command", r#"
+$acl = New-Object System.Security.AccessControl.FileSecurity
+$acl.SetAccessRuleProtection($true, $false)
+$owner = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
+$world = New-Object System.Security.Principal.SecurityIdentifier('S-1-1-0')
+$acl.SetOwner($owner)
+$acl.AddAccessRule([System.Security.AccessControl.FileSystemAccessRule]::new($owner, 'FullControl', 'Allow'))
+$acl.AddAccessRule([System.Security.AccessControl.FileSystemAccessRule]::new($world, 'Read', 'Allow'))
+[System.IO.File]::SetAccessControl($env:CCR_P4_ACL_PATH, $acl)
+"#])
+            .env("CCR_P4_ACL_PATH", path)
+            .stdout(std::process::Stdio::null())
+            .status().unwrap();
+        assert!(status.success(), "synthetic broad DACL setup failed");
+    }
+
+    #[cfg(windows)]
+    fn auth_permissions_are_private(path: &std::path::Path) -> bool {
+        let output = std::process::Command::new("powershell.exe")
+            .args(["-NoProfile", "-NonInteractive", "-Command", r#"
+$acl = [System.IO.File]::GetAccessControl($env:CCR_P4_ACL_PATH)
+$owner = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
+$rules = $acl.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier])
+$valid = $acl.AreAccessRulesProtected -and $rules.Count -eq 1
+foreach ($rule in $rules) {
+    $valid = $valid -and $rule.IdentityReference.Equals($owner) -and $rule.AccessControlType -eq 'Allow' -and $rule.FileSystemRights -eq 'FullControl'
+}
+[Console]::Write($valid)
+"#])
+            .env("CCR_P4_ACL_PATH", path)
+            .output().unwrap();
+        assert!(output.status.success(), "synthetic DACL inspection failed");
+        output.stdout == b"True"
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn p4_unchanged_sync_hardens_runtime_and_snapshot_without_rewriting() {
+        let (service, _ccr, codex) = create_test_service();
+        let runtime = codex.path().join("auth.json");
+        fs::write(
+            &runtime,
+            oauth_auth_json("p4-workspace", "p4-refresh", "2026-10-01T00:00:00Z"),
+        )
+        .unwrap();
+        service.save_current("p4-account", None, false).unwrap();
+        let snapshot = service.account_auth_path("p4-account");
+        let oauth = CodexOAuthTokenService::from_dirs(
+            service.ccr_codex_dir.clone(),
+            service.codex_dir.clone(),
+        );
+        for use_oauth_entrypoint in [false, true] {
+            for path in [&runtime, &snapshot] {
+                set_broad_auth_permissions(path);
+            }
+            let observed: Vec<_> = [&runtime, &snapshot]
+                .into_iter()
+                .map(|path| {
+                    (
+                        fs::read(path).unwrap(),
+                        fs::metadata(path).unwrap().modified().unwrap(),
+                    )
+                })
+                .collect();
+            assert!(matches!(
+                oauth.plan_runtime_sync().unwrap(),
+                RuntimeSyncPlan::Unchanged { .. }
+            ));
+            for path in [&runtime, &snapshot] {
+                assert!(!auth_permissions_are_private(path), "planner changed DACL");
+            }
+            if use_oauth_entrypoint {
+                assert_eq!(
+                    oauth
+                        .sync_runtime_tokens_to_saved_account()
+                        .unwrap()
+                        .as_deref(),
+                    Some("p4-account")
+                );
+            } else {
+                assert_eq!(
+                    service.sync_runtime_with_saved_account().unwrap(),
+                    RuntimeSyncOutcome::Unchanged("p4-account".into())
+                );
+            }
+            for (path, (bytes, modified)) in [&runtime, &snapshot].into_iter().zip(observed) {
+                assert!(
+                    auth_permissions_are_private(path),
+                    "unchanged execution left a broad DACL"
+                );
+                assert_eq!(fs::read(path).unwrap(), bytes);
+                assert_eq!(fs::metadata(path).unwrap().modified().unwrap(), modified);
+            }
+        }
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn p4_quota_only_unchanged_preparation_hardens_observed_auth_files() {
+        let (service, _ccr, codex) = create_test_service();
+        let runtime = codex.path().join("auth.json");
+        fs::write(
+            &runtime,
+            oauth_auth_json(
+                "p4-quota-workspace",
+                "p4-quota-refresh",
+                "2026-10-01T00:00:00Z",
+            ),
+        )
+        .unwrap();
+        service.save_current("p4-quota", None, false).unwrap();
+        let snapshot = service.account_auth_path("p4-quota");
+        let auth: CodexAuthJson = serde_json::from_slice(&fs::read(&runtime).unwrap()).unwrap();
+        let identity = identity_from_auth(&auth).unwrap();
+        for path in [&runtime, &snapshot] {
+            set_broad_auth_permissions(path);
+        }
+        let before: Vec<_> = [&runtime, &snapshot]
+            .into_iter()
+            .map(|path| {
+                (
+                    fs::read(path).unwrap(),
+                    fs::metadata(path).unwrap().modified().unwrap(),
+                )
+            })
+            .collect();
+        service.prepare_current_quota_locked(&identity).unwrap();
+        for (path, (bytes, modified)) in [&runtime, &snapshot].into_iter().zip(before) {
+            assert!(auth_permissions_are_private(path));
+            assert_eq!(fs::read(path).unwrap(), bytes);
+            assert_eq!(fs::metadata(path).unwrap().modified().unwrap(), modified);
+        }
+        fs::write(
+            &runtime,
+            oauth_auth_json("other-workspace", "other-refresh", "2026-10-02T00:00:00Z"),
+        )
+        .unwrap();
+        set_broad_auth_permissions(&runtime);
+        assert!(service.prepare_current_quota_locked(&identity).is_err());
+        assert!(
+            !auth_permissions_are_private(&runtime),
+            "mismatched source was hardened"
+        );
+    }
+
+    #[test]
+    fn p4_rename_fallback_publishes_complete_snapshot_before_source_remove() {
+        let (_service, _ccr, dir) = create_test_service();
+        let source = dir.path().join("source.json");
+        let target = dir.path().join("target.json");
+        fs::write(&source, b"p4-synthetic-snapshot").unwrap();
+        move_auth_snapshot_with(&source, &target, |_, _| {
+            Err(std::io::Error::other("synthetic rename failure"))
+        })
+        .unwrap();
+        assert!(!source.exists());
+        assert_eq!(fs::read(&target).unwrap(), b"p4-synthetic-snapshot");
+        #[cfg(windows)]
+        assert!(auth_permissions_are_private(&target));
+        assert!(fs::read_dir(dir.path()).unwrap().all(|entry| {
+            !entry
+                .unwrap()
+                .file_name()
+                .to_string_lossy()
+                .ends_with(".tmp")
+        }));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn p4_rename_fallback_restricts_existing_target_before_publication() {
+        let (_service, _ccr, dir) = create_test_service();
+        let source = dir.path().join("source.json");
+        let target = dir.path().join("target.json");
+        fs::write(&source, b"p4-new-snapshot").unwrap();
+        fs::write(&target, b"p4-old-snapshot").unwrap();
+        set_broad_auth_permissions(&target);
+        move_auth_snapshot_with(&source, &target, |_, _| {
+            Err(std::io::Error::other("synthetic rename failure"))
+        })
+        .unwrap();
+        assert!(!source.exists());
+        assert_eq!(fs::read(&target).unwrap(), b"p4-new-snapshot");
+        assert!(auth_permissions_are_private(&target));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn p4_rename_fallback_keeps_source_after_publication_failure() {
+        let (_service, _ccr, dir) = create_test_service();
+        let source = dir.path().join("source.json");
+        let target = dir.path().join("target.json");
+        fs::write(&source, b"p4-new-snapshot").unwrap();
+        fs::write(&target, b"p4-old-snapshot").unwrap();
+        let original_permissions = fs::metadata(&target).unwrap().permissions();
+        let mut permissions = original_permissions.clone();
+        permissions.set_readonly(true);
+        fs::set_permissions(&target, permissions).unwrap();
+        let result = move_auth_snapshot_with(&source, &target, |_, _| {
+            Err(std::io::Error::other("synthetic rename failure"))
+        });
+        fs::set_permissions(&target, original_permissions).unwrap();
+        assert!(result.is_err());
+        assert_eq!(fs::read(&source).unwrap(), b"p4-new-snapshot");
+        assert_eq!(fs::read(&target).unwrap(), b"p4-old-snapshot");
+        assert!(fs::read_dir(dir.path()).unwrap().all(|entry| {
+            !entry
+                .unwrap()
+                .file_name()
+                .to_string_lossy()
+                .ends_with(".tmp")
+        }));
+    }
+
+    #[test]
+    fn complete_identity_isolates_users_and_backfills_only_at_execution() {
+        let (service, _ccr, codex) = create_test_service();
+        let runtime = codex.path().join("auth.json");
+        for (name, user, refresh) in [("a", "user-a", "rt-a1"), ("b", "user-b", "rt-b1")] {
+            fs::write(
+                &runtime,
+                user_oauth_auth_json(user, refresh, "2026-10-01T00:00:00Z"),
+            )
+            .unwrap();
+            service.save_current(name, None, false).unwrap();
+        }
+        let mut registry = service.load_registry().unwrap();
+        for account in registry.accounts.values_mut() {
+            account.identity_key = None;
+        }
+        for name in ["missing", "invalid"] {
+            registry
+                .accounts
+                .insert(name.into(), registry.accounts["b"].clone());
+        }
+        fs::write(service.account_auth_path("invalid"), "{ invalid json }").unwrap();
+        service.save_registry(&registry).unwrap();
+        let registry_path = service.ccr_codex_dir.join("auth_registry.toml");
+        let registry_before = fs::read(&registry_path).unwrap();
+        let b_before = fs::read(service.account_auth_path("b")).unwrap();
+        fs::write(
+            &runtime,
+            user_oauth_auth_json("user-a", "rt-a2", "2026-10-02T00:00:00Z"),
+        )
+        .unwrap();
+        let oauth = CodexOAuthTokenService::from_dirs(
+            service.ccr_codex_dir.clone(),
+            service.codex_dir.clone(),
+        );
+        assert_eq!(
+            service
+                .read_auth_snapshot()
+                .unwrap()
+                .current_account_name
+                .as_deref(),
+            Some("a")
+        );
+        assert!(
+            matches!(oauth.plan_runtime_sync().unwrap(), RuntimeSyncPlan::WriteSnapshot { account, .. } if account == "a")
+        );
+        assert_eq!(fs::read(&registry_path).unwrap(), registry_before);
+        assert_eq!(
+            service.sync_runtime_with_saved_account().unwrap(),
+            RuntimeSyncOutcome::SnapshotUpdated("a".into())
+        );
+        let registry = service.load_registry().unwrap();
+        assert_eq!(registry.current_auth.as_deref(), Some("b"));
+        assert_eq!(
+            registry
+                .accounts
+                .keys()
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+            vec!["a", "b", "invalid", "missing"]
+        );
+        assert_eq!(
+            registry.accounts["a"].identity_key.as_deref(),
+            Some("user-a::shared-workspace")
+        );
+        assert_eq!(
+            registry.accounts["b"].identity_key.as_deref(),
+            Some("user-b::shared-workspace")
+        );
+        assert!(registry.accounts["missing"].identity_key.is_none());
+        assert!(registry.accounts["invalid"].identity_key.is_none());
+        assert_eq!(fs::read(service.account_auth_path("b")).unwrap(), b_before);
+
+        // Reconciliation uses the complete identity even when current_auth points at another user.
+        assert_eq!(
+            service.sync_current_auth_registry().unwrap().as_deref(),
+            Some("a")
+        );
+        fs::write(
+            service.account_auth_path("a"),
+            user_oauth_auth_json("user-a", "rt-a3", "2026-10-03T00:00:00Z"),
+        )
+        .unwrap();
+        assert_eq!(
+            service.sync_runtime_with_saved_account().unwrap(),
+            RuntimeSyncOutcome::RuntimeUpdated("a".into())
+        );
+        assert_eq!(refresh_token_of(&runtime).as_deref(), Some("rt-a3"));
+        assert_eq!(fs::read(service.account_auth_path("b")).unwrap(), b_before);
+
+        // Switching away copies only the outgoing user's rotated tokens.
+        fs::write(
+            &runtime,
+            user_oauth_auth_json("user-a", "rt-a4", "2026-10-04T00:00:00Z"),
+        )
+        .unwrap();
+        service.switch_account("b").unwrap();
+        assert_eq!(
+            refresh_token_of(&service.account_auth_path("a")).as_deref(),
+            Some("rt-a4")
+        );
+        assert_eq!(refresh_token_of(&runtime).as_deref(), Some("rt-b1"));
+        assert_eq!(
+            service.get_login_state().unwrap(),
+            LoginState::LoggedInSaved("b".into())
+        );
+    }
+
+    #[test]
+    fn runtime_sync_write_rechecks_identity_and_freshness_after_planning() {
+        let (service, _ccr, codex) = create_test_service();
+        let runtime = codex.path().join("auth.json");
+        fs::write(
+            &runtime,
+            user_oauth_auth_json("user-a", "rt-a1", "2026-10-01T00:00:00Z"),
+        )
+        .unwrap();
+        service.save_current("a", None, false).unwrap();
+        let snapshot = service.account_auth_path("a");
+        let oauth = CodexOAuthTokenService::from_dirs(
+            service.ccr_codex_dir.clone(),
+            service.codex_dir.clone(),
+        );
+        for replacement in [
+            user_oauth_auth_json("user-b", "rt-b1", "2026-10-01T00:00:00Z"),
+            user_oauth_auth_json("user-a", "rt-a3", "2026-10-03T00:00:00Z"),
+        ] {
+            fs::write(
+                &runtime,
+                user_oauth_auth_json("user-a", "rt-a1", "2026-10-01T00:00:00Z"),
+            )
+            .unwrap();
+            fs::write(
+                &snapshot,
+                user_oauth_auth_json("user-a", "rt-a2", "2026-10-02T00:00:00Z"),
+            )
+            .unwrap();
+            let RuntimeSyncPlan::WriteRuntime { account, auth } =
+                oauth.plan_runtime_sync().unwrap()
+            else {
+                panic!("expected a snapshot-to-runtime plan");
+            };
+            fs::write(&runtime, replacement).unwrap();
+            let before = fs::read(&runtime).unwrap();
+            assert_eq!(
+                service.apply_runtime_sync_write(&account, &auth).unwrap(),
+                RuntimeSyncOutcome::NoOp
+            );
+            assert_eq!(fs::read(&runtime).unwrap(), before);
+        }
+        fs::write(
+            &runtime,
+            user_oauth_auth_json("user-a", "rt-a1", "2026-10-01T00:00:00Z"),
+        )
+        .unwrap();
+        let RuntimeSyncPlan::WriteRuntime { account, auth } = oauth.plan_runtime_sync().unwrap()
+        else {
+            panic!("expected a snapshot-to-runtime plan");
+        };
+        fs::write(
+            &snapshot,
+            user_oauth_auth_json("user-b", "rt-b2", "2026-10-02T00:00:00Z"),
+        )
+        .unwrap();
+        let before = fs::read(&runtime).unwrap();
+        assert_eq!(
+            service.apply_runtime_sync_write(&account, &auth).unwrap(),
+            RuntimeSyncOutcome::NoOp
+        );
+        assert_eq!(fs::read(&runtime).unwrap(), before);
+        fs::write(
+            &snapshot,
+            user_oauth_auth_json("user-a", "rt-a2", "2026-10-02T00:00:00Z"),
+        )
+        .unwrap();
+        assert_eq!(
+            service.apply_runtime_sync_write(&account, &auth).unwrap(),
+            RuntimeSyncOutcome::RuntimeUpdated("a".into())
+        );
+        assert_eq!(refresh_token_of(&runtime).as_deref(), Some("rt-a2"));
+    }
+
+    #[test]
+    fn missing_invalid_conflicting_or_stale_identity_never_overwrites_credentials() {
+        let (service, _ccr, codex) = create_test_service();
+        let runtime = codex.path().join("auth.json");
+        fs::write(
+            &runtime,
+            user_oauth_auth_json("user-a", "rt-a1", "2026-10-01T00:00:00Z"),
+        )
+        .unwrap();
+        service.save_current("a", None, false).unwrap();
+        let saved = service.account_auth_path("a");
+        let saved_before = fs::read(&saved).unwrap();
+        for claims in [
+            None,
+            Some("invalid-jwt".to_string()),
+            Some(super::super::codex_auth_identity::test_jwt(
+                json!({"sub":"user-a","email":"a@example.test"}),
+            )),
+            Some(super::super::codex_auth_identity::test_jwt(
+                json!({"chatgpt_user_id":"user-a","https://api.openai.com/auth":{"chatgpt_user_id":"user-b"}}),
+            )),
+            Some(super::super::codex_auth_identity::test_jwt(
+                json!({"chatgpt_user_id":"user-b"}),
+            )),
+        ] {
+            let mut auth: serde_json::Value = serde_json::from_str(&user_oauth_auth_json(
+                "user-a",
+                "rt-a2",
+                "2026-10-02T00:00:00Z",
+            ))
+            .unwrap();
+            auth["tokens"]["id_token"] = claims
+                .map(serde_json::Value::String)
+                .unwrap_or(serde_json::Value::Null);
+            fs::write(&runtime, auth.to_string()).unwrap();
+            let runtime_before = fs::read(&runtime).unwrap();
+            assert_eq!(
+                service.sync_runtime_with_saved_account().unwrap(),
+                RuntimeSyncOutcome::NoOp
+            );
+            assert_eq!(fs::read(&runtime).unwrap(), runtime_before);
+            assert_eq!(fs::read(&saved).unwrap(), saved_before);
+            assert_eq!(
+                service.get_login_state().unwrap(),
+                LoginState::LoggedInUnsaved
+            );
+            if identity_from_auth(&serde_json::from_value::<CodexAuthJson>(auth).unwrap()).is_none()
+            {
+                assert_eq!(service.sync_current_auth_registry().unwrap(), None);
+                assert_eq!(
+                    service.load_registry().unwrap().current_auth.as_deref(),
+                    Some("a")
+                );
+            }
+        }
+        fs::write(
+            &runtime,
+            user_oauth_auth_json("user-a", "rt-a2", "2026-10-02T00:00:00Z"),
+        )
+        .unwrap();
+        let mut registry = service.load_registry().unwrap();
+        registry.accounts.get_mut("a").unwrap().identity_key =
+            Some("user-b::shared-workspace".into());
+        service.save_registry(&registry).unwrap();
+        assert_eq!(
+            service.sync_runtime_with_saved_account().unwrap(),
+            RuntimeSyncOutcome::NoOp
+        );
+        assert_eq!(fs::read(&saved).unwrap(), saved_before);
     }
 
     fn refresh_token_of(path: &std::path::Path) -> Option<String> {
@@ -3919,7 +5807,7 @@ requires_openai_auth = true
     }
 
     #[test]
-    fn sync_with_duplicate_account_id_targets_current_then_latest_used() {
+    fn sync_with_complete_identity_aliases_targets_current_then_latest_used() {
         let (service, _ccr, codex) = create_test_service();
         let auth_path = codex.path().join("auth.json");
         save_oauth_account(
@@ -3974,6 +5862,21 @@ requires_openai_auth = true
         assert_eq!(
             refresh_token_of(&service.account_auth_path("one")).as_deref(),
             Some("rt-2")
+        );
+        let mut registry = service.load_registry().unwrap();
+        let same_time = Utc::now();
+        for account in registry.accounts.values_mut() {
+            account.last_used = Some(same_time);
+        }
+        service.save_registry(&registry).unwrap();
+        fs::write(
+            &auth_path,
+            oauth_auth_json("acc-dup", "rt-4", "2026-10-04T00:00:00Z"),
+        )
+        .unwrap();
+        assert_eq!(
+            service.sync_runtime_with_saved_account().unwrap(),
+            RuntimeSyncOutcome::SnapshotUpdated("one".into())
         );
     }
 

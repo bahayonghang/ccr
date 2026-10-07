@@ -1,4 +1,7 @@
+pub(crate) mod codex_auth_backup;
 pub mod codex_auth_crypto;
+pub(crate) mod codex_auth_identity;
+pub(crate) mod codex_auth_refresh_lock;
 pub mod codex_auth_service;
 pub mod codex_history_sync_service;
 pub mod codex_model_provider_store;

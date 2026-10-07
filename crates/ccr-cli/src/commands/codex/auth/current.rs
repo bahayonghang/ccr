@@ -394,6 +394,9 @@ mod tests {
             .get("current_auth_info")
             .and_then(|value| value.as_object())
             .unwrap();
+        assert_eq!(auth_info.len(), 5);
+        assert!(!json.to_string().contains("identity_key"));
+        assert!(!json.to_string().contains("chatgpt_user_id"));
 
         assert_eq!(
             auth_info.get("account_id").and_then(|value| value.as_str()),

@@ -134,7 +134,7 @@ fn import_plaintext(
                 println!();
                 ColorOutput::info("提示: 请确保文件是有效的 JSON 格式");
             }
-            Ok(())
+            Err(e)
         }
     }
 }
@@ -311,4 +311,27 @@ pub async fn import_command(replace: bool, force: bool) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used)]
+    use super::*;
+
+    #[test]
+    fn p6_plaintext_import_returns_service_rejection() {
+        let home = crate::test_support::TestHome::new();
+        fs::write(
+            home.codex_dir().join("config.toml"),
+            "cli_auth_credentials_store = \"file\"\n",
+        )
+        .unwrap();
+        let service = CodexAuthService::from_dirs(
+            home.root().join("platforms/codex"),
+            home.codex_dir().to_path_buf(),
+        );
+        let error =
+            import_plaintext(&service, "{ invalid json }", ImportMode::Merge, false).unwrap_err();
+        assert_ne!(error.exit_code(), 0);
+    }
 }

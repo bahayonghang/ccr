@@ -82,39 +82,20 @@ pub fn decode_base64url(input: &str) -> Option<Vec<u8>> {
 
 /// 设置文件为仅当前用户可读写（凭据文件保护）
 ///
-/// - Unix: chmod 0o600
-/// - Windows: 通过 icacls 移除继承权限，仅保留当前用户完全控制
-pub fn ensure_private_permissions(path: &Path) {
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let perms = std::fs::Permissions::from_mode(0o600);
-        let _ = std::fs::set_permissions(path, perms);
+/// 校验原始字节版本后加固元数据，不重写文件或依赖外部命令。
+pub fn ensure_private_permissions(path: &Path) -> Result<()> {
+    use ccr_core::core::guarded_write::{
+        content_version_token, enforce_owner_only_permissions_versioned,
+    };
+    let content = std::fs::read(path)?;
+    if !enforce_owner_only_permissions_versioned(
+        path,
+        &content_version_token(&content),
+        std::time::Duration::from_secs(10),
+    )? {
+        return Err(CcrError::ConfigError("凭据文件已变化，跳过权限加固".into()));
     }
-
-    #[cfg(windows)]
-    {
-        let Some(path_str) = path.to_str() else {
-            return;
-        };
-        let username = std::env::var("USERNAME").unwrap_or_default();
-        if username.is_empty() {
-            return;
-        }
-        // 移除继承权限，仅授予当前用户完全控制
-        let _ = std::process::Command::new("icacls")
-            .arg(path_str)
-            .args(["/inheritance:r"])
-            .args(["/grant:r", &format!("{username}:(F)")])
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .status();
-    }
-
-    #[cfg(not(any(unix, windows)))]
-    {
-        let _ = path;
-    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -128,6 +109,13 @@ mod tests {
         // "test" 的 base64url 编码
         let decoded = decode_base64url("dGVzdA").unwrap();
         assert_eq!(decoded, b"test");
+    }
+
+    #[test]
+    fn p4_private_permissions_propagate_missing_and_non_file_errors() {
+        let env = TestCodexEnv::new();
+        assert!(ensure_private_permissions(&env.codex_dir().join("missing.json")).is_err());
+        assert!(ensure_private_permissions(env.codex_dir()).is_err());
     }
 
     #[test]

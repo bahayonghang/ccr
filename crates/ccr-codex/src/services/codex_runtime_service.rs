@@ -8,24 +8,46 @@ use crate::models::{
 };
 use ccr_core::core::atomic_writer::AtomicWriter;
 use ccr_core::core::error::{CcrError, Result};
-use ccr_core::core::guarded_write::{WriteOptions, delete_guarded, write_guarded};
+use ccr_core::core::guarded_write::{
+    VersionedWriteOutcome, WriteOptions, content_version_token, delete_guarded,
+    enforce_owner_only_permissions_versioned, write_guarded, write_guarded_versioned,
+};
 use chrono::Utc;
 use indexmap::IndexMap;
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum CodexAuthCacheAction {
     Preserve,
     Write(JsonMap<String, JsonValue>),
     Delete,
 }
 
-#[derive(Debug, Clone)]
+impl std::fmt::Debug for CodexAuthCacheAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::Preserve => "Preserve",
+            Self::Write(_) => "Write([REDACTED])",
+            Self::Delete => "Delete",
+        })
+    }
+}
+
+#[derive(Clone)]
 pub struct CodexRuntimeCommitPlan {
     pub config: Option<toml::Value>,
     pub auth_cache: CodexAuthCacheAction,
+}
+
+impl std::fmt::Debug for CodexRuntimeCommitPlan {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CodexRuntimeCommitPlan")
+            .field("config_present", &self.config.is_some())
+            .field("auth_cache", &self.auth_cache)
+            .finish()
+    }
 }
 
 impl Default for CodexRuntimeCommitPlan {
@@ -273,7 +295,14 @@ impl CodexRuntimeService {
                 let result = if auth.is_empty() {
                     remove_if_exists(self.config_manager.auth_path())
                 } else {
-                    self.config_manager.save_auth_atomic(auth)
+                    (|| {
+                        if self.config_manager.auth_path().try_exists()? {
+                            crate::utils::ensure_private_permissions(
+                                self.config_manager.auth_path(),
+                            )?;
+                        }
+                        self.config_manager.save_auth_atomic(auth)
+                    })()
                 };
 
                 if let Err(err) = result {
@@ -314,6 +343,46 @@ impl CodexRuntimeService {
         Ok(())
     }
 
+    /// Write an auth-only synchronization plan if the runtime version still matches.
+    /// A conflict keeps the current runtime; no compensation writes an older backup.
+    pub(crate) fn commit_synced_auth_versioned(
+        &self,
+        auth: &JsonMap<String, JsonValue>,
+        expected_version: &str,
+    ) -> Result<VersionedWriteOutcome> {
+        let target_store = detect_auth_store(&self.config_manager.load_config()?);
+        if !matches!(target_store, CredentialStoreKind::File) {
+            return Err(CcrError::ValidationError(format!(
+                "当前 Codex 凭据存储为 {}，CCR 暂不支持写入 auth.json；请先执行 `codex login` / `codex logout`，或将 cli_auth_credentials_store 切换为 file",
+                target_store.as_str()
+            )));
+        }
+        let current = fs::read(self.config_manager.auth_path())
+            .map_err(|e| CcrError::ConfigError(format!("读取 runtime auth.json 失败: {}", e)))?;
+        if content_version_token(&current) != expected_version {
+            return Ok(VersionedWriteOutcome::Conflict);
+        }
+        let content = serde_json::to_vec_pretty(auth)
+            .map_err(|e| CcrError::ConfigError(format!("序列化 auth.json 失败: {}", e)))?;
+        self.config_manager.backup_auth("runtime_switch")?;
+        if !enforce_owner_only_permissions_versioned(
+            self.config_manager.auth_path(),
+            expected_version,
+            std::time::Duration::from_secs(10),
+        )? {
+            return Ok(VersionedWriteOutcome::Conflict);
+        }
+        write_guarded_versioned(
+            self.config_manager.auth_path(),
+            &content,
+            expected_version,
+            &WriteOptions {
+                secret: true,
+                ..Default::default()
+            },
+        )
+    }
+
     #[allow(dead_code)]
     pub fn update_runtime_settings(&self, config: toml::Value) -> Result<()> {
         self.commit_plan(CodexRuntimeCommitPlan {
@@ -331,6 +400,9 @@ impl CodexRuntimeService {
 
         let content = serde_json::to_string_pretty(store)
             .map_err(|e| CcrError::ConfigError(format!("序列化 secret store 失败: {}", e)))?;
+        if path.try_exists()? {
+            crate::utils::ensure_private_permissions(&path)?;
+        }
         write_guarded(
             &path,
             content.as_bytes(),
@@ -375,6 +447,9 @@ fn restore_optional_backup(
                 CcrError::ConfigError(format!("回滚文件失败 {:?} <- {:?}: {}", target, backup, e))
             };
             let content = fs::read(backup).map_err(|e| rollback_error(&e))?;
+            if target.try_exists()? {
+                crate::utils::ensure_private_permissions(target)?;
+            }
             AtomicWriter::new(target)
                 .secret(true)
                 .write(&content)
@@ -399,6 +474,161 @@ mod tests {
     use super::*;
     use crate::test_support::TestCodexEnv;
     use ccr_core::core::lock::LockManager;
+
+    #[test]
+    fn p4_runtime_commit_debug_redacts_auth_and_provider_config() {
+        let auth =
+            serde_json::from_str(r#"{"tokens":{"refresh_token":"p4-private-runtime"}}"#).unwrap();
+        let plan = CodexRuntimeCommitPlan {
+            config: Some(toml::from_str("provider_key = 'p4-private-config'").unwrap()),
+            auth_cache: CodexAuthCacheAction::Write(auth),
+        };
+        assert!(!format!("{plan:?}").contains("p4-private-"));
+        assert!(!format!("{:?}", plan.auth_cache).contains("p4-private-"));
+    }
+
+    #[test]
+    fn synced_auth_cas_preserves_changed_runtime_and_config_without_rollback() {
+        let env = TestCodexEnv::new();
+        let codex_dir = env.codex_dir().to_path_buf();
+        let manager = CodexConfigManager::new(
+            codex_dir.join("config.toml"),
+            codex_dir.join("auth.json"),
+            codex_dir.join("backups"),
+            LockManager::new(env.lock_dir()),
+        );
+        let config = b"cli_auth_credentials_store = 'file'\nmodel = 'unchanged'\n";
+        fs::write(manager.config_path(), config).unwrap();
+        let first = b"{\"synthetic\":\"first\"}";
+        fs::write(manager.auth_path(), first).unwrap();
+        let service = CodexRuntimeService::from_parts(
+            PlatformPaths::new(Platform::Codex).unwrap(),
+            codex_dir.clone(),
+            manager,
+        );
+        let expected = content_version_token(first);
+        let newer = b"{\"synthetic\":\"newer-runtime\"}";
+        fs::write(codex_dir.join("auth.json"), newer).unwrap();
+        let planned = serde_json::from_str("{\"synthetic\":\"planned\"}").unwrap();
+        assert_eq!(
+            service
+                .commit_synced_auth_versioned(&planned, &expected)
+                .unwrap(),
+            VersionedWriteOutcome::Conflict
+        );
+        assert_eq!(fs::read(codex_dir.join("auth.json")).unwrap(), newer);
+        assert_eq!(fs::read(codex_dir.join("config.toml")).unwrap(), config);
+        assert!(!codex_dir.join("backups").exists());
+        assert_eq!(
+            service
+                .commit_synced_auth_versioned(&planned, &content_version_token(newer))
+                .unwrap(),
+            VersionedWriteOutcome::Written
+        );
+        assert_eq!(fs::read(codex_dir.join("config.toml")).unwrap(), config);
+        let backups: Vec<_> = fs::read_dir(codex_dir.join("backups"))
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .collect();
+        assert_eq!(backups.len(), 1);
+        assert_eq!(fs::read(&backups[0]).unwrap(), newer);
+        assert!(
+            backups[0]
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with("auth.runtime_switch.")
+        );
+    }
+
+    #[test]
+    fn synced_auth_cas_conflict_after_backup_does_not_restore_old_runtime() {
+        let env = TestCodexEnv::new();
+        let codex_dir = env.codex_dir().to_path_buf();
+        let auth_path = codex_dir.join("auth.json");
+        let backup_dir = codex_dir.join("backups");
+        let manager = CodexConfigManager::new(
+            codex_dir.join("config.toml"),
+            auth_path.clone(),
+            &backup_dir,
+            LockManager::new(env.lock_dir()),
+        );
+        fs::write(
+            manager.config_path(),
+            b"cli_auth_credentials_store = 'file'\n",
+        )
+        .unwrap();
+        let original = b"{\"synthetic\":\"before\"}";
+        write_guarded(
+            &auth_path,
+            original,
+            &WriteOptions {
+                secret: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let service = CodexRuntimeService::from_parts(
+            PlatformPaths::new(Platform::Codex).unwrap(),
+            codex_dir,
+            manager,
+        );
+        let expected = content_version_token(original);
+        let lock_manager = LockManager::with_default_path().unwrap();
+        let resource = fs::read_dir(env.lock_dir())
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .find(|path| {
+                path.file_stem()
+                    .is_some_and(|name| name.to_string_lossy().starts_with("gw_auth_"))
+            })
+            .unwrap();
+        let lock = lock_manager
+            .lock_resource(
+                resource.file_stem().unwrap().to_str().unwrap(),
+                std::time::Duration::from_secs(5),
+            )
+            .unwrap();
+        let worker = std::thread::spawn(move || {
+            service.commit_synced_auth_versioned(
+                &serde_json::from_str("{\"synthetic\":\"planned\"}").unwrap(),
+                &expected,
+            )
+        });
+        let started = std::time::Instant::now();
+        let backups = loop {
+            let backups: Vec<_> = fs::read_dir(&backup_dir)
+                .into_iter()
+                .flatten()
+                .filter_map(|entry| entry.ok())
+                .map(|entry| entry.path())
+                .filter(|path| {
+                    path.file_name().is_some_and(|name| {
+                        name.to_string_lossy().starts_with("auth.runtime_switch.")
+                            && name.to_string_lossy().ends_with(".json.bak")
+                    })
+                })
+                .collect();
+            if !backups.is_empty() {
+                break backups;
+            }
+            assert!(
+                started.elapsed() < std::time::Duration::from_secs(5),
+                "runtime backup did not complete"
+            );
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        };
+        let newer = b"{\"synthetic\":\"replacement\"}";
+        fs::write(&auth_path, newer).unwrap();
+        drop(lock);
+        assert_eq!(
+            worker.join().unwrap().unwrap(),
+            VersionedWriteOutcome::Conflict
+        );
+        assert_eq!(fs::read(auth_path).unwrap(), newer);
+        assert_eq!(backups.len(), 1);
+        assert_eq!(fs::read(&backups[0]).unwrap(), original);
+    }
 
     #[test]
     fn commit_plan_rollback_restores_config_from_deduplicated_backup() {
