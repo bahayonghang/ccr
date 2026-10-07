@@ -1758,7 +1758,6 @@ mod tests {
         bin
     }
 
-
     #[cfg(unix)]
     fn write_pipe_holding_fake_codex(
         dir: &std::path::Path,
