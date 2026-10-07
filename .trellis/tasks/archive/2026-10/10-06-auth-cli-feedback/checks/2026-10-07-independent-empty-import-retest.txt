@@ -1,0 +1,20 @@
+started=2026-10-07T09:20:21.4626209-05:00
+command=cargo test -p ccr-cli commands::codex::auth::import::tests -- --skip export_bindings
+   Compiling ccr-cli v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-cli)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.70s
+     Running unittests src\lib.rs (target\debug\deps\ccr_cli-174f211b337450c8.exe)
+
+running 3 tests
+test commands::codex::auth::import::tests::p6_plaintext_import_returns_service_rejection ... ok
+test commands::codex::auth::import::tests::import_partial_merge_preserves_existing_account_and_adds_metadata ... ok
+test commands::codex::auth::import::tests::import_result_distinguishes_partial_skip_only_overwrite_and_empty ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 351 filtered out; finished in 0.14s
+
+     Running tests\dispatch_routing.rs (target\debug\deps\dispatch_routing-29e4c91da5c99193.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.00s
+
+exit_code=0

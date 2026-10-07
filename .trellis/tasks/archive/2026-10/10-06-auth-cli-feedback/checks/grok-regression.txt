@@ -1,0 +1,30 @@
+warning: unused import: `colored::*`
+   --> crates\ccr-cli\src\sync\commands.rs:237:9
+    |
+237 |     use colored::*;
+    |         ^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `colored::*`
+   --> crates\ccr-cli\src\sync\commands.rs:649:13
+    |
+649 |         use colored::*;
+    |             ^^^^^^^^^^
+
+warning: `ccr-cli` (lib) generated 2 warnings (run `cargo fix --lib -p ccr-cli` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.59s
+     Running tests\commands.rs (target\debug\deps\commands-e736194fc7a0286d.exe)
+
+running 8 tests
+test help::grok_auth_help_includes_logout_boundary ... ok
+test grok_auth::grok_auth_save_original_command ... ok
+test grok_auth::grok_auth_help_describes_saved_accounts ... ok
+test grok_auth::grok_auth_delete_cancel_global_yes_and_error_exit ... ok
+test grok_auth::grok_auth_corruption_and_unknown_outgoing_are_safe ... ok
+test grok_profile::grok_auth_off_deletes_auth_json_and_keeps_mcp_and_custom_model ... ok
+test grok_auth::grok_auth_scope_selection_and_overwrite_fail_without_writes ... ok
+test grok_auth::grok_auth_round_trip_delete_and_off_preserve_boundaries ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 121 filtered out; finished in 0.65s
+

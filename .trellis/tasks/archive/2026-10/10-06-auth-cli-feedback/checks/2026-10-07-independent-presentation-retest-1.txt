@@ -1,0 +1,38 @@
+started=2026-10-07T09:07:31.4161783-05:00
+command=cargo test -p ccr --test commands -- output_presentation --skip export_bindings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.78s
+     Running tests\commands.rs (target\debug\deps\commands-e736194fc7a0286d.exe)
+
+running 15 tests
+test output_presentation::dumb_cli_startup_disables_decorations_under_forced_color ... ok
+test output_presentation::codex_provider_key_does_not_offer_oauth_save ... ok
+test output_presentation::platform_counts_and_doctor_failure_keep_json_and_stdout_contracts ... FAILED
+test output_presentation::codex_save_result_fields_and_suggestion_preserve_runtime ... ok
+test output_presentation::codex_unlogged_and_unsupported_keep_legacy_zero_exit_and_error_stream ... ok
+test output_presentation::clean_preview_fields_suggestion_and_empty_result_are_neutral ... ok
+test output_presentation::codex_cancel_and_empty_export_have_no_success_result ... ok
+test output_presentation::claude_overwrite_suggestion_safely_parses_leading_hyphen_name ... ok
+test output_presentation::claude_empty_and_missing_email_use_neutral_fields_and_save_help ... ok
+test output_presentation::auth_off_noop_is_neutral_and_json_shape_is_preserved ... ok
+test output_presentation::grok_mutation_cancel_failure_and_json_preserve_state_and_streams ... ok
+test output_presentation::claude_save_duplicate_cancel_and_switch_warning_preserve_boundaries ... ok
+test output_presentation::codex_current_list_and_json_remain_state_specific ... ok
+test output_presentation::codex_rename_update_json_keep_dto_messages_and_optional_description ... ok
+test output_presentation::codex_save_missing_fields_and_overwrite_command_handles_leading_hyphen ... ok
+
+failures:
+
+---- output_presentation::platform_counts_and_doctor_failure_keep_json_and_stdout_contracts stdout ----
+
+thread 'output_presentation::platform_counts_and_doctor_failure_keep_json_and_stdout_contracts' (57684) panicked at crates\ccr\tests\commands\output_presentation.rs:527:5:
+assertion failed: stdout.contains("Found 1 platforms")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    output_presentation::platform_counts_and_doctor_failure_keep_json_and_stdout_contracts
+
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 117 filtered out; finished in 0.86s
+
+error: test failed, to rerun pass `-p ccr --test commands`
+exit_code=101

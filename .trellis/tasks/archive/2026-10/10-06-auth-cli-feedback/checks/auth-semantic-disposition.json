@@ -1,0 +1,907 @@
+{
+  "baseline_head": "9fafc1116bc7d54004ab3b224b33c2f08cae6fcb",
+  "scope": "C2 Auth",
+  "count": 128,
+  "counts": {
+    "migrated": 114,
+    "shared-covered": 14
+  },
+  "entries": [
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 37,
+      "source": "    ColorOutput::info(&format!(\"运行时模式: {}\", runtime_summary.mode.label()));\n    ColorOutput::info(&format!(\n        \"当前 Profile: {}\",\n        runtime_summary.profile_label().bright_green().bold()\n    ));\n    if let Some(auth_mode) = runtime_summary.current_profile_auth_mode {",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 38,
+      "source": "    ColorOutput::info(&format!(\n        \"当前 Profile: {}\",\n        runtime_summary.profile_label().bright_green().bold()\n    ));\n    if let Some(auth_mode) = runtime_summary.current_profile_auth_mode {\n        ColorOutput::info(&format!(\"Profile 认证模式: {}\", auth_mode.as_str()));",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 43,
+      "source": "        ColorOutput::info(&format!(\"Profile 认证模式: {}\", auth_mode.as_str()));\n    }\n    if let Some(auth_source) = &runtime_summary.current_profile_auth_source {\n        ColorOutput::info(&format!(\"认证来源: {}\", auth_source));\n    }\n    ColorOutput::info(&format!(",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 46,
+      "source": "        ColorOutput::info(&format!(\"认证来源: {}\", auth_source));\n    }\n    ColorOutput::info(&format!(\n        \"当前官方登录: {}\",\n        runtime_summary.official_login_label()\n    ));",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 48,
+      "source": "    ColorOutput::info(&format!(\n        \"当前官方登录: {}\",\n        runtime_summary.official_login_label()\n    ));\n    ColorOutput::info(&format!(\"当前生效认证: {}\", runtime_summary.auth_label()));\n",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 52,
+      "source": "    ColorOutput::info(&format!(\"当前生效认证: {}\", runtime_summary.auth_label()));\n\n    match &runtime_summary.login_state {\n        ClaudeLoginState::NotLoggedIn => {\n            println!();\n            ColorOutput::warning(\"未检测到可用的 Claude 官方订阅登录\");",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 58,
+      "source": "            ColorOutput::info(\"请先运行 `claude login`，或切换到 API key profile\");\n        }\n        ClaudeLoginState::LoggedInUnsaved => {\n            println!();\n            ColorOutput::success(\"已检测到官方订阅登录（未保存）\");\n            ColorOutput::info(\"使用 `ccr claude auth save <名称>` 可保存当前账号快照\");",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 63,
+      "source": "            ColorOutput::info(\"使用 `ccr claude auth save <名称>` 可保存当前账号快照\");\n        }\n        ClaudeLoginState::LoggedInSaved { account_name } => {\n            println!();\n            ColorOutput::success(&format!(\n                \"已检测到官方订阅登录（已保存为 '{}'）\",",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 75,
+      "source": "                ColorOutput::info(&format!(\n                    \"当前由 API key profile 控制；官方账号 '{}' 已登录但未生效\",\n                    account_name.bright_green().bold()\n                ));\n            } else {\n                ColorOutput::info(\"当前由 API key profile 控制，不使用官方订阅凭据\");",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 80,
+      "source": "                ColorOutput::info(\"当前由 API key profile 控制，不使用官方订阅凭据\");\n            }\n        }\n    }\n\n    if let Some(info) = current_auth_info {",
+      "disposition": "shared-covered",
+      "reason": "Neutral explanatory/confirmation/outcome text retained; shared formatting covers the status. JSON/error DTO text and compatibility branches stay unchanged."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 95,
+      "source": "        ColorOutput::info(&format!(\"邮箱: {}\", service.mask_email(email)));\n    }\n    if let Some(account_uuid) = &info.account_uuid {\n        ColorOutput::info(&format!(\"账号 UUID: {}\", mask_uuid(account_uuid)));\n    }\n    if let Some(billing_type) = &info.billing_type {",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 98,
+      "source": "        ColorOutput::info(&format!(\"账号 UUID: {}\", mask_uuid(account_uuid)));\n    }\n    if let Some(billing_type) = &info.billing_type {\n        ColorOutput::info(&format!(\"计费类型: {}\", billing_type));\n    }\n    if let Some(subscription_type) = &info.subscription_type {",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 101,
+      "source": "        ColorOutput::info(&format!(\"计费类型: {}\", billing_type));\n    }\n    if let Some(subscription_type) = &info.subscription_type {\n        ColorOutput::info(&format!(\"订阅类型: {}\", subscription_type));\n    }\n    if let Some(rate_limit_tier) = &info.rate_limit_tier {",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 104,
+      "source": "        ColorOutput::info(&format!(\"订阅类型: {}\", subscription_type));\n    }\n    if let Some(rate_limit_tier) = &info.rate_limit_tier {\n        ColorOutput::info(&format!(\"速率档位: {}\", rate_limit_tier));\n    }\n    if let Some(expires_at) = info.expires_at {",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 107,
+      "source": "        ColorOutput::info(&format!(\"速率档位: {}\", rate_limit_tier));\n    }\n    if let Some(expires_at) = info.expires_at {\n        let local = expires_at.with_timezone(&chrono::Local);\n        ColorOutput::info(&format!(\n            \"Access Token 到期时间: {}\",",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 111,
+      "source": "        ColorOutput::info(&format!(\n            \"Access Token 到期时间: {}\",\n            local.format(\"%Y-%m-%d %H:%M:%S\")\n        ));\n    }\n}",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/delete.rs",
+      "line": 19,
+      "source": "        ColorOutput::info(\"使用以下命令查看可用账号:\");\n        println!(\"  ccr claude auth list\");\n        return Ok(());\n    }\n\n    let account = account.ok_or_else(|| CcrError::ConfigError(\"account should exist\".into()))?;",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/delete.rs",
+      "line": 30,
+      "source": "            ColorOutput::info(&format!(\"邮箱: {}\", email));\n        }\n        if let Some(description) = &account.description {\n            ColorOutput::info(&format!(\"描述: {}\", description));\n        }\n        if account.is_current {",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/delete.rs",
+      "line": 33,
+      "source": "            ColorOutput::info(&format!(\"描述: {}\", description));\n        }\n        if account.is_current {\n            println!();\n            ColorOutput::warning(\"注意: 这是当前匹配到的运行时官方账号\");\n            ColorOutput::info(",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/delete.rs",
+      "line": 38,
+      "source": "            ColorOutput::info(\n                \"删除后不会修改 ~/.claude/.credentials.json，但 CCR 将不再跟踪这个快照\",\n            );\n        }\n\n        println!();",
+      "disposition": "shared-covered",
+      "reason": "Neutral explanatory/confirmation/outcome text retained; shared formatting covers the status. JSON/error DTO text and compatibility branches stay unchanged."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/delete.rs",
+      "line": 55,
+      "source": "            ColorOutput::info(\"已取消删除\");\n            return Ok(());\n        }\n    }\n\n    match service.delete_account(name) {",
+      "disposition": "shared-covered",
+      "reason": "Neutral explanatory/confirmation/outcome text retained; shared formatting covers the status. JSON/error DTO text and compatibility branches stay unchanged."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/list.rs",
+      "line": 23,
+      "source": "        ColorOutput::info(\"尚未保存任何官方账号快照\");\n        if snapshot.current_info.is_some() {\n            println!();\n            ColorOutput::info(\"当前存在官方登录，可执行:\");\n            println!(\"  ccr claude auth save <名称>\");\n        } else {",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/list.rs",
+      "line": 26,
+      "source": "            ColorOutput::info(\"当前存在官方登录，可执行:\");\n            println!(\"  ccr claude auth save <名称>\");\n        } else {\n            println!();\n            ColorOutput::info(\"请先运行 `claude login`，然后再保存账号快照\");\n        }",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/list.rs",
+      "line": 30,
+      "source": "            ColorOutput::info(\"请先运行 `claude login`，然后再保存账号快照\");\n        }\n        return Ok(());\n    }\n\n    let mut table = new_utf8_table();",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/list.rs",
+      "line": 103,
+      "source": "            ColorOutput::info(&format!(\"当前 Profile: {}\", summary.profile_label()));\n            ColorOutput::info(&format!(\"当前官方登录: {}\", summary.official_login_label()));\n            ColorOutput::info(&format!(\"当前生效认证: {}\", summary.auth_label()));\n            println!();\n        }\n        ColorOutput::info(\"提示:\");",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/list.rs",
+      "line": 104,
+      "source": "            ColorOutput::info(&format!(\"当前官方登录: {}\", summary.official_login_label()));\n            ColorOutput::info(&format!(\"当前生效认证: {}\", summary.auth_label()));\n            println!();\n        }\n        ColorOutput::info(\"提示:\");\n        println!(\"  • 使用 'ccr claude auth current' 查看当前官方登录详情\");",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/list.rs",
+      "line": 105,
+      "source": "            ColorOutput::info(&format!(\"当前生效认证: {}\", summary.auth_label()));\n            println!();\n        }\n        ColorOutput::info(\"提示:\");\n        println!(\"  • 使用 'ccr claude auth current' 查看当前官方登录详情\");\n        println!(\"  • 使用 'ccr claude auth switch <名称>' 切换官方账号\");",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/list.rs",
+      "line": 108,
+      "source": "        ColorOutput::info(\"提示:\");\n        println!(\"  • 使用 'ccr claude auth current' 查看当前官方登录详情\");\n        println!(\"  • 使用 'ccr claude auth switch <名称>' 切换官方账号\");\n        println!(\"  • 使用 'ccr claude auth delete <名称>' 删除账号快照\");\n    } else {\n        ColorOutput::warning(",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/off.rs",
+      "line": 62,
+      "source": "        ColorOutput::info(\"当前没有可清除的官方凭据文件；无需执行 auth off\");\n    }\n\n    for warning in warnings {\n        ColorOutput::warning(&warning);\n    }",
+      "disposition": "shared-covered",
+      "reason": "Neutral explanatory/confirmation/outcome text retained; shared formatting covers the status. JSON/error DTO text and compatibility branches stay unchanged."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/save.rs",
+      "line": 21,
+      "source": "                ColorOutput::info(&format!(\"邮箱: {}\", email));\n            }\n            if let Some(subscription_type) = &account.subscription_type {\n                ColorOutput::info(&format!(\"订阅类型: {}\", subscription_type));\n            }\n            if let Some(expires_at) = account.expires_at {",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/save.rs",
+      "line": 24,
+      "source": "                ColorOutput::info(&format!(\"订阅类型: {}\", subscription_type));\n            }\n            if let Some(expires_at) = account.expires_at {\n                ColorOutput::info(&format!(\"Access Token 到期: {}\", expires_at.to_rfc3339()));\n            }\n            println!();",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/save.rs",
+      "line": 27,
+      "source": "                ColorOutput::info(&format!(\"Access Token 到期: {}\", expires_at.to_rfc3339()));\n            }\n            println!();\n            ColorOutput::info(\"提示:\");\n            println!(\"  • 使用 'ccr claude auth list' 查看所有已保存账号\");\n            println!(\"  • 使用 'ccr claude auth switch <名称>' 切换账号\");",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/save.rs",
+      "line": 30,
+      "source": "            ColorOutput::info(\"提示:\");\n            println!(\"  • 使用 'ccr claude auth list' 查看所有已保存账号\");\n            println!(\"  • 使用 'ccr claude auth switch <名称>' 切换账号\");\n        }\n        Err(e) => {\n            ColorOutput::error(&format!(\"保存失败: {}\", e));",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/save.rs",
+      "line": 38,
+      "source": "                ColorOutput::info(\"提示: 使用 --force 覆盖已存在的账号快照\");\n            }\n        }\n    }\n\n    Ok(())",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/switch.rs",
+      "line": 26,
+      "source": "            ColorOutput::info(\"提示:\");\n            println!(\"  • 已更新 ~/.claude/.credentials.json\");\n            if had_api_key_override || !outcome.cleared_managed_sources.is_empty() {\n                println!(\n                    \"  • 已清理 settings.json 中 {} 个当前 Profile 托管覆盖\",\n                    outcome.cleared_managed_sources.len()",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/switch.rs",
+      "line": 60,
+      "source": "                ColorOutput::info(\"使用以下命令查看可用账号:\");\n                println!(\"  ccr claude auth list\");\n            }\n        }\n    }\n",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 105,
+      "source": "        ColorOutput::info(&format!(\"凭据存储: {}\", auth_state.store.as_str()));\n        ColorOutput::info(&format!(\"状态说明: {}\", auth_state.reason));\n        println!();\n        ColorOutput::info(\"建议:\");\n        println!(\"  codex login\");\n        println!(\"  codex logout\");",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 106,
+      "source": "        ColorOutput::info(&format!(\"状态说明: {}\", auth_state.reason));\n        println!();\n        ColorOutput::info(\"建议:\");\n        println!(\"  codex login\");\n        println!(\"  codex logout\");\n        println!(\"  # 或将 cli_auth_credentials_store 切换为 file\");",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 108,
+      "source": "        ColorOutput::info(\"建议:\");\n        println!(\"  codex login\");\n        println!(\"  codex logout\");\n        println!(\"  # 或将 cli_auth_credentials_store 切换为 file\");\n        return Ok(());\n    }",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 118,
+      "source": "            ColorOutput::info(&format!(\n                \"认证状态: {} / {}\",\n                render_intent(&auth_state.intent),\n                auth_state.store.as_str()\n            ));\n            ColorOutput::info(&format!(\"原因: {}\", auth_state.reason));",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 123,
+      "source": "            ColorOutput::info(&format!(\"原因: {}\", auth_state.reason));\n            println!();\n            ColorOutput::info(\"请先运行以下命令登录:\");\n            println!(\"  codex login\");\n        }\n        LoginState::LoggedInUnsaved => {",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 125,
+      "source": "            ColorOutput::info(\"请先运行以下命令登录:\");\n            println!(\"  codex login\");\n        }\n        LoginState::LoggedInUnsaved => {\n            ColorOutput::info(\"登录状态: 已登录 (未保存)\");\n",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 129,
+      "source": "            ColorOutput::info(\"登录状态: 已登录 (未保存)\");\n\n            // 显示详细信息\n            if let Ok(info) = service.get_current_auth_info() {\n                println!();\n                display_auth_info(&service, &info, &auth_state);",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 138,
+      "source": "                ColorOutput::info(\"使用以下命令保存当前登录:\");\n                println!(\"  ccr codex auth save <名称>\");\n            }\n        }\n        LoginState::LoggedInSaved(name) => {\n            ColorOutput::success(&format!(",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 155,
+      "source": "            ColorOutput::info(\"提示:\");\n            println!(\"  • 使用 'ccr codex auth list' 查看所有账号\");\n            println!(\"  • 使用 'ccr codex auth switch <名称>' 切换账号\");\n        }\n        LoginState::Unknown { type_name, .. } => {\n            ColorOutput::warning(&format!(\"登录状态: 未知 ({})\", type_name));",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 168,
+      "source": "            ColorOutput::info(\"认证模式: API Key\");\n\n            if let Ok(info) = service.get_current_auth_info() {\n                println!();\n                display_auth_info(&service, &info, &auth_state);\n            }",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 176,
+      "source": "            ColorOutput::info(\"提示:\");\n            println!(\"  • API Key 模式无需保存账号\");\n            println!(\"  • 使用 'ccr codex auth list' 查看已保存的 OAuth 账号\");\n        }\n        LoginState::ProviderKeyActive { env_key } => {\n            ColorOutput::info(&format!(\"认证模式: Provider Key ({})\", env_key));",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 181,
+      "source": "            ColorOutput::info(&format!(\"认证模式: Provider Key ({})\", env_key));\n\n            if let Ok(info) = service.get_current_auth_info() {\n                println!();\n                display_auth_info(&service, &info, &auth_state);\n            }",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 189,
+      "source": "            ColorOutput::info(\"提示:\");\n            println!(\"  • Provider Key 模式无需保存账号\");\n        }\n    }\n\n    Ok(())",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 203,
+      "source": "    ColorOutput::info(&format!(\"认证意图: {}\", render_intent(&auth_state.intent)));\n    ColorOutput::info(&format!(\"凭据存储: {}\", auth_state.store.as_str()));\n    ColorOutput::info(&format!(\"状态说明: {}\", auth_state.reason));\n\n    // 邮箱\n    if let Some(email) = &info.email {",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 204,
+      "source": "    ColorOutput::info(&format!(\"凭据存储: {}\", auth_state.store.as_str()));\n    ColorOutput::info(&format!(\"状态说明: {}\", auth_state.reason));\n\n    // 邮箱\n    if let Some(email) = &info.email {\n        ColorOutput::info(&format!(\"邮箱: {}\", service.mask_email(email)));",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 205,
+      "source": "    ColorOutput::info(&format!(\"状态说明: {}\", auth_state.reason));\n\n    // 邮箱\n    if let Some(email) = &info.email {\n        ColorOutput::info(&format!(\"邮箱: {}\", service.mask_email(email)));\n    } else {",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 209,
+      "source": "        ColorOutput::info(&format!(\"邮箱: {}\", service.mask_email(email)));\n    } else {\n        ColorOutput::info(\"邮箱: (未知)\");\n    }\n\n    // Account ID",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 211,
+      "source": "        ColorOutput::info(\"邮箱: (未知)\");\n    }\n\n    // Account ID\n    ColorOutput::info(&format!(\n        \"Account ID: {}\",",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 215,
+      "source": "    ColorOutput::info(&format!(\n        \"Account ID: {}\",\n        mask_account_id(&info.account_id)\n    ));\n    if let Some(plan_type) = &info.plan_type {\n        ColorOutput::info(&format!(\"套餐: {}\", plan_type));",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 220,
+      "source": "        ColorOutput::info(&format!(\"套餐: {}\", plan_type));\n    }\n\n    // 最后刷新时间\n    if let Some(last_refresh) = &info.last_refresh {\n        let local_time = last_refresh.with_timezone(&chrono::Local);",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 226,
+      "source": "        ColorOutput::info(&format!(\n            \"最后刷新: {}\",\n            local_time.format(\"%Y-%m-%d %H:%M:%S\")\n        ));\n    }\n}",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/delete.rs",
+      "line": 36,
+      "source": "        ColorOutput::info(\"使用以下命令查看可用账号:\");\n        println!(\"  ccr codex auth list\");\n        return Ok(());\n    }\n\n    let account = account.ok_or_else(|| CcrError::ConfigError(\"account should exist\".into()))?;",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/delete.rs",
+      "line": 49,
+      "source": "            ColorOutput::info(&format!(\"邮箱: {}\", email));\n        }\n        if let Some(desc) = &account.description {\n            ColorOutput::info(&format!(\"描述: {}\", desc));\n        }\n",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/delete.rs",
+      "line": 52,
+      "source": "            ColorOutput::info(&format!(\"描述: {}\", desc));\n        }\n\n        // 检查是否是当前账号\n        if account.is_current {\n            println!();",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/delete.rs",
+      "line": 59,
+      "source": "            ColorOutput::info(\"删除后当前登录状态不会受影响，但无法再切换回此账号\");\n        }\n\n        println!();\n        let confirmed = tokio::task::spawn_blocking(|| -> io::Result<bool> {\n            print!(\"确认删除? (输入 'yes' 确认): \");",
+      "disposition": "shared-covered",
+      "reason": "Neutral explanatory/confirmation/outcome text retained; shared formatting covers the status. JSON/error DTO text and compatibility branches stay unchanged."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/delete.rs",
+      "line": 75,
+      "source": "            ColorOutput::info(\"已取消删除\");\n            return Ok(());\n        }\n    }\n\n    // 执行删除",
+      "disposition": "shared-covered",
+      "reason": "Neutral explanatory/confirmation/outcome text retained; shared formatting covers the status. JSON/error DTO text and compatibility branches stay unchanged."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/delete.rs",
+      "line": 86,
+      "source": "            ColorOutput::info(\"提示:\");\n            println!(\"  • 使用 'ccr codex auth list' 查看剩余账号\");\n        }\n        Err(e) => {\n            ColorOutput::error(&format!(\"删除失败: {}\", e));\n        }",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+      "line": 59,
+      "source": "    ColorOutput::info(\"🔐 导出包含敏感信息，需要设置加密密码\");\n\n    let password = rpassword::prompt_password(\"请输入密码: \")\n        .map_err(|e| CcrError::FileIoError(format!(\"读取密码失败: {}\", e)))?;\n\n    if password.len() < MIN_PASSWORD_LEN {",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+      "line": 104,
+      "source": "        ColorOutput::info(\"提示:\");\n        println!(\"  • 使用 'ccr codex auth save <名称>' 保存当前登录\");\n        return Ok(());\n    }\n\n    // 获取默认导出路径",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+      "line": 113,
+      "source": "    ColorOutput::info(&format!(\n        \"默认导出路径: {}\",\n        default_path.display().to_string().bright_cyan()\n    ));\n\n    let default_path_for_task = default_path.clone();",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+      "line": 145,
+      "source": "                    ColorOutput::info(\"使用默认路径\");\n                    Ok(default_path_for_task)\n                }\n            }\n        } else {\n            Ok(default_path_for_task)",
+      "disposition": "shared-covered",
+      "reason": "Neutral explanatory/confirmation/outcome text retained; shared formatting covers the status. JSON/error DTO text and compatibility branches stay unchanged."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+      "line": 187,
+      "source": "    ColorOutput::info(&format!(\"账号数量: {}\", saved_count));\n\n    if include_secrets {\n        println!();\n        ColorOutput::success(\"🔐 导出文件已加密 (AES-256-GCM + Argon2id)\");\n        ColorOutput::info(\"导入时需要输入相同的密码\");",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+      "line": 192,
+      "source": "        ColorOutput::info(\"导入时需要输入相同的密码\");\n    } else {\n        ColorOutput::info(\"导出不包含敏感信息 (仅元数据)\");\n    }\n\n    println!();",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+      "line": 194,
+      "source": "        ColorOutput::info(\"导出不包含敏感信息 (仅元数据)\");\n    }\n\n    println!();\n    ColorOutput::info(\"提示:\");\n    println!(\"  • 使用 'ccr codex auth import' 导入账号\");",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+      "line": 198,
+      "source": "    ColorOutput::info(\"提示:\");\n    println!(\"  • 使用 'ccr codex auth import' 导入账号\");\n\n    Ok(())\n}",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 83,
+      "source": "        ColorOutput::info(&format!(\n            \"🔐 检测到加密文件 ({} 个账号, 导出于 {})\",\n            account_count.to_string().bright_cyan(),\n            exported_at.bright_cyan()\n        ));\n    }",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 135,
+      "source": "                ColorOutput::info(\"提示: 请确保文件是有效的 JSON 格式\");\n            }\n            Err(e)\n        }\n    }\n}",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 153,
+      "source": "        ColorOutput::info(&format!(\n            \"新增账号: {}\",\n            result.added.to_string().bright_green()\n        ));\n    }\n    if result.updated > 0 {",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 159,
+      "source": "        ColorOutput::info(&format!(\n            \"更新账号: {}\",\n            result.updated.to_string().bright_yellow()\n        ));\n    }\n    if result.skipped > 0 {",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 165,
+      "source": "        ColorOutput::info(&format!(\n            \"跳过账号: {}\",\n            result.skipped.to_string().bright_cyan()\n        ));\n    }\n    if !result.overwritten.is_empty() {",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 189,
+      "source": "                ColorOutput::info(\"模式: 合并 (强制覆盖已存在的账号)\");\n            } else {\n                ColorOutput::info(\"模式: 合并 (跳过已存在的账号)\");\n            }\n        }\n        ImportMode::Replace => {",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 191,
+      "source": "                ColorOutput::info(\"模式: 合并 (跳过已存在的账号)\");\n            }\n        }\n        ImportMode::Replace => {\n            ColorOutput::info(\"模式: 替换 (覆盖同名账号)\");\n        }",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 195,
+      "source": "            ColorOutput::info(\"模式: 替换 (覆盖同名账号)\");\n        }\n    }\n\n    println!();\n    ColorOutput::info(\"提示:\");",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 200,
+      "source": "    ColorOutput::info(\"提示:\");\n    println!(\"  • 使用 'ccr codex auth list' 查看所有账号\");\n}\n\n/// 📥 从 JSON 文件导入账号\npub async fn import_command(replace: bool, force: bool) -> Result<()> {",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 214,
+      "source": "        ColorOutput::info(&format!(\n            \"默认导入文件: {}\",\n            file.display().to_string().bright_cyan()\n        ));\n        if exports.len() > 1 {\n            ColorOutput::info(&format!(",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 219,
+      "source": "            ColorOutput::info(&format!(\n                \"(在 Downloads 中找到 {} 个导出文件，已选择最新的)\",\n                exports.len()\n            ));\n        }\n    } else {",
+      "disposition": "shared-covered",
+      "reason": "Neutral explanatory/confirmation/outcome text retained; shared formatting covers the status. JSON/error DTO text and compatibility branches stay unchanged."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 225,
+      "source": "        ColorOutput::info(&format!(\n            \"默认导入目录: {}\",\n            downloads_dir.display().to_string().bright_cyan()\n        ));\n        ColorOutput::warning(\"未在 Downloads 中找到导出文件\");\n    }",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 250,
+      "source": "                        ColorOutput::info(\"使用默认文件\");\n                        Ok(file)\n                    } else {\n                        ColorOutput::error(\"未指定文件且无默认文件可用\");\n                        Ok(PathBuf::new())\n                    }",
+      "disposition": "shared-covered",
+      "reason": "Neutral explanatory/confirmation/outcome text retained; shared formatting covers the status. JSON/error DTO text and compatibility branches stay unchanged."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 264,
+      "source": "                    ColorOutput::info(\"提示:\");\n                    println!(\"  • 先使用 'ccr codex auth export' 导出账号\");\n                    println!(\"  • 或输入 'y' 手动指定文件路径\");\n                    Ok(PathBuf::new())\n                }\n            }",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 308,
+      "source": "            ColorOutput::info(\"提示:\");\n            println!(\"  • 请确保文件是由 'ccr codex auth export' 导出的 JSON 文件\");\n        }\n    }\n\n    Ok(())",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 34,
+      "source": "        ColorOutput::info(&format!(\"凭据存储: {}\", auth_state.store.as_str()));\n        ColorOutput::info(&format!(\"状态说明: {}\", auth_state.reason));\n        println!();\n        ColorOutput::info(\"建议:\");\n        println!(\"  codex login\");\n        println!(\"  codex logout\");",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 35,
+      "source": "        ColorOutput::info(&format!(\"状态说明: {}\", auth_state.reason));\n        println!();\n        ColorOutput::info(\"建议:\");\n        println!(\"  codex login\");\n        println!(\"  codex logout\");\n        println!(\"  # 或将 cli_auth_credentials_store 切换为 file\");",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 37,
+      "source": "        ColorOutput::info(\"建议:\");\n        println!(\"  codex login\");\n        println!(\"  codex logout\");\n        println!(\"  # 或将 cli_auth_credentials_store 切换为 file\");\n        return Ok(());\n    }",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 47,
+      "source": "        ColorOutput::info(&format!(\n            \"认证状态: {} / {}\",\n            render_intent(&auth_state.intent),\n            auth_state.store.as_str()\n        ));\n        ColorOutput::info(&format!(\"原因: {}\", auth_state.reason));",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 52,
+      "source": "        ColorOutput::info(&format!(\"原因: {}\", auth_state.reason));\n        println!();\n        ColorOutput::info(\"请先运行以下命令登录:\");\n        println!(\"  codex login\");\n        println!();\n        ColorOutput::info(\"登录后可以使用以下命令保存账号:\");",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 54,
+      "source": "        ColorOutput::info(\"请先运行以下命令登录:\");\n        println!(\"  codex login\");\n        println!();\n        ColorOutput::info(\"登录后可以使用以下命令保存账号:\");\n        println!(\"  ccr codex auth save <名称>\");\n        return Ok(());",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 57,
+      "source": "        ColorOutput::info(\"登录后可以使用以下命令保存账号:\");\n        println!(\"  ccr codex auth save <名称>\");\n        return Ok(());\n    }\n\n    // 获取账号列表",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 66,
+      "source": "        ColorOutput::info(\"没有已保存的账号\");\n        println!();\n        ColorOutput::info(\"使用以下命令保存当前登录:\");\n        println!(\"  ccr codex auth save <名称>\");\n        return Ok(());\n    }",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 68,
+      "source": "        ColorOutput::info(\"使用以下命令保存当前登录:\");\n        println!(\"  ccr codex auth save <名称>\");\n        return Ok(());\n    }\n\n    // 显示标题",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 76,
+      "source": "    ColorOutput::info(&format!(\n        \"当前认证: {} / {}\",\n        render_intent(&auth_state.intent),\n        auth_state.store.as_str()\n    ));\n    println!();",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 188,
+      "source": "        ColorOutput::info(&format!(\n            \"共 {} 个已保存账号，{} 个未保存的当前登录\",\n            saved_count, virtual_count\n        ));\n        println!();\n        ColorOutput::warning(\"* 标记的账号为未保存的当前登录，使用以下命令保存:\");",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 200,
+      "source": "    ColorOutput::info(\"提示:\");\n    println!(\"  • 使用 'ccr codex auth switch <名称>' 切换账号\");\n    println!(\"  • 使用 'ccr codex auth current' 查看当前账号详情\");\n    println!(\"  • 使用 'ccr codex auth delete <名称>' 删除账号\");\n\n    Ok(())",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/rename.rs",
+      "line": 39,
+      "source": "                CcrError::ConfigError(format!(\"{}\\n提示: 使用 --force 覆盖同名账号\", msg))\n            } else {\n                e\n            }\n        })?;\n",
+      "disposition": "shared-covered",
+      "reason": "Neutral explanatory/confirmation/outcome text retained; shared formatting covers the status. JSON/error DTO text and compatibility branches stay unchanged."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/rename.rs",
+      "line": 68,
+      "source": "    ColorOutput::info(\"提示:\");\n    println!(\"  • 使用 'ccr codex auth list' 查看账号\");\n\n    Ok(())\n}",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/repair.rs",
+      "line": 20,
+      "source": "            ColorOutput::info(&format!(\"来源: {}\", source.label()));\n        }\n        Ok(())\n    } else {\n        ColorOutput::warning(&format!(\"无需修复或修复失败: {}\", name));\n        ColorOutput::info(&outcome.message);",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/repair.rs",
+      "line": 25,
+      "source": "        ColorOutput::info(&outcome.message);\n        if outcome.message.contains(\"未在 runtime/backups\") {\n            ColorOutput::info(\"建议:\");\n            println!(\"  codex login\");\n            println!(\"  ccr codex auth save {} --force\", name);\n        }",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/repair.rs",
+      "line": 27,
+      "source": "            ColorOutput::info(\"建议:\");\n            println!(\"  codex login\");\n            println!(\"  ccr codex auth save {} --force\", name);\n        }\n        Ok(())\n    }",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "line": 36,
+      "source": "        ColorOutput::info(&format!(\"凭据存储: {}\", auth_state.store.as_str()));\n        ColorOutput::info(&format!(\"状态说明: {}\", auth_state.reason));\n        ColorOutput::info(\n            \"请使用 `codex login` / `codex logout`，或先把 cli_auth_credentials_store 切换为 file\",\n        );\n        return Ok(());",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "line": 37,
+      "source": "        ColorOutput::info(&format!(\"状态说明: {}\", auth_state.reason));\n        ColorOutput::info(\n            \"请使用 `codex login` / `codex logout`，或先把 cli_auth_credentials_store 切换为 file\",\n        );\n        return Ok(());\n    }",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "line": 38,
+      "source": "        ColorOutput::info(\n            \"请使用 `codex login` / `codex logout`，或先把 cli_auth_credentials_store 切换为 file\",\n        );\n        return Ok(());\n    }\n",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "line": 48,
+      "source": "        ColorOutput::info(\"请先运行以下命令登录:\");\n        println!(\"  codex login\");\n        return Ok(());\n    }\n\n    // 执行保存",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "line": 60,
+      "source": "                ColorOutput::info(&format!(\"描述: {}\", desc));\n            }\n\n            // 显示当前账号信息\n            if let Ok(info) = service.get_current_auth_info()\n                && let Some(email) = &info.email",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "line": 67,
+      "source": "                ColorOutput::info(&format!(\"邮箱: {}\", service.mask_email(email)));\n            }\n\n            println!();\n            ColorOutput::info(\"提示:\");\n            println!(\"  • 使用 'ccr codex auth list' 查看所有账号\");",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "line": 71,
+      "source": "            ColorOutput::info(\"提示:\");\n            println!(\"  • 使用 'ccr codex auth list' 查看所有账号\");\n            println!(\"  • 使用 'ccr codex auth switch <名称>' 切换账号\");\n        }\n        Err(e) => {\n            ColorOutput::error(&format!(\"保存失败: {}\", e));",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "line": 82,
+      "source": "                ColorOutput::info(\"提示: 使用 --force 参数覆盖已存在的账号\");\n                println!(\"  ccr codex auth save {} --force\", name);\n            }\n        }\n    }\n",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "line": 34,
+      "source": "        ColorOutput::info(&format!(\"凭据存储: {}\", auth_state.store.as_str()));\n        ColorOutput::info(&format!(\"状态说明: {}\", auth_state.reason));\n        ColorOutput::info(\n            \"请使用 `codex login` / `codex logout`，或先把 cli_auth_credentials_store 切换为 file\",\n        );\n        return Ok(());",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "line": 35,
+      "source": "        ColorOutput::info(&format!(\"状态说明: {}\", auth_state.reason));\n        ColorOutput::info(\n            \"请使用 `codex login` / `codex logout`，或先把 cli_auth_credentials_store 切换为 file\",\n        );\n        return Ok(());\n    }",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "line": 36,
+      "source": "        ColorOutput::info(\n            \"请使用 `codex login` / `codex logout`，或先把 cli_auth_credentials_store 切换为 file\",\n        );\n        return Ok(());\n    }\n",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "line": 47,
+      "source": "        ColorOutput::info(&format!(\"进程 ID: {:?}\", running_processes));\n        println!();\n        ColorOutput::warning(\"切换账号可能导致正在运行的 Codex 会话出现问题\");\n        ColorOutput::info(\"建议先关闭所有 Codex 进程后再切换账号\");\n        println!();\n    }",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "line": 50,
+      "source": "        ColorOutput::info(\"建议先关闭所有 Codex 进程后再切换账号\");\n        println!();\n    }\n\n    // 执行切换\n    match service.switch_account(name) {",
+      "disposition": "shared-covered",
+      "reason": "Neutral explanatory/confirmation/outcome text retained; shared formatting covers the status. JSON/error DTO text and compatibility branches stay unchanged."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "line": 64,
+      "source": "                ColorOutput::info(&format!(\"邮箱: {}\", service.mask_email(email)));\n            }\n\n            println!();\n            ColorOutput::info(\"提示:\");\n            println!(\"  • 使用 'ccr codex auth list' 查看所有账号\");",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "line": 68,
+      "source": "            ColorOutput::info(\"提示:\");\n            println!(\"  • 使用 'ccr codex auth list' 查看所有账号\");\n            println!(\"  • 使用 'ccr codex auth current' 查看当前账号详情\");\n        }\n        Err(e) => {\n            ColorOutput::error(&format!(\"切换失败: {}\", e));",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "line": 79,
+      "source": "                ColorOutput::info(\"使用以下命令查看可用账号:\");\n                println!(\"  ccr codex auth list\");\n            }\n        }\n    }\n",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/sync.rs",
+      "line": 18,
+      "source": "            ColorOutput::info(&format!(\"账号: {}\", name));\n        }\n        RuntimeSyncOutcome::Unchanged(name) => {\n            ColorOutput::success(\"OAuth tokens 已是最新\");\n            ColorOutput::info(&format!(\"账号: {}\", name));\n        }",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/sync.rs",
+      "line": 22,
+      "source": "            ColorOutput::info(&format!(\"账号: {}\", name));\n        }\n        RuntimeSyncOutcome::RuntimeUpdated(name) => {\n            ColorOutput::success(\"已将较新的账号快照写回 ~/.codex/auth.json\");\n            ColorOutput::info(&format!(\"账号: {}\", name));\n        }",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/sync.rs",
+      "line": 26,
+      "source": "            ColorOutput::info(&format!(\"账号: {}\", name));\n        }\n        RuntimeSyncOutcome::SkippedStaleRuntime(name) => {\n            ColorOutput::warning(\"账号快照比 runtime 更新，未覆盖快照\");\n            ColorOutput::info(&format!(\"账号: {}\", name));\n        }",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/sync.rs",
+      "line": 30,
+      "source": "            ColorOutput::info(&format!(\"账号: {}\", name));\n        }\n        RuntimeSyncOutcome::NoOp => {\n            ColorOutput::warning(\"未找到可同步的 OAuth tokens\");\n            ColorOutput::info(\"提示:\");\n            println!(\"  • 确认当前 ~/.codex/auth.json 为 ChatGPT 登录态（包含 tokens）\");",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/sync.rs",
+      "line": 34,
+      "source": "            ColorOutput::info(\"提示:\");\n            println!(\"  • 确认当前 ~/.codex/auth.json 为 ChatGPT 登录态（包含 tokens）\");\n            println!(\"  • 确认该账号已通过 `ccr codex auth save <name>` 保存\");\n        }\n    }\n    Ok(())",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/grok/auth.rs",
+      "line": 67,
+      "source": "        ColorOutput::info(\"已取消删除\");\n    } else {\n        ColorOutput::success(&format!(\"{action}: {name}\"));\n        if result.outgoing_saved {\n            ColorOutput::info(\"已回存原账号的最新运行时凭据\");\n        }",
+      "disposition": "migrated",
+      "reason": "Field/suggestion/result migration at this original review entrance."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/grok/auth.rs",
+      "line": 71,
+      "source": "            ColorOutput::info(\"已回存原账号的最新运行时凭据\");\n        }\n        for warning in result.warnings {\n            ColorOutput::warning(&warning);\n        }\n    }",
+      "disposition": "shared-covered",
+      "reason": "Neutral explanatory/confirmation/outcome text retained; shared formatting covers the status. JSON/error DTO text and compatibility branches stay unchanged."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/grok/auth.rs",
+      "line": 166,
+      "source": "        ColorOutput::info(\"可保存的 OAuth 来源:\");\n        for source in &snapshot.sources {\n            println!(\n                \"  {}  {}\",\n                source.scope,\n                source.matched_account.as_deref().unwrap_or(\"未匹配\")",
+      "disposition": "shared-covered",
+      "reason": "Neutral explanatory/confirmation/outcome text retained; shared formatting covers the status. JSON/error DTO text and compatibility branches stay unchanged."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/grok/auth.rs",
+      "line": 251,
+      "source": "        ColorOutput::info(\"未检测到官方会话；运行时可回退 XAI_API_KEY\");\n    }\n    Ok(())\n}\n\npub async fn off_command(json: bool) -> Result<()> {",
+      "disposition": "shared-covered",
+      "reason": "Neutral explanatory/confirmation/outcome text retained; shared formatting covers the status. JSON/error DTO text and compatibility branches stay unchanged."
+    }
+  ]
+}

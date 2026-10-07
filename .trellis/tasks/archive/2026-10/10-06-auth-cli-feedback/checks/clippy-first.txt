@@ -1,0 +1,61 @@
+   Compiling ccr v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr)
+    Checking ccr-cli v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-cli)
+error: unused import: `colored::*`
+   --> crates\ccr-cli\src\sync\commands.rs:647:13
+    |
+647 |         use colored::*;
+    |             ^^^^^^^^^^
+    |
+    = note: `-D unused-imports` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(unused_imports)]`
+
+error: unnecessary use of `to_string`
+   --> crates\ccr-cli\src\commands\platform\current.rs:99:36
+    |
+ 99 |       ColorOutput::key_value("启用状态", &(if registry.enabled {
+    |  ________________________________________^
+100 | |             "已启用"
+101 | |         } else {
+102 | |             "已禁用"
+103 | |         }).to_string(), 2);
+    | |______________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unnecessary_to_owned
+    = note: `-D clippy::unnecessary-to-owned` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::unnecessary_to_owned)]`
+help: use
+    |
+ 99 ~     ColorOutput::key_value("启用状态", (if registry.enabled {
+100 ~             "已启用"
+101 +         } else {
+102 ~             "已禁用"
+103 ~         }), 2);
+    |
+
+error: unnecessary use of `to_string`
+  --> crates\ccr-cli\src\commands\platform\info.rs:84:36
+   |
+84 |     ColorOutput::key_value("显示名称", &platform_impl.platform_name().to_string(), 2);
+   |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: use: `platform_impl.platform_name()`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unnecessary_to_owned
+
+error: unnecessary use of `to_string`
+  --> crates\ccr-cli\src\commands\profile\switch.rs:37:36
+   |
+37 |     ColorOutput::key_value("使用平台", &platform_name.to_string(), 2);
+   |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: use: `platform_name`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unnecessary_to_owned
+
+error: unnecessary use of `to_string`
+   --> crates\ccr-cli\src\commands\profile\switch.rs:343:23
+    |
+343 |     ColorOutput::info(&restart_hint.to_string());
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^ help: use: `restart_hint`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unnecessary_to_owned
+
+error: could not compile `ccr-cli` (lib) due to 5 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `ccr-cli` (lib test) due to 5 previous errors

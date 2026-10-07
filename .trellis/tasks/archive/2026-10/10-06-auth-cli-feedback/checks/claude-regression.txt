@@ -1,0 +1,32 @@
+warning: unused import: `colored::*`
+   --> crates\ccr-cli\src\sync\commands.rs:237:9
+    |
+237 |     use colored::*;
+    |         ^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `colored::*`
+   --> crates\ccr-cli\src\sync\commands.rs:649:13
+    |
+649 |         use colored::*;
+    |             ^^^^^^^^^^
+
+warning: `ccr-cli` (lib) generated 2 warnings (run `cargo fix --lib -p ccr-cli` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.65s
+     Running tests\commands.rs (target\debug\deps\commands-e736194fc7a0286d.exe)
+
+running 10 tests
+test claude_profile::claude_profile_list_json_reports_current_profile ... ok
+test claude_profile::claude_profile_current_json_returns_single_claude_card ... ok
+test claude_profile::claude_auth_off_deletes_credentials_and_keeps_onboarding ... ok
+test claude_profile::claude_profile_init_is_inactive_idempotent_and_preserves_runtime ... ok
+test claude_profile::claude_profile_off_clears_managed_env_without_pointer_and_keeps_user_key ... ok
+test claude_profile::claude_profile_off_clears_stale_profiles_file_pointer_and_settings_overrides ... ok
+test claude_profile::claude_profile_off_is_idempotent_when_no_active_profile ... ok
+test claude_profile::claude_profile_crud_commands_support_vscode_surface ... ok
+test claude_profile::claude_profile_switch_and_off_keep_official_auth_current ... ok
+test claude_profile::claude_profile_switch_reports_committed_history_warning ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 119 filtered out; finished in 30.28s
+

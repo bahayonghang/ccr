@@ -1,0 +1,24 @@
+started=2026-10-07T09:11:25.0567191-05:00
+command=cargo test -p ccr --test commands -- codex_profile --skip export_bindings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.62s
+     Running tests\commands.rs (target\debug\deps\commands-e736194fc7a0286d.exe)
+
+running 14 tests
+test validate::validate_skips_missing_claude_and_codex_profiles_without_legacy_platform_gate ... ok
+test codex_profile::codex_auth_off_deletes_auth_json_and_keeps_profile_pointer ... ok
+test codex_profile::codex_profile_list_json_reports_current_profile ... ok
+test codex_profile::codex_profile_current_json_returns_single_codex_card ... ok
+test codex_profile::codex_profile_off_keeps_official_api_key_without_pointer ... ok
+test codex_profile::codex_profile_off_is_idempotent_when_no_active_profile ... ok
+test platform_profile_surface::claude_and_codex_profile_crud_surfaces_accept_supported_platforms ... ok
+test codex_profile::codex_profile_init_is_inactive_idempotent_and_preserves_runtime ... ok
+test codex_profile::codex_profile_off_scrubs_api_key_without_snapshot_when_pointer_exists ... ok
+test codex_profile::codex_profile_off_clears_default_home_auth_when_codex_home_redirects ... ok
+test codex_profile::codex_profile_off_clears_stale_profiles_file_pointer_and_auth_json ... ok
+test codex_profile::codex_profile_crud_commands_support_vscode_surface ... ok
+test codex_profile::codex_profile_switches_deepseek_bearer_and_clears_runtime_on_off ... ok
+test codex_profile::codex_profile_switch_and_off_clears_runtime_route_and_auth_json ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 118 filtered out; finished in 0.70s
+
+exit_code=0

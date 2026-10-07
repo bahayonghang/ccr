@@ -1,0 +1,93 @@
+{
+  "recorded_at": "2026-10-07T15:20:31.336828+00:00",
+  "head": "528d4bae1b145fd74d7bbc97454caac249a4b896",
+  "auth_production_files_unchanged_from_independent_source_manifest": 21,
+  "files": [
+    {
+      "file": "crates/ccr-core/src/core/logging.rs",
+      "sha256": "12f012114968c59e78490bf04cd890e75f296d2db63255ae2fc29650d145c29e"
+    },
+    {
+      "file": "crates/ccr-cli/src/managers/conflict_checker.rs",
+      "sha256": "56c3f3438524e19cdd43f7827c90e4c67d8681efa94f479036c13e2bb4af7d70"
+    },
+    {
+      "file": "crates/ccr/tests/commands/project_init.rs",
+      "sha256": "6dd3b73d64461230562502967c58f318b92127108373929a89d034ad05c6dbdd"
+    },
+    {
+      "file": "crates/ccr/tests/commands/help.rs",
+      "sha256": "7e28e34e333d4307ae01f45af06269d1909771ab59a7588ae685b29dfe884563"
+    },
+    {
+      "file": "crates/ccr-core/tests/log_path_isolation.rs",
+      "sha256": "b61dc79f175b16a322491f86d00f6503b44281a4c73ff84266b8f0eae0da1725"
+    },
+    {
+      "file": "crates/ccr/tests/commands/output_presentation.rs",
+      "sha256": "174c9fb30ec8c1c66a074c8fbd7be476679e3f6da645dcb68357d90167943e7b"
+    },
+    {
+      "file": "crates/ccr/tests/commands/output_presentation_rollout.rs",
+      "sha256": "9102d80b2bdf7355a21b1c9f724275224a2e9a25cf0813fab1c154b97ad37b81"
+    }
+  ],
+  "source_changes_after_presentation_binary": "help.rs expectation only; original retired command absence and fixture behavior preserved",
+  "checks": {
+    "core_logging": {
+      "passed": 13,
+      "exit_code": 0
+    },
+    "conflict_checker": {
+      "passed": 5,
+      "exit_code": 0
+    },
+    "logger_io": {
+      "passed": 2,
+      "intentional_child_ignored": 1,
+      "child_invocations": 2,
+      "exit_code": 0
+    },
+    "presentation_first": {
+      "passed": 21,
+      "failed": 1,
+      "ignored": 0,
+      "exit_code": 101
+    },
+    "presentation_retest": {
+      "passed": 22,
+      "failed": 0,
+      "ignored": 0,
+      "exit_code": 0
+    },
+    "grok_auth": {
+      "passed": 8,
+      "exit_code": 0
+    },
+    "claude_profile": {
+      "passed": 10,
+      "exit_code": 0
+    },
+    "codex_profile": {
+      "passed": 14,
+      "exit_code": 0
+    },
+    "fmt_exit_code": 0,
+    "strict_clippy_exit_code": 0,
+    "type_check_exit_code": 0,
+    "scoped_diff_exit_code": 0
+  },
+  "unknown_native_producer": "NOT_AVAILABLE_SOURCE_REVIEW_ONLY",
+  "encrypted_password_interaction": "NOT_RUN",
+  "parent_native_fullci": "OWNED_BY_MAIN_CURRENT_RECEIPTS_REQUIRED",
+  "commit_push_archive": "NOT_AUTHORIZED",
+  "native_ac1": {
+    "status": "PASS",
+    "native_combinations": 18,
+    "save_screens_checked": 18,
+    "missing_field_screens_checked": 18,
+    "binary_sha256": "26560b7ae47654a54f12e90cc75f99622439bd21a6af04c15c876a139a7475c6",
+    "source": "parent immutable artifact identity and native-2026-10-07-isolation-first-* screens",
+    "full_native_matrix_review": "main acceptance_check owns global review"
+  }
+}

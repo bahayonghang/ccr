@@ -1,0 +1,48 @@
+   Compiling ccr-core v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-core)
+   Compiling ccr-config v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-config)
+   Compiling ccr-sync v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-sync)
+   Compiling ccr-store v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-store)
+   Compiling ccr-skills v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-skills)
+   Compiling ccr-codex v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-codex)
+   Compiling ccr-cli v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-cli)
+warning: unused import: `colored::*`
+   --> crates\ccr-cli\src\sync\commands.rs:237:9
+    |
+237 |     use colored::*;
+    |         ^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `colored::*`
+   --> crates\ccr-cli\src\sync\commands.rs:649:13
+    |
+649 |         use colored::*;
+    |             ^^^^^^^^^^
+
+warning: `ccr-cli` (lib) generated 2 warnings (run `cargo fix --lib -p ccr-cli` to apply 2 suggestions)
+warning: `ccr-cli` (lib test) generated 2 warnings (2 duplicates)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 11.21s
+     Running unittests src\lib.rs (target\debug\deps\ccr_cli-174f211b337450c8.exe)
+
+running 5 tests
+test commands::codex::auth::current::tests::json_output_serializes_current_auth_info_shape ... ok
+test commands::codex::auth::current::tests::json_output_includes_required_runtime_fields_for_all_runtime_modes ... ok
+test commands::codex::auth::import::tests::import_partial_merge_preserves_existing_account_and_adds_metadata ... FAILED
+test commands::codex::auth::import::tests::p6_plaintext_import_returns_service_rejection ... ok
+test commands::codex::auth::import::tests::import_result_distinguishes_partial_skip_only_and_overwrite ... ok
+
+failures:
+
+---- commands::codex::auth::import::tests::import_partial_merge_preserves_existing_account_and_adds_metadata stdout ----
+
+thread 'commands::codex::auth::import::tests::import_partial_merge_preserves_existing_account_and_adds_metadata' (52564) panicked at crates\ccr-cli\src\commands\codex\auth\import.rs:392:14:
+called `Result::unwrap()` on an `Err` value: ConfigError("当前 Codex 凭据存储为 auto，CCR 暂不支持导入账号；请使用 `codex login` / `codex logout`，或将 cli_auth_credentials_store 切换为 file")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    commands::codex::auth::import::tests::import_partial_merge_preserves_existing_account_and_adds_metadata
+
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 348 filtered out; finished in 0.07s
+
+error: test failed, to rerun pass `-p ccr-cli --lib`

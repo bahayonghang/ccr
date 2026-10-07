@@ -1,0 +1,283 @@
+{
+  "reviewed_at": "2026-10-07T14:22:56.210022+00:00",
+  "head": "528d4bae1b145fd74d7bbc97454caac249a4b896",
+  "comparison": "Current worktree production text versus current HEAD; daemon restart already in HEAD. Regex equality is bounded source evidence, not runtime proof.",
+  "files": [
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "service_calls_equal": true,
+      "service_calls": [
+        "get_runtime_summary",
+        "get_current_auth_info",
+        "mask_email"
+      ],
+      "dto_declarations_equal": true,
+      "serializers_equal": true,
+      "early_return_counts_equal": true,
+      "production_changed": true,
+      "bounded_audit_pass": true
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/delete.rs",
+      "service_calls_equal": true,
+      "service_calls": [
+        "list_accounts",
+        "delete_account"
+      ],
+      "dto_declarations_equal": true,
+      "serializers_equal": true,
+      "early_return_counts_equal": true,
+      "production_changed": true,
+      "bounded_audit_pass": true
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/list.rs",
+      "service_calls_equal": true,
+      "service_calls": [
+        "read_auth_snapshot",
+        "get_runtime_summary",
+        "build_account_items"
+      ],
+      "dto_declarations_equal": true,
+      "serializers_equal": true,
+      "early_return_counts_equal": true,
+      "production_changed": true,
+      "bounded_audit_pass": true
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/mod.rs",
+      "service_calls_equal": true,
+      "service_calls": [],
+      "dto_declarations_equal": true,
+      "serializers_equal": true,
+      "early_return_counts_equal": true,
+      "production_changed": false,
+      "bounded_audit_pass": true
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/off.rs",
+      "service_calls_equal": true,
+      "service_calls": [],
+      "dto_declarations_equal": true,
+      "serializers_equal": true,
+      "early_return_counts_equal": true,
+      "production_changed": false,
+      "bounded_audit_pass": true
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/save.rs",
+      "service_calls_equal": true,
+      "service_calls": [
+        "save_current"
+      ],
+      "dto_declarations_equal": true,
+      "serializers_equal": true,
+      "early_return_counts_equal": true,
+      "production_changed": true,
+      "bounded_audit_pass": true
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/switch.rs",
+      "service_calls_equal": true,
+      "service_calls": [
+        "switch_account"
+      ],
+      "dto_declarations_equal": true,
+      "serializers_equal": true,
+      "early_return_counts_equal": true,
+      "production_changed": true,
+      "bounded_audit_pass": true
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "service_calls_equal": true,
+      "service_calls": [
+        "get_runtime_summary",
+        "get_current_auth_info",
+        "get_login_state",
+        "get_auth_state",
+        "get_current_auth_info",
+        "get_current_auth_info",
+        "get_current_auth_info",
+        "get_current_auth_info",
+        "get_current_auth_info",
+        "mask_email"
+      ],
+      "dto_declarations_equal": true,
+      "serializers_equal": true,
+      "early_return_counts_equal": true,
+      "production_changed": true,
+      "bounded_audit_pass": true
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/delete.rs",
+      "service_calls_equal": true,
+      "service_calls": [
+        "list_accounts",
+        "delete_account"
+      ],
+      "dto_declarations_equal": true,
+      "serializers_equal": true,
+      "early_return_counts_equal": true,
+      "production_changed": true,
+      "bounded_audit_pass": true
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+      "service_calls_equal": true,
+      "service_calls": [
+        "list_accounts",
+        "export_accounts_encrypted",
+        "export_accounts"
+      ],
+      "dto_declarations_equal": true,
+      "serializers_equal": true,
+      "early_return_counts_equal": true,
+      "production_changed": true,
+      "bounded_audit_pass": true
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "service_calls_equal": true,
+      "service_calls": [
+        "import_accounts_encrypted",
+        "import_accounts"
+      ],
+      "dto_declarations_equal": true,
+      "serializers_equal": true,
+      "early_return_counts_equal": true,
+      "production_changed": true,
+      "bounded_audit_pass": true
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "service_calls_equal": true,
+      "service_calls": [
+        "get_auth_state",
+        "is_logged_in",
+        "list_accounts"
+      ],
+      "dto_declarations_equal": true,
+      "serializers_equal": true,
+      "early_return_counts_equal": true,
+      "production_changed": true,
+      "bounded_audit_pass": true
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/mod.rs",
+      "service_calls_equal": true,
+      "service_calls": [],
+      "dto_declarations_equal": true,
+      "serializers_equal": true,
+      "early_return_counts_equal": true,
+      "production_changed": false,
+      "bounded_audit_pass": true
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/off.rs",
+      "service_calls_equal": true,
+      "service_calls": [],
+      "dto_declarations_equal": true,
+      "serializers_equal": true,
+      "early_return_counts_equal": true,
+      "production_changed": false,
+      "bounded_audit_pass": true
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/rename.rs",
+      "service_calls_equal": true,
+      "service_calls": [],
+      "dto_declarations_equal": true,
+      "serializers_equal": true,
+      "early_return_counts_equal": true,
+      "production_changed": true,
+      "bounded_audit_pass": true
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/repair.rs",
+      "service_calls_equal": true,
+      "service_calls": [
+        "repair_saved_account"
+      ],
+      "dto_declarations_equal": true,
+      "serializers_equal": true,
+      "early_return_counts_equal": true,
+      "production_changed": true,
+      "bounded_audit_pass": true
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "service_calls_equal": true,
+      "service_calls": [
+        "get_auth_state",
+        "is_logged_in",
+        "save_current",
+        "get_current_auth_info",
+        "mask_email"
+      ],
+      "dto_declarations_equal": true,
+      "serializers_equal": true,
+      "early_return_counts_equal": true,
+      "production_changed": true,
+      "bounded_audit_pass": true
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "service_calls_equal": true,
+      "service_calls": [
+        "get_auth_state",
+        "detect_codex_process",
+        "switch_account",
+        "get_current_auth_info",
+        "mask_email"
+      ],
+      "dto_declarations_equal": true,
+      "serializers_equal": true,
+      "early_return_counts_equal": true,
+      "production_changed": false,
+      "bounded_audit_pass": true
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/sync.rs",
+      "service_calls_equal": true,
+      "service_calls": [
+        "sync_runtime_with_saved_account"
+      ],
+      "dto_declarations_equal": true,
+      "serializers_equal": true,
+      "early_return_counts_equal": true,
+      "production_changed": true,
+      "bounded_audit_pass": true
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/update.rs",
+      "service_calls_equal": true,
+      "service_calls": [
+        "update_account_description"
+      ],
+      "dto_declarations_equal": true,
+      "serializers_equal": true,
+      "early_return_counts_equal": true,
+      "production_changed": false,
+      "bounded_audit_pass": true
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/grok/auth.rs",
+      "service_calls_equal": true,
+      "service_calls": [
+        "read_snapshot",
+        "save_current",
+        "read_snapshot",
+        "switch_account",
+        "read_snapshot",
+        "delete_account"
+      ],
+      "dto_declarations_equal": true,
+      "serializers_equal": true,
+      "early_return_counts_equal": true,
+      "production_changed": true,
+      "bounded_audit_pass": true
+    }
+  ],
+  "bounded_audit_pass": true
+}

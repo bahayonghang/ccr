@@ -1,0 +1,94 @@
+{
+  "recorded_at": "2026-10-07T14:22:56.211172+00:00",
+  "head": "528d4bae1b145fd74d7bbc97454caac249a4b896",
+  "source_files": [
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "sha256": "7a5a021a88e6da19a58dd0c908a16461330c424bb2f563d4bdcc77ab33c11b88"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/delete.rs",
+      "sha256": "5988daad9289e46d5c9a9886fdbc2b00644b5c487ea581dce9d28687cd1c26db"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/list.rs",
+      "sha256": "150143fb65c0387a3b8b1dc35194aa828e6c8d2deb731ad30b93ef0075a764b4"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/mod.rs",
+      "sha256": "0a6e98a86e9cb1c86311139fbf917511e83a60bb6cbab8880b6c8474ff26f046"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/off.rs",
+      "sha256": "d6503e69f3e878ad3fcd6cee6a4fd8703d9098820159b73c9d199ec37af2e046"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/save.rs",
+      "sha256": "72a9d7cfd701107c9c1cab2cc2b6462f7a31758395ccac33f750a755720a4409"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/switch.rs",
+      "sha256": "acc4eaeb45f4f33d11e7df9e058aeb812335c85609284bfb046108c3a54d4931"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "sha256": "373a1b92467edfa0d44ae1f758db85a68d0b14a82fab6c87ca9e0ebf453f5db8"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/delete.rs",
+      "sha256": "a6b7aed99a8578440767da88db0d9603ff352c054f7b6d4366b0465d43e9c5bd"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+      "sha256": "7acd0e51b61791eece3e476d910481206b6e0b3644f7149d50edb05ce8bcf847"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "sha256": "1135f5667e71f419630a40aea12f948abd33978707053e1c06b14d42474ebe93"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "sha256": "9b3d0f5376e6dfd73dff7a1792b843385c74c047302527562e1153e99d84c25e"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/mod.rs",
+      "sha256": "61dc45eeec2efb0a570523974314e25ad3586ceb5650a61fe6979a06564b99d7"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/off.rs",
+      "sha256": "b863c1aff41ecc33b54917019e615e1f736bad6b9faced06f15d84b5c0aaa43d"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/rename.rs",
+      "sha256": "52356a886acaae79a6895cd6230abc658b0390a3673559dd89991c840364b13b"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/repair.rs",
+      "sha256": "08b1892b9d0faa8f2ab36bb5e333893bb6e4fc421cfbf096dfe75a74df03569b"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "sha256": "b87e38e2a7c2f485bb4b3bac1d7ea86723cc1291c2818bb2e785781fc9161fd0"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "sha256": "bd87dd2e58a327bce98d8c1457f40fad3eb66d6ad51de034c9618840972a3e1f"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/sync.rs",
+      "sha256": "b92bbd85e073c31fb341d5f2c83c3c9b137bf879d5863cdaca8f6c76c7ab3b53"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/update.rs",
+      "sha256": "9bfb52b65be47aab59a241ef4d255e53e1c97e28719ea62fa549a830578a268e"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/grok/auth.rs",
+      "sha256": "a48e01efa1d913c3520b6443b705ea3126d93827dcc03dfce17d102048e5e51d"
+    },
+    {
+      "file": "crates/ccr/tests/commands/output_presentation.rs",
+      "sha256": "bc99cfbbb8fac27d77d1c29134ba5e1e30a952e885b81385ff265b954b1b895e"
+    }
+  ]
+}

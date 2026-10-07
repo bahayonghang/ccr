@@ -1,0 +1,79 @@
+   Compiling ccr v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr)
+   Compiling ccr-cli v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-cli)
+warning: unused import: `colored::Colorize`
+  --> crates\ccr-cli\src\commands\platform\current.rs:13:5
+   |
+13 | use colored::Colorize;
+   |     ^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `colored::Colorize`
+  --> crates\ccr-cli\src\commands\platform\switch.rs:10:5
+   |
+10 | use colored::Colorize;
+   |     ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `colored::Colorize`
+  --> crates\ccr-cli\src\commands\profile\current.rs:22:5
+   |
+22 | use colored::Colorize;
+   |     ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `colored::Colorize`
+  --> crates\ccr-cli\src\commands\profile\list.rs:13:5
+   |
+13 | use colored::Colorize;
+   |     ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `colored::Colorize`
+  --> crates\ccr-cli\src\commands\profile\switch.rs:18:5
+   |
+18 | use colored::Colorize;
+   |     ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `colored::Colorize`
+  --> crates\ccr-cli\src\commands\claude\profile.rs:20:5
+   |
+20 | use colored::Colorize;
+   |     ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `colored::Colorize`
+  --> crates\ccr-cli\src\commands\codex\profile.rs:20:5
+   |
+20 | use colored::Colorize;
+   |     ^^^^^^^^^^^^^^^^^
+
+   Compiling ccr-tui v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-tui)
+warning: `ccr-cli` (lib) generated 7 warnings (run `cargo fix --lib -p ccr-cli` to apply 5 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.34s
+     Running tests\commands.rs (target\debug\deps\commands-e736194fc7a0286d.exe)
+
+running 9 tests
+test output_presentation::codex_save_result_fields_and_suggestion_preserve_runtime ... ok
+test output_presentation::codex_unlogged_and_unsupported_keep_legacy_zero_exit_and_error_stream ... ok
+test output_presentation::codex_cancel_and_empty_export_have_no_success_result ... ok
+test output_presentation::auth_off_noop_is_neutral_and_json_shape_is_preserved ... ok
+test output_presentation::claude_empty_and_missing_email_use_neutral_fields_and_save_help ... ok
+test output_presentation::grok_mutation_cancel_failure_and_json_preserve_state_and_streams ... ok
+test output_presentation::claude_save_duplicate_cancel_and_switch_warning_preserve_boundaries ... FAILED
+test output_presentation::codex_current_list_and_json_remain_state_specific ... ok
+test output_presentation::codex_save_missing_fields_and_overwrite_command_handles_leading_hyphen ... ok
+
+failures:
+
+---- output_presentation::claude_save_duplicate_cancel_and_switch_warning_preserve_boundaries stdout ----
+
+thread 'output_presentation::claude_save_duplicate_cancel_and_switch_warning_preserve_boundaries' (49544) panicked at crates\ccr\tests\commands\output_presentation.rs:303:5:
+assertion `left == right` failed
+  left: Object {"claudeAiOauth": Object {"accessToken": String("CLI_OUTPUT_SECRET_SENTINEL"), "expiresAt": String("2099-01-01T00:00:00Z"), "rateLimitTier": Null, "refreshToken": String("CLI_OUTPUT_SECRET_SENTINEL"), "scopes": Null, "subscriptionType": String("pro")}}
+ right: Object {"claudeAiOauth": Object {"accessToken": String("CLI_OUTPUT_SECRET_SENTINEL"), "expiresAt": String("2099-01-01T00:00:00Z"), "refreshToken": String("CLI_OUTPUT_SECRET_SENTINEL"), "subscriptionType": String("pro")}}
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    output_presentation::claude_save_duplicate_cancel_and_switch_warning_preserve_boundaries
+
+test result: FAILED. 8 passed; 1 failed; 0 ignored; 0 measured; 117 filtered out; finished in 0.66s
+
+error: test failed, to rerun pass `-p ccr --test commands`

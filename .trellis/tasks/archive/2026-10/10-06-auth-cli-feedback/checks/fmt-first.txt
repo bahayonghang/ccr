@@ -1,0 +1,698 @@
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.010s
+
+OK
+JSON configuration formatting checked: 11 files
+🔍 检查代码格式
+📌 模式: 仅验证，不修改文件
+cargo fmt -- --check
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\claude\profile.rs:223:
+     if result.changed {
+         ColorOutput::success(&format!(
+             "已退出 Claude profile '{}'，当前回到 official auth runtime",
+-            result
+-                .previous_profile
+-                .as_deref()
+-                .unwrap_or("-")
+-                
++            result.previous_profile.as_deref().unwrap_or("-")
+         ));
+     } else {
+         ColorOutput::info("当前不在 Claude profile mode；无需执行 profile off");
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\codex\fix.rs:46:
+         CodexProcessService::new().cleanup_report(dry_run)
+     };
+     if skip_process_cleanup {
+-        ColorOutput::info(&ColorOutput::format_status(ccr_core::core::logging::OutputStatus::Skipped, "进程清理", std::io::IsTerminal::is_terminal(&std::io::stdout())));
++        ColorOutput::info(&ColorOutput::format_status(
++            ccr_core::core::logging::OutputStatus::Skipped,
++            "进程清理",
++            std::io::IsTerminal::is_terminal(&std::io::stdout()),
++        ));
+     } else {
+         ColorOutput::step(&format!(
+             "进程清理（{} ms）",
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\codex\fix.rs:165:
+         }
+         render_doctor(&doctor_outcome, doctor_profile.as_deref(), snapshot_changed);
+     } else {
+-        ColorOutput::info(&ColorOutput::format_status(ccr_core::core::logging::OutputStatus::Skipped, "上游 doctor", std::io::IsTerminal::is_terminal(&std::io::stdout())));
++        ColorOutput::info(&ColorOutput::format_status(
++            ccr_core::core::logging::OutputStatus::Skipped,
++            "上游 doctor",
++            std::io::IsTerminal::is_terminal(&std::io::stdout()),
++        ));
+         ColorOutput::info("doctor = skipped");
+-        crate::commands::common::print_next_steps(&[("运行上游健康检查", "ccr codex fix --doctor")]);
++        crate::commands::common::print_next_steps(&[(
++            "运行上游健康检查",
++            "ccr codex fix --doctor",
++        )]);
+     }
+ 
+     // G. 固定优先级：127（仅 --doctor 且 PATH 缺失，已提前返回）> process(2) > runtime failure(1) > local drift(3)。
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\codex\fix.rs:408:
+         }
+         RuntimeMatchStatus::Missing | RuntimeMatchStatus::Mismatch => {
+             if diagnostic.repairable {
+-                crate::commands::common::print_next_steps(&[("显式修复本地漂移", "ccr codex fix --repair-runtime")]);
++                crate::commands::common::print_next_steps(&[(
++                    "显式修复本地漂移",
++                    "ccr codex fix --repair-runtime",
++                )]);
+             } else {
+                 ColorOutput::info(
+                     "请先修正 profile pointer、保存的 secret 或当前 shell 环境后重试",
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\codex\profile.rs:232:
+     if result.changed {
+         ColorOutput::success(&format!(
+             "已退出 Codex profile '{}'，已清理 profile 路由与 auth.json",
+-            result
+-                .previous_profile
+-                .as_deref()
+-                .unwrap_or("-")
+-                
++            result.previous_profile.as_deref().unwrap_or("-")
+         ));
+         for path in &result.removed_auth_paths {
+             ColorOutput::info(&format!("已删除 {}", path.display()));
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\codex\quota.rs:34:
+ 
+     if quotas.is_empty() {
+         ColorOutput::info("未找到已保存的 Codex 账号");
+-        crate::commands::common::print_next_steps(&[("查看账号保存帮助", "ccr codex auth save --help")]);
++        crate::commands::common::print_next_steps(&[(
++            "查看账号保存帮助",
++            "ccr codex auth save --help",
++        )]);
+         return Ok(());
+     }
+ 
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\codex\sync_history.rs:64:
+     ColorOutput::success("已恢复 sync-history 备份");
+     ColorOutput::key_value("Codex home", &result.codex_home.display().to_string(), 2);
+     ColorOutput::key_value("Backup", &result.backup_dir.display().to_string(), 2);
+-    ColorOutput::key_value("Provider at backup time", &result.target_provider.to_string(), 2);
++    ColorOutput::key_value(
++        "Provider at backup time",
++        &result.target_provider.to_string(),
++        2,
++    );
+     if result.restored_session_index {
+         ColorOutput::info("Restored session_index.jsonl state captured by this backup.");
+     }
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\data\budget.rs:174:
+     }
+ 
+     println!();
+-    ColorOutput::key_value("最后更新", &status.last_updated.format("%Y-%m-%d %H:%M:%S").to_string(), 2);
++    ColorOutput::key_value(
++        "最后更新",
++        &status.last_updated.format("%Y-%m-%d %H:%M:%S").to_string(),
++        2,
++    );
+ 
+     Ok(())
+ }
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\data\pricing.rs:118:
+     // 检查是否有配置的模型
+     if manager.is_empty() {
+         ColorOutput::info("未配置任何模型定价");
+-        crate::commands::common::print_next_steps(&[("查看定价设置选项", "ccr pricing set --help")]);
++        crate::commands::common::print_next_steps(&[(
++            "查看定价设置选项",
++            "ccr pricing set --help",
++        )]);
+         return Ok(());
+     }
+ 
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\data\pricing.rs:203:
+     println!();
+     ColorOutput::info(&format!("共 {} 个模型定价配置", manager.model_count()));
+     if !args.verbose {
+-        crate::commands::common::print_next_steps(&[("查看缓存定价详情", "ccr pricing list --verbose")]);
++        crate::commands::common::print_next_steps(&[(
++            "查看缓存定价详情",
++            "ccr pricing list --verbose",
++        )]);
+     }
+ 
+     Ok(())
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\data\stats.rs:176:
+ 
+     ColorOutput::key_value("总成本", &format!("${:.4}", stats.total_cost), 2);
+     ColorOutput::key_value("记录数", &stats.record_count.to_string(), 2);
+-    ColorOutput::key_value("时间范围", &format!("{} 至 {}",
+-        start.format("%Y-%m-%d"),
+-        end.format("%Y-%m-%d")
+-    ), 2);
++    ColorOutput::key_value(
++        "时间范围",
++        &format!("{} 至 {}", start.format("%Y-%m-%d"), end.format("%Y-%m-%d")),
++        2,
++    );
+     println!();
+ 
+     // Token 统计
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\data\stats.rs:362:
+     let stats = tracker.generate_stats(start, end)?;
+ 
+     ColorOutput::key_value("格式", &args.format.to_string(), 2);
+-    ColorOutput::key_value("时间范围", &format!("{} 至 {}",
+-        start.format("%Y-%m-%d"),
+-        end.format("%Y-%m-%d")
+-    ), 2);
++    ColorOutput::key_value(
++        "时间范围",
++        &format!("{} 至 {}", start.format("%Y-%m-%d"), end.format("%Y-%m-%d")),
++        2,
++    );
+     ColorOutput::key_value("记录数", &stats.record_count.to_string(), 2);
+     println!();
+ 
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\data\stats.rs:407:
+         Utc::now() - Duration::days(30)
+     };
+ 
+-    ColorOutput::key_value("清理日期", &format!("{} 之前",
+-        before_date.format("%Y-%m-%d")
+-    ), 2);
++    ColorOutput::key_value(
++        "清理日期",
++        &format!("{} 之前", before_date.format("%Y-%m-%d")),
++        2,
++    );
+ 
+     // 扫描 stats 目录
+     if !storage_dir.exists() {
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\doctor_cmd.rs:3:
+ //! 聚合 CCR 本地环境、平台配置、当前 profile、认证状态与可选在线探活。
+ 
+ use crate::models::Platform;
+-use crate::services::doctor_service::{DoctorReport, DoctorRunOptions, DoctorService, DoctorStatus};
++use crate::services::doctor_service::{
++    DoctorReport, DoctorRunOptions, DoctorService, DoctorStatus,
++};
+ use ccr_core::core::error::Result;
+ use ccr_core::core::logging::{ColorOutput, OutputStatus};
+ use clap::Args;
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\grok\profile.rs:346:
+     if result.changed {
+         ColorOutput::success(&format!(
+             "已退出 Grok profile '{}'，已清理 config.toml 中的 [model.custom] 与 [models].default",
+-            result
+-                .previous_profile
+-                .as_deref()
+-                .unwrap_or("-")
+-                
++            result.previous_profile.as_deref().unwrap_or("-")
+         ));
+     } else {
+         ColorOutput::info("当前不在 Grok profile mode；无需执行 profile off");
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\lifecycle\clean.rs:219:
+     }
+ 
+     if dry_run {
+-        crate::commands::common::print_next_steps(&[("执行实际清理", &format!("ccr clean backups --days {days}"))]);
++        crate::commands::common::print_next_steps(&[(
++            "执行实际清理",
++            &format!("ccr clean backups --days {days}"),
++        )]);
+     }
+ 
+     Ok(())
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\lifecycle\clean.rs:369:
+     println!();
+     ColorOutput::success(&format!("已删除文件: {} 个", result.matched_count()));
+     if result.total_size > 0 {
+-        ColorOutput::key_value("释放空间", &format!("{:.2} MB", result.total_size as f64 / 1024.0 / 1024.0), 2);
++        ColorOutput::key_value(
++            "释放空间",
++            &format!("{:.2} MB", result.total_size as f64 / 1024.0 / 1024.0),
++            2,
++        );
+     }
+ 
+     tracing::info!(
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\lifecycle\clear.rs:88:
+     // 🚨 确认执行（除非 YOLO 模式）
+     if !skip_confirmation {
+         println!();
+-        ColorOutput::warning(
+-            "此操作将清空 settings.json 中由 CCR 托管的 Claude 环境变量！",
+-        );
+-        ColorOutput::info(
+-            "清除托管环境变量后，需要重新应用配置以恢复 Claude Code 的对应设置",
+-        );
++        ColorOutput::warning("此操作将清空 settings.json 中由 CCR 托管的 Claude 环境变量！");
++        ColorOutput::info("清除托管环境变量后，需要重新应用配置以恢复 Claude Code 的对应设置");
+         println!();
+ 
+         let confirmed = tokio::task::spawn_blocking(|| -> std::io::Result<bool> {
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\lifecycle\clear.rs:141:
+     ColorOutput::title("清理完成");
+     println!();
+     ColorOutput::success(&format!("已清除 {} 个环境变量", managed_vars.len()));
+-    ColorOutput::key_value("settings.json", &settings_manager.settings_path().display().to_string(), 2);
++    ColorOutput::key_value(
++        "settings.json",
++        &settings_manager.settings_path().display().to_string(),
++        2,
++    );
+ 
+     ColorOutput::key_value("恢复备份", &backup_path.display().to_string(), 2);
+     crate::commands::common::print_next_steps(&[("查看可用配置", "ccr list")]);
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\lifecycle\init.rs:97:
+             .ok_or_else(|| CcrError::FileIoError("无法获取历史文件父目录".into()))?
+             .display()
+     ));
+-    ColorOutput::success(&format!(
+-        "备份目录: {}",
+-        claude_paths.backups_dir.display()
+-    ));
++    ColorOutput::success(&format!("备份目录: {}", claude_paths.backups_dir.display()));
+ 
+     // 创建默认 profiles.toml
+     if !claude_paths.profiles_file.exists() {
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\lifecycle\init.rs:118:
+         fs::write(&claude_paths.profiles_file, content)
+             .map_err(|e| CcrError::ConfigError(format!("写入默认 profiles.toml 失败: {}", e)))?;
+ 
+-        ColorOutput::success(&format!(
+-            "已创建: {}",
+-            claude_paths.profiles_file.display()
+-        ));
++        ColorOutput::success(&format!("已创建: {}", claude_paths.profiles_file.display()));
+     }
+ 
+     // 创建平台注册表配置
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\platform\current.rs:96:
+         ColorOutput::key_value("描述", &desc.to_string(), 2);
+     }
+ 
+-    ColorOutput::key_value("启用状态", &(if registry.enabled {
++    ColorOutput::key_value(
++        "启用状态",
++        &(if registry.enabled {
+             "已启用"
+         } else {
+             "已禁用"
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\platform\current.rs:103:
+-        }).to_string(), 2);
++        })
++        .to_string(),
++        2,
++    );
+ 
+     if let Some(profile) = &registry.current_profile {
+         ColorOutput::key_value("当前 Profile", &profile.to_string(), 2);
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\platform\info.rs:80:
+     ColorOutput::title(&format!("平台信息: {}", platform_name));
+ 
+     println!();
+-    ColorOutput::key_value("平台类型", &format!("{:?}", platform_impl.platform_type()), 2);
++    ColorOutput::key_value(
++        "平台类型",
++        &format!("{:?}", platform_impl.platform_type()),
++        2,
++    );
+     ColorOutput::key_value("显示名称", &platform_impl.platform_name().to_string(), 2);
+ 
+     // 获取路径信息
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\platform\init.rs:80:
+         fs::write(&paths.profiles_file, content)
+             .map_err(|e| CcrError::ConfigError(format!("写入默认 profiles.toml 失败: {}", e)))?;
+ 
+-        ColorOutput::success(&format!(
+-            "Profiles 文件: {}",
+-            paths.profiles_file.display()
+-        ));
++        ColorOutput::success(&format!("Profiles 文件: {}", paths.profiles_file.display()));
+     } else {
+         ColorOutput::info(&format!(
+             "Profiles 文件已存在: {}",
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\platform\list.rs:45:
+ 
+     ColorOutput::title("Platform registry");
+     println!();
+-    ColorOutput::key_value("Config file", &manager.config_path().display().to_string(), 2);
++    ColorOutput::key_value(
++        "Config file",
++        &manager.config_path().display().to_string(),
++        2,
++    );
+     ColorOutput::info(
+         "Profile routing is tracked per platform; legacy current_platform is ignored.",
+     );
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\platform\switch.rs:41:
+     println!();
+     ColorOutput::success(&format!(
+         "已从平台 '{}' 切换到 '{}'",
+-        old_platform,
+-        platform_name
++        old_platform, platform_name
+     ));
+ 
+     // 显示当前 profile
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\profile\list.rs:41:
+     let config = service.load_config()?;
+ 
+     println!();
+-    ColorOutput::key_value("配置文件", &service.config_manager().config_path().display().to_string(), 2);
++    ColorOutput::key_value(
++        "配置文件",
++        &service.config_manager().config_path().display().to_string(),
++        2,
++    );
+     ColorOutput::key_value("默认配置", &list.default_config.to_string(), 2);
+     ColorOutput::key_value("当前配置", &list.current_config.to_string(), 2);
+     println!();
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\profile\switch.rs:328:
+     println!();
+     ColorOutput::separator();
+     println!();
+-    ColorOutput::info(&format!(
+-        "已从 {} 切换到 {}",
+-        old_current,
+-        config_name
+-    ));
++    ColorOutput::info(&format!("已从 {} 切换到 {}", old_current, config_name));
+ 
+     let restart_hint = match platform {
+         Platform::Claude => "建议重启 Claude Code 以确保配置完全生效",
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\provider_cmd.rs:197:
+     println!("{}", table);
+ 
+     if verbose {
+-        crate::commands::common::print_next_steps(&[("查看 Provider 测试选项", "ccr provider test --help")]);
++        crate::commands::common::print_next_steps(&[(
++            "查看 Provider 测试选项",
++            "ccr provider test --help",
++        )]);
+     }
+ 
+     Ok(())
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\commands\temp_token.rs:108:
+         None => {
+             ColorOutput::info("当前没有设置临时配置");
+             println!();
+-            crate::commands::common::print_next_steps(&[("查看临时设置帮助", "ccr temp-token set --help")]);
++            crate::commands::common::print_next_steps(&[(
++                "查看临时设置帮助",
++                "ccr temp-token set --help",
++            )]);
+         }
+     }
+ 
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\services\ui_service.rs:325:
+ 
+         ColorOutput::info("使用开发模式启动 CCR UI");
+         ColorOutput::key_value("后端", &format!("http://localhost:{}", backend_port), 2);
+-        ColorOutput::key_value("前端", &format!("http://localhost:{} (Vue 3 + Vite)",
+-            port
+-        ), 2);
++        ColorOutput::key_value(
++            "前端",
++            &format!("http://localhost:{} (Vue 3 + Vite)", port),
++            2,
++        );
+         println!();
+ 
+         ColorOutput::info("按 Ctrl+C 停止服务");
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\services\ui_service.rs:531:
+             }
+ 
+             ColorOutput::success("生产构建完成");
+-            ColorOutput::key_value("桌面端后端", &format!("{}/src-tauri/target/release/ccr-desktop",
+-                ccr_ui_path.display()
+-            ), 2);
+-            ColorOutput::key_value("前端静态资源", &format!("{}/dist/", ccr_ui_path.display()), 2);
++            ColorOutput::key_value(
++                "桌面端后端",
++                &format!(
++                    "{}/src-tauri/target/release/ccr-desktop",
++                    ccr_ui_path.display()
++                ),
++                2,
++            );
++            ColorOutput::key_value(
++                "前端静态资源",
++                &format!("{}/dist/", ccr_ui_path.display()),
++                2,
++            );
+ 
+             Ok(())
+         } else {
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\services\ui_service.rs:576:
+         let temp_dir =
+             TempDir::new().map_err(|e| CcrError::UiError(format!("创建临时目录失败: {}", e)))?;
+ 
+-        ColorOutput::key_value("克隆仓库", &format!("https://github.com/{}.git",
+-            GITHUB_REPO
+-        ), 2);
++        ColorOutput::key_value(
++            "克隆仓库",
++            &format!("https://github.com/{}.git", GITHUB_REPO),
++            2,
++        );
+         ColorOutput::key_value("临时目录", &temp_dir.path().display().to_string(), 2);
+         println!();
+ 
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\sync\commands.rs:320:
+         println!();
+ 
+         // 检查远程文件状态
+-        print!("{}", ColorOutput::format_status(OutputStatus::Step, "正在检查远程状态...", io::stdout().is_terminal()));
++        print!(
++            "{}",
++            ColorOutput::format_status(
++                OutputStatus::Step,
++                "正在检查远程状态...",
++                io::stdout().is_terminal()
++            )
++        );
+         std::io::Write::flush(&mut std::io::stdout())?;
+ 
+         let service = SyncService::new(&sync_config).await?;
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\sync\commands.rs:409:
+     let service = SyncService::new(&sync_config).await?;
+ 
+     if !force {
+-        print!("{}", ColorOutput::format_status(OutputStatus::Step, "正在检查远程状态...", io::stdout().is_terminal()));
++        print!(
++            "{}",
++            ColorOutput::format_status(
++                OutputStatus::Step,
++                "正在检查远程状态...",
++                io::stdout().is_terminal()
++            )
++        );
+         let _ = io::stdout().flush();
+ 
+         let exists = service.remote_exists().await?;
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\sync\commands.rs:438:
+ 
+     // 🧩 在上传前执行多类型增量备份（统一目录结构）
+     {
+-        print!("{}", ColorOutput::format_status(OutputStatus::Step, "正在执行增量备份...", io::stdout().is_terminal()));
++        print!(
++            "{}",
++            ColorOutput::format_status(
++                OutputStatus::Step,
++                "正在执行增量备份...",
++                io::stdout().is_terminal()
++            )
++        );
+         let _ = io::stdout().flush();
+         let svc = MultiBackupService::with_default()?;
+         let summary = svc.backup_all()?;
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\sync\commands.rs:476:
+     }
+     println!();
+ 
+-    print!("{}", ColorOutput::format_status(OutputStatus::Step, "正在上传...", io::stdout().is_terminal()));
++    print!(
++        "{}",
++        ColorOutput::format_status(
++            OutputStatus::Step,
++            "正在上传...",
++            io::stdout().is_terminal()
++        )
++    );
+     let _ = io::stdout().flush();
+ 
+     // 🎯 根据内容选择创建临时过滤目录进行同步
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\sync\commands.rs:490:
+                 .await?
+         };
+ 
+-    print!("{}", ColorOutput::format_status(OutputStatus::Step, "正在上传...", io::stdout().is_terminal()));
++    print!(
++        "{}",
++        ColorOutput::format_status(
++            OutputStatus::Step,
++            "正在上传...",
++            io::stdout().is_terminal()
++        )
++    );
+     let _ = io::stdout().flush();
+ 
+     service.push(&temp_sync_path, None).await?;
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\sync\commands.rs:601:
+ 
+     // 备份逻辑
+     if tokio::fs::try_exists(&sync_path).await.unwrap_or(false) {
+-        print!("{}", ColorOutput::format_status(OutputStatus::Step, "正在备份本地内容...", io::stdout().is_terminal()));
++        print!(
++            "{}",
++            ColorOutput::format_status(
++                OutputStatus::Step,
++                "正在备份本地内容...",
++                io::stdout().is_terminal()
++            )
++        );
+         let _ = io::stdout().flush();
+ 
+         // 如果是文件，使用 ConfigManager 的备份功能
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\sync\commands.rs:639:
+ 
+     // 🧩 在拉取前执行多类型增量备份（统一目录结构）
+     {
+-        print!("{}", ColorOutput::format_status(OutputStatus::Step, "正在执行增量备份...", io::stdout().is_terminal()));
++        print!(
++            "{}",
++            ColorOutput::format_status(
++                OutputStatus::Step,
++                "正在执行增量备份...",
++                io::stdout().is_terminal()
++            )
++        );
+         let _ = io::stdout().flush();
+         let svc = MultiBackupService::with_default()?;
+         let summary = svc.backup_all()?;
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\sync\commands.rs:653:
+         println!();
+     }
+ 
+-    print!("{}", ColorOutput::format_status(OutputStatus::Step, "正在从云端下载...", io::stdout().is_terminal()));
++    print!(
++        "{}",
++        ColorOutput::format_status(
++            OutputStatus::Step,
++            "正在从云端下载...",
++            io::stdout().is_terminal()
++        )
++    );
+     let _ = io::stdout().flush();
+ 
+     service.pull(&sync_path).await?;
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\sync\commands.rs:1174:
+                 success_count += 1;
+             }
+             Err(e) => {
+-                println!("{}", ColorOutput::format_status(OutputStatus::Error, &format!("上传失败: {e}"), io::stdout().is_terminal()));
++                println!(
++                    "{}",
++                    ColorOutput::format_status(
++                        OutputStatus::Error,
++                        &format!("上传失败: {e}"),
++                        io::stdout().is_terminal()
++                    )
++                );
+                 failed_count += 1;
+                 failed_folders.push(folder.name.clone());
+             }
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\sync\commands.rs:1248:
+                 success_count += 1;
+             }
+             Err(e) => {
+-                println!("{}", ColorOutput::format_status(OutputStatus::Error, &format!("下载失败: {e}"), io::stdout().is_terminal()));
++                println!(
++                    "{}",
++                    ColorOutput::format_status(
++                        OutputStatus::Error,
++                        &format!("下载失败: {e}"),
++                        io::stdout().is_terminal()
++                    )
++                );
+                 failed_count += 1;
+                 failed_folders.push(folder.name.clone());
+             }
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\sync\commands.rs:1423:
+ 
+     if !folder.enabled {
+         ColorOutput::warning(&format!("文件夹 '{}' 已禁用", folder_name));
+-        crate::commands::common::print_next_steps(&[("查看启用文件夹帮助", "ccr sync folder enable --help")]);
++        crate::commands::common::print_next_steps(&[(
++            "查看启用文件夹帮助",
++            "ccr sync folder enable --help",
++        )]);
+         return Ok(());
+     }
+ 
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\sync\commands.rs:1456:
+     };
+ 
+     // 🔍 检查远程是否已存在
+-    print!("{}", ColorOutput::format_status(OutputStatus::Step, "正在检查远程状态...", io::stdout().is_terminal()));
++    print!(
++        "{}",
++        ColorOutput::format_status(
++            OutputStatus::Step,
++            "正在检查远程状态...",
++            io::stdout().is_terminal()
++        )
++    );
+     let _ = io::stdout().flush();
+ 
+     let service = SyncService::new(&sync_config).await?;
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\sync\commands.rs:1484:
+     }
+ 
+     // 🚀 上传到云端
+-    print!("{}", ColorOutput::format_status(OutputStatus::Step, "正在上传...", io::stdout().is_terminal()));
++    print!(
++        "{}",
++        ColorOutput::format_status(
++            OutputStatus::Step,
++            "正在上传...",
++            io::stdout().is_terminal()
++        )
++    );
+     let _ = io::stdout().flush();
+ 
+     // 🎯 不传递 allowed_paths，让 SyncService 使用内部的排除逻辑
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\sync\commands.rs:1565:
+         println!();
+ 
+         // 💾 备份本地文件夹
+-        print!("{}", ColorOutput::format_status(OutputStatus::Step, "正在备份本地内容...", io::stdout().is_terminal()));
++        print!(
++            "{}",
++            ColorOutput::format_status(
++                OutputStatus::Step,
++                "正在备份本地内容...",
++                io::stdout().is_terminal()
++            )
++        );
+         let _ = io::stdout().flush();
+ 
+         let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
+Diff in \\?\D:\Documents\Code\Github\ccr\crates\ccr-cli\src\sync\commands.rs:1589:
+     }
+ 
+     // ⬇️ 从云端下载
+-    print!("{}", ColorOutput::format_status(OutputStatus::Step, "正在从云端下载...", io::stdout().is_terminal()));
++    print!(
++        "{}",
++        ColorOutput::format_status(
++            OutputStatus::Step,
++            "正在从云端下载...",
++            io::stdout().is_terminal()
++        )
++    );
+     let _ = io::stdout().flush();
+ 
+     service.pull(&local_path).await?;
+error: recipe `fmt-check` failed on line 467 with exit code 1

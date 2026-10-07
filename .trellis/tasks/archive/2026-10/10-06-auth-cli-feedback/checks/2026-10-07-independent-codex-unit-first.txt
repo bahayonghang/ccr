@@ -1,0 +1,23 @@
+started=2026-10-07T09:10:35.7902259-05:00
+command=cargo test -p ccr-cli commands::codex::auth -- --skip export_bindings
+   Compiling ccr-cli v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-cli)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.52s
+     Running unittests src\lib.rs (target\debug\deps\ccr_cli-174f211b337450c8.exe)
+
+running 6 tests
+test commands::codex::auth::switch::tests::restart_flag_and_interactive_terminal_resolve_daemon_action ... ok
+test commands::codex::auth::current::tests::json_output_includes_required_runtime_fields_for_all_runtime_modes ... ok
+test commands::codex::auth::current::tests::json_output_serializes_current_auth_info_shape ... ok
+test commands::codex::auth::import::tests::p6_plaintext_import_returns_service_rejection ... ok
+test commands::codex::auth::import::tests::import_partial_merge_preserves_existing_account_and_adds_metadata ... ok
+test commands::codex::auth::import::tests::import_result_distinguishes_partial_skip_only_and_overwrite ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 348 filtered out; finished in 0.07s
+
+     Running tests\dispatch_routing.rs (target\debug\deps\dispatch_routing-29e4c91da5c99193.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.00s
+
+exit_code=0

@@ -1,0 +1,226 @@
+crates/ccr-cli/src/commands/grok/auth.rs:6:use crate::commands::common::print_next_steps;
+crates/ccr-cli/src/commands/grok/auth.rs:9:use ccr_core::core::error::{CcrError, Result};
+crates/ccr-cli/src/commands/grok/auth.rs:39:    runtime_error: &'a Option<String>,
+crates/ccr-cli/src/commands/grok/auth.rs:47:    warnings: Vec<String>,
+crates/ccr-cli/src/commands/grok/auth.rs:50:fn print_mutation(
+crates/ccr-cli/src/commands/grok/auth.rs:64:                warnings: result.warnings,
+crates/ccr-cli/src/commands/grok/auth.rs:74:        for warning in result.warnings {
+crates/ccr-cli/src/commands/grok/auth.rs:75:            ColorOutput::warning(&warning);
+crates/ccr-cli/src/commands/grok/auth.rs:98:                .runtime_error
+crates/ccr-cli/src/commands/grok/auth.rs:113:pub async fn save_command(name: &str, scope: Option<&str>, force: bool, json: bool) -> Result<()> {
+crates/ccr-cli/src/commands/grok/auth.rs:120:        print_next_steps(&[("查看账号", "ccr grok auth list")]);
+crates/ccr-cli/src/commands/grok/auth.rs:125:pub async fn list_command(json: bool) -> Result<()> {
+crates/ccr-cli/src/commands/grok/auth.rs:154:            runtime_error: &snapshot.runtime_error,
+crates/ccr-cli/src/commands/grok/auth.rs:182:        if let Some(error) = &snapshot.runtime_error {
+crates/ccr-cli/src/commands/grok/auth.rs:183:            ColorOutput::warning(error);
+crates/ccr-cli/src/commands/grok/auth.rs:186:            print_next_steps(&[("查看保存帮助", "ccr grok auth save --help")]);
+crates/ccr-cli/src/commands/grok/auth.rs:188:            print_next_steps(&[
+crates/ccr-cli/src/commands/grok/auth.rs:197:pub async fn switch_command(name: &str, json: bool) -> Result<()> {
+crates/ccr-cli/src/commands/grok/auth.rs:204:        print_next_steps(&[("查看官方会话", "ccr grok auth current")]);
+crates/ccr-cli/src/commands/grok/auth.rs:209:pub async fn delete_command(name: &str, force: bool, json: bool) -> Result<()> {
+crates/ccr-cli/src/commands/grok/auth.rs:239:        print_next_steps(&[("查看剩余账号", "ccr grok auth list")]);
+crates/ccr-cli/src/commands/grok/auth.rs:249:pub async fn current_command(json: bool) -> Result<()> {
+crates/ccr-cli/src/commands/grok/auth.rs:270:pub async fn off_command(json: bool) -> Result<()> {
+crates/ccr-cli/src/commands/grok/auth.rs:277:        result.warnings,
+crates/ccr-cli/src/commands/codex/auth\delete.rs:7:use crate::commands::common::print_next_steps;
+crates/ccr-cli/src/commands/codex/auth\delete.rs:9:use ccr_core::core::error::{CcrError, Result};
+crates/ccr-cli/src/commands/codex/auth\delete.rs:26:pub async fn delete_command(name: &str, force: bool) -> Result<()> {
+crates/ccr-cli/src/commands/codex/auth\delete.rs:34:        ColorOutput::error(&format!("账号 '{}' 不存在", name));
+crates/ccr-cli/src/commands/codex/auth\delete.rs:35:        print_next_steps(&[("查看可用账号", "ccr codex auth list")]);
+crates/ccr-cli/src/commands/codex/auth\delete.rs:43:        ColorOutput::warning(&format!("即将删除账号 {name}"));
+crates/ccr-cli/src/commands/codex/auth\delete.rs:55:            ColorOutput::warning("这是当前正在使用的账号");
+crates/ccr-cli/src/commands/codex/auth\delete.rs:81:            print_next_steps(&[("查看剩余账号", "ccr codex auth list")]);
+crates/ccr-cli/src/commands/codex/auth\delete.rs:84:            ColorOutput::error(&format!("删除失败: {}", e));
+crates/ccr-cli/src/commands/codex/auth\current.rs:7:use crate::commands::common::print_next_steps;
+crates/ccr-cli/src/commands/codex/auth\current.rs:10:use ccr_core::core::error::Result;
+crates/ccr-cli/src/commands/codex/auth\current.rs:44:fn build_json_output(
+crates/ccr-cli/src/commands/codex/auth\current.rs:75:pub async fn current_command(json: bool) -> Result<()> {
+crates/ccr-cli/src/commands/codex/auth\current.rs:77:    let runtime_summary = service.get_runtime_summary()?;
+crates/ccr-cli/src/commands/codex/auth\current.rs:81:            service.get_current_auth_info().ok()
+crates/ccr-cli/src/commands/codex/auth\current.rs:93:    let login_state = service.get_login_state()?;
+crates/ccr-cli/src/commands/codex/auth\current.rs:103:        ColorOutput::warning("当前凭据存储模式暂不支持 CCR 多账号管理");
+crates/ccr-cli/src/commands/codex/auth\current.rs:107:        print_next_steps(&[
+crates/ccr-cli/src/commands/codex/auth\current.rs:116:            ColorOutput::warning("未登录 Codex");
+crates/ccr-cli/src/commands/codex/auth\current.rs:127:            print_next_steps(&[("登录 Codex", "codex login")]);
+crates/ccr-cli/src/commands/codex/auth\current.rs:130:            ColorOutput::warning("当前登录尚未保存");
+crates/ccr-cli/src/commands/codex/auth\current.rs:133:            if let Ok(info) = service.get_current_auth_info() {
+crates/ccr-cli/src/commands/codex/auth\current.rs:136:            print_next_steps(&[("查看保存帮助", "ccr codex auth save --help")]);
+crates/ccr-cli/src/commands/codex/auth\current.rs:142:            if let Ok(info) = service.get_current_auth_info() {
+crates/ccr-cli/src/commands/codex/auth\current.rs:146:            print_next_steps(&[("查看账号", "ccr codex auth list")]);
+crates/ccr-cli/src/commands/codex/auth\current.rs:148:        LoginState::Unknown { type_name, .. } => {
+crates/ccr-cli/src/commands/codex/auth\current.rs:149:            ColorOutput::warning(&format!("登录状态: 未知 ({})", type_name));
+crates/ccr-cli/src/commands/codex/auth\current.rs:151:            if let Ok(info) = service.get_current_auth_info() {
+crates/ccr-cli/src/commands/codex/auth\current.rs:158:            if let Ok(info) = service.get_current_auth_info() {
+crates/ccr-cli/src/commands/codex/auth\current.rs:163:            print_next_steps(&[("查看已保存的 OAuth 账号", "ccr codex auth list")]);
+crates/ccr-cli/src/commands/codex/auth\current.rs:168:            if let Ok(info) = service.get_current_auth_info() {
+crates/ccr-cli/src/commands/codex/auth\current.rs:180:fn display_auth_info(
+crates/ccr-cli/src/commands/codex/auth\current.rs:213:fn render_intent(intent: &AuthIntent) -> String {
+crates/ccr-cli/src/commands/codex/auth\current.rs:226:fn mask_account_id(account_id: &str) -> String {
+crates/ccr-cli/src/commands/codex/auth\current.rs:245:    fn auth_state() -> AuthState {
+crates/ccr-cli/src/commands/codex/auth\current.rs:256:    fn runtime_summary(mode: CodexRuntimeMode) -> CodexRuntimeSummary {
+crates/ccr-cli/src/commands/codex/auth\current.rs:319:    fn json_output_includes_required_runtime_fields_for_all_runtime_modes() {
+crates/ccr-cli/src/commands/codex/auth\current.rs:355:    fn json_output_serializes_current_auth_info_shape() {
+crates/ccr-cli/src/commands/codex/auth\export.rs:8:use crate::commands::common::print_next_steps;
+crates/ccr-cli/src/commands/codex/auth\export.rs:10:use ccr_core::core::error::{CcrError, Result};
+crates/ccr-cli/src/commands/codex/auth\export.rs:23:fn get_downloads_dir() -> Result<PathBuf> {
+crates/ccr-cli/src/commands/codex/auth\export.rs:31:fn get_default_export_path() -> Result<PathBuf> {
+crates/ccr-cli/src/commands/codex/auth\export.rs:39:fn read_user_path() -> Option<String> {
+crates/ccr-cli/src/commands/codex/auth\export.rs:57:fn read_and_confirm_password() -> Result<String> {
+crates/ccr-cli/src/commands/codex/auth\export.rs:94:pub async fn export_command(no_secrets: bool) -> Result<()> {
+crates/ccr-cli/src/commands/codex/auth\export.rs:103:        print_next_steps(&[("查看保存帮助", "ccr codex auth save --help")]);
+crates/ccr-cli/src/commands/codex/auth\export.rs:187:    print_next_steps(&[("导入账号", "ccr codex auth import")]);
+crates/ccr-cli/src/commands/codex/auth\import.rs:8:use crate::commands::common::print_next_steps;
+crates/ccr-cli/src/commands/codex/auth\import.rs:12:use ccr_core::core::error::{CcrError, Result};
+crates/ccr-cli/src/commands/codex/auth\import.rs:19:fn get_downloads_dir() -> Result<PathBuf> {
+crates/ccr-cli/src/commands/codex/auth\import.rs:25:fn scan_downloads_for_exports() -> Result<Vec<PathBuf>> {
+crates/ccr-cli/src/commands/codex/auth\import.rs:48:fn read_user_path() -> Option<String> {
+crates/ccr-cli/src/commands/codex/auth\import.rs:65:fn import_encrypted(
+crates/ccr-cli/src/commands/codex/auth\import.rs:101:                    ColorOutput::error("密码错误或文件已损坏，请重试 (Ctrl+C 取消)");
+crates/ccr-cli/src/commands/codex/auth\import.rs:113:fn import_plaintext(
+crates/ccr-cli/src/commands/codex/auth\import.rs:120:    ColorOutput::warning("检测到未加密的导出文件");
+crates/ccr-cli/src/commands/codex/auth\import.rs:128:            ColorOutput::error(&format!("导入失败: {}", e));
+crates/ccr-cli/src/commands/codex/auth\import.rs:139:fn print_import_result(
+crates/ccr-cli/src/commands/codex/auth\import.rs:160:        ColorOutput::warning(&format!("覆盖账号: {}", result.overwritten.len()));
+crates/ccr-cli/src/commands/codex/auth\import.rs:168:        ColorOutput::warning("没有账号被导入");
+crates/ccr-cli/src/commands/codex/auth\import.rs:184:    print_next_steps(&[("查看账号", "ccr codex auth list")]);
+crates/ccr-cli/src/commands/codex/auth\import.rs:188:pub async fn import_command(replace: bool, force: bool) -> Result<()> {
+crates/ccr-cli/src/commands/codex/auth\import.rs:205:        ColorOutput::warning("未在 Downloads 中找到导出文件");
+crates/ccr-cli/src/commands/codex/auth\import.rs:229:                        ColorOutput::error("未指定文件且无默认文件可用");
+crates/ccr-cli/src/commands/codex/auth\import.rs:238:                    ColorOutput::error("在 Downloads 目录中未找到导出文件");
+crates/ccr-cli/src/commands/codex/auth\import.rs:240:                    print_next_steps(&[("导出账号", "ccr codex auth export")]);
+crates/ccr-cli/src/commands/codex/auth\import.rs:254:        ColorOutput::error(&format!("文件不存在: {}", import_path.display()));
+crates/ccr-cli/src/commands/codex/auth\import.rs:259:        ColorOutput::warning("文件扩展名不是 .json，继续尝试导入...");
+crates/ccr-cli/src/commands/codex/auth\import.rs:279:        ImportFormat::Unknown => {
+crates/ccr-cli/src/commands/codex/auth\import.rs:280:            ColorOutput::error("无法识别的文件格式");
+crates/ccr-cli/src/commands/codex/auth\import.rs:282:            print_next_steps(&[("查看导出帮助", "ccr codex auth export --help")]);
+crates/ccr-cli/src/commands/codex/auth\import.rs:306:        let error =
+crates/ccr-cli/src/commands/codex/auth\import.rs:308:        assert_ne!(error.exit_code(), 0);
+crates/ccr-cli/src/commands/codex/auth\import.rs:312:    fn import_result_distinguishes_partial_skip_only_and_overwrite() {
+crates/ccr-cli/src/commands/codex/auth\import.rs:375:    fn import_partial_merge_preserves_existing_account_and_adds_metadata() {
+crates/ccr-cli/src/commands/codex/auth\list.rs:8:use crate::commands::common::print_next_steps;
+crates/ccr-cli/src/commands/codex/auth\list.rs:11:use ccr_core::core::error::Result;
+crates/ccr-cli/src/commands/codex/auth\list.rs:24:pub async fn list_command() -> Result<()> {
+crates/ccr-cli/src/commands/codex/auth\list.rs:33:        ColorOutput::warning("当前凭据存储模式暂不支持 CCR 多账号管理");
+crates/ccr-cli/src/commands/codex/auth\list.rs:37:        print_next_steps(&[
+crates/ccr-cli/src/commands/codex/auth\list.rs:46:        ColorOutput::warning("未登录 Codex");
+crates/ccr-cli/src/commands/codex/auth\list.rs:57:        print_next_steps(&[
+crates/ccr-cli/src/commands/codex/auth\list.rs:69:        print_next_steps(&[("查看保存帮助", "ccr codex auth save --help")]);
+crates/ccr-cli/src/commands/codex/auth\list.rs:195:        ColorOutput::warning("* 标记的账号为未保存的当前登录");
+crates/ccr-cli/src/commands/codex/auth\list.rs:196:        print_next_steps(&[
+crates/ccr-cli/src/commands/codex/auth\list.rs:202:        print_next_steps(&[
+crates/ccr-cli/src/commands/codex/auth\list.rs:211:fn render_intent(intent: &AuthIntent) -> String {
+crates/ccr-cli/src/commands/claude/auth\switch.rs:5:use crate::commands::common::print_next_steps;
+crates/ccr-cli/src/commands/claude/auth\switch.rs:8:use ccr_core::core::error::Result;
+crates/ccr-cli/src/commands/claude/auth\switch.rs:11:pub async fn switch_command(name: &str) -> Result<()> {
+crates/ccr-cli/src/commands/claude/auth\switch.rs:14:        .get_runtime_summary()
+crates/ccr-cli/src/commands/claude/auth\switch.rs:32:            if outcome.remaining_suppressors.is_empty() && outcome.warnings.is_empty() {
+crates/ccr-cli/src/commands/claude/auth\switch.rs:35:                ColorOutput::warning("仍存在 CCR 不会自动清理的认证来源（请按置信度判断）:");
+crates/ccr-cli/src/commands/claude/auth\switch.rs:48:                ColorOutput::warning("切换后认证来源诊断未完成:");
+crates/ccr-cli/src/commands/claude/auth\switch.rs:49:                for warning in &outcome.warnings {
+crates/ccr-cli/src/commands/claude/auth\switch.rs:50:                    println!("  • {warning}");
+crates/ccr-cli/src/commands/claude/auth\switch.rs:53:            print_next_steps(&[("查看当前认证", "ccr claude auth current")]);
+crates/ccr-cli/src/commands/claude/auth\switch.rs:56:            ColorOutput::error(&format!("切换失败: {}", e));
+crates/ccr-cli/src/commands/claude/auth\switch.rs:58:                print_next_steps(&[("查看可用账号", "ccr claude auth list")]);
+crates/ccr-cli/src/commands/codex/auth\off.rs:8:use ccr_core::core::error::Result;
+crates/ccr-cli/src/commands/codex/auth\off.rs:10:pub async fn off_command(json: bool) -> Result<()> {
+crates/ccr-cli/src/commands/codex/auth\off.rs:17:        result.warnings,
+crates/ccr-cli/src/commands/codex/auth\rename.rs:7:use crate::commands::common::print_next_steps;
+crates/ccr-cli/src/commands/codex/auth\rename.rs:9:use ccr_core::core::error::{CcrError, Result};
+crates/ccr-cli/src/commands/codex/auth\rename.rs:31:pub async fn rename_command(old_name: &str, new_name: &str, force: bool, json: bool) -> Result<()> {
+crates/ccr-cli/src/commands/codex/auth\rename.rs:62:    print_next_steps(&[("查看账号", "ccr codex auth list")]);
+crates/ccr-cli/src/commands/claude/auth\save.rs:5:use crate::commands::common::print_next_steps;
+crates/ccr-cli/src/commands/claude/auth\save.rs:7:use ccr_core::core::error::Result;
+crates/ccr-cli/src/commands/claude/auth\save.rs:10:pub async fn save_command(name: &str, description: Option<String>, force: bool) -> Result<()> {
+crates/ccr-cli/src/commands/claude/auth\save.rs:29:            print_next_steps(&[("查看账号", "ccr claude auth list")]);
+crates/ccr-cli/src/commands/claude/auth\save.rs:32:            ColorOutput::error(&format!("保存失败: {}", e));
+crates/ccr-cli/src/commands/claude/auth\save.rs:35:                print_next_steps(&[(
+crates/ccr-cli/src/commands/claude/auth\save.rs:40:                print_next_steps(&[("登录 Claude", "claude login")]);
+crates/ccr-cli/src/commands/codex/auth\save.rs:7:use crate::commands::common::print_next_steps;
+crates/ccr-cli/src/commands/codex/auth\save.rs:9:use ccr_core::core::error::Result;
+crates/ccr-cli/src/commands/codex/auth\save.rs:26:pub async fn save_command(name: &str, description: Option<String>, force: bool) -> Result<()> {
+crates/ccr-cli/src/commands/codex/auth\save.rs:34:        ColorOutput::error("当前凭据存储模式暂不支持 CCR 保存账号");
+crates/ccr-cli/src/commands/codex/auth\save.rs:38:        print_next_steps(&[
+crates/ccr-cli/src/commands/codex/auth\save.rs:47:        ColorOutput::error("未登录 Codex");
+crates/ccr-cli/src/commands/codex/auth\save.rs:48:        print_next_steps(&[("登录 Codex", "codex login")]);
+crates/ccr-cli/src/commands/codex/auth\save.rs:64:            if let Ok(info) = service.get_current_auth_info()
+crates/ccr-cli/src/commands/codex/auth\save.rs:71:            print_next_steps(&[("查看账号", "ccr codex auth list")]);
+crates/ccr-cli/src/commands/codex/auth\save.rs:74:            ColorOutput::error(&format!("保存失败: {}", e));
+crates/ccr-cli/src/commands/codex/auth\save.rs:80:                print_next_steps(&[(
+crates/ccr-cli/src/commands/codex/auth\repair.rs:8:use crate::commands::common::print_next_steps;
+crates/ccr-cli/src/commands/codex/auth\repair.rs:10:use ccr_core::core::error::Result;
+crates/ccr-cli/src/commands/codex/auth\repair.rs:14:pub async fn repair_command(name: &str) -> Result<()> {
+crates/ccr-cli/src/commands/codex/auth\repair.rs:25:        ColorOutput::warning(&format!("无需修复或修复失败: {}", name));
+crates/ccr-cli/src/commands/codex/auth\repair.rs:29:            print_next_steps(&[
+crates/ccr-cli/src/commands/claude/auth\off.rs:7:use ccr_core::core::error::Result;
+crates/ccr-cli/src/commands/claude/auth\off.rs:19:    warnings: Vec<String>,
+crates/ccr-cli/src/commands/claude/auth\off.rs:22:pub async fn off_command(json: bool) -> Result<()> {
+crates/ccr-cli/src/commands/claude/auth\off.rs:29:        result.warnings,
+crates/ccr-cli/src/commands/claude/auth\off.rs:33:pub(crate) fn print_auth_off(
+crates/ccr-cli/src/commands/claude/auth\off.rs:38:    warnings: Vec<String>,
+crates/ccr-cli/src/commands/claude/auth\off.rs:48:                warnings,
+crates/ccr-cli/src/commands/claude/auth\off.rs:65:    for warning in warnings {
+crates/ccr-cli/src/commands/claude/auth\off.rs:66:        ColorOutput::warning(&warning);
+crates/ccr-cli/src/commands/claude/auth\off.rs:74:    fn auth_off_json_retains_native_path_pointer_and_warnings() {
+crates/ccr-cli/src/commands/claude/auth\off.rs:80:            warnings: vec!["Profile 仍保留".into()],
+crates/ccr-cli/src/commands/claude/auth\off.rs:85:                "ok":true, "changed":true, "path":"native_logout", "profile_pointer":"provider", "warnings":["Profile 仍保留"]
+crates/ccr-cli/src/commands/claude/auth\delete.rs:5:use crate::commands::common::print_next_steps;
+crates/ccr-cli/src/commands/claude/auth\delete.rs:7:use ccr_core::core::error::{CcrError, Result};
+crates/ccr-cli/src/commands/claude/auth\delete.rs:11:pub async fn delete_command(name: &str, force: bool) -> Result<()> {
+crates/ccr-cli/src/commands/claude/auth\delete.rs:17:        ColorOutput::error(&format!("账号 '{}' 不存在", name));
+crates/ccr-cli/src/commands/claude/auth\delete.rs:18:        print_next_steps(&[("查看可用账号", "ccr claude auth list")]);
+crates/ccr-cli/src/commands/claude/auth\delete.rs:25:        ColorOutput::warning(&format!("即将删除账号 {name}"));
+crates/ccr-cli/src/commands/claude/auth\delete.rs:34:            ColorOutput::warning("这是当前匹配到的运行时官方账号");
+crates/ccr-cli/src/commands/claude/auth\delete.rs:60:            print_next_steps(&[("查看剩余账号", "ccr claude auth list")]);
+crates/ccr-cli/src/commands/claude/auth\delete.rs:62:        Err(e) => ColorOutput::error(&format!("删除失败: {}", e)),
+crates/ccr-cli/src/commands/codex/auth\switch.rs:5:use crate::commands::common::print_next_steps;
+crates/ccr-cli/src/commands/codex/auth\switch.rs:8:use ccr_core::core::error::Result;
+crates/ccr-cli/src/commands/codex/auth\switch.rs:23:fn resolve_daemon_restart_action(restart_daemon: bool, interactive: bool) -> DaemonRestartAction {
+crates/ccr-cli/src/commands/codex/auth\switch.rs:48:pub async fn switch_command(name: &str, restart_daemon: bool) -> Result<()> {
+crates/ccr-cli/src/commands/codex/auth\switch.rs:56:        ColorOutput::error("当前凭据存储模式暂不支持 CCR 切换账号");
+crates/ccr-cli/src/commands/codex/auth\switch.rs:60:        print_next_steps(&[
+crates/ccr-cli/src/commands/codex/auth\switch.rs:70:        ColorOutput::warning("检测到 Codex 进程正在运行");
+crates/ccr-cli/src/commands/codex/auth\switch.rs:73:        ColorOutput::warning("切换账号可能导致正在运行的 Codex 会话出现问题");
+crates/ccr-cli/src/commands/codex/auth\switch.rs:84:            if let Ok(info) = service.get_current_auth_info()
+crates/ccr-cli/src/commands/codex/auth\switch.rs:92:            print_next_steps(&[("查看当前账号", "ccr codex auth current")]);
+crates/ccr-cli/src/commands/codex/auth\switch.rs:95:            ColorOutput::error(&format!("切换失败: {}", e));
+crates/ccr-cli/src/commands/codex/auth\switch.rs:100:                print_next_steps(&[("查看可用账号", "ccr codex auth list")]);
+crates/ccr-cli/src/commands/codex/auth\switch.rs:111:async fn handle_daemon_after_switch(restart_daemon: bool) {
+crates/ccr-cli/src/commands/codex/auth\switch.rs:125:            ColorOutput::warning(&format!(
+crates/ccr-cli/src/commands/codex/auth\switch.rs:136:                print_next_steps(&[("手动重启守护进程", "codex app-server daemon restart")]);
+crates/ccr-cli/src/commands/codex/auth\switch.rs:140:            let warning = format!(
+crates/ccr-cli/src/commands/codex/auth\switch.rs:148:                    &warning,
+crates/ccr-cli/src/commands/codex/auth\switch.rs:157:fn render_daemon_restart_outcome(outcome: DaemonRestartOutcome) {
+crates/ccr-cli/src/commands/codex/auth\switch.rs:166:            ColorOutput::warning(&format!("app-server 守护进程重启失败: {detail}"));
+crates/ccr-cli/src/commands/codex/auth\switch.rs:167:            print_next_steps(&[("手动重启守护进程", "codex app-server daemon restart")]);
+crates/ccr-cli/src/commands/codex/auth\switch.rs:170:            ColorOutput::warning("app-server 守护进程重启超时，未能确认结果");
+crates/ccr-cli/src/commands/codex/auth\switch.rs:171:            print_next_steps(&[("手动重启守护进程", "codex app-server daemon restart")]);
+crates/ccr-cli/src/commands/codex/auth\switch.rs:174:            ColorOutput::warning("PATH 中找不到 codex，无法重启 app-server 守护进程");
+crates/ccr-cli/src/commands/codex/auth\switch.rs:175:            print_next_steps(&[("手动重启守护进程", "codex app-server daemon restart")]);
+crates/ccr-cli/src/commands/codex/auth\switch.rs:185:    fn restart_flag_and_interactive_terminal_resolve_daemon_action() {
+crates/ccr-cli/src/commands/codex/auth\sync.rs:7:use crate::commands::common::print_next_steps;
+crates/ccr-cli/src/commands/codex/auth\sync.rs:10:use ccr_core::core::error::Result;
+crates/ccr-cli/src/commands/codex/auth\sync.rs:14:pub async fn sync_command() -> Result<()> {
+crates/ccr-cli/src/commands/codex/auth\sync.rs:30:            ColorOutput::warning("账号快照比 runtime 更新，未覆盖快照");
+crates/ccr-cli/src/commands/codex/auth\sync.rs:34:            ColorOutput::warning("未找到可同步的 OAuth tokens");
+crates/ccr-cli/src/commands/codex/auth\sync.rs:38:            print_next_steps(&[
+crates/ccr-cli/src/commands/codex/auth\update.rs:6:use ccr_core::core::error::{CcrError, Result};
+crates/ccr-cli/src/commands/codex/auth\update.rs:19:pub async fn update_command(
+crates/ccr-cli/src/commands/claude/auth\current.rs:5:use crate::commands::common::print_next_steps;
+crates/ccr-cli/src/commands/claude/auth\current.rs:8:use ccr_core::core::error::Result;
+crates/ccr-cli/src/commands/claude/auth\current.rs:19:pub async fn current_command(json: bool) -> Result<()> {
+crates/ccr-cli/src/commands/claude/auth\current.rs:21:    let runtime_summary = service.get_runtime_summary()?;
+crates/ccr-cli/src/commands/claude/auth\current.rs:22:    let current_auth_info = service.get_current_auth_info().ok();
+crates/ccr-cli/src/commands/claude/auth\current.rs:50:            ColorOutput::warning("未检测到可用的 Claude 官方订阅登录");
+crates/ccr-cli/src/commands/claude/auth\current.rs:51:            print_next_steps(&[
+crates/ccr-cli/src/commands/claude/auth\current.rs:58:            ColorOutput::warning("当前官方订阅登录尚未保存");
+crates/ccr-cli/src/commands/claude/auth\current.rs:88:        print_next_steps(&[("查看保存帮助", "ccr claude auth save --help")]);
+crates/ccr-cli/src/commands/claude/auth\current.rs:93:fn display_current_auth_info(service: &ClaudeAuthService, info: &ClaudeCurrentAuthInfo) {
+crates/ccr-cli/src/commands/claude/auth\current.rs:119:fn mask_uuid(value: &str) -> String {
+crates/ccr-cli/src/commands/claude/auth\list.rs:6:use crate::commands::common::print_next_steps;
+crates/ccr-cli/src/commands/claude/auth\list.rs:8:use ccr_core::core::error::Result;
+crates/ccr-cli/src/commands/claude/auth\list.rs:13:pub async fn list_command() -> Result<()> {
+crates/ccr-cli/src/commands/claude/auth\list.rs:16:    let runtime_summary = service.get_runtime_summary().ok();
+crates/ccr-cli/src/commands/claude/auth\list.rs:25:            print_next_steps(&[("查看保存帮助", "ccr claude auth save --help")]);
+crates/ccr-cli/src/commands/claude/auth\list.rs:27:            print_next_steps(&[("登录 Claude", "claude login")]);
+crates/ccr-cli/src/commands/claude/auth\list.rs:104:        print_next_steps(&[
+crates/ccr-cli/src/commands/claude/auth\list.rs:109:        ColorOutput::warning(

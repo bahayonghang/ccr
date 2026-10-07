@@ -1,0 +1,53 @@
+   Compiling ccr v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr)
+   Compiling ccr-core v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-core)
+   Compiling ccr-config v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-config)
+   Compiling ccr-store v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-store)
+   Compiling ccr-skills v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-skills)
+   Compiling ccr-sync v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-sync)
+   Compiling ccr-codex v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-codex)
+   Compiling ccr-cli v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-cli)
+   Compiling ccr-tui v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-tui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.23s
+     Running tests\commands.rs (target\debug\deps\commands-e736194fc7a0286d.exe)
+
+running 22 tests
+test output_presentation::dumb_cli_startup_disables_decorations_under_forced_color ... ok
+test output_presentation_rollout::clean_cancel_retains_destruction_warning_and_neutral_result ... ok
+test output_presentation::codex_save_result_fields_and_suggestion_preserve_runtime ... ok
+test output_presentation::codex_provider_key_does_not_offer_oauth_save ... ok
+test output_presentation::codex_unlogged_and_unsupported_keep_legacy_zero_exit_and_error_stream ... ok
+test output_presentation_rollout::platform_registry_counts_are_neutral_and_json_fields_are_unchanged ... ok
+test output_presentation::clean_preview_fields_suggestion_and_empty_result_are_neutral ... ok
+test output_presentation::platform_counts_keep_json_and_stdout_contracts ... ok
+test output_presentation::doctor_failure_keeps_json_stdout_and_read_only_contracts ... ok
+test output_presentation_rollout::empty_profile_list_keeps_neutral_output_and_json_null_current ... ok
+test output_presentation_rollout::doctor_maps_every_report_status_to_stdout_without_writes ... FAILED
+test output_presentation::codex_cancel_and_empty_export_have_no_success_result ... ok
+test output_presentation::claude_overwrite_suggestion_safely_parses_leading_hyphen_name ... ok
+test output_presentation_rollout::clean_preview_preserves_long_paths_and_files_at_small_widths ... ok
+test output_presentation::auth_off_noop_is_neutral_and_json_shape_is_preserved ... ok
+test output_presentation::claude_empty_and_missing_email_use_neutral_fields_and_save_help ... ok
+test output_presentation::codex_rename_update_json_keep_dto_messages_and_optional_description ... ok
+test output_presentation::grok_mutation_cancel_failure_and_json_preserve_state_and_streams ... ok
+test output_presentation::codex_current_list_and_json_remain_state_specific ... ok
+test output_presentation::claude_save_duplicate_cancel_and_switch_warning_preserve_boundaries ... ok
+test output_presentation::codex_switch_running_process_warning_preserves_result_and_exit_code ... ok
+test output_presentation::codex_save_missing_fields_and_overwrite_command_handles_leading_hyphen ... ok
+
+failures:
+
+---- output_presentation_rollout::doctor_maps_every_report_status_to_stdout_without_writes stdout ----
+
+thread 'output_presentation_rollout::doctor_maps_every_report_status_to_stdout_without_writes' (52500) panicked at crates\ccr\tests\commands\output_presentation_rollout.rs:163:9:
+assertion `left == right` failed
+  left: {"ccr": (None, SystemTime { intervals: 134358592620261483 }), "ccr\\config.toml": (Some([91, 99, 108, 97, 117, 100, 101, 93, 10, 101, 110, 97, 98, 108, 101, 100, 32, 61, 32, 116, 114, 117, 101, 10]), SystemTime { intervals: 134358592620261483 }), "ccr\\platforms": (None, SystemTime { intervals: 134358592620196103 }), "ccr\\platforms\\claude": (None, SystemTime { intervals: 134358592620281621 }), "ccr\\platforms\\claude\\profiles.toml": (Some([100, 101, 102, 97, 117, 108, 116, 95, 99, 111, 110, 102, 105, 103, 32, 61, 32, 39, 39, 10, 99, 117, 114, 114, 101, 110, 116, 95, 99, 111, 110, 102, 105, 103, 32, 61, 32, 39, 39, 10]), SystemTime { intervals: 134358592620281621 }), "claude": (None, SystemTime { intervals: 134358592620271560 }), "claude\\settings.json": (Some([123, 125]), SystemTime { intervals: 134358592620286792 }), "codex": (None, SystemTime { intervals: 134358592620221249 }), "grok": (None, SystemTime { intervals: 134358592620231179 }), "work": (None, SystemTime { intervals: 134358592620236339 })}
+ right: {"ccr": (None, SystemTime { intervals: 134358592620180971 }), "ccr\\config.toml": (Some([91, 99, 108, 97, 117, 100, 101, 93, 10, 101, 110, 97, 98, 108, 101, 100, 32, 61, 32, 116, 114, 117, 101, 10]), SystemTime { intervals: 134358592620261483 }), "ccr\\platforms": (None, SystemTime { intervals: 134358592620180971 }), "ccr\\platforms\\claude": (None, SystemTime { intervals: 134358592620196103 }), "ccr\\platforms\\claude\\profiles.toml": (Some([100, 101, 102, 97, 117, 108, 116, 95, 99, 111, 110, 102, 105, 103, 32, 61, 32, 39, 39, 10, 99, 117, 114, 114, 101, 110, 116, 95, 99, 111, 110, 102, 105, 103, 32, 61, 32, 39, 39, 10]), SystemTime { intervals: 134358592620281621 }), "claude": (None, SystemTime { intervals: 134358592620271560 }), "claude\\settings.json": (Some([123, 125]), SystemTime { intervals: 134358592620286792 }), "codex": (None, SystemTime { intervals: 134358592620221249 }), "grok": (None, SystemTime { intervals: 134358592620231179 }), "work": (None, SystemTime { intervals: 134358592620236339 })}
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    output_presentation_rollout::doctor_maps_every_report_status_to_stdout_without_writes
+
+test result: FAILED. 21 passed; 1 failed; 0 ignored; 0 measured; 117 filtered out; finished in 1.23s
+
+error: test failed, to rerun pass `-p ccr --test commands`

@@ -1,0 +1,26 @@
+[
+  {
+    "name": "binary-final-retest",
+    "exit_code": 0
+  },
+  {
+    "name": "codex-unit-retest",
+    "exit_code": 0
+  },
+  {
+    "name": "claude-unit",
+    "exit_code": 0
+  },
+  {
+    "name": "grok-regression",
+    "exit_code": 0
+  },
+  {
+    "name": "claude-regression",
+    "exit_code": 0
+  },
+  {
+    "name": "codex-regression",
+    "exit_code": 0
+  }
+]

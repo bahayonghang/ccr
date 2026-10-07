@@ -1,0 +1,1438 @@
+{
+  "baseline_head": "9fafc1116bc7d54004ab3b224b33c2f08cae6fcb",
+  "scope": "C2 Auth",
+  "count": 203,
+  "counts": {
+    "preserved": 7,
+    "migrated": 162,
+    "shared-covered": 34
+  },
+  "callsites": [
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 34,
+      "method": "title",
+      "disposition": "preserved",
+      "reason": "Public title/table/confirmation/masking layout or API is outside semantic migration."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 37,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 38,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 43,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 46,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 48,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 52,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 57,
+      "method": "warning",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 58,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 62,
+      "method": "success",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 63,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 67,
+      "method": "success",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 75,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 80,
+      "method": "info",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 95,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 98,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 101,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 104,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 107,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+      "line": 111,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/delete.rs",
+      "line": 17,
+      "method": "error",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/delete.rs",
+      "line": 19,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/delete.rs",
+      "line": 28,
+      "method": "warning",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/delete.rs",
+      "line": 30,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/delete.rs",
+      "line": 33,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/delete.rs",
+      "line": 37,
+      "method": "warning",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/delete.rs",
+      "line": 38,
+      "method": "info",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/delete.rs",
+      "line": 55,
+      "method": "info",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/delete.rs",
+      "line": 63,
+      "method": "success",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/delete.rs",
+      "line": 68,
+      "method": "error",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/list.rs",
+      "line": 19,
+      "method": "title",
+      "disposition": "preserved",
+      "reason": "Public title/table/confirmation/masking layout or API is outside semantic migration."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/list.rs",
+      "line": 23,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/list.rs",
+      "line": 26,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/list.rs",
+      "line": 30,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/list.rs",
+      "line": 103,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/list.rs",
+      "line": 104,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/list.rs",
+      "line": 105,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/list.rs",
+      "line": 108,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/list.rs",
+      "line": 113,
+      "method": "warning",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/off.rs",
+      "line": 56,
+      "method": "success",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/off.rs",
+      "line": 58,
+      "method": "success",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/off.rs",
+      "line": 62,
+      "method": "info",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/off.rs",
+      "line": 66,
+      "method": "warning",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/save.rs",
+      "line": 16,
+      "method": "success",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/save.rs",
+      "line": 21,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/save.rs",
+      "line": 24,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/save.rs",
+      "line": 27,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/save.rs",
+      "line": 30,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/save.rs",
+      "line": 35,
+      "method": "error",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/save.rs",
+      "line": 38,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/switch.rs",
+      "line": 21,
+      "method": "success",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/switch.rs",
+      "line": 26,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/switch.rs",
+      "line": 37,
+      "method": "warning",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/switch.rs",
+      "line": 50,
+      "method": "warning",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/switch.rs",
+      "line": 57,
+      "method": "error",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/auth/switch.rs",
+      "line": 60,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 97,
+      "method": "title",
+      "disposition": "preserved",
+      "reason": "Public title/table/confirmation/masking layout or API is outside semantic migration."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 104,
+      "method": "warning",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 105,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 106,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 108,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 117,
+      "method": "warning",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 118,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 123,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 125,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 129,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 137,
+      "method": "warning",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 138,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 143,
+      "method": "success",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 155,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 160,
+      "method": "warning",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 168,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 176,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 181,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 189,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 203,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 204,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 205,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 209,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 211,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 215,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 220,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "line": 226,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/delete.rs",
+      "line": 34,
+      "method": "error",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/delete.rs",
+      "line": 36,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/delete.rs",
+      "line": 46,
+      "method": "warning",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/delete.rs",
+      "line": 49,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/delete.rs",
+      "line": 52,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/delete.rs",
+      "line": 58,
+      "method": "warning",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/delete.rs",
+      "line": 59,
+      "method": "info",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/delete.rs",
+      "line": 75,
+      "method": "info",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/delete.rs",
+      "line": 84,
+      "method": "success",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/delete.rs",
+      "line": 86,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/delete.rs",
+      "line": 90,
+      "method": "error",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+      "line": 59,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+      "line": 102,
+      "method": "warning",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+      "line": 104,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+      "line": 113,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+      "line": 145,
+      "method": "info",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+      "line": 183,
+      "method": "success",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+      "line": 187,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+      "line": 191,
+      "method": "success",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+      "line": 192,
+      "method": "info",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+      "line": 194,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+      "line": 198,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 83,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 104,
+      "method": "error",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 123,
+      "method": "warning",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 131,
+      "method": "error",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 135,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 149,
+      "method": "success",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 153,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 159,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 165,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 171,
+      "method": "warning",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 182,
+      "method": "warning",
+      "disposition": "migrated",
+      "reason": "Normal empty ImportResult uses neutral result text; remove duplicate empty-state warning. Pure renderer regression first failed then passed on 2026-10-07."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 189,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 191,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 195,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 200,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 214,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 219,
+      "method": "info",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 225,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 229,
+      "method": "warning",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 250,
+      "method": "info",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 253,
+      "method": "error",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 262,
+      "method": "error",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 264,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 280,
+      "method": "error",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 285,
+      "method": "warning",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 306,
+      "method": "error",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 308,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 32,
+      "method": "title",
+      "disposition": "preserved",
+      "reason": "Public title/table/confirmation/masking layout or API is outside semantic migration."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 33,
+      "method": "warning",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 34,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 35,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 37,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 46,
+      "method": "warning",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 47,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 52,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 54,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 57,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 66,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 68,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 75,
+      "method": "title",
+      "disposition": "preserved",
+      "reason": "Public title/table/confirmation/masking layout or API is outside semantic migration."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 76,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 188,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 193,
+      "method": "warning",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 196,
+      "method": "success",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+      "line": 200,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/rename.rs",
+      "line": 61,
+      "method": "success",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/rename.rs",
+      "line": 68,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/repair.rs",
+      "line": 18,
+      "method": "success",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/repair.rs",
+      "line": 20,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/repair.rs",
+      "line": 24,
+      "method": "warning",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/repair.rs",
+      "line": 25,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/repair.rs",
+      "line": 27,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "line": 34,
+      "method": "error",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "line": 36,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "line": 37,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "line": 38,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "line": 46,
+      "method": "error",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "line": 48,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "line": 57,
+      "method": "success",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "line": 60,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "line": 67,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "line": 71,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "line": 76,
+      "method": "error",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+      "line": 82,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "line": 32,
+      "method": "error",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "line": 34,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "line": 35,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "line": 36,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "line": 46,
+      "method": "warning",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "line": 47,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "line": 49,
+      "method": "warning",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "line": 50,
+      "method": "info",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "line": 58,
+      "method": "success",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "line": 64,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "line": 68,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "line": 73,
+      "method": "error",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+      "line": 79,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/sync.rs",
+      "line": 17,
+      "method": "success",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/sync.rs",
+      "line": 18,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/sync.rs",
+      "line": 21,
+      "method": "success",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/sync.rs",
+      "line": 22,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/sync.rs",
+      "line": 25,
+      "method": "success",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/sync.rs",
+      "line": 26,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/sync.rs",
+      "line": 29,
+      "method": "warning",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/sync.rs",
+      "line": 30,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/sync.rs",
+      "line": 33,
+      "method": "warning",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/sync.rs",
+      "line": 34,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/update.rs",
+      "line": 56,
+      "method": "success",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/grok/auth.rs",
+      "line": 67,
+      "method": "info",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/grok/auth.rs",
+      "line": 69,
+      "method": "success",
+      "disposition": "migrated",
+      "reason": "Handler result/field/suggestion reviewed; fields use key_value, suggestions use print_next_steps, ordinary status arguments are plain."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/grok/auth.rs",
+      "line": 71,
+      "method": "info",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/grok/auth.rs",
+      "line": 74,
+      "method": "warning",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/grok/auth.rs",
+      "line": 153,
+      "method": "title",
+      "disposition": "preserved",
+      "reason": "Public title/table/confirmation/masking layout or API is outside semantic migration."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/grok/auth.rs",
+      "line": 166,
+      "method": "info",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/grok/auth.rs",
+      "line": 175,
+      "method": "warning",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/grok/auth.rs",
+      "line": 247,
+      "method": "title",
+      "disposition": "preserved",
+      "reason": "Public title/table/confirmation/masking layout or API is outside semantic migration."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/grok/auth.rs",
+      "line": 249,
+      "method": "success",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/grok/auth.rs",
+      "line": 251,
+      "method": "info",
+      "disposition": "shared-covered",
+      "reason": "Existing status meaning/stream retained; shared formatter supplies marker or neutral info without a legacy label."
+    }
+  ],
+  "additional_files": {
+    "crates/ccr-cli/src/commands/codex/auth/off.rs": "Delegates to the shared Claude auth-off printer; JSON and service call retained.",
+    "crates/ccr-cli/src/commands/codex/auth/mod.rs": "No display code or registration change needed.",
+    "crates/ccr-cli/src/commands/claude/auth/mod.rs": "No display code or registration change needed."
+  }
+}

@@ -1,0 +1,62 @@
+    Blocking waiting for file lock on build directory
+   Compiling ccr v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr)
+   Compiling ccr-cli v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-cli)
+warning: unused import: `colored::*`
+   --> crates\ccr-cli\src\sync\commands.rs:237:9
+    |
+237 |     use colored::*;
+    |         ^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `colored::*`
+   --> crates\ccr-cli\src\sync\commands.rs:649:13
+    |
+649 |         use colored::*;
+    |             ^^^^^^^^^^
+
+   Compiling ccr-tui v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-tui)
+warning: `ccr-cli` (lib) generated 2 warnings (run `cargo fix --lib -p ccr-cli` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 15.77s
+     Running tests\commands.rs (target\debug\deps\commands-e736194fc7a0286d.exe)
+
+running 12 tests
+test output_presentation::codex_provider_key_does_not_offer_oauth_save ... FAILED
+test output_presentation::codex_save_result_fields_and_suggestion_preserve_runtime ... ok
+test output_presentation::codex_unlogged_and_unsupported_keep_legacy_zero_exit_and_error_stream ... ok
+test output_presentation::codex_cancel_and_empty_export_have_no_success_result ... ok
+test output_presentation::claude_overwrite_suggestion_safely_parses_leading_hyphen_name ... ok
+test output_presentation::auth_off_noop_is_neutral_and_json_shape_is_preserved ... ok
+test output_presentation::claude_empty_and_missing_email_use_neutral_fields_and_save_help ... ok
+test output_presentation::grok_mutation_cancel_failure_and_json_preserve_state_and_streams ... ok
+test output_presentation::claude_save_duplicate_cancel_and_switch_warning_preserve_boundaries ... ok
+test output_presentation::codex_current_list_and_json_remain_state_specific ... ok
+test output_presentation::codex_rename_update_json_keep_dto_messages_and_optional_description ... ok
+test output_presentation::codex_save_missing_fields_and_overwrite_command_handles_leading_hyphen ... ok
+
+failures:
+
+---- output_presentation::codex_provider_key_does_not_offer_oauth_save stdout ----
+
+thread 'output_presentation::codex_provider_key_does_not_offer_oauth_save' (24008) panicked at crates\ccr\tests\commands\output_presentation.rs:387:5:
+
+Codex 当前账号
+==========
+
+警告: 未登录 Codex
+  认证状态: No Auth / file
+  原因: file 模式下未找到 auth.json
+
+下一步
+  登录 Codex
+    codex login
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    output_presentation::codex_provider_key_does_not_offer_oauth_save
+
+test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 117 filtered out; finished in 0.65s
+
+error: test failed, to rerun pass `-p ccr --test commands`

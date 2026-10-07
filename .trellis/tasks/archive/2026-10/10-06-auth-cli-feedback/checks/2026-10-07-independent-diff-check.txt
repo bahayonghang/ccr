@@ -1,0 +1,13 @@
+command=git diff --check -- <C2 Auth scope>
+warning: in the working copy of 'crates/ccr-cli/src/commands/claude/auth/current.rs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'crates/ccr-cli/src/commands/claude/auth/list.rs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'crates/ccr-cli/src/commands/claude/auth/off.rs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'crates/ccr-cli/src/commands/claude/auth/save.rs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'crates/ccr-cli/src/commands/claude/auth/switch.rs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'crates/ccr-cli/src/commands/codex/auth/import.rs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'crates/ccr-cli/src/commands/codex/auth/list.rs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'crates/ccr-cli/src/commands/codex/auth/repair.rs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'crates/ccr-cli/src/commands/codex/auth/save.rs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'crates/ccr-cli/src/commands/codex/auth/sync.rs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'crates/ccr-cli/src/commands/grok/auth.rs', LF will be replaced by CRLF the next time Git touches it
+exit_code=0
