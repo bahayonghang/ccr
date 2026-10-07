@@ -3,7 +3,7 @@
   "name": "auth-identity-key",
   "title": "Codex Auth 身份模型改用 user_id::account_id 复合键",
   "description": "P1：同步与匹配从仅 account_id 改为 chatgpt_user_id::chatgpt_account_id 复合键，旧记录在首次观测时补全（F12）。",
-  "status": "planning",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -11,8 +11,8 @@
   "creator": "lyh",
   "assignee": "lyh",
   "createdAt": "2026-10-06",
-  "completedAt": null,
-  "branch": null,
+  "completedAt": "2026-10-06",
+  "branch": "dev",
   "base_branch": "main",
   "worktree_path": null,
   "commit": null,
@@ -22,5 +22,11 @@
   "parent": "10-06-codex-auth-followups",
   "relatedFiles": [],
   "notes": "",
-  "meta": {}
+  "meta": {
+    "execution_status": "VERIFIED_LOCAL_PENDING_DELIVERY",
+    "acceptance": "AC1-AC8 local PASS; final parent just ci 16 stages PASS, workspace 2038/0/16",
+    "evidence": "research/account-lifecycle-check.md",
+    "parent_gate_evidence": "../10-06-codex-auth-followups/research/integration-validation.md",
+    "real_account_recovery": "UNVERIFIED; user deferred k12 login"
+  }
 }

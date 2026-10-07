@@ -1,0 +1,72 @@
+{
+  "captured_at_utc": "2026-10-06T15:54:24.3437198Z",
+  "first_failure_source_hashes": "NOT_CAPTURED",
+  "final_sources": [
+    {
+      "path": "crates/ccr-codex/src/services/codex_auth_refresh_lock.rs",
+      "sha256": "F96EDD87B5D5486CF40D530D122F54F38806DF0DEB9E22D42F823842C0EE30FF"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_auth_service.rs",
+      "sha256": "B5306B70F41C42D4CBB4E8643A27203006BA7BE72CB910048044BB713B488703"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_oauth_token_service.rs",
+      "sha256": "D5D09966D4B2155C9B14D8D7C1F0485F77D8371F8739551082AEDB5168D64CD2"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_quota_service.rs",
+      "sha256": "AFF965924E7F5A92991F5BD23F08E31450988826F7E83944E280DDD028957B25"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/mod.rs",
+      "sha256": "33A488CD50E588918D9F74999377C79425F5B9983BBBC36A81C8B0A082197DDE"
+    }
+  ],
+  "receipts": [
+    {
+      "name": "account-lifecycle-first-failure.log",
+      "sha256": "B129C88BBEF029DF8811DE08F09AE04A180A734397848C868115FA7771D0AD80"
+    },
+    {
+      "name": "account-lifecycle-codex-validation.log",
+      "sha256": "C5779DB6FD54A1000A683EB10B0FA4212B860650FF7DEA2EF08C79F9BBED561A"
+    },
+    {
+      "name": "account-lifecycle-same-second-first-failure.log",
+      "sha256": "C5F5FE5EE2152ED2404BC08E3D0449AFB0E500AAEAC03E905269AC3F2EA8D77B"
+    },
+    {
+      "name": "account-lifecycle-same-second-behavior-first-failure.log",
+      "sha256": "8E78DAA22A6331EE32A7BE6C86F2137DF2ED6AB3BE157BE4CD868F072A784BB5"
+    },
+    {
+      "name": "account-lifecycle-identity-upgrade-first-failure.log",
+      "sha256": "65D1D2F2164CFAA66A1D1AB036CA54AA05FBE32920BEEE22D9CFD16C288651C5"
+    },
+    {
+      "name": "account-lifecycle-clippy-first-failure.log",
+      "sha256": "3F81438A3B82F21689BA0B98B2F0715F5180314092D172455B3CB13AC5312EAA"
+    },
+    {
+      "name": "account-lifecycle-boundary-final.log",
+      "sha256": "0178C90A08D9B3342974544E177BEA0BD232AFFF495A5A2B38614DFC096F4852"
+    },
+    {
+      "name": "account-lifecycle-lock-final.log",
+      "sha256": "BD4E1F60586E10A4BE7AA203BD77DD9B535897177414949DD3BA7AF6CBF14427"
+    },
+    {
+      "name": "account-lifecycle-codex-final.log",
+      "sha256": "F3E975E16E3A64ACE6C149416BC3D8C627B9EC6FCBDDD31CB1FC84B58B78A50A"
+    },
+    {
+      "name": "account-lifecycle-clippy-final.log",
+      "sha256": "25F157D270083FAC5033C72CB8127BBF000835E20F5AA0FBB0B8F544DB3587E9"
+    },
+    {
+      "name": "account-lifecycle-fmt-final.log",
+      "sha256": "D452E7F4494E729B37F00AFECAD196F68BDE6B3A0EC56CBD78AF4D4EE170E379"
+    }
+  ]
+}

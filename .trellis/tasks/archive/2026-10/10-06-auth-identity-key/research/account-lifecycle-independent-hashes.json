@@ -1,0 +1,133 @@
+{
+  "captured_at_utc": "2026-10-07T00:12:03.7210554Z",
+  "head": "c524ac07e77e94587399d969546ed75f13cfaf19",
+  "first_failure_source_hashes": "NOT_CAPTURED",
+  "final_sources": [
+    {
+      "path": "crates/ccr-codex/src/models/codex_auth.rs",
+      "sha256": "3563C041A3D9F09BEDD40C784AFB61B8DFE0842819E2C8857D63115501F94AE9"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_auth_identity.rs",
+      "sha256": "2E1CB09BECB4A8FC2017D758F2FBF4BFE96BA86D7E666CCC1B74B96AF5435345"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_auth_refresh_lock.rs",
+      "sha256": "F96EDD87B5D5486CF40D530D122F54F38806DF0DEB9E22D42F823842C0EE30FF"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_auth_service.rs",
+      "sha256": "B5306B70F41C42D4CBB4E8643A27203006BA7BE72CB910048044BB713B488703"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_oauth_token_service.rs",
+      "sha256": "D5D09966D4B2155C9B14D8D7C1F0485F77D8371F8739551082AEDB5168D64CD2"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_quota_service.rs",
+      "sha256": "AFF965924E7F5A92991F5BD23F08E31450988826F7E83944E280DDD028957B25"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_registry_store.rs",
+      "sha256": "EF81E20AEB8B95A28362431DB1604B4753D7CE4EB684FF1E7A9E2453A5D1EDCF"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_runtime_service.rs",
+      "sha256": "2FF21705B1280FF73070A4B01C59B2900E2237171B36C270831A9DE4018CD3AE"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/openai_quota_core.rs",
+      "sha256": "5AB1778F682EF90F552ADC3594267D1C6919921F53DC868A667350C8CA8ED328"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/mod.rs",
+      "sha256": "33A488CD50E588918D9F74999377C79425F5B9983BBBC36A81C8B0A082197DDE"
+    },
+    {
+      "path": "crates/ccr-codex/src/platforms/codex.rs",
+      "sha256": "00A9AD5D2E807CC420C45BEF7C25D2886BED29BD9F58978E1A8980E69DFE096E"
+    },
+    {
+      "path": "crates/ccr-cli/src/application/auth_off.rs",
+      "sha256": "DA869DCC4E28BAB22731099788ECB1D607645D4E0AA5DF32658E956A2AEFC9F4"
+    },
+    {
+      "path": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+      "sha256": "8E9F152A0BA42C821DFBB76DD7285C1AF4316AA7D433B9A28F34B22E02A4031B"
+    },
+    {
+      "path": "crates/ccr-tui/src/tui/codex_auth/app.rs",
+      "sha256": "E5DE0953CEABFDE55160BB6E03C3139D137A06FD094C1FF28854C4C706B6F32B"
+    },
+    {
+      "path": "crates/ccr-tui/src/tui/codex_auth/ui.rs",
+      "sha256": "0F34825C23A43E36C4D987C7A4E4B94A3F1A886BDEEE39B8BEF4E8586DCBFBBD"
+    }
+  ],
+  "receipts": [
+    {
+      "name": "account-lifecycle-independent-codex.log",
+      "sha256": "7A3C8C003A2FF78CEC07D5A681E72AD7168DB8634A2725E3EE728CD69D110839",
+      "process_exit_code": 0
+    },
+    {
+      "name": "account-lifecycle-independent-tui.log",
+      "sha256": "C49DFE20783F384B14C3A5B538FF38DF61FBF15203BB5A15A0E32CFEF1287FC6",
+      "process_exit_code": 0
+    },
+    {
+      "name": "account-lifecycle-independent-cli-auth-off.log",
+      "sha256": "A986948A83E4BE63D2841CF87BAB7DB759C344FD0E6CAAB30B8658F54D3D1F87",
+      "process_exit_code": 0
+    },
+    {
+      "name": "account-lifecycle-independent-cli-current.log",
+      "sha256": "5547213AE9EB7B79E801827F273EA51F7E0A4E885AE8DCC7271519EA7A349278",
+      "process_exit_code": 0
+    },
+    {
+      "name": "account-lifecycle-independent-clippy.log",
+      "sha256": "78C5A224702CC91505D3BA0BFB7E946685AEE1AFEA5DB98EF2A716CF76C0FC81",
+      "process_exit_code": 0
+    },
+    {
+      "name": "account-lifecycle-independent-fmt.log",
+      "sha256": "31A64763AA842883D9190C6421C86A9F4A7B2E2042629F3038DABA6D10F30729",
+      "process_exit_code": 0
+    },
+    {
+      "name": "account-lifecycle-independent-secret-writes.log",
+      "sha256": "FE0A988CF45B910C72C002035170958DAE88690E56A42299659975BAA7637A51",
+      "process_exit_code": 0
+    },
+    {
+      "name": "account-lifecycle-independent-diff.log",
+      "sha256": "1F1C805A1018AEDEF274C7240C775E4F393178AB30A97FA42849B500E0FB028C",
+      "process_exit_code": 0
+    }
+  ],
+  "old_report_sha256": "0102000B459BAC9A07C0D06B822252CFC2DDA63256F6F37787BB3926BA933E15",
+  "owner_hash_verification": "MATCH: final_sources and all receipts",
+  "tests": {
+    "codex": {
+      "passed": 340,
+      "failed": 0,
+      "ignored": 2
+    },
+    "tui": {
+      "passed": 252,
+      "failed": 0,
+      "ignored": 0
+    },
+    "cli_auth_off": {
+      "passed": 11,
+      "failed": 0,
+      "ignored": 0
+    },
+    "cli_current": {
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0
+    }
+  }
+}

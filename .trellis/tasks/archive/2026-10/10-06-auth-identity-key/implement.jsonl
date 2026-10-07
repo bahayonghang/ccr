@@ -2,3 +2,6 @@
 {"file": ".trellis/tasks/archive/2026-10/10-06-reference-hardening/research/codex-auth-audit.md", "reason": "Source finding evidence and proposal for this task"}
 {"file": ".trellis/spec/ccr-core/backend/ccr-error-freeze.md", "reason": "Error variant set is frozen"}
 {"file": ".trellis/spec/ccr-codex/backend/test-fixtures.md", "reason": "Synthetic isolated homes for identity tests"}
+{"file": ".trellis/tasks/10-06-auth-identity-key/research/design-research.md", "reason": "P1 scoped source findings, boundaries and test anchors"}
+{"file": ".trellis/spec/ccr-core/backend/logging-contracts.md", "reason": "New identity fields remain private in errors, logs and Debug"}
+{"file": ".trellis/tasks/10-06-auth-identity-key/research/cockpit-account-lifecycle.md", "reason": "User-requested Cockpit account lifecycle comparison; token refresh locks and save consistency"}
