@@ -3,7 +3,7 @@
   "name": "auth-import-export",
   "title": "Codex Auth 导入身份校验与导出加密默认值",
   "description": "P6：导入时从 tokens 推导 account_id 并与元数据比对；评估默认使用加密导出（F15、F16）。",
-  "status": "planning",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -11,8 +11,8 @@
   "creator": "lyh",
   "assignee": "lyh",
   "createdAt": "2026-10-06",
-  "completedAt": null,
-  "branch": null,
+  "completedAt": "2026-10-06",
+  "branch": "dev",
   "base_branch": "main",
   "worktree_path": null,
   "commit": null,
@@ -22,5 +22,11 @@
   "parent": "10-06-codex-auth-followups",
   "relatedFiles": [],
   "notes": "",
-  "meta": {}
+  "meta": {
+    "user_decision": "2026-10-06: 拒绝冲突输入；保留现有加密导出",
+    "execution_status": "VERIFIED_LOCAL_PENDING_DELIVERY",
+    "acceptance": "AC1/AC2/AC4 local PASS; AC3 conditional not applicable, encrypted export unchanged; final parent just ci 16 stages PASS",
+    "evidence": "research/independent-check.md",
+    "parent_gate_evidence": "../10-06-codex-auth-followups/research/integration-validation.md"
+  }
 }

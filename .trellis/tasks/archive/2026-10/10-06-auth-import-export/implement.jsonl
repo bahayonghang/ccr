@@ -2,3 +2,5 @@
 {"file": ".trellis/tasks/archive/2026-10/10-06-reference-hardening/research/codex-auth-audit.md", "reason": "Source finding evidence and proposal for this task"}
 {"file": ".trellis/spec/ccr-core/backend/ccr-error-freeze.md", "reason": "Error variant set is frozen"}
 {"file": ".trellis/spec/ccr-tui/backend/backend-guidelines.md", "reason": "Export default and prompts in EN/ZH"}
+{"file": ".trellis/tasks/10-06-auth-import-export/research/design-research.md", "reason": "P6 scoped source findings, boundaries and test anchors"}
+{"file": ".trellis/spec/ccr-cli/backend/backend-guidelines.md", "reason": "Import CLI errors must propagate"}

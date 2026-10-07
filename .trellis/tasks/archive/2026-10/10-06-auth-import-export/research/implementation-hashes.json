@@ -1,0 +1,137 @@
+{
+  "status": "SCOPED_IMPLEMENTATION_DONE_CURRENT_PARENT_GATE_PENDING",
+  "sourceFreezeUtc": "2026-10-07 02:33:43 UTC",
+  "ownerSourceFreezeUtc": "2026-10-07 02:30:35 UTC",
+  "ownerServiceSha256": "228624f62c08990887442e636c5ea02d9f8bd073bf3c1ab528274597d75f923f",
+  "reviewerAmendment": "Two auth_method mismatch entries in the existing P6 claim matrix; no production change",
+  "sources": [
+    {
+      "path": "crates/ccr-codex/src/services/codex_auth_service.rs",
+      "sha256": "d0ba7f0924fdfdb6e714476624a3f69d3d25dd630fe1be95598c08aa5fa3112b"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_auth_identity.rs",
+      "sha256": "22fccbeb10626998637bef7925a4f11bae3f66ff18d881d949e5fe3b22a770aa"
+    },
+    {
+      "path": "crates/ccr-codex/src/services/codex_auth_refresh_lock.rs",
+      "sha256": "fd1fbb64d499a896e2087a848634cd96fa6f15bfec5c0ed1cda3bd76df8cfd3d"
+    },
+    {
+      "path": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "sha256": "11197b8cdb56709233defb5bab70340d22cbd5fa9a3d733077fd18dfcc507b42"
+    }
+  ],
+  "ownerEvidence": [
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/implementation-validation.md",
+      "sha256": "1fafd419e2a8646c13af11df9ca400abc2700536bbdff7c927182a967823c934"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/encrypted-export-assessment.md",
+      "sha256": "bfc44cd905bb369201d9e1150cb2183d6971f9024efd26cabc71ecd28a685153"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/first-failure-source-hashes.json",
+      "sha256": "ec2fdc9b6654104f1329c23f9af64e853c0fc16caec61917d3077edb85430412"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/first-failure.log",
+      "sha256": "35d241a55348fb8ecf528dff3a0e8f3f2fc07335153ff3e4cd537d7a114f416c"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/cli-first-failure.log",
+      "sha256": "d5bf112ed39c44eeb9a659ebb618a604db8eacdca97b65eed2dae30e46b63220"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/first-retest.log",
+      "sha256": "e04913b72b3ad06671e443d28380cd3195110664371e87ab57f237c1ef246f3a"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/compilation-corrected-retest.log",
+      "sha256": "df22b34ad68364863331188f08261d4ad7173c76518bc13649b6637d5a40d747"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/cli-corrected-retest.log",
+      "sha256": "ce703670930b58ce41a707a40c3c04f00e80e7db8d82f677c2b155316cec77db"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/matrix-retest.log",
+      "sha256": "e62b4e74624d0259bb71db6373aac83bfa56e04ddd70c5a723eca41a83d08695"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/final-codex-targeted.log",
+      "sha256": "7dbc90a4c2d2b0fda884c0cea13dfb485107215a75a7f101e6b69b55bf062560"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/final-cli-targeted.log",
+      "sha256": "ed60b2c0a9fbabf7f22f02ea14fca6841aeec77ed055733629fd33e410ca3ab7"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/codex-validation.log",
+      "sha256": "a365b555c8b1cd43853ed2d0552e730314f87637f1ada128c684152648d79212"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/cli-validation.log",
+      "sha256": "70ecae121dec1d0e7ed680892d46b44fc116cebc9e8a2ae9e98b64f1071abe91"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/clippy-validation.log",
+      "sha256": "ba49f520f7426d64c73ecf4a9170c27712fb4b2c16ce6c54279bb67236f8b43a"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/clippy-corrected-validation.log",
+      "sha256": "4e5ae76df834e36fd487cafbf532a5e3879ff4c9df9e196ea2f1ac12411f8feb"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/fmt-validation.log",
+      "sha256": "3875381e4bc6c49f3d882be2da5a850f90ef220d1bc1cf75c17402ac8b1c534d"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/secret-writes-validation.log",
+      "sha256": "fe0a988cf45b910c72c002035170958dae88690e56a42299659975baa7637a51"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/owner-final-targeted.log",
+      "sha256": "64d3914441dff6777c8b8bce600c375c0622b8c632198861bda65eff4259ae99"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/owner-final-fmt.log",
+      "sha256": "9d12c08e230ab6a9e5edfe2e6646bcfea41d5db000ea1f5d522c37fd6b2d3516"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/owner-final-secret-writes.log",
+      "sha256": "fe0a988cf45b910c72c002035170958dae88690e56a42299659975baa7637a51"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/owner-whitespace-validation.log",
+      "sha256": "731c56d677f74f576d2d4fb22988b8a43d5200282e66c75a9f5060c4f711759f"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/owner-whitespace-corrected-validation.log",
+      "sha256": "731c56d677f74f576d2d4fb22988b8a43d5200282e66c75a9f5060c4f711759f"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/owner-final-whitespace.log",
+      "sha256": "731c56d677f74f576d2d4fb22988b8a43d5200282e66c75a9f5060c4f711759f"
+    }
+  ],
+  "reviewerReceipts": [
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/independent-codex-validation.log",
+      "sha256": "6a720a0209526bfab45b14e8f5c582721f0c72c79f27584ca4dc31e71f459d9c"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/independent-method-matrix-validation.log",
+      "sha256": "5b57b69bf2bb04ca98d5ad1a809c36197f099228b553423e5086134ea035e6c0"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/independent-final-fmt-validation.log",
+      "sha256": "d452e7f4494e729b37f00afecad196f68bde6b3a0ec56cbd78af4d4ee170e379"
+    },
+    {
+      "path": ".trellis/tasks/10-06-auth-import-export/research/independent-premature-attempt.log",
+      "sha256": "f5243813ba33d98246c33c3c18a2a279224b13549cebae684d63edf8f87eeee0"
+    }
+  ]
+}

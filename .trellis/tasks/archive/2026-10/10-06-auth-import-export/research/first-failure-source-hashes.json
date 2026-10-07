@@ -1,0 +1,18 @@
+[
+  {
+    "path": "crates/ccr-codex/src/services/codex_auth_service.rs",
+    "sha256": "1209a623f23ddb3990b53b4f344b3332c5be707608933c1c38114d8a3bf97716"
+  },
+  {
+    "path": "crates/ccr-codex/src/services/codex_auth_identity.rs",
+    "sha256": "2e1cb09becb4a8fc2017d758f2fbf4bfe96ba86d7e666ccc1b74b96af5435345"
+  },
+  {
+    "path": "crates/ccr-codex/src/services/codex_auth_refresh_lock.rs",
+    "sha256": "f96edd87b5d5486cf40d530d122f54f38806df0deb9e22d42f823842c0ee30ff"
+  },
+  {
+    "path": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+    "sha256": "65d52d0093e728dbf70de8baaffc3c2658fb82ac9671c516661812dfb12502c2"
+  }
+]
