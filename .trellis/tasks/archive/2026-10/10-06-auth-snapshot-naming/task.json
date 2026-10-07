@@ -3,7 +3,7 @@
   "name": "auth-snapshot-naming",
   "title": "Codex Auth 快照文件名与身份键解耦",
   "description": "P5：评估以身份键派生快照文件名（base64url），账号名仅作展示与别名，并迁移现有快照（F13）。",
-  "status": "planning",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -11,8 +11,8 @@
   "creator": "lyh",
   "assignee": "lyh",
   "createdAt": "2026-10-06",
-  "completedAt": null,
-  "branch": null,
+  "completedAt": "2026-10-06",
+  "branch": "dev",
   "base_branch": "main",
   "worktree_path": null,
   "commit": null,
@@ -22,5 +22,11 @@
   "parent": "10-06-codex-auth-followups",
   "relatedFiles": [],
   "notes": "",
-  "meta": {}
+  "meta": {
+    "execution_status": "ASSESSMENT_SCOPE_PASS",
+    "acceptance": "Assessment PASS; existing-layout final parent just ci PASS; migration not implemented or authorized",
+    "evidence": "research/independent-check.md",
+    "parent_gate_evidence": "../10-06-codex-auth-followups/research/integration-validation.md",
+    "migration": "DEFER_RECOMMENDED; user decision pending"
+  }
 }

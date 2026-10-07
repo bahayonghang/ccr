@@ -6,6 +6,8 @@
 
 ## Authorization and Status
 
+2026-10-06 已按父任务顺序完成评估与独立检查。评估建议暂缓迁移，产品布局未改变；迁移决定与实施仍需用户单独授权。评估证据见 `research/snapshot-naming-assessment.md` 和 `research/independent-check.md`。
+
 2026-10-06 用户要求为 10-06-reference-hardening 审计报告的后续任务提案 P1–P6 创建 Trellis 任务。本版为规划种子，未开始实施；需求与待决问题需经 brainstorm 收敛，复杂任务补齐 design.md 与 implement.md，并经用户评审后 `task.py start`。规划基线：dev @ 73b47563。证据锚点取自审计报告（.trellis/tasks/archive/2026-10/10-06-reference-hardening/research/codex-auth-audit.md），实施前需复核行号。
 
 ## Background and Evidence（F13，低）
@@ -29,9 +31,11 @@
 
 ## Acceptance Criteria（草案）
 
-- [ ] 评估报告存在，并给出实施或不实施的结论与依据。
+- [x] 评估报告存在，并给出实施或不实施的结论与依据。
 - [ ] 若实施：旧布局快照迁移后，切换、同步、配额可用；迁移失败时回滚到原布局。
-- [ ] `cargo test -p ccr-codex`、`just lint-strict`、`just test` 通过。
+- [x] `cargo test -p ccr-codex`、`just lint-strict`、`just test` 通过。
+
+2026-10-06 本地验收：评估与独立检查 PASS。父任务最终 `just ci` 验证现有布局下的集成，Codex 381 passed、2 ignored，Rust workspace 2038 passed、0 failed、16 ignored；该结果不作为迁移验收。迁移条件不适用且保持未勾选，迁移决定与实施未授权。详见父任务 `research/integration-validation.md`。
 
 ## Dependencies
 
