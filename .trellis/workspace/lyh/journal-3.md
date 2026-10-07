@@ -95,3 +95,28 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 123: CLI 信息展示优化收口
+<!-- trellis-session: v=2 fp=e99a839e2ad3fa60 -->
+
+**Date**: 2026-10-07
+**Task**: CLI 信息展示优化收口
+**Branch**: `dev`
+
+### Summary
+
+拆分提交路径隔离、共享展示契约、Auth 提示迁移和其余命令展示，并归档父任务与三个子任务。父任务 AC7 的 Unknown 与导入密码交互仍未验证。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b78649fb` | fix(core): 🔒 日志与冲突检查跟随显式测试路径 |
+| `a6d5ff65` | feat(cli): ✨ 启动时配置输出降级并写回展示契约 |
+| `59ab8bf4` | feat(cli): ✨ 迁移 Codex、Claude、Grok Auth 的结果与下一步提示 |
+| `f62a3d56` | feat(cli): ✨ 统一其余命令与 Doctor 的提示展示 |
+
+### Status
+
+[OK] **Completed**

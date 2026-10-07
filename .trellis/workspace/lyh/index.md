@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-3.md`
-- **Total Sessions**: 122
+- **Total Sessions**: 123
 - **Last Active**: 2026-10-07
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-3.md` | ~97 | Active |
+| `journal-3.md` | ~122 | Active |
 | `journal-2.md` | ~1982 | Archived |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
@@ -31,6 +31,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 123 | 2026-10-07 | CLI 信息展示优化收口 | `b78649fb`, `a6d5ff65`, `59ab8bf4`, `f62a3d56` | `dev` |
 | 122 | 2026-10-07 | Codex 切换后感知并重启 app-server 守护进程 | `9947bee0`, `c72ba99f`, `ff3bcdb7` | `dev` |
 | 121 | 2026-10-06 | Codex Auth 后续加固提交与归档 | `dac00bacc8a137ffd0bc670a5a62f33f2dc2d4eb`, `1420d8db317cd6bea36766886b4ab3da1d48acc8`, `1f284bd2281f097586085802707e63644d62eeba` | `dev` |
 | 120 | 2026-10-06 | Codex Auth 参考加固审计与类别 A 修复 | `cb56de7d`, `eb003ce2`, `3c044536`, `cc8d4006` | `dev` |
