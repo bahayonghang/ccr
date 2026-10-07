@@ -71,3 +71,27 @@
 - 推送、PR、发布与安装仍未授权
 - P5 快照文件名迁移仍待用户决定
 - k12 真实账号恢复仍为 UNVERIFIED
+
+
+## Session 122: Codex 切换后感知并重启 app-server 守护进程
+<!-- trellis-session: v=2 fp=737b3d7b3c784ba8 -->
+
+**Date**: 2026-10-07
+**Task**: Codex 切换后感知并重启 app-server 守护进程
+**Branch**: `dev`
+
+### Summary
+
+实施 10-07：ccr 切换账号后检测托管 app-server 守护进程并按交互模式重启（CLI --restart-daemon、交互确认、非交互警告；TUI 确认 overlay 与四态 toast）。现场验证发现 ManagedProcess 成功等待与 Drop 会连带回收守护进程（Windows Job Object KILL_ON_JOB_CLOSE 链条），以分离模式 spawn_detached 修复并完成红绿回归。现场端到端三条路径通过，check 两轮复查零修复；just ci 仅剩 2 个 10-06 在途测试失败。未推送、未 amend。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9947bee0` | feat(core): ✨ ManagedProcess 分离模式：成功等待与 Drop 不回收后代进程 |
+| `c72ba99f` | feat(cli): ✨ 输出呈现基础：结构化状态输出与下一步提示 |
+| `ff3bcdb7` | feat(codex): ✨ 账号切换后感知并重启 app-server 守护进程 |
+
+### Status
+
+[OK] **Completed**
