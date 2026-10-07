@@ -90,7 +90,7 @@ pub async fn clean_menu_command(auto_yes: bool) -> Result<()> {
     let (target, force_target_confirmation) = if auto_yes {
         let spec = &CLEAN_TARGETS[default_index];
         ColorOutput::info(&format!(
-            "⚡ 自动确认模式已启用，将执行默认清理项: {}",
+            "自动确认模式已启用，将执行默认清理项: {}",
             spec.name
         ));
         (spec.target, true)
@@ -138,7 +138,7 @@ pub async fn clean_backups_command(days: u64, dry_run: bool, force: bool) -> Res
     let skip_confirmation = force || configured_skip_confirmation;
 
     if configured_skip_confirmation && !force {
-        ColorOutput::info("⚡ 自动确认模式已启用，将跳过确认");
+        ColorOutput::info("自动确认模式已启用，将跳过确认");
     }
 
     // 使用 BackupService
@@ -150,18 +150,18 @@ pub async fn clean_backups_command(days: u64, dry_run: bool, force: bool) -> Res
         return Ok(());
     }
 
-    ColorOutput::info(&format!("备份目录: {}", backup_dir.display()));
-    ColorOutput::info(&format!("清理策略: 删除 {} 天前的备份", days));
+    ColorOutput::key_value("备份目录", &backup_dir.display().to_string(), 2);
+    ColorOutput::key_value("清理策略", &format!("删除 {} 天前的备份", days), 2);
 
     if dry_run {
-        ColorOutput::warning("⚠ 模拟运行模式(不会实际删除文件)");
+        ColorOutput::info("模拟运行模式(不会实际删除文件)");
     }
 
     // 🚨 非 dry-run 模式需要确认（除非 YOLO 模式）
     if !dry_run && !skip_confirmation {
         println!();
-        ColorOutput::warning("⚠️  警告: 即将删除旧备份文件！");
-        ColorOutput::info("提示: 使用 --dry-run 参数可以先预览将要删除的文件");
+        ColorOutput::warning("即将删除旧备份文件！");
+        ColorOutput::info("使用 --dry-run 参数可以先预览将要删除的文件");
         println!();
 
         if !confirm_cleanup("确认执行清理操作?").await? {
@@ -196,31 +196,33 @@ pub async fn clean_backups_command(days: u64, dry_run: bool, force: bool) -> Res
 
         if result.deleted_count > 0 {
             if dry_run {
-                ColorOutput::info(&format!("将删除文件: {} 个", result.deleted_count));
+                ColorOutput::key_value("将删除文件", &format!("{} 个", result.deleted_count), 2);
             } else {
-                ColorOutput::success(&format!("✓ 已删除文件: {} 个", result.deleted_count));
+                ColorOutput::success(&format!("已删除文件: {} 个", result.deleted_count));
             }
         }
 
         if result.skipped_count > 0 {
-            ColorOutput::info(&format!("保留文件: {} 个", result.skipped_count));
+            ColorOutput::key_value("保留文件", &format!("{} 个", result.skipped_count), 2);
         }
 
         if result.total_size > 0 {
             let size_mb = result.total_size as f64 / 1024.0 / 1024.0;
             if dry_run {
-                ColorOutput::info(&format!("将释放空间: {:.2} MB", size_mb));
+                ColorOutput::key_value("将释放空间", &format!("{:.2} MB", size_mb), 2);
             } else {
-                ColorOutput::success(&format!("✓ 释放空间: {:.2} MB", size_mb));
+                ColorOutput::key_value("释放空间", &format!("{size_mb:.2} MB"), 2);
             }
         }
     } else {
-        ColorOutput::success("✓ 没有需要清理的文件");
+        ColorOutput::info("没有需要清理的文件");
     }
 
     if dry_run {
-        println!();
-        ColorOutput::info("提示: 运行 'ccr clean backups' (不带 --dry-run) 执行实际清理");
+        crate::commands::common::print_next_steps(&[(
+            "执行实际清理",
+            &format!("ccr clean backups --days {days}"),
+        )]);
     }
 
     Ok(())
@@ -245,16 +247,16 @@ pub async fn clean_planfiles_command(dry_run: bool, force: bool, all: bool) -> R
 
     ColorOutput::title("清理规划文件");
     println!();
-    ColorOutput::info(&format!("扫描目录: {}", current_dir.display()));
-    ColorOutput::info("目标文件: task_plan.md, findings.md, progress.md");
+    ColorOutput::key_value("扫描目录", &current_dir.display().to_string(), 2);
+    ColorOutput::key_value("目标文件", "task_plan.md, findings.md, progress.md", 2);
     if all {
-        ColorOutput::info("扫描范围: 当前目录及所有子目录 (--all)");
+        ColorOutput::key_value("扫描范围", "当前目录及所有子目录 (--all)", 2);
     } else {
-        ColorOutput::info("扫描范围: 仅当前目录根层；如需递归扫描请使用 --all");
+        ColorOutput::key_value("扫描范围", "仅当前目录根层；如需递归扫描请使用 --all", 2);
     }
 
     if dry_run {
-        ColorOutput::warning("⚠ 模拟运行模式(不会实际删除文件)");
+        ColorOutput::info("模拟运行模式(不会实际删除文件)");
     }
 
     let result = if all {
@@ -273,7 +275,7 @@ pub async fn clean_planfiles_command(dry_run: bool, force: bool, all: bool) -> R
         "规划文件扫描完成"
     );
     if result.matched_count() == 0 {
-        ColorOutput::success("✓ 没有找到需要清理的规划文件");
+        ColorOutput::info("没有找到需要清理的规划文件");
         tracing::info!("当前目录下没有规划文件");
         return Ok(());
     }
@@ -286,10 +288,7 @@ pub async fn clean_planfiles_command(dry_run: bool, force: bool, all: bool) -> R
     let hit_processing_started = Instant::now();
     for entry in &result.matches {
         // 1.1 输出命中路径，便于 dry-run 和确认前核对
-        ColorOutput::info(&format!(
-            "命中: {}",
-            display_match_path(&current_dir, &entry.path)
-        ));
+        ColorOutput::key_value("命中", &display_match_path(&current_dir, &entry.path), 2);
     }
     tracing::debug!(
         matched = result.matched_count(),
@@ -298,28 +297,28 @@ pub async fn clean_planfiles_command(dry_run: bool, force: bool, all: bool) -> R
     );
 
     println!();
-    ColorOutput::info(&format!("命中数量: {} 个", result.matched_count()));
+    ColorOutput::key_value("命中数量", &format!("{} 个", result.matched_count()), 2);
     if result.total_size > 0 {
-        ColorOutput::info(&format!(
-            "{}: {:.2} MB",
+        ColorOutput::key_value(
             if dry_run {
                 "预计释放空间"
             } else {
                 "待释放空间"
             },
-            result.total_size as f64 / 1024.0 / 1024.0
-        ));
+            &format!("{:.2} MB", result.total_size as f64 / 1024.0 / 1024.0),
+            2,
+        );
     }
 
     // 1.2 非 dry-run 模式下确认删除
     if !dry_run && !force {
         println!();
         if all {
-            ColorOutput::warning("⚠️  警告: 即将递归删除当前目录下的规划文件！");
+            ColorOutput::warning("即将递归删除当前目录下的规划文件！");
         } else {
-            ColorOutput::warning("⚠️  警告: 即将删除当前目录根层的规划文件！");
+            ColorOutput::warning("即将删除当前目录根层的规划文件！");
         }
-        ColorOutput::info("提示: 使用 --dry-run 参数可以先预览将要删除的文件");
+        ColorOutput::info("使用 --dry-run 参数可以先预览将要删除的文件");
         println!();
 
         if !confirm_cleanup_default_yes("确认执行规划文件清理操作?").await? {
@@ -329,9 +328,8 @@ pub async fn clean_planfiles_command(dry_run: bool, force: bool, all: bool) -> R
     }
 
     if dry_run {
-        println!();
         let rerun_hint = if all { "ccr clean --all" } else { "ccr clean" };
-        ColorOutput::info(&format!("提示: 运行 '{rerun_hint}' 执行实际清理"));
+        crate::commands::common::print_next_steps(&[("执行实际清理", rerun_hint)]);
         tracing::info!(matched = result.matched_count(), "规划文件预览完成");
         return Ok(());
     }
@@ -372,12 +370,13 @@ pub async fn clean_planfiles_command(dry_run: bool, force: bool, all: bool) -> R
 
     ColorOutput::title("清理摘要");
     println!();
-    ColorOutput::success(&format!("✓ 已删除文件: {} 个", result.matched_count()));
+    ColorOutput::success(&format!("已删除文件: {} 个", result.matched_count()));
     if result.total_size > 0 {
-        ColorOutput::success(&format!(
-            "✓ 释放空间: {:.2} MB",
-            result.total_size as f64 / 1024.0 / 1024.0
-        ));
+        ColorOutput::key_value(
+            "释放空间",
+            &format!("{:.2} MB", result.total_size as f64 / 1024.0 / 1024.0),
+            2,
+        );
     }
 
     tracing::info!(

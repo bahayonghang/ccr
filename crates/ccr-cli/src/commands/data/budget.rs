@@ -101,10 +101,10 @@ async fn status_command() -> Result<()> {
 
     // 显示启用状态
     if status.enabled {
-        ColorOutput::success("✅ 预算控制已启用");
+        ColorOutput::key_value("预算控制", "已启用", 2);
     } else {
-        ColorOutput::warning("⚠️  预算控制已禁用");
-        ColorOutput::info("使用 `ccr budget set --enable` 启用预算控制");
+        ColorOutput::key_value("预算控制", "已禁用", 2);
+        crate::commands::common::print_next_steps(&[("启用预算控制", "ccr budget set --enable")]);
         return Ok(());
     }
 
@@ -161,12 +161,12 @@ async fn status_command() -> Result<()> {
 
             if warning.usage_percent >= 100.0 {
                 ColorOutput::error(&format!(
-                    "❌ {} 预算已超出限制！当前: ${:.2}, 限制: ${:.2} ({:.1}%)",
+                    "{} 预算已超出限制！当前: ${:.2}, 限制: ${:.2} ({:.1}%)",
                     period_str, warning.current_cost, warning.limit, warning.usage_percent
                 ));
             } else {
                 ColorOutput::warning(&format!(
-                    "⚠️  {} 预算使用已达 {:.1}%！当前: ${:.2}, 限制: ${:.2}",
+                    "{} 预算使用已达 {:.1}%！当前: ${:.2}, 限制: ${:.2}",
                     period_str, warning.usage_percent, warning.current_cost, warning.limit
                 ));
             }
@@ -174,10 +174,11 @@ async fn status_command() -> Result<()> {
     }
 
     println!();
-    ColorOutput::info(&format!(
-        "最后更新: {}",
-        status.last_updated.format("%Y-%m-%d %H:%M:%S")
-    ));
+    ColorOutput::key_value(
+        "最后更新",
+        &status.last_updated.format("%Y-%m-%d %H:%M:%S").to_string(),
+        2,
+    );
 
     Ok(())
 }
@@ -230,49 +231,48 @@ async fn set_command(args: SetArgs) -> Result<()> {
     // 启用/禁用预算控制
     if args.enable {
         manager.enable()?;
-        ColorOutput::success("✅ 预算控制已启用");
+        ColorOutput::success("预算控制已启用");
         changed = true;
     }
 
     if args.disable {
         manager.disable()?;
-        ColorOutput::warning("⚠️  预算控制已禁用");
+        ColorOutput::warning("预算控制已禁用");
         changed = true;
     }
 
     // 设置预算限制
     if let Some(daily) = args.daily {
         manager.set_daily_limit(Some(daily))?;
-        ColorOutput::success(&format!("✅ 每日预算限制已设置为: ${:.2}", daily));
+        ColorOutput::success(&format!("每日预算限制已设置为: ${:.2}", daily));
         changed = true;
     }
 
     if let Some(weekly) = args.weekly {
         manager.set_weekly_limit(Some(weekly))?;
-        ColorOutput::success(&format!("✅ 每周预算限制已设置为: ${:.2}", weekly));
+        ColorOutput::success(&format!("每周预算限制已设置为: ${:.2}", weekly));
         changed = true;
     }
 
     if let Some(monthly) = args.monthly {
         manager.set_monthly_limit(Some(monthly))?;
-        ColorOutput::success(&format!("✅ 每月预算限制已设置为: ${:.2}", monthly));
+        ColorOutput::success(&format!("每月预算限制已设置为: ${:.2}", monthly));
         changed = true;
     }
 
     if let Some(warn_at) = args.warn_at {
         manager.set_warn_threshold(warn_at)?;
-        ColorOutput::success(&format!("✅ 警告阈值已设置为: {}%", warn_at));
+        ColorOutput::success(&format!("警告阈值已设置为: {}%", warn_at));
         changed = true;
     }
 
     if !changed {
-        ColorOutput::warning("⚠️  未指定任何配置项");
-        ColorOutput::info("使用 `ccr budget set --help` 查看可用选项");
+        ColorOutput::warning("未指定任何配置项");
+        crate::commands::common::print_next_steps(&[("查看配置选项", "ccr budget set --help")]);
         return Ok(());
     }
 
-    println!();
-    ColorOutput::info("💡 提示: 使用 `ccr budget status` 查看当前预算状态");
+    crate::commands::common::print_next_steps(&[("查看预算状态", "ccr budget status")]);
 
     Ok(())
 }
@@ -281,7 +281,7 @@ async fn set_command(args: SetArgs) -> Result<()> {
 async fn reset_command(args: ResetArgs) -> Result<()> {
     // 如果没有 --force，询问确认
     if !args.force {
-        ColorOutput::warning("⚠️  这将重置所有预算限制配置！");
+        ColorOutput::warning("这将重置所有预算限制配置！");
         ColorOutput::info("当前配置将被清除，预算控制保持当前启用状态");
 
         let confirmed = tokio::task::spawn_blocking(|| -> Result<bool> {
@@ -299,7 +299,7 @@ async fn reset_command(args: ResetArgs) -> Result<()> {
         .map_err(|e| CcrError::FileIoError(format!("读取用户输入失败: {e}")))??;
 
         if !confirmed {
-            ColorOutput::info("✅ 已取消重置");
+            ColorOutput::info("已取消重置");
             return Ok(());
         }
     }
@@ -307,8 +307,9 @@ async fn reset_command(args: ResetArgs) -> Result<()> {
     let mut manager = BudgetManager::with_default()?;
     manager.reset_limits()?;
 
-    ColorOutput::success("✅ 预算限制已重置");
-    ColorOutput::info("💡 提示: 预算控制状态未改变，使用 `ccr budget set --enable/--disable` 修改");
+    ColorOutput::success("预算限制已重置");
+    ColorOutput::info("预算控制状态未改变");
+    crate::commands::common::print_next_steps(&[("查看预算配置选项", "ccr budget set --help")]);
 
     Ok(())
 }

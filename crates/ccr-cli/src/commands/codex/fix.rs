@@ -46,7 +46,11 @@ pub async fn fix_command(
         CodexProcessService::new().cleanup_report(dry_run)
     };
     if skip_process_cleanup {
-        ColorOutput::step("进程清理（skipped）");
+        ColorOutput::info(&ColorOutput::format_status(
+            ccr_core::core::logging::OutputStatus::Skipped,
+            "进程清理",
+            std::io::IsTerminal::is_terminal(&std::io::stdout()),
+        ));
     } else {
         ColorOutput::step(&format!(
             "进程清理（{} ms）",
@@ -89,7 +93,7 @@ pub async fn fix_command(
             }
             RuntimeRepairAction::Apply => {
                 let profile = before.resolved_profile.as_deref().unwrap_or("<unknown>");
-                ColorOutput::info(&format!("正在重放当前 Codex profile：{profile}"));
+                ColorOutput::step(&format!("正在重放当前 Codex profile：{profile}"));
                 if platform.repair_runtime(&before).is_err() {
                     runtime_failed = true;
                     render_runtime_unavailable("CCR runtime repair 失败");
@@ -165,9 +169,16 @@ pub async fn fix_command(
         }
         render_doctor(&doctor_outcome, doctor_profile.as_deref(), snapshot_changed);
     } else {
-        ColorOutput::step("上游 doctor（skipped）");
+        ColorOutput::info(&ColorOutput::format_status(
+            ccr_core::core::logging::OutputStatus::Skipped,
+            "上游 doctor",
+            std::io::IsTerminal::is_terminal(&std::io::stdout()),
+        ));
         ColorOutput::info("doctor = skipped");
-        ColorOutput::info("需要上游健康检查时运行 ccr codex fix --doctor");
+        crate::commands::common::print_next_steps(&[(
+            "运行上游健康检查",
+            "ccr codex fix --doctor",
+        )]);
     }
 
     // G. 固定优先级：127（仅 --doctor 且 PATH 缺失，已提前返回）> process(2) > runtime failure(1) > local drift(3)。
@@ -259,7 +270,7 @@ fn render_cleanup(report: &CodexAppServerCleanupReport, skip_process_cleanup: bo
         return;
     }
     if cleanup.found.is_empty() {
-        ColorOutput::success("未发现残留的 Codex app-server 进程");
+        ColorOutput::info("未发现残留的 Codex app-server 进程");
         return;
     }
 
@@ -275,7 +286,7 @@ fn render_cleanup(report: &CodexAppServerCleanupReport, skip_process_cleanup: bo
     }
 
     ColorOutput::info(&format!(
-        "发现 {} 个 app-server 进程，正在清理：",
+        "发现 {} 个 app-server 进程，清理结果：",
         cleanup.found.len()
     ));
     for app in &cleanup.found {
@@ -408,7 +419,10 @@ fn render_runtime_diagnostic(diagnostic: &CodexRuntimeDiagnostic, title: &str) {
         }
         RuntimeMatchStatus::Missing | RuntimeMatchStatus::Mismatch => {
             if diagnostic.repairable {
-                ColorOutput::info("可运行 ccr codex fix --repair-runtime 显式修复本地漂移");
+                crate::commands::common::print_next_steps(&[(
+                    "显式修复本地漂移",
+                    "ccr codex fix --repair-runtime",
+                )]);
             } else {
                 ColorOutput::info(
                     "请先修正 profile pointer、保存的 secret 或当前 shell 环境后重试",

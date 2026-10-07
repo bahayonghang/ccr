@@ -20,7 +20,7 @@ pub async fn env_command(profile_name: Option<&str>) -> Result<()> {
 
     let script = platform.export_profile_shell_script(&resolved_name)?;
     if script.trim().is_empty() {
-        ColorOutput::warning("当前 Profile 不需要额外环境变量导出");
+        ColorOutput::info("当前 Profile 不需要额外环境变量导出");
         return Ok(());
     }
 

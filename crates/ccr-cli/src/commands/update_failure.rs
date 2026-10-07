@@ -9,7 +9,7 @@ enum UpdateFailureKind {
 }
 
 pub(crate) fn handle_update_failure(repo_url: &str, branch: &str, package: &str, stderr: &str) {
-    ColorOutput::error("❌ 更新失败");
+    ColorOutput::error("更新失败");
     println!();
 
     let kind = classify_update_failure(stderr);
@@ -37,31 +37,25 @@ fn is_missing_package_manager_error(stderr_lower: &str) -> bool {
 }
 
 fn print_failure_guidance(kind: UpdateFailureKind, repo_url: &str, branch: &str, package: &str) {
+    ColorOutput::key_value("源码仓库", repo_url, 2);
+    ColorOutput::key_value("更新分支", branch, 2);
+    ColorOutput::key_value("软件包", package, 2);
     match kind {
         UpdateFailureKind::MissingPackageManager => {
             ColorOutput::info("已识别原因: 当前环境缺少可用的前端包管理器，无法构建相关前端资源");
-            ColorOutput::info("解决方案:");
-            println!("  1. 优先检查 Bun: bun --version");
-            println!("  2. 如无 Bun，再检查兼容回退: node --version && npm --version");
-            println!("  3. 安装 Bun 1.3+（推荐）或 Node.js 18+（兼容回退）");
-            println!("  4. 重新执行更新命令: ccr update {}", branch);
-            println!(
-                "  5. 手动安装: cargo install --git {} {} --branch {} --force",
-                repo_url, package, branch
-            );
-            println!();
+            ColorOutput::info("安装 Bun 1.3+ 或 Node.js 18+ 与 npm 后，重新执行原更新命令");
+            crate::commands::common::print_next_steps(&[
+                ("检查 Bun", "bun --version"),
+                ("检查 npm", "npm --version"),
+            ]);
         }
         UpdateFailureKind::CompilationFailed => {
             ColorOutput::info("已识别原因: Cargo 编译失败（未匹配到特定模式）");
-            ColorOutput::info("解决方案:");
-            println!("  1. 优先查看上方编译日志中的第一个 error");
-            println!("  2. 更新工具链: rustup update");
-            println!("  3. 检查网络与 Git: ping github.com && git --version");
-            println!(
-                "  4. 手动安装复现: cargo install --git {} {} --branch {} --force",
-                repo_url, package, branch
-            );
-            println!();
+            ColorOutput::info("查看编译日志中的第一个 error，并检查工具链、网络和 Git 后重试");
+            crate::commands::common::print_next_steps(&[
+                ("检查 Rust 工具链", "rustc --version"),
+                ("查看更新选项", "ccr update --help"),
+            ]);
         }
     }
 }

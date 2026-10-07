@@ -53,13 +53,13 @@ pub async fn import_command(
     let skip_confirmation = force || config.settings.skip_confirmation;
 
     if config.settings.skip_confirmation && !force {
-        ColorOutput::info("⚡ 自动确认模式已启用，将跳过确认");
+        ColorOutput::info("自动确认模式已启用，将跳过确认");
     }
 
     // 🚨 Replace 模式需要确认
     if matches!(mode, ImportMode::Replace) && !skip_confirmation {
         println!();
-        ColorOutput::warning("⚠️  警告: Replace 模式将完全覆盖现有配置！");
+        ColorOutput::warning("Replace 模式将完全覆盖现有配置！");
         ColorOutput::info("建议: 使用 --merge 参数保留现有配置");
         println!();
 
@@ -129,7 +129,7 @@ pub async fn import_command(
     println!();
     ColorOutput::separator();
     println!();
-    ColorOutput::success("✓ 配置导入成功");
+    ColorOutput::success("配置导入成功");
     print_import_summary(&result);
 
     Ok(())
@@ -212,16 +212,15 @@ fn print_import_summary(result: &ImportResult) {
     println!();
     ColorOutput::info("导入摘要:");
     if result.added > 0 {
-        println!("  ✓ 新增配置: {}", result.added);
+        ColorOutput::key_value("新增配置", &result.added.to_string(), 2);
     }
     if result.updated > 0 {
-        println!("  ✓ 更新配置: {}", result.updated);
+        ColorOutput::key_value("更新配置", &result.updated.to_string(), 2);
     }
     if result.skipped > 0 {
-        println!("  ○ 跳过配置: {}", result.skipped);
+        ColorOutput::key_value("跳过配置", &result.skipped.to_string(), 2);
     }
-    println!();
-    ColorOutput::info("提示: 运行 'ccr list' 查看所有配置");
+    crate::commands::common::print_next_steps(&[("查看配置", "ccr list")]);
 }
 
 #[cfg(test)]

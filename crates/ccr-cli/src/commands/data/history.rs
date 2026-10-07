@@ -56,7 +56,7 @@ pub async fn history_command(limit: Option<usize>, filter_type: Option<String>) 
 
     // 显示统计信息
     let stats = service.get_stats_async().await?;
-    ColorOutput::info(&format!("总操作数: {}", stats.total_operations));
+    ColorOutput::key_value("总操作数", &stats.total_operations.to_string(), 2);
     ColorOutput::info(&format!(
         "成功: {}, 失败: {}, 警告: {}",
         stats.successful_operations, stats.failed_operations, stats.warning_operations
@@ -121,7 +121,7 @@ pub async fn history_command(limit: Option<usize>, filter_type: Option<String>) 
             "历史记录较多 ({} 条),建议定期清理旧记录",
             stats.total_operations
         ));
-        ColorOutput::info("提示: 使用 ccr history --clear 清理历史记录");
+        crate::commands::common::print_next_steps(&[("查看历史记录选项", "ccr history --help")]);
     }
 
     Ok(())

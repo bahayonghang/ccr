@@ -117,10 +117,11 @@ async fn list_command(args: ListArgs) -> Result<()> {
 
     // 检查是否有配置的模型
     if manager.is_empty() {
-        ColorOutput::warning("⚠️  未配置任何模型定价");
-        ColorOutput::info(
-            "使用 `ccr pricing set <模型名> --input <价格> --output <价格>` 添加定价",
-        );
+        ColorOutput::info("未配置任何模型定价");
+        crate::commands::common::print_next_steps(&[(
+            "查看定价设置选项",
+            "ccr pricing set --help",
+        )]);
         return Ok(());
     }
 
@@ -205,7 +206,10 @@ async fn list_command(args: ListArgs) -> Result<()> {
     println!();
     ColorOutput::info(&format!("共 {} 个模型定价配置", manager.model_count()));
     if !args.verbose {
-        ColorOutput::info("💡 提示: 使用 --verbose 查看缓存定价详情");
+        crate::commands::common::print_next_steps(&[(
+            "查看缓存定价详情",
+            "ccr pricing list --verbose",
+        )]);
     }
 
     Ok(())
@@ -246,7 +250,7 @@ async fn set_command(args: SetArgs) -> Result<()> {
 
     manager.set_pricing(args.model.clone(), pricing)?;
 
-    ColorOutput::success(&format!("✅ 模型 {} 的定价已设置", args.model));
+    ColorOutput::success(&format!("模型 {} 的定价已设置", args.model));
     println!();
     println!("  输入价格: ${:.2}/M", args.input);
     println!("  输出价格: ${:.2}/M", args.output);
@@ -257,8 +261,7 @@ async fn set_command(args: SetArgs) -> Result<()> {
         println!("  缓存写入: ${:.2}/M", cache_write);
     }
 
-    println!();
-    ColorOutput::info("💡 提示: 使用 `ccr pricing list` 查看所有定价配置");
+    crate::commands::common::print_next_steps(&[("查看定价配置", "ccr pricing list")]);
 
     Ok(())
 }
@@ -267,7 +270,7 @@ async fn set_command(args: SetArgs) -> Result<()> {
 async fn remove_command(args: RemoveArgs) -> Result<()> {
     // 如果没有 --force，询问确认
     if !args.force {
-        ColorOutput::warning(&format!("⚠️  这将移除模型 {} 的定价配置！", args.model));
+        ColorOutput::warning(&format!("这将移除模型 {} 的定价配置！", args.model));
         ColorOutput::info("移除后，该模型将使用默认定价（如果已配置）");
 
         let confirmed = tokio::task::spawn_blocking(|| -> Result<bool> {
@@ -285,7 +288,7 @@ async fn remove_command(args: RemoveArgs) -> Result<()> {
         .map_err(|e| CcrError::FileIoError(format!("读取用户输入失败: {e}")))??;
 
         if !confirmed {
-            ColorOutput::info("✅ 已取消移除");
+            ColorOutput::info("已取消移除");
             return Ok(());
         }
     }
@@ -294,9 +297,9 @@ async fn remove_command(args: RemoveArgs) -> Result<()> {
     let removed = manager.remove_pricing(&args.model)?;
 
     if removed.is_some() {
-        ColorOutput::success(&format!("✅ 模型 {} 的定价已移除", args.model));
+        ColorOutput::success(&format!("模型 {} 的定价已移除", args.model));
     } else {
-        ColorOutput::warning(&format!("⚠️  模型 {} 没有配置定价", args.model));
+        ColorOutput::warning(&format!("模型 {} 没有配置定价", args.model));
     }
 
     Ok(())
@@ -306,7 +309,7 @@ async fn remove_command(args: RemoveArgs) -> Result<()> {
 async fn reset_command(args: ResetArgs) -> Result<()> {
     // 如果没有 --force，询问确认
     if !args.force {
-        ColorOutput::warning("⚠️  这将重置所有定价配置为 Claude 默认值！");
+        ColorOutput::warning("这将重置所有定价配置为 Claude 默认值！");
         ColorOutput::info("所有自定义模型定价将被删除");
 
         let confirmed = tokio::task::spawn_blocking(|| -> Result<bool> {
@@ -324,7 +327,7 @@ async fn reset_command(args: ResetArgs) -> Result<()> {
         .map_err(|e| CcrError::FileIoError(format!("读取用户输入失败: {e}")))??;
 
         if !confirmed {
-            ColorOutput::info("✅ 已取消重置");
+            ColorOutput::info("已取消重置");
             return Ok(());
         }
     }
@@ -332,8 +335,8 @@ async fn reset_command(args: ResetArgs) -> Result<()> {
     let mut manager = PricingManager::with_default()?;
     manager.reset_to_defaults()?;
 
-    ColorOutput::success("✅ 价格表已重置为 Claude 默认配置");
-    ColorOutput::info("💡 提示: 使用 `ccr pricing list` 查看默认配置");
+    ColorOutput::success("价格表已重置为 Claude 默认配置");
+    crate::commands::common::print_next_steps(&[("查看默认定价", "ccr pricing list")]);
 
     Ok(())
 }

@@ -34,7 +34,7 @@ pub async fn temp_command() -> Result<()> {
     ColorOutput::title("临时配置快速设置");
     println!();
 
-    ColorOutput::info("📝 本小姐来帮你快速设置临时配置！");
+    ColorOutput::info("设置临时配置");
     ColorOutput::info("   此配置将直接写入 settings.json，无需创建 TOML 配置");
     ColorOutput::info("   下次执行 'ccr switch' 时将恢复为 TOML 配置中的值");
     println!();
@@ -84,22 +84,17 @@ pub async fn temp_command() -> Result<()> {
     ColorOutput::step("应用临时配置");
     apply_temp_config(&base_url, &token, model.as_deref()).await?;
 
-    ColorOutput::success("✅ 临时配置已应用到 settings.json");
-    println!();
-
+    ColorOutput::success("临时配置已应用到 settings.json");
     // 提示信息
-    ColorOutput::info("💡 提示:");
-    ColorOutput::info("   • 临时配置已立即生效");
-    ColorOutput::info("   • 执行 'ccr switch <配置名>' 可恢复为 TOML 配置");
-    ColorOutput::info("   • 执行 'ccr current' 可查看当前配置状态");
-    println!();
+    ColorOutput::info("重新应用配置时会恢复 TOML 配置中的值");
+    crate::commands::common::print_next_steps(&[("查看当前配置状态", "ccr current")]);
 
     Ok(())
 }
 
 /// 提示输入 Base URL（必填）
 fn prompt_base_url() -> Result<String> {
-    ColorOutput::info("1️⃣ 请输入 Base URL (API 端点地址)");
+    ColorOutput::info("1. 请输入 Base URL (API 端点地址)");
     println!("   示例: https://api.anthropic.com");
     println!("         https://api.example.com/v1");
     println!();
@@ -130,7 +125,7 @@ fn prompt_base_url() -> Result<String> {
 /// 提示输入 Token（必填）
 fn prompt_token() -> Result<String> {
     println!();
-    ColorOutput::info("2️⃣ 请输入 Auth Token (认证令牌)");
+    ColorOutput::info("2. 请输入 Auth Token (认证令牌)");
     println!("   示例: sk-ant-api03-xxxxx");
     println!("         sk-xxxxx");
     println!();
@@ -160,7 +155,7 @@ fn prompt_token() -> Result<String> {
 /// - 如果输入不完整，尝试智能补全
 fn prompt_model_with_smart_parse() -> Option<String> {
     println!();
-    ColorOutput::info("3️⃣ 请输入 Model (模型名称，可选)");
+    ColorOutput::info("3. 请输入 Model (模型名称，可选)");
     println!("   示例: claude-sonnet-4-20250514");
     println!("         claude-3-5-sonnet-20241022");
     println!("         gpt-4o");

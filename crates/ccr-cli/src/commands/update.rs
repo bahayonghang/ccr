@@ -71,9 +71,7 @@ fn print_check_mode_preview(repo_url: &str, branch: &str) {
         "  cargo install --git {} {} --branch {} --force",
         repo_url, CARGO_INSTALL_PACKAGE, branch
     );
-    println!();
-    ColorOutput::info("💡 提示: 运行 'ccr update' 执行更新(去掉 --check 参数)");
-    println!();
+    crate::commands::common::print_next_steps(&[("查看更新选项", "ccr update --help")]);
 }
 
 async fn confirm_update() -> Result<bool> {
@@ -113,12 +111,8 @@ fn print_post_update_separator() {
 }
 
 fn print_update_success() {
-    ColorOutput::success("🎉 更新成功完成");
-    println!();
-    ColorOutput::info("后续步骤:");
-    println!("  1. 运行 'ccr version' 查看新版本信息");
-    println!("  2. 运行 'ccr --help' 查看新功能");
-    println!();
+    ColorOutput::success("更新成功完成");
+    crate::commands::common::print_next_steps(&[("查看版本信息", "ccr version")]);
 }
 
 async fn run_update_install(repo_url: String, branch: String) -> Result<UpdateExecutionResult> {

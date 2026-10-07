@@ -68,7 +68,7 @@ async fn cmd_test(name: &str, verbose: bool) -> Result<()> {
 
     match config {
         Some(c) => {
-            ColorOutput::info(&format!("测试 Provider: {}", name));
+            ColorOutput::step(&format!("测试 Provider: {}", name));
 
             let service = HealthCheckService::new();
 
@@ -124,7 +124,7 @@ async fn cmd_test(name: &str, verbose: bool) -> Result<()> {
         }
         None => {
             ColorOutput::error(&format!("未找到配置: {}", name));
-            ColorOutput::info("使用 'ccr list' 查看可用配置");
+            crate::commands::common::print_next_steps(&[("查看可用配置", "ccr list")]);
         }
     }
 
@@ -137,11 +137,11 @@ async fn cmd_test_all(verbose: bool) -> Result<()> {
     let config_list = config_service.list_configs()?;
 
     if config_list.configs.is_empty() {
-        ColorOutput::warning("没有可用的配置");
+        ColorOutput::info("没有可用的配置");
         return Ok(());
     }
 
-    ColorOutput::info(&format!(
+    ColorOutput::step(&format!(
         "测试 {} 个 Provider...",
         config_list.configs.len()
     ));
@@ -197,8 +197,10 @@ async fn cmd_test_all(verbose: bool) -> Result<()> {
     println!("{}", table);
 
     if verbose {
-        println!();
-        ColorOutput::info("提示: 使用 'ccr provider test <name> --verbose' 查看单个 Provider 详情");
+        crate::commands::common::print_next_steps(&[(
+            "查看 Provider 测试选项",
+            "ccr provider test --help",
+        )]);
     }
 
     Ok(())
@@ -233,7 +235,7 @@ async fn cmd_verify(name: &str) -> Result<()> {
                 return Ok(());
             }
 
-            ColorOutput::info(&format!("验证 API Key: {}", name));
+            ColorOutput::step(&format!("验证 API Key: {}", name));
 
             let service = HealthCheckService::new();
 
@@ -241,9 +243,9 @@ async fn cmd_verify(name: &str) -> Result<()> {
 
             println!();
             if valid {
-                ColorOutput::success("API Key 有效 ✓");
+                ColorOutput::success("API Key 有效");
             } else {
-                ColorOutput::error("API Key 无效 ✗");
+                ColorOutput::error("API Key 无效");
             }
         }
         None => {

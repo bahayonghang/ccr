@@ -89,6 +89,12 @@ ccr clean backups --days 30
 ccr clean --days 30 --dry-run
 ```
 
+## Output format
+
+Cleanup previews and empty results use neutral text. Completed deletion uses `✓` in a regular terminal and `成功:` in redirected output or `TERM=dumb`. Warnings retain the `警告:` label. Fields use two-space indentation. Suggested actions appear under `下一步`, with each complete command on a separate line.
+
+`NO_COLOR` disables styling and retains the symbols in a regular terminal. Preview, confirmation, and deletion behavior remain unchanged.
+
 ## See Also
 
 - [Command Reference](./index)

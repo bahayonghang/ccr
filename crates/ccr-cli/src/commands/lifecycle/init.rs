@@ -26,20 +26,14 @@ pub async fn init_command(force: bool) -> Result<()> {
             ColorOutput::warning(&format!("配置已存在: {}", config_path.display()));
             println!();
             ColorOutput::info("配置已经初始化，无需重复执行");
-            ColorOutput::info("提示:");
-            println!("  • 查看平台列表: ccr platform list");
-            println!("  • 初始化 Claude 模板: ccr claude profile init");
-            println!("  • 初始化 Codex 模板: ccr codex profile init");
-            println!("  • 初始化 Grok 模板: ccr grok profile init");
-            println!("  • 强制重新初始化: ccr init --force");
-            println!();
+            crate::commands::common::print_next_steps(&[("查看平台列表", "ccr platform list")]);
             return Ok(());
         }
 
         // 使用 --force 时需要确认
         println!();
-        ColorOutput::warning("⚠️  警告: 即将覆盖现有配置！");
-        ColorOutput::info("提示: 现有配置会自动备份");
+        ColorOutput::warning("即将覆盖现有配置！");
+        ColorOutput::info("现有配置会自动备份");
         println!();
 
         let confirmed = tokio::task::spawn_blocking(|| -> Result<bool> {
@@ -81,8 +75,8 @@ pub async fn init_command(force: bool) -> Result<()> {
 
     fs::create_dir_all(&platforms_dir).map_err(CcrError::from)?;
 
-    ColorOutput::success(&format!("✓ CCR 根目录: {}", ccr_root.display()));
-    ColorOutput::success(&format!("✓ 平台目录: {}", platforms_dir.display()));
+    ColorOutput::key_value("CCR 根目录", &ccr_root.display().to_string(), 2);
+    ColorOutput::key_value("平台目录", &platforms_dir.display().to_string(), 2);
 
     // 初始化默认平台（Claude）
     println!();
@@ -91,22 +85,26 @@ pub async fn init_command(force: bool) -> Result<()> {
     let claude_paths = PlatformPaths::new(Platform::Claude)?;
     claude_paths.ensure_directories()?;
 
-    ColorOutput::success(&format!(
-        "✓ Claude 平台目录: {}",
-        claude_paths.platform_dir.display()
-    ));
-    ColorOutput::success(&format!(
-        "✓ 历史目录: {}",
-        claude_paths
+    ColorOutput::key_value(
+        "Claude 平台目录",
+        &claude_paths.platform_dir.display().to_string(),
+        2,
+    );
+    ColorOutput::key_value(
+        "历史目录",
+        &claude_paths
             .history_file
             .parent()
             .ok_or_else(|| CcrError::FileIoError("无法获取历史文件父目录".into()))?
             .display()
-    ));
-    ColorOutput::success(&format!(
-        "✓ 备份目录: {}",
-        claude_paths.backups_dir.display()
-    ));
+            .to_string(),
+        2,
+    );
+    ColorOutput::key_value(
+        "备份目录",
+        &claude_paths.backups_dir.display().to_string(),
+        2,
+    );
 
     // 创建默认 profiles.toml
     if !claude_paths.profiles_file.exists() {
@@ -124,10 +122,7 @@ pub async fn init_command(force: bool) -> Result<()> {
         fs::write(&claude_paths.profiles_file, content)
             .map_err(|e| CcrError::ConfigError(format!("写入默认 profiles.toml 失败: {}", e)))?;
 
-        ColorOutput::success(&format!(
-            "✓ 已创建: {}",
-            claude_paths.profiles_file.display()
-        ));
+        ColorOutput::success(&format!("已创建: {}", claude_paths.profiles_file.display()));
     }
 
     // 创建平台注册表配置
@@ -137,13 +132,13 @@ pub async fn init_command(force: bool) -> Result<()> {
     let config = manager.load_or_create_default()?;
     manager.save(&config)?;
 
-    ColorOutput::success(&format!("✓ 配置文件: {}", config_path.display()));
+    ColorOutput::key_value("配置文件", &config_path.display().to_string(), 2);
 
     // 显示完成信息
     println!();
     ColorOutput::separator();
     println!();
-    ColorOutput::success("✓ CCR 配置初始化成功");
+    ColorOutput::success("CCR 配置初始化成功");
     println!();
 
     ColorOutput::info("已创建的目录结构:");
@@ -153,18 +148,7 @@ pub async fn init_command(force: bool) -> Result<()> {
     println!("      └── claude/            # Claude 平台（默认）");
     println!();
 
-    ColorOutput::info("后续步骤:");
-    println!("  1. 使用 'ccr platform list' 查看所有平台");
-    println!(
-        "  2. 使用 'ccr claude profile init'、'ccr codex profile init' 或 'ccr grok profile init' 初始化平台模板"
-    );
-    println!("  3. 使用 'ccr add' 添加配置 profile");
-    println!("  4. 使用 'ccr list' 查看配置列表");
-    println!();
-
-    ColorOutput::info("💡 提示:");
-    println!("  • 查看帮助: ccr --help");
-    println!();
+    crate::commands::common::print_next_steps(&[("查看平台列表", "ccr platform list")]);
 
     Ok(())
 }

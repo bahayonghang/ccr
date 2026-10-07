@@ -12,7 +12,7 @@ pub fn project_init_command(auto_yes: bool) -> Result<()> {
     })?;
 
     ColorOutput::title("项目工作流初始化");
-    ColorOutput::info(&format!("目标目录: {}", root.display()));
+    ColorOutput::key_value("目标目录", &root.display().to_string(), 2);
     println!();
 
     ensure_git_repository(&root)?;
@@ -51,7 +51,7 @@ fn ensure_git_repository(root: &Path) -> Result<()> {
         }
 
         if paths_match(root, &repository_root) {
-            ColorOutput::success("当前目录已经是 Git 仓库根，跳过 git init");
+            ColorOutput::info("当前目录已经是 Git 仓库根，跳过 git init");
         } else {
             ColorOutput::warning(&format!(
                 "当前目录位于 Git 仓库 {} 中，跳过嵌套 git init",

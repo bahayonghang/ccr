@@ -13,7 +13,7 @@ pub async fn trash_command(session_ids: Vec<String>, codex_home: Option<String>)
         "已移动 {} / {} 条 Codex 会话到垃圾箱",
         result.trashed_session_count, result.requested_session_count
     ));
-    ColorOutput::info(&format!("Trash root: {}", result.trash_root.display()));
+    ColorOutput::key_value("Trash root", &result.trash_root.display().to_string(), 2);
     for session in result.trashed_sessions {
         println!(
             "{}\t{}\t{}",

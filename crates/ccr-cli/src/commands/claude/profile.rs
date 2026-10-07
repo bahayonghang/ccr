@@ -17,7 +17,6 @@ use crate::platforms::{ClaudePlatform, create_platform};
 use crate::services::RuntimeOverviewService;
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
-use colored::Colorize;
 use comfy_table::{Attribute, Cell, Color as TableColor, ContentArrangement};
 use serde::Serialize;
 
@@ -224,11 +223,7 @@ pub async fn off_command(json: bool) -> Result<()> {
     if result.changed {
         ColorOutput::success(&format!(
             "已退出 Claude profile '{}'，当前回到 official auth runtime",
-            result
-                .previous_profile
-                .as_deref()
-                .unwrap_or("-")
-                .bright_yellow()
+            result.previous_profile.as_deref().unwrap_or("-")
         ));
     } else {
         ColorOutput::info("当前不在 Claude profile mode；无需执行 profile off");

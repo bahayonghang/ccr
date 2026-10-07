@@ -32,7 +32,7 @@ pub async fn delete_command(config_name: &str, force: bool) -> Result<()> {
     let skip_confirmation = force || config.settings.skip_confirmation;
 
     if config.settings.skip_confirmation && !force {
-        ColorOutput::info("⚡ 自动确认模式已启用，将跳过确认");
+        ColorOutput::info("自动确认模式已启用，将跳过确认");
         println!();
     }
 
@@ -41,7 +41,7 @@ pub async fn delete_command(config_name: &str, force: bool) -> Result<()> {
     if !config.sections.contains_key(config_name) {
         return Err(CcrError::ConfigSectionNotFound(config_name.to_string()));
     }
-    ColorOutput::success(&format!("✓ 配置 '{}' 存在", config_name));
+    ColorOutput::success(&format!("配置 '{}' 存在", config_name));
     println!();
 
     // 2. 检查是否为当前配置或默认配置
@@ -50,22 +50,20 @@ pub async fn delete_command(config_name: &str, force: bool) -> Result<()> {
     let is_default = config.default_config == config_name;
 
     if is_current {
-        ColorOutput::warning(&format!("⚠ 配置 '{}' 是当前激活的配置", config_name));
+        ColorOutput::warning(&format!("配置 '{}' 是当前激活的配置", config_name));
         println!();
-        ColorOutput::info("删除当前配置后，您需要:");
-        println!("  1. 运行 'ccr list' 查看其他配置");
-        println!("  2. 运行 'ccr switch <name>' 切换到其他配置");
+        ColorOutput::info("删除当前配置后，需要选择其他配置并重新应用");
         println!();
     }
 
     if is_default {
-        ColorOutput::warning(&format!("⚠ 配置 '{}' 是默认配置", config_name));
+        ColorOutput::warning(&format!("配置 '{}' 是默认配置", config_name));
         println!();
         ColorOutput::info("删除后，请记得编辑 ~/.ccs_config.toml 设置新的 default_config");
         println!();
     }
 
-    ColorOutput::success("✓ 安全检查完成");
+    ColorOutput::success("安全检查完成");
     println!();
 
     // 显示配置信息
@@ -124,21 +122,12 @@ pub async fn delete_command(config_name: &str, force: bool) -> Result<()> {
     // 4. 执行删除
     service.delete_config(config_name)?;
 
-    ColorOutput::success(&format!("✓ 配置 '{}' 已删除", config_name));
-    println!();
-
+    ColorOutput::success(&format!("配置 '{}' 已删除", config_name));
     // 5. 后续提示
     if is_current {
-        println!();
-        ColorOutput::warning("重要提示: 您刚刚删除了当前配置");
-        ColorOutput::info("后续操作:");
-        println!("  1. 运行 'ccr list' 查看剩余配置");
-        println!("  2. 运行 'ccr switch <name>' 切换到其他配置");
-    } else {
-        ColorOutput::info("后续操作:");
-        println!("  • 运行 'ccr list' 查看剩余配置");
+        ColorOutput::warning("已删除当前配置，需要选择其他配置并重新应用");
     }
-    println!();
+    crate::commands::common::print_next_steps(&[("查看剩余配置", "ccr list")]);
 
     Ok(())
 }

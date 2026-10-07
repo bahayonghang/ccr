@@ -32,14 +32,9 @@ pub async fn enable_command(config_name: &str) -> Result<()> {
     config_service.enable_config(config_name)?;
 
     println!();
-    ColorOutput::success(&format!("✓ 配置 '{}' 已启用", config_name));
-    println!();
-
+    ColorOutput::success(&format!("配置 '{}' 已启用", config_name));
     // 显示后续操作提示
-    ColorOutput::info("💡 提示:");
-    println!("  • 使用 'ccr list' 查看所有配置");
-    println!("  • 使用 'ccr switch {}' 切换到该配置", config_name);
-    println!();
+    crate::commands::common::print_next_steps(&[("查看配置", "ccr list")]);
 
     Ok(())
 }

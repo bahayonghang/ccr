@@ -60,6 +60,7 @@ impl ProjectInitFixture {
         let mut command = Command::new(env!("CARGO_BIN_EXE_ccr"));
         command
             .current_dir(&self.project)
+            .env("CCR_ROOT", self.root.join("ccr"))
             .env("PATH", &self.bin)
             .env("FAKE_GIT_MODE", git_mode)
             .env("FAKE_TRELLIS_MODE", trellis_mode)

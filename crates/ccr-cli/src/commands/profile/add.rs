@@ -101,7 +101,7 @@ pub async fn add_command() -> Result<()> {
     let service = ConfigService::with_default()?;
     if service.load_config()?.sections.contains_key(&name) {
         ColorOutput::error(&format!("配置 '{}' 已存在", name));
-        ColorOutput::info("提示: 使用 'ccr list' 查看已有配置");
+        crate::commands::common::print_next_steps(&[("查看已有配置", "ccr list")]);
         return Ok(());
     }
 
@@ -129,7 +129,7 @@ pub async fn add_command() -> Result<()> {
     // 验证配置
     ColorOutput::step("验证配置");
     section.validate()?;
-    ColorOutput::success("✓ 配置验证通过");
+    ColorOutput::success("配置验证通过");
     println!();
 
     // 显示预览
@@ -193,13 +193,8 @@ pub async fn add_command() -> Result<()> {
     // 保存配置
     ColorOutput::step("保存配置");
     service.add_config(name.clone(), section)?;
-    ColorOutput::success(&format!("✓ 配置 '{}' 添加成功", name));
-    println!();
-
-    ColorOutput::info("后续操作:");
-    println!("  • 运行 'ccr list' 查看所有配置");
-    println!("  • 运行 'ccr switch {}' 切换到此配置", name);
-    println!();
+    ColorOutput::success(&format!("配置 '{}' 添加成功", name));
+    crate::commands::common::print_next_steps(&[("查看配置", "ccr list")]);
 
     Ok(())
 }

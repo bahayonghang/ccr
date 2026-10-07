@@ -47,26 +47,28 @@ pub async fn platform_init_command(platform_name: &str) -> Result<()> {
     let paths = PlatformPaths::new(platform)?;
 
     println!();
-    ColorOutput::info("正在创建平台目录结构...");
+    ColorOutput::step("正在创建平台目录结构...");
 
     // 使用 PlatformPaths 的统一方法创建所有必需的目录
     paths.ensure_directories()?;
 
-    ColorOutput::success(&format!("✓ 根目录: {}", paths.root.display()));
-    ColorOutput::success(&format!("✓ 平台目录: {}", paths.platform_dir.display()));
-    ColorOutput::success(&format!(
-        "✓ 历史目录: {}",
-        paths
+    ColorOutput::key_value("根目录", &paths.root.display().to_string(), 2);
+    ColorOutput::key_value("平台目录", &paths.platform_dir.display().to_string(), 2);
+    ColorOutput::key_value(
+        "历史目录",
+        &paths
             .history_file
             .parent()
             .ok_or_else(|| CcrError::ConfigError("历史文件路径没有父目录".into()))?
             .display()
-    ));
-    ColorOutput::success(&format!("✓ 备份目录: {}", paths.backups_dir.display()));
+            .to_string(),
+        2,
+    );
+    ColorOutput::key_value("备份目录", &paths.backups_dir.display().to_string(), 2);
 
     // 创建默认 profiles.toml 文件
     if !paths.profiles_file.exists() {
-        ColorOutput::info(&format!("正在创建默认 {} profiles.toml...", platform_name));
+        ColorOutput::step(&format!("正在创建默认 {} profiles.toml...", platform_name));
 
         let default_ccs = CcsConfig {
             default_config: "default".to_string(),
@@ -80,10 +82,11 @@ pub async fn platform_init_command(platform_name: &str) -> Result<()> {
         fs::write(&paths.profiles_file, content)
             .map_err(|e| CcrError::ConfigError(format!("写入默认 profiles.toml 失败: {}", e)))?;
 
-        ColorOutput::success(&format!(
-            "✓ Profiles 文件: {}",
-            paths.profiles_file.display()
-        ));
+        ColorOutput::key_value(
+            "Profiles 文件",
+            &paths.profiles_file.display().to_string(),
+            2,
+        );
     } else {
         ColorOutput::info(&format!(
             "Profiles 文件已存在: {}",
@@ -104,7 +107,7 @@ pub async fn platform_init_command(platform_name: &str) -> Result<()> {
         manager.save(&config)?;
 
         println!();
-        ColorOutput::success(&format!("✓ 平台 '{}' 已注册到配置文件", platform_name));
+        ColorOutput::success(&format!("平台 '{}' 已注册到配置文件", platform_name));
     } else {
         println!();
         ColorOutput::info(&format!("平台 '{}' 已经注册", platform_name));
@@ -112,13 +115,7 @@ pub async fn platform_init_command(platform_name: &str) -> Result<()> {
 
     println!();
     ColorOutput::success("平台初始化完成！");
-    println!();
-    ColorOutput::info("下一步:");
-    println!("  1. 使用相应平台的命令配置 profile");
-    println!(
-        "  2. 使用 'ccr platform switch {}' 切换到该平台",
-        platform_name
-    );
+    crate::commands::common::print_next_steps(&[("查看平台命令帮助", "ccr platform --help")]);
 
     Ok(())
 }

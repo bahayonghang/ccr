@@ -62,12 +62,13 @@ pub async fn restore_command(
     };
 
     ColorOutput::success("已恢复 sync-history 备份");
-    ColorOutput::info(&format!("Codex home: {}", result.codex_home.display()));
-    ColorOutput::info(&format!("Backup: {}", result.backup_dir.display()));
-    ColorOutput::info(&format!(
-        "Provider at backup time: {}",
-        result.target_provider
-    ));
+    ColorOutput::key_value("Codex home", &result.codex_home.display().to_string(), 2);
+    ColorOutput::key_value("Backup", &result.backup_dir.display().to_string(), 2);
+    ColorOutput::key_value(
+        "Provider at backup time",
+        &result.target_provider.to_string(),
+        2,
+    );
     if result.restored_session_index {
         ColorOutput::info("Restored session_index.jsonl state captured by this backup.");
     }

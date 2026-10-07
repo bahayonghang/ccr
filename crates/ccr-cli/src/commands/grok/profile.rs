@@ -346,11 +346,7 @@ pub async fn off_command(json: bool) -> Result<()> {
     if result.changed {
         ColorOutput::success(&format!(
             "已退出 Grok profile '{}'，已清理 config.toml 中的 [model.custom] 与 [models].default",
-            result
-                .previous_profile
-                .as_deref()
-                .unwrap_or("-")
-                .bright_yellow()
+            result.previous_profile.as_deref().unwrap_or("-")
         ));
     } else {
         ColorOutput::info("当前不在 Grok profile mode；无需执行 profile off");

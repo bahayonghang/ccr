@@ -45,7 +45,11 @@ pub async fn platform_list_command(json: bool) -> Result<()> {
 
     ColorOutput::title("Platform registry");
     println!();
-    ColorOutput::info(&format!("Config file: {}", manager.config_path().display()));
+    ColorOutput::key_value(
+        "Config file",
+        &manager.config_path().display().to_string(),
+        2,
+    );
     ColorOutput::info(
         "Profile routing is tracked per platform; legacy current_platform is ignored.",
     );
@@ -103,13 +107,8 @@ pub async fn platform_list_command(json: bool) -> Result<()> {
 
     println!("{table}");
     println!();
-    ColorOutput::success(&format!("Found {} platforms", platforms_data.len()));
-    println!();
-    ColorOutput::info("Hints:");
-    println!("  - Use 'ccr current' to view Claude/Codex runtime status");
-    println!(
-        "  - Use 'ccr claude profile list', 'ccr codex profile list', or 'ccr grok profile list' for profiles"
-    );
+    ColorOutput::info(&format!("Found {} platforms", platforms_data.len()));
+    crate::commands::common::print_next_steps(&[("查看运行时状态", "ccr current")]);
 
     Ok(())
 }

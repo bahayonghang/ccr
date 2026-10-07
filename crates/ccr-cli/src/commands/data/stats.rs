@@ -174,17 +174,17 @@ async fn summary_command(args: SummaryArgs) -> Result<()> {
     ColorOutput::title(&format!("📊 成本统计 - {}", args.range));
     println!();
 
-    ColorOutput::info(&format!("💰 总成本: ${:.4}", stats.total_cost));
-    ColorOutput::info(&format!("📊 记录数: {}", stats.record_count));
-    ColorOutput::info(&format!(
-        "📅 时间范围: {} 至 {}",
-        start.format("%Y-%m-%d"),
-        end.format("%Y-%m-%d")
-    ));
+    ColorOutput::key_value("总成本", &format!("${:.4}", stats.total_cost), 2);
+    ColorOutput::key_value("记录数", &stats.record_count.to_string(), 2);
+    ColorOutput::key_value(
+        "时间范围",
+        &format!("{} 至 {}", start.format("%Y-%m-%d"), end.format("%Y-%m-%d")),
+        2,
+    );
     println!();
 
     // Token 统计
-    ColorOutput::success("🎫 Token 使用:");
+    ColorOutput::info("Token 使用:");
     println!(
         "  📥 输入: {} tokens",
         format_number(stats.token_stats.total_input_tokens)
@@ -205,7 +205,7 @@ async fn summary_command(args: SummaryArgs) -> Result<()> {
 
     // 按平台分组
     if args.by_platform || args.details {
-        ColorOutput::success("🏷️  按平台分组:");
+        ColorOutput::info("按平台分组:");
         if stats.by_provider.is_empty() {
             println!("  (无数据)");
         } else {
@@ -221,7 +221,7 @@ async fn summary_command(args: SummaryArgs) -> Result<()> {
 
     // 按模型分组
     if args.by_model || args.details {
-        ColorOutput::success("🤖 按模型分组:");
+        ColorOutput::info("按模型分组:");
         if stats.by_model.is_empty() {
             println!("  (无数据)");
         } else {
@@ -238,7 +238,7 @@ async fn summary_command(args: SummaryArgs) -> Result<()> {
 
     // 按项目分组
     if args.by_project || args.details {
-        ColorOutput::success("📁 按项目分组:");
+        ColorOutput::info("按项目分组:");
         if stats.by_project.is_empty() {
             println!("  (无数据)");
         } else {
@@ -255,7 +255,7 @@ async fn summary_command(args: SummaryArgs) -> Result<()> {
 
     // Top 会话
     if let Some(limit) = args.top {
-        ColorOutput::success(&format!("🏆 成本最高的 {} 个会话:", limit));
+        ColorOutput::info(&format!("成本最高的 {} 个会话:", limit));
         let top_sessions = tracker.get_top_sessions(limit)?;
 
         if top_sessions.is_empty() {
@@ -273,7 +273,7 @@ async fn summary_command(args: SummaryArgs) -> Result<()> {
     if args.details
         && let Some(trend) = &stats.trend
     {
-        ColorOutput::success("📈 每日趋势:");
+        ColorOutput::info("每日趋势:");
         for daily in trend.iter().rev().take(7).rev() {
             println!("  {} - ${:.4} ({} 次)", daily.date, daily.cost, daily.count);
         }
@@ -296,8 +296,8 @@ async fn import_command(args: ImportArgs) -> Result<()> {
         )));
     }
 
-    ColorOutput::info(&format!("📄 文件: {}", args.csv_file.display()));
-    ColorOutput::info(&format!("📋 格式: {}", args.format));
+    ColorOutput::key_value("文件", &args.csv_file.display().to_string(), 2);
+    ColorOutput::key_value("格式", &args.format.to_string(), 2);
     println!();
 
     // 读取 CSV 文件
@@ -308,12 +308,12 @@ async fn import_command(args: ImportArgs) -> Result<()> {
         return Err(CcrError::ValidationError("文件为空".to_string()));
     }
 
-    ColorOutput::info(&format!("📊 行数: {}", lines.len()));
+    ColorOutput::key_value("行数", &lines.len().to_string(), 2);
 
     // 解析 CSV 数据
     let records = parse_csv_import(&lines, &args.format, args.skip_validation)?;
 
-    ColorOutput::success(&format!("✅ 解析成功: {} 条记录", records.len()));
+    ColorOutput::success(&format!("解析成功: {} 条记录", records.len()));
     println!();
 
     // 导入到 CostTracker
@@ -336,7 +336,7 @@ async fn import_command(args: ImportArgs) -> Result<()> {
         }
     }
 
-    ColorOutput::success(&format!("✅ 导入完成: {} 条记录", records.len()));
+    ColorOutput::success(&format!("导入完成: {} 条记录", records.len()));
 
     Ok(())
 }
@@ -362,13 +362,13 @@ async fn export_command(args: ExportArgs) -> Result<()> {
     // 生成统计
     let stats = tracker.generate_stats(start, end)?;
 
-    ColorOutput::info(&format!("📋 格式: {}", args.format));
-    ColorOutput::info(&format!(
-        "📅 时间范围: {} 至 {}",
-        start.format("%Y-%m-%d"),
-        end.format("%Y-%m-%d")
-    ));
-    ColorOutput::info(&format!("📊 记录数: {}", stats.record_count));
+    ColorOutput::key_value("格式", &args.format.to_string(), 2);
+    ColorOutput::key_value(
+        "时间范围",
+        &format!("{} 至 {}", start.format("%Y-%m-%d"), end.format("%Y-%m-%d")),
+        2,
+    );
+    ColorOutput::key_value("记录数", &stats.record_count.to_string(), 2);
     println!();
 
     // 生成输出内容
@@ -386,7 +386,7 @@ async fn export_command(args: ExportArgs) -> Result<()> {
     // 输出到文件或标准输出
     if let Some(output_path) = &args.output {
         fs::write(output_path, content)?;
-        ColorOutput::success(&format!("✅ 已导出到: {}", output_path.display()));
+        ColorOutput::success(&format!("已导出到: {}", output_path.display()));
     } else {
         println!("{}", content);
     }
@@ -409,14 +409,15 @@ async fn clear_command(args: ClearArgs) -> Result<()> {
         Utc::now() - Duration::days(30)
     };
 
-    ColorOutput::info(&format!(
-        "📅 清理日期: {} 之前",
-        before_date.format("%Y-%m-%d")
-    ));
+    ColorOutput::key_value(
+        "清理日期",
+        &format!("{} 之前", before_date.format("%Y-%m-%d")),
+        2,
+    );
 
     // 扫描 stats 目录
     if !storage_dir.exists() {
-        ColorOutput::warning("目录不存在，无需清理");
+        ColorOutput::info("目录不存在，无需清理");
         return Ok(());
     }
 
@@ -452,18 +453,18 @@ async fn clear_command(args: ClearArgs) -> Result<()> {
     }
 
     if files_to_delete.is_empty() {
-        ColorOutput::warning("没有找到需要清理的文件");
+        ColorOutput::info("没有找到需要清理的文件");
         return Ok(());
     }
 
-    ColorOutput::info(&format!("📊 找到 {} 个文件", files_to_delete.len()));
+    ColorOutput::info(&format!("找到 {} 个文件", files_to_delete.len()));
     for path in &files_to_delete {
         println!("  • {}", path.display());
     }
     println!();
 
     if args.dry_run {
-        ColorOutput::warning("🔍 模拟运行模式，未实际删除");
+        ColorOutput::info("模拟运行模式，未实际删除");
         return Ok(());
     }
 
@@ -484,7 +485,7 @@ async fn clear_command(args: ClearArgs) -> Result<()> {
         .map_err(|e| CcrError::FileIoError(format!("读取用户输入失败: {e}")))??;
 
         if !confirmed {
-            ColorOutput::warning("已取消");
+            ColorOutput::info("已取消");
             return Ok(());
         }
     }
@@ -494,7 +495,7 @@ async fn clear_command(args: ClearArgs) -> Result<()> {
         fs::remove_file(path)?;
     }
 
-    ColorOutput::success(&format!("✅ 已删除 {} 个文件", files_to_delete.len()));
+    ColorOutput::success(&format!("已删除 {} 个文件", files_to_delete.len()));
 
     Ok(())
 }

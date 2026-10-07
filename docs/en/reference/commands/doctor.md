@@ -33,6 +33,12 @@ ccr doctor --platform codex
 - [current](./current)
 - [Migration Guide](/en/reference/migration)
 
+## Output format
+
+Terminal results use `✓` for passed checks, `! 警告:` for warnings, `× 错误:` for failed checks, and `- 跳过:` for skipped checks. Redirected output and `TERM=dumb` use `成功:`, `警告:`, `错误:`, and `跳过:`. `NO_COLOR` disables styling and retains the symbols in a regular terminal.
+
+Results, paths, and recommendations remain on stdout. `--json` retains the existing structure and status values.
+
 ## Capability and Exit Contract
 
 Platform choices come from the shared `Platform` enum and include `grok`. Claude, Codex, and Grok support auth/profile commands. Gemini and Droid retain read-only compatibility checks with a `legacy_adapter` label. Qwen remains unimplemented. No additional legacy writer is called.

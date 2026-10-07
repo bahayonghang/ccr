@@ -35,7 +35,7 @@ pub async fn export_command(output: Option<String>, include_secrets: bool) -> Re
     // 确定输出路径
     ColorOutput::step("步骤 2/3: 准备导出");
     let output_path = determine_output_path(output)?;
-    ColorOutput::info(&format!("导出路径: {}", output_path.display()));
+    ColorOutput::key_value("导出路径", &output_path.display().to_string(), 2);
     println!();
 
     // 导出配置
@@ -45,18 +45,18 @@ pub async fn export_command(output: Option<String>, include_secrets: bool) -> Re
     println!();
     ColorOutput::separator();
     println!();
-    ColorOutput::success("✓ 配置导出成功");
-    ColorOutput::info(&format!("导出文件: {}", output_path.display()));
+    ColorOutput::success("配置导出成功");
+    ColorOutput::key_value("导出文件", &output_path.display().to_string(), 2);
 
     if include_secrets {
         println!();
-        ColorOutput::warning("⚠ 已包含敏感信息(API密钥)");
-        ColorOutput::info("提示: 请妥善保管导出文件,避免泄露");
-        ColorOutput::info("提示: 使用 --no-secrets 参数可导出不含密钥的配置");
+        ColorOutput::warning("已包含敏感信息(API密钥)");
+        ColorOutput::info("请妥善保管导出文件,避免泄露");
+        ColorOutput::info("使用 --no-secrets 参数可导出不含密钥的配置");
     } else {
         println!();
-        ColorOutput::info("✓ 敏感信息已移除");
-        ColorOutput::info("提示: 不使用 --no-secrets 可导出完整配置(包含密钥)");
+        ColorOutput::info("敏感信息已移除");
+        ColorOutput::info("不使用 --no-secrets 可导出完整配置(包含密钥)");
     }
 
     Ok(())

@@ -37,7 +37,7 @@ pub async fn clear_command(force: bool) -> Result<()> {
     let skip_confirmation = force || config.settings.skip_confirmation;
 
     if config.settings.skip_confirmation && !force {
-        ColorOutput::info("⚡ 自动确认模式已启用，将跳过确认");
+        ColorOutput::info("自动确认模式已启用，将跳过确认");
     }
 
     // 📖 加载设置文件
@@ -48,13 +48,13 @@ pub async fn clear_command(force: bool) -> Result<()> {
     let managed_vars = current_settings.managed_env_entries();
 
     if managed_vars.is_empty() {
-        ColorOutput::success("✅ settings.json 中没有 CCR 托管的 Claude 环境变量，无需清理");
+        ColorOutput::info("settings.json 中没有 CCR 托管的 Claude 环境变量，无需清理");
         return Ok(());
     }
 
     // 📊 显示将被清除的变量
     ColorOutput::info(&format!(
-        "📋 将清除 {} 个 CCR 托管的 Claude 环境变量:",
+        "将清除 {} 个 CCR 托管的 Claude 环境变量:",
         managed_vars.len()
     ));
     println!();
@@ -88,12 +88,8 @@ pub async fn clear_command(force: bool) -> Result<()> {
     // 🚨 确认执行（除非 YOLO 模式）
     if !skip_confirmation {
         println!();
-        ColorOutput::warning(
-            "⚠️  警告: 此操作将清空 settings.json 中由 CCR 托管的 Claude 环境变量！",
-        );
-        ColorOutput::info(
-            "💡 提示: Claude Code 将无法正常工作，直到您重新执行 ccr switch 切换配置",
-        );
+        ColorOutput::warning("此操作将清空 settings.json 中由 CCR 托管的 Claude 环境变量！");
+        ColorOutput::info("清除托管环境变量后，需要重新应用配置以恢复 Claude Code 的对应设置");
         println!();
 
         let confirmed = tokio::task::spawn_blocking(|| -> std::io::Result<bool> {
@@ -121,7 +117,7 @@ pub async fn clear_command(force: bool) -> Result<()> {
     // 💾 备份当前设置
     ColorOutput::step("备份当前设置...");
     let backup_path = settings_manager.backup_async(Some("pre_clear")).await?;
-    ColorOutput::success(&format!("✅ 已备份到: {}", backup_path.display()));
+    ColorOutput::success(&format!("已备份到: {}", backup_path.display()));
 
     // 🧹 清空 CCR 托管的 Claude 环境变量
     ColorOutput::step("清空 CCR 托管的 Claude 环境变量...");
@@ -140,20 +136,15 @@ pub async fn clear_command(force: bool) -> Result<()> {
     // 📊 显示结果
     ColorOutput::title("清理完成");
     println!();
-    ColorOutput::success(&format!("✅ 已清除 {} 个环境变量", managed_vars.len()));
-    ColorOutput::info(&format!(
-        "📁 settings.json: {}",
-        settings_manager.settings_path().display()
-    ));
+    ColorOutput::success(&format!("已清除 {} 个环境变量", managed_vars.len()));
+    ColorOutput::key_value(
+        "settings.json",
+        &settings_manager.settings_path().display().to_string(),
+        2,
+    );
 
-    println!();
-    ColorOutput::info("💡 提示:");
-    ColorOutput::info("   • 使用 'ccr switch <配置名>' 重新应用配置");
-    ColorOutput::info("   • 使用 'ccr list' 查看可用配置");
-    ColorOutput::info(&format!(
-        "   • 如需恢复，可使用备份文件: {}",
-        backup_path.display()
-    ));
+    ColorOutput::key_value("恢复备份", &backup_path.display().to_string(), 2);
+    crate::commands::common::print_next_steps(&[("查看可用配置", "ccr list")]);
 
     Ok(())
 }

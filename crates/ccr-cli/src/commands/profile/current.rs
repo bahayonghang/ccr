@@ -19,7 +19,6 @@ use crate::services::{
 use ccr_config::profile_to_section;
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
-use colored::Colorize;
 use comfy_table::{Attribute, Cell, Color as TableColor, ContentArrangement};
 use std::str::FromStr;
 
@@ -30,7 +29,7 @@ fn print_runtime_overview(overview: &RuntimeOverview) {
     println!();
     print_status_card(&overview.codex);
     println!();
-    ColorOutput::info("提示: 使用 `ccr current --verbose` 查看路径、环境变量和完整配置详情");
+    crate::commands::common::print_next_steps(&[("查看完整配置详情", "ccr current --verbose")]);
 }
 
 fn print_status_card(card: &PlatformStatusCard) {
@@ -155,7 +154,7 @@ async fn current_command_verbose() -> Result<()> {
     ColorOutput::title("当前配置状态");
     println!();
 
-    ColorOutput::step("📊 Runtime 总览");
+    ColorOutput::step("Runtime 总览");
     println!();
     let overview = RuntimeOverviewService::load()?;
     print_status_card(&overview.claude);
@@ -171,7 +170,7 @@ async fn current_command_verbose() -> Result<()> {
     let unified_config = platform_config_mgr.load()?;
 
     // === 第零部分：平台信息 ===
-    ColorOutput::step("🔄 Registry 目标信息");
+    ColorOutput::step("Registry 目标信息");
     println!();
 
     let platform_name = &unified_config.current_platform;
@@ -285,12 +284,12 @@ async fn current_command_verbose() -> Result<()> {
         .unwrap_or_else(|_| "-".to_string());
 
     println!();
-    ColorOutput::info(&format!("配置文件: {}", config_file_path.display()));
-    ColorOutput::info(&format!("默认 Profile: {}", default_name.bright_yellow()));
+    ColorOutput::key_value("配置文件", &config_file_path.display().to_string(), 2);
+    ColorOutput::key_value("默认 Profile", &default_name.to_string(), 2);
     println!();
 
     // === 第一部分：配置详情表格 ===
-    ColorOutput::step("📋 配置详情");
+    ColorOutput::step("配置详情");
     println!();
 
     let mut config_table = new_utf8_table();
@@ -450,7 +449,7 @@ async fn current_command_verbose() -> Result<()> {
             Platform::Droid => "Factory Droid",
             Platform::Grok => "Grok",
         };
-        ColorOutput::step(&format!("🌍 {} 环境变量状态", platform_display));
+        ColorOutput::step(&format!("{} 环境变量状态", platform_display));
         println!();
 
         // 对于 Claude 平台，从 settings.json 读取环境变量
@@ -521,7 +520,7 @@ async fn current_command_verbose() -> Result<()> {
 
         println!("{}", env_table);
         println!();
-        ColorOutput::info("提示: * 标记的为必需环境变量");
+        ColorOutput::info("* 标记的为必需环境变量");
     }
 
     // 验证设置（仅对 Claude 平台）
@@ -529,8 +528,8 @@ async fn current_command_verbose() -> Result<()> {
         match SettingsService::with_default() {
             Ok(settings_service) => match settings_service.get_current_settings_async().await {
                 Ok(settings) => match settings.validate() {
-                    Ok(_) => ColorOutput::success("✓ Claude Code 设置验证通过"),
-                    Err(e) => ColorOutput::warning(&format!("⚠ 设置验证警告: {}", e)),
+                    Ok(_) => ColorOutput::success("Claude Code 设置验证通过"),
+                    Err(e) => ColorOutput::warning(&format!("设置验证警告: {}", e)),
                 },
                 Err(e) => {
                     ColorOutput::warning(&format!("无法加载 Claude Code 设置: {}", e));

@@ -93,23 +93,23 @@ impl UiService {
 
         // 优先级 1: 检查开发环境（当前目录的 ccr-ui/）
         if let Some(ref ccr_ui_path) = self.ccr_ui_path {
-            ColorOutput::info(&format!("📁 检测到开发环境: {}", ccr_ui_path.display()));
+            ColorOutput::key_value("检测到开发环境", &ccr_ui_path.display().to_string(), 2);
             return self.start_dev_mode(ccr_ui_path, port, backend_port, auto_yes);
         }
 
         // 优先级 2: 检查用户目录下载版本（~/.ccr/ccr-ui/）
         if self.ui_dir.exists() && self.ui_dir.join("justfile").exists() {
-            ColorOutput::info(&format!("📁 检测到用户目录版本: {}", self.ui_dir.display()));
+            ColorOutput::key_value("检测到用户目录版本", &self.ui_dir.display().to_string(), 2);
             return self.start_dev_mode(&self.ui_dir, port, backend_port, auto_yes);
         }
 
         // 优先级 3: 检查旧版目录并提示迁移（~/.ccr/repo/ccr-ui/ -> ~/.ccr/ccr-ui/）
         if self.legacy_ui_dir.exists() && self.legacy_ui_dir.join("justfile").exists() {
             ColorOutput::warning(&format!(
-                "⚠️  检测到旧版 CCR UI 目录: {}",
+                "检测到旧版 CCR UI 目录: {}",
                 self.legacy_ui_dir.display()
             ));
-            ColorOutput::info(&format!("建议迁移到新目录: {}", self.ui_dir.display()));
+            ColorOutput::key_value("建议迁移到新目录", &self.ui_dir.display().to_string(), 2);
             println!();
 
             if self.prompt_migrate_legacy(auto_yes)? {
@@ -118,12 +118,12 @@ impl UiService {
             }
 
             // 用户拒绝迁移：仍允许使用旧路径启动（尽量不打断使用）
-            ColorOutput::warning("⚠️  已跳过迁移，将使用旧目录启动");
+            ColorOutput::warning("已跳过迁移，将使用旧目录启动");
             return self.start_dev_mode(&self.legacy_ui_dir, port, backend_port, auto_yes);
         }
 
         // 优先级 4: 未找到，提示下载
-        ColorOutput::warning("⚠️  未找到 CCR UI");
+        ColorOutput::warning("未找到 CCR UI");
         println!();
         ColorOutput::info("CCR UI 可以从以下位置获取：");
         ColorOutput::info("  1. 开发环境: 项目根目录下的 ccr-ui/");
@@ -152,11 +152,11 @@ impl UiService {
         if let Some(ref ver) = local_version {
             ColorOutput::key_value("本地版本", ver, 2);
         } else {
-            ColorOutput::info("📦 本地未安装 CCR UI");
+            ColorOutput::info("本地未安装 CCR UI");
         }
 
         // 获取远程版本
-        ColorOutput::info("🔍 正在检查远程版本...");
+        ColorOutput::step("检查远程版本");
         let remote_version = self.fetch_remote_version().await;
 
         match remote_version {
@@ -167,17 +167,17 @@ impl UiService {
                 // 比较版本
                 if let Some(ref local_ver) = local_version {
                     if !Self::compare_versions(local_ver, ver) {
-                        ColorOutput::success("✅ 当前已是最新版本，无需更新");
+                        ColorOutput::info("当前已是最新版本，无需更新");
                         println!();
                         return Ok(());
                     }
-                    ColorOutput::warning(&format!("🆕 发现新版本: {} -> {}", local_ver, ver));
+                    ColorOutput::warning(&format!("发现新版本: {} -> {}", local_ver, ver));
                 } else {
-                    ColorOutput::info("📥 将安装最新版本");
+                    ColorOutput::info("将安装最新版本");
                 }
             }
             Err(e) => {
-                ColorOutput::warning(&format!("⚠️  无法获取远程版本: {}", e));
+                ColorOutput::warning(&format!("无法获取远程版本: {}", e));
                 println!();
 
                 // 如果本地已安装且无法获取远程版本，询问是否强制更新
@@ -323,15 +323,16 @@ impl UiService {
         // 检查依赖是否已安装
         self.check_and_install_deps(ccr_ui_path, auto_yes)?;
 
-        ColorOutput::info("🔧 使用开发模式启动 CCR UI");
-        ColorOutput::info(&format!("📍 后端: http://localhost:{}", backend_port));
-        ColorOutput::info(&format!(
-            "📍 前端: http://localhost:{} (Vue 3 + Vite)",
-            port
-        ));
+        ColorOutput::info("使用开发模式启动 CCR UI");
+        ColorOutput::key_value("后端", &format!("http://localhost:{}", backend_port), 2);
+        ColorOutput::key_value(
+            "前端",
+            &format!("http://localhost:{} (Vue 3 + Vite)", port),
+            2,
+        );
         println!();
 
-        ColorOutput::warning("💡 提示: 按 Ctrl+C 停止服务");
+        ColorOutput::info("按 Ctrl+C 停止服务");
         println!();
 
         // 启动开发服务器，通过环境变量传递端口配置
@@ -354,13 +355,13 @@ impl UiService {
 
     /// ✅ 检查 just 是否已安装
     fn check_just_installed(&self) -> Result<()> {
-        ColorOutput::info("🔍 检查 just 工具...");
+        ColorOutput::step("检查 just 工具");
 
         match Command::new("just").arg("--version").output() {
             Ok(output) => {
                 if output.status.success() {
                     let version = String::from_utf8_lossy(&output.stdout);
-                    ColorOutput::success(&format!("✅ just 已安装: {}", version.trim()));
+                    ColorOutput::success(&format!("just 已安装: {}", version.trim()));
                     Ok(())
                 } else {
                     self.prompt_install_just()
@@ -372,14 +373,11 @@ impl UiService {
 
     /// 📦 提示安装 just
     fn prompt_install_just(&self) -> Result<()> {
-        ColorOutput::error("❌ 未检测到 just 工具");
+        ColorOutput::error("未检测到 just 工具");
         println!();
         ColorOutput::info("just 是一个现代化的命令运行器,CCR UI 依赖它来启动");
         ColorOutput::info("请访问: https://just.systems/");
-        println!();
-        ColorOutput::info("快速安装:");
-        ColorOutput::info("  cargo install just");
-        println!();
+        crate::commands::common::print_next_steps(&[("安装 just", "cargo install just")]);
 
         Err(CcrError::UiError(
             "缺少必要工具: just (请安装后重试)".to_string(),
@@ -388,7 +386,7 @@ impl UiService {
 
     /// 📦 检查并安装依赖
     fn check_and_install_deps(&self, ccr_ui_path: &Path, auto_yes: bool) -> Result<()> {
-        ColorOutput::info("🔍 检查项目依赖...");
+        ColorOutput::step("检查项目依赖");
 
         // 检查前端依赖
         let frontend_node_modules = ccr_ui_path.join("node_modules");
@@ -399,7 +397,7 @@ impl UiService {
         let needs_backend_build = !backend_target.exists();
 
         if needs_frontend_install || needs_backend_build {
-            ColorOutput::warning("⚠️  检测到未安装的依赖,开始安装...");
+            ColorOutput::warning("检测到未安装的依赖,开始安装...");
             if needs_frontend_install {
                 ColorOutput::info("  - 缺少前端依赖: node_modules");
             }
@@ -414,7 +412,7 @@ impl UiService {
             }
 
             // 运行 just install
-            ColorOutput::info("📦 正在安装依赖 (这可能需要几分钟)...");
+            ColorOutput::step("安装依赖 (这可能需要几分钟)");
             let status = Command::new("just")
                 .arg("install")
                 .current_dir(ccr_ui_path)
@@ -427,10 +425,10 @@ impl UiService {
                 ));
             }
 
-            ColorOutput::success("✅ 依赖安装完成");
+            ColorOutput::success("依赖安装完成");
             println!();
         } else {
-            ColorOutput::success("✅ 依赖已就绪");
+            ColorOutput::success("依赖已就绪");
         }
 
         Ok(())
@@ -504,13 +502,13 @@ impl UiService {
         // 优先尝试原地移动（同文件系统时为 O(1)）
         match fs::rename(&self.legacy_ui_dir, &self.ui_dir) {
             Ok(_) => {
-                ColorOutput::success(&format!("✅ 已迁移到新目录: {}", self.ui_dir.display()));
+                ColorOutput::success(&format!("已迁移到新目录: {}", self.ui_dir.display()));
                 Ok(())
             }
             Err(e) => {
-                ColorOutput::warning(&format!("⚠️  目录移动失败，将改为复制: {}", e));
+                ColorOutput::warning(&format!("目录移动失败，将改为复制: {}", e));
                 self.copy_dir_recursive(&self.legacy_ui_dir, &self.ui_dir)?;
-                ColorOutput::success(&format!("✅ 已复制到新目录: {}", self.ui_dir.display()));
+                ColorOutput::success(&format!("已复制到新目录: {}", self.ui_dir.display()));
                 Ok(())
             }
         }
@@ -520,7 +518,7 @@ impl UiService {
     #[allow(dead_code)]
     pub fn build_production(&self) -> Result<()> {
         if let Some(ref ccr_ui_path) = self.ccr_ui_path {
-            ColorOutput::info("🏗️  构建生产版本...");
+            ColorOutput::step("构建生产版本");
 
             let status = Command::new("just")
                 .arg("build")
@@ -534,12 +532,20 @@ impl UiService {
                 return Err(CcrError::ExternalCommandError("生产构建失败".to_string()));
             }
 
-            ColorOutput::success("✅ 生产构建完成");
-            ColorOutput::info(&format!(
-                "📦 桌面端后端: {}/src-tauri/target/release/ccr-desktop",
-                ccr_ui_path.display()
-            ));
-            ColorOutput::info(&format!("📦 前端静态资源: {}/dist/", ccr_ui_path.display()));
+            ColorOutput::success("生产构建完成");
+            ColorOutput::key_value(
+                "桌面端后端",
+                &format!(
+                    "{}/src-tauri/target/release/ccr-desktop",
+                    ccr_ui_path.display()
+                ),
+                2,
+            );
+            ColorOutput::key_value(
+                "前端静态资源",
+                &format!("{}/dist/", ccr_ui_path.display()),
+                2,
+            );
 
             Ok(())
         } else {
@@ -557,7 +563,7 @@ impl UiService {
             return Ok(true);
         }
 
-        ColorOutput::info("💡 提示: CCR UI 是一个完整的 Vue 3 + Tauri 应用");
+        ColorOutput::info("CCR UI 是一个完整的 Vue 3 + Tauri 应用");
         ColorOutput::info("   可以从 GitHub 下载到用户目录:");
         ColorOutput::info(&format!("   {}", self.ui_dir.display()));
         println!();
@@ -581,14 +587,15 @@ impl UiService {
         let temp_dir =
             TempDir::new().map_err(|e| CcrError::UiError(format!("创建临时目录失败: {}", e)))?;
 
-        ColorOutput::info(&format!(
-            "📦 克隆仓库: https://github.com/{}.git",
-            GITHUB_REPO
-        ));
-        ColorOutput::info(&format!("📁 临时目录: {}", temp_dir.path().display()));
+        ColorOutput::key_value(
+            "克隆仓库",
+            &format!("https://github.com/{}.git", GITHUB_REPO),
+            2,
+        );
+        ColorOutput::key_value("临时目录", &temp_dir.path().display().to_string(), 2);
         println!();
 
-        ColorOutput::warning("⏳ 下载中 (这可能需要几分钟)...");
+        ColorOutput::step("下载中 (这可能需要几分钟)...");
 
         let status = Command::new("git")
             .arg("clone")
@@ -657,7 +664,7 @@ impl UiService {
         let is_update = self.ui_dir.exists() && self.ui_dir.join("justfile").exists();
         if is_update && !auto_yes {
             println!();
-            ColorOutput::warning("⚠️  检测到已安装的 CCR UI，将执行更新并覆盖源码文件");
+            ColorOutput::warning("检测到已安装的 CCR UI，将执行更新并覆盖源码文件");
             ColorOutput::info("默认会尽量保留以下缓存目录以避免重复安装：");
             ColorOutput::info("  - node_modules");
             ColorOutput::info("  - src-tauri/target");
@@ -722,8 +729,8 @@ impl UiService {
                 .map_err(|e| CcrError::UiError(format!("恢复缓存目录失败: {}", e)))?;
         }
 
-        ColorOutput::success("✅ CCR UI 已同步到最新版本");
-        ColorOutput::info(&format!("📁 安装位置: {}", self.ui_dir.display()));
+        ColorOutput::success("CCR UI 已同步到最新版本");
+        ColorOutput::key_value("安装位置", &self.ui_dir.display().to_string(), 2);
         println!();
 
         Ok(())
@@ -777,14 +784,14 @@ impl UiService {
     /// 📥 下载并安装预构建版本 (预留)
     #[expect(dead_code)]
     fn download_and_install(&self) -> Result<()> {
-        ColorOutput::info("📥 预构建版本下载功能将在未来版本中实现");
+        ColorOutput::info("预构建版本下载功能将在未来版本中实现");
         Err(CcrError::UiError("预构建版本功能尚未实现".to_string()))
     }
 
     /// 🚀 启动本地预构建版本 (预留)
     #[expect(dead_code)]
     fn start_local(&self, _port: u16, _backend_port: u16) -> Result<()> {
-        ColorOutput::info("🚀 预构建版本启动功能将在未来版本中实现");
+        ColorOutput::info("预构建版本启动功能将在未来版本中实现");
         Err(CcrError::UiError("预构建版本功能尚未实现".to_string()))
     }
 }

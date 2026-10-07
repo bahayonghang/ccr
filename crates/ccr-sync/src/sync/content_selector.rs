@@ -225,7 +225,7 @@ impl SyncContentSelector {
         println!();
 
         if self.available_types.is_empty() {
-            ColorOutput::warning("未找到可同步的内容");
+            ColorOutput::info("未找到可同步的内容");
             return Ok(SyncContentSelection::default());
         }
 

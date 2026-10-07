@@ -7,7 +7,6 @@
 use crate::application::{SwitchPlatformRequest, switch_platform};
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
-use colored::Colorize;
 
 /// 🔄 切换当前平台
 ///
@@ -42,14 +41,13 @@ pub async fn platform_switch_command(platform_name: &str) -> Result<()> {
     println!();
     ColorOutput::success(&format!(
         "已从平台 '{}' 切换到 '{}'",
-        old_platform.bright_yellow(),
-        platform_name.bright_green().bold()
+        old_platform, platform_name
     ));
 
     // 显示当前 profile
     if let Some(profile) = result.current_profile.as_ref() {
         println!();
-        ColorOutput::info(&format!("当前 profile: {}", profile.bright_cyan()));
+        ColorOutput::key_value("当前 profile", &profile.to_string(), 2);
     } else {
         println!();
         ColorOutput::warning("该平台尚未配置 profile");

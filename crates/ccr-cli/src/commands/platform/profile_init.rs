@@ -107,12 +107,10 @@ pub async fn platform_profile_init_command(
         ColorOutput::info(&format!("平台已注册: {platform_name}"));
     }
 
-    println!();
-    ColorOutput::info("下一步:");
-    println!("  1. 编辑模板: {profiles_file}");
-    println!("  2. 或创建 profile: ccr {platform_name} profile create --help");
-    println!("  3. 查看 profiles: ccr {platform_name} profile list");
-    println!("  4. 激活 profile: ccr {platform_name} profile switch <name>");
+    crate::commands::common::print_next_steps(&[(
+        "查看 profiles",
+        &format!("ccr {platform_name} profile list"),
+    )]);
     Ok(())
 }
 

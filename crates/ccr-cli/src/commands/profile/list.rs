@@ -10,7 +10,6 @@ use crate::services::ConfigService;
 use ccr_core::Validatable;
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
-use colored::Colorize;
 use comfy_table::{
     Attribute, Cell, CellAlignment, Color as TableColor, ColumnConstraint, ContentArrangement,
     Width,
@@ -34,10 +33,7 @@ pub async fn list_command() -> Result<()> {
     println!();
 
     // 显示平台信息
-    ColorOutput::info(&format!(
-        "当前平台: {}",
-        unified_config.current_platform.bright_yellow().bold()
-    ));
+    ColorOutput::key_value("当前平台", &unified_config.current_platform.to_string(), 2);
 
     // 使用 ConfigService
     let service = ConfigService::with_default()?;
@@ -45,23 +41,18 @@ pub async fn list_command() -> Result<()> {
     let config = service.load_config()?;
 
     println!();
-    ColorOutput::info(&format!(
-        "配置文件: {}",
-        service.config_manager().config_path().display()
-    ));
-    ColorOutput::info(&format!(
-        "默认配置: {}",
-        list.default_config.bright_yellow()
-    ));
-    ColorOutput::info(&format!(
-        "当前配置: {}",
-        list.current_config.bright_green().bold()
-    ));
+    ColorOutput::key_value(
+        "配置文件",
+        &service.config_manager().config_path().display().to_string(),
+        2,
+    );
+    ColorOutput::key_value("默认配置", &list.default_config.to_string(), 2);
+    ColorOutput::key_value("当前配置", &list.current_config.to_string(), 2);
     println!();
 
     // 列出所有配置节
     if list.configs.is_empty() {
-        ColorOutput::warning("未找到任何配置节");
+        ColorOutput::info("未找到任何配置节");
         return Ok(());
     }
 
@@ -242,15 +233,10 @@ pub async fn list_command() -> Result<()> {
     println!("{}", table);
     println!();
 
-    ColorOutput::success(&format!("共找到 {} 个配置", list.configs.len()));
-    println!();
-
+    ColorOutput::info(&format!("共找到 {} 个配置", list.configs.len()));
     // 显示提示信息
-    ColorOutput::info("提示:");
-    println!("  • 使用 'ccr platform switch <平台>' 切换平台");
-    println!("  • 使用 'ccr platform current' 查看当前平台详情");
-    println!("  • 使用 'ccr switch <名称>' 切换配置");
-    println!("  • 🔄 = 官方中转  🤖 = 第三方模型");
+    ColorOutput::info("  🔄 = 官方中转  🤖 = 第三方模型");
+    crate::commands::common::print_next_steps(&[("查看运行时状态", "ccr current")]);
 
     Ok(())
 }

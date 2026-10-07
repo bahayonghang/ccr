@@ -15,7 +15,6 @@ use crate::models::Platform;
 use crate::platforms::create_platform;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
-use colored::Colorize;
 use comfy_table::{Attribute, Cell, Color as TableColor, ContentArrangement};
 
 /// 🔄 切换到指定配置
@@ -35,7 +34,7 @@ pub async fn switch_command_for_platform(config_name: &str, platform_name: &str)
 
     // 📖 步骤 1: 读取并校验目标配置（由统一用例执行）
     ColorOutput::step("步骤 1/3: 读取配置文件");
-    ColorOutput::info(&format!("使用平台: {}", platform_name.bright_yellow()));
+    ColorOutput::key_value("使用平台", platform_name, 2);
     let result = run_switch_profile_for_platform(config_name, platform_name).await?;
     if !result.outcome.activation_committed {
         return Err(CcrError::ConfigError(result.outcome.message().into()));
@@ -52,7 +51,7 @@ pub async fn switch_command_for_platform(config_name: &str, platform_name: &str)
     // ✏️ 步骤 2: 应用配置（已在用例中执行）
     ColorOutput::step("步骤 2/3: 应用配置");
     ColorOutput::success(&format!(
-        "✅ 平台 {} 的当前配置已设置为: {}",
+        "平台 {} 的当前配置已设置为: {}",
         result.platform_name, result.current_profile
     ));
 
@@ -61,7 +60,7 @@ pub async fn switch_command_for_platform(config_name: &str, platform_name: &str)
     // 📚 步骤 3: 记录历史（已在用例中执行）
     ColorOutput::step("步骤 3/3: 记录操作历史");
     if result.outcome.warnings.is_empty() {
-        ColorOutput::success("✅ 操作历史已记录");
+        ColorOutput::success("操作历史已记录");
     } else {
         ColorOutput::warning("配置已生效；计数或历史记录未完整完成，请勿重复激活");
     }
@@ -225,7 +224,7 @@ pub async fn switch_command_for_platform(config_name: &str, platform_name: &str)
     let env_vars = platform_config.get_env_var_names();
 
     if !env_vars.is_empty() {
-        ColorOutput::step("🔄 环境变量变化");
+        ColorOutput::step("环境变量变化");
         println!();
 
         let mut env_changes_table = new_utf8_table();
@@ -315,27 +314,21 @@ pub async fn switch_command_for_platform(config_name: &str, platform_name: &str)
         if let Ok(settings) = SettingsManager::with_default().and_then(|manager| manager.load()) {
             match settings.validate() {
                 Ok(_) => {
-                    ColorOutput::success("✓ 配置已生效,Claude Code 可以使用新的 API 配置");
+                    ColorOutput::success("配置已生效,Claude Code 可以使用新的 API 配置");
                 }
                 Err(e) => {
-                    ColorOutput::warning(&format!("⚠ 配置可能不完整: {}", e));
+                    ColorOutput::warning(&format!("配置可能不完整: {}", e));
                 }
             }
         }
     } else {
-        ColorOutput::success(&format!("✓ 平台 {} 配置已生效", platform_name));
+        ColorOutput::success(&format!("平台 {} 配置已生效", platform_name));
     }
 
     println!();
     ColorOutput::separator();
     println!();
-    ColorOutput::info(&format!(
-        "💡 提示: 从 {} {} 切换到 {} {}",
-        old_current.dimmed(),
-        "→".dimmed(),
-        config_name.bright_green().bold(),
-        "✓".bright_green()
-    ));
+    ColorOutput::info(&format!("已从 {} 切换到 {}", old_current, config_name));
 
     let restart_hint = match platform {
         Platform::Claude => "建议重启 Claude Code 以确保配置完全生效",
@@ -343,7 +336,7 @@ pub async fn switch_command_for_platform(config_name: &str, platform_name: &str)
         Platform::Gemini => "建议重启 Antigravity CLI 以确保配置完全生效",
         _ => "建议重启对应 CLI 以确保配置完全生效",
     };
-    ColorOutput::info(&format!("🔄 {}", restart_hint));
+    ColorOutput::info(restart_hint);
 
     Ok(())
 }

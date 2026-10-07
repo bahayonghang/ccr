@@ -17,7 +17,6 @@ use crate::platforms::create_platform;
 use crate::services::RuntimeOverviewService;
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
-use colored::Colorize;
 use comfy_table::{Attribute, Cell, Color as TableColor, ContentArrangement};
 use serde::Serialize;
 
@@ -232,16 +231,13 @@ pub async fn off_command(json: bool) -> Result<()> {
 
     if result.changed {
         ColorOutput::success(&format!(
-            "已退出 Codex profile '{}'，已清理 profile 路由与 auth.json；可重新执行 codex login",
-            result
-                .previous_profile
-                .as_deref()
-                .unwrap_or("-")
-                .bright_yellow()
+            "已退出 Codex profile '{}'，已清理 profile 路由与 auth.json",
+            result.previous_profile.as_deref().unwrap_or("-")
         ));
         for path in &result.removed_auth_paths {
             ColorOutput::info(&format!("已删除 {}", path.display()));
         }
+        crate::commands::common::print_next_steps(&[("登录 Codex", "codex login")]);
     } else {
         ColorOutput::info("当前不在 Codex profile mode；无需执行 profile off");
     }

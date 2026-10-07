@@ -33,7 +33,7 @@ pub async fn optimize_command() -> Result<()> {
         .to_string();
 
     let mut config = config_service.load_config()?;
-    ColorOutput::success(&format!("配置文件: {}", config_path));
+    ColorOutput::key_value("配置文件", &config_path, 2);
 
     // 显示优化前的配置节顺序
     println!();
@@ -74,8 +74,8 @@ pub async fn optimize_command() -> Result<()> {
     println!();
     ColorOutput::title("优化完成");
     println!();
-    ColorOutput::success(&format!(
-        "✓ 配置节已按字母顺序排列(共 {} 个)",
+    ColorOutput::info(&format!(
+        "配置节已按字母顺序排列(共 {} 个)",
         optimized_order.len()
     ));
     ColorOutput::info("配置内容保持不变,仅调整了顺序");

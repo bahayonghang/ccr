@@ -80,11 +80,12 @@ pub async fn platform_info_command(platform_name: &str, json: bool) -> Result<()
     ColorOutput::title(&format!("平台信息: {}", platform_name));
 
     println!();
-    ColorOutput::info(&format!(
-        "平台类型: {}",
-        format!("{:?}", platform_impl.platform_type()).bright_cyan()
-    ));
-    ColorOutput::info(&format!("显示名称: {}", platform_impl.platform_name()));
+    ColorOutput::key_value(
+        "平台类型",
+        &format!("{:?}", platform_impl.platform_type()),
+        2,
+    );
+    ColorOutput::key_value("显示名称", platform_impl.platform_name(), 2);
 
     // 获取路径信息
     println!();

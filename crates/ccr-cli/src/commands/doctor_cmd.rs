@@ -3,9 +3,13 @@
 //! 聚合 CCR 本地环境、平台配置、当前 profile、认证状态与可选在线探活。
 
 use crate::models::Platform;
-use crate::services::doctor_service::{DoctorReport, DoctorRunOptions, DoctorService};
+use crate::services::doctor_service::{
+    DoctorReport, DoctorRunOptions, DoctorService, DoctorStatus,
+};
 use ccr_core::core::error::Result;
+use ccr_core::core::logging::{ColorOutput, OutputStatus};
 use clap::Args;
+use std::io::IsTerminal;
 
 #[derive(Args, Debug, Clone)]
 pub struct DoctorArgs {
@@ -72,7 +76,16 @@ fn render_report(report: &DoctorReport, verbose: bool) {
     println!();
 
     for check in &report.checks {
-        println!("{} {}", check.status.label(), check.summary);
+        let status = match check.status {
+            DoctorStatus::Ok => OutputStatus::Success,
+            DoctorStatus::Warn => OutputStatus::Warning,
+            DoctorStatus::Fail => OutputStatus::Error,
+            DoctorStatus::Skip => OutputStatus::Skipped,
+        };
+        println!(
+            "{}",
+            ColorOutput::format_status(status, &check.summary, std::io::stdout().is_terminal())
+        );
 
         if verbose {
             if let Some(path) = &check.path {
@@ -108,7 +121,81 @@ fn render_report(report: &DoctorReport, verbose: bool) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::services::doctor_service::DoctorStatus;
+    use std::process::Command;
+
+    #[test]
+    #[ignore = "invoked by the isolated renderer output test"]
+    fn doctor_renderer_probe() {
+        ColorOutput::configure_cli_output();
+        let report = DoctorReport {
+            scope: "synthetic renderer".to_string(),
+            online: false,
+            summary: crate::services::doctor_service::DoctorSummary {
+                passed: 1,
+                warnings: 1,
+                failed: 1,
+                skipped: 1,
+            },
+            checks: [
+                (DoctorStatus::Ok, "passed check"),
+                (DoctorStatus::Warn, "warning check"),
+                (DoctorStatus::Fail, "failed check"),
+                (DoctorStatus::Skip, "skipped check"),
+            ]
+            .into_iter()
+            .map(
+                |(status, summary)| crate::services::doctor_service::DoctorCheck {
+                    id: summary.to_string(),
+                    status,
+                    summary: summary.to_string(),
+                    path: None,
+                    detail: None,
+                    recommendation: None,
+                },
+            )
+            .collect(),
+        };
+        println!("DOCTOR_RENDER_BEGIN");
+        render_report(&report, false);
+        println!("DOCTOR_RENDER_END");
+    }
+
+    #[test]
+    fn doctor_renderer_keeps_all_statuses_on_stdout() {
+        let output = Command::new(std::env::current_exe().expect("test executable path"))
+            .args([
+                "--exact",
+                "commands::doctor_cmd::tests::doctor_renderer_probe",
+                "--ignored",
+                "--nocapture",
+            ])
+            .env("TERM", "dumb")
+            .env("NO_COLOR", "1")
+            .env_remove("CLICOLOR_FORCE")
+            .output()
+            .expect("renderer probe starts");
+        assert!(output.status.success());
+        assert!(output.stderr.is_empty());
+        let stdout = std::str::from_utf8(&output.stdout).expect("UTF-8 renderer output");
+        let report = stdout
+            .split_once("DOCTOR_RENDER_BEGIN\n")
+            .expect("renderer begin marker")
+            .1
+            .split_once("DOCTOR_RENDER_END\n")
+            .expect("renderer end marker")
+            .0;
+        for expected in [
+            "成功: passed check",
+            "警告: warning check",
+            "错误: failed check",
+            "跳过: skipped check",
+            "Results: 1 passed, 1 warnings, 1 failed, 1 skipped",
+        ] {
+            assert!(report.lines().any(|line| line == expected), "{report}");
+        }
+        assert!(!report.contains("All checks passed"));
+        assert!(!report.contains('\u{1b}'));
+    }
 
     #[test]
     fn doctor_renderer_prints_expected_summary() {

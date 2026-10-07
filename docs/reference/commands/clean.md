@@ -114,16 +114,16 @@ $ ccr clean planfiles --dry-run
 清理规划文件
 ============
 
-[INFO] 扫描目录: /path/to/project
-[INFO] 目标文件: task_plan.md, findings.md, progress.md
-[INFO] 扫描范围: 仅当前目录根层；如需递归扫描请使用 --all
-[WARN] ⚠ 模拟运行模式(不会实际删除文件)
+  扫描目录: /path/to/project
+  目标文件: task_plan.md, findings.md, progress.md
+  扫描范围: 仅当前目录根层；如需递归扫描请使用 --all
+模拟运行模式(不会实际删除文件)
 
-[STEP] 命中文件
-[INFO] 命中: task_plan.md
+→ 命中文件
+  命中: task_plan.md
 
-[INFO] 命中数量: 1 个
-[INFO] 预计释放空间: 0.01 MB
+  命中数量: 1 个
+  预计释放空间: 0.01 MB
 ```
 
 递归预览示例：
@@ -133,18 +133,18 @@ $ ccr clean planfiles --all --dry-run
 清理规划文件
 ============
 
-[INFO] 扫描目录: /path/to/project
-[INFO] 目标文件: task_plan.md, findings.md, progress.md
-[INFO] 扫描范围: 当前目录及所有子目录 (--all)
-[WARN] ⚠ 模拟运行模式(不会实际删除文件)
+  扫描目录: /path/to/project
+  目标文件: task_plan.md, findings.md, progress.md
+  扫描范围: 当前目录及所有子目录 (--all)
+模拟运行模式(不会实际删除文件)
 
-[STEP] 命中文件
-[INFO] 命中: task_plan.md
-[INFO] 命中: docs/findings.md
-[INFO] 命中: work/progress.md
+→ 命中文件
+  命中: task_plan.md
+  命中: docs/findings.md
+  命中: work/progress.md
 
-[INFO] 命中数量: 3 个
-[INFO] 预计释放空间: 0.02 MB
+  命中数量: 3 个
+  预计释放空间: 0.02 MB
 ```
 
 ## 备份清理
@@ -405,3 +405,7 @@ sudo photorec
 - [switch](./switch) - 切换配置(会创建自动备份)
 - [add](./add) - 添加新配置
 - [delete](./delete) - 删除配置
+
+## 提示展示
+
+预览和正常空结果使用中性文字。删除完成使用 `✓`；重定向输出或 `TERM=dumb` 使用 `成功:`。警告保留 `警告:`，字段缩进两格。建议按“下一步”分组，完整命令单独一行。`NO_COLOR` 关闭样式，普通终端保留符号；预览、确认和删除行为保持原样。

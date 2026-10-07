@@ -16,6 +16,12 @@ mod grok_profile;
 #[path = "commands/grok_auth.rs"]
 mod grok_auth;
 
+#[path = "commands/output_presentation.rs"]
+mod output_presentation;
+
+#[path = "commands/output_presentation_rollout.rs"]
+mod output_presentation_rollout;
+
 #[path = "commands/claude_profile.rs"]
 mod claude_profile;
 

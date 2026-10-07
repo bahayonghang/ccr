@@ -137,8 +137,8 @@ fn cmd_list(platform: Option<String>, limit: usize, today: bool) -> Result<()> {
     let sessions = indexer.list(filter)?;
 
     if sessions.is_empty() {
-        ColorOutput::warning("未找到任何 session");
-        ColorOutput::info("提示: 运行 'ccr sessions reindex' 重建索引");
+        ColorOutput::info("未找到任何 session");
+        crate::commands::common::print_next_steps(&[("重建会话索引", "ccr sessions reindex")]);
         return Ok(());
     }
 
@@ -163,7 +163,7 @@ fn cmd_search(query: &str, platform: Option<String>, limit: usize) -> Result<()>
     }
 
     if sessions.is_empty() {
-        ColorOutput::warning(&format!("未找到匹配 '{}' 的 session", query));
+        ColorOutput::info(&format!("未找到匹配 '{}' 的 session", query));
         return Ok(());
     }
 
@@ -229,7 +229,7 @@ fn cmd_show(session_id: &str) -> Result<()> {
             println!();
 
             // 显示恢复命令
-            ColorOutput::info(&format!("恢复命令: {}", s.resume_command()));
+            crate::commands::common::print_next_steps(&[("恢复会话", &s.resume_command())]);
         }
         None => {
             ColorOutput::error(&format!("未找到 session: {}", session_id));
@@ -252,10 +252,8 @@ fn cmd_resume(session_id: &str, dry_run: bool) -> Result<()> {
             if dry_run {
                 println!("{}", cmd);
             } else {
-                ColorOutput::info(&format!("执行: {}", cmd));
-                ColorOutput::warning("注意: 自动执行功能尚未实现，请手动运行上述命令");
-                println!();
-                println!("  {}", cmd);
+                ColorOutput::warning("自动执行功能尚未实现，请手动运行命令");
+                crate::commands::common::print_next_steps(&[("恢复会话", &cmd)]);
             }
         }
         None => {
@@ -270,7 +268,7 @@ fn cmd_resume(session_id: &str, dry_run: bool) -> Result<()> {
 fn cmd_reindex(force: bool, platform: Option<String>) -> Result<()> {
     let indexer = SessionIndexer::new()?;
 
-    ColorOutput::info("开始索引 sessions...");
+    ColorOutput::step("开始索引 sessions...");
 
     let stats = if force {
         ColorOutput::warning("强制重建模式：清空现有索引");
@@ -287,7 +285,11 @@ fn cmd_reindex(force: bool, platform: Option<String>) -> Result<()> {
     };
 
     println!();
-    ColorOutput::success("索引完成");
+    if stats.errors > 0 {
+        ColorOutput::warning("索引完成，部分文件未成功索引");
+    } else {
+        ColorOutput::success("索引完成");
+    }
     println!();
     println!("  扫描文件: {}", stats.files_scanned);
     println!("  新增: {}", stats.sessions_added);

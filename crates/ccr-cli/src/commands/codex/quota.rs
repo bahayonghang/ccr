@@ -33,8 +33,11 @@ pub async fn quota_command(account: Option<&str>, json_output: bool, refresh: bo
     }
 
     if quotas.is_empty() {
-        ColorOutput::warning("未找到已保存的 Codex 账号");
-        ColorOutput::info("使用 `ccr codex auth save <name>` 保存账号后再查询配额");
+        ColorOutput::info("未找到已保存的 Codex 账号");
+        crate::commands::common::print_next_steps(&[(
+            "查看账号保存帮助",
+            "ccr codex auth save --help",
+        )]);
         return Ok(());
     }
 
@@ -91,7 +94,7 @@ pub async fn quota_command(account: Option<&str>, json_output: bool, refresh: bo
         }
     }
 
-    ColorOutput::success("Codex 账号配额余额");
+    ColorOutput::info("Codex 账号配额余额");
     println!("{table}");
 
     // 显示重置时间

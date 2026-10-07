@@ -43,7 +43,7 @@ pub async fn temp_token_set(
     temp_override.base_url = base_url.clone();
     temp_override.model = model.clone();
 
-    ColorOutput::info("🎯 正在应用临时配置到当前设置...");
+    ColorOutput::step("正在应用临时配置到当前设置...");
 
     let settings_update = temp_override.clone();
     settings_manager
@@ -75,18 +75,16 @@ pub async fn temp_token_set(
         })
         .await?;
 
-    ColorOutput::success("✅ 临时配置已应用到当前设置");
+    ColorOutput::success("临时配置已应用到当前设置");
     println!();
 
     // 显示配置详情
     display_temp_override(&temp_override);
 
     // 提示信息
-    println!();
-    ColorOutput::info("💡 提示:");
-    ColorOutput::info("   • 临时配置已立即应用到 settings.json");
-    ColorOutput::info("   • 下次 switch 时将使用配置文件中的原始 token");
-    ColorOutput::info("   • 临时配置不会修改 toml 配置文件");
+    ColorOutput::info("临时配置已应用到 settings.json；toml 配置文件保持原值");
+    ColorOutput::info("下次 switch 时将使用配置文件中的原始 token");
+    crate::commands::common::print_next_steps(&[("查看临时覆盖状态", "ccr temp-token show")]);
 
     Ok(())
 }
@@ -100,17 +98,20 @@ pub async fn temp_token_show() -> Result<()> {
 
     match manager.load_async().await? {
         Some(temp_override) => {
-            ColorOutput::success(&format!(
-                "✅ 当前有 {} 个字段被临时覆盖",
+            ColorOutput::info(&format!(
+                "当前有 {} 个字段被临时覆盖",
                 temp_override.override_count()
             ));
             println!();
             display_temp_override(&temp_override);
         }
         None => {
-            ColorOutput::info("📝 当前没有设置临时配置");
+            ColorOutput::info("当前没有设置临时配置");
             println!();
-            ColorOutput::info("使用 'ccr temp-token set <TOKEN>' 设置临时token");
+            crate::commands::common::print_next_steps(&[(
+                "查看临时设置帮助",
+                "ccr temp-token set --help",
+            )]);
         }
     }
 
@@ -125,14 +126,14 @@ pub async fn temp_token_clear() -> Result<()> {
     let manager = TempOverrideManager::with_default()?;
 
     if !manager.exists_async().await? {
-        ColorOutput::info("📝 当前没有临时配置需要清除");
+        ColorOutput::info("当前没有临时配置需要清除");
         return Ok(());
     }
 
     manager.clear_async().await?;
-    ColorOutput::success("✅ 临时配置已清除");
+    ColorOutput::success("临时配置已清除");
     println!();
-    ColorOutput::info("💡 现在将使用 toml 配置文件中的设置");
+    ColorOutput::info("现在将使用 toml 配置文件中的设置");
 
     Ok(())
 }

@@ -160,7 +160,7 @@ pub async fn platform_profile_open_command(platform_name: &str, json: bool) -> R
             EditorTarget::Configured { source, .. } => *source,
             EditorTarget::SystemAssociation => "系统关联程序",
         };
-        ColorOutput::info(&format!(
+        ColorOutput::step(&format!(
             "正在用 {display_label} 打开: {}",
             ensured.path.display()
         ));

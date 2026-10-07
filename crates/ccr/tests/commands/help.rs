@@ -3,8 +3,10 @@
 use std::process::Command;
 
 fn run_help(args: &[&str]) -> String {
+    let temp = tempfile::tempdir().unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_ccr"))
         .args(args)
+        .env("CCR_ROOT", temp.path())
         .env("NO_COLOR", "1")
         .env("CLICOLOR", "0")
         .env("COLUMNS", "120")
@@ -173,7 +175,10 @@ fn initialized_ccr_init_output_does_not_recommend_retired_platform_init() {
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(!stdout.contains("ccr platform init"), "{stdout}");
-    assert!(stdout.contains("profile init"), "{stdout}");
+    assert!(
+        stdout.contains("下一步\n  查看平台列表\n    ccr platform list\n"),
+        "{stdout}"
+    );
 }
 
 #[test]

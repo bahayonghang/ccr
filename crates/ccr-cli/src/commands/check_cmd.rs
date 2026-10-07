@@ -3,17 +3,19 @@
 use crate::commands::common::new_utf8_table;
 use crate::managers::conflict_checker::{ConflictChecker, ConflictSeverity};
 use ccr_core::core::error::Result;
+use ccr_core::core::logging::ColorOutput;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement};
 
 pub async fn check_conflicts_command() -> Result<()> {
-    println!("🔍 Checking for environment variable conflicts across platforms...\n");
+    ColorOutput::step("Checking for environment variable conflicts across platforms...");
+    println!();
 
     let checker = ConflictChecker::new();
     let report = checker.check_conflicts()?;
 
     // Display warnings
     if !report.warnings.is_empty() {
-        println!("⚠️  Warnings:");
+        ColorOutput::warning("Warnings:");
         for warning in &report.warnings {
             println!("   {}", warning);
         }
@@ -22,7 +24,7 @@ pub async fn check_conflicts_command() -> Result<()> {
 
     // Display conflicts
     if report.conflicts.is_empty() {
-        println!("✅ No conflicts detected.");
+        ColorOutput::success("No conflicts detected.");
         return Ok(());
     }
 
@@ -90,15 +92,15 @@ pub async fn check_conflicts_command() -> Result<()> {
 
     println!("{}", table);
 
-    println!("\n📊 Summary:");
+    println!("\nSummary:");
     if critical_count > 0 {
-        println!("   🔴 Critical conflicts: {}", critical_count);
+        ColorOutput::key_value("Critical conflicts", &critical_count.to_string(), 2);
     }
     if warning_count > 0 {
-        println!("   🟡 Warnings: {}", warning_count);
+        ColorOutput::key_value("Warnings", &warning_count.to_string(), 2);
     }
     if info_count > 0 {
-        println!("   🟢 Info: {}", info_count);
+        ColorOutput::key_value("Info", &info_count.to_string(), 2);
     }
 
     Ok(())

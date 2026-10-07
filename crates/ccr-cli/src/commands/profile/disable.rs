@@ -36,7 +36,7 @@ pub async fn disable_command(config_name: &str, force: bool) -> Result<()> {
 
     if is_current && !force {
         println!();
-        ColorOutput::warning(&format!("⚠️  警告: '{}' 是当前正在使用的配置", config_name));
+        ColorOutput::warning(&format!("'{}' 是当前正在使用的配置", config_name));
         println!();
 
         // 询问确认
@@ -64,17 +64,13 @@ pub async fn disable_command(config_name: &str, force: bool) -> Result<()> {
     config_service.disable_config(config_name)?;
 
     println!();
-    ColorOutput::success(&format!("✓ 配置 '{}' 已禁用", config_name));
-    println!();
-
+    ColorOutput::success(&format!("配置 '{}' 已禁用", config_name));
     // 显示后续操作提示
-    ColorOutput::info("💡 提示:");
-    println!("  • 禁用的配置不会被删除，只是暂时不可用");
-    println!("  • 使用 'ccr enable {}' 重新启用", config_name);
+    ColorOutput::info("禁用的配置仍保留，暂时不可用");
     if is_current {
-        println!("  • 使用 'ccr switch <other>' 切换到其他配置");
+        ColorOutput::warning("当前配置已禁用，需要选择其他配置并重新应用");
     }
-    println!();
+    crate::commands::common::print_next_steps(&[("查看可用配置", "ccr list")]);
 
     Ok(())
 }

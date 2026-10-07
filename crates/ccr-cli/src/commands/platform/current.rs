@@ -10,7 +10,6 @@ use crate::models::{Platform, PlatformPaths};
 use crate::platforms::create_platform;
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
-use colored::Colorize;
 use std::str::FromStr;
 
 /// 🔍 显示当前平台信息
@@ -91,32 +90,30 @@ pub async fn platform_current_command(json: bool) -> Result<()> {
     ColorOutput::title("当前平台信息");
 
     println!();
-    ColorOutput::info(&format!(
-        "平台名称: {}",
-        current_platform.bright_green().bold()
-    ));
+    ColorOutput::key_value("平台名称", &current_platform.to_string(), 2);
 
     if let Some(desc) = &registry.description {
-        ColorOutput::info(&format!("描述: {}", desc));
+        ColorOutput::key_value("描述", &desc.to_string(), 2);
     }
 
-    ColorOutput::info(&format!(
-        "启用状态: {}",
+    ColorOutput::key_value(
+        "启用状态",
         if registry.enabled {
-            "已启用 ✓".green()
+            "已启用"
         } else {
-            "已禁用 ✗".red()
-        }
-    ));
+            "已禁用"
+        },
+        2,
+    );
 
     if let Some(profile) = &registry.current_profile {
-        ColorOutput::info(&format!("当前 Profile: {}", profile.bright_cyan()));
+        ColorOutput::key_value("当前 Profile", &profile.to_string(), 2);
     } else {
         ColorOutput::warning("当前 Profile: 未配置");
     }
 
     if let Some(last_used) = &registry.last_used {
-        ColorOutput::info(&format!("最后使用: {}", last_used.bright_black()));
+        ColorOutput::key_value("最后使用", &last_used.to_string(), 2);
     }
 
     println!();
