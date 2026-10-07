@@ -1,0 +1,62 @@
+[
+  {
+    "path": "crates/ccr-core/src/core/atomic_writer.rs",
+    "sha256": "bf35a7c546aa08c66f6542479e7e31f9fd5a60e496074fcd9f69090bb4e3108a"
+  },
+  {
+    "path": "crates/ccr-core/src/core/guarded_write.rs",
+    "sha256": "28c10c615969be537a0fa165f9231df2b37fe75781f0182a75f83879726db00e"
+  },
+  {
+    "path": ".trellis/tasks/10-06-auth-defense-in-depth/research/core-first-failure.log",
+    "sha256": "8a3810ac3f8a9e680ad92230e41a38857333d698b6c0f9454b7a360c3e6f6979"
+  },
+  {
+    "path": ".trellis/tasks/10-06-auth-defense-in-depth/research/core-first-retest.log",
+    "sha256": "5c85ddad25d985017c0bc7bb4c31379d5a349a01c2fc0d8b30d1b27e31319f74"
+  },
+  {
+    "path": ".trellis/tasks/10-06-auth-defense-in-depth/research/core-metadata-retest.log",
+    "sha256": "b1ec69e3b88b118ce2631f51f80b4e65d423e9f727869a0ef146d6f76de6f60b"
+  },
+  {
+    "path": ".trellis/tasks/10-06-auth-defense-in-depth/research/core-native-startup-noincremental.log",
+    "sha256": "fcda3bb5bcf62ea538c0bee217c04645583f47f8f3497acf20f500f61aca4ed2"
+  },
+  {
+    "path": ".trellis/tasks/10-06-auth-defense-in-depth/research/core-metadata-noincremental-retest.log",
+    "sha256": "70ae434b4490e96b3bfbf7d01d26dd1bd54c644316882c26e27ef24baa086c6d"
+  },
+  {
+    "path": ".trellis/tasks/10-06-auth-defense-in-depth/research/core-validation-noincremental.log",
+    "sha256": "29498b85e584f26baf9f654a9a1c86644fef01ee570c0c77fdbe5b57e9073fec"
+  },
+  {
+    "path": ".trellis/tasks/10-06-auth-defense-in-depth/research/core-validation-default-first.log",
+    "sha256": "5d75a642b4902695a5ea068cd41a196ff7a9ed490cea28b93bfd37ff56c5eb55"
+  },
+  {
+    "path": ".trellis/tasks/10-06-auth-defense-in-depth/research/core-clippy-validation.log",
+    "sha256": "f9e5026627c47fd0a29e740ccf8be06eea706eff30f97b89a6cec5c4f42b9ea7"
+  },
+  {
+    "path": ".trellis/tasks/10-06-auth-defense-in-depth/research/core-fmt-validation.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": ".trellis/tasks/10-06-auth-defense-in-depth/research/core-diff-validation.log",
+    "sha256": "1a3836917f0c3f1f58922e2f89d8462d2f0e037dfdc3fd52bede4969b996919c"
+  },
+  {
+    "path": ".trellis/tasks/10-06-auth-defense-in-depth/research/core-first-failure-sources.json",
+    "sha256": "dec12e130c8c11fa436907d8812b782fd36c79d10d09149b034c575e31d5ba16"
+  },
+  {
+    "path": ".trellis/tasks/10-06-auth-defense-in-depth/research/core-native-startup-failure-hashes.json",
+    "sha256": "419a3e22b6ecd29b98ea8512ffad67387a1f4519c0458dccfcf6cfbd76bf1000"
+  },
+  {
+    "path": ".trellis/tasks/10-06-auth-defense-in-depth/research/core-implementation.md",
+    "sha256": "0c28e2560bd33f33b2e6a2a91f0d7a6a878d989c4f880967d2cb04c97d6f0555"
+  }
+]

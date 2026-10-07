@@ -6,6 +6,8 @@
 
 ## Authorization and Status
 
+2026-10-06 用户已授权父子任务顺序实施，并要求深入完善账号管理。R1–R5 按现有设计实施；不增加公开错误变体或 DTO。P3 独立检查通过后启动。
+
 2026-10-06 用户要求为 10-06-reference-hardening 审计报告的后续任务提案 P1–P6 创建 Trellis 任务。本版为规划种子，未开始实施；需求与待决问题需经 brainstorm 收敛，复杂任务补齐 design.md 与 implement.md，并经用户评审后 `task.py start`。规划基线：dev @ 73b47563。证据锚点取自审计报告（.trellis/tasks/archive/2026-10/10-06-reference-hardening/research/codex-auth-audit.md），实施前需复核行号。
 
 ## Background and Evidence
@@ -26,19 +28,23 @@
 | R4 | 认证模型实现脱敏 `Debug`。 |
 | R5 | 配额与刷新错误只保留 HTTP 状态码与错误码，不含响应体（改变 TUI 可见文本，EN/ZH 同步）。 |
 
-## Open Decisions
+## Decisions
 
-- R5 改变 quota error 文本，需用户确认；`RELOGIN_REQUIRED_PREFIX` 与错误码识别（如 `[refresh_token_invalidated]`）必须保留。
-- R2 是否值得在读路径增加元数据副作用。
-- R3 的回退分支难以在测试中稳定触发，需要确定等价验证方式。
+- 配额错误保留 HTTP 状态、允许的固定错误码与 `RELOGIN_REQUIRED_PREFIX`；未知响应内容不回显。TUI EN/ZH 需重新登录提示保持。
+- Unchanged 的执行观测点进行版本校验的元数据权限加固；planner 保持只读，凭据字节与 mtime 不变。
+- rename 回退以私有窄函数和测试 closure 注入失败验证，不增加生产故障开关或公开 trait。
 
 ## Acceptance Criteria（草案）
 
-- [ ] Windows 上 `USERNAME` 为空时仍能设置私有 DACL。
-- [ ] `Unchanged` 路径的 bytes 与 mtime 不变。
-- [ ] 认证模型的 `Debug` 输出不含 token 明文。
-- [ ] quota error 不含响应体，仍含状态码、错误码与需重新登录提示。
-- [ ] `cargo test -p ccr-codex`、`just lint-strict`、`just test` 通过；TUI 文本变更时 EN/ZH 与尺寸矩阵通过。
+- [x] Windows 上 `USERNAME` 为空时仍能设置私有 DACL。
+- [x] `Unchanged` 路径的 bytes 与 mtime 不变。
+- [x] 认证模型的 `Debug` 输出不含 token 明文。
+- [x] quota error 不含响应体，仍含状态码、错误码与需重新登录提示。
+- [x] `cargo test -p ccr-codex`、`just lint-strict`、`just test` 通过；TUI 文本变更时 EN/ZH 与尺寸矩阵通过。
+
+2026-10-06 独立检查：前四项由 Windows native core/consumer、Debug 与 loopback HTTP 回归证明。当前源码 Codex 368 passed / 2 ignored、TUI 253 passed；EN/ZH 六尺寸及 60x18 compact 的 cells/color 断言通过。scoped strict Clippy、fmt 与 secret-write policy 通过。`just lint-strict`、`just test`、`just ci` 由父任务在 P6 后运行，最后一项保持未完成。详见 `research/independent-check.md`、`research/independent-hashes.json`。
+
+2026-10-06 最终集成验收：前段为独立检查时的历史状态。父任务最终 `just ci` 的 16 阶段通过，Codex 381 passed、2 ignored，TUI 253 passed；EN/ZH 六尺寸与 60x18 compact 断言再次通过，最后一项现已完成。Windows native 权限证据与交互式 TUI、Unix 的 NOT_RUN 边界分别保留。详见父任务 `research/integration-validation.md`。
 
 ## Dependencies
 

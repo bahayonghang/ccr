@@ -3,3 +3,5 @@
 {"file": ".trellis/spec/ccr-core/backend/ccr-error-freeze.md", "reason": "Error variant set is frozen"}
 {"file": ".trellis/spec/ccr-core/backend/atomic-writer.md", "reason": "SID DACL secret policy to reuse for permission hardening"}
 {"file": ".trellis/spec/ccr-tui/backend/backend-guidelines.md", "reason": "Quota error text change needs EN/ZH and sizing matrix"}
+{"file": ".trellis/tasks/10-06-auth-defense-in-depth/research/design-research.md", "reason": "P4 scoped source findings, boundaries and test anchors"}
+{"file": ".trellis/spec/ccr-core/backend/logging-contracts.md", "reason": "Sensitive output independent verification"}

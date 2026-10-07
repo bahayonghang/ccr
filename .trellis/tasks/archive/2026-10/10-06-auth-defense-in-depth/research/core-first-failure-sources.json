@@ -1,0 +1,10 @@
+[
+  {
+    "path": "crates/ccr-core/src/core/atomic_writer.rs",
+    "sha256": "68322a032f01b480db240f1f5781192f5099bbf2a41bf6691ea07d6990765af2"
+  },
+  {
+    "path": "crates/ccr-core/src/core/guarded_write.rs",
+    "sha256": "c96fdbf45fd96801a8bc4791cad1acf6abc08b31e85d0eada908a0816a94a2ed"
+  }
+]

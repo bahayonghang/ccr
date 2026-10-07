@@ -1,0 +1,18 @@
+[
+  {
+    "path": "crates/ccr-core/src/core/atomic_writer.rs",
+    "sha256": "bf35a7c546aa08c66f6542479e7e31f9fd5a60e496074fcd9f69090bb4e3108a"
+  },
+  {
+    "path": "crates/ccr-core/src/core/guarded_write.rs",
+    "sha256": "28c10c615969be537a0fa165f9231df2b37fe75781f0182a75f83879726db00e"
+  },
+  {
+    "path": "target/debug/deps/ccr_core-b15e5fcb53867454.exe",
+    "sha256": "5d93cfa6611173a8a25ebac7c763cb46ff17aa530fe984f268bc0c24b6ef61b0"
+  },
+  {
+    "path": ".trellis/tasks/10-06-auth-defense-in-depth/research/core-metadata-retest.log",
+    "sha256": "b1ec69e3b88b118ce2631f51f80b4e65d423e9f727869a0ef146d6f76de6f60b"
+  }
+]

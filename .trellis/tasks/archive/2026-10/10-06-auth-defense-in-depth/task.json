@@ -3,7 +3,7 @@
   "name": "auth-defense-in-depth",
   "title": "Codex Auth 权限与日志纵深防御",
   "description": "P4：Windows 权限改用 SID DACL、Unchanged 路径元数据加固、rename 回退原子私有写、认证模型脱敏 Debug、配额错误不含响应体（F17、F18、F20、F23、F24）。",
-  "status": "planning",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -11,8 +11,8 @@
   "creator": "lyh",
   "assignee": "lyh",
   "createdAt": "2026-10-06",
-  "completedAt": null,
-  "branch": null,
+  "completedAt": "2026-10-06",
+  "branch": "dev",
   "base_branch": "main",
   "worktree_path": null,
   "commit": null,
@@ -22,5 +22,10 @@
   "parent": "10-06-codex-auth-followups",
   "relatedFiles": [],
   "notes": "",
-  "meta": {}
+  "meta": {
+    "execution_status": "VERIFIED_LOCAL_PENDING_DELIVERY",
+    "acceptance": "AC1-AC5 local PASS; final parent just ci 16 stages PASS; Codex 381/0/2, TUI 253/0/0; EN/ZH matrix PASS",
+    "evidence": "research/independent-check.md",
+    "parent_gate_evidence": "../10-06-codex-auth-followups/research/integration-validation.md"
+  }
 }
