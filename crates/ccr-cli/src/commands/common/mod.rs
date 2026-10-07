@@ -4,12 +4,14 @@
 // 注：这些是设计好的公共 API，当前部分功能尚未被使用，
 // 但保留以供将来扩展和外部调用。
 
+mod feedback;
 mod mode;
 mod prompt;
 #[expect(dead_code)]
 mod table;
 
 // 公共 API 导出
+pub use feedback::print_next_steps;
 #[allow(unused_imports)]
 pub use mode::detect_config_mode;
 pub use prompt::{prompt_optional, prompt_required, prompt_tags};

@@ -6,7 +6,7 @@ use super::log_writer::{
 use crate::utils::mask_sensitive;
 use colored::*;
 use std::fmt as std_fmt;
-use std::io::{self, Write};
+use std::io::{self, IsTerminal, Write};
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 use tracing::field::{Field, Visit};
@@ -26,26 +26,123 @@ static LOG_GUARDS: OnceLock<Mutex<Vec<WorkerGuard>>> = OnceLock::new();
 
 pub struct ColorOutput;
 
+/// Semantic state for a human-readable CLI message.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OutputStatus {
+    Success,
+    Warning,
+    Error,
+    Step,
+    Skipped,
+}
+
+struct OutputCapabilities {
+    symbols: bool,
+    style: bool,
+}
+
+impl OutputCapabilities {
+    fn for_target(is_terminal: bool) -> Self {
+        let dumb = std::env::var("TERM").is_ok_and(|term| term == "dumb");
+        // Force permits styling a redirected stream. colored owns color precedence.
+        let force = std::env::var("CLICOLOR_FORCE").is_ok_and(|value| value != "0");
+        Self {
+            symbols: is_terminal && !dumb,
+            style: !dumb
+                && (is_terminal || force)
+                && colored::control::SHOULD_COLORIZE.should_colorize(),
+        }
+    }
+}
+
+fn format_status(status: OutputStatus, msg: &str, capabilities: OutputCapabilities) -> String {
+    let (marker, label) = match (status, capabilities.symbols) {
+        (OutputStatus::Success, true) => ("✓", ""),
+        (OutputStatus::Warning, true) => ("!", " 警告:"),
+        (OutputStatus::Error, true) => ("×", " 错误:"),
+        (OutputStatus::Step, true) => ("→", ""),
+        (OutputStatus::Skipped, true) => ("-", " 跳过:"),
+        (OutputStatus::Success, false) => ("成功:", ""),
+        (OutputStatus::Warning, false) => ("警告:", ""),
+        (OutputStatus::Error, false) => ("错误:", ""),
+        (OutputStatus::Step, false) => ("进度:", ""),
+        (OutputStatus::Skipped, false) => ("跳过:", ""),
+    };
+    let marker = if capabilities.style {
+        match status {
+            OutputStatus::Success => marker.green().bold().to_string(),
+            OutputStatus::Warning => marker.yellow().bold().to_string(),
+            OutputStatus::Error => marker.red().bold().to_string(),
+            OutputStatus::Step => marker.cyan().bold().to_string(),
+            OutputStatus::Skipped => marker.to_string(),
+        }
+    } else {
+        marker.to_string()
+    };
+    format!("{marker}{label} {msg}")
+}
+
+fn format_key_value(key: &str, value: &str, indent: usize, style: bool) -> String {
+    let padding = " ".repeat(indent);
+    let key = if style {
+        key.bold().to_string()
+    } else {
+        key.to_string()
+    };
+    let mut lines = value.split('\n');
+    let mut output = format!("{padding}{key}: {}", lines.next().unwrap_or_default());
+    for line in lines {
+        output.push_str(&format!("\n{padding}  {line}"));
+    }
+    output
+}
+
 #[allow(dead_code)]
 impl ColorOutput {
+    /// Configure colored once at CLI startup for terminals without ANSI support.
+    pub fn configure_cli_output() {
+        if std::env::var("TERM").is_ok_and(|term| term == "dumb") {
+            colored::control::set_override(false);
+        }
+    }
+
+    /// Format a status without selecting an output stream.
+    ///
+    /// `is_terminal` describes the stream that will receive the message.
+    pub fn format_status(status: OutputStatus, msg: &str, is_terminal: bool) -> String {
+        format_status(status, msg, OutputCapabilities::for_target(is_terminal))
+    }
+
     pub fn success(msg: &str) {
-        println!("{} {}", "[OK]".green().bold(), msg.green());
+        println!(
+            "{}",
+            Self::format_status(OutputStatus::Success, msg, io::stdout().is_terminal())
+        );
     }
 
     pub fn info(msg: &str) {
-        println!("{} {}", "[INFO]".blue().bold(), msg);
+        println!("{msg}");
     }
 
     pub fn warning(msg: &str) {
-        println!("{} {}", "[WARN]".yellow().bold(), msg.yellow());
+        println!(
+            "{}",
+            Self::format_status(OutputStatus::Warning, msg, io::stdout().is_terminal())
+        );
     }
 
     pub fn error(msg: &str) {
-        eprintln!("{} {}", "[ERR]".red().bold(), msg.red());
+        eprintln!(
+            "{}",
+            Self::format_status(OutputStatus::Error, msg, io::stderr().is_terminal())
+        );
     }
 
     pub fn step(msg: &str) {
-        println!("{} {}", "[STEP]".cyan().bold(), msg.cyan());
+        println!(
+            "{}",
+            Self::format_status(OutputStatus::Step, msg, io::stdout().is_terminal())
+        );
     }
 
     pub fn title(msg: &str) {
@@ -73,14 +170,20 @@ impl ColorOutput {
     }
 
     pub fn key_value(key: &str, value: &str, indent: usize) {
-        let padding = " ".repeat(indent);
-        println!("{}{}: {}", padding, key.bold(), value);
+        println!(
+            "{}",
+            format_key_value(
+                key,
+                value,
+                indent,
+                OutputCapabilities::for_target(io::stdout().is_terminal()).style,
+            )
+        );
     }
 
     pub fn key_value_sensitive(key: &str, value: &str, indent: usize) {
-        let padding = " ".repeat(indent);
         let masked = Self::mask_sensitive(value);
-        println!("{}{}: {}", padding, key.bold(), masked.dimmed());
+        Self::key_value(key, &masked, indent);
     }
 
     pub fn current_marker() -> String {
@@ -425,6 +528,66 @@ mod tests {
         ColorOutput::error("Error message");
         ColorOutput::step("Step message");
         ColorOutput::separator();
+    }
+
+    #[test]
+    fn status_words_and_symbols_keep_distinct_meanings() {
+        for (status, terminal, plain) in [
+            (OutputStatus::Success, "✓ message", "成功: message"),
+            (OutputStatus::Warning, "! 警告: message", "警告: message"),
+            (OutputStatus::Error, "× 错误: message", "错误: message"),
+            (OutputStatus::Step, "→ message", "进度: message"),
+            (OutputStatus::Skipped, "- 跳过: message", "跳过: message"),
+        ] {
+            for (symbols, expected) in [(true, terminal), (false, plain)] {
+                assert_eq!(
+                    format_status(
+                        status,
+                        "message",
+                        OutputCapabilities {
+                            symbols,
+                            style: false,
+                        },
+                    ),
+                    expected
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn status_keeps_empty_long_and_multiline_message_content() {
+        for msg in [
+            "".to_string(),
+            "内容".repeat(256),
+            "first\nsecond".to_string(),
+        ] {
+            assert_eq!(
+                format_status(
+                    OutputStatus::Success,
+                    &msg,
+                    OutputCapabilities {
+                        symbols: false,
+                        style: false,
+                    },
+                ),
+                format!("成功: {msg}")
+            );
+        }
+    }
+
+    #[test]
+    fn fields_indent_each_continuation_and_keep_empty_lines() {
+        assert_eq!(
+            format_key_value("描述", "first\nsecond\n\nfourth\n", 2, false),
+            "  描述: first\n    second\n    \n    fourth\n    "
+        );
+        assert_eq!(format_key_value("邮箱", "", 0, false), "邮箱: ");
+        let long_value = "a".repeat(256);
+        assert_eq!(
+            format_key_value("路径", &long_value, 2, false),
+            format!("  路径: {long_value}")
+        );
     }
 
     #[test]
