@@ -1,0 +1,95 @@
+{
+  "status": "PASS",
+  "head": "528d4bae1b145fd74d7bbc97454caac249a4b896",
+  "source_files": 82,
+  "current_source_hashes_match": true,
+  "source_manifest": "D:\\Documents\\Code\\Github\\ccr\\.trellis\\tasks\\10-06-cli-output-presentation\\checks\\2026-10-07-isolation-final-source-manifest.json",
+  "native_vs_final_source_delta": [
+    "crates/ccr/tests/commands/help.rs"
+  ],
+  "native_product_sources_unchanged": true,
+  "just_ci_exit": 0,
+  "formal_steps": [
+    [
+      "Version Check",
+      "00:02.383"
+    ],
+    [
+      "Format Check",
+      "00:06.570"
+    ],
+    [
+      "OMP Check",
+      "00:01.053"
+    ],
+    [
+      "Harness Check",
+      "00:01.724"
+    ],
+    [
+      "Copilot Check",
+      "00:16.885"
+    ],
+    [
+      "Strict Clippy",
+      "00:06.196"
+    ],
+    [
+      "Workspace Check",
+      "00:04.058"
+    ],
+    [
+      "Test",
+      "04:19.178"
+    ],
+    [
+      "Release Build",
+      "03:17.223"
+    ],
+    [
+      "Security Audit",
+      "00:15.657"
+    ],
+    [
+      "CI Governance",
+      "02:15.681"
+    ],
+    [
+      "Tauri CI",
+      "04:38.121"
+    ],
+    [
+      "Frontend Check",
+      "03:00.140"
+    ],
+    [
+      "Frontend Audit",
+      "00:04.705"
+    ],
+    [
+      "Frontend Coverage",
+      "01:52.882"
+    ],
+    [
+      "VSCode CI",
+      "00:14.498"
+    ]
+  ],
+  "ci_elapsed": "20:36.985",
+  "first_failure_retained": true,
+  "scope": "Read-only final raw receipt and current file hash audit; no extra gate executed",
+  "inventory": {
+    "baseline_calls": 931,
+    "current_calls": 1091,
+    "baseline_semantic": 452,
+    "current_semantic": 961,
+    "baseline_disposition_counts": {
+      "preserved": 135,
+      "shared-covered": 302,
+      "migrated": 494
+    },
+    "every_entry_has_disposition_reason_owner": true,
+    "source_hashes": 72,
+    "source_hashes_current": true
+  }
+}

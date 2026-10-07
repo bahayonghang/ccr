@@ -1,0 +1,493 @@
+{
+  "scope": [
+    "crates",
+    "docs",
+    ".trellis/spec",
+    ".trellis/tasks",
+    ".github"
+  ],
+  "pattern": "\\[(OK|INFO|WARN|ERR|STEP|FAIL|SKIP)\\]",
+  "exit": 0,
+  "count": 79,
+  "categories": {
+    "historical-or-task-evidence": 72,
+    "test-assertion-or-fixture": 3,
+    "compatibility-api": 4
+  },
+  "matches": [
+    {
+      "file": ".trellis/tasks/10-06-cli-message-contract/prd.md",
+      "line": 22,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/research/semantic-review-inventory.json",
+      "line": 3353,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/research/semantic-review-inventory.json",
+      "line": 3362,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/research/semantic-review-inventory.json",
+      "line": 3371,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/research/semantic-review-inventory.json",
+      "line": 3380,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/prd.md",
+      "line": 9,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/prd.md",
+      "line": 39,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/checks/baseline-process.json",
+      "line": 32,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/checks/baseline-process.json",
+      "line": 54,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/checks/baseline-process.json",
+      "line": 65,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/checks/baseline-process.json",
+      "line": 66,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/checks/baseline-process.json",
+      "line": 86,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/checks/baseline-process.json",
+      "line": 97,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/checks/baseline-process.json",
+      "line": 107,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/checks/baseline-process.json",
+      "line": 129,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/checks/baseline-process.json",
+      "line": 140,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/checks/baseline-process.json",
+      "line": 141,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/checks/baseline-process.json",
+      "line": 161,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/checks/baseline-process.json",
+      "line": 172,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/checks/baseline-process.json",
+      "line": 182,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/checks/baseline-process.json",
+      "line": 204,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/checks/baseline-process.json",
+      "line": 216,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/checks/baseline-process.json",
+      "line": 236,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/checks/baseline-process.json",
+      "line": 247,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/10-06-cli-output-presentation/checks/baseline-process.json",
+      "line": 279,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-07/07-29-profile-init-command/prd.md",
+      "line": 11,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": "crates/ccr/tests/commands/output_presentation_rollout.rs",
+      "line": 77,
+      "category": "test-assertion-or-fixture",
+      "reason": "Legacy labels are expected/forbidden text in regression fixtures or assertions."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-10/10-05-codex-cycle-token-cost-estimation/checks/native-first-attempt.md",
+      "line": 8,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": "crates/ccr/tests/commands/output_presentation.rs",
+      "line": 145,
+      "category": "test-assertion-or-fixture",
+      "reason": "Legacy labels are expected/forbidden text in regression fixtures or assertions."
+    },
+    {
+      "file": "crates/ccr-cli/src/services/doctor_service.rs",
+      "line": 40,
+      "category": "compatibility-api",
+      "reason": "DoctorStatus::label retains its public signature/literals; doctor_cmd renders through ColorOutput::format_status."
+    },
+    {
+      "file": "crates/ccr-cli/src/services/doctor_service.rs",
+      "line": 41,
+      "category": "compatibility-api",
+      "reason": "DoctorStatus::label retains its public signature/literals; doctor_cmd renders through ColorOutput::format_status."
+    },
+    {
+      "file": "crates/ccr-cli/src/services/doctor_service.rs",
+      "line": 42,
+      "category": "compatibility-api",
+      "reason": "DoctorStatus::label retains its public signature/literals; doctor_cmd renders through ColorOutput::format_status."
+    },
+    {
+      "file": "crates/ccr-cli/src/services/doctor_service.rs",
+      "line": 43,
+      "category": "compatibility-api",
+      "reason": "DoctorStatus::label retains its public signature/literals; doctor_cmd renders through ColorOutput::format_status."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-07/07-23-codex-fix-parity/research/root-cause-analysis.md",
+      "line": 27,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-07/07-23-codex-fix-parity/research/root-cause-analysis.md",
+      "line": 28,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+      "line": 350,
+      "category": "test-assertion-or-fixture",
+      "reason": "Legacy labels are expected/forbidden text in regression fixtures or assertions."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-06-evergreen-ci-history/research/gh-run-32684239641-log-failed.txt",
+      "line": 1298,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-06-evergreen-ci-history/research/gh-run-32684239641-log-failed.txt",
+      "line": 1299,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-06-evergreen-ci-history/research/gh-run-32684239641-log-failed.txt",
+      "line": 1301,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-06-evergreen-ci-history/research/gh-run-32684239641-log-failed.txt",
+      "line": 1310,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-06-evergreen-ci-history/research/gh-run-32684239641-log-failed.txt",
+      "line": 1311,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-06-evergreen-ci-history/research/gh-run-32684239641-log-failed.txt",
+      "line": 1313,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-06-evergreen-ci-history/research/gh-run-32684151228-log-failed.txt",
+      "line": 876,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-06-evergreen-ci-history/research/gh-run-32684151228-log-failed.txt",
+      "line": 1247,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-06-evergreen-ci-history/research/gh-run-32684151228-log-failed.txt",
+      "line": 1253,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-06-evergreen-ci-history/research/gh-run-32684151228-log-failed.txt",
+      "line": 1589,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-06-evergreen-ci-history/research/gh-run-32684151228-log-failed.txt",
+      "line": 2045,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-06-evergreen-ci-history/research/gh-run-32684151228-log-failed.txt",
+      "line": 2051,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-08/08-01-fix-apexcharts-tooltip-marker-svg-reset/research/root-cause.md",
+      "line": 148,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-08/08-01-fix-apexcharts-tooltip-marker-svg-reset/research/apexcharts-tooltip-marker-probe.mjs",
+      "line": 246,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-08/08-17-ccr-codex-fix-speed/research/command-chain-analysis.md",
+      "line": 149,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-08/08-22-react-migration/baseline/ci-baseline.txt",
+      "line": 166,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-08/08-22-react-migration/baseline/ci-baseline.txt",
+      "line": 167,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-08/08-22-react-migration/baseline/ci-baseline.txt",
+      "line": 169,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-08/08-22-react-migration/baseline/ci-baseline.txt",
+      "line": 182,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-08/08-22-react-migration/baseline/ci-baseline.txt",
+      "line": 183,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-08/08-22-react-migration/baseline/ci-baseline.txt",
+      "line": 185,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 103,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 104,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 115,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 116,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 127,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 128,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 139,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 140,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 151,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 154,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 163,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 166,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 174,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 175,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 178,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 186,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 187,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 190,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 238,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 247,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 256,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    },
+    {
+      "file": ".trellis/tasks/archive/2026-09/09-24-home-insights-design/research/palette-validation.md",
+      "line": 265,
+      "category": "historical-or-task-evidence",
+      "reason": "Retain historic outputs, baseline snapshots, plans, and evidence receipts; do not rewrite history."
+    }
+  ]
+}

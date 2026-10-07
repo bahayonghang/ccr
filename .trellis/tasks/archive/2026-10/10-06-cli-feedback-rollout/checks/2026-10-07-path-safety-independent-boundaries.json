@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "first_audit_attempt": {
+    "status": "FAIL_AUDIT_ASSERTION",
+    "cause": "production slice included one added blank separator before the new test module; corrected comparison strips boundary-only trailing whitespace",
+    "product_test_failure": false
+  },
+  "head": "528d4bae1b145fd74d7bbc97454caac249a4b896",
+  "production_boundaries": {
+    "logger": "only nonempty CCR_ROOT branch changed; writer/filter/14-day cleanup/redaction/bridge unchanged",
+    "conflict_checker": "only imports and path match changed; DTO/key extraction/classification/suggestions/read operation unchanged",
+    "project_init_fixture": "only temporary CCR_ROOT added",
+    "help_fixture": "only temporary CCR_ROOT added; custom help subcommand requires logger isolation"
+  },
+  "comparison_normalization": "LF and trailing whitespace at the production/test module boundary only",
+  "source_sha256": {
+    "crates/ccr-core/src/core/logging.rs": "12f012114968c59e78490bf04cd890e75f296d2db63255ae2fc29650d145c29e",
+    "crates/ccr-cli/src/managers/conflict_checker.rs": "56c3f3438524e19cdd43f7827c90e4c67d8681efa94f479036c13e2bb4af7d70",
+    "crates/ccr/tests/commands/project_init.rs": "6dd3b73d64461230562502967c58f318b92127108373929a89d034ad05c6dbdd",
+    "crates/ccr/tests/commands/help.rs": "a3a9e3ef9d3d07cac20f21abc98fa6e8ebf26e2e4ceaa0decc9710189b2d994c",
+    "crates/ccr-core/tests/log_path_isolation.rs": "b61dc79f175b16a322491f86d00f6503b44281a4c73ff84266b8f0eae0da1725"
+  }
+}

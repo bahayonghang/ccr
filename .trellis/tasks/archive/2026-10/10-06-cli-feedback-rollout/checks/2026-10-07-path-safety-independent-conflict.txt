@@ -1,0 +1,12 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.47s
+     Running unittests src\lib.rs (target\debug\deps\ccr_cli-174f211b337450c8.exe)
+
+running 5 tests
+test managers::conflict_checker::tests::claude_conflict_settings_follow_explicit_file_then_config_dir ... ok
+test managers::conflict_checker::tests::codex_conflict_settings_follow_ccr_dir_then_codex_home ... ok
+test managers::conflict_checker::tests::conflicts_read_only_the_selected_synthetic_settings ... ok
+test managers::conflict_checker::tests::gemini_conflict_settings_follow_home_then_userprofile ... ok
+test managers::conflict_checker::tests::missing_selected_settings_are_empty_without_creation ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 356 filtered out; finished in 0.03s
+

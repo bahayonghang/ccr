@@ -1,0 +1,20 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.48s
+     Running unittests src\lib.rs (target\debug\deps\ccr_core-a935105628d83cc9.exe)
+
+running 13 tests
+test core::logging::tests::managed_log_name_matches_daily_files ... ok
+test core::logging::tests::fields_indent_each_continuation_and_keep_empty_lines ... ok
+test core::logging::tests::status_words_and_symbols_keep_distinct_meanings ... ok
+test core::logging::tests::status_keeps_empty_long_and_multiline_message_content ... ok
+test core::logging::tests::test_markers ... ok
+test core::logging::tests::test_mask_sensitive ... ok
+test core::logging::tests::test_output_methods ... ok
+test core::logging::tests::empty_or_unset_log_root_retains_system_home_fallback ... ok
+test core::logging::tests::cleanup_removes_only_expired_ccr_rolling_logs ... ok
+test core::logging::tests::log_dir_uses_nonempty_ccr_root ... ok
+test core::logging::tests::test_resolve_log_filter_invalid_falls_back ... ok
+test core::logging::tests::test_resolve_log_filter_keeps_full_directive ... ok
+test core::logging::tests::test_resolve_log_filter_precedence ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 122 filtered out; finished in 0.00s
+

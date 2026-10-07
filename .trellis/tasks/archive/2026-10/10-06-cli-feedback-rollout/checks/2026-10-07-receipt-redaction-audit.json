@@ -1,0 +1,14 @@
+{
+  "checks": [
+    {
+      "receipt": "2026-10-07-rollout-binary-first.txt",
+      "contains_api_key_conflict_value": false
+    },
+    {
+      "receipt": "2026-10-07-independent-presentation-retest-2.txt",
+      "contains_api_key_conflict_value": false
+    }
+  ],
+  "values_printed": false,
+  "live_runtime_files_read": false
+}

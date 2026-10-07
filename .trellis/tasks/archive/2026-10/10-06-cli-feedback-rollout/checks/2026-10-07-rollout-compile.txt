@@ -1,0 +1,6 @@
+    Checking ccr-sync v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-sync)
+    Checking ccr-codex v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-codex)
+    Checking ccr-cli v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-cli)
+    Checking ccr-tui v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-tui)
+    Checking ccr v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 9.00s

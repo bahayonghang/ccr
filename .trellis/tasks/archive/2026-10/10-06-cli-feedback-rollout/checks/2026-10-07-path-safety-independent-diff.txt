@@ -1,0 +1,10 @@
+warning: in the working copy of '.trellis/spec/ccr-cli/backend/diagnostics-contract.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '.trellis/spec/ccr-cli/backend/index.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '.trellis/spec/ccr-core/backend/backend-guidelines.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '.trellis/spec/ccr-core/backend/logging-contracts.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '.trellis/spec/ccr-core/backend/test-fixtures.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '.trellis/spec/ccr/backend/test-fixtures.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'crates/ccr-cli/src/managers/conflict_checker.rs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'crates/ccr-core/src/core/logging.rs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'crates/ccr/tests/commands/help.rs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'crates/ccr/tests/commands/project_init.rs', LF will be replaced by CRLF the next time Git touches it

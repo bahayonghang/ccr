@@ -1,0 +1,12 @@
+   Compiling ccr v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.99s
+     Running tests\commands.rs (target\debug\deps\commands-e736194fc7a0286d.exe)
+
+running 4 tests
+test output_presentation_rollout::clean_cancel_retains_destruction_warning_and_neutral_result ... ok
+test output_presentation_rollout::platform_registry_counts_are_neutral_and_json_fields_are_unchanged ... ok
+test output_presentation_rollout::empty_profile_list_keeps_neutral_output_and_json_null_current ... ok
+test output_presentation_rollout::clean_preview_preserves_long_paths_and_files_at_small_widths ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.20s
+

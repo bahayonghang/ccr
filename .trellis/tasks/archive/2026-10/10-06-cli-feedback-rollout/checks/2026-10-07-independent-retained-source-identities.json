@@ -1,0 +1,430 @@
+{
+  "head": "528d4bae1b145fd74d7bbc97454caac249a4b896",
+  "groups": {
+    "C2": {
+      "review_manifest": ".trellis/tasks/10-06-auth-cli-feedback/checks/2026-10-07-independent-source-manifest.json",
+      "count": 22,
+      "all_match": false,
+      "files": [
+        {
+          "file": "crates/ccr-cli/src/commands/claude/auth/current.rs",
+          "review_sha256": "7a5a021a88e6da19a58dd0c908a16461330c424bb2f563d4bdcc77ab33c11b88",
+          "current_sha256": "7a5a021a88e6da19a58dd0c908a16461330c424bb2f563d4bdcc77ab33c11b88",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/claude/auth/delete.rs",
+          "review_sha256": "5988daad9289e46d5c9a9886fdbc2b00644b5c487ea581dce9d28687cd1c26db",
+          "current_sha256": "5988daad9289e46d5c9a9886fdbc2b00644b5c487ea581dce9d28687cd1c26db",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/claude/auth/list.rs",
+          "review_sha256": "150143fb65c0387a3b8b1dc35194aa828e6c8d2deb731ad30b93ef0075a764b4",
+          "current_sha256": "150143fb65c0387a3b8b1dc35194aa828e6c8d2deb731ad30b93ef0075a764b4",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/claude/auth/mod.rs",
+          "review_sha256": "0a6e98a86e9cb1c86311139fbf917511e83a60bb6cbab8880b6c8474ff26f046",
+          "current_sha256": "0a6e98a86e9cb1c86311139fbf917511e83a60bb6cbab8880b6c8474ff26f046",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/claude/auth/off.rs",
+          "review_sha256": "d6503e69f3e878ad3fcd6cee6a4fd8703d9098820159b73c9d199ec37af2e046",
+          "current_sha256": "d6503e69f3e878ad3fcd6cee6a4fd8703d9098820159b73c9d199ec37af2e046",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/claude/auth/save.rs",
+          "review_sha256": "72a9d7cfd701107c9c1cab2cc2b6462f7a31758395ccac33f750a755720a4409",
+          "current_sha256": "72a9d7cfd701107c9c1cab2cc2b6462f7a31758395ccac33f750a755720a4409",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/claude/auth/switch.rs",
+          "review_sha256": "acc4eaeb45f4f33d11e7df9e058aeb812335c85609284bfb046108c3a54d4931",
+          "current_sha256": "acc4eaeb45f4f33d11e7df9e058aeb812335c85609284bfb046108c3a54d4931",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/codex/auth/current.rs",
+          "review_sha256": "373a1b92467edfa0d44ae1f758db85a68d0b14a82fab6c87ca9e0ebf453f5db8",
+          "current_sha256": "373a1b92467edfa0d44ae1f758db85a68d0b14a82fab6c87ca9e0ebf453f5db8",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/codex/auth/delete.rs",
+          "review_sha256": "a6b7aed99a8578440767da88db0d9603ff352c054f7b6d4366b0465d43e9c5bd",
+          "current_sha256": "a6b7aed99a8578440767da88db0d9603ff352c054f7b6d4366b0465d43e9c5bd",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/codex/auth/export.rs",
+          "review_sha256": "7acd0e51b61791eece3e476d910481206b6e0b3644f7149d50edb05ce8bcf847",
+          "current_sha256": "7acd0e51b61791eece3e476d910481206b6e0b3644f7149d50edb05ce8bcf847",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/codex/auth/import.rs",
+          "review_sha256": "1135f5667e71f419630a40aea12f948abd33978707053e1c06b14d42474ebe93",
+          "current_sha256": "1135f5667e71f419630a40aea12f948abd33978707053e1c06b14d42474ebe93",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/codex/auth/list.rs",
+          "review_sha256": "9b3d0f5376e6dfd73dff7a1792b843385c74c047302527562e1153e99d84c25e",
+          "current_sha256": "9b3d0f5376e6dfd73dff7a1792b843385c74c047302527562e1153e99d84c25e",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/codex/auth/mod.rs",
+          "review_sha256": "61dc45eeec2efb0a570523974314e25ad3586ceb5650a61fe6979a06564b99d7",
+          "current_sha256": "61dc45eeec2efb0a570523974314e25ad3586ceb5650a61fe6979a06564b99d7",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/codex/auth/off.rs",
+          "review_sha256": "b863c1aff41ecc33b54917019e615e1f736bad6b9faced06f15d84b5c0aaa43d",
+          "current_sha256": "b863c1aff41ecc33b54917019e615e1f736bad6b9faced06f15d84b5c0aaa43d",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/codex/auth/rename.rs",
+          "review_sha256": "52356a886acaae79a6895cd6230abc658b0390a3673559dd89991c840364b13b",
+          "current_sha256": "52356a886acaae79a6895cd6230abc658b0390a3673559dd89991c840364b13b",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/codex/auth/repair.rs",
+          "review_sha256": "08b1892b9d0faa8f2ab36bb5e333893bb6e4fc421cfbf096dfe75a74df03569b",
+          "current_sha256": "08b1892b9d0faa8f2ab36bb5e333893bb6e4fc421cfbf096dfe75a74df03569b",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/codex/auth/save.rs",
+          "review_sha256": "b87e38e2a7c2f485bb4b3bac1d7ea86723cc1291c2818bb2e785781fc9161fd0",
+          "current_sha256": "b87e38e2a7c2f485bb4b3bac1d7ea86723cc1291c2818bb2e785781fc9161fd0",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/codex/auth/switch.rs",
+          "review_sha256": "bd87dd2e58a327bce98d8c1457f40fad3eb66d6ad51de034c9618840972a3e1f",
+          "current_sha256": "bd87dd2e58a327bce98d8c1457f40fad3eb66d6ad51de034c9618840972a3e1f",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/codex/auth/sync.rs",
+          "review_sha256": "b92bbd85e073c31fb341d5f2c83c3c9b137bf879d5863cdaca8f6c76c7ab3b53",
+          "current_sha256": "b92bbd85e073c31fb341d5f2c83c3c9b137bf879d5863cdaca8f6c76c7ab3b53",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/codex/auth/update.rs",
+          "review_sha256": "9bfb52b65be47aab59a241ef4d255e53e1c97e28719ea62fa549a830578a268e",
+          "current_sha256": "9bfb52b65be47aab59a241ef4d255e53e1c97e28719ea62fa549a830578a268e",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/grok/auth.rs",
+          "review_sha256": "a48e01efa1d913c3520b6443b705ea3126d93827dcc03dfce17d102048e5e51d",
+          "current_sha256": "a48e01efa1d913c3520b6443b705ea3126d93827dcc03dfce17d102048e5e51d",
+          "match": true
+        },
+        {
+          "file": "crates/ccr/tests/commands/output_presentation.rs",
+          "review_sha256": "bc99cfbbb8fac27d77d1c29134ba5e1e30a952e885b81385ff265b954b1b895e",
+          "current_sha256": "174c9fb30ec8c1c66a074c8fbd7be476679e3f6da645dcb68357d90167943e7b",
+          "match": false
+        }
+      ],
+      "product_files": 21,
+      "product_all_match": true,
+      "changed_tests": [
+        "crates/ccr/tests/commands/output_presentation.rs"
+      ]
+    },
+    "C3": {
+      "review_manifest": ".trellis/tasks/10-06-cli-feedback-rollout/checks/2026-10-07-independent-source-flow.json",
+      "count": 45,
+      "all_match": true,
+      "files": [
+        {
+          "file": "crates/ccr-cli/src/commands/check_cmd.rs",
+          "review_sha256": "87b4276cc373702895925d21aa1bb58c10780b448e5ce1fd74dc2df3ef20ab64",
+          "current_sha256": "87b4276cc373702895925d21aa1bb58c10780b448e5ce1fd74dc2df3ef20ab64",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/claude/profile.rs",
+          "review_sha256": "2dd3ad72886106954afa9f0b9515950c67b76b7ddd0f12dea14156a4f370406a",
+          "current_sha256": "2dd3ad72886106954afa9f0b9515950c67b76b7ddd0f12dea14156a4f370406a",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/codex/env.rs",
+          "review_sha256": "a9d3ae194a6e526fdbc7dc06e8c5b75773067ca3f5a0be921998e823cc78a93d",
+          "current_sha256": "a9d3ae194a6e526fdbc7dc06e8c5b75773067ca3f5a0be921998e823cc78a93d",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/codex/fix.rs",
+          "review_sha256": "2471a24f094b654775d62818be96048eb8c3b28f32c624708dbdc771f7b26b2c",
+          "current_sha256": "2471a24f094b654775d62818be96048eb8c3b28f32c624708dbdc771f7b26b2c",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/codex/profile.rs",
+          "review_sha256": "5d65ac6c8dbd93f96ea7767d25b48001652ad141e5232cf4efc12fb0e9c60cce",
+          "current_sha256": "5d65ac6c8dbd93f96ea7767d25b48001652ad141e5232cf4efc12fb0e9c60cce",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/codex/quota.rs",
+          "review_sha256": "1857782452cb096bd6b41340f0b424894ec50f8beb3f0bea12e94262148131be",
+          "current_sha256": "1857782452cb096bd6b41340f0b424894ec50f8beb3f0bea12e94262148131be",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/codex/sessions.rs",
+          "review_sha256": "c27c8d421e0fc8346aeef7d82fafd4b9f528584e0828e116e8bb8b27207dcaf4",
+          "current_sha256": "c27c8d421e0fc8346aeef7d82fafd4b9f528584e0828e116e8bb8b27207dcaf4",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/codex/sync_history.rs",
+          "review_sha256": "dd396216a82d3e60dd1844b107305130f338762e08c6dbd6b47a3596637d9a5c",
+          "current_sha256": "dd396216a82d3e60dd1844b107305130f338762e08c6dbd6b47a3596637d9a5c",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/common/prompt.rs",
+          "review_sha256": "7c1958296a3142e88b567745ad1806c7e4b006892d6cabea54d2d642f6e96862",
+          "current_sha256": "7c1958296a3142e88b567745ad1806c7e4b006892d6cabea54d2d642f6e96862",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/data/budget.rs",
+          "review_sha256": "af015ff270152572433aeb1e60f6ec7f643067124386b4f4f9eb40f0c5c89658",
+          "current_sha256": "af015ff270152572433aeb1e60f6ec7f643067124386b4f4f9eb40f0c5c89658",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/data/export.rs",
+          "review_sha256": "9fc65fa6fb034d1bf20db250b5d393999874c577e7fb7a0b30e6d4e7b29db8a2",
+          "current_sha256": "9fc65fa6fb034d1bf20db250b5d393999874c577e7fb7a0b30e6d4e7b29db8a2",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/data/history.rs",
+          "review_sha256": "eada5f166140f06a8e9a87ef7fbb970074e80bd635f696f4f86b79f188bc4f94",
+          "current_sha256": "eada5f166140f06a8e9a87ef7fbb970074e80bd635f696f4f86b79f188bc4f94",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/data/import.rs",
+          "review_sha256": "ce578ae0daff885947e132e8e4139edc96fad2e4898312727e7ee5f848791874",
+          "current_sha256": "ce578ae0daff885947e132e8e4139edc96fad2e4898312727e7ee5f848791874",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/data/pricing.rs",
+          "review_sha256": "fa9dda294ebf88414b2eade13f5fb2de5d141ddc923b1294fc5203ad77041d7d",
+          "current_sha256": "fa9dda294ebf88414b2eade13f5fb2de5d141ddc923b1294fc5203ad77041d7d",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/data/stats.rs",
+          "review_sha256": "11055c62fd2f29fba5cd6d5241bb541baad4c90f9cd6f39d5b54900524c55c43",
+          "current_sha256": "11055c62fd2f29fba5cd6d5241bb541baad4c90f9cd6f39d5b54900524c55c43",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/doctor_cmd.rs",
+          "review_sha256": "1f4492a81d31e2340fb2e2eef0f6528f0b1f602ab9f78a0f927a6fa68abb5d75",
+          "current_sha256": "1f4492a81d31e2340fb2e2eef0f6528f0b1f602ab9f78a0f927a6fa68abb5d75",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/grok/profile.rs",
+          "review_sha256": "842dfb04cdedfea3324bcc5fd9cbd58cc7f4be0881ad3abeb87270fa741f9f22",
+          "current_sha256": "842dfb04cdedfea3324bcc5fd9cbd58cc7f4be0881ad3abeb87270fa741f9f22",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+          "review_sha256": "fd1a263b6bf1ef464216cd74e3fb16e14758295aef2034904b8a84579a315c40",
+          "current_sha256": "fd1a263b6bf1ef464216cd74e3fb16e14758295aef2034904b8a84579a315c40",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/lifecycle/clear.rs",
+          "review_sha256": "ec6c4f602a86cd8745d5423915db453ec8e1a5d4922c43172c2ebd06e10e3e3c",
+          "current_sha256": "ec6c4f602a86cd8745d5423915db453ec8e1a5d4922c43172c2ebd06e10e3e3c",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/lifecycle/init.rs",
+          "review_sha256": "7046c2fe39b64f48dd9f605348f2e79c654aa4c33232713f1e8b5293a80918ab",
+          "current_sha256": "7046c2fe39b64f48dd9f605348f2e79c654aa4c33232713f1e8b5293a80918ab",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/lifecycle/optimize.rs",
+          "review_sha256": "afba9463f32a14aaf1e7a8514b45bc3620c55260909e96fb4b2960da521bbd7c",
+          "current_sha256": "afba9463f32a14aaf1e7a8514b45bc3620c55260909e96fb4b2960da521bbd7c",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/platform/current.rs",
+          "review_sha256": "db32719b5d085f31b88c1d860aed6364d583dea102a25a8737acf0b7c230484d",
+          "current_sha256": "db32719b5d085f31b88c1d860aed6364d583dea102a25a8737acf0b7c230484d",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/platform/info.rs",
+          "review_sha256": "a60f3a3b85dd5a796c23f0ace3dffd2a81c410a43bda4c8d8dec678857740837",
+          "current_sha256": "a60f3a3b85dd5a796c23f0ace3dffd2a81c410a43bda4c8d8dec678857740837",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/platform/init.rs",
+          "review_sha256": "55b959d97631be9dd2a27b596f128307b3c72990193040215aec3855b5b9b826",
+          "current_sha256": "55b959d97631be9dd2a27b596f128307b3c72990193040215aec3855b5b9b826",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/platform/list.rs",
+          "review_sha256": "3b69b05b5d9dae27a9f310e11e98c00c8884a1c7ae2bd26fecb14cc0ba21e261",
+          "current_sha256": "3b69b05b5d9dae27a9f310e11e98c00c8884a1c7ae2bd26fecb14cc0ba21e261",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/platform/profile_init.rs",
+          "review_sha256": "d333cf3b5928af424b1cf46ec347dc5399d2ea82e92bff4a5ccbe7079bc96b8c",
+          "current_sha256": "d333cf3b5928af424b1cf46ec347dc5399d2ea82e92bff4a5ccbe7079bc96b8c",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/platform/profile_open.rs",
+          "review_sha256": "d20950acb2cd94595b4f8a991194b89795dd75c947f705c9aff5e960f622fda1",
+          "current_sha256": "d20950acb2cd94595b4f8a991194b89795dd75c947f705c9aff5e960f622fda1",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/platform/switch.rs",
+          "review_sha256": "17bb7a96211a30d2b36cf979107a30728f3de80b4be93321803218e91f08577e",
+          "current_sha256": "17bb7a96211a30d2b36cf979107a30728f3de80b4be93321803218e91f08577e",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/profile/add.rs",
+          "review_sha256": "5adeaa38fd1c2f5faf6ba4576d3e84a24f9ea1cbbf50f01a458f260bd7c65df7",
+          "current_sha256": "5adeaa38fd1c2f5faf6ba4576d3e84a24f9ea1cbbf50f01a458f260bd7c65df7",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/profile/current.rs",
+          "review_sha256": "46bce1308d2010418f6e2a9de9ac256b6d53c4157113099b759dad6488207a27",
+          "current_sha256": "46bce1308d2010418f6e2a9de9ac256b6d53c4157113099b759dad6488207a27",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/profile/delete.rs",
+          "review_sha256": "192d409f729e9edf3bd8d180234159ce6dfdffe1b28a8144b6f0ce6b06f4c6b2",
+          "current_sha256": "192d409f729e9edf3bd8d180234159ce6dfdffe1b28a8144b6f0ce6b06f4c6b2",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/profile/disable.rs",
+          "review_sha256": "034f6459eda2ee3039b110f52d828539350456cd17bd5323459fc767889e9120",
+          "current_sha256": "034f6459eda2ee3039b110f52d828539350456cd17bd5323459fc767889e9120",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/profile/enable.rs",
+          "review_sha256": "728ee331b1e722a256b3eb4e414b0edc01b4bbaececfc42ac5cb3af09ea7a56e",
+          "current_sha256": "728ee331b1e722a256b3eb4e414b0edc01b4bbaececfc42ac5cb3af09ea7a56e",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/profile/list.rs",
+          "review_sha256": "197293e3c364b28dd2f87caf4b9714dda11b71dc6b1d778d69818c7baa0e92c7",
+          "current_sha256": "197293e3c364b28dd2f87caf4b9714dda11b71dc6b1d778d69818c7baa0e92c7",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/profile/switch.rs",
+          "review_sha256": "a8ec3342f229c400316cfbae3ace747b503a2f42157d151e2273db85d5f41ff2",
+          "current_sha256": "a8ec3342f229c400316cfbae3ace747b503a2f42157d151e2273db85d5f41ff2",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/project/init.rs",
+          "review_sha256": "69db7c71214509d376dd7cfa79be49c41d2835445f7f31b4e52303ca94238e75",
+          "current_sha256": "69db7c71214509d376dd7cfa79be49c41d2835445f7f31b4e52303ca94238e75",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/provider_cmd.rs",
+          "review_sha256": "92e4794f15a527e5a22148023d02f3064d4c69d98a1933c565cdf9f91cf6c52d",
+          "current_sha256": "92e4794f15a527e5a22148023d02f3064d4c69d98a1933c565cdf9f91cf6c52d",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/sessions_cmd.rs",
+          "review_sha256": "7003c23a54e268e9f10234daf6ad0f87906f875cc327d1e4732a2f2c8d0eb682",
+          "current_sha256": "7003c23a54e268e9f10234daf6ad0f87906f875cc327d1e4732a2f2c8d0eb682",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/temp_cmd.rs",
+          "review_sha256": "8264023c96d6214b68e398ed9440294a7ac65144d90ae1d05fe6f2e6cdf169d7",
+          "current_sha256": "8264023c96d6214b68e398ed9440294a7ac65144d90ae1d05fe6f2e6cdf169d7",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/temp_token.rs",
+          "review_sha256": "dd3c30907655d492075311393d822aa3ba444132705c2d4af8436274b9227362",
+          "current_sha256": "dd3c30907655d492075311393d822aa3ba444132705c2d4af8436274b9227362",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/update.rs",
+          "review_sha256": "15d024e7eeef51293702f5df8ed366d9c850adf0a369994ccd5712f02229f695",
+          "current_sha256": "15d024e7eeef51293702f5df8ed366d9c850adf0a369994ccd5712f02229f695",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/commands/update_failure.rs",
+          "review_sha256": "4e87c26a4c6d9b73cc298bd4d750924d518716509ee324f938bda351b420ca0a",
+          "current_sha256": "4e87c26a4c6d9b73cc298bd4d750924d518716509ee324f938bda351b420ca0a",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/services/ui_service.rs",
+          "review_sha256": "5c643d8f6ce802ce6e2aed2fc921bfb7b371f342bf25285ff3ed7b70a39530b3",
+          "current_sha256": "5c643d8f6ce802ce6e2aed2fc921bfb7b371f342bf25285ff3ed7b70a39530b3",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-cli/src/sync/commands.rs",
+          "review_sha256": "48866dd1a083ecc435ff88799db7280886ca7a8de7b0592b15deb61f9f9249e2",
+          "current_sha256": "48866dd1a083ecc435ff88799db7280886ca7a8de7b0592b15deb61f9f9249e2",
+          "match": true
+        },
+        {
+          "file": "crates/ccr-sync/src/sync/content_selector.rs",
+          "review_sha256": "8b73d8aa530b04b68564f2a230d0e9947a2fb0b53faaf1b7b7905a0821f591cf",
+          "current_sha256": "8b73d8aa530b04b68564f2a230d0e9947a2fb0b53faaf1b7b7905a0821f591cf",
+          "match": true
+        }
+      ],
+      "product_files": 45,
+      "product_all_match": true,
+      "changed_tests": []
+    }
+  },
+  "scope": "Identity refresh of C2/C3 independent reviews. All 21 C2 and 45 C3 production presentation files match. C2 process test identity changed after approved Windows ignore removal; new path/test and final gate identities are audited separately."
+}

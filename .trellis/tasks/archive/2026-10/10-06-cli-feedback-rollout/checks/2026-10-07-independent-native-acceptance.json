@@ -1,0 +1,351 @@
+{
+  "status": "PASS",
+  "binary": "C:\\Users\\lyh\\AppData\\Local\\Temp\\ccr-cli-native-artifact-tw_65xcm\\ccr.exe",
+  "sha256": "26560b7ae47654a54f12e90cc75f99622439bd21a6af04c15c876a139a7475c6",
+  "records": [
+    {
+      "receipt": ".trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-120-dark-dumb-receipt.json",
+      "width": 120,
+      "background": "dark",
+      "mode": "dumb",
+      "case_count": 9,
+      "exit_codes": {
+        "save-long-multiline": 0,
+        "duplicate-error": 0,
+        "copy-normal": 0,
+        "current-runtime": 0,
+        "doctor-statuses": 1,
+        "missing-fields": 0,
+        "leading-seed": 0,
+        "duplicate-leading": 0,
+        "copy-leading": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "receipt": ".trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-120-dark-no-color-receipt.json",
+      "width": 120,
+      "background": "dark",
+      "mode": "no-color",
+      "case_count": 9,
+      "exit_codes": {
+        "save-long-multiline": 0,
+        "duplicate-error": 0,
+        "copy-normal": 0,
+        "current-runtime": 0,
+        "doctor-statuses": 1,
+        "missing-fields": 0,
+        "leading-seed": 0,
+        "duplicate-leading": 0,
+        "copy-leading": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "receipt": ".trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-120-dark-normal-receipt.json",
+      "width": 120,
+      "background": "dark",
+      "mode": "normal",
+      "case_count": 9,
+      "exit_codes": {
+        "save-long-multiline": 0,
+        "duplicate-error": 0,
+        "copy-normal": 0,
+        "current-runtime": 0,
+        "doctor-statuses": 1,
+        "missing-fields": 0,
+        "leading-seed": 0,
+        "duplicate-leading": 0,
+        "copy-leading": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "receipt": ".trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-120-light-dumb-receipt.json",
+      "width": 120,
+      "background": "light",
+      "mode": "dumb",
+      "case_count": 9,
+      "exit_codes": {
+        "save-long-multiline": 0,
+        "duplicate-error": 0,
+        "copy-normal": 0,
+        "current-runtime": 0,
+        "doctor-statuses": 1,
+        "missing-fields": 0,
+        "leading-seed": 0,
+        "duplicate-leading": 0,
+        "copy-leading": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "receipt": ".trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-120-light-no-color-receipt.json",
+      "width": 120,
+      "background": "light",
+      "mode": "no-color",
+      "case_count": 9,
+      "exit_codes": {
+        "save-long-multiline": 0,
+        "duplicate-error": 0,
+        "copy-normal": 0,
+        "current-runtime": 0,
+        "doctor-statuses": 1,
+        "missing-fields": 0,
+        "leading-seed": 0,
+        "duplicate-leading": 0,
+        "copy-leading": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "receipt": ".trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-120-light-normal-receipt.json",
+      "width": 120,
+      "background": "light",
+      "mode": "normal",
+      "case_count": 9,
+      "exit_codes": {
+        "save-long-multiline": 0,
+        "duplicate-error": 0,
+        "copy-normal": 0,
+        "current-runtime": 0,
+        "doctor-statuses": 1,
+        "missing-fields": 0,
+        "leading-seed": 0,
+        "duplicate-leading": 0,
+        "copy-leading": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "receipt": ".trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-40-dark-dumb-receipt.json",
+      "width": 40,
+      "background": "dark",
+      "mode": "dumb",
+      "case_count": 9,
+      "exit_codes": {
+        "save-long-multiline": 0,
+        "duplicate-error": 0,
+        "copy-normal": 0,
+        "current-runtime": 0,
+        "doctor-statuses": 1,
+        "missing-fields": 0,
+        "leading-seed": 0,
+        "duplicate-leading": 0,
+        "copy-leading": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "receipt": ".trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-40-dark-no-color-receipt.json",
+      "width": 40,
+      "background": "dark",
+      "mode": "no-color",
+      "case_count": 9,
+      "exit_codes": {
+        "save-long-multiline": 0,
+        "duplicate-error": 0,
+        "copy-normal": 0,
+        "current-runtime": 0,
+        "doctor-statuses": 1,
+        "missing-fields": 0,
+        "leading-seed": 0,
+        "duplicate-leading": 0,
+        "copy-leading": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "receipt": ".trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-40-dark-normal-receipt.json",
+      "width": 40,
+      "background": "dark",
+      "mode": "normal",
+      "case_count": 9,
+      "exit_codes": {
+        "save-long-multiline": 0,
+        "duplicate-error": 0,
+        "copy-normal": 0,
+        "current-runtime": 0,
+        "doctor-statuses": 1,
+        "missing-fields": 0,
+        "leading-seed": 0,
+        "duplicate-leading": 0,
+        "copy-leading": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "receipt": ".trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-40-light-dumb-receipt.json",
+      "width": 40,
+      "background": "light",
+      "mode": "dumb",
+      "case_count": 9,
+      "exit_codes": {
+        "save-long-multiline": 0,
+        "duplicate-error": 0,
+        "copy-normal": 0,
+        "current-runtime": 0,
+        "doctor-statuses": 1,
+        "missing-fields": 0,
+        "leading-seed": 0,
+        "duplicate-leading": 0,
+        "copy-leading": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "receipt": ".trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-40-light-no-color-receipt.json",
+      "width": 40,
+      "background": "light",
+      "mode": "no-color",
+      "case_count": 9,
+      "exit_codes": {
+        "save-long-multiline": 0,
+        "duplicate-error": 0,
+        "copy-normal": 0,
+        "current-runtime": 0,
+        "doctor-statuses": 1,
+        "missing-fields": 0,
+        "leading-seed": 0,
+        "duplicate-leading": 0,
+        "copy-leading": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "receipt": ".trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-40-light-normal-receipt.json",
+      "width": 40,
+      "background": "light",
+      "mode": "normal",
+      "case_count": 9,
+      "exit_codes": {
+        "save-long-multiline": 0,
+        "duplicate-error": 0,
+        "copy-normal": 0,
+        "current-runtime": 0,
+        "doctor-statuses": 1,
+        "missing-fields": 0,
+        "leading-seed": 0,
+        "duplicate-leading": 0,
+        "copy-leading": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "receipt": ".trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-80-dark-dumb-receipt.json",
+      "width": 80,
+      "background": "dark",
+      "mode": "dumb",
+      "case_count": 9,
+      "exit_codes": {
+        "save-long-multiline": 0,
+        "duplicate-error": 0,
+        "copy-normal": 0,
+        "current-runtime": 0,
+        "doctor-statuses": 1,
+        "missing-fields": 0,
+        "leading-seed": 0,
+        "duplicate-leading": 0,
+        "copy-leading": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "receipt": ".trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-80-dark-no-color-receipt.json",
+      "width": 80,
+      "background": "dark",
+      "mode": "no-color",
+      "case_count": 9,
+      "exit_codes": {
+        "save-long-multiline": 0,
+        "duplicate-error": 0,
+        "copy-normal": 0,
+        "current-runtime": 0,
+        "doctor-statuses": 1,
+        "missing-fields": 0,
+        "leading-seed": 0,
+        "duplicate-leading": 0,
+        "copy-leading": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "receipt": ".trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-80-dark-normal-receipt.json",
+      "width": 80,
+      "background": "dark",
+      "mode": "normal",
+      "case_count": 9,
+      "exit_codes": {
+        "save-long-multiline": 0,
+        "duplicate-error": 0,
+        "copy-normal": 0,
+        "current-runtime": 0,
+        "doctor-statuses": 1,
+        "missing-fields": 0,
+        "leading-seed": 0,
+        "duplicate-leading": 0,
+        "copy-leading": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "receipt": ".trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-80-light-dumb-receipt.json",
+      "width": 80,
+      "background": "light",
+      "mode": "dumb",
+      "case_count": 9,
+      "exit_codes": {
+        "save-long-multiline": 0,
+        "duplicate-error": 0,
+        "copy-normal": 0,
+        "current-runtime": 0,
+        "doctor-statuses": 1,
+        "missing-fields": 0,
+        "leading-seed": 0,
+        "duplicate-leading": 0,
+        "copy-leading": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "receipt": ".trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-80-light-no-color-receipt.json",
+      "width": 80,
+      "background": "light",
+      "mode": "no-color",
+      "case_count": 9,
+      "exit_codes": {
+        "save-long-multiline": 0,
+        "duplicate-error": 0,
+        "copy-normal": 0,
+        "current-runtime": 0,
+        "doctor-statuses": 1,
+        "missing-fields": 0,
+        "leading-seed": 0,
+        "duplicate-leading": 0,
+        "copy-leading": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "receipt": ".trellis\\tasks\\10-06-cli-output-presentation\\checks\\native-2026-10-07-isolation-first-80-light-normal-receipt.json",
+      "width": 80,
+      "background": "light",
+      "mode": "normal",
+      "case_count": 9,
+      "exit_codes": {
+        "save-long-multiline": 0,
+        "duplicate-error": 0,
+        "copy-normal": 0,
+        "current-runtime": 0,
+        "doctor-statuses": 1,
+        "missing-fields": 0,
+        "leading-seed": 0,
+        "duplicate-leading": 0,
+        "copy-leading": 0
+      },
+      "status": "PASS"
+    }
+  ],
+  "failures": [],
+  "scope": "Visible console cells, palette, dimensions, copied command receipts; not raw stream/DTO/Doctor full-report verification"
+}

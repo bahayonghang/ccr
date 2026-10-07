@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "cases": 12,
+  "probe_sha256": "4a66ee20b082d78f76c4060430250d12250fee07c9770e0d2ab29258bba21b7b",
+  "probe_identity": ".trellis\\tasks\\10-06-cli-output-presentation\\checks\\2026-10-07-isolation-native-probe-identity.json",
+  "captured_status_characters": "plain words per target stream",
+  "force_exception": "ANSI only for non-dumb force; message bodies remain plain",
+  "stderr": "error line only; stdout retains success/warning/progress/fields",
+  "pty_outer_exit": 0,
+  "scope": "Actual Windows shared renderer test executable; root CLI handlers belong to 18/162 matrix."
+}

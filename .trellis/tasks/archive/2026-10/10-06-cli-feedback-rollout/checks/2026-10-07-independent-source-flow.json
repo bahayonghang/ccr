@@ -1,0 +1,321 @@
+{
+  "head": "528d4bae1b145fd74d7bbc97454caac249a4b896",
+  "method": "lexical projection removes use imports, ColorOutput calls, direct print macros, and next-step calls; remaining differences require manual review; source review only, not runtime proof",
+  "files": [
+    {
+      "file": "crates/ccr-cli/src/commands/check_cmd.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "87b4276cc373702895925d21aa1bb58c10780b448e5ce1fd74dc2df3ef20ab64"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/claude/profile.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "2dd3ad72886106954afa9f0b9515950c67b76b7ddd0f12dea14156a4f370406a"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/env.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "a9d3ae194a6e526fdbc7dc06e8c5b75773067ca3f5a0be921998e823cc78a93d"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/fix.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "2471a24f094b654775d62818be96048eb8c3b28f32c624708dbdc771f7b26b2c"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/profile.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "5d65ac6c8dbd93f96ea7767d25b48001652ad141e5232cf4efc12fb0e9c60cce"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/quota.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "1857782452cb096bd6b41340f0b424894ec50f8beb3f0bea12e94262148131be"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/sessions.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "c27c8d421e0fc8346aeef7d82fafd4b9f528584e0828e116e8bb8b27207dcaf4"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/codex/sync_history.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "dd396216a82d3e60dd1844b107305130f338762e08c6dbd6b47a3596637d9a5c"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/common/prompt.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "7c1958296a3142e88b567745ad1806c7e4b006892d6cabea54d2d642f6e96862"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/data/budget.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "af015ff270152572433aeb1e60f6ec7f643067124386b4f4f9eb40f0c5c89658"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/data/export.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "9fc65fa6fb034d1bf20db250b5d393999874c577e7fb7a0b30e6d4e7b29db8a2"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/data/history.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "eada5f166140f06a8e9a87ef7fbb970074e80bd635f696f4f86b79f188bc4f94"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/data/import.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "ce578ae0daff885947e132e8e4139edc96fad2e4898312727e7ee5f848791874"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/data/pricing.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "fa9dda294ebf88414b2eade13f5fb2de5d141ddc923b1294fc5203ad77041d7d"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/data/stats.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "11055c62fd2f29fba5cd6d5241bb541baad4c90f9cd6f39d5b54900524c55c43"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/doctor_cmd.rs",
+      "projection_equal": false,
+      "remaining_token_differences": [
+        {
+          "old": "",
+          "new": "let status = match check . status { DoctorStatus :: Ok => OutputStatus :: Success , DoctorStatus :: Warn => OutputStatus :: Warning , DoctorStatus :: Fail => OutputStatus :: Error , DoctorStatus :: Skip => OutputStatus :: Skipped , } ;"
+        }
+      ],
+      "sha256": "1f4492a81d31e2340fb2e2eef0f6528f0b1f602ab9f78a0f927a6fa68abb5d75",
+      "manual_review": {
+        "status": "PASS_SOURCE_REVIEW",
+        "reason": "Presentation-only mapping from existing DoctorStatus to OutputStatus. Existing report DTO, service call, diagnostics, JSON branch and stdout are preserved."
+      }
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/grok/profile.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "842dfb04cdedfea3324bcc5fd9cbd58cc7f4be0881ad3abeb87270fa741f9f22"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "fd1a263b6bf1ef464216cd74e3fb16e14758295aef2034904b8a84579a315c40"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/lifecycle/clear.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "ec6c4f602a86cd8745d5423915db453ec8e1a5d4922c43172c2ebd06e10e3e3c"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/lifecycle/init.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "7046c2fe39b64f48dd9f605348f2e79c654aa4c33232713f1e8b5293a80918ab"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/lifecycle/optimize.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "afba9463f32a14aaf1e7a8514b45bc3620c55260909e96fb4b2960da521bbd7c"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/platform/current.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "db32719b5d085f31b88c1d860aed6364d583dea102a25a8737acf0b7c230484d"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/platform/info.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "a60f3a3b85dd5a796c23f0ace3dffd2a81c410a43bda4c8d8dec678857740837"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/platform/init.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "55b959d97631be9dd2a27b596f128307b3c72990193040215aec3855b5b9b826"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/platform/list.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "3b69b05b5d9dae27a9f310e11e98c00c8884a1c7ae2bd26fecb14cc0ba21e261"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/platform/profile_init.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "d333cf3b5928af424b1cf46ec347dc5399d2ea82e92bff4a5ccbe7079bc96b8c"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/platform/profile_open.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "d20950acb2cd94595b4f8a991194b89795dd75c947f705c9aff5e960f622fda1"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/platform/switch.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "17bb7a96211a30d2b36cf979107a30728f3de80b4be93321803218e91f08577e"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/profile/add.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "5adeaa38fd1c2f5faf6ba4576d3e84a24f9ea1cbbf50f01a458f260bd7c65df7"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/profile/current.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "46bce1308d2010418f6e2a9de9ac256b6d53c4157113099b759dad6488207a27"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/profile/delete.rs",
+      "projection_equal": false,
+      "remaining_token_differences": [
+        {
+          "old": "else { }",
+          "new": ""
+        }
+      ],
+      "sha256": "192d409f729e9edf3bd8d180234159ce6dfdffe1b28a8144b6f0ce6b06f4c6b2",
+      "manual_review": {
+        "status": "PASS_SOURCE_REVIEW",
+        "reason": "Removed empty-after-projection else branch held output only. Both outcomes now share the next-step output. Delete operation, save operation and return are unchanged."
+      }
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/profile/disable.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "034f6459eda2ee3039b110f52d828539350456cd17bd5323459fc767889e9120"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/profile/enable.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "728ee331b1e722a256b3eb4e414b0edc01b4bbaececfc42ac5cb3af09ea7a56e"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/profile/list.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "197293e3c364b28dd2f87caf4b9714dda11b71dc6b1d778d69818c7baa0e92c7"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/profile/switch.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "a8ec3342f229c400316cfbae3ace747b503a2f42157d151e2273db85d5f41ff2"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/project/init.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "69db7c71214509d376dd7cfa79be49c41d2835445f7f31b4e52303ca94238e75"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/provider_cmd.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "92e4794f15a527e5a22148023d02f3064d4c69d98a1933c565cdf9f91cf6c52d"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/sessions_cmd.rs",
+      "projection_equal": false,
+      "remaining_token_differences": [
+        {
+          "old": "",
+          "new": "if stats . errors > 0 { } else { }"
+        }
+      ],
+      "sha256": "7003c23a54e268e9f10234daf6ad0f87906f875cc327d1e4732a2f2c8d0eb682",
+      "manual_review": {
+        "status": "PASS_SOURCE_REVIEW",
+        "reason": "New condition reads existing stats.errors to choose warning or success output. Both branches contain presentation only. Index operation and returned stats are unchanged."
+      }
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/temp_cmd.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "8264023c96d6214b68e398ed9440294a7ac65144d90ae1d05fe6f2e6cdf169d7"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/temp_token.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "dd3c30907655d492075311393d822aa3ba444132705c2d4af8436274b9227362"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/update.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "15d024e7eeef51293702f5df8ed366d9c850adf0a369994ccd5712f02229f695"
+    },
+    {
+      "file": "crates/ccr-cli/src/commands/update_failure.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "4e87c26a4c6d9b73cc298bd4d750924d518716509ee324f938bda351b420ca0a"
+    },
+    {
+      "file": "crates/ccr-cli/src/services/ui_service.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "5c643d8f6ce802ce6e2aed2fc921bfb7b371f342bf25285ff3ed7b70a39530b3"
+    },
+    {
+      "file": "crates/ccr-cli/src/sync/commands.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "48866dd1a083ecc435ff88799db7280886ca7a8de7b0592b15deb61f9f9249e2"
+    },
+    {
+      "file": "crates/ccr-sync/src/sync/content_selector.rs",
+      "projection_equal": true,
+      "remaining_token_differences": [],
+      "sha256": "8b73d8aa530b04b68564f2a230d0e9947a2fb0b53faaf1b7b7905a0821f591cf"
+    }
+  ],
+  "unchanged_boundary_assertions": {
+    "crates/ccr-cli/src/services/doctor_service.rs": true,
+    "crates/ccr-cli/src/managers/conflict_checker.rs": true,
+    "crates/ccr-cli/src/cli/definitions.rs": true,
+    "crates/ccr-cli/src/cli/dispatch.rs": true,
+    "crates/ccr-cli/src/commands/common/table.rs": true,
+    "crates/ccr-codex/src/platforms/codex.rs": true,
+    "crates/ccr-core/src/core/logging.rs": true,
+    "crates/ccr/src/lib.rs": true
+  },
+  "summary": {
+    "reviewed_product_files": 45,
+    "projection_equal": 42,
+    "manual_exceptions_reviewed": 3,
+    "unchanged_boundary_assertions": 8,
+    "sha256_current_match": true,
+    "runtime_claim": false
+  }
+}

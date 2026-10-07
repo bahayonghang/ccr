@@ -1,0 +1,11 @@
+   Compiling ccr-core v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.23s
+     Running tests\log_path_isolation.rs (target\debug\deps\log_path_isolation-fe6de6bfe2050e45.exe)
+
+running 3 tests
+test log_path_probe ... ignored, invoked by isolated child-process log path tests
+test console_logger_uses_selected_root_and_preserves_other_roots ... ok
+test file_only_logger_uses_selected_root_and_preserves_other_roots ... ok
+
+test result: ok. 2 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.06s
+

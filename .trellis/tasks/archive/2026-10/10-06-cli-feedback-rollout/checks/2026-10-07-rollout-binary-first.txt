@@ -1,0 +1,132 @@
+   Compiling ccr v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr)
+   Compiling ccr-cli v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-cli)
+   Compiling ccr-tui v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-tui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.91s
+     Running tests\commands.rs (target\debug\deps\commands-e736194fc7a0286d.exe)
+
+running 5 tests
+test output_presentation_rollout::clean_cancel_retains_destruction_warning_and_neutral_result ... ok
+test output_presentation_rollout::platform_registry_counts_are_neutral_and_json_fields_are_unchanged ... FAILED
+test output_presentation_rollout::empty_profile_list_keeps_neutral_output_and_json_null_current ... ok
+test output_presentation_rollout::doctor_maps_every_report_status_to_stdout_without_writes ... FAILED
+test output_presentation_rollout::clean_preview_preserves_long_paths_and_files_at_small_widths ... ok
+
+failures:
+
+---- output_presentation_rollout::platform_registry_counts_are_neutral_and_json_fields_are_unchanged stdout ----
+
+thread 'output_presentation_rollout::platform_registry_counts_are_neutral_and_json_fields_are_unchanged' (4472) panicked at crates\ccr\tests\commands\output_presentation_rollout.rs:182:5:
+assertion `left == right` failed
+  left: String("C:\\Users\\lyh\\AppData\\Local\\Temp\\.tmpqjoySm\\ccr\\config.toml")
+ right: "C:\\Users\\lyh\\AppData\\Local\\Temp\\.tmpqjoySm\\ccr/config.toml"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- output_presentation_rollout::doctor_maps_every_report_status_to_stdout_without_writes stdout ----
+
+thread 'output_presentation_rollout::doctor_maps_every_report_status_to_stdout_without_writes' (37588) panicked at crates\ccr\tests\commands\output_presentation_rollout.rs:122:9:
+assertion `left == right` failed: {
+  "scope": "global + platform (claude)",
+  "online": false,
+  "summary": {
+    "passed": 4,
+    "warnings": 3,
+    "failed": 1,
+    "skipped": 5
+  },
+  "checks": [
+    {
+      "id": "global.ccr_root",
+      "status": "ok",
+      "summary": "CCR root directory is present.",
+      "path": "C:\\Users\\lyh\\AppData\\Local\\Temp\\.tmpSU80pr\\ccr"
+    },
+    {
+      "id": "global.registry",
+      "status": "ok",
+      "summary": "CCR registry file is readable.",
+      "path": "C:\\Users\\lyh\\AppData\\Local\\Temp\\.tmpSU80pr\\ccr\\config.toml"
+    },
+    {
+      "id": "global.configured_platforms",
+      "status": "warn",
+      "summary": "No configured platforms were detected.",
+      "recommendation": "Create a platform profile or run `ccr init` before rerunning doctor."
+    },
+    {
+      "id": "global.claude.runtime",
+      "status": "skip",
+      "summary": "Claude Code runtime target is not configured.",
+      "recommendation": "Create a claude profile before expecting runtime/profile validation for this platform."
+    },
+    {
+      "id": "global.codex.runtime",
+      "status": "skip",
+      "summary": "Codex runtime target is not configured.",
+      "recommendation": "Create a codex profile before expecting runtime/profile validation for this platform."
+    },
+    {
+      "id": "global.grok.runtime",
+      "status": "skip",
+      "summary": "Grok Build runtime target is not configured.",
+      "recommendation": "Create a grok profile before expecting runtime/profile validation for this platform."
+    },
+    {
+      "id": "global.conflicts",
+      "status": "warn",
+      "summary": "Found 1 warning/info conflict(s) and 0 collection warning(s).",
+      "detail": "model (claude=opus, gemini=Gemini 3.8 Flash (High))",
+      "recommendation": "Consider using the same value for 'model' across platforms"
+    },
+    {
+      "id": "platform.claude.profiles_file",
+      "status": "fail",
+      "summary": "Claude Code profiles file is missing.",
+      "path": "C:\\Users\\lyh\\AppData\\Local\\Temp\\.tmpSU80pr\\ccr\\platforms\\claude\\profiles.toml",
+      "recommendation": "Create Claude Code profiles under C:\\Users\\lyh\\AppData\\Local\\Temp\\.tmpSU80pr\\ccr\\platforms\\claude\\profiles.toml before rerunning doctor."
+    },
+    {
+      "id": "platform.claude.current_profile",
+      "status": "skip",
+      "summary": "No valid current claude profile could be resolved.",
+      "detail": "profiles.toml current_config = None, registry current_profile = None.",
+      "recommendation": "Set a current claude profile and rerun doctor."
+    },
+    {
+      "id": "platform.claude.settings_path",
+      "status": "ok",
+      "summary": "Claude Code settings path resolved.",
+      "path": "C:\\Users\\lyh\\AppData\\Local\\Temp\\.tmpSU80pr\\claude/settings.json"
+    },
+    {
+      "id": "platform.claude.auth_sources",
+      "status": "warn",
+      "summary": "No Claude auth source was confirmed in this CCR process scope.",
+      "detail": "presumed_effective_source=unresolved | custom_api_key_responses_present=false | unobservable=other_shell_environment,project_settings_for_unknown_working_directories,external_process_cli_arguments,managed_settings_dynamic_policy,api_key_helper_result_and_external_secret_store,macos_keychain_contents",
+      "recommendation": "Log in to Claude Code or review the explicitly listed unobservable layers, then rerun doctor."
+    },
+    {
+      "id": "platform.claude.settings_file",
+      "status": "ok",
+      "summary": "Claude settings file is valid.",
+      "path": "C:\\Users\\lyh\\AppData\\Local\\Temp\\.tmpSU80pr\\claude/settings.json"
+    },
+    {
+      "id": "platform.claude.runtime_auth",
+      "status": "skip",
+      "summary": "Skipped Claude Code runtime/auth validation because no current profile is resolved.",
+      "recommendation": "Set a current claude profile and rerun doctor."
+    }
+  ]
+}
+
+  left: Some(1)
+ right: Some(0)
+
+
+failures:
+    output_presentation_rollout::doctor_maps_every_report_status_to_stdout_without_writes
+    output_presentation_rollout::platform_registry_counts_are_neutral_and_json_fields_are_unchanged
+
+test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.20s
+
+error: test failed, to rerun pass `-p ccr --test commands`

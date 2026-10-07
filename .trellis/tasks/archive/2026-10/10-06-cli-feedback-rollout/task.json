@@ -1,0 +1,38 @@
+{
+  "id": "cli-feedback-rollout",
+  "name": "cli-feedback-rollout",
+  "title": "CLI 提示一致性迁移与验收",
+  "description": "覆盖其余 CLI 消息及 Doctor 标签，完成机器输出兼容性与终端验收",
+  "status": "completed",
+  "dev_type": "backend",
+  "scope": "CLI 提示展示",
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-10-06",
+  "completedAt": "2026-10-07",
+  "branch": "dev",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "10-06-cli-output-presentation",
+  "relatedFiles": [],
+  "notes": "2026-10-07: Rollout45 source/docs4, approved path13+5+2, output22, native18x9/copy36/mixed12 and fullCI16/16 pass. First failures retained. Parent AC7 gaps do not claim complete runtime coverage. No commit/archive.",
+  "meta": {
+    "planning_consent": "confirmed 2026-10-06",
+    "presentation_style": "user-selected compact symbols and grouping",
+    "implementation_authorized": true,
+    "implementation_approval": "审阅完毕开始实施 (2026-10-06)",
+    "scope_extension": {
+      "status": "APPROVED_2026-10-07",
+      "proposal": ".trellis/tasks/10-06-cli-output-presentation/research/windows-fixture-isolation-scope.md"
+    },
+    "verification_status": "PASS_LOCAL_AWAITING_DELIVERY",
+    "final_gate": "just ci: PASS 16/16, exit 0 (2026-10-07)",
+    "final_gate_receipt": ".trellis/tasks/10-06-cli-output-presentation/checks/2026-10-07-isolation-final-gate-verification.json"
+  }
+}

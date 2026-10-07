@@ -1,0 +1,5 @@
+{
+  "command": "cargo test -p ccr-cli --lib commands::doctor_cmd::tests -- --skip export_bindings",
+  "exit_code": 0,
+  "boundary": "ccr-cli test executable; pure renderer only; no ccr.exe, DoctorService, or logger initialization"
+}

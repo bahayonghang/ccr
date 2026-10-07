@@ -1,0 +1,37 @@
+{
+  "head": "528d4bae1b145fd74d7bbc97454caac249a4b896",
+  "checks": {
+    "full_ci": "NOT_RUN",
+    "scoped_diff_exit": 0,
+    "product_binary": "NOT_RUN",
+    "logging_passed": 13,
+    "isolated_log_probe_intentional_ignore": 1,
+    "fmt_exit": 0,
+    "conflict_passed": 5,
+    "isolated_log_process_passed": 2,
+    "clippy_exit": 0
+  },
+  "status": "IMPLEMENTED_SCOPED_CHECKS_PASS_PENDING_INDEPENDENT_CHECK",
+  "files": [
+    {
+      "sha256": "12f012114968c59e78490bf04cd890e75f296d2db63255ae2fc29650d145c29e",
+      "path": "crates/ccr-core/src/core/logging.rs"
+    },
+    {
+      "sha256": "56c3f3438524e19cdd43f7827c90e4c67d8681efa94f479036c13e2bb4af7d70",
+      "path": "crates/ccr-cli/src/managers/conflict_checker.rs"
+    },
+    {
+      "sha256": "6dd3b73d64461230562502967c58f318b92127108373929a89d034ad05c6dbdd",
+      "path": "crates/ccr/tests/commands/project_init.rs"
+    },
+    {
+      "sha256": "a3a9e3ef9d3d07cac20f21abc98fa6e8ebf26e2e4ceaa0decc9710189b2d994c",
+      "path": "crates/ccr/tests/commands/help.rs"
+    },
+    {
+      "sha256": "b61dc79f175b16a322491f86d00f6503b44281a4c73ff84266b8f0eae0da1725",
+      "path": "crates/ccr-core/tests/log_path_isolation.rs"
+    }
+  ]
+}

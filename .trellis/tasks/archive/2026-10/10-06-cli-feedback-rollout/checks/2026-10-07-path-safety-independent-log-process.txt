@@ -1,0 +1,10 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.40s
+     Running tests\log_path_isolation.rs (target\debug\deps\log_path_isolation-fe6de6bfe2050e45.exe)
+
+running 3 tests
+test log_path_probe ... ignored, invoked by isolated child-process log path tests
+test file_only_logger_uses_selected_root_and_preserves_other_roots ... ok
+test console_logger_uses_selected_root_and_preserves_other_roots ... ok
+
+test result: ok. 2 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.06s
+

@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "rounds": 20,
+  "fresh_inventory_equality_assertions": 20,
+  "rounds_with_stale_direntry_metadata": 20,
+  "cached_timestamp_mismatches": 67,
+  "ccr_invoked": false,
+  "fix": "use fs::metadata(&path) for fresh metadata; retain directory mtime assertions"
+}

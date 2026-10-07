@@ -1,0 +1,4 @@
+warning: in the working copy of 'crates/ccr-cli/src/managers/conflict_checker.rs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'crates/ccr-core/src/core/logging.rs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'crates/ccr/tests/commands/help.rs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'crates/ccr/tests/commands/project_init.rs', LF will be replaced by CRLF the next time Git touches it

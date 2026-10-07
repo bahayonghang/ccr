@@ -1,0 +1,11 @@
+   Compiling ccr-cli v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-cli)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.75s
+     Running unittests src\lib.rs (target\debug\deps\ccr_cli-174f211b337450c8.exe)
+
+running 3 tests
+test commands::doctor_cmd::tests::doctor_renderer_probe ... ignored, invoked by the isolated renderer output test
+test commands::doctor_cmd::tests::doctor_renderer_prints_expected_summary ... ok
+test commands::doctor_cmd::tests::doctor_renderer_keeps_all_statuses_on_stdout ... ok
+
+test result: ok. 2 passed; 0 failed; 1 ignored; 0 measured; 353 filtered out; finished in 0.03s
+

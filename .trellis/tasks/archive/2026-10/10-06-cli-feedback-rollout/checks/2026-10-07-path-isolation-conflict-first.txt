@@ -1,0 +1,19 @@
+   Compiling ccr-core v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-core)
+   Compiling ccr-config v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-config)
+   Compiling ccr-skills v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-skills)
+   Compiling ccr-codex v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-codex)
+   Compiling ccr-sync v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-sync)
+   Compiling ccr-store v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-store)
+   Compiling ccr-cli v7.4.0 (D:\Documents\Code\Github\ccr\crates\ccr-cli)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.55s
+     Running unittests src\lib.rs (target\debug\deps\ccr_cli-174f211b337450c8.exe)
+
+running 5 tests
+test managers::conflict_checker::tests::claude_conflict_settings_follow_explicit_file_then_config_dir ... ok
+test managers::conflict_checker::tests::codex_conflict_settings_follow_ccr_dir_then_codex_home ... ok
+test managers::conflict_checker::tests::conflicts_read_only_the_selected_synthetic_settings ... ok
+test managers::conflict_checker::tests::gemini_conflict_settings_follow_home_then_userprofile ... ok
+test managers::conflict_checker::tests::missing_selected_settings_are_empty_without_creation ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 356 filtered out; finished in 0.03s
+

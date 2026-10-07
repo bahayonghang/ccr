@@ -1,0 +1,1364 @@
+[
+  {
+    "file": "crates/ccr-cli/src/commands/claude/profile.rs",
+    "line": 225,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/codex/profile.rs",
+    "line": 234,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/codex/sessions.rs",
+    "line": 16,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/codex/sync_history.rs",
+    "line": 67,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/codex/sync_history.rs",
+    "line": 66,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/codex/sync_history.rs",
+    "line": 65,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/common/prompt.rs",
+    "line": 127,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/common/prompt.rs",
+    "line": 105,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/budget.rs",
+    "line": 311,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/budget.rs",
+    "line": 310,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/budget.rs",
+    "line": 302,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/budget.rs",
+    "line": 284,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/budget.rs",
+    "line": 275,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/budget.rs",
+    "line": 269,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/budget.rs",
+    "line": 264,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/budget.rs",
+    "line": 258,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/budget.rs",
+    "line": 252,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/budget.rs",
+    "line": 246,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/budget.rs",
+    "line": 239,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/budget.rs",
+    "line": 233,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/budget.rs",
+    "line": 177,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/budget.rs",
+    "line": 168,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/budget.rs",
+    "line": 163,
+    "method": "error",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/budget.rs",
+    "line": 106,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/budget.rs",
+    "line": 104,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/export.rs",
+    "line": 58,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/export.rs",
+    "line": 53,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/export.rs",
+    "line": 49,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/export.rs",
+    "line": 48,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/export.rs",
+    "line": 38,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/history.rs",
+    "line": 59,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/import.rs",
+    "line": 132,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/import.rs",
+    "line": 62,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/import.rs",
+    "line": 56,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/pricing.rs",
+    "line": 336,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/pricing.rs",
+    "line": 335,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/pricing.rs",
+    "line": 327,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/pricing.rs",
+    "line": 309,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/pricing.rs",
+    "line": 299,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/pricing.rs",
+    "line": 297,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/pricing.rs",
+    "line": 288,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/pricing.rs",
+    "line": 270,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/pricing.rs",
+    "line": 261,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/pricing.rs",
+    "line": 249,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/pricing.rs",
+    "line": 208,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/pricing.rs",
+    "line": 120,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 497,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 466,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 459,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 412,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 389,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 371,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 366,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 365,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 339,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 316,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 311,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 300,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 299,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 276,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 258,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 241,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 224,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 208,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 187,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 179,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 178,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/data/stats.rs",
+    "line": 177,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/grok/profile.rs",
+    "line": 347,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+    "line": 377,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+    "line": 375,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+    "line": 320,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+    "line": 318,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+    "line": 301,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+    "line": 276,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+    "line": 257,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+    "line": 248,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+    "line": 218,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+    "line": 214,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+    "line": 212,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+    "line": 206,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+    "line": 201,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+    "line": 199,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+    "line": 163,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+    "line": 157,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+    "line": 154,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+    "line": 153,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+    "line": 141,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clean.rs",
+    "line": 92,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clear.rs",
+    "line": 150,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clear.rs",
+    "line": 144,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clear.rs",
+    "line": 143,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clear.rs",
+    "line": 124,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clear.rs",
+    "line": 94,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clear.rs",
+    "line": 91,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clear.rs",
+    "line": 56,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clear.rs",
+    "line": 51,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/clear.rs",
+    "line": 40,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/init.rs",
+    "line": 165,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/init.rs",
+    "line": 146,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/init.rs",
+    "line": 140,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/init.rs",
+    "line": 127,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/init.rs",
+    "line": 106,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/init.rs",
+    "line": 98,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/init.rs",
+    "line": 94,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/init.rs",
+    "line": 85,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/init.rs",
+    "line": 84,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/init.rs",
+    "line": 41,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/lifecycle/optimize.rs",
+    "line": 77,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/platform/current.rs",
+    "line": 119,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/platform/current.rs",
+    "line": 113,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/platform/current.rs",
+    "line": 103,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/platform/current.rs",
+    "line": 100,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/platform/current.rs",
+    "line": 94,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/platform/info.rs",
+    "line": 87,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/platform/info.rs",
+    "line": 83,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/platform/init.rs",
+    "line": 107,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/platform/init.rs",
+    "line": 83,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/platform/init.rs",
+    "line": 65,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/platform/init.rs",
+    "line": 57,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/platform/init.rs",
+    "line": 56,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/platform/init.rs",
+    "line": 55,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/platform/list.rs",
+    "line": 48,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/platform/switch.rs",
+    "line": 52,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/platform/switch.rs",
+    "line": 43,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/add.rs",
+    "line": 196,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/add.rs",
+    "line": 132,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/current.rs",
+    "line": 533,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/current.rs",
+    "line": 532,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/current.rs",
+    "line": 453,
+    "method": "step",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/current.rs",
+    "line": 293,
+    "method": "step",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/current.rs",
+    "line": 289,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/current.rs",
+    "line": 288,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/current.rs",
+    "line": 174,
+    "method": "step",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/current.rs",
+    "line": 158,
+    "method": "step",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/delete.rs",
+    "line": 127,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/delete.rs",
+    "line": 68,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/delete.rs",
+    "line": 62,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/delete.rs",
+    "line": 53,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/delete.rs",
+    "line": 44,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/delete.rs",
+    "line": 35,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/disable.rs",
+    "line": 71,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/disable.rs",
+    "line": 67,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/disable.rs",
+    "line": 39,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/enable.rs",
+    "line": 39,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/enable.rs",
+    "line": 35,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/list.rs",
+    "line": 56,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/list.rs",
+    "line": 52,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/list.rs",
+    "line": 48,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/list.rs",
+    "line": 37,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/switch.rs",
+    "line": 346,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/switch.rs",
+    "line": 332,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/switch.rs",
+    "line": 326,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/switch.rs",
+    "line": 321,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/switch.rs",
+    "line": 318,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/switch.rs",
+    "line": 228,
+    "method": "step",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/switch.rs",
+    "line": 64,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/switch.rs",
+    "line": 54,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/profile/switch.rs",
+    "line": 38,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/project/init.rs",
+    "line": 15,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/provider_cmd.rs",
+    "line": 246,
+    "method": "error",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/provider_cmd.rs",
+    "line": 244,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/temp_cmd.rs",
+    "line": 91,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/temp_cmd.rs",
+    "line": 87,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/temp_cmd.rs",
+    "line": 37,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/temp_token.rs",
+    "line": 135,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/temp_token.rs",
+    "line": 133,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/temp_token.rs",
+    "line": 128,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/temp_token.rs",
+    "line": 111,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/temp_token.rs",
+    "line": 103,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/temp_token.rs",
+    "line": 86,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/temp_token.rs",
+    "line": 78,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/temp_token.rs",
+    "line": 46,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/update.rs",
+    "line": 116,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/update.rs",
+    "line": 75,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/commands/update_failure.rs",
+    "line": 12,
+    "method": "error",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 787,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 780,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 726,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 725,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 660,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 591,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 588,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 584,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 560,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 542,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 538,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 537,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 523,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 513,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 511,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 507,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 433,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 430,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 417,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 402,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 391,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 375,
+    "method": "error",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 363,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 357,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 334,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 328,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 327,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 326,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 180,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 176,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 174,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 170,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 159,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 155,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 126,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 121,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 112,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 108,
+    "method": "warning",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 102,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/services/ui_service.rs",
+    "line": 96,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/sync/commands.rs",
+    "line": 1560,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/sync/commands.rs",
+    "line": 1559,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/sync/commands.rs",
+    "line": 1475,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/sync/commands.rs",
+    "line": 1474,
+    "method": "info",
+    "reason": "indent field beneath result; preserve original value"
+  },
+  {
+    "file": "crates/ccr-cli/src/sync/commands.rs",
+    "line": 1160,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/sync/commands.rs",
+    "line": 1140,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/sync/commands.rs",
+    "line": 1061,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/sync/commands.rs",
+    "line": 1025,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/sync/commands.rs",
+    "line": 229,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/sync/commands.rs",
+    "line": 221,
+    "method": "success",
+    "reason": "plain message argument and marker deduplication"
+  },
+  {
+    "file": "crates/ccr-cli/src/sync/commands.rs",
+    "line": 178,
+    "method": "info",
+    "reason": "plain message argument and marker deduplication"
+  }
+]
