@@ -71,23 +71,40 @@ pub struct ManagedProcess {
     tree: PlatformProcessTree,
     reaped: bool,
     tree_cleaned: bool,
+    detached: bool,
 }
 
 impl ManagedProcess {
-    pub fn spawn(mut command: Command) -> io::Result<Self> {
+    pub fn spawn(command: Command) -> io::Result<Self> {
+        Self::spawn_with_mode(command, false)
+    }
+
+    /// Spawn a child whose descendants are expected to outlive it.
+    ///
+    /// A successful `wait` does not terminate descendants and Drop does not
+    /// terminate the tree; an explicit `terminate_tree` still reclaims the
+    /// whole tree. The child still gets its own process group / Job Object so
+    /// that explicit reclamation stays possible.
+    pub fn spawn_detached(command: Command) -> io::Result<Self> {
+        Self::spawn_with_mode(command, true)
+    }
+
+    /// 共享 spawn 实现：detached 决定作业对象限制与 wait/Drop 的后代清理行为。
+    fn spawn_with_mode(mut command: Command, detached: bool) -> io::Result<Self> {
         configure_process_tree(&mut command);
         command.kill_on_drop(true);
         let child = command.spawn()?;
         let pid = child
             .id()
             .ok_or_else(|| io::Error::other("child PID unavailable"))?;
-        let tree = PlatformProcessTree::attach(&child, pid)?;
+        let tree = PlatformProcessTree::attach(&child, pid, detached)?;
         Ok(Self {
             child,
             pid,
             tree,
             reaped: false,
             tree_cleaned: false,
+            detached,
         })
     }
 
@@ -109,6 +126,10 @@ impl ManagedProcess {
 
     pub async fn wait(&mut self) -> io::Result<ExitStatus> {
         let status = self.reap().await?;
+        if self.detached {
+            // 分离模式：后代是本命令的产物，成功等待后不清理。
+            return Ok(status);
+        }
         if !self.tree_cleaned {
             self.tree.terminate_forceful(self.pid)?;
             self.confirm_tree_exit(tokio::time::Instant::now() + Duration::from_secs(5))
@@ -163,7 +184,7 @@ fn cleanup_timeout() -> io::Error {
 
 impl Drop for ManagedProcess {
     fn drop(&mut self) {
-        if !self.tree_cleaned {
+        if !self.detached && !self.tree_cleaned {
             let _ = self.tree.terminate_forceful(self.pid);
         }
         if !self.reaped {
@@ -187,7 +208,7 @@ struct PlatformProcessTree;
 
 #[cfg(unix)]
 impl PlatformProcessTree {
-    fn attach(_child: &Child, _pid: u32) -> io::Result<Self> {
+    fn attach(_child: &Child, _pid: u32, _detached: bool) -> io::Result<Self> {
         Ok(Self)
     }
 
@@ -234,7 +255,7 @@ unsafe impl Send for PlatformProcessTree {}
 
 #[cfg(windows)]
 impl PlatformProcessTree {
-    fn attach(child: &Child, _pid: u32) -> io::Result<Self> {
+    fn attach(child: &Child, _pid: u32, detached: bool) -> io::Result<Self> {
         use std::ptr;
 
         const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE: u32 = 0x0000_2000;
@@ -305,7 +326,12 @@ impl PlatformProcessTree {
                 return Err(io::Error::last_os_error());
             }
             let mut information = ExtendedLimitInformation::default();
-            information.basic_limit_information.limit_flags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+            if !detached {
+                // 默认模式：作业句柄关闭即终止整棵树。分离模式不设该限制，
+                // 后代可随句柄关闭继续存活；显式 terminate_tree 仍回收整棵树。
+                information.basic_limit_information.limit_flags =
+                    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+            }
             if SetInformationJobObject(
                 job,
                 JOB_OBJECT_EXTENDED_LIMIT_INFORMATION_CLASS,
@@ -764,6 +790,171 @@ mod tests {
 
         // SAFETY: signal 0 checks existence/permission without sending a signal.
         unsafe { kill(pid as i32, 0) == 0 }
+    }
+
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn detached_wait_leaves_windows_descendants_running() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let pid_file = temp.path().join("grandchild.pid");
+        let script = format!(
+            "$ErrorActionPreference='Stop'; Start-Sleep -Milliseconds 300; \
+             $child=Start-Process -FilePath 'cmd.exe' -ArgumentList '/C','ping -n 30 127.0.0.1 >NUL' -PassThru; \
+             [IO.File]::WriteAllText('{}', [string]$child.Id)",
+            pid_file.to_string_lossy().replace('\'', "''")
+        );
+        let mut command = Command::new("powershell.exe");
+        command.args(["-NoProfile", "-NonInteractive", "-Command", &script]);
+        let mut process = ManagedProcess::spawn_detached(command).expect("detached parent");
+
+        let grandchild_pid = wait_for_pid_file(&pid_file).await;
+        assert!(process_is_running(grandchild_pid));
+        assert!(
+            process
+                .wait()
+                .await
+                .expect("wait for detached parent")
+                .success()
+        );
+        drop(process);
+        tokio::time::sleep(Duration::from_millis(300)).await;
+
+        // 分离模式合同：成功等待并 Drop 后，孙进程仍须存活（它是命令的产物）。
+        assert!(
+            process_is_running(grandchild_pid),
+            "detached grandchild must survive wait and Drop"
+        );
+
+        terminate_test_process(grandchild_pid);
+        assert_eventually_gone(grandchild_pid).await;
+    }
+
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn detached_terminate_tree_reclaims_windows_descendants() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let pid_file = temp.path().join("grandchild.pid");
+        let script = format!(
+            "$ErrorActionPreference='Stop'; Start-Sleep -Milliseconds 300; \
+             $child=Start-Process -FilePath 'cmd.exe' -ArgumentList '/C','ping -n 30 127.0.0.1 >NUL' -PassThru; \
+             [IO.File]::WriteAllText('{}', [string]$child.Id); Start-Sleep -Seconds 30",
+            pid_file.to_string_lossy().replace('\'', "''")
+        );
+        let mut command = Command::new("powershell.exe");
+        command.args(["-NoProfile", "-NonInteractive", "-Command", &script]);
+        let mut process = ManagedProcess::spawn_detached(command).expect("detached parent");
+
+        let grandchild_pid = wait_for_pid_file(&pid_file).await;
+        assert!(process_is_running(grandchild_pid));
+
+        process
+            .terminate_tree(Duration::from_secs(1))
+            .await
+            .expect("reclaim detached tree");
+        tokio::time::sleep(Duration::from_millis(100)).await;
+
+        // 分离模式仍支持显式回收：作业对象未设 kill-on-close，但 terminate_tree 有效。
+        assert!(!process_is_running(grandchild_pid));
+        assert!(process.reaped && process.tree_cleaned);
+    }
+
+    #[cfg(unix)]
+    async fn unix_detached_parent(directory: &std::path::Path) -> (ManagedProcess, u32) {
+        let pid_file = directory.join("grandchild.pid");
+        let ready_file = directory.join("grandchild.ready");
+        let quote = |path: &std::path::Path| path.to_string_lossy().replace('\'', "'\\''");
+        let child_script = format!(
+            "trap '' TERM; printf ready > '{}'; exec sleep 30",
+            quote(&ready_file)
+        );
+        let script = format!(
+            "sh -c '{}' & descendant=$!; \
+             while [ ! -f '{}' ]; do sleep 0.01; done; \
+             printf '%s' \"$descendant\" > '{}'; exit 0",
+            child_script.replace('\'', "'\\''"),
+            quote(&ready_file),
+            quote(&pid_file),
+        );
+        let mut command = Command::new("sh");
+        command.args(["-c", &script]);
+        let process = ManagedProcess::spawn_detached(command).expect("detached parent");
+        let descendant = wait_for_unix_pid_file(&pid_file).await;
+        assert!(unix_process_is_running(descendant));
+        (process, descendant)
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn detached_wait_leaves_unix_descendants_running() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let (mut process, descendant) = unix_detached_parent(temp.path()).await;
+
+        assert!(
+            process
+                .wait()
+                .await
+                .expect("wait for detached parent")
+                .success()
+        );
+        drop(process);
+        tokio::time::sleep(Duration::from_millis(200)).await;
+
+        // 分离模式合同：成功等待并 Drop 后，后代仍须存活（它是命令的产物）。
+        assert!(
+            unix_process_is_running(descendant),
+            "detached descendant must survive wait and Drop"
+        );
+
+        terminate_test_process(descendant);
+        assert_eventually_gone(descendant).await;
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn detached_terminate_tree_reclaims_unix_descendants() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let (mut process, descendant) = unix_detached_parent(temp.path()).await;
+
+        process
+            .terminate_tree(Duration::from_secs(1))
+            .await
+            .expect("reclaim detached group");
+        tokio::time::sleep(Duration::from_millis(100)).await;
+
+        // 分离模式仍支持显式回收：终止整棵进程组（含后代）。
+        assert!(!unix_process_is_running(descendant));
+        assert!(process.reaped && process.tree_cleaned);
+    }
+
+    async fn assert_eventually_gone(pid: u32) {
+        for _ in 0..100 {
+            if !test_process_is_running(pid) {
+                return;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        panic!("fixture process {pid} survived test cleanup");
+    }
+
+    #[cfg(windows)]
+    fn terminate_test_process(pid: u32) {
+        // 测试清理：连同后代一起结束 fixture 进程树。
+        let pid_arg = pid.to_string();
+        let _ = std::process::Command::new("taskkill")
+            .args(["/PID", pid_arg.as_str(), "/T", "/F"])
+            .output();
+    }
+
+    #[cfg(unix)]
+    fn terminate_test_process(pid: u32) {
+        unsafe extern "C" {
+            fn kill(pid: i32, signal: i32) -> i32;
+        }
+
+        // SAFETY: SIGKILL targets only the fixture PID recorded in the pid file.
+        unsafe {
+            kill(pid as i32, 9);
+        }
     }
 
     #[cfg(windows)]
