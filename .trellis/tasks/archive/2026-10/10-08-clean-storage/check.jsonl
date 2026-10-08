@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/ccr-cli/backend/index.md", "reason": "Checklist the check pass uses for CLI command changes"}
+{"file": ".trellis/spec/ccr-cli/backend/backend-guidelines.md", "reason": "Verify the command stays inside ccr-cli boundaries"}
+{"file": ".trellis/spec/ccr-cli/backend/cli-output-presentation.md", "reason": "Verify storage output uses the shared status and field contract"}
+{"file": ".trellis/spec/ccr-cli/backend/test-fixtures.md", "reason": "Verify new tests do not touch the real home directory"}
+{"file": ".trellis/tasks/10-08-clean-storage/research/storage-inventory.md", "reason": "Deletion set must match the measured paths and live-database exclusions"}
+{"file": ".trellis/spec/ccr-cli/backend/clean-storage.md", "reason": "Storage command deletion set and keeper contract"}

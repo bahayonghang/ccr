@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/ccr-cli/backend/index.md", "reason": "CLI backend spec index and pre-development checklist"}
+{"file": ".trellis/spec/ccr-cli/backend/backend-guidelines.md", "reason": "Command split, output, and error boundaries for ccr-cli"}
+{"file": ".trellis/spec/ccr-cli/backend/cli-output-presentation.md", "reason": "Status lines, fields, and cancellation output for the new command"}
+{"file": ".trellis/spec/ccr-cli/backend/test-fixtures.md", "reason": "Env isolation for tests that set CCR_ROOT and LLMUSAGE_HOME"}
+{"file": ".trellis/tasks/10-08-clean-storage/research/storage-inventory.md", "reason": "Measured .ccr usage and existing clean command anchors"}
