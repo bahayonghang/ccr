@@ -112,6 +112,13 @@ impl CommandDispatcher {
                     )
                     .await
                 }
+                Some(CleanAction::Storage(storage_args)) => {
+                    crate::commands::clean_storage_command(
+                        storage_args.dry_run,
+                        auto_yes || storage_args.force,
+                    )
+                    .await
+                }
                 None => {
                     if args.has_legacy_backup_flags() {
                         crate::commands::clean_backups_command(

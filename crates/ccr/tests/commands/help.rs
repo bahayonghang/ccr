@@ -202,6 +202,17 @@ fn help_subcommand_supports_clean_path() {
     assert!(help_command.contains("ccr clean planfiles --all --dry-run"));
     assert!(help_command.contains("ccr clean --all"));
     assert!(help_command.contains("ccr clean backups --dry-run"));
+    assert!(help_command.contains("ccr clean storage --dry-run"));
+}
+
+#[test]
+fn clean_storage_help_explains_dry_run_and_force() {
+    let stdout = run_help(&["clean", "storage", "--help"]);
+
+    assert!(stdout.contains("--dry-run"), "{stdout}");
+    assert!(stdout.contains("--force"), "{stdout}");
+    assert!(stdout.contains("不实际删除"), "{stdout}");
+    assert!(stdout.contains("跳过确认"), "{stdout}");
 }
 
 #[test]

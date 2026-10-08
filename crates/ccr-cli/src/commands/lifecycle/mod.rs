@@ -3,12 +3,14 @@
 //! 初始化、清理、验证、优化等生命周期操作。
 
 mod clean;
+mod clean_storage;
 mod clear;
 mod init;
 mod optimize;
 mod validate;
 
 pub use clean::{clean_backups_command, clean_menu_command, clean_planfiles_command};
+pub use clean_storage::clean_storage_command;
 pub use clear::clear_command;
 pub use init::init_command;
 pub use optimize::optimize_command;

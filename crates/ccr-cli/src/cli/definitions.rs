@@ -259,10 +259,11 @@ pub enum Commands {
     /// 交互式清理备份文件或规划文件
     ///
     /// 裸 `ccr clean` 会进入交互式菜单。
-    /// 也支持显式目标 `ccr clean planfiles` 和 `ccr clean backups`。
+    /// 也支持显式目标 `ccr clean planfiles`、`ccr clean backups` 和 `ccr clean storage`。
     /// 示例: ccr clean
     ///       ccr clean planfiles --dry-run
     ///       ccr clean backups -d 30 --dry-run
+    ///       ccr clean storage --dry-run
     Clean(CleanArgs),
 
     /// 清理 CCR 写入的配置
@@ -515,6 +516,10 @@ pub enum CleanAction {
 
     /// 显式清理旧备份文件
     Backups(CleanBackupsArgs),
+
+    /// Remove rebuildable caches and retired database copies from the CCR root.
+    #[command(about = "清理 CCR 根目录里的构建缓存和停用数据库副本")]
+    Storage(CleanStorageArgs),
 }
 
 /// 🧹 clean planfiles 命令参数
@@ -541,6 +546,18 @@ pub struct CleanBackupsArgs {
     pub days: u64,
 
     /// 模拟运行(dry-run)：仅显示将要删除的文件,不实际删除
+    #[arg(long)]
+    pub dry_run: bool,
+
+    /// 跳过确认提示，直接清理（危险操作）
+    #[arg(short, long)]
+    pub force: bool,
+}
+
+/// Arguments for `ccr clean storage`.
+#[derive(Args, Debug, Clone, Default)]
+pub struct CleanStorageArgs {
+    /// 模拟运行(dry-run)：仅显示将要删除的路径,不实际删除
     #[arg(long)]
     pub dry_run: bool,
 
@@ -736,6 +753,22 @@ mod tests {
                     assert_eq!(backups.days, 30);
                     assert!(backups.dry_run);
                     assert!(!backups.force);
+                }
+                other => panic!("unexpected clean action: {:?}", other.map(|_| "other")),
+            },
+            other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+    }
+
+    #[test]
+    fn clean_storage_dry_run_subcommand_parses() {
+        let cli = Cli::try_parse_from(["ccr", "clean", "storage", "--dry-run"]).unwrap();
+
+        match cli.command {
+            Some(Commands::Clean(args)) => match args.action {
+                Some(CleanAction::Storage(storage)) => {
+                    assert!(storage.dry_run);
+                    assert!(!storage.force);
                 }
                 other => panic!("unexpected clean action: {:?}", other.map(|_| "other")),
             },

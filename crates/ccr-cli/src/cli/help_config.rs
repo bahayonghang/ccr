@@ -216,10 +216,11 @@ const VERSION_AFTER_LONG_HELP: &str = "\
 const CLEAN_LONG_ABOUT: &str = "\
 裸 `ccr clean` 会进入交互式清理菜单。
 
-可显式清理两类目标：
+可显式清理三类目标：
 
 - planning-with-files 生成的规划文件
-- 旧备份文件";
+- 旧备份文件
+- CCR 根目录里的构建缓存和停用数据库副本";
 
 const CLEAN_AFTER_LONG_HELP: &str = "\
 常用任务:
@@ -239,6 +240,9 @@ const CLEAN_AFTER_LONG_HELP: &str = "\
     先预览: ccr clean backups --dry-run
     清理 30 天前的备份: ccr clean backups --days 30
 
+  清理根目录存储
+    先预览: ccr clean storage --dry-run
+
   兼容旧脚本
     ccr clean --dry-run
     ccr clean --days 30
@@ -248,7 +252,10 @@ const CLEAN_AFTER_LONG_HELP: &str = "\
   - `ccr clean --all` 递归处理当前目录及子目录中的 task_plan.md / findings.md / progress.md
   - `ccr clean planfiles` 默认只处理当前目录根层的 task_plan.md / findings.md / progress.md
   - `ccr clean planfiles --all` 默认不跟随符号链接目录
-  - `ccr clean backups` 只处理 ~/.claude/backups 下的 .bak 文件";
+  - `ccr clean backups` 只处理 ~/.claude/backups 下的 .bak 文件
+  - `ccr clean storage` 不删除 analytics/usage.db、data.db、配置、凭据和签到数据
+  - `ccr clean storage` 不跟随符号链接
+  - `LLMUSAGE_HOME` 指向旧目录时，`ccr clean storage` 保留该目录";
 
 pub fn build_cli_command() -> Command {
     Cli::command()

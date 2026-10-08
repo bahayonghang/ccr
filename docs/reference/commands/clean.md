@@ -1,6 +1,6 @@
 # clean - 交互式清理入口
 
-裸 `ccr clean` 会进入交互式清理菜单；脚本和自动化场景应显式使用 `ccr clean planfiles` 或 `ccr clean backups`。
+裸 `ccr clean` 会进入交互式清理菜单；脚本和自动化场景应显式使用 `ccr clean planfiles`、`ccr clean backups` 或 `ccr clean storage`。
 
 ::: tip 重要更新
 从 CCR 1.1.5 开始，所有备份操作（`switch`、`init --force`、`import`）都会**自动保留最近10个备份**，无需手动清理。`clean backups` 主要用于清理更早期的备份或手动管理备份策略。
@@ -13,6 +13,7 @@ ccr clean
 ccr clean --all
 ccr clean planfiles [OPTIONS]
 ccr clean backups [OPTIONS]
+ccr clean storage [OPTIONS]
 ```
 
 兼容旧脚本的备份入口仍可用：
@@ -84,6 +85,12 @@ ccr clean backups --dry-run
 
 # 清理 30 天前的备份
 ccr clean backups --days 30
+
+# 预览根目录里的构建缓存和停用数据库副本
+ccr clean storage --dry-run
+
+# 确认后清理这些存储项；`--force` 可跳过确认
+ccr clean storage
 ```
 
 ## 交互式菜单
@@ -150,6 +157,23 @@ $ ccr clean planfiles --all --dry-run
 ## 备份清理
 
 `ccr clean backups` 会扫描 `~/.claude/backups/` 下的 `.bak` 文件，并按修改时间删除超过保留期的旧备份。旧脚本入口 `ccr clean --days ...`、`ccr clean --dry-run` 和 `ccr clean --force` 仍保留兼容，但新文档和新脚本建议使用显式 `backups` 目标。
+
+## 存储清理
+
+`ccr clean storage` 清理 CCR 根目录里可以再生成，或已经停用的构建缓存和数据库副本。根目录按 `CCR_DATA_DIR`、`CCR_ROOT`、`~/.ccr` 的顺序解析。裸 `ccr clean` 的菜单不包含这个目标。
+
+只删除下面四类，而且每一类都不是符号链接：
+
+- `<root>/ccr-ui/backend/target` 目录
+- `<root>/ccr-ui/frontend/node_modules` 目录
+- `<root>/analytics/` 直下、文件名匹配 `usage.db.pre-migration-*.bak` 的普通文件
+- `<root>/llmusage` 目录。`LLMUSAGE_HOME` 解析后与该目录是同一路径时，留下整个目录，并在结果里说明原因
+
+不删除 `analytics/usage.db` 及其 `-wal`、`-shm`。不删除 `data.db`、配置、凭据、签到数据，也不跟随符号链接。
+
+有待删项，且不是 `--dry-run`、也没有跳过确认时，命令先列出路径和字节数，再询问确认。`--dry-run` 只打印清单。`--force`、全局 `--yes`，以及 `settings.skip_confirmation = true` 会跳过确认。配置文件缺失时仍询问。配置文件损坏时，在删除前返回错误。用户取消时不删除任何文件，并成功退出。
+
+某个候选删除失败时，命令记下该路径，继续处理其余候选，最后以非零状态退出。没有待删项时成功退出。
 
 ## 备份文件命名
 

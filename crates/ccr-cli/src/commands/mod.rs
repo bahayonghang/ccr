@@ -63,7 +63,9 @@ pub use profile::switch_command_for_platform;
 pub use lifecycle::clear_command;
 pub use lifecycle::init_command;
 pub use lifecycle::optimize_command;
-pub use lifecycle::{clean_backups_command, clean_menu_command, clean_planfiles_command};
+pub use lifecycle::{
+    clean_backups_command, clean_menu_command, clean_planfiles_command, clean_storage_command,
+};
 pub use lifecycle::{validate_command, validate_report_command};
 
 // 🧭 Project 命令

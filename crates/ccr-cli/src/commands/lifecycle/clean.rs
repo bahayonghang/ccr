@@ -432,7 +432,7 @@ async fn prompt_clean_target_selection(default_index: usize) -> Result<Option<Cl
     }
 }
 
-async fn confirm_cleanup(question: &str) -> Result<bool> {
+pub(super) async fn confirm_cleanup(question: &str) -> Result<bool> {
     confirm_cleanup_with_default(question, false).await
 }
 
