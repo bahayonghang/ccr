@@ -120,3 +120,34 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 124: 添加 ccr clean storage 命令
+<!-- trellis-session: v=2 fp=fe57398bed33b92b -->
+
+**Date**: 2026-10-08
+**Task**: 添加 ccr clean storage 命令
+**Branch**: `dev`
+
+### Summary
+
+新增 ccr clean storage，删除构建缓存、迁移快照和旧 llmusage 目录，保留用量归档与配置。
+
+### Main Changes
+
+- 增加 ccr clean storage，并写明删除集合与帮助文案
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d53c476d` | feat(cli): ✨ 添加 ccr clean storage 命令 |
+
+### Testing
+
+- [OK] cargo test -p ccr --test commands -- clean -- --test-threads=1
+- [OK] cargo test -p ccr-cli --lib commands::lifecycle::clean_storage -- --test-threads=1
+
+### Status
+
+[OK] **Completed**
