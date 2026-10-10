@@ -13,6 +13,7 @@
 ccr codex auth current
 ccr codex auth list
 ccr codex auth off
+ccr codex auth relogin
 ccr codex profile list
 ccr codex profile switch <name>
 ccr codex profile current
@@ -27,6 +28,8 @@ ccr codex profile off
 | `ccr codex profile ...` | 把某个 CCR profile 应用到 Codex runtime，或清理 profile 路由与运行期凭据 |
 
 `ccr codex auth off` 登出当前官方运行时登录，与 `profile off` 独立。该命令不修改 profile 指针和 `config.toml` 路由。即使当前处于第三方 profile，仍会清除运行期 `auth.json`（file store）或调用 `codex logout`（keyring / auto）。`--json` 可报告仍存在的 `profile_pointer`，提示需要再次 `profile switch` 写回 key。该提示不算失败。
+
+`ccr codex auth relogin` 用于换号或添加账号。该命令删除本地 `auth.json`（不调用 `codex logout`），停止 app-server 守护进程，然后在当前终端运行 `codex login`。`codex login`、`codex logout` 和 Codex TUI 的 `/logout` 都会在服务端吊销当前 refresh token，已保存为同一账号的快照会随之失效；relogin 先移除本地登录，因此 `codex login` 没有可吊销的 token。该命令只支持 `cli_auth_credentials_store = "file"`；keyring / auto 只能经 `codex logout` 清除，命令会拒绝执行。守护进程停止失败时命令中止，不启动 `codex login`。登录完成后用 `ccr codex auth save` 保存新账号。
 
 ## `profile` 当前支持面
 

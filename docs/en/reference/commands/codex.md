@@ -13,6 +13,7 @@
 ccr codex auth current
 ccr codex auth list
 ccr codex auth off
+ccr codex auth relogin
 ccr codex profile list
 ccr codex profile switch <name>
 ccr codex profile current
@@ -27,6 +28,8 @@ ccr codex profile off
 | `ccr codex profile ...` | apply a CCR profile into the Codex runtime or clear its route and runtime credentials |
 
 `ccr codex auth off` logs out the current official runtime. The command is independent from `profile off`. The command does not change the profile pointer or the `config.toml` route. In profile mode, CCR still clears runtime `auth.json` for a file store, or CCR runs `codex logout` for keyring and auto. `--json` may report a remaining `profile_pointer`. That pointer is a warning, not a failure. Run `profile switch` again to write the key back.
+
+`ccr codex auth relogin` changes or adds an account. The command deletes the local `auth.json` without `codex logout`, stops the app-server daemon, and then runs `codex login` in the current terminal. `codex login`, `codex logout`, and the Codex TUI `/logout` revoke the current refresh token on the server, so a saved snapshot of the same account stops working. relogin removes the local login first, so `codex login` has no token to revoke. The command supports only `cli_auth_credentials_store = "file"`. For keyring and auto, the only way to clear the login is `codex logout`, so the command refuses to run. If the daemon does not stop, the command stops and does not start `codex login`. After login, save the new account with `ccr codex auth save`.
 
 ## Current `profile` surface
 

@@ -395,9 +395,69 @@ pub async fn restart_codex_daemon() -> DaemonRestartOutcome {
 
 /// 带可注入截止时间的重启入口（测试 seam）。
 async fn restart_codex_daemon_at(bin: &Path, timeout: Duration) -> DaemonRestartOutcome {
+    match run_daemon_command_at(bin, "restart", timeout).await {
+        DaemonCommandOutcome::Succeeded => DaemonRestartOutcome::Restarted {
+            pid: confirmed_daemon_pid(),
+        },
+        DaemonCommandOutcome::Failed { detail } => DaemonRestartOutcome::Failed { detail },
+        DaemonCommandOutcome::Timeout => DaemonRestartOutcome::Timeout,
+        DaemonCommandOutcome::Unavailable => DaemonRestartOutcome::Unavailable,
+    }
+}
+
+/// Outcome of a managed app-server daemon stop attempt.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DaemonStopOutcome {
+    /// The official stop command succeeded.
+    Stopped,
+    /// The stop command failed or could not start.
+    Failed { detail: String },
+    /// The stop command exceeded its deadline; its process tree was reclaimed.
+    Timeout,
+    /// The `codex` binary is not available on PATH.
+    Unavailable,
+}
+
+/// Stop the managed app-server daemon through the official CLI.
+///
+/// Runs `codex app-server daemon stop` with the same deadline and process
+/// handling as [`restart_codex_daemon`]. The daemon drops its cached auth;
+/// the next Codex client starts a new daemon that reads `auth.json` again.
+/// Stopping does not log out and does not revoke tokens.
+pub async fn stop_codex_daemon() -> DaemonStopOutcome {
+    let Some(bin) = which_on_path("codex") else {
+        tracing::debug!("PATH 中找不到 codex，无法停止守护进程");
+        return DaemonStopOutcome::Unavailable;
+    };
+    stop_codex_daemon_at(&bin, DAEMON_RESTART_TIMEOUT).await
+}
+
+/// 带可注入截止时间的停止入口（测试 seam）。
+async fn stop_codex_daemon_at(bin: &Path, timeout: Duration) -> DaemonStopOutcome {
+    match run_daemon_command_at(bin, "stop", timeout).await {
+        DaemonCommandOutcome::Succeeded => DaemonStopOutcome::Stopped,
+        DaemonCommandOutcome::Failed { detail } => DaemonStopOutcome::Failed { detail },
+        DaemonCommandOutcome::Timeout => DaemonStopOutcome::Timeout,
+        DaemonCommandOutcome::Unavailable => DaemonStopOutcome::Unavailable,
+    }
+}
+
+/// `codex app-server daemon <subcommand>` 的执行结果（restart / stop 共用）。
+enum DaemonCommandOutcome {
+    Succeeded,
+    Failed { detail: String },
+    Timeout,
+    Unavailable,
+}
+
+async fn run_daemon_command_at(
+    bin: &Path,
+    subcommand: &str,
+    timeout: Duration,
+) -> DaemonCommandOutcome {
     let mut command = tokio::process::Command::new(bin);
     command
-        .args(["app-server", "daemon", "restart"])
+        .args(["app-server", "daemon", subcommand])
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -407,11 +467,11 @@ async fn restart_codex_daemon_at(bin: &Path, timeout: Duration) -> DaemonRestart
     let mut child = match ManagedProcess::spawn_detached(command) {
         Ok(child) => child,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            tracing::debug!(%error, "codex 可执行文件不可用，无法重启守护进程");
-            return DaemonRestartOutcome::Unavailable;
+            tracing::debug!(%error, subcommand, "codex 可执行文件不可用，无法操作守护进程");
+            return DaemonCommandOutcome::Unavailable;
         }
         Err(error) => {
-            return DaemonRestartOutcome::Failed {
+            return DaemonCommandOutcome::Failed {
                 detail: format!("spawn failed: {error}"),
             };
         }
@@ -426,11 +486,9 @@ async fn restart_codex_daemon_at(bin: &Path, timeout: Duration) -> DaemonRestart
             let _ = drain_within_bound(stdout_task).await;
             let stderr_bytes = drain_within_bound(stderr_task).await;
             if status.success() {
-                DaemonRestartOutcome::Restarted {
-                    pid: confirmed_daemon_pid(),
-                }
+                DaemonCommandOutcome::Succeeded
             } else {
-                DaemonRestartOutcome::Failed {
+                DaemonCommandOutcome::Failed {
                     detail: daemon_restart_exit_detail(status, &stderr_bytes),
                 }
             }
@@ -438,18 +496,18 @@ async fn restart_codex_daemon_at(bin: &Path, timeout: Duration) -> DaemonRestart
         Ok(Err(error)) => {
             let _ = drain_within_bound(stdout_task).await;
             let _ = drain_within_bound(stderr_task).await;
-            DaemonRestartOutcome::Failed {
+            DaemonCommandOutcome::Failed {
                 detail: format!("wait failed: {error}"),
             }
         }
         Err(_) => {
             // 超时只回收本次 spawn 的进程树，不触碰守护进程自身。
             if let Err(error) = child.terminate_tree(DAEMON_RESTART_TERMINATE_GRACE).await {
-                tracing::warn!(%error, "守护进程重启进程树回收失败");
+                tracing::warn!(%error, subcommand, "守护进程命令进程树回收失败");
             }
             let _ = drain_within_bound(stdout_task).await;
             let _ = drain_within_bound(stderr_task).await;
-            DaemonRestartOutcome::Timeout
+            DaemonCommandOutcome::Timeout
         }
     }
 }
@@ -813,8 +871,9 @@ mod tests {
 
     use super::{
         CleanupTiming, CodexProcessDiscoveryIssue, CodexSignalStage, DaemonRestartOutcome,
-        ProcessBackend, ProcessDiscovery, ProcessIdentity, SignalAttempt, TerminationKind,
-        TrackedProcess, cleanup_with_backend, is_codex_app_server, restart_codex_daemon_at,
+        DaemonStopOutcome, ProcessBackend, ProcessDiscovery, ProcessIdentity, SignalAttempt,
+        TerminationKind, TrackedProcess, cleanup_with_backend, is_codex_app_server,
+        restart_codex_daemon_at, stop_codex_daemon_at,
     };
     #[cfg(windows)]
     use super::{SysinfoProcessBackend, process_refresh_kind};
@@ -1626,6 +1685,40 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn stop_runs_official_stop_subcommand() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let bin = write_fake_codex_requiring_subcommand(temp.path(), "stop");
+
+        let outcome = stop_codex_daemon_at(&bin, Duration::from_secs(10)).await;
+        assert_eq!(outcome, DaemonStopOutcome::Stopped);
+    }
+
+    #[tokio::test]
+    async fn stop_nonzero_exit_reports_failure_detail() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let bin = write_fake_codex_failure(temp.path(), 7);
+
+        match stop_codex_daemon_at(&bin, Duration::from_secs(10)).await {
+            DaemonStopOutcome::Failed { detail } => {
+                assert!(
+                    detail.contains('7'),
+                    "failure detail should carry the exit code: {detail}"
+                );
+            }
+            other => panic!("expected Failed outcome, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn stop_missing_binary_is_unavailable() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let missing = temp.path().join("missing-codex-binary");
+
+        let outcome = stop_codex_daemon_at(&missing, Duration::from_secs(5)).await;
+        assert_eq!(outcome, DaemonStopOutcome::Unavailable);
+    }
+
+    #[tokio::test]
     async fn restart_success_is_bounded_when_descendant_holds_pipes() {
         let env = crate::test_support::TestCodexEnv::new();
         let temp = tempfile::tempdir().expect("tempdir");
@@ -1671,6 +1764,26 @@ mod tests {
     #[cfg(unix)]
     fn write_fake_codex_exit(dir: &std::path::Path, code: i32) -> PathBuf {
         write_executable_script(dir, "codex", &format!("#!/bin/sh\nexit {code}\n"))
+    }
+
+    #[cfg(windows)]
+    fn write_fake_codex_requiring_subcommand(dir: &std::path::Path, subcommand: &str) -> PathBuf {
+        let bin = dir.join("codex.cmd");
+        std::fs::write(
+            &bin,
+            format!("@echo off\r\nif \"%3\"==\"{subcommand}\" exit /b 0\r\nexit /b 9\r\n"),
+        )
+        .expect("fake codex script should be written");
+        bin
+    }
+
+    #[cfg(unix)]
+    fn write_fake_codex_requiring_subcommand(dir: &std::path::Path, subcommand: &str) -> PathBuf {
+        write_executable_script(
+            dir,
+            "codex",
+            &format!("#!/bin/sh\n[ \"$3\" = \"{subcommand}\" ] && exit 0\nexit 9\n"),
+        )
     }
 
     #[cfg(windows)]

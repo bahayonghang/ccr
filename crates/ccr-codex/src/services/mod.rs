@@ -32,7 +32,8 @@ pub use codex_oauth_token_service::{
 pub use codex_process_service::{
     CodexAppServer, CodexAppServerCleanup, CodexAppServerCleanupReport, CodexDaemon,
     CodexProcessDiscoveryIssue, CodexProcessService, CodexSignalFailure, CodexSignalStage,
-    DaemonRestartOutcome, TerminationKind, restart_codex_daemon,
+    DaemonRestartOutcome, DaemonStopOutcome, TerminationKind, restart_codex_daemon,
+    stop_codex_daemon,
 };
 pub use codex_quota_service::CodexQuotaService;
 pub use codex_registry_store::CodexRegistryStore;

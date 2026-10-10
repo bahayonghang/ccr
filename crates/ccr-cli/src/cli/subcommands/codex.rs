@@ -425,6 +425,14 @@ pub enum CodexAuthAction {
         json: bool,
     },
 
+    /// 本地移除当前登录后重新登录，不吊销远端 token
+    ///
+    /// 删除本地 auth.json（不调用 `codex logout`），停止 app-server 守护进程，
+    /// 然后运行 `codex login`。已保存账号的 refresh token 保持有效。
+    /// 仅支持 cli_auth_credentials_store = file。
+    /// 示例: ccr codex auth relogin
+    Relogin,
+
     /// 导出所有账号到 JSON 文件
     ///
     /// 将所有已保存的账号导出为 JSON 格式，默认保存到 Downloads 目录

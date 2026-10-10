@@ -80,6 +80,34 @@ Reuse `needs_login_prep` / `can_off` to decide whether to show auth logout.
 
 `needs_auth_off` → `can_auth_off`. Profile leftover and official login are independent flags.
 
+## Scenario: Codex relogin without remote revoke
+
+### 1. Scope / Trigger
+
+- Trigger: changing `ccr codex auth relogin`, `codex_local_auth_off`, or `stop_codex_daemon`.
+- Reason: `codex login`, `codex logout`, Codex TUI `/logout`, and app-server `account/logout` revoke the current refresh token at `https://auth.openai.com/oauth/revoke` (openai/codex PR #17825). A CCR snapshot of the same account then fails with `refresh_token_invalidated`. The app-server daemon revokes its cached token, not the token on disk.
+
+### 2. Signatures
+
+- `codex_local_auth_off() -> Result<AuthOffResult>` (`crates/ccr-cli/src/application/auth_off.rs`)
+- `stop_codex_daemon() -> DaemonStopOutcome { Stopped | Failed { detail } | Timeout | Unavailable }` (`ccr_codex`)
+- CLI: `ccr codex auth relogin` (no flags)
+
+### 3. Contracts
+
+- Order: local auth off → stop managed daemon (only when `find_managed_daemon` finds one) → `codex login` with inherited stdio.
+- `codex_local_auth_off` shares the Codex file branch of `auth_off_for_platform`: sync rotated runtime tokens into the matching saved account, back up, then delete every login-prep `auth.json`.
+- Keyring/auto store → `Err` before any write, daemon stop, or spawn. Relogin never spawns `codex logout`.
+- Daemon stop runs only `codex app-server daemon stop`; no signals. Any outcome other than `Stopped` → print manual next steps and return `Err`; do not start `codex login`.
+- `codex login` missing or non-zero exit → `Err` that states the local login is already removed.
+- Success suggestions use `ccr codex auth current` and `ccr codex auth save --help` (no placeholder name).
+
+### 4. Tests Required
+
+- `cargo test -p ccr-cli --lib application::auth_off` (native stores refused without spawn; file store deleted without spawn)
+- `cargo test -p ccr-codex --lib codex_process_service::tests::stop`
+- `cargo test -p ccr-cli --lib relogin`
+
 ## Scenario: Grok saved-account CLI
 
 - `grok auth save <name> [--scope <scope>] [-f|--force] [--json]`,

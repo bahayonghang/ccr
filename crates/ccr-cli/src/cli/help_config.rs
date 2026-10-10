@@ -175,6 +175,9 @@ const CODEX_AUTH_AFTER_LONG_HELP: &str = "\
   6. 登出官方运行时登录
      ccr codex auth off
 
+  7. 换号或添加账号（不吊销已保存账号的 token）
+     ccr codex auth relogin
+
 边界:
   - 只有 cli_auth_credentials_store = file 时，CCR 才支持保存和切换多账号
   - API Key / Provider Key 模式无需 save / switch";

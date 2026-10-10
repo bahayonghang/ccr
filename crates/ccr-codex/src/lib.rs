@@ -27,7 +27,8 @@ pub use services::{
     CodexSessionSummary, CodexSessionTrashService, CodexSessionTrashSummary, CodexSignalFailure,
     CodexSignalStage, CodexTrashedSessionRecord, CodexUsageDetails, CodexUsageEstimationService,
     CodexUsageRecord, CodexUsageScope, CodexUsageService, CodexUsageStats, DaemonRestartOutcome,
-    OAuthRepairOutcome, TerminationKind, restart_codex_daemon,
+    DaemonStopOutcome, OAuthRepairOutcome, TerminationKind, restart_codex_daemon,
+    stop_codex_daemon,
 };
 
 #[cfg(test)]

@@ -593,6 +593,7 @@ impl CommandDispatcher {
                 CodexAuthAction::Off { json } => {
                     crate::commands::codex::auth::off_command(*json).await
                 }
+                CodexAuthAction::Relogin => crate::commands::codex::auth::relogin_command().await,
                 CodexAuthAction::Export { no_secrets } => {
                     crate::commands::codex::auth::export_command(*no_secrets).await
                 }

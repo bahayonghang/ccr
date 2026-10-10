@@ -324,22 +324,42 @@ fn codex_auth_off() -> Result<AuthOffResult> {
     let pointer = codex_profile_pointer()?;
     let warnings = codex_pointer_warning(pointer.as_deref());
     match detect_codex_credential_store()? {
-        CredentialStoreKind::File => {
-            // 本地删除不调用 revoke；删除前把 runtime 中轮换后的 tokens 回写已保存快照
-            if let Ok(service) = ccr_codex::CodexAuthService::new() {
-                service.sync_runtime_with_saved_account_best_effort("auth off");
-            }
-            let paths = codex_auth_json_paths()?;
-            let mut result = delete_credential_files(Platform::Codex, "codex", &paths)?;
-            result.profile_pointer = pointer;
-            result.warnings = warnings;
-            Ok(result)
-        }
+        CredentialStoreKind::File => codex_file_auth_off(pointer, warnings),
         CredentialStoreKind::Keyring | CredentialStoreKind::Auto => {
             spawn_official_logout("codex", &["logout"])?;
             Ok(AuthOffResult::native(Platform::Codex, pointer, warnings))
         }
     }
+}
+
+/// Remove the local Codex runtime login without contacting the server.
+///
+/// Only the file credential store is supported. Keyring and auto stores
+/// return an error, because the only way to clear them is `codex logout`,
+/// which revokes the refresh token on the server.
+pub fn codex_local_auth_off() -> Result<AuthOffResult> {
+    let store = detect_codex_credential_store()?;
+    if store != CredentialStoreKind::File {
+        return Err(CcrError::ConfigError(format!(
+            "当前 Codex 凭据存储为 {}，只能通过 codex logout 清除，会吊销远端 token；本地重新登录需要 cli_auth_credentials_store = \"file\"",
+            store.as_str()
+        )));
+    }
+    let pointer = codex_profile_pointer()?;
+    let warnings = codex_pointer_warning(pointer.as_deref());
+    codex_file_auth_off(pointer, warnings)
+}
+
+fn codex_file_auth_off(pointer: Option<String>, warnings: Vec<String>) -> Result<AuthOffResult> {
+    // 本地删除不调用 revoke；删除前把 runtime 中轮换后的 tokens 回写已保存快照
+    if let Ok(service) = ccr_codex::CodexAuthService::new() {
+        service.sync_runtime_with_saved_account_best_effort("auth off");
+    }
+    let paths = codex_auth_json_paths()?;
+    let mut result = delete_credential_files(Platform::Codex, "codex", &paths)?;
+    result.profile_pointer = pointer;
+    result.warnings = warnings;
+    Ok(result)
 }
 
 pub(crate) fn grok_auth_json_path() -> Result<PathBuf> {
@@ -752,6 +772,51 @@ mod tests {
         let second = auth_off_for_platform(Platform::Codex).unwrap();
         assert!(second.changed);
         assert_eq!(second.path, AuthOffPath::NativeLogout);
+    }
+
+    #[test]
+    fn codex_local_auth_off_refuses_native_stores_without_spawning() {
+        for store in ["keyring", "auto"] {
+            let mut home = TestHome::new_with_home_env();
+            let bin_dir = home.home().join("bin");
+            let marker = home.home().join("codex-spawned.txt");
+            write_fake_logout_bin(&bin_dir, "codex", &marker, "");
+            home.set_env("PATH", &isolated_path(&bin_dir));
+            fs::write(
+                home.codex_dir().join("config.toml"),
+                format!("cli_auth_credentials_store = \"{store}\"\n"),
+            )
+            .unwrap();
+            let auth = home.codex_dir().join("auth.json");
+            write_json(&auth, r#"{"tokens":{"refresh_token":"rt-local"}}"#);
+
+            let error = codex_local_auth_off().unwrap_err();
+            assert!(error.to_string().contains(store), "{error}");
+            assert!(auth.exists());
+            assert!(!marker.exists());
+        }
+    }
+
+    #[test]
+    fn codex_local_auth_off_deletes_file_store_without_spawning() {
+        let mut home = TestHome::new_with_home_env();
+        let bin_dir = home.home().join("bin");
+        let marker = home.home().join("codex-spawned.txt");
+        write_fake_logout_bin(&bin_dir, "codex", &marker, "");
+        home.set_env("PATH", &isolated_path(&bin_dir));
+        fs::write(
+            home.codex_dir().join("config.toml"),
+            "cli_auth_credentials_store = \"file\"\n",
+        )
+        .unwrap();
+        let auth = home.codex_dir().join("auth.json");
+        write_json(&auth, r#"{"tokens":{"refresh_token":"rt-local"}}"#);
+
+        let result = codex_local_auth_off().unwrap();
+        assert!(result.changed);
+        assert_eq!(result.path, AuthOffPath::File);
+        assert!(!auth.exists());
+        assert!(!marker.exists());
     }
 
     #[test]
