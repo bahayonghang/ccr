@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/ccr-cli/backend/auth-off.md", "reason": "relogin reuses Codex file auth off kernel; must not spawn codex logout"}
+{"file": ".trellis/spec/ccr-cli/backend/backend-guidelines.md", "reason": "CLI command boundaries and output rules"}
+{"file": ".trellis/spec/ccr-cli/backend/cli-output-presentation.md", "reason": "status lines and next-step suggestions"}
+{"file": ".trellis/spec/ccr-codex/backend/backend-guidelines.md", "reason": "daemon command helper lives in ccr-codex"}
+{"file": ".trellis/tasks/10-10-codex-plus-switch-relogin/research/root-cause.md", "reason": "revoke mechanism and daemon cache evidence"}
