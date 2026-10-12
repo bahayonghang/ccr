@@ -173,3 +173,35 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 126: 落地 Dependabot 小版本
+<!-- trellis-session: v=2 fp=1e19054ec8015443 -->
+
+**Date**: 2026-10-12
+**Task**: 落地 Dependabot 小版本
+**Branch**: `dev`
+
+### Summary
+
+关闭 30 个 Dependabot PR，并把仍落后的补丁与 release action SHA 写进 dev。
+
+### Main Changes
+
+- 根 lock 升级 thiserror 2.0.21 与 clap 4.6.7
+- ccr-ui 与 ccr-vscode 落地小版本，release.yml 只换两个 action SHA
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c03a733c9c39c310a7e06f5c9bf8283739603a0f` | chore(deps): 🔧 落地仍落后的小版本依赖 |
+
+### Testing
+
+- [OK] python scripts/drift/check_dependency_drift.py --verbose
+- [OK] just version-check
+
+### Status
+
+[OK] **Completed**
