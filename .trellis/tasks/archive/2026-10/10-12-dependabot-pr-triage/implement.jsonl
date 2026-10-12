@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/ccr/backend/dependency-governance.md", "reason": "Root and Tauri lock drift gate for dependency edits"}
+{"file": ".trellis/spec/ccr-vscode/frontend/extension-surface-contracts.md", "reason": "Do not change VS Code engines or activation while editing the extension manifest"}

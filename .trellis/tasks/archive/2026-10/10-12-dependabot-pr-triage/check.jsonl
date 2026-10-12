@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/ccr/backend/dependency-governance.md", "reason": "Verify dependency drift and version-check after lock updates"}
+{"file": ".trellis/spec/ccr-vscode/frontend/index.md", "reason": "Extension manifest quality check stays limited to the smol-toml bump"}
