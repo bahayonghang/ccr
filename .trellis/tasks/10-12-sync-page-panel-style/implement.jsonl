@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "不新增 token，样式走现有 layer-1 变量"}
+{"file": ".trellis/spec/ccr-ui/frontend/sync-security-contracts.md", "reason": "同步 IPC、口令与允许清单不在本次改动内"}
+{"file": ".trellis/spec/ccr-ui/frontend/react-rerender-discipline.md", "reason": "资产行保持 memo，不传内联回调"}
+{"file": ".trellis/tasks/10-12-sync-page-panel-style/design.md", "reason": "同步页目标信息结构与面板配方"}

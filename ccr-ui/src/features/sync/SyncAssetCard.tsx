@@ -3,11 +3,11 @@ import type { SyncAssetInfo } from '@/types/syncSelection'
 import type { TranslateFunction } from '@/utils/tf'
 import { SIcon, buttonClass } from '@/ui'
 
-function AssetTitleRow({ asset, t }: { asset: SyncAssetInfo; t: TranslateFunction }) {
+function AssetTitleRow({ asset, showTitle, t }: { asset: SyncAssetInfo; showTitle: boolean; t: TranslateFunction }) {
   const kindLabel = asset.kind === 'directory' ? t('sync.assets.kindDirectory') : t('sync.assets.kindFile')
   return (
     <div className="sync-asset-card__title-row">
-      <h4>{asset.name}</h4>
+      {showTitle ? <h4>{asset.name}</h4> : null}
       {asset.sensitive ? <span className="sync-sensitive-chip">{t('sync.assets.sensitive')}</span> : null}
       {asset.encryptionState === 'v2_required' ? <span className="sync-encryption-chip">{t('sync.assets.encryptionV2')}</span> : null}
       <span className="sync-kind-chip">{kindLabel}</span>
@@ -33,13 +33,14 @@ function AssetStatusRow({ asset, t }: { asset: SyncAssetInfo; t: TranslateFuncti
         <SIcon name={remote.icon} size="w-3.5 h-3.5" />
         {remote.text}
       </span>
-      {asset.canonicalName ? <span className="sync-status-chip sync-status-chip--neutral">{t('sync.assets.canonical', { name: asset.canonicalName })}</span> : null}
+      {asset.canonicalName && asset.canonicalName !== asset.name ? <span className="sync-status-chip sync-status-chip--neutral">{t('sync.assets.canonical', { name: asset.canonicalName })}</span> : null}
     </div>
   )
 }
 
 interface SyncAssetCardProps {
   asset: SyncAssetInfo
+  showTitle: boolean
   busy: boolean
   busyLabel: string
   showForce: boolean
@@ -54,6 +55,7 @@ interface SyncAssetCardProps {
 
 export const SyncAssetCard = memo(function SyncAssetCard({
   asset,
+  showTitle,
   busy,
   busyLabel,
   showForce,
@@ -88,8 +90,7 @@ export const SyncAssetCard = memo(function SyncAssetCard({
           <SIcon name={asset.kind === 'directory' ? 'Folder' : 'FileText'} size="w-5 h-5" />
         </div>
         <div className="sync-asset-card__content">
-          <AssetTitleRow asset={asset} t={t} />
-          <p>{asset.description}</p>
+          <AssetTitleRow asset={asset} showTitle={showTitle} t={t} />
           <dl className="sync-path-grid">
             <div>
               <dt>{t('sync.assets.localPath')}</dt>

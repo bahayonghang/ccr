@@ -193,6 +193,7 @@ describe('worst remaining views', () => {
           encryptionState: 'v2_required',
           localPath: '/tmp/a',
         } as never}
+        showTitle
         busy={false}
         busyLabel=""
         showForce

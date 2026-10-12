@@ -1,18 +1,20 @@
 .sync-output-card {
   display: grid;
   gap: 0.75rem;
-  border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 36%);
-  border-radius: 1rem;
-  background: rgb(var(--color-bg-elevated-rgb) / 72%);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
   padding: 1rem;
 }
 
-.sync-output-card--failed {
-  border-color: rgb(var(--color-danger-rgb) / 28%);
+.sync-output-card--failed .sync-output-card__icon,
+.sync-output-card--failed .sync-output-card__heading h2 {
+  color: var(--color-danger);
 }
 
-.sync-output-card--partial {
-  border-color: rgb(var(--color-warning-rgb) / 28%);
+.sync-output-card--partial .sync-output-card__icon,
+.sync-output-card--partial .sync-output-card__heading h2 {
+  color: var(--color-warning);
 }
 
 .sync-output-card__header,
@@ -48,8 +50,8 @@
 }
 
 .sync-output-card__metric {
-  border-radius: 0.75rem;
-  border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 28%);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-subtle);
   padding: 0.6rem 0.75rem;
 }
 
@@ -61,8 +63,8 @@
 
 .sync-output-card__failure {
   margin-top: 0.5rem;
-  border-radius: 0.75rem;
-  border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 28%);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-subtle);
   padding: 0.65rem 0.75rem;
 }
 

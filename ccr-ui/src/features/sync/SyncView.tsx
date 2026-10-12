@@ -23,24 +23,6 @@ function resolveConnectionChip(state: SyncConnectionState, hasStatus: boolean, t
   return { className: 'sync-connection-chip sync-connection-chip--neutral', icon: 'Cloud', text: t('sync.webdav.untested') }
 }
 
-function ScopeStrip({ t }: { t: TranslateFunction }) {
-  const items = [
-    { key: 'ccr', label: t('sync.assets.scopeCcrLabel'), value: t('sync.assets.scopeCcrValue') },
-    { key: 'claude', label: t('sync.assets.scopeClaudeLabel'), value: t('sync.assets.scopeClaudeValue') },
-    { key: 'codex', label: t('sync.assets.scopeCodexLabel'), value: t('sync.assets.scopeCodexValue') },
-  ]
-  return (
-    <div className="sync-scope-strip">
-      {items.map((item) => (
-        <div key={item.key} className="sync-scope-strip__item">
-          <span className="sync-scope-strip__label">{item.label}</span>
-          <strong className="sync-scope-strip__value">{item.value}</strong>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 interface GatingNoticeProps {
   connectionState: SyncConnectionState
   refreshing: boolean
@@ -74,7 +56,7 @@ function GatingNotice({ connectionState, refreshing, t, onConfigure, onRetest }:
           <h3 className="sync-gating-card__title">{t('sync.gating.unreachableTitle')}</h3>
           <p className="sync-gating-card__desc">{t('sync.gating.unreachableDescription')}</p>
           <div className="sync-gating-card__actions">
-            <button type="button" className={buttonClass({ variant: 'ghost', size: 'sm' })} disabled={refreshing} onClick={onRetest}>
+            <button type="button" className={buttonClass({ variant: 'primary', size: 'sm' })} disabled={refreshing} onClick={onRetest}>
               {t('sync.gating.retest')}
             </button>
           </div>
@@ -145,7 +127,8 @@ function SyncPageHeader({ page, onRefresh, onSyncAll, onForceAll }: SyncPageHead
               {chip.text}
             </span>
           ) : null}
-          <span className="sync-badge">{t('sync.assets.badge')}</span>
+          <span className="sync-header-stat">{t('sync.assets.total', { count: page.assets.length })}</span>
+          <span className="sync-header-stat">{t('sync.assets.sensitiveHint')}</span>
         </>
       }
       actions={
@@ -174,14 +157,13 @@ interface AssetGroupsProps {
   page: SyncPage
   isBusy: (assetId: string) => boolean
   busyLabelOf: (assetId: string) => string
-  groupLabel: (key: string) => string
   onPush: (asset: SyncAssetInfo) => void
   onPull: (asset: SyncAssetInfo) => void
   onSync: (asset: SyncAssetInfo) => void
   onForce: (asset: SyncAssetInfo) => void
 }
 
-function AssetGroups({ page, isBusy, busyLabelOf, groupLabel, onPush, onPull, onSync, onForce }: AssetGroupsProps) {
+function AssetGroups({ page, isBusy, busyLabelOf, onPush, onPull, onSync, onForce }: AssetGroupsProps) {
   const t = page.t
   return (
     <div className="sync-asset-groups">
@@ -189,7 +171,6 @@ function AssetGroups({ page, isBusy, busyLabelOf, groupLabel, onPush, onPull, on
         <article key={group.key} className="sync-asset-group">
           <header className="sync-asset-group__header">
             <div>
-              <p className="sync-eyebrow">{groupLabel(group.key)}</p>
               <h3>{group.title}</h3>
               <p>{group.description}</p>
             </div>
@@ -200,6 +181,7 @@ function AssetGroups({ page, isBusy, busyLabelOf, groupLabel, onPush, onPull, on
               <SyncAssetCard
                 key={asset.id}
                 asset={asset}
+                showTitle={asset.name !== group.title}
                 busy={isBusy(asset.id)}
                 busyLabel={busyLabelOf(asset.id)}
                 showForce={page.forceRetry?.assetId === asset.id}
@@ -254,7 +236,6 @@ export function SyncView() {
     return page.t(`sync.assetActions.${page.busyOperation}ing`)
   }, [page])
   const isBusy = useCallback((assetId: string) => page.globalOperating || page.busyAssetId === assetId, [page])
-  const groupLabel = useCallback((key: string) => page.t(`sync.assetGroups.${key}.label`), [page])
 
   useEffect(() => {
     const output = page.operationOutput
@@ -271,30 +252,16 @@ export function SyncView() {
       className="sync-page"
       header={<SyncPageHeader page={page} onRefresh={handleRefresh} onSyncAll={handleSyncAll} onForceAll={handleForceAll} />}
     >
-      <ScopeStrip t={page.t} />
-
       {page.loading ? <AsyncStatePanel state="loading" title={page.t('common.loading')} /> : null}
       {!page.loading && page.error ? <AsyncStatePanel state="error" title={page.t('sync.loadFailed')} description={page.error} /> : null}
       {!page.loading && !page.error ? (
         <div className="sync-console-grid">
           <section className="sync-console-main">
             <GatingNotice connectionState={page.connectionState} refreshing={page.refreshingAssets} t={page.t} onConfigure={handleConfigure} onRetest={handleRefresh} />
-            <div className="sync-console-intro">
-              <div>
-                <p className="sync-eyebrow">{page.t('sync.assets.eyebrow')}</p>
-                <h2>{page.t('sync.assets.title')}</h2>
-                <p>{page.t('sync.assets.description')}</p>
-              </div>
-              <div className="sync-console-intro__meta">
-                <span>{page.t('sync.assets.total', { count: page.assets.length })}</span>
-                <span>{page.t('sync.assets.sensitiveHint')}</span>
-              </div>
-            </div>
             <AssetGroups
               page={page}
               isBusy={isBusy}
               busyLabelOf={busyLabelOf}
-              groupLabel={groupLabel}
               onPush={handlePush}
               onPull={handlePull}
               onSync={handleSync}

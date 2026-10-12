@@ -2510,17 +2510,11 @@ export default {
     loadFailed: 'Load Failed',
     error: 'Error',
 
-    // Manifest asset console
     assets: {
-      badge: 'Assets',
       refresh: 'Refresh status',
       syncAll: 'Sync all once',
       syncingAll: 'Syncing…',
       forceRetryAll: 'Force sync all',
-      eyebrow: 'Manifest Allowlist',
-      title: 'Configuration Asset Console',
-      description:
-        'This page shows only the fixed sync manifest to avoid syncing full directories, caches, or runtime state.',
       total: '{count} assets',
       sensitiveHint: 'Sensitive values are masked',
       sensitive: 'Sensitive',
@@ -2531,12 +2525,6 @@ export default {
       localPath: 'Local',
       remotePath: 'Remote',
       canonical: 'Canonical {name}',
-      scopeCcrLabel: 'CCR',
-      scopeCcrValue: 'All platform configs',
-      scopeClaudeLabel: 'Claude',
-      scopeClaudeValue: 'settings.json + CLAUDE.md',
-      scopeCodexLabel: 'Codex',
-      scopeCodexValue: 'config.toml + AGENTS.md',
       safetyTitle: 'Safety boundary',
       safetyAllowlist:
         'Only fixed allowlist items sync; never the full ~/.claude or ~/.codex directories.',
@@ -2555,19 +2543,16 @@ export default {
     },
     assetGroups: {
       ccr: {
-        label: 'Required',
         title: 'CCR Platforms',
         description:
           'Sync all platform configs under ~/.ccr/platforms/, including Claude/Codex auth, URL, key, and provider routing fields.',
       },
       claude: {
-        label: 'Claude Code',
         title: 'Claude Code Config',
         description:
           'Sync only settings.json and CLAUDE.md; sessions, cache, plugins, and the rest of ~/.claude stay out of scope.',
       },
       codex: {
-        label: 'Codex',
         title: 'Codex Config',
         description:
           'Sync only config.toml and AGENTS.md; sessions, logs, plugins, and the rest of ~/.codex stay out of scope.',

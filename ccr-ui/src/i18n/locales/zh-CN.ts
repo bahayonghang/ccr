@@ -2442,16 +2442,11 @@ export default {
     loadFailed: '加载失败',
     error: '错误',
 
-    // Manifest asset console
     assets: {
-      badge: 'Assets',
       refresh: '刷新状态',
       syncAll: '全部同步一次',
       syncingAll: '同步中…',
       forceRetryAll: '强制全部同步',
-      eyebrow: '固定同步清单',
-      title: '配置资产控制台',
-      description: '页面只展示固定同步清单，避免误同步整目录、缓存或运行时状态。',
       total: '{count} 项资产',
       sensitiveHint: '敏感值已遮罩',
       sensitive: '敏感',
@@ -2462,12 +2457,6 @@ export default {
       localPath: '本地',
       remotePath: '远端',
       canonical: '规范名 {name}',
-      scopeCcrLabel: 'CCR',
-      scopeCcrValue: '所有 platform 配置',
-      scopeClaudeLabel: 'Claude',
-      scopeClaudeValue: 'settings.json + CLAUDE.md',
-      scopeCodexLabel: 'Codex',
-      scopeCodexValue: 'config.toml + AGENTS.md',
       safetyTitle: '安全边界',
       safetyAllowlist: '只同步固定 allowlist，不同步整个 ~/.claude 或 ~/.codex。',
       safetyBackup: 'Pull 通过 staging 事务替换，失败时恢复原内容。',
@@ -2485,17 +2474,14 @@ export default {
     },
     assetGroups: {
       ccr: {
-        label: 'Required',
         title: 'CCR Platforms',
         description: '同步 ~/.ccr/platforms/ 下所有 platform 配置，包含 Claude/Codex 的 auth、url、key 与 provider routing。',
       },
       claude: {
-        label: 'Claude Code',
         title: 'Claude Code 配置',
         description: '只同步 settings.json 与 CLAUDE.md；不会同步 sessions、cache、plugins 或整个 ~/.claude。',
       },
       codex: {
-        label: 'Codex',
         title: 'Codex 配置',
         description: '只同步 config.toml 与 AGENTS.md；不会同步 sessions、logs、plugins 或整个 ~/.codex。',
       },
