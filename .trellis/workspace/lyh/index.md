@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-3.md`
-- **Total Sessions**: 124
-- **Last Active**: 2026-10-08
+- **Total Sessions**: 125
+- **Last Active**: 2026-10-12
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-3.md` | ~153 | Active |
+| `journal-3.md` | ~175 | Active |
 | `journal-2.md` | ~1982 | Archived |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
@@ -31,6 +31,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 125 | 2026-10-12 | 发布 7.4.1 并更换蓝色汇流图标 | `71fdac92d70a707caff5495190d6f9bb3a64150e` | `dev` |
 | 124 | 2026-10-08 | 添加 ccr clean storage 命令 | `d53c476d` | `dev` |
 | 123 | 2026-10-07 | CLI 信息展示优化收口 | `b78649fb`, `a6d5ff65`, `59ab8bf4`, `f62a3d56` | `dev` |
 | 122 | 2026-10-07 | Codex 切换后感知并重启 app-server 守护进程 | `9947bee0`, `c72ba99f`, `ff3bcdb7` | `dev` |

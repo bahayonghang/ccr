@@ -151,3 +151,25 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 125: 发布 7.4.1 并更换蓝色汇流图标
+<!-- trellis-session: v=2 fp=e60a80bc918de537 -->
+
+**Date**: 2026-10-12
+**Task**: 发布 7.4.1 并更换蓝色汇流图标
+**Branch**: `dev`
+
+### Summary
+
+版本升到 7.4.1。应用图标改为蓝色汇流标记，ccr-desktop.exe 的图标与 icons/32x32.png 一致，中心像素为 #1A73E8。just ci 通过。前端 handlebars 钉到 4.7.10。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `71fdac92d70a707caff5495190d6f9bb3a64150e` | chore(release): 🔖 v7.4.1 |
+
+### Status
+
+[OK] **Completed**
