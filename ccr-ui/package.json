@@ -1,6 +1,6 @@
 {
   "name": "ccr-ui-frontend",
-  "version": "7.4.0",
+  "version": "7.4.1",
   "private": true,
   "type": "module",
   "packageManager": "bun@1.4.0",
@@ -118,6 +118,9 @@
     "typescript-eslint": "^8.68.0",
     "vite": "8.2.2",
     "vitest": "^4.1.11"
+  },
+  "overrides": {
+    "handlebars": "4.7.10"
   },
   "patchedDependencies": {
     "braces@3.0.3": "patches/braces@3.0.3.patch"

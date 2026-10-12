@@ -4,22 +4,27 @@ This directory is the single source of truth for CCR brand iconography.
 
 ## Brand System
 
-The Dual Runtime Router mark encodes CCR without a text wordmark:
+The merge mark shows CCR's configuration route without a text wordmark:
 
-- the outer cream `C` is the shared control plane for CLI, TUI, and CCR UI;
-- the clay upper route represents Claude Runtime profile, config, and auth state;
-- the sage lower route represents Codex Runtime profile, auth, and sync state;
-- the CLI chevron shows both runtime paths converging on an explicit execution route.
+- two white routes are the runtime configurations entering from below;
+- they meet at one white point, the configuration that is currently active;
+- the field is a saturated blue squircle.
 
 The production palette is:
 
 | Role | Hex |
 | --- | --- |
-| Dark base | `#17120F` |
-| Dark surface | `#2A221E` |
-| Warm cream | `#F3EADF` |
-| Claude clay | `#E79A77` |
-| Codex sage | `#7CAB82` |
+| Blue field | `#1A73E8` |
+| Route and node | `#FFFFFF` |
+
+Shared geometry on a `0 0 1024 1024` canvas:
+
+- left route: `M 156 848 C 200 640 370 420 512 292`
+- right route: `M 868 848 C 824 640 654 420 512 292`
+- stroke width `112`, round caps
+- node: center `(512, 228)`, radius `72`
+
+`ccr-ui/scripts/generate_icons.py` draws this same geometry when Cairo is unavailable.
 
 ## Source Files
 

@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [7.4.1] - 2026-10-12
+
+### 🔧 改进
+
+- 应用图标改为蓝色汇流标记：两条路线收到顶部的生效点。桌面、网页、文档和 VS Code 使用同一标记。
+
+### 📦 依赖更新
+
+- 将前端嵌套 `handlebars` 钉到 `4.7.10`，清掉 GHSA-xw65-4hp5-5hc7、GHSA-8r5x-fm3f-whwj、GHSA-p8wg-vrv2-v86f。
+
+---
+
 ## [7.3.0] - 2026-09-02
 
 ### ✨ 新功能

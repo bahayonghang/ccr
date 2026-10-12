@@ -8,10 +8,9 @@ from __future__ import annotations
 
 from functools import lru_cache
 from io import BytesIO
-from math import atan2, cos, hypot, pi, sin, sqrt
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw
 
 try:
     from cairosvg import svg2png as cairosvg_svg2png
@@ -28,11 +27,14 @@ APP_ICON_SVG = BRANDING_DIR / "app-icon.svg"
 DISPLAY_LOGO_SVG = BRANDING_DIR / "display-logo.svg"
 VSCODE_ICON_SVG = BRANDING_DIR / "vscode-icon.svg"
 
-BRAND_BASE = (0x17, 0x12, 0x0F, 0xFF)
-BRAND_SURFACE = (0x2A, 0x22, 0x1E, 0xFF)
-BRAND_CREAM = (0xF3, 0xEA, 0xDF, 0xFF)
-BRAND_CLAY = (0xE7, 0x9A, 0x77, 0xFF)
-BRAND_SAGE = (0x7C, 0xAB, 0x82, 0xFF)
+BRAND_BLUE = (0x1A, 0x73, 0xE8, 0xFF)
+BRAND_MARK = (0xFF, 0xFF, 0xFF, 0xFF)
+BRAND_BASE = BRAND_BLUE
+# 与 branding/app-icon.svg 同一组汇流坐标。
+MARK_STROKE = 112
+MARK_LEFT = ((156, 848), (200, 640), (370, 420), (512, 292))
+MARK_RIGHT = ((868, 848), (824, 640), (654, 420), (512, 292))
+MARK_NODE = (512, 228, 72)
 NATIVE_RENDER_SCALE = 2
 NATIVE_RENDER_SIZE = 1024 * NATIVE_RENDER_SCALE
 
@@ -86,65 +88,14 @@ def rounded_line(
         draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=color)
 
 
-def arc_points(
-    start: tuple[float, float],
-    end: tuple[float, float],
-    radius: float,
-    large_arc: bool,
-    sweep: bool,
-    steps: int = 96,
+def cubic_points(
+    curve: tuple[tuple[float, float], tuple[float, float], tuple[float, float], tuple[float, float]],
+    steps: int = 32,
 ) -> list[tuple[float, float]]:
-    x1, y1 = start
-    x2, y2 = end
-    chord = hypot(x2 - x1, y2 - y1)
-    if chord == 0:
-        return [start]
-
-    radius = max(radius, chord / 2)
-    midpoint = ((x1 + x2) / 2, (y1 + y2) / 2)
-    height = sqrt(max(radius**2 - (chord / 2) ** 2, 0))
-    perpendicular = (-(y2 - y1) / chord, (x2 - x1) / chord)
-    centers = [
-        (midpoint[0] + sign * height * perpendicular[0], midpoint[1] + sign * height * perpendicular[1])
-        for sign in (-1, 1)
-    ]
-
-    selected: tuple[float, float, float, float] | None = None
-    for center_x, center_y in centers:
-        start_angle = atan2(y1 - center_y, x1 - center_x)
-        end_angle = atan2(y2 - center_y, x2 - center_x)
-        if sweep:
-            delta = (end_angle - start_angle) % (2 * pi)
-        else:
-            delta = -((start_angle - end_angle) % (2 * pi))
-        if (abs(delta) > pi) == large_arc:
-            selected = (center_x, center_y, start_angle, delta)
-            break
-
-    if selected is None:
-        raise ValueError("Unable to resolve SVG arc geometry")
-
-    center_x, center_y, start_angle, delta = selected
-    return [
-        (
-            center_x + radius * cos(start_angle + delta * step / steps),
-            center_y + radius * sin(start_angle + delta * step / steps),
-        )
-        for step in range(steps + 1)
-    ]
-
-
-def brand_gradient(size: int) -> Image.Image:
-    gradient = Image.new("RGBA", (size, size))
-    draw = ImageDraw.Draw(gradient)
-    for y in range(size):
-        t = y / max(size - 1, 1)
-        color = tuple(
-            round(BRAND_SURFACE[channel] + (BRAND_BASE[channel] - BRAND_SURFACE[channel]) * t)
-            for channel in range(3)
-        ) + (0xFF,)
-        draw.line((0, y, size, y), fill=color)
-    return gradient
+    start, control_1, control_2, end = curve
+    points = [start]
+    append_cubic(points, control_1, control_2, end, steps)
+    return points
 
 
 @lru_cache(maxsize=2)
@@ -152,13 +103,9 @@ def render_native_brand_master(variant: str) -> Image.Image:
     if variant == "app":
         tile_bounds = (48, 48, 976, 976)
         tile_radius = 224
-        border_bounds = (68, 68, 956, 956)
-        border_radius = 205
     elif variant == "display":
         tile_bounds = (32, 32, 992, 992)
         tile_radius = 236
-        border_bounds = (54, 54, 970, 970)
-        border_radius = 214
     else:
         raise ValueError(f"Unknown brand icon variant: {variant}")
 
@@ -175,47 +122,18 @@ def render_native_brand_master(variant: str) -> Image.Image:
         radius=tile_radius * NATIVE_RENDER_SCALE,
         fill=0xFF,
     )
-    canvas.paste(brand_gradient(NATIVE_RENDER_SIZE), mask=tile_mask)
-
-    border = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
-    ImageDraw.Draw(border).rounded_rectangle(
-        scaled_box(border_bounds),
-        radius=border_radius * NATIVE_RENDER_SCALE,
-        outline=BRAND_CREAM[:3] + (23,),
-        width=6 * NATIVE_RENDER_SCALE,
+    painted = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(painted)
+    draw.rectangle((0, 0, NATIVE_RENDER_SIZE, NATIVE_RENDER_SIZE), fill=BRAND_BLUE)
+    stroke = MARK_STROKE * NATIVE_RENDER_SCALE
+    rounded_line(draw, scaled_points(cubic_points(MARK_LEFT)), stroke, BRAND_MARK)
+    rounded_line(draw, scaled_points(cubic_points(MARK_RIGHT)), stroke, BRAND_MARK)
+    center_x, center_y, radius = (value * NATIVE_RENDER_SCALE for value in MARK_NODE)
+    draw.ellipse(
+        (center_x - radius, center_y - radius, center_x + radius, center_y + radius),
+        fill=BRAND_MARK,
     )
-    canvas.alpha_composite(border)
-
-    outer_c = scaled_points(arc_points((735, 280), (735, 744), 300, large_arc=True, sweep=False, steps=144))
-    shadow = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
-    rounded_line(
-        ImageDraw.Draw(shadow),
-        [(x, y + 16 * NATIVE_RENDER_SCALE) for x, y in outer_c],
-        106 * NATIVE_RENDER_SCALE,
-        (0, 0, 0, 51),
-    )
-    canvas.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(22 * NATIVE_RENDER_SCALE)))
-
-    draw = ImageDraw.Draw(canvas)
-    rounded_line(draw, outer_c, 106 * NATIVE_RENDER_SCALE, BRAND_CREAM)
-
-    upper_route = scaled_points(arc_points((650, 390), (372, 512), 176, large_arc=False, sweep=False))
-    lower_route = scaled_points(arc_points((372, 512), (650, 634), 176, large_arc=False, sweep=False))
-    rounded_line(draw, upper_route, 72 * NATIVE_RENDER_SCALE, BRAND_CLAY)
-    rounded_line(draw, lower_route, 72 * NATIVE_RENDER_SCALE, BRAND_SAGE)
-
-    upper_convergence = [(650, 390)]
-    append_cubic(upper_convergence, (650, 442), (674, 472), (712, 492))
-    lower_convergence = [(650, 634)]
-    append_cubic(lower_convergence, (650, 582), (674, 552), (712, 532))
-    rounded_line(draw, scaled_points(upper_convergence), 72 * NATIVE_RENDER_SCALE, BRAND_CLAY)
-    rounded_line(draw, scaled_points(lower_convergence), 72 * NATIVE_RENDER_SCALE, BRAND_SAGE)
-    rounded_line(
-        draw,
-        scaled_points([(706, 430), (796, 512), (706, 594)]),
-        68 * NATIVE_RENDER_SCALE,
-        BRAND_CREAM,
-    )
+    canvas.paste(painted, mask=tile_mask)
     return canvas
 
 
