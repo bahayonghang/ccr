@@ -293,3 +293,42 @@
 ### Next Steps
 
 - 任务记录未提交；现有应用仍需重启以继承已修复的PATH。
+
+
+## Session 130: 完成三平台 Profile A 版工作台并提交归档
+<!-- trellis-session: v=2 fp=904c4045e9c689f7 -->
+
+**Date**: 2026-10-13
+**Task**: 完成三平台 Profile A 版工作台并提交归档
+**Branch**: `dev`
+
+### Summary
+
+提交全部工作区改动，归档 Profile 工作台父任务与 Codex、Claude、Grok 三个子任务。
+
+### Main Changes
+
+- 三平台共享 A 版运行态、对齐表格、只读末次成功启用记录和紧凑用量详情，Claude Profile 正名并移除通用品牌表情。
+- Profile 加载、重载与切换改为后台调度，保留事务、失效顺序、去重和安全退出；更新跨层规范及真实 Ratatui 渲染证据。
+- 同时提交既有构建缓存规范和历史记录，以及独立复核通过的 Tailwind apply 检查兼容修复。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8b52028c` | docs(构建缓存): 📝 收录本机缓存规范与历史任务记录 |
+| `6eb144c9` | feat(配置TUI): ✨ 落地三平台 A 版工作台与异步切换 |
+| `4c38c53c` | fix(ccr-ui): 🔧 兼容 Tailwind apply 样式检查 |
+
+### Testing
+
+- [OK] 独立全范围复核通过；全部 16 项标准 CI 分项通过。just ci 前 12 项通过后在既有 Stylelint 规则处中断，修复后 frontend-check、frontend-audit、frontend-coverage、vscode-ci 续跑 exit 0。
+- [OK] 前端 170 文件 / 906 项测试及覆盖率通过；扩展 51 项测试与 VSIX 检查通过；最终差异检查通过。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 尚未推送；原生终端字体、冷盘查询和真实事务前后耗时仍为未验证范围。
