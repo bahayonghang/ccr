@@ -332,3 +332,33 @@
 ### Next Steps
 
 - 尚未推送；原生终端字体、冷盘查询和真实事务前后耗时仍为未验证范围。
+
+
+## Session 131: CCR 蓝色双环图标与 Tauri 桌面资源更新
+<!-- trellis-session: v=2 fp=9f0a7c8b0d7d284d -->
+
+**Date**: 2026-10-13
+**Task**: CCR 蓝色双环图标与 Tauri 桌面资源更新
+**Branch**: `dev`
+
+### Summary
+
+使用内置 ImageGen 生成用户选定的蓝色双环图标，统一更新品牌源、图标生成链路与 Tauri/Web/docs/VS Code 派生资源；完整验证通过，任务已归档。
+
+### Main Changes
+
+- 保存 ImageGen 源与提示词；Pillow 确定性导出 PNG/ICO/ICNS 与 SVG 兼容载体；同步品牌资产规范。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `62a4cc1ad44ee1cf800b05460fed30ac20b24064` | style(品牌图标): 🎨 更新 CCR 蓝色双环与桌面图标 |
+
+### Testing
+
+- [OK] just frontend-check 通过：170 smoke 文件、906 测试及文档构建审计；Tauri cargo check、扩展 build/lint/test、72 文件哈希一致性与图标格式/透明角检查通过。
+
+### Status
+
+[OK] **Completed**
