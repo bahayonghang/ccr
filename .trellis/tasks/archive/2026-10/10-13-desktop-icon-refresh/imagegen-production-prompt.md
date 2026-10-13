@@ -1,0 +1,5 @@
+# Production Preparation
+
+Mode: built-in image_gen edit. Input: approved A candidate ccr-blue-a.png. Output: preview/ccr-blue-a-production.png. Only exterior background preparation; original approved blue emblem preserved.
+
+Prepare the attached approved CCR icon for production export. Preserve the cobalt-blue interlocking double-loop emblem EXACTLY: identical silhouette, gaps, folded light-blue faces, proportions, position, and colors. Do not redesign any part of the emblem. Change ONLY the outer canvas/background: remove the outer rounded tile boundary and all alpha fringe artifacts by extending its existing very pale blue-white background smoothly to fill the ENTIRE square canvas, edge to edge, opaque. The emblem must stay at the identical size and center position with generous whitespace. The output is a clean full-bleed square raster master; platform asset exporters will apply their own rounded tile masks afterward. Background is extremely subtle cool off-white, no visible boundary, no shadow, no frame, no transparent areas. One isolated icon master. No text, no new objects, no decoration.
