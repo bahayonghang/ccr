@@ -1,59 +1,47 @@
 # CCR Brand Assets
 
-This directory is the single source of truth for CCR brand iconography.
-
-## Brand System
-
-The merge mark shows CCR's configuration route without a text wordmark:
-
-- two white routes are the runtime configurations entering from below;
-- they meet at one white point, the configuration that is currently active;
-- the field is a saturated blue squircle.
-
-The production palette is:
-
-| Role | Hex |
-| --- | --- |
-| Blue field | `#1A73E8` |
-| Route and node | `#FFFFFF` |
-
-Shared geometry on a `0 0 1024 1024` canvas:
-
-- left route: `M 156 848 C 200 640 370 420 512 292`
-- right route: `M 868 848 C 824 640 654 420 512 292`
-- stroke width `112`, round caps
-- node: center `(512, 228)`, radius `72`
-
-`ccr-ui/scripts/generate_icons.py` draws this same geometry when Cairo is unavailable.
+This directory owns CCR's blue interlocking-loop identity. Two opposed rounded
+loops suggest switching between AI CLI configurations. The cobalt mark sits on
+a pale blue-white tile, with generous negative space and transparent outer corners.
 
 ## Source Files
 
-- `master.svg`: editable reference master for the complete mark
-- `app-icon.svg`: production icon optimized for shortcuts, favicons, and marketplace tiles
-- `display-logo.svg`: presentation variant for docs and branded application surfaces
-- `vscode-icon.svg`: monochrome `currentColor` glyph for VS Code view containers
+- `icon-source.png`: canonical, unmodified 1254 × 1254 ImageGen production master.
+- `provenance/approved-blue-a.png`: original ImageGen candidate selected by the user.
+- `provenance/imagegen-prompts.md`: original and production-edit prompts and hashes.
+- `vscode-icon.svg`: simplified loop silhouette in `currentColor` for theme-aware
+  VS Code view containers.
+
+The canonical PNG is the production source. Provenance images, root `icon.png`,
+task previews, and developer-local files are never generator inputs. Changes to
+the colored emblem use ImageGen; deterministic exports only resize, mask, and encode.
 
 ## Export Policy
 
-Generated artifacts are owned by `ccr-ui/scripts/generate_icons.py`.
+Run `bun run icons:generate` from `ccr-ui/`. The Pillow-only generator reads
+`icon-source.png` without Cairo or any platform-specific rasterizer. It keeps the
+source image at full canvas size and applies these masks on a 1024-unit canvas:
 
-The script exports assets for:
+| Variant | Tile bounds | Corner radius |
+| --- | --- | --- |
+| App | `(48, 48)` to `(976, 976)` | `224` |
+| Display | `(32, 32)` to `(992, 992)` | `236` |
+
+`master.svg`, `app-icon.svg`, and `display-logo.svg` are generated compatibility
+wrappers containing the same PNG as a data URI with a matching rounded clip path.
+They are self-contained and preserve existing SVG consumer URLs.
+
+The script owns these derived assets:
 
 - `icon.png`
-- `ccr-ui/src-tauri/icons/*`
+- `ccr-ui/src-tauri/icons/*` PNG, ICO, ICNS, Windows tiles, Android and iOS images
 - `ccr-ui/public/icons/*`
-- `ccr-ui/src/assets/favicon.svg`
-- `ccr-ui/src/assets/logo.png`
-- `ccr-vscode/icon.svg`
-- `ccr-vscode/icon.png`
-- `ccr-vscode/resources/icons/ccr.svg`
-- `docs/public/logo.svg`
-- `docs/public/favicon.svg`
-- `docs/public/favicon.png`
+- `ccr-ui/src/assets/favicon.svg` and `logo.png`
+- `ccr-vscode/icon.svg`, `icon.png`, and `resources/icons/ccr.svg`
+- `docs/public/logo.svg`, `favicon.svg`, and `favicon.png`
 
-The generator rasterizes SVGs with CairoSVG when the host provides Cairo. Its
-Pillow renderer is the required fallback on Windows hosts without Cairo DLLs;
-both paths must describe the same brand. Generated outputs must never be used
-as fallback inputs.
-
-The root `icon.png` remains a generated visual reference only.
+`bun run icons:ensure` uses this same generator before builds. Commit the source,
+generator, compatibility wrappers, and all derived assets together. Repeating the
+generation without source changes must produce identical hashes. Validate SVG
+XML, theme-aware glyph color, raster sizes/formats, transparent corners, and
+16/32 px plus 512/1024 px appearance before delivery.

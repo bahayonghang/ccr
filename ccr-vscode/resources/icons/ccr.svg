@@ -1,8 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"
   role="img" aria-label="CCR">
-  <g fill="none" stroke="currentColor" stroke-width="112" stroke-linecap="round">
-    <path d="M156 848 C200 640 370 420 512 292"/>
-    <path d="M868 848 C824 640 654 420 512 292"/>
+  <g fill="currentColor">
+    <path d="M400 232H616Q648 232 672 256L728 312Q744 328 724 344L628 416
+      Q620 424 612 416L588 392Q578 382 560 382H410Q382 382 382 410V544
+      Q382 560 368 570L280 632Q224 670 224 614V392Q224 232 400 232Z"/>
+    <path d="M400 232H616Q648 232 672 256L728 312Q744 328 724 344L628 416
+      Q620 424 612 416L588 392Q578 382 560 382H410Q382 382 382 410V544
+      Q382 560 368 570L280 632Q224 670 224 614V392Q224 232 400 232Z"
+      transform="rotate(180 512 512)"/>
   </g>
-  <circle cx="512" cy="228" r="72" fill="currentColor"/>
 </svg>

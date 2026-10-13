@@ -20,7 +20,7 @@
 | [Usage Chart Stability Contracts](./usage-chart-stability-contracts.md) | ApexCharts options/series discipline, keep-mounted tab interaction, and dual-path complete CSS delivery | Complete |
 | [Confirm Interaction Contracts](./confirm-interaction-contracts.md) | requestConfirm gate pattern, danger/warning semantics, no native dialogs, hook boundary | Complete |
 | [Raw Config Editor Contracts](./raw-config-editor-contracts.md) | Local-only plaintext source editing, validation, versioned saves, and shared editor behavior | Complete |
-| [Brand Asset Pipeline Contract](./brand-asset-pipeline.md) | Brand SVG ownership, Cairo/Pillow rendering, generated outputs, and cross-surface verification | Complete |
+| [Brand Asset Pipeline Contract](./brand-asset-pipeline.md) | ImageGen PNG ownership, Pillow exports, SVG compatibility carriers, and cross-surface verification | Complete |
 | [Sync Security Contracts](./sync-security-contracts.md) | Typed sync IPC, truth table, canonical WebDAV config, and operation passphrase lifecycle | Complete |
 | [Development Resource Contracts](./development-resource-contracts.md) | Vite watcher scope, warmup ownership, process cleanup, cache preservation, and smoke worker budgets | Complete |
 | [Profiles Page Contracts](./profiles-page-contracts.md) | Codex/Grok patch serialization, three-page shared skeleton, and `--cp-*`/`pe-*` boundary | Complete |

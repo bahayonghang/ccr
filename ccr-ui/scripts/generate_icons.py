@@ -1,42 +1,35 @@
 # /// script
 # requires-python = ">=3.10"
-# dependencies = ["cairosvg", "pillow"]
+# dependencies = ["pillow"]
 # ///
-"""Generate CCR brand assets for the whole repository from SVG sources."""
+"""Generate CCR brand assets from the approved ImageGen PNG and theme glyph."""
 
 from __future__ import annotations
 
+import base64
 from functools import lru_cache
-from io import BytesIO
 from pathlib import Path
 
 from PIL import Image, ImageDraw
-
-try:
-    from cairosvg import svg2png as cairosvg_svg2png
-except Exception:
-    cairosvg_svg2png = None
-
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
 BRANDING_DIR = REPO_ROOT / "branding"
 
+ICON_SOURCE = BRANDING_DIR / "icon-source.png"
 MASTER_SVG = BRANDING_DIR / "master.svg"
 APP_ICON_SVG = BRANDING_DIR / "app-icon.svg"
 DISPLAY_LOGO_SVG = BRANDING_DIR / "display-logo.svg"
 VSCODE_ICON_SVG = BRANDING_DIR / "vscode-icon.svg"
 
-BRAND_BLUE = (0x1A, 0x73, 0xE8, 0xFF)
-BRAND_MARK = (0xFF, 0xFF, 0xFF, 0xFF)
-BRAND_BASE = BRAND_BLUE
-# 与 branding/app-icon.svg 同一组汇流坐标。
-MARK_STROKE = 112
-MARK_LEFT = ((156, 848), (200, 640), (370, 420), (512, 292))
-MARK_RIGHT = ((868, 848), (824, 640), (654, 420), (512, 292))
-MARK_NODE = (512, 228, 72)
-NATIVE_RENDER_SCALE = 2
-NATIVE_RENDER_SIZE = 1024 * NATIVE_RENDER_SCALE
+BRAND_BASE = (0xF1, 0xFA, 0xFD, 0xFF)
+# x, y, width, height, radius on the shared 1024 canvas.
+TILE_VARIANTS = {
+    "app": (48, 48, 928, 928, 224),
+    "display": (32, 32, 960, 960, 236),
+}
+RENDER_SCALE = 2
+RENDER_SIZE = 1024 * RENDER_SCALE
 
 
 def ensure_parent(path: Path) -> None:
@@ -49,124 +42,63 @@ def copy_text_asset(source: Path, target: Path) -> None:
     print(f"Updated {target.relative_to(REPO_ROOT)}")
 
 
-def append_cubic(
-    points: list[tuple[float, float]],
-    control_1: tuple[float, float],
-    control_2: tuple[float, float],
-    end: tuple[float, float],
-    steps: int = 24,
-) -> None:
-    start = points[-1]
-    for step in range(1, steps + 1):
-        t = step / steps
-        inverse = 1 - t
-        x = (
-            inverse**3 * start[0]
-            + 3 * inverse**2 * t * control_1[0]
-            + 3 * inverse * t**2 * control_2[0]
-            + t**3 * end[0]
-        )
-        y = (
-            inverse**3 * start[1]
-            + 3 * inverse**2 * t * control_1[1]
-            + 3 * inverse * t**2 * control_2[1]
-            + t**3 * end[1]
-        )
-        points.append((x, y))
-
-
-def rounded_line(
-    draw: ImageDraw.ImageDraw,
-    points: list[tuple[float, float]],
-    width: int,
-    color: tuple[int, int, int, int],
-) -> None:
-    radius = width // 2
-    for start, end in zip(points, points[1:]):
-        draw.line((start, end), fill=color, width=width)
-    for x, y in points:
-        draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=color)
-
-
-def cubic_points(
-    curve: tuple[tuple[float, float], tuple[float, float], tuple[float, float], tuple[float, float]],
-    steps: int = 32,
-) -> list[tuple[float, float]]:
-    start, control_1, control_2, end = curve
-    points = [start]
-    append_cubic(points, control_1, control_2, end, steps)
-    return points
-
-
 @lru_cache(maxsize=2)
-def render_native_brand_master(variant: str) -> Image.Image:
-    if variant == "app":
-        tile_bounds = (48, 48, 976, 976)
-        tile_radius = 224
-    elif variant == "display":
-        tile_bounds = (32, 32, 992, 992)
-        tile_radius = 236
-    else:
-        raise ValueError(f"Unknown brand icon variant: {variant}")
-
-    def scaled_points(points: list[tuple[float, float]]) -> list[tuple[float, float]]:
-        return [(x * NATIVE_RENDER_SCALE, y * NATIVE_RENDER_SCALE) for x, y in points]
-
-    def scaled_box(box: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
-        return tuple(value * NATIVE_RENDER_SCALE for value in box)
-
-    canvas = Image.new("RGBA", (NATIVE_RENDER_SIZE, NATIVE_RENDER_SIZE), (0, 0, 0, 0))
-    tile_mask = Image.new("L", canvas.size, 0)
+def render_brand_master(variant: str) -> Image.Image:
+    x, y, width, height, radius = TILE_VARIANTS[variant]
+    with Image.open(ICON_SOURCE) as source:
+        painted = source.convert("RGBA").resize(
+            (RENDER_SIZE, RENDER_SIZE), Image.Resampling.LANCZOS
+        )
+    tile_mask = Image.new("L", painted.size, 0)
     ImageDraw.Draw(tile_mask).rounded_rectangle(
-        scaled_box(tile_bounds),
-        radius=tile_radius * NATIVE_RENDER_SCALE,
+        tuple(value * RENDER_SCALE for value in (x, y, x + width, y + height)),
+        radius=radius * RENDER_SCALE,
         fill=0xFF,
     )
-    painted = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
-    draw = ImageDraw.Draw(painted)
-    draw.rectangle((0, 0, NATIVE_RENDER_SIZE, NATIVE_RENDER_SIZE), fill=BRAND_BLUE)
-    stroke = MARK_STROKE * NATIVE_RENDER_SCALE
-    rounded_line(draw, scaled_points(cubic_points(MARK_LEFT)), stroke, BRAND_MARK)
-    rounded_line(draw, scaled_points(cubic_points(MARK_RIGHT)), stroke, BRAND_MARK)
-    center_x, center_y, radius = (value * NATIVE_RENDER_SCALE for value in MARK_NODE)
-    draw.ellipse(
-        (center_x - radius, center_y - radius, center_x + radius, center_y + radius),
-        fill=BRAND_MARK,
-    )
+    canvas = Image.new("RGBA", painted.size, (0, 0, 0, 0))
     canvas.paste(painted, mask=tile_mask)
     return canvas
 
 
-def render_native_brand_icon(size: int, variant: str = "app") -> Image.Image:
-    master = render_native_brand_master(variant)
+def render_brand_icon(size: int, variant: str = "app") -> Image.Image:
+    master = render_brand_master(variant)
     if size == master.width:
         return master.copy()
-    return master.resize((size, size), Image.Resampling.LANCZOS)
+    icon = master.resize((size, size), Image.Resampling.LANCZOS)
+    # Lanczos can leave alpha=1 at 16px corners outside the rounded tile.
+    for corner in ((0, 0), (size - 1, 0), (0, size - 1), (size - 1, size - 1)):
+        icon.putpixel(corner, (0, 0, 0, 0))
+    return icon
 
 
-def render_svg(svg_path: Path, size: int) -> Image.Image:
-    if cairosvg_svg2png is not None:
-        png_bytes = cairosvg_svg2png(
-            url=str(svg_path),
-            output_width=size,
-            output_height=size,
-            background_color=None,
-        )
-        return Image.open(BytesIO(png_bytes)).convert("RGBA")
-    if svg_path in {APP_ICON_SVG, DISPLAY_LOGO_SVG}:
-        variant = "display" if svg_path == DISPLAY_LOGO_SVG else "app"
-        return render_native_brand_icon(size, variant=variant)
-    raise RuntimeError(f"SVG rasterizer unavailable for {svg_path}")
+def write_brand_svg(target: Path, variant: str) -> None:
+    x, y, width, height, radius = TILE_VARIANTS[variant]
+    encoded = base64.b64encode(ICON_SOURCE.read_bytes()).decode("ascii")
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">CCR blue interlocking loops</title>
+  <desc id="desc">Two opposed blue loops on a light tile represent switching configurations.</desc>
+  <defs>
+    <clipPath id="tile-clip">
+      <rect x="{x}" y="{y}" width="{width}" height="{height}" rx="{radius}"/>
+    </clipPath>
+  </defs>
+  <image x="0" y="0" width="1024" height="1024" clip-path="url(#tile-clip)"
+    xlink:href="data:image/png;base64,{encoded}"/>
+</svg>
+'''
+    ensure_parent(target)
+    target.write_text(svg, encoding="utf-8")
+    print(f"Updated {target.relative_to(REPO_ROOT)}")
 
 
 def render_with_padding(
-    svg_path: Path,
     size: int,
     padding_ratio: float,
 ) -> Image.Image:
     canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     inner_size = int(round(size * (1 - padding_ratio * 2)))
-    inner = render_svg(svg_path, inner_size)
+    inner = render_brand_icon(inner_size)
     offset = ((size - inner_size) // 2, (size - inner_size) // 2)
     canvas.alpha_composite(inner, offset)
     return canvas
@@ -181,19 +113,20 @@ def save_png(image: Image.Image, target: Path) -> None:
     print(f"Generated {target.relative_to(REPO_ROOT)} ({image.width}x{image.height})")
 
 
-def save_svg_preview(
-    svg_path: Path,
+def save_brand_preview(
     target: Path,
     size: int,
+    variant: str = "app",
 ) -> None:
-    save_png(render_svg(svg_path, size), target)
+    save_png(render_brand_icon(size, variant), target)
 
 
 def save_ico(image: Image.Image, target: Path) -> None:
     ensure_parent(target)
     ico_sizes = [(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (256, 256)]
+    frames = [render_brand_icon(width) for width, _ in ico_sizes]
     with target.open("wb") as handle:
-        image.save(handle, format="ICO", sizes=ico_sizes)
+        image.save(handle, format="ICO", sizes=ico_sizes, append_images=frames)
     print(f"Generated {target.relative_to(REPO_ROOT)}")
 
 
@@ -205,6 +138,9 @@ def save_icns(image: Image.Image, target: Path) -> None:
 
 
 def export_brand_sources() -> None:
+    write_brand_svg(MASTER_SVG, "app")
+    write_brand_svg(APP_ICON_SVG, "app")
+    write_brand_svg(DISPLAY_LOGO_SVG, "display")
     copy_text_asset(APP_ICON_SVG, REPO_ROOT / "ccr-ui" / "src" / "assets" / "favicon.svg")
     copy_text_asset(APP_ICON_SVG, REPO_ROOT / "ccr-ui" / "public" / "icons" / "icon.svg")
     copy_text_asset(DISPLAY_LOGO_SVG, REPO_ROOT / "ccr-ui" / "public" / "icons" / "logo.svg")
@@ -215,17 +151,17 @@ def export_brand_sources() -> None:
 
 
 def export_runtime_assets() -> None:
-    save_svg_preview(APP_ICON_SVG, REPO_ROOT / "icon.png", 512)
-    save_svg_preview(APP_ICON_SVG, REPO_ROOT / "ccr-ui" / "public" / "icons" / "icon.png", 512)
-    save_svg_preview(DISPLAY_LOGO_SVG, REPO_ROOT / "ccr-ui" / "public" / "icons" / "logo.png", 1024)
-    save_svg_preview(DISPLAY_LOGO_SVG, REPO_ROOT / "ccr-ui" / "src" / "assets" / "logo.png", 640)
-    save_svg_preview(APP_ICON_SVG, REPO_ROOT / "docs" / "public" / "favicon.png", 256)
-    save_svg_preview(APP_ICON_SVG, REPO_ROOT / "ccr-vscode" / "icon.png", 256)
+    save_brand_preview(REPO_ROOT / "icon.png", 512)
+    save_brand_preview(REPO_ROOT / "ccr-ui" / "public" / "icons" / "icon.png", 512)
+    save_brand_preview(REPO_ROOT / "ccr-ui" / "public" / "icons" / "logo.png", 1024, "display")
+    save_brand_preview(REPO_ROOT / "ccr-ui" / "src" / "assets" / "logo.png", 640, "display")
+    save_brand_preview(REPO_ROOT / "docs" / "public" / "favicon.png", 256)
+    save_brand_preview(REPO_ROOT / "ccr-vscode" / "icon.png", 256)
 
 
 def export_tauri_bundle_assets() -> None:
     tauri_icons = REPO_ROOT / "ccr-ui" / "src-tauri" / "icons"
-    app_1024 = render_svg(APP_ICON_SVG, 1024)
+    app_1024 = render_brand_icon(1024)
 
     png_targets = {
         "32x32.png": 32,
@@ -247,7 +183,7 @@ def export_tauri_bundle_assets() -> None:
     }
 
     for name, size in png_targets.items():
-        save_png(render_svg(APP_ICON_SVG, size), tauri_icons / name)
+        save_png(render_brand_icon(size), tauri_icons / name)
 
     save_ico(app_1024, tauri_icons / "icon.ico")
     save_icns(app_1024, tauri_icons / "icon.icns")
@@ -271,12 +207,12 @@ def export_android_assets() -> None:
     }
 
     for bucket, size in launcher_sizes.items():
-        image = render_svg(APP_ICON_SVG, size)
+        image = render_brand_icon(size)
         save_png(image, android_root / bucket / "ic_launcher.png")
         save_png(image, android_root / bucket / "ic_launcher_round.png")
 
     for bucket, size in foreground_sizes.items():
-        foreground = render_with_padding(APP_ICON_SVG, size, padding_ratio=0.14)
+        foreground = render_with_padding(size, padding_ratio=0.14)
         save_png(foreground, android_root / bucket / "ic_launcher_foreground.png")
 
     background_color = "#{:02X}{:02X}{:02X}".format(*BRAND_BASE[:3])
@@ -311,14 +247,17 @@ def export_ios_assets() -> None:
     }
 
     for name, size in ios_targets.items():
-        save_png(render_svg(APP_ICON_SVG, size), ios_root / name)
+        save_png(render_brand_icon(size), ios_root / name)
 
 
 def main() -> None:
-    required = [MASTER_SVG, APP_ICON_SVG, DISPLAY_LOGO_SVG, VSCODE_ICON_SVG]
+    required = [ICON_SOURCE, VSCODE_ICON_SVG]
     for path in required:
         if not path.exists():
             raise FileNotFoundError(f"Missing brand source: {path}")
+
+    if "currentColor" not in VSCODE_ICON_SVG.read_text(encoding="utf-8"):
+        raise ValueError("VS Code brand glyph must use currentColor")
 
     export_brand_sources()
     export_runtime_assets()
