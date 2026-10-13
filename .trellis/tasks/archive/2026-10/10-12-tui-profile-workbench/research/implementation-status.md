@@ -1,6 +1,6 @@
 # Implementation status
 
-The user explicitly approved revision-2 candidate A for all three platforms and requested implementation. Shared code and all three platform presentations are implemented and independently reviewed. All 16 CI recipes have passed across the aggregate run and the narrowly resumed frontend suffix; the parent remains the active coordinating task. Earlier planning validation records describe the pre-approval state.
+The user explicitly approved revision-2 candidate A for all three platforms and requested implementation. Shared code and all three platform presentations are implemented and independently reviewed. All 16 CI recipes have passed across the aggregate run and the narrowly resumed frontend suffix; the user has now authorized committing and archiving the parent and children. Earlier planning validation records describe the pre-approval state.
 
 ## Baseline
 
@@ -26,4 +26,4 @@ The user explicitly approved revision-2 candidate A for all three platforms and 
 - Completed: full-scope independent review and focused suites, including exact strict Clippy. Review findings were repaired and rechecked.
 - Completed: all 16 standard CI recipes. The aggregate passed its first 12 gates, then found an existing Tailwind lint compatibility issue; the reviewed config repair passed its direct controls and all four remaining recipes. See `integration-validation.md`, `ci-final.log` and `ci-frontend-recovery.log` for the exact command outcomes.
 
-Per-owner evidence is recorded in `history-implementation.md`, `async-implementation.md` and `visual-implementation.md`. `check-final.md` records independent review; `integration-validation.md` maps acceptance to the evidence and states its limits. Tasks remain in progress pending a user-directed commit/archive; no automatic commit or push is part of this request.
+Per-owner evidence is recorded in `history-implementation.md`, `async-implementation.md` and `visual-implementation.md`. `check-final.md` records independent review; `integration-validation.md` maps acceptance to the evidence and states its limits. The user subsequently requested committing all changes and archiving the tasks. Work commits are recorded in task.json; task.py owns the final completed status and archive move. No push was requested.

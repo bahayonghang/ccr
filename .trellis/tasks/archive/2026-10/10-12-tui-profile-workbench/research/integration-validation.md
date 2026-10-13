@@ -1,6 +1,6 @@
 # Profile workbench integration validation
 
-Date: 2026-10-13. Scope: the approved A design for Codex, Claude and Grok Profile. Implementation is present in the shared workspace; no commit, push or personal-profile activation has been performed.
+Date: 2026-10-13. Scope: the approved A design for Codex, Claude and Grok Profile. Implementation and verification preceded the user-authorized commit/archive step; committed revisions are recorded in task.json. No push or personal-profile activation was performed.
 
 ## Acceptance evidence
 
@@ -68,4 +68,6 @@ All 16 standard CI recipes have now passed across the aggregate run and the resu
 | Frontend checks/build/docs, dependency audit, coverage, VS Code CI/package | Passed in `ci-frontend-recovery.log`, suffix exit 0 |
 | Independent full-scope review and narrow recovery follow-ups | `check-final.md`, no unresolved findings |
 
-Trellis parent/child implementation and acceptance records are reconciled. Their workflow status remains `in_progress` pending a user-directed commit/archive; implementation and verification metadata are complete. No commit, push, installation or personal-profile activation was performed. The release binary is available at `target/release/ccr.exe`. Unrelated build-cache specification and journal changes present at session start are preserved.
+Trellis parent/child implementation and acceptance records are reconciled. The user subsequently authorized committing all changes and archiving these four tasks; committed revisions and final lifecycle status are recorded in task.json. No push, installation or personal-profile activation was performed. The release binary is available at `target/release/ccr.exe`. Unrelated build-cache specification and journal changes present at session start are preserved.
+
+Raw `.log` files are local, Git-ignored diagnostics moved with the task; the versioned report above preserves gate results and the separate aggregate/recovery outcomes.
