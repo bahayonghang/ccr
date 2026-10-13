@@ -9,6 +9,7 @@
 | [Backend Guidelines](./backend-guidelines.md)                        | Root CLI/library facade boundaries, logging, errors, and verification                       | Complete |
 | [Desktop Command Policy](./desktop-command-policy.md)                | Desktop request validation, ProcessGateway capabilities, output bounds, and lifecycle        | Complete |
 | [Dependency Governance](./dependency-governance.md)                  | Root/Tauri dependency drift gates                                                           | Complete |
+| [Local Rust Build Cache](./local-build-cache.md)                    | Optional mbx command resolution, cache placement, safe migration, and runtime verification | Complete |
 | [llmusage Provider Adapter Contract](./llmusage-provider-adapter.md) | ccr-usage sole SQL/projection owner, read-only SQLite, Tauri dashboard and home Insights contract | Complete |
 | [Usage Job Lifecycle](./usage-job-lifecycle.md) | Usage admission, cancellation, bounded process cleanup, and immutable terminal results | Complete |
 | [Module Decomposition](./module-decomposition.md)                  | Responsibility-based extraction gates for oversized authoritative modules                    | Complete |
@@ -25,6 +26,7 @@
 - Read [Public API Boundary](./public-api-boundary.md) before changing public re-exports or `prelude`.
 - Read [Test Fixtures](./test-fixtures.md) before adding root integration tests.
 - Read [Dependency Governance](./dependency-governance.md) before changing workspace/Tauri dependency versions.
+- Read [Local Rust Build Cache](./local-build-cache.md) before changing local mbx integration, Rust build-cache placement, or managed target links.
 - Read [Module Decomposition](./module-decomposition.md) before splitting
   `command_exec.rs`, `migrations.rs`, `codex_auth.rs`, or `sync.rs`.
 - Read [Repository JSON Formatting](./repository-json-formatting.md) before

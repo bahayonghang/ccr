@@ -1,0 +1,4 @@
+{"file": ".trellis/tasks/archive/2026-10/10-12-mbx-build-cache/research/diagnosis.md", "reason": "验证实际 Cargo 路径与缓存命中，不将沙箱错误当 ACL 故障"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "保持本机修复最小化"}
+{"file": ".trellis/spec/ccr/backend/local-build-cache.md", "reason": "本次缓存接入与迁移的可执行验收契约"}
+{"file": ".trellis/tasks/archive/2026-10/10-12-mbx-build-cache/research/path-results.md", "reason": "持久 PATH 变更与当前进程生效边界"}

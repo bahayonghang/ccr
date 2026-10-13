@@ -227,3 +227,69 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 128: 修复本机 mbx 接入并迁移 CCR 缓存到 D 盘
+<!-- trellis-session: v=2 fp=d302377685ee8e40 -->
+
+**Date**: 2026-10-12
+**Task**: 修复本机 mbx 接入并迁移 CCR 缓存到 D 盘
+**Branch**: `dev`
+
+### Summary
+
+修复 Machine PATH，保留旧产物并迁移两个 target，完成真实构建与缓存命中验证；任务已无提交归档。
+
+### Main Changes
+
+- mbx shim 前置持久 PATH，配置备份保留；根和 Tauri target 均迁入 D:\mbx-cache。
+- 补充本机构建缓存规范与诊断/验收证据，未改业务代码。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] mbx doctor 9 pass，0 failures，0 warnings；CLI/Tauri 构建成功。
+- [OK] ccr-types 独立 target 验证：第二次 35 hits，恢复 74 文件；独立审查通过。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 重启已有 Codex/IDE/终端继承新 PATH；记录与规范未提交。
+
+
+## Session 129: 清理 mbx 迁移后旧 C 盘 CCR 产物
+<!-- trellis-session: v=2 fp=22aaaed844cc5f8f -->
+
+**Date**: 2026-10-12
+**Task**: 清理 mbx 迁移后旧 C 盘 CCR 产物
+**Branch**: `dev`
+
+### Summary
+
+按用户后续授权删除旧 C target，保留活动 shim 与 D 盘缓存，更新回滚边界。
+
+### Main Changes
+
+- 移除35407个旧文件及空目录，C盘可用空间实测增加约17.8GB。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] D盘CLI/Tauri产物SHA-256前后相同；mbx doctor 9 pass、0 failures、0 warnings。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 任务记录未提交；现有应用仍需重启以继承已修复的PATH。

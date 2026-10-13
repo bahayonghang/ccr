@@ -1,0 +1,2 @@
+{"file": ".trellis/tasks/archive/2026-10/10-12-mbx-build-cache/research/diagnosis.md", "reason": "本机根因、入口和跨盘迁移风险"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "复用现有 shim，不添加并行构建接入机制"}

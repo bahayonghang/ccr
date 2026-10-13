@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-3.md`
-- **Total Sessions**: 127
+- **Total Sessions**: 129
 - **Last Active**: 2026-10-12
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-3.md` | ~229 | Active |
+| `journal-3.md` | ~295 | Active |
 | `journal-2.md` | ~1982 | Archived |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
@@ -31,6 +31,8 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 129 | 2026-10-12 | 清理 mbx 迁移后旧 C 盘 CCR 产物 | - | `dev` |
+| 128 | 2026-10-12 | 修复本机 mbx 接入并迁移 CCR 缓存到 D 盘 | - | `dev` |
 | 127 | 2026-10-12 | 同步页面板边框与信息结构 | `54736aff` | `dev` |
 | 126 | 2026-10-12 | 落地 Dependabot 小版本 | `c03a733c9c39c310a7e06f5c9bf8283739603a0f` | `dev` |
 | 125 | 2026-10-12 | 发布 7.4.1 并更换蓝色汇流图标 | `71fdac92d70a707caff5495190d6f9bb3a64150e` | `dev` |
