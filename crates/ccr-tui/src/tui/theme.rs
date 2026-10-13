@@ -381,6 +381,7 @@ fn accent_for_palette(palette: &Palette, platform: Platform) -> Color {
     match platform {
         Platform::Claude => palette.claude,
         Platform::Codex => palette.codex,
+        Platform::Grok => palette.text,
         Platform::Gemini => palette.gemini,
         Platform::Droid => palette.droid,
         _ => palette.codex,

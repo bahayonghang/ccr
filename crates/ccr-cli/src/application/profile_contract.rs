@@ -509,9 +509,58 @@ mod tests {
             .split("fn off_selected(")
             .next()
             .unwrap();
-        assert!(apply.contains("profile_backend::apply("));
+        assert!(apply.contains("self.start_profile_mutation(MutationRequest::Apply(request))"));
         assert!(!apply.contains("profile_off"));
         assert!(!apply.contains(".apply_profile("));
+        assert!(!apply.contains("profile_backend::apply("));
+        let handoff = tui
+            .split_once("fn start_profile_mutation(")
+            .expect("TUI must submit captured mutation requests")
+            .1
+            .split_once("fn reload_profiles(")
+            .expect("TUI mutation handoff must precede reload")
+            .0;
+        assert!(handoff.contains("self.profile_tasks.start_mutation(request)"));
+
+        // Scheduling may move, but the blocking worker must retain the shared owner.
+        let tasks = include_str!("../../../ccr-tui/src/tui/profile_tasks.rs");
+        assert!(tasks.contains("writer: Arc::new(mutate)"));
+        let worker = tasks
+            .split_once("fn start_mutation(")
+            .expect("Profile tasks must own mutation scheduling")
+            .1
+            .split_once("fn drain(")
+            .expect("Profile tasks must drain mutation outcomes")
+            .0;
+        assert!(worker.contains("let worker_request = request.clone()"));
+        assert!(worker.contains("self.executor.spawn_blocking(move ||"));
+        assert!(worker.contains("sender.send(writer(worker_request))"));
+        let mutation = tasks
+            .split_once("fn mutate(")
+            .expect("Profile tasks must retain the shared mutation adapter")
+            .1
+            .split_once("struct ReadJob")
+            .expect("Mutation adapter must precede read jobs")
+            .0;
+        let (apply_arm, off_arm) = mutation
+            .split_once("MutationRequest::Off(platform)")
+            .expect("Apply and off must have separate mutation arms");
+        assert!(apply_arm.contains("super::profile_backend::apply(request)"));
+        assert!(!apply_arm.contains("profile_off"));
+        assert!(off_arm.contains("profile_off_for_platform(platform)"));
+        assert!(!mutation.contains(".await"));
+
+        let backend = include_str!("../../../ccr-tui/src/tui/profile_backend.rs");
+        let backend_apply = backend
+            .split_once("pub fn presentation(")
+            .expect("TUI backend must separate mutation and presentation")
+            .0;
+        assert!(backend_apply.contains("ccr_cli::application::profile_lifecycle::"));
+        assert!(backend_apply.contains("apply_profile(request)"));
+        for adapter in [handoff, worker, mutation, backend_apply] {
+            assert!(!adapter.contains(".apply_profile("));
+            assert!(!adapter.contains("switch_command"));
+        }
         for adapter in [
             include_str!("../../../../ccr-ui/src-tauri/src/commands/claude_profiles.rs"),
             include_str!("../../../../ccr-ui/src-tauri/src/commands/codex_profiles.rs"),

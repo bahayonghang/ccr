@@ -23,6 +23,17 @@ impl Database {
     ///
     /// 默认路径: `~/.ccr/data.db`
     pub fn init_default() -> Result<Self> {
+        let db_path = Self::default_path()?;
+        if let Some(ccr_dir) = db_path.parent() {
+            std::fs::create_dir_all(ccr_dir).map_err(|e| {
+                CcrError::DatabaseError(format!("无法创建 CCR 目录 {}: {}", ccr_dir.display(), e))
+            })?;
+        }
+        Self::init(&db_path)
+    }
+
+    /// Resolve the history/session database location without creating any files.
+    pub fn default_path() -> Result<PathBuf> {
         let ccr_dir = if let Ok(custom) = std::env::var("CCR_DATA_DIR") {
             PathBuf::from(custom)
         } else if let Ok(custom) = std::env::var("CCR_ROOT") {
@@ -33,12 +44,7 @@ impl Database {
                 .join(".ccr")
         };
 
-        std::fs::create_dir_all(&ccr_dir).map_err(|e| {
-            CcrError::DatabaseError(format!("无法创建 CCR 目录 {}: {}", ccr_dir.display(), e))
-        })?;
-
-        let db_path = ccr_dir.join("data.db");
-        Self::init(&db_path)
+        Ok(ccr_dir.join("data.db"))
     }
 
     /// 初始化指定路径的数据库

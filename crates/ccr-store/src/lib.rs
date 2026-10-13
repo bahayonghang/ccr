@@ -23,5 +23,9 @@ pub use models::{
 pub use pricing_manager::PricingManager;
 pub use services::history_service::HistoryService;
 pub use sessions::{Session, SessionEvent, SessionFilter, SessionIndexer, SessionSummary};
+pub use storage::profile_activity::{
+    ProfileActivity, ProfileActivityAvailability, ProfileActivityError, ProfileActivitySnapshot,
+    read_profile_activity,
+};
 pub use storage::session_store::SessionStats;
 pub use storage::{Database, SessionStore};

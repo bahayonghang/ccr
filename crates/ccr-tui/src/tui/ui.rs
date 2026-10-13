@@ -21,11 +21,13 @@ use ratatui::{
     symbols,
     text::{Line, Span},
     widgets::{
-        Block, Borders, List, ListItem, Padding, Paragraph, Scrollbar, ScrollbarOrientation,
-        ScrollbarState, Tabs, Wrap,
+        Block, Borders, Padding, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, Tabs,
+        Wrap,
     },
 };
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
+
+mod workbench;
 
 // ═══════════════════════════════════════════════════════════
 // Main render entry
@@ -47,7 +49,17 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
     render_header(f, app, chunks[0]);
 
-    let content_area = if app.current_platform() == Platform::Codex && !app.is_grok_auth_tab() {
+    let content_area = if matches!(app.current_tab().variant, TabVariant::Profile) {
+        let height = if mode == theme::ViewportMode::Compact {
+            3
+        } else {
+            4
+        };
+        let runtime_chunks =
+            Layout::vertical([Constraint::Length(height), Constraint::Min(0)]).split(chunks[1]);
+        workbench::render_runtime(f, app, runtime_chunks[0]);
+        runtime_chunks[1]
+    } else if app.current_platform() == Platform::Codex && !app.is_grok_auth_tab() {
         let runtime_chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
@@ -263,6 +275,7 @@ fn wide_profile_workspace_layout(area: Rect) -> (Rect, Rect) {
     (columns[0], columns[1])
 }
 
+#[cfg(test)]
 fn profile_context_constraints(summary_height: u16, status_visible: bool) -> Vec<Constraint> {
     let mut constraints = vec![Constraint::Length(summary_height), Constraint::Min(10)];
     if status_visible {
@@ -287,6 +300,7 @@ fn compact_profile_workspace_layout(area: Rect) -> Option<(Rect, Rect)> {
 
 /// Calculate column widths for profile list (responsive to terminal width)
 /// Returns (name_width, desc_width) — desc_width is 0 when terminal is narrow
+#[cfg(test)]
 fn column_widths(area_width: u16) -> (usize, usize) {
     let inner = area_width.saturating_sub(4) as usize;
     let gap = 2usize;
@@ -352,6 +366,7 @@ fn pad_text(text: &str, width: usize) -> String {
     out
 }
 
+#[cfg(test)]
 fn profile_list_row(
     profile: &crate::tui::app::ProfileItem,
     is_selected: bool,
@@ -399,9 +414,26 @@ fn profile_list_row(
 // ═══════════════════════════════════════════════════════════
 
 /// Render header with dynamic platform tabs
+const TAB_DIVIDER: &str = "  │  ";
+
+fn tab_spacing(app: &App, area: Rect) -> (bool, &'static str, &'static str, &'static str) {
+    let full_width = app
+        .tabs
+        .iter()
+        .enumerate()
+        .map(|(index, tab)| tab_title_line(tab, index == app.active_tab, false).width() + 2)
+        .sum::<usize>()
+        + app.tabs.len().saturating_sub(1) * TAB_DIVIDER.width();
+    if full_width > Block::bordered().inner(area).width as usize {
+        (true, "", " ", "│")
+    } else {
+        (false, " ", " ", TAB_DIVIDER)
+    }
+}
+
 fn render_header(f: &mut Frame, app: &App, area: Rect) {
     // Build tab titles dynamically from loaded platforms
-    let compact_tabs = area.width < 100;
+    let (compact_tabs, left_padding, right_padding, divider) = tab_spacing(app, area);
     let tab_titles: Vec<Line> = app
         .tabs
         .iter()
@@ -409,11 +441,7 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
         .map(|(i, tab)| tab_title_line(tab, i == app.active_tab, compact_tabs))
         .collect();
 
-    let current_label = format!(
-        " {} {} ",
-        app.current_platform().icon(),
-        app.current_tab().display_label()
-    );
+    let current_label = format!(" {} ", app.current_tab().display_label());
 
     let tabs = Tabs::new(tab_titles)
         .block(
@@ -438,9 +466,35 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
         .select(app.active_tab)
         .style(theme::tab_normal_style())
         .highlight_style(theme::tab_highlight_style_for(app.current_platform()))
-        .divider(Span::styled("  │  ", Style::default().fg(theme::border())));
+        .padding(left_padding, right_padding)
+        .divider(Span::styled(divider, Style::default().fg(theme::border())));
 
     f.render_widget(tabs, area);
+}
+
+/// Match the exact title widths, padding and divider used by Ratatui Tabs.
+pub(super) fn tab_hit_index(app: &App, area: Rect, column: u16, row: u16) -> Option<usize> {
+    let inner = Block::bordered().inner(area);
+    if inner.height == 0 || row != inner.y || column < inner.x || column >= inner.right() {
+        return None;
+    }
+    let (compact, left_padding, right_padding, divider) = tab_spacing(app, area);
+    let mut x = inner.x.saturating_add(left_padding.width() as u16);
+    for (index, tab) in app.tabs.iter().enumerate() {
+        let width = u16::try_from(tab_title_line(tab, index == app.active_tab, compact).width())
+            .unwrap_or(u16::MAX);
+        let end = x.saturating_add(width).min(inner.right());
+        if column >= x && column < end {
+            return (index != app.active_tab).then_some(index);
+        }
+        x = x.saturating_add(width).saturating_add(
+            (left_padding.width() + right_padding.width() + divider.width()) as u16,
+        );
+        if x >= inner.right() {
+            break;
+        }
+    }
+    None
 }
 
 fn tab_title_line(
@@ -458,10 +512,12 @@ fn tab_title_line(
     } else {
         theme::tab_inactive_style()
     };
-    let title = if is_active {
-        format!(" {} {} ", tab.platform.icon(), label)
+    let title = if compact {
+        label.to_string()
+    } else if is_active {
+        format!(" {} ", label)
     } else {
-        format!("  {} {} ", tab.platform.icon(), label)
+        format!("  {} ", label)
     };
 
     Line::from(Span::styled(title, style))
@@ -514,89 +570,7 @@ fn profile_list_legend_line() -> Line<'static> {
 }
 
 fn render_profile_list_panel(f: &mut Frame, app: &mut App, area: Rect) {
-    app.list_area.set(Some(area));
-    let content_height = Block::default()
-        .borders(Borders::ALL)
-        .padding(Padding::horizontal(1))
-        .inner(area)
-        .height;
-    app.sync_profile_page_size(super::pagination::visible_page_size(content_height));
-
-    let profiles = app.current_page_profiles();
-    let all_profiles = app.current_profiles();
-    let platform = app.current_platform();
-    let platform_name = platform.display_name();
-    let accent = theme::platform_selection_color_for(platform);
-
-    let total_pages = app.total_pages();
-    let total_profiles = all_profiles.len();
-    let visible_start = if total_profiles == 0 {
-        0
-    } else {
-        app.current_page * app.page_size + 1
-    };
-    let visible_end = if total_profiles == 0 {
-        0
-    } else {
-        app.current_page * app.page_size + profiles.len()
-    };
-    let title = if all_profiles.is_empty() {
-        crate::tui_format!(" {} Profiles ", " {} 配置 ", platform_name)
-    } else if total_pages > 1 {
-        crate::tui_format!(
-            " {} Profiles ({})  {}-{} / {}  Page {}/{} ",
-            " {} 配置 ({})  {}-{} / {}  第 {}/{} 页 ",
-            platform_name,
-            total_profiles,
-            visible_start,
-            visible_end,
-            total_profiles,
-            app.current_page + 1,
-            total_pages
-        )
-    } else {
-        crate::tui_format!(
-            " {} Profiles ({}) ",
-            " {} 配置 ({}) ",
-            platform_name,
-            total_profiles
-        )
-    };
-
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .border_set(symbols::border::ROUNDED)
-        .border_style(Style::default().fg(accent))
-        .title(title)
-        .title_alignment(Alignment::Left)
-        .title_style(theme::platform_style_for(platform))
-        .padding(Padding::horizontal(1));
-
-    if profiles.is_empty() {
-        // 空态 / 错误态不带图例。
-        render_empty_state(f, app, area, block);
-        return;
-    }
-
-    let block = block.title_bottom(profile_list_legend_line());
-
-    let (name_width, desc_width) = column_widths(area.width);
-
-    let items: Vec<ListItem> = profiles
-        .iter()
-        .enumerate()
-        .map(|(i, profile)| {
-            ListItem::new(profile_list_row(
-                profile,
-                i == app.selected_index,
-                name_width,
-                desc_width,
-            ))
-        })
-        .collect();
-
-    let list = List::new(items).block(block);
-    f.render_widget(list, area);
+    workbench::render_table(f, app, area);
 }
 
 fn render_profile_context_workspace(
@@ -605,194 +579,20 @@ fn render_profile_context_workspace(
     area: Rect,
     mode: theme::ViewportMode,
 ) {
-    let Some(profile) = app.selected_profile() else {
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .border_set(symbols::border::ROUNDED)
-            .border_style(Style::default().fg(theme::platform_color_for(app.current_platform())))
-            .title(crate::tui_text!(" Focus ", " 当前焦点 "))
-            .title_style(theme::platform_style_for(app.current_platform()))
-            .padding(Padding::horizontal(1));
-
-        let paragraph = Paragraph::new(profile_status_text(app))
-            .block(block)
-            .alignment(profile_status_alignment(app))
-            .wrap(Wrap { trim: false });
-        f.render_widget(paragraph, area);
-        return;
-    };
-
-    let Some(config) = app.selected_profile_config() else {
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .border_set(symbols::border::ROUNDED)
-            .border_style(Style::default().fg(theme::platform_color_for(app.current_platform())))
-            .title(crate::tui_text!(" Focus ", " 当前焦点 "))
-            .title_style(theme::platform_style_for(app.current_platform()))
-            .padding(Padding::horizontal(1));
-
-        let paragraph = Paragraph::new(profile_status_text(app))
-            .block(block)
-            .alignment(profile_status_alignment(app))
-            .wrap(Wrap { trim: false });
-        f.render_widget(paragraph, area);
-        return;
-    };
-    let profile_name = profile.name.clone();
-    let is_current = profile.is_current;
-
-    // Focus 高度随内容收缩 (2-3 行 + 边框), 让出的行给 Context 详情
-    let summary = profile_summary_fields(
-        app.current_platform(),
-        profile_name.as_str(),
-        config,
-        is_current,
-        app.last_applied.as_ref(),
-    );
-    let summary_height = summary.len() as u16 + 2;
-
-    if mode == theme::ViewportMode::Wide {
-        let status_visible = profile_status_message(app).is_some();
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(profile_context_constraints(summary_height, status_visible))
-            .split(area);
-
-        render_profile_summary_block(f, app, chunks[0], summary);
-        render_profile_details(f, app, chunks[1], mode);
-        if status_visible {
-            render_profile_status_strip(f, app, chunks[2]);
-        }
-    } else {
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Length(summary_height), Constraint::Min(0)])
-            .split(area);
-
-        render_profile_summary_block(f, app, chunks[0], summary);
-        render_profile_details(f, app, chunks[1], mode);
+    let status_visible = profile_status_message(app).is_some();
+    let chunks = Layout::vertical([
+        Constraint::Min(0),
+        Constraint::Length(if status_visible { 3 } else { 0 }),
+    ])
+    .split(area);
+    render_profile_details(f, app, chunks[0], mode);
+    if status_visible {
+        render_profile_status_strip(f, app, chunks[1]);
     }
 }
 
-fn render_profile_details(f: &mut Frame, app: &mut App, area: Rect, mode: theme::ViewportMode) {
-    app.detail_area.set(Some(area));
-    let platform = app.current_platform();
-    let accent = theme::platform_color_for(platform);
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .border_set(symbols::border::ROUNDED)
-        .border_style(Style::default().fg(accent))
-        .title(crate::tui_text!(" Context ", " 上下文 "))
-        .title_style(theme::platform_style_for(platform))
-        .padding(Padding::horizontal(1));
-
-    let Some(profile) = app.selected_profile() else {
-        let paragraph = Paragraph::new(profile_status_text(app))
-            .block(block)
-            .alignment(profile_status_alignment(app))
-            .wrap(Wrap { trim: false });
-        f.render_widget(paragraph, area);
-        return;
-    };
-
-    let Some(config) = app.selected_profile_config() else {
-        let paragraph = Paragraph::new(profile_status_text(app))
-            .block(block)
-            .alignment(profile_status_alignment(app))
-            .wrap(Wrap { trim: false });
-        f.render_widget(paragraph, area);
-        return;
-    };
-
-    // 用量引擎状态只读传入详情行构造(未初始化 = 加载中);渲染循环零 I/O
-    let usage_state = app.usage_app.as_ref().map(|engine| &engine.state);
-    let compact = mode == theme::ViewportMode::Compact;
-    let expanded = app.profile_details_expanded;
-    let lines = if platform == Platform::Codex {
-        codex_profile_detail_lines(
-            profile.name.as_str(),
-            config,
-            profile.is_current,
-            usage_state,
-            compact,
-            expanded,
-        )
-    } else if platform == Platform::Claude {
-        claude_profile_detail_lines(
-            profile.name.as_str(),
-            config,
-            profile.is_current,
-            usage_state,
-            compact,
-            expanded,
-        )
-    } else if platform == Platform::Grok {
-        grok_profile_detail_lines(
-            profile.name.as_str(),
-            config,
-            profile.is_current,
-            compact,
-            expanded,
-        )
-    } else {
-        generic_profile_detail_lines(
-            profile.name.as_str(),
-            config,
-            profile.is_current,
-            platform,
-            compact,
-            expanded,
-        )
-    };
-
-    let inner_height = Block::default()
-        .borders(Borders::ALL)
-        .padding(Padding::horizontal(1))
-        .inner(area)
-        .height as usize;
-    let max_scroll = lines.len().saturating_sub(inner_height);
-    let scroll = (app.profile_detail_scroll as usize).min(max_scroll);
-    app.profile_detail_scroll = scroll as u16;
-
-    let paragraph = Paragraph::new(lines.clone())
-        .block(block)
-        .scroll((scroll as u16, 0))
-        .wrap(Wrap { trim: false });
-    f.render_widget(paragraph, area);
-
-    if max_scroll > 0 {
-        let mut scrollbar_state = ScrollbarState::new(lines.len()).position(scroll);
-        f.render_stateful_widget(
-            Scrollbar::new(ScrollbarOrientation::VerticalRight)
-                .begin_symbol(Some("↑"))
-                .end_symbol(Some("↓"))
-                .thumb_symbol("█")
-                .track_symbol(Some("│")),
-            area,
-            &mut scrollbar_state,
-        );
-    }
-}
-
-fn render_profile_summary_block(
-    f: &mut Frame,
-    app: &App,
-    area: Rect,
-    summary: Vec<ProfileSummaryField>,
-) {
-    let platform = app.current_platform();
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .border_set(symbols::border::ROUNDED)
-        .border_style(Style::default().fg(theme::platform_color_for(platform)))
-        .title(crate::tui_text!(" Focus ", " 当前焦点 "))
-        .title_style(theme::platform_style_for(platform))
-        .padding(Padding::horizontal(1));
-
-    let lines: Vec<Line> = summary.into_iter().map(profile_summary_line).collect();
-
-    let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: true });
-    f.render_widget(paragraph, area);
+fn render_profile_details(f: &mut Frame, app: &mut App, area: Rect, _mode: theme::ViewportMode) {
+    workbench::render_details(f, app, area);
 }
 
 fn render_profile_status_strip(f: &mut Frame, app: &App, area: Rect) {
@@ -986,6 +786,7 @@ struct DetailLines {
     expanded: bool,
     lines: Vec<Line<'static>>,
     pending_unset: usize,
+    fields: Vec<DetailField>,
 }
 
 impl DetailLines {
@@ -995,10 +796,12 @@ impl DetailLines {
             expanded,
             lines: Vec::new(),
             pending_unset: 0,
+            fields: Vec::new(),
         }
     }
 
     fn field(&mut self, field: DetailField) {
+        self.fields.push(field.clone());
         if field.unset && !self.expanded {
             self.pending_unset += 1;
             return;
@@ -1033,20 +836,21 @@ impl DetailLines {
         }
     }
 
+    #[cfg(test)]
     fn finish(mut self) -> Vec<Line<'static>> {
         self.flush_unset();
         self.lines
     }
 }
 
-fn generic_profile_detail_lines(
+fn generic_profile_details(
     _name: &str,
     config: &ProfileConfig,
     _is_current: bool,
     platform: Platform,
     compact: bool,
     expanded: bool,
-) -> Vec<Line<'static>> {
+) -> DetailLines {
     let mut details = DetailLines::new(compact, expanded);
     details.section(" Overview ");
     details.field(DetailField::optional(
@@ -1059,7 +863,11 @@ fn generic_profile_detail_lines(
     details.field(
         DetailField::optional(
             DetailKey::BaseUrl,
-            config.base_url.as_deref(),
+            config
+                .base_url
+                .as_deref()
+                .map(GrokPlatform::safe_base_url_for_display)
+                .as_deref(),
             DetailTone::Info,
         )
         .emphasized(),
@@ -1088,16 +896,28 @@ fn generic_profile_detail_lines(
         DetailTone::Primary,
     ));
     details.field(tags_field(config));
-    details.finish()
+    details
 }
 
-fn grok_profile_detail_lines(
+#[cfg(test)]
+fn generic_profile_detail_lines(
+    _name: &str,
+    config: &ProfileConfig,
+    _is_current: bool,
+    platform: Platform,
+    compact: bool,
+    expanded: bool,
+) -> Vec<Line<'static>> {
+    generic_profile_details(_name, config, _is_current, platform, compact, expanded).finish()
+}
+
+fn grok_profile_details(
     _name: &str,
     config: &ProfileConfig,
     _is_current: bool,
     compact: bool,
     expanded: bool,
-) -> Vec<Line<'static>> {
+) -> DetailLines {
     let base_url = config
         .base_url
         .as_deref()
@@ -1187,17 +1007,28 @@ fn grok_profile_detail_lines(
         DetailTone::Primary,
     ));
     details.field(tags_field(config));
-    details.finish()
+    details
 }
 
-fn codex_profile_detail_lines(
+#[cfg(test)]
+fn grok_profile_detail_lines(
+    _name: &str,
+    config: &ProfileConfig,
+    _is_current: bool,
+    compact: bool,
+    expanded: bool,
+) -> Vec<Line<'static>> {
+    grok_profile_details(_name, config, _is_current, compact, expanded).finish()
+}
+
+fn codex_profile_details(
     _name: &str,
     config: &ProfileConfig,
     _is_current: bool,
     usage: Option<&UsageLoadState>,
     compact: bool,
     expanded: bool,
-) -> Vec<Line<'static>> {
+) -> DetailLines {
     let auth_mode = CodexPlatform::profile_auth_mode(config);
     let login_method =
         CodexPlatform::profile_openai_login_method(config).map(|method| match method {
@@ -1237,7 +1068,11 @@ fn codex_profile_detail_lines(
     details.field(
         DetailField::optional(
             DetailKey::BaseUrl,
-            config.base_url.as_deref(),
+            config
+                .base_url
+                .as_deref()
+                .map(GrokPlatform::safe_base_url_for_display)
+                .as_deref(),
             DetailTone::Info,
         )
         .emphasized(),
@@ -1345,10 +1180,11 @@ fn codex_profile_detail_lines(
         usage,
         compact,
     ));
-    details.finish()
+    details
 }
 
-fn claude_profile_detail_lines(
+#[cfg(test)]
+fn codex_profile_detail_lines(
     _name: &str,
     config: &ProfileConfig,
     _is_current: bool,
@@ -1356,6 +1192,17 @@ fn claude_profile_detail_lines(
     compact: bool,
     expanded: bool,
 ) -> Vec<Line<'static>> {
+    codex_profile_details(_name, config, _is_current, usage, compact, expanded).finish()
+}
+
+fn claude_profile_details(
+    _name: &str,
+    config: &ProfileConfig,
+    _is_current: bool,
+    usage: Option<&UsageLoadState>,
+    compact: bool,
+    expanded: bool,
+) -> DetailLines {
     let auth_mode = ccr_cli::platforms::ClaudePlatform::profile_auth_mode(config);
     let (token_state, token_tone) =
         if matches!(auth_mode, ccr_cli::models::ClaudeProfileAuthMode::ApiKey) {
@@ -1386,7 +1233,11 @@ fn claude_profile_detail_lines(
     details.field(
         DetailField::optional(
             DetailKey::BaseUrl,
-            config.base_url.as_deref(),
+            config
+                .base_url
+                .as_deref()
+                .map(GrokPlatform::safe_base_url_for_display)
+                .as_deref(),
             DetailTone::Info,
         )
         .emphasized(),
@@ -1476,7 +1327,19 @@ fn claude_profile_detail_lines(
         usage,
         compact,
     ));
-    details.finish()
+    details
+}
+
+#[cfg(test)]
+fn claude_profile_detail_lines(
+    _name: &str,
+    config: &ProfileConfig,
+    _is_current: bool,
+    usage: Option<&UsageLoadState>,
+    compact: bool,
+    expanded: bool,
+) -> Vec<Line<'static>> {
+    claude_profile_details(_name, config, _is_current, usage, compact, expanded).finish()
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1784,12 +1647,14 @@ fn detail_line(field: DetailField, compact: bool) -> Line<'static> {
 }
 
 #[derive(Debug, Clone)]
+#[cfg(test)]
 struct ProfileSummaryField {
     label: String,
     value: String,
     tone: DetailTone,
 }
 
+#[cfg(test)]
 fn profile_summary_line(field: ProfileSummaryField) -> Line<'static> {
     Line::from(vec![
         Span::styled(
@@ -1912,6 +1777,7 @@ fn grok_reasoning_effort_field(config: &ProfileConfig) -> DetailField {
 
 // Focus 块承载 profile 身份、状态与最近一次 apply 反馈。详情参数在 Context 展示,
 // Wide 专属的 Status strip 只承载 toast, 不与 Focus 重复同一句反馈。
+#[cfg(test)]
 fn profile_summary_fields(
     platform: Platform,
     name: &str,
@@ -1980,7 +1846,11 @@ fn last_apply_message(
     }
 
     if *success {
-        Some(crate::tui_format!("Switched to {}", "已切换到 {}", name))
+        Some(
+            error
+                .clone()
+                .unwrap_or_else(|| crate::tui_format!("Switched to {}", "已切换到 {}", name)),
+        )
     } else {
         Some(crate::tui_format!(
             "Switch failed{}",
@@ -2114,19 +1984,6 @@ fn profile_status_text(app: &App) -> Vec<Line<'static>> {
     ))]
 }
 
-fn profile_status_alignment(app: &App) -> Alignment {
-    if app.current_profile_load_error().is_some() || app.current_profile_status_error().is_some() {
-        Alignment::Left
-    } else {
-        Alignment::Center
-    }
-}
-
-// ═══════════════════════════════════════════════════════════
-// Footer rendering
-// ═══════════════════════════════════════════════════════════
-
-/// Render footer with keyboard shortcuts and toast notification
 fn render_footer(f: &mut Frame, app: &App, area: Rect) {
     let hints = footer_hints_for_width(app, area.width);
     let mut line = shortcut_line(&hints, theme::accent_for(app.current_platform()));
@@ -2145,6 +2002,22 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
             .insert(0, Span::styled(toast.message.clone(), style));
     }
 
+    // Compact has only two rows. Use both for controls rather than losing the
+    // final actions below a decorative border.
+    if area.height <= 2 {
+        for span in &mut line.spans {
+            if span.content == "  │  " {
+                span.content = "  ".into();
+            }
+        }
+        f.render_widget(
+            Paragraph::new(line)
+                .style(theme::secondary_text_style())
+                .wrap(Wrap { trim: true }),
+            area,
+        );
+        return;
+    }
     let paragraph = Paragraph::new(line)
         .block(
             Block::default()
@@ -2302,7 +2175,7 @@ mod tests {
         sample_profile_app_for(Platform::Claude, profile, config)
     }
 
-    fn sample_profile_app_for(
+    pub(super) fn sample_profile_app_for(
         platform: Platform,
         profile: ProfileItem,
         config: ProfileConfig,
@@ -2321,6 +2194,11 @@ mod tests {
                 current_profile_error: None,
                 claude_runtime_summary: None,
                 codex_runtime_summary: None,
+                grok_activation_state: None,
+                runtime_error: None,
+                activity: None,
+                profile_loading: false,
+                profile_loaded: true,
                 instance: None,
                 saved_selection: None,
             }],
@@ -2347,10 +2225,15 @@ mod tests {
             profile_detail_scroll: 0,
             profile_details_expanded: false,
             task_executor: crate::tui::runtime::AsyncTaskExecutor::from_current_or_test(),
+            profile_tasks: Default::default(),
         }
     }
 
-    fn empty_platform_tab(platform: Platform, variant: TabVariant, label: &str) -> PlatformTab {
+    pub(super) fn empty_platform_tab(
+        platform: Platform,
+        variant: TabVariant,
+        label: &str,
+    ) -> PlatformTab {
         PlatformTab {
             platform,
             variant,
@@ -2361,6 +2244,11 @@ mod tests {
             current_profile_error: None,
             claude_runtime_summary: None,
             codex_runtime_summary: None,
+            grok_activation_state: None,
+            runtime_error: None,
+            activity: None,
+            profile_loading: false,
+            profile_loaded: true,
             instance: None,
             saved_selection: None,
         }
@@ -3340,7 +3228,12 @@ mod tests {
                 is_current: true,
             };
             let mut app = sample_profile_app(profile, ProfileConfig::new());
-            app.last_applied = Some(("Claude Code".to_string(), "fovts".to_string(), true, None));
+            app.last_applied = Some((
+                "Claude Profile".to_string(),
+                "fovts".to_string(),
+                true,
+                None,
+            ));
 
             let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
             terminal.draw(|frame| draw(frame, &mut app)).unwrap();
@@ -3383,7 +3276,7 @@ mod tests {
 
     // ── Codex runtime banner (WS2) ──────────────────────────
 
-    fn codex_runtime_summary_fixture(
+    pub(super) fn codex_runtime_summary_fixture(
         mode: ccr_cli::models::CodexRuntimeMode,
         profile_name: Option<&str>,
     ) -> CodexRuntimeSummary {
@@ -3492,7 +3385,7 @@ mod tests {
             let rendered = buffer_text(terminal.backend());
             // 常驻 current chip 三档视口都可见 (含 Compact)
             assert!(
-                rendered.contains("fovts · gpt-5.5"),
+                rendered.contains("fovts / gpt-5.5"),
                 "{width}x{height}: {rendered}"
             );
             assert!(
@@ -3624,8 +3517,8 @@ mod tests {
 
         // 原 Selection 面板预留的 5 行已还给列表 (header 3 + footer 3)
         let list_area = app.list_area.get().expect("list area should be cached");
-        assert_eq!(list_area.y, 3);
-        assert_eq!(list_area.height, 26);
+        assert_eq!(list_area.y, 10);
+        assert_eq!(list_area.height, 18);
     }
 
     #[test]
@@ -3685,7 +3578,10 @@ mod tests {
         let rendered = buffer_text(terminal.backend());
         assert!(rendered.contains("https://2capi.com"), "{rendered}");
         assert!(rendered.contains("compatible"), "{rendered}");
-        assert!(rendered.contains("chat/complet"), "{rendered}");
+        assert!(
+            rendered.contains("enai/v1/chat/compl") && rendered.contains("etions"),
+            "{rendered}"
+        );
     }
 
     #[test]
@@ -3712,8 +3608,8 @@ mod tests {
 
         let rendered = buffer_text(terminal.backend());
         assert!(rendered.contains("Codex Profiles"), "{rendered}");
-        assert!(rendered.contains("Focus"), "{rendered}");
-        assert!(rendered.contains("Context"), "{rendered}");
+        assert!(rendered.contains("Selected profile"), "{rendered}");
+        assert!(rendered.contains("lines"), "{rendered}");
         assert!(rendered.contains("PgUp/PgDn details"), "{rendered}");
     }
 
@@ -4182,7 +4078,7 @@ mod tests {
                 if width == 140 {
                     let rendered = buffer_text(terminal.backend()).replace(' ', "");
                     let label = match language {
-                        ccr_cli::managers::TuiLanguage::English => "reasoning_effort",
+                        ccr_cli::managers::TuiLanguage::English => "Reasoning",
                         ccr_cli::managers::TuiLanguage::SimplifiedChinese => "推理强度",
                     };
                     assert!(rendered.contains(label), "{width}x{height}: {rendered}");
@@ -4450,8 +4346,8 @@ mod tests {
             })
             .unwrap();
         let collapsed = buffer_text(terminal.backend());
-        assert!(collapsed.contains("unset"), "{collapsed}");
-        assert!(!collapsed.contains("base_url"), "{collapsed}");
+        assert!(!collapsed.contains("unset"), "{collapsed}");
+        assert!(!collapsed.contains("Endpoint"), "{collapsed}");
 
         app.profile_details_expanded = true;
         terminal
@@ -4460,7 +4356,7 @@ mod tests {
             })
             .unwrap();
         let expanded = buffer_text(terminal.backend());
-        assert!(expanded.contains("base_url"), "{expanded}");
+        assert!(expanded.contains("Endpoint"), "{expanded}");
     }
 
     #[test]
@@ -4489,7 +4385,12 @@ mod tests {
             is_current: true,
         };
         let mut app = sample_profile_app(profile, ProfileConfig::new());
-        app.last_applied = Some(("Claude Code".to_string(), "fovts".to_string(), true, None));
+        app.last_applied = Some((
+            "Claude Profile".to_string(),
+            "fovts".to_string(),
+            true,
+            None,
+        ));
 
         let mut terminal = Terminal::new(TestBackend::new(140, 32)).unwrap();
         terminal.draw(|frame| draw(frame, &mut app)).unwrap();
@@ -4510,7 +4411,7 @@ mod tests {
 
     // ── Profile 详情 Usage 分组 ──────────────────────────────
 
-    fn usage_row(
+    pub(super) fn usage_row(
         source: SourceKind,
         provider: Option<&str>,
         requests: i64,
@@ -4532,8 +4433,67 @@ mod tests {
         }
     }
 
-    fn loaded_usage(rows: Vec<TaggedProviderBreakdown>) -> UsageLoadState {
+    pub(super) fn loaded_usage(rows: Vec<TaggedProviderBreakdown>) -> UsageLoadState {
         UsageLoadState::Loaded(UsageDataset { rows })
+    }
+
+    #[test]
+    #[ignore = "fixture-only render timing; run explicitly with --ignored --nocapture"]
+    fn profile_workbench_render_benchmark() {
+        use std::time::Instant;
+        for count in [25, 1000] {
+            for (width, height) in [(140, 40), (200, 50)] {
+                let profile = ProfileItem {
+                    name: "work".into(),
+                    description: Some("Daily development".into()),
+                    is_current: true,
+                };
+                let mut config = ProfileConfig::new();
+                config.model = Some("gpt-example".into());
+                config.provider = Some("example-provider".into());
+                config.base_url = Some("https://api.example.invalid/v1".into());
+                let mut app = sample_profile_app_for(Platform::Codex, profile, config.clone());
+                for index in 1..count {
+                    let name = format!("profile-{index:04}");
+                    app.tabs[0].profiles.push(ProfileItem {
+                        name: name.clone(),
+                        description: Some("Daily development".into()),
+                        is_current: false,
+                    });
+                    app.tabs[0].profile_configs.insert(name, config.clone());
+                }
+                let mut engine = UsageApp::with_loader(
+                    AsyncTaskExecutor::Disabled,
+                    Arc::new(|| panic!("render must not load")),
+                );
+                engine.state = loaded_usage(vec![usage_row(
+                    SourceKind::Codex,
+                    Some("example-provider"),
+                    8600,
+                )]);
+                app.usage_app = Some(engine);
+                let mut terminal =
+                    Terminal::new(TestBackend::new(width, height)).expect("test backend");
+                for _ in 0..5 {
+                    terminal
+                        .draw(|frame| draw(frame, &mut app))
+                        .expect("warmup");
+                }
+                let mut samples = Vec::new();
+                for _ in 0..40 {
+                    let started = Instant::now();
+                    terminal
+                        .draw(|frame| draw(frame, &mut app))
+                        .expect("render");
+                    samples.push(started.elapsed().as_micros());
+                }
+                samples.sort_unstable();
+                println!(
+                    "profiles={count} viewport={width}x{height} samples=40 p50_us={} p95_us={}",
+                    samples[20], samples[37]
+                );
+            }
+        }
     }
 
     #[test]
@@ -4836,7 +4796,7 @@ mod tests {
 
                 let rendered = buffer_text(terminal.backend());
                 assert!(
-                    rendered.contains("approx_cost"),
+                    rendered.contains("successful CCR activation"),
                     "{platform:?} {width}x{height}: {rendered}"
                 );
             }

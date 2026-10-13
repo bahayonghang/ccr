@@ -18,6 +18,7 @@ mod claude_settings;
 mod codex_auth;
 mod model_rate_catalog;
 mod monitoring;
+mod profile_activity;
 
 pub use claude_auth::{
     ClaudeAuthAccount, ClaudeAuthActionOutcome, ClaudeAuthConfidence, ClaudeAuthDiagnosis,
@@ -35,3 +36,4 @@ pub use model_rate_catalog::{
     official_model_rate_override_for, official_model_rate_overrides,
 };
 pub use monitoring::{FrontendLogInput, MonitoringEntry, MonitoringFeedQuery, MonitoringLevel};
+pub use profile_activity::{ProfileActivity, ProfileActivityAvailability, ProfileActivitySnapshot};

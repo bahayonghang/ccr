@@ -30,6 +30,8 @@ Changing a serialized field name, enum representation, or default is an API cont
 
 Keep modules private and re-export stable types from `lib.rs`. Add a new module only when a contract family is shared by more than one consumer or needs isolated tests.
 
+The `ProfileActivitySnapshot` family is a pure serializable contract shared by store, CLI and TUI. Missing fields default to unavailable history, not a fabricated Ready state. Timestamp reduction/filtering and typed storage errors remain owned by ccr-store; see [Recorded Profile Activity](../../ccr-store/backend/profile-activity.md).
+
 Do not add `ccr-core`, `rusqlite`, `reqwest`, or filesystem dependencies here. Shared types should not depend on application services.
 
 ## Error Handling

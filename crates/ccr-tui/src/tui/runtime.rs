@@ -174,6 +174,21 @@ pub trait TuiApp {
         false
     }
 
+    /// Drain ready results after every event without advancing tick-based timers.
+    fn poll_background(&mut self) -> bool {
+        false
+    }
+
+    /// Keep completion polling bounded while background work is outstanding.
+    fn has_pending_work(&self) -> bool {
+        false
+    }
+
+    /// Exit intent is independent of on_tick's redraw result.
+    fn ready_to_exit(&self) -> bool {
+        false
+    }
+
     /// Render the current state to the frame.
     fn render(&mut self, frame: &mut Frame);
 }
@@ -289,53 +304,80 @@ pub fn run_loop<A: TuiApp>(
     draw_frame(guard, app)?;
 
     loop {
-        match event_handler.poll_event()? {
-            Event::Key(key) => {
-                // Ctrl+T 中央拦截: 切换 Mocha/Latte 主题并重绘,避免与各页小写键位冲突。
-                if key.modifiers.contains(KeyModifiers::CONTROL)
-                    && matches!(key.code, KeyCode::Char('t') | KeyCode::Char('T'))
-                {
-                    if let Err(error) = super::theme::toggle_theme_and_persist() {
-                        tracing::warn!(
-                            "Theme changed for this session, but could not save it: {error}"
-                        );
-                    }
-                    draw_frame(guard, app)?;
-                    continue;
-                }
-                if app.handle_key(key)? {
-                    return Ok(());
-                }
-                draw_frame(guard, app)?;
+        let event = event_handler.poll_event(app.has_pending_work())?;
+        let mut effect = process_event(app, event, || {
+            if let Err(error) = super::theme::toggle_theme_and_persist() {
+                tracing::warn!("Theme changed for this session, but could not save it: {error}");
             }
-            Event::Mouse(mouse) => {
-                // 只处理可操作的鼠标事件，忽略移动/拖拽等高频无效事件
-                if matches!(
-                    mouse.kind,
-                    crossterm::event::MouseEventKind::Down(_)
-                        | crossterm::event::MouseEventKind::ScrollUp
-                        | crossterm::event::MouseEventKind::ScrollDown
-                ) {
-                    if app.handle_mouse(mouse)? {
-                        return Ok(());
-                    }
-                    draw_frame(guard, app)?;
-                }
-            }
-            Event::Resize => {
-                guard
-                    .terminal_mut()
-                    .clear()
-                    .map_err(|e| ccr_core::core::error::CcrError::IoError(io::Error::other(e)))?;
-                draw_frame(guard, app)?;
-            }
-            Event::Tick => {
-                if app.on_tick() {
-                    draw_frame(guard, app)?;
-                }
-            }
+        })?;
+        if event_handler.take_tick_due() {
+            effect.redraw |= app.on_tick();
+            effect.exit |= app.ready_to_exit();
+        }
+        if effect.exit {
+            return Ok(());
+        }
+        if effect.clear {
+            guard
+                .terminal_mut()
+                .clear()
+                .map_err(|e| ccr_core::core::error::CcrError::IoError(io::Error::other(e)))?;
+        }
+        if effect.redraw {
+            draw_frame(guard, app)?;
         }
     }
+}
+
+struct EventEffect {
+    redraw: bool,
+    clear: bool,
+    exit: bool,
+}
+
+fn process_event<A: TuiApp>(
+    app: &mut A,
+    event: Event,
+    toggle_theme: impl FnOnce(),
+) -> Result<EventEffect> {
+    let mut effect = EventEffect {
+        redraw: false,
+        clear: false,
+        exit: false,
+    };
+    match event {
+        Event::Key(key) => {
+            if key.modifiers.contains(KeyModifiers::CONTROL)
+                && matches!(key.code, KeyCode::Char('t') | KeyCode::Char('T'))
+            {
+                toggle_theme();
+            } else {
+                effect.exit = app.handle_key(key)?;
+            }
+            effect.redraw = true;
+        }
+        Event::Mouse(mouse)
+            if matches!(
+                mouse.kind,
+                crossterm::event::MouseEventKind::Down(_)
+                    | crossterm::event::MouseEventKind::ScrollUp
+                    | crossterm::event::MouseEventKind::ScrollDown
+            ) =>
+        {
+            effect.exit = app.handle_mouse(mouse)?;
+            effect.redraw = true;
+        }
+        Event::Resize => {
+            effect.clear = true;
+            effect.redraw = true;
+        }
+        _ => {}
+    }
+    // Every event reaches the same completion/timer tail, including Ctrl+T and
+    // ignored mouse motion. Continuous input cannot starve finished workers.
+    effect.redraw |= app.poll_background();
+    effect.exit |= app.ready_to_exit();
+    Ok(effect)
 }
 
 fn draw_frame<A: TuiApp>(guard: &mut TerminalGuard, app: &mut A) -> Result<()> {
@@ -350,6 +392,71 @@ fn draw_frame<A: TuiApp>(guard: &mut TerminalGuard, app: &mut A) -> Result<()> {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+
+    #[derive(Default)]
+    struct EventFixture {
+        pumps: usize,
+        keys: usize,
+        exit_pending: bool,
+        completed: bool,
+    }
+
+    impl TuiApp for EventFixture {
+        fn handle_key(&mut self, _: crossterm::event::KeyEvent) -> Result<bool> {
+            self.keys += 1;
+            Ok(false)
+        }
+        fn poll_background(&mut self) -> bool {
+            self.pumps += 1;
+            false
+        }
+        fn ready_to_exit(&self) -> bool {
+            self.exit_pending && self.completed
+        }
+        fn render(&mut self, _: &mut Frame) {}
+    }
+
+    #[test]
+    fn event_tail_pumps_continuous_keys_theme_resize_and_idle_without_extra_redraws() {
+        use crossterm::event::KeyEvent;
+        let mut app = EventFixture::default();
+        for _ in 0..1000 {
+            let effect = process_event(
+                &mut app,
+                Event::Key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE)),
+                || {},
+            )
+            .unwrap();
+            assert!(effect.redraw);
+        }
+        let mut toggles = 0;
+        process_event(
+            &mut app,
+            Event::Key(KeyEvent::new(KeyCode::Char('t'), KeyModifiers::CONTROL)),
+            || {
+                toggles += 1;
+            },
+        )
+        .unwrap();
+        let resize = process_event(&mut app, Event::Resize, || {}).unwrap();
+        assert!(resize.clear);
+        assert_eq!(toggles, 1);
+        assert_eq!(app.keys, 1000);
+        assert_eq!(app.pumps, 1002);
+        assert!(!process_event(&mut app, Event::Tick, || {}).unwrap().redraw);
+    }
+
+    #[test]
+    fn deferred_exit_finishes_on_completion_without_an_extra_key() {
+        let mut app = EventFixture {
+            exit_pending: true,
+            ..Default::default()
+        };
+        assert!(!process_event(&mut app, Event::Tick, || {}).unwrap().exit);
+        app.completed = true;
+        assert!(process_event(&mut app, Event::Tick, || {}).unwrap().exit);
+        assert_eq!(app.keys, 0);
+    }
 
     #[test]
     fn detect_defaults_to_fullscreen_when_terminal_is_normal() {

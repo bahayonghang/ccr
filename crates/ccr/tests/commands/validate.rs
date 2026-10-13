@@ -68,6 +68,8 @@ current_profile = "main"
     }
 
     fn write_claude_profile(&self) {
+        // ConfigManager::save resolves CCR_LOCK_DIR even with an explicit target path.
+        let _env = crate::setup_ccr_test_env();
         let manager = ConfigManager::new(
             self.root
                 .join("platforms")

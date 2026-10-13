@@ -77,7 +77,7 @@ Do not let logs corrupt the terminal. The root binary selects file-only logging 
 - Assert a duplicated long Windows path occurs once and the actionable parser
   reason survives.
 - Assert multiline fallback locations indent every continuation line.
-- Run `cargo test -p ccr-tui -- --test-threads=1` and strict Clippy.
+- Run `cargo test -p ccr-tui -- --skip export_bindings` with default parallelism and strict Clippy.
 
 ### 7. Wrong vs Correct
 
@@ -272,11 +272,11 @@ if self.is_my_synthetic_tab() {
 
 ### Embedded usage engine (profile-detail Usage section)
 
-Provider usage lives inside the Claude/Codex profile detail panel, powered by an App-level data engine (`tui/usage/app.rs::UsageApp`), not a tab:
+Provider usage lives inside all three Claude/Codex/Grok profile detail panels, powered by an App-level data engine (`tui/usage/app.rs::UsageApp`), not a tab:
 
-- `UsageApp` does **not** implement `TuiApp` (no key/render duties). `App::on_tick`'s profile-tab branch drives it: `ensure_usage_engine()` + `on_activated()` (idempotent, only arms the 1-tick delay while `Idle`) + `tick()` (pumps the mpsc channel). This covers both startup landing on a profile tab and later tab switches.
-- Data loads once per session via the injectable `UsageLoader` seam on `spawn_blocking` (`provider_breakdown_by_source([Claude, Codex], default filter)`); selection changes are pure in-memory lookups. `Action::Reload` (`r`) calls `engine.refresh()` alongside the profile reload; the `task_active` guard prevents task storms.
-- Rendering: `ui.rs::usage_section_lines(platform, provider, state, compact)` appends the section after Activity in the codex/claude detail builders. All six states (engine-not-initialized/`Idle`/`Loading`, no provider label, no matching row, `Unsupported`, `Error`, hit) render as in-section lines — never panic, never replace the page.
+- `UsageApp` does **not** implement `TuiApp` (no key/render duties). Profile activation lazily initializes it; `App::poll_background` pumps its result channel after each event, alongside Profile completions. Activation remains idempotent; the existing delayed load and task guard prevent duplicate work.
+- Data loads once per session via the injectable `UsageLoader` seam on `spawn_blocking` (`provider_breakdown_by_source([Claude, Codex, Grok], default filter)`); selection changes are pure in-memory lookups. `Action::Reload` (`r`) calls `engine.refresh()` alongside the active profile reload; the `task_active` guard prevents task storms.
+- Rendering: `ui/workbench.rs::usage_ledger` places totals and category rows before recorded activations. All six states (engine-not-initialized/`Idle`/`Loading`, no provider label, no matching row, `Unsupported`, `Error`, hit) render as in-section lines — never panic, never replace the page. Bars compare independent category magnitudes against their common maximum; they are not percentages or parts of a sum. Preserve the separately reported total and numeric values. Below 58 content cells, use numeric rows without bars.
 - Attribution is provider-level. A profile without `profile.provider` must render `no provider label — usage unattributed` and must **not** fall back to the `provider = null` bucket (it mixes all historical unattributed usage).
 - Do not re-add per-selection SQL or a second load-state machine; the engine's dataset is the only source. Tests inject loaders via `UsageApp::with_loader` — production tests must not touch `~/.llmusage`. Beware: `App::on_tick` on a profile tab lazily creates the engine with the **real** loader, so tests that tick profile tabs must pre-inject an engine.
 
@@ -318,14 +318,18 @@ Provider usage lives inside the Claude/Codex profile detail panel, powered by an
   Missing or blank values render `-`; known values are normalized to lowercase;
   unknown strings remain visible with warning tone; non-strings render a
   localized invalid marker. The TUI does not invent Codex's effective default.
-- Focus is the sole name/current/enabled summary and also carries the
+- The detail identity row is the sole name/current/enabled summary and also carries the
   last-apply result ("Switched to X" on success, error detail on failure) as a
-  persistent field. Detail groups do not repeat those fields. Wide profile
+  persistent field. Detail groups do not repeat those fields. The shared A panel in
+  `ui/workbench.rs` follows identity, connection, provider usage, then vertical
+  successful-activation history. Hide unset optional fields in the normal view;
+  preserve them in expanded details. Wide profile
   layout is list 46% / detail 54%, and the 3-row Status strip is toast-only
   (apply results no longer repeat there).
 - Detail label widths are derived from localized display width and clamped per
-  viewport. Token values pass through existing masking before they become a
-  `DetailField`.
+  viewport. Wrapping must retain span styles and use the wrapped height for
+  scrolling. Token values pass through existing masking before they become a
+  `DetailField`; Grok omits token fields entirely, including masked values.
 
 ### 4. Validation & Error Matrix
 
@@ -367,7 +371,7 @@ Provider usage lives inside the Claude/Codex profile detail panel, powered by an
   level, unknown strings, and non-string values without exposing secrets.
 - Style tests assert model/effort/provider/auth/token/cost tones explicitly.
 - Ratatui `TestBackend` tests cover English and Chinese at 80x20, 100x30, and
-  140x30, including Focus de-duplication, dynamic Status, and 46/54 wide layout.
+  140x30, including identity de-duplication, dynamic Status, and 46/54 wide layout.
 - Run `cargo test -p ccr-config`, `cargo test -p ccr-tui`, `cargo test -p ccr`,
   `just fmt-check`, and `just lint-strict`.
 
@@ -554,8 +558,7 @@ Use `tracing::warn!` for recoverable loading failures and diagnostics. Do not pr
 
 ### 3. Contracts
 
-- Grok contributes exactly one `TabVariant::Profile` alongside its independent `GrokAuth` tab. The profile view has no
-  Claude runtime summary, Codex runtime summary, or embedded usage section.
+- Grok contributes exactly one `TabVariant::Profile` alongside its independent `GrokAuth` tab. Its runtime uses `GrokPlatform::inspect_activation_state`, preserving drift/unsafe states rather than treating a stored pointer as effective activation. Its provider usage reuses the shared `UsageApp` with the Grok source.
 - Its full and compact labels are `Grok Profile` / `Grok 配置` and `Grok`.
 - Details show description, sanitized base URL, model, API backend, auth mode,
   env-key name when applicable, context window, backend-search support, switch
@@ -593,8 +596,8 @@ Use `tracing::warn!` for recoverable loading failures and diagnostics. Do not pr
   custom ordering, and empty-profile construction.
 - Assert env-key, inline-key, and session detail modes; URL sanitization; typed
   Grok fields; and absence of plaintext and masked token output.
-- Run `cargo test -p ccr-config tui_config -- --test-threads=1`,
-  `cargo test -p ccr-tui -- --test-threads=1`, `just fmt-check`, and
+- Run `cargo test -p ccr-config tui_config -- --skip export_bindings`,
+  `cargo test -p ccr-tui -- --skip export_bindings`, `just fmt-check`, and
   `just lint-strict`.
 
 ### 7. Wrong vs Correct

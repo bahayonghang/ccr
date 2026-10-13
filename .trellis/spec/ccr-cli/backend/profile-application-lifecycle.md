@@ -5,7 +5,7 @@
 - Shared owner: crates/ccr-cli/src/application/profile_lifecycle.rs.
 - CLI switch, TUI apply, and desktop apply call the same synchronous owner.
 - Claude and Codex update/rename call update_profile. The patch closure changes a ProfileConfig in memory. The application owns persistence, pointers, activation, and compensation.
-- CLI and Tauri schedule one blocking worker. TUI calls the synchronous adapter. Do not await, spawn, read stdin, print, or exit while the operation journal is active.
+- CLI, Tauri, and TUI schedule the complete synchronous lifecycle inside one blocking worker. TUI scheduling belongs to `ccr-tui/src/tui/profile_tasks.rs`; the thread-local journal must not cross worker boundaries. Do not await, spawn, read stdin, print, or exit while the operation journal is active.
 - Keep public CLI exports and existing IPC command IDs. Do not add CcrError variants for operation outcomes.
 
 ## Prepare and execute

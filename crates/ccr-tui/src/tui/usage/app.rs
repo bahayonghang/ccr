@@ -55,6 +55,14 @@ pub struct UsageApp {
 }
 
 impl UsageApp {
+    pub fn poll_background(&mut self) -> bool {
+        self.drain_task_messages()
+    }
+
+    pub fn is_pending(&self) -> bool {
+        self.task_active || self.activation_delay_ticks.is_some()
+    }
+
     pub fn with_task_executor(task_executor: AsyncTaskExecutor) -> Self {
         Self::with_loader(task_executor, Arc::new(load_usage_dataset))
     }
@@ -101,6 +109,9 @@ impl UsageApp {
 
     fn start_fetch(&mut self) {
         if self.task_active {
+            return;
+        }
+        if matches!(self.task_executor, AsyncTaskExecutor::Disabled) {
             return;
         }
 
@@ -154,7 +165,7 @@ fn load_usage_dataset() -> std::result::Result<UsageDataset, UsageError> {
     let paths = ccr_usage::discover_llmusage_paths().map_err(UsageError::DbUnreadable)?;
     let dashboard = ccr_usage::open_dashboard(paths)?;
     let rows = dashboard.provider_breakdown_by_source(
-        &[SourceKind::Claude, SourceKind::Codex],
+        &[SourceKind::Claude, SourceKind::Codex, SourceKind::Grok],
         &QueryFilter::default(),
     )?;
     Ok(UsageDataset { rows })

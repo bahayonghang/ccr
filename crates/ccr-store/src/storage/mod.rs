@@ -20,6 +20,7 @@
 //! ```
 
 pub mod database;
+pub mod profile_activity;
 pub mod session_store;
 
 pub use database::Database;

@@ -13,6 +13,7 @@ pub mod i18n;
 pub mod overlay;
 mod pagination;
 pub mod profile_backend;
+mod profile_tasks;
 pub mod runtime;
 mod selection;
 pub mod theme;

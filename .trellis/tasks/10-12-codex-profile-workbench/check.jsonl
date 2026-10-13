@@ -1,0 +1,14 @@
+{"file": ".trellis/spec/ccr-tui/backend/index.md", "reason": "TUI state, rendering, localization, selection and safety contracts; full large spec must be read per spec-loading research"}
+{"file": ".trellis/spec/ccr-cli/backend/profile-application-lifecycle.md", "reason": "Complete synchronous lifecycle inside worker, replay and committed warnings"}
+{"file": ".trellis/spec/ccr-cli/backend/test-fixtures.md", "reason": "Isolated environment fixtures; no personal profile mutations"}
+{"file": ".trellis/spec/ccr-config/backend/profile-repository.md", "reason": "Pure reads, atomic writes and runtime-aware current markers"}
+{"file": ".trellis/spec/ccr/backend/llmusage-provider-adapter.md", "reason": "Shared usage SQL ownership, source/provider scope and capability states"}
+{"file": ".trellis/tasks/10-12-tui-profile-workbench/research/visual-audit.md", "reason": "Screenshot diagnosis, shared geometry and terminal brand constraints"}
+{"file": ".trellis/tasks/10-12-tui-profile-workbench/research/profile-data-contracts.md", "reason": "Last activation semantics, read-only history and Grok usage"}
+{"file": ".trellis/tasks/10-12-tui-profile-workbench/research/profile-performance.md", "reason": "Measured-vs-static findings, async ordering and fixture benchmark plan"}
+{"file": ".trellis/spec/ccr-codex/backend/index.md", "reason": "Codex auth/runtime and secret handling; full large spec must be read per spec-loading research"}
+{"file": ".trellis/spec/ccr-codex/backend/test-fixtures.md", "reason": "Codex isolated runtime fixtures"}
+{"file": ".trellis/tasks/10-12-tui-profile-workbench/research/spec-loading.md", "reason": "Full-spec fallback for native context size caps and resolved scheduling decisions"}
+{"file": ".trellis/tasks/10-12-tui-profile-workbench/research/right-panel-v2.md", "reason": "User-requested revision 2 supersedes original details layout: candidate A, aligned category ledger, compact connections and activation timeline"}
+{"file": ".trellis/spec/ccr-tui/backend/profile-workbench.md", "reason": "Approved A layout, asynchronous Profile operations and table geometry contracts"}
+{"file": ".trellis/spec/ccr-store/backend/profile-activity.md", "reason": "Read-only last successful activation projection and unavailable states"}
