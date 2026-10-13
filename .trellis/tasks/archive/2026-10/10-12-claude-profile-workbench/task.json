@@ -3,7 +3,7 @@
   "name": "claude-profile-workbench",
   "title": "Claude Profile 标题与配置活动视图优化",
   "description": "统一 Claude Profile 名称与品牌呈现，复用表格布局并优化 Claude 配置、活动、provider 用量信息。",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": "backend",
   "scope": "ccr-tui",
   "package": null,
@@ -11,11 +11,11 @@
   "creator": "lyh",
   "assignee": "lyh",
   "createdAt": "2026-10-12",
-  "completedAt": null,
+  "completedAt": "2026-10-13",
   "branch": "dev",
   "base_branch": "main",
   "worktree_path": null,
-  "commit": null,
+  "commit": "6eb144c92b4fbee62ed0dde2b4eb363255ff10e6",
   "pr_url": null,
   "subtasks": [],
   "children": [],
@@ -30,7 +30,7 @@
     "crates/ccr-tui/src/tui/profile_tasks.rs",
     "crates/ccr-tui/src/tui/usage/app.rs"
   ],
-  "notes": "A 版实施、独立复核和全部 CI 分项完成。完整运行在既有 Tailwind lint 问题处中断，最小修复后剩余前端/扩展分项续跑通过。保留 in_progress，尚未提交或归档。原生终端截图、冷盘及真实事务耗时未作为完成项。",
+  "notes": "A 版实施、独立复核和全部 CI 分项完成；用户已授权提交全部改动并归档。完整 CI 在既有 Tailwind lint 处中断，最小修复后剩余分项续跑通过。原生终端字体、冷盘及真实事务耗时仍属于未验证范围。",
   "meta": {
     "planning_review": "approved_revision_2_A",
     "implementation_started": true,
@@ -41,6 +41,11 @@
     "integrated_gate": "passed_with_resumed_frontend_suffix",
     "evidence": "../10-12-tui-profile-workbench/research/integration-validation.md",
     "validation_completed_at": "2026-10-13",
-    "standard_ci_recipes_passed": 16
+    "standard_ci_recipes_passed": 16,
+    "work_commits": [
+      "6eb144c92b4fbee62ed0dde2b4eb363255ff10e6",
+      "4c38c53ced35bb1c90ebbb47d0b90c9b7ea87869"
+    ],
+    "archive_authorized": true
   }
 }
