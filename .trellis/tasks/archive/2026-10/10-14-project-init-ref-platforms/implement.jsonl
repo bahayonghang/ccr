@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ccr-cli/backend/backend-guidelines.md", "reason": "Project Workflow Bootstrap currently forbids a CCR platform list and only ignores three Agent directories; implementation must replace that contract."}
+{"file": ".trellis/spec/ccr-cli/backend/test-fixtures.md", "reason": "Process tests replace PATH with fake git and trellis and must keep child-process filesystem setup isolated."}
+{"file": ".trellis/spec/ccr-cli/backend/cli-output-presentation.md", "reason": "Status lines stay on ColorOutput; the new platform question and username prompt keep the interactive-question exception."}
+{"file": ".trellis/tasks/10-14-project-init-ref-platforms/research/trellis-0.6.17-init.md", "reason": "Trellis 0.6.17 skips its checkbox when flags are present and skips the username prompt after git init."}

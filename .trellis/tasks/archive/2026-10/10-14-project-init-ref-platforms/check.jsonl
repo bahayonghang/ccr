@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/ccr-cli/backend/backend-guidelines.md", "reason": "Check the updated bootstrap contract against stage order, the five-platform menu, both username sources, and ref/ ignore behavior."}
+{"file": ".trellis/spec/ccr-cli/backend/test-fixtures.md", "reason": "Check that fake git and trellis fixtures remain isolated when user.name and ref/ cases are added."}
+{"file": ".trellis/spec/ccr-cli/backend/cli-output-presentation.md", "reason": "Check new progress, skip, and error lines against the status and interactive-question rules."}
+{"file": ".trellis/tasks/10-14-project-init-ref-platforms/research/trellis-0.6.17-init.md", "reason": "Check that CCR owns the checkbox and username prompt for the reasons verified in Trellis 0.6.17."}
