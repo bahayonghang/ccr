@@ -362,3 +362,38 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 132: 优化 ccr project init
+<!-- trellis-session: v=2 fp=b1b988ca05c60b72 -->
+
+**Date**: 2026-10-14
+**Task**: 优化 ccr project init
+**Branch**: `dev`
+
+### Summary
+
+ccr project init 现在默认勾选五项平台并要求输入用户名，-y 使用 Git 用户名，成功后创建被忽略的 ref/。
+
+### Main Changes
+
+- 交互模式默认勾选 Claude、Codex、Cursor、OMP、Grok，确认后输入用户名
+- -y 读取 git config user.name 并传给 trellis init --yes
+- Trellis 成功后创建 ref/ 并写入 .gitignore
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `24a12a72570cab3e7268b4bdc8888b6e35c795e5` | feat(项目初始化): ✨ 默认勾选五项平台并创建被忽略的 ref |
+| `8fa6895c33321b011a19a046906e011d5f606db0` | docs(帮助文档): 📝 说明 project init 的平台、用户名与 ref |
+| `b21c1b2cf4c1c63aceb52f02e899e3e93f96028b` | docs(CLI规范): 📝 固定 project init 的五项平台与 ref 契约 |
+
+### Testing
+
+- [OK] cargo test -p ccr-cli commands::project::init、project_init 与 help 通过
+- [OK] just docs-check 与 just lint-strict 通过
+
+### Status
+
+[OK] **Completed**
