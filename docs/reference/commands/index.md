@@ -41,7 +41,7 @@ ccr <command> --help
 
 | 命令 | 用途 |
 |---|---|
-| [`project init`](./project-init) | 在当前目录初始化 Git、Trellis 和 Agent ignore 规则 |
+| [`project init`](./project-init) | 在当前目录初始化 Git、Trellis、Agent 忽略规则和本地 ref/ |
 
 `ccr init` 管理用户级 CCR 配置；`ccr project init` 管理当前项目工作流，两者不会互相替代。
 
