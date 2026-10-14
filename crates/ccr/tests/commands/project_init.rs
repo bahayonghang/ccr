@@ -6,6 +6,12 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use tempfile::TempDir;
 
+const GIT_USER: &str = "fake-git-user";
+const TRELLIS_ARGS: &str = "|init -u fake-git-user --claude --codex --cursor --omp --grok --yes";
+const GITIGNORE_RULES: &str = ".agents/\n.claude/\n.codex/\nref/\n";
+const SKIP_GITIGNORE_WRITE: &str = ".gitignore 已包含全部项目忽略规则，跳过写入";
+const READY_SUMMARY: &str = "Git、Trellis、Agent 忽略规则和 ref/ 均已就绪";
+
 struct ProjectInitFixture {
     _temp: TempDir,
     root: PathBuf,
@@ -67,15 +73,23 @@ impl ProjectInitFixture {
             .env("FAKE_GIT_ROOT", self.root.join("repository"))
             .env("CCR_PROJECT_INIT_LOG", &self.log)
             .env("NO_COLOR", "1")
-            .env("CLICOLOR", "0");
+            .env("CLICOLOR", "0")
+            .env_remove("FAKE_GIT_USER");
         command
     }
 
-    fn run(&self, git_mode: &str, trellis_mode: &str, args: &[&str]) -> Output {
-        self.command(git_mode, trellis_mode)
-            .args(args)
-            .output()
-            .unwrap()
+    fn run(
+        &self,
+        git_mode: &str,
+        trellis_mode: &str,
+        git_user: Option<&str>,
+        args: &[&str],
+    ) -> Output {
+        let mut command = self.command(git_mode, trellis_mode);
+        if let Some(user) = git_user {
+            command.env("FAKE_GIT_USER", user);
+        }
+        command.args(args).output().unwrap()
     }
 
     fn calls(&self) -> Vec<String> {
@@ -92,22 +106,31 @@ fn initializes_new_repository_then_trellis_and_gitignore() {
     let fixture = ProjectInitFixture::new();
     fixture.install_tools();
 
-    let output = fixture.run("none", "success", &["project", "init"]);
+    let output = fixture.run(
+        "none",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
 
     assert_success(&output);
     let calls = fixture.calls();
-    assert_eq!(calls.len(), 3, "calls: {calls:?}");
+    assert_eq!(calls.len(), 4, "calls: {calls:?}");
     assert!(calls[0].ends_with("|rev-parse --show-toplevel"));
     assert!(calls[1].ends_with("|init"));
-    assert!(calls[2].starts_with("trellis|"));
-    assert!(calls[2].ends_with("|init"));
+    assert!(calls[2].ends_with("|config user.name"));
+    assert!(calls[3].starts_with("trellis|"));
+    assert!(calls[3].ends_with(TRELLIS_ARGS));
     assert_calls_run_in(&calls, &fixture.project);
     assert_eq!(
         fs::read_to_string(fixture.project.join(".gitignore")).unwrap(),
-        ".agents/\n.claude/\n.codex/\n"
+        GITIGNORE_RULES
     );
+    assert!(fixture.project.join("ref").is_dir());
     assert!(fixture.project.join(".git").is_dir());
     assert!(fixture.project.join(".trellis/workflow.md").is_file());
+    assert!(fixture.project.join(".trellis/scripts/task.py").is_file());
+    assert!(stdout(&output).contains(READY_SUMMARY));
 }
 
 #[test]
@@ -115,12 +138,18 @@ fn skips_git_init_at_existing_repository_root() {
     let fixture = ProjectInitFixture::new();
     fixture.install_tools();
 
-    let output = fixture.run("root", "success", &["project", "init"]);
+    let output = fixture.run(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
 
     assert_success(&output);
     assert!(!git_init_was_called(&fixture.calls()));
     assert!(stdout(&output).contains("已经是 Git 仓库根"));
     assert!(fixture.project.join(".gitignore").is_file());
+    assert!(fixture.project.join("ref").is_dir());
 }
 
 #[test]
@@ -128,7 +157,12 @@ fn preserves_parent_repository_boundary_but_initializes_current_directory() {
     let fixture = ProjectInitFixture::in_parent_repository();
     fixture.install_tools();
 
-    let output = fixture.run("parent", "success", &["project", "init"]);
+    let output = fixture.run(
+        "parent",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
 
     assert_success(&output);
     assert!(!git_init_was_called(&fixture.calls()));
@@ -137,20 +171,59 @@ fn preserves_parent_repository_boundary_but_initializes_current_directory() {
     assert!(!fixture.project.join(".git").exists());
     assert!(fixture.project.join(".trellis/workflow.md").is_file());
     assert!(fixture.project.join(".gitignore").is_file());
+    assert!(fixture.project.join("ref").is_dir());
+    assert_calls_run_in(&fixture.calls(), &fixture.project);
 }
 
 #[test]
-fn forwards_global_yes_only_to_trellis() {
+fn auto_yes_uses_git_user_and_five_platforms() {
     let fixture = ProjectInitFixture::new();
     fixture.install_tools();
 
-    let output = fixture.run("root", "success", &["--yes", "project", "init"]);
+    let output = fixture.run(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
 
     assert_success(&output);
     let calls = fixture.calls();
-    assert_eq!(calls.len(), 2, "calls: {calls:?}");
+    assert_eq!(calls.len(), 3, "calls: {calls:?}");
     assert!(calls[0].ends_with("|rev-parse --show-toplevel"));
-    assert!(calls[1].ends_with("|init --yes"));
+    assert!(calls[1].ends_with("|config user.name"));
+    assert!(calls[2].ends_with(TRELLIS_ARGS));
+    assert!(
+        calls
+            .iter()
+            .filter(|call| call.starts_with("git|"))
+            .all(|call| !call.contains("--yes"))
+    );
+    assert_eq!(
+        fs::read_to_string(fixture.project.join(".gitignore")).unwrap(),
+        GITIGNORE_RULES
+    );
+    assert!(fixture.project.join("ref").is_dir());
+}
+
+#[test]
+fn missing_git_user_stops_before_trellis() {
+    let fixture = ProjectInitFixture::new();
+    fixture.install_tools();
+
+    let output = fixture.run("none", "success", None, &["--yes", "project", "init"]);
+
+    assert_eq!(output.status.code(), Some(90));
+    let error = stderr(&output);
+    assert!(error.contains("git config user.name"), "{error}");
+    assert!(error.contains("-y"), "{error}");
+    let calls = fixture.calls();
+    assert!(calls.iter().any(|call| call.ends_with("|config user.name")));
+    assert!(!calls.iter().any(|call| call.starts_with("trellis|")));
+    assert!(!stdout(&output).contains("选择要初始化的平台"));
+    assert!(!stdout(&output).contains("均已就绪"));
+    assert!(!fixture.project.join("ref").exists());
+    assert!(!fixture.project.join(".gitignore").exists());
 }
 
 #[test]
@@ -158,18 +231,17 @@ fn git_init_failure_stops_before_trellis_and_gitignore() {
     let fixture = ProjectInitFixture::new();
     fixture.install_tools();
 
-    let output = fixture.run("fail", "success", &["project", "init"]);
+    let output = fixture.run("fail", "success", Some(GIT_USER), &["project", "init"]);
 
     assert!(!output.status.success());
     assert_eq!(output.status.code(), Some(75));
     assert!(stderr(&output).contains("Git 阶段"));
-    assert!(
-        !fixture
-            .calls()
-            .iter()
-            .any(|call| call.starts_with("trellis|"))
-    );
+    assert!(!stdout(&output).contains("选择要初始化的平台"));
+    let calls = fixture.calls();
+    assert!(!calls.iter().any(|call| call.starts_with("trellis|")));
+    assert!(!calls.iter().any(|call| call.contains("config user.name")));
     assert!(!fixture.project.join(".gitignore").exists());
+    assert!(!fixture.project.join("ref").exists());
 }
 
 #[test]
@@ -177,11 +249,14 @@ fn missing_git_stops_before_trellis() {
     let fixture = ProjectInitFixture::new();
     fixture.install_trellis();
 
-    let output = fixture.run("root", "success", &["project", "init"]);
+    let output = fixture.run("root", "success", Some(GIT_USER), &["project", "init"]);
 
     assert_eq!(output.status.code(), Some(75));
     assert!(stderr(&output).contains("Git 阶段"));
+    assert!(!stdout(&output).contains("选择要初始化的平台"));
     assert!(fixture.calls().is_empty());
+    assert!(!fixture.project.join("ref").exists());
+    assert!(!fixture.project.join(".gitignore").exists());
 }
 
 #[test]
@@ -189,12 +264,24 @@ fn trellis_failure_keeps_git_result_and_skips_gitignore() {
     let fixture = ProjectInitFixture::new();
     fixture.install_tools();
 
-    let output = fixture.run("none", "fail", &["project", "init"]);
+    let output = fixture.run(
+        "none",
+        "fail",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
 
     assert_eq!(output.status.code(), Some(75));
     assert!(stderr(&output).contains("Trellis 阶段"));
+    assert!(
+        fixture
+            .calls()
+            .iter()
+            .any(|call| call.starts_with("trellis|"))
+    );
     assert!(fixture.project.join(".git").is_dir());
     assert!(!fixture.project.join(".gitignore").exists());
+    assert!(!fixture.project.join("ref").exists());
     assert!(!stdout(&output).contains("均已就绪"));
 }
 
@@ -203,11 +290,17 @@ fn missing_trellis_is_reported_after_git_is_ready() {
     let fixture = ProjectInitFixture::new();
     fixture.install_git();
 
-    let output = fixture.run("root", "success", &["project", "init"]);
+    let output = fixture.run(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
 
     assert_eq!(output.status.code(), Some(75));
     assert!(stderr(&output).contains("Trellis 阶段"));
     assert!(!fixture.project.join(".gitignore").exists());
+    assert!(!fixture.project.join("ref").exists());
 }
 
 #[test]
@@ -215,11 +308,23 @@ fn rejects_trellis_zero_exit_without_minimum_workflow() {
     let fixture = ProjectInitFixture::new();
     fixture.install_tools();
 
-    let output = fixture.run("root", "missing", &["project", "init"]);
+    let output = fixture.run(
+        "root",
+        "missing",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
 
     assert_eq!(output.status.code(), Some(90));
     assert!(stderr(&output).contains("缺少最低工作流文件"));
+    assert!(
+        fixture
+            .calls()
+            .iter()
+            .any(|call| call.starts_with("trellis|"))
+    );
     assert!(!fixture.project.join(".gitignore").exists());
+    assert!(!fixture.project.join("ref").exists());
     assert!(!stdout(&output).contains("均已就绪"));
 }
 
@@ -230,23 +335,126 @@ fn preserves_existing_gitignore_and_does_not_rewrite_when_complete() {
     let gitignore = fixture.project.join(".gitignore");
     fs::write(&gitignore, "target/\n.agents/\n").unwrap();
 
-    let first = fixture.run("root", "success", &["project", "init"]);
+    let first = fixture.run(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
     assert_success(&first);
     assert_eq!(
         fs::read_to_string(&gitignore).unwrap(),
-        "target/\n.agents/\n.claude/\n.codex/\n"
+        "target/\n.agents/\n.claude/\n.codex/\nref/\n"
     );
+    assert!(fixture.project.join("ref").is_dir());
 
     let fixed_time = FileTime::from_unix_time(1_700_000_000, 0);
     filetime::set_file_mtime(&gitignore, fixed_time).unwrap();
-    let second = fixture.run("root", "success", &["project", "init"]);
+    let second = fixture.run(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
 
     assert_success(&second);
     assert_eq!(
         FileTime::from_last_modification_time(&fs::metadata(&gitignore).unwrap()),
         fixed_time
     );
-    assert!(stdout(&second).contains("跳过写入"));
+    assert!(stdout(&second).contains(SKIP_GITIGNORE_WRITE));
+}
+
+#[test]
+fn keeps_existing_ref_directory_contents() {
+    let fixture = ProjectInitFixture::new();
+    fixture.install_tools();
+    let keep = fixture.project.join("ref/keep.txt");
+    fs::create_dir(fixture.project.join("ref")).unwrap();
+    fs::write(&keep, "keep-me").unwrap();
+
+    let output = fixture.run(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
+
+    assert_success(&output);
+    assert_eq!(fs::read_to_string(&keep).unwrap(), "keep-me");
+    assert!(stdout(&output).contains("ref/ 目录已存在，保留现有内容"));
+    assert!(
+        fs::read_to_string(fixture.project.join(".gitignore"))
+            .unwrap()
+            .contains("ref/\n")
+    );
+}
+
+#[test]
+fn ref_file_conflict_fails_after_trellis_without_gitignore_write() {
+    let fixture = ProjectInitFixture::new();
+    fixture.install_tools();
+    let gitignore = fixture.project.join(".gitignore");
+    fs::write(&gitignore, "keep\n").unwrap();
+    fs::write(fixture.project.join("ref"), "not-a-dir").unwrap();
+    let fixed_time = FileTime::from_unix_time(1_700_000_000, 0);
+    filetime::set_file_mtime(&gitignore, fixed_time).unwrap();
+
+    let output = fixture.run(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
+
+    assert_eq!(output.status.code(), Some(51));
+    assert!(stderr(&output).contains("ref/ 阶段"));
+    assert!(!stderr(&output).contains(".gitignore 阶段"));
+    assert!(fixture.project.join(".trellis/workflow.md").is_file());
+    assert!(
+        fixture
+            .calls()
+            .iter()
+            .any(|call| call.starts_with("trellis|"))
+    );
+    assert_eq!(fs::read_to_string(&gitignore).unwrap(), "keep\n");
+    assert_eq!(
+        FileTime::from_last_modification_time(&fs::metadata(&gitignore).unwrap()),
+        fixed_time
+    );
+    assert_eq!(
+        fs::read_to_string(fixture.project.join("ref")).unwrap(),
+        "not-a-dir"
+    );
+    assert!(!stdout(&output).contains("均已就绪"));
+}
+
+#[test]
+fn complete_gitignore_still_creates_missing_ref_directory() {
+    let fixture = ProjectInitFixture::new();
+    fixture.install_tools();
+    let gitignore = fixture.project.join(".gitignore");
+    let original = "notes\n.agents/\n.claude/\n.codex/\nref/\n";
+    fs::write(&gitignore, original).unwrap();
+    let fixed_time = FileTime::from_unix_time(1_700_000_000, 0);
+    filetime::set_file_mtime(&gitignore, fixed_time).unwrap();
+    assert!(!fixture.project.join("ref").exists());
+
+    let output = fixture.run(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
+
+    assert_success(&output);
+    assert!(fixture.project.join("ref").is_dir());
+    assert_eq!(fs::read_to_string(&gitignore).unwrap(), original);
+    assert_eq!(
+        FileTime::from_last_modification_time(&fs::metadata(&gitignore).unwrap()),
+        fixed_time
+    );
+    assert!(stdout(&output).contains(SKIP_GITIGNORE_WRITE));
 }
 
 #[test]
@@ -255,11 +463,17 @@ fn gitignore_read_failure_reports_file_stage_after_trellis() {
     fixture.install_tools();
     fs::create_dir(fixture.project.join(".gitignore")).unwrap();
 
-    let output = fixture.run("root", "success", &["project", "init"]);
+    let output = fixture.run(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
 
     assert_eq!(output.status.code(), Some(51));
     assert!(stderr(&output).contains(".gitignore 阶段"));
     assert!(fixture.project.join(".trellis/workflow.md").is_file());
+    assert!(fixture.project.join("ref").is_dir());
     assert!(!stdout(&output).contains("均已就绪"));
 }
 
@@ -316,6 +530,7 @@ fn fake_git_script() -> &'static str {
 >>"%CCR_PROJECT_INIT_LOG%" echo git^|%CD%^|%*
 if /I "%1"=="rev-parse" goto revparse
 if /I "%1"=="init" goto init
+if /I "%1"=="config" goto config
 exit /b 2
 
 :revparse
@@ -332,6 +547,16 @@ exit /b 128
 :init
 if /I "%FAKE_GIT_MODE%"=="fail" exit /b 7
 mkdir ".git" >nul 2>nul
+exit /b 0
+
+:config
+if /I "%2"=="user.name" goto username
+exit /b 2
+
+:username
+if not defined FAKE_GIT_USER exit /b 1
+if "%FAKE_GIT_USER%"=="" exit /b 1
+echo %FAKE_GIT_USER%
 exit /b 0
 "#
 }
@@ -351,6 +576,16 @@ if [ "$1" = "init" ]; then
   [ "$FAKE_GIT_MODE" = "fail" ] && exit 7
   /bin/mkdir -p .git
   exit 0
+fi
+if [ "$1" = "config" ]; then
+  if [ "$2" != "user.name" ]; then
+    exit 2
+  fi
+  if [ -n "$FAKE_GIT_USER" ]; then
+    printf '%s\n' "$FAKE_GIT_USER"
+    exit 0
+  fi
+  exit 1
 fi
 exit 2
 "#

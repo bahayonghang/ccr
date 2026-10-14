@@ -229,6 +229,13 @@ fn help_subcommand_supports_project_init_path() {
     assert!(help_command.contains("trellis init"));
     assert!(help_command.contains(".agents/"));
     assert!(help_command.contains("--yes"));
+    assert!(help_command.contains("ref/"));
+    assert!(help_command.contains("git config user.name"));
+    assert!(help_command.contains("Claude Code"));
+    assert!(help_command.contains("Codex"));
+    assert!(help_command.contains("Cursor"));
+    assert!(help_command.contains("Oh My Pi"));
+    assert!(help_command.contains("Grok"));
 }
 
 #[test]

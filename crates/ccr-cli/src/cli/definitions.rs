@@ -198,8 +198,10 @@ pub enum Commands {
         branch: String,
     },
 
-    /// 初始化当前项目的 Git、Trellis 工作流和 Agent 忽略规则
+    /// 初始化当前项目的 Git、Trellis 工作流、Agent 忽略规则和本地 ref/
     ///
+    /// 交互模式默认勾选 Claude Code、Codex、Cursor、Oh My Pi、Grok，再手动输入用户名。
+    /// `ccr -y project init` 使用这五项和 git config user.name。
     /// 示例: ccr project init
     ///       ccr -y project init
     Project {

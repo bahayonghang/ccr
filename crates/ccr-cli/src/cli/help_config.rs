@@ -33,7 +33,7 @@ const ROOT_AFTER_LONG_HELP: &str = "\
   初始化当前项目
     先看: ccr project init --help
     交互初始化: ccr project init
-    使用 Trellis 默认值: ccr -y project init
+    使用 Git 用户名和默认五项: ccr -y project init
 
   查看平台与 Profile
     查看运行状态: ccr current
@@ -73,45 +73,47 @@ const HELP_AFTER_LONG_HELP: &str = "\
   ccr help grok auth";
 
 const PROJECT_LONG_ABOUT: &str = "\
-在当前工作目录中依次准备 Git 仓库、Trellis 工作流和 Agent 目录忽略规则。
+在当前工作目录中依次准备 Git 仓库、Trellis 工作流、Agent 忽略规则和本地 ref/ 目录。
 
 如果当前目录位于父级 Git 仓库中，会保留该仓库边界，不创建嵌套仓库。";
 
 const PROJECT_AFTER_LONG_HELP: &str = "\
 常用任务:
-  交互式初始化
+  交互式初始化（默认勾选五项，再输入用户名）
     ccr project init
 
-  使用 Trellis 默认值进行非交互初始化
+  非交互初始化（五项平台 + git config user.name）
     ccr -y project init
 
 阶段顺序:
   1. 检测 Git 工作树；必要时运行 git init
-  2. 在当前目录运行 trellis init
-  3. 向 .gitignore 合并 .agents/、.claude/、.codex/
+  2. 选择平台并确定开发者用户名
+  3. 在当前目录运行 trellis init
+  4. 创建被忽略的 ref/，并向 .gitignore 合并 .agents/、.claude/、.codex/、ref/
 
 边界:
   - 必须预先安装 git 和 trellis
-  - Trellis 的用户名和 Agent 平台选择由 trellis init 自己处理
+  - 交互模式默认勾选 Claude Code、Codex、Cursor、Oh My Pi、Grok，可以取消
+  - 交互模式随后手动输入开发者用户名
+  - ccr -y project init 使用这五项和 git config user.name，并传给 trellis init --yes
   - 任一阶段失败后可在同一目录安全重试";
 
 const PROJECT_INIT_LONG_ABOUT: &str = "\
 初始化当前工作目录的项目工作流。
 
-CCR 先检测或初始化 Git，再继承当前终端运行 trellis init，最后以原子写入方式把
-.agents/、.claude/ 和 .codex/ 合并到当前目录的 .gitignore。已有内容和换行风格会保留。";
+Git 成功后，交互模式默认勾选 Claude Code、Codex、Cursor、Oh My Pi 和 Grok，可以取消任意项，然后手动输入开发者用户名。ccr -y project init 不询问，改用这五项和 git config user.name。随后继承当前终端运行 trellis init，创建被忽略的 ref/，并以原子写入把 .agents/、.claude/、.codex/ 和 ref/ 合并进当前目录的 .gitignore。已有内容和换行风格会保留。";
 
 const PROJECT_INIT_AFTER_LONG_HELP: &str = "\
 用法:
-  交互选择 Trellis 用户名和 Agent 平台: ccr project init
-  将全局 --yes 转发给 Trellis: ccr -y project init
+  交互模式默认勾选五项，再输入用户名: ccr project init
+  读取 git config user.name 并运行 trellis init --yes: ccr -y project init
 
 父仓库:
-  当前目录位于父级 Git 工作树时会显示仓库根并跳过 git init；Trellis 和
+  当前目录位于父级 Git 工作树时会显示仓库根并跳过 git init；Trellis、ref/ 和
   .gitignore 仍作用于调用命令时的当前目录。
 
 恢复:
-  Git、Trellis 或 .gitignore 阶段失败后不会回滚已完成阶段；修复原因后重复运行即可。";
+  Git、平台与用户名、Trellis、ref/ 或 .gitignore 阶段失败后不会回滚已完成阶段；修复原因后重复运行即可。";
 
 const PLATFORM_LONG_ABOUT: &str = "\
 列出 CCR 可识别的 AI CLI 平台。
