@@ -841,26 +841,214 @@ frontend-audit:
 # 📦 安装与管理命令
 # ═══════════════════════════════════════════════════════════
 
+# Windows 不能覆盖已加载的 exe：cargo 最后一步 MoveFile 会返回 Access denied (os error 5)。
+# 编译开始时的占用探测会漏报：杀毒软件会锁住临时目录里的新文件，或 ccr.exe 在编译期间才被打开。
+# 替换失败时改为复制 target/release 里已经编好的 exe。
+
 # 📦 安装到本地 (~/.cargo/bin)
 install:
     @just header "📦 安装到本地"
     @just info "📍 目标路径: ~/.cargo/bin/{{BIN}}"
     @just info "🔒 模式: 锁定依赖版本 (--locked)"
-    cargo +{{RUST_TOOLCHAIN}} install --path {{CLI_CRATE_PATH}} --locked
+    @just _install-bin-{{os()}} install
     @just success "安装完成"
 
 # ♻️ 强制重新安装
 reinstall:
     @just info "♻️ 强制重新安装"
     @just warn "模式: 覆盖现有安装"
-    cargo +{{RUST_TOOLCHAIN}} install --path {{CLI_CRATE_PATH}} --locked --force
+    @just _install-bin-{{os()}} force
     @just success "重新安装完成"
 
 # 🗑️ 卸载已安装的二进制
 uninstall:
     @just info "🗑️ 卸载 {{BIN}}"
-    cargo uninstall {{BIN}}
+    @just _uninstall-bin-{{os()}}
     @just success "卸载完成"
+
+[private]
+_install-bin-linux mode:
+    @just _install-bin-unix "{{mode}}"
+
+[private]
+_install-bin-macos mode:
+    @just _install-bin-unix "{{mode}}"
+
+[private]
+_install-bin-unix mode:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ "{{mode}}" = "force" ]; then
+        cargo +{{RUST_TOOLCHAIN}} install --path {{CLI_CRATE_PATH}} --locked --force
+    else
+        cargo +{{RUST_TOOLCHAIN}} install --path {{CLI_CRATE_PATH}} --locked
+    fi
+
+[private]
+_install-bin-windows mode:
+    #!pwsh.exe
+    $ErrorActionPreference = 'Stop'
+    $PSNativeCommandUseErrorActionPreference = $false
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    $OutputEncoding = [System.Text.Encoding]::UTF8
+
+    $mode = '{{mode}}'
+    if ($mode -ne 'install' -and $mode -ne 'force') {
+        Write-Host "未知安装模式: $mode" -ForegroundColor Red
+        exit 2
+    }
+
+    $destName = '{{BIN}}.exe'
+    $binDir = Join-Path $env:USERPROFILE '.cargo\bin'
+    $dest = Join-Path $binDir $destName
+
+    function Test-ImageLocked([string]$Path) {
+        if (-not (Test-Path -LiteralPath $Path)) {
+            return $false
+        }
+        try {
+            $stream = [System.IO.File]::Open(
+                $Path,
+                [System.IO.FileMode]::Open,
+                [System.IO.FileAccess]::ReadWrite,
+                [System.IO.FileShare]::None)
+            $stream.Dispose()
+            return $false
+        } catch {
+            return $true
+        }
+    }
+
+    function Restore-ParkedBinary {
+        if ($script:parkedPath -and (Test-Path -LiteralPath $script:parkedPath) -and -not (Test-Path -LiteralPath $dest)) {
+            Rename-Item -LiteralPath $script:parkedPath -NewName $destName
+            Write-Host "安装失败，已将旧文件恢复为 $destName" -ForegroundColor Yellow
+            $script:parkedPath = $null
+        }
+    }
+
+    function Install-BuiltBinary([string]$Source) {
+        for ($attempt = 1; $attempt -le 8; $attempt++) {
+            if (Test-Path -LiteralPath $dest) {
+                $parkedName = "$destName.locked-$(Get-Date -Format 'yyyyMMddHHmmss')-$attempt"
+                try {
+                    Rename-Item -LiteralPath $dest -NewName $parkedName -ErrorAction Stop
+                    $script:parkedPath = Join-Path $binDir $parkedName
+                    Write-Host "⚠️  已将 $destName 改名为 $parkedName，以便写入新版本。" -ForegroundColor Yellow
+                } catch {
+                    Start-Sleep -Milliseconds (200 * $attempt)
+                    continue
+                }
+            }
+            try {
+                Copy-Item -LiteralPath $Source -Destination $dest -Force -ErrorAction Stop
+                return $true
+            } catch {
+                Write-Host "复制 $destName 失败（第 $attempt 次）：$($_.Exception.Message)" -ForegroundColor Yellow
+                Start-Sleep -Milliseconds (200 * $attempt)
+            }
+        }
+        return $false
+    }
+
+    $script:parkedPath = $null
+    if (Test-Path -LiteralPath $binDir) {
+        Get-ChildItem -LiteralPath $binDir -Filter "$destName.locked-*" -File -ErrorAction SilentlyContinue | ForEach-Object {
+            if (-not (Test-ImageLocked $_.FullName)) {
+                Remove-Item -LiteralPath $_.FullName -Force
+            }
+        }
+    }
+
+    if (Test-ImageLocked $dest) {
+        $parkedName = "$destName.locked-$(Get-Date -Format 'yyyyMMddHHmmss')"
+        $suffix = 0
+        while (Test-Path -LiteralPath (Join-Path $binDir $parkedName)) {
+            $suffix++
+            $parkedName = "$destName.locked-$(Get-Date -Format 'yyyyMMddHHmmss')-$suffix"
+        }
+        Rename-Item -LiteralPath $dest -NewName $parkedName
+        $script:parkedPath = Join-Path $binDir $parkedName
+        Write-Host "⚠️  $destName 正在运行，已改名为 $parkedName。当前进程继续使用旧版本，新文件会写到原路径。" -ForegroundColor Yellow
+    }
+
+    $cargoArgs = @("+{{RUST_TOOLCHAIN}}", 'install', '--path', '{{CLI_CRATE_PATH}}', '--locked')
+    if ($mode -eq 'force') {
+        $cargoArgs += '--force'
+    }
+
+    $logPath = Join-Path $env:TEMP "ccr-install-$PID.log"
+    & cargo @cargoArgs 2>&1 | Tee-Object -FilePath $logPath | Out-Host
+    $code = $LASTEXITCODE
+    if ($code -ne 0) {
+        $logText = ''
+        if (Test-Path -LiteralPath $logPath) {
+            $logText = [string](Get-Content -LiteralPath $logPath -Raw -ErrorAction SilentlyContinue)
+        }
+        $moveDenied = $logText -match 'failed to move' -and ($logText -match 'os error 5' -or $logText -match 'Access is denied')
+        $built = Join-Path (Get-Location) "target\release\$destName"
+        $replaced = $false
+        if ($moveDenied -and (Test-Path -LiteralPath $built)) {
+            Write-Host "cargo 无法覆盖 $destName（Access denied）。改为安装已编译的 $built。" -ForegroundColor Yellow
+            $replaced = Install-BuiltBinary $built
+        }
+        Remove-Item -LiteralPath $logPath -ErrorAction SilentlyContinue
+        if (-not $replaced) {
+            Restore-ParkedBinary
+            exit $code
+        }
+    } else {
+        Remove-Item -LiteralPath $logPath -ErrorAction SilentlyContinue
+    }
+
+    if ($script:parkedPath -and (Test-Path -LiteralPath $script:parkedPath)) {
+        if (Test-ImageLocked $script:parkedPath) {
+            Write-Host "旧版本仍被占用，已保留 $([System.IO.Path]::GetFileName($script:parkedPath))。退出正在运行的 ccr 后可删除。" -ForegroundColor Yellow
+        } else {
+            Remove-Item -LiteralPath $script:parkedPath -Force
+        }
+    }
+
+[private]
+_uninstall-bin-linux:
+    cargo uninstall {{BIN}}
+
+[private]
+_uninstall-bin-macos:
+    cargo uninstall {{BIN}}
+
+[private]
+_uninstall-bin-windows:
+    #!pwsh.exe
+    $ErrorActionPreference = 'Stop'
+    $PSNativeCommandUseErrorActionPreference = $false
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    $OutputEncoding = [System.Text.Encoding]::UTF8
+
+    $destName = '{{BIN}}.exe'
+    $dest = Join-Path (Join-Path $env:USERPROFILE '.cargo\bin') $destName
+    $blocked = $false
+    if (Test-Path -LiteralPath $dest) {
+        try {
+            $stream = [System.IO.File]::Open(
+                $dest,
+                [System.IO.FileMode]::Open,
+                [System.IO.FileAccess]::ReadWrite,
+                [System.IO.FileShare]::None)
+            $stream.Dispose()
+        } catch {
+            $blocked = $true
+        }
+    }
+    if ($blocked) {
+        $owners = @(Get-CimInstance Win32_Process -Filter "Name = '$destName'" | Where-Object { $_.ExecutablePath -eq $dest })
+        $pids = if ($owners.Count -gt 0) { ($owners.ProcessId -join ', ') } else { '未知' }
+        Write-Host "⚠️  $destName 正在运行 (PID $pids)。Windows 不允许删除已加载的程序。请先退出该进程，再执行 just uninstall。" -ForegroundColor Yellow
+        exit 1
+    }
+
+    & cargo uninstall {{BIN}}
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 # ═══════════════════════════════════════════════════════════
 # 📚 文档命令
