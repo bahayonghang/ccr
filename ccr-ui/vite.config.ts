@@ -24,6 +24,10 @@ export default defineConfig({
         // 分组与 design.md §3 的清单一一对应
         manualChunks: (id) => {
           const groups: Array<[string, RegExp]> = [
+            // SettingsSource 静态引入 CodeMirror 时整包约 638 kB。语言包拆到 cm-lang；
+            // view 与 state 互相引用，留在 cm-editor。两块都要低于 chunkSizeWarningLimit。
+            ['cm-lang', /[\\/]node_modules[\\/](@codemirror[\\/](lang-[^\\/]+|legacy-modes)|@lezer)[\\/]/],
+            ['cm-editor', /[\\/]node_modules[\\/](@codemirror[\\/]|@uiw[\\/]react-codemirror[\\/])/],
             ['react-vendor', /[\\/]node_modules[\\/](react|react-dom|react-router)[\\/]/],
             // query-vendor：react-query 在 main.tsx/shell/queryClient.ts 被真实导入，
             // 08-22-arch-quality-perf 批次 8 测量后加入。必须同时匹配 @tanstack/query-core：

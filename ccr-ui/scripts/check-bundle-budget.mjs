@@ -110,6 +110,8 @@ const VENDOR_PREFIXES = [
   'term-vendor-',
   'motion-vendor-',
   'form-vendor-',
+  'cm-lang-',
+  'cm-editor-',
   'rolldown-runtime-',
   'zod-',
 ]
