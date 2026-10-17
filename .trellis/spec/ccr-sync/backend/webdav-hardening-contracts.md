@@ -26,9 +26,20 @@
 - A remote entry name must be exactly one `Component::Normal`. Check lexical
   containment before creation and canonical parent containment when available.
 - Track normalized href identities and reject duplicates/cycles.
-- Pull writes only into a unique sibling staging path. Commit order is staged
-  fsync, `active -> backup`, `staging -> active`, parent fsync. Any commit error
-  restores the pre-operation active path; uncommitted staging is removed.
+- Pull writes only into a unique sibling staging path. For an ordinary file,
+  commit order is staged fsync, `active -> backup`, `staging -> active`, parent
+  fsync. Any commit error restores the pre-operation active path; uncommitted
+  staging is removed. `profiles.db` is not renamed. A directory pull installs
+  every nested `profiles.db` through the same path and does not rename those
+  database files or their `-wal` and `-shm` sidecars. After the staging file is
+  owner-only and passes integrity, schema, and document checks, an existing live
+  database replaces `document` and `profiles` inside `BEGIN IMMEDIATE`. Failure
+  rolls back and leaves the old revision. A missing live database is created
+  with owner-only permissions and filled with the SQLite backup API. Push of
+  `profiles.db` uploads a checkpointed snapshot, not the live file bytes, and
+  deletes the remote `profiles.toml` only after that upload succeeds. HTTP 404
+  on that delete is success. `profiles.toml`, `profiles.db-wal`, and
+  `profiles.db-shm` are excluded from sync.
 - Stream GET and PROPFIND bodies while enforcing file bytes, total bytes,
   depth, entries, component bytes, and operation deadline. Do not call
   `Response::bytes()` in pull paths.

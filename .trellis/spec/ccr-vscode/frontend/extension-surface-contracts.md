@@ -34,6 +34,7 @@
 - `package.json` should rely on VS Code's implicit activation for contributed commands/views; do not add `onStartupFinished` just to wake the extension early.
 - `ccr.switchProfileForPlatform` must stay contributed in `package.json` and registered in `src/extension.ts`.
 - Writable profile actions remain limited to `claude` and `codex`.
+- Profile lists read `platforms/<name>/profiles.db` when that catalog exists, including rows committed only in its WAL. They do not parse the database as TOML. A missing catalog still reads legacy `profiles.toml`. The file watcher includes `profiles.db` and `profiles.db-wal`. `ccr.openProfilesFile` opens a temporary canonical TOML outside the platform directory and imports it back with an explicit platform; it does not open `profiles.db` as text.
 - `gemini`, `qwen`, and `droid` may be surfaced as registry/tree browse entries, but they must stay read-only in the VS Code extension.
 - Status bar targets remain Claude/Codex only.
 - Manifest copy may mention platform metadata, but it must not imply mutation support for unsupported platforms.

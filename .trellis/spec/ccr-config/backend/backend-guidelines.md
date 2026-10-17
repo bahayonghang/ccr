@@ -26,9 +26,9 @@ New platform config behavior should flow through `PlatformPaths` and the manager
 
 ## Persistence Rules
 
-Unified config is rooted at `CCR_ROOT` when set, otherwise under `~/.ccr`. Platform profiles live under `~/.ccr/platforms/<platform>/profiles.toml`. New callers use `ConfigManager::for_platform` with an explicit platform. `with_default` is a legacy Claude-domain adapter; registry order and retired current-platform routing do not select its domain. Neither constructor creates or repairs files.
+Unified config is rooted at `CCR_ROOT` when set, otherwise under `~/.ccr`. The live profile catalog for Claude, Codex, Gemini, Grok, and Droid is `~/.ccr/platforms/<platform>/profiles.db`. `profiles.toml` is the exchange format for import, export, and `profile open`. Example TOML stays a template. Putting a backup TOML back on the live path does not make the new binary read it. Rollback is: stop the new binary, restore that TOML from `backups/<platform>/`, and delete `profiles.db` plus its `-wal` and `-shm` files. Usage counts and edits made after migration exist only in the database. Qwen and platforms without a catalog are not pre-created. New callers use `ConfigManager::for_platform` with an explicit platform. `ccr import` and `ccr export` do the same through `--platform`; the default remains Claude, and registry order or `ccr platform switch` does not select the domain. `with_default` is a legacy Claude-domain adapter; registry order and retired current-platform routing do not select its domain. Neither constructor creates or repairs files.
 
-Use `ccr_core::fileio`/manager save methods for TOML writes. Do not bypass manager helpers for profile writes because they preserve autofix and path conventions.
+Profile catalog writes go through `ConfigManager` and the catalog helpers. Do not create or overwrite a live `profiles.toml`. Direct `load`, `snapshot`, list, current, and validate do not migrate and do not create a database.
 
 Read [Profile Repository Transactions](./profile-repository.md) before changing profile CRUD, partial edits, current-marker resolution, or configuration reads. Ordinary updates use the repository mutation API. Autofix and full replacement are explicit operations.
 
