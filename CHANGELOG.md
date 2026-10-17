@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [7.5.0] - 2026-10-17
+
+### ✨ 新功能
+
+- Claude、Codex、Grok、Gemini、Droid 的 provider 目录从各自的 `profiles.toml` 迁到 `profiles.db`。切换、列表、编辑、排序、导入导出和同步都读写这份库；切换次数按原 TOML 导入，成功激活后再单独加一。
+
+---
+
 ## [7.4.1] - 2026-10-12
 
 ### 🔧 改进
