@@ -1,0 +1,6 @@
+{"file": ".trellis/tasks/10-16-platform-profiles-sqlite/research/profile-sqlite-storage.md", "reason": "验收对照本机清单与禁止用历史回填"}
+{"file": ".trellis/spec/ccr-config/backend/profile-repository.md", "reason": "查询不得补字段或改指针"}
+{"file": ".trellis/spec/ccr-cli/backend/profile-application-lifecycle.md", "reason": "计数失败与重放语义"}
+{"file": ".trellis/tasks/10-16-platform-profiles-sqlite/design.md", "reason": "对照迁移、补偿、raw CAS 和 profile open"}
+{"file": ".trellis/tasks/10-16-platform-profiles-sqlite/prd.md", "reason": "验收标准"}
+{"file": ".trellis/spec/ccr-sync/backend/webdav-hardening-contracts.md", "reason": "profiles.toml 排除与远端删除不得放宽路径限制"}

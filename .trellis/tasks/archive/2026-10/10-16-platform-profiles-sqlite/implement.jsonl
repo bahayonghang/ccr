@@ -1,0 +1,7 @@
+{"file": ".trellis/tasks/10-16-platform-profiles-sqlite/research/profile-sqlite-storage.md", "reason": "本机目录形状、计数与历史差异、扩展键和同步约束"}
+{"file": ".trellis/spec/ccr-config/backend/profile-repository.md", "reason": "目录锁、纯读、空 current 与未知字段保留"}
+{"file": ".trellis/spec/ccr-cli/backend/profile-application-lifecycle.md", "reason": "激活提交后才加计数，重放不加，补偿边界"}
+{"file": ".trellis/tasks/10-16-platform-profiles-sqlite/design.md", "reason": "目录库位置、迁移、事务补偿和同步切割"}
+{"file": ".trellis/tasks/10-16-platform-profiles-sqlite/implement.md", "reason": "实施顺序和验证命令"}
+{"file": ".trellis/spec/ccr-config/backend/backend-guidelines.md", "reason": "目录所有权仍在 ccr-config，路径契约需要随实现更新"}
+{"file": ".trellis/spec/ccr-sync/backend/webdav-hardening-contracts.md", "reason": "同步过滤、上传和远端删除的路径边界"}
