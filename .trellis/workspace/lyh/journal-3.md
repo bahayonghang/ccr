@@ -397,3 +397,36 @@ ccr project init 现在默认勾选五项平台并要求输入用户名，-y 使
 ### Status
 
 [OK] **Completed**
+
+
+## Session 133: 五平台 profile 迁入 SQLite
+<!-- trellis-session: v=2 fp=e7af83755c77bb23 -->
+
+**Date**: 2026-10-17
+**Task**: 五平台 profile 迁入 SQLite
+**Branch**: `dev`
+
+### Summary
+
+把 Claude、Codex、Grok、Gemini、Droid 的 provider 目录从 profiles.toml 迁到 profiles.db，并发布 7.5.0。
+
+### Main Changes
+
+- 目录、切换、导入导出和同步改读写 profiles.db
+- 桌面原始配置改用修订令牌，VS Code 侧边栏改为读活库
+- 帮助文档和配置规范同步更新
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `25a55ffcbd92f011c4efa5cfd22db286a385c18a` | feat(配置存储): ✨ 五平台 provider 目录改读写 profiles.db |
+| `09557bf16e4d22c578a45e1c02873767b0c53702` | feat(桌面配置): ✨ 原始配置改用目录修订令牌做比较写入 |
+| `add7f0aa04f2f64960ee7eb7287160ce9cbeac16` | feat(扩展): ✨ VS Code 侧边栏改为读取 profiles.db |
+| `61446d89f99c4702e697ed62080d9e13acaecd9b` | docs(帮助文档): 📝 说明 profile 目录已迁到 profiles.db |
+| `e7bc1a7d2220e7aa9cfd50d30e6b299af691d7e3` | docs(配置规范): 📝 收录 SQLite 目录与同步契约 |
+| `b707be2a126bd732458433f7f38603ec0055ff5f` | chore(release): 🔖 v7.5.0 |
+
+### Status
+
+[OK] **Completed**
