@@ -24,7 +24,7 @@ ccr codex fix
 
 - Runtime config: `~/.codex/config.toml`
 - Runtime auth: `~/.codex/auth.json`
-- Profiles: `~/.ccr/platforms/codex/profiles.toml`
+- Profiles: `~/.ccr/platforms/codex/profiles.db` (`profiles.toml` is the exchange format)
 - Registry pointer: `[codex].current_profile` in `~/.ccr/config.toml`
 
 ## DeepSeek Responses API
@@ -44,7 +44,7 @@ In the ccr-ui Codex Profiles page, select the DeepSeek provider template, then:
 
 The template fills non-secret provider, endpoint, and model fields only. It never stores or
 overwrites the API key. The stored profile contains the following non-secret fields; CCR keeps
-the bearer in its runtime secret store, so do not add it manually to `profiles.toml`:
+the bearer in its runtime secret store. Do not put the bearer in exchange TOML. The live catalog is `profiles.db`:
 
 ```toml
 [deepseek]
@@ -88,7 +88,7 @@ ccr codex profile switch future
 ccr codex fix
 ```
 
-`ccr codex fix` cleans up stale app-server processes and compares the registry pointer, `profiles.toml`, `config.toml`, `auth.json`, and the current process environment at invocation time. It reports `process_state`, `runtime_consistency`, and `provider_auth_validity` separately. The default path does not run upstream `codex doctor`.
+`ccr codex fix` cleans up stale app-server processes and compares the registry pointer, the profile catalog, `config.toml`, `auth.json`, and the current process environment at invocation time. It reports `process_state`, `runtime_consistency`, and `provider_auth_validity` separately. The default path does not run upstream `codex doctor`.
 
 Process discovery explicitly loads command lines and owners and only handles Codex `app-server`
 processes owned by the current user. Cleanup identifies processes by `PID + start_time`. After TERM,

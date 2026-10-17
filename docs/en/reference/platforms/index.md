@@ -4,15 +4,17 @@ This page describes the current CLI platform domain. CLI support and CCR UI rout
 
 ## Support Matrix
 
-| Platform | Status | Profile file | Settings target |
+| Platform | Status | Profile catalog | Settings target |
 |---|---|---|---|
-| Claude Code | Implemented | `~/.ccr/platforms/claude/profiles.toml` | `~/.claude/settings.json` |
-| Codex | Implemented | `~/.ccr/platforms/codex/profiles.toml` | `~/.codex/config.toml` |
-| Antigravity CLI | Implemented | `~/.ccr/platforms/gemini/profiles.toml` | `~/.gemini/antigravity-cli/settings.json` |
-| Factory Droid | Implemented | `~/.ccr/platforms/droid/profiles.toml` | `~/.factory/settings.json` |
+| Claude Code | Implemented | `~/.ccr/platforms/claude/profiles.db` | `~/.claude/settings.json` |
+| Codex | Implemented | `~/.ccr/platforms/codex/profiles.db` | `~/.codex/config.toml` |
+| Antigravity CLI | Implemented | `~/.ccr/platforms/gemini/profiles.db` | `~/.gemini/antigravity-cli/settings.json` |
+| Factory Droid | Implemented | `~/.ccr/platforms/droid/profiles.db` | `~/.factory/settings.json` |
 | Qwen CLI | Stub / not implemented | reserved platform directory | platform operations report unsupported |
 
 Antigravity keeps the persisted `gemini` key; `agy` and `antigravity` are input aliases.
+
+Claude, Codex, Gemini, Grok, and Droid keep the live catalog in `profiles.db`. `profiles.toml` is the exchange format for import, export, and `profile open`. Example TOML files stay templates. The new binary does not read a backup TOML copied back onto the live path. Rollback stops the new binary, restores that TOML from `backups/<platform>/`, and deletes `profiles.db` plus its `-wal` and `-shm` files. Usage counts written after migration exist only in the database. Qwen does not get a pre-created catalog.
 
 ## Current Command Boundary
 

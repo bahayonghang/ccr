@@ -18,8 +18,8 @@ ccr claude profile init
 ccr codex profile init
 ccr grok profile init
 
-mkdir -p ~/.ccr/platforms/gemini
-cp examples/gemini/profiles.toml ~/.ccr/platforms/gemini/profiles.toml
+# Example TOML is the exchange format. The live catalog is ~/.ccr/platforms/gemini/profiles.db.
+ccr import examples/gemini/profiles.toml --platform gemini --merge --backup
 
 ccr platform switch claude
 ccr platform switch codex
@@ -35,15 +35,14 @@ Use export/import for structure, then update platform-specific credentials manua
 ```bash
 # Export from the source platform
 ccr platform switch claude
-ccr export -o claude-profiles.toml --no-secrets
+ccr export -o claude-profiles.toml --platform claude --no-secrets
 
-# Prepare the Gemini target manually
-mkdir -p ~/.ccr/platforms/gemini
-cp examples/gemini/profiles.toml ~/.ccr/platforms/gemini/profiles.toml
+# The example TOML is exchange input. The live Gemini catalog is profiles.db.
 ccr platform switch gemini
+ccr import examples/gemini/profiles.toml --platform gemini --merge --backup
 
 # Import the structure
-ccr import claude-profiles.toml --merge --backup
+ccr import claude-profiles.toml --platform gemini --merge --backup
 
 # Then replace model names and API keys manually
 ccr validate
@@ -51,6 +50,7 @@ ccr validate
 
 Notes:
 
+- `ccr import` and `ccr export` write the catalog named by `--platform`. The default is `claude`. `ccr platform switch` does not change that target.
 - profile names and descriptions can move across platforms
 - tokens, model names, and platform-specific fields must be reviewed manually
 - use `--no-secrets` for transfer files you want to inspect or share

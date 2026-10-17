@@ -17,7 +17,7 @@ CCR 继续把持久化平台 key 保持为 `gemini`，但面向用户的 Google 
 | CCR platform key | `gemini` |
 | 显示名称 | Antigravity CLI |
 | 推荐二进制 | `agy` |
-| Profiles 文件 | `~/.ccr/platforms/gemini/profiles.toml` |
+| Profiles 目录 | `~/.ccr/platforms/gemini/profiles.db` |
 | Antigravity settings | `~/.gemini/antigravity-cli/settings.json` |
 | Antigravity MCP 配置 | `~/.gemini/antigravity-cli/mcp_config.json` |
 | 全局 skills | `~/.gemini/antigravity-cli/skills` |
@@ -36,9 +36,9 @@ CCR 继续把持久化平台 key 保持为 `gemini`，但面向用户的 Google 
 ## 快速开始
 
 ```bash
-# Gemini 暂无 profile init 命令，请手工复制示例
-mkdir -p ~/.ccr/platforms/gemini
-cp examples/gemini/profiles.toml ~/.ccr/platforms/gemini/profiles.toml
+# 示例 TOML 是交换格式。活目录是 ~/.ccr/platforms/gemini/profiles.db。
+# 不要把示例复制成 profiles.toml；放回备份 TOML 后，新二进制不会读它。
+ccr import examples/gemini/profiles.toml --platform gemini --merge --backup
 
 # 切换到 Google / Antigravity profile 命名空间
 ccr platform switch gemini
@@ -58,7 +58,7 @@ agy plugin import gemini
 
 ## Profile 配置
 
-CCR profiles 仍位于 `~/.ccr/platforms/gemini/profiles.toml`：
+CCR profiles 的活目录是 `~/.ccr/platforms/gemini/profiles.db`。下面是交换用 TOML：
 
 ```toml
 [google-official]
@@ -165,7 +165,7 @@ cat ~/.gemini/antigravity-cli/mcp_config.json
 
 ## 安全说明
 
-- `~/.ccr/platforms/gemini/profiles.toml` 中的 API keys 是明文；请保持严格文件权限。
+- `~/.ccr/platforms/gemini/profiles.db` 中的 API keys 是明文；请保持严格文件权限。交换 TOML 同样是明文。
 - CCR 会在正常输出与历史记录中掩码 API keys，但 backups 仍可能包含 secrets。
 - 分享 profile 示例时优先使用 `ccr export --no-secrets`。
 

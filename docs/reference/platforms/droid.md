@@ -11,7 +11,7 @@ Factory Droid is an AI-powered CLI assistant developed by Factory AI. CCR provid
 - **Icon**: 🏭
 - **Status**: ✅ Fully Implemented
 - **Settings Path**: `~/.factory/settings.json`
-- **Profiles Path**: `~/.ccr/platforms/droid/profiles.toml`
+- **Profiles Path**: `~/.ccr/platforms/droid/profiles.db` (`profiles.toml` is the exchange format)
 
 ## Prerequisites
 
@@ -68,9 +68,9 @@ Supports OpenRouter, Ollama, vLLM, and other OpenAI-compatible services.
 ### Prepare the Droid Profiles File
 
 ```bash
-# Droid does not have a profile init command yet; copy the example manually
-mkdir -p ~/.ccr/platforms/droid
-cp examples/droid/profiles.toml ~/.ccr/platforms/droid/profiles.toml
+# Example TOML is the exchange format. The live catalog is ~/.ccr/platforms/droid/profiles.db.
+# Do not copy the example onto profiles.toml. A restored backup TOML is not read.
+ccr import examples/droid/profiles.toml --platform droid --merge --backup
 ```
 
 ### Switch to Droid Platform

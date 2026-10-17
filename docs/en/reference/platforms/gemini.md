@@ -17,7 +17,7 @@ Official migration references:
 | CCR platform key | `gemini` |
 | Display name | Antigravity CLI |
 | Recommended binary | `agy` |
-| Profiles file | `~/.ccr/platforms/gemini/profiles.toml` |
+| Profile catalog | `~/.ccr/platforms/gemini/profiles.db` |
 | Antigravity settings | `~/.gemini/antigravity-cli/settings.json` |
 | Antigravity MCP config | `~/.gemini/antigravity-cli/mcp_config.json` |
 | Global skills | `~/.gemini/antigravity-cli/skills` |
@@ -36,9 +36,9 @@ The old `/gemini-cli` UI route and `gemini` platform key remain compatibility al
 ## Quick Start
 
 ```bash
-# Gemini has no profile init command yet; copy the example manually
-mkdir -p ~/.ccr/platforms/gemini
-cp examples/gemini/profiles.toml ~/.ccr/platforms/gemini/profiles.toml
+# Example TOML is the exchange format. The live catalog is ~/.ccr/platforms/gemini/profiles.db.
+# Do not copy the example onto profiles.toml. A restored backup TOML is not read.
+ccr import examples/gemini/profiles.toml --platform gemini --merge --backup
 
 # Switch to the Google/Antigravity profile namespace
 ccr platform switch gemini
@@ -58,7 +58,7 @@ agy plugin import gemini
 
 ## Profile Configuration
 
-CCR profiles remain under `~/.ccr/platforms/gemini/profiles.toml`:
+The live CCR catalog is `~/.ccr/platforms/gemini/profiles.db`. The block below is exchange TOML:
 
 ```toml
 [google-official]
@@ -165,7 +165,7 @@ They should not be documented as the primary Antigravity settings or MCP paths.
 
 ## Security Notes
 
-- API keys in `~/.ccr/platforms/gemini/profiles.toml` are plaintext; keep file permissions strict.
+- API keys in `~/.ccr/platforms/gemini/profiles.db` are plaintext; keep file permissions strict. Exchange TOML is plaintext too.
 - CCR masks API keys in normal output and history, but backups can still contain secrets.
 - Prefer `ccr export --no-secrets` when sharing profile examples.
 

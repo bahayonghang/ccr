@@ -4,15 +4,17 @@
 
 ## 支持矩阵
 
-| 平台 | 状态 | Profile 文件 | 设置目标 |
+| 平台 | 状态 | Profile 目录 | 设置目标 |
 |---|---|---|---|
-| Claude Code | 已实现 | `~/.ccr/platforms/claude/profiles.toml` | `~/.claude/settings.json` |
-| Codex | 已实现 | `~/.ccr/platforms/codex/profiles.toml` | `~/.codex/config.toml` |
-| Antigravity CLI | 已实现 | `~/.ccr/platforms/gemini/profiles.toml` | `~/.gemini/antigravity-cli/settings.json` |
-| Factory Droid | 已实现 | `~/.ccr/platforms/droid/profiles.toml` | `~/.factory/settings.json` |
+| Claude Code | 已实现 | `~/.ccr/platforms/claude/profiles.db` | `~/.claude/settings.json` |
+| Codex | 已实现 | `~/.ccr/platforms/codex/profiles.db` | `~/.codex/config.toml` |
+| Antigravity CLI | 已实现 | `~/.ccr/platforms/gemini/profiles.db` | `~/.gemini/antigravity-cli/settings.json` |
+| Factory Droid | 已实现 | `~/.ccr/platforms/droid/profiles.db` | `~/.factory/settings.json` |
 | Qwen CLI | Stub / 未实现 | 预留平台目录 | 平台操作返回未支持 |
 
 Antigravity 的持久化 key 仍是 `gemini`，`agy` 与 `antigravity` 是输入别名。
+
+Claude、Codex、Gemini、Grok、Droid 的活目录是 `profiles.db`。`profiles.toml` 是 import、export 和 `profile open` 的交换格式，示例文件仍是模板。把备份 TOML 放回活路径后，新二进制不会读它。回退要停用新二进制，从 `backups/<platform>/` 放回 TOML，并删除 `profiles.db` 及其 `-wal`、`-shm`。迁移之后的切换次数只在库里。Qwen 不预建目录库。
 
 ## 当前命令边界
 

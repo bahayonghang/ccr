@@ -84,7 +84,7 @@ ccr doctor --platform claude
 
 - Runtime settings：`~/.claude/settings.json`
 - Claude Code 状态：`~/.claude.json`
-- Profiles：`~/.ccr/platforms/claude/profiles.toml`
+- Profiles：`~/.ccr/platforms/claude/profiles.db`（`profiles.toml` 只作交换格式）
 - Registry pointer：`~/.ccr/config.toml` 中 `[claude].current_profile`
 
 ## 迁移提醒

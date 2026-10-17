@@ -43,7 +43,7 @@ Claude/Codex/Grok 支持 auth/profile 命令。Gemini/Droid 保留已有只读�
 
 ### 平台深度检查
 
-- `profiles.toml` 是否存在且可读
+- `profiles.db` 是否存在且可读
 - current profile 是否能解析到真实 profile
 - 当前 profile 是否通过本地字段校验
 - 平台 settings/config 文件路径是否可解析

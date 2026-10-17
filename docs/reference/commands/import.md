@@ -15,6 +15,7 @@ ccr import <FILE> [OPTIONS]
 ## 选项
 
 - `--merge`: 合并模式(保留现有配置,添加新配置)
+- `--platform <name>`: 写入该平台的目录。默认 `claude`。`ccr platform switch` 不会改变这个目标
 - `--no-backup`: 导入前不备份当前配置
 
 ## 功能特性
@@ -36,6 +37,9 @@ ccr import config.toml
 
 # 导入时不备份
 ccr import config.toml --no-backup
+
+# 写入 Gemini 目录，而不是当前平台或 Claude
+ccr import examples/gemini/profiles.toml --platform gemini --merge --backup
 ```
 
 ::: danger 警告

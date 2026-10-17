@@ -84,5 +84,5 @@ Notes:
 
 - Runtime settings: `~/.claude/settings.json`
 - Claude Code state: `~/.claude.json`
-- Profiles: `~/.ccr/platforms/claude/profiles.toml`
+- Profiles: `~/.ccr/platforms/claude/profiles.db` (`profiles.toml` is the exchange format)
 - Registry pointer: `[claude].current_profile` in `~/.ccr/config.toml`

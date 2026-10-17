@@ -24,7 +24,7 @@ ccr codex fix
 
 - Runtime config：`~/.codex/config.toml`
 - Runtime auth：`~/.codex/auth.json`
-- Profiles：`~/.ccr/platforms/codex/profiles.toml`
+- Profiles：`~/.ccr/platforms/codex/profiles.db`（`profiles.toml` 只作交换格式）
 - Registry pointer：`~/.ccr/config.toml` 中 `[codex].current_profile`
 
 ## DeepSeek Responses API
@@ -43,8 +43,7 @@ DeepSeek 的 Codex 接入需要 **Codex >= 0.144.0**。当前可用模型为
 3. 推理强度选择 `high`，保存并应用 profile。
 
 模板只填充非敏感的 Provider、端点和模型，不保存或覆盖 API Key。保存后的 profile
-会使用以下非密字段；bearer 由 CCR runtime secret store 单独托管，不应手工写入
-`profiles.toml`：
+会使用以下非密字段；bearer 由 CCR runtime secret store 单独托管，不应写入交换 TOML。活目录是 `profiles.db`：
 
 ```toml
 [deepseek]
@@ -86,7 +85,7 @@ ccr codex profile switch future
 ccr codex fix
 ```
 
-`ccr codex fix` 会清理残留 app-server，并比较调用瞬间的 registry pointer、`profiles.toml`、`config.toml`、`auth.json` 与当前进程环境。结果分别报告 `process_state`、`runtime_consistency` 和 `provider_auth_validity`。默认不调用上游 `codex doctor`。
+`ccr codex fix` 会清理残留 app-server，并比较调用瞬间的 registry pointer、profile 目录、`config.toml`、`auth.json` 与当前进程环境。结果分别报告 `process_state`、`runtime_consistency` 和 `provider_auth_validity`。默认不调用上游 `codex doctor`。
 
 进程发现显式读取 cmdline 与 owner，只处理当前用户的 Codex `app-server`。清理期间按
 `PID + start_time` 识别进程。TERM 之后每 300ms 重查，匹配目标已空则结束宽限；
