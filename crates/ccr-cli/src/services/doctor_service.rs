@@ -627,33 +627,51 @@ impl DoctorService {
             }
         };
 
-        let profiles = if !paths.profiles_file.exists() {
-            report.push(
-                DoctorCheck::fail(
-                    format!("platform.{platform_name}.profiles_file"),
-                    format!("{} profiles file is missing.", platform.display_name()),
-                )
-                .with_path(paths.profiles_file.display().to_string())
-                .with_recommendation(format!(
-                    "Create {} profiles under {} before rerunning doctor.",
-                    platform.display_name(),
-                    paths.profiles_file.display()
-                )),
-            );
-            Default::default()
-        } else {
-            match platform_impl.load_profiles() {
+        let catalog_path = paths.profiles_db();
+        // load_profiles 把缺失目录当成空表。这里先区分缺失，避免 doctor 把未创建目录报成可读。
+        let profiles = match ccr_config::ConfigManager::new(&paths.profiles_file).load() {
+            Err(ccr_core::CcrError::ConfigMissing(_)) => {
+                report.push(
+                    DoctorCheck::fail(
+                        format!("platform.{platform_name}.profiles_file"),
+                        format!("{} profile catalog is missing.", platform.display_name()),
+                    )
+                    .with_path(catalog_path.display().to_string())
+                    .with_recommendation(format!(
+                        "Create the {} profile catalog at {} before rerunning doctor.",
+                        platform.display_name(),
+                        catalog_path.display()
+                    )),
+                );
+                Default::default()
+            }
+            Err(error) => {
+                report.push(
+                    DoctorCheck::fail(
+                        format!("platform.{platform_name}.profiles_file"),
+                        format!(
+                            "{} profile catalog could not be read.",
+                            platform.display_name()
+                        ),
+                    )
+                    .with_path(catalog_path.display().to_string())
+                    .with_detail(Self::safe_error_detail(&error))
+                    .with_recommendation("Fix the profile catalog before rerunning doctor."),
+                );
+                Default::default()
+            }
+            Ok(_) => match platform_impl.load_profiles() {
                 Ok(profiles) => {
                     report.push(
                         DoctorCheck::ok(
                             format!("platform.{platform_name}.profiles_file"),
                             format!(
-                                "{} profiles file is readable ({} profile(s)).",
+                                "{} profile catalog is readable ({} profile(s)).",
                                 platform.display_name(),
                                 profiles.len()
                             ),
                         )
-                        .with_path(paths.profiles_file.display().to_string()),
+                        .with_path(catalog_path.display().to_string()),
                     );
                     profiles
                 }
@@ -662,17 +680,17 @@ impl DoctorService {
                         DoctorCheck::fail(
                             format!("platform.{platform_name}.profiles_file"),
                             format!(
-                                "{} profiles file could not be parsed.",
+                                "{} profile catalog could not be read.",
                                 platform.display_name()
                             ),
                         )
-                        .with_path(paths.profiles_file.display().to_string())
+                        .with_path(catalog_path.display().to_string())
                         .with_detail(Self::safe_error_detail(&error))
-                        .with_recommendation("Fix the profiles TOML before rerunning doctor."),
+                        .with_recommendation("Fix the profile catalog before rerunning doctor."),
                     );
                     Default::default()
                 }
-            }
+            },
         };
 
         let current_profile_resolution =
@@ -824,9 +842,9 @@ impl DoctorService {
             Some(profile_name) if file_valid.is_some() && registry_valid.is_some() => {
                 if file_valid != registry_valid {
                     let (source, other) = if platform == Platform::Claude {
-                        ("profiles.toml", "registry")
+                        ("profile catalog", "registry")
                     } else {
-                        ("registry", "profiles.toml")
+                        ("registry", "profile catalog")
                     };
                     (
                         DoctorStatus::Warn,
@@ -835,11 +853,11 @@ impl DoctorService {
                             platform_name, profile_name
                         ),
                         Some(format!(
-                            "profiles.toml current_config = {:?}, registry current_profile = {:?}.",
+                            "profile catalog current_config = {:?}, registry current_profile = {:?}.",
                             file_current, registry_current
                         )),
                         Some(format!(
-                            "Re-apply or switch the {} profile to realign registry and profiles.toml.",
+                            "Re-apply or switch the {} profile to realign registry and the profile catalog.",
                             platform_name
                         )),
                     )
@@ -850,7 +868,10 @@ impl DoctorService {
                             "Current {} profile resolved to '{}'.",
                             platform_name, profile_name
                         ),
-                        Some("Registry and profiles.toml agree on the active profile.".to_string()),
+                        Some(
+                            "Registry and the profile catalog agree on the active profile."
+                                .to_string(),
+                        ),
                         None,
                     )
                 }
@@ -858,7 +879,7 @@ impl DoctorService {
             Some(profile_name) if file_valid.is_some() => (
                 DoctorStatus::Warn,
                 format!(
-                    "Current {} profile resolved to '{}' from profiles.toml.",
+                    "Current {} profile resolved to '{}' from the profile catalog.",
                     platform_name, profile_name
                 ),
                 Some(format!(
@@ -877,11 +898,11 @@ impl DoctorService {
                     platform_name, profile_name
                 ),
                 Some(format!(
-                    "profiles.toml current_config = {:?}.",
+                    "profile catalog current_config = {:?}.",
                     file_current
                 )),
                 Some(format!(
-                    "Update profiles.toml by re-applying the active {} profile.",
+                    "Update the profile catalog by re-applying the active {} profile.",
                     platform_name
                 )),
             ),
@@ -892,7 +913,7 @@ impl DoctorService {
                     platform_name
                 ),
                 Some(format!(
-                    "profiles.toml current_config = {:?}, registry current_profile = {:?}.",
+                    "profile catalog current_config = {:?}, registry current_profile = {:?}.",
                     file_current, registry_current
                 )),
                 Some(format!(

@@ -224,9 +224,8 @@ impl PlatformDetector {
         let mut configured = Vec::new();
 
         for &platform in &Platform::implemented() {
-            // 检查平台的 profiles.toml 是否存在
             let paths = PlatformPaths::new(platform)?;
-            if paths.profiles_file.exists() {
+            if paths.profiles_db().exists() || paths.profiles_file.is_file() {
                 configured.push(platform);
             }
         }

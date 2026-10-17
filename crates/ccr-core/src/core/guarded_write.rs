@@ -704,6 +704,137 @@ fn rotate_backups(dir: &Path, match_prefix: &str) -> Result<()> {
     Ok(())
 }
 
+/// Restrict `path` to the current user without reading bytes or comparing a content token.
+///
+/// Unix mode becomes `0600`. Windows replaces the DACL with a protected ACE for the
+/// process token user. This is the permission step for catalog databases and their
+/// WAL/SHM sidecars; do not use the versioned secret helper for those files.
+pub fn restrict_owner_only(path: &Path) -> Result<()> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+
+        let metadata = fs::metadata(path).map_err(|error| {
+            CcrError::FileIoError(format!("读取文件权限失败 {}: {error}", path.display()))
+        })?;
+        if metadata.permissions().mode() & 0o777 == 0o600 {
+            return Ok(());
+        }
+        fs::set_permissions(path, fs::Permissions::from_mode(0o600)).map_err(|error| {
+            CcrError::FileIoError(format!("收紧文件权限失败 {}: {error}", path.display()))
+        })?;
+        Ok(())
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt;
+
+        if windows_is_owner_only(path) {
+            return Ok(());
+        }
+        // WRITE_DAC plus attribute/synchronize rights. FILE_READ_DATA is omitted, so this
+        // handle cannot read catalog bytes or compare a content token.
+        let file = fs::OpenOptions::new()
+            .access_mode(0x0004_0000 | 0x0002_0000 | 0x0010_0000 | 0x0000_0080)
+            .open(path)
+            .map_err(|error| {
+                CcrError::FileIoError(format!("打开文件权限失败 {}: {error}", path.display()))
+            })?;
+        super::atomic_writer::enforce_owner_only_windows_permissions(&file).map_err(|error| {
+            CcrError::FileIoError(format!("收紧文件权限失败 {}: {error}", path.display()))
+        })?;
+        Ok(())
+    }
+    #[cfg(not(any(unix, windows)))]
+    {
+        let _ = path;
+        Err(CcrError::ConfigError(
+            "当前平台无法把文件收紧为仅所有者可访问".into(),
+        ))
+    }
+}
+
+#[cfg(windows)]
+fn windows_is_owner_only(path: &Path) -> bool {
+    let Ok(descriptor) = super::atomic_writer::capture_windows_dacl(path) else {
+        return false;
+    };
+    if descriptor.len() < 20 {
+        return false;
+    }
+    let control = u16::from_le_bytes([descriptor[2], descriptor[3]]);
+    if control & 0x1000 == 0 {
+        return false;
+    }
+    let offset = u32::from_le_bytes([
+        descriptor[16],
+        descriptor[17],
+        descriptor[18],
+        descriptor[19],
+    ]) as usize;
+    if descriptor.len() < offset.saturating_add(8) {
+        return false;
+    }
+    let ace_count = u16::from_le_bytes([descriptor[offset + 4], descriptor[offset + 5]]);
+    if ace_count != 1 {
+        return false;
+    }
+    let ace = &descriptor[offset + 8..];
+    if ace.len() < 8 || ace[0] != 0 || ace[1] != 0 {
+        return false;
+    }
+    let ace_size = u16::from_le_bytes([ace[2], ace[3]]) as usize;
+    if ace_size < 8 || ace.len() < ace_size {
+        return false;
+    }
+    let mask = u32::from_le_bytes([ace[4], ace[5], ace[6], ace[7]]);
+    if mask != 0x001f_01ff {
+        return false;
+    }
+    windows_process_sid().is_some_and(|sid| ace[8..ace_size] == sid)
+}
+
+#[cfg(windows)]
+fn windows_process_sid() -> Option<Vec<u8>> {
+    #[link(name = "kernel32")]
+    unsafe extern "system" {
+        fn GetCurrentProcess() -> *mut std::ffi::c_void;
+        fn CloseHandle(handle: *mut std::ffi::c_void) -> i32;
+    }
+    #[link(name = "advapi32")]
+    unsafe extern "system" {
+        fn OpenProcessToken(
+            process: *mut std::ffi::c_void,
+            access: u32,
+            token: *mut *mut std::ffi::c_void,
+        ) -> i32;
+        fn GetTokenInformation(
+            token: *mut std::ffi::c_void,
+            class: u32,
+            data: *mut std::ffi::c_void,
+            length: u32,
+            needed: *mut u32,
+        ) -> i32;
+        fn GetLengthSid(sid: *const std::ffi::c_void) -> u32;
+    }
+    unsafe {
+        let mut token = std::ptr::null_mut();
+        if OpenProcessToken(GetCurrentProcess(), 0x0008, &mut token) == 0 {
+            return None;
+        }
+        let mut needed = 0;
+        GetTokenInformation(token, 1, std::ptr::null_mut(), 0, &mut needed);
+        let mut info = vec![0_usize; (needed as usize).div_ceil(std::mem::size_of::<usize>())];
+        let ok = GetTokenInformation(token, 1, info.as_mut_ptr().cast(), needed, &mut needed);
+        CloseHandle(token);
+        if ok == 0 {
+            return None;
+        }
+        let sid = *(info.as_ptr().cast::<*const std::ffi::c_void>());
+        Some(std::slice::from_raw_parts(sid.cast::<u8>(), GetLengthSid(sid) as usize).to_vec())
+    }
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
@@ -1950,5 +2081,29 @@ mod tests {
         // 大小写归一：大小写不同的路径派生相同锁名（Windows 文件系统大小写不敏感）
         let lower = temp_dir.path().join("config.toml");
         assert_eq!(lock_resource_name(&lower), first);
+    }
+
+    #[test]
+    fn restrict_owner_only_sets_mode_without_rewriting_bytes() {
+        let directory = tempdir().unwrap();
+        let target = directory.path().join("profiles.db");
+        fs::write(&target, b"synthetic-secret-sentinel").unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&target, fs::Permissions::from_mode(0o644)).unwrap();
+        }
+        restrict_owner_only(&target).unwrap();
+        assert_eq!(fs::read(&target).unwrap(), b"synthetic-secret-sentinel");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                fs::metadata(&target).unwrap().permissions().mode() & 0o777,
+                0o600
+            );
+        }
+        #[cfg(windows)]
+        assert_windows_owner_only_dacl(&target);
     }
 }

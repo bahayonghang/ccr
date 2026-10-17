@@ -414,15 +414,39 @@ mod tests {
         assert!(!config_dir.join(".claude.json").exists());
     }
 
+    fn profiles_path(root: &std::path::Path) -> std::path::PathBuf {
+        root.join("platforms").join("claude").join("profiles.toml")
+    }
+
     fn read_profiles_config(root: &std::path::Path) -> CcsConfig {
-        let profiles_path = root.join("platforms").join("claude").join("profiles.toml");
-        toml::from_str(&fs::read_to_string(profiles_path).unwrap()).unwrap()
+        crate::managers::config::ConfigManager::new(profiles_path(root))
+            .load()
+            .unwrap()
     }
 
     fn write_profiles_config(root: &std::path::Path, config: &CcsConfig) {
-        let profiles_path = root.join("platforms").join("claude").join("profiles.toml");
+        let profiles_path = profiles_path(root);
         fs::create_dir_all(profiles_path.parent().unwrap()).unwrap();
-        fs::write(profiles_path, toml::to_string_pretty(config).unwrap()).unwrap();
+        let content = toml::to_string_pretty(config).unwrap();
+        let manager = crate::managers::config::ConfigManager::new(&profiles_path);
+        let expected = match manager.canonical_toml() {
+            Ok(Some((_, revision))) => revision,
+            Ok(None) => String::new(),
+            Err(error) if error.to_string().contains("配置尚未迁移") => {
+                fs::remove_file(&profiles_path).unwrap();
+                String::new()
+            }
+            Err(error) => panic!("{error}"),
+        };
+        crate::managers::config::ConfigManager::new(profiles_path)
+            .replace_toml(&content, &expected)
+            .unwrap();
+    }
+
+    fn import_profiles_toml(path: &std::path::Path, content: &str) -> Result<()> {
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, content).unwrap();
+        crate::application::migrate_profile_catalogs()
     }
 
     #[test]
@@ -936,8 +960,7 @@ mod tests {
                 .join("platforms")
                 .join("claude")
                 .join("profiles.toml");
-            fs::create_dir_all(profiles_path.parent().unwrap()).unwrap();
-            fs::write(
+            import_profiles_toml(
                 &profiles_path,
                 r#"default_config = "chy"
 current_config = "chy"
@@ -1005,8 +1028,7 @@ auth_mode = "subscription"
                 .join("platforms")
                 .join("claude")
                 .join("profiles.toml");
-            fs::create_dir_all(profiles_path.parent().unwrap()).unwrap();
-            fs::write(
+            import_profiles_toml(
                 &profiles_path,
                 r#"default_config = "chy"
 current_config = "chy"
@@ -1024,12 +1046,17 @@ auth_mode = "subscription"
             let settings_bytes = br#"{"env":{"KEEP_ME":"before"}}"#;
             fs::write(settings_manager.settings_path(), settings_bytes).unwrap();
 
-            let backups_parent = env.root_path().join("backups");
-            fs::create_dir_all(&backups_parent).unwrap();
-            fs::write(backups_parent.join("claude"), "blocks backup directory").unwrap();
+            // 目录写回走数据库。只读库让自动纠正失败，settings 不应被改。
+            let database = profiles_path.with_file_name("profiles.db");
+            let original = fs::metadata(&database).unwrap().permissions();
+            let mut readonly = original.clone();
+            readonly.set_readonly(true);
+            fs::set_permissions(&database, readonly).unwrap();
 
             let platform = ClaudePlatform::new()?;
-            let error = platform.apply_profile("chy").unwrap_err();
+            let apply_result = platform.apply_profile("chy");
+            fs::set_permissions(&database, original).unwrap();
+            let error = apply_result.unwrap_err();
             let message = error.to_string();
             assert!(message.contains("chy"), "错误应包含 profile 名: {message}");
             assert!(
@@ -1069,8 +1096,7 @@ auth_mode = "subscription"
                 .join("platforms")
                 .join("claude")
                 .join("profiles.toml");
-            fs::create_dir_all(profiles_path.parent().unwrap()).unwrap();
-            fs::write(
+            import_profiles_toml(
                 &profiles_path,
                 r#"default_config = "chy"
 current_config = "chy"
@@ -1122,8 +1148,7 @@ auth_mode = "api_key"
                 .join("platforms")
                 .join("claude")
                 .join("profiles.toml");
-            fs::create_dir_all(profiles_path.parent().unwrap()).unwrap();
-            fs::write(
+            import_profiles_toml(
                 &profiles_path,
                 r#"default_config = "glm"
 current_config = "glm"
@@ -1197,8 +1222,7 @@ auth_mode = "api_key"
                 .join("platforms")
                 .join("claude")
                 .join("profiles.toml");
-            fs::create_dir_all(profiles_path.parent().unwrap()).unwrap();
-            fs::write(
+            import_profiles_toml(
                 &profiles_path,
                 r#"default_config = "glm"
 current_config = "glm"

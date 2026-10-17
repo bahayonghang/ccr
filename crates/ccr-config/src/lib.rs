@@ -6,7 +6,16 @@ pub mod platforms;
 pub mod services;
 
 pub use ccr_core::{AutoCompletable, CcrError, Result, Validatable};
-pub use managers::config::{ConfigPatch, ConfigSnapshot, FieldPatch};
+pub use managers::config::{
+    CatalogTransaction, ConfigPatch, ConfigSnapshot, FieldPatch, increment_usage_count,
+    install_profile_catalog, load_applied_operation, migrate_catalogs, snapshot_profile_catalog,
+    validate_profile_catalog_file,
+};
+#[cfg(any(test, feature = "test-support"))]
+pub use managers::config::{
+    fail_next_catalog_checkpoint, fail_next_catalog_commit, fail_next_profile_catalog_install,
+    fail_next_usage_increment,
+};
 pub use managers::{
     CcsConfig, ConfigManager, ConfigSection, ConfigValidator, GlobalSettings, PlatformConfigEntry,
     PlatformConfigManager, ProviderType, TuiConfig, TuiConfigManager, TuiLanguage, TuiTabId,

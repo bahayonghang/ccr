@@ -166,16 +166,9 @@ pub fn ancillary_failures(adapter: impl Fn(ApplyProfileRequest) -> Result<Profil
         let home = fixture(Platform::Claude);
         if history_failure {
             std::fs::create_dir(home.root().join("data.db")).unwrap();
+        } else {
+            ccr_config::fail_next_usage_increment();
         }
-        let _fault = fault::install(move |path| {
-            if !history_failure
-                && !write_journal::is_active()
-                && path.file_name().is_some_and(|n| n == "profiles.toml")
-            {
-                return Err(CcrError::FileIoError("synthetic usage failure".into()));
-            }
-            Ok(())
-        });
         let request = ApplyProfileRequest::new(Platform::Claude, "new");
         let outcome = adapter(request.clone()).unwrap();
         assert_eq!(outcome.status, ProfileStatus::AppliedWithWarning);
@@ -216,7 +209,7 @@ pub fn failure_matrix(adapter: impl Fn(ApplyProfileRequest) -> Result<ProfileOut
             );
             *writes.borrow()
         };
-        assert!(count >= 3);
+        assert!(count >= 2, "{platform} journal writes: {count}");
         for fail_at in 1..=count {
             let _home = fixture(platform);
             let instance = create_platform(platform).unwrap();
@@ -248,12 +241,89 @@ pub fn failure_matrix(adapter: impl Fn(ApplyProfileRequest) -> Result<ProfileOut
     }
 }
 
+pub fn runtime_changed_before_catalog_commit(
+    adapter: impl Fn(ApplyProfileRequest) -> Result<ProfileOutcome>,
+) {
+    let home = fixture(Platform::Claude);
+    let runtime = home.settings_path().to_path_buf();
+    let replacement = runtime.clone();
+    let _fault = fault::install_after_publish(move |path| {
+        if path.file_name().is_some_and(|name| name == "config.toml") {
+            std::fs::write(&replacement, br#"{"env":{"USER_EXTERNAL":"keep"}}"#).unwrap();
+        }
+        Ok(())
+    });
+    let outcome = adapter(ApplyProfileRequest::new(Platform::Claude, "new")).unwrap();
+    assert!(!outcome.activation_committed, "{outcome:?}");
+    assert_eq!(outcome.status, ProfileStatus::RecoveryRequired);
+    assert_eq!(
+        std::fs::read(&runtime).unwrap(),
+        br#"{"env":{"USER_EXTERNAL":"keep"}}"#
+    );
+    assert_eq!(
+        create_platform(Platform::Claude)
+            .unwrap()
+            .get_current_profile()
+            .unwrap()
+            .as_deref(),
+        Some("old")
+    );
+}
+
+pub fn checkpoint_failure_keeps_activation(
+    adapter: impl Fn(ApplyProfileRequest) -> Result<ProfileOutcome>,
+) {
+    let _home = fixture(Platform::Claude);
+    ccr_config::fail_next_catalog_checkpoint();
+    let outcome = adapter(ApplyProfileRequest::new(Platform::Claude, "new")).unwrap();
+    assert!(outcome.activation_committed, "{outcome:?}");
+    assert_ne!(outcome.status, ProfileStatus::Unchanged);
+    assert_ne!(outcome.status, ProfileStatus::RecoveryRequired);
+    assert_eq!(
+        create_platform(Platform::Claude)
+            .unwrap()
+            .get_current_profile()
+            .unwrap()
+            .as_deref(),
+        Some("new")
+    );
+}
+
+pub fn commit_failure_replays(adapter: impl Fn(ApplyProfileRequest) -> Result<ProfileOutcome>) {
+    let _home = fixture(Platform::Claude);
+    let request = ApplyProfileRequest::new(Platform::Claude, "new");
+    ccr_config::fail_next_catalog_commit();
+    let failed = adapter(request.clone()).unwrap();
+    assert!(!failed.activation_committed, "{failed:?}");
+    assert_eq!(failed.status, ProfileStatus::Unchanged);
+    assert_eq!(
+        create_platform(Platform::Claude)
+            .unwrap()
+            .get_current_profile()
+            .unwrap()
+            .as_deref(),
+        Some("old")
+    );
+    let replayed = adapter(request).unwrap();
+    assert!(replayed.activation_committed, "{replayed:?}");
+    assert_eq!(replayed.status, ProfileStatus::Applied);
+    let instance = create_platform(Platform::Claude).unwrap();
+    assert_eq!(
+        instance.get_current_profile().unwrap().as_deref(),
+        Some("new")
+    );
+    assert_eq!(
+        instance.load_profiles().unwrap()["new"].usage_count,
+        Some(1)
+    );
+}
+
 pub fn external_change(adapter: impl Fn(ApplyProfileRequest) -> Result<ProfileOutcome>) {
     let home = fixture(Platform::Claude);
     let runtime = home.settings_path().to_path_buf();
     let replacement = runtime.clone();
     let _fault = fault::install(move |p| {
-        if write_journal::is_active() && p.file_name().is_some_and(|n| n == "profiles.toml") {
+        if write_journal::is_active() && p.file_name().is_some_and(|n| n == "config.toml") {
             std::fs::write(&replacement, br#"{"env":{"USER_EXTERNAL":"keep"}}"#).unwrap();
             return Err(CcrError::FileIoError("synthetic concurrent failure".into()));
         }
@@ -272,11 +342,7 @@ pub fn external_change(adapter: impl Fn(ApplyProfileRequest) -> Result<ProfileOu
 pub fn deleted_after_preparation(adapter: impl Fn(ApplyProfileRequest) -> Result<ProfileOutcome>) {
     let home = fixture(Platform::Claude);
     let manager = ccr_config::ConfigManager::for_platform("claude").unwrap();
-    let profiles = manager.config_path().to_owned();
-    let mut document: toml::Value =
-        toml::from_str(&std::fs::read_to_string(&profiles).unwrap()).unwrap();
-    document.as_table_mut().unwrap().remove("new");
-    let replacement = toml::to_string(&document).unwrap();
+    let database = manager.profiles_db().to_path_buf();
     let runtime = std::fs::read(home.settings_path()).unwrap();
     let _fault = fault::install(move |path| {
         if path
@@ -284,13 +350,17 @@ pub fn deleted_after_preparation(adapter: impl Fn(ApplyProfileRequest) -> Result
             .is_some_and(|parent| parent.ends_with("profile-operations"))
             && !write_journal::is_active()
         {
-            std::fs::write(&profiles, &replacement).unwrap();
+            ccr_config::ConfigManager::new(&database)
+                .mutate(|config| {
+                    config.sections.shift_remove("new");
+                    Ok(())
+                })
+                .unwrap();
         }
         Ok(())
     });
-    let outcome = adapter(ApplyProfileRequest::new(Platform::Claude, "new")).unwrap();
-    assert_eq!(outcome.status, ProfileStatus::Unchanged);
-    assert!(!outcome.activation_committed);
+    let outcome = adapter(ApplyProfileRequest::new(Platform::Claude, "new"));
+    assert!(outcome.is_err(), "{outcome:?}");
     assert_eq!(std::fs::read(home.settings_path()).unwrap(), runtime);
     assert!(!manager.load().unwrap().sections.contains_key("new"));
     assert!(!home.root().join("data.db").exists());
@@ -443,7 +513,7 @@ pub fn enable_lifecycle() {
             assert_eq!(committed, snapshot(&paths(platform, instance.as_ref())));
             *writes.borrow()
         };
-        assert!(count >= 4);
+        assert!(count >= 2, "{platform} enable journal writes: {count}");
         for fail_at in 1..=count {
             let _home = prepare();
             let instance = create_platform(platform).unwrap();
@@ -596,6 +666,18 @@ mod tests {
     #[test]
     fn profile_external_version_contract() {
         external_change(cli);
+    }
+    #[test]
+    fn profile_commit_failure_replays_operation() {
+        commit_failure_replays(cli);
+    }
+    #[test]
+    fn profile_runtime_change_before_catalog_commit() {
+        runtime_changed_before_catalog_commit(cli);
+    }
+    #[test]
+    fn profile_checkpoint_failure_keeps_activation() {
+        checkpoint_failure_keeps_activation(cli);
     }
     #[test]
     fn profile_rename_each_write_contract() {

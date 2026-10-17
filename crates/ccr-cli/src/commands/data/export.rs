@@ -7,6 +7,7 @@ use crate::services::ConfigService;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 /// 📤 导出配置到文件
@@ -20,11 +21,26 @@ use std::path::{Path, PathBuf};
 /// 参数:
 /// - output: 输出文件路径(默认: `ccs_config_export_<timestamp>.toml`)
 /// - include_secrets: 是否包含 API 密钥等敏感信息
-pub async fn export_command(output: Option<String>, include_secrets: bool) -> Result<()> {
+pub async fn export_command(
+    output: Option<String>,
+    include_secrets: bool,
+    platform: &str,
+    stdout: bool,
+) -> Result<()> {
+    let config_service = ConfigService::for_platform(platform)?;
+    if stdout {
+        let mut content = config_service.export_config(include_secrets)?;
+        if !content.ends_with('\n') {
+            content.push('\n');
+        }
+        let mut out = std::io::stdout().lock();
+        out.write_all(content.as_bytes())
+            .map_err(|error| CcrError::FileIoError(format!("写入标准输出失败: {error}")))?;
+        return Ok(());
+    }
+
     ColorOutput::title("导出配置");
     println!();
-
-    let config_service = ConfigService::with_default()?;
 
     // 加载当前配置
     ColorOutput::step("步骤 1/3: 读取配置");

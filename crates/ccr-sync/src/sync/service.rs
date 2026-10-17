@@ -213,18 +213,27 @@ impl SyncService {
         sensitive: Option<SensitiveUpload<'_>>,
         budget: &mut SyncBudget,
     ) -> Result<()> {
-        let metadata = fs::metadata(local_path).await.map_err(|e| {
-            CcrError::SyncError(format!(
-                "读取本地文件元数据失败 {}: {e}",
-                local_path.display()
-            ))
-        })?;
-        budget.check_declared_file_size(metadata.len())?;
-
-        // 📄 读取本地文件
-        let content = fs::read(local_path).await.map_err(|e| {
-            CcrError::SyncError(format!("读取本地文件失败 {}: {}", local_path.display(), e))
-        })?;
+        let is_catalog = is_profile_catalog_file(local_path);
+        let content = if is_catalog {
+            let path = local_path.to_path_buf();
+            tokio::task::spawn_blocking(move || ccr_config::snapshot_profile_catalog(&path))
+                .await
+                .map_err(|error| CcrError::SyncError(format!("配置目录快照任务失败: {error}")))??
+        } else {
+            let metadata = fs::metadata(local_path).await.map_err(|e| {
+                CcrError::SyncError(format!(
+                    "读取本地文件元数据失败 {}: {e}",
+                    local_path.display()
+                ))
+            })?;
+            budget.check_declared_file_size(metadata.len())?;
+            fs::read(local_path).await.map_err(|e| {
+                CcrError::SyncError(format!("读取本地文件失败 {}: {}", local_path.display(), e))
+            })?
+        };
+        let content_len =
+            u64::try_from(content.len()).map_err(|_| CcrError::SyncError("同步文件过大".into()))?;
+        budget.check_declared_file_size(content_len)?;
         let mut file_bytes = 0;
         budget.record_chunk(&mut file_bytes, content.len())?;
         let content = match sensitive {
@@ -246,8 +255,26 @@ impl SyncService {
             .await
             .map_err(|e| self.map_dav_error(e, &format!("上传文件 {}", remote_path)))?;
 
+        if is_catalog && let Some(legacy) = remote_profiles_toml(remote_path) {
+            self.delete_legacy_profiles_toml(&legacy).await?;
+        }
+
         tracing::debug!("✅ 文件已上传: {}", remote_path);
         Ok(())
+    }
+
+    async fn delete_legacy_profiles_toml(&self, remote_toml: &str) -> Result<()> {
+        let response = self.client.delete_raw(remote_toml).await.map_err(|error| {
+            self.map_dav_error(error, &format!("删除远端遗留 profiles.toml {remote_toml}"))
+        })?;
+        let status = response.status();
+        if status.is_success() || status == StatusCode::NOT_FOUND {
+            Ok(())
+        } else {
+            Err(CcrError::SyncError(format!(
+                "删除远端遗留 profiles.toml 失败: HTTP {status}"
+            )))
+        }
     }
 
     /// 🔼 递归上传目录到 WebDAV（带过滤）
@@ -482,6 +509,12 @@ impl SyncService {
             .open(local_path)
             .await
             .map_err(|e| CcrError::SyncError(format!("创建 staging 文件失败: {e}")))?;
+        if let Err(error) = ccr_core::core::guarded_write::restrict_owner_only(local_path) {
+            let _ = fs::remove_file(local_path).await;
+            return Err(CcrError::SyncError(format!(
+                "收紧 staging 权限失败: {error}"
+            )));
+        }
         let mut file_bytes = 0_u64;
         while let Some(chunk) = response
             .chunk()
@@ -781,6 +814,24 @@ fn check_content_length(response: &Response, budget: &SyncBudget) -> Result<()> 
     Ok(())
 }
 
+fn is_profile_catalog_file(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name.eq_ignore_ascii_case("profiles.db"))
+}
+
+fn remote_profiles_toml(remote_path: &str) -> Option<String> {
+    let (dir, name) = remote_path.rsplit_once('/').unwrap_or(("", remote_path));
+    if !name.eq_ignore_ascii_case("profiles.db") {
+        return None;
+    }
+    if dir.is_empty() {
+        Some("profiles.toml".to_string())
+    } else {
+        Some(format!("{dir}/profiles.toml"))
+    }
+}
+
 fn relative_sync_path(root: &Path, path: &Path) -> Result<String> {
     let relative = path.strip_prefix(root).map_err(|_| {
         CcrError::SyncError("sync_path_local_containment: 本地条目超出同步根目录".into())
@@ -897,6 +948,12 @@ fn write_decrypted_file(path: &Path, bytes: Vec<u8>) -> Result<()> {
     let mut output = options
         .open(path)
         .map_err(|error| CcrError::SyncError(format!("创建解密 staging 文件失败: {error}")))?;
+    if let Err(error) = ccr_core::core::guarded_write::restrict_owner_only(path) {
+        let _ = std::fs::remove_file(path);
+        return Err(CcrError::SyncError(format!(
+            "收紧解密 staging 权限失败: {error}"
+        )));
+    }
     use std::io::Write as _;
     output
         .write_all(&bytes)
@@ -1011,6 +1068,13 @@ pub fn get_ccr_sync_path() -> Result<PathBuf> {
 /// - 备份目录 (backups, history 中的 .bak 文件)
 /// - 隐藏文件 (以 . 开头)
 fn should_exclude_from_sync(name: &str) -> bool {
+    if name.eq_ignore_ascii_case("profiles.toml")
+        || name.eq_ignore_ascii_case("profiles.db-wal")
+        || name.eq_ignore_ascii_case("profiles.db-shm")
+    {
+        return true;
+    }
+
     // 📝 排除规则列表
     let exclude_patterns = [
         // 临时文件
@@ -1406,7 +1470,10 @@ mod tests {
         // 不应该被排除的 - 配置文件
         assert!(!should_exclude_from_sync("config.toml"));
         assert!(!should_exclude_from_sync(".ccs_config.toml"));
-        assert!(!should_exclude_from_sync("profiles.toml"));
+        assert!(should_exclude_from_sync("profiles.toml"));
+        assert!(should_exclude_from_sync("profiles.db-wal"));
+        assert!(should_exclude_from_sync("profiles.db-shm"));
+        assert!(!should_exclude_from_sync("profiles.db"));
         assert!(!should_exclude_from_sync("platforms")); // platforms 目录应该同步
     }
 }
@@ -1834,5 +1901,412 @@ mod classify_outcome_unit {
         assert_eq!(super::dav_status_code(&serde_xml()), None);
         assert_eq!(super::dav_status_code(&field_not_found()), None);
         assert_eq!(super::dav_status_code(&field_not_supported()), None);
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod catalog_publish_tests {
+    use super::{SyncConfig, SyncLimits, SyncService, remote_profiles_toml};
+    use std::ffi::OsString;
+    use std::path::{Path, PathBuf};
+    use std::sync::{LazyLock, Mutex, MutexGuard};
+    use std::time::Duration;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpListener;
+
+    static CATALOG_ENV: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
+
+    struct CatalogEnv {
+        dir: tempfile::TempDir,
+        previous_lock_dir: Option<OsString>,
+        _guard: MutexGuard<'static, ()>,
+    }
+
+    impl CatalogEnv {
+        fn new() -> Self {
+            let guard = CATALOG_ENV
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            let dir = tempfile::tempdir().unwrap();
+            let lock_dir = dir.path().join("locks");
+            std::fs::create_dir_all(&lock_dir).unwrap();
+            let previous_lock_dir = std::env::var_os("CCR_LOCK_DIR");
+            // SAFETY: this guard is the only ccr-sync catalog test allowed to change CCR_LOCK_DIR.
+            unsafe {
+                std::env::set_var("CCR_LOCK_DIR", &lock_dir);
+            }
+            Self {
+                dir,
+                previous_lock_dir,
+                _guard: guard,
+            }
+        }
+    }
+
+    impl Drop for CatalogEnv {
+        fn drop(&mut self) {
+            // SAFETY: Drop still holds the catalog env mutex taken in `new`.
+            unsafe {
+                match self.previous_lock_dir.take() {
+                    Some(value) => std::env::set_var("CCR_LOCK_DIR", value),
+                    None => std::env::remove_var("CCR_LOCK_DIR"),
+                }
+            }
+        }
+    }
+
+    fn seed(dir: &Path, body: &str) -> (PathBuf, String) {
+        std::fs::create_dir_all(dir).unwrap();
+        let legacy = dir.join("profiles.toml");
+        let revision = ccr_config::ConfigManager::new(&legacy)
+            .replace_toml(body, "")
+            .unwrap();
+        let db = dir.join("profiles.db");
+        assert!(db.is_file());
+        assert!(!legacy.exists());
+        (db, revision)
+    }
+
+    fn limits() -> SyncLimits {
+        SyncLimits {
+            max_file_bytes: 8 * 1024 * 1024,
+            max_total_bytes: 16 * 1024 * 1024,
+            max_depth: 4,
+            max_entries: 16,
+            max_component_bytes: 255,
+            deadline: Duration::from_secs(10),
+        }
+    }
+
+    async fn service_for(url: &str, remote_path: &str) -> SyncService {
+        let config = SyncConfig {
+            enabled: true,
+            webdav_url: url.to_string(),
+            username: "test@example.com".to_string(),
+            password: ccr_core::Secret::from("test_password"),
+            remote_path: remote_path.to_string(),
+            auto_sync: false,
+        };
+        SyncService::new_with_limits_and_policy(&config, limits(), true)
+            .await
+            .unwrap()
+    }
+
+    async fn start_recording_dav(
+        get_body: Vec<u8>,
+        status_for: impl Fn(&str, &str) -> &'static str + Send + 'static,
+    ) -> (String, std::sync::Arc<Mutex<Vec<(String, String)>>>) {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let seen = std::sync::Arc::new(Mutex::new(Vec::new()));
+        let recorded = std::sync::Arc::clone(&seen);
+        tokio::spawn(async move {
+            loop {
+                let accepted =
+                    tokio::time::timeout(Duration::from_secs(2), listener.accept()).await;
+                let Ok(Ok((mut socket, _))) = accepted else {
+                    break;
+                };
+                let request = match read_request(&mut socket).await {
+                    Some(request) => request,
+                    None => break,
+                };
+                recorded
+                    .lock()
+                    .unwrap()
+                    .push((request.method.clone(), request.path.clone()));
+                let status = if request.method == "GET" {
+                    "200 OK"
+                } else {
+                    status_for(&request.method, &request.path)
+                };
+                let body = if request.method == "GET" {
+                    get_body.clone()
+                } else {
+                    Vec::new()
+                };
+                let headers = format!(
+                    "HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    body.len()
+                );
+                if socket.write_all(headers.as_bytes()).await.is_err() {
+                    break;
+                }
+                if socket.write_all(&body).await.is_err() {
+                    break;
+                }
+                let _ = socket.shutdown().await;
+            }
+        });
+        (format!("http://{address}/"), seen)
+    }
+
+    struct HttpRequest {
+        method: String,
+        path: String,
+    }
+
+    async fn read_request(socket: &mut tokio::net::TcpStream) -> Option<HttpRequest> {
+        let mut request = Vec::new();
+        let mut buffer = [0_u8; 4096];
+        let header_end = loop {
+            let read = tokio::time::timeout(Duration::from_secs(5), socket.read(&mut buffer))
+                .await
+                .ok()?
+                .ok()?;
+            if read == 0 {
+                return None;
+            }
+            request.extend_from_slice(&buffer[..read]);
+            if let Some(position) = request.windows(4).position(|part| part == b"\r\n\r\n") {
+                break position + 4;
+            }
+        };
+        let headers = String::from_utf8_lossy(&request[..header_end]);
+        let request_line = headers.lines().next().unwrap_or("");
+        let mut parts = request_line.split_whitespace();
+        let method = parts.next().unwrap_or("").to_string();
+        let path = parts.next().unwrap_or("").to_string();
+        let content_length = headers.lines().find_map(|line| {
+            let (name, value) = line.split_once(':')?;
+            if name.eq_ignore_ascii_case("content-length") {
+                value.trim().parse::<usize>().ok()
+            } else {
+                None
+            }
+        });
+        if let Some(content_length) = content_length {
+            while request.len().saturating_sub(header_end) < content_length {
+                let read = socket.read(&mut buffer).await.ok()?;
+                if read == 0 {
+                    return None;
+                }
+                request.extend_from_slice(&buffer[..read]);
+            }
+        }
+        Some(HttpRequest { method, path })
+    }
+
+    #[test]
+    fn remote_profiles_toml_replaces_only_the_catalog_file_name() {
+        assert_eq!(
+            remote_profiles_toml("/ccr/platforms/claude/profiles.db").as_deref(),
+            Some("/ccr/platforms/claude/profiles.toml")
+        );
+        assert_eq!(
+            remote_profiles_toml("profiles.db").as_deref(),
+            Some("profiles.toml")
+        );
+        assert_eq!(
+            remote_profiles_toml("/ccr/platforms/claude/config.toml"),
+            None
+        );
+    }
+
+    #[tokio::test]
+    async fn checkpoint_busy_does_not_delete_remote_profiles_toml() {
+        let env = CatalogEnv::new();
+        let (db, _) = seed(env.dir.path(), "[demo]\nauth_token = \"secret-sentinel\"\n");
+        let reader = rusqlite::Connection::open(&db).unwrap();
+        reader.execute_batch("BEGIN").unwrap();
+        let _held: String = reader
+            .query_row("SELECT revision FROM document WHERE id = 1", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        let writer = rusqlite::Connection::open(&db).unwrap();
+        writer.execute_batch("BEGIN IMMEDIATE").unwrap();
+        writer
+            .execute("UPDATE document SET extra_toml = 'busy' WHERE id = 1", [])
+            .unwrap();
+        writer.execute_batch("COMMIT").unwrap();
+        drop(writer);
+
+        let (url, seen) = start_recording_dav(Vec::new(), |method, _| match method {
+            "DELETE" => "200 OK",
+            _ => "201 Created",
+        })
+        .await;
+        let service = service_for(&url, "/ccr/platforms/claude/profiles.db").await;
+        let error = service.push(&db, None).await.unwrap_err();
+        let message = error.to_string();
+        assert!(message.contains("配置目录检查点忙碌"), "{message}");
+        assert!(!message.contains("secret-sentinel"), "{message}");
+        let requests = seen.lock().unwrap().clone();
+        assert!(
+            requests.is_empty(),
+            "busy publish must not contact WebDAV: {requests:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn upload_failure_does_not_delete_remote_profiles_toml() {
+        let env = CatalogEnv::new();
+        let (db, _) = seed(env.dir.path(), "[demo]\nauth_token = \"secret-sentinel\"\n");
+        let (url, seen) = start_recording_dav(Vec::new(), |method, _| match method {
+            "PUT" => "500 Internal Server Error",
+            "DELETE" => "200 OK",
+            _ => "201 Created",
+        })
+        .await;
+        let service = service_for(&url, "/ccr/platforms/claude/profiles.db").await;
+        let error = service.push(&db, None).await.unwrap_err();
+        assert!(!error.to_string().contains("secret-sentinel"));
+        let requests = seen.lock().unwrap().clone();
+        assert!(
+            requests.iter().any(|(method, _)| method == "PUT"),
+            "{requests:?}"
+        );
+        assert!(
+            requests.iter().all(|(method, _)| method != "DELETE"),
+            "{requests:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_of_missing_remote_profiles_toml_succeeds() {
+        let env = CatalogEnv::new();
+        let (db, _) = seed(env.dir.path(), "[demo]\nauth_token = \"secret-sentinel\"\n");
+        let (url, seen) = start_recording_dav(Vec::new(), |method, path| match method {
+            "DELETE" => {
+                assert!(path.ends_with("/profiles.toml"), "{path}");
+                "404 Not Found"
+            }
+            _ => "201 Created",
+        })
+        .await;
+        let service = service_for(&url, "/ccr/platforms/claude/profiles.db").await;
+        service.push(&db, None).await.unwrap();
+        let requests = seen.lock().unwrap().clone();
+        let put = requests.iter().position(|(method, _)| method == "PUT");
+        let delete = requests
+            .iter()
+            .position(|(method, path)| method == "DELETE" && path.ends_with("/profiles.toml"));
+        assert!(
+            put.is_some() && delete.is_some() && put < delete,
+            "{requests:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn open_database_keeps_revision_when_pull_install_fails() {
+        let env = CatalogEnv::new();
+        let (live, old_revision) = seed(
+            &env.dir.path().join("live"),
+            "[kept]\nauth_token = \"secret-sentinel\"\n",
+        );
+        let (source, new_revision) = seed(
+            &env.dir.path().join("source"),
+            "[other]\nauth_token = \"secret-sentinel\"\n",
+        );
+        assert_ne!(old_revision, new_revision);
+        let bytes = ccr_config::snapshot_profile_catalog(&source).unwrap();
+        let open = rusqlite::Connection::open(&live).unwrap();
+        open.execute(
+            "INSERT INTO applied_operations (operation_id, payload) VALUES ('op-1', 'kept')",
+            [],
+        )
+        .unwrap();
+        ccr_config::fail_next_profile_catalog_install();
+        let (url, _) = start_recording_dav(bytes, |_, _| "500 Internal Server Error").await;
+        let service = service_for(&url, "/profiles.db").await;
+        let error = service.pull(&live).await.unwrap_err();
+        let message = error.to_string();
+        assert!(message.contains("配置目录安装提交失败"), "{message}");
+        assert!(!message.contains("secret-sentinel"), "{message}");
+        let revision: String = open
+            .query_row("SELECT revision FROM document WHERE id = 1", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(revision, old_revision);
+        let payload: String = open
+            .query_row(
+                "SELECT payload FROM applied_operations WHERE operation_id = 'op-1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(payload, "kept");
+        let reopened = rusqlite::Connection::open(&live).unwrap();
+        let reopened_revision: String = reopened
+            .query_row("SELECT revision FROM document WHERE id = 1", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(reopened_revision, old_revision);
+    }
+
+    #[tokio::test]
+    async fn directory_pull_installs_nested_catalog_in_place() {
+        let env = CatalogEnv::new();
+        let root = env.dir.path().join("root");
+        let claude = root.join("platforms").join("claude");
+        std::fs::create_dir_all(&claude).unwrap();
+        let (live, old_revision) = seed(&claude, "[live]\nauth_token = \"secret-sentinel\"\n");
+        std::fs::write(claude.join("old.txt"), b"old").unwrap();
+        let reader = rusqlite::Connection::open(&live).unwrap();
+        let incoming = env.dir.path().join("incoming");
+        std::fs::create_dir_all(&incoming).unwrap();
+        let new_revision = ccr_config::ConfigManager::new(incoming.join("profiles.toml"))
+            .replace_toml("[remote]\nauth_token = \"secret-sentinel\"\n", "")
+            .unwrap();
+        assert_ne!(old_revision, new_revision);
+        let bytes = ccr_config::snapshot_profile_catalog(&incoming.join("profiles.db")).unwrap();
+
+        let transaction = crate::sync::transaction::PullTransaction::begin(&root).unwrap();
+        let staged = transaction.staging_path().join("platforms").join("claude");
+        std::fs::create_dir_all(&staged).unwrap();
+        std::fs::write(staged.join("profiles.db"), &bytes).unwrap();
+        std::fs::write(staged.join("profiles.db-wal"), b"JUNK").unwrap();
+        std::fs::write(staged.join("new.txt"), b"new").unwrap();
+        let backup = transaction.commit().await.unwrap();
+        assert!(backup.is_none());
+
+        let seen: String = reader
+            .query_row("SELECT revision FROM document WHERE id = 1", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(seen, new_revision);
+        assert_eq!(std::fs::read(claude.join("new.txt")).unwrap(), b"new");
+        assert!(!claude.join("old.txt").exists());
+        assert!(!claude.join("profiles.toml").exists());
+        let wal = claude.join("profiles.db-wal");
+        if wal.is_file() {
+            assert_ne!(std::fs::read(&wal).unwrap(), b"JUNK");
+        }
+    }
+
+    #[tokio::test]
+    async fn directory_pull_rejects_corrupt_nested_catalog_without_replacing_tree() {
+        let env = CatalogEnv::new();
+        let root = env.dir.path().join("root");
+        let claude = root.join("platforms").join("claude");
+        std::fs::create_dir_all(&claude).unwrap();
+        let (live, old_revision) = seed(&claude, "[live]\nauth_token = \"secret-sentinel\"\n");
+        std::fs::write(claude.join("old.txt"), b"old").unwrap();
+        let transaction = crate::sync::transaction::PullTransaction::begin(&root).unwrap();
+        let staged = transaction.staging_path().join("platforms").join("claude");
+        std::fs::create_dir_all(&staged).unwrap();
+        std::fs::write(staged.join("profiles.db"), b"not-a-database").unwrap();
+        std::fs::write(staged.join("new.txt"), b"new").unwrap();
+        let error = transaction.commit().await.unwrap_err();
+        let message = error.to_string();
+        assert!(
+            message.contains("catalog_validate") || message.contains("配置目录"),
+            "{message}"
+        );
+        assert!(!message.contains("secret-sentinel"), "{message}");
+        let revision: String = rusqlite::Connection::open(&live)
+            .unwrap()
+            .query_row("SELECT revision FROM document WHERE id = 1", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(revision, old_revision);
+        assert_eq!(std::fs::read(claude.join("old.txt")).unwrap(), b"old");
+        assert!(!claude.join("new.txt").exists());
     }
 }

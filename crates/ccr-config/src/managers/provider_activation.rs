@@ -275,6 +275,7 @@ mod tests {
         let env = TestCcrEnv::new();
         let root = env.root().to_path_buf();
         seed_claude_profile(&root, "anyrouter3", "anyrouter", "https://anyrouter.top/v1");
+        crate::managers::config::migrate_catalogs().unwrap();
 
         record_activation(&root, "claude", "anyrouter3");
 

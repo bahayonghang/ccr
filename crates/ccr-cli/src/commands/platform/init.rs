@@ -5,13 +5,13 @@
 #![allow(clippy::unused_async)]
 
 use crate::managers::PlatformConfigManager;
-use crate::managers::config::{CcsConfig, GlobalSettings};
+use crate::managers::config::{CcsConfig, ConfigManager, GlobalSettings};
 use crate::models::{Platform, PlatformPaths};
 use crate::platforms::create_platform;
+use ccr_config::migrate_catalogs;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
 use indexmap::IndexMap;
-use std::fs;
 use std::str::FromStr;
 
 /// 🆕 初始化平台配置
@@ -66,9 +66,11 @@ pub async fn platform_init_command(platform_name: &str) -> Result<()> {
     );
     ColorOutput::key_value("备份目录", &paths.backups_dir.display().to_string(), 2);
 
-    // 创建默认 profiles.toml 文件
-    if !paths.profiles_file.exists() {
-        ColorOutput::step(&format!("正在创建默认 {} profiles.toml...", platform_name));
+    let catalog = paths.profiles_db();
+    if catalog_exists(&paths)? {
+        ColorOutput::info(&format!("Profiles 目录已存在: {}", catalog.display()));
+    } else {
+        ColorOutput::step(&format!("正在创建默认 {} profiles 目录...", platform_name));
 
         let default_ccs = CcsConfig {
             default_config: "default".to_string(),
@@ -76,22 +78,10 @@ pub async fn platform_init_command(platform_name: &str) -> Result<()> {
             settings: GlobalSettings::default(),
             sections: IndexMap::new(),
         };
-
         let content = toml::to_string_pretty(&default_ccs)
             .map_err(|e| CcrError::ConfigError(format!("序列化默认配置失败: {}", e)))?;
-        fs::write(&paths.profiles_file, content)
-            .map_err(|e| CcrError::ConfigError(format!("写入默认 profiles.toml 失败: {}", e)))?;
-
-        ColorOutput::key_value(
-            "Profiles 文件",
-            &paths.profiles_file.display().to_string(),
-            2,
-        );
-    } else {
-        ColorOutput::info(&format!(
-            "Profiles 文件已存在: {}",
-            paths.profiles_file.display()
-        ));
+        ConfigManager::new(&paths.profiles_file).replace_toml(&content, "")?;
+        ColorOutput::key_value("Profiles 目录", &catalog.display().to_string(), 2);
     }
 
     // 注册平台到统一配置
@@ -118,4 +108,16 @@ pub async fn platform_init_command(platform_name: &str) -> Result<()> {
     crate::commands::common::print_next_steps(&[("查看平台命令帮助", "ccr platform --help")]);
 
     Ok(())
+}
+
+fn catalog_exists(paths: &PlatformPaths) -> Result<bool> {
+    let manager = ConfigManager::new(&paths.profiles_file);
+    match manager.canonical_toml() {
+        Ok(catalog) => Ok(catalog.is_some()),
+        Err(error) if error.to_string().contains("配置尚未迁移") => {
+            migrate_catalogs()?;
+            Ok(manager.canonical_toml()?.is_some())
+        }
+        Err(error) => Err(error),
+    }
 }

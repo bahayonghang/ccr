@@ -16,6 +16,7 @@ use crate::models::{
 use crate::services::{
     CodexAuthCacheAction, CodexOAuthTokenService, CodexRuntimeCommitPlan, CodexRuntimeService,
 };
+#[cfg(test)]
 use ccr_config::CcsConfig;
 use ccr_config::PlatformConfigManager;
 use ccr_config::platforms::base;
@@ -142,25 +143,7 @@ impl CodexPlatform {
     }
 
     fn profiles_file_has_current_config(&self) -> Result<bool> {
-        if !self.paths.profiles_file.exists() {
-            return Ok(false);
-        }
-        let content = std::fs::read_to_string(&self.paths.profiles_file).map_err(|error| {
-            CcrError::ConfigError(format!(
-                "读取 Codex profiles.toml 失败 {}: {error}",
-                self.paths.profiles_file.display()
-            ))
-        })?;
-        let parsed: toml::Value = toml::from_str(&content).map_err(|error| {
-            CcrError::ConfigError(format!(
-                "解析 Codex profiles.toml 失败 {}: {error}",
-                self.paths.profiles_file.display()
-            ))
-        })?;
-        Ok(parsed
-            .get("current_config")
-            .and_then(toml::Value::as_str)
-            .is_some_and(|value| !value.trim().is_empty()))
+        Ok(base::load_current_profile_marker(&self.paths.profiles_file)?.is_some())
     }
 
     /// CCR third-party runtime leftovers that can suppress official Codex login.
@@ -1746,21 +1729,7 @@ impl CodexPlatform {
     }
 
     fn current_profile_from_profiles_file(&self) -> Result<Option<String>> {
-        if !self.paths.profiles_file.exists() {
-            return Ok(None);
-        }
-        let content = std::fs::read_to_string(&self.paths.profiles_file).map_err(|error| {
-            CcrError::ConfigError(format!(
-                "读取 Codex profiles 文件失败 {}: {}",
-                self.paths.profiles_file.display(),
-                error
-            ))
-        })?;
-        let Ok(config) = toml::from_str::<CcsConfig>(&content) else {
-            return Ok(None);
-        };
-        let current = config.current_config.trim();
-        Ok((!current.is_empty()).then(|| current.to_string()))
+        base::load_current_profile_marker(&self.paths.profiles_file)
     }
 
     fn diagnostic_route_status(spec: &SwitchSpec, config: &toml::Value) -> RuntimeMatchStatus {
@@ -2564,8 +2533,12 @@ mod tests {
         );
 
         platform.save_profile("deepseek", &profile).unwrap();
-        let stored_profiles = std::fs::read_to_string(&platform.paths.profiles_file).unwrap();
+        let (stored_profiles, _) = ccr_config::ConfigManager::new(&platform.paths.profiles_file)
+            .canonical_toml()
+            .unwrap()
+            .unwrap();
         assert!(!stored_profiles.contains(bearer));
+        assert!(!platform.paths.profiles_file.exists());
 
         #[cfg(unix)]
         {
@@ -2650,11 +2623,10 @@ mod tests {
     fn clear_runtime_scrubs_openai_api_key_without_snapshot_when_pointer_exists() {
         let env = TestCodexEnv::new();
         write_file_store_config(env.codex_dir());
-        std::fs::write(
-            env.ccr_codex_dir().join("profiles.toml"),
-            "current_config = \"team\"\n\n[profiles.team]\nprovider = \"openai\"\n",
-        )
-        .unwrap();
+        ccr_config::ConfigManager::new(env.ccr_codex_dir().join("profiles.toml"))
+            .replace_toml("current_config = \"team\"\n", "")
+            .unwrap();
+        assert!(!env.ccr_codex_dir().join("profiles.toml").is_file());
         std::fs::write(
             env.codex_dir().join("auth.json"),
             r#"{"OPENAI_API_KEY":"sk-stale-profile-key"}"#,
@@ -3174,11 +3146,14 @@ requires_openai_auth = true
 
         platform.save_profile("mistral", &profile).unwrap();
 
-        let profiles_content =
-            std::fs::read_to_string(ccr_root.join("platforms/codex/profiles.toml")).unwrap();
+        let (profiles_content, _) =
+            ccr_config::ConfigManager::new(ccr_root.join("platforms/codex/profiles.toml"))
+                .canonical_toml()
+                .unwrap()
+                .unwrap();
         assert!(
             !profiles_content.contains("mistral-key-123"),
-            "profiles.toml should not persist provider secrets"
+            "profile catalog should not persist provider secrets"
         );
 
         let store_content =
@@ -4439,14 +4414,17 @@ env_key = "MISTRAL_API_KEY"
         registry.set_current_profile("codex", None).unwrap();
         registry_manager.save(&registry).unwrap();
 
-        let profiles_text = std::fs::read_to_string(&platform.paths.profiles_file).unwrap();
+        let manager = ccr_config::ConfigManager::new(&platform.paths.profiles_file);
+        let (profiles_text, revision) = manager.canonical_toml().unwrap().unwrap();
         let mut profiles_config = toml::from_str::<CcsConfig>(&profiles_text).unwrap();
         profiles_config.current_config.clear();
-        std::fs::write(
-            &platform.paths.profiles_file,
-            toml::to_string_pretty(&profiles_config).unwrap(),
-        )
-        .unwrap();
+        manager
+            .replace_toml(
+                &toml::to_string_pretty(&profiles_config).unwrap(),
+                &revision,
+            )
+            .unwrap();
+        assert!(!platform.paths.profiles_file.exists());
 
         let diagnostic = platform.inspect_runtime_with_env(|_| None).unwrap();
         assert!(diagnostic.resolved_profile.is_none());

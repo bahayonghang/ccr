@@ -16,13 +16,14 @@ impl Fixture {
         for dir in ["grok", "ccr/platforms/grok"] {
             fs::create_dir_all(fixture.0.path().join(dir)).unwrap();
         }
-        for file in [
-            "grok/config.toml",
-            "grok/mcp_credentials.json",
-            "ccr/platforms/grok/profiles.toml",
-        ] {
+        for file in ["grok/config.toml", "grok/mcp_credentials.json"] {
             fs::write(fixture.0.path().join(file), "preserve").unwrap();
         }
+        fs::write(
+            fixture.0.path().join("ccr/platforms/grok/profiles.toml"),
+            "default_config = \"\"\ncurrent_config = \"\"\n",
+        )
+        .unwrap();
         fixture
     }
 
@@ -115,13 +116,10 @@ fn grok_auth_round_trip_delete_and_off_preserve_boundaries() {
             .len(),
         1
     );
-    for file in [
-        "grok/config.toml",
-        "grok/mcp_credentials.json",
-        "ccr/platforms/grok/profiles.toml",
-    ] {
-        assert_eq!(f.read(file), b"preserve");
-    }
+    assert_eq!(f.read("grok/config.toml"), b"preserve");
+    assert_eq!(f.read("grok/mcp_credentials.json"), b"preserve");
+    assert!(!f.0.path().join("ccr/platforms/grok/profiles.toml").exists());
+    assert!(f.0.path().join("ccr/platforms/grok/profiles.db").is_file());
 }
 
 #[test]

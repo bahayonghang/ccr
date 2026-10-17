@@ -444,12 +444,11 @@ fn platform_profiles_path(platform_name: &str) -> Result<PathBuf> {
 
 fn platform_profiles_file_has_current_config(platform_name: &str) -> Result<bool> {
     let path = platform_profiles_path(platform_name)?;
-    if !path.exists() {
-        return Ok(false);
+    match ConfigManager::new(path).load() {
+        Err(CcrError::ConfigMissing(_)) => Ok(false),
+        Ok(config) => Ok(!config.current_config.trim().is_empty()),
+        Err(error) => Err(error),
     }
-    let manager = ConfigManager::new(path);
-    let config = manager.load()?;
-    Ok(!config.current_config.trim().is_empty())
 }
 
 #[cfg(test)]

@@ -12,5 +12,6 @@ pub use auth_off::{
     AuthOffPath, AuthOffResult, auth_off_for_platform, codex_local_auth_off, needs_auth_off,
 };
 pub use platform_switch::switch_platform;
+pub use profile_lifecycle::migrate_profile_catalogs;
 pub use profile_off::{ProfileOffResult, needs_login_prep, profile_off_for_platform};
 pub use types::SwitchPlatformRequest;

@@ -32,6 +32,13 @@ fn inventory(path: &Path) -> Vec<(PathBuf, Vec<u8>, Option<SystemTime>)> {
             return;
         }
         if path.is_file() {
+            if path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.ends_with("-wal") || name.ends_with("-shm"))
+            {
+                return;
+            }
             found.push((
                 path.into(),
                 fs::read(path).unwrap(),
@@ -67,14 +74,13 @@ fn reads_do_not_initialize_autofix_or_lock_files() {
         !env.lock_dir()
             .join(format!(
                 "{}.lock",
-                super::repository::config_resource_name(service.config_manager().config_path())
+                super::repository::config_resource_name(service.config_manager().profiles_db())
                     .unwrap()
             ))
             .exists()
     );
     let path = service.config_manager().config_path();
     fs::create_dir_all(path.parent().unwrap()).unwrap();
-    // Missing model used to trigger auto_complete and a write from list/current.
     fs::write(
         path,
         r#"default_config = "main"
@@ -86,14 +92,11 @@ auth_token = "synthetic-repository-secret"
     )
     .unwrap();
     let before = inventory(env.root());
-    assert_eq!(service.list_configs().unwrap().configs.len(), 1);
-    assert_eq!(service.get_current().unwrap().name, "main");
-    assert_eq!(service.validate_all().unwrap().valid_count, 1);
-    assert!(
-        service.load_config().unwrap().sections["main"]
-            .model
-            .is_none()
-    );
+    let error = service.list_configs().unwrap_err();
+    assert!(error.to_string().contains("尚未迁移"));
+    assert!(service.get_current().is_err());
+    assert!(service.validate_all().is_err());
+    assert!(!service.config_manager().profiles_db().exists());
     assert_eq!(before, inventory(env.root()));
 }
 
@@ -102,7 +105,7 @@ fn corrupt_and_readonly_queries_leave_files_unchanged() {
     let env = TestCcrEnv::new();
     let service = service();
     service.add_config("main".into(), section()).unwrap();
-    let path = service.config_manager().config_path();
+    let path = service.config_manager().profiles_db();
     let valid = fs::read(path).unwrap();
     fs::write(path, "auth_token = [secret-sentinel").unwrap();
     let before = inventory(env.root());
@@ -144,20 +147,13 @@ fn no_op_mutations_reject_a_leaf_replacement() {
     let service = service();
     service.add_config("main".into(), section()).unwrap();
     let manager = service.config_manager();
-    let path = manager.config_path();
     let backups = inventory(&env.root().join("backups"));
+    let before = manager.snapshot().unwrap();
     let error = manager
-        .mutate(|_| {
-            ccr_core::core::guarded_write::write_guarded(
-                path,
-                b"external replacement",
-                &ccr_core::core::WriteOptions::default(),
-            )?;
-            Ok(())
-        })
+        .mutate_versioned(Some("stale-token"), false, |_| Ok(()))
         .unwrap_err();
     assert!(matches!(error, CcrError::ValidationError(message) if message.contains("版本冲突")));
-    assert_eq!(fs::read(path).unwrap(), b"external replacement");
+    assert_eq!(manager.snapshot().unwrap().version, before.version);
     assert_eq!(inventory(&env.root().join("backups")), backups);
 }
 
@@ -170,10 +166,10 @@ fn no_op_mutations_enforce_secret_mode_without_replacing_the_file() {
     let service = service();
     service.add_config("main".into(), section()).unwrap();
     let manager = service.config_manager();
-    let path = manager.config_path();
+    let path = manager.profiles_db();
     for (initial, required) in [
         (0o644, 0o600),
-        (0o400, 0o400),
+        (0o400, 0o600),
         (0o600, 0o600),
         (0o4600, 0o600),
     ] {
@@ -206,7 +202,7 @@ fn rejected_mutations_and_queries_preserve_existing_permissions() {
     let service = service();
     service.add_config("main".into(), section()).unwrap();
     let manager = service.config_manager();
-    let path = manager.config_path();
+    let path = manager.profiles_db();
     fs::set_permissions(path, fs::Permissions::from_mode(0o644)).unwrap();
     let before = inventory(env.root());
     service.list_configs().unwrap();
@@ -243,7 +239,7 @@ fn no_op_hardening_survives_uncommitted_journal_rollback() {
     let service = service();
     service.add_config("main".into(), section()).unwrap();
     let manager = service.config_manager();
-    let path = manager.config_path();
+    let path = manager.profiles_db();
     fs::set_permissions(path, fs::Permissions::from_mode(0o644)).unwrap();
     let before = inventory(env.root());
     let journal = WriteJournal::begin(&[path.to_path_buf()]).unwrap();
@@ -268,16 +264,17 @@ fn no_op_hardening_rejects_an_active_journal_version_conflict() {
     let service = service();
     service.add_config("main".into(), section()).unwrap();
     let manager = service.config_manager();
-    let path = manager.config_path();
+    let path = manager.profiles_db();
     fs::set_permissions(path, fs::Permissions::from_mode(0o644)).unwrap();
     let journal = WriteJournal::begin(&[path.to_path_buf()]).unwrap();
     journal.expect_version(path, "stale".into()).unwrap();
     let before = inventory(env.root());
-    assert!(manager.mutate(|_| Ok(())).is_err());
+    manager.mutate(|_| Ok(())).unwrap();
+    assert!(journal.verify().is_err());
     drop(journal);
     assert_eq!(
         fs::metadata(path).unwrap().permissions().mode() & 0o777,
-        0o644
+        0o600
     );
     assert_eq!(inventory(env.root()), before);
 }
@@ -347,23 +344,27 @@ fn strict_patch_rejects_invalid_missing_duplicate_and_stale_without_writes() {
 #[test]
 fn patch_preserves_unedited_fields_and_renames_current_and_default() {
     let _env = TestCcrEnv::new();
-    let service = service();
-    service.add_config("main".into(), section()).unwrap();
-    let manager = service.config_manager();
+    let manager = ConfigManager::for_platform("claude").unwrap();
     let path = manager.config_path();
-    let mut value: toml::Value = toml::from_str(&fs::read_to_string(path).unwrap()).unwrap();
-    value["main"]
-        .as_table_mut()
-        .unwrap()
-        .insert("future_field".into(), toml::Value::String("keep".into()));
-    value.as_table_mut().unwrap().insert(
-        "settings".into(),
-        toml::Value::Table(toml::map::Map::from_iter([(
-            "future_setting".into(),
-            toml::Value::String("keep".into()),
-        )])),
-    );
-    fs::write(path, toml::to_string(&value).unwrap()).unwrap();
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    fs::write(
+        path,
+        r#"default_config = "main"
+current_config = "main"
+
+[settings]
+future_setting = "keep"
+
+[main]
+base_url = "https://api.example.test"
+auth_token = "synthetic-repository-secret"
+model = "test-model"
+future_field = "keep"
+"#,
+    )
+    .unwrap();
+    super::migrate_catalogs().unwrap();
+    let service = service();
     let before = manager.snapshot().unwrap();
     let patch = ConfigPatch {
         fields: IndexMap::from([
@@ -394,9 +395,14 @@ fn patch_preserves_unedited_fields_and_renames_current_and_default() {
     assert_eq!(section.other["future_field"].as_str(), Some("keep"));
     assert_eq!(after.config.current_config, "renamed");
     assert_eq!(after.config.default_config, "renamed");
-    let raw: toml::Value = toml::from_str(&fs::read_to_string(path).unwrap()).unwrap();
-    assert_eq!(raw["settings"]["future_setting"].as_str(), Some("keep"));
-    let disk = inventory(path.parent().unwrap());
+    let settings = super::catalog::document_probe(manager.profiles_db())
+        .unwrap()
+        .settings_toml
+        .unwrap();
+    let raw: toml::Value = toml::from_str(&settings).unwrap();
+    assert_eq!(raw["future_setting"].as_str(), Some("keep"));
+    assert!(!path.exists());
+    let disk = inventory(manager.profiles_db().parent().unwrap());
     assert!(
         service
             .patch_config(
@@ -408,7 +414,7 @@ fn patch_preserves_unedited_fields_and_renames_current_and_default() {
             )
             .is_err()
     );
-    assert_eq!(disk, inventory(path.parent().unwrap()));
+    assert_eq!(disk, inventory(manager.profiles_db().parent().unwrap()));
 }
 
 #[test]
@@ -441,17 +447,22 @@ fn leaf_cas_detects_nonparticipating_replacement() {
     let service = service();
     service.add_config("main".into(), section()).unwrap();
     let manager = service.config_manager();
-    let path = manager.config_path();
-    let error = manager
-        .mutate(|config| {
+    let version = manager.snapshot().unwrap().version;
+    let error = super::catalog::CatalogTransaction::execute(manager.profiles_db(), |_| {
+        manager.mutate(|config| {
+            super::catalog::bump_revision_for_test(manager.profiles_db())?;
             config.get_section_mut("main")?.description = Some("CCR update".into());
-            // A process that does not use the repository resource lock.
-            fs::write(path, b"external writer bytes").unwrap();
             Ok(())
         })
-        .unwrap_err();
+    })
+    .unwrap_err();
     assert!(error.to_string().contains("版本冲突"));
-    assert_eq!(fs::read(path).unwrap(), b"external writer bytes");
+    assert_eq!(manager.snapshot().unwrap().version, version);
+    assert!(
+        manager.load().unwrap().sections["main"]
+            .description
+            .is_none()
+    );
     assert!(!env.root().join("backups").exists());
 }
 
@@ -486,7 +497,7 @@ fn subprocess_adapter_worker() {
         "verbatim" => {
             let path = ConfigManager::for_platform("claude")
                 .unwrap()
-                .config_path()
+                .profiles_db()
                 .canonicalize()
                 .unwrap();
             ConfigService::new(Arc::new(ConfigManager::new(path)))
@@ -635,23 +646,27 @@ fn current_marker_reads_only_declared_marker_without_modifying_profiles() {
     let before = inventory(env.root());
     assert!(
         base::load_profiles_from_toml(path)
+            .unwrap_err()
+            .to_string()
+            .contains("尚未迁移")
+    );
+    assert!(
+        base::load_current_profile_marker(path)
+            .unwrap_err()
+            .to_string()
+            .contains("尚未迁移")
+    );
+    assert!(!manager.profiles_db().exists());
+    assert_eq!(before, inventory(env.root()));
+
+    super::migrate_catalogs().unwrap();
+    assert_eq!(base::load_current_profile_marker(path).unwrap(), None);
+    assert!(
+        base::load_profiles_from_toml(path)
             .unwrap()
             .contains_key("main")
     );
-    assert_eq!(base::load_current_profile_marker(path).unwrap(), None);
-    assert_eq!(before, inventory(env.root()));
-
-    fs::write(
-        path,
-        "default_config = \"main\"\ncurrent_config = \"main\"\n[main]\n",
-    )
-    .unwrap();
-    let before = inventory(env.root());
-    assert_eq!(
-        base::load_current_profile_marker(path).unwrap().as_deref(),
-        Some("main")
-    );
-    assert_eq!(before, inventory(env.root()));
+    assert!(!path.exists());
 }
 
 #[test]
@@ -669,6 +684,17 @@ fn service_queries_do_not_infer_current_from_simplified_profile_order() {
         base::parse_config_from_str(&source).unwrap().current_config,
         "main"
     );
+    assert!(
+        manager
+            .snapshot()
+            .err()
+            .expect("legacy toml must not be read")
+            .to_string()
+            .contains("尚未迁移")
+    );
+    assert!(!manager.profiles_db().exists());
+    assert_eq!(before, inventory(env.root()));
+    super::migrate_catalogs().unwrap();
     assert!(manager.snapshot().unwrap().config.current_config.is_empty());
     assert!(manager.load().unwrap().current_config.is_empty());
     let list = service.list_configs().unwrap();
@@ -680,7 +706,6 @@ fn service_queries_do_not_infer_current_from_simplified_profile_order() {
         Err(CcrError::ConfigSectionNotFound(_))
     ));
     assert_eq!(base::load_current_profile_marker(path).unwrap(), None);
-    assert_eq!(before, inventory(env.root()));
 }
 
 #[test]
@@ -695,6 +720,7 @@ fn unrelated_service_edits_preserve_absent_current_until_explicit_activation() {
         toml::to_string(&IndexMap::from([("main", section())])).unwrap(),
     )
     .unwrap();
+    super::migrate_catalogs().unwrap();
     let version = manager.snapshot().unwrap().version;
     let patch = ConfigPatch {
         fields: IndexMap::from([(
@@ -705,16 +731,26 @@ fn unrelated_service_edits_preserve_absent_current_until_explicit_activation() {
     service
         .patch_config("main", None, &patch, &version, Validatable::validate)
         .unwrap();
-    let raw: toml::Value = toml::from_str(&fs::read_to_string(path).unwrap()).unwrap();
-    assert!(raw.get("current_config").is_none());
-    assert!(raw.get("default_config").is_none());
-    assert_eq!(raw["main"]["description"].as_str(), Some("patched"));
+    let document = super::catalog::document_probe(manager.profiles_db()).unwrap();
+    assert!(document.current.is_none());
+    assert!(document.default_config.is_none());
+    assert_eq!(
+        manager.load().unwrap().sections["main"]
+            .description
+            .as_deref(),
+        Some("patched")
+    );
     service
         .update_config("main", "main".into(), section())
         .unwrap();
-    let raw: toml::Value = toml::from_str(&fs::read_to_string(path).unwrap()).unwrap();
-    assert!(raw.get("current_config").is_none());
+    assert!(
+        super::catalog::document_probe(manager.profiles_db())
+            .unwrap()
+            .current
+            .is_none()
+    );
     assert_eq!(base::load_current_profile_marker(path).unwrap(), None);
+    assert!(!path.exists());
     service.set_current("main").unwrap();
     assert_eq!(service.get_current().unwrap().name, "main");
     assert_eq!(
@@ -735,18 +771,25 @@ fn clear_current_keeps_missing_absent_and_propagates_corrupt_or_unreadable() {
     fs::create_dir_all(path.parent().unwrap()).unwrap();
     fs::write(path, "invalid TOML [").unwrap();
     let before = inventory(env.root());
-    assert!(matches!(
-        manager.clear_current_if_present(),
-        Err(CcrError::ConfigFormatInvalid(_))
-    ));
-    assert!(matches!(
-        base::update_current_config(path, "main"),
-        Err(CcrError::ConfigFormatInvalid(_))
-    ));
-    assert!(matches!(
-        base::load_current_profile_marker(path),
-        Err(CcrError::ConfigFormatInvalid(_))
-    ));
+    assert!(
+        manager
+            .clear_current_if_present()
+            .unwrap_err()
+            .to_string()
+            .contains("尚未迁移")
+    );
+    assert!(
+        base::update_current_config(path, "main")
+            .unwrap_err()
+            .to_string()
+            .contains("尚未迁移")
+    );
+    assert!(
+        base::load_current_profile_marker(path)
+            .unwrap_err()
+            .to_string()
+            .contains("尚未迁移")
+    );
     assert_eq!(before, inventory(env.root()));
     fs::remove_file(path).unwrap();
     fs::create_dir(path).unwrap();
@@ -769,11 +812,15 @@ fn clear_current_keeps_missing_absent_and_propagates_corrupt_or_unreadable() {
 fn platform_adapter_keeps_unedited_toml_datetime_extensions() {
     let _env = TestCcrEnv::new();
     let service = service();
-    service.add_config("main".into(), section()).unwrap();
     let manager = service.config_manager();
     let path = manager.config_path();
-    let source = fs::read_to_string(path).unwrap() + "\ncustom_timestamp = 2026-01-01T00:00:00Z\n";
-    fs::write(path, source).unwrap();
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    fs::write(
+        path,
+        "default_config = \"main\"\ncurrent_config = \"main\"\n\n[main]\nbase_url = \"https://api.example.test\"\nauth_token = \"synthetic-repository-secret\"\nmodel = \"test-model\"\ncustom_timestamp = 2026-01-01T00:00:00Z\n",
+    )
+    .unwrap();
+    super::migrate_catalogs().unwrap();
     let original = manager.load().unwrap().sections["main"].other["custom_timestamp"].clone();
     let paths = PlatformPaths::new(Platform::Claude).unwrap();
     base::mutate_profiles(&paths.profiles_file, "claude", &paths, |profiles| {
@@ -841,7 +888,7 @@ fn adding_to_empty_inactive_document_preserves_current_marker() {
 #[cfg(windows)]
 #[test]
 fn uppercase_profile_path_keeps_standard_backup_policy() {
-    let env = TestCcrEnv::new();
+    let _env = TestCcrEnv::new();
     let service = service();
     service.add_config("main".into(), section()).unwrap();
     let path = service.config_manager().config_path();
@@ -852,7 +899,12 @@ fn uppercase_profile_path_keeps_standard_backup_policy() {
             Ok(())
         })
         .unwrap();
-    let backup_dir = env.root().join("backups/claude");
-    assert!(backup_dir.is_dir());
-    assert_eq!(fs::read_dir(backup_dir).unwrap().count(), 1);
+    assert_eq!(
+        service.load_config().unwrap().sections["main"]
+            .description
+            .as_deref(),
+        Some("updated")
+    );
+    assert!(!path.exists());
+    assert!(service.config_manager().profiles_db().is_file());
 }

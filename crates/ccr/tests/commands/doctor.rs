@@ -77,6 +77,8 @@ impl DoctorFixture {
     }
 
     fn write_unified_config(&self, current_platform: &str, entries: &[(&str, &str)]) {
+        // 进程内 save 会读 CCR_LOCK_DIR。并行用例会改这个变量并删掉临时锁目录。
+        let _env = crate::setup_ccr_test_env();
         let manager = PlatformConfigManager::new(self.root.join("config.toml"));
         let mut unified = UnifiedConfig {
             default_platform: current_platform.to_string(),
@@ -100,6 +102,7 @@ impl DoctorFixture {
     }
 
     fn write_profile(&self, platform: &str, name: &str, section: ConfigSection) {
+        let _env = crate::setup_ccr_test_env();
         let manager = ConfigManager::new(
             self.root
                 .join("platforms")

@@ -1,8 +1,9 @@
 use crate::models::{Platform, PlatformPaths};
-use ccr_config::{parse_profiles_from_str, register_platform_if_missing};
+use ccr_config::{
+    ConfigManager, migrate_catalogs, parse_profiles_from_str, register_platform_if_missing,
+};
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
-use ccr_core::core::{BackupPolicy, VersionedWriteOutcome, WriteOptions, write_guarded_versioned};
 use serde::Serialize;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -23,9 +24,9 @@ pub(super) struct ProfileFileEnsured {
     pub registered: bool,
 }
 
-/// 确保 profiles.toml 存在（不存在时创建），并注册平台
+/// 确保平台目录库存在（不存在时从模板写入），并注册平台。
 ///
-/// 纯逻辑函数，不输出到终端。调用方负责根据返回值决定输出内容。
+/// 不创建活的 `profiles.toml`。模板仍是交换用 TOML。
 pub(super) fn ensure_profiles_file(
     platform: Platform,
     platform_name: &str,
@@ -34,35 +35,35 @@ pub(super) fn ensure_profiles_file(
     let paths = PlatformPaths::new(platform)?;
     paths.ensure_directories()?;
 
-    // 模板来自仓库 examples；运行时仍先解析，避免写出损坏的内嵌配置。
     parse_profiles_from_str(template).map_err(|error| {
         CcrError::ConfigError(format!("内置 {platform_name} profiles 模板无效: {error}"))
     })?;
 
-    let created = if paths.profiles_file.exists() {
+    let created = if catalog_exists(&paths)? {
         false
     } else {
-        matches!(
-            write_guarded_versioned(
-                &paths.profiles_file,
-                template.as_bytes(),
-                "",
-                &WriteOptions {
-                    secret: true,
-                    backup: BackupPolicy::None,
-                    ..Default::default()
-                },
-            )?,
-            VersionedWriteOutcome::Written
-        )
+        ConfigManager::new(&paths.profiles_file).replace_toml(template, "")?;
+        true
     };
     let registered = register_platform_if_missing(platform_name, platform.display_name())?;
 
     Ok(ProfileFileEnsured {
-        path: paths.profiles_file,
+        path: paths.profiles_db(),
         created,
         registered,
     })
+}
+
+fn catalog_exists(paths: &PlatformPaths) -> Result<bool> {
+    let manager = ConfigManager::new(&paths.profiles_file);
+    match manager.canonical_toml() {
+        Ok(catalog) => Ok(catalog.is_some()),
+        Err(error) if error.to_string().contains("配置尚未迁移") => {
+            migrate_catalogs()?;
+            Ok(manager.canonical_toml()?.is_some())
+        }
+        Err(error) => Err(error),
+    }
 }
 
 /// Initializes one platform's profile directory and copy-ready template.
@@ -97,9 +98,9 @@ pub async fn platform_profile_init_command(
     ColorOutput::title(&format!("初始化 {} Profiles", platform.display_name()));
     println!();
     if ensured.created {
-        ColorOutput::success(&format!("已创建 profiles 模板: {profiles_file}"));
+        ColorOutput::success(&format!("已创建 profiles 目录: {profiles_file}"));
     } else {
-        ColorOutput::info(&format!("profiles 文件已存在，保持不变: {profiles_file}"));
+        ColorOutput::info(&format!("profiles 目录已存在，保持不变: {profiles_file}"));
     }
     if ensured.registered {
         ColorOutput::success(&format!("已注册平台: {platform_name}"));
@@ -159,5 +160,22 @@ mod tests {
     #[test]
     fn grok_example_and_docs_mirror_are_identical() {
         assert_eq!(GROK_TEMPLATE.as_bytes(), GROK_DOCS_TEMPLATE.as_bytes());
+    }
+
+    #[test]
+    fn ensure_profiles_file_writes_the_catalog_and_not_live_toml() {
+        let _home = crate::test_support::TestHome::new();
+        let paths = PlatformPaths::new(Platform::Claude).unwrap();
+        let first = ensure_profiles_file(Platform::Claude, "claude", CLAUDE_TEMPLATE).unwrap();
+        assert!(first.created);
+        assert!(first.path.ends_with("profiles.db"));
+        assert!(paths.profiles_db().is_file());
+        assert!(!paths.profiles_file.exists());
+        let loaded = ConfigManager::new(&paths.profiles_file).load().unwrap();
+        assert!(!loaded.sections.is_empty());
+
+        let second = ensure_profiles_file(Platform::Claude, "claude", CLAUDE_TEMPLATE).unwrap();
+        assert!(!second.created);
+        assert!(!paths.profiles_file.exists());
     }
 }

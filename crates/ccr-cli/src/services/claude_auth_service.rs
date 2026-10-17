@@ -10,7 +10,6 @@ use crate::models::{
 };
 use crate::platforms::ClaudePlatform;
 use ccr_config::ClaudeRuntimePaths;
-use ccr_config::managers::config::CcsConfig;
 use ccr_config::platforms::base as platform_base;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::{
@@ -278,27 +277,11 @@ impl ClaudeAuthService {
         &self,
         profiles: &IndexMap<String, ProfileConfig>,
     ) -> Result<Option<String>> {
-        let path = self.profiles_path();
-        if !path.exists() {
-            return Ok(None);
-        }
-
-        let content = match fs::read_to_string(path) {
-            Ok(content) => content,
-            Err(_) => return Ok(None),
-        };
-
-        let parsed = match toml::from_str::<CcsConfig>(&content) {
-            Ok(parsed) => parsed,
-            Err(_) => return Ok(None),
-        };
-
-        let current = parsed.current_config.trim();
-        if current.is_empty() || !profiles.contains_key(current) {
-            return Ok(None);
-        }
-
-        Ok(Some(current.to_string()))
+        // 迁移后 current 只在目录库。遗留 toml 已被搬走，不能再按文件是否存在判断。
+        Ok(
+            platform_base::load_current_profile_marker(&self.profiles_path())?
+                .filter(|current| profiles.contains_key(current)),
+        )
     }
 
     fn current_profile(&self) -> Result<Option<(String, ProfileConfig)>> {
@@ -1220,7 +1203,10 @@ mod tests {
 
         #[cfg(not(target_os = "macos"))]
         fn write_profiles(&self, content: &str) {
-            fs::write(self.service.profiles_path(), content).unwrap();
+            let path = self.service.profiles_path();
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(&path, content).unwrap();
+            crate::application::migrate_profile_catalogs().unwrap();
         }
 
         fn write_state(&self, value: JsonValue) {

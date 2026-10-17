@@ -69,6 +69,8 @@ impl ClaudeProfileFixture {
     }
 
     fn write_unified_claude_profile(&self, current_profile: Option<&str>) {
+        // 进程内 save 会读 CCR_LOCK_DIR。并行用例会改这个变量并删掉临时锁目录。
+        let _env = crate::setup_ccr_test_env();
         let manager = PlatformConfigManager::new(self.root.join("config.toml"));
         let mut unified = UnifiedConfig {
             default_platform: "claude".to_string(),
@@ -88,6 +90,7 @@ impl ClaudeProfileFixture {
     }
 
     fn save_claude_profiles(&self, current_config: &str) {
+        let _env = crate::setup_ccr_test_env();
         let manager = ConfigManager::new(
             self.root
                 .join("platforms")
@@ -211,11 +214,9 @@ fn claude_profile_init_is_inactive_idempotent_and_preserves_runtime() {
 
     let first = fixture.run_output(&["claude", "profile", "init"]);
     assert!(first.status.success(), "{:?}", first.status);
-    let profiles_before = fs::read(&profiles_path).unwrap();
-    assert_eq!(
-        profiles_before,
-        include_bytes!("../../../../examples/claude/profiles.example.toml")
-    );
+    let template = include_str!("../../../../examples/claude/profiles.example.toml");
+    assert_catalog_matches_template(&profiles_path, template);
+    let stored = catalog_canonical(&profiles_path);
     assert_eq!(fs::read(&runtime_path).unwrap(), runtime_before);
 
     let registry = PlatformConfigManager::new(fixture.root.join("config.toml"))
@@ -229,8 +230,31 @@ fn claude_profile_init_is_inactive_idempotent_and_preserves_runtime() {
     let second = fixture.run_output(&["claude", "profile", "init"]);
     assert!(second.status.success(), "{:?}", second.status);
     assert!(String::from_utf8_lossy(&second.stdout).contains("已存在"));
-    assert_eq!(fs::read(&profiles_path).unwrap(), profiles_before);
+    assert_eq!(catalog_canonical(&profiles_path), stored);
+    assert!(!profiles_path.exists());
     assert_eq!(fs::read(&runtime_path).unwrap(), runtime_before);
+}
+
+fn assert_catalog_matches_template(profiles_toml: &std::path::Path, template: &str) {
+    let _env = crate::setup_ccr_test_env();
+    assert!(!profiles_toml.exists());
+    assert!(profiles_toml.with_file_name("profiles.db").is_file());
+    let loaded = ConfigManager::new(profiles_toml).load().unwrap();
+    let expected = ccr_config::parse_profiles_from_str(template).unwrap();
+    assert_eq!(loaded.sections.len(), expected.len());
+    for name in expected.keys() {
+        assert!(loaded.sections.contains_key(name), "{name}");
+    }
+    assert!(loaded.current_config.is_empty());
+}
+
+fn catalog_canonical(profiles_toml: &std::path::Path) -> String {
+    let _env = crate::setup_ccr_test_env();
+    ConfigManager::new(profiles_toml)
+        .canonical_toml()
+        .unwrap()
+        .unwrap()
+        .0
 }
 
 #[test]

@@ -430,7 +430,7 @@ pub struct PlatformPaths {
     /// 📂 平台目录 (platforms/{platform}/)
     pub platform_dir: PathBuf,
 
-    /// 📝 平台配置文件 (profiles.toml)
+    /// 📝 遗留平台配置文件 (profiles.toml)。只用于判断迁移前的文件是否还在。
     pub profiles_file: PathBuf,
 
     /// ⚙️ 平台设置文件 (settings.json，平台特定)
@@ -471,6 +471,11 @@ impl PlatformPaths {
             backups_dir: root.join("backups").join(platform_name),
             root,
         })
+    }
+
+    /// Catalog database for this platform. Resource locks follow this path.
+    pub fn profiles_db(&self) -> PathBuf {
+        self.platform_dir.join("profiles.db")
     }
 
     /// 🏠 获取 CCR 根目录

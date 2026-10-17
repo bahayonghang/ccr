@@ -6,7 +6,9 @@ use crate::managers::{
 };
 use crate::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 use crate::platforms::create_platform;
-use ccr_config::ConfigManager;
+use ccr_config::{
+    CatalogTransaction, ConfigManager, increment_usage_count, load_applied_operation,
+};
 use ccr_core::core::guarded_write::write_guarded;
 use ccr_core::core::write_journal::WriteJournal;
 use ccr_core::core::{FileLock, LockManager, WriteOptions};
@@ -128,11 +130,7 @@ pub(crate) fn operation_paths(
     instance: &dyn PlatformConfig,
 ) -> Result<Vec<PathBuf>> {
     let paths = PlatformPaths::new(platform)?;
-    let mut files = vec![
-        paths.profiles_file,
-        paths.registry_file,
-        instance.get_settings_path(),
-    ];
+    let mut files = vec![paths.registry_file, instance.get_settings_path()];
     if platform == Platform::Codex {
         let dir = instance
             .get_settings_path()
@@ -173,28 +171,60 @@ fn save_record(path: &Path, outcome: &ProfileOutcome) -> Result<()> {
     )
 }
 
+fn committed_record(outcome: &ProfileOutcome) -> bool {
+    matches!(
+        outcome.status,
+        ProfileStatus::Applied | ProfileStatus::AppliedWithWarning
+    )
+}
+
+fn same_request(outcome: &ProfileOutcome, request: &ApplyProfileRequest) -> bool {
+    outcome.platform == request.platform.to_string()
+        && outcome.profile == request.name
+        && outcome.operation_id == request.operation_id
+}
+
+fn reject_foreign(outcome: &ProfileOutcome, request: &ApplyProfileRequest) -> Result<()> {
+    if same_request(outcome, request) {
+        Ok(())
+    } else {
+        Err(CcrError::ValidationError(
+            "Profile operation ID belongs to another request".into(),
+        ))
+    }
+}
+
 fn replay(path: &Path, request: &ApplyProfileRequest) -> Result<Option<ProfileOutcome>> {
-    let bytes = match std::fs::read(path) {
-        Ok(bytes) => bytes,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+    let recorded = match std::fs::read(path) {
+        Ok(bytes) => serde_json::from_slice::<ProfileOutcome>(&bytes).ok(),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
         Err(_) => {
             return Err(CcrError::FileIoError(
                 "Cannot read profile operation record".into(),
             ));
         }
     };
-    let outcome: ProfileOutcome = serde_json::from_slice(&bytes).map_err(|_| {
+    if let Some(outcome) = recorded.as_ref() {
+        reject_foreign(outcome, request)?;
+        if committed_record(outcome) {
+            return Ok(Some(outcome.clone()));
+        }
+    }
+    let manager = ConfigManager::for_platform(&request.platform.to_string())?;
+    let Some(payload) = load_applied_operation(manager.profiles_db(), &request.operation_id)?
+    else {
+        return Ok(None);
+    };
+    let outcome: ProfileOutcome = serde_json::from_str(&payload).map_err(|_| {
         CcrError::ConfigError("Invalid profile operation record; recovery required".into())
     })?;
-    if outcome.platform != request.platform.to_string()
-        || outcome.profile != request.name
-        || outcome.operation_id != request.operation_id
-    {
-        return Err(CcrError::ValidationError(
-            "Profile operation ID belongs to another request".into(),
-        ));
-    }
+    reject_foreign(&outcome, request)?;
     Ok(Some(outcome))
+}
+
+/// Import legacy profile documents before a CLI, TUI, or desktop command runs.
+pub fn migrate_profile_catalogs() -> Result<()> {
+    ccr_config::migrate_catalogs()
 }
 
 /// CLI, TUI, and desktop adapters call this same synchronous owner.
@@ -276,27 +306,49 @@ fn execute(
         warnings: vec![ProfileWarning::Interrupted],
         recovery_paths: paths.iter().map(|p| p.display().to_string()).collect(),
     };
-    // A process interruption leaves an explicit recovery marker, never a retryable success.
+    // Interrupted is not a committed success. The same operation id re-executes
+    // unless the catalog row written in the committed transaction is present.
     save_record(&path, &outcome)?;
     paths.push(path.clone());
     let journal = WriteJournal::begin(&paths)?;
-    journal.expect_version(
-        ConfigManager::for_platform(&request.platform.to_string())?.config_path(),
-        expected_profile,
-    )?;
-    let applied = journal
-        .verify()
-        .and_then(|()| mutate())
-        .and_then(|()| journal.verify())
-        .and_then(|()| {
-            outcome.activation_committed = activation;
-            outcome.status = ProfileStatus::AppliedWithWarning;
-            outcome.warnings = vec![ProfileWarning::AncillaryPending];
-            outcome.recovery_paths.clear();
-            save_record(&path, &outcome)
-        });
-    if applied.is_err() {
+    let manager = ConfigManager::for_platform(&request.platform.to_string())?;
+    let database = manager.profiles_db().to_path_buf();
+    if manager.snapshot()?.version != expected_profile {
+        let _failed = journal.rollback();
+        return Err(CcrError::ValidationError(
+            "配置版本冲突，请重新读取后重试".into(),
+        ));
+    }
+    let mut stored = outcome.clone();
+    stored.activation_committed = activation;
+    stored.status = ProfileStatus::AppliedWithWarning;
+    stored.warnings = vec![ProfileWarning::AncillaryPending];
+    stored.recovery_paths.clear();
+    let payload = serde_json::to_string(&stored)
+        .map_err(|_| CcrError::ConfigError("Cannot encode profile operation".into()))?;
+    let applied = CatalogTransaction::execute(&database, |transaction| {
+        let revision = transaction.current_revision()?;
+        if revision != expected_profile {
+            return Err(CcrError::ValidationError(
+                "配置版本冲突，请重新读取后重试".into(),
+            ));
+        }
+        mutate()?;
+        // Re-check every declared runtime file after the last writer. A change
+        // during a later file must fail before the catalog transaction commits.
+        journal.verify()?;
+        transaction.store_applied_operation(&request.operation_id, &payload)?;
+        Ok(())
+    });
+    if let Err(error) = applied {
         let failed = journal.rollback();
+        if matches!(
+            &error,
+            CcrError::ValidationError(message)
+                if message == "配置版本冲突，请重新读取后重试"
+        ) {
+            return Err(error);
+        }
         outcome.activation_committed = false;
         outcome.status = if failed.is_empty() {
             ProfileStatus::Unchanged
@@ -311,23 +363,15 @@ fn execute(
         return Ok(outcome);
     }
     journal.commit();
-    // Activation is durable before success side effects. Replays return the saved
-    // outcome and never repeat activation or partially completed side effects.
+    // The catalog commit is durable before the file preimages are dropped.
+    // Replays return the saved outcome and do not repeat activation or the count.
+    outcome = stored;
+    if save_record(&path, &outcome).is_err() {
+        outcome.warnings.push(ProfileWarning::OperationRecordFailed);
+        return Ok(outcome);
+    }
     outcome.warnings.clear();
-    if activation
-        && ConfigManager::for_platform(&request.platform.to_string())
-            .and_then(|manager| {
-                manager.mutate(|config| {
-                    let profile = config
-                        .sections
-                        .get_mut(&request.name)
-                        .ok_or_else(|| CcrError::ProfileNotFound(request.name.clone()))?;
-                    profile.usage_count = Some(profile.usage_count.unwrap_or(0).saturating_add(1));
-                    Ok(())
-                })
-            })
-            .is_err()
-    {
+    if activation && increment_usage_count(&database, &request.name).is_err() {
         outcome.warnings.push(ProfileWarning::UsageCountFailed);
     }
     let history = HistoryManager::with_default().and_then(|manager| {

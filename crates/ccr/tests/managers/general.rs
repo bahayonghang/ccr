@@ -55,10 +55,11 @@ fn test_config_manager_lifecycle() {
         .sections
         .insert("anyrouter".into(), create_test_config_section("anyrouter"));
 
-    // 保存
+    // 保存后的活目录是数据库。遗留 TOML 路径只作为定位参数。
     let manager = ConfigManager::new(&config_path);
     manager.save(&config).unwrap();
-    assert!(config_path.exists());
+    assert!(manager.profiles_db().is_file());
+    assert!(!config_path.exists());
 
     // 加载并验证
     let loaded = manager.load().unwrap();

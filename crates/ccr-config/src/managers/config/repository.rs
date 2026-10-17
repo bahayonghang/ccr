@@ -1,16 +1,12 @@
 //! Path-scoped profile transactions. Lock order: operation -> resource -> leaf.
 
+use super::catalog::{self, CatalogGuard};
 use super::{CcsConfig, ConfigManager, ConfigSection};
-use ccr_core::core::guarded_write::{
-    VersionedWriteOutcome, content_version_token, enforce_secret_permissions_versioned,
-    normalized_resource_path, write_guarded_versioned,
-};
-use ccr_core::core::{BackupPolicy, FileLock, LockManager, WriteOptions};
+use ccr_core::core::guarded_write::normalized_resource_path;
+use ccr_core::core::{BackupPolicy, WriteOptions};
 use ccr_core::{CcrError, Result};
 use indexmap::IndexMap;
-use std::fs;
 use std::path::Path;
-use std::time::Duration;
 
 /// A field omitted from a patch is retained. Removal is explicit.
 #[derive(Clone)]
@@ -132,28 +128,15 @@ impl ConfigManager {
         }
     }
 
-    /// Acquire before reading. Do not call another mutation while this guard is held.
-    pub fn lock_mutation(&self) -> Result<FileLock> {
-        LockManager::with_default_path()?.lock_resource(
-            &config_resource_name(self.config_path())?,
-            Duration::from_secs(10),
-        )
+    /// Acquire before reading. Re-entering the same catalog on this thread does not lock again.
+    pub fn lock_mutation(&self) -> Result<CatalogGuard> {
+        catalog::acquire_catalog_lock(self.profiles_db())
     }
 
     pub fn snapshot(&self) -> Result<ConfigSnapshot> {
-        let bytes = fs::read(self.config_path()).map_err(|error| {
-            if error.kind() == std::io::ErrorKind::NotFound {
-                CcrError::ConfigMissing(self.config_path().display().to_string())
-            } else {
-                CcrError::FileIoError(format!("读取配置失败: {error}"))
-            }
-        })?;
-        let content = std::str::from_utf8(&bytes)
-            .map_err(|_| CcrError::ConfigFormatInvalid("配置必须是 UTF-8".into()))?;
-        Ok(ConfigSnapshot {
-            config: parse_repository_config(content)?,
-            version: content_version_token(&bytes),
-        })
+        let (config, version) =
+            catalog::load_with_revision(self.config_path(), self.profiles_db())?;
+        Ok(ConfigSnapshot { config, version })
     }
 
     /// Mutate only the latest document. The closure runs once and is never replayed.
@@ -175,85 +158,13 @@ impl ConfigManager {
         create: bool,
         mutate: impl FnOnce(&mut CcsConfig) -> Result<T>,
     ) -> Result<T> {
-        let _lock = self.lock_mutation()?;
-        let bytes = match fs::read(self.config_path()) {
-            Ok(bytes) => Some(bytes),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound && create => None,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                return Err(CcrError::ConfigMissing(
-                    self.config_path().display().to_string(),
-                ));
-            }
-            Err(error) => return Err(CcrError::FileIoError(format!("读取配置失败: {error}"))),
-        };
-        let token = bytes
-            .as_deref()
-            .map(content_version_token)
-            .unwrap_or_default();
-        if expected.is_some_and(|expected| expected != token) {
-            return Err(version_conflict());
-        }
-        let content = std::str::from_utf8(bytes.as_deref().unwrap_or_default())
-            .map_err(|_| CcrError::ConfigFormatInvalid("配置必须是 UTF-8".into()))?;
-        let mut config = if bytes.is_some() {
-            parse_repository_config(content)?
-        } else {
-            // Explicit first creation retains the legacy initialization defaults.
-            crate::platforms::base::parse_config_from_str(content)?
-        };
-        let mut before = toml::Value::try_from(&config)
-            .map_err(|_| CcrError::ConfigError("无法序列化配置".into()))?;
-        let result = mutate(&mut config)?;
-        let mut after = toml::Value::try_from(&config)
-            .map_err(|_| CcrError::ConfigError("无法序列化配置".into()))?;
-        if bytes.is_some() && before == after {
-            if !enforce_secret_permissions_versioned(
-                self.config_path(),
-                &token,
-                profile_write_options(self.config_path()).lock_timeout,
-            )? {
-                return Err(version_conflict());
-            }
-            return Ok(result);
-        }
-        // Keep unknown settings and unedited values from the original document.
-        let mut document: toml::Value = toml::from_str(content)
-            .map_err(|_| CcrError::ConfigFormatInvalid("配置 TOML 无效".into()))?;
-        let keep_simplified = bytes.is_some()
-            && document
-                .get("current_config")
-                .and_then(toml::Value::as_str)
-                .is_none()
-            && config.current_config.is_empty();
-        if keep_simplified {
-            for value in [&mut before, &mut after] {
-                if let Some(table) = value.as_table_mut() {
-                    table.remove("default_config");
-                    table.remove("current_config");
-                }
-            }
-        }
-        apply_delta(&mut document, &before, &after);
-        if !keep_simplified
-            && let (Some(document), Some(after)) = (document.as_table_mut(), after.as_table())
-        {
-            for key in ["default_config", "current_config"] {
-                if let Some(value) = after.get(key) {
-                    document.insert(key.into(), value.clone());
-                }
-            }
-        }
-        let content = toml::to_string_pretty(&document)
-            .map_err(|_| CcrError::ConfigError("无法序列化配置".into()))?;
-        match write_guarded_versioned(
+        catalog::mutate_catalog(
             self.config_path(),
-            content.as_bytes(),
-            &token,
-            &profile_write_options(self.config_path()),
-        )? {
-            VersionedWriteOutcome::Written => Ok(result),
-            VersionedWriteOutcome::Conflict => Err(version_conflict()),
-        }
+            self.profiles_db(),
+            expected,
+            create,
+            mutate,
+        )
     }
 
     /// Apply a strict partial update and check the caller's platform rules under the lock.
@@ -298,7 +209,7 @@ pub(crate) fn validate_profile_name(name: &str) -> Result<()> {
     Ok(())
 }
 
-fn version_conflict() -> CcrError {
+pub(crate) fn version_conflict() -> CcrError {
     CcrError::ValidationError("配置版本冲突，请重新读取后重试".into())
 }
 

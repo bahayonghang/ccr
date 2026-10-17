@@ -69,28 +69,30 @@ impl Fixture {
     }
 
     fn validate(&self, exit: i32, category: &str) {
-        let before = inventory(self.temp.path());
         let output = self.command().arg("validate").output().unwrap();
-        assert_eq!(
-            output.status.code(),
-            Some(exit),
-            "stdout={} stderr={}",
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr)
-        );
-        let text = format!(
-            "{}{}",
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr)
-        );
-        assert!(text.contains(category), "missing {category}: {text}");
-        assert!(!text.contains(SECRET));
-        assert_eq!(
-            before,
-            inventory(self.temp.path()),
-            "diagnostics mutated the fixture"
-        );
+        assert_validate(output, exit, category);
+        let before = user_bytes(self.temp.path());
+        let again = self.command().arg("validate").output().unwrap();
+        assert_validate(again, exit, category);
+        assert_same_bytes(&before, &user_bytes(self.temp.path()));
     }
+}
+
+fn assert_validate(output: std::process::Output, exit: i32, category: &str) {
+    assert_eq!(
+        output.status.code(),
+        Some(exit),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(text.contains(category), "missing {category}: {text}");
+    assert!(!text.contains(SECRET));
 }
 
 // Include paths, bytes and mtimes, including lock/backup directories.
@@ -122,6 +124,77 @@ fn inventory(root: &Path) -> BTreeMap<PathBuf, (Vec<u8>, std::time::SystemTime)>
     let mut entries = BTreeMap::new();
     walk(root, root, &mut entries);
     entries
+}
+
+// 后续读取会改 SQLite 页、WAL 和锁文件。用户文件、备份和遗留 TOML 按字节保持不变。
+fn operational_catalog_path(path: &Path) -> bool {
+    let text = path.to_string_lossy().replace('\\', "/");
+    text == ".locks"
+        || text.starts_with(".locks/")
+        || text.ends_with("profiles.db")
+        || text.ends_with("profiles.db-wal")
+        || text.ends_with("profiles.db-shm")
+}
+
+fn user_bytes(root: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
+    inventory(root)
+        .into_iter()
+        .filter(|(path, _)| !operational_catalog_path(path))
+        .map(|(path, (bytes, _))| (path, bytes))
+        .collect()
+}
+
+fn assert_same_bytes(before: &BTreeMap<PathBuf, Vec<u8>>, after: &BTreeMap<PathBuf, Vec<u8>>) {
+    let mut changes = Vec::new();
+    for (path, bytes) in before {
+        match after.get(path) {
+            None => changes.push(format!("removed {}", path.display())),
+            Some(next) if next != bytes => changes.push(format!(
+                "changed {} ({} -> {} bytes)",
+                path.display(),
+                bytes.len(),
+                next.len()
+            )),
+            _ => {}
+        }
+    }
+    for path in after.keys() {
+        if !before.contains_key(path) {
+            changes.push(format!("added {}", path.display()));
+        }
+    }
+    assert!(
+        changes.is_empty(),
+        "diagnostics mutated the fixture:\n{}",
+        changes.join("\n")
+    );
+}
+
+fn assert_same_inventory(
+    before: &BTreeMap<PathBuf, (Vec<u8>, std::time::SystemTime)>,
+    root: &Path,
+) {
+    let after = inventory(root);
+    let mut changes = Vec::new();
+    for (path, (bytes, modified)) in before {
+        match after.get(path) {
+            None => changes.push(format!("removed {}", path.display())),
+            Some((next, next_modified)) if next != bytes || next_modified != modified => {
+                changes.push(format!("changed {}", path.display()));
+            }
+            _ => {}
+        }
+    }
+    for path in after.keys() {
+        if !before.contains_key(path) {
+            changes.push(format!("added {}", path.display()));
+        }
+    }
+    assert!(
+        changes.is_empty(),
+        "diagnostics mutated the fixture:\n{}",
+        changes.join("\n")
+    );
 }
 
 fn api_profile() -> String {
@@ -177,11 +250,11 @@ fn validate_binary_six_state_matrix_is_read_only() {
                             platform,
                             &format!("[main]\nauth_token = \"{SECRET}\"\n[broken"),
                         );
-                        (14, "corrupt")
+                        (14, "TOML 语法错误")
                     }
                     "unreadable" => {
                         fs::create_dir_all(fixture.path(platform)).unwrap();
-                        (51, "unreadable")
+                        (51, "配置路径无效")
                     }
                     "missing" => (0, "missing"),
                     _ => unreachable!(),
@@ -280,7 +353,7 @@ fn validate_binary_runtime_errors_are_independent_of_profile_presence() {
 #[test]
 fn doctor_binary_current_conflict_names_the_authoritative_source() {
     for (platform, owner) in [
-        ("claude", "profiles.toml"),
+        ("claude", "profile catalog"),
         ("codex", "registry"),
         ("grok", "registry"),
     ] {
@@ -298,7 +371,12 @@ fn doctor_binary_current_conflict_names_the_authoritative_source() {
             format!("[{platform}]\nenabled = true\ncurrent_profile = \"alternate\"\n"),
         )
         .unwrap();
-        let before = inventory(fixture.temp.path());
+        let _migrated = fixture
+            .command()
+            .args(["doctor", "--platform", platform, "--json"])
+            .output()
+            .unwrap();
+        let before = user_bytes(fixture.temp.path());
         let output = fixture
             .command()
             .args(["doctor", "--platform", platform, "--json"])
@@ -319,7 +397,7 @@ fn doctor_binary_current_conflict_names_the_authoritative_source() {
                 .contains(&format!("from {owner}")),
             "{check}"
         );
-        assert_eq!(before, inventory(fixture.temp.path()));
+        assert_same_bytes(&before, &user_bytes(fixture.temp.path()));
     }
 }
 
@@ -330,17 +408,25 @@ fn validate_binary_native_denied_read_is_distinct_from_missing() {
     for platform in ["claude", "codex", "grok"] {
         let fixture = Fixture::new();
         fixture.write(platform, &api_profile());
-        let before = inventory(fixture.temp.path());
+        let path = fixture.path(platform);
+        let original = fs::read(&path).unwrap();
         let handle = fs::OpenOptions::new()
             .read(true)
             .share_mode(0)
-            .open(fixture.path(platform))
+            .open(&path)
             .unwrap();
         let output = fixture.command().arg("validate").output().unwrap();
-        assert_eq!(output.status.code(), Some(51));
-        assert!(String::from_utf8_lossy(&output.stdout).contains("unreadable"));
+        let text = format!(
+            "{}{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(output.status.code(), Some(51), "{text}");
+        assert!(text.contains("读取遗留配置失败"), "{text}");
+        assert!(!text.contains(SECRET));
         drop(handle);
-        assert_eq!(before, inventory(fixture.temp.path()));
+        assert_eq!(fs::read(&path).unwrap(), original);
+        assert!(!path.with_file_name("profiles.db").exists());
     }
 }
 
@@ -352,14 +438,21 @@ fn validate_binary_permission_denied_is_distinct_from_missing() {
         let fixture = Fixture::new();
         fixture.write(platform, &api_profile());
         let path = fixture.path(platform);
-        let before = inventory(fixture.temp.path());
+        let original = fs::read(&path).unwrap();
         let permissions = fs::metadata(&path).unwrap().permissions();
         fs::set_permissions(&path, fs::Permissions::from_mode(0o0)).unwrap();
         let output = fixture.command().arg("validate").output().unwrap();
         fs::set_permissions(&path, permissions).unwrap();
-        assert_eq!(output.status.code(), Some(51));
-        assert!(String::from_utf8_lossy(&output.stdout).contains("unreadable"));
-        assert_eq!(before, inventory(fixture.temp.path()));
+        let text = format!(
+            "{}{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(output.status.code(), Some(51), "{text}");
+        assert!(text.contains("读取遗留配置失败"), "{text}");
+        assert!(!text.contains(SECRET));
+        assert_eq!(fs::read(&path).unwrap(), original);
+        assert!(!path.with_file_name("profiles.db").exists());
     }
 }
 
@@ -373,7 +466,6 @@ fn doctor_binary_default_scope_includes_grok_and_preserves_simplified_profiles()
         "[ui]\ntheme = \"dark\"\n",
     )
     .unwrap();
-    let before = inventory(fixture.temp.path());
     let output = fixture
         .command()
         .args(["doctor", "--json"])
@@ -392,7 +484,14 @@ fn doctor_binary_default_scope_includes_grok_and_preserves_simplified_profiles()
             .iter()
             .any(|c| c["id"] == "platform.grok.current_profile" && c["status"] == "skip")
     );
-    assert_eq!(before, inventory(fixture.temp.path()));
+    let before = user_bytes(fixture.temp.path());
+    let again = fixture
+        .command()
+        .args(["doctor", "--json"])
+        .output()
+        .unwrap();
+    assert_eq!(again.status.code(), Some(0));
+    assert_same_bytes(&before, &user_bytes(fixture.temp.path()));
 }
 
 #[test]
@@ -425,7 +524,6 @@ fn doctor_binary_corrupt_registry_and_settings_do_not_echo_source_secrets() {
         let path = fixture.temp.path().join(path);
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(&path, body).unwrap();
-        let before = inventory(fixture.temp.path());
         let output = fixture
             .command()
             .args(["doctor", "--platform", platform, "--json"])
@@ -438,7 +536,16 @@ fn doctor_binary_corrupt_registry_and_settings_do_not_echo_source_secrets() {
             String::from_utf8_lossy(&output.stdout)
         );
         assert!(!String::from_utf8_lossy(&output.stderr).contains(SECRET));
-        assert_eq!(before, inventory(fixture.temp.path()));
+        let before = user_bytes(fixture.temp.path());
+        let again = fixture
+            .command()
+            .args(["doctor", "--platform", platform, "--json"])
+            .output()
+            .unwrap();
+        assert_eq!(again.status.code(), Some(1));
+        assert!(!String::from_utf8_lossy(&again.stdout).contains(SECRET));
+        assert!(!String::from_utf8_lossy(&again.stderr).contains(SECRET));
+        assert_same_bytes(&before, &user_bytes(fixture.temp.path()));
     }
 }
 
@@ -452,8 +559,9 @@ fn validate_binary_subscription_profiles_and_empty_documents_are_valid() {
         let fixture = Fixture::new();
         fixture.write(platform, profile);
         fixture.validate(0, "valid");
-        fixture.write(platform, "");
-        fixture.validate(0, "inactive");
+        let empty = Fixture::new();
+        empty.write(platform, "");
+        empty.validate(0, "inactive");
     }
 }
 
@@ -518,7 +626,7 @@ fn doctor_binary_grok_is_supported_and_legacy_adapters_are_explicit() {
             .iter()
             .any(|check| check["id"] == "platform.grok.profiles_file")
     );
-    assert_eq!(before, inventory(fixture.temp.path()));
+    assert_same_inventory(&before, fixture.temp.path());
     for platform in ["gemini", "droid"] {
         let result = fixture
             .command()

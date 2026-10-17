@@ -19,8 +19,17 @@ async fn main() -> ExitCode {
     let matches = build_cli_command().get_matches();
     let cli = Cli::from_arg_matches(&matches).unwrap_or_else(|err| err.exit());
 
-    // Diagnostics must not create log directories or rewrite user files. Their
-    // services return typed reports; process status belongs to this boundary.
+    // 诊断命令在分发前返回。先迁移目录，报告本身不再改用户文件。
+    // 迁移失败时按该错误的退出码返回，不进入报告。
+    if matches!(
+        &cli.command,
+        Some(Commands::Validate) | Some(Commands::Doctor(_))
+    ) && let Err(error) = ccr_cli::application::migrate_profile_catalogs()
+    {
+        eprintln!("{error}");
+        return ExitCode::from(error.exit_code() as u8);
+    }
+
     match &cli.command {
         Some(Commands::Validate) => {
             let report = ccr_cli::commands::validate_report_command();

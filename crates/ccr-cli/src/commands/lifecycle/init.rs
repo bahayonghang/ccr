@@ -106,9 +106,15 @@ pub async fn init_command(force: bool) -> Result<()> {
         2,
     );
 
-    // 创建默认 profiles.toml
-    if !claude_paths.profiles_file.exists() {
-        ColorOutput::step("创建默认 Claude profiles.toml");
+    // 创建默认 Claude profile 目录。示例和交换格式仍是 TOML，不写活的 profiles.toml。
+    let catalog = crate::managers::config::ConfigManager::new(&claude_paths.profiles_file);
+    let catalog_present = match catalog.canonical_toml() {
+        Ok(catalog) => catalog.is_some(),
+        Err(error) if error.to_string().contains("配置尚未迁移") => true,
+        Err(error) => return Err(error),
+    };
+    if !catalog_present {
+        ColorOutput::step("创建默认 Claude profiles 目录");
 
         let default_ccs = crate::managers::config::CcsConfig {
             default_config: "default".to_string(),
@@ -119,10 +125,9 @@ pub async fn init_command(force: bool) -> Result<()> {
 
         let content = toml::to_string_pretty(&default_ccs)
             .map_err(|e| CcrError::ConfigError(format!("序列化默认配置失败: {}", e)))?;
-        fs::write(&claude_paths.profiles_file, content)
-            .map_err(|e| CcrError::ConfigError(format!("写入默认 profiles.toml 失败: {}", e)))?;
+        catalog.replace_toml(&content, "")?;
 
-        ColorOutput::success(&format!("已创建: {}", claude_paths.profiles_file.display()));
+        ColorOutput::success(&format!("已创建: {}", claude_paths.profiles_db().display()));
     }
 
     // 创建平台注册表配置

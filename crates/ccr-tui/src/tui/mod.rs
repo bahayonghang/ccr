@@ -201,6 +201,7 @@ fn print_exit_info(app: &App) {
 }
 
 fn run_tui_with(select: impl FnOnce(App) -> App) -> Result<()> {
+    ccr_cli::application::migrate_profile_catalogs()?;
     let tui_config = app::load_tui_config();
     theme::init_theme(tui_config.theme);
     let task_executor = AsyncTaskExecutor::from_current_or_test();

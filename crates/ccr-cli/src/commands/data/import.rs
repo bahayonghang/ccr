@@ -38,12 +38,13 @@ pub async fn import_command(
     mode: ImportMode,
     backup: bool,
     force: bool,
+    platform: &str,
 ) -> Result<()> {
     ColorOutput::title("导入配置");
     println!();
 
     // ⚡ 检查自动确认模式
-    let config_service = ConfigService::with_default()?;
+    let config_service = ConfigService::for_platform(platform)?;
     let config = config_service.load_config().unwrap_or_else(|_| CcsConfig {
         default_config: String::new(),
         current_config: String::new(),
@@ -103,10 +104,12 @@ pub async fn import_command(
     // 备份现有配置(如果需要)
     if backup {
         ColorOutput::step("步骤 3/4: 备份当前配置");
-        if config_service.config_manager().config_path().exists() {
-            backup_current_config(&config_service)?;
-        } else {
-            ColorOutput::info("当前无配置文件,跳过备份");
+        match backup_current_config(&config_service) {
+            Ok(()) => {}
+            Err(CcrError::ConfigMissing(_)) => {
+                ColorOutput::info("当前无配置文件,跳过备份");
+            }
+            Err(error) => return Err(error),
         }
         println!();
     }
@@ -124,7 +127,7 @@ pub async fn import_command(
         "步骤 3/3: 执行导入"
     };
     ColorOutput::step(step_msg);
-    let result = import_config_with_mode(import_config, mode)?;
+    let result = import_config_with_mode(import_config, mode, platform)?;
 
     println!();
     ColorOutput::separator();
@@ -154,8 +157,12 @@ fn backup_current_config(config_service: &ConfigService) -> Result<()> {
 }
 
 /// 根据模式导入配置
-fn import_config_with_mode(import_config: CcsConfig, mode: ImportMode) -> Result<ImportResult> {
-    let service = ConfigService::with_default()?;
+fn import_config_with_mode(
+    import_config: CcsConfig,
+    mode: ImportMode,
+    platform: &str,
+) -> Result<ImportResult> {
+    let service = ConfigService::for_platform(platform)?;
     let content = toml::to_string_pretty(&import_config)
         .map_err(|e| CcrError::ConfigError(format!("序列化配置失败: {}", e)))?;
 

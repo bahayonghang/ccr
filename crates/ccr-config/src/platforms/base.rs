@@ -18,7 +18,6 @@ use ccr_core::core::LockManager;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::utils::toml_json;
 use indexmap::IndexMap;
-use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -457,40 +456,28 @@ pub fn parse_config_from_str(content: &str) -> Result<CcsConfig> {
 
 /// Read and parse profiles from a TOML file.
 pub fn load_profiles_from_toml(profiles_path: &Path) -> Result<IndexMap<String, ProfileConfig>> {
-    let display_path = profiles_path.display().to_string();
-    let content = match fs::read_to_string(profiles_path) {
-        Ok(content) => content,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(IndexMap::new()),
-        Err(error) => {
-            return Err(CcrError::ConfigError(format!(
-                "读取配置文件失败 {display_path}: {error}"
-            )));
-        }
-    };
-
-    parse_profiles_from_str(&content).map_err(|error| match error {
-        CcrError::ConfigFormatInvalid(message) => {
-            CcrError::ConfigFormatInvalid(format!("{display_path}: {message}"))
-        }
-        other => other,
-    })
+    match ConfigManager::new(profiles_path).load() {
+        Ok(config) => Ok(config
+            .sections
+            .into_iter()
+            .map(|(name, section)| (name, section_to_profile(&section)))
+            .collect()),
+        Err(CcrError::ConfigMissing(_)) => Ok(IndexMap::new()),
+        Err(error) => Err(error),
+    }
 }
 
 /// Read only a stored current marker. A legacy map has no current marker; the
 /// compatibility parser's in-memory default must not imply an active profile.
 pub fn load_current_profile_marker(profiles_path: &Path) -> Result<Option<String>> {
-    let content = match fs::read_to_string(profiles_path) {
-        Ok(content) => content,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(error) => {
-            return Err(CcrError::FileIoError(format!(
-                "读取 profile 标记失败: {error}"
-            )));
+    match ConfigManager::new(profiles_path).load() {
+        Err(CcrError::ConfigMissing(_)) => Ok(None),
+        Ok(config) => {
+            let current = config.current_config.trim();
+            Ok((!current.is_empty()).then(|| current.to_string()))
         }
-    };
-    let config = crate::managers::config::repository::parse_repository_config(&content)?;
-    let current = config.current_config.trim();
-    Ok((!current.is_empty()).then(|| current.to_string()))
+        Err(error) => Err(error),
+    }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -835,6 +822,7 @@ mod tests {
     use super::*;
     use crate::managers::{PlatformConfigEntry, UnifiedConfig};
     use crate::test_support::TestCcrEnv;
+    use std::fs;
     use std::sync::{Arc, Barrier};
 
     #[test]
@@ -983,14 +971,10 @@ mod tests {
 
         let err = load_profiles_from_toml(&profiles_path).unwrap_err();
         let err_text = err.to_string();
-        let display_path = profiles_path.display().to_string();
 
-        assert_eq!(err_text.matches(&display_path).count(), 1);
-        assert_eq!(err_text.matches("配置格式无效").count(), 1);
-        assert!(err_text.contains("TOML 语法错误"));
-        assert!(err_text.contains("第 2 行"), "{err_text}");
-        assert!(err_text.contains("第 37 列"), "{err_text}");
+        assert!(err_text.contains("尚未迁移"), "{err_text}");
         assert!(!err_text.contains("SYNTAX_SECRET_SENTINEL"));
+        assert!(!temp_dir.path().join("profiles.db").exists());
     }
 
     #[test]
@@ -1178,23 +1162,17 @@ model = "example-model"
         profiles.insert("default".to_string(), ProfileConfig::new());
 
         save_profiles_to_toml(&paths.profiles_file, &profiles, "claude", &paths).unwrap();
+        let database = paths.profiles_db();
+        assert!(!paths.profiles_file.exists());
         assert_eq!(
-            fs::metadata(&paths.profiles_file)
-                .unwrap()
-                .permissions()
-                .mode()
-                & 0o777,
+            fs::metadata(&database).unwrap().permissions().mode() & 0o777,
             0o600
         );
 
-        fs::set_permissions(&paths.profiles_file, fs::Permissions::from_mode(0o644)).unwrap();
+        fs::set_permissions(&database, fs::Permissions::from_mode(0o644)).unwrap();
         update_current_config(&paths.profiles_file, "default").unwrap();
         assert_eq!(
-            fs::metadata(&paths.profiles_file)
-                .unwrap()
-                .permissions()
-                .mode()
-                & 0o777,
+            fs::metadata(&database).unwrap().permissions().mode() & 0o777,
             0o600
         );
     }

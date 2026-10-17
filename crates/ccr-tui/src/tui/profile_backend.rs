@@ -95,4 +95,16 @@ mod tests {
     fn apply_external_version_contract() {
         profile_contract::external_change(apply);
     }
+    #[test]
+    fn apply_commit_failure_replays_operation() {
+        profile_contract::commit_failure_replays(apply);
+    }
+    #[test]
+    fn apply_runtime_change_before_catalog_commit() {
+        profile_contract::runtime_changed_before_catalog_commit(apply);
+    }
+    #[test]
+    fn apply_checkpoint_failure_keeps_activation() {
+        profile_contract::checkpoint_failure_keeps_activation(apply);
+    }
 }

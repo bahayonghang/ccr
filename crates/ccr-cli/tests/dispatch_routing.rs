@@ -43,6 +43,9 @@ impl IsolatedEnv {
             path: &std::path::Path,
             entries: &mut Vec<(std::path::PathBuf, Option<Vec<u8>>)>,
         ) {
+            if is_sqlite_sidecar(path) {
+                return;
+            }
             if path.is_file() {
                 entries.push((path.to_path_buf(), Some(std::fs::read(path).unwrap())));
             } else {
@@ -56,6 +59,14 @@ impl IsolatedEnv {
         collect(self._temp_dir.path(), &mut entries);
         entries.sort_by(|a, b| a.0.cmp(&b.0));
         entries
+    }
+
+    /// SQLite 页和 WAL 副文件在只读打开后也会变，不能当只读信号。
+    fn stable_inventory(&self) -> Vec<(std::path::PathBuf, Option<Vec<u8>>)> {
+        self.inventory()
+            .into_iter()
+            .filter(|(path, _)| !is_sqlite_sidecar(path))
+            .collect()
     }
 
     fn new() -> Self {
@@ -223,6 +234,7 @@ fn parse(args: &[&str]) -> Cli {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn tui_entries_route_to_injected_launchers() {
+    let _env = IsolatedEnv::new();
     let launchers = recording_launchers();
     // (命令行, 期望命中的启动器下标: 0=main 1=codex 2=grok 3=claude)
     let cases: [(&[&str], usize); 4] = [
@@ -252,6 +264,7 @@ async fn tui_entries_route_to_injected_launchers() {
 async fn shortcut_config_name_returns_legacy_error_without_launching_tui() {
     // `ccr <配置名>` 快捷切换优先于 TUI：即便注入了启动器也不应触发，
     // 而是直接返回 legacy shortcut 迁移错误（不触碰文件系统）。
+    let _env = IsolatedEnv::new();
     let launchers = TuiLaunchers {
         main: must_not_launch,
         codex_auth: must_not_launch,
@@ -299,6 +312,7 @@ async fn codex_without_launchers_falls_back_to_auth_list() {
 #[tokio::test(flavor = "multi_thread")]
 async fn grok_auth_without_launchers_falls_back_to_help() {
     // 降级逻辑：`ccr grok auth`（无嵌套动作）在未注入启动器时打印 grok auth 帮助。
+    let _env = IsolatedEnv::new();
     let cli = parse(&["ccr", "grok", "auth"]);
     let result = CommandDispatcher::dispatch(&cli, None).await;
     assert!(result.is_ok(), "降级 grok auth 帮助应返回 Ok: {result:?}");
@@ -323,7 +337,8 @@ async fn claude_without_launchers_falls_back_to_auth_list() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn version_branch_is_pure_output_and_returns_ok() {
-    // `ccr version` 走 show_version，纯打印不触碰环境。
+    // dispatch 会先迁移。隔离环境避免写到用户目录。
+    let _env = IsolatedEnv::new();
     let cli = parse(&["ccr", "version"]);
     let result = CommandDispatcher::dispatch(&cli, None).await;
     assert!(result.is_ok(), "version 分支应返回 Ok: {result:?}");
@@ -331,7 +346,8 @@ async fn version_branch_is_pure_output_and_returns_ok() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn help_branch_is_pure_output_and_returns_ok() {
-    // `ccr help` 走 help::print_command_help，纯打印不触碰环境。
+    // dispatch 会先迁移。隔离环境避免写到用户目录。
+    let _env = IsolatedEnv::new();
     let cli = parse(&["ccr", "help"]);
     let result = CommandDispatcher::dispatch(&cli, None).await;
     assert!(result.is_ok(), "help 分支应返回 Ok: {result:?}");
@@ -350,7 +366,7 @@ async fn list_command_routes_and_runs_in_isolated_env() {
         .join(".ccr/platforms/claude/profiles.toml");
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(
-        path,
+        &path,
         r#"default_config = "main"
 current_config = "main"
 [main]
@@ -360,11 +376,33 @@ model = "test-model"
 "#,
     )
     .unwrap();
-    let before = env.inventory();
+    // 入口会先迁移。只读断言从迁移完成后的目录库开始，避免把一次性迁移算进 list。
+    ccr_cli::application::migrate_profile_catalogs().unwrap();
+    let before = env.stable_inventory();
+    let before_catalog = ccr_cli::managers::ConfigManager::new(&path)
+        .canonical_toml()
+        .unwrap();
     let cli = parse(&["ccr", "list"]);
     let result = CommandDispatcher::dispatch(&cli, None).await;
     assert!(result.is_ok(), "list 命令应返回 Ok: {result:?}");
-    assert_eq!(env.inventory(), before);
+    assert_eq!(env.stable_inventory(), before);
+    assert_eq!(
+        ccr_cli::managers::ConfigManager::new(&path)
+            .canonical_toml()
+            .unwrap(),
+        before_catalog
+    );
+    assert!(!path.is_file());
+    assert!(path.with_file_name("profiles.db").is_file());
+}
+
+fn is_sqlite_sidecar(path: &std::path::Path) -> bool {
+    let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+        return false;
+    };
+    name.eq_ignore_ascii_case("profiles.db")
+        || name.eq_ignore_ascii_case("profiles.db-wal")
+        || name.eq_ignore_ascii_case("profiles.db-shm")
 }
 
 #[tokio::test(flavor = "multi_thread")]

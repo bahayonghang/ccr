@@ -830,13 +830,7 @@ impl GrokPlatform {
     }
 
     fn clear_profiles_current_config(&self) -> Result<()> {
-        if !self.paths.profiles_file.exists() {
-            return Ok(());
-        }
-        ccr_config::ConfigManager::new(&self.paths.profiles_file).mutate(|config| {
-            config.current_config.clear();
-            Ok(())
-        })
+        ccr_config::ConfigManager::new(&self.paths.profiles_file).clear_current_if_present()
     }
 
     fn clear_current_profile_registry(&self) -> Result<()> {
@@ -1238,11 +1232,11 @@ api_key = "INLINE_SECRET_SENTINEL"
             platform.inspect_activation_state().unwrap(),
             GrokActivationState::Inactive
         );
-        let (profiles, _) = GrokPlatform::load_config_value(&platform.paths.profiles_file).unwrap();
-        assert_eq!(
-            profiles.get("current_config").and_then(toml::Value::as_str),
-            Some("")
-        );
+        let (canonical, _) = ccr_config::ConfigManager::new(&platform.paths.profiles_file)
+            .canonical_toml()
+            .unwrap()
+            .unwrap();
+        assert!(canonical.contains("current_config = \"\""), "{canonical}");
 
         platform.delete_profile("relay").unwrap();
         assert!(platform.load_profiles().unwrap().is_empty());
@@ -1290,6 +1284,7 @@ api_key = "INLINE_SECRET_SENTINEL"
             toml::to_string(&profiles).unwrap(),
         )
         .unwrap();
+        crate::application::migrate_profile_catalogs().unwrap();
         assert_eq!(platform.fallback_current_profile_from_file().unwrap(), None);
         let mut changed = third_party_profile();
         changed.description = Some("updated".into());
@@ -1310,6 +1305,7 @@ api_key = "INLINE_SECRET_SENTINEL"
             toml::to_string(&profiles).unwrap(),
         )
         .unwrap();
+        crate::application::migrate_profile_catalogs().unwrap();
         assert_eq!(platform.fallback_current_profile_from_file().unwrap(), None);
         platform.delete_profile("relay").unwrap();
         assert!(platform.load_profiles().unwrap().is_empty());

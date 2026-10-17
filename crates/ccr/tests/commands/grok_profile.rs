@@ -1,8 +1,9 @@
 #![allow(clippy::unwrap_used)]
 
+use ccr_cli::managers::ConfigManager;
 use serde_json::Value;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use tempfile::TempDir;
 
@@ -108,6 +109,28 @@ fn assert_success(output: &Output) {
     );
 }
 
+fn assert_catalog_matches_template(profiles_toml: &Path, template: &str) {
+    let _env = crate::setup_ccr_test_env();
+    assert!(!profiles_toml.exists());
+    assert!(profiles_toml.with_file_name("profiles.db").is_file());
+    let loaded = ConfigManager::new(profiles_toml).load().unwrap();
+    let expected = ccr_config::parse_profiles_from_str(template).unwrap();
+    assert_eq!(loaded.sections.len(), expected.len());
+    for name in expected.keys() {
+        assert!(loaded.sections.contains_key(name), "{name}");
+    }
+    assert!(loaded.current_config.is_empty());
+}
+
+fn catalog_canonical(profiles_toml: &Path) -> String {
+    let _env = crate::setup_ccr_test_env();
+    ConfigManager::new(profiles_toml)
+        .canonical_toml()
+        .unwrap()
+        .unwrap()
+        .0
+}
+
 fn count_files(path: &std::path::Path) -> usize {
     if !path.exists() {
         return 0;
@@ -132,10 +155,9 @@ fn grok_profile_init_creates_inactive_template_without_touching_runtime() {
 
     let first = fixture.run_output(&["grok", "profile", "init"]);
     assert_success(&first);
-    assert_eq!(
-        fs::read(&profiles_path).unwrap(),
-        include_bytes!("../../../../examples/grok/profiles.toml")
-    );
+    let template = include_str!("../../../../examples/grok/profiles.toml");
+    assert_catalog_matches_template(&profiles_path, template);
+    let stored = catalog_canonical(&profiles_path);
     assert_eq!(fs::read(&runtime_path).unwrap(), runtime_before);
 
     let (list_output, list_json) = fixture.run_json(&["grok", "profile", "list", "--json"]);
@@ -158,12 +180,12 @@ fn grok_profile_init_creates_inactive_template_without_touching_runtime() {
         .unwrap();
     assert_eq!(registry.get_platform("grok").unwrap().current_profile, None);
 
-    let profiles_before = fs::read(&profiles_path).unwrap();
     let backups_before = count_files(&fixture.root.join("backups"));
     let second = fixture.run_output(&["grok", "profile", "init"]);
     assert_success(&second);
     assert!(String::from_utf8_lossy(&second.stdout).contains("已存在"));
-    assert_eq!(fs::read(&profiles_path).unwrap(), profiles_before);
+    assert_eq!(catalog_canonical(&profiles_path), stored);
+    assert!(!profiles_path.exists());
     assert_eq!(count_files(&fixture.root.join("backups")), backups_before);
     assert_eq!(fs::read(&runtime_path).unwrap(), runtime_before);
 }
@@ -180,10 +202,16 @@ fn grok_profile_init_preserves_existing_unparseable_profiles_file() {
     let existing = b"auth_token = [\"do-not-read-or-replace\"\n";
     fs::write(&profiles_path, existing).unwrap();
 
-    let (output, json) = fixture.run_json(&["grok", "profile", "init", "--json"]);
-    assert_success(&output);
-    assert_eq!(json["created"], false);
+    let output = fixture.run_output(&["grok", "profile", "init", "--json"]);
+    assert!(
+        !output.status.success(),
+        "status={:?}\nstdout:\n{}\nstderr:\n{}",
+        output.status,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert_eq!(fs::read(&profiles_path).unwrap(), existing);
+    assert!(!profiles_path.with_file_name("profiles.db").exists());
 }
 
 #[test]
@@ -200,7 +228,7 @@ fn grok_profile_init_json_reports_first_and_idempotent_runs() {
         first["profiles_file"]
             .as_str()
             .unwrap()
-            .ends_with("profiles.toml")
+            .ends_with("profiles.db")
     );
 
     let (second_output, second) = fixture.run_json(&["grok", "profile", "init", "--json"]);
@@ -222,16 +250,14 @@ fn concurrent_grok_profile_init_is_lossless_and_idempotent() {
     assert_success(&first.wait_with_output().unwrap());
     assert_success(&second.wait_with_output().unwrap());
 
-    assert_eq!(
-        fs::read(
-            fixture
-                .root
-                .join("platforms")
-                .join("grok")
-                .join("profiles.toml")
-        )
-        .unwrap(),
-        include_bytes!("../../../../examples/grok/profiles.toml")
+    let profiles_path = fixture
+        .root
+        .join("platforms")
+        .join("grok")
+        .join("profiles.toml");
+    assert_catalog_matches_template(
+        &profiles_path,
+        include_str!("../../../../examples/grok/profiles.toml"),
     );
 }
 
@@ -247,7 +273,7 @@ fn grok_profile_init_creates_owner_only_profiles_file() {
             .root
             .join("platforms")
             .join("grok")
-            .join("profiles.toml"),
+            .join("profiles.db"),
     )
     .unwrap()
     .permissions()

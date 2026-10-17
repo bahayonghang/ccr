@@ -63,7 +63,7 @@ pub async fn platform_info_command(platform_name: &str, json: bool) -> Result<()
             description,
             paths: PlatformPathsOutput {
                 platform_dir: paths.platform_dir.display().to_string(),
-                profiles_file: paths.profiles_file.display().to_string(),
+                profiles_file: paths.profiles_db().display().to_string(),
                 history_file: paths.history_file.display().to_string(),
                 backups_dir: paths.backups_dir.display().to_string(),
             },
@@ -93,7 +93,7 @@ pub async fn platform_info_command(platform_name: &str, json: bool) -> Result<()
     println!("  根目录: {}", paths.root.display());
     println!("  注册表: {}", paths.registry_file.display());
     println!("  平台目录: {}", paths.platform_dir.display());
-    println!("  Profiles 文件: {}", paths.profiles_file.display());
+    println!("  Profiles 目录: {}", paths.profiles_db().display());
     println!("  设置文件: {}", paths.settings_file.display());
     println!("  历史文件: {}", paths.history_file.display());
     println!("  备份目录: {}", paths.backups_dir.display());
@@ -102,8 +102,8 @@ pub async fn platform_info_command(platform_name: &str, json: bool) -> Result<()
     println!();
     ColorOutput::info("平台状态:");
     println!(
-        "  Profiles 文件: {}",
-        if paths.profiles_file.exists() {
+        "  Profiles 目录: {}",
+        if paths.profiles_db().is_file() {
             "存在 ✓".green()
         } else {
             "不存在 ✗".red()

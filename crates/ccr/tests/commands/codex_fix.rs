@@ -62,6 +62,7 @@ impl CodexFixFixture {
     }
 
     fn write_profile_state(&self) {
+        let _env = crate::setup_ccr_test_env();
         let registry_manager = PlatformConfigManager::new(self.root.join("config.toml"));
         let mut platforms = IndexMap::new();
         platforms.insert(
@@ -147,6 +148,7 @@ requires_openai_auth = true
     }
 
     fn write_deepseek_profile_state(&self) {
+        let _env = crate::setup_ccr_test_env();
         let catalog = self.codex_dir.join("models.json");
         fs::write(&catalog, "[]").unwrap();
         let mut profile = ProfileConfig {
@@ -232,7 +234,7 @@ experimental_bearer_token = "{RUNTIME_SECRET}"
     fn managed_paths(&self) -> Vec<PathBuf> {
         vec![
             self.root.join("config.toml"),
-            self.root.join("platforms/codex/profiles.toml"),
+            self.root.join("platforms/codex/profiles.db"),
             self.root.join("platforms/codex/profile_secrets.json"),
             self.codex_dir.join("config.toml"),
             self.codex_dir.join("auth.json"),
@@ -289,17 +291,26 @@ experimental_bearer_token = "{RUNTIME_SECRET}"
     }
 
     fn install_fake_codex_mutating_profiles(&self) -> PathBuf {
-        let profiles = self.root.join("platforms/codex/profiles.toml");
-        let mutated = self.home.join("mutated-profiles.toml");
-        let original = fs::read_to_string(&profiles).unwrap();
-        fs::write(
-            &mutated,
-            original.replace(
+        let live = self.root.join("platforms/codex/profiles.db");
+        let side = self.home.join("mutated-catalog");
+        fs::create_dir_all(&side).unwrap();
+        let mutated_db = side.join("profiles.db");
+        {
+            let _env = crate::setup_ccr_test_env();
+            let original = ConfigManager::new(self.root.join("platforms/codex/profiles.toml"))
+                .canonical_toml()
+                .unwrap()
+                .unwrap()
+                .0;
+            let mutated = original.replace(
                 "current_config = \"future\"",
                 "current_config = \"mutated\"",
-            ),
-        )
-        .unwrap();
+            );
+            assert_ne!(mutated, original);
+            ConfigManager::new(side.join("profiles.toml"))
+                .replace_toml(&mutated, "")
+                .unwrap();
+        }
         let bin_dir = self.home.join("bin");
         fs::create_dir_all(&bin_dir).unwrap();
         let payload_path = self.home.join("doctor-payload.txt");
@@ -312,8 +323,8 @@ experimental_bearer_token = "{RUNTIME_SECRET}"
             &bin_dir,
             &self.doctor_count_path(),
             &payload_path,
-            &mutated,
-            &profiles,
+            &mutated_db,
+            &live,
         );
         bin_dir
     }

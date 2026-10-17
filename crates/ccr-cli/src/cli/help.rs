@@ -5,7 +5,23 @@
 
 use clap::error::ErrorKind;
 
+// 主线程栈默认 1MB。显式 help 会再构建一次 clap 树；960KB 时这条路径溢出，1MB 只剩约 64KB。
+const HELP_RENDER_STACK_BYTES: usize = 4 * 1024 * 1024;
+
 fn render_help_text(path: &[String]) -> Result<String, String> {
+    let path = path.to_vec();
+    let handle = std::thread::Builder::new()
+        .name("ccr-help".to_string())
+        .stack_size(HELP_RENDER_STACK_BYTES)
+        .spawn(move || render_help_text_on_help_thread(&path))
+        .map_err(|err| format!("无法创建帮助线程: {err}"))?;
+    match handle.join() {
+        Ok(result) => result,
+        Err(_) => Err("帮助输出线程异常退出".to_string()),
+    }
+}
+
+fn render_help_text_on_help_thread(path: &[String]) -> Result<String, String> {
     let arg0 = std::env::args_os()
         .next()
         .map(|value| value.to_string_lossy().into_owned())

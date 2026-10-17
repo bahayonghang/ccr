@@ -5379,13 +5379,14 @@ foreach ($rule in $rules) {
         );
         let registry = service.load_registry().unwrap();
         assert_eq!(registry.current_auth.as_deref(), Some("b"));
+        // toml preserve_order 按插入顺序往返，不按键名排序。
         assert_eq!(
             registry
                 .accounts
                 .keys()
                 .map(String::as_str)
                 .collect::<Vec<_>>(),
-            vec!["a", "b", "invalid", "missing"]
+            vec!["a", "b", "missing", "invalid"]
         );
         assert_eq!(
             registry.accounts["a"].identity_key.as_deref(),

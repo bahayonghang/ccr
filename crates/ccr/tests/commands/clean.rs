@@ -581,7 +581,6 @@ fn clean_backups_corrupt_config_fails_without_deleting_backup() {
         output.status.code(),
         Some(ccr_core::core::error::exit_codes::CONFIG_FORMAT_INVALID)
     );
-    assert!(String::from_utf8_lossy(&output.stdout).contains("清理备份文件"));
     assert!(String::from_utf8_lossy(&output.stderr).contains("配置格式无效"));
     assert!(old_backup.exists());
     assert_eq!(fs::read_to_string(config_path).unwrap(), "invalid = [");
@@ -874,8 +873,8 @@ fn clean_storage_skip_confirmation_setting_deletes_without_prompt() {
     assert!(
         root.join("platforms")
             .join("claude")
-            .join("profiles.toml")
-            .exists()
+            .join("profiles.db")
+            .is_file()
     );
 }
 

@@ -118,6 +118,13 @@ fn doctor_maps_every_report_status_to_stdout_without_writes() {
         "ccr/platforms/claude/profiles.toml",
         "default_config = ''\ncurrent_config = ''\n",
     );
+    let migrated = f.run(&["doctor", "--platform", "claude", "--json"]);
+    assert_eq!(
+        migrated.status.code(),
+        Some(0),
+        "{}",
+        text(&migrated.stderr)
+    );
     for (runtime, expected_exit) in [("{}", 0), ("invalid synthetic JSON", 1)] {
         f.write("claude/settings.json", runtime);
         let before = inventory(f.0.path());
@@ -160,8 +167,36 @@ fn doctor_maps_every_report_status_to_stdout_without_writes() {
                     .any(|line| line == format!("{prefix} {}", check["summary"].as_str().unwrap()))
             );
         }
-        assert_eq!(inventory(f.0.path()), before);
+        assert_eq!(user_inventory(f.0.path()), user_inventory_from(&before));
+        assert!(
+            f.0.path()
+                .join("ccr/platforms/claude/profiles.db")
+                .is_file()
+        );
     }
+}
+
+fn user_inventory_from(
+    inventory: &BTreeMap<PathBuf, (Option<Vec<u8>>, SystemTime)>,
+) -> BTreeMap<PathBuf, Option<Vec<u8>>> {
+    inventory
+        .iter()
+        .filter(|(path, _)| !operational_catalog_path(path))
+        .map(|(path, (bytes, _))| (path.clone(), bytes.clone()))
+        .collect()
+}
+
+fn user_inventory(root: &Path) -> BTreeMap<PathBuf, Option<Vec<u8>>> {
+    user_inventory_from(&inventory(root))
+}
+
+fn operational_catalog_path(path: &Path) -> bool {
+    let text = path.to_string_lossy().replace('\\', "/");
+    text == "locks"
+        || text.starts_with("locks/")
+        || text.ends_with("profiles.db")
+        || text.ends_with("profiles.db-wal")
+        || text.ends_with("profiles.db-shm")
 }
 
 #[test]

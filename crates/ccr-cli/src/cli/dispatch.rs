@@ -25,6 +25,85 @@ pub struct TuiLaunchers {
     pub claude_auth: fn() -> Result<(), CcrError>,
 }
 
+/// 纯帮助和 version 不读目录，也不应把遗留 TOML 迁走。
+fn command_skips_catalog_migration(cli: &Cli) -> bool {
+    use crate::cli::subcommands::{
+        AllSyncAction, CheckAction, ClaudeAction, ClaudeAuthAction, ClaudeProfileAction,
+        CodexAction, CodexAuthAction, CodexProfileAction, FolderAction, GrokAction, GrokAuthAction,
+        GrokProfileAction, PlatformAction, SyncAction, TempTokenAction, UiAction,
+    };
+
+    match &cli.command {
+        Some(Commands::Version | Commands::Help { .. }) => true,
+        Some(Commands::Ui {
+            action: Some(UiAction::Help),
+            ..
+        }) => true,
+        Some(Commands::Sync {
+            action: SyncAction::Help,
+        }) => true,
+        Some(Commands::Sync {
+            action: SyncAction::Folder {
+                action: FolderAction::Help,
+            },
+        }) => true,
+        Some(Commands::Sync {
+            action: SyncAction::All {
+                action: AllSyncAction::Help,
+            },
+        }) => true,
+        Some(Commands::TempToken {
+            action: TempTokenAction::Help,
+        }) => true,
+        Some(Commands::Platform {
+            action: PlatformAction::Help,
+        }) => true,
+        Some(Commands::Check {
+            action: CheckAction::Help,
+        }) => true,
+        Some(Commands::Codex {
+            action: Some(CodexAction::Help),
+        }) => true,
+        Some(Commands::Codex {
+            action:
+                Some(CodexAction::Profile {
+                    action: CodexProfileAction::Help,
+                }),
+        }) => true,
+        Some(Commands::Codex {
+            action:
+                Some(CodexAction::Auth {
+                    action: CodexAuthAction::Help,
+                }),
+        }) => true,
+        Some(Commands::Claude {
+            action: Some(ClaudeAction::Help),
+        }) => true,
+        Some(Commands::Claude {
+            action: Some(ClaudeAction::Profile { action }),
+        }) if matches!(action.as_ref(), ClaudeProfileAction::Help) => true,
+        Some(Commands::Claude {
+            action:
+                Some(ClaudeAction::Auth {
+                    action: ClaudeAuthAction::Help,
+                }),
+        }) => true,
+        Some(Commands::Grok {
+            action: Some(GrokAction::Help),
+        }) => true,
+        Some(Commands::Grok {
+            action: Some(GrokAction::Profile { action }),
+        }) if matches!(action.as_ref(), GrokProfileAction::Help) => true,
+        Some(Commands::Grok {
+            action:
+                Some(GrokAction::Auth {
+                    action: Some(GrokAuthAction::Help),
+                }),
+        }) => true,
+        _ => false,
+    }
+}
+
 /// 命令分发器
 pub struct CommandDispatcher;
 
@@ -36,6 +115,9 @@ impl CommandDispatcher {
 
     /// 异步分发并执行命令
     async fn dispatch_async(cli: &Cli, tui: Option<&TuiLaunchers>) -> Result<(), CcrError> {
+        if !command_skips_catalog_migration(cli) {
+            crate::application::migrate_profile_catalogs()?;
+        }
         let auto_yes = cli.auto_yes;
 
         match &cli.command {
@@ -78,22 +160,35 @@ impl CommandDispatcher {
             Some(Commands::Init { force }) => {
                 crate::commands::init_command(auto_yes || *force).await
             }
-            Some(Commands::Export { output, no_secrets }) => {
-                crate::commands::export_command(output.clone(), !*no_secrets).await
+            Some(Commands::Export {
+                output,
+                no_secrets,
+                platform,
+                stdout,
+            }) => {
+                crate::commands::export_command(output.clone(), !*no_secrets, platform, *stdout)
+                    .await
             }
             Some(Commands::Import {
                 input,
                 merge,
                 backup,
                 force,
+                platform,
             }) => {
                 let mode = if *merge {
                     crate::commands::ImportMode::Merge
                 } else {
                     crate::commands::ImportMode::Replace
                 };
-                crate::commands::import_command(input.clone(), mode, *backup, auto_yes || *force)
-                    .await
+                crate::commands::import_command(
+                    input.clone(),
+                    mode,
+                    *backup,
+                    auto_yes || *force,
+                    platform,
+                )
+                .await
             }
             Some(Commands::Clean(args)) => match &args.action {
                 Some(CleanAction::Planfiles(planfiles_args)) => {

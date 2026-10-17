@@ -233,6 +233,14 @@ pub enum Commands {
         /// 导出时排除敏感信息(如 API 密钥),仅保留配置结构
         #[arg(long)]
         no_secrets: bool,
+
+        /// 目标平台目录。默认 claude。切换当前平台不会改变导出目标。
+        #[arg(long, default_value = "claude")]
+        platform: String,
+
+        /// 将规范 TOML 写到标准输出，不打印状态文本
+        #[arg(long, conflicts_with = "output")]
+        stdout: bool,
     },
 
     /// 从文件导入配置
@@ -256,6 +264,10 @@ pub enum Commands {
         /// 跳过确认提示，直接导入（危险操作，在 Replace 模式下会完全覆盖现有配置）
         #[arg(short, long)]
         force: bool,
+
+        /// 目标平台目录。默认 claude。切换当前平台不会改变导入目标。
+        #[arg(long, default_value = "claude")]
+        platform: String,
     },
 
     /// 交互式清理备份文件或规划文件

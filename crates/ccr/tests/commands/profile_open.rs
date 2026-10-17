@@ -62,6 +62,13 @@ impl ProfileOpenFixture {
             .join(platform)
             .join("profiles.toml")
     }
+
+    fn profiles_db(&self, platform: &str) -> PathBuf {
+        self.root
+            .join("platforms")
+            .join(platform)
+            .join("profiles.db")
+    }
 }
 
 fn assert_success(output: &Output) {
@@ -81,11 +88,11 @@ fn profile_open_creates_claude_file_when_missing() {
     let (output, json_opt) = fixture.run_json_opt(&["claude", "profile", "open", "--json"]);
     assert_success(&output);
 
-    // 文件必须在 ensure-exists 阶段创建（open 调用之前），与 open 是否成功无关
     assert!(
-        fixture.profiles_file("claude").exists(),
-        "profiles.toml must be created before open is called"
+        !fixture.profiles_file("claude").exists(),
+        "profile open must not create a live profiles.toml"
     );
+    assert!(fixture.profiles_db("claude").is_file());
 
     let json = json_opt.expect("expected valid JSON on success");
     assert_eq!(json["ok"], true);
@@ -96,7 +103,7 @@ fn profile_open_creates_claude_file_when_missing() {
         json["profiles_file"]
             .as_str()
             .unwrap()
-            .ends_with("profiles.toml")
+            .ends_with("profiles.db")
     );
     assert_eq!(json["editor"], "$EDITOR");
 }
@@ -108,10 +115,8 @@ fn profile_open_creates_codex_file_when_missing() {
 
     let (output, _) = fixture.run_json_opt(&["codex", "profile", "open", "--json"]);
 
-    assert!(
-        fixture.profiles_file("codex").exists(),
-        "codex profiles.toml must be created before open is called"
-    );
+    assert!(!fixture.profiles_file("codex").exists());
+    assert!(fixture.profiles_db("codex").is_file());
     assert_success(&output);
 }
 
@@ -122,35 +127,57 @@ fn profile_open_creates_grok_file_when_missing() {
 
     let (output, _) = fixture.run_json_opt(&["grok", "profile", "open", "--json"]);
 
-    assert!(
-        fixture.profiles_file("grok").exists(),
-        "grok profiles.toml must be created before open is called"
-    );
+    assert!(!fixture.profiles_file("grok").exists());
+    assert!(fixture.profiles_db("grok").is_file());
     assert_success(&output);
 }
 
 #[test]
-fn profile_open_idempotent_does_not_overwrite_existing_file() {
+fn profile_open_idempotent_does_not_overwrite_existing_catalog() {
     let fixture = ProfileOpenFixture::new();
     let profiles_path = fixture.profiles_file("grok");
 
-    // 预先写入任意内容
     fs::create_dir_all(profiles_path.parent().unwrap()).unwrap();
-    let sentinel = b"# SENTINEL_CONTENT_MUST_SURVIVE\n";
-    fs::write(&profiles_path, sentinel).unwrap();
+    fs::write(
+        &profiles_path,
+        "[kept]\nmodel = \"sentinel-model\"\nauth_token = \"secret-sentinel\"\n",
+    )
+    .unwrap();
 
     let (output, json_opt) = fixture.run_json_opt(&["grok", "profile", "open", "--json"]);
     assert_success(&output);
 
-    // 文件内容不得被覆盖
+    assert!(!profiles_path.exists());
+    let config = ccr_config::ConfigManager::new(&profiles_path)
+        .load()
+        .unwrap();
     assert_eq!(
-        fs::read(&profiles_path).unwrap(),
-        sentinel,
-        "existing file must not be overwritten"
+        config.sections["kept"].model.as_deref(),
+        Some("sentinel-model")
     );
-
     let json = json_opt.expect("expected valid JSON");
     assert_eq!(json["created"], false);
+}
+
+#[test]
+fn profile_open_without_editor_fails_and_creates_nothing() {
+    let fixture = ProfileOpenFixture::new();
+    let mut command = fixture.command();
+    command.env_remove("VISUAL");
+    command.env_remove("EDITOR");
+    let output = command
+        .args(["claude", "profile", "open", "--json"])
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success(), "missing editor must fail");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("$EDITOR") || stderr.contains("$VISUAL"),
+        "{stderr}"
+    );
+    assert!(!fixture.profiles_file("claude").exists());
+    assert!(!fixture.profiles_db("claude").exists());
 }
 
 #[test]

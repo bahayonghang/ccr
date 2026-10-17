@@ -12,7 +12,7 @@ repository = "https://github.com/bahayonghang/ccr"
 default = []
 tui = []
 ts = ["dep:ts-rs"]
-test-support = ["ccr-core/test-support"]
+test-support = ["ccr-core/test-support", "ccr-config/test-support"]
 
 [lib]
 name = "ccr_cli"
@@ -58,7 +58,6 @@ ts-rs = { workspace = true, optional = true, features = ["no-serde-warnings"] }
 tokio-util = { workspace = true }
 uuid = { workspace = true }
 walkdir = { workspace = true }
-open = { workspace = true }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.189"
@@ -67,4 +66,5 @@ sysinfo = { version = "0.39.6", default-features = false, features = ["system"] 
 unicode-width = "0.2.2"
 
 [dev-dependencies]
+ccr-config = { path = "../ccr-config", features = ["test-support"] }
 ccr-core = { path = "../ccr-core", features = ["test-support"] }

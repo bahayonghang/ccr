@@ -1,11 +1,11 @@
 // ⚙️ 配置服务
 // 封装配置相关的业务逻辑
 
+use crate::managers::config::catalog::CatalogGuard;
 use crate::managers::config::{CcsConfig, ConfigManager, ConfigSection};
 use crate::managers::config_validator::ConfigValidator;
 use ccr_core::Validatable;
 use ccr_core::core::error::{CcrError, Result};
-use ccr_core::core::lock::FileLock;
 use std::sync::Arc;
 
 /// 📋 配置信息(用于展示)
@@ -80,14 +80,13 @@ impl ConfigService {
     ///
     /// 直接加载指定平台的配置，不依赖 `current_platform`。
     /// 适用于 UI 等需要按平台独立管理配置的场景。
-    #[allow(dead_code)]
     pub fn for_platform(platform_name: &str) -> Result<Self> {
         let config_manager = Arc::new(ConfigManager::for_platform(platform_name)?);
         Ok(Self::new(config_manager))
     }
 
     /// 🔐 获取配置锁（跨进程资源路径锁）
-    fn lock_config(&self) -> Result<FileLock> {
+    fn lock_config(&self) -> Result<CatalogGuard> {
         self.config_manager.lock_mutation()
     }
 
@@ -346,7 +345,11 @@ impl ConfigService {
     /// 避免调用方分两次进入 service 造成恢复窗口中配置被其他写入打断。
     pub fn restore_config_from_backup(&self, backup_config: &CcsConfig) -> Result<()> {
         let _lock = self.lock_config()?;
-        self.config_manager.backup(Some("pre_restore"))?;
+        match self.config_manager.backup(Some("pre_restore")) {
+            Ok(_) => {}
+            Err(CcrError::ConfigMissing(_)) => {}
+            Err(error) => return Err(error),
+        }
         self.config_manager.save(backup_config)
     }
 
@@ -354,19 +357,25 @@ impl ConfigService {
     ///
     /// 返回配置的 TOML 字符串
     pub fn export_config(&self, include_secrets: bool) -> Result<String> {
+        if include_secrets {
+            return match self.config_manager.canonical_toml()? {
+                Some((content, _revision)) => Ok(content),
+                None => Err(CcrError::ConfigMissing(
+                    self.config_manager.config_path().display().to_string(),
+                )),
+            };
+        }
+
         let mut config = self.config_manager.load()?;
 
         // 🎯 掩码处理：Secret 的 Display 即统一掩码；用掩码串重建 Secret，
         // 经 expose_plaintext 注解序列化后导出的就是掩码文本（行为与旧版一致）
-        if !include_secrets {
-            for section in config.sections.values_mut() {
-                if let Some(ref token) = section.auth_token {
-                    section.auth_token = Some(ccr_core::Secret::new(token.to_string()));
-                }
+        for section in config.sections.values_mut() {
+            if let Some(ref token) = section.auth_token {
+                section.auth_token = Some(ccr_core::Secret::new(token.to_string()));
             }
         }
 
-        // 序列化配置
         let content = toml::to_string_pretty(&config)
             .map_err(|e| CcrError::ConfigError(format!("序列化配置失败: {}", e)))?;
 
@@ -387,34 +396,34 @@ impl ConfigService {
         // 解析导入的配置
         let import_config = crate::platforms::base::parse_config_from_str(content)?;
 
-        // 备份当前配置（如果需要）
-        if backup && self.config_manager.config_path().exists() {
-            self.config_manager.backup(Some("import_backup"))?;
+        // 覆盖前备份当前目录。遗留 TOML 不在时改为受保护的规范 TOML 导出。
+        if backup {
+            match self.config_manager.backup(Some("import_backup")) {
+                Ok(_) => {}
+                Err(CcrError::ConfigMissing(_)) => {}
+                Err(error) => return Err(error),
+            }
         }
 
-        // 根据模式导入
         let result = match mode {
-            ImportMode::Merge => {
-                // 合并模式
-                if self.config_manager.config_path().exists() {
-                    let mut current_config = self.config_manager.load()?;
-                    merge_configs(
-                        &mut current_config,
-                        import_config,
-                        self.config_manager.as_ref(),
-                    )?
-                } else {
-                    // 没有现有配置，直接使用导入的
+            ImportMode::Merge => match self.config_manager.load() {
+                Ok(mut current_config) => merge_configs(
+                    &mut current_config,
+                    import_config,
+                    self.config_manager.as_ref(),
+                )?,
+                Err(CcrError::ConfigMissing(_)) => {
+                    let added = import_config.sections.len();
                     self.config_manager.save(&import_config)?;
                     ImportResult {
-                        added: import_config.sections.len(),
+                        added,
                         updated: 0,
                         skipped: 0,
                     }
                 }
-            }
+                Err(error) => return Err(error),
+            },
             ImportMode::Replace => {
-                // 替换模式
                 let count = import_config.sections.len();
                 self.config_manager.save(&import_config)?;
                 ImportResult {
@@ -602,15 +611,87 @@ mod tests {
         let restored = manager.load().unwrap();
         assert_eq!(restored.current_config, "restored");
         assert!(restored.sections.contains_key("restored"));
-
+        assert!(!config_path.exists());
         let backups = manager.list_backups().unwrap();
         assert_eq!(backups.len(), 1);
+        let archived = std::fs::read_to_string(&backups[0]).unwrap();
+        assert!(archived.contains("current"));
+        assert!(archived.contains("sk-test-token"));
+    }
+
+    #[test]
+    fn import_merge_reads_catalog_and_does_not_create_live_toml() {
+        let env = TestCcrEnv::new();
+        let config_path = env.root().join("profiles.toml");
+        let mut config = CcsConfig {
+            default_config: "current".into(),
+            current_config: "current".into(),
+            settings: crate::managers::config::GlobalSettings::default(),
+            sections: IndexMap::new(),
+        };
+        config.set_section("current".into(), create_test_section());
+        let manager = Arc::new(ConfigManager::new(&config_path));
+        manager.save(&config).unwrap();
+
+        let service = ConfigService::new(manager.clone());
+        let result = service
+            .import_config(
+                "
+default_config = \"imported\"
+current_config = \"imported\"
+
+[imported]
+description = \"Imported\"
+base_url = \"https://api.imported.com\"
+auth_token = \"sk-imported-token\"
+model = \"m\"
+",
+                ImportMode::Merge,
+                true,
+            )
+            .unwrap();
+
+        assert_eq!(result.added, 1);
+        assert_eq!(result.updated, 0);
+        let loaded = manager.load().unwrap();
+        assert_eq!(loaded.current_config, "current");
+        assert_eq!(loaded.default_config, "imported");
+        assert!(loaded.sections.contains_key("current"));
+        assert!(loaded.sections.contains_key("imported"));
+        assert!(!config_path.exists());
+        assert!(manager.profiles_db().is_file());
+        let backups = manager.list_backups().unwrap();
+        assert_eq!(backups.len(), 1);
+        let archived = std::fs::read_to_string(&backups[0]).unwrap();
+        assert!(archived.contains("current"));
+        assert!(archived.contains("sk-test-token"));
+    }
+
+    #[test]
+    fn import_for_platform_writes_the_named_catalog() {
+        let _env = TestCcrEnv::new();
+        let gemini = ConfigService::for_platform("gemini").unwrap();
+        gemini
+            .import_config(
+                "
+[gemini]
+description = \"Gemini\"
+auth_token = \"secret-sentinel\"
+",
+                ImportMode::Replace,
+                true,
+            )
+            .unwrap();
+        assert!(gemini.config_manager().profiles_db().is_file());
+        assert!(!gemini.config_manager().config_path().exists());
         assert!(
-            backups[0]
-                .file_name()
-                .and_then(|name| name.to_str())
+            !ConfigManager::for_platform("claude")
                 .unwrap()
-                .contains("pre_restore")
+                .profiles_db()
+                .exists()
         );
+        let loaded = gemini.load_config().unwrap();
+        assert!(loaded.sections.contains_key("gemini"));
+        assert!(!loaded.sections.contains_key("claude"));
     }
 }
