@@ -25,9 +25,14 @@ export function getRegistryPath(): string {
   return path.join(getCcrRoot(), "config.toml");
 }
 
-/** Path to a platform's profiles: ~/.ccr/platforms/{name}/profiles.toml */
+/** Legacy exchange path: ~/.ccr/platforms/{name}/profiles.toml */
 export function getProfilesPath(platformName: string): string {
   return path.join(getCcrRoot(), "platforms", platformName, "profiles.toml");
+}
+
+/** Live catalog: ~/.ccr/platforms/{name}/profiles.db */
+export function getProfilesDbPath(platformName: string): string {
+  return path.join(getCcrRoot(), "platforms", platformName, "profiles.db");
 }
 
 /** Path to Codex auth registry: ~/.ccr/platforms/codex/auth_registry.toml */
@@ -59,9 +64,18 @@ export function getPlatformsDir(): string {
   return path.join(getCcrRoot(), "platforms");
 }
 
-/** Glob pattern for watching all profiles.toml files */
+/** Glob pattern for watching legacy profiles.toml files */
 export function getProfilesGlob(): string {
   return path.join(getCcrRoot(), "platforms", "*", "profiles.toml");
+}
+
+/** Relative globs for the live catalog and the legacy exchange file. */
+export function getProfileWatchGlobs(): string[] {
+  return [
+    "platforms/*/profiles.toml",
+    "platforms/*/profiles.db",
+    "platforms/*/profiles.db-wal",
+  ];
 }
 
 /** Supported platforms exposed by the VSCode extension */

@@ -47,6 +47,13 @@ describe("ccrPaths", () => {
     assert.equal(result, path.join("/tmp/test-ccr", "platforms", "claude", "profiles.toml"));
   });
 
+  it("getProfilesDbPath builds the live catalog path", async () => {
+    process.env["CCR_ROOT"] = "/tmp/test-ccr";
+    const { getProfilesDbPath } = await import("../services/ccrPaths.js");
+    const result = getProfilesDbPath("claude");
+    assert.equal(result, path.join("/tmp/test-ccr", "platforms", "claude", "profiles.db"));
+  });
+
   it("keeps the surfaced platform list in sync with the extension metadata", async () => {
     const { SUPPORTED_PLATFORMS, getPlatformDisplayName } = await import("../services/ccrPaths.js");
 
@@ -167,6 +174,62 @@ enabled = false
       assert.equal(profiles.length, 2);
       assert.equal(profiles.find((p) => p.name === "anthropic")?.isCurrent, true);
       assert.equal(profiles.find((p) => p.name === "relay")?.enabled, false);
+    });
+
+    it("reads profiles.db and ignores a retired profiles.toml", async (t) => {
+      const loadSqlite = new Function(
+        "specifier",
+        "return import(specifier)",
+      ) as (specifier: string) => Promise<{
+        DatabaseSync: new (filename: string) => { exec: (sql: string) => void; close: () => void };
+      }>;
+      let DatabaseSync: new (filename: string) => { exec: (sql: string) => void; close: () => void };
+      try {
+        ({ DatabaseSync } = await loadSqlite("node:sqlite"));
+      } catch {
+        t.skip("node:sqlite is unavailable");
+        return;
+      }
+
+      const platformDir = path.join(tmpDir, "platforms", "gemini");
+      fs.mkdirSync(platformDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(platformDir, "profiles.toml"),
+        "current_config = \"from-toml\"\n\n[from-toml]\ndescription = \"stale\"\n",
+        "utf-8",
+      );
+      const database = new DatabaseSync(path.join(platformDir, "profiles.db"));
+      database.exec(`
+        CREATE TABLE document (id INTEGER PRIMARY KEY, current_config TEXT);
+        CREATE TABLE profiles (
+          name TEXT PRIMARY KEY,
+          description TEXT,
+          base_url TEXT,
+          auth_token TEXT,
+          model TEXT,
+          small_fast_model TEXT,
+          provider TEXT,
+          provider_type TEXT,
+          account TEXT,
+          tags_json TEXT,
+          usage_count INTEGER,
+          enabled INTEGER,
+          extra_toml TEXT NOT NULL DEFAULT '',
+          sort_order INTEGER NOT NULL
+        );
+        INSERT INTO document (id, current_config) VALUES (1, 'from-db');
+        INSERT INTO profiles (
+          name, description, enabled, extra_toml, sort_order
+        ) VALUES ('from-db', 'live', 0, 'auth_mode = "chatgpt"', 0);
+      `);
+      database.close();
+
+      const { readProfiles } = await import("../services/tomlReader.js");
+      const profiles = await readProfiles("gemini");
+      assert.equal(profiles.length, 1);
+      assert.equal(profiles[0]?.name, "from-db");
+      assert.equal(profiles[0]?.isCurrent, true);
+      assert.equal(profiles[0]?.enabled, false);
     });
   });
 

@@ -4,12 +4,14 @@
  * Registers all providers, commands, and watchers.
  */
 
+import * as fs from "fs";
 import * as vscode from "vscode";
 import { CodexAuthNode, PlatformNode, ProfileNode, ProfileTreeProvider, SectionNode } from "./providers/profileTreeProvider";
 import { StatusBarProvider } from "./providers/statusBarProvider";
 import { CcrWatcher } from "./services/ccrWatcher";
 import {
   checkCcrAvailability,
+  execCcr,
   execClaudeProfileSwitch,
   execCodexAuthDelete,
   execCodexAuthSwitch,
@@ -23,8 +25,9 @@ import {
   invalidateCcrCapabilityCache,
 } from "./services/ccrCli";
 import { readCodexAuthAccounts } from "./services/codexAuthReader";
+import { catalogEditPath, exportCanonicalToml } from "./services/catalogReader";
 import { readProfiles, readRegistry } from "./services/tomlReader";
-import { getProfilesPath } from "./services/ccrPaths";
+import { getProfilesDbPath, getProfilesPath } from "./services/ccrPaths";
 import {
   EDITABLE_FIELDS,
   getEditableProfileFields,
@@ -60,6 +63,44 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   const statusBar = new StatusBarProvider();
   context.subscriptions.push(statusBar);
+
+  const catalogEdits = new Map<string, string>();
+  context.subscriptions.push(
+    vscode.workspace.onDidCloseTextDocument((document) => {
+      const editPath = document.uri.fsPath;
+      if (!catalogEdits.delete(editPath)) {
+        return;
+      }
+      fs.promises.unlink(editPath).catch(() => undefined);
+    }),
+  );
+  context.subscriptions.push(
+    vscode.workspace.onDidSaveTextDocument(async (document) => {
+      const platformName = catalogEdits.get(document.uri.fsPath);
+      if (!platformName) {
+        return;
+      }
+      const available = await checkCcrAvailability();
+      if (!available) {
+        return;
+      }
+      const result = await execCcr([
+        "import",
+        document.uri.fsPath,
+        "--platform",
+        platformName,
+        "--force",
+      ]);
+      if (result.success) {
+        vscode.window.showInformationMessage(`Saved ${platformName} profiles.`);
+        refreshAll({ invalidateRuntime: true });
+      } else {
+        vscode.window.showErrorMessage(
+          `Failed to save ${platformName} profiles: ${result.stderr || result.stdout || "Unknown error"}`,
+        );
+      }
+    }),
+  );
 
   const watcher = new CcrWatcher();
   watcher.onChange(() => refreshAll({ invalidateRuntime: true, invalidateQuota: true }));
@@ -293,10 +334,29 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             label: `${platform.icon} ${platform.displayName}`,
             platformName: platform.name,
           })),
-          { placeHolder: "Select platform to open profiles.toml" },
+          { placeHolder: "Select platform to open profiles" },
         );
         if (!picked) return;
         platformName = picked.platformName;
+      }
+
+      const databasePath = getProfilesDbPath(platformName);
+      if (fs.existsSync(databasePath)) {
+        const available = await checkCcrAvailability();
+        if (!available) {
+          return;
+        }
+        const toml = await exportCanonicalToml(platformName);
+        if (!toml) {
+          vscode.window.showErrorMessage(`Cannot export ${platformName} profiles.`);
+          return;
+        }
+        const editPath = catalogEditPath(platformName);
+        await fs.promises.writeFile(editPath, toml, { mode: 0o600 });
+        catalogEdits.set(editPath, platformName);
+        const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(editPath));
+        await vscode.window.showTextDocument(doc);
+        return;
       }
 
       const filePath = getProfilesPath(platformName);

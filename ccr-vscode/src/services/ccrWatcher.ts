@@ -6,7 +6,7 @@
  */
 
 import * as vscode from "vscode";
-import { getCcrRoot } from "./ccrPaths";
+import { getCcrRoot, getProfileWatchGlobs } from "./ccrPaths";
 
 export class CcrWatcher implements vscode.Disposable {
   private watchers: vscode.FileSystemWatcher[] = [];
@@ -37,16 +37,14 @@ export class CcrWatcher implements vscode.Disposable {
     registryWatcher.onDidDelete(() => this.debouncedNotify());
     this.watchers.push(registryWatcher);
 
-    // Watch all profiles.toml files
-    const profilesPattern = new vscode.RelativePattern(
-      vscode.Uri.file(root),
-      "platforms/*/profiles.toml",
-    );
-    const profilesWatcher = vscode.workspace.createFileSystemWatcher(profilesPattern);
-    profilesWatcher.onDidChange(() => this.debouncedNotify());
-    profilesWatcher.onDidCreate(() => this.debouncedNotify());
-    profilesWatcher.onDidDelete(() => this.debouncedNotify());
-    this.watchers.push(profilesWatcher);
+    for (const glob of getProfileWatchGlobs()) {
+      const profilesPattern = new vscode.RelativePattern(vscode.Uri.file(root), glob);
+      const profilesWatcher = vscode.workspace.createFileSystemWatcher(profilesPattern);
+      profilesWatcher.onDidChange(() => this.debouncedNotify());
+      profilesWatcher.onDidCreate(() => this.debouncedNotify());
+      profilesWatcher.onDidDelete(() => this.debouncedNotify());
+      this.watchers.push(profilesWatcher);
+    }
 
     // Watch Codex auth registry
     const codexAuthRegistryPattern = new vscode.RelativePattern(

@@ -7,11 +7,11 @@ import type {
   CodexRuntimeSnapshot,
   CodexRuntimeSummaryInfo,
 } from "../models/types";
+import { readProfileDocument } from "./catalogReader";
 import { detectCcrCapabilities, execCodexAuthCurrentJson } from "./ccrCli";
 import {
   getCodexAuthRegistryPath,
   getCodexRuntimeAuthPath,
-  getProfilesPath,
 } from "./ccrPaths";
 
 const RUNTIME_CACHE_TTL_MS = 5_000;
@@ -612,7 +612,7 @@ async function loadLocalFallbackSnapshot(
   capabilityWarnings = buildCapabilityWarnings(binaryPath, true),
 ): Promise<CodexRuntimeSnapshot> {
   const [profilesRaw, registryRaw, authRaw] = await Promise.all([
-    readLocalToml<LocalCodexProfilesShape>(getProfilesPath("codex")),
+    readProfileDocument("codex") as Promise<LocalCodexProfilesShape | null>,
     readLocalToml<LocalCodexAuthRegistryShape>(getCodexAuthRegistryPath()),
     readLocalJson<LocalCodexRuntimeAuthShape>(getCodexRuntimeAuthPath()),
   ]);

@@ -8,11 +8,11 @@
 
 import * as fs from "fs";
 import * as TOML from "smol-toml";
-import { getRegistryPath, getProfilesPath, getPlatformDisplayName, getPlatformIcon, SUPPORTED_PLATFORMS } from "./ccrPaths";
+import { readProfileDocument } from "./catalogReader";
+import { getRegistryPath, getPlatformDisplayName, getPlatformIcon, SUPPORTED_PLATFORMS } from "./ccrPaths";
 import type {
   UnifiedConfig,
   PlatformConfigEntry,
-  CcsConfig,
   ProfileConfig,
   PlatformInfo,
   ProfileInfo,
@@ -83,41 +83,12 @@ export async function readRegistry(): Promise<{ platforms: PlatformInfo[] } | nu
 
 /** Read and parse profiles for a platform */
 export async function readProfiles(platformName: string): Promise<ProfileInfo[]> {
-  const profilesPath = getProfilesPath(platformName);
-
   try {
-    const content = await fs.promises.readFile(profilesPath, "utf-8");
-    const raw = TOML.parse(content) as unknown as CcsConfig;
-    const currentConfig = raw.current_config ?? "";
-
-    const profiles: ProfileInfo[] = [];
-
-    for (const [key, value] of Object.entries(raw)) {
-      if (CCS_TOP_KEYS.has(key)) {
-        continue;
-      }
-      if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-        const p = value as ProfileConfig;
-        profiles.push({
-          name: key,
-          platformName,
-          description: asString(p.description),
-          baseUrl: asString(p.base_url),
-          authToken: asString(p.auth_token),
-          model: asString(p.model),
-          smallFastModel: asString(p.small_fast_model),
-          provider: asString(p.provider),
-          providerType: asString(p.provider_type),
-          account: asString(p.account),
-          tags: p.tags as string[] | undefined,
-          usageCount: (p.usage_count as number) ?? 0,
-          enabled: (p.enabled as boolean) ?? true,
-          isCurrent: key === currentConfig,
-        });
-      }
+    const raw = await readProfileDocument(platformName);
+    if (!raw) {
+      return [];
     }
-
-    return profiles;
+    return profilesFromDocument(platformName, raw);
   } catch (err) {
     if (isNotFoundError(err)) {
       return [];
@@ -125,6 +96,41 @@ export async function readProfiles(platformName: string): Promise<ProfileInfo[]>
     console.error(`Failed to read profiles for ${platformName}:`, err);
     return [];
   }
+}
+
+function profilesFromDocument(
+  platformName: string,
+  raw: Record<string, unknown>,
+): ProfileInfo[] {
+  const currentConfig = typeof raw.current_config === "string" ? raw.current_config : "";
+  const profiles: ProfileInfo[] = [];
+
+  for (const [key, value] of Object.entries(raw)) {
+    if (CCS_TOP_KEYS.has(key)) {
+      continue;
+    }
+    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+      const p = value as ProfileConfig;
+      profiles.push({
+        name: key,
+        platformName,
+        description: asString(p.description),
+        baseUrl: asString(p.base_url),
+        authToken: asString(p.auth_token),
+        model: asString(p.model),
+        smallFastModel: asString(p.small_fast_model),
+        provider: asString(p.provider),
+        providerType: asString(p.provider_type),
+        account: asString(p.account),
+        tags: p.tags as string[] | undefined,
+        usageCount: (p.usage_count as number) ?? 0,
+        enabled: (p.enabled as boolean) ?? true,
+        isCurrent: key === currentConfig,
+      });
+    }
+  }
+
+  return profiles;
 }
 
 // ── Helpers ──
