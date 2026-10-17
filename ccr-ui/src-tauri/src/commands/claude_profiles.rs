@@ -198,32 +198,42 @@ pub async fn claude_export_profiles(include_secrets: bool) -> Result<OpenJsonVal
 #[cfg(test)]
 mod export_tests {
     use super::*;
+    use ccr_config::ConfigManager;
+    use std::fs;
 
     #[test]
-    fn claude_export_profiles_reads_raw_toml_and_filename() {
+    fn claude_export_profiles_reads_catalog_toml_and_filename() {
         let temp_dir = tempfile::tempdir().unwrap();
+        let locks = temp_dir.path().join("locks");
+        fs::create_dir_all(&locks).unwrap();
+        let mut env = crate::test_support::TestProcessEnv::new();
+        env.set("CCR_LOCK_DIR", locks.as_os_str());
         let profiles_file = temp_dir.path().join("profiles.toml");
-        let content = "[profiles.demo]\nauth_token = \"secret\"\n";
-        fs::write(&profiles_file, content).unwrap();
+        ConfigManager::new(&profiles_file)
+            .replace_toml("[demo]\nauth_token = \"secret\"\n", "")
+            .unwrap();
 
         let payload =
             profiles_export_payload_from_path(&profiles_file, "ccr-claude-profiles", true).unwrap();
         let filename = payload["filename"].as_str().unwrap();
+        let content = payload["content"].as_str().unwrap();
 
-        assert_eq!(payload["content"].as_str(), Some(content));
+        assert!(content.contains("[demo]"));
+        assert!(content.contains("auth_token = \"secret\""));
+        assert!(!profiles_file.exists());
         assert!(filename.starts_with("ccr-claude-profiles-"));
         assert!(filename.ends_with(".toml"));
     }
 
     #[test]
-    fn claude_export_profiles_reports_missing_file() {
+    fn claude_export_profiles_reports_missing_catalog() {
         let temp_dir = tempfile::tempdir().unwrap();
         let profiles_file = temp_dir.path().join("missing.toml");
 
         let error = profiles_export_payload_from_path(&profiles_file, "ccr-claude-profiles", true)
             .unwrap_err();
 
-        assert!(error.contains("Failed to read profiles.toml"));
+        assert!(error.contains("Failed to read profiles catalog"));
     }
 
     #[test]

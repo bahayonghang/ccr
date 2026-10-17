@@ -241,32 +241,42 @@ pub async fn codex_export_profiles(include_secrets: bool) -> Result<OpenJsonValu
 #[allow(clippy::unwrap_used)]
 mod export_tests {
     use super::*;
+    use ccr_config::ConfigManager;
+    use std::fs;
 
     #[test]
-    fn codex_export_profiles_reads_raw_toml_and_filename() {
+    fn codex_export_profiles_reads_catalog_toml_and_filename() {
         let temp_dir = tempfile::tempdir().unwrap();
+        let locks = temp_dir.path().join("locks");
+        fs::create_dir_all(&locks).unwrap();
+        let mut env = crate::test_support::TestProcessEnv::new();
+        env.set("CCR_LOCK_DIR", locks.as_os_str());
         let profiles_file = temp_dir.path().join("profiles.toml");
-        let content = "[profiles.demo]\nauth_token = \"secret\"\n";
-        fs::write(&profiles_file, content).unwrap();
+        ConfigManager::new(&profiles_file)
+            .replace_toml("[demo]\nauth_token = \"secret\"\n", "")
+            .unwrap();
 
         let payload =
             profiles_export_payload_from_path(&profiles_file, "ccr-codex-profiles", true).unwrap();
         let filename = payload["filename"].as_str().unwrap();
+        let content = payload["content"].as_str().unwrap();
 
-        assert_eq!(payload["content"].as_str(), Some(content));
+        assert!(content.contains("[demo]"));
+        assert!(content.contains("auth_token = \"secret\""));
+        assert!(!profiles_file.exists());
         assert!(filename.starts_with("ccr-codex-profiles-"));
         assert!(filename.ends_with(".toml"));
     }
 
     #[test]
-    fn codex_export_profiles_reports_missing_file() {
+    fn codex_export_profiles_reports_missing_catalog() {
         let temp_dir = tempfile::tempdir().unwrap();
         let profiles_file = temp_dir.path().join("missing.toml");
 
         let error = profiles_export_payload_from_path(&profiles_file, "ccr-codex-profiles", true)
             .unwrap_err();
 
-        assert!(error.contains("Failed to read profiles.toml"));
+        assert!(error.contains("Failed to read profiles catalog"));
     }
 
     #[test]
@@ -286,7 +296,9 @@ mod export_tests {
 #[allow(clippy::unwrap_used)]
 mod update_tests {
     use super::*;
-    use ccr_config::{PlatformConfig, get_current_profile_from_registry, load_profiles_from_toml};
+    use ccr_config::{
+        ConfigManager, PlatformConfig, get_current_profile_from_registry, load_profiles_from_toml,
+    };
     use serde_json::json;
     use std::path::Path;
 
@@ -374,9 +386,13 @@ mod update_tests {
             assert!(secret_store.contains("ice-renamed"));
             assert!(secret_store.contains("sk-new"));
 
-            let profiles_file = fs::read_to_string(ccr_root.join("platforms/codex/profiles.toml"))
-                .map_err(|e| format!("读取 profiles.toml 原文失败: {e}"))?;
+            let profiles_file = ConfigManager::new(&paths.profiles_file)
+                .canonical_toml()
+                .map_err(|e| format!("读取 profiles 目录失败: {e}"))?
+                .ok_or_else(|| "profiles 目录不存在".to_string())?
+                .0;
             assert!(profiles_file.contains("current_config = \"ice-renamed\""));
+            assert!(!paths.profiles_file.exists());
 
             assert_eq!(
                 get_current_profile_from_registry("codex")

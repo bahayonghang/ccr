@@ -461,12 +461,15 @@ fn profile_to_dto(name: String, profile: &ProfileConfig) -> Result<GrokProfileDt
 }
 
 fn default_profile(paths: &PlatformPaths) -> Option<String> {
-    let content = fs::read_to_string(&paths.profiles_file).ok()?;
-    toml::from_str::<toml::Value>(&content)
-        .ok()?
-        .get("default_config")?
-        .as_str()
-        .map(str::to_string)
+    let config = ccr_config::ConfigManager::new(&paths.profiles_file)
+        .load()
+        .ok()?;
+    let value = config.default_config.trim();
+    if value.is_empty() {
+        None
+    } else {
+        Some(value.to_string())
+    }
 }
 
 fn profiles_response(platform: &GrokPlatform) -> Result<GrokProfilesResponse, String> {

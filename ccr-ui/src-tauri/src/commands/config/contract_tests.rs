@@ -23,6 +23,10 @@ fn manager() -> ConfigManager {
     ConfigManager::for_platform("claude").unwrap()
 }
 
+fn catalog_snapshot() -> (String, String) {
+    manager().canonical_toml().unwrap().unwrap()
+}
+
 #[tokio::test]
 async fn actual_handlers_switch_and_enable_commit_runtime_and_policy() {
     let _home = fixture();
@@ -76,7 +80,7 @@ async fn actual_handlers_switch_and_enable_commit_runtime_and_policy() {
 #[tokio::test]
 async fn legacy_and_unsupported_platform_requests_never_write() {
     let _home = fixture();
-    let before = fs::read(manager().config_path()).unwrap();
+    let before = catalog_snapshot();
     for platform in [
         None,
         Some("codex".into()),
@@ -138,13 +142,13 @@ async fn legacy_and_unsupported_platform_requests_never_write() {
             .contains(expected)
         );
     }
-    assert_eq!(before, fs::read(manager().config_path()).unwrap());
+    assert_eq!(before, catalog_snapshot());
 }
 
 #[test]
 fn strict_patch_rejects_unknown_wrong_types_missing_collision_without_write() {
     let _home = fixture();
-    let before = fs::read(manager().config_path()).unwrap();
+    let before = catalog_snapshot();
     for value in [
         json!({"unknown": "secret"}),
         json!({"model": false}),
@@ -187,7 +191,7 @@ fn strict_patch_rejects_unknown_wrong_types_missing_collision_without_write() {
     assert!(adapter::duplicate(Platform::Claude, "missing", "copy").is_err());
     assert!(adapter::add(Platform::Claude, "new", ConfigPatchInput::default()).is_err());
     assert!(adapter::delete(Platform::Claude, "missing").is_err());
-    assert_eq!(before, fs::read(manager().config_path()).unwrap());
+    assert_eq!(before, catalog_snapshot());
 }
 
 #[test]
@@ -225,7 +229,7 @@ fn patch_retains_secret_unknown_fields_inactive_marker_and_checks_version() {
     assert!(section.model.is_none());
     assert!(section.other["extension_time"].is_datetime());
     assert_eq!(saved.current_config, "");
-    let before = fs::read(manager().config_path()).unwrap();
+    let before = catalog_snapshot();
     assert!(
         adapter::update(
             Platform::Claude,
@@ -235,7 +239,7 @@ fn patch_retains_secret_unknown_fields_inactive_marker_and_checks_version() {
         )
         .is_err()
     );
-    assert_eq!(before, fs::read(manager().config_path()).unwrap());
+    assert_eq!(before, catalog_snapshot());
     adapter::duplicate(Platform::Claude, "new", "copy").unwrap();
     assert_eq!(manager().load().unwrap().current_config, "");
     assert!(
@@ -286,7 +290,7 @@ async fn actual_handlers_protect_registry_fallback_active_profile() {
             Ok(())
         })
         .unwrap();
-    let before = fs::read(manager().config_path()).unwrap();
+    let before = catalog_snapshot();
     let rows = list_configs(Some("claude".into())).await.unwrap();
     assert!(
         rows.iter()
@@ -315,7 +319,7 @@ async fn actual_handlers_protect_registry_fallback_active_profile() {
         .unwrap_err()
         .contains("active_config_cannot_be_deleted")
     );
-    assert_eq!(before, fs::read(manager().config_path()).unwrap());
+    assert_eq!(before, catalog_snapshot());
 }
 
 #[tokio::test]

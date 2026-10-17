@@ -1,11 +1,10 @@
 use serde_json::{Value, json};
-use std::fs;
 use std::path::Path;
 
 use ccr_cli::application::profile_lifecycle::{
     ApplyProfileRequest, ProfileOutcome, ProfileStatus, apply_profile,
 };
-use ccr_config::{PlatformPaths, parse_profiles_from_str};
+use ccr_config::{CcrError, ConfigManager, PlatformPaths, parse_profiles_from_str};
 
 pub(crate) fn profile_outcome_payload(outcome: ProfileOutcome) -> Value {
     json!({
@@ -67,11 +66,24 @@ mod application_contract {
         let _desktop = crate::test_support::lock_env();
         profile_contract::external_change(desktop);
     }
+    #[test]
+    fn profile_commit_failure_replays_operation() {
+        let _desktop = crate::test_support::lock_env();
+        profile_contract::commit_failure_replays(desktop);
+    }
+    #[test]
+    fn profile_runtime_change_before_catalog_commit() {
+        let _desktop = crate::test_support::lock_env();
+        profile_contract::runtime_changed_before_catalog_commit(desktop);
+    }
+    #[test]
+    fn profile_checkpoint_failure_keeps_activation() {
+        let _desktop = crate::test_support::lock_env();
+        profile_contract::checkpoint_failure_keeps_activation(desktop);
+    }
 }
 
-use crate::commands::settings_raw::{
-    invalid_result, read_raw_file, toml_error_position, write_raw_file_versioned,
-};
+use crate::commands::settings_raw::{invalid_result, toml_error_position};
 
 pub(crate) fn resolve_profile_target_name(
     platform_label: &str,
@@ -103,8 +115,14 @@ pub(crate) fn profiles_export_payload_from_path(
         return Err("Redacted profiles export is not supported".to_string());
     }
 
-    let content = fs::read_to_string(profiles_file)
-        .map_err(|e| format!("Failed to read profiles.toml: {e}"))?;
+    let manager = ConfigManager::new(profiles_file);
+    let content = match manager
+        .canonical_toml()
+        .map_err(|error| error.to_string())?
+    {
+        Some((content, _revision)) => content,
+        None => return Err("Failed to read profiles catalog".to_string()),
+    };
     let timestamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
     let filename = format!("{filename_prefix}-{timestamp}.toml");
 
@@ -115,7 +133,26 @@ pub(crate) fn profiles_export_payload_from_path(
 }
 
 pub(crate) fn profiles_raw_payload_from_paths(paths: &PlatformPaths) -> Result<Value, String> {
-    read_raw_file(&paths.profiles_file)
+    let manager = ConfigManager::new(&paths.profiles_file);
+    match manager
+        .canonical_toml()
+        .map_err(|error| error.to_string())?
+    {
+        Some((content, revision)) => Ok(json!({
+            "status": "ok",
+            "content": content,
+            "token": revision,
+            "path": manager.profiles_db(),
+            "exists": true,
+        })),
+        None => Ok(json!({
+            "status": "ok",
+            "content": "",
+            "token": "",
+            "path": paths.profiles_db(),
+            "exists": false,
+        })),
+    }
 }
 
 pub(crate) fn save_profiles_raw_to_paths(
@@ -161,26 +198,24 @@ pub(crate) fn save_profiles_raw_to_paths(
         }));
     }
 
-    // CAS covers concurrent structured/raw writers without nesting the profile RMW lock.
-    let mut result = write_raw_file_versioned(
-        &paths.profiles_file,
-        &paths.backups_dir,
-        "profiles",
-        content,
-        token,
-        true,
-    )?;
-    if result["status"] == "saved" {
-        result["profiles_count"] = json!(profiles.len());
+    match ConfigManager::new(&paths.profiles_file).replace_toml(content, token) {
+        Ok(revision) => Ok(json!({
+            "status": "saved",
+            "token": revision,
+            "profiles_count": profiles.len(),
+        })),
+        Err(CcrError::ValidationError(message)) if message == "配置版本冲突，请重新读取后重试" => {
+            Ok(json!({ "status": "conflict" }))
+        }
+        Err(error) => Err(error.to_string()),
     }
-    Ok(result)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ccr_core::core::content_version_token;
     use std::ffi::OsString;
+    use std::fs;
     use std::path::PathBuf;
 
     struct ScopedLockDir(Option<OsString>);
@@ -234,22 +269,54 @@ mod tests {
     }
 
     #[test]
-    fn profiles_raw_get_reports_verbatim_content_and_token() {
+    fn profiles_raw_get_reports_missing_catalog_without_creating_files() {
         let temp_dir = tempfile::tempdir().unwrap();
         let paths = test_paths(temp_dir.path());
-        fs::create_dir_all(&paths.platform_dir).unwrap();
-        let content = valid_profile("active", "model-a");
-        fs::write(&paths.profiles_file, &content).unwrap();
 
         let result = profiles_raw_payload_from_paths(&paths).unwrap();
 
         assert_eq!(result["status"], "ok");
-        assert_eq!(result["content"], content);
-        assert_eq!(result["token"], content_version_token(content.as_bytes()));
+        assert_eq!(result["content"], "");
+        assert_eq!(result["token"], "");
+        assert_eq!(result["exists"], false);
         assert_eq!(
             result["path"].as_str(),
-            Some(paths.profiles_file.to_string_lossy().as_ref())
+            Some(paths.profiles_db().to_string_lossy().as_ref())
         );
+        assert!(!paths.profiles_file.exists());
+        assert!(!paths.profiles_db().exists());
+    }
+
+    #[test]
+    fn profiles_raw_get_returns_canonical_toml_and_revision() {
+        let _guard = crate::test_support::lock_env();
+        let temp_dir = tempfile::tempdir().unwrap();
+        let _lock_dir = ScopedLockDir::new(temp_dir.path().join("locks"));
+        let paths = test_paths(temp_dir.path());
+        fs::create_dir_all(&paths.platform_dir).unwrap();
+        let saved = save_profiles_raw_to_paths(
+            &paths,
+            None,
+            &valid_profile("active", "model-a"),
+            "",
+            false,
+        )
+        .unwrap();
+
+        let result = profiles_raw_payload_from_paths(&paths).unwrap();
+
+        assert_eq!(saved["status"], "saved");
+        assert_eq!(result["status"], "ok");
+        let content = result["content"].as_str().unwrap();
+        assert!(content.contains("[active]"));
+        assert!(content.contains("model = \"model-a\""));
+        assert_eq!(result["token"], saved["token"]);
+        assert_eq!(result["exists"], true);
+        assert_eq!(
+            result["path"].as_str(),
+            Some(paths.profiles_db().to_string_lossy().as_ref())
+        );
+        assert!(!paths.profiles_file.exists());
     }
 
     #[test]
@@ -282,6 +349,7 @@ mod tests {
             assert!(!result["message"].as_str().unwrap().contains(probe));
         }
         assert!(!paths.profiles_file.exists());
+        assert!(!paths.profiles_db().exists());
         assert!(!paths.backups_dir.exists());
     }
 
@@ -294,25 +362,29 @@ mod tests {
         fs::create_dir_all(&paths.platform_dir).unwrap();
         let original = valid_profile("active", "model-a");
         let replacement = valid_profile("replacement", "model-b");
-        fs::write(&paths.profiles_file, &original).unwrap();
-        let token = content_version_token(original.as_bytes());
+        let seeded = save_profiles_raw_to_paths(&paths, None, &original, "", false).unwrap();
+        assert_eq!(seeded["status"], "saved");
+        let token = seeded["token"].as_str().unwrap();
 
         let blocked =
-            save_profiles_raw_to_paths(&paths, Some("active"), &replacement, &token, false)
-                .unwrap();
+            save_profiles_raw_to_paths(&paths, Some("active"), &replacement, token, false).unwrap();
         assert_eq!(blocked["status"], "activation_conflict");
         assert_eq!(blocked["current"], "active");
-        assert_eq!(fs::read_to_string(&paths.profiles_file).unwrap(), original);
+        let kept = profiles_raw_payload_from_paths(&paths).unwrap();
+        assert_eq!(kept["token"], token);
+        assert!(kept["content"].as_str().unwrap().contains("model-a"));
+        assert!(!paths.profiles_file.exists());
+        assert!(!paths.backups_dir.exists());
 
         let saved =
-            save_profiles_raw_to_paths(&paths, Some("active"), &replacement, &token, true).unwrap();
+            save_profiles_raw_to_paths(&paths, Some("active"), &replacement, token, true).unwrap();
         assert_eq!(saved["status"], "saved");
         assert_eq!(saved["profiles_count"], 1);
-        assert_eq!(
-            fs::read_to_string(&paths.profiles_file).unwrap(),
-            replacement
-        );
-        assert_eq!(fs::read_dir(&paths.backups_dir).unwrap().count(), 1);
+        let next = profiles_raw_payload_from_paths(&paths).unwrap();
+        assert!(next["content"].as_str().unwrap().contains("model-b"));
+        assert!(!next["content"].as_str().unwrap().contains("model-a"));
+        assert!(!paths.profiles_file.exists());
+        assert!(!paths.backups_dir.exists());
     }
 
     #[test]
@@ -324,9 +396,12 @@ mod tests {
         fs::create_dir_all(&paths.platform_dir).unwrap();
         let original = valid_profile("active", "model-a");
         let external = valid_profile("active", "model-external");
-        fs::write(&paths.profiles_file, &original).unwrap();
-        let stale_token = content_version_token(original.as_bytes());
-        fs::write(&paths.profiles_file, &external).unwrap();
+        let seeded = save_profiles_raw_to_paths(&paths, None, &original, "", false).unwrap();
+        let stale_token = seeded["token"].as_str().unwrap().to_string();
+        let updated =
+            save_profiles_raw_to_paths(&paths, Some("active"), &external, &stale_token, false)
+                .unwrap();
+        assert_eq!(updated["status"], "saved");
 
         let result = save_profiles_raw_to_paths(
             &paths,
@@ -338,7 +413,11 @@ mod tests {
         .unwrap();
 
         assert_eq!(result["status"], "conflict");
-        assert_eq!(fs::read_to_string(&paths.profiles_file).unwrap(), external);
+        let kept = profiles_raw_payload_from_paths(&paths).unwrap();
+        assert_eq!(kept["token"], updated["token"]);
+        assert!(kept["content"].as_str().unwrap().contains("model-external"));
+        assert!(!kept["content"].as_str().unwrap().contains("model-editor"));
+        assert!(!paths.profiles_file.exists());
         assert!(!paths.backups_dir.exists());
     }
 
@@ -362,8 +441,9 @@ mod tests {
         .unwrap();
 
         assert_eq!(result["status"], "saved");
+        assert!(!paths.profiles_file.exists());
         assert_eq!(
-            fs::metadata(&paths.profiles_file)
+            fs::metadata(paths.profiles_db())
                 .unwrap()
                 .permissions()
                 .mode()

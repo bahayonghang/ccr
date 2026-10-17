@@ -132,6 +132,10 @@ fn main() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
+            ccr_config::migrate_catalogs().map_err(|error| {
+                tracing::error!("[app] failed to migrate profile catalogs: {error}");
+                Box::new(error) as Box<dyn std::error::Error>
+            })?;
             if let Some(window) = app.get_webview_window("main") {
                 if let Err(error) = configure_main_window_chrome(&window) {
                     tracing::warn!("[app] failed to configure main window chrome: {error}");
