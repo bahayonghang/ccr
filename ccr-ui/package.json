@@ -48,7 +48,7 @@
     "check:all": "bun run docs:audit && bun run type-check && bun run lint && bun run test && bun run tauri:check"
   },
   "dependencies": {
-    "@codemirror/commands": "^6.11.0",
+    "@codemirror/commands": "^6.11.1",
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/lang-markdown": "^6.5.2",
     "@codemirror/language": "^6.12.4",
