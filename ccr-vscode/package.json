@@ -256,7 +256,7 @@
     "test": "node --test scripts/check-package-files.test.mjs && node --import tsx --test src/**/*.test.ts"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": "^26.6.5",
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2",
