@@ -12,6 +12,192 @@ use ccr_core::CcrError;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+#[test]
+fn first_create_transaction_body_commit_and_panic_failures_leave_no_catalog() {
+    for mode in ["body", "commit", "panic"] {
+        let fixture = tempfile::tempdir().unwrap();
+        let manager = ConfigManager::new(fixture.path().join("profiles.toml"));
+        ccr_core::core::LockManager::with_scoped_directory(&fixture.path().join("locks"), || {
+            let operation = || -> ccr_core::Result<()> {
+                CatalogTransaction::execute_or_create(
+                    manager.config_path(),
+                    manager.profiles_db(),
+                    Some(""),
+                    |_| {
+                        manager.mutate(|config| {
+                            config.sections.insert("new".into(), Default::default());
+                            Ok(())
+                        })?;
+                        match mode {
+                            "body" => Err(CcrError::ValidationError("fixture body failure".into())),
+                            "commit" => {
+                                fail_next_catalog_commit();
+                                Ok(())
+                            }
+                            _ => panic!("fixture transaction unwind"),
+                        }
+                    },
+                )
+            };
+            if mode == "panic" {
+                assert!(std::panic::catch_unwind(operation).is_err());
+            } else {
+                assert!(operation().is_err());
+            }
+            assert!(!manager.profiles_db().exists());
+            assert!(super::active_session(manager.profiles_db()).is_none());
+            CatalogTransaction::execute_or_create(
+                manager.config_path(),
+                manager.profiles_db(),
+                Some(""),
+                |_| {
+                    manager.mutate(|config| {
+                        config.sections.insert("new".into(), Default::default());
+                        Ok(())
+                    })
+                },
+            )?;
+            assert!(manager.load()?.sections.contains_key("new"));
+            Ok(())
+        })
+        .unwrap();
+    }
+}
+
+#[test]
+fn first_create_transaction_preserves_legacy_foreign_and_inactive_catalogs() {
+    let fixture = tempfile::tempdir().unwrap();
+    ccr_core::core::LockManager::with_scoped_directory(&fixture.path().join("locks"), || {
+        let legacy = ConfigManager::new(fixture.path().join("legacy/profiles.toml"));
+        fs::create_dir_all(legacy.config_path().parent().unwrap())?;
+        fs::write(legacy.config_path(), b"[original]\nmodel = 'kept'\n")?;
+        let original_permissions = fs::metadata(legacy.config_path())?.permissions();
+        let mut readonly = original_permissions.clone();
+        readonly.set_readonly(true);
+        fs::set_permissions(legacy.config_path(), readonly)?;
+        assert!(
+            CatalogTransaction::execute_or_create(
+                legacy.config_path(),
+                legacy.profiles_db(),
+                Some(""),
+                |_| Ok(())
+            )
+            .is_err()
+        );
+        assert!(!legacy.profiles_db().exists());
+        assert_eq!(
+            fs::read(legacy.config_path())?,
+            b"[original]\nmodel = 'kept'\n"
+        );
+        assert!(fs::metadata(legacy.config_path())?.permissions().readonly());
+        fs::set_permissions(legacy.config_path(), original_permissions)?;
+
+        let collision = ConfigManager::new(fixture.path().join("collision/profiles.toml"));
+        let result = CatalogTransaction::execute_or_create(
+            collision.config_path(),
+            collision.profiles_db(),
+            Some(""),
+            |_| {
+                fs::create_dir_all(collision.profiles_db().parent().unwrap())?;
+                fs::write(collision.profiles_db(), b"foreign create-new collision")?;
+                Ok(())
+            },
+        );
+        assert!(result.is_err());
+        assert_eq!(
+            fs::read(collision.profiles_db())?,
+            b"foreign create-new collision"
+        );
+
+        let late_legacy = ConfigManager::new(fixture.path().join("late-legacy/profiles.toml"));
+        assert!(
+            CatalogTransaction::execute_or_create(
+                late_legacy.config_path(),
+                late_legacy.profiles_db(),
+                Some(""),
+                |_| {
+                    fs::create_dir_all(late_legacy.config_path().parent().unwrap())?;
+                    fs::write(late_legacy.config_path(), b"foreign legacy publication")?;
+                    Ok(())
+                }
+            )
+            .is_err()
+        );
+        assert!(!late_legacy.profiles_db().exists());
+        assert_eq!(
+            fs::read(late_legacy.config_path())?,
+            b"foreign legacy publication"
+        );
+
+        let inactive = ConfigManager::new(fixture.path().join("inactive/profiles.toml"));
+        inactive.ensure_initialized()?;
+        inactive.mutate(|config| {
+            config.current_config.clear();
+            Ok(())
+        })?;
+        let revision = inactive.snapshot()?.version;
+        assert!(
+            CatalogTransaction::execute_or_create(
+                inactive.config_path(),
+                inactive.profiles_db(),
+                Some(""),
+                |_| Ok(())
+            )
+            .is_err()
+        );
+        CatalogTransaction::execute_or_create(
+            inactive.config_path(),
+            inactive.profiles_db(),
+            Some(&revision),
+            |_| {
+                inactive.mutate(|config| {
+                    config.sections.insert("new".into(), Default::default());
+                    Ok(())
+                })
+            },
+        )?;
+        assert!(inactive.load()?.current_config.is_empty());
+        Ok(())
+    })
+    .unwrap();
+}
+
+#[test]
+fn first_create_transaction_two_clients_have_one_winner() {
+    let fixture = tempfile::tempdir().unwrap();
+    let barrier = std::sync::Arc::new(std::sync::Barrier::new(2));
+    let clients = ["a", "b"]
+        .into_iter()
+        .map(|name| {
+            let root = fixture.path().to_path_buf();
+            let barrier = barrier.clone();
+            std::thread::spawn(move || {
+                barrier.wait();
+                ccr_core::core::LockManager::with_scoped_directory(&root.join("locks"), || {
+                    let manager = ConfigManager::new(root.join("profiles.toml"));
+                    CatalogTransaction::execute_or_create(
+                        manager.config_path(),
+                        manager.profiles_db(),
+                        Some(""),
+                        |_| {
+                            manager.mutate(|config| {
+                                config.sections.insert(name.into(), Default::default());
+                                Ok(())
+                            })
+                        },
+                    )
+                })
+            })
+        })
+        .collect::<Vec<_>>();
+    let results = clients
+        .into_iter()
+        .map(|client| client.join().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(results.iter().filter(|result| result.is_ok()).count(), 1);
+    assert_eq!(results.iter().filter(|result| matches!(result, Err(CcrError::ValidationError(message)) if message == "配置版本冲突，请重新读取后重试")).count(), 1);
+}
+
 fn paths(platform: Platform) -> PlatformPaths {
     PlatformPaths::new(platform).unwrap()
 }

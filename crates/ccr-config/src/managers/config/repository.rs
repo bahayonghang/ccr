@@ -200,7 +200,8 @@ impl ConfigManager {
     }
 }
 
-pub(crate) fn validate_profile_name(name: &str) -> Result<()> {
+/// Validate catalog identifiers before platform secret persistence.
+pub fn validate_profile_name(name: &str) -> Result<()> {
     if name.trim().is_empty() || matches!(name, "default_config" | "current_config" | "settings") {
         return Err(CcrError::ValidationError(
             "配置名称为空或属于保留字段".into(),

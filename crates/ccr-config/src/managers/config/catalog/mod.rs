@@ -287,6 +287,59 @@ impl CatalogTransaction {
             path,
             conn: RefCell::new(connection),
         });
+        Self::execute_session(session, body)
+    }
+
+    /// Join an existing catalog or stage an absent catalog privately until the
+    /// body and commit succeed. The empty expected token means absence only.
+    /// Platform reads and writes inside the body join the same live-path session.
+    pub fn execute_or_create<T>(
+        legacy: &Path,
+        db: &Path,
+        expected: Option<&str>,
+        body: impl FnOnce(&CatalogTransaction) -> Result<T>,
+    ) -> Result<T> {
+        let _guard = acquire_catalog_lock(db)?;
+        if active_session(db).is_some() || matches!(presence(legacy, db)?, Presence::Ready) {
+            return Self::execute(db, |transaction| {
+                if let Some(expected) = expected
+                    && expected != transaction.current_revision()?
+                {
+                    return Err(version_conflict());
+                }
+                body(transaction)
+            });
+        }
+        if legacy.exists() {
+            return Err(not_migrated());
+        }
+        if expected.is_some_and(|expected| !expected.is_empty()) {
+            return Err(version_conflict());
+        }
+        if ACTIVE.with(|slot| slot.borrow().is_some()) {
+            return Err(CcrError::ConfigError("目录事务不能跨目录嵌套".into()));
+        }
+        let staging = TempSnapshot::create()?;
+        let connection = open_rw(&staging.path)?;
+        write_all(&connection, &fresh_catalog()?)?;
+        let session = Rc::new(Session {
+            path: normalize(db)?,
+            conn: RefCell::new(connection),
+        });
+        let result = Self::execute_session(session, body)?;
+        if legacy.exists() {
+            return Err(not_migrated());
+        }
+        // Publication uses create-new semantics. A foreign/preexisting target
+        // is never replaced, and the temporary catalog is owned by its RAII guard.
+        install_new_catalog(db, &staging.path)?;
+        Ok(result)
+    }
+
+    fn execute_session<T>(
+        session: Rc<Session>,
+        body: impl FnOnce(&CatalogTransaction) -> Result<T>,
+    ) -> Result<T> {
         session
             .conn
             .borrow()

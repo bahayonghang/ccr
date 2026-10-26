@@ -787,6 +787,28 @@ pub struct CurrentProfileResolution {
     pub repair: Option<CurrentProfileRepair>,
 }
 
+/// Read Claude-style current markers without repairing either document.
+/// Explicit paths keep the domain precedence reusable without changing HOME.
+pub fn read_file_current_profile_with_paths(
+    profiles_path: &Path,
+    registry_path: &Path,
+    platform_name: &str,
+) -> Result<CurrentProfileResolution> {
+    let profiles = load_profiles_from_toml(profiles_path)?;
+    let file = load_current_profile_marker(profiles_path)?
+        .filter(|current| profiles.contains_key(current));
+    let unified = PlatformConfigManager::new(registry_path).load()?;
+    let registry = unified
+        .get_platform(platform_name)
+        .ok()
+        .and_then(|entry| entry.current_profile.as_deref());
+    Ok(resolve_file_current_profile(
+        &profiles,
+        file.as_deref(),
+        registry,
+    ))
+}
+
 /// Claude's existing precedence: valid file marker, then valid registry marker.
 pub fn resolve_file_current_profile(
     profiles: &IndexMap<String, ProfileConfig>,
