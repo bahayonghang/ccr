@@ -73,3 +73,74 @@ All profile content is secret. `save`, `save_config`, and `save_profiles_to_toml
 - On Windows, compare ordinary/verbatim drive and UNC resource identities and run the canonical-path/service process pair. Cover Grok edit/delete on simplified maps with no current marker and first creation in an existing empty inactive document.
 
 Run `cargo test -p ccr-config`, package Clippy with all targets/features and warnings denied, affected CLI/Codex platform tests, `just fmt-check`, and `git diff --check`. Broader application/Tauri integration remains part of the parent task.
+
+## Scenario: first creation inside a cross-file lifecycle
+
+### 1. Scope / Trigger
+
+Applies when the first profile needs platform-owned credential/runtime work and
+journal verification before catalog publication. A later existing-catalog
+transaction does not protect a first-create branch that already published rows.
+
+### 2. Signatures
+
+`CatalogTransaction::execute_or_create(legacy, db, expected: Option<&str>, body)`
+is additive. Existing `execute(db, body)` keeps its existing-catalog contract.
+
+### 3. Contracts
+
+- Hold the same catalog resource lock; keep the complete synchronous lifecycle
+  and transaction on one thread. Nested platform reads/writes join its Session.
+- For an existing catalog, compare the expected revision inside its transaction.
+  Empty expected token means absence, not an existing empty inactive document.
+- For absence, use an owner-private staging catalog with existing private
+  permissions and a live-path Session. Verify the lifecycle body and commit
+  before create-new publication through the catalog owner's existing installer.
+  This is temporary transactional staging, not a second persistent database.
+- Legacy TOML alone still requires explicit migration. An existing/foreign live
+  target is never overwritten/deleted to make first creation succeed.
+- Error, commit failure or unwind clears Session and removes only owned staging;
+  the application journal restores its declared noncatalog files. No orphan
+  profile may remain after its credential write was rolled back.
+- Preserve existing platform normalization, first-create current/default marker
+  semantics and inactive existing-empty behavior. Creating a staging document
+  must not silently change which case the platform observes.
+- Constructors/queries never call this write API. Do not copy a live SQLite
+  file, add SQL in an adapter, or delete an existing catalog as compensation.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required result |
+| --- | --- |
+| Absent catalog and valid first profile | One domain-normalized committed profile |
+| Body/journal verification fails | No published orphan; external runtime change retained |
+| Catalog commit fails | No publication; declared secret files rolled back |
+| Body panics | Transaction/Session/staging cleaned; later operation can run |
+| Competing first creator publishes | Conflict/create-new refusal; no overwrite |
+| Nonempty expected token on absence | Conflict before body |
+| Empty expected token on existing document | Conflict, even if document has no profiles |
+| Existing empty inactive document | Adding a profile retains inactive marker |
+
+### 5. Good / Base / Bad Cases
+
+- Good: context.create uses the same catalog owner for both missing and existing
+  catalogs, with platform save and journal.verify inside the body.
+- Base: ordinary existing-catalog execute keeps its previous transaction flow.
+- Bad: platform save publishes a first catalog, journal.verify then fails, and
+  an adapter removes only credentials or blindly deletes live SQLite files.
+
+### 6. Tests Required
+
+Cover real Codex credential-store creation plus late journal failure; catalog
+body/commit/panic cleanup and subsequent Session reuse; legacy/foreign target
+refusal; concurrent first creators; original tokens; platform first-marker
+parity and existing-empty inactivity. Keep default parallelism and
+`--skip export_bindings`; task evidence records actual command results.
+
+### 7. Wrong vs Correct
+
+Wrong: `if absent { platform.save_profile(...)?; journal.verify()? }` without an
+outer publication/transaction boundary.
+
+Correct: `execute_or_create(..., |_| { platform.save_profile(...)?; journal.verify() })`,
+then commit the application journal only after the catalog owner succeeds.

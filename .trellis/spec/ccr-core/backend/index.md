@@ -10,6 +10,7 @@
 | [Logging Contracts](./logging-contracts.md) | Daily file names, write-boundary redaction, bridge queue | Complete |
 | [CcrError Freeze](./ccr-error-freeze.md)      | ADR: CcrError frozen at 25 variants; new domain errors live in owning crates      | Complete |
 | [Atomic Writer](./atomic-writer.md)           | Crash-safe file replacement and guarded write (lock/backup/fsync/0o600) contracts | Complete |
+| [Scoped lock directory](./scoped-lock-directory.md) | Synchronous injected lifecycle lock isolation and RAII restoration | Complete |
 | [Test Fixtures](./test-fixtures.md)           | ccr-core process environment test fixtures                                        | Complete |
 | [Managed Process Tree](./managed-process.md)  | Cross-platform process-tree ownership, termination, and reap contracts             | Complete |
 
@@ -19,5 +20,6 @@
 - Read [Logging Contracts](./logging-contracts.md) before changing `init_logger`, log file names, `log_redact`, or the bridge queue.
 - Read [CcrError Freeze](./ccr-error-freeze.md) before touching `CcrError` variants or choosing an error type for a new module — the enum is frozen; new domain errors belong in the owning crate.
 - Read [Atomic Writer](./atomic-writer.md) before changing atomic file writes, Windows replacement behavior, guarded write (lock/backup/secret) policy, or config/auth persistence helpers.
+- Read [Scoped lock directory](./scoped-lock-directory.md) when injecting lifecycle paths or calling nested default lock resolvers from an explicit fixture.
 - Read [Test Fixtures](./test-fixtures.md) before adding tests that mutate `CCR_LOG_LEVEL`, `RUST_LOG`, or process env.
 - Read [Managed Process Tree](./managed-process.md) before changing child spawn, process-group/Job Object setup, cancellation, timeout escalation, or reap behavior.

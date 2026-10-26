@@ -118,6 +118,57 @@ let current = create_platform(platform)?.get_current_profile()?;
 
 ## Cross-crate behavioral fixtures
 
-Desktop tests that invoke `ccr_cli::application::profile_contract` must hold `crate::test_support::lock_env()` before entering the shared fixture. The shared fixture then takes the CLI environment lock. The order is desktop environment lock → CLI environment lock. The guard remains alive until the fixture restores all process variables. Existing desktop tests use the desktop lock; the CLI lock alone does not exclude those tests. Keep the default test parallelism and all behavior assertions.
+Legacy cross-crate `profile_contract` fixtures use the explicit, ownership-marked `CCR_PROFILE_CONTRACT_ROOT` child-process seam. Tauri contract parents configure CCR keys on `Command`, preserve HOME/USERPROFILE, require the named child to pass and keep default parent test parallelism. See [Test Fixtures](./test-fixtures.md). Do not restore the old practice of mutating global HOME or serializing the whole suite.
 
-An injected profile path does not remove the lock-directory environment dependency: repository and guarded writes still resolve `CCR_LOCK_DIR`. Desktop filesystem fixtures that use those writers also hold the desktop environment guard. Use the existing `TestProcessEnv` to scope overrides and restore them during panic unwinding; do not restore variables only after assertion-bearing closures.
+New injected lifecycle fixtures construct `ProfileLifecycleContext` directly. A profile path alone does not isolate nested default lock resolution; context `run` binds the existing writer chain to its synchronous [scoped lock directory](../../ccr-core/backend/scoped-lock-directory.md). It must remain on one worker without await/spawn.
+
+## Scenario: injected lifecycle and original draft revision
+
+### 1. Scope / Trigger
+
+Applies when native/embedding consumers need explicit catalog, registry, runtime, lock and history roots, or save a draft read before another client changed the catalog. Legacy public apply/enable/update/off APIs keep their default resolver behavior.
+
+### 2. Signatures
+
+- `ProfileLifecycleContext::{new, for_claude, for_codex, for_grok}` select the production resolver or explicit platform paths and runtime/lock/history paths.
+- `context.update(name, target, expected_version: Option<&str>, patch)` accepts the original catalog revision; `None` retains legacy current-at-operation behavior.
+- `context.create(name, profile, expected_version)` delegates normalization/secret storage to the platform owner and guards the original revision when supplied.
+- `update_profile_versioned(platform, name, target, expected_version, patch)` is the production-path convenience entry.
+- `context.{apply, enable, off, needs_login_prep, export_profile_env}` retain the existing domain owners.
+
+### 3. Contracts
+
+- Constructors and missing-source reads are path-only: no catalog migration, directory creation or ambient-home fallback from an explicitly injected context.
+- Original revision comparison occurs inside the locked catalog mutation/transaction. Reading a fresh token immediately before saving cannot protect an older editor draft.
+- Application, journal, backup, secret store, runtime markers, history and nested leaf locks all use the same context. No global HOME/USERPROFILE mutation or environment trick supplies missing paths.
+- Claude/Codex journaled rename preserves unknown values and rollback/recovery. Same-name edits do not implicitly activate.
+- Grok's existing staged rename is a distinct policy: save destination, apply if active, delete source. Its typed partial apply/cleanup failures preserve actual remaining names and runtime state, which adapters must re-read. Apply failure retains both names; cleanup may fail after catalog deletion but before registry cleanup. Do not promise both names in every cleanup failure, replace these outcomes with a generic successful rename, or silently fold them into Claude semantics.
+- Context operations acquire application lock, then Grok's private operation lock, then catalog, then leaf locks. The standalone Grok staged domain API acquires private operation then catalog; callers composing application policy supply its outer application lock. The domain's already-locked adapter avoids acquiring the private operation lock from inside a catalog transaction. Direct Grok apply/off joins the same private lock; do not use reentrant TLS to hide inversions.
+- Grok guarded delete retains active/drifted/unsafe and explicit force rules in the Grok owner. A generic repository deletion is not a replacement.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required result |
+| --- | --- |
+| Two native clients save the same revision | One commits, the other conflicts; unchanged fields survive |
+| Wrong platform request on an injected context | Reject before accessing files |
+| Invalid field, failed backup or guarded apply write | Preserve prior state or return existing recovery outcome |
+| Failure after secret-store update/catalog commit attempt | Restore both under the existing journal, or report recovery |
+| Grok staged apply/cleanup fails | Typed partial outcome with names/runtime truth retained |
+| Native view closes during work | App runtime owns cleanup; no detached synchronous journal |
+
+### 5. Good / Base / Bad Cases
+
+- Good: scoped context plus original revision plus typed patch, all on one worker.
+- Base: legacy caller omits expected revision and preserves its former behavior.
+- Bad: compare token outside the lock, then call unversioned update; or use default auth/off helpers from a path-injected fixture.
+
+### 6. Tests Required
+
+`profile_lifecycle_tests` covers missing-read purity, original-draft CAS, apply/rename/replay/off, typed normalization, invalid/backup/write/commit failures, secret retention, Grok staged failure states, guarded delete and direct-apply concurrency. Run affected ccr-cli/config/codex/core suites plus real Tauri and native adapters with default parallelism and `--skip export_bindings`. Evidence must distinguish actual tests from source review/native screenshots.
+
+### 7. Wrong vs Correct
+
+Wrong: hold a catalog guard, then call public Grok apply which acquires its private operation lock; or save a draft with a newly read revision.
+
+Correct: enter the platform application owner, acquire Grok's private operation lock before catalog work, use its already-locked adapter, and compare the editor's original revision inside the catalog transaction.
