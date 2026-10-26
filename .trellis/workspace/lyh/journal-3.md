@@ -430,3 +430,35 @@ ccr project init 现在默认勾选五项平台并要求输入用户名，-y 使
 ### Status
 
 [OK] **Completed**
+
+
+## Session 134: GPUI 04 暂停与续作交接
+<!-- trellis-session: v=2 fp=8f83ef3b9129fadc -->
+
+**Date**: 2026-10-18
+**Task**: GPUI 04 暂停与续作交接
+**Branch**: `dev`
+
+### Summary
+
+用户主动Escape并明确暂停。04源码与独立检查冻结、最终debug构建成功；04核心原生验收及台账整合待新对话继续。
+
+### Main Changes
+
+- 记录父任务和04暂停metadata及pause-handoff.md；保留所有未提交修改，不归档。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 复核最终build exit0、exe SHA256及root/native既有通过凭据；无Cargo/rustc/ccr-gpui残留，未启动新GUI。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 新对话读04/pause-handoff.md；恢复04核心CU并整合证据后按依赖继续05–10；不做缩放/DPI。
