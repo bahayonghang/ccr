@@ -1,5 +1,10 @@
 use std::path::PathBuf;
 
+#[cfg(test)]
+#[allow(dead_code)]
+#[path = "../../../scripts/test-support/home_process.rs"]
+mod home_process;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AppPaths {
     pub root_dir: PathBuf,
@@ -84,26 +89,17 @@ mod tests {
 
     #[test]
     fn default_discovery_uses_llmusage_root_not_legacy_ccr_root() {
-        let _guard = ENV_LOCK.lock().expect("env lock should be available");
-        let temp_home = TempDir::new().expect("temp home should be created");
-        let saved_llmusage = std::env::var_os("LLMUSAGE_HOME");
-        let saved_home = std::env::var_os("HOME");
-        let saved_userprofile = std::env::var_os("USERPROFILE");
-        unsafe {
-            std::env::remove_var("LLMUSAGE_HOME");
-            std::env::set_var("HOME", temp_home.path());
-            std::env::set_var("USERPROFILE", temp_home.path());
+        if !home_process::is_child() {
+            home_process::run_case("default-home", |command, _| {
+                command.env_remove("LLMUSAGE_HOME");
+            });
+            return;
         }
+        let _guard = ENV_LOCK.lock().expect("env lock should be available");
+        let temp_home = home_process::child_root();
 
         let paths = discover_llmusage_paths().expect("default llmusage root should be discovered");
-        assert_eq!(paths.root_dir, temp_home.path().join(".llmusage"));
-        assert_ne!(
-            paths.root_dir,
-            temp_home.path().join(".ccr").join("llmusage")
-        );
-
-        restore_env("LLMUSAGE_HOME", saved_llmusage);
-        restore_env("HOME", saved_home);
-        restore_env("USERPROFILE", saved_userprofile);
+        assert_eq!(paths.root_dir, temp_home.join(".llmusage"));
+        assert_ne!(paths.root_dir, temp_home.join(".ccr").join("llmusage"));
     }
 }
