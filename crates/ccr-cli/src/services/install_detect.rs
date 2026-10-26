@@ -321,6 +321,12 @@ mod tests {
 
     #[test]
     fn resolve_executable_uses_cargo_hints() {
+        if !crate::home_process::is_child() {
+            crate::home_process::run_case("without-home", |command, _| {
+                command.env_remove("HOME");
+            });
+            return;
+        }
         let mut env = TestHostEnv::new();
         let cwd = env.home();
         let bin_dir = cwd.join("bin");
@@ -337,7 +343,6 @@ mod tests {
             "PATH",
             std::ffi::OsStr::new("/_ccr_nonexistent_path_for_tests"),
         );
-        env.remove_env("HOME");
         let result = probe_host_capabilities();
         assert!(result.has_cargo);
         assert_eq!(result.cargo_path, Some(path_on_hint.clone()));
@@ -345,8 +350,11 @@ mod tests {
 
     #[test]
     fn cargo_path_in_probe_host_capabilities_comes_from_hint_dirs() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let mut env = TestHostEnv::new();
-        let home = env.home().join("home");
+        let home = env.home().to_path_buf();
         let cargo_bin = home.join(".cargo").join("bin");
         std::fs::create_dir_all(&cargo_bin).expect("create cargo bin dir");
 
@@ -356,7 +364,6 @@ mod tests {
         set_executable_mode_if_needed(&exe_path);
 
         env.remove_env("CARGO_HOME");
-        env.set_env("HOME", home.as_os_str());
         env.set_env(
             "PATH",
             std::ffi::OsStr::new("/_ccr_nonexistent_path_for_tests"),

@@ -34,6 +34,9 @@ mod tests {
     use super::*;
     #[test]
     fn profile_post_publish_failure_contract() {
+        if ccr_cli::home_process::run_current_test() {
+            return;
+        }
         profile_contract::post_publish_failure(apply);
     }
     #[test]
@@ -73,38 +76,65 @@ mod tests {
     use ccr_cli::application::profile_contract;
     #[test]
     fn profile_deleted_after_prepare_contract() {
+        if ccr_cli::home_process::run_current_test() {
+            return;
+        }
         profile_contract::deleted_after_preparation(apply);
     }
     #[test]
     fn apply_preflight_contract() {
+        if ccr_cli::home_process::run_current_test() {
+            return;
+        }
         profile_contract::preflight(apply);
     }
     #[test]
     fn apply_success_replay_contract() {
+        if ccr_cli::home_process::run_current_test() {
+            return;
+        }
         profile_contract::success_and_replay(apply);
     }
     #[test]
     fn apply_ancillary_contract() {
+        if ccr_cli::home_process::run_current_test() {
+            return;
+        }
         profile_contract::ancillary_failures(apply);
     }
     #[test]
     fn apply_each_write_contract() {
+        if ccr_cli::home_process::run_current_test() {
+            return;
+        }
         profile_contract::failure_matrix(apply);
     }
     #[test]
     fn apply_external_version_contract() {
+        if ccr_cli::home_process::run_current_test() {
+            return;
+        }
         profile_contract::external_change(apply);
     }
     #[test]
     fn apply_commit_failure_replays_operation() {
+        if ccr_cli::home_process::run_current_test() {
+            return;
+        }
         profile_contract::commit_failure_replays(apply);
     }
     #[test]
     fn apply_runtime_change_before_catalog_commit() {
+        if ccr_cli::home_process::run_current_test() {
+            return;
+        }
         profile_contract::runtime_changed_before_catalog_commit(apply);
     }
     #[test]
     fn apply_checkpoint_failure_keeps_activation() {
+        if ccr_cli::home_process::run_current_test() {
+            return;
+        }
         profile_contract::checkpoint_failure_keeps_activation(apply);
     }
 }

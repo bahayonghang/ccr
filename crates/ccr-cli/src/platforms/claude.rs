@@ -38,6 +38,7 @@ use std::path::PathBuf;
 pub struct ClaudePlatform {
     paths: PlatformPaths,
     settings_manager: SettingsManager,
+    lock_dir: PathBuf,
 }
 
 impl ClaudePlatform {
@@ -65,10 +66,24 @@ impl ClaudePlatform {
             LockManager::with_default_path()?,
         );
 
-        Ok(Self {
+        Ok(Self::from_parts(
             paths,
             settings_manager,
-        })
+            LockManager::with_default_path()?.lock_dir().to_path_buf(),
+        ))
+    }
+
+    /// Explicit dependencies; construction performs no filesystem operations.
+    pub fn from_parts(
+        paths: PlatformPaths,
+        settings_manager: SettingsManager,
+        lock_dir: PathBuf,
+    ) -> Self {
+        Self {
+            paths,
+            settings_manager,
+            lock_dir,
+        }
     }
 
     /// 📋 从 ConfigSection 转换为 ProfileConfig
@@ -94,21 +109,10 @@ impl ClaudePlatform {
         base::load_profiles_from_toml(&self.paths.profiles_file)
     }
 
-    fn current_profile_from_file(
-        &self,
-        profiles: &IndexMap<String, ProfileConfig>,
-    ) -> Result<Option<String>> {
-        Ok(
-            base::load_current_profile_marker(&self.paths.profiles_file)?
-                .filter(|current| profiles.contains_key(current)),
-        )
-    }
-
     fn clear_current_profile_registry(&self) -> Result<()> {
-        let locks = LockManager::with_default_path()?;
         base::clear_registry_current_profile_with_paths(
             &self.paths.registry_file,
-            locks.lock_dir(),
+            &self.lock_dir,
             "claude",
         )
     }
@@ -119,21 +123,23 @@ impl ClaudePlatform {
 
     /// Resolve the current marker without repairing either file.
     pub fn current_profile_resolution(&self) -> Result<base::CurrentProfileResolution> {
-        let profiles = self.load_profiles()?;
-        let file = self.current_profile_from_file(&profiles)?;
-        let registry = base::get_current_profile_from_registry("claude")?;
-        Ok(base::resolve_file_current_profile(
-            &profiles,
-            file.as_deref(),
-            registry.as_deref(),
-        ))
+        base::read_file_current_profile_with_paths(
+            &self.paths.profiles_file,
+            &self.paths.registry_file,
+            "claude",
+        )
     }
 
     /// Explicit repair for diagnostics and migration workflows.
     pub fn reconcile_current_profile(&self) -> Result<()> {
         match self.current_profile_resolution()?.repair {
             Some(base::CurrentProfileRepair::Registry(Some(current))) => {
-                base::update_registry_current_profile("claude", &current)
+                base::update_registry_current_profile_with_paths(
+                    &self.paths.registry_file,
+                    &self.lock_dir,
+                    "claude",
+                    &current,
+                )
             }
             Some(base::CurrentProfileRepair::Registry(None)) => {
                 self.clear_current_profile_registry()
@@ -264,7 +270,13 @@ impl PlatformConfig for ClaudePlatform {
                 Ok(profiles.clone())
             },
         )?;
-        base::reconcile_registry_current_profile_after_delete("claude", name, &profiles)
+        base::reconcile_registry_current_profile_after_delete_with_paths(
+            &self.paths.registry_file,
+            &self.lock_dir,
+            "claude",
+            name,
+            &profiles,
+        )
     }
 
     fn get_settings_path(&self) -> PathBuf {
@@ -321,7 +333,12 @@ impl PlatformConfig for ClaudePlatform {
 
         // 🔧 更新 profiles.toml 中的 current_config
         self.update_current_config_in_profiles(name)?;
-        base::update_registry_current_profile("claude", name)?;
+        base::update_registry_current_profile_with_paths(
+            &self.paths.registry_file,
+            &self.lock_dir,
+            "claude",
+            name,
+        )?;
 
         tracing::info!(
             profile = name,
@@ -398,6 +415,9 @@ mod tests {
 
     #[test]
     fn claude_config_dir_controls_profile_settings_and_state_paths() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let mut home = TestHome::new_with_home_env();
         let config_dir = home.home().join("claude-custom");
         fs::create_dir_all(&config_dir).unwrap();

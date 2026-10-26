@@ -30,12 +30,105 @@ impl<'a> tracing_subscriber::fmt::MakeWriter<'a> for LogCapture {
 
 pub const SENTINEL: &str = "synthetic-T02-secret-sentinel";
 
-fn fixture(platform: Platform) -> TestHome {
-    let mut home = TestHome::new_with_home_env();
-    let root = home.root().as_os_str().to_owned();
-    home.set_env("CCR_DATA_DIR", &root);
-    let grok = home.home().join(".grok");
-    home.set_env("GROK_HOME", grok.as_os_str());
+enum ContractFixture {
+    Legacy(Box<TestHome>),
+    Process(ProcessFixture),
+}
+
+impl Drop for ContractFixture {
+    fn drop(&mut self) {
+        // Variant owners restore legacy state or clean child fixture files.
+    }
+}
+
+impl ContractFixture {
+    fn root(&self) -> &std::path::Path {
+        match self {
+            Self::Legacy(home) => home.root(),
+            Self::Process(home) => &home.root,
+        }
+    }
+
+    fn settings_path(&self) -> &std::path::Path {
+        match self {
+            Self::Legacy(home) => home.settings_path(),
+            Self::Process(home) => &home.settings,
+        }
+    }
+}
+
+/// Test-only process fixture. The caller supplies child environment overrides;
+/// no process-global HOME, USERPROFILE, or CCR variables are changed here.
+struct ProcessFixture {
+    base: PathBuf,
+    root: PathBuf,
+    settings: PathBuf,
+}
+
+impl ProcessFixture {
+    fn new(base: PathBuf) -> Self {
+        assert!(base.is_absolute(), "contract fixture root must be absolute");
+        let base = base.canonicalize().unwrap();
+        assert!(base.join(".ccr-profile-contract-fixture").is_file());
+        let root = base.join(".ccr");
+        let settings = base.join(".claude/settings.json");
+        for (key, expected) in [
+            ("CCR_ROOT", root.clone()),
+            ("CCR_DATA_DIR", root.clone()),
+            ("CCR_LOCK_DIR", base.join(".locks")),
+            ("CLAUDE_CONFIG_DIR", base.join(".claude")),
+            ("CLAUDE_JSON_PATH", base.join(".claude.json")),
+            ("CCR_SETTINGS_PATH", settings.clone()),
+            ("CCR_BACKUP_DIR", base.join(".claude/backups")),
+            ("CCR_CODEX_DIR", base.join(".codex")),
+            ("GROK_HOME", base.join(".grok")),
+        ] {
+            assert_eq!(std::env::var_os(key).map(PathBuf::from), Some(expected));
+        }
+        for dir in [".ccr", ".locks", ".claude/backups", ".codex", ".grok"] {
+            std::fs::create_dir_all(base.join(dir)).unwrap();
+        }
+        Self {
+            base,
+            root,
+            settings,
+        }
+    }
+}
+
+impl Drop for ProcessFixture {
+    fn drop(&mut self) {
+        // Only these fixture-owned children are reset between lifecycle rounds.
+        // The parent-owned marker survives until its TempDir is dropped.
+        for name in [".ccr", ".locks", ".claude", ".codex", ".grok"] {
+            let path = self.base.join(name);
+            if path.exists() {
+                std::fs::remove_dir_all(path).unwrap();
+            }
+        }
+        let json = self.base.join(".claude.json");
+        if json.exists() {
+            std::fs::remove_file(json).unwrap();
+        }
+    }
+}
+
+fn fixture(platform: Platform) -> ContractFixture {
+    let home = if let Some(root) = std::env::var_os("CCR_PROFILE_CONTRACT_ROOT") {
+        ContractFixture::Process(ProcessFixture::new(root.into()))
+    } else {
+        let mut home = TestHome::new_with_home_env();
+        let root = home.root().as_os_str().to_owned();
+        home.set_env("CCR_DATA_DIR", &root);
+        let grok = home.home().join(".grok");
+        home.set_env("GROK_HOME", grok.as_os_str());
+        ContractFixture::Legacy(Box::new(home))
+    };
+    seed_fixture(platform);
+    home
+}
+
+fn seed_fixture(platform: Platform) {
     let instance = create_platform(platform).unwrap();
     for name in ["old", "new"] {
         let mut profile = ProfileConfig::new()
@@ -60,7 +153,6 @@ fn fixture(platform: Platform) -> TestHome {
         })
         .unwrap();
     instance.apply_profile("old").unwrap();
-    home
 }
 
 /// Holds the existing environment fixture lock for downstream adapter tests.
@@ -546,6 +638,9 @@ mod tests {
     use super::*;
     #[test]
     fn enable_policy_activation_and_compensation() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         enable_lifecycle();
     }
     fn cli(request: ApplyProfileRequest) -> Result<ProfileOutcome> {
@@ -553,6 +648,9 @@ mod tests {
     }
     #[test]
     fn profile_post_publish_failure_contract() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         post_publish_failure(cli);
     }
 
@@ -645,42 +743,72 @@ mod tests {
     }
     #[test]
     fn profile_deleted_after_prepare_contract() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         deleted_after_preparation(cli);
     }
     #[test]
     fn profile_preflight_contract() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         preflight(cli);
     }
     #[test]
     fn profile_success_replay_contract() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         success_and_replay(cli);
     }
     #[test]
     fn profile_ancillary_contract() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         ancillary_failures(cli);
     }
     #[test]
     fn profile_each_write_contract() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         failure_matrix(cli);
     }
     #[test]
     fn profile_external_version_contract() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         external_change(cli);
     }
     #[test]
     fn profile_commit_failure_replays_operation() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         commit_failure_replays(cli);
     }
     #[test]
     fn profile_runtime_change_before_catalog_commit() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         runtime_changed_before_catalog_commit(cli);
     }
     #[test]
     fn profile_checkpoint_failure_keeps_activation() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         checkpoint_failure_keeps_activation(cli);
     }
     #[test]
     fn profile_rename_each_write_contract() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         rename_failures(
             &[Platform::Claude, Platform::Codex],
             |platform, name, target| update_profile(platform, name, target, |_| Ok(())),

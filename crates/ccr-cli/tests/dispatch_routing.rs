@@ -13,6 +13,10 @@
 
 #![allow(clippy::unwrap_used)]
 
+#[allow(dead_code)]
+#[path = "../../../scripts/test-support/home_process.rs"]
+mod home_process;
+
 use ccr_cli::cli::dispatch::TuiLaunchers;
 use ccr_cli::cli::{Cli, CommandDispatcher};
 use ccr_core::core::error::CcrError;
@@ -21,7 +25,6 @@ use std::ffi::{OsStr, OsString};
 use std::sync::Mutex;
 use std::sync::MutexGuard;
 use std::sync::atomic::{AtomicBool, Ordering};
-use tempfile::TempDir;
 
 // ---------------------------------------------------------------------------
 // 环境隔离（写法对齐 crates/ccr/tests/support/env.rs）
@@ -33,7 +36,7 @@ static TEST_ENV_LOCK: Mutex<()> = Mutex::new(());
 /// 保证降级分支/只读命令不会触碰用户真实配置。
 struct IsolatedEnv {
     _guard: MutexGuard<'static, ()>,
-    _temp_dir: TempDir,
+    home: std::path::PathBuf,
     previous_vars: Vec<(&'static str, Option<OsString>)>,
 }
 
@@ -56,7 +59,7 @@ impl IsolatedEnv {
             }
         }
         let mut entries = Vec::new();
-        collect(self._temp_dir.path(), &mut entries);
+        collect(&self.home, &mut entries);
         entries.sort_by(|a, b| a.0.cmp(&b.0));
         entries
     }
@@ -73,8 +76,7 @@ impl IsolatedEnv {
         let guard = TEST_ENV_LOCK
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let temp_dir = TempDir::new().unwrap();
-        let home = temp_dir.path().to_path_buf();
+        let home = home_process::child_root();
         let root = home.join(".ccr");
         let claude_dir = home.join(".claude");
         let lock_dir = home.join(".locks");
@@ -84,8 +86,6 @@ impl IsolatedEnv {
         }
 
         let mut previous_vars = Vec::new();
-        set_env_var(&mut previous_vars, "HOME", home.as_os_str());
-        set_env_var(&mut previous_vars, "USERPROFILE", home.as_os_str());
         set_env_var(&mut previous_vars, "CCR_ROOT", root.as_os_str());
         set_env_var(&mut previous_vars, "CCR_LOCK_DIR", lock_dir.as_os_str());
         set_env_var(
@@ -113,7 +113,7 @@ impl IsolatedEnv {
 
         Self {
             _guard: guard,
-            _temp_dir: temp_dir,
+            home,
             previous_vars,
         }
     }
@@ -234,6 +234,9 @@ fn parse(args: &[&str]) -> Cli {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn tui_entries_route_to_injected_launchers() {
+    if home_process::run_current_test() {
+        return;
+    }
     let _env = IsolatedEnv::new();
     let launchers = recording_launchers();
     // (命令行, 期望命中的启动器下标: 0=main 1=codex 2=grok 3=claude)
@@ -262,6 +265,9 @@ async fn tui_entries_route_to_injected_launchers() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn shortcut_config_name_returns_legacy_error_without_launching_tui() {
+    if home_process::run_current_test() {
+        return;
+    }
     // `ccr <配置名>` 快捷切换优先于 TUI：即便注入了启动器也不应触发，
     // 而是直接返回 legacy shortcut 迁移错误（不触碰文件系统）。
     let _env = IsolatedEnv::new();
@@ -291,6 +297,9 @@ async fn shortcut_config_name_returns_legacy_error_without_launching_tui() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn no_subcommand_without_launchers_falls_back_to_current_overview() {
+    if home_process::run_current_test() {
+        return;
+    }
     // 降级逻辑：`ccr`（无子命令）在未注入启动器时执行 current_command(false, false)，
     // 该命令在空环境下也能给出双平台状态总览（只读），返回 Ok。
     let _env = IsolatedEnv::new();
@@ -301,6 +310,9 @@ async fn no_subcommand_without_launchers_falls_back_to_current_overview() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn codex_without_launchers_falls_back_to_auth_list() {
+    if home_process::run_current_test() {
+        return;
+    }
     // 降级逻辑：`ccr codex`（无 action）在未注入启动器时执行 codex auth list，
     // 空环境下打印"未登录 Codex"提示并返回 Ok（只读）。
     let _env = IsolatedEnv::new();
@@ -311,6 +323,9 @@ async fn codex_without_launchers_falls_back_to_auth_list() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn grok_auth_without_launchers_falls_back_to_help() {
+    if home_process::run_current_test() {
+        return;
+    }
     // 降级逻辑：`ccr grok auth`（无嵌套动作）在未注入启动器时打印 grok auth 帮助。
     let _env = IsolatedEnv::new();
     let cli = parse(&["ccr", "grok", "auth"]);
@@ -320,6 +335,9 @@ async fn grok_auth_without_launchers_falls_back_to_help() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn claude_without_launchers_falls_back_to_auth_list() {
+    if home_process::run_current_test() {
+        return;
+    }
     // 降级逻辑：`ccr claude`（无 action）在未注入启动器时执行 claude auth list，
     // 空环境下打印"尚未保存任何官方账号快照"提示并返回 Ok（只读）。
     let _env = IsolatedEnv::new();
@@ -337,6 +355,9 @@ async fn claude_without_launchers_falls_back_to_auth_list() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn version_branch_is_pure_output_and_returns_ok() {
+    if home_process::run_current_test() {
+        return;
+    }
     // dispatch 会先迁移。隔离环境避免写到用户目录。
     let _env = IsolatedEnv::new();
     let cli = parse(&["ccr", "version"]);
@@ -346,6 +367,9 @@ async fn version_branch_is_pure_output_and_returns_ok() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn help_branch_is_pure_output_and_returns_ok() {
+    if home_process::run_current_test() {
+        return;
+    }
     // dispatch 会先迁移。隔离环境避免写到用户目录。
     let _env = IsolatedEnv::new();
     let cli = parse(&["ccr", "help"]);
@@ -359,10 +383,13 @@ async fn help_branch_is_pure_output_and_returns_ok() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn list_command_routes_and_runs_in_isolated_env() {
+    if home_process::run_current_test() {
+        return;
+    }
     let env = IsolatedEnv::new();
     let path = env
-        ._temp_dir
-        .path()
+        .home
+        .as_path()
         .join(".ccr/platforms/claude/profiles.toml");
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(
@@ -407,6 +434,9 @@ fn is_sqlite_sidecar(path: &std::path::Path) -> bool {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn list_command_preserves_missing_config_without_initializing() {
+    if home_process::run_current_test() {
+        return;
+    }
     let env = IsolatedEnv::new();
     let before = env.inventory();
     let cli = parse(&["ccr", "list"]);
@@ -417,6 +447,9 @@ async fn list_command_preserves_missing_config_without_initializing() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn current_json_routes_and_runs_in_isolated_env() {
+    if home_process::run_current_test() {
+        return;
+    }
     // `ccr current --json` 只读输出双平台结构化摘要，空环境下预期 Ok。
     let _env = IsolatedEnv::new();
     let cli = parse(&["ccr", "current", "--json"]);
@@ -426,6 +459,9 @@ async fn current_json_routes_and_runs_in_isolated_env() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn platform_list_json_routes_and_runs_in_isolated_env() {
+    if home_process::run_current_test() {
+        return;
+    }
     // `ccr platform list --json` 只读列出支持的平台，预期 Ok。
     let _env = IsolatedEnv::new();
     let cli = parse(&["ccr", "platform", "list", "--json"]);

@@ -28,6 +28,9 @@ fn save(s: &GrokAuthService, name: &str) {
 }
 #[test]
 fn grok_auth_save_does_not_take_official_lock_or_write_runtime() {
+    if crate::home_process::run_current_test() {
+        return;
+    }
     let (_home, p, s) = fixture();
     runtime(&p, value("a", SENTINEL));
     let before = std::fs::read(&p.runtime).unwrap();
@@ -41,6 +44,9 @@ fn grok_auth_save_does_not_take_official_lock_or_write_runtime() {
 }
 #[test]
 fn grok_auth_switch_round_trip_preserves_refresh_and_other_scope() {
+    if crate::home_process::run_current_test() {
+        return;
+    }
     let (_home, p, s) = fixture();
     runtime(&p, value("a", "old"));
     save(&s, "a");
@@ -57,6 +63,9 @@ fn grok_auth_switch_round_trip_preserves_refresh_and_other_scope() {
 }
 #[test]
 fn grok_auth_stale_revision_and_uncertain_identity_do_not_write_runtime() {
+    if crate::home_process::run_current_test() {
+        return;
+    }
     let (_home, p, s) = fixture();
     runtime(&p, value("a", "a"));
     save(&s, "a");
@@ -72,6 +81,9 @@ fn grok_auth_stale_revision_and_uncertain_identity_do_not_write_runtime() {
 }
 #[test]
 fn grok_auth_identity_enrichment_and_duplicate_candidates_are_not_inferred() {
+    if crate::home_process::run_current_test() {
+        return;
+    }
     let mut store = Store::default();
     let a = value("a", "old");
     store.accounts.insert("a".into(), captured(SCOPE, &a));
@@ -91,6 +103,9 @@ fn grok_auth_identity_enrichment_and_duplicate_candidates_are_not_inferred() {
 }
 #[test]
 fn grok_auth_delete_is_store_only_and_off_preserves_accounts() {
+    if crate::home_process::run_current_test() {
+        return;
+    }
     let (_home, p, s) = fixture();
     runtime(&p, value("a", "a"));
     save(&s, "a");
@@ -109,6 +124,9 @@ fn grok_auth_delete_is_store_only_and_off_preserves_accounts() {
 }
 #[test]
 fn grok_auth_corruption_blocks_overwrite_but_explicit_runtime_off_works() {
+    if crate::home_process::run_current_test() {
+        return;
+    }
     let (_home, p, s) = fixture();
     runtime(&p, value("a", "a"));
     save(&s, "a");
@@ -124,6 +142,9 @@ fn grok_auth_corruption_blocks_overwrite_but_explicit_runtime_off_works() {
 }
 #[test]
 fn grok_auth_store_cas_failure_preserves_existing_bytes() {
+    if crate::home_process::run_current_test() {
+        return;
+    }
     let (_home, p, s) = fixture();
     runtime(&p, value("a", "a"));
     save(&s, "a");
@@ -135,6 +156,9 @@ fn grok_auth_store_cas_failure_preserves_existing_bytes() {
 
 #[test]
 fn grok_auth_unconfirmed_outgoing_durability_blocks_switch_and_off() {
+    if crate::home_process::run_current_test() {
+        return;
+    }
     let (_home, p, s) = fixture();
     runtime(&p, value("a", "old"));
     save(&s, "a");
@@ -159,6 +183,9 @@ fn grok_auth_unconfirmed_outgoing_durability_blocks_switch_and_off() {
 
 #[test]
 fn grok_auth_unsupported_outgoing_never_poison_saved_account() {
+    if crate::home_process::run_current_test() {
+        return;
+    }
     let (_home, p, s) = fixture();
     runtime(&p, value("a", "old"));
     save(&s, "a");
@@ -185,6 +212,9 @@ fn grok_auth_unsupported_outgoing_never_poison_saved_account() {
 
 #[test]
 fn grok_auth_known_native_types_reject_invalid_but_preserve_unknown_fields() {
+    if crate::home_process::run_current_test() {
+        return;
+    }
     assert!(credential(SCOPE, &value("a", "key")));
     for (field, invalid) in [
         ("expires_at", json!("not-a-date")),
@@ -202,6 +232,9 @@ fn grok_auth_known_native_types_reject_invalid_but_preserve_unknown_fields() {
 
 #[test]
 fn grok_auth_save_captured_snapshot_does_not_revert_native_refresh() {
+    if crate::home_process::run_current_test() {
+        return;
+    }
     let (_home, p, s) = fixture();
     runtime(&p, value("a", "captured"));
     let config = p.runtime.with_file_name("config.toml");
@@ -235,6 +268,9 @@ fn grok_auth_save_captured_snapshot_does_not_revert_native_refresh() {
 
 #[test]
 fn grok_auth_store_write_failure_blocks_destructive_operations() {
+    if crate::home_process::run_current_test() {
+        return;
+    }
     let (_home, p, s) = fixture();
     runtime(&p, value("a", "old"));
     save(&s, "a");
@@ -265,6 +301,9 @@ fn grok_auth_store_write_failure_blocks_destructive_operations() {
 
 #[test]
 fn grok_auth_runtime_cas_failure_keeps_latest_outgoing_saved() {
+    if crate::home_process::run_current_test() {
+        return;
+    }
     let (_home, p, s) = fixture();
     runtime(&p, value("a", "old"));
     save(&s, "a");
@@ -288,6 +327,9 @@ fn grok_auth_runtime_cas_failure_keeps_latest_outgoing_saved() {
 
 #[test]
 fn grok_auth_all_mutations_wait_for_the_same_operation_lock() {
+    if crate::home_process::run_current_test() {
+        return;
+    }
     let (_home, p, s) = fixture();
     for operation in 0..4 {
         runtime(&p, value("a", "current"));
@@ -322,6 +364,9 @@ fn grok_auth_all_mutations_wait_for_the_same_operation_lock() {
 
 #[test]
 fn grok_auth_runtime_postwrite_error_reports_applied_unconfirmed() {
+    if crate::home_process::run_current_test() {
+        return;
+    }
     let (_home, p, s) = fixture();
     runtime(&p, value("a", "a"));
     save(&s, "a");
@@ -347,6 +392,9 @@ fn grok_auth_runtime_postwrite_error_reports_applied_unconfirmed() {
 #[cfg(windows)]
 #[test]
 fn grok_auth_runtime_replacement_denied_keeps_latest_outgoing_saved() {
+    if crate::home_process::run_current_test() {
+        return;
+    }
     use std::os::windows::fs::OpenOptionsExt;
 
     let (_home, p, s) = fixture();

@@ -1,8 +1,10 @@
+use super::profile_lifecycle::ProfileLifecycleContext;
 use crate::managers::SettingsManager;
 use crate::models::ClaudeAuthActionOutcome;
 use crate::models::Platform;
 use crate::platforms::{GrokActivationState, GrokPlatform};
 use crate::services::ClaudeAuthService;
+#[cfg(test)]
 use ccr_config::ConfigManager;
 use ccr_config::PlatformConfigManager;
 use ccr_core::core::AtomicWriter;
@@ -77,6 +79,7 @@ enum FileSnapshot {
 }
 
 impl ProfileOffBackup {
+    #[cfg(test)]
     fn new(label: &str) -> Result<Self> {
         Self::new_at(
             label,
@@ -84,8 +87,12 @@ impl ProfileOffBackup {
         )
     }
 
+    #[cfg(test)]
     fn new_at(label: &str, timestamp: &str) -> Result<Self> {
-        let root = profile_off_backup_root()?;
+        Self::new_at_root(&profile_off_backup_root()?, label, timestamp)
+    }
+
+    fn new_at_root(root: &Path, label: &str, timestamp: &str) -> Result<Self> {
         let parent = root.join("backups").join("profile-off");
         std::fs::create_dir_all(&parent).map_err(|error| {
             CcrError::ConfigError(format!("创建 profile-off 备份目录失败: {error}"))
@@ -163,6 +170,7 @@ impl Drop for ProfileOffBackup {
     }
 }
 
+#[cfg(test)]
 fn profile_off_backup_root() -> Result<PathBuf> {
     if let Ok(custom_root) = std::env::var("CCR_ROOT") {
         let trimmed = custom_root.trim();
@@ -198,55 +206,86 @@ fn write_secret_copy(from: &Path, to: &Path) -> Result<()> {
 
 /// Whether this platform has CCR profile-mode leftovers that would suppress official login.
 pub fn needs_login_prep(platform: Platform) -> Result<bool> {
-    match platform {
-        Platform::Claude => claude_needs_login_prep(),
-        Platform::Codex => codex_needs_login_prep(),
-        Platform::Grok => grok_needs_login_prep(),
+    if !matches!(
+        platform,
+        Platform::Claude | Platform::Codex | Platform::Grok
+    ) {
+        return Ok(false);
+    }
+    ProfileLifecycleContext::new(platform)?.needs_login_prep()
+}
+
+pub fn profile_off_for_platform(platform: Platform) -> Result<ProfileOffResult> {
+    ProfileLifecycleContext::new(platform)?.off()
+}
+
+pub(crate) fn needs_login_prep_with_context(context: &ProfileLifecycleContext) -> Result<bool> {
+    match context.platform() {
+        Platform::Claude => claude_needs_login_prep(context),
+        Platform::Codex => codex_needs_login_prep(context),
+        Platform::Grok => grok_needs_login_prep(context),
         _ => Ok(false),
     }
 }
 
-pub fn profile_off_for_platform(platform: Platform) -> Result<ProfileOffResult> {
-    let _operation = super::profile_lifecycle::operation_lock(platform)?;
-    match platform {
-        Platform::Codex => codex_profile_off(),
-        Platform::Claude => claude_profile_off(),
-        Platform::Grok => grok_profile_off(),
-        _ => Err(CcrError::PlatformNotSupported(format!(
-            "{} 暂不支持 profile off",
-            platform
+pub(crate) fn profile_off_with_context(
+    context: &ProfileLifecycleContext,
+) -> Result<ProfileOffResult> {
+    let _operation = context.operation_lock()?;
+    match context.platform() {
+        Platform::Claude => claude_profile_off(context),
+        Platform::Codex => codex_profile_off(context),
+        Platform::Grok => grok_profile_off(context),
+        platform => Err(CcrError::PlatformNotSupported(format!(
+            "{platform} 暂不支持 profile off"
         ))),
     }
 }
 
-fn claude_needs_login_prep() -> Result<bool> {
-    if platform_previous_profile_hint("claude")?.is_some() {
-        return Ok(true);
-    }
-    if platform_profiles_file_has_current_config("claude")? {
-        return Ok(true);
-    }
-    claude_has_managed_env()
+fn claude_settings(context: &ProfileLifecycleContext) -> Result<SettingsManager> {
+    let runtime = context
+        .claude_runtime
+        .as_ref()
+        .ok_or_else(|| CcrError::ConfigError("Missing Claude runtime paths".into()))?;
+    Ok(SettingsManager::new(
+        &runtime.settings_file,
+        &runtime.backups_dir,
+        ccr_core::core::LockManager::new(context.lock_dir()),
+    ))
 }
 
-fn claude_has_managed_env() -> Result<bool> {
-    let manager = SettingsManager::with_default()?;
-    match manager.load() {
+fn claude_needs_login_prep(context: &ProfileLifecycleContext) -> Result<bool> {
+    if platform_previous_profile_hint(context)?.is_some()
+        || platform_profiles_file_has_current_config(context)?
+    {
+        return Ok(true);
+    }
+    claude_has_managed_env(context)
+}
+
+fn claude_has_managed_env(context: &ProfileLifecycleContext) -> Result<bool> {
+    match claude_settings(context)?.load() {
         Ok(settings) => Ok(settings.has_managed_overrides()),
         Err(CcrError::SettingsMissing(_)) => Ok(false),
         Err(error) => Err(error),
     }
 }
 
-fn claude_profile_off() -> Result<ProfileOffResult> {
-    let auth_service = ClaudeAuthService::new()?;
-    let previous_profile = platform_previous_profile_hint("claude")?;
-    let had_profiles_file_pointer = platform_profiles_file_has_current_config("claude")?;
+fn claude_profile_off(context: &ProfileLifecycleContext) -> Result<ProfileOffResult> {
+    let runtime = context
+        .claude_runtime
+        .clone()
+        .ok_or_else(|| CcrError::ConfigError("Missing Claude runtime paths".into()))?;
+    let auth_service = ClaudeAuthService::from_runtime_parts(
+        context.paths().platform_dir.clone(),
+        runtime,
+        context.lock_dir().to_path_buf(),
+    );
+    let previous_profile = platform_previous_profile_hint(context)?;
+    let had_profiles_file_pointer = platform_profiles_file_has_current_config(context)?;
     let had_profile_routing = previous_profile.is_some() || had_profiles_file_pointer;
-    let had_managed_env = claude_has_managed_env()?;
-
+    let had_managed_env = claude_has_managed_env(context)?;
     if !had_profile_routing && !had_managed_env {
-        // 没有要清的状态，直接返回；不创建 backup 目录。
         return Ok(ProfileOffResult::official(
             Platform::Claude,
             previous_profile,
@@ -254,23 +293,20 @@ fn claude_profile_off() -> Result<ProfileOffResult> {
             Some(auth_service.action_outcome(Vec::new())),
         ));
     }
-
-    // 写盘前快照三处文件，任何 ? 失败都会触发 Drop 回滚。
-    let settings_manager = SettingsManager::with_default()?;
-    let platform_manager = PlatformConfigManager::with_default()?;
-    let claude_config_manager = ConfigManager::for_platform("claude")?;
-    let mut backup = ProfileOffBackup::new("claude")?;
+    let settings_manager = claude_settings(context)?;
+    let mut backup = ProfileOffBackup::new_at_root(
+        &context.paths().root,
+        "claude",
+        &chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string(),
+    )?;
     backup.snapshot(settings_manager.settings_path())?;
-    backup.snapshot(platform_manager.config_path())?;
-    backup.snapshot(claude_config_manager.config_path())?;
-
-    let cleared_managed_sources = clear_claude_profile_settings_overrides()?;
-    clear_platform_registry_pointer("claude")?;
-    clear_profiles_file_pointer("claude")?;
+    backup.snapshot(&context.paths().registry_file)?;
+    backup.snapshot(context.manager().config_path())?;
+    let cleared_managed_sources = clear_claude_settings_with(&settings_manager)?;
+    clear_platform_registry_pointer(context)?;
+    context.manager().clear_current_if_present()?;
     let changed = had_profile_routing || !cleared_managed_sources.is_empty();
-
     backup.commit();
-
     Ok(ProfileOffResult::official(
         Platform::Claude,
         previous_profile,
@@ -288,19 +324,47 @@ fn codex_runtime_dirs_need_login_prep(dirs: &[PathBuf]) -> Result<bool> {
     Ok(false)
 }
 
-fn codex_needs_login_prep() -> Result<bool> {
-    let codex_platform = ccr_codex::CodexPlatform::new()?;
+fn codex_needs_login_prep(context: &ProfileLifecycleContext) -> Result<bool> {
+    let codex_platform = codex_platform(
+        context,
+        context
+            .codex_runtime_dirs
+            .first()
+            .ok_or_else(|| CcrError::ConfigError("Missing Codex runtime directory".into()))?,
+    );
     if codex_platform.has_raw_profile_pointer()? || codex_platform.has_profile_entry_auth_backup() {
         return Ok(true);
     }
-    codex_runtime_dirs_need_login_prep(&ccr_codex::CodexPlatform::login_prep_codex_dirs()?)
+    codex_runtime_dirs_need_login_prep(&context.codex_runtime_dirs)
 }
 
-fn codex_profile_off() -> Result<ProfileOffResult> {
-    let previous_profile = platform_previous_profile_hint("codex")?;
-    let runtime_dirs = ccr_codex::CodexPlatform::login_prep_codex_dirs()?;
+fn codex_platform(context: &ProfileLifecycleContext, dir: &Path) -> ccr_codex::CodexPlatform {
+    let manager = || {
+        ccr_codex::CodexConfigManager::new(
+            dir.join("config.toml"),
+            dir.join("auth.json"),
+            dir.join("backups"),
+            ccr_core::core::LockManager::new(context.lock_dir()),
+        )
+    };
+    let runtime = ccr_codex::services::CodexRuntimeService::from_parts(
+        context.paths().clone(),
+        dir.to_path_buf(),
+        manager(),
+    );
+    ccr_codex::CodexPlatform::from_parts(context.paths().clone(), manager(), runtime)
+}
+
+fn codex_profile_off(context: &ProfileLifecycleContext) -> Result<ProfileOffResult> {
+    let previous_profile = platform_previous_profile_hint(context)?;
+    let runtime_dirs = context.codex_runtime_dirs.clone();
     let changed = {
-        let platform = ccr_codex::CodexPlatform::new()?;
+        let platform = codex_platform(
+            context,
+            runtime_dirs
+                .first()
+                .ok_or_else(|| CcrError::ConfigError("Missing Codex runtime directory".into()))?,
+        );
         platform.has_raw_profile_pointer()?
             || platform.has_profile_entry_auth_backup()
             || codex_runtime_dirs_need_login_prep(&runtime_dirs)?
@@ -316,11 +380,23 @@ fn codex_profile_off() -> Result<ProfileOffResult> {
     }
 
     // 写盘前快照 CCR 指针与全部 login-prep runtime（含 ~/.codex/auth.json），失败时 Drop 回滚。
-    let codex_config_manager = ConfigManager::for_platform("codex")?;
-    let platform_manager = PlatformConfigManager::with_default()?;
-    let mut backup = ProfileOffBackup::new("codex")?;
+    let codex_config_manager = context.manager();
+    let platform_manager = PlatformConfigManager::new(&context.paths().registry_file);
+    let mut backup = ProfileOffBackup::new_at_root(
+        &context.paths().root,
+        "codex",
+        &chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string(),
+    )?;
     backup.snapshot(codex_config_manager.config_path())?;
     backup.snapshot(platform_manager.config_path())?;
+    // The runtime owner discards this legacy snapshot before updating the
+    // registry. Preserve it too when a later off stage fails and rolls back.
+    backup.snapshot(
+        &context
+            .paths()
+            .platform_dir
+            .join("profile_entry_auth_state.json"),
+    )?;
     for dir in &runtime_dirs {
         let manager = ccr_codex::CodexConfigManager::with_codex_dir(dir).map_err(|error| {
             CcrError::ConfigError(format!("初始化 Codex 运行时配置失败: {error}"))
@@ -333,12 +409,12 @@ fn codex_profile_off() -> Result<ProfileOffResult> {
     for dir in &runtime_dirs {
         let auth_path = dir.join("auth.json");
         let auth_existed = auth_path.exists();
-        ccr_codex::CodexPlatform::for_codex_dir(dir)?.clear_active_profile_runtime()?;
+        codex_platform(context, dir).clear_active_profile_runtime()?;
         if auth_existed && !auth_path.exists() {
             removed_auth_paths.push(auth_path);
         }
     }
-    clear_profiles_file_pointer("codex")?;
+    context.manager().clear_current_if_present()?;
 
     backup.commit();
 
@@ -354,16 +430,22 @@ fn codex_profile_off() -> Result<ProfileOffResult> {
     })
 }
 
-fn grok_needs_login_prep() -> Result<bool> {
-    let platform = GrokPlatform::new()?;
+fn grok_needs_login_prep(context: &ProfileLifecycleContext) -> Result<bool> {
+    let platform = GrokPlatform::from_parts(
+        context.paths().clone(),
+        context.instance().get_settings_path(),
+    );
     Ok(!matches!(
         platform.inspect_activation_state()?,
         GrokActivationState::Inactive
     ))
 }
 
-fn grok_profile_off() -> Result<ProfileOffResult> {
-    let platform = GrokPlatform::new()?;
+fn grok_profile_off(context: &ProfileLifecycleContext) -> Result<ProfileOffResult> {
+    let platform = GrokPlatform::from_parts(
+        context.paths().clone(),
+        context.instance().get_settings_path(),
+    );
     let state = platform.inspect_activation_state()?;
     let previous_profile = match &state {
         GrokActivationState::Inactive => None,
@@ -382,8 +464,12 @@ fn grok_profile_off() -> Result<ProfileOffResult> {
     Ok(ProfileOffResult::grok_native(previous_profile, true))
 }
 
+#[cfg(test)]
 fn clear_claude_profile_settings_overrides() -> Result<Vec<String>> {
-    let manager = SettingsManager::with_default()?;
+    clear_claude_settings_with(&SettingsManager::with_default()?)
+}
+
+fn clear_claude_settings_with(manager: &SettingsManager) -> Result<Vec<String>> {
     let settings = match manager.load() {
         Ok(settings) => settings,
         Err(CcrError::SettingsMissing(_)) => return Ok(Vec::new()),
@@ -404,47 +490,30 @@ fn clear_claude_profile_settings_overrides() -> Result<Vec<String>> {
     })
 }
 
-fn clear_platform_registry_pointer(platform_name: &str) -> Result<()> {
-    let manager = PlatformConfigManager::with_default()?;
+fn clear_platform_registry_pointer(context: &ProfileLifecycleContext) -> Result<()> {
+    let manager = PlatformConfigManager::new(&context.paths().registry_file);
     let mut unified = manager.load_or_create_default()?;
-    if let Ok(entry) = unified.get_platform_mut(platform_name) {
+    if let Ok(entry) = unified.get_platform_mut(context.instance().platform_name()) {
         entry.current_profile = None;
         entry.last_used = Some(chrono::Utc::now().to_rfc3339());
     }
     manager.save(&unified)
 }
 
-fn clear_profiles_file_pointer(platform_name: &str) -> Result<()> {
-    ConfigManager::for_platform(platform_name)?.clear_current_if_present()
-}
-
-fn platform_previous_profile_hint(platform_name: &str) -> Result<Option<String>> {
-    let manager = PlatformConfigManager::with_default()?;
+fn platform_previous_profile_hint(context: &ProfileLifecycleContext) -> Result<Option<String>> {
+    let manager = PlatformConfigManager::new(&context.paths().registry_file);
     if !manager.config_path().exists() {
         return Ok(None);
     }
     let unified = manager.load()?;
     Ok(unified
-        .get_platform(platform_name)
+        .get_platform(context.instance().platform_name())
         .ok()
         .and_then(|entry| entry.current_profile.clone()))
 }
 
-fn platform_profiles_path(platform_name: &str) -> Result<PathBuf> {
-    let manager = PlatformConfigManager::with_default()?;
-    let root = manager
-        .config_path()
-        .parent()
-        .ok_or_else(|| CcrError::ConfigError("无法解析 CCR 根目录".into()))?;
-    Ok(root
-        .join("platforms")
-        .join(platform_name)
-        .join("profiles.toml"))
-}
-
-fn platform_profiles_file_has_current_config(platform_name: &str) -> Result<bool> {
-    let path = platform_profiles_path(platform_name)?;
-    match ConfigManager::new(path).load() {
+fn platform_profiles_file_has_current_config(context: &ProfileLifecycleContext) -> Result<bool> {
+    match context.manager().load() {
         Err(CcrError::ConfigMissing(_)) => Ok(false),
         Ok(config) => Ok(!config.current_config.trim().is_empty()),
         Err(error) => Err(error),
@@ -709,6 +778,9 @@ mod tests {
 
     #[test]
     fn codex_profile_off_clears_default_home_when_codex_home_redirects() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let mut home = TestHome::new_with_home_env();
         home.remove_env("CCR_CODEX_DIR");
         let sandbox = home.home().join("sandbox-codex");

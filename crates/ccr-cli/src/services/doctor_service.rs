@@ -2010,6 +2010,9 @@ current_profile = "{current_profile}"
 
     #[tokio::test]
     async fn doctor_service_skips_online_probe_by_default() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let env = TestEnv::new();
         env.write_unified_config_without_legacy_routing_fields("claude", "main");
         env.write_claude_profile("main");
@@ -2057,6 +2060,9 @@ current_profile = "{current_profile}"
 
     #[tokio::test]
     async fn doctor_service_calls_online_probe_when_enabled() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let env = TestEnv::new();
         env.write_unified_config("claude", "main");
         env.write_claude_profile("main");

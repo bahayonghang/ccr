@@ -204,6 +204,9 @@ mod tests {
 
     #[test]
     fn claude_conflict_settings_follow_explicit_file_then_config_dir() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let mut home = TestHome::new_with_home_env();
         let custom_dir = home.home().join("custom-claude");
         let explicit_file = home.home().join("explicit-settings.json");
@@ -231,6 +234,9 @@ mod tests {
 
     #[test]
     fn codex_conflict_settings_follow_ccr_dir_then_codex_home() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let mut home = TestHome::new_with_home_env();
         let custom_dir = home.home().join("custom-codex");
         write_settings(&home.codex_dir().join("settings.json"), "ccr-dir-model");
@@ -256,7 +262,24 @@ mod tests {
 
     #[test]
     fn gemini_conflict_settings_follow_home_then_userprofile() {
-        let mut home = TestHome::new_with_home_env();
+        if !crate::home_process::is_child() {
+            for case in ["home", "empty-home", "missing-home"] {
+                crate::home_process::run_case(case, |command, root| {
+                    command.env("USERPROFILE", root.join("other-home"));
+                    match case {
+                        "empty-home" => {
+                            command.env("HOME", "");
+                        }
+                        "missing-home" => {
+                            command.env_remove("HOME");
+                        }
+                        _ => {}
+                    }
+                });
+            }
+            return;
+        }
+        let home = TestHome::new_with_home_env();
         let other_home = home.home().join("other-home");
         write_settings(
             &home.home().join(".gemini/antigravity-cli/settings.json"),
@@ -266,27 +289,22 @@ mod tests {
             &other_home.join(".gemini/antigravity-cli/settings.json"),
             "userprofile-model",
         );
-        home.set_env("USERPROFILE", other_home.as_os_str());
         let checker = ConflictChecker::new();
-
         assert_eq!(
             checker.collect_env_vars(Platform::Gemini).unwrap()["model"],
-            "home-model"
-        );
-        home.set_env("HOME", OsStr::new(""));
-        assert_eq!(
-            checker.collect_env_vars(Platform::Gemini).unwrap()["model"],
-            "userprofile-model"
-        );
-        home.remove_env("HOME");
-        assert_eq!(
-            checker.collect_env_vars(Platform::Gemini).unwrap()["model"],
-            "userprofile-model"
+            if crate::home_process::case() == "home" {
+                "home-model"
+            } else {
+                "userprofile-model"
+            }
         );
     }
 
     #[test]
     fn conflicts_read_only_the_selected_synthetic_settings() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let home = TestHome::new_with_home_env();
         let paths = [
             home.settings_path().to_path_buf(),
@@ -321,6 +339,9 @@ mod tests {
 
     #[test]
     fn missing_selected_settings_are_empty_without_creation() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let home = TestHome::new_with_home_env();
         let report = ConflictChecker::new().check_conflicts().unwrap();
         assert!(report.conflicts.is_empty());

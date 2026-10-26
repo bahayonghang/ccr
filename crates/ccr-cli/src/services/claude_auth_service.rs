@@ -233,6 +233,19 @@ impl ClaudeAuthService {
         }
     }
 
+    /// Bind profile-off diagnosis to the same explicit runtime and lock paths.
+    pub fn from_runtime_parts(
+        ccr_claude_dir: PathBuf,
+        runtime_paths: ClaudeRuntimePaths,
+        lock_dir: PathBuf,
+    ) -> Self {
+        Self {
+            ccr_claude_dir,
+            runtime_paths,
+            lock_dir,
+        }
+    }
+
     fn credentials_path(&self) -> PathBuf {
         self.runtime_paths.credentials_file.clone()
     }
@@ -1281,6 +1294,9 @@ mod tests {
 
     #[test]
     fn claude_config_dir_controls_auth_runtime_paths() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let mut home = TestHome::new_with_home_env();
         let config_dir = home.home().join("claude-custom");
         home.set_env("CLAUDE_CONFIG_DIR", config_dir.as_os_str());

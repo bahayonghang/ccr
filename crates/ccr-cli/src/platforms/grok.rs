@@ -106,6 +106,130 @@ struct ProfileEntryConfigState {
     original_default_reasoning_effort: Option<toml::Value>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GrokProfileDeleteBlockedReason {
+    Active,
+    Drifted,
+    UnsafeMissingEntryState,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GrokProfileDeletePlan {
+    Delete,
+    OffThenDelete,
+    Blocked {
+        reason: GrokProfileDeleteBlockedReason,
+    },
+}
+#[derive(Debug, PartialEq, Eq)]
+pub enum GrokProfileDeleteOutcome {
+    Deleted {
+        name: String,
+    },
+    Blocked {
+        reason: GrokProfileDeleteBlockedReason,
+    },
+}
+
+/// Pure compatibility policy shared with the existing adapter callback tests.
+pub fn grok_profile_delete_plan(
+    state: &GrokActivationState,
+    name: &str,
+    force: bool,
+) -> GrokProfileDeletePlan {
+    let reason = match state {
+        GrokActivationState::Active { name: active } if active == name => {
+            Some(GrokProfileDeleteBlockedReason::Active)
+        }
+        GrokActivationState::Drifted { name: active } if active == name => {
+            Some(GrokProfileDeleteBlockedReason::Drifted)
+        }
+        GrokActivationState::UnsafeMissingEntryState { .. } => {
+            Some(GrokProfileDeleteBlockedReason::UnsafeMissingEntryState)
+        }
+        _ => None,
+    };
+    match reason {
+        Some(reason)
+            if !force || reason == GrokProfileDeleteBlockedReason::UnsafeMissingEntryState =>
+        {
+            GrokProfileDeletePlan::Blocked { reason }
+        }
+        Some(_) => GrokProfileDeletePlan::OffThenDelete,
+        None => GrokProfileDeletePlan::Delete,
+    }
+}
+
+/// Updated data is for scoped adapter projection only; never log this payload.
+pub enum GrokProfileUpdateOutcome {
+    Updated {
+        name: String,
+        profile: Box<ProfileConfig>,
+    },
+    Renamed {
+        old_name: String,
+        new_name: String,
+    },
+    RenameApplyFailed {
+        old_name: String,
+        new_name: String,
+    },
+    RenameCleanupFailed {
+        old_name: String,
+        new_name: String,
+    },
+}
+
+/// The existing staged rename result, shared by real operations and adapter tests.
+pub fn finish_grok_profile_rename<E>(
+    old_name: String,
+    new_name: String,
+    was_active: bool,
+    apply: impl FnOnce(&str) -> std::result::Result<(), E>,
+    delete: impl FnOnce(&str) -> std::result::Result<(), E>,
+) -> GrokProfileUpdateOutcome {
+    if was_active && apply(&new_name).is_err() {
+        return GrokProfileUpdateOutcome::RenameApplyFailed { old_name, new_name };
+    }
+    if delete(&old_name).is_err() {
+        return GrokProfileUpdateOutcome::RenameCleanupFailed { old_name, new_name };
+    }
+    GrokProfileUpdateOutcome::Renamed { old_name, new_name }
+}
+
+struct LockedGrokPlatform<'a>(&'a GrokPlatform);
+impl PlatformConfig for LockedGrokPlatform<'_> {
+    fn platform_name(&self) -> &str {
+        self.0.platform_name()
+    }
+    fn platform_type(&self) -> Platform {
+        self.0.platform_type()
+    }
+    fn load_profiles(&self) -> Result<IndexMap<String, ProfileConfig>> {
+        self.0.load_profiles()
+    }
+    fn save_profile(&self, name: &str, profile: &ProfileConfig) -> Result<()> {
+        self.0.save_profile_locked(name, profile)
+    }
+    fn delete_profile(&self, name: &str) -> Result<()> {
+        self.0.delete_profile_locked(name)
+    }
+    fn get_settings_path(&self) -> PathBuf {
+        self.0.get_settings_path()
+    }
+    fn apply_profile(&self, name: &str) -> Result<()> {
+        self.0.apply_profile_locked(name)
+    }
+    fn validate_profile(&self, profile: &ProfileConfig) -> Result<()> {
+        self.0.validate_profile(profile)
+    }
+    fn get_current_profile(&self) -> Result<Option<String>> {
+        self.0.get_current_profile()
+    }
+    fn get_env_var_names(&self) -> Vec<String> {
+        self.0.get_env_var_names()
+    }
+}
+
 /// Grok Build platform implementation.
 pub struct GrokPlatform {
     paths: PlatformPaths,
@@ -154,6 +278,200 @@ impl GrokPlatform {
     /// Construct a platform with explicit paths for isolated callers and tests.
     pub fn from_parts(paths: PlatformPaths, config_path: PathBuf) -> Self {
         Self { paths, config_path }
+    }
+
+    /// The same concrete catalog/registry dependencies used by this owner.
+    pub fn paths(&self) -> &PlatformPaths {
+        &self.paths
+    }
+
+    /// Guard deletion and optional off using one platform operation lock.
+    /// Missing entry state never authorizes automatic cleanup, including force.
+    pub fn delete_profile_guarded(
+        &self,
+        name: &str,
+        force: bool,
+    ) -> Result<GrokProfileDeleteOutcome> {
+        let _operation = self.lock_profile_operation()?;
+        let state = self.inspect_activation_state()?;
+        match grok_profile_delete_plan(&state, name, force) {
+            GrokProfileDeletePlan::Blocked { reason } => {
+                return Ok(GrokProfileDeleteOutcome::Blocked { reason });
+            }
+            GrokProfileDeletePlan::OffThenDelete => self.clear_active_profile_runtime_locked()?,
+            GrokProfileDeletePlan::Delete => {}
+        }
+        self.delete_profile_locked(name)?;
+        Ok(GrokProfileDeleteOutcome::Deleted { name: name.into() })
+    }
+
+    /// Hold Grok's operation lock before a caller enters a catalog transaction.
+    /// Only the borrowed adapter can bypass reacquisition while this guard lives.
+    pub(crate) fn with_locked<T>(
+        &self,
+        operation: impl FnOnce(&dyn PlatformConfig) -> Result<T>,
+    ) -> Result<T> {
+        let _operation = self.lock_profile_operation()?;
+        operation(&LockedGrokPlatform(self))
+    }
+
+    /// Preserve the established save-new/apply/delete stages and their recovery
+    /// outcomes. The resource guard binds the original draft revision throughout.
+    pub fn update_profile_versioned(
+        &self,
+        name: &str,
+        target: &str,
+        expected: Option<&str>,
+        patch: impl FnOnce(&mut ProfileConfig) -> Result<()>,
+    ) -> Result<GrokProfileUpdateOutcome> {
+        let _operation = self.lock_profile_operation()?;
+        let manager = ccr_config::ConfigManager::new(&self.paths.profiles_file);
+        let _resource = manager.lock_mutation()?;
+        let snapshot = manager.snapshot()?;
+        if expected.is_some_and(|expected| expected != snapshot.version) {
+            return Err(CcrError::ValidationError(
+                "配置版本冲突，请重新读取后重试".into(),
+            ));
+        }
+        let was_active = matches!(self.inspect_activation_state()?, GrokActivationState::Active {name: active} if active == name);
+        let mut profiles = self.load_profiles()?;
+        let mut profile = profiles
+            .shift_remove(name)
+            .ok_or_else(|| CcrError::ProfileNotFound(name.into()))?;
+        ccr_config::managers::config::repository::validate_profile_name(target)?;
+        if target != name && profiles.contains_key(target) {
+            return Err(CcrError::ValidationError("Profile already exists".into()));
+        }
+        patch(&mut profile)?;
+        self.validate_profile(&profile)?;
+        ccr_config::managers::config::CatalogTransaction::execute(
+            manager.profiles_db(),
+            |transaction| {
+                if transaction.current_revision()? != snapshot.version {
+                    return Err(CcrError::ValidationError(
+                        "配置版本冲突，请重新读取后重试".into(),
+                    ));
+                }
+                if target != name {
+                    // Seed the exact stored section before merging its projected
+                    // delta, retaining unknown TOML values such as datetimes.
+                    manager.mutate(|catalog| {
+                        let original = catalog.get_section(name)?.clone();
+                        catalog.sections.insert(target.into(), original);
+                        Ok(())
+                    })?;
+                }
+                self.save_profile_locked(target, &profile)
+            },
+        )?;
+        if target == name {
+            return Ok(GrokProfileUpdateOutcome::Updated {
+                name: name.into(),
+                profile: Box::new(profile),
+            });
+        }
+        Ok(finish_grok_profile_rename(
+            name.into(),
+            target.into(),
+            was_active,
+            |target| self.apply_profile_locked(target),
+            |source| self.delete_profile_locked(source),
+        ))
+    }
+
+    fn save_profile_locked(&self, name: &str, profile: &ProfileConfig) -> Result<()> {
+        base::mutate_profiles_with_current(&self.paths.profiles_file, |profiles, current| {
+            if self.current_profile_from_registry()?.is_none() && !profiles.contains_key(current) {
+                current.clear();
+            }
+            let mut normalized = profile.clone();
+            if let Some(reasoning_effort) = Self::profile_reasoning_effort(profile)? {
+                normalized.platform_data.insert(
+                    "reasoning_effort".into(),
+                    JsonValue::String(reasoning_effort),
+                );
+            }
+            self.validate_profile(&normalized)?;
+            profiles.insert(name.to_string(), normalized);
+            Ok(())
+        })
+    }
+    fn delete_profile_locked(&self, name: &str) -> Result<()> {
+        let profiles = base::mutate_profiles_with_current(
+            &self.paths.profiles_file,
+            |profiles, current| {
+                let fallback_current = (!current.is_empty()).then(|| current.clone());
+                let active_by_intent = self.current_profile_from_registry()?.as_deref()
+                    == Some(name)
+                    || fallback_current.as_deref() == Some(name);
+                if self.load_entry_state()?.is_none()
+                    && (active_by_intent || self.runtime_has_managed_shape()?)
+                {
+                    return Err(CcrError::ConfigError(
+                "Grok 入口配置状态缺失，拒绝删除 profile 以避免遗留凭据；请先备份 config.toml 并手工清理 [model.custom] 与 [models].default"
+                    .into(),
+            ));
+                }
+                let active_by_runtime = match profiles.get(name) {
+                    Some(profile) => self.runtime_matches_profile(name, profile)?,
+                    None => false,
+                };
+                if active_by_intent || active_by_runtime {
+                    return Err(CcrError::ValidationError(format!(
+                        "Grok profile '{name}' 当前处于激活状态，请先执行 off 或切换到其他 profile"
+                    )));
+                }
+                let preserve_fallback_pointer = match fallback_current.as_deref() {
+                    Some(current) => match profiles.get(current) {
+                        Some(profile) => self.runtime_matches_profile(current, profile)?,
+                        None => false,
+                    },
+                    None => false,
+                };
+                if profiles.shift_remove(name).is_none() {
+                    return Err(CcrError::ProfileNotFound(name.to_string()));
+                }
+                if !preserve_fallback_pointer && self.current_profile_from_registry()?.is_none() {
+                    current.clear();
+                }
+                Ok(profiles.clone())
+            },
+        )?;
+        base::reconcile_registry_current_profile_after_delete_with_paths(
+            &self.paths.registry_file,
+            &self.registry_lock_dir(),
+            "grok",
+            name,
+            &profiles,
+        )?;
+        Ok(())
+    }
+    fn apply_profile_locked(&self, name: &str) -> Result<()> {
+        let profiles = self.load_profiles()?;
+        let profile = profiles
+            .get(name)
+            .ok_or_else(|| CcrError::ProfileNotFound(name.to_string()))?;
+        self.validate_profile(profile)?;
+        self.capture_entry_state()?;
+        let state = self
+            .load_entry_state()?
+            .ok_or_else(|| CcrError::ConfigError("Grok 入口配置状态未能创建".into()))?;
+        self.update_runtime_config(|config| {
+            Self::apply_profile_to_config(config, name, profile, &state)
+        })?;
+        base::update_current_config(&self.paths.profiles_file, name)?;
+        base::update_registry_current_profile_with_paths(
+            &self.paths.registry_file,
+            &self.registry_lock_dir(),
+            "grok",
+            name,
+        )?;
+        tracing::info!(
+            profile = name,
+            corr = ccr_core::current_log_correlation_id(),
+            "applied Grok profile"
+        );
+        Ok(())
     }
 
     /// Resolve a profile's credential source without exposing the credential.
@@ -223,7 +541,11 @@ impl GrokPlatform {
 
     /// Clear CCR's managed route and leave profile mode.
     pub fn clear_active_profile_runtime(&self) -> Result<()> {
-        let _operation_lock = self.lock_profile_operation()?;
+        let _operation = self.lock_profile_operation()?;
+        self.clear_active_profile_runtime_locked()
+    }
+
+    fn clear_active_profile_runtime_locked(&self) -> Result<()> {
         let state = self.load_entry_state()?;
         match state.as_ref() {
             Some(state) => {
@@ -910,73 +1232,12 @@ impl PlatformConfig for GrokPlatform {
 
     fn save_profile(&self, name: &str, profile: &ProfileConfig) -> Result<()> {
         let _operation_lock = self.lock_profile_operation()?;
-        base::mutate_profiles_with_current(&self.paths.profiles_file, |profiles, current| {
-            if self.current_profile_from_registry()?.is_none() && !profiles.contains_key(current) {
-                current.clear();
-            }
-            let mut normalized = profile.clone();
-            if let Some(reasoning_effort) = Self::profile_reasoning_effort(profile)? {
-                normalized.platform_data.insert(
-                    "reasoning_effort".into(),
-                    JsonValue::String(reasoning_effort),
-                );
-            }
-            self.validate_profile(&normalized)?;
-            profiles.insert(name.to_string(), normalized);
-            Ok(())
-        })
+        self.save_profile_locked(name, profile)
     }
 
     fn delete_profile(&self, name: &str) -> Result<()> {
         let _operation_lock = self.lock_profile_operation()?;
-        let profiles = base::mutate_profiles_with_current(
-            &self.paths.profiles_file,
-            |profiles, current| {
-                let fallback_current = (!current.is_empty()).then(|| current.clone());
-                let active_by_intent = self.current_profile_from_registry()?.as_deref()
-                    == Some(name)
-                    || fallback_current.as_deref() == Some(name);
-                if self.load_entry_state()?.is_none()
-                    && (active_by_intent || self.runtime_has_managed_shape()?)
-                {
-                    return Err(CcrError::ConfigError(
-                "Grok 入口配置状态缺失，拒绝删除 profile 以避免遗留凭据；请先备份 config.toml 并手工清理 [model.custom] 与 [models].default"
-                    .into(),
-            ));
-                }
-                let active_by_runtime = match profiles.get(name) {
-                    Some(profile) => self.runtime_matches_profile(name, profile)?,
-                    None => false,
-                };
-                if active_by_intent || active_by_runtime {
-                    return Err(CcrError::ValidationError(format!(
-                        "Grok profile '{name}' 当前处于激活状态，请先执行 off 或切换到其他 profile"
-                    )));
-                }
-                let preserve_fallback_pointer = match fallback_current.as_deref() {
-                    Some(current) => match profiles.get(current) {
-                        Some(profile) => self.runtime_matches_profile(current, profile)?,
-                        None => false,
-                    },
-                    None => false,
-                };
-                if profiles.shift_remove(name).is_none() {
-                    return Err(CcrError::ProfileNotFound(name.to_string()));
-                }
-                if !preserve_fallback_pointer && self.current_profile_from_registry()?.is_none() {
-                    current.clear();
-                }
-                Ok(profiles.clone())
-            },
-        )?;
-        base::reconcile_registry_current_profile_after_delete_with_paths(
-            &self.paths.registry_file,
-            &self.registry_lock_dir(),
-            "grok",
-            name,
-            &profiles,
-        )?;
-        Ok(())
+        self.delete_profile_locked(name)
     }
 
     fn get_settings_path(&self) -> PathBuf {
@@ -985,31 +1246,7 @@ impl PlatformConfig for GrokPlatform {
 
     fn apply_profile(&self, name: &str) -> Result<()> {
         let _operation_lock = self.lock_profile_operation()?;
-        let profiles = self.load_profiles()?;
-        let profile = profiles
-            .get(name)
-            .ok_or_else(|| CcrError::ProfileNotFound(name.to_string()))?;
-        self.validate_profile(profile)?;
-        self.capture_entry_state()?;
-        let state = self
-            .load_entry_state()?
-            .ok_or_else(|| CcrError::ConfigError("Grok 入口配置状态未能创建".into()))?;
-        self.update_runtime_config(|config| {
-            Self::apply_profile_to_config(config, name, profile, &state)
-        })?;
-        base::update_current_config(&self.paths.profiles_file, name)?;
-        base::update_registry_current_profile_with_paths(
-            &self.paths.registry_file,
-            &self.registry_lock_dir(),
-            "grok",
-            name,
-        )?;
-        tracing::info!(
-            profile = name,
-            corr = ccr_core::current_log_correlation_id(),
-            "applied Grok profile"
-        );
-        Ok(())
+        self.apply_profile_locked(name)
     }
 
     fn validate_profile(&self, profile: &ProfileConfig) -> Result<()> {

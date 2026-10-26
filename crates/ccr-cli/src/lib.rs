@@ -10,6 +10,10 @@ pub mod services;
 pub mod sync;
 
 #[cfg(any(test, feature = "test-support"))]
+#[path = "../../../scripts/test-support/home_process.rs"]
+pub mod home_process;
+
+#[cfg(any(test, feature = "test-support"))]
 #[allow(dead_code)]
 pub(crate) mod test_support {
     use std::ffi::{OsStr, OsString};
@@ -26,7 +30,8 @@ pub(crate) mod test_support {
     }
 
     pub(crate) struct TestHome {
-        temp_dir: TempDir,
+        _temp_dir: Option<TempDir>,
+        home: PathBuf,
         root: PathBuf,
         claude_dir: PathBuf,
         claude_json_path: PathBuf,
@@ -39,16 +44,26 @@ pub(crate) mod test_support {
     }
 
     pub(crate) struct TestHostEnv {
-        temp_dir: TempDir,
+        _temp_dir: Option<TempDir>,
+        home: PathBuf,
         previous_vars: Vec<(&'static str, Option<OsString>)>,
         _env_guard: MutexGuard<'static, ()>,
     }
 
     impl TestHome {
         pub(crate) fn new() -> Self {
+            Self::create(false)
+        }
+
+        fn create(process_home: bool) -> Self {
             let env_guard = env_lock();
-            let temp_dir = tempfile::tempdir().expect("test home temp dir should be created");
-            let home = temp_dir.path();
+            let temp_dir = (!process_home)
+                .then(|| tempfile::tempdir().expect("test home temp dir should be created"));
+            let home = temp_dir
+                .as_ref()
+                .map_or_else(crate::home_process::child_root, |dir| {
+                    dir.path().to_path_buf()
+                });
             let root = home.join(".ccr");
             let claude_dir = home.join(".claude");
             let claude_json_path = home.join(".claude.json");
@@ -84,7 +99,8 @@ pub(crate) mod test_support {
             remove_env_var(&mut previous_vars, "CCR_CONFIG_PATH");
 
             Self {
-                temp_dir,
+                _temp_dir: temp_dir,
+                home,
                 root,
                 claude_dir,
                 claude_json_path,
@@ -98,15 +114,11 @@ pub(crate) mod test_support {
         }
 
         pub(crate) fn new_with_home_env() -> Self {
-            let mut home = Self::new();
-            let home_path = home.home().as_os_str().to_owned();
-            home.set_env("HOME", home_path.as_os_str());
-            home.set_env("USERPROFILE", home_path.as_os_str());
-            home
+            Self::create(true)
         }
 
         pub(crate) fn home(&self) -> &Path {
-            self.temp_dir.path()
+            &self.home
         }
 
         pub(crate) fn root(&self) -> &Path {
@@ -149,17 +161,24 @@ pub(crate) mod test_support {
     impl TestHostEnv {
         pub(crate) fn new() -> Self {
             let env_guard = env_lock();
-            let temp_dir = tempfile::tempdir().expect("test host env temp dir should be created");
+            let temp_dir = (!crate::home_process::is_child())
+                .then(|| tempfile::tempdir().expect("test host env temp dir should be created"));
+            let home = temp_dir
+                .as_ref()
+                .map_or_else(crate::home_process::child_root, |dir| {
+                    dir.path().to_path_buf()
+                });
 
             Self {
-                temp_dir,
+                _temp_dir: temp_dir,
+                home,
                 previous_vars: Vec::new(),
                 _env_guard: env_guard,
             }
         }
 
         pub(crate) fn home(&self) -> &Path {
-            self.temp_dir.path()
+            &self.home
         }
 
         pub(crate) fn set_env(&mut self, key: &'static str, value: &OsStr) {
@@ -174,6 +193,9 @@ pub(crate) mod test_support {
     impl Drop for TestHome {
         fn drop(&mut self) {
             self.restore_env_vars();
+            if self._temp_dir.is_none() {
+                crate::home_process::reset_child_home();
+            }
         }
     }
 
@@ -269,9 +291,12 @@ pub(crate) mod test_support {
 
         #[test]
         fn test_home_can_scope_host_home_env() {
+            if crate::home_process::run_current_test() {
+                return;
+            }
             let mut home = TestHome::new_with_home_env();
-            let previous_home = captured_previous(&home, "HOME");
-            let previous_userprofile = captured_previous(&home, "USERPROFILE");
+            let previous_home = std::env::var_os("HOME");
+            let previous_userprofile = std::env::var_os("USERPROFILE");
 
             assert_eq!(
                 std::env::var_os("HOME").as_deref(),
@@ -290,6 +315,9 @@ pub(crate) mod test_support {
 
         #[test]
         fn test_host_env_scopes_path_cargo_home_and_home() {
+            if crate::home_process::run_current_test() {
+                return;
+            }
             let mut env = TestHostEnv::new();
             let previous_path = std::env::var_os("PATH");
             let previous_cargo_home = std::env::var_os("CARGO_HOME");
@@ -300,7 +328,6 @@ pub(crate) mod test_support {
             let home_path = env.home().as_os_str().to_owned();
             env.set_env("PATH", path.as_os_str());
             env.set_env("CARGO_HOME", home_path.as_os_str());
-            env.set_env("HOME", home_path.as_os_str());
 
             assert_eq!(std::env::var_os("PATH").as_deref(), Some(path.as_os_str()));
             assert_eq!(

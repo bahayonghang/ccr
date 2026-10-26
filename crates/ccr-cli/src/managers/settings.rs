@@ -702,6 +702,9 @@ mod tests {
 
     #[test]
     fn claude_config_dir_controls_default_and_platform_settings_paths() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let mut home = TestHome::new_with_home_env();
         let config_dir = home.home().join("claude-custom");
         home.set_env("CLAUDE_CONFIG_DIR", config_dir.as_os_str());

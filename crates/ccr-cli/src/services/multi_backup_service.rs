@@ -496,6 +496,9 @@ mod tests {
 
     #[test]
     fn test_multi_backup_basic_and_incremental() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let home = crate::test_support::TestHome::new_with_home_env();
         let ccr_root = home.root().to_path_buf();
 

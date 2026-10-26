@@ -530,6 +530,9 @@ mod tests {
     #[cfg(not(target_os = "macos"))]
     #[test]
     fn claude_file_off_is_idempotent_and_skips_backup_when_unchanged() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let mut home = TestHome::new_with_home_env();
         let bin_dir = home.home().join("bin");
         let marker = home.home().join("spawned.txt");
@@ -567,6 +570,9 @@ mod tests {
     #[cfg(not(target_os = "macos"))]
     #[test]
     fn claude_file_off_does_not_change_onboarding_state() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let home = TestHome::new_with_home_env();
         let credentials = home.claude_dir().join(".credentials.json");
         write_json(
@@ -587,6 +593,9 @@ mod tests {
 
     #[test]
     fn grok_off_deletes_auth_json_and_leaves_mcp_and_config() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let mut home = TestHome::new_with_home_env();
         let grok_home = home.home().join(".grok");
         fs::create_dir_all(&grok_home).unwrap();
@@ -615,6 +624,9 @@ mod tests {
 
     #[test]
     fn file_off_rolls_back_when_commit_fails_after_delete() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let mut home = TestHome::new_with_home_env();
         let grok_home = home.home().join(".grok");
         fs::create_dir_all(&grok_home).unwrap();
@@ -663,6 +675,9 @@ mod tests {
 
     #[test]
     fn codex_file_needs_auth_off_covers_login_prep_second_dir() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let mut home = TestHome::new_with_home_env();
         home.remove_env("CCR_CODEX_DIR");
         let sandbox = home.home().join("sandbox-codex");
@@ -691,6 +706,9 @@ mod tests {
 
     #[test]
     fn codex_file_off_keeps_profile_pointer_and_reports_warning() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let home = TestHome::new_with_home_env();
         let auth = home.codex_dir().join("auth.json");
         write_json(&auth, r#"{"OPENAI_API_KEY":"sk-runtime"}"#);
@@ -737,6 +755,9 @@ mod tests {
 
     #[test]
     fn native_logout_missing_binary_is_error() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let mut home = TestHome::new_with_home_env();
         let empty = home.home().join("empty-bin");
         fs::create_dir_all(&empty).unwrap();
@@ -753,6 +774,9 @@ mod tests {
 
     #[test]
     fn native_logout_success_sets_changed_and_may_repeat() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let mut home = TestHome::new_with_home_env();
         let bin_dir = home.home().join("bin");
         let marker = home.home().join("codex-spawned.txt");
@@ -776,6 +800,9 @@ mod tests {
 
     #[test]
     fn codex_local_auth_off_refuses_native_stores_without_spawning() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         for store in ["keyring", "auto"] {
             let mut home = TestHome::new_with_home_env();
             let bin_dir = home.home().join("bin");
@@ -799,6 +826,9 @@ mod tests {
 
     #[test]
     fn codex_local_auth_off_deletes_file_store_without_spawning() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let mut home = TestHome::new_with_home_env();
         let bin_dir = home.home().join("bin");
         let marker = home.home().join("codex-spawned.txt");
@@ -821,6 +851,9 @@ mod tests {
 
     #[test]
     fn file_off_does_not_spawn_when_unchanged() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let mut home = TestHome::new_with_home_env();
         let bin_dir = home.home().join("bin");
         let marker = home.home().join("codex-spawned.txt");
@@ -840,6 +873,9 @@ mod tests {
 
     #[test]
     fn codex_file_off_syncs_rotated_runtime_tokens_before_delete() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let home = TestHome::new_with_home_env();
         fs::write(
             home.codex_dir().join("config.toml"),
