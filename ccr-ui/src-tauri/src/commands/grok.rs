@@ -510,152 +510,10 @@ fn take_required_name(object: &mut JsonMap<String, JsonValue>) -> Result<String,
         .ok_or_else(|| "Grok profile name 不能为空".to_string())
 }
 
-fn patch_optional_string(
-    object: &JsonMap<String, JsonValue>,
-    key: &str,
-    target: &mut Option<String>,
-    allow_clear: bool,
-) -> Result<(), String> {
-    let Some(value) = object.get(key) else {
-        return Ok(());
-    };
-    match value {
-        JsonValue::Null if allow_clear => *target = None,
-        JsonValue::Null => return Err(format!("Grok profile 字段 {key} 不允许设为 null")),
-        JsonValue::String(value) if !value.trim().is_empty() => *target = Some(value.clone()),
-        JsonValue::String(_) => return Err(format!("Grok profile 字段 {key} 不能为空字符串")),
-        _ => return Err(format!("Grok profile 字段 {key} 必须是字符串或 null")),
-    }
-    Ok(())
-}
-
-fn patch_platform_field(
-    object: &JsonMap<String, JsonValue>,
-    key: &str,
-    profile: &mut ProfileConfig,
-) {
-    let Some(value) = object.get(key) else {
-        return;
-    };
-    if value.is_null() {
-        profile.platform_data.shift_remove(key);
-    } else {
-        profile.platform_data.insert(key.to_string(), value.clone());
-    }
-}
-
-fn apply_credential_action(
-    object: &JsonMap<String, JsonValue>,
-    profile: &mut ProfileConfig,
-) -> Result<(), String> {
-    let action = match object.get("credential_action") {
-        None => "preserve",
-        Some(JsonValue::String(value)) => value.as_str(),
-        Some(_) => {
-            return Err(
-                "credential_action 必须是 preserve、replace_api_key、replace_env_key 或 clear"
-                    .to_string(),
-            );
-        }
-    };
-    match action {
-        "preserve" => Ok(()),
-        "replace_api_key" => {
-            let value = object
-                .get("api_key")
-                .and_then(JsonValue::as_str)
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .ok_or_else(|| "replace_api_key 需要非空 api_key".to_string())?;
-            profile.auth_token = None;
-            profile.platform_data.shift_remove("auth_token");
-            profile.platform_data.shift_remove("env_key");
-            profile
-                .platform_data
-                .insert("api_key".to_string(), JsonValue::String(value.to_string()));
-            Ok(())
-        }
-        "replace_env_key" => {
-            let value = object
-                .get("env_key")
-                .and_then(JsonValue::as_str)
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .ok_or_else(|| "replace_env_key 需要非空 env_key".to_string())?;
-            profile.auth_token = None;
-            profile.platform_data.shift_remove("auth_token");
-            profile.platform_data.shift_remove("api_key");
-            profile
-                .platform_data
-                .insert("env_key".to_string(), JsonValue::String(value.to_string()));
-            Ok(())
-        }
-        "clear" => {
-            profile.auth_token = None;
-            profile.platform_data.shift_remove("auth_token");
-            profile.platform_data.shift_remove("api_key");
-            profile.platform_data.shift_remove("env_key");
-            Ok(())
-        }
-        _ => Err(
-            "credential_action 必须是 preserve、replace_api_key、replace_env_key 或 clear"
-                .to_string(),
-        ),
-    }
-}
-
-fn apply_profile_patch(
-    profile: &mut ProfileConfig,
-    object: &JsonMap<String, JsonValue>,
-) -> Result<(), String> {
-    patch_optional_string(object, "description", &mut profile.description, true)?;
-    patch_optional_string(object, "base_url", &mut profile.base_url, true)?;
-    patch_optional_string(object, "model", &mut profile.model, true)?;
-    patch_optional_string(object, "provider", &mut profile.provider, true)?;
-    patch_optional_string(object, "provider_type", &mut profile.provider_type, true)?;
-
-    if let Some(kind) = object.get("profile_kind") {
-        profile.provider_type = match kind.as_str() {
-            Some("official") => Some("official".to_string()),
-            Some("third_party") => Some("third_party_model".to_string()),
-            _ => return Err("profile_kind 必须是 official 或 third_party".to_string()),
-        };
-    }
-    if let Some(value) = object.get("enabled") {
-        profile.enabled = match value {
-            JsonValue::Null => None,
-            JsonValue::Bool(value) => Some(*value),
-            _ => return Err("Grok profile 字段 enabled 必须是 bool 或 null".to_string()),
-        };
-    }
-    if let Some(value) = object.get("tags") {
-        profile.tags = match value {
-            JsonValue::Null => None,
-            JsonValue::Array(values) => Some(
-                values
-                    .iter()
-                    .map(|value| {
-                        value
-                            .as_str()
-                            .map(str::to_string)
-                            .ok_or_else(|| "Grok profile tags 必须是字符串数组".to_string())
-                    })
-                    .collect::<Result<Vec<_>, _>>()?,
-            ),
-            _ => return Err("Grok profile 字段 tags 必须是字符串数组或 null".to_string()),
-        };
-    }
-
-    for key in [
-        "api_backend",
-        "context_window",
-        "supports_backend_search",
-        "reasoning_effort",
-    ] {
-        patch_platform_field(object, key, profile);
-    }
-    apply_credential_action(object, profile)
-}
+#[cfg(test)]
+use ccr_app::config::profile_patch::grok::apply_credential_action;
+#[cfg(test)]
+use ccr_app::config::profile_patch::grok::patch_object as apply_profile_patch;
 
 fn load_profile(platform: &GrokPlatform, name: &str) -> Result<ProfileConfig, String> {
     platform
@@ -668,27 +526,6 @@ fn load_profile(platform: &GrokPlatform, name: &str) -> Result<ProfileConfig, St
 fn add_profile(request: OpenJsonValueDto) -> Result<GrokProfileActionResponse, String> {
     let mut object = request_object(request)?;
     let name = take_required_name(&mut object)?;
-    if !object.contains_key("credential_action") {
-        match (
-            object.contains_key("api_key"),
-            object.contains_key("env_key"),
-        ) {
-            (true, false) => {
-                object.insert(
-                    "credential_action".to_string(),
-                    JsonValue::String("replace_api_key".to_string()),
-                );
-            }
-            (false, true) => {
-                object.insert(
-                    "credential_action".to_string(),
-                    JsonValue::String("replace_env_key".to_string()),
-                );
-            }
-            (true, true) => return Err("Grok api_key 与 env_key 不能同时设置".to_string()),
-            (false, false) => {}
-        }
-    }
     let platform = GrokPlatform::new().map_err(|error| format!("初始化 Grok 平台失败: {error}"))?;
     if platform
         .load_profiles()
@@ -697,8 +534,7 @@ fn add_profile(request: OpenJsonValueDto) -> Result<GrokProfileActionResponse, S
     {
         return Err(format!("Grok profile '{name}' 已存在"));
     }
-    let mut profile = ProfileConfig::new();
-    apply_profile_patch(&mut profile, &object)?;
+    let profile = ccr_app::config::profile_patch::grok::build(&JsonValue::Object(object))?;
     platform
         .validate_profile(&profile)
         .map_err(|error| format!("Grok profile 校验失败: {error}"))?;
@@ -723,61 +559,54 @@ fn update_profile_with_platform(
     name: String,
     patch: OpenJsonValueDto,
 ) -> Result<GrokProfileActionResponse, String> {
-    let object = request_object(patch)?;
-    let activation = platform
-        .inspect_activation_state()
-        .map_err(|error| format!("检查 Grok profile 激活状态失败: {error}"))?;
-    let mut profile = load_profile(platform, &name)?;
-    apply_profile_patch(&mut profile, &object)?;
-    platform
-        .validate_profile(&profile)
-        .map_err(|error| format!("Grok profile 校验失败: {error}"))?;
-
-    let new_name = match object.get("name") {
+    let patch = JsonValue::Object(request_object(patch)?);
+    let target = match patch.get("name") {
         None => name.clone(),
         Some(JsonValue::String(value)) if !value.trim().is_empty() => value.trim().to_string(),
-        Some(JsonValue::Null) => return Err("Grok profile name 不允许设为 null".to_string()),
-        Some(_) => return Err("Grok profile name 必须是非空字符串".to_string()),
+        Some(JsonValue::Null) => return Err("Grok profile name 不允许设为 null".into()),
+        Some(_) => return Err("Grok profile name 必须是非空字符串".into()),
     };
-    if new_name == name {
-        platform
-            .save_profile(&name, &profile)
-            .map_err(|error| format!("更新 Grok profile '{name}' 失败: {error}"))?;
-        return Ok(GrokProfileActionResponse::Updated {
-            profile: profile_to_dto(name, &profile)?,
-        });
-    }
-
-    if platform
-        .load_profiles()
-        .map_err(|error| format!("读取 Grok profiles 失败: {error}"))?
-        .contains_key(&new_name)
-    {
-        return Err(format!("Grok profile '{new_name}' 已存在"));
-    }
-    platform
-        .save_profile(&new_name, &profile)
-        .map_err(|error| format!("保存 Grok 新 profile '{new_name}' 失败: {error}"))?;
-
-    let was_active =
-        matches!(&activation, GrokActivationState::Active { name: active } if active == &name);
-    finish_profile_rename(
-        name,
-        new_name,
-        was_active,
-        |new_name| {
-            platform
-                .apply_profile(new_name)
-                .map_err(|error| error.to_string())
-        },
-        |old_name| {
-            platform
-                .delete_profile(old_name)
-                .map_err(|error| error.to_string())
-        },
-    )
+    let outcome = platform
+        .update_profile_versioned(&name, &target, None, |profile| {
+            ccr_app::config::profile_patch::grok::patch(profile, &patch)
+                .map_err(ccr_core::CcrError::ValidationError)
+        })
+        .map_err(|error| error.to_string())?;
+    grok_update_response(outcome)
 }
 
+fn grok_update_response(
+    outcome: ccr_cli::platforms::grok::GrokProfileUpdateOutcome,
+) -> Result<GrokProfileActionResponse, String> {
+    use ccr_cli::platforms::grok::GrokProfileUpdateOutcome as GrokUpdateOutcome;
+    Ok(match outcome {
+        GrokUpdateOutcome::Updated { name, profile } => GrokProfileActionResponse::Updated {
+            profile: profile_to_dto(name, &profile)?,
+        },
+        GrokUpdateOutcome::Renamed { old_name, new_name } => {
+            GrokProfileActionResponse::Renamed { old_name, new_name }
+        }
+        GrokUpdateOutcome::RenameApplyFailed { old_name, new_name } => {
+            GrokProfileActionResponse::RenameApplyFailed {
+                old_name,
+                new_name,
+                message: "新旧 profile 均已保留，旧 profile 仍在运行；请重试切换到新 profile。"
+                    .into(),
+            }
+        }
+        GrokUpdateOutcome::RenameCleanupFailed { old_name, new_name } => {
+            GrokProfileActionResponse::RenameCleanupFailed {
+                old_name,
+                new_name,
+                message:
+                    "新 profile 已保存，但旧 profile 未能删除；请确认运行状态后重试删除旧 profile。"
+                        .into(),
+            }
+        }
+    })
+}
+
+#[cfg(test)]
 fn finish_profile_rename<A, D>(
     old_name: String,
     new_name: String,
@@ -789,37 +618,20 @@ where
     A: FnOnce(&str) -> Result<(), String>,
     D: FnOnce(&str) -> Result<(), String>,
 {
-    if was_active && apply(&new_name).is_err() {
-        return Ok(GrokProfileActionResponse::RenameApplyFailed {
-            old_name,
-            new_name,
-            message: "新旧 profile 均已保留，旧 profile 仍在运行；请重试切换到新 profile。"
-                .to_string(),
-        });
-    }
-    if delete(&old_name).is_err() {
-        return Ok(GrokProfileActionResponse::RenameCleanupFailed {
-            old_name,
-            new_name,
-            message:
-                "新 profile 已保存，但旧 profile 未能删除；请确认运行状态后重试删除旧 profile。"
-                    .to_string(),
-        });
-    }
-    Ok(GrokProfileActionResponse::Renamed { old_name, new_name })
+    grok_update_response(ccr_cli::platforms::grok::finish_grok_profile_rename(
+        old_name, new_name, was_active, apply, delete,
+    ))
 }
 
 fn blocked_delete_response(
-    state: &GrokActivationState,
+    reason: ccr_cli::platforms::grok::GrokProfileDeleteBlockedReason,
 ) -> Result<GrokProfileActionResponse, String> {
-    let reason = match state {
-        GrokActivationState::Active { .. } => GrokDeleteBlockedReasonDto::Active,
-        GrokActivationState::Drifted { .. } => GrokDeleteBlockedReasonDto::Drifted,
-        GrokActivationState::UnsafeMissingEntryState { .. } => {
+    use ccr_cli::platforms::grok::GrokProfileDeleteBlockedReason;
+    let reason = match reason {
+        GrokProfileDeleteBlockedReason::Active => GrokDeleteBlockedReasonDto::Active,
+        GrokProfileDeleteBlockedReason::Drifted => GrokDeleteBlockedReasonDto::Drifted,
+        GrokProfileDeleteBlockedReason::UnsafeMissingEntryState => {
             GrokDeleteBlockedReasonDto::UnsafeMissingEntryState
-        }
-        GrokActivationState::Inactive => {
-            return Err("内部状态错误: inactive profile 不应进入删除阻断分支".to_string());
         }
     };
     let message = if reason == GrokDeleteBlockedReasonDto::UnsafeMissingEntryState {
@@ -831,27 +643,18 @@ fn blocked_delete_response(
 }
 
 fn delete_profile(name: String, force: bool) -> Result<GrokProfileActionResponse, String> {
+    use ccr_cli::platforms::grok::GrokProfileDeleteOutcome;
     let platform = GrokPlatform::new().map_err(|error| format!("初始化 Grok 平台失败: {error}"))?;
-    let state = platform
-        .inspect_activation_state()
-        .map_err(|error| format!("检查 Grok profile 激活状态失败: {error}"))?;
-    execute_delete_with_state(
-        &state,
-        &name,
-        force,
-        || {
-            platform
-                .clear_active_profile_runtime()
-                .map_err(|error| format!("退出 Grok profile 模式失败: {error}"))
-        },
-        || {
-            platform
-                .delete_profile(&name)
-                .map_err(|error| format!("删除 Grok profile '{name}' 失败: {error}"))
-        },
-    )
+    match platform
+        .delete_profile_guarded(&name, force)
+        .map_err(|error| error.to_string())?
+    {
+        GrokProfileDeleteOutcome::Deleted { .. } => Ok(GrokProfileActionResponse::Deleted),
+        GrokProfileDeleteOutcome::Blocked { reason } => blocked_delete_response(reason),
+    }
 }
 
+#[cfg(test)]
 fn execute_delete_with_state<O, D>(
     state: &GrokActivationState,
     name: &str,
@@ -863,17 +666,11 @@ where
     O: FnOnce() -> Result<(), String>,
     D: FnOnce() -> Result<(), String>,
 {
-    let blocked = match state {
-        GrokActivationState::Active { name: active }
-        | GrokActivationState::Drifted { name: active } => active == name,
-        GrokActivationState::UnsafeMissingEntryState { .. } => true,
-        GrokActivationState::Inactive => false,
-    };
-    if blocked {
-        if !force || matches!(state, GrokActivationState::UnsafeMissingEntryState { .. }) {
-            return blocked_delete_response(state);
-        }
-        off()?;
+    use ccr_cli::platforms::grok::{GrokProfileDeletePlan, grok_profile_delete_plan};
+    match grok_profile_delete_plan(state, name, force) {
+        GrokProfileDeletePlan::Blocked { reason } => return blocked_delete_response(reason),
+        GrokProfileDeletePlan::OffThenDelete => off()?,
+        GrokProfileDeletePlan::Delete => {}
     }
     delete()?;
     Ok(GrokProfileActionResponse::Deleted)

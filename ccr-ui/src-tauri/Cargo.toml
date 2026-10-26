@@ -21,6 +21,7 @@ ccr = { path = "../../crates/ccr", default-features = false }
 ccr-core = { path = "../../crates/ccr-core" }
 ccr-codex = { path = "../../crates/ccr-codex" }
 ccr-config = { path = "../../crates/ccr-config" }
+ccr-app = { path = "../../crates/ccr-app" }
 ccr-skills = { path = "../../crates/ccr-skills" }
 ccr-store = { path = "../../crates/ccr-store" }
 ccr-sync = { path = "../../crates/ccr-sync" }

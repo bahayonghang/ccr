@@ -3,10 +3,12 @@
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
-use ccr_config::{CcsConfig, ConfigManager, ConfigService, ImportMode};
+#[cfg(test)]
+use ccr_config::CcsConfig;
+use ccr_config::{ConfigManager, ConfigService, ImportMode};
 use ccr_core::CcrError;
 use ccr_store::HistoryService;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 use ts_rs::TS;
 
 use crate::state::AppState;
@@ -97,61 +99,12 @@ fn resolve_managed_restore_path(
     config_path: &Path,
     backup_path: &str,
 ) -> Result<PathBuf, CcrError> {
-    let requested = Path::new(backup_path);
-    if requested.is_absolute()
-        || requested.components().any(|component| {
-            matches!(
-                component,
-                Component::ParentDir | Component::Prefix(_) | Component::RootDir
-            )
-        })
-    {
-        return Err(CcrError::ValidationError(
-            "只能恢复当前 CCR 配置目录中的托管备份文件".into(),
-        ));
-    }
-
-    let config_dir = config_path
-        .parent()
-        .ok_or_else(|| CcrError::ConfigError("无法获取配置目录".into()))?;
-    let resolved = config_dir.join(requested);
-
-    if resolved.parent() != Some(config_dir) {
-        return Err(CcrError::ValidationError(
-            "只能恢复当前 CCR 配置目录中的托管备份文件".into(),
-        ));
-    }
-
-    let config_filename = config_path
-        .file_name()
-        .and_then(|name| name.to_str())
-        .ok_or_else(|| CcrError::ConfigError("无效的配置文件名".into()))?;
-    let backup_filename = resolved
-        .file_name()
-        .and_then(|name| name.to_str())
-        .ok_or_else(|| CcrError::ValidationError("无效的备份文件名".into()))?;
-
-    if !backup_filename.starts_with(config_filename) || !backup_filename.ends_with(".bak") {
-        return Err(CcrError::ValidationError(
-            "只能恢复由 CCR 生成的当前配置备份文件".into(),
-        ));
-    }
-
-    Ok(resolved)
+    ccr_app::config::backups::resolve_managed_restore_path(config_path, backup_path)
 }
 
 fn restore_config_from_backup_path(backup_path: &Path) -> Result<(), CcrError> {
-    if !backup_path.exists() {
-        return Err(CcrError::ConfigMissing(backup_path.display().to_string()));
-    }
-
-    let content = std::fs::read_to_string(backup_path)
-        .map_err(|e| CcrError::FileIoError(format!("读取备份失败: {e}")))?;
-    let config: CcsConfig = toml::from_str(&content)
-        .map_err(|e| CcrError::ConfigFormatInvalid(format!("解析备份 TOML 失败: {e}")))?;
-
     let service = ConfigService::with_default()?;
-    service.restore_config_from_backup(&config)
+    ccr_app::config::backups::restore(&service, backup_path)
 }
 
 // ── 配置管理 ──
@@ -160,42 +113,10 @@ fn restore_config_from_backup_path(backup_path: &Path) -> Result<(), CcrError> {
 pub async fn list_configs(platform: Option<String>) -> Result<Vec<ConfigInfo>, String> {
     let platform = required_platform(platform.as_deref()).map_err(|e| e.to_string())?;
     let result = tokio::task::spawn_blocking(move || {
-        let manager = ConfigManager::for_platform(&platform.to_string())
+        debug_assert_eq!(platform, ccr_config::Platform::Claude);
+        let service = ccr_app::config::ConfigReadService::for_claude()
             .map_err(|e| format!("Failed to create ConfigManager: {e}"))?;
-        let snapshot = manager.snapshot().map_err(|e| e.to_string())?;
-        let config = snapshot.config;
-        let current = ccr_cli::platforms::create_platform(platform)
-            .and_then(|instance| instance.get_current_profile())
-            .map_err(|e| e.to_string())?;
-
-        let configs: Vec<ConfigInfo> = config
-            .sections
-            .iter()
-            .map(|(name, section)| ConfigInfo {
-                version: snapshot.version.clone(),
-                name: name.clone(),
-                description: section.description.clone().unwrap_or_default(),
-                base_url: section.base_url.clone().unwrap_or_default(),
-                auth_token: section
-                    .auth_token
-                    .as_ref()
-                    .map(|token| token.to_string())
-                    .unwrap_or_default(),
-                model: section.model.clone(),
-                small_fast_model: section.small_fast_model.clone(),
-                is_current: current.as_deref() == Some(name.as_str()),
-                is_default: name == &config.default_config,
-                provider: section.provider.clone(),
-                provider_type: section
-                    .provider_type
-                    .as_ref()
-                    .map(|pt| pt.to_string_value().to_string()),
-                account: section.account.clone(),
-                tags: section.tags.clone(),
-                usage_count: u64::from(section.usage_count()),
-                enabled: section.is_enabled(),
-            })
-            .collect();
+        let configs = adapter::list(&service).map_err(|e| e.to_string())?;
 
         Ok::<_, String>(configs)
     })
@@ -530,33 +451,15 @@ pub async fn set_skip_exit_confirm(skip: bool, state: State<'_, AppState>) -> Re
 #[ccr_tauri_command_macros::command]
 pub async fn clean_backups() -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
-        // CCR 配置文件位于 ~/.ccr/ 目录下
-        let home =
-            dirs::home_dir().ok_or_else(|| "Unable to determine home directory".to_string())?;
-        let ccr_dir = home.join(".ccr");
-
-        if !ccr_dir.exists() {
+        // Preserve the legacy Tauri cleanup root; native callers inject their root.
+        let root = dirs::home_dir()
+            .ok_or_else(|| "Unable to determine home directory".to_string())?
+            .join(".ccr");
+        let result = ccr_app::config::backups::clean(&root);
+        if !result.root_exists {
             return Ok("No CCR config directory found".to_string());
         }
-
-        let mut deleted = 0usize;
-        // 递归扫描 .bak / .backup 文件
-        for entry in walkdir::WalkDir::new(&ccr_dir)
-            .max_depth(3)
-            .into_iter()
-            .flatten()
-        {
-            let path = entry.path();
-            if !path.is_file() {
-                continue;
-            }
-            let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
-            if (ext == "bak" || ext == "backup") && std::fs::remove_file(path).is_ok() {
-                deleted += 1;
-            }
-        }
-
-        Ok(format!("Deleted {} backup file(s)", deleted))
+        Ok(format!("Deleted {} backup file(s)", result.deleted))
     })
     .await
     .map_err(|e| format!("Task join error: {e}"))?

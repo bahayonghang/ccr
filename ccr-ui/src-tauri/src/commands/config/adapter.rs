@@ -6,9 +6,8 @@ use ccr_cli::application::profile_lifecycle::{
     update_profile,
 };
 use ccr_cli::platforms::create_platform;
-use ccr_config::managers::config::{ConfigPatch, FieldPatch};
-use ccr_config::platforms::base::section_to_profile;
-use ccr_config::{ConfigManager, ConfigSection, ConfigService, Platform};
+use ccr_config::managers::config::ConfigPatch;
+use ccr_config::{ConfigManager, ConfigService, Platform};
 use ccr_core::{CcrError, Result};
 use serde::{Deserialize, Deserializer, Serialize};
 use ts_rs::TS;
@@ -28,6 +27,31 @@ pub(super) fn required_platform(value: Option<&str>) -> Result<Platform> {
             "config_platform_unsupported".into(),
         )),
     }
+}
+
+/// Wire mapping stays here so the shared application crate never owns TS exports.
+pub(super) fn list(service: &ccr_app::config::ConfigReadService) -> Result<Vec<super::ConfigInfo>> {
+    service.list().map(|rows| {
+        rows.into_iter()
+            .map(|row| super::ConfigInfo {
+                version: row.version,
+                name: row.name,
+                description: row.description,
+                base_url: row.base_url,
+                auth_token: row.auth_token,
+                model: row.model,
+                small_fast_model: row.small_fast_model,
+                is_current: row.is_current,
+                is_default: row.is_default,
+                provider: row.provider,
+                provider_type: row.provider_type,
+                account: row.account,
+                tags: row.tags,
+                usage_count: row.usage_count,
+                enabled: row.enabled,
+            })
+            .collect()
+    })
 }
 
 /// Missing retains a field; null removes it. Values have no Debug output.
@@ -70,6 +94,11 @@ impl<'de> Deserialize<'de> for ConfigPatchInput {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
         use serde::de::Error;
         let mut fields = serde_json::Map::<String, serde_json::Value>::deserialize(deserializer)?;
+        ccr_app::config::mutations::parse_patch(&serde_json::Value::Object(fields.clone()))
+            .map_err(|error| match error {
+                CcrError::ValidationError(message) => D::Error::custom(message),
+                _ => D::Error::custom("invalid_config_patch"),
+            })?;
         fn take<T: serde::de::DeserializeOwned, E: Error>(
             fields: &mut serde_json::Map<String, serde_json::Value>,
             key: &str,
@@ -91,9 +120,6 @@ impl<'de> Deserialize<'de> for ConfigPatchInput {
             tags: take(&mut fields, "tags")?,
             enabled: take(&mut fields, "enabled")?,
         };
-        if !fields.is_empty() {
-            return Err(D::Error::custom("unknown_config_patch_field"));
-        }
         Ok(result)
     }
 }
@@ -102,22 +128,7 @@ impl ConfigPatchInput {
     fn into_patch(self) -> Result<ConfigPatch> {
         let value = serde_json::to_value(self)
             .map_err(|_| CcrError::ValidationError("invalid_config_patch".into()))?;
-        let fields = value
-            .as_object()
-            .ok_or_else(|| CcrError::ValidationError("invalid_config_patch".into()))?;
-        let mut patch = ConfigPatch::default();
-        for (key, value) in fields {
-            let edit = if value.is_null() {
-                FieldPatch::Remove
-            } else {
-                FieldPatch::Set(
-                    serde_json::from_value(value.clone())
-                        .map_err(|_| CcrError::ValidationError("invalid_config_patch".into()))?,
-                )
-            };
-            patch.fields.insert(key.clone(), edit);
-        }
-        Ok(patch)
+        ccr_app::config::mutations::parse_patch(&value)
     }
 }
 
@@ -137,13 +148,6 @@ fn result(name: &str, outcome: Option<ProfileOutcome>) -> ConfigMutationResult {
         name: name.into(),
         outcome,
     }
-}
-
-fn valid_name(name: &str) -> Result<()> {
-    if name.trim().is_empty() || matches!(name, "default_config" | "current_config" | "settings") {
-        return Err(CcrError::ValidationError("invalid_config_name".into()));
-    }
-    Ok(())
 }
 
 pub(super) fn activate(
@@ -168,26 +172,7 @@ pub(super) fn add(
     let patch = data.into_patch()?;
     let instance = create_platform(platform)?;
     let manager = ConfigManager::for_platform(&platform.to_string())?;
-    manager.mutate_or_create(|config| {
-        valid_name(name)?;
-        if config.sections.contains_key(name) {
-            return Err(CcrError::ValidationError("config_already_exists".into()));
-        }
-        let section = patch.apply(&ConfigSection {
-            enabled: Some(true),
-            usage_count: Some(0),
-            ..Default::default()
-        })?;
-        instance.validate_profile(&section_to_profile(&section))?;
-        if config.sections.is_empty() {
-            config.default_config = name.into();
-            if !config.current_config.is_empty() {
-                config.current_config = name.into();
-            }
-        }
-        config.sections.insert(name.into(), section);
-        Ok(())
-    })?;
+    ccr_app::config::mutations::add(&manager, instance.as_ref(), name, &patch)?;
     Ok(result(name, None))
 }
 
@@ -200,24 +185,13 @@ pub(super) fn update(
     let patch = data.into_patch()?;
     let _operation = operation_lock(platform)?;
     let instance = create_platform(platform)?;
-    let active = instance.get_current_profile()?;
-    ConfigManager::for_platform(&platform.to_string())?.mutate_versioned(
+    ccr_app::config::mutations::update(
+        &ConfigManager::for_platform(&platform.to_string())?,
+        instance.as_ref(),
+        name,
+        &patch,
         expected,
-        false,
-        |config| {
-            valid_name(name)?;
-            let section = patch.apply(config.get_section(name)?)?;
-            if (config.current_config == name || active.as_deref() == Some(name))
-                && !section.is_enabled()
-            {
-                return Err(CcrError::ValidationError(
-                    "active_config_cannot_be_disabled".into(),
-                ));
-            }
-            instance.validate_profile(&section_to_profile(&section))?;
-            config.sections.insert(name.into(), section);
-            Ok(())
-        },
+        &_operation,
     )?;
     Ok(result(name, None))
 }
@@ -236,25 +210,21 @@ pub(super) fn duplicate(
     source: &str,
     target: &str,
 ) -> Result<ConfigMutationResult> {
-    ConfigManager::for_platform(&platform.to_string())?.mutate(|config| {
-        valid_name(target)?;
-        if config.sections.contains_key(target) {
-            return Err(CcrError::ValidationError("config_already_exists".into()));
-        }
-        let original = config.get_section(source)?.clone();
-        config.sections.insert(target.into(), original);
-        Ok(())
-    })?;
+    ccr_app::config::mutations::duplicate(
+        &ConfigManager::for_platform(&platform.to_string())?,
+        source,
+        target,
+    )?;
     Ok(result(target, None))
 }
 
 pub(super) fn delete(platform: Platform, name: &str) -> Result<ConfigMutationResult> {
     let _operation = operation_lock(platform)?;
-    if create_platform(platform)?.get_current_profile()?.as_deref() == Some(name) {
-        return Err(CcrError::ValidationError(
-            "active_config_cannot_be_deleted".into(),
-        ));
-    }
-    ConfigService::for_platform(&platform.to_string())?.delete_config(name)?;
+    ccr_app::config::mutations::delete(
+        &ConfigService::for_platform(&platform.to_string())?,
+        create_platform(platform)?.as_ref(),
+        name,
+        &_operation,
+    )?;
     Ok(result(name, None))
 }

@@ -4,7 +4,7 @@ use std::path::Path;
 use ccr_cli::application::profile_lifecycle::{
     ApplyProfileRequest, ProfileOutcome, ProfileStatus, apply_profile,
 };
-use ccr_config::{CcrError, ConfigManager, PlatformPaths, parse_profiles_from_str};
+use ccr_config::PlatformPaths;
 
 pub(crate) fn profile_outcome_payload(outcome: ProfileOutcome) -> Value {
     json!({
@@ -33,57 +33,88 @@ mod application_contract {
     }
     #[test]
     fn profile_post_publish_failure_contract() {
+        if ccr_cli::home_process::run_current_test() {
+            return;
+        }
         let _desktop = crate::test_support::lock_env();
         profile_contract::post_publish_failure(desktop);
     }
     #[test]
     fn profile_deleted_after_prepare_contract() {
+        if ccr_cli::home_process::run_current_test() {
+            return;
+        }
         let _desktop = crate::test_support::lock_env();
         profile_contract::deleted_after_preparation(desktop);
     }
     #[test]
     fn profile_preflight_contract() {
+        if ccr_cli::home_process::run_current_test() {
+            return;
+        }
         let _desktop = crate::test_support::lock_env();
         profile_contract::preflight(desktop);
     }
     #[test]
     fn profile_success_replay_contract() {
+        if ccr_cli::home_process::run_current_test() {
+            return;
+        }
         let _desktop = crate::test_support::lock_env();
         profile_contract::success_and_replay(desktop);
     }
     #[test]
     fn profile_ancillary_contract() {
+        if ccr_cli::home_process::run_current_test() {
+            return;
+        }
         let _desktop = crate::test_support::lock_env();
         profile_contract::ancillary_failures(desktop);
     }
     #[test]
     fn profile_each_write_contract() {
+        if ccr_cli::home_process::run_current_test() {
+            return;
+        }
         let _desktop = crate::test_support::lock_env();
         profile_contract::failure_matrix(desktop);
     }
     #[test]
     fn profile_external_version_contract() {
+        if ccr_cli::home_process::run_current_test() {
+            return;
+        }
         let _desktop = crate::test_support::lock_env();
         profile_contract::external_change(desktop);
     }
     #[test]
     fn profile_commit_failure_replays_operation() {
+        if ccr_cli::home_process::run_current_test() {
+            return;
+        }
         let _desktop = crate::test_support::lock_env();
         profile_contract::commit_failure_replays(desktop);
     }
     #[test]
     fn profile_runtime_change_before_catalog_commit() {
+        if ccr_cli::home_process::run_current_test() {
+            return;
+        }
         let _desktop = crate::test_support::lock_env();
         profile_contract::runtime_changed_before_catalog_commit(desktop);
     }
     #[test]
     fn profile_checkpoint_failure_keeps_activation() {
+        if ccr_cli::home_process::run_current_test() {
+            return;
+        }
         let _desktop = crate::test_support::lock_env();
         profile_contract::checkpoint_failure_keeps_activation(desktop);
     }
 }
 
-use crate::commands::settings_raw::{invalid_result, toml_error_position};
+use crate::commands::settings_raw::invalid_result;
+use ccr_app::config::source::{self, SourceInvalidKind, SourceSaveOutcome};
 
 pub(crate) fn resolve_profile_target_name(
     platform_label: &str,
@@ -112,17 +143,11 @@ pub(crate) fn profiles_export_payload_from_path(
     include_secrets: bool,
 ) -> Result<Value, String> {
     if !include_secrets {
-        return Err("Redacted profiles export is not supported".to_string());
+        // Preserve the legacy wire error while the shared owner enforces the rule.
+        return Err("Redacted profiles export is not supported".into());
     }
-
-    let manager = ConfigManager::new(profiles_file);
-    let content = match manager
-        .canonical_toml()
-        .map_err(|error| error.to_string())?
-    {
-        Some((content, _revision)) => content,
-        None => return Err("Failed to read profiles catalog".to_string()),
-    };
+    let content =
+        source::export(profiles_file, include_secrets).map_err(|error| error.to_string())?;
     let timestamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
     let filename = format!("{filename_prefix}-{timestamp}.toml");
 
@@ -133,26 +158,14 @@ pub(crate) fn profiles_export_payload_from_path(
 }
 
 pub(crate) fn profiles_raw_payload_from_paths(paths: &PlatformPaths) -> Result<Value, String> {
-    let manager = ConfigManager::new(&paths.profiles_file);
-    match manager
-        .canonical_toml()
-        .map_err(|error| error.to_string())?
-    {
-        Some((content, revision)) => Ok(json!({
-            "status": "ok",
-            "content": content,
-            "token": revision,
-            "path": manager.profiles_db(),
-            "exists": true,
-        })),
-        None => Ok(json!({
-            "status": "ok",
-            "content": "",
-            "token": "",
-            "path": paths.profiles_db(),
-            "exists": false,
-        })),
-    }
+    let snapshot = source::read(paths).map_err(|error| error.to_string())?;
+    Ok(json!({
+        "status": "ok",
+        "content": snapshot.content,
+        "token": snapshot.token,
+        "path": snapshot.path,
+        "exists": snapshot.exists,
+    }))
 }
 
 pub(crate) fn save_profiles_raw_to_paths(
@@ -162,53 +175,32 @@ pub(crate) fn save_profiles_raw_to_paths(
     token: &str,
     force: bool,
 ) -> Result<Value, String> {
-    if let Err(error) = toml::from_str::<toml::Value>(content) {
-        return Ok(invalid_result(
-            "syntax",
-            "Invalid profiles TOML syntax",
-            toml_error_position(content, &error),
-        ));
-    }
-
-    let profiles = match parse_profiles_from_str(content) {
-        Ok(profiles) => profiles,
-        Err(_) => {
-            return Ok(invalid_result(
-                "semantic",
-                "Profiles TOML does not match the supported profile structure",
-                None,
-            ));
-        }
-    };
-    if profiles.is_empty() {
-        return Ok(invalid_result(
-            "semantic",
-            "Profiles TOML must contain at least one profile",
-            None,
-        ));
-    }
-
-    if let Some(current) = current_profile
-        && !profiles.contains_key(current)
-        && !force
-    {
-        return Ok(json!({
-            "status": "activation_conflict",
-            "current": current,
-        }));
-    }
-
-    match ConfigManager::new(&paths.profiles_file).replace_toml(content, token) {
-        Ok(revision) => Ok(json!({
-            "status": "saved",
-            "token": revision,
-            "profiles_count": profiles.len(),
-        })),
-        Err(CcrError::ValidationError(message)) if message == "配置版本冲突，请重新读取后重试" => {
-            Ok(json!({ "status": "conflict" }))
-        }
-        Err(error) => Err(error.to_string()),
-    }
+    let outcome = source::save(paths, current_profile, content, token, force)
+        .map_err(|error| error.to_string())?;
+    Ok(match outcome {
+        SourceSaveOutcome::Invalid {
+            kind,
+            message,
+            position,
+        } => invalid_result(
+            match kind {
+                SourceInvalidKind::Syntax => "syntax",
+                SourceInvalidKind::Semantic => "semantic",
+            },
+            message,
+            position,
+        ),
+        SourceSaveOutcome::ActivationConflict { current } => json!({
+            "status": "activation_conflict", "current": current,
+        }),
+        SourceSaveOutcome::Conflict => json!({ "status": "conflict" }),
+        SourceSaveOutcome::Saved {
+            token,
+            profiles_count,
+        } => json!({
+            "status": "saved", "token": token, "profiles_count": profiles_count,
+        }),
+    })
 }
 
 #[cfg(test)]

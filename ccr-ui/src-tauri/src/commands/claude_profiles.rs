@@ -293,6 +293,9 @@ mod application_rename_contract {
     use super::*;
     #[test]
     fn profile_rename_each_write_contract() {
+        if ccr_cli::home_process::run_current_test() {
+            return;
+        }
         let _desktop = crate::test_support::lock_env();
         ccr_cli::application::profile_contract::rename_failures(
             &[Platform::Claude],

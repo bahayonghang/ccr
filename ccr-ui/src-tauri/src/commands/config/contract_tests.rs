@@ -7,12 +7,43 @@ use ccr_config::Platform;
 use serde_json::json;
 use std::fs;
 
-fn fixture() -> (impl Drop, std::sync::MutexGuard<'static, ()>) {
-    let desktop = crate::test_support::lock_env();
-    (
-        ccr_cli::application::profile_contract::isolated_fixture(Platform::Claude),
-        desktop,
-    )
+/// Each existing contract executes alone in a child with explicit domain roots.
+/// Parent tests stay parallel and neither process changes HOME/USERPROFILE.
+fn run_isolated(name: &str) -> bool {
+    if std::env::var("CCR_CONFIG_CONTRACT_CASE").as_deref() == Ok(name) {
+        return false;
+    }
+    let temp = tempfile::tempdir().unwrap();
+    let base = temp.path().canonicalize().unwrap();
+    fs::write(base.join(".ccr-profile-contract-fixture"), []).unwrap();
+    let test = format!("commands::config::contract_tests::{name}");
+    let output = std::process::Command::new(std::env::current_exe().unwrap())
+        .args(["--exact", &test, "--nocapture"])
+        .env("CCR_CONFIG_CONTRACT_CASE", name)
+        .env("CCR_PROFILE_CONTRACT_ROOT", &base)
+        .env("CCR_ROOT", base.join(".ccr"))
+        .env("CCR_DATA_DIR", base.join(".ccr"))
+        .env("CCR_LOCK_DIR", base.join(".locks"))
+        .env("CLAUDE_CONFIG_DIR", base.join(".claude"))
+        .env("CLAUDE_JSON_PATH", base.join(".claude.json"))
+        .env("CCR_SETTINGS_PATH", base.join(".claude/settings.json"))
+        .env("CCR_BACKUP_DIR", base.join(".claude/backups"))
+        .env("CCR_CODEX_DIR", base.join(".codex"))
+        .env("GROK_HOME", base.join(".grok"))
+        .env_remove("CCR_CONFIG_PATH")
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{test}: {}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    true
+}
+
+fn fixture() -> impl Drop {
+    ccr_cli::application::profile_contract::isolated_fixture(Platform::Claude)
 }
 
 fn patch(value: serde_json::Value) -> ConfigPatchInput {
@@ -28,7 +59,66 @@ fn catalog_snapshot() -> (String, String) {
 }
 
 #[tokio::test]
+async fn actual_list_handler_matches_shared_native_projection_and_revision() {
+    if run_isolated("actual_list_handler_matches_shared_native_projection_and_revision") {
+        return;
+    }
+    let _fixture = fixture();
+    manager()
+        .mutate(|config| {
+            let row = config.get_section_mut("new")?;
+            row.small_fast_model = Some("fast-fixture".into());
+            row.provider = Some("provider-fixture".into());
+            row.account = Some("account-fixture".into());
+            row.tags = Some(vec!["tag-fixture".into()]);
+            Ok(())
+        })
+        .unwrap();
+    let paths = ccr_config::PlatformPaths::new(Platform::Claude).unwrap();
+    let shared =
+        ccr_app::config::ConfigReadService::from_paths(paths.profiles_file, paths.registry_file);
+    let expected = shared.list().unwrap();
+    let actual = list_configs(Some("claude".into())).await.unwrap();
+    assert_eq!(actual.len(), expected.len());
+    assert_eq!(
+        actual
+            .iter()
+            .map(|row| row.name.as_str())
+            .collect::<Vec<_>>(),
+        expected
+            .iter()
+            .map(|row| row.name.as_str())
+            .collect::<Vec<_>>()
+    );
+    for (wire, row) in actual.iter().zip(expected) {
+        let mut projected = json!({
+            "version": row.version, "name": row.name, "description": row.description,
+            "base_url": row.base_url, "auth_token": row.auth_token,
+            "is_current": row.is_current, "is_default": row.is_default,
+            "usage_count": row.usage_count, "enabled": row.enabled,
+            "model": row.model, "small_fast_model": row.small_fast_model,
+            "provider": row.provider, "provider_type": row.provider_type,
+            "account": row.account, "tags": row.tags,
+        });
+        projected
+            .as_object_mut()
+            .unwrap()
+            .retain(|_, value| !value.is_null());
+        assert_eq!(serde_json::to_value(wire).unwrap(), projected);
+        assert_eq!(wire.version, manager().snapshot().unwrap().version);
+        assert!(
+            !wire
+                .auth_token
+                .contains(ccr_cli::application::profile_contract::SENTINEL)
+        );
+    }
+}
+
+#[tokio::test]
 async fn actual_handlers_switch_and_enable_commit_runtime_and_policy() {
+    if run_isolated("actual_handlers_switch_and_enable_commit_runtime_and_policy") {
+        return;
+    }
     let _home = fixture();
     let switched = switch_config("new".into(), Some("claude".into()), None)
         .await
@@ -79,6 +169,9 @@ async fn actual_handlers_switch_and_enable_commit_runtime_and_policy() {
 
 #[tokio::test]
 async fn legacy_and_unsupported_platform_requests_never_write() {
+    if run_isolated("legacy_and_unsupported_platform_requests_never_write") {
+        return;
+    }
     let _home = fixture();
     let before = catalog_snapshot();
     for platform in [
@@ -147,6 +240,9 @@ async fn legacy_and_unsupported_platform_requests_never_write() {
 
 #[test]
 fn strict_patch_rejects_unknown_wrong_types_missing_collision_without_write() {
+    if run_isolated("strict_patch_rejects_unknown_wrong_types_missing_collision_without_write") {
+        return;
+    }
     let _home = fixture();
     let before = catalog_snapshot();
     for value in [
@@ -196,6 +292,9 @@ fn strict_patch_rejects_unknown_wrong_types_missing_collision_without_write() {
 
 #[test]
 fn patch_retains_secret_unknown_fields_inactive_marker_and_checks_version() {
+    if run_isolated("patch_retains_secret_unknown_fields_inactive_marker_and_checks_version") {
+        return;
+    }
     let _home = fixture();
     manager()
         .mutate(|config| {
@@ -250,6 +349,9 @@ fn patch_retains_secret_unknown_fields_inactive_marker_and_checks_version() {
 
 #[test]
 fn active_rename_uses_application_and_preserves_runtime() {
+    if run_isolated("active_rename_uses_application_and_preserves_runtime") {
+        return;
+    }
     let _home = fixture();
     let renamed = adapter::rename(Platform::Claude, "old", "renamed").unwrap();
     let outcome = renamed.outcome.unwrap();
@@ -273,12 +375,17 @@ fn active_rename_uses_application_and_preserves_runtime() {
 
 #[test]
 fn enable_stage_failure_and_replay_contract() {
-    let _desktop = crate::test_support::lock_env();
+    if run_isolated("enable_stage_failure_and_replay_contract") {
+        return;
+    }
     ccr_cli::application::profile_contract::enable_lifecycle();
 }
 
 #[tokio::test]
 async fn actual_handlers_protect_registry_fallback_active_profile() {
+    if run_isolated("actual_handlers_protect_registry_fallback_active_profile") {
+        return;
+    }
     let _home = fixture();
     create_platform(Platform::Claude)
         .unwrap()
@@ -324,6 +431,9 @@ async fn actual_handlers_protect_registry_fallback_active_profile() {
 
 #[tokio::test]
 async fn actual_handlers_crud_preserve_typed_fields_and_confirmation() {
+    if run_isolated("actual_handlers_crud_preserve_typed_fields_and_confirmation") {
+        return;
+    }
     let _home = fixture();
     let platform = Some("claude".into());
     add_config("added".into(), platform.clone(), Some(patch(json!({"base_url":"https://fixture.invalid", "auth_token":"synthetic-add", "description":"added"})))).await.unwrap();
@@ -369,6 +479,9 @@ async fn actual_handlers_crud_preserve_typed_fields_and_confirmation() {
 
 #[test]
 fn direct_mutation_waits_for_application_lock_and_rechecks_activation() {
+    if run_isolated("direct_mutation_waits_for_application_lock_and_rechecks_activation") {
+        return;
+    }
     use std::sync::mpsc;
     use std::time::Duration;
     let _home = fixture();
@@ -451,6 +564,9 @@ fn config_subprocess() {
 
 #[test]
 fn desktop_and_service_processes_preserve_independent_changes() {
+    if run_isolated("desktop_and_service_processes_preserve_independent_changes") {
+        return;
+    }
     use std::process::{Command, Stdio};
     let _home = fixture();
     for round in 0..3 {
