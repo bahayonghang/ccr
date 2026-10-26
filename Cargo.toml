@@ -2,6 +2,7 @@
 members = [
     "crates/ccr",
     "crates/ccr-core",
+    "crates/ccr-app",
     "crates/ccr-config",
     "crates/ccr-sync",
     "crates/ccr-skills",

@@ -1,0 +1,26 @@
+[package]
+name = "ccr-app"
+version.workspace = true
+edition = "2024"
+rust-version = "1.95"
+license = "MIT"
+publish = false
+description = "Framework-independent application orchestration for CCR desktop clients"
+
+[dependencies]
+ccr-config = { path = "../ccr-config" }
+ccr-core = { path = "../ccr-core" }
+serde_json = "=1.0.154"
+toml = "=1.1.8"
+walkdir = "=2.5.0"
+async-channel = "2.5.0"
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["test-util"] }
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
