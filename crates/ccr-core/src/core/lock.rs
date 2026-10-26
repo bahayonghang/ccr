@@ -15,11 +15,24 @@
 
 use crate::core::error::{CcrError, Result};
 use fs4::{FileExt, TryLockError};
+use std::cell::RefCell;
 use std::fs::{self, File, OpenOptions};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
+
+thread_local! {
+    static SCOPED_LOCK_DIRECTORY: RefCell<Option<PathBuf>> = const { RefCell::new(None) };
+}
+
+struct ScopedLockDirectory(Option<PathBuf>);
+
+impl Drop for ScopedLockDirectory {
+    fn drop(&mut self) {
+        SCOPED_LOCK_DIRECTORY.with(|slot| *slot.borrow_mut() = self.0.take());
+    }
+}
 
 // ============================================================================
 // 🔒 全局进程内配置锁
@@ -200,6 +213,28 @@ pub struct LockManager {
 }
 
 impl LockManager {
+    /// Bind nested synchronous guarded writers to one explicit lock directory.
+    /// The complete operation must stay on this thread, without await or spawn.
+    /// A nested operation may reuse the directory but cannot change lock roots.
+    /// Unscoped callers retain the existing environment/default resolution.
+    pub fn with_scoped_directory<T>(
+        directory: &Path,
+        operation: impl FnOnce() -> Result<T>,
+    ) -> Result<T> {
+        let directory = crate::core::guarded_write::normalized_resource_path(directory)?;
+        let previous = SCOPED_LOCK_DIRECTORY.with(|slot| {
+            let mut slot = slot.borrow_mut();
+            if slot.as_ref().is_some_and(|current| current != &directory) {
+                return Err(CcrError::FileLockError(
+                    "Cannot change the lock directory inside a synchronous operation".into(),
+                ));
+            }
+            Ok(slot.replace(directory))
+        })?;
+        let _scope = ScopedLockDirectory(previous);
+        operation()
+    }
+
     /// 🏗️ 创建新的锁管理器
     ///
     /// # 参数
@@ -216,6 +251,9 @@ impl LockManager {
     /// ⚙️ **开发者注意**：
     /// 可以通过环境变量 `CCR_LOCK_DIR` 覆盖默认路径
     pub fn with_default_path() -> Result<Self> {
+        if let Some(directory) = SCOPED_LOCK_DIRECTORY.with(|slot| slot.borrow().clone()) {
+            return Ok(Self::new(directory));
+        }
         // 🔍 检查环境变量
         let lock_dir = if let Ok(custom_dir) = std::env::var("CCR_LOCK_DIR") {
             std::path::PathBuf::from(custom_dir)
@@ -450,5 +488,62 @@ mod tests {
         assert!(temp_dir.path().join("claude_settings.lock").exists());
 
         // 锁在作用域结束时自动释放
+    }
+    #[test]
+    fn scoped_lock_directory_restores_after_error_panic_and_rejects_switch() {
+        let fixture = tempfile::tempdir().unwrap();
+        let first = fixture.path().join("first");
+        let second = fixture.path().join("second");
+        assert!(SCOPED_LOCK_DIRECTORY.with(|slot| slot.borrow().is_none()));
+        let normalized = crate::core::guarded_write::normalized_resource_path(&first).unwrap();
+        let failed: Result<()> = LockManager::with_scoped_directory(&first, || {
+            assert_eq!(LockManager::with_default_path()?.lock_dir(), normalized);
+            LockManager::with_scoped_directory(&first, || Ok(()))?;
+            assert!(LockManager::with_scoped_directory(&second, || Ok(())).is_err());
+            Err(CcrError::ConfigError("fixture failure".into()))
+        });
+        assert!(failed.is_err());
+        assert!(SCOPED_LOCK_DIRECTORY.with(|slot| slot.borrow().is_none()));
+        let panicked = std::panic::catch_unwind(|| {
+            let _: Result<()> =
+                LockManager::with_scoped_directory(&first, || panic!("fixture unwind"));
+        });
+        assert!(panicked.is_err());
+        assert!(SCOPED_LOCK_DIRECTORY.with(|slot| slot.borrow().is_none()));
+        assert!(!first.exists());
+        assert!(!second.exists());
+    }
+
+    #[test]
+    fn scoped_lock_directories_are_thread_local_and_cover_guarded_writes() {
+        let fixture = tempfile::tempdir().unwrap();
+        let barrier = std::sync::Arc::new(std::sync::Barrier::new(2));
+        let workers = (0..2)
+            .map(|index| {
+                let directory = fixture.path().join(format!("locks-{index}"));
+                let output = fixture.path().join(format!("output-{index}"));
+                let barrier = barrier.clone();
+                std::thread::spawn(move || {
+                    LockManager::with_scoped_directory(&directory, || {
+                        barrier.wait();
+                        let normalized =
+                            crate::core::guarded_write::normalized_resource_path(&directory)?;
+                        assert_eq!(LockManager::with_default_path()?.lock_dir(), normalized);
+                        crate::core::guarded_write::write_guarded(
+                            &output,
+                            b"fixture",
+                            &Default::default(),
+                        )?;
+                        assert!(directory.is_dir());
+                        assert_eq!(std::fs::read_dir(&directory)?.count(), 1);
+                        Ok(())
+                    })
+                    .unwrap();
+                })
+            })
+            .collect::<Vec<_>>();
+        for worker in workers {
+            worker.join().unwrap();
+        }
     }
 }
