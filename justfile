@@ -1871,3 +1871,48 @@ alias vs-l := vscode-lint
 alias vs-c := vscode-ci
 
 # ===== End CCR VSCode Extension Commands =====
+
+# Independent GPUI desktop workspace. just enters the child justfile directory.
+desktop_exit := if os() == "windows" { "; exit $LASTEXITCODE" } else { "" }
+
+desktop-help:
+    @just --justfile ccr-desktop/justfile desktop-help{{desktop_exit}}
+
+desktop-doctor:
+    @just --justfile ccr-desktop/justfile desktop-doctor{{desktop_exit}}
+
+desktop-dev *args:
+    @just --justfile ccr-desktop/justfile desktop-dev {{args}}{{desktop_exit}}
+
+desktop-build:
+    @just --justfile ccr-desktop/justfile desktop-build{{desktop_exit}}
+
+desktop-build-debug:
+    @just --justfile ccr-desktop/justfile desktop-build-debug{{desktop_exit}}
+
+desktop-check:
+    @just --justfile ccr-desktop/justfile desktop-check{{desktop_exit}}
+
+desktop-fmt:
+    @just --justfile ccr-desktop/justfile desktop-fmt{{desktop_exit}}
+
+desktop-fmt-check:
+    @just --justfile ccr-desktop/justfile desktop-fmt-check{{desktop_exit}}
+
+desktop-lint:
+    @just --justfile ccr-desktop/justfile desktop-lint{{desktop_exit}}
+
+desktop-test:
+    @just --justfile ccr-desktop/justfile desktop-test{{desktop_exit}}
+
+desktop-test-ui:
+    @just --justfile ccr-desktop/justfile desktop-test-ui{{desktop_exit}}
+
+desktop-ci:
+    @just --justfile ccr-desktop/justfile desktop-ci{{desktop_exit}}
+
+desktop-audit:
+    @just --justfile ccr-desktop/justfile desktop-audit{{desktop_exit}}
+
+desktop-clean:
+    @just --justfile ccr-desktop/justfile desktop-clean{{desktop_exit}}

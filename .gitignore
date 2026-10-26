@@ -1,5 +1,7 @@
 # Rust / Cargo
 target/
+# GPUI workspace keeps its own rebuildable outputs; Cargo.lock is tracked.
+/ccr-desktop/target/
 doc/
 *.bk
 

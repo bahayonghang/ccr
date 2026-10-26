@@ -27,6 +27,7 @@ Keeps workspace crate and UI version labels aligned with the root
 - `crates/ccr-types/Cargo.toml`
 - `crates/ccr-db/Cargo.toml`
 - `ccr-ui/package.json`
+- `ccr-desktop/Cargo.toml` (independent `ccr-gpui` package)
 - `ccr-ui/src-tauri/Cargo.toml`
 - `ccr-ui/src-tauri/tauri.conf.json`
 - `ccr-ui/src/config/appMeta.ts`

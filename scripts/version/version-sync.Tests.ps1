@@ -14,6 +14,7 @@ BeforeAll {
     New-Item -Path "$root/ccr-ui/src-tauri" -ItemType Directory -Force | Out-Null
     New-Item -Path "$root/ccr-ui/src/config" -ItemType Directory -Force | Out-Null
     New-Item -Path "$root/ccr-vscode" -ItemType Directory -Force | Out-Null
+    New-Item -Path "$root/ccr-desktop" -ItemType Directory -Force | Out-Null
     New-Item -Path "$root/scripts/version" -ItemType Directory -Force | Out-Null
 
     # 创建测试文件
@@ -78,6 +79,14 @@ export const APP_VERSION_LABEL = `${APP_NAME} v${APP_VERSION}`
 }
 '@ | Set-Content -Path "$root/ccr-vscode/package.json" -Encoding UTF8
 
+    @'
+[package]
+name = "ccr-gpui"
+version = "1.2.3"
+[workspace]
+'@ | Set-Content -Path "$root/ccr-desktop/Cargo.toml" -Encoding UTF8
+    '![version](https://img.shields.io/badge/version-1.2.3-blue)' | Set-Content "$root/ccr-ui/README.md"
+
     # 复制脚本
     Copy-Item "$RootDir/scripts/version/version-sync.ps1" "$root/scripts/version/"
 }
@@ -85,21 +94,25 @@ export const APP_VERSION_LABEL = `${APP_NAME} v${APP_VERSION}`
 AfterAll {
     # 清理测试目录
     if (Test-Path $TestDir) {
-        Remove-Item $TestDir -Recurse -Force
+        $resolvedTestDir = [System.IO.Path]::GetFullPath($TestDir)
+        $resolvedTempDir = [System.IO.Path]::GetFullPath($env:TEMP).TrimEnd('\') + '\'
+        if (-not $resolvedTestDir.StartsWith($resolvedTempDir, [System.StringComparison]::OrdinalIgnoreCase)) {
+            throw "Refusing cleanup outside the temporary fixture root"
+        }
+        Remove-Item -LiteralPath $resolvedTestDir -Recurse -Force
     }
 }
 
 Describe "version-sync.ps1 基础功能测试" {
     BeforeEach {
-        # 设置环境变量使脚本使用测试目录
-        $env:CCR_TEST_ROOT = $root
+        # 脚本通过复制位置定位 fixture，不修改用户配置或 HOME。
+        '{"name":"ccr-ui","version":"1.2.3"}' | Set-Content "$root/ccr-ui/package.json"
+        '{"name":"ccr-vscode","version":"1.2.3"}' | Set-Content "$root/ccr-vscode/package.json"
     }
 
     It "版本一致时 --check 应返回 0" {
         $scriptPath = Join-Path $root "scripts\version\version-sync.ps1"
-        # 注意：需要修改脚本中的 ROOT_DIR 或使用环境变量
-        # 这里假设脚本支持测试模式
-        $result = & powershell -File $scriptPath -Check -Verbose 2>&1
+        $result = & (Get-Process -Id $PID).Path -NoLogo -NoProfile -File $scriptPath -Check -Verbose 2>&1
         $LASTEXITCODE | Should -Be 0
     }
 
@@ -114,7 +127,7 @@ Describe "version-sync.ps1 基础功能测试" {
 '@ | Set-Content -Path "$root/ccr-ui/package.json" -Encoding UTF8
 
         $scriptPath = Join-Path $root "scripts\version\version-sync.ps1"
-        $result = & powershell -File $scriptPath -Check 2>&1
+        $result = & (Get-Process -Id $PID).Path -NoLogo -NoProfile -File $scriptPath -Check 2>&1
         $LASTEXITCODE | Should -Be 1
     }
 
@@ -129,7 +142,7 @@ Describe "version-sync.ps1 基础功能测试" {
 '@ | Set-Content -Path "$root/ccr-ui/package.json" -Encoding UTF8
 
         $scriptPath = Join-Path $root "scripts\version\version-sync.ps1"
-        $result = & powershell -File $scriptPath -Verbose 2>&1
+        $result = & (Get-Process -Id $PID).Path -NoLogo -NoProfile -File $scriptPath -Verbose 2>&1
         $LASTEXITCODE | Should -Be 0
 
         # 验证更新
@@ -141,8 +154,20 @@ Describe "version-sync.ps1 基础功能测试" {
         Remove-Item "$root/ccr-vscode/package.json" -Force
 
         $scriptPath = Join-Path $root "scripts\version\version-sync.ps1"
-        $result = & powershell -File $scriptPath 2>&1
+        $result = & (Get-Process -Id $PID).Path -NoLogo -NoProfile -File $scriptPath 2>&1
         $LASTEXITCODE | Should -Be 1
+    }
+
+    It "独立 GPUI 版本漂移被检测并同步" {
+        $manifest = "$root/ccr-desktop/Cargo.toml"
+        (Get-Content $manifest -Raw).Replace('1.2.3', '0.9.0') | Set-Content $manifest
+        $scriptPath = Join-Path $root "scripts/version/version-sync.ps1"
+        $result = & (Get-Process -Id $PID).Path -NoLogo -NoProfile -File $scriptPath -Check 2>&1
+        $LASTEXITCODE | Should -Be 1
+        $result | Out-String | Should -Match 'ccr-desktop/Cargo.toml'
+        $result = & (Get-Process -Id $PID).Path -NoLogo -NoProfile -File $scriptPath 2>&1
+        $LASTEXITCODE | Should -Be 0
+        Get-Content $manifest -Raw | Should -Match 'version = "1.2.3"'
     }
 
     It "workspace 版本继承不应被覆盖" {
@@ -155,7 +180,7 @@ edition = "2021"
 '@ | Set-Content -Path "$root/crates/ccr-types/Cargo.toml" -Encoding UTF8
 
         $scriptPath = Join-Path $root "scripts\version\version-sync.ps1"
-        $result = & powershell -File $scriptPath -Verbose 2>&1
+        $result = & (Get-Process -Id $PID).Path -NoLogo -NoProfile -File $scriptPath -Verbose 2>&1
         
         # 检查 ccr-types 是否保持 workspace 继承
         $content = Get-Content "$root/crates/ccr-types/Cargo.toml" -Raw

@@ -1,0 +1,3 @@
+# Commands enter this workspace before invoking Cargo. Do not share CLI/Tauri outputs.
+[build]
+target-dir = "target"

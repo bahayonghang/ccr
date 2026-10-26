@@ -6,7 +6,9 @@ Minimal navigation for this repository. Keep behavior rules in `AGENTS.md` / `CL
 
 - `crates/` — Rust workspace with the CLI/TUI entry point in `crates/ccr` and shared crates such as `ccr-core`, `ccr-config`, `ccr-codex`, `ccr-db`, `ccr-usage`, and `ccr-types`.
 - `crates/ccr-usage/` — sole owner of usage SQL and read-only SQLite projections consumed by CLI/TUI/Tauri. Contracts: `.trellis/spec/ccr/backend/llmusage-provider-adapter.md` and `.trellis/spec/ccr/backend/usage-job-lifecycle.md`. Desktop `llmusage_adapter/` owns installed-CLI sync, NDJSON, and DTO/error mapping only; do not link the upstream `llmusage` Rust crate.
+- `crates/ccr-app/` — framework-independent shared configuration-list orchestration and bounded background runtime; migration implementation in progress.
 - `ccr-ui/` — React 19 + Tauri desktop UI (`src/shell`, `src/features`, `src/api`, `src-tauri/`, `tests/`).
+- `ccr-desktop/` — independent GPUI native workspace (`ccr-gpui`), own lock/target; read-only configuration view and input probe, migration in progress.
 - `ccr-vscode/` — VS Code extension (`src/providers`, `src/services`, extension tests).
 - `docs/` — VitePress documentation site. Agent harness routing: `docs/agents/harnesses.md`.
 - `scripts/` — version synchronization checks and repo automation.
@@ -15,6 +17,7 @@ Minimal navigation for this repository. Keep behavior rules in `AGENTS.md` / `CL
 ## Verification anchors
 
 - `justfile` — root repo checks and aggregate gates.
+- `ccr-desktop/justfile` — independent `desktop-*` checks; native input probe and command/clean boundary tests.
 - `ccr-ui/justfile` — Tauri UI local checks.
 - `ccr-vscode/justfile` — VS Code extension local checks.
 - `docs/package.json` — VitePress docs scripts.

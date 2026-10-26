@@ -1,0 +1,45 @@
+[package]
+name = "ccr-gpui"
+version = "7.5.0"
+edition = "2024"
+rust-version = "1.95"
+license = "MIT"
+publish = false
+description = "CCR native GPUI desktop client"
+
+[workspace]
+resolver = "3"
+
+[patch.crates-io]
+accesskit_windows = { path = "vendor/accesskit_windows" }
+
+[[bin]]
+name = "ccr-gpui"
+path = "src/main.rs"
+
+[dependencies]
+ccr-app = { path = "../crates/ccr-app" }
+ccr-config = { path = "../crates/ccr-config" }
+ccr-cli = { path = "../crates/ccr-cli" }
+ccr-codex = { path = "../crates/ccr-codex" }
+ccr-store = { path = "../crates/ccr-store" }
+serde_json = "=1.0.154"
+toml = "=1.1.8"
+ccr-db = { path = "../crates/ccr-db" }
+ccr-core = { path = "../crates/ccr-core" }
+gpui-kit = { version = "=0.7.3", default-features = false, features = ["component", "assets"] }
+
+[dev-dependencies]
+tempfile = "=3.27.0"
+gpui-kit = { version = "=0.7.3", default-features = false, features = ["component", "assets", "test-support"] }
+
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"

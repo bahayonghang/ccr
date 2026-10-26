@@ -12,6 +12,8 @@ setup() {
   mkdir -p "$ROOT_DIR/ccr-ui/src-tauri"
   mkdir -p "$ROOT_DIR/ccr-ui/src/config"
   mkdir -p "$ROOT_DIR/ccr-vscode"
+  mkdir -p "$ROOT_DIR/ccr-desktop"
+  mkdir -p "$ROOT_DIR/scripts/version"
 
   # 创建根 Cargo.toml
   cat > "$ROOT_DIR/Cargo.toml" <<EOF
@@ -45,6 +47,14 @@ EOF
   "private": true
 }
 EOF
+
+  cat > "$ROOT_DIR/ccr-desktop/Cargo.toml" <<EOF
+[package]
+name = "ccr-gpui"
+version = "1.2.3"
+[workspace]
+EOF
+  echo '![version](https://img.shields.io/badge/version-1.2.3-blue)' > "$ROOT_DIR/ccr-ui/README.md"
 
   # 创建 Tauri Cargo.toml
   cat > "$ROOT_DIR/ccr-ui/src-tauri/Cargo.toml" <<EOF
@@ -83,9 +93,9 @@ EOF
 EOF
 
   # 复制脚本到测试目录
-  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd ../.. && pwd)"
-  cp "$SCRIPT_DIR/scripts/version/version-sync.sh" "$TEST_DIR/"
-  chmod +x "$TEST_DIR/version-sync.sh"
+  SCRIPT_DIR="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
+  cp "$SCRIPT_DIR/scripts/version/version-sync.sh" "$ROOT_DIR/scripts/version/"
+  chmod +x "$ROOT_DIR/scripts/version/version-sync.sh"
 }
 
 teardown() {
@@ -95,23 +105,27 @@ teardown() {
   fi
 }
 
-# 临时修改脚本使其使用测试目录
-patch_script_for_test() {
-  # 替换 ROOT_DIR 获取方式为测试目录
-  sed -i "s|ROOT_DIR=\"\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\")\"/../.. && pwd)\"|ROOT_DIR=\"$ROOT_DIR\"|" "$TEST_DIR/version-sync.sh"
-}
-
 @test "版本一致时 --check 返回 0" {
-  patch_script_for_test
   
-  run "$TEST_DIR/version-sync.sh" --check
+  run "$ROOT_DIR/scripts/version/version-sync.sh" --check
   
   [ "$status" -eq 0 ]
   [[ "$output" == *"版本一致性检查通过"* ]]
 }
 
+@test "独立 GPUI 版本漂移被检测并同步" {
+  sed -i 's/1.2.3/0.9.0/' "$ROOT_DIR/ccr-desktop/Cargo.toml"
+  run "$ROOT_DIR/scripts/version/version-sync.sh" --check
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"ccr-desktop/Cargo.toml"* ]]
+  run "$ROOT_DIR/scripts/version/version-sync.sh"
+  [ "$status" -eq 0 ]
+  grep -q 'version = "1.2.3"' "$ROOT_DIR/ccr-desktop/Cargo.toml"
+  run "$ROOT_DIR/scripts/version/version-sync.sh" --check
+  [ "$status" -eq 0 ]
+}
+
 @test "版本不一致时 --check 返回 1" {
-  patch_script_for_test
   
   # 修改前端版本为不一致
   cat > "$ROOT_DIR/ccr-ui/package.json" <<EOF
@@ -122,14 +136,13 @@ patch_script_for_test() {
 }
 EOF
 
-  run "$TEST_DIR/version-sync.sh" --check
+  run "$ROOT_DIR/scripts/version/version-sync.sh" --check
   
   [ "$status" -eq 1 ]
   [[ "$output" == *"版本不一致"* ]]
 }
 
 @test "同步模式更新不一致的版本" {
-  patch_script_for_test
   
   # 修改前端版本为不一致
   cat > "$ROOT_DIR/ccr-ui/package.json" <<EOF
@@ -140,7 +153,7 @@ EOF
 }
 EOF
 
-  run "$TEST_DIR/version-sync.sh"
+  run "$ROOT_DIR/scripts/version/version-sync.sh"
   
   [ "$status" -eq 0 ]
   [[ "$output" == *"同步完成"* ]]
@@ -152,21 +165,19 @@ EOF
 }
 
 @test "文件不存在时正确报错" {
-  patch_script_for_test
   
   # 删除必需文件
   rm "$ROOT_DIR/ccr-vscode/package.json"
 
-  run "$TEST_DIR/version-sync.sh"
+  run "$ROOT_DIR/scripts/version/version-sync.sh"
   
   [ "$status" -eq 1 ]
   [[ "$output" == *"文件不存在"* ]]
 }
 
 @test "verbose 模式输出详细信息" {
-  patch_script_for_test
   
-  run "$TEST_DIR/version-sync.sh" --verbose
+  run "$ROOT_DIR/scripts/version/version-sync.sh" --verbose
   
   [ "$status" -eq 0 ]
   [[ "$output" == *"根版本"* ]]
@@ -174,7 +185,6 @@ EOF
 }
 
 @test "workspace 版本继承不被覆盖" {
-  patch_script_for_test
   
   # 设置 ccr-types 使用 workspace 版本
   cat > "$ROOT_DIR/crates/ccr-types/Cargo.toml" <<EOF
@@ -193,7 +203,7 @@ members = ["crates/*"]
 version = "1.2.3"
 EOF
 
-  run "$TEST_DIR/version-sync.sh" --verbose
+  run "$ROOT_DIR/scripts/version/version-sync.sh" --verbose
   
   [ "$status" -eq 0 ]
   # 检查 ccr-types 是否保持 workspace 继承
@@ -201,9 +211,8 @@ EOF
 }
 
 @test "版本已是最新时跳过同步" {
-  patch_script_for_test
   
-  run "$TEST_DIR/version-sync.sh"
+  run "$ROOT_DIR/scripts/version/version-sync.sh"
   
   [ "$status" -eq 0 ]
   [[ "$output" == *"版本一致，无需同步"* ]] || [[ "$output" == *"同步完成"* ]]

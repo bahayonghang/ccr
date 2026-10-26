@@ -17,6 +17,7 @@ $SYNC_TARGETS = @(
     @{ Name = "ccr-types";      Path = "crates\ccr-types\Cargo.toml";             Type = "cargo"  }
     @{ Name = "ccr-db";         Path = "crates\ccr-db\Cargo.toml";                Type = "cargo"  }
     @{ Name = "frontend";       Path = "ccr-ui\package.json";                     Type = "json"   }
+    @{ Name = "gpui-cargo";     Path = "ccr-desktop\Cargo.toml";                 Type = "cargo"  }
     @{ Name = "tauri-cargo";    Path = "ccr-ui\src-tauri\Cargo.toml";             Type = "cargo"  }
     @{ Name = "tauri-conf";     Path = "ccr-ui\src-tauri\tauri.conf.json";        Type = "json"   }
     @{ Name = "ui-component";   Path = "ccr-ui\src\config\appMeta.ts";            Type = "vue"    }
@@ -43,6 +44,7 @@ $ROOT_CARGO = Join-Path $ROOT_DIR "Cargo.toml"
 $CCR_TYPES_CARGO = Join-Path $ROOT_DIR "crates\ccr-types\Cargo.toml"
 $CCR_DB_CARGO = Join-Path $ROOT_DIR "crates\ccr-db\Cargo.toml"
 $FRONTEND_PKG = Join-Path $ROOT_DIR "ccr-ui\package.json"
+$GPUI_CARGO = Join-Path $ROOT_DIR "ccr-desktop\Cargo.toml"
 $TAURI_CARGO = Join-Path $ROOT_DIR "ccr-ui\src-tauri\Cargo.toml"
 $TAURI_CONF = Join-Path $ROOT_DIR "ccr-ui\src-tauri\tauri.conf.json"
 $COMPONENT_MAIN_LAYOUT = Join-Path $ROOT_DIR "ccr-ui\src\config\appMeta.ts"
@@ -62,6 +64,7 @@ Test-RequiredFile $ROOT_CARGO
 Test-RequiredFile $CCR_TYPES_CARGO
 Test-RequiredFile $CCR_DB_CARGO
 Test-RequiredFile $FRONTEND_PKG
+Test-RequiredFile $GPUI_CARGO
 Test-RequiredFile $TAURI_CARGO
 Test-RequiredFile $TAURI_CONF
 Test-RequiredFile $COMPONENT_MAIN_LAYOUT
@@ -234,6 +237,7 @@ $ROOT_VER = Get-CargoVersion $ROOT_CARGO
 $CCR_TYPES_VER = Get-CargoVersion $CCR_TYPES_CARGO $ROOT_VER
 $CCR_DB_VER = Get-CargoVersion $CCR_DB_CARGO $ROOT_VER
 $FRONTEND_VER = Get-JsonVersion $FRONTEND_PKG
+$GPUI_CARGO_VER = Get-CargoVersion $GPUI_CARGO
 $TAURI_CARGO_VER = Get-CargoVersion $TAURI_CARGO $ROOT_VER
 $TAURI_CONF_VER = Get-JsonVersion $TAURI_CONF
 $UI_COMPONENT_VER = Get-UiVersion $COMPONENT_MAIN_LAYOUT
@@ -245,6 +249,7 @@ if ($Verbose) {
     Write-Host "📦 ccr-types 版本: $CCR_TYPES_VER"
     Write-Host "📦 ccr-db 版本: $CCR_DB_VER"
     Write-Host "⚛️  前端版本: $FRONTEND_VER"
+    Write-Host "🖥️  GPUI Cargo 版本: $GPUI_CARGO_VER"
     Write-Host "🖥️  Tauri Cargo 版本: $TAURI_CARGO_VER"
     Write-Host "🖥️  Tauri Conf 版本: $TAURI_CONF_VER"
     Write-Host "🖼️  appMeta.ts (config) 版本: $UI_COMPONENT_VER"
@@ -257,6 +262,7 @@ if ($Check) {
     if ($ROOT_VER -eq $CCR_TYPES_VER -and
         $ROOT_VER -eq $CCR_DB_VER -and
         $ROOT_VER -eq $FRONTEND_VER -and
+        $ROOT_VER -eq $GPUI_CARGO_VER -and
         $ROOT_VER -eq $TAURI_CARGO_VER -and
         $ROOT_VER -eq $TAURI_CONF_VER -and
         $ROOT_VER -eq $UI_COMPONENT_VER -and
@@ -270,6 +276,7 @@ if ($Check) {
         Write-Host "  crates/ccr-types/Cargo.toml:            $CCR_TYPES_VER"
         Write-Host "  crates/ccr-db/Cargo.toml:               $CCR_DB_VER"
         Write-Host "  ccr-ui/package.json:           $FRONTEND_VER"
+        Write-Host "  ccr-desktop/Cargo.toml:       $GPUI_CARGO_VER"
         Write-Host "  ccr-ui/src-tauri/Cargo.toml:   $TAURI_CARGO_VER"
         Write-Host "  ccr-ui/src-tauri/tauri.conf.json: $TAURI_CONF_VER"
         Write-Host "  ccr-ui/src/config/appMeta.ts: $UI_COMPONENT_VER"
@@ -282,6 +289,7 @@ if ($Check) {
 if ($ROOT_VER -eq $CCR_TYPES_VER -and
     $ROOT_VER -eq $CCR_DB_VER -and
     $ROOT_VER -eq $FRONTEND_VER -and
+    $ROOT_VER -eq $GPUI_CARGO_VER -and
     $ROOT_VER -eq $TAURI_CARGO_VER -and
     $ROOT_VER -eq $TAURI_CONF_VER -and
     $ROOT_VER -eq $UI_COMPONENT_VER -and
@@ -309,6 +317,12 @@ if ($CCR_DB_VER -ne $ROOT_VER) {
 if ($FRONTEND_VER -ne $ROOT_VER) {
     Write-Host "  - 前端: $FRONTEND_VER -> $ROOT_VER"
     Set-JsonVersion $FRONTEND_PKG $ROOT_VER
+}
+
+# 更新独立 GPUI Cargo.toml
+if ($GPUI_CARGO_VER -ne $ROOT_VER) {
+    Write-Host "  - GPUI Cargo.toml: $GPUI_CARGO_VER -> $ROOT_VER"
+    Set-CargoVersion $GPUI_CARGO $ROOT_VER
 }
 
 # 更新 Tauri Cargo.toml

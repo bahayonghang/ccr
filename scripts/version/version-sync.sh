@@ -15,6 +15,7 @@ SYNC_TARGETS=(
   "ccr-types:crates/ccr-types/Cargo.toml:cargo"
   "ccr-db:crates/ccr-db/Cargo.toml:cargo"
   "frontend:ccr-ui/package.json:json"
+  "gpui-cargo:ccr-desktop/Cargo.toml:cargo"
   "tauri-cargo:ccr-ui/src-tauri/Cargo.toml:cargo"
   "tauri-conf:ccr-ui/src-tauri/tauri.conf.json:json"
   "ui-component:ccr-ui/src/config/appMeta.ts:vue"
@@ -38,6 +39,7 @@ ROOT_CARGO="$ROOT_DIR/Cargo.toml"
 CCR_TYPES_CARGO="$ROOT_DIR/crates/ccr-types/Cargo.toml"
 CCR_DB_CARGO="$ROOT_DIR/crates/ccr-db/Cargo.toml"
 FRONTEND_PKG="$ROOT_DIR/ccr-ui/package.json"
+GPUI_CARGO="$ROOT_DIR/ccr-desktop/Cargo.toml"
 TAURI_CARGO="$ROOT_DIR/ccr-ui/src-tauri/Cargo.toml"
 TAURI_CONF="$ROOT_DIR/ccr-ui/src-tauri/tauri.conf.json"
 COMPONENT_MAIN_LAYOUT="$ROOT_DIR/ccr-ui/src/config/appMeta.ts"
@@ -122,6 +124,7 @@ require_file "$ROOT_CARGO"
 require_file "$CCR_TYPES_CARGO"
 require_file "$CCR_DB_CARGO"
 require_file "$FRONTEND_PKG"
+require_file "$GPUI_CARGO"
 require_file "$TAURI_CARGO"
 require_file "$TAURI_CONF"
 require_file "$COMPONENT_MAIN_LAYOUT"
@@ -215,6 +218,11 @@ extract_frontend_version() {
 FRONTEND_VER="$(extract_frontend_version)"
 [[ "$VERBOSE" == true ]] && echo "⚛️  前端版本: $FRONTEND_VER"
 
+# 独立 GPUI manifest 不继承根 workspace 版本。
+GPUI_CARGO_VER="$(awk 'BEGIN{p=0} /^\[package\]/{p=1;next} /^\[/{if(p){exit}} p{print}' "$GPUI_CARGO" | sed -nE 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' | head -n1 | tr -d '\r')"
+[[ -n "$GPUI_CARGO_VER" ]] || die "GPUI Cargo.toml 缺少 package version"
+[[ "$VERBOSE" == true ]] && echo "🖥️  GPUI Cargo 版本: $GPUI_CARGO_VER"
+
 # 获取 Tauri Cargo.toml 版本
 extract_tauri_cargo_version() {
   local pkg_block
@@ -300,7 +308,7 @@ VSCODE_VER="$(extract_vscode_version)"
 [[ "$VERBOSE" == true ]] && echo "🔌 VSCode 扩展版本: $VSCODE_VER"
 
 if [[ "$CHECK_ONLY" == true ]]; then
-  if [[ "$ROOT_VER" == "$CCR_TYPES_VER" && "$ROOT_VER" == "$CCR_DB_VER" && "$ROOT_VER" == "$FRONTEND_VER" && "$ROOT_VER" == "$TAURI_CARGO_VER" && "$ROOT_VER" == "$TAURI_CONF_VER" && "$ROOT_VER" == "$UI_COMPONENT_VER" && "$ROOT_VER" == "$UI_README_VER" && "$ROOT_VER" == "$VSCODE_VER" ]]; then
+  if [[ "$ROOT_VER" == "$CCR_TYPES_VER" && "$ROOT_VER" == "$CCR_DB_VER" && "$ROOT_VER" == "$FRONTEND_VER" && "$ROOT_VER" == "$GPUI_CARGO_VER" && "$ROOT_VER" == "$TAURI_CARGO_VER" && "$ROOT_VER" == "$TAURI_CONF_VER" && "$ROOT_VER" == "$UI_COMPONENT_VER" && "$ROOT_VER" == "$UI_README_VER" && "$ROOT_VER" == "$VSCODE_VER" ]]; then
     echo "✅ 版本一致性检查通过"
     exit 0
   else
@@ -309,6 +317,7 @@ if [[ "$CHECK_ONLY" == true ]]; then
     echo "  crates/ccr-types/Cargo.toml:            $CCR_TYPES_VER"
     echo "  crates/ccr-db/Cargo.toml:               $CCR_DB_VER"
     echo "  ccr-ui/package.json:           $FRONTEND_VER"
+    echo "  ccr-desktop/Cargo.toml:       $GPUI_CARGO_VER"
     echo "  ccr-ui/src-tauri/Cargo.toml:   $TAURI_CARGO_VER"
     echo "  ccr-ui/src-tauri/tauri.conf.json: $TAURI_CONF_VER"
     echo "  ccr-ui/src/config/appMeta.ts: $UI_COMPONENT_VER"
@@ -318,7 +327,7 @@ if [[ "$CHECK_ONLY" == true ]]; then
   fi
 fi
 
-if [[ "$ROOT_VER" == "$CCR_TYPES_VER" && "$ROOT_VER" == "$CCR_DB_VER" && "$ROOT_VER" == "$FRONTEND_VER" && "$ROOT_VER" == "$TAURI_CARGO_VER" && "$ROOT_VER" == "$TAURI_CONF_VER" && "$ROOT_VER" == "$UI_COMPONENT_VER" && "$ROOT_VER" == "$UI_README_VER" && "$ROOT_VER" == "$VSCODE_VER" ]]; then
+if [[ "$ROOT_VER" == "$CCR_TYPES_VER" && "$ROOT_VER" == "$CCR_DB_VER" && "$ROOT_VER" == "$FRONTEND_VER" && "$ROOT_VER" == "$GPUI_CARGO_VER" && "$ROOT_VER" == "$TAURI_CARGO_VER" && "$ROOT_VER" == "$TAURI_CONF_VER" && "$ROOT_VER" == "$UI_COMPONENT_VER" && "$ROOT_VER" == "$UI_README_VER" && "$ROOT_VER" == "$VSCODE_VER" ]]; then
   echo "✅ 版本一致，无需同步"
   exit 0
 fi
@@ -351,6 +360,11 @@ update_frontend_version() {
 if [[ "$FRONTEND_VER" != "$ROOT_VER" ]]; then
   echo "  - 前端: $FRONTEND_VER -> $ROOT_VER"
   update_frontend_version
+fi
+
+if [[ "$GPUI_CARGO_VER" != "$ROOT_VER" ]]; then
+  echo "  - GPUI Cargo.toml: $GPUI_CARGO_VER -> $ROOT_VER"
+  update_cargo_version "$GPUI_CARGO" "$ROOT_VER"
 fi
 
 if [[ "$TAURI_CARGO_VER" != "$ROOT_VER" ]]; then

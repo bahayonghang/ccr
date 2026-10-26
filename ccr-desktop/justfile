@@ -1,0 +1,62 @@
+set windows-shell := ["pwsh.exe", "-NoLogo", "-NoProfile", "-Command", "$OutputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8;"]
+native_exit := if os() == "windows" { "; exit $LASTEXITCODE" } else { "" }
+python := if os() == "windows" { "python" } else { "python3" }
+
+default: desktop-help
+
+desktop-help:
+    @just --list{{native_exit}}
+
+desktop-doctor:
+    {{python}} scripts/desktop.py doctor{{native_exit}}
+
+desktop-dev *args:
+    {{python}} scripts/desktop.py verify{{native_exit}}
+    {{python}} scripts/desktop.py cargo run --locked --bin ccr-gpui -- {{args}}{{native_exit}}
+
+desktop-build:
+    {{python}} scripts/desktop.py verify{{native_exit}}
+    {{python}} scripts/desktop.py cargo build --locked --release --bin ccr-gpui{{native_exit}}
+
+desktop-build-debug:
+    {{python}} scripts/desktop.py verify{{native_exit}}
+    {{python}} scripts/desktop.py cargo build --locked --bin ccr-gpui{{native_exit}}
+
+desktop-check:
+    {{python}} scripts/desktop.py verify{{native_exit}}
+    {{python}} scripts/desktop.py cargo check --locked --all-targets{{native_exit}}
+
+desktop-fmt:
+    {{python}} scripts/desktop.py cargo fmt --all{{native_exit}}
+
+desktop-fmt-check:
+    {{python}} scripts/desktop.py cargo fmt --all -- --check{{native_exit}}
+
+desktop-lint:
+    {{python}} scripts/desktop.py verify{{native_exit}}
+    {{python}} scripts/desktop.py cargo clippy --locked --all-targets -- -D warnings{{native_exit}}
+
+desktop-test:
+    {{python}} scripts/desktop.py verify{{native_exit}}
+    {{python}} -m unittest discover -s tests -p "test_*.py"{{native_exit}}
+    {{python}} scripts/test_accesskit_patch.py{{native_exit}}
+    {{python}} scripts/desktop.py cargo test --locked -- --skip export_bindings{{native_exit}}
+
+# Real GPUI controls in Kit's headless test harness; native pixels/IME require a display.
+desktop-test-ui:
+    {{python}} scripts/desktop.py verify{{native_exit}}
+    {{python}} scripts/desktop.py cargo test --locked --test native_ui --test native_shell -- --skip export_bindings{{native_exit}}
+
+# Ordered, read-only validation. Every subprocess failure stops the recipe.
+desktop-ci:
+    just desktop-fmt-check{{native_exit}}
+    just desktop-check{{native_exit}}
+    just desktop-lint{{native_exit}}
+    just desktop-test{{native_exit}}
+    just desktop-build{{native_exit}}
+
+desktop-audit:
+    {{python}} scripts/desktop.py cargo audit --file Cargo.lock{{native_exit}}
+
+desktop-clean:
+    {{python}} scripts/desktop.py clean{{native_exit}}
