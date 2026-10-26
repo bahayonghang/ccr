@@ -1,0 +1,29 @@
+{
+  "id": "gpui-03-shell",
+  "name": "gpui-03-shell",
+  "title": "GPUI 03：Codex 设计系统与原生外壳",
+  "description": "按 style:codex 实现主题、导航、原生输入、键盘与空错误状态",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-10-17",
+  "completedAt": null,
+  "branch": "dev",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "10-17-gpui-desktop",
+  "relatedFiles": [],
+  "notes": "Usable engineering/core native flows independently accepted for04; full03 remains open: deferred matrix, native UIA/IME and known geometry gaps. No archive.",
+  "meta": {
+    "engineering_core_status": "accepted_2026-10-18",
+    "native_evidence": "outputs/desktop/shell/native/core-summary.json"
+  }
+}

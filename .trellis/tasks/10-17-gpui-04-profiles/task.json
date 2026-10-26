@@ -1,0 +1,29 @@
+{
+  "id": "gpui-04-profiles",
+  "name": "gpui-04-profiles",
+  "title": "GPUI 04：配置与 Profiles",
+  "description": "接入配置目录、profile 生命周期、CAS、原子写与冲突交互",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-10-17",
+  "completedAt": null,
+  "branch": "dev",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "10-17-gpui-desktop",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "execution_state": "paused_by_user",
+    "resume_handoff": ".trellis/tasks/10-17-gpui-04-profiles/pause-handoff.md"
+  }
+}

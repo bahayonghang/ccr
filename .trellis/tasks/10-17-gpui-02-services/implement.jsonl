@@ -1,0 +1,8 @@
+{"file":".trellis/spec/ccr/backend/desktop-command-policy.md","reason":"本子任务必须遵循的已存在契约"}
+{"file":".trellis/spec/ccr-config/backend/profile-repository.md","reason":"本子任务必须遵循的已存在契约"}
+{"file":".trellis/spec/ccr/backend/usage-job-lifecycle.md","reason":"本子任务必须遵循的已存在契约"}
+{"file":".trellis/tasks/10-17-gpui-desktop/research/architecture.md","reason":"仓库边界与最新 GPUI 依赖证据"}
+{"file":".trellis/tasks/10-17-gpui-desktop/research/performance.md","reason":"性能预算与测量方法"}
+{"file":".trellis/tasks/10-17-gpui-01-foundation/research/services-source-map.md","reason":"已核对真实配置列表链、registry fallback、版本与脱敏兼容、无全局HOME的fixture路径和最小共享提取边界"}
+{"file": ".trellis/spec/ccr-app/backend/shared-desktop-services.md", "reason": "New shared-service and runtime contract; keep later edits aligned"}
+{"file": ".trellis/tasks/10-17-gpui-02-services/research/native-close-race.md", "reason": "Observed native close panic and exact Windows adapter lifetime repair boundary"}

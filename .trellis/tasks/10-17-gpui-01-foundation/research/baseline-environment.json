@@ -1,0 +1,251 @@
+{
+  "schema_version": 1,
+  "captured_utc": "2026-10-17T17:36:55.908035Z",
+  "date": "2026-10-17",
+  "scope": "Tauri baseline preflight only; no application launched",
+  "git_commit": "1dfe776b29fc6b52c8a9d0a6c8e49efbb8026d48",
+  "git_worktree": "Shared worktree contains GPUI task/design additions and concurrent foundation implementation; not a clean release checkout",
+  "hardware": {
+    "os": {
+      "Caption": "Microsoft Windows 11 专业版",
+      "Version": "10.0.26300",
+      "BuildNumber": "26300",
+      "OSArchitecture": "64-bit"
+    },
+    "cpu": [
+      {
+        "Name": "Intel(R) Core(TM) Ultra 9 275HX",
+        "NumberOfCores": 24,
+        "NumberOfLogicalProcessors": 24,
+        "MaxClockSpeed": 2700
+      }
+    ],
+    "gpu": [
+      {
+        "Name": "OrayIddDriver Device",
+        "DriverVersion": "17.50.19.949",
+        "DriverDate": "2025-06-10T20:00:00-04:00",
+        "CurrentHorizontalResolution": null,
+        "CurrentVerticalResolution": null,
+        "CurrentRefreshRate": null
+      },
+      {
+        "Name": "GameViewer Virtual Display Adapter",
+        "DriverVersion": "15.6.5.199",
+        "DriverDate": "2026-02-27T19:00:00-05:00",
+        "CurrentHorizontalResolution": null,
+        "CurrentVerticalResolution": null,
+        "CurrentRefreshRate": null
+      },
+      {
+        "Name": "Todesk Virtual Display Adapter",
+        "DriverVersion": "16.44.2.509",
+        "DriverDate": "2023-04-23T20:00:00-04:00",
+        "CurrentHorizontalResolution": null,
+        "CurrentVerticalResolution": null,
+        "CurrentRefreshRate": null
+      },
+      {
+        "Name": "NVIDIA GeForce RTX 5090 Laptop GPU",
+        "DriverVersion": "32.0.16.1714",
+        "DriverDate": "2026-09-16T20:00:00-04:00",
+        "CurrentHorizontalResolution": 2560,
+        "CurrentVerticalResolution": 1600,
+        "CurrentRefreshRate": 240
+      },
+      {
+        "Name": "Intel(R) Graphics",
+        "DriverVersion": "32.0.101.6733",
+        "DriverDate": "2025-04-01T20:00:00-04:00",
+        "CurrentHorizontalResolution": 2560,
+        "CurrentVerticalResolution": 1440,
+        "CurrentRefreshRate": 143
+      }
+    ],
+    "memory_bytes": 68143853568
+  },
+  "display": {
+    "command": "GetDpiForSystem, GetProcessDpiAwareness, GetSystemMetrics via read-only Win32 API",
+    "exit_code": 0,
+    "process_dpi_awareness_hresult": 0,
+    "process_dpi_awareness": 0,
+    "system_dpi": 96,
+    "screen_width": 2048,
+    "screen_height": 1152,
+    "monitor_count": 3,
+    "limitation": "Process/system DPI does not establish per-monitor effective DPI for a measured application; no application launched."
+  },
+  "power_scheme": "381b4222-f694-41f0-9685-ff5bb260df2e (Balanced)",
+  "toolchain": {
+    "bun_pin_match": false,
+    "repository_bun_pin": "1.4.0",
+    "cargo": "1.98.0 (797e8a9bc 2026-08-05)",
+    "installed_targets": [
+      "x86_64-pc-windows-msvc"
+    ],
+    "rustc": "1.98.0 (88d9e12ae 2026-08-18)",
+    "host": "x86_64-pc-windows-msvc",
+    "bun": "1.4.3"
+  },
+  "cache": {
+    "cache_dir": "D:/mbx-cache",
+    "tauri_target": "D:/mbx-cache/targets/v1/44061aa3da5bb563d33700d15e5ae7660d5d3da33a41e506f28329282a48c2b6",
+    "authorized_doctor_exit_code": 0,
+    "sandbox_doctor_exit_code": 1,
+    "settings_changed": false,
+    "cargo_resolution": "C:/Users/lyh/AppData/Local/mbx/bin/cargo.exe"
+  },
+  "native_control": {
+    "tauri_launched": false,
+    "status": "available_reported_by_parent",
+    "evidence": "Main session reports @oai/sky list_windows success on 2026-10-17; no Tauri performance sample collected"
+  },
+  "hashes_before": [
+    {
+      "path": "Cargo.lock",
+      "sha256": "6b889f9c366031c3f9450a2a627d98b06ca3790313dad98ec59612cdbb1567f7",
+      "bytes": 120193,
+      "modified_utc": "2026-10-17T08:07:58.184293Z"
+    },
+    {
+      "path": "ccr-ui/src-tauri/Cargo.lock",
+      "sha256": "a9bad27f22d1110d3572f4a6b1a529ffaf38a74271c84b6f20e01b34b4330d07",
+      "bytes": 173547,
+      "modified_utc": "2026-10-17T08:07:59.719046Z"
+    },
+    {
+      "path": "ccr-ui/bun.lock",
+      "sha256": "97d486e7a1ba95004e3cf9fb5f57b77e00dc1e3973899643854e1022d7cf4f8d",
+      "bytes": 194627,
+      "modified_utc": "2026-10-12T09:28:07.6962115Z"
+    },
+    {
+      "path": "ccr-ui/dist/index.html",
+      "sha256": "552256db84f9c637df145962c02a216c88198a28460ce4364a54955ad5db45a6",
+      "bytes": 5570,
+      "modified_utc": "2026-10-17T08:28:49.0390185Z"
+    },
+    {
+      "path": "ccr-ui/src-tauri/target/release/ccr-desktop.exe",
+      "sha256": "98422bae736e2e7d7699bb3599102e2817da9228dd90c6747953dda310354e5d",
+      "bytes": 99200512,
+      "modified_utc": "2026-10-14T15:37:27.6878598Z"
+    }
+  ],
+  "fixture": {
+    "S2": {
+      "duration_seconds": 60,
+      "candidate_rows": 10000,
+      "log_events_per_second": 1000,
+      "status": "not_created",
+      "sha256": null
+    },
+    "S1": {
+      "sessions": 10000,
+      "profiles": 100,
+      "usage_records": 100000,
+      "status": "not_created",
+      "sha256": null
+    },
+    "S0": {
+      "status": "not_created",
+      "sha256": null
+    }
+  },
+  "release_build": {
+    "exit_code": 0,
+    "cwd": "ccr-ui/src-tauri",
+    "command": "cargo build --locked --offline --release --features custom-protocol --bin ccr-desktop",
+    "status": "pass",
+    "session_id": 3645,
+    "receipt": "outputs/desktop/perf/tauri-baseline-2026-10-17/tauri-release-build.json",
+    "started_utc": "2026-10-17T17:34:37.8395232Z",
+    "finished_utc": "2026-10-17T17:43:00.2951341Z",
+    "cargo_reported_elapsed": "8m 21s",
+    "warnings": [
+      "MSVC linker library/object creation message for ccr-tauri-command-macros",
+      "mbx skipped cache store for two absolute repository asset/example paths"
+    ]
+  },
+  "performance_result": "not_run",
+  "relative_result": "not_comparable",
+  "blockers": [
+    "Whole-app fixture root is not injectable across app DB, migration source home, shell preferences, monitoring, platform/auth roots and WebView storage.",
+    "No process-create aligned native first-present plus first-action-handled instrumentation.",
+    "Per-monitor effective application DPI and fixed 60Hz measurement mode unverified.",
+    "No S0/S1/S2 dataset hashes; no macOS/Linux native host evidence."
+  ],
+  "instrumentation_preflight": {
+    "gpu_profile_available": true,
+    "trace_validated": false,
+    "wpr_profiles_exit_code": 0,
+    "desktop_composition_profile_available": true,
+    "trace_started": false,
+    "wpr_version": "10.0.26100",
+    "presentmon_in_path": false
+  },
+  "hashes_after": [
+    {
+      "path": "Cargo.lock",
+      "sha256": "6b889f9c366031c3f9450a2a627d98b06ca3790313dad98ec59612cdbb1567f7",
+      "bytes": 120193,
+      "modified_utc": "2026-10-17T08:07:58.1842930Z"
+    },
+    {
+      "path": "ccr-ui/src-tauri/Cargo.lock",
+      "sha256": "a9bad27f22d1110d3572f4a6b1a529ffaf38a74271c84b6f20e01b34b4330d07",
+      "bytes": 173547,
+      "modified_utc": "2026-10-17T08:07:59.7190460Z"
+    },
+    {
+      "path": "ccr-ui/bun.lock",
+      "sha256": "97d486e7a1ba95004e3cf9fb5f57b77e00dc1e3973899643854e1022d7cf4f8d",
+      "bytes": 194627,
+      "modified_utc": "2026-10-12T09:28:07.6962115Z"
+    },
+    {
+      "path": "ccr-ui/dist/index.html",
+      "sha256": "552256db84f9c637df145962c02a216c88198a28460ce4364a54955ad5db45a6",
+      "bytes": 5570,
+      "modified_utc": "2026-10-17T08:28:49.0390185Z"
+    },
+    {
+      "path": "ccr-ui/src-tauri/target/release/ccr-desktop.exe",
+      "sha256": "6acc35aa6dbacc944e6b49a81d9398b836dae0adb362f3f90042a9f593eaa562",
+      "bytes": 99628032,
+      "modified_utc": "2026-10-17T17:42:59.8593326Z"
+    }
+  ],
+  "input_comparison": [
+    {
+      "path": "Cargo.lock",
+      "unchanged": true,
+      "sha256_before": "6b889f9c366031c3f9450a2a627d98b06ca3790313dad98ec59612cdbb1567f7",
+      "sha256_after": "6b889f9c366031c3f9450a2a627d98b06ca3790313dad98ec59612cdbb1567f7"
+    },
+    {
+      "path": "ccr-ui/src-tauri/Cargo.lock",
+      "unchanged": true,
+      "sha256_before": "a9bad27f22d1110d3572f4a6b1a529ffaf38a74271c84b6f20e01b34b4330d07",
+      "sha256_after": "a9bad27f22d1110d3572f4a6b1a529ffaf38a74271c84b6f20e01b34b4330d07"
+    },
+    {
+      "path": "ccr-ui/bun.lock",
+      "unchanged": true,
+      "sha256_before": "97d486e7a1ba95004e3cf9fb5f57b77e00dc1e3973899643854e1022d7cf4f8d",
+      "sha256_after": "97d486e7a1ba95004e3cf9fb5f57b77e00dc1e3973899643854e1022d7cf4f8d"
+    },
+    {
+      "path": "ccr-ui/dist/index.html",
+      "unchanged": true,
+      "sha256_before": "552256db84f9c637df145962c02a216c88198a28460ce4364a54955ad5db45a6",
+      "sha256_after": "552256db84f9c637df145962c02a216c88198a28460ce4364a54955ad5db45a6"
+    },
+    {
+      "path": "ccr-ui/src-tauri/target/release/ccr-desktop.exe",
+      "unchanged": false,
+      "sha256_before": "98422bae736e2e7d7699bb3599102e2817da9228dd90c6747953dda310354e5d",
+      "sha256_after": "6acc35aa6dbacc944e6b49a81d9398b836dae0adb362f3f90042a9f593eaa562"
+    }
+  ]
+}

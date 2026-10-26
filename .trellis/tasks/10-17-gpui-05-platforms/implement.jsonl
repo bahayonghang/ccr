@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/ccr-cli/backend/profile-application-lifecycle.md", "reason": "本子任务必须遵循的已存在契约"}
+{"file": ".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md", "reason": "本子任务必须遵循的已存在契约"}
+{"file": ".trellis/spec/ccr/backend/desktop-command-policy.md", "reason": "本子任务必须遵循的已存在契约"}
+{"file": ".trellis/tasks/10-17-gpui-desktop/research/architecture.md", "reason": "仓库边界与最新 GPUI 依赖证据"}
+{"file": ".trellis/tasks/10-17-gpui-desktop/research/performance.md", "reason": "性能预算与测量方法"}
+{"file": ".trellis/tasks/10-17-gpui-03-shell/research/platforms-source-map.md", "reason": "Exact54-command/8-route map, CAS gaps, capability truth, explicit fixtures and OAuth app lifetime"}
+{"file": ".trellis/spec/ccr-app/backend/shared-desktop-services.md", "reason": "02 bounded workers, cancellation cleanup and safe native projection"}

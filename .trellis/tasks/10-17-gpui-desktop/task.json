@@ -1,0 +1,40 @@
+{
+  "id": "gpui-desktop",
+  "name": "gpui-desktop",
+  "title": "GPUI 原生桌面版本",
+  "description": "分析并规划独立 ccr-desktop GPUI 客户端、现代设计、共享业务边界与 desktop-* 开发验证命令",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-10-17",
+  "completedAt": null,
+  "branch": "dev",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "10-17-gpui-01-foundation",
+    "10-17-gpui-02-services",
+    "10-17-gpui-03-shell",
+    "10-17-gpui-04-profiles",
+    "10-17-gpui-05-platforms",
+    "10-17-gpui-06-resources",
+    "10-17-gpui-07-insights",
+    "10-17-gpui-08-jobs",
+    "10-17-gpui-09-environments",
+    "10-17-gpui-10-acceptance"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "execution_state": "paused_by_user",
+    "resume_handoff": ".trellis/tasks/10-17-gpui-04-profiles/pause-handoff.md"
+  }
+}

@@ -1,0 +1,5 @@
+{"file":".trellis/spec/ccr/backend/ssh-security.md","reason":"本子任务必须遵循的已存在契约"}
+{"file":".trellis/spec/ccr-core/backend/managed-process.md","reason":"本子任务必须遵循的已存在契约"}
+{"file":".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md","reason":"本子任务必须遵循的已存在契约"}
+{"file":".trellis/tasks/10-17-gpui-desktop/research/architecture.md","reason":"仓库边界与最新 GPUI 依赖证据"}
+{"file":".trellis/tasks/10-17-gpui-desktop/research/performance.md","reason":"性能预算与测量方法"}

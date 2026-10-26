@@ -1,0 +1,9 @@
+{"file":".trellis/spec/ccr-ui/frontend/platform-surface-contracts.md","reason":"本子任务必须遵循的已存在契约"}
+{"file":".trellis/tasks/10-17-gpui-desktop/research/architecture.md","reason":"仓库边界与最新 GPUI 依赖证据"}
+{"file":".trellis/tasks/10-17-gpui-desktop/research/performance.md","reason":"性能预算与测量方法"}
+{"file":"ccr-desktop/DESIGN.md","reason":"用户指定 style:codex 的原生设计源"}
+{"file": ".trellis/tasks/10-17-gpui-02-services/research/shell-source-map.md", "reason": "Exact Kit APIs, real capability scope, focus/theme/a11y and ui_state owner seams"}
+{"file": ".trellis/spec/ccr-app/backend/shared-desktop-services.md", "reason": "Consume shared masked configuration and runtime lifecycle without duplicating owners"}
+{"file": ".trellis/tasks/10-17-gpui-02-services/research/shell-a11y-seam.md", "reason": "Same-node native Button states without duplicate controls; exact Input API limits"}
+{"file": ".trellis/spec/ccr-db/backend/backend-guidelines.md", "reason": "Reuse ui_state domain owner and injected pool; no copied SQL or second production pool"}
+{"file": ".trellis/spec/ccr-db/backend/test-fixtures.md", "reason": "Explicit private database fixture and migration-home isolation"}

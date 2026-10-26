@@ -1,0 +1,604 @@
+[
+  {
+    "path": "/tray/codex",
+    "id": "codex-tray-panel",
+    "handle": {
+      "depth": 0,
+      "group": "codex-tray",
+      "hideGlobalBackground": true
+    }
+  },
+  {
+    "path": "/"
+  },
+  {
+    "path": "/",
+    "id": "dashboard",
+    "handle": {
+      "cache": true,
+      "cacheKey": "DashboardView",
+      "depth": 0
+    }
+  },
+  {
+    "path": "/settings",
+    "id": "settings",
+    "handle": {
+      "depth": 1,
+      "group": "settings",
+      "deferLocaleHydration": true
+    }
+  },
+  {
+    "path": "/claude-code",
+    "id": "claude-code",
+    "handle": {
+      "depth": 1,
+      "group": "claude-code",
+      "hideGlobalBackground": true
+    }
+  },
+  {
+    "path": "/claude-code/settings",
+    "id": "claude-code-settings",
+    "handle": {
+      "depth": 2,
+      "group": "claude-code"
+    }
+  },
+  {
+    "path": "/claude-code/system-prompts",
+    "id": "claude-system-prompts",
+    "handle": {
+      "depth": 2,
+      "group": "claude-code"
+    }
+  },
+  {
+    "path": "/claude-code/profiles",
+    "id": "claude-code-profiles",
+    "handle": {
+      "depth": 2,
+      "group": "claude-code"
+    }
+  },
+  {
+    "path": "/claude-code/auth",
+    "id": "claude-code-auth",
+    "handle": {
+      "depth": 2,
+      "group": "claude-code"
+    }
+  },
+  {
+    "path": "/codex",
+    "id": "codex",
+    "handle": {
+      "depth": 1,
+      "group": "codex"
+    }
+  },
+  {
+    "path": "/grok",
+    "id": "grok",
+    "handle": {
+      "cache": true,
+      "cacheKey": "GrokView",
+      "depth": 1,
+      "group": "grok"
+    }
+  },
+  {
+    "path": "/grok/auth",
+    "id": "grok-auth",
+    "handle": {
+      "depth": 2,
+      "group": "grok"
+    }
+  },
+  {
+    "path": "/grok/profiles",
+    "id": "grok-profiles",
+    "handle": {
+      "depth": 2,
+      "group": "grok"
+    }
+  },
+  {
+    "path": "/grok/settings",
+    "id": "grok-settings",
+    "handle": {
+      "depth": 2,
+      "group": "grok"
+    }
+  },
+  {
+    "path": "/antigravity",
+    "id": "antigravity",
+    "handle": {
+      "depth": 1,
+      "group": "gemini",
+      "hideGlobalBackground": true
+    }
+  },
+  {
+    "path": "/gemini-cli",
+    "id": "gemini-cli",
+    "redirect": "/antigravity",
+    "handle": {
+      "depth": 1,
+      "group": "gemini",
+      "hideGlobalBackground": true
+    }
+  },
+  {
+    "path": "/ccr-control",
+    "id": "ccr-control",
+    "redirect": "/commands/ccr",
+    "handle": {
+      "depth": 1,
+      "group": "tools"
+    }
+  },
+  {
+    "path": "/commands/:client?",
+    "id": "commands",
+    "handle": {
+      "cache": true,
+      "cacheKey": "CommandsView",
+      "stream": true,
+      "depth": 1,
+      "group": "tools"
+    }
+  },
+  {
+    "path": "/converter",
+    "id": "converter",
+    "handle": {
+      "depth": 1,
+      "group": "tools"
+    }
+  },
+  {
+    "path": "/sync",
+    "id": "sync",
+    "handle": {
+      "depth": 1,
+      "group": "tools",
+      "hideGlobalBackground": true
+    }
+  },
+  {
+    "path": "/configs",
+    "id": "configs",
+    "handle": {
+      "cache": true,
+      "cacheKey": "ConfigsView",
+      "depth": 1,
+      "group": "config",
+      "hideGlobalBackground": true
+    }
+  },
+  {
+    "path": "/stats",
+    "redirect": "/usage"
+  },
+  {
+    "path": "/budget",
+    "id": "budget",
+    "handle": {
+      "depth": 1,
+      "group": "data"
+    }
+  },
+  {
+    "path": "/pricing",
+    "id": "pricing",
+    "handle": {
+      "depth": 1,
+      "group": "data"
+    }
+  },
+  {
+    "path": "/usage",
+    "id": "usage",
+    "handle": {
+      "cache": true,
+      "cacheKey": "UsageDashboardView",
+      "depth": 1,
+      "group": "data",
+      "hideGlobalBackground": true
+    }
+  },
+  {
+    "path": "/monitoring",
+    "id": "monitoring",
+    "handle": {
+      "depth": 1,
+      "group": "data"
+    }
+  },
+  {
+    "path": "/sessions",
+    "id": "sessions",
+    "redirect": "/monitoring"
+  },
+  {
+    "path": "/mcp",
+    "id": "mcp",
+    "redirect": "/mcp-manager"
+  },
+  {
+    "path": "/mcp/unified",
+    "id": "mcp-unified",
+    "redirect": "/mcp-manager"
+  },
+  {
+    "path": "/agent-sessions",
+    "id": "agent-sessions",
+    "handle": {
+      "cache": true,
+      "cacheKey": "AgentSessionsView",
+      "depth": 1,
+      "group": "config"
+    }
+  },
+  {
+    "path": "/mcp-manager",
+    "id": "mcp-manager",
+    "handle": {
+      "depth": 1,
+      "group": "config"
+    }
+  },
+  {
+    "path": "/slash-commands",
+    "id": "slash-commands",
+    "handle": {
+      "depth": 1,
+      "group": "config"
+    }
+  },
+  {
+    "path": "/agents",
+    "id": "agents",
+    "handle": {
+      "depth": 1,
+      "group": "config"
+    }
+  },
+  {
+    "path": "/agents/:name",
+    "id": "agent-detail",
+    "handle": {
+      "depth": 2,
+      "group": "config"
+    }
+  },
+  {
+    "path": "/skills",
+    "id": "skills",
+    "handle": {
+      "depth": 1,
+      "group": "config"
+    }
+  },
+  {
+    "path": "/skills-manager",
+    "id": "skills-manager",
+    "redirect": "/skills"
+  },
+  {
+    "path": "/skillport-manager",
+    "id": "skillport-manager",
+    "redirect": "/skills"
+  },
+  {
+    "path": "/skills/add",
+    "id": "skills-add",
+    "redirect": "/skills"
+  },
+  {
+    "path": "/skills/hub",
+    "redirect": "/skills"
+  },
+  {
+    "path": "/skills/:platform/:name",
+    "redirect": "/skills"
+  },
+  {
+    "path": "/market",
+    "id": "market",
+    "redirect": "/skills"
+  },
+  {
+    "path": "/plugins",
+    "id": "plugins",
+    "handle": {
+      "depth": 1,
+      "group": "config"
+    }
+  },
+  {
+    "path": "/hooks",
+    "id": "hooks",
+    "handle": {
+      "depth": 1,
+      "group": "config"
+    }
+  },
+  {
+    "path": "/output-styles",
+    "id": "output-styles",
+    "handle": {
+      "depth": 1,
+      "group": "config"
+    }
+  },
+  {
+    "path": "/statusline",
+    "id": "statusline",
+    "handle": {
+      "depth": 1,
+      "group": "config"
+    }
+  },
+  {
+    "path": "/checkin/manage/:accountId",
+    "id": "checkin-account-dashboard",
+    "handle": {
+      "depth": 2,
+      "group": "tools"
+    }
+  },
+  {
+    "path": "/checkin",
+    "id": "checkin",
+    "handle": {
+      "depth": 1,
+      "group": "tools"
+    }
+  },
+  {
+    "path": "/codex/mcp",
+    "id": "codex-mcp",
+    "handle": {
+      "depth": 2,
+      "group": "codex"
+    }
+  },
+  {
+    "path": "/codex/profiles",
+    "id": "codex-profiles",
+    "handle": {
+      "depth": 2,
+      "group": "codex"
+    }
+  },
+  {
+    "path": "/codex/agents",
+    "id": "codex-agents",
+    "handle": {
+      "depth": 2,
+      "group": "codex"
+    }
+  },
+  {
+    "path": "/codex/sessions",
+    "id": "codex-sessions",
+    "handle": {
+      "depth": 2,
+      "group": "codex"
+    }
+  },
+  {
+    "path": "/codex/slash-commands",
+    "id": "codex-slash-commands",
+    "handle": {
+      "depth": 2,
+      "group": "codex"
+    }
+  },
+  {
+    "path": "/codex/auth",
+    "id": "codex-auth",
+    "handle": {
+      "depth": 2,
+      "group": "codex"
+    }
+  },
+  {
+    "path": "/codex/settings",
+    "id": "codex-settings",
+    "handle": {
+      "depth": 2,
+      "group": "codex"
+    }
+  },
+  {
+    "path": "/codex/system-prompts",
+    "id": "codex-system-prompts",
+    "handle": {
+      "depth": 2,
+      "group": "codex"
+    }
+  },
+  {
+    "path": "/antigravity/slash-commands",
+    "id": "gemini-slash-commands",
+    "handle": {
+      "depth": 2,
+      "group": "gemini"
+    }
+  },
+  {
+    "path": "/gemini-cli/slash-commands",
+    "redirect": "/antigravity/slash-commands",
+    "handle": {
+      "depth": 2,
+      "group": "gemini"
+    }
+  },
+  {
+    "path": "/gemini-cli/mcp",
+    "redirect": "/antigravity/mcp",
+    "handle": {
+      "depth": 2,
+      "group": "gemini"
+    }
+  },
+  {
+    "path": "/gemini-cli/agents",
+    "redirect": "/antigravity/agents",
+    "handle": {
+      "depth": 2,
+      "group": "gemini"
+    }
+  },
+  {
+    "path": "/gemini-cli/plugins",
+    "redirect": "/antigravity/plugins",
+    "handle": {
+      "depth": 2,
+      "group": "gemini"
+    }
+  },
+  {
+    "path": "/antigravity/system-prompts",
+    "id": "gemini-system-prompts",
+    "handle": {
+      "depth": 2,
+      "group": "gemini"
+    }
+  },
+  {
+    "path": "/gemini-cli/system-prompts",
+    "redirect": "/antigravity/system-prompts",
+    "handle": {
+      "depth": 2,
+      "group": "gemini"
+    }
+  },
+  {
+    "path": "/opencode",
+    "id": "opencode",
+    "handle": {
+      "depth": 1,
+      "group": "opencode",
+      "hideGlobalBackground": true
+    }
+  },
+  {
+    "path": "/opencode/providers",
+    "id": "opencode-providers",
+    "handle": {
+      "depth": 2,
+      "group": "opencode",
+      "hideGlobalBackground": true
+    }
+  },
+  {
+    "path": "/opencode/mcp",
+    "id": "opencode-mcp",
+    "handle": {
+      "depth": 2,
+      "group": "opencode",
+      "hideGlobalBackground": true
+    }
+  },
+  {
+    "path": "/opencode/agents",
+    "id": "opencode-agents",
+    "handle": {
+      "depth": 2,
+      "group": "opencode",
+      "hideGlobalBackground": true
+    }
+  },
+  {
+    "path": "/opencode/commands",
+    "id": "opencode-commands",
+    "handle": {
+      "depth": 2,
+      "group": "opencode",
+      "hideGlobalBackground": true
+    }
+  },
+  {
+    "path": "/opencode/skills",
+    "id": "opencode-skills",
+    "redirect": "/skills",
+    "handle": {
+      "depth": 2,
+      "group": "opencode",
+      "hideGlobalBackground": true
+    }
+  },
+  {
+    "path": "/opencode/plugins",
+    "id": "opencode-plugins",
+    "handle": {
+      "depth": 2,
+      "group": "opencode",
+      "hideGlobalBackground": true
+    }
+  },
+  {
+    "path": "/opencode/settings",
+    "id": "opencode-settings",
+    "handle": {
+      "depth": 2,
+      "group": "opencode",
+      "hideGlobalBackground": true
+    }
+  },
+  {
+    "path": "/opencode/system-prompts",
+    "id": "opencode-system-prompts",
+    "handle": {
+      "depth": 2,
+      "group": "opencode",
+      "hideGlobalBackground": true
+    }
+  },
+  {
+    "path": "/wsl",
+    "id": "wsl-management",
+    "handle": {
+      "depth": 1,
+      "group": "environment"
+    }
+  },
+  {
+    "path": "/ssh",
+    "id": "ssh-management",
+    "handle": {
+      "depth": 1,
+      "group": "environment"
+    }
+  },
+  {
+    "path": "/antigravity/mcp",
+    "id": "gemini-mcp",
+    "handle": {
+      "depth": 2,
+      "group": "gemini"
+    }
+  },
+  {
+    "path": "/antigravity/agents",
+    "id": "gemini-agents",
+    "handle": {
+      "depth": 2,
+      "group": "gemini"
+    }
+  },
+  {
+    "path": "/antigravity/plugins",
+    "id": "gemini-plugins",
+    "handle": {
+      "depth": 2,
+      "group": "gemini"
+    }
+  }
+]

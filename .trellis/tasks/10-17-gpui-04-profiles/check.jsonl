@@ -1,0 +1,16 @@
+{"file": ".trellis/spec/ccr-config/backend/profile-repository.md", "reason": "本子任务必须遵循的已存在契约"}
+{"file": ".trellis/spec/ccr-cli/backend/profile-application-lifecycle.md", "reason": "本子任务必须遵循的已存在契约"}
+{"file": ".trellis/tasks/10-17-gpui-desktop/research/architecture.md", "reason": "仓库边界与最新 GPUI 依赖证据"}
+{"file": ".trellis/tasks/10-17-gpui-desktop/research/performance.md", "reason": "性能预算与测量方法"}
+{"file": ".trellis/tasks/10-17-gpui-02-services/research/profiles-source-map.md", "reason": "Review profile lifecycle reuse, native secret projection and original-draft CAS"}
+{"file": ".trellis/spec/ccr-app/backend/shared-desktop-services.md", "reason": "Consume02 bounded worker, stale result and safe projection contracts"}
+{"file": ".trellis/spec/ccr-cli/backend/test-fixtures.md", "reason": "Reuse process-scoped explicit fixture isolation and default parallelism"}
+{"file": ".trellis/spec/ccr-core/backend/atomic-writer.md", "reason": "Preserve backup, resource identity, guarded writes and private permissions"}
+{"file": ".trellis/spec/ccr-ui/frontend/profiles-page-contracts.md", "reason": "Preserve draft, secret masking and lifecycle interaction semantics"}
+{"file": ".trellis/spec/ccr-core/backend/backend-guidelines.md", "reason": "Existing LockManager owner, safe scoped default resolver and secret/error contracts"}
+{"file": ".trellis/spec/ccr-cli/backend/profile-off-login-prep.md", "reason": "Preserve profile off lifecycle and approved cleanup ownership"}
+{"file": ".trellis/spec/ccr-codex/backend/codex-provider-bearer-runtime.md", "reason": "Codex profile derived auth fields, secret storage and runtime cleanup"}
+{"file": ".trellis/spec/ccr-ui/frontend/raw-config-editor-contracts.md", "reason": "Scoped raw editor, original token and safe validation; profile catalog canonical rule wins"}
+{"file": ".trellis/spec/ccr-ui/frontend/confirm-interaction-contracts.md", "reason": "Destructive/restore/off target and consequence confirmation, cancel focus restoration"}
+{"file": ".trellis/spec/ccr-core/backend/scoped-lock-directory.md", "reason": "Verify error/panic restoration, thread isolation, no ambient roots and Grok operation-before-catalog lock order"}
+{"file": ".trellis/spec/ccr-app/backend/configuration-services.md", "reason": "Check generic/dedicated behavior parity, source force/CAS, safe restore/cleanup, no secret Debug/history leakage and navigation teardown"}

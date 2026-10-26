@@ -1,0 +1,6 @@
+{"file":".trellis/spec/ccr/backend/dependency-governance.md","reason":"独立 workspace 与既有依赖/CI 契约"}
+{"file":".trellis/spec/ccr/backend/desktop-command-policy.md","reason":"原生入口不能绕过既有操作策略"}
+{"file":".trellis/tasks/10-17-gpui-desktop/research/architecture.md","reason":"仓库复用边界与依赖来源"}
+{"file":".trellis/tasks/10-17-gpui-desktop/research/performance.md","reason":"可量化性能验收"}
+{"file":".trellis/tasks/10-17-gpui-desktop/research/feature-matrix.md","reason":"完整迁移范围与逐命令所有权"}
+{"file":"ccr-desktop/DESIGN.md","reason":"用户指定 Codex 设计规范"}
