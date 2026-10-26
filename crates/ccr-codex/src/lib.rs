@@ -1,5 +1,10 @@
 //! Dedicated crate for the CCR Codex domain.
 
+#[cfg(test)]
+#[allow(dead_code)]
+#[path = "../../../scripts/test-support/home_process.rs"]
+mod home_process;
+
 pub mod managers;
 pub mod models;
 pub mod platforms;
@@ -41,7 +46,8 @@ pub(crate) mod test_support {
     static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
     pub(crate) struct TestCodexEnv {
-        temp_dir: TempDir,
+        _temp_dir: Option<TempDir>,
+        home: PathBuf,
         root: PathBuf,
         ccr_codex_dir: PathBuf,
         codex_dir: PathBuf,
@@ -55,8 +61,13 @@ pub(crate) mod test_support {
             let env_guard = ENV_LOCK
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
-            let temp_dir = tempfile::tempdir().expect("test codex env temp dir should be created");
-            let home = temp_dir.path();
+            let temp_dir = (!crate::home_process::is_child())
+                .then(|| tempfile::tempdir().expect("test codex env temp dir should be created"));
+            let home = temp_dir
+                .as_ref()
+                .map_or_else(crate::home_process::child_root, |dir| {
+                    dir.path().to_path_buf()
+                });
             let root = home.join(".ccr");
             let ccr_codex_dir = root.join("platforms").join("codex");
             let codex_dir = home.join(".codex");
@@ -78,7 +89,8 @@ pub(crate) mod test_support {
             remove_env_var(&mut previous_vars, "CODEX_API_KEY");
 
             Self {
-                temp_dir,
+                _temp_dir: temp_dir,
+                home,
                 root,
                 ccr_codex_dir,
                 codex_dir,
@@ -89,7 +101,7 @@ pub(crate) mod test_support {
         }
 
         pub(crate) fn home(&self) -> &Path {
-            self.temp_dir.path()
+            &self.home
         }
 
         pub(crate) fn root(&self) -> &Path {

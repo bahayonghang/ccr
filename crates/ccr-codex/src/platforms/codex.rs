@@ -1268,9 +1268,11 @@ impl CodexPlatform {
                 _ => {
                     // 在清理 OpenAI tokens 前，尽量把当前 runtime OAuth tokens 回写到已保存账号快照，
                     // 避免 refresh_token 轮换导致 CCR 快照持有旧 refresh_token（refresh_token_reused）。
-                    if let Ok(oauth) = CodexOAuthTokenService::new()
-                        && let Err(err) = oauth.sync_runtime_tokens_to_saved_account()
-                    {
+                    let oauth = CodexOAuthTokenService::from_dirs(
+                        self.paths.platform_dir.clone(),
+                        self.codex_dir(),
+                    );
+                    if let Err(err) = oauth.sync_runtime_tokens_to_saved_account() {
                         tracing::warn!(
                             "Failed to sync runtime OAuth tokens before clearing: {}",
                             err
@@ -2683,10 +2685,11 @@ env_key = "PACKYCODE_API_KEY"
 
     #[test]
     fn login_prep_dirs_include_default_home_when_codex_home_redirects() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let mut env = TestCodexEnv::new();
         let home = env.home().to_path_buf();
-        env.set_env("HOME", home.as_os_str());
-        env.set_env("USERPROFILE", home.as_os_str());
         env.remove_env("CCR_CODEX_DIR");
         let sandbox = home.join("sandbox-codex");
         std::fs::create_dir_all(&sandbox).unwrap();
@@ -2698,10 +2701,11 @@ env_key = "PACKYCODE_API_KEY"
 
     #[test]
     fn login_prep_dirs_stay_on_explicit_ccr_codex_dir() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let mut env = TestCodexEnv::new();
         let home = env.home().to_path_buf();
-        env.set_env("HOME", home.as_os_str());
-        env.set_env("USERPROFILE", home.as_os_str());
         let sandbox = home.join("sandbox-codex");
         env.set_env("CODEX_HOME", sandbox.as_os_str());
 
@@ -2711,10 +2715,11 @@ env_key = "PACKYCODE_API_KEY"
 
     #[test]
     fn clear_runtime_scrubs_default_home_when_codex_home_is_redirected() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
         let mut env = TestCodexEnv::new();
         let home = env.home().to_path_buf();
-        env.set_env("HOME", home.as_os_str());
-        env.set_env("USERPROFILE", home.as_os_str());
         env.remove_env("CCR_CODEX_DIR");
         let sandbox = home.join("sandbox-codex");
         std::fs::create_dir_all(&sandbox).unwrap();
