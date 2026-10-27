@@ -462,3 +462,46 @@ ccr project init 现在默认勾选五项平台并要求输入用户名，-y 使
 ### Next Steps
 
 - 新对话读04/pause-handoff.md；恢复04核心CU并整合证据后按依赖继续05–10；不做缩放/DPI。
+
+
+## Session 135: 轻盈玻璃改造拆分提交与行政归档
+<!-- trellis-session: v=2 fp=ece99fc0c74276a6 -->
+
+**Date**: 2026-10-27
+**Task**: 轻盈玻璃改造拆分提交与行政归档
+**Branch**: `dev`
+
+### Summary
+
+按用户授权忽略任务临时 PNG，拆分提交全部轻盈玻璃改造并归档父任务及 AG01–AG04；final_acceptance 保留 open，未将行政归档等同桌面验收通过。
+
+### Main Changes
+
+- 截图忽略规则覆盖活动和归档目录；782 张新 PNG 留在本地，295 张历史跟踪图片不动。
+- 主题外壳、公共控件／操作页、观测页、规范与文本证据分批提交；五个相关任务行政归档，GPUI 任务未变。
+- 归档路径、上下文与来源引用同步；原始日志和差异快照按字节保留，未推送、安装或发行。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c49059f8357b9b22c5350ceb4bbe1c3991ddc923` | chore(任务证据): 🧹 忽略 Trellis 截图并保留原始日志 |
+| `be97dd5dbedf609666d790544fec2962d2d854a1` | feat(主题外壳): ✨ 落地轻盈玻璃令牌与单层纸面 |
+| `2bc661b2bed2dfe625a11ff0814e63b4ccf6cc86` | style(配置工作区): 🎨 统一操作页面实底与控件焦点 |
+| `3b8edfea127d576dc22d699844f49404d23db825` | style(观测页面): 🎨 统一用量会话与任务页面材质 |
+| `8205bfaaa0988157987c9823e43fa01a180b60e2` | docs(视觉规范): 📝 同步轻盈玻璃设计与主题合同 |
+| `492a217a272c90a7c072098b0ad28a902a8adc3a` | docs(任务证据): 📝 收录轻盈玻璃规划与验收记录 |
+
+### Testing
+
+- [OK] 前端源码提交前指纹与上轮最终验收一致；本轮不重复声称执行全套测试。
+- [OK] PNG 忽略782/782、归档上下文5/5、原始证据832文件字节一致；45日志和5差异快照的 Git blob 与本地原始字节相同。
+- [OK] 编辑文档／代码／metadata staged diff-check 通过；原始日志和 product.diff 不格式化。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 最终验收仍 open：原生 DPI／托盘／跨平台、真实缩放／无 blur 引擎、未覆盖真实性能；既有焦点恢复 FAIL_BASELINE 与独立 i18n 漂移保留。
