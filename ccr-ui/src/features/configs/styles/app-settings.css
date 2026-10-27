@@ -460,7 +460,7 @@
 .app-settings-font-input {
   @apply w-full rounded-lg border px-3 py-2 text-sm;
 
-  border-color: var(--color-border-default);
+  border-color: var(--color-border-strong);
   background: var(--color-bg-surface);
   color: var(--color-text-primary);
 }

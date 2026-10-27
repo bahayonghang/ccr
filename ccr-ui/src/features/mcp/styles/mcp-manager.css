@@ -52,8 +52,8 @@
 }
 
 .mcp-action--ghost {
-  border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 48%);
-  background: rgb(var(--color-bg-surface-rgb) / 56%);
+  border: var(--space-px) solid var(--color-border-strong);
+  background: var(--color-bg-surface);
   color: var(--color-text-secondary);
 }
 
@@ -80,7 +80,7 @@
 
 .mcp-alert--error {
   border: var(--space-px) solid rgb(var(--color-danger-rgb) / 26%);
-  background: rgb(var(--color-danger-rgb) / 8%);
+  background: var(--color-danger-tint);
   color: var(--color-danger);
 }
 

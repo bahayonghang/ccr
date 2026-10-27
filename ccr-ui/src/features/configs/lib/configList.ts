@@ -68,43 +68,36 @@ export function buildConfigSummary(configs: ConfigItem[], translate: TranslateFu
       label: translate('configs.filters.all'),
       count: configs.length,
       icon: 'LayoutGrid',
-      activeClass: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
+      activeClass: 'border-accent-primary bg-bg-elevated text-text-primary',
       idleClass:
-        'border-border-default/50 bg-bg-elevated text-text-secondary hover:border-emerald-400/20 hover:text-text-primary',
+        'border-border-default/50 bg-bg-elevated text-text-secondary hover:border-accent-primary hover:text-text-primary',
     },
     {
       key: 'official_relay',
       label: translate('configs.filters.officialRelay'),
       count: configs.filter((config) => config.provider_type?.toLowerCase().includes('official')).length,
       icon: 'Zap',
-      activeClass: 'border-cyan-400/30 bg-cyan-400/10 text-cyan-300',
+      activeClass: 'border-accent-primary bg-bg-elevated text-text-primary',
       idleClass:
-        'border-border-default/50 bg-bg-elevated text-text-secondary hover:border-cyan-400/20 hover:text-text-primary',
+        'border-border-default/50 bg-bg-elevated text-text-secondary hover:border-accent-primary hover:text-text-primary',
     },
     {
       key: 'third_party_model',
       label: translate('configs.filters.thirdPartyModel'),
       count: configs.filter((config) => config.provider_type?.toLowerCase().includes('third')).length,
       icon: 'Cpu',
-      activeClass: 'border-violet-400/30 bg-violet-400/10 text-violet-300',
+      activeClass: 'border-accent-primary bg-bg-elevated text-text-primary',
       idleClass:
-        'border-border-default/50 bg-bg-elevated text-text-secondary hover:border-violet-400/20 hover:text-text-primary',
+        'border-border-default/50 bg-bg-elevated text-text-secondary hover:border-accent-primary hover:text-text-primary',
     },
     {
       key: 'uncategorized',
       label: translate('configs.filters.uncategorized'),
       count: configs.filter((config) => !config.provider_type).length,
       icon: 'HelpCircle',
-      activeClass: 'border-amber-400/30 bg-amber-400/10 text-amber-300',
+      activeClass: 'border-accent-primary bg-bg-elevated text-text-primary',
       idleClass:
-        'border-border-default/50 bg-bg-elevated text-text-secondary hover:border-amber-400/20 hover:text-text-primary',
+        'border-border-default/50 bg-bg-elevated text-text-secondary hover:border-accent-primary hover:text-text-primary',
     },
   ]
-}
-
-export function providerKind(config: ConfigItem): 'official' | 'third' | 'uncategorized' {
-  const type = config.provider_type?.toLowerCase() || ''
-  if (type.includes('official')) return 'official'
-  if (type.includes('third')) return 'third'
-  return 'uncategorized'
 }

@@ -2,7 +2,6 @@ import { memo, useCallback } from 'react'
 import type { ConfigItem } from '@/types'
 import { SIcon } from '@/ui'
 import { useAppT } from '@/i18n'
-import { providerKind } from '../lib/configList'
 import { ConfigBadges, ConfigMetaChips } from './ConfigBadges'
 import '../styles/config-card.css'
 
@@ -14,24 +13,6 @@ interface ConfigCardProps {
   onEdit: (name: string) => void
 }
 
-const ACCENT: Record<string, string> = {
-  official: 'bg-cyan-400 group-hover:bg-cyan-300',
-  third: 'bg-violet-400 group-hover:bg-violet-300',
-  uncategorized: 'bg-amber-400 group-hover:bg-amber-300',
-}
-
-const AVATAR: Record<string, string> = {
-  official: 'bg-gradient-to-br from-cyan-500 to-cyan-700',
-  third: 'bg-gradient-to-br from-violet-500 to-violet-700',
-  uncategorized: 'bg-gradient-to-br from-amber-500 to-amber-700',
-}
-
-const NAME: Record<string, string> = {
-  official: 'text-cyan-400 group-hover:text-cyan-300',
-  third: 'text-violet-400 group-hover:text-violet-300',
-  uncategorized: 'text-amber-400 group-hover:text-amber-300',
-}
-
 export const ConfigCard = memo(function ConfigCard({
   config,
   highlighted,
@@ -40,7 +21,6 @@ export const ConfigCard = memo(function ConfigCard({
   onEdit,
 }: ConfigCardProps) {
   const t = useAppT()
-  const kind = providerKind(config)
   const handleEdit = useCallback(() => {
     onEdit(config.name)
   }, [config.name, onEdit])
@@ -61,26 +41,26 @@ export const ConfigCard = memo(function ConfigCard({
 
   return (
     <div className={rowClass} data-config-name={config.name}>
-      <div className={`accent-bar w-[0.1875rem] shrink-0 transition-colors duration-300 ${ACCENT[kind]}`} />
+      <div className="accent-bar w-[0.1875rem] shrink-0 bg-border-strong transition-colors duration-300 group-hover:bg-accent-primary" />
       <button
         type="button"
-        className="config-row-main flex min-w-0 flex-1 items-center gap-4 px-5 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/35"
+        className="config-row-main flex min-w-0 flex-1 items-center gap-4 px-5 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary"
         aria-label={`${t('common.edit')}: ${config.name}`}
         onClick={handleEdit}
       >
         <div
-          className={`avatar-wrapper relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-md transition-transform duration-300 group-hover:scale-105 ${AVATAR[kind]}`}
+          className="avatar-wrapper relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-bg-overlay text-sm font-bold text-text-primary transition-transform duration-300 group-hover:scale-105"
         >
           {config.provider?.[0]?.toUpperCase() || 'C'}
           {config.is_current ? (
-            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-bg-elevated bg-emerald-400 shadow-sm">
-              <span className="absolute inset-0 rounded-full bg-emerald-400 opacity-60 animate-ping" />
+            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-bg-elevated bg-success shadow-sm">
+              <span className="absolute inset-0 rounded-full bg-success opacity-60 animate-ping" />
             </span>
           ) : null}
         </div>
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex min-w-0 items-center gap-2.5">
-            <h3 className={`truncate font-display text-sm font-bold transition-colors duration-300 ${NAME[kind]}`}>
+            <h3 className="truncate font-display text-sm font-bold text-text-primary transition-colors duration-300 group-hover:text-accent-primary">
               {config.name}
             </h3>
             <ConfigBadges config={config} />
@@ -93,7 +73,7 @@ export const ConfigCard = memo(function ConfigCard({
       </button>
       <div className="flex shrink-0 items-center gap-2 pr-4">
         {config.is_current && config.enabled !== false ? (
-          <span className="inline-flex cursor-default items-center gap-1 rounded-lg bg-emerald-400/5 px-3 py-1.5 text-xs font-bold text-emerald-400/70">
+          <span className="inline-flex cursor-default items-center gap-1 rounded-lg bg-success/5 px-3 py-1.5 text-xs font-bold text-success">
             <SIcon name="CheckCircle" size="w-3.5 h-3.5" />
             {t('configs.inUse')}
           </span>

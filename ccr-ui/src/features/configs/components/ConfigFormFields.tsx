@@ -5,7 +5,7 @@ import { t, tt } from '../locale'
 import type { ConfigFormValues } from '../lib/configForm'
 
 const inputClass =
-  'w-full rounded-xl border border-border-default bg-bg-elevated py-2.5 pr-4 pl-10 text-sm text-text-primary outline-none focus:ring-2 focus:ring-accent-primary/20'
+  'w-full rounded-xl border border-border-strong bg-bg-elevated py-2.5 pr-4 pl-10 text-sm text-text-primary outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20'
 
 interface LabeledFieldProps {
   label: string

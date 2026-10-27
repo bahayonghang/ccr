@@ -34,7 +34,7 @@ const McpInstanceRow = memo(function McpInstanceRow({ item, onToggle, t }: McpIn
   }, [item, onToggle])
 
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-border-default/28 bg-bg-base/38 px-2.5 py-2">
+    <div className="flex items-center gap-3 rounded-xl border border-border-default bg-bg-base px-2.5 py-2">
       <AgentIcons agents={[item.platform]} compact={false} />
       <span className="text-sm font-semibold capitalize text-text-primary">
         {mcpScopeLabel(item.scope ?? 'global', t)}
@@ -216,7 +216,7 @@ function McpDetailBody({
                   'flex items-center gap-3 rounded-xl border px-2.5 py-2',
                   active
                     ? 'border-success/24 bg-success/10'
-                    : 'border-border-default/28 bg-bg-base/38',
+                    : 'border-border-default bg-bg-base',
                 )}
               >
                 <span className={cn('h-2 w-2 rounded-full', active ? 'bg-success' : 'bg-border-default/80')} />
@@ -254,7 +254,7 @@ function McpDetailBody({
             {envEntries.map(([key, value]) => (
               <div
                 key={`env-${key}`}
-                className="flex items-center justify-between gap-3 rounded-xl border border-border-default/28 bg-bg-base/38 px-2.5 py-2"
+                className="flex items-center justify-between gap-3 rounded-xl border border-border-default bg-bg-base px-2.5 py-2"
               >
                 <span className="font-mono text-xs font-bold text-text-primary">{key}</span>
                 <span className="overflow-hidden text-ellipsis whitespace-nowrap font-mono text-xs text-text-muted">
@@ -265,7 +265,7 @@ function McpDetailBody({
             {headerEntries.map(([key, value]) => (
               <div
                 key={`header-${key}`}
-                className="flex items-center justify-between gap-3 rounded-xl border border-border-default/28 bg-bg-base/38 px-2.5 py-2"
+                className="flex items-center justify-between gap-3 rounded-xl border border-border-default bg-bg-base px-2.5 py-2"
               >
                 <span className="font-mono text-xs font-bold text-text-primary">{key}</span>
                 <span className="overflow-hidden text-ellipsis whitespace-nowrap font-mono text-xs text-text-muted">
@@ -311,7 +311,7 @@ function McpDetailBody({
             {diagnostics.map((diagnostic) => (
               <div
                 key={`${diagnostic.source_path ?? 'diagnostic'}-${diagnostic.level}-${diagnostic.message}`}
-                className="flex items-baseline gap-3 rounded-xl border border-border-default/28 bg-bg-base/38 px-2.5 py-2 text-sm text-text-secondary"
+                className="flex items-baseline gap-3 rounded-xl border border-border-default bg-bg-base px-2.5 py-2 text-sm text-text-secondary"
               >
                 <span className="text-[0.64rem] font-extrabold uppercase tracking-wide text-accent-primary/90">
                   {diagnostic.level}

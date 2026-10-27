@@ -1,18 +1,21 @@
 .glass-filter-container {
+  flex-wrap: wrap;
+  min-width: 0;
   background: var(--surface-status-bg);
   backdrop-filter: var(--surface-status-blur);
-  border: var(--space-px) solid var(--surface-status-border);
+  border: var(--space-px) solid var(--color-border-strong);
   box-shadow: var(--shadow-sm);
 }
 
 .filter-btn {
+  white-space: nowrap;
   background: transparent;
   color: var(--text-secondary);
   border: var(--space-px) solid transparent;
 }
 
 .filter-btn:hover:not(.filter-btn-active) {
-  background: var(--glass-bg-medium);
+  background: var(--color-bg-overlay);
   color: var(--text-primary);
 }
 
@@ -26,7 +29,7 @@
 .sort-select {
   background: var(--surface-status-bg);
   backdrop-filter: var(--surface-status-blur);
-  border: var(--space-px) solid var(--surface-status-border);
+  border: var(--space-px) solid var(--color-border-strong);
   color: var(--text-primary);
   min-width: 8.75rem;
 }
@@ -38,17 +41,17 @@
 
 .sort-select:focus {
   outline: none;
-  box-shadow: 0 0 0 0.1875rem rgb(var(--color-accent-primary-rgb) / 15%);
+  box-shadow: 0 0 0 0.1875rem var(--color-accent-primary);
 }
 
 .stats-btn {
-  background: var(--glass-bg-light);
-  border: var(--space-px) solid var(--glass-border-light);
+  background: var(--color-bg-elevated);
+  border: var(--space-px) solid var(--color-border-default);
   color: var(--text-secondary);
 }
 
 .stats-btn:hover {
-  background: var(--glass-bg-medium);
+  background: var(--color-bg-overlay);
   border-color: var(--color-accent-primary);
   color: var(--color-accent-primary);
 }

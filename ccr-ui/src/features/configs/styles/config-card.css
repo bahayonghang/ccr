@@ -1,8 +1,8 @@
 .config-row {
-  background: var(--liquid-glass-bg);
-  backdrop-filter: var(--liquid-glass-blur);
-  border: var(--space-px) solid var(--liquid-glass-border);
-  box-shadow: var(--liquid-glass-highlight);
+  background: var(--surface-card-bg);
+  backdrop-filter: var(--surface-card-blur);
+  border: var(--space-px) solid var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
 }
 
 .config-row-main {
@@ -15,14 +15,14 @@
 }
 
 .config-row:hover {
-  background: var(--glass-bg-medium);
-  border-color: var(--glass-border-medium);
-  box-shadow: var(--liquid-glass-shadow);
+  background: var(--color-bg-elevated);
+  border-color: var(--color-border-default);
+  box-shadow: var(--surface-card-shadow);
   transform: translateX(0.125rem);
 }
 
 .config-row--current {
-  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  background: color-mix(in srgb, var(--color-accent-primary) 10%, var(--surface-card-bg));
   border-color: rgb(var(--color-accent-primary-rgb) / 24%);
   box-shadow: none;
 }
@@ -45,14 +45,14 @@
   font-size: 0.6875rem;
   font-family: var(--font-mono);
   color: var(--color-text-secondary);
-  background: var(--glass-bg-light);
+  background: var(--color-bg-elevated);
   border: var(--space-px) solid var(--color-border-subtle);
   white-space: nowrap;
   transition: background-color 0.2s, border-color 0.2s;
 }
 
 .config-row:hover .meta-chip {
-  background: var(--glass-bg-medium);
+  background: var(--color-bg-overlay);
   border-color: var(--color-border-default);
 }
 
@@ -69,7 +69,7 @@
 
 .config-row .edit-btn:hover {
   color: var(--color-accent-primary);
-  background: var(--glass-bg-medium);
+  background: var(--color-bg-overlay);
 }
 
 .config-row.highlight-pulse {

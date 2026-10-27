@@ -6,8 +6,8 @@ export const mcpFieldLabelClass =
   'text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-text-muted'
 
 export const mcpFieldInputClass = cn(
-  'w-full rounded-xl border border-border-default/55 bg-bg-elevated px-3 py-2 text-sm text-text-primary outline-none',
-  'placeholder:text-text-ghost focus:border-accent-primary/40 focus:shadow-md',
+  'w-full rounded-xl border border-border-strong bg-bg-elevated px-3 py-2 text-sm text-text-primary outline-none',
+  'placeholder:text-text-ghost focus:border-accent-primary focus:shadow-md',
   'disabled:cursor-not-allowed disabled:opacity-50',
 )
 
@@ -41,6 +41,6 @@ export const mcpIconBtnClass = cn(
 export const mcpListActionBtnClass = mcpIconBtnClass
 
 export const mcpKvRowClass =
-  'flex items-center gap-2 rounded-lg bg-bg-base/42 px-2 py-1.5'
+  'flex items-center gap-2 rounded-lg bg-bg-base px-2 py-1.5'
 
 export const CLAUDE_USER_SCOPE_PATH = '~/.claude.json'

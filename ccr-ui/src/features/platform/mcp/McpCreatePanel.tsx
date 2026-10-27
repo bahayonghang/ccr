@@ -68,7 +68,7 @@ function McpProtocolToggle({
   }, [onIsHttpModeChange])
 
   return (
-    <div className="flex gap-1 rounded-xl border border-border-default/35 bg-bg-base/55 p-1">
+    <div className="flex gap-1 rounded-xl border border-border-default bg-bg-base p-1">
       <button
         type="button"
         className={cn(

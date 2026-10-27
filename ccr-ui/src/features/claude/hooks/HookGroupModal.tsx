@@ -23,7 +23,7 @@ interface HookGroupModalProps {
 }
 
 const inputClass =
-  'w-full rounded-lg border border-border-default bg-bg-surface px-4 py-2.5 outline-none focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary'
+  'w-full rounded-lg border border-border-strong bg-bg-surface px-4 py-2.5 outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary'
 const labelClass = 'mb-1.5 block text-sm font-semibold text-text-secondary'
 
 function HandlerFields({

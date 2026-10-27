@@ -31,24 +31,24 @@ export const ConfigFilters = memo(function ConfigFilters({
   const t = useAppT()
   const filters = useMemo(
     () => [
-      { type: 'all' as const, label: t('configs.filters.all'), icon: 'LayoutGrid', iconColor: 'text-emerald-400' },
+      { type: 'all' as const, label: t('configs.filters.all'), icon: 'LayoutGrid', iconColor: 'text-accent-primary' },
       {
         type: 'official_relay' as const,
         label: t('configs.filters.officialRelay'),
         icon: 'Zap',
-        iconColor: 'text-cyan-400',
+        iconColor: 'text-accent-info',
       },
       {
         type: 'third_party_model' as const,
         label: t('configs.filters.thirdPartyModel'),
         icon: 'Cpu',
-        iconColor: 'text-violet-400',
+        iconColor: 'text-text-secondary',
       },
       {
         type: 'uncategorized' as const,
         label: t('configs.filters.uncategorized'),
         icon: 'HelpCircle',
-        iconColor: 'text-amber-400',
+        iconColor: 'text-text-muted',
       },
     ],
     [t],
@@ -63,7 +63,7 @@ export const ConfigFilters = memo(function ConfigFilters({
   )
 
   return (
-    <div className="mb-6 flex items-center gap-4">
+    <div className="mb-6 flex min-w-0 flex-1 flex-wrap items-center gap-4">
       <div className="glass-filter-container flex flex-1 gap-2 rounded-2xl p-1.5">
         {filters.map((filter) => (
           <FilterChip
@@ -77,7 +77,7 @@ export const ConfigFilters = memo(function ConfigFilters({
           />
         ))}
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
           <label className="whitespace-nowrap text-sm font-medium text-text-primary">{t('configs.sort.label')}</label>
           <div className="relative">

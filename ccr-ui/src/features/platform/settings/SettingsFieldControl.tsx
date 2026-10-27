@@ -13,7 +13,7 @@ interface SettingsFieldControlProps {
 }
 
 const optionalBoolean = (value: unknown) => value === '' || value == null ? null : value === true || value === 'true'
-const controlClass = 'rounded-lg border border-border-default bg-bg-base px-3 py-2 disabled:opacity-50'
+const controlClass = 'rounded-lg border border-border-strong bg-bg-base px-3 py-2 disabled:opacity-50'
 const booleanOptions = [{ value: 'true', labelKey: 'common.yes' }, { value: 'false', labelKey: 'common.no' }]
 
 function SettingsSelect({ field, register, control, disabled, t }: SettingsFieldControlProps) {

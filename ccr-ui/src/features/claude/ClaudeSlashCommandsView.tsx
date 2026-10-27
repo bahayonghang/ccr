@@ -177,10 +177,10 @@ export function ClaudeSlashCommandsView() {
         }
       >
         <div className="grid gap-3">
-          <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder={t('common.name')} {...register('name')} />
-          <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2 font-mono" placeholder={t('common.command')} {...register('command')} />
-          <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder={t('common.description')} {...register('description')} />
-          <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder="folder" {...register('folder')} />
+          <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder={t('common.name')} {...register('name')} />
+          <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2 font-mono" placeholder={t('common.command')} {...register('command')} />
+          <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder={t('common.description')} {...register('description')} />
+          <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder="folder" {...register('folder')} />
         </div>
       </BaseModal>
     </PageShell>

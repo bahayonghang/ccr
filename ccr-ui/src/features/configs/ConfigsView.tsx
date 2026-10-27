@@ -128,7 +128,7 @@ export function ConfigsView() {
                 onShowProviderStats={page.openProvider}
                 onAddConfig={page.openAdd}
               />
-              <button type="button" className="rounded-lg border border-border-default px-3 py-2" onClick={page.refresh}>
+              <button type="button" className="shrink-0 rounded-lg border border-border-strong px-3 py-2" onClick={page.refresh}>
                 <SIcon name="RefreshCw" size="w-4 h-4" className={page.loading ? 'animate-spin' : ''} />
               </button>
             </div>

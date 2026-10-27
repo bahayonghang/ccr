@@ -199,11 +199,11 @@ export function OutputStylesView() {
       >
         <label className="grid gap-2 text-sm font-semibold">
           <span>{t('outputStyles.name')}</span>
-          <input type="text" className="rounded-lg border border-border-default bg-bg-surface px-3 py-2" {...register('name')} />
+          <input type="text" className="rounded-lg border border-border-strong bg-bg-surface px-3 py-2" {...register('name')} />
         </label>
         <label className="mt-4 grid gap-2 text-sm font-semibold">
           <span>{t('outputStyles.content')}</span>
-          <textarea rows={12} className="rounded-lg border border-border-default bg-bg-surface px-3 py-2 font-mono text-sm" {...register('content')} />
+          <textarea rows={12} className="rounded-lg border border-border-strong bg-bg-surface px-3 py-2 font-mono text-sm" {...register('content')} />
         </label>
       </BaseModal>
       <BaseModal

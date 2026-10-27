@@ -227,7 +227,7 @@
 .provider-template-editor__input,
 .provider-template-editor__textarea {
   width: 100%;
-  border: var(--space-px) solid var(--template-line-strong);
+  border: var(--space-px) solid var(--color-border-strong);
   border-radius: 0.75rem;
   background: var(--template-bg-soft);
   color: var(--template-text);
@@ -243,7 +243,7 @@
 .provider-template-modal__search-input:focus,
 .provider-template-editor__input:focus,
 .provider-template-editor__textarea:focus {
-  border-color: var(--template-accent-line);
+  border-color: var(--color-accent-primary);
   box-shadow: 0 0 0 0.1875rem rgb(var(--color-accent-primary-rgb) / 10%);
 }
 

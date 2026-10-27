@@ -119,17 +119,17 @@ export function BaseMcp({ config, t: tProp }: BaseMcpProps) {
       )}
       {showForm ? (
         <form className="mt-4 grid gap-3 rounded-xl border border-border-default p-4" onSubmit={onCreate}>
-          <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder={t('common.name')} {...form.register('name')} />
+          <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder={t('common.name')} {...form.register('name')} />
           {transport === 'http' ? (
-            <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder="url" {...form.register('url')} />
+            <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder="url" {...form.register('url')} />
           ) : (
-            <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder={t('common.command')} {...form.register('command')} />
+            <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder={t('common.command')} {...form.register('command')} />
           )}
           {config.features.startupPolicy ? (
-            <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder="startupTimeoutMs" {...form.register('startupTimeoutMs')} />
+            <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder="startupTimeoutMs" {...form.register('startupTimeoutMs')} />
           ) : null}
           {config.features.authInjection ? (
-            <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder="bearerTokenEnv" {...form.register('bearerTokenEnv')} />
+            <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder="bearerTokenEnv" {...form.register('bearerTokenEnv')} />
           ) : null}
           <div className="flex gap-2">
             <Button type="submit" variant="primary" className="rounded-lg text-sm">

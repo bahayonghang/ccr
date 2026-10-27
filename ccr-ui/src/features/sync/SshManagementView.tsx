@@ -229,13 +229,13 @@ export function SshManagementView() {
         <section className="space-y-3 rounded-xl border border-border-default/15 bg-bg-surface p-4">
           <h2 className="text-base font-semibold">{tt('新增 SSH 主机', 'Add SSH host')}</h2>
           <div className="grid grid-cols-2 gap-3">
-            <input className="rounded-md border border-border-default/15 px-3 py-2" placeholder={tt('名称（可选）', 'Name (optional)')} {...form.register('name')} />
-            <input className="rounded-md border border-border-default/15 px-3 py-2" placeholder="ID" {...form.register('id')} />
-            <input className="col-span-2 rounded-md border border-border-default/15 px-3 py-2" placeholder={tt('主机地址', 'Host')} {...form.register('host')} />
-            <input type="number" className="rounded-md border border-border-default/15 px-3 py-2" placeholder={tt('端口', 'Port')} {...form.register('port', { valueAsNumber: true })} />
-            <input className="rounded-md border border-border-default/15 px-3 py-2" placeholder={tt('用户名', 'User')} {...form.register('user')} />
-            <input type="password" className="col-span-2 rounded-md border border-border-default/15 px-3 py-2" placeholder={tt('密码（仅内存，可选）', 'Password (memory only, optional)')} {...form.register('connectPassword')} />
-            <input className="col-span-2 rounded-md border border-border-default/15 px-3 py-2" placeholder={tt('私钥路径（可选）', 'Identity file (optional)')} {...form.register('identity_file')} />
+            <input className="rounded-md border border-border-strong bg-bg-elevated text-text-primary focus:outline-2 focus:outline-accent-primary focus:outline-offset-2 px-3 py-2" placeholder={tt('名称（可选）', 'Name (optional)')} {...form.register('name')} />
+            <input className="rounded-md border border-border-strong bg-bg-elevated text-text-primary focus:outline-2 focus:outline-accent-primary focus:outline-offset-2 px-3 py-2" placeholder="ID" {...form.register('id')} />
+            <input className="col-span-2 rounded-md border border-border-strong bg-bg-elevated text-text-primary focus:outline-2 focus:outline-accent-primary focus:outline-offset-2 px-3 py-2" placeholder={tt('主机地址', 'Host')} {...form.register('host')} />
+            <input type="number" className="rounded-md border border-border-strong bg-bg-elevated text-text-primary focus:outline-2 focus:outline-accent-primary focus:outline-offset-2 px-3 py-2" placeholder={tt('端口', 'Port')} {...form.register('port', { valueAsNumber: true })} />
+            <input className="rounded-md border border-border-strong bg-bg-elevated text-text-primary focus:outline-2 focus:outline-accent-primary focus:outline-offset-2 px-3 py-2" placeholder={tt('用户名', 'User')} {...form.register('user')} />
+            <input type="password" className="col-span-2 rounded-md border border-border-strong bg-bg-elevated text-text-primary focus:outline-2 focus:outline-accent-primary focus:outline-offset-2 px-3 py-2" placeholder={tt('密码（仅内存，可选）', 'Password (memory only, optional)')} {...form.register('connectPassword')} />
+            <input className="col-span-2 rounded-md border border-border-strong bg-bg-elevated text-text-primary focus:outline-2 focus:outline-accent-primary focus:outline-offset-2 px-3 py-2" placeholder={tt('私钥路径（可选）', 'Identity file (optional)')} {...form.register('identity_file')} />
           </div>
           <button type="button" className="rounded-lg bg-accent-primary/10 px-3 py-2 text-accent-primary" onClick={handleAdd}>{tt('添加主机', 'Add host')}</button>
         </section>
@@ -275,12 +275,12 @@ export function SshManagementView() {
               <SelectItem value="opencode">opencode</SelectItem>
             </SelectContent>
           </Select>
-          <input className="min-w-[14rem] rounded-md border border-border-default/15 px-2 py-1 text-sm" {...form.register('configPath')} />
+          <input className="min-w-[14rem] rounded-md border border-border-strong bg-bg-elevated text-text-primary focus:outline-2 focus:outline-accent-primary focus:outline-offset-2 px-2 py-1 text-sm" {...form.register('configPath')} />
           <button type="button" className="rounded border px-2 py-1 text-xs" disabled={!activeEnvId} onClick={onRead}>{tt('读取配置', 'Read config')}</button>
           <button type="button" className="rounded border px-2 py-1 text-xs" disabled={!activeEnvId} onClick={onWrite}>{tt('写入配置', 'Write config')}</button>
           <button type="button" className="rounded border px-2 py-1 text-xs" disabled={!activeEnvId} onClick={onDetect}>{tt('检测 CLI', 'Detect CLI')}</button>
         </div>
-        <textarea className="min-h-[14rem] w-full rounded-md border border-border-default/15 p-3 font-mono text-xs" {...form.register('configContent')} />
+        <textarea className="min-h-[14rem] w-full rounded-md border border-border-strong bg-bg-elevated text-text-primary focus:outline-2 focus:outline-accent-primary focus:outline-offset-2 p-3 font-mono text-xs" {...form.register('configContent')} />
         {cliStatusText ? <pre className="overflow-x-auto rounded-md border border-border-default/15 p-3 text-xs">{cliStatusText}</pre> : null}
         {activeConnectionState ? <div className="text-xs text-text-muted">{`${tt('连接状态', 'Connection state')}: ${activeConnectionState.connected ? tt('已连接', 'Connected') : tt('未连接', 'Not connected')}`}</div> : null}
       </section>

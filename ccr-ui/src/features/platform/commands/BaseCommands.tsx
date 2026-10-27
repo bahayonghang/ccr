@@ -102,8 +102,8 @@ export function BaseCommands({ config, t: tProp }: BaseCommandsProps) {
       )}
       {showForm ? (
         <form className="mt-4 grid gap-3 rounded-xl border border-border-default p-4" onSubmit={onCreate}>
-          <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder={t('common.name')} {...form.register('name')} />
-          <textarea className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder={t('common.description')} {...form.register('template')} />
+          <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder={t('common.name')} {...form.register('name')} />
+          <textarea className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder={t('common.description')} {...form.register('template')} />
           <div className="flex gap-2">
             <Button type="submit" variant="primary" className="rounded-lg text-sm">
               {t('common.save')}

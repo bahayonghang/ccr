@@ -1,8 +1,8 @@
 import { cn } from '@/ui'
 
 export const fieldInputClass = cn(
-  'input w-full rounded-xl border border-border-default/55 bg-bg-elevated px-3 py-2 text-sm text-text-primary outline-none',
-  'placeholder:text-text-ghost focus:border-accent-primary/40',
+  'input w-full rounded-xl border border-border-strong bg-bg-elevated px-3 py-2 text-sm text-text-primary outline-none',
+  'placeholder:text-text-ghost focus:border-accent-primary',
   'disabled:cursor-not-allowed disabled:opacity-50',
 )
 

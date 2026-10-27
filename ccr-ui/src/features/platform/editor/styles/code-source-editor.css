@@ -1,6 +1,6 @@
 .code-source-editor {
   overflow: hidden;
-  border: var(--space-px) solid var(--border-default);
+  border: var(--space-px) solid var(--color-border-strong);
   border-radius: 0.375rem;
   background: var(--bg-primary);
 }
