@@ -1,0 +1,5 @@
+{
+  "original": "ccr-ui/scripts/check-arch-boundaries.mjs",
+  "originalSha256": "3f179c8146ddb2c3bfeefc075112beb7731b8fc12baf486a88c7db700190f608",
+  "adaptation": "Only subprocess launcher bunx eslint -> Node installed local ESLint; identical fixtures/config/policies/expected errors; original checker unchanged."
+}

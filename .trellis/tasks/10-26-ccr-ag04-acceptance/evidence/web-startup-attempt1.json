@@ -1,0 +1,14 @@
+{
+  "startedAt": "2026-10-26T12:08:49.177Z",
+  "routes": [],
+  "windows": [],
+  "failures": [],
+  "limitations": [
+    "Browser-only actual unavailable/empty/error states; no real IPC, user config or authentication writes.",
+    "Synthetic parameter routes prove error/unavailable presentation, not existence of a real agent/account.",
+    "Native WebView/DPI/tray/macOS and actual engine without backdrop-filter support are NOT_RUN."
+  ],
+  "head": "ab17ec92b3e27b2859ebe9ab556bc9ced6369bf8",
+  "browser": "157.0.8103.15",
+  "finishedAt": "2026-10-26T12:08:49.692Z"
+}

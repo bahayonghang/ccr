@@ -1,0 +1,9 @@
+{"pid":31904,"url":"http://127.0.0.1:5173","mode":"task-only watch:null workaround; restart after source edits; no product config changed"}
+12:52:07 PM [vite] (client) [console.warn] You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled
+12:52:07 PM [vite] (client) [console.warn] You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled
+12:52:08 PM [vite] (client) [console.warn] You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled
+12:52:09 PM [vite] (client) [console.warn] You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled
+12:52:11 PM [vite] (client) [console.error] [2026-10-26T16:52:11.742Z] [ERROR] Failed to load unified MCP servers {"name":"TypeError","message":"Cannot read properties of undefined (reading 'invoke')"}
+12:52:15 PM [vite] (client) [console.error] [2026-10-26T16:52:15.162Z] [ERROR] Failed to load unified MCP servers {"name":"TypeError","message":"Cannot read properties of undefined (reading 'invoke')"}
+12:52:18 PM [vite] (client) [console.error] [2026-10-26T16:52:18.486Z] [ERROR] Failed to load unified MCP servers {"name":"TypeError","message":"Cannot read properties of undefined (reading 'invoke')"}
+12:52:21 PM [vite] (client) [console.error] [2026-10-26T16:52:21.827Z] [ERROR] Failed to load unified MCP servers {"name":"TypeError","message":"Cannot read properties of undefined (reading 'invoke')"}

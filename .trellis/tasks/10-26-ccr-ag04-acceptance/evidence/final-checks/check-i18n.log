@@ -1,0 +1,50 @@
+$ bun ./scripts/check-i18n.mjs
+❌ 叶子 key 数量不是 4501（en-US 4510，zh-CN 4510）
+✅ i18n key 集合一致（en-US 4510 个 key，zh-CN 4510 个 key）
+⚠ 字面量 t() 调用了词条中没有的 key 65 个（多为 tf 兜底或历史 key；不阻断）:
+  - agents.enabledBadge
+  - agents.noSystemPrompt
+  - agents.noTools
+  - checkin.providers.provider
+  - common.command
+  - common.copied
+  - common.copy
+  - common.create
+  - common.deleteFailed
+  - common.deleteSuccess
+  - common.description
+  - common.disable
+  - common.disabled
+  - common.enable
+  - common.enabled
+  - common.folder
+  - common.loadFailed
+  - common.name
+  - common.notAvailable
+  - common.operationFailed
+  ... 另有 45 个
+⚠ 未使用 key 1550 个（动态拼接 / 配置表可能未静态抽出）
+  - agents.add
+  - agents.backToHome
+
+  - agents.backToModule
+  - agents.badge
+  - agents.breadcrumb.agents
+  - agents.breadcrumb.claudeCode
+  - agents.breadcrumb.home
+  - agents.delete
+  - agents.disabled
+  - agents.edit
+  - agents.fillRequired
+  - agents.folder
+  - agents.folders.all
+  - agents.form.add
+  - agents.form.addTool
+  - agents.form.cancel
+  - agents.form.name
+  - agents.form.required
+  - agents.form.save
+  - agents.form.systemPrompt
+  ... 另有 1530 个
+提示：单边新增 i18n key 时，另一端运行时会回退展示 key 路径而非文案。请补齐两端再合并。
+error: script "check:i18n" exited with code 1

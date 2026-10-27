@@ -1,0 +1,2 @@
+$ bun ./scripts/check-cycles.mjs
+[check-cycles] PASS：738 个文件，无循环依赖

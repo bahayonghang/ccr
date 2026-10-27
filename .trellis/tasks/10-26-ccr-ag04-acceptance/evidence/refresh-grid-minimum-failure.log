@@ -1,0 +1,8 @@
+file:///D:/Documents/Code/Github/ccr/.trellis/tasks/10-26-ccr-ag02-workspaces/research/capture-config-cards.mjs:49
+   if(controls.refresh.left<controls.content.left || controls.refresh.right>controls.content.right+1) throw new Error('Refresh action clipped: '+JSON.stringify(controls))
+                                                                                                            ^
+
+Error: Refresh action clipped: {"width":800,"refresh":{"left":912.625,"right":954.625,"width":42},"content":{"left":0,"right":800}}
+    at file:///D:/Documents/Code/Github/ccr/.trellis/tasks/10-26-ccr-ag02-workspaces/research/capture-config-cards.mjs:49:109
+
+Node.js v26.7.0

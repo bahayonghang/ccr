@@ -1,0 +1,83 @@
+[
+  {
+    "command": "bun run type-check",
+    "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+    "startedAt": "2026-10-26T12:09:01.0577761Z",
+    "finishedAt": "2026-10-26T12:09:12.3743447Z",
+    "elapsedSeconds": 11.3113543,
+    "exitCode": 0,
+    "log": "type-check.log"
+  },
+  {
+    "command": "bun run lint",
+    "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+    "startedAt": "2026-10-26T12:09:12.4096941Z",
+    "finishedAt": "2026-10-26T12:09:41.5955904Z",
+    "elapsedSeconds": 29.1851673,
+    "exitCode": 0,
+    "log": "lint.log"
+  },
+  {
+    "command": "bun run test",
+    "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+    "startedAt": "2026-10-26T12:09:41.6026300Z",
+    "finishedAt": "2026-10-26T12:11:52.3555200Z",
+    "elapsedSeconds": 130.7524964,
+    "exitCode": 0,
+    "log": "test.log"
+  },
+  {
+    "command": "bun run build:with-budget",
+    "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+    "startedAt": "2026-10-26T12:11:52.3600588Z",
+    "finishedAt": "2026-10-26T12:11:54.5157353Z",
+    "elapsedSeconds": 2.1551291,
+    "exitCode": 0,
+    "log": "build-with-budget.log"
+  },
+  {
+    "command": "bun run check:cycles",
+    "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+    "startedAt": "2026-10-26T12:11:54.5203295Z",
+    "finishedAt": "2026-10-26T12:11:57.9380012Z",
+    "elapsedSeconds": 3.4174133,
+    "exitCode": 0,
+    "log": "check-cycles.log"
+  },
+  {
+    "command": "bun run check:arch-boundaries",
+    "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+    "startedAt": "2026-10-26T12:11:57.9413938Z",
+    "finishedAt": "2026-10-26T12:11:58.1897040Z",
+    "elapsedSeconds": 0.2481048,
+    "exitCode": 1,
+    "log": "check-arch-boundaries.log"
+  },
+  {
+    "command": "bun run check:i18n",
+    "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+    "startedAt": "2026-10-26T12:11:58.1937427Z",
+    "finishedAt": "2026-10-26T12:11:58.4425450Z",
+    "elapsedSeconds": 0.2485857,
+    "exitCode": 1,
+    "log": "check-i18n.log"
+  },
+  {
+    "command": "bun run check:style-lines",
+    "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+    "startedAt": "2026-10-26T12:11:58.4461008Z",
+    "finishedAt": "2026-10-26T12:11:58.5721774Z",
+    "elapsedSeconds": 0.125903,
+    "exitCode": 0,
+    "log": "check-style-lines.log"
+  },
+  {
+    "command": "bun run docs:audit",
+    "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+    "startedAt": "2026-10-26T12:11:58.5750246Z",
+    "finishedAt": "2026-10-26T12:11:58.7381839Z",
+    "elapsedSeconds": 0.1629742,
+    "exitCode": 0,
+    "log": "docs-audit.log"
+  }
+]

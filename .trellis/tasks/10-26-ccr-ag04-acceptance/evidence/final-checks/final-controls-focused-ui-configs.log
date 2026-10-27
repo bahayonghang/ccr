@@ -1,0 +1,10 @@
+$ vitest run --config vitest.smoke.config.ts tests/ui tests/configs
+
+ RUN  v4.1.11 D:/Documents/Code/Github/ccr/ccr-ui
+
+
+ Test Files  19 passed (19)
+      Tests  87 passed (87)
+   Start at  12:48:00
+   Duration  11.38s (transform 1.77s, setup 1.53s, import 5.37s, tests 4.02s, environment 9.06s)
+

@@ -1,0 +1,8 @@
+{
+  "command": "node ../.trellis/tasks/10-26-ccr-ag04-acceptance/research/check-arch-local-launcher.mjs",
+  "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+  "startedAt": "2026-10-26T12:14:02.4581029Z",
+  "finishedAt": "2026-10-26T12:14:08.5029528Z",
+  "exitCode": 0,
+  "log": "arch-local-launcher.log"
+}

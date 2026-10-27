@@ -1,0 +1,5 @@
+[check:arch-boundaries] PASS 跨层导入：UI 原语导入 feature 域（boundaries/dependencies 报错）
+[check:arch-boundaries] PASS feature 跨域直连：claude → codex（boundaries/dependencies 报错）
+[check:arch-boundaries] PASS 反向依赖：底层模块导入 store（boundaries/dependencies 报错）
+[check:arch-boundaries] PASS 门面消费侧绕过：直接导入 tauri.ts（no-restricted-imports 报错）
+[check:arch-boundaries] 全部边界违规夹具均按预期报错

@@ -1,0 +1,14 @@
+$ bun ./scripts/check-arch-boundaries.mjs
+Shim: Could not determine if target is a GUI app. Assuming console.
+Shim: Could not create process with command '"C:\Users\lyh\scoop\apps\bun\current\bun.exe" x eslint --no-ignore --config D:\Documents\Code\Github\ccr\ccr-ui\.eslint.arch-selfcheck.mjs --format json D:\Documents\Code\Github\ccr\ccr-ui\tests\fixtures\arch-violations\ui\FixturePrimitive.ts'.
+[check:arch-boundaries] FAIL 跨层导入：UI 原语导入 feature 域：预期 boundaries/dependencies 未报错，实际 []
+Shim: Could not determine if target is a GUI app. Assuming console.
+Shim: Could not create process with command '"C:\Users\lyh\scoop\apps\bun\current\bun.exe" x eslint --no-ignore --config D:\Documents\Code\Github\ccr\ccr-ui\.eslint.arch-selfcheck.mjs --format json D:\Documents\Code\Github\ccr\ccr-ui\tests\fixtures\arch-violations\features\claude\CrossDomainImport.ts'.
+[check:arch-boundaries] FAIL feature 跨域直连：claude → codex：预期 boundaries/dependencies 未报错，实际 []
+Shim: Could not determine if target is a GUI app. Assuming console.
+Shim: Could not create process with command '"C:\Users\lyh\scoop\apps\bun\current\bun.exe" x eslint --no-ignore --config D:\Documents\Code\Github\ccr\ccr-ui\.eslint.arch-selfcheck.mjs --format json D:\Documents\Code\Github\ccr\ccr-ui\tests\fixtures\arch-violations\reverse-dep.ts'.
+[check:arch-boundaries] FAIL 反向依赖：底层模块导入 store：预期 boundaries/dependencies 未报错，实际 []
+Shim: Could not determine if target is a GUI app. Assuming console.
+Shim: Could not create process with command '"C:\Users\lyh\scoop\apps\bun\current\bun.exe" x eslint --no-ignore --config D:\Documents\Code\Github\ccr\ccr-ui\.eslint.arch-selfcheck.mjs --format json D:\Documents\Code\Github\ccr\ccr-ui\tests\fixtures\arch-violations\facade-bypass.ts'.
+[check:arch-boundaries] FAIL 门面消费侧绕过：直接导入 tauri.ts：预期 no-restricted-imports 未报错，实际 []
+error: script "check:arch-boundaries" exited with code 1

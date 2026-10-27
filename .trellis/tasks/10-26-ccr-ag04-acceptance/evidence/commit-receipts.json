@@ -1,0 +1,119 @@
+[
+  {
+    "group": "ignore",
+    "commit": "c49059f8357b9b22c5350ceb4bbe1c3991ddc923",
+    "message": "chore(任务证据): 🧹 忽略 Trellis 截图并保留原始日志",
+    "files": [
+      ".gitattributes",
+      ".gitignore"
+    ]
+  },
+  {
+    "group": "foundation",
+    "commit": "be97dd5dbedf609666d790544fec2962d2d854a1",
+    "message": "feat(主题外壳): ✨ 落地轻盈玻璃令牌与单层纸面",
+    "files": [
+      "ccr-ui/index.html",
+      "ccr-ui/src/components/profiles/profile-editor-shell.css",
+      "ccr-ui/src/features/configs/lib/flavorPreview.ts",
+      "ccr-ui/src/shell/App.tsx",
+      "ccr-ui/src/shell/shell.css",
+      "ccr-ui/src/styles/base/base.css",
+      "ccr-ui/src/styles/components/profiles-page.css",
+      "ccr-ui/src/styles/tokens.css",
+      "ccr-ui/src/styles/utilities/utilities.css",
+      "ccr-ui/src/ui/checkbox.tsx",
+      "ccr-ui/src/ui/combobox.tsx",
+      "ccr-ui/src/ui/dialog.tsx",
+      "ccr-ui/src/ui/popover.tsx",
+      "ccr-ui/src/ui/primitives.css",
+      "ccr-ui/src/ui/select.tsx",
+      "ccr-ui/src/ui/tooltip.tsx",
+      "ccr-ui/src/utils/nativeWindowAppearance.ts",
+      "ccr-ui/tests/theme/apple-glass-surface-contract.smoke.test.ts",
+      "ccr-ui/tests/theme/native-window-appearance.smoke.test.ts",
+      "ccr-ui/tests/theme/theme-contrast-contract.smoke.test.ts",
+      "ccr-ui/tests/theme/theme-switch.smoke.test.tsx"
+    ]
+  },
+  {
+    "group": "operations",
+    "commit": "2bc661b2bed2dfe625a11ff0814e63b4ccf6cc86",
+    "message": "style(配置工作区): 🎨 统一操作页面实底与控件焦点",
+    "files": [
+      "ccr-ui/src/features/claude/ClaudeSlashCommandsView.tsx",
+      "ccr-ui/src/features/claude/OutputStylesView.tsx",
+      "ccr-ui/src/features/claude/hooks/HookGroupModal.tsx",
+      "ccr-ui/src/features/codex/ui-classes.ts",
+      "ccr-ui/src/features/configs/ConfigsView.tsx",
+      "ccr-ui/src/features/configs/components/ConfigBadges.tsx",
+      "ccr-ui/src/features/configs/components/ConfigCard.tsx",
+      "ccr-ui/src/features/configs/components/ConfigFilters.tsx",
+      "ccr-ui/src/features/configs/components/ConfigFormFields.tsx",
+      "ccr-ui/src/features/configs/lib/configList.ts",
+      "ccr-ui/src/features/configs/styles/app-settings.css",
+      "ccr-ui/src/features/configs/styles/config-card.css",
+      "ccr-ui/src/features/configs/styles/config-filters.css",
+      "ccr-ui/src/features/configs/styles/configs.css",
+      "ccr-ui/src/features/configs/styles/converter.css",
+      "ccr-ui/src/features/configs/styles/provider-templates.css",
+      "ccr-ui/src/features/gemini/GeminiSlashCommandsView.tsx",
+      "ccr-ui/src/features/mcp/styles/mcp-manager.css",
+      "ccr-ui/src/features/opencode/ui-classes.ts",
+      "ccr-ui/src/features/platform/agents/BaseAgents.tsx",
+      "ccr-ui/src/features/platform/commands/BaseCommands.tsx",
+      "ccr-ui/src/features/platform/editor/styles/code-source-editor.css",
+      "ccr-ui/src/features/platform/mcp/BaseMcp.tsx",
+      "ccr-ui/src/features/platform/mcp/McpCreatePanel.tsx",
+      "ccr-ui/src/features/platform/mcp/McpDetailPanel.tsx",
+      "ccr-ui/src/features/platform/mcp/mcp-classes.ts",
+      "ccr-ui/src/features/platform/plugins/BasePlugins.tsx",
+      "ccr-ui/src/features/platform/settings/SettingsFieldControl.tsx",
+      "ccr-ui/src/features/sync/SshManagementView.tsx"
+    ]
+  },
+  {
+    "group": "observability",
+    "commit": "3b8edfea127d576dc22d699844f49404d23db825",
+    "message": "style(观测页面): 🎨 统一用量会话与任务页面材质",
+    "files": [
+      "ccr-ui/src/features/agent-sessions/AgentSessionTranscript.tsx",
+      "ccr-ui/src/features/agent-sessions/AgentSessionsView.tsx",
+      "ccr-ui/src/features/checkin/styles/accounts.css",
+      "ccr-ui/src/features/checkin/styles/calendar.css",
+      "ccr-ui/src/features/checkin/styles/records.css",
+      "ccr-ui/src/features/checkin/styles/trend.css",
+      "ccr-ui/src/features/commands/styles/commands-view.css",
+      "ccr-ui/src/features/tray/styles/tray.css",
+      "ccr-ui/src/features/usage/styles/dashboard-next-actions.css",
+      "ccr-ui/src/features/usage/styles/platform-usage-insight-panel.css",
+      "ccr-ui/src/features/usage/styles/pricing-view.css",
+      "ccr-ui/src/features/usage/styles/usage-cost-conclusion-card.css",
+      "ccr-ui/src/features/usage/styles/usage-dashboard-toolbar.css",
+      "ccr-ui/src/features/usage/styles/usage-diagnostics-drawer.css",
+      "ccr-ui/src/features/usage/styles/usage-logs-tab.css",
+      "ccr-ui/src/features/usage/styles/usage-metric-card.css",
+      "ccr-ui/src/features/usage/styles/usage-model-distribution-card.css",
+      "ccr-ui/src/features/usage/styles/usage-overview-tab.css",
+      "ccr-ui/src/features/usage/styles/usage-source-summary-card.css",
+      "ccr-ui/src/features/usage/styles/usage-stale-banner.css",
+      "ccr-ui/src/features/usage/styles/usage-token-breakdown-strip.css",
+      "ccr-ui/src/features/usage/styles/usage-tokens-tab.css",
+      "ccr-ui/src/styles/components/home.css"
+    ]
+  },
+  {
+    "group": "design",
+    "commit": "8205bfaaa0988157987c9823e43fa01a180b60e2",
+    "message": "docs(视觉规范): 📝 同步轻盈玻璃设计与主题合同",
+    "files": [
+      ".github/skills/ccr-ui-visual-workflow/SKILL.md",
+      ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md",
+      "AGENTS.md",
+      "ccr-ui/.impeccable/design.json",
+      "ccr-ui/AGENTS.md",
+      "ccr-ui/DESIGN.md",
+      "ccr-ui/code_map.md"
+    ]
+  }
+]

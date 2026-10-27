@@ -1,0 +1,8 @@
+{
+  "command": "bun run build:with-budget",
+  "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+  "startedAt": "2026-10-26T16:50:19.7749926Z",
+  "finishedAt": "2026-10-26T16:50:21.4020740Z",
+  "exitCode": 0,
+  "log": "final-filter-wrap-build-with-budget.log"
+}

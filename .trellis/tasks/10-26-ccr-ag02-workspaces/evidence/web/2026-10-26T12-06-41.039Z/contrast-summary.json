@@ -1,0 +1,150 @@
+[
+  {
+    "theme": "light",
+    "flavor": "neutral",
+    "buttons": [
+      {
+        "variant": "primary",
+        "inkContrast": 6.148
+      },
+      {
+        "variant": "secondary",
+        "inkContrast": 13.471
+      },
+      {
+        "variant": "warning",
+        "inkContrast": 5.263
+      },
+      {
+        "variant": "danger",
+        "inkContrast": 5.362
+      }
+    ],
+    "fields": [
+      {
+        "boundaryContrast": 3.162,
+        "inkContrast": 11.684
+      },
+      {
+        "boundaryContrast": 4.893,
+        "inkContrast": 11.684
+      }
+    ],
+    "selectBoundaryContrast": 3.645,
+    "selectOpen": {
+      "background": "rgb(242, 247, 245)",
+      "backdropFilter": "none"
+    }
+  },
+  {
+    "theme": "light",
+    "flavor": "clay",
+    "buttons": [
+      {
+        "variant": "primary",
+        "inkContrast": 6.148
+      },
+      {
+        "variant": "secondary",
+        "inkContrast": 13.481
+      },
+      {
+        "variant": "warning",
+        "inkContrast": 5.199
+      },
+      {
+        "variant": "danger",
+        "inkContrast": 5.362
+      }
+    ],
+    "fields": [
+      {
+        "boundaryContrast": 3.262,
+        "inkContrast": 11.2
+      },
+      {
+        "boundaryContrast": 4.593,
+        "inkContrast": 11.2
+      }
+    ],
+    "selectBoundaryContrast": 3.927,
+    "selectOpen": {
+      "background": "rgb(245, 242, 250)",
+      "backdropFilter": "none"
+    }
+  },
+  {
+    "theme": "dark",
+    "flavor": "neutral",
+    "buttons": [
+      {
+        "variant": "primary",
+        "inkContrast": 8.751
+      },
+      {
+        "variant": "secondary",
+        "inkContrast": 13.836
+      },
+      {
+        "variant": "warning",
+        "inkContrast": 7.596
+      },
+      {
+        "variant": "danger",
+        "inkContrast": 7.313
+      }
+    ],
+    "fields": [
+      {
+        "boundaryContrast": 4.932,
+        "inkContrast": 16.527
+      },
+      {
+        "boundaryContrast": 7.356,
+        "inkContrast": 16.527
+      }
+    ],
+    "selectBoundaryContrast": 4.129,
+    "selectOpen": {
+      "background": "rgb(23, 34, 37)",
+      "backdropFilter": "none"
+    }
+  },
+  {
+    "theme": "dark",
+    "flavor": "clay",
+    "buttons": [
+      {
+        "variant": "primary",
+        "inkContrast": 8.751
+      },
+      {
+        "variant": "secondary",
+        "inkContrast": 13.005
+      },
+      {
+        "variant": "warning",
+        "inkContrast": 7.597
+      },
+      {
+        "variant": "danger",
+        "inkContrast": 7.313
+      }
+    ],
+    "fields": [
+      {
+        "boundaryContrast": 4.859,
+        "inkContrast": 16.266
+      },
+      {
+        "boundaryContrast": 7.324,
+        "inkContrast": 16.266
+      }
+    ],
+    "selectBoundaryContrast": 3.885,
+    "selectOpen": {
+      "background": "rgb(32, 33, 46)",
+      "backdropFilter": "none"
+    }
+  }
+]

@@ -1,0 +1,1467 @@
+{
+  "startedAt": "2026-10-26T12:06:41.161Z",
+  "sourceDiffSha256": "6c8914df0553127347ed7594c58a3daa8305736ed91c8e99d10858cd9cb8038b",
+  "routes": [
+    {
+      "path": "/configs",
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "配置管理"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary layout-shell--theme-stage",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "light",
+      "flavor": "neutral",
+      "screenshot": "configs-light-neutral.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/converter",
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "配置转换器"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "light",
+      "flavor": "neutral",
+      "screenshot": "converter-light-neutral.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/mcp-manager",
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "MCP 管理中心"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "light",
+      "flavor": "neutral",
+      "screenshot": "mcp-manager-light-neutral.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/ssh",
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "SSH 远程管理"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "light",
+      "flavor": "neutral",
+      "screenshot": "ssh-light-neutral.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/skills",
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "Skills 已从 CCR UI 下线"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "light",
+      "flavor": "neutral",
+      "screenshot": "skills-light-neutral.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/claude-code/profiles",
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "Claude Profiles 管理"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "light",
+      "flavor": "neutral",
+      "screenshot": "claude-code-profiles-light-neutral.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/configs",
+      "dataset": {
+        "theme": "light",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "配置管理"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary layout-shell--theme-stage",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "light",
+      "flavor": "clay",
+      "screenshot": "configs-light-clay.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/converter",
+      "dataset": {
+        "theme": "light",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "配置转换器"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "light",
+      "flavor": "clay",
+      "screenshot": "converter-light-clay.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/mcp-manager",
+      "dataset": {
+        "theme": "light",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "MCP 管理中心"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "light",
+      "flavor": "clay",
+      "screenshot": "mcp-manager-light-clay.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/ssh",
+      "dataset": {
+        "theme": "light",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "SSH 远程管理"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "light",
+      "flavor": "clay",
+      "screenshot": "ssh-light-clay.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/skills",
+      "dataset": {
+        "theme": "light",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "Skills 已从 CCR UI 下线"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "light",
+      "flavor": "clay",
+      "screenshot": "skills-light-clay.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/claude-code/profiles",
+      "dataset": {
+        "theme": "light",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "Claude Profiles 管理"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "light",
+      "flavor": "clay",
+      "screenshot": "claude-code-profiles-light-clay.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/configs",
+      "dataset": {
+        "theme": "dark",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "配置管理"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary layout-shell--theme-stage",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "dark",
+      "flavor": "neutral",
+      "screenshot": "configs-dark-neutral.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/converter",
+      "dataset": {
+        "theme": "dark",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "配置转换器"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "dark",
+      "flavor": "neutral",
+      "screenshot": "converter-dark-neutral.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/mcp-manager",
+      "dataset": {
+        "theme": "dark",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "MCP 管理中心"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "dark",
+      "flavor": "neutral",
+      "screenshot": "mcp-manager-dark-neutral.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/ssh",
+      "dataset": {
+        "theme": "dark",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "SSH 远程管理"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "dark",
+      "flavor": "neutral",
+      "screenshot": "ssh-dark-neutral.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/skills",
+      "dataset": {
+        "theme": "dark",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "Skills 已从 CCR UI 下线"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "dark",
+      "flavor": "neutral",
+      "screenshot": "skills-dark-neutral.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/claude-code/profiles",
+      "dataset": {
+        "theme": "dark",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "Claude Profiles 管理"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "dark",
+      "flavor": "neutral",
+      "screenshot": "claude-code-profiles-dark-neutral.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/configs",
+      "dataset": {
+        "theme": "dark",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "配置管理"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary layout-shell--theme-stage",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "dark",
+      "flavor": "clay",
+      "screenshot": "configs-dark-clay.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/converter",
+      "dataset": {
+        "theme": "dark",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "配置转换器"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "dark",
+      "flavor": "clay",
+      "screenshot": "converter-dark-clay.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/mcp-manager",
+      "dataset": {
+        "theme": "dark",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "MCP 管理中心"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "dark",
+      "flavor": "clay",
+      "screenshot": "mcp-manager-dark-clay.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/ssh",
+      "dataset": {
+        "theme": "dark",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "SSH 远程管理"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "dark",
+      "flavor": "clay",
+      "screenshot": "ssh-dark-clay.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/skills",
+      "dataset": {
+        "theme": "dark",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "Skills 已从 CCR UI 下线"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "dark",
+      "flavor": "clay",
+      "screenshot": "skills-dark-clay.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/claude-code/profiles",
+      "dataset": {
+        "theme": "dark",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "Claude Profiles 管理"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "dark",
+      "flavor": "clay",
+      "screenshot": "claude-code-profiles-dark-clay.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    }
+  ],
+  "controls": [
+    {
+      "theme": "light",
+      "flavor": "neutral",
+      "buttons": [
+        {
+          "variant": "primary",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(21, 111, 78)",
+          "border": "rgb(21, 111, 78)",
+          "outline": "rgb(21, 111, 78) solid 2px",
+          "outlineOffset": "2px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "secondary",
+          "color": "rgb(36, 48, 58)",
+          "background": "rgb(255, 255, 255)",
+          "border": "rgb(179, 195, 188)",
+          "outline": "rgb(36, 48, 58) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "ghost",
+          "color": "rgb(92, 107, 118)",
+          "background": "rgba(0, 0, 0, 0)",
+          "border": "rgb(212, 223, 218)",
+          "outline": "rgb(92, 107, 118) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "warning",
+          "color": "rgb(123, 94, 22)",
+          "background": "rgb(243, 238, 230)",
+          "border": "rgb(123, 94, 22)",
+          "outline": "rgb(123, 94, 22) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "danger",
+          "color": "rgb(255, 248, 242)",
+          "background": "rgb(159, 81, 63)",
+          "border": "rgb(159, 81, 63)",
+          "outline": "rgb(255, 248, 242) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "accent-soft",
+          "color": "rgb(21, 111, 78)",
+          "background": "rgba(21, 111, 78, 0.14)",
+          "border": "rgba(21, 111, 78, 0.35)",
+          "outline": "rgb(21, 111, 78) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "disabled",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(21, 111, 78)",
+          "border": "rgb(21, 111, 78)",
+          "outline": "rgb(255, 255, 255) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "0.55",
+          "disabled": true,
+          "checked": null
+        }
+      ],
+      "fields": [
+        {
+          "color": "rgb(36, 48, 58)",
+          "background": "rgb(231, 241, 238)",
+          "border": "rgb(117, 139, 128)",
+          "outline": "rgb(36, 48, 58) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "color": "rgb(36, 48, 58)",
+          "background": "rgb(231, 241, 238)",
+          "border": "rgb(159, 81, 63)",
+          "outline": "rgb(36, 48, 58) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        }
+      ],
+      "select": {
+        "color": "rgb(36, 48, 58)",
+        "background": "rgb(255, 255, 255)",
+        "border": "rgb(117, 139, 128)",
+        "outline": "rgb(36, 48, 58) none 3px",
+        "outlineOffset": "0px",
+        "opacity": "1",
+        "disabled": false,
+        "checked": "closed"
+      },
+      "checkbox": {
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(21, 111, 78)",
+        "border": "rgb(21, 111, 78)",
+        "outline": "rgb(255, 255, 255) none 3px",
+        "outlineOffset": "0px",
+        "opacity": "1",
+        "disabled": false,
+        "checked": "checked"
+      },
+      "selectOpen": {
+        "background": "rgb(242, 247, 245)",
+        "backdropFilter": "none"
+      }
+    },
+    {
+      "theme": "light",
+      "flavor": "clay",
+      "buttons": [
+        {
+          "variant": "primary",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(21, 111, 78)",
+          "border": "rgb(21, 111, 78)",
+          "outline": "rgb(21, 111, 78) solid 2px",
+          "outlineOffset": "2px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "secondary",
+          "color": "rgb(41, 45, 56)",
+          "background": "rgb(254, 252, 255)",
+          "border": "rgb(192, 182, 207)",
+          "outline": "rgb(41, 45, 56) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "ghost",
+          "color": "rgb(104, 100, 119)",
+          "background": "rgba(0, 0, 0, 0)",
+          "border": "rgb(222, 216, 233)",
+          "outline": "rgb(104, 100, 119) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "warning",
+          "color": "rgb(123, 94, 22)",
+          "background": "rgb(246, 236, 221)",
+          "border": "rgb(123, 94, 22)",
+          "outline": "rgb(123, 94, 22) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "danger",
+          "color": "rgb(255, 248, 242)",
+          "background": "rgb(159, 81, 63)",
+          "border": "rgb(159, 81, 63)",
+          "outline": "rgb(255, 248, 242) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "accent-soft",
+          "color": "rgb(21, 111, 78)",
+          "background": "rgba(21, 111, 78, 0.14)",
+          "border": "rgba(21, 111, 78, 0.35)",
+          "outline": "rgb(21, 111, 78) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "disabled",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(21, 111, 78)",
+          "border": "rgb(21, 111, 78)",
+          "outline": "rgb(255, 255, 255) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "0.55",
+          "disabled": true,
+          "checked": null
+        }
+      ],
+      "fields": [
+        {
+          "color": "rgb(41, 45, 56)",
+          "background": "rgb(234, 230, 242)",
+          "border": "rgb(136, 121, 153)",
+          "outline": "rgb(41, 45, 56) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "color": "rgb(41, 45, 56)",
+          "background": "rgb(234, 230, 242)",
+          "border": "rgb(159, 81, 63)",
+          "outline": "rgb(41, 45, 56) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        }
+      ],
+      "select": {
+        "color": "rgb(41, 45, 56)",
+        "background": "rgb(254, 252, 255)",
+        "border": "rgb(136, 121, 153)",
+        "outline": "rgb(41, 45, 56) none 3px",
+        "outlineOffset": "0px",
+        "opacity": "1",
+        "disabled": false,
+        "checked": "closed"
+      },
+      "checkbox": {
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(21, 111, 78)",
+        "border": "rgb(21, 111, 78)",
+        "outline": "rgb(255, 255, 255) none 3px",
+        "outlineOffset": "0px",
+        "opacity": "1",
+        "disabled": false,
+        "checked": "checked"
+      },
+      "selectOpen": {
+        "background": "rgb(245, 242, 250)",
+        "backdropFilter": "none"
+      }
+    },
+    {
+      "theme": "dark",
+      "flavor": "neutral",
+      "buttons": [
+        {
+          "variant": "primary",
+          "color": "rgb(16, 43, 32)",
+          "background": "rgb(133, 213, 177)",
+          "border": "rgb(133, 213, 177)",
+          "outline": "rgb(133, 213, 177) solid 2px",
+          "outlineOffset": "2px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "secondary",
+          "color": "rgb(240, 248, 245)",
+          "background": "rgb(29, 41, 44)",
+          "border": "rgb(73, 97, 104)",
+          "outline": "rgb(240, 248, 245) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "ghost",
+          "color": "rgb(159, 175, 169)",
+          "background": "rgba(0, 0, 0, 0)",
+          "border": "rgb(52, 70, 75)",
+          "outline": "rgb(159, 175, 169) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "warning",
+          "color": "rgb(217, 192, 90)",
+          "background": "rgb(54, 44, 26)",
+          "border": "rgb(217, 192, 90)",
+          "outline": "rgb(217, 192, 90) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "danger",
+          "color": "rgb(23, 24, 28)",
+          "background": "rgb(236, 141, 122)",
+          "border": "rgb(236, 141, 122)",
+          "outline": "rgb(23, 24, 28) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "accent-soft",
+          "color": "rgb(133, 213, 177)",
+          "background": "rgba(133, 213, 177, 0.14)",
+          "border": "rgba(133, 213, 177, 0.35)",
+          "outline": "rgb(133, 213, 177) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "disabled",
+          "color": "rgb(16, 43, 32)",
+          "background": "rgb(133, 213, 177)",
+          "border": "rgb(133, 213, 177)",
+          "outline": "rgb(16, 43, 32) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "0.55",
+          "disabled": true,
+          "checked": null
+        }
+      ],
+      "fields": [
+        {
+          "color": "rgb(240, 248, 245)",
+          "background": "rgb(16, 25, 27)",
+          "border": "rgb(113, 139, 145)",
+          "outline": "rgb(240, 248, 245) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "color": "rgb(240, 248, 245)",
+          "background": "rgb(16, 25, 27)",
+          "border": "rgb(236, 141, 122)",
+          "outline": "rgb(240, 248, 245) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        }
+      ],
+      "select": {
+        "color": "rgb(240, 248, 245)",
+        "background": "rgb(29, 41, 44)",
+        "border": "rgb(113, 139, 145)",
+        "outline": "rgb(240, 248, 245) none 3px",
+        "outlineOffset": "0px",
+        "opacity": "1",
+        "disabled": false,
+        "checked": "closed"
+      },
+      "checkbox": {
+        "color": "rgb(16, 43, 32)",
+        "background": "rgb(133, 213, 177)",
+        "border": "rgb(133, 213, 177)",
+        "outline": "rgb(16, 43, 32) none 3px",
+        "outlineOffset": "0px",
+        "opacity": "1",
+        "disabled": false,
+        "checked": "checked"
+      },
+      "selectOpen": {
+        "background": "rgb(23, 34, 37)",
+        "backdropFilter": "none"
+      }
+    },
+    {
+      "theme": "dark",
+      "flavor": "clay",
+      "buttons": [
+        {
+          "variant": "primary",
+          "color": "rgb(16, 43, 32)",
+          "background": "rgb(133, 213, 177)",
+          "border": "rgb(133, 213, 177)",
+          "outline": "rgb(133, 213, 177) solid 2px",
+          "outlineOffset": "2px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "secondary",
+          "color": "rgb(245, 244, 252)",
+          "background": "rgb(40, 42, 56)",
+          "border": "rgb(85, 89, 112)",
+          "outline": "rgb(245, 244, 252) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "ghost",
+          "color": "rgb(176, 173, 191)",
+          "background": "rgba(0, 0, 0, 0)",
+          "border": "rgb(60, 62, 81)",
+          "outline": "rgb(176, 173, 191) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "warning",
+          "color": "rgb(217, 192, 90)",
+          "background": "rgb(58, 42, 32)",
+          "border": "rgb(217, 192, 90)",
+          "outline": "rgb(217, 192, 90) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "danger",
+          "color": "rgb(23, 24, 28)",
+          "background": "rgb(236, 141, 122)",
+          "border": "rgb(236, 141, 122)",
+          "outline": "rgb(23, 24, 28) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "accent-soft",
+          "color": "rgb(133, 213, 177)",
+          "background": "rgba(133, 213, 177, 0.14)",
+          "border": "rgba(133, 213, 177, 0.35)",
+          "outline": "rgb(133, 213, 177) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "variant": "disabled",
+          "color": "rgb(16, 43, 32)",
+          "background": "rgb(133, 213, 177)",
+          "border": "rgb(133, 213, 177)",
+          "outline": "rgb(16, 43, 32) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "0.55",
+          "disabled": true,
+          "checked": null
+        }
+      ],
+      "fields": [
+        {
+          "color": "rgb(245, 244, 252)",
+          "background": "rgb(23, 23, 34)",
+          "border": "rgb(127, 133, 157)",
+          "outline": "rgb(245, 244, 252) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        },
+        {
+          "color": "rgb(245, 244, 252)",
+          "background": "rgb(23, 23, 34)",
+          "border": "rgb(236, 141, 122)",
+          "outline": "rgb(245, 244, 252) none 3px",
+          "outlineOffset": "0px",
+          "opacity": "1",
+          "disabled": false,
+          "checked": null
+        }
+      ],
+      "select": {
+        "color": "rgb(245, 244, 252)",
+        "background": "rgb(40, 42, 56)",
+        "border": "rgb(127, 133, 157)",
+        "outline": "rgb(245, 244, 252) none 3px",
+        "outlineOffset": "0px",
+        "opacity": "1",
+        "disabled": false,
+        "checked": "closed"
+      },
+      "checkbox": {
+        "color": "rgb(16, 43, 32)",
+        "background": "rgb(133, 213, 177)",
+        "border": "rgb(133, 213, 177)",
+        "outline": "rgb(16, 43, 32) none 3px",
+        "outlineOffset": "0px",
+        "opacity": "1",
+        "disabled": false,
+        "checked": "checked"
+      },
+      "selectOpen": {
+        "background": "rgb(32, 33, 46)",
+        "backdropFilter": "none"
+      }
+    }
+  ],
+  "dialogs": [
+    {
+      "theme": "light",
+      "flavor": "neutral",
+      "type": "danger",
+      "background": "rgb(242, 247, 245)",
+      "backdropFilter": "none",
+      "focusedInside": true,
+      "tabTrapped": true,
+      "escapeCancelled": true,
+      "material": {
+        "path": "/settings",
+        "dataset": {
+          "theme": "light",
+          "flavor": "neutral",
+          "resolvedFlavor": "neutral",
+          "accent": "clay",
+          "reducedMotion": "true"
+        },
+        "heading": [
+          "全局设置"
+        ],
+        "visibleBlur": [
+          {
+            "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+            "pseudo": "::before",
+            "filter": "blur(20px) saturate(1.15)"
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "flavor": "neutral",
+      "type": "warning",
+      "background": "rgb(242, 247, 245)",
+      "backdropFilter": "none",
+      "focusedInside": true,
+      "tabTrapped": true,
+      "escapeCancelled": true,
+      "material": {
+        "path": "/settings",
+        "dataset": {
+          "theme": "light",
+          "flavor": "neutral",
+          "resolvedFlavor": "neutral",
+          "accent": "clay",
+          "reducedMotion": "true"
+        },
+        "heading": [
+          "全局设置"
+        ],
+        "visibleBlur": [
+          {
+            "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+            "pseudo": "::before",
+            "filter": "blur(20px) saturate(1.15)"
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "flavor": "neutral",
+      "type": "info",
+      "background": "rgb(242, 247, 245)",
+      "backdropFilter": "none",
+      "focusedInside": true,
+      "tabTrapped": true,
+      "escapeCancelled": true,
+      "material": {
+        "path": "/settings",
+        "dataset": {
+          "theme": "light",
+          "flavor": "neutral",
+          "resolvedFlavor": "neutral",
+          "accent": "clay",
+          "reducedMotion": "true"
+        },
+        "heading": [
+          "全局设置"
+        ],
+        "visibleBlur": [
+          {
+            "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+            "pseudo": "::before",
+            "filter": "blur(20px) saturate(1.15)"
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "flavor": "clay",
+      "type": "danger",
+      "background": "rgb(245, 242, 250)",
+      "backdropFilter": "none",
+      "focusedInside": true,
+      "tabTrapped": true,
+      "escapeCancelled": true,
+      "material": {
+        "path": "/settings",
+        "dataset": {
+          "theme": "light",
+          "flavor": "clay",
+          "resolvedFlavor": "clay",
+          "accent": "clay",
+          "reducedMotion": "true"
+        },
+        "heading": [
+          "全局设置"
+        ],
+        "visibleBlur": [
+          {
+            "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+            "pseudo": "::before",
+            "filter": "blur(20px) saturate(1.15)"
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "flavor": "clay",
+      "type": "warning",
+      "background": "rgb(245, 242, 250)",
+      "backdropFilter": "none",
+      "focusedInside": true,
+      "tabTrapped": true,
+      "escapeCancelled": true,
+      "material": {
+        "path": "/settings",
+        "dataset": {
+          "theme": "light",
+          "flavor": "clay",
+          "resolvedFlavor": "clay",
+          "accent": "clay",
+          "reducedMotion": "true"
+        },
+        "heading": [
+          "全局设置"
+        ],
+        "visibleBlur": [
+          {
+            "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+            "pseudo": "::before",
+            "filter": "blur(20px) saturate(1.15)"
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "flavor": "clay",
+      "type": "info",
+      "background": "rgb(245, 242, 250)",
+      "backdropFilter": "none",
+      "focusedInside": true,
+      "tabTrapped": true,
+      "escapeCancelled": true,
+      "material": {
+        "path": "/settings",
+        "dataset": {
+          "theme": "light",
+          "flavor": "clay",
+          "resolvedFlavor": "clay",
+          "accent": "clay",
+          "reducedMotion": "true"
+        },
+        "heading": [
+          "全局设置"
+        ],
+        "visibleBlur": [
+          {
+            "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+            "pseudo": "::before",
+            "filter": "blur(20px) saturate(1.15)"
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "flavor": "neutral",
+      "type": "danger",
+      "background": "rgb(23, 34, 37)",
+      "backdropFilter": "none",
+      "focusedInside": true,
+      "tabTrapped": true,
+      "escapeCancelled": true,
+      "material": {
+        "path": "/settings",
+        "dataset": {
+          "theme": "dark",
+          "flavor": "neutral",
+          "resolvedFlavor": "neutral",
+          "accent": "clay",
+          "reducedMotion": "true"
+        },
+        "heading": [
+          "全局设置"
+        ],
+        "visibleBlur": [
+          {
+            "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+            "pseudo": "::before",
+            "filter": "blur(20px) saturate(1.15)"
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "flavor": "neutral",
+      "type": "warning",
+      "background": "rgb(23, 34, 37)",
+      "backdropFilter": "none",
+      "focusedInside": true,
+      "tabTrapped": true,
+      "escapeCancelled": true,
+      "material": {
+        "path": "/settings",
+        "dataset": {
+          "theme": "dark",
+          "flavor": "neutral",
+          "resolvedFlavor": "neutral",
+          "accent": "clay",
+          "reducedMotion": "true"
+        },
+        "heading": [
+          "全局设置"
+        ],
+        "visibleBlur": [
+          {
+            "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+            "pseudo": "::before",
+            "filter": "blur(20px) saturate(1.15)"
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "flavor": "neutral",
+      "type": "info",
+      "background": "rgb(23, 34, 37)",
+      "backdropFilter": "none",
+      "focusedInside": true,
+      "tabTrapped": true,
+      "escapeCancelled": true,
+      "material": {
+        "path": "/settings",
+        "dataset": {
+          "theme": "dark",
+          "flavor": "neutral",
+          "resolvedFlavor": "neutral",
+          "accent": "clay",
+          "reducedMotion": "true"
+        },
+        "heading": [
+          "全局设置"
+        ],
+        "visibleBlur": [
+          {
+            "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+            "pseudo": "::before",
+            "filter": "blur(20px) saturate(1.15)"
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "flavor": "clay",
+      "type": "danger",
+      "background": "rgb(32, 33, 46)",
+      "backdropFilter": "none",
+      "focusedInside": true,
+      "tabTrapped": true,
+      "escapeCancelled": true,
+      "material": {
+        "path": "/settings",
+        "dataset": {
+          "theme": "dark",
+          "flavor": "clay",
+          "resolvedFlavor": "clay",
+          "accent": "clay",
+          "reducedMotion": "true"
+        },
+        "heading": [
+          "全局设置"
+        ],
+        "visibleBlur": [
+          {
+            "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+            "pseudo": "::before",
+            "filter": "blur(20px) saturate(1.15)"
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "flavor": "clay",
+      "type": "warning",
+      "background": "rgb(32, 33, 46)",
+      "backdropFilter": "none",
+      "focusedInside": true,
+      "tabTrapped": true,
+      "escapeCancelled": true,
+      "material": {
+        "path": "/settings",
+        "dataset": {
+          "theme": "dark",
+          "flavor": "clay",
+          "resolvedFlavor": "clay",
+          "accent": "clay",
+          "reducedMotion": "true"
+        },
+        "heading": [
+          "全局设置"
+        ],
+        "visibleBlur": [
+          {
+            "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+            "pseudo": "::before",
+            "filter": "blur(20px) saturate(1.15)"
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "flavor": "clay",
+      "type": "info",
+      "background": "rgb(32, 33, 46)",
+      "backdropFilter": "none",
+      "focusedInside": true,
+      "tabTrapped": true,
+      "escapeCancelled": true,
+      "material": {
+        "path": "/settings",
+        "dataset": {
+          "theme": "dark",
+          "flavor": "clay",
+          "resolvedFlavor": "clay",
+          "accent": "clay",
+          "reducedMotion": "true"
+        },
+        "heading": [
+          "全局设置"
+        ],
+        "visibleBlur": [
+          {
+            "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+            "pseudo": "::before",
+            "filter": "blur(20px) saturate(1.15)"
+          }
+        ]
+      }
+    }
+  ],
+  "limitations": [
+    "Web preview and isolated display fixture only; no native capability, backend writes, real credential or real user data validation."
+  ],
+  "browser": "157.0.8103.15",
+  "finishedAt": "2026-10-26T12:07:00.447Z"
+}

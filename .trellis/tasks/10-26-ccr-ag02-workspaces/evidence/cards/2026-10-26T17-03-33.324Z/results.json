@@ -1,0 +1,538 @@
+{
+  "startedAt": "2026-10-26T17:03:33.324Z",
+  "states": [
+    {
+      "theme": "light",
+      "flavor": "neutral",
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "rows": [
+        {
+          "name": "ag02-fixture-current",
+          "color": "rgb(92, 107, 118)",
+          "background": "color(srgb 0.908235 0.943529 0.930588)",
+          "border": "rgba(21, 111, 78, 0.24)",
+          "opacity": "1",
+          "heading": {
+            "color": "rgb(30, 41, 50)",
+            "background": "rgba(0, 0, 0, 0)",
+            "border": "rgb(30, 41, 50)",
+            "opacity": "1"
+          },
+          "badges": [
+            {
+              "color": "rgb(53, 110, 69)",
+              "background": "rgb(232, 238, 234)",
+              "border": "rgb(53, 110, 69)",
+              "opacity": "1"
+            },
+            {
+              "color": "rgb(64, 78, 89)",
+              "background": "rgb(227, 236, 232)",
+              "border": "rgb(64, 78, 89)",
+              "opacity": "1"
+            }
+          ]
+        },
+        {
+          "name": "ag02-fixture-disabled",
+          "color": "rgb(92, 107, 118)",
+          "background": "rgb(255, 255, 255)",
+          "border": "rgb(212, 223, 218)",
+          "opacity": "0.5",
+          "heading": {
+            "color": "rgb(30, 41, 50)",
+            "background": "rgba(0, 0, 0, 0)",
+            "border": "rgb(30, 41, 50)",
+            "opacity": "1"
+          },
+          "badges": []
+        },
+        {
+          "name": "ag02-fixture-ready",
+          "color": "rgb(92, 107, 118)",
+          "background": "rgb(255, 255, 255)",
+          "border": "rgb(212, 223, 218)",
+          "opacity": "1",
+          "heading": {
+            "color": "rgb(30, 41, 50)",
+            "background": "rgba(0, 0, 0, 0)",
+            "border": "rgb(30, 41, 50)",
+            "opacity": "1"
+          },
+          "badges": []
+        }
+      ],
+      "filters": [
+        {
+          "text": "全部配置",
+          "width": 209,
+          "height": 40.5625,
+          "whiteSpace": "nowrap"
+        },
+        {
+          "text": "官方中转",
+          "width": 209,
+          "height": 40.5625,
+          "whiteSpace": "nowrap"
+        },
+        {
+          "text": "第三方模型",
+          "width": 209,
+          "height": 40.5625,
+          "whiteSpace": "nowrap"
+        },
+        {
+          "text": "未分类",
+          "width": 209,
+          "height": 40.5625,
+          "whiteSpace": "nowrap"
+        }
+      ],
+      "viewports": [
+        {
+          "width": 1200,
+          "refresh": {
+            "left": 1073,
+            "right": 1115,
+            "width": 42
+          },
+          "content": {
+            "left": 252,
+            "right": 1188
+          }
+        },
+        {
+          "width": 800,
+          "refresh": {
+            "left": 685,
+            "right": 727,
+            "width": 42
+          },
+          "content": {
+            "left": 0,
+            "right": 800
+          }
+        },
+        {
+          "width": 390,
+          "refresh": {
+            "left": 61,
+            "right": 329,
+            "width": 268
+          },
+          "content": {
+            "left": 0,
+            "right": 390
+          }
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "flavor": "clay",
+      "dataset": {
+        "theme": "light",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "rows": [
+        {
+          "name": "ag02-fixture-current",
+          "color": "rgb(104, 100, 119)",
+          "background": "color(srgb 0.904706 0.932941 0.930588)",
+          "border": "rgba(21, 111, 78, 0.24)",
+          "opacity": "1",
+          "heading": {
+            "color": "rgb(34, 38, 48)",
+            "background": "rgba(0, 0, 0, 0)",
+            "border": "rgb(34, 38, 48)",
+            "opacity": "1"
+          },
+          "badges": [
+            {
+              "color": "rgb(53, 110, 69)",
+              "background": "rgb(234, 237, 225)",
+              "border": "rgb(53, 110, 69)",
+              "opacity": "1"
+            },
+            {
+              "color": "rgb(70, 71, 88)",
+              "background": "rgb(233, 228, 241)",
+              "border": "rgb(70, 71, 88)",
+              "opacity": "1"
+            }
+          ]
+        },
+        {
+          "name": "ag02-fixture-disabled",
+          "color": "rgb(104, 100, 119)",
+          "background": "rgb(254, 252, 255)",
+          "border": "rgb(222, 216, 233)",
+          "opacity": "0.5",
+          "heading": {
+            "color": "rgb(34, 38, 48)",
+            "background": "rgba(0, 0, 0, 0)",
+            "border": "rgb(34, 38, 48)",
+            "opacity": "1"
+          },
+          "badges": []
+        },
+        {
+          "name": "ag02-fixture-ready",
+          "color": "rgb(104, 100, 119)",
+          "background": "rgb(254, 252, 255)",
+          "border": "rgb(222, 216, 233)",
+          "opacity": "1",
+          "heading": {
+            "color": "rgb(34, 38, 48)",
+            "background": "rgba(0, 0, 0, 0)",
+            "border": "rgb(34, 38, 48)",
+            "opacity": "1"
+          },
+          "badges": []
+        }
+      ],
+      "filters": [
+        {
+          "text": "全部配置",
+          "width": 209,
+          "height": 40.5625,
+          "whiteSpace": "nowrap"
+        },
+        {
+          "text": "官方中转",
+          "width": 209,
+          "height": 40.5625,
+          "whiteSpace": "nowrap"
+        },
+        {
+          "text": "第三方模型",
+          "width": 209,
+          "height": 40.5625,
+          "whiteSpace": "nowrap"
+        },
+        {
+          "text": "未分类",
+          "width": 209,
+          "height": 40.5625,
+          "whiteSpace": "nowrap"
+        }
+      ],
+      "viewports": [
+        {
+          "width": 1200,
+          "refresh": {
+            "left": 1073,
+            "right": 1115,
+            "width": 42
+          },
+          "content": {
+            "left": 252,
+            "right": 1188
+          }
+        },
+        {
+          "width": 800,
+          "refresh": {
+            "left": 685,
+            "right": 727,
+            "width": 42
+          },
+          "content": {
+            "left": 0,
+            "right": 800
+          }
+        },
+        {
+          "width": 390,
+          "refresh": {
+            "left": 61,
+            "right": 329,
+            "width": 268
+          },
+          "content": {
+            "left": 0,
+            "right": 390
+          }
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "flavor": "neutral",
+      "dataset": {
+        "theme": "dark",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "rows": [
+        {
+          "name": "ag02-fixture-current",
+          "color": "rgb(159, 175, 169)",
+          "background": "color(srgb 0.15451 0.228235 0.224706)",
+          "border": "rgba(133, 213, 177, 0.24)",
+          "opacity": "1",
+          "heading": {
+            "color": "rgb(240, 248, 245)",
+            "background": "rgba(0, 0, 0, 0)",
+            "border": "rgb(240, 248, 245)",
+            "opacity": "1"
+          },
+          "badges": [
+            {
+              "color": "rgb(115, 186, 110)",
+              "background": "rgb(38, 48, 31)",
+              "border": "rgb(115, 186, 110)",
+              "opacity": "1"
+            },
+            {
+              "color": "rgb(197, 213, 208)",
+              "background": "rgb(35, 48, 51)",
+              "border": "rgb(197, 213, 208)",
+              "opacity": "1"
+            }
+          ]
+        },
+        {
+          "name": "ag02-fixture-disabled",
+          "color": "rgb(159, 175, 169)",
+          "background": "rgb(29, 41, 44)",
+          "border": "rgb(52, 70, 75)",
+          "opacity": "0.5",
+          "heading": {
+            "color": "rgb(240, 248, 245)",
+            "background": "rgba(0, 0, 0, 0)",
+            "border": "rgb(240, 248, 245)",
+            "opacity": "1"
+          },
+          "badges": []
+        },
+        {
+          "name": "ag02-fixture-ready",
+          "color": "rgb(159, 175, 169)",
+          "background": "rgb(29, 41, 44)",
+          "border": "rgb(52, 70, 75)",
+          "opacity": "1",
+          "heading": {
+            "color": "rgb(240, 248, 245)",
+            "background": "rgba(0, 0, 0, 0)",
+            "border": "rgb(240, 248, 245)",
+            "opacity": "1"
+          },
+          "badges": []
+        }
+      ],
+      "filters": [
+        {
+          "text": "全部配置",
+          "width": 209,
+          "height": 40.5625,
+          "whiteSpace": "nowrap"
+        },
+        {
+          "text": "官方中转",
+          "width": 209,
+          "height": 40.5625,
+          "whiteSpace": "nowrap"
+        },
+        {
+          "text": "第三方模型",
+          "width": 209,
+          "height": 40.5625,
+          "whiteSpace": "nowrap"
+        },
+        {
+          "text": "未分类",
+          "width": 209,
+          "height": 40.5625,
+          "whiteSpace": "nowrap"
+        }
+      ],
+      "viewports": [
+        {
+          "width": 1200,
+          "refresh": {
+            "left": 1073,
+            "right": 1115,
+            "width": 42
+          },
+          "content": {
+            "left": 252,
+            "right": 1188
+          }
+        },
+        {
+          "width": 800,
+          "refresh": {
+            "left": 685,
+            "right": 727,
+            "width": 42
+          },
+          "content": {
+            "left": 0,
+            "right": 800
+          }
+        },
+        {
+          "width": 390,
+          "refresh": {
+            "left": 61,
+            "right": 329,
+            "width": 268
+          },
+          "content": {
+            "left": 0,
+            "right": 390
+          }
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "flavor": "clay",
+      "dataset": {
+        "theme": "dark",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "rows": [
+        {
+          "name": "ag02-fixture-current",
+          "color": "rgb(176, 173, 191)",
+          "background": "color(srgb 0.193333 0.231765 0.267059)",
+          "border": "rgba(133, 213, 177, 0.24)",
+          "opacity": "1",
+          "heading": {
+            "color": "rgb(245, 244, 252)",
+            "background": "rgba(0, 0, 0, 0)",
+            "border": "rgb(245, 244, 252)",
+            "opacity": "1"
+          },
+          "badges": [
+            {
+              "color": "rgb(115, 186, 110)",
+              "background": "rgb(37, 51, 42)",
+              "border": "rgb(115, 186, 110)",
+              "opacity": "1"
+            },
+            {
+              "color": "rgb(212, 210, 227)",
+              "background": "rgb(44, 46, 61)",
+              "border": "rgb(212, 210, 227)",
+              "opacity": "1"
+            }
+          ]
+        },
+        {
+          "name": "ag02-fixture-disabled",
+          "color": "rgb(176, 173, 191)",
+          "background": "rgb(40, 42, 56)",
+          "border": "rgb(60, 62, 81)",
+          "opacity": "0.5",
+          "heading": {
+            "color": "rgb(245, 244, 252)",
+            "background": "rgba(0, 0, 0, 0)",
+            "border": "rgb(245, 244, 252)",
+            "opacity": "1"
+          },
+          "badges": []
+        },
+        {
+          "name": "ag02-fixture-ready",
+          "color": "rgb(176, 173, 191)",
+          "background": "rgb(40, 42, 56)",
+          "border": "rgb(60, 62, 81)",
+          "opacity": "1",
+          "heading": {
+            "color": "rgb(245, 244, 252)",
+            "background": "rgba(0, 0, 0, 0)",
+            "border": "rgb(245, 244, 252)",
+            "opacity": "1"
+          },
+          "badges": []
+        }
+      ],
+      "filters": [
+        {
+          "text": "全部配置",
+          "width": 209,
+          "height": 40.5625,
+          "whiteSpace": "nowrap"
+        },
+        {
+          "text": "官方中转",
+          "width": 209,
+          "height": 40.5625,
+          "whiteSpace": "nowrap"
+        },
+        {
+          "text": "第三方模型",
+          "width": 209,
+          "height": 40.5625,
+          "whiteSpace": "nowrap"
+        },
+        {
+          "text": "未分类",
+          "width": 209,
+          "height": 40.5625,
+          "whiteSpace": "nowrap"
+        }
+      ],
+      "viewports": [
+        {
+          "width": 1200,
+          "refresh": {
+            "left": 1073,
+            "right": 1115,
+            "width": 42
+          },
+          "content": {
+            "left": 252,
+            "right": 1188
+          }
+        },
+        {
+          "width": 800,
+          "refresh": {
+            "left": 685,
+            "right": 727,
+            "width": 42
+          },
+          "content": {
+            "left": 0,
+            "right": 800
+          }
+        },
+        {
+          "width": 390,
+          "refresh": {
+            "left": 61,
+            "right": 329,
+            "width": 268
+          },
+          "content": {
+            "left": 0,
+            "right": 390
+          }
+        }
+      ]
+    }
+  ],
+  "baselineModalDiff": "",
+  "limitations": [
+    "QueryClient memory-only display data. No operation is invoked; scroll/display only. No native capability proven."
+  ],
+  "finishedAt": "2026-10-26T17:03:38.420Z"
+}

@@ -1,0 +1,248 @@
+{
+  "rows": [
+    {
+      "scene": "home",
+      "metric": "routeReadyMs",
+      "before": [
+        246.86290000000008,
+        283.6355000000003,
+        286.84319999999934
+      ],
+      "after": [
+        229.4728,
+        234.20199999999977,
+        244.80849999999919
+      ],
+      "beforeMedian": 283.6355000000003,
+      "afterMedian": 234.20199999999977,
+      "limit": 333.6355000000003,
+      "beforeRsd": 8.153736469330191,
+      "afterRsd": 3.3254037254391577,
+      "budgetPass": true,
+      "noisePass": true
+    },
+    {
+      "scene": "home",
+      "metric": "longTaskMs",
+      "before": [
+        0,
+        0,
+        0
+      ],
+      "after": [
+        0,
+        0,
+        0
+      ],
+      "beforeMedian": 0,
+      "afterMedian": 0,
+      "limit": 50,
+      "beforeRsd": 0,
+      "afterRsd": 0,
+      "budgetPass": true,
+      "noisePass": true
+    },
+    {
+      "scene": "profiles",
+      "metric": "routeReadyMs",
+      "before": [
+        233.79500000000007,
+        272.9252999999999,
+        262.3280999999997
+      ],
+      "after": [
+        221.90890000000036,
+        329.7219,
+        232.1889999999994
+      ],
+      "beforeMedian": 262.3280999999997,
+      "afterMedian": 232.1889999999994,
+      "limit": 312.3280999999997,
+      "beforeRsd": 7.894946998216115,
+      "afterRsd": 22.77335413609513,
+      "budgetPass": true,
+      "noisePass": false
+    },
+    {
+      "scene": "profiles",
+      "metric": "longTaskMs",
+      "before": [
+        0,
+        0,
+        0
+      ],
+      "after": [
+        0,
+        0,
+        0
+      ],
+      "beforeMedian": 0,
+      "afterMedian": 0,
+      "limit": 50,
+      "beforeRsd": 0,
+      "afterRsd": 0,
+      "budgetPass": true,
+      "noisePass": true
+    },
+    {
+      "scene": "settings",
+      "metric": "routeReadyMs",
+      "before": [
+        237.67140000000018,
+        280.22470000000067,
+        256.46149999999943
+      ],
+      "after": [
+        205.4672999999998,
+        239.70559999999978,
+        234.4988999999996
+      ],
+      "beforeMedian": 256.46149999999943,
+      "afterMedian": 234.4988999999996,
+      "limit": 306.46149999999943,
+      "beforeRsd": 8.261697632574807,
+      "afterRsd": 8.143217134102484,
+      "budgetPass": true,
+      "noisePass": true
+    },
+    {
+      "scene": "settings",
+      "metric": "longTaskMs",
+      "before": [
+        0,
+        0,
+        0
+      ],
+      "after": [
+        0,
+        0,
+        0
+      ],
+      "beforeMedian": 0,
+      "afterMedian": 0,
+      "limit": 50,
+      "beforeRsd": 0,
+      "afterRsd": 0,
+      "budgetPass": true,
+      "noisePass": true
+    },
+    {
+      "scene": "usage",
+      "metric": "routeReadyMs",
+      "before": [
+        259.4599000000003,
+        259.1278999999995,
+        253.59400000000005
+      ],
+      "after": [
+        212.42840000000024,
+        240.59919999999966,
+        232.4987000000001
+      ],
+      "beforeMedian": 259.1278999999995,
+      "afterMedian": 232.4987000000001,
+      "limit": 309.1278999999995,
+      "beforeRsd": 1.2801478540149682,
+      "afterRsd": 6.346819953064435,
+      "budgetPass": true,
+      "noisePass": true
+    },
+    {
+      "scene": "usage",
+      "metric": "longTaskMs",
+      "before": [
+        0,
+        0,
+        0
+      ],
+      "after": [
+        0,
+        0,
+        0
+      ],
+      "beforeMedian": 0,
+      "afterMedian": 0,
+      "limit": 50,
+      "beforeRsd": 0,
+      "afterRsd": 0,
+      "budgetPass": true,
+      "noisePass": true
+    },
+    {
+      "scene": "monitoring500-scroll",
+      "metric": "frameP95",
+      "before": [
+        7,
+        7,
+        7.099999999999909
+      ],
+      "after": [
+        7,
+        7,
+        7
+      ],
+      "beforeMedian": 7,
+      "afterMedian": 7,
+      "limit": 9,
+      "beforeRsd": 0.8208771599845069,
+      "afterRsd": 0.0,
+      "budgetPass": true,
+      "noisePass": true
+    },
+    {
+      "scene": "monitoring500-scroll",
+      "metric": "longTaskMs",
+      "before": [
+        0,
+        0,
+        0
+      ],
+      "after": [
+        0,
+        0,
+        0
+      ],
+      "beforeMedian": 0,
+      "afterMedian": 0,
+      "limit": 50,
+      "beforeRsd": 0,
+      "afterRsd": 0,
+      "budgetPass": true,
+      "noisePass": true
+    }
+  ],
+  "method": "Same capture-baseline.mjs method: warm full-document navigation, Chrome157 headless/Vite watch:null,1200x800,DPR1,reducedMotion,500syntheticlogs. No competing task browsers/tests during final sampling. Not SPA latency or populated Usage/virtual-session performance.",
+  "beforeMeta": {
+    "phase": "before",
+    "startedAt": "2026-10-26T11:52:40.236Z",
+    "head": "ab17ec92b3e27b2859ebe9ab556bc9ced6369bf8",
+    "productDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "status": "?? .trellis/tasks/10-26-ccr-ag01-foundation/\n?? .trellis/tasks/10-26-ccr-ag02-workspaces/\n?? .trellis/tasks/10-26-ccr-ag03-observability/\n?? .trellis/tasks/10-26-ccr-ag04-acceptance/\n?? .trellis/tasks/10-26-ccr-ui-airy-glass/",
+    "node": "v26.7.0",
+    "platform": "win32",
+    "playwright": "1.62.1",
+    "preview": "Vite dev; task wrapper watch:null; same before/after; no Tauri runtime or IPC mocks",
+    "browser": "157.0.8103.15",
+    "finishedAt": "2026-10-26T11:53:02.410Z"
+  },
+  "afterMeta": {
+    "phase": "after",
+    "startedAt": "2026-10-26T17:03:56.133Z",
+    "head": "ab17ec92b3e27b2859ebe9ab556bc9ced6369bf8",
+    "productDiffSha256": "31c430a17e570c8c0740e4caeb1f1bba3aa9df2080775033f0e9a44eb75115f2",
+    "status": "M .github/skills/ccr-ui-visual-workflow/SKILL.md\n M .trellis/spec/ccr-ui/frontend/theme-token-contracts.md\n M AGENTS.md\n M ccr-ui/.impeccable/design.json\n M ccr-ui/AGENTS.md\n M ccr-ui/DESIGN.md\n M ccr-ui/code_map.md\n M ccr-ui/index.html\n M ccr-ui/src/components/profiles/profile-editor-shell.css\n M ccr-ui/src/features/agent-sessions/AgentSessionTranscript.tsx\n M ccr-ui/src/features/agent-sessions/AgentSessionsView.tsx\n M ccr-ui/src/features/checkin/styles/accounts.css\n M ccr-ui/src/features/checkin/styles/calendar.css\n M ccr-ui/src/features/checkin/styles/records.css\n M ccr-ui/src/features/checkin/styles/trend.css\n M ccr-ui/src/features/claude/ClaudeSlashCommandsView.tsx\n M ccr-ui/src/features/claude/OutputStylesView.tsx\n M ccr-ui/src/features/claude/hooks/HookGroupModal.tsx\n M ccr-ui/src/features/codex/ui-classes.ts\n M ccr-ui/src/features/commands/styles/commands-view.css\n M ccr-ui/src/features/configs/ConfigsView.tsx\n M ccr-ui/src/features/configs/components/ConfigBadges.tsx\n M ccr-ui/src/features/configs/components/ConfigCard.tsx\n M ccr-ui/src/features/configs/components/ConfigFilters.tsx\n M ccr-ui/src/features/configs/components/ConfigFormFields.tsx\n M ccr-ui/src/features/configs/lib/configList.ts\n M ccr-ui/src/features/configs/lib/flavorPreview.ts\n M ccr-ui/src/features/configs/styles/app-settings.css\n M ccr-ui/src/features/configs/styles/config-card.css\n M ccr-ui/src/features/configs/styles/config-filters.css\n M ccr-ui/src/features/configs/styles/configs.css\n M ccr-ui/src/features/configs/styles/converter.css\n M ccr-ui/src/features/configs/styles/provider-templates.css\n M ccr-ui/src/features/gemini/GeminiSlashCommandsView.tsx\n M ccr-ui/src/features/mcp/styles/mcp-manager.css\n M ccr-ui/src/features/opencode/ui-classes.ts\n M ccr-ui/src/features/platform/agents/BaseAgents.tsx\n M ccr-ui/src/features/platform/commands/BaseCommands.tsx\n M ccr-ui/src/features/platform/editor/styles/code-source-editor.css\n M ccr-ui/src/features/platform/mcp/BaseMcp.tsx\n M ccr-ui/src/features/platform/mcp/McpCreatePanel.tsx\n M ccr-ui/src/features/platform/mcp/McpDetailPanel.tsx\n M ccr-ui/src/features/platform/mcp/mcp-classes.ts\n M ccr-ui/src/features/platform/plugins/BasePlugins.tsx\n M ccr-ui/src/features/platform/settings/SettingsFieldControl.tsx\n M ccr-ui/src/features/sync/SshManagementView.tsx\n M ccr-ui/src/features/tray/styles/tray.css\n M ccr-ui/src/features/usage/styles/dashboard-next-actions.css\n M ccr-ui/src/features/usage/styles/platform-usage-insight-panel.css\n M ccr-ui/src/features/usage/styles/pricing-view.css\n M ccr-ui/src/features/usage/styles/usage-cost-conclusion-card.css\n M ccr-ui/src/features/usage/styles/usage-dashboard-toolbar.css\n M ccr-ui/src/features/usage/styles/usage-diagnostics-drawer.css\n M ccr-ui/src/features/usage/styles/usage-logs-tab.css\n M ccr-ui/src/features/usage/styles/usage-metric-card.css\n M ccr-ui/src/features/usage/styles/usage-model-distribution-card.css\n M ccr-ui/src/features/usage/styles/usage-overview-tab.css\n M ccr-ui/src/features/usage/styles/usage-source-summary-card.css\n M ccr-ui/src/features/usage/styles/usage-stale-banner.css\n M ccr-ui/src/features/usage/styles/usage-token-breakdown-strip.css\n M ccr-ui/src/features/usage/styles/usage-tokens-tab.css\n M ccr-ui/src/shell/App.tsx\n M ccr-ui/src/shell/shell.css\n M ccr-ui/src/styles/base/base.css\n M ccr-ui/src/styles/components/home.css\n M ccr-ui/src/styles/components/profiles-page.css\n M ccr-ui/src/styles/tokens.css\n M ccr-ui/src/styles/utilities/utilities.css\n M ccr-ui/src/ui/checkbox.tsx\n M ccr-ui/src/ui/combobox.tsx\n M ccr-ui/src/ui/dialog.tsx\n M ccr-ui/src/ui/popover.tsx\n M ccr-ui/src/ui/primitives.css\n M ccr-ui/src/ui/select.tsx\n M ccr-ui/src/ui/tooltip.tsx\n M ccr-ui/src/utils/nativeWindowAppearance.ts\n M ccr-ui/tests/theme/apple-glass-surface-contract.smoke.test.ts\n M ccr-ui/tests/theme/native-window-appearance.smoke.test.ts\n M ccr-ui/tests/theme/theme-contrast-contract.smoke.test.ts\n M ccr-ui/tests/theme/theme-switch.smoke.test.tsx\n?? .trellis/tasks/10-26-ccr-ag01-foundation/\n?? .trellis/tasks/10-26-ccr-ag02-workspaces/\n?? .trellis/tasks/10-26-ccr-ag03-observability/\n?? .trellis/tasks/10-26-ccr-ag04-acceptance/\n?? .trellis/tasks/10-26-ccr-ui-airy-glass/",
+    "node": "v26.7.0",
+    "platform": "win32",
+    "playwright": "1.62.1",
+    "preview": "Vite dev; task wrapper watch:null; same before/after; no Tauri runtime or IPC mocks",
+    "browser": "157.0.8103.15",
+    "finishedAt": "2026-10-26T17:04:17.014Z"
+  },
+  "limitations": [
+    "Web only; no native window or real IPC validation.",
+    "Profiles/Usage use honest browser-unavailable states; chart data, usage tab performance and populated virtual session list NOT_RUN.",
+    "Route timings measure warm module full-document navigations, not SPA router latency; keep same method for comparison.",
+    "Scroll workload is 500 synthetic monitoring entries through the real logger, not virtual session rows.",
+    "Reduced motion is enabled for reproducibility; animation/default-motion acceptance is separate."
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "phase": "before",
+  "startedAt": "2026-10-26T11:52:40.236Z",
+  "head": "ab17ec92b3e27b2859ebe9ab556bc9ced6369bf8",
+  "productDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "status": "?? .trellis/tasks/10-26-ccr-ag01-foundation/\n?? .trellis/tasks/10-26-ccr-ag02-workspaces/\n?? .trellis/tasks/10-26-ccr-ag03-observability/\n?? .trellis/tasks/10-26-ccr-ag04-acceptance/\n?? .trellis/tasks/10-26-ccr-ui-airy-glass/",
+  "node": "v26.7.0",
+  "platform": "win32",
+  "playwright": "1.62.1",
+  "preview": "Vite dev; task wrapper watch:null; same before/after; no Tauri runtime or IPC mocks"
+}

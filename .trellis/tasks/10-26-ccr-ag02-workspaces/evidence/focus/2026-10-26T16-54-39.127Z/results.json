@@ -1,0 +1,211 @@
+{
+  "startedAt": "2026-10-26T16:54:39.128Z",
+  "samples": [
+    {
+      "theme": "light",
+      "flavor": "neutral",
+      "name": "Focus checkbox",
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "focusVisible": true,
+      "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(231, 241, 238) 0px 0px 0px 2px, rgb(21, 111, 78) 0px 0px 0px 4px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "border": "rgb(21, 111, 78)",
+      "accent": "#156f4e",
+      "screenshot": "focus-checkbox-light-neutral.png"
+    },
+    {
+      "theme": "light",
+      "flavor": "neutral",
+      "name": "Focus select",
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "focusVisible": true,
+      "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "border": "rgb(117, 139, 128)",
+      "accent": "#156f4e",
+      "screenshot": "focus-select-light-neutral.png"
+    },
+    {
+      "theme": "light",
+      "flavor": "neutral",
+      "name": "Focus combobox",
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "focusVisible": true,
+      "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "border": "rgb(117, 139, 128)",
+      "accent": "#156f4e",
+      "screenshot": "focus-combobox-light-neutral.png"
+    },
+    {
+      "theme": "light",
+      "flavor": "clay",
+      "name": "Focus checkbox",
+      "dataset": {
+        "theme": "light",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "focusVisible": true,
+      "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(234, 230, 242) 0px 0px 0px 2px, rgb(21, 111, 78) 0px 0px 0px 4px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "border": "rgb(21, 111, 78)",
+      "accent": "#156f4e",
+      "screenshot": "focus-checkbox-light-clay.png"
+    },
+    {
+      "theme": "light",
+      "flavor": "clay",
+      "name": "Focus select",
+      "dataset": {
+        "theme": "light",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "focusVisible": true,
+      "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "border": "rgb(136, 121, 153)",
+      "accent": "#156f4e",
+      "screenshot": "focus-select-light-clay.png"
+    },
+    {
+      "theme": "light",
+      "flavor": "clay",
+      "name": "Focus combobox",
+      "dataset": {
+        "theme": "light",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "focusVisible": true,
+      "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(21, 111, 78) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "border": "rgb(21, 111, 78)",
+      "accent": "#156f4e",
+      "screenshot": "focus-combobox-light-clay.png"
+    },
+    {
+      "theme": "dark",
+      "flavor": "neutral",
+      "name": "Focus checkbox",
+      "dataset": {
+        "theme": "dark",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "focusVisible": true,
+      "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(16, 25, 27) 0px 0px 0px 2px, rgb(133, 213, 177) 0px 0px 0px 4px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "border": "rgb(133, 213, 177)",
+      "accent": "#85d5b1",
+      "screenshot": "focus-checkbox-dark-neutral.png"
+    },
+    {
+      "theme": "dark",
+      "flavor": "neutral",
+      "name": "Focus select",
+      "dataset": {
+        "theme": "dark",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "focusVisible": true,
+      "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "border": "rgb(113, 139, 145)",
+      "accent": "#85d5b1",
+      "screenshot": "focus-select-dark-neutral.png"
+    },
+    {
+      "theme": "dark",
+      "flavor": "neutral",
+      "name": "Focus combobox",
+      "dataset": {
+        "theme": "dark",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "focusVisible": true,
+      "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "border": "rgb(113, 139, 145)",
+      "accent": "#85d5b1",
+      "screenshot": "focus-combobox-dark-neutral.png"
+    },
+    {
+      "theme": "dark",
+      "flavor": "clay",
+      "name": "Focus checkbox",
+      "dataset": {
+        "theme": "dark",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "focusVisible": true,
+      "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(23, 23, 34) 0px 0px 0px 2px, rgb(133, 213, 177) 0px 0px 0px 4px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "border": "rgb(133, 213, 177)",
+      "accent": "#85d5b1",
+      "screenshot": "focus-checkbox-dark-clay.png"
+    },
+    {
+      "theme": "dark",
+      "flavor": "clay",
+      "name": "Focus select",
+      "dataset": {
+        "theme": "dark",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "focusVisible": true,
+      "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "border": "rgb(127, 133, 157)",
+      "accent": "#85d5b1",
+      "screenshot": "focus-select-dark-clay.png"
+    },
+    {
+      "theme": "dark",
+      "flavor": "clay",
+      "name": "Focus combobox",
+      "dataset": {
+        "theme": "dark",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "focusVisible": true,
+      "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "border": "rgb(127, 133, 157)",
+      "accent": "#85d5b1",
+      "screenshot": "focus-combobox-dark-clay.png"
+    }
+  ],
+  "limitation": "Real UI components mounted in memory-only task display fixture; no backend or native actions.",
+  "finishedAt": "2026-10-26T16:54:42.802Z"
+}

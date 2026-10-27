@@ -1,0 +1,3426 @@
+diff --git a/ccr-ui/.impeccable/design.json b/ccr-ui/.impeccable/design.json
+index 7fad5c06..3af8148d 100644
+--- a/ccr-ui/.impeccable/design.json
++++ b/ccr-ui/.impeccable/design.json
+@@ -1,86 +1,162 @@
+ {
+   "schemaVersion": 2,
+-  "generatedAt": "2026-09-03T21:55:00+08:00",
++  "generatedAt": "2026-10-26",
+   "title": "Design System: CCR UI",
+   "extensions": {
+     "colorMeta": {
+-      "amber-command": {
++      "green-command": {
+         "role": "primary",
+-        "displayName": "Terminal Amber",
+-        "canonical": "#f0a32b",
+-        "tonalRamp": ["#241503", "#4a2f08", "#7c520d", "#a97410", "#d98f1d", "#f0a32b", "#f7c46f", "#fce3b3"]
++        "displayName": "Action Green",
++        "canonical": "#85d5b1",
++        "tonalRamp": [
++          "#105b40",
++          "#146a4a",
++          "#156f4e",
++          "#6bc39a",
++          "#85d5b1",
++          "#9ce0c3"
++        ]
+       },
+-      "sand-secondary": {
++      "output-secondary": {
+         "role": "secondary",
+-        "displayName": "Warm Sand",
+-        "canonical": "#c9a35f",
+-        "tonalRamp": ["#241a09", "#4a3617", "#71532a", "#98713e", "#c9a35f", "#d9bd85", "#e9d7b0", "#f7efdc"]
++        "displayName": "Output Purple",
++        "canonical": "#b9a4f4",
++        "tonalRamp": [
++          "#6d4bd6",
++          "#b9a4f4"
++        ]
+       },
+       "status-ready": {
+         "role": "semantic",
+         "displayName": "Ready Green",
+-        "canonical": "#5fa05a",
+-        "tonalRamp": ["#0f1f0e", "#1d3a1c", "#2e5a2d", "#457f43", "#5fa05a", "#86bc82", "#b4d8b1", "#e3f1e1"]
++        "canonical": "#73ba6e",
++        "tonalRamp": [
++          "#356e45",
++          "#73ba6e"
++        ]
+       },
+       "status-attention": {
+         "role": "semantic",
+         "displayName": "Attention Red",
+-        "canonical": "#e06852",
+-        "tonalRamp": ["#2a0f09", "#571f15", "#843322", "#b34a35", "#d95f45", "#e06852", "#ec9384", "#f7c4ba"]
++        "canonical": "#ec8d7a",
++        "tonalRamp": [
++          "#9f513f",
++          "#ec8d7a",
++          "#f29f8e"
++        ]
+       },
+-      "terminal-base": {
++      "workbench-base": {
+         "role": "neutral",
+-        "displayName": "Terminal Ladder",
+-        "canonical": "#100f0c",
+-        "tonalRamp": ["#100f0c", "#171410", "#1f1b14", "#2a251b", "#453b2a", "#6b6150", "#a1937c", "#e9e1d1"]
++        "displayName": "Workbench Ladder",
++        "canonical": "#10191b",
++        "tonalRamp": [
++          "#10191b",
++          "#172225",
++          "#1d292c",
++          "#233033"
++        ]
+       },
+       "ink-primary": {
+         "role": "neutral",
+-        "displayName": "Phosphor Ink",
+-        "canonical": "#e9e1d1",
+-        "tonalRamp": ["#100f0c", "#2a251b", "#564e3e", "#a1937c", "#c9bda8", "#ddd5c2", "#e9e1d1", "#faf7ec"]
++        "displayName": "Reading Ink",
++        "canonical": "#f0f8f5",
++        "tonalRamp": [
++          "#1e2932",
++          "#404e59",
++          "#5c6b76",
++          "#9fafa9",
++          "#c5d5d0",
++          "#f0f8f5"
++        ]
+       },
+       "platform-kimi-code": {
+         "role": "categorical",
+         "displayName": "Kimi Code Rose",
+         "canonical": "#b65790",
+-        "tonalRamp": ["#40282f", "#5b3346", "#a3467f", "#b65790", "#d775ae", "#e4c4cf", "#f2e4e1"]
++        "tonalRamp": [
++          "#40282f",
++          "#5b3346",
++          "#a3467f",
++          "#b65790",
++          "#d775ae",
++          "#e4c4cf",
++          "#f2e4e1"
++        ]
+       },
+       "platform-pi": {
+         "role": "categorical",
+         "displayName": "Pi Violet",
+         "canonical": "#9773d0",
+-        "tonalRamp": ["#392e3d", "#4f3e5f", "#7b56b0", "#9773d0", "#ac88e7", "#dacde3", "#eee7e9"]
++        "tonalRamp": [
++          "#392e3d",
++          "#4f3e5f",
++          "#7b56b0",
++          "#9773d0",
++          "#ac88e7",
++          "#dacde3",
++          "#eee7e9"
++        ]
+       },
+       "platform-zcode": {
+         "role": "categorical",
+         "displayName": "ZCode Teal",
+         "canonical": "#1d83a4",
+-        "tonalRamp": ["#1f3234", "#1e454e", "#007091", "#1d83a4", "#44a2c4", "#b3d2d5", "#dfe9e3"]
++        "tonalRamp": [
++          "#1f3234",
++          "#1e454e",
++          "#007091",
++          "#1d83a4",
++          "#44a2c4",
++          "#b3d2d5",
++          "#dfe9e3"
++        ]
+       },
+       "platform-deepseek-harness": {
+         "role": "categorical",
+         "displayName": "DeepSeek Harness Azure",
+         "canonical": "#1e8dfe",
+-        "tonalRamp": ["#1f3447", "#1f4972", "#0567c2", "#1e8dfe", "#4b9dfc", "#b4d5f2", "#e0eaee"]
++        "tonalRamp": [
++          "#1f3447",
++          "#1f4972",
++          "#0567c2",
++          "#1e8dfe",
++          "#4b9dfc",
++          "#b4d5f2",
++          "#e0eaee"
++        ]
+       },
+       "chart-other": {
+         "role": "neutral",
+         "displayName": "Chart Other",
+         "canonical": "#a1937c",
+-        "tonalRamp": ["#968b76", "#a1937c"]
++        "tonalRamp": [
++          "#968b76",
++          "#a1937c"
++        ]
+       },
+       "chart-heat": {
+         "role": "sequential",
+         "displayName": "Activity Heat (dark)",
+-        "canonical": "#beb5a4",
+-        "tonalRamp": ["#332f27", "#5b5344", "#7a7263", "#9b9383", "#beb5a4"]
++        "canonical": "#c0d0d3",
++        "tonalRamp": [
++          "#394349",
++          "#596971",
++          "#7a8b91",
++          "#9badb2",
++          "#c0d0d3"
++        ]
+       },
+       "chart-heat-light": {
+         "role": "sequential",
+         "displayName": "Activity Heat (light)",
+-        "canonical": "#5b5344",
+-        "tonalRamp": ["#ebe5db", "#b4ab9b", "#958d7d", "#776f60", "#5b5344"]
++        "canonical": "#405f50",
++        "tonalRamp": [
++          "#e4e9e7",
++          "#b0bdb7",
++          "#8a9f95",
++          "#647f72",
++          "#405f50"
++        ]
+       }
+     },
+     "typographyMeta": {
+@@ -101,7 +177,7 @@
+         "purpose": "Forms, metadata, and compact UI labels; wide tracking only for short Latin mono labels."
+       },
+       "data": {
+-        "displayName": "Terminal Data",
++        "displayName": "Workbench Data",
+         "purpose": "Numeric readouts, versions, timestamps, axes, and the command status bar; mono with tabular figures."
+       }
+     },
+@@ -123,8 +199,13 @@
+       },
+       {
+         "name": "focus-glow",
+-        "value": "0 0 0 2px rgb(240 163 43 / 40%)",
++        "value": "0 0 0 2px rgb(var(--color-accent-primary-rgb) / 40%)",
+         "purpose": "Focus rings only; never decorative."
++      },
++      {
++        "name": "app-sheet",
++        "value": "0 20px 48px rgb(70 90 120 / 8%)",
++        "purpose": "Single non-scrolling paper shadow; all reading wells remain solid."
+       }
+     ],
+     "motion": [
+@@ -145,19 +226,54 @@
+       }
+     ],
+     "breakpoints": [
+-      { "name": "sm", "value": "640px" },
+-      { "name": "md", "value": "768px" },
+-      { "name": "lg", "value": "1024px" },
+-      { "name": "xl", "value": "1280px" },
+-      { "name": "2xl", "value": "1536px" }
+-    ]
++      {
++        "name": "sm",
++        "value": "640px"
++      },
++      {
++        "name": "md",
++        "value": "768px"
++      },
++      {
++        "name": "lg",
++        "value": "1024px"
++      },
++      {
++        "name": "xl",
++        "value": "1280px"
++      },
++      {
++        "name": "2xl",
++        "value": "1536px"
++      }
++    ],
++    "material": {
++      "field": "linear-gradient(160deg, var(--surface-app-field-start), var(--surface-app-field-end))",
++      "sheet": "--surface-app-sheet-*",
++      "radius": "20px",
++      "blur": "blur(20px) saturate(1.15)",
++      "visibleBlurBudget": 1,
++      "solidRoles": [
++        "card",
++        "workspace",
++        "shell",
++        "status",
++        "modal"
++      ],
++      "opaqueFallbacks": [
++        "width < 960px",
++        "prefers-reduced-transparency: reduce",
++        "no backdrop-filter support"
++      ],
++      "preferenceDomainsUnchanged": true
++    }
+   },
+   "components": [
+     {
+       "name": "Primary Button",
+       "kind": "button",
+       "refersTo": "button-primary",
+-      "description": "The next meaningful command; solid Terminal Amber with deep contrast ink, no gradient.",
++      "description": "The next meaningful command; solid Action Green with deep contrast ink, no gradient.",
+       "html": "<button class=\"ds-btn-primary\">同步配置</button>",
+       "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem 1rem; border: 0; border-radius: 8px; background: var(--color-accent-primary); color: var(--color-accent-primary-contrast); font-family: var(--font-sans); font-size: 0.8125rem; font-weight: 500; line-height: 1.56; cursor: pointer; transition: background 100ms cubic-bezier(0, 0, 0.2, 1), transform 100ms cubic-bezier(0, 0, 0.2, 1); } .ds-btn-primary:hover { background: var(--color-accent-primary-hover); } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--color-bg-base), 0 0 0 4px rgb(var(--color-accent-primary-rgb) / 56%); }"
+     },
+@@ -173,7 +289,7 @@
+       "name": "Input Field",
+       "kind": "input",
+       "refersTo": "input-default",
+-      "description": "Readable configuration input; amber border shift plus focus ring on focus.",
++      "description": "Readable configuration input; green border shift plus focus ring on focus.",
+       "html": "<label class=\"ds-field\"><span class=\"ds-field__label\">配置名称</span><input class=\"ds-input\" placeholder=\"默认配置\" /></label>",
+       "css": ".ds-field { display: grid; gap: 0.375rem; color: var(--color-text-muted); font-family: var(--font-sans); font-size: 0.8125rem; font-weight: 500; line-height: 1.24; } .ds-input { padding: 0.625rem 1rem; border: 1px solid var(--color-border-default); border-radius: 8px; background: var(--color-bg-surface); color: var(--color-text-primary); font-family: var(--font-sans); font-size: 1rem; line-height: 1.56; transition: border-color 100ms cubic-bezier(0, 0, 0.2, 1), box-shadow 100ms cubic-bezier(0, 0, 0.2, 1); } .ds-input::placeholder { color: var(--color-text-ghost); } .ds-input:focus-visible { outline: 0; border-color: var(--color-accent-primary); box-shadow: 0 0 0 2px rgb(var(--color-accent-primary-rgb) / 40%); }"
+     },
+@@ -189,7 +305,7 @@
+       "name": "Active Navigation Item",
+       "kind": "nav",
+       "refersTo": "nav-item-active",
+-      "description": "Current route in the persistent sidebar; a 10% amber tint, never a filled bar.",
++      "description": "Current route in the persistent sidebar; a 10% green tint, never a filled bar.",
+       "html": "<a class=\"ds-nav-active\" href=\"#\"><span class=\"ds-nav-active__dot\"></span><span>用量</span></a>",
+       "css": ".ds-nav-active { display: inline-flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0.75rem; border: 1px solid rgb(var(--color-accent-primary-rgb) / 24%); border-radius: 8px; background: rgb(var(--color-accent-primary-rgb) / 10%); color: var(--color-text-primary); font-family: var(--font-sans); font-size: 0.875rem; font-weight: 500; text-decoration: none; } .ds-nav-active__dot { width: 0.375rem; height: 0.375rem; border-radius: 9999px; background: var(--color-accent-primary); } .ds-nav-active:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--color-bg-base), 0 0 0 4px rgb(var(--color-accent-primary-rgb) / 56%); }"
+     },
+@@ -221,30 +337,30 @@
+       "name": "Settings Dock",
+       "kind": "custom",
+       "refersTo": "card-panel",
+-      "description": "Signature sidebar anchor: title row plus mono meta row with version; active is overlay fill with a 2px amber tick.",
++      "description": "Signature sidebar anchor: title row plus mono meta row with version; active is overlay fill with a 2px green tick.",
+       "html": "<a class=\"ds-dock ds-dock--active\" href=\"#\" title=\"设置\"><span class=\"ds-dock__icon\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\"><circle cx=\"8\" cy=\"8\" r=\"2.4\" stroke=\"currentColor\"/><path d=\"M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4\" stroke=\"currentColor\" stroke-linecap=\"round\"/></svg></span><span class=\"ds-dock__copy\"><span class=\"ds-dock__row\"><span class=\"ds-dock__title\">设置</span></span><span class=\"ds-dock__meta\">zh-CN · 深色 · v4.3.1</span></span></a>",
+       "css": ".ds-dock { position: relative; display: flex; align-items: center; gap: 0.75rem; overflow: hidden; padding: 0.625rem 0.75rem; border: 1px solid var(--color-border-subtle); border-radius: 8px; background: var(--color-bg-surface); color: var(--color-text-primary); text-decoration: none; transition: border-color 140ms cubic-bezier(0, 0, 0.2, 1), background-color 140ms cubic-bezier(0, 0, 0.2, 1); } .ds-dock:hover { border-color: var(--color-border-default); } .ds-dock:focus-visible { outline: 0; box-shadow: 0 0 0 2px rgb(var(--color-accent-primary-rgb) / 40%); } .ds-dock--active { background: var(--color-bg-overlay); } .ds-dock--active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--color-accent-primary); } .ds-dock__icon { display: flex; flex: none; align-items: center; justify-content: center; width: 2rem; height: 2rem; border: 1px solid var(--color-border-default); border-radius: 8px; background: var(--color-bg-elevated); color: var(--color-text-secondary); } .ds-dock__copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 0.25rem; } .ds-dock__row { display: flex; min-width: 0; align-items: baseline; justify-content: space-between; gap: 0.5rem; } .ds-dock__title { min-width: 0; overflow: hidden; font-family: var(--font-sans); font-size: 0.875rem; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; } .ds-dock__meta { display: block; overflow: hidden; color: var(--color-text-muted); font-family: var(--font-mono); font-size: 0.6875rem; font-variant-numeric: tabular-nums; white-space: nowrap; text-overflow: ellipsis; }"
+     }
+   ],
+   "narrative": {
+-    "northStar": "The Market Terminal (行情终端)",
+-    "overview": "CCR UI is a never-sleeps operator terminal for AI CLI toolchains: every managed platform is a quote line, and state, data, and commands share one character grid. The world was user-picked in the 09-03 direction round (concept seed 19fe1fa0, kind=pick, mode=operate), overriding the dice-assigned train-diagram world, and it deliberately rejects the category-default dashboard of a metric-card row plus an unbounded hero chart. The surface is a warm-black phosphor terminal, dark-first because operators watch it for hours in low light. Amber is the command color — it marks the next action, the active route, and the focus ring, nothing else. Green and red are status semantics only. Monospace type is earned by data: numbers, versions, timestamps, and the command status bar. The light theme is a warm paper reading surface built from the same geometry, not a separate design.",
++    "northStar": "Airy Glass Workbench (轻盈玻璃工作台)",
++    "overview": "A static mint-to-lavender field surrounds one paper-like application sheet with matched light/dark palettes. Only the non-scrolling sheet blurs. Dense reading surfaces, controls, charts and overlays stay solid; existing data, navigation, preference and interaction contracts are preserved.",
+     "keyCharacteristics": [
+-      "Warm dark surface ladder with hairline rules instead of decorative depth.",
+-      "Terminal amber reserved for command, active, and focus; status colors reserved for state.",
+-      "True monospace stack with tabular figures for every numeric readout.",
+-      "Bounded charts, fixed row heights, and honest empty states (dashed baselines, — placeholders).",
+-      "zh-CN-first copy, fully globalized through the app i18n contract."
++      "Static mint-to-lavender field with one paper-like app sheet, matched light and dark palettes.",
++      "Green for action/link/focus, explicit output purple, independent semantic status and source identity.",
++      "Solid reading surfaces and overlays; opaque fallback below 960px, reduced transparency or no blur support.",
++      "Existing font tracks, tabular figures, bounded charts, dense rows and honest empty states.",
++      "Preserved theme preference migration, keyboard focus, scroll ownership and native permissions."
+     ],
+     "rules": [
+       {
+         "name": "The Status-Only Color Rule",
+-        "body": "Green, red, warn, and info live only on status hairlines, dots, and state values. Panels, charts, and chrome stay neutral; a colored panel is a bug.",
++        "body": "Danger/warning/success/info communicate state with text and icons. Green may also mark action/link/focus; purple only explicit output.",
+         "section": "colors"
+       },
+       {
+-        "name": "The Amber Scarcity Rule",
+-        "body": "Amber marks command, active, and focus — under 10% of any screen. If everything glows, nothing is next.",
++        "name": "The Action Color Rule",
++        "body": "Use green for action, active route and focus; keep reading surfaces neutral and status semantics independent.",
+         "section": "colors"
+       },
+       {
+@@ -254,7 +370,7 @@
+       },
+       {
+         "name": "The Mono Is Earned Rule",
+-        "body": "Mono appears where the terminal speaks: data, code, time, commands. Prose stays sans; never set paragraphs in mono for atmosphere.",
++        "body": "Use mono for data, code, time and commands; prose remains sans.",
+         "section": "typography"
+       },
+       {
+@@ -274,12 +390,12 @@
+       },
+       {
+         "name": "The Glass Budget Rule",
+-        "body": "At most one backdrop-filter surface per screen, floating tier only; no nested glass, no glass inside scrolling content.",
++        "body": "At most one visible backdrop-filter, on the non-scrolling app sheet only. All reading and overlay roles are solid. Below 960px, reduced transparency or no blur support: alpha=1 and blur=none.",
+         "section": "elevation"
+       },
+       {
+-        "name": "The 12px Ceiling Rule",
+-        "body": "No product surface exceeds a 12px corner. Large radii read as consumer SaaS, not terminal.",
++        "name": "The Sheet Geometry Rule",
++        "body": "20px only on the application sheet; static wells may use 16px. Keep dense controls and virtual rows at existing geometry.",
+         "section": "shapes"
+       },
+       {
+@@ -289,8 +405,8 @@
+       }
+     ],
+     "dos": [
+-      "Do reserve amber for command, active route, and focus — and keep it under 10% of the screen.",
+-      "Do keep green and red on status dots, values, and tints only, paired with their contrast ink.",
++      "Do use green for command, active route, and focus — and keep it under 10% of the screen.",
++      "Do preserve status text/icons independently of action green, paired with their contrast ink.",
+       "Do set every numeric readout, timestamp, version, and route index in mono with tabular figures.",
+       "Do separate surfaces with hairlines and tonal steps before shadows.",
+       "Do render honest empties: dashed baselines, — placeholders, muted unindexed metrics — never a fabricated zero.",
+@@ -307,13 +423,13 @@
+       "Don't rebuild the metric-card row plus unbounded hero chart — that dashboard cliché is the rejected rut.",
+       "Don't repaint panels or chrome in platform colors; identity stays on 2px ticks and swatches.",
+       "Don't add decorative glass, nested glass, or glass inside scrolling content.",
+-      "Don't add purple or purple-blue gradients, guofeng, neko, anime, catgirl, or mascot variants — legacy debt, not parallel themes.",
+-      "Don't widen 2px ticks into side stripes, or use gradient text and 12px-plus radii on product surfaces.",
++      "Don't add nested glass, gradients inside reading surfaces, guofeng, neko or anime variants; the single mint-to-lavender field is approved.",
++      "Don't spread the sheet radius onto dense controls, change virtual row geometry or use gradient text.",
+       "Don't use fluid hero typography or decorative fonts inside app surfaces.",
+       "Don't capture a bare t outside useAppT(), and don't leave zh-CN copy unglobalized.",
+       "Don't hide disabled, blocked, or destructive states — they must read at a glance.",
+       "Don't color a 7-day change green or red; the change is not a status.",
+-      "Don't use amber or status colors in the heatmap ramp or the distribution bars; they use --color-chart-heat-* only.",
++      "Don't use green or status colors in the heatmap ramp or the distribution bars; they use --color-chart-heat-* only.",
+       "Don't add a chart library for Insights; charts are plain DOM and CSS.",
+       "Don't build the Insights totals as metric cards or as a copy of the platform quote band; it is one hairline-ruled reading line.",
+       "Don't give each of the nine sources its own weekly-chart color; merge everything past the top 4 into \"其他\".",
+diff --git a/ccr-ui/AGENTS.md b/ccr-ui/AGENTS.md
+index 47c4eb2b..fc857057 100644
+--- a/ccr-ui/AGENTS.md
++++ b/ccr-ui/AGENTS.md
+@@ -26,16 +26,17 @@ These notes apply to everything under `ccr-ui/` and supplement the repository-le
+ 
+ ### Brand Personality
+ 
+-- The target brand tone is `calm / precise / terminal`.
++- The target brand tone is `calm / precise / airy`.
+ - Preserve a strong product identity instead of drifting into generic SaaS admin styling or mascot-heavy novelty.
+-- The UI should feel like a purpose-built market terminal for advanced users: quiet, focused, and trustworthy under high information density.
++- The UI should feel like a purpose-built airy workbench for advanced users: quiet, focused, and trustworthy under high information density.
+ 
+ ### Aesthetic Direction
+ 
+-- The visual world is the market terminal (行情终端): a warm-dark, dark-first operating surface where amber marks command, active, and focus; green and red carry status only; and mono type with tabular figures is earned by data contexts. `DESIGN.md` in this directory is the source of truth (tokens mirror `src/styles/tokens.css`); `.impeccable/design.json` is its machine-readable sidecar.
+-- Align new work to the world's signatures: hairline-ruled panels, 2px identity ticks, bounded charts, honest empty states, and the bottom command status bar. The rejected rut is the metric-card row plus unbounded hero chart.
+-- Treat heavy Liquid Glass / Glassmorphism, anime atmospherics, and catgirl / NEKO branding as legacy directions to remove over time.
+-- Remove `guofeng`, `neko`, anime, and purple-tech styling, naming, tokens, and component variants over time; treat them as legacy, not parallel design languages.
++- The approved visual world is the airy-glass workbench (轻盈玻璃): one paper-like application sheet over a static mint-to-lavender field, with matched light/dark palettes. `DESIGN.md` is the source of truth; `.impeccable/design.json` is its machine-readable sidecar.
++- Only the non-scrolling app sheet may blur (20px, saturate 1.15); cards, inputs, tables, charts, sticky surfaces and overlays stay opaque. At <960px, reduced transparency or no blur support, the sheet is opaque and blur is none.
++- Green marks action/link/focus, purple only explicit output. Preserve independent danger/warning/status and platform/source identities. Preserve bounded charts, tabular figures, fixed virtual rows, honest empty states and the command status bar.
++- Preserve theme/flavor/accent/font preference domains, bootstrap migration, reduced-motion ownership and existing information density. Do not add a second theme provider or native transparency.
++- Avoid nested/decorative glass, floating blobs, anime/catgirl/NEKO and `guofeng` branches.
+ 
+ ### Accessibility And Motion
+ 
+@@ -47,6 +48,6 @@ These notes apply to everything under `ccr-ui/` and supplement the repository-le
+ ### Design Principles
+ 
+ - Power-first UX: optimize for speed, density, and control for expert users.
+-- Distinctive, not generic: express identity through calm precision, clear hierarchy, and restrained surfaces instead of mascots, neon accents, or decorative glass.
++- Distinctive, not generic: express identity through calm precision, clear hierarchy, and restrained surfaces with one restrained sheet and solid reading surfaces.
+ - Style supports usability: visual layers must improve readability, navigation clarity, and task completion rather than compete with them.
+-- One visual language: converge on the market-terminal direction defined in `DESIGN.md` and eliminate conflicting `guofeng` / `neko` branches.
++- One visual language: converge on the airy-glass direction defined in `DESIGN.md` and eliminate conflicting `guofeng` / `neko` branches.
+diff --git a/ccr-ui/DESIGN.md b/ccr-ui/DESIGN.md
+index 80ea85bb..3829b1e5 100644
+--- a/ccr-ui/DESIGN.md
++++ b/ccr-ui/DESIGN.md
+@@ -1,31 +1,34 @@
+ ---
+ name: CCR UI
+-description: Market-terminal operating surface for advanced AI CLI configuration, runtime monitoring, sync, and usage insight workflows.
++description: Airy-glass workbench for advanced AI CLI configuration, runtime monitoring, sync, and usage insight workflows.
+ colors:
+-  terminal-base: "#100f0c"
+-  terminal-sidebar: "#171410"
+-  terminal-panel: "#1f1b14"
+-  terminal-elevated: "#2a251b"
+-  paper-base: "#e9e4d8"
+-  paper-elevated: "#f2eee3"
+-  paper-surface: "#faf7ec"
+-  paper-overlay: "#ddd5c2"
+-  amber-command: "#f0a32b"
+-  amber-command-hover: "#f5b14a"
+-  amber-command-light: "#8f650e"
+-  amber-command-light-hover: "#a2740f"
+-  amber-contrast: "#1d1204"
+-  sand-secondary: "#c9a35f"
+-  status-ready: "#5fa05a"
++  workbench-base: "#10191b"
++  terminal-sidebar: "#172225"
++  terminal-panel: "#1d292c"
++  terminal-elevated: "#233033"
++  paper-base: "#e7f1ee"
++  paper-elevated: "#f2f7f5"
++  paper-surface: "#ffffff"
++  paper-overlay: "#e3ece8"
++  green-command: "#85d5b1"
++  green-command-hover: "#9ce0c3"
++  green-command-light: "#156f4e"
++  green-command-light-hover: "#146a4a"
++  green-contrast: "#102b20"
++  output-secondary: "#b9a4f4"
++  status-ready: "#73ba6e"
++  status-ready-light: "#356e45"
+   status-warn: "#d9c05a"
+-  status-attention: "#e06852"
+-  status-attention-hover: "#ec7a63"
++  status-warn-light: "#7b5e16"
++  status-attention: "#ec8d7a"
++  status-attention-hover: "#f29f8e"
+   status-attention-light: "#9f513f"
+-  status-info: "#7d94b0"
+-  ink-primary: "#e9e1d1"
+-  ink-secondary: "#c9bda8"
+-  ink-muted: "#a1937c"
+-  ink-light-primary: "#211c12"
++  status-info: "#91a9c7"
++  status-info-light: "#42648a"
++  ink-primary: "#f0f8f5"
++  ink-secondary: "#c5d5d0"
++  ink-muted: "#9fafa9"
++  ink-light-primary: "#1e2932"
+   platform-claude: "#d97757"
+   platform-codex: "#7cab82"
+   platform-grok: "#a79bc4"
+@@ -38,16 +41,16 @@ colors:
+   platform-deepseek-harness: "#1e8dfe"
+   chart-other: "#a1937c"
+   chart-other-light: "#968b76"
+-  chart-heat-0: "#332f27"
+-  chart-heat-1: "#5b5344"
+-  chart-heat-2: "#7a7263"
+-  chart-heat-3: "#9b9383"
+-  chart-heat-4: "#beb5a4"
+-  chart-heat-0-light: "#ebe5db"
+-  chart-heat-1-light: "#b4ab9b"
+-  chart-heat-2-light: "#958d7d"
+-  chart-heat-3-light: "#776f60"
+-  chart-heat-4-light: "#5b5344"
++  chart-heat-0: "#394349"
++  chart-heat-1: "#596971"
++  chart-heat-2: "#7a8b91"
++  chart-heat-3: "#9badb2"
++  chart-heat-4: "#c0d0d3"
++  chart-heat-0-light: "#e4e9e7"
++  chart-heat-1-light: "#b0bdb7"
++  chart-heat-2-light: "#8a9f95"
++  chart-heat-3-light: "#647f72"
++  chart-heat-4-light: "#405f50"
+ typography:
+   headline:
+     fontFamily: "SF Pro Display, Segoe UI Variable Display, PingFang SC, Microsoft YaHei UI, Microsoft YaHei, sans-serif"
+@@ -96,8 +99,8 @@ spacing:
+   xxl: "4rem"
+ components:
+   button-primary:
+-    backgroundColor: "{colors.amber-command}"
+-    textColor: "{colors.amber-contrast}"
++    backgroundColor: "{colors.green-command}"
++    textColor: "{colors.green-contrast}"
+     rounded: "{rounded.lg}"
+     padding: "0.625rem 1rem"
+   button-secondary:
+@@ -116,12 +119,12 @@ components:
+     rounded: "{rounded.xl}"
+     padding: "1rem"
+   nav-item-active:
+-    backgroundColor: "rgb(240 163 43 / 10%)"
++    backgroundColor: "rgb(133 213 177 / 10%)"
+     textColor: "{colors.ink-primary}"
+     rounded: "{rounded.lg}"
+     padding: "0.625rem 0.75rem"
+   status-bar:
+-    backgroundColor: "{colors.terminal-base}"
++    backgroundColor: "{colors.workbench-base}"
+     textColor: "{colors.ink-muted}"
+     typography: "{typography.data}"
+     height: "1.75rem"
+@@ -132,65 +135,36 @@ components:
+ 
+ ## Overview
+ 
+-**Creative North Star: "The Market Terminal" (行情终端)**
++**Creative North Star: "Airy Glass Workbench" (轻盈玻璃工作台)**
+ 
+-CCR UI is a never-sleeps operator terminal for AI CLI toolchains: every managed platform is a quote line, and state, data, and commands share one character grid. The world was user-picked in the 09-03 direction round (concept seed `19fe1fa0`, kind=pick, mode=operate), overriding the dice-assigned train-diagram world, and it deliberately rejects the category-default dashboard of a metric-card row plus an unbounded hero chart.
++The approved 2026-10-26 `style:airy-glass` adaptation replaces the market-terminal appearance. Its source snapshot and CCR-specific decisions live in `.trellis/tasks/10-26-ccr-ui-airy-glass/research/catalog/DESIGN.md` and the parent `design.md`. The adaptation takes precedence where the catalog lacks dark mode, data visualization, or accessibility rules.
+ 
+-The surface is a warm-black phosphor terminal, dark-first because operators watch it for hours in low light. Amber is the command color — it marks the next action, the active route, and the focus ring, nothing else. Green and red are status semantics only. Monospace type is earned by data: numbers, versions, timestamps, and the command status bar. The light theme is a warm paper reading surface built from the same geometry, not a separate design.
+-
+-Three disciplines survived from declined challengers and bind the whole world: color lives only on status hairlines; disabled and blocked states must read at a glance; chart dimensions stay honest (length is quantity).
+-
+-**Key Characteristics:**
+-
+-- Warm dark surface ladder with hairline rules instead of decorative depth.
+-- Terminal amber reserved for command, active, and focus; status colors reserved for state.
+-- True monospace stack with tabular figures for every numeric readout.
+-- Bounded charts, fixed row heights, and honest empty states (dashed baselines, `—` placeholders).
+-- zh-CN-first copy, fully globalized through the app i18n contract.
++A static 160deg mint-to-lavender field surrounds one paper-like application sheet. Light mode uses white at 78%; dark mode uses a low-saturation deep field and a 90% sheet. The sheet alone may use `blur(20px) saturate(1.15)`. Cards, data wells, inputs, charts, sticky regions and all dialogs/popovers remain solid. The result must preserve the existing dense workflow, bounded charts, platform strip, Insights, and command status bar.
+ 
+ ## Colors
+ 
+-The palette is a terminal phosphor system: a neutral warm-black ladder carries the surface, amber carries command, and a small status set carries operational truth.
+-
+-### Primary
+-
+-- **Terminal Amber** (#f0a32b dark / #8f650e light): the command and focus color — primary buttons, active navigation, focus outlines, the dock's active tick, route-hint hover. It is synchronized at four definition points (`:root`, `[data-theme='dark']`, `[data-accent='clay']`, `[data-theme='dark'][data-accent='clay']`); change all four or change none.
+-
+-### Secondary
+-
+-- **Warm Sand** (#c9a35f dark / #a0854f light): supporting emphasis for quiet charts and paired accents. Never a competing brand axis.
+-
+-### Tertiary
+-
+-- **Ready Green** (#5fa05a dark / #5b8a62 light): healthy, connected, done.
+-- **Attention Red** (#e06852 dark, hover #ec7a63 / #9f513f light, hover #a55644): errors, destructive actions, attention-required states. Holds ≥4.5:1 contrast on its status tints (4.65–4.79 measured).
+-- **Signal Warn** (#d9c05a dark / #a07c1e light): pending, scanning, degraded tracking.
+-- **Info Steel** (#7d94b0 dark / #7d97b6 light): neutral events, loading, web-preview notices.
+-- Status tints (`--color-*-tint`) carry status backgrounds; pair them with the matching contrast ink, never with raw white.
+-
+-### Neutral
+-
+-- **Terminal Ladder** (dark): content base (#100f0c), sidebar chrome (#171410), panel (#1f1b14), elevated overlay (#2a251b) — brightness rises with elevation.
+-- **Paper Ladder** (light): base (#e9e4d8), elevated (#f2eee3), surface (#faf7ec), overlay (#ddd5c2) — the desktop is darkened, cards are brightest.
+-- **Ink**: dark theme #e9e1d1 / #c9bda8 / #a1937c (primary / secondary / muted); light theme #211c12 / #4a4232 / #6b6150. All text tokens are solid and hold AA on their surfaces.
+-- **Hairlines**: border-subtle #332c21, default #453b2a, strong #5d5138 on dark; solid, not alpha.
+-- **Clay Flavor**: a warmer neutral variant (`data-flavor='clay'`) — dark family #17120f / #221b18 / #2a221e / #342b26, light family #ebe1d0 / #f5eee1 / #fefaf2 / #e2d6c3. Same geometry, warmer ink.
++### Primary and output
+ 
+-### Platform Identity
++Green marks primary action, link, active route and focus: light #156f4e (hover #146a4a), dark #85d5b1 (hover #9ce0c3). The persisted `clay` accent key remains unchanged, including its legacy migration map; it now displays green. Purple (#6d4bd6 light / #b9a4f4 dark) is reserved for explicitly identified output. Do not convert unknown, pending or failed state to green or purple.
+ 
+-Claude clay (#d97757), Codex sage (#7cab82), Grok lavender (#a79bc4), Gemini steel (#7d97b6), OpenCode umber (#735f52), Antigravity sky (#98afc9). Each platform color has dot / surface / border / text roles per theme.
++Success, warning, danger and info retain separate semantic roles with readable contrast ink. Red destructive actions and yellow warnings must remain distinguishable by text/icon, not just color. User custom accents retain the existing runtime extension behavior; heuristic contrast ink does not guarantee compliance for every arbitrary user color.
+ 
+-Four usage sources that appear only in Insights have the same five roles (`--color-platform-{key}`, `-rgb`, `-surface`, `-border`, `-text`): Kimi Code rose (#b65790, key `kimi-code`), Pi violet (#9773d0, key `pi`), ZCode teal (#1d83a4, key `zcode`), DeepSeek Harness azure (#1e8dfe, key `deepseek-harness`). The dot value is the same in both themes and both flavors. The dot holds ≥3:1 against the card face in all four theme × flavor combinations (#faf7ec, #fefaf2, #1f1b14, #2a221e). The surface and border roles mix the dot into the neutral card face (light #faf7ec at 12% / 32%, dark #1f1b14 at 22% / 40%). The text role holds ≥4.5:1 against its surface role and against the card face of both flavors. Source keys `kimi_code` and `deepseek_harness` become kebab case in token names. These four colors are flat identity swatches under the Platform Tick Rule; they never form gradients and never repaint panels.
++### Neutral reading surfaces
+ 
+-The nine usage-source colors cannot all be told apart pair by pair (validator record: the `home-insights-design` task's `research/palette-validation.md`). Any chart that shows more than one source at a time must carry a secondary encoding: segment gaps, a legend, direct labels when the chart shows 4 or fewer series, and a per-segment tooltip.
++| Combination | base | elevated | surface | overlay | primary | secondary | muted |
++|---|---|---|---|---|---|---|---|
++| neutral light | #e7f1ee | #f2f7f5 | #ffffff | #e3ece8 | #1e2932 | #404e59 | #5c6b76 |
++| clay light | #eae6f2 | #f5f2fa | #fefcff | #e9e4f1 | #222630 | #464758 | #686477 |
++| neutral dark | #10191b | #172225 | #1d292c | #233033 | #f0f8f5 | #c5d5d0 | #9fafa9 |
++| clay dark | #171722 | #20212e | #282a38 | #2c2e3d | #f5f4fc | #d4d2e3 | #b0adbf |
+ 
+-### Named Rules
++These are solid shared roles. Only dedicated `--surface-app-sheet-*` tokens may introduce translucency. Measure primary ≥12:1, secondary ≥7:1, muted ≥4.5:1 against their actual rendered backgrounds, including the sheet composited over gradient endpoints, midpoint and worst position. Normal text requires ≥4.5:1 and meaningful control boundaries/state indicators ≥3:1. A pale sheet outline cannot substitute for an input boundary.
+ 
+-**The Status-Only Color Rule.** Green, red, warn, and info live only on status hairlines, dots, and state values. Panels, charts, and chrome stay neutral; a colored panel is a bug.
++### Platform and chart identity
+ 
+-**The Amber Scarcity Rule.** Amber marks command, active, and focus — under 10% of any screen. If everything glows, nothing is next.
++Existing `--color-platform-*` identities remain categorical: 2px ticks, dots, legend swatches and chart segments. Do not repaint panels in platform colors or map all sources to green and purple. Keep source text and dot contrast checks against all four card faces. Multi-source charts require segment gaps, labels/legend, per-segment tooltip and the exact table view, because the source palette is not pairwise distinct.
+ 
+-**The Platform Tick Rule.** Platform colors identify; they never repaint. Allowed surfaces: 2px ticks, legend swatches, chart segments, identity dots.
++Heatmaps and distribution use a monotonic neutral `--color-chart-heat-*` ramp with heat-0 ≥1.15:1 against all card faces. Low-contrast cells retain table access to exact values. A seven-day change remains neutral secondary ink; it is not a success/failure signal.
+ 
+ ## Typography
+ 
+@@ -198,7 +172,7 @@ The nine usage-source colors cannot all be told apart pair by pair (validator re
+ **Brand/Display Font:** SF Pro Display with Segoe UI Variable Display and the same CJK fallbacks.
+ **Mono Font:** Cascadia Code, Cascadia Mono, SFMono-Regular, ui-monospace, Consolas — a true monospace stack, earned by data contexts (metrics, versions, timestamps, axes, the command status bar).
+ 
+-**Character:** A quiet sans for prose and labels, a proportional display face for page headers, and a real mono for the terminal's numeric voice. Hierarchy comes from weight, size, and spacing — not decorative faces.
++**Character:** A quiet sans for prose and labels, a proportional display face for page headers, and a real mono for the workbench's numeric voice. Hierarchy comes from weight, size, and spacing — not decorative faces.
+ 
+ ### Hierarchy
+ 
+@@ -210,7 +184,7 @@ The nine usage-source colors cannot all be told apart pair by pair (validator re
+ 
+ ### Named Rules
+ 
+-**The Mono Is Earned Rule.** Mono appears where the terminal speaks: data, code, time, commands. Prose stays sans; never set paragraphs in mono for atmosphere.
++**The Mono Is Earned Rule.** Mono appears where the workbench shows data: data, code, time, commands. Prose stays sans; never set paragraphs in mono for atmosphere.
+ 
+ **The Tabular Number Rule.** Any number a user compares or watches uses tabular figures (`font-variant-numeric: tabular-nums`). Columns of digits must not jitter.
+ 
+@@ -226,48 +200,29 @@ Reference breakpoints: 640 / 768 / 1024 / 1280 / 1536px. Below the `lg` breakpoi
+ 
+ ## Elevation & Depth
+ 
+-Depth is tonal first: the surface ladder plus 1px hairlines separates shell, panel, and overlay at rest. Shadows are reserved for overlays that must detach from the workspace — sticky bars, dropdowns, modals — never for resting cards.
+-
+-### Shadow Vocabulary
+-
+-- **Subtle Rest** (`--shadow-sm`: 0 2px 6px rgb(25 27 32 / 9%); dark rgb(0 0 0 / 26%)): optional field and hover separation only.
+-- **Structural Overlay** (`--shadow-md` / `--elevation-2`): sticky bars and interactive overlays.
+-- **Modal Depth** (`--shadow-lg`+ / `--elevation-3`–`4`): dialogs and floating layers.
+-- **Focus Glow** (`--glow-*`: 2px ring at 40% of the accent or status color): focus rings only. Never decorative.
+-
+-The scrim behind modals and drawers (32% black light / 56% dark) is the only permitted persistent translucency. The material contract keeps chrome and inline tiers fully opaque; only the floating tier (modals, command palette) may blur — 92% opaque, blur ≤ 12px, at most one on screen.
+-
+-### Named Rules
++The sole blurred surface is the non-scrolling application sheet. It has a 20px radius, one shadow and a subtle outline; its static field remains visible around the paper. Do not scale the whole sheet, animate blur, add drifting blobs or nest glass. Shared `--surface-shell-*`, `--surface-workspace-*`, `--surface-card-*`, `--surface-status-*` and `--surface-modal-*` remain solid/no-blur. Modal scrims may remain translucent without backdrop blur.
+ 
+-**The Hairline-First Rule.** Separate with a hairline or a tonal step before reaching for shadow. A resting card casts none.
++**The Glass Budget Rule.** Count at most one visible computed backdrop-filter, on the app sheet only. Below 960 CSS px, under `prefers-reduced-transparency: reduce`, or without backdrop-filter support, the sheet uses alpha=1 and blur=none. The 960px material breakpoint is independent of the existing 1024px navigation breakpoint. Test both sides of both boundaries.
+ 
+-**The Glass Budget Rule.** At most one backdrop-filter surface per screen, floating tier only; no nested glass, no glass inside scrolling content.
++Keep the existing scroll owner, cache/Outlet lifetime, resize hit areas, portal positioning, focus trapping, Esc, focus restoration and mobile navigation behavior. The separate `/tray/codex` window uses a compact solid surface with its original dimensions and responsibilities.
+ 
+ ## Shapes
+ 
+-Squared terminal geometry with a tight radius ladder: 0, 6px, 6px, 8px, 12px, and pill. Controls and inputs take 8px; panels and cards top out at 12px; pill is reserved for badges and status dots.
+-
+-Signature geometry is the 2px tick: platform identity rides a 2px top tick on quote cells, and the active settings dock carries a 2px amber left tick. A dashed 1px hairline means "no data" — an honest zero baseline, not a missing chart.
+-
+-### Named Rules
+-
+-**The 12px Ceiling Rule.** No product surface exceeds a 12px corner. Large radii read as consumer SaaS, not terminal.
+-
+-**The Two-Pixel Tick Rule.** Identity and active state arrive as 2px ticks, never as stripes, glows, or filled rails.
++The dedicated app sheet uses 20px. Static reading wells may use 16px where appropriate; dense controls keep their existing heights and 8px corners, and existing panels may remain 12px. The shared radius scale and virtual row estimates are unchanged. Pill shapes are suitable for independent actions or labels, not tables or whole pages. Preserve the 2px identity/active tick, tabular figures and dashed empty baselines.
+ 
+ ## Components
+ 
+ ### Buttons
+ 
+ - **Shape:** 8px corners, padding-defined height (0.625rem 1rem), 0.8125rem medium-weight label.
+-- **Primary:** solid Terminal Amber fill with deep contrast ink (#1d1204); hover brightens (#f5b14a). No gradient, no shadow stack.
++- **Primary:** solid green fill with theme-specific contrast ink; hover follows the accent token. No gradient, no shadow stack.
+ - **Secondary / Ghost / Danger:** secondary is panel fill with a default hairline border; ghost is quiet text that gains an overlay wash on hover; danger is solid Attention Red with its contrast ink.
+-- **State:** active presses with scale(0.98); disabled drops to 50% opacity and must still be legible at a glance. Focus uses the amber focus ring.
++- **State:** active presses with scale(0.98); disabled drops to 50% opacity and must still be legible at a glance. Focus uses the green focus ring.
+ 
+ ### Inputs / Fields
+ 
+ - **Style:** 8px corners, panel background, 1px default hairline, 0.625rem 1rem padding.
+-- **Focus:** amber border shift plus the focus ring; never decorative glow.
++- **Focus:** green border shift plus the focus ring; never decorative glow.
+ - **Error / Disabled:** error uses Attention Red plus `aria-invalid`; disabled reduces opacity while labels stay readable.
+ 
+ ### Cards / Panels
+@@ -278,7 +233,7 @@ Signature geometry is the 2px tick: platform identity rides a 2px top tick on qu
+ 
+ ### Navigation
+ 
+-Persistent sidebar items use 8px corners and quiet secondary text. The active route reads as a 10% amber tint with a 24% amber border and primary text — state conveyed by tint, not by a filled bar. Mobile collapses to a modal sidebar with backdrop.
++Persistent sidebar items use 8px corners and quiet secondary text. The active route reads as a 10% green tint with a 24% green border and primary text — state conveyed by tint, not by a filled bar. Mobile collapses to a modal sidebar with backdrop.
+ 
+ ### Platform Quote Band (signature)
+ 
+@@ -294,11 +249,11 @@ One section title, no duplicate eyebrow. Rows align a mono tabular timestamp, a
+ 
+ ### Bottom Command Status Bar (signature)
+ 
+-Sticky to the scroll container's bottom edge: a 1px hairline top rule over the base background, mono meta-size text, items separated by hairlines. It carries backend status (ok in amber, pending in warn, error in attention red), the last event's severity dot, 01–04 numbered route hints whose indices brighten amber on hover, and a tabular clock.
++Sticky to the scroll container's bottom edge: a 1px hairline top rule over the base background, mono meta-size text, items separated by hairlines. It carries backend status (ok in green, pending in warn, error in attention red), the last event's severity dot, 01–04 numbered route hints whose indices brighten green on hover, and a tabular clock.
+ 
+ ### Settings Dock (signature)
+ 
+-The sidebar's settings anchor: a card with two rows — a title row and a mono meta row ending in the app version — both single-line ellipsis with a native tooltip for the full string. Active state is the overlay background plus a 2px amber left tick.
++The sidebar's settings anchor: a card with two rows — a title row and a mono meta row ending in the app version — both single-line ellipsis with a native tooltip for the full string. Active state is the overlay background plus a 2px green left tick.
+ 
+ ### Insights Block (signature)
+ 
+@@ -340,7 +295,7 @@ The home Insights block sits below the first viewport. It shares the first viewp
+ 
+ - Form: 53 week columns × 7 day rows of daily request counts, in 5 steps. Step 0 means no activity. A month label row sits above the grid. A caption line below gives the current streak, the longest streak, and the busiest day. A "少 → 多" legend shows the steps. A segmented control in the panel header switches between the chart view and the table view (图表 / 表格); the chart view is the default.
+ - Size: cell width scales with the container between 0.5rem and 0.875rem. The cell gap is `--space-0-5`. When the cell width would go below 0.5rem, the container scrolls horizontally and opens scrolled to the latest week. Height is the 7 cell rows plus the month row plus the caption line.
+-- Colors: `--color-chart-heat-0` … `--color-chart-heat-4`, a warm neutral single-hue ramp. Heat-0 is the no-activity cell fill only; it stays visibly apart from the card face in all four theme × flavor combinations (≥1.15:1). One value per theme serves both flavors. Heat-1 is below 3:1 against the surface. The table view is the relief channel for colors below 3:1 (dataviz rule: a tooltip alone is not enough). Each cell's `title` / tooltip also gives the date and the value.
++- Colors: `--color-chart-heat-0` … `--color-chart-heat-4`, a neutral sequential ramp. Heat-0 is the no-activity cell fill only; it stays visibly apart from the card face in all four theme × flavor combinations (≥1.15:1). One value per theme serves both flavors. Heat-1 is below 3:1 against the surface. The table view is the relief channel for colors below 3:1 (dataviz rule: a tooltip alone is not enough). Each cell's `title` / tooltip also gives the date and the value.
+ - Table view: one row per week, newest week first (53 rows). Columns: week start date (mono), Monday … Sunday, week total. Cells show full request counts with grouping separators in mono tabular figures. A day after `as_of` is an empty cell. The table height is `clamp(10rem, 26vh, 16rem)`, with a sticky header row, fixed 2rem rows, and vertical scroll. The caption line stays below the table.
+ - Empty: when there are no requests, every cell is heat-0. A caption "导入用量后显示" and an "导入用量" button follow.
+ 
+@@ -371,14 +326,14 @@ The home Insights block sits below the first viewport. It shares the first viewp
+ 
+ **Empty states.**
+ 
+-- Empty store (no requests and no sessions): the header row, the totals readout with every value `—`, and one dashed panel (`1px dashed --color-border-default`) with "还没有可分析的记录", a short description, and the primary "导入用量" button. The button is amber because it is the next command.
++- Empty store (no requests and no sessions): the header row, the totals readout with every value `—`, and one dashed panel (`1px dashed --color-border-default`) with "还没有可分析的记录", a short description, and the primary "导入用量" button. The button is green because it is the next command.
+ - Sessions only (no requests, `sessions_indexed = true`, sessions present): request values show `—`. The heatmap follows its empty rule. The 7-day comparison has values in the sessions row only. The leaderboard defaults to the session metric. The weekly chart and the distribution are not rendered.
+ - Usage only (`sessions_indexed = false`): every session count shows `—` with `title="会话尚未索引"`. One info dot plus an explanation line sits below the totals readout. The session metric in the leaderboard is disabled. All other blocks render as usual.
+ - Web preview (not the Tauri runtime): the header row plus one solid panel with an info dot, "Web 预览不读取本机数据", and a short description. The block makes no IPC call.
+ 
+ ### Boot Loader
+ 
+-The index.html boot screen is synced to the world: light background #e9e4d8, dark background #100f0c, dark spinner arc in amber #f0a32b. Known open item: the light spinner arc still uses #0071e3 pending an accent review — flag it before shipping a light-first surface.
++The `index.html` boot screen, shell critical CSS, flavor preview swatches and macOS window background mirror the four built-in palette combinations. Retain the bootstrap migration maps, system-theme resolution, font overrides, native macOS-only lazy import and `setTheme` behavior. No transparent native window or new permission is introduced. Mock native tests are not macOS device evidence.
+ 
+ ### Copy & Localization
+ 
+@@ -388,7 +343,7 @@ zh-CN is fully globalized and is the primary copy voice. Components subscribe to
+ 
+ ### Do:
+ 
+-- **Do** reserve amber for command, active route, and focus — and keep it under 10% of the screen.
++- **Do** reserve green for command, active route, and focus — and keep it under 10% of the screen.
+ - **Do** keep green and red on status dots, values, and tints only, paired with their contrast ink.
+ - **Do** set every numeric readout, timestamp, version, and route index in mono with tabular figures.
+ - **Do** separate surfaces with hairlines and tonal steps before shadows.
+@@ -407,13 +362,13 @@ zh-CN is fully globalized and is the primary copy voice. Components subscribe to
+ - **Don't** rebuild the metric-card row plus unbounded hero chart — that dashboard cliché is the rejected rut.
+ - **Don't** repaint panels or chrome in platform colors; identity stays on 2px ticks and swatches.
+ - **Don't** add decorative glass, nested glass, or glass inside scrolling content.
+-- **Don't** add purple or purple-blue gradients, guofeng, neko, anime, catgirl, or mascot variants — legacy debt, not parallel themes.
+-- **Don't** widen 2px ticks into side stripes, or use gradient text and 12px-plus radii on product surfaces.
++- **Don't** add gradients inside reading surfaces, extra blurred layers, guofeng, neko, anime or mascot variants; the single mint-to-lavender field is the approved scene.
++- **Don't** widen identity ticks, add gradient text or spread the sheet's 20px radius onto dense controls.
+ - **Don't** use fluid hero typography or decorative fonts inside app surfaces.
+ - **Don't** capture a bare `t` outside `useAppT()`, and don't leave zh-CN copy unglobalized.
+ - **Don't** hide disabled, blocked, or destructive states — they must read at a glance.
+ - **Don't** color a 7-day change green or red; the change is not a status.
+-- **Don't** use amber or status colors in the heatmap ramp or the distribution bars; they use `--color-chart-heat-*` only.
++- **Don't** use green or status colors in the heatmap ramp or the distribution bars; they use `--color-chart-heat-*` only.
+ - **Don't** add a chart library for Insights; charts are plain DOM and CSS.
+ - **Don't** build the Insights totals as metric cards or as a copy of the platform quote band; it is one hairline-ruled reading line.
+ - **Don't** give each of the nine sources its own weekly-chart color; merge everything past the top 4 into "其他".
+diff --git a/ccr-ui/code_map.md b/ccr-ui/code_map.md
+index 8427cb39..0ba9b18b 100644
+--- a/ccr-ui/code_map.md
++++ b/ccr-ui/code_map.md
+@@ -4,7 +4,7 @@ Navigation map for `ccr-ui/**`. Behavioral and visual rules stay in `./AGENTS.md
+ 
+ ## Start here
+ 
+-- Scoped agent rules and market-terminal visual direction: `./AGENTS.md`, `DESIGN.md`.
++- Scoped agent rules and airy-glass visual direction: `./AGENTS.md`, `DESIGN.md`.
+ - Frontend manifest and scripts: `package.json` (`packageManager: bun@1.4.0`).
+ - UI just recipes: `justfile` (`dev-web`, `check`, `test`, `build`, `tauri-*`).
+ - Vite/Vitest/ESLint entry points: `vite.config.ts`, `vitest.smoke.config.ts`, `eslint.config.js`.
+diff --git a/ccr-ui/index.html b/ccr-ui/index.html
+index 4e3ff3ab..662775b7 100644
+--- a/ccr-ui/index.html
++++ b/ccr-ui/index.html
+@@ -53,20 +53,20 @@
+       #app-loader {
+         display:flex; flex-direction:column; align-items:center; justify-content:center;
+         height:100vh; gap:16px;
+-        background:#e9e4d8; color:#1d1d1f;
++        background:#e7f1ee; color:#1d1d1f;
+         font-family:'MapleBright','SF Pro Text','PingFang SC','Microsoft YaHei UI','Microsoft YaHei',sans-serif;
+         transition: background 0.3s, color 0.3s;
+       }
+       [data-theme="dark"] #app-loader {
+-        background:#100f0c; color:#f5f5f7;
++        background:#10191b; color:#f5f5f7;
+       }
+       .loader-spinner {
+         width:36px; height:36px;
+-        border:3px solid rgba(29,29,31,0.12); border-top-color:#0071e3;
++        border:3px solid rgba(29,29,31,0.12); border-top-color:#156f4e;
+         border-radius:50%; animation:spin .8s linear infinite;
+       }
+       [data-theme="dark"] .loader-spinner {
+-        border-color:rgba(255,255,255,0.12); border-top-color:#f0a32b;
++        border-color:rgba(255,255,255,0.12); border-top-color:#85d5b1;
+       }
+       .loader-text { font-size:14px; opacity:0.7; }
+       .loader-text {
+diff --git a/ccr-ui/src/components/profiles/profile-editor-shell.css b/ccr-ui/src/components/profiles/profile-editor-shell.css
+index 5e2b16e8..be5888fe 100644
+--- a/ccr-ui/src/components/profiles/profile-editor-shell.css
++++ b/ccr-ui/src/components/profiles/profile-editor-shell.css
+@@ -130,7 +130,7 @@
+   width: 100%;
+   padding: 0.5rem 0.625rem;
+   border-radius: 6px;
+-  border: 1px solid var(--cp-line-2, var(--color-border-default));
++  border: 1px solid var(--color-border-strong);
+   background: var(--cp-bg-0, var(--color-bg-base));
+   color: var(--cp-ink-0, var(--color-text-primary));
+   font-family: inherit;
+@@ -148,7 +148,7 @@
+ .pe-input:focus,
+ .pe-textarea:focus,
+ .pe-select:focus {
+-  border-color: var(--cp-accent-line, rgb(var(--color-accent-primary-rgb) / 35%));
++  border-color: var(--color-accent-primary);
+   box-shadow: 0 0 0 3px rgb(var(--color-accent-primary-rgb) / 10%);
+ }
+ 
+@@ -160,7 +160,7 @@
+ .pe-input--invalid,
+ .pe-textarea--invalid,
+ .pe-select--invalid {
+-  border-color: rgb(var(--color-danger-rgb) / 55%);
++  border-color: var(--color-danger);
+ }
+ 
+ /* 等宽变体：base_url / token / model 等需要逐字符核对的字段 */
+@@ -194,13 +194,13 @@
+ .pe-modal {
+   width: min(45rem, calc(100vw - 2rem));
+   max-height: 90vh;
+-  background: var(--material-glass-floating-bg);
+-  border: 1px solid var(--material-glass-floating-border);
+-  box-shadow: var(--material-glass-floating-shadow);
+-  backdrop-filter: var(--material-glass-floating-blur);
++  background: var(--surface-modal-bg);
++  border: 1px solid var(--surface-modal-border);
++  box-shadow: var(--surface-modal-shadow);
++  backdrop-filter: var(--surface-modal-blur);
+ 
+   /* stylelint-disable-next-line property-no-vendor-prefix */
+-  -webkit-backdrop-filter: var(--material-glass-floating-blur);
++  -webkit-backdrop-filter: var(--surface-modal-blur);
+   color: var(--cp-ink-0, var(--color-text-primary));
+ }
+ 
+diff --git a/ccr-ui/src/features/agent-sessions/AgentSessionTranscript.tsx b/ccr-ui/src/features/agent-sessions/AgentSessionTranscript.tsx
+index a23704f9..03715649 100644
+--- a/ccr-ui/src/features/agent-sessions/AgentSessionTranscript.tsx
++++ b/ccr-ui/src/features/agent-sessions/AgentSessionTranscript.tsx
+@@ -142,7 +142,7 @@ export const AgentSessionTranscript = memo(function AgentSessionTranscript({
+           <SIcon name="Search" size="w-4 h-4" className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+           <input
+             type="search"
+-            className="w-full rounded-xl border border-border-default/30 bg-bg-elevated py-2 pr-3 pl-9 text-sm text-text-primary"
++            className="w-full rounded-xl border border-border-interactive bg-bg-elevated focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary py-2 pr-3 pl-9 text-sm text-text-primary"
+             placeholder={t('agentSessions.localFindHint')}
+             {...findForm.register('q')}
+           />
+diff --git a/ccr-ui/src/features/agent-sessions/AgentSessionsView.tsx b/ccr-ui/src/features/agent-sessions/AgentSessionsView.tsx
+index 78df2073..becb504d 100644
+--- a/ccr-ui/src/features/agent-sessions/AgentSessionsView.tsx
++++ b/ccr-ui/src/features/agent-sessions/AgentSessionsView.tsx
+@@ -310,23 +310,23 @@ export function AgentSessionsView() {
+           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(16rem,2fr)_minmax(12rem,1.5fr)_repeat(4,minmax(8rem,1fr))]">
+             <label className="block">
+               <span className="mb-1 block text-xs font-medium text-text-muted">{t('agentSessions.search')}</span>
+-              <input type="search" className="w-full rounded-xl border border-border-default/30 bg-bg-elevated px-3 py-2 text-sm text-text-primary" placeholder={t('agentSessions.searchPlaceholder')} {...filterForm.register('q')} />
++              <input type="search" className="w-full rounded-xl border border-border-interactive bg-bg-elevated focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary px-3 py-2 text-sm text-text-primary" placeholder={t('agentSessions.searchPlaceholder')} {...filterForm.register('q')} />
+             </label>
+             <label className="block">
+               <span className="mb-1 block text-xs font-medium text-text-muted">{t('agentSessions.cwd')}</span>
+-              <input type="text" className="w-full rounded-xl border border-border-default/30 bg-bg-elevated px-3 py-2 text-sm text-text-primary" placeholder={t('agentSessions.cwdPlaceholder')} {...filterForm.register('cwd')} />
++              <input type="text" className="w-full rounded-xl border border-border-interactive bg-bg-elevated focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary px-3 py-2 text-sm text-text-primary" placeholder={t('agentSessions.cwdPlaceholder')} {...filterForm.register('cwd')} />
+             </label>
+             <label className="block">
+               <span className="mb-1 block text-xs font-medium text-text-muted">{t('agentSessions.startedAt')}</span>
+-              <input type="date" className="w-full rounded-xl border border-border-default/30 bg-bg-elevated px-3 py-2 text-sm text-text-primary" {...filterForm.register('startedAt')} />
++              <input type="date" className="w-full rounded-xl border border-border-interactive bg-bg-elevated focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary px-3 py-2 text-sm text-text-primary" {...filterForm.register('startedAt')} />
+             </label>
+             <label className="block">
+               <span className="mb-1 block text-xs font-medium text-text-muted">{t('agentSessions.endedAt')}</span>
+-              <input type="date" className="w-full rounded-xl border border-border-default/30 bg-bg-elevated px-3 py-2 text-sm text-text-primary" {...filterForm.register('endedAt')} />
++              <input type="date" className="w-full rounded-xl border border-border-interactive bg-bg-elevated focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary px-3 py-2 text-sm text-text-primary" {...filterForm.register('endedAt')} />
+             </label>
+             <label className="block">
+               <span className="mb-1 block text-xs font-medium text-text-muted">{t('agentSessions.state')}</span>
+-              <select className="w-full rounded-xl border border-border-default/30 bg-bg-elevated px-3 py-2 text-sm text-text-primary" {...filterForm.register('sourceState')}>
++              <select className="w-full rounded-xl border border-border-interactive bg-bg-elevated focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary px-3 py-2 text-sm text-text-primary" {...filterForm.register('sourceState')}>
+                 <option value="all">{t('agentSessions.all')}</option>
+                 <option value="live">{t('agentSessions.live')}</option>
+                 <option value="missing">{t('agentSessions.missing')}</option>
+@@ -335,7 +335,7 @@ export function AgentSessionsView() {
+             </label>
+             <label className="block">
+               <span className="mb-1 block text-xs font-medium text-text-muted">{t('agentSessions.fidelity')}</span>
+-              <select className="w-full rounded-xl border border-border-default/30 bg-bg-elevated px-3 py-2 text-sm text-text-primary" {...filterForm.register('fidelity')}>
++              <select className="w-full rounded-xl border border-border-interactive bg-bg-elevated focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary px-3 py-2 text-sm text-text-primary" {...filterForm.register('fidelity')}>
+                 <option value="all">{t('agentSessions.all')}</option>
+                 <option value="full">{t('agentSessions.full')}</option>
+                 <option value="partial">{t('agentSessions.partial')}</option>
+diff --git a/ccr-ui/src/features/checkin/styles/accounts.css b/ccr-ui/src/features/checkin/styles/accounts.css
+index 5e5d979d..69cfa991 100644
+--- a/ccr-ui/src/features/checkin/styles/accounts.css
++++ b/ccr-ui/src/features/checkin/styles/accounts.css
+@@ -40,14 +40,14 @@
+ 
+ .checkin-accounts-tab__input {
+   border-radius: 0.75rem;
+-  border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 72%);
++  border: var(--space-px) solid var(--color-border-interactive);
+   color: var(--text-primary);
+   transition:
+     border-color 0.2s ease,
+     box-shadow 0.2s ease,
+     background-color 0.2s ease,
+     transform 0.2s ease;
+-  background: rgb(var(--color-bg-elevated-rgb) / 36%);
++  background: var(--color-bg-elevated);
+   padding: 0.625rem 0.75rem;
+   font-size: 0.875rem;
+ }
+@@ -57,9 +57,9 @@
+ }
+ 
+ .checkin-accounts-tab__input:focus {
+-  outline: none;
+-  border-color: rgb(var(--color-accent-primary-rgb) / 88%);
+-  box-shadow: var(--shadow-md);
++  outline: 0.125rem solid var(--color-accent-primary);
++  outline-offset: 0.125rem;
++  border-color: var(--color-accent-primary);
+ }
+ 
+ .checkin-accounts-tab__input--search {
+@@ -283,13 +283,13 @@
+   border-radius: var(--radius-lg);
+   border: var(--space-px) solid transparent;
+   color: var(--text-muted);
+-  background: rgb(var(--color-bg-elevated-rgb) / 20%);
++  background: var(--color-bg-elevated);
+ }
+ 
+ .checkin-accounts-tab__menu-trigger:hover,
+ .checkin-accounts-tab__menu-trigger--active {
+   border-color: rgb(var(--color-accent-primary-rgb) / 30%);
+-  background: rgb(var(--color-bg-elevated-rgb) / 52%);
++  background: var(--color-bg-elevated);
+   color: var(--text-primary);
+ }
+ 
+diff --git a/ccr-ui/src/features/checkin/styles/calendar.css b/ccr-ui/src/features/checkin/styles/calendar.css
+index cac5708d..b9ed969d 100644
+--- a/ccr-ui/src/features/checkin/styles/calendar.css
++++ b/ccr-ui/src/features/checkin/styles/calendar.css
+@@ -28,7 +28,7 @@
+   justify-content: center;
+   min-height: 11rem;
+   border-radius: 1rem;
+-  background: rgb(var(--color-bg-elevated-rgb) / 56%);
++  background: var(--color-bg-elevated);
+   border: var(--space-px) dashed rgb(var(--color-border-default-rgb) / 78%);
+   color: var(--text-secondary);
+ }
+@@ -55,7 +55,7 @@
+ }
+ 
+ .cell-unchecked {
+-  background: rgb(var(--color-bg-elevated-rgb) / 62%);
++  background: var(--color-bg-elevated);
+   border-color: rgb(var(--color-border-default-rgb) / 56%);
+ }
+ 
+diff --git a/ccr-ui/src/features/checkin/styles/records.css b/ccr-ui/src/features/checkin/styles/records.css
+index 7eb4492c..57f0ae8c 100644
+--- a/ccr-ui/src/features/checkin/styles/records.css
++++ b/ccr-ui/src/features/checkin/styles/records.css
+@@ -58,7 +58,7 @@
+ .checkin-records__history-button {
+   border: var(--space-px) solid rgb(var(--color-danger-rgb) / 30%);
+   border-radius: 0.375rem;
+-  background: rgb(var(--color-bg-surface-rgb) / 80%);
++  background: var(--color-bg-surface);
+   padding: 0.25rem 0.5rem;
+   font-size: 0.75rem;
+   color: rgb(var(--color-danger-rgb) / 82%);
+@@ -149,6 +149,6 @@
+ .checkin-records__history-item {
+   border: var(--space-px) solid rgb(var(--color-danger-rgb) / 30%);
+   border-radius: 0.375rem;
+-  background: rgb(var(--color-bg-surface-rgb) / 70%);
++  background: var(--color-bg-surface);
+   padding: 0.75rem;
+ }
+diff --git a/ccr-ui/src/features/checkin/styles/trend.css b/ccr-ui/src/features/checkin/styles/trend.css
+index 16da7eb8..844768be 100644
+--- a/ccr-ui/src/features/checkin/styles/trend.css
++++ b/ccr-ui/src/features/checkin/styles/trend.css
+@@ -4,7 +4,7 @@
+   justify-content: center;
+   min-height: 14rem;
+   border-radius: 1rem;
+-  background: rgb(var(--color-bg-elevated-rgb) / 52%);
++  background: var(--color-bg-elevated);
+   border: var(--space-px) dashed rgb(var(--color-border-default-rgb) / 78%);
+   color: var(--text-secondary);
+ }
+diff --git a/ccr-ui/src/features/claude/ClaudeSlashCommandsView.tsx b/ccr-ui/src/features/claude/ClaudeSlashCommandsView.tsx
+index e26779c9..7861b4c2 100644
+--- a/ccr-ui/src/features/claude/ClaudeSlashCommandsView.tsx
++++ b/ccr-ui/src/features/claude/ClaudeSlashCommandsView.tsx
+@@ -177,10 +177,10 @@ export function ClaudeSlashCommandsView() {
+         }
+       >
+         <div className="grid gap-3">
+-          <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder={t('common.name')} {...register('name')} />
+-          <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2 font-mono" placeholder={t('common.command')} {...register('command')} />
+-          <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder={t('common.description')} {...register('description')} />
+-          <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder="folder" {...register('folder')} />
++          <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder={t('common.name')} {...register('name')} />
++          <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2 font-mono" placeholder={t('common.command')} {...register('command')} />
++          <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder={t('common.description')} {...register('description')} />
++          <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder="folder" {...register('folder')} />
+         </div>
+       </BaseModal>
+     </PageShell>
+diff --git a/ccr-ui/src/features/claude/OutputStylesView.tsx b/ccr-ui/src/features/claude/OutputStylesView.tsx
+index 3fe4a1ec..a61c4a06 100644
+--- a/ccr-ui/src/features/claude/OutputStylesView.tsx
++++ b/ccr-ui/src/features/claude/OutputStylesView.tsx
+@@ -199,11 +199,11 @@ export function OutputStylesView() {
+       >
+         <label className="grid gap-2 text-sm font-semibold">
+           <span>{t('outputStyles.name')}</span>
+-          <input type="text" className="rounded-lg border border-border-default bg-bg-surface px-3 py-2" {...register('name')} />
++          <input type="text" className="rounded-lg border border-border-strong bg-bg-surface px-3 py-2" {...register('name')} />
+         </label>
+         <label className="mt-4 grid gap-2 text-sm font-semibold">
+           <span>{t('outputStyles.content')}</span>
+-          <textarea rows={12} className="rounded-lg border border-border-default bg-bg-surface px-3 py-2 font-mono text-sm" {...register('content')} />
++          <textarea rows={12} className="rounded-lg border border-border-strong bg-bg-surface px-3 py-2 font-mono text-sm" {...register('content')} />
+         </label>
+       </BaseModal>
+       <BaseModal
+diff --git a/ccr-ui/src/features/claude/hooks/HookGroupModal.tsx b/ccr-ui/src/features/claude/hooks/HookGroupModal.tsx
+index c1b630b2..a606e173 100644
+--- a/ccr-ui/src/features/claude/hooks/HookGroupModal.tsx
++++ b/ccr-ui/src/features/claude/hooks/HookGroupModal.tsx
+@@ -23,7 +23,7 @@ interface HookGroupModalProps {
+ }
+ 
+ const inputClass =
+-  'w-full rounded-lg border border-border-default bg-bg-surface px-4 py-2.5 outline-none focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary'
++  'w-full rounded-lg border border-border-strong bg-bg-surface px-4 py-2.5 outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary'
+ const labelClass = 'mb-1.5 block text-sm font-semibold text-text-secondary'
+ 
+ function HandlerFields({
+diff --git a/ccr-ui/src/features/codex/ui-classes.ts b/ccr-ui/src/features/codex/ui-classes.ts
+index 254c1795..c9486dc3 100644
+--- a/ccr-ui/src/features/codex/ui-classes.ts
++++ b/ccr-ui/src/features/codex/ui-classes.ts
+@@ -1,8 +1,8 @@
+ import { cn } from '@/ui'
+ 
+ export const fieldInputClass = cn(
+-  'input w-full rounded-xl border border-border-default/55 bg-bg-elevated px-3 py-2 text-sm text-text-primary outline-none',
+-  'placeholder:text-text-ghost focus:border-accent-primary/40',
++  'input w-full rounded-xl border border-border-strong bg-bg-elevated px-3 py-2 text-sm text-text-primary outline-none',
++  'placeholder:text-text-ghost focus:border-accent-primary',
+   'disabled:cursor-not-allowed disabled:opacity-50',
+ )
+ 
+diff --git a/ccr-ui/src/features/commands/styles/commands-view.css b/ccr-ui/src/features/commands/styles/commands-view.css
+index 1061ec34..5d42c98c 100644
+--- a/ccr-ui/src/features/commands/styles/commands-view.css
++++ b/ccr-ui/src/features/commands/styles/commands-view.css
+@@ -19,7 +19,7 @@
+   padding: 0.875rem;
+   border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 36%);
+   border-radius: 1rem;
+-  background: rgb(var(--color-bg-elevated-rgb) / 72%);
++  background: var(--color-bg-elevated);
+ }
+ 
+ .commands-chip {
+@@ -32,7 +32,7 @@
+   font-size: 0.6875rem;
+   font-weight: 500;
+   color: var(--color-text-secondary);
+-  background-color: rgb(var(--color-bg-elevated-rgb) / 72%);
++  background-color: var(--color-bg-elevated);
+ }
+ 
+ .commands-chip--success {
+@@ -87,7 +87,7 @@
+   padding: 0.5rem 0.75rem;
+   font-size: 0.75rem;
+   color: var(--color-text-secondary);
+-  background-color: rgb(var(--color-bg-elevated-rgb) / 56%);
++  background-color: var(--color-bg-elevated);
+ }
+ 
+ .commands-source-tabs__item--active,
+@@ -179,10 +179,18 @@
+ .commands-field select {
+   min-height: 2.5rem;
+   border-radius: 1rem;
+-  border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 60%);
++  border: var(--space-px) solid var(--color-border-interactive);
++  background: var(--color-bg-elevated);
++  color: var(--color-text-primary);
+   padding: 0.5rem 0.75rem;
+ }
+ 
++.commands-field input:focus-visible,
++.commands-field select:focus-visible {
++  outline: 0.125rem solid var(--color-accent-primary);
++  outline-offset: 0.125rem;
++}
++
+ .commands-danger-confirm {
+   display: flex;
+   align-items: start;
+diff --git a/ccr-ui/src/features/configs/ConfigsView.tsx b/ccr-ui/src/features/configs/ConfigsView.tsx
+index 91029c3f..7791924b 100644
+--- a/ccr-ui/src/features/configs/ConfigsView.tsx
++++ b/ccr-ui/src/features/configs/ConfigsView.tsx
+@@ -128,7 +128,7 @@ export function ConfigsView() {
+                 onShowProviderStats={page.openProvider}
+                 onAddConfig={page.openAdd}
+               />
+-              <button type="button" className="rounded-lg border border-border-default px-3 py-2" onClick={page.refresh}>
++              <button type="button" className="shrink-0 rounded-lg border border-border-strong px-3 py-2" onClick={page.refresh}>
+                 <SIcon name="RefreshCw" size="w-4 h-4" className={page.loading ? 'animate-spin' : ''} />
+               </button>
+             </div>
+diff --git a/ccr-ui/src/features/configs/components/ConfigBadges.tsx b/ccr-ui/src/features/configs/components/ConfigBadges.tsx
+index ecd7483a..5e002091 100644
+--- a/ccr-ui/src/features/configs/components/ConfigBadges.tsx
++++ b/ccr-ui/src/features/configs/components/ConfigBadges.tsx
+@@ -7,12 +7,12 @@ export function ConfigBadges({ config }: { config: ConfigItem }) {
+   return (
+     <div className="flex shrink-0 gap-1.5">
+       {config.is_current ? (
+-        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-2 py-0.5 text-[0.625rem] font-bold tracking-wider text-emerald-400 uppercase ring-1 ring-emerald-400/20">
++        <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--color-success-tint)] px-2 py-0.5 text-[0.625rem] font-bold tracking-wider text-success uppercase ring-1 ring-success/20">
+           {t('configs.currentBadge')}
+         </span>
+       ) : null}
+       {config.is_default ? (
+-        <span className="inline-flex items-center rounded-full bg-amber-400/10 px-2 py-0.5 text-[0.625rem] font-bold tracking-wider text-amber-400 uppercase ring-1 ring-amber-400/20">
++        <span className="inline-flex items-center rounded-full bg-bg-overlay px-2 py-0.5 text-[0.625rem] font-bold tracking-wider text-text-secondary uppercase ring-1 ring-border-default">
+           {t('configs.defaultBadge')}
+         </span>
+       ) : null}
+@@ -38,8 +38,8 @@ export function ConfigMetaChips({ config }: { config: ConfigItem }) {
+       ) : null}
+       {(config.usage_count ?? 0) > 0 ? (
+         <div className="meta-chip">
+-          <SIcon name="TrendingUp" size="w-3 h-3" className="text-accent-secondary opacity-70" />
+-          <span className="font-bold text-accent-secondary">{config.usage_count}</span>
++          <SIcon name="TrendingUp" size="w-3 h-3" className="text-text-secondary opacity-70" />
++          <span className="font-bold text-text-secondary">{config.usage_count}</span>
+         </div>
+       ) : null}
+     </div>
+diff --git a/ccr-ui/src/features/configs/components/ConfigCard.tsx b/ccr-ui/src/features/configs/components/ConfigCard.tsx
+index 5dfea180..9d8c75da 100644
+--- a/ccr-ui/src/features/configs/components/ConfigCard.tsx
++++ b/ccr-ui/src/features/configs/components/ConfigCard.tsx
+@@ -2,7 +2,6 @@ import { memo, useCallback } from 'react'
+ import type { ConfigItem } from '@/types'
+ import { SIcon } from '@/ui'
+ import { useAppT } from '@/i18n'
+-import { providerKind } from '../lib/configList'
+ import { ConfigBadges, ConfigMetaChips } from './ConfigBadges'
+ import '../styles/config-card.css'
+ 
+@@ -14,24 +13,6 @@ interface ConfigCardProps {
+   onEdit: (name: string) => void
+ }
+ 
+-const ACCENT: Record<string, string> = {
+-  official: 'bg-cyan-400 group-hover:bg-cyan-300',
+-  third: 'bg-violet-400 group-hover:bg-violet-300',
+-  uncategorized: 'bg-amber-400 group-hover:bg-amber-300',
+-}
+-
+-const AVATAR: Record<string, string> = {
+-  official: 'bg-gradient-to-br from-cyan-500 to-cyan-700',
+-  third: 'bg-gradient-to-br from-violet-500 to-violet-700',
+-  uncategorized: 'bg-gradient-to-br from-amber-500 to-amber-700',
+-}
+-
+-const NAME: Record<string, string> = {
+-  official: 'text-cyan-400 group-hover:text-cyan-300',
+-  third: 'text-violet-400 group-hover:text-violet-300',
+-  uncategorized: 'text-amber-400 group-hover:text-amber-300',
+-}
+-
+ export const ConfigCard = memo(function ConfigCard({
+   config,
+   highlighted,
+@@ -40,7 +21,6 @@ export const ConfigCard = memo(function ConfigCard({
+   onEdit,
+ }: ConfigCardProps) {
+   const t = useAppT()
+-  const kind = providerKind(config)
+   const handleEdit = useCallback(() => {
+     onEdit(config.name)
+   }, [config.name, onEdit])
+@@ -61,26 +41,26 @@ export const ConfigCard = memo(function ConfigCard({
+ 
+   return (
+     <div className={rowClass} data-config-name={config.name}>
+-      <div className={`accent-bar w-[0.1875rem] shrink-0 transition-colors duration-300 ${ACCENT[kind]}`} />
++      <div className="accent-bar w-[0.1875rem] shrink-0 bg-border-strong transition-colors duration-300 group-hover:bg-accent-primary" />
+       <button
+         type="button"
+-        className="config-row-main flex min-w-0 flex-1 items-center gap-4 px-5 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/35"
++        className="config-row-main flex min-w-0 flex-1 items-center gap-4 px-5 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary"
+         aria-label={`${t('common.edit')}: ${config.name}`}
+         onClick={handleEdit}
+       >
+         <div
+-          className={`avatar-wrapper relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-md transition-transform duration-300 group-hover:scale-105 ${AVATAR[kind]}`}
++          className="avatar-wrapper relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-bg-overlay text-sm font-bold text-text-primary transition-transform duration-300 group-hover:scale-105"
+         >
+           {config.provider?.[0]?.toUpperCase() || 'C'}
+           {config.is_current ? (
+-            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-bg-elevated bg-emerald-400 shadow-sm">
+-              <span className="absolute inset-0 rounded-full bg-emerald-400 opacity-60 animate-ping" />
++            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-bg-elevated bg-success shadow-sm">
++              <span className="absolute inset-0 rounded-full bg-success opacity-60 animate-ping" />
+             </span>
+           ) : null}
+         </div>
+         <div className="min-w-0 flex-1 space-y-1.5">
+           <div className="flex min-w-0 items-center gap-2.5">
+-            <h3 className={`truncate font-display text-sm font-bold transition-colors duration-300 ${NAME[kind]}`}>
++            <h3 className="truncate font-display text-sm font-bold text-text-primary transition-colors duration-300 group-hover:text-accent-primary">
+               {config.name}
+             </h3>
+             <ConfigBadges config={config} />
+@@ -93,7 +73,7 @@ export const ConfigCard = memo(function ConfigCard({
+       </button>
+       <div className="flex shrink-0 items-center gap-2 pr-4">
+         {config.is_current && config.enabled !== false ? (
+-          <span className="inline-flex cursor-default items-center gap-1 rounded-lg bg-emerald-400/5 px-3 py-1.5 text-xs font-bold text-emerald-400/70">
++          <span className="inline-flex cursor-default items-center gap-1 rounded-lg bg-success/5 px-3 py-1.5 text-xs font-bold text-success">
+             <SIcon name="CheckCircle" size="w-3.5 h-3.5" />
+             {t('configs.inUse')}
+           </span>
+diff --git a/ccr-ui/src/features/configs/components/ConfigFilters.tsx b/ccr-ui/src/features/configs/components/ConfigFilters.tsx
+index 39439441..4ed72143 100644
+--- a/ccr-ui/src/features/configs/components/ConfigFilters.tsx
++++ b/ccr-ui/src/features/configs/components/ConfigFilters.tsx
+@@ -31,24 +31,24 @@ export const ConfigFilters = memo(function ConfigFilters({
+   const t = useAppT()
+   const filters = useMemo(
+     () => [
+-      { type: 'all' as const, label: t('configs.filters.all'), icon: 'LayoutGrid', iconColor: 'text-emerald-400' },
++      { type: 'all' as const, label: t('configs.filters.all'), icon: 'LayoutGrid', iconColor: 'text-accent-primary' },
+       {
+         type: 'official_relay' as const,
+         label: t('configs.filters.officialRelay'),
+         icon: 'Zap',
+-        iconColor: 'text-cyan-400',
++        iconColor: 'text-accent-info',
+       },
+       {
+         type: 'third_party_model' as const,
+         label: t('configs.filters.thirdPartyModel'),
+         icon: 'Cpu',
+-        iconColor: 'text-violet-400',
++        iconColor: 'text-text-secondary',
+       },
+       {
+         type: 'uncategorized' as const,
+         label: t('configs.filters.uncategorized'),
+         icon: 'HelpCircle',
+-        iconColor: 'text-amber-400',
++        iconColor: 'text-text-muted',
+       },
+     ],
+     [t],
+@@ -63,7 +63,7 @@ export const ConfigFilters = memo(function ConfigFilters({
+   )
+ 
+   return (
+-    <div className="mb-6 flex items-center gap-4">
++    <div className="mb-6 flex min-w-0 flex-1 flex-wrap items-center gap-4">
+       <div className="glass-filter-container flex flex-1 gap-2 rounded-2xl p-1.5">
+         {filters.map((filter) => (
+           <FilterChip
+@@ -77,7 +77,7 @@ export const ConfigFilters = memo(function ConfigFilters({
+           />
+         ))}
+       </div>
+-      <div className="flex items-center gap-3">
++      <div className="flex flex-wrap items-center gap-3">
+         <div className="flex items-center gap-2">
+           <label className="whitespace-nowrap text-sm font-medium text-text-primary">{t('configs.sort.label')}</label>
+           <div className="relative">
+diff --git a/ccr-ui/src/features/configs/components/ConfigFormFields.tsx b/ccr-ui/src/features/configs/components/ConfigFormFields.tsx
+index a7986490..1cab79ad 100644
+--- a/ccr-ui/src/features/configs/components/ConfigFormFields.tsx
++++ b/ccr-ui/src/features/configs/components/ConfigFormFields.tsx
+@@ -5,7 +5,7 @@ import { t, tt } from '../locale'
+ import type { ConfigFormValues } from '../lib/configForm'
+ 
+ const inputClass =
+-  'w-full rounded-xl border border-border-default bg-bg-elevated py-2.5 pr-4 pl-10 text-sm text-text-primary outline-none focus:ring-2 focus:ring-accent-primary/20'
++  'w-full rounded-xl border border-border-strong bg-bg-elevated py-2.5 pr-4 pl-10 text-sm text-text-primary outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20'
+ 
+ interface LabeledFieldProps {
+   label: string
+diff --git a/ccr-ui/src/features/configs/lib/configList.ts b/ccr-ui/src/features/configs/lib/configList.ts
+index e25e565b..6c90e90a 100644
+--- a/ccr-ui/src/features/configs/lib/configList.ts
++++ b/ccr-ui/src/features/configs/lib/configList.ts
+@@ -68,43 +68,36 @@ export function buildConfigSummary(configs: ConfigItem[], translate: TranslateFu
+       label: translate('configs.filters.all'),
+       count: configs.length,
+       icon: 'LayoutGrid',
+-      activeClass: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
++      activeClass: 'border-accent-primary bg-bg-elevated text-text-primary',
+       idleClass:
+-        'border-border-default/50 bg-bg-elevated text-text-secondary hover:border-emerald-400/20 hover:text-text-primary',
++        'border-border-default/50 bg-bg-elevated text-text-secondary hover:border-accent-primary hover:text-text-primary',
+     },
+     {
+       key: 'official_relay',
+       label: translate('configs.filters.officialRelay'),
+       count: configs.filter((config) => config.provider_type?.toLowerCase().includes('official')).length,
+       icon: 'Zap',
+-      activeClass: 'border-cyan-400/30 bg-cyan-400/10 text-cyan-300',
++      activeClass: 'border-accent-primary bg-bg-elevated text-text-primary',
+       idleClass:
+-        'border-border-default/50 bg-bg-elevated text-text-secondary hover:border-cyan-400/20 hover:text-text-primary',
++        'border-border-default/50 bg-bg-elevated text-text-secondary hover:border-accent-primary hover:text-text-primary',
+     },
+     {
+       key: 'third_party_model',
+       label: translate('configs.filters.thirdPartyModel'),
+       count: configs.filter((config) => config.provider_type?.toLowerCase().includes('third')).length,
+       icon: 'Cpu',
+-      activeClass: 'border-violet-400/30 bg-violet-400/10 text-violet-300',
++      activeClass: 'border-accent-primary bg-bg-elevated text-text-primary',
+       idleClass:
+-        'border-border-default/50 bg-bg-elevated text-text-secondary hover:border-violet-400/20 hover:text-text-primary',
++        'border-border-default/50 bg-bg-elevated text-text-secondary hover:border-accent-primary hover:text-text-primary',
+     },
+     {
+       key: 'uncategorized',
+       label: translate('configs.filters.uncategorized'),
+       count: configs.filter((config) => !config.provider_type).length,
+       icon: 'HelpCircle',
+-      activeClass: 'border-amber-400/30 bg-amber-400/10 text-amber-300',
++      activeClass: 'border-accent-primary bg-bg-elevated text-text-primary',
+       idleClass:
+-        'border-border-default/50 bg-bg-elevated text-text-secondary hover:border-amber-400/20 hover:text-text-primary',
++        'border-border-default/50 bg-bg-elevated text-text-secondary hover:border-accent-primary hover:text-text-primary',
+     },
+   ]
+ }
+-
+-export function providerKind(config: ConfigItem): 'official' | 'third' | 'uncategorized' {
+-  const type = config.provider_type?.toLowerCase() || ''
+-  if (type.includes('official')) return 'official'
+-  if (type.includes('third')) return 'third'
+-  return 'uncategorized'
+-}
+diff --git a/ccr-ui/src/features/configs/lib/flavorPreview.ts b/ccr-ui/src/features/configs/lib/flavorPreview.ts
+index bd9c1d01..58a6f024 100644
+--- a/ccr-ui/src/features/configs/lib/flavorPreview.ts
++++ b/ccr-ui/src/features/configs/lib/flavorPreview.ts
+@@ -10,12 +10,12 @@ interface SurfacePreviewTokens {
+ 
+ const FLAVOR_PREVIEW_TOKENS: Record<FlavorMode, { light: SurfacePreviewTokens; dark: SurfacePreviewTokens }> = {
+   neutral: {
+-    light: { base: '#e9e4d8', elevated: '#f2eee3', surface: '#faf7ec', text: '#211c12', muted: '#6b6150' },
+-    dark: { base: '#100f0c', elevated: '#171410', surface: '#1f1b14', text: '#e9e1d1', muted: '#a1937c' },
++    light: { base: '#e7f1ee', elevated: '#f2f7f5', surface: '#fff', text: '#1e2932', muted: '#5c6b76' },
++    dark: { base: '#10191b', elevated: '#172225', surface: '#1d292c', text: '#f0f8f5', muted: '#9fafa9' },
+   },
+   clay: {
+-    light: { base: '#ebe1d0', elevated: '#f5eee1', surface: '#fefaf2', text: '#31241c', muted: '#715d4c' },
+-    dark: { base: '#17120f', elevated: '#221b18', surface: '#2a221e', text: '#f3eadf', muted: '#b9a695' },
++    light: { base: '#eae6f2', elevated: '#f5f2fa', surface: '#fefcff', text: '#222630', muted: '#686477' },
++    dark: { base: '#171722', elevated: '#20212e', surface: '#282a38', text: '#f5f4fc', muted: '#b0adbf' },
+   },
+ }
+ 
+diff --git a/ccr-ui/src/features/configs/styles/app-settings.css b/ccr-ui/src/features/configs/styles/app-settings.css
+index 27b8e208..badcebbc 100644
+--- a/ccr-ui/src/features/configs/styles/app-settings.css
++++ b/ccr-ui/src/features/configs/styles/app-settings.css
+@@ -460,7 +460,7 @@
+ .app-settings-font-input {
+   @apply w-full rounded-lg border px-3 py-2 text-sm;
+ 
+-  border-color: var(--color-border-default);
++  border-color: var(--color-border-strong);
+   background: var(--color-bg-surface);
+   color: var(--color-text-primary);
+ }
+diff --git a/ccr-ui/src/features/configs/styles/config-card.css b/ccr-ui/src/features/configs/styles/config-card.css
+index 75c73d9d..554b00e8 100644
+--- a/ccr-ui/src/features/configs/styles/config-card.css
++++ b/ccr-ui/src/features/configs/styles/config-card.css
+@@ -1,8 +1,8 @@
+ .config-row {
+-  background: var(--liquid-glass-bg);
+-  backdrop-filter: var(--liquid-glass-blur);
+-  border: var(--space-px) solid var(--liquid-glass-border);
+-  box-shadow: var(--liquid-glass-highlight);
++  background: var(--surface-card-bg);
++  backdrop-filter: var(--surface-card-blur);
++  border: var(--space-px) solid var(--surface-card-border);
++  box-shadow: var(--surface-card-shadow);
+ }
+ 
+ .config-row-main {
+@@ -15,14 +15,14 @@
+ }
+ 
+ .config-row:hover {
+-  background: var(--glass-bg-medium);
+-  border-color: var(--glass-border-medium);
+-  box-shadow: var(--liquid-glass-shadow);
++  background: var(--color-bg-elevated);
++  border-color: var(--color-border-default);
++  box-shadow: var(--surface-card-shadow);
+   transform: translateX(0.125rem);
+ }
+ 
+ .config-row--current {
+-  background: rgb(var(--color-accent-primary-rgb) / 10%);
++  background: color-mix(in srgb, var(--color-accent-primary) 10%, var(--surface-card-bg));
+   border-color: rgb(var(--color-accent-primary-rgb) / 24%);
+   box-shadow: none;
+ }
+@@ -45,14 +45,14 @@
+   font-size: 0.6875rem;
+   font-family: var(--font-mono);
+   color: var(--color-text-secondary);
+-  background: var(--glass-bg-light);
++  background: var(--color-bg-elevated);
+   border: var(--space-px) solid var(--color-border-subtle);
+   white-space: nowrap;
+   transition: background-color 0.2s, border-color 0.2s;
+ }
+ 
+ .config-row:hover .meta-chip {
+-  background: var(--glass-bg-medium);
++  background: var(--color-bg-overlay);
+   border-color: var(--color-border-default);
+ }
+ 
+@@ -69,7 +69,7 @@
+ 
+ .config-row .edit-btn:hover {
+   color: var(--color-accent-primary);
+-  background: var(--glass-bg-medium);
++  background: var(--color-bg-overlay);
+ }
+ 
+ .config-row.highlight-pulse {
+diff --git a/ccr-ui/src/features/configs/styles/config-filters.css b/ccr-ui/src/features/configs/styles/config-filters.css
+index c0a8ce57..6a61ad6a 100644
+--- a/ccr-ui/src/features/configs/styles/config-filters.css
++++ b/ccr-ui/src/features/configs/styles/config-filters.css
+@@ -1,18 +1,21 @@
+ .glass-filter-container {
++  flex-wrap: wrap;
++  min-width: 0;
+   background: var(--surface-status-bg);
+   backdrop-filter: var(--surface-status-blur);
+-  border: var(--space-px) solid var(--surface-status-border);
++  border: var(--space-px) solid var(--color-border-strong);
+   box-shadow: var(--shadow-sm);
+ }
+ 
+ .filter-btn {
++  white-space: nowrap;
+   background: transparent;
+   color: var(--text-secondary);
+   border: var(--space-px) solid transparent;
+ }
+ 
+ .filter-btn:hover:not(.filter-btn-active) {
+-  background: var(--glass-bg-medium);
++  background: var(--color-bg-overlay);
+   color: var(--text-primary);
+ }
+ 
+@@ -26,7 +29,7 @@
+ .sort-select {
+   background: var(--surface-status-bg);
+   backdrop-filter: var(--surface-status-blur);
+-  border: var(--space-px) solid var(--surface-status-border);
++  border: var(--space-px) solid var(--color-border-strong);
+   color: var(--text-primary);
+   min-width: 8.75rem;
+ }
+@@ -38,17 +41,17 @@
+ 
+ .sort-select:focus {
+   outline: none;
+-  box-shadow: 0 0 0 0.1875rem rgb(var(--color-accent-primary-rgb) / 15%);
++  box-shadow: 0 0 0 0.1875rem var(--color-accent-primary);
+ }
+ 
+ .stats-btn {
+-  background: var(--glass-bg-light);
+-  border: var(--space-px) solid var(--glass-border-light);
++  background: var(--color-bg-elevated);
++  border: var(--space-px) solid var(--color-border-default);
+   color: var(--text-secondary);
+ }
+ 
+ .stats-btn:hover {
+-  background: var(--glass-bg-medium);
++  background: var(--color-bg-overlay);
+   border-color: var(--color-accent-primary);
+   color: var(--color-accent-primary);
+ }
+diff --git a/ccr-ui/src/features/configs/styles/configs.css b/ccr-ui/src/features/configs/styles/configs.css
+index ab166e7d..a5e3cd4e 100644
+--- a/ccr-ui/src/features/configs/styles/configs.css
++++ b/ccr-ui/src/features/configs/styles/configs.css
+@@ -4,6 +4,7 @@
+ 
+ .configs-workspace {
+   display: flex;
++  min-width: 0;
+   min-height: 37.5rem;
+   height: fit-content;
+   flex-direction: column;
+@@ -16,7 +17,7 @@
+ .configs-search {
+   width: 100%;
+   border-radius: 0.75rem;
+-  border: var(--space-px) solid var(--color-border-default);
++  border: var(--space-px) solid var(--color-border-strong);
+   background: var(--color-bg-elevated);
+   padding: 0.625rem 1rem 0.625rem 2.5rem;
+   font-size: 0.875rem;
+@@ -25,6 +26,6 @@
+ }
+ 
+ .configs-search:focus {
+-  border-color: rgb(var(--color-accent-primary-rgb) / 50%);
+-  box-shadow: 0 0 0 0.125rem rgb(var(--color-accent-primary-rgb) / 20%);
++  border-color: var(--color-accent-primary);
++  box-shadow: 0 0 0 0.125rem var(--color-accent-primary);
+ }
+diff --git a/ccr-ui/src/features/configs/styles/converter.css b/ccr-ui/src/features/configs/styles/converter.css
+index ef91ab5f..12e7980f 100644
+--- a/ccr-ui/src/features/configs/styles/converter.css
++++ b/ccr-ui/src/features/configs/styles/converter.css
+@@ -235,7 +235,7 @@
+   width: 100%;
+   min-height: 18.75rem;
+   resize: none;
+-  border: var(--space-px) solid var(--color-border-subtle);
++  border: var(--space-px) solid var(--color-border-strong);
+   border-radius: 0.5rem;
+   padding: 0.5rem 0.75rem;
+   background: var(--color-bg-elevated);
+diff --git a/ccr-ui/src/features/configs/styles/provider-templates.css b/ccr-ui/src/features/configs/styles/provider-templates.css
+index a594a394..1ea5ecbf 100644
+--- a/ccr-ui/src/features/configs/styles/provider-templates.css
++++ b/ccr-ui/src/features/configs/styles/provider-templates.css
+@@ -227,7 +227,7 @@
+ .provider-template-editor__input,
+ .provider-template-editor__textarea {
+   width: 100%;
+-  border: var(--space-px) solid var(--template-line-strong);
++  border: var(--space-px) solid var(--color-border-strong);
+   border-radius: 0.75rem;
+   background: var(--template-bg-soft);
+   color: var(--template-text);
+@@ -243,7 +243,7 @@
+ .provider-template-modal__search-input:focus,
+ .provider-template-editor__input:focus,
+ .provider-template-editor__textarea:focus {
+-  border-color: var(--template-accent-line);
++  border-color: var(--color-accent-primary);
+   box-shadow: 0 0 0 0.1875rem rgb(var(--color-accent-primary-rgb) / 10%);
+ }
+ 
+diff --git a/ccr-ui/src/features/gemini/GeminiSlashCommandsView.tsx b/ccr-ui/src/features/gemini/GeminiSlashCommandsView.tsx
+index be5a884f..be58d0a5 100644
+--- a/ccr-ui/src/features/gemini/GeminiSlashCommandsView.tsx
++++ b/ccr-ui/src/features/gemini/GeminiSlashCommandsView.tsx
+@@ -171,10 +171,10 @@ export function GeminiSlashCommandsView() {
+         }
+       >
+         <div className="grid gap-3">
+-          <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder={t('common.name')} {...register('name')} />
+-          <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2 font-mono" placeholder={t('common.command')} {...register('command')} />
+-          <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder={t('common.description')} {...register('description')} />
+-          <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder="folder" {...register('folder')} />
++          <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder={t('common.name')} {...register('name')} />
++          <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2 font-mono" placeholder={t('common.command')} {...register('command')} />
++          <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder={t('common.description')} {...register('description')} />
++          <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder="folder" {...register('folder')} />
+         </div>
+       </BaseModal>
+     </PageShell>
+diff --git a/ccr-ui/src/features/mcp/styles/mcp-manager.css b/ccr-ui/src/features/mcp/styles/mcp-manager.css
+index 41141309..f9f4bd9f 100644
+--- a/ccr-ui/src/features/mcp/styles/mcp-manager.css
++++ b/ccr-ui/src/features/mcp/styles/mcp-manager.css
+@@ -52,8 +52,8 @@
+ }
+ 
+ .mcp-action--ghost {
+-  border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 48%);
+-  background: rgb(var(--color-bg-surface-rgb) / 56%);
++  border: var(--space-px) solid var(--color-border-strong);
++  background: var(--color-bg-surface);
+   color: var(--color-text-secondary);
+ }
+ 
+@@ -80,7 +80,7 @@
+ 
+ .mcp-alert--error {
+   border: var(--space-px) solid rgb(var(--color-danger-rgb) / 26%);
+-  background: rgb(var(--color-danger-rgb) / 8%);
++  background: var(--color-danger-tint);
+   color: var(--color-danger);
+ }
+ 
+diff --git a/ccr-ui/src/features/opencode/ui-classes.ts b/ccr-ui/src/features/opencode/ui-classes.ts
+index 58f96d77..4853460d 100644
+--- a/ccr-ui/src/features/opencode/ui-classes.ts
++++ b/ccr-ui/src/features/opencode/ui-classes.ts
+@@ -1,8 +1,8 @@
+ import { cn } from '@/ui'
+ 
+ export const fieldInputClass = cn(
+-  'w-full rounded-2xl border border-border-default/55 bg-bg-base px-4 py-3 text-sm text-text-primary outline-none',
+-  'placeholder:text-text-ghost focus:border-accent-primary/40',
++  'w-full rounded-2xl border border-border-strong bg-bg-base px-4 py-3 text-sm text-text-primary outline-none',
++  'placeholder:text-text-ghost focus:border-accent-primary',
+   'disabled:cursor-not-allowed disabled:opacity-50',
+ )
+ 
+diff --git a/ccr-ui/src/features/platform/agents/BaseAgents.tsx b/ccr-ui/src/features/platform/agents/BaseAgents.tsx
+index ab599165..e93c85d3 100644
+--- a/ccr-ui/src/features/platform/agents/BaseAgents.tsx
++++ b/ccr-ui/src/features/platform/agents/BaseAgents.tsx
+@@ -97,10 +97,10 @@ export function BaseAgents({ config, t: tProp }: BaseAgentsProps) {
+       )}
+       {showForm ? (
+         <form className="mt-4 grid gap-3 rounded-xl border border-border-default p-4" onSubmit={onCreate}>
+-          <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder={t('common.name')} {...form.register('name')} />
+-          <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder={t('common.description')} {...form.register('description')} />
++          <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder={t('common.name')} {...form.register('name')} />
++          <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder={t('common.description')} {...form.register('description')} />
+           {config.features.tomlValidate ? (
+-            <textarea className="rounded-xl border border-border-default bg-bg-base px-3 py-2 font-mono text-xs" {...form.register('body')} />
++            <textarea className="rounded-xl border border-border-strong bg-bg-base px-3 py-2 font-mono text-xs" {...form.register('body')} />
+           ) : null}
+           <div className="flex gap-2">
+             <Button type="submit" variant="primary" className="rounded-lg text-sm">
+diff --git a/ccr-ui/src/features/platform/commands/BaseCommands.tsx b/ccr-ui/src/features/platform/commands/BaseCommands.tsx
+index cae02e7a..5759f63f 100644
+--- a/ccr-ui/src/features/platform/commands/BaseCommands.tsx
++++ b/ccr-ui/src/features/platform/commands/BaseCommands.tsx
+@@ -102,8 +102,8 @@ export function BaseCommands({ config, t: tProp }: BaseCommandsProps) {
+       )}
+       {showForm ? (
+         <form className="mt-4 grid gap-3 rounded-xl border border-border-default p-4" onSubmit={onCreate}>
+-          <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder={t('common.name')} {...form.register('name')} />
+-          <textarea className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder={t('common.description')} {...form.register('template')} />
++          <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder={t('common.name')} {...form.register('name')} />
++          <textarea className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder={t('common.description')} {...form.register('template')} />
+           <div className="flex gap-2">
+             <Button type="submit" variant="primary" className="rounded-lg text-sm">
+               {t('common.save')}
+diff --git a/ccr-ui/src/features/platform/editor/styles/code-source-editor.css b/ccr-ui/src/features/platform/editor/styles/code-source-editor.css
+index 1aea66fa..26694b4c 100644
+--- a/ccr-ui/src/features/platform/editor/styles/code-source-editor.css
++++ b/ccr-ui/src/features/platform/editor/styles/code-source-editor.css
+@@ -1,6 +1,6 @@
+ .code-source-editor {
+   overflow: hidden;
+-  border: var(--space-px) solid var(--border-default);
++  border: var(--space-px) solid var(--color-border-strong);
+   border-radius: 0.375rem;
+   background: var(--bg-primary);
+ }
+diff --git a/ccr-ui/src/features/platform/mcp/BaseMcp.tsx b/ccr-ui/src/features/platform/mcp/BaseMcp.tsx
+index 4affe4d9..7dc9fcd8 100644
+--- a/ccr-ui/src/features/platform/mcp/BaseMcp.tsx
++++ b/ccr-ui/src/features/platform/mcp/BaseMcp.tsx
+@@ -119,17 +119,17 @@ export function BaseMcp({ config, t: tProp }: BaseMcpProps) {
+       )}
+       {showForm ? (
+         <form className="mt-4 grid gap-3 rounded-xl border border-border-default p-4" onSubmit={onCreate}>
+-          <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder={t('common.name')} {...form.register('name')} />
++          <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder={t('common.name')} {...form.register('name')} />
+           {transport === 'http' ? (
+-            <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder="url" {...form.register('url')} />
++            <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder="url" {...form.register('url')} />
+           ) : (
+-            <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder={t('common.command')} {...form.register('command')} />
++            <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder={t('common.command')} {...form.register('command')} />
+           )}
+           {config.features.startupPolicy ? (
+-            <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder="startupTimeoutMs" {...form.register('startupTimeoutMs')} />
++            <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder="startupTimeoutMs" {...form.register('startupTimeoutMs')} />
+           ) : null}
+           {config.features.authInjection ? (
+-            <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder="bearerTokenEnv" {...form.register('bearerTokenEnv')} />
++            <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder="bearerTokenEnv" {...form.register('bearerTokenEnv')} />
+           ) : null}
+           <div className="flex gap-2">
+             <Button type="submit" variant="primary" className="rounded-lg text-sm">
+diff --git a/ccr-ui/src/features/platform/mcp/McpCreatePanel.tsx b/ccr-ui/src/features/platform/mcp/McpCreatePanel.tsx
+index 411a6fbc..e0a94fac 100644
+--- a/ccr-ui/src/features/platform/mcp/McpCreatePanel.tsx
++++ b/ccr-ui/src/features/platform/mcp/McpCreatePanel.tsx
+@@ -68,7 +68,7 @@ function McpProtocolToggle({
+   }, [onIsHttpModeChange])
+ 
+   return (
+-    <div className="flex gap-1 rounded-xl border border-border-default/35 bg-bg-base/55 p-1">
++    <div className="flex gap-1 rounded-xl border border-border-default bg-bg-base p-1">
+       <button
+         type="button"
+         className={cn(
+diff --git a/ccr-ui/src/features/platform/mcp/McpDetailPanel.tsx b/ccr-ui/src/features/platform/mcp/McpDetailPanel.tsx
+index 404eb4f5..9a74574c 100644
+--- a/ccr-ui/src/features/platform/mcp/McpDetailPanel.tsx
++++ b/ccr-ui/src/features/platform/mcp/McpDetailPanel.tsx
+@@ -34,7 +34,7 @@ const McpInstanceRow = memo(function McpInstanceRow({ item, onToggle, t }: McpIn
+   }, [item, onToggle])
+ 
+   return (
+-    <div className="flex items-center gap-3 rounded-xl border border-border-default/28 bg-bg-base/38 px-2.5 py-2">
++    <div className="flex items-center gap-3 rounded-xl border border-border-default bg-bg-base px-2.5 py-2">
+       <AgentIcons agents={[item.platform]} compact={false} />
+       <span className="text-sm font-semibold capitalize text-text-primary">
+         {mcpScopeLabel(item.scope ?? 'global', t)}
+@@ -216,7 +216,7 @@ function McpDetailBody({
+                   'flex items-center gap-3 rounded-xl border px-2.5 py-2',
+                   active
+                     ? 'border-success/24 bg-success/10'
+-                    : 'border-border-default/28 bg-bg-base/38',
++                    : 'border-border-default bg-bg-base',
+                 )}
+               >
+                 <span className={cn('h-2 w-2 rounded-full', active ? 'bg-success' : 'bg-border-default/80')} />
+@@ -254,7 +254,7 @@ function McpDetailBody({
+             {envEntries.map(([key, value]) => (
+               <div
+                 key={`env-${key}`}
+-                className="flex items-center justify-between gap-3 rounded-xl border border-border-default/28 bg-bg-base/38 px-2.5 py-2"
++                className="flex items-center justify-between gap-3 rounded-xl border border-border-default bg-bg-base px-2.5 py-2"
+               >
+                 <span className="font-mono text-xs font-bold text-text-primary">{key}</span>
+                 <span className="overflow-hidden text-ellipsis whitespace-nowrap font-mono text-xs text-text-muted">
+@@ -265,7 +265,7 @@ function McpDetailBody({
+             {headerEntries.map(([key, value]) => (
+               <div
+                 key={`header-${key}`}
+-                className="flex items-center justify-between gap-3 rounded-xl border border-border-default/28 bg-bg-base/38 px-2.5 py-2"
++                className="flex items-center justify-between gap-3 rounded-xl border border-border-default bg-bg-base px-2.5 py-2"
+               >
+                 <span className="font-mono text-xs font-bold text-text-primary">{key}</span>
+                 <span className="overflow-hidden text-ellipsis whitespace-nowrap font-mono text-xs text-text-muted">
+@@ -311,7 +311,7 @@ function McpDetailBody({
+             {diagnostics.map((diagnostic) => (
+               <div
+                 key={`${diagnostic.source_path ?? 'diagnostic'}-${diagnostic.level}-${diagnostic.message}`}
+-                className="flex items-baseline gap-3 rounded-xl border border-border-default/28 bg-bg-base/38 px-2.5 py-2 text-sm text-text-secondary"
++                className="flex items-baseline gap-3 rounded-xl border border-border-default bg-bg-base px-2.5 py-2 text-sm text-text-secondary"
+               >
+                 <span className="text-[0.64rem] font-extrabold uppercase tracking-wide text-accent-primary/90">
+                   {diagnostic.level}
+diff --git a/ccr-ui/src/features/platform/mcp/mcp-classes.ts b/ccr-ui/src/features/platform/mcp/mcp-classes.ts
+index c375d23a..92f361fa 100644
+--- a/ccr-ui/src/features/platform/mcp/mcp-classes.ts
++++ b/ccr-ui/src/features/platform/mcp/mcp-classes.ts
+@@ -6,8 +6,8 @@ export const mcpFieldLabelClass =
+   'text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-text-muted'
+ 
+ export const mcpFieldInputClass = cn(
+-  'w-full rounded-xl border border-border-default/55 bg-bg-elevated px-3 py-2 text-sm text-text-primary outline-none',
+-  'placeholder:text-text-ghost focus:border-accent-primary/40 focus:shadow-md',
++  'w-full rounded-xl border border-border-strong bg-bg-elevated px-3 py-2 text-sm text-text-primary outline-none',
++  'placeholder:text-text-ghost focus:border-accent-primary focus:shadow-md',
+   'disabled:cursor-not-allowed disabled:opacity-50',
+ )
+ 
+@@ -41,6 +41,6 @@ export const mcpIconBtnClass = cn(
+ export const mcpListActionBtnClass = mcpIconBtnClass
+ 
+ export const mcpKvRowClass =
+-  'flex items-center gap-2 rounded-lg bg-bg-base/42 px-2 py-1.5'
++  'flex items-center gap-2 rounded-lg bg-bg-base px-2 py-1.5'
+ 
+ export const CLAUDE_USER_SCOPE_PATH = '~/.claude.json'
+diff --git a/ccr-ui/src/features/platform/plugins/BasePlugins.tsx b/ccr-ui/src/features/platform/plugins/BasePlugins.tsx
+index d68d3485..1f74ebb6 100644
+--- a/ccr-ui/src/features/platform/plugins/BasePlugins.tsx
++++ b/ccr-ui/src/features/platform/plugins/BasePlugins.tsx
+@@ -96,12 +96,12 @@ export function BasePlugins({ config, t: tProp }: BasePluginsProps) {
+       )}
+       {showForm ? (
+         <form className="mt-4 grid gap-3 rounded-xl border border-border-default p-4" onSubmit={onCreate}>
+-          <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder={t('common.name')} {...form.register('name')} />
++          <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder={t('common.name')} {...form.register('name')} />
+           {config.features.version ? (
+-            <input className="rounded-xl border border-border-default bg-bg-base px-3 py-2" placeholder="version" {...form.register('version')} />
++            <input className="rounded-xl border border-border-strong bg-bg-base px-3 py-2" placeholder="version" {...form.register('version')} />
+           ) : null}
+           {config.features.configJson ? (
+-            <textarea className="rounded-xl border border-border-default bg-bg-base px-3 py-2 font-mono text-xs" {...form.register('configJson')} />
++            <textarea className="rounded-xl border border-border-strong bg-bg-base px-3 py-2 font-mono text-xs" {...form.register('configJson')} />
+           ) : null}
+           <div className="flex gap-2">
+             <Button type="submit" variant="primary" className="rounded-lg text-sm">
+diff --git a/ccr-ui/src/features/platform/settings/SettingsFieldControl.tsx b/ccr-ui/src/features/platform/settings/SettingsFieldControl.tsx
+index 212b2daa..ffc27fcd 100644
+--- a/ccr-ui/src/features/platform/settings/SettingsFieldControl.tsx
++++ b/ccr-ui/src/features/platform/settings/SettingsFieldControl.tsx
+@@ -13,7 +13,7 @@ interface SettingsFieldControlProps {
+ }
+ 
+ const optionalBoolean = (value: unknown) => value === '' || value == null ? null : value === true || value === 'true'
+-const controlClass = 'rounded-lg border border-border-default bg-bg-base px-3 py-2 disabled:opacity-50'
++const controlClass = 'rounded-lg border border-border-strong bg-bg-base px-3 py-2 disabled:opacity-50'
+ const booleanOptions = [{ value: 'true', labelKey: 'common.yes' }, { value: 'false', labelKey: 'common.no' }]
+ 
+ function SettingsSelect({ field, register, control, disabled, t }: SettingsFieldControlProps) {
+diff --git a/ccr-ui/src/features/sync/SshManagementView.tsx b/ccr-ui/src/features/sync/SshManagementView.tsx
+index 417a8bae..ba925e54 100644
+--- a/ccr-ui/src/features/sync/SshManagementView.tsx
++++ b/ccr-ui/src/features/sync/SshManagementView.tsx
+@@ -229,13 +229,13 @@ export function SshManagementView() {
+         <section className="space-y-3 rounded-xl border border-border-default/15 bg-bg-surface p-4">
+           <h2 className="text-base font-semibold">{tt('新增 SSH 主机', 'Add SSH host')}</h2>
+           <div className="grid grid-cols-2 gap-3">
+-            <input className="rounded-md border border-border-default/15 px-3 py-2" placeholder={tt('名称（可选）', 'Name (optional)')} {...form.register('name')} />
+-            <input className="rounded-md border border-border-default/15 px-3 py-2" placeholder="ID" {...form.register('id')} />
+-            <input className="col-span-2 rounded-md border border-border-default/15 px-3 py-2" placeholder={tt('主机地址', 'Host')} {...form.register('host')} />
+-            <input type="number" className="rounded-md border border-border-default/15 px-3 py-2" placeholder={tt('端口', 'Port')} {...form.register('port', { valueAsNumber: true })} />
+-            <input className="rounded-md border border-border-default/15 px-3 py-2" placeholder={tt('用户名', 'User')} {...form.register('user')} />
+-            <input type="password" className="col-span-2 rounded-md border border-border-default/15 px-3 py-2" placeholder={tt('密码（仅内存，可选）', 'Password (memory only, optional)')} {...form.register('connectPassword')} />
+-            <input className="col-span-2 rounded-md border border-border-default/15 px-3 py-2" placeholder={tt('私钥路径（可选）', 'Identity file (optional)')} {...form.register('identity_file')} />
++            <input className="rounded-md border border-border-strong bg-bg-elevated text-text-primary focus:outline-2 focus:outline-accent-primary focus:outline-offset-2 px-3 py-2" placeholder={tt('名称（可选）', 'Name (optional)')} {...form.register('name')} />
++            <input className="rounded-md border border-border-strong bg-bg-elevated text-text-primary focus:outline-2 focus:outline-accent-primary focus:outline-offset-2 px-3 py-2" placeholder="ID" {...form.register('id')} />
++            <input className="col-span-2 rounded-md border border-border-strong bg-bg-elevated text-text-primary focus:outline-2 focus:outline-accent-primary focus:outline-offset-2 px-3 py-2" placeholder={tt('主机地址', 'Host')} {...form.register('host')} />
++            <input type="number" className="rounded-md border border-border-strong bg-bg-elevated text-text-primary focus:outline-2 focus:outline-accent-primary focus:outline-offset-2 px-3 py-2" placeholder={tt('端口', 'Port')} {...form.register('port', { valueAsNumber: true })} />
++            <input className="rounded-md border border-border-strong bg-bg-elevated text-text-primary focus:outline-2 focus:outline-accent-primary focus:outline-offset-2 px-3 py-2" placeholder={tt('用户名', 'User')} {...form.register('user')} />
++            <input type="password" className="col-span-2 rounded-md border border-border-strong bg-bg-elevated text-text-primary focus:outline-2 focus:outline-accent-primary focus:outline-offset-2 px-3 py-2" placeholder={tt('密码（仅内存，可选）', 'Password (memory only, optional)')} {...form.register('connectPassword')} />
++            <input className="col-span-2 rounded-md border border-border-strong bg-bg-elevated text-text-primary focus:outline-2 focus:outline-accent-primary focus:outline-offset-2 px-3 py-2" placeholder={tt('私钥路径（可选）', 'Identity file (optional)')} {...form.register('identity_file')} />
+           </div>
+           <button type="button" className="rounded-lg bg-accent-primary/10 px-3 py-2 text-accent-primary" onClick={handleAdd}>{tt('添加主机', 'Add host')}</button>
+         </section>
+@@ -275,12 +275,12 @@ export function SshManagementView() {
+               <SelectItem value="opencode">opencode</SelectItem>
+             </SelectContent>
+           </Select>
+-          <input className="min-w-[14rem] rounded-md border border-border-default/15 px-2 py-1 text-sm" {...form.register('configPath')} />
++          <input className="min-w-[14rem] rounded-md border border-border-strong bg-bg-elevated text-text-primary focus:outline-2 focus:outline-accent-primary focus:outline-offset-2 px-2 py-1 text-sm" {...form.register('configPath')} />
+           <button type="button" className="rounded border px-2 py-1 text-xs" disabled={!activeEnvId} onClick={onRead}>{tt('读取配置', 'Read config')}</button>
+           <button type="button" className="rounded border px-2 py-1 text-xs" disabled={!activeEnvId} onClick={onWrite}>{tt('写入配置', 'Write config')}</button>
+           <button type="button" className="rounded border px-2 py-1 text-xs" disabled={!activeEnvId} onClick={onDetect}>{tt('检测 CLI', 'Detect CLI')}</button>
+         </div>
+-        <textarea className="min-h-[14rem] w-full rounded-md border border-border-default/15 p-3 font-mono text-xs" {...form.register('configContent')} />
++        <textarea className="min-h-[14rem] w-full rounded-md border border-border-strong bg-bg-elevated text-text-primary focus:outline-2 focus:outline-accent-primary focus:outline-offset-2 p-3 font-mono text-xs" {...form.register('configContent')} />
+         {cliStatusText ? <pre className="overflow-x-auto rounded-md border border-border-default/15 p-3 text-xs">{cliStatusText}</pre> : null}
+         {activeConnectionState ? <div className="text-xs text-text-muted">{`${tt('连接状态', 'Connection state')}: ${activeConnectionState.connected ? tt('已连接', 'Connected') : tt('未连接', 'Not connected')}`}</div> : null}
+       </section>
+diff --git a/ccr-ui/src/features/tray/styles/tray.css b/ccr-ui/src/features/tray/styles/tray.css
+index 93dde739..134e4276 100644
+--- a/ccr-ui/src/features/tray/styles/tray.css
++++ b/ccr-ui/src/features/tray/styles/tray.css
+@@ -44,7 +44,7 @@
+   padding: 0.5rem 0.375rem;
+   border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 32%);
+   border-radius: 0.875rem;
+-  background: rgb(var(--color-bg-base-rgb) / 60%);
++  background: var(--color-bg-base);
+   flex-shrink: 0;
+ }
+ 
+@@ -63,7 +63,7 @@
+   height: 2.375rem;
+   border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 52%);
+   border-radius: 999px;
+-  background: rgb(var(--color-bg-base-rgb) / 72%);
++  background: var(--color-bg-base);
+   color: var(--color-text-secondary);
+ }
+ 
+@@ -73,7 +73,7 @@
+   gap: 0.625rem;
+   border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 42%);
+   border-radius: 0.75rem;
+-  background: rgb(var(--color-bg-base-rgb) / 52%);
++  background: var(--color-bg-base);
+   padding: 0.8125rem 0.875rem;
+   color: var(--color-text-secondary);
+   font-size: 0.75rem;
+@@ -101,7 +101,7 @@
+ .tray-switch__row {
+   border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 36%);
+   border-radius: 0.75rem;
+-  background: rgb(var(--color-bg-base-rgb) / 48%);
++  background: var(--color-bg-base);
+   padding: 0.875rem;
+ }
+ 
+@@ -141,7 +141,7 @@
+   border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 42%);
+   border-radius: 999px;
+   padding: 0 0.85rem;
+-  background: rgb(var(--color-bg-elevated-rgb) / 72%);
++  background: var(--color-bg-elevated);
+   color: var(--color-text-secondary);
+   font-size: 0.8rem;
+   font-weight: 650;
+diff --git a/ccr-ui/src/features/usage/styles/dashboard-next-actions.css b/ccr-ui/src/features/usage/styles/dashboard-next-actions.css
+index 6c81ea4d..9d00c376 100644
+--- a/ccr-ui/src/features/usage/styles/dashboard-next-actions.css
++++ b/ccr-ui/src/features/usage/styles/dashboard-next-actions.css
+@@ -88,7 +88,7 @@
+ 
+ .dashboard-action:hover,
+ .dashboard-onboarding-step:hover {
+-  background: rgb(var(--color-bg-elevated-rgb) / 88%);
++  background: var(--color-bg-elevated);
+   border-color: var(--color-border-subtle);
+ }
+ 
+diff --git a/ccr-ui/src/features/usage/styles/platform-usage-insight-panel.css b/ccr-ui/src/features/usage/styles/platform-usage-insight-panel.css
+index b496782b..85a828f2 100644
+--- a/ccr-ui/src/features/usage/styles/platform-usage-insight-panel.css
++++ b/ccr-ui/src/features/usage/styles/platform-usage-insight-panel.css
+@@ -9,7 +9,6 @@
+   background: var(--color-bg-surface);
+   padding: clamp(1rem, 2vw, 1.45rem);
+   box-shadow: var(--elevation-1);
+-  backdrop-filter: var(--surface-workspace-blur);
+ }
+ 
+ .platform-usage-panel--codex {
+@@ -77,7 +76,7 @@
+ .platform-usage-panel__chips span {
+   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 13%);
+   border-radius: 62.4375rem;
+-  background: rgb(var(--color-bg-elevated-rgb) / 44%);
++  background: var(--color-bg-elevated);
+   padding: 0.26rem 0.58rem;
+   color: var(--color-text-muted);
+   font-size: 0.68rem;
+@@ -102,7 +101,7 @@
+ 
+ .platform-usage-panel__button:not(.ui-btn) {
+   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 16%);
+-  background: rgb(var(--color-bg-elevated-rgb) / 58%);
++  background: var(--color-bg-elevated);
+   color: var(--color-text-secondary);
+ }
+ 
+@@ -137,16 +136,12 @@
+   min-width: 0;
+   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 13%);
+   border-radius: 1.2rem;
+-  background: rgb(var(--color-bg-elevated-rgb) / 48%);
++  background: var(--color-bg-elevated);
+   padding: 0.95rem;
+ }
+ 
+ .platform-usage-panel__kpi--cost {
+   --kpi-icon-rgb: var(--color-accent-primary-rgb);
+-
+-  background:
+-    radial-gradient(circle at 12% 0%, rgb(var(--platform-usage-accent-rgb, var(--color-accent-primary-rgb)) / 12%), transparent 16rem),
+-    rgb(var(--color-bg-elevated-rgb) / 54%);
+ }
+ 
+ .platform-usage-panel__kpi--tokens {
+@@ -213,7 +208,7 @@
+   overflow-x: auto;
+   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 14%);
+   border-radius: 62.4375rem;
+-  background: rgb(var(--color-bg-elevated-rgb) / 44%);
++  background: var(--color-bg-elevated);
+   padding: 0.22rem;
+ }
+ 
+@@ -249,7 +244,7 @@
+   gap: 0.7rem;
+   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 14%);
+   border-radius: 1.15rem;
+-  background: rgb(var(--color-bg-elevated-rgb) / 48%);
++  background: var(--color-bg-elevated);
+   padding: 0.95rem;
+   color: var(--color-text-secondary);
+ }
+diff --git a/ccr-ui/src/features/usage/styles/pricing-view.css b/ccr-ui/src/features/usage/styles/pricing-view.css
+index b645d984..723a8e62 100644
+--- a/ccr-ui/src/features/usage/styles/pricing-view.css
++++ b/ccr-ui/src/features/usage/styles/pricing-view.css
+@@ -74,7 +74,7 @@
+   width: fit-content;
+   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 16%);
+   border-radius: 624.9375rem;
+-  background: rgb(var(--color-bg-surface-rgb) / 58%);
++  background: var(--color-bg-surface);
+   color: var(--color-text-secondary);
+   font-size: 0.68rem;
+   font-weight: 700;
+@@ -119,7 +119,7 @@
+ 
+ .pricing-button--secondary {
+   border-color: rgb(var(--color-border-default-rgb) / 18%);
+-  background: rgb(var(--color-bg-elevated-rgb) / 58%);
++  background: var(--color-bg-elevated);
+   color: var(--color-text-secondary);
+ }
+ 
+@@ -175,7 +175,7 @@
+   display: grid;
+   gap: 0.34rem;
+   border-radius: 1rem;
+-  background: rgb(var(--color-bg-surface-rgb) / 48%);
++  background: var(--color-bg-surface);
+   padding: 0.82rem;
+ }
+ 
+@@ -229,7 +229,7 @@
+ .pricing-row {
+   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 12%);
+   border-radius: 1rem;
+-  background: rgb(var(--color-bg-surface-rgb) / 52%);
++  background: var(--color-bg-surface);
+ }
+ 
+ .pricing-metric {
+@@ -329,9 +329,9 @@
+ .pricing-input {
+   min-height: 2.55rem;
+   width: 100%;
+-  border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 17%);
++  border: 0.0625rem solid var(--color-border-interactive);
+   border-radius: 0.82rem;
+-  background: rgb(var(--color-bg-surface-rgb) / 68%);
++  background: var(--color-bg-surface);
+   color: var(--color-text-primary);
+   font-size: 0.9rem;
+   outline: none;
+@@ -339,8 +339,9 @@
+ }
+ 
+ .pricing-input:focus {
+-  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
+-  box-shadow: 0 0 0 0.1875rem rgb(var(--color-accent-primary-rgb) / 9%);
++  border-color: var(--color-accent-primary);
++  outline: 0.125rem solid var(--color-accent-primary);
++  outline-offset: 0.125rem;
+ }
+ 
+ .pricing-input:disabled {
+@@ -355,23 +356,15 @@
+ }
+ 
+ .pricing-status--success {
+-  border-color: rgb(86 128 94 / 18%);
+-  background: rgb(86 128 94 / 10%);
+-  color: rgb(59 104 69);
++  border-color: var(--color-success);
++  background: var(--color-success-tint);
++  color: var(--color-success);
+ }
+ 
+ .pricing-status--error {
+-  border-color: rgb(185 93 75 / 24%);
+-  background: rgb(185 93 75 / 10%);
+-  color: rgb(139 56 43);
+-}
+-
+-.dark .pricing-status--success {
+-  color: rgb(174 218 181);
+-}
+-
+-.dark .pricing-status--error {
+-  color: rgb(244 173 153);
++  border-color: var(--color-danger);
++  background: var(--color-danger-tint);
++  color: var(--color-danger);
+ }
+ 
+ .pricing-loading {
+@@ -392,8 +385,8 @@
+   align-items: center;
+   justify-content: space-between;
+   gap: 1rem;
+-  border-color: rgb(185 93 75 / 20%);
+-  background: rgb(185 93 75 / 8%);
++  border-color: var(--color-danger);
++  background: var(--color-danger-tint);
+ }
+ 
+ @keyframes pricing-spin {
+diff --git a/ccr-ui/src/features/usage/styles/usage-cost-conclusion-card.css b/ccr-ui/src/features/usage/styles/usage-cost-conclusion-card.css
+index 07e61dc6..2b642f5a 100644
+--- a/ccr-ui/src/features/usage/styles/usage-cost-conclusion-card.css
++++ b/ccr-ui/src/features/usage/styles/usage-cost-conclusion-card.css
+@@ -105,7 +105,7 @@
+   gap: 0.34rem;
+   border-radius: 624.9375rem;
+   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 14%);
+-  background: rgb(var(--color-bg-elevated-rgb) / 64%);
++  background: var(--color-bg-elevated);
+   padding: 0.26rem 0.6rem;
+   color: var(--color-text-secondary);
+   font-size: 0.8rem;
+@@ -147,7 +147,7 @@
+   min-width: 0;
+   border-radius: 1rem;
+   border: 0.0625rem solid rgb(var(--usage-metric-rgb) / 10%);
+-  background: rgb(var(--color-bg-elevated-rgb) / 28%);
++  background: var(--color-bg-elevated);
+   padding: 0.26rem 0.36rem;
+ }
+ 
+diff --git a/ccr-ui/src/features/usage/styles/usage-dashboard-toolbar.css b/ccr-ui/src/features/usage/styles/usage-dashboard-toolbar.css
+index 38c553b3..caa3080f 100644
+--- a/ccr-ui/src/features/usage/styles/usage-dashboard-toolbar.css
++++ b/ccr-ui/src/features/usage/styles/usage-dashboard-toolbar.css
+@@ -30,8 +30,8 @@
+   min-height: 2.5rem;
+   min-width: 8.8rem;
+   border-radius: 624.9375rem;
+-  border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 15%);
+-  background: rgb(var(--color-bg-elevated-rgb) / 64%);
++  border: 0.0625rem solid var(--color-border-interactive);
++  background: var(--color-bg-elevated);
+   padding: 0 0.82rem;
+   color: var(--color-text-primary);
+   font-size: 0.84rem;
+@@ -39,7 +39,9 @@
+ }
+ 
+ .usage-dashboard-toolbar__select:focus {
+-  border-color: rgb(var(--color-accent-primary-rgb) / 24%);
++  border-color: var(--color-accent-primary);
++  outline: 0.125rem solid var(--color-accent-primary);
++  outline-offset: 0.125rem;
+ }
+ 
+ .usage-dashboard-toolbar__segments {
+@@ -49,7 +51,7 @@
+   gap: 0.18rem;
+   border-radius: 624.9375rem;
+   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 14%);
+-  background: rgb(var(--color-bg-elevated-rgb) / 46%);
++  background: var(--color-bg-elevated);
+   padding: 0.22rem;
+ }
+ 
+@@ -83,7 +85,7 @@
+   justify-content: center;
+   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 14%);
+   border-radius: 624.9375rem;
+-  background: rgb(var(--color-bg-elevated-rgb) / 46%);
++  background: var(--color-bg-elevated);
+   color: var(--color-text-secondary);
+   font-size: 0.78rem;
+   font-weight: 700;
+@@ -111,7 +113,7 @@
+   gap: 0.4rem;
+   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 14%);
+   border-radius: 624.9375rem;
+-  background: rgb(var(--color-bg-elevated-rgb) / 46%);
++  background: var(--color-bg-elevated);
+   padding: 0 0.78rem;
+   color: var(--color-text-secondary);
+   font-size: 0.78rem;
+@@ -159,7 +161,7 @@
+   gap: 0.45rem;
+   border-radius: 624.9375rem;
+   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 28%);
+-  background: rgb(var(--color-bg-surface-rgb) / 66%);
++  background: var(--color-bg-surface);
+   padding: 0.28rem 0.7rem;
+   color: var(--color-text-secondary);
+ }
+diff --git a/ccr-ui/src/features/usage/styles/usage-diagnostics-drawer.css b/ccr-ui/src/features/usage/styles/usage-diagnostics-drawer.css
+index 3b4830b5..e399789b 100644
+--- a/ccr-ui/src/features/usage/styles/usage-diagnostics-drawer.css
++++ b/ccr-ui/src/features/usage/styles/usage-diagnostics-drawer.css
+@@ -49,7 +49,7 @@
+   gap: 0.6rem;
+   border-radius: 0.95rem;
+   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 12%);
+-  background: rgb(var(--color-bg-surface-rgb) / 54%);
++  background: var(--color-bg-surface);
+   padding: 0.65rem 0.7rem;
+ }
+ 
+diff --git a/ccr-ui/src/features/usage/styles/usage-logs-tab.css b/ccr-ui/src/features/usage/styles/usage-logs-tab.css
+index 974795ab..d16f8a6f 100644
+--- a/ccr-ui/src/features/usage/styles/usage-logs-tab.css
++++ b/ccr-ui/src/features/usage/styles/usage-logs-tab.css
+@@ -85,7 +85,7 @@
+   min-width: 0;
+   border-radius: 1rem;
+   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 22%);
+-  background: rgb(var(--color-bg-elevated-rgb) / 44%);
++  background: var(--color-bg-elevated);
+   padding: 0.95rem 1rem;
+ }
+ 
+@@ -174,7 +174,7 @@
+   overflow: auto;
+   border-radius: 1.15rem;
+   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 18%);
+-  background: rgb(var(--color-bg-elevated-rgb) / 46%);
++  background: var(--color-bg-elevated);
+ }
+ 
+ .diagnostics-tab__row {
+@@ -188,7 +188,7 @@
+   top: 0;
+   z-index: 1;
+   border-bottom: 0.0625rem solid rgb(var(--color-border-default-rgb) / 18%);
+-  background: rgb(var(--color-bg-elevated-rgb) / 92%);
++  background: var(--color-bg-elevated);
+ }
+ 
+ .diagnostics-tab__header div {
+diff --git a/ccr-ui/src/features/usage/styles/usage-metric-card.css b/ccr-ui/src/features/usage/styles/usage-metric-card.css
+index dedc3fcc..d7159516 100644
+--- a/ccr-ui/src/features/usage/styles/usage-metric-card.css
++++ b/ccr-ui/src/features/usage/styles/usage-metric-card.css
+@@ -84,7 +84,7 @@
+   border-radius: 624.9375rem;
+   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 14%);
+   padding: 0.24rem 0.52rem;
+-  background: rgb(var(--color-bg-elevated-rgb) / 64%);
++  background: var(--color-bg-elevated);
+   color: var(--color-text-secondary);
+   font-size: 0.7rem;
+   font-weight: 700;
+@@ -118,7 +118,7 @@
+   min-width: 0;
+   border-radius: 1rem;
+   border: 0.0625rem solid rgb(var(--usage-metric-rgb) / 10%);
+-  background: rgb(var(--color-bg-elevated-rgb) / 28%);
++  background: var(--color-bg-elevated);
+   padding: 0.26rem 0.36rem;
+ }
+ 
+diff --git a/ccr-ui/src/features/usage/styles/usage-model-distribution-card.css b/ccr-ui/src/features/usage/styles/usage-model-distribution-card.css
+index ce4c743f..4c4d1f8a 100644
+--- a/ccr-ui/src/features/usage/styles/usage-model-distribution-card.css
++++ b/ccr-ui/src/features/usage/styles/usage-model-distribution-card.css
+@@ -77,7 +77,7 @@
+   justify-content: center;
+   border-radius: 1.35rem;
+   border: 0.0625rem dashed rgb(var(--color-accent-primary-rgb) / 16%);
+-  background: rgb(var(--color-bg-elevated-rgb) / 35%);
++  background: var(--color-bg-elevated);
+   color: var(--color-text-muted);
+ }
+ 
+@@ -95,7 +95,7 @@
+   min-width: 0;
+   border-radius: 0.95rem;
+   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 12%);
+-  background: rgb(var(--color-bg-elevated-rgb) / 28%);
++  background: var(--color-bg-elevated);
+   padding: 0.65rem 0.72rem;
+ }
+ 
+diff --git a/ccr-ui/src/features/usage/styles/usage-overview-tab.css b/ccr-ui/src/features/usage/styles/usage-overview-tab.css
+index 57e8686e..2415fa65 100644
+--- a/ccr-ui/src/features/usage/styles/usage-overview-tab.css
++++ b/ccr-ui/src/features/usage/styles/usage-overview-tab.css
+@@ -153,7 +153,7 @@
+   justify-content: center;
+   border-radius: 1.35rem;
+   border: 0.0625rem dashed rgb(var(--color-accent-primary-rgb) / 16%);
+-  background: rgb(var(--color-bg-elevated-rgb) / 36%);
++  background: var(--color-bg-elevated);
+   color: var(--color-text-muted);
+ }
+ 
+diff --git a/ccr-ui/src/features/usage/styles/usage-source-summary-card.css b/ccr-ui/src/features/usage/styles/usage-source-summary-card.css
+index 1573f398..c19be69e 100644
+--- a/ccr-ui/src/features/usage/styles/usage-source-summary-card.css
++++ b/ccr-ui/src/features/usage/styles/usage-source-summary-card.css
+@@ -42,7 +42,7 @@
+   flex: none;
+   border-radius: 62.4375rem;
+   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 14%);
+-  background: rgb(var(--color-bg-elevated-rgb) / 46%);
++  background: var(--color-bg-elevated);
+   padding: 0.3rem 0.62rem;
+   color: var(--color-text-muted);
+   font-size: 0.7rem;
+diff --git a/ccr-ui/src/features/usage/styles/usage-stale-banner.css b/ccr-ui/src/features/usage/styles/usage-stale-banner.css
+index f2f7059a..e7da8926 100644
+--- a/ccr-ui/src/features/usage/styles/usage-stale-banner.css
++++ b/ccr-ui/src/features/usage/styles/usage-stale-banner.css
+@@ -83,7 +83,7 @@
+ .usage-stale-banner__action {
+   border-radius: 62.4375rem;
+   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 16%);
+-  background: rgb(var(--color-bg-elevated-rgb) / 72%);
++  background: var(--color-bg-elevated);
+   padding: 0.4rem 0.75rem;
+   color: var(--color-text-primary);
+   font-size: 0.76rem;
+diff --git a/ccr-ui/src/features/usage/styles/usage-token-breakdown-strip.css b/ccr-ui/src/features/usage/styles/usage-token-breakdown-strip.css
+index 09685c99..e35ad55d 100644
+--- a/ccr-ui/src/features/usage/styles/usage-token-breakdown-strip.css
++++ b/ccr-ui/src/features/usage/styles/usage-token-breakdown-strip.css
+@@ -57,7 +57,7 @@
+   min-height: 0.52rem;
+   gap: 0.18rem;
+   border-radius: 624.9375rem;
+-  background: rgb(var(--color-bg-overlay-rgb) / 56%);
++  background: var(--color-bg-overlay);
+   box-shadow: inset 0 0 0 0.0625rem rgb(var(--color-border-default-rgb) / 10%);
+ }
+ 
+diff --git a/ccr-ui/src/features/usage/styles/usage-tokens-tab.css b/ccr-ui/src/features/usage/styles/usage-tokens-tab.css
+index 8bc37bdc..f499bb1f 100644
+--- a/ccr-ui/src/features/usage/styles/usage-tokens-tab.css
++++ b/ccr-ui/src/features/usage/styles/usage-tokens-tab.css
+@@ -52,7 +52,7 @@
+   gap: 0.24rem;
+   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 15%);
+   border-radius: 62.4375rem;
+-  background: rgb(var(--color-bg-elevated-rgb) / 54%);
++  background: var(--color-bg-elevated);
+   padding: 0.22rem;
+ }
+ 
+diff --git a/ccr-ui/src/shell/App.tsx b/ccr-ui/src/shell/App.tsx
+index 342d6b1a..6ebb8967 100644
+--- a/ccr-ui/src/shell/App.tsx
++++ b/ccr-ui/src/shell/App.tsx
+@@ -20,7 +20,7 @@ export function App() {
+       {handle.hideGlobalBackground ? null : <StageBackground />}
+       {showCustomTitlebar ? <Titlebar /> : null}
+       <div
+-        className="flex h-screen w-screen flex-col overflow-hidden bg-bg-base"
++        className="app-field flex h-screen w-screen flex-col overflow-hidden"
+         style={inset > 0 ? { paddingTop: `${inset}px` } : undefined}
+       >
+         <Outlet />
+diff --git a/ccr-ui/src/shell/shell.css b/ccr-ui/src/shell/shell.css
+index fd8d2b0f..2d886d08 100644
+--- a/ccr-ui/src/shell/shell.css
++++ b/ccr-ui/src/shell/shell.css
+@@ -101,8 +101,37 @@
+   border-radius: 0.375rem;
+ }
+ 
+-.layout-shell--theme-stage {
+-  background: var(--color-bg-base);
++.app-field {
++  background: linear-gradient(160deg, var(--surface-app-field-start), var(--surface-app-field-end));
++}
++
++.layout-shell {
++  isolation: isolate;
++  flex: 1;
++  min-height: 0;
++  height: auto;
++  margin: var(--space-3);
++  border-radius: var(--surface-app-sheet-radius);
++}
++
++/* Pseudo-element avoids making fixed navigation/portal anchors descendants of a filter. */
++.layout-shell::before {
++  content: '';
++  position: absolute;
++  inset: 0;
++  z-index: -1;
++  border: var(--space-px) solid var(--surface-app-sheet-border);
++  border-radius: inherit;
++  background: var(--surface-app-sheet-bg);
++  backdrop-filter: var(--surface-app-sheet-blur);
++  box-shadow: var(--surface-app-sheet-shadow);
++}
++
++@media (width < 960px) {
++  .layout-shell {
++    margin: 0;
++    border-radius: 0;
++  }
+ }
+ 
+ .sidebar-glass {
+diff --git a/ccr-ui/src/styles/base/base.css b/ccr-ui/src/styles/base/base.css
+index aba17afe..4aaa9e4d 100644
+--- a/ccr-ui/src/styles/base/base.css
++++ b/ccr-ui/src/styles/base/base.css
+@@ -114,7 +114,7 @@
+   input:focus-visible,
+   textarea:focus-visible,
+   select:focus-visible {
+-    outline: var(--space-0-5) solid rgb(var(--color-accent-primary-rgb) / 50%);
++    outline: var(--space-0-5) solid var(--color-accent-primary);
+     outline-offset: var(--space-0-5);
+   }
+ 
+diff --git a/ccr-ui/src/styles/components/home.css b/ccr-ui/src/styles/components/home.css
+index 0bafa269..daeaad77 100644
+--- a/ccr-ui/src/styles/components/home.css
++++ b/ccr-ui/src/styles/components/home.css
+@@ -37,10 +37,10 @@
+   --home-elevation-sunk: inset 0 1px 0 rgb(var(--color-border-default-rgb) / 6%);
+ 
+   /* === 表面（卡片走不透明档，退出玻璃体系） === */
+-  --home-surface-base: rgb(var(--color-bg-base-rgb) / 100%);
+-  --home-surface-card: rgb(var(--color-bg-elevated-rgb) / 98%);
+-  --home-surface-card-hover: rgb(var(--color-bg-surface-rgb) / 98%);
+-  --home-surface-sunk: rgb(var(--color-bg-overlay-rgb) / 56%);
++  --home-surface-base: var(--color-bg-base);
++  --home-surface-card: var(--color-bg-elevated);
++  --home-surface-card-hover: var(--color-bg-surface);
++  --home-surface-sunk: var(--color-bg-overlay);
+   --home-border-card: rgb(var(--color-border-default-rgb) / 19%);
+   --home-border-card-hover: rgb(var(--color-accent-primary-rgb) / 32%);
+   --home-border-hairline: rgb(var(--color-border-default-rgb) / 24%);
+@@ -57,9 +57,9 @@
+ }
+ 
+ [data-theme='dark'] {
+-  --home-surface-card: rgb(var(--color-bg-elevated-rgb) / 98%);
+-  --home-surface-card-hover: rgb(var(--color-bg-surface-rgb) / 98%);
+-  --home-surface-sunk: rgb(var(--color-bg-overlay-rgb) / 48%);
++  --home-surface-card: var(--color-bg-elevated);
++  --home-surface-card-hover: var(--color-bg-surface);
++  --home-surface-sunk: var(--color-bg-overlay);
+   --home-border-card: rgb(var(--color-border-default-rgb) / 18%);
+   --home-border-card-hover: rgb(var(--color-accent-primary-rgb) / 36%);
+   --home-border-hairline: rgb(var(--color-border-default-rgb) / 22%);
+diff --git a/ccr-ui/src/styles/components/profiles-page.css b/ccr-ui/src/styles/components/profiles-page.css
+index 9f2d483b..2a6153b4 100644
+--- a/ccr-ui/src/styles/components/profiles-page.css
++++ b/ccr-ui/src/styles/components/profiles-page.css
+@@ -5,7 +5,7 @@
+   --cp-bg-1: var(--color-bg-elevated);
+   --cp-bg-2: var(--color-bg-surface);
+   --cp-bg-3: var(--color-bg-overlay);
+-  --cp-bg-4: rgb(var(--color-bg-overlay-rgb) / 88%);
++  --cp-bg-4: var(--color-bg-overlay);
+   --cp-line: var(--color-border-subtle);
+   --cp-line-2: var(--color-border-default);
+   --cp-ink-0: var(--color-text-primary);
+@@ -17,7 +17,7 @@
+   --cp-accent-soft: rgb(var(--color-accent-primary-rgb) / 14%);
+   --cp-accent-line: rgb(var(--color-accent-primary-rgb) / 35%);
+   --cp-accent-hover: var(--color-accent-primary-hover);
+-  --cp-on-accent: var(--color-text-inverted);
++  --cp-on-accent: var(--color-accent-primary-contrast);
+   --cp-good: var(--color-success);
+   --cp-warn: var(--color-warning);
+   --cp-danger: var(--color-danger);
+diff --git a/ccr-ui/src/styles/tokens.css b/ccr-ui/src/styles/tokens.css
+index 86d9f9db..603c1617 100644
+--- a/ccr-ui/src/styles/tokens.css
++++ b/ccr-ui/src/styles/tokens.css
+@@ -1,5 +1,5 @@
+ /* ============================================
+-   CCR-UI Claude Editorial Surface System
++   CCR-UI Airy Glass Surface System
+    Design Tokens - CSS Variables
+    ============================================ */
+ 
+@@ -7,90 +7,90 @@
+ 
+ /* neutral 为默认 flavor：:root 即 neutral light（桌面压暗、卡片最亮；表面/文本令牌 100% 不透明）。 */
+ :root {
+-  /* --- 背景层级（亮色：桌面压暗、卡片最亮；overlay 为下沉/chip 层；09-03 起暖纸面） --- */
+-  --color-bg-base: #e9e4d8;
+-  --color-bg-base-rgb: 233 228 216;
+-  --color-bg-elevated: #f2eee3;
+-  --color-bg-elevated-rgb: 242 238 227;
+-  --color-bg-surface: #faf7ec;
+-  --color-bg-surface-rgb: 250 247 236;
+-  --color-bg-overlay: #ddd5c2;
+-  --color-bg-overlay-rgb: 221 213 194;
+-
+-  /* --- 遮罩 scrim（唯一允许的常驻半透明：modal/抽屉背后的压暗层） --- */
++  /* --- 背景层级（亮色：桌面压暗、卡片最亮；overlay 为下沉/chip 层；AG01 薄荷纸面） --- */
++  --color-bg-base: #e7f1ee;
++  --color-bg-base-rgb: 231 241 238;
++  --color-bg-elevated: #f2f7f5;
++  --color-bg-elevated-rgb: 242 247 245;
++  --color-bg-surface: #fff;
++  --color-bg-surface-rgb: 255 255 255;
++  --color-bg-overlay: #e3ece8;
++  --color-bg-overlay-rgb: 227 236 232;
++
++  /* --- 遮罩 scrim（modal/抽屉背后的压暗层；应用纸面单独管理） --- */
+   --color-scrim: rgb(25 27 32 / 32%);
+   --color-scrim-rgb: 25 27 32;
+ 
+   /* --- 边框与分隔（实色：alpha 与 elevated 合成，见 token 治理任务） --- */
+-  --color-border-subtle: #d9d2c0;
+-  --color-border-subtle-rgb: 217 210 192;
+-  --color-border-default: #c9bfa8;
+-  --color-border-default-rgb: 201 191 168;
+-  --color-border-strong: #ab9f83;
+-  --color-border-strong-rgb: 171 159 131;
++  --color-border-subtle: #d4dfda;
++  --color-border-subtle-rgb: 212 223 218;
++  --color-border-default: #b3c3bc;
++  --color-border-default-rgb: 179 195 188;
++  --color-border-strong: #758b80;
++  --color-border-strong-rgb: 117 139 128;
+   --color-border-accent: rgb(var(--color-accent-primary-rgb) / 18%);
+   --color-border-interactive: var(--color-accent-primary);
+   --color-border-interactive-rgb: var(--color-accent-primary-rgb);
+ 
+   /* --- 文字层级（实心：对 bg-surface ≥ 12 / 7 / 4.5） --- */
+-  --color-text-primary: #211c12;
+-  --color-text-primary-rgb: 33 28 18;
+-  --color-text-secondary: #4a4232;
+-  --color-text-secondary-rgb: 74 66 50;
+-  --color-text-muted: #6b6150;
+-  --color-text-muted-rgb: 107 97 80;
+-  --color-text-ghost: #968b76;
+-  --color-text-ghost-rgb: 150 139 118;
+-  --color-text-disabled: #b5a98f;
+-  --color-text-disabled-rgb: 181 169 143;
+-  --color-text-inverted: #fbf7ec;
+-  --color-text-inverted-rgb: 251 247 236;
+-
+-  /* --- 主强调色 - Clay key → 终端琥珀（与 [data-accent='clay'] 对齐的默认值；09-03 起 clay 值域不变、色值换琥珀） --- */
+-  --color-accent-primary: #8f650e;
+-  --color-accent-primary-hover: #a2740f;
+-  --color-accent-primary-active: #7c580b;
+-  --color-accent-primary-rgb: 143 101 14;
+-  --color-accent-primary-glow: rgb(143 101 14 / 10%);
+-  --color-accent-primary-contrast: #fffaf0;
+-  --color-accent-primary-contrast-rgb: 255 250 240;
+-
+-  /* --- 辅助强调色 - Warm Sand --- */
+-  --color-accent-secondary: #a0854f;
+-  --color-accent-secondary-hover: #ad9660;
+-  --color-accent-secondary-active: #907541;
+-  --color-accent-secondary-rgb: 160 133 79;
+-  --color-accent-secondary-glow: rgb(160 133 79 / 10%);
++  --color-text-primary: #1e2932;
++  --color-text-primary-rgb: 30 41 50;
++  --color-text-secondary: #404e59;
++  --color-text-secondary-rgb: 64 78 89;
++  --color-text-muted: #5c6b76;
++  --color-text-muted-rgb: 92 107 118;
++  --color-text-ghost: #74828b;
++  --color-text-ghost-rgb: 116 130 139;
++  --color-text-disabled: #a5b1b5;
++  --color-text-disabled-rgb: 165 177 181;
++  --color-text-inverted: #f4fbf7;
++  --color-text-inverted-rgb: 244 251 247;
++
++  /* --- 主强调色 - Clay key → 轻盈绿（与 [data-accent='clay'] 对齐的默认值；09-03 起 clay 值域不变、色值换轻盈绿） --- */
++  --color-accent-primary: #156f4e;
++  --color-accent-primary-hover: #146a4a;
++  --color-accent-primary-active: #105b40;
++  --color-accent-primary-rgb: 21 111 78;
++  --color-accent-primary-glow: rgb(21 111 78 / 10%);
++  --color-accent-primary-contrast: #fff;
++  --color-accent-primary-contrast-rgb: 255 255 255;
++
++  /* --- 辅助强调色 - Output Purple --- */
++  --color-accent-secondary: #6d4bd6;
++  --color-accent-secondary-hover: #5e3fc0;
++  --color-accent-secondary-active: #5034a9;
++  --color-accent-secondary-rgb: 109 75 214;
++  --color-accent-secondary-glow: rgb(109 75 214 / 10%);
+ 
+   /* --- 功能色 --- */
+-  --color-success: #5b8a62;
+-  --color-success-hover: #67996f;
+-  --color-success-rgb: 91 138 98;
+-  --color-success-glow: rgb(91 138 98 / 10%);
++  --color-success: #356e45;
++  --color-success-hover: #2d603c;
++  --color-success-rgb: 53 110 69;
++  --color-success-glow: rgb(53 110 69 / 10%);
+ 
+-  /* 对比文字：vs --color-success #5b8a62 = 3.79:1（≥3.5 契约） */
++  /* 对比文字：保持 --color-success 配对文字 ≥3.5:1，并独立核对状态文字 ≥4.5:1。 */
+   --color-success-contrast: #fff8f2;
+   --color-success-contrast-rgb: 255 248 242;
+-  --color-warning: #a07c1e;
+-  --color-warning-hover: #ae8b31;
+-  --color-warning-rgb: 160 124 30;
+-  --color-warning-glow: rgb(160 124 30 / 10%);
+-
+-  /* 对比文字：vs --color-warning #a07c1e = 4.56:1（≥3.5 契约；深墨优于近白 3.70:1） */
+-  --color-warning-contrast: #17181c;
+-  --color-warning-contrast-rgb: 23 24 28;
++  --color-warning: #7b5e16;
++  --color-warning-hover: #6b5112;
++  --color-warning-rgb: 123 94 22;
++  --color-warning-glow: rgb(123 94 22 / 10%);
++
++  /* 对比文字：保持 --color-warning 配对文字 ≥3.5:1，并独立核对状态文字 ≥4.5:1。 */
++  --color-warning-contrast: #fff;
++  --color-warning-contrast-rgb: 255 255 255;
+   --color-danger: #9f513f;
+-  --color-danger-hover: #a55644;
++  --color-danger-hover: #914635;
+   --color-danger-rgb: 159 81 63;
+   --color-danger-glow: rgb(159 81 63 / 10%);
+ 
+-  /* 对比文字：vs --color-danger #9f513f = 5.36:1（≥3.5 契约） */
++  /* 对比文字：保持 --color-danger 配对文字 ≥3.5:1，并独立核对状态文字 ≥4.5:1。 */
+   --color-danger-contrast: #fff8f2;
+   --color-danger-contrast-rgb: 255 248 242;
+-  --color-info: #7d97b6;
+-  --color-info-hover: #8ea8c6;
+-  --color-info-rgb: 125 151 182;
+-  --color-info-glow: rgb(125 151 182 / 10%);
++  --color-info: #42648a;
++  --color-info-hover: #385678;
++  --color-info-rgb: 66 100 138;
++  --color-info-glow: rgb(66 100 138 / 10%);
+   --color-success-tint: #e8eeea;
+   --color-warning-tint: #f3eee6;
+   --color-danger-tint: #f5eae9;
+@@ -161,13 +161,13 @@
+   --color-platform-deepseek-harness-text: #0567c2;
+ 
+   /* --- Insights 图表色（09-24）：other = 周趋势"其他"段（须叠加斜线纹理）；
+-     heat-0..4 = 热力图暖中性单色相梯度，heat-0 为无活动格底色；不用 amber 与状态色 --- */
++     heat-0..4 = 热力图中性单色相梯度，heat-0 为无活动格底色；不用强调色与状态色 --- */
+   --color-chart-other: #968b76;
+-  --color-chart-heat-0: #ebe5db;
+-  --color-chart-heat-1: #b4ab9b;
+-  --color-chart-heat-2: #958d7d;
+-  --color-chart-heat-3: #776f60;
+-  --color-chart-heat-4: #5b5344;
++  --color-chart-heat-0: #e4e9e7;
++  --color-chart-heat-1: #b0bdb7;
++  --color-chart-heat-2: #8a9f95;
++  --color-chart-heat-3: #647f72;
++  --color-chart-heat-4: #405f50;
+ 
+   /* --- 全局状态语义 --- */
+   --state-loading: var(--color-info);
+@@ -188,70 +188,80 @@
+   --color-stage-chip-neutral-bg: var(--color-bg-overlay);
+   --color-stage-chip-neutral-border: var(--color-border-default);
+   --color-stage-chip-neutral-text: var(--color-text-secondary);
++
++  /* AG01 专用应用纸面；唯一 layout-shell::before 消费。 */
++  --surface-app-field-start: #e7f6f1;
++  --surface-app-field-end: #ede7f8;
++  --surface-app-sheet-bg: rgb(255 255 255 / 78%);
++  --surface-app-sheet-solid: var(--color-bg-elevated);
++  --surface-app-sheet-blur: blur(20px) saturate(1.15);
++  --surface-app-sheet-border: rgb(255 255 255 / 80%);
++  --surface-app-sheet-shadow: 0 20px 48px rgb(70 90 120 / 8%);
++  --surface-app-sheet-radius: 1.25rem;
+ }
+ 
+ /* ========== 暗色主题（neutral dark：elevated 逐级提亮） ========== */
+ [data-theme='dark'] {
+-  /* --- 背景层级（base < elevated < surface < overlay 明度递增；09-03 起暖黑终端） --- */
+-  --color-bg-base: #100f0c;
+-  --color-bg-base-rgb: 16 15 12;
+-  --color-bg-elevated: #171410;
+-  --color-bg-elevated-rgb: 23 20 16;
+-  --color-bg-surface: #1f1b14;
+-  --color-bg-surface-rgb: 31 27 20;
+-  --color-bg-overlay: #2a251b;
+-  --color-bg-overlay-rgb: 42 37 27;
+-
+-  /* --- 遮罩 scrim（唯一允许的常驻半透明：modal/抽屉背后的压暗层） --- */
++  /* --- 背景层级（base < elevated < surface < overlay 明度递增；09-03 起低饱和暗色） --- */
++  --color-bg-base: #10191b;
++  --color-bg-base-rgb: 16 25 27;
++  --color-bg-elevated: #172225;
++  --color-bg-elevated-rgb: 23 34 37;
++  --color-bg-surface: #1d292c;
++  --color-bg-surface-rgb: 29 41 44;
++  --color-bg-overlay: #233033;
++  --color-bg-overlay-rgb: 35 48 51;
++
++  /* --- 遮罩 scrim（modal/抽屉背后的压暗层；应用纸面单独管理） --- */
+   --color-scrim: rgb(0 0 0 / 56%);
+   --color-scrim-rgb: 0 0 0;
+ 
+   /* --- 边框与分隔（实色：暗色旧 14/22/34% 与 elevated 合成） --- */
+-  --color-border-subtle: #332c21;
+-  --color-border-subtle-rgb: 51 44 33;
+-  --color-border-default: #453b2a;
+-  --color-border-default-rgb: 69 59 42;
+-  --color-border-strong: #5d5138;
+-  --color-border-strong-rgb: 93 81 56;
++  --color-border-subtle: #34464b;
++  --color-border-subtle-rgb: 52 70 75;
++  --color-border-default: #496168;
++  --color-border-default-rgb: 73 97 104;
++  --color-border-strong: #718b91;
++  --color-border-strong-rgb: 113 139 145;
+   --color-border-accent: rgb(var(--color-accent-primary-rgb) / 24%);
+ 
+   /* --- 文字层级（实心高对比） --- */
+-  --color-text-primary: #e9e1d1;
+-  --color-text-primary-rgb: 233 225 209;
+-  --color-text-secondary: #c9bda8;
+-  --color-text-secondary-rgb: 201 189 168;
+-  --color-text-muted: #a1937c;
+-  --color-text-muted-rgb: 161 147 124;
+-  --color-text-ghost: #6f6552;
+-  --color-text-ghost-rgb: 111 101 82;
+-  --color-text-disabled: #564e3e;
+-  --color-text-disabled-rgb: 86 78 62;
+-  --color-text-inverted: #1d1408;
+-  --color-text-inverted-rgb: 29 20 8;
+-
+-  /* --- 主强调色 - Clay key → 终端琥珀 on dark（契约琥珀，高彩度） --- */
+-  --color-accent-primary: #f0a32b;
+-  --color-accent-primary-hover: #f5b14a;
+-  --color-accent-primary-active: #d98f1d;
+-  --color-accent-primary-rgb: 240 163 43;
+-  --color-accent-primary-glow: rgb(240 163 43 / 16%);
+-  --color-accent-primary-contrast: #1d1204;
+-  --color-accent-primary-contrast-rgb: 29 18 4;
+-
+-  /* --- 辅助强调色 - Warm Sand on dark --- */
+-  --color-accent-secondary: #c9a35f;
+-  --color-accent-secondary-hover: #d2b06f;
+-  --color-accent-secondary-active: #bc9650;
+-  --color-accent-secondary-rgb: 201 163 95;
+-  --color-accent-secondary-glow: rgb(201 163 95 / 16%);
++  --color-text-primary: #f0f8f5;
++  --color-text-primary-rgb: 240 248 245;
++  --color-text-secondary: #c5d5d0;
++  --color-text-secondary-rgb: 197 213 208;
++  --color-text-muted: #9fafa9;
++  --color-text-muted-rgb: 159 175 169;
++  --color-text-ghost: #82938d;
++  --color-text-ghost-rgb: 130 147 141;
++  --color-text-disabled: #657873;
++  --color-text-disabled-rgb: 101 120 115;
++  --color-text-inverted: #15221d;
++  --color-text-inverted-rgb: 21 34 29;
++
++  /* --- 主强调色 - Clay key → 轻盈绿 on dark（契约琥珀，高彩度） --- */
++  --color-accent-primary: #85d5b1;
++  --color-accent-primary-hover: #9ce0c3;
++  --color-accent-primary-active: #6bc39a;
++  --color-accent-primary-rgb: 133 213 177;
++  --color-accent-primary-glow: rgb(133 213 177 / 16%);
++  --color-accent-primary-contrast: #102b20;
++  --color-accent-primary-contrast-rgb: 16 43 32;
++
++  /* --- 辅助强调色 - Output Purple on dark --- */
++  --color-accent-secondary: #b9a4f4;
++  --color-accent-secondary-hover: #c9b8fa;
++  --color-accent-secondary-active: #a18adc;
++  --color-accent-secondary-rgb: 185 164 244;
++  --color-accent-secondary-glow: rgb(185 164 244 / 16%);
+ 
+   /* --- 功能色（09-03 终端语义对齐） --- */
+-  --color-success: #5fa05a;
+-  --color-success-hover: #6eb069;
+-  --color-success-rgb: 95 160 90;
+-  --color-success-glow: rgb(95 160 90 / 16%);
++  --color-success: #73ba6e;
++  --color-success-hover: #84c87e;
++  --color-success-rgb: 115 186 110;
++  --color-success-glow: rgb(115 186 110 / 16%);
+ 
+-  /* 对比文字：vs --color-success #5fa05a = 5.63:1（≥3.5 契约） */
++  /* 对比文字：保持 --color-success 配对文字 ≥3.5:1，并独立核对状态文字 ≥4.5:1。 */
+   --color-success-contrast: #17181c;
+   --color-success-contrast-rgb: 23 24 28;
+   --color-warning: #d9c05a;
+@@ -259,21 +269,21 @@
+   --color-warning-rgb: 217 192 90;
+   --color-warning-glow: rgb(217 192 90 / 16%);
+ 
+-  /* 对比文字：vs --color-warning #d9c05a = 9.83:1（≥3.5 契约） */
++  /* 对比文字：保持 --color-warning 配对文字 ≥3.5:1，并独立核对状态文字 ≥4.5:1。 */
+   --color-warning-contrast: #17181c;
+   --color-warning-contrast-rgb: 23 24 28;
+-  --color-danger: #e06852;
+-  --color-danger-hover: #ec7a63;
+-  --color-danger-rgb: 224 104 82;
+-  --color-danger-glow: rgb(224 104 82 / 16%);
++  --color-danger: #ec8d7a;
++  --color-danger-hover: #f29f8e;
++  --color-danger-rgb: 236 141 122;
++  --color-danger-glow: rgb(236 141 122 / 16%);
+ 
+-  /* 对比文字：vs --color-danger #e06852 = 5.30:1（≥3.5 契约） */
++  /* 对比文字：保持 --color-danger 配对文字 ≥3.5:1，并独立核对状态文字 ≥4.5:1。 */
+   --color-danger-contrast: #17181c;
+   --color-danger-contrast-rgb: 23 24 28;
+-  --color-info: #7d94b0;
+-  --color-info-hover: #8ca2bb;
+-  --color-info-rgb: 125 148 176;
+-  --color-info-glow: rgb(125 148 176 / 16%);
++  --color-info: #91a9c7;
++  --color-info-hover: #a2b8d1;
++  --color-info-rgb: 145 169 199;
++  --color-info-glow: rgb(145 169 199 / 16%);
+   --color-success-tint: #26301f;
+   --color-warning-tint: #362c1a;
+   --color-danger-tint: #331f16;
+@@ -337,13 +347,20 @@
+ 
+   /* --- Insights 图表色（暗色；语义同 :root）：heat-0 同时高于 neutral #1f1b14 与 clay #2a221e 卡片面 --- */
+   --color-chart-other: #a1937c;
+-  --color-chart-heat-0: #332f27;
+-  --color-chart-heat-1: #5b5344;
+-  --color-chart-heat-2: #7a7263;
+-  --color-chart-heat-3: #9b9383;
+-  --color-chart-heat-4: #beb5a4;
++  --color-chart-heat-0: #394349;
++  --color-chart-heat-1: #596971;
++  --color-chart-heat-2: #7a8b91;
++  --color-chart-heat-3: #9badb2;
++  --color-chart-heat-4: #c0d0d3;
+ 
+   /* stage 语义层由 :root 的 var() 引用自动跟随暗色令牌，无需覆盖。 */
++
++  /* AG01 专用应用纸面；唯一 layout-shell::before 消费。 */
++  --surface-app-field-start: #102b26;
++  --surface-app-field-end: #25213d;
++  --surface-app-sheet-bg: rgb(var(--color-bg-elevated-rgb) / 90%);
++  --surface-app-sheet-border: var(--color-border-subtle);
++  --surface-app-sheet-shadow: 0 20px 48px rgb(0 0 0 / 24%);
+ }
+ 
+ /* ========== 间距系统（4 像素基准） ========== */
+@@ -487,15 +504,15 @@
+ 
+ /* ========== 玻璃效果系统 ========== */
+ 
+-/* 玻璃预算（review 依据）：同屏 backdrop-filter 元素 ≤ 3；禁止嵌套玻璃；
++/* 玻璃预算（review 依据）：同屏 backdrop-filter 元素 ≤ 1；禁止嵌套玻璃；
+    禁止在滚动内容区内部使用玻璃。普通内容卡片一律走不透明 card/workspace 语义。 */
+ :root:where(:root):where(:root):where(:root):where(:root):where(:root) {
+   /* --- 三档 material 玻璃令牌（新表面契约：chrome/inline 全不透明、blur: none；
+-     floating 是唯一保留 backdrop-filter 的档，bg ≥88% 不透明、blur ≤ 12 像素、去 saturate） --- */
++     所有共享档均实底；唯一 app-sheet 承载真实 backdrop-filter） --- */
+ 
+-  /* floating：模态 / 命令面板 / 浮层（同屏最多 1 个） */
+-  --material-glass-floating-bg: rgb(var(--color-bg-elevated-rgb) / 92%);
+-  --material-glass-floating-blur: blur(12px);
++  /* floating：模态 / 命令面板 / 浮层（实底，不叠加纸面 blur） */
++  --material-glass-floating-bg: var(--color-bg-elevated);
++  --material-glass-floating-blur: none;
+   --material-glass-floating-border: var(--color-border-strong);
+   --material-glass-floating-highlight: inset 0 1px 0 rgb(255 255 255 / 40%);
+   --material-glass-floating-shadow: 0 24px 64px rgb(25 27 32 / 20%);
+@@ -591,6 +608,20 @@
+   --liquid-glass-shadow: 0 16px 36px rgb(0 0 0 / 38%);
+ }
+ 
++@media (width < 960px), (prefers-reduced-transparency: reduce) {
++  html:root {
++    --surface-app-sheet-bg: var(--surface-app-sheet-solid);
++    --surface-app-sheet-blur: none;
++  }
++}
++
++@supports not (backdrop-filter: blur(1px)) {
++  html:root {
++    --surface-app-sheet-bg: var(--surface-app-sheet-solid);
++    --surface-app-sheet-blur: none;
++  }
++}
++
+ /* ========== 动画系统 ========== */
+ :root:where(:root):where(:root):where(:root):where(:root):where(:root):where(:root) {
+   /* --- 时长 --- */
+@@ -664,32 +695,32 @@
+ 
+ /* --- clay（亮）：暖纸面 identity（同 neutral 亮色几何：桌面压暗、卡片最亮） --- */
+ [data-flavor='clay'] {
+-  --color-bg-base: #ebe1d0;
+-  --color-bg-base-rgb: 235 225 208;
+-  --color-bg-elevated: #f5eee1;
+-  --color-bg-elevated-rgb: 245 238 225;
+-  --color-bg-surface: #fefaf2;
+-  --color-bg-surface-rgb: 254 250 242;
+-  --color-bg-overlay: #e2d6c3;
+-  --color-bg-overlay-rgb: 226 214 195;
+-  --color-border-subtle: #e0d8cb;
+-  --color-border-subtle-rgb: 224 216 203;
+-  --color-border-default: #d4cbbe;
+-  --color-border-default-rgb: 212 203 190;
+-  --color-border-strong: #c1b7aa;
+-  --color-border-strong-rgb: 193 183 170;
+-  --color-text-primary: #31241c;
+-  --color-text-primary-rgb: 49 36 28;
+-  --color-text-secondary: #5f4d3f;
+-  --color-text-secondary-rgb: 95 77 63;
+-  --color-text-muted: #715d4c;
+-  --color-text-muted-rgb: 113 93 76;
+-  --color-text-ghost: #9a8373;
+-  --color-text-ghost-rgb: 154 131 115;
+-  --color-text-disabled: #b4a08f;
+-  --color-text-disabled-rgb: 180 160 143;
+-  --color-text-inverted: #fff8f0;
+-  --color-text-inverted-rgb: 255 248 240;
++  --color-bg-base: #eae6f2;
++  --color-bg-base-rgb: 234 230 242;
++  --color-bg-elevated: #f5f2fa;
++  --color-bg-elevated-rgb: 245 242 250;
++  --color-bg-surface: #fefcff;
++  --color-bg-surface-rgb: 254 252 255;
++  --color-bg-overlay: #e9e4f1;
++  --color-bg-overlay-rgb: 233 228 241;
++  --color-border-subtle: #ded8e9;
++  --color-border-subtle-rgb: 222 216 233;
++  --color-border-default: #c0b6cf;
++  --color-border-default-rgb: 192 182 207;
++  --color-border-strong: #887999;
++  --color-border-strong-rgb: 136 121 153;
++  --color-text-primary: #222630;
++  --color-text-primary-rgb: 34 38 48;
++  --color-text-secondary: #464758;
++  --color-text-secondary-rgb: 70 71 88;
++  --color-text-muted: #686477;
++  --color-text-muted-rgb: 104 100 119;
++  --color-text-ghost: #827b91;
++  --color-text-ghost-rgb: 130 123 145;
++  --color-text-disabled: #aaa2b7;
++  --color-text-disabled-rgb: 170 162 183;
++  --color-text-inverted: #fbf8ff;
++  --color-text-inverted-rgb: 251 248 255;
+   --color-success-tint: #eaede1;
+   --color-warning-tint: #f6ecdd;
+   --color-danger-tint: #f7e9df;
+@@ -698,32 +729,32 @@
+ 
+ /* --- clay（暗）：暖墨 identity（base < elevated < surface < overlay 逐级提亮，border 提到 14/22/34） --- */
+ [data-theme='dark'][data-flavor='clay'] {
+-  --color-bg-base: #17120f;
+-  --color-bg-base-rgb: 23 18 15;
+-  --color-bg-elevated: #221b18;
+-  --color-bg-elevated-rgb: 34 27 24;
+-  --color-bg-surface: #2a221e;
+-  --color-bg-surface-rgb: 42 34 30;
+-  --color-bg-overlay: #342b26;
+-  --color-bg-overlay-rgb: 52 43 38;
+-  --color-border-subtle: #322a25;
+-  --color-border-subtle-rgb: 50 42 37;
+-  --color-border-default: #3a302a;
+-  --color-border-default-rgb: 58 48 42;
+-  --color-border-strong: #4a3d35;
+-  --color-border-strong-rgb: 74 61 53;
+-  --color-text-primary: #f3eadf;
+-  --color-text-primary-rgb: 243 234 223;
+-  --color-text-secondary: #dacbbc;
+-  --color-text-secondary-rgb: 218 203 188;
+-  --color-text-muted: #b9a695;
+-  --color-text-muted-rgb: 185 166 149;
+-  --color-text-ghost: #977f6d;
+-  --color-text-ghost-rgb: 151 127 109;
+-  --color-text-disabled: #735f52;
+-  --color-text-disabled-rgb: 115 95 82;
+-  --color-text-inverted: #211915;
+-  --color-text-inverted-rgb: 33 25 21;
++  --color-bg-base: #171722;
++  --color-bg-base-rgb: 23 23 34;
++  --color-bg-elevated: #20212e;
++  --color-bg-elevated-rgb: 32 33 46;
++  --color-bg-surface: #282a38;
++  --color-bg-surface-rgb: 40 42 56;
++  --color-bg-overlay: #2c2e3d;
++  --color-bg-overlay-rgb: 44 46 61;
++  --color-border-subtle: #3c3e51;
++  --color-border-subtle-rgb: 60 62 81;
++  --color-border-default: #555970;
++  --color-border-default-rgb: 85 89 112;
++  --color-border-strong: #7f859d;
++  --color-border-strong-rgb: 127 133 157;
++  --color-text-primary: #f5f4fc;
++  --color-text-primary-rgb: 245 244 252;
++  --color-text-secondary: #d4d2e3;
++  --color-text-secondary-rgb: 212 210 227;
++  --color-text-muted: #b0adbf;
++  --color-text-muted-rgb: 176 173 191;
++  --color-text-ghost: #918caa;
++  --color-text-ghost-rgb: 145 140 170;
++  --color-text-disabled: #706c83;
++  --color-text-disabled-rgb: 112 108 131;
++  --color-text-inverted: #1b1c28;
++  --color-text-inverted-rgb: 27 28 40;
+   --color-success-tint: #25332a;
+   --color-warning-tint: #3a2a20;
+   --color-danger-tint: #2b1f1c;
+@@ -760,25 +791,25 @@
+ 
+ /* 值域仅 clay。data-accent 仍写入，值恒为 clay。 */
+ 
+-/* --- clay（默认；09-03 起 clay key 解析为终端琥珀，值域名不变） --- */
++/* --- clay（默认；09-03 起 clay key 解析为轻盈绿，值域名不变） --- */
+ [data-accent='clay'] {
+-  --color-accent-primary: #8f650e;
+-  --color-accent-primary-hover: #a2740f;
+-  --color-accent-primary-active: #7c580b;
+-  --color-accent-primary-rgb: 143 101 14;
+-  --color-accent-primary-glow: rgb(143 101 14 / 10%);
+-  --color-accent-primary-contrast: #fffaf0;
+-  --color-accent-primary-contrast-rgb: 255 250 240;
+-  --color-border-accent: rgb(143 101 14 / 18%);
++  --color-accent-primary: #156f4e;
++  --color-accent-primary-hover: #146a4a;
++  --color-accent-primary-active: #105b40;
++  --color-accent-primary-rgb: 21 111 78;
++  --color-accent-primary-glow: rgb(21 111 78 / 10%);
++  --color-accent-primary-contrast: #fff;
++  --color-accent-primary-contrast-rgb: 255 255 255;
++  --color-border-accent: rgb(21 111 78 / 18%);
+ }
+ 
+ [data-theme='dark'][data-accent='clay'] {
+-  --color-accent-primary: #f0a32b;
+-  --color-accent-primary-hover: #f5b14a;
+-  --color-accent-primary-active: #d98f1d;
+-  --color-accent-primary-rgb: 240 163 43;
+-  --color-accent-primary-glow: rgb(240 163 43 / 16%);
+-  --color-accent-primary-contrast: #1d1204;
+-  --color-accent-primary-contrast-rgb: 29 18 4;
+-  --color-border-accent: rgb(240 163 43 / 24%);
++  --color-accent-primary: #85d5b1;
++  --color-accent-primary-hover: #9ce0c3;
++  --color-accent-primary-active: #6bc39a;
++  --color-accent-primary-rgb: 133 213 177;
++  --color-accent-primary-glow: rgb(133 213 177 / 16%);
++  --color-accent-primary-contrast: #102b20;
++  --color-accent-primary-contrast-rgb: 16 43 32;
++  --color-border-accent: rgb(133 213 177 / 24%);
+ }
+diff --git a/ccr-ui/src/styles/utilities/utilities.css b/ccr-ui/src/styles/utilities/utilities.css
+index e530d19b..c4ba1644 100644
+--- a/ccr-ui/src/styles/utilities/utilities.css
++++ b/ccr-ui/src/styles/utilities/utilities.css
+@@ -25,10 +25,10 @@
+     }
+ 
+     /* ========== 液态玻璃三档 Material Utilities ==========
+-       玻璃预算（review 依据）：仅 floating 档保留真实模糊（同屏 ≤ 1）；
+-       chrome / inline 档为不透明配方（blur: none）；禁止嵌套玻璃；
++       玻璃预算（review 依据）：唯一 app-sheet 保留真实模糊（同屏 ≤ 1）；
++       floating / chrome / inline 档为不透明配方（blur: none）；禁止嵌套玻璃；
+        禁止在滚动内容区内部使用玻璃（滚动 + 模糊会持续触发重绘）。
+-       floating：模态 / 命令面板 / 浮层（同屏最多 1）；
++       floating：模态 / 命令面板 / 浮层（实底）；
+        chrome：侧栏 / 顶栏（不透明）；
+        inline：页面内悬浮条（sticky 工具条等，少用，不透明）。
+        普通内容卡片禁止使用这三个类，一律走不透明 surface-card/workspace 语义。 */
+@@ -304,7 +304,7 @@
+         width: 100%;
+         padding: var(--space-2-5) var(--space-4);
+         background: var(--color-bg-surface);
+-        border: var(--space-px) solid var(--color-border-default);
++        border: var(--space-px) solid var(--color-border-strong);
+         border-radius: var(--radius-lg);
+         color: var(--color-text-primary);
+         font-size: var(--text-base);
+@@ -773,8 +773,7 @@
+     transform: none !important;
+ }
+ 
+-/* 当用户明确要求减少透明度时，增加背景不透明度但保留模糊效果。
+- * backdrop-filter (blur) 属于视觉增强而非"透明度"，不应完全关闭。 */
++/* 当用户明确要求减少透明度时，所有材质均回退实底并关闭模糊。 */
+ @media (prefers-reduced-transparency: reduce) {
+     .config-card-active,
+     .nav-item-active-glow,
+diff --git a/ccr-ui/src/ui/checkbox.tsx b/ccr-ui/src/ui/checkbox.tsx
+index 1f086e7e..3a17733f 100644
+--- a/ccr-ui/src/ui/checkbox.tsx
++++ b/ccr-ui/src/ui/checkbox.tsx
+@@ -14,9 +14,9 @@ const Checkbox = forwardRef<
+     className={cn(
+       'peer h-4 w-4 shrink-0 rounded border border-border-strong bg-bg-surface',
+       'transition-colors duration-fast',
+-      'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base',
++      'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base',
+       'disabled:cursor-not-allowed disabled:opacity-50',
+-      'data-[state=checked]:border-accent-primary data-[state=checked]:bg-accent-primary data-[state=checked]:text-text-inverted',
++      'data-[state=checked]:border-accent-primary data-[state=checked]:bg-accent-primary data-[state=checked]:text-[color:var(--color-accent-primary-contrast)]',
+       className,
+     )}
+     {...props}
+diff --git a/ccr-ui/src/ui/combobox.tsx b/ccr-ui/src/ui/combobox.tsx
+index 5034a21b..ae813a0b 100644
+--- a/ccr-ui/src/ui/combobox.tsx
++++ b/ccr-ui/src/ui/combobox.tsx
+@@ -15,9 +15,9 @@ const ComboboxInput = forwardRef<ElementRef<typeof CommandPrimitive.Input>, Comb
+     <CommandPrimitive.Input
+       ref={ref}
+       className={cn(
+-        'flex h-10 w-full rounded-lg border border-border-default/70 bg-bg-surface px-3 py-2 text-sm text-text-primary',
++        'flex h-10 w-full rounded-lg border border-border-strong bg-bg-surface px-3 py-2 text-sm text-text-primary',
+         'placeholder:text-text-ghost',
+-        'focus:outline-none focus:ring-2 focus:ring-accent-primary/24 focus:border-accent-primary/50',
++        'focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-accent-primary',
+         'disabled:cursor-not-allowed disabled:opacity-50',
+         className,
+       )}
+diff --git a/ccr-ui/src/ui/dialog.tsx b/ccr-ui/src/ui/dialog.tsx
+index 472d71c9..d8bfea40 100644
+--- a/ccr-ui/src/ui/dialog.tsx
++++ b/ccr-ui/src/ui/dialog.tsx
+@@ -19,7 +19,7 @@ const DialogOverlay = forwardRef<ElementRef<typeof DialogPrimitive.Overlay>, Dia
+     <DialogPrimitive.Overlay
+       ref={ref}
+       className={cn(
+-        'fixed inset-0 z-[var(--layer-modal-backdrop)] bg-scrim backdrop-blur-md',
++        'fixed inset-0 z-[var(--layer-modal-backdrop)] bg-scrim',
+         'transition-opacity duration-normal',
+         'data-[state=open]:opacity-100 data-[state=closed]:opacity-0',
+         className,
+diff --git a/ccr-ui/src/ui/popover.tsx b/ccr-ui/src/ui/popover.tsx
+index daede7b2..9cc78ca3 100644
+--- a/ccr-ui/src/ui/popover.tsx
++++ b/ccr-ui/src/ui/popover.tsx
+@@ -2,8 +2,8 @@ import * as PopoverPrimitive from '@radix-ui/react-popover'
+ import { forwardRef, type ComponentPropsWithoutRef, type ElementRef } from 'react'
+ import { cn } from './cn'
+ 
+-// Popover（shadcn/ui 风格的 Radix 包装）。浮层材质消费 surface-modal（玻璃悬浮
+-// 材质），层级 z-popover，圆角/间距走 token 工具类。
++// Popover（shadcn/ui 风格的 Radix 包装）。浮层消费实底 surface-modal，
++// 层级 z-popover，圆角/间距走 token 工具类。
+ 
+ const Popover = PopoverPrimitive.Root
+ const PopoverTrigger = PopoverPrimitive.Trigger
+diff --git a/ccr-ui/src/ui/primitives.css b/ccr-ui/src/ui/primitives.css
+index d524faf5..7b41feeb 100644
+--- a/ccr-ui/src/ui/primitives.css
++++ b/ccr-ui/src/ui/primitives.css
+@@ -286,7 +286,7 @@
+   padding: 0.7rem 0.95rem;
+   border-radius: var(--radius-full);
+   border: 1px solid rgb(var(--color-accent-secondary-rgb) / 26%);
+-  background: rgb(var(--color-bg-elevated-rgb) / 94%);
++  background: var(--surface-status-bg);
+   box-shadow: var(--shadow-md);
+   color: var(--color-accent-secondary);
+   font-size: 0.8rem;
+@@ -324,8 +324,8 @@
+ }
+ 
+ .multi-select-bar__btn--danger {
+-  color: rgb(239 68 68 / 85%);
+-  border-color: rgb(239 68 68 / 20%);
++  color: var(--color-danger);
++  border-color: var(--color-danger);
+ }
+ 
+ .bulk-delete__body {
+@@ -613,7 +613,8 @@
+ }
+ 
+ .ui-btn:focus-visible {
+-  outline: none;
++  outline: var(--space-0-5) solid var(--color-accent-primary);
++  outline-offset: var(--space-0-5);
+   box-shadow: 0 0 0 var(--space-0-5) rgb(var(--color-accent-primary-rgb) / 30%);
+ }
+ 
+@@ -641,7 +642,7 @@
+ .ui-btn--primary {
+   background: var(--color-accent-primary);
+   border-color: var(--color-accent-primary);
+-  color: var(--color-text-inverted);
++  color: var(--color-accent-primary-contrast);
+ }
+ 
+ .ui-btn--primary:hover:not(:disabled) {
+@@ -690,7 +691,7 @@
+ .ui-btn--danger {
+   background: var(--color-danger);
+   border-color: var(--color-danger);
+-  color: var(--color-text-inverted);
++  color: var(--color-danger-contrast);
+ }
+ 
+ .ui-btn--danger:hover:not(:disabled) {
+diff --git a/ccr-ui/src/ui/select.tsx b/ccr-ui/src/ui/select.tsx
+index 04bc9f7c..7bc0e163 100644
+--- a/ccr-ui/src/ui/select.tsx
++++ b/ccr-ui/src/ui/select.tsx
+@@ -16,9 +16,9 @@ const SelectTrigger = forwardRef<ElementRef<typeof SelectPrimitive.Trigger>, Sel
+     <SelectPrimitive.Trigger
+       ref={ref}
+       className={cn(
+-        'flex h-9 w-full items-center justify-between whitespace-nowrap rounded-lg border border-border-default/70 bg-bg-surface px-3 py-2 text-sm text-text-primary',
++        'flex h-9 w-full items-center justify-between whitespace-nowrap rounded-lg border border-border-strong bg-bg-surface px-3 py-2 text-sm text-text-primary',
+         'placeholder:text-text-ghost',
+-        'focus:outline-none focus:ring-2 focus:ring-accent-primary/24 focus:border-accent-primary/50',
++        'focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-accent-primary',
+         'disabled:cursor-not-allowed disabled:opacity-50',
+         className,
+       )}
+diff --git a/ccr-ui/src/ui/tooltip.tsx b/ccr-ui/src/ui/tooltip.tsx
+index 93ce1b9c..3b0d686f 100644
+--- a/ccr-ui/src/ui/tooltip.tsx
++++ b/ccr-ui/src/ui/tooltip.tsx
+@@ -2,8 +2,8 @@ import * as TooltipPrimitive from '@radix-ui/react-tooltip'
+ import { forwardRef, type ComponentPropsWithoutRef, type ElementRef } from 'react'
+ import { cn } from './cn'
+ 
+-// Tooltip（shadcn/ui 风格的 Radix 包装）。层级 z-tooltip，浮层材质 surface-modal
+-// （玻璃悬浮材质）。`src/` 中 2 处图表自绘浮层 + 117 处原生 :title 的交互场景
++// Tooltip（shadcn/ui 风格的 Radix 包装）。层级 z-tooltip，浮层消费实底 surface-modal。
++// `src/` 中 2 处图表自绘浮层 + 117 处原生 :title 的交互场景
+ // （adhoc-primitives.md F1/F2）由本原语承载。
+ 
+ const TooltipProvider = TooltipPrimitive.Provider
+diff --git a/ccr-ui/src/utils/nativeWindowAppearance.ts b/ccr-ui/src/utils/nativeWindowAppearance.ts
+index a1e6e75b..d98d0d51 100644
+--- a/ccr-ui/src/utils/nativeWindowAppearance.ts
++++ b/ccr-ui/src/utils/nativeWindowAppearance.ts
+@@ -5,8 +5,8 @@ import { getClientPlatform } from '@/utils/windowChrome'
+ import type { ResolvedThemeMode } from '@/utils/themeBootstrap'
+ 
+ const MACOS_WINDOW_BACKGROUNDS: Record<ResolvedThemeMode, Color> = {
+-  light: '#EEF4FF',
+-  dark: '#07121F',
++  light: '#E7F1EE',
++  dark: '#10191B',
+ }
+ 
+ export const shouldSyncNativeWindowAppearance = (): boolean => {
+diff --git a/ccr-ui/tests/theme/apple-glass-surface-contract.smoke.test.ts b/ccr-ui/tests/theme/apple-glass-surface-contract.smoke.test.ts
+index 709fdebd..207831ca 100644
+--- a/ccr-ui/tests/theme/apple-glass-surface-contract.smoke.test.ts
++++ b/ccr-ui/tests/theme/apple-glass-surface-contract.smoke.test.ts
+@@ -141,12 +141,20 @@ describe('claude editorial surface contract', () => {
+     expect(source).toMatch(/--surface-card-bg:\s*var\(--color-bg-surface\)/)
+     expect(source).toMatch(/--surface-workspace-bg:\s*var\(--color-bg-elevated\)/)
+ 
+-    // floating 是唯一保留 backdrop-filter 的档：blur ≤12px、去 saturate、bg ≥88% 不透明。
+-    const floatingBlur = source.match(/--material-glass-floating-blur:\s*([^;]+);/)?.[1] ?? ''
+-
+-    expect(floatingBlur).not.toContain('saturate')
+-    expect(floatingBlur).toMatch(/blur\((?:[0-9]|1[0-2])px\)/)
+-    expect(source).toMatch(/--material-glass-floating-bg:\s*rgb\(var\(--color-bg-elevated-rgb\) \/ (?:8[89]|9\d|100)%\)/)
++    // AG01：浮层实底，唯一专用应用纸面承载 blur。
++    expect(source).toMatch(/--material-glass-floating-blur:\s*none/)
++    expect(source).toMatch(/--material-glass-floating-bg:\s*var\(--color-bg-elevated\)/)
++    expect(source).toMatch(/--surface-app-sheet-blur:\s*blur\(20px\) saturate\(1\.15\)/)
++    expect(source).toMatch(/--surface-app-sheet-bg:\s*rgb\(255 255 255 \/ 78%\)/)
++    expect(source).toMatch(/--surface-app-sheet-solid:\s*var\(--color-bg-elevated\)/)
++    expect(source).toContain('@supports not (backdrop-filter: blur(1px))')
++    expect(source).toContain('@media (width < 960px), (prefers-reduced-transparency: reduce)')
++    const fallbacks = source.match(/(?:@media \(width < 960px\)[^{}]*|@supports not \(backdrop-filter: blur\(1px\)\)) \{[\s\S]*?^}/gm) ?? []
++    expect(fallbacks).toHaveLength(2)
++    for (const fallback of fallbacks) {
++      expect(fallback).toMatch(/--surface-app-sheet-bg:\s*var\(--surface-app-sheet-solid\)/)
++      expect(fallback).toMatch(/--surface-app-sheet-blur:\s*none/)
++    }
+ 
+     // mocha 语义重映射块不得存在；accent 轴仍独立于 flavor。
+     expect(source.match(mochaOverridePattern)?.[0] ?? '').toBe('')
+@@ -154,7 +162,7 @@ describe('claude editorial surface contract', () => {
+     expect(source).not.toMatch(/\[data-resolved-flavor=["'](?:latte|mocha)["']\].*--color-accent-primary:/s)
+ 
+     // 玻璃预算注释存在（review 依据）。
+-    expect(source).toContain('同屏 backdrop-filter 元素 ≤ 3')
++    expect(source).toContain('同屏 backdrop-filter 元素 ≤ 1')
+     expect(source).toContain('禁止嵌套玻璃')
+ 
+     // reduced-transparency 下三档 material 全部回退为不透明并关闭模糊。
+diff --git a/ccr-ui/tests/theme/native-window-appearance.smoke.test.ts b/ccr-ui/tests/theme/native-window-appearance.smoke.test.ts
+index 7a6fbd4a..3abb8902 100644
+--- a/ccr-ui/tests/theme/native-window-appearance.smoke.test.ts
++++ b/ccr-ui/tests/theme/native-window-appearance.smoke.test.ts
+@@ -57,7 +57,7 @@ describe('native window appearance smoke', () => {
+     await syncNativeWindowAppearance('light')
+ 
+     expect(setTheme).toHaveBeenCalledWith('light')
+-    expect(setBackgroundColor).toHaveBeenCalledWith('#EEF4FF')
++    expect(setBackgroundColor).toHaveBeenCalledWith('#E7F1EE')
+     expect(loggerWarn).not.toHaveBeenCalled()
+   })
+ 
+diff --git a/ccr-ui/tests/theme/theme-contrast-contract.smoke.test.ts b/ccr-ui/tests/theme/theme-contrast-contract.smoke.test.ts
+index 6ef5f57a..1770103d 100644
+--- a/ccr-ui/tests/theme/theme-contrast-contract.smoke.test.ts
++++ b/ccr-ui/tests/theme/theme-contrast-contract.smoke.test.ts
+@@ -323,19 +323,18 @@ describe('theme contrast contract', () => {
+ 
+   it.each(COMBOS)('$name：文本对比度达标（primary ≥12、secondary ≥7、muted ≥4.5）', (combo) => {
+     const tokens = resolveTokens(blocks, combo, 'clay')
+-    const surface = readToken(tokens, '--color-bg-surface')
+-
+     const floors: Array<readonly [string, number]> = [
+       ['--color-text-primary', 12],
+       ['--color-text-secondary', 7],
+       ['--color-text-muted', 4.5],
+     ]
+ 
+-    for (const [name, min] of floors) {
+-      const ratio = contrastRatio(readToken(tokens, name), surface)
+-      expect(ratio, `${name} vs --color-bg-surface = ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(
+-        min
+-      )
++    for (const role of ['base', 'elevated', 'surface', 'overlay']) {
++      const background = readToken(tokens, `--color-bg-${role}`)
++      for (const [name, min] of floors) {
++        const ratio = contrastRatio(readToken(tokens, name), background)
++        expect(ratio, `${name} vs ${role} = ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(min)
++      }
+     }
+   })
+ 
+@@ -380,6 +379,14 @@ describe('theme contrast contract', () => {
+     }
+   })
+ 
++  it.each(COMBOS)('$name：关键控件边界在各实底阅读面上达到 3:1', (combo) => {
++    const tokens = resolveTokens(blocks, combo, 'clay')
++    const border = readToken(tokens, '--color-border-strong')
++    for (const role of ['base', 'elevated', 'surface', 'overlay']) {
++      expect(contrastRatio(border, readToken(tokens, `--color-bg-${role}`)), role).toBeGreaterThanOrEqual(3)
++    }
++  })
++
+   it.each(COMBOS)('$name：accent vs accent-contrast ≥ 3.5（clay）', (combo) => {
+     for (const accent of ACCENTS) {
+       const tokens = resolveTokens(blocks, combo, accent)
+@@ -393,6 +400,38 @@ describe('theme contrast contract', () => {
+     }
+   })
+ 
++  it.each(COMBOS)('$name：纸面在渐变两端和中点合成后仍保持文字门槛', (combo) => {
++    const tokens = resolveTokens(blocks, combo, 'clay')
++    const start = readToken(tokens, '--surface-app-field-start')
++    const end = readToken(tokens, '--surface-app-field-end')
++    const sheet = readToken(tokens, '--surface-app-sheet-bg')
++    const midpoint = { r: (start.r + end.r) / 2, g: (start.g + end.g) / 2, b: (start.b + end.b) / 2, a: 1 }
++    for (const field of [start, midpoint, end]) {
++      const composed = blendOver(sheet, field)
++      for (const [name, floor] of [['primary', 12], ['secondary', 7], ['muted', 4.5]] as const) {
++        expect(contrastRatio(readToken(tokens, `--color-text-${name}`), composed), name).toBeGreaterThanOrEqual(floor)
++      }
++    }
++  })
++
++  it.each(COMBOS)('$name：状态和强调文字在阅读面与对应 tint 上达到 4.5:1', (combo) => {
++    const tokens = resolveTokens(blocks, combo, 'clay')
++    const surfaces = ['--color-bg-elevated', '--color-bg-surface', '--color-bg-overlay'].map(name => readToken(tokens, name))
++    for (const role of ['success', 'warning', 'danger', 'info']) {
++      const backgrounds = [...surfaces, readToken(tokens, `--color-${role}-tint`)]
++      for (const name of [`--color-${role}`, `--color-${role}-hover`]) {
++        for (const background of backgrounds) {
++          expect(contrastRatio(readToken(tokens, name), background), name).toBeGreaterThanOrEqual(4.5)
++        }
++      }
++    }
++    for (const name of ['--color-accent-primary', '--color-accent-primary-hover']) {
++      for (const surface of surfaces) {
++        expect(contrastRatio(readToken(tokens, name), surface), name).toBeGreaterThanOrEqual(4.5)
++      }
++    }
++  })
++
+   it('文本/表面令牌定义不携带 <100% alpha（正则扫全部定义行）', async () => {
+     const source = await readFile('src/styles/tokens.css', 'utf8')
+     const linePattern =
+diff --git a/ccr-ui/tests/theme/theme-switch.smoke.test.tsx b/ccr-ui/tests/theme/theme-switch.smoke.test.tsx
+index a3a3ea18..f1a13794 100644
+--- a/ccr-ui/tests/theme/theme-switch.smoke.test.tsx
++++ b/ccr-ui/tests/theme/theme-switch.smoke.test.tsx
+@@ -56,9 +56,9 @@ describe('theme-switch（批次 1 两层结构）', () => {
+     const darkRgb = extractVarValue(tokensCss, DARK_BLOCK, '--color-bg-surface-rgb')
+     const clayRgb = extractVarValue(tokensCss, CLAY_BLOCK, '--color-bg-surface-rgb')
+ 
+-    expect(lightRgb).toBe('250 247 236')
+-    expect(darkRgb).toBe('31 27 20')
+-    expect(clayRgb).toBe('254 250 242')
++    expect(lightRgb).toBe('255 255 255')
++    expect(darkRgb).toBe('29 41 44')
++    expect(clayRgb).toBe('254 252 255')
+     expect(darkRgb).not.toBe(lightRgb)
+     expect(clayRgb).not.toBe(lightRgb)

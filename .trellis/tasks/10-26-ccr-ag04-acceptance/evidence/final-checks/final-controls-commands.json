@@ -1,0 +1,38 @@
+[
+  {
+    "command": "bun run test:smoke -- tests/ui tests/configs",
+    "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+    "startedAt": "2026-10-26T16:48:00.5457294Z",
+    "finishedAt": "2026-10-26T16:48:12.4383147Z",
+    "elapsedSeconds": 11.8885426,
+    "exitCode": 0,
+    "log": "final-controls-focused-ui-configs.log"
+  },
+  {
+    "command": "bun run type-check",
+    "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+    "startedAt": "2026-10-26T16:48:12.4615704Z",
+    "finishedAt": "2026-10-26T16:48:20.0371349Z",
+    "elapsedSeconds": 7.5749909,
+    "exitCode": 0,
+    "log": "final-controls-type-check.log"
+  },
+  {
+    "command": "bun run lint",
+    "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+    "startedAt": "2026-10-26T16:48:20.0418810Z",
+    "finishedAt": "2026-10-26T16:48:41.3242779Z",
+    "elapsedSeconds": 21.2821527,
+    "exitCode": 0,
+    "log": "final-controls-lint.log"
+  },
+  {
+    "command": "bun run build:with-budget",
+    "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+    "startedAt": "2026-10-26T16:48:41.3280879Z",
+    "finishedAt": "2026-10-26T16:48:42.8776723Z",
+    "elapsedSeconds": 1.5493513,
+    "exitCode": 0,
+    "log": "final-controls-build-with-budget.log"
+  }
+]

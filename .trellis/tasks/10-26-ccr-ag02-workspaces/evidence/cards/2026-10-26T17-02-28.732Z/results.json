@@ -1,0 +1,10 @@
+{
+  "startedAt": "2026-10-26T17:02:28.733Z",
+  "states": [],
+  "baselineModalDiff": "",
+  "limitations": [
+    "QueryClient memory-only display data. No operation is invoked; scroll/display only. No native capability proven."
+  ],
+  "error": "Error: Refresh action clipped: {\"width\":800,\"refresh\":{\"left\":912.625,\"right\":954.625,\"width\":42},\"content\":{\"left\":0,\"right\":800}}",
+  "finishedAt": "2026-10-26T17:02:30.057Z"
+}

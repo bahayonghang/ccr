@@ -1,0 +1,171 @@
+$ vite build --sourcemap && bun ./scripts/check-bundle-budget.mjs
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 1472 modules transformed.
+[lightningcss minify] Unknown at rule: @tailwind
+1764 |  
+1765 |  /* Needed so Tailwind can place `@layer components` from utilities.css (used by `@apply`). */
+1766 |  @tailwind components;
+     |           ^
+1767 |  
+rendering chunks...
+dist/index.html                                           5.57 kB
+dist/assets/favicon-CdjPEHQT.svg                      1,506.14 kB
+dist/assets/McpManagerView-ij3zaiZ9.css                   1.47 kB
+dist/assets/deferred-decorations-BZg_lWSd.css             1.61 kB
+dist/assets/SettingsSource-Cjz2x6Sn.css                   3.36 kB
+dist/assets/CodexTrayPanelView-BiSpfdmS.css               3.85 kB
+dist/assets/CheckinAccountDashboardView-BTBIg1iJ.css      4.61 kB
+dist/assets/CommandsView-BQgl9t5U.css                     5.18 kB
+dist/assets/ConverterView-CO8eiGpY.css                    5.59 kB
+dist/assets/BudgetView-Bk0fC93e.css                       5.67 kB
+dist/assets/PricingView-oSt06fa5.css                      6.83 kB
+dist/assets/SyncView-BWhEpe85.css                         7.07 kB
+dist/assets/ConfigsView-DvHKeMNK.css                     14.25 kB
+dist/assets/charts-vendor-D3V_k3pH.css                   17.32 kB
+dist/assets/AppSettingsView-C-zKHzCt.css                 20.29 kB
+dist/assets/CheckinView-DXUfpf6q.css                     24.11 kB
+dist/assets/deferred-interactive-BfUdpwZl.css            29.27 kB
+dist/assets/ProfilesSurface-CkwYujT-.css                 39.65 kB
+dist/assets/DashboardView-Cvi9tgQs.css                   40.40 kB
+dist/assets/UsageDashboardView-pGSg-HxG.css              50.33 kB
+dist/assets/index-DsB0z0_S.css                          143.56 kB
+dist/assets/locale-Dg2i2hVU.js                            0.11 kB │ map:     0.35 kB
+dist/assets/apexChartsCore-DlkSSyjW.js                    0.12 kB │ map:     1.52 kB
+dist/assets/deferred-decorations-CyT7FVdI.js              0.12 kB │ map:     0.48 kB
+dist/assets/deferred-interactive-C2kLjIHK.js              0.12 kB │ map:     0.48 kB
+dist/assets/tf-CyXABCdX.js                                0.13 kB │ map:     1.06 kB
+dist/assets/locale-x2JeAmuS.js                            0.15 kB │ map:     0.58 kB
+dist/assets/locale-Dc6uHrPX.js                            0.16 kB │ map:     0.49 kB
+dist/assets/translate-DZ22Le8c.js                         0.18 kB │ map:     0.83 kB
+dist/assets/probeLocal-BZVjvPCT.js                        0.20 kB │ map:     0.71 kB
+dist/assets/locale-B_Atjqbp.js                            0.20 kB │ map:     0.76 kB
+dist/assets/CodexMcpView-D8es6MfW.js                      0.24 kB │ map:     0.43 kB
+dist/assets/CodexAgentsView-FoS95ePA.js                   0.26 kB │ map:     0.44 kB
+dist/assets/ClaudePluginsView-cNDAHltB.js                 0.26 kB │ map:     0.46 kB
+dist/assets/CodexSettingsView-igmAHd-N.js                 0.26 kB │ map:     0.46 kB
+dist/assets/GrokSettingsView-DjIuKdAT.js                  0.26 kB │ map:     0.45 kB
+dist/assets/GeminiAgentsView-CpbUMfvt.js                  0.26 kB │ map:     0.45 kB
+dist/assets/GeminiPluginsView-DCUjgkLM.js                 0.26 kB │ map:     0.46 kB
+dist/assets/surfaceNotify-DwxvQBm9.js                     0.27 kB │ map:     1.05 kB
+dist/assets/ClaudeSettingsView-yKg9SB_E.js                0.27 kB │ map:     0.46 kB
+dist/assets/OpenCodeAgentsView-BAaHqoPg.js                0.27 kB │ map:     0.46 kB
+dist/assets/OpenCodePluginsView-BYjBzvp0.js               0.27 kB │ map:     0.47 kB
+dist/assets/OpenCodeSettingsView-CyP-9i-I.js              0.27 kB │ map:     0.48 kB
+dist/assets/GeminiMcpView-uIDacvLO.js                     0.27 kB │ map:     0.42 kB
+dist/assets/OpenCodeMcpView-C7PEAZ9O.js                   0.28 kB │ map:     0.44 kB
+dist/assets/locale-CDEtALOX.js                            0.29 kB │ map:     0.70 kB
+dist/assets/GeminiSystemPromptsView-DLoH04ZE.js           0.30 kB │ map:     0.46 kB
+dist/assets/OpenCodeSystemPromptsView-BV5phJ4H.js         0.30 kB │ map:     0.47 kB
+dist/assets/chartResize-CggWbru9.js                       0.31 kB │ map:     1.72 kB
+dist/assets/checkinNotify-BRDHOImy.js                     0.35 kB │ map:     1.48 kB
+dist/assets/clipboard-C16C9bhA.js                         0.36 kB │ map:     1.57 kB
+dist/assets/systemPromptsConfig-D3o8AD2q.js               0.36 kB │ map:     1.39 kB
+dist/assets/router-BhINUHE9.js                            0.41 kB │ map:     2.61 kB
+dist/assets/nativeWindowAppearance-Dq3lnHwt.js            0.45 kB │ map:     1.51 kB
+dist/assets/api-DOvH7Cyk.js                               0.46 kB │ map:     8.60 kB
+dist/assets/ansiRenderer-DPDBm8KY.js                      0.58 kB │ map:     3.73 kB
+dist/assets/SurfacePage-DaoAU2z-.js                       0.65 kB │ map:     2.31 kB
+dist/assets/rolldown-runtime-hePW80VL.js                  0.71 kB
+dist/assets/runtimeState-Cew1J7rx.js                      0.84 kB │ map:     2.04 kB
+dist/assets/RoutePlaceholder-IlansauE.js                  0.90 kB │ map:     1.81 kB
+dist/assets/GrokAuthView-B160cgGt.js                      0.90 kB │ map:     4.74 kB
+dist/assets/OpenCodeCommandsView-CqdcWtRH.js              0.92 kB │ map:     5.01 kB
+dist/assets/ui-classes-DhKt8Z15.js                        1.06 kB │ map:     1.81 kB
+dist/assets/queries-Bz6NMu9q.js                           1.08 kB │ map:     4.96 kB
+dist/assets/queries-CRpESRWX.js                           1.09 kB │ map:     4.05 kB
+dist/assets/slashCommands-CY1wx40_.js                     1.69 kB │ map:     7.43 kB
+dist/assets/ClaudeSubnav-Dvl-FNvM.js                      1.70 kB │ map:     4.77 kB
+dist/assets/ConfigsSubnav-C44K7T-7.js                     1.71 kB │ map:     4.68 kB
+dist/assets/NamedItemCard-DA3h_Kim.js                     1.75 kB │ map:     4.37 kB
+dist/assets/environment-D5t9BTNZ.js                       1.85 kB │ map:     9.94 kB
+dist/assets/plugins-B1zR-7Y1.js                           2.22 kB │ map:     7.73 kB
+dist/assets/useCodexLocale-MrQayov4.js                    2.27 kB │ map:     5.54 kB
+dist/assets/confirm-modal-Cvru1uIY.js                     2.45 kB │ map:     6.62 kB
+dist/assets/moduleSubnav-Bt7RCfc5.js                      3.37 kB │ map:     6.79 kB
+dist/assets/mcp-CxhCFrNk.js                               3.42 kB │ map:    11.61 kB
+dist/assets/BaseMcp-Bm_Q7-8N.js                           3.78 kB │ map:     9.48 kB
+dist/assets/useUsageDashboardEffects-BVjL7UQe.js          4.04 kB │ map:    22.48 kB
+dist/assets/GeminiSlashCommandsView-kVzZ1MPz.js           4.28 kB │ map:    11.23 kB
+dist/assets/ClaudeSlashCommandsView-Bh5cnsNK.js           4.30 kB │ map:    11.42 kB
+dist/assets/download-BblfVWvO.js                          4.62 kB │ map:    17.80 kB
+dist/assets/CodexSystemPromptsView-DTxJto_E.js            4.94 kB │ map:    13.62 kB
+dist/assets/StatuslineView-Ny-QKzMS.js                    5.12 kB │ map:    10.88 kB
+dist/assets/CodexSlashCommandsView-fpbBspDB.js            5.40 kB │ map:     9.93 kB
+dist/assets/BudgetView-C-lV4fxT.js                        5.42 kB │ map:    21.33 kB
+dist/assets/AgentsHomeView-BjlX5u77.js                    5.50 kB │ map:    16.53 kB
+dist/assets/PricingView-DZqsdFvF.js                       5.86 kB │ map:    25.19 kB
+dist/assets/ClaudeSystemPromptsView-FB40z2Py.js           6.10 kB │ map:    16.44 kB
+dist/assets/WslManagementView-BZ2dR5TU.js                 7.86 kB │ map:    21.21 kB
+dist/assets/ui-vendor-DK_mXPN-.js                         8.21 kB │ map:    36.39 kB
+dist/assets/OutputStylesView-D5RlY6pV.js                  8.62 kB │ map:    21.37 kB
+dist/assets/SkillsMigrationView-CPDGLN7o.js               9.41 kB │ map:    16.13 kB
+dist/assets/SlashCommandsView-Dhufbd_u.js                 9.51 kB │ map:    26.80 kB
+dist/assets/CodexProfilesView-BGt74kHC.js                10.22 kB │ map:    33.71 kB
+dist/assets/ClaudeProfilesView-CKaM1lBb.js               10.66 kB │ map:    34.77 kB
+dist/assets/SettingsSource-BR_59_ma.js                   10.99 kB │ map:    35.11 kB
+dist/assets/CheckinAccountDashboardView-C7oBbYpM.js      11.34 kB │ map:    36.93 kB
+dist/assets/SshManagementView-0zfxna7y.js                11.49 kB │ map:    28.02 kB
+dist/assets/AgentDetailView-CbgiocJQ.js                  11.75 kB │ map:    31.75 kB
+dist/assets/ConverterView-DMs5bqfe.js                    12.84 kB │ map:    31.76 kB
+dist/assets/term-vendor-BUku6Usq.js                      13.31 kB │ map:    32.29 kB
+dist/assets/CodexTrayPanelView-BeeyFTbZ.js               13.55 kB │ map:    37.97 kB
+dist/assets/ClaudeCodeView-BdDd_jdt.js                   13.77 kB │ map:    24.26 kB
+dist/assets/OpenCodeProvidersView-B6Ad9jy5.js            13.84 kB │ map:    41.21 kB
+dist/assets/GrokProfilesView-BLS3zpjZ.js                 14.41 kB │ map:    44.24 kB
+dist/assets/GeminiCliView-DVq3SGOb.js                    14.81 kB │ map:    31.77 kB
+dist/assets/tauri-vendor-C9pnrVIe.js                     15.66 kB │ map:   125.23 kB
+dist/assets/CodexSessionsView-CIfkbJYi.js                15.82 kB │ map:    39.43 kB
+dist/assets/GrokView-ChA9HRKx.js                         18.62 kB │ map:    47.55 kB
+dist/assets/OpenCodeView-bmNq-ZQB.js                     19.15 kB │ map:    47.83 kB
+dist/assets/MonitoringView-DjDIHms0.js                   19.98 kB │ map:    62.10 kB
+dist/assets/CodexView-tsqpIhkU.js                        20.80 kB │ map:    51.15 kB
+dist/assets/HooksView-BHhZDeAW.js                        22.43 kB │ map:    60.65 kB
+dist/assets/ClaudeAuthView-B24aBKGF.js                   22.61 kB │ map:    53.80 kB
+dist/assets/CommandsView-DEOnolw5.js                     23.11 kB │ map:    65.14 kB
+dist/assets/AgentSessionsView-BntSDcp_.js                23.29 kB │ map:    63.39 kB
+dist/assets/settings-DGmc68Z8.js                         24.49 kB │ map:    61.41 kB
+dist/assets/AppSettingsView-BAQ5mjUm.js                  25.08 kB │ map:    66.15 kB
+dist/assets/virtual-vendor-B_lKz15X.js                   25.33 kB │ map:    86.11 kB
+dist/assets/search-vendor-COMZIxA7.js                    26.34 kB │ map:    87.77 kB
+dist/assets/markdown-vendor--06brOip.js                  28.13 kB │ map:   121.01 kB
+dist/assets/McpManagerView-FDV8P0m4.js                   28.65 kB │ map:    89.02 kB
+dist/assets/UsageInsightPanel-ZWj0Dknm.js                30.42 kB │ map:    77.84 kB
+dist/assets/SyncView-DdSLIZuX.js                         32.70 kB │ map:    93.75 kB
+dist/assets/query-vendor-DEmJRiTl.js                     36.18 kB │ map:   138.74 kB
+dist/assets/index.esm-CytFdV2g.js                        37.33 kB │ map:   202.25 kB
+dist/assets/i18n-BnlVP6gz.js                             39.38 kB │ map:    73.03 kB
+dist/assets/providerTemplates-BFHA1yzw.js                40.18 kB │ map:   107.73 kB
+dist/assets/base-modal-KGz8XkSN.js                       42.98 kB │ map:   200.25 kB
+dist/assets/i18n-vendor-DN_LR2yM.js                      49.00 kB │ map:   156.65 kB
+dist/assets/platform-BB8G2E6b.js                         60.21 kB │ map:   163.99 kB
+dist/assets/ConfigsView-DGqQb8XT.js                      61.24 kB │ map:   178.64 kB
+dist/assets/ProfilesSurface-DVkv3M3S.js                  61.90 kB │ map:   220.33 kB
+dist/assets/DashboardView-g-hAqMP7.js                    66.13 kB │ map:   212.12 kB
+dist/assets/zod-BVshz9mZ.js                              68.00 kB │ map:   377.92 kB
+dist/assets/CodexAuthView-DnLOUaPM.js                    68.23 kB │ map:   178.74 kB
+dist/assets/UsageDashboardView-BndpLTAb.js               83.13 kB │ map:   268.62 kB
+dist/assets/CheckinView-ChSY7ta2.js                      85.62 kB │ map:   265.21 kB
+dist/assets/solarIconSubset-BmH57whZ.js                  89.04 kB │ map:   102.45 kB
+dist/assets/motion-vendor-CvzEAiyf.js                   120.93 kB │ map:   639.40 kB
+dist/assets/ui-D8fM8xMm.js                              129.24 kB │ map:   536.68 kB
+dist/assets/logger-_4Zvk2pK.js                          149.77 kB │ map:   323.54 kB
+dist/assets/zh-CN-DnYkdV_s.js                           172.56 kB │ map:   294.92 kB
+dist/assets/en-US-CAEcn7iF.js                           179.65 kB │ map:   305.23 kB
+dist/assets/index-DaWoJsIP.js                           191.70 kB │ map:   733.40 kB
+dist/assets/cm-lang-DdimDZLi.js                         211.91 kB │ map:   516.27 kB
+dist/assets/react-vendor-BKdQMsPz.js                    273.69 kB │ map: 1,310.83 kB
+dist/assets/cm-editor-DZOYZPFL.js                       416.32 kB │ map: 1,712.97 kB
+dist/assets/charts-vendor-CaaDXHGw.js                   512.92 kB │ map: 1,695.47 kB
+
+✓ built in 1.60s
+[bundle-budget] index: index-DaWoJsIP.js raw=187.21 KiB gzip=56.94 KiB
+[bundle-budget] react-vendor: react-vendor-BKdQMsPz.js raw=267.28 KiB gzip=84.02 KiB
+[bundle-budget] query-vendor: query-vendor-DEmJRiTl.js raw=35.34 KiB gzip=10.28 KiB
+[bundle-budget] largest-lazy: logger-_4Zvk2pK.js raw=146.27 KiB gzip=11.17 KiB
+[bundle-budget] core.css: index-DsB0z0_S.css raw=140.20 KiB gzip=22.52 KiB
+[bundle-budget] shell-icons: solarShellIconSubset.ts raw=24.19 KiB gzip=7.73 KiB
+[bundle-budget] startup-font-css: (none) raw=0.00 KiB gzip=0.02 KiB
+[bundle-budget] motion: motion-vendor-CvzEAiyf.js actual=118.10 KiB / 37.97 KiB reserved=128.00 KiB / 44.00 KiB（预留值 128 / 44 KiB：rolldown 实测 motion/react + AnimatePresence 典型使用面 121.89 raw / 39.19 gzip 取整）
+[bundle-budget] zod: zod-BVshz9mZ.js actual=66.41 KiB / 17.97 KiB reserved=80.00 KiB / 24.00 KiB（发布门重设 80 / 24 KiB：产物为 zod-*.js 专用 chunk（视图迁移后 react-hook-form/zod 已导入），实测约 66 raw / 18 gzip，余量约 20%）
+[bundle-budget] PASS all budgets satisfied

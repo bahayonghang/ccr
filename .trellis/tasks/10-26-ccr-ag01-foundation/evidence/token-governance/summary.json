@@ -1,0 +1,17 @@
+{
+  "head": "ab17ec92b3e27b2859ebe9ab556bc9ced6369bf8",
+  "method": "unique CSS custom property definition names under src/styles/**/*.css; before reconstructed from baseline HEAD because before product diff is empty",
+  "before": 478,
+  "after": 486,
+  "added": [
+    "--surface-app-field-end",
+    "--surface-app-field-start",
+    "--surface-app-sheet-bg",
+    "--surface-app-sheet-blur",
+    "--surface-app-sheet-border",
+    "--surface-app-sheet-radius",
+    "--surface-app-sheet-shadow",
+    "--surface-app-sheet-solid"
+  ],
+  "removed": []
+}

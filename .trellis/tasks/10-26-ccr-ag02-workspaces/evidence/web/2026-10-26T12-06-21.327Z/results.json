@@ -1,0 +1,157 @@
+{
+  "startedAt": "2026-10-26T12:06:21.473Z",
+  "sourceDiffSha256": "6c8914df0553127347ed7594c58a3daa8305736ed91c8e99d10858cd9cb8038b",
+  "routes": [
+    {
+      "path": "/configs",
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "配置管理"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary layout-shell--theme-stage",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "light",
+      "flavor": "neutral",
+      "screenshot": "configs-light-neutral.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/converter",
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "配置转换器"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "light",
+      "flavor": "neutral",
+      "screenshot": "converter-light-neutral.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/mcp-manager",
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "MCP 管理中心"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "light",
+      "flavor": "neutral",
+      "screenshot": "mcp-manager-light-neutral.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/ssh",
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "SSH 远程管理"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "light",
+      "flavor": "neutral",
+      "screenshot": "ssh-light-neutral.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/skills",
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "Skills 已从 CCR UI 下线"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "light",
+      "flavor": "neutral",
+      "screenshot": "skills-light-neutral.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    },
+    {
+      "path": "/claude-code/profiles",
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "heading": [
+        "Claude Profiles 管理"
+      ],
+      "visibleBlur": [
+        {
+          "class": "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ",
+          "pseudo": "::before",
+          "filter": "blur(20px) saturate(1.15)"
+        }
+      ],
+      "theme": "light",
+      "flavor": "neutral",
+      "screenshot": "claude-code-profiles-light-neutral.png",
+      "dataSource": "Real route in browser-unavailable/empty state; no IPC fixture."
+    }
+  ],
+  "controls": [],
+  "dialogs": [],
+  "limitations": [
+    "Web preview and isolated display fixture only; no native capability, backend writes, real credential or real user data validation."
+  ],
+  "browser": "157.0.8103.15",
+  "finishedAt": "2026-10-26T12:06:25.772Z"
+}

@@ -1,0 +1,768 @@
+{
+  "samples": [
+    {
+      "theme": "light",
+      "flavor": "neutral",
+      "state": "normal",
+      "activeBlur": [
+        "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ::before"
+      ],
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 1200,
+      "background": "rgba(255, 255, 255, 0.78)",
+      "filter": "blur(20px) saturate(1.15)",
+      "radius": "20px",
+      "shell": {
+        "x": 12,
+        "y": 48,
+        "width": 1176,
+        "height": 740
+      },
+      "scroll": 662,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "light",
+      "flavor": "neutral",
+      "state": "normal",
+      "activeBlur": [],
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 959,
+      "background": "rgb(242, 247, 245)",
+      "filter": "none",
+      "radius": "0px",
+      "shell": {
+        "x": 0,
+        "y": 36,
+        "width": 959,
+        "height": 764
+      },
+      "scroll": 686,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "light",
+      "flavor": "neutral",
+      "state": "normal",
+      "activeBlur": [
+        "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ::before"
+      ],
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 960,
+      "background": "rgba(255, 255, 255, 0.78)",
+      "filter": "blur(20px) saturate(1.15)",
+      "radius": "20px",
+      "shell": {
+        "x": 12,
+        "y": 48,
+        "width": 936,
+        "height": 740
+      },
+      "scroll": 662,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "light",
+      "flavor": "neutral",
+      "state": "normal",
+      "activeBlur": [
+        "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ::before"
+      ],
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 1023,
+      "background": "rgba(255, 255, 255, 0.78)",
+      "filter": "blur(20px) saturate(1.15)",
+      "radius": "20px",
+      "shell": {
+        "x": 12,
+        "y": 48,
+        "width": 936,
+        "height": 740
+      },
+      "scroll": 662,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "light",
+      "flavor": "neutral",
+      "state": "normal",
+      "activeBlur": [
+        "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ::before"
+      ],
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 1024,
+      "background": "rgba(255, 255, 255, 0.78)",
+      "filter": "blur(20px) saturate(1.15)",
+      "radius": "20px",
+      "shell": {
+        "x": 12,
+        "y": 48,
+        "width": 999,
+        "height": 740
+      },
+      "scroll": 662,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "light",
+      "flavor": "neutral",
+      "state": "normal",
+      "activeBlur": [],
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 390,
+      "background": "rgb(242, 247, 245)",
+      "filter": "none",
+      "radius": "0px",
+      "shell": {
+        "x": 0,
+        "y": 36,
+        "width": 390,
+        "height": 764
+      },
+      "scroll": 686,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "light",
+      "flavor": "neutral",
+      "state": "reduce-transparency",
+      "activeBlur": [],
+      "dataset": {
+        "theme": "light",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 1200,
+      "background": "rgb(242, 247, 245)",
+      "filter": "none",
+      "radius": "20px",
+      "shell": {
+        "x": 12,
+        "y": 48,
+        "width": 1176,
+        "height": 740
+      },
+      "scroll": 662,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "light",
+      "flavor": "clay",
+      "state": "normal",
+      "activeBlur": [
+        "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ::before"
+      ],
+      "dataset": {
+        "theme": "light",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 1200,
+      "background": "rgba(255, 255, 255, 0.78)",
+      "filter": "blur(20px) saturate(1.15)",
+      "radius": "20px",
+      "shell": {
+        "x": 12,
+        "y": 48,
+        "width": 1176,
+        "height": 740
+      },
+      "scroll": 662,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "light",
+      "flavor": "clay",
+      "state": "normal",
+      "activeBlur": [],
+      "dataset": {
+        "theme": "light",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 959,
+      "background": "rgb(245, 242, 250)",
+      "filter": "none",
+      "radius": "0px",
+      "shell": {
+        "x": 0,
+        "y": 36,
+        "width": 959,
+        "height": 764
+      },
+      "scroll": 686,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "light",
+      "flavor": "clay",
+      "state": "normal",
+      "activeBlur": [
+        "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ::before"
+      ],
+      "dataset": {
+        "theme": "light",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 960,
+      "background": "rgba(255, 255, 255, 0.78)",
+      "filter": "blur(20px) saturate(1.15)",
+      "radius": "20px",
+      "shell": {
+        "x": 12,
+        "y": 48,
+        "width": 936,
+        "height": 740
+      },
+      "scroll": 662,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "light",
+      "flavor": "clay",
+      "state": "normal",
+      "activeBlur": [
+        "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ::before"
+      ],
+      "dataset": {
+        "theme": "light",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 1023,
+      "background": "rgba(255, 255, 255, 0.78)",
+      "filter": "blur(20px) saturate(1.15)",
+      "radius": "20px",
+      "shell": {
+        "x": 12,
+        "y": 48,
+        "width": 936,
+        "height": 740
+      },
+      "scroll": 662,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "light",
+      "flavor": "clay",
+      "state": "normal",
+      "activeBlur": [
+        "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ::before"
+      ],
+      "dataset": {
+        "theme": "light",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 1024,
+      "background": "rgba(255, 255, 255, 0.78)",
+      "filter": "blur(20px) saturate(1.15)",
+      "radius": "20px",
+      "shell": {
+        "x": 12,
+        "y": 48,
+        "width": 999,
+        "height": 740
+      },
+      "scroll": 662,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "light",
+      "flavor": "clay",
+      "state": "normal",
+      "activeBlur": [],
+      "dataset": {
+        "theme": "light",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 390,
+      "background": "rgb(245, 242, 250)",
+      "filter": "none",
+      "radius": "0px",
+      "shell": {
+        "x": 0,
+        "y": 36,
+        "width": 390,
+        "height": 764
+      },
+      "scroll": 686,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "light",
+      "flavor": "clay",
+      "state": "reduce-transparency",
+      "activeBlur": [],
+      "dataset": {
+        "theme": "light",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 1200,
+      "background": "rgb(245, 242, 250)",
+      "filter": "none",
+      "radius": "20px",
+      "shell": {
+        "x": 12,
+        "y": 48,
+        "width": 1176,
+        "height": 740
+      },
+      "scroll": 662,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "dark",
+      "flavor": "neutral",
+      "state": "normal",
+      "activeBlur": [
+        "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ::before"
+      ],
+      "dataset": {
+        "theme": "dark",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 1200,
+      "background": "rgba(23, 34, 37, 0.9)",
+      "filter": "blur(20px) saturate(1.15)",
+      "radius": "20px",
+      "shell": {
+        "x": 12,
+        "y": 48,
+        "width": 1176,
+        "height": 740
+      },
+      "scroll": 662,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "dark",
+      "flavor": "neutral",
+      "state": "normal",
+      "activeBlur": [],
+      "dataset": {
+        "theme": "dark",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 959,
+      "background": "rgb(23, 34, 37)",
+      "filter": "none",
+      "radius": "0px",
+      "shell": {
+        "x": 0,
+        "y": 36,
+        "width": 959,
+        "height": 764
+      },
+      "scroll": 686,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "dark",
+      "flavor": "neutral",
+      "state": "normal",
+      "activeBlur": [
+        "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ::before"
+      ],
+      "dataset": {
+        "theme": "dark",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 960,
+      "background": "rgba(23, 34, 37, 0.9)",
+      "filter": "blur(20px) saturate(1.15)",
+      "radius": "20px",
+      "shell": {
+        "x": 12,
+        "y": 48,
+        "width": 936,
+        "height": 740
+      },
+      "scroll": 662,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "dark",
+      "flavor": "neutral",
+      "state": "normal",
+      "activeBlur": [
+        "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ::before"
+      ],
+      "dataset": {
+        "theme": "dark",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 1023,
+      "background": "rgba(23, 34, 37, 0.9)",
+      "filter": "blur(20px) saturate(1.15)",
+      "radius": "20px",
+      "shell": {
+        "x": 12,
+        "y": 48,
+        "width": 936,
+        "height": 740
+      },
+      "scroll": 662,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "dark",
+      "flavor": "neutral",
+      "state": "normal",
+      "activeBlur": [
+        "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ::before"
+      ],
+      "dataset": {
+        "theme": "dark",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 1024,
+      "background": "rgba(23, 34, 37, 0.9)",
+      "filter": "blur(20px) saturate(1.15)",
+      "radius": "20px",
+      "shell": {
+        "x": 12,
+        "y": 48,
+        "width": 999,
+        "height": 740
+      },
+      "scroll": 662,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "dark",
+      "flavor": "neutral",
+      "state": "normal",
+      "activeBlur": [],
+      "dataset": {
+        "theme": "dark",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 390,
+      "background": "rgb(23, 34, 37)",
+      "filter": "none",
+      "radius": "0px",
+      "shell": {
+        "x": 0,
+        "y": 36,
+        "width": 390,
+        "height": 764
+      },
+      "scroll": 686,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "dark",
+      "flavor": "neutral",
+      "state": "reduce-transparency",
+      "activeBlur": [],
+      "dataset": {
+        "theme": "dark",
+        "flavor": "neutral",
+        "resolvedFlavor": "neutral",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 1200,
+      "background": "rgb(23, 34, 37)",
+      "filter": "none",
+      "radius": "20px",
+      "shell": {
+        "x": 12,
+        "y": 48,
+        "width": 1176,
+        "height": 740
+      },
+      "scroll": 662,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "dark",
+      "flavor": "clay",
+      "state": "normal",
+      "activeBlur": [
+        "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ::before"
+      ],
+      "dataset": {
+        "theme": "dark",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 1200,
+      "background": "rgba(32, 33, 46, 0.9)",
+      "filter": "blur(20px) saturate(1.15)",
+      "radius": "20px",
+      "shell": {
+        "x": 12,
+        "y": 48,
+        "width": 1176,
+        "height": 740
+      },
+      "scroll": 662,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "dark",
+      "flavor": "clay",
+      "state": "normal",
+      "activeBlur": [],
+      "dataset": {
+        "theme": "dark",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 959,
+      "background": "rgb(32, 33, 46)",
+      "filter": "none",
+      "radius": "0px",
+      "shell": {
+        "x": 0,
+        "y": 36,
+        "width": 959,
+        "height": 764
+      },
+      "scroll": 686,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "dark",
+      "flavor": "clay",
+      "state": "normal",
+      "activeBlur": [
+        "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ::before"
+      ],
+      "dataset": {
+        "theme": "dark",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 960,
+      "background": "rgba(32, 33, 46, 0.9)",
+      "filter": "blur(20px) saturate(1.15)",
+      "radius": "20px",
+      "shell": {
+        "x": 12,
+        "y": 48,
+        "width": 936,
+        "height": 740
+      },
+      "scroll": 662,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "dark",
+      "flavor": "clay",
+      "state": "normal",
+      "activeBlur": [
+        "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ::before"
+      ],
+      "dataset": {
+        "theme": "dark",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 1023,
+      "background": "rgba(32, 33, 46, 0.9)",
+      "filter": "blur(20px) saturate(1.15)",
+      "radius": "20px",
+      "shell": {
+        "x": 12,
+        "y": 48,
+        "width": 936,
+        "height": 740
+      },
+      "scroll": 662,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "dark",
+      "flavor": "clay",
+      "state": "normal",
+      "activeBlur": [
+        "layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary ::before"
+      ],
+      "dataset": {
+        "theme": "dark",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 1024,
+      "background": "rgba(32, 33, 46, 0.9)",
+      "filter": "blur(20px) saturate(1.15)",
+      "radius": "20px",
+      "shell": {
+        "x": 12,
+        "y": 48,
+        "width": 999,
+        "height": 740
+      },
+      "scroll": 662,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "dark",
+      "flavor": "clay",
+      "state": "normal",
+      "activeBlur": [],
+      "dataset": {
+        "theme": "dark",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 390,
+      "background": "rgb(32, 33, 46)",
+      "filter": "none",
+      "radius": "0px",
+      "shell": {
+        "x": 0,
+        "y": 36,
+        "width": 390,
+        "height": 764
+      },
+      "scroll": 686,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    },
+    {
+      "theme": "dark",
+      "flavor": "clay",
+      "state": "reduce-transparency",
+      "activeBlur": [],
+      "dataset": {
+        "theme": "dark",
+        "flavor": "clay",
+        "resolvedFlavor": "clay",
+        "accent": "clay",
+        "reducedMotion": "true"
+      },
+      "width": 1200,
+      "background": "rgb(32, 33, 46)",
+      "filter": "none",
+      "radius": "20px",
+      "shell": {
+        "x": 12,
+        "y": 48,
+        "width": 1176,
+        "height": 740
+      },
+      "scroll": 662,
+      "bodyScroll": 800,
+      "bodyHeight": 800
+    }
+  ],
+  "limitations": [
+    "No-support fallback source guard only; installed Chrome supports backdrop-filter.",
+    "Native window/DPI/macOS remain NOT_RUN."
+  ]
+}

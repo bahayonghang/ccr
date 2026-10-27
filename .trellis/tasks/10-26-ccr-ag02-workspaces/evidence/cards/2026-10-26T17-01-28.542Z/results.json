@@ -1,0 +1,10 @@
+{
+  "startedAt": "2026-10-26T17:01:28.543Z",
+  "states": [],
+  "baselineModalDiff": "",
+  "limitations": [
+    "QueryClient memory-only display data. No operation is invoked; scroll/display only. No native capability proven."
+  ],
+  "error": "Error: Refresh action clipped at 800",
+  "finishedAt": "2026-10-26T17:01:30.364Z"
+}

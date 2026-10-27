@@ -1,0 +1,29 @@
+[
+  {
+    "command": "bun run type-check",
+    "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+    "startedAt": "2026-10-26T16:46:05.0671529Z",
+    "finishedAt": "2026-10-26T16:46:13.3282902Z",
+    "elapsedSeconds": 8.256903,
+    "exitCode": 0,
+    "log": "final-palette-type-check.log"
+  },
+  {
+    "command": "bun run lint",
+    "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+    "startedAt": "2026-10-26T16:46:13.3475310Z",
+    "finishedAt": "2026-10-26T16:46:39.6269029Z",
+    "elapsedSeconds": 26.2785342,
+    "exitCode": 0,
+    "log": "final-palette-lint.log"
+  },
+  {
+    "command": "bun run build:with-budget",
+    "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+    "startedAt": "2026-10-26T16:46:39.6354337Z",
+    "finishedAt": "2026-10-26T16:46:41.7038993Z",
+    "elapsedSeconds": 2.0682154,
+    "exitCode": 0,
+    "log": "final-palette-build-with-budget.log"
+  }
+]

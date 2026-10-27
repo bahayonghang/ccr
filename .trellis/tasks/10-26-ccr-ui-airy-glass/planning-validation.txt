@@ -1,0 +1,46 @@
+.trellis/tasks/10-26-ccr-ui-airy-glass
+[0;34m=== Validating Context Files ===[0m
+Target dir: D:\Documents\Code\Github\ccr\.trellis\tasks\10-26-ccr-ui-airy-glass
+
+  [0;32mimplement.jsonl: ✓ (8 entries)[0m
+  [0;32mcheck.jsonl: ✓ (8 entries)[0m
+
+[0;32m✓ All validations passed[0m
+
+.trellis/tasks/10-26-ccr-ag01-foundation
+[0;34m=== Validating Context Files ===[0m
+Target dir: D:\Documents\Code\Github\ccr\.trellis\tasks\10-26-ccr-ag01-foundation
+
+  [0;32mimplement.jsonl: ✓ (9 entries)[0m
+  [0;32mcheck.jsonl: ✓ (9 entries)[0m
+
+[0;32m✓ All validations passed[0m
+
+.trellis/tasks/10-26-ccr-ag02-workspaces
+[0;34m=== Validating Context Files ===[0m
+Target dir: D:\Documents\Code\Github\ccr\.trellis\tasks\10-26-ccr-ag02-workspaces
+
+  [0;32mimplement.jsonl: ✓ (11 entries)[0m
+  [0;32mcheck.jsonl: ✓ (11 entries)[0m
+
+[0;32m✓ All validations passed[0m
+
+.trellis/tasks/10-26-ccr-ag03-observability
+[0;34m=== Validating Context Files ===[0m
+Target dir: D:\Documents\Code\Github\ccr\.trellis\tasks\10-26-ccr-ag03-observability
+
+  [0;32mimplement.jsonl: ✓ (11 entries)[0m
+  [0;32mcheck.jsonl: ✓ (11 entries)[0m
+
+[0;32m✓ All validations passed[0m
+
+.trellis/tasks/10-26-ccr-ag04-acceptance
+[0;34m=== Validating Context Files ===[0m
+Target dir: D:\Documents\Code\Github\ccr\.trellis\tasks\10-26-ccr-ag04-acceptance
+
+  [0;32mimplement.jsonl: ✓ (9 entries)[0m
+  [0;32mcheck.jsonl: ✓ (9 entries)[0m
+
+[0;32m✓ All validations passed[0m
+
+PASS: 5 planning tasks; parent/child links, 15 planning documents and all context references validated. Product checks NOT_RUN. User approval pending.

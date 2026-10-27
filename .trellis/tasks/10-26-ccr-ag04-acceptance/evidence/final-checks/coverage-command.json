@@ -1,0 +1,9 @@
+{
+  "command": "bun run test:smoke --coverage",
+  "cwd": "D:\\Documents\\Code\\Github\\ccr\\ccr-ui",
+  "startedAt": "2026-10-26T12:13:41.0399250Z",
+  "finishedAt": "2026-10-26T12:15:50.6601477Z",
+  "elapsedSeconds": 129.6156698,
+  "exitCode": 0,
+  "log": "coverage.log"
+}
