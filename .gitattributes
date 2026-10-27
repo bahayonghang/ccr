@@ -12,3 +12,7 @@ ccr-ui/src/types/generated/** text eol=lf linguist-generated=true
 # picking either side (task state lives in task.json, not index.md). See
 # .trellis/spec/cli/backend/directory-structure.md for details.
 .trellis/workspace/*/journal-*.md merge=union
+
+# Task validation receipts are raw evidence; never normalize their line endings.
+.trellis/tasks/**/evidence/**/*.log -text
+.trellis/tasks/**/evidence/**/product.diff -text

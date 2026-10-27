@@ -109,5 +109,8 @@ ccr-ui/src-tauri/bin/
 .planning/
 .playwright-mcp/
 
+# Local Trellis screenshots remain on disk; text evidence stays reviewable.
+/.trellis/tasks/**/*.png
+
 /.trellis/tasks/09-29-harness-ci-evidence/research/tauri-advisory-commands.json
 /.trellis/tasks/archive/2026-10/09-29-harness-ci-evidence/research/tauri-advisory-commands.json
