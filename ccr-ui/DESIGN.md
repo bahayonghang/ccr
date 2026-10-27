@@ -1,31 +1,34 @@
 ---
 name: CCR UI
-description: Market-terminal operating surface for advanced AI CLI configuration, runtime monitoring, sync, and usage insight workflows.
+description: Airy-glass workbench for advanced AI CLI configuration, runtime monitoring, sync, and usage insight workflows.
 colors:
-  terminal-base: "#100f0c"
-  terminal-sidebar: "#171410"
-  terminal-panel: "#1f1b14"
-  terminal-elevated: "#2a251b"
-  paper-base: "#e9e4d8"
-  paper-elevated: "#f2eee3"
-  paper-surface: "#faf7ec"
-  paper-overlay: "#ddd5c2"
-  amber-command: "#f0a32b"
-  amber-command-hover: "#f5b14a"
-  amber-command-light: "#8f650e"
-  amber-command-light-hover: "#a2740f"
-  amber-contrast: "#1d1204"
-  sand-secondary: "#c9a35f"
-  status-ready: "#5fa05a"
+  workbench-base: "#10191b"
+  terminal-sidebar: "#172225"
+  terminal-panel: "#1d292c"
+  terminal-elevated: "#233033"
+  paper-base: "#e7f1ee"
+  paper-elevated: "#f2f7f5"
+  paper-surface: "#ffffff"
+  paper-overlay: "#e3ece8"
+  green-command: "#85d5b1"
+  green-command-hover: "#9ce0c3"
+  green-command-light: "#156f4e"
+  green-command-light-hover: "#146a4a"
+  green-contrast: "#102b20"
+  output-secondary: "#b9a4f4"
+  status-ready: "#73ba6e"
+  status-ready-light: "#356e45"
   status-warn: "#d9c05a"
-  status-attention: "#e06852"
-  status-attention-hover: "#ec7a63"
+  status-warn-light: "#7b5e16"
+  status-attention: "#ec8d7a"
+  status-attention-hover: "#f29f8e"
   status-attention-light: "#9f513f"
-  status-info: "#7d94b0"
-  ink-primary: "#e9e1d1"
-  ink-secondary: "#c9bda8"
-  ink-muted: "#a1937c"
-  ink-light-primary: "#211c12"
+  status-info: "#91a9c7"
+  status-info-light: "#42648a"
+  ink-primary: "#f0f8f5"
+  ink-secondary: "#c5d5d0"
+  ink-muted: "#9fafa9"
+  ink-light-primary: "#1e2932"
   platform-claude: "#d97757"
   platform-codex: "#7cab82"
   platform-grok: "#a79bc4"
@@ -38,16 +41,16 @@ colors:
   platform-deepseek-harness: "#1e8dfe"
   chart-other: "#a1937c"
   chart-other-light: "#968b76"
-  chart-heat-0: "#332f27"
-  chart-heat-1: "#5b5344"
-  chart-heat-2: "#7a7263"
-  chart-heat-3: "#9b9383"
-  chart-heat-4: "#beb5a4"
-  chart-heat-0-light: "#ebe5db"
-  chart-heat-1-light: "#b4ab9b"
-  chart-heat-2-light: "#958d7d"
-  chart-heat-3-light: "#776f60"
-  chart-heat-4-light: "#5b5344"
+  chart-heat-0: "#394349"
+  chart-heat-1: "#596971"
+  chart-heat-2: "#7a8b91"
+  chart-heat-3: "#9badb2"
+  chart-heat-4: "#c0d0d3"
+  chart-heat-0-light: "#e4e9e7"
+  chart-heat-1-light: "#b0bdb7"
+  chart-heat-2-light: "#8a9f95"
+  chart-heat-3-light: "#647f72"
+  chart-heat-4-light: "#405f50"
 typography:
   headline:
     fontFamily: "SF Pro Display, Segoe UI Variable Display, PingFang SC, Microsoft YaHei UI, Microsoft YaHei, sans-serif"
@@ -96,8 +99,8 @@ spacing:
   xxl: "4rem"
 components:
   button-primary:
-    backgroundColor: "{colors.amber-command}"
-    textColor: "{colors.amber-contrast}"
+    backgroundColor: "{colors.green-command}"
+    textColor: "{colors.green-contrast}"
     rounded: "{rounded.lg}"
     padding: "0.625rem 1rem"
   button-secondary:
@@ -116,12 +119,12 @@ components:
     rounded: "{rounded.xl}"
     padding: "1rem"
   nav-item-active:
-    backgroundColor: "rgb(240 163 43 / 10%)"
+    backgroundColor: "rgb(133 213 177 / 10%)"
     textColor: "{colors.ink-primary}"
     rounded: "{rounded.lg}"
     padding: "0.625rem 0.75rem"
   status-bar:
-    backgroundColor: "{colors.terminal-base}"
+    backgroundColor: "{colors.workbench-base}"
     textColor: "{colors.ink-muted}"
     typography: "{typography.data}"
     height: "1.75rem"
@@ -132,65 +135,36 @@ components:
 
 ## Overview
 
-**Creative North Star: "The Market Terminal" (行情终端)**
+**Creative North Star: "Airy Glass Workbench" (轻盈玻璃工作台)**
 
-CCR UI is a never-sleeps operator terminal for AI CLI toolchains: every managed platform is a quote line, and state, data, and commands share one character grid. The world was user-picked in the 09-03 direction round (concept seed `19fe1fa0`, kind=pick, mode=operate), overriding the dice-assigned train-diagram world, and it deliberately rejects the category-default dashboard of a metric-card row plus an unbounded hero chart.
+The approved 2026-10-26 `style:airy-glass` adaptation replaces the market-terminal appearance. Its source snapshot and CCR-specific decisions live in `.trellis/tasks/10-26-ccr-ui-airy-glass/research/catalog/DESIGN.md` and the parent `design.md`. The adaptation takes precedence where the catalog lacks dark mode, data visualization, or accessibility rules.
 
-The surface is a warm-black phosphor terminal, dark-first because operators watch it for hours in low light. Amber is the command color — it marks the next action, the active route, and the focus ring, nothing else. Green and red are status semantics only. Monospace type is earned by data: numbers, versions, timestamps, and the command status bar. The light theme is a warm paper reading surface built from the same geometry, not a separate design.
-
-Three disciplines survived from declined challengers and bind the whole world: color lives only on status hairlines; disabled and blocked states must read at a glance; chart dimensions stay honest (length is quantity).
-
-**Key Characteristics:**
-
-- Warm dark surface ladder with hairline rules instead of decorative depth.
-- Terminal amber reserved for command, active, and focus; status colors reserved for state.
-- True monospace stack with tabular figures for every numeric readout.
-- Bounded charts, fixed row heights, and honest empty states (dashed baselines, `—` placeholders).
-- zh-CN-first copy, fully globalized through the app i18n contract.
+A static 160deg mint-to-lavender field surrounds one paper-like application sheet. Light mode uses white at 78%; dark mode uses a low-saturation deep field and a 90% sheet. The sheet alone may use `blur(20px) saturate(1.15)`. Cards, data wells, inputs, charts, sticky regions and all dialogs/popovers remain solid. The result must preserve the existing dense workflow, bounded charts, platform strip, Insights, and command status bar.
 
 ## Colors
 
-The palette is a terminal phosphor system: a neutral warm-black ladder carries the surface, amber carries command, and a small status set carries operational truth.
+### Primary and output
 
-### Primary
+Green marks primary action, link, active route and focus: light #156f4e (hover #146a4a), dark #85d5b1 (hover #9ce0c3). The persisted `clay` accent key remains unchanged, including its legacy migration map; it now displays green. Purple (#6d4bd6 light / #b9a4f4 dark) is reserved for explicitly identified output. Do not convert unknown, pending or failed state to green or purple.
 
-- **Terminal Amber** (#f0a32b dark / #8f650e light): the command and focus color — primary buttons, active navigation, focus outlines, the dock's active tick, route-hint hover. It is synchronized at four definition points (`:root`, `[data-theme='dark']`, `[data-accent='clay']`, `[data-theme='dark'][data-accent='clay']`); change all four or change none.
+Success, warning, danger and info retain separate semantic roles with readable contrast ink. Red destructive actions and yellow warnings must remain distinguishable by text/icon, not just color. User custom accents retain the existing runtime extension behavior; heuristic contrast ink does not guarantee compliance for every arbitrary user color.
 
-### Secondary
+### Neutral reading surfaces
 
-- **Warm Sand** (#c9a35f dark / #a0854f light): supporting emphasis for quiet charts and paired accents. Never a competing brand axis.
+| Combination | base | elevated | surface | overlay | primary | secondary | muted |
+|---|---|---|---|---|---|---|---|
+| neutral light | #e7f1ee | #f2f7f5 | #ffffff | #e3ece8 | #1e2932 | #404e59 | #5c6b76 |
+| clay light | #eae6f2 | #f5f2fa | #fefcff | #e9e4f1 | #222630 | #464758 | #686477 |
+| neutral dark | #10191b | #172225 | #1d292c | #233033 | #f0f8f5 | #c5d5d0 | #9fafa9 |
+| clay dark | #171722 | #20212e | #282a38 | #2c2e3d | #f5f4fc | #d4d2e3 | #b0adbf |
 
-### Tertiary
+These are solid shared roles. Only dedicated `--surface-app-sheet-*` tokens may introduce translucency. Measure primary ≥12:1, secondary ≥7:1, muted ≥4.5:1 against their actual rendered backgrounds, including the sheet composited over gradient endpoints, midpoint and worst position. Normal text requires ≥4.5:1 and meaningful control boundaries/state indicators ≥3:1. A pale sheet outline cannot substitute for an input boundary.
 
-- **Ready Green** (#5fa05a dark / #5b8a62 light): healthy, connected, done.
-- **Attention Red** (#e06852 dark, hover #ec7a63 / #9f513f light, hover #a55644): errors, destructive actions, attention-required states. Holds ≥4.5:1 contrast on its status tints (4.65–4.79 measured).
-- **Signal Warn** (#d9c05a dark / #a07c1e light): pending, scanning, degraded tracking.
-- **Info Steel** (#7d94b0 dark / #7d97b6 light): neutral events, loading, web-preview notices.
-- Status tints (`--color-*-tint`) carry status backgrounds; pair them with the matching contrast ink, never with raw white.
+### Platform and chart identity
 
-### Neutral
+Existing `--color-platform-*` identities remain categorical: 2px ticks, dots, legend swatches and chart segments. Do not repaint panels in platform colors or map all sources to green and purple. Keep source text and dot contrast checks against all four card faces. Multi-source charts require segment gaps, labels/legend, per-segment tooltip and the exact table view, because the source palette is not pairwise distinct.
 
-- **Terminal Ladder** (dark): content base (#100f0c), sidebar chrome (#171410), panel (#1f1b14), elevated overlay (#2a251b) — brightness rises with elevation.
-- **Paper Ladder** (light): base (#e9e4d8), elevated (#f2eee3), surface (#faf7ec), overlay (#ddd5c2) — the desktop is darkened, cards are brightest.
-- **Ink**: dark theme #e9e1d1 / #c9bda8 / #a1937c (primary / secondary / muted); light theme #211c12 / #4a4232 / #6b6150. All text tokens are solid and hold AA on their surfaces.
-- **Hairlines**: border-subtle #332c21, default #453b2a, strong #5d5138 on dark; solid, not alpha.
-- **Clay Flavor**: a warmer neutral variant (`data-flavor='clay'`) — dark family #17120f / #221b18 / #2a221e / #342b26, light family #ebe1d0 / #f5eee1 / #fefaf2 / #e2d6c3. Same geometry, warmer ink.
-
-### Platform Identity
-
-Claude clay (#d97757), Codex sage (#7cab82), Grok lavender (#a79bc4), Gemini steel (#7d97b6), OpenCode umber (#735f52), Antigravity sky (#98afc9). Each platform color has dot / surface / border / text roles per theme.
-
-Four usage sources that appear only in Insights have the same five roles (`--color-platform-{key}`, `-rgb`, `-surface`, `-border`, `-text`): Kimi Code rose (#b65790, key `kimi-code`), Pi violet (#9773d0, key `pi`), ZCode teal (#1d83a4, key `zcode`), DeepSeek Harness azure (#1e8dfe, key `deepseek-harness`). The dot value is the same in both themes and both flavors. The dot holds ≥3:1 against the card face in all four theme × flavor combinations (#faf7ec, #fefaf2, #1f1b14, #2a221e). The surface and border roles mix the dot into the neutral card face (light #faf7ec at 12% / 32%, dark #1f1b14 at 22% / 40%). The text role holds ≥4.5:1 against its surface role and against the card face of both flavors. Source keys `kimi_code` and `deepseek_harness` become kebab case in token names. These four colors are flat identity swatches under the Platform Tick Rule; they never form gradients and never repaint panels.
-
-The nine usage-source colors cannot all be told apart pair by pair (validator record: the `home-insights-design` task's `research/palette-validation.md`). Any chart that shows more than one source at a time must carry a secondary encoding: segment gaps, a legend, direct labels when the chart shows 4 or fewer series, and a per-segment tooltip.
-
-### Named Rules
-
-**The Status-Only Color Rule.** Green, red, warn, and info live only on status hairlines, dots, and state values. Panels, charts, and chrome stay neutral; a colored panel is a bug.
-
-**The Amber Scarcity Rule.** Amber marks command, active, and focus — under 10% of any screen. If everything glows, nothing is next.
-
-**The Platform Tick Rule.** Platform colors identify; they never repaint. Allowed surfaces: 2px ticks, legend swatches, chart segments, identity dots.
+Heatmaps and distribution use a monotonic neutral `--color-chart-heat-*` ramp with heat-0 ≥1.15:1 against all card faces. Low-contrast cells retain table access to exact values. A seven-day change remains neutral secondary ink; it is not a success/failure signal.
 
 ## Typography
 
@@ -198,7 +172,7 @@ The nine usage-source colors cannot all be told apart pair by pair (validator re
 **Brand/Display Font:** SF Pro Display with Segoe UI Variable Display and the same CJK fallbacks.
 **Mono Font:** Cascadia Code, Cascadia Mono, SFMono-Regular, ui-monospace, Consolas — a true monospace stack, earned by data contexts (metrics, versions, timestamps, axes, the command status bar).
 
-**Character:** A quiet sans for prose and labels, a proportional display face for page headers, and a real mono for the terminal's numeric voice. Hierarchy comes from weight, size, and spacing — not decorative faces.
+**Character:** A quiet sans for prose and labels, a proportional display face for page headers, and a real mono for the workbench's numeric voice. Hierarchy comes from weight, size, and spacing — not decorative faces.
 
 ### Hierarchy
 
@@ -210,7 +184,7 @@ The nine usage-source colors cannot all be told apart pair by pair (validator re
 
 ### Named Rules
 
-**The Mono Is Earned Rule.** Mono appears where the terminal speaks: data, code, time, commands. Prose stays sans; never set paragraphs in mono for atmosphere.
+**The Mono Is Earned Rule.** Mono appears where the workbench shows data: data, code, time, commands. Prose stays sans; never set paragraphs in mono for atmosphere.
 
 **The Tabular Number Rule.** Any number a user compares or watches uses tabular figures (`font-variant-numeric: tabular-nums`). Columns of digits must not jitter.
 
@@ -226,48 +200,29 @@ Reference breakpoints: 640 / 768 / 1024 / 1280 / 1536px. Below the `lg` breakpoi
 
 ## Elevation & Depth
 
-Depth is tonal first: the surface ladder plus 1px hairlines separates shell, panel, and overlay at rest. Shadows are reserved for overlays that must detach from the workspace — sticky bars, dropdowns, modals — never for resting cards.
+The sole blurred surface is the non-scrolling application sheet. It has a 20px radius, one shadow and a subtle outline; its static field remains visible around the paper. Do not scale the whole sheet, animate blur, add drifting blobs or nest glass. Shared `--surface-shell-*`, `--surface-workspace-*`, `--surface-card-*`, `--surface-status-*` and `--surface-modal-*` remain solid/no-blur. Modal scrims may remain translucent without backdrop blur.
 
-### Shadow Vocabulary
+**The Glass Budget Rule.** Count at most one visible computed backdrop-filter, on the app sheet only. Below 960 CSS px, under `prefers-reduced-transparency: reduce`, or without backdrop-filter support, the sheet uses alpha=1 and blur=none. The 960px material breakpoint is independent of the existing 1024px navigation breakpoint. Test both sides of both boundaries.
 
-- **Subtle Rest** (`--shadow-sm`: 0 2px 6px rgb(25 27 32 / 9%); dark rgb(0 0 0 / 26%)): optional field and hover separation only.
-- **Structural Overlay** (`--shadow-md` / `--elevation-2`): sticky bars and interactive overlays.
-- **Modal Depth** (`--shadow-lg`+ / `--elevation-3`–`4`): dialogs and floating layers.
-- **Focus Glow** (`--glow-*`: 2px ring at 40% of the accent or status color): focus rings only. Never decorative.
-
-The scrim behind modals and drawers (32% black light / 56% dark) is the only permitted persistent translucency. The material contract keeps chrome and inline tiers fully opaque; only the floating tier (modals, command palette) may blur — 92% opaque, blur ≤ 12px, at most one on screen.
-
-### Named Rules
-
-**The Hairline-First Rule.** Separate with a hairline or a tonal step before reaching for shadow. A resting card casts none.
-
-**The Glass Budget Rule.** At most one backdrop-filter surface per screen, floating tier only; no nested glass, no glass inside scrolling content.
+Keep the existing scroll owner, cache/Outlet lifetime, resize hit areas, portal positioning, focus trapping, Esc, focus restoration and mobile navigation behavior. The separate `/tray/codex` window uses a compact solid surface with its original dimensions and responsibilities.
 
 ## Shapes
 
-Squared terminal geometry with a tight radius ladder: 0, 6px, 6px, 8px, 12px, and pill. Controls and inputs take 8px; panels and cards top out at 12px; pill is reserved for badges and status dots.
-
-Signature geometry is the 2px tick: platform identity rides a 2px top tick on quote cells, and the active settings dock carries a 2px amber left tick. A dashed 1px hairline means "no data" — an honest zero baseline, not a missing chart.
-
-### Named Rules
-
-**The 12px Ceiling Rule.** No product surface exceeds a 12px corner. Large radii read as consumer SaaS, not terminal.
-
-**The Two-Pixel Tick Rule.** Identity and active state arrive as 2px ticks, never as stripes, glows, or filled rails.
+The dedicated app sheet uses 20px. Static reading wells may use 16px where appropriate; dense controls keep their existing heights and 8px corners, and existing panels may remain 12px. The shared radius scale and virtual row estimates are unchanged. Pill shapes are suitable for independent actions or labels, not tables or whole pages. Preserve the 2px identity/active tick, tabular figures and dashed empty baselines.
 
 ## Components
 
 ### Buttons
 
 - **Shape:** 8px corners, padding-defined height (0.625rem 1rem), 0.8125rem medium-weight label.
-- **Primary:** solid Terminal Amber fill with deep contrast ink (#1d1204); hover brightens (#f5b14a). No gradient, no shadow stack.
+- **Primary:** solid green fill with theme-specific contrast ink; hover follows the accent token. No gradient, no shadow stack.
 - **Secondary / Ghost / Danger:** secondary is panel fill with a default hairline border; ghost is quiet text that gains an overlay wash on hover; danger is solid Attention Red with its contrast ink.
-- **State:** active presses with scale(0.98); disabled drops to 50% opacity and must still be legible at a glance. Focus uses the amber focus ring.
+- **State:** active presses with scale(0.98); disabled drops to 50% opacity and must still be legible at a glance. Focus uses the green focus ring.
 
 ### Inputs / Fields
 
 - **Style:** 8px corners, panel background, 1px default hairline, 0.625rem 1rem padding.
-- **Focus:** amber border shift plus the focus ring; never decorative glow.
+- **Focus:** green border shift plus the focus ring; never decorative glow.
 - **Error / Disabled:** error uses Attention Red plus `aria-invalid`; disabled reduces opacity while labels stay readable.
 
 ### Cards / Panels
@@ -278,7 +233,7 @@ Signature geometry is the 2px tick: platform identity rides a 2px top tick on qu
 
 ### Navigation
 
-Persistent sidebar items use 8px corners and quiet secondary text. The active route reads as a 10% amber tint with a 24% amber border and primary text — state conveyed by tint, not by a filled bar. Mobile collapses to a modal sidebar with backdrop.
+Persistent sidebar items use 8px corners and quiet secondary text. The active route reads as a 10% green tint with a 24% green border and primary text — state conveyed by tint, not by a filled bar. Mobile collapses to a modal sidebar with backdrop.
 
 ### Platform Quote Band (signature)
 
@@ -294,11 +249,11 @@ One section title, no duplicate eyebrow. Rows align a mono tabular timestamp, a 
 
 ### Bottom Command Status Bar (signature)
 
-Sticky to the scroll container's bottom edge: a 1px hairline top rule over the base background, mono meta-size text, items separated by hairlines. It carries backend status (ok in amber, pending in warn, error in attention red), the last event's severity dot, 01–04 numbered route hints whose indices brighten amber on hover, and a tabular clock.
+Sticky to the scroll container's bottom edge: a 1px hairline top rule over the base background, mono meta-size text, items separated by hairlines. It carries backend status (ok in green, pending in warn, error in attention red), the last event's severity dot, 01–04 numbered route hints whose indices brighten green on hover, and a tabular clock.
 
 ### Settings Dock (signature)
 
-The sidebar's settings anchor: a card with two rows — a title row and a mono meta row ending in the app version — both single-line ellipsis with a native tooltip for the full string. Active state is the overlay background plus a 2px amber left tick.
+The sidebar's settings anchor: a card with two rows — a title row and a mono meta row ending in the app version — both single-line ellipsis with a native tooltip for the full string. Active state is the overlay background plus a 2px green left tick.
 
 ### Insights Block (signature)
 
@@ -340,7 +295,7 @@ The home Insights block sits below the first viewport. It shares the first viewp
 
 - Form: 53 week columns × 7 day rows of daily request counts, in 5 steps. Step 0 means no activity. A month label row sits above the grid. A caption line below gives the current streak, the longest streak, and the busiest day. A "少 → 多" legend shows the steps. A segmented control in the panel header switches between the chart view and the table view (图表 / 表格); the chart view is the default.
 - Size: cell width scales with the container between 0.5rem and 0.875rem. The cell gap is `--space-0-5`. When the cell width would go below 0.5rem, the container scrolls horizontally and opens scrolled to the latest week. Height is the 7 cell rows plus the month row plus the caption line.
-- Colors: `--color-chart-heat-0` … `--color-chart-heat-4`, a warm neutral single-hue ramp. Heat-0 is the no-activity cell fill only; it stays visibly apart from the card face in all four theme × flavor combinations (≥1.15:1). One value per theme serves both flavors. Heat-1 is below 3:1 against the surface. The table view is the relief channel for colors below 3:1 (dataviz rule: a tooltip alone is not enough). Each cell's `title` / tooltip also gives the date and the value.
+- Colors: `--color-chart-heat-0` … `--color-chart-heat-4`, a neutral sequential ramp. Heat-0 is the no-activity cell fill only; it stays visibly apart from the card face in all four theme × flavor combinations (≥1.15:1). One value per theme serves both flavors. Heat-1 is below 3:1 against the surface. The table view is the relief channel for colors below 3:1 (dataviz rule: a tooltip alone is not enough). Each cell's `title` / tooltip also gives the date and the value.
 - Table view: one row per week, newest week first (53 rows). Columns: week start date (mono), Monday … Sunday, week total. Cells show full request counts with grouping separators in mono tabular figures. A day after `as_of` is an empty cell. The table height is `clamp(10rem, 26vh, 16rem)`, with a sticky header row, fixed 2rem rows, and vertical scroll. The caption line stays below the table.
 - Empty: when there are no requests, every cell is heat-0. A caption "导入用量后显示" and an "导入用量" button follow.
 
@@ -371,14 +326,14 @@ The home Insights block sits below the first viewport. It shares the first viewp
 
 **Empty states.**
 
-- Empty store (no requests and no sessions): the header row, the totals readout with every value `—`, and one dashed panel (`1px dashed --color-border-default`) with "还没有可分析的记录", a short description, and the primary "导入用量" button. The button is amber because it is the next command.
+- Empty store (no requests and no sessions): the header row, the totals readout with every value `—`, and one dashed panel (`1px dashed --color-border-default`) with "还没有可分析的记录", a short description, and the primary "导入用量" button. The button is green because it is the next command.
 - Sessions only (no requests, `sessions_indexed = true`, sessions present): request values show `—`. The heatmap follows its empty rule. The 7-day comparison has values in the sessions row only. The leaderboard defaults to the session metric. The weekly chart and the distribution are not rendered.
 - Usage only (`sessions_indexed = false`): every session count shows `—` with `title="会话尚未索引"`. One info dot plus an explanation line sits below the totals readout. The session metric in the leaderboard is disabled. All other blocks render as usual.
 - Web preview (not the Tauri runtime): the header row plus one solid panel with an info dot, "Web 预览不读取本机数据", and a short description. The block makes no IPC call.
 
 ### Boot Loader
 
-The index.html boot screen is synced to the world: light background #e9e4d8, dark background #100f0c, dark spinner arc in amber #f0a32b. Known open item: the light spinner arc still uses #0071e3 pending an accent review — flag it before shipping a light-first surface.
+The `index.html` boot screen, shell critical CSS, flavor preview swatches and macOS window background mirror the four built-in palette combinations. Retain the bootstrap migration maps, system-theme resolution, font overrides, native macOS-only lazy import and `setTheme` behavior. No transparent native window or new permission is introduced. Mock native tests are not macOS device evidence.
 
 ### Copy & Localization
 
@@ -388,7 +343,7 @@ zh-CN is fully globalized and is the primary copy voice. Components subscribe to
 
 ### Do:
 
-- **Do** reserve amber for command, active route, and focus — and keep it under 10% of the screen.
+- **Do** reserve green for command, active route, and focus — and keep it under 10% of the screen.
 - **Do** keep green and red on status dots, values, and tints only, paired with their contrast ink.
 - **Do** set every numeric readout, timestamp, version, and route index in mono with tabular figures.
 - **Do** separate surfaces with hairlines and tonal steps before shadows.
@@ -407,13 +362,13 @@ zh-CN is fully globalized and is the primary copy voice. Components subscribe to
 - **Don't** rebuild the metric-card row plus unbounded hero chart — that dashboard cliché is the rejected rut.
 - **Don't** repaint panels or chrome in platform colors; identity stays on 2px ticks and swatches.
 - **Don't** add decorative glass, nested glass, or glass inside scrolling content.
-- **Don't** add purple or purple-blue gradients, guofeng, neko, anime, catgirl, or mascot variants — legacy debt, not parallel themes.
-- **Don't** widen 2px ticks into side stripes, or use gradient text and 12px-plus radii on product surfaces.
+- **Don't** add gradients inside reading surfaces, extra blurred layers, guofeng, neko, anime or mascot variants; the single mint-to-lavender field is the approved scene.
+- **Don't** widen identity ticks, add gradient text or spread the sheet's 20px radius onto dense controls.
 - **Don't** use fluid hero typography or decorative fonts inside app surfaces.
 - **Don't** capture a bare `t` outside `useAppT()`, and don't leave zh-CN copy unglobalized.
 - **Don't** hide disabled, blocked, or destructive states — they must read at a glance.
 - **Don't** color a 7-day change green or red; the change is not a status.
-- **Don't** use amber or status colors in the heatmap ramp or the distribution bars; they use `--color-chart-heat-*` only.
+- **Don't** use green or status colors in the heatmap ramp or the distribution bars; they use `--color-chart-heat-*` only.
 - **Don't** add a chart library for Insights; charts are plain DOM and CSS.
 - **Don't** build the Insights totals as metric cards or as a copy of the platform quote band; it is one hairline-ruled reading line.
 - **Don't** give each of the nine sources its own weekly-chart color; merge everything past the top 4 into "其他".

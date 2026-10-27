@@ -36,8 +36,8 @@ This skill applies to Claude Code, Codex, Grok Build, Kimi Code, and OMP — not
 
 ## Visual Direction
 
-- Follow `ccr-ui/AGENTS.md` and `ccr-ui/DESIGN.md` (market terminal). Do not redefine tokens in this skill.
-- Avoid reintroducing heavy glassmorphism, purple-led generic SaaS styling, anime/catgirl/NEKO, or `guofeng` visual language.
+- Follow `ccr-ui/AGENTS.md` and `ccr-ui/DESIGN.md` (airy-glass workbench). Do not redefine tokens in this skill.
+- Use the approved single app sheet over a mint-to-lavender field; keep reading surfaces and overlays solid. Avoid nested glass, anime/catgirl/NEKO and `guofeng` branches.
 - Optimize for advanced AI CLI users: dense information, clear readiness states, safe next actions, and fast scanning.
 
 ## Tauri Boundary

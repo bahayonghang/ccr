@@ -4,7 +4,7 @@ Navigation map for `ccr-ui/**`. Behavioral and visual rules stay in `./AGENTS.md
 
 ## Start here
 
-- Scoped agent rules and market-terminal visual direction: `./AGENTS.md`, `DESIGN.md`.
+- Scoped agent rules and airy-glass visual direction: `./AGENTS.md`, `DESIGN.md`.
 - Frontend manifest and scripts: `package.json` (`packageManager: bun@1.4.0`).
 - UI just recipes: `justfile` (`dev-web`, `check`, `test`, `build`, `tauri-*`).
 - Vite/Vitest/ESLint entry points: `vite.config.ts`, `vitest.smoke.config.ts`, `eslint.config.js`.

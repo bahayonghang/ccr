@@ -1,86 +1,162 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-03T21:55:00+08:00",
+  "generatedAt": "2026-10-26",
   "title": "Design System: CCR UI",
   "extensions": {
     "colorMeta": {
-      "amber-command": {
+      "green-command": {
         "role": "primary",
-        "displayName": "Terminal Amber",
-        "canonical": "#f0a32b",
-        "tonalRamp": ["#241503", "#4a2f08", "#7c520d", "#a97410", "#d98f1d", "#f0a32b", "#f7c46f", "#fce3b3"]
+        "displayName": "Action Green",
+        "canonical": "#85d5b1",
+        "tonalRamp": [
+          "#105b40",
+          "#146a4a",
+          "#156f4e",
+          "#6bc39a",
+          "#85d5b1",
+          "#9ce0c3"
+        ]
       },
-      "sand-secondary": {
+      "output-secondary": {
         "role": "secondary",
-        "displayName": "Warm Sand",
-        "canonical": "#c9a35f",
-        "tonalRamp": ["#241a09", "#4a3617", "#71532a", "#98713e", "#c9a35f", "#d9bd85", "#e9d7b0", "#f7efdc"]
+        "displayName": "Output Purple",
+        "canonical": "#b9a4f4",
+        "tonalRamp": [
+          "#6d4bd6",
+          "#b9a4f4"
+        ]
       },
       "status-ready": {
         "role": "semantic",
         "displayName": "Ready Green",
-        "canonical": "#5fa05a",
-        "tonalRamp": ["#0f1f0e", "#1d3a1c", "#2e5a2d", "#457f43", "#5fa05a", "#86bc82", "#b4d8b1", "#e3f1e1"]
+        "canonical": "#73ba6e",
+        "tonalRamp": [
+          "#356e45",
+          "#73ba6e"
+        ]
       },
       "status-attention": {
         "role": "semantic",
         "displayName": "Attention Red",
-        "canonical": "#e06852",
-        "tonalRamp": ["#2a0f09", "#571f15", "#843322", "#b34a35", "#d95f45", "#e06852", "#ec9384", "#f7c4ba"]
+        "canonical": "#ec8d7a",
+        "tonalRamp": [
+          "#9f513f",
+          "#ec8d7a",
+          "#f29f8e"
+        ]
       },
-      "terminal-base": {
+      "workbench-base": {
         "role": "neutral",
-        "displayName": "Terminal Ladder",
-        "canonical": "#100f0c",
-        "tonalRamp": ["#100f0c", "#171410", "#1f1b14", "#2a251b", "#453b2a", "#6b6150", "#a1937c", "#e9e1d1"]
+        "displayName": "Workbench Ladder",
+        "canonical": "#10191b",
+        "tonalRamp": [
+          "#10191b",
+          "#172225",
+          "#1d292c",
+          "#233033"
+        ]
       },
       "ink-primary": {
         "role": "neutral",
-        "displayName": "Phosphor Ink",
-        "canonical": "#e9e1d1",
-        "tonalRamp": ["#100f0c", "#2a251b", "#564e3e", "#a1937c", "#c9bda8", "#ddd5c2", "#e9e1d1", "#faf7ec"]
+        "displayName": "Reading Ink",
+        "canonical": "#f0f8f5",
+        "tonalRamp": [
+          "#1e2932",
+          "#404e59",
+          "#5c6b76",
+          "#9fafa9",
+          "#c5d5d0",
+          "#f0f8f5"
+        ]
       },
       "platform-kimi-code": {
         "role": "categorical",
         "displayName": "Kimi Code Rose",
         "canonical": "#b65790",
-        "tonalRamp": ["#40282f", "#5b3346", "#a3467f", "#b65790", "#d775ae", "#e4c4cf", "#f2e4e1"]
+        "tonalRamp": [
+          "#40282f",
+          "#5b3346",
+          "#a3467f",
+          "#b65790",
+          "#d775ae",
+          "#e4c4cf",
+          "#f2e4e1"
+        ]
       },
       "platform-pi": {
         "role": "categorical",
         "displayName": "Pi Violet",
         "canonical": "#9773d0",
-        "tonalRamp": ["#392e3d", "#4f3e5f", "#7b56b0", "#9773d0", "#ac88e7", "#dacde3", "#eee7e9"]
+        "tonalRamp": [
+          "#392e3d",
+          "#4f3e5f",
+          "#7b56b0",
+          "#9773d0",
+          "#ac88e7",
+          "#dacde3",
+          "#eee7e9"
+        ]
       },
       "platform-zcode": {
         "role": "categorical",
         "displayName": "ZCode Teal",
         "canonical": "#1d83a4",
-        "tonalRamp": ["#1f3234", "#1e454e", "#007091", "#1d83a4", "#44a2c4", "#b3d2d5", "#dfe9e3"]
+        "tonalRamp": [
+          "#1f3234",
+          "#1e454e",
+          "#007091",
+          "#1d83a4",
+          "#44a2c4",
+          "#b3d2d5",
+          "#dfe9e3"
+        ]
       },
       "platform-deepseek-harness": {
         "role": "categorical",
         "displayName": "DeepSeek Harness Azure",
         "canonical": "#1e8dfe",
-        "tonalRamp": ["#1f3447", "#1f4972", "#0567c2", "#1e8dfe", "#4b9dfc", "#b4d5f2", "#e0eaee"]
+        "tonalRamp": [
+          "#1f3447",
+          "#1f4972",
+          "#0567c2",
+          "#1e8dfe",
+          "#4b9dfc",
+          "#b4d5f2",
+          "#e0eaee"
+        ]
       },
       "chart-other": {
         "role": "neutral",
         "displayName": "Chart Other",
         "canonical": "#a1937c",
-        "tonalRamp": ["#968b76", "#a1937c"]
+        "tonalRamp": [
+          "#968b76",
+          "#a1937c"
+        ]
       },
       "chart-heat": {
         "role": "sequential",
         "displayName": "Activity Heat (dark)",
-        "canonical": "#beb5a4",
-        "tonalRamp": ["#332f27", "#5b5344", "#7a7263", "#9b9383", "#beb5a4"]
+        "canonical": "#c0d0d3",
+        "tonalRamp": [
+          "#394349",
+          "#596971",
+          "#7a8b91",
+          "#9badb2",
+          "#c0d0d3"
+        ]
       },
       "chart-heat-light": {
         "role": "sequential",
         "displayName": "Activity Heat (light)",
-        "canonical": "#5b5344",
-        "tonalRamp": ["#ebe5db", "#b4ab9b", "#958d7d", "#776f60", "#5b5344"]
+        "canonical": "#405f50",
+        "tonalRamp": [
+          "#e4e9e7",
+          "#b0bdb7",
+          "#8a9f95",
+          "#647f72",
+          "#405f50"
+        ]
       }
     },
     "typographyMeta": {
@@ -101,7 +177,7 @@
         "purpose": "Forms, metadata, and compact UI labels; wide tracking only for short Latin mono labels."
       },
       "data": {
-        "displayName": "Terminal Data",
+        "displayName": "Workbench Data",
         "purpose": "Numeric readouts, versions, timestamps, axes, and the command status bar; mono with tabular figures."
       }
     },
@@ -123,8 +199,13 @@
       },
       {
         "name": "focus-glow",
-        "value": "0 0 0 2px rgb(240 163 43 / 40%)",
+        "value": "0 0 0 2px rgb(var(--color-accent-primary-rgb) / 40%)",
         "purpose": "Focus rings only; never decorative."
+      },
+      {
+        "name": "app-sheet",
+        "value": "0 20px 48px rgb(70 90 120 / 8%)",
+        "purpose": "Single non-scrolling paper shadow; all reading wells remain solid."
       }
     ],
     "motion": [
@@ -145,19 +226,54 @@
       }
     ],
     "breakpoints": [
-      { "name": "sm", "value": "640px" },
-      { "name": "md", "value": "768px" },
-      { "name": "lg", "value": "1024px" },
-      { "name": "xl", "value": "1280px" },
-      { "name": "2xl", "value": "1536px" }
-    ]
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      },
+      {
+        "name": "2xl",
+        "value": "1536px"
+      }
+    ],
+    "material": {
+      "field": "linear-gradient(160deg, var(--surface-app-field-start), var(--surface-app-field-end))",
+      "sheet": "--surface-app-sheet-*",
+      "radius": "20px",
+      "blur": "blur(20px) saturate(1.15)",
+      "visibleBlurBudget": 1,
+      "solidRoles": [
+        "card",
+        "workspace",
+        "shell",
+        "status",
+        "modal"
+      ],
+      "opaqueFallbacks": [
+        "width < 960px",
+        "prefers-reduced-transparency: reduce",
+        "no backdrop-filter support"
+      ],
+      "preferenceDomainsUnchanged": true
+    }
   },
   "components": [
     {
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The next meaningful command; solid Terminal Amber with deep contrast ink, no gradient.",
+      "description": "The next meaningful command; solid Action Green with deep contrast ink, no gradient.",
       "html": "<button class=\"ds-btn-primary\">同步配置</button>",
       "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem 1rem; border: 0; border-radius: 8px; background: var(--color-accent-primary); color: var(--color-accent-primary-contrast); font-family: var(--font-sans); font-size: 0.8125rem; font-weight: 500; line-height: 1.56; cursor: pointer; transition: background 100ms cubic-bezier(0, 0, 0.2, 1), transform 100ms cubic-bezier(0, 0, 0.2, 1); } .ds-btn-primary:hover { background: var(--color-accent-primary-hover); } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--color-bg-base), 0 0 0 4px rgb(var(--color-accent-primary-rgb) / 56%); }"
     },
@@ -173,7 +289,7 @@
       "name": "Input Field",
       "kind": "input",
       "refersTo": "input-default",
-      "description": "Readable configuration input; amber border shift plus focus ring on focus.",
+      "description": "Readable configuration input; green border shift plus focus ring on focus.",
       "html": "<label class=\"ds-field\"><span class=\"ds-field__label\">配置名称</span><input class=\"ds-input\" placeholder=\"默认配置\" /></label>",
       "css": ".ds-field { display: grid; gap: 0.375rem; color: var(--color-text-muted); font-family: var(--font-sans); font-size: 0.8125rem; font-weight: 500; line-height: 1.24; } .ds-input { padding: 0.625rem 1rem; border: 1px solid var(--color-border-default); border-radius: 8px; background: var(--color-bg-surface); color: var(--color-text-primary); font-family: var(--font-sans); font-size: 1rem; line-height: 1.56; transition: border-color 100ms cubic-bezier(0, 0, 0.2, 1), box-shadow 100ms cubic-bezier(0, 0, 0.2, 1); } .ds-input::placeholder { color: var(--color-text-ghost); } .ds-input:focus-visible { outline: 0; border-color: var(--color-accent-primary); box-shadow: 0 0 0 2px rgb(var(--color-accent-primary-rgb) / 40%); }"
     },
@@ -189,7 +305,7 @@
       "name": "Active Navigation Item",
       "kind": "nav",
       "refersTo": "nav-item-active",
-      "description": "Current route in the persistent sidebar; a 10% amber tint, never a filled bar.",
+      "description": "Current route in the persistent sidebar; a 10% green tint, never a filled bar.",
       "html": "<a class=\"ds-nav-active\" href=\"#\"><span class=\"ds-nav-active__dot\"></span><span>用量</span></a>",
       "css": ".ds-nav-active { display: inline-flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0.75rem; border: 1px solid rgb(var(--color-accent-primary-rgb) / 24%); border-radius: 8px; background: rgb(var(--color-accent-primary-rgb) / 10%); color: var(--color-text-primary); font-family: var(--font-sans); font-size: 0.875rem; font-weight: 500; text-decoration: none; } .ds-nav-active__dot { width: 0.375rem; height: 0.375rem; border-radius: 9999px; background: var(--color-accent-primary); } .ds-nav-active:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--color-bg-base), 0 0 0 4px rgb(var(--color-accent-primary-rgb) / 56%); }"
     },
@@ -221,30 +337,30 @@
       "name": "Settings Dock",
       "kind": "custom",
       "refersTo": "card-panel",
-      "description": "Signature sidebar anchor: title row plus mono meta row with version; active is overlay fill with a 2px amber tick.",
+      "description": "Signature sidebar anchor: title row plus mono meta row with version; active is overlay fill with a 2px green tick.",
       "html": "<a class=\"ds-dock ds-dock--active\" href=\"#\" title=\"设置\"><span class=\"ds-dock__icon\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\"><circle cx=\"8\" cy=\"8\" r=\"2.4\" stroke=\"currentColor\"/><path d=\"M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4\" stroke=\"currentColor\" stroke-linecap=\"round\"/></svg></span><span class=\"ds-dock__copy\"><span class=\"ds-dock__row\"><span class=\"ds-dock__title\">设置</span></span><span class=\"ds-dock__meta\">zh-CN · 深色 · v4.3.1</span></span></a>",
       "css": ".ds-dock { position: relative; display: flex; align-items: center; gap: 0.75rem; overflow: hidden; padding: 0.625rem 0.75rem; border: 1px solid var(--color-border-subtle); border-radius: 8px; background: var(--color-bg-surface); color: var(--color-text-primary); text-decoration: none; transition: border-color 140ms cubic-bezier(0, 0, 0.2, 1), background-color 140ms cubic-bezier(0, 0, 0.2, 1); } .ds-dock:hover { border-color: var(--color-border-default); } .ds-dock:focus-visible { outline: 0; box-shadow: 0 0 0 2px rgb(var(--color-accent-primary-rgb) / 40%); } .ds-dock--active { background: var(--color-bg-overlay); } .ds-dock--active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--color-accent-primary); } .ds-dock__icon { display: flex; flex: none; align-items: center; justify-content: center; width: 2rem; height: 2rem; border: 1px solid var(--color-border-default); border-radius: 8px; background: var(--color-bg-elevated); color: var(--color-text-secondary); } .ds-dock__copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 0.25rem; } .ds-dock__row { display: flex; min-width: 0; align-items: baseline; justify-content: space-between; gap: 0.5rem; } .ds-dock__title { min-width: 0; overflow: hidden; font-family: var(--font-sans); font-size: 0.875rem; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; } .ds-dock__meta { display: block; overflow: hidden; color: var(--color-text-muted); font-family: var(--font-mono); font-size: 0.6875rem; font-variant-numeric: tabular-nums; white-space: nowrap; text-overflow: ellipsis; }"
     }
   ],
   "narrative": {
-    "northStar": "The Market Terminal (行情终端)",
-    "overview": "CCR UI is a never-sleeps operator terminal for AI CLI toolchains: every managed platform is a quote line, and state, data, and commands share one character grid. The world was user-picked in the 09-03 direction round (concept seed 19fe1fa0, kind=pick, mode=operate), overriding the dice-assigned train-diagram world, and it deliberately rejects the category-default dashboard of a metric-card row plus an unbounded hero chart. The surface is a warm-black phosphor terminal, dark-first because operators watch it for hours in low light. Amber is the command color — it marks the next action, the active route, and the focus ring, nothing else. Green and red are status semantics only. Monospace type is earned by data: numbers, versions, timestamps, and the command status bar. The light theme is a warm paper reading surface built from the same geometry, not a separate design.",
+    "northStar": "Airy Glass Workbench (轻盈玻璃工作台)",
+    "overview": "A static mint-to-lavender field surrounds one paper-like application sheet with matched light/dark palettes. Only the non-scrolling sheet blurs. Dense reading surfaces, controls, charts and overlays stay solid; existing data, navigation, preference and interaction contracts are preserved.",
     "keyCharacteristics": [
-      "Warm dark surface ladder with hairline rules instead of decorative depth.",
-      "Terminal amber reserved for command, active, and focus; status colors reserved for state.",
-      "True monospace stack with tabular figures for every numeric readout.",
-      "Bounded charts, fixed row heights, and honest empty states (dashed baselines, — placeholders).",
-      "zh-CN-first copy, fully globalized through the app i18n contract."
+      "Static mint-to-lavender field with one paper-like app sheet, matched light and dark palettes.",
+      "Green for action/link/focus, explicit output purple, independent semantic status and source identity.",
+      "Solid reading surfaces and overlays; opaque fallback below 960px, reduced transparency or no blur support.",
+      "Existing font tracks, tabular figures, bounded charts, dense rows and honest empty states.",
+      "Preserved theme preference migration, keyboard focus, scroll ownership and native permissions."
     ],
     "rules": [
       {
         "name": "The Status-Only Color Rule",
-        "body": "Green, red, warn, and info live only on status hairlines, dots, and state values. Panels, charts, and chrome stay neutral; a colored panel is a bug.",
+        "body": "Danger/warning/success/info communicate state with text and icons. Green may also mark action/link/focus; purple only explicit output.",
         "section": "colors"
       },
       {
-        "name": "The Amber Scarcity Rule",
-        "body": "Amber marks command, active, and focus — under 10% of any screen. If everything glows, nothing is next.",
+        "name": "The Action Color Rule",
+        "body": "Use green for action, active route and focus; keep reading surfaces neutral and status semantics independent.",
         "section": "colors"
       },
       {
@@ -254,7 +370,7 @@
       },
       {
         "name": "The Mono Is Earned Rule",
-        "body": "Mono appears where the terminal speaks: data, code, time, commands. Prose stays sans; never set paragraphs in mono for atmosphere.",
+        "body": "Use mono for data, code, time and commands; prose remains sans.",
         "section": "typography"
       },
       {
@@ -274,12 +390,12 @@
       },
       {
         "name": "The Glass Budget Rule",
-        "body": "At most one backdrop-filter surface per screen, floating tier only; no nested glass, no glass inside scrolling content.",
+        "body": "At most one visible backdrop-filter, on the non-scrolling app sheet only. All reading and overlay roles are solid. Below 960px, reduced transparency or no blur support: alpha=1 and blur=none.",
         "section": "elevation"
       },
       {
-        "name": "The 12px Ceiling Rule",
-        "body": "No product surface exceeds a 12px corner. Large radii read as consumer SaaS, not terminal.",
+        "name": "The Sheet Geometry Rule",
+        "body": "20px only on the application sheet; static wells may use 16px. Keep dense controls and virtual rows at existing geometry.",
         "section": "shapes"
       },
       {
@@ -289,8 +405,8 @@
       }
     ],
     "dos": [
-      "Do reserve amber for command, active route, and focus — and keep it under 10% of the screen.",
-      "Do keep green and red on status dots, values, and tints only, paired with their contrast ink.",
+      "Do use green for command, active route, and focus — and keep it under 10% of the screen.",
+      "Do preserve status text/icons independently of action green, paired with their contrast ink.",
       "Do set every numeric readout, timestamp, version, and route index in mono with tabular figures.",
       "Do separate surfaces with hairlines and tonal steps before shadows.",
       "Do render honest empties: dashed baselines, — placeholders, muted unindexed metrics — never a fabricated zero.",
@@ -307,13 +423,13 @@
       "Don't rebuild the metric-card row plus unbounded hero chart — that dashboard cliché is the rejected rut.",
       "Don't repaint panels or chrome in platform colors; identity stays on 2px ticks and swatches.",
       "Don't add decorative glass, nested glass, or glass inside scrolling content.",
-      "Don't add purple or purple-blue gradients, guofeng, neko, anime, catgirl, or mascot variants — legacy debt, not parallel themes.",
-      "Don't widen 2px ticks into side stripes, or use gradient text and 12px-plus radii on product surfaces.",
+      "Don't add nested glass, gradients inside reading surfaces, guofeng, neko or anime variants; the single mint-to-lavender field is approved.",
+      "Don't spread the sheet radius onto dense controls, change virtual row geometry or use gradient text.",
       "Don't use fluid hero typography or decorative fonts inside app surfaces.",
       "Don't capture a bare t outside useAppT(), and don't leave zh-CN copy unglobalized.",
       "Don't hide disabled, blocked, or destructive states — they must read at a glance.",
       "Don't color a 7-day change green or red; the change is not a status.",
-      "Don't use amber or status colors in the heatmap ramp or the distribution bars; they use --color-chart-heat-* only.",
+      "Don't use green or status colors in the heatmap ramp or the distribution bars; they use --color-chart-heat-* only.",
       "Don't add a chart library for Insights; charts are plain DOM and CSS.",
       "Don't build the Insights totals as metric cards or as a copy of the platform quote band; it is one hairline-ruled reading line.",
       "Don't give each of the nine sources its own weekly-chart color; merge everything past the top 4 into \"其他\".",

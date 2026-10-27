@@ -26,16 +26,17 @@ These notes apply to everything under `ccr-ui/` and supplement the repository-le
 
 ### Brand Personality
 
-- The target brand tone is `calm / precise / terminal`.
+- The target brand tone is `calm / precise / airy`.
 - Preserve a strong product identity instead of drifting into generic SaaS admin styling or mascot-heavy novelty.
-- The UI should feel like a purpose-built market terminal for advanced users: quiet, focused, and trustworthy under high information density.
+- The UI should feel like a purpose-built airy workbench for advanced users: quiet, focused, and trustworthy under high information density.
 
 ### Aesthetic Direction
 
-- The visual world is the market terminal (行情终端): a warm-dark, dark-first operating surface where amber marks command, active, and focus; green and red carry status only; and mono type with tabular figures is earned by data contexts. `DESIGN.md` in this directory is the source of truth (tokens mirror `src/styles/tokens.css`); `.impeccable/design.json` is its machine-readable sidecar.
-- Align new work to the world's signatures: hairline-ruled panels, 2px identity ticks, bounded charts, honest empty states, and the bottom command status bar. The rejected rut is the metric-card row plus unbounded hero chart.
-- Treat heavy Liquid Glass / Glassmorphism, anime atmospherics, and catgirl / NEKO branding as legacy directions to remove over time.
-- Remove `guofeng`, `neko`, anime, and purple-tech styling, naming, tokens, and component variants over time; treat them as legacy, not parallel design languages.
+- The approved visual world is the airy-glass workbench (轻盈玻璃): one paper-like application sheet over a static mint-to-lavender field, with matched light/dark palettes. `DESIGN.md` is the source of truth; `.impeccable/design.json` is its machine-readable sidecar.
+- Only the non-scrolling app sheet may blur (20px, saturate 1.15); cards, inputs, tables, charts, sticky surfaces and overlays stay opaque. At <960px, reduced transparency or no blur support, the sheet is opaque and blur is none.
+- Green marks action/link/focus, purple only explicit output. Preserve independent danger/warning/status and platform/source identities. Preserve bounded charts, tabular figures, fixed virtual rows, honest empty states and the command status bar.
+- Preserve theme/flavor/accent/font preference domains, bootstrap migration, reduced-motion ownership and existing information density. Do not add a second theme provider or native transparency.
+- Avoid nested/decorative glass, floating blobs, anime/catgirl/NEKO and `guofeng` branches.
 
 ### Accessibility And Motion
 
@@ -47,6 +48,6 @@ These notes apply to everything under `ccr-ui/` and supplement the repository-le
 ### Design Principles
 
 - Power-first UX: optimize for speed, density, and control for expert users.
-- Distinctive, not generic: express identity through calm precision, clear hierarchy, and restrained surfaces instead of mascots, neon accents, or decorative glass.
+- Distinctive, not generic: express identity through calm precision, clear hierarchy, and restrained surfaces with one restrained sheet and solid reading surfaces.
 - Style supports usability: visual layers must improve readability, navigation clarity, and task completion rather than compete with them.
-- One visual language: converge on the market-terminal direction defined in `DESIGN.md` and eliminate conflicting `guofeng` / `neko` branches.
+- One visual language: converge on the airy-glass direction defined in `DESIGN.md` and eliminate conflicting `guofeng` / `neko` branches.

@@ -5,27 +5,16 @@
 > Coordination: the executable guards referenced here are the current smoke suite; `08-22-test-contract-rebuild`
 > extends them to the full 19-document contract set (this document is co-owned with that task per its Notes).
 
-## Palette World Notes (value-level history; contracts and thresholds unchanged)
+## Current palette and material world (2026-10-26)
 
-- `09-03-theme-token-world` replaced the palette **values** under the unchanged token names and value domains
-  (direction: 行情终端 / warm-black phosphor terminal, impeccable seed `19fe1fa0`):
-  - Neutral ramps warmed in both themes: light `#e9e4d8 / #f2eee3 / #faf7ec / #ddd5c2` (warm paper),
-    dark `#100f0c / #171410 / #1f1b14 / #2a251b` (warm black); text and border tracks warmed with them.
-  - The `clay` **accent key** now resolves to terminal amber — light `#8f650e`, dark `#f0a32b` — at all four
-    definition points (`:root`, `[data-theme='dark']`, `[data-accent='clay']`, `[data-theme='dark'][data-accent='clay']`).
-    The key was deliberately NOT renamed to `amber`: `amber → clay` already exists in the accent migration map,
-    and reintroducing an `amber` value would collide with stored-value migration. The name/color mismatch is
-    intentional and documented here.
-  - Semantic colors aligned to terminal semantics (dark: success `#5fa05a`, warning `#d9c05a`, danger `#cc5b45`,
-    info `#7d94b0`; light warning `#a07c1e` to keep hue distance from the amber accent).
-  - Antigravity platform color adopted at its four consumer surfaces (nav swatch, nav icon, platform card,
-    usage chart segment + legend): they reference `--color-platform-antigravity` instead of the Gemini blue.
-    `--color-platform-antigravity` stays layer-1 only (no `@theme inline` entry), so consumers use the
-    arbitrary-value pattern (`text-[color:var(--color-platform-antigravity)]`), same as OpenCode.
-  - Boot loader in `ccr-ui/index.html` recolored to the new world (light base `#e9e4d8`, dark base `#100f0c`,
-    dark spinner amber `#f0a32b`); the boot IIFE migration maps/whitelists are untouched.
-  - Contrast thresholds were NOT lowered to make this palette pass; all values above clear the locked gates.
-
+- Approved task `10-26-ccr-ui-airy-glass` replaces the former market-terminal appearance with the `style:airy-glass` CCR adaptation. See `ccr-ui/DESIGN.md` for the four solid reading palettes and parent task `design.md` for the frozen behavior boundaries.
+- The existing `clay` accent key resolves to action green (light #156f4e, dark #85d5b1), including all four root/dark/accent definition points. Preserve `amber → clay` and every other persisted migration, value domain and default. Output purple is a separate secondary role; error/warning and categorical identities remain independent.
+- AG01 is the dedicated governance owner for eight layer-1 names: `--surface-app-field-start`, `--surface-app-field-end`, `--surface-app-sheet-bg`, `--surface-app-sheet-solid`, `--surface-app-sheet-blur`, `--surface-app-sheet-border`, `--surface-app-sheet-shadow`, `--surface-app-sheet-radius`. No new Tailwind namespace or theme provider. Record token name-set differences in AG01 evidence.
+- Only the non-scrolling app sheet consumes its dedicated translucent/blur aliases. Shared shell/card/workspace/status/modal roles stay opaque. Reusing shared shell/workspace blur for the paper would silently blur unrelated sticky controls and data panels.
+- Contrast floors remain primary ≥12, secondary ≥7, muted ≥4.5 across base/elevated/surface/overlay and the actual composited paper. The all-role guard prevents apparently passing surface-only swatches from hiding weak overlay chips. Calibrate light ink and dark overlay together, retaining dark elevation order. Control/state boundaries require ≥3 where meaningful. User custom accents retain their existing heuristic contrast behavior, not a universal WCAG guarantee.
+- The sole filter lives on `.layout-shell::before`, not the actual layout container: filtering the container would create a containing block for fixed mobile navigation. Runtime counters must include generated `::before`/`::after` surfaces and exclude hidden/offscreen elements. Count-only DOM element queries can falsely report zero.
+- After changing CDP media emulation, wait until both `matchMedia` and computed sheet styles reflect the request. CDP command completion alone can precede renderer style application; a stale immediate sample is a harness race, not valid fallback evidence. Preserve the initial failed sample when correcting the harness.
+- First-paint `index.html`, critical CSS, flavor previews and macOS window background mirror the palette; bootstrap storage/font/native gating logic stays unchanged. Native mock tests do not prove macOS device rendering.
 
 ## Registered Scale Extensions
 
@@ -265,18 +254,18 @@ root.style.removeProperty('--font-sans')
 ### 1. Scope / Trigger
 
 - Trigger: adding/removing a `backdrop-filter` surface, or wiring a component to `.glass-floating` / `.glass-chrome` / `.glass-inline` in `ccr-ui/src/styles/utilities/utilities.css`.
-- Chrome and inline tiers are opaque (solid background + `blur: none`); only the floating tier keeps real blur (`blur(12px)`, bg ≥ 88% opacity, no `saturate()`).
+- All legacy tiers, including floating, are opaque with `blur: none`. Only the dedicated app-sheet role uses `blur(20px) saturate(1.15)`; it is not a floating-tier recipe.
 
 ### 2. Signatures
 
 - Tier tokens (defined per flavor in `tokens.css`): `--material-glass-floating-{bg,blur,border,highlight,shadow}`, `-chrome-`, `-inline-`.
 - Utility classes: `ccr-ui/src/styles/utilities/utilities.css` → `.glass-floating`, `.glass-chrome`, `.glass-inline`.
-- Legacy tokens `--glass-blur-*` / `--glass-bg-*` / `--liquid-glass-*` are `deprecated` (comment-tagged) and intentionally kept at their old, thin values.
+- Legacy tokens `--glass-blur-*` / `--glass-bg-*` / `--liquid-glass-*` are `deprecated` (comment-tagged) and kept for compatibility but must not produce a second blurred surface.
 
 ### 3. Contracts
 
-- Budget: at most 1 `backdrop-filter` element on screen at once (floating only); never nest glass inside glass; never put glass inside a scrolling content area.
-- Tier assignment is fixed by role: `floating` = modal/command-palette/floating panel (≤1 on screen), `chrome` = sidebar/topbar (opaque), `inline` = sticky in-page toolbars (opaque).
+- Budget: at most 1 visible computed `backdrop-filter`, on the non-scrolling app sheet only. Never blur a scrolling content row or nested surface.
+- Tier assignment: floating = solid modal/command palette, chrome = solid sidebar/topbar, inline = solid sticky toolbar. The dedicated sheet is the only translucent role. At width <960 CSS px, reduced transparency, or no backdrop-filter support, sheet alpha=1 and blur=none; preserve higher-specificity flavor resets.
 - Ordinary content cards/workspaces are **not** glass: they map to `--surface-card-*` / `--surface-workspace-*` (opaque). If a component needs depth, use elevation (border + shadow), not transparency.
 - Every place a tier's `background`/`blur` is set must have a matching reset inside the `prefers-reduced-transparency: reduce` block, including inside flavor-range overrides.
 - Don't repoint legacy `--glass-*`/`--liquid-glass-*` tokens to the new material recipes; migrate call-sites to the tier classes/tokens explicitly, one component at a time.
@@ -284,10 +273,10 @@ root.style.removeProperty('--font-sans')
 
 ### 4. Validation & Error Matrix
 
-- New `backdrop-filter` usage outside the floating tier -> breaks the ≤1 budget.
+- New `backdrop-filter` outside the app sheet -> breaks the material role contract, even if only one is visible.
 - Glass applied to a scrollable list/table row -> forbidden regardless of tier.
 - `prefers-reduced-transparency` block updates shared tokens but a flavor override sets its own copy at higher specificity -> glass survives the preference for that flavor; extend the flavor-range reset assertions.
-- Re-adding `saturate()` to a glass blur recipe -> forbidden.
+- `saturate()` on any surface other than the app sheet, or blur animation -> forbidden.
 
 ### 5. Tests Required
 
