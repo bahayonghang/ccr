@@ -1,0 +1,42 @@
+{
+  "id": "ccr-ag03-observability",
+  "name": "ccr-ag03-observability",
+  "title": "AG03：观测、图表与运行状态页面",
+  "description": "统一数据可视化、用量、会话、日志和作业表面，维持数字与状态语义。",
+  "status": "completed",
+  "dev_type": "frontend",
+  "scope": "ccr-ui",
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-10-26",
+  "completedAt": "2026-10-27",
+  "branch": "dev",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": "3b8edfea127d576dc22d699844f49404d23db825",
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "10-26-ccr-ui-airy-glass",
+  "relatedFiles": [],
+  "notes": "2026-10-27 user explicitly authorized ignoring temporary task PNG, split commits of all pending work, and archival of the airy-glass task tree. Administrative archival retains open final acceptance and all FAIL_BASELINE/NOT_RUN records. No push/install/release authorization.",
+  "meta": {
+    "implementation": "applied",
+    "web_checks": "passed_with_documented_baseline_limits",
+    "final_acceptance": "open",
+    "evidence_index": ".trellis/tasks/archive/2026-10/10-26-ccr-ag04-acceptance/evidence/integration-summary.md",
+    "closure_kind": "user_requested_archive_with_open_acceptance",
+    "archive_authorized_at": "2026-10-27",
+    "residual_acceptance_record": "../10-26-ccr-ag04-acceptance/evidence/integration-summary.md",
+    "work_commits": [
+      "c49059f8357b9b22c5350ceb4bbe1c3991ddc923",
+      "be97dd5dbedf609666d790544fec2962d2d854a1",
+      "2bc661b2bed2dfe625a11ff0814e63b4ccf6cc86",
+      "3b8edfea127d576dc22d699844f49404d23db825",
+      "8205bfaaa0988157987c9823e43fa01a180b60e2",
+      "492a217a272c90a7c072098b0ad28a902a8adc3a"
+    ]
+  }
+}

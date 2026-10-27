@@ -1,0 +1,15 @@
+{
+  "rawFilesVerified": 832,
+  "pngPreserved": 782,
+  "rawLogsPreserved": 45,
+  "status": "user_requested_archive",
+  "final_acceptance": "open",
+  "parentChildLinks": "preserved",
+  "contextsValidated": [
+    "10-26-ccr-ag01-foundation",
+    "10-26-ccr-ag02-workspaces",
+    "10-26-ccr-ag03-observability",
+    "10-26-ccr-ag04-acceptance",
+    "10-26-ccr-ui-airy-glass"
+  ]
+}

@@ -1,0 +1,8 @@
+{"file": ".trellis/spec/ccr-ui/frontend/index.md", "reason": "Frontend contract entrypoint"}
+{"file": ".trellis/tasks/archive/2026-10/10-26-ccr-ui-airy-glass/research/surface-inventory.md", "reason": "Route families and frozen behavior"}
+{"file": ".trellis/tasks/archive/2026-10/10-26-ccr-ui-airy-glass/research/validation-contracts.md", "reason": "Theme, material and evidence audit"}
+{"file": ".trellis/tasks/archive/2026-10/10-26-ccr-ui-airy-glass/research/catalog/DESIGN.md", "reason": "Original catalog; approved CCR adaptation takes precedence"}
+{"file": ".trellis/spec/ccr-ui/frontend/layering-contracts.md", "reason": "Dependency boundaries"}
+{"file": ".trellis/spec/ccr-ui/frontend/react-rerender-discipline.md", "reason": "Rendering and subscription discipline"}
+{"file": ".trellis/spec/ccr-ui/frontend/confirm-interaction-contracts.md", "reason": "Confirmation and focus contracts"}
+{"file": ".trellis/spec/ccr-ui/frontend/usage-chart-stability-contracts.md", "reason": "Chart lifetime and CSS contracts"}

@@ -137,7 +137,7 @@ components:
 
 **Creative North Star: "Airy Glass Workbench" (轻盈玻璃工作台)**
 
-The approved 2026-10-26 `style:airy-glass` adaptation replaces the market-terminal appearance. Its source snapshot and CCR-specific decisions live in `.trellis/tasks/10-26-ccr-ui-airy-glass/research/catalog/DESIGN.md` and the parent `design.md`. The adaptation takes precedence where the catalog lacks dark mode, data visualization, or accessibility rules.
+The approved 2026-10-26 `style:airy-glass` adaptation replaces the market-terminal appearance. Its source snapshot and CCR-specific decisions live in `.trellis/tasks/archive/2026-10/10-26-ccr-ui-airy-glass/research/catalog/DESIGN.md` and the parent `design.md`. The adaptation takes precedence where the catalog lacks dark mode, data visualization, or accessibility rules.
 
 A static 160deg mint-to-lavender field surrounds one paper-like application sheet. Light mode uses white at 78%; dark mode uses a low-saturation deep field and a 90% sheet. The sheet alone may use `blur(20px) saturate(1.15)`. Cards, data wells, inputs, charts, sticky regions and all dialogs/popovers remain solid. The result must preserve the existing dense workflow, bounded charts, platform strip, Insights, and command status bar.
 
