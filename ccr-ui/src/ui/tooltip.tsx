@@ -2,8 +2,8 @@ import * as TooltipPrimitive from '@radix-ui/react-tooltip'
 import { forwardRef, type ComponentPropsWithoutRef, type ElementRef } from 'react'
 import { cn } from './cn'
 
-// Tooltip（shadcn/ui 风格的 Radix 包装）。层级 z-tooltip，浮层材质 surface-modal
-// （玻璃悬浮材质）。`src/` 中 2 处图表自绘浮层 + 117 处原生 :title 的交互场景
+// Tooltip（shadcn/ui 风格的 Radix 包装）。层级 z-tooltip，浮层消费实底 surface-modal。
+// `src/` 中 2 处图表自绘浮层 + 117 处原生 :title 的交互场景
 // （adhoc-primitives.md F1/F2）由本原语承载。
 
 const TooltipProvider = TooltipPrimitive.Provider

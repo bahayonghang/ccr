@@ -25,10 +25,10 @@
     }
 
     /* ========== 液态玻璃三档 Material Utilities ==========
-       玻璃预算（review 依据）：仅 floating 档保留真实模糊（同屏 ≤ 1）；
-       chrome / inline 档为不透明配方（blur: none）；禁止嵌套玻璃；
+       玻璃预算（review 依据）：唯一 app-sheet 保留真实模糊（同屏 ≤ 1）；
+       floating / chrome / inline 档为不透明配方（blur: none）；禁止嵌套玻璃；
        禁止在滚动内容区内部使用玻璃（滚动 + 模糊会持续触发重绘）。
-       floating：模态 / 命令面板 / 浮层（同屏最多 1）；
+       floating：模态 / 命令面板 / 浮层（实底）；
        chrome：侧栏 / 顶栏（不透明）；
        inline：页面内悬浮条（sticky 工具条等，少用，不透明）。
        普通内容卡片禁止使用这三个类，一律走不透明 surface-card/workspace 语义。 */
@@ -304,7 +304,7 @@
         width: 100%;
         padding: var(--space-2-5) var(--space-4);
         background: var(--color-bg-surface);
-        border: var(--space-px) solid var(--color-border-default);
+        border: var(--space-px) solid var(--color-border-strong);
         border-radius: var(--radius-lg);
         color: var(--color-text-primary);
         font-size: var(--text-base);
@@ -773,8 +773,7 @@
     transform: none !important;
 }
 
-/* 当用户明确要求减少透明度时，增加背景不透明度但保留模糊效果。
- * backdrop-filter (blur) 属于视觉增强而非"透明度"，不应完全关闭。 */
+/* 当用户明确要求减少透明度时，所有材质均回退实底并关闭模糊。 */
 @media (prefers-reduced-transparency: reduce) {
     .config-card-active,
     .nav-item-active-glow,

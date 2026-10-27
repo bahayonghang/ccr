@@ -2,8 +2,8 @@ import * as PopoverPrimitive from '@radix-ui/react-popover'
 import { forwardRef, type ComponentPropsWithoutRef, type ElementRef } from 'react'
 import { cn } from './cn'
 
-// Popover（shadcn/ui 风格的 Radix 包装）。浮层材质消费 surface-modal（玻璃悬浮
-// 材质），层级 z-popover，圆角/间距走 token 工具类。
+// Popover（shadcn/ui 风格的 Radix 包装）。浮层消费实底 surface-modal，
+// 层级 z-popover，圆角/间距走 token 工具类。
 
 const Popover = PopoverPrimitive.Root
 const PopoverTrigger = PopoverPrimitive.Trigger

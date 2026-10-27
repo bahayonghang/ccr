@@ -114,7 +114,7 @@
   input:focus-visible,
   textarea:focus-visible,
   select:focus-visible {
-    outline: var(--space-0-5) solid rgb(var(--color-accent-primary-rgb) / 50%);
+    outline: var(--space-0-5) solid var(--color-accent-primary);
     outline-offset: var(--space-0-5);
   }
 

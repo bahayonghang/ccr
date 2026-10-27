@@ -56,9 +56,9 @@ describe('theme-switch（批次 1 两层结构）', () => {
     const darkRgb = extractVarValue(tokensCss, DARK_BLOCK, '--color-bg-surface-rgb')
     const clayRgb = extractVarValue(tokensCss, CLAY_BLOCK, '--color-bg-surface-rgb')
 
-    expect(lightRgb).toBe('250 247 236')
-    expect(darkRgb).toBe('31 27 20')
-    expect(clayRgb).toBe('254 250 242')
+    expect(lightRgb).toBe('255 255 255')
+    expect(darkRgb).toBe('29 41 44')
+    expect(clayRgb).toBe('254 252 255')
     expect(darkRgb).not.toBe(lightRgb)
     expect(clayRgb).not.toBe(lightRgb)
 

@@ -19,7 +19,7 @@ const DialogOverlay = forwardRef<ElementRef<typeof DialogPrimitive.Overlay>, Dia
     <DialogPrimitive.Overlay
       ref={ref}
       className={cn(
-        'fixed inset-0 z-[var(--layer-modal-backdrop)] bg-scrim backdrop-blur-md',
+        'fixed inset-0 z-[var(--layer-modal-backdrop)] bg-scrim',
         'transition-opacity duration-normal',
         'data-[state=open]:opacity-100 data-[state=closed]:opacity-0',
         className,

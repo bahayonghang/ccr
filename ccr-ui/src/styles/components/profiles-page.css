@@ -5,7 +5,7 @@
   --cp-bg-1: var(--color-bg-elevated);
   --cp-bg-2: var(--color-bg-surface);
   --cp-bg-3: var(--color-bg-overlay);
-  --cp-bg-4: rgb(var(--color-bg-overlay-rgb) / 88%);
+  --cp-bg-4: var(--color-bg-overlay);
   --cp-line: var(--color-border-subtle);
   --cp-line-2: var(--color-border-default);
   --cp-ink-0: var(--color-text-primary);
@@ -17,7 +17,7 @@
   --cp-accent-soft: rgb(var(--color-accent-primary-rgb) / 14%);
   --cp-accent-line: rgb(var(--color-accent-primary-rgb) / 35%);
   --cp-accent-hover: var(--color-accent-primary-hover);
-  --cp-on-accent: var(--color-text-inverted);
+  --cp-on-accent: var(--color-accent-primary-contrast);
   --cp-good: var(--color-success);
   --cp-warn: var(--color-warning);
   --cp-danger: var(--color-danger);

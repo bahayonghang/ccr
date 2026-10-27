@@ -5,8 +5,8 @@ import { getClientPlatform } from '@/utils/windowChrome'
 import type { ResolvedThemeMode } from '@/utils/themeBootstrap'
 
 const MACOS_WINDOW_BACKGROUNDS: Record<ResolvedThemeMode, Color> = {
-  light: '#EEF4FF',
-  dark: '#07121F',
+  light: '#E7F1EE',
+  dark: '#10191B',
 }
 
 export const shouldSyncNativeWindowAppearance = (): boolean => {

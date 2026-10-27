@@ -10,12 +10,12 @@ interface SurfacePreviewTokens {
 
 const FLAVOR_PREVIEW_TOKENS: Record<FlavorMode, { light: SurfacePreviewTokens; dark: SurfacePreviewTokens }> = {
   neutral: {
-    light: { base: '#e9e4d8', elevated: '#f2eee3', surface: '#faf7ec', text: '#211c12', muted: '#6b6150' },
-    dark: { base: '#100f0c', elevated: '#171410', surface: '#1f1b14', text: '#e9e1d1', muted: '#a1937c' },
+    light: { base: '#e7f1ee', elevated: '#f2f7f5', surface: '#fff', text: '#1e2932', muted: '#5c6b76' },
+    dark: { base: '#10191b', elevated: '#172225', surface: '#1d292c', text: '#f0f8f5', muted: '#9fafa9' },
   },
   clay: {
-    light: { base: '#ebe1d0', elevated: '#f5eee1', surface: '#fefaf2', text: '#31241c', muted: '#715d4c' },
-    dark: { base: '#17120f', elevated: '#221b18', surface: '#2a221e', text: '#f3eadf', muted: '#b9a695' },
+    light: { base: '#eae6f2', elevated: '#f5f2fa', surface: '#fefcff', text: '#222630', muted: '#686477' },
+    dark: { base: '#171722', elevated: '#20212e', surface: '#282a38', text: '#f5f4fc', muted: '#b0adbf' },
   },
 }
 

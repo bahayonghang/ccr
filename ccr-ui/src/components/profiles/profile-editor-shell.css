@@ -130,7 +130,7 @@
   width: 100%;
   padding: 0.5rem 0.625rem;
   border-radius: 6px;
-  border: 1px solid var(--cp-line-2, var(--color-border-default));
+  border: 1px solid var(--color-border-strong);
   background: var(--cp-bg-0, var(--color-bg-base));
   color: var(--cp-ink-0, var(--color-text-primary));
   font-family: inherit;
@@ -148,7 +148,7 @@
 .pe-input:focus,
 .pe-textarea:focus,
 .pe-select:focus {
-  border-color: var(--cp-accent-line, rgb(var(--color-accent-primary-rgb) / 35%));
+  border-color: var(--color-accent-primary);
   box-shadow: 0 0 0 3px rgb(var(--color-accent-primary-rgb) / 10%);
 }
 
@@ -160,7 +160,7 @@
 .pe-input--invalid,
 .pe-textarea--invalid,
 .pe-select--invalid {
-  border-color: rgb(var(--color-danger-rgb) / 55%);
+  border-color: var(--color-danger);
 }
 
 /* 等宽变体：base_url / token / model 等需要逐字符核对的字段 */
@@ -194,13 +194,13 @@
 .pe-modal {
   width: min(45rem, calc(100vw - 2rem));
   max-height: 90vh;
-  background: var(--material-glass-floating-bg);
-  border: 1px solid var(--material-glass-floating-border);
-  box-shadow: var(--material-glass-floating-shadow);
-  backdrop-filter: var(--material-glass-floating-blur);
+  background: var(--surface-modal-bg);
+  border: 1px solid var(--surface-modal-border);
+  box-shadow: var(--surface-modal-shadow);
+  backdrop-filter: var(--surface-modal-blur);
 
   /* stylelint-disable-next-line property-no-vendor-prefix */
-  -webkit-backdrop-filter: var(--material-glass-floating-blur);
+  -webkit-backdrop-filter: var(--surface-modal-blur);
   color: var(--cp-ink-0, var(--color-text-primary));
 }
 

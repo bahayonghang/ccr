@@ -323,19 +323,18 @@ describe('theme contrast contract', () => {
 
   it.each(COMBOS)('$name：文本对比度达标（primary ≥12、secondary ≥7、muted ≥4.5）', (combo) => {
     const tokens = resolveTokens(blocks, combo, 'clay')
-    const surface = readToken(tokens, '--color-bg-surface')
-
     const floors: Array<readonly [string, number]> = [
       ['--color-text-primary', 12],
       ['--color-text-secondary', 7],
       ['--color-text-muted', 4.5],
     ]
 
-    for (const [name, min] of floors) {
-      const ratio = contrastRatio(readToken(tokens, name), surface)
-      expect(ratio, `${name} vs --color-bg-surface = ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(
-        min
-      )
+    for (const role of ['base', 'elevated', 'surface', 'overlay']) {
+      const background = readToken(tokens, `--color-bg-${role}`)
+      for (const [name, min] of floors) {
+        const ratio = contrastRatio(readToken(tokens, name), background)
+        expect(ratio, `${name} vs ${role} = ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(min)
+      }
     }
   })
 
@@ -380,6 +379,14 @@ describe('theme contrast contract', () => {
     }
   })
 
+  it.each(COMBOS)('$name：关键控件边界在各实底阅读面上达到 3:1', (combo) => {
+    const tokens = resolveTokens(blocks, combo, 'clay')
+    const border = readToken(tokens, '--color-border-strong')
+    for (const role of ['base', 'elevated', 'surface', 'overlay']) {
+      expect(contrastRatio(border, readToken(tokens, `--color-bg-${role}`)), role).toBeGreaterThanOrEqual(3)
+    }
+  })
+
   it.each(COMBOS)('$name：accent vs accent-contrast ≥ 3.5（clay）', (combo) => {
     for (const accent of ACCENTS) {
       const tokens = resolveTokens(blocks, combo, accent)
@@ -390,6 +397,38 @@ describe('theme contrast contract', () => {
         ratio,
         `[data-accent='${accent}'] accent vs accent-contrast = ${ratio.toFixed(2)}:1`
       ).toBeGreaterThanOrEqual(3.5)
+    }
+  })
+
+  it.each(COMBOS)('$name：纸面在渐变两端和中点合成后仍保持文字门槛', (combo) => {
+    const tokens = resolveTokens(blocks, combo, 'clay')
+    const start = readToken(tokens, '--surface-app-field-start')
+    const end = readToken(tokens, '--surface-app-field-end')
+    const sheet = readToken(tokens, '--surface-app-sheet-bg')
+    const midpoint = { r: (start.r + end.r) / 2, g: (start.g + end.g) / 2, b: (start.b + end.b) / 2, a: 1 }
+    for (const field of [start, midpoint, end]) {
+      const composed = blendOver(sheet, field)
+      for (const [name, floor] of [['primary', 12], ['secondary', 7], ['muted', 4.5]] as const) {
+        expect(contrastRatio(readToken(tokens, `--color-text-${name}`), composed), name).toBeGreaterThanOrEqual(floor)
+      }
+    }
+  })
+
+  it.each(COMBOS)('$name：状态和强调文字在阅读面与对应 tint 上达到 4.5:1', (combo) => {
+    const tokens = resolveTokens(blocks, combo, 'clay')
+    const surfaces = ['--color-bg-elevated', '--color-bg-surface', '--color-bg-overlay'].map(name => readToken(tokens, name))
+    for (const role of ['success', 'warning', 'danger', 'info']) {
+      const backgrounds = [...surfaces, readToken(tokens, `--color-${role}-tint`)]
+      for (const name of [`--color-${role}`, `--color-${role}-hover`]) {
+        for (const background of backgrounds) {
+          expect(contrastRatio(readToken(tokens, name), background), name).toBeGreaterThanOrEqual(4.5)
+        }
+      }
+    }
+    for (const name of ['--color-accent-primary', '--color-accent-primary-hover']) {
+      for (const surface of surfaces) {
+        expect(contrastRatio(readToken(tokens, name), surface), name).toBeGreaterThanOrEqual(4.5)
+      }
     }
   })
 

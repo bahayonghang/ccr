@@ -1,5 +1,5 @@
 /* ============================================
-   CCR-UI Claude Editorial Surface System
+   CCR-UI Airy Glass Surface System
    Design Tokens - CSS Variables
    ============================================ */
 
@@ -7,90 +7,90 @@
 
 /* neutral 为默认 flavor：:root 即 neutral light（桌面压暗、卡片最亮；表面/文本令牌 100% 不透明）。 */
 :root {
-  /* --- 背景层级（亮色：桌面压暗、卡片最亮；overlay 为下沉/chip 层；09-03 起暖纸面） --- */
-  --color-bg-base: #e9e4d8;
-  --color-bg-base-rgb: 233 228 216;
-  --color-bg-elevated: #f2eee3;
-  --color-bg-elevated-rgb: 242 238 227;
-  --color-bg-surface: #faf7ec;
-  --color-bg-surface-rgb: 250 247 236;
-  --color-bg-overlay: #ddd5c2;
-  --color-bg-overlay-rgb: 221 213 194;
+  /* --- 背景层级（亮色：桌面压暗、卡片最亮；overlay 为下沉/chip 层；AG01 薄荷纸面） --- */
+  --color-bg-base: #e7f1ee;
+  --color-bg-base-rgb: 231 241 238;
+  --color-bg-elevated: #f2f7f5;
+  --color-bg-elevated-rgb: 242 247 245;
+  --color-bg-surface: #fff;
+  --color-bg-surface-rgb: 255 255 255;
+  --color-bg-overlay: #e3ece8;
+  --color-bg-overlay-rgb: 227 236 232;
 
-  /* --- 遮罩 scrim（唯一允许的常驻半透明：modal/抽屉背后的压暗层） --- */
+  /* --- 遮罩 scrim（modal/抽屉背后的压暗层；应用纸面单独管理） --- */
   --color-scrim: rgb(25 27 32 / 32%);
   --color-scrim-rgb: 25 27 32;
 
   /* --- 边框与分隔（实色：alpha 与 elevated 合成，见 token 治理任务） --- */
-  --color-border-subtle: #d9d2c0;
-  --color-border-subtle-rgb: 217 210 192;
-  --color-border-default: #c9bfa8;
-  --color-border-default-rgb: 201 191 168;
-  --color-border-strong: #ab9f83;
-  --color-border-strong-rgb: 171 159 131;
+  --color-border-subtle: #d4dfda;
+  --color-border-subtle-rgb: 212 223 218;
+  --color-border-default: #b3c3bc;
+  --color-border-default-rgb: 179 195 188;
+  --color-border-strong: #758b80;
+  --color-border-strong-rgb: 117 139 128;
   --color-border-accent: rgb(var(--color-accent-primary-rgb) / 18%);
   --color-border-interactive: var(--color-accent-primary);
   --color-border-interactive-rgb: var(--color-accent-primary-rgb);
 
   /* --- 文字层级（实心：对 bg-surface ≥ 12 / 7 / 4.5） --- */
-  --color-text-primary: #211c12;
-  --color-text-primary-rgb: 33 28 18;
-  --color-text-secondary: #4a4232;
-  --color-text-secondary-rgb: 74 66 50;
-  --color-text-muted: #6b6150;
-  --color-text-muted-rgb: 107 97 80;
-  --color-text-ghost: #968b76;
-  --color-text-ghost-rgb: 150 139 118;
-  --color-text-disabled: #b5a98f;
-  --color-text-disabled-rgb: 181 169 143;
-  --color-text-inverted: #fbf7ec;
-  --color-text-inverted-rgb: 251 247 236;
+  --color-text-primary: #1e2932;
+  --color-text-primary-rgb: 30 41 50;
+  --color-text-secondary: #404e59;
+  --color-text-secondary-rgb: 64 78 89;
+  --color-text-muted: #5c6b76;
+  --color-text-muted-rgb: 92 107 118;
+  --color-text-ghost: #74828b;
+  --color-text-ghost-rgb: 116 130 139;
+  --color-text-disabled: #a5b1b5;
+  --color-text-disabled-rgb: 165 177 181;
+  --color-text-inverted: #f4fbf7;
+  --color-text-inverted-rgb: 244 251 247;
 
-  /* --- 主强调色 - Clay key → 终端琥珀（与 [data-accent='clay'] 对齐的默认值；09-03 起 clay 值域不变、色值换琥珀） --- */
-  --color-accent-primary: #8f650e;
-  --color-accent-primary-hover: #a2740f;
-  --color-accent-primary-active: #7c580b;
-  --color-accent-primary-rgb: 143 101 14;
-  --color-accent-primary-glow: rgb(143 101 14 / 10%);
-  --color-accent-primary-contrast: #fffaf0;
-  --color-accent-primary-contrast-rgb: 255 250 240;
+  /* --- 主强调色 - Clay key → 轻盈绿（与 [data-accent='clay'] 对齐的默认值；09-03 起 clay 值域不变、色值换轻盈绿） --- */
+  --color-accent-primary: #156f4e;
+  --color-accent-primary-hover: #146a4a;
+  --color-accent-primary-active: #105b40;
+  --color-accent-primary-rgb: 21 111 78;
+  --color-accent-primary-glow: rgb(21 111 78 / 10%);
+  --color-accent-primary-contrast: #fff;
+  --color-accent-primary-contrast-rgb: 255 255 255;
 
-  /* --- 辅助强调色 - Warm Sand --- */
-  --color-accent-secondary: #a0854f;
-  --color-accent-secondary-hover: #ad9660;
-  --color-accent-secondary-active: #907541;
-  --color-accent-secondary-rgb: 160 133 79;
-  --color-accent-secondary-glow: rgb(160 133 79 / 10%);
+  /* --- 辅助强调色 - Output Purple --- */
+  --color-accent-secondary: #6d4bd6;
+  --color-accent-secondary-hover: #5e3fc0;
+  --color-accent-secondary-active: #5034a9;
+  --color-accent-secondary-rgb: 109 75 214;
+  --color-accent-secondary-glow: rgb(109 75 214 / 10%);
 
   /* --- 功能色 --- */
-  --color-success: #5b8a62;
-  --color-success-hover: #67996f;
-  --color-success-rgb: 91 138 98;
-  --color-success-glow: rgb(91 138 98 / 10%);
+  --color-success: #356e45;
+  --color-success-hover: #2d603c;
+  --color-success-rgb: 53 110 69;
+  --color-success-glow: rgb(53 110 69 / 10%);
 
-  /* 对比文字：vs --color-success #5b8a62 = 3.79:1（≥3.5 契约） */
+  /* 对比文字：保持 --color-success 配对文字 ≥3.5:1，并独立核对状态文字 ≥4.5:1。 */
   --color-success-contrast: #fff8f2;
   --color-success-contrast-rgb: 255 248 242;
-  --color-warning: #a07c1e;
-  --color-warning-hover: #ae8b31;
-  --color-warning-rgb: 160 124 30;
-  --color-warning-glow: rgb(160 124 30 / 10%);
+  --color-warning: #7b5e16;
+  --color-warning-hover: #6b5112;
+  --color-warning-rgb: 123 94 22;
+  --color-warning-glow: rgb(123 94 22 / 10%);
 
-  /* 对比文字：vs --color-warning #a07c1e = 4.56:1（≥3.5 契约；深墨优于近白 3.70:1） */
-  --color-warning-contrast: #17181c;
-  --color-warning-contrast-rgb: 23 24 28;
+  /* 对比文字：保持 --color-warning 配对文字 ≥3.5:1，并独立核对状态文字 ≥4.5:1。 */
+  --color-warning-contrast: #fff;
+  --color-warning-contrast-rgb: 255 255 255;
   --color-danger: #9f513f;
-  --color-danger-hover: #a55644;
+  --color-danger-hover: #914635;
   --color-danger-rgb: 159 81 63;
   --color-danger-glow: rgb(159 81 63 / 10%);
 
-  /* 对比文字：vs --color-danger #9f513f = 5.36:1（≥3.5 契约） */
+  /* 对比文字：保持 --color-danger 配对文字 ≥3.5:1，并独立核对状态文字 ≥4.5:1。 */
   --color-danger-contrast: #fff8f2;
   --color-danger-contrast-rgb: 255 248 242;
-  --color-info: #7d97b6;
-  --color-info-hover: #8ea8c6;
-  --color-info-rgb: 125 151 182;
-  --color-info-glow: rgb(125 151 182 / 10%);
+  --color-info: #42648a;
+  --color-info-hover: #385678;
+  --color-info-rgb: 66 100 138;
+  --color-info-glow: rgb(66 100 138 / 10%);
   --color-success-tint: #e8eeea;
   --color-warning-tint: #f3eee6;
   --color-danger-tint: #f5eae9;
@@ -161,13 +161,13 @@
   --color-platform-deepseek-harness-text: #0567c2;
 
   /* --- Insights 图表色（09-24）：other = 周趋势"其他"段（须叠加斜线纹理）；
-     heat-0..4 = 热力图暖中性单色相梯度，heat-0 为无活动格底色；不用 amber 与状态色 --- */
+     heat-0..4 = 热力图中性单色相梯度，heat-0 为无活动格底色；不用强调色与状态色 --- */
   --color-chart-other: #968b76;
-  --color-chart-heat-0: #ebe5db;
-  --color-chart-heat-1: #b4ab9b;
-  --color-chart-heat-2: #958d7d;
-  --color-chart-heat-3: #776f60;
-  --color-chart-heat-4: #5b5344;
+  --color-chart-heat-0: #e4e9e7;
+  --color-chart-heat-1: #b0bdb7;
+  --color-chart-heat-2: #8a9f95;
+  --color-chart-heat-3: #647f72;
+  --color-chart-heat-4: #405f50;
 
   /* --- 全局状态语义 --- */
   --state-loading: var(--color-info);
@@ -188,70 +188,80 @@
   --color-stage-chip-neutral-bg: var(--color-bg-overlay);
   --color-stage-chip-neutral-border: var(--color-border-default);
   --color-stage-chip-neutral-text: var(--color-text-secondary);
+
+  /* AG01 专用应用纸面；唯一 layout-shell::before 消费。 */
+  --surface-app-field-start: #e7f6f1;
+  --surface-app-field-end: #ede7f8;
+  --surface-app-sheet-bg: rgb(255 255 255 / 78%);
+  --surface-app-sheet-solid: var(--color-bg-elevated);
+  --surface-app-sheet-blur: blur(20px) saturate(1.15);
+  --surface-app-sheet-border: rgb(255 255 255 / 80%);
+  --surface-app-sheet-shadow: 0 20px 48px rgb(70 90 120 / 8%);
+  --surface-app-sheet-radius: 1.25rem;
 }
 
 /* ========== 暗色主题（neutral dark：elevated 逐级提亮） ========== */
 [data-theme='dark'] {
-  /* --- 背景层级（base < elevated < surface < overlay 明度递增；09-03 起暖黑终端） --- */
-  --color-bg-base: #100f0c;
-  --color-bg-base-rgb: 16 15 12;
-  --color-bg-elevated: #171410;
-  --color-bg-elevated-rgb: 23 20 16;
-  --color-bg-surface: #1f1b14;
-  --color-bg-surface-rgb: 31 27 20;
-  --color-bg-overlay: #2a251b;
-  --color-bg-overlay-rgb: 42 37 27;
+  /* --- 背景层级（base < elevated < surface < overlay 明度递增；09-03 起低饱和暗色） --- */
+  --color-bg-base: #10191b;
+  --color-bg-base-rgb: 16 25 27;
+  --color-bg-elevated: #172225;
+  --color-bg-elevated-rgb: 23 34 37;
+  --color-bg-surface: #1d292c;
+  --color-bg-surface-rgb: 29 41 44;
+  --color-bg-overlay: #233033;
+  --color-bg-overlay-rgb: 35 48 51;
 
-  /* --- 遮罩 scrim（唯一允许的常驻半透明：modal/抽屉背后的压暗层） --- */
+  /* --- 遮罩 scrim（modal/抽屉背后的压暗层；应用纸面单独管理） --- */
   --color-scrim: rgb(0 0 0 / 56%);
   --color-scrim-rgb: 0 0 0;
 
   /* --- 边框与分隔（实色：暗色旧 14/22/34% 与 elevated 合成） --- */
-  --color-border-subtle: #332c21;
-  --color-border-subtle-rgb: 51 44 33;
-  --color-border-default: #453b2a;
-  --color-border-default-rgb: 69 59 42;
-  --color-border-strong: #5d5138;
-  --color-border-strong-rgb: 93 81 56;
+  --color-border-subtle: #34464b;
+  --color-border-subtle-rgb: 52 70 75;
+  --color-border-default: #496168;
+  --color-border-default-rgb: 73 97 104;
+  --color-border-strong: #718b91;
+  --color-border-strong-rgb: 113 139 145;
   --color-border-accent: rgb(var(--color-accent-primary-rgb) / 24%);
 
   /* --- 文字层级（实心高对比） --- */
-  --color-text-primary: #e9e1d1;
-  --color-text-primary-rgb: 233 225 209;
-  --color-text-secondary: #c9bda8;
-  --color-text-secondary-rgb: 201 189 168;
-  --color-text-muted: #a1937c;
-  --color-text-muted-rgb: 161 147 124;
-  --color-text-ghost: #6f6552;
-  --color-text-ghost-rgb: 111 101 82;
-  --color-text-disabled: #564e3e;
-  --color-text-disabled-rgb: 86 78 62;
-  --color-text-inverted: #1d1408;
-  --color-text-inverted-rgb: 29 20 8;
+  --color-text-primary: #f0f8f5;
+  --color-text-primary-rgb: 240 248 245;
+  --color-text-secondary: #c5d5d0;
+  --color-text-secondary-rgb: 197 213 208;
+  --color-text-muted: #9fafa9;
+  --color-text-muted-rgb: 159 175 169;
+  --color-text-ghost: #82938d;
+  --color-text-ghost-rgb: 130 147 141;
+  --color-text-disabled: #657873;
+  --color-text-disabled-rgb: 101 120 115;
+  --color-text-inverted: #15221d;
+  --color-text-inverted-rgb: 21 34 29;
 
-  /* --- 主强调色 - Clay key → 终端琥珀 on dark（契约琥珀，高彩度） --- */
-  --color-accent-primary: #f0a32b;
-  --color-accent-primary-hover: #f5b14a;
-  --color-accent-primary-active: #d98f1d;
-  --color-accent-primary-rgb: 240 163 43;
-  --color-accent-primary-glow: rgb(240 163 43 / 16%);
-  --color-accent-primary-contrast: #1d1204;
-  --color-accent-primary-contrast-rgb: 29 18 4;
+  /* --- 主强调色 - Clay key → 轻盈绿 on dark（契约琥珀，高彩度） --- */
+  --color-accent-primary: #85d5b1;
+  --color-accent-primary-hover: #9ce0c3;
+  --color-accent-primary-active: #6bc39a;
+  --color-accent-primary-rgb: 133 213 177;
+  --color-accent-primary-glow: rgb(133 213 177 / 16%);
+  --color-accent-primary-contrast: #102b20;
+  --color-accent-primary-contrast-rgb: 16 43 32;
 
-  /* --- 辅助强调色 - Warm Sand on dark --- */
-  --color-accent-secondary: #c9a35f;
-  --color-accent-secondary-hover: #d2b06f;
-  --color-accent-secondary-active: #bc9650;
-  --color-accent-secondary-rgb: 201 163 95;
-  --color-accent-secondary-glow: rgb(201 163 95 / 16%);
+  /* --- 辅助强调色 - Output Purple on dark --- */
+  --color-accent-secondary: #b9a4f4;
+  --color-accent-secondary-hover: #c9b8fa;
+  --color-accent-secondary-active: #a18adc;
+  --color-accent-secondary-rgb: 185 164 244;
+  --color-accent-secondary-glow: rgb(185 164 244 / 16%);
 
   /* --- 功能色（09-03 终端语义对齐） --- */
-  --color-success: #5fa05a;
-  --color-success-hover: #6eb069;
-  --color-success-rgb: 95 160 90;
-  --color-success-glow: rgb(95 160 90 / 16%);
+  --color-success: #73ba6e;
+  --color-success-hover: #84c87e;
+  --color-success-rgb: 115 186 110;
+  --color-success-glow: rgb(115 186 110 / 16%);
 
-  /* 对比文字：vs --color-success #5fa05a = 5.63:1（≥3.5 契约） */
+  /* 对比文字：保持 --color-success 配对文字 ≥3.5:1，并独立核对状态文字 ≥4.5:1。 */
   --color-success-contrast: #17181c;
   --color-success-contrast-rgb: 23 24 28;
   --color-warning: #d9c05a;
@@ -259,21 +269,21 @@
   --color-warning-rgb: 217 192 90;
   --color-warning-glow: rgb(217 192 90 / 16%);
 
-  /* 对比文字：vs --color-warning #d9c05a = 9.83:1（≥3.5 契约） */
+  /* 对比文字：保持 --color-warning 配对文字 ≥3.5:1，并独立核对状态文字 ≥4.5:1。 */
   --color-warning-contrast: #17181c;
   --color-warning-contrast-rgb: 23 24 28;
-  --color-danger: #e06852;
-  --color-danger-hover: #ec7a63;
-  --color-danger-rgb: 224 104 82;
-  --color-danger-glow: rgb(224 104 82 / 16%);
+  --color-danger: #ec8d7a;
+  --color-danger-hover: #f29f8e;
+  --color-danger-rgb: 236 141 122;
+  --color-danger-glow: rgb(236 141 122 / 16%);
 
-  /* 对比文字：vs --color-danger #e06852 = 5.30:1（≥3.5 契约） */
+  /* 对比文字：保持 --color-danger 配对文字 ≥3.5:1，并独立核对状态文字 ≥4.5:1。 */
   --color-danger-contrast: #17181c;
   --color-danger-contrast-rgb: 23 24 28;
-  --color-info: #7d94b0;
-  --color-info-hover: #8ca2bb;
-  --color-info-rgb: 125 148 176;
-  --color-info-glow: rgb(125 148 176 / 16%);
+  --color-info: #91a9c7;
+  --color-info-hover: #a2b8d1;
+  --color-info-rgb: 145 169 199;
+  --color-info-glow: rgb(145 169 199 / 16%);
   --color-success-tint: #26301f;
   --color-warning-tint: #362c1a;
   --color-danger-tint: #331f16;
@@ -337,13 +347,20 @@
 
   /* --- Insights 图表色（暗色；语义同 :root）：heat-0 同时高于 neutral #1f1b14 与 clay #2a221e 卡片面 --- */
   --color-chart-other: #a1937c;
-  --color-chart-heat-0: #332f27;
-  --color-chart-heat-1: #5b5344;
-  --color-chart-heat-2: #7a7263;
-  --color-chart-heat-3: #9b9383;
-  --color-chart-heat-4: #beb5a4;
+  --color-chart-heat-0: #394349;
+  --color-chart-heat-1: #596971;
+  --color-chart-heat-2: #7a8b91;
+  --color-chart-heat-3: #9badb2;
+  --color-chart-heat-4: #c0d0d3;
 
   /* stage 语义层由 :root 的 var() 引用自动跟随暗色令牌，无需覆盖。 */
+
+  /* AG01 专用应用纸面；唯一 layout-shell::before 消费。 */
+  --surface-app-field-start: #102b26;
+  --surface-app-field-end: #25213d;
+  --surface-app-sheet-bg: rgb(var(--color-bg-elevated-rgb) / 90%);
+  --surface-app-sheet-border: var(--color-border-subtle);
+  --surface-app-sheet-shadow: 0 20px 48px rgb(0 0 0 / 24%);
 }
 
 /* ========== 间距系统（4 像素基准） ========== */
@@ -487,15 +504,15 @@
 
 /* ========== 玻璃效果系统 ========== */
 
-/* 玻璃预算（review 依据）：同屏 backdrop-filter 元素 ≤ 3；禁止嵌套玻璃；
+/* 玻璃预算（review 依据）：同屏 backdrop-filter 元素 ≤ 1；禁止嵌套玻璃；
    禁止在滚动内容区内部使用玻璃。普通内容卡片一律走不透明 card/workspace 语义。 */
 :root:where(:root):where(:root):where(:root):where(:root):where(:root) {
   /* --- 三档 material 玻璃令牌（新表面契约：chrome/inline 全不透明、blur: none；
-     floating 是唯一保留 backdrop-filter 的档，bg ≥88% 不透明、blur ≤ 12 像素、去 saturate） --- */
+     所有共享档均实底；唯一 app-sheet 承载真实 backdrop-filter） --- */
 
-  /* floating：模态 / 命令面板 / 浮层（同屏最多 1 个） */
-  --material-glass-floating-bg: rgb(var(--color-bg-elevated-rgb) / 92%);
-  --material-glass-floating-blur: blur(12px);
+  /* floating：模态 / 命令面板 / 浮层（实底，不叠加纸面 blur） */
+  --material-glass-floating-bg: var(--color-bg-elevated);
+  --material-glass-floating-blur: none;
   --material-glass-floating-border: var(--color-border-strong);
   --material-glass-floating-highlight: inset 0 1px 0 rgb(255 255 255 / 40%);
   --material-glass-floating-shadow: 0 24px 64px rgb(25 27 32 / 20%);
@@ -591,6 +608,20 @@
   --liquid-glass-shadow: 0 16px 36px rgb(0 0 0 / 38%);
 }
 
+@media (width < 960px), (prefers-reduced-transparency: reduce) {
+  html:root {
+    --surface-app-sheet-bg: var(--surface-app-sheet-solid);
+    --surface-app-sheet-blur: none;
+  }
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  html:root {
+    --surface-app-sheet-bg: var(--surface-app-sheet-solid);
+    --surface-app-sheet-blur: none;
+  }
+}
+
 /* ========== 动画系统 ========== */
 :root:where(:root):where(:root):where(:root):where(:root):where(:root):where(:root) {
   /* --- 时长 --- */
@@ -664,32 +695,32 @@
 
 /* --- clay（亮）：暖纸面 identity（同 neutral 亮色几何：桌面压暗、卡片最亮） --- */
 [data-flavor='clay'] {
-  --color-bg-base: #ebe1d0;
-  --color-bg-base-rgb: 235 225 208;
-  --color-bg-elevated: #f5eee1;
-  --color-bg-elevated-rgb: 245 238 225;
-  --color-bg-surface: #fefaf2;
-  --color-bg-surface-rgb: 254 250 242;
-  --color-bg-overlay: #e2d6c3;
-  --color-bg-overlay-rgb: 226 214 195;
-  --color-border-subtle: #e0d8cb;
-  --color-border-subtle-rgb: 224 216 203;
-  --color-border-default: #d4cbbe;
-  --color-border-default-rgb: 212 203 190;
-  --color-border-strong: #c1b7aa;
-  --color-border-strong-rgb: 193 183 170;
-  --color-text-primary: #31241c;
-  --color-text-primary-rgb: 49 36 28;
-  --color-text-secondary: #5f4d3f;
-  --color-text-secondary-rgb: 95 77 63;
-  --color-text-muted: #715d4c;
-  --color-text-muted-rgb: 113 93 76;
-  --color-text-ghost: #9a8373;
-  --color-text-ghost-rgb: 154 131 115;
-  --color-text-disabled: #b4a08f;
-  --color-text-disabled-rgb: 180 160 143;
-  --color-text-inverted: #fff8f0;
-  --color-text-inverted-rgb: 255 248 240;
+  --color-bg-base: #eae6f2;
+  --color-bg-base-rgb: 234 230 242;
+  --color-bg-elevated: #f5f2fa;
+  --color-bg-elevated-rgb: 245 242 250;
+  --color-bg-surface: #fefcff;
+  --color-bg-surface-rgb: 254 252 255;
+  --color-bg-overlay: #e9e4f1;
+  --color-bg-overlay-rgb: 233 228 241;
+  --color-border-subtle: #ded8e9;
+  --color-border-subtle-rgb: 222 216 233;
+  --color-border-default: #c0b6cf;
+  --color-border-default-rgb: 192 182 207;
+  --color-border-strong: #887999;
+  --color-border-strong-rgb: 136 121 153;
+  --color-text-primary: #222630;
+  --color-text-primary-rgb: 34 38 48;
+  --color-text-secondary: #464758;
+  --color-text-secondary-rgb: 70 71 88;
+  --color-text-muted: #686477;
+  --color-text-muted-rgb: 104 100 119;
+  --color-text-ghost: #827b91;
+  --color-text-ghost-rgb: 130 123 145;
+  --color-text-disabled: #aaa2b7;
+  --color-text-disabled-rgb: 170 162 183;
+  --color-text-inverted: #fbf8ff;
+  --color-text-inverted-rgb: 251 248 255;
   --color-success-tint: #eaede1;
   --color-warning-tint: #f6ecdd;
   --color-danger-tint: #f7e9df;
@@ -698,32 +729,32 @@
 
 /* --- clay（暗）：暖墨 identity（base < elevated < surface < overlay 逐级提亮，border 提到 14/22/34） --- */
 [data-theme='dark'][data-flavor='clay'] {
-  --color-bg-base: #17120f;
-  --color-bg-base-rgb: 23 18 15;
-  --color-bg-elevated: #221b18;
-  --color-bg-elevated-rgb: 34 27 24;
-  --color-bg-surface: #2a221e;
-  --color-bg-surface-rgb: 42 34 30;
-  --color-bg-overlay: #342b26;
-  --color-bg-overlay-rgb: 52 43 38;
-  --color-border-subtle: #322a25;
-  --color-border-subtle-rgb: 50 42 37;
-  --color-border-default: #3a302a;
-  --color-border-default-rgb: 58 48 42;
-  --color-border-strong: #4a3d35;
-  --color-border-strong-rgb: 74 61 53;
-  --color-text-primary: #f3eadf;
-  --color-text-primary-rgb: 243 234 223;
-  --color-text-secondary: #dacbbc;
-  --color-text-secondary-rgb: 218 203 188;
-  --color-text-muted: #b9a695;
-  --color-text-muted-rgb: 185 166 149;
-  --color-text-ghost: #977f6d;
-  --color-text-ghost-rgb: 151 127 109;
-  --color-text-disabled: #735f52;
-  --color-text-disabled-rgb: 115 95 82;
-  --color-text-inverted: #211915;
-  --color-text-inverted-rgb: 33 25 21;
+  --color-bg-base: #171722;
+  --color-bg-base-rgb: 23 23 34;
+  --color-bg-elevated: #20212e;
+  --color-bg-elevated-rgb: 32 33 46;
+  --color-bg-surface: #282a38;
+  --color-bg-surface-rgb: 40 42 56;
+  --color-bg-overlay: #2c2e3d;
+  --color-bg-overlay-rgb: 44 46 61;
+  --color-border-subtle: #3c3e51;
+  --color-border-subtle-rgb: 60 62 81;
+  --color-border-default: #555970;
+  --color-border-default-rgb: 85 89 112;
+  --color-border-strong: #7f859d;
+  --color-border-strong-rgb: 127 133 157;
+  --color-text-primary: #f5f4fc;
+  --color-text-primary-rgb: 245 244 252;
+  --color-text-secondary: #d4d2e3;
+  --color-text-secondary-rgb: 212 210 227;
+  --color-text-muted: #b0adbf;
+  --color-text-muted-rgb: 176 173 191;
+  --color-text-ghost: #918caa;
+  --color-text-ghost-rgb: 145 140 170;
+  --color-text-disabled: #706c83;
+  --color-text-disabled-rgb: 112 108 131;
+  --color-text-inverted: #1b1c28;
+  --color-text-inverted-rgb: 27 28 40;
   --color-success-tint: #25332a;
   --color-warning-tint: #3a2a20;
   --color-danger-tint: #2b1f1c;
@@ -760,25 +791,25 @@
 
 /* 值域仅 clay。data-accent 仍写入，值恒为 clay。 */
 
-/* --- clay（默认；09-03 起 clay key 解析为终端琥珀，值域名不变） --- */
+/* --- clay（默认；09-03 起 clay key 解析为轻盈绿，值域名不变） --- */
 [data-accent='clay'] {
-  --color-accent-primary: #8f650e;
-  --color-accent-primary-hover: #a2740f;
-  --color-accent-primary-active: #7c580b;
-  --color-accent-primary-rgb: 143 101 14;
-  --color-accent-primary-glow: rgb(143 101 14 / 10%);
-  --color-accent-primary-contrast: #fffaf0;
-  --color-accent-primary-contrast-rgb: 255 250 240;
-  --color-border-accent: rgb(143 101 14 / 18%);
+  --color-accent-primary: #156f4e;
+  --color-accent-primary-hover: #146a4a;
+  --color-accent-primary-active: #105b40;
+  --color-accent-primary-rgb: 21 111 78;
+  --color-accent-primary-glow: rgb(21 111 78 / 10%);
+  --color-accent-primary-contrast: #fff;
+  --color-accent-primary-contrast-rgb: 255 255 255;
+  --color-border-accent: rgb(21 111 78 / 18%);
 }
 
 [data-theme='dark'][data-accent='clay'] {
-  --color-accent-primary: #f0a32b;
-  --color-accent-primary-hover: #f5b14a;
-  --color-accent-primary-active: #d98f1d;
-  --color-accent-primary-rgb: 240 163 43;
-  --color-accent-primary-glow: rgb(240 163 43 / 16%);
-  --color-accent-primary-contrast: #1d1204;
-  --color-accent-primary-contrast-rgb: 29 18 4;
-  --color-border-accent: rgb(240 163 43 / 24%);
+  --color-accent-primary: #85d5b1;
+  --color-accent-primary-hover: #9ce0c3;
+  --color-accent-primary-active: #6bc39a;
+  --color-accent-primary-rgb: 133 213 177;
+  --color-accent-primary-glow: rgb(133 213 177 / 16%);
+  --color-accent-primary-contrast: #102b20;
+  --color-accent-primary-contrast-rgb: 16 43 32;
+  --color-border-accent: rgb(133 213 177 / 24%);
 }

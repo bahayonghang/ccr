@@ -20,7 +20,7 @@ export function App() {
       {handle.hideGlobalBackground ? null : <StageBackground />}
       {showCustomTitlebar ? <Titlebar /> : null}
       <div
-        className="flex h-screen w-screen flex-col overflow-hidden bg-bg-base"
+        className="app-field flex h-screen w-screen flex-col overflow-hidden"
         style={inset > 0 ? { paddingTop: `${inset}px` } : undefined}
       >
         <Outlet />

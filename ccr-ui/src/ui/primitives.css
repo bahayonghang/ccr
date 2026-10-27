@@ -286,7 +286,7 @@
   padding: 0.7rem 0.95rem;
   border-radius: var(--radius-full);
   border: 1px solid rgb(var(--color-accent-secondary-rgb) / 26%);
-  background: rgb(var(--color-bg-elevated-rgb) / 94%);
+  background: var(--surface-status-bg);
   box-shadow: var(--shadow-md);
   color: var(--color-accent-secondary);
   font-size: 0.8rem;
@@ -324,8 +324,8 @@
 }
 
 .multi-select-bar__btn--danger {
-  color: rgb(239 68 68 / 85%);
-  border-color: rgb(239 68 68 / 20%);
+  color: var(--color-danger);
+  border-color: var(--color-danger);
 }
 
 .bulk-delete__body {
@@ -613,7 +613,8 @@
 }
 
 .ui-btn:focus-visible {
-  outline: none;
+  outline: var(--space-0-5) solid var(--color-accent-primary);
+  outline-offset: var(--space-0-5);
   box-shadow: 0 0 0 var(--space-0-5) rgb(var(--color-accent-primary-rgb) / 30%);
 }
 
@@ -641,7 +642,7 @@
 .ui-btn--primary {
   background: var(--color-accent-primary);
   border-color: var(--color-accent-primary);
-  color: var(--color-text-inverted);
+  color: var(--color-accent-primary-contrast);
 }
 
 .ui-btn--primary:hover:not(:disabled) {
@@ -690,7 +691,7 @@
 .ui-btn--danger {
   background: var(--color-danger);
   border-color: var(--color-danger);
-  color: var(--color-text-inverted);
+  color: var(--color-danger-contrast);
 }
 
 .ui-btn--danger:hover:not(:disabled) {

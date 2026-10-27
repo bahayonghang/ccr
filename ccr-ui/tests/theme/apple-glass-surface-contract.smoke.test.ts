@@ -141,12 +141,20 @@ describe('claude editorial surface contract', () => {
     expect(source).toMatch(/--surface-card-bg:\s*var\(--color-bg-surface\)/)
     expect(source).toMatch(/--surface-workspace-bg:\s*var\(--color-bg-elevated\)/)
 
-    // floating 是唯一保留 backdrop-filter 的档：blur ≤12px、去 saturate、bg ≥88% 不透明。
-    const floatingBlur = source.match(/--material-glass-floating-blur:\s*([^;]+);/)?.[1] ?? ''
-
-    expect(floatingBlur).not.toContain('saturate')
-    expect(floatingBlur).toMatch(/blur\((?:[0-9]|1[0-2])px\)/)
-    expect(source).toMatch(/--material-glass-floating-bg:\s*rgb\(var\(--color-bg-elevated-rgb\) \/ (?:8[89]|9\d|100)%\)/)
+    // AG01：浮层实底，唯一专用应用纸面承载 blur。
+    expect(source).toMatch(/--material-glass-floating-blur:\s*none/)
+    expect(source).toMatch(/--material-glass-floating-bg:\s*var\(--color-bg-elevated\)/)
+    expect(source).toMatch(/--surface-app-sheet-blur:\s*blur\(20px\) saturate\(1\.15\)/)
+    expect(source).toMatch(/--surface-app-sheet-bg:\s*rgb\(255 255 255 \/ 78%\)/)
+    expect(source).toMatch(/--surface-app-sheet-solid:\s*var\(--color-bg-elevated\)/)
+    expect(source).toContain('@supports not (backdrop-filter: blur(1px))')
+    expect(source).toContain('@media (width < 960px), (prefers-reduced-transparency: reduce)')
+    const fallbacks = source.match(/(?:@media \(width < 960px\)[^{}]*|@supports not \(backdrop-filter: blur\(1px\)\)) \{[\s\S]*?^}/gm) ?? []
+    expect(fallbacks).toHaveLength(2)
+    for (const fallback of fallbacks) {
+      expect(fallback).toMatch(/--surface-app-sheet-bg:\s*var\(--surface-app-sheet-solid\)/)
+      expect(fallback).toMatch(/--surface-app-sheet-blur:\s*none/)
+    }
 
     // mocha 语义重映射块不得存在；accent 轴仍独立于 flavor。
     expect(source.match(mochaOverridePattern)?.[0] ?? '').toBe('')
@@ -154,7 +162,7 @@ describe('claude editorial surface contract', () => {
     expect(source).not.toMatch(/\[data-resolved-flavor=["'](?:latte|mocha)["']\].*--color-accent-primary:/s)
 
     // 玻璃预算注释存在（review 依据）。
-    expect(source).toContain('同屏 backdrop-filter 元素 ≤ 3')
+    expect(source).toContain('同屏 backdrop-filter 元素 ≤ 1')
     expect(source).toContain('禁止嵌套玻璃')
 
     // reduced-transparency 下三档 material 全部回退为不透明并关闭模糊。
