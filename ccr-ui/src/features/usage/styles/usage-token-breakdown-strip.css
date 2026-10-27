@@ -57,7 +57,7 @@
   min-height: 0.52rem;
   gap: 0.18rem;
   border-radius: 624.9375rem;
-  background: rgb(var(--color-bg-overlay-rgb) / 56%);
+  background: var(--color-bg-overlay);
   box-shadow: inset 0 0 0 0.0625rem rgb(var(--color-border-default-rgb) / 10%);
 }
 

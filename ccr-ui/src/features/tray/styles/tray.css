@@ -44,7 +44,7 @@
   padding: 0.5rem 0.375rem;
   border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 32%);
   border-radius: 0.875rem;
-  background: rgb(var(--color-bg-base-rgb) / 60%);
+  background: var(--color-bg-base);
   flex-shrink: 0;
 }
 
@@ -63,7 +63,7 @@
   height: 2.375rem;
   border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 52%);
   border-radius: 999px;
-  background: rgb(var(--color-bg-base-rgb) / 72%);
+  background: var(--color-bg-base);
   color: var(--color-text-secondary);
 }
 
@@ -73,7 +73,7 @@
   gap: 0.625rem;
   border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 42%);
   border-radius: 0.75rem;
-  background: rgb(var(--color-bg-base-rgb) / 52%);
+  background: var(--color-bg-base);
   padding: 0.8125rem 0.875rem;
   color: var(--color-text-secondary);
   font-size: 0.75rem;
@@ -101,7 +101,7 @@
 .tray-switch__row {
   border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 36%);
   border-radius: 0.75rem;
-  background: rgb(var(--color-bg-base-rgb) / 48%);
+  background: var(--color-bg-base);
   padding: 0.875rem;
 }
 
@@ -141,7 +141,7 @@
   border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 42%);
   border-radius: 999px;
   padding: 0 0.85rem;
-  background: rgb(var(--color-bg-elevated-rgb) / 72%);
+  background: var(--color-bg-elevated);
   color: var(--color-text-secondary);
   font-size: 0.8rem;
   font-weight: 650;

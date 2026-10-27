@@ -37,10 +37,10 @@
   --home-elevation-sunk: inset 0 1px 0 rgb(var(--color-border-default-rgb) / 6%);
 
   /* === 表面（卡片走不透明档，退出玻璃体系） === */
-  --home-surface-base: rgb(var(--color-bg-base-rgb) / 100%);
-  --home-surface-card: rgb(var(--color-bg-elevated-rgb) / 98%);
-  --home-surface-card-hover: rgb(var(--color-bg-surface-rgb) / 98%);
-  --home-surface-sunk: rgb(var(--color-bg-overlay-rgb) / 56%);
+  --home-surface-base: var(--color-bg-base);
+  --home-surface-card: var(--color-bg-elevated);
+  --home-surface-card-hover: var(--color-bg-surface);
+  --home-surface-sunk: var(--color-bg-overlay);
   --home-border-card: rgb(var(--color-border-default-rgb) / 19%);
   --home-border-card-hover: rgb(var(--color-accent-primary-rgb) / 32%);
   --home-border-hairline: rgb(var(--color-border-default-rgb) / 24%);
@@ -57,9 +57,9 @@
 }
 
 [data-theme='dark'] {
-  --home-surface-card: rgb(var(--color-bg-elevated-rgb) / 98%);
-  --home-surface-card-hover: rgb(var(--color-bg-surface-rgb) / 98%);
-  --home-surface-sunk: rgb(var(--color-bg-overlay-rgb) / 48%);
+  --home-surface-card: var(--color-bg-elevated);
+  --home-surface-card-hover: var(--color-bg-surface);
+  --home-surface-sunk: var(--color-bg-overlay);
   --home-border-card: rgb(var(--color-border-default-rgb) / 18%);
   --home-border-card-hover: rgb(var(--color-accent-primary-rgb) / 36%);
   --home-border-hairline: rgb(var(--color-border-default-rgb) / 22%);

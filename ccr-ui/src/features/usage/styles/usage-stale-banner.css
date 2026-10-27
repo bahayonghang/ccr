@@ -83,7 +83,7 @@
 .usage-stale-banner__action {
   border-radius: 62.4375rem;
   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 16%);
-  background: rgb(var(--color-bg-elevated-rgb) / 72%);
+  background: var(--color-bg-elevated);
   padding: 0.4rem 0.75rem;
   color: var(--color-text-primary);
   font-size: 0.76rem;

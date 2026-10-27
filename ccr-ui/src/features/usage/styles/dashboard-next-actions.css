@@ -88,7 +88,7 @@
 
 .dashboard-action:hover,
 .dashboard-onboarding-step:hover {
-  background: rgb(var(--color-bg-elevated-rgb) / 88%);
+  background: var(--color-bg-elevated);
   border-color: var(--color-border-subtle);
 }
 

@@ -28,7 +28,7 @@
   justify-content: center;
   min-height: 11rem;
   border-radius: 1rem;
-  background: rgb(var(--color-bg-elevated-rgb) / 56%);
+  background: var(--color-bg-elevated);
   border: var(--space-px) dashed rgb(var(--color-border-default-rgb) / 78%);
   color: var(--text-secondary);
 }
@@ -55,7 +55,7 @@
 }
 
 .cell-unchecked {
-  background: rgb(var(--color-bg-elevated-rgb) / 62%);
+  background: var(--color-bg-elevated);
   border-color: rgb(var(--color-border-default-rgb) / 56%);
 }
 

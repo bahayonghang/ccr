@@ -40,14 +40,14 @@
 
 .checkin-accounts-tab__input {
   border-radius: 0.75rem;
-  border: var(--space-px) solid rgb(var(--color-border-default-rgb) / 72%);
+  border: var(--space-px) solid var(--color-border-interactive);
   color: var(--text-primary);
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
     background-color 0.2s ease,
     transform 0.2s ease;
-  background: rgb(var(--color-bg-elevated-rgb) / 36%);
+  background: var(--color-bg-elevated);
   padding: 0.625rem 0.75rem;
   font-size: 0.875rem;
 }
@@ -57,9 +57,9 @@
 }
 
 .checkin-accounts-tab__input:focus {
-  outline: none;
-  border-color: rgb(var(--color-accent-primary-rgb) / 88%);
-  box-shadow: var(--shadow-md);
+  outline: 0.125rem solid var(--color-accent-primary);
+  outline-offset: 0.125rem;
+  border-color: var(--color-accent-primary);
 }
 
 .checkin-accounts-tab__input--search {
@@ -283,13 +283,13 @@
   border-radius: var(--radius-lg);
   border: var(--space-px) solid transparent;
   color: var(--text-muted);
-  background: rgb(var(--color-bg-elevated-rgb) / 20%);
+  background: var(--color-bg-elevated);
 }
 
 .checkin-accounts-tab__menu-trigger:hover,
 .checkin-accounts-tab__menu-trigger--active {
   border-color: rgb(var(--color-accent-primary-rgb) / 30%);
-  background: rgb(var(--color-bg-elevated-rgb) / 52%);
+  background: var(--color-bg-elevated);
   color: var(--text-primary);
 }
 

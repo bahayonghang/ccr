@@ -77,7 +77,7 @@
   justify-content: center;
   border-radius: 1.35rem;
   border: 0.0625rem dashed rgb(var(--color-accent-primary-rgb) / 16%);
-  background: rgb(var(--color-bg-elevated-rgb) / 35%);
+  background: var(--color-bg-elevated);
   color: var(--color-text-muted);
 }
 
@@ -95,7 +95,7 @@
   min-width: 0;
   border-radius: 0.95rem;
   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 12%);
-  background: rgb(var(--color-bg-elevated-rgb) / 28%);
+  background: var(--color-bg-elevated);
   padding: 0.65rem 0.72rem;
 }
 

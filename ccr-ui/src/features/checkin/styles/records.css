@@ -58,7 +58,7 @@
 .checkin-records__history-button {
   border: var(--space-px) solid rgb(var(--color-danger-rgb) / 30%);
   border-radius: 0.375rem;
-  background: rgb(var(--color-bg-surface-rgb) / 80%);
+  background: var(--color-bg-surface);
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
   color: rgb(var(--color-danger-rgb) / 82%);
@@ -149,6 +149,6 @@
 .checkin-records__history-item {
   border: var(--space-px) solid rgb(var(--color-danger-rgb) / 30%);
   border-radius: 0.375rem;
-  background: rgb(var(--color-bg-surface-rgb) / 70%);
+  background: var(--color-bg-surface);
   padding: 0.75rem;
 }

@@ -153,7 +153,7 @@
   justify-content: center;
   border-radius: 1.35rem;
   border: 0.0625rem dashed rgb(var(--color-accent-primary-rgb) / 16%);
-  background: rgb(var(--color-bg-elevated-rgb) / 36%);
+  background: var(--color-bg-elevated);
   color: var(--color-text-muted);
 }
 

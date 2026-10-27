@@ -4,7 +4,7 @@
   justify-content: center;
   min-height: 14rem;
   border-radius: 1rem;
-  background: rgb(var(--color-bg-elevated-rgb) / 52%);
+  background: var(--color-bg-elevated);
   border: var(--space-px) dashed rgb(var(--color-border-default-rgb) / 78%);
   color: var(--text-secondary);
 }

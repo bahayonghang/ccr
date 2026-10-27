@@ -310,23 +310,23 @@ export function AgentSessionsView() {
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(16rem,2fr)_minmax(12rem,1.5fr)_repeat(4,minmax(8rem,1fr))]">
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-text-muted">{t('agentSessions.search')}</span>
-              <input type="search" className="w-full rounded-xl border border-border-default/30 bg-bg-elevated px-3 py-2 text-sm text-text-primary" placeholder={t('agentSessions.searchPlaceholder')} {...filterForm.register('q')} />
+              <input type="search" className="w-full rounded-xl border border-border-interactive bg-bg-elevated focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary px-3 py-2 text-sm text-text-primary" placeholder={t('agentSessions.searchPlaceholder')} {...filterForm.register('q')} />
             </label>
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-text-muted">{t('agentSessions.cwd')}</span>
-              <input type="text" className="w-full rounded-xl border border-border-default/30 bg-bg-elevated px-3 py-2 text-sm text-text-primary" placeholder={t('agentSessions.cwdPlaceholder')} {...filterForm.register('cwd')} />
+              <input type="text" className="w-full rounded-xl border border-border-interactive bg-bg-elevated focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary px-3 py-2 text-sm text-text-primary" placeholder={t('agentSessions.cwdPlaceholder')} {...filterForm.register('cwd')} />
             </label>
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-text-muted">{t('agentSessions.startedAt')}</span>
-              <input type="date" className="w-full rounded-xl border border-border-default/30 bg-bg-elevated px-3 py-2 text-sm text-text-primary" {...filterForm.register('startedAt')} />
+              <input type="date" className="w-full rounded-xl border border-border-interactive bg-bg-elevated focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary px-3 py-2 text-sm text-text-primary" {...filterForm.register('startedAt')} />
             </label>
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-text-muted">{t('agentSessions.endedAt')}</span>
-              <input type="date" className="w-full rounded-xl border border-border-default/30 bg-bg-elevated px-3 py-2 text-sm text-text-primary" {...filterForm.register('endedAt')} />
+              <input type="date" className="w-full rounded-xl border border-border-interactive bg-bg-elevated focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary px-3 py-2 text-sm text-text-primary" {...filterForm.register('endedAt')} />
             </label>
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-text-muted">{t('agentSessions.state')}</span>
-              <select className="w-full rounded-xl border border-border-default/30 bg-bg-elevated px-3 py-2 text-sm text-text-primary" {...filterForm.register('sourceState')}>
+              <select className="w-full rounded-xl border border-border-interactive bg-bg-elevated focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary px-3 py-2 text-sm text-text-primary" {...filterForm.register('sourceState')}>
                 <option value="all">{t('agentSessions.all')}</option>
                 <option value="live">{t('agentSessions.live')}</option>
                 <option value="missing">{t('agentSessions.missing')}</option>
@@ -335,7 +335,7 @@ export function AgentSessionsView() {
             </label>
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-text-muted">{t('agentSessions.fidelity')}</span>
-              <select className="w-full rounded-xl border border-border-default/30 bg-bg-elevated px-3 py-2 text-sm text-text-primary" {...filterForm.register('fidelity')}>
+              <select className="w-full rounded-xl border border-border-interactive bg-bg-elevated focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary px-3 py-2 text-sm text-text-primary" {...filterForm.register('fidelity')}>
                 <option value="all">{t('agentSessions.all')}</option>
                 <option value="full">{t('agentSessions.full')}</option>
                 <option value="partial">{t('agentSessions.partial')}</option>

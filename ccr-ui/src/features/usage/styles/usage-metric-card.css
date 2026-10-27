@@ -84,7 +84,7 @@
   border-radius: 624.9375rem;
   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 14%);
   padding: 0.24rem 0.52rem;
-  background: rgb(var(--color-bg-elevated-rgb) / 64%);
+  background: var(--color-bg-elevated);
   color: var(--color-text-secondary);
   font-size: 0.7rem;
   font-weight: 700;
@@ -118,7 +118,7 @@
   min-width: 0;
   border-radius: 1rem;
   border: 0.0625rem solid rgb(var(--usage-metric-rgb) / 10%);
-  background: rgb(var(--color-bg-elevated-rgb) / 28%);
+  background: var(--color-bg-elevated);
   padding: 0.26rem 0.36rem;
 }
 

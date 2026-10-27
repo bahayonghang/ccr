@@ -142,7 +142,7 @@ export const AgentSessionTranscript = memo(function AgentSessionTranscript({
           <SIcon name="Search" size="w-4 h-4" className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
             type="search"
-            className="w-full rounded-xl border border-border-default/30 bg-bg-elevated py-2 pr-3 pl-9 text-sm text-text-primary"
+            className="w-full rounded-xl border border-border-interactive bg-bg-elevated focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary py-2 pr-3 pl-9 text-sm text-text-primary"
             placeholder={t('agentSessions.localFindHint')}
             {...findForm.register('q')}
           />

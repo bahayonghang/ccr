@@ -85,7 +85,7 @@
   min-width: 0;
   border-radius: 1rem;
   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 22%);
-  background: rgb(var(--color-bg-elevated-rgb) / 44%);
+  background: var(--color-bg-elevated);
   padding: 0.95rem 1rem;
 }
 
@@ -174,7 +174,7 @@
   overflow: auto;
   border-radius: 1.15rem;
   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 18%);
-  background: rgb(var(--color-bg-elevated-rgb) / 46%);
+  background: var(--color-bg-elevated);
 }
 
 .diagnostics-tab__row {
@@ -188,7 +188,7 @@
   top: 0;
   z-index: 1;
   border-bottom: 0.0625rem solid rgb(var(--color-border-default-rgb) / 18%);
-  background: rgb(var(--color-bg-elevated-rgb) / 92%);
+  background: var(--color-bg-elevated);
 }
 
 .diagnostics-tab__header div {

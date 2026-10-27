@@ -49,7 +49,7 @@
   gap: 0.6rem;
   border-radius: 0.95rem;
   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 12%);
-  background: rgb(var(--color-bg-surface-rgb) / 54%);
+  background: var(--color-bg-surface);
   padding: 0.65rem 0.7rem;
 }
 

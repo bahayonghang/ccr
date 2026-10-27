@@ -42,7 +42,7 @@
   flex: none;
   border-radius: 62.4375rem;
   border: 0.0625rem solid rgb(var(--color-border-default-rgb) / 14%);
-  background: rgb(var(--color-bg-elevated-rgb) / 46%);
+  background: var(--color-bg-elevated);
   padding: 0.3rem 0.62rem;
   color: var(--color-text-muted);
   font-size: 0.7rem;
