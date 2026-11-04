@@ -5,9 +5,15 @@ on:
     tags:
       - 'v*'  # 触发条件：推送 v 开头的 tag (如 v2.4.2)
 
+# 每个 tag 都跑完。不取消正在发布的构建。
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 # 🔐 权限配置 - 修复 "Resource not accessible by integration" 错误
 permissions:
   contents: write  # 需要写入权限以创建 release
+  actions: write
 
 env:
   CARGO_TERM_COLOR: always
@@ -52,23 +58,16 @@ jobs:
           toolchain: 1.98.0
           targets: ${{ matrix.target }}
 
-      - name: Cache cargo registry
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache cargo index
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache target directory
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
-        with:
-          path: target
-          key: ${{ matrix.target }}-release-${{ hashFiles('**/Cargo.lock') }}
+          prefix-key: ccr1
+          shared-key: release-1.98-${{ runner.os }}
+          add-job-id-key: false
+          workspaces: .
+          cache-all-crates: false
+          cache-workspace-crates: false
+          cache-bin: false
 
       - name: Build release binary
         run: cargo build -p ccr --release --target ${{ matrix.target }} --all-features
@@ -160,7 +159,6 @@ jobs:
   build-vscode:
     name: Build VS Code Extension
     runs-on: ubuntu-latest
-    needs: [build-and-release]
 
     steps:
       - name: Checkout code
@@ -241,6 +239,24 @@ jobs:
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: 1.4.0
+
+      - name: Cache Bun download cache
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('ccr-ui/bun.lock', 'docs/bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          prefix-key: ccr1
+          shared-key: release-tauri-1.98-${{ runner.os }}
+          add-job-id-key: false
+          workspaces: ccr-ui/src-tauri
+          cache-all-crates: false
+          cache-workspace-crates: false
+          cache-bin: false
 
       - name: Install Linux dependencies
         if: matrix.platform == 'linux'

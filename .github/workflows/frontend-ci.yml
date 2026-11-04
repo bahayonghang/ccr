@@ -3,9 +3,19 @@ name: Frontend CI
 on:
   pull_request:
     branches: [main, develop, dev]
+  push:
+    branches: [main]
+
+# No pull_request path filter: Vue and Docs Required must still be reported
+# when a pull request only changes README or docs prose. The relevance job
+# skips the heavy steps and the required gate succeeds.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
   changes:
@@ -15,6 +25,7 @@ jobs:
       relevant: ${{ steps.relevance.outputs.relevant }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        if: github.event_name == 'pull_request'
         with:
           fetch-depth: 0
       - name: Detect frontend changes
@@ -22,7 +33,13 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: python3 scripts/ci/ci_surface_policy.py --surface frontend --base "$BASE_SHA" --head "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          python3 scripts/ci/ci_surface_policy.py --surface frontend --base "$BASE_SHA" --head "$HEAD_SHA" >> "$GITHUB_OUTPUT"
 
   frontend-required:
     name: Vue and Docs Validation
@@ -35,12 +52,15 @@ jobs:
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: 1.4.0
-      - name: Setup Rust for just
-        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
+      - name: Cache Bun download cache
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
-          toolchain: 1.98.0
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('ccr-ui/bun.lock', 'docs/bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
       - name: Install just
-        run: cargo install just --version 1.58.0 --locked
+        shell: bash
+        run: bash scripts/ci/install_prebuilt_tool.sh just
       - name: Run local frontend gate
         env:
           CCR_SKIP_ICON_GENERATION: '1'

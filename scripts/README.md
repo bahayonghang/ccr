@@ -75,14 +75,21 @@ Hosted workflow governance and product-surface relevance.
   `root`, `frontend`, `tauri`, or `vscode`. Changing
   `scripts/ci/ci_surface_policy.py` makes all four surfaces relevant.
   `frontend` and `vscode` match that exact path; they do not use `scripts/**`.
-- `check_workflow_governance.py` checks action pins, pull-request-only quality
-  workflows, required aggregators, just recipes, coverage policy, and serial
-  test annotations.
+  They also match the prebuilt installer and, for `frontend`, the one-shot
+  `frontend-check` installer.
+- `install_prebuilt_tool.py` downloads pinned `just`, `cargo-audit`, and
+  `cargo-llvm-cov` release binaries. Hosted jobs must not compile those tools.
+- `check_workflow_governance.py` checks action pins, pull requests plus
+  main pushes, required aggregators, just recipes, coverage policy, and
+  serial test annotations.
+- README files and prose under `docs/` do not select a surface. Docs package
+  and VitePress inputs still do. Workflows do not set `paths:`; a skipped
+  workflow would leave the required check pending.
 
 ```powershell
 python scripts/ci/ci_surface_policy.py --surface root --base <sha> --head <sha>
 python scripts/ci/check_workflow_governance.py
-python -m unittest scripts.ci.test_check_workflow_governance
+python -m unittest scripts.ci.test_check_workflow_governance scripts.ci.test_install_prebuilt_tool
 just workflow-governance-check
 ```
 

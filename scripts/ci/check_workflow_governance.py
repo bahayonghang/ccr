@@ -43,6 +43,9 @@ REQUIRED_BRANCHES = {"main", "develop", "dev"}
 DEVELOPMENT_RUST_TOOLCHAIN = "1.98.0"
 MSRV_RUST_TOOLCHAIN = "1.95.0"
 EXPECTED_BUN_WORKFLOWS = {"ci.yml", "frontend-ci.yml", "release.yml", "tauri-rust-ci.yml"}
+COMPILE_RUST_WORKFLOWS = {"ci.yml", "tauri-rust-ci.yml", "release.yml"}
+NO_RUST_WORKFLOWS = {"frontend-ci.yml", "vscode-ci.yml"}
+RUST_CACHE_ACTION = "Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0"
 NODE_TOOLCHAIN = "24.20.0"
 EXPECTED_NODE_WORKFLOW_INPUTS = {"ci.yml": 1, "release.yml": 2, "vscode-ci.yml": 1}
 EXPECTED_CI_STEPS = (
@@ -438,6 +441,56 @@ def hosted_gate_failures(workflows: dict[str, str], bun_version: str | None) -> 
     return failures
 
 
+def speed_failures(workflows: dict[str, str]) -> list[str]:
+    """Keep the hosted speed contract from drifting back to cold compiles."""
+    failures: list[str] = []
+    pr_cancel = "cancel-in-progress: ${{ github.event_name == 'pull_request' }}"
+    pr_group = "group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}"
+    for name in ("ci.yml", "frontend-ci.yml", "tauri-rust-ci.yml", "vscode-ci.yml"):
+        text = workflows.get(name, "")
+        if pr_cancel not in text or pr_group not in text:
+            failures.append(
+                f"{name}: pull requests must cancel superseded runs without cancelling main"
+            )
+        if "install_prebuilt_tool.sh" not in text:
+            failures.append(f"{name}: hosted tools must be downloaded prebuilt")
+        if re.search(r"\b(?:cargo|go) install\b", text):
+            failures.append(f"{name}: hosted workflows must not compile tools from source")
+    for name in NO_RUST_WORKFLOWS:
+        text = workflows.get(name, "")
+        if "dtolnay/rust-toolchain@" in text or RUST_CACHE_ACTION in text:
+            failures.append(f"{name}: this job does not compile Rust and must not restore a Rust cache")
+    for name in ("ci.yml", "tauri-rust-ci.yml", "release.yml"):
+        text = workflows.get(name, "")
+        caches = text.count(RUST_CACHE_ACTION)
+        if caches == 0:
+            failures.append(f"{name}: Rust jobs must use the dependency cache")
+        if text.count("cache-all-crates: false") != caches or text.count("cache-bin: false") != caches:
+            failures.append(f"{name}: Rust cache must store dependency crates only")
+    audit = workflow_job_block(workflows.get("ci.yml", ""), "security-audit")
+    if RUST_CACHE_ACTION in audit:
+        failures.append("ci.yml: security-audit does not compile the workspace")
+    if "install_prebuilt_tool.sh cargo-audit" not in audit:
+        failures.append("ci.yml: security-audit must download the prebuilt auditor")
+    release = workflows.get("release.yml", "")
+    if "cancel-in-progress: false" not in release:
+        failures.append("release.yml: a release tag must run to completion")
+    if pr_cancel in release:
+        failures.append("release.yml: release runs must not use pull-request cancellation")
+    vscode_release = workflow_job_block(release, "build-vscode")
+    if "needs:" in vscode_release:
+        failures.append("release.yml: VS Code release build does not consume CLI artifacts")
+    frontend = workflows.get("frontend-ci.yml", "")
+    if "cache: npm" in frontend or "dtolnay/rust-toolchain@" in frontend:
+        failures.append("frontend-ci.yml: npm and Rust caches do not belong on the Bun job")
+    if "path: ~/.bun/install/cache" not in frontend:
+        failures.append("frontend-ci.yml: cache the Bun download cache, not node_modules")
+    vscode = workflows.get("vscode-ci.yml", "")
+    if "cache: npm" not in vscode or "cache-dependency-path: ccr-vscode/package-lock.json" not in vscode:
+        failures.append("vscode-ci.yml: setup-node must cache the extension lockfile")
+    return failures
+
+
 def check_relevance_failures(paths: dict[str, tuple[str, ...]]) -> list[str]:
     required = {
         "root": (
@@ -457,8 +510,21 @@ def check_relevance_failures(paths: dict[str, tuple[str, ...]]) -> list[str]:
             "docs/package.json", "docs/bun.lock",
             "ccr-vscode/package.json", "ccr-vscode/package-lock.json", "ccr-vscode/justfile",
         ),
-        "frontend": ("ccr-ui/scripts/audit-dependencies.mjs", "ccr-ui/scripts/frontend-audit-allowlist.json"),
-        "vscode": ("ccr-vscode/scripts/check-package-files.mjs", "ccr-vscode/scripts/check-package-files.test.mjs", "ccr-vscode/.vscodeignore"),
+        "frontend": (
+            "ccr-ui/scripts/audit-dependencies.mjs",
+            "ccr-ui/scripts/frontend-audit-allowlist.json",
+            "scripts/ci/frontend_check.py",
+            "scripts/ci/frontend_install.py",
+            "scripts/ci/install_prebuilt_tool.py",
+            "scripts/ci/install_prebuilt_tool.sh",
+        ),
+        "vscode": (
+            "ccr-vscode/scripts/check-package-files.mjs",
+            "ccr-vscode/scripts/check-package-files.test.mjs",
+            "ccr-vscode/.vscodeignore",
+            "scripts/ci/install_prebuilt_tool.py",
+            "scripts/ci/install_prebuilt_tool.sh",
+        ),
     }
     for surface in paths:
         required[surface] = (*required.get(surface, ()),
@@ -509,20 +575,26 @@ def main() -> int:
                     )
                 ordinary_workflow = workflow.replace(msrv_job, "", 1)
         ordinary_toolchains = rust_toolchain_inputs(ordinary_workflow)
-        if not ordinary_toolchains:
-            failures.append(f"{name}: missing Rust {DEVELOPMENT_RUST_TOOLCHAIN} toolchain input")
-        unexpected_toolchains = sorted(
-            {
-                toolchain
-                for toolchain in ordinary_toolchains
-                if toolchain != DEVELOPMENT_RUST_TOOLCHAIN
-            }
-        )
-        if unexpected_toolchains:
-            failures.append(
-                f"{name}: ordinary Rust jobs must use {DEVELOPMENT_RUST_TOOLCHAIN}; "
-                f"found {', '.join(unexpected_toolchains)}"
+        if name in NO_RUST_WORKFLOWS:
+            if ordinary_toolchains:
+                failures.append(
+                    f"{name}: must not install Rust; found {', '.join(ordinary_toolchains)}"
+                )
+        elif name in COMPILE_RUST_WORKFLOWS:
+            if not ordinary_toolchains:
+                failures.append(f"{name}: missing Rust {DEVELOPMENT_RUST_TOOLCHAIN} toolchain input")
+            unexpected_toolchains = sorted(
+                {
+                    toolchain
+                    for toolchain in ordinary_toolchains
+                    if toolchain != DEVELOPMENT_RUST_TOOLCHAIN
+                }
             )
+            if unexpected_toolchains:
+                failures.append(
+                    f"{name}: ordinary Rust jobs must use {DEVELOPMENT_RUST_TOOLCHAIN}; "
+                    f"found {', '.join(unexpected_toolchains)}"
+                )
 
     action_count = 0
     for name, text in sorted(workflows.items()):
@@ -566,8 +638,8 @@ def main() -> int:
         if f"--surface {surface}" not in text:
             failures.append(f"{name}: missing relevance detection for CI surface {surface}")
         push_branches = workflow_event_values(text, "push", "branches")
-        if push_branches:
-            failures.append(f"{name}: quality workflows must be pull_request-only")
+        if push_branches != {"main"}:
+            failures.append(f"{name}: quality workflows must push only main, found {sorted(push_branches)}")
         gate_id, context_name = required_gates[name]
         gate = workflow_job_block(text, gate_id)
         if not gate:
@@ -630,6 +702,7 @@ def main() -> int:
     failures.extend(local_gate_failures(justfile, vscode_justfile, vscode_scripts))
     failures.extend(hosted_gate_failures(workflows, bun_version))
     failures.extend(check_relevance_failures(SURFACE_PATHS))
+    failures.extend(speed_failures(workflows))
     forbidden = "--test-threads=1"
     if forbidden in justfile or forbidden in all_workflows:
         failures.append("global --test-threads=1 remains in justfile or hosted workflows")

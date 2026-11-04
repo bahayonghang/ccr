@@ -747,22 +747,41 @@ _ci-timed-macos:
 # 🌐 前端检查命令
 # ═══════════════════════════════════════════════════════════
 
+# 已由 frontend-check 安装过依赖时跳过，避免同一轮里重复 bun install。
+_frontend-install:
+    @just _frontend-install-{{os()}}
+
+[private]
+_frontend-install-windows:
+    @python scripts/ci/frontend_install.py
+
+[private]
+_frontend-install-linux:
+    @python3 scripts/ci/frontend_install.py
+
+[private]
+_frontend-install-macos:
+    @python3 scripts/ci/frontend_install.py
+
 # 🔍 前端 TypeScript 类型检查
 frontend-typecheck:
     @just header "🔍 前端 TypeScript 类型检查"
-    cd ccr-ui && bun install --frozen-lockfile && bun run type-check
+    @just _frontend-install
+    cd ccr-ui && bun run type-check
     @just success "前端类型检查通过"
 
 # 🎨 前端 Lint 检查
 frontend-lint:
     @just header "🎨 前端 Lint 检查"
-    cd ccr-ui && bun install --frozen-lockfile && bun run lint:ci
+    @just _frontend-install
+    cd ccr-ui && bun run lint:ci
     @just success "前端 Lint 检查通过"
 
 # 🧪 前端 Smoke Tests
 frontend-test:
     @just header "🧪 前端 Smoke Tests"
-    cd ccr-ui && bun install --frozen-lockfile && bun run test
+    @just _frontend-install
+    cd ccr-ui && bun run test
     @just success "前端 Smoke Tests 通过"
 
 # 🏗️ 前端构建
@@ -810,19 +829,34 @@ _harness-check-macos:
     python3 scripts/quality/check_harness_contracts.py
 
 # 🌐 前端完整检查 (类型检查 + Lint + 构建 + 文档构建)
-frontend-check: frontend-typecheck frontend-lint frontend-check-cycles frontend-check-arch-boundaries frontend-test frontend-build docs-check
-    @just success "前端检查全部通过"
+# 依赖只安装一次，子配方看到 CCR_FRONTEND_DEPS=1 后不再重复安装。
+frontend-check:
+    @just _frontend-check-{{os()}}
+
+[private]
+_frontend-check-windows:
+    @python scripts/ci/frontend_check.py
+
+[private]
+_frontend-check-linux:
+    @python3 scripts/ci/frontend_check.py
+
+[private]
+_frontend-check-macos:
+    @python3 scripts/ci/frontend_check.py
 
 # 🔄 前端循环依赖检查（08-22-arch-quality-perf：独立脚本，只在 CI / frontend-check 中跑）
 frontend-check-cycles:
     @just header "🔄 前端循环依赖检查"
-    cd ccr-ui && bun install --frozen-lockfile && bun run check:cycles
+    @just _frontend-install
+    cd ccr-ui && bun run check:cycles
     @just success "前端循环依赖检查通过"
 
 # 🧱 前端架构边界规则自检（08-22-arch-quality-perf：夹具定向 lint，AC2）
 frontend-check-arch-boundaries:
     @just header "🧱 前端架构边界规则自检"
-    cd ccr-ui && bun install --frozen-lockfile && bun run check:arch-boundaries
+    @just _frontend-install
+    cd ccr-ui && bun run check:arch-boundaries
     @just success "前端架构边界规则自检通过"
 
 # 🌐 前端快速检查 (类型检查 + Lint，不含构建和文档)
@@ -1360,17 +1394,17 @@ workflow-governance-check:
 
 [private]
 _workflow-governance-check-windows:
-    @python -m unittest scripts.ci.test_check_workflow_governance scripts.ci.test_architecture_contract_gates
+    @python -m unittest scripts.ci.test_check_workflow_governance scripts.ci.test_install_prebuilt_tool scripts.ci.test_architecture_contract_gates
     @python scripts/ci/check_workflow_governance.py
 
 [private]
 _workflow-governance-check-linux:
-    @python3 -m unittest scripts.ci.test_check_workflow_governance scripts.ci.test_architecture_contract_gates
+    @python3 -m unittest scripts.ci.test_check_workflow_governance scripts.ci.test_install_prebuilt_tool scripts.ci.test_architecture_contract_gates
     @python3 scripts/ci/check_workflow_governance.py
 
 [private]
 _workflow-governance-check-macos:
-    @python3 -m unittest scripts.ci.test_check_workflow_governance scripts.ci.test_architecture_contract_gates
+    @python3 -m unittest scripts.ci.test_check_workflow_governance scripts.ci.test_install_prebuilt_tool scripts.ci.test_architecture_contract_gates
     @python3 scripts/ci/check_workflow_governance.py
 
 # 🔐 Root/Tauri dependency drift、例外 metadata 和 MSRV 治理
