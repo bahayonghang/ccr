@@ -562,10 +562,7 @@ fn clean_preview_fields_suggestion_and_empty_result_are_neutral() {
     assert!(output.stderr.is_empty());
     let stdout = text(&output.stdout);
     let logical = directory.display().to_string();
-    let canonical = fs::canonicalize(&directory)
-        .unwrap()
-        .display()
-        .to_string();
+    let canonical = fs::canonicalize(&directory).unwrap().display().to_string();
     assert!(
         stdout.contains(&format!("  扫描目录: {logical}"))
             || stdout.contains(&format!("  扫描目录: {canonical}")),
