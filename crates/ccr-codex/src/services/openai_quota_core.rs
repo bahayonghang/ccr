@@ -601,13 +601,6 @@ mod tests {
         }
     }
 
-    fn clear_quota_cache() {
-        QUOTA_CACHE
-            .lock()
-            .expect("quota cache mutex should not be poisoned in tests")
-            .clear();
-    }
-
     fn fake_jwt(payload: serde_json::Value) -> String {
         let header = r#"{"alg":"none","typ":"JWT"}"#;
         format!(
@@ -711,7 +704,6 @@ mod tests {
 
     #[test]
     fn quota_cache_reuses_recent_entry_for_same_account_id() {
-        clear_quota_cache();
         let now = Instant::now();
         let outcome = sample_outcome();
 
@@ -741,16 +733,16 @@ mod tests {
 
     #[test]
     fn quota_cache_expires_stale_entry() {
-        clear_quota_cache();
         let now = Instant::now();
 
+        // 读取会按传入的 now 清整张表。把时钟拨到未来会删掉并行用例刚写入的条目。
         OpenAiQuotaCore::write_cached_quota(
             Some("acc-expired"),
             Some("user@example.com"),
             Some("refresh-token"),
             "access-token",
             sample_outcome(),
-            now,
+            now - QUOTA_CACHE_TTL - std::time::Duration::from_secs(1),
         );
 
         let cached = OpenAiQuotaCore::read_cached_quota(
@@ -758,7 +750,7 @@ mod tests {
             Some("user@example.com"),
             Some("refresh-token"),
             "access-token",
-            now + QUOTA_CACHE_TTL + std::time::Duration::from_secs(1),
+            now,
         );
 
         assert!(cached.is_none());
