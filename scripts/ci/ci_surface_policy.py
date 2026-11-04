@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Resolve which hosted CI product surfaces a pull request affects."""
+"""Resolve which hosted CI product surfaces a pull request affects.
+
+README files and prose under ``docs/`` do not make a surface relevant.
+Workflow files deliberately have no ``pull_request.paths`` filter: a skipped
+workflow never reports its required check, so the pull request stays blocked.
+The always-on relevance job reports success when the heavy jobs are skipped.
+"""
 
 from __future__ import annotations
 
@@ -57,11 +63,20 @@ SURFACE_PATHS: dict[str, tuple[str, ...]] = {
     ),
     "frontend": (
         "ccr-ui/**",
-        "docs/**",
+        "docs/package.json",
+        "docs/bun.lock",
+        "docs/justfile",
+        "docs/.vitepress/**",
+        "docs/scripts/**",
         "justfile",
         "scripts/ci/ci_surface_policy.py",
         "scripts/ci/check_workflow_governance.py",
         "scripts/ci/test_check_workflow_governance.py",
+        "scripts/ci/frontend_check.py",
+        "scripts/ci/frontend_install.py",
+        "scripts/ci/install_prebuilt_tool.py",
+        "scripts/ci/install_prebuilt_tool.sh",
+        "scripts/ci/test_install_prebuilt_tool.py",
         ".github/workflows/frontend-ci.yml",
     ),
     "tauri": (
@@ -86,6 +101,9 @@ SURFACE_PATHS: dict[str, tuple[str, ...]] = {
         "scripts/ci/ci_surface_policy.py",
         "scripts/ci/check_workflow_governance.py",
         "scripts/ci/test_check_workflow_governance.py",
+        "scripts/ci/install_prebuilt_tool.py",
+        "scripts/ci/install_prebuilt_tool.sh",
+        "scripts/ci/test_install_prebuilt_tool.py",
         ".github/workflows/vscode-ci.yml",
     ),
 }
@@ -96,8 +114,18 @@ def path_matches(path: str, patterns: Iterable[str]) -> bool:
     return any(fnmatch.fnmatchcase(normalized, pattern) for pattern in patterns)
 
 
+def is_readme(path: str) -> bool:
+    """README-only edits are documentation and must not select a product surface."""
+    name = path.replace("\\", "/").rsplit("/", 1)[-1].lower()
+    return name in {"readme.md", "readme_cn.md"}
+
+
 def is_relevant(surface: str, paths: Iterable[str]) -> bool:
-    return any(path_matches(path, SURFACE_PATHS[surface]) for path in paths)
+    return any(
+        path_matches(path, SURFACE_PATHS[surface])
+        for path in paths
+        if not is_readme(path)
+    )
 
 
 def changed_paths(base: str, head: str) -> list[str]:

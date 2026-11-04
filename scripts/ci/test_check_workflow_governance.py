@@ -19,6 +19,7 @@ from scripts.ci.check_workflow_governance import (
     EXPECTED_BUN_WORKFLOWS,
     EXPECTED_NODE_WORKFLOW_INPUTS,
     MSRV_RUST_TOOLCHAIN,
+    NO_RUST_WORKFLOWS,
     NODE_TOOLCHAIN,
     bun_version_inputs,
     canonical_bun_version,
@@ -34,6 +35,7 @@ from scripts.ci.check_workflow_governance import (
     recipe_block,
     rust_toolchain_inputs,
     setup_node_version_inputs,
+    speed_failures,
     workflow_event_values,
     workflow_job_block,
 )
@@ -503,6 +505,19 @@ class WorkflowGovernanceParserTests(unittest.TestCase):
             )
         )
         self.assertFalse(path_matches("README.md", SURFACE_PATHS["frontend"]))
+        self.assertFalse(is_relevant("frontend", ["ccr-ui/README.md", "docs/README.md"]))
+        self.assertFalse(is_relevant("root", ["README.md", "docs/guide/quick-start.md"]))
+        self.assertFalse(is_relevant("frontend", ["docs/index.md", "docs/guide/quick-start.md"]))
+        self.assertFalse(is_relevant("tauri", ["docs/guide/quick-start.md"]))
+        self.assertFalse(is_relevant("vscode", ["docs/index.md", "ccr-vscode/README.md"]))
+        self.assertTrue(is_relevant("frontend", ["docs/.vitepress/config.mjs"]))
+        self.assertTrue(is_relevant("frontend", ["docs/package.json"]))
+        self.assertTrue(is_relevant("root", ["docs/agents/harnesses.md"]))
+        self.assertTrue(is_relevant("frontend", ["ccr-ui/README.md", "ccr-ui/src/App.tsx"]))
+        self.assertTrue(is_relevant("frontend", ["scripts/ci/frontend_check.py"]))
+        self.assertTrue(is_relevant("frontend", ["scripts/ci/install_prebuilt_tool.sh"]))
+        self.assertTrue(is_relevant("vscode", ["scripts/ci/install_prebuilt_tool.py"]))
+        self.assertFalse(is_relevant("vscode", ["scripts/ci/frontend_check.py"]))
 
     def test_relevance_is_true_when_any_changed_path_matches(self) -> None:
         self.assertTrue(
@@ -735,11 +750,14 @@ class WorkflowGovernanceParserTests(unittest.TestCase):
                 workflow.replace(msrv_job, "", 1) if name == "ci.yml" else workflow
             )
             with self.subTest(workflow=name):
-                self.assertTrue(rust_toolchain_inputs(ordinary_workflow))
-                self.assertEqual(
-                    set(rust_toolchain_inputs(ordinary_workflow)),
-                    {DEVELOPMENT_RUST_TOOLCHAIN},
-                )
+                if name in NO_RUST_WORKFLOWS:
+                    self.assertEqual(rust_toolchain_inputs(ordinary_workflow), [])
+                else:
+                    self.assertEqual(
+                        set(rust_toolchain_inputs(ordinary_workflow)),
+                        {DEVELOPMENT_RUST_TOOLCHAIN},
+                    )
+        self.assertEqual(speed_failures(workflows), [])
 
         root_required = workflow_job_block(workflows["ci.yml"], "root-required")
         self.assertIn("workspace-msrv", root_required)
@@ -787,20 +805,25 @@ class WorkflowGovernanceParserTests(unittest.TestCase):
             (self.ROOT / "ccr-ui" / "scripts" / "check-generated-bindings.mjs").is_file()
         )
 
-    def test_quality_workflows_are_pull_request_only(self) -> None:
+    def test_quality_workflows_push_main_without_cancelling_it(self) -> None:
         for name in ("ci.yml", "frontend-ci.yml", "tauri-rust-ci.yml", "vscode-ci.yml"):
             workflow = (self.ROOT / ".github" / "workflows" / name).read_text(
                 encoding="utf-8"
             )
             self.assertEqual(
                 workflow_event_values(workflow, "push", "branches"),
-                set(),
-                msg=f"{name} must not trigger on branch push",
+                {"main"},
+                msg=f"{name} must run every main commit and no other branch push",
             )
             self.assertEqual(
                 workflow_event_values(workflow, "pull_request", "branches"),
                 {"main", "develop", "dev"},
             )
+            self.assertIn(
+                "cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
+                workflow,
+            )
+            self.assertNotIn("pull_request:\n    paths:", workflow)
 
     def test_react_smoke_coverage_threshold_is_seventy_percent(self) -> None:
         smoke_config = (self.ROOT / "ccr-ui" / "vitest.smoke.config.ts").read_text(
