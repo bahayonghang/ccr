@@ -3,30 +3,30 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
     labels: [dependencies, ci]
   - package-ecosystem: cargo
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
     labels: [dependencies, rust]
   - package-ecosystem: cargo
     directory: /ccr-ui/src-tauri
     schedule:
-      interval: weekly
+      interval: monthly
     labels: [dependencies, tauri]
   - package-ecosystem: bun
     directory: /ccr-ui
     schedule:
-      interval: weekly
+      interval: monthly
     labels: [dependencies, frontend]
   - package-ecosystem: npm
     directory: /ccr-vscode
     schedule:
-      interval: weekly
+      interval: monthly
     labels: [dependencies, vscode]
   - package-ecosystem: bun
     directory: /docs
     schedule:
-      interval: weekly
+      interval: monthly
     labels: [dependencies, docs]

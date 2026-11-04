@@ -234,15 +234,105 @@ fn signal_process_group(pid: u32, signal: i32) -> io::Result<bool> {
     // SAFETY: a negative PID targets the process group created for this child.
     let result = unsafe { kill(-(pid as i32), signal) };
     if result == 0 {
-        Ok(true)
-    } else {
+        return Ok(true);
+    }
+    let error = io::Error::last_os_error();
+    if error.raw_os_error() == Some(3) {
+        return Ok(false);
+    }
+    // macOS 在组长已经退出时，对进程组 kill 会返回 EPERM，而且一个信号都不发。
+    // 组里忽略 TERM 的后代还在，改成按成员补发。
+    #[cfg(target_os = "macos")]
+    if error.raw_os_error() == Some(1) {
+        return signal_macos_group_members(pid, signal);
+    }
+    Err(error)
+}
+
+#[cfg(target_os = "macos")]
+fn signal_macos_group_members(pgid: u32, signal: i32) -> io::Result<bool> {
+    #[link(name = "proc", kind = "dylib")]
+    unsafe extern "C" {
+        fn proc_listallpids(buffer: *mut u32, buffersize: i32) -> i32;
+        fn proc_pidinfo(
+            pid: i32,
+            flavor: i32,
+            arg: u64,
+            buffer: *mut std::ffi::c_void,
+            buffersize: i32,
+        ) -> i32;
+        fn kill(pid: i32, sig: i32) -> i32;
+    }
+
+    // proc_bsdshortinfo，字段顺序跟 sys/proc_info.h 一致。MAXCOMLEN 是 16。
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct ProcBsdShortInfo {
+        pid: u32,
+        ppid: u32,
+        pgid: u32,
+        status: u32,
+        comm: [u8; 16],
+        flags: u32,
+        uid: u32,
+        gid: u32,
+        ruid: u32,
+        rgid: u32,
+        svuid: u32,
+        svgid: u32,
+        reserved: u32,
+    }
+
+    const PROC_PIDT_SHORTBSDINFO: i32 = 13;
+    // 返回的是进程个数，第二个参数是字节长度。
+    let mut listed = unsafe { proc_listallpids(std::ptr::null_mut(), 0) };
+    if listed < 0 {
+        return Err(io::Error::last_os_error());
+    }
+    listed = listed.saturating_add(64);
+    let mut pids = vec![0u32; listed as usize];
+    let count = unsafe {
+        proc_listallpids(
+            pids.as_mut_ptr(),
+            (pids.len() * std::mem::size_of::<u32>()) as i32,
+        )
+    };
+    if count < 0 {
+        return Err(io::Error::last_os_error());
+    }
+    let count = (count as usize).min(pids.len());
+    let info_size = std::mem::size_of::<ProcBsdShortInfo>() as i32;
+    let mut signaled = false;
+    for pid in pids.into_iter().take(count) {
+        if pid == 0 {
+            continue;
+        }
+        let mut info = ProcBsdShortInfo::default();
+        let got = unsafe {
+            proc_pidinfo(
+                pid as i32,
+                PROC_PIDT_SHORTBSDINFO,
+                0,
+                (&mut info as *mut ProcBsdShortInfo).cast(),
+                info_size,
+            )
+        };
+        if got != info_size || info.pgid != pgid {
+            continue;
+        }
+        let result = unsafe { kill(pid as i32, signal) };
+        if result == 0 {
+            signaled = true;
+            continue;
+        }
         let error = io::Error::last_os_error();
-        if error.raw_os_error() == Some(3) {
-            Ok(false)
-        } else {
-            Err(error)
+        match error.raw_os_error() {
+            Some(3) => {}
+            Some(1) if signal == 0 => signaled = true,
+            _ => return Err(error),
         }
     }
+    Ok(signaled)
 }
 
 #[cfg(windows)]

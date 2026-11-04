@@ -561,7 +561,13 @@ fn clean_preview_fields_suggestion_and_empty_result_are_neutral() {
     assert!(output.status.success());
     assert!(output.stderr.is_empty());
     let stdout = text(&output.stdout);
-    assert!(stdout.contains(&format!("  扫描目录: {}", directory.display())));
+    let logical = directory.display().to_string();
+    let canonical = fs::canonicalize(&directory).unwrap().display().to_string();
+    assert!(
+        stdout.contains(&format!("  扫描目录: {logical}"))
+            || stdout.contains(&format!("  扫描目录: {canonical}")),
+        "{stdout}"
+    );
     assert!(stdout.contains("  命中: task_plan.md"));
     assert!(stdout.contains("  命中数量: 1 个"));
     assert!(stdout.contains("\n下一步\n  执行实际清理\n    ccr clean\n"));
