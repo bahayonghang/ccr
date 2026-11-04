@@ -618,13 +618,27 @@ async fn capture_doctor(
 }
 
 fn spawn_doctor(bin: &Path, args: &[&str]) -> std::result::Result<ManagedProcess, DoctorError> {
-    let mut cmd = tokio::process::Command::new(bin);
-    cmd.args(args)
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-
-    ManagedProcess::spawn(cmd).map_err(|error| DoctorError::Spawn(error.to_string()))
+    // 刚落盘的脚本在 Linux 上会短暂返回 ETXTBSY。换一次 Command 再试。
+    const ATTEMPTS: u32 = 5;
+    let mut last_error = String::new();
+    for attempt in 0..ATTEMPTS {
+        let mut cmd = tokio::process::Command::new(bin);
+        cmd.args(args)
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        match ManagedProcess::spawn(cmd) {
+            Ok(child) => return Ok(child),
+            Err(error)
+                if error.kind() == io::ErrorKind::ExecutableFileBusy && attempt + 1 < ATTEMPTS =>
+            {
+                last_error = error.to_string();
+                std::thread::sleep(Duration::from_millis(20));
+            }
+            Err(error) => return Err(DoctorError::Spawn(error.to_string())),
+        }
+    }
+    Err(DoctorError::Spawn(last_error))
 }
 
 async fn capture_doctor_output(
@@ -1274,19 +1288,13 @@ mod tests {
         count_path: &std::path::Path,
         payload_path: &std::path::Path,
     ) -> PathBuf {
-        use std::os::unix::fs::PermissionsExt;
         let bin = dir.join("codex");
         let script = format!(
             "#!/bin/sh\nprintf '1\\n' >> {count}\n/bin/cat {payload}\n",
             count = sh_single_quote(count_path),
             payload = sh_single_quote(payload_path),
         );
-        std::fs::write(&bin, script).expect("write fake doctor");
-        let mut permissions = std::fs::metadata(&bin)
-            .expect("stat fake doctor")
-            .permissions();
-        permissions.set_mode(0o755);
-        std::fs::set_permissions(&bin, permissions).expect("chmod fake doctor");
+        write_unix_script(&bin, &script);
         bin
     }
 
@@ -1331,7 +1339,6 @@ mod tests {
         parent_pid: &std::path::Path,
         child_pid: &std::path::Path,
     ) -> (PathBuf, Vec<String>) {
-        use std::os::unix::fs::PermissionsExt;
         let dir = parent_pid.parent().expect("pid file parent");
         let bin = dir.join("hanging-doctor");
         let script = format!(
@@ -1340,13 +1347,22 @@ mod tests {
             child = sh_single_quote(child_pid),
             release = sh_single_quote(&dir.join("start-child")),
         );
-        std::fs::write(&bin, script).expect("write hanging doctor");
-        let mut permissions = std::fs::metadata(&bin)
-            .expect("stat hanging doctor")
-            .permissions();
-        permissions.set_mode(0o755);
-        std::fs::set_permissions(&bin, permissions).expect("chmod hanging doctor");
+        write_unix_script(&bin, &script);
         (bin, vec!["doctor".to_string(), "--json".to_string()])
+    }
+
+    #[cfg(unix)]
+    fn write_unix_script(path: &std::path::Path, script: &str) {
+        use std::os::unix::fs::OpenOptionsExt;
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .mode(0o755)
+            .open(path)
+            .expect("create script");
+        std::io::Write::write_all(&mut file, script.as_bytes()).expect("write script");
+        file.sync_all().expect("sync script");
     }
 
     #[cfg(windows)]

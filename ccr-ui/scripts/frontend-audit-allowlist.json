@@ -1,13 +1,21 @@
 {
-  "maxActiveExceptions": 1,
+  "maxActiveExceptions": 2,
   "exceptions": [
     {
-      "id": "GHSA-vfj7-8cjw-p6xm",
-      "package": "braces",
+      "id": "GHSA-3g3m-2fjr-6pw4",
+      "package": "glob",
       "owner": "frontend-platform",
-      "rationale": "braces 3.0.3 has no upstream release. The local patch rejects brace nesting deeper than 100 during parse, which bounds the recursive compile and expand walkers.",
-      "expires": "2027-01-03",
-      "patchedVersions": ["3.0.3"]
+      "rationale": "dpdm 4.3.0 is the newest release and requires glob ^13, while the advisory is fixed only in 14.0.2. The local patch returns immediately from the four abort branches in the ESM and CJS walkers, including the minified entrypoints that inline them.",
+      "expires": "2027-05-04",
+      "patchedVersions": ["13.0.6"]
+    },
+    {
+      "id": "GHSA-g3hv-75wg-m249",
+      "package": "minimatch",
+      "owner": "frontend-platform",
+      "rationale": "minimatch 10.2.5 is the newest release the TypeScript parser can select. The advisory is fixed only in 11.0.1, so the local patch copies that release's braceExpandMax stop and the 1000-pattern dedupe skip. minimatch 3.1.5 stays because eslint 9.39.5 requires ^3.1.5 and that legacy file has no firstPhasePreProcess. Overriding every copy to 11 would force brace-expansion 5 onto the 3.x consumers.",
+      "expires": "2027-05-04",
+      "patchedVersions": ["10.2.5"]
     }
   ]
 }
