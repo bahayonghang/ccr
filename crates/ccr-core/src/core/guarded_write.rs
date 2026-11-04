@@ -717,7 +717,8 @@ pub fn restrict_owner_only(path: &Path) -> Result<()> {
         let metadata = fs::metadata(path).map_err(|error| {
             CcrError::FileIoError(format!("读取文件权限失败 {}: {error}", path.display()))
         })?;
-        if metadata.permissions().mode() & 0o777 == 0o600 {
+        // 0o7777 含 setuid/setgid/sticky。只比较 0o777 会把 04600 当成已经是 0600。
+        if metadata.permissions().mode() & 0o7777 == 0o600 {
             return Ok(());
         }
         fs::set_permissions(path, fs::Permissions::from_mode(0o600)).map_err(|error| {
@@ -2102,6 +2103,13 @@ mod tests {
                 fs::metadata(&target).unwrap().permissions().mode() & 0o777,
                 0o600
             );
+            fs::set_permissions(&target, fs::Permissions::from_mode(0o4600)).unwrap();
+            restrict_owner_only(&target).unwrap();
+            assert_eq!(
+                fs::metadata(&target).unwrap().permissions().mode() & 0o7777,
+                0o600
+            );
+            assert_eq!(fs::read(&target).unwrap(), b"synthetic-secret-sentinel");
         }
         #[cfg(windows)]
         assert_windows_owner_only_dacl(&target);

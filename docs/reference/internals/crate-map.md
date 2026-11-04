@@ -29,6 +29,11 @@
 - 共享错误、路径、锁、原子写、日志、HTTP 和基础 domain model。
 - 为上层 crate 提供安全写入与通用基础设施。
 
+### `crates/ccr-app`
+
+- 共享应用用例和有界运行时，不依赖具体 UI 框架。
+- 供 CLI 与桌面端复用同一套配置、运行时编排。
+
 ### `crates/ccr-types`
 
 - Claude settings、Codex login state、监控/日志 payload 等共享 serde 类型。

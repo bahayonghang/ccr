@@ -29,6 +29,7 @@ impl DoctorFixture {
         let codex_dir = home.join(".codex");
 
         fs::create_dir_all(&home).unwrap();
+        fs::create_dir_all(home.join(".locks")).unwrap();
         fs::create_dir_all(&root).unwrap();
         fs::create_dir_all(claude_settings_path.parent().unwrap()).unwrap();
         fs::create_dir_all(&codex_dir).unwrap();
@@ -45,6 +46,9 @@ impl DoctorFixture {
     fn command(&self) -> Command {
         let mut command = Command::new(env!("CARGO_BIN_EXE_ccr"));
         command.env("CCR_ROOT", &self.root);
+        // 并行用例会改掉进程里的 CCR_LOCK_DIR，离开时再删掉那个临时目录。
+        // doctor 在打印 JSON 之前要迁移配置，锁目录消失时 stdout 是空的。
+        command.env("CCR_LOCK_DIR", self.home.join(".locks"));
         command.env("CCR_SETTINGS_PATH", &self.claude_settings_path);
         command.env("CCR_BACKUP_DIR", self.home.join(".claude").join("backups"));
         command.env("CCR_CODEX_DIR", &self.codex_dir);
@@ -72,7 +76,13 @@ impl DoctorFixture {
     fn run_json(&self, args: &[&str]) -> (Output, Value) {
         let output = self.command().args(args).output().unwrap();
         let stdout = String::from_utf8_lossy(&output.stdout);
-        let json = serde_json::from_str::<Value>(&stdout).unwrap();
+        let json = serde_json::from_str::<Value>(&stdout).unwrap_or_else(|error| {
+            panic!(
+                "doctor json parse failed: {error}; status={:?}; stdout={stdout:?}; stderr={}",
+                output.status,
+                String::from_utf8_lossy(&output.stderr)
+            );
+        });
         (output, json)
     }
 
