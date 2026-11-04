@@ -29,6 +29,11 @@ This page lists every workspace member in the root `Cargo.toml`. The documentati
 - Shared errors, paths, locks, atomic writes, logging, HTTP, and foundation models.
 - Provides safe writes and common infrastructure to upper layers.
 
+### `crates/ccr-app`
+
+- Shared application use cases and a bounded runtime, independent of UI frameworks.
+- Lets the CLI and desktop share configuration and runtime orchestration.
+
 ### `crates/ccr-types`
 
 - Shared serde types for Claude settings, Codex login state, monitoring, and log payloads.

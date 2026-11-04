@@ -763,10 +763,10 @@ mod tests {
         write_bytes(&linked_file.join("kept.js"), b"mod");
         let outside_file = temp.path().join("outside-file.bin");
         write_bytes(&outside_file, &[b'q'; 40]);
-        symlink(&outside_file, &linked_file.join("linked.bin")).unwrap();
+        symlink(&outside_file, linked_file.join("linked.bin")).unwrap();
         let outside_dir = temp.path().join("outside-dir");
         write_bytes(&outside_dir.join("nested.bin"), &[b'n'; 20]);
-        symlink(&outside_dir, &linked_file.join("linked-dir")).unwrap();
+        symlink(&outside_dir, linked_file.join("linked-dir")).unwrap();
 
         let bak_link = root.join("analytics/usage.db.pre-migration-link.bak");
         fs::create_dir_all(bak_link.parent().unwrap()).unwrap();

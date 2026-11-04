@@ -39,11 +39,25 @@ pub(super) fn ensure_profiles_file(
         CcrError::ConfigError(format!("内置 {platform_name} profiles 模板无效: {error}"))
     })?;
 
+    let manager = ConfigManager::new(&paths.profiles_file);
     let created = if catalog_exists(&paths)? {
         false
     } else {
-        ConfigManager::new(&paths.profiles_file).replace_toml(template, "")?;
-        true
+        match manager.replace_toml(template, "") {
+            Ok(_) => true,
+            // 另一个进程刚创建目录。空 token 不能覆盖已有 revision，第二次读取即为已存在。
+            Err(error) => {
+                let conflict = matches!(
+                    &error,
+                    CcrError::ValidationError(message) if message.contains("配置版本冲突")
+                );
+                if conflict && catalog_exists(&paths)? {
+                    false
+                } else {
+                    return Err(error);
+                }
+            }
+        }
     };
     let registered = register_platform_if_missing(platform_name, platform.display_name())?;
 
@@ -176,6 +190,26 @@ mod tests {
 
         let second = ensure_profiles_file(Platform::Claude, "claude", CLAUDE_TEMPLATE).unwrap();
         assert!(!second.created);
+        assert!(!paths.profiles_file.exists());
+    }
+
+    #[test]
+    fn concurrent_ensure_profiles_file_keeps_one_catalog() {
+        let _home = crate::test_support::TestHome::new();
+        let threads: Vec<_> = (0..8)
+            .map(|_| {
+                std::thread::spawn(|| {
+                    ensure_profiles_file(Platform::Grok, "grok", GROK_TEMPLATE).unwrap()
+                })
+            })
+            .collect();
+        let results: Vec<_> = threads
+            .into_iter()
+            .map(|thread| thread.join().unwrap())
+            .collect();
+        assert_eq!(results.iter().filter(|item| item.created).count(), 1);
+        let paths = PlatformPaths::new(Platform::Grok).unwrap();
+        assert!(paths.profiles_db().is_file());
         assert!(!paths.profiles_file.exists());
     }
 }
