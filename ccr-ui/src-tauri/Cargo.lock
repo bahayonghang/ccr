@@ -483,7 +483,7 @@ dependencies = [
  "ccr-db",
  "ccr-types",
  "chrono",
- "dirs",
+ "dirs 7.0.0",
  "futures",
  "once_cell",
  "reqwest",
@@ -515,7 +515,7 @@ dependencies = [
  "colored",
  "comfy-table",
  "dialoguer",
- "dirs",
+ "dirs 7.0.0",
  "filetime",
  "fs4",
  "futures",
@@ -557,7 +557,7 @@ dependencies = [
  "ccr-core",
  "ccr-types",
  "chrono",
- "dirs",
+ "dirs 7.0.0",
  "filetime",
  "futures",
  "indexmap 2.14.1",
@@ -581,7 +581,7 @@ dependencies = [
  "ccr-core",
  "ccr-types",
  "chrono",
- "dirs",
+ "dirs 7.0.0",
  "indexmap 2.14.1",
  "serde",
  "serde_json",
@@ -598,7 +598,7 @@ dependencies = [
  "blake3",
  "chrono",
  "colored",
- "dirs",
+ "dirs 7.0.0",
  "fs4",
  "indexmap 2.14.1",
  "r2d2",
@@ -628,7 +628,7 @@ dependencies = [
  "ccr-core",
  "ccr-types",
  "chrono",
- "dirs",
+ "dirs 7.0.0",
  "indexmap 2.14.1",
  "once_cell",
  "r2d2",
@@ -671,7 +671,7 @@ dependencies = [
  "ccr-types",
  "ccr-usage",
  "chrono",
- "dirs",
+ "dirs 7.0.0",
  "fs4",
  "lru",
  "moka",
@@ -708,7 +708,7 @@ dependencies = [
  "ccr-config",
  "ccr-core",
  "chrono",
- "dirs",
+ "dirs 7.0.0",
  "reqwest",
  "serde",
  "serde_json",
@@ -727,7 +727,7 @@ dependencies = [
  "ccr-core",
  "ccr-types",
  "chrono",
- "dirs",
+ "dirs 7.0.0",
  "r2d2",
  "r2d2_sqlite",
  "rayon",
@@ -753,7 +753,7 @@ dependencies = [
  "chrono",
  "colored",
  "comfy-table",
- "dirs",
+ "dirs 7.0.0",
  "reqwest_dav",
  "serde",
  "serde_json",
@@ -787,7 +787,7 @@ dependencies = [
  "base64 0.23.1",
  "chrono",
  "chrono-tz",
- "dirs",
+ "dirs 7.0.0",
  "iana-time-zone",
  "rusqlite",
  "serde",
@@ -1252,9 +1252,9 @@ dependencies = [
 
 [[package]]
 name = "ctutils"
-version = "0.4.2"
+version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d5515a3834141de9eafb9717ad39eea8247b5674e6066c404e8c4b365d2a29e"
+checksum = "12218662ccac37d9714f2191252553d67585b97df8c839cbe49e0bde278dc865"
 dependencies = [
  "cmov",
 ]
@@ -1401,6 +1401,15 @@ name = "dirs"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3e8aa94d75141228480295a7d0e7feb620b1a5ad9f12bc40be62411e38cce4e"
+dependencies = [
+ "dirs-sys",
+]
+
+[[package]]
+name = "dirs"
+version = "7.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d57d423b3c82e89b9a24ca3091fee61f456a26edbd28d26c65906f4bc1dcd8f"
 dependencies = [
  "dirs-sys",
 ]
@@ -4397,9 +4406,9 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.23.45"
+version = "0.23.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634"
+checksum = "48e13bd8c0e9365c43cfa5c9e8f9ad49d3c8444926c9aac819e0e4dc503c8fdf"
 dependencies = [
  "once_cell",
  "rustls-pki-types",
@@ -4419,9 +4428,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-webpki"
-version = "0.103.14"
+version = "0.103.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0527518605e68109d875e248ea259b6758801cf165e4b2c2733ae3b51f12535a"
+checksum = "4443b1b6d39d7c663139942cc4558262562d2c84123bb6282ef177009ca8b281"
 dependencies = [
  "ring",
  "rustls-pki-types",
@@ -5188,7 +5197,7 @@ dependencies = [
  "anyhow",
  "bytes",
  "cookie",
- "dirs",
+ "dirs 6.0.0",
  "dunce",
  "embed_plist",
  "getrandom 0.3.4",
@@ -5238,7 +5247,7 @@ checksum = "bc9ce40b16101cb6ea63d3e221567affd1c3a9205f95d7bc574941a10636b632"
 dependencies = [
  "anyhow",
  "cargo_toml",
- "dirs",
+ "dirs 6.0.0",
  "glob",
  "heck 0.5.0",
  "json-patch",
@@ -5899,7 +5908,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "045979e3f037cd18ad1cb2a419dfda133c5c29c9f3453370079f2255d46c257e"
 dependencies = [
  "crossbeam-channel",
- "dirs",
+ "dirs 6.0.0",
  "libappindicator",
  "muda",
  "objc2",
@@ -7068,7 +7077,7 @@ dependencies = [
  "block2",
  "cookie",
  "crossbeam-channel",
- "dirs",
+ "dirs 6.0.0",
  "dom_query",
  "dpi",
  "dunce",
