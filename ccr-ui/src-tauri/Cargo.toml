@@ -92,7 +92,7 @@ rusqlite = { version = "0.40.2", features = ["bundled"] }
 async-trait = "0.1.92"
 
 # Home directory detection
-dirs = "6.0.0"
+dirs = "7.0.0"
 
 # TOML parsing (for slash commands). Matches workspace toml 1.1.
 toml = "1.1.4"
