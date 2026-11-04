@@ -614,9 +614,15 @@ mod tests {
             .terminate_tree(Duration::from_secs(1))
             .await
             .expect("terminate managed group");
-        tokio::time::sleep(Duration::from_millis(100)).await;
-
-        assert!(!unix_process_is_running(grandchild_pid));
+        let mut gone = false;
+        for _ in 0..50 {
+            if !unix_process_is_running(grandchild_pid) {
+                gone = true;
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(40)).await;
+        }
+        assert!(gone, "grandchild {grandchild_pid} still running");
     }
 
     #[cfg(windows)]
