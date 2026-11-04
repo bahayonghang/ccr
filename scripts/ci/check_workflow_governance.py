@@ -467,6 +467,8 @@ def speed_failures(workflows: dict[str, str]) -> list[str]:
             failures.append(f"{name}: Rust jobs must use the dependency cache")
         if text.count("cache-all-crates: false") != caches or text.count("cache-bin: false") != caches:
             failures.append(f"{name}: Rust cache must store dependency crates only")
+        if text.count("cache-on-failure: true") != caches:
+            failures.append(f"{name}: Rust cache must be saved when the job fails")
     audit = workflow_job_block(workflows.get("ci.yml", ""), "security-audit")
     if RUST_CACHE_ACTION in audit:
         failures.append("ci.yml: security-audit does not compile the workspace")

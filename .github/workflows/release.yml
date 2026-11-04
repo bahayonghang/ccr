@@ -68,6 +68,7 @@ jobs:
           cache-all-crates: false
           cache-workspace-crates: false
           cache-bin: false
+          cache-on-failure: true
 
       - name: Build release binary
         run: cargo build -p ccr --release --target ${{ matrix.target }} --all-features
@@ -257,6 +258,7 @@ jobs:
           cache-all-crates: false
           cache-workspace-crates: false
           cache-bin: false
+          cache-on-failure: true
 
       - name: Install Linux dependencies
         if: matrix.platform == 'linux'

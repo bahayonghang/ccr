@@ -58,10 +58,13 @@ jobs:
           prefix-key: ccr1
           shared-key: tauri-1.98-${{ runner.os }}
           add-job-id-key: false
-          workspaces: ccr-ui/src-tauri
+          workspaces: |
+            .
+            ccr-ui/src-tauri
           cache-all-crates: false
           cache-workspace-crates: false
           cache-bin: false
+          cache-on-failure: true
       - name: Setup Bun 1.4.0
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
@@ -103,6 +106,7 @@ jobs:
           cache-all-crates: false
           cache-workspace-crates: false
           cache-bin: false
+          cache-on-failure: true
       - name: Install just
         shell: bash
         run: bash scripts/ci/install_prebuilt_tool.sh just
@@ -131,6 +135,7 @@ jobs:
           cache-all-crates: false
           cache-workspace-crates: false
           cache-bin: false
+          cache-on-failure: true
       - name: Install Linux packages
         run: |
           sudo apt-get update
