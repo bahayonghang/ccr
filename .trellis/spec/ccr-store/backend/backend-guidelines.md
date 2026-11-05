@@ -36,12 +36,22 @@ Use `tracing::debug!` for per-record failures and `tracing::info!` for completed
 
 ## Testing
 
-Use `tempfile` for SQLite and filesystem fixtures. Tests that touch process-wide env should be serialized through the relevant crate fixture. Run Rust tests serially when invoking broader workspace tests.
+Use `tempfile` for SQLite and filesystem fixtures. Prefer explicit paths over process-wide environment changes. Preserve root/desktop default test parallelism and `--skip export_bindings`; the separate binding-generation gate owns export serialization.
 
 ## Verification
 
 For store changes, run:
 
 - `just fmt-check`
-- `cargo test -p ccr-store -- --test-threads=1`
+- `cargo test -p ccr-store --locked -- --skip export_bindings`
 - `just lint-strict`
+
+## Budget/pricing extension preservation
+
+1. **Scope:** `BudgetManager` and `PricingManager` saves consumed by CLI/Tauri/GPUI. Public typed config/projection shapes stay unchanged; unknown persisted TOML is not added to wire results.
+2. **Signatures:** existing manager setters and `save_config` remain the write owner. `ccr_app::usage::policies::update_budget(PathBuf, Value)` validates the entire supplied patch before calling any setter.
+3. **Contracts:** managers retain private original TOML, replace known top-level keys and keep unknown extensions. Pricing retains extension fields of surviving model/default entries, while explicitly removed models/default pricing stay removed. Update private original only after successful existing atomic write. Budget valid-field writes retain legacy sequential persistence; this is not a multi-field transaction or CAS guarantee.
+4. **Errors:** invalid enabled type, negative/non-number limit, or non-integer/out-of-range `warnAtPercent` rejects before any setter and leaves original bytes unchanged. Never narrow300 to44 with `as u8`. A failed save leaves the private original unchanged; it must not cause a later save to resurrect deliberately removed entries.
+5. **Cases:** good: update daily limit while retaining an unknown nested owner extension; base: absent optional budget limit remains absent; bad: reserialize only the typed config and silently discard extensions, or remerge deleted models from an outdated original.
+6. **Tests:** `budget_mutation_preserves_unknown_toml_extensions`, `pricing_mutations_preserve_unknown_top_level_and_untouched_model_extensions`, and shared all-input validation fixtures. Check repeated successful mutations, nested surviving price fields, deliberate remove/reset, failure byte preservation and no public DTO expansion.
+7. **Wrong/correct:** wrong: deserialize typed config → serialize typed config as whole file. Correct: preserve original document inside the existing manager → replace intentional known fields → existing guarded atomic write → advance private original on success.

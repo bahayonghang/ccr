@@ -17,20 +17,24 @@ pub struct BudgetManager {
 
     /// 💰 预算配置
     config: BudgetConfig,
+
+    // Retained privately so extension data never enters the public projection.
+    original: toml::Table,
 }
 
 impl BudgetManager {
     /// 创建新的预算管理器
     pub fn new(config_path: PathBuf) -> Result<Self> {
-        let config = if config_path.exists() {
+        let (config, original) = if config_path.exists() {
             Self::load_config(&config_path)?
         } else {
-            BudgetConfig::default()
+            (BudgetConfig::default(), toml::Table::new())
         };
 
         Ok(Self {
             config_path,
             config,
+            original,
         })
     }
 
@@ -48,21 +52,42 @@ impl BudgetManager {
     }
 
     /// 加载配置文件
-    fn load_config(path: &Path) -> Result<BudgetConfig> {
+    fn load_config(path: &Path) -> Result<(BudgetConfig, toml::Table)> {
         let content = fs::read_to_string(path)?;
-        let config: BudgetConfig = toml::from_str(&content)
+        let original: toml::Table = toml::from_str(&content)
             .map_err(|e| CcrError::ConfigError(format!("解析预算配置失败: {}", e)))?;
 
+        let config: BudgetConfig = original
+            .clone()
+            .try_into()
+            .map_err(|e| CcrError::ConfigError(format!("解析预算配置失败: {e}")))?;
         config.validate().map_err(CcrError::ValidationError)?;
-        Ok(config)
+        Ok((config, original))
     }
 
     /// 保存配置文件
-    fn save_config(&self) -> Result<()> {
+    fn save_config(&mut self) -> Result<()> {
         self.config.validate().map_err(CcrError::ValidationError)?;
 
-        // 委托 fileio：序列化 + 父目录创建 + 锁 + fsync + 原子替换
-        ccr_core::core::fileio::write_toml(&self.config_path, &self.config)
+        let mut document = self.original.clone();
+        // Known optional fields may be intentionally removed. Unknown keys survive.
+        for key in [
+            "enabled",
+            "daily_limit",
+            "weekly_limit",
+            "monthly_limit",
+            "warn_at_percent",
+            "on_limit_exceeded",
+        ] {
+            document.remove(key);
+        }
+        let current = toml::Table::try_from(&self.config)
+            .map_err(|_| CcrError::ConfigError("无法序列化配置".into()))?;
+        document.extend(current);
+        // Keep the existing guarded atomic writer and resource lock owner.
+        ccr_core::core::fileio::write_toml(&self.config_path, &document)?;
+        self.original = document;
+        Ok(())
     }
 
     /// 获取当前配置
@@ -405,5 +430,27 @@ mod tests {
 
         let msg = manager.generate_warning_message(BudgetPeriod::Monthly, 105.0, 210.0, 200.0);
         assert!(msg.contains("超出限制"));
+    }
+
+    #[test]
+    fn budget_mutation_preserves_unknown_toml_extensions() {
+        let root = TempDir::new().unwrap();
+        let path = root.path().join("budget.toml");
+        let initial = "enabled = false\nwarn_at_percent = 80\n[vendor_extension]\nlabel = 'synthetic-retained'\nvalues = [1, 2]\n";
+        std::fs::write(&path, initial).unwrap();
+        ccr_core::core::LockManager::with_scoped_directory(&root.path().join("locks"), || {
+            let mut manager = BudgetManager::new(path.clone()).unwrap();
+            manager.set_daily_limit(Some(12.5)).unwrap();
+            let current: toml::Value =
+                toml::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+            let original: toml::Value = toml::from_str(initial).unwrap();
+            assert_eq!(
+                current.get("vendor_extension"),
+                original.get("vendor_extension")
+            );
+            assert_eq!(current["daily_limit"].as_float(), Some(12.5));
+            Ok(())
+        })
+        .unwrap();
     }
 }

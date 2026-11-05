@@ -13,22 +13,26 @@ pub struct PricingManager {
 
     /// 💰 价格表配置
     config: PricingConfig,
+
+    // Retained privately so extension data never enters the public projection.
+    original: toml::Table,
 }
 
 #[allow(dead_code)]
 impl PricingManager {
     /// 创建新的价格表管理器
     pub fn new(config_path: PathBuf) -> Result<Self> {
-        let config = if config_path.exists() {
+        let (config, original) = if config_path.exists() {
             Self::load_config(&config_path)?
         } else {
             // 默认加载 Claude 模型定价
-            PricingConfig::with_claude_defaults()
+            (PricingConfig::with_claude_defaults(), toml::Table::new())
         };
 
         Ok(Self {
             config_path,
             config,
+            original,
         })
     }
 
@@ -51,9 +55,10 @@ impl PricingManager {
         let config_path = Self::default_config_path()?;
         let config = PricingConfig::with_claude_defaults();
 
-        let manager = Self {
+        let mut manager = Self {
             config_path,
             config,
+            original: toml::Table::new(),
         };
 
         // 自动保存默认配置
@@ -62,21 +67,60 @@ impl PricingManager {
     }
 
     /// 加载配置文件
-    fn load_config(path: &Path) -> Result<PricingConfig> {
+    fn load_config(path: &Path) -> Result<(PricingConfig, toml::Table)> {
         let content = fs::read_to_string(path)?;
-        let config: PricingConfig = toml::from_str(&content)
+        let original: toml::Table = toml::from_str(&content)
             .map_err(|e| CcrError::ConfigError(format!("解析价格表配置失败: {}", e)))?;
 
+        let config: PricingConfig = original
+            .clone()
+            .try_into()
+            .map_err(|e| CcrError::ConfigError(format!("解析价格表配置失败: {e}")))?;
         config.validate().map_err(CcrError::ValidationError)?;
-        Ok(config)
+        Ok((config, original))
     }
 
     /// 保存配置文件
-    fn save_config(&self) -> Result<()> {
+    fn save_config(&mut self) -> Result<()> {
         self.config.validate().map_err(CcrError::ValidationError)?;
 
-        // 委托 fileio：序列化 + 父目录创建 + 锁 + fsync + 原子替换
-        ccr_core::core::fileio::write_toml(&self.config_path, &self.config)
+        let mut document = self.original.clone();
+        // Known optional fields may be intentionally removed. Unknown keys survive.
+        for key in ["version", "last_updated", "models", "default_pricing"] {
+            document.remove(key);
+        }
+        let mut current = toml::Table::try_from(&self.config)
+            .map_err(|_| CcrError::ConfigError("无法序列化配置".into()))?;
+        if let (Some(old), Some(new)) = (
+            self.original.get("models").and_then(toml::Value::as_table),
+            current
+                .get_mut("models")
+                .and_then(toml::Value::as_table_mut),
+        ) {
+            for (model, value) in new {
+                if let (Some(old_row), Some(new_row)) = (
+                    old.get(model).and_then(toml::Value::as_table),
+                    value.as_table_mut(),
+                ) {
+                    retain_price_extensions(old_row, new_row);
+                }
+            }
+        }
+        if let (Some(old), Some(new)) = (
+            self.original
+                .get("default_pricing")
+                .and_then(toml::Value::as_table),
+            current
+                .get_mut("default_pricing")
+                .and_then(toml::Value::as_table_mut),
+        ) {
+            retain_price_extensions(old, new);
+        }
+        document.extend(current);
+        // Keep the existing guarded atomic writer and resource lock owner.
+        ccr_core::core::fileio::write_toml(&self.config_path, &document)?;
+        self.original = document;
+        Ok(())
     }
 
     /// 获取当前配置
@@ -178,6 +222,22 @@ impl PricingManager {
     pub fn merge_config(&mut self, other: &PricingConfig) -> Result<()> {
         self.config.merge(other);
         self.save_config()
+    }
+}
+
+fn retain_price_extensions(original: &toml::Table, current: &mut toml::Table) {
+    for (key, value) in original {
+        if ![
+            "model",
+            "input_price",
+            "output_price",
+            "cache_read_price",
+            "cache_write_price",
+        ]
+        .contains(&key.as_str())
+        {
+            current.insert(key.clone(), value.clone());
+        }
     }
 }
 
@@ -464,5 +524,49 @@ mod tests {
         assert!(opus.is_some());
         assert_eq!(opus.unwrap().input_price, 5.0);
         assert_eq!(opus.unwrap().output_price, 25.0);
+    }
+
+    #[test]
+    fn pricing_mutations_preserve_unknown_top_level_and_untouched_model_extensions() {
+        let root = TempDir::new().unwrap();
+        let path = root.path().join("pricing.toml");
+        let initial = "version = '1.0'\nlast_updated = '2026-10-28T12:00:00Z'\n[vendor_extension]\nlabel = 'synthetic-retained'\n[models.custom]\nmodel = 'custom'\ninput_price = 1.0\noutput_price = 2.0\nfuture_rate = 'keep-me'\n[models.custom.vendor]\ncache_mode = 'retain'\n";
+        std::fs::write(&path, initial).unwrap();
+        ccr_core::core::LockManager::with_scoped_directory(&root.path().join("locks"), || {
+            let mut manager = PricingManager::new(path.clone()).unwrap();
+            manager
+                .set_pricing(
+                    "other".into(),
+                    ModelPricing {
+                        model: "other".into(),
+                        input_price: 3.0,
+                        output_price: 4.0,
+                        cache_read_price: None,
+                        cache_write_price: None,
+                    },
+                )
+                .unwrap();
+            let current: toml::Value =
+                toml::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+            let original: toml::Value = toml::from_str(initial).unwrap();
+            assert_eq!(
+                current.get("vendor_extension"),
+                original.get("vendor_extension")
+            );
+            assert_eq!(
+                current["models"]["custom"].get("future_rate"),
+                original["models"]["custom"].get("future_rate")
+            );
+            assert_eq!(
+                current["models"]["custom"].get("vendor"),
+                original["models"]["custom"].get("vendor")
+            );
+            manager.remove_pricing("custom").unwrap();
+            let removed: toml::Value =
+                toml::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+            assert!(removed["models"].get("custom").is_none());
+            Ok(())
+        })
+        .unwrap();
     }
 }
