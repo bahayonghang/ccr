@@ -23,6 +23,8 @@ ccr-config = { path = "../crates/ccr-config" }
 ccr-cli = { path = "../crates/ccr-cli" }
 ccr-codex = { path = "../crates/ccr-codex" }
 ccr-store = { path = "../crates/ccr-store" }
+ccr-usage = { path = "../crates/ccr-usage" }
+chrono = "=0.4.45"
 serde_json = "=1.0.154"
 toml = "=1.1.8"
 ccr-db = { path = "../crates/ccr-db" }
@@ -30,6 +32,7 @@ ccr-core = { path = "../crates/ccr-core" }
 gpui-kit = { version = "=0.7.3", default-features = false, features = ["component", "assets"] }
 
 [dev-dependencies]
+ccr-usage = { path = "../crates/ccr-usage", features = ["test-fixtures"] }
 tempfile = "=3.27.0"
 gpui-kit = { version = "=0.7.3", default-features = false, features = ["component", "assets", "test-support"] }
 

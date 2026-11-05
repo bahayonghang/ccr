@@ -1,5 +1,9 @@
 //! Native adapter: explicit sources, typed read requests, no UI-thread I/O.
+pub mod insights;
+pub mod jobs;
+pub mod platforms;
 pub mod profiles;
+pub mod resources;
 pub mod ui_state;
 use std::{ffi::OsString, path::PathBuf, sync::Arc, time::Duration};
 
@@ -23,6 +27,10 @@ pub enum ConfigSource {
 pub enum LaunchMode {
     App(ConfigSource),
     Probe,
+    AppWithInsights {
+        source: ConfigSource,
+        paths: insights::InsightsPaths,
+    },
 }
 
 impl LaunchMode {
@@ -33,9 +41,27 @@ impl LaunchMode {
         let mut registry = None;
         let mut delay = None;
         let mut probe = false;
+        let mut insights_usage = None;
+        let mut insights_archive = None;
+        let mut insights_home = None;
         while let Some(arg) = args.next() {
             match arg.to_str() {
                 Some("--probe") => probe = true,
+                Some("--insights-usage-root") => {
+                    insights_usage = Some(PathBuf::from(
+                        args.next().ok_or("Missing insights usage root")?,
+                    ))
+                }
+                Some("--insights-archive-db") => {
+                    insights_archive = Some(PathBuf::from(
+                        args.next().ok_or("Missing insights archive database")?,
+                    ))
+                }
+                Some("--insights-provider-home") => {
+                    insights_home = Some(PathBuf::from(
+                        args.next().ok_or("Missing insights provider home")?,
+                    ))
+                }
                 Some("--fixture-profiles") => {
                     profiles = Some(PathBuf::from(
                         args.next().ok_or("Missing fixture profiles path")?,
@@ -62,7 +88,29 @@ impl LaunchMode {
                 }
             }
         }
-        match (probe, profiles, registry, delay) {
+        let insights = match (insights_usage, insights_archive, insights_home) {
+            (None, None, None) => None,
+            (Some(usage_root), Some(archive_db), Some(provider_home))
+                if usage_root.is_absolute()
+                    && archive_db.is_absolute()
+                    && provider_home.is_absolute() =>
+            {
+                Some(insights::InsightsPaths {
+                    usage_root,
+                    archive_db,
+                    provider_home,
+                })
+            }
+            _ => {
+                return Err(
+                    "Insights requires three absolute paths: --insights-usage-root, --insights-archive-db, --insights-provider-home",
+                );
+            }
+        };
+        if probe && insights.is_some() {
+            return Err("--probe cannot load insights");
+        }
+        let mode = match (probe, profiles, registry, delay) {
             (true, None, None, None) => Ok(Self::Probe),
             (false, None, None, None) => Ok(Self::App(ConfigSource::Local)),
             (false, Some(profiles), Some(registry), delay) => {
@@ -75,6 +123,11 @@ impl LaunchMode {
             _ => Err(
                 "Fixture paths must be paired; delay requires fixture paths; --probe cannot read configuration",
             ),
+        }?;
+        match (mode, insights) {
+            (Self::App(source), Some(paths)) => Ok(Self::AppWithInsights { source, paths }),
+            (mode, None) => Ok(mode),
+            _ => Err("Insights cannot be combined with probe mode"),
         }
     }
 }
@@ -84,6 +137,9 @@ pub struct Services {
     pub executor: RuntimeHandle,
     source: ConfigSource,
     ui_state_cache: ui_state::ManagerCache,
+    insights_paths: Option<insights::InsightsPaths>,
+    pub(super) platform_oauth: Arc<ccr_cli::application::codex_oauth::NativeSession>,
+    pub(super) command_jobs: Arc<ccr_app::jobs::commands::CommandJobs>,
 }
 
 impl Services {
@@ -92,7 +148,17 @@ impl Services {
             executor,
             source,
             ui_state_cache: Default::default(),
+            insights_paths: None,
+            platform_oauth: Default::default(),
+            command_jobs: Default::default(),
         }
+    }
+    pub fn with_insights_paths(mut self, paths: insights::InsightsPaths) -> Self {
+        self.insights_paths = Some(paths);
+        self
+    }
+    pub fn insights_paths(&self) -> Option<insights::InsightsPaths> {
+        self.insights_paths.clone()
     }
     pub fn is_fixture(&self) -> bool {
         matches!(self.source, ConfigSource::Fixture { .. })
@@ -208,6 +274,77 @@ mod tests {
             ]),
             Ok(LaunchMode::App(ConfigSource::Fixture { .. }))
         ));
+    }
+    #[test]
+    fn insights_launch_requires_all_explicit_absolute_roots() {
+        let root = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture root"));
+        let argument = |name: &str| root.path().join(name).into_os_string();
+        assert!(
+            LaunchMode::parse([OsString::from("--insights-usage-root"), argument("usage")])
+                .is_err()
+        );
+        assert!(
+            LaunchMode::parse([
+                OsString::from("--insights-usage-root"),
+                argument("usage"),
+                OsString::from("--insights-archive-db"),
+                argument("archive.db"),
+                OsString::from("--insights-provider-home"),
+                argument("home"),
+            ])
+            .is_ok_and(|mode| matches!(
+                mode,
+                LaunchMode::AppWithInsights {
+                    source: ConfigSource::Local,
+                    ..
+                }
+            ))
+        );
+        assert!(
+            parse(&[
+                "--insights-usage-root",
+                "relative",
+                "--insights-archive-db",
+                "relative",
+                "--insights-provider-home",
+                "relative"
+            ])
+            .is_err()
+        );
+    }
+    #[gpui_kit::test]
+    async fn opencode_identity_cannot_dispatch_claude_configuration_or_profiles(
+        cx: &mut gpui_kit::TestAppContext,
+    ) {
+        cx.executor().allow_parking();
+        let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+        let services = Services::new(
+            owner.handle(),
+            ConfigSource::Fixture {
+                profiles: "must-not-read-claude/profiles.toml".into(),
+                registry: "must-not-read-claude/registry.toml".into(),
+                delay: Duration::ZERO,
+            },
+        );
+        let key = RequestKey {
+            environment: EnvironmentId::Local("fixture".into()),
+            platform: Platform::OpenCode,
+            generation: 1,
+            request_id: 1,
+        };
+        let mut catalog = services
+            .configurations(key.clone(), String::new())
+            .unwrap_or_else(|_| panic!("catalog admission"));
+        assert!(
+            matches!(catalog.next().await, Some(TaskEvent::Terminal(value)) if matches!(value.as_ref(), Completion::Failed(ConfigReadError::PlatformNotSupported(_))))
+        );
+        let mut profiles = services
+            .profile_rows(key, String::new())
+            .unwrap_or_else(|_| panic!("profile admission"));
+        assert!(
+            matches!(profiles.next().await, Some(TaskEvent::Terminal(value)) if matches!(value.as_ref(), Completion::Failed(profiles::ProfileError::Unsupported)))
+        );
+        owner.shutdown();
     }
     #[test]
     fn error_display_never_contains_domain_payloads() {

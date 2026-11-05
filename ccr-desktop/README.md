@@ -10,6 +10,8 @@ Claude 页提供“配置集 / 配置目录”操作模式，共享列表并保�
 
 源码和导出文本仅在当前 feature 的临时实体中保存，取消或离开页面即清除；离开不把已开始的持久写入伪报为取消。转换页只预览现有 Claude Code JSON 与 Codex TOML 转换，不写文件或执行脚本。其他格式和远程环境未接入。收藏/最近命令继续由 ccr-db owner 管理，未制造命令执行记录。
 
+平台页已接入固定路径下的设置字段补丁、原始版本源码编辑、Claude/Codex 账户与 OpenCode 供应商操作。用量与会话页通过共享应用层读取 Home/Usage 和归档会话，保留精确数值、过滤、分页与 provider fidelity。Codex OAuth已接入共享控制器、手动回调和取消清理；真实账户成功与官方退出登录仍待完成验收。导入任务与 quota 请求尚未接入，不能将页面可见视作完整能力通过。
+
 `just desktop-dev --probe` 保留 **01 原生输入探针**，仅使用内存状态，不读取个人配置。
 编译、headless interaction 与原生运行的证据分别记录在
 [01 evidence](../.trellis/tasks/10-17-gpui-01-foundation/evidence.md) 和
@@ -65,8 +67,8 @@ doctor 只读检查工具与 Cargo 路径；Windows 的链接器/SDK 由实际�
 
 ## 设计与验证
 
-[DESIGN.md](DESIGN.md) 是已批准的 style:codex 原生设计源；唯一 token 映射位于
-`src/theme.rs`，`src/shell/` 实现连续工作面、真实导航和状态。设置提供 System / Light / Dark 与中英文切换；偏好仅在当前窗口会话生效，主题调色板通过 Kit Theme 同步 Base，不建立第二主题 owner。
+[DESIGN.md](DESIGN.md) 是已批准的 style:airy-glass 原生设计源；唯一 token 映射位于
+`src/theme.rs`。当前锁定图形栈使用实色降级，不宣称真实内景模糊通过。`src/shell/` 实现连续工作面、真实导航和状态。设置提供 System / Light / Dark 与中英文切换；偏好仅在当前窗口会话生效，主题调色板通过 Kit Theme 同步 Base，不建立第二主题 owner。
 
 按用户 2026-10-18 指令，本轮只验证核心导航、读取筛选、错误重试、取消/退出、中英文、主题和输入。窗口尺寸/缩放/DPI 矩阵明确 user-deferred，未计通过。原生中文 IME、系统字体 fallback、屏幕阅读器与其他 OS 仍分别以实际证据为准。
 性能比较必须先采集同机 Tauri release 基线，再测 GPUI release；空探针不代表完整迁移性能。
@@ -94,8 +96,20 @@ fixture 窗口明确标注“演示数据”，慢读取额外标注“受控慢
    GPUI 的 hook 只有 200ms 预算，event loop 返回后 runtime owner 仍会最终 join 全部已启动工作。
 
 运行时通知每订阅容量 128，进度 100ms 合并，权威终态独立保留并优先读取，不依赖丢弃式进度通知。
-最多接纳 128 个任务，最多 4 个 blocking worker。当前没有日志传输，日志显示上限由后续实际日志域接入。
+最多接纳 128 个任务，最多 4 个 blocking worker。命令工作台复用共享命令策略和进程网关，保留每流最多500行/512KiB，原生日志按36px行虚拟化，单行显示不超过8KiB。离页后任务由应用持有，返回后可显式刷新状态；自动重新订阅仍待完成。
 这些机制和 headless 交互测试不等同于原生截图、三平台或性能验收。
+
+观测域的独立数据根必须一次提供三个绝对路径：
+
+```text
+just desktop-dev --fixture-profiles <absolute-fixture>/profiles.toml --fixture-registry <absolute-fixture>/config.toml --insights-usage-root <absolute-usage-root> --insights-archive-db <absolute-archive.db> --insights-provider-home <absolute-provider-home>
+```
+
+缺少用量数据库时显示明确错误，不伪造零值或自动同步。读取与会话正文均经有界后台运行时；离开页面清除临时正文并拒绝过期结果。此入口不执行真实 quota、登录或同步请求。
+
+原生观测 fixture 的三个路径须原样使用生成的 `fixture.json` 字段；不要重新拼接或移除 Windows `\\?\` 前缀，否则会改变来源身份。
+
+指令文件入口已接入四个平台的固定用户文件，使用原始修订令牌保存、冲突保留草稿、离页清空临时明文。Claude rules、完整MCP/扩展资源仍待迁移。命令工作台支持受控后台执行、请求取消与状态回读；fixture模式只运行标明的合成子进程，不执行所选真实CCR命令。help、安装、同步、签到及真实sidecar原生验收仍开放。
 
 ## 核心键盘与命令记录
 

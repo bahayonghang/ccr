@@ -37,16 +37,22 @@ fn actual_theme_controls_keep_base_component_palette_and_language_in_sync(cx: &m
     });
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
+        window.click("configuration-filter", cx);
+        window.input("retained query", cx);
         window.click("nav-settings", cx);
         window.click("theme-dark", cx);
         assert_eq!(Theme::global(cx).mode, ThemeMode::Dark);
         assert_eq!(
             Theme::global(cx).colors.background,
-            gpui_kit::Hsla::from(gpui_kit::rgb(0x151617))
+            gpui_kit::Hsla::from(gpui_kit::rgb(0x1d292c))
         );
         assert_eq!(
             gpui_kit::base::Theme::global(cx).tokens.colors,
             Theme::global(cx).semantic_tokens().colors
+        );
+        assert_eq!(
+            Theme::global(cx).primary,
+            gpui_kit::Hsla::from(gpui_kit::rgb(0x85d5b1))
         );
         window.click("theme-light", cx);
         assert_eq!(Theme::global(cx).mode, ThemeMode::Light);
@@ -71,6 +77,11 @@ fn actual_theme_controls_keep_base_component_palette_and_language_in_sync(cx: &m
         assert_eq!(
             gpui_kit::base::Theme::global(cx).tokens.colors,
             Theme::global(cx).semantic_tokens().colors
+        );
+        window.click("nav-configurations", cx);
+        assert_eq!(
+            window.find("configuration-filter").value(),
+            Some("retained query")
         );
         window.remove_window();
     })
@@ -169,5 +180,123 @@ fn navigation_clears_converter_plaintext_and_acknowledgement(cx: &mut TestAppCon
         assert_eq!(nodes.iter().find(|node|node.label()==Some("Converted preview")).and_then(|node|node.value()),Some(""));
         window.remove_window();
     }).unwrap_or_else(|_|panic!("navigation"));
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+fn opaque_surface_quads_preserve_the_paper_corners(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
+    let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
+    let (handle, _) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(
+            WindowOptions {
+                window_bounds: Some(gpui_kit::WindowBounds::Windowed(
+                    gpui_kit::Bounds::centered(
+                        None,
+                        gpui_kit::size(gpui_kit::px(1280.), gpui_kit::px(800.)),
+                        cx,
+                    ),
+                )),
+                ..Default::default()
+            },
+            cx,
+            |window, cx| {
+                cx.new(|cx| {
+                    Shell::new(
+                        Services::new(
+                            owner.handle(),
+                            ConfigSource::Fixture {
+                                profiles: root.path().join("profiles.toml"),
+                                registry: root.path().join("registry.toml"),
+                                delay: Duration::ZERO,
+                            },
+                        ),
+                        window,
+                        cx,
+                    )
+                })
+            },
+        )
+        .unwrap_or_else(|e| panic!("window: {e}"))
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        for mode in ["theme-light", "theme-dark"] {
+            window.click("nav-settings", cx);
+            window.click(mode, cx);
+            for page in [
+                "nav-configurations",
+                "nav-favorites",
+                "nav-recent",
+                "nav-converter",
+                "nav-platforms",
+                "nav-insights",
+                "nav-resources",
+                "nav-jobs",
+                "nav-settings",
+            ] {
+                window.click(page, cx);
+                let quads = window.painted_quads();
+                let scale = window.scale_factor();
+                let paper = quads
+                    .iter()
+                    .find(|quad| {
+                        quad.background
+                            == gpui_kit::Background::from(gpui_kit::rgb(
+                                ccr_gpui::theme::palette(Theme::global(cx).mode).sheet,
+                            ))
+                            && quad.bounds.size.width.as_f32() > 500. * scale
+                            && quad.bounds.size.height.as_f32() > 100. * scale
+                    })
+                    .unwrap_or_else(|| panic!("painted paper on {page}"));
+                let sidebar = quads
+                    .iter()
+                    .find(|quad| {
+                        quad.background == gpui_kit::Background::from(Theme::global(cx).sidebar)
+                            && quad.bounds.size.height.as_f32() > 100. * scale
+                    })
+                    .unwrap_or_else(|| panic!("painted sidebar on {page}"));
+                assert!(
+                    sidebar.corner_radii.top_left.as_f32() > 0.,
+                    "sidebar covers paper corner on {page}"
+                );
+                assert_eq!(
+                    paper.corner_radii.bottom_left.as_f32(),
+                    ccr_gpui::theme::SHEET_RADIUS * scale
+                );
+                assert_eq!(
+                    paper.corner_radii.bottom_right.as_f32(),
+                    ccr_gpui::theme::SHEET_RADIUS * scale
+                );
+                assert!(
+                    !quads.iter().any(|quad| {
+                        quad.background == gpui_kit::Background::from(Theme::global(cx).status_bar)
+                            && quad.bounds.size.width.as_f32() > 500. * scale
+                            && quad.bounds.size.height.as_f32() < 40. * scale
+                            && quad.bounds.origin.y.as_f32()
+                                > paper.bounds.bottom_right().y.as_f32() - 40. * scale
+                    }),
+                    "status background covers paper bottom corners on {page}"
+                );
+                if page == "nav-configurations" {
+                    let reading = quads
+                        .iter()
+                        .find(|quad| {
+                            quad.background
+                                == gpui_kit::Background::from(Theme::global(cx).background)
+                                && quad.bounds.size.width.as_f32() > 500. * scale
+                                && quad.bounds.size.height.as_f32() > 100. * scale
+                                && quad.bounds.origin.x > paper.bounds.origin.x
+                        })
+                        .unwrap_or_else(|| panic!("painted configurations"));
+                    assert!(reading.corner_radii.top_right.as_f32() > 0.);
+                }
+            }
+        }
+        window.remove_window();
+    })
+    .unwrap_or_else(|e| panic!("painted corners: {e}"));
     owner.shutdown();
 }

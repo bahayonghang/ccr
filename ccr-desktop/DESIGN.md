@@ -1,30 +1,30 @@
 ---
 name: CCR GPUI Desktop
-description: Codex 风格的低彩度原生工作台，连续工作面、清晰文字层级与即时操作反馈。
+description: 轻盈玻璃原生工作台，静态薄荷紫场景、单张纸面与清晰的绿色操作。
 colors:
-  primary: "#000000"
+  primary: "#156F4E"
   secondary: "#FFFFFF"
   surface: "#FFFFFF"
-  neutral: "#F7F7F6"
-  elevated: "#F0F1F2"
-  text: "#1F2328"
-  text-muted: "#646B74"
-  border-subtle: "#E6E7E9"
+  neutral: "#E7F1EE"
+  elevated: "#F2F7F5"
+  text: "#1E2932"
+  text-muted: "#5C6B76"
+  border-subtle: "#CEDBD5"
   border-control: "#787F89"
-  focus: "#111827"
+  focus: "#156F4E"
   success: "#166534"
   warning: "#92400E"
   danger: "#B91C1C"
-  primary-dark: "#E7E9EC"
-  secondary-dark: "#151617"
-  surface-dark: "#151617"
-  neutral-dark: "#1C1E20"
-  elevated-dark: "#232527"
-  text-dark: "#E7E9EC"
-  text-muted-dark: "#A1A7B0"
-  border-subtle-dark: "#34373B"
+  primary-dark: "#85D5B1"
+  secondary-dark: "#172225"
+  surface-dark: "#1D292C"
+  neutral-dark: "#10191B"
+  elevated-dark: "#172225"
+  text-dark: "#F0F8F5"
+  text-muted-dark: "#9FAFA9"
+  border-subtle-dark: "#35474A"
   border-control-dark: "#737B86"
-  focus-dark: "#E7E9EC"
+  focus-dark: "#85D5B1"
   success-dark: "#86EFAC"
   warning-dark: "#FCD34D"
   danger-dark: "#FCA5A5"
@@ -50,28 +50,28 @@ rounded:
   sm: 4px
   md: 8px
   pill: 9999px
-  surface: 0px
+  surface: 20px
 spacing:
   sm: 4px
   md: 8px
   sourceScale: "4/8/12/16/24/32"
 ---
-<!-- design-md: entry=style:codex; source=https://github.com/bergside/awesome-design-skills@f631a09; license=MIT -->
+<!-- design-md: entry=style:airy-glass; adaptation=.trellis/tasks/10-17-gpui-desktop/research/airy-glass-plan.md -->
 <!-- customized: CCR native app shell, system fonts and CJK fallback, light/dark semantic contrast, compact data layouts, keyboard/IME states and event-driven performance budgets. -->
 
 ## Overview
 
-视觉主张：低彩度、近乎平面的连续工作面，由文字层级和对齐关系建立秩序。内容主张：先定位环境与平台，再显示真实状态，最后在当前上下文完成操作。交互主张：键盘与高频动作即时响应，指针按压给出短反馈，没有装饰性持续动画。
+视觉主张：静态 160deg 薄荷绿至淡紫场景围绕一张纸面，内容层保持实色，由文字层级和对齐关系建立秩序。内容主张：先定位环境与平台，再显示真实状态，最后在当前上下文完成操作。交互主张：键盘与高频动作即时响应，指针按压给出短反馈，没有装饰性持续动画。
 
-用户是同时管理多个 AI CLI 平台、配置和用量的桌面开发者。设计签名是清晰的主列表与详情区、等宽数据列和极少量黑白主操作，不用市场终端琥珀条或同形指标卡墙。原有 Tauri DESIGN.md 不变，新目录是独立产品设计根。
+用户是同时管理多个 AI CLI 平台、配置和用量的桌面开发者。设计签名是清晰的主列表与详情区、等宽数据列和克制的绿色主操作，不用市场终端琥珀条或同形指标卡墙。原有 Tauri DESIGN.md 不变，新目录是独立产品设计根。
 
-采用用户指定的 style:codex，不复制 OpenAI 标识或应用品牌。主题默认跟随系统，用户可选 light/dark；两主题均必须验收。生产栈为 GPUI，样式策略是 Rust 语义 token -> GPUI Kit Theme，不使用 CSS/Tailwind 或第二主题系统。
+采用已批准的 style:airy-glass 增量合同，与 Tauri 共享工作台语言；保留原生系统字体和密度。主题默认跟随系统，用户可选 light/dark；两主题均必须验收。生产栈为 GPUI，样式策略是 Rust 语义 token -> GPUI Kit Theme，不使用 CSS/Tailwind 或第二主题系统。
 
 ## Colors
 
-主操作只用 primary/secondary 反色，平台身份为小图标与文字，不给整个页面染色。success/warning/danger 仅表示真实状态，始终配文字或图标。上涨/下降不是成功/失败，不默认使用红绿。
+主操作、链接和焦点使用绿色（light #156f4e / dark #85d5b1），有独立对比文字色；明确输出使用紫色（light #6d4bd6 / dark #b9a4f4）。选中背景保持克制的实色阶，平台身份为小图标与文字，不给整个页面染色。success/warning/danger 仅表示真实状态，始终配文字或图标。上涨/下降不是成功/失败，不默认使用红绿。
 
-surface 是主工作区，neutral 是侧栏/选中背景，elevated 供弹层。使用色阶与空间分区，border-subtle 仅装饰分隔；需要表达控件边界时必须用 border-control。焦点使用 2px focus 环和 2px 间隔。
+reading 是列表/输入的实色工作区，base 是侧栏底色，elevated 是纸面降级色，overlay 是实色弹层。使用色阶与空间分区，border-subtle 仅装饰分隔；需要表达控件边界时必须用 border-control。焦点使用 2px focus 环和 2px 间隔。
 
 普通文字、辅助文字、状态文字与其允许背景达到 4.5:1，焦点与关键控件边界达到 3:1。禁用文字保留可读对比度，通过禁用交互、图标与语义状态降低强调，不统一透明化整组内容。来源中的绿色/橙色已调暗以满足浅色正文对比度。
 
@@ -99,13 +99,19 @@ Windows 用 Segoe UI Variable / Segoe UI，中文由 Microsoft YaHei UI 等系�
 
 ## Elevation & Depth
 
-常驻区块不使用阴影或玻璃效果。层次仅由 surface/neutral/elevated、留白及必要细分隔建立。只在真正覆盖上下文的菜单/对话框使用轻阴影，不能给每个数据块加容器。不要嵌套卡片表达层级。
+唯一非滚动 application sheet 使用 20px 外角、细描边和单层轻阴影（0/20/48，light 8%、dark 24%）。场景静态；列表、输入、菜单、对话框和状态区保持实色，不加嵌套玻璃或卡片墙。阴影模糊不是背景模糊。
+
+GPUI 的 overflow mask 为矩形，不能用父纸面圆角假定子背景会被圆角裁剪。直接接触纸面顶角的侧栏左上和配置阅读面右上使用内侧 19px 背景角；28px 状态区不重复绘制背景，保持父实色纸面及其 20px 底角可见。其余密集控件角度、布局和滚动所有者不变。转换结果用紫色可见标签标明输出，代码正文保留阅读文字色，错误/成功状态仍使用独立语义色。
+
+锁定 GPUI/Kit 的已检查公开渲染面没有应用内背景采样 API；窗口 Blurred/Mica 是操作系统背景能力，不用于替代纸面材质。因此当前纸面固定使用 light #f2f7f5 / dark #172225、alpha=1、无背景模糊。减少透明度/高对比偏好 API 未暴露时仍保守实色；不声称系统设置联动已验证。真实玻璃需可用 API、原生探针和性能全部证明后另行接入，不加入假 Glass 开关。
+
+外场景边距最多 12 logical px，随可用宽高收敛，在原最小窗口 960×640 归零，保留密集操作空间。小于最小内容宽度仍实色；原 1040/1200 导航/详情断点不变。
 
 ## Shapes
 
-主/次按钮均 pill，输入 8px，列表可选背景 4px，连续工作面 0px。图标使用一个集合，优先 Kit 的 Lucide 资源，实际依赖/资源开销在构建时记录。主操作不使用 emoji 图标。
+主/次按钮均 pill，输入 8px，列表可选背景 4px，纸面 20px（仅外层，密集工作面保持原角度）。图标使用一个集合，优先 Kit 的 Lucide 资源，实际依赖/资源开销在构建时记录。主操作不使用 emoji 图标。
 
-保留 Codex 条目的克制与柔和控件；数据列表不用 pill 包每一项。只有语义独立的弹层使用 8px 外角。
+保留克制与柔和控件；数据列表不用 pill 包每一项。只有语义独立的弹层使用 8px 外角。
 
 ## Components
 
@@ -114,7 +120,7 @@ Windows 用 Segoe UI Variable / Segoe UI，中文由 Microsoft YaHei UI 等系�
 - **导航**：当前选中以 neutral/elevated 色阶和字重表达，没有粗侧边条。Tab 与方向键行为按原生语义区分，不与文本编辑键冲突；支持 F6 在侧栏/主区/状态区切换。
 - **表格/列表**：列角色固定，数字等宽右对齐。行 hover 与 selection 用中性色阶，频繁点击行不缩放，避免文字抖动，这是高频数据操作的明确运动例外。过长名称可 tooltip 补全，关键数值/操作名必须完整或按语义缩短，不能靠省略号掩盖。
 - **任务反馈**：queued/running/cancel_requested/terminal 状态可见。页内进度文本与可恢复错误优先，toast 不作为唯一结果渠道。取消请求不得立即写“已取消”。
-- **确认**：只用于不可逆/敏感操作的业务确认，列明对象和后果；普通导航与展开不用弹窗。Esc 返回安全状态，焦点回到触发者。
+- **确认**：只用于不可逆/敏感操作的业务确认，列明对象和后果；普通导航与展开不用弹窗。确认区域挂载后将初始焦点转入真实决策按钮，即使此前焦点在侧栏；取消或离页后的延迟回调不得重新抢焦点。Tab/Shift+Tab 留在决定子树，Esc 返回安全状态，焦点回到触发者。测试须覆盖从外部焦点真实打开的路径，不能手动把焦点塞进确认框后声称初始转移通过。
 - **图表**：有明确问题才显示；趋势用线、比较用条形。高度 160 至 240px，图例与 exact-value table 可达；低对比色必须有表格/文字通道。数据更新不播放入场动画。
 - **状态**：empty 说明原因并给已有下一步；loading 保留布局；error 显示可重试原因；unsupported 与未接入明确区分。演示 fixture 必须带“演示数据”标识，生产无伪造数字。
 
@@ -130,7 +136,7 @@ Windows 用 Segoe UI Variable / Segoe UI，中文由 Microsoft YaHei UI 等系�
 
 ### Don't
 
-- 不使用默认卡片墙、渐变文字、紫蓝霓虹、模糊玻璃或装饰背景。
+- 不使用默认卡片墙、渐变文字、紫蓝霓虹、嵌套玻璃或动态装饰背景；仅外场景采用已批准静态渐变。
 - 不在 render 中读取文件/SQLite、创建 runtime、启动进程。
 - 不用每帧轮询、常驻 spinner 或隐藏页面刷新维持“活跃感”。
 - 不把平台色扩散到背景，不把变化值自动解释为成功/失败。
@@ -150,9 +156,9 @@ Windows 用 Segoe UI Variable / Segoe UI，中文由 Microsoft YaHei UI 等系�
 ## Iteration Guide / Agent Prompt Guide
 
 1. 先改本文件，再改唯一 Rust token 层。新增角色不能偷偷复用不同含义 token。
-2. “实现配置列表：surface #FFFFFF、正文 #1F2328 14px/400、行高36px、选中 #F0F1F2/4px、数值等宽右对齐、主区padding24px、标题20px/600/-0.012em；采用虚拟化并提供键盘选择。”
-3. “实现深色任务区：背景 #151617、正文 #E7E9EC 14px/400、辅助 #A1A7B0 12px、控件边界 #737B86、输入角8px；取消中与取消完成分开显示，不播放列表入场动画。”
-4. “实现保存按钮：黑底白字14px/500、pill角、逻辑高度36px、水平padding16px、focus #111827 的2px环与2px间隔；pointer按压0.96，键盘无动画，loading保持宽度。”
+2. “实现配置列表：reading #FFFFFF、正文 #1E2932 14px/400、行高36px、选中 #E3ECE8/4px、数值等宽右对齐、主区padding24px、标题20px/600/-0.012em；采用虚拟化并提供键盘选择。”
+3. “实现深色任务区：背景 #1D292C、正文 #F0F8F5 14px/400、辅助 #9FAFA9 12px、控件边界 #737B86、输入角8px；取消中与取消完成分开显示，不播放列表入场动画。”
+4. “实现保存按钮：绿色底配独立对比文字14px/500、pill角、逻辑高度36px、水平padding16px、focus #156F4E 的2px环与2px间隔；pointer按压0.96，键盘无动画，loading保持宽度。”
 5. Significant change 后从真实窗口重新看第一屏：环境是否清楚、状态是否真实、主操作是否明确、是否新增无意义容器。
 
 ## Known Gaps and Native QA
@@ -165,4 +171,8 @@ Windows 用 Segoe UI Variable / Segoe UI，中文由 Microsoft YaHei UI 等系�
 
 当前不存在需要“换成真实内容”的业务占位数据；实施 fixture 只用于测试，生产数据应通过 ccr-app/领域 API 注入，不能在 view 中硬编码用户数、余额或认证成功。
 
-04 配置集与配置目录复用连续列表/详情工作面，编辑区在内容区展开，字段超长时独立滚动。破坏性操作显示对象、后果和确认/取消；源码、导出和转换使用明文提示与临时文本区，离开页面清除缓冲。Grok 的部分完成状态和 CAS 冲突持续显示在页内，不使用成功 toast 掩盖未完成阶段。04 的真实原生核心流程由父会话另行采集，本条实施说明不等于原生验收或性能通过。
+04 配置集与配置目录复用连续列表/详情工作面，编辑区在内容区展开，字段超长时独立滚动。破坏性操作显示对象、后果和确认/取消；源码、导出和转换使用明文提示与临时文本区，离开页面清除缓冲。Grok 的部分完成状态和 CAS 冲突持续显示在页内，不使用成功 toast 掩盖未完成阶段。草稿关闭后清除仅适用于该草稿的冲突恢复文案；已提交警告或部分完成结果保留，不随普通只读状态刷新丢失。04 的真实原生核心流程由父会话另行采集，本条实施说明不等于原生验收或性能通过。
+
+## 2026-10-27 视觉增量能力与证据边界
+
+唯一 theme.rs 映射 light/dark 的 field、sheet/base/reading/overlay、主次辅助文字、action、output 与状态角色。材质能力研究见 `.trellis/tasks/10-17-gpui-03-shell/research/airy-glass-capabilities.md`。当前交付为实色纸面降级；不能将 fallback 通过写成 glass 通过。历史原生证据仍对应原构建，新增配色、焦点、弹层和核心业务需新构建实测；S1/S2、UIA/IME、macOS/Linux 与用户延期矩阵继续分别记录。

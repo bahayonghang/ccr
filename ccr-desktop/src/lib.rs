@@ -11,6 +11,9 @@ use gpui_kit::{
 };
 
 pub fn run() {
+    if let Some(code) = runtime::jobs::fixture_child_mode(std::env::args_os().skip(1)) {
+        std::process::exit(code);
+    }
     let mode = match runtime::LaunchMode::parse(std::env::args_os().skip(1)) {
         Ok(mode) => mode,
         Err(message) => {
@@ -65,6 +68,18 @@ pub fn run() {
                     gpui_kit::open_window(options, cx, move |window, cx| {
                         cx.new(|cx| {
                             shell::Shell::new(runtime::Services::new(executor, source), window, cx)
+                        })
+                    })
+                    .map(|_| ())
+                }
+                runtime::LaunchMode::AppWithInsights { source, paths } => {
+                    gpui_kit::open_window(options, cx, move |window, cx| {
+                        cx.new(|cx| {
+                            shell::Shell::new(
+                                runtime::Services::new(executor, source).with_insights_paths(paths),
+                                window,
+                                cx,
+                            )
                         })
                     })
                     .map(|_| ())

@@ -458,6 +458,7 @@ impl Render for ConfigurationApp {
             .p(px(theme::CONTENT_PADDING))
             .gap(px(theme::SECTION_GAP))
             .bg(cx.theme().background)
+            .rounded_tr(px(theme::SHEET_CONTENT_RADIUS))
             .text_color(cx.theme().foreground)
             .text_size(px(theme::BODY_SIZE))
             .child(

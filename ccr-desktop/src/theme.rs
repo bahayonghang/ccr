@@ -1,6 +1,9 @@
 //! The single native semantic token mapping from DESIGN.md.
 use gpui_kit::component::{Theme, ThemeMode};
-use gpui_kit::{App, Hsla, Window, px, rgb};
+use gpui_kit::{
+    App, Background, BoxShadow, Hsla, Pixels, Size, Window, linear_color_stop, linear_gradient, px,
+    rgb,
+};
 
 pub const WINDOW_WIDTH: f32 = 1280.;
 pub const WINDOW_HEIGHT: f32 = 800.;
@@ -22,6 +25,118 @@ pub const NARROW_WIDTH: f32 = 1040.;
 pub const SPLIT_WIDTH: f32 = 1200.;
 pub const STATUS_HEIGHT: f32 = 28.;
 pub const TOOLBAR_HEIGHT: f32 = 48.;
+
+/// App-specific roles stay here; Kit reading/input/popover roles remain opaque.
+#[derive(Clone, Copy)]
+pub struct Palette {
+    pub field: [u32; 2],
+    pub sheet: u32,
+    pub surface: u32,
+    pub neutral: u32,
+    pub elevated: u32,
+    pub overlay: u32,
+    pub text: u32,
+    pub secondary_text: u32,
+    pub muted: u32,
+    pub subtle: u32,
+    pub control: u32,
+    pub primary: u32,
+    pub primary_hover: u32,
+    pub primary_active: u32,
+    pub on_primary: u32,
+    pub output: u32,
+    pub success: u32,
+    pub warning: u32,
+    pub danger: u32,
+    pub info: u32,
+}
+
+pub fn palette(mode: ThemeMode) -> Palette {
+    if mode.is_dark() {
+        Palette {
+            field: [0x102b26, 0x25213d],
+            sheet: 0x172225,
+            surface: 0x1d292c,
+            neutral: 0x10191b,
+            elevated: 0x172225,
+            overlay: 0x233033,
+            text: 0xf0f8f5,
+            secondary_text: 0xc5d5d0,
+            muted: 0x9fafa9,
+            subtle: 0x35474a,
+            control: 0x737b86,
+            primary: 0x85d5b1,
+            primary_hover: 0x9ce0c3,
+            primary_active: 0x70c49f,
+            on_primary: 0x10191b,
+            output: 0xb9a4f4,
+            success: 0x86efac,
+            warning: 0xfcd34d,
+            danger: 0xfca5a5,
+            info: 0x9bc4f5,
+        }
+    } else {
+        Palette {
+            field: [0xe7f6f1, 0xede7f8],
+            sheet: 0xf2f7f5,
+            surface: 0xffffff,
+            neutral: 0xe7f1ee,
+            elevated: 0xf2f7f5,
+            overlay: 0xe3ece8,
+            text: 0x1e2932,
+            secondary_text: 0x404e59,
+            muted: 0x5c6b76,
+            subtle: 0xcedbd5,
+            control: 0x787f89,
+            primary: 0x156f4e,
+            primary_hover: 0x146a4a,
+            primary_active: 0x0f5d40,
+            on_primary: 0xffffff,
+            output: 0x6d4bd6,
+            success: 0x166534,
+            warning: 0x92400e,
+            danger: 0xb91c1c,
+            info: 0x245cb3,
+        }
+    }
+}
+
+pub fn field(mode: ThemeMode) -> Background {
+    let colors = palette(mode).field;
+    linear_gradient(
+        160.,
+        linear_color_stop(rgb(colors[0]), 0.),
+        linear_color_stop(rgb(colors[1]), 1.),
+    )
+}
+
+pub struct Sheet {
+    pub background: Hsla,
+    pub inset: Pixels,
+    pub shadow: BoxShadow,
+}
+
+/// The locked renderer has no in-app backdrop-sampling API. Keep the approved
+/// fallback opaque even when native transparency/accessibility preferences are unknown.
+/// OS window Blurred/Mica are unrelated and are never enabled by this policy.
+pub fn solid_sheet(mode: ThemeMode, viewport: Size<Pixels>) -> Sheet {
+    let spare_width = (f32::from(viewport.width) - MIN_WIDTH).max(0.);
+    let spare_height = (f32::from(viewport.height) - MIN_HEIGHT).max(0.);
+    Sheet {
+        background: Hsla::from(rgb(palette(mode).sheet)),
+        // Preserve the original minimum content area; scene margins are expendable.
+        inset: px((spare_width.min(spare_height) / 2.).min(12.)),
+        shadow: BoxShadow::new(
+            px(0.),
+            px(20.),
+            Hsla::from(rgb(0)).opacity(if mode.is_dark() { 0.24 } else { 0.08 }),
+        )
+        .blur_radius(px(48.)),
+    }
+}
+
+pub const SHEET_RADIUS: f32 = 20.;
+pub const SHEET_CONTENT_RADIUS: f32 = SHEET_RADIUS - 1.;
 
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
 pub enum Preference {
@@ -59,83 +174,140 @@ fn apply_palette(cx: &mut App) {
         theme.motion.duration_fast = std::time::Duration::ZERO;
         theme.motion.duration_normal = std::time::Duration::ZERO;
         theme.motion.duration_slow = std::time::Duration::ZERO;
-        let (
-            surface,
-            neutral,
-            elevated,
-            text,
-            muted,
-            subtle,
-            control,
-            focus,
-            primary,
-            on_primary,
-            success,
-            warning,
-            danger,
-        ) = if theme.mode.is_dark() {
-            (
-                0x151617, 0x1c1e20, 0x232527, 0xe7e9ec, 0xa1a7b0, 0x34373b, 0x737b86, 0xe7e9ec,
-                0xe7e9ec, 0x151617, 0x86efac, 0xfcd34d, 0xfca5a5,
-            )
-        } else {
-            (
-                0xffffff, 0xf7f7f6, 0xf0f1f2, 0x1f2328, 0x646b74, 0xe6e7e9, 0x787f89, 0x111827,
-                0x000000, 0xffffff, 0x166534, 0x92400e, 0xb91c1c,
-            )
-        };
+        let p = palette(theme.mode);
         let color = |value| Hsla::from(rgb(value));
         let c = &mut theme.colors;
-        c.background = color(surface);
-        c.foreground = color(text);
-        c.muted = color(neutral);
-        c.muted_foreground = color(muted);
-        c.border = color(subtle);
-        c.input = color(control);
-        c.ring = color(focus);
-        c.caret = color(text);
-        c.popover = color(elevated);
-        c.popover_foreground = color(text);
-        c.primary = color(primary);
-        c.primary_foreground = color(on_primary);
-        c.primary_hover = color(text);
-        c.primary_active = color(muted);
-        c.secondary = color(elevated);
-        c.secondary_foreground = color(text);
-        c.secondary_hover = color(neutral);
-        c.secondary_active = color(elevated);
-        c.accent = color(elevated);
-        c.accent_foreground = color(text);
-        c.sidebar = color(neutral);
-        c.sidebar_foreground = color(text);
-        c.sidebar_border = color(subtle);
-        c.sidebar_accent = color(elevated);
-        c.sidebar_accent_foreground = color(text);
-        c.sidebar_primary = color(primary);
-        c.sidebar_primary_foreground = color(on_primary);
-        c.list = color(surface);
-        c.list_hover = color(neutral);
-        c.list_active = color(elevated);
-        c.list_active_border = color(focus);
-        c.selection = color(elevated);
-        c.button = color(surface);
-        c.button_foreground = color(text);
-        c.button_hover = color(neutral);
-        c.button_active = color(elevated);
-        c.button_primary = color(primary);
-        c.button_primary_foreground = color(on_primary);
-        c.button_primary_hover = color(text);
-        c.button_primary_active = color(muted);
-        c.button_secondary = color(elevated);
-        c.button_secondary_foreground = color(text);
-        c.button_secondary_hover = color(neutral);
-        c.button_secondary_active = color(elevated);
-        c.danger = color(danger);
-        c.success = color(success);
-        c.warning = color(warning);
-        c.title_bar = color(surface);
-        c.title_bar_border = color(subtle);
-        c.status_bar = color(surface);
-        c.status_bar_border = color(subtle);
+        c.background = color(p.surface);
+        c.foreground = color(p.text);
+        c.muted = color(p.neutral);
+        c.muted_foreground = color(p.muted);
+        c.border = color(p.subtle);
+        c.input = color(p.control);
+        c.ring = color(p.primary);
+        c.caret = color(p.text);
+        c.popover = color(p.overlay);
+        c.popover_foreground = color(p.text);
+        c.primary = color(p.primary);
+        c.primary_foreground = color(p.on_primary);
+        c.primary_hover = color(p.primary_hover);
+        c.primary_active = color(p.primary_active);
+        c.secondary = color(p.elevated);
+        c.secondary_foreground = color(p.secondary_text);
+        c.secondary_hover = color(p.neutral);
+        c.secondary_active = color(p.elevated);
+        c.accent = color(p.elevated);
+        c.accent_foreground = color(p.text);
+        c.sidebar = color(p.neutral);
+        c.sidebar_foreground = color(p.text);
+        c.sidebar_border = color(p.subtle);
+        c.sidebar_accent = color(p.elevated);
+        c.sidebar_accent_foreground = color(p.text);
+        c.sidebar_primary = color(p.primary);
+        c.sidebar_primary_foreground = color(p.on_primary);
+        c.list = color(p.surface);
+        c.list_hover = color(p.neutral);
+        c.list_active = color(p.overlay);
+        c.list_active_border = color(p.primary);
+        c.selection = color(p.overlay);
+        c.button = color(p.surface);
+        c.button_foreground = color(p.text);
+        c.button_hover = color(p.neutral);
+        c.button_active = color(p.elevated);
+        c.button_primary = color(p.primary);
+        c.button_primary_foreground = color(p.on_primary);
+        c.button_primary_hover = color(p.primary_hover);
+        c.button_primary_active = color(p.primary_active);
+        c.button_secondary = color(p.elevated);
+        c.button_secondary_foreground = color(p.text);
+        c.button_secondary_hover = color(p.neutral);
+        c.button_secondary_active = color(p.elevated);
+        c.link = color(p.primary);
+        c.link_hover = color(p.primary_hover);
+        c.link_active = color(p.primary_active);
+        c.danger = color(p.danger);
+        c.success = color(p.success);
+        c.warning = color(p.warning);
+        c.info = color(p.info);
+        c.title_bar = color(p.surface);
+        c.title_bar_border = color(p.subtle);
+        c.status_bar = color(p.surface);
+        c.status_bar_border = color(p.subtle);
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use gpui_kit::size;
+
+    fn luminance(color: u32) -> f64 {
+        [16, 8, 0]
+            .into_iter()
+            .zip([0.2126, 0.7152, 0.0722])
+            .map(|(shift, weight)| {
+                let channel = ((color >> shift) & 255) as f64 / 255.;
+                weight
+                    * if channel <= 0.04045 {
+                        channel / 12.92
+                    } else {
+                        ((channel + 0.055) / 1.055).powf(2.4)
+                    }
+            })
+            .sum()
+    }
+
+    fn contrast(a: u32, b: u32) -> f64 {
+        let (a, b) = (luminance(a), luminance(b));
+        (a.max(b) + 0.05) / (a.min(b) + 0.05)
+    }
+
+    #[test]
+    fn solid_material_never_requires_unknown_platform_capabilities_or_squeezes_minimum() {
+        for mode in [ThemeMode::Light, ThemeMode::Dark] {
+            for (width, height, inset) in [(1280., 800., 12.), (960., 640., 0.), (940., 620., 0.)] {
+                let sheet = solid_sheet(mode, size(px(width), px(height)));
+                assert_eq!(
+                    sheet.background.a, 1.,
+                    "fallback must never sample the scene"
+                );
+                assert_eq!(sheet.inset, px(inset));
+            }
+        }
+    }
+
+    #[test]
+    fn real_surface_pairs_preserve_ink_focus_action_output_and_status_contrast() {
+        for mode in [ThemeMode::Light, ThemeMode::Dark] {
+            let p = palette(mode);
+            // The sheet is alpha=1, so gradient endpoints/midpoint all composite
+            // to this same background. Translucent glass is not claimed or enabled.
+            for surface in [p.sheet, p.surface, p.neutral, p.elevated, p.overlay] {
+                for (ink, minimum) in [
+                    (p.text, 12.),
+                    (p.secondary_text, 7.),
+                    (p.muted, 4.5),
+                    (p.primary, 4.5),
+                    (p.primary_hover, 4.5),
+                    (p.primary_active, 4.5),
+                    (p.output, 4.5),
+                    (p.success, 4.5),
+                    (p.warning, 4.5),
+                    (p.danger, 4.5),
+                    (p.info, 4.5),
+                    (p.control, 3.),
+                ] {
+                    assert!(
+                        contrast(ink, surface) >= minimum,
+                        "{ink:06x} on {surface:06x}: {} < {minimum}",
+                        contrast(ink, surface)
+                    );
+                }
+            }
+            for action in [p.primary, p.primary_hover, p.primary_active] {
+                assert!(contrast(p.on_primary, action) >= 4.5);
+            }
+            assert_ne!(p.primary, p.success);
+            assert_ne!(p.primary, p.output);
+        }
+    }
 }
