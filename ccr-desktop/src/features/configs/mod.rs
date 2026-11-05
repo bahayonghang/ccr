@@ -1,7 +1,7 @@
 //! Native configuration catalog. Domain-backed actions live in the Profiles feature.
 use crate::{
     features::profiles::ProfileTools,
-    locales::{service_error, text},
+    locales::{is_chinese, service_error, text},
     runtime::Services,
     shell::semantics,
     theme,
@@ -143,6 +143,9 @@ impl ConfigurationApp {
         self.gate.replace(key.clone());
         self.loading = true;
         self.error = None;
+        // Drop the previous platform's rows before the next catalog returns.
+        self.rows = Arc::new(Vec::new());
+        self.detail_open = false;
         match self
             .services
             .profile_rows(key.clone(), self.search.read(cx).value().to_string())
@@ -268,7 +271,14 @@ impl Render for ConfigurationApp {
                     .map(|index| {
                         let row = &this.rows[index];
                         let name = row.name.clone();
-                        let a11y_name = name.clone();
+                        let selected_name = name.clone();
+                        let a11y_name = if row.is_current {
+                            format!("{name}, {}", text(cx, "current", "当前"))
+                        } else if !row.enabled {
+                            format!("{name}, {}", text(cx, "disabled", "已禁用"))
+                        } else {
+                            name.clone()
+                        };
                         let weak = cx.weak_entity();
                         let is_selected = selected.as_ref() == Some(&name);
                         let background = if is_selected {
@@ -280,7 +290,7 @@ impl Render for ConfigurationApp {
                             .id(SharedString::from(format!("configuration:{}", row.name)))
                             .test_support()
                             .role(gpui_kit::Role::ListBoxOption)
-                            .aria_label(row.name.clone())
+                            .aria_label(a11y_name)
                             .aria_selected(is_selected)
                             .aria_position_in_set(index + 1)
                             .aria_size_of_set(count)
@@ -288,7 +298,7 @@ impl Render for ConfigurationApp {
                                 gpui_kit::AccessibleAction::Click,
                                 move |_, window, cx| {
                                     let _ = weak.update(cx, |this, cx| {
-                                        this.selected = Some(a11y_name.clone());
+                                        this.selected = Some(selected_name.clone());
                                         this.sync_target(cx);
                                         this.detail_open = true;
                                         window.focus(
@@ -355,9 +365,20 @@ impl Render for ConfigurationApp {
         } else if let Some(error) = self.error {
             service_error(cx, error).to_string()
         } else if self.rows.is_empty() {
-            text(cx, "No matching profiles", "暂无匹配配置").into()
+            if self.search.read(cx).value().trim().is_empty() {
+                text(cx, "This catalog has no profiles", "这个目录里没有配置").into()
+            } else {
+                text(cx, "No profiles match this filter", "没有符合筛选的配置").into()
+            }
         } else {
-            format!("{} {}", self.rows.len(), text(cx, "profiles", "个配置"))
+            let count = self.rows.len();
+            if is_chinese(cx) {
+                format!("{count} 个配置")
+            } else if count == 1 {
+                "1 profile".into()
+            } else {
+                format!("{count} profiles")
+            }
         };
         let detail = self
             .rows
@@ -452,11 +473,18 @@ impl Render for ConfigurationApp {
                                     .as_deref()
                                     .unwrap_or(text(cx, "Not set", "未设置"))
                             )))
-                    .child(div().child(format!(
-                        "{}: {}",
-                        text(cx, "Credential", "凭据"),
-                        row.auth_token
-                    )))
+                    .child({
+                        let credential = if row.auth_token.is_empty() {
+                            text(cx, "Not set", "未设置")
+                        } else {
+                            row.auth_token.as_str()
+                        };
+                        div()
+                            .id("configuration-credential")
+                            .test_support()
+                            .aria_label(format!("{}: {credential}", text(cx, "Credential", "凭据")))
+                            .child(format!("{}: {credential}", text(cx, "Credential", "凭据")))
+                    })
                     .on_key_down(cx.listener(
                         |this, event: &gpui_kit::KeyDownEvent, window, cx| {
                             if event.keystroke.key == "escape" {
@@ -533,6 +561,7 @@ impl Render for ConfigurationApp {
             .child(
                 div()
                     .id("configuration-status")
+                    .test_support()
                     .role(gpui_kit::Role::Status)
                     .aria_label(status.clone())
                     .a11y_synthetic_children(|tree| {

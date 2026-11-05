@@ -86,3 +86,48 @@ All36 desktop Rust tests, strict all-target Clippy, debug build and fmt-check pa
 ## 2026-10-28 current continuation
 
 Explicit approved implementation resumed; pointer restored to04. New immutable-source native CAS/Cancel/Refresh/Off evidence: research/native-continuation-20261028.md. Independent two-defect red/green and seven-test decision coverage: research/check-20261028.md. Baseline native receipts are separate from subsequent repaired source; new final candidate remains required. Whole04 remains in_progress; no commit/archive; size/DPI user-deferred.
+
+## 2026-11-05 real catalog pages
+
+The sidebar still has 13 routes. Converter stays on the MCP page, not in the sidebar. PRD 4.1–4.6 are not marked passed. No archive, commit, or production profile write.
+
+Production launch without fixture arguments uses `ConfigSource::Local`. Each pinned page calls `ProfileLifecycleContext::new` for that platform and lists `profiles.db` next to the legacy `profiles.toml` path. A missing catalog shows “Catalog or profile not found” and no invented names. A legacy TOML file with no database shows the not-migrated error and is not listed. An unreadable Codex runtime no longer hides a readable catalog, and it does not add a Current badge.
+
+Read-only `mode=ro` query of this machine on 2026-11-05, without opening the desktop window:
+
+| Route | Page | Catalog | Result |
+| --- | --- | --- | --- |
+| `/claude-code` | `page-claude-code` | `%USERPROFILE%\.ccr\platforms\claude\profiles.db` | Real catalog, 28 profiles. Stored current is `hajimi-kiro`; default is `anyrouter2`. `%USERPROFILE%\.ccr\config.toml` has no platform current entry, so Claude’s file marker is the Current badge. |
+| `/codex` | `page-codex` | `%USERPROFILE%\.ccr\platforms\codex\profiles.db` | Real catalog, 25 profiles. Stored current is empty; default is `axiomcode_google`. Empty current is not shown as Current. |
+| `/grok` | `page-grok` | `%USERPROFILE%\.ccr\platforms\grok\profiles.db` | Real catalog, 7 profiles. Stored current is empty; default is `oneapi`. Empty current is not shown as Current. |
+
+Credentials in the detail row use the existing secret mask. The rendered proof is the isolated fixture test `profile_pages_show_only_their_catalog`: Claude shows its own current row and masked credential, Codex shows its own row without Current, and an absent Grok catalog shows the missing-catalog error. That test does not read or write the home catalogs.
+
+Commands from the repo root:
+
+- `just desktop-fmt-check`: exit 0
+- `just desktop-lint`: exit 0
+- `just desktop-test`: first run exit 101. The only failure was `features::insights::tests::rendered_usage_controls_read_fixture_filters_and_keep_exact_costs` comparing SQLite bytes. That test passed alone, and a second full `just desktop-test` exited 0 (lib 70, native_shell 7 including the new catalog test, native_ui 2, Python 12, AccessKit 3).
+
+The checker should repeat those three commands and the shell test. Do not apply, delete, switch, or restore the real home catalogs. Do not treat this note as AC 4.1–4.6.
+
+## Independent check 2026-11-05
+
+No product code change. PRD 4.1–4.6 stay unchecked. Home catalogs were not applied, deleted, switched, or restored. A copied `mode=ro` query, with the original `profiles.db` / `-wal` / `-shm` sizes and mtimes unchanged before and after, read:
+
+| Route | Catalog rows | Stored current | Default | Registry `current_profile` |
+| --- | --- | --- | --- | --- |
+| `/claude-code` | 28 | `hajimi-kiro` | `anyrouter2` | `hajimi-kiro` |
+| `/codex` | 25 | empty | `axiomcode_google` | absent |
+| `/grok` | 7 | empty | `oneapi` | no grok section |
+
+Those counts are not literals in `ccr-desktop` source. `ConfigSource::Local` builds `ProfileLifecycleContext::new`, and the page count is `rows.len()` from that catalog. A missing catalog stays `ProfileError::Missing` (“Catalog or profile not found”), not a fabricated name. An empty stored marker is not labeled Current; Codex and Grok have no registry current to substitute, and the default row is not used as Current. Detail credentials stay on the masked `Secret` display. The rendered fixture test `profile_pages_show_only_their_catalog` passed inside the green suite below.
+
+Checker commands from the repo root:
+
+- `just desktop-fmt-check`: exit 0
+- `just desktop-lint`: exit 0
+- `just desktop-test`: first exit 101. The only failure was `features::insights::tests::rendered_usage_controls_read_fixture_filters_and_keep_exact_costs` at `tests.rs:126`, comparing SQLite bytes. The file stayed 61440 bytes and the header change counter stayed 12; the differing pages were the seeded usage row (`gpt-5`, `openai`, `static-v1`, `2026-07-01T12:00:00Z`), consistent with a WAL checkpoint into the fixture database. The new profile tests in that same lib run passed. This slice does not write usage storage, and the assertion was not changed.
+- `just desktop-test` rerun: exit 0. lib 70, native_shell 7 including `profile_pages_show_only_their_catalog`, native_ui 2, Python 12, AccessKit 3.
+
+A retained earlier terminal from 2026-11-05T09:06Z also exited 101, but on two insights tests missing the `Language` global; its usage byte assertion passed and its `native_shell` binary had 6 tests, so it did not include this catalog test. The 09:07Z rerun of that older binary exited 0. Both the usage-byte flake and the green rerun are recorded. The usage test was not weakened.

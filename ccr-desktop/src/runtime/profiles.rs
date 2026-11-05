@@ -24,6 +24,7 @@ pub enum ProfileError {
     Conflict,
     Invalid,
     Missing,
+    Unmigrated,
     Storage,
     Unsupported,
 }
@@ -37,6 +38,9 @@ impl ProfileError {
                 "Invalid profile or action. Check fields and active-profile policy. / 配置或操作无效，请检查字段和当前配置保护规则"
             }
             Self::Missing => "Catalog or profile not found. / 配置目录或配置不存在",
+            Self::Unmigrated => {
+                "This catalog has not been migrated. Profiles stay unread until migration finishes. / 配置尚未迁移，迁移完成前不会列出配置"
+            }
             Self::Storage => {
                 "Operation failed. Check file access, backup and recovery state before retrying. / 操作失败，请检查访问权限、备份及恢复状态后重试"
             }
@@ -50,6 +54,9 @@ fn safe_error(error: CcrError) -> ProfileError {
     match error {
         CcrError::ValidationError(ref message) if message.contains("版本冲突") => {
             ProfileError::Conflict
+        }
+        CcrError::ConfigError(ref message) if message.contains("尚未迁移") => {
+            ProfileError::Unmigrated
         }
         CcrError::ValidationError(_)
         | CcrError::ConfigFormatInvalid(_)
@@ -234,7 +241,9 @@ pub fn context(source: &ConfigSource, platform: Platform) -> Result<ProfileLifec
 fn rows(context: &ProfileLifecycleContext, filter: &str) -> Result<Vec<ConfigRow>> {
     context.run(|| {
         let snapshot = context.manager().snapshot()?;
-        let current = context.instance().get_current_profile()?;
+        // A readable catalog stays listed when active-profile resolution fails.
+        // No resolved name means no Current badge; the default row is not a substitute.
+        let current = context.instance().get_current_profile().ok().flatten();
         let profiles = snapshot.config.sections.iter().map(|(name, section)| {
             (
                 name.clone(),
@@ -1299,5 +1308,86 @@ pub(crate) mod tests {
         assert!(
             matches!(execute(&context, &context.paths().root, ProfileCommand::History),Ok(ProfileResult::Lines(lines)) if lines.len()==2 && !lines.join("\n").contains("history-secret-sentinel"))
         );
+    }
+
+    fn seed_named(
+        source: &ConfigSource,
+        platform: Platform,
+        name: &str,
+        current: bool,
+    ) -> ProfileLifecycleContext {
+        let context = context(source, platform).unwrap_or_else(|_| panic!("context"));
+        context
+            .run(|| {
+                let mut config = ccr_config::CcsConfig {
+                    default_config: name.into(),
+                    current_config: if current { name.into() } else { String::new() },
+                    settings: Default::default(),
+                    sections: Default::default(),
+                };
+                config.sections.insert(
+                    name.into(),
+                    ccr_config::ConfigSection {
+                        description: Some("Fixture profile".into()),
+                        base_url: Some("https://fixture.invalid".into()),
+                        auth_token: Some(ccr_core::Secret::new(
+                            "sk-native-profile-secret-sentinel",
+                        )),
+                        model: Some("fixture-model".into()),
+                        enabled: Some(true),
+                        ..Default::default()
+                    },
+                );
+                context.manager().save(&config)
+            })
+            .unwrap_or_else(|_| panic!("seed"));
+        context
+    }
+
+    #[test]
+    fn legacy_toml_is_not_listed_and_error_hides_the_secret() {
+        let root = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
+        let profiles = root.path().join("profiles.toml");
+        let database = profiles.with_file_name("profiles.db");
+        std::fs::write(
+            &profiles,
+            "current_config = \"legacy-name\"\n\n[legacy-name]\nauth_token = \"sk-native-profile-secret-sentinel\"\n",
+        )
+        .unwrap_or_else(|_| panic!("write"));
+        let source = ConfigSource::Fixture {
+            profiles,
+            registry: root.path().join("registry.toml"),
+            delay: Duration::ZERO,
+        };
+        let context = context(&source, Platform::Claude).unwrap_or_else(|_| panic!("context"));
+        let Err(error) = rows(&context, "") else {
+            panic!("legacy read must fail");
+        };
+        let safe = safe_error(error);
+        assert_eq!(safe, ProfileError::Unmigrated);
+        assert!(!safe.message().contains("sk-native-profile-secret-sentinel"));
+        assert!(!safe.message().contains("legacy-name"));
+        assert!(!database.exists());
+    }
+
+    #[test]
+    fn unreadable_codex_runtime_keeps_catalog_rows_without_current() {
+        let root = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
+        let source = ConfigSource::Fixture {
+            profiles: root.path().join("profiles.toml"),
+            registry: root.path().join("registry.toml"),
+            delay: Duration::ZERO,
+        };
+        let context = seed_named(&source, Platform::Codex, "codex-kept", true);
+        let runtime = context.instance().get_settings_path();
+        let parent = runtime.parent().unwrap_or_else(|| panic!("runtime parent"));
+        std::fs::create_dir_all(parent).unwrap_or_else(|_| panic!("runtime dir"));
+        std::fs::write(&runtime, b"[").unwrap_or_else(|_| panic!("runtime"));
+        let listed = rows(&context, "").unwrap_or_else(|_| panic!("catalog read"));
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].name, "codex-kept");
+        assert!(!listed[0].is_current);
+        assert!(!listed[0].auth_token.contains("secret-sentinel"));
+        assert!(listed[0].auth_token.contains("..."));
     }
 }

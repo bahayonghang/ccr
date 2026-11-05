@@ -2,11 +2,11 @@
 use ccr_app::runtime::RuntimeOwner;
 use ccr_gpui::{
     locales::Language,
-    runtime::{ConfigSource, Services},
+    runtime::{ConfigSource, Services, profiles::context},
     shell::Shell,
 };
 use gpui_kit::component::{Theme, ThemeMode};
-use gpui_kit::test::TestWindowExt;
+use gpui_kit::test::{TestAppContextExt, TestWindowExt};
 use gpui_kit::{AppContext, TestAppContext, WindowOptions};
 use std::time::Duration;
 
@@ -460,5 +460,157 @@ fn workbench_navigation_exposes_thirteen_destinations(cx: &mut TestAppContext) {
         window.remove_window();
     })
     .unwrap_or_else(|e| panic!("navigation: {e}"));
+    owner.shutdown();
+}
+
+fn seed_catalog(source: &ConfigSource, platform: ccr_config::Platform, name: &str, current: bool) {
+    let context = context(source, platform).unwrap_or_else(|_| panic!("context"));
+    context
+        .run(|| {
+            let mut config = ccr_config::CcsConfig {
+                default_config: name.into(),
+                current_config: if current { name.into() } else { String::new() },
+                settings: Default::default(),
+                sections: Default::default(),
+            };
+            config.sections.insert(
+                name.into(),
+                ccr_config::ConfigSection {
+                    description: Some("Fixture profile".into()),
+                    base_url: Some("https://fixture.invalid".into()),
+                    auth_token: Some(ccr_core::Secret::new("sk-native-profile-secret-sentinel")),
+                    model: Some("fixture-model".into()),
+                    enabled: Some(true),
+                    ..Default::default()
+                },
+            );
+            context.manager().save(&config)
+        })
+        .unwrap_or_else(|_| panic!("seed"));
+}
+
+fn page_labels(window: &gpui_kit::Window) -> String {
+    gpui_kit::base::test_support::snapshots(window)
+        .into_iter()
+        .filter_map(|node| node.label().map(str::to_string))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+#[gpui_kit::test]
+async fn profile_pages_show_only_their_catalog(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
+    let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
+    let source = ConfigSource::Fixture {
+        profiles: root.path().join("profiles.toml"),
+        registry: root.path().join("registry.toml"),
+        delay: Duration::ZERO,
+    };
+    seed_catalog(&source, ccr_config::Platform::Claude, "claude-kept", true);
+    seed_catalog(&source, ccr_config::Platform::Codex, "codex-kept", false);
+    let (handle, _) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(
+            WindowOptions {
+                window_bounds: Some(gpui_kit::WindowBounds::Windowed(
+                    gpui_kit::Bounds::centered(
+                        None,
+                        gpui_kit::size(gpui_kit::px(1280.), gpui_kit::px(800.)),
+                        cx,
+                    ),
+                )),
+                ..Default::default()
+            },
+            cx,
+            |window, cx| cx.new(|cx| Shell::new(Services::new(owner.handle(), source), window, cx)),
+        )
+        .unwrap_or_else(|e| panic!("window: {e}"))
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(window.try_find("nav-converter").is_none());
+        window.click("nav-claude-code", cx);
+    })
+    .unwrap_or_else(|e| panic!("open claude: {e}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("configuration:claude-kept").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(window.find("page-claude-code").visible());
+        let text = page_labels(window);
+        assert_eq!(
+            window.find("configuration:claude-kept").label(),
+            Some("claude-kept, current")
+        );
+        assert_eq!(
+            window.find("configuration-status").label(),
+            Some("1 profile")
+        );
+        assert!(!text.contains("codex-kept"));
+        assert!(!text.contains("sk-native-profile-secret-sentinel"));
+        assert!(!text.contains("Home insights"));
+        assert!(!text.contains("Apply / refresh"));
+        window.click("configuration:claude-kept", cx);
+        window.render_frame(cx);
+        let credential = window
+            .find("configuration-credential")
+            .label()
+            .unwrap_or_default()
+            .to_string();
+        assert!(credential.contains("sk-n...inel"), "{credential}");
+        assert!(!credential.contains("sk-native-profile-secret-sentinel"));
+        assert!(!page_labels(window).contains("sk-native-profile-secret-sentinel"));
+        window.click("nav-codex", cx);
+    })
+    .unwrap_or_else(|e| panic!("open codex: {e}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("configuration:codex-kept").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(window.find("page-codex").visible());
+        let text = page_labels(window);
+        assert_eq!(
+            window.find("configuration:codex-kept").label(),
+            Some("codex-kept")
+        );
+        assert_eq!(
+            window.find("configuration-status").label(),
+            Some("1 profile")
+        );
+        assert!(!text.contains("claude-kept"));
+        assert!(!text.contains("sk-native-profile-secret-sentinel"));
+        window.click("nav-grok", cx);
+    })
+    .unwrap_or_else(|e| panic!("open grok: {e}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window
+            .try_find("configuration-status")
+            .and_then(|node| {
+                node.label()
+                    .map(|label| label.contains("Catalog or profile not found"))
+            })
+            .unwrap_or(false)
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(window.find("page-grok").visible());
+        let text = page_labels(window);
+        assert!(text.contains("Catalog or profile not found"));
+        assert!(!text.contains("claude-kept"));
+        assert!(!text.contains("codex-kept"));
+        assert!(window.try_find("configuration:claude-kept").is_none());
+        assert!(window.try_find("configuration:codex-kept").is_none());
+        assert!(!text.contains("sk-native-profile-secret-sentinel"));
+        assert!(!text.contains("Home insights"));
+        assert!(!text.contains("Apply / refresh"));
+        window.remove_window();
+    })
+    .unwrap_or_else(|e| panic!("grok: {e}"));
     owner.shutdown();
 }
