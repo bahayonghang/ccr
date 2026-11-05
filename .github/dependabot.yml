@@ -25,6 +25,11 @@ updates:
     schedule:
       interval: monthly
     labels: [dependencies, vscode]
+    # @types/vscode 的声明下限不能高于 engines.vscode（当前 ^1.85.0）。
+    # vsce package 会直接拒绝，所以不接收更高版本的类型更新。
+    ignore:
+      - dependency-name: "@types/vscode"
+        versions: [">1.85.0"]
   - package-ecosystem: bun
     directory: /docs
     schedule:
