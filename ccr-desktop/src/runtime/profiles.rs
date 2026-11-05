@@ -567,8 +567,9 @@ fn execute(
             ProfileCommand::Off => {
                 let outcome = context.off()?;
                 return Ok(ProfileResult::Done(format!(
-                    "Changed: {}; warning count: {}. Review CCR recovery records if warnings remain. / 已处理停用；如有警告请检查恢复记录。",
-                    outcome.changed, outcome.warnings.len()
+                    "Changed: {changed}; warning count: {count}. Review CCR recovery records if warnings remain. / 已处理停用：{changed}；警告数：{count}。如有警告请检查恢复记录。",
+                    changed = outcome.changed,
+                    count = outcome.warnings.len(),
                 )));
             }
             ProfileCommand::Validate => {

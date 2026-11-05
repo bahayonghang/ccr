@@ -84,7 +84,13 @@ impl PoliciesView {
                                         this.message = "Operation completed. Budget updates persist supplied fields sequentially; custom pricing does not reprice llmusage. / 操作完成。预算逐字段保存；自定义价格不改写 llmusage 用量价格。".into();
                                     }
                                     Completion::Failed(error) | Completion::CleanupFailed(error) => {
-                                        this.message = format!("{} Budget changes may have persisted earlier fields; reload before retrying. / 预算可能已保存前面的字段，请先重读再重试。", error.message());
+                                        let detail = crate::locales::localized_line(cx, error.message());
+                                        let note = text(
+                                            cx,
+                                            "Budget changes may have persisted earlier fields; reload before retrying.",
+                                            "预算可能已保存前面的字段，请先重读再重试。",
+                                        );
+                                        this.message = format!("{detail} {note}");
                                     }
                                     Completion::Cancelled => this.message = "Operation did not start / 操作尚未开始".into(),
                                     Completion::WorkerFailed => this.message = "Worker stopped without a result. Reload before retrying. / 后台任务未返回结果，请重读后再重试。".into(),
@@ -148,7 +154,7 @@ impl PoliciesView {
             "Reset all custom pricing to built-in defaults? / 将全部自定义价格重置为内置默认值？"
                 .into()
         } else {
-            format!("Remove custom price for {model}? / 删除此模型的自定义价格？")
+            format!("Remove custom price for {model}? / 删除模型 {model} 的自定义价格？")
         };
         self.decision = Some(if reset {
             PolicyCommand::ResetPricing
@@ -205,14 +211,15 @@ impl Render for PoliciesView {
                     });
                 });
             }
+            let decision_label = crate::locales::localized_line(cx, &self.decision_label);
             return root
                 .child(
                     div()
                         .id("policy-confirmation")
                         .test_support()
                         .role(gpui_kit::Role::AlertDialog)
-                        .aria_label(self.decision_label.clone())
-                        .child(self.decision_label.clone()),
+                        .aria_label(decision_label.clone())
+                        .child(decision_label),
                 )
                 .child(
                     div()
@@ -222,7 +229,7 @@ impl Render for PoliciesView {
                         .gap(px(theme::CONTROL_GAP))
                         .child(semantics::button(
                             Button::new("policy-cancel")
-                                .label("Cancel / 取消")
+                                .label(text(cx, "Cancel", "取消"))
                                 .ghost()
                                 .on_click(
                                     cx.listener(|this, _, window, cx| this.dismiss(window, cx)),
@@ -233,7 +240,7 @@ impl Render for PoliciesView {
                         ))
                         .child(semantics::button(
                             Button::new("policy-confirm")
-                                .label("Confirm / 确认")
+                                .label(text(cx, "Confirm", "确认"))
                                 .on_click(cx.listener(|this, _, window, cx| {
                                     let command = this.decision.take();
                                     this.dismiss(window, cx);
@@ -256,7 +263,7 @@ impl Render for PoliciesView {
                 .gap(px(theme::CONTROL_GAP))
                 .child(semantics::button(
                     Button::new("policy-load-budget")
-                        .label("Load budgets / 读取预算")
+                        .label(text(cx, "Load budgets", "读取预算"))
                         .on_click(
                             cx.listener(|this, _, _, cx| this.load(PolicyCommand::Budgets, cx)),
                         ),
@@ -266,7 +273,7 @@ impl Render for PoliciesView {
                 ))
                 .child(semantics::button(
                     Button::new("policy-load-pricing")
-                        .label("List custom pricing / 读取自定义价格")
+                        .label(text(cx, "List custom pricing", "读取自定义价格"))
                         .ghost()
                         .on_click(
                             cx.listener(|this, _, _, cx| this.load(PolicyCommand::Pricing, cx)),
@@ -276,9 +283,9 @@ impl Render for PoliciesView {
                     cx,
                 )),
         );
-        root = root.child(Input::new(&self.model).id("policy-model").aria_label("Pricing model ID / 价格模型 ID"))
+        root = root.child(Input::new(&self.model).id("policy-model").aria_label(text(cx, "Pricing model ID", "价格模型 ID")))
             .child(text(cx, "Budget patch: enabled, dailyLimit, weeklyLimit, monthlyLimit, warnAtPercent; null clears a limit. Pricing: model, input_price, output_price, cache_read_price, cache_write_price (USD per million tokens).", "预算变更字段：enabled、dailyLimit、weeklyLimit、monthlyLimit、warnAtPercent；null 清除限额。模型价格单位为美元/百万 Token，使用现有价格字段。"))
-            .child(Textarea::new(&self.draft).accessibility_id("policy-draft").aria_label("Budget patch or pricing JSON / 预算变更或价格 JSON").h(px(110.)).readonly(self.busy));
+            .child(Textarea::new(&self.draft).accessibility_id("policy-draft").aria_label(text(cx, "Budget patch or pricing JSON", "预算变更或价格 JSON")).h(px(110.)).readonly(self.busy));
         root = root.child(
             div()
                 .flex()
@@ -286,7 +293,7 @@ impl Render for PoliciesView {
                 .gap(px(theme::CONTROL_GAP))
                 .child(semantics::button(
                     Button::new("policy-save-budget")
-                        .label("Save budget patch / 保存预算变更")
+                        .label(text(cx, "Save budget patch", "保存预算变更"))
                         .on_click(cx.listener(|this, _, _, cx| this.save(false, cx))),
                     self.busy,
                     false,
@@ -294,7 +301,7 @@ impl Render for PoliciesView {
                 ))
                 .child(semantics::button(
                     Button::new("policy-save-pricing")
-                        .label("Set model pricing / 保存模型价格")
+                        .label(text(cx, "Set model pricing", "保存模型价格"))
                         .ghost()
                         .on_click(cx.listener(|this, _, _, cx| this.save(true, cx))),
                     self.busy,
@@ -303,7 +310,7 @@ impl Render for PoliciesView {
                 ))
                 .child(semantics::button(
                     Button::new("policy-remove-pricing")
-                        .label("Remove model pricing / 删除模型价格")
+                        .label(text(cx, "Remove model pricing", "删除模型价格"))
                         .ghost()
                         .on_click(
                             cx.listener(|this, _, window, cx| this.decide(false, window, cx)),
@@ -314,7 +321,7 @@ impl Render for PoliciesView {
                 ))
                 .child(semantics::button(
                     Button::new("policy-reset-pricing")
-                        .label("Reset pricing / 重置价格")
+                        .label(text(cx, "Reset pricing", "重置价格"))
                         .ghost()
                         .on_click(cx.listener(|this, _, window, cx| this.decide(true, window, cx))),
                     self.busy,
@@ -327,12 +334,12 @@ impl Render for PoliciesView {
                 .id("policy-status")
                 .test_support()
                 .role(gpui_kit::Role::Status)
-                .child(self.message.clone()),
+                .child(crate::locales::localized_line(cx, &self.message)),
         )
         .child(
             Textarea::new(&self.output)
                 .accessibility_id("policy-output")
-                .aria_label("Exact policy result / 策略精确结果")
+                .aria_label(text(cx, "Exact policy result", "策略精确结果"))
                 .readonly(true)
                 .h(px(180.)),
         )

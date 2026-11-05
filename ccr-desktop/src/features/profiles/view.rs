@@ -78,13 +78,18 @@ impl Render for ProfileTools {
             }
             let subject = confirm.subject.as_str();
             let message=match confirm.action {Action::GrokForceDelete=>format!("Deactivate Grok and delete {subject}? This changes runtime overrides and removes the saved profile. / 停用 Grok 并删除 {subject}？将修改运行覆盖并删除配置。"),Action::Delete=>format!("Delete {subject}? This removes the saved profile; local backup policy remains in force. / 删除 {subject}？将移除保存的配置。"),Action::Off=>"Deactivate this platform? Runtime overrides are removed to prepare official login. Accounts are not logged out. / 停用当前平台配置？将清理运行覆盖以准备官方登录，不会登出账户。".into(),Action::Source|Action::Inspect|Action::ExportSecrets|Action::Advanced|Action::Environment|Action::ShellEnvironment=>"This opens plaintext credentials in a scoped editor/output. Keep screenshots and logs private. Canonical profile TOML does not preserve comments. / 将显示含明文凭据的临时编辑区；规范 TOML 不保留注释。".into(),Action::ForceSource=>"Remove the active profile from the catalog? This force applies only to activation protection; the original revision is still required. / 强制移除当前配置？仅跳过当前项保护，不绕过版本检查。".into(),Action::Restore=>"Restore a managed backup? Current catalog is backed up before replacement. Enter only a managed backup filename. / 恢复受管备份？替换前将备份当前目录，只接受受管文件名。".into(),Action::RestoreExecute=>format!("Restore {subject} over this catalog? Current catalog is backed up before replacement. / 使用 {subject} 替换当前目录？替换前将备份当前目录。"),Action::Clean=>"Delete managed local backup files? This cannot be undone. Profiles and accounts are retained. / 删除受管本地备份？此操作不可撤销，配置与账户保留。".into(),Action::ClearHistory=>"Clear configuration operation history? This cannot be undone. / 清空配置操作历史？此操作不可撤销。".into(),_=>"Import profiles? Existing matching names may be replaced; a preimage backup is required. / 导入配置？同名项可能被替换，必须先创建备份。".into()};
+            let message = crate::locales::localized_line(cx, &message);
+            let confirm_name = format!(
+                "{}: {message}",
+                text(cx, "Confirm profile action", "确认配置操作")
+            );
             root = root
                 .child(
                     div()
                         .id("profile-confirmation")
                         .test_support()
                         .role(gpui_kit::Role::AlertDialog)
-                        .aria_label(format!("Confirm profile action: {message}"))
+                        .aria_label(confirm_name)
                         .child(message),
                 )
                 .child(
@@ -532,7 +537,16 @@ impl Render for ProfileTools {
             ));
         }
         if let Some((old, new, apply)) = self.grok_recovery.clone() {
-            root=root.child(div().child(if apply{format!("Saved {new}, previous {old} retained. Retry apply after fixing runtime access. / 新配置已保存，旧配置保留。修复运行目录权限后重试应用。 ")}else{format!("{new} is active; {old} cleanup failed. Refresh and inspect the remaining names before cleanup. / 新配置已激活，清理未完成；请刷新并检查实际剩余配置后清理。 ")}));
+            let recovery = if apply {
+                format!(
+                    "Saved {new}, previous {old} retained. Retry apply after fixing runtime access. / 新配置 {new} 已保存，旧配置 {old} 保留。修复运行目录权限后重试应用。"
+                )
+            } else {
+                format!(
+                    "{new} is active; {old} cleanup failed. Refresh and inspect the remaining names before cleanup. / 新配置 {new} 已激活，旧配置 {old} 清理未完成。请刷新并检查实际剩余配置后清理。"
+                )
+            };
+            root = root.child(div().child(crate::locales::localized_line(cx, &recovery)));
             if apply {
                 root = root.child(semantics::button(
                     Button::new("profile-grok-retry-apply")
@@ -553,17 +567,18 @@ impl Render for ProfileTools {
             }
         }
         if let Some(message) = &self.message {
+            let line = crate::locales::localized_line(cx, message);
             root = root.child(
                 div()
                     .id("profile-result")
                     .role(gpui_kit::Role::Status)
-                    .aria_label(message.clone())
+                    .aria_label(line.clone())
                     .text_color(if self.failed {
                         cx.theme().danger
                     } else {
                         cx.theme().muted_foreground
                     })
-                    .child(message.clone()),
+                    .child(line),
             );
         }
         root

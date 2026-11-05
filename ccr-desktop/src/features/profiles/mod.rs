@@ -671,16 +671,15 @@ impl ProfileTools {
             }
             ProfileResult::Outcome(outcome) => {
                 use ccr_cli::application::profile_lifecycle::ProfileStatus;
-                self.message = Some(format!(
-                    "{} · warnings: {:?} · {}",
-                    outcome.message(),
-                    outcome.warnings,
-                    if outcome.recovery_paths.is_empty() {
-                        ""
-                    } else {
-                        "Inspect recovery records before retrying / 重试前请检查恢复记录"
-                    }
-                ));
+                let warnings = format!("{:?}", outcome.warnings);
+                let status = outcome.message();
+                // Status copy has no Chinese half, so the whole sentence stays English.
+                let recovery = if outcome.recovery_paths.is_empty() {
+                    String::new()
+                } else {
+                    " · Inspect recovery records before retrying".to_string()
+                };
+                self.message = Some(format!("{status} · warnings: {warnings}{recovery}"));
                 if matches!(
                     outcome.status,
                     ProfileStatus::Applied | ProfileStatus::AppliedWithWarning
@@ -722,9 +721,9 @@ impl ProfileTools {
                     "{} · {}",
                     path.display(),
                     if *exists {
-                        "catalog exists / 目录存在"
+                        text(cx, "catalog exists", "目录存在")
                     } else {
-                        "new catalog / 新目录"
+                        text(cx, "new catalog", "新目录")
                     }
                 ));
                 self.revision = revision.clone();
@@ -753,11 +752,19 @@ impl ProfileTools {
             ProfileResult::SourceSave(SourceSaveOutcome::Invalid { kind, position, .. }) => {
                 self.activation_conflict = false;
                 self.failed = true;
+                let place = position
+                    .map(|(line, column)| {
+                        format!(
+                            " ({} {line}, {} {column})",
+                            text(cx, "line", "行"),
+                            text(cx, "column", "列"),
+                        )
+                    })
+                    .unwrap_or_default();
                 self.message = Some(format!(
-                    "Invalid {kind:?} / 配置无效{}; no writes / 未写入",
-                    position
-                        .map(|(line, column)| format!(" (line {line}, column {column})"))
-                        .unwrap_or_default()
+                    "{} {kind:?}{place}; {}",
+                    text(cx, "Invalid", "配置无效"),
+                    text(cx, "no writes", "未写入"),
                 ));
             }
         }

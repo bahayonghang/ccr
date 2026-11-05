@@ -311,11 +311,19 @@ impl Render for InstallView {
         );
         if let Some(detection) = &self.snapshot.detection {
             root = root.child(match detection {
-                DetectionResult::Available { version, .. } => format!(
-                    "llmusage available / 已安装 · {}",
-                    version.as_deref().unwrap_or("version unknown / 版本未知")
-                ),
-                DetectionResult::Absent { .. } => "llmusage unavailable / 尚未安装".into(),
+                DetectionResult::Available { version, .. } => {
+                    let version_label =
+                        version
+                            .as_deref()
+                            .unwrap_or(text(cx, "version unknown", "版本未知"));
+                    format!(
+                        "{} · {version_label}",
+                        text(cx, "llmusage available", "已安装")
+                    )
+                }
+                DetectionResult::Absent { .. } => {
+                    text(cx, "llmusage unavailable", "尚未安装").to_string()
+                }
             });
         }
         if let Some(capabilities) = &self.snapshot.capabilities {
@@ -398,7 +406,11 @@ impl Render for InstallView {
                     .focus_trap("install-decision-trap",&self.decision_focus));
         }
         if let Some(error) = self.error.or(self.snapshot.error.map(Error::message)) {
-            root = root.child(div().text_color(cx.theme().danger).child(error));
+            root = root.child(
+                div()
+                    .text_color(cx.theme().danger)
+                    .child(crate::locales::localized_line(cx, error)),
+            );
         }
         if let Some(stage) = self.snapshot.stage {
             root = root.child(match stage {

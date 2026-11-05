@@ -151,17 +151,16 @@ impl InsightsView {
             }
             InsightsSnapshot::Detail(detail) => {
                 let r = detail.page.messages.get(index)?;
-                (
+                let label = if r.clipped {
                     format!(
-                        "{} · {}{}",
-                        r.ordinal,
-                        r.role,
-                        if r.clipped {
-                            " · clipped / 已裁剪"
-                        } else {
-                            ""
-                        }
-                    ),
+                        "{} · {} · clipped / {} · {} · 已裁剪",
+                        r.ordinal, r.role, r.ordinal, r.role
+                    )
+                } else {
+                    format!("{} · {}", r.ordinal, r.role)
+                };
+                (
+                    label,
                     r.tool_name.clone().unwrap_or_default(),
                     r.timestamp.map(|t| t.to_rfc3339()).unwrap_or_default(),
                 )
@@ -181,28 +180,28 @@ impl InsightsView {
         match snapshot {
             InsightsSnapshot::Home(home) => {
                 let r = &home.agents[index];
+                let unmapped_en = if r.unmapped { " (unmapped)" } else { "" };
+                let unmapped_zh = if r.unmapped { "（未映射）" } else { "" };
+                let sessions = if home.sessions_indexed {
+                    r.sessions.to_string()
+                } else {
+                    "not indexed".to_string()
+                };
+                let sessions_zh = if home.sessions_indexed {
+                    r.sessions.to_string()
+                } else {
+                    "尚未索引".to_string()
+                };
                 vec![
                     format!(
-                        "Source / 来源: {}{}",
-                        r.source,
-                        if r.unmapped {
-                            " (unmapped / 未映射)"
-                        } else {
-                            ""
-                        }
+                        "Source: {}{unmapped_en} / 来源：{}{unmapped_zh}",
+                        r.source, r.source
                     ),
                     format!(
-                        "Requests / 请求: {} · Tokens / 令牌: {}",
-                        r.requests, r.tokens
+                        "Requests: {} · Tokens: {} / 请求：{} · 令牌：{}",
+                        r.requests, r.tokens, r.requests, r.tokens
                     ),
-                    format!(
-                        "Sessions / 会话: {}",
-                        if home.sessions_indexed {
-                            r.sessions.to_string()
-                        } else {
-                            "not indexed".into()
-                        }
-                    ),
+                    format!("Sessions: {sessions} / 会话：{sessions_zh}"),
                 ]
             }
             InsightsSnapshot::Usage(report) => match self.section {

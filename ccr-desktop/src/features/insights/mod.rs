@@ -3,7 +3,7 @@ mod policies;
 mod product;
 mod rows;
 use crate::{
-    locales::{is_chinese, service_error, text},
+    locales::{is_chinese, localized_line, service_error, text},
     runtime::{
         Services,
         insights::{
@@ -731,11 +731,7 @@ impl Render for InsightsView {
                 .child(if self.loading {
                     text(cx, "Reading on background worker", "正在后台读取").to_string()
                 } else if let Some(error) = self.error {
-                    if self.surface == Surface::Workbench {
-                        error.to_string()
-                    } else {
-                        service_error(cx, error).to_string()
-                    }
+                    service_error(cx, error).to_string()
                 } else if self.surface == Surface::Workbench {
                     self.summary()
                 } else {
@@ -780,13 +776,14 @@ impl Render for InsightsView {
                 range
                     .filter_map(|index| this.row(index).map(|row| (index, row)))
                     .map(|(index, row)| {
+                        let label = localized_line(cx, &row.label);
                         let selected = this.selected.as_ref() == Some(&row.key);
                         let weak = cx.weak_entity();
                         div()
                             .id(SharedString::from(format!("insights-row:{}", row.key)))
                             .test_support()
                             .role(gpui_kit::Role::ListBoxOption)
-                            .aria_label(format!("{} {} {}", row.label, row.left, row.right))
+                            .aria_label(format!("{label} {} {}", row.left, row.right))
                             .aria_selected(selected)
                             .aria_position_in_set(index + 1)
                             .aria_size_of_set(this.row_count())
@@ -806,7 +803,7 @@ impl Render for InsightsView {
                             })
                             .hover(|style| style.bg(cx.theme().muted))
                             .on_click(cx.listener(move |this, _, _, cx| this.select(index, cx)))
-                            .child(div().flex_1().overflow_hidden().child(row.label))
+                            .child(div().flex_1().overflow_hidden().child(label))
                             .child(
                                 div()
                                     .min_w(px(100.))
@@ -901,7 +898,7 @@ impl Render for InsightsView {
                     .children(
                         self.details(index)
                             .into_iter()
-                            .map(|line| div().child(line)),
+                            .map(|line| div().child(localized_line(cx, &line))),
                     ),
             );
         }
