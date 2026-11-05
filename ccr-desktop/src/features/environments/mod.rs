@@ -58,7 +58,7 @@ impl EnvironmentView {
         self.gate.clear();
         self.generation += 1;
         self.failed = false;
-        if self.services.is_fixture() {
+        if self.services.is_fixture() && !self.services.is_slow_fixture() {
             self.loading = false;
             self.report = Some(ccr_app::environments::inspect(
                 ccr_app::environments::InspectOptions::fixture(),
@@ -67,12 +67,7 @@ impl EnvironmentView {
             cx.notify();
             return;
         }
-        let key = RequestKey {
-            environment: EnvironmentId::Local("local".into()),
-            platform: Platform::Claude,
-            generation: self.generation,
-            request_id: self.generation,
-        };
+        let key = environment_read_key(self.generation);
         self.gate.replace(key.clone());
         self.loading = true;
         match runtime::environments::load(&self.services, key.clone()) {
@@ -81,25 +76,9 @@ impl EnvironmentView {
                     while let Some(event) = subscription.next().await {
                         if let TaskEvent::Terminal(result) = event {
                             let _ = weak.update(cx, |this, cx| {
-                                if !this.gate.accepts(&key) {
-                                    return;
+                                if this.apply_terminal(&key, result.as_ref()) {
+                                    cx.notify();
                                 }
-                                this.loading = false;
-                                match result.as_ref() {
-                                    Completion::Success(report) => {
-                                        this.report = Some(report.clone());
-                                        this.failed = false;
-                                    }
-                                    Completion::Cancelled => {
-                                        this.failed = false;
-                                    }
-                                    Completion::Failed(())
-                                    | Completion::CleanupFailed(())
-                                    | Completion::WorkerFailed => {
-                                        this.failed = true;
-                                    }
-                                }
-                                cx.notify();
                             });
                             break;
                         }
@@ -130,6 +109,60 @@ impl EnvironmentView {
         });
         self.notification_requested = true;
         cx.notify();
+    }
+
+    fn apply_terminal(
+        &mut self,
+        key: &RequestKey,
+        result: &Completion<ccr_app::environments::EnvironmentReport, ()>,
+    ) -> bool {
+        if !self.gate.accepts(key) {
+            return false;
+        }
+        self.loading = false;
+        match result {
+            Completion::Success(report) => {
+                self.report = Some(report.clone());
+                self.failed = false;
+            }
+            Completion::Cancelled => {
+                self.failed = false;
+            }
+            Completion::Failed(()) | Completion::CleanupFailed(()) | Completion::WorkerFailed => {
+                self.failed = true;
+            }
+        }
+        true
+    }
+}
+
+fn environment_read_key(generation: u64) -> RequestKey {
+    RequestKey {
+        environment: EnvironmentId::Local("local".into()),
+        platform: Platform::Claude,
+        generation,
+        request_id: generation,
+    }
+}
+
+#[cfg(test)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct EnvironmentProbe {
+    pub task: bool,
+    pub loading: bool,
+    pub failed: bool,
+    pub ssh: Option<SshNames>,
+}
+
+#[cfg(test)]
+impl EnvironmentView {
+    pub(crate) fn probe(&self) -> EnvironmentProbe {
+        EnvironmentProbe {
+            task: self.task.is_some(),
+            loading: self.loading,
+            failed: self.failed,
+            ssh: self.report.as_ref().map(|report| report.ssh.clone()),
+        }
     }
 }
 

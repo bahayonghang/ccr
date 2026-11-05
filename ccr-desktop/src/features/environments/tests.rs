@@ -1,11 +1,11 @@
-use super::{local_line, ssh_line, ssh_trust_line, wsl_line};
+use super::{environment_read_key, local_line, ssh_line, ssh_trust_line, wsl_line};
 use crate::runtime::ConfigSource;
 use crate::shell::Shell;
 use ccr_app::environments::{
-    HostKeyStatus, SshNames, WslExecProbe, WslFileTarget, WslProbe, decide_host_key,
-    resolve_wsl_file,
+    EnvironmentReport, HostKeyStatus, InspectOptions, SshNames, WslExecProbe, WslFileTarget,
+    WslProbe, decide_host_key, inspect, resolve_wsl_file,
 };
-use ccr_app::runtime::RuntimeOwner;
+use ccr_app::runtime::{Completion, RuntimeHandle, RuntimeOwner};
 use gpui_kit::test::TestWindowExt;
 use gpui_kit::{AppContext, TestAppContext, WindowBounds, WindowOptions, px, size};
 use std::time::Duration;
@@ -250,5 +250,232 @@ async fn settings_shows_the_local_desktop_without_a_sample_distro(cx: &mut TestA
     assert_eq!(shown.len(), 1);
     assert_eq!(shown[0].tag.as_ref(), "ccr-gpui-environment");
     assert!(!shown[0].body.contains(" / "));
+    owner.shutdown();
+}
+
+fn held_services(owner: &RuntimeOwner, root: &std::path::Path) -> crate::runtime::Services {
+    crate::runtime::Services::new(
+        owner.handle(),
+        ConfigSource::Fixture {
+            profiles: root.join("profiles.toml"),
+            registry: root.join("registry.toml"),
+            delay: Duration::from_secs(30),
+        },
+    )
+}
+
+fn report_named(name: &str) -> EnvironmentReport {
+    let mut report = inspect(InspectOptions::fixture(), &|| false);
+    report.ssh = SshNames::Names(vec![name.into()]);
+    report
+}
+
+fn wait_until_runtime_idle(handle: &RuntimeHandle) {
+    let started = std::time::Instant::now();
+    while handle.active_tasks() > 0 {
+        assert!(
+            started.elapsed() < Duration::from_secs(5),
+            "held environment read was still running"
+        );
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+fn routes() -> [&'static str; 13] {
+    [
+        "nav-dashboard",
+        "nav-agent-sessions",
+        "nav-mcp-manager",
+        "nav-claude-code",
+        "nav-codex",
+        "nav-grok",
+        "nav-antigravity",
+        "nav-opencode",
+        "nav-commands",
+        "nav-checkin",
+        "nav-sync",
+        "nav-usage",
+        "nav-settings",
+    ]
+}
+
+#[gpui_kit::test]
+fn leaving_settings_suspends_the_in_flight_environment_read(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap_or_else(|error| panic!("{error}"));
+    let executor = owner.handle();
+    let root = tempfile::tempdir().unwrap_or_else(|error| panic!("{error}"));
+    let (handle, shell) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(
+            WindowOptions {
+                window_bounds: Some(WindowBounds::Windowed(gpui_kit::Bounds::centered(
+                    None,
+                    size(px(1280.), px(900.)),
+                    cx,
+                ))),
+                ..Default::default()
+            },
+            cx,
+            |window, cx| cx.new(|cx| Shell::new(held_services(&owner, root.path()), window, cx)),
+        )
+        .unwrap_or_else(|error| panic!("{error}"))
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("nav-settings", cx);
+        window.render_frame(cx);
+        let probe = shell.update(cx, |this, cx| this.environment_probe(cx));
+        assert!(probe.task);
+        assert!(probe.loading);
+        assert!(!probe.failed);
+        assert!(probe.ssh.is_none());
+        let text = labels(window);
+        assert!(text.contains("Checking WSL."));
+        assert!(text.contains("Checking saved SSH host names."));
+        assert!(!text.contains("WSL was not queried for demo data."));
+        assert!(!text.contains("正在检查 WSL。"));
+        assert!(!text.contains(" / "));
+        assert!(!text.contains("Home insights"));
+        assert!(!text.contains("Apply / refresh"));
+        assert!(!text.to_lowercase().contains("blur"));
+        assert!(window.try_find("env-wsl").is_some());
+        assert!(window.try_find("env-hide-action").is_none());
+        for id in routes() {
+            assert!(window.try_find(id).is_some(), "{id} missing");
+        }
+        window.click("nav-dashboard", cx);
+        window.render_frame(cx);
+        let probe = shell.update(cx, |this, cx| this.environment_probe(cx));
+        assert!(!probe.task);
+        assert!(!probe.loading);
+        assert!(!probe.failed);
+        assert!(probe.ssh.is_none());
+        assert!(window.try_find("page-dashboard").is_some());
+        assert!(window.try_find("page-settings").is_none());
+        assert!(window.try_find("env-wsl").is_none());
+        assert!(window.try_find("env-ssh").is_none());
+        let left = labels(window);
+        assert!(!left.contains("Checking WSL."));
+        assert!(!left.contains("Checking saved SSH host names."));
+        assert!(!left.contains("WSL was not queried for demo data."));
+        assert!(!left.contains(ssh_trust_line(false)));
+        assert!(!left.contains("Saved SSH host names:"));
+        assert!(!left.contains("No SSH host list is loaded"));
+        assert!(!left.contains(" / "));
+        assert!(!left.contains("Home insights"));
+        assert!(!left.contains("Apply / refresh"));
+    })
+    .unwrap_or_else(|error| panic!("{error}"));
+    cx.run_until_parked();
+    wait_until_runtime_idle(&executor);
+    cx.run_until_parked();
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        let probe = shell.update(cx, |this, cx| this.environment_probe(cx));
+        assert!(!probe.task);
+        assert!(!probe.loading);
+        assert!(!probe.failed);
+        assert!(probe.ssh.is_none());
+        assert!(window.try_find("env-wsl").is_none());
+        let left = labels(window);
+        assert!(!left.contains("Checking WSL."));
+        assert!(!left.contains("WSL was not queried for demo data."));
+        assert!(!left.contains(ssh_trust_line(false)));
+        assert!(!left.contains("No SSH host list is loaded"));
+        window.remove_window();
+    })
+    .unwrap_or_else(|error| panic!("{error}"));
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+fn stale_environment_terminal_does_not_replace_the_visible_report(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap_or_else(|error| panic!("{error}"));
+    let executor = owner.handle();
+    let root = tempfile::tempdir().unwrap_or_else(|error| panic!("{error}"));
+    let services = held_services(&owner, root.path());
+    assert!(services.is_slow_fixture());
+    let (handle, view) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(WindowOptions::default(), cx, |_window, cx| {
+            cx.new(|cx| super::EnvironmentView::new(services, cx))
+        })
+        .unwrap_or_else(|error| panic!("{error}"))
+    });
+    cx.update_window(handle, |_, window, cx| {
+        view.update(cx, |this, cx| {
+            this.refresh(cx);
+            assert!(this.task.is_some());
+            assert!(this.loading);
+            assert!(this.report.is_none());
+            let first = environment_read_key(this.generation);
+            assert!(this.apply_terminal(&first, &Completion::Success(report_named("late-host"))));
+            this.suspend(cx);
+            assert!(this.task.is_none());
+            assert!(!this.loading);
+            assert!(
+                !this.apply_terminal(&first, &Completion::Success(report_named("after-suspend")))
+            );
+            assert!(!this.apply_terminal(&first, &Completion::Failed(())));
+            this.refresh(cx);
+            assert!(this.task.is_some());
+            assert_eq!(this.generation, first.generation + 2);
+            assert!(!this.apply_terminal(
+                &first,
+                &Completion::Success(report_named("stale-generation"))
+            ));
+            let current = environment_read_key(this.generation);
+            this.suspend(cx);
+            assert!(this.task.is_none());
+            assert!(!this.apply_terminal(
+                &current,
+                &Completion::Success(report_named("after-second-suspend"))
+            ));
+            assert!(!this.failed);
+            assert!(!this.loading);
+            assert_eq!(
+                this.report.as_ref().map(|report| report.ssh.clone()),
+                Some(SshNames::Names(vec!["late-host".into()]))
+            );
+        });
+        window.render_frame(cx);
+        let text = labels(window);
+        assert!(text.contains("Saved SSH host names: late-host."));
+        assert!(text.contains(ssh_trust_line(false)));
+        assert!(!text.contains("after-suspend"));
+        assert!(!text.contains("stale-generation"));
+        assert!(!text.contains("after-second-suspend"));
+        assert!(!text.contains("No SSH host list is loaded"));
+        assert!(!text.contains("Checking WSL."));
+        assert!(!text.contains(" / "));
+    })
+    .unwrap_or_else(|error| panic!("{error}"));
+    cx.run_until_parked();
+    wait_until_runtime_idle(&executor);
+    cx.run_until_parked();
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        let text = labels(window);
+        assert!(text.contains("Saved SSH host names: late-host."));
+        assert!(!text.contains("after-suspend"));
+        assert!(!text.contains("stale-generation"));
+        assert!(!text.contains("after-second-suspend"));
+        assert!(!text.contains("No SSH host list is loaded"));
+        assert!(!text.contains("docker-desktop"));
+        assert!(!text.contains("Ubuntu"));
+        view.update(cx, |this, _cx| {
+            assert!(this.task.is_none());
+            assert!(!this.loading);
+            assert!(!this.failed);
+            assert_eq!(
+                this.report.as_ref().map(|report| report.ssh.clone()),
+                Some(SshNames::Names(vec!["late-host".into()]))
+            );
+        });
+        window.remove_window();
+    })
+    .unwrap_or_else(|error| panic!("{error}"));
     owner.shutdown();
 }

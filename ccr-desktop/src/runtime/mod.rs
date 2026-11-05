@@ -174,6 +174,13 @@ impl Services {
         matches!(self.source, ConfigSource::Fixture { delay, .. } if !delay.is_zero())
     }
 
+    fn fixture_delay(&self) -> Duration {
+        match self.source {
+            ConfigSource::Fixture { delay, .. } => delay,
+            ConfigSource::Local => Duration::ZERO,
+        }
+    }
+
     pub fn configurations(
         &self,
         key: RequestKey,

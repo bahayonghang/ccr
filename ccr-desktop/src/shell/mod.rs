@@ -153,6 +153,14 @@ impl Shell {
         shell
     }
 
+    #[cfg(test)]
+    pub(crate) fn environment_probe(
+        &self,
+        cx: &Context<Self>,
+    ) -> crate::features::environments::EnvironmentProbe {
+        self.environments.read(cx).probe()
+    }
+
     fn nav_items() -> [(&'static str, Destination, &'static str, &'static str); 13] {
         [
             (
