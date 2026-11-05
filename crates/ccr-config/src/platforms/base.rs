@@ -521,6 +521,10 @@ pub fn mutate_profiles_with_current<T>(
     mutate: impl FnOnce(&mut IndexMap<String, ProfileConfig>, &mut String) -> Result<T>,
 ) -> Result<T> {
     ConfigManager::new(profiles_path).mutate_or_create(|config| {
+        // Unrelated CRUD must retain an existing invalid marker so the platform
+        // can still resolve its registry fallback. Repair is an explicit action.
+        let preserve_invalid_current =
+            !config.sections.is_empty() && !config.sections.contains_key(&config.current_config);
         let mut profiles = config
             .sections
             .iter()
@@ -550,7 +554,10 @@ pub fn mutate_profiles_with_current<T>(
             config.default_config = first.clone();
         }
         // An empty marker denotes an explicitly inactive platform.
-        if !config.current_config.is_empty() && !sections.contains_key(&config.current_config) {
+        if !preserve_invalid_current
+            && !config.current_config.is_empty()
+            && !sections.contains_key(&config.current_config)
+        {
             config.current_config = first;
         }
         config.sections = sections;

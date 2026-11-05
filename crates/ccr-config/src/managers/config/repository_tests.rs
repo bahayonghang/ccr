@@ -809,6 +809,45 @@ fn clear_current_keeps_missing_absent_and_propagates_corrupt_or_unreadable() {
 }
 
 #[test]
+fn platform_adapter_preserves_invalid_marker_without_changing_initialization_or_removal() {
+    let _env = TestCcrEnv::new();
+    let paths = PlatformPaths::new(Platform::Claude).unwrap();
+    let manager = ConfigManager::new(&paths.profiles_file);
+    base::mutate_profiles(&paths.profiles_file, "claude", &paths, |profiles| {
+        for name in ["first", "active"] {
+            profiles.insert(name.into(), base::section_to_profile(&section()));
+        }
+        Ok(())
+    })
+    .unwrap();
+    assert_eq!(manager.snapshot().unwrap().config.current_config, "first");
+    manager
+        .mutate(|config| {
+            config.current_config = "ghost".into();
+            Ok(())
+        })
+        .unwrap();
+    base::mutate_profiles(&paths.profiles_file, "claude", &paths, |profiles| {
+        profiles.get_mut("active").unwrap().description = Some("edited".into());
+        Ok(())
+    })
+    .unwrap();
+    assert_eq!(manager.snapshot().unwrap().config.current_config, "ghost");
+    manager
+        .mutate(|config| {
+            config.current_config = "first".into();
+            Ok(())
+        })
+        .unwrap();
+    base::mutate_profiles(&paths.profiles_file, "claude", &paths, |profiles| {
+        profiles.shift_remove("first");
+        Ok(())
+    })
+    .unwrap();
+    assert_eq!(manager.snapshot().unwrap().config.current_config, "active");
+}
+
+#[test]
 fn platform_adapter_keeps_unedited_toml_datetime_extensions() {
     let _env = TestCcrEnv::new();
     let service = service();
