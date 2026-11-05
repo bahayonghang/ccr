@@ -8,8 +8,8 @@ use tauri::{Emitter, State};
 use ts_rs::TS;
 
 use ccr_app::environments::{
-    DisconnectReport, ProcessHostTrust, ReconnectGate, allow_reconnect, allow_reconnect_target,
-    disconnect_error, plan_disconnect, reconnect_gate,
+    ProcessHostTrust, ReconnectGate, allow_reconnect, allow_reconnect_target, disconnect_error,
+    plan_disconnect, reconnect_gate,
 };
 use ccr_db::database::repositories::ssh_repo;
 use ccr_db::models::ssh::{SshHost, SshKnownHost};
@@ -839,6 +839,8 @@ pub async fn ssh_list_keys() -> Result<Vec<SshKeyInfoDto>, String> {
 
 #[cfg(test)]
 mod tests {
+    use ccr_app::environments::DisconnectReport;
+
     use super::*;
 
     fn ssh_environment(id: &str) -> Arc<SshEnvironment> {
