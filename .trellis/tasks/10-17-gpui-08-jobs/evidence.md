@@ -1,0 +1,7 @@
+# Command workbench checkpoint — 2026-10-29
+
+Status remains in_progress, current active task08. Five inventory entries have an integrated source checkpoint;63 remain unimplemented natively. Automatic re-subscription, foreground/help, install/sync/checkin and actual trusted-sidecar/native process acceptance remain open.
+
+Common policy, retained CommandJobs and process gateway now have GPUI and Tauri consumers. Tauri owns its wire/events and compile-time sidecar context. The preserved red test exposed free-text assignment secret leakage; ccr-core owner repair and the later four-byte UTF8 regression passed. Actual final app suite56 library+15 integration, core redaction5, native desktop44+4+2, Tauri command6/process1/prompt5/settings4 and strict/shared/native/Tauri gates passed. Transactional bindings and registry inventory match. No package versions changed.
+
+Main-run receipts are under `outputs/desktop/continuation-20261028/resume29-*`; exact results/limitations and candidate8a0149 source identity are in the parent [continuation report](../10-17-gpui-desktop/research/continuation-20261029.md). Independent source review: [check report](research/check-20261029.md). Native jobs actions were not performed after minimized-window/user-input protection; app-owner fake-process tests are not labeled native GUI acceptance. No real CCR/domain command, install/network/account action, commit or archive.

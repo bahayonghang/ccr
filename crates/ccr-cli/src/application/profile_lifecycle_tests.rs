@@ -104,6 +104,67 @@ fn injected_constructors_and_missing_reads_create_no_files() {
 }
 
 #[test]
+fn injected_metadata_edit_preserves_registry_fallback_current() {
+    for name in ["old", "new"] {
+        let fixture = tempfile::tempdir().unwrap();
+        let context = context(fixture.path(), Platform::Claude);
+        seed(&context);
+        context
+            .run(|| {
+                context.manager().mutate(|catalog| {
+                    catalog.current_config = "ghost".into();
+                    Ok(())
+                })?;
+                ccr_config::platforms::base::update_registry_current_profile_with_paths(
+                    &context.paths().registry_file,
+                    &context.lock_dir,
+                    "claude",
+                    "new",
+                )
+            })
+            .unwrap();
+        assert_eq!(
+            context.instance().get_current_profile().unwrap().as_deref(),
+            Some("new")
+        );
+        let registry = std::fs::read(&context.paths().registry_file).unwrap();
+        let draft = context.manager().snapshot().unwrap();
+        let original = draft.config.sections[name].clone();
+        let result = context
+            .update(name, name, Some(&draft.version), |profile| {
+                profile.description = Some("metadata only".into());
+                Ok(())
+            })
+            .unwrap();
+        assert!(!result.activation_committed);
+        let after = context.manager().snapshot().unwrap();
+        assert_eq!(after.config.current_config, "ghost");
+        assert_eq!(
+            context.instance().get_current_profile().unwrap().as_deref(),
+            Some("new")
+        );
+        assert_eq!(
+            after.config.sections[name].description.as_deref(),
+            Some("metadata only")
+        );
+        assert_eq!(after.config.sections[name].other, original.other);
+        assert_eq!(after.config.sections[name].auth_token, original.auth_token);
+        assert_eq!(
+            std::fs::read(&context.paths().registry_file).unwrap(),
+            registry
+        );
+        assert!(
+            !context
+                .claude_runtime
+                .as_ref()
+                .unwrap()
+                .settings_file
+                .exists()
+        );
+    }
+}
+
+#[test]
 fn injected_edit_cas_apply_rename_replay_and_off_use_existing_owners() {
     for platform in [Platform::Claude, Platform::Codex, Platform::Grok] {
         let fixture = tempfile::tempdir().unwrap();

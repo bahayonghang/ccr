@@ -83,6 +83,15 @@ After implementation:
 - [ ] Verified error handling at each boundary
 - [ ] Checked data survives round-trip
 
+### Event-driven UI boundary checks
+
+- [ ] Start from the actual outside state (for example, sidebar focus), then trigger the rendered control; do not manually establish the state transition being tested.
+- [ ] Include mount/render, deferred callbacks, cancellation and leave ordering. A focus trap present in the tree does not prove initial focus entered it.
+- [ ] Verify a regression distinguishes old and repaired behavior under the same harness. Keep harness/fixture failures separate from product failures.
+- [ ] Record headless contract evidence and real native interaction evidence separately. Native focus/IME/accessibility cannot be inferred from an internal handle or semantic label alone.
+
+The native confirmation entry/return and draft-feedback lifecycle contract is in `ccr-desktop/DESIGN.md`; actual GPUI acceptance stays in the task evidence.
+
 ---
 
 ## Cross-Platform Template Consistency

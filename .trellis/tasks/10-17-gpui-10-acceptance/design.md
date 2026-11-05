@@ -13,6 +13,8 @@
 
 release fixtures + 指标采集脚本输出统一 JSON/Markdown；command graph 回归验证新命令不串台且错误退出码透传。CI relevance 增加 desktop surface 的显式触发，独立构建锁文件审计；仅在完整验收后判定可替代 Tauri。签名/发布作为外部操作另行授权，不阻塞本地可审阅产物。
 
+视觉汇总采用父 [airy-glass-plan](../10-17-gpui-desktop/research/airy-glass-plan.md) V4。按 OS/主题/材质模式/页面/状态索引截图、二进制 hash、fixture 和性能原始数据；同机 release 对比旧 GPUI、glass、solid，Tauri 比较仍沿父性能合同单列。保留完整失败/不支持/未测记录，不以关闭模糊后的通过消除 glass 缺口。
+
 ## Contract and Compatibility
 
 继承父任务的 typed request/environment/generation、secret masking、CAS、原子写和 job terminal 契约。UI 仅负责呈现和 action；领域 owner 负责数据。每个新增入口补相应失败/取消/空结果，不添加通用动态 dispatch。

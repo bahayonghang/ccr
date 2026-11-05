@@ -1,0 +1,1814 @@
+{
+  "task": "10-17-gpui-06-resources",
+  "scope": "Current source and executed contract mapping; native OS acceptance remains separate",
+  "commands": [
+    {
+      "id": "system_prompts_list",
+      "handler_path": "super::system_prompts::system_prompts_list",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/system_prompts.rs",
+          "line": 225
+        }
+      ],
+      "implementation_status": "partial_fixed_files_contract_tests_passed",
+      "native_action": "Resources > platform > Refresh: fixed supported file metadata via bounded read",
+      "tests": [
+        "outputs/desktop/continuation-20261028/resume29-app-after.json: 4 shared policy + 1 exported integration tests",
+        "outputs/desktop/continuation-20261028/resume29-native-after.json: 2 native adapter + 2 rendered consumer tests"
+      ],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Tauri existing system_prompts parity tests and strict all-target checks pending",
+        "Independent source review and exact candidate native OS actions pending",
+        "Full resource surface and visual/performance/platform acceptance remain open",
+        "Native fixed-file list does not yet consume Claude rules returned by the existing Tauri list"
+      ]
+    },
+    {
+      "id": "system_prompts_get",
+      "handler_path": "super::system_prompts::system_prompts_get",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/system_prompts.rs",
+          "line": 258
+        }
+      ],
+      "implementation_status": "integrated_contract_tests_passed",
+      "native_action": "Resources > fixed file > plaintext acknowledgement: original-token scoped editor",
+      "tests": [
+        "outputs/desktop/continuation-20261028/resume29-app-after.json: 4 shared policy + 1 exported integration tests",
+        "outputs/desktop/continuation-20261028/resume29-native-after.json: 2 native adapter + 2 rendered consumer tests"
+      ],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Tauri existing system_prompts parity tests and strict all-target checks pending",
+        "Independent source review and exact candidate native OS actions pending",
+        "Full resource surface and visual/performance/platform acceptance remain open"
+      ]
+    },
+    {
+      "id": "system_prompts_save",
+      "handler_path": "super::system_prompts::system_prompts_save",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/system_prompts.rs",
+          "line": 277
+        }
+      ],
+      "implementation_status": "integrated_contract_tests_passed",
+      "native_action": "Resources > Save original revision: guarded write with retained draft on conflict",
+      "tests": [
+        "outputs/desktop/continuation-20261028/resume29-app-after.json: 4 shared policy + 1 exported integration tests",
+        "outputs/desktop/continuation-20261028/resume29-native-after.json: 2 native adapter + 2 rendered consumer tests"
+      ],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Tauri existing system_prompts parity tests and strict all-target checks pending",
+        "Independent source review and exact candidate native OS actions pending",
+        "Full resource surface and visual/performance/platform acceptance remain open"
+      ]
+    },
+    {
+      "id": "system_prompts_create",
+      "handler_path": "super::system_prompts::system_prompts_create",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/system_prompts.rs",
+          "line": 297
+        }
+      ],
+      "implementation_status": "integrated_contract_tests_passed",
+      "native_action": "Resources > missing fixed file > Create empty file: absence-token guarded create",
+      "tests": [
+        "outputs/desktop/continuation-20261028/resume29-app-after.json: 4 shared policy + 1 exported integration tests",
+        "outputs/desktop/continuation-20261028/resume29-native-after.json: 2 native adapter + 2 rendered consumer tests"
+      ],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Tauri existing system_prompts parity tests and strict all-target checks pending",
+        "Independent source review and exact candidate native OS actions pending",
+        "Full resource surface and visual/performance/platform acceptance remain open"
+      ]
+    },
+    {
+      "id": "claude_list_mcp_servers",
+      "handler_path": "super::claude::claude_list_mcp_servers",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_mcp.rs",
+          "line": 9
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_add_mcp_server",
+      "handler_path": "super::claude::claude_add_mcp_server",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_mcp.rs",
+          "line": 20
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_update_mcp_server",
+      "handler_path": "super::claude::claude_update_mcp_server",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_mcp.rs",
+          "line": 35
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_delete_mcp_server",
+      "handler_path": "super::claude::claude_delete_mcp_server",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_mcp.rs",
+          "line": 50
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_list_agents",
+      "handler_path": "super::claude::claude_list_agents",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_agents.rs",
+          "line": 4
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_add_agent",
+      "handler_path": "super::claude::claude_add_agent",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_agents.rs",
+          "line": 12
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_update_agent",
+      "handler_path": "super::claude::claude_update_agent",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_agents.rs",
+          "line": 31
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_delete_agent",
+      "handler_path": "super::claude::claude_delete_agent",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_agents.rs",
+          "line": 53
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_list_slash_commands",
+      "handler_path": "super::claude::claude_list_slash_commands",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_slash.rs",
+          "line": 4
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_add_slash_command",
+      "handler_path": "super::claude::claude_add_slash_command",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_slash.rs",
+          "line": 14
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_update_slash_command",
+      "handler_path": "super::claude::claude_update_slash_command",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_slash.rs",
+          "line": 33
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_delete_slash_command",
+      "handler_path": "super::claude::claude_delete_slash_command",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_slash.rs",
+          "line": 55
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_list_plugins",
+      "handler_path": "super::claude::claude_list_plugins",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_plugins.rs",
+          "line": 4
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_add_plugin",
+      "handler_path": "super::claude::claude_add_plugin",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_plugins.rs",
+          "line": 12
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_update_plugin",
+      "handler_path": "super::claude::claude_update_plugin",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_plugins.rs",
+          "line": 31
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_delete_plugin",
+      "handler_path": "super::claude::claude_delete_plugin",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_plugins.rs",
+          "line": 53
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_get_output_styles",
+      "handler_path": "super::claude::claude_get_output_styles",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_settings.rs",
+          "line": 42
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_update_output_styles",
+      "handler_path": "super::claude::claude_update_output_styles",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_settings.rs",
+          "line": 84
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_get_statusline",
+      "handler_path": "super::claude::claude_get_statusline",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_settings.rs",
+          "line": 114
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_update_statusline",
+      "handler_path": "super::claude::claude_update_statusline",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_settings.rs",
+          "line": 125
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_list_hooks",
+      "handler_path": "super::claude::claude_list_hooks",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_hooks.rs",
+          "line": 4
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_update_hooks",
+      "handler_path": "super::claude::claude_update_hooks",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_hooks.rs",
+          "line": 13
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_list_prompts",
+      "handler_path": "super::claude::claude_list_prompts",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_settings.rs",
+          "line": 171
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "claude_update_prompts",
+      "handler_path": "super::claude::claude_update_prompts",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/claude_settings.rs",
+          "line": 192
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "codex_list_mcp_servers",
+      "handler_path": "super::codex::codex_list_mcp_servers",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/codex_mcp.rs",
+          "line": 5
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "codex_add_mcp_server",
+      "handler_path": "super::codex::codex_add_mcp_server",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/codex_mcp.rs",
+          "line": 49
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "codex_update_mcp_server",
+      "handler_path": "super::codex::codex_update_mcp_server",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/codex_mcp.rs",
+          "line": 83
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "codex_delete_mcp_server",
+      "handler_path": "super::codex::codex_delete_mcp_server",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/codex_mcp.rs",
+          "line": 124
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "codex_list_agents",
+      "handler_path": "super::codex::codex_list_agents",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/codex_agents.rs",
+          "line": 506
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "codex_add_agent",
+      "handler_path": "super::codex::codex_add_agent",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/codex_agents.rs",
+          "line": 524
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "codex_update_agent",
+      "handler_path": "super::codex::codex_update_agent",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/codex_agents.rs",
+          "line": 574
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "codex_delete_agent",
+      "handler_path": "super::codex::codex_delete_agent",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/codex_agents.rs",
+          "line": 636
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "codex_rename_agent",
+      "handler_path": "super::codex::codex_rename_agent",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/codex_agents.rs",
+          "line": 663
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "codex_copy_agent",
+      "handler_path": "super::codex::codex_copy_agent",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/codex_agents.rs",
+          "line": 716
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "codex_validate_agent_toml",
+      "handler_path": "super::codex::codex_validate_agent_toml",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/codex_agents.rs",
+          "line": 771
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "codex_list_agent_sources",
+      "handler_path": "super::codex::codex_list_agent_sources",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/codex_agent_sources.rs",
+          "line": 1132
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "codex_add_agent_source",
+      "handler_path": "super::codex::codex_add_agent_source",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/codex_agent_sources.rs",
+          "line": 1142
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "codex_remove_agent_source",
+      "handler_path": "super::codex::codex_remove_agent_source",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/codex_agent_sources.rs",
+          "line": 1197
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "codex_sync_agent_source",
+      "handler_path": "super::codex::codex_sync_agent_source",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/codex_agent_sources.rs",
+          "line": 1210
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "codex_get_agent_source_catalog",
+      "handler_path": "super::codex::codex_get_agent_source_catalog",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/codex_agent_sources.rs",
+          "line": 1237
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "codex_install_source_agent",
+      "handler_path": "super::codex::codex_install_source_agent",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/codex_agent_sources.rs",
+          "line": 1274
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "codex_sync_source_install",
+      "handler_path": "super::codex::codex_sync_source_install",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/codex_agent_sources.rs",
+          "line": 1384
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "codex_accept_local_source_install",
+      "handler_path": "super::codex::codex_accept_local_source_install",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/codex_agent_sources.rs",
+          "line": 1469
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "codex_untrack_source_install",
+      "handler_path": "super::codex::codex_untrack_source_install",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/codex_agent_sources.rs",
+          "line": 1494
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "gemini_list_mcp_servers",
+      "handler_path": "super::gemini::gemini_list_mcp_servers",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/gemini.rs",
+          "line": 284
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "gemini_add_mcp_server",
+      "handler_path": "super::gemini::gemini_add_mcp_server",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/gemini.rs",
+          "line": 304
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "gemini_update_mcp_server",
+      "handler_path": "super::gemini::gemini_update_mcp_server",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/gemini.rs",
+          "line": 331
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "gemini_delete_mcp_server",
+      "handler_path": "super::gemini::gemini_delete_mcp_server",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/gemini.rs",
+          "line": 358
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "gemini_list_slash_commands",
+      "handler_path": "super::gemini::gemini_list_slash_commands",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/gemini.rs",
+          "line": 380
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "gemini_add_slash_command",
+      "handler_path": "super::gemini::gemini_add_slash_command",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/gemini.rs",
+          "line": 391
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "gemini_update_slash_command",
+      "handler_path": "super::gemini::gemini_update_slash_command",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/gemini.rs",
+          "line": 434
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "gemini_delete_slash_command",
+      "handler_path": "super::gemini::gemini_delete_slash_command",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/gemini.rs",
+          "line": 467
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "gemini_list_extensions",
+      "handler_path": "super::gemini::gemini_list_extensions",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/gemini.rs",
+          "line": 482
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "opencode_list_agents",
+      "handler_path": "super::opencode::opencode_list_agents",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/opencode.rs",
+          "line": 898
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "opencode_add_agent",
+      "handler_path": "super::opencode::opencode_add_agent",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/opencode.rs",
+          "line": 906
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "opencode_update_agent",
+      "handler_path": "super::opencode::opencode_update_agent",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/opencode.rs",
+          "line": 925
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "opencode_delete_agent",
+      "handler_path": "super::opencode::opencode_delete_agent",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/opencode.rs",
+          "line": 930
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "opencode_list_commands",
+      "handler_path": "super::opencode::opencode_list_commands",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/opencode.rs",
+          "line": 944
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "opencode_add_command",
+      "handler_path": "super::opencode::opencode_add_command",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/opencode.rs",
+          "line": 952
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "opencode_update_command",
+      "handler_path": "super::opencode::opencode_update_command",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/opencode.rs",
+          "line": 971
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "opencode_delete_command",
+      "handler_path": "super::opencode::opencode_delete_command",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/opencode.rs",
+          "line": 976
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "opencode_list_local_plugins",
+      "handler_path": "super::opencode::opencode_list_local_plugins",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/opencode.rs",
+          "line": 990
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "unified_list_mcp_servers",
+      "handler_path": "super::unified_mcp::unified_list_mcp_servers",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/unified_mcp.rs",
+          "line": 252
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "unified_add_mcp_server",
+      "handler_path": "super::unified_mcp::unified_add_mcp_server",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/unified_mcp.rs",
+          "line": 435
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "unified_update_mcp_server",
+      "handler_path": "super::unified_mcp::unified_update_mcp_server",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/unified_mcp.rs",
+          "line": 493
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "unified_delete_mcp_server",
+      "handler_path": "super::unified_mcp::unified_delete_mcp_server",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/unified_mcp.rs",
+          "line": 516
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "list_builtin_prompts",
+      "handler_path": "super::builtin_prompts::list_builtin_prompts",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/builtin_prompts.rs",
+          "line": 58
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "get_builtin_prompt",
+      "handler_path": "super::builtin_prompts::get_builtin_prompt",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/builtin_prompts.rs",
+          "line": 70
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "get_builtin_prompts_by_category",
+      "handler_path": "super::builtin_prompts::get_builtin_prompts_by_category",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/builtin_prompts.rs",
+          "line": 79
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "list_mcp_presets",
+      "handler_path": "super::mcp_presets::list_mcp_presets",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/mcp_presets.rs",
+          "line": 22
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "get_mcp_preset",
+      "handler_path": "super::mcp_presets::get_mcp_preset",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/mcp_presets.rs",
+          "line": 37
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "install_mcp_preset",
+      "handler_path": "super::mcp_presets::install_mcp_preset",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/mcp_presets.rs",
+          "line": 52
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "install_mcp_preset_single",
+      "handler_path": "super::mcp_presets::install_mcp_preset_single",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/mcp_presets.rs",
+          "line": 99
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "list_source_mcp_servers",
+      "handler_path": "super::mcp_presets::list_source_mcp_servers",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/mcp_presets.rs",
+          "line": 139
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "sync_mcp_server",
+      "handler_path": "super::mcp_presets::sync_mcp_server",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/mcp_presets.rs",
+          "line": 165
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    },
+    {
+      "id": "sync_all_mcp_servers",
+      "handler_path": "super::mcp_presets::sync_all_mcp_servers",
+      "legacy_sources": [
+        {
+          "file": "ccr-ui/src-tauri/src/commands/mcp_presets.rs",
+          "line": 212
+        }
+      ],
+      "implementation_status": "pending",
+      "native_action": null,
+      "tests": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "Existing owner migration and actual native consumer not implemented at initial06 checkpoint"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "index": 6,
+      "path": "/claude-code/system-prompts",
+      "id": "claude-system-prompts",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 27,
+      "path": "/mcp",
+      "id": "mcp",
+      "redirect": "/mcp-manager",
+      "owner": "gpui-06-resources",
+      "kind": "redirect",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 28,
+      "path": "/mcp/unified",
+      "id": "mcp-unified",
+      "redirect": "/mcp-manager",
+      "owner": "gpui-06-resources",
+      "kind": "redirect",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 30,
+      "path": "/mcp-manager",
+      "id": "mcp-manager",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 31,
+      "path": "/slash-commands",
+      "id": "slash-commands",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 32,
+      "path": "/agents",
+      "id": "agents",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 33,
+      "path": "/agents/:name",
+      "id": "agent-detail",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 34,
+      "path": "/skills",
+      "id": "skills",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 35,
+      "path": "/skills-manager",
+      "id": "skills-manager",
+      "redirect": "/skills",
+      "owner": "gpui-06-resources",
+      "kind": "redirect",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 36,
+      "path": "/skillport-manager",
+      "id": "skillport-manager",
+      "redirect": "/skills",
+      "owner": "gpui-06-resources",
+      "kind": "redirect",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 37,
+      "path": "/skills/add",
+      "id": "skills-add",
+      "redirect": "/skills",
+      "owner": "gpui-06-resources",
+      "kind": "redirect",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 38,
+      "path": "/skills/hub",
+      "id": null,
+      "redirect": "/skills",
+      "owner": "gpui-06-resources",
+      "kind": "redirect",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 39,
+      "path": "/skills/:platform/:name",
+      "id": null,
+      "redirect": "/skills",
+      "owner": "gpui-06-resources",
+      "kind": "redirect",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 40,
+      "path": "/market",
+      "id": "market",
+      "redirect": "/skills",
+      "owner": "gpui-06-resources",
+      "kind": "redirect",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 41,
+      "path": "/plugins",
+      "id": "plugins",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 42,
+      "path": "/hooks",
+      "id": "hooks",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 43,
+      "path": "/output-styles",
+      "id": "output-styles",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 44,
+      "path": "/statusline",
+      "id": "statusline",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 47,
+      "path": "/codex/mcp",
+      "id": "codex-mcp",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 49,
+      "path": "/codex/agents",
+      "id": "codex-agents",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 51,
+      "path": "/codex/slash-commands",
+      "id": "codex-slash-commands",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 54,
+      "path": "/codex/system-prompts",
+      "id": "codex-system-prompts",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 55,
+      "path": "/antigravity/slash-commands",
+      "id": "gemini-slash-commands",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 56,
+      "path": "/gemini-cli/slash-commands",
+      "id": null,
+      "redirect": "/antigravity/slash-commands",
+      "owner": "gpui-06-resources",
+      "kind": "redirect",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 57,
+      "path": "/gemini-cli/mcp",
+      "id": null,
+      "redirect": "/antigravity/mcp",
+      "owner": "gpui-06-resources",
+      "kind": "redirect",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 58,
+      "path": "/gemini-cli/agents",
+      "id": null,
+      "redirect": "/antigravity/agents",
+      "owner": "gpui-06-resources",
+      "kind": "redirect",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 59,
+      "path": "/gemini-cli/plugins",
+      "id": null,
+      "redirect": "/antigravity/plugins",
+      "owner": "gpui-06-resources",
+      "kind": "redirect",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 60,
+      "path": "/antigravity/system-prompts",
+      "id": "gemini-system-prompts",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 61,
+      "path": "/gemini-cli/system-prompts",
+      "id": null,
+      "redirect": "/antigravity/system-prompts",
+      "owner": "gpui-06-resources",
+      "kind": "redirect",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 64,
+      "path": "/opencode/mcp",
+      "id": "opencode-mcp",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 65,
+      "path": "/opencode/agents",
+      "id": "opencode-agents",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 66,
+      "path": "/opencode/commands",
+      "id": "opencode-commands",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 67,
+      "path": "/opencode/skills",
+      "id": "opencode-skills",
+      "redirect": "/skills",
+      "owner": "gpui-06-resources",
+      "kind": "redirect",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 68,
+      "path": "/opencode/plugins",
+      "id": "opencode-plugins",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 70,
+      "path": "/opencode/system-prompts",
+      "id": "opencode-system-prompts",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 73,
+      "path": "/antigravity/mcp",
+      "id": "gemini-mcp",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 74,
+      "path": "/antigravity/agents",
+      "id": "gemini-agents",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    },
+    {
+      "index": 75,
+      "path": "/antigravity/plugins",
+      "id": "gemini-plugins",
+      "redirect": null,
+      "owner": "gpui-06-resources",
+      "kind": "surface",
+      "status": "planned",
+      "native_action": null,
+      "verification": null
+    }
+  ],
+  "counts": {
+    "commands": 80,
+    "route_records": 38,
+    "redirects": 14
+  },
+  "original_inventory_recreated": false,
+  "final_acceptance": "open"
+}

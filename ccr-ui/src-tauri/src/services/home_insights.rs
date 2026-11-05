@@ -6,17 +6,12 @@
 //!
 //! 本模块不写 SQL，不读系统时钟：`as_of` 与 `generated_at` 由命令层传入。
 
-use std::collections::BTreeMap;
-
-use ccr_db::database::repositories::usage_repo::{self, SessionArchivePlatformSummary};
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use crate::llmusage_adapter::queries::{
-    InsightsDay, InsightsPayload, InsightsSourceTally, InsightsTally, InsightsTrendSeries,
-};
-use crate::llmusage_adapter::{LlmusageRuntime, QueryFilter, SourceKind};
+use crate::llmusage_adapter::queries::{InsightsDay, InsightsTally, InsightsTrendSeries};
+use crate::llmusage_adapter::{LlmusageRuntime, QueryFilter};
 
 /// All-history totals for the Insights header row.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq, TS)]
@@ -103,157 +98,79 @@ pub struct HomeInsightsResponse {
     pub generated_at: String,
 }
 
-/// 会话归档计数（不上 wire）。
-#[derive(Debug, Clone, Default)]
-struct InsightsSessionCounts {
-    indexed: bool,
-    by_platform: Vec<SessionArchivePlatformSummary>,
-    last_7_days: i64,
-    previous_7_days: i64,
-}
-
-/// Home Insights 快照计算（State-free，同步；命令层负责 spawn_blocking、计时与缓存）。
+/// State-free wire adapter; shared policy owns archive/window/source merging.
 pub fn compute_home_insights(
     llmusage: &LlmusageRuntime,
     pool: &ccr_db::database::DbPool,
     as_of: NaiveDate,
     generated_at: DateTime<Utc>,
 ) -> Result<HomeInsightsResponse, String> {
-    let dashboard = llmusage
-        .dashboard()
-        .map_err(|e| format!("Dashboard open error: {e}"))?;
-    let usage = dashboard
-        .insights(&QueryFilter::default(), as_of)
-        .map_err(|e| format!("Insights query error: {e}"))?;
-    let sessions = load_session_counts(pool, &usage)?;
-    Ok(merge_home_insights(usage, sessions, generated_at))
+    ccr_app::usage::home::read_home_insights(
+        llmusage.paths().clone(),
+        &QueryFilter::default(),
+        pool,
+        as_of,
+        generated_at,
+    )
+    .map(Into::into)
 }
 
-fn load_session_counts(
-    pool: &ccr_db::database::DbPool,
-    usage: &InsightsPayload,
-) -> Result<InsightsSessionCounts, String> {
-    let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
-    let indexed = usage_repo::has_any_session_archive(&conn)
-        .map_err(|e| format!("Session archive presence query error: {e}"))?;
-    if !indexed {
-        return Ok(InsightsSessionCounts::default());
-    }
-    let by_platform = usage_repo::count_session_archive_by_platform(&conn)
-        .map_err(|e| format!("Session archive count query error: {e}"))?;
-    // 7 天窗口的 UTC 半开边界来自投影，与请求数使用同一报告时区。
-    let window_sessions = |start: DateTime<Utc>, end: DateTime<Utc>| {
-        usage_repo::count_session_archive_by_platform_between(&conn, start, end)
-            .map(|rows| rows.iter().map(|row| row.session_count.max(0)).sum::<i64>())
-            .map_err(|e| format!("Session archive window query error: {e}"))
-    };
-    let last_7_days = window_sessions(usage.last_7_days.start_utc, usage.last_7_days.end_utc)?;
-    let previous_7_days = window_sessions(
-        usage.previous_7_days.start_utc,
-        usage.previous_7_days.end_utc,
-    )?;
-    Ok(InsightsSessionCounts {
-        indexed,
-        by_platform,
-        last_7_days,
-        previous_7_days,
-    })
-}
-
-fn merge_home_insights(
-    usage: InsightsPayload,
-    sessions: InsightsSessionCounts,
-    generated_at: DateTime<Utc>,
-) -> HomeInsightsResponse {
-    let total_sessions = sessions
-        .by_platform
-        .iter()
-        .map(|row| row.session_count.max(0))
-        .sum();
-    let agents = merge_agent_tallies(&usage.sources, &sessions.by_platform);
-    HomeInsightsResponse {
-        as_of: format_date(usage.as_of),
-        first_date: usage.first_date.map(format_date),
-        totals: InsightsTotals {
-            requests: usage.requests,
-            tokens: usage.tokens,
-            sessions: total_sessions,
-            agents: usage.agents,
-            projects: usage.project_count,
-            active_days: usage.active_days,
-        },
-        sessions_indexed: sessions.indexed,
-        last_7_days: InsightsWindow {
-            requests: usage.last_7_days.requests,
-            sessions: sessions.last_7_days,
-            active_days: usage.last_7_days.active_days,
-        },
-        previous_7_days: InsightsWindow {
-            requests: usage.previous_7_days.requests,
-            sessions: sessions.previous_7_days,
-            active_days: usage.previous_7_days.active_days,
-        },
-        daily: usage.daily,
-        current_streak: usage.current_streak,
-        longest_streak: usage.longest_streak,
-        busiest_day: usage.busiest_day,
-        hourly: usage.hourly,
-        weekday: usage.weekday,
-        monthly: usage.monthly,
-        trend_start: format_date(usage.trend_start),
-        trend: usage.trend,
-        agents,
-        projects: usage.projects,
-        models: usage.models,
-        generated_at: generated_at.to_rfc3339(),
+impl From<ccr_app::usage::home::InsightsTotals> for InsightsTotals {
+    fn from(v: ccr_app::usage::home::InsightsTotals) -> Self {
+        Self {
+            requests: v.requests,
+            tokens: v.tokens,
+            sessions: v.sessions,
+            agents: v.agents,
+            projects: v.projects,
+            active_days: v.active_days,
+        }
     }
 }
-
-/// 用量来源与会话平台按同一键合并为一行：requests/tokens 取用量数据，sessions 取会话数据。
-/// 归档平台名经 `SourceKind::parse_id` 映射（`omp`→`pi`、`kimi`→`kimi_code`）；
-/// 映射失败的键（用量侧投影已保留原标签）保留原名，`unmapped = true`。
-fn merge_agent_tallies(
-    sources: &[InsightsSourceTally],
-    sessions: &[SessionArchivePlatformSummary],
-) -> Vec<InsightsAgentTally> {
-    fn row_for(
-        rows: &mut BTreeMap<String, InsightsAgentTally>,
-        key: String,
-    ) -> &mut InsightsAgentTally {
-        rows.entry(key.clone())
-            .or_insert_with(|| InsightsAgentTally {
-                unmapped: SourceKind::parse_id(&key).is_none(),
-                source: key,
-                ..InsightsAgentTally::default()
-            })
+impl From<ccr_app::usage::home::InsightsWindow> for InsightsWindow {
+    fn from(v: ccr_app::usage::home::InsightsWindow) -> Self {
+        Self {
+            requests: v.requests,
+            sessions: v.sessions,
+            active_days: v.active_days,
+        }
     }
-    let mut rows = BTreeMap::<String, InsightsAgentTally>::new();
-    for source in sources {
-        let row = row_for(&mut rows, source.source.clone());
-        row.requests += source.requests;
-        row.tokens += source.tokens;
-    }
-    for platform in sessions {
-        let key = SourceKind::parse_id(&platform.platform)
-            .map(|kind| kind.as_str().to_string())
-            .unwrap_or_else(|| platform.platform.clone());
-        let row = row_for(&mut rows, key);
-        row.sessions += platform.session_count.max(0);
-    }
-    let mut agents = rows.into_values().collect::<Vec<_>>();
-    // 前端按当前度量重排；这里给出确定顺序：请求数、会话数降序，再按键升序。
-    agents.sort_by(|left, right| {
-        right
-            .requests
-            .cmp(&left.requests)
-            .then_with(|| right.sessions.cmp(&left.sessions))
-            .then_with(|| left.source.cmp(&right.source))
-    });
-    agents
 }
-
-fn format_date(date: NaiveDate) -> String {
-    date.format("%Y-%m-%d").to_string()
+impl From<ccr_app::usage::home::InsightsAgentTally> for InsightsAgentTally {
+    fn from(v: ccr_app::usage::home::InsightsAgentTally) -> Self {
+        Self {
+            source: v.source,
+            requests: v.requests,
+            tokens: v.tokens,
+            sessions: v.sessions,
+            unmapped: v.unmapped,
+        }
+    }
+}
+impl From<ccr_app::usage::home::HomeInsightsSnapshot> for HomeInsightsResponse {
+    fn from(v: ccr_app::usage::home::HomeInsightsSnapshot) -> Self {
+        Self {
+            as_of: v.as_of,
+            first_date: v.first_date,
+            totals: v.totals.into(),
+            sessions_indexed: v.sessions_indexed,
+            last_7_days: v.last_7_days.into(),
+            previous_7_days: v.previous_7_days.into(),
+            daily: v.daily,
+            current_streak: v.current_streak,
+            longest_streak: v.longest_streak,
+            busiest_day: v.busiest_day,
+            hourly: v.hourly,
+            weekday: v.weekday,
+            monthly: v.monthly,
+            trend_start: v.trend_start,
+            trend: v.trend,
+            agents: v.agents.into_iter().map(Into::into).collect(),
+            projects: v.projects,
+            models: v.models,
+            generated_at: v.generated_at,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -506,6 +423,18 @@ mod tests {
 
         // 命令层 cache_set / from_value 路径：Value 往返后与原值相等。
         let cached = serde_json::to_value(&response).expect("response should serialize");
+        let shared = ccr_app::usage::home::read_home_insights(
+            runtime.paths().clone(),
+            &QueryFilter::default(),
+            &pool,
+            as_of(),
+            generated_at(),
+        )
+        .expect("shared projection should compute");
+        assert_eq!(
+            cached,
+            serde_json::to_value(shared).expect("shared snapshot should serialize")
+        );
         let decoded: HomeInsightsResponse =
             serde_json::from_value(cached).expect("cached value should decode");
         assert_eq!(decoded, response);

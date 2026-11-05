@@ -1,0 +1,18 @@
+{
+  "scope": "08 owned source, ready for final main gates and independent review; not build/native acceptance",
+  "files": {
+    "ccr-desktop/src/features/jobs/mod.rs": "1babac162f4a6499034742764c52ea10805ee30f1da405de606f9e2673b61448",
+    "ccr-desktop/src/features/jobs/tests.rs": "6bd98dda21aebba9f221304dc2037b05c38f01cc4b5c601648b3924776b1337d",
+    "ccr-desktop/src/runtime/jobs.rs": "2cd882a57822642461ccc82ca07e92881c5f94eb4629e8b1b5bd14ca349ce33e",
+    "ccr-ui/src-tauri/src/commands/command_exec.rs": "7bafa1a01d1b0169cf76ae68d4ba2a891b8a30635141b87928880c752586f6a9",
+    "ccr-ui/src-tauri/src/process/gateway.rs": "5759f2fdb7e4e2b3ae96669e829542e73c5638ef1275eb310f7ba28793ce3a0b",
+    "ccr-ui/src-tauri/src/process/mod.rs": "96b9701e9ade7208de0fdd966082b7df972a0704efa4ce13a902470ebd22354c",
+    "crates/ccr-app/src/jobs/commands/tests.rs": "3ce6491bf2c2ae8593e2e5ec35eb45424f61da0386481869348ca2b4a7c3ee3c",
+    "crates/ccr-app/src/jobs/commands.rs": "8d9e9ddcb9fe7f9363de4f9f22b659148dca9069d98afe853fc2a134d6d959d5",
+    "crates/ccr-app/src/jobs/mod.rs": "279dd746631d7904cad6e120c9896e9940cc84abc419cda86bd0e0070eae62f5",
+    "crates/ccr-app/src/jobs/policy.rs": "754a0d89c58630a0e238d8ca3e002ed1dffec743545fa0321e31f63fbf162041",
+    "crates/ccr-app/src/jobs/process/gateway.rs": "593475c7bda987ccf8d0ede8913d47f3e88509b30a2adda69d3b9a6d4393e96d",
+    "crates/ccr-app/src/jobs/process/mod.rs": "05e90fa783a953057d99c5070b20bd2c8a1f21ff5dfd3716e902995e48c1161c",
+    "crates/ccr-core/src/core/log_redact.rs": "c3dde7426eb2c67bc06c59d23cc4225e01fc7dd613fade7e2964da98096e50f7"
+  }
+}

@@ -1,8 +1,8 @@
 {
   "id": "gpui-03-shell",
   "name": "gpui-03-shell",
-  "title": "GPUI 03：Codex 设计系统与原生外壳",
-  "description": "按 style:codex 实现主题、导航、原生输入、键盘与空错误状态",
+  "title": "GPUI 03：轻盈玻璃设计系统与原生外壳",
+  "description": "对齐 Tauri 轻盈毛玻璃，规划唯一主题、单层纸面、原生能力降级及输入焦点验收",
   "status": "in_progress",
   "dev_type": null,
   "scope": null,
@@ -24,6 +24,12 @@
   "notes": "Usable engineering/core native flows independently accepted for04; full03 remains open: deferred matrix, native UIA/IME and known geometry gaps. No archive.",
   "meta": {
     "engineering_core_status": "accepted_2026-10-18",
-    "native_evidence": "outputs/desktop/shell/native/core-summary.json"
+    "native_evidence": "outputs/desktop/shell/native/core-summary.json",
+    "visual_plan": {
+      "style": "airy-glass",
+      "date": "2026-10-27",
+      "status": "implementation_authorized_2026-10-27",
+      "file": ".trellis/tasks/10-17-gpui-desktop/research/airy-glass-plan.md"
+    }
   }
 }

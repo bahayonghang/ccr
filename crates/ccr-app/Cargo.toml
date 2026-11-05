@@ -10,14 +10,24 @@ description = "Framework-independent application orchestration for CCR desktop c
 [dependencies]
 ccr-config = { path = "../ccr-config" }
 ccr-core = { path = "../ccr-core" }
+ccr-db = { path = "../ccr-db" }
+ccr-store = { path = "../ccr-store" }
+ccr-usage = { path = "../ccr-usage" }
+chrono = { workspace = true }
+serde = { workspace = true }
 serde_json = "=1.0.154"
 toml = "=1.1.8"
 walkdir = "=2.5.0"
 async-channel = "2.5.0"
 tokio = { workspace = true }
 tokio-util = { workspace = true }
+reqwest = { workspace = true }
+sha2 = { workspace = true }
+uuid = { workspace = true }
+tracing = { workspace = true }
 
 [dev-dependencies]
+ccr-usage = { path = "../ccr-usage", features = ["test-fixtures"] }
 tempfile = { workspace = true }
 tokio = { workspace = true, features = ["test-util"] }
 

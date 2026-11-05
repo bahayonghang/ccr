@@ -13,6 +13,10 @@
 5. 更新父任务功能台账，写 evidence.md 的实际命令、结果、截图、未运行项。
 6. 通过本任务验收再交由 check 角色独立核对，遵守项目角色写入权限。
 
+## 轻盈玻璃整合
+
+核对 03 的能力探针/主题/材质证据与 04–09 的 V3 场景，汇总父 AC9；检查 sheet 最多一个、各实色表面无模糊、对比度与滚动/输入/空闲性能符合原预算。无依赖/API 证据不宣称支持，无 OS native 证据不宣称跨平台通过。尺寸/DPI 原生矩阵继续 user-deferred，恢复执行需用户明确指令；延期不等于满足完整交付门。
+
 ## Validation
 
 - just desktop-ci；just desktop-audit；just desktop-test-ui

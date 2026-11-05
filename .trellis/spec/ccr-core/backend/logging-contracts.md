@@ -72,14 +72,44 @@ Correct: set child `CCR_ROOT` to the temporary root, then assert that initializa
 
 - Changing `log_redact.rs` or `testdata/log_redaction_vectors.json`.
 
-### 2. Contracts
+### 2. Signatures
+
+- `redact_log_text(&str) -> String` handles JSON and free text at the shared write boundary.
+- `is_sensitive_log_key(&str) -> bool` owns sensitive key classification.
+
+### 3. Contracts
 
 - `mask_sensitive` only masks a whole value or a matched span. Do not pass a full sentence to it.
 - Shared vectors are the alignment lock with `ccr-ui/src/utils/logRedact.ts`.
+- Command output also needs sensitive `key=value` and `key:value` masking. Preserve the label and surrounding context; consume the complete quoted/escaped or delimited value, including incomplete final lines. Keep existing Cookie/Bearer/sk/JWT recognizers.
+- Command snapshots and emitted deltas call this shared owner; adapters must not invent a second command-output redactor. Output clipping must back up to a UTF8 character boundary before appending an ellipsis.
 
-### 3. Tests Required
+### 4. Validation & Error Matrix
+
+| Input | Required output |
+| --- | --- |
+| `api_key=synthetic-private-value` | Preserve key/separator; remove the complete value |
+| Quoted sensitive JSON-like assignment with escaped quotes | Remove the complete secret span; keep adjacent non-secret fields |
+| Ordinary sentence | Preserve its context rather than masking the whole sentence |
+| Oversized four-byte Unicode process line | Bounded valid UTF8 plus visible truncation marker; no panic |
+
+### 5. Good / Base / Bad Cases
+
+- Good: redact each snapshot/delta line through the shared owner before retaining or emitting it.
+- Base: structured JSON continues to use the existing sensitive-key traversal.
+- Bad: assume arbitrary child output is JSON, or prove clipping only with ASCII.
+
+### 6. Tests Required
 
 - `redact_vectors_from_shared_file`
+- `cargo test -p ccr-core --locked log_redact -- --skip export_bindings`: assignments, quoted/escaped values, whitespace, incomplete output and Unicode.
+- ccr-app jobs snapshot redaction and oversized-multibyte-stream regressions must assert the sentinel is absent, UTF8 stays valid and truncation remains visible.
+
+### 7. Wrong vs Correct
+
+Wrong: forward `api_key=...` unchanged because only JSON or a known token prefix is recognized.
+
+Correct: recognize a sensitive assignment through the existing key classifier, mask its complete value and retain safe context.
 
 ## Scenario: Bridge queue
 

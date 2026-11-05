@@ -74,3 +74,15 @@ The first recovery call (`sky.list_windows`, before selecting or launching any04
 - 消费native最终报告及 `native-check-accepted-gates.json`：最终fmt/check/lint/locked Rust tests/MSRV全部0，lib15/native_shell3/native_ui2；最后generic-validation/fixture-cleanup修复已经复验，并非仍在进行。原始中间失败/修复证据保留。
 - 暂停时检查 `Get-Process -Name cargo,rustc,ccr-gpui` 无结果；子agent状态均completed，没有后台实现/Cargo/GUI遗留。所有已有工作区修改保留，无commit/push/发布/签名/归档。
 - 当前可复用源文件、证据、真实未验收项、fixture工具、04原生步骤及05–10续作Prompt见 `pause-handoff.md`。不执行finish-work的自动归档/提交动作；暂停不代表完成。会话记录使用add_session.py的显式 `--no-commit`。
+
+## Resumed integration and actual native retry
+
+The user resumed the existing task. Latest coordinator evidence supersedes historical pause state, not historical failures: see parent `research/resume-20261027.md`, section “Subsequent continuation: verified integration boundary”.
+
+Final debug candidate `c453546afdc419871f6b4a4511a4fc5324df156f330afa0204e5e90b6332d06e` passed the targeted real Off confirmation sequence: Cancel initially focused, physical Tab focused Confirm, physical Escape dismissed. New native receipt/screenshots: `outputs/desktop/profiles/native/repaired-20261027-231848-frame-fixed/`. Earlier candidate770b still failed and remains separate. Both processes exited0, no destructive confirmation was submitted.
+
+All36 desktop Rust tests, strict all-target Clippy, debug build and fmt-check passed. Actual callback-before-draw ordering is now covered without seeding inside focus; draft-conflict Cancel/worker-refresh and durable warning retention passed rendered regression. The final real second-client CAS/Cancel/Refresh sequence has not yet been repeated. Keep whole04 in_progress; no archive, commit, DPI matrix or full acceptance claim.
+
+## 2026-10-28 current continuation
+
+Explicit approved implementation resumed; pointer restored to04. New immutable-source native CAS/Cancel/Refresh/Off evidence: research/native-continuation-20261028.md. Independent two-defect red/green and seven-test decision coverage: research/check-20261028.md. Baseline native receipts are separate from subsequent repaired source; new final candidate remains required. Whole04 remains in_progress; no commit/archive; size/DPI user-deferred.

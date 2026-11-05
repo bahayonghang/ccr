@@ -161,11 +161,22 @@ impl Render for Converter {
                     .h(px(180.)),
             )
             .child(
-                Textarea::new(&self.output)
-                    .accessibility_id("converter-output")
-                    .aria_label(text(cx, "Converted preview", "转换预览结果"))
-                    .h(px(180.))
-                    .readonly(true),
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap(px(theme::CONTROL_GAP))
+                    .child(
+                        div()
+                            .text_color(gpui_kit::rgb(theme::palette(cx.theme().mode).output))
+                            .child(text(cx, "Converted preview", "转换预览结果")),
+                    )
+                    .child(
+                        Textarea::new(&self.output)
+                            .accessibility_id("converter-output")
+                            .aria_label(text(cx, "Converted preview", "转换预览结果"))
+                            .h(px(180.))
+                            .readonly(true),
+                    ),
             );
         if let Some(message) = &self.message {
             root = root.child(

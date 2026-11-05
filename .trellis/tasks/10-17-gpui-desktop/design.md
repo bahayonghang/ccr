@@ -14,7 +14,7 @@ ccr-desktop/
   Cargo.lock                 # GPUI 应用解析图，提交版本库
   .cargo/config.toml         # target-dir 及必要平台配置
   justfile                   # 本地实现，根仅 desktop-* 转发
-  DESIGN.md                  # 已从 style:codex 生成，原生规范
+  DESIGN.md                  # 当前旧视觉；03 按 airy-glass 增量更新原生规范
   README.md
   src/
     main.rs                  # 平台启动、受控退出
@@ -65,9 +65,11 @@ Tauri 内已存在 State-free usage、home_insights、agent_sessions；优先迁
 
 ## 6. UI 设计与通用性
 
-权威规范为 ccr-desktop/DESIGN.md。纯 GPUI Rust theme/style，CSS 策略为不适用，不引入 HTML 样式层。单一语义 token 层映射 Kit Theme。系统原生字体与 CJK fallback，数据用等宽数字；导航为稳定的环境入口、功能分组、主列表、详情区。
+本次视觉目标由 [airy-glass-plan](research/airy-glass-plan.md) 定义；实施时先同步 ccr-desktop/DESIGN.md，再同步 token。纯 GPUI Rust theme/style，CSS 策略为不适用，不引入 HTML 样式层。单一语义 token 层映射 Kit Theme。系统原生字体与 CJK fallback，数据用等宽数字；导航为稳定的环境入口、功能分组、主列表、详情区。
 
 区分三条兼容轴：操作系统 Windows/macOS/Linux；执行环境 Local/WSL/SSH；业务平台 descriptor 的实际 capabilities。不把“GPUI 支持三平台”解释成 CCR 已完成认证/托盘/IME 等测试。
+
+视觉只增加静态场景与非滚动单纸面；阅读区、输入、图表、日志和 overlay 全部实色。03 核实锁定 GPUI/Kit 的内景模糊能力并测基线，09 接系统偏好，10 汇总 glass/solid 原生与性能证据。无支持/减少透明度/预算失败回退 solid；不引入操作系统透明窗口或新的渲染依赖。保留 14px 正文、36px 虚拟行、System/Light/Dark、语言及页面实体生命周期。
 
 ## 7. 命令合同
 

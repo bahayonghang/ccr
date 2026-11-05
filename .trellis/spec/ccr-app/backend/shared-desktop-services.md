@@ -16,6 +16,10 @@ Extract only orchestration that both consumers use. Do not move domain persisten
 - `RuntimeHandle::job(key, work)` takes a runner returning `Completion<T, E>` after its cleanup.
 - Both return `Result<TaskSubscription<T, E>, AdmissionError>`.
 - `RequestKey` contains environment, platform, generation and request_id. `ResponseGate::accepts` compares all four.
+- `platform_settings::Document::{read, save_text, save_validated}` uses a non-Debug `Snapshot` carrying original content, token, source identity and existence; saves return `SaveOutcome::{Saved, Conflict}`.
+- `usage::read_dashboard(&Dashboard, &QueryFilter, Option<u32>)` assembles owner projections without adding SQL. `sessions::{list_sessions, get_detail_with_registry}` consumes the existing archive repository and provider registry.
+- `resources::system_prompts::{platform_specs, prompt_spec, file_description, augment_save_result}` owns the fixed instruction-file registry and legacy result policy. Native writes use `save_prompt_file_with_locks` with the original snapshot token and captured lock directory; Tauri retains its raw-file error adapter.
+- `jobs::policy::{command_catalog, validate_command_request}` and `jobs::commands::CommandJobs` are the common command policy and retained runner. `jobs::process::SidecarContext` supplies the consuming executable, repository root, debug policy, expected SHA256 and package version.
 
 ## 3. Contracts
 
@@ -31,6 +35,16 @@ GPUI render contains no file/DB/network/process calls, runtime construction or b
 
 Native fixtures use explicit profile/registry paths and domain API-generated synthetic data. Artificial read delay is accepted only with paired fixture paths, at most 30000ms, and visibly labeled. Never use real accounts or mutate global HOME/USERPROFILE to isolate tests.
 
+Native platform operations retain captured roots through commit; fixture roots never fall back to HOME. JSON dirty-leaf updates preserve unknown siblings, Codex typed patches stay in their shared owner, and source writes retain the originally read token. `runtime::Platform` is request identity, not the profile-domain enum: OpenCode requests must be rejected by Claude/profile adapters rather than mapped to Claude.
+
+Usage/session consumers require all three absolute `--insights-usage-root`, `--insights-archive-db`, `--insights-provider-home` paths together. Missing usage storage is an explicit error, not zero usage. Preserve provider-owned validation, opaque archive IDs, keyset cursors and conservative fidelity; leave/suspend clears transcript plaintext. Tauri keeps its wire/TS DTOs and explicitly maps shared results.
+
+Native fixture launchers must use the exact three path strings in `fixture.json`. On Windows, replacing a saved `\\?\D:\...` provider path with `D:\...` changes source identity even when both resolve to the same file. Verify fixture ownership using filesystem identity, preserve the original launch strings, and create a fresh fixture after a mismatched launch. Do not normalize domain IDs to hide a fixture error.
+
+Command runners retain 64 jobs with a 30-minute terminal TTL, 500 lines and 512KiB per output stream. Admission and cancellation capability share one lock; terminal publication follows process-tree cleanup and bounded reader joins. The native fixture child is a closed synthetic mode under an ownership-marked outputs directory, never a renderer-selected executable. Tauri keeps its wire DTOs/events; shared `TimedOut` maps to existing wire `Failed` with timeout feedback. Native leave detaches and return currently requires explicit status refresh; this is not automatic re-subscription acceptance.
+
+Budget patches validate the complete object before any setter runs: booleans stay typed, limits are finite nonnegative numbers or null, warning percent is an integer0..100. Valid multi-field saves retain the existing sequential I/O semantics. Budget/pricing managers privately preserve unknown TOML siblings and surviving row extensions; explicit removal/reset must not resurrect deleted models. Archive refresh is app-owned, but a terminal callback may reload only the same Sessions query generation with no detail selected.
+
 ## 4. Validation & Error Matrix
 
 | Condition | Required behavior |
@@ -44,6 +58,12 @@ Native fixtures use explicit profile/registry paths and domain API-generated syn
 | Progress queue full on completion | Retained terminal still delivered |
 | Cleanup still running | No completed/cancelled claim before runner returns |
 | Parser or path error displayed natively | Safe static explanation; no raw secret-bearing error text |
+| Settings revision/source/existence changed | Conflict; retain draft and never silently overwrite |
+| OpenCode request routed to profile-domain reader | Unsupported; never dispatch Claude |
+| Usage storage missing / transcript provider unavailable | Typed safe error / truthful provider status; no fabricated data or default-home fallback |
+| Prompt target/session environment or platform changed | Reject before write; retain original-token draft on conflict |
+| Consumer sidecar context missing or release hash invalid | Fail closed before process spawn; never search PATH |
+| Invalid later budget field | Reject the entire supplied patch before the first setter; original bytes unchanged |
 
 ## 5. Good / Base / Bad Cases
 
@@ -56,6 +76,10 @@ Native fixtures use explicit profile/registry paths and domain API-generated syn
 Assert all projection fields, masking, order, version, current fallback and description defaults against domain-created fixtures. Verify business bytes/mtime/revision unchanged, with precisely identified SQLite sidecar exceptions. Test missing/empty/corrupt/legacy sources independently and retain Tauri adapter parity/bindings checks.
 
 Use barriers or virtual time for full admission, progress coalescing, full notification queue, cancellation, late responses, view drop and shutdown. Exercise actual rendered native controls for responsiveness; headless tests cannot prove OS IME, native accessibility, DPI or performance budgets. Preserve default Rust test parallelism and `--skip export_bindings` for behavior suites.
+
+Settings fixtures must prove dirty-only retention, missing-versus-empty identity and two-client CAS. Usage fixtures compare exact values and filters against ccr-usage; session fixtures verify real provider pagination, stale request rejection and plaintext teardown. Native confirmation regressions must model callback-before-draw ordering: the locked GPUI platform drains frame callbacks before drawing, unlike Kit's click helper. Schedule one-shot entry from the mounted confirmation render, guard its generation, and verify Cancel entry, Tab containment, Escape, cancellation and navigation without seeding inside focus.
+
+Run `cargo test -p ccr-app --locked -- --skip export_bindings` for resource policy/parity and command admission, cancellation-before-spawn, timeout, held-reader cleanup, output bounds and four-byte UTF8 truncation. Run desktop rendered resources/jobs/shell tests and Tauri `system_prompts`, `command_exec`, `process::` consumer tests. Binding checks retain transactional generation. Native prompt save/readback and synthetic process actions need their own exact candidate receipts; they do not prove real sidecar, Claude rules, install/sync/checkin or full resource parity.
 
 ## 7. Wrong vs Correct
 
@@ -74,3 +98,9 @@ typed action -> bounded blocking read -> masked projection -> matching RequestKe
 cancel click -> request_cancel -> runner cleanup -> immutable completion
 view drop -> close subscription; app-owned job continues under its owner
 ```
+
+Wrong: schedule confirmation focus from the click action and assume next-frame callbacks see the newly mounted tab stops. Correct: record pending entry, schedule once from confirmation render, then enter on a later callback guarded by the same confirmation generation. Keep actual native retry separate from headless proof.
+
+Editor and nested-decision return handles have different lifetimes. `ProfilesView::act` captures the outer editor trigger only from `Mode::Closed`; `Confirmation` captures its immediate trigger independently. A nested Advanced/Restore/Force decision must not replace the outer handle. Regressions must dismiss the decision and then close the editor, asserting both focus returns.
+
+Recovery actions and committed warnings belong to their original platform. `ProfilesView::set_platform` clears `grok_recovery`, `grok_force_delete`, message and failed state on an actual identity change, before a new platform can dispatch. Same-platform status reads retain durable warnings. Test a typed `rename_apply_failed` outcome, same-platform refresh, then platform change: old retry/force controls disappear before any mutation; never send a wrong-platform request to demonstrate the defect.

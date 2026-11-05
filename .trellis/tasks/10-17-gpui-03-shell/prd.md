@@ -1,8 +1,8 @@
-# GPUI 03：Codex 设计系统与原生外壳
+# GPUI 03：轻盈玻璃设计系统与原生外壳
 
 ## Goal
 
-按 style:codex 实现主题、导航、原生输入、键盘与空错误状态。
+对齐 Tauri 的 style:airy-glass，完善单层纸面、浅深主题及原生材质降级，同时保留导航、输入、键盘与空错误状态。
 
 ## Parent and Dependencies
 
@@ -12,7 +12,7 @@
 
 ## Requirements
 
-- 实现 ccr-desktop/DESIGN.md 的 light/dark、系统字体、数字对齐和单一语义 token 映射。
+- 先将父任务 [视觉增量合同](../10-17-gpui-desktop/research/airy-glass-plan.md) V1/V2/V4 同步至 ccr-desktop/DESIGN.md，再实现 light/dark、系统字体、数字对齐及唯一语义 token 映射。
 - 稳定环境入口、功能分组、主列表/详情、状态区；导航动作与键盘焦点有真实 state。
 - 原生输入、中文 IME、Tab/Shift+Tab/Enter/Escape、返回、错误/空/加载/禁用状态，中文和英文文案。
 
@@ -21,8 +21,10 @@
 - [ ] 3.1：四种窗口组合及三档 DPI 无遮挡、横向整窗溢出或不可达操作，light/dark 均有截图。
 - [ ] 3.2：对比度满足普通文字 4.5:1、焦点/关键控件边界 3:1；所有控件具有原生 role/name/state。
 - [ ] 3.3：键盘可达主要操作、中文组合输入不提前提交，窗口恢复后焦点有效。
-- [x] 3.4：无装饰性持续动画、背景模糊、默认卡片墙；频繁/键盘操作无动画，指针按压有反馈。
+- [ ] 3.4：仅非滚动 application sheet 可使用已验证的背景模糊，场景静态、内部阅读面和弹层实色；无装饰循环/嵌套玻璃/默认卡片墙，频繁及键盘操作无动画。2026-10-18 旧无模糊合同的通过记录保留在 evidence.md，不继承为新验收通过。
 - [x] 3.5：页面只呈现已接入能力，未实现项不装成可操作功能；状态文案真实，fixture 明确标记。
+- [ ] 3.6：锁定 GPUI/Kit 的内景模糊探针有 API/后端/OS 证据；glass 与 solid 分栏记录，减少透明度/高对比度/不支持/能力未知路径安全降级。原生 light/dark 配色、复合对比度、焦点和 IME 不回归。
+- [ ] 3.7：改造前及 glass/solid 同机 release 的 S1/S2 原始数据满足父性能合同；未测项不计通过。
 
 ## Out of Scope
 

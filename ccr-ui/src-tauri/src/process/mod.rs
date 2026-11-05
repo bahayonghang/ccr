@@ -2,7 +2,7 @@
 
 use std::ffi::OsStr;
 
-mod gateway;
+pub(crate) mod gateway;
 
 pub use ccr_core::core::process_gateway::read_bounded_line;
 pub use gateway::{ManagedChild, ProcessDescriptor, ProcessGateway};
@@ -21,14 +21,6 @@ fn apply_no_window_to_std(cmd: &mut std::process::Command) {
 #[allow(dead_code)]
 fn apply_no_window_to_std(_cmd: &mut std::process::Command) {}
 
-#[cfg(all(target_os = "windows", not(debug_assertions)))]
-fn apply_no_window_to_tokio(cmd: &mut tokio::process::Command) {
-    cmd.creation_flags(CREATE_NO_WINDOW);
-}
-
-#[cfg(not(all(target_os = "windows", not(debug_assertions))))]
-fn apply_no_window_to_tokio(_cmd: &mut tokio::process::Command) {}
-
 /// 创建并配置标准库进程命令。
 #[allow(dead_code)]
 pub fn std_command(program: impl AsRef<OsStr>) -> std::process::Command {
@@ -41,18 +33,5 @@ pub fn std_command(program: impl AsRef<OsStr>) -> std::process::Command {
 #[allow(dead_code)]
 pub fn configure_std_command(cmd: &mut std::process::Command) -> &mut std::process::Command {
     apply_no_window_to_std(cmd);
-    cmd
-}
-
-/// 创建并配置 Tokio 异步进程命令。
-pub fn tokio_command(program: impl AsRef<OsStr>) -> tokio::process::Command {
-    let mut cmd = tokio::process::Command::new(program);
-    configure_tokio_command(&mut cmd);
-    cmd
-}
-
-/// 为现有 Tokio 异步进程命令应用统一配置。
-pub fn configure_tokio_command(cmd: &mut tokio::process::Command) -> &mut tokio::process::Command {
-    apply_no_window_to_tokio(cmd);
     cmd
 }

@@ -1,23 +1,17 @@
-use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
-use std::time::UNIX_EPOCH;
-
 use ccr_db::database::DbPool;
+use ccr_db::database::repositories::usage_repo::AgentSessionArchiveRow;
+#[cfg(test)]
 use ccr_db::database::repositories::usage_repo::{
-    self, AgentSessionArchiveQuery, AgentSessionArchiveRow, AgentSessionArchiveSource,
-    AgentSessionSourceState, UsageSessionArchiveEntry, UsageSourceState,
+    self, UsageSessionArchiveEntry, UsageSourceState,
 };
 use ccr_store::sessions::{
     AgentSessionAgentId, AgentSessionFidelity, AgentSessionMessage, AgentSessionProviderRegistry,
-    AgentSessionSourceKind, AgentSessionSourceRef, ProviderAvailability,
+    ProviderAvailability,
 };
-use chrono::{DateTime, Utc};
+#[cfg(test)]
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
-
-const DEFAULT_LIST_LIMIT: usize = 80;
-const DEFAULT_DETAIL_LIMIT: usize = 100;
-const MAX_QUERY_CHARS: usize = 200;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, TS)]
 #[serde(rename_all = "lowercase")]
@@ -254,59 +248,33 @@ pub fn list_sessions(
     pool: &DbPool,
     request: AgentSessionListRequestDto,
 ) -> Result<AgentSessionPageDto, String> {
-    let query_text = normalize_text(request.query, MAX_QUERY_CHARS)?;
-    let cwd_prefix = normalize_text(request.cwd_prefix, 1024)?;
-    let started_at = parse_date(request.started_at)?;
-    let ended_at = parse_date(request.ended_at)?;
-    if started_at
-        .zip(ended_at)
-        .is_some_and(|(start, end)| start > end)
-    {
-        return Err("agent_session_invalid_date_range".into());
-    }
-    let (cursor_updated_at, cursor_archive_id) = decode_cursor(request.cursor.as_deref())?;
-    let source_state = validate_choice(
-        request.source_state,
-        &["live", "missing", "deleted_by_user", "all"],
-    )?;
-    let source_fidelity = validate_choice(request.fidelity, &["full", "partial", "locked", "all"])?;
-    let query = AgentSessionArchiveQuery {
-        platforms: request
-            .agents
-            .filter(|agents| !agents.is_empty())
-            .unwrap_or_else(|| {
-                AgentSessionAgentId::ALL
+    let page = ccr_app::sessions::list_sessions(
+        pool,
+        ccr_app::sessions::SessionListRequest {
+            agents: request.agents.map(|agents| {
+                agents
                     .into_iter()
-                    .map(AgentSessionAgentDto::from)
+                    .map(AgentSessionAgentDto::into_store)
                     .collect()
-            })
-            .into_iter()
-            .map(|agent| agent.into_store().as_str().to_string())
-            .collect(),
-        query: query_text,
-        cwd_prefix,
-        started_at: started_at.map(|value| value.to_rfc3339()),
-        ended_at: ended_at.map(|value| value.to_rfc3339()),
-        source_state: source_state.filter(|value| value != "all"),
-        source_fidelity: source_fidelity.filter(|value| value != "all"),
-        cursor_updated_at,
-        cursor_archive_id,
-        limit: request.limit.unwrap_or(DEFAULT_LIST_LIMIT).clamp(1, 200),
-    };
-    let conn = pool
-        .get()
-        .map_err(|error| format!("agent_session_db_unavailable:{error}"))?;
-    let rows = usage_repo::get_agent_session_archive_page(&conn, &query)
-        .map_err(|error| format!("agent_session_list_failed:{error}"))?;
-    let next_cursor = (rows.len() == query.limit)
-        .then(|| {
-            rows.last()
-                .map(|row| encode_cursor(row.updated_at, &row.archive_id))
-        })
-        .flatten();
+            }),
+            query: request.query,
+            cwd_prefix: request.cwd_prefix,
+            started_at: request.started_at,
+            ended_at: request.ended_at,
+            source_state: request.source_state,
+            fidelity: request.fidelity,
+            cursor: request.cursor,
+            limit: request.limit,
+        },
+    )
+    .map_err(|error| error.code().to_string())?;
     Ok(AgentSessionPageDto {
-        items: rows.into_iter().map(row_to_dto).collect::<Result<_, _>>()?,
-        next_cursor,
+        items: page
+            .items
+            .into_iter()
+            .map(row_to_dto)
+            .collect::<Result<_, _>>()?,
+        next_cursor: page.next_cursor,
     })
 }
 
@@ -327,36 +295,27 @@ fn get_detail_with_registry(
     request: AgentSessionDetailRequestDto,
     registry: &AgentSessionProviderRegistry,
 ) -> Result<AgentSessionDetailDto, String> {
-    if request.archive_id.is_empty() || request.archive_id.len() > 128 {
-        return Err("agent_session_invalid_archive_id".into());
-    }
-    let conn = pool
-        .get()
-        .map_err(|error| format!("agent_session_db_unavailable:{error}"))?;
-    let stored = usage_repo::get_agent_session_archive_source(&conn, &request.archive_id)
-        .map_err(|error| format!("agent_session_source_lookup_failed:{error}"))?
-        .ok_or_else(|| "agent_session_not_found".to_string())?;
-    drop(conn);
-    let source = restore_source(registry, &stored)?;
-    let page = registry
-        .read_message_page(
-            &source,
-            request.before_cursor,
-            request.limit.unwrap_or(DEFAULT_DETAIL_LIMIT).clamp(1, 200),
-        )
-        .map_err(|_| "agent_session_source_unavailable".to_string())?;
-    let fidelity = combine_fidelity(
-        parse_fidelity(&stored.source_fidelity)?,
-        page.fidelity.into(),
-    );
+    let detail = ccr_app::sessions::get_detail_with_registry(
+        pool,
+        registry,
+        &request.archive_id,
+        request.before_cursor,
+        request.limit,
+    )
+    .map_err(|error| error.code().to_string())?;
     Ok(AgentSessionDetailDto {
-        archive_id: stored.archive_id,
-        agent: source.agent.into(),
-        variant: source.variant,
-        fidelity,
-        messages: page.messages.into_iter().map(message_to_dto).collect(),
-        next_before: page.next_before,
-        has_older: page.has_older,
+        archive_id: detail.archive_id,
+        agent: detail.agent.into(),
+        variant: detail.variant,
+        fidelity: detail.page.fidelity.into(),
+        messages: detail
+            .page
+            .messages
+            .into_iter()
+            .map(message_to_dto)
+            .collect(),
+        next_before: detail.page.next_before,
+        has_older: detail.page.has_older,
     })
 }
 
@@ -392,319 +351,40 @@ fn refresh_archive_with_registry(
     pool: &DbPool,
     registry: &AgentSessionProviderRegistry,
 ) -> Result<AgentSessionRefreshReportDto, String> {
-    let conn = pool
-        .get()
-        .map_err(|error| format!("agent_session_db_unavailable:{error}"))?;
-    let source_states = usage_repo::get_agent_session_source_states(&conn)
-        .map_err(|error| format!("agent_session_state_lookup_failed:{error}"))?;
-    let archives = usage_repo::get_all_agent_session_archive_sources(&conn)
-        .map_err(|error| format!("agent_session_archive_lookup_failed:{error}"))?;
-    let state_map: HashMap<(String, String, String), AgentSessionSourceState> = source_states
-        .into_iter()
-        .map(|state| {
-            (
-                (
-                    state.platform.clone(),
-                    state.source_path.clone(),
-                    state.source_kind.clone(),
-                ),
-                state,
-            )
-        })
-        .collect();
-    let archive_map: HashMap<(String, String, String), AgentSessionArchiveSource> = archives
-        .into_iter()
-        .map(|row| {
-            (
-                (
-                    row.platform.clone(),
-                    row.file_path.clone(),
-                    row.source_member_id.clone(),
-                ),
-                row,
-            )
-        })
-        .collect();
-    drop(conn);
-    let mut report = AgentSessionRefreshReportDto {
-        total: AgentSessionRefreshCountersDto::default(),
-        providers: Vec::new(),
-    };
-    let mut pending_entries = Vec::new();
-    let mut pending_states = Vec::new();
-    let mut seen_by_agent = HashMap::<String, Vec<(String, String)>>::new();
-    let mut authoritative_agents = HashSet::<String>::new();
-
-    for agent in AgentSessionAgentId::ALL {
-        let mut counters = AgentSessionRefreshCountersDto::default();
-        let mut skipped_containers = HashSet::<PathBuf>::new();
-        let mut skipped_members = Vec::<(String, String)>::new();
-        for container in registry.shared_sqlite_containers(agent) {
-            let path = container.physical_path.to_string_lossy().to_string();
-            let state_key = (
-                agent.as_str().to_string(),
-                path.clone(),
-                container.kind.as_str().to_string(),
-            );
-            let Ok(container_hash) = registry.container_fingerprint(&container) else {
-                continue;
-            };
-            if !state_map.get(&state_key).is_some_and(|state| {
-                state.source_stat_hash == container_hash && state.last_error_code.is_none()
-            }) {
-                continue;
-            }
-            let archived_members = archive_map
-                .keys()
-                .filter(|(platform, source_path, _)| {
-                    platform == agent.as_str() && source_path == &path
-                })
-                .map(|(_, source_path, member)| (source_path.clone(), member.clone()))
-                .collect::<Vec<_>>();
-            if archived_members.is_empty() {
-                continue;
-            }
-            skipped_members.extend(archived_members);
-            skipped_containers.insert(container.physical_path);
-        }
-        let sources = match registry.discover_for_refresh(agent, &skipped_containers) {
-            Ok(sources) => {
-                authoritative_agents.insert(agent.as_str().to_string());
-                sources
-            }
-            Err(_) => {
-                counters.errors = 1;
-                accumulate(&mut report.total, &counters);
-                report.providers.push(AgentSessionProviderRefreshDto {
-                    agent: agent.into(),
-                    counters,
-                });
-                continue;
-            }
-        };
-        counters.discovered = (sources.len() + skipped_members.len()) as u64;
-        counters.unchanged = skipped_members.len() as u64;
-        seen_by_agent
-            .entry(agent.as_str().to_string())
-            .or_default()
-            .extend(skipped_members);
-        let mut groups =
-            HashMap::<(PathBuf, AgentSessionSourceKind), Vec<AgentSessionSourceRef>>::new();
-        for source in sources {
-            seen_by_agent
-                .entry(agent.as_str().to_string())
-                .or_default()
-                .push((
-                    source.physical_path.to_string_lossy().to_string(),
-                    source.member_id.clone().unwrap_or_default(),
-                ));
-            groups
-                .entry((source.physical_path.clone(), source.kind))
-                .or_default()
-                .push(source);
-        }
-        for ((path, kind), members) in groups {
-            let first = &members[0];
-            let container_hash = match registry.container_fingerprint(first) {
-                Ok(value) => value,
-                Err(_) => {
-                    counters.errors += 1;
-                    continue;
-                }
-            };
-            let state_key = (
-                agent.as_str().to_string(),
-                path.to_string_lossy().to_string(),
-                kind.as_str().to_string(),
-            );
-            if state_map.get(&state_key).is_some_and(|state| {
-                state.source_stat_hash == container_hash && state.last_error_code.is_none()
-            }) {
-                counters.unchanged += members.len() as u64;
-                continue;
-            }
-            let errors_before = counters.errors;
-            for source in &members {
-                counters.fingerprinted += 1;
-                let fingerprint = match registry.quick_fingerprint(source) {
-                    Ok(value) => value,
-                    Err(_) => {
-                        counters.errors += 1;
-                        continue;
-                    }
-                };
-                let identity = (
-                    agent.as_str().to_string(),
-                    source.physical_path.to_string_lossy().to_string(),
-                    source.member_id.clone().unwrap_or_default(),
-                );
-                if archive_map
-                    .get(&identity)
-                    .and_then(|row| row.source_stat_hash.as_deref())
-                    == Some(fingerprint.as_str())
-                {
-                    counters.unchanged += 1;
-                    continue;
-                }
-                counters.parsed += 1;
-                match registry.parse_summary(source) {
-                    Ok(summary) => {
-                        match summary.fidelity {
-                            AgentSessionFidelity::Partial => counters.partial += 1,
-                            AgentSessionFidelity::Locked => counters.locked += 1,
-                            AgentSessionFidelity::Full => {}
-                        }
-                        pending_entries.push(summary_to_archive(
-                            summary,
-                            fingerprint,
-                            archive_map.get(&identity),
-                        )?);
-                        counters.upserted += 1;
-                    }
-                    Err(_) => counters.errors += 1,
-                }
-            }
-            let group_error = counters.errors > errors_before;
-            let metadata = path.metadata().ok();
-            pending_states.push(AgentSessionSourceState {
-                platform: agent.as_str().to_string(),
-                source_path: path.to_string_lossy().to_string(),
-                source_kind: kind.as_str().to_string(),
-                source_size: metadata
-                    .as_ref()
-                    .and_then(|value| i64::try_from(value.len()).ok()),
-                source_mtime_ns: metadata
-                    .and_then(|value| value.modified().ok())
-                    .and_then(|value| value.duration_since(UNIX_EPOCH).ok())
-                    .and_then(|value| i64::try_from(value.as_nanos()).ok()),
-                source_stat_hash: container_hash,
-                last_success_at: (!group_error).then(Utc::now),
-                last_error_code: group_error.then(|| "provider_parse_failed".to_string()),
-            });
-        }
-        accumulate(&mut report.total, &counters);
-        report.providers.push(AgentSessionProviderRefreshDto {
-            agent: agent.into(),
-            counters,
-        });
-    }
-
-    let conn = pool
-        .get()
-        .map_err(|error| format!("agent_session_db_unavailable:{error}"))?;
-    let tx = conn
-        .unchecked_transaction()
-        .map_err(|error| format!("agent_session_transaction_failed:{error}"))?;
-    for entry in &pending_entries {
-        usage_repo::upsert_session_archive_entry(&tx, entry)
-            .map_err(|error| format!("agent_session_upsert_failed:{error}"))?;
-    }
-    for state in &pending_states {
-        usage_repo::upsert_agent_session_source_state(&tx, state)
-            .map_err(|error| format!("agent_session_state_upsert_failed:{error}"))?;
-    }
-    for agent in AgentSessionAgentId::ALL {
-        if !authoritative_agents.contains(agent.as_str()) {
-            continue;
-        }
-        usage_repo::mark_agent_session_archive_missing_by_identity(
-            &tx,
-            agent.as_str(),
-            seen_by_agent
-                .get(agent.as_str())
-                .map(Vec::as_slice)
-                .unwrap_or(&[]),
-        )
-        .map_err(|error| format!("agent_session_reconcile_failed:{error}"))?;
-    }
-    tx.commit()
-        .map_err(|error| format!("agent_session_transaction_failed:{error}"))?;
-    Ok(report)
-}
-
-fn summary_to_archive(
-    summary: ccr_store::sessions::AgentSessionSummary,
-    fingerprint: String,
-    existing: Option<&AgentSessionArchiveSource>,
-) -> Result<UsageSessionArchiveEntry, String> {
-    let metadata = summary.source.physical_path.metadata().ok();
-    Ok(UsageSessionArchiveEntry {
-        archive_id: existing
-            .map(|row| row.archive_id.clone())
-            .unwrap_or_else(|| {
-                usage_repo::agent_session_archive_id(
-                    summary.agent.as_str(),
-                    &summary.source.physical_path.to_string_lossy(),
-                    summary.source.member_id.as_deref().unwrap_or_default(),
-                )
-            }),
-        session_id: summary.native_session_id,
-        platform: summary.agent.as_str().to_string(),
-        title: summary.title,
-        cwd: summary.cwd,
-        file_path: summary.source.physical_path.to_string_lossy().to_string(),
-        file_hash: Some(fingerprint.clone()),
-        source_variant: summary.variant,
-        source_kind: summary.source.kind.as_str().to_string(),
-        source_member_id: summary.source.member_id.unwrap_or_default(),
-        source_size: metadata
-            .as_ref()
-            .and_then(|value| i64::try_from(value.len()).ok()),
-        source_mtime_ns: metadata
-            .and_then(|value| value.modified().ok())
-            .and_then(|value| value.duration_since(UNIX_EPOCH).ok())
-            .and_then(|value| i64::try_from(value.as_nanos()).ok()),
-        source_stat_hash: Some(fingerprint),
-        message_count: i64::from(summary.message_count),
-        user_message_count: i64::from(summary.user_message_count),
-        assistant_message_count: i64::from(summary.assistant_message_count),
-        tool_use_count: i64::from(summary.tool_use_count),
-        source_fidelity: summary.fidelity.as_str().to_string(),
-        created_at: summary.created_at,
-        updated_at: summary.updated_at,
-        source_state: UsageSourceState::Live,
-        last_seen_at: Some(Utc::now()),
-        raw_deleted_at: None,
-        archived_at: Utc::now(),
+    let report = ccr_app::sessions::refresh::refresh_archive_with_registry(pool, registry)?;
+    Ok(AgentSessionRefreshReportDto {
+        total: refresh_counters(report.total),
+        providers: report
+            .providers
+            .into_iter()
+            .map(|provider| AgentSessionProviderRefreshDto {
+                agent: provider.agent.into(),
+                counters: refresh_counters(provider.counters),
+            })
+            .collect(),
     })
 }
-
-fn restore_source(
-    registry: &AgentSessionProviderRegistry,
-    stored: &AgentSessionArchiveSource,
-) -> Result<AgentSessionSourceRef, String> {
-    let agent = AgentSessionAgentId::parse(&stored.platform)
-        .ok_or_else(|| "agent_session_unknown_provider".to_string())?;
-    let kind = AgentSessionSourceKind::parse(&stored.source_kind)
-        .ok_or_else(|| "agent_session_unknown_source_kind".to_string())?;
-    registry
-        .restore_source(
-            agent,
-            &stored.source_variant,
-            PathBuf::from(&stored.file_path),
-            kind,
-            (!stored.source_member_id.is_empty()).then(|| stored.source_member_id.clone()),
-        )
-        .map_err(map_restore_source_error)
-}
-
-fn map_restore_source_error(error: impl std::fmt::Display) -> String {
-    // 只回传稳定错误码，不把路径或 CcrError 英文原文交给渲染器。
-    let message = error.to_string();
-    if message.contains("session source is missing")
-        || message.contains("session source root is unavailable")
-        || message.contains("session member is missing")
-    {
-        "agent_session_source_unavailable".to_string()
-    } else {
-        "agent_session_source_validation_failed".to_string()
+fn refresh_counters(
+    value: ccr_app::sessions::refresh::RefreshCounters,
+) -> AgentSessionRefreshCountersDto {
+    AgentSessionRefreshCountersDto {
+        discovered: value.discovered,
+        unchanged: value.unchanged,
+        fingerprinted: value.fingerprinted,
+        parsed: value.parsed,
+        upserted: value.upserted,
+        partial: value.partial,
+        locked: value.locked,
+        errors: value.errors,
     }
 }
 
 fn row_to_dto(row: AgentSessionArchiveRow) -> Result<AgentSessionListItemDto, String> {
     let agent = AgentSessionAgentId::parse(&row.platform)
         .ok_or_else(|| "agent_session_unknown_provider".to_string())?;
-    let fidelity = parse_fidelity(&row.source_fidelity)?;
+    let fidelity = ccr_app::sessions::parse_fidelity(&row.source_fidelity)
+        .map_err(|error| error.code().to_string())?
+        .into();
     Ok(AgentSessionListItemDto {
         archive_id: row.archive_id,
         session_id: row.session_id,
@@ -735,107 +415,13 @@ fn message_to_dto(message: AgentSessionMessage) -> AgentSessionMessageDto {
     }
 }
 
-fn parse_fidelity(value: &str) -> Result<AgentSessionFidelityDto, String> {
-    match value {
-        "full" => Ok(AgentSessionFidelityDto::Full),
-        "partial" => Ok(AgentSessionFidelityDto::Partial),
-        "locked" => Ok(AgentSessionFidelityDto::Locked),
-        _ => Err("agent_session_unknown_fidelity".into()),
-    }
-}
-
-fn combine_fidelity(
-    archived: AgentSessionFidelityDto,
-    current: AgentSessionFidelityDto,
-) -> AgentSessionFidelityDto {
-    match (archived, current) {
-        (AgentSessionFidelityDto::Locked, _) | (_, AgentSessionFidelityDto::Locked) => {
-            AgentSessionFidelityDto::Locked
-        }
-        (AgentSessionFidelityDto::Partial, _) | (_, AgentSessionFidelityDto::Partial) => {
-            AgentSessionFidelityDto::Partial
-        }
-        _ => AgentSessionFidelityDto::Full,
-    }
-}
-
-fn normalize_text(value: Option<String>, max_chars: usize) -> Result<Option<String>, String> {
-    let value = value
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty());
-    if value
-        .as_ref()
-        .is_some_and(|value| value.chars().count() > max_chars)
-    {
-        return Err("agent_session_query_too_long".into());
-    }
-    Ok(value)
-}
-
-fn parse_date(value: Option<String>) -> Result<Option<DateTime<Utc>>, String> {
-    value
-        .map(|value| {
-            DateTime::parse_from_rfc3339(&value)
-                .map(|value| value.with_timezone(&Utc))
-                .map_err(|_| "agent_session_invalid_date".to_string())
-        })
-        .transpose()
-}
-
-fn validate_choice(value: Option<String>, allowed: &[&str]) -> Result<Option<String>, String> {
-    let value = value
-        .map(|value| value.trim().to_lowercase())
-        .filter(|value| !value.is_empty());
-    if value
-        .as_ref()
-        .is_some_and(|value| !allowed.contains(&value.as_str()))
-    {
-        return Err("agent_session_invalid_filter".into());
-    }
-    Ok(value)
-}
-
-fn encode_cursor(updated_at: DateTime<Utc>, archive_id: &str) -> String {
-    format!("{}|{archive_id}", updated_at.to_rfc3339())
-}
-
-fn decode_cursor(cursor: Option<&str>) -> Result<(Option<String>, Option<String>), String> {
-    let Some(cursor) = cursor else {
-        return Ok((None, None));
-    };
-    if cursor.len() > 256 {
-        return Err("agent_session_invalid_cursor".into());
-    }
-    let (updated_at, archive_id) = cursor
-        .split_once('|')
-        .ok_or_else(|| "agent_session_invalid_cursor".to_string())?;
-    let updated_at = DateTime::parse_from_rfc3339(updated_at)
-        .map_err(|_| "agent_session_invalid_cursor".to_string())?
-        .with_timezone(&Utc)
-        .to_rfc3339();
-    if archive_id.is_empty() || archive_id.len() > 128 {
-        return Err("agent_session_invalid_cursor".into());
-    }
-    Ok((Some(updated_at), Some(archive_id.to_string())))
-}
-
-fn accumulate(total: &mut AgentSessionRefreshCountersDto, item: &AgentSessionRefreshCountersDto) {
-    total.discovered += item.discovered;
-    total.unchanged += item.unchanged;
-    total.fingerprinted += item.fingerprinted;
-    total.parsed += item.parsed;
-    total.upserted += item.upserted;
-    total.partial += item.partial;
-    total.locked += item.locked;
-    total.errors += item.errors;
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::fs;
     use tempfile::TempDir;
 
+    use ccr_app::sessions::{combine_fidelity, decode_cursor, encode_cursor};
     fn temp_usage_pool(temp: &TempDir) -> DbPool {
         let pool = ccr_db::database::create_pool(&temp.path().join("usage.db"), None).unwrap();
         let conn = pool.get().unwrap();
@@ -888,18 +474,12 @@ mod tests {
     #[test]
     fn detail_fidelity_never_overstates_an_archived_degradation() {
         assert_eq!(
-            combine_fidelity(
-                AgentSessionFidelityDto::Partial,
-                AgentSessionFidelityDto::Full,
-            ),
-            AgentSessionFidelityDto::Partial
+            combine_fidelity(AgentSessionFidelity::Partial, AgentSessionFidelity::Full,),
+            AgentSessionFidelity::Partial
         );
         assert_eq!(
-            combine_fidelity(
-                AgentSessionFidelityDto::Full,
-                AgentSessionFidelityDto::Locked,
-            ),
-            AgentSessionFidelityDto::Locked
+            combine_fidelity(AgentSessionFidelity::Full, AgentSessionFidelity::Locked,),
+            AgentSessionFidelity::Locked
         );
     }
 
@@ -1132,5 +712,65 @@ mod tests {
                 .unwrap();
         assert_eq!(detail.archive_id, live_item.archive_id);
         assert!(!detail.messages.is_empty());
+    }
+
+    #[test]
+    fn tauri_archive_reads_match_shared_explicit_registry_policy() {
+        let temp = TempDir::new().unwrap();
+        write_codex_jsonl(temp.path(), ".codex/sessions/2026/09/24/rollout-one.jsonl");
+        write_codex_jsonl(temp.path(), ".codex/sessions/2026/09/24/rollout-two.jsonl");
+        let pool = temp_usage_pool(&temp);
+        let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+            .without_environment_overrides();
+        refresh_archive_with_registry(&pool, &registry).unwrap();
+        let mut request = empty_list_request();
+        request.agents = Some(vec![AgentSessionAgentDto::Codex]);
+        request.limit = Some(1);
+        let wire = list_sessions(&pool, request).unwrap();
+        let shared = ccr_app::sessions::list_sessions(
+            &pool,
+            ccr_app::sessions::SessionListRequest {
+                agents: Some(vec![AgentSessionAgentId::Codex]),
+                limit: Some(1),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let mapped = AgentSessionPageDto {
+            items: shared
+                .items
+                .into_iter()
+                .map(row_to_dto)
+                .collect::<Result<_, _>>()
+                .unwrap(),
+            next_cursor: shared.next_cursor,
+        };
+        assert_eq!(
+            serde_json::to_value(&wire).unwrap(),
+            serde_json::to_value(mapped).unwrap()
+        );
+        let archive_id = &wire.items[0].archive_id;
+        let wire = get_detail_with_registry(&pool, detail_request(archive_id), &registry).unwrap();
+        let shared =
+            ccr_app::sessions::get_detail_with_registry(&pool, &registry, archive_id, None, None)
+                .unwrap();
+        let mapped = AgentSessionDetailDto {
+            archive_id: shared.archive_id,
+            agent: shared.agent.into(),
+            variant: shared.variant,
+            fidelity: shared.page.fidelity.into(),
+            messages: shared
+                .page
+                .messages
+                .into_iter()
+                .map(message_to_dto)
+                .collect(),
+            next_before: shared.page.next_before,
+            has_older: shared.page.has_older,
+        };
+        assert_eq!(
+            serde_json::to_value(wire).unwrap(),
+            serde_json::to_value(mapped).unwrap()
+        );
     }
 }

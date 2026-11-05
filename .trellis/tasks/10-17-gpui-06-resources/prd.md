@@ -6,7 +6,7 @@
 
 ## Parent and Dependencies
 
-父任务：[gpui-desktop](../10-17-gpui-desktop/prd.md)。需求映射：R4、R6、R9。
+父任务：[gpui-desktop](../10-17-gpui-desktop/prd.md)。需求映射：R5、R4、R6、R9。
 
 前置：02、03、05 完成。 父子关系不自动保证依赖完成。
 
@@ -23,6 +23,8 @@
 - [ ] 6.3：资源路径和归档输入继续通过现有边界，不能从 UI 跳过验证直接写任意路径。
 - [ ] 6.4：虚拟化长列表键盘选择/编辑焦点保持，长名称不遮挡主操作。
 - [ ] 6.5：原有领域 fixture 和 Tauri 资源回归通过。
+
+- [ ] 6.6 (R5/AC9)：本域遵循父 [轻盈玻璃合同 V1–V4](../10-17-gpui-desktop/research/airy-glass-plan.md)，复用 03 唯一主题/材质层；V3 本域场景在 light/dark 及 glass/solid 下有原生证据。阅读/编辑/图表/日志/确认保持实色，无新增 blur，既有业务与焦点/虚拟化不回归；未具备的模式/平台如实标记。
 
 ## Out of Scope
 

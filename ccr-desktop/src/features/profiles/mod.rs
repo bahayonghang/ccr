@@ -53,6 +53,8 @@ enum Action {
     GrokForceDelete,
 }
 struct Confirmation {
+    generation: u64,
+    entry_pending: bool,
     action: Action,
     return_focus: Option<FocusHandle>,
     subject: String,
@@ -81,12 +83,14 @@ pub struct ProfileTools {
     task: Option<Task<()>>,
     busy: bool,
     confirmation: Option<Confirmation>,
+    confirmation_generation: u64,
     focus: FocusHandle,
     confirmation_focus: FocusHandle,
     return_focus: Option<FocusHandle>,
     pub refresh_version: u64,
     pub message: Option<String>,
     failed: bool,
+    draft_conflict: bool,
     pending_content: Option<String>,
     source_location: Option<String>,
     grok_recovery: Option<(String, String, bool)>,
@@ -118,12 +122,14 @@ impl ProfileTools {
             task: None,
             busy: false,
             confirmation: None,
+            confirmation_generation: 0,
             focus: cx.focus_handle().tab_stop(false),
             confirmation_focus: cx.focus_handle().tab_stop(false),
             return_focus: None,
             refresh_version: 0,
             message: None,
             failed: false,
+            draft_conflict: false,
             pending_content: None,
             source_location: None,
             grok_recovery: None,
@@ -168,6 +174,13 @@ impl ProfileTools {
         if self.expanded() || self.busy {
             return false;
         }
+        if self.platform != platform {
+            self.message = None;
+            self.failed = false;
+            self.draft_conflict = false;
+            self.grok_recovery = None;
+            self.grok_force_delete = None;
+        }
         self.platform = platform;
         self.generic = false;
         self.can_off = None;
@@ -178,6 +191,11 @@ impl ProfileTools {
     fn close(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self.busy {
             return;
+        }
+        if self.draft_conflict {
+            self.message = None;
+            self.failed = false;
+            self.draft_conflict = false;
         }
         self.mode = Mode::Closed;
         self.confirmation = None;
@@ -208,7 +226,9 @@ impl ProfileTools {
         if self.busy {
             return;
         }
-        self.return_focus = window.focused(cx);
+        if self.mode == Mode::Closed {
+            self.return_focus = window.focused(cx);
+        }
         match action {
             Action::Create | Action::Edit | Action::Duplicate => {
                 let row = self.target.clone();
@@ -277,7 +297,11 @@ impl ProfileTools {
             | Action::Environment
             | Action::ShellEnvironment
             | Action::GrokForceDelete => {
+                self.confirmation_generation += 1;
+                let generation = self.confirmation_generation;
                 self.confirmation = Some(Confirmation {
+                    generation,
+                    entry_pending: true,
                     action,
                     return_focus: window.focused(cx),
                     subject: if matches!(action, Action::RestoreExecute) {
@@ -290,13 +314,6 @@ impl ProfileTools {
                             .map(|r| r.name.clone())
                             .unwrap_or_else(|| "catalog".into())
                     },
-                });
-                window.focus(&self.confirmation_focus, cx);
-                let scope = self.confirmation_focus.clone();
-                window.on_next_frame(move |window, cx| {
-                    if scope.is_focused(window) {
-                        window.focus_next(cx);
-                    }
                 });
             }
             Action::Apply => {
@@ -557,10 +574,11 @@ impl ProfileTools {
         };
         self.gate.replace(key.clone());
         self.busy = true;
-        // A refresh of can_off must not erase a durable warning/recovery outcome.
+        // 状态刷新不能抹掉已提交操作的持久警告或恢复结果。
         if !is_status {
             self.message = None;
             self.failed = false;
+            self.draft_conflict = false;
         }
         match self.services.profile_command(key.clone(), command) {
             Ok(mut subscription) => {
@@ -575,7 +593,12 @@ impl ProfileTools {
                                     Completion::Failed(error) | Completion::CleanupFailed(error) => {
                                         this.failed = true;
                                         if is_status { this.can_off = None; }
-                                        if !is_status || this.message.is_none() { this.message = Some(error.message().into()); }
+                                        if !is_status || this.message.is_none() {
+                                            this.draft_conflict = !is_status
+                                                && *error == ProfileError::Conflict
+                                                && this.mode != Mode::Closed;
+                                            this.message = Some(error.message().into());
+                                        }
                                     }
                                     Completion::Cancelled => {
                                         if !is_status { this.message = Some("Cancelled before starting / 操作开始前已取消".into()); }
@@ -603,6 +626,9 @@ impl ProfileTools {
         cx.notify();
     }
     fn accept(&mut self, result: &ProfileResult, cx: &mut Context<Self>) {
+        if !matches!(result, ProfileResult::Status { .. }) {
+            self.draft_conflict = false;
+        }
         match result {
             ProfileResult::GrokDelete {
                 name,
@@ -715,11 +741,13 @@ impl ProfileTools {
             ProfileResult::SourceSave(SourceSaveOutcome::Conflict) => {
                 self.activation_conflict = false;
                 self.failed = true;
+                self.draft_conflict = true;
                 self.message = Some(ProfileError::Conflict.message().into());
             }
             ProfileResult::SourceSave(SourceSaveOutcome::ActivationConflict { .. }) => {
                 self.activation_conflict = true;
                 self.failed = true;
+                self.draft_conflict = true;
                 self.message=Some("Active profile would be removed. Cancel or restore it in the source before saving. / 源码将移除当前配置，请取消或保留当前配置后保存".into());
             }
             ProfileResult::SourceSave(SourceSaveOutcome::Invalid { kind, position, .. }) => {
@@ -747,8 +775,12 @@ mod tests {
         profiles::{context, tests::fixture},
     };
     use ccr_app::{config::ConfigReadService, runtime::RuntimeOwner};
+    use gpui_kit::base::TestSupportExt;
     use gpui_kit::test::{TestAppContextExt, TestWindowExt};
-    use gpui_kit::{TestAppContext, WindowOptions};
+    use gpui_kit::{
+        InputEvent, InteractiveElement, IntoElement, MouseButton, MouseDownEvent, MouseMoveEvent,
+        MouseUpEvent, ParentElement, Render, Styled, TestAppContext, WindowOptions, div,
+    };
     use std::time::Duration;
     fn selected(source: &ConfigSource) -> ConfigRow {
         let ConfigSource::Fixture {
@@ -763,6 +795,366 @@ mod tests {
             .into_iter()
             .find(|r| r.name == "beta")
             .unwrap_or_else(|| panic!("beta"))
+    }
+    struct ConfirmationHost {
+        tools: Entity<ProfileTools>,
+        outside: FocusHandle,
+        _tools_subscription: gpui_kit::Subscription,
+    }
+    impl Render for ConfirmationHost {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            div()
+                .flex()
+                .flex_col()
+                .size_full()
+                .child(
+                    div()
+                        .id("profile-outside-focus")
+                        .test_support()
+                        .track_focus(&self.outside)
+                        .tab_stop(true)
+                        .child("Outside confirmation"),
+                )
+                .child(self.tools.clone())
+        }
+    }
+    #[gpui_kit::test]
+    fn confirmation_recovers_outside_focus_before_first_frame(cx: &mut TestAppContext) {
+        confirmation_focus_boundary(cx, false);
+    }
+    #[gpui_kit::test]
+    fn confirmation_enters_after_native_callback_before_draw_order(cx: &mut TestAppContext) {
+        confirmation_focus_boundary(cx, true);
+    }
+    #[gpui_kit::test]
+    fn catalog_decisions_enter_from_outside_without_mutating(cx: &mut TestAppContext) {
+        cx.executor().allow_parking();
+        let (_root, source) = fixture();
+        let row = selected(&source);
+        let context =
+            context(&source, ccr_config::Platform::Claude).unwrap_or_else(|_| panic!("context"));
+        let revision = context
+            .manager()
+            .snapshot()
+            .unwrap_or_else(|_| panic!("snapshot"))
+            .version;
+        let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+        let services = Services::new(owner.handle(), source);
+        let (handle, host) = cx.update(|cx| {
+            gpui_kit::init(cx);
+            gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+                cx.new(|cx| {
+                    let tools = cx.new(|cx| {
+                        let mut tools = ProfileTools::new(services, window, cx);
+                        tools.target = Some(row);
+                        tools
+                    });
+                    let subscription = cx.observe(&tools, |_, _, cx| cx.notify());
+                    ConfirmationHost {
+                        tools,
+                        outside: cx.focus_handle(),
+                        _tools_subscription: subscription,
+                    }
+                })
+            })
+            .unwrap_or_else(|_| panic!("window"))
+        });
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            for (policy, decisions) in [
+                (
+                    "profile-policy-configurations",
+                    &[
+                        "profile-delete",
+                        "profile-import",
+                        "profile-restore",
+                        "profile-clean-backups",
+                        "profile-clear-history",
+                    ][..],
+                ),
+                (
+                    "profile-policy-profiles",
+                    &[
+                        "profile-delete",
+                        "profile-source",
+                        "profile-inspect",
+                        "profile-export-secrets",
+                    ][..],
+                ),
+            ] {
+                window.click(policy, cx);
+                for id in decisions {
+                    let outside = host.read(cx).outside.clone();
+                    window.focus(&outside, cx);
+                    window.click(*id, cx);
+                    window.simulate_next_frame(cx);
+                    window.render_frame(cx);
+                    assert_eq!(
+                        window.find("profile-confirm-cancel").focused(),
+                        Some(true),
+                        "{id} must initially focus Cancel from outside"
+                    );
+                    window.press("tab", cx);
+                    assert_eq!(window.find("profile-confirm").focused(), Some(true));
+                    window.press("shift-tab", cx);
+                    assert_eq!(window.find("profile-confirm-cancel").focused(), Some(true));
+                    window.press("escape", cx);
+                    assert!(window.try_find("profile-confirm").is_none());
+                    assert_eq!(window.find("profile-outside-focus").focused(), Some(true));
+                    assert!(!host.read(cx).tools.read(cx).busy);
+                    assert_eq!(
+                        context
+                            .manager()
+                            .snapshot()
+                            .unwrap_or_else(|_| panic!("snapshot"))
+                            .version,
+                        revision
+                    );
+                }
+            }
+            window.remove_window();
+        })
+        .unwrap_or_else(|_| panic!("decision matrix"));
+        owner.shutdown();
+    }
+    #[gpui_kit::test]
+    fn nested_confirmation_preserves_editor_return_focus(cx: &mut TestAppContext) {
+        cx.executor().allow_parking();
+        let (_root, source) = fixture();
+        let row = selected(&source);
+        let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+        let services = Services::new(owner.handle(), source);
+        let (handle, host) = cx.update(|cx| {
+            gpui_kit::init(cx);
+            gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+                cx.new(|cx| {
+                    let tools = cx.new(|cx| {
+                        let mut tools = ProfileTools::new(services, window, cx);
+                        tools.target = Some(row);
+                        tools
+                    });
+                    let subscription = cx.observe(&tools, |_, _, cx| cx.notify());
+                    ConfirmationHost {
+                        tools,
+                        outside: cx.focus_handle(),
+                        _tools_subscription: subscription,
+                    }
+                })
+            })
+            .unwrap_or_else(|_| panic!("window"))
+        });
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            let outside = host.read(cx).outside.clone();
+            window.focus(&outside, cx);
+            window.click("profile-edit", cx);
+            for _ in 0..12 {
+                window.press("tab", cx);
+                if window.find("profile-advanced").focused() == Some(true) {
+                    break;
+                }
+            }
+            assert_eq!(window.find("profile-advanced").focused(), Some(true));
+            window.press("enter", cx);
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
+            assert_eq!(window.find("profile-confirm-cancel").focused(), Some(true));
+            window.press("escape", cx);
+            assert_eq!(window.find("profile-advanced").focused(), Some(true));
+            window.click("profile-editor-cancel", cx);
+            window.render_frame(cx);
+            assert_eq!(
+                window.find("profile-outside-focus").focused(),
+                Some(true),
+                "closing an editor after a nested decision must restore its original trigger"
+            );
+            window.remove_window();
+        })
+        .unwrap_or_else(|_| panic!("nested confirmation"));
+        owner.shutdown();
+    }
+    #[gpui_kit::test]
+    fn platform_change_clears_only_previous_platform_recovery(cx: &mut TestAppContext) {
+        cx.executor().allow_parking();
+        let (_root, source) = fixture();
+        let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+        let services = Services::new(owner.handle(), source);
+        let (handle, view) = cx.update(|cx| {
+            gpui_kit::init(cx);
+            gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+                cx.new(|cx| {
+                    let mut tools = ProfileTools::new(services, window, cx);
+                    tools.platform = Platform::Grok;
+                    tools.accept(
+                        &ProfileResult::GrokUpdate {
+                            status: "rename_apply_failed",
+                            old_name: "old-grok".into(),
+                            new_name: "new-grok".into(),
+                        },
+                        cx,
+                    );
+                    tools.grok_force_delete = Some("old-grok".into());
+                    tools
+                })
+            })
+            .unwrap_or_else(|_| panic!("window"))
+        });
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            assert!(window.find("profile-grok-retry-apply").visible());
+            assert!(window.find("profile-grok-force-delete").visible());
+            let warning = view.read(cx).message.clone();
+            view.update(cx, |tools, cx| {
+                assert!(tools.set_platform(Platform::Grok, window, cx));
+                tools.accept(&ProfileResult::Status { can_off: true }, cx);
+            });
+            window.render_frame(cx);
+            assert_eq!(view.read(cx).message, warning);
+            assert!(window.find("profile-grok-retry-apply").visible());
+            view.update(cx, |tools, cx| {
+                assert!(tools.set_platform(Platform::Claude, window, cx));
+            });
+            window.render_frame(cx);
+            assert!(
+                window.try_find("profile-grok-retry-apply").is_none(),
+                "a Grok recovery action must never dispatch through the next platform"
+            );
+            assert!(window.try_find("profile-grok-force-delete").is_none());
+            assert!(view.read(cx).message.is_none());
+            assert!(!view.read(cx).failed);
+            window.remove_window();
+        })
+        .unwrap_or_else(|_| panic!("platform recovery"));
+        owner.shutdown();
+    }
+    fn confirmation_focus_boundary(cx: &mut TestAppContext, callback_before_draw: bool) {
+        cx.executor().allow_parking();
+        let (_root, source) = fixture();
+        let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+        let services = Services::new(owner.handle(), source);
+        let (handle, host) = cx.update(|cx| {
+            gpui_kit::init(cx);
+            gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+                cx.new(|cx| {
+                    let tools = cx.new(|cx| {
+                        let mut tools = ProfileTools::new(services, window, cx);
+                        tools.accept(&ProfileResult::Status { can_off: true }, cx);
+                        tools
+                    });
+                    let subscription = cx.observe(&tools, |_, _, cx| cx.notify());
+                    ConfirmationHost {
+                        tools,
+                        outside: cx.focus_handle(),
+                        _tools_subscription: subscription,
+                    }
+                })
+            })
+            .unwrap_or_else(|_| panic!("window"))
+        });
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            let outside = host.read(cx).outside.clone();
+            window.focus(&outside, cx);
+            window.render_frame(cx);
+            assert_eq!(window.find("profile-outside-focus").focused(), Some(true));
+            if callback_before_draw {
+                // click() 会在 MouseUp 后自动绘制，掩盖原生先回调后绘制的顺序。
+                let position = window.find("profile-off").bounds().center();
+                window.dispatch_event(
+                    MouseMoveEvent {
+                        position,
+                        pressed_button: None,
+                        modifiers: Default::default(),
+                    }
+                    .to_platform_input(),
+                    cx,
+                );
+                window.render_frame(cx);
+                window.dispatch_event(
+                    MouseDownEvent {
+                        button: MouseButton::Left,
+                        position,
+                        modifiers: Default::default(),
+                        click_count: 1,
+                        first_mouse: false,
+                    }
+                    .to_platform_input(),
+                    cx,
+                );
+                window.render_frame(cx);
+                window.dispatch_event(
+                    MouseUpEvent {
+                        button: MouseButton::Left,
+                        position,
+                        modifiers: Default::default(),
+                        click_count: 1,
+                    }
+                    .to_platform_input(),
+                    cx,
+                );
+                assert!(host.read(cx).tools.read(cx).confirmation.is_some());
+                // 对齐 gpui-pre 的平台帧：先排空既有回调，再绘制确认子树。
+                window.simulate_next_frame(cx);
+                window.render_frame(cx);
+            } else {
+                window.click("profile-off", cx);
+            }
+            assert!(host.read(cx).tools.read(cx).confirmation.is_some());
+        })
+        .unwrap_or_else(|_| panic!("open confirmation"));
+        cx.run_until_parked();
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            // 模拟原生边界：决策树挂载后、首次延迟进入前，焦点恢复到外部。
+            let outside = host.read(cx).outside.clone();
+            window.focus(&outside, cx);
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
+            assert!(window.find("profile-confirm").visible());
+            assert_eq!(window.find("profile-confirm-cancel").focused(), Some(true));
+            for _ in 0..6 {
+                window.press("tab", cx);
+                assert!(
+                    window.find("profile-confirm-cancel").focused() == Some(true)
+                        || window.find("profile-confirm").focused() == Some(true),
+                    "opening a confirmation from outside must enter its decision scope"
+                );
+            }
+            for _ in 0..6 {
+                window.press("shift-tab", cx);
+                assert!(
+                    window.find("profile-confirm-cancel").focused() == Some(true)
+                        || window.find("profile-confirm").focused() == Some(true),
+                    "reverse traversal must stay inside the decision scope"
+                );
+            }
+            window.press("escape", cx);
+            assert!(window.try_find("profile-confirm").is_none());
+            assert_eq!(window.find("profile-outside-focus").focused(), Some(true));
+            window.click("profile-off", cx);
+            window.click("profile-confirm-cancel", cx);
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
+            assert!(host.read(cx).tools.read(cx).confirmation.is_none());
+            assert_eq!(window.find("profile-outside-focus").focused(), Some(true));
+            window.click("profile-off", cx);
+            host.read(cx).tools.clone().update(cx, |tools, cx| {
+                tools.leave(window, cx);
+            });
+            let outside = host.read(cx).outside.clone();
+            window.focus(&outside, cx);
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
+            assert!(host.read(cx).tools.read(cx).confirmation.is_none());
+            assert_eq!(
+                window.find("profile-outside-focus").focused(),
+                Some(true),
+                "navigation before deferred entry must not steal destination focus"
+            );
+            window.remove_window();
+        })
+        .unwrap_or_else(|_| panic!("outside focus"));
+        owner.shutdown();
     }
     #[gpui_kit::test]
     fn editor_confirmation_blocks_underlying_save_and_returns_focus(cx: &mut TestAppContext) {
@@ -804,6 +1196,8 @@ mod tests {
             assert_eq!(window.find("profile-advanced").focused(), Some(true));
             window.press("enter", cx);
             assert!(view.read(cx).confirmation.is_some());
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
             window.click("profile-save", cx);
             assert!(
                 !view.read(cx).busy,
@@ -817,8 +1211,7 @@ mod tests {
                     .version,
                 revision
             );
-            // A confirmation scope contains only its two decision buttons.
-            view.update(cx, |view, cx| window.focus(&view.confirmation_focus, cx));
+            // 确认焦点域仅包含两个决策按钮，不手动预置域内焦点。
             for _ in 0..8 {
                 window.press("tab", cx);
                 assert!(
@@ -859,6 +1252,8 @@ mod tests {
             window.press("tab", cx);
             assert_eq!(window.find("profile-save").focused(), Some(true));
             window.press("enter", cx);
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
             assert!(
                 window
                     .find("profile-confirmation")
@@ -880,6 +1275,20 @@ mod tests {
                 );
             });
             window.render_frame(cx);
+            let partial_warning = view.read(cx).message.clone();
+            assert!(
+                partial_warning
+                    .as_deref()
+                    .is_some_and(|message| { message.contains("rename_apply_failed") }),
+                "a real partial-write warning must exist before checking its lifetime"
+            );
+            view.update(cx, |view, cx| {
+                view.close(window, cx);
+                view.accept(&ProfileResult::Status { can_off: true }, cx);
+            });
+            assert!(view.read(cx).failed);
+            assert_eq!(view.read(cx).message, partial_warning);
+            assert!(view.read(cx).grok_recovery.is_some());
             assert!(window.find("profile-grok-retry-apply").visible());
             view.update(cx, |view, cx| {
                 use ccr_cli::application::profile_lifecycle::{
@@ -912,6 +1321,9 @@ mod tests {
                     .unwrap_or_default()
                     .contains("Do not repeat activation")
             );
+            let warning = view.read(cx).message.clone();
+            view.update(cx, |view, cx| view.close(window, cx));
+            assert_eq!(view.read(cx).message, warning);
             view.update(cx, |view, cx| {
                 view.target = None;
                 cx.notify();
@@ -1056,11 +1468,40 @@ mod tests {
         cx.update_window(handle, |_, window, cx| {
             assert!(view.read(cx).failed);
             assert!(view.read(cx).mode == Mode::Edit);
+            assert!(view.read(cx).draft_conflict);
+            assert_eq!(
+                view.read(cx).message.as_deref(),
+                Some(ProfileError::Conflict.message()),
+                "the retained-draft warning must exist before cancellation clears it"
+            );
             assert_eq!(
                 window.find("profile-description").value(),
                 Some("Retained draft")
             );
             window.click("profile-editor-cancel", cx);
+            assert!(
+                view.read(cx).message.is_none(),
+                "discarded draft has no retained-draft status"
+            );
+            assert!(!view.read(cx).failed);
+            view.update(cx, |view, cx| view.submit(ProfileCommand::Status, cx));
+        })
+        .unwrap_or_else(|_| panic!("cancel stale draft and refresh"));
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| !view.read(cx).busy)
+            .await;
+        assert_eq!(
+            context
+                .manager()
+                .load()
+                .unwrap_or_else(|_| panic!("read"))
+                .sections["beta"]
+                .model
+                .as_deref(),
+            Some("external-model")
+        );
+        cx.update_window(handle, |_, window, cx| {
+            assert!(view.read(cx).message.is_none());
+            assert!(!view.read(cx).failed);
             view.update(cx, |view, cx| window.focus(&view.focus, cx));
             for _ in 0..24 {
                 window.press("tab", cx);
@@ -1070,6 +1511,8 @@ mod tests {
             }
             assert_eq!(window.find("profile-delete").focused(), Some(true));
             window.press("enter", cx);
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
             assert!(window.find("profile-confirm").visible());
             window.press("escape", cx);
             assert!(view.read(cx).confirmation.is_none());
@@ -1106,6 +1549,64 @@ mod tests {
                     .read(cx)
                     .value()
                     .contains("sk-native-profile-secret-sentinel")
+            );
+        })
+        .unwrap_or_else(|_| panic!("source read"));
+        context
+            .run(|| {
+                context.manager().mutate(|config| {
+                    config.get_section_mut("alpha")?.description =
+                        Some("External source change".into());
+                    Ok(())
+                })
+            })
+            .unwrap_or_else(|_| panic!("external source client"));
+        cx.update_window(handle, |_, window, cx| window.click("profile-save", cx))
+            .unwrap_or_else(|_| panic!("save stale source"));
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| !view.read(cx).busy)
+            .await;
+        cx.update_window(handle, |_, window, cx| {
+            assert!(view.read(cx).draft_conflict);
+            assert!(view.read(cx).failed);
+            assert!(view.read(cx).mode == Mode::Source);
+            assert_eq!(
+                view.read(cx).message.as_deref(),
+                Some(ProfileError::Conflict.message())
+            );
+            assert!(
+                view.read(cx)
+                    .content
+                    .read(cx)
+                    .value()
+                    .contains("sk-native-profile-secret-sentinel"),
+                "a source CAS refusal must retain the original source draft"
+            );
+            window.click("profile-editor-cancel", cx);
+            assert!(view.read(cx).message.is_none());
+            assert!(!view.read(cx).failed);
+            view.update(cx, |view, cx| view.submit(ProfileCommand::Status, cx));
+        })
+        .unwrap_or_else(|_| panic!("cancel stale source and refresh"));
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| !view.read(cx).busy)
+            .await;
+        cx.update_window(handle, |_, window, cx| {
+            assert!(view.read(cx).message.is_none());
+            assert!(!view.read(cx).failed);
+            window.click("profile-source", cx);
+            window.click("profile-confirm", cx);
+        })
+        .unwrap_or_else(|_| panic!("reload source after cancel"));
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| !view.read(cx).busy)
+            .await;
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            assert!(view.read(cx).message.is_none());
+            assert!(
+                view.read(cx)
+                    .content
+                    .read(cx)
+                    .value()
+                    .contains("External source change")
             );
             view.update(cx, |view, cx| view.leave(window, cx));
             window.render_frame(cx);

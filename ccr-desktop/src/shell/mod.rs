@@ -21,6 +21,10 @@ use gpui_kit::{
 enum Page {
     Configurations,
     Converter,
+    Platforms,
+    Insights,
+    Resources,
+    Jobs,
     Favorites,
     Recent,
     Settings,
@@ -29,6 +33,10 @@ pub struct Shell {
     configurations: Entity<ConfigurationApp>,
     commands: Entity<CommandState>,
     converter: Entity<crate::features::converter::Converter>,
+    platforms: Entity<crate::features::platforms::PlatformsView>,
+    insights: Entity<crate::features::insights::InsightsView>,
+    resources: Entity<crate::features::resources::ResourcesView>,
+    jobs: Entity<crate::features::jobs::JobsView>,
     page: Page,
     preference: Preference,
     fixture: bool,
@@ -59,6 +67,16 @@ impl Shell {
             commands: cx.new(|cx| CommandState::new(&services, window, cx)),
             converter: cx
                 .new(|cx| crate::features::converter::Converter::new(services.clone(), window, cx)),
+            platforms: cx.new(|cx| {
+                crate::features::platforms::PlatformsView::new(services.clone(), window, cx)
+            }),
+            insights: cx.new(|cx| {
+                crate::features::insights::InsightsView::new(services.clone(), window, cx)
+            }),
+            resources: cx.new(|cx| {
+                crate::features::resources::ResourcesView::new(services.clone(), window, cx)
+            }),
+            jobs: cx.new(|cx| crate::features::jobs::JobsView::new(services.clone(), window, cx)),
             page: Page::Configurations,
             preference: Preference::System,
             fixture: services.is_fixture(),
@@ -78,9 +96,17 @@ impl Shell {
             .update(cx, |view, cx| view.leave(window, cx));
         self.commands.update(cx, |view, cx| view.suspend(cx));
         self.converter.update(cx, |view, cx| view.leave(window, cx));
+        self.platforms.update(cx, |view, cx| view.leave(window, cx));
+        self.insights.update(cx, |view, cx| view.suspend(cx));
+        self.resources.update(cx, |view, cx| view.leave(window, cx));
+        self.jobs.update(cx, |view, cx| view.suspend(cx));
         self.page = page;
         match page {
             Page::Configurations => self.configurations.update(cx, |view, cx| view.refresh(cx)),
+            Page::Platforms => self.platforms.update(cx, |view, cx| view.load(cx)),
+            Page::Insights => self.insights.update(cx, |view, cx| view.refresh(cx)),
+            Page::Resources => self.resources.update(cx, |view, cx| view.load(cx)),
+            Page::Jobs => self.jobs.update(cx, |view, cx| view.refresh(cx)),
             Page::Favorites | Page::Recent => self
                 .commands
                 .update(cx, |view, cx| view.open(page == Page::Recent, cx)),
@@ -95,6 +121,16 @@ impl Shell {
             Page::Configurations => self
                 .configurations
                 .update(cx, |view, cx| view.focus_main(window, cx)),
+            Page::Platforms => self
+                .platforms
+                .update(cx, |view, cx| view.focus_main(window, cx)),
+            Page::Insights => self
+                .insights
+                .update(cx, |view, cx| view.focus_main(window, cx)),
+            Page::Resources => self
+                .resources
+                .update(cx, |view, cx| view.focus_main(window, cx)),
+            Page::Jobs => self.jobs.update(cx, |view, cx| view.focus_main(window, cx)),
             Page::Converter => self
                 .converter
                 .update(cx, |view, cx| view.focus_main(window, cx)),
@@ -179,6 +215,8 @@ impl Shell {
 }
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let mode = cx.theme().mode;
+        let sheet = theme::solid_sheet(mode, window.viewport_size());
         let narrow = window.viewport_size().width < px(theme::NARROW_WIDTH);
         let sidebar_width = if narrow {
             theme::NARROW_SIDEBAR
@@ -221,6 +259,7 @@ impl Render for Shell {
             .p(px(theme::SECTION_GAP))
             .gap(px(theme::CONTROL_GAP))
             .bg(cx.theme().sidebar)
+            .rounded_tl(px(theme::SHEET_CONTENT_RADIUS))
             .child(
                 div()
                     .h(px(theme::TOOLBAR_HEIGHT))
@@ -254,6 +293,20 @@ impl Render for Shell {
             ),
             ("nav-recent", Page::Recent, "Recent commands", "最近命令"),
             ("nav-converter", Page::Converter, "Converter", "配置转换"),
+            ("nav-platforms", Page::Platforms, "Platforms", "平台"),
+            (
+                "nav-resources",
+                Page::Resources,
+                "Instruction files",
+                "指令文件",
+            ),
+            ("nav-jobs", Page::Jobs, "Run commands", "执行命令"),
+            (
+                "nav-insights",
+                Page::Insights,
+                "Usage and sessions",
+                "用量与会话",
+            ),
         ] {
             navigation = navigation.child(semantics::button(
                 Button::new(id)
@@ -289,6 +342,10 @@ impl Render for Shell {
             Page::Favorites | Page::Recent => self.commands.clone().into_any_element(),
             Page::Settings => self.settings(cx).into_any_element(),
             Page::Converter => self.converter.clone().into_any_element(),
+            Page::Platforms => self.platforms.clone().into_any_element(),
+            Page::Insights => self.insights.clone().into_any_element(),
+            Page::Resources => self.resources.clone().into_any_element(),
+            Page::Jobs => self.jobs.clone().into_any_element(),
         };
         let status = if self.slow_fixture {
             text(
@@ -305,13 +362,17 @@ impl Render for Shell {
                 "本地 · 桌面命令记录跨环境共享",
             )
         };
-        div()
-            .id("ccr-shell")
+        let workspace = div()
+            .id("application-sheet")
             .size_full()
             .flex()
             .flex_col()
             .overflow_hidden()
-            .bg(cx.theme().background)
+            .bg(sheet.background)
+            .rounded(px(theme::SHEET_RADIUS))
+            .border_1()
+            .border_color(cx.theme().border)
+            .shadow(vec![sheet.shadow])
             .text_color(cx.theme().foreground)
             .font_family(cx.theme().font_family.clone())
             .text_size(px(theme::BODY_SIZE))
@@ -355,6 +416,12 @@ impl Render for Shell {
                     .text_size(px(theme::META_SIZE))
                     .text_color(cx.theme().muted_foreground)
                     .child(status),
-            )
+            );
+        div()
+            .id("ccr-shell")
+            .size_full()
+            .p(sheet.inset)
+            .bg(theme::field(mode))
+            .child(workspace)
     }
 }

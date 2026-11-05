@@ -2,3 +2,5 @@
 {"file":".trellis/spec/ccr/backend/desktop-command-policy.md","reason":"本子任务必须遵循的已存在契约"}
 {"file":".trellis/tasks/10-17-gpui-desktop/research/architecture.md","reason":"仓库边界与最新 GPUI 依赖证据"}
 {"file":".trellis/tasks/10-17-gpui-desktop/research/performance.md","reason":"性能预算与测量方法"}
+{"file":".trellis/tasks/10-17-gpui-desktop/research/airy-glass-plan.md","reason":"本次轻盈玻璃增量目标、材质降级、任务所有权与验收，保留暂停及延期边界"}
+{"file":"ccr-ui/DESIGN.md","reason":"Tauri 已落地的轻盈玻璃视觉参照；原生 API 和验证必须独立"}

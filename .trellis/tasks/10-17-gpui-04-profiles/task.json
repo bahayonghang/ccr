@@ -23,7 +23,9 @@
   "relatedFiles": [],
   "notes": "",
   "meta": {
-    "execution_state": "paused_by_user",
-    "resume_handoff": ".trellis/tasks/10-17-gpui-04-profiles/pause-handoff.md"
+    "execution_state": "resumed_by_user",
+    "resume_handoff": ".trellis/tasks/10-17-gpui-04-profiles/pause-handoff.md",
+    "previous_execution_state": "paused_by_user",
+    "resumed_at": "2026-10-27T07:51:27.288701+00:00"
   }
 }

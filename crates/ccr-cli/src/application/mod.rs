@@ -1,4 +1,6 @@
 pub mod auth_off;
+pub mod codex_oauth;
+pub mod platform_roots;
 pub mod platform_switch;
 pub mod profile_activity;
 #[cfg(any(test, feature = "test-support"))]

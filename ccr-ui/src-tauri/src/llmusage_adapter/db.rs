@@ -3,8 +3,8 @@ use super::error::LlmusageAdapterError;
 
 pub use ccr_usage::{DiagnosticsPayload, LogsPage, LogsQuery, QueryFilter, build_filter};
 
-/// Thin wrapper over `ccr_usage::Dashboard`: identical query surface, with
-/// errors mapped to the adapter-owned `LlmusageAdapterError` at the boundary.
+/// Adapter-owned query wrappers still used by individual Tauri commands.
+/// Shared report assembly borrows the canonical projection through `shared`.
 #[derive(Debug)]
 pub struct Dashboard {
     inner: ccr_usage::Dashboard,
@@ -19,6 +19,11 @@ impl Dashboard {
         Ok(Self {
             inner: ccr_usage::Dashboard::open(paths).map_err(shared_usage_error)?,
         })
+    }
+
+    /// Borrow the single read-only projection for shared report assembly.
+    pub(crate) fn shared(&self) -> &ccr_usage::Dashboard {
+        &self.inner
     }
 
     pub fn overview(
@@ -62,15 +67,6 @@ impl Dashboard {
             .map_err(shared_usage_error)
     }
 
-    pub fn source_breakdown(
-        &self,
-        filter: &QueryFilter,
-    ) -> Result<Vec<ccr_usage::SourceBreakdownDto>, LlmusageAdapterError> {
-        self.inner
-            .source_breakdown(filter)
-            .map_err(shared_usage_error)
-    }
-
     pub fn heatmap(
         &self,
         filter: &QueryFilter,
@@ -92,16 +88,6 @@ impl Dashboard {
         filter: &QueryFilter,
     ) -> Result<ccr_usage::HomeOverviewPayload, LlmusageAdapterError> {
         self.inner.home_overview(filter).map_err(shared_usage_error)
-    }
-
-    pub fn insights(
-        &self,
-        filter: &QueryFilter,
-        as_of: chrono::NaiveDate,
-    ) -> Result<ccr_usage::InsightsPayload, LlmusageAdapterError> {
-        self.inner
-            .insights(filter, as_of)
-            .map_err(shared_usage_error)
     }
 }
 

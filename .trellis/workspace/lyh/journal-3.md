@@ -505,3 +505,37 @@ ccr project init 现在默认勾选五项平台并要求输入用户名，-y 使
 ### Next Steps
 
 - 最终验收仍 open：原生 DPI／托盘／跨平台、真实缩放／无 blur 引擎、未覆盖真实性能；既有焦点恢复 FAIL_BASELINE 与独立 i18n 漂移保留。
+
+
+## Session 136: 归档 PR 与分支清理规划
+<!-- trellis-session: v=2 fp=0a6966131b29a7be -->
+
+**Date**: 2026-11-05
+**Task**: 归档 PR 与分支清理规划
+**Branch**: `ci/faster-checks`
+
+### Summary
+
+规划已在 114c92f8 收录。按要求把任务归档到 archive/2026-11，没有改产品代码。prd 验收项仍未勾选。
+
+### Main Changes
+
+- 将 11-03-pr-branch-cleanup 移到 archive/2026-11，状态改为 completed
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `114c92f87c3ee9821a43d2f9516890bfc13b7048` | chore(任务): 🔧 收录分支清理任务 |
+
+### Testing
+
+- [OK] 工作区干净；归档后 task.json 为 completed，completedAt 为 2026-11-05
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- PR 合并与分支删除仍未做；若要继续，另开任务

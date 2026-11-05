@@ -6,7 +6,30 @@ use std::{
 };
 
 use async_channel::{Receiver, Sender};
-pub use ccr_config::Platform;
+/// Request identity is broader than the profile domain (OpenCode has no profiles).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Platform {
+    Claude,
+    Codex,
+    Grok,
+    Gemini,
+    Qwen,
+    Droid,
+    OpenCode,
+}
+impl Platform {
+    pub fn short_name(self) -> &'static str {
+        match self {
+            Self::Claude => "claude",
+            Self::Codex => "codex",
+            Self::Grok => "grok",
+            Self::Gemini => "gemini",
+            Self::Qwen => "qwen",
+            Self::Droid => "droid",
+            Self::OpenCode => "opencode",
+        }
+    }
+}
 use tokio::{
     runtime::{Builder, Runtime},
     sync::{Notify, Semaphore},
