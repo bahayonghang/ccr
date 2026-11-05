@@ -10,6 +10,7 @@ use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 
 use arc_swap::ArcSwap;
+use ccr_app::environments::ProcessHostTrust;
 use ccr_core::core::AtomicWriter;
 use ccr_db::database::DbPool;
 use ccr_db::services::log_persistence::{LogPersistenceService, LogStorageConfig};
@@ -126,6 +127,9 @@ pub struct AppState {
 
     /// SSH 密码缓存（仅内存，不持久化）
     pub ssh_password_cache: RwLock<HashMap<String, SshPasswordEntry>>,
+
+    /// Hosts confirmed by this process. A previous known_hosts file is not enough.
+    pub(crate) ssh_process_trust: Mutex<ProcessHostTrust>,
 
     pub monitoring_logs: LogPersistenceService,
 
@@ -354,6 +358,7 @@ impl AppState {
             env_registry: RwLock::new(EnvironmentRegistry::new()),
             ssh_runtime_states: RwLock::new(HashMap::new()),
             ssh_password_cache: RwLock::new(HashMap::new()),
+            ssh_process_trust: Mutex::new(ProcessHostTrust::default()),
             monitoring_logs: LogPersistenceService::new(LogStorageConfig::default()),
             checkin_jobs: RwLock::new(HashMap::new()),
             usage_import_jobs: RwLock::new(UsageImportJobs::default()),

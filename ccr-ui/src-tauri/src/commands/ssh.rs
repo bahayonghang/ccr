@@ -7,6 +7,10 @@ use serde::{Deserialize, Serialize};
 use tauri::{Emitter, State};
 use ts_rs::TS;
 
+use ccr_app::environments::{
+    DisconnectReport, ProcessHostTrust, ReconnectGate, allow_reconnect, allow_reconnect_target,
+    disconnect_error, plan_disconnect, reconnect_gate,
+};
 use ccr_db::database::repositories::ssh_repo;
 use ccr_db::models::ssh::{SshHost, SshKnownHost};
 
@@ -291,10 +295,35 @@ async fn collect_host_key(host: &str, port: u16) -> Result<ScannedHostKey, Strin
     )
 }
 
+fn process_trust_snapshot(state: &AppState) -> ProcessHostTrust {
+    state
+        .ssh_process_trust
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .clone()
+}
+
+fn note_process_trust(state: &AppState, host: &str, port: u16) {
+    state
+        .ssh_process_trust
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .note_confirmed(host, port);
+}
+
+/// Empty process trust refuses before registry, database, key scan, or socket.
+fn refusal_before_socket(trust: &ProcessHostTrust) -> Option<&'static str> {
+    match reconnect_gate(trust) {
+        ReconnectGate::Refused(code) => Some(code),
+        ReconnectGate::CheckTarget => None,
+    }
+}
+
 async fn connect_internal(
     state: &AppState,
     env_id: String,
     password: Option<String>,
+    enforce_process_trust: bool,
 ) -> Result<SshConnectionState, String> {
     let has_password_input = password
         .as_ref()
@@ -316,6 +345,13 @@ async fn connect_internal(
     .await
     .map_err(|e| format!("读取 SSH 主机任务失败: {e}"))??
     .ok_or_else(|| format!("SSH 主机不存在: {env_id}"))?;
+
+    if enforce_process_trust {
+        let trust = process_trust_snapshot(state);
+        if let Err(code) = allow_reconnect(&trust, &host.host, host.port) {
+            return Err(code.to_string());
+        }
+    }
 
     let config = db_host_to_config(host);
     if let Err(error) = config.validate() {
@@ -536,7 +572,7 @@ pub async fn ssh_connect(
     env_id: String,
     password: Option<String>,
 ) -> Result<SshConnectionState, String> {
-    connect_internal(state.inner(), env_id, password).await
+    connect_internal(state.inner(), env_id, password, false).await
 }
 
 #[ccr_tauri_command_macros::command]
@@ -545,32 +581,55 @@ pub async fn ssh_reconnect(
     env_id: String,
     password: Option<String>,
 ) -> Result<SshConnectionState, String> {
-    connect_internal(state.inner(), env_id, password).await
+    let trust = process_trust_snapshot(state.inner());
+    if let Some(code) = refusal_before_socket(&trust) {
+        return Err(code.to_string());
+    }
+    let loaded = {
+        let registry = state.env_registry.read().await;
+        registry.ssh_endpoint(&env_id)
+    };
+    if let Err(code) = allow_reconnect_target(
+        &trust,
+        loaded.as_ref().map(|(host, port)| (host.as_str(), *port)),
+    ) {
+        return Err(code.to_string());
+    }
+    connect_internal(state.inner(), env_id, password, true).await
 }
 
 #[ccr_tauri_command_macros::command]
 pub async fn ssh_disconnect(state: State<'_, AppState>) -> Result<SshConnectionState, String> {
-    let mut registry = state.env_registry.write().await;
-    let previous = registry.active().map(|env| env.env_id());
+    let previous = {
+        let registry = state.env_registry.read().await;
+        registry.active().map(|env| env.env_id())
+    };
+    let was_connected = match previous.as_deref() {
+        Some(id) if id.starts_with("ssh:") => SshConnectionManager::get_state(state.inner(), id)
+            .await
+            .is_some_and(|runtime| runtime.connected),
+        _ => false,
+    };
+    let report = plan_disconnect(was_connected);
 
-    if registry.list().iter().any(|env| env.id == "local") {
-        registry
-            .switch_by_id("local")
-            .map_err(|e| format!("切换到本地环境失败: {e}"))?;
-    } else {
-        registry.register(Arc::new(LocalEnvironment::new()));
-        registry
-            .switch_by_id("local")
-            .map_err(|e| format!("激活本地环境失败: {e}"))?;
+    {
+        let mut registry = state.env_registry.write().await;
+        if registry.list().iter().any(|env| env.id == "local") {
+            registry
+                .switch_by_id("local")
+                .map_err(|e| format!("切换到本地环境失败: {e}"))?;
+        } else {
+            registry.register(Arc::new(LocalEnvironment::new()));
+            registry
+                .switch_by_id("local")
+                .map_err(|e| format!("激活本地环境失败: {e}"))?;
+        }
     }
 
-    drop(registry);
-
-    if let Some(prev_env_id) = previous
-        && prev_env_id.starts_with("ssh:")
-    {
+    if let Some(prev_env_id) = previous.filter(|id| id.starts_with("ssh:")) {
         SshConnectionManager::clear_password(state.inner(), &prev_env_id).await;
-        SshConnectionManager::mark_disconnected(state.inner(), prev_env_id, None).await;
+        let noted = disconnect_error(report).map(str::to_string);
+        SshConnectionManager::mark_disconnected(state.inner(), prev_env_id, noted).await;
     }
 
     Ok(SshConnectionState {
@@ -578,7 +637,7 @@ pub async fn ssh_disconnect(state: State<'_, AppState>) -> Result<SshConnectionS
         connected: false,
         has_password: false,
         last_checked_at: Some(Utc::now().to_rfc3339()),
-        last_error: None,
+        last_error: disconnect_error(report).map(str::to_string),
     })
 }
 
@@ -674,6 +733,8 @@ pub async fn ssh_confirm_host_fingerprint(
     )
     .await?;
 
+    let trusted_host = challenge.host.clone();
+    let trusted_port = challenge.port;
     let entry = SshKnownHost {
         host: challenge.host,
         port: challenge.port,
@@ -693,6 +754,7 @@ pub async fn ssh_confirm_host_fingerprint(
     .await
     .map_err(|e| format!("写入 known_hosts 任务失败: {e}"))??;
 
+    note_process_trust(state.inner(), &trusted_host, trusted_port);
     Ok(())
 }
 
@@ -814,5 +876,80 @@ mod tests {
         deactivate_active_target(&mut registry, "ssh:target").unwrap();
 
         assert_eq!(registry.active().unwrap().env_id(), "ssh:active");
+    }
+
+    #[test]
+    fn reconnect_without_process_trust_is_refused_before_a_socket() {
+        let trust = ProcessHostTrust::default();
+        assert_eq!(
+            refusal_before_socket(&trust),
+            Some("ssh_host_key_untrusted")
+        );
+        let mut confirmed = ProcessHostTrust::default();
+        confirmed.note_confirmed("example.com", 22);
+        assert_eq!(refusal_before_socket(&confirmed), None);
+        assert_eq!(
+            allow_reconnect(&confirmed, "other.example", 22),
+            Err("ssh_host_key_untrusted")
+        );
+        let Err(code) = allow_reconnect(&confirmed, "$(id)", 22) else {
+            panic!("untrusted host must be refused");
+        };
+        assert_eq!(code, "ssh_host_key_untrusted");
+        assert!(!code.contains("$("));
+        assert!(!code.contains("ssh-keyscan"));
+        assert!(!format!("{trust:?}{confirmed:?}").contains("id_rsa"));
+
+        let mut registry = EnvironmentRegistry::new();
+        registry.register(Arc::new(LocalEnvironment::new()));
+        registry.register(Arc::new(SshEnvironment::new(SshHostConfig {
+            id: Some("prod".to_string()),
+            name: None,
+            host: "Example.COM".to_string(),
+            port: Some(22),
+            user: None,
+            identity_file: Some("C:/Keys/id_rsa".to_string()),
+            remote_home: None,
+        })));
+        let loaded = registry.ssh_endpoint("ssh:prod");
+        let rendered = format!("{loaded:?}");
+        assert!(!rendered.contains("id_rsa"));
+        assert!(!rendered.contains("ssh-keyscan"));
+        assert!(registry.ssh_endpoint("local").is_none());
+        assert!(registry.ssh_endpoint("ssh:missing").is_none());
+        let endpoint = loaded.as_ref().map(|(host, port)| (host.as_str(), *port));
+        assert_eq!(
+            allow_reconnect_target(&trust, endpoint),
+            Err("ssh_host_key_untrusted")
+        );
+        assert_eq!(
+            allow_reconnect_target(&confirmed, None),
+            Err("ssh_host_key_untrusted")
+        );
+        assert_eq!(allow_reconnect_target(&confirmed, endpoint), Ok(()));
+        assert_eq!(
+            allow_reconnect_target(&confirmed, Some(("other.example", 22))),
+            Err("ssh_host_key_untrusted")
+        );
+    }
+
+    #[test]
+    fn never_connected_disconnect_does_not_report_remote_success() {
+        let nothing = plan_disconnect(false);
+        assert_eq!(nothing, DisconnectReport::NothingConnected);
+        assert_eq!(disconnect_error(nothing), Some("ssh_not_connected"));
+        let remote = plan_disconnect(true);
+        assert_eq!(remote, DisconnectReport::RemoteDisconnected);
+        assert_eq!(disconnect_error(remote), None);
+        let state = SshConnectionState {
+            env_id: "local".to_string(),
+            connected: false,
+            has_password: false,
+            last_checked_at: None,
+            last_error: disconnect_error(nothing).map(str::to_string),
+        };
+        assert!(!state.connected);
+        assert_eq!(state.last_error.as_deref(), Some("ssh_not_connected"));
+        assert_ne!(state.last_error, None);
     }
 }

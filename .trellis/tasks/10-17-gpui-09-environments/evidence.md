@@ -1,6 +1,20 @@
 # GPUI 09 切片证据：主机密钥比较、WSL 文件目标与设置页读取取消
 
-日期：2026-11-05。验收项 9.1–9.6 **没有**标为通过。设置页进行中的环境读取在离开页面后取消，这一项已经证明。process-tree cleanup、live WSL read/write 和 live SSH 仍是 `not_run`。macOS 与 Linux 的原生壳能力仍是 `not_run`。这一检查没有打开可见的系统窗口，因此没有像素截图。
+日期：2026-11-05。验收项 9.1–9.6 **没有**标为通过。设置页进行中的环境读取在离开页面后取消，这一项已经证明。没有进程内信任时，重连会在套接字之前被拒绝；从未连接的断开不会报成一次成功的远程断开。这两项由纯决策和命令委托证明，没有打开套接字。process-tree cleanup、live WSL read/write 和 live SSH 仍是 `not_run`。macOS 与 Linux 的原生壳能力仍是 `not_run`。这一检查没有打开可见的系统窗口，因此没有像素截图。
+
+## 重连与从未连接的断开
+
+`ProcessHostTrust` 只记录本进程里确认过的主机和端口。空白主机名、两端空白、控制字符和端口 0 不会记入。比较前把主机名收成 ASCII 小写，所以 `Example.COM` 与 `example.com` 是同一对。集合为空时，`reconnect_gate` 返回 `ssh_host_key_untrusted`，调用方不得再解析目标。确认过 `example.com:22` 之后，只有这一对主机和端口可以通过；别的主机、别的端口，以及 `$(id)` 这种文本，都得到同一个静态错误码。没有已经载入内存的端点时同样拒绝。错误码里没有主机名、密钥、密码、身份文件或 `ssh-keyscan`。
+
+`ssh_reconnect` 的参数和返回类型没有改。它先取本进程信任集合。集合为空时直接返回 `ssh_host_key_untrusted`，不查注册表，也不进入 `connect_internal`，因此不会读主机行、不会调用 `ssh-keyscan`、不会打开 TCP，也不会读取身份文件。集合里已经有别的主机时，只从本进程注册表里取目标的主机和端口；注册表里没有这个环境，或这一对没有确认过，就返回同一个错误码，仍然不读 SQLite 主机行，不扫描密钥，不打开套接字，不读取身份文件。只有内存中的端点与已确认的主机和端口一致，才会进入原来的 `connect_internal`。那里会再读已保存的主机行，并在 `validate` 和 `test_connectivity` 之前再比较一次；行里的主机若已不再匹配，连接不会开始。`ssh_connect` 仍走原来的连接路径。已保存的指纹匹配不会调用 `note_process_trust`，所以不能单独把主机标成已确认。
+
+`ssh_confirm_host_fingerprint` 只在 known_hosts 和 SQLite 都写成功之后，才把该主机记入本进程信任集合。这一写入路径没有在测试里执行，因为它需要 `AppState`、挑战和磁盘。
+
+`plan_disconnect(false)` 是 `NothingConnected`，对应 `ssh_not_connected`。`plan_disconnect(true)` 仍是原来的干净断开，`last_error` 为空。`ssh_disconnect` 的参数和 `SshConnectionState` 载荷没有改。从未连接时，返回的 `last_error` 是 `ssh_not_connected`，不是一次干净的远程断开。命令仍会把活动环境切回本地；如果之前的活动项是 `ssh:`，运行时状态记下的也是这个错误，而不是空错误。已经连上的会话仍按原来的成功断开返回。
+
+`ssh_reconnect` 和 `ssh_disconnect` 这两个命令函数本身没有用 `AppState` 跑过。测试覆盖的是它们委托的纯决策，以及命令文件里同名的薄包装。确认之后允许重连的那条路径仍会进入现有的 `connect_internal`，这一次没有执行它，也没有打开套接字。
+
+设置页没有新增重连或断开按钮，也没有新文案。无头测试确认不存在 `env-reconnect` 和 `env-disconnect`。侧栏仍是 13 个目的地。纸面仍是实色。没有 Home insights，也没有 `Apply / refresh`。
 
 ## 这一片证明了什么
 
@@ -8,7 +22,7 @@
 
 `New`、`Mismatch` 和 `Matched` 的 `may_store`、`may_trust`、`may_accept` 都是 false。匹配只表示两段指纹文本相同，不写密钥、不打开套接字、不把主机标成已信任。决策值里没有指纹、密钥、密码、身份文件或 `ssh-keyscan`。这三个布尔字段是私有的，外部不能造出一个 `may_accept = true` 的决策。
 
-Tauri 的 `security.rs` 改为再导出同一个 `classify_host_key` 和 `HostKeyStatus`。`ssh_probe_host_fingerprint` 与 `ssh_confirm_host_fingerprint` 的签名和载荷没有改。桌面决策没有调用这两条命令。Tauri 里原有的匹配后重建 known_hosts、以及确认后写入，仍留在命令层，这一片没有改它们，也没有重跑 Tauri SSH 套件。
+Tauri 的 `security.rs` 改为再导出同一个 `classify_host_key` 和 `HostKeyStatus`。`ssh_probe_host_fingerprint` 与 `ssh_confirm_host_fingerprint` 的签名和载荷没有改。桌面决策没有调用这两条命令。匹配后重建 known_hosts，以及确认后的写入，仍留在命令层。这一轮只在写入成功之后追加本进程信任记录，没有改写入本身。
 
 没有发行版、空白发行版，或路径是 Windows 盘符 / UNC 时，`resolve_wsl_file` 返回 `Unavailable`。它不返回本地 Windows 路径，不读取、不改写那个文件，不启动 `wsl`，也不创建发行版。有发行版名且路径是绝对 POSIX 路径时，结果保留发行版名和该 POSIX 路径。
 
@@ -43,7 +57,7 @@ Tauri 的 `security.rs` 改为再导出同一个 `classify_host_key` 和 `HostKe
 ## 仍是 not_run
 
 - 9.1：live WSL read/write 仍是 `not_run`。没有在 Windows 上对真实发行版做 detect/read/write fixture。没有创建发行版。非 Windows 伪 WSL 入口这一条没有在 macOS/Linux 上跑。
-- 9.2：live SSH 仍是 `not_run`。没有对真实 SSH 做首次信任、key changed、认证失败、断线、重连或取消。没有 `ssh-keyscan`，没有 TCP，没有密码，没有读取身份文件。
+- 9.2：live SSH 仍是 `not_run`。没有对真实 SSH 做首次信任、key changed、认证失败、断线、重连或取消。没有 `ssh-keyscan`，没有 TCP，没有密码，没有读取身份文件。本进程没有信任记录时拒绝重连，以及从未连接时不把断开报成成功，这两项已经由纯决策证明。
 - 9.3：设置页进行中的环境读取离开后不会写进另一条路由，这一取消已经证明。缓存、编辑 draft 和 job 不串环境仍没有证明。
 - 9.4：托盘仍是不受支持。没有隐藏/恢复按钮。process-tree cleanup 仍是 `not_run`。退出后的进程树和 watcher 清理没有证明。设置页读取任务的取消是另一件事，不能当作进程树清理。
 - 9.5：macOS 与 Linux 原生壳是 `not_run`。Windows 通知只证明提交了请求，没有证明系统弹出。
@@ -53,12 +67,17 @@ Tauri 的 `security.rs` 改为再导出同一个 `classify_host_key` 和 `HostKe
 
 ## 命令与退出码
 
+这一轮（2026-11-05，重连门闩与从未连接的断开）。检查又收紧了门闩：别的主机已经确认时，未确认目标不再读取 SQLite 主机行。下表是这次收紧之后重新跑过的结果。验收项 9.1–9.6 没有标为通过。
+
 | 命令 | 退出码 |
 | --- | --- |
 | `just desktop-fmt-check` | 0 |
 | `just desktop-lint` | 0 |
 | `just desktop-test` | 0 |
+| `cargo test -p ccr-app --lib environments -- --test-threads=1` | 0 |
+| `cargo clippy -p ccr-app --all-targets -- -D warnings` | 0 |
+| `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop commands::ssh:: -- --test-threads=1` | 0 |
 
-`just desktop-test`：Python 12 通过；AccessKit 回归 3 通过；库测试 97 通过；`native_shell` 8 通过，其中包含 13 个目的地和实色纸面；`native_ui` 2 通过。环境段落的八项测试在这 97 项里，包含离开设置页取消进行中的读取，以及 suspend 或更新一代之后的终态结果不替换可见报告。
+`just desktop-test`：Python 12 通过；AccessKit 回归 3 通过；库测试 98 通过；`native_shell` 8 通过，其中包含 13 个目的地和实色纸面；`native_ui` 2 通过。环境段落的测试在这 98 项里，包含离开设置页取消进行中的读取、suspend 或更新一代之后的终态结果不替换可见报告，以及没有进程内信任时拒绝重连。
 
-这一轮没有重跑 `ccr-app` 的 clippy 或 environments 测试。上一轮记录的 `cargo clippy -p ccr-app --all-targets -- -D warnings` 与 `cargo test -p ccr-app --lib environments -- --test-threads=1`（10 通过、1 个忽略）不是这一次的新结果。
+`ccr-app` environments：13 通过，1 个忽略。忽略的仍是会查询本机 `wsl.exe` 的探针，这一轮没有跑它。Tauri `commands::ssh` 15 通过，其中包括原有的活动目标回退，以及重连拒绝和从未连接的断开报告。没有重跑整个 `ssh` 过滤，也没有执行会打开套接字的连接测试。

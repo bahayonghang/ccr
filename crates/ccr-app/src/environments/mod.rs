@@ -1,9 +1,14 @@
 //! Local process, WSL probe, and saved SSH host labels for desktop shells.
+mod ssh_session;
 mod ssh_trust;
 mod wsl;
 
 use std::path::PathBuf;
 
+pub use ssh_session::{
+    DISCONNECT_NOTHING, DisconnectReport, ProcessHostTrust, RECONNECT_UNTRUSTED, ReconnectGate,
+    allow_reconnect, allow_reconnect_target, disconnect_error, plan_disconnect, reconnect_gate,
+};
 pub use ssh_trust::{HostKeyDecision, HostKeyStatus, classify_host_key, decide_host_key};
 pub use wsl::{
     WslDistro, WslExecProbe, WslFileTarget, WslListError, WslProbe, WslState, WslVersion,

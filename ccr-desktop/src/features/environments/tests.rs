@@ -2,8 +2,10 @@ use super::{environment_read_key, local_line, ssh_line, ssh_trust_line, wsl_line
 use crate::runtime::ConfigSource;
 use crate::shell::Shell;
 use ccr_app::environments::{
-    EnvironmentReport, HostKeyStatus, InspectOptions, SshNames, WslExecProbe, WslFileTarget,
-    WslProbe, decide_host_key, inspect, resolve_wsl_file,
+    DisconnectReport, EnvironmentReport, HostKeyStatus, InspectOptions, ProcessHostTrust,
+    ReconnectGate, SshNames, WslExecProbe, WslFileTarget, WslProbe, allow_reconnect,
+    allow_reconnect_target, decide_host_key, disconnect_error, inspect, plan_disconnect,
+    reconnect_gate, resolve_wsl_file,
 };
 use ccr_app::runtime::{Completion, RuntimeHandle, RuntimeOwner};
 use gpui_kit::test::TestWindowExt;
@@ -65,6 +67,40 @@ fn ssh_line_prints_names_only() {
     assert!(!line.to_lowercase().contains("connected"));
     assert!(!line.to_lowercase().contains("trusted"));
     assert!(!ssh_line(false, &SshNames::Unreadable).contains(" / "));
+}
+
+#[test]
+fn reconnect_without_process_trust_is_refused_before_a_socket() {
+    let trust = ProcessHostTrust::default();
+    assert_eq!(
+        reconnect_gate(&trust),
+        ReconnectGate::Refused("ssh_host_key_untrusted")
+    );
+    let mut confirmed = ProcessHostTrust::default();
+    confirmed.note_confirmed("Example.COM", 22);
+    assert_eq!(reconnect_gate(&confirmed), ReconnectGate::CheckTarget);
+    assert_eq!(allow_reconnect(&confirmed, "example.com", 22), Ok(()));
+    assert_eq!(
+        allow_reconnect_target(&trust, Some(("example.com", 22))),
+        Err("ssh_host_key_untrusted")
+    );
+    assert_eq!(
+        allow_reconnect_target(&confirmed, None),
+        Err("ssh_host_key_untrusted")
+    );
+    assert_eq!(
+        allow_reconnect(&confirmed, "other.example", 22),
+        Err("ssh_host_key_untrusted")
+    );
+    let nothing = plan_disconnect(false);
+    assert_eq!(nothing, DisconnectReport::NothingConnected);
+    assert_eq!(disconnect_error(nothing), Some("ssh_not_connected"));
+    assert_eq!(disconnect_error(plan_disconnect(true)), None);
+    let rendered = format!("{trust:?}{confirmed:?}{nothing:?}");
+    assert!(!rendered.contains("ssh-keyscan"));
+    assert!(!rendered.contains("id_rsa"));
+    assert!(!rendered.contains("password"));
+    assert!(!rendered.contains(" / "));
 }
 
 #[test]
@@ -202,6 +238,8 @@ async fn settings_shows_the_local_desktop_without_a_sample_distro(cx: &mut TestA
         assert!(text.contains(ssh_trust_line(false)));
         assert!(!text.to_lowercase().contains("connected"));
         assert!(!text.to_lowercase().contains("trusted"));
+        assert!(window.try_find("env-reconnect").is_none());
+        assert!(window.try_find("env-disconnect").is_none());
         assert!(text.contains("The tray is unsupported. This window stack has no tray."));
         assert!(text.contains("A system notification can be posted. Delivery is not confirmed."));
         let routes: [&str; 13] = [
