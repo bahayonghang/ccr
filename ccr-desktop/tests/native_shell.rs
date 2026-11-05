@@ -372,26 +372,49 @@ fn workbench_navigation_exposes_thirteen_destinations(cx: &mut TestAppContext) {
     let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
     let (handle, _) = cx.update(|cx| {
         gpui_kit::init(cx);
-        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
-            cx.new(|cx| {
-                Shell::new(
-                    Services::new(
-                        owner.handle(),
-                        ConfigSource::Fixture {
-                            profiles: root.path().join("profiles.toml"),
-                            registry: root.path().join("config.toml"),
-                            delay: Duration::ZERO,
-                        },
+        gpui_kit::open_window(
+            WindowOptions {
+                window_bounds: Some(gpui_kit::WindowBounds::Windowed(
+                    gpui_kit::Bounds::centered(
+                        None,
+                        gpui_kit::size(gpui_kit::px(1280.), gpui_kit::px(800.)),
+                        cx,
                     ),
-                    window,
-                    cx,
-                )
-            })
-        })
+                )),
+                ..Default::default()
+            },
+            cx,
+            |window, cx| {
+                cx.new(|cx| {
+                    Shell::new(
+                        Services::new(
+                            owner.handle(),
+                            ConfigSource::Fixture {
+                                profiles: root.path().join("profiles.toml"),
+                                registry: root.path().join("config.toml"),
+                                delay: Duration::ZERO,
+                            },
+                        ),
+                        window,
+                        cx,
+                    )
+                })
+            },
+        )
         .unwrap_or_else(|e| panic!("window: {e}"))
     });
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
+        let settings = window.find("nav-settings").bounds();
+        let status = window.find("shell-status").bounds();
+        assert!(
+            settings.size.height >= gpui_kit::px(24.),
+            "settings dock is clipped: {settings:?}"
+        );
+        assert!(
+            settings.bottom() <= status.top(),
+            "settings dock overlaps the status line: {settings:?} {status:?}"
+        );
         for id in [
             "nav-overview",
             "nav-configurations",
@@ -432,6 +455,13 @@ fn workbench_navigation_exposes_thirteen_destinations(cx: &mut TestAppContext) {
             window.click(nav, cx);
             assert_eq!(window.find(nav).label(), Some(label));
             assert_eq!(window.find(nav).checked(), Some(true), "{nav} selected");
+            if nav != "nav-dashboard" {
+                assert_eq!(
+                    window.find("nav-dashboard").checked(),
+                    Some(false),
+                    "{nav} left Overview selected"
+                );
+            }
             assert!(window.find(page).visible(), "{page} missing");
             let text = gpui_kit::base::test_support::snapshots(window)
                 .into_iter()
@@ -457,6 +487,28 @@ fn workbench_navigation_exposes_thirteen_destinations(cx: &mut TestAppContext) {
         window.press("enter", cx);
         assert!(window.find("page-agent-sessions").visible());
         assert_eq!(window.find("nav-agent-sessions").checked(), Some(true));
+        window.click("nav-claude-code", cx);
+        window.click("configuration-filter", cx);
+        window.press("f6", cx);
+        window.press("f6", cx);
+        assert_eq!(window.find("nav-dashboard").focused(), Some(true));
+        window.click("nav-checkin", cx);
+        assert_eq!(window.find("nav-checkin").checked(), Some(true));
+        assert_eq!(window.find("nav-dashboard").checked(), Some(false));
+        assert_eq!(
+            window.find("nav-checkin").focused(),
+            Some(true),
+            "Check-ins did not take the sidebar focus ring"
+        );
+        assert_ne!(
+            window.find("nav-dashboard").focused(),
+            Some(true),
+            "Overview keeps the sidebar focus ring"
+        );
+        window.click("nav-settings", cx);
+        assert_eq!(window.find("nav-settings").checked(), Some(true));
+        assert_eq!(window.find("nav-settings").focused(), Some(true));
+        assert_eq!(window.find("nav-dashboard").focused(), Some(false));
         window.remove_window();
     })
     .unwrap_or_else(|e| panic!("navigation: {e}"));

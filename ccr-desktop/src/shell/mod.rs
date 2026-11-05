@@ -217,7 +217,21 @@ impl Shell {
         self.lens = lens;
         self.park(window, cx);
         self.activate(window, cx);
+        // Button clicks refuse focus, so a ring already on Overview stays
+        // there and reads as the selected route. Walk the sidebar tab order
+        // onto the destination while that ring is still inside the sidebar.
+        if self.navigation_focus.contains_focused(window, cx) {
+            self.focus_sidebar_item(self.focused_nav, window, cx);
+        }
         cx.notify();
+    }
+
+    fn focus_sidebar_item(&self, index: usize, window: &mut Window, cx: &mut Context<Self>) {
+        window.focus(&self.navigation_focus, cx);
+        window.focus_next(cx);
+        for _ in 0..index {
+            window.focus_next(cx);
+        }
     }
 
     fn park(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -442,20 +456,23 @@ impl Shell {
         zh: &'static str,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
-        semantics::button(
-            Button::new(id)
-                .label(text(cx, en, zh))
-                .ghost()
-                .selected(self.destination == destination)
-                .toggled(self.destination == destination)
-                .w_full()
-                .on_click(cx.listener(move |this, _, window, cx| {
-                    this.go(destination, Lens::Primary, window, cx)
-                })),
-            false,
-            false,
-            cx,
-        )
+        let selected = self.destination == destination;
+        let mut button = Button::new(id)
+            .label(text(cx, en, zh))
+            .ghost()
+            .selected(selected)
+            .toggled(selected)
+            .w_full()
+            .on_click(cx.listener(move |this, _, window, cx| {
+                this.go(destination, Lens::Primary, window, cx)
+            }));
+        if selected {
+            button = button
+                .border_1()
+                .border_color(cx.theme().ring)
+                .bg(cx.theme().ring.opacity(0.10));
+        }
+        semantics::button(button, false, false, cx)
     }
 
     fn lens_button(
@@ -627,6 +644,7 @@ impl Render for Shell {
         };
         let mut navigation = div()
             .id("shell-navigation")
+            .test_support()
             .role(gpui_kit::Role::Navigation)
             .aria_label(text(cx, "Navigation", "导航"))
             .track_focus(&self.navigation_focus)
@@ -664,6 +682,7 @@ impl Render for Shell {
             .w(px(sidebar_width))
             .flex_shrink_0()
             .h_full()
+            .overflow_hidden()
             .flex()
             .flex_col()
             .p(px(theme::SECTION_GAP))
@@ -693,17 +712,35 @@ impl Render for Shell {
                             }),
                     ),
             );
-        for (index, (id, destination, en, zh)) in Self::nav_items().into_iter().enumerate() {
+        let items = Self::nav_items();
+        let (primary, pinned) = items.split_at(12);
+        let mut routes = div()
+            .id("shell-nav-routes")
+            .flex_1()
+            .min_h_0()
+            .overflow_y_scroll()
+            .flex()
+            .flex_col()
+            .gap(px(theme::CONTROL_GAP));
+        for (index, (id, destination, en, zh)) in primary.iter().copied().enumerate() {
             if index == 1 {
-                navigation = navigation.child(self.section_title("Configuration", "配置中心", cx));
+                routes = routes.child(self.section_title("Configuration", "配置中心", cx));
             } else if index == 3 {
-                navigation = navigation.child(self.section_title("Platforms", "平台", cx));
+                routes = routes.child(self.section_title("Platforms", "平台", cx));
             } else if index == 8 {
-                navigation = navigation.child(self.section_title("Tools", "工具", cx));
-            } else if index == 12 {
-                navigation = navigation.child(div().flex_1());
+                routes = routes.child(self.section_title("Tools", "工具", cx));
             }
-            navigation = navigation.child(self.nav_button(id, destination, en, zh, cx));
+            routes = routes.child(self.nav_button(id, destination, en, zh, cx));
+        }
+        navigation = navigation.child(routes);
+        for (id, destination, en, zh) in pinned.iter().copied() {
+            navigation = navigation.child(div().flex_shrink_0().child(self.nav_button(
+                id,
+                destination,
+                en,
+                zh,
+                cx,
+            )));
         }
         let tools = self.toolbar(cx);
         let body = self.body(cx);
@@ -778,6 +815,7 @@ impl Render for Shell {
             .child(
                 div()
                     .id("shell-status")
+                    .test_support()
                     .role(gpui_kit::Role::Status)
                     .aria_label(status)
                     .track_focus(&self.status_focus)
