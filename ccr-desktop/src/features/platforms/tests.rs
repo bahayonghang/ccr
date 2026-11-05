@@ -55,8 +55,14 @@ fn confirmation_enters_after_callback_before_draw(cx: &mut TestAppContext) {
         accounts: Vec::new(),
         signed_in: false,
         provider_ids: Vec::new(),
+        provider_report: crate::runtime::platforms::ProviderReport::Unsupported,
         surface: Surface::Settings,
         platform: Platform::Claude,
+        file_state: crate::runtime::platforms::FileState::Present,
+        file_label: "settings.json",
+        fields: Vec::new(),
+        credential: crate::runtime::platforms::CredentialState::NotDetected,
+        runtime_auth_present: None,
     });
     let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
     let services = Services::new(
@@ -189,8 +195,14 @@ async fn oauth_cancel_joins_fixture_cleanup_and_clears_callback_draft(cx: &mut T
         accounts: Vec::new(),
         signed_in: false,
         provider_ids: Vec::new(),
+        provider_report: crate::runtime::platforms::ProviderReport::Unsupported,
         surface: Surface::Auth,
         platform: Platform::Codex,
+        file_state: crate::runtime::platforms::FileState::Present,
+        file_label: "config.toml",
+        fields: Vec::new(),
+        credential: crate::runtime::platforms::CredentialState::NotDetected,
+        runtime_auth_present: None,
     });
     let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
     let services = Services::new(
@@ -287,8 +299,14 @@ fn source_requires_acknowledgement_and_close_clears_secret_and_response_identity
         accounts: Vec::new(),
         signed_in: false,
         provider_ids: Vec::new(),
+        provider_report: crate::runtime::platforms::ProviderReport::Unsupported,
         surface: Surface::Settings,
         platform: Platform::Claude,
+        file_state: crate::runtime::platforms::FileState::Present,
+        file_label: "settings.json",
+        fields: Vec::new(),
+        credential: crate::runtime::platforms::CredentialState::NotDetected,
+        runtime_auth_present: None,
     });
     let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
     let services = Services::new(

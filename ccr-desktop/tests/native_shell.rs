@@ -614,3 +614,180 @@ async fn profile_pages_show_only_their_catalog(cx: &mut TestAppContext) {
     .unwrap_or_else(|e| panic!("grok: {e}"));
     owner.shutdown();
 }
+
+fn write_fixture(path: &std::path::Path, body: &str) {
+    std::fs::create_dir_all(path.parent().unwrap_or_else(|| panic!("parent")))
+        .unwrap_or_else(|e| panic!("dir: {e}"));
+    std::fs::write(path, body).unwrap_or_else(|e| panic!("write: {e}"));
+}
+
+#[gpui_kit::test]
+async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
+    let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
+    let home = root.path().join("desktop-platform-fixture").join("home");
+    let secret = "sk-platform-route-sentinel";
+    write_fixture(
+        &home.join(".claude/settings.json"),
+        &format!(r#"{{"model":"sonnet","env":{{"TOKEN":"{secret}"}}}}"#),
+    );
+    write_fixture(
+        &home.join(".codex/config.toml"),
+        "model = \"gpt-5\"\ncli_auth_credentials_store = \"file\"\n",
+    );
+    write_fixture(
+        &home.join(".grok/config.toml"),
+        "[models]\ndefault = \"grok-3\"\n",
+    );
+    write_fixture(
+        &home.join(".config/opencode/opencode.json"),
+        &format!(
+            r#"{{"model":"opencode-model","provider":{{"fixture-provider":{{"apiKey":"{secret}"}}}}}}"#
+        ),
+    );
+    write_fixture(
+        &home.join(".gemini/antigravity-cli/settings.json"),
+        &format!(r#"{{"apiKey":"{secret}","theme":"dark"}}"#),
+    );
+    let (handle, _) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| {
+                Shell::new(
+                    Services::new(
+                        owner.handle(),
+                        ConfigSource::Fixture {
+                            profiles: root.path().join("profiles.toml"),
+                            registry: root.path().join("registry.toml"),
+                            delay: Duration::ZERO,
+                        },
+                    ),
+                    window,
+                    cx,
+                )
+            })
+        })
+        .unwrap_or_else(|e| panic!("window: {e}"))
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("nav-claude-code", cx);
+    })
+    .unwrap_or_else(|e| panic!("claude catalog: {e}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window
+            .try_find("configuration-status")
+            .and_then(|node| node.label().map(|label| label.contains("not found")))
+            .unwrap_or(false)
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(window.find("page-claude-code").visible());
+        assert!(!page_labels(window).contains("model: sonnet"));
+        window.click("tool-accounts", cx);
+    })
+    .unwrap_or_else(|e| panic!("claude accounts: {e}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window
+            .try_find("platform-field-model")
+            .and_then(|node| node.label().map(|label| label == "model: sonnet"))
+            .unwrap_or(false)
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        let text = page_labels(window);
+        assert!(text.contains("settings.json was found"));
+        assert!(text.contains("No runtime credential was detected."));
+        assert!(text.contains("No saved accounts."));
+        assert!(!text.contains(secret));
+        assert!(!text.contains("TOKEN"));
+        assert!(!text.contains(" / "));
+        assert!(!text.contains("Home insights"));
+        assert!(!text.contains("Apply / refresh"));
+        window.click("nav-codex", cx);
+        window.click("tool-accounts", cx);
+    })
+    .unwrap_or_else(|e| panic!("codex accounts: {e}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window
+            .try_find("platform-field-model")
+            .and_then(|node| node.label().map(|label| label == "model: gpt-5"))
+            .unwrap_or(false)
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        let text = page_labels(window);
+        assert!(window.find("page-codex").visible());
+        assert!(text.contains("No runtime credential was detected."));
+        assert!(text.contains("No saved accounts."));
+        assert!(!text.contains(secret));
+        window.click("nav-grok", cx);
+        window.click("tool-accounts", cx);
+    })
+    .unwrap_or_else(|e| panic!("grok accounts: {e}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window
+            .try_find("platform-field-default_model")
+            .and_then(|node| node.label().map(|label| label == "default_model: grok-3"))
+            .unwrap_or(false)
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        let text = page_labels(window);
+        assert!(window.find("page-grok").visible());
+        assert!(text.contains("Saved Grok accounts were not read from demo data."));
+        assert!(!text.contains("logged in"));
+        assert!(!text.contains(secret));
+        window.click("nav-opencode", cx);
+    })
+    .unwrap_or_else(|e| panic!("opencode: {e}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window
+            .try_find("platform-provider-status")
+            .and_then(|node| node.label().map(|label| label.contains("fixture-provider")))
+            .unwrap_or(false)
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        let text = page_labels(window);
+        assert!(window.find("page-opencode").visible());
+        assert!(text.contains("model: opencode-model"));
+        assert!(text.contains("Accounts are not supported. Login state is not reported."));
+        assert!(!text.contains(secret));
+        assert!(!text.contains("apiKey"));
+        window.click("nav-antigravity", cx);
+    })
+    .unwrap_or_else(|e| panic!("antigravity: {e}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window
+            .try_find("platform-file-status")
+            .and_then(|node| {
+                node.label()
+                    .map(|label| label.contains("Typed settings are not supported"))
+            })
+            .unwrap_or(false)
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        let text = page_labels(window);
+        assert!(window.find("page-antigravity").visible());
+        assert!(text.contains("Accounts are not supported. Login state is not reported."));
+        assert!(window.try_find("platform-save").is_none());
+        assert!(!text.contains(secret));
+        assert!(!text.contains("theme"));
+        assert!(!text.contains("dark"));
+        assert!(!text.contains("Home insights"));
+        assert!(!text.contains("Apply / refresh"));
+        assert!(window.try_find("nav-settings").is_some());
+        window.remove_window();
+    })
+    .unwrap_or_else(|e| panic!("status: {e}"));
+    owner.shutdown();
+}

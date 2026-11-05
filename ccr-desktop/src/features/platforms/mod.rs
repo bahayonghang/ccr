@@ -1,11 +1,11 @@
 //! Native platform settings, scoped source, accounts and OpenCode providers.
 use crate::{
-    locales::text,
+    locales::{is_chinese, text},
     runtime::{
         Services,
         platforms::{
-            AccountAction, Command, DESCRIPTORS, OAuthControl, OAuthResult, PlatformSession,
-            ResultValue, Surface,
+            AccountAction, Command, CredentialState, DESCRIPTORS, FileState, OAuthControl,
+            OAuthResult, PlatformSession, ProviderReport, ResultValue, Surface,
         },
     },
     shell::semantics,
@@ -24,7 +24,7 @@ use gpui_kit::component::{
 };
 use gpui_kit::{
     AppContext, Context, Entity, FocusHandle, Focusable, InteractiveElement, IntoElement,
-    ParentElement, Render, StatefulInteractiveElement, Styled, Task, Window, div, px,
+    ParentElement, Render, SharedString, StatefulInteractiveElement, Styled, Task, Window, div, px,
 };
 use std::sync::Arc;
 
@@ -187,7 +187,7 @@ impl PlatformsView {
                                 Completion::Success(ResultValue::Loaded(session)) => {
                                     this.session = Some(session.clone());
                                     if this.source_mode { this.pending_content = Some(session.snapshot.content.clone()); }
-                                    this.message = Some("Loaded from captured local roots. / 已从固定本地路径读取".into());
+                                    this.message = None;
                                 }
                                 Completion::Success(ResultValue::Saved(SaveOutcome::Conflict)) => this.message = Some("Source changed. Draft and original revision retained. Discard and reload before saving again. / 文件已变化，保留草稿和原始版本，请丢弃并重读".into()),
                                 Completion::Success(ResultValue::Saved(SaveOutcome::Saved { .. }) | ResultValue::AccountChanged { .. }) => {
@@ -431,6 +431,237 @@ fn ui_line(cx: &gpui_kit::App, value: &str) -> String {
     crate::locales::localized_line(cx, value)
 }
 
+fn file_status(cx: &gpui_kit::App, session: &PlatformSession) -> String {
+    let label = session.file_label;
+    let chinese = is_chinese(cx);
+    match (
+        session.file_state,
+        session.platform == Platform::Gemini,
+        chinese,
+    ) {
+        (FileState::Missing, _, false) => format!("{label} was not found. Nothing was created."),
+        (FileState::Missing, _, true) => format!("{label} 不存在。没有新建文件。"),
+        (FileState::Invalid, _, false) => {
+            format!("{label} is not a valid document. No values are shown.")
+        }
+        (FileState::Invalid, _, true) => format!("{label} 不是有效文档。不显示任何值。"),
+        (FileState::Present, true, false) => {
+            format!("{label} was found. Typed settings are not supported, so values stay hidden.")
+        }
+        (FileState::Present, true, true) => {
+            format!("{label} 已找到。没有类型化设置，因此不显示值。")
+        }
+        (FileState::Present, false, false) if session.fields.is_empty() => {
+            format!("{label} was found. No supported fields are set.")
+        }
+        (FileState::Present, false, true) if session.fields.is_empty() => {
+            format!("{label} 已找到。没有设置受支持的字段。")
+        }
+        (FileState::Present, false, false) => {
+            format!("{label} was found. Only supported non-secret fields are shown.")
+        }
+        (FileState::Present, false, true) => {
+            format!("{label} 已找到。只显示受支持的非秘密字段。")
+        }
+    }
+}
+
+fn local_projection(session: &PlatformSession, cx: &gpui_kit::App) -> impl IntoElement {
+    let file = file_status(cx, session);
+    let auth = auth_status(cx, session);
+    let mut block = div()
+        .flex()
+        .flex_col()
+        .gap(px(theme::CONTROL_GAP))
+        .text_size(px(theme::BODY_SIZE))
+        .child(
+            div()
+                .id("platform-file-status")
+                .test_support()
+                .role(gpui_kit::Role::Status)
+                .aria_label(file.clone())
+                .child(file),
+        )
+        .child(
+            div()
+                .id("platform-auth-status")
+                .test_support()
+                .role(gpui_kit::Role::Status)
+                .aria_label(auth.clone())
+                .child(auth),
+        );
+    for field in &session.fields {
+        let label = format!("{}: {}", field.key, field.value);
+        block = block.child(
+            div()
+                .id(SharedString::from(format!("platform-field-{}", field.key)))
+                .test_support()
+                .h(px(theme::ROW_HEIGHT))
+                .flex()
+                .items_center()
+                .overflow_hidden()
+                .aria_label(label.clone())
+                .child(label),
+        );
+    }
+    if show_saved_accounts(session) {
+        if session.accounts.is_empty() {
+            let label = text(cx, "No saved accounts.", "没有已保存账户。").to_string();
+            block = block.child(
+                div()
+                    .id("platform-account-status")
+                    .test_support()
+                    .aria_label(label.clone())
+                    .child(label),
+            );
+        } else {
+            for account in &session.accounts {
+                let label = if account.current {
+                    format!("{} · {}", account.name, text(cx, "current", "当前"))
+                } else {
+                    account.name.clone()
+                };
+                block = block.child(
+                    div()
+                        .id(SharedString::from(format!(
+                            "platform-account-{}",
+                            account.name
+                        )))
+                        .test_support()
+                        .h(px(theme::ROW_HEIGHT))
+                        .flex()
+                        .items_center()
+                        .overflow_hidden()
+                        .aria_label(label.clone())
+                        .child(label),
+                );
+            }
+        }
+    }
+    if !matches!(session.provider_report, ProviderReport::Unsupported) {
+        let label = provider_status(cx, session);
+        block = block.child(
+            div()
+                .id("platform-provider-status")
+                .test_support()
+                .role(gpui_kit::Role::Status)
+                .aria_label(label.clone())
+                .child(label),
+        );
+    }
+    block
+}
+
+fn auth_status(cx: &gpui_kit::App, session: &PlatformSession) -> String {
+    let chinese = is_chinese(cx);
+    match session.credential {
+        CredentialState::PlatformUnsupported => text(
+            cx,
+            "Accounts are not supported. Login state is not reported.",
+            "不支持账户。不报告登录状态。",
+        )
+        .to_string(),
+        CredentialState::StoreUnsupported => text(
+            cx,
+            "Account credentials are not read for this store. No login state is shown.",
+            "此凭据存储不读取账户凭据。不显示登录状态。",
+        )
+        .to_string(),
+        CredentialState::Unreadable => text(
+            cx,
+            "Accounts could not be read. No login state is shown.",
+            "无法读取账户。不显示登录状态。",
+        )
+        .to_string(),
+        CredentialState::NotDetected => text(
+            cx,
+            "No runtime credential was detected.",
+            "未检测到运行凭据。",
+        )
+        .to_string(),
+        CredentialState::Detected if session.platform == Platform::Grok => text(
+            cx,
+            "Grok runtime auth file is present. This is not a remote login check.",
+            "Grok 运行认证文件存在。这不是远程登录检查。",
+        )
+        .to_string(),
+        CredentialState::Detected => text(
+            cx,
+            "Runtime credential detected. This is not a remote login check.",
+            "检测到运行凭据。这不是远程登录检查。",
+        )
+        .to_string(),
+        CredentialState::Invalid => text(
+            cx,
+            "Runtime credential is not valid. No login success is claimed.",
+            "运行凭据无效。不声称登录成功。",
+        )
+        .to_string(),
+        CredentialState::MachineStoreUnchecked => match (session.runtime_auth_present, chinese) {
+            (Some(true), false) => {
+                "Demo runtime auth.json is present. Saved accounts were not read, and file presence is not login.".to_string()
+            }
+            (Some(true), true) => {
+                "演示运行 auth.json 存在。没有读取已保存账户，文件存在也不等于已登录。".to_string()
+            }
+            (_, false) => {
+                "Saved Grok accounts were not read from demo data. Runtime auth.json was not found.".to_string()
+            }
+            (_, true) => "没有从演示数据读取已保存的 Grok 账户。未找到运行 auth.json。".to_string(),
+        },
+    }
+}
+
+fn provider_status(cx: &gpui_kit::App, session: &PlatformSession) -> String {
+    match &session.provider_report {
+        ProviderReport::Unsupported => String::new(),
+        ProviderReport::Skipped => text(
+            cx,
+            "Providers were not read because the settings file was not found.",
+            "设置文件不存在，因此没有读取供应商。",
+        )
+        .to_string(),
+        ProviderReport::Invalid => text(
+            cx,
+            "Providers were not read because the provider entry is not a valid object.",
+            "供应商条目不是有效对象，因此没有读取供应商。",
+        )
+        .to_string(),
+        ProviderReport::Ready { hidden: 0 } if session.provider_ids.is_empty() => {
+            text(cx, "No providers are configured.", "没有配置供应商。").to_string()
+        }
+        ProviderReport::Ready { hidden } => {
+            let ids = session.provider_ids.join(", ");
+            if is_chinese(cx) {
+                if *hidden == 0 {
+                    format!("供应商：{ids}")
+                } else {
+                    format!("供应商：{ids}。另有 {hidden} 个标识已隐藏。")
+                }
+            } else if *hidden == 0 {
+                format!("Providers: {ids}")
+            } else {
+                format!("Providers: {ids}. {hidden} more ids are hidden.")
+            }
+        }
+    }
+}
+
+fn show_saved_accounts(session: &PlatformSession) -> bool {
+    if !session.accounts.is_empty() {
+        return !matches!(
+            session.credential,
+            CredentialState::PlatformUnsupported
+                | CredentialState::Unreadable
+                | CredentialState::MachineStoreUnchecked
+        );
+    }
+    matches!(
+        session.credential,
+        CredentialState::NotDetected | CredentialState::Detected | CredentialState::Invalid
+    )
+}
+
 impl Render for PlatformsView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         if let Some(content) = self.pending_content.take() {
@@ -650,6 +881,7 @@ impl Render for PlatformsView {
                 )),
         );
         if let Some(session) = &self.session {
+            root = root.child(local_projection(session, cx));
             if self.surface == Surface::Auth {
                 if self.platform == Platform::Codex {
                     let phase = self.oauth_status.as_ref().map(|status| status.phase);
@@ -682,19 +914,6 @@ impl Render for PlatformsView {
                                 .on_click(cx.listener(|this, _, _, cx| this.control_oauth(true, cx))),
                                 !oauth_active || self.oauth_control_busy || phase != Some(NativePhase::Callback), self.oauth_control_busy, cx)));
                     }
-                }
-                root = root.child(if session.signed_in {
-                    text(cx, "Runtime credential detected", "检测到运行凭据")
-                } else {
-                    text(cx, "No usable runtime credential", "未检测到可用运行凭据")
-                });
-                for account in &session.accounts {
-                    let label = if account.current {
-                        format!("{} · {}", account.name, text(cx, "current", "当前"))
-                    } else {
-                        account.name.clone()
-                    };
-                    root = root.child(div().h(px(theme::ROW_HEIGHT)).child(label));
                 }
                 if self.platform != Platform::Grok {
                     root = root
@@ -741,15 +960,10 @@ impl Render for PlatformsView {
                                 )),
                         );
                 }
-            } else {
+            } else if self.platform != Platform::Gemini {
                 root = root.child(text(cx, "Only entered dirty keys are patched. Unknown siblings survive. Source editing uses the original loaded revision; conflicts retain the draft. JSON null clearing is unsupported here.", "仅提交输入的变更字段，保留未知字段。源编辑使用原始读取版本，冲突保留草稿。此处 JSON 不支持 null 清除。"));
                 if self.surface == Surface::Providers {
                     root = root
-                        .child(format!(
-                            "{}: {}",
-                            text(cx, "Provider IDs", "供应商"),
-                            session.provider_ids.join(", ")
-                        ))
                         .child(Input::new(&self.name).aria_label(text(
                             cx,
                             "Provider ID",
@@ -813,7 +1027,13 @@ impl Render for PlatformsView {
                         cx,
                     ));
             }
-        } else if !self.busy {
+        } else if self.busy {
+            root = root.child(text(
+                cx,
+                "Reading local settings. No result yet.",
+                "正在读取本地设置。还没有结果。",
+            ));
+        } else {
             root = root.child(text(cx, "Load the selected local surface to begin. Fixture roots are isolated and visibly labeled by the shell.", "读取所选本地功能后开始。演示路径已隔离并由外壳标记。"));
         }
         if let Some(message) = &self.message {
