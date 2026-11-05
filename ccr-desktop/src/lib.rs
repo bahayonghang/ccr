@@ -36,6 +36,7 @@ pub fn run() {
         .run(move |cx| {
             gpui_kit::init(cx);
             theme::init(cx);
+            cx.set_app_identity("io.github.ccr.gpui", "CCR Desktop (GPUI)");
             cx.set_quit_mode(QuitMode::LastWindowClosed);
             let shutdown = executor.clone();
             cx.on_app_quit(move |_| {

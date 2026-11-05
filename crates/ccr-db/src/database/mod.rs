@@ -64,14 +64,27 @@ fn resolve_ccr_root() -> Result<PathBuf, DbError> {
     Ok(home.join(".ccr"))
 }
 
+/// UI database file: `~/.ccr-ui/ccr-ui.db`. This does not create directories.
+pub fn ui_database_path() -> Result<PathBuf, DbError> {
+    let home = dirs::home_dir().ok_or(DbError::HomeDirNotFound)?;
+    Ok(home.join(".ccr-ui").join("ccr-ui.db"))
+}
+
+/// Existing UI database file, if one is already on disk.
+pub fn existing_ui_database_file() -> Option<PathBuf> {
+    let path = ui_database_path().ok()?;
+    path.is_file().then_some(path)
+}
+
 /// 获取数据库文件路径: `~/.ccr-ui/ccr-ui.db`
 pub fn get_db_path() -> Result<PathBuf, DbError> {
-    let home = dirs::home_dir().ok_or(DbError::HomeDirNotFound)?;
-    let db_dir = home.join(".ccr-ui");
-    if !db_dir.exists() {
-        std::fs::create_dir_all(&db_dir).map_err(|e| DbError::DirectoryCreation(e.to_string()))?;
+    let path = ui_database_path()?;
+    if let Some(db_dir) = path.parent()
+        && !db_dir.exists()
+    {
+        std::fs::create_dir_all(db_dir).map_err(|e| DbError::DirectoryCreation(e.to_string()))?;
     }
-    Ok(db_dir.join("ccr-ui.db"))
+    Ok(path)
 }
 
 /// 获取 usage analytics 数据库文件路径: `~/.ccr/analytics/usage.db`

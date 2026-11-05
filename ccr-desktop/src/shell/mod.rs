@@ -82,6 +82,7 @@ pub struct Shell {
     checkin: Entity<crate::features::checkin::CheckinView>,
     sync: Entity<crate::features::sync::SyncView>,
     overview: Entity<crate::features::overview::OverviewView>,
+    environments: Entity<crate::features::environments::EnvironmentView>,
     destination: Destination,
     lens: Lens,
     focused_nav: usize,
@@ -133,6 +134,9 @@ impl Shell {
             sync: cx.new(|cx| crate::features::sync::SyncView::new(services.clone(), window, cx)),
             overview: cx
                 .new(|cx| crate::features::overview::OverviewView::new(services.clone(), cx)),
+            environments: cx.new(|cx| {
+                crate::features::environments::EnvironmentView::new(services.clone(), cx)
+            }),
             destination: Destination::Dashboard,
             lens: Lens::Primary,
             focused_nav: 0,
@@ -248,6 +252,7 @@ impl Shell {
         self.checkin.update(cx, |view, cx| view.suspend(cx));
         self.sync.update(cx, |view, cx| view.suspend(cx));
         self.overview.update(cx, |view, cx| view.suspend(cx));
+        self.environments.update(cx, |view, cx| view.suspend(cx));
     }
 
     fn activate(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -300,7 +305,9 @@ impl Shell {
             Destination::McpManager => self.mcp.update(cx, |view, cx| view.refresh(cx)),
             Destination::Checkin => self.checkin.update(cx, |view, cx| view.refresh(cx)),
             Destination::Sync => self.sync.update(cx, |view, cx| view.refresh(cx)),
-            Destination::Settings => {}
+            Destination::Settings => {
+                self.environments.update(cx, |view, cx| view.refresh(cx));
+            }
         }
     }
 
@@ -438,7 +445,7 @@ impl Shell {
             ));
         }
         let language = cx.global::<Language>();
-        div().flex().flex_col().p(px(theme::CONTENT_PADDING)).gap(px(theme::SECTION_GAP))
+        div().id("settings-body").size_full().overflow_y_scroll().flex().flex_col().p(px(theme::CONTENT_PADDING)).gap(px(theme::SECTION_GAP))
             .child(div().text_size(px(theme::TITLE_SIZE)).font_weight(gpui_kit::FontWeight::SEMIBOLD).child(text(cx,"Appearance and language","外观与语言")))
             .child(text(cx,"Theme","主题")).child(choices)
             .child(text(cx,"Language","语言"))
@@ -446,6 +453,7 @@ impl Shell {
                 .child(semantics::button(Button::new("language-en").label("English").ghost().selected(*language==Language::English).toggled(*language==Language::English).on_click(cx.listener(|_,_,_,cx|{cx.set_global(Language::English);cx.refresh_windows();})),false,false,cx))
                 .child(semantics::button(Button::new("language-zh").label("中文").ghost().selected(*language==Language::Chinese).toggled(*language==Language::Chinese).on_click(cx.listener(|_,_,_,cx|{cx.set_global(Language::Chinese);cx.refresh_windows();})),false,false,cx)))
             .child(div().text_color(cx.theme().muted_foreground).child(text(cx,"Preferences apply to this window session. Keyboard actions are immediate; decorative motion is disabled.","设置在当前窗口会话内生效。键盘操作即时响应，装饰动画已关闭。")))
+            .child(self.environments.clone())
     }
 
     fn nav_button(

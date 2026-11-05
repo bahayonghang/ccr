@@ -5,6 +5,41 @@ use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::models::ssh::{SshHost, SshKnownHost};
 
+/// Names only. Host, user, identity file, and remote home stay in the row.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SavedHostNames {
+    Unavailable,
+    Names(Vec<String>),
+}
+
+/// Read saved SSH host labels without selecting secret-bearing columns.
+///
+/// A missing file is left missing. A locked or unreadable database is unavailable.
+pub fn read_saved_host_names(path: &std::path::Path) -> SavedHostNames {
+    if !path.is_file() {
+        return SavedHostNames::Unavailable;
+    }
+    let Ok(conn) = Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+    else {
+        return SavedHostNames::Unavailable;
+    };
+    match list_host_names(&conn) {
+        Ok(names) => SavedHostNames::Names(names),
+        Err(_) => SavedHostNames::Unavailable,
+    }
+}
+
+pub fn list_host_names(conn: &Connection) -> Result<Vec<String>, rusqlite::Error> {
+    let mut stmt = conn.prepare("SELECT name FROM ssh_hosts ORDER BY updated_at DESC, name ASC")?;
+    let names = stmt
+        .query_map([], |row| row.get::<_, String>(0))?
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(names
+        .into_iter()
+        .filter(|name| !name.trim().is_empty())
+        .collect())
+}
+
 pub fn list_hosts(conn: &Connection) -> Result<Vec<SshHost>, rusqlite::Error> {
     let mut stmt = conn.prepare(
         "SELECT id, name, host, port, username, identity_file, remote_home, created_at, updated_at, last_connected_at
@@ -154,4 +189,92 @@ fn parse_dt(raw: &str) -> DateTime<Utc> {
     DateTime::parse_from_rfc3339(raw)
         .map(|v| v.with_timezone(&Utc))
         .unwrap_or_else(|_| Utc::now())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{SavedHostNames, insert_host, list_host_names, read_saved_host_names};
+    use crate::models::ssh::SshHost;
+    use chrono::{TimeZone, Utc};
+    use rusqlite::Connection;
+
+    fn at(seconds: i64) -> chrono::DateTime<Utc> {
+        Utc.timestamp_opt(seconds, 0)
+            .single()
+            .unwrap_or_else(|| panic!("timestamp"))
+    }
+
+    #[test]
+    fn list_host_names_returns_labels_without_secret_columns() {
+        let dir = tempfile::tempdir().unwrap_or_else(|error| panic!("{error}"));
+        let path = dir.path().join("hosts.db");
+        let conn = Connection::open(&path).unwrap_or_else(|error| panic!("{error}"));
+        conn.execute_batch(
+            "CREATE TABLE ssh_hosts (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                host TEXT NOT NULL,
+                port INTEGER NOT NULL,
+                username TEXT NOT NULL,
+                identity_file TEXT,
+                remote_home TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                last_connected_at TEXT
+            );",
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        let older = SshHost {
+            id: "older".into(),
+            name: "lab".into(),
+            host: "secret-host.example".into(),
+            port: 22,
+            username: "secret-user".into(),
+            identity_file: Some("C:/Keys/secret-id".into()),
+            remote_home: Some("/home/secret-user".into()),
+            created_at: at(1_700_000_000),
+            updated_at: at(1_700_000_000),
+            last_connected_at: None,
+        };
+        let newer = SshHost {
+            id: "newer".into(),
+            name: "edge".into(),
+            host: "secret-host.example".into(),
+            port: 22,
+            username: "secret-user".into(),
+            identity_file: None,
+            remote_home: None,
+            created_at: at(1_700_000_100),
+            updated_at: at(1_700_000_100),
+            last_connected_at: None,
+        };
+        let blank = SshHost {
+            id: "blank".into(),
+            name: "   ".into(),
+            host: "secret-host.example".into(),
+            port: 22,
+            username: "secret-user".into(),
+            identity_file: Some("secret-file".into()),
+            remote_home: None,
+            created_at: at(1_700_000_200),
+            updated_at: at(1_700_000_200),
+            last_connected_at: None,
+        };
+        insert_host(&conn, &older).unwrap_or_else(|error| panic!("{error}"));
+        insert_host(&conn, &newer).unwrap_or_else(|error| panic!("{error}"));
+        insert_host(&conn, &blank).unwrap_or_else(|error| panic!("{error}"));
+
+        let names = list_host_names(&conn).unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(names, vec!["edge".to_string(), "lab".to_string()]);
+        let rendered = names.join(" ");
+        assert!(!rendered.contains("secret"));
+        assert_eq!(
+            read_saved_host_names(&path),
+            SavedHostNames::Names(vec!["edge".into(), "lab".into()])
+        );
+
+        let missing = dir.path().join("missing.db");
+        assert_eq!(read_saved_host_names(&missing), SavedHostNames::Unavailable);
+        assert!(!missing.exists());
+    }
 }

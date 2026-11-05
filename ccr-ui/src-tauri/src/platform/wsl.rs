@@ -265,75 +265,41 @@ pub fn detect_wsl_distros_with_cache(force_refresh: bool) -> Result<Vec<WslDistr
     Ok(distros)
 }
 
-/// 内部实现：实际执行 WSL 检测
+fn distro_from_shared(distro: ccr_app::environments::WslDistro) -> WslDistroInfo {
+    WslDistroInfo {
+        name: distro.name,
+        is_default: distro.is_default,
+        version: match distro.version {
+            ccr_app::environments::WslVersion::Wsl1 => WslVersion::Wsl1,
+            ccr_app::environments::WslVersion::Wsl2 => WslVersion::Wsl2,
+            ccr_app::environments::WslVersion::Unknown => WslVersion::Unknown,
+        },
+        state: match distro.state {
+            ccr_app::environments::WslState::Running => WslDistroState::Running,
+            ccr_app::environments::WslState::Stopped => WslDistroState::Stopped,
+            ccr_app::environments::WslState::Unknown => WslDistroState::Unknown,
+        },
+    }
+}
+
+/// 内部实现：实际执行 WSL 检测。
+///
+/// 进程参数和失败文本保持原样。共享层只负责解码和解析。
 fn detect_wsl_distros_internal() -> Result<Vec<WslDistroInfo>, EnvError> {
     let output = std_command("wsl")
         .args(["-l", "-v"])
         .output()
-        .map_err(|e| EnvError::Other(format!("无法运行 wsl.exe: {e}")))?;
+        .map_err(|error| EnvError::Other(format!("无法运行 wsl.exe: {error}")))?;
 
     if !output.status.success() && output.stdout.is_empty() {
-        // WSL 未安装或未启用
         return Ok(Vec::new());
     }
 
-    // wsl -l -v 输出为 UTF-16LE（Windows 默认），尝试 UTF-16LE 解码
-    let text = decode_wsl_output(&output.stdout);
-
-    let mut distros = Vec::new();
-
-    for line in text.lines().skip(1) {
-        // 跳过标题行
-        let line = line.trim();
-        if line.is_empty() {
-            continue;
-        }
-
-        // 格式：  * Ubuntu-22.04  Running  2
-        // 其中 * 表示默认发行版
-        let is_default = line.starts_with('*');
-        let line = line.trim_start_matches('*').trim();
-
-        // 按空白分割
-        let parts: Vec<&str> = line.split_whitespace().collect();
-        if parts.is_empty() {
-            continue;
-        }
-
-        let name = parts[0].to_string();
-        if name.is_empty() || name == "NAME" {
-            continue;
-        }
-
-        let state = if parts.len() >= 2 {
-            match parts[1] {
-                "Running" => WslDistroState::Running,
-                "Stopped" => WslDistroState::Stopped,
-                _ => WslDistroState::Unknown,
-            }
-        } else {
-            WslDistroState::Unknown
-        };
-
-        let version = if parts.len() >= 3 {
-            match parts[2] {
-                "1" => WslVersion::Wsl1,
-                "2" => WslVersion::Wsl2,
-                _ => WslVersion::Unknown,
-            }
-        } else {
-            WslVersion::Unknown
-        };
-
-        distros.push(WslDistroInfo {
-            name,
-            is_default,
-            version,
-            state,
-        });
-    }
-
-    Ok(distros)
+    let text = ccr_app::environments::decode_wsl_output(&output.stdout);
+    Ok(ccr_app::environments::parse_wsl_list(&text)
+        .into_iter()
+        .map(distro_from_shared)
+        .collect())
 }
 
 /// 获取指定 WSL 发行版中的用户名（优先使用缓存）。
@@ -371,35 +337,6 @@ fn get_wsl_username_internal(distro: &str) -> Result<String, EnvError> {
     }
 
     Ok(username)
-}
-
-/// 将 WSL 命令输出从 UTF-16LE 或 UTF-8 解码为 String。
-fn decode_wsl_output(bytes: &[u8]) -> String {
-    // 检测 BOM（UTF-16LE: FF FE）
-    if bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE {
-        // UTF-16LE 解码
-        let utf16: Vec<u16> = bytes[2..]
-            .as_chunks::<2>()
-            .0
-            .iter()
-            .map(|chunk| u16::from_le_bytes(*chunk))
-            .collect();
-        String::from_utf16_lossy(&utf16)
-    } else {
-        // 尝试直接 UTF-8，部分 WSL 版本会输出 UTF-8
-        // 若有嵌入 null 字节（UTF-16 无 BOM），则按 UTF-16LE 处理
-        if bytes.contains(&0u8) && bytes.len().is_multiple_of(2) {
-            let utf16: Vec<u16> = bytes
-                .as_chunks::<2>()
-                .0
-                .iter()
-                .map(|chunk| u16::from_le_bytes(*chunk))
-                .collect();
-            String::from_utf16_lossy(&utf16)
-        } else {
-            String::from_utf8_lossy(bytes).into_owned()
-        }
-    }
 }
 
 /// WSL 执行环境实现。
@@ -846,16 +783,32 @@ pub fn sync_config_blocking(
 
 #[cfg(test)]
 mod tests {
-    use super::{copy_dir_recursive, decode_wsl_output};
+    use super::copy_dir_recursive;
+
+    #[test]
+    fn shared_wsl_parser_keeps_default_running_wsl2() {
+        let parsed = ccr_app::environments::parse_wsl_list(
+            "  NAME STATE VERSION\n* docker-desktop Running 2\n",
+        );
+        assert_eq!(parsed.len(), 1);
+        let info = super::distro_from_shared(
+            parsed
+                .into_iter()
+                .next()
+                .unwrap_or_else(|| panic!("parsed distro")),
+        );
+        assert_eq!(info.name, "docker-desktop");
+        assert!(info.is_default);
+        assert_eq!(info.version, super::WslVersion::Wsl2);
+        assert_eq!(info.state, super::WslDistroState::Running);
+    }
 
     #[test]
     fn decode_wsl_output_preserves_utf8_and_utf16le_paths() {
-        assert_eq!(decode_wsl_output(b"Ubuntu\r\n"), "Ubuntu\r\n");
-        assert_eq!(
-            decode_wsl_output(&[0xFF, 0xFE, b'U', 0, b'b', 0, 0x7F]),
-            "Ub"
-        );
-        assert_eq!(decode_wsl_output(&[b'U', 0, b'b', 0]), "Ub");
+        let decode = ccr_app::environments::decode_wsl_output;
+        assert_eq!(decode(b"Ubuntu\r\n"), "Ubuntu\r\n");
+        assert_eq!(decode(&[0xFF, 0xFE, b'U', 0, b'b', 0, 0x7F]), "Ub");
+        assert_eq!(decode(&[b'U', 0, b'b', 0]), "Ub");
     }
 
     #[test]

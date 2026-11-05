@@ -1,6 +1,7 @@
 pub mod checkin;
 pub mod configs;
 pub mod converter;
+pub mod environments;
 pub mod insights;
 pub mod install;
 pub mod jobs;

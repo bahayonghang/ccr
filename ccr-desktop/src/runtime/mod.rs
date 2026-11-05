@@ -1,5 +1,6 @@
 //! Native adapter: explicit sources, typed read requests, no UI-thread I/O.
 pub mod checkin;
+pub mod environments;
 pub mod insights;
 pub mod install;
 pub mod jobs;
