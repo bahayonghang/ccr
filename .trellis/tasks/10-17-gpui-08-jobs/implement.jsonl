@@ -6,3 +6,6 @@
 {"file":".trellis/tasks/10-17-gpui-desktop/research/performance.md","reason":"性能预算与测量方法"}
 {"file":".trellis/tasks/10-17-gpui-desktop/research/airy-glass-plan.md","reason":"本次轻盈玻璃增量目标、材质降级、任务所有权与验收，保留暂停及延期边界"}
 {"file":"ccr-ui/DESIGN.md","reason":"Tauri 已落地的轻盈玻璃视觉参照；原生 API 和验证必须独立"}
+{"file":".trellis/spec/ccr-app/backend/shared-desktop-services.md","reason":"共享 runner、generation、UI 线程和关闭清理合同"}
+{"file":"crates/ccr-cli/src/services/install_service.rs","reason":"安装 canonical PlanId、host 校验、single-use 和 attempt 生命周期唯一 owner"}
+{"file":".trellis/spec/ccr-cli/backend/install-lifecycle.md","reason":"安装探测输出上限、Unicode/脱敏、取消清理与native恢复合同"}

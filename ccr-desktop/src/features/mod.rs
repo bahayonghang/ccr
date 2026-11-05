@@ -1,3 +1,4 @@
+pub mod checkin;
 pub mod configs;
 pub mod converter;
 pub mod insights;
@@ -8,3 +9,4 @@ pub mod overview;
 pub mod platforms;
 pub mod profiles;
 pub mod resources;
+pub mod sync;

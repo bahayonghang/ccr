@@ -1,11 +1,14 @@
 //! Native command catalog, app-owned execution and bounded log reader.
 use crate::{
-    locales::text,
+    locales::{is_chinese, service_error, text},
     runtime::{Services, jobs::CommandRequests},
     shell::semantics,
 };
 use ccr_app::{
-    jobs::{commands::Snapshot, policy::CommandInfo},
+    jobs::{
+        commands::{Snapshot, Status},
+        policy::CommandInfo,
+    },
     runtime::{EnvironmentId, Platform, RequestKey},
 };
 use gpui_kit::base::TestSupportExt;
@@ -16,9 +19,9 @@ use gpui_kit::component::{
 };
 use gpui_kit::prelude::FluentBuilder;
 use gpui_kit::{
-    AppContext, Context, Entity, Focusable, InteractiveElement, IntoElement, ParentElement, Render,
-    SharedString, StatefulInteractiveElement, Styled, Task, UniformListScrollHandle, Window, div,
-    px, uniform_list,
+    App, AppContext, Context, Entity, Focusable, InteractiveElement, IntoElement, ParentElement,
+    Render, SharedString, StatefulInteractiveElement, Styled, Task, UniformListScrollHandle,
+    Window, div, px, uniform_list,
 };
 
 enum CommandAction {
@@ -155,6 +158,23 @@ impl JobsView {
         if self.busy {
             return;
         }
+        let entry = self
+            .catalog
+            .iter()
+            .find(|entry| entry.name == self.selected);
+        let allowed = match action {
+            CommandAction::Help => entry.is_some(),
+            CommandAction::Background | CommandAction::Foreground => {
+                entry.is_some_and(|entry| entry.executable)
+            }
+        };
+        if !allowed {
+            self.message = Some(
+                "That command cannot be started from this catalog. / 不能从当前目录启动这条命令",
+            );
+            cx.notify();
+            return;
+        }
         let args = if matches!(action, CommandAction::Help) {
             Vec::new()
         } else {
@@ -234,29 +254,91 @@ impl JobsView {
         while !line.is_char_boundary(end) {
             end -= 1;
         }
-        Some(format!(
-            "{channel}: {}{}",
-            &line[..end],
-            if end < line.len() {
-                "… / clipped"
-            } else {
-                ""
-            }
-        ))
+        let suffix = if end < line.len() { "…" } else { "" };
+        Some(format!("{channel}: {}{suffix}", &line[..end]))
     }
+}
+
+fn catalog_summary(cx: &App, count: usize) -> String {
+    if count == 0 {
+        return text(
+            cx,
+            "The local command catalog is empty.",
+            "本地命令目录是空的。",
+        )
+        .to_string();
+    }
+    if is_chinese(cx) {
+        format!("本地命令目录有 {count} 条命令。")
+    } else if count == 1 {
+        "The local command catalog has 1 command.".to_string()
+    } else {
+        format!("The local command catalog has {count} commands.")
+    }
+}
+
+fn command_label(cx: &App, entry: &CommandInfo) -> String {
+    let availability = if entry.executable {
+        text(cx, "Can run", "可执行")
+    } else {
+        text(cx, "Not available here", "此处不可执行")
+    };
+    format!("{} · {} · {availability}", entry.name, entry.title)
+}
+
+fn status_label(cx: &App, status: Status) -> &'static str {
+    match status {
+        Status::Queued => text(cx, "Queued.", "排队。"),
+        Status::Running => text(cx, "Running.", "正在运行。"),
+        Status::Success => text(cx, "Succeeded.", "已成功。"),
+        Status::Failed => text(cx, "Failed.", "已失败。"),
+        Status::Cancelled => text(cx, "Cancelled.", "已取消。"),
+        Status::TimedOut => text(cx, "Timed out.", "已超时。"),
+        Status::CleanupFailed => text(cx, "Cleanup failed.", "清理失败。"),
+        Status::Unavailable => text(cx, "Unavailable.", "不可用。"),
+    }
+}
+
+fn job_state(cx: &App, snapshot: &Snapshot) -> String {
+    let status = status_label(cx, snapshot.status);
+    let cancel = if snapshot.cancel_requested {
+        text(cx, "Cancel was requested.", "已请求取消。")
+    } else {
+        ""
+    };
+    let exit = match snapshot.exit_code {
+        Some(code) if is_chinese(cx) => format!("退出码 {code}。"),
+        Some(code) => format!("Exit code {code}."),
+        None if is_chinese(cx) => "没有退出码。".to_string(),
+        None => "No exit code.".to_string(),
+    };
+    let dropped = if is_chinese(cx) {
+        format!("丢弃了 {} 行。", snapshot.dropped_lines)
+    } else {
+        format!("Dropped {} lines.", snapshot.dropped_lines)
+    };
+    let truncated = if snapshot.truncated {
+        text(cx, "Output was truncated.", "输出被截断。")
+    } else {
+        text(cx, "Output was not truncated.", "输出没有被截断。")
+    };
+    format!("{status} {cancel}{exit} {dropped} {truncated}")
 }
 impl Render for JobsView {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let summary = catalog_summary(cx, self.catalog.len());
         let mut commands = div().flex().flex_wrap().gap_1();
         for entry in &self.catalog {
             let command = entry.name;
-            let enabled = entry.executable && !self.busy;
+            let label = command_label(cx, entry);
+            let executable = entry.executable;
+            let enabled = executable && !self.busy;
             commands = commands.child(semantics::button(
                 Button::new(SharedString::from(format!("job-command-{command}")))
-                    .label(command)
+                    .label(label)
                     .ghost()
                     .on_click(cx.listener(move |this, _, _, cx| {
-                        if !this.busy {
+                        if !this.busy && executable {
                             this.selected = command.into();
                             cx.notify();
                         }
@@ -270,26 +352,22 @@ impl Render for JobsView {
             .catalog
             .iter()
             .find(|entry| entry.name == self.selected);
+        let known = selected.is_some();
+        let executable = selected.is_some_and(|entry| entry.executable);
         let metadata = selected
             .map(|entry| format!("{} · {} · {}", entry.title, entry.risk, entry.usage))
-            .unwrap_or_default();
+            .unwrap_or_else(|| {
+                text(
+                    cx,
+                    "The selected command is not in the local catalog.",
+                    "所选命令不在本地目录中。",
+                )
+                .to_string()
+            });
         let state = self
             .snapshot
             .as_ref()
-            .map(|snapshot| {
-                format!(
-                    "{:?}{} · exit {:?} · dropped {} · truncated {}",
-                    snapshot.status,
-                    if snapshot.cancel_requested {
-                        " / cancel_requested"
-                    } else {
-                        ""
-                    },
-                    snapshot.exit_code,
-                    snapshot.dropped_lines,
-                    snapshot.truncated
-                )
-            })
+            .map(|snapshot| job_state(cx, snapshot))
             .unwrap_or_else(|| text(cx, "No job yet", "尚无任务").to_string());
         let count = self
             .snapshot
@@ -325,6 +403,7 @@ impl Render for JobsView {
         .track_scroll(&self.log_scroll);
         div().id("native-command-workbench").test_support().flex().flex_col().size_full().p_4().gap_2().bg(cx.theme().background).text_color(cx.theme().foreground)
             .child(div().text_size(px(20.)).child(text(cx,"Commands and jobs","命令与任务")))
+            .child(div().id("command-catalog-summary").test_support().aria_label(summary.clone()).child(summary))
             .when(self.requests.is_fixture(), |view| {
                 view.child(
                     div()
@@ -339,17 +418,27 @@ impl Render for JobsView {
                         )),
                 )
             })
-            .child(commands).child(metadata)
+            .child(commands).child(div().id("command-catalog-detail").test_support().aria_label(metadata.clone()).child(metadata))
             .child(div().child(text(cx,"Arguments as JSON string array","参数 JSON 字符串数组")))
             .child(Input::new(&self.args))
             .child(div().flex().gap_2()
-                .child(semantics::button(Button::new("command-start").label(text(cx,"Start background job","启动后台任务")).on_click(cx.listener(|this,_,_,cx|this.start(cx))), self.busy, self.busy, cx))
-                .child(semantics::button(Button::new("command-foreground").label(text(cx,"Run","执行")).on_click(cx.listener(|this,_,_,cx|this.start_action(CommandAction::Foreground,cx))), self.busy, self.busy, cx))
-                .child(semantics::button(Button::new("command-help").label(text(cx,"Command help","命令帮助")).ghost().on_click(cx.listener(|this,_,_,cx|this.start_action(CommandAction::Help,cx))), self.busy, false, cx))
+                .child(semantics::button(Button::new("command-start").label(text(cx,"Start background job","启动后台任务")).on_click(cx.listener(|this,_,_,cx|this.start(cx))), self.busy || !executable, self.busy, cx))
+                .child(semantics::button(Button::new("command-foreground").label(text(cx,"Run","执行")).on_click(cx.listener(|this,_,_,cx|this.start_action(CommandAction::Foreground,cx))), self.busy || !executable, self.busy, cx))
+                .child(semantics::button(Button::new("command-help").label(text(cx,"Command help","命令帮助")).ghost().on_click(cx.listener(|this,_,_,cx|this.start_action(CommandAction::Help,cx))), self.busy || !known, false, cx))
                 .child(semantics::button(Button::new("command-cancel").label(text(cx,"Request cancel","请求取消")).ghost().on_click(cx.listener(|this,_,_,cx|this.cancel(cx))), !self.busy, false, cx))
                 .child(semantics::button(Button::new("command-status").label(text(cx,"Refresh status","刷新状态")).ghost().on_click(cx.listener(|this,_,_,cx|this.refresh(cx))), self.job_id.is_none(), false, cx)))
-            .child(div().child(state))
-            .when_some(self.message, |view, message| view.child(div().text_color(cx.theme().danger).child(crate::locales::localized_line(cx, message))))
+            .child(div().id("command-job-state").test_support().aria_label(state.clone()).child(state))
+            .when_some(self.message, |view, message| {
+                let line = service_error(cx, message);
+                view.child(
+                    div()
+                        .id("command-message")
+                        .test_support()
+                        .aria_label(line)
+                        .text_color(cx.theme().danger)
+                        .child(line),
+                )
+            })
             .child(div().flex_1().min_h_0().bg(cx.theme().background).child(logs))
     }
 }

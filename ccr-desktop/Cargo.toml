@@ -23,8 +23,11 @@ ccr-config = { path = "../crates/ccr-config" }
 ccr-cli = { path = "../crates/ccr-cli" }
 ccr-codex = { path = "../crates/ccr-codex" }
 ccr-store = { path = "../crates/ccr-store" }
+ccr-sync = { path = "../crates/ccr-sync" }
 ccr-usage = { path = "../crates/ccr-usage" }
 chrono = "=0.4.45"
+dirs = "=6.0.0"
+rusqlite = { version = "=0.40.2", features = ["bundled", "functions"] }
 serde_json = "=1.0.154"
 tokio = { version = "=1.53.3", features = ["rt", "sync", "time", "macros"] }
 toml = "=1.1.8"

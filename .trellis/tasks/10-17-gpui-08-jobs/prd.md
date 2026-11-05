@@ -32,4 +32,4 @@
 
 ## Status
 
-planning。技术待验证项由本任务检查闭环，不视作已完成。开始前读父任务 design.md、implement.md、当前子任务全部规划和 curated context。
+in_progress。命令工作台与 llmusage 安装按分段接入，技术待验证项由本任务检查闭环，不视作已完成。开始前读父任务 design.md、implement.md、当前子任务全部规划和 curated context。

@@ -268,7 +268,7 @@ impl Render for CommandState {
         };
         let mut content=div().id("command-state").role(gpui_kit::Role::Region).aria_label(if history{text(cx,"Recent commands","最近命令")}else{text(cx,"Favorite commands","收藏命令")}).track_focus(&self.content_focus).tab_stop(false).flex().flex_col().size_full().min_w_0().p(px(theme::CONTENT_PADDING)).gap(px(theme::SECTION_GAP))
             .child(div().text_size(px(theme::TITLE_SIZE)).font_weight(gpui_kit::FontWeight::SEMIBOLD).child(if history{text(cx,"Recent commands","最近命令")}else{text(cx,"Favorite commands","收藏命令")}))
-            .child(div().text_color(muted).child(text(cx,"Stored on this desktop, shared across environments. Execution is not connected yet.","记录保存在此桌面，跨环境共享。命令执行尚未接入。")))
+            .child(div().text_color(muted).child(text(cx,"Saved on this desktop and shared across environments. This list does not run a command.","记录保存在此桌面，并在各环境间共享。这个列表不会执行命令。")))
             .child(div().flex().gap(px(theme::CONTROL_GAP))
                 .child(semantics::button(Button::new("command-state-refresh").label(text(cx,"Refresh","刷新")).ghost().on_click(cx.listener(|this,_,_,cx|this.reload(cx))),self.loading||self.saving||self.confirmation.is_some(),self.loading,cx))
                 .child(semantics::button(Button::new("command-history-clear").label(text(cx,"Clear recent commands","清空最近命令")).ghost().on_click(cx.listener(|this,_,window,cx|{if !this.history||this.snapshot.history.is_empty(){return;}this.ask_confirmation(Confirmation::ClearHistory,window,cx);})),!history||self.saving||self.loading||self.error||snapshot.history.is_empty()||self.confirmation.is_some(),self.saving,cx)));

@@ -79,6 +79,8 @@ pub struct Shell {
     mcp: Entity<crate::features::mcp::McpView>,
     jobs: Entity<crate::features::jobs::JobsView>,
     install: Entity<crate::features::install::InstallView>,
+    checkin: Entity<crate::features::checkin::CheckinView>,
+    sync: Entity<crate::features::sync::SyncView>,
     overview: Entity<crate::features::overview::OverviewView>,
     destination: Destination,
     lens: Lens,
@@ -126,6 +128,9 @@ impl Shell {
             jobs: cx.new(|cx| crate::features::jobs::JobsView::new(services.clone(), window, cx)),
             install: cx
                 .new(|cx| crate::features::install::InstallView::new(services.clone(), window, cx)),
+            checkin: cx
+                .new(|cx| crate::features::checkin::CheckinView::new(services.clone(), window, cx)),
+            sync: cx.new(|cx| crate::features::sync::SyncView::new(services.clone(), window, cx)),
             overview: cx
                 .new(|cx| crate::features::overview::OverviewView::new(services.clone(), cx)),
             destination: Destination::Dashboard,
@@ -226,6 +231,8 @@ impl Shell {
         self.mcp.update(cx, |view, cx| view.suspend(cx));
         self.jobs.update(cx, |view, cx| view.suspend(cx));
         self.install.update(cx, |view, cx| view.suspend(cx));
+        self.checkin.update(cx, |view, cx| view.suspend(cx));
+        self.sync.update(cx, |view, cx| view.suspend(cx));
         self.overview.update(cx, |view, cx| view.suspend(cx));
     }
 
@@ -277,7 +284,9 @@ impl Shell {
             }),
             Destination::Commands => self.jobs.update(cx, |view, cx| view.refresh(cx)),
             Destination::McpManager => self.mcp.update(cx, |view, cx| view.refresh(cx)),
-            Destination::Checkin | Destination::Sync | Destination::Settings => {}
+            Destination::Checkin => self.checkin.update(cx, |view, cx| view.refresh(cx)),
+            Destination::Sync => self.sync.update(cx, |view, cx| view.refresh(cx)),
+            Destination::Settings => {}
         }
     }
 
@@ -337,7 +346,14 @@ impl Shell {
                 Destination::McpManager => {
                     self.mcp.update(cx, |view, cx| view.focus_main(window, cx));
                 }
-                Destination::Settings | Destination::Checkin | Destination::Sync => {
+                Destination::Checkin => {
+                    self.checkin
+                        .update(cx, |view, cx| view.focus_main(window, cx));
+                }
+                Destination::Sync => {
+                    self.sync.update(cx, |view, cx| view.focus_main(window, cx));
+                }
+                Destination::Settings => {
                     window.focus(&self.main_focus, cx);
                     window.focus_next(cx);
                 }
@@ -416,33 +432,6 @@ impl Shell {
                 .child(semantics::button(Button::new("language-en").label("English").ghost().selected(*language==Language::English).toggled(*language==Language::English).on_click(cx.listener(|_,_,_,cx|{cx.set_global(Language::English);cx.refresh_windows();})),false,false,cx))
                 .child(semantics::button(Button::new("language-zh").label("中文").ghost().selected(*language==Language::Chinese).toggled(*language==Language::Chinese).on_click(cx.listener(|_,_,_,cx|{cx.set_global(Language::Chinese);cx.refresh_windows();})),false,false,cx)))
             .child(div().text_color(cx.theme().muted_foreground).child(text(cx,"Preferences apply to this window session. Keyboard actions are immediate; decorative motion is disabled.","设置在当前窗口会话内生效。键盘操作即时响应，装饰动画已关闭。")))
-    }
-
-    fn notice(
-        &self,
-        title_en: &'static str,
-        title_zh: &'static str,
-        body_en: &'static str,
-        body_zh: &'static str,
-        cx: &mut Context<Self>,
-    ) -> impl IntoElement {
-        div()
-            .size_full()
-            .flex()
-            .flex_col()
-            .p(px(theme::CONTENT_PADDING))
-            .gap(px(theme::SECTION_GAP))
-            .child(
-                div()
-                    .text_size(px(theme::TITLE_SIZE))
-                    .font_weight(gpui_kit::FontWeight::SEMIBOLD)
-                    .child(text(cx, title_en, title_zh)),
-            )
-            .child(
-                div()
-                    .text_color(cx.theme().muted_foreground)
-                    .child(text(cx, body_en, body_zh)),
-            )
     }
 
     fn nav_button(
@@ -602,24 +591,8 @@ impl Shell {
                 Destination::Commands => self.jobs.clone().into_any_element(),
                 Destination::Settings => self.settings(cx).into_any_element(),
                 Destination::McpManager => self.mcp.clone().into_any_element(),
-                Destination::Checkin => self
-                    .notice(
-                        "Check-ins",
-                        "签到管理",
-                        "Check-in is not connected in this desktop build. This page does not invent account status.",
-                        "这个桌面版本还没有接入签到，也不会编造账户状态。",
-                        cx,
-                    )
-                    .into_any_element(),
-                Destination::Sync => self
-                    .notice(
-                        "Sync",
-                        "同步",
-                        "Sync is not connected in this desktop build. This page does not invent sync status.",
-                        "这个桌面版本还没有接入同步，也不会编造同步状态。",
-                        cx,
-                    )
-                    .into_any_element(),
+                Destination::Checkin => self.checkin.clone().into_any_element(),
+                Destination::Sync => self.sync.clone().into_any_element(),
             },
         }
     }

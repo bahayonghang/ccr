@@ -176,3 +176,78 @@ fn rendered_catalog_blocks_typed_only_commands_and_invalid_draft_never_starts(
     );
     owner.shutdown();
 }
+
+fn labels(window: &gpui_kit::Window) -> String {
+    gpui_kit::base::test_support::snapshots(window)
+        .into_iter()
+        .filter_map(|node| node.label().map(str::to_string))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+#[gpui_kit::test]
+fn command_catalog_lists_real_entries_and_rejects_unavailable_commands(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let fixture = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
+    let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+    let services = Services::new(
+        owner.handle(),
+        crate::runtime::ConfigSource::Fixture {
+            profiles: fixture.path().join("profiles.toml"),
+            registry: fixture.path().join("config.toml"),
+            delay: std::time::Duration::ZERO,
+        },
+    );
+    let count = ccr_app::jobs::policy::command_catalog().len();
+    let (handle, view) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| JobsView::new(services, window, cx))
+        })
+        .unwrap_or_else(|_| panic!("window"))
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        let text = labels(window);
+        assert!(text.contains(&format!("The local command catalog has {count} commands.")));
+        assert_eq!(
+            window.find("job-command-status").label(),
+            Some("status · Status overview · Can run")
+        );
+        assert!(
+            window
+                .find("job-command-delete")
+                .label()
+                .unwrap_or_default()
+                .contains("Not available here")
+        );
+        assert!(text.contains("Status overview"));
+        assert!(!text.contains("Home insights"));
+        assert!(!text.contains("Apply / refresh"));
+        assert!(!text.contains(" / "));
+        window.click("job-command-delete", cx);
+        window.render_frame(cx);
+        assert_eq!(view.read(cx).selected, "status");
+        assert!(
+            window
+                .find("command-catalog-detail")
+                .label()
+                .unwrap_or_default()
+                .contains("Status overview")
+        );
+        view.update(cx, |this, cx| {
+            this.catalog.clear();
+            this.selected = "missing".into();
+            this.start(cx);
+        });
+        window.render_frame(cx);
+        let empty = labels(window);
+        assert!(empty.contains("The local command catalog is empty."));
+        assert!(empty.contains("cannot be started from this catalog"));
+        assert!(view.read(cx).job_id.is_none());
+        assert!(!empty.contains(" / "));
+        window.remove_window();
+    })
+    .unwrap_or_else(|_| panic!("catalog"));
+    owner.shutdown();
+}

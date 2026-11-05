@@ -8,6 +8,21 @@
 
 ## Ordered Work
 
+### 2026-11-05 continuation
+
+用户继续既有 GPUI 重构；恢复现有 08，不新建任务。会话起点 `dev@5d069e63`，工作区干净。优先关闭命令订阅恢复与 foreground/help，再接入已有 `ccr_cli::services::install_service::InstallService` 的 llmusage 安装纵向链。命令实现者拥有共享 jobs owner 与 native jobs 文件；安装实现者只拥有新增 native install adapter/view；主会话唯一拥有 Services、exports、manifest/lock、shell、台账及规格；独立 check 在集成后进行。
+
+1. 原子订阅加快照恢复，覆盖运行中离开/返回、终态返回、迟到事件、取消；foreground/help 保持受控 runner 和同一 allowlist。
+2. 安装入口复用 domain 的 canonical PlanId、TTL/single-use、host 校验和 attempt 单例；先展示计划再明确确认。离页仅脱离视图，关闭应用必须等待取消/清理；fixture 禁止真实探测/安装。
+3. 默认并行的 owner/adapter/控件回归、严格 Clippy、格式、敏感写入和 Tauri consumer 回归；构建匹配源码身份的 native 候选，只用隔离合成进程。日志位于 `outputs/desktop/continuation-20261105/`。
+4. 分别记录 source、headless test 和 native 证据；完整 08、父任务与 DPI/跨平台/性能验收不因局部通过而关闭。
+
+独立检查发现新安装入口实际消费的三个 owner 缺陷：detect 的无界 `.output()`/未等待 tree cleanup 与 UTF-8 字节截断；ring redactor 复用原偏移切已修改字符串；exec 无期限等待 reader。先保存 red 回归再在上述 CLI 原 owner 修复、跑合成 flood/timeout/held-reader 和 consumer 回归；不在 native adapter 掩盖错误，不扩大到无关命令。
+
+同步/签到/余额的网络执行、写账户和 per-origin queue/throttle 尚未实现。研究只确认签到批量操作的全局并发限制，未证实 PRD 所述 per-origin queue/throttle；不能按现有能力计入验收。
+
+2026-11-05 route slice：`/commands` 展示既有 `command_catalog`，空目录给明确空态，不可执行命令在启动前拒绝；收藏和最近命令仍留在页内且不执行。`/checkin` 只读已有 SQLite 账户和已保存余额，缺库不创建、不写账户、不联系提供商，缺失余额不填 0。`/sync` 只读规范 `sync_folders.toml`，缺文件保持未配置，不读旧 `sync.toml`、不写密码、不接触 WebDAV、不报告同步成功。纸面保持实色，侧栏仍为 13 项。PRD 8.1–8.6 不因这三段本地读取标完成。
+
 1. 读取 curated specs、父任务设计和当前代码；记录修改边界及基础 fixture 状态。
 2. 迁移命令工作台、工具安装、同步、签到及余额刷新。
 3. 取消、超时、重试、并发/单例、离开页面、关闭窗口、订阅恢复等 lifecycle。 保留命令 allowlist、network/local/secret mutation 分级、WebDAV 密码生命周期和签到 per-origin 限流。
