@@ -6,7 +6,7 @@
 
 ## Parent and Dependencies
 
-父任务：[gpui-desktop](../10-17-gpui-desktop/prd.md)。需求映射：R6、R8、R9。
+父任务：[gpui-desktop](../10-17-gpui-desktop/prd.md)。需求映射：R5、R6、R8、R9。
 
 前置：04、05、06、07、08 完成。 父子关系不自动保证依赖完成。
 
@@ -23,6 +23,8 @@
 - [ ] 9.3：环境切换后缓存/编辑 draft/job 显示无串环境，Local-only 功能给出原因而非读取错误来源。
 - [ ] 9.4：托盘与关闭行为可配置且与已有语义对应；退出后 owned process、task、watcher 有清理证明。
 - [ ] 9.5：三 OS native shell 能力表明确 pass/unsupported/not_run，unsupported 需说明产品影响，不能当完成。
+
+- [ ] 9.6 (R5/AC9)：本域遵循父 [轻盈玻璃合同 V1–V4](../10-17-gpui-desktop/research/airy-glass-plan.md)，复用 03 唯一主题/材质层；V3 本域场景在 light/dark 及 glass/solid 下有原生证据。阅读/编辑/图表/日志/确认保持实色，无新增 blur，既有业务与焦点/虚拟化不回归；未具备的模式/平台如实标记。
 
 ## Out of Scope
 

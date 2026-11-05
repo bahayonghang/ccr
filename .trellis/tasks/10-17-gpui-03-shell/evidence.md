@@ -55,3 +55,12 @@
 - 独立checker复核所有receipts/8张实际截图后给出可消费工程交接。task仍in_progress：AC3.4/3.5通过；AC3.1 user-deferred，AC3.2原生UIA/读屏未验证，AC3.3当前布局IME组合态未观察，系统外观事件/其他OS/性能和已知几何差异仍开放。
 - 父台账03六项已有实际映射/证据或明确08真实完成事件待接理由；get_favorites/add_favorite计verified_core，get_recent/remove/clear为implemented_test_verified，add_recent等待08，不制造历史。累计核心命令3、完整route0，保留348/76/18。
 - 04已依正常task.py start激活，沿用父工程依赖/开放验收分开规则，不宣称完整03或父迁移完成，不归档/提交/推送/发布。
+# 2026-10-27 resumed airy-glass increment
+
+The user explicitly resumed existing tasks. Original evidence above remains historical. Current solid fallback implementation and independent review are in `research/airy-glass-implementation.md`, `research/airy-glass-check.md` and `research/airy-glass-capabilities.md`. Before-release identity/native reference is in `research/airy-glass-before-native.md`.
+
+Final checked candidate SHA256 `ed00067d7a6a2f88356c69d1b6e24417680ba7f9c3c170e49a3ca893e9d0eaab` passed fmt-check/check/strict lint/full desktop-test/debug-build; source/gates are frozen in `outputs/desktop/airy-glass/2026-10-27/check/candidate-receipt.json`. Headless painted-quad tests reproduced and fixed opaque children masking paper corners. Only an opaque sheet is implemented because the locked renderer lacks in-app backdrop sampling; no fake blur or OS transparency substitution.
+
+Main then observed the actual candidate in dark/light and English/Chinese, performed configuration metadata/CAS/apply, missing-catalog Retry and pending-read close. Three fixture processes exited0. Exact results/failures are in `../10-17-gpui-04-profiles/research/native-solid-candidate-20261027.md`, summary `outputs/desktop/profiles/native/solid-core-summary-20261027.json`. These do not count as S1/S2 performance or IME/UIA proof.
+
+Native keyboard acceptance is currently FAIL: opening profile Off confirmation from an outside sidebar focus lets Tab escape and Escape fails to dismiss. A separate draft-cancellation status is also stale. A checker is fixing these actual precondition gaps;03/04 are not complete. Deferred size/DPI, OS UIA/IME, other platforms, glass, system-preference integration and full performance remain open.05 and independent07 consume stable services/theme while their own acceptance stays separate. No commit/push/archive was performed.

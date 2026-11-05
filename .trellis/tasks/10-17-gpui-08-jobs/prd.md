@@ -6,7 +6,7 @@
 
 ## Parent and Dependencies
 
-父任务：[gpui-desktop](../10-17-gpui-desktop/prd.md)。需求映射：R4、R6、R7、R9。
+父任务：[gpui-desktop](../10-17-gpui-desktop/prd.md)。需求映射：R5、R4、R6、R7、R9。
 
 前置：02、03、04 完成。 父子关系不自动保证依赖完成。
 
@@ -23,6 +23,8 @@
 - [ ] 8.3：秘密只传入 domain 生命周期，不进事件/日志/历史；同步冲突与失败不报告成功。
 - [ ] 8.4：签到多账户刷新沿用 per-origin queue/throttle，避免 UI 并发扩大请求量。
 - [ ] 8.5：台账所有任务动作对应 native 操作及状态恢复路径，S2 输入延迟达标。
+
+- [ ] 8.6 (R5/AC9)：本域遵循父 [轻盈玻璃合同 V1–V4](../10-17-gpui-desktop/research/airy-glass-plan.md)，复用 03 唯一主题/材质层；V3 本域场景在 light/dark 及 glass/solid 下有原生证据。阅读/编辑/图表/日志/确认保持实色，无新增 blur，既有业务与焦点/虚拟化不回归；未具备的模式/平台如实标记。
 
 ## Out of Scope
 

@@ -1,0 +1,964 @@
+{
+  "task": "10-17-gpui-05-platforms",
+  "scope": "current source checkpoint; implementation and validation tracked separately",
+  "commands": [
+    {
+      "id": "claude_get_settings_raw_text",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > selected platform > Settings > acknowledged scoped source > original-token save/reload",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::document/read/execute(Command::Source)",
+        "crates/ccr-app/src/platform_settings.rs::Document::read/save_text"
+      ],
+      "authored_tests": [
+        "source_requires_acknowledgement_and_close_clears_secret_and_response_identity"
+      ],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "current native candidate source/CAS and language/theme coverage open"
+      ]
+    },
+    {
+      "id": "claude_save_settings_raw_text",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > selected platform > Settings > acknowledged scoped source > original-token save/reload",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::document/read/execute(Command::Source)",
+        "crates/ccr-app/src/platform_settings.rs::Document::read/save_text"
+      ],
+      "authored_tests": [
+        "source_requires_acknowledgement_and_close_clears_secret_and_response_identity"
+      ],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "current native candidate source/CAS and language/theme coverage open"
+      ]
+    },
+    {
+      "id": "codex_get_config_raw_text",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > selected platform > Settings > acknowledged scoped source > original-token save/reload",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::document/read/execute(Command::Source)",
+        "crates/ccr-app/src/platform_settings.rs::Document::read/save_text"
+      ],
+      "authored_tests": [
+        "source_requires_acknowledgement_and_close_clears_secret_and_response_identity"
+      ],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "current native candidate source/CAS and language/theme coverage open"
+      ]
+    },
+    {
+      "id": "codex_save_config_raw_text",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > selected platform > Settings > acknowledged scoped source > original-token save/reload",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::document/read/execute(Command::Source)",
+        "crates/ccr-app/src/platform_settings.rs::Document::read/save_text"
+      ],
+      "authored_tests": [
+        "source_requires_acknowledgement_and_close_clears_secret_and_response_identity"
+      ],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "current native candidate source/CAS and language/theme coverage open"
+      ]
+    },
+    {
+      "id": "claude_list_settings_layers",
+      "implementation_status": "pending",
+      "native_action": null,
+      "sources": [],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "native action not implemented at this checkpoint"
+      ]
+    },
+    {
+      "id": "codex_list_config_layers",
+      "implementation_status": "pending",
+      "native_action": null,
+      "sources": [],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "native action not implemented at this checkpoint"
+      ]
+    },
+    {
+      "id": "claude_get_settings",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Settings/TUI dirty JSON leaf patch; Gemini retained as Advanced Antigravity source action",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::document/read/execute(Command::Patch)",
+        "crates/ccr-app/src/platform_settings/json.rs::save_patch",
+        "crates/ccr-app/src/platform_settings/codex.rs::save_patch"
+      ],
+      "authored_tests": [
+        "explicit_fixture_read_and_two_native_clients_preserve_unknown_fields"
+      ],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "typed field widgets and environment transport parity open",
+        "current-source native per-platform acceptance NOT_RUN"
+      ]
+    },
+    {
+      "id": "claude_update_settings",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Settings/TUI dirty JSON leaf patch; Gemini retained as Advanced Antigravity source action",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::document/read/execute(Command::Patch)",
+        "crates/ccr-app/src/platform_settings/json.rs::save_patch",
+        "crates/ccr-app/src/platform_settings/codex.rs::save_patch"
+      ],
+      "authored_tests": [
+        "explicit_fixture_read_and_two_native_clients_preserve_unknown_fields"
+      ],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "typed field widgets and environment transport parity open",
+        "current-source native per-platform acceptance NOT_RUN"
+      ]
+    },
+    {
+      "id": "claude_list_auth_accounts",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Accounts > captured-root list/current/save/switch/confirmed saved-account delete",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::read/execute(Command::Account)",
+        "crates/ccr-cli/src/application/platform_roots.rs::claude_auth/codex_auth"
+      ],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "current-source native account outcomes and warning/secret cleanup coverage open"
+      ]
+    },
+    {
+      "id": "claude_get_auth_current",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Accounts > captured-root list/current/save/switch/confirmed saved-account delete",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::read/execute(Command::Account)",
+        "crates/ccr-cli/src/application/platform_roots.rs::claude_auth/codex_auth"
+      ],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "current-source native account outcomes and warning/secret cleanup coverage open"
+      ]
+    },
+    {
+      "id": "claude_save_auth",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Accounts > captured-root list/current/save/switch/confirmed saved-account delete",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::read/execute(Command::Account)",
+        "crates/ccr-cli/src/application/platform_roots.rs::claude_auth/codex_auth"
+      ],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "current-source native account outcomes and warning/secret cleanup coverage open"
+      ]
+    },
+    {
+      "id": "claude_switch_auth",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Accounts > captured-root list/current/save/switch/confirmed saved-account delete",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::read/execute(Command::Account)",
+        "crates/ccr-cli/src/application/platform_roots.rs::claude_auth/codex_auth"
+      ],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "current-source native account outcomes and warning/secret cleanup coverage open"
+      ]
+    },
+    {
+      "id": "claude_delete_auth",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Accounts > captured-root list/current/save/switch/confirmed saved-account delete",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::read/execute(Command::Account)",
+        "crates/ccr-cli/src/application/platform_roots.rs::claude_auth/codex_auth"
+      ],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "current-source native account outcomes and warning/secret cleanup coverage open"
+      ]
+    },
+    {
+      "id": "claude_auth_off",
+      "implementation_status": "pending",
+      "native_action": null,
+      "sources": [],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "native action not implemented at this checkpoint"
+      ]
+    },
+    {
+      "id": "codex_list_models",
+      "implementation_status": "pending",
+      "native_action": null,
+      "sources": [],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "native action not implemented at this checkpoint"
+      ]
+    },
+    {
+      "id": "codex_get_settings",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Settings/TUI dirty JSON leaf patch; Gemini retained as Advanced Antigravity source action",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::document/read/execute(Command::Patch)",
+        "crates/ccr-app/src/platform_settings/json.rs::save_patch",
+        "crates/ccr-app/src/platform_settings/codex.rs::save_patch"
+      ],
+      "authored_tests": [
+        "explicit_fixture_read_and_two_native_clients_preserve_unknown_fields"
+      ],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "typed field widgets and environment transport parity open",
+        "current-source native per-platform acceptance NOT_RUN"
+      ]
+    },
+    {
+      "id": "codex_update_settings",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Settings/TUI dirty JSON leaf patch; Gemini retained as Advanced Antigravity source action",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::document/read/execute(Command::Patch)",
+        "crates/ccr-app/src/platform_settings/json.rs::save_patch",
+        "crates/ccr-app/src/platform_settings/codex.rs::save_patch"
+      ],
+      "authored_tests": [
+        "explicit_fixture_read_and_two_native_clients_preserve_unknown_fields"
+      ],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "typed field widgets and environment transport parity open",
+        "current-source native per-platform acceptance NOT_RUN"
+      ]
+    },
+    {
+      "id": "codex_list_auth_accounts",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Accounts > captured-root list/current/save/switch/confirmed saved-account delete",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::read/execute(Command::Account)",
+        "crates/ccr-cli/src/application/platform_roots.rs::claude_auth/codex_auth"
+      ],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "current-source native account outcomes and warning/secret cleanup coverage open"
+      ]
+    },
+    {
+      "id": "codex_get_auth_current",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Accounts > captured-root list/current/save/switch/confirmed saved-account delete",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::read/execute(Command::Account)",
+        "crates/ccr-cli/src/application/platform_roots.rs::claude_auth/codex_auth"
+      ],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "current-source native account outcomes and warning/secret cleanup coverage open"
+      ]
+    },
+    {
+      "id": "codex_auth_off",
+      "implementation_status": "pending",
+      "native_action": null,
+      "sources": [],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "native action not implemented at this checkpoint"
+      ]
+    },
+    {
+      "id": "codex_save_auth",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Accounts > captured-root list/current/save/switch/confirmed saved-account delete",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::read/execute(Command::Account)",
+        "crates/ccr-cli/src/application/platform_roots.rs::claude_auth/codex_auth"
+      ],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "current-source native account outcomes and warning/secret cleanup coverage open"
+      ]
+    },
+    {
+      "id": "codex_switch_auth",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Accounts > captured-root list/current/save/switch/confirmed saved-account delete",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::read/execute(Command::Account)",
+        "crates/ccr-cli/src/application/platform_roots.rs::claude_auth/codex_auth"
+      ],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "current-source native account outcomes and warning/secret cleanup coverage open"
+      ]
+    },
+    {
+      "id": "codex_delete_auth",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Accounts > captured-root list/current/save/switch/confirmed saved-account delete",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::read/execute(Command::Account)",
+        "crates/ccr-cli/src/application/platform_roots.rs::claude_auth/codex_auth"
+      ],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "current-source native account outcomes and warning/secret cleanup coverage open"
+      ]
+    },
+    {
+      "id": "codex_rename_auth",
+      "implementation_status": "pending",
+      "native_action": null,
+      "sources": [],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "native action not implemented at this checkpoint"
+      ]
+    },
+    {
+      "id": "codex_detect_process",
+      "implementation_status": "pending",
+      "native_action": null,
+      "sources": [],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "native action not implemented at this checkpoint"
+      ]
+    },
+    {
+      "id": "codex_oauth_login_start",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Codex Accounts > Start OAuth / Submit callback / Complete account commit / Cancel OAuth; close requests cancellation and app runtime joins owner",
+      "sources": [
+        "ccr-desktop/src/features/platforms/mod.rs::start_oauth/control_oauth/leave",
+        "ccr-desktop/src/runtime/platforms.rs::Services::platform_oauth_start/platform_oauth_control",
+        "crates/ccr-cli/src/application/codex_oauth/native.rs::NativeSession",
+        "crates/ccr-cli/src/application/codex_oauth.rs::Controller"
+      ],
+      "authored_tests": [
+        "native_owner_callback_is_not_commit_and_close_joins_started_commit",
+        "native_owner_timeout_cleans_and_fixture_exchange_never_uses_network",
+        "oauth_cancel_joins_fixture_cleanup_and_clears_callback_draft"
+      ],
+      "executed_checks": [
+        {
+          "scope": "ccr-cli application::codex_oauth:: unit selection",
+          "result": "PASS",
+          "passed": 8,
+          "failed": 0,
+          "log": "outputs/desktop/platforms/continuation-20261028/oauth-owner-tests.log"
+        },
+        {
+          "scope": "rendered native consumer fixture source acknowledgement, outside-focus callback-before-draw confirmation, OAuth start/cancel teardown",
+          "result": "PASS",
+          "passed": 3,
+          "failed": 0,
+          "log": "outputs/desktop/platforms/check-20261028/consumer-after-compiled.log",
+          "evidence_kind": "headless rendered GPUI with actual shared runtime and owned loopback; not native OS operation"
+        }
+      ],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "actual native OAuth fixture operations NOT_RUN",
+        "real external login not authorized; fixture exchange is intentionally disabled"
+      ]
+    },
+    {
+      "id": "codex_oauth_login_completed",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Codex Accounts > Start OAuth / Submit callback / Complete account commit / Cancel OAuth; close requests cancellation and app runtime joins owner",
+      "sources": [
+        "ccr-desktop/src/features/platforms/mod.rs::start_oauth/control_oauth/leave",
+        "ccr-desktop/src/runtime/platforms.rs::Services::platform_oauth_start/platform_oauth_control",
+        "crates/ccr-cli/src/application/codex_oauth/native.rs::NativeSession",
+        "crates/ccr-cli/src/application/codex_oauth.rs::Controller"
+      ],
+      "authored_tests": [
+        "native_owner_callback_is_not_commit_and_close_joins_started_commit",
+        "native_owner_timeout_cleans_and_fixture_exchange_never_uses_network",
+        "oauth_cancel_joins_fixture_cleanup_and_clears_callback_draft"
+      ],
+      "executed_checks": [
+        {
+          "scope": "ccr-cli application::codex_oauth:: unit selection",
+          "result": "PASS",
+          "passed": 8,
+          "failed": 0,
+          "log": "outputs/desktop/platforms/continuation-20261028/oauth-owner-tests.log"
+        },
+        {
+          "scope": "rendered native consumer fixture source acknowledgement, outside-focus callback-before-draw confirmation, OAuth start/cancel teardown",
+          "result": "PASS",
+          "passed": 3,
+          "failed": 0,
+          "log": "outputs/desktop/platforms/check-20261028/consumer-after-compiled.log",
+          "evidence_kind": "headless rendered GPUI with actual shared runtime and owned loopback; not native OS operation"
+        }
+      ],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "actual native OAuth fixture operations NOT_RUN",
+        "real external login not authorized; fixture exchange is intentionally disabled"
+      ]
+    },
+    {
+      "id": "codex_oauth_login_cancel",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Codex Accounts > Start OAuth / Submit callback / Complete account commit / Cancel OAuth; close requests cancellation and app runtime joins owner",
+      "sources": [
+        "ccr-desktop/src/features/platforms/mod.rs::start_oauth/control_oauth/leave",
+        "ccr-desktop/src/runtime/platforms.rs::Services::platform_oauth_start/platform_oauth_control",
+        "crates/ccr-cli/src/application/codex_oauth/native.rs::NativeSession",
+        "crates/ccr-cli/src/application/codex_oauth.rs::Controller"
+      ],
+      "authored_tests": [
+        "native_owner_callback_is_not_commit_and_close_joins_started_commit",
+        "native_owner_timeout_cleans_and_fixture_exchange_never_uses_network",
+        "oauth_cancel_joins_fixture_cleanup_and_clears_callback_draft"
+      ],
+      "executed_checks": [
+        {
+          "scope": "ccr-cli application::codex_oauth:: unit selection",
+          "result": "PASS",
+          "passed": 8,
+          "failed": 0,
+          "log": "outputs/desktop/platforms/continuation-20261028/oauth-owner-tests.log"
+        },
+        {
+          "scope": "rendered native consumer fixture source acknowledgement, outside-focus callback-before-draw confirmation, OAuth start/cancel teardown",
+          "result": "PASS",
+          "passed": 3,
+          "failed": 0,
+          "log": "outputs/desktop/platforms/check-20261028/consumer-after-compiled.log",
+          "evidence_kind": "headless rendered GPUI with actual shared runtime and owned loopback; not native OS operation"
+        }
+      ],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "actual native OAuth fixture operations NOT_RUN",
+        "real external login not authorized; fixture exchange is intentionally disabled"
+      ]
+    },
+    {
+      "id": "codex_oauth_submit_callback_url",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Codex Accounts > Start OAuth / Submit callback / Complete account commit / Cancel OAuth; close requests cancellation and app runtime joins owner",
+      "sources": [
+        "ccr-desktop/src/features/platforms/mod.rs::start_oauth/control_oauth/leave",
+        "ccr-desktop/src/runtime/platforms.rs::Services::platform_oauth_start/platform_oauth_control",
+        "crates/ccr-cli/src/application/codex_oauth/native.rs::NativeSession",
+        "crates/ccr-cli/src/application/codex_oauth.rs::Controller"
+      ],
+      "authored_tests": [
+        "native_owner_callback_is_not_commit_and_close_joins_started_commit",
+        "native_owner_timeout_cleans_and_fixture_exchange_never_uses_network",
+        "oauth_cancel_joins_fixture_cleanup_and_clears_callback_draft"
+      ],
+      "executed_checks": [
+        {
+          "scope": "ccr-cli application::codex_oauth:: unit selection",
+          "result": "PASS",
+          "passed": 8,
+          "failed": 0,
+          "log": "outputs/desktop/platforms/continuation-20261028/oauth-owner-tests.log"
+        },
+        {
+          "scope": "rendered native consumer fixture source acknowledgement, outside-focus callback-before-draw confirmation, OAuth start/cancel teardown",
+          "result": "PASS",
+          "passed": 3,
+          "failed": 0,
+          "log": "outputs/desktop/platforms/check-20261028/consumer-after-compiled.log",
+          "evidence_kind": "headless rendered GPUI with actual shared runtime and owned loopback; not native OS operation"
+        }
+      ],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "actual native OAuth fixture operations NOT_RUN",
+        "real external login not authorized; fixture exchange is intentionally disabled"
+      ]
+    },
+    {
+      "id": "codex_is_oauth_port_in_use",
+      "implementation_status": "pending",
+      "native_action": null,
+      "sources": [],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "native action not implemented at this checkpoint"
+      ]
+    },
+    {
+      "id": "codex_release_oauth_port",
+      "implementation_status": "pending",
+      "native_action": null,
+      "sources": [],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "native action not implemented at this checkpoint"
+      ]
+    },
+    {
+      "id": "codex_open_external_url",
+      "implementation_status": "pending",
+      "native_action": null,
+      "sources": [],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "native action not implemented at this checkpoint"
+      ]
+    },
+    {
+      "id": "codex_import_auth_payload",
+      "implementation_status": "pending",
+      "native_action": null,
+      "sources": [],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "native action not implemented at this checkpoint"
+      ]
+    },
+    {
+      "id": "codex_import_auth_from_local",
+      "implementation_status": "pending",
+      "native_action": null,
+      "sources": [],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "native action not implemented at this checkpoint"
+      ]
+    },
+    {
+      "id": "codex_add_auth_with_api_key",
+      "implementation_status": "pending",
+      "native_action": null,
+      "sources": [],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "native action not implemented at this checkpoint"
+      ]
+    },
+    {
+      "id": "codex_list_model_providers",
+      "implementation_status": "pending",
+      "native_action": null,
+      "sources": [
+        "crates/ccr-codex/src/services/codex_model_provider_store.rs"
+      ],
+      "authored_tests": [
+        "failed_provider_backup_preserves_previous_store",
+        "malformed_provider_diagnostic_does_not_echo_secret_values"
+      ],
+      "executed_checks": [
+        {
+          "scope": "provider owner regressions before repair",
+          "result": "FAIL",
+          "passed": 1,
+          "failed": 2,
+          "log": "outputs/desktop/platforms/continuation-20261028/provider-before.log"
+        },
+        {
+          "scope": "provider owner regressions after repair before from_parts addition",
+          "result": "PASS",
+          "passed": 3,
+          "failed": 0,
+          "log": "outputs/desktop/platforms/continuation-20261028/provider-after.log"
+        }
+      ],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "native action not implemented at this checkpoint",
+        "owner repair exists; latest captured leaf-lock constructor must rerun tests; native provider consumer pending"
+      ]
+    },
+    {
+      "id": "codex_save_model_provider",
+      "implementation_status": "pending",
+      "native_action": null,
+      "sources": [
+        "crates/ccr-codex/src/services/codex_model_provider_store.rs"
+      ],
+      "authored_tests": [
+        "failed_provider_backup_preserves_previous_store",
+        "malformed_provider_diagnostic_does_not_echo_secret_values"
+      ],
+      "executed_checks": [
+        {
+          "scope": "provider owner regressions before repair",
+          "result": "FAIL",
+          "passed": 1,
+          "failed": 2,
+          "log": "outputs/desktop/platforms/continuation-20261028/provider-before.log"
+        },
+        {
+          "scope": "provider owner regressions after repair before from_parts addition",
+          "result": "PASS",
+          "passed": 3,
+          "failed": 0,
+          "log": "outputs/desktop/platforms/continuation-20261028/provider-after.log"
+        }
+      ],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "native action not implemented at this checkpoint",
+        "owner repair exists; latest captured leaf-lock constructor must rerun tests; native provider consumer pending"
+      ]
+    },
+    {
+      "id": "codex_delete_model_provider",
+      "implementation_status": "pending",
+      "native_action": null,
+      "sources": [
+        "crates/ccr-codex/src/services/codex_model_provider_store.rs"
+      ],
+      "authored_tests": [
+        "failed_provider_backup_preserves_previous_store",
+        "malformed_provider_diagnostic_does_not_echo_secret_values"
+      ],
+      "executed_checks": [
+        {
+          "scope": "provider owner regressions before repair",
+          "result": "FAIL",
+          "passed": 1,
+          "failed": 2,
+          "log": "outputs/desktop/platforms/continuation-20261028/provider-before.log"
+        },
+        {
+          "scope": "provider owner regressions after repair before from_parts addition",
+          "result": "PASS",
+          "passed": 3,
+          "failed": 0,
+          "log": "outputs/desktop/platforms/continuation-20261028/provider-after.log"
+        }
+      ],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "native action not implemented at this checkpoint",
+        "owner repair exists; latest captured leaf-lock constructor must rerun tests; native provider consumer pending"
+      ]
+    },
+    {
+      "id": "gemini_get_settings",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Settings/TUI dirty JSON leaf patch; Gemini retained as Advanced Antigravity source action",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::document/read/execute(Command::Patch)",
+        "crates/ccr-app/src/platform_settings/json.rs::save_patch",
+        "crates/ccr-app/src/platform_settings/codex.rs::save_patch"
+      ],
+      "authored_tests": [
+        "explicit_fixture_read_and_two_native_clients_preserve_unknown_fields"
+      ],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "typed field widgets and environment transport parity open",
+        "current-source native per-platform acceptance NOT_RUN"
+      ]
+    },
+    {
+      "id": "gemini_update_settings",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Settings/TUI dirty JSON leaf patch; Gemini retained as Advanced Antigravity source action",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::document/read/execute(Command::Patch)",
+        "crates/ccr-app/src/platform_settings/json.rs::save_patch",
+        "crates/ccr-app/src/platform_settings/codex.rs::save_patch"
+      ],
+      "authored_tests": [
+        "explicit_fixture_read_and_two_native_clients_preserve_unknown_fields"
+      ],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "typed field widgets and environment transport parity open",
+        "current-source native per-platform acceptance NOT_RUN"
+      ]
+    },
+    {
+      "id": "grok_auth_current",
+      "implementation_status": "partial",
+      "native_action": "Platforms > Grok Accounts > explicit-root credential-file existence only",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::read"
+      ],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "file presence is explicitly not successful authentication",
+        "Grok account-store injected path seam and mutations pending"
+      ]
+    },
+    {
+      "id": "grok_auth_off",
+      "implementation_status": "pending",
+      "native_action": null,
+      "sources": [],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "native action not implemented at this checkpoint"
+      ]
+    },
+    {
+      "id": "grok_get_settings",
+      "implementation_status": "partial",
+      "native_action": "Platforms > Grok > scoped guarded source editor",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::grok_managed_guard/execute(Command::Source)"
+      ],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "typed set/unset schema response parity not implemented"
+      ]
+    },
+    {
+      "id": "grok_update_settings",
+      "implementation_status": "partial",
+      "native_action": "Platforms > Grok > scoped guarded source editor",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::grok_managed_guard/execute(Command::Source)"
+      ],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "typed set/unset schema response parity not implemented"
+      ]
+    },
+    {
+      "id": "grok_get_config_raw_text",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > selected platform > Settings > acknowledged scoped source > original-token save/reload",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::document/read/execute(Command::Source)",
+        "crates/ccr-app/src/platform_settings.rs::Document::read/save_text"
+      ],
+      "authored_tests": [
+        "source_requires_acknowledgement_and_close_clears_secret_and_response_identity"
+      ],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "current native candidate source/CAS and language/theme coverage open"
+      ]
+    },
+    {
+      "id": "grok_save_config_raw_text",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > selected platform > Settings > acknowledged scoped source > original-token save/reload",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::document/read/execute(Command::Source)",
+        "crates/ccr-app/src/platform_settings.rs::Document::read/save_text"
+      ],
+      "authored_tests": [
+        "source_requires_acknowledgement_and_close_clears_secret_and_response_identity"
+      ],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "current native candidate source/CAS and language/theme coverage open"
+      ]
+    },
+    {
+      "id": "grok_list_config_layers",
+      "implementation_status": "pending",
+      "native_action": null,
+      "sources": [],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "native action not implemented at this checkpoint"
+      ]
+    },
+    {
+      "id": "opencode_get_settings",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Settings/TUI dirty JSON leaf patch; Gemini retained as Advanced Antigravity source action",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::document/read/execute(Command::Patch)",
+        "crates/ccr-app/src/platform_settings/json.rs::save_patch",
+        "crates/ccr-app/src/platform_settings/codex.rs::save_patch"
+      ],
+      "authored_tests": [
+        "explicit_fixture_read_and_two_native_clients_preserve_unknown_fields"
+      ],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "typed field widgets and environment transport parity open",
+        "current-source native per-platform acceptance NOT_RUN"
+      ]
+    },
+    {
+      "id": "opencode_update_settings",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Settings/TUI dirty JSON leaf patch; Gemini retained as Advanced Antigravity source action",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::document/read/execute(Command::Patch)",
+        "crates/ccr-app/src/platform_settings/json.rs::save_patch",
+        "crates/ccr-app/src/platform_settings/codex.rs::save_patch"
+      ],
+      "authored_tests": [
+        "explicit_fixture_read_and_two_native_clients_preserve_unknown_fields"
+      ],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "typed field widgets and environment transport parity open",
+        "current-source native per-platform acceptance NOT_RUN"
+      ]
+    },
+    {
+      "id": "opencode_get_tui_settings",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Settings/TUI dirty JSON leaf patch; Gemini retained as Advanced Antigravity source action",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::document/read/execute(Command::Patch)",
+        "crates/ccr-app/src/platform_settings/json.rs::save_patch",
+        "crates/ccr-app/src/platform_settings/codex.rs::save_patch"
+      ],
+      "authored_tests": [
+        "explicit_fixture_read_and_two_native_clients_preserve_unknown_fields"
+      ],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "typed field widgets and environment transport parity open",
+        "current-source native per-platform acceptance NOT_RUN"
+      ]
+    },
+    {
+      "id": "opencode_update_tui_settings",
+      "implementation_status": "implemented",
+      "native_action": "Platforms > Settings/TUI dirty JSON leaf patch; Gemini retained as Advanced Antigravity source action",
+      "sources": [
+        "ccr-desktop/src/runtime/platforms.rs::document/read/execute(Command::Patch)",
+        "crates/ccr-app/src/platform_settings/json.rs::save_patch",
+        "crates/ccr-app/src/platform_settings/codex.rs::save_patch"
+      ],
+      "authored_tests": [
+        "explicit_fixture_read_and_two_native_clients_preserve_unknown_fields"
+      ],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "typed field widgets and environment transport parity open",
+        "current-source native per-platform acceptance NOT_RUN"
+      ]
+    },
+    {
+      "id": "opencode_get_keybindings",
+      "implementation_status": "pending",
+      "native_action": null,
+      "sources": [],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "native action not implemented at this checkpoint"
+      ]
+    },
+    {
+      "id": "opencode_update_keybindings",
+      "implementation_status": "pending",
+      "native_action": null,
+      "sources": [],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "native action not implemented at this checkpoint"
+      ]
+    },
+    {
+      "id": "opencode_list_themes",
+      "implementation_status": "pending",
+      "native_action": null,
+      "sources": [],
+      "authored_tests": [],
+      "executed_checks": [],
+      "native_acceptance": "NOT_RUN",
+      "remaining": [
+        "native action not implemented at this checkpoint"
+      ]
+    }
+  ],
+  "counts": {
+    "implemented": 30,
+    "partial": 3,
+    "pending": 21
+  },
+  "final_acceptance": "open"
+}

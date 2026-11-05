@@ -1,5 +1,7 @@
 # 规划交付验证
 
+最新实施检查与继续记录见 [2026-10-29 continuation](research/continuation-20261029.md)。下文保留历史规划与早期实施原文，不代表当前尚未开始。
+
 日期：2026-10-17。阶段：planning，未运行 task.py start。
 
 ## 已执行

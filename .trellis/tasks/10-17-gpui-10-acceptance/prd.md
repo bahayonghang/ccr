@@ -6,7 +6,7 @@
 
 ## Parent and Dependencies
 
-父任务：[gpui-desktop](../10-17-gpui-desktop/prd.md)。需求映射：R1 至 R9，父任务 AC1 至 AC8。
+父任务：[gpui-desktop](../10-17-gpui-desktop/prd.md)。需求映射：R1 至 R9，父任务 AC1 至 AC9。
 
 前置：01 至 09 全部完成，台账无无人负责项。 父子关系不自动保证依赖完成。
 
@@ -18,11 +18,12 @@
 
 ## Acceptance Criteria
 
-- [ ] 10.1：父任务 AC1 至 AC8 有实际证据，command/route 台账无 pending/unmapped，功能缺口不得以壳完成掩盖。
+- [ ] 10.1：父任务 AC1 至 AC9 有实际证据，command/route 台账无 pending/unmapped，功能缺口不得以壳完成掩盖。
 - [ ] 10.2：同机 release 的所有性能预算通过并保留原始数据；无跨 OS 指标误比较。
 - [ ] 10.3：Windows/macOS/Linux 的 native 窗口、中文输入、DPI、键盘与可访问性记录完整。
 - [ ] 10.4：本地安装包身份/产物路径与 CLI/Tauri 不冲突，干净用户目录可启动；不自动发布或使用签名密钥。
 - [ ] 10.5：desktop-ci/audit 与完整 just ci 通过，既有 coverage/parallelism/hosted context 名保持；文档如实列支持范围。
+- [ ] 10.6：父 [视觉合同 V1–V4](../10-17-gpui-desktop/research/airy-glass-plan.md) 覆盖 03–09 全部交付页面/状态，light/dark、glass/solid、减少透明度/不支持路径与性能逐项关联原生证据。三 OS 支持矩阵区分 fallback PASS 与 glass PASS；缺失项、延期矩阵和原 UIA/IME 开放项不升级为通过。
 
 ## Out of Scope
 

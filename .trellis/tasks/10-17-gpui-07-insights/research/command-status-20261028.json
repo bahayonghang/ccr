@@ -1,0 +1,1445 @@
+{
+  "task": ".trellis/tasks/10-17-gpui-07-insights",
+  "date": "2026-10-28",
+  "scope": "Coherent refresh + budget/pricing source checkpoint; native acceptance remains separate",
+  "original_inventory_recreated": false,
+  "commands": [
+    {
+      "command": "get_usage_summary_v2",
+      "implementation": "SOURCE_READY",
+      "source": [
+        "ccr-desktop/src/runtime/insights.rs",
+        "ccr-desktop/src/features/insights/mod.rs"
+      ],
+      "notes": "Usage summary",
+      "tests": [
+        {
+          "scope": "prior integrated read consumer checkpoint",
+          "result": "PASS_HISTORICAL",
+          "receipt": "outputs/desktop/continuation-20261027/final-summary.json"
+        },
+        {
+          "scope": "current insights focused suite",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-20261028.log",
+          "note": "Current guarded refresh, provider-exact archive identity, populated pagination, policy controls.",
+          "count": 9
+        },
+        {
+          "scope": "desktop all-target check",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-check-20261028.log"
+        },
+        {
+          "scope": "desktop all-target strict Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-clippy-20261028.log"
+        },
+        {
+          "scope": "final strict shared all-target/all-feature Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/shared-final-clippy-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict native all-target Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-clippy-20261028.log"
+        },
+        {
+          "scope": "Tauri all-target check after shared policy extraction and owner repair",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/tauri-final-check-20261028.log"
+        }
+      ],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CANDIDATE",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_usage_capabilities_v2",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "no complete capability surface; selected report/provider errors only",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_usage_trends_v2",
+      "implementation": "SOURCE_READY",
+      "source": [
+        "ccr-desktop/src/runtime/insights.rs",
+        "ccr-desktop/src/features/insights/mod.rs"
+      ],
+      "notes": "Daily exact-value table",
+      "tests": [
+        {
+          "scope": "prior integrated read consumer checkpoint",
+          "result": "PASS_HISTORICAL",
+          "receipt": "outputs/desktop/continuation-20261027/final-summary.json"
+        },
+        {
+          "scope": "current insights focused suite",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-20261028.log",
+          "note": "Current guarded refresh, provider-exact archive identity, populated pagination, policy controls.",
+          "count": 9
+        },
+        {
+          "scope": "desktop all-target check",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-check-20261028.log"
+        },
+        {
+          "scope": "desktop all-target strict Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-clippy-20261028.log"
+        },
+        {
+          "scope": "final strict shared all-target/all-feature Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/shared-final-clippy-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict native all-target Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-clippy-20261028.log"
+        },
+        {
+          "scope": "Tauri all-target check after shared policy extraction and owner repair",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/tauri-final-check-20261028.log"
+        }
+      ],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CANDIDATE",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_usage_by_model_v2",
+      "implementation": "SOURCE_READY",
+      "source": [
+        "ccr-desktop/src/runtime/insights.rs",
+        "ccr-desktop/src/features/insights/mod.rs"
+      ],
+      "notes": "Models table/details",
+      "tests": [
+        {
+          "scope": "prior integrated read consumer checkpoint",
+          "result": "PASS_HISTORICAL",
+          "receipt": "outputs/desktop/continuation-20261027/final-summary.json"
+        },
+        {
+          "scope": "current insights focused suite",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-20261028.log",
+          "note": "Current guarded refresh, provider-exact archive identity, populated pagination, policy controls.",
+          "count": 9
+        },
+        {
+          "scope": "desktop all-target check",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-check-20261028.log"
+        },
+        {
+          "scope": "desktop all-target strict Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-clippy-20261028.log"
+        },
+        {
+          "scope": "final strict shared all-target/all-feature Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/shared-final-clippy-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict native all-target Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-clippy-20261028.log"
+        },
+        {
+          "scope": "Tauri all-target check after shared policy extraction and owner repair",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/tauri-final-check-20261028.log"
+        }
+      ],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CANDIDATE",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_usage_by_provider_v2",
+      "implementation": "SOURCE_READY",
+      "source": [
+        "ccr-desktop/src/runtime/insights.rs",
+        "ccr-desktop/src/features/insights/mod.rs"
+      ],
+      "notes": "Providers table/details",
+      "tests": [
+        {
+          "scope": "prior integrated read consumer checkpoint",
+          "result": "PASS_HISTORICAL",
+          "receipt": "outputs/desktop/continuation-20261027/final-summary.json"
+        },
+        {
+          "scope": "current insights focused suite",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-20261028.log",
+          "note": "Current guarded refresh, provider-exact archive identity, populated pagination, policy controls.",
+          "count": 9
+        },
+        {
+          "scope": "desktop all-target check",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-check-20261028.log"
+        },
+        {
+          "scope": "desktop all-target strict Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-clippy-20261028.log"
+        },
+        {
+          "scope": "final strict shared all-target/all-feature Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/shared-final-clippy-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict native all-target Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-clippy-20261028.log"
+        },
+        {
+          "scope": "Tauri all-target check after shared policy extraction and owner repair",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/tauri-final-check-20261028.log"
+        }
+      ],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CANDIDATE",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_usage_by_project_v2",
+      "implementation": "SOURCE_READY",
+      "source": [
+        "ccr-desktop/src/runtime/insights.rs",
+        "ccr-desktop/src/features/insights/mod.rs"
+      ],
+      "notes": "Projects table/details",
+      "tests": [
+        {
+          "scope": "prior integrated read consumer checkpoint",
+          "result": "PASS_HISTORICAL",
+          "receipt": "outputs/desktop/continuation-20261027/final-summary.json"
+        },
+        {
+          "scope": "current insights focused suite",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-20261028.log",
+          "note": "Current guarded refresh, provider-exact archive identity, populated pagination, policy controls.",
+          "count": 9
+        },
+        {
+          "scope": "desktop all-target check",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-check-20261028.log"
+        },
+        {
+          "scope": "desktop all-target strict Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-clippy-20261028.log"
+        },
+        {
+          "scope": "final strict shared all-target/all-feature Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/shared-final-clippy-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict native all-target Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-clippy-20261028.log"
+        },
+        {
+          "scope": "Tauri all-target check after shared policy extraction and owner repair",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/tauri-final-check-20261028.log"
+        }
+      ],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CANDIDATE",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_usage_heatmap_v2",
+      "implementation": "SOURCE_READY",
+      "source": [
+        "ccr-desktop/src/runtime/insights.rs",
+        "ccr-desktop/src/features/insights/mod.rs"
+      ],
+      "notes": "exact date/request table, not heatmap visualization acceptance",
+      "tests": [
+        {
+          "scope": "prior integrated read consumer checkpoint",
+          "result": "PASS_HISTORICAL",
+          "receipt": "outputs/desktop/continuation-20261027/final-summary.json"
+        },
+        {
+          "scope": "current insights focused suite",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-20261028.log",
+          "note": "Current guarded refresh, provider-exact archive identity, populated pagination, policy controls.",
+          "count": 9
+        },
+        {
+          "scope": "desktop all-target check",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-check-20261028.log"
+        },
+        {
+          "scope": "desktop all-target strict Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-clippy-20261028.log"
+        },
+        {
+          "scope": "final strict shared all-target/all-feature Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/shared-final-clippy-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict native all-target Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-clippy-20261028.log"
+        },
+        {
+          "scope": "Tauri all-target check after shared policy extraction and owner repair",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/tauri-final-check-20261028.log"
+        }
+      ],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CANDIDATE",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_usage_logs_v2",
+      "implementation": "SOURCE_READY",
+      "source": [
+        "ccr-desktop/src/runtime/insights.rs",
+        "ccr-desktop/src/features/insights/mod.rs"
+      ],
+      "notes": "100-record cursor pages, no raw payload display",
+      "tests": [
+        {
+          "scope": "prior integrated read consumer checkpoint",
+          "result": "PASS_HISTORICAL",
+          "receipt": "outputs/desktop/continuation-20261027/final-summary.json"
+        },
+        {
+          "scope": "current insights focused suite",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-20261028.log",
+          "note": "Current guarded refresh, provider-exact archive identity, populated pagination, policy controls.",
+          "count": 9
+        },
+        {
+          "scope": "desktop all-target check",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-check-20261028.log"
+        },
+        {
+          "scope": "desktop all-target strict Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-clippy-20261028.log"
+        },
+        {
+          "scope": "final strict shared all-target/all-feature Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/shared-final-clippy-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict native all-target Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-clippy-20261028.log"
+        },
+        {
+          "scope": "Tauri all-target check after shared policy extraction and owner repair",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/tauri-final-check-20261028.log"
+        }
+      ],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CANDIDATE",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_usage_dashboard_v2",
+      "implementation": "SOURCE_READY",
+      "source": [
+        "ccr-desktop/src/runtime/insights.rs",
+        "ccr-desktop/src/features/insights/mod.rs"
+      ],
+      "notes": "for read sections; native archive/readiness/bootstrap parity remains open",
+      "tests": [
+        {
+          "scope": "prior integrated read consumer checkpoint",
+          "result": "PASS_HISTORICAL",
+          "receipt": "outputs/desktop/continuation-20261027/final-summary.json"
+        },
+        {
+          "scope": "current insights focused suite",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-20261028.log",
+          "note": "Current guarded refresh, provider-exact archive identity, populated pagination, policy controls.",
+          "count": 9
+        },
+        {
+          "scope": "desktop all-target check",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-check-20261028.log"
+        },
+        {
+          "scope": "desktop all-target strict Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-clippy-20261028.log"
+        },
+        {
+          "scope": "final strict shared all-target/all-feature Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/shared-final-clippy-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict native all-target Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-clippy-20261028.log"
+        },
+        {
+          "scope": "Tauri all-target check after shared policy extraction and owner repair",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/tauri-final-check-20261028.log"
+        }
+      ],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CANDIDATE",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_home_usage_overview_v2",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "distinct Home overview/bootstrap contract",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_home_insights",
+      "implementation": "SOURCE_READY",
+      "source": [
+        "ccr-desktop/src/runtime/insights.rs",
+        "ccr-desktop/src/features/insights/mod.rs"
+      ],
+      "notes": "shared Home join and source comparison/table",
+      "tests": [
+        {
+          "scope": "prior integrated read consumer checkpoint",
+          "result": "PASS_HISTORICAL",
+          "receipt": "outputs/desktop/continuation-20261027/final-summary.json"
+        },
+        {
+          "scope": "current insights focused suite",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-20261028.log",
+          "note": "Current guarded refresh, provider-exact archive identity, populated pagination, policy controls.",
+          "count": 9
+        },
+        {
+          "scope": "desktop all-target check",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-check-20261028.log"
+        },
+        {
+          "scope": "desktop all-target strict Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-clippy-20261028.log"
+        },
+        {
+          "scope": "final strict shared all-target/all-feature Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/shared-final-clippy-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict native all-target Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-clippy-20261028.log"
+        },
+        {
+          "scope": "Tauri all-target check after shared policy extraction and owner repair",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/tauri-final-check-20261028.log"
+        }
+      ],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CANDIDATE",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "ensure_session_index_v2",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_session_index_job_status_v2",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "start_usage_import_job_v2",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_usage_import_job_status_v2",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "cancel_usage_import_job_v2",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "import_usage_v2",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "import_all_usage_v2",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "agent_sessions_list",
+      "implementation": "SOURCE_READY",
+      "source": [
+        "ccr-desktop/src/runtime/insights.rs",
+        "ccr-desktop/src/features/insights/mod.rs"
+      ],
+      "notes": "bounded archive pages",
+      "tests": [
+        {
+          "scope": "prior integrated read consumer checkpoint",
+          "result": "PASS_HISTORICAL",
+          "receipt": "outputs/desktop/continuation-20261027/final-summary.json"
+        },
+        {
+          "scope": "current insights focused suite",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-20261028.log",
+          "note": "Current guarded refresh, provider-exact archive identity, populated pagination, policy controls.",
+          "count": 9
+        },
+        {
+          "scope": "desktop all-target check",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-check-20261028.log"
+        },
+        {
+          "scope": "desktop all-target strict Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-clippy-20261028.log"
+        },
+        {
+          "scope": "final strict shared all-target/all-feature Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/shared-final-clippy-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict native all-target Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-clippy-20261028.log"
+        },
+        {
+          "scope": "Tauri all-target check after shared policy extraction and owner repair",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/tauri-final-check-20261028.log"
+        }
+      ],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CANDIDATE",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "agent_sessions_get_detail",
+      "implementation": "SOURCE_READY",
+      "source": [
+        "ccr-desktop/src/runtime/insights.rs",
+        "ccr-desktop/src/features/insights/mod.rs"
+      ],
+      "notes": "explicit validated provider/message pages",
+      "tests": [
+        {
+          "scope": "prior integrated read consumer checkpoint",
+          "result": "PASS_HISTORICAL",
+          "receipt": "outputs/desktop/continuation-20261027/final-summary.json"
+        },
+        {
+          "scope": "current insights focused suite",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-20261028.log",
+          "note": "Current guarded refresh, provider-exact archive identity, populated pagination, policy controls.",
+          "count": 9
+        },
+        {
+          "scope": "desktop all-target check",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-check-20261028.log"
+        },
+        {
+          "scope": "desktop all-target strict Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-clippy-20261028.log"
+        },
+        {
+          "scope": "final strict shared all-target/all-feature Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/shared-final-clippy-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict native all-target Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-clippy-20261028.log"
+        },
+        {
+          "scope": "Tauri all-target check after shared policy extraction and owner repair",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/tauri-final-check-20261028.log"
+        }
+      ],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CANDIDATE",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "agent_sessions_get_provider_status",
+      "implementation": "SOURCE_READY",
+      "source": [
+        "ccr-desktop/src/runtime/insights.rs",
+        "ccr-desktop/src/features/insights/mod.rs"
+      ],
+      "notes": "eight availability/fidelity statuses",
+      "tests": [
+        {
+          "scope": "prior integrated read consumer checkpoint",
+          "result": "PASS_HISTORICAL",
+          "receipt": "outputs/desktop/continuation-20261027/final-summary.json"
+        },
+        {
+          "scope": "current insights focused suite",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-20261028.log",
+          "note": "Current guarded refresh, provider-exact archive identity, populated pagination, policy controls.",
+          "count": 9
+        },
+        {
+          "scope": "desktop all-target check",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-check-20261028.log"
+        },
+        {
+          "scope": "desktop all-target strict Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-clippy-20261028.log"
+        },
+        {
+          "scope": "final strict shared all-target/all-feature Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/shared-final-clippy-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict native all-target Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-clippy-20261028.log"
+        },
+        {
+          "scope": "Tauri all-target check after shared policy extraction and owner repair",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/tauri-final-check-20261028.log"
+        }
+      ],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CANDIDATE",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "agent_sessions_start_refresh",
+      "implementation": "IMPLEMENTED_OPEN_ACCEPTANCE",
+      "source": [
+        "crates/ccr-app/src/sessions/refresh.rs",
+        "ccr-ui/src-tauri/src/services/agent_sessions.rs",
+        "ccr-desktop/src/runtime/insights.rs",
+        "ccr-desktop/src/features/insights/mod.rs"
+      ],
+      "notes": "Shared unchanged-container/incremental reconcile policy, native app-owned refresh, retained status/counters. Not usage import.",
+      "tests": [
+        {
+          "scope": "shared sessions",
+          "result": "PASS",
+          "count": 3,
+          "receipt": "outputs/desktop/insights/checks/session-refresh-20261028.log"
+        },
+        {
+          "scope": "Tauri agent session regressions",
+          "result": "PASS",
+          "count": 10,
+          "receipt": "outputs/desktop/insights/checks/tauri-session-refresh-20261028.log"
+        },
+        {
+          "scope": "native runtime detached refresh",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-refresh-20261028.log"
+        },
+        {
+          "scope": "native integration full insights",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-20261028.log",
+          "count": 9,
+          "note": "Current guarded refresh, provider-exact archive identity, populated pagination, policy controls."
+        },
+        {
+          "scope": "desktop all-target check",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-check-20261028.log"
+        },
+        {
+          "scope": "desktop all-target strict Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-clippy-20261028.log"
+        },
+        {
+          "scope": "final strict shared all-target/all-feature Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/shared-final-clippy-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict native all-target Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-clippy-20261028.log"
+        },
+        {
+          "scope": "Tauri all-target check after shared policy extraction and owner repair",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/tauri-final-check-20261028.log"
+        }
+      ],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CANDIDATE",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "agent_sessions_get_refresh_status",
+      "implementation": "IMPLEMENTED_OPEN_ACCEPTANCE",
+      "source": [
+        "crates/ccr-app/src/sessions/refresh.rs",
+        "ccr-ui/src-tauri/src/services/agent_sessions.rs",
+        "ccr-desktop/src/runtime/insights.rs",
+        "ccr-desktop/src/features/insights/mod.rs"
+      ],
+      "notes": "Shared unchanged-container/incremental reconcile policy, native app-owned refresh, retained status/counters. Not usage import.",
+      "tests": [
+        {
+          "scope": "shared sessions",
+          "result": "PASS",
+          "count": 3,
+          "receipt": "outputs/desktop/insights/checks/session-refresh-20261028.log"
+        },
+        {
+          "scope": "Tauri agent session regressions",
+          "result": "PASS",
+          "count": 10,
+          "receipt": "outputs/desktop/insights/checks/tauri-session-refresh-20261028.log"
+        },
+        {
+          "scope": "native runtime detached refresh",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-refresh-20261028.log"
+        },
+        {
+          "scope": "native integration full insights",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-20261028.log",
+          "count": 9,
+          "note": "Current guarded refresh, provider-exact archive identity, populated pagination, policy controls."
+        },
+        {
+          "scope": "desktop all-target check",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-check-20261028.log"
+        },
+        {
+          "scope": "desktop all-target strict Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-clippy-20261028.log"
+        },
+        {
+          "scope": "final strict shared all-target/all-feature Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/shared-final-clippy-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict native all-target Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-clippy-20261028.log"
+        },
+        {
+          "scope": "Tauri all-target check after shared policy extraction and owner repair",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/tauri-final-check-20261028.log"
+        }
+      ],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CANDIDATE",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "claude_observer_get_insight",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "claude_observer_daily_trend",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "claude_observer_cost_breakdown",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "claude_observer_cache_stats",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "claude_observer_top_sessions",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "claude_observer_tool_heatmap",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "claude_observer_top_tools",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "claude_observer_subscription_get",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "claude_observer_subscription_set",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "claude_get_budgets",
+      "implementation": "IMPLEMENTED_OPEN_ACCEPTANCE",
+      "source": [
+        "crates/ccr-app/src/usage/policies.rs",
+        "ccr-desktop/src/runtime/insights/policies.rs",
+        "ccr-desktop/src/features/insights/policies.rs",
+        "ccr-ui/src-tauri/src/commands/claude_settings.rs"
+      ],
+      "notes": "Budget / pricing internal tab with actual existing-owner operations. Captured roots, fixture scoped locks, app-owned jobs; no upstream repricing. Budget validates complete input before existing sequential persistence. Remove/reset confirms.",
+      "tests": [
+        {
+          "scope": "shared usage including budget/pricing validation",
+          "result": "PASS",
+          "count": 8,
+          "receipt": "outputs/desktop/insights/checks/policies-validation-fixed-20261028.log"
+        },
+        {
+          "scope": "native insights including policy control/confirm",
+          "result": "PASS",
+          "count": 9,
+          "receipt": "outputs/desktop/insights/checks/native-final-20261028.log"
+        },
+        {
+          "scope": "store full with unknown TOML extension regressions",
+          "result": "PASS",
+          "count": 92,
+          "ignored": 5,
+          "receipt": "outputs/desktop/insights/checks/store-unknown-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict shared all-target/all-feature Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/shared-final-clippy-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict native all-target Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-clippy-20261028.log"
+        },
+        {
+          "scope": "Tauri all-target check after shared policy extraction and owner repair",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/tauri-final-check-20261028.log"
+        }
+      ],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CANDIDATE",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "claude_update_budgets",
+      "implementation": "IMPLEMENTED_OPEN_ACCEPTANCE",
+      "source": [
+        "crates/ccr-app/src/usage/policies.rs",
+        "ccr-desktop/src/runtime/insights/policies.rs",
+        "ccr-desktop/src/features/insights/policies.rs",
+        "ccr-ui/src-tauri/src/commands/claude_settings.rs"
+      ],
+      "notes": "Budget / pricing internal tab with actual existing-owner operations. Captured roots, fixture scoped locks, app-owned jobs; no upstream repricing. Budget validates complete input before existing sequential persistence. Remove/reset confirms.",
+      "tests": [
+        {
+          "scope": "shared usage including budget/pricing validation",
+          "result": "PASS",
+          "count": 8,
+          "receipt": "outputs/desktop/insights/checks/policies-validation-fixed-20261028.log"
+        },
+        {
+          "scope": "native insights including policy control/confirm",
+          "result": "PASS",
+          "count": 9,
+          "receipt": "outputs/desktop/insights/checks/native-final-20261028.log"
+        },
+        {
+          "scope": "store full with unknown TOML extension regressions",
+          "result": "PASS",
+          "count": 92,
+          "ignored": 5,
+          "receipt": "outputs/desktop/insights/checks/store-unknown-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict shared all-target/all-feature Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/shared-final-clippy-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict native all-target Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-clippy-20261028.log"
+        },
+        {
+          "scope": "Tauri all-target check after shared policy extraction and owner repair",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/tauri-final-check-20261028.log"
+        }
+      ],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CANDIDATE",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "codex_list_sessions",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "distinct mutable Codex-owned surface",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "codex_get_session_detail",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "not substituted by archive browsing",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "codex_export_session",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "codex_clone_session",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "codex_delete_session",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "codex_get_usage",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "dedicated rolling owner remains separate",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "codex_get_dashboard_overview",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "codex_get_dashboard_usage_summary",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "codex_get_all_quotas",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "owner explicit-path/fake-network prerequisite",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "codex_get_quota",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "owner explicit-path/fake-network prerequisite",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "grok_get_dashboard_overview",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "source": [],
+      "notes": "",
+      "tests": [],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CHECKPOINT",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "set_pricing",
+      "implementation": "IMPLEMENTED_OPEN_ACCEPTANCE",
+      "source": [
+        "crates/ccr-app/src/usage/policies.rs",
+        "ccr-desktop/src/runtime/insights/policies.rs",
+        "ccr-desktop/src/features/insights/policies.rs",
+        "ccr-ui/src-tauri/src/commands/pricing.rs"
+      ],
+      "notes": "Budget / pricing internal tab with actual existing-owner operations. Captured roots, fixture scoped locks, app-owned jobs; no upstream repricing. Budget validates complete input before existing sequential persistence. Remove/reset confirms.",
+      "tests": [
+        {
+          "scope": "shared usage including budget/pricing validation",
+          "result": "PASS",
+          "count": 8,
+          "receipt": "outputs/desktop/insights/checks/policies-validation-fixed-20261028.log"
+        },
+        {
+          "scope": "native insights including policy control/confirm",
+          "result": "PASS",
+          "count": 9,
+          "receipt": "outputs/desktop/insights/checks/native-final-20261028.log"
+        },
+        {
+          "scope": "store full with unknown TOML extension regressions",
+          "result": "PASS",
+          "count": 92,
+          "ignored": 5,
+          "receipt": "outputs/desktop/insights/checks/store-unknown-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict shared all-target/all-feature Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/shared-final-clippy-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict native all-target Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-clippy-20261028.log"
+        },
+        {
+          "scope": "Tauri all-target check after shared policy extraction and owner repair",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/tauri-final-check-20261028.log"
+        }
+      ],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CANDIDATE",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_pricing_list",
+      "implementation": "IMPLEMENTED_OPEN_ACCEPTANCE",
+      "source": [
+        "crates/ccr-app/src/usage/policies.rs",
+        "ccr-desktop/src/runtime/insights/policies.rs",
+        "ccr-desktop/src/features/insights/policies.rs",
+        "ccr-ui/src-tauri/src/commands/pricing.rs"
+      ],
+      "notes": "Budget / pricing internal tab with actual existing-owner operations. Captured roots, fixture scoped locks, app-owned jobs; no upstream repricing. Budget validates complete input before existing sequential persistence. Remove/reset confirms.",
+      "tests": [
+        {
+          "scope": "shared usage including budget/pricing validation",
+          "result": "PASS",
+          "count": 8,
+          "receipt": "outputs/desktop/insights/checks/policies-validation-fixed-20261028.log"
+        },
+        {
+          "scope": "native insights including policy control/confirm",
+          "result": "PASS",
+          "count": 9,
+          "receipt": "outputs/desktop/insights/checks/native-final-20261028.log"
+        },
+        {
+          "scope": "store full with unknown TOML extension regressions",
+          "result": "PASS",
+          "count": 92,
+          "ignored": 5,
+          "receipt": "outputs/desktop/insights/checks/store-unknown-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict shared all-target/all-feature Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/shared-final-clippy-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict native all-target Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-clippy-20261028.log"
+        },
+        {
+          "scope": "Tauri all-target check after shared policy extraction and owner repair",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/tauri-final-check-20261028.log"
+        }
+      ],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CANDIDATE",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "remove_pricing",
+      "implementation": "IMPLEMENTED_OPEN_ACCEPTANCE",
+      "source": [
+        "crates/ccr-app/src/usage/policies.rs",
+        "ccr-desktop/src/runtime/insights/policies.rs",
+        "ccr-desktop/src/features/insights/policies.rs",
+        "ccr-ui/src-tauri/src/commands/pricing.rs"
+      ],
+      "notes": "Budget / pricing internal tab with actual existing-owner operations. Captured roots, fixture scoped locks, app-owned jobs; no upstream repricing. Budget validates complete input before existing sequential persistence. Remove/reset confirms.",
+      "tests": [
+        {
+          "scope": "shared usage including budget/pricing validation",
+          "result": "PASS",
+          "count": 8,
+          "receipt": "outputs/desktop/insights/checks/policies-validation-fixed-20261028.log"
+        },
+        {
+          "scope": "native insights including policy control/confirm",
+          "result": "PASS",
+          "count": 9,
+          "receipt": "outputs/desktop/insights/checks/native-final-20261028.log"
+        },
+        {
+          "scope": "store full with unknown TOML extension regressions",
+          "result": "PASS",
+          "count": 92,
+          "ignored": 5,
+          "receipt": "outputs/desktop/insights/checks/store-unknown-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict shared all-target/all-feature Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/shared-final-clippy-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict native all-target Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-clippy-20261028.log"
+        },
+        {
+          "scope": "Tauri all-target check after shared policy extraction and owner repair",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/tauri-final-check-20261028.log"
+        }
+      ],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CANDIDATE",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "reset_pricing",
+      "implementation": "IMPLEMENTED_OPEN_ACCEPTANCE",
+      "source": [
+        "crates/ccr-app/src/usage/policies.rs",
+        "ccr-desktop/src/runtime/insights/policies.rs",
+        "ccr-desktop/src/features/insights/policies.rs",
+        "ccr-ui/src-tauri/src/commands/pricing.rs"
+      ],
+      "notes": "Budget / pricing internal tab with actual existing-owner operations. Captured roots, fixture scoped locks, app-owned jobs; no upstream repricing. Budget validates complete input before existing sequential persistence. Remove/reset confirms.",
+      "tests": [
+        {
+          "scope": "shared usage including budget/pricing validation",
+          "result": "PASS",
+          "count": 8,
+          "receipt": "outputs/desktop/insights/checks/policies-validation-fixed-20261028.log"
+        },
+        {
+          "scope": "native insights including policy control/confirm",
+          "result": "PASS",
+          "count": 9,
+          "receipt": "outputs/desktop/insights/checks/native-final-20261028.log"
+        },
+        {
+          "scope": "store full with unknown TOML extension regressions",
+          "result": "PASS",
+          "count": 92,
+          "ignored": 5,
+          "receipt": "outputs/desktop/insights/checks/store-unknown-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict shared all-target/all-feature Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/shared-final-clippy-fixed-20261028.log"
+        },
+        {
+          "scope": "final strict native all-target Clippy",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/native-final-clippy-20261028.log"
+        },
+        {
+          "scope": "Tauri all-target check after shared policy extraction and owner repair",
+          "result": "PASS",
+          "receipt": "outputs/desktop/insights/checks/tauri-final-check-20261028.log"
+        }
+      ],
+      "native": {
+        "status": "NOT_RUN_CURRENT_CANDIDATE",
+        "receipt": null
+      },
+      "acceptance": "OPEN"
+    }
+  ],
+  "fixture": {
+    "path": "outputs/desktop/insights/native-populated-20261028-v2",
+    "result": "PASS_SEED_AND_REFRESH_IDENTITY",
+    "receipt": "outputs/desktop/insights/checks/fixture-seed-v2-20261028.log",
+    "original_fixture_preserved": true
+  },
+  "checkpoint_receipt": "outputs/desktop/insights/checks/checkpoint-frozen-20261028.json"
+}

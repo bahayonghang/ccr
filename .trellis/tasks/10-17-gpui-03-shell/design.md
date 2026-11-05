@@ -1,4 +1,4 @@
-# GPUI 03：Codex 设计系统与原生外壳：设计
+# GPUI 03：轻盈玻璃设计系统与原生外壳：设计
 
 ## Change Boundary
 
@@ -7,6 +7,8 @@
 - ccr-desktop/tests/native_shell.rs、DESIGN.md
 
 这些是预期边界，实施者先按职责定位具体函数，不能为方便而扩大重构。父任务 [architecture](../10-17-gpui-desktop/research/architecture.md) 提供源码证据；完整边界见父任务 design.md。
+
+本次视觉边界以当前真实路径 `ccr-desktop/src/theme.rs`、`src/shell/` 为主，必要时涉及 `src/lib.rs` 的窗口能力读取；不是创建新 theme 目录。先更新 DESIGN.md，复用 Kit Theme 和既有实体/焦点所有者。遵从父 [airy-glass-plan](../10-17-gpui-desktop/research/airy-glass-plan.md) V1/V2/V4：单 sheet 采样不穿透操作系统桌面，CSS 参数只作目标，实际 API 先查源码及原生探针。
 
 ## Mechanism
 

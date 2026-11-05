@@ -14,3 +14,7 @@
 {"file": ".trellis/spec/ccr-ui/frontend/confirm-interaction-contracts.md", "reason": "Destructive/restore/off target and consequence confirmation, cancel focus restoration"}
 {"file": ".trellis/spec/ccr-core/backend/scoped-lock-directory.md", "reason": "Keep the complete injected lifecycle and nested guarded writers on one synchronous worker with fixture-local lock resolution"}
 {"file": ".trellis/spec/ccr-app/backend/configuration-services.md", "reason": "Preserve extracted generic/dedicated patch, source CAS, export and managed backup contracts and scoped secret lifetime"}
+{"file":".trellis/tasks/10-17-gpui-desktop/research/airy-glass-plan.md","reason":"本次轻盈玻璃增量目标、材质降级、任务所有权与验收，保留暂停及延期边界"}
+{"file":"ccr-ui/DESIGN.md","reason":"Tauri 已落地的轻盈玻璃视觉参照；原生 API 和验证必须独立"}
+{"file": ".trellis/tasks/10-17-gpui-04-profiles/research/check-20261028.md", "reason": "Current independent red-green focus and platform recovery fixes with full acceptance gaps"}
+{"file": ".trellis/tasks/10-17-gpui-04-profiles/research/native-continuation-20261028.md", "reason": "Frozen-source real separate-client CAS Cancel Refresh and native Off focus boundaries"}

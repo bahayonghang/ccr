@@ -3,7 +3,7 @@
   "name": "gpui-06-resources",
   "title": "GPUI 06：MCP 与扩展资源",
   "description": "迁移 MCP、Skills、Agents、Hooks、Plugins、命令与提示词资源",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -12,7 +12,7 @@
   "assignee": "lyh",
   "createdAt": "2026-10-17",
   "completedAt": null,
-  "branch": null,
+  "branch": "dev",
   "base_branch": "main",
   "worktree_path": null,
   "commit": null,
@@ -22,5 +22,12 @@
   "parent": "10-17-gpui-desktop",
   "relatedFiles": [],
   "notes": "",
-  "meta": {}
+  "meta": {
+    "last_checkpoint": {
+      "date": "2026-10-29",
+      "report": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261029.md",
+      "acceptance": "open",
+      "commit": "not_requested"
+    }
+  }
 }

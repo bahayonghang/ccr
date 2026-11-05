@@ -2,7 +2,7 @@
 
 ## Goal
 
-建立可逐步替代现有 Tauri 的独立 GPUI 桌面版本，在完整业务能力、现代简洁的 Codex 风格与可测性能之间取得可维护的平衡。用户无需为新界面迁移或重建已有业务数据。
+建立可逐步替代现有 Tauri 的独立 GPUI 桌面版本，在完整业务能力、与 Tauri 一致的轻盈毛玻璃工作台与可测性能之间取得可维护的平衡。用户无需为新界面迁移或重建已有业务数据。
 
 ## Background
 
@@ -18,7 +18,7 @@
 | R2 | 所有新公开开发命令使用 `desktop-*`，含 build/dev/check/test/fmt/lint/ci；不更名或覆盖已有命令 | 01、10 |
 | R3 | 新依赖采用核查时最新兼容稳定版本，记录版本来源、必要例外、MSRV、features 和独立锁文件 | 01、10 |
 | R4 | 应用层复用 Rust 领域服务，无重复用量 SQL、profile 持久化、认证或进程安全逻辑 | 02、04 至 09 |
-| R5 | 按 `style:codex` 与 ui 技能设计原生 UI，轻重层次清晰、完整输入/焦点/空错误状态、中文优先并支持英文 | 03 |
+| R5 | 按 `style:airy-glass` 对齐 Tauri 轻盈毛玻璃：单层纸面、浅深主题、原生能力降级与完整输入/焦点/空错误状态，中文优先并支持英文 | 03、04 至 10 |
 | R6 | 覆盖现有配置、平台设置/认证、资源、用量/会话、任务/同步/签到、Local/WSL/SSH 与桌面集成能力 | 04 至 09 |
 | R7 | 以同机同数据 release 基线证明性能，后台 I/O 不阻塞交互，大列表与流日志有上限 | 01、02、07、10 |
 | R8 | Windows/macOS/Linux 分别提供构建与原生运行证据；GPU、IME、DPI、键盘与可访问性不能靠单平台推断 | 01、03、09、10 |
@@ -29,11 +29,12 @@
 - [ ] AC1 (R1,R2)：独立目录、package/bin、workspace、lockfile、target 和打包身份可识别；`just --list` 无名称冲突，所有 desktop 入口都只路由至新工程。根默认 CLI 构建不编译 GPUI。
 - [ ] AC2 (R3)：每个直接依赖有核查日期、稳定版本、选用版本及偏差原因；执行冻结锁文件构建，重复核心图形后端与可选依赖有审计记录。候选 gpui-kit 0.7.3 需经过真实解析/编译，不把网页信息当构建结果。
 - [ ] AC3 (R4,R9)：共享层没有 tauri/gpui 依赖；Tauri 回归与新 native fixture 均通过。用量 SQL 仍只由 ccr-usage 持有。相同 profile 的两客户端并发编辑触发冲突或有序写入，不能静默覆盖。
-- [ ] AC4 (R5,R8)：实际原生窗口在 1280×800、960×800、1280×640、960×640 及 100%/150%/200% DPI 检查；light/dark、中文/英文、键盘、IME、焦点、loading/empty/error/disabled 均有记录。规范为 ccr-desktop/DESIGN.md，Web/HTML 示意不能替代。
+- [ ] AC4 (R5,R8)：实际原生窗口在 1280×800、960×800、1280×640、960×640 及 100%/150%/200% DPI 检查；light/dark、中文/英文、键盘、IME、焦点、loading/empty/error/disabled 均有记录。新增视觉目标见 research/airy-glass-plan.md；实施时由 03 同步 ccr-desktop/DESIGN.md，Web/HTML 示意不能替代。尺寸/DPI 矩阵依 2026-10-18 用户指令继续 user-deferred，不自动恢复。
 - [ ] AC5 (R6,R9)：迁移台账逐项映射现有 commands 与有效 route；业务项有真实 native action、状态反馈及测试，Tauri 专属壳项有 native 对应或书面理由。无 owner、无测试、仅占位页面的项不得计为完成。别名允许合并，业务能力不得默默删除。
 - [ ] AC6 (R7)：满足 research/performance.md 的明确预算，提供原始样本、环境、版本、数据哈希与分位数；未测/不支持/失败分别记录，不声明性能达标。
 - [ ] AC7 (R8)：Windows/macOS/Linux 的支持清单、构建产物和原生人工/自动检查可追溯；WSL 只在 Windows 暴露。缺少目标 OS 运行证据时保持预览状态。
 - [ ] AC8 (R2,R9)：desktop 独立质量门通过，共享变更通过既有 narrow checks 和最终 just ci；版本同步、依赖审计、命令图及 CI 路径规则包含新增表面且不降低现有阈值。
+- [ ] AC9 (R5,R7,R8)：03 至 09 统一采用轻盈玻璃视觉合同 V1 至 V4，只有非滚动 sheet 可模糊，阅读/输入/弹层实色；真实原生 light/dark、减少透明度/不支持时的实色路径、对比度及性能有分项证据。fallback 通过不能代替 glass 通过，未测 OS 不计通过。10 汇总页面与材质模式覆盖。
 
 ## Out of Scope
 
@@ -41,8 +42,10 @@
 
 ## Key Decisions
 
-采用独立 Cargo workspace，按业务域迁移而非重写整个后端；先验证 GPUI 原生能力再扩展业务。目录与 Cargo 包不同名用于避开现有占用。设计源采用用户指定 style:codex，系统字体替代需下载的字体，减少首屏成本。性能预算是拟定验收合同，尚无测量结果。
+采用独立 Cargo workspace，按业务域迁移而非重写整个后端；先验证 GPUI 原生能力再扩展业务。目录与 Cargo 包不同名用于避开现有占用。2026-10-27 按用户要求将视觉目标调整为 Tauri 同源的 style:airy-glass，详见 [视觉增量合同](research/airy-glass-plan.md)。保留系统字体与原生密度，不引入 WebView 或 OS 桌面透视。性能预算是拟定验收合同，尚无测量结果。
 
 ## Artifact Status
 
-2026-10-17 用户已明确批准父任务及全部十个子任务，授权从 01 按依赖顺序实施。父任务与 01 已通过 task.py start 激活；其余子任务等待各自依赖满足。PRD、技术设计、执行计划、研究、上下文清单与 DESIGN.md 为已批准合同。实际完成状态以各子任务 evidence.md 和逐项验收为准，不能将方案批准解释为实现或验证完成。
+2026-10-17 用户已明确批准父任务及全部十个子任务，授权从 01 按依赖顺序实施。父任务与 01 已通过 task.py start 激活；其余子任务等待各自依赖满足。当时的 PRD、技术设计、执行计划、研究、上下文清单与 DESIGN.md 为原批准合同。实际完成状态以各子任务 evidence.md 和逐项验收为准，不能将方案批准解释为实现或验证完成。
+
+2026-10-27 规划时曾暂停视觉实施；随后用户已明确恢复并再次要求继续现有任务。当前实施授权以 task.json 的 `resumed_by_user`、本任务 research/resume-20261027.md 及子任务实际证据为准。窗口尺寸/DPI 矩阵仍 user-deferred；恢复实施不表示 AC9 或完整迁移已经通过。

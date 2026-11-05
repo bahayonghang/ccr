@@ -1,0 +1,862 @@
+{
+  "task": ".trellis/tasks/10-17-gpui-08-jobs",
+  "commands": [
+    {
+      "command": "sync_push",
+      "owner": "ccr-sync + Tauri commands/sync.rs typed encrypted-asset orchestration",
+      "source_handler": "super::sync::sync_push",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "sync_pull",
+      "owner": "ccr-sync + Tauri commands/sync.rs typed encrypted-asset orchestration",
+      "source_handler": "super::sync::sync_pull",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "list_sync_assets",
+      "owner": "ccr-sync + Tauri commands/sync.rs typed encrypted-asset orchestration",
+      "source_handler": "super::sync::list_sync_assets",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "sync_push_asset",
+      "owner": "ccr-sync + Tauri commands/sync.rs typed encrypted-asset orchestration",
+      "source_handler": "super::sync::sync_push_asset",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "sync_pull_asset",
+      "owner": "ccr-sync + Tauri commands/sync.rs typed encrypted-asset orchestration",
+      "source_handler": "super::sync::sync_pull_asset",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "sync_asset",
+      "owner": "ccr-sync + Tauri commands/sync.rs typed encrypted-asset orchestration",
+      "source_handler": "super::sync::sync_asset",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "sync_all_assets",
+      "owner": "ccr-sync + Tauri commands/sync.rs typed encrypted-asset orchestration",
+      "source_handler": "super::sync::sync_all_assets",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "sync_push_folder",
+      "owner": "ccr-sync + Tauri commands/sync.rs typed encrypted-asset orchestration",
+      "source_handler": "super::sync::sync_push_folder",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "sync_pull_folder",
+      "owner": "ccr-sync + Tauri commands/sync.rs typed encrypted-asset orchestration",
+      "source_handler": "super::sync::sync_pull_folder",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "sync_status",
+      "owner": "ccr-sync + Tauri commands/sync.rs typed encrypted-asset orchestration",
+      "source_handler": "super::sync::sync_status",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "list_sync_folders",
+      "owner": "ccr-sync + Tauri commands/sync.rs typed encrypted-asset orchestration",
+      "source_handler": "super::sync::list_sync_folders",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "add_sync_folder",
+      "owner": "ccr-sync + Tauri commands/sync.rs typed encrypted-asset orchestration",
+      "source_handler": "super::sync::add_sync_folder",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "update_sync_folder",
+      "owner": "ccr-sync + Tauri commands/sync.rs typed encrypted-asset orchestration",
+      "source_handler": "super::sync::update_sync_folder",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "delete_sync_folder",
+      "owner": "ccr-sync + Tauri commands/sync.rs typed encrypted-asset orchestration",
+      "source_handler": "super::sync::delete_sync_folder",
+      "risk": "destructive",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "set_webdav_config",
+      "owner": "ccr-sync + Tauri commands/sync.rs typed encrypted-asset orchestration",
+      "source_handler": "super::sync::set_webdav_config",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "test_webdav_config",
+      "owner": "ccr-sync + Tauri commands/sync.rs typed encrypted-asset orchestration",
+      "source_handler": "super::sync::test_webdav_config",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "clear_webdav_config",
+      "owner": "ccr-sync + Tauri commands/sync.rs typed encrypted-asset orchestration",
+      "source_handler": "super::sync::clear_webdav_config",
+      "risk": "destructive",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "list_providers",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::list_providers",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "add_provider",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::add_provider",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "update_provider",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::update_provider",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "delete_provider",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::delete_provider",
+      "risk": "destructive",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "test_provider_connection",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::test_provider_connection",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "list_accounts",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::list_accounts",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "add_account",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::add_account",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "update_account",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::update_account",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "delete_account",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::delete_account",
+      "risk": "destructive",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "batch_delete_accounts",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::batch_delete_accounts",
+      "risk": "destructive",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "execute_checkin",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::execute_checkin",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "batch_checkin",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::batch_checkin",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "start_checkin_job",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::start_checkin_job",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_checkin_job_status",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::get_checkin_job_status",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_checkin_records",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::get_checkin_records",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_balance",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::get_balance",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_balance_history",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::get_balance_history",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_balance_stats",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::get_balance_stats",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "export_checkin_data",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::export_checkin_data",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "export_checkin_stats",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::export_checkin_stats",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "execute_cdk_recharge",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::execute_cdk_recharge",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_cdk_history",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::get_cdk_history",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "list_waf_cookies",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::list_waf_cookies",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "add_waf_cookie",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::add_waf_cookie",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "delete_waf_cookie",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::delete_waf_cookie",
+      "risk": "destructive",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "open_waf_login",
+      "owner": "Tauri WAF webview/browser-cookie adapter",
+      "source_handler": "super::waf::open_waf_login",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_waf_cookie_status",
+      "owner": "Tauri WAF webview/browser-cookie adapter",
+      "source_handler": "super::waf::get_waf_cookie_status",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "validate_waf_cookie_for_account",
+      "owner": "Tauri WAF webview/browser-cookie adapter",
+      "source_handler": "super::waf::validate_waf_cookie_for_account",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "waf_deliver_cookie",
+      "owner": "Tauri WAF webview/browser-cookie adapter",
+      "source_handler": "super::waf::waf_deliver_cookie",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "execute_ccr_command",
+      "owner": "ccr-app::jobs::{policy,commands,process}; Tauri wire/event adapter; GPUI typed native adapter",
+      "source_handler": "super::command_exec::execute_ccr_command",
+      "risk": "process_execution",
+      "implementation": "INTEGRATED_CHECKPOINT",
+      "native_action": "Commands workbench: catalogue / Run tracked job / Request cancel / Refresh retained status; fixture runs only closed synthetic process, real sidecar/native acceptance remains open; native uses tracked-job equivalent rather than a separate foreground runner",
+      "tests": [
+        {
+          "result": "PASS",
+          "source": "crates/ccr-app/src/jobs/commands/tests.rs",
+          "receipt": "outputs/desktop/continuation-20261028/resume29-app-after.json",
+          "limit": "before added multibyte-stream regression; final rerun still required"
+        },
+        {
+          "result": "PASS",
+          "source": "ccr-desktop/src/features/jobs/tests.rs",
+          "receipt": "outputs/desktop/continuation-20261028/resume29-native-after.json"
+        }
+      ],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN",
+      "source": [
+        "crates/ccr-app/src/jobs/policy.rs",
+        "crates/ccr-app/src/jobs/commands.rs",
+        "ccr-desktop/src/runtime/jobs.rs",
+        "ccr-desktop/src/features/jobs/mod.rs",
+        "ccr-ui/src-tauri/src/commands/command_exec.rs",
+        "ccr-ui/src-tauri/src/process/gateway.rs"
+      ]
+    },
+    {
+      "command": "list_ccr_commands",
+      "owner": "ccr-app::jobs::{policy,commands,process}; Tauri wire/event adapter; GPUI typed native adapter",
+      "source_handler": "super::command_exec::list_ccr_commands",
+      "risk": "read_only",
+      "implementation": "INTEGRATED_CHECKPOINT",
+      "native_action": "Commands workbench: catalogue / Run tracked job / Request cancel / Refresh retained status; fixture runs only closed synthetic process, real sidecar/native acceptance remains open",
+      "tests": [
+        {
+          "result": "PASS",
+          "source": "crates/ccr-app/src/jobs/commands/tests.rs",
+          "receipt": "outputs/desktop/continuation-20261028/resume29-app-after.json",
+          "limit": "before added multibyte-stream regression; final rerun still required"
+        },
+        {
+          "result": "PASS",
+          "source": "ccr-desktop/src/features/jobs/tests.rs",
+          "receipt": "outputs/desktop/continuation-20261028/resume29-native-after.json"
+        }
+      ],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN",
+      "source": [
+        "crates/ccr-app/src/jobs/policy.rs",
+        "crates/ccr-app/src/jobs/commands.rs",
+        "ccr-desktop/src/runtime/jobs.rs",
+        "ccr-desktop/src/features/jobs/mod.rs",
+        "ccr-ui/src-tauri/src/commands/command_exec.rs",
+        "ccr-ui/src-tauri/src/process/gateway.rs"
+      ]
+    },
+    {
+      "command": "get_ccr_command_help",
+      "owner": "Tauri command_exec.rs shared policy/managed runner + process/gateway.rs",
+      "source_handler": "super::command_exec::get_ccr_command_help",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "start_ccr_command_job",
+      "owner": "ccr-app::jobs::{policy,commands,process}; Tauri wire/event adapter; GPUI typed native adapter",
+      "source_handler": "super::command_exec::start_ccr_command_job",
+      "risk": "process_execution",
+      "implementation": "INTEGRATED_CHECKPOINT",
+      "native_action": "Commands workbench: catalogue / Run tracked job / Request cancel / Refresh retained status; fixture runs only closed synthetic process, real sidecar/native acceptance remains open",
+      "tests": [
+        {
+          "result": "PASS",
+          "source": "crates/ccr-app/src/jobs/commands/tests.rs",
+          "receipt": "outputs/desktop/continuation-20261028/resume29-app-after.json",
+          "limit": "before added multibyte-stream regression; final rerun still required"
+        },
+        {
+          "result": "PASS",
+          "source": "ccr-desktop/src/features/jobs/tests.rs",
+          "receipt": "outputs/desktop/continuation-20261028/resume29-native-after.json"
+        }
+      ],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN",
+      "source": [
+        "crates/ccr-app/src/jobs/policy.rs",
+        "crates/ccr-app/src/jobs/commands.rs",
+        "ccr-desktop/src/runtime/jobs.rs",
+        "ccr-desktop/src/features/jobs/mod.rs",
+        "ccr-ui/src-tauri/src/commands/command_exec.rs",
+        "ccr-ui/src-tauri/src/process/gateway.rs"
+      ]
+    },
+    {
+      "command": "get_ccr_command_job_status",
+      "owner": "ccr-app::jobs::{policy,commands,process}; Tauri wire/event adapter; GPUI typed native adapter",
+      "source_handler": "super::command_exec::get_ccr_command_job_status",
+      "risk": "read_only",
+      "implementation": "INTEGRATED_CHECKPOINT",
+      "native_action": "Commands workbench: catalogue / Run tracked job / Request cancel / Refresh retained status; fixture runs only closed synthetic process, real sidecar/native acceptance remains open",
+      "tests": [
+        {
+          "result": "PASS",
+          "source": "crates/ccr-app/src/jobs/commands/tests.rs",
+          "receipt": "outputs/desktop/continuation-20261028/resume29-app-after.json",
+          "limit": "before added multibyte-stream regression; final rerun still required"
+        },
+        {
+          "result": "PASS",
+          "source": "ccr-desktop/src/features/jobs/tests.rs",
+          "receipt": "outputs/desktop/continuation-20261028/resume29-native-after.json"
+        }
+      ],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN",
+      "source": [
+        "crates/ccr-app/src/jobs/policy.rs",
+        "crates/ccr-app/src/jobs/commands.rs",
+        "ccr-desktop/src/runtime/jobs.rs",
+        "ccr-desktop/src/features/jobs/mod.rs",
+        "ccr-ui/src-tauri/src/commands/command_exec.rs",
+        "ccr-ui/src-tauri/src/process/gateway.rs"
+      ]
+    },
+    {
+      "command": "cancel_ccr_command_job",
+      "owner": "ccr-app::jobs::{policy,commands,process}; Tauri wire/event adapter; GPUI typed native adapter",
+      "source_handler": "super::command_exec::cancel_ccr_command_job",
+      "risk": "process_execution",
+      "implementation": "INTEGRATED_CHECKPOINT",
+      "native_action": "Commands workbench: catalogue / Run tracked job / Request cancel / Refresh retained status; fixture runs only closed synthetic process, real sidecar/native acceptance remains open",
+      "tests": [
+        {
+          "result": "PASS",
+          "source": "crates/ccr-app/src/jobs/commands/tests.rs",
+          "receipt": "outputs/desktop/continuation-20261028/resume29-app-after.json",
+          "limit": "before added multibyte-stream regression; final rerun still required"
+        },
+        {
+          "result": "PASS",
+          "source": "ccr-desktop/src/features/jobs/tests.rs",
+          "receipt": "outputs/desktop/continuation-20261028/resume29-native-after.json"
+        }
+      ],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN",
+      "source": [
+        "crates/ccr-app/src/jobs/policy.rs",
+        "crates/ccr-app/src/jobs/commands.rs",
+        "ccr-desktop/src/runtime/jobs.rs",
+        "ccr-desktop/src/features/jobs/mod.rs",
+        "ccr-ui/src-tauri/src/commands/command_exec.rs",
+        "ccr-ui/src-tauri/src/process/gateway.rs"
+      ]
+    },
+    {
+      "command": "list_builtin_providers",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::list_builtin_providers",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "add_builtin_provider",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::add_builtin_provider",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_checkin_account_cookies",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::get_checkin_account_cookies",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "export_checkin_config",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::export_checkin_config",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "preview_checkin_import",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::preview_checkin_import",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "import_checkin_config",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::import_checkin_config",
+      "risk": "network_mutation",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "get_account_dashboard",
+      "owner": "ccr-checkin domain services + Tauri checkin_jobs snapshot/event adapter",
+      "source_handler": "super::checkin::get_account_dashboard",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "update_ccr",
+      "owner": "Tauri system::update_ccr + ProcessDescriptor::ccr_update",
+      "source_handler": "super::system::update_ccr",
+      "risk": "process_execution",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "llmusage_install_detect",
+      "owner": "ccr-cli::services::install_service::InstallService",
+      "source_handler": "super::install::llmusage_install_detect",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "llmusage_install_probe_capabilities",
+      "owner": "ccr-cli::services::install_service::InstallService",
+      "source_handler": "super::install::llmusage_install_probe_capabilities",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "llmusage_install_plan",
+      "owner": "ccr-cli::services::install_service::InstallService",
+      "source_handler": "super::install::llmusage_install_plan",
+      "risk": "process_execution",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "llmusage_install_execute",
+      "owner": "ccr-cli::services::install_service::InstallService",
+      "source_handler": "super::install::llmusage_install_execute",
+      "risk": "process_execution",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "llmusage_install_cancel",
+      "owner": "ccr-cli::services::install_service::InstallService",
+      "source_handler": "super::install::llmusage_install_cancel",
+      "risk": "process_execution",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "llmusage_install_recent",
+      "owner": "ccr-cli::services::install_service::InstallService",
+      "source_handler": "super::install::llmusage_install_recent",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "llmusage_install_manual_catalog",
+      "owner": "ccr-cli::services::install_service::InstallService",
+      "source_handler": "super::install::llmusage_install_manual_catalog",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    },
+    {
+      "command": "llmusage_install_check",
+      "owner": "ccr-cli::services::install_service::InstallService",
+      "source_handler": "super::install::llmusage_install_check",
+      "risk": "read_only",
+      "implementation": "UNIMPLEMENTED_NATIVE",
+      "native_action": null,
+      "tests": [],
+      "native": "NOT_RUN",
+      "acceptance": "OPEN"
+    }
+  ],
+  "routes": [
+    "/ccr-control",
+    "/commands/:client?",
+    "/sync",
+    "/checkin/manage/:accountId",
+    "/checkin"
+  ],
+  "original_capture_recreated": false,
+  "final_acceptance": "open"
+}
