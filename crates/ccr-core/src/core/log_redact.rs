@@ -140,6 +140,7 @@ fn redact_free_text(input: &str) -> String {
             .or_else(|| match_bearer(&chars, index))
             .or_else(|| match_sk_token(&chars, index))
             .or_else(|| match_jwt(&chars, index))
+            .or_else(|| match_sensitive_assignment(&chars, index))
         {
             output.push_str(&replacement);
             index += consumed;
@@ -151,6 +152,103 @@ fn redact_free_text(input: &str) -> String {
     }
 
     output
+}
+
+/// Command output commonly uses `api_key=value` rather than valid JSON.
+/// Keep the label/separators but mask the complete delimited value, including
+/// escaped quoted text and truncated final lines.
+fn match_sensitive_assignment(chars: &[char], start: usize) -> Option<(usize, String)> {
+    let key_char = |ch: char| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-');
+    if start > 0 && key_char(chars[start - 1]) {
+        return None;
+    }
+    let key_quote = chars
+        .get(start)
+        .copied()
+        .filter(|ch| matches!(ch, '\'' | '"'));
+    let key_start = start + usize::from(key_quote.is_some());
+    let mut cursor = key_start;
+    while cursor < chars.len() && key_char(chars[cursor]) {
+        cursor += 1;
+    }
+    if cursor == key_start {
+        return None;
+    }
+    let key: String = chars[key_start..cursor].iter().collect();
+    if !is_sensitive_log_key(&key) {
+        return None;
+    }
+    if let Some(quote) = key_quote {
+        if chars.get(cursor) != Some(&quote) {
+            return None;
+        }
+        cursor += 1;
+    }
+    while cursor < chars.len() && matches!(chars[cursor], ' ' | '\t') {
+        cursor += 1;
+    }
+    if !matches!(chars.get(cursor), Some('=' | ':')) {
+        return None;
+    }
+    cursor += 1;
+    while cursor < chars.len() && matches!(chars[cursor], ' ' | '\t') {
+        cursor += 1;
+    }
+    let quote = chars
+        .get(cursor)
+        .copied()
+        .filter(|ch| matches!(ch, '\'' | '"'));
+    if quote.is_some() {
+        cursor += 1;
+    }
+    let value_start = cursor;
+    let mut escaped = false;
+    while cursor < chars.len() {
+        let ch = chars[cursor];
+        if matches!(ch, '\n' | '\r') {
+            break;
+        }
+        if let Some(quote) = quote {
+            if ch == quote && !escaped {
+                break;
+            }
+            escaped = ch == '\\' && !escaped;
+        } else if ch.is_whitespace() || matches!(ch, ',' | ';' | '}' | ']') {
+            break;
+        }
+        cursor += 1;
+    }
+    // Authorization headers carry a two-word scheme and credential.
+    if quote.is_none()
+        && normalize_log_key(&key) == "authorization"
+        && matches!(
+            chars[value_start..cursor]
+                .iter()
+                .collect::<String>()
+                .to_ascii_lowercase()
+                .as_str(),
+            "basic" | "bearer"
+        )
+    {
+        while cursor < chars.len() && matches!(chars[cursor], ' ' | '\t') {
+            cursor += 1;
+        }
+        while cursor < chars.len()
+            && !chars[cursor].is_whitespace()
+            && !matches!(chars[cursor], ',' | ';')
+        {
+            cursor += 1;
+        }
+    }
+    if cursor == value_start {
+        return None;
+    }
+    let prefix: String = chars[start..value_start].iter().collect();
+    let value: String = chars[value_start..cursor].iter().collect();
+    Some((
+        cursor - start,
+        format!("{prefix}{}", mask_sensitive(&value)),
+    ))
 }
 
 fn match_cookie_header(chars: &[char], start: usize) -> Option<(usize, String)> {
@@ -348,5 +446,48 @@ mod tests {
             redact_log_text("profile applied successfully"),
             "profile applied successfully"
         );
+    }
+}
+
+#[cfg(test)]
+mod assignment_tests {
+    use super::*;
+    #[test]
+    fn command_assignments_mask_sensitive_values_without_discarding_context() {
+        for input in [
+            "api_key=fixture-secret-value status=ready",
+            "API-KEY : 'fixture secret value' status=ready",
+            "prefix \"access_token\" : \"fixture \\\"secret\\\" value\" status=ready",
+            "authorization: Basic Zml4dHVyZS1zZWNyZXQ= status=ready",
+            "secret=fixture-secret-value\nstatus=ready",
+            "password=\"fixture secret value\nstatus=ready",
+        ] {
+            let redacted = redact_log_text(input);
+            assert!(!redacted.contains("fixture-secret-value"), "{redacted}");
+            assert!(!redacted.contains("fixture secret value"), "{redacted}");
+            assert!(
+                !redacted.contains(r#"fixture \"secret\" value"#),
+                "{redacted}"
+            );
+            assert!(!redacted.contains("Zml4dHVyZS1zZWNyZXQ="), "{redacted}");
+            assert!(redacted.contains("status=ready"), "{redacted}");
+            assert_ne!(redacted, input);
+        }
+        for ordinary in [
+            "api_keyring=public",
+            "monkey=value",
+            "status = ready",
+            "no token was printed",
+        ] {
+            assert_eq!(redact_log_text(ordinary), ordinary);
+        }
+    }
+    #[test]
+    fn long_unicode_assignment_is_bounded_by_existing_input_and_utf8_safe() {
+        let input = format!("password='{}' status=ready", "密🔑".repeat(128 * 1024));
+        let redacted = redact_log_text(&input);
+        assert!(redacted.len() < 100);
+        assert!(redacted.contains("status=ready"));
+        assert_ne!(redacted, input);
     }
 }
