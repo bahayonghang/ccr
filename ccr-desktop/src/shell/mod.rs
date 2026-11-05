@@ -76,6 +76,7 @@ pub struct Shell {
     platforms: Entity<crate::features::platforms::PlatformsView>,
     insights: Entity<crate::features::insights::InsightsView>,
     resources: Entity<crate::features::resources::ResourcesView>,
+    mcp: Entity<crate::features::mcp::McpView>,
     jobs: Entity<crate::features::jobs::JobsView>,
     install: Entity<crate::features::install::InstallView>,
     overview: Entity<crate::features::overview::OverviewView>,
@@ -121,6 +122,7 @@ impl Shell {
             resources: cx.new(|cx| {
                 crate::features::resources::ResourcesView::new(services.clone(), window, cx)
             }),
+            mcp: cx.new(|cx| crate::features::mcp::McpView::new(services.clone(), window, cx)),
             jobs: cx.new(|cx| crate::features::jobs::JobsView::new(services.clone(), window, cx)),
             install: cx
                 .new(|cx| crate::features::install::InstallView::new(services.clone(), window, cx)),
@@ -221,6 +223,7 @@ impl Shell {
         self.platforms.update(cx, |view, cx| view.leave(window, cx));
         self.insights.update(cx, |view, cx| view.suspend(cx));
         self.resources.update(cx, |view, cx| view.leave(window, cx));
+        self.mcp.update(cx, |view, cx| view.suspend(cx));
         self.jobs.update(cx, |view, cx| view.suspend(cx));
         self.install.update(cx, |view, cx| view.suspend(cx));
         self.overview.update(cx, |view, cx| view.suspend(cx));
@@ -273,10 +276,8 @@ impl Shell {
                 view.open(Platform::Gemini, Surface::LegacySettings, window, cx)
             }),
             Destination::Commands => self.jobs.update(cx, |view, cx| view.refresh(cx)),
-            Destination::McpManager
-            | Destination::Checkin
-            | Destination::Sync
-            | Destination::Settings => {}
+            Destination::McpManager => self.mcp.update(cx, |view, cx| view.refresh(cx)),
+            Destination::Checkin | Destination::Sync | Destination::Settings => {}
         }
     }
 
@@ -333,10 +334,10 @@ impl Shell {
                 Destination::Commands => {
                     self.jobs.update(cx, |view, cx| view.focus_main(window, cx));
                 }
-                Destination::Settings
-                | Destination::McpManager
-                | Destination::Checkin
-                | Destination::Sync => {
+                Destination::McpManager => {
+                    self.mcp.update(cx, |view, cx| view.focus_main(window, cx));
+                }
+                Destination::Settings | Destination::Checkin | Destination::Sync => {
                     window.focus(&self.main_focus, cx);
                     window.focus_next(cx);
                 }
@@ -600,15 +601,7 @@ impl Shell {
                 }
                 Destination::Commands => self.jobs.clone().into_any_element(),
                 Destination::Settings => self.settings(cx).into_any_element(),
-                Destination::McpManager => self
-                    .notice(
-                        "MCP Manager",
-                        "MCP 管理",
-                        "This desktop build has no MCP manager connection. It does not invent server status.",
-                        "这个桌面版本还没有接入 MCP 管理，也不会编造服务状态。",
-                        cx,
-                    )
-                    .into_any_element(),
+                Destination::McpManager => self.mcp.clone().into_any_element(),
                 Destination::Checkin => self
                     .notice(
                         "Check-ins",

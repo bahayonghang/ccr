@@ -2,6 +2,7 @@
 pub mod insights;
 pub mod install;
 pub mod jobs;
+pub mod mcp;
 pub mod platforms;
 pub mod profiles;
 pub mod resources;
