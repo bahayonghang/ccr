@@ -1,8 +1,9 @@
 //! Native read-only Insights workbench, using the shared bounded request adapter.
 mod policies;
+mod product;
 mod rows;
 use crate::{
-    locales::text,
+    locales::{Language, service_error, text},
     runtime::{
         Services,
         insights::{
@@ -61,10 +62,18 @@ impl Section {
         (Self::Logs, "Records", "记录"),
     ];
 }
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Surface {
+    Workbench,
+    Sessions,
+    Usage,
+}
+
 pub struct InsightsView {
     requests: InsightsRequests,
     policies: Entity<policies::PoliciesView>,
     page: InsightsPage,
+    surface: Surface,
     section: Section,
     snapshot: Option<Arc<InsightsSnapshot>>,
     fields: Vec<Entity<InputState>>,
@@ -95,6 +104,7 @@ impl InsightsView {
             requests,
             policies,
             page: InsightsPage::Home,
+            surface: Surface::Workbench,
             section: Section::Sources,
             snapshot: None,
             fields: (0..8)
@@ -136,6 +146,20 @@ impl InsightsView {
         self.before = None;
         cx.notify();
     }
+    pub fn open_product(&mut self, page: InsightsPage, cx: &mut Context<Self>) {
+        self.surface = if page == InsightsPage::Sessions {
+            Surface::Sessions
+        } else {
+            Surface::Usage
+        };
+        let page = if page == InsightsPage::Home {
+            InsightsPage::Usage
+        } else {
+            page
+        };
+        self.set_page(page, cx);
+    }
+
     pub fn set_page(&mut self, page: InsightsPage, cx: &mut Context<Self>) {
         self.suspend(cx);
         self.page = page;
@@ -402,8 +426,73 @@ impl InsightsView {
         }
     }
 }
+impl InsightsView {
+    fn product_status(&self, cx: &Context<Self>) -> String {
+        let Some(InsightsSnapshot::Usage(report)) = self.snapshot.as_deref() else {
+            return text(cx, "This report has not been read.", "还没有读到这份报告。").to_string();
+        };
+        let sync =
+            report
+                .overview
+                .last_sync_at
+                .as_deref()
+                .unwrap_or(text(cx, "not recorded", "未记录"));
+        let providers = if report.providers_supported {
+            text(cx, "Provider dimension available", "提供商维度可用")
+        } else {
+            text(
+                cx,
+                "Provider dimension unsupported, not measured zero",
+                "提供商维度不支持，不是实测零值",
+            )
+        };
+        if cx.global::<Language>() == &Language::Chinese {
+            format!(
+                "请求 {} · 令牌 {} · 美元 {} · 最近同步 {} · {}",
+                report.overview.total_events,
+                report.overview.total.total_tokens,
+                report.overview.total_cost_usd,
+                sync,
+                providers
+            )
+        } else {
+            format!(
+                "Requests {} · Tokens {} · USD {} · Last sync {} · {}",
+                report.overview.total_events,
+                report.overview.total.total_tokens,
+                report.overview.total_cost_usd,
+                sync,
+                providers
+            )
+        }
+    }
+
+    fn header_text(&self, cx: &Context<Self>) -> (String, String, String) {
+        match self.section {
+            Section::Heatmap => (
+                text(cx, "Date", "日期").into(),
+                text(cx, "Requests", "请求").into(),
+                String::new(),
+            ),
+            Section::Logs => (
+                text(cx, "Time", "时间").into(),
+                text(cx, "Input", "输入").into(),
+                text(cx, "Output", "输出").into(),
+            ),
+            _ => (
+                text(cx, "Label", "名称").into(),
+                text(cx, "Tokens", "令牌").into(),
+                text(cx, "Requests", "请求").into(),
+            ),
+        }
+    }
+}
+
 impl Render for InsightsView {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        if self.surface == Surface::Sessions {
+            return product::sessions(self, cx).into_any_element();
+        }
         let mut root = div()
             .id("insights-root")
             .test_support()
@@ -416,44 +505,62 @@ impl Render for InsightsView {
             .bg(cx.theme().background)
             .rounded_tr(px(theme::SHEET_CONTENT_RADIUS));
         let mut tabs = div().flex().gap(px(theme::CONTROL_GAP));
-        for (page, id, en, zh) in [
-            (
-                InsightsPage::Home,
-                "insights-home",
-                "Home insights",
-                "首页观测",
-            ),
-            (InsightsPage::Usage, "insights-usage", "Usage", "用量"),
-            (
-                InsightsPage::Sessions,
-                "insights-sessions",
-                "Sessions",
-                "会话",
-            ),
-            (
-                InsightsPage::Policies,
-                "insights-policies-tab",
-                "Budget / pricing",
-                "预算 / 定价",
-            ),
-        ] {
-            tabs = tabs.child(semantics::button(
-                Button::new(id)
-                    .label(text(cx, en, zh))
-                    .ghost()
-                    .toggled(self.page == page)
-                    .on_click(cx.listener(move |this, _, _, cx| this.set_page(page, cx))),
-                false,
-                false,
-                cx,
-            ));
+        if self.surface == Surface::Usage {
+            root = root
+                .child(
+                    div()
+                        .text_size(px(theme::TITLE_SIZE))
+                        .font_weight(gpui_kit::FontWeight::SEMIBOLD)
+                        .child(text(cx, "Usage", "用量")),
+                )
+                .child(
+                    div()
+                        .text_size(px(theme::META_SIZE))
+                        .text_color(cx.theme().muted_foreground)
+                        .child(text(
+                            cx,
+                            "Figures already stored in the local usage database.",
+                            "这些数字来自本机用量库，没有示例填充。",
+                        )),
+                );
+        }
+        if self.surface == Surface::Workbench {
+            for (page, id, en, zh) in [
+                (InsightsPage::Usage, "insights-usage", "Usage", "用量"),
+                (
+                    InsightsPage::Sessions,
+                    "insights-sessions",
+                    "Sessions",
+                    "会话",
+                ),
+                (
+                    InsightsPage::Policies,
+                    "insights-policies-tab",
+                    "Budget / pricing",
+                    "预算 / 定价",
+                ),
+            ] {
+                tabs = tabs.child(semantics::button(
+                    Button::new(id)
+                        .label(text(cx, en, zh))
+                        .ghost()
+                        .toggled(self.page == page)
+                        .on_click(cx.listener(move |this, _, _, cx| this.set_page(page, cx))),
+                    false,
+                    false,
+                    cx,
+                ));
+            }
         }
         if self.page == InsightsPage::Policies {
-            return root.child(tabs).child(self.policies.clone());
+            return root
+                .child(tabs)
+                .child(self.policies.clone())
+                .into_any_element();
         }
         tabs = tabs.child(semantics::button(
             Button::new("insights-refresh")
-                .label(text(cx, "Apply / refresh", "应用 / 刷新"))
+                .label(text(cx, "Refresh", "刷新"))
                 .on_click(cx.listener(|this, _, _, cx| this.refresh(cx))),
             self.loading,
             self.loading,
@@ -463,25 +570,56 @@ impl Render for InsightsView {
         if self.page == InsightsPage::Sessions {
             let status = self.requests.refresh_status();
             let running = matches!(status, RefreshStatus::Running(_));
+            let chinese = cx.try_global::<Language>().copied() == Some(Language::Chinese);
             let status_text = match status {
-                RefreshStatus::Idle => "Archive refresh has not run / 尚未刷新归档".into(),
-                RefreshStatus::Running(id) => format!(
-                    "Archive refresh {id} running; navigation detaches the view / 归档刷新中，离页后仍由应用持有"
+                RefreshStatus::Idle => {
+                    text(cx, "Archive refresh has not run.", "尚未刷新归档。").to_string()
+                }
+                RefreshStatus::Running(id) => {
+                    if chinese {
+                        format!("归档刷新 {id} 进行中。离开页面后仍由应用持有。")
+                    } else {
+                        format!(
+                            "Archive refresh {id} is running. Leaving this page keeps it with the application."
+                        )
+                    }
+                }
+                RefreshStatus::Finished(id, report) => {
+                    if chinese {
+                        format!(
+                            "刷新 {id}：发现 {}，未变 {}，已解析 {}，写入 {}，部分 {}，锁定 {}，错误 {}",
+                            report.total.discovered,
+                            report.total.unchanged,
+                            report.total.parsed,
+                            report.total.upserted,
+                            report.total.partial,
+                            report.total.locked,
+                            report.total.errors
+                        )
+                    } else {
+                        format!(
+                            "Refresh {id}: discovered {}, unchanged {}, parsed {}, upserted {}, partial {}, locked {}, errors {}",
+                            report.total.discovered,
+                            report.total.unchanged,
+                            report.total.parsed,
+                            report.total.upserted,
+                            report.total.partial,
+                            report.total.locked,
+                            report.total.errors
+                        )
+                    }
+                }
+                RefreshStatus::Failed(id, error) => format!(
+                    "Refresh {id}: {}",
+                    crate::locales::localized_line(cx, error.message())
                 ),
-                RefreshStatus::Finished(id, report) => format!(
-                    "Refresh {id}: discovered {}, unchanged {}, parsed {}, upserted {}, partial {}, locked {}, errors {} / 归档刷新结果",
-                    report.total.discovered,
-                    report.total.unchanged,
-                    report.total.parsed,
-                    report.total.upserted,
-                    report.total.partial,
-                    report.total.locked,
-                    report.total.errors
-                ),
-                RefreshStatus::Failed(id, error) => format!("Refresh {id}: {}", error.message()),
-                RefreshStatus::Interrupted(id) => format!(
-                    "Refresh {id} interrupted without a result. Retry. / 刷新未返回结果，请重试"
-                ),
+                RefreshStatus::Interrupted(id) => {
+                    if chinese {
+                        format!("刷新 {id} 没有结果。请重试。")
+                    } else {
+                        format!("Refresh {id} stopped before a result. Retry.")
+                    }
+                }
             };
             root = root.child(
                 div()
@@ -568,7 +706,11 @@ impl Render for InsightsView {
             }
             sections = sections.child(semantics::button(
                 Button::new("insights-timezone")
-                    .label(if self.utc { "UTC" } else { "Local / 本地" })
+                    .label(if self.utc {
+                        "UTC"
+                    } else {
+                        text(cx, "Local", "本地")
+                    })
                     .ghost()
                     .on_click(cx.listener(|this, _, _, cx| {
                         this.utc = !this.utc;
@@ -594,9 +736,15 @@ impl Render for InsightsView {
                 .child(if self.loading {
                     text(cx, "Reading on background worker", "正在后台读取").to_string()
                 } else if let Some(error) = self.error {
-                    error.to_string()
-                } else {
+                    if self.surface == Surface::Workbench {
+                        error.to_string()
+                    } else {
+                        service_error(cx, error).to_string()
+                    }
+                } else if self.surface == Surface::Workbench {
                     self.summary()
+                } else {
+                    self.product_status(cx)
                 }),
         );
         if let Some(InsightsSnapshot::Sessions { statuses, .. }) = self.snapshot.as_deref() {
@@ -686,14 +834,15 @@ impl Render for InsightsView {
         .track_scroll(&self.scroll)
         .flex_1()
         .size_full();
+        let headers = self.header_text(cx);
         root = root.child(
             div()
                 .flex()
                 .gap(px(theme::SECTION_GAP))
                 .text_size(px(theme::META_SIZE))
-                .child(div().flex_1().child(self.headers().0))
-                .child(div().min_w(px(100.)).text_right().child(self.headers().1))
-                .child(div().min_w(px(100.)).text_right().child(self.headers().2)),
+                .child(div().flex_1().child(headers.0.clone()))
+                .child(div().min_w(px(100.)).text_right().child(headers.1.clone()))
+                .child(div().min_w(px(100.)).text_right().child(headers.2.clone())),
         );
         root = root.child(
             div()
@@ -728,11 +877,19 @@ impl Render for InsightsView {
                 .child(list),
         );
         if !self.loading && self.error.is_none() && self.snapshot.is_some() && count == 0 {
-            root = root.child(text(
-                cx,
-                "No rows in this report. This is not proof that history or sessions were imported.",
-                "此报告没有记录，不代表历史或会话已完成导入。",
-            ));
+            root = root.child(if self.surface == Surface::Usage {
+                text(
+                    cx,
+                    "This report has no rows.",
+                    "这份报告没有记录。",
+                )
+            } else {
+                text(
+                    cx,
+                    "No rows in this report. This is not proof that history or sessions were imported.",
+                    "此报告没有记录，不代表历史或会话已完成导入。",
+                )
+            });
         }
         if self.detail_open
             && let Some(index) =
@@ -768,14 +925,14 @@ impl Render for InsightsView {
         if self.has_next() {
             paging = paging.child(semantics::button(
                 Button::new("insights-next")
-                    .label(text(cx, "Next / older page", "下一页 / 更早消息"))
+                    .label(text(cx, "Older page", "更早一页"))
                     .on_click(cx.listener(|this, _, _, cx| this.next(cx))),
                 self.loading,
                 false,
                 cx,
             ));
         }
-        root.child(paging)
+        root.child(paging).into_any_element()
     }
 }
 #[cfg(test)]

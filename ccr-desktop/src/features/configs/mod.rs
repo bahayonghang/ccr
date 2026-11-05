@@ -18,6 +18,7 @@ use gpui_kit::component::{
     button::{Button, ButtonVariants},
     input::{Input, InputEvent, InputState},
 };
+use gpui_kit::prelude::FluentBuilder;
 use gpui_kit::{
     AppContext, Context, Entity, FocusHandle, Focusable, InteractiveElement, IntoElement,
     ParentElement, Render, SharedString, StatefulInteractiveElement, Styled, Subscription, Task,
@@ -44,6 +45,7 @@ pub struct ConfigurationApp {
     _tools_subscription: Subscription,
     tools_version: u64,
     platform: Platform,
+    pinned: bool,
     #[cfg(test)]
     last_rendered_count: usize,
 }
@@ -87,6 +89,7 @@ impl ConfigurationApp {
             _tools_subscription: tools_subscription,
             tools_version: 0,
             platform: Platform::Claude,
+            pinned: false,
             #[cfg(test)]
             last_rendered_count: 0,
         };
@@ -106,6 +109,20 @@ impl ConfigurationApp {
     pub fn leave(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.suspend(cx);
         self.tools.update(cx, |tools, cx| tools.leave(window, cx));
+    }
+    /// Shell destinations own the platform choice, so the in-view switcher stays hidden.
+    pub fn open_platform(
+        &mut self,
+        platform: Platform,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.pinned = true;
+        if self.platform == platform {
+            self.refresh(cx);
+        } else {
+            self.platform(platform, window, cx);
+        }
     }
     pub fn refresh(&mut self, cx: &mut Context<Self>) {
         self.read_task = None;
@@ -450,6 +467,15 @@ impl Render for ConfigurationApp {
                     )),
             );
         }
+        let (title_en, title_zh) = if self.pinned {
+            match self.platform {
+                Platform::Codex => ("Codex", "Codex"),
+                Platform::Grok => ("Grok", "Grok"),
+                _ => ("Claude Code", "Claude Code"),
+            }
+        } else {
+            ("Configurations", "配置")
+        };
         div()
             .flex()
             .flex_col()
@@ -465,11 +491,11 @@ impl Render for ConfigurationApp {
                 div()
                     .id("configuration-heading")
                     .role(gpui_kit::Role::Heading)
-                    .aria_label(text(cx, "Configurations", "配置"))
+                    .aria_label(text(cx, title_en, title_zh))
                     .aria_level(1)
                     .text_size(px(theme::TITLE_SIZE))
                     .font_weight(gpui_kit::FontWeight::SEMIBOLD)
-                    .child(text(cx, "Configurations", "配置")),
+                    .child(text(cx, title_en, title_zh)),
             )
             .child(div().text_color(muted).child(text(
                 cx,
@@ -520,50 +546,52 @@ impl Render for ConfigurationApp {
                     })
                     .child(status),
             )
-            .child(
-                div()
-                    .flex()
-                    .gap(px(4.))
-                    .child(semantics::button(
-                        Button::new("profiles-platform-claude")
-                            .selected(self.platform == Platform::Claude)
-                            .toggled(self.platform == Platform::Claude)
-                            .label("Claude Code")
-                            .ghost()
-                            .on_click(cx.listener(|this, _, window, cx| {
-                                this.platform(Platform::Claude, window, cx)
-                            })),
-                        self.tools.read(cx).expanded() || self.tools.read(cx).busy(),
-                        false,
-                        cx,
-                    ))
-                    .child(semantics::button(
-                        Button::new("profiles-platform-codex")
-                            .selected(self.platform == Platform::Codex)
-                            .toggled(self.platform == Platform::Codex)
-                            .label("Codex")
-                            .ghost()
-                            .on_click(cx.listener(|this, _, window, cx| {
-                                this.platform(Platform::Codex, window, cx)
-                            })),
-                        self.tools.read(cx).expanded() || self.tools.read(cx).busy(),
-                        false,
-                        cx,
-                    ))
-                    .child(semantics::button(
-                        Button::new("profiles-platform-grok")
-                            .selected(self.platform == Platform::Grok)
-                            .toggled(self.platform == Platform::Grok)
-                            .label("Grok")
-                            .ghost()
-                            .on_click(cx.listener(|this, _, window, cx| {
-                                this.platform(Platform::Grok, window, cx)
-                            })),
-                        self.tools.read(cx).expanded() || self.tools.read(cx).busy(),
-                        false,
-                        cx,
-                    )),
-            )
+            .when(!self.pinned, |parent| {
+                parent.child(
+                    div()
+                        .flex()
+                        .gap(px(4.))
+                        .child(semantics::button(
+                            Button::new("profiles-platform-claude")
+                                .selected(self.platform == Platform::Claude)
+                                .toggled(self.platform == Platform::Claude)
+                                .label("Claude Code")
+                                .ghost()
+                                .on_click(cx.listener(|this, _, window, cx| {
+                                    this.platform(Platform::Claude, window, cx)
+                                })),
+                            self.tools.read(cx).expanded() || self.tools.read(cx).busy(),
+                            false,
+                            cx,
+                        ))
+                        .child(semantics::button(
+                            Button::new("profiles-platform-codex")
+                                .selected(self.platform == Platform::Codex)
+                                .toggled(self.platform == Platform::Codex)
+                                .label("Codex")
+                                .ghost()
+                                .on_click(cx.listener(|this, _, window, cx| {
+                                    this.platform(Platform::Codex, window, cx)
+                                })),
+                            self.tools.read(cx).expanded() || self.tools.read(cx).busy(),
+                            false,
+                            cx,
+                        ))
+                        .child(semantics::button(
+                            Button::new("profiles-platform-grok")
+                                .selected(self.platform == Platform::Grok)
+                                .toggled(self.platform == Platform::Grok)
+                                .label("Grok")
+                                .ghost()
+                                .on_click(cx.listener(|this, _, window, cx| {
+                                    this.platform(Platform::Grok, window, cx)
+                                })),
+                            self.tools.read(cx).expanded() || self.tools.read(cx).busy(),
+                            false,
+                            cx,
+                        )),
+                )
+            })
             .child(self.tools.clone())
             .child(if self.tools.read(cx).expanded() {
                 div().into_any_element()

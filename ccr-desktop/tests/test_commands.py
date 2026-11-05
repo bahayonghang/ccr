@@ -160,13 +160,21 @@ class CommandContract(unittest.TestCase):
         with tempfile.TemporaryDirectory() as fixture:
             folder = Path(fixture)
             data = json.dumps({"workspace_root": str(ROOT), "target_directory": str(ROOT / "target")})
+            identified_shim = folder / "identified-cargo-shim"
+            identified_shim.touch()
+            # Keep host mbx state out of this ordinary-Cargo exit-code fixture.
+            status = f"mbx setup is installed and current: {identified_shim}"
             if os.name == "nt":
                 stub = folder / "cargo.cmd"
                 stub.write_text(f'@echo off\nif "%1"=="metadata" (\necho {data}\nexit /b 0\n)\nexit /b 23\n')
+                (folder / "mbx.cmd").write_text(f'@echo off\necho {status}\n')
             else:
                 stub = folder / "cargo"
                 stub.write_text(f'#!/bin/sh\nif [ "$1" = metadata ]; then\nprintf \'%s\\n\' \'{data}\'\nexit 0\nfi\nexit 23\n')
                 stub.chmod(0o755)
+                mbx = folder / "mbx"
+                mbx.write_text(f"#!/bin/sh\nprintf '%s\\n' '{status}'\n")
+                mbx.chmod(0o755)
             result = subprocess.run(
                 ["just", "--justfile", str(ROOT.parent / "justfile"), "desktop-build"],
                 env={**os.environ, "PATH": str(folder) + os.pathsep + os.environ["PATH"]},

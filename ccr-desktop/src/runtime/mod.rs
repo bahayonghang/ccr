@@ -1,5 +1,6 @@
 //! Native adapter: explicit sources, typed read requests, no UI-thread I/O.
 pub mod insights;
+pub mod install;
 pub mod jobs;
 pub mod platforms;
 pub mod profiles;
@@ -140,6 +141,7 @@ pub struct Services {
     insights_paths: Option<insights::InsightsPaths>,
     pub(super) platform_oauth: Arc<ccr_cli::application::codex_oauth::NativeSession>,
     pub(super) command_jobs: Arc<ccr_app::jobs::commands::CommandJobs>,
+    pub(super) install: Arc<install::InstallOwner>,
 }
 
 impl Services {
@@ -151,6 +153,7 @@ impl Services {
             insights_paths: None,
             platform_oauth: Default::default(),
             command_jobs: Default::default(),
+            install: Default::default(),
         }
     }
     pub fn with_insights_paths(mut self, paths: insights::InsightsPaths) -> Self {

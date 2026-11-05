@@ -37,6 +37,7 @@ fn actual_theme_controls_keep_base_component_palette_and_language_in_sync(cx: &m
     });
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
+        window.click("nav-claude-code", cx);
         window.click("configuration-filter", cx);
         window.input("retained query", cx);
         window.click("nav-settings", cx);
@@ -66,19 +67,16 @@ fn actual_theme_controls_keep_base_component_palette_and_language_in_sync(cx: &m
         );
         window.click("language-zh", cx);
         assert!(matches!(cx.global::<Language>(), Language::Chinese));
-        assert_eq!(window.find("nav-configurations").label(), Some("配置"));
+        assert_eq!(window.find("nav-dashboard").label(), Some("运行概览"));
         assert_eq!(window.find("theme-system").label(), Some("跟随系统"));
         window.click("language-en", cx);
-        assert_eq!(
-            window.find("nav-configurations").label(),
-            Some("Configurations")
-        );
+        assert_eq!(window.find("nav-dashboard").label(), Some("Overview"));
         window.click("theme-system", cx);
         assert_eq!(
             gpui_kit::base::Theme::global(cx).tokens.colors,
             Theme::global(cx).semantic_tokens().colors
         );
-        window.click("nav-configurations", cx);
+        window.click("nav-claude-code", cx);
         assert_eq!(
             window.find("configuration-filter").value(),
             Some("retained query")
@@ -116,6 +114,7 @@ fn f6_tab_navigation_does_not_intercept_search_editing(cx: &mut TestAppContext) 
     });
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
+        window.click("nav-claude-code", cx);
         window.click("configuration-filter", cx);
         window.input("原生读取", cx);
         window.press("left", cx);
@@ -123,19 +122,19 @@ fn f6_tab_navigation_does_not_intercept_search_editing(cx: &mut TestAppContext) 
         assert_eq!(window.find("configuration-filter").value(), Some("原生取"));
         window.press("f6", cx); // main -> status
         window.press("f6", cx); // status -> navigation
-        assert_eq!(window.find("nav-configurations").focused(), Some(true));
+        assert_eq!(window.find("nav-dashboard").focused(), Some(true));
         window.press("down", cx);
-        assert_eq!(window.find("nav-favorites").focused(), Some(true));
+        assert_eq!(window.find("nav-agent-sessions").focused(), Some(true));
         window.press("up", cx);
-        assert_eq!(window.find("nav-configurations").focused(), Some(true));
+        assert_eq!(window.find("nav-dashboard").focused(), Some(true));
         window.press("f6", cx); // navigation -> main
         assert_eq!(window.find("configuration-filter").focused(), Some(true));
         window.press("shift-f6", cx);
-        assert_eq!(window.find("nav-configurations").focused(), Some(true));
+        assert_eq!(window.find("nav-dashboard").focused(), Some(true));
         window.press("tab", cx);
-        assert_eq!(window.find("nav-favorites").focused(), Some(true));
+        assert_eq!(window.find("nav-agent-sessions").focused(), Some(true));
         window.press("shift-tab", cx);
-        assert_eq!(window.find("nav-configurations").focused(), Some(true));
+        assert_eq!(window.find("nav-dashboard").focused(), Some(true));
         window.remove_window();
     })
     .unwrap_or_else(|e| panic!("interaction: {e}"));
@@ -168,12 +167,12 @@ fn navigation_clears_converter_plaintext_and_acknowledgement(cx: &mut TestAppCon
         .unwrap_or_else(|_| panic!("window"))
     });
     cx.update_window(handle,|_,window,cx|{
-        window.render_frame(cx);window.click("nav-converter",cx);window.click("converter-acknowledge",cx);
+        window.render_frame(cx);window.click("nav-mcp-manager",cx);window.click("tool-converter",cx);window.click("converter-acknowledge",cx);
         let input=gpui_kit::base::test_support::snapshots(window).into_iter().find(|node|node.label()==Some("Source configuration")).unwrap_or_else(||panic!("source input"));
         window.click(input.path().last().cloned().unwrap_or_else(||panic!("input identity")),cx);
         window.input("{\"mcpServers\":{\"fixture\":{\"command\":\"fixture-command\",\"env\":{\"KEY\":\"converter-secret-sentinel\"}}}}",cx);
-        window.click("converter-run",cx);window.click("nav-configurations",cx);
-        window.click("nav-converter",cx);assert!(window.find("converter-acknowledge").visible());
+        window.click("converter-run",cx);window.click("nav-claude-code",cx);
+        window.click("nav-mcp-manager",cx);window.click("tool-converter",cx);assert!(window.find("converter-acknowledge").visible());
         window.click("converter-acknowledge",cx);
         let nodes=gpui_kit::base::test_support::snapshots(window);
         assert_eq!(nodes.iter().find(|node|node.label()==Some("Source configuration")).and_then(|node|node.value()),Some(""));
@@ -227,14 +226,18 @@ fn opaque_surface_quads_preserve_the_paper_corners(cx: &mut TestAppContext) {
             window.click("nav-settings", cx);
             window.click(mode, cx);
             for page in [
-                "nav-configurations",
-                "nav-favorites",
-                "nav-recent",
-                "nav-converter",
-                "nav-platforms",
-                "nav-insights",
-                "nav-resources",
-                "nav-jobs",
+                "nav-dashboard",
+                "nav-agent-sessions",
+                "nav-mcp-manager",
+                "nav-claude-code",
+                "nav-codex",
+                "nav-grok",
+                "nav-antigravity",
+                "nav-opencode",
+                "nav-commands",
+                "nav-checkin",
+                "nav-sync",
+                "nav-usage",
                 "nav-settings",
             ] {
                 window.click(page, cx);
@@ -280,7 +283,7 @@ fn opaque_surface_quads_preserve_the_paper_corners(cx: &mut TestAppContext) {
                     }),
                     "status background covers paper bottom corners on {page}"
                 );
-                if page == "nav-configurations" {
+                if page == "nav-claude-code" {
                     let reading = quads
                         .iter()
                         .find(|quad| {
@@ -298,5 +301,164 @@ fn opaque_surface_quads_preserve_the_paper_corners(cx: &mut TestAppContext) {
         window.remove_window();
     })
     .unwrap_or_else(|e| panic!("painted corners: {e}"));
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+fn overview_states_missing_usage_without_sample_numbers(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
+    let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
+    let (handle, _) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| {
+                Shell::new(
+                    Services::new(
+                        owner.handle(),
+                        ConfigSource::Fixture {
+                            profiles: root.path().join("profiles.toml"),
+                            registry: root.path().join("config.toml"),
+                            delay: Duration::ZERO,
+                        },
+                    ),
+                    window,
+                    cx,
+                )
+            })
+        })
+        .unwrap_or_else(|e| panic!("window: {e}"))
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        let status = window
+            .find("overview-status")
+            .label()
+            .unwrap_or_default()
+            .to_string();
+        assert!(
+            status.contains("sample numbers"),
+            "overview should say it has no sample numbers: {status}"
+        );
+        assert_eq!(window.find("nav-dashboard").label(), Some("Overview"));
+        let text = gpui_kit::base::test_support::snapshots(window)
+            .into_iter()
+            .filter_map(|node| node.label().map(str::to_string))
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(!text.contains("Synthetic owned-process"));
+        assert!(!text.contains("264.98"));
+        assert!(!text.contains("$0.00"));
+        window.click("nav-commands", cx);
+        let warning = window
+            .find("jobs-fixture-warning")
+            .label()
+            .unwrap_or_default()
+            .to_string();
+        assert!(
+            warning.contains("Synthetic owned-process"),
+            "fixture command page keeps its closed synthetic warning"
+        );
+        window.remove_window();
+    })
+    .unwrap_or_else(|e| panic!("overview: {e}"));
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+fn workbench_navigation_exposes_thirteen_destinations(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
+    let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
+    let (handle, _) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| {
+                Shell::new(
+                    Services::new(
+                        owner.handle(),
+                        ConfigSource::Fixture {
+                            profiles: root.path().join("profiles.toml"),
+                            registry: root.path().join("config.toml"),
+                            delay: Duration::ZERO,
+                        },
+                    ),
+                    window,
+                    cx,
+                )
+            })
+        })
+        .unwrap_or_else(|e| panic!("window: {e}"))
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        for id in [
+            "nav-overview",
+            "nav-configurations",
+            "nav-sessions",
+            "nav-resources",
+            "nav-platforms",
+            "nav-favorites",
+            "nav-recent",
+            "nav-converter",
+            "nav-insights",
+            "nav-jobs",
+            "nav-install",
+        ] {
+            assert!(
+                window.try_find(id).is_none(),
+                "{id} is still a sidebar entry"
+            );
+        }
+        for (nav, page, label) in [
+            ("nav-dashboard", "page-dashboard", "Overview"),
+            (
+                "nav-agent-sessions",
+                "page-agent-sessions",
+                "Agent sessions",
+            ),
+            ("nav-mcp-manager", "page-mcp-manager", "MCP Manager"),
+            ("nav-claude-code", "page-claude-code", "Claude Code"),
+            ("nav-codex", "page-codex", "Codex"),
+            ("nav-grok", "page-grok", "Grok"),
+            ("nav-antigravity", "page-antigravity", "Antigravity"),
+            ("nav-opencode", "page-opencode", "OpenCode"),
+            ("nav-commands", "page-commands", "Commands"),
+            ("nav-checkin", "page-checkin", "Check-ins"),
+            ("nav-sync", "page-sync", "Sync"),
+            ("nav-usage", "page-usage", "Usage"),
+            ("nav-settings", "page-settings", "Settings"),
+        ] {
+            window.click(nav, cx);
+            assert_eq!(window.find(nav).label(), Some(label));
+            assert_eq!(window.find(nav).checked(), Some(true), "{nav} selected");
+            assert!(window.find(page).visible(), "{page} missing");
+            let text = gpui_kit::base::test_support::snapshots(window)
+                .into_iter()
+                .filter_map(|node| node.label().map(str::to_string))
+                .collect::<Vec<_>>()
+                .join("\n");
+            assert!(
+                !text.contains("Home insights"),
+                "{nav} shows the insights bench"
+            );
+            assert!(
+                !text.contains("Apply / refresh"),
+                "{nav} shows refresh debug copy"
+            );
+        }
+        window.click("nav-claude-code", cx);
+        window.click("configuration-filter", cx);
+        window.press("f6", cx);
+        window.press("f6", cx);
+        assert_eq!(window.find("nav-dashboard").focused(), Some(true));
+        window.press("down", cx);
+        assert_eq!(window.find("nav-agent-sessions").focused(), Some(true));
+        window.press("enter", cx);
+        assert!(window.find("page-agent-sessions").visible());
+        assert_eq!(window.find("nav-agent-sessions").checked(), Some(true));
+        window.remove_window();
+    })
+    .unwrap_or_else(|e| panic!("navigation: {e}"));
     owner.shutdown();
 }

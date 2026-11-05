@@ -66,7 +66,7 @@ impl InsightsView {
                     if home.sessions_indexed {
                         row.sessions.to_string()
                     } else {
-                        "not indexed / 未索引".into()
+                        "not indexed".into()
                     },
                 )
             }
@@ -193,7 +193,7 @@ impl InsightsView {
                         if home.sessions_indexed {
                             r.sessions.to_string()
                         } else {
-                            "not indexed / 未索引".into()
+                            "not indexed".into()
                         }
                     ),
                 ]
@@ -348,19 +348,19 @@ impl InsightsView {
                 if h.sessions_indexed {
                     h.totals.sessions.to_string()
                 } else {
-                    "not indexed / 未索引".into()
+                    "not indexed".into()
                 },
                 h.last_7_days.requests,
                 if h.sessions_indexed {
                     h.last_7_days.sessions.to_string()
                 } else {
-                    "not indexed / 未索引".into()
+                    "not indexed".into()
                 },
                 h.previous_7_days.requests,
                 if h.sessions_indexed {
                     h.previous_7_days.sessions.to_string()
                 } else {
-                    "not indexed / 未索引".into()
+                    "not indexed".into()
                 }
             ),
             Some(InsightsSnapshot::Usage(r)) => format!(
@@ -368,64 +368,31 @@ impl InsightsView {
                 r.overview.total_events,
                 r.overview.total.total_tokens,
                 r.overview.total_cost_usd,
-                r.overview
-                    .last_sync_at
-                    .as_deref()
-                    .unwrap_or("not recorded / 未记录"),
+                r.overview.last_sync_at.as_deref().unwrap_or("not recorded"),
                 if r.providers_supported {
-                    "Provider dimension available / 提供商维度可用"
+                    "Provider dimension available"
                 } else {
-                    "Provider dimension unsupported, not measured zero / 提供商维度不支持，非实测零值"
+                    "Provider dimension unsupported, not measured zero"
                 }
             ),
             Some(InsightsSnapshot::Logs(p)) => format!(
-                "{} rows on this page · {} matching records / 当前页记录；符合筛选总数",
+                "{} rows on this page · {} matching records",
                 p.records.len(),
                 p.total
                     .map(|v| v.to_string())
                     .unwrap_or_else(|| "not counted".into())
             ),
-            Some(InsightsSnapshot::Sessions { page, .. }) => format!(
-                "{} archived summaries on this page / 本页归档摘要",
-                page.items.len()
-            ),
+            Some(InsightsSnapshot::Sessions { page, .. }) => {
+                format!("{} archived summaries on this page", page.items.len())
+            }
             Some(InsightsSnapshot::Detail(d)) => format!(
-                "{} · {} · {} · {} messages on this page / 本页消息",
+                "{} · {} · {} · {} messages on this page",
                 d.agent.as_str(),
                 d.variant,
                 d.page.fidelity.as_str(),
                 d.page.messages.len()
             ),
-            None => {
-                "Apply / refresh to read explicit sources. / 点击应用 / 刷新读取指定数据源。".into()
-            }
-        }
-    }
-    pub(super) fn headers(&self) -> (&'static str, &'static str, &'static str) {
-        match self.snapshot.as_deref() {
-            Some(InsightsSnapshot::Home(_)) => {
-                ("Source / 来源", "Requests / 请求", "Sessions / 会话")
-            }
-            Some(InsightsSnapshot::Sessions { .. }) => (
-                "Agent / title · 家族 / 标题",
-                "Messages / 消息",
-                "State / fidelity",
-            ),
-            Some(InsightsSnapshot::Detail(_)) => {
-                ("Ordinal / role · 序号 / 角色", "Tool / 工具", "Time / 时间")
-            }
-            Some(InsightsSnapshot::Logs(_)) => (
-                "Time / source / model",
-                "Input / 输入",
-                "Output + reasoning",
-            ),
-            _ => {
-                if self.section == Section::Heatmap {
-                    ("Date / 日期", "Requests / 请求", "")
-                } else {
-                    ("Label / 名称", "Tokens / 令牌", "Requests / 请求")
-                }
-            }
+            None => "This report has not been read.".into(),
         }
     }
     pub(super) fn comparison(&self, cx: &Context<Self>) -> gpui_kit::Div {

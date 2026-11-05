@@ -1,34 +1,74 @@
-//! Native capability shell: only connected Local surfaces are actionable.
+//! Native capability shell: one workbench destination per sidebar entry.
 mod command_state;
 pub(crate) mod semantics;
 use crate::{
     app::ConfigurationApp,
+    features::{insights::InsightsPage, overview::OverviewLink},
     locales::{Language, text},
-    runtime::Services,
+    runtime::{Services, platforms::Surface},
     theme::{self, Preference},
 };
+use ccr_app::runtime::Platform;
 use command_state::CommandState;
+use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
     ActiveTheme, Selectable,
     button::{Button, ButtonVariants},
 };
 use gpui_kit::{
-    AppContext, Context, Entity, FocusHandle, InteractiveElement, IntoElement, ParentElement,
-    Render, StatefulInteractiveElement, Styled, Subscription, Window, div, px,
+    AnyElement, AppContext, Context, Entity, FocusHandle, InteractiveElement, IntoElement,
+    ParentElement, Render, StatefulInteractiveElement, Styled, Subscription, Window, div, px,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum Page {
-    Configurations,
-    Converter,
-    Platforms,
-    Insights,
-    Resources,
-    Jobs,
-    Favorites,
-    Recent,
+enum Destination {
+    Dashboard,
+    AgentSessions,
+    McpManager,
+    ClaudeCode,
+    Codex,
+    Grok,
+    Antigravity,
+    OpenCode,
+    Commands,
+    Checkin,
+    Sync,
+    Usage,
     Settings,
 }
+
+impl Destination {
+    fn page_id(self) -> &'static str {
+        match self {
+            Self::Dashboard => "page-dashboard",
+            Self::AgentSessions => "page-agent-sessions",
+            Self::McpManager => "page-mcp-manager",
+            Self::ClaudeCode => "page-claude-code",
+            Self::Codex => "page-codex",
+            Self::Grok => "page-grok",
+            Self::Antigravity => "page-antigravity",
+            Self::OpenCode => "page-opencode",
+            Self::Commands => "page-commands",
+            Self::Checkin => "page-checkin",
+            Self::Sync => "page-sync",
+            Self::Usage => "page-usage",
+            Self::Settings => "page-settings",
+        }
+    }
+}
+
+/// In-page capability. These are not sidebar entries.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Lens {
+    Primary,
+    Accounts,
+    Files,
+    Converter,
+    Favorites,
+    Recent,
+    Install,
+}
+
 pub struct Shell {
     configurations: Entity<ConfigurationApp>,
     commands: Entity<CommandState>,
@@ -37,7 +77,11 @@ pub struct Shell {
     insights: Entity<crate::features::insights::InsightsView>,
     resources: Entity<crate::features::resources::ResourcesView>,
     jobs: Entity<crate::features::jobs::JobsView>,
-    page: Page,
+    install: Entity<crate::features::install::InstallView>,
+    overview: Entity<crate::features::overview::OverviewView>,
+    destination: Destination,
+    lens: Lens,
+    focused_nav: usize,
     preference: Preference,
     fixture: bool,
     slow_fixture: bool,
@@ -47,10 +91,11 @@ pub struct Shell {
     _appearance: Subscription,
     _activation: Subscription,
 }
+
 impl Shell {
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
         cx.set_global(Language::English);
-        theme::apply(Preference::System, window, cx);
+        theme::apply(Preference::Light, window, cx);
         let appearance = cx.observe_window_appearance(window, |this, window, cx| {
             if this.preference == Preference::System {
                 theme::apply(this.preference, window, cx);
@@ -62,7 +107,7 @@ impl Shell {
                 this.focus_main(window, cx);
             }
         });
-        Self {
+        let shell = Self {
             configurations: cx.new(|cx| ConfigurationApp::new(services.clone(), window, cx)),
             commands: cx.new(|cx| CommandState::new(&services, window, cx)),
             converter: cx
@@ -77,8 +122,14 @@ impl Shell {
                 crate::features::resources::ResourcesView::new(services.clone(), window, cx)
             }),
             jobs: cx.new(|cx| crate::features::jobs::JobsView::new(services.clone(), window, cx)),
-            page: Page::Configurations,
-            preference: Preference::System,
+            install: cx
+                .new(|cx| crate::features::install::InstallView::new(services.clone(), window, cx)),
+            overview: cx
+                .new(|cx| crate::features::overview::OverviewView::new(services.clone(), cx)),
+            destination: Destination::Dashboard,
+            lens: Lens::Primary,
+            focused_nav: 0,
+            preference: Preference::Light,
             fixture: services.is_fixture(),
             slow_fixture: services.is_slow_fixture(),
             navigation_focus: cx.focus_handle().tab_stop(false),
@@ -86,12 +137,83 @@ impl Shell {
             status_focus: cx.focus_handle(),
             _appearance: appearance,
             _activation: activation,
-        }
+        };
+        shell.overview.update(cx, |view, cx| view.refresh(cx));
+        shell
     }
-    fn navigate(&mut self, page: Page, window: &mut Window, cx: &mut Context<Self>) {
-        if self.page == page {
+
+    fn nav_items() -> [(&'static str, Destination, &'static str, &'static str); 13] {
+        [
+            (
+                "nav-dashboard",
+                Destination::Dashboard,
+                "Overview",
+                "运行概览",
+            ),
+            (
+                "nav-agent-sessions",
+                Destination::AgentSessions,
+                "Agent sessions",
+                "Agent 会话",
+            ),
+            (
+                "nav-mcp-manager",
+                Destination::McpManager,
+                "MCP Manager",
+                "MCP 管理",
+            ),
+            (
+                "nav-claude-code",
+                Destination::ClaudeCode,
+                "Claude Code",
+                "Claude Code",
+            ),
+            ("nav-codex", Destination::Codex, "Codex", "Codex"),
+            ("nav-grok", Destination::Grok, "Grok", "Grok"),
+            (
+                "nav-antigravity",
+                Destination::Antigravity,
+                "Antigravity",
+                "Antigravity",
+            ),
+            (
+                "nav-opencode",
+                Destination::OpenCode,
+                "OpenCode",
+                "OpenCode",
+            ),
+            ("nav-commands", Destination::Commands, "Commands", "命令"),
+            ("nav-checkin", Destination::Checkin, "Check-ins", "签到管理"),
+            ("nav-sync", Destination::Sync, "Sync", "同步"),
+            ("nav-usage", Destination::Usage, "Usage", "用量"),
+            ("nav-settings", Destination::Settings, "Settings", "设置"),
+        ]
+    }
+
+    fn go(
+        &mut self,
+        destination: Destination,
+        lens: Lens,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if let Some(index) = Self::nav_items()
+            .iter()
+            .position(|item| item.1 == destination)
+        {
+            self.focused_nav = index;
+        }
+        if self.destination == destination && self.lens == lens {
             return;
         }
+        self.destination = destination;
+        self.lens = lens;
+        self.park(window, cx);
+        self.activate(window, cx);
+        cx.notify();
+    }
+
+    fn park(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.configurations
             .update(cx, |view, cx| view.leave(window, cx));
         self.commands.update(cx, |view, cx| view.suspend(cx));
@@ -100,49 +222,128 @@ impl Shell {
         self.insights.update(cx, |view, cx| view.suspend(cx));
         self.resources.update(cx, |view, cx| view.leave(window, cx));
         self.jobs.update(cx, |view, cx| view.suspend(cx));
-        self.page = page;
-        match page {
-            Page::Configurations => self.configurations.update(cx, |view, cx| view.refresh(cx)),
-            Page::Platforms => self.platforms.update(cx, |view, cx| view.load(cx)),
-            Page::Insights => self.insights.update(cx, |view, cx| view.refresh(cx)),
-            Page::Resources => self.resources.update(cx, |view, cx| view.load(cx)),
-            Page::Jobs => self.jobs.update(cx, |view, cx| view.refresh(cx)),
-            Page::Favorites | Page::Recent => self
-                .commands
-                .update(cx, |view, cx| view.open(page == Page::Recent, cx)),
-            Page::Settings | Page::Converter => {}
-        }
-        // The activated navigation button keeps focus. F6/Tab enters content.
-        cx.notify();
-        let _ = window;
+        self.install.update(cx, |view, cx| view.suspend(cx));
+        self.overview.update(cx, |view, cx| view.suspend(cx));
     }
-    fn focus_main(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        match self.page {
-            Page::Configurations => self
-                .configurations
-                .update(cx, |view, cx| view.focus_main(window, cx)),
-            Page::Platforms => self
-                .platforms
-                .update(cx, |view, cx| view.focus_main(window, cx)),
-            Page::Insights => self
+
+    fn activate(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        match self.lens {
+            Lens::Converter => {}
+            Lens::Favorites => self.commands.update(cx, |view, cx| view.open(false, cx)),
+            Lens::Recent => self.commands.update(cx, |view, cx| view.open(true, cx)),
+            Lens::Install => self.install.update(cx, |view, cx| view.refresh(cx)),
+            Lens::Files => {
+                if let Some(platform) = self.files_platform() {
+                    self.resources
+                        .update(cx, |view, cx| view.open_platform(platform, window, cx));
+                }
+            }
+            Lens::Accounts => {
+                if let Some((platform, surface)) = self.account_target() {
+                    self.platforms
+                        .update(cx, |view, cx| view.open(platform, surface, window, cx));
+                }
+            }
+            Lens::Primary => self.activate_primary(window, cx),
+        }
+    }
+
+    fn activate_primary(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        match self.destination {
+            Destination::Dashboard => self.overview.update(cx, |view, cx| view.refresh(cx)),
+            Destination::AgentSessions => self
                 .insights
-                .update(cx, |view, cx| view.focus_main(window, cx)),
-            Page::Resources => self
-                .resources
-                .update(cx, |view, cx| view.focus_main(window, cx)),
-            Page::Jobs => self.jobs.update(cx, |view, cx| view.focus_main(window, cx)),
-            Page::Converter => self
+                .update(cx, |view, cx| view.open_product(InsightsPage::Sessions, cx)),
+            Destination::Usage => self
+                .insights
+                .update(cx, |view, cx| view.open_product(InsightsPage::Usage, cx)),
+            Destination::ClaudeCode => self.configurations.update(cx, |view, cx| {
+                view.open_platform(Platform::Claude, window, cx)
+            }),
+            Destination::Codex => self.configurations.update(cx, |view, cx| {
+                view.open_platform(Platform::Codex, window, cx)
+            }),
+            Destination::Grok => self.configurations.update(cx, |view, cx| {
+                view.open_platform(Platform::Grok, window, cx)
+            }),
+            Destination::OpenCode => self.platforms.update(cx, |view, cx| {
+                view.open(Platform::OpenCode, Surface::Settings, window, cx)
+            }),
+            Destination::Antigravity => self.platforms.update(cx, |view, cx| {
+                view.open(Platform::Gemini, Surface::LegacySettings, window, cx)
+            }),
+            Destination::Commands => self.jobs.update(cx, |view, cx| view.refresh(cx)),
+            Destination::McpManager
+            | Destination::Checkin
+            | Destination::Sync
+            | Destination::Settings => {}
+        }
+    }
+
+    fn account_target(&self) -> Option<(Platform, Surface)> {
+        match self.destination {
+            Destination::ClaudeCode => Some((Platform::Claude, Surface::Settings)),
+            Destination::Codex => Some((Platform::Codex, Surface::Settings)),
+            Destination::Grok => Some((Platform::Grok, Surface::Settings)),
+            _ => None,
+        }
+    }
+
+    fn files_platform(&self) -> Option<Platform> {
+        match self.destination {
+            Destination::ClaudeCode => Some(Platform::Claude),
+            Destination::Codex => Some(Platform::Codex),
+            Destination::Antigravity => Some(Platform::Gemini),
+            Destination::OpenCode => Some(Platform::OpenCode),
+            _ => None,
+        }
+    }
+
+    fn focus_main(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        match self.lens {
+            Lens::Favorites | Lens::Recent => {
+                self.commands
+                    .update(cx, |view, cx| view.focus_main(window, cx));
+            }
+            Lens::Converter => self
                 .converter
                 .update(cx, |view, cx| view.focus_main(window, cx)),
-            Page::Favorites => self
-                .commands
+            Lens::Install => self
+                .install
                 .update(cx, |view, cx| view.focus_main(window, cx)),
-            Page::Recent | Page::Settings => {
-                window.focus(&self.main_focus, cx);
-                window.focus_next(cx);
-            }
+            Lens::Files => self
+                .resources
+                .update(cx, |view, cx| view.focus_main(window, cx)),
+            Lens::Accounts => self
+                .platforms
+                .update(cx, |view, cx| view.focus_main(window, cx)),
+            Lens::Primary => match self.destination {
+                Destination::Dashboard => self
+                    .overview
+                    .update(cx, |view, cx| view.focus_main(window, cx)),
+                Destination::AgentSessions | Destination::Usage => self
+                    .insights
+                    .update(cx, |view, cx| view.focus_main(window, cx)),
+                Destination::ClaudeCode | Destination::Codex | Destination::Grok => self
+                    .configurations
+                    .update(cx, |view, cx| view.focus_main(window, cx)),
+                Destination::OpenCode | Destination::Antigravity => self
+                    .platforms
+                    .update(cx, |view, cx| view.focus_main(window, cx)),
+                Destination::Commands => {
+                    self.jobs.update(cx, |view, cx| view.focus_main(window, cx));
+                }
+                Destination::Settings
+                | Destination::McpManager
+                | Destination::Checkin
+                | Destination::Sync => {
+                    window.focus(&self.main_focus, cx);
+                    window.focus_next(cx);
+                }
+            },
         }
     }
+
     fn region(&mut self, backward: bool, window: &mut Window, cx: &mut Context<Self>) {
         let in_nav = self.navigation_focus.contains_focused(window, cx);
         let in_status = self.status_focus.contains_focused(window, cx);
@@ -165,12 +366,14 @@ impl Shell {
             0 => {
                 window.focus(&self.navigation_focus, cx);
                 window.focus_next(cx);
+                self.focused_nav = 0;
             }
             1 => self.focus_main(window, cx),
             _ => window.focus(&self.status_focus, cx),
         }
         cx.notify();
     }
+
     fn choose_theme(
         &mut self,
         preference: Preference,
@@ -181,6 +384,7 @@ impl Shell {
         theme::apply(preference, window, cx);
         cx.notify();
     }
+
     fn settings(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let mut choices = div().flex().gap(px(theme::CONTROL_GAP));
         for (id, preference, en, zh) in [
@@ -212,9 +416,241 @@ impl Shell {
                 .child(semantics::button(Button::new("language-zh").label("中文").ghost().selected(*language==Language::Chinese).toggled(*language==Language::Chinese).on_click(cx.listener(|_,_,_,cx|{cx.set_global(Language::Chinese);cx.refresh_windows();})),false,false,cx)))
             .child(div().text_color(cx.theme().muted_foreground).child(text(cx,"Preferences apply to this window session. Keyboard actions are immediate; decorative motion is disabled.","设置在当前窗口会话内生效。键盘操作即时响应，装饰动画已关闭。")))
     }
+
+    fn notice(
+        &self,
+        title_en: &'static str,
+        title_zh: &'static str,
+        body_en: &'static str,
+        body_zh: &'static str,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        div()
+            .size_full()
+            .flex()
+            .flex_col()
+            .p(px(theme::CONTENT_PADDING))
+            .gap(px(theme::SECTION_GAP))
+            .child(
+                div()
+                    .text_size(px(theme::TITLE_SIZE))
+                    .font_weight(gpui_kit::FontWeight::SEMIBOLD)
+                    .child(text(cx, title_en, title_zh)),
+            )
+            .child(
+                div()
+                    .text_color(cx.theme().muted_foreground)
+                    .child(text(cx, body_en, body_zh)),
+            )
+    }
+
+    fn nav_button(
+        &self,
+        id: &'static str,
+        destination: Destination,
+        en: &'static str,
+        zh: &'static str,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        semantics::button(
+            Button::new(id)
+                .label(text(cx, en, zh))
+                .ghost()
+                .selected(self.destination == destination)
+                .toggled(self.destination == destination)
+                .w_full()
+                .on_click(cx.listener(move |this, _, window, cx| {
+                    this.go(destination, Lens::Primary, window, cx)
+                })),
+            false,
+            false,
+            cx,
+        )
+    }
+
+    fn lens_button(
+        &self,
+        id: &'static str,
+        lens: Lens,
+        en: &'static str,
+        zh: &'static str,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        let destination = self.destination;
+        semantics::button(
+            Button::new(id)
+                .label(text(cx, en, zh))
+                .ghost()
+                .selected(self.lens == lens)
+                .toggled(self.lens == lens)
+                .on_click(
+                    cx.listener(move |this, _, window, cx| this.go(destination, lens, window, cx)),
+                ),
+            false,
+            false,
+            cx,
+        )
+    }
+
+    fn section_title(
+        &self,
+        en: &'static str,
+        zh: &'static str,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        div()
+            .pt(px(theme::CONTROL_GAP))
+            .text_size(px(theme::META_SIZE))
+            .text_color(cx.theme().muted_foreground)
+            .child(text(cx, en, zh))
+    }
+
+    fn toolbar(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
+        let items: Vec<(&str, Lens, &str, &str)> = match self.destination {
+            Destination::ClaudeCode | Destination::Codex => vec![
+                ("tool-profiles", Lens::Primary, "Profiles", "配置列表"),
+                (
+                    "tool-accounts",
+                    Lens::Accounts,
+                    "Settings and accounts",
+                    "设置与账户",
+                ),
+                ("tool-files", Lens::Files, "Instruction files", "指令文件"),
+            ],
+            Destination::Grok => vec![
+                ("tool-profiles", Lens::Primary, "Profiles", "配置列表"),
+                (
+                    "tool-accounts",
+                    Lens::Accounts,
+                    "Settings and accounts",
+                    "设置与账户",
+                ),
+            ],
+            Destination::OpenCode => vec![
+                ("tool-platform", Lens::Primary, "OpenCode", "OpenCode"),
+                ("tool-files", Lens::Files, "Instruction files", "指令文件"),
+            ],
+            Destination::Antigravity => vec![
+                ("tool-platform", Lens::Primary, "Antigravity", "Antigravity"),
+                ("tool-files", Lens::Files, "Instruction files", "指令文件"),
+            ],
+            Destination::Commands => vec![
+                ("tool-catalog", Lens::Primary, "Command catalog", "命令目录"),
+                (
+                    "tool-favorites",
+                    Lens::Favorites,
+                    "Favorite commands",
+                    "收藏命令",
+                ),
+                ("tool-recent", Lens::Recent, "Recent commands", "最近命令"),
+            ],
+            Destination::Usage => vec![
+                ("tool-report", Lens::Primary, "Usage", "用量"),
+                (
+                    "tool-install",
+                    Lens::Install,
+                    "Install llmusage",
+                    "安装 llmusage",
+                ),
+            ],
+            Destination::McpManager => vec![
+                ("tool-mcp", Lens::Primary, "MCP Manager", "MCP 管理"),
+                (
+                    "tool-converter",
+                    Lens::Converter,
+                    "Configuration converter",
+                    "配置转换",
+                ),
+            ],
+            Destination::Dashboard
+            | Destination::AgentSessions
+            | Destination::Checkin
+            | Destination::Sync
+            | Destination::Settings => return None,
+        };
+        let mut row = div()
+            .flex()
+            .flex_wrap()
+            .gap(px(theme::CONTROL_GAP))
+            .px(px(theme::CONTENT_PADDING))
+            .pt(px(theme::CONTROL_GAP));
+        for (id, lens, en, zh) in items {
+            row = row.child(self.lens_button(id, lens, en, zh, cx));
+        }
+        Some(row.into_any_element())
+    }
+
+    fn body(&self, cx: &mut Context<Self>) -> AnyElement {
+        match self.lens {
+            Lens::Converter => self.converter.clone().into_any_element(),
+            Lens::Favorites | Lens::Recent => self.commands.clone().into_any_element(),
+            Lens::Install => self.install.clone().into_any_element(),
+            Lens::Files => self.resources.clone().into_any_element(),
+            Lens::Accounts => self.platforms.clone().into_any_element(),
+            Lens::Primary => match self.destination {
+                Destination::Dashboard => self.overview.clone().into_any_element(),
+                Destination::AgentSessions | Destination::Usage => {
+                    self.insights.clone().into_any_element()
+                }
+                Destination::ClaudeCode | Destination::Codex | Destination::Grok => {
+                    self.configurations.clone().into_any_element()
+                }
+                Destination::OpenCode | Destination::Antigravity => {
+                    self.platforms.clone().into_any_element()
+                }
+                Destination::Commands => self.jobs.clone().into_any_element(),
+                Destination::Settings => self.settings(cx).into_any_element(),
+                Destination::McpManager => self
+                    .notice(
+                        "MCP Manager",
+                        "MCP 管理",
+                        "This desktop build has no MCP manager connection. It does not invent server status.",
+                        "这个桌面版本还没有接入 MCP 管理，也不会编造服务状态。",
+                        cx,
+                    )
+                    .into_any_element(),
+                Destination::Checkin => self
+                    .notice(
+                        "Check-ins",
+                        "签到管理",
+                        "Check-in is not connected in this desktop build. This page does not invent account status.",
+                        "这个桌面版本还没有接入签到，也不会编造账户状态。",
+                        cx,
+                    )
+                    .into_any_element(),
+                Destination::Sync => self
+                    .notice(
+                        "Sync",
+                        "同步",
+                        "Sync is not connected in this desktop build. This page does not invent sync status.",
+                        "这个桌面版本还没有接入同步，也不会编造同步状态。",
+                        cx,
+                    )
+                    .into_any_element(),
+            },
+        }
+    }
 }
+
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        if self.overview.read(cx).has_pending() {
+            let shell = cx.weak_entity();
+            window.on_next_frame(move |window, cx| {
+                let _ = shell.update(cx, |this, cx| {
+                    let Some(link) = this.overview.update(cx, |view, _| view.take_pending()) else {
+                        return;
+                    };
+                    let (destination, lens) = match link {
+                        OverviewLink::Usage => (Destination::Usage, Lens::Primary),
+                        OverviewLink::Commands => (Destination::Commands, Lens::Primary),
+                        OverviewLink::Install => (Destination::Usage, Lens::Install),
+                        OverviewLink::Sessions => (Destination::AgentSessions, Lens::Primary),
+                    };
+                    this.go(destination, lens, window, cx);
+                });
+            });
+        }
         let mode = cx.theme().mode;
         let sheet = theme::solid_sheet(mode, window.viewport_size());
         let narrow = window.viewport_size().width < px(theme::NARROW_WIDTH);
@@ -231,20 +667,28 @@ impl Render for Shell {
             .tab_stop(false)
             .on_key_down(
                 cx.listener(|this, event: &gpui_kit::KeyDownEvent, window, cx| {
+                    let count = Self::nav_items().len();
                     match event.keystroke.key.as_str() {
                         "down" => {
+                            this.focused_nav = (this.focused_nav + 1) % count;
                             window.focus_next(cx);
                             if !this.navigation_focus.contains_focused(window, cx) {
                                 window.focus(&this.navigation_focus, cx);
                                 window.focus_next(cx);
+                                this.focused_nav = 0;
                             }
                         }
                         "up" => {
+                            this.focused_nav = (this.focused_nav + count - 1) % count;
                             window.focus_prev(cx);
                             if !this.navigation_focus.contains_focused(window, cx) {
                                 window.focus(&this.main_focus, cx);
                                 window.focus_prev(cx);
                             }
+                        }
+                        "enter" => {
+                            let destination = Self::nav_items()[this.focused_nav].1;
+                            this.go(destination, Lens::Primary, window, cx);
                         }
                         _ => return,
                     }
@@ -266,7 +710,12 @@ impl Render for Shell {
                     .flex()
                     .flex_col()
                     .justify_center()
-                    .child(text(cx, "Local", "本地"))
+                    .child(
+                        div()
+                            .text_size(px(16.))
+                            .font_weight(gpui_kit::FontWeight::SEMIBOLD)
+                            .child("CCR"),
+                    )
                     .child(
                         div()
                             .text_color(cx.theme().muted_foreground)
@@ -274,79 +723,35 @@ impl Render for Shell {
                             .child(if self.fixture {
                                 text(cx, "Demo data", "演示数据")
                             } else {
-                                text(cx, "This computer", "此计算机")
+                                text(cx, "Workbench", "运行工作台")
                             }),
                     ),
             );
-        for (id, page, en, zh) in [
-            (
-                "nav-configurations",
-                Page::Configurations,
-                "Configurations",
-                "配置",
-            ),
-            (
-                "nav-favorites",
-                Page::Favorites,
-                "Favorite commands",
-                "收藏命令",
-            ),
-            ("nav-recent", Page::Recent, "Recent commands", "最近命令"),
-            ("nav-converter", Page::Converter, "Converter", "配置转换"),
-            ("nav-platforms", Page::Platforms, "Platforms", "平台"),
-            (
-                "nav-resources",
-                Page::Resources,
-                "Instruction files",
-                "指令文件",
-            ),
-            ("nav-jobs", Page::Jobs, "Run commands", "执行命令"),
-            (
-                "nav-insights",
-                Page::Insights,
-                "Usage and sessions",
-                "用量与会话",
-            ),
-        ] {
-            navigation = navigation.child(semantics::button(
-                Button::new(id)
-                    .label(text(cx, en, zh))
-                    .ghost()
-                    .selected(self.page == page)
-                    .toggled(self.page == page)
-                    .w_full()
-                    .on_click(
-                        cx.listener(move |this, _, window, cx| this.navigate(page, window, cx)),
-                    ),
-                false,
-                false,
-                cx,
-            ));
+        for (index, (id, destination, en, zh)) in Self::nav_items().into_iter().enumerate() {
+            if index == 1 {
+                navigation = navigation.child(self.section_title("Configuration", "配置中心", cx));
+            } else if index == 3 {
+                navigation = navigation.child(self.section_title("Platforms", "平台", cx));
+            } else if index == 8 {
+                navigation = navigation.child(self.section_title("Tools", "工具", cx));
+            } else if index == 12 {
+                navigation = navigation.child(div().flex_1());
+            }
+            navigation = navigation.child(self.nav_button(id, destination, en, zh, cx));
         }
-        navigation = navigation.child(div().flex_1()).child(semantics::button(
-            Button::new("nav-settings")
-                .label(text(cx, "Settings", "设置"))
-                .ghost()
-                .selected(self.page == Page::Settings)
-                .toggled(self.page == Page::Settings)
-                .w_full()
-                .on_click(
-                    cx.listener(|this, _, window, cx| this.navigate(Page::Settings, window, cx)),
-                ),
-            false,
-            false,
-            cx,
-        ));
-        let content = match self.page {
-            Page::Configurations => self.configurations.clone().into_any_element(),
-            Page::Favorites | Page::Recent => self.commands.clone().into_any_element(),
-            Page::Settings => self.settings(cx).into_any_element(),
-            Page::Converter => self.converter.clone().into_any_element(),
-            Page::Platforms => self.platforms.clone().into_any_element(),
-            Page::Insights => self.insights.clone().into_any_element(),
-            Page::Resources => self.resources.clone().into_any_element(),
-            Page::Jobs => self.jobs.clone().into_any_element(),
-        };
+        let tools = self.toolbar(cx);
+        let body = self.body(cx);
+        let mut page = div()
+            .id(self.destination.page_id())
+            .test_support()
+            .size_full()
+            .min_h_0()
+            .flex()
+            .flex_col();
+        if let Some(tools) = tools {
+            page = page.child(tools);
+        }
+        let content = page.child(div().flex_1().min_h_0().child(body));
         let status = if self.slow_fixture {
             text(
                 cx,
@@ -355,11 +760,17 @@ impl Render for Shell {
             )
         } else if self.fixture {
             text(cx, "Local · Demo data", "本地 · 演示数据")
+        } else if self.overview.read(cx).requests_configured() {
+            text(
+                cx,
+                "Local · Usage database connected",
+                "本地 · 已连接用量库",
+            )
         } else {
             text(
                 cx,
-                "Local · Desktop command records are shared across environments",
-                "本地 · 桌面命令记录跨环境共享",
+                "Local · Usage database not ready",
+                "本地 · 用量库未就绪",
             )
         };
         let workspace = div()

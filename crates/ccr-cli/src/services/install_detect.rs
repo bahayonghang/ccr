@@ -4,6 +4,95 @@
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
+use std::process::{ExitStatus, Stdio};
+use std::time::Duration;
+
+use ccr_core::core::process_gateway::ManagedProcess;
+use tokio::io::{AsyncRead, AsyncReadExt};
+use tokio::process::Command;
+
+const PROBE_TIMEOUT: Duration = Duration::from_secs(3);
+const PROBE_CLEANUP: Duration = Duration::from_secs(5);
+const PROBE_MAX_BYTES: usize = 4096;
+
+struct ProbeOutput {
+    status: ExitStatus,
+    stdout: Vec<u8>,
+    stderr: Vec<u8>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum ProbeError {
+    Spawn,
+    OutputLimit,
+    Failed,
+    TimedOut,
+    CleanupFailed,
+}
+impl ProbeError {
+    fn message(&self) -> &'static str {
+        match self {
+            Self::Spawn => "version probe could not start",
+            Self::OutputLimit => "version probe output exceeded 4096 bytes",
+            Self::Failed => "version probe failed",
+            Self::TimedOut => "version probe timed out after 3000ms",
+            Self::CleanupFailed => "version probe process tree cleanup could not be confirmed",
+        }
+    }
+}
+
+async fn probe_command(mut command: Command, timeout: Duration) -> Result<ProbeOutput, ProbeError> {
+    #[cfg(windows)]
+    command.creation_flags(0x0800_0000); // CREATE_NO_WINDOW for background version probes.
+    command
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let mut child = ManagedProcess::spawn(command).map_err(|_| ProbeError::Spawn)?;
+    let stdout = child.take_stdout();
+    let stderr = child.take_stderr();
+    let result = tokio::time::timeout(timeout, async {
+        tokio::try_join!(probe_bytes(stdout), probe_bytes(stderr), child.wait())
+    })
+    .await;
+    let error = match result {
+        Ok(Ok((stdout, stderr, status))) => {
+            return Ok(ProbeOutput {
+                status,
+                stdout,
+                stderr,
+            });
+        }
+        Ok(Err(error)) if error.kind() == std::io::ErrorKind::InvalidData => {
+            ProbeError::OutputLimit
+        }
+        Ok(Err(_)) => ProbeError::Failed,
+        Err(_) => ProbeError::TimedOut,
+    };
+    // Cancelled read futures own no spawned tasks. Reap and confirm the whole
+    // owned tree before returning a timeout/output error to the caller.
+    match tokio::time::timeout(PROBE_CLEANUP, child.terminate_tree(PROBE_CLEANUP)).await {
+        Ok(Ok(_)) => Err(error),
+        _ => Err(ProbeError::CleanupFailed),
+    }
+}
+
+async fn probe_bytes(reader: Option<impl AsyncRead + Unpin>) -> std::io::Result<Vec<u8>> {
+    let mut bytes = Vec::new();
+    if let Some(reader) = reader {
+        reader
+            .take((PROBE_MAX_BYTES + 1) as u64)
+            .read_to_end(&mut bytes)
+            .await?;
+    }
+    if bytes.len() > PROBE_MAX_BYTES {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "version output limit",
+        ));
+    }
+    Ok(bytes)
+}
 
 use crate::services::install_types::{
     AbsentReason, DataRootWarning, DetectionResult, HostCapabilities, InstallFlowError, Platform,
@@ -23,39 +112,25 @@ pub async fn detect() -> Result<DetectionResult, InstallFlowError> {
         });
     };
 
-    // Probe version with a 3-second timeout.
-    match tokio::time::timeout(
-        std::time::Duration::from_millis(3000),
-        tokio::process::Command::new(&binary)
-            .arg("--version")
-            .kill_on_drop(true)
-            .output(),
-    )
-    .await
-    {
-        Ok(Ok(output)) if output.status.success() => Ok(DetectionResult::Available {
+    let mut command = Command::new(&binary);
+    command.arg("--version");
+    match probe_command(command, PROBE_TIMEOUT).await {
+        Ok(output) if output.status.success() => Ok(DetectionResult::Available {
             path: binary,
             version: parse_version(&output.stdout),
             data_root_warning,
         }),
-        Ok(Ok(output)) => Ok(DetectionResult::Absent {
+        Ok(output) => Ok(DetectionResult::Absent {
             reason: AbsentReason::NotExecutable {
                 exit_code: output.status.code(),
                 stderr_excerpt: excerpt(&output.stderr, 256),
             },
             data_root_warning,
         }),
-        Ok(Err(e)) => Ok(DetectionResult::Absent {
+        Err(error) => Ok(DetectionResult::Absent {
             reason: AbsentReason::NotExecutable {
                 exit_code: None,
-                stderr_excerpt: format!("spawn error: {e}"),
-            },
-            data_root_warning,
-        }),
-        Err(_timeout) => Ok(DetectionResult::Absent {
-            reason: AbsentReason::NotExecutable {
-                exit_code: None,
-                stderr_excerpt: "version probe timed out after 3000ms".to_string(),
+                stderr_excerpt: error.message().to_owned(),
             },
             data_root_warning,
         }),
@@ -175,7 +250,7 @@ fn probe_data_root() -> Option<DataRootWarning> {
 
 /// Parse version string from stdout (e.g. "llmusage 0.5.3\n" → "0.5.3").
 fn parse_version(stdout: &[u8]) -> Option<String> {
-    let text = String::from_utf8_lossy(stdout);
+    let text = super::install_ring_buffer::redact(&String::from_utf8_lossy(stdout));
     let trimmed = text.trim();
     // Try to extract version after the last space
     trimmed
@@ -191,14 +266,18 @@ fn parse_version(stdout: &[u8]) -> Option<String> {
         })
 }
 
-/// Truncate stderr bytes to a UTF-8 excerpt of at most `max_len` chars.
+/// Truncate stderr to at most `max_len` UTF-8 bytes, plus a clipping marker.
 fn excerpt(bytes: &[u8], max_len: usize) -> String {
-    let text = String::from_utf8_lossy(bytes);
+    let text = super::install_ring_buffer::redact(&String::from_utf8_lossy(bytes));
     let trimmed = text.trim();
     if trimmed.len() <= max_len {
         trimmed.to_string()
     } else {
-        format!("{}…", &trimmed[..max_len])
+        let mut end = max_len;
+        while !trimmed.is_char_boundary(end) {
+            end -= 1;
+        }
+        format!("{}…", &trimmed[..end])
     }
 }
 
@@ -276,10 +355,159 @@ mod tests {
     }
 
     #[test]
+    fn parse_version_redacts_credential_output() {
+        for output in [
+            b"llmusage token=version-secret-123".as_slice(),
+            b"api_key=version-secret-456".as_slice(),
+            b"llmusage Authorization: Bearer version-secret-789".as_slice(),
+            b"llmusage token=\"version secret 123\"".as_slice(),
+            b"llmusage key=\"visible private123\"".as_slice(),
+            br#"llmusage key="visible \"escaped\" private123""#.as_slice(),
+        ] {
+            // Redaction may remove the only digit hint, leaving no version.
+            let version = parse_version(output).unwrap_or_default();
+            assert!(!version.contains("version-secret"));
+            assert!(!version.contains("private123"));
+            assert!(version.is_empty() || version.contains("***") || version.contains("..."));
+        }
+    }
+
+    #[test]
     fn excerpt_truncates_long_text() {
         let long = "a".repeat(500);
         let result = excerpt(long.as_bytes(), 100);
         assert!(result.len() <= 104); // 100 + "…" (3 bytes UTF-8)
+    }
+
+    #[test]
+    fn regression_excerpt_multibyte_boundary() {
+        assert_eq!(
+            excerpt("密".repeat(100).as_bytes(), 256),
+            format!("{}…", "密".repeat(85))
+        );
+        assert_eq!(excerpt("😀你好".as_bytes(), 1), "…");
+        assert_eq!(excerpt("😀你好".as_bytes(), 4), "😀…");
+    }
+
+    fn fixture_probe(mode: &str, root: &Path) -> Command {
+        let mut command = Command::new(std::env::current_exe().expect("test executable"));
+        command
+            .args([
+                "--exact",
+                "services::install_detect::tests::probe_fixture_child",
+                "--ignored",
+                "--nocapture",
+            ])
+            .env("CCR_INSTALL_PROBE_FIXTURE", mode)
+            .env("CCR_INSTALL_PROBE_ROOT", root);
+        command
+    }
+
+    #[test]
+    #[ignore = "closed synthetic subprocess entry, invoked by probe fixtures"]
+    fn probe_fixture_child() {
+        use std::io::Write;
+        let mode = std::env::var("CCR_INSTALL_PROBE_FIXTURE").expect("fixture mode");
+        let root = PathBuf::from(std::env::var_os("CCR_INSTALL_PROBE_ROOT").expect("fixture root"));
+        match mode.as_str() {
+            "stdout" => std::io::stdout()
+                .write_all(&vec![b'x'; PROBE_MAX_BYTES * 2])
+                .expect("fixture stdout"),
+            "stderr" => std::io::stderr()
+                .write_all(&vec![b'x'; PROBE_MAX_BYTES * 2])
+                .expect("fixture stderr"),
+            "tree" => {
+                let mut command = fixture_probe("descendant", &root);
+                command
+                    .stdin(Stdio::null())
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null());
+                let child = command
+                    .as_std_mut()
+                    .spawn()
+                    .expect("spawn fixture descendant");
+                std::fs::write(root.join("pid"), child.id().to_string())
+                    .expect("record descendant");
+                // The managed parent owns this child through the OS process tree.
+                drop(child);
+            }
+            "descendant" => {
+                std::fs::write(root.join("ready"), b"owned descendant").expect("fixture ready")
+            }
+            "success" => {
+                println!("llmusage 0.0.0");
+                return;
+            }
+            _ => panic!("unknown fixture mode"),
+        }
+        std::thread::sleep(Duration::from_secs(30));
+    }
+
+    #[tokio::test]
+    async fn bounded_probe_rejects_stdout_and_stderr_floods_and_accepts_short_output() {
+        let root = tempfile::tempdir().expect("fixture root");
+        let output = probe_command(
+            fixture_probe("success", root.path()),
+            Duration::from_secs(3),
+        )
+        .await
+        .expect("short probe");
+        assert!(output.status.success());
+        assert!(String::from_utf8_lossy(&output.stdout).contains("llmusage 0.0.0"));
+        for mode in ["stdout", "stderr"] {
+            let error = probe_command(fixture_probe(mode, root.path()), Duration::from_secs(3))
+                .await
+                .err()
+                .expect("bounded output failure");
+            assert_eq!(error, ProbeError::OutputLimit);
+        }
+    }
+
+    #[tokio::test]
+    async fn bounded_probe_timeout_confirms_owned_descendant_exit() {
+        let root = tempfile::tempdir().expect("fixture root");
+        let error = probe_command(fixture_probe("tree", root.path()), Duration::from_secs(2))
+            .await
+            .err()
+            .expect("timeout");
+        assert_eq!(error, ProbeError::TimedOut);
+        assert!(
+            root.path().join("ready").is_file(),
+            "descendant actually started"
+        );
+        let pid: u32 = std::fs::read_to_string(root.path().join("pid"))
+            .expect("descendant pid")
+            .parse()
+            .expect("pid number");
+        #[cfg(unix)]
+        assert_eq!(
+            unsafe { libc::kill(pid as libc::pid_t, 0) },
+            -1,
+            "descendant must have exited"
+        );
+        #[cfg(windows)]
+        {
+            unsafe extern "system" {
+                fn OpenProcess(access: u32, inherit: i32, pid: u32) -> *mut std::ffi::c_void;
+                fn WaitForSingleObject(handle: *mut std::ffi::c_void, milliseconds: u32) -> u32;
+                fn CloseHandle(handle: *mut std::ffi::c_void) -> i32;
+            }
+            // SAFETY: query only the fixture PID and close any acquired handle.
+            unsafe {
+                let handle = OpenProcess(0x0010_0000, 0, pid);
+                if handle.is_null() {
+                    assert_eq!(
+                        std::io::Error::last_os_error().raw_os_error(),
+                        Some(87),
+                        "only absent PID is accepted"
+                    );
+                } else {
+                    let state = WaitForSingleObject(handle, 0);
+                    CloseHandle(handle);
+                    assert_eq!(state, 0, "fixture descendant must be signaled/exited");
+                }
+            }
+        }
     }
 
     #[test]

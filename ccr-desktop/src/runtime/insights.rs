@@ -11,19 +11,62 @@ use ccr_app::{
 };
 use ccr_db::database::{self, DbPool};
 use ccr_store::sessions::{AgentSessionProviderRegistry, AgentSessionProviderStatus};
-use ccr_usage::{AppPaths, LogsPage, LogsQuery, QueryFilter, UsageError};
+use ccr_usage::{
+    AppPaths, HomeOverviewPlatformStats, HomeOverviewSeriesItem, LogsPage, LogsQuery, QueryFilter,
+    ReportTimezone, UsageError,
+};
 use chrono::{DateTime, NaiveDate, Utc};
 use std::{
-    path::PathBuf,
+    collections::BTreeMap,
+    path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
 
-/// All three roots are explicit. No default-home/provider environment discovery.
+/// Explicit roots captured before the window opens. Production resolves the installed
+/// llmusage and CCR archive files once; it does not create them. Fixture launches stay empty.
 #[derive(Clone, Debug)]
 pub struct InsightsPaths {
     pub usage_root: PathBuf,
     pub archive_db: PathBuf,
     pub provider_home: PathBuf,
+}
+
+/// Resolve the same llmusage and CCR archive locations the installed tools already use.
+/// Both files must already exist. This function does not create directories or databases.
+pub fn local_insights_paths() -> Option<InsightsPaths> {
+    let usage = ccr_usage::AppPaths::discover().ok()?;
+    let home = std::env::var_os("USERPROFILE")
+        .filter(|value| !value.is_empty())
+        .or_else(|| std::env::var_os("HOME").filter(|value| !value.is_empty()))
+        .map(PathBuf::from)?;
+    let ccr_root = std::env::var_os("CCR_DATA_DIR")
+        .filter(|value| !value.is_empty())
+        .or_else(|| std::env::var_os("CCR_ROOT").filter(|value| !value.is_empty()))
+        .map(PathBuf::from)
+        .unwrap_or_else(|| home.join(".ccr"));
+    insights_paths_if_present(
+        usage.root_dir,
+        &usage.db_path,
+        ccr_root.join("analytics").join("usage.db"),
+        home,
+    )
+}
+
+pub(crate) fn insights_paths_if_present(
+    usage_root: PathBuf,
+    usage_db: &Path,
+    archive_db: PathBuf,
+    provider_home: PathBuf,
+) -> Option<InsightsPaths> {
+    if usage_db.is_file() && archive_db.is_file() {
+        Some(InsightsPaths {
+            usage_root,
+            archive_db,
+            provider_home,
+        })
+    } else {
+        None
+    }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InsightsError {
@@ -88,6 +131,123 @@ impl From<UsageError> for InsightsError {
             UsageError::Query(_) => Self::Query,
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SessionScope {
+    Window,
+    AllHistory,
+    Unavailable,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct WorkbenchReport {
+    pub as_of: String,
+    pub window_days: u16,
+    pub requests: i64,
+    pub tokens: i64,
+    pub cost_usd: Option<f64>,
+    pub sessions_indexed: bool,
+    pub session_count: Option<i64>,
+    pub session_scope: SessionScope,
+    pub other_requests: i64,
+    pub platforms: Vec<WorkbenchPlatform>,
+    pub days: Vec<WorkbenchDay>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct WorkbenchPlatform {
+    pub id: String,
+    pub requests: i64,
+    pub tokens: i64,
+    pub requests_by_day: Vec<i64>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct WorkbenchDay {
+    pub label: String,
+    pub claude: i64,
+    pub codex: i64,
+    pub antigravity: i64,
+    pub opencode: i64,
+}
+
+fn platform_stats(
+    map: &BTreeMap<String, HomeOverviewPlatformStats>,
+    key: &str,
+) -> HomeOverviewPlatformStats {
+    map.get(key).cloned().unwrap_or_default()
+}
+
+fn dense_days(
+    series: &[HomeOverviewSeriesItem],
+    since: NaiveDate,
+    until: NaiveDate,
+) -> Vec<WorkbenchDay> {
+    let mut cursor = since;
+    let mut days = Vec::new();
+    loop {
+        let key = cursor.format("%Y-%m-%d").to_string();
+        let found = series.iter().find(|item| item.date == key);
+        days.push(WorkbenchDay {
+            label: key.get(5..10).unwrap_or(&key).to_string(),
+            claude: found.map(|item| item.claude.requests).unwrap_or(0),
+            codex: found.map(|item| item.codex.requests).unwrap_or(0),
+            antigravity: found.map(|item| item.antigravity.requests).unwrap_or(0),
+            opencode: found.map(|item| item.opencode.requests).unwrap_or(0),
+        });
+        if cursor >= until || days.len() == 366 {
+            break;
+        }
+        let Some(next) = cursor.succ_opt() else {
+            break;
+        };
+        cursor = next;
+    }
+    days
+}
+
+fn day_column(days: &[WorkbenchDay], pick: fn(&WorkbenchDay) -> i64) -> Vec<i64> {
+    days.iter().map(pick).collect()
+}
+
+fn workbench_platforms(
+    map: &BTreeMap<String, HomeOverviewPlatformStats>,
+    days: &[WorkbenchDay],
+) -> Vec<WorkbenchPlatform> {
+    const PRIMARY: [&str; 4] = ["claude", "codex", "antigravity", "opencode"];
+    let mut platforms = Vec::new();
+    for id in PRIMARY {
+        let stats = platform_stats(map, id);
+        let requests_by_day = match id {
+            "claude" => day_column(days, |day| day.claude),
+            "codex" => day_column(days, |day| day.codex),
+            "antigravity" => day_column(days, |day| day.antigravity),
+            _ => day_column(days, |day| day.opencode),
+        };
+        platforms.push(WorkbenchPlatform {
+            id: id.to_string(),
+            requests: stats.requests,
+            tokens: stats.tokens,
+            requests_by_day,
+        });
+    }
+    let mut extras: Vec<_> = map
+        .iter()
+        .filter(|(id, stats)| {
+            !PRIMARY.contains(&id.as_str()) && (stats.requests > 0 || stats.tokens > 0)
+        })
+        .collect();
+    extras.sort_by(|left, right| left.0.cmp(right.0));
+    for (id, stats) in extras {
+        platforms.push(WorkbenchPlatform {
+            id: id.clone(),
+            requests: stats.requests,
+            tokens: stats.tokens,
+            requests_by_day: Vec::new(),
+        });
+    }
+    platforms
 }
 
 pub enum InsightsQuery {
@@ -290,6 +450,98 @@ impl InsightsRequests {
             }
         }
     }
+
+    pub fn load_workbench(
+        &self,
+        key: RequestKey,
+        days: u16,
+    ) -> Result<TaskSubscription<Arc<WorkbenchReport>, InsightsError>, AdmissionError> {
+        let requests = self.clone();
+        let local = matches!(key.environment, EnvironmentId::Local(_));
+        self.services.executor.read(key, move |_, _| {
+            if !local {
+                return Err(InsightsError::LocalOnly);
+            }
+            requests.read_workbench(days).map(Arc::new)
+        })
+    }
+
+    fn read_workbench(&self, days: u16) -> Result<WorkbenchReport, InsightsError> {
+        let paths = self.paths.as_ref().ok_or(InsightsError::Unconfigured)?;
+        let dashboard = ccr_usage::open_dashboard(AppPaths::from_root(paths.usage_root.clone()))?;
+        let days = days.clamp(1, 366);
+        let as_of = chrono::Local::now().date_naive();
+        let span = i64::from(days.saturating_sub(1));
+        let since = as_of
+            .checked_sub_signed(chrono::Duration::days(span))
+            .unwrap_or(as_of);
+        let filter = QueryFilter {
+            timezone: ReportTimezone::Local,
+            since: Some(since),
+            until: Some(as_of),
+            ..QueryFilter::default()
+        };
+        let home = dashboard.home_overview(&filter)?;
+        let cost_usd = match dashboard.overview(&filter) {
+            Ok(payload) if payload.total_cost_usd.is_finite() => Some(payload.total_cost_usd),
+            _ => None,
+        };
+        let (sessions_indexed, session_count, session_scope) =
+            self.session_window(paths, &dashboard, as_of, days);
+        let series = dense_days(&home.series, since, as_of);
+        let chart_requests: i64 = ["claude", "codex", "antigravity", "opencode"]
+            .into_iter()
+            .map(|id| platform_stats(&home.by_platform, id).requests)
+            .sum();
+        Ok(WorkbenchReport {
+            as_of: as_of.format("%Y-%m-%d").to_string(),
+            window_days: days,
+            requests: home.summary.total_requests,
+            tokens: home.summary.total_tokens,
+            cost_usd,
+            sessions_indexed,
+            session_count,
+            session_scope,
+            other_requests: home.summary.total_requests.saturating_sub(chart_requests),
+            platforms: workbench_platforms(&home.by_platform, &series),
+            days: series,
+        })
+    }
+
+    fn session_window(
+        &self,
+        paths: &InsightsPaths,
+        dashboard: &ccr_usage::Dashboard,
+        as_of: NaiveDate,
+        days: u16,
+    ) -> (bool, Option<i64>, SessionScope) {
+        let Ok(projected) = dashboard.insights(&QueryFilter::default(), as_of) else {
+            return (false, None, SessionScope::Unavailable);
+        };
+        let Ok(pool) = self.archive_pool(paths) else {
+            return (false, None, SessionScope::Unavailable);
+        };
+        let Ok(snapshot) = assemble_home_insights(projected, &pool, Utc::now()) else {
+            return (false, None, SessionScope::Unavailable);
+        };
+        if !snapshot.sessions_indexed {
+            return (false, None, SessionScope::Unavailable);
+        }
+        if days == 7 {
+            (
+                true,
+                Some(snapshot.last_7_days.sessions),
+                SessionScope::Window,
+            )
+        } else {
+            (
+                true,
+                Some(snapshot.totals.sessions),
+                SessionScope::AllHistory,
+            )
+        }
+    }
+
     pub fn load(
         &self,
         key: RequestKey,

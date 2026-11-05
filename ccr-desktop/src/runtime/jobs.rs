@@ -2,7 +2,7 @@
 use super::{ConfigSource, Services};
 use ccr_app::{
     jobs::{
-        commands::{Admission, CommandJobs, Error, Snapshot, Status, Ticket},
+        commands::{Admission, CommandJobs, Error, Observation, Snapshot, Status, Ticket},
         policy::{CommandExecutionRequest, CommandInfo, command_catalog},
     },
     runtime::{AdmissionError, Completion, EnvironmentId, RequestKey, TaskSubscription},
@@ -52,11 +52,40 @@ impl CommandRequests {
     pub fn cancel(&self, id: &str) -> Result<Snapshot, Error> {
         self.0.command_jobs.request_cancel(id)
     }
+    pub fn observe(&self, id: &str) -> Result<(Snapshot, Observation), Error> {
+        self.0.command_jobs.observe(id)
+    }
     pub fn start(
         &self,
         key: RequestKey,
         command: String,
         args: Vec<String>,
+    ) -> Result<Started, &'static str> {
+        self.start_request(
+            key,
+            CommandExecutionRequest::background(command, Some(args), None),
+        )
+    }
+    pub fn foreground(
+        &self,
+        key: RequestKey,
+        command: String,
+        args: Vec<String>,
+    ) -> Result<Started, &'static str> {
+        self.start_request(
+            key,
+            CommandExecutionRequest::foreground(command, Some(args), None),
+        )
+    }
+    pub fn help(&self, key: RequestKey, command: &str) -> Result<Started, &'static str> {
+        let request =
+            CommandExecutionRequest::help(command).map_err(|_| Error::Invalid.message())?;
+        self.start_request(key, request)
+    }
+    fn start_request(
+        &self,
+        key: RequestKey,
+        request: CommandExecutionRequest,
     ) -> Result<Started, &'static str> {
         if !matches!(key.environment, EnvironmentId::Local(_)) {
             return Err(
@@ -64,12 +93,8 @@ impl CommandRequests {
             );
         }
         let owner = self.0.command_jobs.clone();
-        let Admission { snapshot, ticket } = owner
-            .admit(
-                key.clone(),
-                CommandExecutionRequest::background(command, Some(args), None),
-            )
-            .map_err(Error::message)?;
+        let Admission { snapshot, ticket } =
+            owner.admit(key.clone(), request).map_err(Error::message)?;
         let Some(ticket) = ticket else {
             return Ok(Started {
                 snapshot,
@@ -187,7 +212,7 @@ pub fn fixture_child_mode(args: impl IntoIterator<Item = OsString>) -> Option<i3
     println!("Synthetic owned-process fixture: no CCR command or user configuration is accessed.");
     for index in 0..20 {
         println!("Synthetic process progress {index}/20");
-        std::thread::sleep(Duration::from_millis(100));
+        std::thread::sleep(Duration::from_millis(500));
     }
     eprintln!("Synthetic stderr fixture completed");
     Some(0)

@@ -1,7 +1,9 @@
 pub mod configs;
 pub mod converter;
 pub mod insights;
+pub mod install;
 pub mod jobs;
+pub mod overview;
 pub mod platforms;
 pub mod profiles;
 pub mod resources;

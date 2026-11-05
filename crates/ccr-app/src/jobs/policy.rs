@@ -84,6 +84,15 @@ pub enum ParsedFlagValue {
 }
 
 impl CommandExecutionRequest {
+    pub fn help(command: &str) -> Result<Self, String> {
+        CommandPolicy::from_command(command)?;
+        Ok(Self::foreground(
+            "help".into(),
+            Some(vec![command.to_owned()]),
+            None,
+        ))
+    }
+
     pub fn foreground(
         command: String,
         args: Option<Vec<String>>,

@@ -16,6 +16,17 @@ pub fn text(cx: &App, en: &'static str, zh: &'static str) -> &'static str {
     }
 }
 
+/// Show one language from an existing `English / 中文` service line.
+pub fn localized_line(cx: &App, value: &str) -> String {
+    let Some((en, zh)) = value.split_once(" / ") else {
+        return value.to_string();
+    };
+    match cx.try_global::<Language>().copied().unwrap_or_default() {
+        Language::English => en.to_string(),
+        Language::Chinese => zh.to_string(),
+    }
+}
+
 /// Select safe service copy without formatting secret-bearing source errors.
 pub fn service_error(cx: &App, safe: &'static str) -> &'static str {
     let (en, zh) = safe.split_once(" / ").unwrap_or((safe, safe));

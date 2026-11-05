@@ -38,6 +38,7 @@ pub struct PlatformsView {
     services: Services,
     platform: Platform,
     surface: Surface,
+    pinned: bool,
     session: Option<Arc<PlatformSession>>,
     source_mode: bool,
     generation: u64,
@@ -67,6 +68,7 @@ impl PlatformsView {
             services,
             platform: Platform::Claude,
             surface: Surface::Settings,
+            pinned: false,
             session: None,
             source_mode: false,
             generation: 0,
@@ -141,6 +143,17 @@ impl PlatformsView {
     }
     pub fn load(&mut self, cx: &mut Context<Self>) {
         self.request(Command::Read(self.surface), cx);
+    }
+    /// One sidebar destination owns this platform. Hide the cross-platform switcher.
+    pub fn open(
+        &mut self,
+        platform: Platform,
+        surface: Surface,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.pinned = true;
+        self.select(platform, surface, window, cx);
     }
     fn request(&mut self, command: Command, cx: &mut Context<Self>) {
         if self.busy {
@@ -414,6 +427,10 @@ impl PlatformsView {
         cx.notify();
     }
 }
+fn ui_line(cx: &gpui_kit::App, value: &str) -> String {
+    crate::locales::localized_line(cx, value)
+}
+
 impl Render for PlatformsView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         if let Some(content) = self.pending_content.take() {
@@ -433,21 +450,37 @@ impl Render for PlatformsView {
         }
         let blocked = self.busy || self.decision.is_some() || oauth_active;
         let mut tabs = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
-        for descriptor in DESCRIPTORS {
-            let platform = descriptor.platform;
-            tabs = tabs.child(semantics::button(
-                Button::new(platform.short_name())
-                    .label(descriptor.name)
-                    .ghost()
-                    .selected(self.platform == platform)
-                    .on_click(cx.listener(move |this, _, window, cx| {
-                        this.select(platform, Surface::Settings, window, cx)
-                    })),
-                blocked,
-                false,
-                cx,
-            ));
+        if !self.pinned {
+            for descriptor in DESCRIPTORS {
+                let platform = descriptor.platform;
+                tabs = tabs.child(semantics::button(
+                    Button::new(platform.short_name())
+                        .label(descriptor.name)
+                        .ghost()
+                        .selected(self.platform == platform)
+                        .on_click(cx.listener(move |this, _, window, cx| {
+                            this.select(platform, Surface::Settings, window, cx)
+                        })),
+                    blocked,
+                    false,
+                    cx,
+                ));
+            }
         }
+        let title = if self.pinned {
+            match self.platform {
+                Platform::Claude => text(cx, "Claude Code", "Claude Code"),
+                Platform::Codex => text(cx, "Codex", "Codex"),
+                Platform::Grok => text(cx, "Grok", "Grok"),
+                Platform::Gemini => text(cx, "Antigravity", "Antigravity"),
+                Platform::OpenCode => text(cx, "OpenCode", "OpenCode"),
+                Platform::Qwen | Platform::Droid => {
+                    text(cx, "Platform settings and accounts", "平台设置与账户")
+                }
+            }
+        } else {
+            text(cx, "Platform settings and accounts", "平台设置与账户")
+        };
         let mut root = div()
             .id("platform-workspace")
             .flex()
@@ -467,46 +500,46 @@ impl Render for PlatformsView {
                     }
                 }),
             )
-            .child(div().text_size(px(theme::TITLE_SIZE)).child(text(
-                cx,
-                "Platform settings and accounts",
-                "平台设置与账户",
-            )))
+            .child(div().text_size(px(theme::TITLE_SIZE)).child(title))
             .child(tabs);
         let mut surfaces = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
         let descriptor = DESCRIPTORS
             .iter()
             .find(|descriptor| descriptor.platform == self.platform);
-        for (id, surface, label, enabled) in [
+        for (id, surface, en, zh, enabled) in [
             (
                 "platform-settings",
                 Surface::Settings,
-                "Settings / 设置",
+                "Settings",
+                "设置",
                 descriptor.is_some_and(|value| value.settings),
             ),
             (
                 "platform-auth",
                 Surface::Auth,
-                "Accounts / 账户",
+                "Accounts",
+                "账户",
                 descriptor.is_some_and(|value| value.auth),
             ),
             (
                 "platform-providers",
                 Surface::Providers,
-                "Providers / 供应商",
+                "Providers",
+                "供应商",
                 descriptor.is_some_and(|value| value.providers),
             ),
             (
                 "platform-tui",
                 Surface::Tui,
-                "TUI / 终端界面",
+                "TUI",
+                "终端界面",
                 self.platform == Platform::OpenCode,
             ),
         ] {
             if enabled {
                 surfaces = surfaces.child(semantics::button(
                     Button::new(id)
-                        .label(label)
+                        .label(text(cx, en, zh))
                         .ghost()
                         .selected(self.surface == surface)
                         .on_click(cx.listener(move |this, _, window, cx| {
@@ -518,17 +551,19 @@ impl Render for PlatformsView {
                 ));
             }
         }
-        surfaces = surfaces.child(semantics::button(
-            Button::new("platform-legacy-antigravity")
-                .label("Advanced: Antigravity source / 高级源文件")
-                .ghost()
-                .on_click(cx.listener(|this, _, window, cx| {
-                    this.select(Platform::Gemini, Surface::LegacySettings, window, cx)
-                })),
-            blocked,
-            false,
-            cx,
-        ));
+        if !self.pinned {
+            surfaces = surfaces.child(semantics::button(
+                Button::new("platform-legacy-antigravity")
+                    .label(text(cx, "Advanced: Antigravity source", "高级源文件"))
+                    .ghost()
+                    .on_click(cx.listener(|this, _, window, cx| {
+                        this.select(Platform::Gemini, Surface::LegacySettings, window, cx)
+                    })),
+                blocked,
+                false,
+                cx,
+            ));
+        }
         root = root.child(surfaces);
         if let Some(decision) = self.decision {
             if std::mem::take(&mut self.decision_entry_pending) {
@@ -550,8 +585,12 @@ impl Render for PlatformsView {
                         .id("platform-confirmation")
                         .test_support()
                         .role(gpui_kit::Role::AlertDialog)
-                        .aria_label("Confirm sensitive platform action")
-                        .child(message),
+                        .aria_label(text(
+                            cx,
+                            "Confirm sensitive platform action",
+                            "确认敏感平台操作",
+                        ))
+                        .child(ui_line(cx, &message)),
                 )
                 .child(
                     div()
@@ -561,7 +600,7 @@ impl Render for PlatformsView {
                         .gap(px(theme::CONTROL_GAP))
                         .child(semantics::button(
                             Button::new("platform-decision-cancel")
-                                .label("Cancel / 取消")
+                                .label(text(cx, "Cancel", "取消"))
                                 .ghost()
                                 .on_click(
                                     cx.listener(|this, _, window, cx| this.dismiss(window, cx)),
@@ -572,7 +611,7 @@ impl Render for PlatformsView {
                         ))
                         .child(semantics::button(
                             Button::new("platform-decision-confirm")
-                                .label("Confirm / 确认")
+                                .label(text(cx, "Confirm", "确认"))
                                 .on_click(
                                     cx.listener(|this, _, window, cx| this.confirm(window, cx)),
                                 ),
@@ -616,60 +655,61 @@ impl Render for PlatformsView {
                     let phase = self.oauth_status.as_ref().map(|status| status.phase);
                     root = root.child(div().flex().flex_wrap().gap(px(theme::CONTROL_GAP))
                         .child(semantics::button(Button::new("platform-oauth-start")
-                            .label("Start OAuth / 开始 OAuth")
+                            .label(text(cx, "Start OAuth", "开始 OAuth"))
                             .on_click(cx.listener(|this, _, _, cx| this.start_oauth(cx))),
                             blocked || self.oauth_control_busy, false, cx))
                         .child(semantics::button(Button::new("platform-oauth-cancel")
-                            .label("Cancel OAuth / 取消 OAuth").ghost()
+                            .label(text(cx, "Cancel OAuth", "取消 OAuth")).ghost()
                             .on_click(cx.listener(|this, _, _, cx| {
                                 if this.oauth_status.as_ref().is_some_and(|status| status.phase == NativePhase::CleanupFailed) { this.control_oauth(false, cx); }
                                 else { this.services.platform_oauth_cancel(); this.message = Some("Cancellation requested; waiting for listener/secret cleanup or an already started commit. / 已请求取消，等待清理或已开始的账户提交。".into()); cx.notify(); }
                             })),
                             (!oauth_active && phase != Some(NativePhase::CleanupFailed)) || self.oauth_control_busy, false, cx)));
                     if let Some(status) = &self.oauth_status {
-                        root = root.child(if status.fixture {
+                        root = root.child(ui_line(cx, if status.fixture {
                             "Isolated fixture: external authorization and token exchange disabled. Callback reception never proves authentication. / 隔离 fixture：禁用外部授权与令牌交换，收到回调不等于认证成功。"
-                        } else { "Authorization URL stays in this scoped session. After callback, explicitly complete account commit. / 授权链接仅保留在本会话，收到回调后请显式完成账户提交。" })
-                        .child(Input::new(&self.oauth_url).readonly(true).aria_label("Scoped OAuth authorization URL / 临时 OAuth 授权链接"))
+                        } else { "Authorization URL stays in this scoped session. After callback, explicitly complete account commit. / 授权链接仅保留在本会话，收到回调后请显式完成账户提交。" }))
+                        .child(Input::new(&self.oauth_url).readonly(true).aria_label(text(cx, "Scoped OAuth authorization URL", "临时 OAuth 授权链接")))
                         .child(Textarea::new(&self.content).h(px(72.)).readonly(self.oauth_control_busy)
-                            .aria_label("Paste OAuth callback URL / 粘贴 OAuth 回调地址"))
+                            .aria_label(text(cx, "Paste OAuth callback URL", "粘贴 OAuth 回调地址")))
                         .child(div().flex().flex_wrap().gap(px(theme::CONTROL_GAP))
                             .child(semantics::button(Button::new("platform-oauth-callback")
-                                .label("Submit callback / 提交回调").ghost()
+                                .label(text(cx, "Submit callback", "提交回调")).ghost()
                                 .on_click(cx.listener(|this, _, _, cx| this.control_oauth(false, cx))),
                                 !oauth_active || self.oauth_control_busy || phase != Some(NativePhase::Waiting), false, cx))
                             .child(semantics::button(Button::new("platform-oauth-complete")
-                                .label("Complete account commit / 完成账户提交")
+                                .label(text(cx, "Complete account commit", "完成账户提交"))
                                 .on_click(cx.listener(|this, _, _, cx| this.control_oauth(true, cx))),
                                 !oauth_active || self.oauth_control_busy || phase != Some(NativePhase::Callback), self.oauth_control_busy, cx)));
                     }
                 }
                 root = root.child(if session.signed_in {
-                    "Runtime credential detected / 检测到运行凭据"
+                    text(cx, "Runtime credential detected", "检测到运行凭据")
                 } else {
-                    "No usable runtime credential / 未检测到可用运行凭据"
+                    text(cx, "No usable runtime credential", "未检测到可用运行凭据")
                 });
                 for account in &session.accounts {
-                    root = root.child(div().h(px(theme::ROW_HEIGHT)).child(format!(
-                        "{}{}",
-                        account.name,
-                        if account.current {
-                            " · current / 当前"
-                        } else {
-                            ""
-                        }
-                    )));
+                    let label = if account.current {
+                        format!("{} · {}", account.name, text(cx, "current", "当前"))
+                    } else {
+                        account.name.clone()
+                    };
+                    root = root.child(div().h(px(theme::ROW_HEIGHT)).child(label));
                 }
                 if self.platform != Platform::Grok {
                     root = root
-                        .child(Input::new(&self.name).aria_label("Account name / 账户名"))
+                        .child(Input::new(&self.name).aria_label(text(
+                            cx,
+                            "Account name",
+                            "账户名",
+                        )))
                         .child(
                             div()
                                 .flex()
                                 .gap(px(theme::CONTROL_GAP))
                                 .child(semantics::button(
                                     Button::new("platform-account-save")
-                                        .label("Save runtime as account / 保存运行账户")
+                                        .label(text(cx, "Save runtime as account", "保存运行账户"))
                                         .on_click(cx.listener(|this, _, _, cx| {
                                             this.account(AccountAction::Save, cx)
                                         })),
@@ -679,7 +719,7 @@ impl Render for PlatformsView {
                                 ))
                                 .child(semantics::button(
                                     Button::new("platform-account-switch")
-                                        .label("Switch account / 切换账户")
+                                        .label(text(cx, "Switch account", "切换账户"))
                                         .ghost()
                                         .on_click(cx.listener(|this, _, _, cx| {
                                             this.account(AccountAction::Switch, cx)
@@ -690,7 +730,7 @@ impl Render for PlatformsView {
                                 ))
                                 .child(semantics::button(
                                     Button::new("platform-account-delete")
-                                        .label("Delete saved account / 删除保存账户")
+                                        .label(text(cx, "Delete saved account", "删除保存账户"))
                                         .ghost()
                                         .on_click(cx.listener(|this, _, window, cx| {
                                             this.decide(Decision::DeleteAccount, window, cx)
@@ -706,13 +746,18 @@ impl Render for PlatformsView {
                 if self.surface == Surface::Providers {
                     root = root
                         .child(format!(
-                            "Provider IDs / 供应商: {}",
+                            "{}: {}",
+                            text(cx, "Provider IDs", "供应商"),
                             session.provider_ids.join(", ")
                         ))
-                        .child(Input::new(&self.name).aria_label("Provider ID / 供应商标识"))
+                        .child(Input::new(&self.name).aria_label(text(
+                            cx,
+                            "Provider ID",
+                            "供应商标识",
+                        )))
                         .child(semantics::button(
                             Button::new("platform-provider-delete")
-                                .label("Delete provider / 删除供应商")
+                                .label(text(cx, "Delete provider", "删除供应商"))
                                 .ghost()
                                 .on_click(cx.listener(|this, _, window, cx| {
                                     this.decide(Decision::DeleteProvider, window, cx)
@@ -724,7 +769,11 @@ impl Render for PlatformsView {
                 } else if !self.source_mode {
                     root = root.child(semantics::button(
                         Button::new("platform-source-open")
-                            .label("Open scoped plaintext source / 打开临时明文源文件")
+                            .label(text(
+                                cx,
+                                "Open scoped plaintext source",
+                                "打开临时明文源文件",
+                            ))
                             .ghost()
                             .on_click(cx.listener(|this, _, window, cx| {
                                 this.decide(Decision::Source, window, cx)
@@ -740,9 +789,9 @@ impl Render for PlatformsView {
                         Textarea::new(&self.content)
                             .accessibility_id("platform-content")
                             .aria_label(if self.source_mode {
-                                "Plaintext settings source / 明文设置源文件"
+                                text(cx, "Plaintext settings source", "明文设置源文件")
                             } else {
-                                "Dirty settings JSON object / 变更设置 JSON 对象"
+                                text(cx, "Dirty settings JSON object", "变更设置 JSON 对象")
                             })
                             .h(px(180.))
                             .readonly(blocked || !can_patch),
@@ -750,9 +799,13 @@ impl Render for PlatformsView {
                     .child(semantics::button(
                         Button::new("platform-save")
                             .label(if self.source_mode {
-                                "Save source with original revision / 按原始版本保存源文件"
+                                text(
+                                    cx,
+                                    "Save source with original revision",
+                                    "按原始版本保存源文件",
+                                )
                             } else {
-                                "Save dirty patch / 保存变更字段"
+                                text(cx, "Save dirty patch", "保存变更字段")
                             })
                             .on_click(cx.listener(|this, _, _, cx| this.save(cx))),
                         blocked || !can_patch,
@@ -768,7 +821,7 @@ impl Render for PlatformsView {
                 div()
                     .id("platform-operation-status")
                     .role(gpui_kit::Role::Status)
-                    .child(message.clone()),
+                    .child(ui_line(cx, message)),
             );
         }
         root

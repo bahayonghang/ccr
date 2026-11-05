@@ -243,3 +243,86 @@ fn archive_refresh_detaches_and_retains_actual_counters_without_touching_provide
     assert!(!root.path().join("llmusage").exists());
     owner.shutdown();
 }
+
+#[test]
+fn insights_paths_require_both_files_and_create_nothing() {
+    let root = tempfile::tempdir().unwrap();
+    let usage_root = root.path().join("llmusage");
+    let usage_db = usage_root.join("llmusage.db");
+    let archive = root.path().join("missing").join("usage.db");
+    let home = root.path().join("home");
+    assert!(
+        insights_paths_if_present(usage_root.clone(), &usage_db, archive.clone(), home.clone())
+            .is_none()
+    );
+    assert!(!root.path().join("missing").exists());
+    std::fs::create_dir_all(&usage_root).unwrap();
+    std::fs::write(&usage_db, b"db").unwrap();
+    assert!(
+        insights_paths_if_present(usage_root.clone(), &usage_db, archive.clone(), home.clone())
+            .is_none()
+    );
+    assert!(!archive.parent().unwrap().exists());
+    std::fs::create_dir_all(archive.parent().unwrap()).unwrap();
+    std::fs::write(&archive, b"db").unwrap();
+    let paths =
+        insights_paths_if_present(usage_root.clone(), &usage_db, archive.clone(), home.clone())
+            .unwrap();
+    assert_eq!(paths.usage_root, usage_root);
+    assert_eq!(paths.archive_db, archive);
+    assert_eq!(paths.provider_home, home);
+}
+
+#[gpui_kit::test]
+async fn workbench_reads_seeded_usage_and_does_not_invent_sessions(
+    cx: &mut gpui_kit::TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let paths = create_projection_db(&root.path().join("llmusage"));
+    let pool = database::create_pool(&paths.db_path, None).unwrap();
+    let conn = pool.get().unwrap();
+    seed_bucket(
+        &conn,
+        &SeedBucket {
+            hour_start: chrono::Utc::now().format("%Y-%m-%dT12:00:00Z").to_string(),
+            cost_with_cache_usd: 0.123456789,
+            ..Default::default()
+        },
+    );
+    drop(conn);
+    drop(pool);
+    let requests = InsightsRequests::new(&services(&owner, root.path()));
+    let archive = root.path().join("archive.db");
+    assert!(!archive.exists());
+    let mut read = requests
+        .load_workbench(key(EnvironmentId::Local("fixture".into())), 7)
+        .unwrap();
+    let Some(TaskEvent::Terminal(result)) = read.next().await else {
+        panic!("missing workbench terminal");
+    };
+    let Completion::Success(report) = result.as_ref() else {
+        panic!("workbench failed");
+    };
+    assert_eq!(report.requests, 2);
+    assert_eq!(report.tokens, 100);
+    assert_eq!(report.cost_usd, Some(0.123456789));
+    assert!(!report.sessions_indexed);
+    assert_eq!(report.session_count, None);
+    assert_eq!(report.session_scope, SessionScope::Unavailable);
+    let codex = report
+        .platforms
+        .iter()
+        .find(|platform| platform.id == "codex")
+        .unwrap();
+    let claude = report
+        .platforms
+        .iter()
+        .find(|platform| platform.id == "claude")
+        .unwrap();
+    assert_eq!(codex.requests, 2);
+    assert_eq!(claude.requests, 0);
+    assert!(!archive.exists());
+    owner.shutdown();
+}

@@ -13,6 +13,7 @@ pub const CONTENT_PADDING: f32 = 24.;
 pub const SECTION_GAP: f32 = 16.;
 pub const BODY_SIZE: f32 = 14.;
 pub const TITLE_SIZE: f32 = 20.;
+pub const DISPLAY_SIZE: f32 = 24.;
 pub const ROW_HEIGHT: f32 = 36.;
 pub const META_SIZE: f32 = 12.;
 pub const CONTROL_GAP: f32 = 8.;

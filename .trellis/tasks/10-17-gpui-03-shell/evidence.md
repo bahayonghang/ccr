@@ -64,3 +64,31 @@ Final checked candidate SHA256 `ed00067d7a6a2f88356c69d1b6e24417680ba7f9c3c170e4
 Main then observed the actual candidate in dark/light and English/Chinese, performed configuration metadata/CAS/apply, missing-catalog Retry and pending-read close. Three fixture processes exited0. Exact results/failures are in `../10-17-gpui-04-profiles/research/native-solid-candidate-20261027.md`, summary `outputs/desktop/profiles/native/solid-core-summary-20261027.json`. These do not count as S1/S2 performance or IME/UIA proof.
 
 Native keyboard acceptance is currently FAIL: opening profile Off confirmation from an outside sidebar focus lets Tab escape and Escape fails to dismiss. A separate draft-cancellation status is also stale. A checker is fixing these actual precondition gaps;03/04 are not complete. Deferred size/DPI, OS UIA/IME, other platforms, glass, system-preference integration and full performance remain open.05 and independent07 consume stable services/theme while their own acceptance stays separate. No commit/push/archive was performed.
+
+# 2026-11-05 workbench navigation
+
+Sidebar is the 13 workbench destinations from `ccr-desktop/DESIGN.md`. Content roots are `page-dashboard`, `page-agent-sessions`, `page-mcp-manager`, `page-claude-code`, `page-codex`, `page-grok`, `page-antigravity`, `page-opencode`, `page-commands`, `page-checkin`, `page-sync`, `page-usage`, `page-settings`. Settings stays a bottom dock, not a fifth section. Favorites, recent commands, converter, and install are in-page controls on Commands, MCP Manager, and Usage. Claude/Codex/Grok mount the existing local profile catalog; OpenCode and Antigravity mount the existing local settings reader. MCP Manager, Check-ins, and Sync say they are not connected and do not invent counts. Usage and agent sessions use the existing local reads, not the Home insights bench. Unindexed stays unindexed. The sheet stays the solid fallback. This pass does not claim backdrop blur.
+
+AC 3.1 stays user-deferred. AC 3.2, 3.6, and 3.7 are not passed. No new native screenshot, UIA, IME, DPI, or performance sample was taken.
+
+Commands from the repo root, after `just desktop-fmt` repaired formatting in the files this pass edited:
+
+- `just desktop-fmt-check` exit 0
+- `just desktop-lint` exit 0 (`cargo clippy --locked --all-targets -- -D warnings` for ccr-gpui finished clean; a pre-existing ccr-cli compile warning was printed and was not a clippy failure)
+- `just desktop-test` exit 0: Python unittest 12 ok, AccessKit harness 3 ok, ccr-gpui lib 58 ok, native_shell 6 ok, native_ui 2 ok
+
+The first `just desktop-fmt-check` before formatting exited 1 on rustfmt diffs only.
+
+# 2026-11-05 check
+
+Independent check of the 13-destination shell. Sidebar order matches `mainLayoutNavSections` plus the settings dock: Overview, Configuration (Agent sessions, MCP Manager), Platforms (Claude Code, Codex, Grok, Antigravity, OpenCode), Tools (Commands, Check-ins, Sync, Usage), then Settings. Favorites, recent commands, converter, and install stay off the sidebar. Each destination keeps its `page-*` root. MCP Manager, Check-ins, and Sync stay explicit not-connected notices. Overview still shows unindexed sessions as unindexed. The sheet remains the opaque fallback. AC 3.1 stays user-deferred. AC 3.2, 3.6, and 3.7 are not passed. No backdrop blur, native screenshot, UIA, IME, DPI, or performance sample was claimed.
+
+Check fixes: instruction-file, install, and command notices now show one language; the usage/session product paths no longer render “Home insights”, “Apply / refresh”, or the bilingual source-refresh sentence. Direct insights tests still exercise the real usage and archive reads.
+
+Commands from the repo root, after the check fixes:
+
+- `just desktop-fmt-check` exit 0
+- `just desktop-lint` exit 0 (ccr-gpui clippy clean; the existing ccr-cli compile warning was not a clippy failure)
+- `just desktop-test` exit 0: Python unittest 12 ok, AccessKit harness 3 ok, ccr-gpui lib 58 ok, native_shell 6 ok, native_ui 2 ok
+
+The first full `just desktop-test` in this check exited 101 because two insights archive renders required a language global that those tests do not install. The status line now uses the optional language lookup. The suite above is the rerun after that fix.

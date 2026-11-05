@@ -152,6 +152,30 @@ pub struct Admission {
     pub snapshot: Snapshot,
     pub ticket: Option<Ticket>,
 }
+/// A detachable observer. The retained runner remains owned by the application.
+pub struct Observation {
+    owner: Arc<CommandJobs>,
+    updates: broadcast::Receiver<Delta>,
+    finished: bool,
+    job_id: String,
+}
+impl Observation {
+    pub async fn next(&mut self) -> Result<Option<Snapshot>, Error> {
+        if self.finished {
+            return Ok(None);
+        }
+        match self.updates.recv().await {
+            Ok(_) | Err(broadcast::error::RecvError::Lagged(_)) => {
+                // Deltas are wakeups; the owner snapshot is authoritative even
+                // when output has overflowed the bounded notification channel.
+                let snapshot = self.owner.status(&self.job_id)?;
+                self.finished = snapshot.status.is_terminal();
+                Ok(Some(snapshot))
+            }
+            Err(broadcast::error::RecvError::Closed) => Err(Error::Missing),
+        }
+    }
+}
 pub struct Ticket {
     job_id: String,
     cancel: CancellationToken,
@@ -288,6 +312,25 @@ impl CommandJobs {
             .get(id)
             .map(|entry| entry.updates.subscribe())
             .ok_or(Error::Missing)
+    }
+    /// Subscribe and restore a snapshot atomically so immediate completion
+    /// cannot fall between a status read and notification attachment.
+    pub fn observe(self: &Arc<Self>, id: &str) -> Result<(Snapshot, Observation), Error> {
+        let mut entries = self
+            .entries
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        prune(&mut entries, Utc::now());
+        let entry = entries.get(id).ok_or(Error::Missing)?;
+        Ok((
+            entry.snapshot.clone(),
+            Observation {
+                owner: self.clone(),
+                updates: entry.updates.subscribe(),
+                finished: entry.snapshot.status.is_terminal(),
+                job_id: id.to_owned(),
+            },
+        ))
     }
     pub fn prune(&self) -> usize {
         let mut entries = self

@@ -6,7 +6,7 @@ use crate::{
 };
 use ccr_app::{
     jobs::{commands::Snapshot, policy::CommandInfo},
-    runtime::{Completion, EnvironmentId, Platform, RequestKey, TaskEvent},
+    runtime::{EnvironmentId, Platform, RequestKey},
 };
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
@@ -17,8 +17,15 @@ use gpui_kit::component::{
 use gpui_kit::prelude::FluentBuilder;
 use gpui_kit::{
     AppContext, Context, Entity, Focusable, InteractiveElement, IntoElement, ParentElement, Render,
-    SharedString, Styled, Task, UniformListScrollHandle, Window, div, px, uniform_list,
+    SharedString, StatefulInteractiveElement, Styled, Task, UniformListScrollHandle, Window, div,
+    px, uniform_list,
 };
+
+enum CommandAction {
+    Background,
+    Foreground,
+    Help,
+}
 
 pub struct JobsView {
     requests: CommandRequests,
@@ -65,29 +72,101 @@ impl JobsView {
         cx.notify();
     }
     pub fn refresh(&mut self, cx: &mut Context<Self>) {
-        if let Some(id) = &self.job_id {
-            match self.requests.status(id) {
-                Ok(snapshot) => {
-                    self.busy = !snapshot.status.is_terminal();
-                    self.snapshot = Some(snapshot);
-                }
+        let Some(id) = self.job_id.clone() else {
+            return;
+        };
+        if self.task.is_some() {
+            match self.requests.status(&id) {
+                Ok(snapshot) => self.accept_snapshot(self.generation, snapshot),
                 Err(error) => self.message = Some(error.message()),
+            }
+        } else {
+            match self.requests.observe(&id) {
+                Ok((snapshot, mut observation)) => {
+                    self.accept_snapshot(self.generation, snapshot);
+                    if self.busy {
+                        let generation = self.generation;
+                        self.task = Some(cx.spawn(async move |weak, cx| {
+                            loop {
+                                // Broadcast deltas can arrive faster than the
+                                // UI budget. Read the latest retained snapshot
+                                // at most ten times a second, including on lag.
+                                cx.background_executor()
+                                    .timer(std::time::Duration::from_millis(100))
+                                    .await;
+                                match observation.next().await {
+                                    Ok(Some(snapshot)) => {
+                                        let terminal = snapshot.status.is_terminal();
+                                        if weak
+                                            .update(cx, |this, cx| {
+                                                this.accept_snapshot(generation, snapshot);
+                                                cx.notify();
+                                            })
+                                            .is_err()
+                                        {
+                                            break;
+                                        }
+                                        if terminal {
+                                            break;
+                                        }
+                                    }
+                                    Ok(None) => break,
+                                    Err(error) => {
+                                        let _ = weak.update(cx, |this, cx| {
+                                            if this.generation == generation {
+                                                this.message = Some(error.message());
+                                                this.busy = false;
+                                                cx.notify();
+                                            }
+                                        });
+                                        break;
+                                    }
+                                }
+                            }
+                        }));
+                    }
+                }
+                Err(error) => {
+                    self.message = Some(error.message());
+                    self.busy = false;
+                }
             }
         }
         cx.notify();
     }
+    fn accept_snapshot(&mut self, generation: u64, snapshot: Snapshot) {
+        if self.generation != generation || self.job_id.as_deref() != Some(&snapshot.job_id) {
+            return;
+        }
+        if self
+            .snapshot
+            .as_ref()
+            .is_some_and(|previous| previous.status.is_terminal())
+        {
+            return;
+        }
+        self.busy = !snapshot.status.is_terminal();
+        self.snapshot = Some(snapshot);
+    }
     fn start(&mut self, cx: &mut Context<Self>) {
+        self.start_action(CommandAction::Background, cx);
+    }
+    fn start_action(&mut self, action: CommandAction, cx: &mut Context<Self>) {
         if self.busy {
             return;
         }
-        let Ok(args) = serde_json::from_str::<Vec<String>>(&self.args.read(cx).value()) else {
-            self.message =
-                Some("Arguments must be a JSON string array. / 参数必须为 JSON 字符串数组");
-            cx.notify();
-            return;
+        let args = if matches!(action, CommandAction::Help) {
+            Vec::new()
+        } else {
+            let Ok(args) = serde_json::from_str::<Vec<String>>(&self.args.read(cx).value()) else {
+                self.message =
+                    Some("Arguments must be a JSON string array. / 参数必须为 JSON 字符串数组");
+                cx.notify();
+                return;
+            };
+            args
         };
         self.generation += 1;
-        let generation = self.generation;
         let key = RequestKey {
             environment: EnvironmentId::Local(
                 if self.requests.is_fixture() {
@@ -98,37 +177,23 @@ impl JobsView {
                 .into(),
             ),
             platform: Platform::Claude,
-            generation,
-            request_id: generation,
+            generation: self.generation,
+            request_id: self.generation,
         };
-        match self.requests.start(key, self.selected.clone(), args) {
+        let started = match action {
+            CommandAction::Background => self.requests.start(key, self.selected.clone(), args),
+            CommandAction::Foreground => self.requests.foreground(key, self.selected.clone(), args),
+            CommandAction::Help => self.requests.help(key, &self.selected),
+        };
+        match started {
             Ok(started) => {
                 self.message = None;
-                self.busy = !started.snapshot.status.is_terminal();
+                self.task = None;
                 self.job_id = Some(started.snapshot.job_id.clone());
-                self.snapshot = Some(started.snapshot);
-                if let Some(mut subscription) = started.subscription {
-                    self.task = Some(cx.spawn(async move |weak, cx| {
-                        while let Some(event) = subscription.next().await {
-                            let terminal = matches!(event, TaskEvent::Terminal(_));
-                            let _ = weak.update(cx, |this, cx| {
-                                if this.generation != generation { return; }
-                                match event {
-                                    TaskEvent::Progress(_) => this.refresh(cx),
-                                    TaskEvent::Terminal(result) => {
-                                        match result.as_ref() {
-                                            Completion::Success(snapshot) => {this.busy = !snapshot.status.is_terminal(); this.snapshot = Some(snapshot.clone());},
-                                            Completion::Failed(error) | Completion::CleanupFailed(error) => { this.message = Some(error.message()); this.refresh(cx); },
-                                            Completion::Cancelled | Completion::WorkerFailed => { this.refresh(cx); this.message = Some("Runner stopped; check retained job status. / 执行器停止，请检查保留任务状态"); },
-                                        }
-                                    },
-                                }
-                                cx.notify();
-                            });
-                            if terminal { break; }
-                        }
-                    }));
-                }
+                self.snapshot = None;
+                // Detaching the executor subscription keeps the app-owned runner.
+                drop(started.subscription);
+                self.refresh(cx);
             }
             Err(message) => self.message = Some(message),
         }
@@ -225,7 +290,7 @@ impl Render for JobsView {
                     snapshot.truncated
                 )
             })
-            .unwrap_or_else(|| "No job yet / 尚无任务".into());
+            .unwrap_or_else(|| text(cx, "No job yet", "尚无任务").to_string());
         let count = self
             .snapshot
             .as_ref()
@@ -260,16 +325,31 @@ impl Render for JobsView {
         .track_scroll(&self.log_scroll);
         div().id("native-command-workbench").test_support().flex().flex_col().size_full().p_4().gap_2().bg(cx.theme().background).text_color(cx.theme().foreground)
             .child(div().text_size(px(20.)).child(text(cx,"Commands and jobs","命令与任务")))
-            .when(self.requests.is_fixture(), |view| view.child(div().text_color(cx.theme().warning).child("Synthetic owned-process fixture. No CCR command or real configuration is accessed. / 合成进程生命周期验证，不执行真实 CCR 命令")))
+            .when(self.requests.is_fixture(), |view| {
+                view.child(
+                    div()
+                        .id("jobs-fixture-warning")
+                        .test_support()
+                        .aria_label("Synthetic owned-process fixture. No CCR command or real configuration is accessed.")
+                        .text_color(cx.theme().warning)
+                        .child(text(
+                            cx,
+                            "Synthetic owned-process fixture. No CCR command or real configuration is accessed.",
+                            "合成进程生命周期验证，不执行真实 CCR 命令",
+                        )),
+                )
+            })
             .child(commands).child(metadata)
             .child(div().child(text(cx,"Arguments as JSON string array","参数 JSON 字符串数组")))
             .child(Input::new(&self.args))
             .child(div().flex().gap_2()
-                .child(semantics::button(Button::new("command-start").label(text(cx,"Run","执行")).on_click(cx.listener(|this,_,_,cx|this.start(cx))), self.busy, self.busy, cx))
+                .child(semantics::button(Button::new("command-start").label(text(cx,"Start background job","启动后台任务")).on_click(cx.listener(|this,_,_,cx|this.start(cx))), self.busy, self.busy, cx))
+                .child(semantics::button(Button::new("command-foreground").label(text(cx,"Run","执行")).on_click(cx.listener(|this,_,_,cx|this.start_action(CommandAction::Foreground,cx))), self.busy, self.busy, cx))
+                .child(semantics::button(Button::new("command-help").label(text(cx,"Command help","命令帮助")).ghost().on_click(cx.listener(|this,_,_,cx|this.start_action(CommandAction::Help,cx))), self.busy, false, cx))
                 .child(semantics::button(Button::new("command-cancel").label(text(cx,"Request cancel","请求取消")).ghost().on_click(cx.listener(|this,_,_,cx|this.cancel(cx))), !self.busy, false, cx))
                 .child(semantics::button(Button::new("command-status").label(text(cx,"Refresh status","刷新状态")).ghost().on_click(cx.listener(|this,_,_,cx|this.refresh(cx))), self.job_id.is_none(), false, cx)))
             .child(div().child(state))
-            .when_some(self.message, |view, message| view.child(div().text_color(cx.theme().danger).child(message)))
+            .when_some(self.message, |view, message| view.child(div().text_color(cx.theme().danger).child(crate::locales::localized_line(cx, message))))
             .child(div().flex_1().min_h_0().bg(cx.theme().background).child(logs))
     }
 }

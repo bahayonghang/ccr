@@ -1,6 +1,6 @@
 //! Existing fixed instruction files, with a scoped plaintext edit session.
 use crate::{
-    locales::text,
+    locales::{service_error, text},
     runtime::{
         Services,
         resources::{PromptRow, PromptSession, ResourceCommand, ResourceResult},
@@ -82,6 +82,16 @@ impl ResourcesView {
     }
     pub fn load(&mut self, cx: &mut Context<Self>) {
         self.request(ResourceCommand::ListPrompts, cx);
+    }
+    pub fn open_platform(
+        &mut self,
+        platform: Platform,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.leave(window, cx);
+        self.platform = platform;
+        self.load(cx);
     }
     pub fn leave(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.task = None;
@@ -277,15 +287,15 @@ impl Render for ResourcesView {
                 });
             }
             root = root.child(div().id("resource-confirmation").test_support().role(gpui_kit::Role::AlertDialog)
-                .aria_label("Confirm scoped resource editor")
+                .aria_label(text(cx, "Confirm scoped resource editor", "确认临时资源编辑"))
                 .child(match decision {
-                    Decision::Open(_) => "Open plaintext instruction content? It remains in this scoped editor. Do not include private text in screenshots or logs. / 打开明文指令内容？仅保留在临时编辑会话，请勿将私密文本记录或截图。",
-                    Decision::Reload => "Discard this draft and reload the current file? / 丢弃当前草稿并重新读取文件？",
+                    Decision::Open(_) => text(cx, "Open plaintext instruction content? It remains in this scoped editor. Do not include private text in screenshots or logs.", "打开明文指令内容？仅保留在临时编辑会话，请勿将私密文本记录或截图。"),
+                    Decision::Reload => text(cx, "Discard this draft and reload the current file?", "丢弃当前草稿并重新读取文件？"),
                 }))
                 .child(div().tab_group().tab_stop(false).flex().gap(px(theme::CONTROL_GAP))
-                    .child(semantics::button(Button::new("resource-decision-cancel").label("Cancel / 取消").ghost()
+                    .child(semantics::button(Button::new("resource-decision-cancel").label(text(cx, "Cancel", "取消")).ghost()
                         .on_click(cx.listener(|this, _, window, cx| this.dismiss(window, cx))), false, false, cx))
-                    .child(semantics::button(Button::new("resource-decision-confirm").label("Confirm / 确认")
+                    .child(semantics::button(Button::new("resource-decision-confirm").label(text(cx, "Confirm", "确认"))
                         .on_click(cx.listener(|this, _, window, cx| this.confirm(window, cx))), false, false, cx))
                     .focus_trap("resource-decision-trap", &self.confirmation_focus));
         }
@@ -297,7 +307,7 @@ impl Render for ResourcesView {
                         .gap(px(theme::CONTROL_GAP))
                         .child(semantics::button(
                             Button::new("resource-editor-close")
-                                .label("Cancel / back / 取消返回")
+                                .label(text(cx, "Back", "返回"))
                                 .ghost()
                                 .on_click(
                                     cx.listener(|this, _, window, cx| {
@@ -310,7 +320,7 @@ impl Render for ResourcesView {
                         ))
                         .child(semantics::button(
                             Button::new("resource-reload")
-                                .label("Discard and reload / 丢弃并重读")
+                                .label(text(cx, "Discard and reload", "丢弃并重读"))
                                 .ghost()
                                 .on_click(cx.listener(|this, _, window, cx| {
                                     this.decide(Decision::Reload, window, cx)
@@ -324,21 +334,21 @@ impl Render for ResourcesView {
                     "{} · {}",
                     session.spec.filename,
                     if session.snapshot.exists {
-                        "Existing / 已存在"
+                        text(cx, "Existing", "已存在")
                     } else {
-                        "Missing / 尚未创建"
+                        text(cx, "Missing", "尚未创建")
                     }
                 ))
                 .child(
                     Textarea::new(&self.editor)
                         .accessibility_id("resource-content")
-                        .aria_label("Scoped instruction file / 临时指令文件")
+                        .aria_label(text(cx, "Scoped instruction file", "临时指令文件"))
                         .flex_1()
                         .readonly(blocked),
                 )
                 .child(semantics::button(
                     Button::new("resource-save")
-                        .label("Save original revision / 按原始版本保存")
+                        .label(text(cx, "Save original revision", "按原始版本保存"))
                         .on_click(cx.listener(|this, _, _, cx| {
                             if let Some(session) = this.session.clone() {
                                 this.request(
@@ -357,7 +367,7 @@ impl Render for ResourcesView {
             if !session.snapshot.exists {
                 root = root.child(semantics::button(
                     Button::new("resource-create")
-                        .label("Create empty file / 创建空文件")
+                        .label(text(cx, "Create empty file", "创建空文件"))
                         .ghost()
                         .on_click(cx.listener(|this, _, _, cx| {
                             if let Some(session) = this.session.clone() {
@@ -370,12 +380,16 @@ impl Render for ResourcesView {
                 ));
             }
             if session.spec.platform == "codex" {
-                root = root.child("Codex reads at most32KiB of user instructions. / Codex 用户指令读取上限为32KiB。");
+                root = root.child(text(
+                    cx,
+                    "Codex reads at most 32KiB of user instructions.",
+                    "Codex 用户指令读取上限为 32KiB。",
+                ));
             }
         } else {
             root = root.child(semantics::button(
                 Button::new("resources-refresh")
-                    .label("Refresh / 刷新")
+                    .label(text(cx, "Refresh", "刷新"))
                     .ghost()
                     .on_click(cx.listener(|this, _, _, cx| this.load(cx))),
                 blocked,
@@ -396,9 +410,9 @@ impl Render for ResourcesView {
                                     "{} · {}",
                                     row.filename,
                                     if row.exists {
-                                        "Existing / 已存在"
+                                        text(cx, "Existing", "已存在")
                                     } else {
-                                        "Missing / 尚未创建"
+                                        text(cx, "Missing", "尚未创建")
                                     }
                                 ))
                                 .ghost()
@@ -418,7 +432,11 @@ impl Render for ResourcesView {
             }
         }
         if self.busy {
-            root = root.child("Working on background worker / 正在后台处理");
+            root = root.child(text(
+                cx,
+                "Working on a background worker.",
+                "正在后台处理。",
+            ));
         }
         if let Some(message) = self.message {
             root = root.child(
@@ -426,7 +444,7 @@ impl Render for ResourcesView {
                     .id("resources-status")
                     .test_support()
                     .role(gpui_kit::Role::Status)
-                    .child(message),
+                    .child(service_error(cx, message)),
             );
         }
         root

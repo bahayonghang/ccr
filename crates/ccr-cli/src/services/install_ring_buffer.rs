@@ -114,7 +114,6 @@ const CREDENTIAL_PATTERNS: &[&str] = &[
     "key=",
     "password=",
     "secret=",
-    "authorization:",
     "bearer ",
     "api_key=",
     "apikey=",
@@ -125,24 +124,46 @@ const CREDENTIAL_PATTERNS: &[&str] = &[
 /// Replaces the value after the pattern with `***` up to the next whitespace or end of line.
 pub fn redact(line: &str) -> String {
     let mut result = line.to_string();
-    let lower = line.to_lowercase();
-
     for pattern in CREDENTIAL_PATTERNS {
-        if let Some(start) = lower.find(pattern) {
-            let value_start = start + pattern.len();
-            // Find the end of the value (next whitespace, comma, or end of string)
+        let mut search_from = 0;
+        while let Some(relative) = result[search_from..].to_ascii_lowercase().find(pattern) {
+            let start = search_from + relative;
+            let mut value_start = start + pattern.len();
+            while matches!(result.as_bytes().get(value_start), Some(b' ' | b'\t')) {
+                value_start += 1;
+            }
+            let quote = result[value_start..]
+                .chars()
+                .next()
+                .filter(|ch| matches!(ch, '\'' | '"'));
+            value_start += usize::from(quote.is_some());
+            let mut escaped = false;
             let value_end = result[value_start..]
-                .find(|c: char| c.is_whitespace() || c == ',' || c == ';' || c == '"' || c == '\'')
-                .map(|pos| value_start + pos)
+                .char_indices()
+                .find_map(|(offset, ch)| {
+                    let end = if let Some(quote) = quote {
+                        let end = matches!(ch, '\n' | '\r') || (ch == quote && !escaped);
+                        escaped = ch == '\\' && !escaped;
+                        end
+                    } else {
+                        ch.is_whitespace() || matches!(ch, ',' | ';' | '"' | '\'')
+                    };
+                    end.then_some(value_start + offset)
+                })
                 .unwrap_or(result.len());
 
             if value_end > value_start {
                 result.replace_range(value_start..value_end, "***");
+                search_from = value_start + 3;
+            } else {
+                search_from = value_start;
             }
         }
     }
 
-    result
+    // Keep the install contract's full masking (including legacy `key=`),
+    // then cover quoted assignments/JSON/headers through the shared owner.
+    ccr_core::core::log_redact::redact_log_text(&result)
 }
 
 #[cfg(test)]
@@ -259,5 +280,63 @@ mod tests {
         let line = "Compiling llmusage v0.5.3";
         let result = redact(line);
         assert_eq!(result, line);
+    }
+
+    #[test]
+    fn regression_redact_multiple_credentials_and_unicode() {
+        let result = redact("token=123456789012345678901234567890 password=secret");
+        assert_eq!(result, "token=*** password=***");
+        let result = redact(
+            "İ准备😀 token=中文秘密值 password=another-secret key=legacy-secret token=again-secret",
+        );
+        assert_eq!(result, "İ准备😀 token=*** password=*** key=*** token=***");
+        assert_eq!(redact("Preparing package 12345"), "Preparing package 12345");
+    }
+
+    #[test]
+    fn regression_authorization_scheme_survives_until_shared_redaction() {
+        for line in [
+            "Authorization:Basic basic-secret-123",
+            "Authorization:Bearer bearer-secret-456",
+            "İ准备😀 Authorization:Basic basic-secret-123\nAuthorization:Bearer bearer-secret-456",
+        ] {
+            let result = redact(line);
+            assert!(!result.contains("basic-secret"));
+            assert!(!result.contains("bearer-secret"));
+            assert!(result.contains("***") || result.contains("..."));
+        }
+    }
+
+    #[test]
+    fn legacy_credential_values_mask_quoted_escaped_repeated_and_unicode_values() {
+        for pattern in CREDENTIAL_PATTERNS {
+            for (value, expected) in [
+                ("plain-private123", "***"),
+                ("\"visible private123\"", "\"***\""),
+                ("'visible private123'", "'***'"),
+                (r#""visible \"escaped\" private123""#, "\"***\""),
+                (" \t\"密 😀 private123\"", " \t\"***\""),
+                ("\"unfinished private123", "\"***"),
+                ("\"\"", "\"\""),
+            ] {
+                let line = format!("safe {pattern}{value}; other=preserved");
+                let expected = if value.starts_with("\"unfinished") {
+                    format!("safe {pattern}{expected}")
+                } else {
+                    format!("safe {pattern}{expected}; other=preserved")
+                };
+                assert_eq!(redact(&line), expected, "pattern={pattern} value={value}");
+            }
+            let line =
+                format!("İ准备😀 {pattern}\"first private123\" {pattern}'second private456'");
+            assert_eq!(
+                redact(&line),
+                format!("İ准备😀 {pattern}\"***\" {pattern}'***'")
+            );
+        }
+        assert_eq!(
+            redact("Compile package v1.2.3; value remains visible"),
+            "Compile package v1.2.3; value remains visible"
+        );
     }
 }

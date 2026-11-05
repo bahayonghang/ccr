@@ -183,7 +183,7 @@ impl Render for Converter {
                 div()
                     .id("converter-status")
                     .role(gpui_kit::Role::Status)
-                    .child(message.clone()),
+                    .child(crate::locales::localized_line(cx, message)),
             );
         }
         root

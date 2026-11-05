@@ -21,6 +21,7 @@ use crate::services::install_types::{
 
 /// Timeout for graceful termination before forceful kill.
 const GRACEFUL_TIMEOUT_MS: u64 = 2000;
+const CLEANUP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
 const INSTALL_MAX_LINE_BYTES: usize = 64 * 1024;
 const CARGO_ARGS: &[&str] = &["install", "--locked", "llmusage"];
 const HOMEBREW_ARGS: &[&str] = &["install", "llmusage"];
@@ -132,7 +133,9 @@ pub(crate) fn run_attempt(
                     &tx_stdout,
                     &ring_stdout,
                 )
-                .await;
+                .await
+            } else {
+                Ok(())
             }
         });
 
@@ -149,29 +152,37 @@ pub(crate) fn run_attempt(
                     &tx_stderr,
                     &ring_stderr,
                 )
-                .await;
+                .await
+            } else {
+                Ok(())
             }
         });
 
         // Supervisor: race child.wait() against cancel_token.cancelled()
-        let outcome = tokio::select! {
+        let (outcome, cleanup_deadline) = tokio::select! {
             status = child.wait() => {
-                ChildOutcome::Exited(status.map(|s| s.code()))
+                (ChildOutcome::Exited(status.map(|s| s.code())), tokio::time::Instant::now() + CLEANUP_TIMEOUT)
             }
             _ = cancel_token.cancelled() => {
                 let requested_at_ms = epoch_ms();
-                let cleanup_error = child
-                    .terminate_tree(std::time::Duration::from_millis(GRACEFUL_TIMEOUT_MS))
-                    .await
-                    .err()
-                    .map(|error| format!("process tree cleanup failed: {error}"));
-                ChildOutcome::Cancelled { requested_at_ms, cleanup_error }
+                let deadline = tokio::time::Instant::now() + CLEANUP_TIMEOUT;
+                let cleanup_error = match tokio::time::timeout_at(deadline, child
+                    .terminate_tree(std::time::Duration::from_millis(GRACEFUL_TIMEOUT_MS))).await {
+                    Ok(Ok(_)) => None,
+                    _ => Some("process tree cleanup could not be confirmed".to_owned()),
+                };
+                (ChildOutcome::Cancelled { requested_at_ms, cleanup_error }, deadline)
             }
         };
 
         // Drain stdout/stderr readers before emitting terminal event.
-        let _ = stdout_task.await;
-        let _ = stderr_task.await;
+        let outcome = if join_install_readers([stdout_task, stderr_task], cleanup_deadline).await {
+            outcome
+        } else {
+            ChildOutcome::Exited(Err(std::io::Error::other(
+                "install output reader cleanup failed",
+            )))
+        };
 
         let duration_ms = start.elapsed().as_millis() as u64;
 
@@ -234,6 +245,25 @@ enum ChildOutcome {
     },
 }
 
+async fn join_install_readers(
+    readers: [tokio::task::JoinHandle<std::io::Result<()>>; 2],
+    deadline: tokio::time::Instant,
+) -> bool {
+    let mut clean = true;
+    for mut reader in readers {
+        match tokio::time::timeout_at(deadline, &mut reader).await {
+            Ok(Ok(Ok(()))) => {}
+            Ok(_) => clean = false,
+            Err(_) => {
+                clean = false;
+                reader.abort();
+                let _ = reader.await;
+            }
+        }
+    }
+    clean
+}
+
 /// Pipe lines from an async reader to the event channel.
 async fn pipe_lines<R: tokio::io::AsyncRead + Unpin>(
     reader: R,
@@ -242,9 +272,9 @@ async fn pipe_lines<R: tokio::io::AsyncRead + Unpin>(
     seq: &AtomicU64,
     tx: &mpsc::Sender<InstallEvent>,
     ring: &RingBufferHandle,
-) {
+) -> std::io::Result<()> {
     let mut reader = BufReader::new(reader);
-    while let Ok(Some(mut line)) = read_bounded_line(&mut reader, INSTALL_MAX_LINE_BYTES).await {
+    while let Some(mut line) = read_bounded_line(&mut reader, INSTALL_MAX_LINE_BYTES).await? {
         if line.truncated {
             while line.text.len() + '…'.len_utf8() > INSTALL_MAX_LINE_BYTES {
                 line.text.pop();
@@ -272,6 +302,7 @@ async fn pipe_lines<R: tokio::io::AsyncRead + Unpin>(
         };
         emit(tx, ring, &ev).await;
     }
+    Ok(())
 }
 
 /// Detect progress stage from a log line.
@@ -321,6 +352,52 @@ fn epoch_ms() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn held_install_readers_are_aborted_under_one_cleanup_deadline() {
+        struct Dropped(std::sync::Arc<std::sync::atomic::AtomicBool>);
+        impl Drop for Dropped {
+            fn drop(&mut self) {
+                self.0.store(true, Ordering::SeqCst);
+            }
+        }
+        let flags = [
+            std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+        ];
+        let readers = flags.clone().map(|flag| {
+            let guard = Dropped(flag);
+            tokio::spawn(async move {
+                let _guard = guard;
+                std::future::pending::<std::io::Result<()>>().await
+            })
+        });
+        let started = tokio::time::Instant::now();
+        assert!(
+            !join_install_readers(readers, started + std::time::Duration::from_millis(20)).await
+        );
+        assert!(started.elapsed() < std::time::Duration::from_secs(1));
+        assert!(flags.iter().all(|flag| flag.load(Ordering::SeqCst)));
+    }
+
+    #[tokio::test]
+    async fn install_reader_panic_or_io_error_never_proves_cleanup() {
+        let panicking: tokio::task::JoinHandle<std::io::Result<()>> =
+            tokio::spawn(async { panic!("synthetic reader panic") });
+        let failed = tokio::spawn(async { Err(std::io::Error::other("synthetic reader error")) });
+        assert!(
+            !join_install_readers(
+                [panicking, failed],
+                tokio::time::Instant::now() + CLEANUP_TIMEOUT
+            )
+            .await
+        );
+        let readers = [
+            tokio::spawn(async { Ok(()) }),
+            tokio::spawn(async { Ok(()) }),
+        ];
+        assert!(join_install_readers(readers, tokio::time::Instant::now() + CLEANUP_TIMEOUT).await);
+    }
 
     #[test]
     fn closed_actions_are_the_only_source_of_process_specs() {
@@ -375,7 +452,9 @@ mod tests {
         let attempt_id = AttemptId::new();
         let sequence = AtomicU64::new(0);
 
-        pipe_lines(reader, LogStream::Stdout, attempt_id, &sequence, &tx, &ring).await;
+        pipe_lines(reader, LogStream::Stdout, attempt_id, &sequence, &tx, &ring)
+            .await
+            .expect("reader should finish");
         writer_task.await.expect("writer task should finish");
 
         let event = rx.recv().await.expect("bounded log event");

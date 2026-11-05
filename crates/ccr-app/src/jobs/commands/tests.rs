@@ -31,6 +31,81 @@ fn descriptor(timeout: Duration) -> ProcessDescriptor {
 }
 
 #[tokio::test]
+async fn observation_recovers_progress_and_terminal_after_detach_and_lag() {
+    let jobs = Arc::new(CommandJobs::default());
+    let admission = jobs.admit(key(51), request()).unwrap();
+    let id = admission.snapshot.job_id;
+    let (_, observer) = jobs.observe(&id).unwrap();
+    drop(observer);
+    jobs.append(&id, Channel::Stdout, vec!["while away".into()]);
+    let (snapshot, mut observer) = jobs.observe(&id).unwrap();
+    assert!(
+        snapshot
+            .stdout_lines
+            .iter()
+            .any(|line| line == "while away")
+    );
+    jobs.append(&id, Channel::Stdout, vec!["after return".into()]);
+    let progress = observer.next().await.unwrap().unwrap();
+    assert!(
+        progress
+            .stdout_lines
+            .iter()
+            .any(|line| line == "after return")
+    );
+    for _ in 0..200 {
+        jobs.append(&id, Channel::Stdout, vec!["lag fixture".into()]);
+    }
+    let terminal = jobs
+        .complete(&id, Status::Success, Instant::now(), Some(0), None)
+        .unwrap();
+    assert_eq!(observer.next().await.unwrap(), Some(terminal.clone()));
+    assert_eq!(observer.next().await.unwrap(), None);
+    let (restored, mut observer) = jobs.observe(&id).unwrap();
+    assert_eq!(restored, terminal);
+    assert_eq!(observer.next().await.unwrap(), None);
+    assert!(matches!(jobs.observe("missing"), Err(Error::Missing)));
+}
+
+#[test]
+fn foreground_and_help_keep_allowlist_and_argument_validation() {
+    let jobs = CommandJobs::default();
+    for command in ["delete", "unknown", "status; whoami"] {
+        assert!(CommandExecutionRequest::help(command).is_err());
+        assert!(matches!(
+            jobs.admit(
+                key(70),
+                CommandExecutionRequest::foreground(command.into(), None, None)
+            ),
+            Err(Error::Invalid)
+        ));
+    }
+    assert!(matches!(
+        jobs.admit(
+            key(71),
+            CommandExecutionRequest::foreground(
+                "status".into(),
+                Some(vec!["--invalid".into()]),
+                None
+            )
+        ),
+        Err(Error::Invalid)
+    ));
+    let request = CommandExecutionRequest::help("status").unwrap();
+    assert!(!request.background_job);
+    assert_eq!(request.command, "help");
+    assert_eq!(request.args, ["status"]);
+    assert!(jobs.admit(key(72), request).is_ok());
+    assert!(
+        jobs.admit(
+            key(73),
+            CommandExecutionRequest::foreground("status".into(), Some(vec!["--json".into()]), None)
+        )
+        .is_ok()
+    );
+}
+
+#[tokio::test]
 async fn invalid_and_duplicate_admission_are_atomic_and_cancel_before_start_spawns_nothing() {
     let jobs = CommandJobs::default();
     let mut invalid = request();

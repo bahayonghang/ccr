@@ -65,10 +65,14 @@ pub fn run() {
                 })
                 .map(|_| ()),
                 runtime::LaunchMode::App(source) => {
+                    let mut services = runtime::Services::new(executor, source);
+                    if !services.is_fixture()
+                        && let Some(paths) = runtime::insights::local_insights_paths()
+                    {
+                        services = services.with_insights_paths(paths);
+                    }
                     gpui_kit::open_window(options, cx, move |window, cx| {
-                        cx.new(|cx| {
-                            shell::Shell::new(runtime::Services::new(executor, source), window, cx)
-                        })
+                        cx.new(|cx| shell::Shell::new(services, window, cx))
                     })
                     .map(|_| ())
                 }
