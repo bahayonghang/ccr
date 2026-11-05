@@ -5,10 +5,7 @@ use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
 use ccr_config::{ClaudeRuntimePaths, Platform, PlatformPaths};
-use ccr_core::core::{
-    BackupPolicy, VersionedWriteOutcome, WriteOptions, content_version_token,
-    write_guarded_versioned,
-};
+use ccr_core::core::BackupPolicy;
 use serde_json::{Value, json};
 use tauri::State;
 
@@ -59,27 +56,15 @@ fn backup_dir(platform: Platform) -> Result<PathBuf, String> {
 }
 
 pub(crate) fn read_raw_file(path: &Path) -> Result<Value, String> {
-    match fs::read(path) {
-        Ok(bytes) => {
-            let content = String::from_utf8(bytes.clone())
-                .map_err(|error| format!("配置文件不是有效 UTF-8: {error}"))?;
-            Ok(json!({
-                "status": "ok",
-                "content": content,
-                "token": content_version_token(&bytes),
-                "path": path,
-                "exists": true,
-            }))
-        }
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(json!({
-            "status": "ok",
-            "content": "",
-            "token": "",
-            "path": path,
-            "exists": false,
-        })),
-        Err(error) => Err(format!("读取配置文件 {} 失败: {error}", path.display())),
-    }
+    let snapshot = ccr_app::platform_settings::read_text(path)
+        .map_err(|error| format!("读取配置文件失败: {error}"))?;
+    Ok(json!({
+        "status": "ok",
+        "content": snapshot.content,
+        "token": snapshot.token,
+        "path": path,
+        "exists": snapshot.exists,
+    }))
 }
 
 pub(crate) fn invalid_result(
@@ -190,23 +175,24 @@ pub(crate) fn write_raw_file_versioned(
     expected_token: &str,
     secret: bool,
 ) -> Result<Value, String> {
-    let options = WriteOptions {
-        backup: BackupPolicy::Dir {
+    match ccr_app::platform_settings::write_versioned(
+        path,
+        content,
+        expected_token,
+        BackupPolicy::Dir {
             dir: backup_dir.to_path_buf(),
             prefix: backup_prefix.to_string(),
         },
         secret,
-        ..Default::default()
-    };
-
-    match write_guarded_versioned(path, content.as_bytes(), expected_token, &options)
-        .map_err(|error| format!("写入配置文件 {} 失败: {error}", path.display()))?
+        None,
+    )
+    .map_err(|error| format!("写入配置文件失败: {error}"))?
     {
-        VersionedWriteOutcome::Written => Ok(json!({
+        ccr_app::platform_settings::SaveOutcome::Saved { token } => Ok(json!({
             "status": "saved",
-            "token": content_version_token(content.as_bytes()),
+            "token": token,
         })),
-        VersionedWriteOutcome::Conflict => Ok(json!({ "status": "conflict" })),
+        ccr_app::platform_settings::SaveOutcome::Conflict => Ok(json!({ "status": "conflict" })),
     }
 }
 

@@ -1,9 +1,11 @@
 //! Local user-level instruction file management for supported AI CLIs.
 
-use std::fs;
 use std::path::{Path, PathBuf};
-use std::time::UNIX_EPOCH;
 
+use ccr_app::resources::system_prompts::{
+    PromptFileSpec, PromptLocation, augment_file_result, augment_save_result, file_description,
+    list_claude_rules, normalize_platform, platform_specs, prompt_spec, resolve_from_home,
+};
 use ccr_config::{Platform, PlatformPaths};
 use serde_json::{Value, json};
 use tauri::State;
@@ -13,92 +15,6 @@ use crate::state::AppState;
 use super::opencode::opencode_config_dir;
 use super::settings_raw::{ensure_local_env, read_raw_file, write_raw_file_versioned};
 use super::wire::OpenJsonValueDto;
-
-const SIZE_WARNING_BYTES: usize = 64 * 1024;
-const CODEX_LIMIT_HINT: usize = 32 * 1024;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum PromptLocation {
-    Claude,
-    Codex,
-    Gemini,
-    OpenCode,
-}
-
-#[derive(Debug, Clone, Copy)]
-struct PromptFileSpec {
-    platform: &'static str,
-    id: &'static str,
-    label_key: &'static str,
-    filename: &'static str,
-    location: PromptLocation,
-}
-
-const PROMPT_FILES: &[PromptFileSpec] = &[
-    PromptFileSpec {
-        platform: "claude",
-        id: "claude-user-memory",
-        label_key: "systemPrompts.files.claudeUserMemory",
-        filename: "CLAUDE.md",
-        location: PromptLocation::Claude,
-    },
-    PromptFileSpec {
-        platform: "codex",
-        id: "codex-agents",
-        label_key: "systemPrompts.files.codexAgents",
-        filename: "AGENTS.md",
-        location: PromptLocation::Codex,
-    },
-    PromptFileSpec {
-        platform: "gemini",
-        id: "gemini-md",
-        label_key: "systemPrompts.files.geminiMd",
-        filename: "GEMINI.md",
-        location: PromptLocation::Gemini,
-    },
-    PromptFileSpec {
-        platform: "opencode",
-        id: "opencode-agents",
-        label_key: "systemPrompts.files.opencodeAgents",
-        filename: "AGENTS.md",
-        location: PromptLocation::OpenCode,
-    },
-];
-
-fn normalize_platform(platform: &str) -> Option<&'static str> {
-    match platform.trim().to_ascii_lowercase().as_str() {
-        "claude" | "claude-code" => Some("claude"),
-        "codex" => Some("codex"),
-        "gemini" | "gemini-cli" | "antigravity" => Some("gemini"),
-        "opencode" => Some("opencode"),
-        _ => None,
-    }
-}
-
-fn platform_specs(platform: &str) -> Result<Vec<&'static PromptFileSpec>, String> {
-    let normalized = normalize_platform(platform)
-        .ok_or_else(|| format!("不支持的系统提示词平台: {platform}"))?;
-    Ok(PROMPT_FILES
-        .iter()
-        .filter(|spec| spec.platform == normalized)
-        .collect())
-}
-
-fn prompt_spec(platform: &str, id: &str) -> Result<&'static PromptFileSpec, String> {
-    platform_specs(platform)?
-        .into_iter()
-        .find(|spec| spec.id == id)
-        .ok_or_else(|| format!("平台 {platform} 不支持系统提示词文件: {id}"))
-}
-
-fn resolve_from_home(spec: &PromptFileSpec, home: &Path) -> PathBuf {
-    match spec.location {
-        PromptLocation::Claude => home.join(".claude").join(spec.filename),
-        PromptLocation::Codex => home.join(".codex").join(spec.filename),
-        PromptLocation::Gemini => home.join(".gemini").join(spec.filename),
-        PromptLocation::OpenCode => home.join(".config").join("opencode").join(spec.filename),
-    }
-}
 
 fn resolve_prompt_path(spec: &PromptFileSpec) -> Result<PathBuf, String> {
     if spec.location == PromptLocation::OpenCode {
@@ -124,56 +40,6 @@ fn backup_dir(spec: &PromptFileSpec) -> Result<PathBuf, String> {
         .map_err(|error| format!("解析 {} 备份目录失败: {error}", platform.display_name()))
 }
 
-fn timestamp_millis(path: &Path) -> Option<u64> {
-    fs::metadata(path)
-        .ok()?
-        .modified()
-        .ok()?
-        .duration_since(UNIX_EPOCH)
-        .ok()
-        .map(|value| value.as_millis() as u64)
-}
-
-fn file_description(spec: &PromptFileSpec, path: &Path) -> Value {
-    let metadata = fs::metadata(path).ok();
-    json!({
-        "id": spec.id,
-        "labelKey": spec.label_key,
-        "path": path,
-        "exists": metadata.is_some(),
-        "size": metadata.as_ref().map(std::fs::Metadata::len),
-        "mtime": timestamp_millis(path),
-        "editable": true,
-        "limitHint": (spec.location == PromptLocation::Codex).then_some(CODEX_LIMIT_HINT),
-    })
-}
-
-fn list_claude_rules(home: &Path) -> Vec<Value> {
-    let rules_dir = home.join(".claude").join("rules");
-    let Ok(entries) = fs::read_dir(rules_dir) else {
-        return Vec::new();
-    };
-    let mut rules: Vec<_> = entries
-        .filter_map(Result::ok)
-        .map(|entry| entry.path())
-        .filter(|path| {
-            path.extension()
-                .and_then(|extension| extension.to_str())
-                .is_some_and(|extension| extension.eq_ignore_ascii_case("md"))
-        })
-        .map(|path| {
-            let metadata = fs::metadata(&path).ok();
-            json!({
-                "name": path.file_name().and_then(|name| name.to_str()).unwrap_or_default(),
-                "path": path,
-                "size": metadata.as_ref().map(std::fs::Metadata::len),
-            })
-        })
-        .collect();
-    rules.sort_by(|left, right| left["name"].as_str().cmp(&right["name"].as_str()));
-    rules
-}
-
 #[cfg(test)]
 fn list_for_home(platform: &str, home: &Path) -> Result<Value, String> {
     let specs = platform_specs(platform)?;
@@ -189,18 +55,6 @@ fn list_for_home(platform: &str, home: &Path) -> Result<Value, String> {
     Ok(json!({ "status": "ok", "files": files, "rules": rules }))
 }
 
-fn augment_file_result(mut result: Value, spec: &PromptFileSpec) -> Value {
-    if let Some(object) = result.as_object_mut() {
-        object.insert(
-            "limitHint".to_string(),
-            (spec.location == PromptLocation::Codex)
-                .then_some(json!(CODEX_LIMIT_HINT))
-                .unwrap_or(Value::Null),
-        );
-    }
-    result
-}
-
 fn save_prompt_file(
     spec: &PromptFileSpec,
     path: &Path,
@@ -208,17 +62,8 @@ fn save_prompt_file(
     content: &str,
     token: &str,
 ) -> Result<Value, String> {
-    let mut result =
-        write_raw_file_versioned(path, backup_dir, spec.filename, content, token, false)?;
-    if result["status"] == "saved" {
-        if content.len() > SIZE_WARNING_BYTES {
-            result["warning"] = json!("size");
-        }
-        if spec.location == PromptLocation::Codex {
-            result["limitHint"] = json!(CODEX_LIMIT_HINT);
-        }
-    }
-    Ok(result)
+    let result = write_raw_file_versioned(path, backup_dir, spec.filename, content, token, false)?;
+    Ok(augment_save_result(result, spec, content))
 }
 
 #[ccr_tauri_command_macros::command]
@@ -319,6 +164,9 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
+
+    const SIZE_WARNING_BYTES: usize = 64 * 1024;
+    const CODEX_LIMIT_HINT: usize = 32 * 1024;
 
     #[test]
     fn registry_resolves_all_supported_home_paths() {

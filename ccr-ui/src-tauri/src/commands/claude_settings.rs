@@ -141,37 +141,11 @@ pub async fn claude_update_statusline(
 #[ccr_tauri_command_macros::command]
 pub async fn claude_get_budgets() -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(|| -> Result<Value, String> {
-        let budget_manager = BudgetManager::with_default()
+        let config_path = BudgetManager::default_config_path()
             .map_err(|e| format!("BudgetManager init error: {}", e))?;
-
         let storage_dir = CostTracker::default_storage_dir()
             .map_err(|e| format!("CostTracker storage dir error: {}", e))?;
-        let tracker =
-            CostTracker::new(storage_dir).map_err(|e| format!("CostTracker init error: {}", e))?;
-
-        let status = budget_manager
-            .check_status(&tracker)
-            .map_err(|e| format!("Budget status error: {}", e))?;
-        let config = budget_manager.get_config();
-
-        Ok(serde_json::json!({
-            "enabled": status.enabled,
-            "dailyLimit": config.daily_limit,
-            "weeklyLimit": config.weekly_limit,
-            "monthlyLimit": config.monthly_limit,
-            "warnAtPercent": config.warn_at_percent,
-            "currentCosts": {
-                "today": status.current_costs.today,
-                "thisWeek": status.current_costs.this_week,
-                "thisMonth": status.current_costs.this_month,
-            },
-            "warnings": status.warnings.iter().map(|w| serde_json::json!({
-                "period": w.period.to_string(),
-                "currentCost": w.current_cost,
-                "limit": w.limit,
-                "usagePercent": w.usage_percent,
-            })).collect::<Vec<_>>(),
-        }))
+        ccr_app::usage::policies::read_budget(config_path, storage_dir)
     })
     .await
     .map_err(|e| format!("Task join error: {}", e))??
@@ -184,81 +158,9 @@ pub async fn claude_get_budgets() -> Result<OpenJsonValueDto, String> {
 pub async fn claude_update_budgets(budgets: OpenJsonValueDto) -> Result<OpenJsonValueDto, String> {
     let budgets: Value = budgets.into();
     tokio::task::spawn_blocking(move || -> Result<Value, String> {
-        let mut budget_manager = BudgetManager::with_default()
+        let config_path = BudgetManager::default_config_path()
             .map_err(|e| format!("BudgetManager init error: {}", e))?;
-
-        if let Some(enabled) = budgets.get("enabled").and_then(|v| v.as_bool()) {
-            if enabled {
-                budget_manager
-                    .enable()
-                    .map_err(|e| format!("Failed to enable budget: {}", e))?;
-            } else {
-                budget_manager
-                    .disable()
-                    .map_err(|e| format!("Failed to disable budget: {}", e))?;
-            }
-        }
-
-        if let Some(daily_val) = budgets.get("dailyLimit") {
-            let limit = if daily_val.is_null() {
-                None
-            } else {
-                daily_val
-                    .as_f64()
-                    .map(Some)
-                    .ok_or_else(|| "dailyLimit must be a number or null".to_string())?
-            };
-            budget_manager
-                .set_daily_limit(limit)
-                .map_err(|e| format!("Failed to set daily limit: {}", e))?;
-        }
-
-        if let Some(weekly_val) = budgets.get("weeklyLimit") {
-            let limit = if weekly_val.is_null() {
-                None
-            } else {
-                weekly_val
-                    .as_f64()
-                    .map(Some)
-                    .ok_or_else(|| "weeklyLimit must be a number or null".to_string())?
-            };
-            budget_manager
-                .set_weekly_limit(limit)
-                .map_err(|e| format!("Failed to set weekly limit: {}", e))?;
-        }
-
-        if let Some(monthly_val) = budgets.get("monthlyLimit") {
-            let limit = if monthly_val.is_null() {
-                None
-            } else {
-                monthly_val
-                    .as_f64()
-                    .map(Some)
-                    .ok_or_else(|| "monthlyLimit must be a number or null".to_string())?
-            };
-            budget_manager
-                .set_monthly_limit(limit)
-                .map_err(|e| format!("Failed to set monthly limit: {}", e))?;
-        }
-
-        if let Some(pct) = budgets
-            .get("warnAtPercent")
-            .and_then(|v| v.as_u64())
-            .map(|v| v as u8)
-        {
-            budget_manager
-                .set_warn_threshold(pct)
-                .map_err(|e| format!("Failed to set warn threshold: {}", e))?;
-        }
-
-        let config = budget_manager.get_config();
-        Ok(serde_json::json!({
-            "enabled": config.enabled,
-            "dailyLimit": config.daily_limit,
-            "weeklyLimit": config.weekly_limit,
-            "monthlyLimit": config.monthly_limit,
-            "warnAtPercent": config.warn_at_percent,
-        }))
+        ccr_app::usage::policies::update_budget(config_path, budgets)
     })
     .await
     .map_err(|e| format!("Task join error: {}", e))??

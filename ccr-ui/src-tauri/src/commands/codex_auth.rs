@@ -2,8 +2,6 @@ use super::*;
 use crate::commands::settings_raw::ensure_local_env;
 use crate::desktop_shell;
 use crate::process::{ProcessDescriptor, ProcessGateway};
-use base64::Engine;
-use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use ccr_cli::application::{auth_off_for_platform, needs_auth_off};
 use ccr_codex::services::{
     CodexModelProviderStoreService, CodexOAuthPendingState, CodexOAuthPendingStore,
@@ -15,8 +13,7 @@ use ccr_codex::{
 use chrono::Utc;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
-use serde_json::{Map as JsonMap, Value as JsonValue, json};
-use sha2::{Digest, Sha256};
+use serde_json::{Value as JsonValue, json};
 use std::collections::BTreeMap;
 use std::ffi::OsString;
 #[cfg(all(test, windows))]
@@ -25,26 +22,17 @@ use std::sync::{Arc, LazyLock};
 
 #[path = "codex_auth/oauth.rs"]
 mod oauth;
+use ccr_cli::application::codex_oauth::{
+    OAUTH_CALLBACK_PORT, OAUTH_TIMEOUT_SECONDS, OAUTH_TOKEN_URL, exchange_oauth_tokens_at,
+    new_oauth_pending,
+};
 use tauri::{AppHandle, Emitter, State};
 use ts_rs::TS;
 use uuid::Uuid;
 
-const OAUTH_CLIENT_ID: &str = "app_EMoamEEZ73f0CkXaXp7hrann";
-const OAUTH_AUTHORIZE_URL: &str = "https://auth.openai.com/oauth/authorize";
-const OAUTH_TOKEN_URL: &str = "https://auth.openai.com/oauth/token";
-const OAUTH_SCOPE: &str = "openid profile email offline_access";
-const OAUTH_ORIGINATOR: &str = "codex_vscode";
-const OAUTH_CALLBACK_PORT: u16 = 1455;
-const OAUTH_TIMEOUT_SECONDS: i64 = 300;
-
 static OAUTH_CONTROLLER: LazyLock<oauth::Controller> = LazyLock::new(oauth::Controller::default);
 
-#[derive(Clone, Deserialize)]
-struct CodexOAuthTokenResponse {
-    id_token: String,
-    access_token: String,
-    refresh_token: Option<String>,
-}
+type CodexOAuthTokenResponse = ccr_cli::application::codex_oauth::TokenResponse;
 
 #[derive(Debug, Clone, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -497,73 +485,6 @@ fn persist_oauth_pending(state: Option<&CodexOAuthPendingState>) -> Result<(), S
     .map_err(|error| error.to_string())
 }
 
-fn generate_code_verifier() -> String {
-    format!("{}{}", Uuid::new_v4().simple(), Uuid::new_v4().simple())
-}
-
-fn generate_code_challenge(code_verifier: &str) -> String {
-    let digest = Sha256::digest(code_verifier.as_bytes());
-    URL_SAFE_NO_PAD.encode(digest)
-}
-
-fn build_oauth_authorize_url(
-    redirect_uri: &str,
-    code_challenge: &str,
-    state: &str,
-) -> Result<String, String> {
-    let url = Url::parse_with_params(
-        OAUTH_AUTHORIZE_URL,
-        &[
-            ("response_type", "code"),
-            ("client_id", OAUTH_CLIENT_ID),
-            ("redirect_uri", redirect_uri),
-            ("scope", OAUTH_SCOPE),
-            ("code_challenge", code_challenge),
-            ("code_challenge_method", "S256"),
-            ("id_token_add_organizations", "true"),
-            ("codex_cli_simplified_flow", "true"),
-            ("state", state),
-            ("originator", OAUTH_ORIGINATOR),
-        ],
-    )
-    .map_err(|e| format!("构造 OAuth 授权链接失败: {e}"))?;
-    Ok(url.to_string())
-}
-
-fn callback_url_from_path(path: &str, port: u16) -> Result<Url, String> {
-    let raw = path.trim();
-    if raw.is_empty() {
-        return Err("回调地址不能为空".to_string());
-    }
-
-    if raw.starts_with("http://") || raw.starts_with("https://") {
-        return Url::parse(raw).map_err(|e| format!("回调地址格式无效: {e}"));
-    }
-
-    if raw.starts_with('/') {
-        return Url::parse(&format!("http://localhost:{port}{raw}"))
-            .map_err(|e| format!("回调地址格式无效: {e}"));
-    }
-
-    Url::parse(&format!(
-        "http://localhost:{port}/auth/callback?{}",
-        raw.trim_start_matches('?')
-    ))
-    .map_err(|e| format!("回调地址格式无效: {e}"))
-}
-
-fn parse_http_request_path(request: &str) -> Option<String> {
-    let first_line = request.lines().next()?;
-    let mut parts = first_line.split_whitespace();
-    let method = parts.next()?;
-    let path = parts.next()?;
-    if method.eq_ignore_ascii_case("GET") {
-        Some(path.to_string())
-    } else {
-        None
-    }
-}
-
 struct DesktopOAuthBackend {
     store: CodexOAuthPendingStore,
 }
@@ -613,7 +534,11 @@ impl oauth::Backend for DesktopOAuthBackend {
         tokens: CodexOAuthTokenResponse,
         name: Option<String>,
     ) -> std::pin::Pin<
-        Box<dyn std::future::Future<Output = Result<CodexAuthMutationResponse, String>> + Send>,
+        Box<
+            dyn std::future::Future<
+                    Output = Result<ccr_cli::application::codex_oauth::CommitResult, String>,
+                > + Send,
+        >,
     > {
         Box::pin(async move {
             tokio::task::spawn_blocking(move || {
@@ -632,7 +557,11 @@ impl oauth::Backend for DesktopOAuthBackend {
                 let export = service
                     .build_export_account_from_auth_json(auth, None, None, None, None)
                     .map_err(|e| format!("构建 OAuth 账号失败: {e}"))?;
-                finalize_account_mutation(&service, export, name, true)
+                let committed = finalize_account_mutation(&service, export, name, true)?;
+                Ok(ccr_cli::application::codex_oauth::CommitResult::account(
+                    committed.account_name.ok_or("oauth_account_name_missing")?,
+                    committed.switched.unwrap_or(false),
+                ))
             })
             .await
             .map_err(|_| "oauth_commit_join_failed".to_string())?
@@ -654,28 +583,6 @@ fn oauth_events(app: AppHandle) -> oauth::Events {
         } => {
             let _ = app.emit("codex-oauth-login-timeout", json!({ "loginId": login_id, "callbackUrl": callback_url, "timeoutSeconds": OAUTH_TIMEOUT_SECONDS }));
         }
-    })
-}
-
-fn new_oauth_pending() -> Result<CodexOAuthPendingState, String> {
-    let login_id = Uuid::new_v4().to_string();
-    let state = Uuid::new_v4().to_string();
-    let code_verifier = generate_code_verifier();
-    let redirect_uri = format!("http://localhost:{OAUTH_CALLBACK_PORT}/auth/callback");
-    let auth_url = build_oauth_authorize_url(
-        &redirect_uri,
-        &generate_code_challenge(&code_verifier),
-        &state,
-    )?;
-    Ok(CodexOAuthPendingState {
-        login_id,
-        auth_url: auth_url.into(),
-        redirect_uri,
-        code_verifier: code_verifier.into(),
-        state: state.into(),
-        port: OAUTH_CALLBACK_PORT,
-        expires_at: now_ts() + OAUTH_TIMEOUT_SECONDS,
-        callback_url: None,
     })
 }
 
@@ -704,109 +611,8 @@ pub fn restore_pending_oauth_listener(app: AppHandle) {
     });
 }
 
-async fn exchange_oauth_tokens_at(
-    endpoint: &str,
-    code: &str,
-    code_verifier: &str,
-    redirect_uri: &str,
-) -> Result<CodexOAuthTokenResponse, String> {
-    let client = reqwest::Client::builder()
-        .redirect(reqwest::redirect::Policy::none())
-        .build()
-        .map_err(|_| "oauth_http_client_failed")?;
-    let params = [
-        ("grant_type", "authorization_code"),
-        ("code", code),
-        ("redirect_uri", redirect_uri),
-        ("client_id", OAUTH_CLIENT_ID),
-        ("code_verifier", code_verifier),
-    ];
-    let mut response = client
-        .post(endpoint)
-        .form(&params)
-        .send()
-        .await
-        .map_err(|_| "oauth_token_request_failed")?;
-    let status = response.status();
-    if !status.is_success() {
-        return Err(format!("oauth_token_exchange_failed: status={status}"));
-    }
-    let mut body = Vec::new();
-    while let Some(chunk) = response
-        .chunk()
-        .await
-        .map_err(|_| "oauth_token_body_failed")?
-    {
-        if body.len() + chunk.len() > 1024 * 1024 {
-            return Err("oauth_token_body_too_large".into());
-        }
-        body.extend_from_slice(&chunk);
-    }
-    serde_json::from_slice(&body).map_err(|_| "oauth_token_response_invalid".into())
-}
-
 fn json_value_to_auth(value: JsonValue) -> Result<CodexAuthJson, String> {
     serde_json::from_value(value).map_err(|e| format!("解析认证数据失败: {e}"))
-}
-
-fn derive_email_from_auth(auth: &CodexAuthJson) -> Option<String> {
-    let id_token = auth.tokens.as_ref()?.id_token.as_ref()?;
-    let parts: Vec<&str> = id_token.split('.').collect();
-    if parts.len() != 3 {
-        return None;
-    }
-    let decoded = ccr_codex::utils::decode_base64url(parts[1])?;
-    let payload: JsonValue = serde_json::from_slice(&decoded).ok()?;
-    payload
-        .get("email")
-        .and_then(|value| value.as_str())
-        .map(str::to_string)
-}
-
-fn derive_name_hint(auth: &CodexAuthJson, provider_name: Option<&str>) -> Option<String> {
-    if let Some(email) = derive_email_from_auth(auth) {
-        return email.split('@').next().map(|value| value.to_string());
-    }
-
-    if let Some(provider_name) = provider_name
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-    {
-        return Some(provider_name.to_string());
-    }
-
-    if auth
-        .openai_api_key
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .is_some()
-    {
-        return Some("openai-api".to_string());
-    }
-
-    auth.tokens
-        .as_ref()
-        .and_then(|tokens| tokens.account_id.as_ref())
-        .map(|value| value.to_string())
-}
-
-fn single_account_import_payload(
-    account_name: &str,
-    export_account: ccr_codex::CodexAuthExportAccount,
-) -> Result<String, String> {
-    let mut accounts = JsonMap::new();
-    accounts.insert(
-        account_name.to_string(),
-        serde_json::to_value(export_account).map_err(|e| format!("序列化导入账号失败: {e}"))?,
-    );
-
-    serde_json::to_string(&json!({
-        "version": "1.0",
-        "exported_at": Utc::now().to_rfc3339(),
-        "accounts": accounts,
-    }))
-    .map_err(|e| format!("构造导入数据失败: {e}"))
 }
 
 fn normalize_url(value: Option<String>) -> Option<String> {
@@ -1028,41 +834,15 @@ fn finalize_account_mutation(
     preferred_name: Option<String>,
     switch_after_import: bool,
 ) -> Result<CodexAuthMutationResponse, String> {
-    let explicit_name = normalize_account_name(preferred_name);
-    let name_hint = explicit_name.clone().or_else(|| {
-        derive_name_hint(
-            &export_account.auth_data.clone().unwrap_or(CodexAuthJson {
-                openai_api_key: None,
-                tokens: None,
-                last_refresh: None,
-            }),
-            export_account.api_provider_name.as_deref(),
-        )
-    });
-
-    let account_name = if let Some(name) = explicit_name {
-        service
-            .reserve_explicit_account_name(&name)
-            .map_err(|e| format!("校验账号名称失败: {e}"))?
-    } else {
-        service
-            .suggest_account_name(name_hint.as_deref())
-            .map_err(|e| format!("生成账号名称失败: {e}"))?
-    };
-    let payload = single_account_import_payload(&account_name, export_account)?;
-    service
-        .import_accounts(&payload, ImportMode::Merge, false)
-        .map_err(|e| format!("导入账号失败: {e}"))?;
-
-    if switch_after_import {
-        service
-            .switch_account(&account_name)
-            .map_err(|e| format!("切换账号失败: {e}"))?;
-    }
-
-    Ok(CodexAuthMutationResponse::account(
-        account_name,
+    let committed = ccr_cli::application::codex_oauth::commit_account(
+        service,
+        export_account,
+        preferred_name,
         switch_after_import,
+    )?;
+    Ok(CodexAuthMutationResponse::account(
+        committed.account_name,
+        committed.switched,
     ))
 }
 
@@ -1359,7 +1139,10 @@ pub async fn codex_oauth_login_completed(
         .await?;
     invalidate_codex_dashboard_overview_cache(&state).await;
     let _ = desktop_shell::refresh_codex_tray(&app, true).await;
-    Ok(response)
+    Ok(CodexAuthMutationResponse::account(
+        response.account_name,
+        response.switched,
+    ))
 }
 
 #[ccr_tauri_command_macros::command]

@@ -13,7 +13,6 @@ use chrono::{DateTime, Duration, Local, Utc};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use crate::llmusage_adapter::error::LlmusageAdapterError;
 use crate::llmusage_adapter::queries::{
     DailyTrendDto, HeatmapResponseDto, ModelStatDto, PaginatedLogsDto, ProjectStatDto,
     ProviderBreakdownDto, SourceBreakdownDto, UsageSummaryDto,
@@ -1052,33 +1051,18 @@ pub fn compute_dashboard(
         .dashboard()
         .map_err(|e| format!("Dashboard open error: {e}"))?;
 
-    let summary = dashboard
-        .overview(&filter)
-        .map(queries::to_usage_summary)
-        .map_err(|e| format!("Summary query error: {e}"))?;
-    let trends = dashboard
-        .trends_daily(&filter)
-        .map(queries::to_daily_trends)
-        .map_err(|e| format!("Trends query error: {e}"))?;
-    let model_stats = dashboard
-        .model_breakdown(&filter)
-        .map(queries::to_model_stats)
-        .map_err(|e| format!("Model stats query error: {e}"))?;
-    let project_stats = dashboard
-        .project_breakdown(&filter)
-        .map(queries::to_project_stats)
-        .map_err(|e| format!("Project stats query error: {e}"))?;
-    let source_stats = dashboard
-        .source_breakdown(&filter)
-        .map_err(|e| format!("Source stats query error: {e}"))?;
-    let provider_stats = match dashboard.provider_breakdown(&filter) {
-        Ok(stats) => stats,
-        Err(
-            LlmusageAdapterError::SchemaUnsupported { .. }
-            | LlmusageAdapterError::FeatureUnavailable { .. },
-        ) if filter.provider.is_none() => Vec::new(),
-        Err(error) => return Err(format!("Provider stats query error: {error}")),
-    };
+    let report = ccr_app::usage::read::read_dashboard(
+        dashboard.shared(),
+        &filter,
+        include_heatmap.then_some(heatmap_days),
+    )
+    .map_err(|error| format!("Dashboard query error: {error}"))?;
+    let summary = queries::to_usage_summary(report.overview);
+    let trends = queries::to_daily_trends(report.trends);
+    let model_stats = queries::to_model_stats(report.models);
+    let project_stats = queries::to_project_stats(report.projects);
+    let source_stats = report.sources;
+    let provider_stats = report.providers;
     let mut archive =
         load_llmusage_archive_diagnostics(&dashboard, count_archived_sessions(usage_db_pool)?)?;
     let needs_session_index = archive.archived_sessions == 0 && raw_sessions_present;
@@ -1097,16 +1081,7 @@ pub fn compute_dashboard(
         &archive,
     );
     let generated_at = snapshot.generated_at.clone();
-    let heatmap = if include_heatmap {
-        Some(
-            dashboard
-                .heatmap(&filter, heatmap_days)
-                .map(queries::to_heatmap_response)
-                .map_err(|e| format!("Heatmap query error: {e}"))?,
-        )
-    } else {
-        None
-    };
+    let heatmap = report.heatmap.map(queries::to_heatmap_response);
 
     Ok(UsageDashboardResponse {
         summary,
@@ -2084,6 +2059,56 @@ mod service_tests {
             needs_index.snapshot.readiness.state,
             UsageReadinessState::NeedsSessionIndex
         );
+    }
+
+    #[test]
+    fn compute_dashboard_matches_shared_report_through_existing_wire_mappings() {
+        let temp = TempDir::new().expect("fixture");
+        let (runtime, conn) = open_fixture(&temp);
+        seed_reference_buckets(&conn);
+        drop(conn);
+        let pool = temp_usage_pool(&temp);
+        let response = compute_dashboard(
+            &runtime,
+            &pool,
+            Some("codex".into()),
+            Some("openai".into()),
+            Some("2026-07-01".into()),
+            Some("2026-07-01".into()),
+            7,
+            true,
+            false,
+            false,
+            false,
+        )
+        .expect("Tauri report");
+        let filter = build_filter(
+            Some("codex".into()),
+            None,
+            Some("2026-07-01".into()),
+            Some("2026-07-01".into()),
+        )
+        .unwrap()
+        .with_provider(Some("openai".into()));
+        let dashboard = ccr_usage::open_dashboard(runtime.paths().clone()).unwrap();
+        let report = ccr_app::usage::read::read_dashboard(&dashboard, &filter, Some(7)).unwrap();
+        assert_eq!(
+            serde_json::to_value(&response.summary).unwrap(),
+            serde_json::to_value(queries::to_usage_summary(report.overview)).unwrap()
+        );
+        assert_eq!(response.trends, report.trends);
+        assert_eq!(response.model_stats, queries::to_model_stats(report.models));
+        assert_eq!(
+            serde_json::to_value(&response.project_stats).unwrap(),
+            serde_json::to_value(queries::to_project_stats(report.projects)).unwrap()
+        );
+        assert_eq!(response.source_stats, report.sources);
+        assert_eq!(response.provider_stats, report.providers);
+        assert_eq!(
+            serde_json::to_value(&response.heatmap).unwrap(),
+            serde_json::to_value(report.heatmap.map(queries::to_heatmap_response)).unwrap()
+        );
+        assert_eq!(response.summary.total_tokens, 100);
     }
 
     #[test]

@@ -31,11 +31,30 @@ pub async fn codex_update_settings(
     open_json(response)
 }
 
-fn update_codex_settings_at_path(path: &PathBuf, settings: &Value) -> Result<Value, String> {
-    let mut config = read_codex_config(path)?;
-    apply_codex_settings_update(&mut config, settings)?;
-    write_codex_config(path, &config)?;
-    Ok(json!({ "message": "Codex 配置已更新" }))
+fn update_codex_settings_at_path(
+    path: &std::path::Path,
+    settings: &Value,
+) -> Result<Value, String> {
+    use ccr_app::platform_settings::{Document, Format, SaveOutcome};
+    let document = Document::new(
+        path.to_path_buf(),
+        None,
+        ccr_core::BackupPolicy::None,
+        None,
+        Format::Toml,
+    );
+    // This legacy patch endpoint has no editor token. Replay only the submitted
+    // dirty patch against a fresh snapshot; native drafts pass their original one.
+    for _ in 0..3 {
+        let snapshot = document.read().map_err(|error| error.to_string())?;
+        match ccr_app::platform_settings::codex::save_patch(&document, &snapshot, settings)
+            .map_err(|error| error.to_string())?
+        {
+            SaveOutcome::Saved { .. } => return Ok(json!({ "message": "Codex 配置已更新" })),
+            SaveOutcome::Conflict => {}
+        }
+    }
+    Err("settings_conflict".into())
 }
 
 #[cfg(test)]

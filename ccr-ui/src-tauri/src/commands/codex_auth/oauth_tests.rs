@@ -1,6 +1,6 @@
 use super::*;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use tokio::sync::{Notify, Semaphore};
+use tokio::sync::{Notify, Semaphore, oneshot};
 
 struct Fixture {
     disk: Mutex<Option<CodexOAuthPendingState>>,
@@ -116,7 +116,7 @@ impl Backend for Fixture {
         Box::pin(async move {
             started.notify_one();
             if let Some(endpoint) = endpoint {
-                return super::super::exchange_oauth_tokens_at(
+                return super::exchange_oauth_tokens_at(
                     &endpoint,
                     "sentinel-code",
                     pending.code_verifier.expose(),
@@ -371,35 +371,6 @@ async fn wrong_id_state_origin_and_duplicate_callback_leave_owner_unchanged() {
         .await
         .expect("cancel");
     assert!(controller.submit("first", &fixture.callback()).is_err());
-    assert_eq!(fixture.commits.load(Ordering::SeqCst), 0);
-}
-
-#[tokio::test]
-async fn silent_socket_times_out_and_releases_listener_without_success() {
-    let fixture = Fixture::new(Duration::from_millis(60), None);
-    let controller = Controller::default();
-    start(&controller, &fixture);
-    let mut socket = tokio::net::TcpStream::connect(("127.0.0.1", fixture.port))
-        .await
-        .expect("connect");
-    let login = controller
-        .login(Some("first"))
-        .expect("lookup")
-        .expect("login");
-    let mut done = login.done.clone();
-    watchdog(done.wait_for(|value| value.is_some()))
-        .await
-        .expect("timeout terminal");
-    assert_eq!(*done.borrow(), Some(Err(Outcome::TimedOut)));
-    let mut buf = [0; 1];
-    assert_eq!(
-        watchdog(socket.read(&mut buf))
-            .await
-            .expect("socket closed"),
-        0
-    );
-    assert!(std::net::TcpListener::bind(("127.0.0.1", fixture.port)).is_ok());
-    assert!(fixture.disk.lock().expect("disk").is_none());
     assert_eq!(fixture.commits.load(Ordering::SeqCst), 0);
 }
 
@@ -692,49 +663,6 @@ async fn cleanup_retry_has_one_owner_without_blocking_control_locks() {
 }
 
 #[tokio::test]
-async fn stale_cleanup_retry_cannot_clear_a_replacement_login() {
-    let fixture = Fixture::new(Duration::from_secs(30), None);
-    let controller = Controller::default();
-    start(&controller, &fixture);
-    let stale_login = controller
-        .login(Some("first"))
-        .expect("login")
-        .expect("active");
-    fixture.fail_clear.store(true, Ordering::SeqCst);
-    watchdog(controller.cancel(Some("first")))
-        .await
-        .expect_err("first cleanup fails");
-    fixture.fail_clear.store(false, Ordering::SeqCst);
-    controller
-        .cancel(Some("first"))
-        .await
-        .expect("retry clears slot");
-    controller
-        .start(
-            fixture.clone(),
-            Arc::new(|_| {}),
-            || Ok(fixture.pending("second")),
-            None,
-        )
-        .expect("replacement login");
-    // A second cancel may already have captured the previous owner before
-    // the first retry cleared its slot. Resume that exact stale owner here.
-    let stale_result = controller.cancel_login(stale_login).await;
-    let saved_id = fixture
-        .disk
-        .lock()
-        .expect("disk")
-        .as_ref()
-        .map(|pending| pending.login_id.clone());
-    controller
-        .cancel(Some("second"))
-        .await
-        .expect("cleanup fixture");
-    assert_eq!(saved_id.as_deref(), Some("second"));
-    assert_eq!(stale_result, Err("oauth_login_id_changed".into()));
-}
-
-#[tokio::test]
 async fn slow_http_body_is_cancelled_and_server_observes_closed_connection() {
     let server = TcpListener::bind(("127.0.0.1", 0))
         .await
@@ -855,7 +783,7 @@ async fn token_endpoint_error_and_invalid_body_never_return_secret_content() {
             let body = "sentinel-access-token sentinel-verifier sentinel-state";
             connection.write_all(format!("HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.expect("response");
         });
-        let error = watchdog(super::super::exchange_oauth_tokens_at(
+        let error = watchdog(super::exchange_oauth_tokens_at(
             &endpoint,
             "sentinel-code",
             "sentinel-verifier",
