@@ -18,6 +18,8 @@ use uuid::Uuid;
 
 use crate::process::{ProcessDescriptor, ProcessGateway};
 
+pub use ccr_app::environments::{HostKeyStatus, classify_host_key};
+
 pub const HOST_KEY_CHALLENGE_TTL: Duration = Duration::from_secs(120);
 const MAX_REMOTE_PATH_LEN: usize = 1024;
 const KNOWN_HOSTS_CAS_ATTEMPTS: usize = 4;
@@ -377,25 +379,6 @@ pub fn app_known_hosts_path() -> Result<PathBuf, String> {
             .join(".ccr"),
     };
     Ok(root.join("ssh").join("known_hosts"))
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum HostKeyStatus {
-    New,
-    Matched,
-    Mismatch,
-}
-
-pub fn classify_host_key(
-    stored_fingerprint: Option<&str>,
-    observed_fingerprint: &str,
-) -> HostKeyStatus {
-    match stored_fingerprint {
-        None => HostKeyStatus::New,
-        Some(stored) if stored == observed_fingerprint => HostKeyStatus::Matched,
-        Some(_) => HostKeyStatus::Mismatch,
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

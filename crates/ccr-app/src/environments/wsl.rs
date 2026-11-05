@@ -129,6 +129,60 @@ pub fn parse_wsl_list(text: &str) -> Vec<WslDistro> {
     distros
 }
 
+/// Where a WSL config file would be opened.
+///
+/// `Unavailable` opens nothing. A remote target keeps the POSIX path and the
+/// distribution name; it is never a Windows drive or UNC path.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum WslFileTarget {
+    Unavailable,
+    Remote { distro: String, path: String },
+}
+
+/// Choose a WSL file target without spawning `wsl.exe`.
+///
+/// No distribution, a blank distribution, or a Windows path yields
+/// `Unavailable`. The local Windows path is not returned and is not opened.
+pub fn resolve_wsl_file(distro: Option<&str>, linux_path: &str) -> WslFileTarget {
+    let Some(distro) = usable_distro(distro) else {
+        return WslFileTarget::Unavailable;
+    };
+    if is_windows_local_path(linux_path) || !is_absolute_posix(linux_path) {
+        return WslFileTarget::Unavailable;
+    }
+    WslFileTarget::Remote {
+        distro: distro.to_string(),
+        path: linux_path.to_string(),
+    }
+}
+
+fn usable_distro(distro: Option<&str>) -> Option<&str> {
+    let distro = distro?.trim();
+    if distro.is_empty()
+        || is_windows_local_path(distro)
+        || distro.contains(['/', '\\', ':', ' ', '\n', '\r', '\t'])
+    {
+        None
+    } else {
+        Some(distro)
+    }
+}
+
+fn is_windows_local_path(path: &str) -> bool {
+    let path = path.trim();
+    let bytes = path.as_bytes();
+    if bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':' {
+        return true;
+    }
+    path.starts_with(r"\\") || path.starts_with("//")
+}
+
+fn is_absolute_posix(path: &str) -> bool {
+    path.starts_with('/')
+        && !path.contains(['\\', '\n', '\r'])
+        && !path.split('/').any(|segment| segment == "..")
+}
+
 pub fn classify_exec(success: bool, stdout: &[u8], stderr: &[u8]) -> WslExecProbe {
     if success {
         return WslExecProbe::Completed;
@@ -305,7 +359,8 @@ fn read_limited(reader: Option<impl Read>) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::{
-        WslExecProbe, WslState, WslVersion, classify_exec, decode_wsl_output, parse_wsl_list,
+        WslExecProbe, WslFileTarget, WslState, WslVersion, classify_exec, decode_wsl_output,
+        parse_wsl_list, resolve_wsl_file,
     };
 
     #[test]
@@ -338,6 +393,53 @@ mod tests {
         assert_eq!(parsed[0].name, "$(whoami)");
         assert_eq!(parsed[0].state, WslState::Stopped);
         assert_eq!(parsed[0].version, WslVersion::Wsl1);
+    }
+
+    #[test]
+    fn missing_distro_does_not_fall_back_to_a_local_windows_path() {
+        let dir = tempfile::tempdir().unwrap_or_else(|error| panic!("{error}"));
+        let local = dir.path().join("settings.json");
+        std::fs::write(&local, b"local-secret").unwrap_or_else(|error| panic!("{error}"));
+        let windows_home = r"C:\Users\example\.claude\settings.json";
+
+        for distro in [
+            None,
+            Some(""),
+            Some("   "),
+            Some(r"C:\Users\example"),
+            Some("docker-desktop"),
+        ] {
+            let target = resolve_wsl_file(distro, windows_home);
+            assert_eq!(target, WslFileTarget::Unavailable);
+            let rendered = format!("{target:?}");
+            assert!(!rendered.contains("settings.json"));
+            assert!(!rendered.contains("local-secret"));
+            assert!(!rendered.contains("Users"));
+            assert!(!rendered.contains(':'));
+        }
+
+        let local_target = resolve_wsl_file(None, &local.display().to_string());
+        assert_eq!(local_target, WslFileTarget::Unavailable);
+        assert!(!format!("{local_target:?}").contains("local-secret"));
+        assert!(!format!("{local_target:?}").contains("settings.json"));
+
+        let remote = resolve_wsl_file(Some("docker-desktop"), "/home/user/.claude/settings.json");
+        match remote {
+            WslFileTarget::Remote { distro, path } => {
+                assert_eq!(distro, "docker-desktop");
+                assert_eq!(path, "/home/user/.claude/settings.json");
+                assert!(!path.contains('\\'));
+                assert!(!path.contains(':'));
+            }
+            WslFileTarget::Unavailable => panic!("posix path should stay on the named distro"),
+        }
+        assert_eq!(
+            resolve_wsl_file(Some("docker-desktop"), "/home/../mnt/c/Users/example"),
+            WslFileTarget::Unavailable
+        );
+
+        let body = std::fs::read_to_string(&local).unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(body, "local-secret");
     }
 
     #[test]

@@ -231,13 +231,21 @@ pub(crate) fn wsl_line(chinese: bool, probe: &WslProbe) -> String {
     }
 }
 
+pub(crate) fn ssh_trust_line(chinese: bool) -> &'static str {
+    if chinese {
+        "已保存的 SSH 名称仍只是名称。新的或未知主机密钥不会保存。变更的主机密钥不会被接受。"
+    } else {
+        "Saved SSH names stay names. A new or unknown host key is not stored. A changed host key is not accepted."
+    }
+}
+
 pub(crate) fn ssh_line(chinese: bool, names: &SshNames) -> String {
     match names {
         SshNames::NotConnected => {
             if chinese {
-                "此桌面壳未接入 SSH 管理。".to_string()
+                "此桌面壳没有加载 SSH 主机列表。".to_string()
             } else {
-                "SSH management is not connected in this desktop shell.".to_string()
+                "No SSH host list is loaded in this desktop shell.".to_string()
             }
         }
         SshNames::Unreadable => {
@@ -425,6 +433,7 @@ impl Render for EnvironmentView {
         } else if let Some(report) = &self.report {
             column = column.child(line("env-wsl", wsl_line(chinese, &report.wsl)));
             column = column.child(line("env-ssh", ssh_line(chinese, &report.ssh)));
+            column = column.child(line("env-ssh-trust", ssh_trust_line(chinese).to_string()));
             let shell = shell_lines(chinese, report.shell);
             column = column.child(line("env-tray-status", shell[0].clone()));
             column = column.child(line("env-hide-status", shell[1].clone()));

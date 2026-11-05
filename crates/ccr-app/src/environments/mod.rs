@@ -1,11 +1,14 @@
 //! Local process, WSL probe, and saved SSH host labels for desktop shells.
+mod ssh_trust;
 mod wsl;
 
 use std::path::PathBuf;
 
+pub use ssh_trust::{HostKeyDecision, HostKeyStatus, classify_host_key, decide_host_key};
 pub use wsl::{
-    WslDistro, WslExecProbe, WslListError, WslProbe, WslState, WslVersion, classify_exec,
-    decode_wsl_output, list_installed_distros, parse_wsl_list, probe_wsl,
+    WslDistro, WslExecProbe, WslFileTarget, WslListError, WslProbe, WslState, WslVersion,
+    classify_exec, decode_wsl_output, list_installed_distros, parse_wsl_list, probe_wsl,
+    resolve_wsl_file,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
