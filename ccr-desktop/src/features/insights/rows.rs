@@ -1,4 +1,11 @@
 use super::*;
+
+fn source_label(raw: &str) -> String {
+    SourceKind::parse_id(raw)
+        .map(|kind| kind.as_str().to_string())
+        .unwrap_or_else(|| raw.to_string())
+}
+
 pub(super) struct Row {
     pub key: String,
     pub label: String,
@@ -74,7 +81,7 @@ impl InsightsView {
                 Section::Sources => {
                     let r = report.sources.get(index)?;
                     (
-                        r.source.clone(),
+                        source_label(&r.source),
                         r.total_tokens.to_string(),
                         r.event_count.to_string(),
                     )
@@ -123,7 +130,7 @@ impl InsightsView {
                     format!(
                         "{} · {} · {}",
                         r.recorded_at,
-                        r.platform,
+                        source_label(&r.platform),
                         r.model.as_deref().unwrap_or("unknown")
                     ),
                     r.input_tokens.to_string(),
@@ -267,8 +274,13 @@ impl InsightsView {
                 }
                 Section::Sources => {
                     let r = &report.sources[index];
+                    let stored = if source_label(&r.source) == r.source {
+                        String::new()
+                    } else {
+                        format!(" · stored {}", r.source)
+                    };
                     vec![
-                        r.source.clone(),
+                        format!("{}{stored}", source_label(&r.source)),
                         format!(
                             "Tokens {} · Requests {} · Active days {}",
                             r.total_tokens, r.event_count, r.active_days
@@ -303,7 +315,7 @@ impl InsightsView {
                     format!(
                         "{} · {} · {}",
                         r.recorded_at,
-                        r.platform,
+                        source_label(&r.platform),
                         r.model.as_deref().unwrap_or("unknown")
                     ),
                     format!(
@@ -314,7 +326,7 @@ impl InsightsView {
                         r.cache_creation_tokens
                     ),
                     format!(
-                        "USD with cache {} · without cache {} · Pricing {} / {}",
+                        "USD with cache {} · without cache {} · pricing status {} · source {}",
                         r.cost_with_cache_usd,
                         r.cost_without_cache_usd,
                         r.pricing_status,
@@ -382,6 +394,9 @@ impl InsightsView {
                     .map(|v| v.to_string())
                     .unwrap_or_else(|| "not counted".into())
             ),
+            Some(InsightsSnapshot::Sessions { indexed: false, .. }) => {
+                "Sessions are not indexed.".into()
+            }
             Some(InsightsSnapshot::Sessions { page, .. }) => {
                 format!("{} archived summaries on this page", page.items.len())
             }
@@ -396,18 +411,18 @@ impl InsightsView {
         }
     }
     pub(super) fn comparison(&self, cx: &Context<Self>) -> gpui_kit::Div {
-        let rows: Vec<(&str, i64)> = match self.snapshot.as_deref() {
+        let rows: Vec<(String, i64)> = match self.snapshot.as_deref() {
             Some(InsightsSnapshot::Home(h)) => h
                 .agents
                 .iter()
                 .take(4)
-                .map(|r| (r.source.as_str(), r.requests))
+                .map(|r| (r.source.clone(), r.requests))
                 .collect(),
             Some(InsightsSnapshot::Usage(r)) => r
                 .sources
                 .iter()
                 .take(4)
-                .map(|r| (r.source.as_str(), r.total_tokens))
+                .map(|row| (source_label(&row.source), row.total_tokens))
                 .collect(),
             _ => Vec::new(),
         };

@@ -1,6 +1,6 @@
 //! Home workbench. Numbers come from the captured usage database and session archive.
 use crate::{
-    locales::{service_error, text},
+    locales::{is_chinese, service_error, text},
     runtime::insights::{InsightsRequests, SessionScope, WorkbenchReport},
     shell::semantics,
     theme,
@@ -174,8 +174,7 @@ impl OverviewView {
             return service_error(cx, error).to_string();
         }
         if let Some(report) = &self.report {
-            return if cx.global::<crate::locales::Language>() == &crate::locales::Language::Chinese
-            {
+            return if is_chinese(cx) {
                 format!("已读取本机用量，报告日 {}", report.as_of)
             } else {
                 format!("Local usage read. Report date {}", report.as_of)
@@ -456,7 +455,7 @@ impl OverviewView {
                                     .child(state),
                             ),
                     )
-                    .child(sparkline(&platform.requests_by_day, cx))
+                    .child(sparkline(&platform.requests_by_day, platform.requests, cx))
                     .child(
                         div()
                             .flex()
@@ -509,15 +508,19 @@ impl OverviewView {
             .items_end()
             .gap(px(if report.days.len() > 40 { 0. } else { 2. }));
         if max == 0 {
+            let (en, zh) = if report.requests > 0 {
+                (
+                    "These bars do not include every source. The totals above still count them.",
+                    "这些柱子没有画入全部来源。上面的总数仍然计入。",
+                )
+            } else {
+                ("No requests in this window.", "这个窗口没有请求。")
+            };
             columns = columns.child(
                 div()
                     .text_size(px(theme::META_SIZE))
                     .text_color(cx.theme().muted_foreground)
-                    .child(text(
-                        cx,
-                        "No requests in this window.",
-                        "这个窗口没有请求。",
-                    )),
+                    .child(text(cx, en, zh)),
             );
         } else {
             for day in &report.days {
@@ -563,8 +566,8 @@ impl OverviewView {
                         grouped(report.other_requests),
                         text(
                             cx,
-                            "requests from other sources are in the totals, not in these bars.",
-                            "条请求来自其他来源，已计入总数，没有画进这些柱子。",
+                            "requests are in the totals and are not drawn in these bars.",
+                            "条请求已计入总数，没有画进这些柱子。",
                         )
                     )),
             );
@@ -685,26 +688,24 @@ fn format_usd(value: f64) -> String {
     }
 }
 
-fn sparkline(values: &[i64], cx: &mut Context<OverviewView>) -> impl IntoElement {
+fn sparkline(values: &[i64], requests: i64, cx: &mut Context<OverviewView>) -> impl IntoElement {
     let max = values.iter().copied().max().unwrap_or(0);
     if values.is_empty() || max == 0 {
+        let (en, zh) = if values.is_empty() && requests > 0 {
+            (
+                "Included in the totals. Not drawn day by day.",
+                "已计入总数，没有按日拆开。",
+            )
+        } else if values.is_empty() {
+            ("No daily series", "没有逐日序列")
+        } else {
+            ("No requests in this window", "这个窗口没有请求")
+        };
         return div()
             .h(px(36.))
             .text_size(px(theme::META_SIZE))
             .text_color(cx.theme().muted_foreground)
-            .child(text(
-                cx,
-                if values.is_empty() {
-                    "No daily series"
-                } else {
-                    "No requests in this window"
-                },
-                if values.is_empty() {
-                    "没有逐日序列"
-                } else {
-                    "这个窗口没有请求"
-                },
-            ))
+            .child(text(cx, en, zh))
             .into_any_element();
     }
     let mut row = div().h(px(36.)).flex().items_end().gap(px(2.));

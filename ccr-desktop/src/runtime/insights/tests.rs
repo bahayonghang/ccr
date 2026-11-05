@@ -14,6 +14,21 @@ fn key(environment: EnvironmentId) -> RequestKey {
         request_id: 1,
     }
 }
+/// Noon on the local report day, as UTC. `read_workbench` windows by local dates,
+/// so a UTC calendar date can fall outside that window.
+fn hour_on_local_report_day() -> String {
+    let noon = chrono::Local::now()
+        .date_naive()
+        .and_hms_opt(12, 0, 0)
+        .expect("noon");
+    noon.and_local_timezone(chrono::Local)
+        .earliest()
+        .expect("local noon")
+        .with_timezone(&chrono::Utc)
+        .format("%Y-%m-%dT%H:%M:%SZ")
+        .to_string()
+}
+
 fn services(owner: &RuntimeOwner, root: &std::path::Path) -> Services {
     Services::new(
         owner.handle(),
@@ -245,7 +260,7 @@ fn archive_refresh_detaches_and_retains_actual_counters_without_touching_provide
 }
 
 #[test]
-fn insights_paths_require_both_files_and_create_nothing() {
+fn insights_paths_accept_either_file_and_create_nothing() {
     let root = tempfile::tempdir().unwrap();
     let usage_root = root.path().join("llmusage");
     let usage_db = usage_root.join("llmusage.db");
@@ -258,10 +273,10 @@ fn insights_paths_require_both_files_and_create_nothing() {
     assert!(!root.path().join("missing").exists());
     std::fs::create_dir_all(&usage_root).unwrap();
     std::fs::write(&usage_db, b"db").unwrap();
-    assert!(
+    let usage_only =
         insights_paths_if_present(usage_root.clone(), &usage_db, archive.clone(), home.clone())
-            .is_none()
-    );
+            .unwrap();
+    assert_eq!(usage_only.usage_root, usage_root);
     assert!(!archive.parent().unwrap().exists());
     std::fs::create_dir_all(archive.parent().unwrap()).unwrap();
     std::fs::write(&archive, b"db").unwrap();
@@ -271,6 +286,7 @@ fn insights_paths_require_both_files_and_create_nothing() {
     assert_eq!(paths.usage_root, usage_root);
     assert_eq!(paths.archive_db, archive);
     assert_eq!(paths.provider_home, home);
+    assert!(!home.exists());
 }
 
 #[gpui_kit::test]
@@ -286,7 +302,7 @@ async fn workbench_reads_seeded_usage_and_does_not_invent_sessions(
     seed_bucket(
         &conn,
         &SeedBucket {
-            hour_start: chrono::Utc::now().format("%Y-%m-%dT12:00:00Z").to_string(),
+            hour_start: hour_on_local_report_day(),
             cost_with_cache_usd: 0.123456789,
             ..Default::default()
         },
@@ -324,5 +340,116 @@ async fn workbench_reads_seeded_usage_and_does_not_invent_sessions(
     assert_eq!(codex.requests, 2);
     assert_eq!(claude.requests, 0);
     assert!(!archive.exists());
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+async fn workbench_folds_stored_source_aliases_without_inventing_daily_bars(
+    cx: &mut gpui_kit::TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let paths = create_projection_db(&root.path().join("llmusage"));
+    let pool = database::create_pool(&paths.db_path, None).unwrap();
+    let conn = pool.get().unwrap();
+    let hour = hour_on_local_report_day();
+    seed_bucket(
+        &conn,
+        &SeedBucket {
+            source: "antigravity_ide".into(),
+            hour_start: hour.clone(),
+            event_count: 5,
+            total_tokens: 50,
+            cost_with_cache_usd: 0.5,
+            ..Default::default()
+        },
+    );
+    seed_bucket(
+        &conn,
+        &SeedBucket {
+            source: "omp".into(),
+            hour_start: hour,
+            event_count: 7,
+            total_tokens: 70,
+            cost_with_cache_usd: 0.25,
+            ..Default::default()
+        },
+    );
+    drop(conn);
+    drop(pool);
+    let requests = InsightsRequests::new(&services(&owner, root.path()));
+    let mut read = requests
+        .load_workbench(key(EnvironmentId::Local("fixture".into())), 7)
+        .unwrap();
+    let Some(TaskEvent::Terminal(result)) = read.next().await else {
+        panic!("missing alias workbench terminal");
+    };
+    let Completion::Success(report) = result.as_ref() else {
+        panic!("alias workbench failed");
+    };
+    assert_eq!(report.requests, 12);
+    assert_eq!(report.tokens, 120);
+    assert_eq!(report.cost_usd, Some(0.75));
+    assert!(!report.sessions_indexed);
+    assert!(
+        report
+            .platforms
+            .iter()
+            .all(|platform| platform.id != "antigravity_ide" && platform.id != "omp")
+    );
+    let antigravity = report
+        .platforms
+        .iter()
+        .find(|platform| platform.id == "antigravity")
+        .unwrap();
+    let pi = report
+        .platforms
+        .iter()
+        .find(|platform| platform.id == "pi")
+        .unwrap();
+    assert_eq!(antigravity.requests, 5);
+    assert_eq!(antigravity.tokens, 50);
+    assert!(antigravity.requests_by_day.is_empty());
+    assert_eq!(pi.requests, 7);
+    assert_eq!(pi.tokens, 70);
+    assert!(pi.requests_by_day.is_empty());
+    assert_eq!(report.other_requests, 12);
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+async fn missing_archive_is_unindexed_and_creates_nothing(cx: &mut gpui_kit::TestAppContext) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let requests = InsightsRequests::new(&services(&owner, root.path()));
+    let mut read = requests
+        .load(
+            key(EnvironmentId::Local("fixture".into())),
+            InsightsQuery::Sessions(SessionListRequest::default()),
+        )
+        .unwrap();
+    let Some(TaskEvent::Terminal(result)) = read.next().await else {
+        panic!("missing session terminal");
+    };
+    let Completion::Success(snapshot) = result.as_ref() else {
+        panic!("session read failed");
+    };
+    let InsightsSnapshot::Sessions {
+        page,
+        statuses,
+        indexed,
+    } = snapshot.as_ref()
+    else {
+        panic!("wrong session snapshot");
+    };
+    assert!(!indexed);
+    assert!(page.items.is_empty());
+    assert_eq!(statuses.len(), 8);
+    assert!(statuses.iter().all(|status| {
+        status.availability == ccr_store::sessions::ProviderAvailability::NotInstalled
+    }));
+    assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
     owner.shutdown();
 }

@@ -1,7 +1,7 @@
 //! Session page shown from the sidebar. The workbench renderer stays for tests.
 use super::{InsightsSnapshot, InsightsView};
 use crate::{
-    locales::{service_error, text},
+    locales::{is_chinese, service_error, text},
     runtime::insights::RefreshStatus,
     shell::semantics,
     theme,
@@ -96,8 +96,8 @@ fn status_line(view: &InsightsView, cx: &mut Context<InsightsView>) -> impl Into
         match view.requests.refresh_status() {
             RefreshStatus::Running(_) => text(
                 cx,
-                "Indexing local transcripts. The list stays empty until that finishes.",
-                "正在索引本机记录。完成之前列表是空的。",
+                "Indexing local transcripts. Summaries already stored stay listed.",
+                "正在索引本机记录。已经写入的摘要仍会列出。",
             )
             .to_string(),
             RefreshStatus::Failed(_, error) => service_error(cx, error.message()).to_string(),
@@ -108,39 +108,55 @@ fn status_line(view: &InsightsView, cx: &mut Context<InsightsView>) -> impl Into
             )
             .to_string(),
             RefreshStatus::Finished(_, report) => {
-                let indexed = view
-                    .snapshot
-                    .as_ref()
-                    .and_then(|snapshot| match snapshot.as_ref() {
-                        InsightsSnapshot::Sessions { page, .. } => Some(page.items.len()),
-                        _ => None,
-                    })
-                    .unwrap_or(0);
-                if cx.global::<crate::locales::Language>() == &crate::locales::Language::Chinese {
-                    format!(
-                        "索引已结束：发现 {}，写入 {}，本页 {} 条",
-                        report.total.discovered, report.total.upserted, indexed
-                    )
-                } else {
-                    format!(
-                        "Index finished: discovered {}, written {}, {} on this page",
-                        report.total.discovered, report.total.upserted, indexed
-                    )
-                }
-            }
-            RefreshStatus::Idle => {
-                if matches!(view.snapshot.as_deref(), Some(InsightsSnapshot::Sessions { page, .. }) if page.items.is_empty())
-                {
+                let not_indexed = matches!(
+                    view.snapshot.as_deref(),
+                    Some(InsightsSnapshot::Sessions { indexed: false, .. }) | None
+                );
+                if not_indexed {
                     text(
                         cx,
-                        "The archive has no session summaries yet.",
-                        "归档里还没有会话摘要。",
+                        "Indexing finished. Sessions are not indexed.",
+                        "索引结束了。会话尚未索引。",
                     )
                     .to_string()
+                } else if is_chinese(cx) {
+                    format!(
+                        "索引已结束：发现 {}，写入 {}",
+                        report.total.discovered, report.total.upserted
+                    )
                 } else {
-                    text(cx, "Archive ready.", "归档已就绪。").to_string()
+                    format!(
+                        "Index finished: discovered {}, written {}",
+                        report.total.discovered, report.total.upserted
+                    )
                 }
             }
+            RefreshStatus::Idle => match view.snapshot.as_deref() {
+                Some(InsightsSnapshot::Sessions { indexed: false, .. }) => {
+                    text(cx, "Sessions are not indexed.", "会话尚未索引。").to_string()
+                }
+                Some(InsightsSnapshot::Sessions { page, .. }) if page.items.is_empty() => text(
+                    cx,
+                    "No indexed sessions match this page.",
+                    "这一页没有匹配的已索引会话。",
+                )
+                .to_string(),
+                Some(InsightsSnapshot::Sessions { page, .. }) => {
+                    let count = page.items.len();
+                    if page.next_cursor.is_some() {
+                        if is_chinese(cx) {
+                            format!("本页 {count} 条已索引会话，还有更早的。")
+                        } else {
+                            format!("{count} indexed sessions on this page. Older ones follow.")
+                        }
+                    } else if is_chinese(cx) {
+                        format!("{count} 条已索引会话。")
+                    } else {
+                        format!("{count} indexed sessions.")
+                    }
+                }
+                _ => text(cx, "The archive has not been read.", "还没有读取归档。").to_string(),
+            },
         }
     };
     div()
@@ -244,10 +260,22 @@ fn search(view: &InsightsView, cx: &mut Context<InsightsView>) -> impl IntoEleme
 }
 
 fn session_list(view: &mut InsightsView, cx: &mut Context<InsightsView>) -> impl IntoElement {
-    let count = match view.snapshot.as_deref() {
-        Some(InsightsSnapshot::Sessions { page, .. }) => page.items.len(),
-        _ => 0,
+    let Some(InsightsSnapshot::Sessions { page, indexed, .. }) = view.snapshot.as_deref() else {
+        return div().into_any_element();
     };
+    if !indexed {
+        return div()
+            .flex_1()
+            .p(px(theme::SECTION_GAP))
+            .bg(cx.theme().background)
+            .border_1()
+            .border_color(cx.theme().border)
+            .rounded(px(theme::INPUT_RADIUS))
+            .text_color(cx.theme().muted_foreground)
+            .child(text(cx, "Sessions are not indexed.", "会话尚未索引。"))
+            .into_any_element();
+    }
+    let count = page.items.len();
     if count == 0 {
         return div()
             .flex_1()
@@ -259,8 +287,8 @@ fn session_list(view: &mut InsightsView, cx: &mut Context<InsightsView>) -> impl
             .text_color(cx.theme().muted_foreground)
             .child(text(
                 cx,
-                "No session summaries on this page.",
-                "这一页还没有会话摘要。",
+                "No indexed sessions match this page.",
+                "这一页没有匹配的已索引会话。",
             ))
             .into_any_element();
     }

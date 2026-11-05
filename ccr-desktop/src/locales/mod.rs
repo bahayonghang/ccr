@@ -10,10 +10,12 @@ pub enum Language {
 impl Global for Language {}
 
 pub fn text(cx: &App, en: &'static str, zh: &'static str) -> &'static str {
-    match cx.try_global::<Language>().copied().unwrap_or_default() {
-        Language::English => en,
-        Language::Chinese => zh,
-    }
+    if is_chinese(cx) { zh } else { en }
+}
+
+/// Chinese only when that language was installed. A missing global stays English.
+pub fn is_chinese(cx: &App) -> bool {
+    cx.try_global::<Language>().copied() == Some(Language::Chinese)
 }
 
 /// Show one language from an existing `English / 中文` service line.
@@ -21,9 +23,10 @@ pub fn localized_line(cx: &App, value: &str) -> String {
     let Some((en, zh)) = value.split_once(" / ") else {
         return value.to_string();
     };
-    match cx.try_global::<Language>().copied().unwrap_or_default() {
-        Language::English => en.to_string(),
-        Language::Chinese => zh.to_string(),
+    if is_chinese(cx) {
+        zh.to_string()
+    } else {
+        en.to_string()
     }
 }
 

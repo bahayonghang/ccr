@@ -3,7 +3,7 @@ mod policies;
 mod product;
 mod rows;
 use crate::{
-    locales::{Language, service_error, text},
+    locales::{is_chinese, service_error, text},
     runtime::{
         Services,
         insights::{
@@ -82,7 +82,6 @@ pub struct InsightsView {
     gate: ResponseGate,
     task: Option<Task<()>>,
     refresh_task: Option<Task<()>>,
-    archive_refresh_started: bool,
     loading: bool,
     error: Option<&'static str>,
     selected: Option<String>,
@@ -115,7 +114,6 @@ impl InsightsView {
             gate: ResponseGate::default(),
             task: None,
             refresh_task: None,
-            archive_refresh_started: false,
             loading: false,
             selected: None,
             detail_open: false,
@@ -172,10 +170,8 @@ impl InsightsView {
             });
             return;
         }
+        // Refresh writes archive summaries. Opening the page only reads what is already indexed.
         self.refresh(cx);
-        if page == InsightsPage::Sessions && !self.archive_refresh_started {
-            self.start_archive_refresh(cx);
-        }
     }
     pub fn refresh(&mut self, cx: &mut Context<Self>) {
         self.cursor = None;
@@ -194,7 +190,6 @@ impl InsightsView {
         };
         match self.requests.refresh_archive(key) {
             Ok(Some(mut subscription)) => {
-                self.archive_refresh_started = true;
                 self.refresh_task = Some(cx.spawn(async move |weak, cx| {
                     while let Some(event) = subscription.next().await {
                         if let TaskEvent::Terminal(_) = event {
@@ -446,7 +441,7 @@ impl InsightsView {
                 "提供商维度不支持，不是实测零值",
             )
         };
-        if cx.global::<Language>() == &Language::Chinese {
+        if is_chinese(cx) {
             format!(
                 "请求 {} · 令牌 {} · 美元 {} · 最近同步 {} · {}",
                 report.overview.total_events,
@@ -570,7 +565,7 @@ impl Render for InsightsView {
         if self.page == InsightsPage::Sessions {
             let status = self.requests.refresh_status();
             let running = matches!(status, RefreshStatus::Running(_));
-            let chinese = cx.try_global::<Language>().copied() == Some(Language::Chinese);
+            let chinese = is_chinese(cx);
             let status_text = match status {
                 RefreshStatus::Idle => {
                     text(cx, "Archive refresh has not run.", "尚未刷新归档。").to_string()

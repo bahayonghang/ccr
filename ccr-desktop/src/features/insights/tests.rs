@@ -164,6 +164,7 @@ fn archive_candidate_rows_are_virtualized_and_keyboard_selection_uses_opaque_ids
                         next_cursor: None,
                     },
                     statuses: Vec::new(),
+                    indexed: true,
                 }));
                 view
             })

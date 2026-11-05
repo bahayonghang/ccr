@@ -13,7 +13,7 @@ use ccr_db::database::{self, DbPool};
 use ccr_store::sessions::{AgentSessionProviderRegistry, AgentSessionProviderStatus};
 use ccr_usage::{
     AppPaths, HomeOverviewPlatformStats, HomeOverviewSeriesItem, LogsPage, LogsQuery, QueryFilter,
-    ReportTimezone, UsageError,
+    ReportTimezone, SourceKind, UsageError,
 };
 use chrono::{DateTime, NaiveDate, Utc};
 use std::{
@@ -32,7 +32,8 @@ pub struct InsightsPaths {
 }
 
 /// Resolve the same llmusage and CCR archive locations the installed tools already use.
-/// Both files must already exist. This function does not create directories or databases.
+/// Either database file is enough. This function does not create directories or databases,
+/// and the missing file stays unread.
 pub fn local_insights_paths() -> Option<InsightsPaths> {
     let usage = ccr_usage::AppPaths::discover().ok()?;
     let home = std::env::var_os("USERPROFILE")
@@ -58,7 +59,8 @@ pub(crate) fn insights_paths_if_present(
     archive_db: PathBuf,
     provider_home: PathBuf,
 ) -> Option<InsightsPaths> {
-    if usage_db.is_file() && archive_db.is_file() {
+    // Either existing file is enough. The missing one stays unread and is not created.
+    if usage_db.is_file() || archive_db.is_file() {
         Some(InsightsPaths {
             usage_root,
             archive_db,
@@ -211,19 +213,46 @@ fn day_column(days: &[WorkbenchDay], pick: fn(&WorkbenchDay) -> i64) -> Vec<i64>
     days.iter().map(pick).collect()
 }
 
+fn canonical_source_id(raw: &str) -> String {
+    SourceKind::parse_id(raw)
+        .map(|kind| kind.as_str().to_string())
+        .unwrap_or_else(|| raw.to_string())
+}
+
+fn fold_platform_stats(
+    map: &BTreeMap<String, HomeOverviewPlatformStats>,
+) -> BTreeMap<String, HomeOverviewPlatformStats> {
+    let mut folded: BTreeMap<String, HomeOverviewPlatformStats> = BTreeMap::new();
+    for (id, stats) in map {
+        let entry = folded.entry(canonical_source_id(id)).or_default();
+        entry.requests += stats.requests;
+        entry.tokens += stats.tokens;
+        entry.sessions += stats.sessions;
+    }
+    folded
+}
+
 fn workbench_platforms(
     map: &BTreeMap<String, HomeOverviewPlatformStats>,
     days: &[WorkbenchDay],
 ) -> Vec<WorkbenchPlatform> {
     const PRIMARY: [&str; 4] = ["claude", "codex", "antigravity", "opencode"];
+    let map = fold_platform_stats(map);
     let mut platforms = Vec::new();
     for id in PRIMARY {
-        let stats = platform_stats(map, id);
+        let stats = platform_stats(&map, id);
         let requests_by_day = match id {
             "claude" => day_column(days, |day| day.claude),
             "codex" => day_column(days, |day| day.codex),
             "antigravity" => day_column(days, |day| day.antigravity),
             _ => day_column(days, |day| day.opencode),
+        };
+        // The fixed daily series only contains stored claude/codex/antigravity/opencode
+        // keys. Alias totals stay on the card and are left out of a zero sparkline.
+        let requests_by_day = if requests_by_day.iter().sum::<i64>() == stats.requests {
+            requests_by_day
+        } else {
+            Vec::new()
         };
         platforms.push(WorkbenchPlatform {
             id: id.to_string(),
@@ -273,6 +302,8 @@ pub enum InsightsSnapshot {
     Sessions {
         page: SessionPage,
         statuses: Vec<AgentSessionProviderStatus>,
+        /// False means the archive has no indexed summaries. An empty page is not a measured zero.
+        indexed: bool,
     },
     Detail(SessionDetail),
 }
@@ -383,6 +414,46 @@ impl InsightsRequests {
             })
             .map(Some)
     }
+    fn read_sessions(
+        &self,
+        paths: &InsightsPaths,
+        request: sessions::SessionListRequest,
+    ) -> Result<InsightsSnapshot, InsightsError> {
+        let registry = AgentSessionProviderRegistry::new(paths.provider_home.clone())
+            .without_environment_overrides();
+        let statuses = registry.provider_statuses();
+        let empty = SessionPage {
+            items: Vec::new(),
+            next_cursor: None,
+        };
+        if !paths.archive_db.is_file() {
+            return Ok(InsightsSnapshot::Sessions {
+                page: empty,
+                statuses,
+                indexed: false,
+            });
+        }
+        let pool = self.archive_pool(paths)?;
+        let indexed = {
+            let conn = pool.get().map_err(|_| InsightsError::Archive)?;
+            database::repositories::usage_repo::has_any_session_archive(&conn)
+                .map_err(|_| InsightsError::Archive)?
+        };
+        if !indexed {
+            return Ok(InsightsSnapshot::Sessions {
+                page: empty,
+                statuses,
+                indexed: false,
+            });
+        }
+        let page = sessions::list_sessions(&pool, request).map_err(InsightsError::Session)?;
+        Ok(InsightsSnapshot::Sessions {
+            page,
+            statuses,
+            indexed: true,
+        })
+    }
+
     fn archive_pool(&self, paths: &InsightsPaths) -> Result<DbPool, InsightsError> {
         let mut cached = self.archive.lock().map_err(|_| InsightsError::Archive)?;
         if let Some(pool) = cached.as_ref() {
@@ -400,17 +471,7 @@ impl InsightsRequests {
     fn read(&self, query: InsightsQuery) -> Result<InsightsSnapshot, InsightsError> {
         let paths = self.paths.as_ref().ok_or(InsightsError::Unconfigured)?;
         match query {
-            InsightsQuery::Sessions(request) => {
-                let pool = self.archive_pool(paths)?;
-                let page =
-                    sessions::list_sessions(&pool, request).map_err(InsightsError::Session)?;
-                let registry = AgentSessionProviderRegistry::new(paths.provider_home.clone())
-                    .without_environment_overrides();
-                Ok(InsightsSnapshot::Sessions {
-                    page,
-                    statuses: registry.provider_statuses(),
-                })
-            }
+            InsightsQuery::Sessions(request) => self.read_sessions(paths, request),
             InsightsQuery::Detail { archive_id, before } => {
                 let pool = self.archive_pool(paths)?;
                 let registry = AgentSessionProviderRegistry::new(paths.provider_home.clone())
@@ -489,9 +550,9 @@ impl InsightsRequests {
         let (sessions_indexed, session_count, session_scope) =
             self.session_window(paths, &dashboard, as_of, days);
         let series = dense_days(&home.series, since, as_of);
-        let chart_requests: i64 = ["claude", "codex", "antigravity", "opencode"]
-            .into_iter()
-            .map(|id| platform_stats(&home.by_platform, id).requests)
+        let drawn_requests: i64 = series
+            .iter()
+            .map(|day| day.claude + day.codex + day.antigravity + day.opencode)
             .sum();
         Ok(WorkbenchReport {
             as_of: as_of.format("%Y-%m-%d").to_string(),
@@ -502,7 +563,7 @@ impl InsightsRequests {
             sessions_indexed,
             session_count,
             session_scope,
-            other_requests: home.summary.total_requests.saturating_sub(chart_requests),
+            other_requests: home.summary.total_requests.saturating_sub(drawn_requests),
             platforms: workbench_platforms(&home.by_platform, &series),
             days: series,
         })
