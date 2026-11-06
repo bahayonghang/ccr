@@ -185,7 +185,6 @@ impl AccountManager {
 
     /// 更新账号
     pub fn update(&self, id: &str, request: UpdateAccountRequest) -> Result<CheckinAccount> {
-        let crypto = self.get_crypto()?;
         let mut account = self.get(id)?;
 
         if let Some(name) = request.name {
@@ -193,6 +192,8 @@ impl AccountManager {
         }
 
         if let Some(cookies_json) = request.cookies_json {
+            let crypto = CryptoManager::load_existing(&self.checkin_dir)
+                .map_err(|error| AccountError::CryptoError(error.to_string()))?;
             account.cookies_json_encrypted = crypto
                 .encrypt(cookies_json.expose())
                 .map_err(|e| AccountError::CryptoError(e.to_string()))?;
@@ -450,6 +451,69 @@ mod tests {
         assert_eq!(info.api_user, "12345");
         // 占位掩码不应泄露任何密文片段
         assert!(!info.cookies_masked.contains("not-a-valid"));
+    }
+
+    #[test]
+    fn update_without_key_preserves_metadata_and_refuses_cookie_replacement() {
+        let (directory, manager) = manager_with_memory_db();
+        ccr_core::core::LockManager::with_scoped_directory(&directory.path().join("locks"), || {
+            let created = manager
+                .create(create_request("Original", r#"{"session":"original"}"#))
+                .unwrap();
+            let key = directory.path().join("crypto.key");
+            std::fs::remove_file(&key).unwrap();
+            let updated = manager
+                .update(
+                    &created.id,
+                    UpdateAccountRequest {
+                        name: Some("Metadata".into()),
+                        cookies_json: None,
+                        api_user: None,
+                        enabled: Some(false),
+                        extra_config: None,
+                    },
+                )
+                .unwrap();
+            assert_eq!(updated.name, "Metadata");
+            assert!(!updated.enabled);
+            assert_eq!(
+                updated.cookies_json_encrypted,
+                created.cookies_json_encrypted
+            );
+            assert!(
+                !key.exists(),
+                "metadata updates must not generate a replacement key"
+            );
+            for damaged in [false, true] {
+                if damaged {
+                    std::fs::write(&key, b"damaged-original-key").unwrap();
+                }
+                let result = manager.update(
+                    &created.id,
+                    UpdateAccountRequest {
+                        name: Some("Must not save".into()),
+                        cookies_json: Some(r#"{"session":"replacement"}"#.into()),
+                        api_user: None,
+                        enabled: None,
+                        extra_config: None,
+                    },
+                );
+                assert!(matches!(result, Err(AccountError::CryptoError(_))));
+                let unchanged = manager.get(&created.id).unwrap();
+                assert_eq!(unchanged.name, "Metadata");
+                assert_eq!(
+                    unchanged.cookies_json_encrypted,
+                    created.cookies_json_encrypted
+                );
+                if damaged {
+                    assert_eq!(std::fs::read(&key).unwrap(), b"damaged-original-key");
+                } else {
+                    assert!(!key.exists());
+                }
+            }
+            Ok(())
+        })
+        .unwrap();
     }
 
     #[test]

@@ -33,6 +33,13 @@ Database initialization is owned by `ccr-db`; tests call `database::initialize_f
 
 `CryptoManager::decrypt` returns `ccr_core::Secret` — decrypted cookies are wrapped at the boundary, and plaintext leaves only via `expose()` at Cookie-header construction, re-encryption, and explicit plaintext export. `CreateAccountRequest`/`UpdateAccountRequest`/`ExportAccount` cookie fields are `Secret` for the same reason. The masked display string is built by iterating the cookie map and formatting each value through `Secret`'s Display — do not reintroduce a local masking rule (see Secrets And Masking in `ccr-core/backend/backend-guidelines.md`).
 
+`AccountManager::update` must not initialize crypto for metadata-only requests
+(`cookies_json: None`): preserve the original encrypted bytes even when the key
+is absent. Cookie replacement loads the existing key and fails before DB writes
+if it is missing or damaged; it must never generate a replacement key. Cover
+both cases with an injected pool and captured temporary locks. This contract
+does not redefine account creation or other legacy import/export recovery flows.
+
 Network services use `reqwest` clients and proxy detection. Preserve explicit WAF/Cloudflare/cookie-expired error classification in `CheckinServiceError::error_code()`.
 
 ## Error Handling
