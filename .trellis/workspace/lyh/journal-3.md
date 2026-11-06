@@ -573,3 +573,38 @@ ccr project init 现在默认勾选五项平台并要求输入用户名，-y 使
 ### Next Steps
 
 - 已完成并归档；未推送远端，未替换用户已安装的 CCR。
+
+
+## Session 138: GPUI 09 退出回归与默认 File 消费验证
+<!-- trellis-session: v=2 fp=2fa97115e5d04f83 -->
+
+**Date**: 2026-11-05
+**Task**: GPUI 09 退出回归与默认 File 消费验证
+**Branch**: `dev`
+
+### Summary
+
+接续中断聊天，提交父检查点；补 Windows 合成退出清理及超时 observer 后 final join 回归，修正自然退出假通过，按用户新 File 标准补 GPUI 消费测试。等待共享修复 c7ce7d73 入历史后提交。
+
+### Main Changes
+
+- 本轮只提交本任务七文件，未 push、未归档 GPUI 任务；临时 isolated worktree 按用户要求已移除。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `38487daf` | docs(任务): 📝 收录 GPUI 开放验收检查点 |
+| `e1f22f8d` | test(原生桌面): ✅ 补齐退出与凭据存储回归 |
+
+### Testing
+
+- [OK] 最终主工作区 desktop-fmt-check、desktop-lint、desktop-test 均退出0；新退出2测试及Codex2测试通过，本切片未运行 just ci。历史失败与并行状态见09独立收据。
+
+### Status
+
+[OK] 本轮切片已提交；GPUI 01、09 与父任务仍为 **in_progress**。
+
+### Next Steps
+
+- 09 仍缺真实环境切换、native window close/watcher、跨OS及视觉证据；01 缺macOS编译和合格性能基线；不运行WSL，不满足父归档AND。
