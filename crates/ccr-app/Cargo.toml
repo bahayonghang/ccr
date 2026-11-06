@@ -17,6 +17,8 @@ tempfile = { workspace = true }
 rusqlite = { workspace = true }
 ccr-config = { path = "../ccr-config" }
 ccr-core = { path = "../ccr-core" }
+ccr-types = { path = "../ccr-types" }
+ccr-skills = { path = "../ccr-skills" }
 ccr-db = { path = "../ccr-db" }
 ccr-store = { path = "../ccr-store" }
 ccr-usage = { path = "../ccr-usage" }

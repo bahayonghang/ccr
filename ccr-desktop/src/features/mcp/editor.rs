@@ -3,7 +3,10 @@ use crate::{
     locales::{service_error, text},
     runtime::{
         Services,
-        mcp::{McpEditSession, McpError, McpSource, McpTarget},
+        mcp::{
+            McpCopySession, McpEditSession, McpEntry, McpError, McpScope, McpSource, McpTarget,
+            preset_patch,
+        },
     },
     shell::semantics,
     theme,
@@ -24,11 +27,19 @@ use gpui_kit::{
 };
 use std::sync::Arc;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub(super) enum EditMode {
     Add,
     Edit,
     Delete,
+    Preset(String),
+    Copy(McpEntry),
+}
+
+impl EditMode {
+    fn creates(&self) -> bool {
+        matches!(self, Self::Add | Self::Preset(_) | Self::Copy(_))
+    }
 }
 
 pub(super) enum EditorEvent {
@@ -44,10 +55,12 @@ pub(super) struct McpEditor {
     name: Entity<InputState>,
     patch: Entity<TextareaState>,
     session: Option<Arc<McpEditSession>>,
+    copy_session: Option<Arc<McpCopySession>>,
+    required_env: Option<String>,
     task: Option<Task<()>>,
     busy: bool,
     message: Option<&'static str>,
-    pending: Option<(String, EntryMutation)>,
+    pending: Option<(String, Option<EntryMutation>)>,
     focus: FocusHandle,
     confirmation_focus: FocusHandle,
     enter_confirmation: bool,
@@ -84,7 +97,30 @@ impl McpEditor {
             state.set_value(name.to_string(), window, cx)
         });
         let patch = cx.new(|cx| TextareaState::new(window, cx));
-        patch.update(cx, |state, cx| state.set_value("{}", window, cx));
+        let initial_patch = match &mode {
+            EditMode::Preset(id) => preset_patch(id, &target),
+            _ => Ok(serde_json::json!({})),
+        };
+        let required_env = match &mode {
+            EditMode::Preset(id) => ccr_skills::get_builtin_presets()
+                .into_iter()
+                .find(|preset| preset.id == *id)
+                .and_then(|preset| preset.api_key_env),
+            _ => None,
+        };
+        if let Ok(value) = &initial_patch
+            && let Ok(value) = serde_json::to_string_pretty(value)
+        {
+            patch.update(cx, |state, cx| state.set_value(value, window, cx));
+        }
+        if let EditMode::Copy(source) = &mode {
+            let (en, zh) = super::source_title(source.source);
+            let scope = match &source.scope {
+                McpScope::User => text(cx, "User", "用户").to_string(),
+                McpScope::Project(path) => path.clone(),
+            };
+            title = format!("{} · {scope} · {} → {title}", text(cx, en, zh), source.name);
+        }
         let mut this = Self {
             services,
             key,
@@ -93,6 +129,8 @@ impl McpEditor {
             name: name_input,
             patch,
             session: None,
+            copy_session: None,
+            required_env,
             task: None,
             busy: true,
             message: None,
@@ -101,6 +139,56 @@ impl McpEditor {
             confirmation_focus: cx.focus_handle(),
             enter_confirmation: false,
         };
+        if let Err(error) = initial_patch {
+            this.busy = false;
+            this.message = Some(error.message());
+            return this;
+        }
+        if let EditMode::Copy(source) = &this.mode {
+            match this
+                .services
+                .mcp_copy_prepare_request(this.key.clone(), source.clone(), target)
+            {
+                Ok(mut subscription) => {
+                    this.task = Some(cx.spawn(async move |weak, cx| {
+                        while let Some(event) = subscription.next().await {
+                            if let TaskEvent::Terminal(result) = event {
+                                let _ = weak.update(cx, |this, cx| {
+                                    this.busy = false;
+                                    match result.as_ref() {
+                                        Completion::Success(session) => {
+                                            this.copy_session = Some(session.clone())
+                                        }
+                                        Completion::Failed(error)
+                                        | Completion::CleanupFailed(error) => {
+                                            this.message = Some(error.message())
+                                        }
+                                        _ => {
+                                            this.message = Some(text(
+                                                cx,
+                                                "MCP copy preparation did not complete.",
+                                                "MCP 复制准备未完成。",
+                                            ))
+                                        }
+                                    }
+                                    cx.notify();
+                                });
+                                break;
+                            }
+                        }
+                    }));
+                }
+                Err(_) => {
+                    this.busy = false;
+                    this.message = Some(text(
+                        cx,
+                        "Queue unavailable. Retry.",
+                        "队列不可用，请重试。",
+                    ));
+                }
+            }
+            return this;
+        }
         match this.services.mcp_edit_request(this.key.clone(), target) {
             Ok(mut subscription) => {
                 this.task = Some(cx.spawn(async move |weak, cx| {
@@ -129,7 +217,7 @@ impl McpEditor {
     }
 
     fn prepare(&mut self, cx: &mut Context<Self>) {
-        if self.busy || self.session.is_none() {
+        if self.busy || (self.session.is_none() && self.copy_session.is_none()) {
             return;
         }
         let name = self.name.read(cx).value().to_string();
@@ -140,8 +228,10 @@ impl McpEditor {
             cx.notify();
             return;
         }
-        let mutation = if self.mode == EditMode::Delete {
-            EntryMutation::Delete
+        let mutation = if matches!(self.mode, EditMode::Copy(_)) {
+            None
+        } else if self.mode == EditMode::Delete {
+            Some(EntryMutation::Delete)
         } else {
             let value: serde_json::Value = match serde_json::from_str::<serde_json::Value>(
                 self.patch.read(cx).value().as_ref(),
@@ -153,10 +243,25 @@ impl McpEditor {
                     return;
                 }
             };
-            if self.mode == EditMode::Add {
-                EntryMutation::Add(value)
+            if self.required_env.as_ref().is_some_and(|key| {
+                value
+                    .get("env")
+                    .and_then(|env| env.get(key))
+                    .and_then(serde_json::Value::as_str)
+                    .is_none_or(|value| value.trim().is_empty())
+            }) {
+                self.message = Some(text(
+                    cx,
+                    "Fill in the preset's required API key before saving.",
+                    "保存前请填写预设需要的 API 密钥。",
+                ));
+                cx.notify();
+                return;
+            }
+            if self.mode.creates() {
+                Some(EntryMutation::Add(value))
             } else {
-                EntryMutation::Patch(value)
+                Some(EntryMutation::Patch(value))
             }
         };
         self.pending = Some((name, mutation));
@@ -172,15 +277,19 @@ impl McpEditor {
         let Some((name, mutation)) = self.pending.take() else {
             return;
         };
-        let Some(session) = self.session.clone() else {
-            return;
-        };
         self.key.request_id = self.key.request_id.saturating_add(1);
         self.busy = true;
-        match self
-            .services
-            .mcp_mutate_request(self.key.clone(), session, name, mutation)
-        {
+        let request = if let Some(session) = self.copy_session.clone() {
+            self.services
+                .mcp_copy_save_request(self.key.clone(), session, name)
+        } else if let (Some(session), Some(mutation)) = (self.session.clone(), mutation) {
+            self.services
+                .mcp_mutate_request(self.key.clone(), session, name, mutation)
+        } else {
+            self.busy = false;
+            return;
+        };
+        match request {
             Ok(mut subscription) => {
                 self.task = Some(cx.spawn(async move |weak, cx| {
                     while let Some(event) = subscription.next().await {
@@ -213,8 +322,10 @@ impl Render for McpEditor {
         let mut root = div().id("mcp-editor").test_support().track_focus(&self.focus).tab_stop(false).flex().flex_col().gap(px(theme::CONTROL_GAP))
             .child(self.title.clone())
             .child(text(cx, "The selected source and scope stay fixed until this editor closes. Existing secret values are not loaded. Only submitted fields change; omitted fields are retained. Leaving discards the draft; a save already started continues.", "编辑器关闭前，所选来源与作用域保持固定。已有密钥不会载入。仅修改提交的字段，省略字段保持不变。离开会丢弃草稿；已开始的保存会继续。"))
-            .child(Input::new(&self.name).id("mcp-name").aria_label(text(cx,"Server name","服务器名称")).disabled(self.mode != EditMode::Add || self.busy || self.pending.is_some()));
-        if self.mode != EditMode::Delete {
+            .child(Input::new(&self.name).id("mcp-name").aria_label(text(cx,"Server name","服务器名称")).disabled(!self.mode.creates() || self.busy || self.pending.is_some()));
+        if matches!(self.mode, EditMode::Copy(_)) {
+            root = root.child(text(cx,"Copy the selected server, including stored environment values and supported HTTP headers, into this source. Stored values stay hidden. Existing entries are never overwritten; use a different name if needed.","将所选服务器连同已保存的环境变量与支持的 HTTP 请求头复制到此来源。已保存的值保持隐藏。不会覆盖已有条目；如有重名，请使用其他名称。"));
+        } else if self.mode != EditMode::Delete {
             root = root.child(text(cx, "JSON patch. A new server requires command or url. Enter new credentials only when replacing them. null removes a field; Claude uses its existing patch rules.", "JSON 补丁。新服务器必须填写 command 或 url；仅在替换时输入新密钥。null 删除字段；Claude 沿用既有补丁规则。"))
                 .child(Textarea::new(&self.patch).accessibility_id("mcp-patch").aria_label(text(cx,"MCP JSON patch","MCP JSON 补丁")).disabled(self.busy || self.pending.is_some()).h(px(180.)));
         }
@@ -261,7 +372,7 @@ impl Render for McpEditor {
                             })
                             .primary()
                             .on_click(cx.listener(|this, _, _, cx| this.prepare(cx))),
-                        self.busy || self.session.is_none(),
+                        self.busy || (self.session.is_none() && self.copy_session.is_none()),
                         self.busy,
                         cx,
                     )),

@@ -1,4 +1,7 @@
 //! Fixed resource targets on captured roots, using the shared guarded writer.
+pub mod claude_files;
+pub mod codex_agents;
+pub mod templates;
 use super::{ConfigSource, Services};
 use ccr_app::{
     platform_settings::{self, Snapshot},
@@ -64,7 +67,7 @@ pub enum ResourceResult {
     Saved { conflict: bool, size_warning: bool },
 }
 
-fn roots(source: &ConfigSource) -> Result<PlatformRoots, ResourceError> {
+pub(super) fn roots(source: &ConfigSource) -> Result<PlatformRoots, ResourceError> {
     match source {
         ConfigSource::Local => PlatformRoots::capture().map_err(|_| ResourceError::Storage),
         ConfigSource::Fixture {

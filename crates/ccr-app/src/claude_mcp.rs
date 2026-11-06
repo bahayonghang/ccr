@@ -954,6 +954,21 @@ pub fn native_snapshot(
 }
 
 impl NativeSnapshot {
+    /// Backend-only copy input. May contain credentials; never project it into a
+    /// list, diagnostic, or editor control.
+    pub fn entry_for_copy(&self, name: &str) -> Result<Option<Value>, String> {
+        let mut root = self.root.clone();
+        Ok(mcp_servers_for_write(&self.context, self.scope, &mut root)?
+            .get(name)
+            .cloned())
+    }
+
+    pub fn is_current(&self) -> Result<bool, String> {
+        let (_, token) =
+            read_versioned_json_object(&root_path_for_scope(&self.context, self.scope))?;
+        Ok(token == self.token)
+    }
+
     pub fn contains(&self, name: &str) -> Result<bool, String> {
         let mut root = self.root.clone();
         Ok(mcp_servers_for_write(&self.context, self.scope, &mut root)?.contains_key(name))

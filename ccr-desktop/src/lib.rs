@@ -6,9 +6,56 @@ pub mod runtime;
 pub mod shell;
 pub mod theme;
 
-use gpui_kit::{
-    AppContext, Bounds, QuitMode, TitlebarOptions, WindowBounds, WindowOptions, px, size,
-};
+use ccr_app::runtime::{Completion, TaskEvent};
+use gpui_kit::{AppContext, QuitMode, TitlebarOptions, WindowOptions, px, size};
+
+fn window_options(
+    preferences: Option<runtime::preferences::DesktopPreferences>,
+    cx: &gpui_kit::App,
+) -> WindowOptions {
+    WindowOptions {
+        titlebar: Some(TitlebarOptions {
+            title: Some("CCR Desktop (GPUI)".into()),
+            ..Default::default()
+        }),
+        window_bounds: Some(shell::window_state::restore(
+            preferences.and_then(|value| value.window),
+            cx,
+        )),
+        window_min_size: Some(size(px(theme::MIN_WIDTH), px(theme::MIN_HEIGHT))),
+        app_id: Some("io.github.ccr.gpui".into()),
+        ..Default::default()
+    }
+}
+
+/// Load on the bounded worker before creating the one existing GPUI root. An
+/// invalid/unreadable file still opens the app, with the preference error visible.
+pub(crate) async fn open_app_window(
+    services: runtime::Services,
+    cx: &mut gpui_kit::AsyncApp,
+) -> Result<(gpui_kit::AnyWindowHandle, gpui_kit::Entity<shell::Shell>), String> {
+    let requests = runtime::preferences::PreferencesRequests::new(&services);
+    let mut loaded = Err(runtime::preferences::PreferencesError::Storage);
+    if let Ok(mut subscription) = requests.load() {
+        while let Some(event) = subscription.next().await {
+            if let TaskEvent::Terminal(result) = event {
+                loaded = match result.as_ref() {
+                    Completion::Success(value) => Ok(*value),
+                    Completion::Failed(error) => Err(*error),
+                    _ => Err(runtime::preferences::PreferencesError::Storage),
+                };
+                break;
+            }
+        }
+    }
+    cx.update(|cx| {
+        let options = window_options(loaded.ok(), cx);
+        gpui_kit::open_window(options, cx, move |window, cx| {
+            cx.new(|cx| shell::Shell::new_with_preferences(services, loaded, window, cx))
+        })
+        .map_err(|error| error.to_string())
+    })
+}
 
 pub fn run() {
     if let Some(code) = runtime::jobs::fixture_child_mode(std::env::args_os().skip(1)) {
@@ -46,25 +93,19 @@ pub fn run() {
                 }
             })
             .detach();
-            let options = WindowOptions {
-                titlebar: Some(TitlebarOptions {
-                    title: Some("CCR Desktop (GPUI)".into()),
-                    ..Default::default()
-                }),
-                window_bounds: Some(WindowBounds::Windowed(Bounds::centered(
-                    None,
-                    size(px(theme::WINDOW_WIDTH), px(theme::WINDOW_HEIGHT)),
-                    cx,
-                ))),
-                window_min_size: Some(size(px(theme::MIN_WIDTH), px(theme::MIN_HEIGHT))),
-                app_id: Some("io.github.ccr.gpui".into()),
-                ..Default::default()
-            };
-            let result = match mode {
-                runtime::LaunchMode::Probe => gpui_kit::open_window(options, cx, |window, cx| {
-                    cx.new(|cx| probe::Probe::new(window, cx))
-                })
-                .map(|_| ()),
+            let services = match mode {
+                runtime::LaunchMode::Probe => {
+                    let options = window_options(None, cx);
+                    if let Err(error) = gpui_kit::open_window(options, cx, |window, cx| {
+                        cx.new(|cx| probe::Probe::new(window, cx))
+                    }) {
+                        window_failed.store(true, std::sync::atomic::Ordering::Relaxed);
+                        eprintln!("Unable to open CCR Desktop (GPUI): {error}");
+                        cx.quit();
+                    }
+                    cx.activate(true);
+                    return;
+                }
                 runtime::LaunchMode::App(source) => {
                     let mut services = runtime::Services::new(executor, source);
                     if !services.is_fixture()
@@ -72,30 +113,22 @@ pub fn run() {
                     {
                         services = services.with_insights_paths(paths);
                     }
-                    gpui_kit::open_window(options, cx, move |window, cx| {
-                        cx.new(|cx| shell::Shell::new(services, window, cx))
-                    })
-                    .map(|_| ())
+                    services
                 }
                 runtime::LaunchMode::AppWithInsights { source, paths } => {
-                    gpui_kit::open_window(options, cx, move |window, cx| {
-                        cx.new(|cx| {
-                            shell::Shell::new(
-                                runtime::Services::new(executor, source).with_insights_paths(paths),
-                                window,
-                                cx,
-                            )
-                        })
-                    })
-                    .map(|_| ())
+                    runtime::Services::new(executor, source).with_insights_paths(paths)
                 }
             };
-            if let Err(error) = result {
-                window_failed.store(true, std::sync::atomic::Ordering::Relaxed);
-                eprintln!("Unable to open CCR Desktop (GPUI): {error}");
-                cx.quit();
-            }
-            cx.activate(true);
+            cx.spawn(async move |cx| {
+                if let Err(error) = open_app_window(services, cx).await {
+                    window_failed.store(true, std::sync::atomic::Ordering::Relaxed);
+                    eprintln!("Unable to open CCR Desktop (GPUI): {error}");
+                    cx.update(|cx| cx.quit());
+                } else {
+                    cx.update(|cx| cx.activate(true));
+                }
+            })
+            .detach();
         });
     // GPUI quit observers have a 200ms platform budget. The owner remains alive
     // outside the event loop and joins all started work before process return.

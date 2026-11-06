@@ -1,11 +1,12 @@
 use super::*;
+use ccr_app::resources::claude_collections::{Collection, Mutation, apply_typed};
 
 #[ccr_tauri_command_macros::command]
 pub async fn claude_list_plugins(state: State<'_, AppState>) -> Result<OpenJsonValueDto, String> {
     let settings = load_settings(state.inner()).await?;
-    let plugins = serde_json::to_value(&settings.plugins)
-        .map_err(|e| format!("Serialization error: {}", e))?;
-    open_json(serde_json::json!({ "plugins": plugins }))
+    let rows = serde_json::to_value(&settings.plugins)
+        .map_err(|error| format!("Serialization error: {error}"))?;
+    open_json(serde_json::json!({ "plugins": rows }))
 }
 
 #[ccr_tauri_command_macros::command]
@@ -14,14 +15,15 @@ pub async fn claude_add_plugin(
     name: String,
     config: OpenJsonValueDto,
 ) -> Result<OpenJsonValueDto, String> {
-    let mut plugin: ccr_types::Plugin = serde_json::from_value(config.into())
-        .map_err(|e| format!("Invalid plugin config: {}", e))?;
-    plugin.name = name;
-
+    let config: Value = config.into();
     let result = update_settings(state.inner(), move |settings| {
-        settings.plugins.push(plugin.clone());
-        serde_json::to_value(&settings.plugins)
-            .map_err(|error| format!("Serialization error: {error}"))
+        apply_typed(
+            settings,
+            Collection::Plugins,
+            &name,
+            Mutation::Add(config.clone()),
+        )
+        .map_err(|error| error.to_string())
     })
     .await?;
     open_json(serde_json::json!({ "plugins": result }))
@@ -33,17 +35,15 @@ pub async fn claude_update_plugin(
     name: String,
     config: OpenJsonValueDto,
 ) -> Result<OpenJsonValueDto, String> {
-    let updated: ccr_types::Plugin = serde_json::from_value(config.into())
-        .map_err(|e| format!("Invalid plugin config: {}", e))?;
+    let config: Value = config.into();
     let result = update_settings(state.inner(), move |settings| {
-        let pos = settings
-            .plugins
-            .iter()
-            .position(|plugin| plugin.name == name)
-            .ok_or_else(|| format!("Plugin '{name}' not found"))?;
-        settings.plugins[pos] = updated.clone();
-        serde_json::to_value(&settings.plugins)
-            .map_err(|error| format!("Serialization error: {error}"))
+        apply_typed(
+            settings,
+            Collection::Plugins,
+            &name,
+            Mutation::Replace(config.clone()),
+        )
+        .map_err(|error| error.to_string())
     })
     .await?;
     open_json(serde_json::json!({ "plugins": result }))
@@ -56,12 +56,8 @@ pub async fn claude_delete_plugin(
 ) -> Result<String, String> {
     let deleted_name = name.clone();
     update_settings(state.inner(), move |settings| {
-        let original_len = settings.plugins.len();
-        settings.plugins.retain(|plugin| plugin.name != name);
-        if settings.plugins.len() == original_len {
-            return Err(format!("Plugin '{name}' not found"));
-        }
-        Ok(())
+        apply_typed(settings, Collection::Plugins, &name, Mutation::Delete)
+            .map_err(|error| error.to_string())
     })
     .await?;
     Ok(format!("Plugin '{}' deleted", deleted_name))

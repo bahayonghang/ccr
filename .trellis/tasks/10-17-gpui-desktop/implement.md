@@ -70,3 +70,9 @@ python ./.trellis/scripts/task.py archive .trellis/tasks/10-17-gpui-desktop
 ```
 
 本轮未满足前两个条件，不执行上述命令。子任务工作提交与规划必须先入历史，归档另成纯归档提交；不得把新产品改动混入归档。无新产品或规划改动时不做空提交，不 push、不 amend。
+
+## 2026-11-06 连续核心功能实施
+
+已完成本地工程批次 `13b29f95` 与执行环境/核心操作批次 `0404fa2a`，继续当前用户授权的剩余核心功能。复用既有任务与工作区，未创建新任务/worktree。源码、fixture/headless 与原生收据分别记录，任务状态不因局部提交自动完成。
+
+当前实际接合：Claude rules/output styles 使用现有文件来源；agents/slash commands/plugins 保持 Tauri 的 settings 集合语义，不新增一套 Markdown 代理格式。Codex local agents/source-agent 将原 Tauri state-free 编排提取为共享 owner，保留原载荷，根路径与网络客户端由调用方捕获。资源父页面统一接入现有 ResourcesView，13 个侧栏入口不变。窗口状态复用当前偏好存储和真实 GPUI bounds observer，不新增窗口栈或虚构 watcher；完整位置恢复在同一窗口创建前异步加载。下一步补 MCP 预设并核对其余可实施业务入口，最后集中门禁、完整 CI、便携打包与隔离 fixture 原生验收。

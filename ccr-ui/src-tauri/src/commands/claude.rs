@@ -4,11 +4,10 @@
 //! 所有读写操作直接访问 ~/.claude/settings.json（通过 ccr::SettingsManager）和
 //! ~/.claude.json（内联实现 ClaudeConfigManager 逻辑）。
 
-use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::{Value, json};
 use tauri::State;
 
@@ -16,7 +15,7 @@ use ccr::SettingsManager;
 use ccr::platforms::ClaudePlatform;
 use ccr::services::ClaudeAuthService;
 use ccr_config::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
-use ccr_skills::{PromptPreset, PromptsManager};
+use ccr_skills::PromptsManager;
 use ccr_store::{BudgetManager, CostTracker};
 
 use crate::platform::local::LocalEnvironment;
@@ -201,6 +200,21 @@ fn output_styles_dir() -> std::io::Result<PathBuf> {
     Ok(PathBuf::from(home).join(".claude").join("output-styles"))
 }
 
+fn output_styles_store() -> Result<ccr_app::resources::claude_files::Store, String> {
+    let directory = output_styles_dir().map_err(|error| error.to_string())?;
+    let root = directory
+        .parent()
+        .ok_or_else(|| "output_style_path_invalid".to_string())?;
+    let paths = PlatformPaths::new(Platform::Claude).map_err(|error| error.to_string())?;
+    let locks =
+        ccr_core::core::LockManager::with_default_path().map_err(|error| error.to_string())?;
+    Ok(ccr_app::resources::claude_files::Store::new(
+        root.to_path_buf(),
+        paths.backups_dir.join("output-styles"),
+        locks.lock_dir().to_path_buf(),
+    ))
+}
+
 // ═══════════════════════════════════════════════════════════
 // ── 子模块导出 ──
 // ═══════════════════════════════════════════════════════════
@@ -238,12 +252,6 @@ mod environment_tests;
 // ═══════════════════════════════════════════════════════════
 // ── Output Styles（~/.claude/output-styles/*.md）──
 // ═══════════════════════════════════════════════════════════
-
-#[derive(Debug, Serialize, Deserialize)]
-struct OutputStyle {
-    name: String,
-    content: String,
-}
 
 // ═══════════════════════════════════════════════════════════
 // ── Profiles（CCR Core）──

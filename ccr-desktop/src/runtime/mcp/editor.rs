@@ -38,7 +38,7 @@ impl McpTarget {
     }
 }
 
-enum EditDocument {
+pub(super) enum EditDocument {
     Claude(NativeSnapshot),
     Standard {
         document: Document,
@@ -49,8 +49,8 @@ enum EditDocument {
 }
 
 pub struct McpEditSession {
-    environment: EnvironmentId,
-    document: EditDocument,
+    pub(super) environment: EnvironmentId,
+    pub(super) document: EditDocument,
 }
 
 pub(super) fn project_path(source: &ConfigSource, path: &Path) -> Result<PathBuf, McpError> {
@@ -74,7 +74,7 @@ pub(super) fn project_path(source: &ConfigSource, path: &Path) -> Result<PathBuf
     Ok(path)
 }
 
-fn begin(
+pub(super) fn begin(
     source: &ConfigSource,
     environment: &EnvironmentId,
     target: McpTarget,
@@ -152,7 +152,7 @@ fn mutation_error(code: &str) -> McpError {
 }
 
 impl McpEditSession {
-    fn save(
+    pub(super) fn save(
         &self,
         environment: &EnvironmentId,
         name: &str,

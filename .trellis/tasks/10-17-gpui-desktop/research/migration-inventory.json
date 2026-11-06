@@ -643,10 +643,14 @@
       "risk": "read_only",
       "handler_path": "super::sync::list_sync_assets",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Sync sensitive assets → captured AssetRoots → existing v2 crypto/PullTransaction; separate force and v1 acknowledgements",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "list_sync_assets",
@@ -667,10 +671,14 @@
       "risk": "network_mutation",
       "handler_path": "super::sync::sync_push_asset",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Sync sensitive assets → captured AssetRoots → existing v2 crypto/PullTransaction; separate force and v1 acknowledgements",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "sync_push_asset",
@@ -691,10 +699,14 @@
       "risk": "network_mutation",
       "handler_path": "super::sync::sync_pull_asset",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Sync sensitive assets → captured AssetRoots → existing v2 crypto/PullTransaction; separate force and v1 acknowledgements",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "sync_pull_asset",
@@ -715,10 +727,14 @@
       "risk": "network_mutation",
       "handler_path": "super::sync::sync_asset",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Sync sensitive assets → captured AssetRoots → existing v2 crypto/PullTransaction; separate force and v1 acknowledgements",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "sync_asset",
@@ -739,10 +755,14 @@
       "risk": "network_mutation",
       "handler_path": "super::sync::sync_all_assets",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Sync sensitive assets → captured AssetRoots → existing v2 crypto/PullTransaction; separate force and v1 acknowledgements",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "sync_all_assets",
@@ -1232,10 +1252,14 @@
       "risk": "read_only",
       "handler_path": "super::claude::claude_list_agents",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → ClaudeFilesView → ccr_app::resources Claude file/typed collection owners",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "claude_list_agents",
@@ -1262,10 +1286,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::claude::claude_add_agent",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → ClaudeFilesView → ccr_app::resources Claude file/typed collection owners",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "claude_add_agent",
@@ -1292,10 +1320,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::claude::claude_update_agent",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → ClaudeFilesView → ccr_app::resources Claude file/typed collection owners",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "claude_update_agent",
@@ -1322,10 +1354,14 @@
       "risk": "destructive",
       "handler_path": "super::claude::claude_delete_agent",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → ClaudeFilesView → ccr_app::resources Claude file/typed collection owners",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "claude_delete_agent",
@@ -1352,10 +1388,14 @@
       "risk": "read_only",
       "handler_path": "super::claude::claude_list_slash_commands",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → ClaudeFilesView → ccr_app::resources Claude file/typed collection owners",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "claude_list_slash_commands",
@@ -1382,10 +1422,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::claude::claude_add_slash_command",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → ClaudeFilesView → ccr_app::resources Claude file/typed collection owners",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "claude_add_slash_command",
@@ -1412,10 +1456,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::claude::claude_update_slash_command",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → ClaudeFilesView → ccr_app::resources Claude file/typed collection owners",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "claude_update_slash_command",
@@ -1442,10 +1490,14 @@
       "risk": "destructive",
       "handler_path": "super::claude::claude_delete_slash_command",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → ClaudeFilesView → ccr_app::resources Claude file/typed collection owners",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "claude_delete_slash_command",
@@ -1472,10 +1524,14 @@
       "risk": "read_only",
       "handler_path": "super::claude::claude_list_plugins",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → ClaudeFilesView → ccr_app::resources Claude file/typed collection owners",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "claude_list_plugins",
@@ -1502,10 +1558,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::claude::claude_add_plugin",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → ClaudeFilesView → ccr_app::resources Claude file/typed collection owners",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "claude_add_plugin",
@@ -1532,10 +1592,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::claude::claude_update_plugin",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → ClaudeFilesView → ccr_app::resources Claude file/typed collection owners",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "claude_update_plugin",
@@ -1562,10 +1626,14 @@
       "risk": "destructive",
       "handler_path": "super::claude::claude_delete_plugin",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → ClaudeFilesView → ccr_app::resources Claude file/typed collection owners",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "claude_delete_plugin",
@@ -1592,10 +1660,14 @@
       "risk": "read_only",
       "handler_path": "super::claude::claude_get_output_styles",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → ClaudeFilesView → ccr_app::resources Claude file/typed collection owners",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "claude_get_output_styles",
@@ -1622,10 +1694,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::claude::claude_update_output_styles",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → ClaudeFilesView → ccr_app::resources Claude file/typed collection owners",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "claude_update_output_styles",
@@ -2636,10 +2712,14 @@
       "risk": "read_only",
       "handler_path": "super::codex::codex_list_agents",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → CodexAgentsView → captured ccr_app::codex_agents store/source owner",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "codex_list_agents",
@@ -2666,10 +2746,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_add_agent",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → CodexAgentsView → captured ccr_app::codex_agents store/source owner",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "codex_add_agent",
@@ -2696,10 +2780,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_update_agent",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → CodexAgentsView → captured ccr_app::codex_agents store/source owner",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "codex_update_agent",
@@ -2726,10 +2814,14 @@
       "risk": "destructive",
       "handler_path": "super::codex::codex_delete_agent",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → CodexAgentsView → captured ccr_app::codex_agents store/source owner",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "codex_delete_agent",
@@ -2756,10 +2848,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_rename_agent",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → CodexAgentsView → captured ccr_app::codex_agents store/source owner",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "codex_rename_agent",
@@ -2786,10 +2882,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_copy_agent",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → CodexAgentsView → captured ccr_app::codex_agents store/source owner",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "codex_copy_agent",
@@ -2816,10 +2916,14 @@
       "risk": "read_only",
       "handler_path": "super::codex::codex_validate_agent_toml",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → CodexAgentsView → captured ccr_app::codex_agents store/source owner",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "codex_validate_agent_toml",
@@ -2846,10 +2950,14 @@
       "risk": "read_only",
       "handler_path": "super::codex::codex_list_agent_sources",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → CodexAgentsView → captured ccr_app::codex_agents store/source owner",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "codex_list_agent_sources",
@@ -2876,10 +2984,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_add_agent_source",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → CodexAgentsView → captured ccr_app::codex_agents store/source owner",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "codex_add_agent_source",
@@ -2906,10 +3018,14 @@
       "risk": "destructive",
       "handler_path": "super::codex::codex_remove_agent_source",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → CodexAgentsView → captured ccr_app::codex_agents store/source owner",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "codex_remove_agent_source",
@@ -2936,10 +3052,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_sync_agent_source",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → CodexAgentsView → captured ccr_app::codex_agents store/source owner",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "codex_sync_agent_source",
@@ -2966,10 +3086,14 @@
       "risk": "read_only",
       "handler_path": "super::codex::codex_get_agent_source_catalog",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → CodexAgentsView → captured ccr_app::codex_agents store/source owner",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "codex_get_agent_source_catalog",
@@ -2996,10 +3120,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_install_source_agent",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → CodexAgentsView → captured ccr_app::codex_agents store/source owner",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "codex_install_source_agent",
@@ -3026,10 +3154,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_sync_source_install",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → CodexAgentsView → captured ccr_app::codex_agents store/source owner",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "codex_sync_source_install",
@@ -3056,10 +3188,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_accept_local_source_install",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → CodexAgentsView → captured ccr_app::codex_agents store/source owner",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "codex_accept_local_source_install",
@@ -3086,10 +3222,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_untrack_source_install",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources → CodexAgentsView → captured ccr_app::codex_agents store/source owner",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "codex_untrack_source_install",
@@ -6613,10 +6753,14 @@
       "risk": "read_only",
       "handler_path": "super::builtin_prompts::list_builtin_prompts",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources templates → builtin catalog → current PromptSession draft; explicit Save writes",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "list_builtin_prompts",
@@ -6643,10 +6787,14 @@
       "risk": "read_only",
       "handler_path": "super::builtin_prompts::get_builtin_prompt",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources templates → builtin catalog → current PromptSession draft; explicit Save writes",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "get_builtin_prompt",
@@ -6673,10 +6821,14 @@
       "risk": "read_only",
       "handler_path": "super::builtin_prompts::get_builtin_prompts_by_category",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Resources templates → builtin catalog → current PromptSession draft; explicit Save writes",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "get_builtin_prompts_by_category",
@@ -6803,10 +6955,14 @@
       "risk": "read_only",
       "handler_path": "super::mcp_presets::list_mcp_presets",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "MCP preset/copy controls → opaque original-source session → existing revision-checked writer; single entry only",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "list_mcp_presets",
@@ -6833,10 +6989,14 @@
       "risk": "read_only",
       "handler_path": "super::mcp_presets::get_mcp_preset",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "MCP preset/copy controls → opaque original-source session → existing revision-checked writer; single entry only",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "get_mcp_preset",
@@ -6893,10 +7053,14 @@
       "risk": "network_mutation",
       "handler_path": "super::mcp_presets::install_mcp_preset_single",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "MCP preset/copy controls → opaque original-source session → existing revision-checked writer; single entry only",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "install_mcp_preset_single",
@@ -6923,10 +7087,14 @@
       "risk": "read_only",
       "handler_path": "super::mcp_presets::list_source_mcp_servers",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "MCP preset/copy controls → opaque original-source session → existing revision-checked writer; single entry only",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "list_source_mcp_servers",
@@ -6953,10 +7121,14 @@
       "risk": "network_mutation",
       "handler_path": "super::mcp_presets::sync_mcp_server",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "MCP preset/copy controls → opaque original-source session → existing revision-checked writer; single entry only",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_resources_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/core-resources-20261106.md",
+          "result": "Core implementation and fixture/headless checks pass; per-command native/external acceptance pending."
+        }
       },
       "execution_20261029": {
         "id": "sync_mcp_server",

@@ -5,6 +5,7 @@ mod close_tests;
 mod command_state;
 mod preferences;
 pub(crate) mod semantics;
+pub(crate) mod window_state;
 use crate::{
     app::ConfigurationApp,
     features::{insights::InsightsPage, overview::OverviewLink},
@@ -100,6 +101,10 @@ pub struct Shell {
     preferences_loaded: bool,
     preferences_failed: bool,
     preferences_generation: u64,
+    preferences_closing: bool,
+    window_placement: Option<crate::runtime::preferences::WindowPlacement>,
+    window_state_task: Option<gpui_kit::Task<()>>,
+    _window_bounds: Subscription,
     reveal_preferences_after_save: bool,
     fixture: bool,
     slow_fixture: bool,
@@ -112,7 +117,41 @@ pub struct Shell {
 
 impl Shell {
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let close_guard = close::install(window, cx);
+        Self::build(services, None, window, cx)
+    }
+
+    pub(crate) fn new_with_preferences(
+        services: Services,
+        preferences: Result<
+            crate::runtime::preferences::DesktopPreferences,
+            crate::runtime::preferences::PreferencesError,
+        >,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Self {
+        Self::build(services, Some(preferences), window, cx)
+    }
+
+    fn build(
+        services: Services,
+        preferences: Option<
+            Result<
+                crate::runtime::preferences::DesktopPreferences,
+                crate::runtime::preferences::PreferencesError,
+            >,
+        >,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Self {
+        let shell = cx.weak_entity();
+        let close_guard = close::install(window, cx, move |window, cx| {
+            let shell = shell.clone();
+            // A close action can originate inside a Shell listener. Defer the
+            // final snapshot so the entity is no longer borrowed by that action.
+            window.defer(cx, move |window, cx| {
+                let _ = shell.update(cx, |this, cx| this.finish_close(window, cx));
+            });
+        });
         cx.set_global(Language::English);
         theme::apply(Preference::Light, window, cx);
         let appearance = cx.observe_window_appearance(window, |this, window, cx| {
@@ -130,6 +169,9 @@ impl Shell {
             crate::features::environments::remote::RemoteView::new(services.clone(), window, cx)
         });
         let remote_observation = cx.observe(&remote, |_, _, cx| cx.notify());
+        let window_bounds = cx.observe_window_bounds(window, |this, window, cx| {
+            this.window_bounds_changed(window, cx);
+        });
         let mut shell = Self {
             remote,
             _remote_observation: remote_observation,
@@ -169,6 +211,10 @@ impl Shell {
             preferences_loaded: false,
             preferences_failed: false,
             preferences_generation: 0,
+            preferences_closing: false,
+            window_placement: None,
+            window_state_task: None,
+            _window_bounds: window_bounds,
             reveal_preferences_after_save: false,
             fixture: services.is_fixture(),
             slow_fixture: services.is_slow_fixture(),
@@ -178,7 +224,10 @@ impl Shell {
             _appearance: appearance,
             _activation: activation,
         };
-        shell.load_preferences(window, cx);
+        match preferences {
+            Some(preferences) => shell.accept_loaded_preferences(preferences, window, cx),
+            None => shell.load_preferences(window, cx),
+        }
         shell.overview.update(cx, |view, cx| view.refresh(cx));
         shell
     }

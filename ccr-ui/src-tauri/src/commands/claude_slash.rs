@@ -1,13 +1,14 @@
 use super::*;
+use ccr_app::resources::claude_collections::{Collection, Mutation, apply_typed};
 
 #[ccr_tauri_command_macros::command]
 pub async fn claude_list_slash_commands(
     state: State<'_, AppState>,
 ) -> Result<OpenJsonValueDto, String> {
     let settings = load_settings(state.inner()).await?;
-    let commands = serde_json::to_value(&settings.slash_commands)
-        .map_err(|e| format!("Serialization error: {}", e))?;
-    open_json(serde_json::json!({ "commands": commands }))
+    let rows = serde_json::to_value(&settings.slash_commands)
+        .map_err(|error| format!("Serialization error: {error}"))?;
+    open_json(serde_json::json!({ "commands": rows }))
 }
 
 #[ccr_tauri_command_macros::command]
@@ -16,14 +17,15 @@ pub async fn claude_add_slash_command(
     name: String,
     config: OpenJsonValueDto,
 ) -> Result<OpenJsonValueDto, String> {
-    let mut cmd: ccr_types::SlashCommand = serde_json::from_value(config.into())
-        .map_err(|e| format!("Invalid slash command config: {}", e))?;
-    cmd.name = name;
-
+    let config: Value = config.into();
     let result = update_settings(state.inner(), move |settings| {
-        settings.slash_commands.push(cmd.clone());
-        serde_json::to_value(&settings.slash_commands)
-            .map_err(|error| format!("Serialization error: {error}"))
+        apply_typed(
+            settings,
+            Collection::SlashCommands,
+            &name,
+            Mutation::Add(config.clone()),
+        )
+        .map_err(|error| error.to_string())
     })
     .await?;
     open_json(serde_json::json!({ "commands": result }))
@@ -35,17 +37,15 @@ pub async fn claude_update_slash_command(
     name: String,
     config: OpenJsonValueDto,
 ) -> Result<OpenJsonValueDto, String> {
-    let updated: ccr_types::SlashCommand = serde_json::from_value(config.into())
-        .map_err(|e| format!("Invalid slash command config: {}", e))?;
+    let config: Value = config.into();
     let result = update_settings(state.inner(), move |settings| {
-        let pos = settings
-            .slash_commands
-            .iter()
-            .position(|command| command.name == name)
-            .ok_or_else(|| format!("Slash command '{name}' not found"))?;
-        settings.slash_commands[pos] = updated.clone();
-        serde_json::to_value(&settings.slash_commands)
-            .map_err(|error| format!("Serialization error: {error}"))
+        apply_typed(
+            settings,
+            Collection::SlashCommands,
+            &name,
+            Mutation::Replace(config.clone()),
+        )
+        .map_err(|error| error.to_string())
     })
     .await?;
     open_json(serde_json::json!({ "commands": result }))
@@ -58,14 +58,8 @@ pub async fn claude_delete_slash_command(
 ) -> Result<String, String> {
     let deleted_name = name.clone();
     update_settings(state.inner(), move |settings| {
-        let original_len = settings.slash_commands.len();
-        settings
-            .slash_commands
-            .retain(|command| command.name != name);
-        if settings.slash_commands.len() == original_len {
-            return Err(format!("Slash command '{name}' not found"));
-        }
-        Ok(())
+        apply_typed(settings, Collection::SlashCommands, &name, Mutation::Delete)
+            .map_err(|error| error.to_string())
     })
     .await?;
     Ok(format!("Slash command '{}' deleted", deleted_name))

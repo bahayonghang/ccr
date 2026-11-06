@@ -1,4 +1,6 @@
+mod assets;
 use super::*;
+pub use assets::{AssetDirection, AssetRequest, AssetResult, AssetRow};
 use ccr_app::platform_settings::{Document, Format, SaveOutcome};
 use ccr_app::runtime::Completion;
 use ccr_core::{Secret, core::BackupPolicy};
@@ -43,6 +45,11 @@ pub enum FolderChange {
 }
 
 pub enum Operation {
+    Assets(AssetRequest),
+    AssetInventory {
+        revision: String,
+        probe: bool,
+    },
     Save(SettingsPatch),
     Folder {
         revision: String,
@@ -63,6 +70,8 @@ pub enum Operation {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OperationKind {
+    Assets,
+    AssetInventory,
     Save,
     Folder,
     Test,
@@ -73,6 +82,8 @@ pub enum OperationKind {
 impl Operation {
     fn kind(&self) -> OperationKind {
         match self {
+            Self::Assets(_) => OperationKind::Assets,
+            Self::AssetInventory { .. } => OperationKind::AssetInventory,
             Self::Save(_) => OperationKind::Save,
             Self::Folder { .. } => OperationKind::Folder,
             Self::Test { .. } => OperationKind::Test,
@@ -84,6 +95,8 @@ impl Operation {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SyncOutcome {
+    Assets(Vec<AssetResult>),
+    AssetInventory(Vec<AssetRow>),
     Saved,
     FolderSaved,
     Connected,
@@ -413,6 +426,10 @@ async fn execute(
     loopback: bool,
 ) -> Result<SyncOutcome, SyncError> {
     let operation = match operation {
+        Operation::Assets(request) => return assets::transfer(source, request, loopback).await,
+        Operation::AssetInventory { revision, probe } => {
+            return assets::inventory(source, &revision, probe, loopback).await;
+        }
         Operation::Save(patch) => return save(source, patch),
         Operation::Folder { revision, change } => return save_folder(source, &revision, change),
         operation => operation,
@@ -425,7 +442,10 @@ async fn execute(
         Operation::Push { revision, folder } | Operation::Pull { revision, folder } => {
             (revision, Some(*folder))
         }
-        Operation::Save(_) | Operation::Folder { .. } => return Err(SyncError::Invalid),
+        Operation::Save(_)
+        | Operation::Folder { .. }
+        | Operation::Assets(_)
+        | Operation::AssetInventory { .. } => return Err(SyncError::Invalid),
     };
     let snapshot = document(source)?
         .read()

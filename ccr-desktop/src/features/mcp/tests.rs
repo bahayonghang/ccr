@@ -233,6 +233,98 @@ async fn mcp_page_with_no_files_stays_empty(cx: &mut TestAppContext) {
 }
 
 #[gpui_kit::test]
+async fn preset_and_cross_source_copy_use_real_controls_and_keep_stored_credentials_hidden(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let handle = open(cx, &owner, root.path());
+    let home = root.path().join(FIXTURE_DIR).join("home");
+    let codex = home.join(".codex/config.toml");
+    let claude = home.join(".claude.json");
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("nav-mcp-manager", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(5), |window, _| {
+        window.try_find("mcp-empty").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("mcp-presets", cx);
+        window.click("mcp-preset-fetch", cx);
+        window.click("mcp-source-codex", cx);
+        window.click("mcp-open-editor", cx);
+    })
+    .unwrap();
+    wait_for_editor(cx, handle).await;
+    cx.update_window(handle,|_,window,cx| {
+        assert_eq!(window.find("mcp-name").value(),Some("fetch"));
+        let initial:serde_json::Value=serde_json::from_str(window.find(patch_id(window)).value().unwrap()).unwrap();
+        assert_eq!(initial["command"],"uvx");
+        assert_eq!(initial["args"][0],"mcp-server-fetch");
+        window.click(patch_id(window),cx);window.press("ctrl-a",cx);
+        window.input(r#"{"command":"uvx","args":["mcp-server-fetch"],"env":{"TOKEN":"copy-secret-sentinel"}}"#,cx);
+        window.click("mcp-editor-save",cx);
+        assert!(!codex.exists());
+        window.click("mcp-confirm-save",cx);
+    }).unwrap();
+    cx.wait_for(handle, Duration::from_secs(5), |window, _| {
+        window.try_find("mcp-entry-0").is_some()
+    })
+    .await;
+    let original = fs::read(&codex).unwrap();
+    cx.update_window(handle, |_, window, cx| {
+        window.click("mcp-entry-0", cx);
+        window.click("mcp-copy", cx);
+        window.click("mcp-source-user", cx);
+        window.click("mcp-open-editor", cx);
+    })
+    .unwrap();
+    wait_for_editor(cx, handle).await;
+    cx.update_window(handle, |_, window, cx| {
+        assert!(!labels(window).contains("copy-secret-sentinel"));
+        let nodes = gpui_kit::base::test_support::snapshots(window);
+        assert!(
+            !nodes
+                .iter()
+                .any(|node| node.label() == Some("MCP JSON patch"))
+        );
+        assert!(!nodes.iter().any(|node| {
+            node.value()
+                .is_some_and(|value| value.contains("copy-secret-sentinel"))
+        }));
+        window.click("mcp-name", cx);
+        window.press("ctrl-a", cx);
+        window.input("fetch-copy", cx);
+        window.click("mcp-editor-save", cx);
+        assert!(!claude.exists());
+        window.click("mcp-confirm-cancel", cx);
+        assert!(!claude.exists());
+        assert_eq!(window.find("mcp-name").value(), Some("fetch-copy"));
+        window.click("mcp-editor-save", cx);
+        window.click("mcp-confirm-save", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(5), |window, _| {
+        window.try_find("mcp-entry-1").is_some()
+    })
+    .await;
+    let saved: serde_json::Value = serde_json::from_slice(&fs::read(&claude).unwrap()).unwrap();
+    assert_eq!(
+        saved["mcpServers"]["fetch-copy"]["env"]["TOKEN"],
+        "copy-secret-sentinel"
+    );
+    assert_eq!(saved["mcpServers"]["fetch-copy"]["command"], "uvx");
+    assert_eq!(fs::read(&codex).unwrap(), original);
+    cx.update_window(handle, |_, window, _| window.remove_window())
+        .unwrap();
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
 async fn mcp_native_actions_write_confirm_and_keep_conflicting_drafts(cx: &mut TestAppContext) {
     cx.executor().allow_parking();
     let root = tempfile::tempdir().unwrap();

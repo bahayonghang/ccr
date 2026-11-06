@@ -15,7 +15,7 @@ use gpui_kit::{
 
 impl Shell {
     pub(super) fn load_preferences(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.preferences_busy {
+        if self.preferences_busy || self.preferences_closing {
             return;
         }
         match self.preferences_requests.load() {
@@ -34,10 +34,19 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if !self.preferences_loaded {
+        if !self.preferences_loaded || self.preferences_closing {
             return;
         }
         self.apply_preferences(value, window, cx);
+        self.persist_preferences(value, window, cx);
+    }
+
+    pub(super) fn persist_preferences(
+        &mut self,
+        value: DesktopPreferences,
+        window: &Window,
+        cx: &mut Context<Self>,
+    ) {
         self.preferences_generation = self.preferences_generation.saturating_add(1);
         match self
             .preferences_requests
@@ -50,6 +59,28 @@ impl Shell {
                 cx.notify();
             }
         }
+    }
+
+    pub(super) fn accept_loaded_preferences(
+        &mut self,
+        result: Result<DesktopPreferences, PreferencesError>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        match result {
+            Ok(value) => {
+                self.preferences_loaded = true;
+                self.preferences_failed = false;
+                self.window_placement =
+                    Some(super::window_state::placement(window.window_bounds()));
+                self.apply_preferences(value, window, cx);
+            }
+            Err(_) => {
+                self.preferences_failed = true;
+                self.reveal_preferences_after_save = false;
+            }
+        }
+        cx.notify();
     }
 
     fn apply_preferences(
@@ -89,7 +120,7 @@ impl Shell {
                                 Completion::Success(value) => {
                                     this.preferences_loaded = true;
                                     if loading {
-                                        this.apply_preferences(*value, window, cx);
+                                        this.accept_loaded_preferences(Ok(*value), window, cx);
                                     }
                                     if this.reveal_preferences_after_save {
                                         this.reveal_preferences_after_save = false;
@@ -113,11 +144,12 @@ impl Shell {
         cx.notify();
     }
 
-    fn preference_snapshot(&self, cx: &Context<Self>) -> DesktopPreferences {
+    pub(super) fn preference_snapshot(&self, cx: &Context<Self>) -> DesktopPreferences {
         DesktopPreferences {
             theme: self.preference,
             language: *cx.global::<Language>(),
             confirm_quit: self.close_guard.confirm.get(),
+            window: self.window_placement,
         }
     }
 
@@ -138,7 +170,7 @@ impl Shell {
     }
 
     pub(super) fn preference_controls(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        let disabled = !self.preferences_loaded;
+        let disabled = !self.preferences_loaded || self.preferences_closing;
         let mut choices = div().flex().gap(px(theme::CONTROL_GAP));
         for (id, preference, en, zh) in [
             ("theme-system", Preference::System, "System", "跟随系统"),

@@ -51,6 +51,7 @@ impl SyncView {
         }
         self.confirmation = None;
         self.folder_delete = None;
+        self.asset_editor = None;
         self.folder_editor = Some(FolderEditor {
             revision,
             target,

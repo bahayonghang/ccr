@@ -1,4 +1,7 @@
 //! Existing fixed instruction files, with a scoped plaintext edit session.
+pub mod claude_files;
+pub mod codex_agents;
+pub mod templates;
 use crate::{
     locales::{service_error, text},
     runtime::{
@@ -17,7 +20,7 @@ use gpui_kit::component::{
 };
 use gpui_kit::{
     AppContext, Context, Entity, FocusHandle, Focusable, InteractiveElement, IntoElement,
-    ParentElement, Render, StatefulInteractiveElement, Styled, Task, Window, div, px,
+    ParentElement, Render, StatefulInteractiveElement, Styled, Subscription, Task, Window, div, px,
 };
 use std::sync::Arc;
 
@@ -25,6 +28,13 @@ use std::sync::Arc;
 enum Decision {
     Open(&'static str),
     Reload,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ResourceSurface {
+    Instructions,
+    Claude,
+    Codex,
 }
 
 pub struct ResourcesView {
@@ -47,9 +57,33 @@ pub struct ResourcesView {
     focus: FocusHandle,
     decision_return: Option<FocusHandle>,
     editor_return: Option<FocusHandle>,
+    surface: ResourceSurface,
+    claude: Entity<claude_files::ClaudeResourcesView>,
+    codex: Entity<codex_agents::CodexAgentsView>,
+    _claude_observation: Subscription,
+    _codex_observation: Subscription,
+    templates: Entity<templates::TemplatesView>,
+    _template_events: Subscription,
+    templates_open: bool,
+    template_cleanup: bool,
 }
 impl ResourcesView {
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
+        let claude =
+            cx.new(|cx| claude_files::ClaudeResourcesView::new(services.clone(), window, cx));
+        let codex = cx.new(|cx| codex_agents::CodexAgentsView::new(services.clone(), window, cx));
+        let claude_observation = cx.observe(&claude, |_, _, cx| cx.notify());
+        let codex_observation = cx.observe(&codex, |_, _, cx| cx.notify());
+        let templates = cx.new(|cx| templates::TemplatesView::new(services.clone(), window, cx));
+        let template_events = cx.subscribe(&templates, |this, _, event, cx| {
+            if let templates::TemplateEvent::Use(content) = event {
+                this.pending_content = Some(content.clone());
+                this.editor_entry_pending = true;
+            }
+            this.templates_open = false;
+            this.template_cleanup = true;
+            cx.notify();
+        });
         Self {
             services,
             platform: Platform::Claude,
@@ -70,9 +104,33 @@ impl ResourcesView {
             focus: cx.focus_handle().tab_stop(false),
             decision_return: None,
             editor_return: None,
+            surface: ResourceSurface::Instructions,
+            claude,
+            codex,
+            _claude_observation: claude_observation,
+            _codex_observation: codex_observation,
+            templates,
+            _template_events: template_events,
+            templates_open: false,
+            template_cleanup: false,
         }
     }
     pub fn focus_main(&self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.templates_open {
+            self.templates
+                .update(cx, |view, cx| view.focus_main(window, cx));
+            return;
+        }
+        if self.surface == ResourceSurface::Claude {
+            self.claude
+                .update(cx, |view, cx| view.focus_main(window, cx));
+            return;
+        }
+        if self.surface == ResourceSurface::Codex {
+            self.codex
+                .update(cx, |view, cx| view.focus_main(window, cx));
+            return;
+        }
         if self.session.is_some() {
             window.focus(&self.editor.read(cx).focus_handle(cx), cx);
         } else {
@@ -81,6 +139,17 @@ impl ResourcesView {
         }
     }
     pub fn load(&mut self, cx: &mut Context<Self>) {
+        match self.surface {
+            ResourceSurface::Claude => {
+                self.claude.update(cx, |view, cx| view.load(cx));
+                return;
+            }
+            ResourceSurface::Codex => {
+                self.codex.update(cx, |view, cx| view.activate(cx));
+                return;
+            }
+            ResourceSurface::Instructions => {}
+        }
         self.request(ResourceCommand::ListPrompts, cx);
     }
     pub fn open_platform(
@@ -94,6 +163,12 @@ impl ResourcesView {
         self.load(cx);
     }
     pub fn leave(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.templates.update(cx, |view, cx| view.leave(window, cx));
+        self.templates_open = false;
+        self.template_cleanup = false;
+        self.claude.update(cx, |view, cx| view.leave(window, cx));
+        self.codex.update(cx, |view, cx| view.suspend(window, cx));
+        self.surface = ResourceSurface::Instructions;
         self.task = None;
         self.gate.clear();
         self.generation += 1;
@@ -109,6 +184,30 @@ impl ResourcesView {
         self.message = None;
         self.editor
             .update(cx, |state, cx| state.set_value("", window, cx));
+        cx.notify();
+    }
+    fn blocks_switch(&self, cx: &Context<Self>) -> bool {
+        self.busy
+            || self.session.is_some()
+            || self.decision.is_some()
+            || match self.surface {
+                ResourceSurface::Claude => self.claude.read(cx).blocks_switch(),
+                ResourceSurface::Codex => self.codex.read(cx).blocks_switch(),
+                ResourceSurface::Instructions => false,
+            }
+    }
+    fn select_surface(
+        &mut self,
+        surface: ResourceSurface,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.blocks_switch(cx) {
+            return;
+        }
+        self.leave(window, cx);
+        self.surface = surface;
+        self.load(cx);
         cx.notify();
     }
     fn close_editor(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -225,6 +324,9 @@ impl ResourcesView {
 }
 impl Render for ResourcesView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        if std::mem::take(&mut self.template_cleanup) {
+            self.templates.update(cx, |view, cx| view.leave(window, cx));
+        }
         if let Some(content) = self.pending_content.take() {
             self.editor
                 .update(cx, |state, cx| state.set_value(content, window, cx));
@@ -244,13 +346,14 @@ impl Render for ResourcesView {
             });
         }
         let blocked = self.busy || self.decision.is_some();
+        let switch_blocked = self.blocks_switch(cx);
         let mut root = div().id("resources-view").test_support().track_focus(&self.focus).tab_stop(false).flex().flex_col().size_full()
             .p(px(theme::CONTENT_PADDING)).gap(px(theme::SECTION_GAP))
             .on_key_down(cx.listener(|this, event: &gpui_kit::KeyDownEvent, window, cx| {
                 if event.keystroke.key == "escape" && this.decision.is_some() { this.dismiss(window, cx); cx.stop_propagation(); }
             }))
-            .child(div().text_size(px(theme::TITLE_SIZE)).child(text(cx, "User instruction files", "用户指令文件")))
-            .child(text(cx, "Fixed user files, original revision and managed backup. Remote environments do not fall back to Local.", "固定用户文件、原始版本与托管备份。远程环境不会回退本地。"));
+            .child(div().flex_shrink_0().text_size(px(theme::TITLE_SIZE)).child(if self.surface == ResourceSurface::Instructions { text(cx, "User instruction files", "用户指令文件") } else { text(cx, "Platform resources", "平台资源") }))
+            .child(div().flex_shrink_0().child(text(cx, "Local resources, original revision and managed backup. Remote environments do not fall back to Local.", "本地资源、原始版本与托管备份。远程环境不会回退本地。")));
         let mut platforms = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
         for (platform, name) in [
             (Platform::Claude, "Claude Code"),
@@ -267,12 +370,65 @@ impl Render for ResourcesView {
                         this.platform = platform;
                         this.load(cx);
                     })),
-                blocked || self.session.is_some(),
+                switch_blocked,
                 false,
                 cx,
             ));
         }
-        root = root.child(platforms);
+        root = root.child(platforms.flex_shrink_0());
+        let mut surfaces = div()
+            .flex()
+            .flex_wrap()
+            .flex_shrink_0()
+            .gap(px(theme::CONTROL_GAP))
+            .child(semantics::button(
+                Button::new("resource-instructions")
+                    .label(text(cx, "Instruction files", "指令文件"))
+                    .ghost()
+                    .on_click(cx.listener(|this, _, window, cx| {
+                        this.select_surface(ResourceSurface::Instructions, window, cx)
+                    })),
+                switch_blocked,
+                false,
+                cx,
+            ));
+        let extension = match self.platform {
+            Platform::Claude => Some((
+                ResourceSurface::Claude,
+                "resource-claude",
+                text(cx, "Rules and Claude resources", "规则与 Claude 资源"),
+            )),
+            Platform::Codex => Some((
+                ResourceSurface::Codex,
+                "resource-codex-agents",
+                text(cx, "Agents and sources", "代理与来源"),
+            )),
+            _ => None,
+        };
+        if let Some((surface, id, label)) = extension {
+            surfaces =
+                surfaces.child(semantics::button(
+                    Button::new(id).label(label).ghost().on_click(cx.listener(
+                        move |this, _, window, cx| this.select_surface(surface, window, cx),
+                    )),
+                    switch_blocked,
+                    false,
+                    cx,
+                ));
+        }
+        root = root.child(surfaces);
+        match self.surface {
+            ResourceSurface::Claude => {
+                return root.child(div().flex_1().min_h_0().child(self.claude.clone()));
+            }
+            ResourceSurface::Codex => {
+                return root.child(div().flex_1().min_h_0().child(self.codex.clone()));
+            }
+            ResourceSurface::Instructions => {}
+        }
+        if self.templates_open {
+            return root.child(div().flex_1().min_h_0().child(self.templates.clone()));
+        }
         if let Some(decision) = self.decision {
             if std::mem::take(&mut self.decision_entry_pending) {
                 let generation = self.decision_generation;
@@ -299,6 +455,9 @@ impl Render for ResourcesView {
                         .on_click(cx.listener(|this, _, window, cx| this.confirm(window, cx))), false, false, cx))
                     .focus_trap("resource-decision-trap", &self.confirmation_focus));
         }
+        if self.session.is_some() && self.platform == Platform::OpenCode {
+            root = root.child(text(cx, "Saved prompt presets support Claude, Codex and Gemini. Edit this instruction file directly.", "提示词预设支持 Claude、Codex 和 Gemini，请直接编辑当前指令文件。"));
+        }
         if let Some(session) = self.session.clone() {
             root = root
                 .child(
@@ -315,6 +474,39 @@ impl Render for ResourcesView {
                                     }),
                                 ),
                             blocked,
+                            false,
+                            cx,
+                        ))
+                        .child(semantics::button(
+                            Button::new("resource-templates")
+                                .label(text(cx, "Templates and presets", "模板与预设"))
+                                .ghost()
+                                .on_click(cx.listener(|this, _, window, cx| {
+                                    if !matches!(
+                                        this.platform,
+                                        Platform::Claude | Platform::Codex | Platform::Gemini
+                                    ) {
+                                        return;
+                                    }
+                                    let Some(session) = this.session.as_ref() else {
+                                        return;
+                                    };
+                                    let target = match session.spec.filename {
+                                        "CLAUDE.md" => ccr_skills::PromptTarget::Claude,
+                                        "GEMINI.md" => ccr_skills::PromptTarget::Gemini,
+                                        _ => ccr_skills::PromptTarget::Agents,
+                                    };
+                                    this.templates_open = true;
+                                    this.templates.update(cx, |view, cx| {
+                                        view.open(this.platform, target, window, cx)
+                                    });
+                                    cx.notify();
+                                })),
+                            blocked
+                                || !matches!(
+                                    self.platform,
+                                    Platform::Claude | Platform::Codex | Platform::Gemini
+                                ),
                             false,
                             cx,
                         ))

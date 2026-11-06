@@ -39,6 +39,22 @@ fn wait_for(
     }
 }
 
+fn wait_closed(cx: &mut TestAppContext, handle: gpui_kit::AnyWindowHandle) {
+    let deadline = Instant::now() + Duration::from_secs(10);
+    loop {
+        cx.run_until_parked();
+        if cx.update_window(handle, |_, _, _| ()).is_err() {
+            return;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "final preference write did not close the window"
+        );
+        cx.executor().advance_clock(Duration::from_millis(10));
+        std::thread::yield_now();
+    }
+}
+
 #[gpui_kit::test]
 fn quit_action_and_saved_preferences_share_the_window_close_policy(cx: &mut TestAppContext) {
     cx.executor().allow_parking();
@@ -149,8 +165,8 @@ fn quit_action_and_saved_preferences_share_the_window_close_policy(cx: &mut Test
             .unwrap();
             let mut visual = VisualTestContext::from_window(handle, cx);
             assert!(
-                visual.simulate_close(),
-                "saved direct-close policy must admit OS close"
+                !visual.simulate_close(),
+                "direct OS close must wait for the final preference write"
             );
         }
         cx.update_window(handle, |_, window, cx| {
@@ -165,8 +181,190 @@ fn quit_action_and_saved_preferences_share_the_window_close_policy(cx: &mut Test
         })
         .unwrap();
         cx.run_until_parked();
-        assert!(cx.update_window(handle, |_, _, _| ()).is_err());
+        wait_closed(cx, handle);
     }
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+async fn window_bounds_are_saved_before_close_and_restored_by_the_launch_path(
+    cx: &mut TestAppContext,
+) {
+    use ccr_app::runtime::{BLOCKING_CONCURRENCY, TaskEvent};
+    cx.executor().allow_parking();
+    let (root, source) = fixture();
+    let mut owner = ShutdownOnDrop(Some(RuntimeOwner::new().unwrap()));
+    let executor = owner.0.as_ref().unwrap().handle();
+    let services = Services::new(executor.clone(), source);
+    let requests = crate::runtime::preferences::PreferencesRequests::new(&services);
+    let path = root.path().join("desktop-gpui/preferences.json");
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(
+        &path,
+        serde_json::json!({
+            "version":1, "theme":"light", "language":"en", "confirm_quit":false,
+            "window":{"x":50,"y":75,"width":1280,"height":800,"maximized":false},
+        })
+        .to_string(),
+    )
+    .unwrap();
+    cx.update(gpui_kit::init);
+    let (handle, shell) = crate::open_app_window(services.clone(), &mut cx.to_async())
+        .await
+        .unwrap();
+    cx.update_window(handle, |_, window, cx| {
+        assert_eq!(
+            window.window_bounds().get_bounds().origin,
+            gpui_kit::point(px(50.), px(75.))
+        );
+        assert_eq!(
+            window.window_bounds().get_bounds().size,
+            size(px(1280.), px(800.))
+        );
+        window.render_frame(cx);
+        window.click("nav-settings", cx);
+        window.click("theme-dark", cx);
+        window.click("language-zh", cx);
+    })
+    .unwrap();
+    wait_for(cx, handle, "theme and language saved", |window| {
+        window.find("preferences-reveal").disabled() != Some(true)
+    });
+    let before = std::fs::read(&path).unwrap();
+    let mut blockers = Vec::new();
+    for index in 0..BLOCKING_CONCURRENCY {
+        let (entered, receive) = mpsc::channel();
+        blockers.push(
+            executor
+                .job(
+                    RequestKey {
+                        environment: EnvironmentId::Local("window-close-fixture".into()),
+                        platform: Platform::Claude,
+                        generation: 0,
+                        request_id: index as u64,
+                    },
+                    move |cancel, _| {
+                        entered.send(()).unwrap();
+                        tokio::runtime::Handle::current().block_on(cancel.cancelled());
+                        Completion::<(), ()>::Cancelled
+                    },
+                )
+                .unwrap(),
+        );
+        receive.recv_timeout(Duration::from_secs(5)).unwrap();
+    }
+    // The platform resize callback, not direct model assignment, updates the
+    // saved geometry. Close flushes the pending debounce before it can expire.
+    VisualTestContext::from_window(handle, cx).simulate_resize(size(px(1320.), px(820.)));
+    cx.update_window(handle, |_, window, cx| {
+        assert_eq!(shell.read(cx).window_placement.unwrap().width, 1320.);
+        window.dispatch_action(Box::new(super::close::Quit), cx);
+    })
+    .unwrap();
+    cx.run_until_parked();
+    let generation = cx
+        .update_window(handle, |_, window, cx| {
+            assert!(shell.read(cx).preferences_closing);
+            assert!(window.try_find("dialog").is_none());
+            window.dispatch_action(Box::new(super::close::Quit), cx);
+            shell.read(cx).preferences_generation
+        })
+        .unwrap();
+    cx.run_until_parked();
+    cx.update_window(handle, |_, _, cx| {
+        assert_eq!(shell.read(cx).preferences_generation, generation)
+    })
+    .unwrap();
+    assert_eq!(
+        std::fs::read(&path).unwrap(),
+        before,
+        "queued final save has not completed"
+    );
+    for blocker in blockers {
+        blocker.request_cancel();
+    }
+    wait_closed(cx, handle);
+    let mut read = requests.load().unwrap();
+    let Some(TaskEvent::Terminal(result)) = read.next().await else {
+        panic!("preference read terminal missing");
+    };
+    let Completion::Success(saved) = result.as_ref() else {
+        panic!("preference read failed");
+    };
+    assert!(saved.theme == crate::theme::Preference::Dark);
+    assert!(saved.language == crate::locales::Language::Chinese);
+    assert!(!saved.confirm_quit);
+    assert_eq!(saved.window.unwrap().width, 1320.);
+    assert_eq!(saved.window.unwrap().height, 820.);
+    let (reopened, _) = crate::open_app_window(services, &mut cx.to_async())
+        .await
+        .unwrap();
+    cx.update_window(reopened, |_, window, cx| {
+        assert_eq!(
+            window.window_bounds().get_bounds().origin,
+            gpui_kit::point(px(50.), px(75.))
+        );
+        assert_eq!(
+            window.window_bounds().get_bounds().size,
+            size(px(1320.), px(820.))
+        );
+        assert!(cx.global::<crate::locales::Language>() == &crate::locales::Language::Chinese);
+        window.dispatch_action(Box::new(super::close::Quit), cx);
+    })
+    .unwrap();
+    wait_closed(cx, reopened);
+    owner.0.take().unwrap().shutdown();
+    assert_eq!(executor.active_tasks(), 0);
+}
+
+#[gpui_kit::test]
+async fn corrupt_launch_preferences_remain_visible_and_are_not_replaced_on_quit(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let (root, source) = fixture();
+    let owner = RuntimeOwner::new().unwrap();
+    let path = root.path().join("desktop-gpui/preferences.json");
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(&path, b"{broken").unwrap();
+    cx.update(|cx| {
+        gpui_kit::init(cx);
+        cx.set_reduce_motion(true);
+    });
+    let (handle, shell) =
+        crate::open_app_window(Services::new(owner.handle(), source), &mut cx.to_async())
+            .await
+            .unwrap();
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("nav-settings", cx);
+    })
+    .unwrap();
+    cx.run_until_parked();
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(window.try_find("preferences-retry").is_some());
+        assert!(!shell.read(cx).preferences_loaded);
+        // The kit does not expose a disabled flag for every button snapshot.
+        // Exercise the actual control instead: unreadable prefs cannot be
+        // replaced by selecting a theme over default values.
+        window.click("theme-dark", cx);
+        assert!(shell.read(cx).preference == crate::theme::Preference::Light);
+        assert_eq!(shell.read(cx).preferences_generation, 0);
+        window.dispatch_action(Box::new(super::close::Quit), cx);
+    })
+    .unwrap();
+    cx.run_until_parked();
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.simulate_next_frame(cx);
+        window.press("tab", cx);
+        assert_eq!(window.find("ok").focused(), Some(true));
+        window.press("enter", cx);
+    })
+    .unwrap();
+    wait_closed(cx, handle);
+    assert_eq!(std::fs::read(&path).unwrap(), b"{broken");
     owner.shutdown();
 }
 
@@ -298,7 +496,7 @@ fn close_request_requires_confirmation_and_cancel_preserves_window(cx: &mut Test
             assert_eq!(window.find("ok").focused(), Some(true));
             window.press("enter", cx);
         });
-        assert!(cx.update_window(handle, |_, _, _| ()).is_err());
+        wait_closed(cx, handle);
     }
     owner.shutdown();
     drop(root);
@@ -427,7 +625,7 @@ fn cancelling_close_preserves_nested_profile_confirmation_draft_and_running_job(
         window.render_frame(cx);
         window.click("ok", cx);
     });
-    assert!(cx.update_window(handle, |_, _, _| ()).is_err());
+    wait_closed(cx, handle);
     // TestAppContext has no real OS event loop; final join is exercised explicitly.
     owner.0.take().unwrap().shutdown();
     assert!(matches!(

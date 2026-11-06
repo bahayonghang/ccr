@@ -29,19 +29,36 @@ impl PromptsManager {
     pub fn new(platform: Platform) -> Result<Self> {
         let home = dirs::home_dir()
             .ok_or_else(|| CcrError::ConfigError("Cannot find home directory".into()))?;
+        Ok(Self::for_home(platform, &home))
+    }
 
-        let platform_dir = platform_prompt_dir(&home, platform);
-
+    /// Explicit roots for embedding clients and isolated fixtures; no I/O.
+    pub fn for_home(platform: Platform, home: &std::path::Path) -> Self {
+        let platform_dir = platform_prompt_dir(home, platform);
         let config_path = home
             .join(".ccr")
             .join("platforms")
             .join(platform.short_name())
             .join("prompts.toml");
 
-        Ok(Self {
+        Self {
             config_path,
             platform_dir,
-        })
+        }
+    }
+
+    pub fn config_path(&self) -> &std::path::Path {
+        &self.config_path
+    }
+
+    /// Parse the established schema from a caller's versioned snapshot.
+    pub fn parse_presets(content: &str) -> Result<Vec<PromptPreset>> {
+        if content.trim().is_empty() {
+            return Ok(Vec::new());
+        }
+        toml::from_str::<PromptsConfig>(content)
+            .map(|config| config.presets)
+            .map_err(|error| CcrError::ConfigFormatInvalid(error.to_string()))
     }
 
     fn ensure_config_dir(&self) -> Result<()> {

@@ -27,6 +27,8 @@ pub struct McpView {
     filter: Entity<InputState>,
     project: Entity<InputState>,
     create_source: usize,
+    create_mode: EditMode,
+    show_presets: bool,
     show_sources: bool,
     editor: Option<Entity<McpEditor>>,
     editor_events: Option<Subscription>,
@@ -54,6 +56,8 @@ impl McpView {
             filter,
             project: cx.new(|cx| InputState::new(window, cx)),
             create_source: 0,
+            create_mode: EditMode::Add,
+            show_presets: false,
             show_sources: false,
             editor: None,
             editor_events: None,
@@ -75,6 +79,9 @@ impl McpView {
     }
 
     pub fn suspend(&mut self, cx: &mut Context<Self>) {
+        self.create_mode = EditMode::Add;
+        self.show_sources = false;
+        self.show_presets = false;
         self.editor = None;
         self.editor_events = None;
         self.task = None;
@@ -109,6 +116,9 @@ impl McpView {
         self.gate.replace(key.clone());
         self.busy = true;
         self.message = None;
+        self.create_mode = EditMode::Add;
+        self.show_sources = false;
+        self.show_presets = false;
         self.catalog = None;
         self.selected = None;
         let project = self.project.read(cx).value().trim().to_string();
@@ -196,6 +206,7 @@ impl McpView {
             cx.notify();
         }));
         self.show_sources = false;
+        self.show_presets = false;
         self.editor = Some(editor);
         cx.notify();
     }
@@ -209,7 +220,12 @@ impl McpView {
             4 => McpTarget::Antigravity,
             _ => McpTarget::ClaudeUser,
         };
-        self.start_editor(target, EditMode::Add, "", window, cx);
+        let name = match &self.create_mode {
+            EditMode::Preset(id) => id.clone(),
+            EditMode::Copy(entry) => entry.name.clone(),
+            _ => String::new(),
+        };
+        self.start_editor(target, self.create_mode.clone(), &name, window, cx);
     }
 
     fn visible(&self, cx: &App) -> Vec<McpEntry> {
@@ -450,7 +466,9 @@ impl Render for McpView {
                         ),
                     )
                     .child(semantics::button(Button::new("mcp-add").label(text(cx,"Add server and select source","添加服务器与选择来源")).ghost()
-                        .on_click(cx.listener(|this,_,_,cx|{this.show_sources = !this.show_sources;cx.notify();})),self.busy||self.editor.is_some(),false,cx))
+                        .on_click(cx.listener(|this,_,_,cx|{this.create_mode=EditMode::Add;this.show_presets=false;this.show_sources = !this.show_sources;cx.notify();})),self.busy||self.editor.is_some(),false,cx))
+                    .child(semantics::button(Button::new("mcp-presets").label(text(cx,"Built-in presets","内置预设")).ghost()
+                        .on_click(cx.listener(|this,_,_,cx|{this.show_sources=false;this.create_mode=EditMode::Add;this.show_presets = !this.show_presets;cx.notify();})),self.busy||self.editor.is_some(),false,cx))
                     .child(semantics::button(
                         Button::new("mcp-read")
                             .label(if self.busy {
@@ -468,7 +486,46 @@ impl Render for McpView {
         if let Some(editor) = &self.editor {
             return root.child(editor.clone());
         }
+        if self.show_presets {
+            let mut presets = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
+            for preset in ccr_skills::get_builtin_presets() {
+                let id = preset.id.clone();
+                presets = presets.child(semantics::button(
+                    Button::new(format!("mcp-preset-{id}"))
+                        .label(preset.name)
+                        .ghost()
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            this.create_mode = EditMode::Preset(id.clone());
+                            this.show_presets = false;
+                            this.show_sources = true;
+                            cx.notify();
+                        })),
+                    false,
+                    false,
+                    cx,
+                ));
+            }
+            root = root.child(text(cx,"Choose a template, then a destination. Review commands and fill required credentials before confirming. This does not install or start a server.","先选择模板，再选择目标。确认前请检查命令并填写所需凭据。此操作不会安装或启动服务器。" )).child(presets);
+        }
         if self.show_sources {
+            root = root.child(match &self.create_mode {
+                EditMode::Preset(id) => format!("{}: {id}", text(cx, "Preset", "预设")),
+                EditMode::Copy(entry) => {
+                    let (en, zh) = source_title(entry.source);
+                    format!(
+                        "{}: {} · {}",
+                        text(cx, "Copy from", "复制来源"),
+                        text(cx, en, zh),
+                        entry.name
+                    )
+                }
+                _ => text(
+                    cx,
+                    "Choose the source for the new server.",
+                    "选择新服务器的来源。",
+                )
+                .to_string(),
+            });
             let mut targets = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
             for (index, id, en, zh) in [
                 (0, "mcp-source-user", "Claude user", "Claude 用户"),
@@ -590,6 +647,9 @@ impl Render for McpView {
                                     .selected(selected)
                                     .on_click(cx.listener(move |this, _, _, cx| {
                                         this.selected = Some(clicked.clone());
+                                        this.show_sources = false;
+                                        this.show_presets = false;
+                                        this.create_mode = EditMode::Add;
                                         cx.notify();
                                     })),
                                 false,
@@ -622,10 +682,25 @@ impl Render for McpView {
                         let edit_target = target.clone();
                         let edit_name = entry.name.clone();
                         let delete_name = entry.name.clone();
+                        let copy_entry = entry.clone();
                         detail = detail.child(
                             div()
                                 .flex()
                                 .gap(px(theme::CONTROL_GAP))
+                                .child(semantics::button(
+                                    Button::new("mcp-copy")
+                                        .label(text(cx, "Copy to another source", "复制到其他来源"))
+                                        .ghost()
+                                        .on_click(cx.listener(move |this, _, _, cx| {
+                                            this.create_mode = EditMode::Copy(copy_entry.clone());
+                                            this.show_sources = true;
+                                            this.show_presets = false;
+                                            cx.notify();
+                                        })),
+                                    self.busy,
+                                    false,
+                                    cx,
+                                ))
                                 .child(semantics::button(
                                     Button::new("mcp-edit")
                                         .label(text(cx, "Edit server", "编辑服务器"))

@@ -1,3 +1,4 @@
+pub mod assets;
 mod budget;
 pub mod config;
 pub mod content_selector;

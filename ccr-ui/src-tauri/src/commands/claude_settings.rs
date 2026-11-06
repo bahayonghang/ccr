@@ -41,72 +41,31 @@ pub async fn claude_update_settings(
 #[ccr_tauri_command_macros::command]
 pub async fn claude_get_output_styles() -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(|| -> Result<Value, String> {
-        let dir = output_styles_dir()
-            .map_err(|e| format!("Cannot determine output-styles dir: {}", e))?;
-
-        if !dir.exists() {
-            return Ok(serde_json::json!({ "styles": [] }));
-        }
-
-        let entries =
-            fs::read_dir(&dir).map_err(|e| format!("Failed to read output-styles dir: {}", e))?;
-
-        let mut styles: Vec<OutputStyle> = Vec::new();
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) != Some("md") {
-                continue;
-            }
-            let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else {
-                continue;
-            };
-            let Ok(content) = fs::read_to_string(&path) else {
-                continue;
-            };
-            styles.push(OutputStyle {
-                name: stem.to_string(),
-                content,
-            });
-        }
-
-        styles.sort_by(|a, b| a.name.cmp(&b.name));
-        let result =
-            serde_json::to_value(&styles).map_err(|e| format!("Serialization error: {}", e))?;
-        Ok(serde_json::json!({ "styles": result }))
+        let styles = ccr_app::resources::claude_files::list_output_styles(&output_styles_store()?)
+            .map_err(|error| error.to_string())?;
+        Ok(serde_json::json!({ "styles": styles }))
     })
     .await
-    .map_err(|e| format!("Task join error: {}", e))??
+    .map_err(|error| format!("Task join error: {error}"))??
     .try_into()
 }
 
-/// 写入或覆盖一个 output style 文件（styles 是 [{name, content}] 数组）。
+/// Batch upsert preserves the existing array payload; omitted styles are retained.
 #[ccr_tauri_command_macros::command]
 pub async fn claude_update_output_styles(
     styles: OpenJsonValueDto,
 ) -> Result<OpenJsonValueDto, String> {
     let styles: Value = styles.into();
     tokio::task::spawn_blocking(move || -> Result<Value, String> {
-        let dir = output_styles_dir()
-            .map_err(|e| format!("Cannot determine output-styles dir: {}", e))?;
-
-        fs::create_dir_all(&dir)
-            .map_err(|e| format!("Failed to create output-styles dir: {}", e))?;
-
-        let items: Vec<OutputStyle> = serde_json::from_value(styles)
-            .map_err(|e| format!("Invalid output styles payload: {}", e))?;
-
-        for item in &items {
-            let path = dir.join(format!("{}.md", item.name));
-            fs::write(&path, &item.content)
-                .map_err(|e| format!("Failed to write style '{}': {}", item.name, e))?;
-        }
-
-        let result =
-            serde_json::to_value(&items).map_err(|e| format!("Serialization error: {}", e))?;
-        Ok(serde_json::json!({ "styles": result }))
+        let items: Vec<ccr_app::resources::claude_files::OutputStyle> =
+            serde_json::from_value(styles)
+                .map_err(|error| format!("Invalid output styles payload: {error}"))?;
+        ccr_app::resources::claude_files::save_output_styles(&output_styles_store()?, &items)
+            .map_err(|error| error.to_string())?;
+        Ok(serde_json::json!({ "styles": items }))
     })
     .await
-    .map_err(|e| format!("Task join error: {}", e))??
+    .map_err(|error| format!("Task join error: {error}"))??
     .try_into()
 }
 
@@ -192,35 +151,35 @@ pub async fn claude_list_prompts() -> Result<OpenJsonValueDto, String> {
 pub async fn claude_update_prompts(prompts: OpenJsonValueDto) -> Result<OpenJsonValueDto, String> {
     let prompts: Value = prompts.into();
     tokio::task::spawn_blocking(move || -> Result<Value, String> {
-        let manager = PromptsManager::new(Platform::Claude)
-            .map_err(|e| format!("PromptsManager init error: {}", e))?;
-
-        if let Some(arr) = prompts.as_array() {
-            let existing = manager
-                .list_presets()
-                .map_err(|e| format!("Failed to list presets: {}", e))?;
-            for preset in &existing {
-                let _ = manager.remove_preset(&preset.name);
-            }
-            for item in arr {
-                let preset: PromptPreset = serde_json::from_value(item.clone())
-                    .map_err(|e| format!("Invalid preset item: {}", e))?;
-                manager
-                    .add_preset(preset)
-                    .map_err(|e| format!("Failed to add preset: {}", e))?;
-            }
+        let home =
+            dirs::home_dir().ok_or_else(|| "Unable to determine home directory".to_string())?;
+        let paths = PlatformPaths::new(Platform::Claude).map_err(|error| error.to_string())?;
+        let locks =
+            ccr_core::core::LockManager::with_default_path().map_err(|error| error.to_string())?;
+        let catalog = ccr_app::resources::prompt_presets::Catalog::read(
+            Platform::Claude,
+            &home,
+            &paths.backups_dir,
+            locks.lock_dir(),
+        )
+        .map_err(|error| error.to_string())?;
+        let mutation = if prompts.is_array() {
+            ccr_app::resources::prompt_presets::Mutation::Replace(
+                serde_json::from_value(prompts)
+                    .map_err(|error| format!("Invalid preset list: {error}"))?,
+            )
         } else {
-            let preset: PromptPreset = serde_json::from_value(prompts)
-                .map_err(|e| format!("Invalid preset payload: {}", e))?;
-            let _ = manager.remove_preset(&preset.name);
-            manager
-                .add_preset(preset)
-                .map_err(|e| format!("Failed to add preset: {}", e))?;
-        }
-
-        let updated = manager
+            ccr_app::resources::prompt_presets::Mutation::Upsert(
+                serde_json::from_value(prompts)
+                    .map_err(|error| format!("Invalid preset payload: {error}"))?,
+            )
+        };
+        catalog
+            .commit(mutation)
+            .map_err(|error| error.to_string())?;
+        let updated = PromptsManager::for_home(Platform::Claude, &home)
             .list_presets()
-            .map_err(|e| format!("Failed to list presets: {}", e))?;
+            .map_err(|error| format!("Failed to list presets: {error}"))?;
         let result =
             serde_json::to_value(&updated).map_err(|e| format!("Serialization error: {}", e))?;
         Ok(serde_json::json!({ "presets": result }))

@@ -261,3 +261,107 @@ async fn sync_page_reports_an_unreadable_file_without_its_secret(cx: &mut TestAp
     .unwrap();
     owner.shutdown();
 }
+
+#[gpui_kit::test]
+async fn asset_controls_require_confirmation_and_clear_passphrase_on_leave(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    std::fs::write(
+        root.path().join("sync_folders.toml"),
+        "[webdav]\nenabled=false\nurl=''\nusername=''\npassword=''\n",
+    )
+    .unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let services = services(&owner, root.path());
+    let retained = services.clone();
+    let (handle, view) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        cx.set_global(crate::locales::Language::English);
+        gpui_kit::open_window(
+            WindowOptions {
+                window_bounds: Some(WindowBounds::Windowed(gpui_kit::Bounds::centered(
+                    None,
+                    size(px(1280.), px(1000.)),
+                    cx,
+                ))),
+                ..Default::default()
+            },
+            cx,
+            |window, cx| cx.new(|cx| SyncView::new(services, window, cx)),
+        )
+        .unwrap()
+    });
+    view.update(cx, |v, cx| v.refresh(cx));
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        view.read(cx).snapshot.is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.scroll(
+            "sync-page",
+            gpui_kit::ScrollDelta::Pixels(gpui_kit::point(px(0.), px(-1500.))),
+            cx,
+        );
+        window.click("sync-assets-all", cx);
+        window.render_frame(cx);
+        assert!(window.find("sync-asset-editor").visible());
+        view.read(cx)
+            .asset_editor
+            .as_ref()
+            .unwrap()
+            .passphrase
+            .clone()
+            .update(cx, |state, cx| {
+                state.set_value("asset-passphrase-sentinel", window, cx)
+            });
+        window.render_frame(cx);
+        assert!(!labels(window).contains("asset-passphrase-sentinel"));
+        window.scroll(
+            "sync-page",
+            gpui_kit::ScrollDelta::Pixels(gpui_kit::point(px(0.), px(-1500.))),
+            cx,
+        );
+        window.click("sync-asset-pull", cx);
+        window.render_frame(cx);
+        window.scroll(
+            "sync-page",
+            gpui_kit::ScrollDelta::Pixels(gpui_kit::point(px(0.), px(-1500.))),
+            cx,
+        );
+        assert!(window.find("sync-asset-confirmation").visible());
+        assert!(!retained.sync_operation_state().busy);
+        window.click("sync-asset-confirm", cx);
+        assert!(view.read(cx).asset_editor.is_none());
+        view.update(cx, |v, cx| v.suspend(cx));
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, _| {
+        !retained.sync_operation_state().busy
+    })
+    .await;
+    assert_eq!(
+        retained.sync_operation_state().result,
+        Some(Err(SyncError::FixtureNetwork))
+    );
+    view.update(cx, |v, cx| v.refresh(cx));
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| !view.read(cx).busy)
+        .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.scroll(
+            "sync-page",
+            gpui_kit::ScrollDelta::Pixels(gpui_kit::point(px(0.), px(-1500.))),
+            cx,
+        );
+        window.click("sync-assets-all", cx);
+        window.render_frame(cx);
+        view.update(cx, |v, cx| v.suspend(cx));
+        assert!(view.read(cx).asset_editor.is_none());
+        window.remove_window();
+    })
+    .unwrap();
+    owner.shutdown();
+}

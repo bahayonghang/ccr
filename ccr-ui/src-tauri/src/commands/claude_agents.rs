@@ -1,11 +1,12 @@
 use super::*;
+use ccr_app::resources::claude_collections::{Collection, Mutation, apply_typed};
 
 #[ccr_tauri_command_macros::command]
 pub async fn claude_list_agents(state: State<'_, AppState>) -> Result<OpenJsonValueDto, String> {
     let settings = load_settings(state.inner()).await?;
-    let agents = serde_json::to_value(&settings.agents)
-        .map_err(|e| format!("Serialization error: {}", e))?;
-    open_json(serde_json::json!({ "agents": agents }))
+    let rows = serde_json::to_value(&settings.agents)
+        .map_err(|error| format!("Serialization error: {error}"))?;
+    open_json(serde_json::json!({ "agents": rows }))
 }
 
 #[ccr_tauri_command_macros::command]
@@ -14,14 +15,15 @@ pub async fn claude_add_agent(
     name: String,
     config: OpenJsonValueDto,
 ) -> Result<OpenJsonValueDto, String> {
-    let mut agent: ccr_types::Agent = serde_json::from_value(config.into())
-        .map_err(|e| format!("Invalid agent config: {}", e))?;
-    agent.name = name;
-
+    let config: Value = config.into();
     let result = update_settings(state.inner(), move |settings| {
-        settings.agents.push(agent.clone());
-        serde_json::to_value(&settings.agents)
-            .map_err(|error| format!("Serialization error: {error}"))
+        apply_typed(
+            settings,
+            Collection::Agents,
+            &name,
+            Mutation::Add(config.clone()),
+        )
+        .map_err(|error| error.to_string())
     })
     .await?;
     open_json(serde_json::json!({ "agents": result }))
@@ -33,17 +35,15 @@ pub async fn claude_update_agent(
     name: String,
     config: OpenJsonValueDto,
 ) -> Result<OpenJsonValueDto, String> {
-    let updated: ccr_types::Agent = serde_json::from_value(config.into())
-        .map_err(|e| format!("Invalid agent config: {}", e))?;
+    let config: Value = config.into();
     let result = update_settings(state.inner(), move |settings| {
-        let pos = settings
-            .agents
-            .iter()
-            .position(|agent| agent.name == name)
-            .ok_or_else(|| format!("Agent '{name}' not found"))?;
-        settings.agents[pos] = updated.clone();
-        serde_json::to_value(&settings.agents)
-            .map_err(|error| format!("Serialization error: {error}"))
+        apply_typed(
+            settings,
+            Collection::Agents,
+            &name,
+            Mutation::Replace(config.clone()),
+        )
+        .map_err(|error| error.to_string())
     })
     .await?;
     open_json(serde_json::json!({ "agents": result }))
@@ -56,12 +56,8 @@ pub async fn claude_delete_agent(
 ) -> Result<String, String> {
     let deleted_name = name.clone();
     update_settings(state.inner(), move |settings| {
-        let original_len = settings.agents.len();
-        settings.agents.retain(|agent| agent.name != name);
-        if settings.agents.len() == original_len {
-            return Err(format!("Agent '{name}' not found"));
-        }
-        Ok(())
+        apply_typed(settings, Collection::Agents, &name, Mutation::Delete)
+            .map_err(|error| error.to_string())
     })
     .await?;
     Ok(format!("Agent '{}' deleted", deleted_name))

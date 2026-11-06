@@ -12,13 +12,20 @@ use std::{cell::Cell, rc::Rc};
 
 gpui_kit::actions!(ccr, [Quit]);
 
+type FinishClose = dyn Fn(&mut Window, &mut App);
+
 #[derive(Clone)]
 pub(super) struct CloseGuard {
     pending: Rc<Cell<bool>>,
     pub confirm: Rc<Cell<bool>>,
+    finish: Rc<FinishClose>,
 }
 
-pub(super) fn install(window: &Window, cx: &mut App) -> CloseGuard {
+pub(super) fn install(
+    window: &Window,
+    cx: &mut App,
+    finish: impl Fn(&mut Window, &mut App) + 'static,
+) -> CloseGuard {
     // Kit's Dialog Enter binding otherwise confirms even while Cancel is focused.
     cx.bind_keys([KeyBinding::new("enter", Cancel, Some("CcrQuitCancel"))]);
     cx.bind_keys([KeyBinding::new("secondary-q", Quit, None)]);
@@ -28,6 +35,7 @@ pub(super) fn install(window: &Window, cx: &mut App) -> CloseGuard {
     let guard = CloseGuard {
         pending: Rc::new(Cell::new(false)),
         confirm: Rc::new(Cell::new(true)),
+        finish: Rc::new(finish),
     };
     let window_guard = guard.clone();
     window.on_window_should_close(cx, move |window, cx| window_guard.should_close(window, cx));
@@ -50,13 +58,16 @@ impl CloseGuard {
     }
 
     fn should_close(&self, window: &mut Window, cx: &mut App) -> bool {
-        if !self.confirm.get() {
-            return true;
-        }
         if self.pending.replace(true) {
             return false;
         }
+        if !self.confirm.get() {
+            (self.finish)(window, cx);
+            return false;
+        }
         let pending = self.pending.clone();
+        let finish = self.finish.clone();
+        let finishing = Rc::new(Cell::new(false));
         let opening = Rc::new(Cell::new(true));
         let initial_focus = Cell::new(true);
         let quit_focus = cx.focus_handle();
@@ -77,6 +88,9 @@ impl CloseGuard {
             let opening = opening.clone();
             let permitted = quit_focus.clone();
             let clicked = quit_focus.clone();
+            let finish = finish.clone();
+            let accepted = finishing.clone();
+            let finishing = finishing.clone();
             dialog
                 .title(text(cx, "Quit CCR?", "退出 CCR？"))
                 .description(text(
@@ -101,16 +115,19 @@ impl CloseGuard {
                 .on_ok(move |_, window, cx| {
                     // A generic Enter can arrive while the modal root still has
                     // focus, before Cancel's first frame. That is a safe cancel.
-                    if confirmed.replace(false) && permitted.contains_focused(window, cx) {
-                        // Removing the last window follows the existing app quit
-                        // observer and final RuntimeOwner join; no early exit.
-                        window.remove_window();
+                    if confirmed.get() && permitted.contains_focused(window, cx) {
+                        accepted.set(true);
+                        finish(window, cx);
                     }
                     true
                 })
                 .on_close(move |_, _, _| {
                     opening.set(false);
-                    dismissed.set(false);
+                    // Dialog completion may precede the final preference write.
+                    // Only dismissal reopens the close guard for another request.
+                    if !finishing.get() {
+                        dismissed.set(false);
+                    }
                 })
         });
         false

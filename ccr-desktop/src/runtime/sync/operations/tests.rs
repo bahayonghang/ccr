@@ -414,3 +414,158 @@ fn folder_crud_preserves_extensions_password_and_rejects_stale_identity() {
     assert_eq!(final_value["folders"][0]["name"].as_str(), Some("extra"));
     assert_eq!(final_value["webdav"], initial["webdav"]);
 }
+
+// In-process WebDAV fixture. Only the explicitly bound loopback URL is accepted.
+async fn asset_server() -> (
+    String,
+    Arc<Mutex<Option<Vec<u8>>>>,
+    tokio::task::JoinHandle<()>,
+) {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    let stored = Arc::new(Mutex::new(None::<Vec<u8>>));
+    let remote = stored.clone();
+    let task = tokio::spawn(async move {
+        loop {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut request = Vec::new();
+            let mut chunk = [0; 4096];
+            let (end, length) = loop {
+                let count = socket.read(&mut chunk).await.unwrap();
+                assert_ne!(count, 0);
+                request.extend_from_slice(&chunk[..count]);
+                if let Some(end) = request.windows(4).position(|p| p == b"\r\n\r\n") {
+                    let length = String::from_utf8_lossy(&request[..end])
+                        .lines()
+                        .find_map(|line| {
+                            let (name, value) = line.split_once(':')?;
+                            name.eq_ignore_ascii_case("content-length")
+                                .then(|| value.trim().parse::<usize>().unwrap())
+                        })
+                        .unwrap_or(0);
+                    break (end + 4, length);
+                }
+            };
+            while request.len() < end + length {
+                let count = socket.read(&mut chunk).await.unwrap();
+                assert_ne!(count, 0);
+                request.extend_from_slice(&chunk[..count]);
+            }
+            let first = String::from_utf8_lossy(&request[..end]);
+            let target = first.split_whitespace().nth(1).unwrap();
+            let (status, body) = if first.starts_with("MKCOL ") {
+                assert!(target.trim_end_matches('/').ends_with("/claude"));
+                ("201 Created", Vec::new())
+            } else if first.starts_with("PUT ") {
+                assert!(target.ends_with("/claude/settings.json"));
+                *remote.lock().unwrap() = Some(request[end..end + length].to_vec());
+                ("201 Created", Vec::new())
+            } else {
+                assert!(first.starts_with("GET "));
+                assert!(target.ends_with("/claude/settings.json"));
+                match remote.lock().unwrap().clone() {
+                    Some(bytes) => ("200 OK", bytes),
+                    None => ("404 Not Found", Vec::new()),
+                }
+            };
+            let header = format!(
+                "HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                body.len()
+            );
+            socket.write_all(header.as_bytes()).await.unwrap();
+            socket.write_all(&body).await.unwrap();
+            socket.shutdown().await.unwrap();
+        }
+    });
+    (format!("http://{address}/"), stored, task)
+}
+#[tokio::test]
+async fn sensitive_asset_v2_roundtrip_and_explicit_v1_import_preserve_local_data() {
+    let root = tempfile::tempdir().unwrap();
+    let source = source(root.path());
+    let (url, stored, server) = asset_server().await;
+    config(root.path(), &url);
+    let roots = super::super::super::resources::roots(&source).unwrap();
+    let local = roots.home.join(".claude/settings.json");
+    std::fs::create_dir_all(local.parent().unwrap()).unwrap();
+    std::fs::write(&local, b"fixture-secret-auth").unwrap();
+    let request = |direction, force, password: &str, import| {
+        Operation::Assets(AssetRequest {
+            revision: revision(&source),
+            id: Some("claude-settings".into()),
+            direction,
+            force,
+            passphrase: Some(password.to_string().into()),
+            import_plaintext_v1: import,
+        })
+    };
+    let result = execute(
+        &source,
+        request(AssetDirection::Push, false, "fixture-passphrase", false),
+        true,
+    )
+    .await
+    .unwrap();
+    assert!(matches!(result,SyncOutcome::Assets(ref rows) if rows[0].result==Ok(None)));
+    let encrypted = stored.lock().unwrap().clone().unwrap();
+    assert!(
+        !encrypted
+            .windows(b"fixture-secret-auth".len())
+            .any(|w| w == b"fixture-secret-auth")
+    );
+    std::fs::write(&local, b"local-edit").unwrap();
+    let result = execute(
+        &source,
+        request(AssetDirection::Pull, true, "wrong-passphrase", false),
+        true,
+    )
+    .await
+    .unwrap();
+    assert!(
+        matches!(result,SyncOutcome::Assets(ref rows) if rows[0].result==Err(SyncError::AssetDecrypt))
+    );
+    assert_eq!(std::fs::read(&local).unwrap(), b"local-edit");
+    let result = execute(
+        &source,
+        request(AssetDirection::Pull, true, "fixture-passphrase", false),
+        true,
+    )
+    .await
+    .unwrap();
+    let SyncOutcome::Assets(rows) = result else {
+        panic!("asset report expected")
+    };
+    let backup = rows[0].result.as_ref().unwrap().as_ref().unwrap();
+    assert_eq!(std::fs::read(backup).unwrap(), b"local-edit");
+    assert_eq!(std::fs::read(&local).unwrap(), b"fixture-secret-auth");
+    *stored.lock().unwrap() = Some(b"legacy-plaintext".to_vec());
+    let result = execute(
+        &source,
+        request(AssetDirection::Pull, true, "fixture-passphrase", false),
+        true,
+    )
+    .await
+    .unwrap();
+    assert!(
+        matches!(result,SyncOutcome::Assets(ref rows) if rows[0].result==Err(SyncError::AssetLegacy))
+    );
+    assert_eq!(std::fs::read(&local).unwrap(), b"fixture-secret-auth");
+    let result = execute(
+        &source,
+        request(AssetDirection::Pull, true, "fixture-passphrase", true),
+        true,
+    )
+    .await
+    .unwrap();
+    let SyncOutcome::Assets(rows) = result else {
+        panic!("asset report expected")
+    };
+    let backup = rows[0].result.as_ref().unwrap().as_ref().unwrap();
+    assert_eq!(std::fs::read(backup).unwrap(), b"fixture-secret-auth");
+    assert_eq!(std::fs::read(&local).unwrap(), b"legacy-plaintext");
+    assert_eq!(
+        stored.lock().unwrap().as_deref(),
+        Some(b"legacy-plaintext".as_slice())
+    );
+    server.abort();
+}

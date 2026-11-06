@@ -75,12 +75,12 @@ redirect 合并到目标功能而保留可发现性；布局根由 shell 所有�
 | --- | --- | --- |
 | Local / SSH 来源、主机与配置 | Settings → RemoteView → shared SSH Workspace；指纹确认、连接、固定四平台文件 SFTP 读写 | 内存 transport/隔离 fixture；真实 SSH、原生切换未运行 |
 | 退出策略、主题和语言 | Shell preferences 与同一窗口关闭 guard；设置/菜单/快捷键 Quit | 默认仍每次确认；系统直接 App::quit 无 veto；托盘仍 unsupported |
-| MCP 服务 CRUD | MCP editor → 固定 source/scope/revision → shared Claude policy/JSON/TOML codec | Claude/Codex/Antigravity；OpenCode 归平台源编辑；预设/跨源同步仍待接 |
-| WebDAV 与文件夹 | Sync settings/folders → retained operations → ccr-sync | 普通明文文件夹合同；敏感资产专用加密入口仍待接；真实服务未运行 |
+| MCP 服务 CRUD | MCP editor → 固定 source/scope/revision → shared Claude policy/JSON/TOML codec | Claude/Codex/Antigravity；OpenCode 归平台源编辑；已接单项预设/兼容源复制，批量能力未冒领 |
+| WebDAV 与文件夹 | Sync settings/folders → retained operations → ccr-sync | 普通明文文件夹合同；固定敏感资产 v2 加密入口已接；真实服务未运行 |
 | 服务商、账户、签到、余额、记录 | Check-in operations → captured DbAccess/crypto → ccr-checkin | 复用加密与领域服务；浏览器 WAF/CDK/导入导出等其余命令未因此完成 |
 | 便携包与开发参数 | desktop-package 双二进制哈希包；desktop-dev 原样转发 argv | 工程提交 `13b29f95`；真实 release 打包结果另行记录 |
 
-仍需连续实施：动态资源与 Codex source-agent、MCP 预设、窗口状态；最终对照剩余业务命令逐项给出真实入口或明确缺口。全门禁和原生证据未齐前，父任务保持 in_progress。
+本批已接 Claude 动态资源、Codex source-agent、指令模板、MCP 预设/复制、敏感资产和窗口状态。继续实施签到常用闭环与 OpenCode/Antigravity 文件资源；逐项证据见 [core-resources-20261106.md](core-resources-20261106.md)。全门禁和原生证据未齐前，父任务保持 in_progress。
 
 Codex source-agent 安装/同步归资源任务；quota/session/usage 归 Insights；tray snapshot 归桌面集成。
 ui_state 收藏/最近项归 shell；events 订阅机制归共享 runtime；update_ccr 与 WAF 处理归 jobs。

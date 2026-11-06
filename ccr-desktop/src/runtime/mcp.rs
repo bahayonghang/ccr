@@ -3,7 +3,9 @@
 //! Environment values, headers, arguments, URLs, and tokens are not copied out.
 
 mod editor;
+mod transfer;
 pub use editor::{McpEditSession, McpTarget};
+pub use transfer::{McpCopySession, preset_patch};
 
 use super::{ConfigSource, Services};
 use ccr_app::{
@@ -95,6 +97,7 @@ pub struct McpCatalog {
 pub enum McpError {
     Unsupported,
     UnsupportedSource,
+    UnsupportedCopy,
     Storage,
     Invalid,
     Scope,
@@ -127,6 +130,9 @@ impl McpError {
             }
             Self::Missing => {
                 "This entry no longer exists in the selected source and scope. / 所选来源与作用域中已不存在此条目"
+            }
+            Self::UnsupportedCopy => {
+                "This entry has transport or platform options that cannot be copied safely. Add it manually in the target source. / 此条目含无法安全转换的传输或平台选项，请在目标来源中手动添加"
             }
         }
     }

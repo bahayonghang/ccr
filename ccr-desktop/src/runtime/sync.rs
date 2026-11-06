@@ -1,8 +1,8 @@
 //! Canonical local sync configuration and application-owned WebDAV operations.
 mod operations;
 pub use operations::{
-    FolderChange, FolderPatch, Operation, OperationKind, OperationState, PasswordUpdate,
-    SettingsPatch, SyncOperations, SyncOutcome,
+    AssetDirection, AssetRequest, FolderChange, FolderPatch, Operation, OperationKind,
+    OperationState, PasswordUpdate, SettingsPatch, SyncOperations, SyncOutcome,
 };
 
 use std::path::{Path, PathBuf};
@@ -15,6 +15,10 @@ use ccr_app::runtime::{AdmissionError, EnvironmentId, RequestKey, TaskSubscripti
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SyncError {
+    AssetPassphrase,
+    AssetLegacy,
+    AssetDecrypt,
+    AssetConflict,
     Unsupported,
     Storage,
     Unreadable,
@@ -30,6 +34,16 @@ pub enum SyncError {
 impl SyncError {
     pub fn message(self) -> &'static str {
         match self {
+            Self::AssetPassphrase => "An operation passphrase is required for sensitive assets.",
+            Self::AssetLegacy => {
+                "Plaintext v1 import requires explicit permission. Remote data has not been re-encrypted."
+            }
+            Self::AssetDecrypt => {
+                "Asset decryption failed. Check the passphrase and envelope. Local data was not replaced."
+            }
+            Self::AssetConflict => {
+                "Both copies exist. Explicitly allow replacement to continue; downloads create a local backup."
+            }
             Self::LegacyFolders => {
                 "Legacy folder entries are read-only. Migrate them to the canonical folders schema with CCR before editing."
             }

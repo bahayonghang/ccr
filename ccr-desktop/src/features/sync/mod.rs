@@ -1,4 +1,5 @@
 //! Canonical sync settings and retained WebDAV operations.
+mod assets;
 mod folders;
 use crate::{
     locales::{is_chinese, service_error, text},
@@ -42,6 +43,7 @@ pub struct SyncView {
     message: Option<&'static str>,
     focus: FocusHandle,
     editor: Option<Editor>,
+    asset_editor: Option<assets::AssetEditor>,
     folder_editor: Option<FolderEditor>,
     folder_delete: Option<FolderTarget>,
     selected: Option<usize>,
@@ -63,6 +65,7 @@ impl SyncView {
             message: None,
             focus: cx.focus_handle().tab_stop(false),
             editor: None,
+            asset_editor: None,
             folder_editor: None,
             folder_delete: None,
             selected: None,
@@ -83,6 +86,7 @@ impl SyncView {
         self.busy = false;
         self.observation = None;
         self.editor = None;
+        self.asset_editor = None;
         self.confirmation = None;
         self.folder_editor = None;
         self.folder_delete = None;
@@ -95,6 +99,7 @@ impl SyncView {
             return;
         }
         self.confirmation = None;
+        self.asset_editor = None;
         self.folder_delete = None;
         self.folder_editor = None;
         self.generation += 1;
@@ -211,6 +216,7 @@ impl SyncView {
             return;
         }
         self.confirmation = None;
+        self.asset_editor = None;
         self.editor = Some(Editor {
             url: cx.new(|cx| InputState::new(window, cx)),
             username: cx.new(|cx| InputState::new(window, cx)),
@@ -419,8 +425,8 @@ impl Render for SyncView {
             .child({
                 let intro = text(
                     cx,
-                    "Manage the canonical local WebDAV account and saved folders. Dedicated encrypted asset sync is not connected here. Automatic sync is not enabled by this page.",
-                    "管理本地规范 WebDAV 账户和已保存的文件夹。此页尚未接入专用加密资产同步，也不会启用自动同步。",
+                    "Manage the canonical local WebDAV account and saved folders. Sensitive assets have a separate encrypted transfer below. Automatic sync is not enabled by this page.",
+                    "管理本地规范 WebDAV 账户和已保存的文件夹。敏感资产使用下方独立加密传输，不会启用自动同步。",
                 );
                 div()
                     .id("sync-intro")
@@ -533,6 +539,7 @@ impl Render for SyncView {
         }
         root.child(self.render_folder_controls(cx))
             .child(self.render_operations(cx))
+            .child(self.render_assets(cx))
     }
 }
 
@@ -544,6 +551,15 @@ impl SyncView {
             Some(text(cx, "Sync operation is running. It continues when you leave this page; closing waits for it to finish. Cancellation is unavailable during transfer.", "同步操作正在运行。离开页面后会继续，关闭应用将等待完成。传输期间不提供取消。").to_string())
         } else {
             self.operation.result.as_ref().map(|result| match result {
+                Ok(SyncOutcome::Assets(results)) => format!(
+                    "{}: {}/{}",
+                    text(cx, "Assets completed", "资产已完成"),
+                    results.iter().filter(|r| r.result.is_ok()).count(),
+                    results.len()
+                ),
+                Ok(SyncOutcome::AssetInventory(_)) => {
+                    text(cx, "Asset inventory read.", "资产状态已读取。").to_string()
+                }
                 Ok(SyncOutcome::FolderSaved) => {
                     text(cx, "Sync folders saved.", "同步文件夹已保存。").to_string()
                 }
