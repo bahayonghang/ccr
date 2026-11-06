@@ -277,7 +277,7 @@ impl CodexSessionTrashService {
                 rollout_version: trash_file_version(&entry.rollout_path)?,
             });
         }
-        plans.sort_by(|a, b| b.record.deleted_at.cmp(&a.record.deleted_at));
+        plans.sort_by_key(|plan| std::cmp::Reverse(plan.record.deleted_at));
         Ok(plans)
     }
 
@@ -330,7 +330,7 @@ impl CodexSessionTrashService {
         if cancelled() {
             return Ok(None);
         }
-        candidates.sort_by(|a, b| b.record.deleted_at.cmp(&a.record.deleted_at));
+        candidates.sort_by_key(|candidate| std::cmp::Reverse(candidate.record.deleted_at));
         if cancelled() {
             return Ok(None);
         }
