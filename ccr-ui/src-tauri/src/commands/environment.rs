@@ -88,6 +88,9 @@ pub async fn refresh_environments(
     state: State<'_, AppState>,
     force_refresh: Option<bool>,
 ) -> Result<Vec<EnvironmentInfo>, String> {
+    if state.fixture.is_some() {
+        return Ok(state.env_registry.read().await.list());
+    }
     let force = force_refresh.unwrap_or(false);
     #[cfg(not(target_os = "windows"))]
     let _ = force;

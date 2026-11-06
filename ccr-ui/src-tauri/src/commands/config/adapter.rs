@@ -156,6 +156,14 @@ pub(super) fn activate(
     enable: bool,
 ) -> Result<ConfigMutationResult> {
     let request = ApplyProfileRequest::new(platform, &name);
+    if let Some(context) = crate::fixture::profile_context(platform)? {
+        let outcome = if enable {
+            context.enable(request)?
+        } else {
+            context.apply(request)?
+        };
+        return Ok(result(&name, Some(outcome)));
+    }
     let outcome = if enable {
         enable_profile(request)?
     } else {
@@ -170,6 +178,12 @@ pub(super) fn add(
     data: ConfigPatchInput,
 ) -> Result<ConfigMutationResult> {
     let patch = data.into_patch()?;
+    if let Some(context) = crate::fixture::profile_context(platform)? {
+        context.run(|| {
+            ccr_app::config::mutations::add(&context.manager(), context.instance(), name, &patch)
+        })?;
+        return Ok(result(name, None));
+    }
     let instance = create_platform(platform)?;
     let manager = ConfigManager::for_platform(&platform.to_string())?;
     ccr_app::config::mutations::add(&manager, instance.as_ref(), name, &patch)?;
@@ -183,6 +197,20 @@ pub(super) fn update(
     expected: Option<&str>,
 ) -> Result<ConfigMutationResult> {
     let patch = data.into_patch()?;
+    if let Some(context) = crate::fixture::profile_context(platform)? {
+        context.run(|| {
+            let operation = context.operation_lock()?;
+            ccr_app::config::mutations::update(
+                &context.manager(),
+                context.instance(),
+                name,
+                &patch,
+                expected,
+                &operation,
+            )
+        })?;
+        return Ok(result(name, None));
+    }
     let _operation = operation_lock(platform)?;
     let instance = create_platform(platform)?;
     ccr_app::config::mutations::update(
@@ -201,6 +229,12 @@ pub(super) fn rename(
     source: &str,
     target: &str,
 ) -> Result<ConfigMutationResult> {
+    if let Some(context) = crate::fixture::profile_context(platform)? {
+        return Ok(result(
+            target,
+            Some(context.update(source, target, None, |_| Ok(()))?),
+        ));
+    }
     let outcome = update_profile(platform, source, target, |_| Ok(()))?;
     Ok(result(target, Some(outcome)))
 }
@@ -210,6 +244,11 @@ pub(super) fn duplicate(
     source: &str,
     target: &str,
 ) -> Result<ConfigMutationResult> {
+    if let Some(context) = crate::fixture::profile_context(platform)? {
+        context
+            .run(|| ccr_app::config::mutations::duplicate(&context.manager(), source, target))?;
+        return Ok(result(target, None));
+    }
     ccr_app::config::mutations::duplicate(
         &ConfigManager::for_platform(&platform.to_string())?,
         source,
@@ -219,6 +258,18 @@ pub(super) fn duplicate(
 }
 
 pub(super) fn delete(platform: Platform, name: &str) -> Result<ConfigMutationResult> {
+    if let Some(context) = crate::fixture::profile_context(platform)? {
+        context.run(|| {
+            let operation = context.operation_lock()?;
+            ccr_app::config::mutations::delete(
+                &ConfigService::new(std::sync::Arc::new(context.manager())),
+                context.instance(),
+                name,
+                &operation,
+            )
+        })?;
+        return Ok(result(name, None));
+    }
     let _operation = operation_lock(platform)?;
     ccr_app::config::mutations::delete(
         &ConfigService::for_platform(&platform.to_string())?,

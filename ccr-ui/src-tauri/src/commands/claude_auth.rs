@@ -382,8 +382,12 @@ pub struct ClaudeAuthOffResponse {
 #[ccr_tauri_command_macros::command]
 pub async fn claude_list_auth_accounts() -> Result<ClaudeAuthListResponse, String> {
     tokio::task::spawn_blocking(|| {
-        let service =
-            ClaudeAuthService::new().map_err(|e| format!("初始化 Claude Auth 服务失败: {e}"))?;
+        let service = match crate::fixture::current() {
+            Some(layout) => layout.roots.claude_auth(),
+            None => {
+                ClaudeAuthService::new().map_err(|e| format!("初始化 Claude Auth 服务失败: {e}"))?
+            }
+        };
         let snapshot = service
             .read_auth_snapshot()
             .map_err(|e| format!("读取认证快照失败: {e}"))?;
@@ -400,7 +404,8 @@ pub async fn claude_list_auth_accounts() -> Result<ClaudeAuthListResponse, Strin
             login_state: snapshot.login_state.into(),
             runtime_summary: runtime_summary.into(),
             current_profile_auth_mode,
-            can_auth_off: needs_auth_off(Platform::Claude).unwrap_or(false),
+            can_auth_off: crate::fixture::current().is_none()
+                && needs_auth_off(Platform::Claude).unwrap_or(false),
         })
     })
     .await
@@ -410,8 +415,12 @@ pub async fn claude_list_auth_accounts() -> Result<ClaudeAuthListResponse, Strin
 #[ccr_tauri_command_macros::command]
 pub async fn claude_get_auth_current() -> Result<ClaudeAuthCurrentResponse, String> {
     tokio::task::spawn_blocking(|| {
-        let service =
-            ClaudeAuthService::new().map_err(|e| format!("初始化 Claude Auth 服务失败: {e}"))?;
+        let service = match crate::fixture::current() {
+            Some(layout) => layout.roots.claude_auth(),
+            None => {
+                ClaudeAuthService::new().map_err(|e| format!("初始化 Claude Auth 服务失败: {e}"))?
+            }
+        };
         let runtime_summary = service
             .get_runtime_summary()
             .map_err(|e| format!("读取运行时摘要失败: {e}"))?;
@@ -424,7 +433,8 @@ pub async fn claude_get_auth_current() -> Result<ClaudeAuthCurrentResponse, Stri
             info: current_info.map(Into::into),
             runtime_summary: runtime_summary.into(),
             login_state,
-            can_auth_off: needs_auth_off(Platform::Claude).unwrap_or(false),
+            can_auth_off: crate::fixture::current().is_none()
+                && needs_auth_off(Platform::Claude).unwrap_or(false),
         })
     })
     .await
@@ -467,8 +477,12 @@ pub async fn claude_save_auth(
     force: Option<bool>,
 ) -> Result<ClaudeAuthActionResponse, String> {
     tokio::task::spawn_blocking(move || {
-        let service =
-            ClaudeAuthService::new().map_err(|e| format!("初始化 Claude Auth 服务失败: {e}"))?;
+        let service = match crate::fixture::current() {
+            Some(layout) => layout.roots.claude_auth(),
+            None => {
+                ClaudeAuthService::new().map_err(|e| format!("初始化 Claude Auth 服务失败: {e}"))?
+            }
+        };
         service
             .save_current(&name, description, force.unwrap_or(false))
             .map_err(|e| format!("{e}"))?;
@@ -488,8 +502,12 @@ pub async fn claude_save_auth(
 pub async fn claude_switch_auth(name: String) -> Result<ClaudeAuthActionResponse, String> {
     let name_resp = name.clone();
     let outcome = tokio::task::spawn_blocking(move || {
-        let service =
-            ClaudeAuthService::new().map_err(|e| format!("初始化 Claude Auth 服务失败: {e}"))?;
+        let service = match crate::fixture::current() {
+            Some(layout) => layout.roots.claude_auth(),
+            None => {
+                ClaudeAuthService::new().map_err(|e| format!("初始化 Claude Auth 服务失败: {e}"))?
+            }
+        };
         service.switch_account(&name).map_err(|e| format!("{e}"))
     })
     .await
@@ -512,8 +530,12 @@ pub async fn claude_switch_auth(name: String) -> Result<ClaudeAuthActionResponse
 pub async fn claude_delete_auth(name: String) -> Result<ClaudeAuthActionResponse, String> {
     let name_resp = name.clone();
     tokio::task::spawn_blocking(move || {
-        let service =
-            ClaudeAuthService::new().map_err(|e| format!("初始化 Claude Auth 服务失败: {e}"))?;
+        let service = match crate::fixture::current() {
+            Some(layout) => layout.roots.claude_auth(),
+            None => {
+                ClaudeAuthService::new().map_err(|e| format!("初始化 Claude Auth 服务失败: {e}"))?
+            }
+        };
         service.delete_account(&name).map_err(|e| format!("{e}"))?;
         Ok::<_, String>(())
     })

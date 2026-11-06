@@ -467,13 +467,15 @@ macro_rules! define_command_registry {
                 )*
             ]);
             move |invoke: tauri::ipc::Invoke| {
-                if audit_invoke(&invoke) {
-                    handler(invoke)
-                } else {
-                    invoke
-                        .resolver
-                        .reject("command rejected by the capability manifest");
+                if !audit_invoke(&invoke) {
+                    invoke.resolver.reject("command rejected by the capability manifest");
                     true
+                } else if let Err(error)=crate::fixture::admit(invoke.message.command()) {
+                    tracing::warn!(command=invoke.message.command(), reason=%error,"tauri command rejected by fixture policy");
+                    invoke.resolver.reject(error);
+                    true
+                } else {
+                    handler(invoke)
                 }
             }
         }
@@ -495,13 +497,15 @@ macro_rules! define_command_registry {
                 super::wsl::wsl_sync_config,
             ]);
             move |invoke: tauri::ipc::Invoke| {
-                if audit_invoke(&invoke) {
-                    handler(invoke)
-                } else {
-                    invoke
-                        .resolver
-                        .reject("command rejected by the capability manifest");
+                if !audit_invoke(&invoke) {
+                    invoke.resolver.reject("command rejected by the capability manifest");
                     true
+                } else if let Err(error)=crate::fixture::admit(invoke.message.command()) {
+                    tracing::warn!(command=invoke.message.command(), reason=%error,"tauri command rejected by fixture policy");
+                    invoke.resolver.reject(error);
+                    true
+                } else {
+                    handler(invoke)
                 }
             }
         }

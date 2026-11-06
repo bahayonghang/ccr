@@ -7,6 +7,7 @@ mod claude_observer;
 mod commands;
 mod desktop_shell;
 mod events;
+mod fixture;
 mod llmusage_adapter;
 mod log_sanitize;
 mod monitoring;
@@ -122,7 +123,35 @@ pub(crate) fn open_devtools_in_debug<R: tauri::Runtime>(window: &tauri::WebviewW
 pub(crate) fn open_devtools_in_debug<R: tauri::Runtime>(_window: &tauri::WebviewWindow<R>) {}
 
 fn main() {
-    ccr_core::init_logger();
+    let fixture = match fixture::parse(std::env::args_os()) {
+        Ok(fixture) => fixture,
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(2);
+        }
+    };
+    if let Some(layout) = &fixture {
+        if let Err(error) = fixture::install(layout.clone()) {
+            eprintln!("{error}");
+            std::process::exit(2);
+        }
+        let logs = match layout.path("logs") {
+            Ok(path) => path,
+            Err(error) => {
+                eprintln!("{error}");
+                std::process::exit(2);
+            }
+        };
+        ccr_core::init_logger_at(&logs);
+    } else {
+        ccr_core::init_logger();
+    }
+    let mut context = tauri::generate_context!();
+    if fixture.is_some() {
+        for window in &mut context.config_mut().app.windows {
+            window.create = false;
+        }
+    }
 
     tracing::info!(
         "[app] CCR Desktop v{} starting (native Tauri mode)",
@@ -132,10 +161,13 @@ fn main() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            ccr_config::migrate_catalogs().map_err(|error| {
+            if let Some(layout)=fixture::current() {
+                tracing::info!(fixture_id=%layout.id,"isolated fixture storage selected; performance not yet comparable");
+                layout.prepare().map_err(std::io::Error::other)?;
+            } else {ccr_config::migrate_catalogs().map_err(|error| {
                 tracing::error!("[app] failed to migrate profile catalogs: {error}");
                 Box::new(error) as Box<dyn std::error::Error>
-            })?;
+            })?;}
             if let Some(window) = app.get_webview_window("main") {
                 if let Err(error) = configure_main_window_chrome(&window) {
                     tracing::warn!("[app] failed to configure main window chrome: {error}");
@@ -151,15 +183,24 @@ fn main() {
             // 初始化数据库：单池同时登记为全局池并供 AppState 持有，
             // manager 层 with_connection() 与 commands 层直取连接共享同一连接上限，
             // ccr-ui.db 的迁移只执行一遍。
-            let db_pool = ccr_db::database::initialize_app_pool().map_err(|e| {
+            let db_pool = match fixture::current() {
+                Some(layout)=>ccr_db::database::initialize_app_pool_at(&layout.path("ui/ccr-ui.db").map_err(std::io::Error::other)?,&layout.roots.home),
+                None=>ccr_db::database::initialize_app_pool(),
+            }.map_err(|e| {
                 tracing::error!("[app] failed to initialize app database pool: {e}");
                 Box::new(e) as Box<dyn std::error::Error>
             })?;
-            let usage_db_pool = ccr_db::database::create_usage_archive_pool().map_err(|e| {
+            let usage_db_pool = match fixture::current() {
+                Some(layout)=>ccr_db::database::create_usage_archive_pool_at(&layout.path("ccr/analytics/usage.db").map_err(std::io::Error::other)?,&layout.roots.home,&layout.path("ui/ccr-ui.db").map_err(std::io::Error::other)?),
+                None=>ccr_db::database::create_usage_archive_pool(),
+            }.map_err(|e| {
                 tracing::error!("[app] failed to create usage archive database pool: {e}");
                 Box::new(e) as Box<dyn std::error::Error>
             })?;
-            let llmusage = llmusage_adapter::LlmusageRuntime::discover().map_err(|e| {
+            let llmusage = match fixture::current() {
+                Some(layout)=>Ok(llmusage_adapter::LlmusageRuntime::from_paths(llmusage_adapter::AppPaths::from_root(layout.path("llmusage").map_err(std::io::Error::other)?))),
+                None=>llmusage_adapter::LlmusageRuntime::discover(),
+            }.map_err(|e| {
                 tracing::error!("[app] failed to resolve llmusage runtime paths: {e}");
                 std::io::Error::other(e)
             })?;
@@ -169,11 +210,20 @@ fn main() {
             );
 
             // 构建并注册全局 AppState（启动期错误返 Result，不 panic 跨 FFI）。
-            let app_state = AppState::try_new(db_pool, usage_db_pool, llmusage)
+            let app_state = match fixture::current() {
+                Some(layout)=>AppState::try_new_with_fixture(db_pool,usage_db_pool,llmusage,Some(layout.clone())),
+                None=>AppState::try_new(db_pool,usage_db_pool,llmusage),
+            }
                 .map_err(std::io::Error::other)?;
 
             // 先注册 Local 环境，其他环境在异步初始化完成后写入 managed state。
             app.manage(app_state);
+            if fixture::current().is_some() {
+                let config=app.config().app.windows.iter().find(|window|window.label=="main").ok_or_else(||std::io::Error::other("fixture_main_window_config_missing"))?;
+                let builder=tauri::WebviewWindowBuilder::from_config(app,config)?;
+                let window=fixture::webview_builder(builder).map_err(std::io::Error::other)?.build()?;
+                configure_main_window_chrome(&window)?;
+            }
             app.manage(std::sync::Arc::new(
                 ccr_cli::services::install_service::InstallService::new(),
             ));
@@ -195,12 +245,15 @@ fn main() {
                 },
             );
 
-            crate::commands::codex::restore_pending_oauth_listener(app.handle().clone());
+            if fixture::current().is_none() {
+                crate::commands::codex::restore_pending_oauth_listener(app.handle().clone());
+            }
 
             // 异步初始化环境注册表，避免阻塞启动流程。
             let app_handle = app.handle().clone();
             spawn_supervised(app_handle.clone(), "env-registry:init", async move {
                 let state = app_handle.state::<AppState>();
+                if state.fixture.is_some() {return;}
 
                 // Phase C1：在 Windows 上探测 WSL 发行版，失败时仅记录日志。
                 #[cfg(target_os = "windows")]
@@ -407,7 +460,7 @@ fn main() {
             _ => {}
         })
         .invoke_handler(commands::generate_handler())
-        .build(tauri::generate_context!())
+        .build(context)
         .expect("error while building tauri application");
 
     app.run(|_app, event| {
@@ -494,6 +547,10 @@ async fn run_background_tasks(app_handle: tauri::AppHandle, shutdown: Arc<Notify
 async fn verify_usage_storage_dir() -> Result<(), String> {
     // CostTracker 默认使用与 CLI 一致的目录 `~/.ccr/costs/`。
     tokio::task::spawn_blocking(|| {
+        if let Some(layout) = fixture::current() {
+            let _storage_dir = layout.path("ccr/costs")?;
+            return Ok(());
+        }
         let _storage_dir = ccr_store::CostTracker::default_storage_dir()
             .map_err(|e| format!("Storage dir: {e}"))?;
         Ok(())

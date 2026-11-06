@@ -86,7 +86,17 @@ pub struct UsageSnapshotUpdatedPayload {
 pub async fn get_usage_capabilities_v2(
     state: State<'_, AppState>,
 ) -> Result<CapabilityReport, String> {
-    Ok(state.llmusage.capabilities().await)
+    if state.fixture.is_some() {
+        Ok(
+            crate::llmusage_adapter::CapabilityReport::detect_with_policy(
+                state.llmusage.paths(),
+                false,
+            )
+            .await,
+        )
+    } else {
+        Ok(state.llmusage.capabilities().await)
+    }
 }
 
 fn record_command_duration(state: &AppState, command_started: Instant) {

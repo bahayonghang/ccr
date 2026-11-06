@@ -1,13 +1,11 @@
 use std::collections::BTreeMap;
-use std::ffi::OsString;
 
 use serde::Serialize;
 use ts_rs::TS;
 
 use super::AppPaths;
-use crate::process::{ProcessDescriptor, ProcessGateway};
 
-pub use ccr_usage::{DbCapabilities, FeatureCapability, FeatureKey, UnsupportedReason};
+pub use ccr_usage::FeatureCapability;
 
 /// Tauri-facing capability payload: shared DB capabilities from `ccr_usage`
 /// merged with desktop-only CLI detection.
@@ -28,63 +26,28 @@ pub struct CapabilityReport {
 
 impl CapabilityReport {
     pub async fn detect(paths: &AppPaths) -> Self {
-        let cli_version = detect_cli_version().await;
-        let cli_available = cli_version.is_some();
-        let db = DbCapabilities::detect(paths);
-        let mut features = db.features;
+        Self::detect_with_policy(paths, true).await
+    }
 
-        features.insert(
-            FeatureKey::SyncJsonEvents.as_str().to_string(),
-            if cli_available {
-                FeatureCapability::supported()
-            } else {
-                FeatureCapability::unsupported(
-                    UnsupportedReason::CliMissing,
-                    "installed `llmusage` command was not found",
-                )
-            },
-        );
-        // The current CLI exposes streaming json-events but no external graceful cancel command.
-        features.insert(
-            FeatureKey::Cancel.as_str().to_string(),
-            FeatureCapability::unsupported(
-                UnsupportedReason::WaitingForLlmusage,
-                "llmusage needs a documented graceful cancellation contract; ccr-ui can only mark the local job cancelled",
-            ),
-        );
-
+    pub async fn detect_with_policy(paths: &AppPaths, probe_cli: bool) -> Self {
+        let report = ccr_app::usage::capabilities::Report::detect(paths, probe_cli).await;
         Self {
-            cli_available,
-            cli_version,
-            root_dir: paths.root_dir.display().to_string(),
-            db_path: paths.db_path.display().to_string(),
-            db_exists: db.db_exists,
-            db_readable: db.db_readable,
-            schema_version: db.schema_version,
-            features,
+            cli_available: report.cli_available,
+            cli_version: report.cli_version,
+            root_dir: report.root_dir,
+            db_path: report.db_path,
+            db_exists: report.db_exists,
+            db_readable: report.db_readable,
+            schema_version: report.schema_version,
+            features: report.features,
         }
-    }
-}
-
-async fn detect_cli_version() -> Option<String> {
-    let descriptor = ProcessDescriptor::llmusage_version("llmusage").ok()?;
-    let output = ProcessGateway::execute(&descriptor, &[OsString::from("--version")])
-        .await
-        .ok()?;
-    if !output.status.success() {
-        return None;
-    }
-    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    if stdout.is_empty() {
-        None
-    } else {
-        Some(stdout)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ccr_usage::UnsupportedReason;
 
     #[tokio::test]
     async fn capability_report_merges_db_and_cli_features() {

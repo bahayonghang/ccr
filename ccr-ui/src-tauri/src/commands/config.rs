@@ -114,8 +114,19 @@ pub async fn list_configs(platform: Option<String>) -> Result<Vec<ConfigInfo>, S
     let platform = required_platform(platform.as_deref()).map_err(|e| e.to_string())?;
     let result = tokio::task::spawn_blocking(move || {
         debug_assert_eq!(platform, ccr_config::Platform::Claude);
-        let service = ccr_app::config::ConfigReadService::for_claude()
-            .map_err(|e| format!("Failed to create ConfigManager: {e}"))?;
+        let service = match crate::fixture::current() {
+            Some(layout) => layout
+                .platform_paths(platform)
+                .map(|paths| {
+                    ccr_app::config::ConfigReadService::from_paths(
+                        paths.profiles_file,
+                        paths.registry_file,
+                    )
+                })
+                .map_err(CcrError::ConfigError),
+            None => ccr_app::config::ConfigReadService::for_claude(),
+        }
+        .map_err(|e| format!("Failed to create ConfigManager: {e}"))?;
         let configs = adapter::list(&service).map_err(|e| e.to_string())?;
 
         Ok::<_, String>(configs)

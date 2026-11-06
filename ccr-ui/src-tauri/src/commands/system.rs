@@ -4,13 +4,13 @@ use ccr_types::{FrontendLogInput, MonitoringEntry, MonitoringFeedQuery, Monitori
 
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::ffi::OsString;
 #[cfg(target_os = "windows")]
 use std::path::Path;
-use std::{sync::Arc, time::Instant};
+use std::sync::Arc;
+#[cfg(test)]
+use std::time::Instant;
 use tauri::State;
 use tokio::sync::Semaphore;
-use tokio::time::Duration;
 use ts_rs::TS;
 
 use crate::commands::wire::json_number_from_f64;
@@ -18,7 +18,6 @@ use crate::monitoring::{
     event_to_monitoring_entry, frontend_log_entry, record_monitoring_entry, should_persist,
 };
 use crate::platform::CliStatus;
-use crate::process::{ProcessDescriptor, ProcessGateway};
 use crate::state::{AppState, CacheFillRegistration};
 
 /// 系统信息响应结构
@@ -553,24 +552,7 @@ pub async fn get_runtime_metrics(
 }
 
 fn current_process_rss_bytes() -> u64 {
-    use sysinfo::{Pid, ProcessesToUpdate, System};
-
-    let mut system = System::new();
-    system.refresh_processes(ProcessesToUpdate::All, true);
-    let pid = Pid::from_u32(std::process::id());
-    system.process(pid).map(|p| p.memory()).unwrap_or(0)
-}
-
-fn extract_version_line(output: &std::process::Output) -> Option<String> {
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-
-    let line = stdout
-        .lines()
-        .find(|line| !line.trim().is_empty())
-        .or_else(|| stderr.lines().find(|line| !line.trim().is_empty()))?;
-
-    Some(line.trim().to_string())
+    ccr_app::monitoring::current_process_rss_bytes().unwrap_or(0)
 }
 
 #[cfg(test)]
@@ -694,59 +676,13 @@ async fn probe_cli_version_target(target: &CliProbeTarget, timeout_ms: u64) -> C
         return missing_cli_version_entry(target.platform);
     }
 
-    let started_at = Instant::now();
-    let descriptor = match ProcessDescriptor::cli_probe(
-        target.platform,
-        &target.program,
-        Duration::from_millis(timeout_ms),
-    ) {
-        Ok(descriptor) => descriptor,
-        Err(_) => return missing_cli_version_entry(target.platform),
-    };
-    let result = ProcessGateway::execute(&descriptor, &[OsString::from("--version")]).await;
-    let elapsed_ms = started_at.elapsed().as_millis() as u64;
-
-    match result {
-        Err(_) => CliVersionEntry {
-            platform: target.platform.to_string(),
-            installed: false,
-            version: None,
-            status: "error".to_string(),
-            elapsed_ms,
-        },
-        Ok(output) if output.timed_out => CliVersionEntry {
-            platform: target.platform.to_string(),
-            installed: false,
-            version: None,
-            status: "timeout".to_string(),
-            elapsed_ms,
-        },
-        Ok(output) => {
-            let process_output = std::process::Output {
-                status: output.status,
-                stdout: output.stdout,
-                stderr: output.stderr,
-            };
-            let version = extract_version_line(&process_output);
-
-            if process_output.status.success() && version.is_some() {
-                CliVersionEntry {
-                    platform: target.platform.to_string(),
-                    installed: true,
-                    version,
-                    status: "ok".to_string(),
-                    elapsed_ms,
-                }
-            } else {
-                CliVersionEntry {
-                    platform: target.platform.to_string(),
-                    installed: false,
-                    version: None,
-                    status: "error".to_string(),
-                    elapsed_ms,
-                }
-            }
-        }
+    let entry = ccr_app::tools::probe_version(target.platform, &target.program, timeout_ms).await;
+    CliVersionEntry {
+        platform: entry.platform,
+        installed: entry.installed,
+        version: entry.version,
+        status: entry.status.into(),
+        elapsed_ms: entry.elapsed_ms,
     }
 }
 
@@ -903,25 +839,13 @@ async fn compute_cli_versions(
 
 #[ccr_tauri_command_macros::command]
 pub async fn update_ccr() -> Result<serde_json::Value, String> {
-    let output = ProcessGateway::execute(
-        &ProcessDescriptor::ccr_update(),
-        &[OsString::from("install"), OsString::from("ccr")],
-    )
-    .await?;
-
-    let success = output.status.success()
-        && !output.timed_out
-        && !output.stdout_truncated
-        && !output.stderr_truncated;
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-
+    let report = ccr_app::tools::update_ccr().await?;
     Ok(serde_json::json!({
-        "success": success,
-        "stdout": stdout,
-        "stderr": stderr,
-        "timed_out": output.timed_out,
-        "truncated": output.stdout_truncated || output.stderr_truncated,
+        "success": report.success,
+        "stdout": report.stdout,
+        "stderr": report.stderr,
+        "timed_out": report.timed_out,
+        "truncated": report.truncated,
     }))
 }
 

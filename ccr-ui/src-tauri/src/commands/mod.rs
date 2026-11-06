@@ -35,7 +35,7 @@ pub mod wsl;
 
 mod wire;
 
-mod handler_registry;
+pub(crate) mod handler_registry;
 pub(crate) mod runtime_policy;
 
 pub use handler_registry::generate_handler;

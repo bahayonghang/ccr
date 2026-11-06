@@ -101,6 +101,8 @@ impl Default for TrayPanelPlacementState {
 
 /// Tauri managed state —— 通过 `app.manage(AppState::try_new(...)?)` 注册。
 pub struct AppState {
+    pub(crate) fixture: Option<Arc<crate::fixture::FixtureLayout>>,
+    preferences_path: Option<PathBuf>,
     /// SQLite 连接池（来自 ccr-db）
     pub db_pool: DbPool,
 
@@ -316,6 +318,15 @@ impl AppState {
         usage_db_pool: DbPool,
         llmusage: LlmusageRuntime,
     ) -> Result<Self, String> {
+        Self::try_new_with_fixture(db_pool, usage_db_pool, llmusage, None)
+    }
+
+    pub(crate) fn try_new_with_fixture(
+        db_pool: DbPool,
+        usage_db_pool: DbPool,
+        llmusage: LlmusageRuntime,
+        fixture: Option<Arc<crate::fixture::FixtureLayout>>,
+    ) -> Result<Self, String> {
         // HTTP/2 经 reqwest "http2" feature + native-tls ALPN 自动协商（见 Cargo.toml），
         // 签到等外部请求的指纹更接近真实浏览器；ccr-checkin 自建 client 同样受益于该 feature。
         //
@@ -327,7 +338,11 @@ impl AppState {
             .cookie_store(true)
             .timeout(Duration::from_secs(30))
             .no_proxy();
-        if let Some(proxy_url) = ccr_checkin::resolve_checkin_proxy_url() {
+        if let Some(proxy_url) = fixture
+            .is_none()
+            .then(ccr_checkin::resolve_checkin_proxy_url)
+            .flatten()
+        {
             match reqwest::Proxy::all(&proxy_url) {
                 Ok(proxy) => {
                     tracing::info!("共享 HTTP client 已启用代理（与 WAF WebView 出口对齐）");
@@ -342,20 +357,39 @@ impl AppState {
             .build()
             .map_err(|e| format!("failed to build reqwest client: {e}"))?;
 
-        let settings = DesktopShellPreferences::load_or_quarantine_corrupt();
+        let preferences_path = match &fixture {
+            Some(layout) => Some(layout.path("preferences/desktop-shell.json")?),
+            None => DesktopShellPreferences::default_path().ok(),
+        };
+        let settings = if fixture.is_some() {
+            preferences_path
+                .as_deref()
+                .map(DesktopShellPreferences::load_or_quarantine_corrupt_at)
+                .unwrap_or_default()
+        } else {
+            DesktopShellPreferences::load_or_quarantine_corrupt()
+        };
+        let mut env_registry = EnvironmentRegistry::new();
+        if let Some(layout) = &fixture {
+            env_registry.register(Arc::new(
+                crate::platform::local::LocalEnvironment::from_fixture(layout.clone()),
+            ));
+        }
 
         let cache = MokaCache::builder()
             .max_capacity(DEFAULT_CACHE_MAX_ENTRIES as u64)
             .build();
 
         Ok(Self {
+            fixture,
+            preferences_path,
             db_pool,
             usage_db_pool,
             llmusage: Arc::new(llmusage),
             http_client,
             cache,
             inflight_cache_keys: RwLock::new(HashMap::new()),
-            env_registry: RwLock::new(EnvironmentRegistry::new()),
+            env_registry: RwLock::new(env_registry),
             ssh_runtime_states: RwLock::new(HashMap::new()),
             ssh_password_cache: RwLock::new(HashMap::new()),
             ssh_process_trust: Mutex::new(ProcessHostTrust::default()),
@@ -396,8 +430,21 @@ impl AppState {
         self.settings.store(Arc::new(next.clone()));
 
         let to_save = next.clone();
+        let path = if self.fixture.is_some() {
+            Some(
+                self.preferences_path
+                    .clone()
+                    .ok_or("desktop_preferences_path_unavailable")?,
+            )
+        } else {
+            None
+        };
         std::thread::spawn(move || {
-            if let Err(error) = to_save.save() {
+            let result = match path {
+                Some(path) => DesktopShellPreferences::save_to_path(&path, &to_save),
+                None => to_save.save(),
+            };
+            if let Err(error) = result {
                 tracing::warn!("[state] 持久化桌面壳层偏好失败: {error}");
             }
         });

@@ -10,7 +10,8 @@ use ccr_cli::application::{needs_login_prep, profile_off_for_platform};
 #[ccr_tauri_command_macros::command]
 pub async fn claude_list_profiles() -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(|| -> Result<Value, String> {
-        let platform = ClaudePlatform::new().map_err(|e| format!("初始化 Claude 平台失败: {e}"))?;
+        let platform = crate::fixture::claude_platform()
+            .map_err(|e| format!("初始化 Claude 平台失败: {e}"))?;
         let current_profile = platform
             .get_current_profile()
             .map_err(|e| format!("读取当前 Claude profile 失败: {e}"))?;
@@ -22,7 +23,11 @@ pub async fn claude_list_profiles() -> Result<OpenJsonValueDto, String> {
             .collect();
 
         // can_off 仅用于横幅；探测失败时仍返回列表，避免 settings 异常拖垮整个 Profiles 页。
-        let can_off = needs_login_prep(Platform::Claude).unwrap_or(false);
+        let can_off = match crate::fixture::profile_context(Platform::Claude) {
+            Ok(Some(context)) => context.needs_login_prep().unwrap_or(false),
+            Ok(None) => needs_login_prep(Platform::Claude).unwrap_or(false),
+            Err(_) => false,
+        };
 
         Ok(json!({
             "profiles": profiles,
@@ -39,7 +44,8 @@ pub async fn claude_list_profiles() -> Result<OpenJsonValueDto, String> {
 #[ccr_tauri_command_macros::command]
 pub async fn claude_get_profile(name: String) -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(move || -> Result<Value, String> {
-        let platform = ClaudePlatform::new().map_err(|e| format!("初始化 Claude 平台失败: {e}"))?;
+        let platform = crate::fixture::claude_platform()
+            .map_err(|e| format!("初始化 Claude 平台失败: {e}"))?;
         let current_profile = platform
             .get_current_profile()
             .map_err(|e| format!("读取当前 Claude profile 失败: {e}"))?;
@@ -60,34 +66,37 @@ pub async fn claude_get_profile(name: String) -> Result<OpenJsonValueDto, String
 #[ccr_tauri_command_macros::command]
 pub async fn claude_add_profile(request: OpenJsonValueDto) -> Result<OpenJsonValueDto, String> {
     let request: Value = request.into();
-    tokio::task::spawn_blocking(move || -> Result<Value, String> {
-        let name = request
-            .get("name")
-            .and_then(|v| v.as_str())
-            .map(str::trim)
-            .filter(|v| !v.is_empty())
-            .ok_or_else(|| "Missing 'name' field".to_string())?
-            .to_string();
+    tokio::task::spawn_blocking(move || {
+        crate::fixture::with_locks(|| -> Result<Value, String> {
+            let name = request
+                .get("name")
+                .and_then(|v| v.as_str())
+                .map(str::trim)
+                .filter(|v| !v.is_empty())
+                .ok_or_else(|| "Missing 'name' field".to_string())?
+                .to_string();
 
-        let platform = ClaudePlatform::new().map_err(|e| format!("初始化 Claude 平台失败: {e}"))?;
-        let profiles = platform
-            .load_profiles()
-            .map_err(|e| format!("读取 Claude profiles 失败: {e}"))?;
-        if profiles.contains_key(&name) {
-            return Err(format!("Claude Profile '{name}' 已存在"));
-        }
+            let platform = crate::fixture::claude_platform()
+                .map_err(|e| format!("初始化 Claude 平台失败: {e}"))?;
+            let profiles = platform
+                .load_profiles()
+                .map_err(|e| format!("读取 Claude profiles 失败: {e}"))?;
+            if profiles.contains_key(&name) {
+                return Err(format!("Claude Profile '{name}' 已存在"));
+            }
 
-        let profile = build_profile_from_config(&request)?;
+            let profile = build_profile_from_config(&request)?;
 
-        platform
-            .save_profile(&name, &profile)
-            .map_err(|e| format!("保存 Claude Profile 失败: {e}"))?;
+            platform
+                .save_profile(&name, &profile)
+                .map_err(|e| format!("保存 Claude Profile 失败: {e}"))?;
 
-        let current_profile = platform
-            .get_current_profile()
-            .map_err(|e| format!("读取当前 Claude profile 失败: {e}"))?;
+            let current_profile = platform
+                .get_current_profile()
+                .map_err(|e| format!("读取当前 Claude profile 失败: {e}"))?;
 
-        Ok(profile_to_json(current_profile.as_deref(), name, profile))
+            Ok(profile_to_json(current_profile.as_deref(), name, profile))
+        })
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))??
@@ -110,15 +119,20 @@ pub async fn claude_update_profile(
 /// Mutation responses contain status and identifiers, never profile secrets.
 fn update_claude_profile_payload(name: String, request: Value) -> Result<Value, String> {
     let target_name = resolve_profile_target_name("Claude", &name, &request)?;
-    let outcome = ccr_cli::application::profile_lifecycle::update_profile(
-        Platform::Claude,
-        &name,
-        &target_name,
-        |profile| {
-            patch_profile_with_config(profile, &request)
-                .map_err(ccr_core::CcrError::ValidationError)
-        },
-    )
+    let patch = |profile: &mut ProfileConfig| {
+        patch_profile_with_config(profile, &request).map_err(ccr_core::CcrError::ValidationError)
+    };
+    let outcome = match crate::fixture::profile_context(Platform::Claude)
+        .map_err(|error| error.to_string())?
+    {
+        Some(context) => context.update(&name, &target_name, None, patch),
+        None => ccr_cli::application::profile_lifecycle::update_profile(
+            Platform::Claude,
+            &name,
+            &target_name,
+            patch,
+        ),
+    }
     .map_err(|error| error.to_string())?;
     let mut response = crate::commands::profile_lifecycle::profile_outcome_payload(outcome);
     response["name"] = json!(target_name);
@@ -128,12 +142,15 @@ fn update_claude_profile_payload(name: String, request: Value) -> Result<Value, 
 /// 删除 Profile。
 #[ccr_tauri_command_macros::command]
 pub async fn claude_delete_profile(name: String) -> Result<OpenJsonValueDto, String> {
-    tokio::task::spawn_blocking(move || -> Result<Value, String> {
-        let platform = ClaudePlatform::new().map_err(|e| format!("初始化 Claude 平台失败: {e}"))?;
-        platform
-            .delete_profile(&name)
-            .map_err(|e| format!("删除 Claude Profile 失败: {e}"))?;
-        Ok(json!({ "message": format!("Claude Profile '{name}' 已删除") }))
+    tokio::task::spawn_blocking(move || {
+        crate::fixture::with_locks(|| -> Result<Value, String> {
+            let platform = crate::fixture::claude_platform()
+                .map_err(|e| format!("初始化 Claude 平台失败: {e}"))?;
+            platform
+                .delete_profile(&name)
+                .map_err(|e| format!("删除 Claude Profile 失败: {e}"))?;
+            Ok(json!({ "message": format!("Claude Profile '{name}' 已删除") }))
+        })
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))??
@@ -147,7 +164,7 @@ pub async fn claude_get_profiles_raw(
     if let Some(response) = ensure_local_env(state.inner()).await {
         return response.try_into();
     }
-    let paths = PlatformPaths::new(Platform::Claude)
+    let paths = crate::fixture::platform_paths(Platform::Claude)
         .map_err(|error| format!("解析 Claude Profiles 路径失败: {error}"))?;
     tokio::task::spawn_blocking(move || profiles_raw_payload_from_paths(&paths))
         .await
@@ -165,15 +182,17 @@ pub async fn claude_save_profiles_raw(
     if let Some(response) = ensure_local_env(state.inner()).await {
         return response.try_into();
     }
-    let paths = PlatformPaths::new(Platform::Claude)
+    let paths = crate::fixture::platform_paths(Platform::Claude)
         .map_err(|error| format!("解析 Claude Profiles 路径失败: {error}"))?;
     tokio::task::spawn_blocking(move || -> Result<Value, String> {
-        let platform =
-            ClaudePlatform::new().map_err(|error| format!("初始化 Claude 平台失败: {error}"))?;
+        let platform = crate::fixture::claude_platform()
+            .map_err(|error| format!("初始化 Claude 平台失败: {error}"))?;
         let current = platform
             .get_current_profile()
             .map_err(|error| format!("读取当前 Claude profile 失败: {error}"))?;
-        save_profiles_raw_to_paths(&paths, current.as_deref(), &content, &token, force)
+        crate::fixture::with_locks(|| {
+            save_profiles_raw_to_paths(&paths, current.as_deref(), &content, &token, force)
+        })
     })
     .await
     .map_err(|error| format!("写入 Claude Profiles 后台任务失败: {error}"))??
@@ -182,7 +201,7 @@ pub async fn claude_save_profiles_raw(
 
 /// 构建 Claude profile 导出 payload。
 fn claude_profiles_export_payload(include_secrets: bool) -> Result<Value, String> {
-    let paths = PlatformPaths::new(Platform::Claude)
+    let paths = crate::fixture::platform_paths(Platform::Claude)
         .map_err(|e| format!("Failed to resolve Claude Profiles path: {e}"))?;
     profiles_export_payload_from_path(&paths.profiles_file, "ccr-claude-profiles", include_secrets)
 }
@@ -255,8 +274,13 @@ pub async fn claude_profile_off(state: State<'_, AppState>) -> Result<OpenJsonVa
         return response.try_into();
     }
     tokio::task::spawn_blocking(|| -> Result<Value, String> {
-        let result = profile_off_for_platform(Platform::Claude)
-            .map_err(|error| format!("退出 Claude profile 模式失败: {error}"))?;
+        let result = match crate::fixture::profile_context(Platform::Claude)
+            .map_err(|error| error.to_string())?
+        {
+            Some(context) => context.off(),
+            None => profile_off_for_platform(Platform::Claude),
+        }
+        .map_err(|error| format!("退出 Claude profile 模式失败: {error}"))?;
         let outcome = result.auth_outcome.unwrap_or_default();
         Ok(json!({
             "ok": true,

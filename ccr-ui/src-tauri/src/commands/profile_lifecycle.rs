@@ -17,6 +17,14 @@ pub(crate) fn profile_outcome_payload(outcome: ProfileOutcome) -> Value {
 
 /// Desktop service adapter; runs inside the handler's one blocking worker.
 pub(crate) fn apply_profile_payload(request: ApplyProfileRequest) -> Result<Value, String> {
+    if let Some(context) =
+        crate::fixture::profile_context(request.platform).map_err(|error| error.to_string())?
+    {
+        return context
+            .apply(request)
+            .map(profile_outcome_payload)
+            .map_err(|error| error.to_string());
+    }
     apply_profile(request)
         .map(profile_outcome_payload)
         .map_err(|error| error.to_string())

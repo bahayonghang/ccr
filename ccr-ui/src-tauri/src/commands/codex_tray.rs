@@ -38,8 +38,12 @@ pub struct CodexTraySnapshot {
 
 pub(crate) async fn compute_codex_tray_snapshot(force: bool) -> Result<CodexTraySnapshot, String> {
     let (runtime_summary, account_items) = tokio::task::spawn_blocking(|| -> Result<_, String> {
-        let service =
-            CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
+        let service = match crate::fixture::current() {
+            Some(layout) => layout.roots.codex_auth(),
+            None => {
+                CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?
+            }
+        };
         let snapshot = service
             .read_auth_snapshot()
             .map_err(|e| format!("读取 Codex Auth 快照失败: {e}"))?;
@@ -55,7 +59,9 @@ pub(crate) async fn compute_codex_tray_snapshot(force: bool) -> Result<CodexTray
     .await
     .map_err(|e| format!("读取 Codex Auth 信息任务失败: {e}"))??;
 
-    let current_quota = if should_query_current_quota(runtime_summary.mode) {
+    let current_quota = if crate::fixture::current().is_none()
+        && should_query_current_quota(runtime_summary.mode)
+    {
         let quota_service = ccr_codex::CodexQuotaService::new()
             .map_err(|e| format!("初始化 Codex 配额服务失败: {e}"))?;
         Some(if force {

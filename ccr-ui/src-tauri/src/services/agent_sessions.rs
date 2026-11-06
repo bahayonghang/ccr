@@ -285,8 +285,7 @@ pub fn get_detail(
     if request.archive_id.is_empty() || request.archive_id.len() > 128 {
         return Err("agent_session_invalid_archive_id".into());
     }
-    let registry = AgentSessionProviderRegistry::from_default_home()
-        .map_err(|_| "agent_session_home_unavailable".to_string())?;
+    let registry = captured_registry().map_err(|_| "agent_session_home_unavailable".to_string())?;
     get_detail_with_registry(pool, request, &registry)
 }
 
@@ -320,8 +319,7 @@ fn get_detail_with_registry(
 }
 
 pub fn provider_statuses() -> Result<Vec<AgentSessionProviderStatusDto>, String> {
-    let registry = AgentSessionProviderRegistry::from_default_home()
-        .map_err(|_| "agent_session_home_unavailable".to_string())?;
+    let registry = captured_registry().map_err(|_| "agent_session_home_unavailable".to_string())?;
     Ok(registry
         .provider_statuses()
         .into_iter()
@@ -342,8 +340,7 @@ pub fn provider_statuses() -> Result<Vec<AgentSessionProviderStatusDto>, String>
 }
 
 pub fn refresh_archive(pool: &DbPool) -> Result<AgentSessionRefreshReportDto, String> {
-    let registry = AgentSessionProviderRegistry::from_default_home()
-        .map_err(|_| "agent_session_home_unavailable".to_string())?;
+    let registry = captured_registry().map_err(|_| "agent_session_home_unavailable".to_string())?;
     refresh_archive_with_registry(pool, &registry)
 }
 
@@ -363,6 +360,14 @@ fn refresh_archive_with_registry(
             })
             .collect(),
     })
+}
+
+fn captured_registry() -> ccr_core::Result<AgentSessionProviderRegistry> {
+    match crate::fixture::current() {
+        Some(layout) => Ok(AgentSessionProviderRegistry::new(layout.roots.home.clone())
+            .without_environment_overrides()),
+        None => AgentSessionProviderRegistry::from_default_home(),
+    }
 }
 fn refresh_counters(
     value: ccr_app::sessions::refresh::RefreshCounters,

@@ -61,6 +61,7 @@ pub(crate) async fn execute<T, F>(command: &'static str, future: F) -> Result<T,
 where
     F: Future<Output = Result<T, String>>,
 {
+    crate::fixture::admit(command)?;
     let descriptor = command_descriptor(command)
         .ok_or_else(|| format!("command_runtime_policy_missing:{command}"))?;
     execute_with_descriptor(descriptor, future).await

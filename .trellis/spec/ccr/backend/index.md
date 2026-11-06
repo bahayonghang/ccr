@@ -17,6 +17,7 @@
 | [Repository JSON Formatting](./repository-json-formatting.md)       | Canonical formatting inventory for human-authored JSON configuration                         | Complete |
 | [SSH Trust and Transport](./ssh-security.md)                        | Validated OpenSSH arguments, app-owned trust, real handshakes, and SFTP-only file operations | Complete |
 | [Tauri Handler Registry](./tauri-handler-registry.md)                | Domain command registry for the desktop invoke handler                                      | Complete |
+| [Tauri Fixture Isolation](./tauri-fixture-isolation.md) | Explicit startup roots, captured local graphs, fail-closed capabilities and benchmark qualification | Complete |
 | [Test Fixtures](./test-fixtures.md)                                  | Root `ccr` integration test environment fixtures                                            | Complete |
 | [Typed IPC Bindings](./typed-ipc-bindings.md)                        | Generated TS bindings, explicit config patches, committed artifacts, and drift guards | Complete |
 
@@ -32,6 +33,7 @@
 - Read [Repository JSON Formatting](./repository-json-formatting.md) before
   changing the JSON format inventory or `just fmt-check` integration.
 - Read [Desktop Command Policy](./desktop-command-policy.md) and [Tauri Handler Registry](./tauri-handler-registry.md) before changing desktop command passthrough or handler registration.
+- Read [Tauri Fixture Isolation](./tauri-fixture-isolation.md) before changing explicit benchmark startup, storage injection, fixture command admission or WebView profile roots.
 - Read [SSH Trust and Transport](./ssh-security.md) before changing SSH host persistence, trust confirmation, connection state, OpenSSH arguments, or remote config file operations.
 - Read [llmusage Provider Adapter Contract](./llmusage-provider-adapter.md) before changing provider-scoped usage sync, adapter filters, or dashboard payloads.
 - Read [Usage Job Lifecycle](./usage-job-lifecycle.md) before changing usage import admission, cancellation, process deadlines, or terminal events.

@@ -179,15 +179,38 @@ where
     T: Send + 'static,
     F: FnMut(&mut ccr_types::ClaudeSettings) -> Result<T, String> + Send + 'static,
 {
-    let manager = SettingsManager::with_default()
-        .map_err(|error| format!("SettingsManager init error: {error}"))?;
-    manager
-        .update_atomic_async(move |settings| {
-            update(settings).map_err(ccr_core::core::error::CcrError::SettingsError)
+    let manager = match crate::fixture::current() {
+        Some(layout) => Ok(SettingsManager::new(
+            &layout.roots.claude.settings_file,
+            &layout.roots.claude.backups_dir,
+            ccr_core::core::LockManager::new(&layout.roots.locks),
+        )),
+        None => SettingsManager::with_default(),
+    }
+    .map_err(|error| format!("SettingsManager init error: {error}"))?;
+    let update = move |settings: &mut ccr_types::ClaudeSettings| {
+        update(settings).map_err(ccr_core::core::error::CcrError::SettingsError)
+    };
+    if crate::fixture::current().is_some() {
+        return tokio::task::spawn_blocking(move || {
+            crate::fixture::with_locks(|| {
+                manager
+                    .update_atomic(update)
+                    .map_err(|error| format!("Failed to update Claude settings: {error}"))
+            })
         })
+        .await
+        .map_err(|error| format!("Failed to update Claude settings task: {error}"))?;
+    }
+    manager
+        .update_atomic_async(update)
         .await
         .map_err(|error| format!("Failed to update Claude settings: {error}"))
 }
+
+#[cfg(all(test, not(target_os = "macos")))]
+#[path = "claude_fixture_tests.rs"]
+mod fixture_tests;
 
 // ── Output Styles directory ──
 

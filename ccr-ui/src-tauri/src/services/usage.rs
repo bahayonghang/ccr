@@ -688,6 +688,13 @@ pub fn window_usage_needs_refresh(
 /// 仅供命令层在 spawn_blocking 内调用；service 计算函数只接收布尔结果，
 /// 保持无真实用户目录依赖、可单测。
 pub(crate) fn has_any_raw_sessions() -> bool {
+    if let Some(layout) = crate::fixture::current() {
+        return ccr_store::sessions::AgentSessionProviderRegistry::new(layout.roots.home.clone())
+            .without_environment_overrides()
+            .provider_statuses()
+            .iter()
+            .any(|status| status.source_count > 0);
+    }
     for platform in [Platform::Claude, Platform::Codex, Platform::Gemini] {
         let Some(session_dir) = SessionParser::get_platform_session_dir(&platform) else {
             continue;

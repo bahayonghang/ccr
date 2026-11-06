@@ -330,11 +330,16 @@ async fn switch_auth_from_menu<R: Runtime>(
 
     let account_name_for_task = account_name.clone();
     tokio::task::spawn_blocking(move || {
-        let service =
-            CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
-        service
-            .switch_account(&account_name_for_task)
-            .map_err(|e| format!("{e}"))
+        crate::fixture::with_locks(|| {
+            let service = match crate::fixture::current() {
+                Some(layout) => layout.roots.codex_auth(),
+                None => CodexAuthService::new()
+                    .map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?,
+            };
+            service
+                .switch_account(&account_name_for_task)
+                .map_err(|error| error.to_string())
+        })
     })
     .await
     .map_err(|e| format!("切换 Codex Auth 任务失败: {e}"))??;
@@ -374,7 +379,7 @@ fn ensure_tray_panel_window<R: Runtime>(app: &AppHandle<R>) -> Result<WebviewWin
         builder = builder.hidden_title(true);
     }
 
-    let window = builder
+    let window = crate::fixture::webview_builder(builder)?
         .build()
         .map_err(|e| format!("创建 tray 面板失败: {e}"))?;
 
@@ -589,8 +594,9 @@ fn ensure_main_window<R: Runtime>(app: &AppHandle<R>) -> Result<WebviewWindow<R>
         .cloned()
         .ok_or_else(|| "tauri.conf.json 中缺少主窗口配置".to_string())?;
 
-    let window = WebviewWindowBuilder::from_config(app, &config)
-        .map_err(|e| format!("读取主窗口配置失败: {e}"))?
+    let builder = WebviewWindowBuilder::from_config(app, &config)
+        .map_err(|e| format!("读取主窗口配置失败: {e}"))?;
+    let window = crate::fixture::webview_builder(builder)?
         .build()
         .map_err(|e| format!("重建主窗口失败: {e}"))?;
 

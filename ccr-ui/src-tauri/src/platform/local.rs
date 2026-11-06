@@ -5,13 +5,40 @@ use super::{CliStatus, EnvError, EnvironmentType, ExecutionEnvironment, Platform
 use crate::process::{ProcessDescriptor, ProcessGateway};
 use ccr_config::ClaudeRuntimePaths;
 use ccr_core::core::{BackupPolicy, WriteOptions, write_guarded_async};
+use std::path::PathBuf;
 
 /// 本地环境实现 — 始终可用，委托到 ccr 核心库。
-pub struct LocalEnvironment;
+pub struct LocalEnvironment {
+    fixture: Option<std::sync::Arc<crate::fixture::FixtureLayout>>,
+}
 
 impl LocalEnvironment {
     pub fn new() -> Self {
-        Self
+        Self {
+            fixture: crate::fixture::current().cloned(),
+        }
+    }
+    pub(crate) fn from_fixture(fixture: std::sync::Arc<crate::fixture::FixtureLayout>) -> Self {
+        Self {
+            fixture: Some(fixture),
+        }
+    }
+    fn config_path(&self, platform: &str, path: &str) -> Result<std::path::PathBuf, EnvError> {
+        let Some(layout) = &self.fixture else {
+            return resolve_config_path(platform, path);
+        };
+        let relative = normalize_config_relative_path(path)?;
+        let base = match platform {
+            "claude" => "home/.claude",
+            "codex" => "home/.codex",
+            "gemini" => "home/.gemini/antigravity-cli",
+            "opencode" => "home/.opencode",
+            "grok" => "home/.grok",
+            _ => return Err(EnvError::PlatformNotSupported(platform.into())),
+        };
+        layout
+            .path(&PathBuf::from(base).join(relative).to_string_lossy())
+            .map_err(EnvError::Other)
     }
 }
 
@@ -74,7 +101,7 @@ impl ExecutionEnvironment for LocalEnvironment {
 
     async fn read_config(&self, platform: &str, path: &str) -> Result<String, EnvError> {
         // 委托到 ccr 核心库读取本地配置文件
-        let full_path = resolve_config_path(platform, path)?;
+        let full_path = self.config_path(platform, path)?;
         tokio::fs::read_to_string(&full_path)
             .await
             .map_err(EnvError::Io)
@@ -86,7 +113,34 @@ impl ExecutionEnvironment for LocalEnvironment {
         path: &str,
         content: &str,
     ) -> Result<(), EnvError> {
-        let full_path = resolve_config_path(platform, path)?;
+        let full_path = self.config_path(platform, path)?;
+        if let Some(layout) = &self.fixture {
+            let options = if platform == "claude" {
+                WriteOptions {
+                    backup: BackupPolicy::Dir {
+                        dir: layout.roots.claude.backups_dir.clone(),
+                        prefix: "settings".into(),
+                    },
+                    secret: true,
+                    ..Default::default()
+                }
+            } else {
+                WriteOptions {
+                    secret: true,
+                    ..Default::default()
+                }
+            };
+            let locks = layout.roots.locks.clone();
+            let content = content.as_bytes().to_vec();
+            return tokio::task::spawn_blocking(move || {
+                ccr_core::core::LockManager::with_scoped_directory(&locks, || {
+                    ccr_core::core::write_guarded(&full_path, &content, &options)
+                })
+            })
+            .await
+            .map_err(|_| EnvError::Other("fixture_write_task_failed".into()))?
+            .map_err(|_| EnvError::Other("fixture_write_failed".into()));
+        }
         // 确保父目录存在
         if let Some(parent) = full_path.parent() {
             tokio::fs::create_dir_all(parent)
@@ -103,6 +157,9 @@ impl ExecutionEnvironment for LocalEnvironment {
     }
 
     async fn detect_cli_status(&self) -> Result<Vec<CliStatus>, EnvError> {
+        if self.fixture.is_some() {
+            return Err(EnvError::Other("fixture_cli_detection_disabled".into()));
+        }
         let tools = [
             ("claude", "claude"),
             ("codex", "codex"),
