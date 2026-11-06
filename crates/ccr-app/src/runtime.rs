@@ -256,14 +256,19 @@ impl RuntimeHandle {
         E: Send + Sync + 'static,
         F: FnOnce(CancellationToken, ProgressReporter) -> Result<T, E> + Send + 'static,
     {
-        self.start(key, true, move |cancel, progress| {
-            let result = work(cancel.clone(), progress);
-            match result {
-                _ if cancel.is_cancelled() => Completion::Cancelled,
-                Ok(value) => Completion::Success(value),
-                Err(error) => Completion::Failed(error),
-            }
-        })
+        self.start(
+            key,
+            true,
+            move |cancel, progress| {
+                let result = work(cancel.clone(), progress);
+                match result {
+                    _ if cancel.is_cancelled() => Completion::Cancelled,
+                    Ok(value) => Completion::Success(value),
+                    Err(error) => Completion::Failed(error),
+                }
+            },
+            None,
+        )
     }
 
     /// A side-effect runner must retain its own process/cleanup semantics and
@@ -278,7 +283,24 @@ impl RuntimeHandle {
         E: Send + Sync + 'static,
         F: FnOnce(CancellationToken, ProgressReporter) -> Completion<T, E> + Send + 'static,
     {
-        self.start(key, false, work)
+        self.start(key, false, work, None)
+    }
+
+    /// Runs adapter-owned terminal persistence on the existing blocking pool,
+    /// including when queued work was cancelled before it could start. The
+    /// tracked task awaits finalization before publishing its completion.
+    pub fn job_with_finalizer<T, E, F>(
+        &self,
+        key: RequestKey,
+        work: F,
+        finalize: impl FnOnce() + Send + 'static,
+    ) -> Result<TaskSubscription<T, E>, AdmissionError>
+    where
+        T: Send + Sync + 'static,
+        E: Send + Sync + 'static,
+        F: FnOnce(CancellationToken, ProgressReporter) -> Completion<T, E> + Send + 'static,
+    {
+        self.start(key, false, work, Some(Box::new(finalize)))
     }
 
     fn start<T, E, F>(
@@ -286,6 +308,7 @@ impl RuntimeHandle {
         key: RequestKey,
         cancel_on_drop: bool,
         work: F,
+        finalize: Option<Box<dyn FnOnce() + Send>>,
     ) -> Result<TaskSubscription<T, E>, AdmissionError>
     where
         T: Send + Sync + 'static,
@@ -321,7 +344,7 @@ impl RuntimeHandle {
                 let permit = tokio::select! {
                     biased;
                     _ = runner_state.cancel.cancelled() => None,
-                    permit = blocking.acquire_owned() => permit.ok(),
+                    permit = blocking.clone().acquire_owned() => permit.ok(),
                 };
                 let completion = if let Some(permit) = permit {
                     let cancel = runner_state.cancel.clone();
@@ -329,6 +352,7 @@ impl RuntimeHandle {
                     let mut worker = executor.spawn_blocking(move || {
                         let _permit = permit;
                         if cancel.is_cancelled() {
+                            drop(work);
                             Completion::Cancelled
                         } else {
                             work(cancel, worker_reporter)
@@ -340,8 +364,21 @@ impl RuntimeHandle {
                         () = &mut progress => worker.await.unwrap_or(Completion::WorkerFailed),
                     }
                 } else {
+                    drop(work);
                     Completion::Cancelled
                 };
+                if let Some(finalize) = finalize
+                    && let Ok(permit) = blocking.acquire_owned().await
+                {
+                    // A persistence panic cannot erase an already determined
+                    // process result. Runtime shutdown still joins this worker.
+                    let _ = executor
+                        .spawn_blocking(move || {
+                            let _permit = permit;
+                            finalize();
+                        })
+                        .await;
+                }
                 publish_terminal(&runner_state, &tx, completion);
             },
             &self.executor,

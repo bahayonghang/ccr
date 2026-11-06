@@ -14,6 +14,7 @@ Extract only orchestration that both consumers use. Do not move domain persisten
 - `runtime::RuntimeOwner::{new, handle, shutdown}` owns one long-lived Tokio runtime.
 - `RuntimeHandle::read(key, work)` takes a blocking read returning `Result<T, E>`.
 - `RuntimeHandle::job(key, work)` takes a runner returning `Completion<T, E>` after its cleanup.
+- `RuntimeHandle::job_with_finalizer(key, work, finalize)` additionally joins adapter-owned terminal persistence, including when queued work never starts.
 - Both return `Result<TaskSubscription<T, E>, AdmissionError>`.
 - `RequestKey` contains environment, platform, generation and request_id. `ResponseGate::accepts` compares all four.
 - `platform_settings::Document::{read, save_text, save_validated}` uses a non-Debug `Snapshot` carrying original content, token, source identity and existence; saves return `SaveOutcome::{Saved, Conflict}`.
@@ -31,6 +32,8 @@ Current selection uses the ccr-config-owned file/registry resolution helper, als
 Runtime admission is 128 operations, blocking concurrency 4, notification capacity 128, and latest progress is coalesced at 100ms intervals. Terminal state is retained separately and cannot be lost behind progress. Only the runner publishes its immutable completion, after cleanup. `request_cancel` is a request, not a terminal outcome.
 
 Dropping a read subscription requests cancellation and closes its receiver. Dropping a job subscription only detaches the view; the app retains its runner. Shutdown stops admission, requests cancellation and awaits tracked work. RuntimeOwner must outlive the native event loop; its synchronous final join runs after that loop returns. GPUI's 200ms quit-hook budget does not prove cleanup completed.
+
+Command Recent persistence belongs to the retained admitted ticket, not a visible view observer. The finalizer reacquires the same bounded blocking permit without skipping on cancellation and is awaited before executor terminal publication/shutdown completion. It holds the runner's owned terminal snapshot; queued/unavailable admission uses `CommandJobs::abandon_snapshot` to capture the terminal under the registry lock. Never re-read an evictable job ID after waiting for finalizer admission: capacity/TTL pruning may already have removed it. A persistence panic or write failure cannot replace the command's immutable process outcome. Replayed admission and repeated observation do not create another finalizer. Native history deliberately omits arbitrary argument values from both args and full_command at rest; UI-only redaction is insufficient. An admitted command that never launches keeps its actual unavailable/non-success outcome.
 
 The GPUI main shell installs a per-window `on_window_should_close` guard. The default policy opens at most one confirmation in the existing dialog stack and vetoes immediate removal; Cancel/Escape preserve the underlying editor, dialog and app-owned work. Until dirty state is reliably aggregated across domains, the default also confirms idle exits. Settings, application-menu Quit and Ctrl/Cmd+Q route through the same guard. An explicit persisted “Quit directly” preference bypasses confirmation with a visible unsaved-change warning. Both choices retain the last-window quit observer and final runtime join. Probe, startup-failure exits and platform/application-level `App::quit` that directly invokes shutdown remain outside this guard: locked GPUI 0.3.9 exposes no public quit-veto hook. Do not request shutdown on opening or cancelling a dialog. Wording promises a cancellation request and waiting for work, not guaranteed cancellation or successful cleanup. Deferred initial focus belongs to that opening and must not steal focus after dismissal, reopening or user input.
 
@@ -91,6 +94,8 @@ Native check-in operations capture one database access and crypto root through p
 | Return to a command that completes during subscription attachment | Atomic observe returns terminal or delivers subsequent terminal; no gap between status and subscribe |
 | Command progress receiver lags | Recover latest bounded snapshot, preserving terminal and explicit truncation counters |
 | Late command event from another generation/job or after terminal | Ignore without changing current status |
+| Queued command cancelled or view detached before runner starts | Retained finalizer still persists its actual terminal; final shutdown joins the write |
+| Recent persistence fails or panics | Preserve process outcome; do not replay an ambiguous write |
 | Invalid later budget field | Reject the entire supplied patch before the first setter; original bytes unchanged |
 
 ## 5. Good / Base / Bad Cases
@@ -104,6 +109,8 @@ Native check-in operations capture one database access and crypto root through p
 Assert all projection fields, masking, order, version, current fallback and description defaults against domain-created fixtures. Verify business bytes/mtime/revision unchanged, with precisely identified SQLite sidecar exceptions. Test missing/empty/corrupt/legacy sources independently and retain Tauri adapter parity/bindings checks.
 
 Use barriers or virtual time for full admission, progress coalescing, full notification queue, cancellation, late responses, view drop and shutdown. Exercise actual rendered native controls for responsiveness; headless tests cannot prove OS IME, native accessibility, DPI or performance budgets. Preserve default Rust test parallelism and `--skip export_bindings` for behavior suites.
+
+Finalizer regression tests hold a queued cancellation through finalization and prove both terminal publication and shutdown wait for its release; a finalizer panic preserves the runner's failure. Native Recent regressions inspect raw persisted rows after detach/shutdown and repeated admission, plus managed synthetic success/failure/cancel outcomes. Arbitrary positional arguments must be absent before persistence, rather than merely masked by a later read projection.
 
 Quit fallback tests must hold real work across an expired asynchronous shutdown observer, then prove the final owner join waits for that work. Process-tree shutdown fixtures must confirm readiness and retain OS process handles through exit verification. If a synthetic descendant exits naturally after a fixed duration, bound the entire test interval from before job admission through shutdown and exit confirmation below that duration; timing only the final handle wait can falsely pass after shutdown waited for natural exit. This bound excludes natural completion and is not a performance receipt.
 

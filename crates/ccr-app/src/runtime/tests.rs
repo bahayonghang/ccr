@@ -270,6 +270,88 @@ fn admission_is_bounded_and_queued_cancel_does_not_start_work() {
 }
 
 #[test]
+fn queued_cancel_finalizer_is_joined_after_detach_before_terminal_and_shutdown() {
+    let owner = owner();
+    let handle = owner.handle();
+    let barrier = Arc::new(std::sync::Barrier::new(BLOCKING_CONCURRENCY + 1));
+    let mut releases = Vec::new();
+    let mut running = Vec::new();
+    for _ in 0..BLOCKING_CONCURRENCY {
+        let entered = barrier.clone();
+        let (release_tx, release_rx) = mpsc::channel();
+        releases.push(release_tx);
+        running.push(
+            handle
+                .job(key(1), move |_, _| {
+                    entered.wait();
+                    release_rx.recv().unwrap();
+                    Completion::<(), ()>::Success(())
+                })
+                .unwrap(),
+        );
+    }
+    barrier.wait();
+    let (finalizing_tx, finalizing_rx) = mpsc::channel();
+    let (release_tx, release_rx) = mpsc::channel();
+    let job = handle
+        .job_with_finalizer(
+            key(2),
+            |_, _| -> Completion<(), ()> { panic!("queued cancelled work must not run") },
+            move || {
+                finalizing_tx.send(()).unwrap();
+                release_rx.recv().unwrap();
+            },
+        )
+        .unwrap();
+    let state = job.state.clone();
+    job.request_cancel();
+    drop(job);
+    let (stopped_tx, stopped_rx) = mpsc::channel();
+    let shutdown = std::thread::spawn(move || {
+        owner.shutdown();
+        stopped_tx.send(()).unwrap();
+    });
+    for release in releases {
+        release.send(()).unwrap();
+    }
+    finalizing_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    assert!(lock(&state.terminal).is_none());
+    assert!(stopped_rx.try_recv().is_err());
+    release_tx.send(()).unwrap();
+    stopped_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    shutdown.join().unwrap();
+    assert!(matches!(
+        lock(&state.terminal).as_deref(),
+        Some(Completion::Cancelled)
+    ));
+}
+
+#[test]
+fn finalizer_panic_preserves_runner_terminal() {
+    let owner = owner();
+    let handle = owner.handle();
+    let (entered_tx, entered_rx) = mpsc::channel();
+    let job = handle
+        .job_with_finalizer(
+            key(1),
+            move |_, _| {
+                entered_tx.send(()).unwrap();
+                Completion::<(), _>::Failed("process failed")
+            },
+            || panic!("persistence failed"),
+        )
+        .unwrap();
+    entered_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    let state = job.state.clone();
+    drop(job);
+    owner.shutdown();
+    assert!(matches!(
+        lock(&state.terminal).as_deref(),
+        Some(Completion::Failed("process failed"))
+    ));
+}
+
+#[test]
 fn cancel_does_not_publish_terminal_until_runner_returns_and_shutdown_joins() {
     let owner = owner();
     let handle = owner.handle();

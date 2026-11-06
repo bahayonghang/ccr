@@ -53,6 +53,28 @@ impl UiStateRequests {
         Self(services.clone())
     }
 
+    /// Called once by the retained command runner, after process cleanup. Keep
+    /// arbitrary positional values out of both `args` and `full_command` at rest;
+    /// redacting only the visible projection would still persist credentials.
+    pub(super) fn record_command_terminal(
+        &self,
+        snapshot: &ccr_app::jobs::commands::Snapshot,
+    ) -> Result<(), UiStateError> {
+        use ccr_app::jobs::commands::Status;
+        if !snapshot.status.is_terminal() {
+            return Ok(());
+        }
+        self.manager()?
+            .add_history(
+                redact_log_text(&snapshot.command),
+                Vec::new(),
+                snapshot.status == Status::Success,
+                snapshot.duration_ms.unwrap_or_default(),
+            )
+            .map(|_| ())
+            .map_err(|_| UiStateError::Storage)
+    }
+
     // Only called by bounded blocking workers. Initialization failures are retryable.
     fn manager(&self) -> Result<Arc<UiStateManager>, UiStateError> {
         let mut cached = self
@@ -214,6 +236,44 @@ mod tests {
                 delay: Duration::ZERO,
             },
         ))
+    }
+
+    #[test]
+    fn terminal_history_preserves_outcome_and_never_persists_arguments() {
+        use ccr_app::jobs::{commands::CommandJobs, policy::CommandExecutionRequest};
+        let owner = RuntimeOwner::new().unwrap();
+        let root = tempfile::TempDir::new().unwrap();
+        let requests = fixture(&owner, root.path());
+        let jobs = CommandJobs::default();
+        let admitted = jobs
+            .admit(
+                key(),
+                CommandExecutionRequest::background("status".into(), Some(vec![]), None),
+            )
+            .unwrap();
+        let mut snapshot = admitted.snapshot;
+        requests.record_command_terminal(&snapshot).unwrap();
+        assert!(!root.path().join("ui-state.db").exists());
+        snapshot.args = vec!["unlabelled-private-positional-value".into()];
+        snapshot.duration_ms = Some(37);
+        for status in [
+            ccr_app::jobs::commands::Status::Success,
+            ccr_app::jobs::commands::Status::Failed,
+            ccr_app::jobs::commands::Status::Cancelled,
+            ccr_app::jobs::commands::Status::CleanupFailed,
+        ] {
+            snapshot.status = status;
+            requests.record_command_terminal(&snapshot).unwrap();
+        }
+        let rows = requests.manager().unwrap().try_get_history(None).unwrap();
+        assert_eq!(rows.len(), 4);
+        assert_eq!(rows.iter().filter(|row| row.success).count(), 1);
+        assert!(rows.iter().all(|row| row.duration_ms == 37));
+        assert!(rows.iter().all(|row| row.args.is_empty()));
+        assert!(rows.iter().all(|row| row.full_command == "ccr status"));
+        // No UI projection is involved: this inspects raw persisted domain rows.
+        assert!(!format!("{rows:?}").contains("unlabelled-private-positional-value"));
+        owner.shutdown();
     }
 
     #[gpui_kit::test]

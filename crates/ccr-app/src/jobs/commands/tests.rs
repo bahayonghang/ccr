@@ -12,6 +12,25 @@ fn key(request_id: u64) -> RequestKey {
 fn request() -> CommandExecutionRequest {
     CommandExecutionRequest::background("status".into(), Some(vec!["--json".into()]), None)
 }
+
+#[test]
+fn abandoned_owned_terminal_survives_registry_capacity_eviction() {
+    let jobs = CommandJobs::default();
+    let admission = jobs.admit(key(1), request()).unwrap();
+    let id = admission.snapshot.job_id;
+    let terminal = jobs.abandon_snapshot(admission.ticket.unwrap()).unwrap();
+    assert_eq!(terminal.status, Status::Unavailable);
+    for request_id in 2..=MAX_JOBS as u64 + 1 {
+        let admission = jobs.admit(key(request_id), request()).unwrap();
+        jobs.abandon(admission.ticket.unwrap());
+    }
+    assert_eq!(jobs.status(&id), Err(Error::Missing));
+    assert_eq!(terminal.job_id, id);
+    assert_eq!(terminal.command, "status");
+    assert_eq!(terminal.status, Status::Unavailable);
+    assert!(terminal.finished_at.is_some());
+}
+
 fn fixture(script: &str) -> tokio::process::Command {
     #[cfg(windows)]
     {

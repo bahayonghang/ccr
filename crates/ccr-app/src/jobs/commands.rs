@@ -366,13 +366,18 @@ impl CommandJobs {
     }
     /// Release an admission for which the app executor could not retain a runner.
     pub fn abandon(&self, ticket: Ticket) {
+        let _ = self.abandon_snapshot(ticket);
+    }
+    /// Return the authoritative terminal while still holding the registry lock.
+    /// Persistence must retain this value instead of looking up an evictable job.
+    pub fn abandon_snapshot(&self, ticket: Ticket) -> Option<Snapshot> {
         self.complete(
             &ticket.job_id,
             Status::Unavailable,
             Instant::now(),
             None,
             Some("Command executor unavailable".into()),
-        );
+        )
     }
     fn update(&self, id: &str, f: impl FnOnce(&mut Entry)) -> Option<Snapshot> {
         let mut entries = self
