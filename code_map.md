@@ -8,7 +8,7 @@ Minimal navigation for this repository. Keep behavior rules in `AGENTS.md` / `CL
 - `crates/ccr-usage/` — sole owner of usage SQL and read-only SQLite projections consumed by CLI/TUI/Tauri. Contracts: `.trellis/spec/ccr/backend/llmusage-provider-adapter.md` and `.trellis/spec/ccr/backend/usage-job-lifecycle.md`. Desktop `llmusage_adapter/` owns installed-CLI sync, NDJSON, and DTO/error mapping only; do not link the upstream `llmusage` Rust crate.
 - `crates/ccr-app/` — framework-independent shared configuration-list orchestration and bounded background runtime; migration implementation in progress.
 - `ccr-ui/` — React 19 + Tauri desktop UI (`src/shell`, `src/features`, `src/api`, `src-tauri/`, `tests/`).
-- `ccr-desktop/` — independent GPUI native workspace (`ccr-gpui`), own lock/target; configuration/profile lifecycle, platform settings/OAuth, usage/sessions/policies, fixed instruction-file editor and command workbench. Migration and native acceptance remain in progress.
+- `ccr-desktop/` — independent GPUI native workspace (`ccr-gpui`), own lock/target; configuration/profile lifecycle, platform settings/OAuth, usage/sessions/policies, fixed instruction-file editor, recoverable command workbench and llmusage installation. Migration and native acceptance remain in progress.
 - `ccr-vscode/` — VS Code extension (`src/providers`, `src/services`, extension tests).
 - `docs/` — VitePress documentation site. Agent harness routing: `docs/agents/harnesses.md`.
 - `scripts/` — version synchronization checks and repo automation.

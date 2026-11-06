@@ -3,7 +3,7 @@
 由 command-manifest.json 与实际执行 flattenCatalog() 的输出建立，不靠 grep 猜动态路由。
 基线为 340 通用 / 348 Windows commands、76 route records（含 18 redirects）。
 完整逐项 owner、风险类别、来源路径与待补 native action/verification 见 migration-inventory.json。
-所有项目当前均 planned，不代表任何功能已实现。执行时更新台账，不重新运行脚本覆盖证据。
+初始捕获时所有项目均 planned，不代表实现。当前状态以 JSON 各项的 status/native_action/verification 与带日期 execution 字段为准；保留初始来源与历史证据，不重新运行捕获脚本覆盖执行记录。
 
 | 现有模块 | 命令数 | 实施子任务 |
 | --- | ---: | --- |
@@ -58,6 +58,8 @@
 | wsl | 8 | gpui-09-environments |
 
 ## 路由处理规则
+
+2026-11-05：08 的 6 个 command_exec 与 8 个 install 入口已有源码集成检查点（14 项），其余 54 项仍未原生接入；这不是完成比例。命令自动订阅恢复、foreground/help 与 llmusage 安装纵向链的检查、native/未运行项见 [continuation-20261105.md](continuation-20261105.md)。foreground 使用可恢复流式语义，未宣称等价于 Tauri one-shot 输出合同。完整任务和父验收保持开放。
 
 redirect 合并到目标功能而保留可发现性；布局根由 shell 所有；tray 由原生环境任务承接。
 平台主页与数据页由 Insights 承接，设置/认证与资源页分域实现。现有只在命令层存在的能力也需明确 native 入口或书面归并理由。

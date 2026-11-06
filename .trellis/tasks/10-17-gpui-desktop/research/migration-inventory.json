@@ -7801,9 +7801,10 @@
       "handler_path": "super::command_exec::execute_ccr_command",
       "owner": "gpui-08-jobs",
       "status": "partial_source_checkpoint_pending_full_acceptance",
-      "native_action": "Commands workbench: catalogue / Run tracked job / Request cancel / Refresh retained status; fixture runs only closed synthetic process, real sidecar/native acceptance remains open; native uses tracked-job equivalent rather than a separate foreground runner",
+      "native_action": "Commands → Run in current workbench; foreground policy + retained streaming owner (not Tauri one-shot result equivalence)",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "continuation_20261105": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md"
       },
       "execution_20261029": {
         "command": "execute_ccr_command",
@@ -7835,6 +7836,15 @@
           "ccr-ui/src-tauri/src/commands/command_exec.rs",
           "ccr-ui/src-tauri/src/process/gateway.rs"
         ]
+      },
+      "execution_20261105": {
+        "implementation": "INTEGRATED_CHECKPOINT",
+        "native_action": "Commands → Run in current workbench; foreground policy + retained streaming owner (not Tauri one-shot result equivalence)",
+        "independent_check": ".trellis/tasks/10-17-gpui-08-jobs/research/check-20261105.md",
+        "evidence": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md",
+        "native": "PENDING_CURRENT_CANDIDATE",
+        "limits": "Synthetic fixture only; no real sidecar/installation or full OS/performance acceptance. Foreground uses retained streaming semantics.",
+        "acceptance": "OPEN"
       }
     },
     {
@@ -7845,9 +7855,10 @@
       "handler_path": "super::command_exec::list_ccr_commands",
       "owner": "gpui-08-jobs",
       "status": "partial_source_checkpoint_pending_full_acceptance",
-      "native_action": "Commands workbench: catalogue / Run tracked job / Request cancel / Refresh retained status; fixture runs only closed synthetic process, real sidecar/native acceptance remains open",
+      "native_action": "Commands → executable policy catalog",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "continuation_20261105": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md"
       },
       "execution_20261029": {
         "command": "list_ccr_commands",
@@ -7879,6 +7890,15 @@
           "ccr-ui/src-tauri/src/commands/command_exec.rs",
           "ccr-ui/src-tauri/src/process/gateway.rs"
         ]
+      },
+      "execution_20261105": {
+        "implementation": "INTEGRATED_CHECKPOINT",
+        "native_action": "Commands → executable policy catalog",
+        "independent_check": ".trellis/tasks/10-17-gpui-08-jobs/research/check-20261105.md",
+        "evidence": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md",
+        "native": "PENDING_CURRENT_CANDIDATE",
+        "limits": "Synthetic fixture only; no real sidecar/installation or full OS/performance acceptance. Foreground uses retained streaming semantics.",
+        "acceptance": "OPEN"
       }
     },
     {
@@ -7888,10 +7908,11 @@
       "risk": "read_only",
       "handler_path": "super::command_exec::get_ccr_command_help",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "partial_source_checkpoint_pending_full_acceptance",
+      "native_action": "Commands → Help; fixed allowlisted target, argument draft excluded",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "continuation_20261105": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md"
       },
       "execution_20261029": {
         "command": "get_ccr_command_help",
@@ -7903,6 +7924,15 @@
         "tests": [],
         "native": "NOT_RUN",
         "acceptance": "OPEN"
+      },
+      "execution_20261105": {
+        "implementation": "INTEGRATED_CHECKPOINT",
+        "native_action": "Commands → Help; fixed allowlisted target, argument draft excluded",
+        "independent_check": ".trellis/tasks/10-17-gpui-08-jobs/research/check-20261105.md",
+        "evidence": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md",
+        "native": "PENDING_CURRENT_CANDIDATE",
+        "limits": "Synthetic fixture only; no real sidecar/installation or full OS/performance acceptance. Foreground uses retained streaming semantics.",
+        "acceptance": "OPEN"
       }
     },
     {
@@ -7913,9 +7943,10 @@
       "handler_path": "super::command_exec::start_ccr_command_job",
       "owner": "gpui-08-jobs",
       "status": "partial_source_checkpoint_pending_full_acceptance",
-      "native_action": "Commands workbench: catalogue / Run tracked job / Request cancel / Refresh retained status; fixture runs only closed synthetic process, real sidecar/native acceptance remains open",
+      "native_action": "Commands → Start background job; detach/revisit auto-observes retained owner",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "continuation_20261105": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md"
       },
       "execution_20261029": {
         "command": "start_ccr_command_job",
@@ -7947,6 +7978,15 @@
           "ccr-ui/src-tauri/src/commands/command_exec.rs",
           "ccr-ui/src-tauri/src/process/gateway.rs"
         ]
+      },
+      "execution_20261105": {
+        "implementation": "INTEGRATED_CHECKPOINT",
+        "native_action": "Commands → Start background job; detach/revisit auto-observes retained owner",
+        "independent_check": ".trellis/tasks/10-17-gpui-08-jobs/research/check-20261105.md",
+        "evidence": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md",
+        "native": "PENDING_CURRENT_CANDIDATE",
+        "limits": "Synthetic fixture only; no real sidecar/installation or full OS/performance acceptance. Foreground uses retained streaming semantics.",
+        "acceptance": "OPEN"
       }
     },
     {
@@ -7957,9 +7997,10 @@
       "handler_path": "super::command_exec::get_ccr_command_job_status",
       "owner": "gpui-08-jobs",
       "status": "partial_source_checkpoint_pending_full_acceptance",
-      "native_action": "Commands workbench: catalogue / Run tracked job / Request cancel / Refresh retained status; fixture runs only closed synthetic process, real sidecar/native acceptance remains open",
+      "native_action": "Commands → automatic atomic observe/snapshot recovery and explicit Refresh",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "continuation_20261105": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md"
       },
       "execution_20261029": {
         "command": "get_ccr_command_job_status",
@@ -7991,6 +8032,15 @@
           "ccr-ui/src-tauri/src/commands/command_exec.rs",
           "ccr-ui/src-tauri/src/process/gateway.rs"
         ]
+      },
+      "execution_20261105": {
+        "implementation": "INTEGRATED_CHECKPOINT",
+        "native_action": "Commands → automatic atomic observe/snapshot recovery and explicit Refresh",
+        "independent_check": ".trellis/tasks/10-17-gpui-08-jobs/research/check-20261105.md",
+        "evidence": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md",
+        "native": "PENDING_CURRENT_CANDIDATE",
+        "limits": "Synthetic fixture only; no real sidecar/installation or full OS/performance acceptance. Foreground uses retained streaming semantics.",
+        "acceptance": "OPEN"
       }
     },
     {
@@ -8001,9 +8051,10 @@
       "handler_path": "super::command_exec::cancel_ccr_command_job",
       "owner": "gpui-08-jobs",
       "status": "partial_source_checkpoint_pending_full_acceptance",
-      "native_action": "Commands workbench: catalogue / Run tracked job / Request cancel / Refresh retained status; fixture runs only closed synthetic process, real sidecar/native acceptance remains open",
+      "native_action": "Commands → Request cancel; actual terminal only after managed cleanup",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "continuation_20261105": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md"
       },
       "execution_20261029": {
         "command": "cancel_ccr_command_job",
@@ -8035,6 +8086,15 @@
           "ccr-ui/src-tauri/src/commands/command_exec.rs",
           "ccr-ui/src-tauri/src/process/gateway.rs"
         ]
+      },
+      "execution_20261105": {
+        "implementation": "INTEGRATED_CHECKPOINT",
+        "native_action": "Commands → Request cancel; actual terminal only after managed cleanup",
+        "independent_check": ".trellis/tasks/10-17-gpui-08-jobs/research/check-20261105.md",
+        "evidence": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md",
+        "native": "PENDING_CURRENT_CANDIDATE",
+        "limits": "Synthetic fixture only; no real sidecar/installation or full OS/performance acceptance. Foreground uses retained streaming semantics.",
+        "acceptance": "OPEN"
       }
     },
     {
@@ -8409,10 +8469,11 @@
       "risk": "read_only",
       "handler_path": "super::install::llmusage_install_detect",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "partial_source_checkpoint_pending_full_acceptance",
+      "native_action": "Install llmusage → Check host; domain detection on bounded worker",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "continuation_20261105": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md"
       },
       "execution_20261029": {
         "command": "llmusage_install_detect",
@@ -8424,6 +8485,15 @@
         "tests": [],
         "native": "NOT_RUN",
         "acceptance": "OPEN"
+      },
+      "execution_20261105": {
+        "implementation": "INTEGRATED_CHECKPOINT",
+        "native_action": "Install llmusage → Check host; domain detection on bounded worker",
+        "independent_check": ".trellis/tasks/10-17-gpui-08-jobs/research/check-20261105.md",
+        "evidence": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md",
+        "native": "PENDING_CURRENT_CANDIDATE",
+        "limits": "Synthetic fixture only; no real sidecar/installation or full OS/performance acceptance. Foreground uses retained streaming semantics.",
+        "acceptance": "OPEN"
       }
     },
     {
@@ -8433,10 +8503,11 @@
       "risk": "read_only",
       "handler_path": "super::install::llmusage_install_probe_capabilities",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "partial_source_checkpoint_pending_full_acceptance",
+      "native_action": "Install llmusage → Check host; domain host capabilities on bounded worker",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "continuation_20261105": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md"
       },
       "execution_20261029": {
         "command": "llmusage_install_probe_capabilities",
@@ -8448,6 +8519,15 @@
         "tests": [],
         "native": "NOT_RUN",
         "acceptance": "OPEN"
+      },
+      "execution_20261105": {
+        "implementation": "INTEGRATED_CHECKPOINT",
+        "native_action": "Install llmusage → Check host; domain host capabilities on bounded worker",
+        "independent_check": ".trellis/tasks/10-17-gpui-08-jobs/research/check-20261105.md",
+        "evidence": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md",
+        "native": "PENDING_CURRENT_CANDIDATE",
+        "limits": "Synthetic fixture only; no real sidecar/installation or full OS/performance acceptance. Foreground uses retained streaming semantics.",
+        "acceptance": "OPEN"
       }
     },
     {
@@ -8457,10 +8537,11 @@
       "risk": "process_execution",
       "handler_path": "super::install::llmusage_install_plan",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "partial_source_checkpoint_pending_full_acceptance",
+      "native_action": "Install llmusage → Create plan; canonical short-lived domain PlanId",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "continuation_20261105": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md"
       },
       "execution_20261029": {
         "command": "llmusage_install_plan",
@@ -8472,6 +8553,15 @@
         "tests": [],
         "native": "NOT_RUN",
         "acceptance": "OPEN"
+      },
+      "execution_20261105": {
+        "implementation": "INTEGRATED_CHECKPOINT",
+        "native_action": "Install llmusage → Create plan; canonical short-lived domain PlanId",
+        "independent_check": ".trellis/tasks/10-17-gpui-08-jobs/research/check-20261105.md",
+        "evidence": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md",
+        "native": "PENDING_CURRENT_CANDIDATE",
+        "limits": "Synthetic fixture only; no real sidecar/installation or full OS/performance acceptance. Foreground uses retained streaming semantics.",
+        "acceptance": "OPEN"
       }
     },
     {
@@ -8481,10 +8571,11 @@
       "risk": "process_execution",
       "handler_path": "super::install::llmusage_install_execute",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "partial_source_checkpoint_pending_full_acceptance",
+      "native_action": "Install llmusage → Review and install → explicit confirmation of reviewed PlanId; tracked app worker",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "continuation_20261105": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md"
       },
       "execution_20261029": {
         "command": "llmusage_install_execute",
@@ -8496,6 +8587,15 @@
         "tests": [],
         "native": "NOT_RUN",
         "acceptance": "OPEN"
+      },
+      "execution_20261105": {
+        "implementation": "INTEGRATED_CHECKPOINT",
+        "native_action": "Install llmusage → Review and install → explicit confirmation of reviewed PlanId; tracked app worker",
+        "independent_check": ".trellis/tasks/10-17-gpui-08-jobs/research/check-20261105.md",
+        "evidence": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md",
+        "native": "PENDING_CURRENT_CANDIDATE",
+        "limits": "Synthetic fixture only; no real sidecar/installation or full OS/performance acceptance. Foreground uses retained streaming semantics.",
+        "acceptance": "OPEN"
       }
     },
     {
@@ -8505,10 +8605,11 @@
       "risk": "process_execution",
       "handler_path": "super::install::llmusage_install_cancel",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "partial_source_checkpoint_pending_full_acceptance",
+      "native_action": "Install llmusage → Request cancellation; owner retains busy through cleanup",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "continuation_20261105": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md"
       },
       "execution_20261029": {
         "command": "llmusage_install_cancel",
@@ -8520,6 +8621,15 @@
         "tests": [],
         "native": "NOT_RUN",
         "acceptance": "OPEN"
+      },
+      "execution_20261105": {
+        "implementation": "INTEGRATED_CHECKPOINT",
+        "native_action": "Install llmusage → Request cancellation; owner retains busy through cleanup",
+        "independent_check": ".trellis/tasks/10-17-gpui-08-jobs/research/check-20261105.md",
+        "evidence": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md",
+        "native": "PENDING_CURRENT_CANDIDATE",
+        "limits": "Synthetic fixture only; no real sidecar/installation or full OS/performance acceptance. Foreground uses retained streaming semantics.",
+        "acceptance": "OPEN"
       }
     },
     {
@@ -8529,10 +8639,11 @@
       "risk": "read_only",
       "handler_path": "super::install::llmusage_install_recent",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "partial_source_checkpoint_pending_full_acceptance",
+      "native_action": "Install llmusage → restore safe bounded event projection automatically on return",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "continuation_20261105": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md"
       },
       "execution_20261029": {
         "command": "llmusage_install_recent",
@@ -8544,6 +8655,15 @@
         "tests": [],
         "native": "NOT_RUN",
         "acceptance": "OPEN"
+      },
+      "execution_20261105": {
+        "implementation": "INTEGRATED_CHECKPOINT",
+        "native_action": "Install llmusage → restore safe bounded event projection automatically on return",
+        "independent_check": ".trellis/tasks/10-17-gpui-08-jobs/research/check-20261105.md",
+        "evidence": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md",
+        "native": "PENDING_CURRENT_CANDIDATE",
+        "limits": "Synthetic fixture only; no real sidecar/installation or full OS/performance acceptance. Foreground uses retained streaming semantics.",
+        "acceptance": "OPEN"
       }
     },
     {
@@ -8553,10 +8673,11 @@
       "risk": "read_only",
       "handler_path": "super::install::llmusage_install_manual_catalog",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "partial_source_checkpoint_pending_full_acceptance",
+      "native_action": "Install llmusage → Manual instructions → copy domain-owned command text (no execution)",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "continuation_20261105": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md"
       },
       "execution_20261029": {
         "command": "llmusage_install_manual_catalog",
@@ -8568,6 +8689,15 @@
         "tests": [],
         "native": "NOT_RUN",
         "acceptance": "OPEN"
+      },
+      "execution_20261105": {
+        "implementation": "INTEGRATED_CHECKPOINT",
+        "native_action": "Install llmusage → Manual instructions → copy domain-owned command text (no execution)",
+        "independent_check": ".trellis/tasks/10-17-gpui-08-jobs/research/check-20261105.md",
+        "evidence": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md",
+        "native": "PENDING_CURRENT_CANDIDATE",
+        "limits": "Synthetic fixture only; no real sidecar/installation or full OS/performance acceptance. Foreground uses retained streaming semantics.",
+        "acceptance": "OPEN"
       }
     },
     {
@@ -8577,10 +8707,11 @@
       "risk": "read_only",
       "handler_path": "super::install::llmusage_install_check",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "partial_source_checkpoint_pending_full_acceptance",
+      "native_action": "Install llmusage → Check host; combined detection/capabilities",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "continuation_20261105": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md"
       },
       "execution_20261029": {
         "command": "llmusage_install_check",
@@ -8591,6 +8722,15 @@
         "native_action": null,
         "tests": [],
         "native": "NOT_RUN",
+        "acceptance": "OPEN"
+      },
+      "execution_20261105": {
+        "implementation": "INTEGRATED_CHECKPOINT",
+        "native_action": "Install llmusage → Check host; combined detection/capabilities",
+        "independent_check": ".trellis/tasks/10-17-gpui-08-jobs/research/check-20261105.md",
+        "evidence": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md",
+        "native": "PENDING_CURRENT_CANDIDATE",
+        "limits": "Synthetic fixture only; no real sidecar/installation or full OS/performance acceptance. Foreground uses retained streaming semantics.",
         "acceptance": "OPEN"
       }
     },
@@ -9846,7 +9986,7 @@
       "get_runtime_metrics"
     ],
     "resources": "in_progress_unexported_policy_native_preparation",
-    "jobs": "in_progress_unexported_command_owner_extraction",
+    "jobs": "in_progress_commands_and_install_integrated_pending_full_acceptance",
     "continuation_20261029": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261029.md",
     "implementation_counts_20261029": {
       "06-resources": {
@@ -9859,6 +9999,14 @@
         "INTEGRATED_CHECKPOINT": 5
       }
     },
-    "note_20261029": "Only02 completed.06 fixed-file and08 command checkpoints integrated and checked; selected native resource save and exact-path archive refresh only. No full command/route acceptance.09/10 remain planning."
+    "note_20261029": "Only02 completed.06 fixed-file and08 command checkpoints integrated and checked; selected native resource save and exact-path archive refresh only. No full command/route acceptance.09/10 remain planning.",
+    "continuation_20261105": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md",
+    "implementation_counts_20261105": {
+      "08-jobs": {
+        "INTEGRATED_CHECKPOINT": 14,
+        "UNIMPLEMENTED_NATIVE": 54
+      }
+    },
+    "note_20261105": "Only02 formally completed. Commands recover subscriptions; foreground/help and native llmusage install source/headless checkpoints integrated. Full native/sidecar/install/sync/checkin/OS/performance acceptance remains open."
   }
 }
