@@ -1,7 +1,7 @@
 //! Environment reads stay on the blocking worker. Render does not spawn processes.
 use super::Services;
 use ccr_app::environments::{EnvironmentReport, InspectOptions, admit_local_only};
-use ccr_app::runtime::{AdmissionError, RequestKey, TaskSubscription};
+use ccr_app::runtime::{AdmissionError, EnvironmentId, RequestKey, TaskSubscription};
 
 pub fn load(
     services: &Services,
@@ -51,6 +51,7 @@ pub enum SshAction {
     Disconnect,
     Read(String, ConfigFile),
     Save(Document, String),
+    DetectCli(String),
 }
 pub enum SshResult {
     Hosts(Vec<Host>),
@@ -62,13 +63,18 @@ pub enum SshResult {
     Disconnected,
     Confirmed,
     Document(Document),
+    CliDetected(Vec<ccr_app::environments::ssh::CliStatus>),
 }
 impl Services {
     fn ssh_workspace(&self) -> Result<Arc<Workspace>, &'static str> {
+        if self.source.is_benchmark() {
+            return Err("ssh_fixture_offline");
+        }
         if let Some(owner) = self.ssh.get() {
             return Ok(owner.clone());
         }
         let (database, known_hosts) = match &self.source {
+            super::ConfigSource::Benchmark(_) => return Err("ssh_fixture_offline"),
             super::ConfigSource::Local => (
                 Some(ccr_db::database::ui_database_path().map_err(|_| "ssh_database_unavailable")?),
                 ccr_app::environments::ssh_security::app_known_hosts_path()
@@ -94,12 +100,29 @@ impl Services {
     ) -> Result<TaskSubscription<SshResult, &'static str>, AdmissionError> {
         let services = self.clone();
         let environment = key.environment.clone();
+        // Capture connection authority at admission, not after waiting for the
+        // blocking pool. Reconnecting the same host cannot retarget this read.
+        let cli_authority = if let SshAction::DetectCli(id) = &action {
+            Some(if environment != EnvironmentId::Ssh(id.clone()) {
+                Err("ssh_environment_mismatch")
+            } else if self.is_fixture() && !owner_is_fixture_transport(self) {
+                Err("ssh_fixture_offline")
+            } else {
+                self.ssh
+                    .get()
+                    .ok_or("ssh_not_connected")
+                    .and_then(|owner| owner.cli_session(id))
+            })
+        } else {
+            None
+        };
         self.executor.job(key, move |cancel, _| {
             let work = async {
                 let target = match &action {
-                    SshAction::Probe(id) | SshAction::Connect(id) | SshAction::Read(id, _) => {
-                        Some(id)
-                    }
+                    SshAction::Probe(id)
+                    | SshAction::Connect(id)
+                    | SshAction::Read(id, _)
+                    | SshAction::DetectCli(id) => Some(id),
                     SshAction::Save(document, _) => Some(&document.environment),
                     _ => None,
                 };
@@ -119,6 +142,7 @@ impl Services {
                             | SshAction::Confirm(_)
                             | SshAction::Read(_, _)
                             | SshAction::Save(_, _)
+                            | SshAction::DetectCli(_)
                     )
                 {
                     return Err("ssh_fixture_offline");
@@ -159,6 +183,10 @@ impl Services {
                         .save(&document, &content, cancel.clone())
                         .await
                         .map(SshResult::Document),
+                    SshAction::DetectCli(_) => owner
+                        .detect_cli(&cli_authority.ok_or("ssh_not_connected")??, cancel.clone())
+                        .await
+                        .map(SshResult::CliDetected),
                 }
             };
             let result = tokio::runtime::Handle::current().block_on(work);
@@ -242,7 +270,7 @@ mod ssh_tests {
             .ssh_action(
                 RequestKey {
                     environment: EnvironmentId::Ssh(host.id.clone()),
-                    ..key
+                    ..key.clone()
                 },
                 SshAction::Connect(host.id.clone()),
             )
@@ -250,6 +278,26 @@ mod ssh_tests {
         assert!(
             matches!(connect.next().await,Some(TaskEvent::Terminal(result)) if matches!(result.as_ref(),Completion::Failed("ssh_fixture_offline")))
         );
+        for (environment, expected) in [
+            (EnvironmentId::Ssh(host.id.clone()), "ssh_fixture_offline"),
+            (
+                EnvironmentId::Ssh("another-host".into()),
+                "ssh_environment_mismatch",
+            ),
+        ] {
+            let mut detect = services
+                .ssh_action(
+                    RequestKey {
+                        environment,
+                        ..key.clone()
+                    },
+                    SshAction::DetectCli(host.id.clone()),
+                )
+                .unwrap_or_else(|_| panic!("detect admission"));
+            assert!(
+                matches!(detect.next().await,Some(TaskEvent::Terminal(result)) if matches!(result.as_ref(),Completion::Failed(error) if *error==expected))
+            );
+        }
         assert!(!root.path().join("ssh/known_hosts").exists());
         owner.shutdown();
     }

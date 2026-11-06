@@ -74,6 +74,7 @@ pub struct PreferencesRequests {
 impl PreferencesRequests {
     pub fn new(services: &Services) -> Self {
         let root = match &services.source {
+            ConfigSource::Benchmark(layout) => Some(layout.path("preferences")),
             ConfigSource::Local => dirs::config_dir().map(|root| root.join("ccr")),
             ConfigSource::Fixture { registry, .. } if registry.is_absolute() => {
                 registry.parent().map(ToOwned::to_owned)

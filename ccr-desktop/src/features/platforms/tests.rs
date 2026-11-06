@@ -393,6 +393,18 @@ async fn oauth_cancel_joins_fixture_cleanup_and_clears_callback_draft(cx: &mut T
     })
     .unwrap_or_else(|_| panic!("start OAuth"));
     cx.wait_for(handle, std::time::Duration::from_secs(5), |_, cx| {
+        !view.read(cx).diagnostic_blocked()
+    })
+    .await;
+    cx.update_window(handle, |_, _, cx| {
+        assert!(view.read(cx).oauth_status.is_none());
+        assert!(!view.read(cx).services.platform_oauth_active());
+        // Host preflight refuses isolated sources. Exercise the retained owner's
+        // cancellation separately using the captured, preseeded ephemeral port.
+        view.update(cx, |this, cx| this.start_oauth(cx));
+    })
+    .unwrap_or_else(|_| panic!("start captured fixture owner"));
+    cx.wait_for(handle, std::time::Duration::from_secs(5), |_, cx| {
         view.read(cx)
             .oauth_status
             .as_ref()

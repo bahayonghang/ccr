@@ -9,6 +9,7 @@ pub struct FolderResult {
 
 fn legacy(source: &ConfigSource) -> Result<PathBuf, SyncError> {
     match source {
+        ConfigSource::Benchmark(layout) => Ok(layout.path("ccr/sync.toml")),
         ConfigSource::Local => ccr_sync::SyncConfigManager::with_default()
             .map(|manager| manager.config_path().to_owned())
             .map_err(|_| SyncError::Storage),
@@ -50,7 +51,10 @@ pub(super) fn clear(
             .map_err(error)
             .map(|()| SyncOutcome::Cleared)
     };
-    if matches!(source, ConfigSource::Fixture { .. }) {
+    if let Some(layout) = source.benchmark() {
+        ccr_core::core::LockManager::with_scoped_directory(&layout.roots.locks, || Ok(run()))
+            .map_err(|_| SyncError::Storage)?
+    } else if source.is_fixture() {
         ccr_core::core::LockManager::with_scoped_directory(
             &canonical.parent().ok_or(SyncError::Storage)?.join("locks"),
             || Ok(run()),

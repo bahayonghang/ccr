@@ -214,6 +214,13 @@ pub(super) async fn execute_extended(
         }
         ExtendedCommand::Export(path) => {
             validate_transfer_path(source, &path)?;
+            // The domain exporter initializes crypto before its own file-write scope.
+            storage.scoped(|| {
+                storage.guard_crypto_initialization()?;
+                ccr_checkin::core::crypto::CryptoManager::new(&storage.crypto)
+                    .map(|_| ())
+                    .map_err(|_| OperationError::Storage)
+            })?;
             ExportManager::with_db(&storage.crypto, storage.db.clone())
                 .export_file(&path)
                 .map_err(|_| OperationError::Storage)?;
@@ -234,26 +241,36 @@ pub(super) async fn execute_extended(
             Ok(ExtendedReport::Preview(Arc::new(session)))
         }
         ExtendedCommand::Import { session, overwrite } => {
-            ExportManager::with_db(&storage.crypto, storage.db.clone())
-                .import_preview(&session, overwrite)
-                .map(ExtendedReport::Imported)
-                .map_err(import_error)
+            validate_transfer_path(source, session.path())?;
+            storage.scoped(|| {
+                storage.guard_crypto_initialization()?;
+                ExportManager::with_db(&storage.crypto, storage.db.clone())
+                    .import_preview(&session, overwrite)
+                    .map(ExtendedReport::Imported)
+                    .map_err(import_error)
+            })
         }
         ExtendedCommand::CdkCredentials { account, patch } => {
-            ccr_checkin::services::cdk_recharge::update_credentials(
-                &storage.crypto,
-                storage.db.clone(),
-                &account,
-                &patch,
-            )
-            .map_err(|_| OperationError::Invalid)?;
+            storage.scoped(|| {
+                ccr_checkin::services::cdk_recharge::update_credentials(
+                    &storage.crypto,
+                    storage.db.clone(),
+                    &account,
+                    &patch,
+                )
+                .map_err(|_| OperationError::Invalid)
+            })?;
             Ok(ExtendedReport::CdkSaved)
         }
         ExtendedCommand::Recharge { account, code } => {
             // Explicit recharge can resolve external builtin endpoints. Fixtures never call it.
-            if matches!(source, ConfigSource::Fixture { .. }) {
+            if source.is_fixture() {
                 return Err(OperationError::FixtureNetwork);
             }
+            accounts
+                .get(&account)
+                .map_err(|_| OperationError::Invalid)?;
+            storage.require_existing_crypto()?;
             let client = reqwest::Client::builder()
                 .timeout(Duration::from_secs(30))
                 .redirect(reqwest::redirect::Policy::none())
@@ -293,6 +310,11 @@ fn import_error(
 }
 
 fn validate_transfer_path(source: &ConfigSource, path: &Path) -> Result<(), OperationError> {
+    if let Some(layout) = source.benchmark() {
+        return layout
+            .check_path(path)
+            .map_err(|_| OperationError::FixturePath);
+    }
     if let ConfigSource::Fixture { registry, .. } = source {
         if !path.is_absolute() {
             return Err(OperationError::FixturePath);

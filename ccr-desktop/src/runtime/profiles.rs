@@ -182,6 +182,7 @@ pub fn domain_platform(platform: &RequestPlatform) -> Result<Platform> {
 
 pub fn context(source: &ConfigSource, platform: Platform) -> Result<ProfileLifecycleContext> {
     match source {
+        ConfigSource::Benchmark(layout) => layout.profile_context(platform),
         ConfigSource::Local => ProfileLifecycleContext::new(platform),
         ConfigSource::Fixture {
             profiles, registry, ..
@@ -351,6 +352,7 @@ impl Services {
                 .and_then(|platform| context(&source, platform))
                 .and_then(|context| {
                     let cleanup_root = match &source {
+                        ConfigSource::Benchmark(layout) => layout.root.as_path(),
                         ConfigSource::Local => context.paths().root.as_path(),
                         ConfigSource::Fixture { profiles, .. } => {
                             profiles.parent().ok_or_else(|| {

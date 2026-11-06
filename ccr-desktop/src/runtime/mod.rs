@@ -1,4 +1,5 @@
 //! Native adapter: explicit sources, typed read requests, no UI-thread I/O.
+pub mod benchmark;
 pub mod checkin;
 pub mod environments;
 pub mod insights;
@@ -25,6 +26,7 @@ use ccr_app::{
 #[derive(Clone)]
 pub enum ConfigSource {
     Local,
+    Benchmark(Arc<benchmark::Layout>),
     Fixture {
         profiles: PathBuf,
         registry: PathBuf,
@@ -32,8 +34,24 @@ pub enum ConfigSource {
     },
 }
 
+impl ConfigSource {
+    pub fn is_fixture(&self) -> bool {
+        !matches!(self, Self::Local)
+    }
+    pub fn benchmark(&self) -> Option<&Arc<benchmark::Layout>> {
+        match self {
+            Self::Benchmark(layout) => Some(layout),
+            _ => None,
+        }
+    }
+    pub fn is_benchmark(&self) -> bool {
+        self.benchmark().is_some()
+    }
+}
+
 pub enum LaunchMode {
     App(ConfigSource),
+    Benchmark(PathBuf),
     Probe,
     AppWithInsights {
         source: ConfigSource,
@@ -49,11 +67,20 @@ impl LaunchMode {
         let mut registry = None;
         let mut delay = None;
         let mut probe = false;
+        let mut benchmark_root = None;
         let mut insights_usage = None;
         let mut insights_archive = None;
         let mut insights_home = None;
         while let Some(arg) = args.next() {
             match arg.to_str() {
+                Some("--benchmark-fixture-root") => {
+                    if benchmark_root.is_some() {
+                        return Err("Benchmark root may be supplied only once");
+                    }
+                    benchmark_root = Some(PathBuf::from(
+                        args.next().ok_or("Missing benchmark fixture root")?,
+                    ));
+                }
                 Some("--probe") => probe = true,
                 Some("--insights-usage-root") => {
                     insights_usage = Some(PathBuf::from(
@@ -95,6 +122,28 @@ impl LaunchMode {
                     );
                 }
             }
+        }
+        if let Some(root) = benchmark_root {
+            if probe
+                || profiles.is_some()
+                || registry.is_some()
+                || delay.is_some()
+                || insights_usage.is_some()
+                || insights_archive.is_some()
+                || insights_home.is_some()
+            {
+                return Err(
+                    "Benchmark source cannot be combined with probe, legacy fixture or insights options",
+                );
+            }
+            if !root.is_absolute()
+                || root
+                    .components()
+                    .any(|part| matches!(part, std::path::Component::ParentDir))
+            {
+                return Err("Benchmark root must be absolute without traversal");
+            }
+            return Ok(Self::Benchmark(root));
         }
         let insights = match (insights_usage, insights_archive, insights_home) {
             (None, None, None) => None,
@@ -186,10 +235,35 @@ impl Services {
         self
     }
     pub fn insights_paths(&self) -> Option<insights::InsightsPaths> {
-        self.insights_paths.clone()
+        match self.source.benchmark() {
+            Some(layout) => Some(insights::InsightsPaths {
+                usage_root: layout.path("llmusage"),
+                archive_db: layout.path("ccr/analytics/usage.db"),
+                provider_home: layout.roots.home.clone(),
+            }),
+            None => self.insights_paths.clone(),
+        }
     }
     pub fn is_fixture(&self) -> bool {
-        matches!(self.source, ConfigSource::Fixture { .. })
+        self.source.is_fixture()
+    }
+    pub fn report_clock(&self) -> ccr_app::usage::report_clock::ReportClock {
+        self.source
+            .benchmark()
+            .map(|layout| ccr_app::usage::report_clock::ReportClock::fixed_utc(layout.as_of))
+            .unwrap_or_else(ccr_app::usage::report_clock::ReportClock::live)
+    }
+    pub fn benchmark_clock(
+        &self,
+    ) -> Option<(chrono::DateTime<chrono::Utc>, ccr_usage::ReportTimezone)> {
+        self.source
+            .benchmark()
+            .map(|layout| (layout.as_of, layout.timezone))
+    }
+    pub fn benchmark_title(&self) -> Option<String> {
+        self.source
+            .benchmark()
+            .map(|layout| format!("CCR Desktop (GPUI) · Fixture {}", layout.id))
     }
     pub fn is_slow_fixture(&self) -> bool {
         matches!(self.source, ConfigSource::Fixture { delay, .. } if !delay.is_zero())
@@ -198,7 +272,7 @@ impl Services {
     fn fixture_delay(&self) -> Duration {
         match self.source {
             ConfigSource::Fixture { delay, .. } => delay,
-            ConfigSource::Local => Duration::ZERO,
+            ConfigSource::Local | ConfigSource::Benchmark(_) => Duration::ZERO,
         }
     }
 
@@ -217,6 +291,10 @@ impl Services {
                 ));
             }
             let service = match source {
+                ConfigSource::Benchmark(layout) => {
+                    let paths = layout.platform_paths(ccr_config::Platform::Claude)?;
+                    ConfigReadService::from_paths(paths.profiles_file, paths.registry_file)
+                }
                 ConfigSource::Local => ConfigReadService::for_claude()?,
                 ConfigSource::Fixture {
                     profiles,

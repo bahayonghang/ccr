@@ -109,6 +109,7 @@ pub struct InsightsView {
 }
 impl InsightsView {
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
+        let utc = services.benchmark_clock().is_some();
         let requests = InsightsRequests::new(&services);
         let policies = cx.new(|cx| policies::PoliciesView::new(requests.clone(), window, cx));
         let observer = cx.new(|cx| observer::ObserverView::new(requests.clone(), window, cx));
@@ -127,7 +128,7 @@ impl InsightsView {
             fields: (0..8)
                 .map(|_| cx.new(|cx| InputState::new(window, cx)))
                 .collect(),
-            utc: false,
+            utc,
             generation: 0,
             gate: ResponseGate::default(),
             task: None,
@@ -328,10 +329,10 @@ impl InsightsView {
                 Err(InsightsError::Query)
             }
             InsightsPage::Home => {
-                let generated_at = chrono::Utc::now();
+                let clock = self.requests.report_clock();
                 Ok(InsightsQuery::Home {
-                    as_of: generated_at.with_timezone(&chrono::Local).date_naive(),
-                    generated_at,
+                    as_of: clock.date(),
+                    generated_at: clock.as_of,
                 })
             }
             InsightsPage::Usage => {

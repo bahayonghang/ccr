@@ -31,7 +31,8 @@ ccr-types = { path = "../crates/ccr-types" }
 chrono = "=0.4.45"
 dirs = "=6.0.0"
 rusqlite = { version = "=0.40.2", features = ["bundled", "functions"] }
-serde_json = "=1.0.154"
+serde_json = { version = "=1.0.154", features = ["float_roundtrip"] }
+sysinfo = { version = "=0.39.6", default-features = false, features = ["system"] }
 tokio = { version = "=1.53.3", features = ["rt", "sync", "time", "macros"] }
 toml = "=1.1.8"
 ccr-db = { path = "../crates/ccr-db" }
@@ -40,6 +41,7 @@ ccr-skills = { path = "../crates/ccr-skills" }
 gpui-kit = { version = "=0.7.3", default-features = false, features = ["component", "assets"] }
 
 [dev-dependencies]
+sha2 = "=0.11.1"
 ccr-sync = { path = "../crates/ccr-sync", features = ["test-support"] }
 ccr-app = { path = "../crates/ccr-app", features = ["test-fixtures"] }
 ccr-cli = { path = "../crates/ccr-cli", features = ["test-support"] }

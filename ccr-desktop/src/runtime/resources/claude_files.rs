@@ -131,6 +131,13 @@ fn execute(source: &ConfigSource, key: &RequestKey, command: Command) -> Result<
         return Err(Error::Unsupported);
     }
     if let Command::Commit { session, content } = command {
+        if let Some(layout) = source.benchmark() {
+            let path = match &session.document {
+                DocumentSession::File(file) => file.path(),
+                DocumentSession::Collection(entry) => entry.path(),
+            };
+            layout.check_path(path).map_err(|_| Error::UnsafePath)?;
+        }
         if session.environment != key.environment {
             return Err(Error::Unsupported);
         }

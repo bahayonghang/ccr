@@ -1,6 +1,6 @@
 //! Explicit captured-root budget/pricing commands. No upstream usage writes.
 use super::*;
-use crate::runtime::ConfigSource;
+
 use ccr_app::usage::policies;
 use ccr_core::core::lock::LockManager;
 use ccr_store::{BudgetManager, CostTracker, PricingManager};
@@ -61,7 +61,12 @@ impl InsightsRequests {
         command: PolicyCommand,
     ) -> Result<TaskSubscription<Value, InsightsError>, AdmissionError> {
         let paths = self.paths.clone();
-        let fixture = matches!(self.services.source, ConfigSource::Fixture { .. });
+        let fixture = self.services.source.is_fixture();
+        let benchmark_locks = self
+            .services
+            .source
+            .benchmark()
+            .map(|layout| layout.roots.locks.clone());
         let local = matches!(key.environment, EnvironmentId::Local(_));
         // Budget status constructs its existing cost tracker and may create the
         // explicit stats directory. Keep every command app-owned through completion.
@@ -80,7 +85,9 @@ impl InsightsRequests {
                             .map_err(|_| InsightsError::Query)?,
                     })
                 })?;
-                let locks = if fixture {
+                let locks = if let Some(locks) = benchmark_locks {
+                    locks
+                } else if fixture {
                     paths
                         .as_ref()
                         .ok_or(InsightsError::Unconfigured)?

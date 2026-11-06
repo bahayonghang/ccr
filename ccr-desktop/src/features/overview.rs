@@ -174,10 +174,19 @@ impl OverviewView {
             return service_error(cx, error).to_string();
         }
         if let Some(report) = &self.report {
+            let report_date = format!(
+                "{}{}",
+                report.as_of,
+                if self.requests.report_clock().timezone == ccr_usage::ReportTimezone::Utc {
+                    " UTC"
+                } else {
+                    ""
+                }
+            );
             return if is_chinese(cx) {
-                format!("已读取本机用量，报告日 {}", report.as_of)
+                format!("已读取本机用量，报告日 {}", report_date)
             } else {
-                format!("Local usage read. Report date {}", report.as_of)
+                format!("Local usage read. Report date {}", report_date)
             };
         }
         text(cx, "Usage has not been read yet.", "尚未读取用量。").to_string()

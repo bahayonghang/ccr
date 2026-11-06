@@ -70,6 +70,7 @@ pub enum ResourceResult {
 
 pub(super) fn roots(source: &ConfigSource) -> Result<PlatformRoots, ResourceError> {
     match source {
+        ConfigSource::Benchmark(layout) => Ok(layout.roots.clone()),
         ConfigSource::Local => PlatformRoots::capture().map_err(|_| ResourceError::Storage),
         ConfigSource::Fixture {
             profiles, registry, ..
@@ -134,10 +135,29 @@ fn execute(
             })))
         }
         ResourceCommand::SavePrompt { session, content } => {
+            check_session(source, &session)?;
             save(key, &session, &content, &session.snapshot.token)
         }
-        ResourceCommand::CreatePrompt { session } => save(key, &session, "", ""),
+        ResourceCommand::CreatePrompt { session } => {
+            check_session(source, &session)?;
+            save(key, &session, "", "")
+        }
     }
+}
+
+fn check_session(source: &ConfigSource, session: &PromptSession) -> Result<(), ResourceError> {
+    if let Some(layout) = source.benchmark() {
+        if session.roots.home != layout.roots.home
+            || session.roots.ccr != layout.roots.ccr
+            || session.roots.locks != layout.roots.locks
+        {
+            return Err(ResourceError::Invalid);
+        }
+        layout
+            .check_path(&session.snapshot.source)
+            .map_err(|_| ResourceError::Invalid)?;
+    }
+    Ok(())
 }
 
 fn save(

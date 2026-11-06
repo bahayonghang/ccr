@@ -1,4 +1,5 @@
 //! Saved check-in accounts. Balances appear only when a local row stores them.
+mod credentials;
 mod extended;
 mod operations;
 use crate::runtime::checkin::OperationState;
@@ -253,6 +254,7 @@ fn detail_lines(cx: &App, account: &CheckinAccountRow) -> Vec<String> {
 
 impl Render for CheckinView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        self.fill_account_credentials(window, cx);
         let mut root = div()
             .id("checkin-page")
             .test_support()

@@ -86,6 +86,9 @@ impl UiStateRequests {
             return Ok(manager.clone());
         }
         let pool = match &self.0.source {
+            ConfigSource::Benchmark(layout) => {
+                layout.main_pool().map_err(|_| UiStateError::Storage)?
+            }
             ConfigSource::Local => match database::get_pool() {
                 Some(pool) => pool.clone(),
                 None => database::initialize_app_pool().map_err(|_| UiStateError::Storage)?,

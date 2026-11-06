@@ -21,8 +21,10 @@ use gpui_kit::{
     Render, SharedString, StatefulInteractiveElement, Styled, Task, Window, div, px, uniform_list,
 };
 use std::sync::Arc;
+mod system;
 
 pub struct MonitoringView {
+    system: Entity<system::SystemView>,
     requests: Requests,
     channel: Entity<InputState>,
     level: Option<MonitoringLevel>,
@@ -58,6 +60,7 @@ pub fn storage_error(error: Error, cx: &App) -> &'static str {
 impl MonitoringView {
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
         Self {
+            system: cx.new(|cx| system::SystemView::new(services.clone(), cx)),
             requests: Requests::new(&services),
             channel: cx.new(|cx| InputState::new(window, cx)),
             level: None,
@@ -75,6 +78,7 @@ impl MonitoringView {
         window.focus_next(cx);
     }
     pub fn suspend(&mut self, cx: &mut Context<Self>) {
+        self.system.update(cx, |view, cx| view.suspend(cx));
         self.task = None;
         self.generation += 1;
         self.busy = false;
@@ -419,7 +423,7 @@ impl Render for MonitoringView {
             .flex().flex_col().size_full().overflow_y_scroll().p(px(theme::CONTENT_PADDING)).gap(px(theme::SECTION_GAP))
             .child(div().text_size(px(theme::TITLE_SIZE)).font_weight(gpui_kit::FontWeight::SEMIBOLD).child(text(cx,"Global monitoring","全局监控")))
             .child(text(cx,"Captured main-database logs and this application's real lifecycle events. Refresh is explicit; hidden pages do not poll.","读取捕获的主数据库日志及本应用实际产生的生命周期事件。需要手动刷新，隐藏页面不轮询。"))
-            .child(self.controls(cx)).child(self.metrics(cx));
+            .child(self.controls(cx)).child(self.metrics(cx)).child(self.system.clone());
         if let Some(error) = self.error {
             root = root.child(div().text_color(cx.theme().danger).child(error));
         }

@@ -68,7 +68,7 @@ pub(super) async fn inventory(
     probe: bool,
     loopback: bool,
 ) -> Result<SyncOutcome, SyncError> {
-    if probe && matches!(source, ConfigSource::Fixture { .. }) && !loopback {
+    if probe && (source.is_benchmark() || (source.is_fixture() && !loopback)) {
         return Err(SyncError::FixtureNetwork);
     }
     let service = service(source, revision, loopback)?;
@@ -89,7 +89,7 @@ pub(super) async fn transfer(
     request: AssetRequest,
     loopback: bool,
 ) -> Result<SyncOutcome, SyncError> {
-    if matches!(source, ConfigSource::Fixture { .. }) && !loopback {
+    if source.is_benchmark() || (source.is_fixture() && !loopback) {
         return Err(SyncError::FixtureNetwork);
     }
     if let Some(id) = &request.id {

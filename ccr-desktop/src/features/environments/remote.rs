@@ -20,6 +20,8 @@ use gpui_kit::{
 };
 use std::collections::HashMap;
 
+mod detect;
+
 #[derive(Clone)]
 struct Draft {
     document: Document,
@@ -30,6 +32,9 @@ pub struct RemoteView {
     hosts: Vec<Host>,
     selected: Option<Host>,
     connected: bool,
+    cli: Option<Vec<ccr_app::environments::ssh::CliStatus>>,
+    cli_error: Option<&'static str>,
+    detecting: bool,
     file: ConfigFile,
     drafts: HashMap<(String, &'static str), Draft>,
     editor: Entity<TextareaState>,
@@ -54,6 +59,9 @@ impl RemoteView {
             hosts: Vec::new(),
             selected: None,
             connected: false,
+            cli: None,
+            cli_error: None,
+            detecting: false,
             file: ConfigFile::Claude,
             drafts: HashMap::new(),
             editor: cx.new(|cx| TextareaState::new(window, cx)),
@@ -120,6 +128,8 @@ impl RemoteView {
         self.read_confirmation = false;
         self.selected = Some(host);
         self.connected = false;
+        self.cli = None;
+        self.cli_error = None;
         self.probe = None;
         self.message = None;
         self.save_confirmation = false;
@@ -144,6 +154,8 @@ impl RemoteView {
         }
         self.remember(cx);
         self.file = file;
+        self.cli = None;
+        self.cli_error = None;
         self.message = None;
         self.save_confirmation = false;
         self.read_confirmation = false;
@@ -194,6 +206,10 @@ impl RemoteView {
         if self.busy {
             return;
         }
+        let detecting_host = match &action {
+            SshAction::DetectCli(id) => Some(id.clone()),
+            _ => None,
+        };
         self.remember(cx);
         self.generation += 1;
         let generation = self.generation;
@@ -209,6 +225,9 @@ impl RemoteView {
             request_id: generation,
         };
         self.message = None;
+        self.cli = None;
+        self.cli_error = None;
+        self.detecting = detecting_host.is_some();
         self.busy = true;
         self.save_confirmation = false;
         self.read_confirmation = false;
@@ -216,6 +235,10 @@ impl RemoteView {
         match self.services.ssh_action(key, action) {
             Err(_) => {
                 self.busy = false;
+                self.detecting = false;
+                if detecting_host.is_some() {
+                    self.cli_error = Some("ssh_busy");
+                }
                 self.message = Some("ssh_busy");
             }
             Ok(mut subscription) => {
@@ -225,6 +248,10 @@ impl RemoteView {
                         if let TaskEvent::Terminal(result) = event {
                             let _ = weak.update(cx, |this, cx| {
                                 if this.generation != generation {
+                                    return;
+                                }
+                                if let Some(host) = &detecting_host {
+                                    this.cli_finished(generation, host, result.as_ref(), cx);
                                     return;
                                 }
                                 this.busy = false;
@@ -707,6 +734,7 @@ impl RemoteView {
             false,
             cx,
         ));
+        root = self.render_document_confirmation(root, cx);
         if draft.is_some() {
             root = root.child(
                 Textarea::new(&self.editor)
@@ -810,10 +838,10 @@ impl Render for RemoteView {
         if let Some(host) = &self.selected {
             root = self.render_selected_controls(root, host, cx);
             root = self.render_connection(root, host, cx);
+            root = self.render_cli(root, cx);
             root = self.render_document(root, host, cx);
-            root = self.render_document_confirmation(root, cx);
         }
-        if self.busy {
+        if self.busy && !self.detecting {
             root = root.child(semantics::button(
                 Button::new("ssh-cancel")
                     .label(text(cx, "Cancel operation", "取消操作"))
@@ -982,6 +1010,10 @@ mod tests {
             window.render_frame(cx);
             window.click("ssh-save", cx);
             window.render_frame(cx);
+            assert!(window.find("ssh-confirm-save").visible());
+            assert!(
+                window.find("ssh-confirm-save").bounds().bottom() <= window.bounds().size.height
+            );
             window.click("ssh-confirm-save", cx);
         })
         .unwrap();

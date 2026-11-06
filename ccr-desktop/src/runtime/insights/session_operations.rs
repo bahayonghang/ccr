@@ -239,10 +239,10 @@ impl InsightsRequests {
                 Action::Save | Action::Restore => Err(Failure::Unsupported),
             }
         };
-        let session_id = if matches!(
-            self.services.source,
-            super::super::ConfigSource::Fixture { .. }
-        ) {
+        let session_id = if let Some(layout) = self.services.source.benchmark() {
+            LockManager::with_scoped_directory(&layout.roots.locks, || Ok(run()))
+                .map_err(|_| Failure::Storage)??
+        } else if self.services.source.is_fixture() {
             let root = paths.archive_db.parent().ok_or(Failure::Storage)?;
             LockManager::with_scoped_directory(&root.join("locks"), || Ok(run()))
                 .map_err(|_| Failure::Storage)??

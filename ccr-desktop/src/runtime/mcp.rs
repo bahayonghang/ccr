@@ -156,6 +156,7 @@ enum ParseError {
 
 fn roots(source: &ConfigSource) -> Result<PlatformRoots, McpError> {
     match source {
+        ConfigSource::Benchmark(layout) => Ok(layout.roots.clone()),
         ConfigSource::Local => PlatformRoots::capture().map_err(|_| McpError::Storage),
         ConfigSource::Fixture {
             profiles, registry, ..

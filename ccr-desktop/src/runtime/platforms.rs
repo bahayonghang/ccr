@@ -1,4 +1,5 @@
 //! Capability-driven platform consumers. Secret documents stay scoped to an editor.
+pub mod diagnostics;
 use super::{ConfigSource, Services};
 use ccr_app::{
     platform_settings::{self, Document, Format, SaveOutcome, Snapshot},
@@ -232,6 +233,7 @@ fn oauth_error(error: NativeError) -> PlatformError {
 
 fn roots(source: &ConfigSource) -> Result<PlatformRoots, PlatformError> {
     match source {
+        ConfigSource::Benchmark(layout) => Ok(layout.roots.clone()),
         ConfigSource::Local => PlatformRoots::capture().map_err(domain_error),
         ConfigSource::Fixture {
             profiles, registry, ..
@@ -826,6 +828,17 @@ fn execute(
         | Command::Quota { session, .. } => session,
         Command::Read(_) => return Err(PlatformError::Invalid),
     };
+    if let Some(layout) = source.benchmark() {
+        if session.roots.home != layout.roots.home
+            || session.roots.ccr != layout.roots.ccr
+            || session.roots.locks != layout.roots.locks
+        {
+            return Err(PlatformError::Invalid);
+        }
+        layout
+            .check_path(session.document.path())
+            .map_err(|_| PlatformError::Invalid)?;
+    }
     if session.platform != platform {
         return Err(PlatformError::Unsupported);
     }
@@ -934,6 +947,11 @@ impl Services {
         key: RequestKey,
         session: Arc<PlatformSession>,
     ) -> Result<TaskSubscription<OAuthResult, PlatformError>, AdmissionError> {
+        if self.source.is_benchmark() {
+            return self
+                .executor
+                .read(key, |_, _| Err(PlatformError::Unsupported));
+        }
         if !matches!(key.environment, EnvironmentId::Local(_))
             || key.platform != Platform::Codex
             || session.platform != Platform::Codex
@@ -976,6 +994,11 @@ impl Services {
         key: RequestKey,
         control: OAuthControl,
     ) -> Result<TaskSubscription<OAuthResult, PlatformError>, AdmissionError> {
+        if self.source.is_benchmark() {
+            return self
+                .executor
+                .read(key, |_, _| Err(PlatformError::Unsupported));
+        }
         let owner = self.platform_oauth.clone();
         self.executor.job(key.clone(), move |_, _| {
             if !matches!(key.environment, EnvironmentId::Local(_))

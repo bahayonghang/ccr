@@ -132,6 +132,30 @@ just gpui-dev --fixture-profiles <absolute-fixture>/profiles.toml --fixture-regi
 
 命令工作台支持前台/后台执行、help、请求取消和自动恢复观察；安装入口复用现有领域服务。fixture 模式只运行标明的合成子进程，默认拒绝同步、签到与 SSH 的真实网络。上述源码与 fixture 验证不能替代真实 sidecar、外部服务或原生操作验收。
 
+## 显式成对性能数据源
+
+生成的 paired seed 使用单独的 `--benchmark-fixture-root <absolute-pair>/<S0|S1|S2>/gpui`，
+与 `--probe`、旧 fixture 参数及三个 insights 参数互斥。该参数只加载已经生成的种子，
+不会创建数据。旧 Fixture 的目录布局和合成子进程合同保持独立。
+
+启动在创建窗口之前由有界 worker 验证 marker、成对 manifest、来源身份、目录边界和
+四个数据库的 artifact hash，再冻结统一的 home/CCR/主库/归档/用量/锁/偏好根。
+窗口标题包含 `Fixture benchmark-s0/s1/s2`。合法的本地配置操作仍可写入该根；
+数据库输入一旦被操作改变，下次启动会拒绝原始 seed 身份，需恢复原始试验输入。
+此模式拒绝 CLI 导入/命令执行、安装、OAuth、quota、SSH 和外部同步/签到请求。
+
+manifest 的 UTC `as_of` 与时区通过共享 `ReportClock` 接入两端默认首页、用量预设、
+Observer、最近 24 小时及滚动热图。显式自选日期/时区保留原值；正常 Local 和旧 Fixture
+沿用既有时钟。Tauri 在共用窗口 builder 中仅给 Benchmark 注入只读报告上下文，
+没有改写全局 Date、系统时间或真实 elapsed/timeout 时钟。
+
+两端显式 Benchmark 启动复用 `ccr-app::benchmark::Seed`，同样遍历目录并完整 hash
+四个数据库；非空 WAL/journal 拒绝加载，需先恢复静态原始输入。这些校验成本包含在
+真实启动内，不从呈现时间中扣除。相同校验策略和 headless 数据读回不代表真实呈现或
+预算已达标；两端目前仍为 `not_comparable`。
+S2 的持续流量仅有 `not_emitted` 描述，尚无运行时 emitter；没有合格性能样本。
+无窗口领域加载测试不代表原生呈现或真实 first-present 已通过。
+
 ## 核心键盘与命令记录
 
 - F6 顺序切换侧栏、主区、状态区；Shift+F6 反向切换。侧栏上下键选择焦点，Enter/Space 激活。Tab/Shift+Tab 保留 Kit 原生遍历。

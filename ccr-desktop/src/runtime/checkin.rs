@@ -151,6 +151,7 @@ fn existing_file(path: PathBuf) -> Option<PathBuf> {
 
 fn database_path(source: &ConfigSource) -> Result<Option<PathBuf>, CheckinError> {
     match source {
+        ConfigSource::Benchmark(layout) => Ok(existing_file(layout.path("ui/ccr-ui.db"))),
         ConfigSource::Local => {
             let home = dirs::home_dir().ok_or(CheckinError::Storage)?;
             Ok(existing_file(home.join(".ccr-ui").join("ccr-ui.db")))

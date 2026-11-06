@@ -1,4 +1,5 @@
 //! Native platform settings, scoped source, accounts and OpenCode providers.
+mod diagnostics;
 mod forms;
 mod layers;
 use crate::{
@@ -87,6 +88,7 @@ pub struct PlatformsView {
     oauth_control_busy: bool,
     oauth_url: Entity<InputState>,
     quotas: Vec<crate::runtime::platforms::QuotaRow>,
+    diagnostics: diagnostics::ViewState,
 }
 impl PlatformsView {
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
@@ -125,6 +127,7 @@ impl PlatformsView {
             oauth_control_busy: false,
             oauth_url: cx.new(|cx| InputState::new(window, cx)),
             quotas: Vec::new(),
+            diagnostics: Default::default(),
         }
     }
     pub fn focus_main(&self, window: &mut Window, cx: &mut Context<Self>) {
@@ -139,6 +142,7 @@ impl PlatformsView {
         }
     }
     pub fn leave(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.diagnostics = Default::default();
         self.form.clear();
         self.pending_form = false;
         self.advanced = false;
@@ -957,7 +961,7 @@ impl PlatformsView {
             root = root.child(div().flex().flex_wrap().gap(px(theme::CONTROL_GAP))
                         .child(semantics::button(Button::new("platform-oauth-start")
                             .label(text(cx, "Start OAuth", "开始 OAuth"))
-                            .on_click(cx.listener(|this, _, _, cx| this.start_oauth(cx))),
+                            .on_click(cx.listener(|this, _, _, cx| this.preflight_oauth_start(cx))),
                             blocked || self.oauth_control_busy, false, cx))
                         .child(semantics::button(Button::new("platform-oauth-cancel")
                             .label(text(cx, "Cancel OAuth", "取消 OAuth")).ghost()
@@ -1001,7 +1005,11 @@ impl PlatformsView {
     ) -> gpui_kit::Stateful<gpui_kit::Div> {
         {
             root = root
-                .child(Input::new(&self.name).aria_label(text(cx, "Account name", "账户名")))
+                .child(
+                    Input::new(&self.name)
+                        .id("platform-account-name")
+                        .aria_label(text(cx, "Account name", "账户名")),
+                )
                 .child(
                     div()
                         .flex()
@@ -1009,7 +1017,11 @@ impl PlatformsView {
                         .child(semantics::button(
                             Button::new("platform-account-save")
                                 .label(text(cx, "Save runtime as account", "保存运行账户"))
-                                .on_click(cx.listener(|this, _, _, cx| {
+                                .on_click(cx.listener(|this, _, window, cx| {
+                                    if this.platform == Platform::Codex {
+                                        this.review_codex_save(window, cx);
+                                        return;
+                                    }
                                     let action = if this.platform == Platform::Grok {
                                         AccountAction::SaveFrom(
                                             this.content.read(cx).value().trim().into(),
@@ -1420,7 +1432,8 @@ impl Render for PlatformsView {
                 state.set_value(authorization_url, window, cx)
             });
         }
-        let blocked = self.busy || self.decision.is_some() || oauth_active;
+        let blocked =
+            self.busy || self.decision.is_some() || oauth_active || self.diagnostic_blocked();
         let mut tabs = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
         if !self.pinned {
             for descriptor in DESCRIPTORS {
@@ -1613,6 +1626,9 @@ impl Render for PlatformsView {
             if self.surface == Surface::Auth {
                 root = self.render_oauth(root, blocked, cx, oauth_active);
                 root = self.render_accounts(root, blocked, cx);
+                if self.platform == Platform::Codex {
+                    root = root.child(self.render_codex_diagnostics(window, cx));
+                }
             } else if self.surface == Surface::Models {
                 root = root.child(text(cx,"Local built-in and custom model catalog. This list does not establish provider availability.","本地内置与自定义模型目录。此列表不代表供应方可用性。"));
             } else if self.platform != Platform::Gemini {

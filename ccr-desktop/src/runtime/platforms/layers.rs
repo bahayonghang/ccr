@@ -33,6 +33,11 @@ fn inventory(
     let roots = roots(source)?;
     let project = project
         .map(|path| {
+            if let Some(layout) = source.benchmark() {
+                layout
+                    .check_path(&path)
+                    .map_err(|_| PlatformError::Invalid)?;
+            }
             if !path.is_absolute() {
                 return Err(PlatformError::Invalid);
             }

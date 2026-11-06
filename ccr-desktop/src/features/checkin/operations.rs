@@ -15,10 +15,11 @@ pub(super) enum EditorKind {
     Account(Option<String>),
 }
 pub(super) struct Editor {
-    kind: EditorKind,
-    fields: Vec<Entity<InputState>>,
+    pub(super) kind: EditorKind,
+    pub(super) fields: Vec<Entity<InputState>>,
     provider: Option<String>,
     enabled: bool,
+    pub(super) credentials: super::credentials::CredentialRead,
 }
 pub(super) enum Confirmation {
     Account(String),
@@ -118,6 +119,11 @@ pub(super) fn error(cx: &App, value: OperationError) -> &'static str {
             "Cookies expired. Edit this account to replace them.",
             "Cookies 已过期，请编辑账户并替换。",
         ),
+        OperationError::CryptoKeyUnavailable => text(
+            cx,
+            "The original credential key is missing or unreadable. Restore it before using existing encrypted accounts.",
+            "原凭据密钥缺失或无法读取，请先恢复该密钥再使用已有加密账户。",
+        ),
     }
 }
 impl CheckinView {
@@ -178,13 +184,13 @@ impl CheckinView {
         }
         cx.notify();
     }
-    fn edit(&mut self, kind: EditorKind, window: &mut Window, cx: &mut Context<Self>) {
+    pub(super) fn edit(&mut self, kind: EditorKind, window: &mut Window, cx: &mut Context<Self>) {
         if self.operation.busy {
             return;
         }
         let count = match kind {
             EditorKind::Provider(_) => 7,
-            EditorKind::Account(_) => 3,
+            EditorKind::Account(_) => 4,
         };
         let mut enabled = true;
         let mut provider = self
@@ -221,17 +227,36 @@ impl CheckinView {
             kind,
             provider,
             enabled,
+            credentials: super::credentials::CredentialRead::default(),
             fields: (0..count)
                 .map(|index| {
-                    cx.new(|cx| InputState::new(window, cx).masked(count == 3 && index != 0))
+                    cx.new(|cx| InputState::new(window, cx).masked(count == 4 && index != 0))
                 })
                 .collect(),
         });
+        self.load_account_credentials(cx);
         self.confirmation = None;
         cx.notify();
     }
     fn save(&mut self, cx: &mut Context<Self>) {
         let Some(editor) = &self.editor else { return };
+        if editor.credentials.loading {
+            return;
+        }
+        let cookies = if matches!(editor.kind, EditorKind::Account(_)) {
+            match editor.cookie_patch(cx) {
+                Ok(value) => value,
+                Err(error) => {
+                    let mut state = (*self.operation).clone();
+                    state.result = Some(Err(error));
+                    self.operation = Arc::new(state);
+                    cx.notify();
+                    return;
+                }
+            }
+        } else {
+            None
+        };
         let values: Vec<String> = editor
             .fields
             .iter()
@@ -269,7 +294,7 @@ impl CheckinView {
                 Operation::AddAccount(CreateAccountRequest {
                     provider_id: provider.clone(),
                     name: values[0].clone(),
-                    cookies_json: Secret::new(values[1].clone()),
+                    cookies_json: cookies.unwrap_or_else(|| Secret::new("")),
                     api_user: values[2].clone(),
                     extra_config: "{}".into(),
                 })
@@ -278,7 +303,7 @@ impl CheckinView {
                 id.clone(),
                 UpdateAccountRequest {
                     name: optional(0),
-                    cookies_json: optional(1).map(Secret::new),
+                    cookies_json: cookies,
                     api_user: optional(2),
                     enabled: Some(editor.enabled),
                     extra_config: None,
@@ -578,8 +603,8 @@ impl CheckinView {
 
     fn render_management_editor(&self, cx: &mut Context<Self>) -> Vec<gpui_kit::AnyElement> {
         let mut children = Vec::new();
-        let locked = self.operation.busy;
         if let Some(editor) = &self.editor {
+            let locked = self.operation.busy || editor.credentials.loading;
             let provider = matches!(editor.kind, EditorKind::Provider(_));
             let labels = if provider {
                 vec![
@@ -596,16 +621,53 @@ impl CheckinView {
                     ("Account name", "账户名称"),
                     ("Cookies JSON", "Cookies JSON"),
                     ("API user", "API 用户标识"),
+                    ("Session cookie", "Session Cookie"),
                 ]
             };
             let mut form=div().id("checkin-editor").flex().flex_col().gap(px(theme::CONTROL_GAP))
-                .child(text(cx,"For edits, blank fields retain saved values. Cookies must be a JSON object and are encrypted before storage. Browser login and CDK redemption are not available here.","编辑时留空保留原值。Cookies 必须是 JSON 对象，写入前会加密。此处尚不支持浏览器登录及 CDK 兑换。"));
-            for (index, field) in editor.fields.iter().enumerate() {
+                .child(text(cx,"For edits, blank fields retain saved values. Session changes keep other cookies. Credentials are encrypted before storage. Browser login is not available here.","编辑时留空保留原值。修改 Session 会保留其他 Cookie，凭据写入前会加密。此处尚不支持浏览器登录。"));
+            if editor.credentials.loading {
+                form = form.child(text(
+                    cx,
+                    "Loading this account's saved credentials…",
+                    "正在读取此账户的已保存凭据…",
+                ));
+            }
+            if let Some(error) = editor.credentials.failed {
+                form = form.child(super::credentials::read_error_notice(error, cx));
+            }
+            let order: &[usize] = if provider {
+                &[0, 1, 2, 3, 4, 5, 6]
+            } else if editor.credentials.advanced {
+                &[0, 1, 2]
+            } else {
+                &[0, 3, 2]
+            };
+            for &index in order {
+                let field = &editor.fields[index];
                 form = form.child(
                     Input::new(field)
+                        .disabled(locked)
                         .aria_label(text(cx, labels[index].0, labels[index].1))
                         .accessibility_id(format!("checkin-field-{index}")),
                 );
+            }
+            if !provider && !editor.credentials.advanced {
+                form = form.child(semantics::button(
+                    Button::new("checkin-advanced-cookies")
+                        .label(text(
+                            cx,
+                            "Edit all cookies (advanced)",
+                            "编辑全部 Cookie（高级）",
+                        ))
+                        .ghost()
+                        .on_click(
+                            cx.listener(|this, _, window, cx| this.advanced_cookies(window, cx)),
+                        ),
+                    locked,
+                    false,
+                    cx,
+                ));
             }
             if matches!(editor.kind, EditorKind::Account(None))
                 && let Some(snapshot) = &self.operation.snapshot
@@ -672,7 +734,7 @@ impl CheckinView {
                                     this.editor = None;
                                     cx.notify();
                                 })),
-                            locked,
+                            self.operation.busy,
                             false,
                             cx,
                         )),

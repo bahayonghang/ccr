@@ -3888,15 +3888,22 @@
       "risk": "read_only",
       "handler_path": "super::codex::codex_detect_process",
       "owner": "gpui-05-platforms",
-      "status": "partial_native_consumer",
-      "native_action": "Native OAuth session status/cancel/retry cleanup",
+      "status": "implemented_pending_full_acceptance",
+      "native_action": "Save review uses captured Codex service best-effort PID warning; unknown/unavailable are not absence; no mount scan",
       "verification": {
         "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
         "reconciliation_20261106": {
           "source_baseline": "90131cd6",
           "report": "research/platform-parity-20261106.md",
-          "source_assessment": "Dedicated installed-Codex process inventory consumer still open. Tauri queries CodexAuthService process owner; native owned login lifecycle alone does not provide the inventory. No actual process scan performed here.",
+          "source_assessment": "Real SaveCodexSessionModal consumer shows a nonblocking process-PID warning before saving current session. Native AccountAction::Save lacks that review warning; implementation in progress using the captured existing CodexAuthService, fixture/Benchmark probes forbidden.",
           "native": "user_deferred_this_session; no current interaction receipt"
+        },
+        "implementation_20261106": {
+          "report": "research/codex-auth-diagnostics-20261106.md",
+          "tests": "Diagnostics 7/7, native-consumer independent check; full GPUI gates passed",
+          "independent_check": "passed; scoped source/fixture/headless",
+          "aggregate": "GPUI fmt/lint/test passed at HEAD57abc91 plus current integrated workspace; final Root CI pending",
+          "native": "user_deferred; no current actual host/SSH/UI interaction receipt"
         }
       },
       "execution_20261028": {
@@ -4123,15 +4130,22 @@
       "risk": "read_only",
       "handler_path": "super::codex::codex_is_oauth_port_in_use",
       "owner": "gpui-05-platforms",
-      "status": "partial_native_consumer",
-      "native_action": "Native OAuth session status/cancel/retry cleanup",
+      "status": "implemented_pending_full_acceptance",
+      "native_action": "Explicit fixed callback preflight; occupied vs unavailable; source scope rejection and final owner bind remain",
       "verification": {
         "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
         "reconciliation_20261106": {
           "source_baseline": "90131cd6",
           "report": "research/platform-parity-20261106.md",
-          "source_assessment": "Dedicated helper for the fixed OAuth callback port remains open (not arbitrary ports). Tauri attempts local bind; native login lifecycle bind errors are not an equivalent separate diagnostic surface.",
+          "source_assessment": "Real OAuth add-account consumer checks fixed127.0.0.1:1455 before start and exposes busy/unavailable status. Native final bind/cancel alone is partial; explicit preflight/report implementation in progress, keeping final bind validation.",
           "native": "user_deferred_this_session; no current interaction receipt"
+        },
+        "implementation_20261106": {
+          "report": "research/codex-auth-diagnostics-20261106.md",
+          "tests": "Diagnostics 7/7; isolated preflight refusal and real ephemeral-owner Cancel regression; full GPUI gates passed",
+          "independent_check": "passed; scoped source/fixture/headless",
+          "aggregate": "GPUI fmt/lint/test passed at HEAD57abc91 plus current integrated workspace; final Root CI pending",
+          "native": "user_deferred; no current actual host/SSH/UI interaction receipt"
         }
       },
       "execution_20261028": {
@@ -4154,15 +4168,22 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_release_oauth_port",
       "owner": "gpui-05-platforms",
-      "status": "partial_native_consumer",
-      "native_action": "Native OAuth session status/cancel/retry cleanup",
+      "status": "implemented_pending_full_acceptance",
+      "native_action": "Confirmed captured scope/login/nonce cleanup plan; versioned pending clear; cancel only gateway-owned listeners, unknown PID manual close",
       "verification": {
         "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
         "reconciliation_20261106": {
           "source_baseline": "90131cd6",
           "report": "research/platform-parity-20261106.md",
-          "source_assessment": "Dedicated fixed-OAuth-port helper remains open. Current Tauri only requests cancellation for ProcessGateway-owned matching processes and reports unknown PIDs; it does not terminate arbitrary occupants. Preserve that boundary when adding a native consumer.",
+          "source_assessment": "Real OAuth flow consumer first cleans its controller then only requests cancellation of ProcessGateway-owned occupants, reporting unknown PIDs for manual closure. Native recovery/ownership report implementation in progress; arbitrary PID termination forbidden.",
           "native": "user_deferred_this_session; no current interaction receipt"
+        },
+        "implementation_20261106": {
+          "report": "research/codex-auth-diagnostics-20261106.md",
+          "tests": "Pending 7/7, OAuth 10/10, diagnostics 7/7; independent check; full GPUI gates passed",
+          "independent_check": "passed; scoped source/fixture/headless",
+          "aggregate": "GPUI fmt/lint/test passed at HEAD57abc91 plus current integrated workspace; final Root CI pending",
+          "native": "user_deferred; no current actual host/SSH/UI interaction receipt"
         }
       },
       "execution_20261028": {
@@ -6461,14 +6482,21 @@
       "risk": "read_only",
       "handler_path": "super::system::get_system_info",
       "owner": "gpui-09-environments",
-      "status": "partial_native_consumer",
-      "native_action": "Global monitoring native consumer pending",
+      "status": "implemented_pending_full_acceptance",
+      "native_action": "Explicit Local host report; observed CPU/OS/RAM/swap/uptime, separate process RSS; fixture/benchmark refuse host probe",
       "verification": {
         "reconciliation_20261106": {
           "source_baseline": "90131cd6",
           "report": "research/platform-parity-20261106.md",
           "source_assessment": "Global monitoring now shows actual optional current-process RSS and tracked task/feed metrics. Full host CPU/OS/system-memory projection of Tauri get_system_info is still absent; do not equate these APIs.",
           "native": "user_deferred_this_session; no current interaction receipt"
+        },
+        "implementation_20261106": {
+          "report": "research/system-info-20261106.md",
+          "tests": "System 5/5; native-consumer independent check; full GPUI gates passed",
+          "independent_check": "passed; scoped source/fixture/headless",
+          "aggregate": "GPUI fmt/lint/test passed at HEAD57abc91 plus current integrated workspace; final Root CI pending",
+          "native": "user_deferred; no current actual host/SSH/UI interaction receipt"
         }
       }
     },
@@ -7256,14 +7284,21 @@
       "risk": "read_only",
       "handler_path": "super::ssh::ssh_detect_cli",
       "owner": "gpui-09-environments",
-      "status": "pending_native_consumer",
-      "native_action": "Native SSH currently password-only connection/file owner",
+      "status": "implemented_pending_full_acceptance",
+      "native_action": "Explicit current verified SSH-session CLI PATH check with captured host/session authority, stale/leave cancellation; no versions or key inventory",
       "verification": {
         "reconciliation_20261106": {
           "source_baseline": "90131cd6",
           "report": "research/platform-parity-20261106.md",
-          "source_assessment": "Installed remote CLI and key inventory are separate capabilities; not implemented by file editing/host labels. No user identity files read and no remote probe performed.",
+          "source_assessment": "Real Tauri SshManagementView handleDetect consumer after connection, gated to the active SSH environment; fixed command-v tool inventory, no version. Native host fingerprint probe is not equivalent. Controlled native consumer remains open; no real SSH probe authorized.",
           "native": "user_deferred_this_session; no current interaction receipt"
+        },
+        "implementation_20261106": {
+          "report": "research/ssh-cli-detect-20261106.md",
+          "tests": "Shared SSH 26/26, remote controls 3/3, environment gate 1/1; independent source review; full GPUI gates passed",
+          "independent_check": "passed; scoped source/fixture/headless",
+          "aggregate": "GPUI fmt/lint/test passed at HEAD57abc91 plus current integrated workspace; final Root CI pending",
+          "native": "user_deferred; no current actual host/SSH/UI interaction receipt"
         }
       }
     },
@@ -7292,13 +7327,13 @@
       "risk": "read_only",
       "handler_path": "super::ssh::ssh_list_keys",
       "owner": "gpui-09-environments",
-      "status": "pending_native_consumer",
+      "status": "exposed_api_without_current_frontend_consumer",
       "native_action": "Native SSH currently password-only connection/file owner",
       "verification": {
         "reconciliation_20261106": {
           "source_baseline": "90131cd6",
           "report": "research/platform-parity-20261106.md",
-          "source_assessment": "Installed remote CLI and key inventory are separate capabilities; not implemented by file editing/host labels. No user identity files read and no remote probe performed.",
+          "source_assessment": "Owning-source follow-up: Tauri has generated/domain/facade wrappers only, no current feature caller. SshManagementView uses a manual identity-file path. This is not a missing native product page; do not invent key discovery or read identity files from the API count.",
           "native": "user_deferred_this_session; no current interaction receipt"
         }
       }
@@ -9143,15 +9178,22 @@
       "risk": "read_only",
       "handler_path": "super::checkin::get_checkin_account_cookies",
       "owner": "gpui-08-jobs",
-      "status": "partial_native_consumer",
-      "native_action": "Checkin credential entry preserves omitted encrypted values; WAF manual session",
+      "status": "implemented_pending_full_acceptance",
+      "native_action": "Editor-only masked original credentials; normal Session field preserves other cookies; advanced full JSON; typed key recovery and metadata-only save",
       "verification": {
         "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
         "reconciliation_20261106": {
           "source_baseline": "90131cd6",
           "report": "research/platform-parity-20261106.md",
-          "source_assessment": "Stored cookie reveal is not exposed as an ordinary list field; scoped plaintext retrieval is a separate remaining UI decision/consumer, not masked-list parity.",
+          "source_assessment": "Real AccountFormModal openEditor retrieves decrypted cookies_json/api_user into the editor scope. Native current blank-retain editing does not provide original-value edit semantics. Need selected-account scoped read/clear/stale protection; masked list is not equivalent. No actual account/cookie access performed.",
           "native": "user_deferred_this_session; no current interaction receipt"
+        },
+        "implementation_20261106": {
+          "report": "research/checkin-crypto-guard-check-20261106.md",
+          "tests": "Checkin 17/17, AccountManager 10/10; independent check; full GPUI gates and 26 native-stack children passed",
+          "independent_check": "passed; scoped source/fixture/headless",
+          "aggregate": "GPUI fmt/lint/test passed at HEAD57abc91 plus current integrated workspace; final Root CI pending",
+          "native": "user_deferred; no current actual host/SSH/UI interaction receipt"
         }
       },
       "execution_20261029": {

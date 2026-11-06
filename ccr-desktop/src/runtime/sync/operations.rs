@@ -263,7 +263,10 @@ impl Services {
 fn document(source: &ConfigSource) -> Result<Document, SyncError> {
     let path = canonical_file(source)?;
     let parent = path.parent().ok_or(SyncError::Storage)?;
-    let locks = matches!(source, ConfigSource::Fixture { .. }).then(|| parent.join("locks"));
+    let locks = source
+        .benchmark()
+        .map(|layout| layout.roots.locks.clone())
+        .or_else(|| source.is_fixture().then(|| parent.join("locks")));
     Ok(Document::new(
         path.clone(),
         None,
@@ -439,7 +442,7 @@ fn save_folder(
             .clone()
             .try_into()
             .map_err(|_| SyncError::Invalid)?;
-        if matches!(source, ConfigSource::Fixture { .. }) {
+        if source.is_fixture() {
             local_folder(source, &folder)?;
         }
         if !folder.validate().is_empty() {
@@ -481,7 +484,7 @@ async fn execute(
         Operation::Folder { revision, change } => return save_folder(source, &revision, change),
         operation => operation,
     };
-    if matches!(source, ConfigSource::Fixture { .. }) && !loopback {
+    if source.is_benchmark() || (source.is_fixture() && !loopback) {
         return Err(SyncError::FixtureNetwork);
     }
     let (revision, folder_index) = match &operation {
@@ -579,7 +582,12 @@ fn local_folder(
     source: &ConfigSource,
     folder: &ccr_sync::SyncFolder,
 ) -> Result<PathBuf, SyncError> {
-    if matches!(source, ConfigSource::Fixture { .. }) {
+    if let Some(layout) = source.benchmark() {
+        let local = PathBuf::from(&folder.local_path);
+        layout.check_path(&local).map_err(|_| SyncError::Invalid)?;
+        return Ok(local);
+    }
+    if source.is_fixture() {
         // Explicit fixture paths never expand ~ into the user's real home.
         let local = PathBuf::from(&folder.local_path);
         let root = canonical_file(source)?

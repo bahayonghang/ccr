@@ -57,6 +57,10 @@ impl Owner {
     fn paths(&self, source: &ConfigSource) -> Result<Paths, Error> {
         self.paths
             .get_or_init(|| match source {
+                ConfigSource::Benchmark(layout) => Ok(Paths {
+                    database: layout.path("ui/ccr-ui.db"),
+                    home: layout.roots.home.clone(),
+                }),
                 ConfigSource::Local => Ok(Paths {
                     database: database::ui_database_path().map_err(|_| Error::Storage)?,
                     home: dirs::home_dir().ok_or(Error::Storage)?,
@@ -125,12 +129,16 @@ fn existing(paths: &Paths) -> Result<bool, Error> {
         Err(_) => Err(Error::Storage),
     }
 }
-fn usage(paths: Option<&InsightsPaths>, days: i64) -> Result<Value, Error> {
+fn usage(
+    paths: Option<&InsightsPaths>,
+    days: i64,
+    clock: ccr_app::usage::report_clock::ReportClock,
+) -> Result<Value, Error> {
     let paths = AppPaths::from_root(&paths.ok_or(Error::Missing)?.usage_root);
     Ok(json!({
-        "daily": shared::daily_trend(&paths, Some(days)).map_err(|_| Error::Storage)?,
-        "projects": shared::cost_breakdown(&paths, "project", Some(days), Some(20)).map_err(|_| Error::Storage)?,
-        "models": shared::cost_breakdown(&paths, "model", Some(days), Some(20)).map_err(|_| Error::Storage)?,
+        "daily": shared::daily_trend_with_clock(&paths, Some(days),clock).map_err(|_| Error::Storage)?,
+        "projects": shared::cost_breakdown_with_clock(&paths, "project", Some(days), Some(20),clock).map_err(|_| Error::Storage)?,
+        "models": shared::cost_breakdown_with_clock(&paths, "model", Some(days), Some(20),clock).map_err(|_| Error::Storage)?,
         "cache": shared::cache_stats(&paths).map_err(|_| Error::Storage)?,
     }))
 }
@@ -142,7 +150,11 @@ fn read(
     calls: bool,
 ) -> Result<Report, Error> {
     let paths = owner.paths(source)?;
-    let usage = usage(insights, days);
+    let clock = source
+        .benchmark()
+        .map(|layout| ccr_app::usage::report_clock::ReportClock::fixed_utc(layout.as_of))
+        .unwrap_or_else(ccr_app::usage::report_clock::ReportClock::live);
+    let usage = usage(insights, days, clock);
     if !existing(&paths)? {
         return Ok(Report {
             usage,
@@ -169,15 +181,15 @@ fn read(
         Ok(json!({
         // The legacy wire projection has a compatibility tokens=0 placeholder.
         // Native reports omit unsupported token/model fields rather than presenting them as facts.
-        "sessions": shared::top_sessions(&conn, Some(20), Some(if calls { "calls" } else { "cost" })).map_err(|_| Error::Storage)?.into_iter().map(|row| json!({"session_id":row.session_id,"project_path":row.project_path,"cost_usd":row.cost_usd,"tool_call_count":row.tool_call_count})).collect::<Vec<_>>(),
-            "heatmap": shared::tool_heatmap(&conn, Some(days)).map_err(|_| Error::Storage)?,
-            "tools": shared::top_tools(&conn, Some(days), Some(20)).map_err(|_| Error::Storage)?,
+        "sessions": shared::top_sessions_with_clock(&conn, Some(20), Some(if calls { "calls" } else { "cost" }),clock).map_err(|_| Error::Storage)?.into_iter().map(|row| json!({"session_id":row.session_id,"project_path":row.project_path,"cost_usd":row.cost_usd,"tool_call_count":row.tool_call_count})).collect::<Vec<_>>(),
+            "heatmap": shared::tool_heatmap_with_clock(&conn, Some(days),clock).map_err(|_| Error::Storage)?,
+            "tools": shared::top_tools_with_clock(&conn, Some(days), Some(20),clock).map_err(|_| Error::Storage)?,
         }))
     })();
     let insight = insights
         .ok_or(Error::Missing)
         .and_then(|paths| {
-            shared::insight(&AppPaths::from_root(&paths.usage_root), &conn)
+            shared::insight_with_clock(&AppPaths::from_root(&paths.usage_root), &conn, clock)
                 .map_err(|_| Error::Storage)
         })
         .and_then(|value| serde_json::to_value(value).map_err(|_| Error::Storage));
@@ -193,10 +205,13 @@ fn initialize(paths: &Paths, source: &ConfigSource) -> Result<(), Error> {
     if let Some(parent) = paths.database.parent() {
         std::fs::create_dir_all(parent).map_err(|_| Error::Storage)?;
     }
-    if matches!(source, ConfigSource::Fixture { .. }) {
+    if source.is_fixture() {
         std::fs::create_dir_all(&paths.home).map_err(|_| Error::Storage)?;
     }
     match source {
+        ConfigSource::Benchmark(layout) => {
+            layout.main_pool().map_err(|_| Error::Storage)?;
+        }
         ConfigSource::Local => {
             if database::ui_database_path().map_err(|_| Error::Storage)? != paths.database
                 || database::get_pool().is_some()

@@ -10,14 +10,14 @@ use ccr_app::{
     sessions::{self, SessionDetail, SessionError, SessionListRequest, SessionPage},
     usage::{
         home::{HomeInsightsSnapshot, assemble_home_insights},
-        read::{UsageSnapshot, read_dashboard},
+        read::{UsageSnapshot, read_dashboard_at},
     },
 };
 use ccr_db::database::{self, DbPool};
 use ccr_store::sessions::{AgentSessionProviderRegistry, AgentSessionProviderStatus};
 use ccr_usage::{
     AppPaths, HomeOverviewPlatformStats, HomeOverviewSeriesItem, LogsPage, LogsQuery, QueryFilter,
-    ReportTimezone, SourceKind, UsageError,
+    SourceKind, UsageError,
 };
 use chrono::{DateTime, NaiveDate, Utc};
 use std::{
@@ -355,6 +355,9 @@ impl InsightsRequests {
             session_operations: Default::default(),
         }
     }
+    pub fn report_clock(&self) -> ccr_app::usage::report_clock::ReportClock {
+        self.services.report_clock()
+    }
     pub fn configured(&self) -> bool {
         self.paths.is_some()
     }
@@ -494,14 +497,25 @@ impl InsightsRequests {
                         as_of,
                         generated_at,
                     } => {
-                        let projected = dashboard.insights(&QueryFilter::default(), as_of)?;
+                        let projected = dashboard.insights(
+                            &QueryFilter {
+                                timezone: self.report_clock().timezone,
+                                ..Default::default()
+                            },
+                            as_of,
+                        )?;
                         assemble_home_insights(projected, &self.archive_pool(paths)?, generated_at)
                             .map(InsightsSnapshot::Home)
                             .map_err(|_| InsightsError::Archive)
                     }
-                    InsightsQuery::Usage(filter) => read_dashboard(&dashboard, &filter, Some(366))
-                        .map(InsightsSnapshot::Usage)
-                        .map_err(Into::into),
+                    InsightsQuery::Usage(filter) => read_dashboard_at(
+                        &dashboard,
+                        &filter,
+                        Some(366),
+                        self.services.benchmark_clock().map(|(as_of, _)| as_of),
+                    )
+                    .map(InsightsSnapshot::Usage)
+                    .map_err(Into::into),
                     InsightsQuery::Logs { filter, cursor } => dashboard
                         .logs(&LogsQuery {
                             filter,
@@ -537,24 +551,29 @@ impl InsightsRequests {
         let paths = self.paths.as_ref().ok_or(InsightsError::Unconfigured)?;
         let dashboard = ccr_usage::open_dashboard(AppPaths::from_root(paths.usage_root.clone()))?;
         let days = days.clamp(1, 366);
-        let as_of = chrono::Local::now().date_naive();
+        let clock = self.report_clock();
+        let as_of = clock.date();
         let span = i64::from(days.saturating_sub(1));
         let since = as_of
             .checked_sub_signed(chrono::Duration::days(span))
             .unwrap_or(as_of);
         let filter = QueryFilter {
-            timezone: ReportTimezone::Local,
+            timezone: clock.timezone,
             since: Some(since),
             until: Some(as_of),
             ..QueryFilter::default()
         };
         let home = dashboard.home_overview(&filter)?;
-        let cost_usd = match dashboard.overview(&filter) {
+        let cost_usd = match if self.services.benchmark_clock().is_some() {
+            dashboard.overview_at(&filter, clock.as_of)
+        } else {
+            dashboard.overview(&filter)
+        } {
             Ok(payload) if payload.total_cost_usd.is_finite() => Some(payload.total_cost_usd),
             _ => None,
         };
         let (sessions_indexed, session_count, session_scope) =
-            self.session_window(paths, &dashboard, as_of, days);
+            self.session_window(paths, &dashboard, clock, days);
         let series = dense_days(&home.series, since, as_of);
         let drawn_requests: i64 = series
             .iter()
@@ -579,16 +598,23 @@ impl InsightsRequests {
         &self,
         paths: &InsightsPaths,
         dashboard: &ccr_usage::Dashboard,
-        as_of: NaiveDate,
+        clock: ccr_app::usage::report_clock::ReportClock,
         days: u16,
     ) -> (bool, Option<i64>, SessionScope) {
-        let Ok(projected) = dashboard.insights(&QueryFilter::default(), as_of) else {
+        let as_of = clock.date();
+        let Ok(projected) = dashboard.insights(
+            &QueryFilter {
+                timezone: clock.timezone,
+                ..Default::default()
+            },
+            as_of,
+        ) else {
             return (false, None, SessionScope::Unavailable);
         };
         let Ok(pool) = self.archive_pool(paths) else {
             return (false, None, SessionScope::Unavailable);
         };
-        let Ok(snapshot) = assemble_home_insights(projected, &pool, Utc::now()) else {
+        let Ok(snapshot) = assemble_home_insights(projected, &pool, clock.as_of) else {
             return (false, None, SessionScope::Unavailable);
         };
         if !snapshot.sessions_indexed {

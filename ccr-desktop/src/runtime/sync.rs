@@ -209,6 +209,7 @@ pub(crate) fn read_file(path: &Path) -> Result<SyncSnapshot, SyncError> {
 
 fn canonical_file(source: &ConfigSource) -> Result<PathBuf, SyncError> {
     match source {
+        ConfigSource::Benchmark(layout) => Ok(layout.path("ccr/sync_folders.toml")),
         ConfigSource::Local => SyncFolderManager::with_default()
             .map(|manager| manager.config_path().to_path_buf())
             .map_err(|_| SyncError::Storage),

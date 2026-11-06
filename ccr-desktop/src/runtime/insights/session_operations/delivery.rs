@@ -169,10 +169,11 @@ impl InsightsRequests {
             return Err(Failure::Storage);
         }
         reject_destination_links(destination)?;
-        if matches!(
-            self.services.source,
-            super::super::super::ConfigSource::Fixture { .. }
-        ) {
+        if let Some(layout) = self.services.source.benchmark() {
+            layout
+                .check_path(destination)
+                .map_err(|_| Failure::Storage)?;
+        } else if self.services.source.is_fixture() {
             let root = paths.archive_db.parent().ok_or(Failure::Storage)?;
             let root = root.canonicalize().map_err(|_| Failure::Storage)?;
             let parent = destination
@@ -213,10 +214,10 @@ impl InsightsRequests {
         &self,
         run: impl FnOnce() -> Result<T, Failure>,
     ) -> Result<T, Failure> {
-        if matches!(
-            self.services.source,
-            super::super::super::ConfigSource::Fixture { .. }
-        ) {
+        if let Some(layout) = self.services.source.benchmark() {
+            LockManager::with_scoped_directory(&layout.roots.locks, || Ok(run()))
+                .map_err(|_| Failure::Storage)?
+        } else if self.services.source.is_fixture() {
             let root = self
                 .paths
                 .as_ref()

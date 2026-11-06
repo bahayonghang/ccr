@@ -1,4 +1,5 @@
 //! Application-lifetime monitoring; captured main storage and a bounded safe memory feed.
+pub mod system;
 use super::{ConfigSource, Services};
 use ccr_app::runtime::{AdmissionError, EnvironmentId, RequestKey, TaskSubscription};
 use ccr_db::services::log_persistence::LogPersistenceService;
@@ -64,6 +65,7 @@ impl Owner {
     fn path(&self, source: &ConfigSource) -> Result<&Path, Error> {
         self.path
             .get_or_init(|| match source {
+                ConfigSource::Benchmark(layout) => Ok(layout.path("ui/ccr-ui.db")),
                 ConfigSource::Local => {
                     ccr_db::database::ui_database_path().map_err(|_| Error::Storage)
                 }

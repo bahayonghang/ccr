@@ -75,7 +75,11 @@ fn store(source: &ConfigSource, kind: Kind, scope: &Scope) -> Result<files::Stor
                 return Err(Error::Invalid);
             }
             let canonical = project.canonicalize().map_err(|_| Error::Invalid)?;
-            if matches!(source, ConfigSource::Fixture { .. })
+            if let Some(layout) = source.benchmark() {
+                layout.check_path(project).map_err(|_| Error::UnsafePath)?;
+            }
+            if source.is_fixture()
+                && !source.is_benchmark()
                 && !canonical.starts_with(roots.home.canonicalize().map_err(|_| Error::Invalid)?)
             {
                 return Err(Error::UnsafePath);
@@ -266,6 +270,11 @@ impl Services {
         }
         if !session.kind.writable() {
             return Err(Error::Unsupported);
+        }
+        if let Some(layout) = self.source.benchmark() {
+            layout
+                .check_path(session.file.path())
+                .map_err(|_| Error::UnsafePath)?;
         }
         let owner = self.platform_file_operations.clone();
         {

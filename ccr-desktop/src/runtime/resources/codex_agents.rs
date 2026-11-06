@@ -73,7 +73,9 @@ fn store(source: &ConfigSource, scope: &Scope) -> Result<AgentStore, Error> {
         if !path.is_absolute() {
             return Err(Error::Invalid);
         }
-        if matches!(source, ConfigSource::Fixture { .. }) {
+        if let Some(layout) = source.benchmark() {
+            layout.check_path(path).map_err(|_| Error::Invalid)?;
+        } else if source.is_fixture() {
             let project = path.canonicalize().map_err(|_| Error::Invalid)?;
             let root = roots.home.canonicalize().map_err(|_| Error::Invalid)?;
             if !project.starts_with(root) {
@@ -94,7 +96,7 @@ fn sources(source: &ConfigSource) -> Result<SourceStore, Error> {
         .timeout(Duration::from_secs(30))
         .build()
         .map_err(|_| Error::Storage)?;
-    Ok(if matches!(source, ConfigSource::Fixture { .. }) {
+    Ok(if source.is_fixture() {
         SourceStore::cached(agents, client)
     } else {
         SourceStore::new(agents, client)

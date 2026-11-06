@@ -51,9 +51,13 @@ pub(super) enum EditDocument {
 pub struct McpEditSession {
     pub(super) environment: EnvironmentId,
     pub(super) document: EditDocument,
+    benchmark_root: Option<PathBuf>,
 }
 
 pub(super) fn project_path(source: &ConfigSource, path: &Path) -> Result<PathBuf, McpError> {
+    if let Some(layout) = source.benchmark() {
+        layout.check_path(path).map_err(|_| McpError::Scope)?;
+    }
     if !path.is_absolute() {
         return Err(McpError::Scope);
     }
@@ -139,6 +143,7 @@ pub(super) fn begin(
     Ok(McpEditSession {
         environment: environment.clone(),
         document,
+        benchmark_root: source.benchmark().map(|layout| layout.root.clone()),
     })
 }
 
@@ -152,6 +157,15 @@ fn mutation_error(code: &str) -> McpError {
 }
 
 impl McpEditSession {
+    pub(super) fn check_source(&self, source: &ConfigSource) -> Result<(), McpError> {
+        if let Some(layout) = source.benchmark()
+            && self.benchmark_root.as_deref() != Some(layout.root.as_path())
+        {
+            return Err(McpError::Scope);
+        }
+        Ok(())
+    }
+
     /// Allowlisted ordinary metadata only. Arguments, URLs and secret maps stay
     /// inside the source-bound snapshot, even while its editor is open.
     pub fn common_fields(&self, name: &str) -> Result<McpFormFields, McpError> {
@@ -285,11 +299,15 @@ impl Services {
         mutation: EntryMutation,
     ) -> Result<TaskSubscription<(), McpError>, AdmissionError> {
         let environment = key.environment.clone();
+        let source = self.source.clone();
         self.executor.job(key, move |cancel, _| {
             if cancel.is_cancelled() {
                 return Completion::Cancelled;
             }
-            match session.save(&environment, &name, mutation) {
+            match session
+                .check_source(&source)
+                .and_then(|()| session.save(&environment, &name, mutation))
+            {
                 Ok(()) => Completion::Success(()),
                 Err(error) => Completion::Failed(error),
             }

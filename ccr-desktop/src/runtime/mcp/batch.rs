@@ -233,6 +233,7 @@ impl Services {
         let work = operation.clone();
         let finalizer = operation.clone();
         let environment = key.environment.clone();
+        let config = self.source.clone();
         let subscription = self.executor.job_with_finalizer(
             key,
             move |cancel, _| {
@@ -240,28 +241,27 @@ impl Services {
                     if cancel.is_cancelled() {
                         break;
                     }
-                    let source_state = session
-                        .source
-                        .as_ref()
-                        .map(|source| source.is_current())
-                        .transpose();
-                    let result = if session.environment != environment {
-                        Err(McpError::Unsupported)
-                    } else if source_state.is_err() {
-                        Err(McpError::Storage)
-                    } else if matches!(source_state, Ok(Some(false))) {
-                        Err(McpError::Conflict)
-                    } else if target.mutations.is_empty() {
+                    if target.mutations.is_empty() {
                         continue;
-                    } else {
-                        target
-                            .session
-                            .as_ref()
-                            .map_err(|e| *e)
-                            .and_then(|destination| {
-                                destination.save_batch(&environment, &target.mutations)
-                            })
-                    };
+                    }
+                    let result = (|| {
+                        if session.environment != environment {
+                            return Err(McpError::Unsupported);
+                        }
+                        if let Some(source) = &session.source {
+                            source.check_source(&config)?;
+                        }
+                        if let Ok(destination) = &target.session {
+                            destination.check_source(&config)?;
+                        }
+                        if let Some(source) = &session.source
+                            && !source.is_current()?
+                        {
+                            return Err(McpError::Conflict);
+                        }
+                        let destination = target.session.as_ref().map_err(|error| *error)?;
+                        destination.save_batch(&environment, &target.mutations)
+                    })();
                     work.update(|snapshot| {
                         for row in &mut snapshot.rows[target.rows.clone()] {
                             if row.outcome == BatchOutcome::Pending {

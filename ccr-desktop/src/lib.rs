@@ -49,7 +49,12 @@ pub(crate) async fn open_app_window(
         }
     }
     cx.update(|cx| {
-        let options = window_options(loaded.ok(), cx);
+        let mut options = window_options(loaded.ok(), cx);
+        if let Some(title) = services.benchmark_title()
+            && let Some(titlebar) = &mut options.titlebar
+        {
+            titlebar.title = Some(title.into());
+        }
         gpui_kit::open_window(options, cx, move |window, cx| {
             cx.new(|cx| shell::Shell::new_with_preferences(services, loaded, window, cx))
         })
@@ -94,6 +99,26 @@ pub fn run() {
             })
             .detach();
             let services = match mode {
+                runtime::LaunchMode::Benchmark(root) => {
+                    cx.spawn(async move |cx| {
+                        let result = match runtime::benchmark::load_services(executor, root).await {
+                            Ok(services) => open_app_window(services, cx)
+                                .await
+                                .map(|_| ())
+                                .map_err(|_| "Benchmark window cannot open"),
+                            Err(error) => Err(error),
+                        };
+                        if let Err(error) = result {
+                            window_failed.store(true, std::sync::atomic::Ordering::Relaxed);
+                            eprintln!("Unable to open CCR benchmark: {error}");
+                            cx.update(|cx| cx.quit());
+                        } else {
+                            cx.update(|cx| cx.activate(true));
+                        }
+                    })
+                    .detach();
+                    return;
+                }
                 runtime::LaunchMode::Probe => {
                     let options = window_options(None, cx);
                     if let Err(error) = gpui_kit::open_window(options, cx, |window, cx| {

@@ -1,5 +1,8 @@
 //! App-owned Check-in mutations; all storage, encryption and HTTP are domain-owned.
 use super::*;
+mod credentials;
+mod crypto_guard;
+pub use credentials::AccountCredentials;
 #[path = "extended.rs"]
 mod extended;
 use ccr_app::runtime::Completion;
@@ -43,6 +46,7 @@ pub enum OperationError {
     Network,
     Challenge,
     Credentials,
+    CryptoKeyUnavailable,
     ImportCredentials,
     ImportConflict,
     ImportInvalid,
@@ -109,8 +113,20 @@ impl Default for CheckinOperations {
 struct Storage {
     db: DbAccess,
     crypto: PathBuf,
+    locks: Option<PathBuf>,
 }
 impl Storage {
+    // Only synchronous domain calls may enter the thread-local writer scope.
+    fn scoped<T>(
+        &self,
+        work: impl FnOnce() -> Result<T, OperationError>,
+    ) -> Result<T, OperationError> {
+        match &self.locks {
+            Some(locks) => ccr_core::core::LockManager::with_scoped_directory(locks, || Ok(work()))
+                .map_err(|_| OperationError::Storage)?,
+            None => work(),
+        }
+    }
     fn accounts(&self) -> AccountManager {
         AccountManager::with_db(&self.crypto, self.db.clone())
     }
@@ -168,6 +184,11 @@ impl CheckinOperations {
             return Ok(storage.clone());
         }
         let storage = match source {
+            ConfigSource::Benchmark(layout) => Storage {
+                db: DbAccess::Pool(layout.main_pool().map_err(|_| OperationError::Storage)?),
+                crypto: layout.path("crypto/checkin"),
+                locks: Some(layout.path("locks")),
+            },
             ConfigSource::Local => Storage {
                 db: DbAccess::Pool(match database::get_pool() {
                     Some(pool) => pool.clone(),
@@ -175,6 +196,7 @@ impl CheckinOperations {
                 }),
                 crypto: CheckinService::default_checkin_dir()
                     .map_err(|_| OperationError::Storage)?,
+                locks: None,
             },
             ConfigSource::Fixture { registry, .. } => {
                 if !registry.is_absolute() {
@@ -185,7 +207,8 @@ impl CheckinOperations {
                 let database_path = canonical.join("checkin.db");
                 let crypto = canonical.join("checkin-crypto");
                 let home = canonical.join("checkin-migration-home");
-                for path in [&database_path, &crypto, &home] {
+                let locks = canonical.join("checkin-locks");
+                for path in [&database_path, &crypto, &home, &locks] {
                     reject_links(path)?;
                 }
                 std::fs::create_dir_all(&home).map_err(|_| OperationError::Storage)?;
@@ -206,6 +229,7 @@ impl CheckinOperations {
                 Storage {
                     db: DbAccess::Pool(pool),
                     crypto,
+                    locks: Some(locks),
                 }
             }
         };
@@ -355,6 +379,9 @@ fn service_for_account(
     owner: &CheckinOperations,
     id: &str,
 ) -> Result<CheckinService, OperationError> {
+    if source.is_benchmark() {
+        return Err(OperationError::FixtureNetwork);
+    }
     let account = storage
         .accounts()
         .get(id)
@@ -363,7 +390,8 @@ fn service_for_account(
         .providers()
         .get(&account.provider_id)
         .map_err(|_| OperationError::Invalid)?;
-    Ok(if matches!(source, ConfigSource::Fixture { .. }) {
+    storage.require_existing_crypto()?;
+    Ok(if source.is_fixture() {
         let allowed = {
             #[cfg(test)]
             {
@@ -465,9 +493,12 @@ async fn execute(
                 .get(&request.provider_id)
                 .map_err(|_| OperationError::Invalid)?;
             valid_cookies(&request.cookies_json)?;
-            accounts
-                .create(request)
-                .map_err(|_| OperationError::Storage)?;
+            storage.scoped(|| {
+                storage.guard_crypto_initialization()?;
+                accounts
+                    .create(request)
+                    .map_err(|_| OperationError::Storage)
+            })?;
             Outcome::Saved
         }
         Operation::UpdateAccount(id, request) => {
@@ -477,9 +508,14 @@ async fn execute(
             if let Some(secret) = &request.cookies_json {
                 valid_cookies(secret)?;
             }
-            accounts
-                .update(&id, request)
-                .map_err(|_| OperationError::Storage)?;
+            storage.scoped(|| {
+                if request.cookies_json.is_some() {
+                    storage.require_existing_crypto()?;
+                }
+                accounts
+                    .update(&id, request)
+                    .map_err(|_| OperationError::Storage)
+            })?;
             Outcome::Saved
         }
         Operation::DeleteAccount(id) => {

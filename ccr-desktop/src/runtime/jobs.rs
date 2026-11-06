@@ -87,6 +87,9 @@ impl CommandRequests {
         key: RequestKey,
         request: CommandExecutionRequest,
     ) -> Result<Started, &'static str> {
+        if self.0.source.is_benchmark() {
+            return Err(Error::Unavailable.message());
+        }
         if !matches!(key.environment, EnvironmentId::Local(_)) {
             return Err(
                 "Command execution for this environment is unavailable. / 此环境不可执行命令",
@@ -130,6 +133,13 @@ impl CommandRequests {
                 };
                 work_owner.report_to(&id, progress);
                 let result = match source {
+                    ConfigSource::Benchmark(_) => {
+                        *worker_terminal
+                            .lock()
+                            .unwrap_or_else(std::sync::PoisonError::into_inner) =
+                            work_owner.abandon_snapshot(ticket);
+                        Err(Error::Unavailable)
+                    }
                     ConfigSource::Local => {
                         work_owner.run_blocking(ticket, cancel, &sidecar_context())
                     }

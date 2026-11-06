@@ -2,6 +2,7 @@
 #[cfg(test)]
 use super::InsightsPaths;
 use super::InsightsRequests;
+#[cfg(test)]
 use crate::runtime::ConfigSource;
 use ccr_app::{
     runtime::{CancellationHandle, Completion, EnvironmentId, RequestKey},
@@ -233,6 +234,9 @@ impl InsightsRequests {
         key: RequestKey,
         mut options: Options,
     ) -> Result<(), Failure> {
+        if self.services.source.is_benchmark() {
+            return Err(Failure::FixtureDisabled);
+        }
         options.recent_days = options.recent_days.max(1);
         if !matches!(key.environment, EnvironmentId::Local(_)) {
             return Err(Failure::LocalOnly);
@@ -241,7 +245,7 @@ impl InsightsRequests {
         if !paths.usage_root.is_absolute() || !paths.provider_home.is_absolute() {
             return Err(Failure::Unconfigured);
         }
-        let fixture = matches!(self.services.source, ConfigSource::Fixture { .. });
+        let fixture = self.services.source.is_fixture();
         #[cfg(test)]
         let fixture_plan = *self
             .services

@@ -113,7 +113,7 @@ impl Requests {
             .clone();
         #[cfg(not(test))]
         let synthetic: Option<()> = None;
-        if self.is_fixture() && synthetic.is_none() {
+        if self.0.source.is_benchmark() || (self.is_fixture() && synthetic.is_none()) {
             return Err(Error::FixtureDisabled);
         }
         if action == Action::UpdateCcr && !confirmed {

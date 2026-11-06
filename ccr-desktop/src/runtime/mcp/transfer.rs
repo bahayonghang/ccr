@@ -209,11 +209,17 @@ impl Services {
         name: String,
     ) -> Result<TaskSubscription<(), McpError>, AdmissionError> {
         let environment = key.environment.clone();
+        let source = self.source.clone();
         self.executor.job(key, move |cancel, _| {
             if cancel.is_cancelled() {
                 return Completion::Cancelled;
             }
-            match session.save(&environment, &name) {
+            match session
+                .source
+                .check_source(&source)
+                .and_then(|()| session.target.check_source(&source))
+                .and_then(|()| session.save(&environment, &name))
+            {
                 Ok(()) => Completion::Success(()),
                 Err(error) => Completion::Failed(error),
             }

@@ -213,6 +213,9 @@ impl InstallRequests {
         self.0.install.snapshot()
     }
     fn supported(&self, key: &RequestKey) -> bool {
+        if self.0.source.is_benchmark() {
+            return false;
+        }
         let local = matches!(key.environment, EnvironmentId::Local(_));
         #[cfg(test)]
         if self.0.install.synthetic {

@@ -325,6 +325,10 @@ impl Shell {
         if self.destination == destination && self.lens == lens {
             return;
         }
+        if self.destination == Destination::Settings && destination != Destination::Settings {
+            self.remote
+                .update(cx, |view, cx| view.clear_cli_on_leave(cx));
+        }
         self.destination = destination;
         self.lens = lens;
         if !self.remote.read(cx).is_remote() {
