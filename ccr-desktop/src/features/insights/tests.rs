@@ -65,14 +65,30 @@ async fn import_controls_reject_fixture_then_reattach_and_cancel_retained_work(
     .unwrap();
     assert_eq!(requests.import_snapshot().status, Status::Idle);
     requests.fixture_import(true);
-    cx.update_window(handle, |_, window, cx| window.click("insights-import", cx))
-        .unwrap();
+    cx.update_window(handle, |_, window, cx| {
+        window.click("insights-import-source", cx);
+        window.render_frame(cx);
+        window.click("insights-import-source-codex", cx);
+        window.render_frame(cx);
+        window.click("insights-import-days-7", cx);
+        window.render_frame(cx);
+        window.click("insights-import", cx);
+    })
+    .unwrap();
     cx.wait_for(handle, Duration::from_secs(10), |_, _| {
         requests.import_snapshot().status == Status::Running
     })
     .await;
+    assert_eq!(
+        requests.import_snapshot().options.source,
+        Some(SourceKind::Codex)
+    );
+    assert_eq!(requests.import_snapshot().options.recent_days, 7);
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
+        window.click("insights-import-source", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("insights-import-source-claude").is_none());
         window.click("insights-policies-tab", cx);
         window.render_frame(cx);
         window.click("insights-usage", cx);
@@ -526,5 +542,51 @@ async fn rendered_archive_drill_in_pages_real_provider_messages_and_clears_plain
     })
     .unwrap();
     assert_eq!(original, std::fs::read(source).unwrap());
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+async fn platform_import_locks_source_to_its_platform_context(cx: &mut TestAppContext) {
+    use crate::runtime::insights::import::{Status, ToolUpdate};
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap();
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(root.path().join("llmusage")).unwrap();
+    std::fs::create_dir_all(root.path().join("home")).unwrap();
+    let services = services(&owner, root.path());
+    let requests = InsightsRequests::new(&services);
+    requests.fixture_import(false);
+    let (handle, view) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| InsightsView::new(services, window, cx))
+        })
+        .unwrap()
+    });
+    cx.update_window(handle, |_, window, cx| {
+        view.update(cx, |this, cx| {
+            this.open_platform(InsightsPage::Usage, Platform::Codex, window, cx)
+        });
+        window.render_frame(cx);
+        window.click("insights-import-source", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("insights-import-source-claude").is_none());
+        window.click("insights-import", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, _| {
+        requests.import_snapshot().status == Status::Finished
+    })
+    .await;
+    assert_eq!(
+        requests.import_snapshot().options.source,
+        Some(SourceKind::Codex)
+    );
+    assert!(matches!(
+        requests.import_snapshot().tools,
+        ToolUpdate::NotStarted
+    ));
+    cx.update_window(handle, |_, window, _| window.remove_window())
+        .unwrap();
     owner.shutdown();
 }

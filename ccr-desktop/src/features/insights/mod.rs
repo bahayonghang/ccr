@@ -1,4 +1,5 @@
 //! Native read-only Insights workbench, using the shared bounded request adapter.
+mod capabilities;
 mod import;
 mod observer;
 mod policies;
@@ -44,6 +45,7 @@ pub enum InsightsPage {
     Sessions,
     Policies,
     Observer,
+    Capabilities,
 }
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Section {
@@ -77,8 +79,10 @@ pub struct InsightsView {
     requests: InsightsRequests,
     policies: Entity<policies::PoliciesView>,
     observer: Entity<observer::ObserverView>,
+    capabilities: Entity<capabilities::CapabilitiesView>,
     page: InsightsPage,
     surface: Surface,
+    platform_scope: Option<Platform>,
     section: Section,
     snapshot: Option<Arc<InsightsSnapshot>>,
     fields: Vec<Entity<InputState>>,
@@ -89,6 +93,7 @@ pub struct InsightsView {
     refresh_task: Option<Task<()>>,
     import_task: Option<Task<()>>,
     import_error: Option<crate::runtime::insights::import::Failure>,
+    import_scope: import::Scope,
     session_ops: session_operations::ViewState,
     loading: bool,
     error: Option<&'static str>,
@@ -107,13 +112,16 @@ impl InsightsView {
         let requests = InsightsRequests::new(&services);
         let policies = cx.new(|cx| policies::PoliciesView::new(requests.clone(), window, cx));
         let observer = cx.new(|cx| observer::ObserverView::new(requests.clone(), window, cx));
+        let capabilities = cx.new(|cx| capabilities::CapabilitiesView::new(requests.clone(), cx));
         Self {
             error: (!requests.configured()).then_some(InsightsError::Unconfigured.message()),
             requests,
             policies,
             observer,
+            capabilities,
             page: InsightsPage::Home,
             surface: Surface::Workbench,
+            platform_scope: None,
             section: Section::Sources,
             snapshot: None,
             fields: (0..8)
@@ -126,6 +134,7 @@ impl InsightsView {
             refresh_task: None,
             import_task: None,
             import_error: None,
+            import_scope: Default::default(),
             session_ops: Default::default(),
             loading: false,
             selected: None,
@@ -143,6 +152,7 @@ impl InsightsView {
         window.focus(&self.focus, cx);
     }
     pub fn suspend(&mut self, cx: &mut Context<Self>) {
+        self.capabilities.update(cx, |this, cx| this.suspend(cx));
         self.policies.update(cx, |this, cx| this.suspend(cx));
         self.observer.update(cx, |this, cx| this.suspend(cx));
         self.task = None;
@@ -175,9 +185,47 @@ impl InsightsView {
         self.set_page(page, cx);
     }
 
+    /// Reuse the full reports in platform context; clear the previous scope's
+    /// filters before querying so a hidden page cannot bleed another platform.
+    pub fn open_platform(
+        &mut self,
+        page: InsightsPage,
+        platform: Platform,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.platform_scope = Some(platform);
+        for field in &self.fields {
+            field.update(cx, |state, cx| state.set_value("", window, cx));
+        }
+        if let Some(source) = crate::features::workbench::source(platform) {
+            self.fields[0].update(cx, |state, cx| state.set_value(source.as_str(), window, cx));
+        }
+        if matches!(platform, Platform::Claude | Platform::Codex) {
+            let family = if platform == Platform::Claude {
+                "claude"
+            } else {
+                "codex"
+            };
+            self.fields[7].update(cx, |state, cx| state.set_value(family, window, cx));
+        }
+        self.open_product(page, cx);
+    }
+    pub fn open_global(&mut self, page: InsightsPage, window: &mut Window, cx: &mut Context<Self>) {
+        self.platform_scope = None;
+        for field in &self.fields {
+            field.update(cx, |state, cx| state.set_value("", window, cx));
+        }
+        self.open_product(page, cx);
+    }
+
     pub fn set_page(&mut self, page: InsightsPage, cx: &mut Context<Self>) {
         self.suspend(cx);
         self.page = page;
+        if page == InsightsPage::Capabilities {
+            self.capabilities.update(cx, |this, cx| this.refresh(cx));
+            return;
+        }
         if page == InsightsPage::Observer {
             self.observer.update(cx, |this, cx| this.open(cx));
             return;
@@ -256,6 +304,9 @@ impl InsightsView {
             .map(|value| SourceKind::parse_id(&value).ok_or(InsightsError::Query))
             .transpose()?;
         filter.provider = optional(2);
+        if let Some(platform) = self.platform_scope {
+            filter.source = crate::features::workbench::source(platform);
+        }
         filter.project_hash = optional(3);
         filter.timezone = if self.utc {
             ReportTimezone::Utc
@@ -273,7 +324,9 @@ impl InsightsView {
     }
     fn query(&self, cx: &Context<Self>) -> Result<InsightsQuery, InsightsError> {
         match self.page {
-            InsightsPage::Policies | InsightsPage::Observer => Err(InsightsError::Query),
+            InsightsPage::Policies | InsightsPage::Observer | InsightsPage::Capabilities => {
+                Err(InsightsError::Query)
+            }
             InsightsPage::Home => {
                 let generated_at = chrono::Utc::now();
                 Ok(InsightsQuery::Home {
@@ -551,6 +604,12 @@ impl Render for InsightsView {
             for (page, id, en, zh) in [
                 (InsightsPage::Usage, "insights-usage", "Usage", "用量"),
                 (
+                    InsightsPage::Capabilities,
+                    "insights-capabilities",
+                    "Storage capabilities",
+                    "存储能力",
+                ),
+                (
                     InsightsPage::Sessions,
                     "insights-sessions",
                     "Sessions",
@@ -569,6 +628,16 @@ impl Render for InsightsView {
                     "Claude 观测",
                 ),
             ] {
+                if self.platform_scope.is_some() && page == InsightsPage::Policies {
+                    continue;
+                }
+                if self
+                    .platform_scope
+                    .is_some_and(|platform| platform != Platform::Claude)
+                    && page == InsightsPage::Observer
+                {
+                    continue;
+                }
                 if self.surface == Surface::Usage && page == InsightsPage::Sessions {
                     continue;
                 }
@@ -583,6 +652,12 @@ impl Render for InsightsView {
                     cx,
                 ));
             }
+        }
+        if self.page == InsightsPage::Capabilities {
+            return root
+                .child(tabs)
+                .child(self.capabilities.clone())
+                .into_any_element();
         }
         if self.page == InsightsPage::Policies {
             return root
@@ -721,6 +796,9 @@ impl Render for InsightsView {
                         .child(div().text_size(px(theme::META_SIZE)).child(label))
                         .child(
                             Input::new(&self.fields[index])
+                                .readonly(
+                                    self.platform_scope.is_some() && (index == 0 || index == 7),
+                                )
                                 .id(SharedString::from(format!("insights-filter-{index}")))
                                 .aria_label(label),
                         ),

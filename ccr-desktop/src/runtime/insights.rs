@@ -1,4 +1,5 @@
 //! Typed, explicit-path insights reads through the application-owned bounded executor.
+pub mod capabilities;
 pub mod import;
 pub mod observer;
 pub mod policies;

@@ -5,11 +5,13 @@ pub mod insights;
 pub mod install;
 pub mod jobs;
 pub mod mcp;
+pub mod monitoring;
 pub mod platforms;
 pub mod preferences;
 pub mod profiles;
 pub mod resources;
 pub mod sync;
+pub mod tools;
 pub mod ui_state;
 use std::{ffi::OsString, path::PathBuf, sync::Arc, time::Duration};
 
@@ -147,6 +149,8 @@ pub struct Services {
     pub(super) platform_oauth: Arc<ccr_cli::application::codex_oauth::NativeSession>,
     pub(super) command_jobs: Arc<ccr_app::jobs::commands::CommandJobs>,
     pub(super) install: Arc<install::InstallOwner>,
+    pub(super) tools: Arc<tools::Owner>,
+    pub(super) monitoring: Arc<monitoring::Owner>,
     pub(super) platform_file_operations: Arc<resources::platform_files::FileOperations>,
     pub(super) codex_agent_operations: Arc<resources::codex_agents::AgentOperations>,
     pub(super) checkin_operations: Arc<checkin::CheckinOperations>,
@@ -166,6 +170,8 @@ impl Services {
             platform_oauth: Default::default(),
             command_jobs: Default::default(),
             install: Default::default(),
+            tools: Default::default(),
+            monitoring: Default::default(),
             sync_operations: Default::default(),
             usage_import: Default::default(),
             observer: Default::default(),

@@ -6,11 +6,14 @@ use gpui_kit::component::{
     FocusTrapElement,
     input::{Textarea, TextareaState},
 };
+mod presentation;
 
 pub(super) struct ObserverView {
     requests: InsightsRequests,
     fields: Vec<Entity<InputState>>,
     output: Entity<TextareaState>,
+    report: Option<Report>,
+    advanced: bool,
     pending: Option<(String, Option<SubscriptionDto>)>,
     expected: Option<SubscriptionDto>,
     available: bool,
@@ -74,6 +77,8 @@ impl ObserverView {
                 .map(|_| cx.new(|cx| InputState::new(window, cx)))
                 .collect(),
             output: cx.new(|cx| TextareaState::new(window, cx)),
+            report: None,
+            advanced: false,
             pending: None,
             expected: None,
             available: false,
@@ -92,6 +97,8 @@ impl ObserverView {
         }
     }
     pub fn suspend(&mut self, cx: &mut Context<Self>) {
+        self.advanced = false;
+        self.report = None;
         self.task = None;
         self.observer = None;
         self.generation += 1;
@@ -147,6 +154,7 @@ impl ObserverView {
         self.generation += 1;
         let generation = self.generation;
         self.available = false;
+        self.report = None;
         self.pending = Some((
             text(cx, "Reading stored data…", "正在读取已存数据…").into(),
             self.expected.clone(),
@@ -185,6 +193,7 @@ impl ObserverView {
         cx.notify();
     }
     fn receive(&mut self, report: &Report, cx: &mut Context<Self>) {
+        self.report = Some(report.clone());
         let section = |name: &str, value: &Result<serde_json::Value, Error>| {
             format!(
                 "{name}\n{}\n",
@@ -432,6 +441,7 @@ impl Render for ObserverView {
             .child(semantics::button(
                 Button::new("observer-refresh")
                     .label(text(cx, "Reload", "重读"))
+                    .ghost()
                     .on_click(cx.listener(|this, _, _, cx| this.load(cx))),
                 busy,
                 false,
@@ -468,26 +478,42 @@ impl Render for ObserverView {
                     .disabled(busy || !self.available),
             );
         }
-        root.child(semantics::button(
-            Button::new("observer-save")
-                .label(text(cx, "Save subscription", "保存订阅"))
-                .on_click(cx.listener(|this, _, window, cx| this.decide(window, cx))),
-            busy || !self.available,
-            false,
-            cx,
-        ))
-        .child(
-            Textarea::new(&self.output)
-                .accessibility_id("observer-report")
-                .aria_label(text(
-                    cx,
-                    "Stored Claude usage and tool report",
-                    "已存 Claude 用量和工具报告",
-                ))
-                .readonly(true)
-                .h(px(360.)),
-        )
-        .into_any_element()
+        root = root
+            .child(semantics::button(
+                Button::new("observer-save")
+                    .label(text(cx, "Save subscription", "保存订阅"))
+                    .on_click(cx.listener(|this, _, window, cx| this.decide(window, cx))),
+                busy || !self.available,
+                false,
+                cx,
+            ))
+            .child(semantics::button(
+                Button::new("observer-advanced")
+                    .label(text(cx, "Advanced projection", "高级原始投影"))
+                    .ghost()
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.advanced = !this.advanced;
+                        cx.notify();
+                    })),
+                busy,
+                false,
+                cx,
+            ));
+        if self.advanced {
+            root = root.child(
+                Textarea::new(&self.output)
+                    .accessibility_id("observer-report")
+                    .aria_label(text(
+                        cx,
+                        "Stored Claude usage and tool report",
+                        "已存 Claude 用量和工具报告",
+                    ))
+                    .readonly(true)
+                    .h(px(360.)),
+            );
+        }
+        root.child(presentation::report(self, cx))
+            .into_any_element()
     }
 }
 

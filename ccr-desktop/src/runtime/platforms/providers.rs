@@ -41,6 +41,62 @@ fn optional(value: &Value, key: &str) -> Result<Option<String>, PlatformError> {
     }
 }
 
+impl PlatformSession {
+    /// Safe provider metadata; never return the backend record or API keys.
+    pub fn provider_fields(&self, id: &str) -> Vec<FieldFact> {
+        let Ok(root) = serde_json::from_str::<Value>(&self.snapshot.content) else {
+            return Vec::new();
+        };
+        let entry = if self.platform == Platform::Codex {
+            root.get("providers")
+                .and_then(Value::as_array)
+                .and_then(|rows| {
+                    rows.iter()
+                        .find(|row| row.get("id").and_then(Value::as_str) == Some(id))
+                })
+        } else {
+            root.get("provider")
+                .or_else(|| root.get("providers"))
+                .and_then(|rows| rows.get(id))
+        };
+        let Some(entry) = entry else {
+            return Vec::new();
+        };
+        let mut fields = Vec::new();
+        for key in ["name", "base_url", "website_url", "api_key_url", "npm"] {
+            if let Some(value) = entry.get(key).and_then(Value::as_str)
+                && (!key.ends_with("url") || safe_url(value))
+                && let Some(value) = safe_scalar(value)
+            {
+                fields.push(FieldFact { key, value });
+            }
+        }
+        if let Some(value) = entry
+            .get("options")
+            .and_then(|v| v.get("baseURL"))
+            .and_then(Value::as_str)
+            && safe_url(value)
+            && let Some(value) = safe_scalar(value)
+        {
+            fields.push(FieldFact {
+                key: "baseURL",
+                value,
+            });
+        }
+        fields
+    }
+}
+
+fn safe_url(value: &str) -> bool {
+    reqwest::Url::parse(value).is_ok_and(|url| {
+        matches!(url.scheme(), "http" | "https")
+            && url.username().is_empty()
+            && url.password().is_none()
+            && url.query().is_none()
+            && url.fragment().is_none()
+    })
+}
+
 pub fn apply(
     session: &PlatformSession,
     id: &str,
@@ -52,7 +108,8 @@ pub fn apply(
     let id = safe_name(id).ok_or(PlatformError::Invalid)?;
     let provider = patch
         .map(|patch| {
-            let value: Value = serde_json::from_str(patch).map_err(|_| PlatformError::Invalid)?;
+            let mut value: Value =
+                serde_json::from_str(patch).map_err(|_| PlatformError::Invalid)?;
             let object = value.as_object().ok_or(PlatformError::Invalid)?;
             if object.keys().any(|key| {
                 ![
@@ -66,6 +123,33 @@ pub fn apply(
                 .contains(&key.as_str())
             }) {
                 return Err(PlatformError::Invalid);
+            }
+            // Omitted metadata remains in the captured original provider, just
+            // like omitted keys. The domain's versioned mutation still owns CAS.
+            let original: Value = if session.snapshot.exists {
+                serde_json::from_str(&session.snapshot.content)
+                    .map_err(|_| PlatformError::Invalid)?
+            } else {
+                serde_json::json!({})
+            };
+            if let Some(existing) = original
+                .get("providers")
+                .and_then(Value::as_array)
+                .and_then(|rows| {
+                    rows.iter()
+                        .find(|row| row.get("id").and_then(Value::as_str) == Some(id.as_str()))
+                })
+            {
+                for key in ["name", "base_url", "website_url", "api_key_url"] {
+                    if value.get(key).is_none()
+                        && let Some(original) = existing.get(key)
+                    {
+                        value
+                            .as_object_mut()
+                            .ok_or(PlatformError::Invalid)?
+                            .insert(key.into(), original.clone());
+                    }
+                }
             }
             let now = chrono::Utc::now();
             let api_key_name = optional(&value, "api_key_name")?;

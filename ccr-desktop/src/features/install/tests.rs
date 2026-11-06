@@ -22,8 +22,30 @@ fn install_confirmation_enters_cancel_escape_restores_focus_and_navigation_clear
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         view.update(cx, |this, cx| this.focus_main(window, cx));
-        window.press("tab", cx);
-        assert_eq!(window.find("install-review").focused(), Some(true));
+        window.render_frame(cx);
+        assert_eq!(
+            window.find("tools-versions").focused(),
+            Some(true),
+            "focused controls: {:?}",
+            gpui_kit::base::test_support::snapshots(window)
+                .iter()
+                .filter(|node| node.focused() == Some(true))
+                .map(|node| node.label())
+                .collect::<Vec<_>>()
+        );
+        for id in [
+            "tools-detect",
+            "tools-review-update",
+            "install-check",
+            "install-review",
+        ] {
+            window.press("tab", cx);
+            assert_eq!(
+                window.find(id).focused(),
+                Some(true),
+                "keyboard route to {id}"
+            );
+        }
         window.click("install-review", cx);
         window.simulate_next_frame(cx);
         window.render_frame(cx);

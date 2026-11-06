@@ -1,5 +1,26 @@
 use super::*;
-use crate::runtime::insights::import::{Failure, Status, ToolUpdate};
+use crate::runtime::insights::import::{Failure, Options, Status, ToolUpdate};
+
+#[derive(Default)]
+pub(super) struct Scope {
+    options: Options,
+    choose_source: bool,
+}
+
+fn source_label(source: Option<SourceKind>, cx: &gpui_kit::App) -> &'static str {
+    match source {
+        None => text(cx, "All sources", "全部来源"),
+        Some(SourceKind::Claude) => "Claude Code",
+        Some(SourceKind::Codex) => "Codex",
+        Some(SourceKind::Opencode) => "OpenCode",
+        Some(SourceKind::Antigravity) => "Antigravity",
+        Some(SourceKind::KimiCode) => "Kimi Code",
+        Some(SourceKind::Pi) => "Pi",
+        Some(SourceKind::Grok) => "Grok",
+        Some(SourceKind::Zcode) => "ZCode",
+        Some(SourceKind::DeepseekHarness) => "DeepSeek Harness",
+    }
+}
 
 fn failure(error: Failure, cx: &gpui_kit::App) -> &'static str {
     match error {
@@ -86,13 +107,23 @@ impl InsightsView {
             }
         }));
     }
+    fn effective_import_options(&self) -> Options {
+        let mut options = self.import_scope.options;
+        if let Some(platform) = self.platform_scope {
+            options.source = crate::features::workbench::source(platform);
+        }
+        options
+    }
     fn start_import(&mut self, cx: &mut Context<Self>) {
-        let result = self.requests.start_import(RequestKey {
-            environment: EnvironmentId::Local("insights-explicit".into()),
-            platform: Platform::Claude,
-            generation: self.generation,
-            request_id: self.generation,
-        });
+        let result = self.requests.start_import_with_options(
+            RequestKey {
+                environment: EnvironmentId::Local("insights-explicit".into()),
+                platform: Platform::Claude,
+                generation: self.generation,
+                request_id: self.generation,
+            },
+            self.effective_import_options(),
+        );
         self.import_error = result.err();
         cx.notify();
     }
@@ -143,10 +174,26 @@ impl InsightsView {
                 format!(" 用量阶段已写入 {} 条，工具更新已取消；未回滚已完成变更。",snapshot.records_imported)
             } else { format!(" Usage already inserted {} records; tool update was cancelled. Completed changes were not rolled back.",snapshot.records_imported) });
         }
+        if snapshot.run > 0 {
+            status.push_str(&if is_chinese(cx) {
+                format!(
+                    " 本次来源：{}，最近 {} 天。",
+                    source_label(snapshot.options.source, cx),
+                    snapshot.options.recent_days
+                )
+            } else {
+                format!(
+                    " Run scope: {}, last {} days.",
+                    source_label(snapshot.options.source, cx),
+                    snapshot.options.recent_days
+                )
+            });
+        }
         div()
             .flex()
             .flex_col()
             .gap(px(theme::CONTROL_GAP))
+            .child(self.import_scope_controls(active, cx))
             .child(
                 div()
                     .flex()
@@ -181,5 +228,77 @@ impl InsightsView {
                     .text_size(px(theme::META_SIZE))
                     .child(status),
             )
+    }
+}
+
+impl InsightsView {
+    fn import_scope_controls(&self, active: bool, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
+        let mut scope = div().flex().flex_col().gap(px(theme::CONTROL_GAP));
+        let mut controls = div()
+            .flex()
+            .flex_wrap()
+            .items_center()
+            .gap(px(theme::CONTROL_GAP))
+            .child(div().text_size(px(theme::META_SIZE)).child(text(
+                cx,
+                "Import scope",
+                "导入范围",
+            )))
+            .child(semantics::button(
+                Button::new("insights-import-source")
+                    .label(source_label(self.effective_import_options().source, cx))
+                    .ghost()
+                    .toggled(self.import_scope.choose_source)
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.import_scope.choose_source = !this.import_scope.choose_source;
+                        cx.notify();
+                    })),
+                active || self.platform_scope.is_some(),
+                false,
+                cx,
+            ));
+        for days in [7, 30, 90] {
+            controls = controls.child(semantics::button(
+                Button::new(SharedString::from(format!("insights-import-days-{days}")))
+                    .label(if is_chinese(cx) {
+                        format!("最近 {days} 天")
+                    } else {
+                        format!("Last {days} days")
+                    })
+                    .ghost()
+                    .toggled(self.import_scope.options.recent_days == days)
+                    .on_click(cx.listener(move |this, _, _, cx| {
+                        this.import_scope.options.recent_days = days;
+                        cx.notify();
+                    })),
+                active,
+                false,
+                cx,
+            ));
+        }
+        scope = scope.child(controls);
+        if self.import_scope.choose_source && self.platform_scope.is_none() {
+            let mut choices = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
+            for source in std::iter::once(None).chain(SourceKind::ALL.into_iter().map(Some)) {
+                let id = source.map_or("all", SourceKind::as_str);
+                choices = choices.child(semantics::button(
+                    Button::new(SharedString::from(format!("insights-import-source-{id}")))
+                        .label(source_label(source, cx))
+                        .ghost()
+                        .toggled(self.import_scope.options.source == source)
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            this.import_scope.options.source = source;
+                            this.import_scope.choose_source = false;
+                            this.import_error = None;
+                            cx.notify();
+                        })),
+                    active,
+                    false,
+                    cx,
+                ));
+            }
+            scope = scope.child(choices);
+        }
+        scope.into_any_element()
     }
 }

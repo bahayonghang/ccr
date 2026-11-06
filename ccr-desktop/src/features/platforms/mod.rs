@@ -1,4 +1,6 @@
 //! Native platform settings, scoped source, accounts and OpenCode providers.
+mod forms;
+mod layers;
 use crate::{
     locales::{is_chinese, text},
     runtime::{
@@ -52,6 +54,11 @@ enum Decision {
     ImportAccounts,
 }
 pub struct PlatformsView {
+    form: forms::SettingsForm,
+    pending_form: bool,
+    advanced: bool,
+    layers: Entity<layers::LayersView>,
+    layers_open: bool,
     services: Services,
     platform: Platform,
     surface: Surface,
@@ -83,7 +90,13 @@ pub struct PlatformsView {
 }
 impl PlatformsView {
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
+        let layers = cx.new(|cx| layers::LayersView::new(services.clone(), window, cx));
         Self {
+            form: forms::SettingsForm::new(),
+            pending_form: false,
+            advanced: false,
+            layers,
+            layers_open: false,
             services,
             platform: Platform::Claude,
             surface: Surface::Settings,
@@ -118,10 +131,19 @@ impl PlatformsView {
         if matches!(self.surface, Surface::Auth | Surface::Providers) {
             window.focus(&self.name.read(cx).focus_handle(cx), cx);
         } else {
-            window.focus(&self.content.read(cx).focus_handle(cx), cx);
+            if self.source_mode || self.advanced {
+                window.focus(&self.content.read(cx).focus_handle(cx), cx);
+            } else {
+                self.form.focus(window, cx);
+            }
         }
     }
     pub fn leave(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.form.clear();
+        self.pending_form = false;
+        self.advanced = false;
+        self.layers.update(cx, |view, cx| view.suspend(cx));
+        self.layers_open = false;
         if self.oauth_task.is_some() {
             self.services.platform_oauth_cancel();
         }
@@ -219,6 +241,7 @@ impl PlatformsView {
                                     this.message = rows.is_empty().then(||text(cx,"No saved accounts to query.","没有可查询的已保存账户。").to_string());
                                 }
                                 Completion::Success(ResultValue::Loaded(session)) => {
+                                    this.pending_form = true;
                                     this.session = Some(session.clone());
                                     if this.source_mode { this.pending_content = Some(session.snapshot.content.clone()); }
                                     this.message = None;
@@ -227,6 +250,7 @@ impl PlatformsView {
                                 Completion::Success(ResultValue::Saved(SaveOutcome::Saved { .. }) | ResultValue::AccountChanged { .. }) => {
                                     // 已提交后必须重新读取，不能携旧版本重复提交。
                                     this.session = None;
+                                    this.pending_form = true;
                                     this.source_mode = false;
                                     this.pending_content = Some(String::new());
                                     this.message = Some(if matches!(result.as_ref(), Completion::Success(ResultValue::AccountChanged { warning: true })) {
@@ -291,7 +315,18 @@ impl PlatformsView {
         let Some(session) = self.session.clone() else {
             return;
         };
-        let content = self.content.read(cx).value().to_string();
+        let content = if self.source_mode || self.advanced {
+            self.content.read(cx).value().to_string()
+        } else {
+            match self.form.patch(&self.content.read(cx).value(), cx) {
+                Ok(value) => value,
+                Err(error) => {
+                    self.message = Some(error);
+                    cx.notify();
+                    return;
+                }
+            }
+        };
         let command = if self.surface == Surface::Providers {
             Command::Provider {
                 session,
@@ -640,7 +675,11 @@ fn file_status(cx: &gpui_kit::App, session: &PlatformSession) -> String {
     }
 }
 
-fn local_projection(session: &PlatformSession, cx: &gpui_kit::App) -> impl IntoElement {
+fn local_projection(
+    session: &PlatformSession,
+    show_fields: bool,
+    cx: &gpui_kit::App,
+) -> impl IntoElement {
     let file = file_status(cx, session);
     let auth = auth_status(cx, session);
     let mut block = div()
@@ -664,7 +703,7 @@ fn local_projection(session: &PlatformSession, cx: &gpui_kit::App) -> impl IntoE
                 .aria_label(auth.clone())
                 .child(auth),
         );
-    for (index, field) in session.fields.iter().enumerate() {
+    for (index, field) in session.fields.iter().enumerate().filter(|_| show_fields) {
         let label = format!("{}: {}", field.key, field.value);
         block = block.child(
             div()
@@ -1172,13 +1211,42 @@ impl PlatformsView {
         blocked: bool,
         cx: &mut Context<Self>,
     ) -> gpui_kit::Stateful<gpui_kit::Div> {
-        root = root.child(text(cx, "Only entered dirty keys are patched. Unknown siblings survive. Source editing uses the original loaded revision; conflicts retain the draft. JSON null clearing is unsupported here.", "仅提交输入的变更字段，保留未知字段。源编辑使用原始读取版本，冲突保留草稿。此处 JSON 不支持 null 清除。"));
+        root = root.child(if self.platform==Platform::Codex && self.surface==Surface::Providers {
+            text(cx,"Only submitted provider metadata changes. Credentials remain hidden; blank replacement keys retain them. Source conflicts keep the draft.","仅修改提交的供应商元数据。已有凭据保持隐藏；替换密钥留空会保留原值。来源冲突会保留草稿。")
+        } else {
+            text(cx, "Only entered dirty keys are patched. Unknown siblings survive. Source editing uses the original loaded revision; conflicts retain the draft. JSON null clearing is unsupported here.", "仅提交输入的变更字段，保留未知字段。源编辑使用原始读取版本，冲突保留草稿。此处 JSON 不支持 null 清除。")
+        });
         if self.platform == Platform::Codex && self.surface == Surface::Providers {
-            root = root.child(text(cx,"Provider library: enter an ID, then JSON with name, base_url, optional website_url/api_key_url and api_key/api_key_name. Omitted or blank keys preserve saved credentials. This library does not switch the active runtime provider.","供应商库：输入标识及包含 name、base_url 的 JSON，可选 website_url/api_key_url 和 api_key/api_key_name。省略或留空密钥会保留已保存凭据。此库不会切换运行供应商。"));
+            root = root.child(text(cx,"Provider metadata library. Blank replacement keys preserve saved credentials; this does not switch the active runtime provider.","供应商元数据库。替换密钥留空会保留已有凭据；此操作不会切换当前运行供应商。"));
         }
         if self.surface == Surface::Providers {
             root = root
-                .child(Input::new(&self.name).aria_label(text(cx, "Provider ID", "供应商标识")))
+                .child(
+                    Input::new(&self.name)
+                        .id("platform-provider-id")
+                        .aria_label(text(cx, "Provider ID", "供应商标识")),
+                )
+                .child(semantics::button(
+                    Button::new("platform-provider-load-fields")
+                        .label(text(cx, "Load provider fields", "载入供应商字段"))
+                        .ghost()
+                        .on_click(cx.listener(|this, _, window, cx| {
+                            let facts = this
+                                .session
+                                .as_ref()
+                                .map(|s| s.provider_fields(&this.name.read(cx).value()))
+                                .unwrap_or_default();
+                            this.form
+                                .load(this.platform, this.surface, &facts, window, cx);
+                            this.content
+                                .update(cx, |state, cx| state.set_value("", window, cx));
+                            this.advanced = false;
+                            cx.notify();
+                        })),
+                    blocked,
+                    false,
+                    cx,
+                ))
                 .child(semantics::button(
                     Button::new("platform-provider-delete")
                         .label(text(cx, "Delete provider", "删除供应商"))
@@ -1237,19 +1305,73 @@ impl PlatformsView {
                     .child(catalog),
             );
         }
-        let can_patch = self.platform != Platform::Grok || self.source_mode;
+        if !self.source_mode {
+            root = root.child(semantics::button(
+                Button::new("platform-advanced-patch")
+                    .label(text(cx, "Advanced JSON patch", "高级 JSON 补丁"))
+                    .ghost()
+                    .toggled(self.advanced)
+                    .on_click(cx.listener(|this, _, window, cx| {
+                        if !this.advanced {
+                            match this.form.patch(&this.content.read(cx).value(), cx) {
+                                Ok(value) => this
+                                    .content
+                                    .update(cx, |state, cx| state.set_value(value, window, cx)),
+                                Err(error) => {
+                                    this.message = Some(error);
+                                    cx.notify();
+                                    return;
+                                }
+                            }
+                        } else {
+                            let facts = this
+                                .session
+                                .as_ref()
+                                .map(|session| {
+                                    if this.surface == Surface::Providers {
+                                        session.provider_fields(&this.name.read(cx).value())
+                                    } else {
+                                        session.fields.clone()
+                                    }
+                                })
+                                .unwrap_or_default();
+                            let mut form = forms::SettingsForm::new();
+                            form.load(this.platform, this.surface, &facts, window, cx);
+                            if let Err(error) =
+                                form.sync_draft(&this.content.read(cx).value(), window, cx)
+                            {
+                                this.message = Some(error);
+                                cx.notify();
+                                return;
+                            }
+                            this.form = form;
+                        }
+                        this.advanced = !this.advanced;
+                        cx.notify();
+                    })),
+                blocked,
+                false,
+                cx,
+            ));
+        }
+        let editor = if !self.source_mode && !self.advanced {
+            self.form.render(blocked, cx)
+        } else {
+            div()
+                .child(
+                    Textarea::new(&self.content)
+                        .accessibility_id("platform-content")
+                        .aria_label(if self.source_mode {
+                            text(cx, "Plaintext settings source", "明文设置源文件")
+                        } else {
+                            text(cx, "Dirty settings JSON object", "变更设置 JSON 对象")
+                        })
+                        .h(px(180.))
+                        .readonly(blocked),
+                )
+                .into_any_element()
+        };
         root = root
-            .child(
-                Textarea::new(&self.content)
-                    .accessibility_id("platform-content")
-                    .aria_label(if self.source_mode {
-                        text(cx, "Plaintext settings source", "明文设置源文件")
-                    } else {
-                        text(cx, "Dirty settings JSON object", "变更设置 JSON 对象")
-                    })
-                    .h(px(180.))
-                    .readonly(blocked || !can_patch),
-            )
             .child(semantics::button(
                 Button::new("platform-save")
                     .label(if self.source_mode {
@@ -1262,16 +1384,27 @@ impl PlatformsView {
                         text(cx, "Save dirty patch", "保存变更字段")
                     })
                     .on_click(cx.listener(|this, _, _, cx| this.save(cx))),
-                blocked || !can_patch,
+                blocked,
                 self.busy,
                 cx,
-            ));
+            ))
+            .child(editor);
 
         root
     }
 }
 impl Render for PlatformsView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        if self.pending_form {
+            self.pending_form = false;
+            let facts = self
+                .session
+                .as_ref()
+                .map(|s| s.fields.clone())
+                .unwrap_or_default();
+            self.form
+                .load(self.platform, self.surface, &facts, window, cx);
+        }
         if let Some(content) = self.pending_content.take() {
             self.content
                 .update(cx, |state, cx| state.set_value(content, window, cx));
@@ -1411,6 +1544,36 @@ impl Render for PlatformsView {
             ));
         }
         root = root.child(surfaces);
+        if matches!(
+            self.platform,
+            Platform::Claude | Platform::Codex | Platform::Grok
+        ) {
+            root = root.child(semantics::button(
+                Button::new("platform-show-layers")
+                    .label(text(cx, "Configuration sources", "配置来源"))
+                    .ghost()
+                    .selected(self.layers_open)
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.layers_open = !this.layers_open;
+                        let platform = this.platform;
+                        let open = this.layers_open;
+                        this.layers.update(cx, |view, cx| {
+                            if open {
+                                view.open(platform, cx);
+                            } else {
+                                view.suspend(cx);
+                            }
+                        });
+                        cx.notify();
+                    })),
+                blocked,
+                false,
+                cx,
+            ));
+        }
+        if self.layers_open {
+            return root.child(self.layers.clone());
+        }
         root = self.render_decision(root, cx, window);
         root = root.child(
             div()
@@ -1440,7 +1603,13 @@ impl Render for PlatformsView {
                 )),
         );
         if let Some(session) = &self.session {
-            root = root.child(local_projection(session, cx));
+            root = root.child(local_projection(
+                session,
+                matches!(self.surface, Surface::Models | Surface::Auth)
+                    || self.source_mode
+                    || self.advanced,
+                cx,
+            ));
             if self.surface == Surface::Auth {
                 root = self.render_oauth(root, blocked, cx, oauth_active);
                 root = self.render_accounts(root, blocked, cx);

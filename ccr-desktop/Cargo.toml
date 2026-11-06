@@ -27,6 +27,7 @@ ccr-codex = { path = "../crates/ccr-codex" }
 ccr-store = { path = "../crates/ccr-store" }
 ccr-sync = { path = "../crates/ccr-sync" }
 ccr-usage = { path = "../crates/ccr-usage" }
+ccr-types = { path = "../crates/ccr-types" }
 chrono = "=0.4.45"
 dirs = "=6.0.0"
 rusqlite = { version = "=0.40.2", features = ["bundled", "functions"] }

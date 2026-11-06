@@ -63,6 +63,7 @@ fn actual_theme_controls_keep_base_component_palette_and_language_in_sync(cx: &m
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-claude-code", cx);
+        window.click("tool-profiles", cx);
         window.click("configuration-filter", cx);
         window.input("retained query", cx);
         window.click("nav-settings", cx);
@@ -102,6 +103,7 @@ fn actual_theme_controls_keep_base_component_palette_and_language_in_sync(cx: &m
             Theme::global(cx).semantic_tokens().colors
         );
         window.click("nav-claude-code", cx);
+        window.click("tool-profiles", cx);
         assert_eq!(
             window.find("configuration-filter").value(),
             Some("retained query")
@@ -140,6 +142,7 @@ fn f6_tab_navigation_does_not_intercept_search_editing(cx: &mut TestAppContext) 
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-claude-code", cx);
+        window.click("tool-profiles", cx);
         window.click("configuration-filter", cx);
         window.input("原生读取", cx);
         window.press("left", cx);
@@ -267,6 +270,9 @@ fn opaque_surface_quads_preserve_the_paper_corners(cx: &mut TestAppContext) {
                 "nav-settings",
             ] {
                 window.click(page, cx);
+                if page == "nav-claude-code" {
+                    window.click("tool-profiles", cx);
+                }
                 let quads = window.painted_quads();
                 let scale = window.scale_factor();
                 let paper = quads
@@ -504,6 +510,7 @@ fn workbench_navigation_exposes_thirteen_destinations(cx: &mut TestAppContext) {
             );
         }
         window.click("nav-claude-code", cx);
+        window.click("tool-profiles", cx);
         window.click("configuration-filter", cx);
         window.press("f6", cx);
         window.press("f6", cx);
@@ -514,6 +521,7 @@ fn workbench_navigation_exposes_thirteen_destinations(cx: &mut TestAppContext) {
         assert!(window.find("page-agent-sessions").visible());
         assert_eq!(window.find("nav-agent-sessions").checked(), Some(true));
         window.click("nav-claude-code", cx);
+        window.click("tool-profiles", cx);
         window.click("configuration-filter", cx);
         window.press("f6", cx);
         window.press("f6", cx);
@@ -575,6 +583,237 @@ fn page_labels(window: &gpui_kit::Window) -> String {
         .join("\n")
 }
 
+/// Explicit QA preparation only. The supplied new directory must be beneath
+/// this checkout's outputs/desktop; no user roots or existing fixture are read.
+#[test]
+#[ignore = "explicit isolated native workbench preparation"]
+fn prepare_native_workbench_fixture() {
+    use ccr_app::platform_settings::{Document, Format, SaveOutcome};
+    use ccr_app::runtime::{EnvironmentId, Platform, RequestKey};
+    use ccr_app::usage::observer::subscription::SubscriptionDto;
+    use ccr_core::core::BackupPolicy;
+    let repo = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap_or_else(|| panic!("repo"));
+    let output = repo
+        .join("outputs/desktop")
+        .canonicalize()
+        .unwrap_or_else(|e| panic!("output: {e}"));
+    let root = std::path::PathBuf::from(
+        std::env::var_os("CCR_NATIVE_FIXTURE_ROOT")
+            .unwrap_or_else(|| panic!("set CCR_NATIVE_FIXTURE_ROOT")),
+    );
+    assert!(root.is_absolute());
+    let parent = root
+        .parent()
+        .unwrap_or_else(|| panic!("fixture parent"))
+        .canonicalize()
+        .unwrap_or_else(|e| panic!("parent: {e}"));
+    assert!(
+        parent.starts_with(&output),
+        "fixture must stay in outputs/desktop"
+    );
+    assert!(!root.exists(), "refuse existing fixture");
+    std::fs::create_dir(&root).unwrap_or_else(|e| panic!("fixture: {e}"));
+    std::fs::write(
+        root.join("CCR_NATIVE_DEMO_ONLY"),
+        "Synthetic native workbench fixture. No real credentials.\n",
+    )
+    .unwrap_or_else(|e| panic!("sentinel: {e}"));
+    let source = ConfigSource::Fixture {
+        profiles: root.join("profiles.toml"),
+        registry: root.join("registry.toml"),
+        delay: Duration::ZERO,
+    };
+    for (platform, name) in [
+        (ccr_config::Platform::Claude, "demo-claude"),
+        (ccr_config::Platform::Codex, "demo-codex"),
+        (ccr_config::Platform::Grok, "demo-grok"),
+    ] {
+        seed_catalog(&source, platform, name, true);
+        let context = context(&source, platform).unwrap_or_else(|_| panic!("fixture context"));
+        context
+            .run(|| {
+                let mut config = context.manager().load()?;
+                let template = config.sections.get(name).cloned().unwrap_or_default();
+                config.sections.insert(format!("{name}-backup"), template);
+                context.manager().save(&config)
+            })
+            .unwrap_or_else(|_| panic!("fixture profiles"));
+    }
+    let save = |path: std::path::PathBuf, content: &str, format: Format| {
+        let document = Document::new(
+            path,
+            None,
+            BackupPolicy::Dir {
+                dir: root.join("fixture-backups"),
+                prefix: "native-qa".into(),
+            },
+            Some(root.join("fixture-locks")),
+            format,
+        );
+        let snapshot = document.read().unwrap_or_else(|_| panic!("fixture read"));
+        assert!(matches!(
+            document.save_text(content, &snapshot),
+            Ok(SaveOutcome::Saved { .. })
+        ));
+    };
+    // Each existing adapter deliberately captures a separate fixture root.
+    // Seed all of them explicitly, instead of falling through to a user's HOME.
+    for directory in [
+        "desktop-platform-fixture",
+        "desktop-resource-fixture",
+        "desktop-mcp-fixture",
+    ] {
+        let roots =
+            ccr_cli::application::platform_roots::PlatformRoots::fixture(&root.join(directory))
+                .unwrap_or_else(|_| panic!("captured roots"));
+        save(
+            roots.claude.settings_file,
+            r#"{"model":"demo-sonnet","agents":[{"name":"reviewer","model":"demo-sonnet","tools":[]}],"plugins":[{"id":"demo-plugin","name":"demo-plugin","version":"0.0.0","enabled":false}],"slashCommands":[{"name":"review","description":"Synthetic command","command":"fixture-do-not-run"}],"mcpServers":{"demo-files":{"command":"fixture-do-not-run"}}}"#,
+            Format::Json,
+        );
+        save(
+            roots.codex_runtime.join("config.toml"),
+            "model = 'demo-codex-model'\n[mcp_servers.demo]\ncommand = 'fixture-do-not-run'\n",
+            Format::Toml,
+        );
+        save(
+            roots.grok_runtime.join("config.toml"),
+            "[models]\ndefault = 'demo-grok-model'\n",
+            Format::Toml,
+        );
+        save(
+            roots.home.join(".config/opencode/opencode.json"),
+            r#"{"model":"demo/provider","provider":{"demo":{"name":"Synthetic provider"}}}"#,
+            Format::Json,
+        );
+    }
+    let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
+    let services = Services::new(owner.handle(), source);
+    let requests = ccr_gpui::runtime::insights::InsightsRequests::new(&services);
+    requests
+        .observer_save(
+            RequestKey {
+                environment: EnvironmentId::Local("native-demo".into()),
+                platform: Platform::Claude,
+                generation: 1,
+                request_id: 1,
+            },
+            None,
+            SubscriptionDto {
+                mode: "subscription".into(),
+                plan: "custom".into(),
+                monthly_usd: 20.0,
+            },
+        )
+        .unwrap_or_else(|_| panic!("fixture subscription"));
+    let deadline = Instant::now() + Duration::from_secs(10);
+    loop {
+        match requests.observer_update() {
+            ccr_gpui::runtime::insights::observer::Update::Finished(Ok(_)) => break,
+            ccr_gpui::runtime::insights::observer::Update::Finished(Err(_)) => {
+                panic!("fixture observer write")
+            }
+            _ => {}
+        }
+        assert!(Instant::now() < deadline, "fixture observer timeout");
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    owner.shutdown();
+    std::fs::write(root.join("fixture.json"),serde_json::to_string_pretty(&serde_json::json!({"demo":true,"profiles":root.join("profiles.toml"),"registry":root.join("registry.toml"),"observer_db":root.join("observer.db")})).unwrap_or_else(|e|panic!("manifest: {e}"))).unwrap_or_else(|e|panic!("manifest: {e}"));
+}
+
+#[gpui_kit::test]
+async fn platform_workbench_is_default_and_scoped_navigation_keeps_platform(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
+    let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
+    let source = ConfigSource::Fixture {
+        profiles: root.path().join("profiles.toml"),
+        registry: root.path().join("registry.toml"),
+        delay: Duration::ZERO,
+    };
+    seed_catalog(
+        &source,
+        ccr_config::Platform::Claude,
+        "claude-workbench",
+        true,
+    );
+    seed_catalog(
+        &source,
+        ccr_config::Platform::Codex,
+        "codex-workbench",
+        false,
+    );
+    let (handle, _) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| Shell::new(Services::new(owner.handle(), source), window, cx))
+        })
+        .unwrap_or_else(|e| panic!("window: {e}"))
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("nav-claude-code", cx);
+        assert!(window.find("platform-workbench").visible());
+        assert!(window.try_find("configuration-filter").is_none());
+        assert_eq!(window.find("workbench-title").label(), Some("Claude Code"));
+        for id in [
+            "tool-profiles",
+            "tool-auth",
+            "tool-platform-mcp",
+            "tool-agents",
+            "tool-plugins",
+            "tool-slash-commands",
+            "tool-files",
+            "tool-platform-usage",
+            "tool-subscription",
+        ] {
+            assert!(window.find(id).visible(), "missing scoped link {id}");
+        }
+    })
+    .unwrap_or_else(|e| panic!("default: {e}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window
+            .find("workbench-current-profile")
+            .label()
+            .is_some_and(|label| label.contains("claude-workbench"))
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("tool-agents", cx);
+        assert!(window.find("page-claude-code").visible());
+        assert!(window.try_find("claude-resource-agents").is_some());
+        window.click("tool-profiles", cx);
+    })
+    .unwrap_or_else(|e| panic!("scoped agents: {e}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("configuration:claude-workbench").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("nav-codex", cx);
+        assert!(window.find("platform-workbench").visible());
+        assert_eq!(window.find("workbench-title").label(), Some("Codex"));
+        assert!(!page_labels(window).contains("claude-workbench"));
+        window.click("tool-platform-usage", cx);
+        assert!(window.find("page-codex").visible());
+        assert_eq!(window.find("insights-filter-0").value(), Some("codex"));
+        window.click("nav-usage", cx);
+        assert_eq!(window.find("insights-filter-0").value(), Some(""));
+        window.click("nav-grok", cx);
+        assert!(window.try_find("tool-platform-mcp").is_none());
+        assert!(window.try_find("workbench-mcp").is_none());
+        assert!(window.try_find("tool-plugins").is_none());
+        window.remove_window();
+    })
+    .unwrap_or_else(|e| panic!("platform isolation: {e}"));
+    owner.shutdown();
+}
+
 #[gpui_kit::test]
 async fn profile_pages_show_only_their_catalog(cx: &mut TestAppContext) {
     cx.executor().allow_parking();
@@ -609,6 +848,7 @@ async fn profile_pages_show_only_their_catalog(cx: &mut TestAppContext) {
         window.render_frame(cx);
         assert!(window.try_find("nav-converter").is_none());
         window.click("nav-claude-code", cx);
+        window.click("tool-profiles", cx);
     })
     .unwrap_or_else(|e| panic!("open claude: {e}"));
     cx.wait_for(handle, Duration::from_secs(10), |window, _| {
@@ -642,6 +882,7 @@ async fn profile_pages_show_only_their_catalog(cx: &mut TestAppContext) {
         assert!(!credential.contains("sk-native-profile-secret-sentinel"));
         assert!(!page_labels(window).contains("sk-native-profile-secret-sentinel"));
         window.click("nav-codex", cx);
+        window.click("tool-profiles", cx);
     })
     .unwrap_or_else(|e| panic!("open codex: {e}"));
     cx.wait_for(handle, Duration::from_secs(10), |window, _| {
@@ -663,6 +904,7 @@ async fn profile_pages_show_only_their_catalog(cx: &mut TestAppContext) {
         assert!(!text.contains("claude-kept"));
         assert!(!text.contains("sk-native-profile-secret-sentinel"));
         window.click("nav-grok", cx);
+        window.click("tool-profiles", cx);
     })
     .unwrap_or_else(|e| panic!("open grok: {e}"));
     cx.wait_for(handle, Duration::from_secs(10), |window, _| {
@@ -701,6 +943,55 @@ fn write_fixture(path: &std::path::Path, body: &str) {
 
 #[gpui_kit::test]
 async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut TestAppContext) {
+    // A newly mounted button may omit its disabled snapshot. Wait for a visible
+    // read result instead; successful values are asserted separately below.
+    async fn loaded(cx: &mut TestAppContext, handle: gpui_kit::AnyWindowHandle) {
+        cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+            window.try_find("platform-file-status").is_some()
+                || window.try_find("platform-operation-status").is_some()
+        })
+        .await;
+    }
+    fn safe_state(window: &gpui_kit::Window) -> String {
+        let nodes = gpui_kit::base::test_support::snapshots(window);
+        let ids: Vec<_> = nodes
+            .iter()
+            .filter_map(|node| {
+                let id = format!("{:?}", node.path().last()?);
+                id.contains("platform-").then_some(id)
+            })
+            .collect();
+        let statuses: Vec<_> = [
+            "platform-file-status",
+            "platform-auth-status",
+            "platform-provider-status",
+            "platform-operation-status",
+        ]
+        .into_iter()
+        .filter_map(|id| {
+            window
+                .try_find(id)
+                .map(|node| (id, node.label().map(str::to_owned)))
+        })
+        .collect();
+        format!("field paths={ids:?}; safe statuses={statuses:?}")
+    }
+    fn private_projection(window: &gpui_kit::Window, secret: &str, foreign_models: &[&str]) {
+        for node in gpui_kit::base::test_support::snapshots(window) {
+            for value in [node.label(), node.value()].into_iter().flatten() {
+                assert!(
+                    !value.contains(secret),
+                    "stored secret reached a visible projection"
+                );
+                for model in foreign_models {
+                    assert!(
+                        !value.contains(model),
+                        "another platform's model reached this projection"
+                    );
+                }
+            }
+        }
+    }
     cx.executor().allow_parking();
     let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
     let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
@@ -760,6 +1051,20 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
         &home.join(".gemini/antigravity-cli/settings.json"),
         &format!(r#"{{"apiKey":"{secret}","theme":"dark"}}"#),
     );
+    let original_sources: Vec<_> = [
+        ".claude/settings.json",
+        ".codex/config.toml",
+        ".grok/config.toml",
+        ".config/opencode/opencode.json",
+        ".gemini/antigravity-cli/settings.json",
+    ]
+    .into_iter()
+    .map(|relative| {
+        let path = home.join(relative);
+        let bytes = std::fs::read(&path).unwrap_or_else(|_| panic!("fixture source"));
+        (path, bytes)
+    })
+    .collect();
     let (handle, _) = cx.update(|cx| {
         gpui_kit::init(cx);
         gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
@@ -783,6 +1088,7 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-claude-code", cx);
+        window.click("tool-profiles", cx);
     })
     .unwrap_or_else(|e| panic!("claude catalog: {e}"));
     cx.wait_for(handle, Duration::from_secs(10), |window, _| {
@@ -799,15 +1105,34 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
         window.click("tool-accounts", cx);
     })
     .unwrap_or_else(|e| panic!("claude accounts: {e}"));
-    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
-        window
-            .try_find("platform-field-model")
-            .and_then(|node| node.label().map(|label| label == "model: sonnet"))
-            .unwrap_or(false)
-    })
-    .await;
+    loaded(cx, handle).await;
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
+        assert_eq!(
+            window
+                .try_find("platform-setting-model")
+                .and_then(|node| node.value().map(str::to_owned)),
+            Some("sonnet".into()),
+            "{}",
+            safe_state(window)
+        );
+        assert!(window.try_find("platform-common-form").is_some());
+        assert!(window.try_find("platform-field-model").is_none());
+        private_projection(window, secret, &["gpt-5", "grok-3", "opencode-model"]);
+        window.click("tool-auth", cx);
+    })
+    .unwrap_or_else(|e| panic!("claude settings: {e}"));
+    loaded(cx, handle).await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert_eq!(
+            window
+                .try_find("platform-field-model")
+                .and_then(|node| node.label().map(str::to_owned)),
+            Some("model: sonnet".into()),
+            "{}",
+            safe_state(window)
+        );
         let text = page_labels(window);
         assert!(text.contains("settings.json was found"));
         assert!(text.contains("No runtime credential was detected."));
@@ -817,37 +1142,77 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
         assert!(!text.contains(" / "));
         assert!(!text.contains("Home insights"));
         assert!(!text.contains("Apply / refresh"));
+        private_projection(window, secret, &["gpt-5", "grok-3", "opencode-model"]);
         window.click("nav-codex", cx);
+        window.click("tool-profiles", cx);
         window.click("tool-accounts", cx);
     })
     .unwrap_or_else(|e| panic!("codex accounts: {e}"));
-    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
-        window
-            .try_find("platform-field-model")
-            .and_then(|node| node.label().map(|label| label == "model: gpt-5"))
-            .unwrap_or(false)
-    })
-    .await;
+    loaded(cx, handle).await;
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
+        assert_eq!(
+            window
+                .try_find("platform-setting-model")
+                .and_then(|node| node.value().map(str::to_owned)),
+            Some("gpt-5".into()),
+            "{}",
+            safe_state(window)
+        );
+        assert!(window.try_find("platform-common-form").is_some());
+        private_projection(window, secret, &["sonnet", "grok-3", "opencode-model"]);
+        window.click("tool-auth", cx);
+    })
+    .unwrap_or_else(|e| panic!("codex settings: {e}"));
+    loaded(cx, handle).await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert_eq!(
+            window
+                .try_find("platform-field-model")
+                .and_then(|node| node.label().map(str::to_owned)),
+            Some("model: gpt-5".into()),
+            "{}",
+            safe_state(window)
+        );
         let text = page_labels(window);
         assert!(window.find("page-codex").visible());
         assert!(text.contains("No runtime credential was detected."));
         assert!(text.contains("No saved accounts."));
         assert!(!text.contains(secret));
+        private_projection(window, secret, &["sonnet", "grok-3", "opencode-model"]);
         window.click("nav-grok", cx);
+        window.click("tool-profiles", cx);
         window.click("tool-accounts", cx);
     })
     .unwrap_or_else(|e| panic!("grok accounts: {e}"));
-    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
-        window
-            .try_find("platform-field-default_model")
-            .and_then(|node| node.label().map(|label| label == "default_model: grok-3"))
-            .unwrap_or(false)
-    })
-    .await;
+    loaded(cx, handle).await;
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
+        assert_eq!(
+            window
+                .try_find("platform-setting-default_model")
+                .and_then(|node| node.value().map(str::to_owned)),
+            Some("grok-3".into()),
+            "{}",
+            safe_state(window)
+        );
+        assert!(window.try_find("platform-common-form").is_some());
+        private_projection(window, secret, &["sonnet", "gpt-5", "opencode-model"]);
+        window.click("tool-auth", cx);
+    })
+    .unwrap_or_else(|e| panic!("grok settings: {e}"));
+    loaded(cx, handle).await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert_eq!(
+            window
+                .try_find("platform-field-default_model")
+                .and_then(|node| node.label().map(str::to_owned)),
+            Some("default_model: grok-3".into()),
+            "{}",
+            safe_state(window)
+        );
         let text = page_labels(window);
         assert!(window.find("page-grok").visible());
         assert!(text.contains("No runtime credential was detected."));
@@ -858,51 +1223,82 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
         assert!(!text.contains("No saved accounts."));
         assert!(!text.contains("logged in"));
         assert!(!text.contains(secret));
+        private_projection(window, secret, &["sonnet", "gpt-5", "opencode-model"]);
         window.click("nav-opencode", cx);
+        window.click("tool-accounts", cx);
     })
     .unwrap_or_else(|e| panic!("opencode: {e}"));
-    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
-        window
-            .try_find("platform-provider-status")
-            .and_then(|node| node.label().map(|label| label.contains("fixture-provider")))
-            .unwrap_or(false)
-    })
-    .await;
+    loaded(cx, handle).await;
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         let text = page_labels(window);
         assert!(window.find("page-opencode").visible());
-        assert!(text.contains("model: opencode-model"));
+        assert_eq!(
+            window
+                .try_find("platform-setting-model")
+                .and_then(|node| node.value().map(str::to_owned)),
+            Some("opencode-model".into()),
+            "{}",
+            safe_state(window)
+        );
+        assert!(
+            window
+                .find("platform-provider-status")
+                .label()
+                .is_some_and(|label| label.contains("fixture-provider"))
+        );
+        assert!(window.try_find("platform-common-form").is_some());
+        assert!(window.try_find("tool-auth").is_none());
         assert!(text.contains("Accounts are not supported. Login state is not reported."));
         assert!(!text.contains(secret));
         assert!(!text.contains("apiKey"));
+        private_projection(window, secret, &["sonnet", "gpt-5", "grok-3"]);
         window.click("nav-antigravity", cx);
+        window.click("tool-accounts", cx);
     })
     .unwrap_or_else(|e| panic!("antigravity: {e}"));
-    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
-        window
-            .try_find("platform-file-status")
-            .and_then(|node| {
-                node.label()
-                    .map(|label| label.contains("Typed settings are not supported"))
-            })
-            .unwrap_or(false)
-    })
-    .await;
+    loaded(cx, handle).await;
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         let text = page_labels(window);
         assert!(window.find("page-antigravity").visible());
+        assert!(
+            window
+                .find("platform-file-status")
+                .label()
+                .is_some_and(|label| label.contains("Typed settings are not supported")),
+            "{}",
+            safe_state(window)
+        );
         assert!(text.contains("Accounts are not supported. Login state is not reported."));
         assert!(window.try_find("platform-save").is_none());
+        assert!(window.try_find("platform-common-form").is_none());
+        assert!(window.try_find("platform-setting-model").is_none());
+        assert!(window.try_find("tool-auth").is_none());
         assert!(!text.contains(secret));
         assert!(!text.contains("theme"));
         assert!(!text.contains("dark"));
         assert!(!text.contains("Home insights"));
         assert!(!text.contains("Apply / refresh"));
         assert!(window.try_find("nav-settings").is_some());
+        private_projection(
+            window,
+            secret,
+            &["sonnet", "gpt-5", "grok-3", "opencode-model"],
+        );
         window.remove_window();
     })
     .unwrap_or_else(|e| panic!("status: {e}"));
     owner.shutdown();
+    for (path, original) in original_sources {
+        assert!(
+            std::fs::read(path).unwrap_or_else(|_| panic!("fixture source remains readable"))
+                == original,
+            "read-only platform navigation changed source bytes"
+        );
+    }
+    assert!(
+        !grok_auth.exists(),
+        "observing a saved account must not create runtime credentials"
+    );
 }

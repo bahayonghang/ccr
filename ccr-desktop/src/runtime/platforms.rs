@@ -11,8 +11,11 @@ use serde_json::Value;
 use std::sync::Arc;
 
 mod accounts;
+mod grok;
+pub mod layers;
 mod providers;
 mod quota;
+pub mod rolling;
 pub use quota::QuotaRow;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -496,6 +499,22 @@ fn project_fields(
                     .get("session")
                     .and_then(|entry| entry.get("auto_compact_threshold_percent")),
             );
+            for (key, section, leaf) in [
+                ("load_envrc", "session", "load_envrc"),
+                ("show_tips", "cli", "show_tips"),
+                (
+                    "new_session_worktree_mode",
+                    "hints",
+                    "new_session_worktree_mode",
+                ),
+                ("fork_worktree_mode", "hints", "fork_worktree_mode"),
+            ] {
+                push_toml(
+                    &mut fields,
+                    key,
+                    value.get(section).and_then(|entry| entry.get(leaf)),
+                );
+            }
         }
         _ => {}
     }
@@ -822,6 +841,7 @@ fn execute(
                     return Err(PlatformError::Invalid);
                 }
                 let outcome = match platform {
+                    Platform::Grok => return grok::patch(session, &patch).map(ResultValue::Saved),
                     Platform::Codex => platform_settings::codex::save_patch(
                         &session.document,
                         &session.snapshot,

@@ -67,7 +67,7 @@ pub fn preset_patch(id: &str, target: &McpTarget) -> Result<Value, McpError> {
     Ok(value)
 }
 
-fn portable_entry(value: Value, target: &McpTarget) -> Result<Value, McpError> {
+pub(super) fn portable_entry(value: Value, target: &McpTarget) -> Result<Value, McpError> {
     let mut fields = value.as_object().cloned().ok_or(McpError::Invalid)?;
     fields.retain(|_, value| !value.is_null());
     // Unknown options may change authentication, approval or tool access. Never
@@ -135,7 +135,7 @@ fn portable_entry(value: Value, target: &McpTarget) -> Result<Value, McpError> {
 }
 
 impl McpEditSession {
-    fn entry_for_copy(&self, name: &str) -> Result<Value, McpError> {
+    pub(super) fn entry_for_copy(&self, name: &str) -> Result<Value, McpError> {
         let value = match &self.document {
             EditDocument::Claude(snapshot) => snapshot
                 .entry_for_copy(name)
@@ -157,7 +157,7 @@ impl McpEditSession {
         value.ok_or(McpError::Missing)
     }
 
-    fn is_current(&self) -> Result<bool, McpError> {
+    pub(super) fn is_current(&self) -> Result<bool, McpError> {
         match &self.document {
             EditDocument::Claude(snapshot) => snapshot.is_current().map_err(|_| McpError::Storage),
             EditDocument::Standard {

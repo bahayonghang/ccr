@@ -283,6 +283,7 @@ impl Services {
             finished: false,
         };
         let source = self.source.clone();
+        let monitoring = self.monitoring.clone();
         self.executor
             .job(key, move |_, _| {
                 let mut pending = pending;
@@ -301,6 +302,16 @@ impl Services {
                     .unwrap_or_default();
                 let snapshot = storage.ok().and_then(|s| s.snapshot(records).ok());
                 let outcome = result.map(|(outcome, _)| outcome);
+                monitoring.terminal(
+                    &source,
+                    "checkin",
+                    if outcome.is_ok() {
+                        "checkin.operation.completed"
+                    } else {
+                        "checkin.operation.failed"
+                    },
+                    outcome.is_err(),
+                );
                 owner.finish(outcome, snapshot);
                 pending.finished = true;
                 match outcome {

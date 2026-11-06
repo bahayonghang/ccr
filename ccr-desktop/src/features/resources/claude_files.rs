@@ -21,6 +21,7 @@ use gpui_kit::{
     Window, div, px,
 };
 use std::sync::Arc;
+mod common_form;
 
 const PAGE_SIZE: usize = 40;
 enum Intent {
@@ -42,6 +43,7 @@ pub struct ClaudeResourcesView {
     filter: Entity<InputState>,
     name: Entity<InputState>,
     editor: Entity<TextareaState>,
+    form: common_form::CommonForm,
     _filter_observation: Subscription,
     page: usize,
     session: Option<Arc<Session>>,
@@ -49,6 +51,8 @@ pub struct ClaudeResourcesView {
     enter_editor: bool,
     intent: Option<Intent>,
     enter_confirmation: bool,
+    confirmation_generation: u64,
+    confirmation_return: Option<FocusHandle>,
     busy: bool,
     generation: u64,
     gate: ResponseGate,
@@ -71,6 +75,7 @@ impl ClaudeResourcesView {
             filter,
             name: cx.new(|cx| InputState::new(window, cx)),
             editor: cx.new(|cx| TextareaState::new(window, cx)),
+            form: common_form::CommonForm::new(window, cx),
             _filter_observation: observation,
             page: 0,
             session: None,
@@ -78,30 +83,38 @@ impl ClaudeResourcesView {
             enter_editor: false,
             intent: None,
             enter_confirmation: false,
+            confirmation_generation: 0,
+            confirmation_return: None,
             busy: false,
             generation: 0,
             gate: ResponseGate::default(),
             task: None,
             notice: None,
             focus: cx.focus_handle().tab_stop(false),
-            confirmation_focus: cx.focus_handle(),
+            confirmation_focus: cx.focus_handle().tab_stop(false),
         }
     }
     pub fn load(&mut self, cx: &mut Context<Self>) {
         self.request(Command::List(self.kind), cx);
+    }
+    pub fn open_kind(&mut self, kind: Kind, window: &mut Window, cx: &mut Context<Self>) {
+        self.leave(window, cx);
+        self.kind = kind;
+        self.load(cx);
     }
     pub fn blocks_switch(&self) -> bool {
         self.busy || self.session.is_some() || self.intent.is_some()
     }
     pub fn focus_main(&self, window: &mut Window, cx: &mut Context<Self>) {
         if self.session.is_some() {
-            window.focus(&self.editor.read(cx).focus_handle(cx), cx);
+            self.focus_editor(window, cx);
         } else {
             window.focus(&self.focus, cx);
             window.focus_next(cx);
         }
     }
     pub fn leave(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.form.clear(window, cx);
         self.task = None;
         self.gate.clear();
         self.generation = self.generation.saturating_add(1);
@@ -111,6 +124,8 @@ impl ClaudeResourcesView {
         self.enter_editor = false;
         self.enter_confirmation = false;
         self.rows.clear();
+        self.confirmation_generation += 1;
+        self.confirmation_return = None;
         self.busy = false;
         self.notice = None;
         self.editor
@@ -199,18 +214,25 @@ impl ClaudeResourcesView {
             cx,
         );
     }
-    fn prepare(&mut self, intent: Intent, cx: &mut Context<Self>) {
+    fn prepare(&mut self, intent: Intent, window: &mut Window, cx: &mut Context<Self>) {
         if self.busy || self.session.is_none() {
             return;
         }
         self.intent = Some(intent);
+        self.confirmation_generation += 1;
+        self.confirmation_return = window.focused(cx);
         self.enter_confirmation = true;
         cx.notify();
     }
     fn dismiss(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.intent = None;
         self.enter_confirmation = false;
-        window.focus(&self.editor.read(cx).focus_handle(cx), cx);
+        self.confirmation_generation += 1;
+        if let Some(focus) = self.confirmation_return.take() {
+            window.focus(&focus, cx);
+        } else {
+            self.focus_editor(window, cx);
+        }
         cx.notify();
     }
     fn confirm(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -218,7 +240,10 @@ impl ClaudeResourcesView {
             return;
         };
         self.enter_confirmation = false;
+        self.confirmation_generation += 1;
+        self.confirmation_return = None;
         if matches!(intent, Intent::Discard) {
+            self.form.clear(window, cx);
             self.session = None;
             self.editor
                 .update(cx, |state, cx| state.set_value("", window, cx));
@@ -310,12 +335,13 @@ fn notice_text(notice: &Notice, cx: &App) -> &'static str {
 impl Render for ClaudeResourcesView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         if let Some(content) = self.pending_text.take() {
+            self.form.clear(window, cx);
             self.editor
                 .update(cx, |state, cx| state.set_value(content, window, cx));
         }
         if self.enter_editor {
             self.enter_editor = false;
-            window.focus(&self.editor.read(cx).focus_handle(cx), cx);
+            self.focus_editor(window, cx);
         }
         let mut root = div()
             .id("claude-resources")
@@ -378,14 +404,51 @@ impl Render for ClaudeResourcesView {
                 .child(div().flex_shrink_0().child(if session.kind.is_file() {
                     text(cx, "Editing the full file. Leaving this page discards the draft; a write already started continues.", "正在编辑完整文件。离开此页会丢弃草稿；已经开始的写入将继续。")
                 } else {
-                    text(cx, "Submit a JSON object patch. Omitted fields and existing credentials are retained; stored credentials are never loaded into this editor.", "提交 JSON 对象补丁。省略的字段与已有凭据保持不变；已有凭据不会载入编辑器。")
-                }))
-                .child(div().flex_shrink_0().child(Textarea::new(&self.editor).aria_label(text(cx, "Claude resource content", "Claude 资源内容"))
-                    .accessibility_id("claude-resource-content").disabled(self.busy || self.intent.is_some()).h(px(260.))));
+                    text(cx, "Change common fields below. Stored credentials and unknown fields remain in their original source.", "在下方修改常用字段。已有凭据和未知字段保留在原始来源中。")
+                }));
+            if !session.kind.is_file() {
+                root = root.child(semantics::button(
+                    Button::new("claude-resource-advanced")
+                        .label(text(cx, "Advanced patch", "高级补丁"))
+                        .ghost()
+                        .on_click(
+                            cx.listener(|this, _, window, cx| this.toggle_advanced(window, cx)),
+                        ),
+                    self.busy || self.intent.is_some(),
+                    false,
+                    cx,
+                ));
+            }
+            let common_form = if session.kind.is_file() || self.form.advanced {
+                root = root.child(
+                    div().flex_shrink_0().child(
+                        Textarea::new(&self.editor)
+                            .aria_label(text(cx, "Claude resource content", "Claude 资源内容"))
+                            .accessibility_id("claude-resource-content")
+                            .disabled(self.busy || self.intent.is_some())
+                            .h(px(260.)),
+                    ),
+                );
+                None
+            } else {
+                Some(
+                    self.form
+                        .render(session.kind, self.busy || self.intent.is_some(), cx),
+                )
+            };
             if self.intent.is_some() {
                 if self.enter_confirmation {
                     self.enter_confirmation = false;
-                    window.focus(&self.confirmation_focus, cx);
+                    let generation = self.confirmation_generation;
+                    let view = cx.weak_entity();
+                    window.on_next_frame(move |window, cx| {
+                        let _ = view.update(cx, |this, cx| {
+                            if this.intent.is_some() && this.confirmation_generation == generation {
+                                window.focus(&this.confirmation_focus, cx);
+                                window.focus_next(cx);
+                            }
+                        });
+                    });
                 }
                 let description = match self.intent {
                     Some(Intent::Delete) => text(
@@ -408,6 +471,12 @@ impl Render for ClaudeResourcesView {
                     div()
                         .id("claude-resource-confirmation")
                         .test_support()
+                        .role(gpui_kit::Role::AlertDialog)
+                        .aria_label(text(
+                            cx,
+                            "Confirm Claude resource change",
+                            "确认 Claude 资源更改",
+                        ))
                         .flex_shrink_0()
                         .flex()
                         .flex_col()
@@ -423,6 +492,8 @@ impl Render for ClaudeResourcesView {
                         .child(description)
                         .child(
                             div()
+                                .tab_group()
+                                .tab_stop(false)
                                 .flex()
                                 .gap(px(theme::CONTROL_GAP))
                                 .child(semantics::button(
@@ -463,11 +534,12 @@ impl Render for ClaudeResourcesView {
                         Button::new("claude-resource-save")
                             .label(text(cx, "Save", "保存"))
                             .primary()
-                            .on_click(cx.listener(|this, _, _, cx| {
-                                this.prepare(
-                                    Intent::Save(this.editor.read(cx).value().to_string()),
-                                    cx,
-                                )
+                            .on_click(cx.listener(|this, _, window, cx| match this.draft(cx) {
+                                Ok(content) => this.prepare(Intent::Save(content), window, cx),
+                                Err(error) => {
+                                    this.notice = Some(Notice::Error(error));
+                                    cx.notify();
+                                }
                             })),
                         self.busy,
                         self.busy,
@@ -477,9 +549,9 @@ impl Render for ClaudeResourcesView {
                         Button::new("claude-resource-discard")
                             .label(text(cx, "Discard and close", "丢弃并关闭"))
                             .ghost()
-                            .on_click(
-                                cx.listener(|this, _, _, cx| this.prepare(Intent::Discard, cx)),
-                            ),
+                            .on_click(cx.listener(|this, _, window, cx| {
+                                this.prepare(Intent::Discard, window, cx)
+                            })),
                         self.busy,
                         false,
                         cx,
@@ -489,15 +561,18 @@ impl Render for ClaudeResourcesView {
                         Button::new("claude-resource-delete")
                             .label(text(cx, "Delete", "删除"))
                             .ghost()
-                            .on_click(
-                                cx.listener(|this, _, _, cx| this.prepare(Intent::Delete, cx)),
-                            ),
+                            .on_click(cx.listener(|this, _, window, cx| {
+                                this.prepare(Intent::Delete, window, cx)
+                            })),
                         self.busy,
                         false,
                         cx,
                     ));
                 }
                 root = root.child(actions);
+            }
+            if let Some(form) = common_form {
+                root = root.child(form);
             }
             return root;
         }

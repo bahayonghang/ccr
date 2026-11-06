@@ -6,8 +6,8 @@ use crate::runtime::ConfigSource;
 use ccr_app::{
     runtime::{CancellationHandle, Completion, EnvironmentId, RequestKey},
     usage::import::{
-        AppPaths, JobEvent, LlmusageCli, SyncCommandOptions, error::LlmusageAdapterError,
-        run_sync_stream,
+        AppPaths, JobEvent, LlmusageCli, SourceKind, SyncCommandOptions,
+        error::LlmusageAdapterError, run_sync_stream,
     },
 };
 use std::sync::{Arc, Mutex};
@@ -54,9 +54,45 @@ pub enum ToolUpdate {
     },
     Failed,
 }
+/// Captured import scope, independent from the report's display filters.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Options {
+    pub source: Option<SourceKind>,
+    pub recent_days: u32,
+}
+impl Default for Options {
+    fn default() -> Self {
+        Self {
+            source: None,
+            recent_days: 30,
+        }
+    }
+}
+impl Options {
+    fn includes_claude(self) -> bool {
+        self.source
+            .is_none_or(|source| source == SourceKind::Claude)
+    }
+    fn command(self, paths: &super::InsightsPaths) -> SyncCommandOptions {
+        // An explicit missing activation map makes the installed CLI fail strictly.
+        let provider_map = paths
+            .archive_db
+            .parent()
+            .and_then(std::path::Path::parent)
+            .map(ccr_config::managers::provider_activation::activation_log_path)
+            .filter(|path| path.is_file());
+        SyncCommandOptions {
+            source: self.source,
+            recent_days: Some(self.recent_days.max(1)),
+            rebuild: false,
+            provider_map,
+        }
+    }
+}
 #[derive(Clone, Debug, Default)]
 pub struct Snapshot {
     pub run: u64,
+    pub options: Options,
     pub status: Status,
     pub environment: Option<EnvironmentId>,
     pub files_scanned: u64,
@@ -190,6 +226,14 @@ impl InsightsRequests {
         });
     }
     pub fn start_import(&self, key: RequestKey) -> Result<(), Failure> {
+        self.start_import_with_options(key, Options::default())
+    }
+    pub fn start_import_with_options(
+        &self,
+        key: RequestKey,
+        mut options: Options,
+    ) -> Result<(), Failure> {
+        options.recent_days = options.recent_days.max(1);
         if !matches!(key.environment, EnvironmentId::Local(_)) {
             return Err(Failure::LocalOnly);
         }
@@ -231,6 +275,7 @@ impl InsightsRequests {
             }
             state.snapshot = Snapshot {
                 run: state.snapshot.run + 1,
+                options,
                 status: Status::Queued,
                 environment: Some(key.environment.clone()),
                 ..Default::default()
@@ -245,6 +290,8 @@ impl InsightsRequests {
         };
         let worker_owner = owner.clone();
         let requests = self.clone();
+        let monitoring = self.services.monitoring.clone();
+        let monitor_source = self.services.source.clone();
         let subscription = self
             .services
             .executor
@@ -268,42 +315,39 @@ impl InsightsRequests {
                                 .await;
                             }
                             let cli = LlmusageCli::new(AppPaths::from_root(&paths.usage_root));
-                            // Match the existing Tauri activation map; do not pass a nonexistent strict map.
-                            let map = paths
-                                .archive_db
-                                .parent()
-                                .and_then(std::path::Path::parent)
-                                .map(ccr_config::managers::provider_activation::activation_log_path)
-                                .filter(|path| path.is_file());
-                            run_sync_stream(
-                                &cli,
-                                SyncCommandOptions {
-                                    provider_map: map,
-                                    ..Default::default()
-                                },
-                                cancel.clone(),
-                                observe,
-                            )
-                            .await
+                            run_sync_stream(&cli, options.command(&paths), cancel.clone(), observe)
+                                .await
                         })
                     });
                 if let Ok(summary) = &result {
                     worker_owner.update(|state| {
                         state.snapshot.total_seen = Some(summary.total_seen);
                         state.snapshot.records_imported = summary.total_inserted as u64;
-                        state.snapshot.tools = ToolUpdate::Running;
+                        state.snapshot.tools = if options.includes_claude() {
+                            ToolUpdate::Running
+                        } else {
+                            ToolUpdate::NotStarted
+                        };
                     });
-                    let tools = requests
-                        .ingest_observer_tools(&paths.provider_home, || cancel.is_cancelled());
-                    let tail_cancelled = tools.is_err() && cancel.is_cancelled();
+                    let tools =
+                        if options.includes_claude() {
+                            Some(requests.ingest_observer_tools(&paths.provider_home, || {
+                                cancel.is_cancelled()
+                            }))
+                        } else {
+                            None
+                        };
+                    let tail_cancelled =
+                        tools.as_ref().is_some_and(Result::is_err) && cancel.is_cancelled();
                     worker_owner.update(|state| {
                         state.snapshot.tools = match tools {
-                            Ok(report) => ToolUpdate::Finished {
+                            Some(Ok(report)) => ToolUpdate::Finished {
                                 files: report.files_scanned,
                                 calls: report.calls_inserted,
                                 errors: report.errors.len(),
                             },
-                            Err(_) => ToolUpdate::Failed,
+                            Some(Err(_)) => ToolUpdate::Failed,
+                            None => ToolUpdate::NotStarted,
                         };
                     });
                     if tail_cancelled {
@@ -329,6 +373,12 @@ impl InsightsRequests {
                         Err(_) => Status::Failed(Failure::Process),
                     };
                 });
+                let (event, failed) = match &result {
+                    Ok(_) => ("usage.import.completed", false),
+                    Err(LlmusageAdapterError::Cancelled) => ("usage.import.cancelled", false),
+                    Err(_) => ("usage.import.failed", true),
+                };
+                monitoring.terminal(&monitor_source, "usage", event, failed);
                 pending.done = true;
                 match result {
                     Ok(_) => Completion::Success(()),

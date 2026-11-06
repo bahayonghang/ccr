@@ -110,6 +110,10 @@ impl RemoteView {
         if self.busy {
             return;
         }
+        let changed = self
+            .selected
+            .as_ref()
+            .is_none_or(|selected| selected.id != host.id);
         self.remember(cx);
         self.host_form = None;
         self.delete_confirmation = false;
@@ -120,8 +124,19 @@ impl RemoteView {
         self.message = None;
         self.save_confirmation = false;
         self.generation += 1;
+        if changed {
+            self.record_selection();
+        }
         self.restore(window, cx);
         cx.notify();
+    }
+    fn record_selection(&self) {
+        self.services.record_environment_selection(RequestKey {
+            environment: EnvironmentId::Local("environment-selection-monitoring".into()),
+            platform: Platform::Claude,
+            generation: self.generation,
+            request_id: self.generation,
+        });
     }
     fn select_file(&mut self, file: ConfigFile, window: &mut Window, cx: &mut Context<Self>) {
         if self.busy {
@@ -224,6 +239,10 @@ impl RemoteView {
                                         this.host_form_pending = true;
                                     }
                                     Completion::Success(SshResult::HostSaved(host)) => {
+                                        let changed = this
+                                            .selected
+                                            .as_ref()
+                                            .is_none_or(|selected| selected.id != host.id);
                                         this.hosts.retain(|item| item.id != host.id);
                                         this.hosts.push(host.clone());
                                         this.selected = Some(host.clone());
@@ -231,11 +250,15 @@ impl RemoteView {
                                         this.host_form = None;
                                         this.probe = None;
                                         this.message = Some("ssh_document_ready");
+                                        if changed {
+                                            this.record_selection();
+                                        }
                                     }
                                     Completion::Success(SshResult::HostDeleted) => {
                                         if let Some(host) = this.selected.take() {
                                             this.hosts.retain(|item| item.id != host.id);
                                             this.drafts.retain(|(id, _), _| id != &host.id);
+                                            this.record_selection();
                                         }
                                         this.connected = false;
                                         this.delete_confirmation = false;
@@ -255,10 +278,14 @@ impl RemoteView {
                                         this.message = Some("ssh_connected");
                                     }
                                     Completion::Success(SshResult::Disconnected) => {
+                                        let changed = this.selected.is_some();
                                         this.selected = None;
                                         this.connected = false;
                                         this.probe = None;
                                         this.message = None;
+                                        if changed {
+                                            this.record_selection();
+                                        }
                                     }
                                     Completion::Success(SshResult::Document(document)) => {
                                         this.drafts.insert(

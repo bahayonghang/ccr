@@ -26,6 +26,51 @@ pub const NARROW_WIDTH: f32 = 1040.;
 pub const SPLIT_WIDTH: f32 = 1200.;
 pub const STATUS_HEIGHT: f32 = 28.;
 pub const TOOLBAR_HEIGHT: f32 = 48.;
+pub const NAV_ICON_SIZE: f32 = 16.;
+pub const NAV_ROW_GAP: f32 = 4.;
+pub const NAV_ROW_HEIGHT: f32 = 32.;
+pub const NAV_PADDING: f32 = 12.;
+pub const NAV_BRAND_HEIGHT: f32 = 40.;
+pub const SECTION_TITLE_SIZE: f32 = 16.;
+pub const DATE_COLUMN_WIDTH: f32 = 96.;
+pub const DAILY_VALUE_WIDTH: f32 = 112.;
+
+/// Choose an installed sans family, rather than trusting the virtual system
+/// alias (which can resolve to a serif on Windows). No font file is bundled.
+fn native_font(cx: &App) -> gpui_kit::SharedString {
+    let names = cx.text_system().all_font_names();
+    #[cfg(target_os = "windows")]
+    let candidates = [
+        "Segoe UI Variable",
+        "Segoe UI",
+        "Microsoft YaHei UI",
+        "Arial",
+    ];
+    #[cfg(target_os = "macos")]
+    let candidates = [
+        ".AppleSystemUIFont",
+        "Helvetica Neue",
+        "PingFang SC",
+        "Arial",
+    ];
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    let candidates = ["Noto Sans", "DejaVu Sans", "Liberation Sans", "Arial"];
+    candidates
+        .into_iter()
+        .find(|candidate| names.iter().any(|name| name == candidate))
+        .map(gpui_kit::SharedString::from)
+        .unwrap_or_else(|| Theme::global(cx).font_family.clone())
+}
+
+pub fn body_font(cx: &App) -> gpui_kit::Font {
+    let mut font = gpui_kit::font(Theme::global(cx).font_family.clone());
+    font.fallbacks = Some(gpui_kit::FontFallbacks::from_fonts(vec![
+        "Microsoft YaHei UI".into(),
+        "PingFang SC".into(),
+        "Noto Sans CJK SC".into(),
+    ]));
+    font
+}
 
 /// App-specific roles stay here; Kit reading/input/popover roles remain opaque.
 #[derive(Clone, Copy)]
@@ -149,6 +194,20 @@ pub enum Preference {
 
 pub fn init(cx: &mut App) {
     apply_palette(cx);
+    if std::env::var_os("CCR_GPUI_FONT_DIAGNOSTICS").is_some()
+        && !cx.text_system().all_font_names().is_empty()
+    {
+        let font = body_font(cx);
+        let resolved = cx
+            .text_system()
+            .get_font_for_id(cx.text_system().resolve_font(&font));
+        if let Some(resolved) = resolved {
+            eprintln!(
+                "CCR native UI font: requested={}, resolved={}",
+                font.family, resolved.family
+            );
+        }
+    }
 }
 
 pub fn apply(preference: Preference, window: &mut Window, cx: &mut App) {
@@ -167,7 +226,9 @@ pub fn apply(preference: Preference, window: &mut Window, cx: &mut App) {
 }
 
 fn apply_palette(cx: &mut App) {
+    let font_family = native_font(cx);
     Theme::update(cx, |theme| {
+        theme.font_family = font_family;
         theme.font_size = px(BODY_SIZE);
         theme.mono_font_size = px(META_SIZE);
         theme.radius = px(INPUT_RADIUS);

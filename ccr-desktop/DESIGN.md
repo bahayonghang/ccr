@@ -115,6 +115,42 @@ GPUI 的 overflow mask 为矩形，不能用父纸面圆角假定子背景会被
 
 ## Components
 
+### Platform workbench and navigation
+
+The sidebar keeps all 13 destinations. Each 32px row has one 16px Lucide icon,
+an 8px gap and a left-aligned label; all icons share one alignment column.
+Group headings use the 12px muted role and a hairline, with a 4px top gap.
+The rail has 12px padding and 4px row gaps. Settings stays pinned
+above a 12px version line. Selection uses the existing opaque overlay and
+semibold text; hover and keyboard focus remain distinct.
+
+Platform destinations open a workbench, with Profiles as a separate context
+tab. The first reading line names the captured local profile, credential
+observation and source; credential detection must never claim a remote login.
+Claude offers direct context tabs for authentication, MCP, Agents, Plugins,
+Commands, instruction files, settings and usage/subscription. Other platforms
+expose only their actual capabilities. Context tabs retain the platform name
+while the existing feature entity performs the operation. Summaries use the
+same captured services and read-only usage projections as full feature pages.
+Usage periods, local timezone and cost basis are explicit. Missing databases,
+unreadable sources and unknown counts show a reason, never sample zeroes.
+
+Codex has a separate local rolling-usage reading for five hours, seven days
+and all history, with an explicit UTC observation time. It is not account
+quota or the llmusage 30-day calendar report. An explicit read action explains
+that the domain scanner refreshes its derived cache. Missing sessions remain
+unknown; partial scan diagnostics and usage-record counts remain visible.
+
+Common Claude collection forms keep their save/review controls above the
+variable-height fields. Confirm/cancel stay visible inside the editor rather
+than falling beneath a tall form's clipped viewport.
+
+The workbench uses a ruled current-state section, a compact usage reading line,
+bounded daily bars with exact textual values and a short management list. It
+does not repeat the global overview or replace full editors with JSON output.
+Native screenshots and keyboard checks cover this composition at the current
+default window; the deferred size/DPI matrix remains deferred.
+
 - **按钮**：normal 用 primary/secondary 或透明次按钮；hover 提升一个中性色阶；focus 显示 2px 环；pointer pressed 可瞬时 scale(0.96) 并在 100ms 内复原，hitbox 不变；keyboard activation 仅即时状态反馈，无动画。disabled 不触发，loading 保持宽度且有文字状态，error 配相邻说明。
 - **输入**：14px 文本、8px 角、border-control；focus/invalid 分别使用 focus/danger 与文字。支持组合输入、选区、复制粘贴、撤销与系统编辑键。密码遮蔽默认开启，明文不得进入截图或日志。
 - **导航**：当前选中以 neutral/elevated 色阶和字重表达，没有粗侧边条。Tab 与方向键行为按原生语义区分，不与文本编辑键冲突；支持 F6 在侧栏/主区/状态区切换。

@@ -221,6 +221,7 @@ impl Services {
             finished: false,
         };
         let source = self.source.clone();
+        let monitoring = self.monitoring.clone();
         let loopback = {
             #[cfg(test)]
             {
@@ -237,6 +238,16 @@ impl Services {
                 let result = tokio::runtime::Handle::try_current()
                     .map_err(|_| SyncError::Operation)
                     .and_then(|handle| handle.block_on(execute(&source, operation, loopback)));
+                monitoring.terminal(
+                    &source,
+                    "sync",
+                    if result.is_ok() {
+                        "sync.operation.completed"
+                    } else {
+                        "sync.operation.failed"
+                    },
+                    result.is_err(),
+                );
                 owner.finish(result.clone());
                 pending.finished = true;
                 match result {

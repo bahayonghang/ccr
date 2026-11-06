@@ -543,6 +543,7 @@ fn cancelling_close_preserves_nested_profile_confirmation_draft_and_running_job(
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-claude-code", cx);
+        window.click("tool-profiles", cx);
     })
     .unwrap();
     wait_for(

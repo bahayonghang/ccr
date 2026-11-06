@@ -404,10 +404,16 @@
       "risk": "read_only",
       "handler_path": "super::settings_raw::claude_list_settings_layers",
       "owner": "gpui-05-platforms",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "PlatformsView → Configuration sources → platform_layers_request → ccr_app::platform_settings::layers",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Shared metadata inventory1, native runtime1/control1, Tauri raw7 passed. Unknown project scope is not absent; managed/requirements/overlays read-only; current native acceptance deferred.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261028": {
         "id": "claude_list_settings_layers",
@@ -429,10 +435,16 @@
       "risk": "read_only",
       "handler_path": "super::settings_raw::codex_list_config_layers",
       "owner": "gpui-05-platforms",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "PlatformsView → Configuration sources → platform_layers_request → ccr_app::platform_settings::layers",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Shared metadata inventory1, native runtime1/control1, Tauri raw7 passed. Unknown project scope is not absent; managed/requirements/overlays read-only; current native acceptance deferred.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261028": {
         "id": "codex_list_config_layers",
@@ -1144,10 +1156,16 @@
       "risk": "read_only",
       "handler_path": "super::claude::claude_list_mcp_servers",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "McpView scoped source/scope → McpEditor → captured McpEditSession / shared claude_mcp and mcp_document writer",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing native single-entry owner preserved; original revision, scoped secrets and conversion restrictions. Current platform-context source filters added; complete native acceptance pending.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "id": "claude_list_mcp_servers",
@@ -1174,10 +1192,16 @@
       "risk": "secret_mutation",
       "handler_path": "super::claude::claude_add_mcp_server",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "McpView scoped source/scope → McpEditor → captured McpEditSession / shared claude_mcp and mcp_document writer",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing native single-entry owner preserved; original revision, scoped secrets and conversion restrictions. Current platform-context source filters added; complete native acceptance pending.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "id": "claude_add_mcp_server",
@@ -1204,10 +1228,16 @@
       "risk": "secret_mutation",
       "handler_path": "super::claude::claude_update_mcp_server",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "McpView scoped source/scope → McpEditor → captured McpEditSession / shared claude_mcp and mcp_document writer",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing native single-entry owner preserved; original revision, scoped secrets and conversion restrictions. Current platform-context source filters added; complete native acceptance pending.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "id": "claude_update_mcp_server",
@@ -1234,10 +1264,16 @@
       "risk": "destructive",
       "handler_path": "super::claude::claude_delete_mcp_server",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "McpView scoped source/scope → McpEditor → captured McpEditSession / shared claude_mcp and mcp_document writer",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing native single-entry owner preserved; original revision, scoped secrets and conversion restrictions. Current platform-context source filters added; complete native acceptance pending.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "id": "claude_delete_mcp_server",
@@ -1934,10 +1970,16 @@
       "risk": "read_only",
       "handler_path": "super::claude::claude_list_prompts",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "ResourcesView instruction files → captured fixed-file registry / versioned prompt session",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Fixed files consume shared system_prompts owner; templates fill drafts without implicit writes. Source mapping corrected from historical planned; no new native receipt claimed.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "id": "claude_list_prompts",
@@ -1964,10 +2006,16 @@
       "risk": "secret_mutation",
       "handler_path": "super::claude::claude_update_prompts",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "ResourcesView instruction files → captured fixed-file registry / versioned prompt session",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Fixed files consume shared system_prompts owner; templates fill drafts without implicit writes. Source mapping corrected from historical planned; no new native receipt claimed.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "id": "claude_update_prompts",
@@ -2636,10 +2684,16 @@
       "risk": "read_only",
       "handler_path": "super::codex::codex_list_mcp_servers",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "McpView scoped source/scope → McpEditor → captured McpEditSession / shared claude_mcp and mcp_document writer",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing native single-entry owner preserved; original revision, scoped secrets and conversion restrictions. Current platform-context source filters added; complete native acceptance pending.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "id": "codex_list_mcp_servers",
@@ -2666,10 +2720,16 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_add_mcp_server",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "McpView scoped source/scope → McpEditor → captured McpEditSession / shared claude_mcp and mcp_document writer",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing native single-entry owner preserved; original revision, scoped secrets and conversion restrictions. Current platform-context source filters added; complete native acceptance pending.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "id": "codex_add_mcp_server",
@@ -2696,10 +2756,16 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_update_mcp_server",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "McpView scoped source/scope → McpEditor → captured McpEditSession / shared claude_mcp and mcp_document writer",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing native single-entry owner preserved; original revision, scoped secrets and conversion restrictions. Current platform-context source filters added; complete native acceptance pending.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "id": "codex_update_mcp_server",
@@ -2726,10 +2792,16 @@
       "risk": "destructive",
       "handler_path": "super::codex::codex_delete_mcp_server",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "McpView scoped source/scope → McpEditor → captured McpEditSession / shared claude_mcp and mcp_document writer",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing native single-entry owner preserved; original revision, scoped secrets and conversion restrictions. Current platform-context source filters added; complete native acceptance pending.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "id": "codex_delete_mcp_server",
@@ -3300,10 +3372,16 @@
       "risk": "read_only",
       "handler_path": "super::codex::codex_list_sessions",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Codex context Sessions → InsightsView → ccr_app::sessions / registry archive detail",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Native opaque archive/session paging, reviewed Markdown save to a new file, cancellable metadata-only trash listing and selected-entry restore preparation implemented. Domain11, shared refresh3, desktop session7 passed; final aggregate and native deferred.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261028": {
         "command": "codex_list_sessions",
@@ -3325,10 +3403,16 @@
       "risk": "read_only",
       "handler_path": "super::codex::codex_get_session_detail",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Codex context Sessions → InsightsView → ccr_app::sessions / registry archive detail",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Source validation and bounded provider paging preserved. Save binds preview bytes; restore binds original home/manifest/payload and retained commit. Legacy relative home and large streaming CLI restore protected; latest native still deferred.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261028": {
         "command": "codex_get_session_detail",
@@ -3437,10 +3521,16 @@
       "risk": "read_only",
       "handler_path": "super::codex::codex_get_usage",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "partial_native_consumer",
+      "native_action": "Codex Workbench + accounts/models/quota surfaces + platform-filtered llmusage",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Native explicit local rolling scan consumes the existing CodexUsageService five-hour/seven-day/all-history projection; opening Workbench stays passive. Captured home/locks, partial diagnostics and missing-source state; runtime2/control1 passed. Latest aggregate/native still pending.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261028": {
         "command": "codex_get_usage",
@@ -3462,10 +3552,16 @@
       "risk": "read_only",
       "handler_path": "super::codex::codex_get_dashboard_overview",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "partial_native_consumer",
+      "native_action": "Codex Workbench + accounts/models/quota surfaces + platform-filtered llmusage",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Workbench includes real profiles/auth, llmusage and explicit Codex local rolling projection. Full inventory/process-helper parity remains open; rolling runtime2/control1 passed. No native receipt.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261028": {
         "command": "codex_get_dashboard_overview",
@@ -3487,10 +3583,16 @@
       "risk": "read_only",
       "handler_path": "super::codex::codex_get_dashboard_usage_summary",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "partial_native_consumer",
+      "native_action": "Codex Workbench + accounts/models/quota surfaces + platform-filtered llmusage",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing local CodexUsageService rolling windows are now consumed separately from llmusage and account quota; actual local scan and derived cache, no automatic page scan; runtime2/control1 passed.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261028": {
         "command": "codex_get_dashboard_usage_summary",
@@ -3512,9 +3614,16 @@
       "risk": "read_only",
       "handler_path": "super::codex::codex_get_tray_snapshot",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "unsupported_locked_stack",
+      "native_action": "Current GPUI single-window shell; no native tray panel",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Locked stack lacks public tray/hide-restore integration. Source-level option remains open; no second window stack introduced and no native PASS.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "codex_get_all_quotas",
@@ -3779,10 +3888,16 @@
       "risk": "read_only",
       "handler_path": "super::codex::codex_detect_process",
       "owner": "gpui-05-platforms",
-      "status": "planned",
-      "native_action": null,
+      "status": "partial_native_consumer",
+      "native_action": "Native OAuth session status/cancel/retry cleanup",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Dedicated installed-Codex process inventory consumer still open. Tauri queries CodexAuthService process owner; native owned login lifecycle alone does not provide the inventory. No actual process scan performed here.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261028": {
         "id": "codex_detect_process",
@@ -4008,10 +4123,16 @@
       "risk": "read_only",
       "handler_path": "super::codex::codex_is_oauth_port_in_use",
       "owner": "gpui-05-platforms",
-      "status": "planned",
-      "native_action": null,
+      "status": "partial_native_consumer",
+      "native_action": "Native OAuth session status/cancel/retry cleanup",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Dedicated helper for the fixed OAuth callback port remains open (not arbitrary ports). Tauri attempts local bind; native login lifecycle bind errors are not an equivalent separate diagnostic surface.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261028": {
         "id": "codex_is_oauth_port_in_use",
@@ -4033,10 +4154,16 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_release_oauth_port",
       "owner": "gpui-05-platforms",
-      "status": "planned",
-      "native_action": null,
+      "status": "partial_native_consumer",
+      "native_action": "Native OAuth session status/cancel/retry cleanup",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Dedicated fixed-OAuth-port helper remains open. Current Tauri only requests cancellation for ProcessGateway-owned matching processes and reports unknown PIDs; it does not terminate arbitrary occupants. Preserve that boundary when adding a native consumer.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261028": {
         "id": "codex_release_oauth_port",
@@ -4388,10 +4515,16 @@
       "risk": "read_only",
       "handler_path": "super::gemini::gemini_list_mcp_servers",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "McpView scoped source/scope → McpEditor → captured McpEditSession / shared claude_mcp and mcp_document writer",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing native single-entry owner preserved; original revision, scoped secrets and conversion restrictions. Current platform-context source filters added; complete native acceptance pending.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "id": "gemini_list_mcp_servers",
@@ -4418,10 +4551,16 @@
       "risk": "secret_mutation",
       "handler_path": "super::gemini::gemini_add_mcp_server",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "McpView scoped source/scope → McpEditor → captured McpEditSession / shared claude_mcp and mcp_document writer",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing native single-entry owner preserved; original revision, scoped secrets and conversion restrictions. Current platform-context source filters added; complete native acceptance pending.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "id": "gemini_add_mcp_server",
@@ -4448,10 +4587,16 @@
       "risk": "secret_mutation",
       "handler_path": "super::gemini::gemini_update_mcp_server",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "McpView scoped source/scope → McpEditor → captured McpEditSession / shared claude_mcp and mcp_document writer",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing native single-entry owner preserved; original revision, scoped secrets and conversion restrictions. Current platform-context source filters added; complete native acceptance pending.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "id": "gemini_update_mcp_server",
@@ -4478,10 +4623,16 @@
       "risk": "destructive",
       "handler_path": "super::gemini::gemini_delete_mcp_server",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "McpView scoped source/scope → McpEditor → captured McpEditSession / shared claude_mcp and mcp_document writer",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing native single-entry owner preserved; original revision, scoped secrets and conversion restrictions. Current platform-context source filters added; complete native acceptance pending.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "id": "gemini_delete_mcp_server",
@@ -4982,10 +5133,16 @@
       "risk": "read_only",
       "handler_path": "super::grok::grok_list_config_layers",
       "owner": "gpui-05-platforms",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "PlatformsView → Configuration sources → platform_layers_request → ccr_app::platform_settings::layers",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Shared metadata inventory1, native runtime1/control1, Tauri raw7 passed. Unknown project scope is not absent; managed/requirements/overlays read-only; current native acceptance deferred.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261028": {
         "id": "grok_list_config_layers",
@@ -5007,10 +5164,16 @@
       "risk": "read_only",
       "handler_path": "super::grok::grok_get_dashboard_overview",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Grok Workbench current profile + credential facts + Settings managed lock",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Native captured Grok overview now consumes inspect_activation_state, recorded credential mode, enabled/total counts and config presence without pointer repair. Active/drift/missing-baseline/no-write/domain2 and actual control1 passed; native deferred.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261028": {
         "command": "grok_get_dashboard_overview",
@@ -5918,10 +6081,16 @@
       "risk": "network_mutation",
       "handler_path": "super::checkin::start_checkin_job",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "CheckinView explicit account/batch actions → retained CheckinOperations snapshots",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Captured db/crypto roots, explicit network fixture refusal, partial results and cancellation owner preserved. Prior headless evidence exists; no real provider run/new native receipt.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "command": "start_checkin_job",
@@ -5942,10 +6111,16 @@
       "risk": "read_only",
       "handler_path": "super::checkin::get_checkin_job_status",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "CheckinView explicit account/batch actions → retained CheckinOperations snapshots",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Captured db/crypto roots, explicit network fixture refusal, partial results and cancellation owner preserved. Prior headless evidence exists; no real provider run/new native receipt.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "command": "get_checkin_job_status",
@@ -6286,9 +6461,16 @@
       "risk": "read_only",
       "handler_path": "super::system::get_system_info",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Global monitoring native consumer pending",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Global monitoring now shows actual optional current-process RSS and tracked task/feed metrics. Full host CPU/OS/system-memory projection of Tauri get_system_info is still absent; do not equate these APIs.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "check_version",
@@ -6297,9 +6479,16 @@
       "risk": "read_only",
       "handler_path": "super::system::check_version",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_native_current_version_only",
+      "native_action": "Shell settings/footer package version; explicit tools version check",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Tauri check_version is itself current package version with latest=None/update_available=false. No authenticated automated update manifest; automatic updater stays disabled.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "health_check",
@@ -6308,9 +6497,16 @@
       "risk": "read_only",
       "handler_path": "super::system::health_check",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Global monitoring native consumer pending",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Captured main DB read/persist errors are explicit and separate from the bounded in-memory feed; missing storage is not initialized. Existing version label remains. This is native storage status, not a wire-equivalent Tauri health DTO.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "convert_config",
@@ -6446,10 +6642,16 @@
       "risk": "network_mutation",
       "handler_path": "super::waf::open_waf_login",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "unsupported_webview_boundary",
+      "native_action": "Checkin WAF manual cookie/validation path only",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Embedded-browser cookie retrieval requires a WebView, outside accepted native stack boundary. Manual WAF operations exist but are not claimed as embedded-login equivalence.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "command": "open_waf_login",
@@ -6526,10 +6728,16 @@
       "risk": "network_mutation",
       "handler_path": "super::waf::waf_deliver_cookie",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "unsupported_webview_boundary",
+      "native_action": "Checkin WAF manual cookie/validation path only",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Embedded-browser cookie retrieval requires a WebView, outside accepted native stack boundary. Manual WAF operations exist but are not claimed as embedded-login equivalence.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "command": "waf_deliver_cookie",
@@ -6690,9 +6898,16 @@
       "risk": "read_only",
       "handler_path": "super::system::get_recent_events",
       "owner": "gpui-02-services",
-      "status": "planned",
-      "native_action": null,
-      "verification": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Global monitoring native consumer pending",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Native app-owned bounded safe event ring plus captured main DB feed, static lifecycle messages and strict native decoding; runtime/control5 and shared strict/legacy decoder1 passed. No hidden polling or native interaction receipt.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      },
       "execution_owner": "gpui-07-insights",
       "owner_note": "Original capture owner02 is preserved.02 accepted only runtime+first configuration read; remaining monitoring/event delivery is part of approved07 requirements, not a reopened02 task."
     },
@@ -6703,9 +6918,16 @@
       "risk": "read_only",
       "handler_path": "super::system::get_monitoring_feed",
       "owner": "gpui-02-services",
-      "status": "planned",
-      "native_action": null,
-      "verification": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Global monitoring native consumer pending",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Native explicit filter/refresh virtualized feed merges captured main logs and safe real lifecycle events, capped at500 rows. Source review closes strict row/time parsing; latest ListBox wrapper still needs aggregate.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      },
       "execution_owner": "gpui-07-insights",
       "owner_note": "Original capture owner02 is preserved.02 accepted only runtime+first configuration read; remaining monitoring/event delivery is part of approved07 requirements, not a reopened02 task."
     },
@@ -6716,9 +6938,16 @@
       "risk": "local_mutation",
       "handler_path": "super::system::append_frontend_logs",
       "owner": "gpui-02-services",
-      "status": "planned",
-      "native_action": null,
-      "verification": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Global monitoring native consumer pending",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "GPUI lifecycle owners record only fixed actual terminal/selection labels to bounded memory/captured main DB, preserving errors. There is no browser frontend logging IPC in GPUI; arbitrary renderer payload is deliberately not copied.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      },
       "execution_owner": "gpui-07-insights",
       "owner_note": "Original capture owner02 is preserved.02 accepted only runtime+first configuration read; remaining monitoring/event delivery is part of approved07 requirements, not a reopened02 task."
     },
@@ -6729,9 +6958,16 @@
       "risk": "read_only",
       "handler_path": "super::system::get_runtime_metrics",
       "owner": "gpui-02-services",
-      "status": "planned",
-      "native_action": null,
-      "verification": null,
+      "status": "partial_native_consumer",
+      "native_action": "Global monitoring native consumer pending",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Native reports actual tracked-task count, ring count/bytes/evictions and optional current-process RSS. Unmeasured p95 and Tauri-specific cache/SSH counters are not fabricated; full metric parity remains partial.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      },
       "execution_owner": "gpui-07-insights",
       "owner_note": "Original capture owner02 is preserved.02 accepted only runtime+first configuration read; remaining monitoring/event delivery is part of approved07 requirements, not a reopened02 task."
     },
@@ -6742,9 +6978,16 @@
       "risk": "read_only",
       "handler_path": "super::environment::list_environments",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Settings environment surface / Shell environment slots; Local/SSH selection",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Local/SSH captured services and slot isolation exist. WSL remains user-deferred; unsupported remote pages explicitly refuse rather than reading Local. No whole environment parity claim.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "get_current_environment",
@@ -6753,9 +6996,16 @@
       "risk": "read_only",
       "handler_path": "super::environment::get_current_environment",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Settings environment surface / Shell environment slots; Local/SSH selection",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Local/SSH captured services and slot isolation exist. WSL remains user-deferred; unsupported remote pages explicitly refuse rather than reading Local. No whole environment parity claim.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "switch_environment",
@@ -6764,9 +7014,16 @@
       "risk": "local_mutation",
       "handler_path": "super::environment::switch_environment",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Settings environment surface / Shell environment slots; Local/SSH selection",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Local/SSH captured services and slot isolation exist. WSL remains user-deferred; unsupported remote pages explicitly refuse rather than reading Local. No whole environment parity claim.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "refresh_environments",
@@ -6775,9 +7032,16 @@
       "risk": "local_mutation",
       "handler_path": "super::environment::refresh_environments",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Settings environment surface / Shell environment slots; Local/SSH selection",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Local/SSH captured services and slot isolation exist. WSL remains user-deferred; unsupported remote pages explicitly refuse rather than reading Local. No whole environment parity claim.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "env_list_platforms",
@@ -6786,9 +7050,16 @@
       "risk": "read_only",
       "handler_path": "super::environment::env_list_platforms",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Native environment capabilities and explicit fixed-tool version/detection actions",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Capabilities follow actual platform descriptors. Tools actions are explicit, Local-only and fixture-disabled; cross-environment CLI detection is not implied.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "env_detect_cli",
@@ -6797,9 +7068,16 @@
       "risk": "read_only",
       "handler_path": "super::environment::env_detect_cli",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Native environment capabilities and explicit fixed-tool version/detection actions",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Capabilities follow actual platform descriptors. Tools actions are explicit, Local-only and fixture-disabled; cross-environment CLI detection is not implied.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "ssh_list_hosts",
@@ -6978,9 +7256,16 @@
       "risk": "read_only",
       "handler_path": "super::ssh::ssh_detect_cli",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "pending_native_consumer",
+      "native_action": "Native SSH currently password-only connection/file owner",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Installed remote CLI and key inventory are separate capabilities; not implemented by file editing/host labels. No user identity files read and no remote probe performed.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "ssh_test_connection",
@@ -6989,9 +7274,16 @@
       "risk": "network_mutation",
       "handler_path": "super::ssh::ssh_test_connection",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "RemoteView Probe/confirm/connect → shared captured SSH Workspace",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Only fixture transport tested; no ssh-keyscan/real SSH/remote socket was run. Trust, nonce and remote document identity stay domain-owned.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "ssh_list_keys",
@@ -7000,9 +7292,16 @@
       "risk": "read_only",
       "handler_path": "super::ssh::ssh_list_keys",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "pending_native_consumer",
+      "native_action": "Native SSH currently password-only connection/file owner",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Installed remote CLI and key inventory are separate capabilities; not implemented by file editing/host labels. No user identity files read and no remote probe performed.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "list_builtin_prompts",
@@ -7297,10 +7596,16 @@
       "risk": "network_mutation",
       "handler_path": "super::mcp_presets::install_mcp_preset",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "McpView batch preset/sync → opaque batch session → per-target original-token save_batch",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Backend3/3 and actual control1/1 passed; original source binding, explicit Replace off by default, per-entry conversion errors and per-target partial outcomes. Native validation user deferred.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "id": "install_mcp_preset",
@@ -7429,10 +7734,16 @@
       "risk": "network_mutation",
       "handler_path": "super::mcp_presets::sync_all_mcp_servers",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "McpView batch preset/sync → opaque batch session → per-target original-token save_batch",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Backend3/3 and actual control1/1 passed; original source binding, explicit Replace off by default, per-entry conversion errors and per-target partial outcomes. Native validation user deferred.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "id": "sync_all_mcp_servers",
@@ -7793,10 +8104,16 @@
       "risk": "read_only",
       "handler_path": "super::usage::get_usage_capabilities_v2",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Insights selected-source/database error states",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Native Usage exposes structured complete DB feature rows and shared closed CLI version capability owner, with Tauri wire DTO unchanged. Fixture disables real CLI probing; schema/table/column/missing/unreadable reasons distinct. Shared2/native control1 pass, final aggregate pending.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261028": {
         "command": "get_usage_capabilities_v2",
@@ -8175,10 +8492,16 @@
       "risk": "read_only",
       "handler_path": "super::usage::get_home_usage_overview_v2",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Overview → InsightsRequests::load_workbench → dashboard.home_overview",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing real summary/platform/day projection consumed with exact source counts, cost and session scope. No additional global Home insights UI added.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261028": {
         "command": "get_home_usage_overview_v2",
@@ -8251,10 +8574,16 @@
       "risk": "read_only",
       "handler_path": "super::usage::ensure_session_index_v2",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Sessions refresh/index → retained InsightsRequests::refresh_archive + refresh_status",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Shared archive/provider owner and immutable refresh completion; hidden pages detach and late detail/query results rejected. New native receipt not claimed.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261028": {
         "command": "ensure_session_index_v2",
@@ -8276,10 +8605,16 @@
       "risk": "read_only",
       "handler_path": "super::usage::get_session_index_job_status_v2",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Sessions refresh/index → retained InsightsRequests::refresh_archive + refresh_status",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Shared archive/provider owner and immutable refresh completion; hidden pages detach and late detail/query results rejected. New native receipt not claimed.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261028": {
         "command": "get_session_index_job_status_v2",
@@ -8808,10 +9143,16 @@
       "risk": "read_only",
       "handler_path": "super::checkin::get_checkin_account_cookies",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "partial_native_consumer",
+      "native_action": "Checkin credential entry preserves omitted encrypted values; WAF manual session",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Stored cookie reveal is not exposed as an ordinary list field; scoped plaintext retrieval is a separate remaining UI decision/consumer, not masked-list parity.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "command": "get_checkin_account_cookies",
@@ -9031,9 +9372,16 @@
       "risk": "process_execution",
       "handler_path": "super::shell::shell_show_main_window",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "unsupported_locked_stack",
+      "native_action": "Current GPUI single-window shell; no native tray panel",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Locked stack lacks public tray/hide-restore integration. Source-level option remains open; no second window stack introduced and no native PASS.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "shell_request_quit",
@@ -9059,9 +9407,16 @@
       "risk": "process_execution",
       "handler_path": "super::shell::shell_begin_tray_panel_drag",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "unsupported_locked_stack",
+      "native_action": "Current GPUI single-window shell; no native tray panel",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Locked stack lacks public tray/hide-restore integration. Source-level option remains open; no second window stack introduced and no native PASS.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "shell_complete_tray_panel_drag",
@@ -9070,9 +9425,16 @@
       "risk": "process_execution",
       "handler_path": "super::shell::shell_complete_tray_panel_drag",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "unsupported_locked_stack",
+      "native_action": "Current GPUI single-window shell; no native tray panel",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Locked stack lacks public tray/hide-restore integration. Source-level option remains open; no second window stack introduced and no native PASS.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "shell_detect_skillport_app",
@@ -9081,9 +9443,16 @@
       "risk": "read_only",
       "handler_path": "super::shell::shell_detect_skillport_app",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "InstallView tools → shared ccr_app::tools::bridge",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing registry/known-path/bundle discovery owner extracted; aliases share owner; native explicit launch and fixture refusal. Shared tools7/7; actual external app launch not run.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "shell_open_skillport_app",
@@ -9092,9 +9461,16 @@
       "risk": "process_execution",
       "handler_path": "super::shell::shell_open_skillport_app",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "InstallView tools → shared ccr_app::tools::bridge",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing registry/known-path/bundle discovery owner extracted; aliases share owner; native explicit launch and fixture refusal. Shared tools7/7; actual external app launch not run.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "shell_detect_skills_manage_app",
@@ -9103,9 +9479,16 @@
       "risk": "read_only",
       "handler_path": "super::shell::shell_detect_skills_manage_app",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "InstallView tools → shared ccr_app::tools::bridge",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing registry/known-path/bundle discovery owner extracted; aliases share owner; native explicit launch and fixture refusal. Shared tools7/7; actual external app launch not run.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "shell_open_skills_manage_app",
@@ -9114,9 +9497,16 @@
       "risk": "process_execution",
       "handler_path": "super::shell::shell_open_skills_manage_app",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "InstallView tools → shared ccr_app::tools::bridge",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing registry/known-path/bundle discovery owner extracted; aliases share owner; native explicit launch and fixture refusal. Shared tools7/7; actual external app launch not run.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "update_ccr",
@@ -9125,10 +9515,16 @@
       "risk": "process_execution",
       "handler_path": "super::system::update_ccr",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "InstallView tools explicit version check + reviewed manual CCR update",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Closed process descriptors and retained operations; native update explicit user .cargo root rejects sidecar overlap; Tauri existing API preserved. Actual installed update/network not run.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       },
       "execution_20261029": {
         "command": "update_ccr",
@@ -9149,9 +9545,16 @@
       "risk": "read_only",
       "handler_path": "super::system::get_cli_versions",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "InstallView tools explicit version check + reviewed manual CCR update",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Closed process descriptors and retained operations; native update explicit user .cargo root rejects sidecar overlap; Tauri existing API preserved. Actual installed update/network not run.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "get_cli_version",
@@ -9160,9 +9563,16 @@
       "risk": "read_only",
       "handler_path": "super::system::get_cli_version",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "InstallView tools explicit version check + reviewed manual CCR update",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Closed process descriptors and retained operations; native update explicit user .cargo root rejects sidecar overlap; Tauri existing API preserved. Actual installed update/network not run.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "llmusage_install_detect",
@@ -9704,9 +10114,16 @@
       "risk": "read_only",
       "handler_path": "super::wsl::wsl_list_distros",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "user_deferred",
+      "native_action": "WSL native execution deferred by user",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "No WSL/doctor/distro probe; this session has not revoked WSL deferral.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "wsl_refresh_distros",
@@ -9715,9 +10132,16 @@
       "risk": "process_execution",
       "handler_path": "super::wsl::wsl_refresh_distros",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "user_deferred",
+      "native_action": "WSL native execution deferred by user",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "No WSL/doctor/distro probe; this session has not revoked WSL deferral.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "wsl_clear_cache",
@@ -9726,9 +10150,16 @@
       "risk": "destructive",
       "handler_path": "super::wsl::wsl_clear_cache",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "user_deferred",
+      "native_action": "WSL native execution deferred by user",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "No WSL/doctor/distro probe; this session has not revoked WSL deferral.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "wsl_cache_status",
@@ -9737,9 +10168,16 @@
       "risk": "read_only",
       "handler_path": "super::wsl::wsl_cache_status",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "user_deferred",
+      "native_action": "WSL native execution deferred by user",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "No WSL/doctor/distro probe; this session has not revoked WSL deferral.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "wsl_read_config",
@@ -9748,9 +10186,16 @@
       "risk": "read_only",
       "handler_path": "super::wsl::wsl_read_config",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "user_deferred",
+      "native_action": "WSL native execution deferred by user",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "No WSL/doctor/distro probe; this session has not revoked WSL deferral.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "wsl_write_config",
@@ -9759,9 +10204,16 @@
       "risk": "process_execution",
       "handler_path": "super::wsl::wsl_write_config",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "user_deferred",
+      "native_action": "WSL native execution deferred by user",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "No WSL/doctor/distro probe; this session has not revoked WSL deferral.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "wsl_detect_cli",
@@ -9770,9 +10222,16 @@
       "risk": "read_only",
       "handler_path": "super::wsl::wsl_detect_cli",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "user_deferred",
+      "native_action": "WSL native execution deferred by user",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "No WSL/doctor/distro probe; this session has not revoked WSL deferral.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "id": "wsl_sync_config",
@@ -9781,9 +10240,16 @@
       "risk": "process_execution",
       "handler_path": "super::wsl::wsl_sync_config",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "user_deferred",
+      "native_action": "WSL native execution deferred by user",
+      "verification": {
+        "reconciliation_20261106": {
+          "source_baseline": "90131cd6",
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "No WSL/doctor/distro probe; this session has not revoked WSL deferral.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     }
   ],
   "routes": [
@@ -9794,9 +10260,15 @@
       "redirect": null,
       "owner": "gpui-09-environments",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "unsupported_locked_stack",
+      "native_action": "No native tray panel",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Current locked window stack lacks public tray/hide-restore integration; retain exact API limits/options, never label pass.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 1,
@@ -9806,11 +10278,16 @@
       "owner": "gpui-03-shell",
       "kind": "layout",
       "status": "implemented_core_remaining_acceptance_open",
-      "native_action": "Shell: connected Local configurations, favorites, recent and session settings only",
+      "native_action": "Shell with13 destinations",
       "verification": {
         "task": "gpui-03-shell",
         "evidence": ".trellis/tasks/10-17-gpui-03-shell/evidence.md",
-        "full_route_complete": false
+        "full_route_complete": false,
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Preserves existing Overview; no second Home insights added. Whole native/OS/performance acceptance remains open.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       }
     },
     {
@@ -9820,9 +10297,15 @@
       "redirect": null,
       "owner": "gpui-07-insights",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_core_remaining_acceptance_open",
+      "native_action": "Overview → real bounded usage/workbench projection",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Preserves existing Overview; no second Home insights added. Whole native/OS/performance acceptance remains open.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 3,
@@ -9831,12 +10314,17 @@
       "redirect": null,
       "owner": "gpui-03-shell",
       "kind": "surface",
-      "status": "partial_session_appearance_language",
-      "native_action": "Shell Settings: session System/Light/Dark and zh/en; remaining app preferences/system integration09 pending",
+      "status": "partial_native_consumer",
+      "native_action": "Settings persistent preferences/window/Local-SSH capabilities",
       "verification": {
         "task": "gpui-03-shell",
         "evidence": ".trellis/tasks/10-17-gpui-03-shell/evidence.md",
-        "full_route_complete": false
+        "full_route_complete": false,
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing theme/language/close/window/remote operations persist; native OS integrations/WSL/independent OS evidence remain open.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
       }
     },
     {
@@ -9846,9 +10334,15 @@
       "redirect": null,
       "owner": "gpui-07-insights",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Shell platform Home → native WorkbenchView + contextual lenses",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "New real platform home/context implemented; platform-specific gaps tracked in platform-parity-20261106.md. Full native interactions deferred this session; not blanket parity.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 5,
@@ -9857,9 +10351,15 @@
       "redirect": null,
       "owner": "gpui-05-platforms",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Context Settings/accounts/providers → PlatformsView and source inventory",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing validated patches/source/account/provider/model/TUI operations work; some ordinary settings/provider workflows still rely on JSON draft and require typed presentation completion. Source inventory now distinguishes read-only layers.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 6,
@@ -9868,9 +10368,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Platform Instructions → ResourcesView fixed instruction-file editor/templates",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Domain registry, source revision, unknown content and scoped secret lifetimes preserved. No new native interaction receipt.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 7,
@@ -9880,7 +10386,7 @@
       "owner": "gpui-04-profiles",
       "kind": "surface",
       "status": "implemented_pending_native_acceptance",
-      "native_action": "Claude → Profiles mode (reviewed shared-list merge above) | Implemented; final independent/native acceptance pending",
+      "native_action": "ConfigurationApp + ProfileTools per-platform catalog/detail/editor",
       "verification": {
         "profiles_implementation": {
           "source_mapping": ".trellis/tasks/10-17-gpui-04-profiles/research/ui-evidence.md",
@@ -9888,6 +10394,11 @@
           "domain_review": ".trellis/tasks/10-17-gpui-04-profiles/research/check-final.md",
           "resumed_native": ".trellis/tasks/10-17-gpui-04-profiles/research/native-resume-20261027.md",
           "result": "Implementation and headless review recorded; final per-command/per-route native acceptance pending. Resumed metadata-save current-marker defect requires fix and native rerun; no blanket PASS."
+        },
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Preserves existing profile CRUD/apply/export/backup/CAS. Default platform home is now separate, Profiles remains directly reachable.",
+          "native": "user_deferred_this_session; no current interaction receipt"
         }
       }
     },
@@ -9898,9 +10409,15 @@
       "redirect": null,
       "owner": "gpui-05-platforms",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Context Accounts → PlatformsView Auth + native OAuth/account owner",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Local credential facts are not remote login assertions. Captured roots/secrets and original-version confirmation preserved; external authentication not run.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 9,
@@ -9909,9 +10426,15 @@
       "redirect": null,
       "owner": "gpui-07-insights",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Shell platform Home → native WorkbenchView + contextual lenses",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "New real platform home/context implemented; platform-specific gaps tracked in platform-parity-20261106.md. Full native interactions deferred this session; not blanket parity.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 10,
@@ -9920,9 +10443,15 @@
       "redirect": null,
       "owner": "gpui-07-insights",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Shell platform Home → native WorkbenchView + contextual lenses",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "New real platform home/context implemented; platform-specific gaps tracked in platform-parity-20261106.md. Full native interactions deferred this session; not blanket parity.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 11,
@@ -9931,9 +10460,15 @@
       "redirect": null,
       "owner": "gpui-05-platforms",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Context Accounts → PlatformsView Auth + native OAuth/account owner",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Local credential facts are not remote login assertions. Captured roots/secrets and original-version confirmation preserved; external authentication not run.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 12,
@@ -9943,7 +10478,7 @@
       "owner": "gpui-04-profiles",
       "kind": "surface",
       "status": "implemented_pending_native_acceptance",
-      "native_action": "Grok selector → dedicated profile workbench + selected Inspect | Implemented; platform-specific native flows not yet run",
+      "native_action": "ConfigurationApp + ProfileTools per-platform catalog/detail/editor",
       "verification": {
         "profiles_implementation": {
           "source_mapping": ".trellis/tasks/10-17-gpui-04-profiles/research/ui-evidence.md",
@@ -9951,6 +10486,11 @@
           "domain_review": ".trellis/tasks/10-17-gpui-04-profiles/research/check-final.md",
           "resumed_native": ".trellis/tasks/10-17-gpui-04-profiles/research/native-resume-20261027.md",
           "result": "Implementation and headless review recorded; final per-command/per-route native acceptance pending. Resumed metadata-save current-marker defect requires fix and native rerun; no blanket PASS."
+        },
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Preserves existing profile CRUD/apply/export/backup/CAS. Default platform home is now separate, Profiles remains directly reachable.",
+          "native": "user_deferred_this_session; no current interaction receipt"
         }
       }
     },
@@ -9961,9 +10501,15 @@
       "redirect": null,
       "owner": "gpui-05-platforms",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Context Settings/accounts/providers → PlatformsView and source inventory",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing validated patches/source/account/provider/model/TUI operations work; some ordinary settings/provider workflows still rely on JSON draft and require typed presentation completion. Source inventory now distinguishes read-only layers.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 14,
@@ -9972,9 +10518,15 @@
       "redirect": null,
       "owner": "gpui-07-insights",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Shell platform Home → native WorkbenchView + contextual lenses",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "New real platform home/context implemented; platform-specific gaps tracked in platform-parity-20261106.md. Full native interactions deferred this session; not blanket parity.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 15,
@@ -9983,9 +10535,15 @@
       "redirect": "/antigravity",
       "owner": "gpui-07-insights",
       "kind": "redirect",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_route_alias",
+      "native_action": "Alias → /antigravity",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original redirect retained; inherits actual destination implementation/acceptance, not a separate product capability.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 16,
@@ -9994,9 +10552,15 @@
       "redirect": "/commands/ccr",
       "owner": "gpui-08-jobs",
       "kind": "redirect",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_route_alias",
+      "native_action": "Alias → /commands/ccr",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original redirect retained; inherits actual destination implementation/acceptance, not a separate product capability.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 17,
@@ -10005,9 +10569,15 @@
       "redirect": null,
       "owner": "gpui-08-jobs",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Commands page → retained CommandRequests + favorites/Recent/help/install",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Closed command catalog and sidecar identity validation; Recent automatic terminal persistence now independently reviewed and committed9637696. Foreground uses retained native runner with stated wire differences.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 18,
@@ -10017,7 +10587,7 @@
       "owner": "gpui-04-profiles",
       "kind": "surface",
       "status": "implemented_pending_native_acceptance",
-      "native_action": "Converter navigation, supported formats only | Implemented; actual headless navigation clear tested, native pixels not yet run",
+      "native_action": "Commands/conversion entry → native Converter",
       "verification": {
         "profiles_implementation": {
           "source_mapping": ".trellis/tasks/10-17-gpui-04-profiles/research/ui-evidence.md",
@@ -10025,6 +10595,11 @@
           "domain_review": ".trellis/tasks/10-17-gpui-04-profiles/research/check-final.md",
           "resumed_native": ".trellis/tasks/10-17-gpui-04-profiles/research/native-resume-20261027.md",
           "result": "Implementation and headless review recorded; final per-command/per-route native acceptance pending. Resumed metadata-save current-marker defect requires fix and native rerun; no blanket PASS."
+        },
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing converter core implementation retained; no new execution or native receipt.",
+          "native": "user_deferred_this_session; no current interaction receipt"
         }
       }
     },
@@ -10035,9 +10610,15 @@
       "redirect": null,
       "owner": "gpui-08-jobs",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Sync page → captured WebDAV/sensitive-assets operations",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing settings/folders/explicit batch push/pull/clear and recovery owners; no real remote WebDAV in this session.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 20,
@@ -10047,7 +10628,7 @@
       "owner": "gpui-04-profiles",
       "kind": "surface",
       "status": "implemented_pending_native_acceptance",
-      "native_action": "Claude → Configurations mode | Implemented; final independent/native acceptance pending",
+      "native_action": "ConfigurationApp + ProfileTools per-platform catalog/detail/editor",
       "verification": {
         "profiles_implementation": {
           "source_mapping": ".trellis/tasks/10-17-gpui-04-profiles/research/ui-evidence.md",
@@ -10055,6 +10636,11 @@
           "domain_review": ".trellis/tasks/10-17-gpui-04-profiles/research/check-final.md",
           "resumed_native": ".trellis/tasks/10-17-gpui-04-profiles/research/native-resume-20261027.md",
           "result": "Implementation and headless review recorded; final per-command/per-route native acceptance pending. Resumed metadata-save current-marker defect requires fix and native rerun; no blanket PASS."
+        },
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Preserves existing profile CRUD/apply/export/backup/CAS. Default platform home is now separate, Profiles remains directly reachable.",
+          "native": "user_deferred_this_session; no current interaction receipt"
         }
       }
     },
@@ -10065,9 +10651,15 @@
       "redirect": "/usage",
       "owner": "gpui-07-insights",
       "kind": "redirect",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_route_alias",
+      "native_action": "Alias → /usage",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original redirect retained; inherits actual destination implementation/acceptance, not a separate product capability.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 22,
@@ -10076,9 +10668,15 @@
       "redirect": null,
       "owner": "gpui-07-insights",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Usage page → scoped reports, budget/pricing, explicit source import",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Shared ccr-usage projection and existing policy owners. Import source/time window retained and context locked; complete scoped UI/native gate remains pending.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 23,
@@ -10087,9 +10685,15 @@
       "redirect": null,
       "owner": "gpui-07-insights",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Usage page → scoped reports, budget/pricing, explicit source import",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Shared ccr-usage projection and existing policy owners. Import source/time window retained and context locked; complete scoped UI/native gate remains pending.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 24,
@@ -10098,9 +10702,15 @@
       "redirect": null,
       "owner": "gpui-07-insights",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Usage page → scoped reports, budget/pricing, explicit source import",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Shared ccr-usage projection and existing policy owners. Import source/time window retained and context locked; complete scoped UI/native gate remains pending.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 25,
@@ -10109,9 +10719,15 @@
       "redirect": null,
       "owner": "gpui-07-insights",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "pending_native_consumer",
+      "native_action": "Native global Monitoring implementation in progress",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Global feed/logs/metrics separate from Claude Observer. Captured-main-DB consumer and lifecycle instrumentation still implementing.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 26,
@@ -10120,9 +10736,15 @@
       "redirect": "/monitoring",
       "owner": "gpui-07-insights",
       "kind": "redirect",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_route_alias",
+      "native_action": "Alias → /monitoring",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original redirect retained; inherits actual destination implementation/acceptance, not a separate product capability.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 27,
@@ -10131,9 +10753,15 @@
       "redirect": "/mcp-manager",
       "owner": "gpui-06-resources",
       "kind": "redirect",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_route_alias",
+      "native_action": "Alias → /mcp-manager",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original redirect retained; inherits actual destination implementation/acceptance, not a separate product capability.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 28,
@@ -10142,9 +10770,15 @@
       "redirect": "/mcp-manager",
       "owner": "gpui-06-resources",
       "kind": "redirect",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_route_alias",
+      "native_action": "Alias → /mcp-manager",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original redirect retained; inherits actual destination implementation/acceptance, not a separate product capability.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 29,
@@ -10153,9 +10787,15 @@
       "redirect": null,
       "owner": "gpui-07-insights",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Agent sessions / Codex Sessions → archived provider views + export/clone/recoverable trash",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing real read/detail/paging/actions retained; direct file save and restore-from-trash UI remain open. No permanent-delete substitution.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 30,
@@ -10164,9 +10804,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "McpView platform/source/scope + entry editor and batch review",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original source and destination revisions, opaque credentials, explicit partial outcomes and Replace policy. No fabricated process health. Current native interactions user-deferred.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 31,
@@ -10175,9 +10821,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Claude context resources → actual settings collections or scoped rule/style files",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing CRUD/source operations consumed; ordinary fields are being presented as native forms. File resources and settings collections retain distinct formats.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 32,
@@ -10186,9 +10838,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Claude context resources → actual settings collections or scoped rule/style files",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing CRUD/source operations consumed; ordinary fields are being presented as native forms. File resources and settings collections retain distinct formats.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 33,
@@ -10197,9 +10855,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Claude context resources → actual settings collections or scoped rule/style files",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing CRUD/source operations consumed; ordinary fields are being presented as native forms. File resources and settings collections retain distinct formats.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 34,
@@ -10208,9 +10872,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Install tools → SkillPort/skills-manage detection/open bridge",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Current Tauri SkillsMigrationView explicitly removed built-in skills install/market/source management. Native consumes same extracted bridge; no fictional skill-management scope added.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 35,
@@ -10219,9 +10889,15 @@
       "redirect": "/skills",
       "owner": "gpui-06-resources",
       "kind": "redirect",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_route_alias",
+      "native_action": "Alias → /skills",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original redirect retained; inherits actual destination implementation/acceptance, not a separate product capability.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 36,
@@ -10230,9 +10906,15 @@
       "redirect": "/skills",
       "owner": "gpui-06-resources",
       "kind": "redirect",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_route_alias",
+      "native_action": "Alias → /skills",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original redirect retained; inherits actual destination implementation/acceptance, not a separate product capability.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 37,
@@ -10241,9 +10923,15 @@
       "redirect": "/skills",
       "owner": "gpui-06-resources",
       "kind": "redirect",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_route_alias",
+      "native_action": "Alias → /skills",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original redirect retained; inherits actual destination implementation/acceptance, not a separate product capability.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 38,
@@ -10252,9 +10940,15 @@
       "redirect": "/skills",
       "owner": "gpui-06-resources",
       "kind": "redirect",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_route_alias",
+      "native_action": "Alias → /skills",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original redirect retained; inherits actual destination implementation/acceptance, not a separate product capability.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 39,
@@ -10263,9 +10957,15 @@
       "redirect": "/skills",
       "owner": "gpui-06-resources",
       "kind": "redirect",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_route_alias",
+      "native_action": "Alias → /skills",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original redirect retained; inherits actual destination implementation/acceptance, not a separate product capability.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 40,
@@ -10274,9 +10974,15 @@
       "redirect": "/skills",
       "owner": "gpui-06-resources",
       "kind": "redirect",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_route_alias",
+      "native_action": "Alias → /skills",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original redirect retained; inherits actual destination implementation/acceptance, not a separate product capability.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 41,
@@ -10285,9 +10991,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Claude context resources → actual settings collections or scoped rule/style files",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing CRUD/source operations consumed; ordinary fields are being presented as native forms. File resources and settings collections retain distinct formats.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 42,
@@ -10296,9 +11008,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Claude Settings scoped source/validated patch",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Actual same settings fields readable/writable but dedicated ordinary hooks/statusline forms remain open; raw source alone is not UI parity.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 43,
@@ -10307,9 +11025,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Claude context resources → actual settings collections or scoped rule/style files",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing CRUD/source operations consumed; ordinary fields are being presented as native forms. File resources and settings collections retain distinct formats.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 44,
@@ -10318,9 +11042,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Claude Settings scoped source/validated patch",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Actual same settings fields readable/writable but dedicated ordinary hooks/statusline forms remain open; raw source alone is not UI parity.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 45,
@@ -10329,9 +11059,15 @@
       "redirect": null,
       "owner": "gpui-08-jobs",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "CheckinView account/provider/batch/record/dashboard/WAF/CDK/config transfer",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing captured db/crypto managers and real controls; fixture/loopback evidence only. Embedded browser WAF and real provider runs remain distinct/open.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 46,
@@ -10340,9 +11076,15 @@
       "redirect": null,
       "owner": "gpui-08-jobs",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "CheckinView account/provider/batch/record/dashboard/WAF/CDK/config transfer",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing captured db/crypto managers and real controls; fixture/loopback evidence only. Embedded browser WAF and real provider runs remain distinct/open.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 47,
@@ -10351,9 +11093,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "McpView platform/source/scope + entry editor and batch review",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original source and destination revisions, opaque credentials, explicit partial outcomes and Replace policy. No fabricated process health. Current native interactions user-deferred.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 48,
@@ -10363,7 +11111,7 @@
       "owner": "gpui-04-profiles",
       "kind": "surface",
       "status": "implemented_pending_native_acceptance",
-      "native_action": "Codex selector → dedicated profile workbench | Implemented; platform-specific native flows not yet run",
+      "native_action": "ConfigurationApp + ProfileTools per-platform catalog/detail/editor",
       "verification": {
         "profiles_implementation": {
           "source_mapping": ".trellis/tasks/10-17-gpui-04-profiles/research/ui-evidence.md",
@@ -10371,6 +11119,11 @@
           "domain_review": ".trellis/tasks/10-17-gpui-04-profiles/research/check-final.md",
           "resumed_native": ".trellis/tasks/10-17-gpui-04-profiles/research/native-resume-20261027.md",
           "result": "Implementation and headless review recorded; final per-command/per-route native acceptance pending. Resumed metadata-save current-marker defect requires fix and native rerun; no blanket PASS."
+        },
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Preserves existing profile CRUD/apply/export/backup/CAS. Default platform home is now separate, Profiles remains directly reachable.",
+          "native": "user_deferred_this_session; no current interaction receipt"
         }
       }
     },
@@ -10381,9 +11134,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Codex context Agents → shared local/source agent owner",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original Codex agent/source install and tracking journal retained; no hidden network fetch on cache read.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 50,
@@ -10392,9 +11151,15 @@
       "redirect": null,
       "owner": "gpui-07-insights",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Agent sessions / Codex Sessions → archived provider views + export/clone/recoverable trash",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing real read/detail/paging/actions retained; direct file save and restore-from-trash UI remain open. No permanent-delete substitution.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 51,
@@ -10403,9 +11168,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_compatibility_entry",
+      "native_action": "Codex Workbench Sessions/Agents/MCP links",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Tauri CodexSlashCommandsView is itself a compatibility-only shortcuts page and says Codex has no manageable Slash Commands. No command CRUD is silently omitted.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 52,
@@ -10414,9 +11185,15 @@
       "redirect": null,
       "owner": "gpui-05-platforms",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Context Accounts → PlatformsView Auth + native OAuth/account owner",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Local credential facts are not remote login assertions. Captured roots/secrets and original-version confirmation preserved; external authentication not run.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 53,
@@ -10425,9 +11202,15 @@
       "redirect": null,
       "owner": "gpui-05-platforms",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Context Settings/accounts/providers → PlatformsView and source inventory",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing validated patches/source/account/provider/model/TUI operations work; some ordinary settings/provider workflows still rely on JSON draft and require typed presentation completion. Source inventory now distinguishes read-only layers.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 54,
@@ -10436,9 +11219,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Platform Instructions → ResourcesView fixed instruction-file editor/templates",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Domain registry, source revision, unknown content and scoped secret lifetimes preserved. No new native interaction receipt.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 55,
@@ -10447,9 +11236,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Antigravity context Commands → original TOML command files",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Shared exact format/precedence/version owner; prompt/description updates preserve unrelated fields.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 56,
@@ -10458,9 +11253,15 @@
       "redirect": "/antigravity/slash-commands",
       "owner": "gpui-06-resources",
       "kind": "redirect",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_route_alias",
+      "native_action": "Alias → /antigravity/slash-commands",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original redirect retained; inherits actual destination implementation/acceptance, not a separate product capability.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 57,
@@ -10469,9 +11270,15 @@
       "redirect": "/antigravity/mcp",
       "owner": "gpui-06-resources",
       "kind": "redirect",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_route_alias",
+      "native_action": "Alias → /antigravity/mcp",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original redirect retained; inherits actual destination implementation/acceptance, not a separate product capability.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 58,
@@ -10480,9 +11287,15 @@
       "redirect": "/antigravity/agents",
       "owner": "gpui-06-resources",
       "kind": "redirect",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_route_alias",
+      "native_action": "Alias → /antigravity/agents",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original redirect retained; inherits actual destination implementation/acceptance, not a separate product capability.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 59,
@@ -10491,9 +11304,15 @@
       "redirect": "/antigravity/plugins",
       "owner": "gpui-06-resources",
       "kind": "redirect",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_route_alias",
+      "native_action": "Alias → /antigravity/plugins",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original redirect retained; inherits actual destination implementation/acceptance, not a separate product capability.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 60,
@@ -10502,9 +11321,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Platform Instructions → ResourcesView fixed instruction-file editor/templates",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Domain registry, source revision, unknown content and scoped secret lifetimes preserved. No new native interaction receipt.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 61,
@@ -10513,9 +11338,15 @@
       "redirect": "/antigravity/system-prompts",
       "owner": "gpui-06-resources",
       "kind": "redirect",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_route_alias",
+      "native_action": "Alias → /antigravity/system-prompts",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original redirect retained; inherits actual destination implementation/acceptance, not a separate product capability.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 62,
@@ -10524,9 +11355,15 @@
       "redirect": null,
       "owner": "gpui-07-insights",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Shell platform Home → native WorkbenchView + contextual lenses",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "New real platform home/context implemented; platform-specific gaps tracked in platform-parity-20261106.md. Full native interactions deferred this session; not blanket parity.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 63,
@@ -10535,9 +11372,15 @@
       "redirect": null,
       "owner": "gpui-05-platforms",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Context Settings/accounts/providers → PlatformsView and source inventory",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing validated patches/source/account/provider/model/TUI operations work; some ordinary settings/provider workflows still rely on JSON draft and require typed presentation completion. Source inventory now distinguishes read-only layers.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 64,
@@ -10546,9 +11389,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "OpenCode Settings source editor MCP field",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Source-preserving editor exists; dedicated common native MCP form/list still pending. Do not dispatch OpenCode through Claude writer.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 65,
@@ -10557,9 +11406,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "OpenCode context resource → captured global/project native file resources",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Agents/commands editable using original Markdown/JSONC formats and scoped revisions; plugins are only metadata list because original owner does not implement package install/execute.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 66,
@@ -10568,9 +11423,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "OpenCode context resource → captured global/project native file resources",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Agents/commands editable using original Markdown/JSONC formats and scoped revisions; plugins are only metadata list because original owner does not implement package install/execute.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 67,
@@ -10579,9 +11440,15 @@
       "redirect": "/skills",
       "owner": "gpui-06-resources",
       "kind": "redirect",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_route_alias",
+      "native_action": "Alias → /skills",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original redirect retained; inherits actual destination implementation/acceptance, not a separate product capability.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 68,
@@ -10590,9 +11457,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "OpenCode context resource → captured global/project native file resources",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Agents/commands editable using original Markdown/JSONC formats and scoped revisions; plugins are only metadata list because original owner does not implement package install/execute.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 69,
@@ -10601,9 +11474,15 @@
       "redirect": null,
       "owner": "gpui-05-platforms",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Context Settings/accounts/providers → PlatformsView and source inventory",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Existing validated patches/source/account/provider/model/TUI operations work; some ordinary settings/provider workflows still rely on JSON draft and require typed presentation completion. Source inventory now distinguishes read-only layers.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 70,
@@ -10612,9 +11491,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Platform Instructions → ResourcesView fixed instruction-file editor/templates",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Domain registry, source revision, unknown content and scoped secret lifetimes preserved. No new native interaction receipt.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 71,
@@ -10623,9 +11508,15 @@
       "redirect": null,
       "owner": "gpui-09-environments",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "user_deferred",
+      "native_action": "No WSL native probe",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "WSL execution remains user-deferred; no doctor/distribution/container probe.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 72,
@@ -10634,9 +11525,15 @@
       "redirect": null,
       "owner": "gpui-09-environments",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "partial_native_consumer",
+      "native_action": "Settings SSH host/trust/password connection/file workspace",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Fixture-owned transport/file tests; real SSH forbidden this session; key inventory/remote CLI remain open and cannot fall back Local.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 73,
@@ -10645,9 +11542,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "McpView platform/source/scope + entry editor and batch review",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Original source and destination revisions, opaque credentials, explicit partial outcomes and Replace policy. No fabricated process health. Current native interactions user-deferred.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 74,
@@ -10656,9 +11559,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_unsupported_compatibility",
+      "native_action": "Antigravity actual resources/extensions only; editable Agents/Plugins unsupported in current Tauri backend too",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Owning source api/domains/gemini.ts170/201 lists return empty;178-198 and209-229 mutation safe-stubs return unsupported. No corresponding handler_registry commands. commands/gemini.rs338-347 only reads extensions. Generic frontend form configs do not prove backend CRUD; no fictional settings collections added.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     },
     {
       "index": 75,
@@ -10667,9 +11576,15 @@
       "redirect": null,
       "owner": "gpui-06-resources",
       "kind": "surface",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "mapped_unsupported_compatibility",
+      "native_action": "Antigravity actual resources/extensions only; editable Agents/Plugins unsupported in current Tauri backend too",
+      "verification": {
+        "reconciliation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source_assessment": "Owning source api/domains/gemini.ts170/201 lists return empty;178-198 and209-229 mutation safe-stubs return unsupported. No corresponding handler_registry commands. commands/gemini.rs338-347 only reads extensions. Generic frontend form configs do not prove backend CRUD; no fictional settings collections added.",
+          "native": "user_deferred_this_session; no current interaction receipt"
+        }
+      }
     }
   ],
   "execution": {

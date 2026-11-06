@@ -41,8 +41,22 @@ fn environment_views_fit_native_windows_stack_with_isolated_locks() {
         "features::environments::tests::settings_shows_the_local_desktop_without_a_sample_distro",
         "features::environments::remote::tests::rendered_host_actions_reach_isolated_transport_and_write_remote_document",
         "features::insights::session_operations::tests::selected_codex_controls_export_cancel_and_clear_plaintext",
+        "features::insights::session_operations::tests::session_trash_pagination_bounds_large_collections_and_keeps_controls_reachable",
         "features::insights::observer::tests::observer_setup_confirmation_cancels_then_saves_without_a_usage_database",
         "features::platforms::tests::codex_api_account_requires_confirmation_and_clears_plaintext_after_commit",
+        "features::platforms::tests::configuration_sources_are_discoverable_and_managed_layers_stay_read_only",
+        "features::install::tools::tests::tool_update_review_can_be_cancelled_and_fixture_controls_do_not_launch",
+        "features::mcp::batch::tests::rendered_batch_review_focus_escape_confirm_and_navigation_keep_safe_receipt",
+        "features::monitoring::tests::monitoring_filters_real_main_events_and_suspension_detaches_without_polling",
+        "features::monitoring::tests::overview_monitoring_entry_preserves_the_thirteen_destination_shell",
+        "features::workbench::rolling::tests::codex_rolling_action_distinguishes_missing_and_empty_sessions",
+        "features::resources::claude_files::tests::shell_claude_resources_write_confirm_conflict_and_keep_private_fields",
+        "features::platforms::forms::tests::ordinary_settings_forms_write_dirty_fields_keep_conflicts_and_clear",
+        "features::platforms::forms::tests::provider_common_fields_keep_stored_keys_and_metadata_omissions",
+        "features::mcp::editor::form::tests::mcp_common_form_validates_writes_http_and_retains_conflicting_private_drafts",
+        "features::mcp::editor::form::tests::mcp_common_form_switches_http_to_stdio_without_stale_transport_type",
+        "features::workbench::grok::tests::grok_workbench_reports_missing_baseline_and_clears_on_platform_change",
+        "features::insights::capabilities::tests::capability_controls_show_missing_and_old_schema_without_host_probe_or_creation",
     ] {
         let output = std::process::Command::new(&executable)
             .env("RUST_MIN_STACK", "1048576")

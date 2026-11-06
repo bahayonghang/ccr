@@ -161,7 +161,18 @@ impl Services {
                         .map(SshResult::Document),
                 }
             };
-            match tokio::runtime::Handle::current().block_on(work) {
+            let result = tokio::runtime::Handle::current().block_on(work);
+            services.monitoring.terminal(
+                &services.source,
+                "environment",
+                if result.is_ok() {
+                    "environment.operation.completed"
+                } else {
+                    "environment.operation.failed"
+                },
+                result.is_err(),
+            );
+            match result {
                 Ok(value) => Completion::Success(value),
                 Err("ssh_write_outcome_unknown") => Completion::Failed("ssh_write_outcome_unknown"),
                 Err("ssh_cleanup_failed") => Completion::CleanupFailed("ssh_cleanup_failed"),

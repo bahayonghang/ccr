@@ -145,6 +145,15 @@ fn rendered_catalog_blocks_typed_only_commands_and_invalid_draft_never_starts(
         assert!(!view.read(cx).busy);
         window.click("command-foreground", cx);
         assert!(view.read(cx).job_id.is_none());
+        assert!(
+            fixture
+                .path()
+                .read_dir()
+                .unwrap_or_else(|_| panic!("read fixture"))
+                .next()
+                .is_none(),
+            "invalid drafts must not admit work or initialize Recent storage"
+        );
         window.click("command-help", cx);
         let snapshot = view
             .read(cx)
@@ -166,15 +175,22 @@ fn rendered_catalog_blocks_typed_only_commands_and_invalid_draft_never_starts(
         );
     })
     .unwrap_or_else(|_| panic!("controls"));
-    assert!(
-        fixture
-            .path()
-            .read_dir()
-            .unwrap_or_else(|_| panic!("read fixture"))
-            .next()
-            .is_none()
-    );
     owner.shutdown();
+    // The valid Help admission has a failed terminal in this unmarked fixture;
+    // its retained finalizer records that outcome even after observation ends.
+    assert!(fixture.path().join("ui-state.db").is_file());
+    let pool = ccr_db::database::create_pool(&fixture.path().join("ui-state.db"), None)
+        .unwrap_or_else(|_| panic!("Recent fixture pool"));
+    let manager =
+        ccr_db::managers::ui_state::UiStateManager::with_db(ccr_db::database::DbAccess::Pool(pool));
+    let history = manager
+        .try_get_history(None)
+        .unwrap_or_else(|_| panic!("Recent history"));
+    assert_eq!(history.len(), 1);
+    assert_eq!(history[0].command, "help");
+    assert_eq!(history[0].full_command, "ccr help");
+    assert!(history[0].args.is_empty());
+    assert!(!history[0].success);
 }
 
 fn labels(window: &gpui_kit::Window) -> String {

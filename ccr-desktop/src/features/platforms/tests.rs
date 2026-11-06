@@ -13,6 +13,64 @@ use gpui_kit::{
 };
 
 #[gpui_kit::test]
+async fn configuration_sources_are_discoverable_and_managed_layers_stay_read_only(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
+    let source = crate::runtime::ConfigSource::Fixture {
+        profiles: root.path().join("profiles.toml"),
+        registry: root.path().join("registry.toml"),
+        delay: std::time::Duration::ZERO,
+    };
+    let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+    let services = Services::new(owner.handle(), source);
+    let (handle, view) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| {
+                let mut view = PlatformsView::new(services, window, cx);
+                view.open(Platform::Claude, Surface::Settings, window, cx);
+                view
+            })
+        })
+        .unwrap_or_else(|_| panic!("window"))
+    });
+    cx.wait_for(handle, std::time::Duration::from_secs(10), |_, cx| {
+        !view.read(cx).busy
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("platform-show-layers", cx);
+    })
+    .unwrap_or_else(|_| panic!("click"));
+    cx.wait_for(handle, std::time::Duration::from_secs(10), |_, cx| {
+        let view = view.read(cx);
+        view.layers_open && !view.layers.read(cx).busy
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(window.try_find("platform-layers").is_some());
+        let page = view.read(cx);
+        let layers = &page.layers.read(cx).rows;
+        assert_eq!(layers.len(), 4);
+        assert!(!layers[0].editable);
+        assert_eq!(layers[1].exists, None);
+        assert!(
+            layers[0]
+                .path
+                .as_ref()
+                .is_some_and(|path| path.starts_with(root.path()))
+        );
+        assert!(window.try_find("platform-save").is_none());
+    })
+    .unwrap_or_else(|_| panic!("inspect"));
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
 async fn codex_api_account_requires_confirmation_and_clears_plaintext_after_commit(
     cx: &mut TestAppContext,
 ) {

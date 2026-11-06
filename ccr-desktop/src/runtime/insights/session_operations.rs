@@ -4,11 +4,15 @@ use ccr_codex::{CodexSessionExport, CodexSessionService, CodexSessionTrashServic
 use ccr_core::core::LockManager;
 use ccr_store::sessions::{AgentSessionAgentId, AgentSessionSourceKind};
 use tokio::sync::watch;
+mod delivery;
+pub use delivery::{PreparedRestore, TrashItem};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Action {
     Clone,
     Trash,
+    Save,
+    Restore,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Failure {
@@ -147,6 +151,16 @@ impl InsightsRequests {
         prepared: Arc<Prepared>,
         action: Action,
     ) -> Result<(), Failure> {
+        let requests = self.clone();
+        self.start_session_work(key, move || {
+            requests.run_session_operation(&prepared, action)
+        })
+    }
+    fn start_session_work(
+        &self,
+        key: RequestKey,
+        work: impl FnOnce() -> Result<Outcome, Failure> + Send + 'static,
+    ) -> Result<(), Failure> {
         if !matches!(key.environment, EnvironmentId::Local(_)) {
             return Err(Failure::LocalOnly);
         }
@@ -165,7 +179,6 @@ impl InsightsRequests {
             };
             owner.updates.send_replace(Arc::new(state.clone()));
         }
-        let requests = self.clone();
         let pending = Pending {
             owner: owner.clone(),
             done: false,
@@ -174,7 +187,7 @@ impl InsightsRequests {
             .executor
             .job(key, move |_, _| {
                 let mut pending = pending;
-                let result = requests.run_session_operation(&prepared, action);
+                let result = work();
                 owner.update(|state| {
                     state.busy = false;
                     state.result = Some(result.clone());
@@ -223,6 +236,7 @@ impl InsightsRequests {
                         .map(|s| s.session_id.clone())
                         .ok_or(Failure::Partial)
                 }
+                Action::Save | Action::Restore => Err(Failure::Unsupported),
             }
         };
         let session_id = if matches!(

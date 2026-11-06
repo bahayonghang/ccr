@@ -1,4 +1,5 @@
-//! Native llmusage installation with a backend-owned plan and retained attempt.
+//! Native installation and explicit companion-tool management.
+mod tools;
 use crate::{
     locales::text,
     runtime::{
@@ -21,13 +22,14 @@ use gpui_kit::component::{
     button::{Button, ButtonVariants},
 };
 use gpui_kit::{
-    Context, FocusHandle, InteractiveElement, IntoElement, ParentElement, Render,
-    StatefulInteractiveElement, Styled, Task, Window, div, px,
+    AppContext, Context, Entity, FocusHandle, InteractiveElement, IntoElement, ParentElement,
+    Render, StatefulInteractiveElement, Styled, Task, Window, div, px,
 };
 use std::sync::Arc;
 
 pub struct InstallView {
     requests: InstallRequests,
+    tools: Entity<tools::ToolsView>,
     snapshot: Arc<Snapshot>,
     observer: Option<Task<()>>,
     task: Option<Task<()>>,
@@ -44,10 +46,12 @@ pub struct InstallView {
 }
 impl InstallView {
     pub fn new(services: Services, _: &mut Window, cx: &mut Context<Self>) -> Self {
+        let tools = cx.new(|cx| tools::ToolsView::new(&services, cx));
         let requests = InstallRequests::new(&services);
         Self {
             snapshot: requests.snapshot(),
             requests,
+            tools,
             observer: None,
             task: None,
             generation: 0,
@@ -67,6 +71,7 @@ impl InstallView {
         window.focus_next(cx);
     }
     pub fn refresh(&mut self, cx: &mut Context<Self>) {
+        self.tools.update(cx, |this, cx| this.refresh(cx));
         if self.observer.is_none() {
             let mut updates = self.requests.observe();
             self.snapshot = updates.borrow_and_update().clone();
@@ -93,6 +98,7 @@ impl InstallView {
         cx.notify();
     }
     pub fn suspend(&mut self, cx: &mut Context<Self>) {
+        self.tools.update(cx, |this, cx| this.suspend(cx));
         self.observer = None;
         self.task = None;
         self.generation += 1;
@@ -239,11 +245,12 @@ impl Render for InstallView {
             }
         };
         let mut root = div().id("native-install").test_support().track_focus(&self.focus).tab_stop(false)
-            .flex().flex_col().size_full().p(px(theme::CONTENT_PADDING)).gap(px(theme::SECTION_GAP))
+            .flex().flex_col().size_full().overflow_y_scroll().p(px(theme::CONTENT_PADDING)).gap(px(theme::SECTION_GAP))
             .bg(cx.theme().background).text_color(cx.theme().foreground)
             .on_key_down(cx.listener(|this, event: &gpui_kit::KeyDownEvent, window, cx| {
                 if event.keystroke.key == "escape" && this.decision.is_some() { this.dismiss(window, cx); cx.stop_propagation(); }
             }))
+            .child(self.tools.clone())
             .child(div().text_size(px(theme::TITLE_SIZE)).child(text(cx, "Install llmusage", "安装 llmusage")))
             .child(text(cx, "Check the host, review a short-lived plan, then explicitly confirm installation for the current user.", "检测主机并核对短期安装计划，确认后为当前用户安装。"))
             .child(div().id("install-status").test_support().child(crate::locales::localized_line(cx, state)));

@@ -2,8 +2,12 @@
 //! Native mutations reuse source-bound shared policy and original-revision writes.
 //! Environment values, headers, arguments, URLs, and tokens are not copied out.
 
+mod batch;
 mod editor;
 mod transfer;
+pub use batch::{
+    BatchAction, BatchInput, BatchOperation, BatchOutcome, BatchRow, BatchSnapshot, McpBatchSession,
+};
 pub use editor::{McpEditSession, McpTarget};
 pub use transfer::{McpCopySession, preset_patch};
 

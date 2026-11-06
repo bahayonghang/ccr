@@ -980,6 +980,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sha2 0.11.1",
+ "sysinfo 0.39.6",
  "tempfile",
  "thiserror 2.0.21",
  "tokio",
@@ -988,6 +989,7 @@ dependencies = [
  "tracing",
  "uuid",
  "walkdir",
+ "winreg",
 ]
 
 [[package]]
@@ -1180,6 +1182,7 @@ dependencies = [
  "ccr-skills",
  "ccr-store",
  "ccr-sync",
+ "ccr-types",
  "ccr-usage",
  "chrono",
  "dirs 6.0.0",

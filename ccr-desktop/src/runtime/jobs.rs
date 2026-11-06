@@ -115,6 +115,8 @@ impl CommandRequests {
         let terminal = Arc::new(Mutex::new(None));
         let worker_terminal = terminal.clone();
         let finalize_ticket = ticket.clone();
+        let monitoring = self.0.monitoring.clone();
+        let monitor_source = self.0.source.clone();
         match self.0.executor.job_with_finalizer(
             key,
             move |cancel, progress| {
@@ -183,11 +185,17 @@ impl CommandRequests {
                 // One finalizer per admitted ticket, retained and joined even when
                 // queued work is cancelled before its closure can run. Observers
                 // and replayed admissions cannot duplicate this write.
-                if let Some(terminal) = terminal
-                    && ui_state.record_command_terminal(&terminal).is_err()
-                {
-                    // Preserve process outcome; ambiguous writes are not replayed.
-                    eprintln!("Command Recent history could not be persisted");
+                if let Some(terminal) = terminal {
+                    let (event, failed) = match terminal.status {
+                        Status::Success => ("command.completed", false),
+                        Status::Cancelled => ("command.cancelled", false),
+                        _ => ("command.failed", true),
+                    };
+                    monitoring.terminal(&monitor_source, "commands", event, failed);
+                    if ui_state.record_command_terminal(&terminal).is_err() {
+                        // Preserve process outcome; ambiguous writes are not replayed.
+                        eprintln!("Command Recent history could not be persisted");
+                    }
                 }
             },
         ) {

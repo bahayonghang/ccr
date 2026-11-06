@@ -19,6 +19,8 @@ use ccr_config::{
 use ccr_core::{CcrError, Result};
 use std::sync::Arc;
 
+pub mod overview;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProfileError {
     Conflict,
@@ -219,7 +221,8 @@ pub fn context(source: &ConfigSource, platform: Platform) -> Result<ProfileLifec
                     ClaudeRuntimePaths::resolve_with(root.join("home"), |_| None),
                     locks,
                     history,
-                ),
+                )
+                .map(|context| context.with_process_environment(false)),
                 Platform::Codex => ProfileLifecycleContext::for_codex(
                     paths,
                     root.join("runtime-codex"),

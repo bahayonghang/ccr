@@ -1,4 +1,5 @@
 //! Source-aware local MCP management; server process status is not inferred.
+mod batch;
 mod editor;
 use crate::{
     locales::{is_chinese, service_error, text},
@@ -32,6 +33,9 @@ pub struct McpView {
     show_sources: bool,
     editor: Option<Entity<McpEditor>>,
     editor_events: Option<Subscription>,
+    batch: Option<Entity<batch::McpBatch>>,
+    batch_events: Option<Subscription>,
+    last_batch: Option<std::sync::Arc<crate::runtime::mcp::BatchOperation>>,
     _filter: Subscription,
     catalog: Option<McpCatalog>,
     selected: Option<String>,
@@ -41,6 +45,7 @@ pub struct McpView {
     busy: bool,
     message: Option<&'static str>,
     focus: FocusHandle,
+    platform_scope: Option<Platform>,
 }
 
 impl McpView {
@@ -61,6 +66,9 @@ impl McpView {
             show_sources: false,
             editor: None,
             editor_events: None,
+            batch: None,
+            batch_events: None,
+            last_batch: None,
             _filter: subscription,
             catalog: None,
             selected: None,
@@ -70,6 +78,7 @@ impl McpView {
             busy: false,
             message: None,
             focus: cx.focus_handle().tab_stop(false),
+            platform_scope: None,
         }
     }
 
@@ -79,6 +88,7 @@ impl McpView {
     }
 
     pub fn suspend(&mut self, cx: &mut Context<Self>) {
+        self.detach_batch(cx);
         self.create_mode = EditMode::Add;
         self.show_sources = false;
         self.show_presets = false;
@@ -93,6 +103,77 @@ impl McpView {
 
     pub fn refresh(&mut self, cx: &mut Context<Self>) {
         self.request(cx);
+    }
+    pub fn open_global(&mut self, cx: &mut Context<Self>) {
+        self.detach_batch(cx);
+        self.platform_scope = None;
+        self.refresh(cx);
+    }
+    pub fn open_platform(&mut self, platform: Platform, cx: &mut Context<Self>) {
+        self.detach_batch(cx);
+        self.platform_scope = Some(platform);
+        self.create_source = match platform {
+            Platform::Codex => 3,
+            Platform::Gemini => 4,
+            _ => 0,
+        };
+        self.refresh(cx);
+    }
+    fn source_in_scope(&self, source: McpSource) -> bool {
+        match self.platform_scope {
+            None => true,
+            Some(Platform::Claude) => matches!(
+                source,
+                McpSource::ClaudeState | McpSource::ClaudeSettings | McpSource::ProjectFile
+            ),
+            Some(Platform::Codex) => source == McpSource::CodexConfig,
+            Some(Platform::Gemini) => source == McpSource::AntigravityConfig,
+            Some(Platform::OpenCode) => source == McpSource::OpenCode,
+            Some(Platform::Grok) => source == McpSource::Grok,
+            _ => false,
+        }
+    }
+
+    fn detach_batch(&mut self, cx: &mut Context<Self>) {
+        if let Some(batch) = self.batch.take() {
+            self.last_batch = batch.read(cx).operation.clone();
+        }
+        self.batch_events = None;
+    }
+
+    fn open_batch(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.generation += 1;
+        let key = RequestKey {
+            environment: EnvironmentId::Local(
+                if self.services.is_fixture() {
+                    "fixture"
+                } else {
+                    "local"
+                }
+                .into(),
+            ),
+            platform: self.platform_scope.unwrap_or(Platform::Claude),
+            generation: self.generation,
+            request_id: self.generation,
+        };
+        let batch = cx.new(|cx| {
+            batch::McpBatch::new(
+                self.services.clone(),
+                key,
+                self.last_batch.clone(),
+                window,
+                cx,
+            )
+        });
+        self.batch_events = Some(cx.subscribe(&batch, |this, _, _: &batch::Closed, cx| {
+            this.detach_batch(cx);
+            this.request(cx);
+            cx.notify();
+        }));
+        self.show_sources = false;
+        self.show_presets = false;
+        self.batch = Some(batch);
+        cx.notify();
     }
 
     fn request(&mut self, cx: &mut Context<Self>) {
@@ -236,6 +317,7 @@ impl McpView {
         catalog
             .entries
             .iter()
+            .filter(|entry| self.source_in_scope(entry.source))
             .filter(|entry| filter.is_empty() || entry.name.to_lowercase().contains(&filter))
             .cloned()
             .collect()
@@ -466,9 +548,9 @@ impl Render for McpView {
                         ),
                     )
                     .child(semantics::button(Button::new("mcp-add").label(text(cx,"Add server and select source","添加服务器与选择来源")).ghost()
-                        .on_click(cx.listener(|this,_,_,cx|{this.create_mode=EditMode::Add;this.show_presets=false;this.show_sources = !this.show_sources;cx.notify();})),self.busy||self.editor.is_some(),false,cx))
+                        .on_click(cx.listener(|this,_,_,cx|{this.create_mode=EditMode::Add;this.show_presets=false;this.show_sources = !this.show_sources;cx.notify();})),self.busy||self.editor.is_some()||self.batch.is_some(),false,cx))
                     .child(semantics::button(Button::new("mcp-presets").label(text(cx,"Built-in presets","内置预设")).ghost()
-                        .on_click(cx.listener(|this,_,_,cx|{this.show_sources=false;this.create_mode=EditMode::Add;this.show_presets = !this.show_presets;cx.notify();})),self.busy||self.editor.is_some(),false,cx))
+                        .on_click(cx.listener(|this,_,_,cx|{this.show_sources=false;this.create_mode=EditMode::Add;this.show_presets = !this.show_presets;cx.notify();})),self.busy||self.editor.is_some()||self.batch.is_some(),false,cx))
                     .child(semantics::button(
                         Button::new("mcp-read")
                             .label(if self.busy {
@@ -478,11 +560,27 @@ impl Render for McpView {
                             })
                             .ghost()
                             .on_click(cx.listener(|this, _, _, cx| this.refresh(cx))),
-                        self.busy || self.editor.is_some(),
+                        self.busy || self.editor.is_some() || self.batch.is_some(),
                         self.busy,
                         cx,
                     )),
             );
+        if let Some(batch) = &self.batch {
+            return root.child(batch.clone());
+        }
+        root = root.child(semantics::button(
+            Button::new("mcp-batch-open")
+                .label(text(
+                    cx,
+                    "Batch presets and synchronization",
+                    "批量预设与同步",
+                ))
+                .ghost()
+                .on_click(cx.listener(|this, _, window, cx| this.open_batch(window, cx))),
+            self.busy || self.editor.is_some(),
+            false,
+            cx,
+        ));
         if let Some(editor) = &self.editor {
             return root.child(editor.clone());
         }
@@ -544,6 +642,16 @@ impl Render for McpView {
                 (3, "mcp-source-codex", "Codex", "Codex"),
                 (4, "mcp-source-antigravity", "Antigravity", "Antigravity"),
             ] {
+                if self.platform_scope.is_some()
+                    && !match self.platform_scope {
+                        Some(Platform::Claude) => index <= 2,
+                        Some(Platform::Codex) => index == 3,
+                        Some(Platform::Gemini) => index == 4,
+                        _ => false,
+                    }
+                {
+                    continue;
+                }
                 targets = targets.child(semantics::button(
                     Button::new(id)
                         .label(text(cx, en, zh))
@@ -593,6 +701,9 @@ impl Render for McpView {
                 .flex_col()
                 .gap(px(theme::CONTROL_GAP));
             for (index, item) in catalog.notes.iter().enumerate() {
+                if !self.source_in_scope(item.source) {
+                    continue;
+                }
                 let line = note_line(cx, item.source, item.state);
                 sources = sources.child(
                     div()
@@ -674,9 +785,6 @@ impl Render for McpView {
                     .flex()
                     .flex_col()
                     .gap(px(theme::CONTROL_GAP));
-                for line in lines {
-                    detail = detail.child(line);
-                }
                 match McpTarget::for_entry(entry) {
                     Ok(target) => {
                         let edit_target = target.clone();
@@ -740,6 +848,9 @@ impl Render for McpView {
                     Err(_) => {
                         detail = detail.child(text(cx,"This legacy source is read-only here. Manage it through the platform settings source editor; new Claude entries use explicit user/local/project scope.","此旧版来源在这里为只读。请通过平台设置源码编辑器管理；新的 Claude 条目使用明确的用户、项目本地或项目文件作用域。"));
                     }
+                }
+                for line in lines {
+                    detail = detail.child(line);
                 }
                 root = root.child(detail);
             }

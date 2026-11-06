@@ -75,6 +75,12 @@ async fn wait_for_editor(cx: &mut TestAppContext, handle: gpui_kit::AnyWindowHan
     // Rendering the enabled Input updates its engine and queues a notification.
     // Drain that update before exercising native pointer and keyboard handlers.
     cx.run_until_parked();
+    cx.update_window(handle, |_, window, cx| {
+        if window.try_find("mcp-common-form").is_some() {
+            window.click("mcp-editor-advanced", cx);
+        }
+    })
+    .unwrap();
 }
 fn write_entries(root: &std::path::Path) {
     let home = root.join(FIXTURE_DIR).join("home");
@@ -278,6 +284,12 @@ async fn preset_and_cross_source_copy_use_real_controls_and_keep_stored_credenti
     let original = fs::read(&codex).unwrap();
     cx.update_window(handle, |_, window, cx| {
         window.click("mcp-entry-0", cx);
+        let button = window.find("mcp-copy").bounds();
+        let viewport = window.find("mcp-manager").bounds();
+        assert!(
+            button.top() >= viewport.top() && button.bottom() <= viewport.bottom(),
+            "copy button clipped: {button:?} in {viewport:?}"
+        );
         window.click("mcp-copy", cx);
         window.click("mcp-source-user", cx);
         window.click("mcp-open-editor", cx);

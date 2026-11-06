@@ -26,6 +26,7 @@ use gpui_kit::{
     ParentElement, Render, StatefulInteractiveElement, Styled, Task, Window, div, px,
 };
 use std::sync::Arc;
+mod form;
 
 #[derive(Clone, PartialEq, Eq)]
 pub(super) enum EditMode {
@@ -48,6 +49,9 @@ pub(super) enum EditorEvent {
 }
 
 pub(super) struct McpEditor {
+    form: form::ServerForm,
+    advanced: bool,
+    pending_form: Option<(Option<String>, &'static str)>,
     services: Services,
     key: RequestKey,
     mode: EditMode,
@@ -64,6 +68,8 @@ pub(super) struct McpEditor {
     focus: FocusHandle,
     confirmation_focus: FocusHandle,
     enter_confirmation: bool,
+    confirmation_generation: u64,
+    confirmation_return: Option<FocusHandle>,
 }
 impl EventEmitter<EditorEvent> for McpEditor {}
 
@@ -121,7 +127,24 @@ impl McpEditor {
             };
             title = format!("{} · {scope} · {} → {title}", text(cx, en, zh), source.name);
         }
+        let mut form = form::ServerForm::new(&target, mode.creates(), window, cx);
+        if let Ok(value) = &initial_patch {
+            form.load_command(
+                value
+                    .get("command")
+                    .and_then(serde_json::Value::as_str)
+                    .map(str::to_owned),
+                window,
+                cx,
+            );
+        }
+        if let Some(key) = &required_env {
+            form.add_env(key, window, cx);
+        }
         let mut this = Self {
+            form,
+            advanced: false,
+            pending_form: None,
             services,
             key,
             mode,
@@ -136,8 +159,10 @@ impl McpEditor {
             message: None,
             pending: None,
             focus: cx.focus_handle().tab_stop(false),
-            confirmation_focus: cx.focus_handle(),
+            confirmation_focus: cx.focus_handle().tab_stop(false),
             enter_confirmation: false,
+            confirmation_generation: 0,
+            confirmation_return: None,
         };
         if let Err(error) = initial_patch {
             this.busy = false;
@@ -197,7 +222,15 @@ impl McpEditor {
                             let _ = weak.update(cx, |this, cx| {
                                 this.busy = false;
                                 match result.as_ref() {
-                                    Completion::Success(session) => this.session = Some(session.clone()),
+                                    Completion::Success(session) => {
+                                        if this.mode==EditMode::Edit {
+                                            match session.common_fields(&this.name.read(cx).value()) {
+                                                Ok(fields)=>this.pending_form=Some((fields.command,fields.url_key)),
+                                                Err(error)=>this.message=Some(error.message()),
+                                            }
+                                        }
+                                        this.session = Some(session.clone());
+                                    },
                                     Completion::Failed(error) | Completion::CleanupFailed(error) => this.message = Some(error.message()),
                                     _ => this.message = Some("MCP source read did not complete. / MCP 来源读取未完成"),
                                 }
@@ -216,7 +249,7 @@ impl McpEditor {
         this
     }
 
-    fn prepare(&mut self, cx: &mut Context<Self>) {
+    fn prepare(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self.busy || (self.session.is_none() && self.copy_session.is_none()) {
             return;
         }
@@ -233,16 +266,38 @@ impl McpEditor {
         } else if self.mode == EditMode::Delete {
             Some(EntryMutation::Delete)
         } else {
-            let value: serde_json::Value = match serde_json::from_str::<serde_json::Value>(
-                self.patch.read(cx).value().as_ref(),
-            ) {
+            let mut value: serde_json::Value = match if self.advanced {
+                serde_json::from_str::<serde_json::Value>(&self.patch.read(cx).value())
+                    .map_err(|_| McpError::Invalid.message())
+            } else {
+                self.form.patch(&self.patch.read(cx).value(), cx)
+            } {
                 Ok(value) if value.is_object() => value,
+                Err(error) => {
+                    self.message = Some(error);
+                    cx.notify();
+                    return;
+                }
                 _ => {
                     self.message = Some(McpError::Invalid.message());
                     cx.notify();
                     return;
                 }
             };
+            if self.mode.creates() && !self.advanced {
+                if let Some(object) = value.as_object_mut() {
+                    object.retain(|_, value| !value.is_null());
+                }
+                if ccr_app::mcp_document::validate_entry(&value).is_err() {
+                    self.message = Some(text(
+                        cx,
+                        "Enter a stdio command or HTTP endpoint, with valid argument and credential fields.",
+                        "请输入 Stdio 命令或 HTTP 地址，并检查参数和凭据字段。",
+                    ));
+                    cx.notify();
+                    return;
+                }
+            }
             if self.required_env.as_ref().is_some_and(|key| {
                 value
                     .get("env")
@@ -265,8 +320,20 @@ impl McpEditor {
             }
         };
         self.pending = Some((name, mutation));
+        self.confirmation_generation += 1;
+        self.confirmation_return = window.focused(cx);
         self.enter_confirmation = true;
         self.message = None;
+        cx.notify();
+    }
+
+    fn dismiss(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.pending = None;
+        self.enter_confirmation = false;
+        self.confirmation_generation += 1;
+        if let Some(focus) = self.confirmation_return.take() {
+            window.focus(&focus, cx);
+        }
         cx.notify();
     }
 
@@ -277,6 +344,9 @@ impl McpEditor {
         let Some((name, mutation)) = self.pending.take() else {
             return;
         };
+        self.enter_confirmation = false;
+        self.confirmation_generation += 1;
+        self.confirmation_return = None;
         self.key.request_id = self.key.request_id.saturating_add(1);
         self.busy = true;
         let request = if let Some(session) = self.copy_session.clone() {
@@ -319,6 +389,10 @@ impl McpEditor {
 
 impl Render for McpEditor {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        if let Some((command, url_key)) = self.pending_form.take() {
+            self.form.load_command(command, window, cx);
+            self.form.url_key = url_key;
+        }
         let mut root = div().id("mcp-editor").test_support().track_focus(&self.focus).tab_stop(false).flex().flex_col().gap(px(theme::CONTROL_GAP))
             .child(self.title.clone())
             .child(text(cx, "The selected source and scope stay fixed until this editor closes. Existing secret values are not loaded. Only submitted fields change; omitted fields are retained. Leaving discards the draft; a save already started continues.", "编辑器关闭前，所选来源与作用域保持固定。已有密钥不会载入。仅修改提交的字段，省略字段保持不变。离开会丢弃草稿；已开始的保存会继续。"))
@@ -326,8 +400,57 @@ impl Render for McpEditor {
         if matches!(self.mode, EditMode::Copy(_)) {
             root = root.child(text(cx,"Copy the selected server, including stored environment values and supported HTTP headers, into this source. Stored values stay hidden. Existing entries are never overwritten; use a different name if needed.","将所选服务器连同已保存的环境变量与支持的 HTTP 请求头复制到此来源。已保存的值保持隐藏。不会覆盖已有条目；如有重名，请使用其他名称。"));
         } else if self.mode != EditMode::Delete {
-            root = root.child(text(cx, "JSON patch. A new server requires command or url. Enter new credentials only when replacing them. null removes a field; Claude uses its existing patch rules.", "JSON 补丁。新服务器必须填写 command 或 url；仅在替换时输入新密钥。null 删除字段；Claude 沿用既有补丁规则。"))
-                .child(Textarea::new(&self.patch).accessibility_id("mcp-patch").aria_label(text(cx,"MCP JSON patch","MCP JSON 补丁")).disabled(self.busy || self.pending.is_some()).h(px(180.)));
+            root = root.child(semantics::button(
+                Button::new("mcp-editor-advanced")
+                    .label(text(cx, "Advanced JSON patch", "高级 JSON 补丁"))
+                    .ghost()
+                    .on_click(cx.listener(|this, _, window, cx| {
+                        if !this.advanced {
+                            match this
+                                .form
+                                .patch(&this.patch.read(cx).value(), cx)
+                                .and_then(|v| {
+                                    serde_json::to_string(&v)
+                                        .map_err(|_| McpError::Invalid.message())
+                                }) {
+                                Ok(value) => this
+                                    .patch
+                                    .update(cx, |state, cx| state.set_value(value, window, cx)),
+                                Err(error) => {
+                                    this.message = Some(error);
+                                    cx.notify();
+                                    return;
+                                }
+                            }
+                        } else if let Err(error) =
+                            this.form.resume(&this.patch.read(cx).value(), window, cx)
+                        {
+                            this.message = Some(error);
+                            cx.notify();
+                            return;
+                        }
+                        this.advanced = !this.advanced;
+                        cx.notify();
+                    })),
+                self.busy || self.pending.is_some(),
+                false,
+                cx,
+            ));
+            if self.advanced {
+                root = root
+                    .child(text(
+                        cx,
+                        "JSON patch. null removes a field; Claude uses its existing patch rules.",
+                        "JSON 补丁。null 删除字段；Claude 沿用既有补丁规则。",
+                    ))
+                    .child(
+                        Textarea::new(&self.patch)
+                            .accessibility_id("mcp-patch")
+                            .aria_label(text(cx, "MCP JSON patch", "MCP JSON 补丁"))
+                            .disabled(self.busy || self.pending.is_some())
+                            .h(px(180.)),
+                    );
+            }
         }
         if let Some(message) = self.message {
             root = root.child(
@@ -341,13 +464,22 @@ impl Render for McpEditor {
         }
         if self.pending.is_some() {
             if self.enter_confirmation {
-                window.focus(&self.confirmation_focus, cx);
                 self.enter_confirmation = false;
+                let generation = self.confirmation_generation;
+                let view = cx.weak_entity();
+                window.on_next_frame(move |window, cx| {
+                    let _ = view.update(cx, |this, cx| {
+                        if this.pending.is_some() && this.confirmation_generation == generation {
+                            window.focus(&this.confirmation_focus, cx);
+                            window.focus_next(cx);
+                        }
+                    });
+                });
             }
-            root = root.child(div().id("mcp-confirmation").test_support().on_key_down(cx.listener(|this, event: &gpui_kit::KeyDownEvent, window, cx| { if event.keystroke.key == "escape" { this.pending = None; window.focus(&this.focus, cx); cx.stop_propagation(); cx.notify(); } })).flex().flex_col().gap(px(theme::CONTROL_GAP))
+            root = root.child(div().id("mcp-confirmation").test_support().role(gpui_kit::Role::AlertDialog).aria_label(text(cx,"Confirm MCP source change","确认 MCP 来源更改")).on_key_down(cx.listener(|this, event: &gpui_kit::KeyDownEvent, window, cx| { if event.keystroke.key == "escape" { this.dismiss(window,cx); cx.stop_propagation(); } })).flex().flex_col().gap(px(theme::CONTROL_GAP))
                 .child(text(cx,"Commit this change to the selected MCP source? Removing or changing a server can affect clients using it. No server process will be started.","将更改写入所选 MCP 来源？删除或修改服务器可能影响使用它的客户端。此操作不会启动服务器进程。"))
-                .child(div().flex().gap(px(theme::CONTROL_GAP))
-                    .child(semantics::button(Button::new("mcp-confirm-cancel").label(text(cx,"Keep editing","继续编辑")).ghost().on_click(cx.listener(|this,_,window,cx|{this.pending=None;window.focus(&this.focus,cx);cx.notify();})),false,false,cx))
+                .child(div().tab_group().tab_stop(false).flex().gap(px(theme::CONTROL_GAP))
+                    .child(semantics::button(Button::new("mcp-confirm-cancel").label(text(cx,"Keep editing","继续编辑")).ghost().on_click(cx.listener(|this,_,window,cx|this.dismiss(window,cx))),false,false,cx))
                     .child(semantics::button(Button::new("mcp-confirm-save").label(text(cx,"Confirm change","确认更改")).primary().on_click(cx.listener(|this,_,_,cx|this.save(cx))),false,false,cx)).focus_trap("mcp-confirmation-trap", &self.confirmation_focus)));
         } else {
             root = root.child(
@@ -371,12 +503,15 @@ impl Render for McpEditor {
                                 text(cx, "Save changes", "保存更改")
                             })
                             .primary()
-                            .on_click(cx.listener(|this, _, _, cx| this.prepare(cx))),
+                            .on_click(cx.listener(|this, _, window, cx| this.prepare(window, cx))),
                         self.busy || (self.session.is_none() && self.copy_session.is_none()),
                         self.busy,
                         cx,
                     )),
             );
+        }
+        if !self.advanced && !matches!(self.mode, EditMode::Copy(_) | EditMode::Delete) {
+            root = root.child(self.form.render(self.busy || self.pending.is_some(), cx));
         }
         root
     }

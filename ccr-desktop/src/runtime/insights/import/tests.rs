@@ -175,3 +175,69 @@ fn queued_cancel_keeps_a_cancelled_terminal_without_starting_the_importer() {
     drop(blockers);
     owner.shutdown();
 }
+
+#[test]
+fn import_options_preserve_each_source_window_and_existing_activation_map() {
+    let root = tempfile::tempdir().unwrap();
+    let paths = InsightsPaths {
+        usage_root: root.path().join("usage"),
+        provider_home: root.path().join("home"),
+        archive_db: root.path().join("analytics/usage.db"),
+    };
+    for source in std::iter::once(None).chain(SourceKind::ALL.into_iter().map(Some)) {
+        let options = Options {
+            source,
+            recent_days: 7,
+        };
+        let command = options.command(&paths);
+        assert_eq!(command.source, source);
+        assert_eq!(command.recent_days, Some(7));
+        assert!(!command.rebuild);
+        assert_eq!(command.provider_map, None);
+        assert_eq!(
+            options.includes_claude(),
+            source.is_none() || source == Some(SourceKind::Claude)
+        );
+    }
+    let map = ccr_config::managers::provider_activation::activation_log_path(root.path());
+    std::fs::create_dir_all(map.parent().unwrap()).unwrap();
+    std::fs::write(&map, "").unwrap();
+    let command = Options {
+        source: Some(SourceKind::Grok),
+        recent_days: 0,
+    }
+    .command(&paths);
+    assert_eq!(command.provider_map, Some(map));
+    assert_eq!(command.recent_days, Some(1));
+}
+
+#[test]
+fn selected_source_is_retained_without_ingesting_another_sources_tools() {
+    let root = tempfile::tempdir().unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let requests = fixture(&owner, root.path());
+    let projects = root.path().join("home/.claude/projects/fixture");
+    std::fs::create_dir_all(&projects).unwrap();
+    std::fs::write(projects.join("session.jsonl"),
+        r#"{"type":"assistant","sessionId":"excluded","timestamp":"2026-11-06T10:00:00Z","message":{"content":[{"type":"tool_use","id":"tool-1","name":"Read","input":{}}]}}"#).unwrap();
+    requests.fixture_import(false);
+    let options = Options {
+        source: Some(SourceKind::Codex),
+        recent_days: 7,
+    };
+    requests
+        .start_import_with_options(key(EnvironmentId::Local("fixture".into())), options)
+        .unwrap();
+    drop(requests.observe_import());
+    wait(&requests, |s| s.status == Status::Finished);
+    assert_eq!(requests.import_snapshot().options, options);
+    assert!(matches!(
+        requests.import_snapshot().tools,
+        ToolUpdate::NotStarted
+    ));
+    assert!(!root.path().join("observer.db").exists());
+    requests.cancel_import();
+    assert_eq!(requests.import_snapshot().status, Status::Finished);
+    assert_eq!(requests.import_snapshot().options, options);
+    owner.shutdown();
+}

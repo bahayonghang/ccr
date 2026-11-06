@@ -3,6 +3,7 @@ use super::*;
 use crate::runtime::insights::session_operations::{Action, Failure, Prepared, State};
 use ccr_codex::CodexSessionExport;
 use gpui_kit::component::FocusTrapElement;
+mod delivery;
 
 #[derive(Default)]
 pub(super) struct ViewState {
@@ -17,15 +18,25 @@ pub(super) struct ViewState {
     entry_pending: bool,
     decision_generation: u64,
     focus: Option<FocusHandle>,
+    trash: Option<Arc<Vec<crate::runtime::insights::session_operations::TrashItem>>>,
+    trash_page: usize,
+    restore: Option<Arc<crate::runtime::insights::session_operations::PreparedRestore>>,
+    restore_preparing: bool,
+    restore_return_focus: Option<FocusHandle>,
 }
 impl InsightsView {
     pub(super) fn session_confirmation_pending(&self) -> bool {
-        self.session_ops.pending.is_some()
+        self.session_ops.pending.is_some() || self.session_ops.restore.is_some()
     }
     pub(super) fn clear_session_draft(&mut self) {
         self.session_ops.task = None;
         self.session_ops.pending = None;
         self.session_ops.preview = None;
+        self.session_ops.trash = None;
+        self.session_ops.trash_page = 0;
+        self.session_ops.restore = None;
+        self.session_ops.restore_preparing = false;
+        self.session_ops.restore_return_focus = None;
         self.session_ops.busy = false;
         self.session_ops.error = None;
         self.session_ops.copied = false;
@@ -48,8 +59,9 @@ impl InsightsView {
                             .as_ref()
                             .and_then(|v| v.as_ref().ok())
                             .is_some_and(|outcome| {
-                                outcome.action == Action::Trash
-                                    && this.archive_id.as_deref() == Some(&outcome.archive_id)
+                                outcome.action == Action::Restore
+                                    || (outcome.action == Action::Trash
+                                        && this.archive_id.as_deref() == Some(&outcome.archive_id))
                             });
                         this.session_ops.state = state;
                         if removed {
@@ -177,6 +189,9 @@ impl InsightsView {
         if self.session_ops.pending.is_some() {
             return self.render_session_confirmation(window, cx);
         }
+        if self.session_ops.restore.is_some() {
+            return self.render_session_restore_confirmation(window, cx);
+        }
         div()
             .id("session-operations")
             .test_support()
@@ -186,6 +201,7 @@ impl InsightsView {
             .child(self.render_session_actions(cx))
             .child(self.render_session_feedback(cx))
             .child(self.render_session_export(cx))
+            .child(self.render_session_trash(cx))
             .into_any_element()
     }
     fn render_session_confirmation(
@@ -222,7 +238,7 @@ impl InsightsView {
             }
             return root.role(gpui_kit::Role::AlertDialog).track_focus(&focus).tab_stop(false)
                 .on_key_down(cx.listener(|this,event:&gpui_kit::KeyDownEvent,_,cx|{if event.keystroke.key=="escape"{this.session_ops.pending=None;cx.stop_propagation();cx.notify();}}))
-                .child(if *action==Action::Trash{text(cx,"Move this Codex session to CCR trash? The original rollout and session-index entry are removed after a recoverable copy is saved. Restore with CCR CLI sessions restore using the same Codex home.","将此 Codex 会话移入 CCR 废纸篓？保存可恢复副本后，移除原始记录和会话索引条目。可用 CCR CLI sessions restore 配合同一 Codex 目录恢复。")}else{text(cx,"Clone this Codex session with a new identity? The original file stays unchanged.","以新标识克隆此 Codex 会话？原始文件保持不变。")})
+                .child(if *action==Action::Trash{text(cx,"Move this Codex session to CCR trash? The original rollout and session-index entry are removed after a recoverable copy is saved. Open CCR trash to restore it.","将此 Codex 会话移入 CCR 废纸篓？保存可恢复副本后，移除原始记录和会话索引条目。可打开 CCR 废纸篓恢复。")}else{text(cx,"Clone this Codex session with a new identity? The original file stays unchanged.","以新标识克隆此 Codex 会话？原始文件保持不变。")})
                 .child(div().tab_group().tab_stop(false)
                     .child(semantics::button(Button::new("session-action-cancel").label(text(cx,"Cancel","取消")).ghost().on_click(cx.listener(|this,_,_,cx|{this.session_ops.pending=None;cx.notify();})),false,false,cx))
                     .child(semantics::button(Button::new("session-action-confirm").label(text(cx,"Confirm","确认")).on_click(cx.listener(|this,_,_,cx|{
@@ -301,10 +317,20 @@ impl InsightsView {
         if let Some(Ok(outcome)) = &self.session_ops.state.result {
             let line = match outcome.action {
                 Action::Clone => text(cx, "Session cloned.", "会话已克隆。"),
+                Action::Save => text(
+                    cx,
+                    "Markdown saved to the selected new file.",
+                    "Markdown 已保存到所选新文件。",
+                ),
+                Action::Restore => text(
+                    cx,
+                    "Session restored from CCR trash.",
+                    "会话已从 CCR 废纸篓恢复。",
+                ),
                 Action::Trash => text(
                     cx,
-                    "Session moved to CCR trash. Restore with: ccr codex sessions restore <session-id> --codex-home <Codex-home>",
-                    "会话已移入 CCR 废纸篓。恢复命令：ccr codex sessions restore <session-id> --codex-home <Codex-home>",
+                    "Session moved to CCR trash. Open CCR trash to restore it.",
+                    "会话已移入 CCR 废纸篓，可打开废纸篓恢复。",
                 ),
             };
             root = root.child(format!("{line} {}", outcome.session_id));
@@ -347,6 +373,18 @@ impl InsightsView {
                         .child(preview.content.clone()),
                 )
                 .child(semantics::button(
+                    Button::new("session-save-markdown")
+                        .label(text(
+                            cx,
+                            "Save as new Markdown file…",
+                            "另存为新的 Markdown 文件…",
+                        ))
+                        .on_click(cx.listener(|this, _, _, cx| this.save_session_markdown(cx))),
+                    self.session_ops.busy || self.session_ops.state.busy,
+                    false,
+                    cx,
+                ))
+                .child(semantics::button(
                     Button::new("session-copy-markdown")
                         .label(text(cx, "Copy Markdown", "复制 Markdown"))
                         .on_click(cx.listener(|this, _, _, cx| {
@@ -383,8 +421,8 @@ fn failure(error: Failure, cx: &gpui_kit::App) -> &'static str {
         ),
         Failure::Conflict => text(
             cx,
-            "The session changed. Read it again before confirming.",
-            "会话已变化，请重新读取后确认。",
+            "The session or trash changed, or the destination already exists. Read again or choose a new file.",
+            "会话或废纸篓已变化，或目标文件已存在。请重新读取或选择新文件。",
         ),
         Failure::Partial => text(
             cx,
@@ -415,9 +453,89 @@ mod tests {
     use std::time::Duration;
 
     #[gpui_kit::test]
+    async fn session_trash_pagination_bounds_large_collections_and_keeps_controls_reachable(
+        cx: &mut TestAppContext,
+    ) {
+        cx.executor().allow_parking();
+        let (root, owner, services, _, _) =
+            crate::runtime::insights::session_operations::tests::fixture();
+        let trash =
+            ccr_codex::CodexSessionTrashService::with_codex_home(root.path().join("home/.codex"));
+        ccr_core::core::LockManager::with_scoped_directory(&root.path().join("locks"), || {
+            trash.trash_sessions(["synthetic-session"])
+        })
+        .unwrap();
+        let (handle, view) = cx.update(|cx| {
+            gpui_kit::init(cx);
+            gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+                cx.new(|cx| InsightsView::new(services, window, cx))
+            })
+            .unwrap()
+        });
+        view.update(cx, |this, cx| this.open_product(InsightsPage::Sessions, cx));
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+            !view.read(cx).loading
+        })
+        .await;
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.click("session-open-trash", cx);
+        })
+        .unwrap();
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+            view.read(cx).session_ops.trash.is_some()
+        })
+        .await;
+        view.update(cx, |this, cx| {
+            let item = this.session_ops.trash.as_ref().unwrap()[0].clone();
+            this.session_ops.trash = Some(Arc::new(
+                (0..10_000)
+                    .map(|index| {
+                        let mut item = item.clone();
+                        item.session_id = format!("synthetic-{index}");
+                        item
+                    })
+                    .collect(),
+            ));
+            cx.notify();
+        });
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            let count = |window: &Window| {
+                gpui_kit::base::test_support::snapshots(window)
+                    .iter()
+                    .filter(|node| node.label() == Some("Review restore…"))
+                    .count()
+            };
+            assert_eq!(count(window), 6);
+            assert!(window.try_find("session-restore:5").is_some());
+            assert!(window.try_find("session-restore:6").is_none());
+            // Disabled state is emitted through synthetic accessibility nodes,
+            // outside Kit's control snapshot; assert the actual boundary action.
+            window.click("session-trash-prev", cx);
+            assert_eq!(view.read(cx).session_ops.trash_page, 0);
+            window.click("session-trash-next", cx);
+            assert_eq!(count(window), 6);
+            assert!(window.try_find("session-restore:0").is_none());
+            assert!(window.try_find("session-restore:6").is_some());
+            assert_eq!(view.read(cx).session_ops.trash_page, 1);
+            window.click("session-trash-prev", cx);
+            assert!(window.try_find("session-restore:0").is_some());
+            view.update(cx, |this, cx| {
+                this.clear_session_draft();
+                cx.notify();
+            });
+            assert_eq!(view.read(cx).session_ops.trash_page, 0);
+            window.remove_window();
+        })
+        .unwrap();
+        owner.shutdown();
+    }
+
+    #[gpui_kit::test]
     async fn selected_codex_controls_export_cancel_and_clear_plaintext(cx: &mut TestAppContext) {
         cx.executor().allow_parking();
-        let (_root, owner, services, path, id) =
+        let (root, owner, services, path, id) =
             crate::runtime::insights::session_operations::tests::fixture();
         let (handle, view) = cx.update(|cx| {
             gpui_kit::init(cx);
@@ -453,6 +571,33 @@ mod tests {
         .await;
         cx.update_window(handle, |_, window, cx| {
             window.render_frame(cx);
+            window.click("session-save-markdown", cx);
+        })
+        .unwrap();
+        assert!(cx.did_prompt_for_new_path());
+        cx.simulate_new_path_selection(|_| None);
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+            !view.read(cx).session_ops.busy
+        })
+        .await;
+        assert!(!root.path().join("saved.md").exists());
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.click("session-save-markdown", cx);
+        })
+        .unwrap();
+        let destination = root.path().join("saved.md");
+        cx.simulate_new_path_selection(|_| Some(destination.clone()));
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+            matches!(&view.read(cx).session_ops.state.result,Some(Ok(value)) if value.action==Action::Save)
+        }).await;
+        assert!(
+            std::fs::read_to_string(&destination)
+                .unwrap()
+                .contains("private synthetic transcript")
+        );
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
             window.click("session-copy-markdown", cx);
             assert!(
                 cx.read_from_clipboard()
@@ -474,6 +619,105 @@ mod tests {
             assert!(path.exists());
         })
         .unwrap();
+        // The restore UI remains reachable after the active row disappears.
+        let requests = view.read_with(cx, |this, _| this.requests.clone());
+        let trash =
+            ccr_codex::CodexSessionTrashService::with_codex_home(root.path().join("home/.codex"));
+        ccr_core::core::LockManager::with_scoped_directory(&root.path().join("locks"), || {
+            trash.trash_sessions(["synthetic-session"])
+        })
+        .unwrap();
+        view.update(cx, |this, cx| {
+            this.archive_id = None;
+            this.snapshot = None;
+            this.session_ops.preview = None;
+            this.refresh(cx);
+        });
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+            !view.read(cx).loading
+        })
+        .await;
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.click("session-open-trash", cx);
+        })
+        .unwrap();
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+            view.read(cx).session_ops.trash.is_some()
+        })
+        .await;
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.click("session-restore:0", cx);
+            assert!(view.read(cx).session_ops.restore_preparing);
+            view.update(cx, |this, cx| {
+                this.clear_session_draft();
+                cx.notify();
+            });
+            assert!(view.read(cx).session_ops.task.is_none());
+            assert!(view.read(cx).session_ops.restore.is_none());
+            assert!(!view.read(cx).session_ops.restore_preparing);
+            window.render_frame(cx);
+            window.click("session-open-trash", cx);
+        })
+        .unwrap();
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+            view.read(cx).session_ops.trash.is_some()
+        })
+        .await;
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.click("insights-filter-6", cx);
+            window.click("session-restore:0", cx);
+            window.render_frame(cx);
+            window.click("session-restore-prepare-cancel", cx);
+            assert!(!view.read(cx).session_ops.restore_preparing);
+            assert!(view.read(cx).session_ops.restore.is_none());
+            assert!(!path.exists());
+            window.render_frame(cx);
+            window.click("insights-filter-6", cx);
+            window.click("session-restore:0", cx);
+            window.press("enter", cx);
+            assert!(!path.exists(), "Enter before focus entry must not restore");
+        })
+        .unwrap();
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+            view.read(cx).session_ops.restore.is_some()
+        })
+        .await;
+        cx.update_window(handle, |_, window, cx| {
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
+            assert_eq!(window.find("session-restore-cancel").focused(), Some(true));
+            window.press("tab", cx);
+            assert_eq!(window.find("session-restore-confirm").focused(), Some(true));
+            window.press("shift-tab", cx);
+            assert_eq!(window.find("session-restore-cancel").focused(), Some(true));
+            window.press("escape", cx);
+            assert!(window.try_find("session-restore-confirm").is_none());
+            assert_eq!(window.find("insights-filter-6").focused(), Some(true));
+        })
+        .unwrap();
+        assert!(!path.exists());
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.click("session-restore:0", cx);
+        })
+        .unwrap();
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+            view.read(cx).session_ops.restore.is_some()
+        })
+        .await;
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.click("session-restore-confirm", cx);
+        })
+        .unwrap();
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+            matches!(&view.read(cx).session_ops.state.result,Some(Ok(value)) if value.action==Action::Restore)
+        }).await;
+        assert!(path.exists());
+        assert!(!requests.session_operation_snapshot().busy);
         view.update(cx, |this, cx| this.suspend(cx));
         cx.update_window(handle, |_, window, cx| {
             assert!(view.read(cx).session_ops.preview.is_none());

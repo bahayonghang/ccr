@@ -209,6 +209,34 @@ impl ResourcesView {
         self.platform = platform;
         self.load(cx);
     }
+    pub fn open_claude(
+        &mut self,
+        kind: crate::runtime::resources::claude_files::Kind,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.leave(window, cx);
+        self.platform = Platform::Claude;
+        self.surface = ResourceSurface::Claude;
+        self.claude
+            .update(cx, |view, cx| view.open_kind(kind, window, cx));
+    }
+    pub fn open_extensions(
+        &mut self,
+        platform: Platform,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.leave(window, cx);
+        self.platform = platform;
+        self.surface = match platform {
+            Platform::Codex => ResourceSurface::Codex,
+            Platform::Gemini => ResourceSurface::Antigravity,
+            Platform::OpenCode => ResourceSurface::OpenCode,
+            _ => ResourceSurface::Claude,
+        };
+        self.load(cx);
+    }
     pub fn leave(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.templates.update(cx, |view, cx| view.leave(window, cx));
         self.templates_open = false;
