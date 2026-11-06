@@ -2,7 +2,7 @@
 
 基线 `90131cd6`；此表随本轮实现更新，不把页面存在、旧 planned 数量或子任务归档当作功能对等。Tauri 参照：`ClaudeCodeView.tsx`、`config/moduleSubnav.ts`、`PlatformSubnav.tsx` 和对应领域页面/commands。`native` 一栏只接收本轮实际二进制收据。
 
-稳定提交批次已通过 GPUI fmt/lint/test（lib202、native_shell9、19个实际1MiB子进程）和根完整CI（HEAD65a5fe1f）。随后新增的Benchmark/System Info/Codex diagnostics/SSH detect/账户凭据回填仍需各自独立check及新一轮集成门禁；不得复用该CI结论。原生窗口验证由用户明确延期。
+HEAD998dd9f已包含Benchmark/System Info/Codex diagnostics/SSH detect/账户凭据回填及各自独立check；对应GPUI fmt/lint/test通过（lib228、native_shell9、26个实际1MiB子进程）。根完整CI旧收据来自HEAD65a5fe1f，不能覆盖其后的共享改动或新S2批次；新完整门禁见integration-gates-20261106.md。原生窗口验证由用户明确延期。
 
 ## 默认入口与平台上下文
 
@@ -41,12 +41,13 @@
 | SSH CLI检测 | 已验证连接中固定四项PATH查询，展示installed/path | capture host+session UUID；断开/重连/换环境/离页拒绝迟到结果；不读私钥、不查版本 | shared26、remote3、adapter1；新区域SFTP确认裁切已修；独立源码check | user-deferred |
 | 账户原值编辑 | 只回填所选账户，普通Session/API用户字段；全部Cookies JSON为显式高级入口 | unknown Cookie保留、masked inputs、cancel/leave清除、nonce+account门；缺钥typed提示，metadata仍可保存 | checkin17/domain10；缺钥生成风险红→绿；独立check | user-deferred |
 | Benchmark数据/时钟 | 两端显式模式、共同文件校验、UTC默认报表窗口，旧Fixture/Local语义保留 | WAL/journal/links/闰秒早拒绝；不改Date或elapsed；实际启动校验成本计入 | 两端真实S0/S1/S2读回、前端90、strict检查；最终原生全量分页读回1通过；性能非可比PASS | 未采样 |
+| S2持续日志源 | 两端Monitoring内显式Start/status/cancel；真实monitoring/ring/持久化owner | 只允许validated Benchmark/S2、每进程一次；128队列、skip-on-overrun、分阶段ACK、单调revision；离页保留、实际join后终态 | 新source/adapter/IPC/确认消费者及独立检查收据见performance-s2-implementation与performance-s2-check；集中门禁单独记录 | user-deferred；未采集实际60秒原生性能样本 |
 
 本扩展批次完整 `gpui-fmt-check/lint/test` 已通过：lib228、native_shell9、native_ui2、runtime_shutdown2，26个实际1MiB/毒化锁子进程通过。共享改动后的最终Root CI和交付包另行取得，不复用HEAD65a5fe1f旧CI。S2持续日志源尚在独立工程批次。
 
 ## 尚未获得或需后续闭合的证据
 
-当前表不宣称完整Tauri命令/route对等。两端显式fixture核心业务隔离与paired S0/S1/S2领域数据已实现和核对；共同报表时钟与同定义验证已闭合；仍缺真实进程创建/呈现/交互计时及S2持续流量，性能保持not_run/not_comparable。原生OS/IME/通知/隐藏恢复/托盘/系统直接quit-veto继续开放。会话保存/恢复已完成源码与headless回归。WSL与窗口尺寸/DPI矩阵为user-deferred；真实glass仍为实色降级。后续按具体能力与owning source闭合，不按旧计数写完成率。
+当前表不宣称完整Tauri命令/route对等。两端显式fixture核心业务隔离与paired S0/S1/S2领域数据已实现和核对；共同报表时钟与同定义验证已闭合；S2持续源已接入，仍缺真实进程创建/呈现/交互计时及其60秒原生负载样本，性能保持not_run/not_comparable。原生OS/IME/通知/隐藏恢复/托盘/系统直接quit-veto继续开放。会话保存/恢复已完成源码与headless回归。WSL与窗口尺寸/DPI矩阵为user-deferred；真实glass仍为实色降级。后续按具体能力与owning source闭合，不按旧计数写完成率。
 
 ## 历史窄收据（最终稳定批次结果以 integration-gates-20261106.md 为准）
 

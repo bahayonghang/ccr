@@ -294,3 +294,5 @@ impl Seed {
 
 #[cfg(test)]
 mod tests;
+
+pub mod s2;

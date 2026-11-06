@@ -212,6 +212,42 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn s2_transferred_admission_holds_until_cleanup_but_controls_remain_available() {
+        // Capability admission is separately tested with fixture contexts. This
+        // test isolates the registry-owned permit transfer and lifecycle matrix.
+        let start = command_descriptor("benchmark_s2_start").expect("S2 start");
+        let (release, cleanup) = oneshot::channel();
+        let owner = execute_with_descriptor(start, async move {
+            let permit = take_background_admission("benchmark_s2_start")?;
+            assert!(take_background_admission("benchmark_s2_start").is_err());
+            Ok(tokio::spawn(async move {
+                let _ = cleanup.await;
+                drop(permit);
+            }))
+        })
+        .await
+        .expect("start returns while owner retains permit");
+        for id in ["benchmark_s2_cancel", "benchmark_s2_get_status"] {
+            execute_with_descriptor(command_descriptor(id).expect("S2 control"), async {
+                Ok::<_, String>(())
+            })
+            .await
+            .expect("control reaches live owner");
+        }
+        let mut contender = start;
+        contender.timeout_ms = 10;
+        assert_eq!(
+            execute_with_descriptor(contender, async { Ok::<_, String>(()) }).await,
+            Err("command_queue_timeout:benchmark_s2_start".into())
+        );
+        release.send(()).expect("release cleanup");
+        owner.await.expect("cleanup joined");
+        execute_with_descriptor(start, async { Ok::<_, String>(()) })
+            .await
+            .expect("permit released");
+    }
+
+    #[tokio::test]
     async fn background_permit_transfer_is_single_use_and_preserves_shared_process_exclusion() {
         for start in ["start_ccr_command_job", "llmusage_install_execute"] {
             let (cleanup_tx, cleanup_rx) = oneshot::channel();

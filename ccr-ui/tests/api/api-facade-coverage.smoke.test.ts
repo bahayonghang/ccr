@@ -15,6 +15,7 @@ vi.mock('@/utils/tauriRuntime', () => ({
 }))
 
 import * as tauriApi from '@/api/tauri'
+import * as benchmarkApi from '@/api/domains/benchmark'
 import * as checkinApi from '@/api/domains/checkin'
 import * as claudeApi from '@/api/domains/claude'
 import * as claudeObserverApi from '@/api/domains/claudeObserver'
@@ -275,14 +276,29 @@ const generatedClientArgs = (exportName: string): unknown[] => {
 const UNWRAPPED_MANIFEST_COMMANDS = ['waf_deliver_cookie', 'wsl_write_config'] as const
 
 describe('API facade command-name coverage', () => {
+  it('transports S2 typed requests with registry confirmation and keeps the facade frozen', async () => {
+    await benchmarkApi.startBenchmarkS2()
+    await benchmarkApi.getBenchmarkS2Status()
+    await benchmarkApi.cancelBenchmarkS2({ run_id: 'synthetic-s2-run' })
+    expect(invokeMock).toHaveBeenNthCalledWith(1, 'benchmark_s2_start', {
+      confirmationToken: 'desktop-confirm:benchmark_s2_start',
+    })
+    expect(invokeMock).toHaveBeenNthCalledWith(2, 'benchmark_s2_get_status', undefined)
+    expect(invokeMock).toHaveBeenNthCalledWith(3, 'benchmark_s2_cancel', {
+      request: { run_id: 'synthetic-s2-run' },
+      confirmationToken: 'desktop-confirm:benchmark_s2_cancel',
+    })
+    expect('startBenchmarkS2' in tauriApi).toBe(false)
+  })
+
   it('keeps command-manifest.json aligned with the generated COMMAND_MANIFEST client', async () => {
     const file = JSON.parse(
       await readFile('src/api/generated/command-manifest.json', 'utf8'),
     ) as ManifestFile
 
     expect(file.schema_version).toBe(2)
-    expect(file.base_command_count).toBe(340)
-    expect(file.windows_command_count).toBe(348)
+    expect(file.base_command_count).toBe(343)
+    expect(file.windows_command_count).toBe(351)
     expect(COMMAND_MANIFEST.schema_version).toBe(file.schema_version)
     expect(COMMAND_MANIFEST.base_command_count).toBe(file.base_command_count)
     expect(COMMAND_MANIFEST.windows_command_count).toBe(file.windows_command_count)
@@ -290,7 +306,7 @@ describe('API facade command-name coverage', () => {
     expect(COMMAND_MANIFEST.commands.map((command) => command.id)).toEqual(
       file.commands.map((command) => command.id),
     )
-    expect(file.commands.filter((command) => command.platform === 'base')).toHaveLength(340)
+    expect(file.commands.filter((command) => command.platform === 'base')).toHaveLength(343)
     expect(file.commands.filter((command) => command.platform === 'windows')).toHaveLength(8)
   })
 

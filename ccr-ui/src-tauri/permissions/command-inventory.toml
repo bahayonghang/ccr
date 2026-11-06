@@ -4,6 +4,9 @@
 identifier = "main-command-inventory"
 description = "Allows the main window to invoke every registry-owned application command."
 permissions = [
+  "allow-benchmark-s2-start",
+  "allow-benchmark-s2-get-status",
+  "allow-benchmark-s2-cancel",
   "allow-list-configs",
   "allow-switch-config",
   "allow-add-config",

@@ -1,5 +1,6 @@
 //! Explicit benchmark source identity. Loading is blocking work admitted before
 //! window creation; no marker or filename changes the ordinary Fixture mode.
+pub mod stream;
 use ccr_cli::application::{
     platform_roots::PlatformRoots, profile_lifecycle::ProfileLifecycleContext,
 };

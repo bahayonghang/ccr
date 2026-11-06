@@ -53,13 +53,14 @@ pub(crate) enum LifecycleResource {
     ProcessExecution,
     UsageImport,
     CodexAuth,
+    BenchmarkStream,
 }
 
 /// Explicit control matrix. Resource identity is independent of risk, ACL,
 /// confirmation, and audit. Command and install share ProcessExecution.
 pub(crate) fn command_lifecycle(command: &str) -> Option<(LifecycleResource, LifecycleOperation)> {
     use LifecycleOperation::{Control, Foreground, Query, Start};
-    use LifecycleResource::{CodexAuth, ProcessExecution, UsageImport};
+    use LifecycleResource::{BenchmarkStream, CodexAuth, ProcessExecution, UsageImport};
     Some(match command {
         "execute_ccr_command" | "llmusage_install_plan" => (ProcessExecution, Foreground),
         "start_ccr_command_job" | "llmusage_install_execute" => (ProcessExecution, Start),
@@ -74,6 +75,9 @@ pub(crate) fn command_lifecycle(command: &str) -> Option<(LifecycleResource, Lif
         "start_usage_import_job_v2" => (UsageImport, Start),
         "get_usage_import_job_status_v2" => (UsageImport, Query),
         "cancel_usage_import_job_v2" => (UsageImport, Control),
+        "benchmark_s2_start" => (BenchmarkStream, Start),
+        "benchmark_s2_get_status" => (BenchmarkStream, Query),
+        "benchmark_s2_cancel" => (BenchmarkStream, Control),
         "codex_oauth_login_start" => (CodexAuth, Start),
         "codex_oauth_login_completed"
         | "codex_oauth_login_cancel"
@@ -320,7 +324,9 @@ fn capability_policy(
     };
 
     let timeout_enforcement = match (risk, command) {
-        (_, "codex_oauth_login_start") => CommandTimeoutEnforcement::BusinessOwned,
+        (_, "codex_oauth_login_start" | "benchmark_s2_start" | "benchmark_s2_cancel") => {
+            CommandTimeoutEnforcement::BusinessOwned
+        }
         (_, "test_webdav_config") => CommandTimeoutEnforcement::Cooperative,
         (CommandRisk::ProcessExecution, _) => CommandTimeoutEnforcement::BusinessOwned,
         _ => CommandTimeoutEnforcement::CompletionAware,
@@ -543,6 +549,12 @@ fn audit_invoke(invoke: &tauri::ipc::Invoke) -> bool {
 }
 
 define_command_registry! {
+    benchmark: "Benchmark S2" [LocalMutation, Generated] => [
+        super::benchmark::benchmark_s2_start => ["void", "BenchmarkS2SnapshotDto", "export const startBenchmarkS2 = (): Promise<BenchmarkS2SnapshotDto> => invoke('benchmark_s2_start')\n"],
+        super::benchmark::benchmark_s2_get_status => ["void", "BenchmarkS2SnapshotDto", "export const getBenchmarkS2Status = (): Promise<BenchmarkS2SnapshotDto> => invoke('benchmark_s2_get_status')\n"],
+        super::benchmark::benchmark_s2_cancel => ["BenchmarkS2CancelRequest", "BenchmarkS2SnapshotDto", "export const cancelBenchmarkS2 = (request: BenchmarkS2CancelRequest): Promise<BenchmarkS2SnapshotDto> => invoke('benchmark_s2_cancel', { request })\n"],
+    ],
+
     config: "配置管理" [LocalMutation, Generated] => [
         super::config::list_configs => ["ConfigPlatform", "ConfigInfo[]", "export const listConfigsTyped = (platform: ConfigPlatform): Promise<ConfigInfo[]> => invoke('list_configs', { platform })\n"],
         super::config::switch_config => ["{ platform: ConfigPlatform; name: string; enable?: boolean }", "ConfigMutationResult", "export const switchConfigTyped = (platform: ConfigPlatform, name: string, enable = false): Promise<ConfigMutationResult> => invoke('switch_config', { platform, name, enable })\n"],
@@ -1686,6 +1698,17 @@ mod tests {
         output
     }
 
+    fn benchmark_client_typescript() -> String {
+        let mut output = [
+            "/* Generated from commands/handler_registry.rs; do not edit. */\n\n",
+            "import { invoke } from '@/api/invokeRuntime'\n",
+            "import type { BenchmarkS2SnapshotDto } from '@/types/generated/benchmark/BenchmarkS2SnapshotDto'\n",
+            "import type { BenchmarkS2CancelRequest } from '@/types/generated/benchmark/BenchmarkS2CancelRequest'\n\n",
+        ].concat();
+        append_module_client_declarations(&mut output, "benchmark");
+        output
+    }
+
     fn generated_artifacts() -> Vec<(PathBuf, String)> {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
         vec![
@@ -1708,6 +1731,10 @@ mod tests {
             (
                 root.join("ccr-ui/src/api/generated/commandCapabilities.ts"),
                 command_capabilities_typescript(),
+            ),
+            (
+                root.join("ccr-ui/src/api/generated/benchmark.ts"),
+                benchmark_client_typescript(),
             ),
             (
                 root.join("ccr-ui/src/api/generated/commandExec.ts"),
@@ -1814,13 +1841,13 @@ mod tests {
 
     #[test]
     fn command_registry_shape_matches_current_handler_surface() {
-        assert_eq!(COMMAND_MODULES.len(), 38);
+        assert_eq!(COMMAND_MODULES.len(), 39);
 
         #[cfg(target_os = "windows")]
-        assert_eq!(registered_command_count(), 348);
+        assert_eq!(registered_command_count(), 351);
 
         #[cfg(not(target_os = "windows"))]
-        assert_eq!(registered_command_count(), 340);
+        assert_eq!(registered_command_count(), 343);
     }
 
     #[test]
@@ -1855,7 +1882,7 @@ mod tests {
     #[test]
     fn command_capability_descriptors_are_complete_and_unique() {
         let descriptors = command_descriptors().collect::<Vec<_>>();
-        assert_eq!(descriptors.len(), 348);
+        assert_eq!(descriptors.len(), 351);
 
         let mut ids = HashSet::new();
         let mut paths = HashSet::new();
@@ -1884,10 +1911,10 @@ mod tests {
         }
 
         let manifest = command_manifest();
-        assert_eq!(manifest.base_command_count, 340);
-        assert_eq!(manifest.windows_command_count, 348);
-        assert_eq!(manifest.typed_command_count, 278);
-        assert_eq!(manifest.exact_wire_type_count, 278);
+        assert_eq!(manifest.base_command_count, 343);
+        assert_eq!(manifest.windows_command_count, 351);
+        assert_eq!(manifest.typed_command_count, 281);
+        assert_eq!(manifest.exact_wire_type_count, 281);
 
         let exact_contract_modules = descriptors
             .iter()
@@ -2015,7 +2042,7 @@ mod tests {
         let descriptors = command_descriptors()
             .filter(|descriptor| command_lifecycle(descriptor.id).is_some())
             .collect::<Vec<_>>();
-        assert_eq!(descriptors.len(), 23);
+        assert_eq!(descriptors.len(), 26);
         for descriptor in descriptors {
             let (resource, operation) =
                 command_lifecycle(descriptor.id).expect("lifecycle mapping");
@@ -2040,6 +2067,12 @@ mod tests {
                     CommandConcurrency::Singleton,
                 ),
                 LifecycleResource::UsageImport => (
+                    CommandAuthorization::LocalUser,
+                    CommandAudit::MetadataOnly,
+                    CommandRisk::LocalMutation,
+                    CommandConcurrency::ModuleExclusive,
+                ),
+                LifecycleResource::BenchmarkStream => (
                     CommandAuthorization::LocalUser,
                     CommandAudit::MetadataOnly,
                     CommandRisk::LocalMutation,
@@ -2348,6 +2381,7 @@ mod tests {
     #[test]
     fn generated_small_domain_clients_cover_their_typed_registry_modules() {
         for (key, client) in [
+            ("benchmark", benchmark_client_typescript()),
             ("ui_state", ui_state_client_typescript()),
             ("system_info", system_info_client_typescript()),
             ("converter", converter_client_typescript()),

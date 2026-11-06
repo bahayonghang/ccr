@@ -44,3 +44,17 @@
 - 随后重新完整 `just gpui-test` **退出0**，日志 `outputs/desktop/integration-20261106-gpui-current-test-rerun1.log`：Python16、AccessKit3、lib **228通过/0失败/4忽略**、native_shell **9通过/0失败/1忽略**、native_ui **2通过**、runtime_shutdown **2通过/1忽略**、doc0。lib中 **26个实际1MiB+poisoned锁子进程** 全通过；忽略项为显式大数据/隔离helper，另有实际执行收据，不是为本次修门禁新增skip。
 - 这是当前扩展批次的源码/fixture/headless验收。最终成对全域读回、交付包与共享改动后的新完整CI继续单独记录；后续S2源码不由本轮通过结果覆盖。
 - 随后用同一已编译artifact显式执行大数据用例 `runtime::benchmark::tests::generated_pairs_load_through_native_domain_consumers --exact --ignored`，**1/1通过，234.60s**，日志 `outputs/desktop/integration-20261106-native-pairs-final.log`。最终共享validator/sidecar guard下，S0/S1/S2的Profiles、全量分页Sessions/summary/detail、100k usage各分组/趋势/记录、Settings/Auth/监控读取及DB原hash保持断言通过。运行时长是功能核验成本，不是启动或原生性能样本；未因重复provider discovery慢而绕过真实consumer。
+
+## S2持续源：最终候选门禁
+
+- 共享fixed source、逐条DB ACK/COMMIT错误回滚、两端retained adapter/Monitoring消费者、三条typed IPC及权限/生成物均已独立check，见performance-s2-check和performance-s2-ack-check。没有启动GPUI/Tauri原生窗口。
+- 新 `just gpui-fmt-check`、`just gpui-lint`、完整 `just gpui-test` **全部退出0**，日志 `outputs/desktop/integration-20261106-gpui-s2-{fmt,lint,test}.log`。最终Python16、AccessKit3、lib **233通过/0失败/4忽略**、native_shell **9/0/1**、native_ui **2/0/0**、shutdown **2/0/1**、doc0。中央守卫 **27个实际1MiB+毒化锁子进程** 全部通过，含新S2 safe Cancel/early Enter/suspend控件；未增大栈或删除忽略覆盖。
+- 最终前端独立 `just frontend-check` **退出0**，日志 `outputs/desktop/integration-20261106-frontend-s2.log`：类型、完整lint、循环/架构边界、i18n各4564 leaf/24测试、smoke **172文件/944测试**、生产build及docs audit/build通过。小修后的最终候选由此重新完整构建，不复用早期build。定向新旧S2交互25项、IPC10项另有owner收据，重叠不相加。
+- 完整 `just ci` 首次在Tauri测试失败，日志 `outputs/desktop/integration-20261106-ci-s2.log`，**退出1**（12:32.583）：Root各门禁全部通过，Tauri **333/1/5**。唯一失败是既有profile重放严格预期Applied、实际AppliedWithWarning；原断言没有输出warning。仅为该断言补完整outcome诊断，不放宽预期/并行/超时。相同all-features精确1/1与默认并行完整Tauri **334/0/5**随后通过；原warning根因仍未证实，不称已修或flaky，详见profile-contract-gate-diagnosis-20261106.md。新的完整CI重跑另行记录，不能以局部恢复替代。
+- `just gpui-package` **退出0**，日志 `outputs/desktop/integration-20261106-gpui-s2-package.log`；只有build和sidecar `--version`，未运行GPUI。未签名Windows7.5.0 portable ZIP为 `ccr-desktop/target/package/ccr-gpui-7.5.0-windows-amd64.zip`（26,712,253字节）。独立重读ZIP验证恰好四个成员、version/signed标记与两个可执行文件hash，均匹配manifest：
+  - ZIP SHA256 `c68299c01b981f22eb01f915ee04071932b42081d4874814eadae0e16199c223`
+  - GPUI SHA256 `0a6a54920ef76692877373a68ad3aa3bf0abe240a282a9a98e5726fde5730314`
+  - sidecar SHA256 `54091b3607f00a300b55f7d597825f86c7d0797482df5464fcdddd0e3ec58e5c`
+- 该S2候选ZIP另存至 `outputs/desktop/s2-20261106/ccr-gpui-7.5.0-windows-amd64.zip`，副本hash一致，供后续指标批次重新打包后仍能核对本次收据。
+- 原生交互/截图仍为用户延期；本机浏览器mock组件的键盘/焦点证据和截图超时见benchmark-s2-ui-20261106.md，均不作为原生或60秒性能样本。父任务/01/09继续in_progress，不归档。
+- 随后新的完整 `just ci` **退出0**，耗时 **12:40.348**，日志 `outputs/desktop/integration-20261106-ci-s2-rerun1.log`：版本、格式、OMP/harness、严格Clippy、workspace check/test、release、audit、governance、Tauri、frontend/audit/coverage、VSCode全部通过；Tauri行为 **334/0/5**。新增文件暂存后另跑 `just copilot-check` **退出0**（6805 tracked files），补足只扫描tracked files的检查覆盖。最终Root/Tauri生产源码冻结；晚到的精确计数/前端恢复测试均在所属gate消费前固定，最后唯一共享源修改是保持严格Applied预期的Debug断言。原首次warning根因仍未知，不因这次通过而宣称修复。

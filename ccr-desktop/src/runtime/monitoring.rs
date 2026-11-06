@@ -25,6 +25,7 @@ struct State {
     bytes: usize,
     evicted: usize,
     last_write: Option<Result<(), Error>>,
+    eviction_watch: Option<(&'static str, u64)>,
 }
 pub struct Owner {
     path: OnceLock<Result<PathBuf, Error>>,
@@ -57,7 +58,37 @@ pub struct Report {
     pub last_write: Option<Result<(), Error>>,
     pub metrics: Metrics,
 }
+pub(super) struct RecordReceipt {
+    pub attempted: bool,
+    pub persisted: Result<(), Error>,
+}
 impl Owner {
+    pub(super) fn track_evictions(&self, prefix: &'static str) -> Result<(), Error> {
+        let mut state = self
+            .state
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if state.eviction_watch.is_some() {
+            return Err(Error::Storage);
+        }
+        state.eviction_watch = Some((prefix, 0));
+        Ok(())
+    }
+    /// Reading the final delta and detaching are atomic with every real ring pop.
+    pub(super) fn eviction_delta(&self, detach: bool) -> u64 {
+        let mut state = self
+            .state
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if detach {
+            return state.eviction_watch.take().map_or(0, |(_, count)| count);
+        }
+        state
+            .eviction_watch
+            .as_mut()
+            .map_or(0, |(_, count)| std::mem::take(count))
+    }
+
     #[cfg(test)]
     pub(crate) fn read_count(&self) -> usize {
         self.reads.load(std::sync::atomic::Ordering::Relaxed)
@@ -103,6 +134,13 @@ impl Owner {
         );
     }
     fn record(&self, source: &ConfigSource, entry: MonitoringEntry) {
+        let _ = self.record_checked(source, entry);
+    }
+    pub(super) fn record_checked(
+        &self,
+        source: &ConfigSource,
+        entry: MonitoringEntry,
+    ) -> RecordReceipt {
         let entry = sanitize(entry);
         {
             let mut state = self
@@ -115,13 +153,21 @@ impl Owner {
                 if let Some(entry) = state.entries.pop_back() {
                     state.bytes = state.bytes.saturating_sub(payload_size(&entry));
                     state.evicted += 1;
+                    if let Some((prefix, count)) = state.eviction_watch.as_mut()
+                        && ccr_app::benchmark::s2::owns_event(&entry.id)
+                        && entry.id.starts_with(*prefix)
+                    {
+                        *count += 1;
+                    }
                 }
             }
         }
+        let mut attempted = false;
         let result = self
             .path(source)
             .and_then(|path| connection(path, true))
             .and_then(|conn| {
+                attempted = true;
                 LogPersistenceService::append_entry_with_connection(&conn, &entry)
                     .map_err(|_| Error::Storage)
             });
@@ -129,6 +175,10 @@ impl Owner {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .last_write = Some(result);
+        RecordReceipt {
+            attempted,
+            persisted: result,
+        }
     }
     fn read(
         &self,

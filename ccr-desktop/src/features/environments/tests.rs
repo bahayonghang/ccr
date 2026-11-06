@@ -50,6 +50,7 @@ fn environment_views_fit_native_windows_stack_with_isolated_locks() {
         "features::platforms::tests::configuration_sources_are_discoverable_and_managed_layers_stay_read_only",
         "features::install::tools::tests::tool_update_review_can_be_cancelled_and_fixture_controls_do_not_launch",
         "features::mcp::batch::tests::rendered_batch_review_focus_escape_confirm_and_navigation_keep_safe_receipt",
+        "features::monitoring::benchmark::tests::s2_review_starts_with_safe_cancel_rejects_early_enter_and_dies_on_suspend",
         "features::monitoring::tests::monitoring_filters_real_main_events_and_suspension_detaches_without_polling",
         "features::monitoring::tests::overview_monitoring_entry_preserves_the_thirteen_destination_shell",
         "features::monitoring::system::tests::explicit_system_controls_show_units_and_refuse_fixture_then_clear_stale_sample",

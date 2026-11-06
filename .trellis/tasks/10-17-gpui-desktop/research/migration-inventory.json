@@ -10292,6 +10292,54 @@
           "native": "user_deferred_this_session; no current interaction receipt"
         }
       }
+    },
+    {
+      "id": "benchmark_s2_start",
+      "module": "benchmark",
+      "platform": "base",
+      "risk": "local_mutation",
+      "handler_path": "super::benchmark::benchmark_s2_start",
+      "owner": "gpui-desktop",
+      "status": "implemented_pending_full_acceptance",
+      "native_action": "Monitoring captured S2 review → retained bounded stream through existing monitoring and persistence owners",
+      "verification": {
+        "report": "research/performance-s2-implementation-20261106.md",
+        "independent_check": "research/performance-s2-check-20261106.md",
+        "source_boundary": "Validated Benchmark/S2 only; no startup emission; once per process; fixed 1000 slots/s for 60 seconds; actual stage counts and real monotonic rate denominators",
+        "native": "user_deferred; source/headless receipts are not actual throughput or performance acceptance"
+      }
+    },
+    {
+      "id": "benchmark_s2_get_status",
+      "module": "benchmark",
+      "platform": "base",
+      "risk": "read_only",
+      "handler_path": "super::benchmark::benchmark_s2_get_status",
+      "owner": "gpui-desktop",
+      "status": "implemented_pending_full_acceptance",
+      "native_action": "Monitoring S2 retained snapshot/subscription; detach does not cancel the producer",
+      "verification": {
+        "report": "research/performance-s2-implementation-20261106.md",
+        "independent_check": "research/performance-s2-check-20261106.md",
+        "source_boundary": "Strictly increasing active projection revisions; immutable joined terminal snapshot; requested, queued, retained, persisted and emitted remain distinct",
+        "native": "user_deferred; no process-create/OS-present/action-ready sample"
+      }
+    },
+    {
+      "id": "benchmark_s2_cancel",
+      "module": "benchmark",
+      "platform": "base",
+      "risk": "local_mutation",
+      "handler_path": "super::benchmark::benchmark_s2_cancel",
+      "owner": "gpui-desktop",
+      "status": "implemented_pending_full_acceptance",
+      "native_action": "Cancel captured run ID; retained owner stops production and joins actual cleanup before terminal",
+      "verification": {
+        "report": "research/performance-s2-implementation-20261106.md",
+        "independent_check": "research/performance-s2-check-20261106.md",
+        "source_boundary": "Control remains parallel to retained start permit; 500ms over-budget is reported without detaching started SQLite IO or authorizing early DB shutdown",
+        "native": "user_deferred; no actual OS exit or native cancellation-latency receipt"
+      }
     }
   ],
   "routes": [

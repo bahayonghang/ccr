@@ -235,3 +235,58 @@ GPUI/Kit value builders can reserve hundreds of KiB of debug stack per large ren
   it in shared Seed before startup, instead of letting the frontend fall back to
   a host date. Canonical report JSON is read-only and never contains source paths
   or executable payloads. Readback success is not native/performance acceptance.
+
+
+## Fixed S2 runtime source
+
+### 1. Scope / Trigger
+
+Changes to `benchmark/s2.rs`, its retained desktop adapters, source admission or stage accounting. This source is an engineering mechanism, not a performance result.
+
+### 2. Signatures
+
+- `Owner::admit(&Arc<Self>, &Seed) -> Result<Run, &'static str>`; `snapshot() -> Snapshot`; `observe() -> watch::Receiver<Snapshot>`.
+- `request_cancel(run_id) -> Result<Snapshot, &'static str>`; `request_shutdown()`; `Run::drive(cancel, deliver, flush) -> Option<&'static str>`.
+- `complete_joined(error) -> Result<Snapshot, &'static str>` is called only after the actual driver joins and adapter final IO/scoped tracking finishes. `Ack` separates ring, eviction, DB attempted/committed/failed/pending and per-input emit fields.
+
+### 3. Contracts
+
+- Only explicit validated Benchmark/S2 reaches admission. Local, old Fixture and S0/S1 reject before owner allocation/effects. Process-wide once is consumed on admission and never reset, including a later executor admission failure.
+- Fixed production:1000 intended millisecond slots/s,60000 slots/60s,queue128,persist=true. Shortened profile exists only in this crate's cfg(test); adapter tests use production and actively cancel. No editable rate/duration, autostart or prefilled array.
+- Real Instant controls skip-to-current-slot deadlines, elapsed and cleanup. Never catch up in a burst. Attempted slots generate deterministic MonitoringEntry IDs `benchmark-s2-v1-` + five-digit slot and data timestamp captured as_of + slot ms. Report clock never paces work.
+- ACK only actual own IDs/tickets; ordinary unit flush of a mixed batch must settle S2 tickets too. Keep pending tickets bounded128. Unit call, queue acceptance or empty buffer is not a durable write. Native preserves its existing per-entry writes; Tauri retains threshold20/final batches.
+- Every active projection obtains a fresh monotonic revision under the state lock, including equal millisecond readings. Coalesced watch reports use the existing100ms cadence plus phase transitions. Actual join stores one immutable terminal DTO/revision.
+- Attempt rate=attempted/real producer seconds. Delivered and committed rates=actual cumulative ACK counts/total seconds through drain,flush,join. Source time stops with producer; Cleaning total time grows; terminal freezes. Valid zero stays zero; None requires no positive denominator.
+- Stop producer, drain within500ms or count unstarted queue entries abandoned, await already-started IO, checked final flush/settle every ticket, atomically detach ring tracking, then terminal. Never extend pool30s/SQLite5s/native2s/exit500ms budgets or shut down a DB still used by S2.
+- Each ring owner has one lazy eviction scope. Count matching removed S2 IDs even on ordinary pushes. Final count/detach share the pop lock; later logs cannot change the run. No unbounded receipt journal/broadcast/full-ring polling.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result / retained fact |
+| --- | --- |
+| Local/oldFixture/S0/S1 | `benchmark_s2_unavailable`, no owner/tasks/effects |
+| Previously claimed process | `benchmark_s2_process_used`, no second queue |
+| Wrong run ID | `benchmark_s2_wrong_run`, original run unchanged |
+| Queued/Running or pending producer/tickets at complete | `benchmark_s2_cleanup_incomplete`, no terminal |
+| Executor admission failure | joined failure/tombstone, no retry reset |
+| DB checkout / transaction error | failed ticket with actual attempted=false/true; never committed |
+| Cleanup over500ms | Cleaning until actual join, then failure/budget fact retained |
+| Worker/final-cleanup cannot join | never fabricate terminal success |
+
+### 5. Good / Base / Bad Cases
+
+- Good: explicit S2, real paced attempts, cancelled source, checked mixed-batch tickets settled, joined terminal readback.
+- Base: normal Local and old Fixture retain existing clocks, batching and exit behavior.
+- Bad: count requested60000 as delivered, use report time for pacing, reset once after cancel, or count every mixed-batch row as S2.
+
+### 6. Tests Required
+
+- `source_identity_once_and_deterministic_events`: identity, once, wrong ID, no queued terminal.
+- `each_active_projection_has_its_own_revision_and_terminal_is_frozen`: fresh revision without ms resolution; retained terminal unchanged.
+- `real_short_source_counts_actual_stages_and_joins`, `slow_sink_never_catches_up_and_budget_abandons_unstarted_queue`: real monotonic slots, actual ACKs, skipped/drop/abandoned and overbudget.
+- `cancellation_and_final_io_remain_nonterminal_until_ack`: closed final-flush barrier cannot terminal before driver join.
+- Native `captured_native_run_cancels_and_joins_actual_persistence` and Tauri `production_profile_cancel_joins_real_batched_storage_and_scoped_evictions`: production profile active cancel, actual SQLite counts, no pending tickets, owned evictions and frozen terminal.
+
+### 7. Wrong vs Correct
+
+Wrong: force_flush returned remaining_buffered=0, so mark committed and shutdown DB. Correct: harvest this run's terminal tickets, join inflight work/final IO, detach scope under pop lock, then publish immutable terminal and allow DB shutdown.

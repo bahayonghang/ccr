@@ -214,3 +214,77 @@ not merely that a backfill loop returned.
 ```rust
 // 加载定价表
 ```
+
+## Scenario: Checked monitoring persistence and failed COMMIT
+
+### 1. Scope / Trigger
+
+- Changing `LogPersistenceService`, its checked monitoring consumers, or
+  `log_repo::insert_logs_batch`.
+
+### 2. Signatures
+
+- `LogPersistenceService::with_db(config, DbAccess)` captures the database for
+  every operation; `new(config)` retains the ordinary Global default.
+- `append_entry_checked(&MonitoringEntry) -> LogPersistenceTicket` and
+  `force_flush_checked() -> LogFlushReceipt` supplement the existing unit APIs.
+- `LogPersistenceTicket::{entry_id, state}` identifies one submitted entry;
+  states are Buffered, Attempting, Committed and Failed with an attempted flag.
+
+### 3. Contracts
+
+- Queue admission is not persistence. A ticket becomes Committed only after
+  the repository's successful COMMIT. Pool checkout failure is not a database
+  attempt; a transaction error is an attempted failure.
+- Ordinary append/flush calls can flush mixed ordinary/checked batches. They
+  must update the same per-entry tickets. Consumers attribute their own IDs,
+  not the whole mixed batch receipt, and account each terminal ticket once.
+- A flush receipt's remaining buffer is not proof that another drained batch
+  has finished. Retain and join real I/O before declaring a run terminal.
+- Preserve threshold, capacity, failure-drop and INSERT OR REPLACE behavior.
+  Pending tickets fail when their owner drops; already terminal results stay
+  terminal. Captured Pool access never falls back to Global.
+- On INSERT **or COMMIT** error, attempt ROLLBACK before returning the original
+  SQLite error. A failed COMMIT may leave the pooled connection in a transaction.
+  Rollback remains best effort; do not claim recovery from catastrophic I/O.
+
+### 4. Validation & Error Matrix
+
+- Pool unavailable -> Failed(attempted=false), zero committed.
+- Transaction/COMMIT error -> Failed(attempted=true), zero committed; failed
+  rows cannot leak into a later successful batch.
+- Ordinary caller flushes a mixed batch -> checked tickets still resolve.
+- Flush still executing -> Attempting remains observable until actual I/O ends.
+
+### 5. Good/Base/Bad Cases
+
+- Good: caller retains its ticket through ordinary threshold flush and counts
+  Committed once after successful COMMIT.
+- Base: ordinary unit callers keep their existing behavior and signature.
+- Bad: count an append invocation, a drained buffer or the whole mixed receipt
+  as the checked run's durable rows.
+
+### 6. Tests Required
+
+- `cargo test -p ccr-db log_persistence -- --skip export_bindings`, default
+  parallelism: mixed threshold/unit final flush, failure/drop, isolated Global
+  failure, and real owned SQLite lock with Attempting until joined I/O.
+- `checked_commit_failure_rolls_back_before_reusing_the_connection`: a temporary
+  DELETE-journal database plus a reader lock forces real COMMIT BUSY; assert the
+  original error, restored autocommit, failed IDs absent and later batch clean.
+- Strict all-target/all-feature Clippy and affected desktop adapter checks.
+
+### 7. Wrong vs Correct
+
+```rust
+// Wrong: COMMIT can fail while the transaction is still active.
+conn.execute_batch("COMMIT")?;
+```
+
+```rust
+// Correct: preserve the original error and release the failed transaction.
+if let Err(error) = conn.execute_batch("COMMIT") {
+    let _ = conn.execute_batch("ROLLBACK");
+    return Err(error);
+}
+```

@@ -134,6 +134,7 @@ pub struct AppState {
     pub(crate) ssh_process_trust: Mutex<ProcessHostTrust>,
 
     pub monitoring_logs: LogPersistenceService,
+    pub(crate) benchmark_s2: std::sync::OnceLock<Arc<crate::benchmark_s2::Adapter>>,
 
     /// 签到任务快照
     pub checkin_jobs: RwLock<HashMap<String, CheckinJobSnapshot>>,
@@ -380,6 +381,14 @@ impl AppState {
             .max_capacity(DEFAULT_CACHE_MAX_ENTRIES as u64)
             .build();
 
+        let monitoring_logs = if fixture.is_some() {
+            LogPersistenceService::with_db(
+                LogStorageConfig::default(),
+                ccr_db::database::DbAccess::Pool(db_pool.clone()),
+            )
+        } else {
+            LogPersistenceService::new(LogStorageConfig::default())
+        };
         Ok(Self {
             fixture,
             preferences_path,
@@ -393,7 +402,8 @@ impl AppState {
             ssh_runtime_states: RwLock::new(HashMap::new()),
             ssh_password_cache: RwLock::new(HashMap::new()),
             ssh_process_trust: Mutex::new(ProcessHostTrust::default()),
-            monitoring_logs: LogPersistenceService::new(LogStorageConfig::default()),
+            monitoring_logs,
+            benchmark_s2: Default::default(),
             checkin_jobs: RwLock::new(HashMap::new()),
             usage_import_jobs: RwLock::new(UsageImportJobs::default()),
             session_index_jobs: RwLock::new(HashMap::new()),

@@ -1,5 +1,11 @@
 # S2 real runtime source — minimal boundary proposal (not implemented)
 
+Historical proposal status: subsequently implemented in the S2 batch. Current
+source, checks and remaining native/performance limits are recorded in
+`performance-s2-implementation-20261106.md` and
+`performance-s2-check-20261106.md`. The proposal text below records the boundary
+before implementation; it is not the latest execution receipt.
+
 The common clock/admission implementation batch is complete and separately receipted. This document proposes the next smallest source changes; it does not claim a stream, real 1000/s delivery, GUI operation or performance sample has run.
 
 ## Existing paths actually inspected

@@ -206,6 +206,7 @@ pub struct Services {
     pub(super) sync_operations: Arc<sync::SyncOperations>,
     pub(super) usage_import: Arc<insights::import::ImportOwner>,
     pub(super) observer: Arc<insights::observer::Owner>,
+    pub(super) benchmark_s2: Arc<std::sync::OnceLock<Arc<benchmark::stream::Adapter>>>,
     pub(super) ssh: Arc<std::sync::OnceLock<Arc<ccr_app::environments::ssh::Workspace>>>,
 }
 
@@ -228,6 +229,7 @@ impl Services {
             platform_file_operations: Default::default(),
             codex_agent_operations: Default::default(),
             ssh: Default::default(),
+            benchmark_s2: Default::default(),
         }
     }
     pub fn with_insights_paths(mut self, paths: insights::InsightsPaths) -> Self {

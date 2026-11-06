@@ -398,7 +398,7 @@ pub fn commit_failure_replays(adapter: impl Fn(ApplyProfileRequest) -> Result<Pr
     );
     let replayed = adapter(request).unwrap();
     assert!(replayed.activation_committed, "{replayed:?}");
-    assert_eq!(replayed.status, ProfileStatus::Applied);
+    assert_eq!(replayed.status, ProfileStatus::Applied, "{replayed:?}");
     let instance = create_platform(Platform::Claude).unwrap();
     assert_eq!(
         instance.get_current_profile().unwrap().as_deref(),

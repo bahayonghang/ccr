@@ -56,9 +56,9 @@
 - Windows-only WSL commands live in `WINDOWS_COMMAND_MODULES` and the Windows `generate_handler()` arm.
 - Each command path must appear once; duplicate command paths fail `command_registry_paths_are_unique`.
 - Registry metadata must remain non-empty and domain-keyed; empty module keys, titles, or command lists are invalid.
-- Count assertions intentionally freeze the current handler surface: 340 base commands and 348 commands on Windows across 38 base modules.
+- Count assertions intentionally freeze the current handler surface: 343 base commands and 351 commands on Windows across 39 base modules.
 - Capability descriptors cover every command ID and include risk, input/output schema, timeout, concurrency, confirmation, authorization, and audit policy.
-- Every generated command row owns its handler path, exact TypeScript input/output type names, and client declaration. The manifest v2 exact count is 278/278 typed commands; generated-client functions may contain imports/type aliases only and must append declarations from the registry.
+- Every generated command row owns its handler path, exact TypeScript input/output type names, and client declaration. The manifest v2 exact count is 281/281 typed commands; generated-client functions may contain imports/type aliases only and must append declarations from the registry.
 - Risk inference recognizes action verbs both at the start of an ID and after domain prefixes. For example, `claude_get_settings` is read-only and `codex_delete_session` is destructive; the module default still controls secret/system authorization and audit redaction.
 - Generated inventory artifacts are `docs/{en/,}reference/tauri-command-inventory.md`, `ccr-ui/src/api/generated/command-manifest.json`, `commandCapabilities.ts`, and the generated domain clients.
 - The manifest is an authoritative backend allowlist: an app command without a descriptor is rejected before the generated handler runs. Audit logging records descriptor metadata only and never logs the invoke payload.
@@ -92,7 +92,7 @@
 ### 6. Tests Required
 
 - Run `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml commands::handler_registry -- --nocapture`.
-- The registry tests must read Tauri's generated `acl-manifests.json` and `capabilities.json`, assert 348 main permissions, assert the exact tray subset, and prove the tray does not inherit the main permission set.
+- The registry tests must read Tauri's generated `acl-manifests.json` and `capabilities.json`, assert 351 main permissions, assert the exact tray subset, and prove the tray does not inherit the main permission set.
 - Run `just tauri-command-inventory-check` after regeneration with `just tauri-command-inventory`.
 - Run `cargo check --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop`.
 - Run `git diff --check`.
@@ -147,7 +147,7 @@ Keep command registration domain-shaped and testable, while `commands::mod` rema
 ### 1. Scope / Trigger
 
 - Trigger: adding or changing a registry command's timeout, concurrency, confirmation, or cancellation behavior.
-- Applies to the registry surface (340 base commands, 348 on Windows) under `src/commands/**`, the local `command-macros` proc-macro crate, and `runtime_policy.rs`.
+- Applies to the registry surface (343 base commands, 351 on Windows) under `src/commands/**`, the local `command-macros` proc-macro crate, and `runtime_policy.rs`.
 
 ### 2. Signatures
 
@@ -178,7 +178,7 @@ The attribute macro accepts only `async fn` returning `Result<T, String>`, emits
 
 ### Control delivery and background admission
 
-- `command_lifecycle` explicitly maps the 23 command/install/usage/OAuth IDs to an operation and resource. Control delivery uses `Parallel` without changing risk, authorization, confirmation, or audit. Queries retain their existing `Parallel` policy.
+- `command_lifecycle` explicitly maps the 26 command/install/usage/OAuth/benchmark IDs to an operation and resource. Control delivery uses `Parallel` without changing risk, authorization, confirmation, or audit. Queries retain their existing `Parallel` policy.
 - Command and install execution share the original process `Singleton` semaphore. Their start handlers move the wrapper's `OwnedSemaphorePermit` through `take_background_admission`; they never acquire a second execution permit. The task-local transfer is checked against the command ID and can occur only once. Early handler errors release untransferred admission.
 - The command runner holds transferred admission through process/readers and terminal cleanup. InstallService owns its attempt slot and permit through the executor join. A terminal event or a dropped event receiver cannot clear the slot.
 - Usage foreground imports and background jobs use the same T06 `AppState::admit_usage_import_job` registry. Foreground imports pass the registered token to the executor and submit one completion after cleanup. Existing background start reuse remains unchanged.
@@ -206,7 +206,7 @@ The attribute macro accepts only `async fn` returning `Result<T, String>`, emits
 
 ### 6. Tests Required
 
-- Assert exactly 348 managed command attributes and zero direct `#[tauri::command]` attributes under `src/commands/**`.
+- Assert exactly 351 managed command attributes and zero direct `#[tauri::command]` attributes under `src/commands/**`.
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml runtime_policy -- --test-threads=1`: prove cooperative timeout and permit lifetime.
 - `cargo test --manifest-path ccr-ui/src-tauri/Cargo.toml handler_registry -- --test-threads=1`: prove timeout ownership and confirmation payload validation.
 - `cargo clippy --manifest-path ccr-ui/src-tauri/Cargo.toml --bin ccr-desktop -- -D warnings`.
@@ -234,3 +234,34 @@ pub async fn update_config(...) -> Result<ConfigDto, String> {
 ```
 
 The macro keeps the runtime permit around the actual future, including the join handle.
+
+
+## Scenario: Explicit Benchmark/S2 lifecycle
+
+### 1. Scope / Trigger
+
+Adding the three S2 commands to the registry, policy, generated clients or ACL.
+
+### 2. Signatures
+
+`benchmark_s2_start()`, `benchmark_s2_get_status()`, `benchmark_s2_cancel(request:BenchmarkS2CancelRequest)` return `BenchmarkS2SnapshotDto`. `command_lifecycle` maps BenchmarkStream to Start/Query/Control respectively.
+
+### 3. Contracts
+
+Start/cancel:LocalMutation,UserGesture,LocalUser,MetadataOnly,BusinessOwned. Start:ModuleExclusive transferred until retained cleanup; cancel/query:Parallel. Status:ReadOnly. Rust fixture admission is S2-only before dispatch, independently of bootstrap. Registry-generated client uses invokeRuntime; no facade or tray expansion. Current343 base/351Windows,281typed/exact,39base modules;26lifecycle commands.
+
+### 4. Validation & Error Matrix
+
+Non-S2 -> early capability refusal; missing/forged confirmation -> audit refusal; second start while permit retained -> admission timeout (and once owner rejects reuse); wrong run -> unchanged retained owner. No downgrade of risk/ACL to make controls reachable.
+
+### 5. Good / Base / Bad Cases
+
+Good: transfer original permit once, status/cancel reach retained run. Base: existing ProcessExecution/UsageImport/CodexAuth resource policies unchanged. Bad: reacquire a second semaphore, add S2 to generic fixture allowlist, or expand tray ACL.
+
+### 6. Tests Required
+
+`lifecycle_matrix_preserves_each_commands_security_and_execution_resource`, `confirmation_policy_rejects_missing_or_forged_payload_proof`, generated_small_domain_clients test and ACL tests cover exact metadata/wiring. `s2_transferred_admission_holds_until_cleanup_but_controls_remain_available` proves permit lifetime/control delivery. `command_inventory_document_matches_registry` must verify generated files.
+
+### 7. Wrong vs Correct
+
+Wrong: make cancel wait on start's ModuleExclusive permit. Correct: explicit BenchmarkStream Control=Parallel preserves UserGesture/risk/audit and targets the retained run ID.

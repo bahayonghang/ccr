@@ -343,6 +343,17 @@ pub fn platform_paths(platform: Platform) -> ccr_core::Result<PlatformPaths> {
 }
 
 pub fn admit(command: &str) -> Result<(), String> {
+    if matches!(
+        command,
+        "benchmark_s2_start" | "benchmark_s2_get_status" | "benchmark_s2_cancel"
+    ) {
+        let layout = current()
+            .filter(|layout| s2_script(layout).is_some())
+            .ok_or("benchmark_s2_unavailable")?;
+        layout.path("ui/ccr-ui.db")?;
+        layout.path("locks")?;
+        return Ok(());
+    }
     if let Some(layout) = current() {
         if !captured_command(command) {
             return Err(format!("fixture_capability_unavailable:{command}"));
@@ -469,6 +480,10 @@ fn report_clock_script(layout: &FixtureLayout) -> Result<Option<String>, String>
     }).transpose()
 }
 
+fn s2_script(layout: &FixtureLayout) -> Option<&'static str> {
+    layout.benchmark.as_ref().filter(|seed|seed.scenario=="S2" && seed.id=="benchmark-s2").map(|_|"Object.defineProperty(window,'__CCR_BENCHMARK_S2__',{value:true,writable:false,configurable:false});")
+}
+
 pub fn webview_builder<'a, R: tauri::Runtime, M: tauri::Manager<R>>(
     builder: tauri::WebviewWindowBuilder<'a, R, M>,
 ) -> Result<tauri::WebviewWindowBuilder<'a, R, M>, String> {
@@ -477,6 +492,10 @@ pub fn webview_builder<'a, R: tauri::Runtime, M: tauri::Manager<R>>(
             let builder = builder
                 .data_directory(layout.path("webview")?)
                 .title(format!("CCR · Fixture {}", layout.id));
+            let builder = match s2_script(layout) {
+                Some(script) => builder.initialization_script(script),
+                None => builder,
+            };
             Ok(match report_clock_script(layout)? {
                 Some(script) => builder.initialization_script(script),
                 None => builder,

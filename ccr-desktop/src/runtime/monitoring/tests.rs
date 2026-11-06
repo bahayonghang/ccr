@@ -208,3 +208,25 @@ fn environment_event_is_retained_after_detach_and_shutdown_remote_reads_refuse()
     assert!(services.monitoring.path.get().is_none());
     owner.shutdown();
 }
+
+#[test]
+fn ordinary_push_evictions_are_scoped_and_final_detach_freezes_counter() {
+    let root = tempfile::tempdir().unwrap();
+    let source = source(root.path());
+    let owner = Owner::default();
+    owner
+        .track_evictions(ccr_app::benchmark::s2::EVENT_PREFIX)
+        .unwrap();
+    let at = chrono::Utc::now();
+    for slot in 0..2 {
+        owner.record(&source, ccr_app::benchmark::s2::entry(at, slot));
+    }
+    for _ in 0..ENTRY_LIMIT {
+        owner.terminal(&source, "ordinary", "ordinary", false);
+    }
+    assert_eq!(owner.eviction_delta(true), 2);
+    for _ in 0..ENTRY_LIMIT {
+        owner.terminal(&source, "ordinary", "ordinary", false);
+    }
+    assert_eq!(owner.eviction_delta(false), 0);
+}

@@ -26,7 +26,9 @@ S0：新 fixture、无用量记录。S1：100 profiles、10,000 sessions、100,0
 
 ## 机制对应
 
-启动预算由 shell-first + 延迟加载实现；空闲预算由无持续动画/隐藏页轮询、局部 notify 实现；列表预算由 virtualization 与后台分页实现；S2 由 10Hz 合并快照、128 通道容量和 2,000 行/2 MiB 日志上限实现；泄漏预算由明确 task/subscription ownership 与关闭测试实现。性能 profiler 仅在采样构建启用，报告它是否影响被测数据。
+启动预算由 shell-first + 延迟加载实现；空闲预算由无持续动画/隐藏页轮询、局部 notify 实现；列表预算由 virtualization 与后台分页实现；泄漏预算由明确 task/subscription ownership 与关闭测试实现。性能 profiler 仅在采样构建启用，报告它是否影响被测数据。
+
+S2 源当前已接入两端既有 monitoring owner：固定请求 1,000 槽/秒、60秒、128 通道、真实持久化，最多10Hz合并进度并立即发布终态；不会启动即自动发送。旧拟议的2,000行/2MiB并非当前生产日志策略：native实际保留500条/512KiB，Tauri EventLog实际为500条/5MiB，单条限制与普通日志行为均保留。两端报告各自实际 ring eviction、queue丢弃、数据库提交与emit失败，不能把保留上限改成相同数值来掩盖差异，也不能把requested rate当作交付率。尝试率分母为真实producer时长；接收/提交率分母包含drain、最终flush和真实join。500ms清理预算超出时继续等待已开始IO，标记超预算，不提前报完成。具体实现与headless收据见 `performance-s2-implementation-20261106.md`；这没有改变上表预算，真实性能结果仍为not_run/not_comparable。
 
 ## 输出
 

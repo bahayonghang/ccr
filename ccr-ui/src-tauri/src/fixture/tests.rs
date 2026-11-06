@@ -419,7 +419,12 @@ fn generated_benchmark_default_reports_use_manifest_clock() {
 #[ignore = "closed child of generated_benchmark_default_reports_use_manifest_clock"]
 fn generated_benchmark_clock_child() {
     let root = PathBuf::from(std::env::var_os("CCR_TAURI_BENCHMARK_CLOCK_CHILD").unwrap());
-    let layout = parse([OsString::from("--benchmark-fixture-root"),root.as_os_str().into()]).unwrap().unwrap();
+    let layout = parse([
+        OsString::from("--benchmark-fixture-root"),
+        root.as_os_str().into(),
+    ])
+    .unwrap()
+    .unwrap();
     let seed = layout.benchmark.as_ref().unwrap();
     install(layout.clone()).unwrap();
     let clock = report_clock();
@@ -448,12 +453,24 @@ fn generated_benchmark_clock_child() {
     .unwrap();
     assert_eq!(response.last_updated, seed.as_of.to_rfc3339());
     assert_eq!(response.summary.total_sessions, seed.session_count as u64);
-    let manifest:serde_json::Value=serde_json::from_slice(&std::fs::read(layout.root.parent().unwrap().join("logical-manifest.json")).unwrap()).unwrap();
-    let start=clock.window(7).0.to_string();let end=clock.date().to_string();
-    let expected_requests=manifest["ends"]["tauri"]["logical"]["usage"]["trends"].as_array().unwrap().iter()
-        .filter(|row|row["date"].as_str().is_some_and(|date|date>=start.as_str() && date<=end.as_str()))
-        .map(|row|row["request_count"].as_i64().unwrap()).sum::<i64>();
-    assert_eq!(response.summary.total_requests,expected_requests as u64);
+    let manifest: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(layout.root.parent().unwrap().join("logical-manifest.json")).unwrap(),
+    )
+    .unwrap();
+    let start = clock.window(7).0.to_string();
+    let end = clock.date().to_string();
+    let expected_requests = manifest["ends"]["tauri"]["logical"]["usage"]["trends"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| {
+            row["date"]
+                .as_str()
+                .is_some_and(|date| date >= start.as_str() && date <= end.as_str())
+        })
+        .map(|row| row["request_count"].as_i64().unwrap())
+        .sum::<i64>();
+    assert_eq!(response.summary.total_requests, expected_requests as u64);
 
     assert_eq!(
         response.series.last().unwrap().date,
@@ -469,12 +486,103 @@ fn generated_benchmark_clock_child() {
     assert_eq!(home.as_of, clock.date().to_string());
     assert_eq!(home.generated_at, seed.as_of.to_rfc3339());
     assert_eq!(home.totals.sessions, seed.session_count as i64);
-    assert_eq!(home.last_7_days.requests,expected_requests);
-    let trend=crate::services::claude_observer::daily_trend(&llmusage,Some(7)).unwrap();
-    assert!(trend.iter().all(|point|point.date<=clock.date().to_string()));
-    if seed.usage_count>0 {assert_eq!(trend.last().unwrap().date,clock.date().to_string());}
+    assert_eq!(home.last_7_days.requests, expected_requests);
+    let trend = crate::services::claude_observer::daily_trend(&llmusage, Some(7)).unwrap();
+    assert!(
+        trend
+            .iter()
+            .all(|point| point.date <= clock.date().to_string())
+    );
+    if seed.usage_count > 0 {
+        assert_eq!(trend.last().unwrap().date, clock.date().to_string());
+    }
     println!(
         "{}: home sessions {}, as_of {}, generated {}",
         seed.scenario, response.summary.total_sessions, home.as_of, home.generated_at
     );
+}
+
+#[test]
+fn only_explicit_s2_identity_exposes_stream_bootstrap() {
+    let root = tempfile::tempdir().unwrap();
+    let mut layout = layout(root.path());
+    assert!(s2_script(&layout).is_none());
+    let at = chrono::DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z")
+        .unwrap()
+        .with_timezone(&chrono::Utc);
+    for scenario in ["S0", "S1", "S2"] {
+        layout.benchmark = Some(ccr_app::benchmark::Seed {
+            root: layout.root.clone(),
+            id: format!("benchmark-{}", scenario.to_ascii_lowercase()),
+            scenario: scenario.into(),
+            logical_sha256: "a".repeat(64),
+            as_of: at,
+            timezone: ccr_usage::ReportTimezone::Utc,
+            profile_count: 0,
+            session_count: 0,
+            usage_count: 0,
+        });
+        assert_eq!(s2_script(&layout).is_some(), scenario == "S2");
+    }
+    let script = s2_script(&layout).unwrap();
+    assert!(script.contains("value:true,writable:false,configurable:false"));
+    assert!(!script.contains("REPORT_CLOCK"));
+    layout.benchmark.as_mut().unwrap().id = "benchmark-s0".into();
+    assert!(s2_script(&layout).is_none());
+}
+
+#[test]
+fn stream_gate_is_early_for_each_captured_mode_in_isolated_processes() {
+    for mode in ["old_fixture", "S0", "S1", "S2"] {
+        let root = tempfile::tempdir().unwrap();
+        let selected = layout(root.path());
+        selected.prepare().unwrap();
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", "fixture::tests::stream_gate_child", "--ignored"])
+            .env("CCR_S2_GATE_MODE", mode)
+            .env("CCR_S2_GATE_ROOT", &selected.root)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(root.path().join("body-ran").exists(), mode == "S2");
+    }
+}
+#[tokio::test]
+#[ignore = "isolated CURRENT capability owner"]
+async fn stream_gate_child() {
+    let root = PathBuf::from(std::env::var_os("CCR_S2_GATE_ROOT").unwrap());
+    let mode = std::env::var("CCR_S2_GATE_MODE").unwrap();
+    let mut selected = FixtureLayout::load(&root).unwrap();
+    if mode != "old_fixture" {
+        selected.benchmark = Some(ccr_app::benchmark::Seed {
+            root: root.clone(),
+            id: format!("benchmark-{}", mode.to_ascii_lowercase()),
+            scenario: mode.clone(),
+            logical_sha256: "a".repeat(64),
+            as_of: chrono::Utc::now(),
+            timezone: ccr_usage::ReportTimezone::Utc,
+            profile_count: 0,
+            session_count: 0,
+            usage_count: 0,
+        });
+    }
+    install(Arc::new(selected)).unwrap();
+    for command in [
+        "benchmark_s2_start",
+        "benchmark_s2_get_status",
+        "benchmark_s2_cancel",
+    ] {
+        assert!(!captured_command(command));
+        let result = crate::commands::runtime_policy::execute(command, async {
+            std::fs::write(root.join("body-ran"), b"synthetic gate body").unwrap();
+            Ok::<_, String>(())
+        })
+        .await;
+        assert_eq!(result.is_ok(), mode == "S2");
+    }
 }

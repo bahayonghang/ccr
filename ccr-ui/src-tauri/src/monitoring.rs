@@ -30,17 +30,65 @@ pub async fn record_monitoring_entry(
         .event_log
         .push(AppEvent::Monitoring(entry.clone()))
         .await;
-
     if persist {
         state.monitoring_logs.append_entry(&entry).await;
     }
-
     if app_handle
         .emit(events::channels::MONITORING_ENTRY, entry)
         .is_err()
     {
         crate::bridge::note_bridge_io_failure();
     }
+}
+
+pub(crate) struct CheckedMonitoringReceipt {
+    pub ring: crate::events::EventLogPushReceipt,
+    pub ticket: Option<ccr_db::services::log_persistence::LogPersistenceTicket>,
+    pub emitted: bool,
+}
+pub(crate) async fn record_monitoring_entry_checked(
+    app_handle: &AppHandle,
+    entry: MonitoringEntry,
+    persist: bool,
+) -> CheckedMonitoringReceipt {
+    let state = app_handle.state::<crate::state::AppState>();
+    let (ring, ticket) = if persist {
+        let (ring, ticket) =
+            append_monitoring_checked(&state.event_log, &state.monitoring_logs, &entry).await;
+        (ring, Some(ticket))
+    } else {
+        (
+            state
+                .event_log
+                .push_checked(AppEvent::Monitoring(entry.clone()))
+                .await,
+            None,
+        )
+    };
+    let emitted = app_handle
+        .emit(events::channels::MONITORING_ENTRY, entry)
+        .is_ok();
+    if !emitted {
+        crate::bridge::note_bridge_io_failure();
+    }
+    CheckedMonitoringReceipt {
+        ring,
+        ticket,
+        emitted,
+    }
+}
+/// Shared by the actual wire sink and its headless storage regression.
+pub(crate) async fn append_monitoring_checked(
+    log: &crate::events::EventLog,
+    storage: &ccr_db::services::log_persistence::LogPersistenceService,
+    entry: &MonitoringEntry,
+) -> (
+    crate::events::EventLogPushReceipt,
+    ccr_db::services::log_persistence::LogPersistenceTicket,
+) {
+    let ring = log.push_checked(AppEvent::Monitoring(entry.clone())).await;
+    let ticket = storage.append_entry_checked(entry).await;
+    (ring, ticket)
 }
 
 pub async fn emit_and_record_monitoring_event<T>(

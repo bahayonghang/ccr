@@ -2,17 +2,18 @@
 
 > Generated from `commands/handler_registry.rs`; do not edit manually.
 
-- Base commands: 340
-- Windows commands: 348
-- Base modules: 38
+- Base commands: 343
+- Windows commands: 351
+- Base modules: 39
 
-- Capability metadata: 340/340
-- Generated typed commands: 278/340 (81.76%)
+- Capability metadata: 343/343
+- Generated typed commands: 281/343 (81.92%)
 
-- Exact input/output type declarations: 278/278
+- Exact input/output type declarations: 281/281
 
 | Module | Title | Platform | Commands | Default risk | Schema |
 | --- | --- | --- | ---: | --- | --- |
+| `benchmark` | Benchmark S2 | base | 3 | `local_mutation` | `generated` |
 | `config` | 配置管理 | base | 13 | `local_mutation` | `generated` |
 | `settings_raw` | 配置源文件 | base | 6 | `secret_mutation` | `legacy_json` |
 | `system_prompts` | 系统提示词 | base | 4 | `local_mutation` | `generated` |

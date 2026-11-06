@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { translateWithFallback } from '@/i18n/formatMessage'
 import { PageHeader, PageShell, PillToggleGroup, SIcon } from '@/ui'
 import { useMonitoringLocale, useMonitoringT } from './locale'
+import { BenchmarkS2Panel } from './BenchmarkS2Panel'
 import {
   formatCompactNumber,
   formatCostUsd,
@@ -160,6 +161,7 @@ export function MonitoringView() {
         />
       }
     >
+      <BenchmarkS2Panel />
       <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(20rem,22.5rem)_minmax(0,1fr)]">
         <aside className="min-w-0 space-y-4">
           <section className="rounded-xl border border-border-default/55 bg-bg-elevated p-4">

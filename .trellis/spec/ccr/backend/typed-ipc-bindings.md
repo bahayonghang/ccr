@@ -8,7 +8,7 @@
 
 - Trigger: adding/changing any wire DTO returned by (or accepted as input to) a typed Tauri command; typing a new command domain; upgrading `ts-rs`; converting `OpenJsonValueDto` / `JsonValueDto` numbers to `serde_json::Value`.
 - Applies to `ccr-ui/src-tauri/src/services/*`, `ccr-ui/src-tauri/src/commands/{wire,system,grok}.rs`, `ccr-ui/src-tauri/src/llmusage_adapter/{queries,capabilities}.rs`, `ccr-ui/src-tauri/src/{usage_jobs,session_index_jobs}.rs`, `ccr-ui/src-tauri/src/claude_observer/subscription.rs`, `crates/ccr-usage/src/{queries,capabilities}.rs`, and the generated dir `ccr-ui/src/types/generated/`.
-- Typed coverage is generated from the command manifest: 278/340 base commands (81.76%), with exact registry-owned input/output declarations for 278/278 typed commands. This includes Usage V2 (18), Claude Observer (9), install (8), config, system prompts, sync, Claude, Codex, auth/provider, Gemini, Grok, OpenCode, SSH, command execution, and the smaller system/UI/environment/event/shell domains. All typed commands expose a concrete generated return type; `Result<Value, String>` is banned at the command boundary.
+- Typed coverage is generated from the command manifest: 281/343 base commands (81.92%), with exact registry-owned input/output declarations for 281/281 typed commands. This includes Usage V2 (18), Claude Observer (9), install (8), config, system prompts, sync, Claude, Codex, auth/provider, Gemini, Grok, OpenCode, SSH, command execution, and the smaller system/UI/environment/event/shell domains. All typed commands expose a concrete generated return type; `Result<Value, String>` is banned at the command boundary.
 
 ### 2. Signatures
 
@@ -60,7 +60,7 @@
 - Rust DTO changed without regeneration → `just tauri-bindings-check` exits 1 listing the generated paths changed by regeneration.
 - Hand-edited generated file that changes its generated shape → same guard failure; deterministic whitespace is repaired by the normalizer.
 - Parallel export tests interleave writes to the same generated file → standalone semicolons or duplicate final newlines appear nondeterministically; keep drift-guard regeneration serial and reject the corrupted output.
-- New typed command added → handler-registry contract still applies unchanged (`define_command_registry!`, frozen counts 340 base / 348 Windows).
+- New typed command added → handler-registry contract still applies unchanged (`define_command_registry!`, frozen counts 343 base / 351 Windows).
 - `serde(alias)` on input DTOs is ignored by ts-rs but remains active for deserialization; keep the desktop dependency's `no-serde-warnings` feature enabled so this intentional compatibility alias does not emit macro warnings. The generated shape remains canonical snake_case.
 - Plain `cargo test` in src-tauri reruns export tests and rewrites generated files idempotently — `just tauri-bindings-check` normalizes those side effects before comparing the regenerated output with the current worktree baseline.
 
@@ -383,3 +383,34 @@ let outcome = if enable { enable_profile(request)? } else { apply_profile(reques
 ```
 
 The handler maps errors and schedules the worker; the application owns the mutation lifecycle.
+
+
+## Scenario: fixed Benchmark/S2 control DTOs
+
+### 1. Scope / Trigger
+
+Changing services/benchmark.rs, S2 registry declarations, generated benchmark client/DTO or its domain reexport.
+
+### 2. Signatures
+
+`BenchmarkS2SnapshotDto`, `BenchmarkS2PhaseDto`, `BenchmarkS2CancelRequest {run_id:String}` are owned by Tauri services/benchmark.rs. Three typed handlers start/status/cancel return Snapshot DTO; cancel outer key is `request` and nested key `run_id`.
+
+### 3. Contracts
+
+No core/persistence owner struct directly on wire. u64 counters/revision explicitly project to TS number. Registry generates api/generated/benchmark.ts; api/domains/benchmark.ts only reexports it. invokeRuntime injects UserGesture tokens for start/cancel, status has no token. Frozen api/tauri.ts remains unchanged. Generate DTOs, registry inventory/client/permissions together. Current343base/351Windows,281typed/exact,39base modules; older migration counts describe their historical batch.
+
+### 4. Validation & Error Matrix
+
+Unknown cancel DTO fields -> deserialize rejection; missing/forged proof -> registry audit refusal; wrong run/non-S2 -> Rust capability/owner refusal. Binding/client/inventory drift is a gate failure, never repaired by a handwritten production stub.
+
+### 5. Good / Base / Bad Cases
+
+Good: typed request `{request:{run_id}}` plus registry transport proof. Base: existing generated client/facade signatures unchanged. Bad: direct invoke in component or per-call generic any/unknown response.
+
+### 6. Tests Required
+
+services::benchmark ts-rs export tests; registry inventory and generated_small_domain_clients coverage; bindings drift check. `api-facade-coverage.smoke.test.ts` test `transports S2 typed requests with registry confirmation and keeps the facade frozen` asserts all three exact payloads, read-only status without proof, and no facade extension. Manifest test asserts343/351 and every required wrapper.
+
+### 7. Wrong vs Correct
+
+Wrong: client sends `{runId}` or component invokes raw command while hand-writing DTOs. Correct: generated cancelBenchmarkS2({run_id}) sends `{request:{run_id}}` through invokeRuntime; Rust/registry/ts-rs own the contract.

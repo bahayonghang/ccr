@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release builds
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod benchmark_s2;
 mod bridge;
 mod checkin_jobs;
 mod claude_observer;
@@ -464,6 +465,16 @@ fn main() {
         .expect("error while building tauri application");
 
     app.run(|_app, event| {
+        if let RunEvent::ExitRequested { api, .. } = &event
+            && benchmark_s2::defer_exit(_app)
+        {
+            api.prevent_exit();
+            return;
+        }
+        if matches!(event, RunEvent::Exit) && benchmark_s2::defer_exit(_app) {
+            return;
+        }
+
         if let RunEvent::ExitRequested { .. } | RunEvent::Exit = event {
             tracing::info!("[app] exit requested, shutting down...");
             EXIT_REQUESTED.store(true, Ordering::SeqCst);

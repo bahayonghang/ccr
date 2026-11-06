@@ -126,10 +126,13 @@ pub fn insert_logs_batch(
     })();
 
     match result {
-        Ok(()) => {
-            conn.execute_batch("COMMIT")?;
-            Ok(entries.len())
-        }
+        Ok(()) => match conn.execute_batch("COMMIT") {
+            Ok(()) => Ok(entries.len()),
+            Err(error) => {
+                let _ = conn.execute_batch("ROLLBACK");
+                Err(error)
+            }
+        },
         Err(error) => {
             let _ = conn.execute_batch("ROLLBACK");
             Err(error)
