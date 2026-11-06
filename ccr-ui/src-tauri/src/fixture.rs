@@ -415,7 +415,9 @@ pub fn webview_builder<'a, R: tauri::Runtime, M: tauri::Manager<R>>(
     builder: tauri::WebviewWindowBuilder<'a, R, M>,
 ) -> Result<tauri::WebviewWindowBuilder<'a, R, M>, String> {
     match current() {
-        Some(layout) => Ok(builder.data_directory(layout.path("webview")?).title(format!("CCR · Fixture {}",layout.id))),
+        Some(layout) => Ok(builder
+            .data_directory(layout.path("webview")?)
+            .title(format!("CCR · Fixture {}", layout.id))),
         None => Ok(builder),
     }
 }

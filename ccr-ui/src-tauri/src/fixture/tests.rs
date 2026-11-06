@@ -64,8 +64,8 @@ fn fixture_core_graph_isolated_process_preserves_other_root() {
     let sentinel = other.path().join("preferences/desktop-shell.json");
     std::fs::write(&sentinel, b"other-root-sentinel").unwrap();
     let selected_layout = layout(selected.path());
-    let ambient_trap=selected.path().join("ambient-root-is-a-file");
-    std::fs::write(&ambient_trap,b"synthetic ambient root trap").unwrap();
+    let ambient_trap = selected.path().join("ambient-root-is-a-file");
+    std::fs::write(&ambient_trap, b"synthetic ambient root trap").unwrap();
     let legacy = selected_layout
         .platform_paths(Platform::Claude)
         .unwrap()
@@ -81,10 +81,10 @@ fn fixture_core_graph_isolated_process_preserves_other_root() {
         ])
         .env("CCR_TAURI_FIXTURE_TEST_ROOT", &selected_layout.root)
         .env("CCR_TAURI_FIXTURE_OTHER_ROOT", &other_layout.root)
-        .env("CCR_ROOT",&ambient_trap)
-        .env("CCR_DATA_DIR",&ambient_trap)
-        .env("CCR_CONFIG_PATH",&ambient_trap)
-        .env("CLAUDE_CONFIG_DIR",&ambient_trap)
+        .env("CCR_ROOT", &ambient_trap)
+        .env("CCR_DATA_DIR", &ambient_trap)
+        .env("CCR_CONFIG_PATH", &ambient_trap)
+        .env("CLAUDE_CONFIG_DIR", &ambient_trap)
         .output()
         .unwrap();
     assert!(
