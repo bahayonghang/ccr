@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-3.md`
-- **Total Sessions**: 136
+- **Total Sessions**: 137
 - **Last Active**: 2026-11-05
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-3.md` | ~541 | Active |
+| `journal-3.md` | ~575 | Active |
 | `journal-2.md` | ~1982 | Archived |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
@@ -31,6 +31,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 137 | 2026-11-05 | 修复 Codex 缺省文件凭据保存并归档 | `c7ce7d73` | `dev` |
 | 136 | 2026-11-05 | 归档 PR 与分支清理规划 | `114c92f87c3ee9821a43d2f9516890bfc13b7048` | `ci/faster-checks` |
 | 135 | 2026-10-27 | 轻盈玻璃改造拆分提交与行政归档 | `c49059f8357b9b22c5350ceb4bbe1c3991ddc923`, `be97dd5dbedf609666d790544fec2962d2d854a1`, `2bc661b2bed2dfe625a11ff0814e63b4ccf6cc86`, `3b8edfea127d576dc22d699844f49404d23db825`, `8205bfaaa0988157987c9823e43fa01a180b60e2`, `492a217a272c90a7c072098b0ad28a902a8adc3a` | `dev` |
 | 134 | 2026-10-18 | GPUI 04 暂停与续作交接 | - | `dev` |

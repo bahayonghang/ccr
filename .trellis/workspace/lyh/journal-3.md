@@ -539,3 +539,37 @@ ccr project init 现在默认勾选五项平台并要求输入用户名，-y 使
 ### Next Steps
 
 - PR 合并与分支删除仍未做；若要继续，另开任务
+
+
+## Session 137: 修复 Codex 缺省文件凭据保存并归档
+<!-- trellis-session: v=2 fp=83ed9f3b67288037 -->
+
+**Date**: 2026-11-05
+**Task**: 修复 Codex 缺省文件凭据保存并归档
+**Branch**: `dev`
+
+### Summary
+
+缺省凭据存储对齐 file，保存失败返回非零并脱敏；回归与 CI 各步骤验证完成，任务已归档。
+
+### Main Changes
+
+- 保留显式 auto/keyring 保护，拒绝无效配置；相关代码、测试、规范及任务记录已提交。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c7ce7d73` | fix(Codex认证): 🐛 修复缺省文件凭据的账号保存 |
+
+### Testing
+
+- [OK] Rust 全量测试、严格 Clippy、release 隔离保存、Tauri、前端覆盖率和 VS Code CI 通过；治理测试用 Git Bash 补跑。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 已完成并归档；未推送远端，未替换用户已安装的 CCR。
