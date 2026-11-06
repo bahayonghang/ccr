@@ -162,3 +162,13 @@ Host is Windows. No macOS compiler, sysroot, or machine log was found under this
 | `cmd /c ver` | `Microsoft Windows [Version 10.0.26300.9818]` |
 | `systeminfo` | `OS Name: Microsoft Windows 11 专业版`; `OS Version: 10.0.26300 N/A Build 26300`; `System Type: x64-based PC` |
 | `rustup target list --installed` | `x86_64-pc-windows-msvc` |
+
+## 2026-11-05 续作：当前基线边界复查
+
+本轮基于 `0bf9ba48938fb286a581f4e9eb51e07f3273c629` 只读核对当前源码、Rust host 与已安装 target，没有重跑上述历史 native/WSL/doctor 记录。客户端日期为 America/New_York 的 2026-11-05；上段历史 Host reconfirmation 的原始日期保留。
+
+收据：[research/continuation-20261105.md](research/continuation-20261105.md)。当前 Tauri 仍无完整启动 fixture 注入，Windows 启动会调用带缓存 WSL 探测入口，未命中有效磁盘缓存时执行 WSL，本轮不能启动。GPUI 后续已交付的显式路径不再视为完全不存在，但尚不等于完整 S0/S1/S2 比较或 OS first-present/action-ready instrumentation。
+
+`rustc -vV` 和 `rustup target list --installed` 均退出 0；host 和唯一 installed target 仍为 `x86_64-pc-windows-msvc`。没有 macOS 编译/运行命令或机器收据，AC1.5 保持未完成。性能 `not_run`，相对指标 `not_comparable`；历史 baseline JSON、样本和截图未改。只修改当前任务文档，任务仍 `in_progress`，未提交、未归档。
+
+本轮 [独立 check](research/check-continuation-20261105.md) 已按当前 owning source 复核路径/行号，并收紧 WSL 缓存探测的表述；文档、引用、任务状态与差异检查退出 0。前序 09 产品候选 `0bf9ba48` 的 desktop-fmt/lint/test 及根 `just ci` 均退出 0，属于 09 的收据；本轮 01 无产品改动，未重跑，也不将其作为 macOS 或性能验收证据。当前文档切片可提交，01 仍不能归档。

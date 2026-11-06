@@ -24,4 +24,12 @@
 
 ## Completion
 
-逐项对应 prd.md 验收，保存失败修复后的最终结果；不提交/发布、不 archive 未完成工作。父任务最终验收负责全量整合。
+逐项对应 prd.md 验收，保存失败修复后的最终结果；按用户 2026-11-05 续作授权，在独立 check 后本地提交当前任务改动与规划产物，不发布、不 archive 未完成工作。父任务最终验收负责全量整合。
+
+## 2026-11-05 当前可执行边界
+
+- 本轮只读复查当前 owning source 和宿主/已安装 target；不运行 doctor、WSL 或任何原生应用，不安装 target/工具。
+- Tauri 当前 Windows 启动链无条件调用带缓存的 WSL 探测入口；未命中有效磁盘缓存时会执行 WSL，且整应用 DB/迁移/偏好/认证/WebView 隔离仍未接通；不得通过启动真实应用来填补基线。
+- GPUI 已有配置/Insights/UI-state 的 fixture path seams，但不构成两端一致 S0/S1/S2 和真实 first-present/action-ready 收据。不得把空窗口或 Web paint 指标替代合同采样。
+- 本轮仅更新任务文档与源码复查收据，不改产品代码、不重复既有 Windows gates。独立 check 核对源码定位、状态与文档差异；性能维持 `not_run`，相对比较维持 `not_comparable`。
+- 未来恢复需依次接通整应用显式隔离、领域生成器和 OS 时钟/presentation/action instrumentation，之后才采同机 release 基线。macOS AC1.5 只消费真实对应机器收据，不能从 Windows 推断。

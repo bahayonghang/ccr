@@ -31,4 +31,4 @@
 
 ## Status
 
-planning。技术待验证项由本任务检查闭环，不视作已完成。开始前读父任务 design.md、implement.md、当前子任务全部规划和 curated context。
+in_progress。Windows AC1.1–1.4 与原生输入已有独立记录；AC1.5 仍缺真实 macOS 编译收据，性能基线仍未采集。本轮源码复查见 [continuation-20261105.md](research/continuation-20261105.md)，不替代运行证据、不勾选缺证验收、不归档。
