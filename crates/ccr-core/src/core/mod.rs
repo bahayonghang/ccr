@@ -66,7 +66,7 @@ pub use log_bridge::{
     try_enqueue_bridged_log,
 };
 pub use log_redact::{is_sensitive_log_key, normalize_log_key, redact_log_text, redact_log_value};
-pub use logging::{ColorOutput, init_file_only_logger, init_logger};
+pub use logging::{ColorOutput, init_file_only_logger, init_logger, init_logger_at};
 #[allow(unused_imports)]
 pub use secret::{Secret, expose_plaintext, expose_plaintext_option};
 #[allow(unused_imports)]

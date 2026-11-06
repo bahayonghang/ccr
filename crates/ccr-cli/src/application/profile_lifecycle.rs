@@ -104,6 +104,7 @@ impl ApplyProfileRequest {
 /// Concrete dependencies for one synchronous profile operation. Construction
 /// resolves paths only; every read/write is performed by the caller's worker.
 pub struct ProfileLifecycleContext {
+    pub(crate) read_process_environment: bool,
     paths: PlatformPaths,
     instance: std::sync::Arc<dyn PlatformConfig>,
     lock_dir: PathBuf,
@@ -135,6 +136,7 @@ impl ProfileLifecycleContext {
             None
         };
         Ok(Self {
+            read_process_environment: true,
             paths,
             instance,
             lock_dir,
@@ -162,6 +164,7 @@ impl ProfileLifecycleContext {
             lock_dir.clone(),
         ));
         Ok(Self {
+            read_process_environment: true,
             paths,
             instance,
             lock_dir,
@@ -201,6 +204,7 @@ impl ProfileLifecycleContext {
             runtime_dir.clone(),
         ));
         Ok(Self {
+            read_process_environment: true,
             paths,
             instance,
             lock_dir,
@@ -222,6 +226,7 @@ impl ProfileLifecycleContext {
             runtime_config,
         ));
         Ok(Self {
+            read_process_environment: true,
             paths,
             instance,
             lock_dir,
@@ -230,6 +235,12 @@ impl ProfileLifecycleContext {
             codex_runtime_dirs: Vec::new(),
             codex_auth: None,
         })
+    }
+
+    /// Carries the auth-source environment policy through apply/off orchestration.
+    pub fn with_process_environment(mut self, enabled: bool) -> Self {
+        self.read_process_environment = enabled;
+        self
     }
 
     pub fn platform(&self) -> Platform {

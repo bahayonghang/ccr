@@ -9,11 +9,11 @@ pub use core::{
     FileLock, FileManager, HTTP_CLIENT, LockManager, Result, Secret, WriteOptions, backup_guarded,
     close_bridged_log_sender, current_log_correlation_id, dropped_bridged_log_count,
     enter_bridge_consumer, expose_plaintext, expose_plaintext_option, init_file_only_logger,
-    init_logger, is_sensitive_log_key, normalize_log_key, read_json, read_json_async, read_toml,
-    read_toml_async, redact_log_text, redact_log_value, take_bridged_log_receiver,
-    try_enqueue_bridged_log, write_guarded, write_guarded_async, write_json, write_json_async,
-    write_json_opts, write_json_opts_async, write_toml, write_toml_async, write_toml_opts,
-    write_toml_opts_async,
+    init_logger, init_logger_at, is_sensitive_log_key, normalize_log_key, read_json,
+    read_json_async, read_toml, read_toml_async, redact_log_text, redact_log_value,
+    take_bridged_log_receiver, try_enqueue_bridged_log, write_guarded, write_guarded_async,
+    write_json, write_json_async, write_json_opts, write_json_opts_async, write_toml,
+    write_toml_async, write_toml_opts, write_toml_opts_async,
 };
 pub use utils::{
     AutoCompletable, Validatable, is_qwen_chat_file, mask_if_sensitive, mask_sensitive,

@@ -6,6 +6,50 @@ use std::sync::{Arc, Barrier};
 
 const SENTINEL: &str = "synthetic-gpui04-secret-never-render";
 
+#[test]
+#[cfg(not(target_os = "macos"))]
+fn captured_profile_lifecycle_keeps_process_auth_policy_through_apply_and_off() {
+    if crate::home_process::run_current_test() {
+        return;
+    }
+    let mut env = crate::test_support::TestHome::new();
+    env.set_env(
+        "ANTHROPIC_API_KEY",
+        std::ffi::OsStr::new("synthetic-inherited-lifecycle-key"),
+    );
+    let root = tempfile::tempdir().unwrap();
+    let normal = context(&root.path().join("normal"), Platform::Claude);
+    seed(&normal);
+    let normal_off = normal.off().unwrap();
+    assert!(
+        normal_off
+            .auth_outcome
+            .unwrap()
+            .remaining_suppressors
+            .iter()
+            .any(|source| source.location == ccr_types::ClaudeAuthSourceLocation::ProcessEnv)
+    );
+    let isolated =
+        context(&root.path().join("isolated"), Platform::Claude).with_process_environment(false);
+    seed(&isolated);
+    isolated
+        .apply(ApplyProfileRequest::new(Platform::Claude, "old"))
+        .unwrap();
+    let outcome = isolated.off().unwrap();
+    assert!(outcome.changed);
+    assert!(
+        !outcome
+            .auth_outcome
+            .unwrap()
+            .remaining_suppressors
+            .iter()
+            .any(|source| source.location == ccr_types::ClaudeAuthSourceLocation::ProcessEnv)
+    );
+    let settings =
+        std::fs::read_to_string(&isolated.claude_runtime.as_ref().unwrap().settings_file).unwrap();
+    assert!(!settings.contains("synthetic-inherited-lifecycle-key"));
+}
+
 fn paths(root: &Path, platform: Platform) -> PlatformPaths {
     let platform_dir = root.join("platforms").join(platform.to_string());
     PlatformPaths {

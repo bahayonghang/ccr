@@ -205,7 +205,7 @@ job.push_line(OutputChannel::Stdout, line);
 - Background readers use a bounded channel, at most 50 retained lines per 100 ms tick, independent dropped counters per stream, and delta-only progress events. Full snapshots are query/terminal payloads.
 - `AsyncBufReadExt::lines()` is forbidden for untrusted child output: a channel cap does not bound one unterminated line. Use `read_bounded_line` before parsing or batching.
 - OAuth URL opening accepts only the exact OpenAI authorize endpoint and fixed loopback callback origin. Port release requests cancellation only for matching registry records; unknown PIDs are report-only.
-- WSL's synchronous file adapter and SkillPort's intentional detached GUI handoff are explicit legacy adapters. Do not add callers to them; migrate them under a separately reviewed lifecycle contract rather than pretending a detached app is a reapable child.
+- WSL's synchronous file adapter remains a legacy adapter; do not add callers. SkillPort follows the separately reviewed external GUI handoff contract below; its application is not a reapable CCR child.
 
 ### 4. Validation & Error Matrix
 
@@ -252,3 +252,38 @@ while let Some(line) = read_bounded_line(&mut reader, max_bytes).await? {
     bounded_delta.try_send(line)?;
 }
 ```
+
+## Scenario: Explicit SkillPort external GUI handoff
+
+### 1. Scope / Trigger
+- Applies to the shared `ccr-app::tools::bridge` owner and its Tauri/native callers. Reviewed on 2026-11-06 for the authorized tool-bridge migration.
+
+### 2. Signatures
+- `bridge::detect().await -> SkillportAppStatus` returns safe installation metadata, never launch paths.
+- `bridge::open().await -> Result<(), String>` rediscovers a private closed identity at activation time.
+- `ProcessDescriptor::skillport_helper(launch)` selects `/usr/bin/mdfind` or `/usr/bin/open`, with a three-second deadline and 64 KiB per stream.
+
+### 3. Contracts
+- Only fixed SkillPort/skills-manage identities are accepted. A renderer cannot supply an executable, bundle ID or arguments.
+- Windows discovery and activation require an absolute, canonical regular executable named `skillport.exe` or `skills-manage.exe`. Reject symlink/reparse ancestors and leaf paths. A registry display name alone does not authorize its DisplayIcon executable.
+- Windows uses an intentional no-argument, null-stdio GUI handoff after validation. The external application remains unowned; CCR shutdown must not kill it.
+- macOS discovery and launch helpers use the bounded gateway, fixed absolute helper paths and allowlisted bundle arguments. Helper timeout, truncation, spawn failure or nonzero exit never confirms a handoff.
+- Success means the launch request was accepted, never that the external GUI is ready. This exception does not relax sidecar identity, general command execution or updater policy.
+
+### 4. Validation & Error Matrix
+- Relative, missing, directory, wrong-name or linked Windows target -> refuse before spawn.
+- Unknown/injected macOS bundle -> refuse before helper execution.
+- Helper timeout/truncation/nonzero exit -> report failure; discovery must not report installed from incomplete output.
+
+### 5. Good / Base / Bad Cases
+- Good: rediscover and validate a known installed executable, then issue a no-argument handoff.
+- Base: a missing bridge stays unavailable; explicit launch success remains request-only.
+- Bad: trust an arbitrary DisplayIcon because its registry DisplayName is SkillPort, invoke a renderer path, or keep an unbounded `mdfind.output()`.
+
+### 6. Tests Required
+- Shared bridge tests cover fixed bundles/helper paths, strict helper outcomes, absolute expected Windows executable identity, legacy display-name matching and candidate generation. Gateway timeout/output cleanup tests remain applicable.
+- Native fixture controls must refuse host detection/launch/update and permit cancelling update review without a process launch. macOS native launch and OS-delivery evidence remain separate from Windows/headless checks.
+
+### 7. Wrong vs Correct
+- Wrong: `std_command(renderer_path).spawn()` or claim application readiness after spawning a launcher.
+- Correct: use the private discovered identity, validate it at activation, and report only an accepted launch request.

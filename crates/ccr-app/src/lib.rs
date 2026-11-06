@@ -13,3 +13,10 @@ pub mod claude_mcp;
 pub mod mcp_document;
 
 pub mod codex_agents;
+
+pub mod tools;
+
+pub mod monitoring;
+
+#[cfg(test)]
+mod benchmark_fixture;

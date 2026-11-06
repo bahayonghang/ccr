@@ -9,8 +9,8 @@ use crate::models::{
     ClaudeProfileAuthMode, ClaudeRuntimeMode, ClaudeRuntimeSummary, PlatformConfig, ProfileConfig,
 };
 use crate::platforms::ClaudePlatform;
-use ccr_config::ClaudeRuntimePaths;
 use ccr_config::platforms::base as platform_base;
+use ccr_config::{ClaudeRuntimePaths, PlatformPaths};
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::{
     BackupPolicy, LockManager, WriteOptions, content_version_token, write_guarded,
@@ -98,6 +98,8 @@ struct RuntimeAuthRead {
 
 /// Claude auth 服务
 pub struct ClaudeAuthService {
+    read_process_environment: bool,
+    profile_paths: Option<PlatformPaths>,
     ccr_claude_dir: PathBuf,
     runtime_paths: ClaudeRuntimePaths,
     lock_dir: PathBuf,
@@ -206,6 +208,8 @@ impl ClaudeAuthService {
         let lock_dir = LockManager::with_default_path()?.lock_dir().to_path_buf();
 
         Ok(Self {
+            read_process_environment: true,
+            profile_paths: None,
             ccr_claude_dir: ccr_root.join("platforms").join("claude"),
             runtime_paths,
             lock_dir,
@@ -227,6 +231,8 @@ impl ClaudeAuthService {
             config_dir: claude_dir,
         };
         Self {
+            read_process_environment: true,
+            profile_paths: None,
             ccr_claude_dir,
             runtime_paths,
             lock_dir,
@@ -240,10 +246,25 @@ impl ClaudeAuthService {
         lock_dir: PathBuf,
     ) -> Self {
         Self {
+            read_process_environment: true,
+            profile_paths: None,
             ccr_claude_dir,
             runtime_paths,
             lock_dir,
         }
+    }
+
+    /// Controls whether diagnosis observes inherited process credentials.
+    /// Explicit synthetic roots disable this without mutating process globals.
+    pub fn with_process_environment(mut self, enabled: bool) -> Self {
+        self.read_process_environment = enabled;
+        self
+    }
+
+    /// Binds summary/profile reads to the same captured catalog as authentication.
+    pub fn with_profile_paths(mut self, paths: PlatformPaths) -> Self {
+        self.profile_paths = Some(paths);
+        self
     }
 
     fn credentials_path(&self) -> PathBuf {
@@ -412,8 +433,9 @@ impl ClaudeAuthService {
         }
     }
 
-    fn process_env_present(key: &str) -> bool {
-        std::env::var_os(key).is_some_and(|value| !value.to_string_lossy().trim().is_empty())
+    fn process_env_present(&self, key: &str) -> bool {
+        self.read_process_environment
+            && std::env::var_os(key).is_some_and(|value| !value.to_string_lossy().trim().is_empty())
     }
 
     fn subscription_oauth_observed(&self) -> Result<bool> {
@@ -443,7 +465,7 @@ impl ClaudeAuthService {
         let mut observations = Vec::new();
 
         for (key, kind, confidence) in CLAUDE_AUTH_ENV_SOURCES {
-            if Self::process_env_present(key) {
+            if self.process_env_present(key) {
                 observations.push(Self::observation(
                     *kind,
                     ClaudeAuthSourceLocation::ProcessEnv,
@@ -995,8 +1017,20 @@ impl ClaudeAuthService {
     }
 
     pub fn get_runtime_summary(&self) -> Result<ClaudeRuntimeSummary> {
+        if !self.read_process_environment && self.profile_paths.is_none() {
+            return Err(CcrError::ConfigError(
+                "Captured Claude profile paths are required".into(),
+            ));
+        }
         let snapshot = self.read_auth_snapshot()?;
-        let platform = ClaudePlatform::new()?;
+        let platform = match &self.profile_paths {
+            Some(paths) => ClaudePlatform::from_parts(
+                paths.clone(),
+                self.settings_manager(),
+                self.lock_dir.clone(),
+            ),
+            None => ClaudePlatform::new()?,
+        };
         let current_profile_name = platform.get_current_profile()?;
         let settings_has_managed_overrides = self.load_settings()?.has_managed_overrides();
 
@@ -1318,6 +1352,109 @@ mod tests {
             service.runtime_paths.backups_dir,
             config_dir.join("backups")
         );
+    }
+
+    #[test]
+    #[cfg(not(target_os = "macos"))]
+    fn captured_auth_can_ignore_process_credentials_while_retaining_file_evidence() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
+        let mut env = TestEnv::new();
+        env.set_env("ANTHROPIC_API_KEY", "synthetic-inherited-secret");
+        env.write_settings(json!({"env":{"ANTHROPIC_AUTH_TOKEN":"synthetic-file-secret"}}));
+        let normal = env.service.diagnose_auth_sources().unwrap();
+        assert!(
+            normal
+                .observations
+                .iter()
+                .any(|source| source.location == ClaudeAuthSourceLocation::ProcessEnv)
+        );
+        let isolated = env
+            .service
+            .with_process_environment(false)
+            .diagnose_auth_sources()
+            .unwrap();
+        assert!(
+            !isolated
+                .observations
+                .iter()
+                .any(|source| source.location == ClaudeAuthSourceLocation::ProcessEnv)
+        );
+        assert!(
+            isolated
+                .observations
+                .iter()
+                .any(|source| source.location == ClaudeAuthSourceLocation::SettingsEnv)
+        );
+        assert!(!format!("{isolated:?}").contains("synthetic-inherited-secret"));
+        assert!(!format!("{isolated:?}").contains("synthetic-file-secret"));
+    }
+
+    #[test]
+    #[cfg(not(target_os = "macos"))]
+    fn captured_auth_summary_uses_bound_profiles_and_refuses_an_unbound_fixture() {
+        if crate::home_process::run_current_test() {
+            return;
+        }
+        let mut env = TestEnv::new();
+        let root = env.home.root().to_path_buf();
+        let platform_dir = root.join("platforms/claude");
+        let paths = PlatformPaths {
+            root: root.clone(),
+            registry_file: root.join("config.toml"),
+            profiles_file: platform_dir.join("profiles.toml"),
+            settings_file: platform_dir.join("settings.json"),
+            history_file: root.join("history/claude.json"),
+            backups_dir: root.join("backups/claude"),
+            platform_dir,
+        };
+        let mut config = ccr_config::CcsConfig {
+            default_config: "captured-profile".into(),
+            current_config: "captured-profile".into(),
+            settings: Default::default(),
+            sections: Default::default(),
+        };
+        config.sections.insert(
+            "captured-profile".into(),
+            ccr_config::ConfigSection {
+                provider: Some("captured-provider".into()),
+                base_url: Some("https://synthetic.invalid".into()),
+                auth_token: Some(ccr_core::Secret::new("synthetic-captured-key")),
+                ..Default::default()
+            },
+        );
+        ccr_config::ConfigManager::new(&paths.profiles_file)
+            .save(&config)
+            .unwrap();
+        let trap = root.join("ambient-root-is-a-file");
+        fs::write(&trap, b"synthetic ambient trap").unwrap();
+        env.home.set_env("CCR_ROOT", trap.as_os_str());
+        env.set_env("ANTHROPIC_API_KEY", "synthetic-inherited-secret");
+        let service = env.service.with_process_environment(false);
+        assert!(
+            matches!(service.get_runtime_summary(),Err(CcrError::ConfigError(message)) if message=="Captured Claude profile paths are required")
+        );
+        let summary = service
+            .with_profile_paths(paths)
+            .get_runtime_summary()
+            .unwrap();
+        assert_eq!(
+            summary.current_profile_name.as_deref(),
+            Some("captured-profile")
+        );
+        assert_eq!(
+            summary.current_profile_provider.as_deref(),
+            Some("captured-provider")
+        );
+        assert!(
+            !summary
+                .auth_diagnosis
+                .observations
+                .iter()
+                .any(|source| source.location == ClaudeAuthSourceLocation::ProcessEnv)
+        );
+        assert_eq!(fs::read(trap).unwrap(), b"synthetic ambient trap");
     }
 
     #[test]

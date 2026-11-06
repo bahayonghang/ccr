@@ -13,6 +13,9 @@ Claude, Codex, Gemini, Grok, and Droid store profiles in `profiles.db` next to t
 ## Interfaces
 
 - `ConfigManager::for_platform(name)` opens an explicit platform path without I/O.
+- `migrate_catalogs_at(&[PlatformPaths])` applies the existing catalog migration
+  to captured catalogs only. It retains journal, source retirement and locks;
+  explicit desktop fixtures never call the ambient all-platform resolver.
 - `ConfigManager::with_default()` retains the legacy Claude domain. Compatibility evidence: `crates/ccr/tests/managers/legacy_registry.rs::config_manager_default_ignores_legacy_current_platform_routing` and the Claude-only lifecycle clear command. New callers must use `for_platform`.
 - `load()` and `snapshot()` are pure reads of the catalog. `ConfigSnapshot::version` is `document.revision`.
 - `mutate(closure)` requires an existing catalog. `mutate_or_create(closure)` permits explicit first creation.

@@ -31,6 +31,30 @@ pub struct LogPersistenceService {
 }
 
 impl LogPersistenceService {
+    /// Strict captured-connection access for adapters with an independently owned main DB.
+    /// Unlike the legacy global API, storage errors remain visible to the caller.
+    pub fn query_logs_with_connection(
+        conn: &rusqlite::Connection,
+        level: Option<&str>,
+        channel: Option<&str>,
+        count: usize,
+    ) -> Result<Vec<MonitoringEntry>, crate::core::error::DbError> {
+        Ok(
+            log_repo::query_logs_strict(conn, level, channel, count.clamp(1, 500))?
+                .into_iter()
+                .map(from_repo_entry)
+                .collect(),
+        )
+    }
+
+    pub fn append_entry_with_connection(
+        conn: &rusqlite::Connection,
+        entry: &MonitoringEntry,
+    ) -> Result<(), crate::core::error::DbError> {
+        log_repo::insert_log(conn, &to_repo_entry(entry))?;
+        Ok(())
+    }
+
     pub fn new(config: LogStorageConfig) -> Self {
         Self {
             config,

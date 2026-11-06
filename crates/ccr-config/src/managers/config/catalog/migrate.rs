@@ -34,6 +34,15 @@ pub fn migrate_catalogs() -> Result<()> {
     Ok(())
 }
 
+/// Migrates only explicitly captured catalogs, retaining the existing migration
+/// journal, source retirement and locking policy.
+pub fn migrate_catalogs_at(paths: &[PlatformPaths]) -> Result<()> {
+    for paths in paths {
+        migrate_paths(paths, None)?;
+    }
+    Ok(())
+}
+
 pub(crate) fn migrate_paths(
     paths: &PlatformPaths,
     failpoint: Option<MigrationFailpoint>,

@@ -36,6 +36,10 @@ sha2 = { workspace = true }
 uuid = { workspace = true }
 tracing = { workspace = true }
 thiserror = { workspace = true }
+sysinfo = { version = "=0.39.6", default-features = false, features = ["system"] }
+
+[target.'cfg(windows)'.dependencies]
+winreg = "=0.56.0"
 
 [dev-dependencies]
 ccr-usage = { path = "../ccr-usage", features = ["test-fixtures"] }

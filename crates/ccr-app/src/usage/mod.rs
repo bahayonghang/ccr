@@ -1,4 +1,5 @@
 //! Framework-independent usage orchestration; all usage SQL remains in ccr-usage.
+pub mod capabilities;
 pub mod home;
 pub mod import;
 pub mod policies;

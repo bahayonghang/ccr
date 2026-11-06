@@ -28,6 +28,9 @@
 
 - Private `get_log_dir() -> Option<PathBuf>` selects the destination.
 - Public `init_logger()` and `init_file_only_logger()` use the same destination.
+- `init_logger_at(&Path)` uses only an explicitly captured log directory and
+  retains the same writer, redaction, bridge, permissions and cleanup policy.
+  It never resolves an ambient fallback destination.
 
 ### 3. Contracts
 
@@ -58,6 +61,8 @@
 
 - `cargo test -p ccr-core --lib core::logging -- --skip export_bindings`: nonempty, empty, and absent root. Fallback assertions resolve paths without reading real logs.
 - `cargo test -p ccr-core --test log_path_isolation -- --skip export_bindings`: both logger entry points, `off` filter, 15-day removal, 13-day retention, unmanaged retention, and cross-root byte/timestamp sentinels.
+- The explicit logger case sets a different ambient CCR_ROOT and verifies that
+  cleanup and file initialization still affect only its captured destination.
 - Keep the ignored child probe separate from the tests that invoke the probe. Ignored probes alone are not acceptance evidence.
 
 ### 7. Wrong vs Correct

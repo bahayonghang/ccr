@@ -280,7 +280,9 @@ fn claude_profile_off(context: &ProfileLifecycleContext) -> Result<ProfileOffRes
         context.paths().platform_dir.clone(),
         runtime,
         context.lock_dir().to_path_buf(),
-    );
+    )
+    .with_process_environment(context.read_process_environment)
+    .with_profile_paths(context.paths().clone());
     let previous_profile = platform_previous_profile_hint(context)?;
     let had_profiles_file_pointer = platform_profiles_file_has_current_config(context)?;
     let had_profile_routing = previous_profile.is_some() || had_profiles_file_pointer;

@@ -47,6 +47,10 @@ pub enum ProcessCapability {
     Sftp,
     SshKeyscan,
     SshKeygen,
+    #[cfg(any(target_os = "macos", test))]
+    SkillportDiscovery,
+    #[cfg(any(target_os = "macos", test))]
+    SkillportLaunch,
 }
 
 impl ProcessCapability {
@@ -64,6 +68,10 @@ impl ProcessCapability {
             Self::Sftp => "sftp",
             Self::SshKeyscan => "ssh_keyscan",
             Self::SshKeygen => "ssh_keygen",
+            #[cfg(any(target_os = "macos", test))]
+            Self::SkillportDiscovery => "skillport_discovery",
+            #[cfg(any(target_os = "macos", test))]
+            Self::SkillportLaunch => "skillport_launch",
         }
     }
 }
@@ -72,7 +80,10 @@ impl ProcessCapability {
 pub enum TrustedExecutable {
     CcrSidecar,
     SystemCargo,
-    DetectedCli { tool: &'static str, path: PathBuf },
+    DetectedCli {
+        tool: &'static str,
+        path: PathBuf,
+    },
     SystemOpenSsh,
     SystemSftp,
     SystemSshKeyscan,
@@ -80,6 +91,10 @@ pub enum TrustedExecutable {
     PathLookup,
     PortDiscovery,
     Llmusage(PathBuf),
+    #[cfg(any(target_os = "macos", test))]
+    SkillportDiscovery,
+    #[cfg(any(target_os = "macos", test))]
+    SkillportLaunch,
 }
 
 #[derive(Debug, Clone)]
@@ -91,6 +106,23 @@ pub struct ProcessDescriptor {
 }
 
 impl ProcessDescriptor {
+    #[cfg(any(target_os = "macos", test))]
+    pub(crate) const fn skillport_helper(launch: bool) -> Self {
+        Self {
+            capability: if launch {
+                ProcessCapability::SkillportLaunch
+            } else {
+                ProcessCapability::SkillportDiscovery
+            },
+            executable: if launch {
+                TrustedExecutable::SkillportLaunch
+            } else {
+                TrustedExecutable::SkillportDiscovery
+            },
+            timeout: Duration::from_secs(3),
+            max_bytes_per_stream: 64 * 1024,
+        }
+    }
     pub const fn ccr_command() -> Self {
         Self {
             capability: ProcessCapability::CcrCommand,
@@ -132,7 +164,7 @@ impl ProcessDescriptor {
         path: impl Into<PathBuf>,
         timeout: Duration,
     ) -> Result<Self, String> {
-        if !matches!(tool, "ccr" | "claude" | "codex" | "gemini") {
+        if !matches!(tool, "ccr" | "claude" | "codex" | "gemini" | "grok") {
             return Err(format!("cli_probe_unsupported: {tool}"));
         }
         Ok(Self {
@@ -556,6 +588,10 @@ fn resolve_executable(executable: &TrustedExecutable) -> Result<PathBuf, String>
             "lsof"
         })),
         TrustedExecutable::Llmusage(path) => Ok(path.clone()),
+        #[cfg(any(target_os = "macos", test))]
+        TrustedExecutable::SkillportDiscovery => Ok(PathBuf::from("/usr/bin/mdfind")),
+        #[cfg(any(target_os = "macos", test))]
+        TrustedExecutable::SkillportLaunch => Ok(PathBuf::from("/usr/bin/open")),
     }
 }
 

@@ -394,6 +394,10 @@ fn store_worker_guard(guard: WorkerGuard) {
 
 fn build_file_writer() -> Option<NonBlocking> {
     let log_dir = get_log_dir()?;
+    build_file_writer_at(log_dir)
+}
+
+fn build_file_writer_at(log_dir: PathBuf) -> Option<NonBlocking> {
     if std::fs::create_dir_all(&log_dir).is_err() {
         return None;
     }
@@ -415,6 +419,16 @@ fn build_env_filter() -> EnvFilter {
 }
 
 pub fn init_logger() {
+    init_logger_with_writer(build_file_writer());
+}
+
+/// Initializes the normal logger at an explicitly captured directory, without
+/// consulting CCR_ROOT or the operating-system home directory.
+pub fn init_logger_at(log_dir: &std::path::Path) {
+    init_logger_with_writer(build_file_writer_at(log_dir.to_path_buf()));
+}
+
+fn init_logger_with_writer(file_writer: Option<NonBlocking>) {
     let _ = LogTracer::init();
     super::log_bridge::ensure_log_bridge_queue();
     let _ = current_log_correlation_id();
@@ -429,7 +443,7 @@ pub fn init_logger() {
         .with_line_number(false)
         .with_span_events(FmtSpan::NONE)
         .with_ansi(true);
-    let file_layer = build_file_writer().map(|writer| {
+    let file_layer = file_writer.map(|writer| {
         fmt::layer()
             .fmt_fields(RedactingFormat)
             .with_target(true)

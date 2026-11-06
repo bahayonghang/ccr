@@ -954,6 +954,12 @@ pub fn native_snapshot(
 }
 
 impl NativeSnapshot {
+    /// Backend-only batch input; may contain credentials.
+    pub fn entries_for_copy(&self) -> Result<Map<String, Value>, String> {
+        let mut root = self.root.clone();
+        Ok(mcp_servers_for_write(&self.context, self.scope, &mut root)?.clone())
+    }
+
     /// Backend-only copy input. May contain credentials; never project it into a
     /// list, diagnostic, or editor control.
     pub fn entry_for_copy(&self, name: &str) -> Result<Option<Value>, String> {
@@ -981,27 +987,38 @@ impl NativeSnapshot {
         name: &str,
         mutation: &crate::mcp_document::EntryMutation,
     ) -> Result<bool, String> {
+        self.save_batch(&[(name.to_owned(), mutation.clone())])
+    }
+
+    /// Apply one reviewed batch to the captured root and commit once against
+    /// its original revision. No intermediate entry can refresh that revision.
+    pub fn save_batch(
+        &self,
+        mutations: &[(String, crate::mcp_document::EntryMutation)],
+    ) -> Result<bool, String> {
         use crate::mcp_document::{EntryMutation, validate_entry, validate_name};
-        validate_name(name).map_err(str::to_string)?;
         let mut root = self.root.clone();
         let servers = mcp_servers_for_write(&self.context, self.scope, &mut root)?;
-        match mutation {
-            EntryMutation::Add(value) => {
-                if servers.contains_key(name) {
-                    return Err("mcp_name_exists".into());
+        for (name, mutation) in mutations {
+            validate_name(name).map_err(str::to_string)?;
+            match mutation {
+                EntryMutation::Add(value) => {
+                    if servers.contains_key(name) {
+                        return Err("mcp_name_exists".into());
+                    }
+                    let clean = clean_config(value.clone())?;
+                    validate_entry(&clean).map_err(str::to_string)?;
+                    servers.insert(name.clone(), clean);
                 }
-                let clean = clean_config(value.clone())?;
-                validate_entry(&clean).map_err(str::to_string)?;
-                servers.insert(name.into(), clean);
-            }
-            EntryMutation::Patch(patch) => {
-                let existing = servers.get_mut(name).ok_or("mcp_entry_missing")?;
-                merge_mcp_config(existing, patch.clone())?;
-                validate_entry(existing).map_err(str::to_string)?;
-            }
-            EntryMutation::Delete => {
-                if servers.remove(name).is_none() {
-                    return Err("mcp_entry_missing".into());
+                EntryMutation::Patch(patch) => {
+                    let existing = servers.get_mut(name).ok_or("mcp_entry_missing")?;
+                    merge_mcp_config(existing, patch.clone())?;
+                    validate_entry(existing).map_err(str::to_string)?;
+                }
+                EntryMutation::Delete => {
+                    if servers.remove(name).is_none() {
+                        return Err("mcp_entry_missing".into());
+                    }
                 }
             }
         }

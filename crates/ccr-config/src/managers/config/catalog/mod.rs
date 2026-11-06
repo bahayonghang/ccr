@@ -24,9 +24,9 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-pub use migrate::migrate_catalogs;
 #[cfg(test)]
 pub(crate) use migrate::{MigrationFailpoint, migrate_paths};
+pub use migrate::{migrate_catalogs, migrate_catalogs_at};
 
 const SCHEMA: &str = "
 CREATE TABLE IF NOT EXISTS document (

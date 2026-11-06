@@ -30,6 +30,15 @@ Use `rusqlite` and `r2d2_sqlite` through `DbPool`. Pool construction and PRAGMAs
 
 The Tauri app initializes `~/.ccr-ui/ccr-ui.db` through `initialize_app_pool()`: one pool (max_size=8) is created, migrations run once, and the SAME instance is registered as `GLOBAL_POOL` and returned for `AppState.db_pool`. Never open a second pool on `ccr-ui.db`. Usage archive uses a separate pool via `create_usage_archive_pool()`.
 
+Explicit embedding/fixture initialization uses `initialize_app_pool_at(path,
+migration_home)`, which refuses an already-bound global pool and returns that
+same newly registered instance. `create_app_pool_at` creates an independent
+captured pool without registration. `create_usage_archive_pool_at(path,
+migration_home, legacy_ui_path)` keeps the archive separate and passes both
+legacy roots to the existing migration owner without resolving HOME. Preserve
+ordinary wrapper behavior; exercise process-global registration in an isolated
+subprocess instead of resetting the singleton or serializing the full suite.
+
 Repository/manager code reaches the database either through the global-path free functions `with_connection`/`transaction`, or through an injected `DbAccess` handle (`Global` | `Pool(DbPool)`, same `DbError` surface). Managers that need unit tests should take `DbAccess` (constructor keeps a `Global` default so callers don't change); see `ccr-checkin` `AccountManager::with_db` for the pilot pattern.
 
 Usage archive storage lives under `~/.ccr/analytics/usage.db`, honoring `CCR_DATA_DIR`/`CCR_ROOT`. Desktop UI state uses `~/.ccr-ui/ccr-ui.db`.

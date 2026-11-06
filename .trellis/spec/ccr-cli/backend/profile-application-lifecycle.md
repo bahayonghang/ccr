@@ -7,6 +7,11 @@
 - Claude and Codex update/rename call update_profile. The patch closure changes a ProfileConfig in memory. The application owns persistence, pointers, activation, and compensation.
 - CLI, Tauri, and TUI schedule the complete synchronous lifecycle inside one blocking worker. TUI scheduling belongs to `ccr-tui/src/tui/profile_tasks.rs`; the thread-local journal must not cross worker boundaries. Do not await, spawn, read stdin, print, or exit while the operation journal is active.
 - Keep public CLI exports and existing IPC command IDs. Do not add CcrError variants for operation outcomes.
+- `ProfileLifecycleContext::with_process_environment(false)` carries the
+  captured fixture auth-observation policy through apply/off, including the
+  auth service reconstructed for cleanup outcomes. Normal contexts default to
+  true. Native and Tauri fixture constructors opt out explicitly; a path-only
+  fixture must not import host process credential facts.
 
 ## Prepare and execute
 

@@ -16,7 +16,7 @@ pub mod types;
 
 pub use catalog::{
     CatalogTransaction, increment_usage_count, install_profile_catalog, load_applied_operation,
-    migrate_catalogs, snapshot_profile_catalog, validate_profile_catalog_file,
+    migrate_catalogs, migrate_catalogs_at, snapshot_profile_catalog, validate_profile_catalog_file,
 };
 #[cfg(any(test, feature = "test-support"))]
 pub use catalog::{

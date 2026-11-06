@@ -11,6 +11,9 @@ fn log_path_probe() {
     match std::env::var("CCR_LOG_PATH_MODE").as_deref() {
         Ok("console") => ccr_core::init_logger(),
         Ok("file-only") => ccr_core::init_file_only_logger(),
+        Ok("explicit") => ccr_core::init_logger_at(&std::path::PathBuf::from(
+            std::env::var_os("CCR_EXPLICIT_LOG_DIR").expect("captured log directory"),
+        )),
         mode => panic!("unknown log path probe mode: {mode:?}"),
     }
 }
@@ -63,11 +66,20 @@ fn assert_log_path_isolation(mode: &str) {
         })
         .collect();
 
+    let unused_ambient_root = temp.path().join("unused-ambient-root");
     let output = Command::new(std::env::current_exe().expect("test executable"))
         .args(["--exact", "log_path_probe", "--ignored", "--nocapture"])
         .env("CCR_LOG_PATH_PROBE", "1")
         .env("CCR_LOG_PATH_MODE", mode)
-        .env("CCR_ROOT", &root)
+        .env(
+            "CCR_ROOT",
+            if mode == "explicit" {
+                &unused_ambient_root
+            } else {
+                &root
+            },
+        )
+        .env("CCR_EXPLICIT_LOG_DIR", &selected_logs)
         .env("HOME", &home)
         .env("USERPROFILE", &home)
         .env("CCR_LOG_LEVEL", "off")
@@ -128,4 +140,9 @@ fn console_logger_uses_selected_root_and_preserves_other_roots() {
 #[test]
 fn file_only_logger_uses_selected_root_and_preserves_other_roots() {
     assert_log_path_isolation("file-only");
+}
+
+#[test]
+fn explicit_logger_ignores_ambient_root_and_preserves_cleanup_boundaries() {
+    assert_log_path_isolation("explicit");
 }

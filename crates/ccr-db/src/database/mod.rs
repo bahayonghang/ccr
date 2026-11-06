@@ -114,35 +114,68 @@ pub fn initialize_app_pool() -> Result<DbPool, DbError> {
 /// 创建独立连接池实例（用于 Tauri AppState）
 pub fn create_app_pool() -> Result<DbPool, DbError> {
     let db_path = get_db_path()?;
+    let home_dir = dirs::home_dir().ok_or(DbError::HomeDirNotFound)?;
+    create_app_pool_at(&db_path, &home_dir)
+}
+
+/// Creates a main pool using only the caller's captured storage and legacy home.
+pub fn create_app_pool_at(db_path: &Path, migration_home: &Path) -> Result<DbPool, DbError> {
     let config = PoolConfig {
         max_size: 8,
         ..Default::default()
     };
-    let pool = create_pool(&db_path, Some(config))?;
+    let pool = create_pool(db_path, Some(config))?;
 
     // 运行迁移
     let conn = pool.get().map_err(|e| DbError::PoolGet(e.to_string()))?;
-    let home_dir = dirs::home_dir().ok_or(DbError::HomeDirNotFound)?;
-    migrations::run_all_migrations(&conn, &home_dir)
+    migrations::run_all_migrations(&conn, migration_home)
         .map_err(|e| DbError::Migration(e.to_string()))?;
 
+    Ok(pool)
+}
+
+/// Installs one explicitly rooted main pool as the process-global pool. Unlike
+/// the legacy initializer, a repeated installation fails before opening a DB.
+pub fn initialize_app_pool_at(db_path: &Path, migration_home: &Path) -> Result<DbPool, DbError> {
+    static INSTALL: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let _guard = INSTALL
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if GLOBAL_POOL.get().is_some() {
+        return Err(DbError::Pool(
+            "global database pool already initialized".into(),
+        ));
+    }
+    let pool = create_app_pool_at(db_path, migration_home)?;
+    GLOBAL_POOL
+        .set(pool.clone())
+        .map_err(|_| DbError::Pool("global database pool already initialized".into()))?;
     Ok(pool)
 }
 
 /// 创建 usage analytics 连接池实例（用于 durable archive / usage 查询）
 pub fn create_usage_archive_pool() -> Result<DbPool, DbError> {
     let db_path = get_usage_archive_db_path()?;
+    let home_dir = dirs::home_dir().ok_or(DbError::HomeDirNotFound)?;
+    create_usage_archive_pool_at(&db_path, &home_dir, &get_db_path()?)
+}
+
+/// Creates the archive without resolving ambient archive or legacy DB paths.
+pub fn create_usage_archive_pool_at(
+    db_path: &Path,
+    migration_home: &Path,
+    legacy_ui_path: &Path,
+) -> Result<DbPool, DbError> {
     let config = PoolConfig {
         max_size: 8,
         ..Default::default()
     };
-    let pool = create_pool(&db_path, Some(config))?;
+    let pool = create_pool(db_path, Some(config))?;
 
     let conn = pool.get().map_err(|e| DbError::PoolGet(e.to_string()))?;
-    let home_dir = dirs::home_dir().ok_or(DbError::HomeDirNotFound)?;
-    migrations::run_all_migrations(&conn, &home_dir)
+    migrations::run_all_migrations(&conn, migration_home)
         .map_err(|e| DbError::Migration(e.to_string()))?;
-    migrations::migrate_usage_archive_from_legacy_dbs(&conn, &home_dir, &get_db_path()?)
+    migrations::migrate_usage_archive_from_legacy_dbs(&conn, migration_home, legacy_ui_path)
         .map_err(|e| DbError::Migration(e.to_string()))?;
 
     Ok(pool)

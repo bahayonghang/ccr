@@ -8,8 +8,8 @@ pub mod services;
 pub use ccr_core::{AutoCompletable, CcrError, Result, Validatable};
 pub use managers::config::{
     CatalogTransaction, ConfigPatch, ConfigSnapshot, FieldPatch, increment_usage_count,
-    install_profile_catalog, load_applied_operation, migrate_catalogs, snapshot_profile_catalog,
-    validate_profile_catalog_file,
+    install_profile_catalog, load_applied_operation, migrate_catalogs, migrate_catalogs_at,
+    snapshot_profile_catalog, validate_profile_catalog_file,
 };
 #[cfg(any(test, feature = "test-support"))]
 pub use managers::config::{

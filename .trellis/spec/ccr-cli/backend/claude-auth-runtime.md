@@ -13,6 +13,15 @@
 ### 2. Signatures
 
 - `ClaudeAuthService::diagnose_auth_sources() -> Result<ClaudeAuthDiagnosis>` is the only source-ordering implementation.
+- `with_process_environment(false)` excludes inherited process credential
+  observations for explicitly captured synthetic fixtures. Constructors retain
+  the normal `true` default, and file-based observations remain unchanged.
+  Capture this policy in the owner; do not mutate process globals or depend on
+  a thread-local flag crossing an await boundary.
+- `with_profile_paths(PlatformPaths)` also captures the nested profile owner used
+  by runtime summary, including internal account-list calls. An environment-
+  disabled service without profile paths rejects summary instead of constructing
+  an ambient platform. Default services retain the original resolver wrapper.
 - `ClaudeAuthService::action_outcome(cleared_managed_sources: Vec<String>) -> ClaudeAuthActionOutcome` performs post-action diagnosis without turning a successful write into a failed action.
 - `ClaudeAuthService::switch_account(name) -> Result<ClaudeAuthActionOutcome>` and Claude `profile off` expose cleared CCR-owned keys plus remaining sources/warnings.
 - `ClaudeRuntimeSummary::auth_diagnosis: ClaudeAuthDiagnosis` is additive and defaults during Rust deserialization for compatibility.

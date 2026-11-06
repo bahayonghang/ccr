@@ -22,6 +22,24 @@ impl LogEntry {
             .map(|dt| dt.with_timezone(&Utc))
             .unwrap_or_else(|_| Utc::now());
 
+        Self::from_row_at(row, timestamp)
+    }
+
+    fn from_row_strict(row: &Row<'_>) -> Result<Self, rusqlite::Error> {
+        let value: String = row.get(1)?;
+        let timestamp = DateTime::parse_from_rfc3339(&value)
+            .map(|dt| dt.with_timezone(&Utc))
+            .map_err(|error| {
+                rusqlite::Error::FromSqlConversionFailure(
+                    1,
+                    rusqlite::types::Type::Text,
+                    Box::new(error),
+                )
+            })?;
+        Self::from_row_at(row, timestamp)
+    }
+
+    fn from_row_at(row: &Row<'_>, timestamp: DateTime<Utc>) -> Result<Self, rusqlite::Error> {
         Ok(Self {
             id: row.get(0)?,
             timestamp,
@@ -192,6 +210,33 @@ pub fn query_logs(
     channel: Option<&str>,
     limit: usize,
 ) -> Result<Vec<LogEntry>, rusqlite::Error> {
+    let (sql, values) = filtered_query(level, channel, limit);
+    let mut stmt = conn.prepare(&sql)?;
+    let logs = stmt
+        .query_map(params_from_iter(values.iter()), LogEntry::from_row)?
+        .filter_map(Result::ok)
+        .collect();
+    Ok(logs)
+}
+
+/// Captured native reads reject corrupt rows and timestamps instead of fabricating data.
+pub fn query_logs_strict(
+    conn: &Connection,
+    level: Option<&str>,
+    channel: Option<&str>,
+    limit: usize,
+) -> Result<Vec<LogEntry>, rusqlite::Error> {
+    let (sql, values) = filtered_query(level, channel, limit);
+    let mut stmt = conn.prepare(&sql)?;
+    stmt.query_map(params_from_iter(values.iter()), LogEntry::from_row_strict)?
+        .collect()
+}
+
+fn filtered_query(
+    level: Option<&str>,
+    channel: Option<&str>,
+    limit: usize,
+) -> (String, Vec<SqlValue>) {
     let mut conditions = Vec::new();
     let mut values = Vec::new();
 
@@ -218,13 +263,7 @@ pub fn query_logs(
     );
     values.push(SqlValue::from(limit as i64));
 
-    let mut stmt = conn.prepare(&sql)?;
-    let logs = stmt
-        .query_map(params_from_iter(values.iter()), LogEntry::from_row)?
-        .filter_map(|row| row.ok())
-        .collect();
-
-    Ok(logs)
+    (sql, values)
 }
 
 #[allow(dead_code)]
@@ -383,6 +422,25 @@ mod tests {
         assert_eq!(logs.len(), 1);
         assert_eq!(logs[0].level, "warn");
     }
+    #[test]
+    fn strict_query_rejects_corrupt_rows_and_time_without_changing_legacy_reads() {
+        let conn = setup_test_db();
+        insert_logs_batch(&conn, &[sample_log("valid"), sample_log("corrupt")]).unwrap();
+        conn.execute(
+            "UPDATE log_entries SET message = x'01' WHERE id = 'corrupt'",
+            [],
+        )
+        .unwrap();
+        assert_eq!(query_logs(&conn, None, None, 10).unwrap().len(), 1);
+        assert!(query_logs_strict(&conn, None, None, 10).is_err());
+        conn.execute("DELETE FROM log_entries WHERE id = 'corrupt'", [])
+            .unwrap();
+        conn.execute("UPDATE log_entries SET timestamp = 'invalid-time'", [])
+            .unwrap();
+        assert_eq!(query_logs(&conn, None, None, 10).unwrap().len(), 1);
+        assert!(query_logs_strict(&conn, None, None, 10).is_err());
+    }
+
     #[test]
     fn test_delete_old_logs() {
         let conn = setup_test_db();

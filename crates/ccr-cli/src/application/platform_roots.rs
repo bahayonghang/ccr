@@ -60,11 +60,23 @@ impl PlatformRoots {
         })
     }
     pub fn claude_auth(&self) -> crate::services::ClaudeAuthService {
+        let platform_dir = self.ccr.join("platforms/claude");
+        let paths = PlatformPaths {
+            root: self.ccr.clone(),
+            registry_file: self.ccr.join("config.toml"),
+            profiles_file: platform_dir.join("profiles.toml"),
+            settings_file: platform_dir.join("settings.json"),
+            history_file: self.ccr.join("history/claude.json"),
+            backups_dir: self.ccr.join("backups/claude"),
+            platform_dir,
+        };
         crate::services::ClaudeAuthService::from_runtime_parts(
             self.ccr.join("platforms/claude"),
             self.claude.clone(),
             self.locks.clone(),
         )
+        .with_process_environment(!self.fixture)
+        .with_profile_paths(paths)
     }
     pub fn codex_auth(&self) -> ccr_codex::CodexAuthService {
         ccr_codex::CodexAuthService::from_dirs(self.codex_store.clone(), self.codex_runtime.clone())
