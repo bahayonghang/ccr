@@ -151,3 +151,14 @@ verified, 01 kept open for AC1.5 and actual baseline/probe measurements.
 - Linux probes 最终收尾：Rust 1.98 all-targets check **0**；标准 release **101**（缺开发 linker 入口）；授权 outputs-local symlink + 单次子进程 LIBRARY_PATH 条件下 release **0**（4m49s），43,643,864 bytes，SHA256 `b4c57ff3a32e63e709b70ebca866b140373821705b55bd18d3892ac7fd7477ce`。`ldd`/`readelf` **0**，runtime 全部解析，无临时 RPATH/RUNPATH。已有 stable 别名实际为 Rust **1.95.0**，`cargo +stable check --locked --all-targets --target x86_64-unknown-linux-gnu` **0**（1m46s），该次没有 LIBRARY_PATH override。最终 Linux doctor **1**，准确报告 just 与 xkbcommon-x11.pc 缺失。所有阶段 lock hash 未变；未安装系统包或工具链。见 Linux 报告和 14 个已解析通过的 JSON receipt。
 
 01 继续保持 in_progress；用户对既有父子方案的实施授权仍有效。当前证据没有解除所有 01 验收条件，后续业务子任务未作为已完成或已解锁交付计入。
+
+## Host reconfirmation (2026-11-06)
+
+Host is Windows. No macOS compiler, sysroot, or machine log was found under this task's research files or `outputs/desktop`, and no macOS compile receipt was produced. `rustup target list --installed` lists only `x86_64-pc-windows-msvc`. The existing WSL Linux probe was not rerun. It remains the recorded Windows-hosted WSL Linux compile probe in `research/linux-probe.md`: that record does not supply a macOS receipt or an independent Linux desktop pass. Performance baseline remains `not_run`; `outputs/desktop/perf/tauri-baseline-2026-10-17/metrics-not-run.json` (2026-10-17) was left unchanged, and no new CPU, memory, startup, or percentile samples were collected. AC 1.5 stays incomplete. Task status stays `in_progress` and must not be archived. No product file changed. Current HEAD: `c9c9578a494b17b778c4478650a2ef0f08476fd0`.
+
+| Command | Relevant output |
+| --- | --- |
+| `rustc -vV` | `rustc 1.98.0 (88d9e12ae 2026-08-18)`; `host: x86_64-pc-windows-msvc`; `release: 1.98.0`; `LLVM version: 22.1.8` |
+| `cmd /c ver` | `Microsoft Windows [Version 10.0.26300.9818]` |
+| `systeminfo` | `OS Name: Microsoft Windows 11 专业版`; `OS Version: 10.0.26300 N/A Build 26300`; `System Type: x64-based PC` |
+| `rustup target list --installed` | `x86_64-pc-windows-msvc` |
