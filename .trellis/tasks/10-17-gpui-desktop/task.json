@@ -46,9 +46,12 @@
     "resumed_at": "2026-10-27T07:51:27.288701+00:00",
     "last_checkpoint": {
       "date": "2026-11-05",
-      "report": ".trellis/tasks/10-17-gpui-desktop/research/continuation-20261105.md",
+      "report": ".trellis/tasks/10-17-gpui-desktop/research/open-acceptance-20261105.md",
       "acceptance": "open",
-      "commit": "not_requested"
+      "work_commits": {
+        "gpui09": "0bf9ba48938fb286a581f4e9eb51e07f3273c629",
+        "gpui01": "bcf355ebfd9c2d7cf16bd293e01f0593f8fea864"
+      }
     }
   }
 }

@@ -58,3 +58,15 @@
 ## 交付证据
 
 每个子任务写 evidence.md，含实际命令、退出码、平台/工具版本、截图或日志路径、未运行项。父任务的 command/route 台账每项关联 owner、native 行为、测试与完成状态。最终不允许以“页面存在”代替业务闭环，以“编译通过”代替 native 运行，以“使用 GPUI”代替性能达标。
+
+## 2026-11-05 续作归档硬门
+
+当前检查点与子任务提交见 [开放验收报告](research/open-acceptance-20261105.md)。01 与 09 仍未独立归档，父任务保持 `in_progress`，不运行 archive 或 finish 脚本。09 切片的最新根 `just ci` 为 0，不替代缺失的子任务验收。
+
+只有以下三个条件同时成立才允许运行父任务归档：01 已独立验收并归档 **AND** 09 已独立验收并归档 **AND** 发布门 `just ci` 退出码为 0。届时使用用户指定命令：
+
+```powershell
+python ./.trellis/scripts/task.py archive .trellis/tasks/10-17-gpui-desktop
+```
+
+本轮未满足前两个条件，不执行上述命令。子任务工作提交与规划必须先入历史，归档另成纯归档提交；不得把新产品改动混入归档。无新产品或规划改动时不做空提交，不 push、不 amend。
