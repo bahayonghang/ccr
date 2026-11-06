@@ -1,19 +1,25 @@
 //! Local process, WSL probe, and saved SSH host labels for desktop shells.
 mod ssh_session;
 mod ssh_trust;
+mod surface;
 mod wsl;
 
 use std::path::PathBuf;
 
 pub use ssh_session::{
-    DISCONNECT_NOTHING, DisconnectReport, ProcessHostTrust, RECONNECT_UNTRUSTED, ReconnectGate,
-    allow_reconnect, allow_reconnect_target, disconnect_error, plan_disconnect, reconnect_gate,
+    AUTH_UNSUPPORTED, CANCELLED_BEFORE_CONNECT, ConnectFacts, ConnectKind, DISCONNECT_NOTHING,
+    DisconnectReport, HOST_KEY_MISMATCH, ProcessHostTrust, RECONNECT_UNTRUSTED, ReconnectGate,
+    allow_reconnect, allow_reconnect_target, boundary_before_connect, disconnect_error,
+    password_only, plan_disconnect, reconnect_gate,
 };
 pub use ssh_trust::{HostKeyDecision, HostKeyStatus, classify_host_key, decide_host_key};
+pub use surface::{
+    EnvironmentSurface, LOCAL_ONLY, SurfaceSlot, admit_local_only, read_local_source,
+};
 pub use wsl::{
-    WslDistro, WslExecProbe, WslFileTarget, WslListError, WslProbe, WslState, WslVersion,
-    classify_exec, decode_wsl_output, list_installed_distros, parse_wsl_list, probe_wsl,
-    resolve_wsl_file,
+    WslDistro, WslExecProbe, WslFileIntent, WslFileTarget, WslListError, WslProbe, WslState,
+    WslVersion, classify_exec, decode_wsl_output, list_installed_distros, parse_wsl_list,
+    plan_wsl_file, probe_wsl, resolve_wsl_file,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

@@ -6,8 +6,8 @@ use crate::{
     theme,
 };
 use ccr_app::environments::{
-    CapabilityState, EnvironmentReport, RunningEnvironment, ShellCapabilities, SshNames,
-    WslExecProbe, WslProbe,
+    CapabilityState, ConnectFacts, EnvironmentReport, EnvironmentSurface, LOCAL_ONLY,
+    RunningEnvironment, ShellCapabilities, SshNames, WslExecProbe, WslProbe, read_local_source,
 };
 use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent};
 use gpui_kit::base::TestSupportExt;
@@ -24,9 +24,11 @@ pub struct EnvironmentView {
     report: Option<EnvironmentReport>,
     generation: u64,
     gate: ResponseGate,
+    surface: EnvironmentSurface<EnvironmentReport>,
     task: Option<Task<()>>,
     loading: bool,
     failed: bool,
+    local_only: Option<&'static str>,
     notification_requested: bool,
 }
 
@@ -38,32 +40,75 @@ impl EnvironmentView {
             report: None,
             generation: 0,
             gate: ResponseGate::default(),
+            surface: EnvironmentSurface::new(home_environment()),
             task: None,
             loading: false,
             failed: false,
+            local_only: None,
             notification_requested: false,
         }
+    }
+
+    fn bump(&mut self) {
+        self.generation = self.generation.saturating_add(1);
+        self.surface.set_generation(self.generation);
     }
 
     pub fn suspend(&mut self, cx: &mut Context<Self>) {
         self.task = None;
         self.gate.clear();
-        self.generation += 1;
+        self.bump();
         self.loading = false;
         cx.notify();
+    }
+
+    fn plan_connection(&self, facts: ConnectFacts<'_>) -> Result<(), &'static str> {
+        let kind = match self.surface.active() {
+            EnvironmentId::Local(_) => ccr_app::environments::ConnectKind::Open,
+            EnvironmentId::Wsl(_) | EnvironmentId::Ssh(_) => {
+                ccr_app::environments::ConnectKind::Again
+            }
+        };
+        ccr_app::environments::boundary_before_connect(kind, facts)
     }
 
     pub fn refresh(&mut self, cx: &mut Context<Self>) {
         self.task = None;
         self.gate.clear();
-        self.generation += 1;
+        self.bump();
         self.failed = false;
+        self.local_only = None;
+        let active = self.surface.active().clone();
+        let home = home_environment();
+        if active != home
+            && let Err(reason) = read_local_source(&active, &home, || ())
+        {
+            self.loading = false;
+            self.local_only = Some(reason);
+            self.report = self.surface.cache();
+            cx.notify();
+            return;
+        }
+        if let Err(_code) = self.plan_connection(ConnectFacts {
+            cancel_requested: false,
+            password_only: false,
+            stored_fingerprint: None,
+            observed_fingerprint: None,
+            process_trusted: false,
+        }) {
+            self.loading = false;
+            self.failed = true;
+            cx.notify();
+            return;
+        }
         if self.services.is_fixture() && !self.services.is_slow_fixture() {
             self.loading = false;
-            self.report = Some(ccr_app::environments::inspect(
+            let report = ccr_app::environments::inspect(
                 ccr_app::environments::InspectOptions::fixture(),
                 &|| false,
-            ));
+            );
+            self.surface.note_cache(report.clone());
+            self.report = Some(report);
             cx.notify();
             return;
         }
@@ -114,21 +159,28 @@ impl EnvironmentView {
     fn apply_terminal(
         &mut self,
         key: &RequestKey,
-        result: &Completion<ccr_app::environments::EnvironmentReport, ()>,
+        result: &Completion<ccr_app::environments::EnvironmentReport, &'static str>,
     ) -> bool {
-        if !self.gate.accepts(key) {
+        if !self.gate.accepts(key) || !self.surface.accepts(&self.gate, key) {
             return false;
         }
         self.loading = false;
         match result {
             Completion::Success(report) => {
+                self.surface.note_cache(report.clone());
                 self.report = Some(report.clone());
                 self.failed = false;
+                self.local_only = None;
             }
             Completion::Cancelled => {
                 self.failed = false;
             }
-            Completion::Failed(()) | Completion::CleanupFailed(()) | Completion::WorkerFailed => {
+            Completion::Failed(reason) if *reason == LOCAL_ONLY => {
+                self.failed = false;
+                self.local_only = Some(*reason);
+                self.report = self.surface.cache();
+            }
+            Completion::Failed(_) | Completion::CleanupFailed(_) | Completion::WorkerFailed => {
                 self.failed = true;
             }
         }
@@ -136,9 +188,13 @@ impl EnvironmentView {
     }
 }
 
+fn home_environment() -> EnvironmentId {
+    EnvironmentId::Local("local".into())
+}
+
 fn environment_read_key(generation: u64) -> RequestKey {
     RequestKey {
-        environment: EnvironmentId::Local("local".into()),
+        environment: home_environment(),
         platform: Platform::Claude,
         generation,
         request_id: generation,
@@ -306,6 +362,30 @@ pub(crate) fn ssh_line(chinese: bool, names: &SshNames) -> String {
     }
 }
 
+pub(crate) fn local_only_line(chinese: bool) -> &'static str {
+    if chinese {
+        "此操作仅限本地环境。没有读取另一个环境。"
+    } else {
+        "This action is local-only. The other environment was not read."
+    }
+}
+
+pub(crate) fn draft_line(chinese: bool, draft: &str) -> String {
+    if chinese {
+        format!("草稿：{draft}。")
+    } else {
+        format!("Draft: {draft}.")
+    }
+}
+
+pub(crate) fn job_line(chinese: bool, job: &str) -> String {
+    if chinese {
+        format!("任务：{job}。")
+    } else {
+        format!("Job: {job}.")
+    }
+}
+
 pub(crate) fn shell_lines(chinese: bool, shell: ShellCapabilities) -> [String; 3] {
     let tray = match shell.tray {
         CapabilityState::Unsupported => {
@@ -458,6 +538,8 @@ impl Render for EnvironmentView {
                 )
                 .to_string(),
             ));
+        } else if self.local_only.is_some() {
+            column = column.child(line("env-local-only", local_only_line(chinese).to_string()));
         } else if self.failed {
             column = column.child(line(
                 "env-wsl",
@@ -471,6 +553,13 @@ impl Render for EnvironmentView {
             column = column.child(line("env-tray-status", shell[0].clone()));
             column = column.child(line("env-hide-status", shell[1].clone()));
             column = column.child(line("env-notify-status", shell[2].clone()));
+        }
+        let slot = self.surface.visible();
+        if let Some(draft) = slot.draft.filter(|value| !value.is_empty()) {
+            column = column.child(line("env-draft", draft_line(chinese, &draft)));
+        }
+        if let Some(job) = slot.job.filter(|value| !value.is_empty()) {
+            column = column.child(line("env-job", job_line(chinese, &job)));
         }
         if self.notification_requested {
             column = column.child(line(

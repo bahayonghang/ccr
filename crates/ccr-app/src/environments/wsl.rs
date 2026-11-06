@@ -139,20 +139,41 @@ pub enum WslFileTarget {
     Remote { distro: String, path: String },
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WslFileIntent {
+    Detect,
+    Read,
+    Write,
+}
+
 /// Choose a WSL file target without spawning `wsl.exe`.
 ///
 /// No distribution, a blank distribution, or a Windows path yields
 /// `Unavailable`. The local Windows path is not returned and is not opened.
 pub fn resolve_wsl_file(distro: Option<&str>, linux_path: &str) -> WslFileTarget {
-    let Some(distro) = usable_distro(distro) else {
-        return WslFileTarget::Unavailable;
-    };
-    if is_windows_local_path(linux_path) || !is_absolute_posix(linux_path) {
-        return WslFileTarget::Unavailable;
-    }
-    WslFileTarget::Remote {
-        distro: distro.to_string(),
-        path: linux_path.to_string(),
+    plan_wsl_file(WslFileIntent::Read, distro, linux_path)
+}
+
+/// Plan detect, read, or write. None of the three intents spawn `wsl.exe`
+/// or return a Windows drive or UNC path.
+pub fn plan_wsl_file(
+    intent: WslFileIntent,
+    distro: Option<&str>,
+    linux_path: &str,
+) -> WslFileTarget {
+    match intent {
+        WslFileIntent::Detect | WslFileIntent::Read | WslFileIntent::Write => {
+            let Some(distro) = usable_distro(distro) else {
+                return WslFileTarget::Unavailable;
+            };
+            if is_windows_local_path(linux_path) || !is_absolute_posix(linux_path) {
+                return WslFileTarget::Unavailable;
+            }
+            WslFileTarget::Remote {
+                distro: distro.to_string(),
+                path: linux_path.to_string(),
+            }
+        }
     }
 }
 
@@ -359,8 +380,8 @@ fn read_limited(reader: Option<impl Read>) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::{
-        WslExecProbe, WslFileTarget, WslState, WslVersion, classify_exec, decode_wsl_output,
-        parse_wsl_list, resolve_wsl_file,
+        WslExecProbe, WslFileIntent, WslFileTarget, WslState, WslVersion, classify_exec,
+        decode_wsl_output, parse_wsl_list, plan_wsl_file, resolve_wsl_file,
     };
 
     #[test]
@@ -438,6 +459,69 @@ mod tests {
             WslFileTarget::Unavailable
         );
 
+        let body = std::fs::read_to_string(&local).unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(body, "local-secret");
+    }
+
+    #[test]
+    fn detect_read_and_write_plans_do_not_open_a_local_windows_file() {
+        let dir = tempfile::tempdir().unwrap_or_else(|error| panic!("{error}"));
+        let local = dir.path().join("settings.json");
+        std::fs::write(&local, b"local-secret").unwrap_or_else(|error| panic!("{error}"));
+        let local_text = local.display().to_string();
+        let before = std::fs::read_dir(dir.path())
+            .unwrap_or_else(|error| panic!("{error}"))
+            .count();
+        let posix = "/home/user/.claude/settings.json";
+        for intent in [
+            WslFileIntent::Detect,
+            WslFileIntent::Read,
+            WslFileIntent::Write,
+        ] {
+            for (distro, path) in [
+                (None, local_text.as_str()),
+                (None, r"C:\Users\example\.claude\settings.json"),
+                (Some(""), r"\\server\share\settings.json"),
+                (Some("   "), "//server/share/settings.json"),
+                (Some("docker-desktop"), r"D:\Docker\wsl\main\ext4.vhdx"),
+                (Some("docker-desktop"), "//server/share/settings.json"),
+                (Some("docker-desktop"), r"\\server\share\settings.json"),
+                (Some("docker-desktop"), "/home/../etc/passwd"),
+                (Some("docker-desktop"), "/tmp/foo/../../etc"),
+            ] {
+                let target = plan_wsl_file(intent, distro, path);
+                assert_eq!(target, WslFileTarget::Unavailable);
+                let rendered = format!("{target:?}");
+                assert!(!rendered.contains("local-secret"));
+                assert!(!rendered.contains("settings.json"));
+                assert!(!rendered.contains("vhdx"));
+                assert!(!rendered.contains("server"));
+                assert!(!rendered.contains(':'));
+                assert!(!rendered.contains('\\'));
+            }
+            match plan_wsl_file(intent, Some("docker-desktop"), posix) {
+                WslFileTarget::Remote { distro, path } => {
+                    assert_eq!(distro, "docker-desktop");
+                    assert_eq!(path, posix);
+                    assert!(!path.contains(".."));
+                    assert!(!path.contains(':'));
+                    assert!(!path.contains('\\'));
+                }
+                WslFileTarget::Unavailable => panic!("posix path should stay on the named distro"),
+            }
+        }
+        assert_eq!(
+            plan_wsl_file(WslFileIntent::Detect, Some("docker-desktop"), posix),
+            plan_wsl_file(WslFileIntent::Read, Some("docker-desktop"), posix)
+        );
+        assert_eq!(
+            plan_wsl_file(WslFileIntent::Read, Some("docker-desktop"), posix),
+            plan_wsl_file(WslFileIntent::Write, Some("docker-desktop"), posix)
+        );
+        let after = std::fs::read_dir(dir.path())
+            .unwrap_or_else(|error| panic!("{error}"))
+            .count();
+        assert_eq!(before, after);
         let body = std::fs::read_to_string(&local).unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(body, "local-secret");
     }

@@ -1,0 +1,88 @@
+# Execution Environment Decisions
+
+## 1. Scope / Trigger
+
+Applies when changing `crates/ccr-app/src/environments/` or the GPUI settings consumer in `ccr-desktop/src/features/environments/` and `ccr-desktop/src/runtime/environments.rs`.
+
+This is the pure decision layer. It does not replace `.trellis/spec/ccr/backend/ssh-security.md`. Tauri SSH command signatures, payloads, and the live OpenSSH probe stay on that contract. Do not describe `boundary_before_connect` as a completed socket connection, and do not describe `plan_wsl_file` as a WSL file read or write.
+
+## 2. Signatures
+
+- `plan_wsl_file(intent: WslFileIntent, distro: Option<&str>, linux_path: &str) -> WslFileTarget`
+- `resolve_wsl_file(distro, linux_path)` is `plan_wsl_file(WslFileIntent::Read, ...)`
+- `WslFileIntent::{Detect, Read, Write}`
+- `WslFileTarget::Unavailable` or `WslFileTarget::Remote { distro, path }`
+- `boundary_before_connect(kind: ConnectKind, facts: ConnectFacts) -> Result<(), &'static str>`
+- `ConnectKind::{Open, Again}`
+- `ConnectFacts { cancel_requested, password_only, stored_fingerprint, observed_fingerprint, process_trusted }`
+- `password_only(password: Option<&str>) -> bool` is true only when the caller already holds a non-empty trimmed value. It does not open an identity file.
+- `EnvironmentSurface<T>::{new, switch, note_cache, note_draft, note_job, visible, accepts}`
+- `admit_local_only(environment: &EnvironmentId) -> Result<(), &'static str>`
+- `read_local_source(caller, owner, read) -> Result<T, &'static str>`
+- Static codes: `ssh_cancelled`, `ssh_auth_unsupported`, `ssh_host_key_untrusted`, `ssh_host_key_mismatch`, `ssh_not_connected`, `local_only_environment`
+
+## 3. Contracts
+
+`plan_wsl_file` does not spawn `wsl.exe`, does not create a distribution, and does not open the path. Detect, read, and write use the same rule. A missing distro, a blank distro, a drive letter, a UNC path, or a `..` segment returns `Unavailable`. A usable distro name plus an absolute POSIX path returns `Remote` with that distro and that POSIX path. `Unavailable` and `Remote` never contain a Windows drive or UNC path.
+
+A live `wsl -l -v` / `wsl -e true` classification is separate. On the current Windows machine the recorded result is `Listed { names: ["docker-desktop"], exec: PathNotFound }`. That is a failed default distribution, not a usable read/write target. Non-Windows `Unsupported` stays `not_run` until that host executes it.
+
+`boundary_before_connect` returns before any socket, `ssh-keyscan`, known_hosts write, or identity-file read. `Ok` means this decision found no refusal. It does not open a connection. Cancel returns `ssh_cancelled`. A caller-held non-empty password returns `ssh_auth_unsupported`. A supplied fingerprint that does not match returns `ssh_host_key_mismatch`. A new fingerprint, an unknown fingerprint, or a match without process trust returns `ssh_host_key_untrusted`. `decide_host_key` keeps `may_store`, `may_trust`, and `may_accept` false. A matching fingerprint alone does not call `note_confirmed`. Reconnect (`ConnectKind::Again`) also requires process trust for the already loaded host and port. Never-connected disconnect stays `ssh_not_connected`, not a successful remote disconnect.
+
+Error text is the static code only. It must not contain a host, fingerprint, password, identity path, or `ssh-keyscan`.
+
+`EnvironmentSurface` stores cache, draft, and job labels per `EnvironmentId`. `switch` hides the previous slot and bumps generation. `visible` returns only the active slot. `accepts` requires the same environment, generation, and `ResponseGate`. The settings page still starts on the local environment. There is no shell environment switcher and no live WSL/SSH session switch in this slice.
+
+`runtime::environments::load` calls `admit_local_only` before `inspect`. A WSL or SSH key returns `local_only_environment` and does not run the local read. `read_local_source` runs the closure only when caller and owner are the same `EnvironmentId::Local` name. Another local name, WSL, or SSH returns `local_only_environment` and does not call the closure.
+
+GPUI tray and Windows hide/restore stay `Unsupported`: this gpui-kit stack has no tray type, and Windows hide has no restore. Do not add a tray crate or a second window stack. Unsupported is not completion. macOS and Linux native shell evidence stays `not_run` when the command ran on Windows. Paper stays the existing solid sheet. Do not claim blur from this decision layer.
+
+## 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| No distro, blank distro, drive letter, UNC, or `..` | `WslFileTarget::Unavailable`; local file bytes unchanged |
+| Named distro and absolute POSIX path | `Remote` keeps that distro and path; no `wsl.exe` |
+| Live probe lists only `docker-desktop` and exec is `PathNotFound` | Record the failure; do not create a distro or treat it as usable |
+| Cancel requested | `ssh_cancelled` before connect |
+| Non-empty password already held by the caller | `ssh_auth_unsupported`; do not read an identity file |
+| New, unknown, or unmatched host key | `ssh_host_key_untrusted` or `ssh_host_key_mismatch`; nothing stored |
+| Matching fingerprint without process trust | Still `ssh_host_key_untrusted` |
+| `boundary_before_connect` returns `Ok` | No socket was opened |
+| Never connected | `ssh_not_connected` |
+| Cache, draft, or job noted on another environment | Hidden after `switch`; visible slot does not render them |
+| `load` or `read_local_source` for a non-owner environment | `local_only_environment`; source closure or inspect does not run |
+
+## 5. Good / Base / Bad Cases
+
+- Good: plan `/home/user/.claude/settings.json` on `docker-desktop` and keep the POSIX path without opening it.
+- Base: settings refresh on `EnvironmentId::Local("local")` with empty connect facts continues to the existing local inspect.
+- Bad: return `C:\Users\...` from `plan_wsl_file`, accept a changed host key because the fingerprint text was non-empty, or treat `Ok` as `connected: true`.
+- Bad: run `ssh-keyscan`, open a TCP socket, read `id_rsa`, or install a WSL distribution to satisfy a fixture.
+
+## 6. Tests Required
+
+- `cargo test -p ccr-app --lib environments -- --test-threads=1` covers path planning, host-key refusal, reconnect, never-connected disconnect, surface isolation, and the local-only gate.
+- Desktop settings tests cover the same decisions through the rendered page, one language at a time, the existing 13 destinations, and solid paper.
+- The ignored live probe may be run separately. Its `PathNotFound` classification is a failure receipt. Exit 0 of a print-only probe is not acceptance.
+- Do not weaken the usage byte comparison. A single file-lock or byte-comparison flake may be rerun once.
+- Tauri command signature tests stay on the existing SSH contract. This spec does not authorize a payload change.
+
+## 7. Wrong vs Correct
+
+Wrong:
+
+```text
+plan_wsl_file(Read, None, "C:\\Users\\example\\settings.json") -> open that file
+boundary_before_connect(Open, new fingerprint) -> store known_hosts and connect
+EnvironmentSurface.switch(ssh) -> visible() still returns the local draft
+```
+
+Correct:
+
+```text
+plan_wsl_file(...) -> Unavailable or Remote { distro, posix path }; file bytes unchanged
+boundary_before_connect(...) -> static error, or Ok with no socket
+switch -> visible() is only the active environment's slot
+admit_local_only(Ssh | Wsl) -> local_only_environment before inspect
+```

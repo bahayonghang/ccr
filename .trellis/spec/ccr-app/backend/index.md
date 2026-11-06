@@ -8,11 +8,13 @@ Framework-independent application orchestration consumed by desktop adapters.
 | --- | --- |
 | [Shared desktop services](./shared-desktop-services.md) | Configuration projection, bounded runtime, response identity and lifecycle |
 | [Configuration policy](./configuration-services.md) | Generic/dedicated patches, source CAS, managed backup and scoped secrets |
+| [Execution environment](./execution-environment.md) | WSL path planning, SSH refusal before a socket, and per-environment surface slots |
 
 ## Pre-Development Checklist
 
 - Read [Shared desktop services](./shared-desktop-services.md) before changing ccr-app or a native consumer.
 - Read [Configuration policy](./configuration-services.md) before changing profile editors, shared patch/source/backup policy or their desktop adapters.
+- Read [Execution environment](./execution-environment.md) before changing WSL path planning, SSH connect refusal, or per-environment cache, draft, and job slots.
 - Read the affected domain owner's specs before extracting orchestration; persistence, SQL and security stay with that owner.
 - GPUI visual changes follow `ccr-desktop/DESIGN.md`; Tauri wire types remain in their existing adapter.
 

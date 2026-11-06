@@ -7,6 +7,64 @@ use std::collections::BTreeSet;
 
 pub const RECONNECT_UNTRUSTED: &str = "ssh_host_key_untrusted";
 pub const DISCONNECT_NOTHING: &str = "ssh_not_connected";
+pub const AUTH_UNSUPPORTED: &str = "ssh_auth_unsupported";
+pub const CANCELLED_BEFORE_CONNECT: &str = "ssh_cancelled";
+pub const HOST_KEY_MISMATCH: &str = "ssh_host_key_mismatch";
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ConnectKind {
+    /// First connection. Cancel, password-only, and supplied key material refuse
+    /// before a socket. Absent key material is not treated as acceptance.
+    Open,
+    /// Reconnect. Also requires process trust. A matching fingerprint is not enough.
+    Again,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ConnectFacts<'a> {
+    pub cancel_requested: bool,
+    pub password_only: bool,
+    pub stored_fingerprint: Option<&'a str>,
+    pub observed_fingerprint: Option<&'a str>,
+    pub process_trusted: bool,
+}
+
+/// Refuse before any socket, key scan, or identity read.
+///
+/// `Ok` means this decision found no refusal. It does not open a connection.
+pub fn boundary_before_connect(
+    kind: ConnectKind,
+    facts: ConnectFacts<'_>,
+) -> Result<(), &'static str> {
+    if facts.cancel_requested {
+        return Err(CANCELLED_BEFORE_CONNECT);
+    }
+    if facts.password_only {
+        return Err(AUTH_UNSUPPORTED);
+    }
+    let supplied = facts.stored_fingerprint.is_some() || facts.observed_fingerprint.is_some();
+    if supplied {
+        let decision = super::decide_host_key(facts.stored_fingerprint, facts.observed_fingerprint);
+        if decision.may_store() || decision.may_trust() || decision.may_accept() {
+            return Err(RECONNECT_UNTRUSTED);
+        }
+        match decision.status() {
+            Some(super::HostKeyStatus::Mismatch) => return Err(HOST_KEY_MISMATCH),
+            Some(super::HostKeyStatus::Matched)
+                if facts.process_trusted && matches!(kind, ConnectKind::Again) => {}
+            Some(super::HostKeyStatus::Matched | super::HostKeyStatus::New) | None => {
+                return Err(RECONNECT_UNTRUSTED);
+            }
+        }
+    } else if matches!(kind, ConnectKind::Again) && !facts.process_trusted {
+        return Err(RECONNECT_UNTRUSTED);
+    }
+    Ok(())
+}
+
+pub fn password_only(password: Option<&str>) -> bool {
+    password.is_some_and(|value| !value.trim().is_empty())
+}
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ProcessHostTrust {
@@ -108,8 +166,10 @@ pub fn disconnect_error(report: DisconnectReport) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::{
-        DisconnectReport, ProcessHostTrust, ReconnectGate, allow_reconnect, allow_reconnect_target,
-        disconnect_error, plan_disconnect, reconnect_gate,
+        AUTH_UNSUPPORTED, CANCELLED_BEFORE_CONNECT, ConnectFacts, ConnectKind, DisconnectReport,
+        HOST_KEY_MISMATCH, ProcessHostTrust, ReconnectGate, allow_reconnect,
+        allow_reconnect_target, boundary_before_connect, disconnect_error, password_only,
+        plan_disconnect, reconnect_gate,
     };
 
     #[test]
@@ -167,6 +227,116 @@ mod tests {
         assert!(!rendered.contains("SHA256"));
         assert!(!rendered.contains("id_rsa"));
         assert!(!rendered.contains("password"));
+    }
+
+    fn facts<'a>(
+        cancel_requested: bool,
+        password: Option<&'a str>,
+        stored: Option<&'a str>,
+        observed: Option<&'a str>,
+        process_trusted: bool,
+    ) -> ConnectFacts<'a> {
+        ConnectFacts {
+            cancel_requested,
+            password_only: password_only(password),
+            stored_fingerprint: stored,
+            observed_fingerprint: observed,
+            process_trusted,
+        }
+    }
+
+    #[test]
+    fn connect_boundary_refuses_before_a_socket() {
+        let password = "secret-password";
+        let identity = "C:/Keys/id_rsa";
+        let host = "example.com";
+        let fingerprint = "SHA256:example.com";
+        let Err(cancelled) = boundary_before_connect(
+            ConnectKind::Again,
+            facts(
+                true,
+                Some(password),
+                Some(fingerprint),
+                Some(fingerprint),
+                true,
+            ),
+        ) else {
+            panic!("cancel must refuse before connect");
+        };
+        assert_eq!(cancelled, CANCELLED_BEFORE_CONNECT);
+        assert!(!cancelled.contains(password));
+        assert!(!cancelled.contains(identity));
+        assert!(!cancelled.contains(host));
+        assert!(!cancelled.contains("SHA256"));
+        assert!(!cancelled.contains("ssh-keyscan"));
+
+        let Err(auth) = boundary_before_connect(
+            ConnectKind::Open,
+            facts(false, Some(password), None, None, false),
+        ) else {
+            panic!("password authentication must be refused");
+        };
+        assert_eq!(auth, AUTH_UNSUPPORTED);
+        assert!(!auth.contains(password));
+        assert!(!auth.contains(identity));
+
+        let Err(first) = boundary_before_connect(
+            ConnectKind::Open,
+            facts(false, None, None, Some(fingerprint), false),
+        ) else {
+            panic!("first trust must not accept a new key");
+        };
+        assert_eq!(first, "ssh_host_key_untrusted");
+        assert!(!first.contains(fingerprint));
+        assert!(!first.contains("ssh-keyscan"));
+
+        let Err(changed) = boundary_before_connect(
+            ConnectKind::Again,
+            facts(false, None, Some("SHA256:old"), Some("SHA256:new"), true),
+        ) else {
+            panic!("a changed key must not be accepted");
+        };
+        assert_eq!(changed, HOST_KEY_MISMATCH);
+        assert!(!changed.contains("SHA256"));
+        assert!(!changed.contains(identity));
+
+        let Err(matched) = boundary_before_connect(
+            ConnectKind::Again,
+            facts(false, None, Some(fingerprint), Some(fingerprint), false),
+        ) else {
+            panic!("a matching fingerprint is not process trust");
+        };
+        assert_eq!(matched, "ssh_host_key_untrusted");
+        assert!(!matched.contains(fingerprint));
+
+        let Err(reconnect) =
+            boundary_before_connect(ConnectKind::Again, facts(false, None, None, None, false))
+        else {
+            panic!("reconnect without process trust must refuse");
+        };
+        assert_eq!(reconnect, "ssh_host_key_untrusted");
+
+        let dir = tempfile::tempdir().unwrap_or_else(|error| panic!("{error}"));
+        let hosts = dir.path().join("known_hosts");
+        std::fs::write(&hosts, b"original").unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(
+            boundary_before_connect(
+                ConnectKind::Again,
+                facts(false, None, Some(fingerprint), Some(fingerprint), true),
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            boundary_before_connect(ConnectKind::Open, facts(false, None, None, None, false)),
+            Ok(())
+        );
+        let body = std::fs::read_to_string(&hosts).unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(body, "original");
+        let rendered = format!("{cancelled}{auth}{first}{changed}{matched}{reconnect}");
+        assert!(!rendered.contains(password));
+        assert!(!rendered.contains(identity));
+        assert!(!rendered.contains("ssh-keyscan"));
+        assert!(!rendered.contains(" / "));
     }
 
     #[test]

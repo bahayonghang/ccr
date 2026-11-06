@@ -1,13 +1,20 @@
-use super::{environment_read_key, local_line, ssh_line, ssh_trust_line, wsl_line};
+use super::{
+    draft_line, environment_read_key, home_environment, job_line, local_line, local_only_line,
+    ssh_line, ssh_trust_line, wsl_line,
+};
 use crate::runtime::ConfigSource;
 use crate::shell::Shell;
 use ccr_app::environments::{
-    DisconnectReport, EnvironmentReport, HostKeyStatus, InspectOptions, ProcessHostTrust,
-    ReconnectGate, SshNames, WslExecProbe, WslFileTarget, WslProbe, allow_reconnect,
-    allow_reconnect_target, decide_host_key, disconnect_error, inspect, plan_disconnect,
+    AUTH_UNSUPPORTED, CANCELLED_BEFORE_CONNECT, ConnectFacts, ConnectKind, DisconnectReport,
+    EnvironmentReport, HOST_KEY_MISMATCH, HostKeyStatus, InspectOptions, LOCAL_ONLY,
+    ProcessHostTrust, ReconnectGate, SshNames, WslExecProbe, WslFileIntent, WslFileTarget,
+    WslProbe, allow_reconnect, allow_reconnect_target, boundary_before_connect, decide_host_key,
+    disconnect_error, inspect, password_only, plan_disconnect, plan_wsl_file, read_local_source,
     reconnect_gate, resolve_wsl_file,
 };
-use ccr_app::runtime::{Completion, RuntimeHandle, RuntimeOwner};
+use ccr_app::runtime::{
+    Completion, EnvironmentId, Platform, RequestKey, RuntimeHandle, RuntimeOwner, TaskEvent,
+};
 use gpui_kit::test::TestWindowExt;
 use gpui_kit::{AppContext, TestAppContext, WindowBounds, WindowOptions, px, size};
 use std::time::Duration;
@@ -456,7 +463,7 @@ fn stale_environment_terminal_does_not_replace_the_visible_report(cx: &mut TestA
             assert!(
                 !this.apply_terminal(&first, &Completion::Success(report_named("after-suspend")))
             );
-            assert!(!this.apply_terminal(&first, &Completion::Failed(())));
+            assert!(!this.apply_terminal(&first, &Completion::Failed("stale")));
             this.refresh(cx);
             assert!(this.task.is_some());
             assert_eq!(this.generation, first.generation + 2);
@@ -512,6 +519,329 @@ fn stale_environment_terminal_does_not_replace_the_visible_report(cx: &mut TestA
                 Some(SshNames::Names(vec!["late-host".into()]))
             );
         });
+        window.remove_window();
+    })
+    .unwrap_or_else(|error| panic!("{error}"));
+    owner.shutdown();
+}
+
+fn boundary_facts<'a>(
+    cancel_requested: bool,
+    password: Option<&'a str>,
+    stored: Option<&'a str>,
+    observed: Option<&'a str>,
+    process_trusted: bool,
+) -> ConnectFacts<'a> {
+    ConnectFacts {
+        cancel_requested,
+        password_only: password_only(password),
+        stored_fingerprint: stored,
+        observed_fingerprint: observed,
+        process_trusted,
+    }
+}
+
+#[test]
+fn ssh_boundaries_refuse_without_storing_a_key_or_opening_a_socket() {
+    let password = "secret-password";
+    let identity = "C:/Keys/id_rsa";
+    let fingerprint = "SHA256:example.com";
+    let Err(cancelled) = boundary_before_connect(
+        ConnectKind::Again,
+        boundary_facts(
+            true,
+            Some(password),
+            Some(fingerprint),
+            Some(fingerprint),
+            true,
+        ),
+    ) else {
+        panic!("cancel must refuse before connect");
+    };
+    assert_eq!(cancelled, CANCELLED_BEFORE_CONNECT);
+    let Err(auth) = boundary_before_connect(
+        ConnectKind::Open,
+        boundary_facts(false, Some(password), None, None, false),
+    ) else {
+        panic!("password authentication must be refused");
+    };
+    assert_eq!(auth, AUTH_UNSUPPORTED);
+    let Err(first) = boundary_before_connect(
+        ConnectKind::Open,
+        boundary_facts(false, None, None, Some(fingerprint), false),
+    ) else {
+        panic!("first trust must not accept a new key");
+    };
+    assert_eq!(first, "ssh_host_key_untrusted");
+    let Err(changed) = boundary_before_connect(
+        ConnectKind::Again,
+        boundary_facts(false, None, Some("SHA256:old"), Some("SHA256:new"), true),
+    ) else {
+        panic!("a changed key must not be accepted");
+    };
+    assert_eq!(changed, HOST_KEY_MISMATCH);
+    let Err(matched) = boundary_before_connect(
+        ConnectKind::Again,
+        boundary_facts(false, None, Some(fingerprint), Some(fingerprint), false),
+    ) else {
+        panic!("a matching fingerprint is not process trust");
+    };
+    assert_eq!(matched, "ssh_host_key_untrusted");
+    let Err(reconnect) = boundary_before_connect(
+        ConnectKind::Again,
+        boundary_facts(false, None, None, None, false),
+    ) else {
+        panic!("reconnect without process trust must refuse");
+    };
+    assert_eq!(reconnect, "ssh_host_key_untrusted");
+    assert_eq!(
+        boundary_before_connect(
+            ConnectKind::Open,
+            boundary_facts(false, None, None, None, false)
+        ),
+        Ok(())
+    );
+    let nothing = plan_disconnect(false);
+    assert_eq!(disconnect_error(nothing), Some("ssh_not_connected"));
+    let rendered = format!("{cancelled}{auth}{first}{changed}{matched}{reconnect}");
+    assert!(!rendered.contains(password));
+    assert!(!rendered.contains(identity));
+    assert!(!rendered.contains(fingerprint));
+    assert!(!rendered.contains("ssh-keyscan"));
+    assert!(!rendered.contains(" / "));
+    let dir = tempfile::tempdir().unwrap_or_else(|error| panic!("{error}"));
+    let hosts = dir.path().join("known_hosts");
+    std::fs::write(&hosts, b"original").unwrap_or_else(|error| panic!("{error}"));
+    assert_eq!(
+        boundary_before_connect(
+            ConnectKind::Again,
+            boundary_facts(false, None, Some(fingerprint), Some(fingerprint), true),
+        ),
+        Ok(())
+    );
+    assert_eq!(
+        std::fs::read_to_string(&hosts).unwrap_or_else(|error| panic!("{error}")),
+        "original"
+    );
+}
+
+#[test]
+fn wsl_file_plans_do_not_fall_back_to_a_local_windows_file() {
+    let dir = tempfile::tempdir().unwrap_or_else(|error| panic!("{error}"));
+    let local = dir.path().join("settings.json");
+    std::fs::write(&local, b"local-secret").unwrap_or_else(|error| panic!("{error}"));
+    let local_text = local.display().to_string();
+    let before = std::fs::read_dir(dir.path())
+        .unwrap_or_else(|error| panic!("{error}"))
+        .count();
+    let posix = "/home/user/.claude/settings.json";
+    for intent in [
+        WslFileIntent::Detect,
+        WslFileIntent::Read,
+        WslFileIntent::Write,
+    ] {
+        for (distro, path) in [
+            (None, local_text.as_str()),
+            (Some(""), r"C:\Users\example\.claude\settings.json"),
+            (Some("   "), r"\\server\share\settings.json"),
+            (Some("docker-desktop"), "//server/share/settings.json"),
+            (Some("docker-desktop"), "/home/../etc/passwd"),
+        ] {
+            let target = plan_wsl_file(intent, distro, path);
+            assert_eq!(target, WslFileTarget::Unavailable);
+            let rendered = format!("{target:?}");
+            assert!(!rendered.contains("local-secret"));
+            assert!(!rendered.contains("settings.json"));
+            assert!(!rendered.contains("server"));
+            assert!(!rendered.contains(':'));
+        }
+        match plan_wsl_file(intent, Some("docker-desktop"), posix) {
+            WslFileTarget::Remote { distro, path } => {
+                assert_eq!(distro, "docker-desktop");
+                assert_eq!(path, posix);
+                assert!(!path.contains(".."));
+            }
+            WslFileTarget::Unavailable => panic!("posix path should stay on the named distro"),
+        }
+    }
+    assert_eq!(
+        resolve_wsl_file(None, &local_text),
+        WslFileTarget::Unavailable
+    );
+    let after = std::fs::read_dir(dir.path())
+        .unwrap_or_else(|error| panic!("{error}"))
+        .count();
+    assert_eq!(before, after);
+    assert_eq!(
+        std::fs::read_to_string(&local).unwrap_or_else(|error| panic!("{error}")),
+        "local-secret"
+    );
+    assert!(!local_only_line(false).contains(" / "));
+    assert!(!local_only_line(true).contains(" / "));
+    assert_ne!(local_only_line(false), local_only_line(true));
+    assert!(!draft_line(false, "local-draft").contains(" / "));
+    assert!(!job_line(false, "local-job").contains(" / "));
+}
+
+#[gpui_kit::test]
+async fn non_local_environment_load_returns_local_only(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap_or_else(|error| panic!("{error}"));
+    let root = tempfile::tempdir().unwrap_or_else(|error| panic!("{error}"));
+    let services = crate::runtime::Services::new(
+        owner.handle(),
+        ConfigSource::Fixture {
+            profiles: root.path().join("profiles.toml"),
+            registry: root.path().join("registry.toml"),
+            delay: Duration::ZERO,
+        },
+    );
+    let key = RequestKey {
+        environment: EnvironmentId::Ssh("fixture-ssh".into()),
+        platform: Platform::Claude,
+        generation: 1,
+        request_id: 1,
+    };
+    let mut read = crate::runtime::environments::load(&services, key)
+        .unwrap_or_else(|error| panic!("{error:?}"));
+    let event = read.next().await;
+    match event {
+        Some(TaskEvent::Terminal(value)) => match value.as_ref() {
+            Completion::Failed(reason) => {
+                assert_eq!(*reason, LOCAL_ONLY);
+                assert!(!reason.contains("fixture-ssh"));
+                assert!(!reason.contains("ssh-keyscan"));
+                assert!(!reason.contains(" / "));
+            }
+            other => panic!("expected local-only refusal, got {other:?}"),
+        },
+        other => panic!("missing terminal: {other:?}"),
+    }
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+fn switching_environment_keeps_cache_draft_and_job_apart(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap_or_else(|error| panic!("{error}"));
+    let root = tempfile::tempdir().unwrap_or_else(|error| panic!("{error}"));
+    let secret = root.path().join("source.txt");
+    std::fs::write(&secret, b"local-secret").unwrap_or_else(|error| panic!("{error}"));
+    let services = crate::runtime::Services::new(
+        owner.handle(),
+        ConfigSource::Fixture {
+            profiles: root.path().join("profiles.toml"),
+            registry: root.path().join("registry.toml"),
+            delay: Duration::ZERO,
+        },
+    );
+    let (handle, view) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(WindowOptions::default(), cx, |_window, cx| {
+            cx.new(|cx| super::EnvironmentView::new(services, cx))
+        })
+        .unwrap_or_else(|error| panic!("{error}"))
+    });
+    cx.update_window(handle, |_, window, cx| {
+        view.update(cx, |this, cx| this.refresh(cx));
+        window.render_frame(cx);
+        view.update(cx, |this, cx| {
+            this.surface.note_draft("local-draft".into());
+            this.surface.note_job("local-job".into());
+            cx.notify();
+        });
+        window.render_frame(cx);
+        let local = labels(window);
+        assert!(local.contains("No SSH host list is loaded in this desktop shell."));
+        assert!(local.contains(&draft_line(false, "local-draft")));
+        assert!(local.contains(&job_line(false, "local-job")));
+        assert!(!local.contains(local_only_line(false)));
+        assert!(!local.contains(" / "));
+        assert!(!local.to_lowercase().contains("blur"));
+        view.update(cx, |this, cx| {
+            this.task = None;
+            this.gate.clear();
+            this.surface
+                .switch(EnvironmentId::Ssh("fixture-ssh".into()));
+            this.generation = this.surface.generation();
+            this.loading = false;
+            this.failed = false;
+            this.local_only = None;
+            this.report = this.surface.cache();
+            this.refresh(cx);
+        });
+        window.render_frame(cx);
+        let calls = std::cell::Cell::new(0u32);
+        let refused = view.update(cx, |this, _cx| {
+            read_local_source(this.surface.active(), &home_environment(), || {
+                calls.set(calls.get() + 1);
+                std::fs::read_to_string(&secret).unwrap_or_else(|error| panic!("{error}"))
+            })
+        });
+        assert_eq!(refused, Err(LOCAL_ONLY));
+        assert_eq!(calls.get(), 0);
+        assert_eq!(
+            std::fs::read_to_string(&secret).unwrap_or_else(|error| panic!("{error}")),
+            "local-secret"
+        );
+        let Err(reason) = view.update(cx, |this, _cx| {
+            this.plan_connection(boundary_facts(
+                true,
+                Some("secret-password"),
+                Some("SHA256:example.com"),
+                Some("SHA256:example.com"),
+                true,
+            ))
+        }) else {
+            panic!("cancel on a remote environment must refuse before connect");
+        };
+        assert_eq!(reason, CANCELLED_BEFORE_CONNECT);
+        assert!(!reason.contains("secret-password"));
+        assert!(!reason.contains("example.com"));
+        assert!(!reason.contains("ssh-keyscan"));
+        view.update(cx, |this, cx| {
+            this.surface.note_draft("ssh-draft".into());
+            this.surface.note_job("ssh-job".into());
+            cx.notify();
+        });
+        window.render_frame(cx);
+        let remote = labels(window);
+        assert!(remote.contains(local_only_line(false)));
+        assert!(remote.contains(&draft_line(false, "ssh-draft")));
+        assert!(remote.contains(&job_line(false, "ssh-job")));
+        assert!(!remote.contains("No SSH host list is loaded"));
+        assert!(!remote.contains("local-draft"));
+        assert!(!remote.contains("local-job"));
+        assert!(!remote.contains("local-secret"));
+        assert!(!remote.contains("fixture-ssh"));
+        assert!(!remote.contains("ssh-keyscan"));
+        assert!(!remote.contains(" / "));
+        assert!(!remote.to_lowercase().contains("blur"));
+        assert!(window.try_find("env-reconnect").is_none());
+        assert!(window.try_find("env-disconnect").is_none());
+        view.update(cx, |this, cx| {
+            this.task = None;
+            this.gate.clear();
+            this.surface.switch(home_environment());
+            this.generation = this.surface.generation();
+            this.loading = false;
+            this.failed = false;
+            this.local_only = None;
+            this.report = this.surface.cache();
+            cx.notify();
+        });
+        window.render_frame(cx);
+        let restored = labels(window);
+        assert!(restored.contains("No SSH host list is loaded in this desktop shell."));
+        assert!(restored.contains(&draft_line(false, "local-draft")));
+        assert!(restored.contains(&job_line(false, "local-job")));
+        assert!(!restored.contains("ssh-draft"));
+        assert!(!restored.contains("ssh-job"));
+        assert!(!restored.contains(local_only_line(false)));
+        assert!(!restored.contains("local-secret"));
+        assert!(!restored.contains(" / "));
+        assert!(!restored.contains("Home insights"));
+        assert!(!restored.contains("Apply / refresh"));
         window.remove_window();
     })
     .unwrap_or_else(|error| panic!("{error}"));
