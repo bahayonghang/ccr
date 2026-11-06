@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-3.md`
-- **Total Sessions**: 138
+- **Total Sessions**: 139
 - **Last Active**: 2026-11-05
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-3.md` | ~610 | Active |
+| `journal-3.md` | ~644 | Active |
 | `journal-2.md` | ~1982 | Archived |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
@@ -31,6 +31,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 139 | 2026-11-05 | GPUI 09 主窗口安全关闭确认 | `b2aa54d0` | `dev` |
 | 138 | 2026-11-05 | GPUI 09 退出回归与默认 File 消费验证 | `38487daf`, `e1f22f8d` | `dev` |
 | 137 | 2026-11-05 | 修复 Codex 缺省文件凭据保存并归档 | `c7ce7d73` | `dev` |
 | 136 | 2026-11-05 | 归档 PR 与分支清理规划 | `114c92f87c3ee9821a43d2f9516890bfc13b7048` | `ci/faster-checks` |

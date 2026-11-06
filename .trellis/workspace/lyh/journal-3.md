@@ -608,3 +608,37 @@ ccr project init 现在默认勾选五项平台并要求输入用户名，-y 使
 ### Next Steps
 
 - 09 仍缺真实环境切换、native window close/watcher、跨OS及视觉证据；01 缺macOS编译和合格性能基线；不运行WSL，不满足父归档AND。
+
+
+## Session 139: GPUI 09 主窗口安全关闭确认
+<!-- trellis-session: v=2 fp=0dbb91fd6946a652 -->
+
+**Date**: 2026-11-05
+**Task**: GPUI 09 主窗口安全关闭确认
+**Branch**: `dev`
+
+### Summary
+
+复用原主工作区和09任务，增加主Shell关闭确认与中英真实控件回归，保护取消、首帧Enter、重复关闭和过期焦点回调；独立检查通过后本地提交。
+
+### Main Changes
+
+- 每次主窗口关闭均确认，取消保留草稿/原确认/活动任务；确认沿现有quit与final join。无dirty聚合或配置偏好，不覆盖绕过should_close的app-level Quit。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b2aa54d0` | feat(原生桌面): ✨ 为主窗口关闭增加安全确认 |
+
+### Testing
+
+- [OK] 根desktop-fmt-check、desktop-lint、desktop-test均0；库105及关闭窄测2通过，完整suite无重试。独立check再次fmt/lint/narrow均0；本轮未跑just ci。
+
+### Status
+
+[OK] 本轮切片已提交；GPUI 01、09 与父任务仍为 **in_progress**。
+
+### Next Steps
+
+- 09与01及父任务继续in_progress；原生窗口关闭、watcher、托盘、跨OS和glass收据仍开放。不建立worktree、不运行WSL，不push。
