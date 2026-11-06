@@ -123,3 +123,17 @@ GPUI 夹具在 SSH 环境状态下经 `EnvironmentView::plan_connection` 验证�
 跨模块根 `just ci` 实际退出 **0**，16 阶段全绿，耗时 **14:13.540**。本次进程 PATH 前置 `C:\Program Files\Git\bin`，确认实际 bash 为 `C:\Program Files\Git\bin\bash.exe`。日志在 `outputs/desktop/gpui09-check-20261105/`，其中 `just-ci.log` 保留完整结果；没有弱化覆盖率、测试或审计要求，没有测试重试。
 
 检查没有发现需再修的产品问题；只将规范中的本轮 WSL 禁令改写为长期 fixture/授权边界。`task.py validate` 和 `git diff --check` 退出 0，检查完成时没有范围外脏文件。该切片可本地提交，9.1–9.6 仍开放，任务不能归档。
+
+## 2026-11-05 续作：Windows 合成退出清理
+
+新增 `ccr-desktop/tests/runtime_shutdown.rs`，通过现有运行时和命令 owner 验证视图 detach 后退出清理、真实合成父/后代进程句柄退出、任务归零与拒绝新工作；另验证 200ms quit observer 超时后最终 owner join 仍等待阻塞工作。只新增测试，没有修改产品生命周期实现。
+
+详细实际命令、初始失败、Windows 后代句柄信号间隙和并行工作边界见 [退出生命周期夹具收据](research/exit-lifecycle-20261105.md)。根 `desktop-fmt-check`、`desktop-lint` 最终均 0；完整 `desktop-test` 首次遇既有 SQLite 字节比较失败，按授权重跑一次后 0。新 suite 为 2 passed / 1 closed helper ignored；helper 由进程树测试显式启动。所有行为 suite 保持默认并行和 `--skip export_bindings`。
+
+这份证据是 Windows OS 合成 process/task 与共享运行时集成，不是用户关闭原生窗口收据，也不覆盖 watcher、真实 sidecar 或其他 OS。9.4 整项仍未通过；其他 9.1–9.6 的 not_run/unsupported 状态保持，未归档、未提交。
+
+独立 [退出检查收据](research/check-exit-lifecycle-20261105.md) 修正了自然退出假通过：从命令入队前至整个 shutdown 和句柄确认必须小于 5 秒，排除 10 秒自然结束；共享测试规范同步这一因果断言。首次独立完整 desktop-test 退出 **101**，原因是新 Codex 默认存储语义触发旧 GPUI 断言（实际 NotDetected、期望 StoreUnsupported），失败日志保留。
+
+用户随后明确要求使用当前工作区的新默认 `File` 标准，不建立新 worktree。独立 check 将 `platforms.rs` 的 `auto` 夹具显式配置为 auto，并新增缺 config/缺 store 设置且无 auth 文件的 `NotDetected`、未登录、无账户及不写入/不泄漏断言。生产映射无需修改；该消费测试依赖另一任务的共享默认值改动。
+
+最终当前工作区 `desktop-fmt-check`、`desktop-lint` 和完整 `desktop-test` 均退出 **0**，无本次重试；Codex 窄测 2/2、新退出测试 2/2、库 103、native_shell 8、native_ui 2、Python 12、AccessKit 3 均通过。最终完整门禁覆盖了修正后的整个本切片，不是旧基线隔离通过；`just ci` 本切片未运行。此前隔离 worktree 仅跑过 fmt，未 build/lint/test，已由主会话移除，日志/输入清单保留。9.1–9.6 与任务继续开放。

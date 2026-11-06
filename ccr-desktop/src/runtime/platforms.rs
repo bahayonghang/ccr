@@ -1133,6 +1133,29 @@ mod tests {
         assert_eq!(std::fs::read_to_string(&antigravity).unwrap(), before);
     }
     #[test]
+    fn codex_default_file_store_without_auth_is_not_detected() {
+        let temp = tempfile::tempdir().unwrap();
+        let source = fixture_source(temp.path());
+        let root = roots(&source).unwrap();
+        let codex = root.codex_runtime.join("config.toml");
+        for config in [
+            None,
+            Some("model = \"gpt-5\"\napi_key = \"sk-platform-route-sentinel\"\n"),
+        ] {
+            if let Some(content) = config {
+                std::fs::create_dir_all(codex.parent().unwrap()).unwrap();
+                std::fs::write(&codex, content).unwrap();
+            }
+            let session = loaded(&source, Platform::Codex, Surface::Settings);
+            assert_eq!(session.credential, CredentialState::NotDetected);
+            assert!(!session.signed_in);
+            assert!(session.accounts.is_empty());
+            assert!(!format!("{:?}", session.fields).contains("sk-platform-route-sentinel"));
+            assert!(!root.codex_runtime.join("auth.json").exists());
+            assert_eq!(std::fs::read_to_string(&codex).ok().as_deref(), config);
+        }
+    }
+    #[test]
     fn codex_auto_store_and_grok_demo_do_not_invent_login() {
         let temp = tempfile::tempdir().unwrap();
         let source = fixture_source(temp.path());
@@ -1141,7 +1164,7 @@ mod tests {
         std::fs::create_dir_all(codex.parent().unwrap()).unwrap();
         std::fs::write(
             &codex,
-            "model = \"gpt-5\"\napi_key = \"sk-platform-route-sentinel\"\n",
+            "cli_auth_credentials_store = \"auto\"\nmodel = \"gpt-5\"\napi_key = \"sk-platform-route-sentinel\"\n",
         )
         .unwrap();
         let codex_session = loaded(&source, Platform::Codex, Surface::Settings);

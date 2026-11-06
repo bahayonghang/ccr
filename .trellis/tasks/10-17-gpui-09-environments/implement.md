@@ -33,3 +33,12 @@
 - `Open` 的当前生产调用仅来自 Local 设置刷新空 facts，用于本地检查；其 `Ok` 不激活 SSH。没有新增连接、环境切换器、托盘或窗口栈，不改变 Tauri 命令或载荷。
 - 先复现失败，再跑共享环境夹具及根 `just desktop-fmt-check`、`just desktop-lint`、`just desktop-test`。跨模块改动由 check 运行 `just ci`，Git Bash 的目录置于 PATH 最前；不得运行任何实机 WSL 探针。
 - 9.1–9.6 保持开放；本轮新增证据不能代替未运行的实机验收。
+
+## 2026-11-05 退出生命周期验证切片
+
+- 在 `ccr-desktop/tests/runtime_shutdown.rs` 复用现有 `RuntimeOwner`、`CommandJobs::run_fixture_blocking` 和原生二进制闭合 `--native-command-fixture`，不新增产品 API 或窗口栈。
+- Windows 合成父进程启动合成后代；收到后代实际输出并持有两个存活进程句柄后，再 detach 视图订阅并关闭运行时。验证 retained command 为 Cancelled、任务数归零、拒绝新工作和两个句柄 signaled；从 job 入队前到最终确认总计必须小于 5 秒，排除合成后代自然运行 10 秒后退出的假通过；失败路径也清理夹具。
+- 用已进入的阻塞读和显式释放通道模拟超过 GPUI 200ms quit observer 预算的工作。丢弃超时 observer 后，最终 owner join 必须等待释放，之后保留 Cancelled 终态与零任务。
+- 证据只覆盖 Windows OS 合成进程与共享运行时，不覆盖真实 native window close、watcher、托盘、其他 OS 或远程执行。9.4 整项仍开放。
+- 先运行窄集成测试，再运行根 `just desktop-fmt-check`、`just desktop-lint`、`just desktop-test`；默认并行和 `--skip export_bindings` 保持。实现与独立 check 收据分别保存。
+- 独立 check 期间用户明确改为当前工作区的新 Codex 默认 `File` 标准，不使用新 worktree 验证。GPUI 原 `auto` 夹具显式写 `auto`，另补缺 config/缺 store 设置且无 auth 文件时 `NotDetected` 的消费回归；不回退共享标准、不修改生产映射。本消费测试依赖另一任务的共享默认值改动，不能称在旧基线独立通过。
