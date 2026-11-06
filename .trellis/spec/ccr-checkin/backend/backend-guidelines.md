@@ -89,7 +89,7 @@ Use `tracing` for provider progress, proxy mode, balance/check-in milestones, an
 - Unit test provider policy matching for built-in AnyRouter and `anyrouter.top`.
 - Unit test cookie parsing and required-cookie selection, asserting only names are surfaced and unrelated cookie values are not selected.
 - Frontend smoke test missing-cookie diagnostics and retry gating after validation.
-- Run `cargo test -p ccr-checkin -- --test-threads=1`, `bun run type-check`, `bun run test`, and `bun run tauri:check` for cross-layer changes.
+- Run `cargo test -p ccr-checkin -- --skip export_bindings`, `bun run type-check`, `bun run test`, and `bun run tauri:check` for cross-layer changes.
 
 ### 7. Wrong vs Correct
 
@@ -150,8 +150,8 @@ if selection.is_complete() {
 
 ### 6. Tests Required
 
-- `cargo test -p ccr-checkin -- --test-threads=1` — golden tests (22-site identity table with order, standard-site invariants, special-site full-field equality), serde roundtrip, schemaVersion rejection, platforms secret scan.
-- `cargo test -p ccr-db -- --test-threads=1` — migration v15 guard/idempotency, NULL-row compat, `set_provider_builtin_id_if_missing` only fills NULL.
+- `cargo test -p ccr-checkin -- --skip export_bindings` — golden tests (22-site identity table with order, standard-site invariants, special-site full-field equality), serde roundtrip, schemaVersion rejection, platforms secret scan.
+- `cargo test -p ccr-db -- --skip export_bindings` — migration v15 guard/idempotency, NULL-row compat, `set_provider_builtin_id_if_missing` only fills NULL.
 - `cd ccr-ui && bun run test:smoke -- tests/configs/providers-catalog.smoke.test.ts` — schemaVersion rejection, `BuiltinProvider` mirror-field consistency against the same JSON, secret scan, builtin_id rename scenarios.
 
 ### 7. Wrong vs Correct
@@ -243,6 +243,18 @@ Use `TempDir` plus `database::initialize_for_test()` for service tests. Prefer d
 For check-in changes, run:
 
 - `just fmt-check`
-- `cargo test -p ccr-checkin -- --test-threads=1`
-- `cargo test -p ccr-db -- --test-threads=1` when shared database models or repositories change
+- `cargo test -p ccr-checkin -- --skip export_bindings`
+- `cargo test -p ccr-db -- --skip export_bindings` when shared database models or repositories change
 - `just lint-strict`
+
+
+## Desktop captured-root transfer and account operations
+
+- Desktop uses captured `DbAccess` and crypto roots, including import/export and CDK helpers. Fixture mode must reject real network unless the test explicitly injects an isolated loopback client. Do not change global HOME/USERPROFILE to isolate tests.
+- Native configuration import previews are bound to source bytes, source root and database contents. Validate every credential with the current device key before the first write and again at apply; never invoke the legacy undecryptable-cookie fallback that replaces credentials with `{}`. Reject unknown import fields. Existing account `extra_config` and operational timestamps survive schema omissions.
+- Existing export JSON is configuration transfer, not a full backup or cross-device credential migration. Pre-import recovery uses the shared `ccr-db::database::backup` verified SQLite snapshot owner (committed WAL included, restricted permissions). Do not silently restore an entire database over another client's changes; do not claim the multi-step domain import is atomic.
+- Account deletion and associated check-in/balance history deletion use one database transaction. On failure all rows remain. Keep secret-only extra-config patches write-only and preserve omitted/unknown values.
+- Aggregate balances by actual currency; do not fabricate conversion rates or sum different units. CDK history currently reuses check-in records and must not be labeled a separate recharge ledger. WAF manual cookie storage and request validation do not imply an embedded browser login implementation.
+- Keep default test parallelism. Only repeat a known lock/SQLite-byte flake once; deterministic failures require an owning-source fix without weaker assertions.
+
+- Retained import previews contain only source/root/version metadata and a non-secret summary. Do not retain `ExportData` in the app-owned job report: an import file may contain plaintext cookies. Apply rereads the same hash-bound bytes and parses credentials into temporary secret values only for validation and writing.

@@ -21,7 +21,6 @@ use ccr_checkin::models::checkin::{
     CheckinRecordsResponse, CheckinStatus, CreateAccountRequest, CreateProviderRequest,
     ExportOptions, UpdateAccountRequest, UpdateProviderRequest,
 };
-use ccr_checkin::services::cdk_service::{CdkExtraConfig, CdkService};
 use ccr_checkin::services::checkin_service::{CheckinExecutionResult, CheckinService};
 
 use chrono::Datelike;
@@ -528,16 +527,10 @@ pub async fn delete_account(_state: State<'_, AppState>, id: String) -> Result<S
     let checkin_dir = checkin_dir_str()?;
     run_blocking(move || {
         let account_manager = AccountManager::new(&checkin_dir);
-        let record_manager = RecordManager::new();
-        let balance_manager = BalanceManager::new();
 
         account_manager
             .delete(&id)
             .map_err(|e| format!("Failed to delete account: {}", e))?;
-
-        // Clean up associated records and balance snapshots
-        let _ = record_manager.delete_by_account(&id);
-        let _ = balance_manager.delete_by_account(&id);
 
         Ok(format!("Account {} deleted", id))
     })
@@ -552,8 +545,6 @@ pub async fn batch_delete_accounts(
     let checkin_dir = checkin_dir_str()?;
     run_blocking(move || {
         let account_manager = AccountManager::new(&checkin_dir);
-        let record_manager = RecordManager::new();
-        let balance_manager = BalanceManager::new();
 
         let mut deleted = 0usize;
         let mut errors: Vec<String> = Vec::new();
@@ -562,8 +553,6 @@ pub async fn batch_delete_accounts(
             match account_manager.delete(id) {
                 Ok(()) => {
                     deleted += 1;
-                    let _ = record_manager.delete_by_account(id);
-                    let _ = balance_manager.delete_by_account(id);
                 }
                 Err(e) => errors.push(format!("{}: {}", id, e)),
             }
@@ -848,127 +837,14 @@ pub async fn execute_cdk_recharge(
     account_id: String,
     cdk_code: String,
 ) -> Result<Value, String> {
-    let checkin_dir = checkin_dir_str()?;
-    let context = run_blocking(move || {
-        struct CdkRechargeContext {
-            provider_name: String,
-            cdk_type: String,
-            extra_config: CdkExtraConfig,
-            topup_cookies: std::collections::HashMap<String, String>,
-            topup_url: Option<String>,
-            api_user: String,
-        }
-
-        let account_manager = AccountManager::new(&checkin_dir);
-        let provider_manager = ProviderManager::new();
-
-        let account = account_manager
-            .get(&account_id)
-            .map_err(|e| format!("Account not found: {}", e))?;
-        let provider = provider_manager
-            .get(&account.provider_id)
-            .map_err(|e| format!("Provider not found: {}", e))?;
-
-        // Look up builtin provider CDK config
-        // 优先 builtin_id 精确反查 catalog（改名安全），旧数据（NULL）回退 name 匹配
-        use ccr_checkin::managers::checkin::builtin_providers::resolve_builtin_for_provider;
-        let cdk_config = resolve_builtin_for_provider(&provider)
-            .and_then(|bp| bp.cdk_config)
-            .ok_or_else(|| format!("Provider {} does not support CDK recharge", provider.name))?;
-
-        // Parse account extra_config for CDK credentials
-        let extra_config = CdkExtraConfig::from_json(&account.extra_config);
-
-        // Decrypt cookies for topup request
-        use ccr_checkin::core::crypto::CryptoManager;
-        let crypto = CryptoManager::new(&checkin_dir)
-            .map_err(|e| format!("Crypto initialization error: {}", e))?;
-        let cookies_json = crypto
-            .decrypt(&account.cookies_json_encrypted)
-            .map_err(|e| format!("Failed to decrypt cookies: {}", e))?;
-
-        let topup_cookies: std::collections::HashMap<String, String> =
-            serde_json::from_str(cookies_json.expose()).unwrap_or_default();
-
-        // Build topup URL and include the provided CDK code
-        let topup_url = cdk_config
-            .topup_path
-            .as_ref()
-            .map(|path| format!("{}{}", provider.base_url.trim_end_matches('/'), path));
-
-        Ok::<_, String>(CdkRechargeContext {
-            provider_name: provider.name,
-            cdk_type: cdk_config.cdk_type.clone(),
-            extra_config,
-            topup_cookies,
-            topup_url,
-            api_user: account.api_user,
-        })
-    })
-    .await?;
-
-    // If a specific cdk_code is provided, use it directly as a topup key
-    if !cdk_code.is_empty() {
-        let topup_url = context.topup_url.as_deref().ok_or_else(|| {
-            format!(
-                "No topup URL configured for provider {}",
-                context.provider_name
-            )
-        })?;
-
-        let cookie_str = context
-            .topup_cookies
-            .iter()
-            .map(|(k, v)| format!("{}={}", k, v))
-            .collect::<Vec<_>>()
-            .join("; ");
-
-        let body = serde_json::json!({ "key": cdk_code });
-        let mut req = state
-            .http_client
-            .post(topup_url)
-            .header("Content-Type", "application/json")
-            .header("Accept", "application/json");
-
-        if !cookie_str.is_empty() {
-            req = req.header("Cookie", cookie_str);
-        }
-        if !context.api_user.is_empty() {
-            req = req.header("new-api-user", &context.api_user);
-        }
-
-        let resp = req
-            .json(&body)
-            .send()
-            .await
-            .map_err(|e| format!("HTTP request failed: {}", e))?;
-
-        let status = resp.status();
-        let resp_body = resp.text().await.unwrap_or_default();
-
-        let result = serde_json::json!({
-            "success": status.is_success(),
-            "cdk_code": cdk_code,
-            "status_code": status.as_u16(),
-            "response": resp_body
-        });
-
-        return Ok(result);
-    }
-
-    // Auto-fetch CDK via CdkService
-    let cdk_service = CdkService::new(None);
-    let result = cdk_service
-        .fetch_and_topup(
-            &context.cdk_type,
-            &context.extra_config,
-            context.topup_url.as_deref(),
-            &context.topup_cookies,
-            &context.api_user,
-        )
-        .await;
-
-    serde_json::to_value(result).map_err(|e| format!("Serialization error: {}", e))
+    ccr_checkin::services::cdk_recharge::execute(
+        &checkin_dir_str()?,
+        ccr_db::database::DbAccess::Global,
+        state.http_client.clone(),
+        &account_id,
+        &ccr_core::Secret::new(cdk_code),
+    )
+    .await
 }
 
 #[ccr_tauri_command_macros::command]

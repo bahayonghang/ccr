@@ -3,6 +3,7 @@
 //! 连接池工厂与 PRAGMA 统一由 `ccr_core::core::sqlite` 提供（全仓唯一 seam），
 //! 本模块负责 ccr-db 侧的 DbError 边界、路径解析、迁移执行与全局池生命周期。
 
+pub mod backup;
 pub mod migrations;
 pub mod repositories;
 pub mod schema;

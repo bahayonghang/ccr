@@ -7,11 +7,17 @@ use crate::models::checkin::{
     CheckinAccount, EXPORT_VERSION, ExportAccount, ExportData, ExportOptions,
     ImportConflictStrategy, ImportOptions, ImportPreviewItem, ImportPreviewResponse, ImportResult,
 };
+use ccr_db::database::{self, DbAccess};
 use std::path::{Path, PathBuf};
+#[path = "export_transfer.rs"]
+mod transfer;
+pub use transfer::ImportSession;
 
 #[derive(Debug, thiserror::Error)]
 #[allow(dead_code)]
 pub enum ExportError {
+    #[error("Import source or local data changed; preview again")]
+    Conflict,
     #[error("Failed to export: {0}")]
     ExportFailed(String),
     #[error("Failed to import: {0}")]
@@ -32,20 +38,27 @@ pub type Result<T> = std::result::Result<T, ExportError>;
 pub struct ExportManager {
     /// 签到数据目录
     checkin_dir: PathBuf,
+    db: DbAccess,
 }
 
 impl ExportManager {
     /// 创建新的导入/导出管理器
     pub fn new(checkin_dir: &Path) -> Self {
+        Self::with_db(checkin_dir, database::DbAccess::Global)
+    }
+
+    /// Bind all import/export managers to the caller's captured database and crypto root.
+    pub fn with_db(checkin_dir: &Path, db: DbAccess) -> Self {
         Self {
             checkin_dir: checkin_dir.to_path_buf(),
+            db,
         }
     }
 
     /// 导出配置
     pub fn export(&self, options: &ExportOptions) -> Result<ExportData> {
-        let provider_manager = ProviderManager::new();
-        let account_manager = AccountManager::new(&self.checkin_dir);
+        let provider_manager = ProviderManager::with_db(self.db.clone());
+        let account_manager = AccountManager::with_db(&self.checkin_dir, self.db.clone());
 
         // 获取所有提供商
         let providers = provider_manager
@@ -111,8 +124,8 @@ impl ExportManager {
 
     /// 预览导入
     pub fn preview_import(&self, data: &ExportData) -> Result<ImportPreviewResponse> {
-        let provider_manager = ProviderManager::new();
-        let account_manager = AccountManager::new(&self.checkin_dir);
+        let provider_manager = ProviderManager::with_db(self.db.clone());
+        let account_manager = AccountManager::with_db(&self.checkin_dir, self.db.clone());
 
         // 检查版本兼容性
         let version_compatible = data.version == EXPORT_VERSION;
@@ -216,9 +229,12 @@ impl ExportManager {
 
     /// 执行导入
     pub fn import(&self, data: ExportData, options: &ImportOptions) -> Result<ImportResult> {
-        let provider_manager = ProviderManager::new();
-        let account_manager = AccountManager::new(&self.checkin_dir);
+        let provider_manager = ProviderManager::with_db(self.db.clone());
+        let account_manager = AccountManager::with_db(&self.checkin_dir, self.db.clone());
 
+        let existing_accounts = account_manager
+            .load_all()
+            .map_err(|error| ExportError::AccountError(error.to_string()))?;
         let mut result = ImportResult::success("导入完成");
 
         // 导入提供商
@@ -262,6 +278,9 @@ impl ExportManager {
                         .map_err(|e| ExportError::CryptoError(e.to_string()))?
                 };
 
+                let existing = existing_accounts
+                    .iter()
+                    .find(|account| account.id == export_account.id);
                 accounts_to_import.push(CheckinAccount {
                     id: export_account.id,
                     provider_id: export_account.provider_id,
@@ -270,10 +289,13 @@ impl ExportManager {
                     api_user: export_account.api_user,
                     enabled: export_account.enabled,
                     created_at: export_account.created_at,
-                    updated_at: None,
-                    last_checkin_at: None,
-                    last_balance_check_at: None,
-                    extra_config: "{}".to_string(),
+                    updated_at: existing.and_then(|account| account.updated_at),
+                    last_checkin_at: existing.and_then(|account| account.last_checkin_at),
+                    last_balance_check_at: existing
+                        .and_then(|account| account.last_balance_check_at),
+                    extra_config: existing
+                        .map(|account| account.extra_config.clone())
+                        .unwrap_or_else(|| "{}".to_string()),
                 });
             }
 

@@ -1,5 +1,7 @@
 //! App-owned Check-in mutations; all storage, encryption and HTTP are domain-owned.
 use super::*;
+#[path = "extended.rs"]
+mod extended;
 use ccr_app::runtime::Completion;
 use ccr_checkin::managers::checkin::builtin_providers::get_builtin_provider_by_id;
 use ccr_checkin::{AccountManager, CheckinService, ProviderManager, RecordManager};
@@ -7,11 +9,15 @@ use ccr_db::{
     database::{self, DbAccess},
     models::checkin::*,
 };
+pub use extended::{
+    ExtendedCommand, ExtendedReport, InspectionCommand, InspectionReport, RecordQuery,
+};
 use std::sync::{Arc, Mutex};
 use tokio::sync::watch;
 
 pub enum Operation {
     Manage,
+    Extended(ExtendedCommand),
     AddBuiltin(String),
     AddProvider(CreateProviderRequest),
     UpdateProvider(String, UpdateProviderRequest),
@@ -31,16 +37,22 @@ pub enum OperationError {
     Busy,
     Unsupported,
     FixtureNetwork,
+    FixturePath,
     Interrupted,
     ProviderInUse,
     Network,
     Challenge,
     Credentials,
+    ImportCredentials,
+    ImportConflict,
+    ImportInvalid,
+    QueryInvalid,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Outcome {
     Loaded,
+    Extended,
     Saved,
     Deleted,
     Checked(CheckinStatus),
@@ -73,6 +85,7 @@ pub struct OperationState {
     pub environment: Option<EnvironmentId>,
     pub result: Option<Result<Outcome, OperationError>>,
     pub snapshot: Option<ManagementSnapshot>,
+    pub extended: Option<Arc<ExtendedReport>>,
 }
 pub struct CheckinOperations {
     state: Mutex<OperationState>,
@@ -234,6 +247,17 @@ impl Services {
     pub fn observe_checkin(&self) -> watch::Receiver<Arc<OperationState>> {
         self.checkin_operations.updates.subscribe()
     }
+    pub fn discard_checkin_preview(&self) {
+        let owner = &self.checkin_operations;
+        let mut state = owner
+            .state
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if !state.busy && matches!(state.extended.as_deref(), Some(ExtendedReport::Preview(_))) {
+            state.extended = None;
+            owner.updates.send_replace(Arc::new(state.clone()));
+        }
+    }
     pub fn start_checkin(
         &self,
         key: RequestKey,
@@ -250,6 +274,7 @@ impl Services {
             }
             state.busy = true;
             state.result = None;
+            state.extended = None;
             state.environment = Some(key.environment.clone());
             owner.updates.send_replace(Arc::new(state.clone()));
         }
@@ -313,6 +338,52 @@ fn service_error(error: ccr_checkin::CheckinServiceError) -> OperationError {
         _ => OperationError::Network,
     }
 }
+fn service_for_account(
+    storage: &Storage,
+    source: &ConfigSource,
+    owner: &CheckinOperations,
+    id: &str,
+) -> Result<CheckinService, OperationError> {
+    let account = storage
+        .accounts()
+        .get(id)
+        .map_err(|_| OperationError::Invalid)?;
+    let provider = storage
+        .providers()
+        .get(&account.provider_id)
+        .map_err(|_| OperationError::Invalid)?;
+    Ok(if matches!(source, ConfigSource::Fixture { .. }) {
+        let allowed = {
+            #[cfg(test)]
+            {
+                owner.loopback_fixture
+            }
+            #[cfg(not(test))]
+            {
+                let _ = owner;
+                false
+            }
+        };
+        let url = reqwest::Url::parse(&provider.base_url).map_err(|_| OperationError::Invalid)?;
+        let loopback = url
+            .host_str()
+            .and_then(|host| host.parse::<std::net::IpAddr>().ok())
+            .is_some_and(|ip| ip.is_loopback());
+        if !allowed || !loopback || provider.builtin_id.is_some() {
+            return Err(OperationError::FixtureNetwork);
+        }
+        let client = reqwest::Client::builder()
+            .no_proxy()
+            .redirect(reqwest::redirect::Policy::none())
+            .timeout(Duration::from_secs(5))
+            .build()
+            .map_err(|_| OperationError::Network)?;
+        CheckinService::with_db_and_client(storage.crypto.clone(), storage.db.clone(), client)
+    } else {
+        CheckinService::with_db(storage.crypto.clone(), storage.db.clone())
+    })
+}
+
 async fn execute(
     storage: &Storage,
     source: &ConfigSource,
@@ -324,6 +395,15 @@ async fn execute(
     let mut records = Vec::new();
     let outcome = match operation {
         Operation::Manage => Outcome::Loaded,
+        Operation::Extended(command) => {
+            let result = extended::execute_extended(storage, source, owner, command).await?;
+            owner
+                .state
+                .lock()
+                .map_err(|_| OperationError::Storage)?
+                .extended = Some(Arc::new(result));
+            Outcome::Extended
+        }
         Operation::AddBuiltin(id) => {
             let provider = get_builtin_provider_by_id(&id)
                 .ok_or(OperationError::Invalid)?
@@ -415,45 +495,7 @@ async fn execute(
                 Operation::Balance(id) => (id, false),
                 _ => return Err(OperationError::Invalid),
             };
-            let account = accounts.get(&id).map_err(|_| OperationError::Invalid)?;
-            let provider = providers
-                .get(&account.provider_id)
-                .map_err(|_| OperationError::Invalid)?;
-            let service = if matches!(source, ConfigSource::Fixture { .. }) {
-                let allowed = {
-                    #[cfg(test)]
-                    {
-                        owner.loopback_fixture
-                    }
-                    #[cfg(not(test))]
-                    {
-                        let _ = owner;
-                        false
-                    }
-                };
-                let url =
-                    reqwest::Url::parse(&provider.base_url).map_err(|_| OperationError::Invalid)?;
-                let loopback = url
-                    .host_str()
-                    .and_then(|host| host.parse::<std::net::IpAddr>().ok())
-                    .is_some_and(|ip| ip.is_loopback());
-                if !allowed || !loopback || provider.builtin_id.is_some() {
-                    return Err(OperationError::FixtureNetwork);
-                }
-                let client = reqwest::Client::builder()
-                    .no_proxy()
-                    .redirect(reqwest::redirect::Policy::none())
-                    .timeout(Duration::from_secs(5))
-                    .build()
-                    .map_err(|_| OperationError::Network)?;
-                CheckinService::with_db_and_client(
-                    storage.crypto.clone(),
-                    storage.db.clone(),
-                    client,
-                )
-            } else {
-                CheckinService::with_db(storage.crypto.clone(), storage.db.clone())
-            };
+            let service = service_for_account(storage, source, owner, &id)?;
             if checkin {
                 let result = service.checkin(&id).await.map_err(service_error)?;
                 if result.status == CheckinStatus::Failed {

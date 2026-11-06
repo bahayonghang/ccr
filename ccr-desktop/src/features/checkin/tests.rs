@@ -181,3 +181,161 @@ async fn checkin_page_shows_stored_rows_and_hides_secrets(cx: &mut TestAppContex
     .unwrap();
     owner.shutdown();
 }
+
+#[gpui_kit::test]
+fn account_tools_native_selection_cancel_and_batch_delete(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    seed(root.path());
+    {
+        let conn = rusqlite::Connection::open(root.path().join("checkin.db")).unwrap();
+        checkin_repo::insert_record(
+            &conn,
+            &ccr_db::models::checkin::CheckinRecord::success("measured".into(), None, None),
+        )
+        .unwrap();
+    }
+    let owner = RuntimeOwner::new().unwrap();
+    let handle = open(cx, &owner, root.path());
+    #[track_caller]
+    fn wait(
+        cx: &mut TestAppContext,
+        handle: gpui_kit::AnyWindowHandle,
+        mut ready: impl FnMut(&mut Window) -> bool,
+    ) {
+        let deadline = std::time::Instant::now() + Duration::from_secs(10);
+        loop {
+            cx.run_until_parked();
+            if cx
+                .update_window(handle, |_, window, cx| {
+                    window.render_frame(cx);
+                    ready(window)
+                })
+                .unwrap()
+            {
+                cx.run_until_parked();
+                return;
+            }
+            assert!(
+                std::time::Instant::now() < deadline,
+                "account tools did not reach expected state"
+            );
+            cx.executor().advance_clock(Duration::from_millis(10));
+            std::thread::yield_now();
+        }
+    }
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("nav-checkin", cx);
+    })
+    .unwrap();
+    wait(cx, handle, |window| {
+        window.try_find("checkin-account-1").is_some()
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("checkin-tools-open", cx);
+    })
+    .unwrap();
+    wait(cx, handle, |window| {
+        window.try_find("checkin-select-1").is_some()
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("checkin-select-0", cx);
+        window.render_frame(cx);
+        window.click("checkin-batch-delete", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("checkin-tools-confirm").is_some());
+        window.press("escape", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("checkin-tools-confirm").is_none());
+        assert!(window.try_find("checkin-select-1").is_some());
+        window.click("checkin-batch-delete", cx);
+        window.render_frame(cx);
+        window.click("checkin-tools-confirm", cx);
+    })
+    .unwrap();
+    wait(cx, handle, |window| {
+        labels(window).contains("Deleted: 1; Failed: 0")
+    });
+    fn reveal(cx: &mut TestAppContext, handle: gpui_kit::AnyWindowHandle, id: &'static str) {
+        for _ in 0..20 {
+            let ready = cx
+                .update_window(handle, |_, window, cx| {
+                    window.render_frame(cx);
+                    let bounds = window.find(id).bounds();
+                    let page = window.find("checkin-page").bounds();
+                    if bounds.center().y > page.origin.y + px(20.)
+                        && bounds.center().y < page.origin.y + page.size.height - px(20.)
+                    {
+                        return true;
+                    }
+                    let delta = if bounds.center().y < page.origin.y + px(20.) {
+                        400.
+                    } else {
+                        -400.
+                    };
+                    window.scroll(
+                        "checkin-page",
+                        gpui_kit::ScrollDelta::Pixels(gpui_kit::point(px(0.), px(delta))),
+                        cx,
+                    );
+                    window.render_frame(cx);
+                    false
+                })
+                .unwrap();
+            if ready {
+                return;
+            }
+            cx.run_until_parked();
+        }
+        panic!("control did not scroll into view: {id}");
+    }
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("checkin-select-0", cx);
+        window.render_frame(cx);
+    })
+    .unwrap();
+    reveal(cx, handle, "checkin-filter-success");
+    cx.update_window(handle, |_, window, cx| {
+        window.click("checkin-filter-success", cx);
+        window.render_frame(cx);
+    })
+    .unwrap();
+    reveal(cx, handle, "checkin-filter-records");
+    cx.update_window(handle, |_, window, cx| {
+        window.click("checkin-filter-records", cx);
+    })
+    .unwrap();
+    wait(cx, handle, |window| {
+        labels(window).contains("Matching records: 1")
+    });
+    reveal(cx, handle, "checkin-dashboard-read");
+    cx.update_window(handle, |_, window, cx| {
+        window.click("checkin-dashboard-read", cx);
+    })
+    .unwrap();
+    wait(cx, handle, |window| {
+        labels(window).contains("Checked days: 1")
+    });
+    reveal(cx, handle, "checkin-tools-close");
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(window.try_find("checkin-select-1").is_none());
+        assert!(!labels(window).contains("checkin-secret-sentinel"));
+        window.click("checkin-tools-close", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("checkin-extended").is_none());
+        window.click("checkin-tools-open", cx);
+        window.render_frame(cx);
+        assert!(labels(window).contains("Checked days: 1"));
+
+        window.remove_window();
+    })
+    .unwrap();
+    let conn = rusqlite::Connection::open(root.path().join("checkin.db")).unwrap();
+    assert_eq!(checkin_repo::get_all_accounts(&conn).unwrap().len(), 1);
+    owner.shutdown();
+}

@@ -1,4 +1,5 @@
 //! Saved check-in accounts. Balances appear only when a local row stores them.
+mod extended;
 mod operations;
 use crate::runtime::checkin::OperationState;
 use operations::{Confirmation, Editor};
@@ -39,6 +40,7 @@ pub struct CheckinView {
     editor: Option<Editor>,
     confirmation: Option<Confirmation>,
     catalog: bool,
+    extended: Option<extended::ExtendedUi>,
 }
 
 impl CheckinView {
@@ -49,6 +51,7 @@ impl CheckinView {
             editor: None,
             confirmation: None,
             catalog: false,
+            extended: None,
             services,
             snapshot: None,
             selected: None,
@@ -70,6 +73,9 @@ impl CheckinView {
         self.task = None;
         self.observation = None;
         self.editor = None;
+        self.extended = None;
+        self.services.discard_checkin_preview();
+        self.operation = self.services.checkin_operation_state();
         self.confirmation = None;
         self.gate.clear();
         self.generation += 1;
@@ -246,7 +252,7 @@ fn detail_lines(cx: &App, account: &CheckinAccountRow) -> Vec<String> {
 }
 
 impl Render for CheckinView {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let mut root = div()
             .id("checkin-page")
             .test_support()
@@ -293,6 +299,20 @@ impl Render for CheckinView {
                 self.busy,
                 cx,
             ));
+        if self.extended.is_some() {
+            return root
+                .child(self.render_operation_result(cx))
+                .child(self.render_extended(window, cx));
+        }
+        root = root.child(semantics::button(
+            Button::new("checkin-tools-open")
+                .label(text(cx, "Account tools", "账户工具"))
+                .ghost()
+                .on_click(cx.listener(|this, _, window, cx| this.open_extended(window, cx))),
+            self.operation.busy,
+            false,
+            cx,
+        ));
         if self.busy {
             root = root.child(
                 div()

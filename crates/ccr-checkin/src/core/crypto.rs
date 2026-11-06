@@ -76,6 +76,13 @@ impl CryptoManager {
         Ok(Self { key, key_path })
     }
 
+    /// Read an existing key without creating directories or replacing a missing key.
+    pub fn load_existing(checkin_dir: &Path) -> Result<Self, CryptoError> {
+        let key_path = checkin_dir.join(CRYPTO_KEY_FILE);
+        let key = Self::load_key(&key_path)?;
+        Ok(Self { key, key_path })
+    }
+
     /// 生成随机 256-bit 密钥
     fn generate_key() -> Key<Aes256Gcm> {
         Key::<Aes256Gcm>::generate()

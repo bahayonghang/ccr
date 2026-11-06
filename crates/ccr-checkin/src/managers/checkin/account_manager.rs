@@ -239,9 +239,14 @@ impl AccountManager {
 
     /// 删除账号
     pub fn delete(&self, id: &str) -> Result<()> {
-        let deleted = self
-            .db
-            .with_connection(|conn| checkin_repo::delete_account(conn, id))?;
+        let deleted = self.db.transaction(|transaction| {
+            let deleted = checkin_repo::delete_account(transaction, id)?;
+            if deleted {
+                checkin_repo::delete_records_by_account(transaction, id)?;
+                checkin_repo::delete_balances_by_account(transaction, id)?;
+            }
+            Ok(deleted)
+        })?;
 
         if !deleted {
             return Err(AccountError::NotFound(id.to_string()));
@@ -325,6 +330,55 @@ mod tests {
             api_user: "12345".to_string(),
             extra_config: "{}".to_string(),
         }
+    }
+
+    #[test]
+    fn deleting_an_account_and_its_history_rolls_back_together() {
+        use crate::models::checkin::{BalanceSnapshot, CheckinRecord};
+        let (_directory, manager) = manager_with_memory_db();
+        let account = manager
+            .create(create_request("fixture", r#"{"session":"private"}"#))
+            .unwrap();
+        manager.db.with_connection(|connection| {
+            checkin_repo::insert_record(connection, &CheckinRecord::success(account.id.clone(), None, None))?;
+            checkin_repo::insert_balance(connection, &BalanceSnapshot::new(account.id.clone(), 10., 2., 8., "USD".into()))?;
+            connection.execute_batch("CREATE TRIGGER reject_balance_delete BEFORE DELETE ON checkin_balances BEGIN SELECT RAISE(ABORT, 'fixture refusal'); END")
+        }).unwrap();
+        assert!(manager.delete(&account.id).is_err());
+        assert!(manager.get(&account.id).is_ok());
+        assert_eq!(
+            crate::RecordManager::with_db(manager.db.clone())
+                .get_by_account(&account.id, None)
+                .unwrap()
+                .total,
+            1
+        );
+        assert!(
+            crate::BalanceManager::with_db(manager.db.clone())
+                .get_latest(&account.id)
+                .unwrap()
+                .is_some()
+        );
+        manager
+            .db
+            .with_connection(|connection| {
+                connection.execute_batch("DROP TRIGGER reject_balance_delete")
+            })
+            .unwrap();
+        manager.delete(&account.id).unwrap();
+        assert_eq!(
+            crate::RecordManager::with_db(manager.db.clone())
+                .get_by_account(&account.id, None)
+                .unwrap()
+                .total,
+            0
+        );
+        assert!(
+            crate::BalanceManager::with_db(manager.db.clone())
+                .get_latest(&account.id)
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[test]

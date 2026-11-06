@@ -3,7 +3,9 @@
 
 use ccr_types::ModelRateCatalog;
 use chrono::{DateTime, Utc};
-use rusqlite::{Connection, OpenFlags, Transaction, params};
+#[cfg(test)]
+use rusqlite::OpenFlags;
+use rusqlite::{Connection, Transaction, params};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -1742,29 +1744,8 @@ fn create_verified_migration_backup(
     let backup_path = database_path.with_file_name(format!(
         "{file_name}.pre-migration-v{version}.{timestamp}.bak"
     ));
-    let backup_path_sql = backup_path.to_string_lossy().into_owned();
-    conn.execute("VACUUM main INTO ?1", [backup_path_sql])
-        .map_err(|error| MigrationError::Database(format!("backup failed: {error}")))?;
-
-    let verify_result = (|| -> MigrationResult<()> {
-        let backup = Connection::open_with_flags(&backup_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
-            .map_err(|error| MigrationError::Database(format!("backup open failed: {error}")))?;
-        let integrity: String = backup
-            .query_row("PRAGMA integrity_check", [], |row| row.get(0))
-            .map_err(|error| {
-                MigrationError::Database(format!("backup integrity check failed: {error}"))
-            })?;
-        if integrity != "ok" {
-            return Err(MigrationError::Database(format!(
-                "backup integrity check returned {integrity}"
-            )));
-        }
-        Ok(())
-    })();
-    if let Err(error) = verify_result {
-        let _ = fs::remove_file(&backup_path);
-        return Err(error);
-    }
+    super::backup::create_verified_backup(conn, &backup_path)
+        .map_err(|error| MigrationError::Database(error.to_string()))?;
 
     info!(
         version,

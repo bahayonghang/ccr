@@ -26,6 +26,15 @@ pub struct BalanceManager {
     db: database::DbAccess,
 }
 
+#[derive(Clone, Default)]
+pub struct BalanceTotals {
+    pub currency: String,
+    pub accounts: usize,
+    pub remaining: f64,
+    pub total: f64,
+    pub used: f64,
+}
+
 impl BalanceManager {
     /// 创建新的余额管理器
     #[allow(clippy::new_without_default)]
@@ -36,6 +45,32 @@ impl BalanceManager {
     /// Use the same explicit database as the caller.
     pub fn with_db(db: database::DbAccess) -> Self {
         Self { db }
+    }
+
+    /// Real latest balances grouped by stored unit; incompatible currencies are never added.
+    pub fn totals_by_currency(&self) -> Result<(Vec<BalanceTotals>, usize)> {
+        let mut groups: std::collections::BTreeMap<String, BalanceTotals> = Default::default();
+        let mut unusable = 0;
+        for row in self.get_latest_map()?.into_values() {
+            if !row.remaining_quota.is_finite()
+                || !row.total_quota.is_finite()
+                || !row.used_quota.is_finite()
+            {
+                unusable += 1;
+                continue;
+            }
+            let group = groups
+                .entry(row.currency.clone())
+                .or_insert_with(|| BalanceTotals {
+                    currency: row.currency,
+                    ..Default::default()
+                });
+            group.accounts += 1;
+            group.remaining += row.remaining_quota;
+            group.total += row.total_quota;
+            group.used += row.used_quota;
+        }
+        Ok((groups.into_values().collect(), unusable))
     }
 
     /// 添加余额快照 (自动清理旧数据)
