@@ -93,3 +93,11 @@ Windows debug/便携 release 已取得 13 入口、三类真实 fixture 保存�
 优先复用既有源码、fixture/headless 和 Windows 原生收据；本轮仅在核心操作无法由这些证据判断时追加最小原生验证，不重复侧栏、主题、截图或尺寸/DPI 巡检。保持默认测试并行、`--skip export_bindings` 和既有外部环境限制。
 
 稳定变更独立检查进一步确认三个真实入口缺口（不是旧 planned 状态推断）：Codex 会话导出/克隆/删除、Claude observer 工具/订阅管理、Codex 单账户/全部账户配额。继续消费现有 owner 接入当前 Usage/Sessions/平台入口；Grok 关闭认证必须保留原服务保存轮换令牌的语义，先加捕获根目录 seam 再接原生操作。动态来源、原版本及正确 main/archive 数据库身份需要在写入前绑定。只补必要 fixture/headless 回归，真实配额网络不运行，不因旧子目录已归档而静默丢弃这些能力。
+
+### 2026-11-06 最新界面与功能对等授权
+
+后续基线已完成上述会话、observer、quota 等操作接入，实际整合提交为 `ca60b88c`，该批 desktop 三门禁、完整 `just ci` 与 Windows 便携包通过；本轮新增操作原生验收仍未运行。命令入口整理和契约回归另提交为 `8f098784`，不能将旧 CI 视为验证了未来变更。
+
+用户最新要求先拆分提交所有改动，再提供下一对话继续全部未完成任务的 Prompt；明确要求使用指定 design-atlas 重设计侧边栏，解决 Claude Code 等平台页与 Tauri 功能和显示差距。下一轮遵循 [实施 Prompt](research/next-session-implementation-prompt-20261106.md)：先交付侧栏与 Claude 工作台纵向批次，继续其余平台和已确认六类产品缺口，不把颜色微调、配置名单、全局页面入口或测试数量当成功能对等。
+
+已有 airy-glass 设计保留并增量更新；Tauri 源码和用户截图用于信息架构、业务与交互对照。核心视觉变化需要当前二进制的少量隔离 fixture 原生验证，减少无关 computer use 不等于豁免视觉验收。WSL、尺寸/DPI 延期、真实用户数据与网络限制及父任务归档硬门继续有效；父任务、01、09 仍为 `in_progress`。此次交接不实施新 UI、不启动另一聊天，也不归档任务。
