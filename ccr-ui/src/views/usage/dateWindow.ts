@@ -1,3 +1,5 @@
+import { capturedReportClock } from '@/utils/reportClock'
+
 export const formatLocalDate = (date: Date) => {
   const year = date.getFullYear()
   const month = `${date.getMonth() + 1}`.padStart(2, '0')
@@ -67,10 +69,40 @@ export const getLocalDateRangeWindow = (
   return getLocalDateWindow(30, end)
 }
 
+/** Default report presets use the captured UTC calendar only in explicit Benchmark mode. */
+export const getReportDateWindow = (days: number): UsageDateWindow => {
+  const clock = capturedReportClock()
+  if (!clock) return getLocalDateWindow(days)
+  const end = new Date(clock.asOfUtc)
+  const start = new Date(end)
+  start.setUTCDate(end.getUTCDate() - (Math.max(1, Math.floor(days)) - 1))
+  return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) }
+}
+
+export const getReportDateRangeWindow = (preset: UsageRangePreset): UsageDateWindow => {
+  const clock = capturedReportClock()
+  if (!clock) return getLocalDateRangeWindow(preset)
+  if (preset === 'all_time') return {}
+  const end = new Date(clock.asOfUtc)
+  const start = new Date(end)
+  if (preset === 'this_month') start.setUTCDate(1)
+  else if (preset === 'this_week') start.setUTCDate(end.getUTCDate() - ((end.getUTCDay() + 6) % 7))
+  else if (preset === 'last_30d') return getReportDateWindow(30)
+  return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) }
+}
+
+const reportWindowSpan = (preset: UsageRangePreset) => {
+  const { start, end } = getReportDateRangeWindow(preset)
+  return start && end ? Math.max(1, (Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) / 86_400_000 + 1) : 365
+}
+
 export const getUsageRangePresetImportDays = (
   preset: UsageRangePreset,
-  endDate = new Date(),
+  endDate?: Date,
 ) => {
+  if (endDate === undefined) {
+    return preset === 'this_week' || preset === 'this_month' ? reportWindowSpan(preset) : preset === 'today' ? 1 : 30
+  }
   if (preset === 'today') return 1
   if (preset === 'this_week') return getInclusiveLocalDaySpan(startOfLocalWeek(endDate), endDate)
   if (preset === 'this_month') return getInclusiveLocalDaySpan(startOfLocalMonth(endDate), endDate)
@@ -83,8 +115,9 @@ export const getUsageRangePresetImportDays = (
 export const getUsageRangePresetSpanDays = (
   preset: UsageRangePreset,
   trendDates: string[] = [],
-  endDate = new Date(),
+  endDate?: Date,
 ) => {
+  if (preset !== 'all_time' && endDate === undefined) return reportWindowSpan(preset)
   if (preset === 'all_time') {
     const sortedDates = [...trendDates].filter(Boolean).sort()
     if (sortedDates.length >= 2) {

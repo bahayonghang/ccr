@@ -8,7 +8,7 @@ import type {
   PlatformUsageInsightLabels,
   PlatformUsageTone,
 } from '@/types/platformUsageInsight'
-import { getLocalDateWindow } from '@/views/usage/dateWindow'
+import { getReportDateWindow } from '@/views/usage/dateWindow'
 import {
   buildPlatformUsageInsight,
   buildPlatformUsageLabels,
@@ -42,7 +42,7 @@ export const usePlatformUsageInsight = ({
   labels,
   tone = 'neutral',
 }: UsePlatformUsageInsightOptions) => {
-  const dateWindow = useMemo(() => getLocalDateWindow(days), [days])
+  const dateWindow = useMemo(() => getReportDateWindow(days), [days])
   const resolvedLabels = useMemo(() => buildPlatformUsageLabels(labels), [labels])
 
   // 原实现挂载与参数变化时总是重新拉取、无 TTL → staleTime 0

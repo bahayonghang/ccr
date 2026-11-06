@@ -3,9 +3,10 @@
 pub mod jsonl;
 pub mod scanner;
 pub mod subscription;
+use super::report_clock::ReportClock;
 use ccr_db::database::repositories::claude_tool_calls_repo;
 use ccr_usage::build_filter;
-use chrono::{Datelike, Local};
+use chrono::Datelike;
 use serde::Serialize;
 use tracing::debug;
 
@@ -107,23 +108,28 @@ fn overview_in_window(
     llmusage: &ccr_usage::AppPaths,
     start_date: Option<String>,
     end_date: Option<String>,
+    clock: ReportClock,
 ) -> Result<ccr_usage::OverviewPayload, String> {
-    let filter = build_filter(Some("claude".to_string()), None, start_date, end_date)?;
+    let mut filter = build_filter(Some("claude".to_string()), None, start_date, end_date)?;
+    filter.timezone = clock.timezone;
     let dashboard = ccr_usage::open_dashboard(llmusage.clone())
         .map_err(|e| format!("Dashboard open error: {e}"))?;
-    dashboard
-        .overview(&filter)
-        .map_err(|e| format!("Overview query error: {e}"))
+    (if clock.timezone == ccr_usage::ReportTimezone::Utc {
+        dashboard.overview_at(&filter, clock.as_of)
+    } else {
+        dashboard.overview(&filter)
+    })
+    .map_err(|e| format!("Overview query error: {e}"))
 }
 
 /// 计算「今日」/「本月」的日期窗口（local time）。返回 (start_yyyy_mm_dd, end_yyyy_mm_dd)。
-fn today_window() -> (String, String) {
-    let today = Local::now().date_naive();
+fn today_window(clock: ReportClock) -> (String, String) {
+    let today = clock.date();
     let s = today.format("%Y-%m-%d").to_string();
     (s.clone(), s)
 }
-fn month_window() -> (String, String) {
-    let today = Local::now().date_naive();
+fn month_window(clock: ReportClock) -> (String, String) {
+    let today = clock.date();
     let first = today
         .with_day(1)
         .unwrap_or(today)
@@ -140,29 +146,37 @@ pub fn insight(
     llmusage: &ccr_usage::AppPaths,
     conn: &rusqlite::Connection,
 ) -> Result<InsightDto, String> {
+    insight_with_clock(llmusage, conn, ReportClock::live())
+}
+pub fn insight_with_clock(
+    llmusage: &ccr_usage::AppPaths,
+    conn: &rusqlite::Connection,
+    clock: ReportClock,
+) -> Result<InsightDto, String> {
     /* ====================================================================
      * 步骤1：从 llmusage 拉 total / today / month 三个 overview
      * ====================================================================
      */
     debug!("[claude_observer] get_insight: fetching total overview");
-    let total = overview_in_window(llmusage, None, None)?;
+    let total = overview_in_window(llmusage, None, None, clock)?;
 
-    let (today_s, today_e) = today_window();
+    let (today_s, today_e) = today_window(clock);
     debug!(
         "[claude_observer] get_insight: fetching today overview ({} to {})",
         today_s, today_e
     );
-    let today = overview_in_window(llmusage, Some(today_s), Some(today_e))?;
+    let today = overview_in_window(llmusage, Some(today_s), Some(today_e), clock)?;
 
-    let (month_s, month_e) = month_window();
+    let (month_s, month_e) = month_window(clock);
     debug!(
         "[claude_observer] get_insight: fetching month overview ({} to {})",
         month_s, month_e
     );
-    let month = overview_in_window(llmusage, Some(month_s), Some(month_e))?;
+    let month = overview_in_window(llmusage, Some(month_s), Some(month_e), clock)?;
 
     /* 步骤2：从 llmusage 拉项目数（distinct 项目维度）*/
-    let filter = build_filter(Some("claude".to_string()), None, None, None)?;
+    let mut filter = build_filter(Some("claude".to_string()), None, None, None)?;
+    filter.timezone = clock.timezone;
     let dashboard = ccr_usage::open_dashboard(llmusage.clone())
         .map_err(|e| format!("Dashboard open error: {e}"))?;
     let projects = dashboard
@@ -210,22 +224,30 @@ pub fn daily_trend(
     llmusage: &ccr_usage::AppPaths,
     days: Option<i64>,
 ) -> Result<Vec<DailyPoint>, String> {
+    daily_trend_with_clock(llmusage, days, ReportClock::live())
+}
+pub fn daily_trend_with_clock(
+    llmusage: &ccr_usage::AppPaths,
+    days: Option<i64>,
+    clock: ReportClock,
+) -> Result<Vec<DailyPoint>, String> {
     let days = days.unwrap_or(30).clamp(1, 365);
     debug!("[claude_observer] daily_trend: days={}", days);
 
-    let today = Local::now().date_naive();
+    let today = clock.date();
     let start = today - chrono::Duration::days(days - 1);
     debug!(
         "[claude_observer] daily_trend: date range {} to {}",
         start, today
     );
 
-    let filter = build_filter(
+    let mut filter = build_filter(
         Some("claude".to_string()),
         None,
         Some(start.format("%Y-%m-%d").to_string()),
         Some(today.format("%Y-%m-%d").to_string()),
     )?;
+    filter.timezone = clock.timezone;
 
     debug!(
         "[claude_observer] daily_trend: DB path {:?}",
@@ -271,6 +293,15 @@ pub fn cost_breakdown(
     days: Option<i64>,
     limit: Option<i64>,
 ) -> Result<Vec<BreakdownRow>, String> {
+    cost_breakdown_with_clock(llmusage, dim, days, limit, ReportClock::live())
+}
+pub fn cost_breakdown_with_clock(
+    llmusage: &ccr_usage::AppPaths,
+    dim: &str,
+    days: Option<i64>,
+    limit: Option<i64>,
+    clock: ReportClock,
+) -> Result<Vec<BreakdownRow>, String> {
     let limit = limit.unwrap_or(10).clamp(1, 200) as usize;
     let days = days.unwrap_or(30).clamp(1, 365);
     debug!(
@@ -278,14 +309,15 @@ pub fn cost_breakdown(
         dim, days, limit
     );
 
-    let today = Local::now().date_naive();
+    let today = clock.date();
     let start = today - chrono::Duration::days(days - 1);
-    let filter = build_filter(
+    let mut filter = build_filter(
         Some("claude".to_string()),
         None,
         Some(start.format("%Y-%m-%d").to_string()),
         Some(today.format("%Y-%m-%d").to_string()),
     )?;
+    filter.timezone = clock.timezone;
     let dashboard = ccr_usage::open_dashboard(llmusage.clone()).map_err(|e| {
         let err = format!("Dashboard open error: {e}");
         tracing::error!("[claude_observer] {}", err);
@@ -399,6 +431,14 @@ pub fn top_sessions(
     limit: Option<i64>,
     by: Option<&str>,
 ) -> Result<Vec<SessionRow>, String> {
+    top_sessions_with_clock(conn, limit, by, ReportClock::live())
+}
+pub fn top_sessions_with_clock(
+    conn: &rusqlite::Connection,
+    limit: Option<i64>,
+    by: Option<&str>,
+    clock: ReportClock,
+) -> Result<Vec<SessionRow>, String> {
     let limit = limit.unwrap_or(10).clamp(1, 200);
     let by_calls = matches!(by, Some("calls"));
     debug!(
@@ -407,12 +447,16 @@ pub fn top_sessions(
     );
 
     // 用 efficiency_sessions 拉全量，再按需重排
-    let mut rows =
-        claude_tool_calls_repo::efficiency_sessions(conn, 30, 0.0, 1000).map_err(|e| {
-            let err = format!("Efficiency query error: {e}");
-            tracing::error!("[claude_observer] {}", err);
-            err
-        })?;
+    let mut rows = (if clock.timezone == ccr_usage::ReportTimezone::Utc {
+        claude_tool_calls_repo::efficiency_sessions_at(conn, 30, 0.0, 1000, clock.as_of)
+    } else {
+        claude_tool_calls_repo::efficiency_sessions(conn, 30, 0.0, 1000)
+    })
+    .map_err(|e| {
+        let err = format!("Efficiency query error: {e}");
+        tracing::error!("[claude_observer] {}", err);
+        err
+    })?;
     if by_calls {
         // 用 sort_by_key 替换 sort_by 的 (a,b) 反向比较，clippy 偏好
         rows.sort_by_key(|r| std::cmp::Reverse(r.call_count));
@@ -450,10 +494,22 @@ pub fn tool_heatmap(
     conn: &rusqlite::Connection,
     days: Option<i64>,
 ) -> Result<Vec<HeatmapCell>, String> {
+    tool_heatmap_with_clock(conn, days, ReportClock::live())
+}
+pub fn tool_heatmap_with_clock(
+    conn: &rusqlite::Connection,
+    days: Option<i64>,
+    clock: ReportClock,
+) -> Result<Vec<HeatmapCell>, String> {
     let days = days.unwrap_or(30).clamp(1, 365);
     debug!("[claude_observer] tool_heatmap: days={}", days);
 
-    let result = claude_tool_calls_repo::heatmap(conn, days).map_err(|e| {
+    let result = (if clock.timezone == ccr_usage::ReportTimezone::Utc {
+        claude_tool_calls_repo::heatmap_at(conn, days, clock.as_of)
+    } else {
+        claude_tool_calls_repo::heatmap(conn, days)
+    })
+    .map_err(|e| {
         let err = format!("Heatmap query error: {e}");
         tracing::error!("[claude_observer] {}", err);
         err
@@ -476,6 +532,14 @@ pub fn top_tools(
     days: Option<i64>,
     limit: Option<i64>,
 ) -> Result<Vec<TopToolRow>, String> {
+    top_tools_with_clock(conn, days, limit, ReportClock::live())
+}
+pub fn top_tools_with_clock(
+    conn: &rusqlite::Connection,
+    days: Option<i64>,
+    limit: Option<i64>,
+    clock: ReportClock,
+) -> Result<Vec<TopToolRow>, String> {
     let days = days.unwrap_or(30).clamp(1, 365);
     let limit = limit.unwrap_or(15).clamp(1, 200);
     debug!(
@@ -483,7 +547,12 @@ pub fn top_tools(
         days, limit
     );
 
-    let result = claude_tool_calls_repo::top_tools(conn, days, limit).map_err(|e| {
+    let result = (if clock.timezone == ccr_usage::ReportTimezone::Utc {
+        claude_tool_calls_repo::top_tools_at(conn, days, limit, clock.as_of)
+    } else {
+        claude_tool_calls_repo::top_tools(conn, days, limit)
+    })
+    .map_err(|e| {
         let err = format!("Top tools query error: {e}");
         tracing::error!("[claude_observer] {}", err);
         err
@@ -495,4 +564,48 @@ pub fn top_tools(
     }
 
     Ok(result.into_iter().map(TopToolRow::from).collect())
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod clock_tests {
+    use super::*;
+    use ccr_usage::fixtures::{SeedBucket, create_projection_db, seed_bucket};
+    #[test]
+    fn observer_defaults_use_fixed_utc_today_month_and_days() {
+        let root = tempfile::tempdir().unwrap();
+        let paths = create_projection_db(root.path());
+        let pool = ccr_db::database::create_pool(&paths.db_path, None).unwrap();
+        let conn = pool.get().unwrap();
+        for ts in [
+            "1999-12-31T23:59:59Z",
+            "2000-01-01T00:00:00Z",
+            "2000-01-02T00:00:00Z",
+        ] {
+            seed_bucket(
+                &conn,
+                &SeedBucket {
+                    source: "claude".into(),
+                    hour_start: ts.into(),
+                    ..Default::default()
+                },
+            );
+        }
+        drop(conn);
+        drop(pool);
+        let at = chrono::DateTime::parse_from_rfc3339("2000-01-01T00:30:00Z")
+            .unwrap()
+            .with_timezone(&chrono::Utc);
+        let clock = ReportClock::fixed_utc(at);
+        assert_eq!(
+            today_window(clock),
+            ("2000-01-01".into(), "2000-01-01".into())
+        );
+        assert_eq!(month_window(clock), today_window(clock));
+        let trend = daily_trend_with_clock(&paths, Some(1), clock).unwrap();
+        assert_eq!(trend.len(), 1);
+        assert_eq!(trend[0].date, "2000-01-01");
+        let rows = cost_breakdown_with_clock(&paths, "model", Some(1), Some(20), clock).unwrap();
+        assert_eq!(rows[0].tokens, 100);
+    }
 }

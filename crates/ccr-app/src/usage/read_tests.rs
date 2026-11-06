@@ -114,3 +114,50 @@ fn empty_is_measured_zero_but_missing_is_error_and_reversed_bounds_are_rejected(
         Err(UsageError::Query(_))
     ));
 }
+
+#[test]
+fn captured_clock_controls_last24h_and_heatmap_without_changing_explicit_filter() {
+    let temp = tempfile::tempdir().unwrap();
+    let paths = create_projection_db(temp.path());
+    let pool = create_pool(&paths.db_path, None).unwrap();
+    let conn = pool.get().unwrap();
+    for hour in [
+        "1999-12-31T23:59:59Z",
+        "2000-01-01T00:00:00Z",
+        "2000-01-01T23:59:59Z",
+        "2000-01-02T00:00:00Z",
+    ] {
+        seed_bucket(
+            &conn,
+            &SeedBucket {
+                hour_start: hour.into(),
+                ..Default::default()
+            },
+        );
+    }
+    drop(conn);
+    drop(pool);
+    let dashboard = ccr_usage::open_dashboard(paths).unwrap();
+    let at = chrono::DateTime::parse_from_rfc3339("2000-01-01T23:59:59Z")
+        .unwrap()
+        .with_timezone(&chrono::Utc);
+    let filter = QueryFilter {
+        timezone: ReportTimezone::Utc,
+        ..Default::default()
+    };
+    let report = read_dashboard_at(&dashboard, &filter, Some(1), Some(at)).unwrap();
+    assert_eq!(report.overview.generated_at, at.to_rfc3339());
+    assert_eq!(report.overview.last_24h.total_tokens, 300);
+    assert_eq!(report.heatmap.unwrap().len(), 1);
+    let day = NaiveDate::from_ymd_opt(1999, 12, 31).unwrap();
+    let explicit = QueryFilter {
+        since: Some(day),
+        until: Some(day),
+        timezone: ReportTimezone::Utc,
+        ..Default::default()
+    };
+    let report = read_dashboard_at(&dashboard, &explicit, None, Some(at)).unwrap();
+    assert_eq!(report.overview.total.total_tokens, 100);
+    assert_eq!(explicit.since, Some(day));
+    assert_eq!(explicit.until, Some(day));
+}

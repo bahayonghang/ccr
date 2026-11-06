@@ -1,3 +1,4 @@
+import { getReportDateWindow } from '@/views/usage/dateWindow'
 import type { HomeOverviewSeriesItem } from '@/types/usage'
 import { useUsageSummary } from '../queries'
 
@@ -24,7 +25,11 @@ export function formatHomeLocalDate(date: Date): string {
 }
 
 /** 与后端 local_usage_date_window 对齐：end = 本地今天，start = end - (days - 1)。 */
-export function homeDateWindow(days: number, now: Date = new Date()): HomeDateWindow {
+export function homeDateWindow(days: number, now?: Date): HomeDateWindow {
+  if (!now) {
+    const range = getReportDateWindow(days)
+    return { startDate: range.start ?? '', endDate: range.end ?? '' }
+  }
   const safeDays = Math.max(1, Math.floor(days))
   const end = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const start = new Date(end)

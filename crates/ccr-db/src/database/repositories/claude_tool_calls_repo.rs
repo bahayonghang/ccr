@@ -33,6 +33,25 @@ pub struct ToolCallRow {
     pub project_path: Option<String>,
 }
 
+// Preserve the legacy live filter exactly; fixed reports also exclude future rows.
+fn report_window(days: i64, as_of: Option<chrono::DateTime<Utc>>) -> (&'static str, Vec<String>) {
+    match (days > 0, as_of) {
+        (true, Some(at)) => (
+            "WHERE julianday(ts) BETWEEN julianday(?2, ?1) AND julianday(?2)",
+            vec![format!("-{days} days"), at.to_rfc3339()],
+        ),
+        (false, Some(at)) => (
+            "WHERE julianday(ts) <= julianday(?1)",
+            vec![at.to_rfc3339()],
+        ),
+        (true, None) => (
+            "WHERE ts >= datetime('now', ?1)",
+            vec![format!("-{days} days")],
+        ),
+        (false, None) => ("", vec![]),
+    }
+}
+
 /// 周-小时热力图单元
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct HeatmapCell {
@@ -192,14 +211,21 @@ pub fn get_ingest_state(
 /// 周×小时热力图。`days` 为窗口大小，0 表示不限。
 #[allow(dead_code)]
 pub fn heatmap(conn: &Connection, days: i64) -> Result<Vec<HeatmapCell>, rusqlite::Error> {
-    let (where_sql, params_vec): (&str, Vec<String>) = if days > 0 {
-        (
-            "WHERE ts >= datetime('now', ?1)",
-            vec![format!("-{days} days")],
-        )
-    } else {
-        ("", vec![])
-    };
+    heatmap_with_clock(conn, days, None)
+}
+pub fn heatmap_at(
+    conn: &Connection,
+    days: i64,
+    as_of: chrono::DateTime<Utc>,
+) -> Result<Vec<HeatmapCell>, rusqlite::Error> {
+    heatmap_with_clock(conn, days, Some(as_of))
+}
+fn heatmap_with_clock(
+    conn: &Connection,
+    days: i64,
+    as_of: Option<chrono::DateTime<Utc>>,
+) -> Result<Vec<HeatmapCell>, rusqlite::Error> {
+    let (where_sql, params_vec) = report_window(days, as_of);
     let sql = format!(
         "SELECT CAST(strftime('%w', ts) AS INTEGER) AS dow,
                 CAST(strftime('%H', ts) AS INTEGER) AS hour,
@@ -227,14 +253,23 @@ pub fn top_tools(
     days: i64,
     limit: i64,
 ) -> Result<Vec<TopToolRow>, rusqlite::Error> {
-    let (where_sql, params_vec): (&str, Vec<String>) = if days > 0 {
-        (
-            "WHERE ts >= datetime('now', ?1)",
-            vec![format!("-{days} days")],
-        )
-    } else {
-        ("", vec![])
-    };
+    top_tools_with_clock(conn, days, limit, None)
+}
+pub fn top_tools_at(
+    conn: &Connection,
+    days: i64,
+    limit: i64,
+    as_of: chrono::DateTime<Utc>,
+) -> Result<Vec<TopToolRow>, rusqlite::Error> {
+    top_tools_with_clock(conn, days, limit, Some(as_of))
+}
+fn top_tools_with_clock(
+    conn: &Connection,
+    days: i64,
+    limit: i64,
+    as_of: Option<chrono::DateTime<Utc>>,
+) -> Result<Vec<TopToolRow>, rusqlite::Error> {
+    let (where_sql, params_vec) = report_window(days, as_of);
     let sql = format!(
         "SELECT tool_name, COUNT(*) AS cnt, COALESCE(SUM(cost_usd), 0.0) AS cost
          FROM claude_tool_calls
@@ -263,14 +298,25 @@ pub fn efficiency_sessions(
     min_cost_usd: f64,
     limit: i64,
 ) -> Result<Vec<EfficiencyRow>, rusqlite::Error> {
-    let (where_sql, mut params_vec): (&str, Vec<String>) = if days > 0 {
-        (
-            "WHERE ts >= datetime('now', ?1)",
-            vec![format!("-{days} days")],
-        )
-    } else {
-        ("", vec![])
-    };
+    efficiency_sessions_with_clock(conn, days, min_cost_usd, limit, None)
+}
+pub fn efficiency_sessions_at(
+    conn: &Connection,
+    days: i64,
+    min_cost_usd: f64,
+    limit: i64,
+    as_of: chrono::DateTime<Utc>,
+) -> Result<Vec<EfficiencyRow>, rusqlite::Error> {
+    efficiency_sessions_with_clock(conn, days, min_cost_usd, limit, Some(as_of))
+}
+fn efficiency_sessions_with_clock(
+    conn: &Connection,
+    days: i64,
+    min_cost_usd: f64,
+    limit: i64,
+    as_of: Option<chrono::DateTime<Utc>>,
+) -> Result<Vec<EfficiencyRow>, rusqlite::Error> {
+    let (where_sql, mut params_vec) = report_window(days, as_of);
     params_vec.push(format!("{min_cost_usd}"));
     let sql = format!(
         "SELECT session_id,
@@ -390,5 +436,45 @@ mod tests {
         let top = efficiency_sessions(&conn, 0, 0.0, 5).unwrap();
         assert_eq!(top[0].session_id, "expensive");
         assert!(top[0].cost_per_tool > top[1].cost_per_tool);
+    }
+    #[test]
+    fn fixed_report_tools_window_includes_edges_and_excludes_future() {
+        let mut conn = fresh_conn();
+        let as_of = chrono::DateTime::parse_from_rfc3339("2000-01-02T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        let rows = [
+            "1999-12-31T23:59:59Z",
+            "2000-01-01T00:00:00Z",
+            "2000-01-02T00:00:00Z",
+            "2000-01-02T00:00:00.001Z",
+            "2000-01-02T00:00:01Z",
+        ]
+        .into_iter()
+        .enumerate()
+        .map(|(i, ts)| {
+            let mut row = sample_row(&format!("s{i}"), 0, "Read", true, 0.5);
+            row.ts = ts.into();
+            row
+        })
+        .collect::<Vec<_>>();
+        upsert_batch(&mut conn, &rows).unwrap();
+        assert_eq!(
+            heatmap_at(&conn, 1, as_of)
+                .unwrap()
+                .iter()
+                .map(|cell| cell.count)
+                .sum::<i64>(),
+            2
+        );
+        assert_eq!(top_tools_at(&conn, 1, 20, as_of).unwrap()[0].call_count, 2);
+        assert_eq!(top_tools_at(&conn, 0, 20, as_of).unwrap()[0].call_count, 3);
+        assert_eq!(
+            efficiency_sessions_at(&conn, 1, 0.0, 20, as_of)
+                .unwrap()
+                .len(),
+            2
+        );
+        assert_eq!(top_tools(&conn, 0, 20).unwrap()[0].call_count, 5);
     }
 }

@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { UsagePlatform } from '@/types/usage'
 import {
   DEFAULT_USAGE_RANGE_PRESET,
-  getLocalDateRangeWindow,
+  getReportDateRangeWindow,
   type UsageRangePreset,
 } from '@/views/usage/dateWindow'
 
@@ -31,16 +31,16 @@ export const useUsageViewStore = create<UsageViewState>()((set) => ({
   rangePreset: DEFAULT_USAGE_RANGE_PRESET,
   // 必须与 rangePreset 同步：空 timeRange 会让 dashboard 查询不带起止，
   // 标签显示「近 30 天」实际却画出全部历史日柱。
-  timeRange: getLocalDateRangeWindow(DEFAULT_USAGE_RANGE_PRESET),
+  timeRange: getReportDateRangeWindow(DEFAULT_USAGE_RANGE_PRESET),
 
   setPlatform: (platform) => set({ platform }),
   setRangePreset: (rangePreset) =>
-    set({ rangePreset, timeRange: getLocalDateRangeWindow(rangePreset) }),
+    set({ rangePreset, timeRange: getReportDateRangeWindow(rangePreset) }),
   setTimeRange: (timeRange) => set({ timeRange }),
   resetFilters: () =>
     set({
       platform: undefined,
       rangePreset: DEFAULT_USAGE_RANGE_PRESET,
-      timeRange: getLocalDateRangeWindow(DEFAULT_USAGE_RANGE_PRESET),
+      timeRange: getReportDateRangeWindow(DEFAULT_USAGE_RANGE_PRESET),
     }),
 }))

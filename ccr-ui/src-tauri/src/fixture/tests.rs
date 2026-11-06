@@ -345,3 +345,136 @@ async fn fixture_core_graph_child() {
     assert!(!forbidden.exists());
     assert!(admit("unknown").is_err());
 }
+
+#[test]
+fn benchmark_mode_is_explicit_and_only_it_injects_a_readonly_report_clock() {
+    let root = tempfile::tempdir().unwrap();
+    let mut layout = layout(root.path());
+    assert!(layout.benchmark.is_none());
+    assert!(report_clock_script(&layout).unwrap().is_none());
+    assert!(
+        parse([
+            OsString::from("--fixture-root"),
+            root.path().as_os_str().into(),
+            OsString::from("--benchmark-fixture-root"),
+            root.path().as_os_str().into()
+        ])
+        .is_err()
+    );
+    assert!(parse([OsString::from("--benchmark-fixture-root")]).is_err());
+    let at = chrono::DateTime::parse_from_rfc3339("2000-01-01T00:30:00Z")
+        .unwrap()
+        .with_timezone(&chrono::Utc);
+    layout.benchmark = Some(ccr_app::benchmark::Seed {
+        root: layout.root.clone(),
+        id: "benchmark-s0".into(),
+        scenario: "S0".into(),
+        logical_sha256: String::new(),
+        as_of: at,
+        timezone: ccr_usage::ReportTimezone::Utc,
+        profile_count: 0,
+        session_count: 0,
+        usage_count: 0,
+    });
+    let script = report_clock_script(&layout).unwrap().unwrap();
+    assert!(script.contains("Object.defineProperty(window,'__CCR_REPORT_CLOCK__'"));
+    assert!(script.contains("Object.freeze("));
+    assert!(script.contains("writable:false,configurable:false"));
+    assert!(script.contains("2000-01-01T00:30:00Z"));
+    assert!(script.contains("UTC"));
+    assert!(!script.contains("window.Date"));
+    assert!(!script.contains(layout.root.to_string_lossy().as_ref()));
+}
+
+#[test]
+#[ignore = "explicit generated paired fixtures; headless service reads in isolated children"]
+fn generated_benchmark_default_reports_use_manifest_clock() {
+    let pair = PathBuf::from(std::env::var_os("CCR_NATIVE_BENCHMARK_PAIR_ROOT").unwrap());
+    for scenario in ["S0", "S1", "S2"] {
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "fixture::tests::generated_benchmark_clock_child",
+                "--ignored",
+                "--nocapture",
+                "--skip",
+                "export_bindings",
+            ])
+            .env(
+                "CCR_TAURI_BENCHMARK_CLOCK_CHILD",
+                pair.join(scenario).join("tauri"),
+            )
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{} {}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        println!("{scenario}: {}", String::from_utf8_lossy(&output.stdout));
+    }
+}
+#[test]
+#[ignore = "closed child of generated_benchmark_default_reports_use_manifest_clock"]
+fn generated_benchmark_clock_child() {
+    let root = PathBuf::from(std::env::var_os("CCR_TAURI_BENCHMARK_CLOCK_CHILD").unwrap());
+    let layout = parse([OsString::from("--benchmark-fixture-root"),root.as_os_str().into()]).unwrap().unwrap();
+    let seed = layout.benchmark.as_ref().unwrap();
+    install(layout.clone()).unwrap();
+    let clock = report_clock();
+    assert_eq!(clock.as_of, seed.as_of);
+    assert_eq!(clock.timezone, ccr_usage::ReportTimezone::Utc);
+    let llmusage = crate::llmusage_adapter::LlmusageRuntime::from_paths(
+        crate::llmusage_adapter::AppPaths::from_root(layout.path("llmusage").unwrap()),
+    );
+    let archive =
+        ccr_db::database::create_pool(&layout.path("ccr/analytics/usage.db").unwrap(), None)
+            .unwrap();
+    let response = crate::services::usage::compute_home_overview(
+        &llmusage,
+        &archive,
+        7,
+        crate::services::usage::HomeJobContext {
+            active_usage_job_id: None,
+            active_usage_imported_records: 0,
+            active_session_job_id: None,
+            active_session_indexed: 0,
+            active_usage_import: false,
+            active_session_index: false,
+            raw_sessions_present: false,
+        },
+    )
+    .unwrap();
+    assert_eq!(response.last_updated, seed.as_of.to_rfc3339());
+    assert_eq!(response.summary.total_sessions, seed.session_count as u64);
+    let manifest:serde_json::Value=serde_json::from_slice(&std::fs::read(layout.root.parent().unwrap().join("logical-manifest.json")).unwrap()).unwrap();
+    let start=clock.window(7).0.to_string();let end=clock.date().to_string();
+    let expected_requests=manifest["ends"]["tauri"]["logical"]["usage"]["trends"].as_array().unwrap().iter()
+        .filter(|row|row["date"].as_str().is_some_and(|date|date>=start.as_str() && date<=end.as_str()))
+        .map(|row|row["request_count"].as_i64().unwrap()).sum::<i64>();
+    assert_eq!(response.summary.total_requests,expected_requests as u64);
+
+    assert_eq!(
+        response.series.last().unwrap().date,
+        clock.date().to_string()
+    );
+    let home = crate::services::home_insights::compute_home_insights(
+        &llmusage,
+        &archive,
+        clock.date(),
+        clock.as_of,
+    )
+    .unwrap();
+    assert_eq!(home.as_of, clock.date().to_string());
+    assert_eq!(home.generated_at, seed.as_of.to_rfc3339());
+    assert_eq!(home.totals.sessions, seed.session_count as i64);
+    assert_eq!(home.last_7_days.requests,expected_requests);
+    let trend=crate::services::claude_observer::daily_trend(&llmusage,Some(7)).unwrap();
+    assert!(trend.iter().all(|point|point.date<=clock.date().to_string()));
+    if seed.usage_count>0 {assert_eq!(trend.last().unwrap().date,clock.date().to_string());}
+    println!(
+        "{}: home sessions {}, as_of {}, generated {}",
+        seed.scenario, response.summary.total_sessions, home.as_of, home.generated_at
+    );
+}

@@ -1,3 +1,4 @@
+import { capturedReportClock, reportNow } from '@/utils/reportClock'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import type { DashboardBackendStatus } from '@/views/dashboard/dashboardPresentation'
@@ -48,15 +49,15 @@ const signalLevelLabelKey = (level: string) => {
 }
 
 const formatClock = (date: Date) =>
-  new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(date)
+  new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', ...(capturedReportClock() ? { timeZone: 'UTC' } : {}) }).format(date)
 
 /** 底部命令状态条：后端连接、最近事件严重度、路由命令提示、本地时钟。 */
 export function DashboardStatusBar({ backendStatus, entries }: DashboardStatusBarProps) {
   const t = useUsageT()
-  const [now, setNow] = useState(() => new Date())
+  const [now, setNow] = useState(() => reportNow())
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), CLOCK_TICK_MS)
+    const timer = window.setInterval(() => setNow(reportNow()), CLOCK_TICK_MS)
     return () => window.clearInterval(timer)
   }, [])
 
@@ -106,7 +107,7 @@ export function DashboardStatusBar({ backendStatus, entries }: DashboardStatusBa
         ))}
       </nav>
       <span className="dashboard-statusbar__item dashboard-statusbar__clock">
-        <time dateTime={now.toISOString()}>{formatClock(now)}</time>
+        <time dateTime={now.toISOString()}>{formatClock(now)}{capturedReportClock() ? ' UTC' : ''}</time>
       </span>
     </footer>
   )

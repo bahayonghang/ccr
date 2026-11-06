@@ -30,7 +30,11 @@ impl Dashboard {
         &self,
         filter: &QueryFilter,
     ) -> Result<ccr_usage::OverviewPayload, LlmusageAdapterError> {
-        self.inner.overview(filter).map_err(shared_usage_error)
+        match crate::fixture::current().and_then(|layout| layout.benchmark.as_ref()) {
+            Some(seed) => self.inner.overview_at(filter, seed.as_of),
+            None => self.inner.overview(filter),
+        }
+        .map_err(shared_usage_error)
     }
 
     pub fn trends_daily(
@@ -72,7 +76,11 @@ impl Dashboard {
         filter: &QueryFilter,
         days: u32,
     ) -> Result<Vec<ccr_usage::HeatmapPoint>, LlmusageAdapterError> {
-        self.inner.heatmap(filter, days).map_err(shared_usage_error)
+        match crate::fixture::current().and_then(|layout| layout.benchmark.as_ref()) {
+            Some(seed) => self.inner.heatmap_at(filter, days, seed.as_of),
+            None => self.inner.heatmap(filter, days),
+        }
+        .map_err(shared_usage_error)
     }
 
     pub fn logs(&self, query: &LogsQuery) -> Result<LogsPage, LlmusageAdapterError> {

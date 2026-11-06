@@ -20,3 +20,5 @@ pub mod monitoring;
 
 #[cfg(test)]
 mod benchmark_fixture;
+
+pub mod benchmark;

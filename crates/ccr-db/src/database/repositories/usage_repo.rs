@@ -1260,20 +1260,72 @@ pub fn has_any_session_archive(conn: &Connection) -> Result<bool, rusqlite::Erro
     Ok(count > 0)
 }
 
+fn utc_report_date_bounds(
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Result<(Option<String>, Option<String>), rusqlite::Error> {
+    let parse = |value: &str| {
+        chrono::NaiveDate::parse_from_str(value, "%Y-%m-%d")
+            .map_err(|_| rusqlite::Error::InvalidParameterName("invalid UTC report date".into()))
+    };
+    let start = start
+        .as_deref()
+        .map(|value| parse(value).map(|date| format!("{date}T00:00:00+00:00")))
+        .transpose()?;
+    let end = end
+        .as_deref()
+        .map(|value| {
+            parse(value)
+                .and_then(|date| {
+                    date.succ_opt().ok_or_else(|| {
+                        rusqlite::Error::InvalidParameterName("UTC report date overflow".into())
+                    })
+                })
+                .map(|date| format!("{date}T00:00:00+00:00"))
+        })
+        .transpose()?;
+    Ok((start, end))
+}
+
 pub fn get_session_archive_platform_summaries(
     conn: &Connection,
     start: &Option<String>,
     end: &Option<String>,
 ) -> Result<Vec<SessionArchivePlatformSummary>, rusqlite::Error> {
+    get_session_archive_platform_summaries_with_window(conn, start, end, false)
+}
+/// Explicit UTC calendar window; the end date includes its entire day.
+pub fn get_session_archive_platform_summaries_utc(
+    conn: &Connection,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Result<Vec<SessionArchivePlatformSummary>, rusqlite::Error> {
+    let (start, end) = utc_report_date_bounds(start, end)?;
+    get_session_archive_platform_summaries_with_window(conn, &start, &end, true)
+}
+fn get_session_archive_platform_summaries_with_window(
+    conn: &Connection,
+    start: &Option<String>,
+    end: &Option<String>,
+    exclusive_end: bool,
+) -> Result<Vec<SessionArchivePlatformSummary>, rusqlite::Error> {
     let mut clauses = Vec::new();
     let mut bind_params: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
 
     if let Some(start) = start {
-        clauses.push("created_at >= ?");
+        clauses.push(if exclusive_end {
+            "julianday(created_at) >= julianday(?)"
+        } else {
+            "created_at >= ?"
+        });
         bind_params.push(Box::new(start.clone()));
     }
     if let Some(end) = end {
-        clauses.push("created_at <= ?");
+        clauses.push(if exclusive_end {
+            "julianday(created_at) < julianday(?)"
+        } else {
+            "created_at <= ?"
+        });
         bind_params.push(Box::new(end.clone()));
     }
 
@@ -1310,15 +1362,40 @@ pub fn get_session_archive_daily_trends(
     start: &Option<String>,
     end: &Option<String>,
 ) -> Result<Vec<SessionArchiveDailyTrend>, rusqlite::Error> {
+    get_session_archive_daily_trends_with_window(conn, start, end, false)
+}
+/// Explicit UTC calendar window; the end date includes its entire day.
+pub fn get_session_archive_daily_trends_utc(
+    conn: &Connection,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Result<Vec<SessionArchiveDailyTrend>, rusqlite::Error> {
+    let (start, end) = utc_report_date_bounds(start, end)?;
+    get_session_archive_daily_trends_with_window(conn, &start, &end, true)
+}
+fn get_session_archive_daily_trends_with_window(
+    conn: &Connection,
+    start: &Option<String>,
+    end: &Option<String>,
+    exclusive_end: bool,
+) -> Result<Vec<SessionArchiveDailyTrend>, rusqlite::Error> {
     let mut clauses = Vec::new();
     let mut bind_params: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
 
     if let Some(start) = start {
-        clauses.push("created_at >= ?");
+        clauses.push(if exclusive_end {
+            "julianday(created_at) >= julianday(?)"
+        } else {
+            "created_at >= ?"
+        });
         bind_params.push(Box::new(start.clone()));
     }
     if let Some(end) = end {
-        clauses.push("created_at <= ?");
+        clauses.push(if exclusive_end {
+            "julianday(created_at) < julianday(?)"
+        } else {
+            "created_at <= ?"
+        });
         bind_params.push(Box::new(end.clone()));
     }
 
@@ -1327,11 +1404,16 @@ pub fn get_session_archive_daily_trends(
     } else {
         format!(" WHERE {}", clauses.join(" AND "))
     };
+    let date_expr = if exclusive_end {
+        "date(created_at)"
+    } else {
+        "substr(created_at, 1, 10)"
+    };
     let sql = format!(
-        "SELECT substr(created_at, 1, 10), platform, COUNT(*)
+        "SELECT {date_expr}, platform, COUNT(*)
          FROM usage_session_archive{}
-         GROUP BY substr(created_at, 1, 10), platform
-         ORDER BY substr(created_at, 1, 10) ASC, platform ASC",
+         GROUP BY {date_expr}, platform
+         ORDER BY {date_expr} ASC, platform ASC",
         where_sql
     );
 
@@ -2848,6 +2930,44 @@ mod tests {
             get_agent_session_archive_source(&conn, "replacement-id-must-not-win")
                 .unwrap()
                 .is_none()
+        );
+    }
+    #[test]
+    fn utc_report_summary_and_trends_include_end_day_and_exclude_next_day() {
+        let conn = setup_test_db();
+        for (index, at) in [
+            "1999-12-31T23:59:59Z",
+            "2000-01-01T00:00:00Z",
+            "2000-01-01T23:59:59.999Z",
+            "2000-01-02T00:00:00Z",
+            "2000-01-02T01:00:00+02:00",
+            "1999-12-31T20:00:00-04:00",
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            conn.execute("INSERT INTO usage_session_archive(archive_id,session_id,platform,cwd,file_path,created_at,updated_at,archived_at) VALUES(?1,?1,'codex','/synthetic',?1,?2,?2,?2)",rusqlite::params![format!("s{index}"),at]).unwrap();
+        }
+        let start = Some("2000-01-01".into());
+        let end = Some("2000-01-01".into());
+        assert_eq!(
+            get_session_archive_platform_summaries_utc(&conn, &start, &end).unwrap()[0]
+                .session_count,
+            4
+        );
+        let rows = get_session_archive_daily_trends_utc(&conn, &start, &end).unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].date, "2000-01-01");
+        assert_eq!(rows[0].session_count, 4);
+        assert!(
+            get_session_archive_platform_summaries_utc(&conn, &Some("invalid".into()), &end)
+                .is_err()
+        );
+        // Existing callers retain their literal date-string contract.
+        assert!(
+            get_session_archive_platform_summaries(&conn, &start, &end)
+                .unwrap()
+                .is_empty()
         );
     }
 }

@@ -129,13 +129,14 @@ impl From<claude_tool_calls_repo::TopToolRow> for TopToolRow {
 
 pub fn insight(llmusage: &LlmusageRuntime, db_pool: &DbPool) -> Result<InsightDto, String> {
     let conn = db_pool.get().map_err(|e| format!("DB pool error: {e}"))?;
-    shared::insight(llmusage.paths(), &conn).map(Into::into)
+    shared::insight_with_clock(llmusage.paths(), &conn, crate::fixture::report_clock())
+        .map(Into::into)
 }
 pub fn daily_trend(
     llmusage: &LlmusageRuntime,
     days: Option<i64>,
 ) -> Result<Vec<DailyPoint>, String> {
-    shared::daily_trend(llmusage.paths(), days)
+    shared::daily_trend_with_clock(llmusage.paths(), days, crate::fixture::report_clock())
         .map(|rows| rows.into_iter().map(Into::into).collect())
 }
 pub fn cost_breakdown(
@@ -144,8 +145,14 @@ pub fn cost_breakdown(
     days: Option<i64>,
     limit: Option<i64>,
 ) -> Result<Vec<BreakdownRow>, String> {
-    shared::cost_breakdown(llmusage.paths(), dim, days, limit)
-        .map(|rows| rows.into_iter().map(Into::into).collect())
+    shared::cost_breakdown_with_clock(
+        llmusage.paths(),
+        dim,
+        days,
+        limit,
+        crate::fixture::report_clock(),
+    )
+    .map(|rows| rows.into_iter().map(Into::into).collect())
 }
 pub fn cache_stats(llmusage: &LlmusageRuntime) -> Result<CacheStatsDto, String> {
     shared::cache_stats(llmusage.paths()).map(Into::into)
@@ -156,11 +163,13 @@ pub fn top_sessions(
     by: Option<&str>,
 ) -> Result<Vec<SessionRow>, String> {
     let conn = db_pool.get().map_err(|e| format!("DB pool error: {e}"))?;
-    shared::top_sessions(&conn, limit, by).map(|rows| rows.into_iter().map(Into::into).collect())
+    shared::top_sessions_with_clock(&conn, limit, by, crate::fixture::report_clock())
+        .map(|rows| rows.into_iter().map(Into::into).collect())
 }
 pub fn tool_heatmap(db_pool: &DbPool, days: Option<i64>) -> Result<Vec<HeatmapCell>, String> {
     let conn = db_pool.get().map_err(|e| format!("DB pool error: {e}"))?;
-    shared::tool_heatmap(&conn, days).map(|rows| rows.into_iter().map(Into::into).collect())
+    shared::tool_heatmap_with_clock(&conn, days, crate::fixture::report_clock())
+        .map(|rows| rows.into_iter().map(Into::into).collect())
 }
 pub fn top_tools(
     db_pool: &DbPool,
@@ -168,7 +177,8 @@ pub fn top_tools(
     limit: Option<i64>,
 ) -> Result<Vec<TopToolRow>, String> {
     let conn = db_pool.get().map_err(|e| format!("DB pool error: {e}"))?;
-    shared::top_tools(&conn, days, limit).map(|rows| rows.into_iter().map(Into::into).collect())
+    shared::top_tools_with_clock(&conn, days, limit, crate::fixture::report_clock())
+        .map(|rows| rows.into_iter().map(Into::into).collect())
 }
 impl From<shared::InsightDto> for InsightDto {
     fn from(value: shared::InsightDto) -> Self {

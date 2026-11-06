@@ -100,3 +100,42 @@ opaque IDs unchanged and separately hash them. Each manifest fixes as_of/UTC;
 future clients must consume that definition. S2's descriptor is `not_emitted`
 until real runtime injection executes. Seed success never implies application
 loading, first-present measurement or benchmark comparability.
+
+## Native Benchmark source
+
+Native `--benchmark-fixture-root` selects a distinct immutable Benchmark source;
+it does not redefine legacy Fixture or Local behavior. Validate marker, pair
+identity, manifest logical hashes, captured DB artifacts and unlinked paths on
+the bounded startup worker before preferences or window creation. Failure must
+not fall back to Local. Bind roots, pools, catalogs, crypto and writer locks to
+that source; alternate insights paths cannot rebind it.
+
+Retained editor snapshots also require validation against the current Benchmark
+source before reading revisions or writing. A source-bound snapshot alone does
+not stop another Services instance from reusing it. MCP mutate/copy/batch must
+check their private captured source identity; prompt, Claude and platform-file
+writers validate their retained owner paths/roots. Keep ordinary Local/Fixture
+behavior intact. Benchmark OAuth start/control refuse before claim, listener or
+credential effects (a read-only rejection admission is allowed). Legacy Fixture
+OAuth can still use its controlled loopback owner; do not describe it as the
+Benchmark refusal policy.
+
+Both explicit Benchmark adapters consume `ccr_app::benchmark::Seed`; endpoint
+selection changes member identity, not validation policy. Do not run a second
+adapter-specific hash pass. The shared owner walks selected-root metadata and
+streams each required DB main file once. Before admitting any of the four DB
+roles (including S0's absent catalog), reject nonempty WAL/journal and linked,
+nonregular or unavailable sidecars. Empty ordinary sidecars are allowed; SHM
+bytes carry no committed data but its path/type must also be safe. Never recover
+or checkpoint input to make validation pass.
+
+`ReportClock` supplies immutable manifest UTC only for explicit Benchmark default
+reports. Local/legacy Fixture keep live wrappers; explicit dates/timezone and
+manual store filters remain caller-owned. Heatmap retains its pre-existing
+independent rolling-days window: only its default today anchor changes, while
+timezone/other filters remain intact. The frontend context is read-only JSON
+installed by every captured WebView builder, not a global Date/timer override.
+Admission rejects non-UTC and leap-second clocks before effects because the
+frontend Date representation must agree. Matching validation policy and real
+default report readback are not a first-present/action-ready measurement; results
+remain `not_run/not_comparable` until the complete performance contract passes.

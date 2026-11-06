@@ -14,7 +14,7 @@ use crate::{
         DailyTrendDto, HeatmapPoint, HomeOverviewPayload, HomeOverviewPlatformStats,
         HomeOverviewSeriesItem, HomeOverviewSummary, ModelBreakdown, OverviewPayload,
         ProjectBreakdown, ProviderBreakdownDto, SourceBreakdownDto, TaggedProviderBreakdown,
-        TokenSummary, UsageRecordDto, generated_at,
+        TokenSummary, UsageRecordDto,
     },
     source::{SourceKind, parse_source_filter},
     timezone::{ResolvedZone, parse_stored_timestamp, register_functions},
@@ -252,11 +252,32 @@ impl Dashboard {
     }
 
     pub fn overview(&self, filter: &QueryFilter) -> Result<OverviewPayload, UsageError> {
+        self.overview_with_clock(filter, None)
+    }
+    pub fn overview_at(
+        &self,
+        filter: &QueryFilter,
+        as_of: chrono::DateTime<chrono::Utc>,
+    ) -> Result<OverviewPayload, UsageError> {
+        self.overview_with_clock(filter, Some(as_of))
+    }
+    fn overview_with_clock(
+        &self,
+        filter: &QueryFilter,
+        as_of: Option<chrono::DateTime<chrono::Utc>>,
+    ) -> Result<OverviewPayload, UsageError> {
+        let fixed = as_of.is_some();
+        let as_of = as_of.unwrap_or_else(chrono::Utc::now);
+        let recent = if fixed {
+            "julianday(hour_start) BETWEEN julianday(cutoff.value) AND julianday(cutoff.upper)"
+        } else {
+            "hour_start >= cutoff.value"
+        };
         self.ensure_feature_for_filter(FeatureKey::Overview, filter)?;
         let zone = self.zone(filter.timezone);
         let bucket_filter = filter.bucket_filter(None, &zone, self.schema_version())?;
-        let cutoff = (chrono::Utc::now() - chrono::Duration::hours(24))
-            .to_rfc3339_opts(SecondsFormat::Secs, true);
+        let cutoff =
+            (as_of - chrono::Duration::hours(24)).to_rfc3339_opts(SecondsFormat::Secs, true);
         let sql = format!(
             r#"
             WITH filtered AS (
@@ -268,23 +289,28 @@ impl Dashboard {
                 COALESCE(SUM(output_tokens), 0),
                 COALESCE(SUM(reasoning_output_tokens), 0),
                 COALESCE(SUM(total_tokens), 0),
-                COALESCE(SUM(CASE WHEN hour_start >= cutoff.value THEN input_tokens ELSE 0 END), 0),
-                COALESCE(SUM(CASE WHEN hour_start >= cutoff.value THEN cache_read_tokens ELSE 0 END), 0),
-                COALESCE(SUM(CASE WHEN hour_start >= cutoff.value THEN output_tokens ELSE 0 END), 0),
-                COALESCE(SUM(CASE WHEN hour_start >= cutoff.value THEN reasoning_output_tokens ELSE 0 END), 0),
-                COALESCE(SUM(CASE WHEN hour_start >= cutoff.value THEN total_tokens ELSE 0 END), 0),
+                COALESCE(SUM(CASE WHEN {recent} THEN input_tokens ELSE 0 END), 0),
+                COALESCE(SUM(CASE WHEN {recent} THEN cache_read_tokens ELSE 0 END), 0),
+                COALESCE(SUM(CASE WHEN {recent} THEN output_tokens ELSE 0 END), 0),
+                COALESCE(SUM(CASE WHEN {recent} THEN reasoning_output_tokens ELSE 0 END), 0),
+                COALESCE(SUM(CASE WHEN {recent} THEN total_tokens ELSE 0 END), 0),
                 COALESCE(SUM(event_count), 0),
-                COALESCE(SUM(CASE WHEN hour_start >= cutoff.value THEN event_count ELSE 0 END), 0),
+                COALESCE(SUM(CASE WHEN {recent} THEN event_count ELSE 0 END), 0),
                 COALESCE(SUM(cost_with_cache_usd), 0.0),
                 COUNT(DISTINCT source),
                 COUNT(*)
             FROM filtered
-            CROSS JOIN (SELECT ? AS value) AS cutoff
+            CROSS JOIN (SELECT ? AS value, ? AS upper) AS cutoff
             "#,
             bucket_filter.where_sql()
         );
         let mut params = bucket_filter.params.clone();
         params.push(Value::Text(cutoff));
+        params.push(if fixed {
+            Value::Text(as_of.to_rfc3339())
+        } else {
+            Value::Null
+        });
         let values = self
             .conn
             .query_row(&sql, params_from_iter(params.iter()), |row| {
@@ -336,7 +362,11 @@ impl Dashboard {
             (None, None)
         });
         Ok(OverviewPayload {
-            generated_at: generated_at(),
+            generated_at: if fixed {
+                as_of.to_rfc3339()
+            } else {
+                crate::queries::generated_at()
+            },
             cache_efficiency: total.cache_efficiency(),
             total,
             last_24h,
@@ -622,10 +652,18 @@ impl Dashboard {
         filter: &QueryFilter,
         days: u32,
     ) -> Result<Vec<HeatmapPoint>, UsageError> {
+        self.heatmap_at(filter, days, chrono::Utc::now())
+    }
+    pub fn heatmap_at(
+        &self,
+        filter: &QueryFilter,
+        days: u32,
+        as_of: chrono::DateTime<chrono::Utc>,
+    ) -> Result<Vec<HeatmapPoint>, UsageError> {
         self.ensure_feature_for_filter(FeatureKey::Heatmap, filter)?;
         let days = days.clamp(1, 366);
         let zone = self.zone(filter.timezone);
-        let end = zone.date_at(chrono::Utc::now());
+        let end = zone.date_at(as_of);
         let start = end - chrono::Duration::days((days - 1) as i64);
         // 用 heatmap 自身的滚动窗口覆盖 caller 透传的 since/until，
         // 避免 bucket_filter() 在 WHERE 里推出两份 date(...) 约束。

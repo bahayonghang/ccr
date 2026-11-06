@@ -1305,7 +1305,7 @@ pub async fn get_home_insights(
 ) -> Result<services::home_insights::HomeInsightsResponse, String> {
     let command_started = Instant::now();
     // as_of 只在命令层读本地时钟，服务层与投影全部接收显式日期。
-    let as_of = chrono::Local::now().date_naive();
+    let as_of = crate::fixture::report_clock().date();
     let active_usage_job = state.get_active_usage_import_job().await;
     let active_session_job = state.get_active_session_index_job().await;
     let cacheable = !is_active_usage_import_job(active_usage_job.as_ref())
@@ -1387,7 +1387,7 @@ async fn compute_home_insights_payload(
             &llmusage,
             &usage_db_pool,
             as_of,
-            Utc::now(),
+            crate::fixture::report_clock().as_of,
         )?;
         let db_ms = elapsed_ms(db_started);
         tracing::debug!(%as_of, db_ms, "home insights snapshot computed");

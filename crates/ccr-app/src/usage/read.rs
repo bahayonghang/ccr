@@ -25,6 +25,14 @@ pub fn read_dashboard(
     filter: &QueryFilter,
     heatmap_days: Option<u32>,
 ) -> Result<UsageSnapshot, UsageError> {
+    read_dashboard_at(dashboard, filter, heatmap_days, None)
+}
+pub fn read_dashboard_at(
+    dashboard: &Dashboard,
+    filter: &QueryFilter,
+    heatmap_days: Option<u32>,
+    as_of: Option<chrono::DateTime<chrono::Utc>>,
+) -> Result<UsageSnapshot, UsageError> {
     if filter
         .since
         .zip(filter.until)
@@ -32,7 +40,10 @@ pub fn read_dashboard(
     {
         return Err(UsageError::Query("invalid report date range".into()));
     }
-    let overview = dashboard.overview(filter)?;
+    let overview = match as_of {
+        Some(as_of) => dashboard.overview_at(filter, as_of)?,
+        None => dashboard.overview(filter)?,
+    };
     let trends = dashboard.trends_daily(filter)?;
     let models = dashboard.model_breakdown(filter)?;
     let projects = dashboard.project_breakdown(filter)?;
@@ -47,7 +58,10 @@ pub fn read_dashboard(
         Err(error) => return Err(error),
     };
     let heatmap = heatmap_days
-        .map(|days| dashboard.heatmap(filter, days.clamp(1, 366)))
+        .map(|days| match as_of {
+            Some(as_of) => dashboard.heatmap_at(filter, days.clamp(1, 366), as_of),
+            None => dashboard.heatmap(filter, days.clamp(1, 366)),
+        })
         .transpose()?;
     Ok(UsageSnapshot {
         overview,

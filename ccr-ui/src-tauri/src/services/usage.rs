@@ -19,10 +19,21 @@ use crate::llmusage_adapter::queries::{
 };
 use crate::llmusage_adapter::{
     JobEvent, LlmusageRuntime, LogsQuery as LlmusageLogsQuery, SourceKind, SourceSyncStats,
-    build_filter, is_optional_source_absent, platform_scope_label, queries,
+    build_filter as build_live_filter, is_optional_source_absent, platform_scope_label, queries,
 };
 use crate::session_index_jobs::SessionIndexJobSnapshot;
 use crate::usage_jobs::UsageImportJobSnapshot;
+
+fn build_filter(
+    platform: Option<String>,
+    model: Option<String>,
+    start: Option<String>,
+    end: Option<String>,
+) -> Result<crate::llmusage_adapter::QueryFilter, String> {
+    let mut filter = build_live_filter(platform, model, start, end)?;
+    filter.timezone = crate::fixture::report_clock().timezone;
+    Ok(filter)
+}
 
 pub(crate) fn home_usage_platforms() -> impl Iterator<Item = &'static str> {
     SourceKind::ALL.into_iter().map(SourceKind::as_str)
@@ -491,7 +502,7 @@ pub fn build_usage_snapshot_projection(
     archive: &UsageArchiveDiagnostics,
 ) -> UsageSnapshotProjection {
     UsageSnapshotProjection {
-        generated_at: Utc::now().to_rfc3339(),
+        generated_at: crate::fixture::report_clock().as_of.to_rfc3339(),
         platform_scope,
         start_date,
         end_date,
@@ -631,7 +642,7 @@ pub fn non_negative_i64(value: i64) -> u64 {
 
 pub fn local_usage_date_window(days: usize) -> (chrono::NaiveDate, chrono::NaiveDate) {
     let safe_days = days.max(1);
-    let end = Local::now().date_naive();
+    let end = crate::fixture::report_clock().date();
     let start = end - Duration::days((safe_days - 1) as i64);
     (start, end)
 }
@@ -680,7 +691,13 @@ pub fn window_usage_needs_refresh(
         return true;
     };
     DateTime::parse_from_rfc3339(completed)
-        .map(|timestamp| timestamp.with_timezone(&Local).date_naive() < window_start)
+        .map(|timestamp| {
+            (if crate::fixture::report_clock().timezone == ccr_usage::ReportTimezone::Utc {
+                timestamp.with_timezone(&Utc).date_naive()
+            } else {
+                timestamp.with_timezone(&Local).date_naive()
+            }) < window_start
+        })
         .unwrap_or(true)
 }
 
@@ -781,7 +798,7 @@ pub fn load_llmusage_archive_diagnostics(
     let mut missing_sources = 0u64;
     let mut deleted_sources = 0u64;
     let mut source_health = Vec::new();
-    let now = Utc::now();
+    let now = crate::fixture::report_clock().as_of;
 
     for source in diagnostics.by_source {
         let source_recent_completed_at = source.recent_completed_at.clone();
@@ -859,14 +876,25 @@ pub fn load_home_session_snapshot(
     let start = Some(start_date.to_string());
     let end = Some(end_date.to_string());
 
-    let summaries =
+    let summaries = (if crate::fixture::report_clock().timezone == ccr_usage::ReportTimezone::Utc {
+        ccr_db::database::repositories::usage_repo::get_session_archive_platform_summaries_utc(
+            &conn, &start, &end,
+        )
+    } else {
         ccr_db::database::repositories::usage_repo::get_session_archive_platform_summaries(
             &conn, &start, &end,
         )
-        .map_err(|e| format!("Session summary query error: {e}"))?;
-    let trends = ccr_db::database::repositories::usage_repo::get_session_archive_daily_trends(
-        &conn, &start, &end,
-    )
+    })
+    .map_err(|e| format!("Session summary query error: {e}"))?;
+    let trends = (if crate::fixture::report_clock().timezone == ccr_usage::ReportTimezone::Utc {
+        ccr_db::database::repositories::usage_repo::get_session_archive_daily_trends_utc(
+            &conn, &start, &end,
+        )
+    } else {
+        ccr_db::database::repositories::usage_repo::get_session_archive_daily_trends(
+            &conn, &start, &end,
+        )
+    })
     .map_err(|e| format!("Session trend query error: {e}"))?;
     let has_any_sessions =
         ccr_db::database::repositories::usage_repo::has_any_session_archive(&conn)
@@ -1058,10 +1086,13 @@ pub fn compute_dashboard(
         .dashboard()
         .map_err(|e| format!("Dashboard open error: {e}"))?;
 
-    let report = ccr_app::usage::read::read_dashboard(
+    let report = ccr_app::usage::read::read_dashboard_at(
         dashboard.shared(),
         &filter,
         include_heatmap.then_some(heatmap_days),
+        crate::fixture::current()
+            .and_then(|layout| layout.benchmark.as_ref())
+            .map(|seed| seed.as_of),
     )
     .map_err(|error| format!("Dashboard query error: {error}"))?;
     let summary = queries::to_usage_summary(report.overview);
@@ -1222,7 +1253,7 @@ pub fn compute_home_overview(
             has_any_usage,
             has_any_sessions,
         ),
-        last_updated: Utc::now().to_rfc3339(),
+        last_updated: crate::fixture::report_clock().as_of.to_rfc3339(),
     })
 }
 

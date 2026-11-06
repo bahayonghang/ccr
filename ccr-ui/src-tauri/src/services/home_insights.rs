@@ -107,7 +107,10 @@ pub fn compute_home_insights(
 ) -> Result<HomeInsightsResponse, String> {
     ccr_app::usage::home::read_home_insights(
         llmusage.paths().clone(),
-        &QueryFilter::default(),
+        &QueryFilter {
+            timezone: crate::fixture::report_clock().timezone,
+            ..Default::default()
+        },
         pool,
         as_of,
         generated_at,

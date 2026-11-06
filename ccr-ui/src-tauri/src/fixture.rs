@@ -27,6 +27,14 @@ pub struct FixtureLayout {
     pub root: PathBuf,
     pub id: String,
     pub roots: PlatformRoots,
+    pub benchmark: Option<ccr_app::benchmark::Seed>,
+}
+
+pub fn report_clock() -> ccr_app::usage::report_clock::ReportClock {
+    current()
+        .and_then(|layout| layout.benchmark.as_ref())
+        .map(|seed| ccr_app::usage::report_clock::ReportClock::fixed_utc(seed.as_of))
+        .unwrap_or_else(ccr_app::usage::report_clock::ReportClock::live)
 }
 
 pub fn current() -> Option<&'static Arc<FixtureLayout>> {
@@ -39,8 +47,21 @@ pub fn parse(
 ) -> Result<Option<Arc<FixtureLayout>>, String> {
     let mut args = args.into_iter();
     let mut root = None;
+    let mut benchmark_root = None;
     while let Some(arg) = args.next() {
-        if arg == "--fixture-root" {
+        if arg == "--benchmark-fixture-root" {
+            if benchmark_root.is_some() {
+                return Err("fixture_duplicate_benchmark_root".into());
+            }
+            benchmark_root = Some(PathBuf::from(
+                args.next().ok_or("fixture_benchmark_root_required")?,
+            ));
+        } else if arg
+            .to_string_lossy()
+            .starts_with("--benchmark-fixture-root=")
+        {
+            return Err("fixture_use_separate_benchmark_root_argument".into());
+        } else if arg == "--fixture-root" {
             if root.is_some() {
                 return Err("fixture_duplicate_root".into());
             }
@@ -48,6 +69,12 @@ pub fn parse(
         } else if arg.to_string_lossy().starts_with("--fixture-root=") {
             return Err("fixture_use_separate_root_argument".into());
         }
+    }
+    if let Some(benchmark_root) = benchmark_root {
+        if root.is_some() {
+            return Err("fixture_benchmark_mode_conflict".into());
+        }
+        return FixtureLayout::load_benchmark(&benchmark_root).map(|layout| Some(Arc::new(layout)));
     }
     root.map(|root| FixtureLayout::load(&root).map(Arc::new))
         .transpose()
@@ -82,6 +109,21 @@ fn unlinked(path: &Path) -> Result<(), String> {
 }
 
 impl FixtureLayout {
+    pub fn load_benchmark(root: &Path) -> Result<Self, String> {
+        if cfg!(target_os = "macos") {
+            return Err("fixture_webview_storage_unsupported_on_macos".into());
+        }
+        let seed = ccr_app::benchmark::Seed::load(root, ccr_app::benchmark::Endpoint::Tauri)
+            .map_err(str::to_string)?;
+        let roots = PlatformRoots::fixture(&seed.root).map_err(|_| "fixture_roots_invalid")?;
+        Ok(Self {
+            root: seed.root.clone(),
+            id: seed.id.clone(),
+            roots,
+            benchmark: Some(seed),
+        })
+    }
+
     pub fn load(root: &Path) -> Result<Self, String> {
         if cfg!(target_os = "macos") {
             return Err("fixture_webview_storage_unsupported_on_macos".into());
@@ -144,6 +186,7 @@ impl FixtureLayout {
             root,
             id: marker.fixture_id,
             roots,
+            benchmark: None,
         })
     }
 
@@ -331,6 +374,14 @@ pub fn admit(command: &str) -> Result<(), String> {
 
 // Explicitly reviewed call graphs only. No risk/verb-based automatic permission.
 const CAPTURED_COMMANDS: &[&str] = &[
+    "claude_observer_get_insight",
+    "claude_observer_daily_trend",
+    "claude_observer_cost_breakdown",
+    "claude_observer_cache_stats",
+    "claude_observer_top_sessions",
+    "claude_observer_tool_heatmap",
+    "claude_observer_top_tools",
+    "claude_observer_subscription_get",
     "claude_list_auth_accounts",
     "claude_get_auth_current",
     "get_home_insights",
@@ -411,13 +462,26 @@ fn captured_command(command: &str) -> bool {
     CAPTURED_COMMANDS.contains(&command)
 }
 
+fn report_clock_script(layout: &FixtureLayout) -> Result<Option<String>, String> {
+    layout.benchmark.as_ref().map(|seed| {
+        let value=serde_json::to_string(&serde_json::json!({"asOfUtc":seed.as_of.to_rfc3339_opts(chrono::SecondsFormat::AutoSi,true),"timezone":"UTC"})).map_err(|_|"fixture_clock_invalid")?;
+        Ok(format!("Object.defineProperty(window,'__CCR_REPORT_CLOCK__',{{value:Object.freeze({value}),writable:false,configurable:false}});"))
+    }).transpose()
+}
+
 pub fn webview_builder<'a, R: tauri::Runtime, M: tauri::Manager<R>>(
     builder: tauri::WebviewWindowBuilder<'a, R, M>,
 ) -> Result<tauri::WebviewWindowBuilder<'a, R, M>, String> {
     match current() {
-        Some(layout) => Ok(builder
-            .data_directory(layout.path("webview")?)
-            .title(format!("CCR · Fixture {}", layout.id))),
+        Some(layout) => {
+            let builder = builder
+                .data_directory(layout.path("webview")?)
+                .title(format!("CCR · Fixture {}", layout.id));
+            Ok(match report_clock_script(layout)? {
+                Some(script) => builder.initialization_script(script),
+                None => builder,
+            })
+        }
         None => Ok(builder),
     }
 }
