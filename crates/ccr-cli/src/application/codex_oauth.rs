@@ -1,7 +1,9 @@
 //! One owner for OAuth admission, callback I/O, exchange, and secret cleanup.
 
 mod native;
-pub use native::{NativeError, NativePhase, NativeSession, NativeStatus, commit_account};
+pub use native::{
+    NativeCleanupPlan, NativeError, NativePhase, NativeSession, NativeStatus, commit_account,
+};
 
 use std::future::Future;
 use std::pin::Pin;

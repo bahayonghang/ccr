@@ -25,7 +25,9 @@ pub use codex_history_sync_service::{
     CodexHistorySyncService, CodexHistorySyncStatus, CodexHistoryVisibilityDiagnostics,
 };
 pub use codex_model_provider_store::CodexModelProviderStoreService;
-pub use codex_oauth_pending_store::{CodexOAuthPendingState, CodexOAuthPendingStore};
+pub use codex_oauth_pending_store::{
+    CodexOAuthPendingSnapshot, CodexOAuthPendingState, CodexOAuthPendingStore,
+};
 pub use codex_oauth_token_service::{
     CodexOAuthTokenService, OAuthRepairOutcome, RuntimeSyncOutcome, RuntimeSyncPlan,
 };

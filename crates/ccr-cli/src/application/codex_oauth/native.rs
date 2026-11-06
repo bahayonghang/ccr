@@ -1,7 +1,7 @@
 //! Captured-root OAuth adapter. Its caller tracks `run` until owner cleanup.
 use super::*;
 use crate::application::platform_roots::PlatformRoots;
-use ccr_codex::services::CodexOAuthPendingStore;
+use ccr_codex::services::{CodexOAuthPendingSnapshot, CodexOAuthPendingStore};
 use ccr_codex::{
     CodexAuthExportAccount, CodexAuthJson, CodexAuthService, CodexAuthTokens, ImportMode,
 };
@@ -44,6 +44,37 @@ pub struct NativeSession {
     status: Arc<Mutex<Option<NativeStatus>>>,
     active: AtomicBool,
     cancel_requested: AtomicBool,
+    scope: Mutex<Option<CleanupScope>>,
+}
+
+#[derive(Clone, PartialEq, Eq)]
+struct CleanupScope {
+    path: std::path::PathBuf,
+    locks: std::path::PathBuf,
+    store: std::path::PathBuf,
+    runtime: std::path::PathBuf,
+}
+impl CleanupScope {
+    fn from_roots(roots: &PlatformRoots) -> Self {
+        Self {
+            path: roots.ccr.join("platforms/codex/oauth_pending.json"),
+            locks: roots.locks.clone(),
+            store: roots.codex_store.clone(),
+            runtime: roots.codex_runtime.clone(),
+        }
+    }
+    fn snapshot(&self) -> Result<CodexOAuthPendingSnapshot, NativeError> {
+        LockManager::with_scoped_directory(&self.locks, || {
+            CodexOAuthPendingStore::with_path(self.path.clone()).snapshot()
+        })
+        .map_err(|_| NativeError::Failed)
+    }
+}
+/// Scope/revision consent. No Debug/Serialize and no plaintext in UI projections.
+pub struct NativeCleanupPlan {
+    scope: CleanupScope,
+    login_id: Option<String>,
+    snapshot: CodexOAuthPendingSnapshot,
 }
 
 impl NativeSession {
@@ -53,6 +84,7 @@ impl NativeSession {
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
             .map_err(|_| NativeError::Busy)?;
         self.cancel_requested.store(false, Ordering::Release);
+        *self.scope.lock().map_err(|_| NativeError::Failed)? = None;
         *self.status.lock().map_err(|_| NativeError::Failed)? = None;
         Ok(())
     }
@@ -108,6 +140,64 @@ impl NativeSession {
         }
         Ok(())
     }
+
+    fn cleanup_login(&self, scope: &CleanupScope) -> Result<Option<String>, NativeError> {
+        let status = self.status();
+        let owned = self.is_active()
+            || status
+                .as_ref()
+                .is_some_and(|status| status.phase == NativePhase::CleanupFailed);
+        if !owned {
+            return Ok(None);
+        }
+        if self.scope.lock().map_err(|_| NativeError::Failed)?.as_ref() != Some(scope) {
+            return Err(NativeError::Invalid);
+        }
+        status
+            .map(|status| Some(status.login_id))
+            .ok_or(NativeError::Busy)
+    }
+    pub fn prepare_cleanup(&self, roots: &PlatformRoots) -> Result<NativeCleanupPlan, NativeError> {
+        let scope = CleanupScope::from_roots(roots);
+        let login_id = self.cleanup_login(&scope)?;
+        let snapshot = scope.snapshot()?; // Unlike load, preparation never expires/deletes data.
+        if login_id
+            .as_deref()
+            .is_some_and(|id| snapshot.login_id() != Some(id))
+        {
+            return Err(NativeError::Invalid);
+        }
+        Ok(NativeCleanupPlan {
+            scope,
+            login_id,
+            snapshot,
+        })
+    }
+    pub fn cancel_captured(&self, plan: &NativeCleanupPlan) -> Result<(), NativeError> {
+        let current_login = self.cleanup_login(&plan.scope)?;
+        if current_login.is_some() && current_login != plan.login_id {
+            return Err(NativeError::Invalid);
+        }
+        let current = plan.scope.snapshot()?;
+        if !current.same_login(&plan.snapshot) {
+            return Err(NativeError::Invalid);
+        }
+        if let Some(id) = current_login {
+            // Controller cancellation remains commit-aware and joins its cleanup.
+            tokio::runtime::Handle::current()
+                .block_on(self.controller.cancel(Some(&id)))
+                .map_err(|_| NativeError::CleanupFailed)?;
+        }
+        let cleared = LockManager::with_scoped_directory(&plan.scope.locks, || {
+            CodexOAuthPendingStore::with_path(plan.scope.path.clone())
+                .clear_if_snapshot(&plan.snapshot)
+        })
+        .map_err(|_| NativeError::CleanupFailed)?;
+        if !cleared {
+            return Err(NativeError::Invalid);
+        }
+        Ok(())
+    }
     /// Runs only on the bounded app worker, never GPUI's render/input thread.
     pub fn run(
         self: &Arc<Self>,
@@ -116,7 +206,13 @@ impl NativeSession {
         changed: impl Fn() + Send + Sync + 'static,
     ) -> Result<(), NativeError> {
         let fixture = roots.fixture;
-        let backend = Arc::new(CapturedBackend { roots });
+        if let Ok(mut scope) = self.scope.lock() {
+            *scope = Some(CleanupScope::from_roots(&roots));
+        } else {
+            self.active.store(false, Ordering::Release);
+            return Err(NativeError::Failed);
+        }
+        let backend = Arc::new(CapturedBackend::new(roots));
         let result = tokio::runtime::Handle::current().block_on(self.run_with_backend(
             backend,
             || {
@@ -235,8 +331,15 @@ impl NativeSession {
 
 struct CapturedBackend {
     roots: PlatformRoots,
+    owned: Mutex<Option<CodexOAuthPendingSnapshot>>,
 }
 impl CapturedBackend {
+    fn new(roots: PlatformRoots) -> Self {
+        Self {
+            roots,
+            owned: Mutex::new(None),
+        }
+    }
     fn store(&self) -> CodexOAuthPendingStore {
         CodexOAuthPendingStore::with_path(self.roots.ccr.join("platforms/codex/oauth_pending.json"))
     }
@@ -250,13 +353,26 @@ impl Backend for CapturedBackend {
         Utc::now().timestamp()
     }
     fn load(&self) -> Result<Option<CodexOAuthPendingState>, String> {
-        self.scoped(|| self.store().load(self.now()))
+        let (pending, snapshot) = self.scoped(|| self.store().load_owned(self.now()))?;
+        *self.owned.lock().map_err(|_| "oauth_storage_failed")? = Some(snapshot);
+        Ok(pending)
     }
     fn save(&self, pending: &CodexOAuthPendingState) -> Result<(), String> {
-        self.scoped(|| self.store().save(pending))
+        let snapshot = self.scoped(|| self.store().save_owned(pending))?;
+        *self.owned.lock().map_err(|_| "oauth_storage_failed")? = Some(snapshot);
+        Ok(())
     }
     fn clear(&self) -> Result<(), String> {
-        self.scoped(|| self.store().clear())
+        let snapshot = self
+            .owned
+            .lock()
+            .map_err(|_| "oauth_storage_failed")?
+            .clone()
+            .ok_or("oauth_storage_unowned")?;
+        if !self.scoped(|| self.store().clear_if_snapshot(&snapshot))? {
+            return Err("oauth_pending_changed".into());
+        }
+        Ok(())
     }
     fn bind(&self, port: u16) -> Result<std::net::TcpListener, String> {
         std::net::TcpListener::bind(("127.0.0.1", port))
@@ -388,6 +504,52 @@ pub fn commit_account(
 mod tests {
     use super::*;
 
+    #[test]
+    fn captured_cleanup_plan_preserves_changed_pending_and_owner_scope() {
+        let root = tempfile::tempdir().unwrap();
+        let roots = PlatformRoots::fixture(root.path()).unwrap();
+        let backend = CapturedBackend::new(roots.clone());
+        let mut pending = new_oauth_pending().unwrap();
+        pending.login_id = "reviewed".into();
+        pending.expires_at = 0;
+        backend.save(&pending).unwrap();
+        let session = NativeSession::default();
+        let plan = session.prepare_cleanup(&roots).unwrap();
+        let path = CleanupScope::from_roots(&roots).path;
+        assert!(path.exists(), "prepare must preserve expired pending state");
+        pending.state = "newer-controlled-nonce".into();
+        CapturedBackend::new(roots.clone()).save(&pending).unwrap();
+        let bytes = std::fs::read(&path).unwrap();
+        assert_eq!(session.cancel_captured(&plan), Err(NativeError::Invalid));
+        assert_eq!(std::fs::read(&path).unwrap(), bytes);
+        assert!(
+            backend.clear().is_err(),
+            "old backend proof cannot remove a later pending nonce"
+        );
+        session.claim().unwrap();
+        *session.scope.lock().unwrap() = Some(CleanupScope::from_roots(&roots));
+        *session.status.lock().unwrap() = Some(NativeStatus {
+            login_id: "reviewed".into(),
+            authorization_url: "".into(),
+            phase: NativePhase::Waiting,
+            fixture: true,
+        });
+        let other = tempfile::tempdir().unwrap();
+        assert!(matches!(
+            session.prepare_cleanup(&PlatformRoots::fixture(other.path()).unwrap()),
+            Err(NativeError::Invalid)
+        ));
+        assert!(other.path().read_dir().unwrap().next().is_none());
+        let current = session.prepare_cleanup(&roots).unwrap();
+        session.status.lock().unwrap().as_mut().unwrap().login_id = "replacement".into();
+        assert_eq!(session.cancel_captured(&current), Err(NativeError::Invalid));
+        session.abandon_claim();
+        *session.status.lock().unwrap() = None;
+        let current = session.prepare_cleanup(&roots).unwrap();
+        session.cancel_captured(&current).unwrap();
+        assert!(!path.exists());
+    }
+
     struct TestBackend {
         captured: CapturedBackend,
         commits: AtomicBool,
@@ -445,9 +607,7 @@ mod tests {
     }
     fn backend(root: &std::path::Path, timeout: Duration) -> Arc<TestBackend> {
         Arc::new(TestBackend {
-            captured: CapturedBackend {
-                roots: PlatformRoots::fixture(root).unwrap(),
-            },
+            captured: CapturedBackend::new(PlatformRoots::fixture(root).unwrap()),
             commits: AtomicBool::new(false),
             release_commit: CancellationToken::new(),
             commit_started: tokio::sync::Notify::new(),
@@ -460,6 +620,7 @@ mod tests {
         let backend = backend(temp.path(), Duration::from_secs(3));
         let session = Arc::new(NativeSession::default());
         session.claim().unwrap();
+        *session.scope.lock().unwrap() = Some(CleanupScope::from_roots(&backend.captured.roots));
         let cancel = CancellationToken::new();
         let changed = Arc::new(tokio::sync::Notify::new());
         let changed_event = changed.clone();
@@ -491,6 +652,7 @@ mod tests {
         session.submit(&pending.login_id, &callback).unwrap();
         assert_eq!(session.status().unwrap().phase, NativePhase::Callback);
         assert!(!backend.commits.load(Ordering::Acquire));
+        let cleanup_plan = session.prepare_cleanup(&backend.captured.roots).unwrap();
         assert!(
             !session
                 .status()
@@ -504,6 +666,13 @@ mod tests {
         let complete =
             tokio::task::spawn_blocking(move || completing.complete(&id, Some("synthetic".into())));
         backend.commit_started.notified().await;
+        let refusing = session.clone();
+        assert_eq!(
+            tokio::task::spawn_blocking(move || refusing.cancel_captured(&cleanup_plan))
+                .await
+                .unwrap(),
+            Err(NativeError::CleanupFailed)
+        );
         cancel.cancel();
         tokio::time::sleep(Duration::from_millis(35)).await;
         assert!(!runner.is_finished() && !complete.is_finished());
@@ -527,6 +696,44 @@ mod tests {
                 && cleared.callback_url.is_none()
         );
         assert!(std::net::TcpListener::bind(("127.0.0.1", pending.port)).is_ok());
+    }
+
+    #[tokio::test]
+    async fn captured_active_cleanup_joins_its_listener_and_pending_owner() {
+        let temp = tempfile::tempdir().unwrap();
+        let backend = backend(temp.path(), Duration::from_secs(3));
+        let session = Arc::new(NativeSession::default());
+        session.claim().unwrap();
+        *session.scope.lock().unwrap() = Some(CleanupScope::from_roots(&backend.captured.roots));
+        let changed = Arc::new(tokio::sync::Notify::new());
+        let event = changed.clone();
+        let running = session.clone();
+        let running_backend = backend.clone();
+        let runner = tokio::spawn(async move {
+            running
+                .run_with_backend(
+                    running_backend,
+                    || Ok(pending()),
+                    true,
+                    || false,
+                    Arc::new(move || event.notify_one()),
+                )
+                .await
+        });
+        changed.notified().await;
+        let pending = session.controller.current().unwrap().unwrap();
+        let plan = session.prepare_cleanup(&backend.captured.roots).unwrap();
+        let cancelling = session.clone();
+        assert_eq!(
+            tokio::task::spawn_blocking(move || cancelling.cancel_captured(&plan))
+                .await
+                .unwrap(),
+            Ok(())
+        );
+        assert_eq!(runner.await.unwrap(), Err(NativeError::Cancelled));
+        assert!(backend.load().unwrap().is_none());
+        assert!(std::net::TcpListener::bind(("127.0.0.1", pending.port)).is_ok());
+        session.abandon_claim();
     }
     #[tokio::test]
     async fn native_owner_timeout_cleans_and_fixture_exchange_never_uses_network() {

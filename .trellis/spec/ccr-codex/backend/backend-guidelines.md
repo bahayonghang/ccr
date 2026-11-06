@@ -54,6 +54,19 @@ no-copy filesystem scans, legacy plaintext load, and redacted errors. Run
 native Windows ACL/cleanup-denial tests and Unix mode tests on their respective
 platforms; source checks cannot replace native permission checks.
 
+Native OAuth cleanup uses opaque pending-file snapshots bound to revision and
+login/nonce identity. Confirmation preparation uses `snapshot`, which preserves
+expired data. Conditional cleanup holds the existing operation lock and uses the
+guarded file CAS; an expiry conflict propagates instead of reporting a later
+pending state absent. Native captured backends retain the exact snapshot from
+their own load/save and clear only that revision. Captured cleanup plans retain
+the original pending/store/runtime/lock scope and reject replacement owners;
+controller cancellation keeps its commit-aware join. Existing load/save/clear
+interfaces and the camelCase disk shape remain compatible. Save retains its
+existing writer semantics; cross-process write CAS is outside this cleanup
+contract. Snapshots/plans have no Debug/Serialize and introduce no credential
+backup or history copies.
+
 The desktop OAuth controller is `commands/codex_auth/oauth.rs`. It owns the
 already-bound listener, pending state, cancel token, one completion request,
 and terminal cleanup. Bind and secret persistence must succeed before an ID

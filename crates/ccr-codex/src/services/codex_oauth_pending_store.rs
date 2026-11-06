@@ -46,6 +46,38 @@ pub struct CodexOAuthPendingStore {
     path: PathBuf,
 }
 
+/// Opaque proof of one pending-file revision. Never serialize or log this proof.
+#[derive(Clone)]
+pub struct CodexOAuthPendingSnapshot {
+    version: String,
+    login_id: Option<String>,
+    nonce: Option<String>,
+}
+impl CodexOAuthPendingSnapshot {
+    pub fn login_id(&self) -> Option<&str> {
+        self.login_id.as_deref()
+    }
+    pub fn same_login(&self, other: &Self) -> bool {
+        self.login_id == other.login_id && self.nonce == other.nonce
+    }
+    fn absent() -> Self {
+        Self {
+            version: String::new(),
+            login_id: None,
+            nonce: None,
+        }
+    }
+    fn of(bytes: &[u8], pending: &CodexOAuthPendingState) -> Self {
+        Self {
+            version: guarded_write::content_version_token(bytes),
+            login_id: Some(pending.login_id.clone()),
+            nonce: Some(guarded_write::content_version_token(
+                pending.state.expose().as_bytes(),
+            )),
+        }
+    }
+}
+
 impl CodexOAuthPendingStore {
     pub fn new() -> Result<Self> {
         Ok(Self::with_path(
@@ -72,10 +104,46 @@ impl CodexOAuthPendingStore {
 
     /// Returns live data, or removes expired data without making a copy.
     pub fn load(&self, now: i64) -> Result<Option<CodexOAuthPendingState>> {
+        self.load_owned(now).map(|(pending, _)| pending)
+    }
+
+    pub fn load_owned(
+        &self,
+        now: i64,
+    ) -> Result<(Option<CodexOAuthPendingState>, CodexOAuthPendingSnapshot)> {
         let _lock = self.lock()?;
+        let (pending, snapshot) = self.read_locked()?;
+        if pending
+            .as_ref()
+            .is_some_and(|pending| pending.expires_at <= now)
+        {
+            self.expire_locked(&snapshot)?;
+            return Ok((None, CodexOAuthPendingSnapshot::absent()));
+        }
+        Ok((pending, snapshot))
+    }
+
+    /// Confirmation preparation must preserve even expired pending data.
+    pub fn snapshot(&self) -> Result<CodexOAuthPendingSnapshot> {
+        let _lock = self.lock()?;
+        self.read_locked().map(|(_, snapshot)| snapshot)
+    }
+    fn expire_locked(&self, snapshot: &CodexOAuthPendingSnapshot) -> Result<()> {
+        if guarded_write::delete_guarded_versioned(&self.path, &snapshot.version)?
+            != guarded_write::VersionedWriteOutcome::Written
+        {
+            return Err(CcrError::ValidationError(
+                "OAuth pending changed during expiry cleanup".into(),
+            ));
+        }
+        Ok(())
+    }
+    fn read_locked(&self) -> Result<(Option<CodexOAuthPendingState>, CodexOAuthPendingSnapshot)> {
         let bytes = match std::fs::read(&self.path) {
             Ok(bytes) => bytes,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                return Ok((None, CodexOAuthPendingSnapshot::absent()));
+            }
             Err(error) => return Err(storage_error("读取", error)),
         };
         let pending: CodexOAuthPendingState = serde_json::from_slice(&bytes).map_err(|error| {
@@ -86,11 +154,8 @@ impl CodexOAuthPendingStore {
                 error.column(),
             ))
         })?;
-        if pending.expires_at <= now {
-            self.clear_locked()?;
-            return Ok(None);
-        }
-        Ok(Some(pending))
+        let snapshot = CodexOAuthPendingSnapshot::of(&bytes, &pending);
+        Ok((Some(pending), snapshot))
     }
 
     /// Saves credentials with private permissions and no backup or history.
@@ -103,6 +168,19 @@ impl CodexOAuthPendingStore {
         pending: &CodexOAuthPendingState,
         writer: impl FnOnce(&Path, &[u8], &WriteOptions) -> Result<()>,
     ) -> Result<()> {
+        self.save_owned_with(pending, writer).map(|_| ())
+    }
+    pub fn save_owned(
+        &self,
+        pending: &CodexOAuthPendingState,
+    ) -> Result<CodexOAuthPendingSnapshot> {
+        self.save_owned_with(pending, guarded_write::write_guarded)
+    }
+    fn save_owned_with(
+        &self,
+        pending: &CodexOAuthPendingState,
+        writer: impl FnOnce(&Path, &[u8], &WriteOptions) -> Result<()>,
+    ) -> Result<CodexOAuthPendingSnapshot> {
         let _lock = self.lock()?;
         let disk = PendingOnDisk {
             login_id: &pending.login_id,
@@ -124,13 +202,27 @@ impl CodexOAuthPendingStore {
                 backup: BackupPolicy::None,
                 ..Default::default()
             },
-        )
+        )?;
+        Ok(CodexOAuthPendingSnapshot::of(&bytes, pending))
     }
 
     /// Cancels persisted state. Missing state is already cleared.
     pub fn clear(&self) -> Result<()> {
         let _lock = self.lock()?;
         self.clear_locked()
+    }
+
+    /// Same operation lock as save/load, plus the existing file CAS lock.
+    /// Missing is already cleared; any later file revision remains intact.
+    pub fn clear_if_snapshot(&self, snapshot: &CodexOAuthPendingSnapshot) -> Result<bool> {
+        let _lock = self.lock()?;
+        if !self.path.try_exists()? {
+            return Ok(true);
+        }
+        Ok(
+            guarded_write::delete_guarded_versioned(&self.path, &snapshot.version)?
+                == guarded_write::VersionedWriteOutcome::Written,
+        )
     }
 
     fn clear_locked(&self) -> Result<()> {
@@ -186,6 +278,45 @@ mod tests {
                 assert!(!content.contains(STATE), "state copy found");
             }
         }
+    }
+
+    #[test]
+    fn conditional_cleanup_preserves_later_nonce_and_preparation_does_not_expire() {
+        let root = tempfile::tempdir().unwrap();
+        let store = CodexOAuthPendingStore::with_path(root.path().join("oauth_pending.json"));
+        LockManager::with_scoped_directory(&root.path().join("locks"), || {
+            store.save(&pending())?;
+            let original = store.snapshot()?;
+            assert!(
+                store.path.exists(),
+                "snapshot must not apply expiry cleanup"
+            );
+            let mut newer = pending();
+            newer.state = "different-synthetic-nonce".into();
+            newer.expires_at = 10_000;
+            store.save(&newer)?;
+            let bytes = fs::read(&store.path)?;
+            assert!(!store.clear_if_snapshot(&original)?);
+            assert_eq!(fs::read(&store.path)?, bytes);
+            {
+                let _lock = store.lock()?;
+                assert!(store.expire_locked(&original).is_err());
+            }
+            assert_eq!(fs::read(&store.path)?, bytes);
+            assert!(
+                store.load_owned(1000)?.0.is_some(),
+                "a later live pending must not be reported absent"
+            );
+            let current = store.snapshot()?;
+            assert!(store.clear_if_snapshot(&current)?);
+            assert!(store.clear_if_snapshot(&current)?);
+            let (_, absent) = store.load_owned(1000)?;
+            store.save(&newer)?;
+            assert!(!store.clear_if_snapshot(&absent)?);
+            assert_no_copies(root.path(), Some(&store.path));
+            Ok(())
+        })
+        .unwrap();
     }
 
     #[test]
