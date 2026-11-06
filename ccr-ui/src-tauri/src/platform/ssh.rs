@@ -186,6 +186,10 @@ impl ExecutionEnvironment for SshEnvironment {
         format!("ssh:{}", self.env_key())
     }
 
+    fn ssh_endpoint(&self) -> Option<(String, u16)> {
+        Some((self.config.host.clone(), self.config.port.unwrap_or(22)))
+    }
+
     async fn list_platforms(&self) -> Result<Vec<PlatformInfo>, EnvError> {
         let statuses = self.detect_cli_status().await?;
         Ok(statuses

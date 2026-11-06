@@ -89,6 +89,12 @@ pub trait ExecutionEnvironment: Send + Sync {
     /// 唯一标识符
     fn env_id(&self) -> String;
 
+    /// Host and port already held for an SSH environment. This does not read a
+    /// database row, an identity file, or the network.
+    fn ssh_endpoint(&self) -> Option<(String, u16)> {
+        None
+    }
+
     /// 列出该环境中可用的 AI CLI 平台
     async fn list_platforms(&self) -> Result<Vec<PlatformInfo>, EnvError>;
 
@@ -148,6 +154,14 @@ impl EnvironmentRegistry {
         }
         self.active_index = index;
         Ok(())
+    }
+
+    /// Host and port for an SSH environment already registered in this process.
+    pub(crate) fn ssh_endpoint(&self, env_id: &str) -> Option<(String, u16)> {
+        self.environments
+            .iter()
+            .find(|env| env.env_id() == env_id)
+            .and_then(|env| env.ssh_endpoint())
     }
 
     /// 按 ID 切换活跃环境
