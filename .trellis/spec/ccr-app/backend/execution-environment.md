@@ -29,6 +29,8 @@ A live `wsl -l -v` / `wsl -e true` classification is separate. On the current Wi
 
 `boundary_before_connect` returns before any socket, `ssh-keyscan`, known_hosts write, or identity-file read. `Ok` means this decision found no refusal. It does not open a connection. Cancel returns `ssh_cancelled`. A caller-held non-empty password returns `ssh_auth_unsupported`. A supplied fingerprint that does not match returns `ssh_host_key_mismatch`. A new fingerprint, an unknown fingerprint, or a match without process trust returns `ssh_host_key_untrusted`. `decide_host_key` keeps `may_store`, `may_trust`, and `may_accept` false. A matching fingerprint alone does not call `note_confirmed`. Reconnect (`ConnectKind::Again`) also requires process trust for the already loaded host and port. Never-connected disconnect stays `ssh_not_connected`, not a successful remote disconnect.
 
+Reconnect also refuses absent or blank current key material even when `process_trusted` is true. Remembered process trust cannot stand in for a current matching host key. The only production `Open` caller supplies empty facts for the local settings inspection; its `Ok` is not SSH authorization and must not be used to activate a connection.
+
 Error text is the static code only. It must not contain a host, fingerprint, password, identity path, or `ssh-keyscan`.
 
 `EnvironmentSurface` stores cache, draft, and job labels per `EnvironmentId`. `switch` hides the previous slot and bumps generation. `visible` returns only the active slot. `accepts` requires the same environment, generation, and `ResponseGate`. The settings page still starts on the local environment. There is no shell environment switcher and no live WSL/SSH session switch in this slice.
@@ -48,6 +50,7 @@ GPUI tray and Windows hide/restore stay `Unsupported`: this gpui-kit stack has n
 | Non-empty password already held by the caller | `ssh_auth_unsupported`; do not read an identity file |
 | New, unknown, or unmatched host key | `ssh_host_key_untrusted` or `ssh_host_key_mismatch`; nothing stored |
 | Matching fingerprint without process trust | Still `ssh_host_key_untrusted` |
+| Reconnect with remembered process trust but no current key | Still `ssh_host_key_untrusted` |
 | `boundary_before_connect` returns `Ok` | No socket was opened |
 | Never connected | `ssh_not_connected` |
 | Cache, draft, or job noted on another environment | Hidden after `switch`; visible slot does not render them |
@@ -62,9 +65,9 @@ GPUI tray and Windows hide/restore stay `Unsupported`: this gpui-kit stack has n
 
 ## 6. Tests Required
 
-- `cargo test -p ccr-app --lib environments -- --test-threads=1` covers path planning, host-key refusal, reconnect, never-connected disconnect, surface isolation, and the local-only gate.
+- `cargo test -p ccr-app --locked --lib environments -- --skip export_bindings` covers path planning, host-key refusal, reconnect, never-connected disconnect, surface isolation, and the local-only gate with default parallelism.
 - Desktop settings tests cover the same decisions through the rendered page, one language at a time, the existing 13 destinations, and solid paper.
-- The ignored live probe may be run separately. Its `PathNotFound` classification is a failure receipt. Exit 0 of a print-only probe is not acceptance.
+- Fixture suites keep the live WSL probe ignored. Live probes require separate authorization and receipts; exit 0 of a print-only probe is not read/write acceptance. The historical `PathNotFound` classification is a failure receipt.
 - Do not weaken the usage byte comparison. A single file-lock or byte-comparison flake may be rerun once.
 - Tauri command signature tests stay on the existing SSH contract. This spec does not authorize a payload change.
 

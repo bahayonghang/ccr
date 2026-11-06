@@ -24,4 +24,12 @@
 
 ## Completion
 
-逐项对应 prd.md 验收，保存失败修复后的最终结果；不提交/发布、不 archive 未完成工作。父任务最终验收负责全量整合。
+逐项对应 prd.md 验收，保存失败修复后的最终结果；按用户 2026-11-05 的续作授权，独立 check 后本地提交当前任务产品改动与规划产物，不发布。不得 archive 未完成工作。父任务最终验收负责全量整合。
+
+## 2026-11-05 非 WSL 续作边界
+
+- 具体缺口：`boundary_before_connect(Again)` 在 `process_trusted=true` 且当前没有任何指纹时返回 `Ok`。旧进程信任不能替代当前 host key。
+- 最小修改：共享决策拒绝该组合；共享夹具覆盖缺失、空白、单边指纹，GPUI 环境消费路径覆盖远程状态下的同一拒绝。已有匹配 key + 进程信任路径保持。
+- `Open` 的当前生产调用仅来自 Local 设置刷新空 facts，用于本地检查；其 `Ok` 不激活 SSH。没有新增连接、环境切换器、托盘或窗口栈，不改变 Tauri 命令或载荷。
+- 先复现失败，再跑共享环境夹具及根 `just desktop-fmt-check`、`just desktop-lint`、`just desktop-test`。跨模块改动由 check 运行 `just ci`，Git Bash 的目录置于 PATH 最前；不得运行任何实机 WSL 探针。
+- 9.1–9.6 保持开放；本轮新增证据不能代替未运行的实机验收。

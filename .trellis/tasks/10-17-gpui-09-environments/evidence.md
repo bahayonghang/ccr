@@ -93,3 +93,33 @@ gpui-kit 没有托盘类型。Windows `Platform::hide` 为空，也没有恢复�
 第一次 `just desktop-test` 失败在 `features::insights::tests::rendered_usage_controls_read_fixture_filters_and_keep_exact_costs`，比较的是 SQLite 文件字节。这次没有改 Insights。按允许的一次重试再跑，第二次通过：Python 12，AccessKit 3，库测试 102，`native_shell` 8，`native_ui` 2。
 
 没有跑 `just ci`。差异不是全仓库：产品代码只在 `ccr-desktop` 和 `crates/ccr-app`。没有改 `ccr-ui/src-tauri`。
+
+## 2026-11-05 续作：重连不能只凭旧进程信任
+
+上文是提交 `c9c9578a` 对应的历史切片，保留原始命令与结果。这里记录 `5a0c6bdb` 之后的独立续作。历史末段没有跑 `just ci` 不能作为本轮豁免：本轮涉及 `ccr-app` 与 GPUI 消费路径，独立 check 必须运行根 `just ci` 并记录真实退出码。
+
+修复前，新回归 `remembered_trust_does_not_replace_the_current_host_key` 实际失败：`Again`、`process_trusted=true`、`stored=None`、`observed=None` 返回 `Ok(())`，预期为 `ssh_host_key_untrusted`。共享决策现在拒绝该组合。其余缺失/空白/单边 key 组合继续拒绝，已有当前 key 匹配且进程信任的路径仍由旧测试覆盖。
+
+GPUI 夹具在 SSH 环境状态下经 `EnvironmentView::plan_connection` 验证该拒绝。这个状态依旧由测试写入，不是真实环境切换器。生产 `Open` 唯一消费路径是 Local 设置刷新时的空 facts 检查；它没有调用 `connect_internal`、套接字或身份读取，其 `Ok` 不构成 SSH 授权。未改变 Tauri 命令签名或载荷。
+
+| 本轮 implement 命令（仓库根） | 退出码 / 结果 |
+| --- | --- |
+| `cargo test -p ccr-app --locked --lib remembered_trust_does_not_replace_the_current_host_key -- --skip export_bindings`（修复前） | 1；新回归以实际 `Ok(())` 复现缺口 |
+| `cargo test -p ccr-app --locked --lib environments -- --skip export_bindings`（修复后） | 0；18 通过，1 ignored |
+| `just desktop-fmt-check` | 0 |
+| `just desktop-lint` | 0 |
+| `just desktop-test` | 0；默认并行，未重试 |
+| `git diff --check` | 0 |
+| `just ci`（独立 check） | 0；完整 16 阶段通过，14:13.540，未重试 |
+
+最初共享 cargo 调用被沙箱拒绝访问既有 `D:\mbx-cache`，申请既有构建缓存访问后才获得上述真实回归结果；没有改缓存配置。desktop 使用既有独立 target。lint/test 有增量缓存 hard-link 失败后复制的警告，退出码仍为 0；未降低检查或测试要求。
+
+本轮没有运行 `wsl`、`ssh-keyscan`、网络连接或真实密码/身份文件读取。9.1 实机读写仍 `not_run`；9.2 实机 SSH 仍 `not_run`；9.3 真实切换仍 `not_run`；9.4 退出进程树/task/watcher 清理仍 `not_run`；9.5 macOS/Linux 原生壳仍 `not_run`；9.6 原生 light/dark glass/solid 截图仍 `not_run`。托盘与 Windows 隐藏/恢复维持 `unsupported`，纸面维持实色。未改侧栏 13 入口、文案或主题。全部 9.1–9.6 验收框未勾选，任务保持 `in_progress`，没有归档或提交。
+
+### 本轮独立检查终态
+
+独立 [check 报告](research/check-20261105.md) 核对了实际调用链、完整切片、规范和逐项验收边界。根 `just desktop-fmt-check`、`just desktop-lint`、`just desktop-test` 均退出 0；`ccr-app` 全套默认并行测试退出 0（91 通过、4 ignored），all-target/all-feature 严格 Clippy 退出 0。真实 WSL probe 保持 ignored；没有把夹具测试当作原生收据。
+
+跨模块根 `just ci` 实际退出 **0**，16 阶段全绿，耗时 **14:13.540**。本次进程 PATH 前置 `C:\Program Files\Git\bin`，确认实际 bash 为 `C:\Program Files\Git\bin\bash.exe`。日志在 `outputs/desktop/gpui09-check-20261105/`，其中 `just-ci.log` 保留完整结果；没有弱化覆盖率、测试或审计要求，没有测试重试。
+
+检查没有发现需再修的产品问题；只将规范中的本轮 WSL 禁令改写为长期 fixture/授权边界。`task.py validate` 和 `git diff --check` 退出 0，检查完成时没有范围外脏文件。该切片可本地提交，9.1–9.6 仍开放，任务不能归档。

@@ -32,4 +32,4 @@
 
 ## Status
 
-planning。技术待验证项由本任务检查闭环，不视作已完成。开始前读父任务 design.md、implement.md、当前子任务全部规划和 curated context。
+in_progress。技术待验证项由本任务检查闭环，不视作已完成。开始前读父任务 design.md、implement.md、当前子任务全部规划和 curated context。9.1 实机读写、真实环境切换、进程树退出清理、跨 OS 原生壳与视觉收据仍未齐备；验收框保持开放。

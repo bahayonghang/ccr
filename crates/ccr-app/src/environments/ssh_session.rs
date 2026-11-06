@@ -16,7 +16,7 @@ pub enum ConnectKind {
     /// First connection. Cancel, password-only, and supplied key material refuse
     /// before a socket. Absent key material is not treated as acceptance.
     Open,
-    /// Reconnect. Also requires process trust. A matching fingerprint is not enough.
+    /// Reconnect. Requires both a current matching key and process trust.
     Again,
 }
 
@@ -56,7 +56,7 @@ pub fn boundary_before_connect(
                 return Err(RECONNECT_UNTRUSTED);
             }
         }
-    } else if matches!(kind, ConnectKind::Again) && !facts.process_trusted {
+    } else if matches!(kind, ConnectKind::Again) {
         return Err(RECONNECT_UNTRUSTED);
     }
     Ok(())
@@ -348,5 +348,26 @@ mod tests {
         assert_eq!(remote, DisconnectReport::RemoteDisconnected);
         assert_eq!(disconnect_error(remote), None);
         assert_ne!(nothing, remote);
+    }
+
+    #[test]
+    fn remembered_trust_does_not_replace_the_current_host_key() {
+        for (stored, observed) in [
+            (None, None),
+            (None, Some("")),
+            (Some(""), None),
+            (Some("  "), Some("  ")),
+            (Some("SHA256:old"), None),
+            (None, Some("SHA256:new")),
+        ] {
+            assert_eq!(
+                boundary_before_connect(
+                    ConnectKind::Again,
+                    facts(false, None, stored, observed, true),
+                ),
+                Err("ssh_host_key_untrusted"),
+                "remembered trust must not substitute for a current matching key",
+            );
+        }
     }
 }

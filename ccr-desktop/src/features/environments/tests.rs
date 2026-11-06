@@ -799,6 +799,10 @@ fn switching_environment_keeps_cache_draft_and_job_apart(cx: &mut TestAppContext
         assert!(!reason.contains("secret-password"));
         assert!(!reason.contains("example.com"));
         assert!(!reason.contains("ssh-keyscan"));
+        let unknown = view.update(cx, |this, _cx| {
+            this.plan_connection(boundary_facts(false, None, None, None, true))
+        });
+        assert_eq!(unknown, Err("ssh_host_key_untrusted"));
         view.update(cx, |this, cx| {
             this.surface.note_draft("ssh-draft".into());
             this.surface.note_job("ssh-job".into());
