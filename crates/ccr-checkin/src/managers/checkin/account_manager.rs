@@ -123,7 +123,8 @@ impl AccountManager {
     /// 根据 ID 获取账号信息（单账号惰性路径：解密生成真实掩码）
     pub fn get_info(&self, id: &str) -> Result<AccountInfo> {
         let account = self.get(id)?;
-        let crypto = self.get_crypto()?;
+        let crypto = CryptoManager::load_existing(&self.checkin_dir)
+            .map_err(|e| AccountError::CryptoError(e.to_string()))?;
         let cookies_masked = match crypto.decrypt(&account.cookies_json_encrypted) {
             Ok(plaintext) => Self::masked_cookies_display(&plaintext),
             Err(_) => "****".to_string(), // 解密失败时显示占位符
@@ -150,7 +151,8 @@ impl AccountManager {
     /// 获取解密后的 Cookies JSON 和 API User
     pub fn get_cookies_json(&self, id: &str) -> Result<(Secret, String)> {
         let account = self.get(id)?;
-        let crypto = self.get_crypto()?;
+        let crypto = CryptoManager::load_existing(&self.checkin_dir)
+            .map_err(|e| AccountError::CryptoError(e.to_string()))?;
         let cookies_json = crypto
             .decrypt(&account.cookies_json_encrypted)
             .map_err(|e| AccountError::CryptoError(e.to_string()))?;
@@ -511,6 +513,49 @@ mod tests {
                     assert!(!key.exists());
                 }
             }
+            Ok(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn credential_reads_never_initialize_a_missing_or_malformed_existing_key() {
+        let (directory, manager) = manager_with_memory_db();
+        ccr_core::core::LockManager::with_scoped_directory(&directory.path().join("locks"), || {
+            let account = manager
+                .create(create_request("Original", r#"{"session":"original-read"}"#))
+                .unwrap();
+            let key = directory.path().join("crypto.key");
+            let original = std::fs::read(&key).unwrap();
+            std::fs::remove_file(&key).unwrap();
+            for damaged in [false, true] {
+                if damaged {
+                    std::fs::write(&key, b"damaged-reader-key").unwrap();
+                }
+                assert!(matches!(
+                    manager.get_info(&account.id),
+                    Err(AccountError::CryptoError(_))
+                ));
+                assert!(matches!(
+                    manager.get_cookies_json(&account.id),
+                    Err(AccountError::CryptoError(_))
+                ));
+                assert_eq!(
+                    manager.get(&account.id).unwrap().cookies_json_encrypted,
+                    account.cookies_json_encrypted
+                );
+                if damaged {
+                    assert_eq!(std::fs::read(&key).unwrap(), b"damaged-reader-key");
+                } else {
+                    assert!(!key.exists());
+                }
+            }
+            std::fs::write(&key, original).unwrap();
+            assert_eq!(
+                manager.get_cookies_json(&account.id).unwrap().0.expose(),
+                r#"{"session":"original-read"}"#
+            );
+            assert!(manager.get_info(&account.id).is_ok());
             Ok(())
         })
         .unwrap();
