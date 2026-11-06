@@ -23,6 +23,7 @@ with the existing domain owners. ccr-app has no ccr-cli/Tauri/GPUI dependency.
   existing locked domain restore and explicit cleanup root, respectively.
 - `profile_patch::{claude, codex, grok}` owns extracted pure field composition;
   native `validate_fields` is separate from legacy permissive Tauri decoding.
+- `platform_settings::layers::{claude, codex, grok}` returns metadata-only source inventories from captured user/managed/home/project roots. `Layer::state` distinguishes unresolved scope, missing source, present metadata and read error; it is not part of the unchanged Tauri layer wire shape.
 
 ## 3. Contracts
 
@@ -52,6 +53,7 @@ with the existing domain owners. ccr-app has no ccr-cli/Tauri/GPUI dependency.
   payloads are arbitrary text; native projection uses only the typed status.
 - All filesystem/database work runs on02's bounded worker, with the complete
   injected lifecycle using its synchronous lock scope.
+- Native layer inventory never reads source content or infers merged effective values. Managed/requirements/project/profile-overlay rows remain read-only; their presence is not permission to open a writable user document for that path. Unselected project scope has no path and unknown existence. Fixture-managed/system paths stay under the fixture root; explicit project scopes are absolute, existing and fixture-confined. Native inventory rejects linked/reparse source ancestors, retains independent source/editor generations and does not poll when hidden. Tauri consumes the same projection while keeping its established wire DTOs and project-scope selection.
 
 ## 4. Validation & Error Matrix
 
@@ -65,6 +67,8 @@ with the existing domain owners. ccr-app has no ccr-cli/Tauri/GPUI dependency.
 | Traversal/absolute/nested restore path | Reject before restore |
 | Preimage backup fails | Existing state remains intact |
 | Page/context leaves while plaintext result pending | Discard stale result and clear scoped buffers; app-owned cleanup remains tracked |
+| Project scope not selected in source inventory | Show unknown scope, never assert the project file is absent |
+| Managed/requirements/overlay source exists | Display metadata and read-only status; never offer a writable document |
 
 ## 5. Good / Base / Bad Cases
 
@@ -84,6 +88,8 @@ actual Tauri config/profile/Grok/binding regressions and native rendered-control
 tests for dirty fields, conflict draft retention, confirmations, navigation
 teardown and stale plaintext results. Native CU is separate evidence from
 headless tests. Keep default parallelism and `--skip export_bindings`.
+
+`platform_settings::layers::tests` checks read-only policy, unresolved project metadata, deterministic overlays and absence of source content in wire output. Native `fixture_layers_use_captured_roots_and_reject_external_project_scope` checks fixture-managed roots and project refusal; `configuration_sources_are_discoverable_and_managed_layers_stay_read_only` exercises the actual source-list control and absence of source write controls.
 
 ## 7. Wrong vs Correct
 

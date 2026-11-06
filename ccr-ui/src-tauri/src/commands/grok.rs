@@ -3,7 +3,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::time::UNIX_EPOCH;
 
 use ccr::platforms::{GrokActivationState, GrokPlatform, GrokProfileAuthMode};
 use ccr::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
@@ -1003,60 +1002,29 @@ fn save_raw_config(
     }
 }
 
-fn config_layer(id: &str, label: &str, path: PathBuf, editable: bool) -> GrokConfigLayerDto {
-    let metadata = fs::metadata(&path).ok();
-    let mtime = metadata
-        .as_ref()
-        .and_then(|value| value.modified().ok())
-        .and_then(|value| value.duration_since(UNIX_EPOCH).ok())
-        .map(|value| value.as_millis() as u64);
-    GrokConfigLayerDto {
-        id: id.to_string(),
-        label: label.to_string(),
-        path: path.display().to_string(),
-        exists: path.exists(),
-        size: metadata.as_ref().map(fs::Metadata::len),
-        mtime,
-        editable,
-    }
-}
-
 fn config_layers(user_config: PathBuf) -> Result<Vec<GrokConfigLayerDto>, String> {
     let home = dirs::home_dir().ok_or_else(|| "无法获取用户目录".to_string())?;
     let cwd = std::env::current_dir().map_err(|error| format!("读取当前目录失败: {error}"))?;
-    Ok(vec![
-        config_layer("user", "User", user_config, true),
-        config_layer(
-            "project",
-            "Project",
-            cwd.join(".grok").join("config.toml"),
-            false,
-        ),
-        config_layer(
-            "managed_user",
-            "Managed (user)",
-            home.join(".grok").join("managed_config.toml"),
-            false,
-        ),
-        config_layer(
-            "managed_system",
-            "Managed (system)",
-            PathBuf::from("/etc/grok/managed_config.toml"),
-            false,
-        ),
-        config_layer(
-            "requirements_user",
-            "Requirements (user)",
-            home.join(".grok").join("requirements.toml"),
-            false,
-        ),
-        config_layer(
-            "requirements_system",
-            "Requirements (system)",
-            PathBuf::from("/etc/grok/requirements.toml"),
-            false,
-        ),
-    ])
+    Ok(ccr_app::platform_settings::layers::grok(
+        &user_config,
+        &home,
+        Some(&cwd),
+        Path::new("/etc/grok"),
+    )
+    .into_iter()
+    .map(|layer| GrokConfigLayerDto {
+        id: layer.id,
+        label: layer.label,
+        path: layer
+            .path
+            .map(|path| path.display().to_string())
+            .unwrap_or_default(),
+        exists: layer.exists.unwrap_or(false),
+        size: layer.size,
+        mtime: layer.mtime,
+        editable: layer.editable,
+    })
+    .collect())
 }
 
 #[ccr_tauri_command_macros::command]

@@ -5,6 +5,7 @@
 
 pub mod codex;
 pub mod json;
+pub mod layers;
 
 use std::path::{Path, PathBuf};
 

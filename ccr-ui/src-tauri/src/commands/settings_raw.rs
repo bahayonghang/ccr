@@ -1,8 +1,6 @@
 //! Raw local settings/config editing with content-version conflict protection.
 
-use std::fs;
 use std::path::{Path, PathBuf};
-use std::time::UNIX_EPOCH;
 
 use ccr_config::{ClaudeRuntimePaths, Platform, PlatformPaths};
 use ccr_core::core::BackupPolicy;
@@ -196,25 +194,6 @@ pub(crate) fn write_raw_file_versioned(
     }
 }
 
-fn file_layer(id: &str, label: &str, path: Option<&Path>, editable: bool) -> Value {
-    let metadata = path.and_then(|candidate| fs::metadata(candidate).ok());
-    let modified = metadata
-        .as_ref()
-        .and_then(|value| value.modified().ok())
-        .and_then(|value| value.duration_since(UNIX_EPOCH).ok())
-        .map(|value| value.as_millis() as u64);
-
-    json!({
-        "id": id,
-        "label": label,
-        "path": path,
-        "exists": path.map(Path::exists),
-        "size": metadata.as_ref().map(std::fs::Metadata::len),
-        "mtime": modified,
-        "editable": editable,
-    })
-}
-
 fn claude_settings_layers(path: &Path) -> Value {
     #[cfg(target_os = "windows")]
     let managed = std::env::var_os("PROGRAMDATA")
@@ -227,40 +206,13 @@ fn claude_settings_layers(path: &Path) -> Value {
     #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
     let managed = PathBuf::from("/etc/claude-code/managed-settings.json");
 
-    json!({ "layers": [
-        file_layer("managed", "Managed", Some(&managed), false),
-        file_layer("project", "Project", None, false),
-        file_layer("local", "Project local", None, false),
-        file_layer("user", "User", Some(path), true),
-    ] })
+    json!({ "layers": ccr_app::platform_settings::layers::claude(path, &managed, None) })
 }
 
 fn codex_config_layers(path: &Path) -> Result<Value, String> {
-    let mut layers = vec![file_layer("user", "User", Some(path), true)];
-    if let Some(directory) = path.parent()
-        && directory.exists()
-    {
-        let mut overlays: Vec<PathBuf> = fs::read_dir(directory)
-            .map_err(|error| format!("读取 Codex 配置目录失败: {error}"))?
-            .filter_map(Result::ok)
-            .map(|entry| entry.path())
-            .filter(|candidate| {
-                candidate
-                    .file_name()
-                    .and_then(|name| name.to_str())
-                    .is_some_and(|name| name.ends_with(".config.toml") && name != "config.toml")
-            })
-            .collect();
-        overlays.sort();
-        layers.extend(overlays.iter().map(|overlay| {
-            let label = overlay
-                .file_stem()
-                .and_then(|name| name.to_str())
-                .unwrap_or("Profile overlay");
-            file_layer("profile_overlay", label, Some(overlay), false)
-        }));
-    }
-    Ok(json!({ "layers": layers }))
+    ccr_app::platform_settings::layers::codex(path)
+        .map(|layers| json!({ "layers": layers }))
+        .map_err(|_| "读取 Codex 配置目录失败".to_string())
 }
 
 #[ccr_tauri_command_macros::command]
@@ -355,6 +307,7 @@ mod tests {
     use super::*;
     use crate::test_support::TestProcessEnv;
     use ccr_core::core::{LockManager, content_version_token};
+    #[cfg(test)]
     use std::fs;
     use tempfile::tempdir;
 
