@@ -46,6 +46,34 @@
     "resumed_at": "2026-10-27T07:51:27.288701+00:00",
     "last_checkpoint": {
       "date": "2026-11-06",
+      "report": ".trellis/tasks/10-17-gpui-desktop/research/integration-gates-20261106.md",
+      "acceptance": "open",
+      "baseline_commit": "7b367fb4413b7ec45d1a2be30bc5d97f31bb123d",
+      "s2_commit": "fc093e78cf0db18a4b86cc048a97f9939387d94e",
+      "gates": {
+        "gpui_fmt_check": 0,
+        "gpui_lint": 0,
+        "gpui_test": 0,
+        "just_ci": 0,
+        "gpui_package": 0
+      },
+      "ci_log": "outputs/desktop/integration-20261106-ci-metrics.log",
+      "native_acceptance": "user_deferred_latest_candidate_not_run",
+      "performance": "not_run/not_comparable",
+      "archive_allowed": false,
+      "note": "Parent/01/09 stay in_progress. Current code/headless receipts do not establish native/OS/presentation/performance acceptance; old profile warning is unconfirmed, with strict diagnostic retained."
+    },
+    "checkpoint_before_resume_20261106": {
+      "date": "2026-11-05",
+      "report": ".trellis/tasks/10-17-gpui-desktop/research/open-acceptance-20261105.md",
+      "acceptance": "open",
+      "work_commits": {
+        "gpui09": "0bf9ba48938fb286a581f4e9eb51e07f3273c629",
+        "gpui01": "bcf355ebfd9c2d7cf16bd293e01f0593f8fea864"
+      }
+    },
+    "checkpoint_before_continuous_implementation_20261106": {
+      "date": "2026-11-06",
       "report": ".trellis/tasks/10-17-gpui-desktop/research/resume-summary-20261106.md",
       "acceptance": "open",
       "baseline_commit": "e8329cd86df7e7aca48c7f5b7d2d2e6c11f87e6c",
@@ -58,15 +86,6 @@
       },
       "native_acceptance": "not_run_for_new_operations",
       "computer_use_calls": 0
-    },
-    "checkpoint_before_resume_20261106": {
-      "date": "2026-11-05",
-      "report": ".trellis/tasks/10-17-gpui-desktop/research/open-acceptance-20261105.md",
-      "acceptance": "open",
-      "work_commits": {
-        "gpui09": "0bf9ba48938fb286a581f4e9eb51e07f3273c629",
-        "gpui01": "bcf355ebfd9c2d7cf16bd293e01f0593f8fea864"
-      }
     }
   }
 }

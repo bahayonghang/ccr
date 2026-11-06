@@ -642,3 +642,57 @@ ccr project init 现在默认勾选五项平台并要求输入用户名，-y 使
 ### Next Steps
 
 - 09与01及父任务继续in_progress；原生窗口关闭、watcher、托盘、跨OS和glass收据仍开放。不建立worktree、不运行WSL，不push。
+
+
+## Session 140: GPUI连续实施、S2与原生指标整合
+<!-- trellis-session: v=2 fp=fdfe9e28cd74b9ba -->
+
+**Date**: 2026-11-06
+**Task**: GPUI连续实施、S2与原生指标整合
+**Branch**: `dev`
+
+### Summary
+
+复用既有父任务和dev工作区持续实施；侧栏/平台工作台及实际领域消费者、成对Benchmark来源与时钟、S2持久日志流和原生运行指标已整合提交。完整源码与headless门禁通过，原生验收按用户要求延期，父任务及01/09保持in_progress。
+
+### Main Changes
+
+- 补齐Recent终态记录、来源层、会话保存恢复、MCP批量、用量导入/能力、工具手动更新、Observer/监控及平台实际管理消费者；保留13个入口、airy-glass实色降级与领域owner。
+- 成对S0/S1/S2输入共同校验与报告UTC时钟；S2经真实监控/持久化ACK、128队列、取消和实际join，两端可显式操作；原生新增Usage页面成功读取p95/2048留存样本与SSH零I/O会话数。
+- 独立检查修复原生提前Enter、React重连错误和COMMIT失败遗留事务；校正旧指令文件/Claude rules台账，不重复实现已有能力。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `96376961cd49b7914e3457efba2fc92e9d8ae076` | fix(原生命令): 🐛 自动持久化命令终态到最近记录 |
+| `20d6f23a0a4892385219ef1d4f1327500d137a99` | feat(配置来源): ✨ 共享分层配置元数据投影 |
+| `a25df5f495d9610789e7fc76d96593fb532e1edb` | feat(会话恢复): ✨ 绑定恢复版本并修复归档重新可见 |
+| `9cc9cdb3c14627cdd547744236a99ec955f6514b` | feat(共享桌面): ✨ 收口工具监控与显式隔离服务 |
+| `9c748e3200dc69047b66234320e3e21155946175` | feat(Tauri夹具): ✨ 显式捕获核心业务图与存储边界 |
+| `2dacb55dadd004a1436f806072e3e783a933c29b` | feat(原生工作台): ✨ 对齐平台导航与常用管理能力 |
+| `f4fb6c5d8f8586df23667faaf3f26eb0c33355aa` | style(Tauri夹具): 💄 统一隔离入口格式 |
+| `65a5fe1f229cdabec1c8c18a03acd1cdc17f46fd` | chore(质量门禁): 🔧 修正会话排序与锁文件格式 |
+| `92b3e9e99b1c5bf9930dc4edb8e35594b8f765d1` | fix(原生认证): 🐛 按捕获版本清理 OAuth 待登录状态 |
+| `69a887509885228bc9577b044b661305cb5e334a` | fix(账户凭据): 🐛 缺失密钥时保留既有账户密文 |
+| `1a594457a340b34e0c4cb6f14f0ea2fa4e12e517` | feat(远端工具): ✨ 绑定已验证 SSH 会话检测 CLI 路径 |
+| `57abc91f78df67a0b3f1efe2a5e6c59a9d854b9f` | feat(性能夹具): ✨ 统一两端启动校验与报表时钟 |
+| `1a026418d38c39aea49f35ce0ff0e5b6b6510a5a` | fix(账户凭据): 🐛 读取已有凭据时保留原密钥状态 |
+| `998dd9f2204abe99a3f468a857c362fb9e6b8120` | feat(原生工作台): ✨ 接合基准数据源与诊断编辑消费者 |
+| `fc093e78cf0db18a4b86cc048a97f9939387d94e` | feat(性能负载): ✨ 接入两端可取消的S2持久日志流 |
+| `7b367fb4413b7ec45d1a2be30bc5d97f31bb123d` | feat(原生监控): ✨ 采集Usage读取耗时与保留SSH会话 |
+
+### Testing
+
+- [OK] 最终just ci退出0（14:35.338），GPUI fmt/lint/test退出0：lib235、shell9、UI2、shutdown2和27个实际1MiB/毒化锁子项；前端172文件/944测试与覆盖率门禁通过。
+- [OK] 最终未签名portable package退出0，ZIP与两个可执行文件SHA重读核对通过；未启动GPUI/Tauri原生窗口。完整收据：research/integration-gates-20261106.md。
+- [INFO] 曾有旧profile replay返回AppliedWithWarning，精确/完整suite与后续完整CI未复现；只补Debug诊断并保留严格Applied，原因未知，不称已修或flaky。
+
+### Status
+
+[OK] 本轮源码与headless工程批次已提交；GPUI父任务、01和09仍为 **in_progress**，原生/OS/性能验收保持开放。
+
+### Next Steps
+
+- 用户恢复原生验收后，对当前binary进行少量核心交互/截图；真实process-create/OS-present/action-ready与60秒性能样本、其他OS验收仍未取得。
+- 托盘/隐藏恢复、真实玻璃及WAF内嵌流程仍受锁定栈/无WebView边界限制；WSL/DPI延期。不满足父任务归档AND，不执行finish/archive，不push。
