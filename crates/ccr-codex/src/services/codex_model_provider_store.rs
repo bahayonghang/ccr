@@ -158,6 +158,63 @@ impl CodexModelProviderStoreService {
             self.save_locked(&store)
         })
     }
+
+    /// Native edit sessions retain the original revision through confirmation.
+    /// Compare under the same operation lock as legacy callers' mutations.
+    pub fn mutate_versioned(
+        &self,
+        expected_token: &str,
+        provider_id: &str,
+        provider: Option<CodexModelProviderRecord>,
+    ) -> Result<bool> {
+        self.locked(|| {
+            let token = match fs::read(&self.store_path) {
+                Ok(bytes) => guarded_write::content_version_token(&bytes),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
+                Err(error) => return Err(error.into()),
+            };
+            if token != expected_token {
+                return Ok(false);
+            }
+            let mut store = self.load()?;
+            if let Some(mut provider) = provider {
+                if provider.id != provider_id {
+                    return Err(CcrError::ValidationError("provider_id_mismatch".into()));
+                }
+                if let Some(existing) = store.providers.iter_mut().find(|p| p.id == provider_id) {
+                    provider.created_at = existing.created_at;
+                    if provider.api_keys.is_empty() {
+                        provider.api_keys = existing.api_keys.clone();
+                    }
+                    *existing = provider;
+                } else {
+                    store.providers.push(provider);
+                }
+                store
+                    .providers
+                    .sort_by(|left, right| left.name.cmp(&right.name));
+            } else {
+                store.providers.retain(|p| p.id != provider_id);
+            }
+            let content = serde_json::to_vec_pretty(&store)
+                .map_err(|_| CcrError::ConfigError("provider_store_serialization_failed".into()))?;
+            self.harden_existing()?;
+            let outcome = guarded_write::write_guarded_versioned(
+                &self.store_path,
+                &content,
+                expected_token,
+                &WriteOptions {
+                    backup: self.backup_policy(),
+                    secret: true,
+                    lock_timeout: PROVIDER_LOCK_TIMEOUT,
+                },
+            )?;
+            Ok(matches!(
+                outcome,
+                guarded_write::VersionedWriteOutcome::Written
+            ))
+        })
+    }
 }
 
 #[cfg(test)]
@@ -165,6 +222,27 @@ impl CodexModelProviderStoreService {
 mod tests {
     use super::*;
     use crate::models::CodexModelProviderApiKey;
+
+    #[test]
+    fn versioned_mutation_checks_original_token_under_the_owner_lock() {
+        let temp = tempfile::tempdir().unwrap();
+        let service = CodexModelProviderStoreService::from_codex_dir(temp.path());
+        assert!(service.mutate_versioned("", "missing", None).unwrap());
+        let original = fs::read(&service.store_path).unwrap();
+        let token = guarded_write::content_version_token(&original);
+        assert!(!service.mutate_versioned("", "missing", None).unwrap());
+        service
+            .save(&CodexModelProviderStore {
+                version: 2,
+                ..Default::default()
+            })
+            .unwrap();
+        let changed = fs::read(&service.store_path).unwrap();
+        assert!(!service.mutate_versioned(&token, "missing", None).unwrap());
+        assert_eq!(fs::read(&service.store_path).unwrap(), changed);
+        let token = guarded_write::content_version_token(&changed);
+        assert!(service.mutate_versioned(&token, "missing", None).unwrap());
+    }
 
     #[test]
     fn failed_provider_backup_preserves_previous_store() {

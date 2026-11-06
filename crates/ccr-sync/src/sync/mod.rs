@@ -1,5 +1,6 @@
 pub mod assets;
 mod budget;
+pub mod clear;
 pub mod config;
 pub mod content_selector;
 mod envelope;

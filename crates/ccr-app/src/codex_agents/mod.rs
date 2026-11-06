@@ -897,11 +897,11 @@ mod tests {
         let skills_table = merged
             .get("skills")
             .and_then(toml::Value::as_table)
-            .expect("skills table should remain");
+            .unwrap();
         let skills_config = skills_table
             .get("config")
             .and_then(toml::Value::as_array)
-            .expect("skills.config should remain");
+            .unwrap();
 
         assert_eq!(skills_config.len(), 1);
         assert_eq!(

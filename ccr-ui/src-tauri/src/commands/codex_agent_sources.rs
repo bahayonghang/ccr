@@ -38,13 +38,13 @@ pub async fn codex_add_agent_source(
 #[ccr_tauri_command_macros::command]
 pub async fn codex_remove_agent_source(source_id: String) -> Result<(), String> {
     let client = reqwest::Client::new();
-    let response = tokio::task::spawn_blocking(move || {
+    tokio::task::spawn_blocking(move || {
         let mut store = SourceStore::new(AgentStore::detect()?, client);
         tokio::runtime::Handle::current().block_on(store.codex_remove_agent_source(source_id))
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))??;
-    Ok(response)
+    Ok(())
 }
 
 #[ccr_tauri_command_macros::command]

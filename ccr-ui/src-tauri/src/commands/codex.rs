@@ -36,11 +36,7 @@ const CODEX_DASHBOARD_OVERVIEW_CACHE_KEY: &str = "codex:dashboard_overview";
 
 // ── 内部辅助类型 ──
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-struct CodexCustomModelsFile {
-    #[serde(default)]
-    pub models: Vec<String>,
-}
+use ccr_app::platform_settings::codex::CustomModelsFile as CodexCustomModelsFile;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 struct CodexDashboardOverviewFingerprint {
@@ -61,12 +57,15 @@ struct CodexDashboardOverviewCacheEntry {
 
 type CodexModelCatalog = (Vec<String>, Vec<String>, Vec<String>);
 
-const CODEX_BUILTIN_MODELS: &[&str] = &["gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.6-sol"];
 use ccr_app::config::profile_patch::codex::{
     EXPLICIT_PLATFORM_BOOL_FIELDS, EXPLICIT_PLATFORM_STRING_FIELDS,
     build as build_profile_from_config, patch as patch_profile_with_config,
 };
 use ccr_app::config::profile_patch::fields::{parse_bool_field, parse_string_field};
+use ccr_app::platform_settings::codex::{
+    builtin_models as codex_builtin_models, merge_models as merge_codex_models,
+    sanitize_custom_models,
+};
 const KNOWN_MCP_FIELDS: &[&str] = &[
     "enabled",
     "disabled",
@@ -148,47 +147,6 @@ fn read_codex_custom_models(path: &PathBuf) -> Result<CodexCustomModelsFile, Str
     let content =
         fs::read_to_string(path).map_err(|e| format!("读取 Codex 自定义模型失败: {e}"))?;
     toml::from_str(&content).map_err(|e| format!("解析 Codex 自定义模型失败: {e}"))
-}
-
-fn normalize_model_name(model: &str) -> Option<String> {
-    let trimmed = model.trim();
-    if trimmed.is_empty() {
-        None
-    } else {
-        Some(trimmed.to_string())
-    }
-}
-
-fn codex_builtin_models() -> Vec<String> {
-    CODEX_BUILTIN_MODELS
-        .iter()
-        .map(|model| (*model).to_string())
-        .collect()
-}
-
-fn merge_codex_models(custom_models: &[String]) -> Vec<String> {
-    let mut merged = codex_builtin_models();
-    for model in custom_models {
-        if !merged.iter().any(|item| item == model) {
-            merged.push(model.clone());
-        }
-    }
-    merged
-}
-
-fn sanitize_custom_models(models: Vec<String>) -> Vec<String> {
-    let mut sanitized = Vec::new();
-    for model in models {
-        if let Some(normalized) = normalize_model_name(&model)
-            && !CODEX_BUILTIN_MODELS
-                .iter()
-                .any(|builtin| *builtin == normalized)
-            && !sanitized.iter().any(|item| item == &normalized)
-        {
-            sanitized.push(normalized);
-        }
-    }
-    sanitized
 }
 
 fn read_codex_model_catalog() -> Result<CodexModelCatalog, String> {

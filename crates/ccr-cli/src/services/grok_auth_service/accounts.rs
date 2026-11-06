@@ -308,8 +308,24 @@ fn captured(scope: &str, value: &Value) -> Saved {
     }
 }
 impl GrokAuthService {
+    fn in_scope<T>(&self, run: impl FnOnce() -> Result<T>) -> Result<T> {
+        match &self.captured {
+            Some(roots) => ccr_core::core::LockManager::with_scoped_directory(&roots.locks, run),
+            None => run(),
+        }
+    }
+    fn paths(&self) -> Result<Paths> {
+        match &self.captured {
+            Some(roots) => Ok(Paths {
+                store: roots.ccr.join("platforms/grok/auth/accounts.json"),
+                runtime: roots.grok_runtime.join("auth.json"),
+                operation: roots.ccr.join("locks/grok-auth-accounts.lock"),
+            }),
+            None => paths(),
+        }
+    }
     pub fn read_snapshot(&self) -> Result<GrokAuthSnapshot> {
-        let state = load(&paths()?)?;
+        let state = load(&self.paths()?)?;
         let mut result = GrokAuthSnapshot {
             runtime_present: state.runtime.is_some(),
             revision: state.revision.clone(),
@@ -358,6 +374,15 @@ impl GrokAuthService {
         revision: &GrokAuthRevision,
         replace: bool,
     ) -> Result<GrokAuthMutation> {
+        self.in_scope(|| self.save_current_inner(name, source_scope, revision, replace))
+    }
+    fn save_current_inner(
+        &self,
+        name: &str,
+        source_scope: &str,
+        revision: &GrokAuthRevision,
+        replace: bool,
+    ) -> Result<GrokAuthMutation> {
         if name.is_empty()
             || name == "default"
             || name.len() > 32
@@ -369,7 +394,7 @@ impl GrokAuthService {
                 "Account name must be 1–32 letters, digits, underscores or hyphens; default is reserved",
             ));
         }
-        let p = paths()?;
+        let p = self.paths()?;
         let _operation = FileLock::new(&p.operation, Duration::from_secs(10))?;
         let mut state = load(&p)?;
         check(&state, revision)?;
@@ -411,7 +436,14 @@ impl GrokAuthService {
         name: &str,
         revision: &GrokAuthRevision,
     ) -> Result<GrokAuthMutation> {
-        let p = paths()?;
+        self.in_scope(|| self.delete_account_inner(name, revision))
+    }
+    fn delete_account_inner(
+        &self,
+        name: &str,
+        revision: &GrokAuthRevision,
+    ) -> Result<GrokAuthMutation> {
+        let p = self.paths()?;
         let _operation = FileLock::new(&p.operation, Duration::from_secs(10))?;
         let mut state = load(&p)?;
         check(&state, revision)?;
@@ -428,7 +460,14 @@ impl GrokAuthService {
         name: &str,
         revision: &GrokAuthRevision,
     ) -> Result<GrokAuthMutation> {
-        let p = paths()?;
+        self.in_scope(|| self.switch_account_inner(name, revision))
+    }
+    fn switch_account_inner(
+        &self,
+        name: &str,
+        revision: &GrokAuthRevision,
+    ) -> Result<GrokAuthMutation> {
+        let p = self.paths()?;
         let _operation = FileLock::new(&p.operation, Duration::from_secs(10))?;
         let _official = FileLock::new(
             p.runtime.with_extension("json.lock"),
@@ -505,7 +544,10 @@ impl GrokAuthService {
         self.off_inner(Some(revision))
     }
     pub(super) fn off_inner(&self, revision: Option<&GrokAuthRevision>) -> Result<AuthOffResult> {
-        let p = paths()?;
+        self.in_scope(|| self.off_with_paths(revision))
+    }
+    fn off_with_paths(&self, revision: Option<&GrokAuthRevision>) -> Result<AuthOffResult> {
+        let p = self.paths()?;
         let _operation = FileLock::new(&p.operation, Duration::from_secs(10))?;
         let _official = FileLock::new(
             p.runtime.with_extension("json.lock"),
@@ -532,6 +574,11 @@ impl GrokAuthService {
         if token(read(&p.runtime)?.as_deref()) != state.revision.runtime {
             return Err(error("Grok session changed before logout; refresh"));
         }
-        crate::application::auth_off::grok_auth_off_locked(&p.runtime)
+        match &self.captured {
+            Some(roots) => {
+                crate::application::auth_off::grok_auth_off_locked_at(&p.runtime, &roots.ccr)
+            }
+            None => crate::application::auth_off::grok_auth_off_locked(&p.runtime),
+        }
     }
 }

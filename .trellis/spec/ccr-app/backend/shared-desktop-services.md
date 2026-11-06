@@ -138,3 +138,48 @@ Wrong: schedule confirmation focus from the click action and assume next-frame c
 Editor and nested-decision return handles have different lifetimes. `ProfilesView::act` captures the outer editor trigger only from `Mode::Closed`; `Confirmation` captures its immediate trigger independently. A nested Advanced/Restore/Force decision must not replace the outer handle. Regressions must dismiss the decision and then close the editor, asserting both focus returns.
 
 Recovery actions and committed warnings belong to their original platform. `ProfilesView::set_platform` clears `grok_recovery`, `grok_force_delete`, message and failed state on an actual identity change, before a new platform can dispatch. Same-platform status reads retain durable warnings. Test a typed `rename_apply_failed` outcome, same-platform refresh, then platform change: old retry/force controls disappear before any mutation; never send a wrong-platform request to demonstrate the defect.
+
+
+### Platform file resources and merged Claude settings
+
+- OpenCode agents/commands use the existing `.config/opencode` user and `.opencode` project Markdown roots, not the raw settings document or an invented home directory. Antigravity commands retain the Gemini-compatible `.gemini/commands` TOML contract. Extension manifests are read-only projections of the existing extension list; no install/remove/edit capability is inferred.
+- Dynamic resource edits capture kind, scope, path and original version. Preserve unknown YAML/TOML fields; reject traversal and linked ancestors. Desktop and Tauri consume the same app owner, while Tauri command signatures remain stable.
+- Claude statusline/hooks remain reachable through the same captured settings-source editor. Validate a candidate with `ccr_types::ClaudeSettings` without serializing that typed projection over the original JSON; otherwise unknown fields would be lost. A page/worker existing in isolation is insufficient: policy editing must be reachable from the actual Shell Usage route.
+
+- Platform file save/delete must validate backup and lock directories, including every ancestor, as well as the destination. A safe document path does not make sibling backup/lock paths safe.
+
+
+### Native debug render stack
+
+GPUI/Kit value builders can reserve hundreds of KiB of debug stack per large render function, even before a conditional branch executes. Windows native main uses the executable's 1 MiB stack while ordinary Rust test workers may have more; passing headless tests does not prove a native menu can render. For a reproduced overflow, inspect compiler frame allocation and split the specific render into natural sections without changing tree order or handlers. Do not add a larger product stack to mask an unknown cause, or add independent function frames as if they were a measured call stack. Preserve the Windows Settings subprocess regression at 1 MiB and verify the actual native action after rebuilding the executable.
+
+
+### Fixture locks and filesystem containment
+
+- A captured fixture database and known_hosts file do not isolate hidden lock writes. SSH trust confirmation, connect-time known_hosts refresh and upload staging must also use the fixture lock directory. Enter the thread-local scope inside the actual blocking write closure; it does not propagate across `spawn_blocking` or an await boundary. Production defaults/public command signatures remain unchanged.
+- Validate fixture containment using actual canonical filesystem paths (or the canonical existing parent for a new file), not the lowercased normalized lock identity. On Windows those are different representations and case-sensitive directories may exist. Keep traversal and linked-path rejection; missing fixture parents are refused rather than falling back to Local.
+- Shared-writer tests must capture their own thread-local lock directory, instead of depending on another parallel test's temporary `CCR_LOCK_DIR`. A child-only poisoned default lock path can prove the complete fixture operation never falls back to ambient user locks, without changing HOME/USERPROFILE or serializing the suite.
+
+### Native usage import and WebDAV management
+
+- Native usage import consumes the same installed `llmusage` CLI executor as Tauri through `ccr-app::usage::import`; `ccr-usage` remains the usage SQL owner. Opening or refreshing a report must not start import. Missing databases must not prevent an explicit first import.
+- An import is app-owned, singleton and retained across view detachment. Cancel requests remain nonterminal until process cleanup returns; cleanup failure is distinct from cancellation. Progress publication is coalesced at the existing 100ms budget and final state is retained independently of observers. Hidden views detach instead of polling.
+- The CLI cannot select an arbitrary provider home: reject custom provider roots before admission rather than scanning ambient local data. Explicit fixture launches reject production import; synthetic test subprocesses require captured fixture roots. Environment rejection applies before process launch.
+- After an explicit successful CLI import, ingest Claude tool facts from the same captured provider home through the shared scanner. Changed JSONL files are reread with stable sequence identities; file/line limits are 64 MiB/1 MiB, including cumulative bytes if a file grows after stat. Commit each file's tool rows and cursor in one repository-owned transaction. Cancellation/error must retain truthful already-imported usage and per-file committed state; report tool failures separately without exposing raw paths/errors in UI snapshots.
+- WebDAV disconnect binds both canonical and legacy configuration revisions. Clear canonical credentials using the existing write/backup owner, then remove the legacy source; report legacy cleanup failure as partial completion. Keep folders, unknown fields and protected backups, and disclose that backups may retain credentials.
+- Bulk folder transfers select only enabled canonical folders and delegate to the existing single-folder transfer owner. Preserve each result and download backup; a failed folder must not be described as full-batch success or imply rollback of previously completed folders.
+
+### Native observer and session operations
+
+- Claude Observer keeps its databases distinct: usage reports come from the read-only `ccr-usage` dashboard; tools/subscription settings come from the captured CCR main UI database, never the session archive. Native and Tauri share state-free projection/subscription policy; framework DTOs and binding paths remain Tauri-owned.
+- Opening Observer does not create or migrate a database. An explicit confirmed first subscription Save may initialize the captured main database with its existing migration owner. An unreadable or incompatible existing file is an error, not a missing-database setup case. Subscription writes compare the reviewed values inside the same write transaction; they remain app-owned after the view detaches and work independently of usage-database availability.
+- Codex session actions start with an opaque archive identity, restore and validate the provider source, then bind the captured Codex home, source path and bounded content-version token. Filesystem preparation runs on the bounded worker. Confirmation must not silently target a newer source or a different selected session.
+- Native destructive session removal uses the existing manifest-backed Codex trash service, preserving its index repair/rollback and CLI recovery contract. Do not add a second trash format or replace it with direct deletion. Archive deletion markers and any failure after the file operation must report the actual committed/partial state.
+- Export uses the existing Markdown projection and exposes its suggested filename/truncation. Transcript preview is view-scoped, explicit clipboard copy is user-triggered, and leaving the view clears the temporary preview; do not retain transcript plaintext in app-owned mutation snapshots.
+
+### Native platform management
+
+- Captured file-based authentication off passes the reviewed credential token to guarded compare-delete. Its rollback restores only into an absent target; never overwrite a concurrent credential rotation. Legacy APIs remain compatible and official macOS logout retains its own session semantics.
+- Grok account operations consume captured runtime/store/lock/backup roots. Authentication off must preserve the domain service's rotated-credential save and rollback policy; direct deletion of the runtime auth file is not an equivalent implementation. Enter scoped locks inside the actual blocking owner call.
+- Codex provider-library updates compare the reviewed file version under the existing domain lock and bind the guarded final write to the same source revision. Omitted/blank credential input preserves existing keys; updates preserve creation metadata. The existing typed store does not promise raw unknown-field persistence.
+- Codex quota refresh is an explicit app-owned operation: the existing service may refresh credentials and persist observations. Detaching a view is not cancellation. Reject fixture network work before constructing the live service, and keep failures/credential payloads out of display snapshots. Both quota and token-refresh HTTP requests have a 30-second request deadline. A multi-account batch can exceed five seconds overall; final runtime join waits for actual completion, so this is not a blanket five-second exit receipt. The model catalog uses the shared existing builtin/custom merge policy without inventing remote availability.

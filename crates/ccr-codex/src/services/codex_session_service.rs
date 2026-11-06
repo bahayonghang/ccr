@@ -11,7 +11,7 @@ use std::cmp::Reverse;
 use std::collections::BTreeMap;
 use std::fs::{self, File};
 use std::hash::{DefaultHasher, Hash, Hasher};
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
@@ -332,6 +332,15 @@ impl CodexSessionService {
         }
 
         let original_session_id = self.parse_session_file(&resolved, 1)?.summary.session_id;
+        self.clone_content(resolved, &content, &original_session_id)
+    }
+
+    fn clone_content(
+        &self,
+        resolved: PathBuf,
+        content: &str,
+        original_session_id: &str,
+    ) -> Result<CodexSessionSummary> {
         let new_session_id = format!("clone-{}", Uuid::new_v4());
         let target_dir = resolved
             .parent()
@@ -362,7 +371,7 @@ impl CodexSessionService {
                 }
             };
 
-            rewrite_session_identifiers(&mut record, &original_session_id, &new_session_id);
+            rewrite_session_identifiers(&mut record, original_session_id, &new_session_id);
             rewrite_session_timestamp(&mut record, clone_timestamp, time_offset);
             output_lines.push(serde_json::to_string(&record).map_err(CcrError::JsonError)?);
         }
@@ -371,6 +380,59 @@ impl CodexSessionService {
         let summary = self.parse_session_file(&target_path, 0)?.summary;
         self.invalidate_inventory_cache()?;
         Ok(summary)
+    }
+
+    /// Bounded confirmation token for a provider-validated live session.
+    pub fn source_version(&self, file_path: &Path) -> Result<String> {
+        let (_, bytes) = self.read_source_snapshot(file_path)?;
+        Ok(ccr_core::core::content_version_token(&bytes))
+    }
+
+    fn read_source_snapshot(&self, file_path: &Path) -> Result<(PathBuf, Vec<u8>)> {
+        super::codex_session_trash_service::reject_linked_path(file_path)?;
+        let resolved = self.resolve_session_path(file_path)?;
+        const LIMIT: u64 = 64 * 1024 * 1024;
+        let mut bytes = Vec::new();
+        File::open(&resolved)?
+            .take(LIMIT + 1)
+            .read_to_end(&mut bytes)?;
+        if bytes.len() as u64 > LIMIT {
+            return Err(CcrError::ValidationError(
+                "Session exceeds the native operation limit".into(),
+            ));
+        }
+        Ok((resolved, bytes))
+    }
+
+    pub fn clone_session_versioned(
+        &self,
+        file_path: &Path,
+        expected: &str,
+    ) -> Result<Option<CodexSessionSummary>> {
+        let (resolved, bytes) = self.read_source_snapshot(file_path)?;
+        self.clone_confirmed_bytes(resolved, &bytes, expected)
+    }
+
+    fn clone_confirmed_bytes(
+        &self,
+        resolved: PathBuf,
+        bytes: &[u8],
+        expected: &str,
+    ) -> Result<Option<CodexSessionSummary>> {
+        if ccr_core::core::content_version_token(bytes) != expected {
+            return Ok(None);
+        }
+        let content = std::str::from_utf8(bytes)
+            .map_err(|_| CcrError::ValidationError("Session is not UTF-8".into()))?;
+        if content.trim().is_empty() {
+            return Err(CcrError::FileIoError("会话文件为空".into()));
+        }
+        let original_session_id = self
+            .parse_session_reader(resolved.clone(), std::io::Cursor::new(bytes), 1)?
+            .summary
+            .session_id;
+        self.clone_content(resolved, content, &original_session_id)
+            .map(Some)
     }
 
     pub fn delete_session(&self, file_path: &Path) -> Result<()> {
@@ -387,7 +449,15 @@ impl CodexSessionService {
     ) -> Result<ParsedCodexSession> {
         let resolved = self.resolve_session_path(path)?;
         let file = File::open(&resolved)?;
-        let reader = BufReader::new(file);
+        self.parse_session_reader(resolved, BufReader::new(file), stored_messages_limit)
+    }
+
+    fn parse_session_reader(
+        &self,
+        resolved: PathBuf,
+        reader: impl BufRead,
+        stored_messages_limit: usize,
+    ) -> Result<ParsedCodexSession> {
         let sessions_dir = self.sessions_dir();
         let mut state = CodexSessionState::default();
 
@@ -1118,6 +1188,54 @@ mod tests {
         assert_ne!(cloned.session_id, "sess-clone");
         assert!(cloned.session_id.starts_with("clone-"));
         assert!(cloned.file_path.exists());
+    }
+
+    #[test]
+    fn clone_session_versioned_rejects_changed_source_and_uses_confirmed_bytes() {
+        let (service, temp_dir) = create_service();
+        let confirmed = r#"{"timestamp":"2026-03-26T06:37:24.013Z","type":"session_meta","payload":{"id":"confirmed-id","cwd":"/fixture","future":"preserved"}}
+{"timestamp":"2026-03-26T06:37:50.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"confirmed message"}]}}
+"#;
+        let path = write_session(&temp_dir, "rollout-confirmed.jsonl", confirmed);
+        let token = service.source_version(&path).unwrap();
+        let (resolved, bytes) = service.read_source_snapshot(&path).unwrap();
+        let changed = format!(
+            "{}{}\n",
+            confirmed.replace("confirmed-id", "changed-id"),
+            r#"{"timestamp":"2026-03-26T06:38:50.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"unconfirmed append"}]}}"#
+        );
+        fs::write(&path, &changed).unwrap();
+        assert!(
+            service
+                .clone_session_versioned(&path, &token)
+                .unwrap()
+                .is_none()
+        );
+        // Change the live source after capture, at the same boundary used by
+        // the public entry. The clone must consume only that confirmed snapshot.
+        let cloned = service
+            .clone_confirmed_bytes(resolved, &bytes, &token)
+            .unwrap()
+            .unwrap();
+        let detail = service.get_session_detail(&cloned.file_path, None).unwrap();
+        assert!(cloned.session_id.starts_with("clone-"));
+        assert_eq!(detail.messages.len(), 1);
+        assert_eq!(detail.messages[0].text, "confirmed message");
+        assert!(
+            !fs::read_to_string(&cloned.file_path)
+                .unwrap()
+                .contains("unconfirmed append")
+        );
+        let first: Value = serde_json::from_str(
+            fs::read_to_string(&cloned.file_path)
+                .unwrap()
+                .lines()
+                .next()
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(first["payload"]["future"], "preserved");
+        assert_eq!(fs::read_to_string(&path).unwrap(), changed);
     }
 
     #[test]

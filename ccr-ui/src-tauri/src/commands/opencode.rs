@@ -8,10 +8,14 @@
 //!
 //! 兼容读取旧路径 `~/.opencode/*`，但所有写入都会落到新路径。
 
+use ccr_app::resources::platform_files::{
+    Kind as ResourceKind, Store as ResourceStore, opencode as resource_codec,
+};
+pub use resource_codec::{OpenCodeAgentRecord, OpenCodeCommandRecord};
+#[cfg(test)]
+use resource_codec::{parse_markdown_document, render_markdown_document, yaml_bool, yaml_string};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
-use serde_yaml::{Mapping as YamlMapping, Value as YamlValue};
-use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
 use ts_rs::TS;
@@ -25,62 +29,6 @@ pub struct OpenCodeThemeRecord {
     pub id: String,
     pub name: String,
     pub theme_type: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OpenCodeAgentRecord {
-    pub name: String,
-    pub path: String,
-    pub scope: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mode: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub model: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub temperature: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub top_p: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub steps: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub hidden: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub disable: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub color: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub permission: Option<Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tools: Option<Value>,
-    pub body: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub other: Option<Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub parse_error: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OpenCodeCommandRecord {
-    pub name: String,
-    pub path: String,
-    pub scope: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub agent: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub subtask: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub model: Option<String>,
-    pub template: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub other: Option<Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub parse_error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
@@ -111,12 +59,6 @@ struct OpenCodeScopedRequest {
 struct ResolvedScopeDir {
     scope: String,
     dir: PathBuf,
-}
-
-#[derive(Debug, Clone)]
-struct MarkdownDocument {
-    frontmatter: YamlMapping,
-    body: String,
 }
 
 fn opencode_home_dir() -> Result<PathBuf, String> {
@@ -248,349 +190,6 @@ fn merge_json_objects(current: Value, incoming: Value) -> Value {
     }
 }
 
-fn parse_markdown_document(raw: &str) -> Result<MarkdownDocument, String> {
-    let normalized = raw.replace("\r\n", "\n");
-    let mut lines = normalized.lines();
-    if lines.next() != Some("---") {
-        return Ok(MarkdownDocument {
-            frontmatter: YamlMapping::new(),
-            body: normalized.trim().to_string(),
-        });
-    }
-
-    let mut frontmatter_lines = Vec::new();
-    let mut body_lines = Vec::new();
-    let mut in_frontmatter = true;
-
-    for line in normalized.lines().skip(1) {
-        if in_frontmatter && line == "---" {
-            in_frontmatter = false;
-            continue;
-        }
-        if in_frontmatter {
-            frontmatter_lines.push(line);
-        } else {
-            body_lines.push(line);
-        }
-    }
-
-    if in_frontmatter {
-        return Err("Markdown frontmatter 缺少结束分隔符 '---'".to_string());
-    }
-
-    let frontmatter = if frontmatter_lines.is_empty() {
-        YamlMapping::new()
-    } else {
-        let raw_frontmatter = frontmatter_lines.join("\n");
-        let yaml = serde_yaml::from_str::<YamlValue>(&raw_frontmatter)
-            .map_err(|e| format!("解析 YAML frontmatter 失败: {e}"))?;
-        yaml.as_mapping()
-            .cloned()
-            .ok_or_else(|| "Markdown frontmatter 顶层必须是 mapping".to_string())?
-    };
-
-    Ok(MarkdownDocument {
-        frontmatter,
-        body: body_lines.join("\n").trim().to_string(),
-    })
-}
-
-fn render_markdown_document(doc: &MarkdownDocument) -> Result<String, String> {
-    let yaml = serde_yaml::to_string(&YamlValue::Mapping(doc.frontmatter.clone()))
-        .map_err(|e| format!("序列化 YAML frontmatter 失败: {e}"))?;
-    let cleaned_yaml = yaml.trim().trim_start_matches("---").trim();
-    let mut rendered = String::new();
-    rendered.push_str("---\n");
-    if !cleaned_yaml.is_empty() {
-        rendered.push_str(cleaned_yaml);
-        rendered.push('\n');
-    }
-    rendered.push_str("---\n\n");
-    rendered.push_str(doc.body.trim());
-    rendered.push('\n');
-    Ok(rendered)
-}
-
-fn yaml_key(name: &str) -> YamlValue {
-    YamlValue::String(name.to_string())
-}
-
-fn yaml_string(mapping: &YamlMapping, key: &str) -> Option<String> {
-    mapping
-        .get(yaml_key(key))
-        .and_then(YamlValue::as_str)
-        .map(str::to_string)
-}
-
-fn yaml_bool(mapping: &YamlMapping, key: &str) -> Option<bool> {
-    mapping.get(yaml_key(key)).and_then(YamlValue::as_bool)
-}
-
-fn yaml_f64(mapping: &YamlMapping, key: &str) -> Option<f64> {
-    mapping.get(yaml_key(key)).and_then(YamlValue::as_f64)
-}
-
-fn yaml_u64(mapping: &YamlMapping, key: &str) -> Option<u64> {
-    mapping.get(yaml_key(key)).and_then(YamlValue::as_u64)
-}
-
-fn yaml_json(mapping: &YamlMapping, key: &str) -> Option<Value> {
-    mapping
-        .get(yaml_key(key))
-        .and_then(|value| serde_json::to_value(value).ok())
-}
-
-fn json_key_to_frontmatter_key(key: &str) -> String {
-    match key {
-        "topP" => "top_p".to_string(),
-        other => other.to_string(),
-    }
-}
-
-fn frontmatter_key_to_json_key(key: &str) -> String {
-    match key {
-        "top_p" => "topP".to_string(),
-        other => other.to_string(),
-    }
-}
-
-fn mapping_without_known_keys(mapping: &YamlMapping, known_keys: &[&str]) -> Option<Value> {
-    let mut trimmed = YamlMapping::new();
-    for (key, value) in mapping {
-        let Some(key_str) = key.as_str() else {
-            trimmed.insert(key.clone(), value.clone());
-            continue;
-        };
-        if known_keys.contains(&key_str) {
-            continue;
-        }
-        trimmed.insert(
-            YamlValue::String(frontmatter_key_to_json_key(key_str)),
-            value.clone(),
-        );
-    }
-
-    if trimmed.is_empty() {
-        None
-    } else {
-        serde_json::to_value(YamlValue::Mapping(trimmed)).ok()
-    }
-}
-
-fn validate_markdown_name(name: &str) -> Result<(), String> {
-    if name.trim().is_empty() {
-        return Err("名称不能为空".to_string());
-    }
-    if name.contains(['/', '\\']) {
-        return Err("名称不能包含路径分隔符".to_string());
-    }
-    Ok(())
-}
-
-fn read_markdown_file(path: &Path) -> Result<String, String> {
-    fs::read_to_string(path).map_err(|e| format!("读取文件 '{}' 失败: {e}", path.to_string_lossy()))
-}
-
-fn write_markdown_file(path: &Path, doc: &MarkdownDocument) -> Result<(), String> {
-    ensure_parent_dir(path)?;
-    let rendered = render_markdown_document(doc)?;
-    fs::write(path, rendered)
-        .map_err(|e| format!("写入文件 '{}' 失败: {e}", path.to_string_lossy()))
-}
-
-fn apply_frontmatter_updates(
-    frontmatter: &mut YamlMapping,
-    updates: &Map<String, Value>,
-    skip_keys: &[&str],
-) -> Result<(), String> {
-    for (key, value) in updates {
-        if skip_keys.contains(&key.as_str()) {
-            continue;
-        }
-        let target_key = json_key_to_frontmatter_key(key);
-        let yaml_key = yaml_key(&target_key);
-        if value.is_null() {
-            frontmatter.remove(&yaml_key);
-            continue;
-        }
-        let yaml_value = serde_yaml::to_value(value)
-            .map_err(|e| format!("转换 frontmatter 字段 '{}' 失败: {e}", key))?;
-        frontmatter.insert(yaml_key, yaml_value);
-    }
-    Ok(())
-}
-
-fn markdown_file_path(dir: &Path, name: &str) -> PathBuf {
-    dir.join(format!("{name}.md"))
-}
-
-fn scan_markdown_files(dir: &Path) -> Result<Vec<PathBuf>, String> {
-    if !dir.exists() {
-        return Ok(Vec::new());
-    }
-    let mut files = fs::read_dir(dir)
-        .map_err(|e| format!("读取目录 '{}' 失败: {e}", dir.to_string_lossy()))?
-        .filter_map(|entry| entry.ok().map(|item| item.path()))
-        .filter(|path| path.extension() == Some(OsStr::new("md")))
-        .collect::<Vec<_>>();
-    files.sort();
-    Ok(files)
-}
-
-fn agent_record_from_path(path: &Path, scope: &str) -> OpenCodeAgentRecord {
-    let name = path
-        .file_stem()
-        .and_then(|value| value.to_str())
-        .unwrap_or_default()
-        .to_string();
-    let raw = match read_markdown_file(path) {
-        Ok(raw) => raw,
-        Err(error) => {
-            return OpenCodeAgentRecord {
-                name,
-                path: path.to_string_lossy().to_string(),
-                scope: scope.to_string(),
-                description: None,
-                mode: None,
-                model: None,
-                temperature: None,
-                top_p: None,
-                steps: None,
-                hidden: None,
-                disable: None,
-                color: None,
-                permission: None,
-                tools: None,
-                body: String::new(),
-                other: None,
-                parse_error: Some(error),
-            };
-        }
-    };
-
-    match parse_markdown_document(&raw) {
-        Ok(doc) => OpenCodeAgentRecord {
-            name,
-            path: path.to_string_lossy().to_string(),
-            scope: scope.to_string(),
-            description: yaml_string(&doc.frontmatter, "description"),
-            mode: yaml_string(&doc.frontmatter, "mode"),
-            model: yaml_string(&doc.frontmatter, "model"),
-            temperature: yaml_f64(&doc.frontmatter, "temperature"),
-            top_p: yaml_f64(&doc.frontmatter, "top_p"),
-            steps: yaml_u64(&doc.frontmatter, "steps"),
-            hidden: yaml_bool(&doc.frontmatter, "hidden"),
-            disable: yaml_bool(&doc.frontmatter, "disable"),
-            color: yaml_string(&doc.frontmatter, "color"),
-            permission: yaml_json(&doc.frontmatter, "permission"),
-            tools: yaml_json(&doc.frontmatter, "tools"),
-            body: doc.body,
-            other: mapping_without_known_keys(
-                &doc.frontmatter,
-                &[
-                    "description",
-                    "mode",
-                    "model",
-                    "temperature",
-                    "top_p",
-                    "steps",
-                    "hidden",
-                    "disable",
-                    "color",
-                    "permission",
-                    "tools",
-                ],
-            ),
-            parse_error: None,
-        },
-        Err(error) => OpenCodeAgentRecord {
-            name,
-            path: path.to_string_lossy().to_string(),
-            scope: scope.to_string(),
-            description: None,
-            mode: None,
-            model: None,
-            temperature: None,
-            top_p: None,
-            steps: None,
-            hidden: None,
-            disable: None,
-            color: None,
-            permission: None,
-            tools: None,
-            body: raw,
-            other: None,
-            parse_error: Some(error),
-        },
-    }
-}
-
-fn command_record_from_path(path: &Path, scope: &str) -> OpenCodeCommandRecord {
-    let name = path
-        .file_stem()
-        .and_then(|value| value.to_str())
-        .unwrap_or_default()
-        .to_string();
-    let raw = match read_markdown_file(path) {
-        Ok(raw) => raw,
-        Err(error) => {
-            return OpenCodeCommandRecord {
-                name,
-                path: path.to_string_lossy().to_string(),
-                scope: scope.to_string(),
-                description: None,
-                agent: None,
-                subtask: None,
-                model: None,
-                template: String::new(),
-                other: None,
-                parse_error: Some(error),
-            };
-        }
-    };
-
-    match parse_markdown_document(&raw) {
-        Ok(doc) => OpenCodeCommandRecord {
-            name,
-            path: path.to_string_lossy().to_string(),
-            scope: scope.to_string(),
-            description: yaml_string(&doc.frontmatter, "description"),
-            agent: yaml_string(&doc.frontmatter, "agent"),
-            subtask: yaml_bool(&doc.frontmatter, "subtask"),
-            model: yaml_string(&doc.frontmatter, "model"),
-            template: doc.body,
-            other: mapping_without_known_keys(
-                &doc.frontmatter,
-                &["description", "agent", "subtask", "model"],
-            ),
-            parse_error: None,
-        },
-        Err(error) => OpenCodeCommandRecord {
-            name,
-            path: path.to_string_lossy().to_string(),
-            scope: scope.to_string(),
-            description: None,
-            agent: None,
-            subtask: None,
-            model: None,
-            template: raw,
-            other: None,
-            parse_error: Some(error),
-        },
-    }
-}
-
-fn load_scope_records<T>(
-    dir: &Path,
-    scope: &str,
-    factory: fn(&Path, &str) -> T,
-) -> Result<Vec<T>, String> {
-    scan_markdown_files(dir)?
-        .into_iter()
-        .map(|path| Ok(factory(&path, scope)))
-        .collect()
-}
-
 fn list_scope_candidates(folder: &str) -> Result<Vec<ResolvedScopeDir>, String> {
     let mut scopes = vec![ResolvedScopeDir {
         scope: "global".to_string(),
@@ -607,150 +206,82 @@ fn list_scope_candidates(folder: &str) -> Result<Vec<ResolvedScopeDir>, String> 
     Ok(scopes)
 }
 
+fn resource_store(scope: &ResolvedScopeDir, kind: ResourceKind) -> Result<ResourceStore, String> {
+    ResourceStore::with_default_storage(scope.dir.clone(), kind).map_err(|error| error.to_string())
+}
 fn list_agents_internal() -> Result<Vec<OpenCodeAgentRecord>, String> {
     let mut records = Vec::new();
     for scope in list_scope_candidates("agents")? {
-        records.extend(load_scope_records(
-            &scope.dir,
+        records.extend(resource_codec::list_agents(
+            &resource_store(&scope, ResourceKind::OpenCodeAgent)?,
             &scope.scope,
-            agent_record_from_path,
         )?);
     }
     Ok(records)
 }
-
 fn list_commands_internal() -> Result<Vec<OpenCodeCommandRecord>, String> {
     let mut records = Vec::new();
     for scope in list_scope_candidates("commands")? {
-        records.extend(load_scope_records(
-            &scope.dir,
+        records.extend(resource_codec::list_commands(
+            &resource_store(&scope, ResourceKind::OpenCodeCommand)?,
             &scope.scope,
-            command_record_from_path,
         )?);
     }
     Ok(records)
 }
-
 fn upsert_agent_internal(
     name: &str,
     config: &Map<String, Value>,
     scope: &ResolvedScopeDir,
 ) -> Result<OpenCodeAgentRecord, String> {
-    validate_markdown_name(name)?;
-    let path = markdown_file_path(&scope.dir, name);
-    let mut document = if path.exists() {
-        parse_markdown_document(&read_markdown_file(&path)?)?
-    } else {
-        MarkdownDocument {
-            frontmatter: YamlMapping::new(),
-            body: String::new(),
-        }
-    };
-
-    if let Some(body) = config.get("body").and_then(Value::as_str) {
-        document.body = body.to_string();
-    }
-
-    apply_frontmatter_updates(
-        &mut document.frontmatter,
+    resource_codec::upsert_agent(
+        &resource_store(scope, ResourceKind::OpenCodeAgent)?,
+        name,
         config,
-        &["name", "scope", "projectRoot", "body"],
-    )?;
-
-    if yaml_string(&document.frontmatter, "description").is_none() {
-        return Err("Agent description 为必填项".to_string());
-    }
-
-    write_markdown_file(&path, &document)?;
-    Ok(agent_record_from_path(&path, &scope.scope))
+        &scope.scope,
+    )
 }
-
 fn upsert_command_internal(
     name: &str,
     config: &Map<String, Value>,
     scope: &ResolvedScopeDir,
 ) -> Result<OpenCodeCommandRecord, String> {
-    validate_markdown_name(name)?;
-    let path = markdown_file_path(&scope.dir, name);
-    let mut document = if path.exists() {
-        parse_markdown_document(&read_markdown_file(&path)?)?
-    } else {
-        MarkdownDocument {
-            frontmatter: YamlMapping::new(),
-            body: String::new(),
-        }
-    };
-
-    if let Some(template) = config.get("template").and_then(Value::as_str) {
-        document.body = template.to_string();
-    }
-
-    apply_frontmatter_updates(
-        &mut document.frontmatter,
+    resource_codec::upsert_command(
+        &resource_store(scope, ResourceKind::OpenCodeCommand)?,
+        name,
         config,
-        &["name", "scope", "projectRoot", "template"],
-    )?;
-
-    if yaml_string(&document.frontmatter, "description").is_none() {
-        return Err("Command description 为必填项".to_string());
-    }
-
-    write_markdown_file(&path, &document)?;
-    Ok(command_record_from_path(&path, &scope.scope))
+        &scope.scope,
+    )
 }
-
 fn delete_markdown_doc(
     name: &str,
     request: &OpenCodeScopedRequest,
     folder: &str,
 ) -> Result<String, String> {
-    validate_markdown_name(name)?;
+    let kind = match folder {
+        "agents" => ResourceKind::OpenCodeAgent,
+        "commands" => ResourceKind::OpenCodeCommand,
+        _ => return Err("Unsupported resource kind".into()),
+    };
     let scope = resolve_scope_dir(request, folder)?;
-    let path = markdown_file_path(&scope.dir, name);
-    if !path.exists() {
-        return Err(format!(
-            "未找到 OpenCode {folder} 文件: {}",
-            path.to_string_lossy()
-        ));
-    }
-    fs::remove_file(&path)
-        .map_err(|e| format!("删除文件 '{}' 失败: {e}", path.to_string_lossy()))?;
+    resource_codec::delete(&resource_store(&scope, kind)?, name)?;
     Ok(name.to_string())
 }
 
 fn scan_plugin_files(dir: &Path, scope: &str) -> Result<Vec<OpenCodePluginFileRecord>, String> {
-    if !dir.exists() {
-        return Ok(Vec::new());
-    }
-
-    let mut files = fs::read_dir(dir)
-        .map_err(|e| format!("读取目录 '{}' 失败: {e}", dir.to_string_lossy()))?
-        .filter_map(|entry| entry.ok())
-        .filter_map(|entry| {
-            let path = entry.path();
-            if path.is_dir() {
-                return None;
-            }
-            let extension = path.extension()?.to_str()?.to_ascii_lowercase();
-            if !matches!(extension.as_str(), "js" | "cjs" | "mjs" | "ts") {
-                return None;
-            }
-            let metadata = entry.metadata().ok()?;
-            Some(OpenCodePluginFileRecord {
-                name: path
-                    .file_name()
-                    .and_then(|value| value.to_str())
-                    .unwrap_or_default()
-                    .to_string(),
-                path: path.to_string_lossy().to_string(),
-                scope: scope.to_string(),
-                size: metadata.len(),
-            })
+    resource_codec::list_plugins(dir)
+        .map(|files| {
+            files
+                .into_iter()
+                .map(|file| OpenCodePluginFileRecord {
+                    name: file.name,
+                    path: file.path.to_string_lossy().into_owned(),
+                    scope: scope.into(),
+                    size: file.size,
+                })
+                .collect()
         })
-        .collect::<Vec<_>>();
-
-    files.sort_by(|left, right| left.path.cmp(&right.path));
-    Ok(files)
+        .map_err(|error| error.to_string())
 }
 
 #[ccr_tauri_command_macros::command]
@@ -825,73 +356,14 @@ pub async fn opencode_update_keybindings(
 
 #[ccr_tauri_command_macros::command]
 pub async fn opencode_list_themes() -> Result<Vec<OpenCodeThemeRecord>, String> {
-    Ok(vec![
-        OpenCodeThemeRecord {
-            id: "dark".to_string(),
-            name: "Dark".to_string(),
-            theme_type: "dark".to_string(),
-        },
-        OpenCodeThemeRecord {
-            id: "light".to_string(),
-            name: "Light".to_string(),
-            theme_type: "light".to_string(),
-        },
-        OpenCodeThemeRecord {
-            id: "system".to_string(),
-            name: "System".to_string(),
-            theme_type: "system".to_string(),
-        },
-        OpenCodeThemeRecord {
-            id: "catppuccin-mocha".to_string(),
-            name: "Catppuccin Mocha".to_string(),
-            theme_type: "dark".to_string(),
-        },
-        OpenCodeThemeRecord {
-            id: "catppuccin-latte".to_string(),
-            name: "Catppuccin Latte".to_string(),
-            theme_type: "light".to_string(),
-        },
-        OpenCodeThemeRecord {
-            id: "dracula".to_string(),
-            name: "Dracula".to_string(),
-            theme_type: "dark".to_string(),
-        },
-        OpenCodeThemeRecord {
-            id: "nord".to_string(),
-            name: "Nord".to_string(),
-            theme_type: "dark".to_string(),
-        },
-        OpenCodeThemeRecord {
-            id: "one-dark".to_string(),
-            name: "One Dark".to_string(),
-            theme_type: "dark".to_string(),
-        },
-        OpenCodeThemeRecord {
-            id: "github-dark".to_string(),
-            name: "GitHub Dark".to_string(),
-            theme_type: "dark".to_string(),
-        },
-        OpenCodeThemeRecord {
-            id: "github-light".to_string(),
-            name: "GitHub Light".to_string(),
-            theme_type: "light".to_string(),
-        },
-        OpenCodeThemeRecord {
-            id: "solarized-dark".to_string(),
-            name: "Solarized Dark".to_string(),
-            theme_type: "dark".to_string(),
-        },
-        OpenCodeThemeRecord {
-            id: "solarized-light".to_string(),
-            name: "Solarized Light".to_string(),
-            theme_type: "light".to_string(),
-        },
-        OpenCodeThemeRecord {
-            id: "tokyonight".to_string(),
-            name: "Tokyo Night".to_string(),
-            theme_type: "dark".to_string(),
-        },
-    ])
+    Ok(resource_codec::THEMES
+        .iter()
+        .map(|(id, name, theme_type)| OpenCodeThemeRecord {
+            id: (*id).into(),
+            name: (*name).into(),
+            theme_type: (*theme_type).into(),
+        })
+        .collect())
 }
 
 #[ccr_tauri_command_macros::command]
@@ -1064,10 +536,12 @@ mod tests {
         )
         .unwrap();
 
-        let scope = ResolvedScopeDir {
-            scope: "global".to_string(),
-            dir: agents_dir,
-        };
+        let store = ResourceStore::new(
+            agents_dir,
+            temp.path().join("backups"),
+            temp.path().join("locks"),
+            ResourceKind::OpenCodeAgent,
+        );
 
         let config = json!({
             "description": "Review code carefully",
@@ -1075,7 +549,9 @@ mod tests {
             "temperature": 0.1
         });
 
-        let record = upsert_agent_internal("review", config.as_object().unwrap(), &scope).unwrap();
+        let record =
+            resource_codec::upsert_agent(&store, "review", config.as_object().unwrap(), "global")
+                .unwrap();
         assert_eq!(record.name, "review");
         assert_eq!(record.body, "New body");
         assert_eq!(record.temperature, Some(0.1));

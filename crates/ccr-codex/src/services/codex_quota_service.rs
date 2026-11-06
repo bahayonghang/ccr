@@ -135,10 +135,15 @@ pub struct CodexQuotaService {
 impl CodexQuotaService {
     pub fn new() -> Result<Self> {
         let paths = CodexPaths::resolve()?;
-        Ok(Self {
-            ccr_codex_dir: paths.ccr_codex_dir,
-            codex_dir: paths.codex_dir,
-        })
+        Ok(Self::from_dirs(paths.ccr_codex_dir, paths.codex_dir))
+    }
+
+    /// Captured Local roots; this service can refresh credentials during fetch.
+    pub fn from_dirs(ccr_codex_dir: PathBuf, codex_dir: PathBuf) -> Self {
+        Self {
+            ccr_codex_dir,
+            codex_dir,
+        }
     }
 
     /// 查询指定账号的配额。

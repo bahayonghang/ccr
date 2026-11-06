@@ -5,6 +5,47 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use std::collections::HashMap;
 
+/// Existing desktop catalog; this is a local configured list, not a remote capability claim.
+pub const BUILTIN_MODELS: &[&str] = &["gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.6-sol"];
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CustomModelsFile {
+    #[serde(default)]
+    pub models: Vec<String>,
+}
+
+pub fn builtin_models() -> Vec<String> {
+    BUILTIN_MODELS
+        .iter()
+        .map(|model| (*model).to_string())
+        .collect()
+}
+pub fn normalize_model_name(model: &str) -> Option<String> {
+    let model = model.trim();
+    (!model.is_empty()).then(|| model.to_string())
+}
+pub fn sanitize_custom_models(models: Vec<String>) -> Vec<String> {
+    let mut result = Vec::new();
+    for model in models {
+        if let Some(model) = normalize_model_name(&model)
+            && !BUILTIN_MODELS.contains(&model.as_str())
+            && !result.contains(&model)
+        {
+            result.push(model);
+        }
+    }
+    result
+}
+pub fn merge_models(custom: &[String]) -> Vec<String> {
+    let mut models = builtin_models();
+    for model in custom {
+        if !models.contains(model) {
+            models.push(model.clone());
+        }
+    }
+    models
+}
+
 pub fn save_patch(
     document: &super::Document,
     snapshot: &super::Snapshot,

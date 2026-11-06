@@ -35,6 +35,31 @@ pub fn save_patch(
     save(document, snapshot, &current)
 }
 
+/// Match Claude's existing typed settings contract without round-tripping
+/// through that type: extension fields and legacy representations stay intact.
+pub fn save_claude_patch(
+    document: &Document,
+    snapshot: &Snapshot,
+    patch: &Value,
+) -> Result<SaveOutcome, Error> {
+    let mut current = parse(snapshot)?;
+    merge(&mut current, patch)?;
+    serde_json::from_value::<ccr_types::ClaudeSettings>(current.clone()).map_err(|_| invalid())?;
+    save(document, snapshot, &current)
+}
+
+pub fn save_claude_source(
+    document: &Document,
+    snapshot: &Snapshot,
+    content: &str,
+) -> Result<SaveOutcome, Error> {
+    serde_json::from_str::<ccr_types::ClaudeSettings>(content).map_err(|error| Error::Invalid {
+        line: Some(error.line()),
+        column: Some(error.column()),
+    })?;
+    document.save_text(content, snapshot)
+}
+
 fn merge(current: &mut Value, patch: &Value) -> Result<(), Error> {
     let incoming = patch.as_object().ok_or_else(invalid)?;
     let target = current.as_object_mut().ok_or_else(invalid)?;

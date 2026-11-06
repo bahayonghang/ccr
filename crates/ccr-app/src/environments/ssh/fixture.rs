@@ -49,7 +49,9 @@ impl Workspace {
 
     pub fn fixture(database: PathBuf, known_hosts: PathBuf) -> (Self, Arc<FixtureTransport>) {
         let transport = Arc::new(FixtureTransport::default());
+        let lock_directory = database.with_extension("locks");
         let mut owner = Self::new(Some(database), known_hosts);
+        owner.lock_directory = Some(lock_directory);
         owner.transport = transport.clone();
         owner.synthetic = true;
         (owner, transport)

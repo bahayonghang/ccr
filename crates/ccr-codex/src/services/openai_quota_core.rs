@@ -29,6 +29,7 @@ const TOKEN_REFRESH_URL: &str = "https://auth.openai.com/oauth/token";
 const OAUTH_CLIENT_ID: &str = "app_EMoamEEZ73f0CkXaXp7hrann";
 /// 共享 quota 缓存有效期。
 const QUOTA_CACHE_TTL: Duration = Duration::from_secs(30);
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 
 fn build_http_client() -> reqwest::Client {
     if cfg!(test) {
@@ -461,6 +462,7 @@ impl OpenAiQuotaCore {
         let response = HTTP_CLIENT
             .get(url)
             .headers(headers)
+            .timeout(REQUEST_TIMEOUT)
             .send()
             .await
             .map_err(|error| format!("配额请求失败: {error}"))?;
@@ -499,6 +501,7 @@ impl OpenAiQuotaCore {
         let response = HTTP_CLIENT
             .post(token_refresh_url())
             .json(&request)
+            .timeout(REQUEST_TIMEOUT)
             .send()
             .await
             .map_err(|error| format!("Token 刷新请求失败: {error}"))?;

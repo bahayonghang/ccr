@@ -130,6 +130,7 @@ impl Transport for OpenSsh {
 pub struct Workspace {
     database: Option<PathBuf>,
     known_hosts: PathBuf,
+    lock_directory: Option<PathBuf>,
     trust: SshTrustService,
     session: Mutex<Option<Session>>,
     #[cfg(any(test, feature = "test-fixtures"))]
@@ -142,6 +143,7 @@ impl Workspace {
         Self {
             database,
             known_hosts,
+            lock_directory: None,
             #[cfg(any(test, feature = "test-fixtures"))]
             synthetic: false,
             trust: SshTrustService::new(),
@@ -358,12 +360,13 @@ impl Workspace {
             .trust
             .consume(challenge_id)
             .map_err(|_| "ssh_challenge_invalid")?;
-        persist_known_host(
+        persist_known_host_with_locks(
             self.known_hosts.clone(),
             key.host.clone(),
             key.port,
             key.key_type.clone(),
             key.key_data,
+            self.lock_directory.clone(),
         )
         .await
         .map_err(|_| "ssh_trust_write_failed")?;
@@ -399,12 +402,13 @@ impl Workspace {
         if cancel.is_cancelled() {
             return Err("ssh_cancelled");
         }
-        persist_known_host(
+        persist_known_host_with_locks(
             self.known_hosts.clone(),
             target.host().into(),
             target.port(),
             key.key_type,
             key.key_data,
+            self.lock_directory.clone(),
         )
         .await
         .map_err(|_| "ssh_trust_write_failed")?;
@@ -490,14 +494,22 @@ impl Workspace {
     ) -> Result<(), Error> {
         let temp = tempfile::tempdir().map_err(|_| "ssh_local_staging_failed")?;
         let local = temp.path().join("upload");
-        ccr_core::core::write_guarded(
-            &local,
-            content.as_bytes(),
-            &ccr_core::core::WriteOptions {
-                secret: true,
-                ..Default::default()
-            },
-        )
+        let stage = || {
+            ccr_core::core::write_guarded(
+                &local,
+                content.as_bytes(),
+                &ccr_core::core::WriteOptions {
+                    secret: true,
+                    ..Default::default()
+                },
+            )
+        };
+        match &self.lock_directory {
+            Some(directory) => {
+                ccr_core::core::lock::LockManager::with_scoped_directory(directory, stage)
+            }
+            None => stage(),
+        }
         .map_err(|_| "ssh_local_staging_failed")?;
         let plan = sftp_write_plan(path, &local, uuid::Uuid::new_v4())
             .map_err(|_| "ssh_invalid_remote_path")?;
@@ -670,6 +682,7 @@ mod tests {
         assert!(!root.path().join("ssh/known_hosts").exists());
         connect(&owner, "one").await;
         assert!(owner.connected("one"));
+        assert!(owner.lock_directory.as_ref().unwrap().is_dir());
         transport.change_key();
         assert_eq!(
             owner.connect("one", cancel.clone()).await,

@@ -7,7 +7,7 @@
 //! 模块边界：
 //! - `pricing` —— Anthropic 价目表（来自 vibe-observer），仅做版本暴露与
 //!   未来重定价兜底，不参与 llmusage 的 value 计算。
-//! - `jsonl`   —— 单行 JSONL 解析，输出 `ParsedToolEvent`。
+//! - JSONL 单行解析由共享 `ccr_app::usage::observer::jsonl` 持有。
 //! - `scanner` —— `~/.claude/projects/**.jsonl` 增量扫描，写入
 //!   `ccr_db::database::repositories::claude_tool_calls_repo`。
 //! - `subscription` —— 订阅模式 / 月费的 user_settings 包装。
@@ -15,7 +15,6 @@
 //! 调用方一律走 `crate::claude_observer::<sub>::<item>` 全路径，本模块不再
 //! 维护 re-export 表面，避免 P2 阶段那种 `#[allow(unused_imports)]` 散落噪音。
 
-pub mod jsonl;
 pub mod pricing;
 pub mod scanner;
 pub mod subscription;

@@ -354,7 +354,7 @@ pub async fn codex_list_config_layers(state: State<'_, AppState>) -> Result<Valu
 mod tests {
     use super::*;
     use crate::test_support::TestProcessEnv;
-    use ccr_core::core::content_version_token;
+    use ccr_core::core::{LockManager, content_version_token};
     use std::fs;
     use tempfile::tempdir;
 
@@ -467,53 +467,61 @@ mod tests {
     #[test]
     fn raw_save_rejects_stale_token_and_preserves_external_change() {
         let temp_dir = tempdir().unwrap();
-        let target = temp_dir.path().join("config.toml");
-        let backup_dir = temp_dir.path().join("backups");
-        fs::write(&target, b"model = 'old'").unwrap();
-        let stale_token = content_version_token(b"model = 'old'");
-        fs::write(&target, b"model = 'external'").unwrap();
+        LockManager::with_scoped_directory(&temp_dir.path().join("locks"), || {
+            let target = temp_dir.path().join("config.toml");
+            let backup_dir = temp_dir.path().join("backups");
+            fs::write(&target, b"model = 'old'").unwrap();
+            let stale_token = content_version_token(b"model = 'old'");
+            fs::write(&target, b"model = 'external'").unwrap();
 
-        let result = save_raw_file(
-            RawConfigKind::Codex,
-            &target,
-            &backup_dir,
-            "model = 'editor'",
-            &stale_token,
-        )
+            let result = save_raw_file(
+                RawConfigKind::Codex,
+                &target,
+                &backup_dir,
+                "model = 'editor'",
+                &stale_token,
+            )
+            .unwrap();
+
+            assert_eq!(result["status"], "conflict");
+            assert_eq!(fs::read(&target).unwrap(), b"model = 'external'");
+            assert!(!backup_dir.exists());
+            Ok(())
+        })
         .unwrap();
-
-        assert_eq!(result["status"], "conflict");
-        assert_eq!(fs::read(&target).unwrap(), b"model = 'external'");
-        assert!(!backup_dir.exists());
     }
 
     #[test]
     fn raw_save_creates_missing_file_and_backs_up_existing_file() {
         let temp_dir = tempdir().unwrap();
-        let target = temp_dir.path().join("config.toml");
-        let backup_dir = temp_dir.path().join("backups");
+        LockManager::with_scoped_directory(&temp_dir.path().join("locks"), || {
+            let target = temp_dir.path().join("config.toml");
+            let backup_dir = temp_dir.path().join("backups");
 
-        let created = save_raw_file(
-            RawConfigKind::Codex,
-            &target,
-            &backup_dir,
-            "model = 'first'",
-            "",
-        )
-        .unwrap();
-        let first_token = created["token"].as_str().unwrap().to_string();
-        let saved = save_raw_file(
-            RawConfigKind::Codex,
-            &target,
-            &backup_dir,
-            "model = 'second'",
-            &first_token,
-        )
-        .unwrap();
+            let created = save_raw_file(
+                RawConfigKind::Codex,
+                &target,
+                &backup_dir,
+                "model = 'first'",
+                "",
+            )
+            .unwrap();
+            let first_token = created["token"].as_str().unwrap().to_string();
+            let saved = save_raw_file(
+                RawConfigKind::Codex,
+                &target,
+                &backup_dir,
+                "model = 'second'",
+                &first_token,
+            )
+            .unwrap();
 
-        assert_eq!(created["status"], "saved");
-        assert_eq!(saved["status"], "saved");
-        assert_eq!(fs::read_to_string(&target).unwrap(), "model = 'second'");
-        assert_eq!(fs::read_dir(&backup_dir).unwrap().count(), 1);
+            assert_eq!(created["status"], "saved");
+            assert_eq!(saved["status"], "saved");
+            assert_eq!(fs::read_to_string(&target).unwrap(), "model = 'second'");
+            assert_eq!(fs::read_dir(&backup_dir).unwrap().count(), 1);
+            Ok(())
+        })
+        .unwrap();
     }
 }

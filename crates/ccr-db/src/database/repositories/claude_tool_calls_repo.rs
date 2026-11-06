@@ -11,6 +11,15 @@
 use chrono::Utc;
 use rusqlite::{Connection, params, params_from_iter};
 
+/// All-history distinct sessions with recorded Claude tool calls.
+pub fn session_count(conn: &Connection) -> Result<i64, rusqlite::Error> {
+    conn.query_row(
+        "SELECT COUNT(DISTINCT session_id) FROM claude_tool_calls",
+        [],
+        |row| row.get(0),
+    )
+}
+
 /// 待落库的单条 tool 调用事件
 #[derive(Debug, Clone)]
 pub struct ToolCallRow {
@@ -74,9 +83,33 @@ pub fn upsert_batch(conn: &mut Connection, rows: &[ToolCallRow]) -> Result<usize
         return Ok(0);
     }
     let tx = conn.transaction()?;
+    let inserted = upsert_rows(&tx, rows)?;
+    tx.commit()?;
+    Ok(inserted)
+}
+
+/// Commit deterministic file rows and their scan cursor atomically.
+pub fn record_ingested_file(
+    conn: &mut Connection,
+    rows: &[ToolCallRow],
+    file_path: &str,
+    mtime_ns: i64,
+    offset: i64,
+) -> Result<usize, rusqlite::Error> {
+    let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+    let inserted = upsert_rows(&tx, rows)?;
+    upsert_ingest_state(&tx, file_path, mtime_ns, offset)?;
+    tx.commit()?;
+    Ok(inserted)
+}
+
+fn upsert_rows(conn: &Connection, rows: &[ToolCallRow]) -> Result<usize, rusqlite::Error> {
+    if rows.is_empty() {
+        return Ok(0);
+    }
     let mut inserted = 0usize;
     {
-        let mut stmt = tx.prepare(
+        let mut stmt = conn.prepare(
             "INSERT INTO claude_tool_calls
                 (session_id, seq, ts, tool_name, success, duration_ms, cost_usd, project_path)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
@@ -103,7 +136,6 @@ pub fn upsert_batch(conn: &mut Connection, rows: &[ToolCallRow]) -> Result<usize
             inserted += 1;
         }
     }
-    tx.commit()?;
     Ok(inserted)
 }
 

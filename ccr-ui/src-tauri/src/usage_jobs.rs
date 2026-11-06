@@ -375,7 +375,7 @@ mod lifecycle_tests {
     }
 
     #[tokio::test]
-    async fn cancel_before_runner_start_prevents_spawn_and_keeps_admission() {
+    async fn cancel_before_runner_start_returns_cancelled_and_keeps_admission() {
         use std::sync::{
             Arc,
             atomic::{AtomicUsize, Ordering},
@@ -383,16 +383,23 @@ mod lifecycle_tests {
         let jobs = Arc::new(tokio::sync::Mutex::new(UsageImportJobs::default()));
         let (_, token) = jobs.lock().await.admit(snapshot("first"));
         let barrier = Arc::new(tokio::sync::Barrier::new(2));
-        let spawns = Arc::new(AtomicUsize::new(0));
+        let events = Arc::new(AtomicUsize::new(0));
         let runner = tokio::spawn({
-            let (jobs, barrier, spawns) = (jobs.clone(), barrier.clone(), spawns.clone());
+            let (jobs, barrier, events) = (jobs.clone(), barrier.clone(), events.clone());
             async move {
                 barrier.wait().await;
-                let result =
-                    crate::llmusage_adapter::cli::spawn_sync_process(&token.unwrap(), || {
-                        spawns.fetch_add(1, Ordering::SeqCst);
-                        Ok(())
-                    });
+                let result = crate::llmusage_adapter::cli::run_sync_stream(
+                    &crate::llmusage_adapter::LlmusageCli::new(ccr_usage::AppPaths::from_root(
+                        std::path::PathBuf::from("unused"),
+                    )),
+                    Default::default(),
+                    token.unwrap(),
+                    |_| {
+                        events.fetch_add(1, Ordering::SeqCst);
+                        std::future::ready(Ok(()))
+                    },
+                )
+                .await;
                 jobs.lock()
                     .await
                     .complete("first", UsageImportCompletion::Error(result.unwrap_err()));
@@ -407,7 +414,7 @@ mod lifecycle_tests {
         assert!(jobs.lock().await.active().is_some());
         barrier.wait().await;
         runner.await.unwrap();
-        assert_eq!(spawns.load(Ordering::SeqCst), 0);
+        assert_eq!(events.load(Ordering::SeqCst), 0);
         assert_eq!(
             jobs.lock().await.get("first").unwrap().status,
             UsageImportJobStatus::Cancelled

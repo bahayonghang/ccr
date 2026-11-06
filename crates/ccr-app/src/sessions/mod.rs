@@ -7,7 +7,7 @@ use ccr_db::database::{
 };
 use ccr_store::sessions::{
     AgentSessionAgentId, AgentSessionFidelity, AgentSessionMessagePage,
-    AgentSessionProviderRegistry, AgentSessionSourceKind,
+    AgentSessionProviderRegistry, AgentSessionSourceKind, AgentSessionSourceRef,
 };
 use chrono::{DateTime, Utc};
 use std::path::PathBuf;
@@ -139,6 +139,25 @@ pub fn get_detail_with_registry(
     before_cursor: Option<u32>,
     limit: Option<usize>,
 ) -> Result<SessionDetail, SessionError> {
+    let (source, fidelity) = resolve_source_with_registry(pool, registry, archive_id)?;
+    let mut page = registry
+        .read_message_page(&source, before_cursor, limit.unwrap_or(100).clamp(1, 200))
+        .map_err(|_| SessionError::SourceUnavailable)?;
+    page.fidelity = combine_fidelity(fidelity, page.fidelity);
+    Ok(SessionDetail {
+        archive_id: archive_id.to_owned(),
+        agent: source.agent,
+        variant: source.variant,
+        page,
+    })
+}
+
+/// Resolve only an opaque archive identity. Physical paths remain backend-owned.
+pub fn resolve_source_with_registry(
+    pool: &DbPool,
+    registry: &AgentSessionProviderRegistry,
+    archive_id: &str,
+) -> Result<(AgentSessionSourceRef, AgentSessionFidelity), SessionError> {
     if archive_id.is_empty() || archive_id.len() > 128 {
         return Err(SessionError::InvalidArchiveId);
     }
@@ -171,16 +190,7 @@ pub fn get_detail_with_registry(
                 SessionError::SourceValidation
             }
         })?;
-    let mut page = registry
-        .read_message_page(&source, before_cursor, limit.unwrap_or(100).clamp(1, 200))
-        .map_err(|_| SessionError::SourceUnavailable)?;
-    page.fidelity = combine_fidelity(parse_fidelity(&stored.source_fidelity)?, page.fidelity);
-    Ok(SessionDetail {
-        archive_id: stored.archive_id,
-        agent,
-        variant: source.variant,
-        page,
-    })
+    Ok((source, parse_fidelity(&stored.source_fidelity)?))
 }
 
 pub fn parse_fidelity(value: &str) -> Result<AgentSessionFidelity, SessionError> {

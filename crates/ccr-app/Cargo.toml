@@ -25,6 +25,7 @@ ccr-usage = { path = "../ccr-usage" }
 chrono = { workspace = true }
 serde = { workspace = true }
 serde_json = "=1.0.154"
+serde_yaml = "=0.9.34"
 toml = "=1.1.8"
 walkdir = "=2.5.0"
 async-channel = "2.5.0"
@@ -34,6 +35,7 @@ reqwest = { workspace = true }
 sha2 = { workspace = true }
 uuid = { workspace = true }
 tracing = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 ccr-usage = { path = "../ccr-usage", features = ["test-fixtures"] }

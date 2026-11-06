@@ -11,7 +11,8 @@ use std::time::{Duration, Instant};
 use base64::Engine;
 use base64::engine::general_purpose::{STANDARD, STANDARD_NO_PAD};
 use ccr_core::core::{
-    VersionedWriteOutcome, WriteOptions, content_version_token, write_guarded_versioned,
+    VersionedWriteOutcome, WriteOptions, content_version_token, lock::LockManager,
+    write_guarded_versioned,
 };
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
@@ -563,8 +564,26 @@ pub async fn persist_known_host(
     key_type: String,
     key_data: String,
 ) -> Result<(), String> {
+    persist_known_host_with_locks(path, host, port, key_type, key_data, None).await
+}
+
+pub(super) async fn persist_known_host_with_locks(
+    path: PathBuf,
+    host: String,
+    port: u16,
+    key_type: String,
+    key_data: String,
+    lock_directory: Option<PathBuf>,
+) -> Result<(), String> {
     tokio::task::spawn_blocking(move || {
-        persist_known_host_sync(&path, &host, port, &key_type, &key_data)
+        let write = || persist_known_host_sync(&path, &host, port, &key_type, &key_data);
+        // Lock overrides are thread-local: enter the fixture scope on the
+        // actual writer thread, not before spawning the blocking task.
+        match lock_directory {
+            Some(directory) => LockManager::with_scoped_directory(&directory, || Ok(write()))
+                .map_err(|_| "ssh_known_hosts_lock_failed".to_string())?,
+            None => write(),
+        }
     })
     .await
     .map_err(|error| format!("ssh_known_hosts_join_failed: {error}"))?
@@ -861,9 +880,13 @@ mod tests {
     fn known_hosts_update_replaces_only_the_target() {
         let temp = tempfile::tempdir().unwrap();
         let path = temp.path().join("ssh/known_hosts");
-        persist_known_host_sync(&path, "one.example", 22, "ssh-ed25519", "AAAA").unwrap();
-        persist_known_host_sync(&path, "two.example", 2222, "ssh-rsa", "BBBB").unwrap();
-        persist_known_host_sync(&path, "one.example", 22, "ssh-ed25519", "CCCC").unwrap();
+        LockManager::with_scoped_directory(&temp.path().join("locks"), || {
+            persist_known_host_sync(&path, "one.example", 22, "ssh-ed25519", "AAAA").unwrap();
+            persist_known_host_sync(&path, "two.example", 2222, "ssh-rsa", "BBBB").unwrap();
+            persist_known_host_sync(&path, "one.example", 22, "ssh-ed25519", "CCCC").unwrap();
+            Ok(())
+        })
+        .unwrap();
 
         let content = std::fs::read_to_string(path).unwrap();
         assert_eq!(content.matches("one.example ").count(), 1);

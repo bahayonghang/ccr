@@ -1,11 +1,8 @@
 //! Tauri process adapter. Shared execution owns capability and cleanup policy.
-pub use ccr_app::jobs::process::{
-    CappedProcessOutput, ManagedChild, OwnedProcessRecord, ProcessDescriptor,
-};
+pub use ccr_app::jobs::process::{CappedProcessOutput, OwnedProcessRecord, ProcessDescriptor};
 use ccr_app::jobs::process::{ProcessGateway as SharedGateway, SidecarContext};
 use std::{ffi::OsString, path::Path};
 use tokio::process::Command;
-use tokio_util::sync::CancellationToken;
 
 pub(crate) fn sidecar_context() -> SidecarContext {
     SidecarContext {
@@ -21,14 +18,6 @@ pub struct ProcessGateway;
 impl ProcessGateway {
     pub fn command(descriptor: &ProcessDescriptor) -> Result<Command, String> {
         SharedGateway::command_with_context(descriptor, &sidecar_context())
-    }
-    pub fn spawn(
-        command: Command,
-        descriptor: &ProcessDescriptor,
-        cancellation: CancellationToken,
-        ports: Vec<u16>,
-    ) -> Result<ManagedChild, String> {
-        SharedGateway::spawn(command, descriptor, cancellation, ports)
     }
     pub async fn execute(
         descriptor: &ProcessDescriptor,

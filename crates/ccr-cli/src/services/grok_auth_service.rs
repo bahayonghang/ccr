@@ -13,16 +13,28 @@ pub struct GrokAuthCurrent {
 }
 
 /// Grok Auth surface: current session presence and auth off.
-pub struct GrokAuthService;
+pub struct GrokAuthService {
+    captured: Option<crate::application::platform_roots::PlatformRoots>,
+}
 
 impl GrokAuthService {
     pub fn new() -> Self {
-        Self
+        Self { captured: None }
+    }
+
+    /// Resolve once in the caller; nested writes must use these same roots.
+    pub fn from_roots(roots: crate::application::platform_roots::PlatformRoots) -> Self {
+        Self {
+            captured: Some(roots),
+        }
     }
 
     /// Report whether `$GROK_HOME/auth.json` exists. Does not parse the token.
     pub fn current(&self) -> Result<GrokAuthCurrent> {
-        let path = crate::application::auth_off::grok_auth_json_path()?;
+        let path = match &self.captured {
+            Some(roots) => roots.grok_runtime.join("auth.json"),
+            None => crate::application::auth_off::grok_auth_json_path()?,
+        };
         Ok(GrokAuthCurrent {
             logged_in: path.try_exists().map_err(ccr_core::CcrError::IoError)?,
         })

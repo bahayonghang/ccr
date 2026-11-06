@@ -17,8 +17,13 @@ use std::time::{Duration, Instant};
 const NATIVE_LOGOUT_TIMEOUT: Duration = Duration::from_secs(15);
 
 #[cfg(test)]
+type CapturedHook = Option<Box<dyn FnOnce(&Path)>>;
+
+#[cfg(test)]
 thread_local! {
     static FAIL_AFTER_DELETE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static CAPTURED_BEFORE_DELETE: std::cell::RefCell<CapturedHook> = const { std::cell::RefCell::new(None) };
+    static CAPTURED_AFTER_DELETE: std::cell::RefCell<CapturedHook> = const { std::cell::RefCell::new(None) };
 }
 
 /// How `auth off` cleared (or attempted to clear) the official session.
@@ -86,6 +91,8 @@ struct AuthOffBackup {
     backup_dir: PathBuf,
     snapshots: Vec<FileSnapshot>,
     committed: bool,
+    restore_if_absent: bool,
+    rollback_enabled: bool,
 }
 
 enum FileSnapshot {
@@ -96,6 +103,10 @@ enum FileSnapshot {
 impl AuthOffBackup {
     fn new(label: &str) -> Result<Self> {
         let root = auth_off_backup_root()?;
+        Self::at(label, &root)
+    }
+
+    fn at(label: &str, root: &Path) -> Result<Self> {
         let timestamp = chrono::Utc::now().format("%Y%m%dT%H%M%SZ");
         let backup_dir = root
             .join("backups")
@@ -109,6 +120,8 @@ impl AuthOffBackup {
             backup_dir,
             snapshots: Vec::new(),
             committed: false,
+            restore_if_absent: false,
+            rollback_enabled: true,
         })
     }
 
@@ -134,6 +147,16 @@ impl AuthOffBackup {
         Ok(())
     }
 
+    fn snapshot_captured(&mut self, original: &Path, bytes: &[u8]) -> Result<()> {
+        let backup = self.backup_dir.join("00-credential");
+        AtomicWriter::new(&backup).secret(true).write(bytes)?;
+        self.snapshots.push(FileSnapshot::Existing {
+            original: original.to_owned(),
+            backup,
+        });
+        Ok(())
+    }
+
     fn commit(mut self) {
         self.committed = true;
         if let Err(error) = std::fs::remove_dir_all(&self.backup_dir) {
@@ -147,12 +170,31 @@ impl AuthOffBackup {
 
 impl Drop for AuthOffBackup {
     fn drop(&mut self) {
-        if self.committed {
+        if self.committed || !self.rollback_enabled {
             return;
         }
         for snapshot in self.snapshots.iter().rev() {
             match snapshot {
                 FileSnapshot::Existing { original, backup } => {
+                    if self.restore_if_absent {
+                        let restore = std::fs::read(backup).and_then(|bytes| {
+                            ccr_core::core::guarded_write::write_guarded_versioned(
+                                original,
+                                &bytes,
+                                "",
+                                &ccr_core::core::WriteOptions {
+                                    secret: true,
+                                    ..Default::default()
+                                },
+                            )
+                            .map(|_| ())
+                            .map_err(std::io::Error::other)
+                        });
+                        if let Err(error) = restore {
+                            tracing::warn!(target: "ccr::auth_off", "版本化回滚失败: {error}");
+                        }
+                        continue;
+                    }
                     if let Err(error) = write_secret_copy(backup, original) {
                         tracing::warn!(
                             target: "ccr::auth_off",
@@ -234,6 +276,164 @@ pub fn auth_off_for_platform(platform: Platform) -> Result<AuthOffResult> {
             platform
         ))),
     }
+}
+
+/// Native adapters retain these exact roots from read through confirmation.
+/// File logout reuses the rollback transaction and never deletes saved accounts.
+pub fn auth_off_captured(
+    platform: Platform,
+    roots: &super::platform_roots::PlatformRoots,
+) -> Result<AuthOffResult> {
+    auth_off_captured_inner(platform, roots, None)?.ok_or_else(|| {
+        CcrError::ConfigError("Runtime credentials changed; refresh before logout".into())
+    })
+}
+
+/// File stores delete only the reviewed bytes and roll back only into a missing
+/// target. Official macOS logout retains its native session semantics.
+pub fn auth_off_captured_versioned(
+    platform: Platform,
+    roots: &super::platform_roots::PlatformRoots,
+    expected: &str,
+) -> Result<Option<AuthOffResult>> {
+    ccr_core::core::LockManager::with_scoped_directory(&roots.locks, || {
+        auth_off_captured_inner(platform, roots, Some(expected))
+    })
+}
+
+fn auth_off_captured_inner(
+    platform: Platform,
+    roots: &super::platform_roots::PlatformRoots,
+    expected: Option<&str>,
+) -> Result<Option<AuthOffResult>> {
+    let (label, path) = match platform {
+        Platform::Claude => {
+            if cfg!(target_os = "macos") && !roots.fixture {
+                spawn_official_logout("claude", &["auth", "logout"])?;
+                return Ok(Some(AuthOffResult::native(platform, None, Vec::new())));
+            }
+            ("claude", roots.claude.credentials_file.clone())
+        }
+        Platform::Codex => {
+            let config = roots.codex_runtime.join("config.toml");
+            let store = match std::fs::read_to_string(&config) {
+                Ok(content) => {
+                    let value: toml::Value = toml::from_str(&content)?;
+                    CredentialStoreKind::from_toml_value(value.get("cli_auth_credentials_store"))
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                    CredentialStoreKind::File
+                }
+                Err(error) => return Err(error.into()),
+            };
+            if store != CredentialStoreKind::File {
+                return Err(CcrError::PlatformNotSupported(
+                    "Native captured logout supports file credentials only; use the official logout for auto/keyring stores".into(),
+                ));
+            }
+            roots
+                .codex_auth()
+                .sync_runtime_with_saved_account_best_effort("native auth off");
+            ("codex", roots.codex_runtime.join("auth.json"))
+        }
+        Platform::Grok => {
+            return crate::services::GrokAuthService::from_roots(roots.clone())
+                .off()
+                .map(Some);
+        }
+        _ => return Err(CcrError::PlatformNotSupported(platform.to_string())),
+    };
+    let profile_pointer = if platform == Platform::Codex {
+        let manager = PlatformConfigManager::new(roots.ccr.join("config.toml"));
+        if manager.config_path().exists() {
+            manager
+                .load()?
+                .get_platform("codex")
+                .ok()
+                .and_then(|entry| entry.current_profile.clone())
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+    let result = match expected {
+        Some(expected) => {
+            delete_captured_credential_file(platform, label, &path, expected, &roots.ccr)?
+        }
+        None => Some(delete_credential_files_at(
+            platform,
+            label,
+            &[path],
+            Some(&roots.ccr),
+        )?),
+    };
+    let Some(mut result) = result else {
+        return Ok(None);
+    };
+    if platform == Platform::Codex {
+        result.profile_pointer = profile_pointer;
+        result.warnings = codex_pointer_warning(result.profile_pointer.as_deref());
+    }
+    Ok(Some(result))
+}
+
+fn delete_captured_credential_file(
+    platform: Platform,
+    label: &str,
+    path: &Path,
+    expected: &str,
+    root: &Path,
+) -> Result<Option<AuthOffResult>> {
+    use ccr_core::core::guarded_write::{
+        VersionedWriteOutcome, content_version_token, delete_guarded_versioned,
+    };
+    let bytes = match std::fs::read(path) {
+        Ok(bytes) => Some(bytes),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(error) => return Err(error.into()),
+    };
+    if bytes
+        .as_deref()
+        .map(content_version_token)
+        .unwrap_or_default()
+        != expected
+    {
+        return Ok(None);
+    }
+    let Some(bytes) = bytes else {
+        return Ok(Some(AuthOffResult::file(platform, false, None, Vec::new())));
+    };
+    let mut backup = AuthOffBackup::at(&format!("{label}-{}", uuid::Uuid::new_v4()), root)?;
+    backup.restore_if_absent = true;
+    backup.rollback_enabled = false;
+    backup.snapshot_captured(path, &bytes)?;
+    #[cfg(test)]
+    CAPTURED_BEFORE_DELETE.with(|hook| {
+        if let Some(run) = hook.borrow_mut().take() {
+            run(path);
+        }
+    });
+    if delete_guarded_versioned(path, expected)? == VersionedWriteOutcome::Conflict {
+        backup.commit();
+        return Ok(None);
+    }
+    backup.rollback_enabled = true;
+    #[cfg(test)]
+    {
+        CAPTURED_AFTER_DELETE.with(|hook| {
+            if let Some(run) = hook.borrow_mut().take() {
+                run(path);
+            }
+        });
+        if take_fail_after_delete() {
+            return Err(CcrError::ConfigError(
+                "测试注入：凭据删除后提交前失败".into(),
+            ));
+        }
+    }
+    backup.commit();
+    Ok(Some(AuthOffResult::file(platform, true, None, Vec::new())))
 }
 
 fn claude_needs_auth_off() -> Result<bool> {
@@ -379,17 +579,34 @@ pub(crate) fn grok_auth_off_locked(path: &Path) -> Result<AuthOffResult> {
     delete_credential_files(Platform::Grok, "grok", &[path.to_path_buf()])
 }
 
+/// Captured consumers retain the same rollback protocol without ambient roots.
+pub(crate) fn grok_auth_off_locked_at(path: &Path, root: &Path) -> Result<AuthOffResult> {
+    delete_credential_files_at(Platform::Grok, "grok", &[path.to_path_buf()], Some(root))
+}
+
 fn delete_credential_files(
     platform: Platform,
     label: &str,
     paths: &[PathBuf],
+) -> Result<AuthOffResult> {
+    delete_credential_files_at(platform, label, paths, None)
+}
+
+fn delete_credential_files_at(
+    platform: Platform,
+    label: &str,
+    paths: &[PathBuf],
+    backup_root: Option<&Path>,
 ) -> Result<AuthOffResult> {
     let existing: Vec<&PathBuf> = paths.iter().filter(|path| path.exists()).collect();
     if existing.is_empty() {
         return Ok(AuthOffResult::file(platform, false, None, Vec::new()));
     }
 
-    let mut backup = AuthOffBackup::new(label)?;
+    let mut backup = match backup_root {
+        Some(root) => AuthOffBackup::at(label, root)?,
+        None => AuthOffBackup::new(label)?,
+    };
     for path in &existing {
         backup.snapshot(path)?;
     }
@@ -486,6 +703,53 @@ mod tests {
             fs::create_dir_all(parent).unwrap();
         }
         fs::write(path, body).unwrap();
+    }
+
+    #[test]
+    fn captured_logout_preserves_rotations_and_restores_only_a_missing_target() {
+        use ccr_core::core::{LockManager, content_version_token};
+        for race in [0, 1, 2] {
+            let root = tempfile::tempdir().unwrap();
+            let path = root.path().join("auth.json");
+            let original: &[u8] = br#"{"token":"confirmed"}"#;
+            let winner: &[u8] = br#"{"token":"rotated"}"#;
+            fs::write(&path, original).unwrap();
+            let expected = content_version_token(original);
+            if race == 0 {
+                CAPTURED_BEFORE_DELETE.with(|hook| {
+                    *hook.borrow_mut() = Some(Box::new(move |path| {
+                        fs::write(path, winner).unwrap();
+                    }));
+                });
+            } else {
+                set_fail_after_delete();
+                if race == 1 {
+                    CAPTURED_AFTER_DELETE.with(|hook| {
+                        *hook.borrow_mut() = Some(Box::new(move |path| {
+                            fs::write(path, winner).unwrap();
+                        }));
+                    });
+                }
+            }
+            let result = LockManager::with_scoped_directory(&root.path().join("locks"), || {
+                delete_captured_credential_file(
+                    Platform::Codex,
+                    "codex",
+                    &path,
+                    &expected,
+                    root.path(),
+                )
+            });
+            if race == 0 {
+                assert!(result.unwrap().is_none());
+            } else {
+                assert!(result.is_err());
+            }
+            assert_eq!(
+                fs::read(&path).unwrap(),
+                if race < 2 { winner } else { original }
+            );
+        }
     }
 
     #[test]

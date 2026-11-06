@@ -137,6 +137,7 @@ pub struct SyncAssetInfo {
     pub canonical_name: Option<String>,
 }
 
+/// 同步文件夹信息
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../../src/types/generated/sync/")]
 pub struct SyncFolderInfo {
@@ -1107,22 +1108,13 @@ pub async fn test_webdav_config(payload: WebDavConfigInput) -> Result<WebDavTest
 #[ccr_tauri_command_macros::command]
 pub async fn clear_webdav_config() -> Result<(), String> {
     tokio::task::spawn_blocking(|| {
-        SyncConfigManager::with_default()
-            .map_err(|e| format!("Failed to create legacy SyncConfigManager: {e}"))?
-            .delete()
-            .map_err(|e| format!("Failed to delete legacy sync config: {e}"))?;
-
-        let mut folder_manager = SyncFolderManager::with_default()
-            .map_err(|e| format!("Failed to create SyncFolderManager: {e}"))?;
-        let cleared = WebDavConfig {
-            enabled: false,
-            username: String::new(),
-            password: ccr_core::Secret::default(),
-            ..WebDavConfig::default()
-        };
-        folder_manager
-            .update_webdav_config(cleared)
-            .map_err(|e| format!("Failed to clear canonical WebDAV config: {e}"))
+        let legacy = SyncConfigManager::with_default()
+            .map_err(|e| format!("Failed to resolve legacy sync config: {e}"))?;
+        let canonical = SyncFolderManager::with_default()
+            .map_err(|e| format!("Failed to resolve canonical sync config: {e}"))?;
+        ccr_sync::sync::clear::prepare(canonical.config_path(), legacy.config_path())
+            .and_then(|session| session.clear())
+            .map_err(|error| format!("Failed to disconnect WebDAV: {error:?}"))
     })
     .await
     .map_err(|e| format!("Task join error: {e}"))??;
@@ -1134,7 +1126,17 @@ pub async fn clear_webdav_config() -> Result<(), String> {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use ccr_core::core::LockManager;
     use ccr_sync::{SyncConfigManager, SyncFolderManager};
+    use std::path::Path;
+
+    fn with_fixture_locks(root: &Path, test: impl FnOnce()) {
+        LockManager::with_scoped_directory(&root.join("locks"), || {
+            test();
+            Ok(())
+        })
+        .unwrap();
+    }
 
     fn webdav_payload() -> WebDavConfigInput {
         WebDavConfigInput {
@@ -1149,25 +1151,27 @@ mod tests {
     #[test]
     fn set_webdav_config_writes_only_canonical_folder_config() {
         let temp_dir = tempfile::tempdir().unwrap();
-        let sync_path = temp_dir.path().join("sync.toml");
-        let folders_path = temp_dir.path().join("sync_folders.toml");
-        let mut folder_manager = SyncFolderManager::new(&folders_path);
+        with_fixture_locks(temp_dir.path(), || {
+            let sync_path = temp_dir.path().join("sync.toml");
+            let folders_path = temp_dir.path().join("sync_folders.toml");
+            let mut folder_manager = SyncFolderManager::new(&folders_path);
 
-        let saved = save_webdav_to_manager(&mut folder_manager, webdav_payload())
-            .expect("webdav config should save to canonical config");
+            let saved = save_webdav_to_manager(&mut folder_manager, webdav_payload())
+                .expect("webdav config should save to canonical config");
 
-        assert_eq!(saved.remote_path, "/ccr");
-        assert!(
-            !sync_path.exists(),
-            "save must not recreate migration-only sync.toml"
-        );
+            assert_eq!(saved.remote_path, "/ccr");
+            assert!(
+                !sync_path.exists(),
+                "save must not recreate migration-only sync.toml"
+            );
 
-        let folders_config = folder_manager.load_config().unwrap();
-        assert!(folders_config.webdav.enabled);
-        assert_eq!(folders_config.webdav.url, "https://dav.example.com/");
-        assert_eq!(folders_config.webdav.username, "user@example.com");
-        assert_eq!(folders_config.webdav.password, "secret");
-        assert_eq!(folders_config.webdav.base_remote_path, "/ccr");
+            let folders_config = folder_manager.load_config().unwrap();
+            assert!(folders_config.webdav.enabled);
+            assert_eq!(folders_config.webdav.url, "https://dav.example.com/");
+            assert_eq!(folders_config.webdav.username, "user@example.com");
+            assert_eq!(folders_config.webdav.password, "secret");
+            assert_eq!(folders_config.webdav.base_remote_path, "/ccr");
+        });
     }
 
     #[test]
@@ -1186,94 +1190,103 @@ mod tests {
     #[test]
     fn legacy_webdav_is_migrated_once_into_canonical_config() {
         let temp_dir = tempfile::tempdir().unwrap();
-        let folders_path = temp_dir.path().join("sync_folders.toml");
-        let folder_manager = SyncFolderManager::new(&folders_path);
-        let legacy = build_sync_config(webdav_payload());
+        with_fixture_locks(temp_dir.path(), || {
+            let folders_path = temp_dir.path().join("sync_folders.toml");
+            let folder_manager = SyncFolderManager::new(&folders_path);
+            let legacy = build_sync_config(webdav_payload());
 
-        let migrated = load_webdav_config_with_legacy(&folder_manager, || Ok(legacy)).unwrap();
-        assert_eq!(migrated.url, "https://dav.example.com/");
-        assert!(folders_path.exists());
+            let migrated = load_webdav_config_with_legacy(&folder_manager, || Ok(legacy)).unwrap();
+            assert_eq!(migrated.url, "https://dav.example.com/");
+            assert!(folders_path.exists());
 
-        let canonical = load_webdav_config_with_legacy(&folder_manager, || {
-            Err("legacy must not be read after canonical migration".to_string())
-        })
-        .unwrap();
-        assert_eq!(canonical, migrated);
+            let canonical = load_webdav_config_with_legacy(&folder_manager, || {
+                Err("legacy must not be read after canonical migration".to_string())
+            })
+            .unwrap();
+            assert_eq!(canonical, migrated);
+        });
     }
 
     #[test]
     fn existing_incomplete_canonical_config_never_falls_back_to_legacy() {
         let temp_dir = tempfile::tempdir().unwrap();
-        let folders_path = temp_dir.path().join("sync_folders.toml");
-        let folder_manager = SyncFolderManager::new(&folders_path);
-        let mut config = ccr_sync::SyncFoldersConfig::default();
-        config.webdav.enabled = false;
-        config.webdav.username = "canonical-user".to_string();
-        config.webdav.password = ccr_core::Secret::from("canonical-password");
-        folder_manager.save_config(&config).unwrap();
+        with_fixture_locks(temp_dir.path(), || {
+            let folders_path = temp_dir.path().join("sync_folders.toml");
+            let folder_manager = SyncFolderManager::new(&folders_path);
+            let mut config = ccr_sync::SyncFoldersConfig::default();
+            config.webdav.enabled = false;
+            config.webdav.username = "canonical-user".to_string();
+            config.webdav.password = ccr_core::Secret::from("canonical-password");
+            folder_manager.save_config(&config).unwrap();
 
-        let canonical = load_webdav_config_with_legacy(&folder_manager, || {
-            panic!("legacy must not be read after canonical config exists")
-        })
-        .unwrap();
+            let canonical = load_webdav_config_with_legacy(&folder_manager, || {
+                panic!("legacy must not be read after canonical config exists")
+            })
+            .unwrap();
 
-        assert!(!webdav_is_complete(&canonical));
+            assert!(!webdav_is_complete(&canonical));
+        });
     }
 
     #[test]
     fn add_sync_folder_uses_platforms_segment_for_default_config_folder() {
         let temp_dir = tempfile::tempdir().unwrap();
-        let folders_path = temp_dir.path().join("sync_folders.toml");
-        let mut folder_manager = SyncFolderManager::new(&folders_path);
-        save_webdav_to_manager(&mut folder_manager, webdav_payload()).unwrap();
+        with_fixture_locks(temp_dir.path(), || {
+            let folders_path = temp_dir.path().join("sync_folders.toml");
+            let mut folder_manager = SyncFolderManager::new(&folders_path);
+            save_webdav_to_manager(&mut folder_manager, webdav_payload()).unwrap();
 
-        let folder = add_folder_with_manager(
-            &mut folder_manager,
-            "config".to_string(),
-            "~/.ccr/platforms/".to_string(),
-            "".to_string(),
-            None,
-        )
-        .unwrap();
+            let folder = add_folder_with_manager(
+                &mut folder_manager,
+                "config".to_string(),
+                "~/.ccr/platforms/".to_string(),
+                "".to_string(),
+                None,
+            )
+            .unwrap();
 
-        assert_eq!(folder.name, "config");
-        assert_eq!(folder.local_path, "~/.ccr/platforms/");
-        assert_eq!(folder.remote_path, "/ccr/platforms");
+            assert_eq!(folder.name, "config");
+            assert_eq!(folder.local_path, "~/.ccr/platforms/");
+            assert_eq!(folder.remote_path, "/ccr/platforms");
+        });
     }
 
     #[test]
     fn update_sync_folder_upserts_enabled_paths_and_description() {
         let temp_dir = tempfile::tempdir().unwrap();
-        let folders_path = temp_dir.path().join("sync_folders.toml");
-        let mut folder_manager = SyncFolderManager::new(&folders_path);
-        save_webdav_to_manager(&mut folder_manager, webdav_payload()).unwrap();
-        add_folder_with_manager(
-            &mut folder_manager,
-            "config".to_string(),
-            "~/.ccr/platforms/".to_string(),
-            "".to_string(),
-            Some("old".to_string()),
-        )
-        .unwrap();
+        with_fixture_locks(temp_dir.path(), || {
+            let folders_path = temp_dir.path().join("sync_folders.toml");
+            let mut folder_manager = SyncFolderManager::new(&folders_path);
+            save_webdav_to_manager(&mut folder_manager, webdav_payload()).unwrap();
+            add_folder_with_manager(
+                &mut folder_manager,
+                "config".to_string(),
+                "~/.ccr/platforms/".to_string(),
+                "".to_string(),
+                Some("old".to_string()),
+            )
+            .unwrap();
 
-        let updated = update_folder_with_manager(
-            &mut folder_manager,
-            "config".to_string(),
-            None,
-            Some(false),
-            Some("~/.ccr/platforms-v2/".to_string()),
-            Some("".to_string()),
-            Some("new".to_string()),
-        )
-        .unwrap();
+            let updated = update_folder_with_manager(
+                &mut folder_manager,
+                "config".to_string(),
+                None,
+                Some(false),
+                Some("~/.ccr/platforms-v2/".to_string()),
+                Some("".to_string()),
+                Some("new".to_string()),
+            )
+            .unwrap();
 
-        assert!(!updated.enabled);
-        assert_eq!(updated.local_path, "~/.ccr/platforms-v2/");
-        assert_eq!(updated.remote_path, "/ccr/platforms");
-        assert_eq!(updated.description, "new");
+            assert!(!updated.enabled);
+            assert_eq!(updated.local_path, "~/.ccr/platforms-v2/");
+            assert_eq!(updated.remote_path, "/ccr/platforms");
+            assert_eq!(updated.description, "new");
 
-        let persisted = folder_manager.get_folder("config").unwrap();
-        assert_eq!(persisted, updated);
+            let persisted = folder_manager.get_folder("config").unwrap();
+            assert_eq!(persisted, updated);
+            assert!(temp_dir.path().join("locks").is_dir());
+        });
     }
 
     #[test]

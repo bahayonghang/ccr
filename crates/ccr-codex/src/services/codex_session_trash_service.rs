@@ -169,6 +169,70 @@ impl CodexSessionTrashService {
         })
     }
 
+    /// Move the exact confirmed rollout to recoverable trash. A changed source
+    /// returns `None` and remains active; callers must prepare a new confirmation.
+    pub fn trash_session_versioned(
+        &self,
+        file_path: &Path,
+        expected: &str,
+    ) -> Result<Option<CodexSessionTrashSummary>> {
+        use ccr_core::core::guarded_write::{
+            VersionedWriteOutcome, content_version_token, delete_guarded_versioned,
+        };
+        for path in [
+            file_path,
+            &self.trash_root(),
+            &self.codex_home.join(SESSION_INDEX_FILE),
+        ] {
+            reject_linked_path(path)?;
+        }
+        let manager = ccr_core::core::LockManager::with_default_path()?;
+        let resource = format!(
+            "codex_session_trash_{}",
+            content_version_token(self.codex_home.to_string_lossy().as_bytes())
+        );
+        let _guard = manager.lock_resource(&resource, std::time::Duration::from_secs(10))?;
+        let candidate = file_path.canonicalize()?;
+        let root = self.codex_home.join("sessions").canonicalize()?;
+        if !candidate.starts_with(&root) {
+            return Err(CcrError::ValidationError(
+                "Invalid Codex session source".into(),
+            ));
+        }
+        if super::codex_session_service::CodexSessionService::new(self.codex_home.clone())
+            .source_version(file_path)?
+            != expected
+        {
+            return Ok(None);
+        }
+        let snapshots = self.load_active_session_snapshots()?;
+        let snapshot = snapshots
+            .values()
+            .find(|snapshot| snapshot.rollout_path.canonicalize().ok().as_ref() == Some(&candidate))
+            .ok_or_else(|| CcrError::ValidationError("Codex session identity changed".into()))?;
+        let entry = self.write_snapshot_to_trash(snapshot)?;
+        if content_version_token(&fs::read(&entry.rollout_path)?) != expected {
+            fs::remove_dir_all(&entry.dir)?;
+            return Ok(None);
+        }
+        let index_snapshot = self.remove_session_index_entry(&snapshot.session_id)?;
+        let removed = delete_guarded_versioned(&candidate, expected);
+        if !matches!(&removed, Ok(VersionedWriteOutcome::Written)) {
+            self.restore_session_index_snapshot(&index_snapshot)?;
+            fs::remove_dir_all(&entry.dir)?;
+            return match removed {
+                Ok(_) => Ok(None),
+                Err(error) => Err(error),
+            };
+        }
+        Ok(Some(CodexSessionTrashSummary {
+            requested_session_count: 1,
+            trashed_session_count: 1,
+            trash_root: self.trash_root(),
+            trashed_sessions: vec![trash_entry_record(&entry)],
+        }))
+    }
+
     pub fn restore_sessions<I, S>(&self, session_ids: I) -> Result<CodexSessionRestoreSummary>
     where
         I: IntoIterator<Item = S>,
@@ -496,6 +560,34 @@ impl CodexSessionTrashService {
     }
 }
 
+pub(super) fn reject_linked_path(path: &Path) -> Result<()> {
+    if !path.is_absolute() {
+        return Err(CcrError::ValidationError(
+            "Session paths must be absolute".into(),
+        ));
+    }
+    for ancestor in path.ancestors() {
+        match fs::symlink_metadata(ancestor) {
+            Ok(metadata) => {
+                let linked = metadata.file_type().is_symlink();
+                #[cfg(windows)]
+                let linked = {
+                    use std::os::windows::fs::MetadataExt;
+                    linked || metadata.file_attributes() & 0x400 != 0
+                };
+                if linked {
+                    return Err(CcrError::ValidationError(
+                        "Linked session paths are unsupported".into(),
+                    ));
+                }
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.into()),
+        }
+    }
+    Ok(())
+}
+
 fn normalize_session_ids<I, S>(session_ids: I) -> Result<Vec<String>>
 where
     I: IntoIterator<Item = S>,
@@ -747,6 +839,37 @@ mod tests {
         let records = service.list_trashed_sessions().unwrap();
 
         assert!(records.is_empty());
+    }
+
+    #[test]
+    fn confirmed_source_version_conflict_keeps_rollout_and_success_is_recoverable() {
+        let (service, root) = create_service();
+        let rollout = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-versioned.jsonl");
+        write_rollout(&rollout, "thread-versioned", "/fixture");
+        let original = fs::read(&rollout).unwrap();
+        let reader = super::super::codex_session_service::CodexSessionService::new(
+            service.codex_home.clone(),
+        );
+        let token = reader.source_version(&rollout).unwrap();
+        let mut changed = original.clone();
+        changed.push(b'\n');
+        fs::write(&rollout, &changed).unwrap();
+        let apply = |version: &str| {
+            ccr_core::core::LockManager::with_scoped_directory(&root.path().join("locks"), || {
+                service.trash_session_versioned(&rollout, version)
+            })
+            .unwrap()
+        };
+        assert!(apply(&token).is_none());
+        assert_eq!(fs::read(&rollout).unwrap(), changed);
+        assert!(!service.trash_root().exists());
+        let current = reader.source_version(&rollout).unwrap();
+        assert_eq!(apply(&current).unwrap().trashed_session_count, 1);
+        assert!(!rollout.exists());
+        service.restore_sessions(["thread-versioned"]).unwrap();
+        assert_eq!(fs::read(&rollout).unwrap(), changed);
     }
 
     #[test]

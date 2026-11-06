@@ -1,26 +1,11 @@
-//! Claude Observer State-free 服务层。
-//!
-//! 从 `commands::claude_observer` 平移的 wire DTO 与同步查询编排：命令层只保留
-//! State 提取 / spawn_blocking / join 错误映射，业务编排在此以具名 DTO 出入，
-//! 便于无 Tauri app 的单元测试。
-//!
-//! 数据源边界（与命令层模块文档一致）：
-//! - insight / daily_trend / cost_breakdown / cache_stats 来自 llmusage，
-//!   platform 固定 `claude`，cost 用 `cost_with_cache_usd`。
-//! - tool_heatmap / top_tools / top_sessions 来自 ccr-db 表 `claude_tool_calls`。
-//! - 仓储层类型（`claude_tool_calls_repo::{HeatmapCell,TopToolRow}`）不直接上
-//!   wire：本层持有同形 wire DTO 并做映射，ccr-db 不携带前端绑定 concern。
-
+//! Tauri wire compatibility for shared Claude Observer orchestration.
+use crate::claude_observer::{pricing, subscription};
+use crate::llmusage_adapter::LlmusageRuntime;
+use ccr_app::usage::observer as shared;
 use ccr_db::database::DbPool;
 use ccr_db::database::repositories::claude_tool_calls_repo;
-use chrono::{Datelike, Local};
 use serde::Serialize;
-use tracing::debug;
 use ts_rs::TS;
-
-use crate::claude_observer::{pricing, subscription};
-use crate::llmusage_adapter::{LlmusageRuntime, build_filter, queries};
-
 // ── wire DTO 集合 ────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, TS)]
@@ -142,420 +127,129 @@ impl From<claude_tool_calls_repo::TopToolRow> for TopToolRow {
     }
 }
 
-// ── 工具：日期窗口与 overview 拉取 ────────────────────────────────────────
-
-fn overview_in_window(
-    llmusage: &LlmusageRuntime,
-    start_date: Option<String>,
-    end_date: Option<String>,
-) -> Result<queries::OverviewPayload, String> {
-    let filter = build_filter(Some("claude".to_string()), None, start_date, end_date)?;
-    let dashboard = llmusage
-        .dashboard()
-        .map_err(|e| format!("Dashboard open error: {e}"))?;
-    dashboard
-        .overview(&filter)
-        .map_err(|e| format!("Overview query error: {e}"))
-}
-
-/// 计算「今日」/「本月」的日期窗口（local time）。返回 (start_yyyy_mm_dd, end_yyyy_mm_dd)。
-fn today_window() -> (String, String) {
-    let today = Local::now().date_naive();
-    let s = today.format("%Y-%m-%d").to_string();
-    (s.clone(), s)
-}
-fn month_window() -> (String, String) {
-    let today = Local::now().date_naive();
-    let first = today
-        .with_day(1)
-        .unwrap_or(today)
-        .format("%Y-%m-%d")
-        .to_string();
-    let last = today.format("%Y-%m-%d").to_string();
-    (first, last)
-}
-
-// ── 7 个查询服务函数（订阅 get/set 直接走 subscription 模块，不再包一层）──
-
-/// 首屏 Hero 三卡 + 订阅 banner 聚合（llmusage + ccr-db 双源）。
 pub fn insight(llmusage: &LlmusageRuntime, db_pool: &DbPool) -> Result<InsightDto, String> {
-    /* ====================================================================
-     * 步骤1：从 llmusage 拉 total / today / month 三个 overview
-     * ====================================================================
-     */
-    debug!("[claude_observer] get_insight: fetching total overview");
-    let total = overview_in_window(llmusage, None, None)?;
-
-    let (today_s, today_e) = today_window();
-    debug!(
-        "[claude_observer] get_insight: fetching today overview ({} to {})",
-        today_s, today_e
-    );
-    let today = overview_in_window(llmusage, Some(today_s), Some(today_e))?;
-
-    let (month_s, month_e) = month_window();
-    debug!(
-        "[claude_observer] get_insight: fetching month overview ({} to {})",
-        month_s, month_e
-    );
-    let month = overview_in_window(llmusage, Some(month_s), Some(month_e))?;
-
-    /* 步骤2：从 llmusage 拉项目数（distinct 项目维度）*/
-    let filter = build_filter(Some("claude".to_string()), None, None, None)?;
-    let dashboard = llmusage
-        .dashboard()
-        .map_err(|e| format!("Dashboard open error: {e}"))?;
-    let projects = dashboard
-        .project_breakdown(&filter)
-        .map_err(|e| format!("Project breakdown error: {e}"))?;
-    let total_projects = projects.len() as i64;
-
-    /* 步骤3：从 ccr-db 取 session 总数（用 claude_tool_calls 的 distinct session_id） */
     let conn = db_pool.get().map_err(|e| format!("DB pool error: {e}"))?;
-    let total_sessions: i64 = conn
-        .query_row(
-            "SELECT COUNT(DISTINCT session_id) FROM claude_tool_calls",
-            [],
-            |row| row.get(0),
-        )
-        .unwrap_or(0);
-    let sub = subscription::get(&conn);
-
-    /* 步骤4：组装 InsightDto */
-    let total_tokens_today = today.total.total_tokens;
-    let total_tokens_month = month.total.total_tokens;
-    let today_value = today.total_cost_usd;
-    let month_value = month.total_cost_usd;
-    let total_value = total.total_cost_usd;
-    let roi = if sub.mode == "subscription" && sub.monthly_usd > 0.0 {
-        Some(month_value / sub.monthly_usd)
-    } else {
-        None
-    };
-
-    debug!(
-        "[claude_observer] get_insight result: today=${:.2}, month=${:.2}, total=${:.2}, projects={}, sessions={}",
-        today_value, month_value, total_value, total_projects, total_sessions
-    );
-
-    Ok(InsightDto {
-        today_value_usd: today_value,
-        month_value_usd: month_value,
-        total_value_usd: total_value,
-        today_tokens: total_tokens_today,
-        month_tokens: total_tokens_month,
-        total_sessions,
-        total_projects,
-        subscription: sub,
-        roi,
-        pricing_version: pricing::pricing_version().to_string(),
-    })
+    shared::insight(llmusage.paths(), &conn).map(Into::into)
 }
-
-/// 最近 `days` 天的每日趋势（默认 30，clamp 1..=365，按 claude 平台过滤）。
 pub fn daily_trend(
     llmusage: &LlmusageRuntime,
     days: Option<i64>,
 ) -> Result<Vec<DailyPoint>, String> {
-    let days = days.unwrap_or(30).clamp(1, 365);
-    debug!("[claude_observer] daily_trend: days={}", days);
-
-    let today = Local::now().date_naive();
-    let start = today - chrono::Duration::days(days - 1);
-    debug!(
-        "[claude_observer] daily_trend: date range {} to {}",
-        start, today
-    );
-
-    let filter = build_filter(
-        Some("claude".to_string()),
-        None,
-        Some(start.format("%Y-%m-%d").to_string()),
-        Some(today.format("%Y-%m-%d").to_string()),
-    )?;
-
-    debug!(
-        "[claude_observer] daily_trend: DB path {:?}",
-        llmusage.paths().db_path
-    );
-    let dashboard = llmusage.dashboard().map_err(|e| {
-        let err = format!("Dashboard open error: {e}");
-        tracing::error!("[claude_observer] {}", err);
-        err
-    })?;
-
-    let trends = dashboard.trends_daily(&filter).map_err(|e| {
-        let err = format!("Trends query error: {e}");
-        tracing::error!("[claude_observer] {}", err);
-        err
-    })?;
-
-    debug!(
-        "[claude_observer] daily_trend result: {} points",
-        trends.len()
-    );
-    if trends.is_empty() {
-        tracing::warn!("[claude_observer] daily_trend returned empty array");
-    }
-
-    Ok(trends
-        .into_iter()
-        .map(|t| DailyPoint {
-            date: t.date,
-            cost_usd: t.cost_usd,
-            input_tokens: t.input_tokens,
-            output_tokens: t.output_tokens,
-            cache_read_tokens: t.cache_read_tokens,
-            cache_write_tokens: t.cache_creation_tokens,
-        })
-        .collect())
+    shared::daily_trend(llmusage.paths(), days)
+        .map(|rows| rows.into_iter().map(Into::into).collect())
 }
-
-/// 按 `dim ∈ {project, model}` 维度的 Top N 拆分（仅 claude 平台）。
 pub fn cost_breakdown(
     llmusage: &LlmusageRuntime,
     dim: &str,
     days: Option<i64>,
     limit: Option<i64>,
 ) -> Result<Vec<BreakdownRow>, String> {
-    let limit = limit.unwrap_or(10).clamp(1, 200) as usize;
-    let days = days.unwrap_or(30).clamp(1, 365);
-    debug!(
-        "[claude_observer] cost_breakdown: dim={}, days={}, limit={}",
-        dim, days, limit
-    );
-
-    let today = Local::now().date_naive();
-    let start = today - chrono::Duration::days(days - 1);
-    let filter = build_filter(
-        Some("claude".to_string()),
-        None,
-        Some(start.format("%Y-%m-%d").to_string()),
-        Some(today.format("%Y-%m-%d").to_string()),
-    )?;
-    let dashboard = llmusage.dashboard().map_err(|e| {
-        let err = format!("Dashboard open error: {e}");
-        tracing::error!("[claude_observer] {}", err);
-        err
-    })?;
-
-    let rows: Vec<BreakdownRow> = match dim {
-        "project" => {
-            let mut list = dashboard.project_breakdown(&filter).map_err(|e| {
-                let err = format!("Project breakdown error: {e}");
-                tracing::error!("[claude_observer] {}", err);
-                err
-            })?;
-            list.sort_by(|a, b| b.total_cost_usd.total_cmp(&a.total_cost_usd));
-            list.into_iter()
-                .take(limit)
-                .map(|p| BreakdownRow {
-                    key: p
-                        .project_path
-                        .clone()
-                        .or(p.project_ref.clone())
-                        .unwrap_or_else(|| {
-                            if !p.project_label.trim().is_empty() {
-                                p.project_label.clone()
-                            } else {
-                                p.project_hash.clone()
-                            }
-                        }),
-                    cost_usd: p.total_cost_usd,
-                    tokens: p.total_tokens,
-                    count: p.event_count,
-                })
-                .collect()
-        }
-        "model" => {
-            let mut list = dashboard.model_breakdown(&filter).map_err(|e| {
-                let err = format!("Model breakdown error: {e}");
-                tracing::error!("[claude_observer] {}", err);
-                err
-            })?;
-            list.sort_by(|a, b| b.cost_with_cache_usd.total_cmp(&a.cost_with_cache_usd));
-            list.into_iter()
-                .take(limit)
-                .map(|m| BreakdownRow {
-                    key: m.model,
-                    cost_usd: m.cost_with_cache_usd,
-                    tokens: m.total_tokens,
-                    count: m.event_count,
-                })
-                .collect()
-        }
-        other => return Err(format!("Unsupported breakdown dim: {other}")),
-    };
-
-    debug!(
-        "[claude_observer] cost_breakdown result: {} rows",
-        rows.len()
-    );
-    if rows.is_empty() {
-        tracing::warn!(
-            "[claude_observer] cost_breakdown returned empty array for dim={}",
-            dim
-        );
-    }
-
-    Ok(rows)
+    shared::cost_breakdown(llmusage.paths(), dim, days, limit)
+        .map(|rows| rows.into_iter().map(Into::into).collect())
 }
-
-/// 缓存效率：命中率 + 4 个 token 总量。
 pub fn cache_stats(llmusage: &LlmusageRuntime) -> Result<CacheStatsDto, String> {
-    debug!("[claude_observer] cache_stats: fetching");
-
-    let filter = build_filter(Some("claude".to_string()), None, None, None)?;
-    let dashboard = llmusage.dashboard().map_err(|e| {
-        let err = format!("Dashboard open error: {e}");
-        tracing::error!("[claude_observer] {}", err);
-        err
-    })?;
-    let overview = dashboard.overview(&filter).map_err(|e| {
-        let err = format!("Overview query error: {e}");
-        tracing::error!("[claude_observer] {}", err);
-        err
-    })?;
-
-    // cache_write_tokens 来自 trends_daily 的 cache_creation_tokens 维度汇总
-    let trends = dashboard.trends_daily(&filter).map_err(|e| {
-        let err = format!("Trends query error: {e}");
-        tracing::error!("[claude_observer] {}", err);
-        err
-    })?;
-    let total_cache_write_tokens: i64 = trends.iter().map(|t| t.cache_creation_tokens).sum();
-
-    debug!(
-        "[claude_observer] cache_stats result: hit_rate={:.2}%, write_tokens={}",
-        overview.cache_efficiency * 100.0,
-        total_cache_write_tokens
-    );
-
-    Ok(CacheStatsDto {
-        hit_rate: overview.cache_efficiency,
-        total_input_tokens: overview.total.input_tokens,
-        total_output_tokens: overview.total.output_tokens_with_reasoning(),
-        total_cache_read_tokens: overview.total.cache_read_tokens,
-        total_cache_write_tokens,
-    })
+    shared::cache_stats(llmusage.paths()).map(Into::into)
 }
-
-/// 按 cost 或工具调用密度排序的 Top sessions（`by ∈ cost | calls`，默认 cost，30 天窗口）。
 pub fn top_sessions(
     db_pool: &DbPool,
     limit: Option<i64>,
     by: Option<&str>,
 ) -> Result<Vec<SessionRow>, String> {
-    let limit = limit.unwrap_or(10).clamp(1, 200);
-    let by_calls = matches!(by, Some("calls"));
-    debug!(
-        "[claude_observer] top_sessions: limit={}, by={:?}",
-        limit, by
-    );
-
-    let conn = db_pool.get().map_err(|e| {
-        let err = format!("DB pool error: {e}");
-        tracing::error!("[claude_observer] {}", err);
-        err
-    })?;
-    // 用 efficiency_sessions 拉全量，再按需重排
-    let mut rows =
-        claude_tool_calls_repo::efficiency_sessions(&conn, 30, 0.0, 1000).map_err(|e| {
-            let err = format!("Efficiency query error: {e}");
-            tracing::error!("[claude_observer] {}", err);
-            err
-        })?;
-    if by_calls {
-        // 用 sort_by_key 替换 sort_by 的 (a,b) 反向比较，clippy 偏好
-        rows.sort_by_key(|r| std::cmp::Reverse(r.call_count));
-    } else {
-        // f64 不实现 Ord，必须沿用 sort_by + total_cmp
-        rows.sort_by(|a, b| b.cost_usd.total_cmp(&a.cost_usd));
-    }
-    let out: Vec<SessionRow> = rows
-        .into_iter()
-        .take(limit as usize)
-        .map(|r| SessionRow {
-            session_id: r.session_id,
-            project_path: r.project_path,
-            model: None,
-            cost_usd: r.cost_usd,
-            tokens: 0,
-            tool_call_count: r.call_count,
-            started_at: None,
-        })
-        .collect();
-
-    debug!(
-        "[claude_observer] top_sessions result: {} sessions",
-        out.len()
-    );
-    if out.is_empty() {
-        tracing::warn!("[claude_observer] top_sessions returned empty (ccr-db may be empty)");
-    }
-
-    Ok(out)
+    let conn = db_pool.get().map_err(|e| format!("DB pool error: {e}"))?;
+    shared::top_sessions(&conn, limit, by).map(|rows| rows.into_iter().map(Into::into).collect())
 }
-
-/// 周×小时工具调用热力图（默认 30 天，clamp 1..=365）。
 pub fn tool_heatmap(db_pool: &DbPool, days: Option<i64>) -> Result<Vec<HeatmapCell>, String> {
-    let days = days.unwrap_or(30).clamp(1, 365);
-    debug!("[claude_observer] tool_heatmap: days={}", days);
-
-    let conn = db_pool.get().map_err(|e| {
-        let err = format!("DB pool error: {e}");
-        tracing::error!("[claude_observer] {}", err);
-        err
-    })?;
-    let result = claude_tool_calls_repo::heatmap(&conn, days).map_err(|e| {
-        let err = format!("Heatmap query error: {e}");
-        tracing::error!("[claude_observer] {}", err);
-        err
-    })?;
-
-    debug!(
-        "[claude_observer] tool_heatmap result: {} cells",
-        result.len()
-    );
-    if result.is_empty() {
-        tracing::warn!("[claude_observer] tool_heatmap returned empty (ccr-db may be empty)");
-    }
-
-    Ok(result.into_iter().map(HeatmapCell::from).collect())
+    let conn = db_pool.get().map_err(|e| format!("DB pool error: {e}"))?;
+    shared::tool_heatmap(&conn, days).map(|rows| rows.into_iter().map(Into::into).collect())
 }
-
-/// Top tools 排行（默认 30 天 / 15 条）。
 pub fn top_tools(
     db_pool: &DbPool,
     days: Option<i64>,
     limit: Option<i64>,
 ) -> Result<Vec<TopToolRow>, String> {
-    let days = days.unwrap_or(30).clamp(1, 365);
-    let limit = limit.unwrap_or(15).clamp(1, 200);
-    debug!(
-        "[claude_observer] top_tools: days={}, limit={}",
-        days, limit
-    );
-
-    let conn = db_pool.get().map_err(|e| {
-        let err = format!("DB pool error: {e}");
-        tracing::error!("[claude_observer] {}", err);
-        err
-    })?;
-    let result = claude_tool_calls_repo::top_tools(&conn, days, limit).map_err(|e| {
-        let err = format!("Top tools query error: {e}");
-        tracing::error!("[claude_observer] {}", err);
-        err
-    })?;
-
-    debug!("[claude_observer] top_tools result: {} tools", result.len());
-    if result.is_empty() {
-        tracing::warn!("[claude_observer] top_tools returned empty (ccr-db may be empty)");
-    }
-
-    Ok(result.into_iter().map(TopToolRow::from).collect())
+    let conn = db_pool.get().map_err(|e| format!("DB pool error: {e}"))?;
+    shared::top_tools(&conn, days, limit).map(|rows| rows.into_iter().map(Into::into).collect())
 }
-
+impl From<shared::InsightDto> for InsightDto {
+    fn from(value: shared::InsightDto) -> Self {
+        Self {
+            today_value_usd: value.today_value_usd,
+            month_value_usd: value.month_value_usd,
+            total_value_usd: value.total_value_usd,
+            today_tokens: value.today_tokens,
+            month_tokens: value.month_tokens,
+            total_sessions: value.total_sessions,
+            total_projects: value.total_projects,
+            subscription: value.subscription.into(),
+            roi: value.roi,
+            pricing_version: pricing::pricing_version().to_string(),
+        }
+    }
+}
+impl From<shared::CacheStatsDto> for CacheStatsDto {
+    fn from(value: shared::CacheStatsDto) -> Self {
+        Self {
+            hit_rate: value.hit_rate,
+            total_input_tokens: value.total_input_tokens,
+            total_output_tokens: value.total_output_tokens,
+            total_cache_read_tokens: value.total_cache_read_tokens,
+            total_cache_write_tokens: value.total_cache_write_tokens,
+        }
+    }
+}
+impl From<shared::DailyPoint> for DailyPoint {
+    fn from(value: shared::DailyPoint) -> Self {
+        Self {
+            date: value.date,
+            cost_usd: value.cost_usd,
+            input_tokens: value.input_tokens,
+            output_tokens: value.output_tokens,
+            cache_read_tokens: value.cache_read_tokens,
+            cache_write_tokens: value.cache_write_tokens,
+        }
+    }
+}
+impl From<shared::BreakdownRow> for BreakdownRow {
+    fn from(value: shared::BreakdownRow) -> Self {
+        Self {
+            key: value.key,
+            cost_usd: value.cost_usd,
+            tokens: value.tokens,
+            count: value.count,
+        }
+    }
+}
+impl From<shared::SessionRow> for SessionRow {
+    fn from(value: shared::SessionRow) -> Self {
+        Self {
+            session_id: value.session_id,
+            project_path: value.project_path,
+            model: value.model,
+            cost_usd: value.cost_usd,
+            tokens: value.tokens,
+            tool_call_count: value.tool_call_count,
+            started_at: value.started_at,
+        }
+    }
+}
+impl From<shared::HeatmapCell> for HeatmapCell {
+    fn from(value: shared::HeatmapCell) -> Self {
+        Self {
+            dow: value.dow,
+            hour: value.hour,
+            count: value.count,
+        }
+    }
+}
+impl From<shared::TopToolRow> for TopToolRow {
+    fn from(value: shared::TopToolRow) -> Self {
+        Self {
+            tool_name: value.tool_name,
+            call_count: value.call_count,
+            cost_usd: value.cost_usd,
+        }
+    }
+}
 /// 查询编排 service 的封闭单测：llmusage 侧走 `ccr_usage::fixtures` 投影库，
 /// tool 调用侧走 temp ccr-db pool，全程不读写真实用户目录。
 #[cfg(test)]
@@ -563,6 +257,7 @@ pub fn top_tools(
 mod service_tests {
     use super::*;
     use ccr_usage::fixtures::{SeedBucket, create_projection_db, seed_bucket};
+    use chrono::Local;
     use chrono::Utc;
     use rusqlite::{Connection, params};
     use tempfile::TempDir;

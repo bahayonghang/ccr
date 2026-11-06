@@ -9,8 +9,10 @@
 //! Slash commands remain legacy-compatible until Antigravity publishes a stable
 //! replacement path: ~/.gemini/commands/*.toml and project .gemini/commands.
 
+use ccr_app::resources::platform_files::{
+    Kind as ResourceKind, Store as ResourceStore, antigravity as resource_codec,
+};
 use serde_json::{Value, json};
-use std::collections::HashMap;
 use std::io::Write as IoWrite;
 use std::path::PathBuf;
 
@@ -145,113 +147,13 @@ fn gemini_commands_dirs() -> Result<(PathBuf, PathBuf), String> {
     Ok((project, user))
 }
 
-/// 从两个目录中收集所有 .toml 命令文件，项目级优先于用户级
-fn list_toml_commands(project_dir: &PathBuf, user_dir: &PathBuf) -> Result<Value, String> {
-    let mut chosen: HashMap<String, PathBuf> = HashMap::new();
-    for base in [user_dir, project_dir] {
-        if !base.exists() {
-            continue;
-        }
-        for entry in walkdir::WalkDir::new(base)
-            .follow_links(false)
-            .into_iter()
-            .filter_map(Result::ok)
-        {
-            if !entry.file_type().is_file() {
-                continue;
-            }
-            let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) != Some("toml") {
-                continue;
-            }
-            let rel = path.strip_prefix(base).map_err(|e| e.to_string())?;
-            let rel_no_ext = rel.with_extension("");
-            let key = rel_no_ext.to_string_lossy().replace('\\', "/");
-            // project_dir entries overwrite user_dir entries
-            chosen.insert(key, path.to_path_buf());
-        }
-    }
-
-    let mut commands = Vec::new();
-    let mut folders_set = std::collections::HashSet::new();
-    for (key, path) in &chosen {
-        let content =
-            std::fs::read_to_string(path).map_err(|e| format!("读取命令文件失败: {e}"))?;
-        let value: toml::Value =
-            toml::from_str(&content).map_err(|e| format!("解析 TOML 失败: {e}"))?;
-        let prompt = value
-            .get("prompt")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| format!("缺少 prompt 字段: {key}"))?
-            .to_string();
-        let description = value
-            .get("description")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| {
-                prompt
-                    .lines()
-                    .find(|l| !l.trim().is_empty())
-                    .unwrap_or("Command")
-                    .trim()
-                    .to_string()
-            });
-        let (folder, name) = match key.rsplit_once('/') {
-            Some((f, n)) => (f.to_string(), n.to_string()),
-            None => (String::new(), key.clone()),
-        };
-        if !folder.is_empty() {
-            folders_set.insert(folder.clone());
-        }
-        commands.push(json!({
-            "name": name,
-            "description": description,
-            "command": prompt,
-            "folder": folder,
-        }));
-    }
-    commands.sort_by(|a, b| {
-        a["name"]
-            .as_str()
-            .unwrap_or("")
-            .cmp(b["name"].as_str().unwrap_or(""))
-    });
-    let folders: Vec<String> = folders_set.into_iter().collect();
-    Ok(json!({ "commands": commands, "folders": folders }))
-}
-
-/// 按名称查找命令文件
-fn find_command_file(
-    project_dir: &PathBuf,
-    user_dir: &PathBuf,
-    name: &str,
-) -> Result<Option<PathBuf>, String> {
-    let mut matches = Vec::new();
-    for base in [project_dir, user_dir] {
-        if !base.exists() {
-            continue;
-        }
-        for entry in walkdir::WalkDir::new(base)
-            .follow_links(false)
-            .into_iter()
-            .filter_map(Result::ok)
-        {
-            if !entry.file_type().is_file() {
-                continue;
-            }
-            let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("toml")
-                && path.file_stem().and_then(|s| s.to_str()) == Some(name)
-            {
-                matches.push(path.to_path_buf());
-            }
-        }
-    }
-    match matches.len() {
-        0 => Ok(None),
-        1 => Ok(Some(matches.remove(0))),
-        _ => Err("存在多个同名命令文件".to_string()),
-    }
+fn command_stores() -> Result<(ResourceStore, ResourceStore), String> {
+    let (project, user) = gemini_commands_dirs()?;
+    let project = ResourceStore::with_default_storage(project, ResourceKind::AntigravityCommand)
+        .map_err(|error| error.to_string())?;
+    let user = ResourceStore::with_default_storage(user, ResourceKind::AntigravityCommand)
+        .map_err(|error| error.to_string())?;
+    Ok((project, user))
 }
 
 // ── Settings ──
@@ -379,8 +281,8 @@ pub async fn gemini_delete_mcp_server(name: String) -> Result<String, String> {
 #[ccr_tauri_command_macros::command]
 pub async fn gemini_list_slash_commands() -> Result<OpenJsonValueDto, String> {
     tokio::task::spawn_blocking(|| {
-        let (proj, user) = gemini_commands_dirs()?;
-        list_toml_commands(&proj, &user)
+        let (project, user) = command_stores()?;
+        resource_codec::list_commands(&project, &user)
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))??
@@ -394,35 +296,8 @@ pub async fn gemini_add_slash_command(
 ) -> Result<OpenJsonValueDto, String> {
     let config: Value = config.into();
     tokio::task::spawn_blocking(move || -> Result<Value, String> {
-        let (proj, _user) = gemini_commands_dirs()?;
-        let folder = config
-            .get("folder")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .trim()
-            .to_string();
-        let mut target = proj.clone();
-        if !folder.is_empty() {
-            target = target.join(&folder);
-        }
-        std::fs::create_dir_all(&target).map_err(|e| format!("创建目录失败: {e}"))?;
-        let description = config
-            .get("description")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string();
-        let command = config
-            .get("command")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| "缺少 command 字段".to_string())?
-            .to_string();
-        let toml_content = format!(
-            "description = {}\nprompt = {}\n",
-            toml::Value::String(description),
-            toml::Value::String(command),
-        );
-        let file_path = target.join(format!("{name}.toml"));
-        std::fs::write(&file_path, toml_content).map_err(|e| format!("写入命令文件失败: {e}"))?;
+        let (project, _) = command_stores()?;
+        resource_codec::add_command(&project, &name, &config)?;
         Ok(json!({ "message": format!("斜杠命令 '{name}' 添加成功") }))
     })
     .await
@@ -437,25 +312,8 @@ pub async fn gemini_update_slash_command(
 ) -> Result<OpenJsonValueDto, String> {
     let config: Value = config.into();
     tokio::task::spawn_blocking(move || -> Result<Value, String> {
-        let (proj, user) = gemini_commands_dirs()?;
-        let target = find_command_file(&proj, &user, &name)?
-            .ok_or_else(|| format!("斜杠命令 '{name}' 不存在"))?;
-        let description = config
-            .get("description")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string();
-        let command = config
-            .get("command")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| "缺少 command 字段".to_string())?
-            .to_string();
-        let toml_content = format!(
-            "description = {}\nprompt = {}\n",
-            toml::Value::String(description),
-            toml::Value::String(command),
-        );
-        std::fs::write(&target, toml_content).map_err(|e| format!("写入命令文件失败: {e}"))?;
+        let (project, user) = command_stores()?;
+        resource_codec::update_command(&project, &user, &name, &config)?;
         Ok(json!({ "message": format!("斜杠命令 '{name}' 更新成功") }))
     })
     .await
@@ -466,10 +324,8 @@ pub async fn gemini_update_slash_command(
 #[ccr_tauri_command_macros::command]
 pub async fn gemini_delete_slash_command(name: String) -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
-        let (proj, user) = gemini_commands_dirs()?;
-        let target = find_command_file(&proj, &user, &name)?
-            .ok_or_else(|| format!("斜杠命令 '{name}' 不存在"))?;
-        std::fs::remove_file(&target).map_err(|e| format!("删除命令文件失败: {e}"))?;
+        let (project, user) = command_stores()?;
+        resource_codec::delete_command(&project, &user, &name)?;
         Ok(format!("斜杠命令 '{name}' 删除成功"))
     })
     .await
@@ -482,46 +338,13 @@ pub async fn gemini_delete_slash_command(name: String) -> Result<String, String>
 pub async fn gemini_list_extensions() -> Result<OpenJsonValueDto, String> {
     // Antigravity plugins/extensions 通过 ~/.gemini/antigravity-cli/extensions/ 目录管理
     tokio::task::spawn_blocking(|| -> Result<Value, String> {
-        let ext_dir = antigravity_cli_dir()?.join("extensions");
-        if !ext_dir.exists() {
-            return Ok(json!([]));
-        }
-        let mut extensions = Vec::new();
-        let entries = std::fs::read_dir(&ext_dir)
-            .map_err(|e| format!("读取 extensions 目录失败: {e}"))?;
-        for entry in entries.filter_map(Result::ok) {
-            let path = entry.path();
-            if path.is_dir() {
-                let name = path
-                    .file_name()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or("")
-                    .to_string();
-                // 读取 extension 的 manifest (package.json 或 gemini-extension.json)
-                let manifest_path = path.join("gemini-extension.json");
-                let pkg_path = path.join("package.json");
-                let manifest: Value = if manifest_path.exists() {
-                    std::fs::read_to_string(&manifest_path)
-                        .ok()
-                        .and_then(|s| serde_json::from_str(&s).ok())
-                        .unwrap_or(json!({}))
-                } else if pkg_path.exists() {
-                    std::fs::read_to_string(&pkg_path)
-                        .ok()
-                        .and_then(|s| serde_json::from_str(&s).ok())
-                        .unwrap_or(json!({}))
-                } else {
-                    json!({})
-                };
-                extensions.push(json!({
-                    "name": name,
-                    "description": manifest.get("description").and_then(|v| v.as_str()).unwrap_or(""),
-                    "version": manifest.get("version").and_then(|v| v.as_str()).unwrap_or(""),
-                    "path": path.to_string_lossy(),
-                }));
-            }
-        }
-        Ok(json!(extensions))
+        let home = dirs::home_dir().ok_or("无法获取用户主目录")?;
+        let store = ResourceStore::with_default_storage(
+            home.join(".gemini/antigravity-cli/extensions"),
+            ResourceKind::Extension,
+        )
+        .map_err(|error| error.to_string())?;
+        resource_codec::list_extensions(&store)
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))??
