@@ -30,6 +30,7 @@
 - A matching stored fingerprint may reconstruct a missing app known-hosts entry. New and mismatched keys require explicit confirmation.
 - Every connection `ssh` and `sftp` command forces `BatchMode=yes`, `StrictHostKeyChecking=yes`, `GlobalKnownHostsFile=none`, the app-owned `UserKnownHostsFile`, and finite timeouts.
 - Connection becomes active only after exact nonce stdout. Any failed connect switches an already-active target back to local and records it disconnected.
+- Native CLI detection requires an opaque authority captured from that active session before queueing. The serialized worker rechecks both host ID and session UUID; reconnecting the same host cannot rebind an old request. Only fixed `command -v 'claude' || true`, `command -v 'codex' || true`, `command -v 'agy' || true` and `command -v 'opencode' || true` commands are allowed. Results are installed/path facts, not versions or private-key inventory. Output must be a bounded UTF-8 absolute single path or empty; invalid output and transport failures publish no partial rows and invalidate the connection.
 - SFTP writes upload to a UUID sibling first, run rename only after upload success, and issue best-effort cleanup after upload, rename, or transport failure.
 
 ### 4. Validation & Error Matrix

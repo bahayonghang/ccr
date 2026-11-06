@@ -8,8 +8,26 @@ pub struct FixtureTransport {
     key: Mutex<String>,
     failure: Mutex<VecDeque<(&'static str, Error)>>,
     batches: Mutex<Vec<String>>,
+    cli_outputs: Mutex<HashMap<String, Vec<u8>>>,
+    cli_requests: Mutex<Vec<Vec<String>>>,
+    cli_delay: Mutex<std::time::Duration>,
 }
 impl FixtureTransport {
+    pub fn set_cli_output(&self, tool: &str, output: &str) {
+        self.cli_outputs
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .insert(tool.into(), output.as_bytes().to_vec());
+    }
+    pub fn cli_requests(&self) -> Vec<Vec<String>> {
+        self.cli_requests
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .clone()
+    }
+    pub fn delay_cli(&self, delay: std::time::Duration) {
+        *self.cli_delay.lock().unwrap_or_else(|p| p.into_inner()) = delay;
+    }
     pub fn set_file(&self, host: &str, path: &str, text: &str) {
         self.files
             .lock()
@@ -90,6 +108,39 @@ impl Transport for FixtureTransport {
                     .into_bytes()
                 }
                 "openssh" => {
+                    if let Some((_, tool)) = super::detect::CLI_TOOLS.iter().find(|(_, tool)| {
+                        *last == format!("command -v {} || true", posix_single_quote(tool))
+                    }) {
+                        self.cli_requests
+                            .lock()
+                            .unwrap_or_else(|p| p.into_inner())
+                            .push(args.clone());
+                        let failure = {
+                            let mut failures =
+                                self.failure.lock().unwrap_or_else(|p| p.into_inner());
+                            if failures.front().is_some_and(|(op, _)| *op == "detect") {
+                                failures.pop_front().map(|(_, error)| error)
+                            } else {
+                                None
+                            }
+                        };
+                        if let Some(error) = failure {
+                            return Err(error);
+                        }
+                        let delay = *self.cli_delay.lock().unwrap_or_else(|p| p.into_inner());
+                        tokio::select! { _=tokio::time::sleep(delay)=>{},_ =cancel.cancelled()=>return Err("ssh_cancelled") }
+                        return Ok(Output {
+                            success: true,
+                            stdout: self
+                                .cli_outputs
+                                .lock()
+                                .unwrap_or_else(|p| p.into_inner())
+                                .get(*tool)
+                                .cloned()
+                                .unwrap_or_default(),
+                            stderr: Vec::new(),
+                        });
+                    }
                     let nonce = last
                         .strip_prefix("printf '%s\\n' '")
                         .and_then(|v| v.strip_suffix('\''))

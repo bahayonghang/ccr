@@ -14,6 +14,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tokio_util::sync::CancellationToken;
+mod detect;
+pub use detect::{CliSession, CliStatus};
 
 pub type Error = &'static str;
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -808,5 +810,88 @@ mod tests {
         );
         assert!(transport.batches().last().unwrap().starts_with("-rm "));
         assert!(!owner.connected("one"));
+    }
+    #[tokio::test]
+    async fn fixed_cli_detection_requires_active_session_and_keeps_strict_commands() {
+        let (_root, owner, transport) = fixture();
+        assert!(matches!(owner.cli_session("one"), Err("ssh_not_connected")));
+        assert!(transport.cli_requests().is_empty());
+        connect(&owner, "one").await;
+        transport.set_cli_output("claude", "/usr/local/bin/claude\n");
+        transport.set_cli_output("agy", "/home/fixture/bin/agy\n");
+        let authority = owner.cli_session("one").unwrap();
+        let rows = owner
+            .detect_cli(&authority, CancellationToken::new())
+            .await
+            .unwrap();
+        assert_eq!(
+            rows.iter().map(|r| r.name).collect::<Vec<_>>(),
+            ["claude", "codex", "gemini", "opencode"]
+        );
+        assert_eq!(rows[0].path.as_deref(), Some("/usr/local/bin/claude"));
+        assert!(rows[0].installed);
+        assert!(!rows[1].installed);
+        assert!(rows[1].path.is_none());
+        assert!(rows[2].installed);
+        let requests = transport.cli_requests();
+        assert_eq!(requests.len(), 4);
+        for (args, (_, tool)) in requests.iter().zip(detect::CLI_TOOLS) {
+            assert_eq!(
+                args.last().unwrap(),
+                &format!("command -v '{}' || true", tool)
+            );
+            for required in [
+                "BatchMode=yes".into(),
+                "StrictHostKeyChecking=yes".into(),
+                "GlobalKnownHostsFile=none".into(),
+                format!("UserKnownHostsFile={}", owner.known_hosts.display()),
+            ] {
+                assert!(args.contains(&required));
+            }
+        }
+        connect(&owner, "one").await;
+        assert_eq!(
+            owner.detect_cli(&authority, CancellationToken::new()).await,
+            Err("ssh_session_changed")
+        );
+        assert_eq!(transport.cli_requests().len(), 4);
+        assert!(owner.connected("one"));
+        owner.disconnect().await;
+        assert_eq!(
+            owner.detect_cli(&authority, CancellationToken::new()).await,
+            Err("ssh_not_connected")
+        );
+    }
+    #[tokio::test]
+    async fn malformed_cli_output_and_cancel_do_not_publish_installed_rows() {
+        let (_root, owner, transport) = fixture();
+        connect(&owner, "one").await;
+        transport.set_cli_output("claude", "banner\n/usr/bin/claude");
+        let authority = owner.cli_session("one").unwrap();
+        assert_eq!(
+            owner.detect_cli(&authority, CancellationToken::new()).await,
+            Err("ssh_cli_output_invalid")
+        );
+        assert!(!owner.connected("one"));
+        connect(&owner, "one").await;
+        transport.set_cli_output("claude", "/usr/bin/claude\n");
+        transport.delay_cli(std::time::Duration::from_millis(100));
+        let authority = owner.cli_session("one").unwrap();
+        let cancel = CancellationToken::new();
+        let token = cancel.clone();
+        let before = transport.cli_requests().len();
+        let (detected, ()) = tokio::join!(owner.detect_cli(&authority, cancel), async {
+            tokio::time::timeout(std::time::Duration::from_secs(2), async {
+                while transport.cli_requests().len() == before {
+                    tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+                }
+            })
+            .await
+            .unwrap();
+            token.cancel();
+        });
+        assert_eq!(detected, Err("ssh_cancelled"));
+        assert!(!owner.connected("one"));
+        assert_eq!(transport.cli_requests().len(), before + 1);
     }
 }
