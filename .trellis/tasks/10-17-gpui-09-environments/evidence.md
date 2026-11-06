@@ -137,3 +137,13 @@ GPUI 夹具在 SSH 环境状态下经 `EnvironmentView::plan_connection` 验证�
 用户随后明确要求使用当前工作区的新默认 `File` 标准，不建立新 worktree。独立 check 将 `platforms.rs` 的 `auto` 夹具显式配置为 auto，并新增缺 config/缺 store 设置且无 auth 文件的 `NotDetected`、未登录、无账户及不写入/不泄漏断言。生产映射无需修改；该消费测试依赖另一任务的共享默认值改动。
 
 最终当前工作区 `desktop-fmt-check`、`desktop-lint` 和完整 `desktop-test` 均退出 **0**，无本次重试；Codex 窄测 2/2、新退出测试 2/2、库 103、native_shell 8、native_ui 2、Python 12、AccessKit 3 均通过。最终完整门禁覆盖了修正后的整个本切片，不是旧基线隔离通过；`just ci` 本切片未运行。此前隔离 worktree 仅跑过 fmt，未 build/lint/test，已由主会话移除，日志/输入清单保留。9.1–9.6 与任务继续开放。
+
+## 2026-11-05 续作：主窗口关闭先确认
+
+`Shell` 现在拦截主窗口关闭并显示当前语言的实色确认框。保守策略为每次关闭都确认；取消保留现有草稿、域确认及活动任务，明确退出后才移除窗口并进入已有退出链。Kit 的通用 Enter 默认会确认，因此实现同时限制 Cancel 键盘路径和首帧 root 的确认权限，避免仅有 Cancel 外观焦点却意外退出。
+
+[关闭确认收据](research/close-confirmation-20261105.md)：新测试先以缺少确认框退出 **101**；最终窄测 **0**（2/2，包含中英键盘流程与嵌套草稿/任务）。根 `desktop-fmt-check`、`desktop-lint`、完整 `desktop-test` 最终均 **0**，完整测试没有重试；库 105、native_shell 8、native_ui 2、退出生命周期 2（闭合 helper 1 ignored）、Python 12、AccessKit 3 均通过。产品改动仅在 desktop，无跨模块产品修改，本切片未运行 `just ci`。
+
+这些是 rendered/headless 回归，最终运行时 shutdown 在测试中显式调用；不等于真实用户关闭 OS 原生窗口，不证明托盘、watcher、macOS/Linux、远程环境或 glass。9.1–9.6 仍未整项通过；尺寸/DPI 继续延后，未归档、未提交。
+
+独立 [关闭确认检查](research/check-close-confirmation-20261105.md) 的 fmt、all-target lint/type-check、close 窄测均退出 0；产品未再变动，完整 suite 沿用上列同切片收据。检查明确边界为主 Shell 的 should-close callback，Probe、启动失败退出及绕过该 callback 的 application-level Quit 未由本切片覆盖；不声称全部退出入口均已确认。

@@ -1,4 +1,7 @@
 //! Native capability shell: one workbench destination per sidebar entry.
+mod close;
+#[cfg(test)]
+mod close_tests;
 mod command_state;
 pub(crate) mod semantics;
 use crate::{
@@ -98,6 +101,7 @@ pub struct Shell {
 
 impl Shell {
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
+        close::install(window, cx);
         cx.set_global(Language::English);
         theme::apply(Preference::Light, window, cx);
         let appearance = cx.observe_window_appearance(window, |this, window, cx| {

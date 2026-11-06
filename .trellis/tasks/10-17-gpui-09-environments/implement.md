@@ -42,3 +42,10 @@
 - 证据只覆盖 Windows OS 合成进程与共享运行时，不覆盖真实 native window close、watcher、托盘、其他 OS 或远程执行。9.4 整项仍开放。
 - 先运行窄集成测试，再运行根 `just desktop-fmt-check`、`just desktop-lint`、`just desktop-test`；默认并行和 `--skip export_bindings` 保持。实现与独立 check 收据分别保存。
 - 独立 check 期间用户明确改为当前工作区的新 Codex 默认 `File` 标准，不使用新 worktree 验证。GPUI 原 `auto` 夹具显式写 `auto`，另补缺 config/缺 store 设置且无 auth 文件时 `NotDetected` 的消费回归；不回退共享标准、不修改生产映射。本消费测试依赖另一任务的共享默认值改动，不能称在旧基线独立通过。
+
+## 2026-11-05 主窗口关闭确认切片
+
+- `Shell::new` 安装既有 GPUI close callback，复用 Kit AlertDialog 栈。每次关闭主窗口均先确认，包括闲置时；尚未实现可配置退出偏好或跨页面精确 dirty 聚合。
+- 默认取消；Escape、取消按钮与其 Enter 保留草稿、原域确认、焦点和运行任务。重复关闭不叠框，首帧 root Enter 安全取消；旧 opening 的延迟回调不能重抢焦点。明确激活退出后移除窗口，继续既有 quit observer 与事件循环外最终 owner join。
+- 先失败复现，再运行 rendered/headless 窄回归与根三门禁；具体结果见 [关闭确认收据](research/close-confirmation-20261105.md)。主会话同步 shared-desktop-services 规范。
+- 9.4 仍开放：本轮不是原生 OS 用户关闭实机收据；其他 9.1–9.6、WSL/SSH、托盘、其他平台、glass 与延后的尺寸/DPI 状态保持。
