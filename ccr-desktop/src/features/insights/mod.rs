@@ -1,7 +1,10 @@
 //! Native read-only Insights workbench, using the shared bounded request adapter.
+mod import;
+mod observer;
 mod policies;
 mod product;
 mod rows;
+mod session_operations;
 use crate::{
     locales::{is_chinese, localized_line, service_error, text},
     runtime::{
@@ -40,6 +43,7 @@ pub enum InsightsPage {
     Usage,
     Sessions,
     Policies,
+    Observer,
 }
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Section {
@@ -72,6 +76,7 @@ enum Surface {
 pub struct InsightsView {
     requests: InsightsRequests,
     policies: Entity<policies::PoliciesView>,
+    observer: Entity<observer::ObserverView>,
     page: InsightsPage,
     surface: Surface,
     section: Section,
@@ -82,6 +87,9 @@ pub struct InsightsView {
     gate: ResponseGate,
     task: Option<Task<()>>,
     refresh_task: Option<Task<()>>,
+    import_task: Option<Task<()>>,
+    import_error: Option<crate::runtime::insights::import::Failure>,
+    session_ops: session_operations::ViewState,
     loading: bool,
     error: Option<&'static str>,
     selected: Option<String>,
@@ -98,10 +106,12 @@ impl InsightsView {
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let requests = InsightsRequests::new(&services);
         let policies = cx.new(|cx| policies::PoliciesView::new(requests.clone(), window, cx));
+        let observer = cx.new(|cx| observer::ObserverView::new(requests.clone(), window, cx));
         Self {
             error: (!requests.configured()).then_some(InsightsError::Unconfigured.message()),
             requests,
             policies,
+            observer,
             page: InsightsPage::Home,
             surface: Surface::Workbench,
             section: Section::Sources,
@@ -114,6 +124,9 @@ impl InsightsView {
             gate: ResponseGate::default(),
             task: None,
             refresh_task: None,
+            import_task: None,
+            import_error: None,
+            session_ops: Default::default(),
             loading: false,
             selected: None,
             detail_open: false,
@@ -131,8 +144,12 @@ impl InsightsView {
     }
     pub fn suspend(&mut self, cx: &mut Context<Self>) {
         self.policies.update(cx, |this, cx| this.suspend(cx));
+        self.observer.update(cx, |this, cx| this.suspend(cx));
         self.task = None;
         self.refresh_task = None;
+        self.import_task = None;
+        self.import_error = None;
+        self.session_ops = Default::default();
         self.gate.clear();
         self.generation += 1;
         self.loading = false;
@@ -161,6 +178,10 @@ impl InsightsView {
     pub fn set_page(&mut self, page: InsightsPage, cx: &mut Context<Self>) {
         self.suspend(cx);
         self.page = page;
+        if page == InsightsPage::Observer {
+            self.observer.update(cx, |this, cx| this.open(cx));
+            return;
+        }
         if page == InsightsPage::Policies {
             self.policies.update(cx, |this, cx| {
                 this.load(
@@ -172,8 +193,14 @@ impl InsightsView {
         }
         // Refresh writes archive summaries. Opening the page only reads what is already indexed.
         self.refresh(cx);
+        if page == InsightsPage::Usage {
+            self.observe_import(cx);
+        }
     }
     pub fn refresh(&mut self, cx: &mut Context<Self>) {
+        if self.page == InsightsPage::Sessions {
+            self.observe_session_operations(cx);
+        }
         self.cursor = None;
         self.before = None;
         self.archive_id = None;
@@ -246,7 +273,7 @@ impl InsightsView {
     }
     fn query(&self, cx: &Context<Self>) -> Result<InsightsQuery, InsightsError> {
         match self.page {
-            InsightsPage::Policies => Err(InsightsError::Query),
+            InsightsPage::Policies | InsightsPage::Observer => Err(InsightsError::Query),
             InsightsPage::Home => {
                 let generated_at = chrono::Utc::now();
                 Ok(InsightsQuery::Home {
@@ -292,6 +319,7 @@ impl InsightsView {
         }
     }
     fn submit(&mut self, cx: &mut Context<Self>) {
+        self.clear_session_draft();
         self.task = None;
         self.gate.clear();
         self.generation += 1;
@@ -484,9 +512,9 @@ impl InsightsView {
 }
 
 impl Render for InsightsView {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         if self.surface == Surface::Sessions {
-            return product::sessions(self, cx).into_any_element();
+            return product::sessions(self, window, cx).into_any_element();
         }
         let mut root = div()
             .id("insights-root")
@@ -519,7 +547,7 @@ impl Render for InsightsView {
                         )),
                 );
         }
-        if self.surface == Surface::Workbench {
+        if matches!(self.surface, Surface::Workbench | Surface::Usage) {
             for (page, id, en, zh) in [
                 (InsightsPage::Usage, "insights-usage", "Usage", "用量"),
                 (
@@ -531,10 +559,19 @@ impl Render for InsightsView {
                 (
                     InsightsPage::Policies,
                     "insights-policies-tab",
-                    "Budget / pricing",
-                    "预算 / 定价",
+                    "Budget and pricing",
+                    "预算与定价",
+                ),
+                (
+                    InsightsPage::Observer,
+                    "insights-observer-tab",
+                    "Claude Observer",
+                    "Claude 观测",
                 ),
             ] {
+                if self.surface == Surface::Usage && page == InsightsPage::Sessions {
+                    continue;
+                }
                 tabs = tabs.child(semantics::button(
                     Button::new(id)
                         .label(text(cx, en, zh))
@@ -553,6 +590,12 @@ impl Render for InsightsView {
                 .child(self.policies.clone())
                 .into_any_element();
         }
+        if self.page == InsightsPage::Observer {
+            return root
+                .child(tabs)
+                .child(self.observer.clone())
+                .into_any_element();
+        }
         tabs = tabs.child(semantics::button(
             Button::new("insights-refresh")
                 .label(text(cx, "Refresh", "刷新"))
@@ -562,6 +605,9 @@ impl Render for InsightsView {
             cx,
         ));
         root = root.child(tabs);
+        if self.page == InsightsPage::Usage {
+            root = root.child(self.import_controls(cx));
+        }
         if self.page == InsightsPage::Sessions {
             let status = self.requests.refresh_status();
             let running = matches!(status, RefreshStatus::Running(_));

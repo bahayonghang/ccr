@@ -172,3 +172,9 @@ GPUI 夹具在 SSH 环境状态下经 `EnvironmentView::plan_connection` 验证�
 - CCR release 侧车在 `ccr-desktop/target/sidecar` 实际构建退出 0；完整便携 ZIP 与新候选原生验收尚未运行。
 
 完整 `just ci` 留待后续资源/窗口状态批次最终整合执行一次。当前核心操作源码与 fixture/headless 已交付，真实 SSH、原生环境切换、外部 WebDAV/签到、macOS/Linux 和系统直接退出仍未获原生收据。WSL 与尺寸/DPI 保持 user-deferred，托盘/Windows 隐藏恢复受当前依赖限制。三个任务及全部未满足 AC 继续 in_progress；接着实施动态资源、source-agent、MCP 预设与窗口状态，不以本检查点结束整项请求。
+
+## 2026-11-06 中断续作最终整合
+
+本次继续父任务核心闭环与已存在环境/窗口修复；默认并行 desktop 三门禁及最终完整 just ci 均 exit=0。新增操作仅有 fixture/headless/低栈证据，本轮 computer use 为0，未连接真实 SSH/WebDAV/认证/CDK/quota。配额每个HTTP请求30秒有界，但批量最终join可超过五秒，不冒领全部网络任务五秒退出。9.1–9.6、跨平台、托盘/系统退出限制及用户延期 WSL/DPI 保持原状态，不归档。
+
+完整状态、初始失败/修复、最终CI与包哈希见父任务 `research/resume-summary-20261106.md` 和 `research/resume-check-20261106.md`；旧原生收据不覆盖本批新操作。

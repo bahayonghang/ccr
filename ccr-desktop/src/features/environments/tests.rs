@@ -27,6 +27,41 @@ fn labels(window: &gpui_kit::Window) -> String {
         .join("\n")
 }
 
+/// The Windows executable reserves 1 MiB for its UI thread; Rust's test
+/// threads normally have more space and masked the native Settings overflow.
+#[cfg(windows)]
+#[test]
+fn environment_views_fit_native_windows_stack_with_isolated_locks() {
+    let executable = std::env::current_exe().unwrap_or_else(|error| panic!("{error}"));
+    let root = tempfile::tempdir().unwrap_or_else(|error| panic!("{error}"));
+    let blocked_default = root.path().join("not-a-lock-directory");
+    std::fs::write(&blocked_default, b"fixture lock fallback must fail")
+        .unwrap_or_else(|error| panic!("{error}"));
+    for test in [
+        "features::environments::tests::settings_shows_the_local_desktop_without_a_sample_distro",
+        "features::environments::remote::tests::rendered_host_actions_reach_isolated_transport_and_write_remote_document",
+        "features::insights::session_operations::tests::selected_codex_controls_export_cancel_and_clear_plaintext",
+        "features::insights::observer::tests::observer_setup_confirmation_cancels_then_saves_without_a_usage_database",
+        "features::platforms::tests::codex_api_account_requires_confirmation_and_clears_plaintext_after_commit",
+    ] {
+        let output = std::process::Command::new(&executable)
+            .env("RUST_MIN_STACK", "1048576")
+            // Child-only poison path: any missed scoped lock fails without
+            // accessing the real user's lock directory or changing HOME.
+            .env("CCR_LOCK_DIR", &blocked_default)
+            .args(["--exact", test, "--skip", "export_bindings"])
+            .output()
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert!(
+            output.status.success(),
+            "{test} failed on the native stack with isolated locks: {}\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(String::from_utf8_lossy(&output.stdout).contains("1 passed"));
+    }
+}
+
 #[test]
 fn wsl_path_failure_names_the_listed_distro_without_the_stderr_path() {
     let line = wsl_line(

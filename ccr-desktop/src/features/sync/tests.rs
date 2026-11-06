@@ -9,6 +9,160 @@ use gpui_kit::{AppContext, TestAppContext, WindowBounds, WindowOptions, px, size
 use std::time::Duration;
 
 #[gpui_kit::test]
+async fn disconnect_and_batch_actions_preserve_versions_and_never_contact_fixture_remote(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    let path = root.path().join("sync_folders.toml");
+    let legacy = root.path().join("sync.toml");
+    let owner = RuntimeOwner::new().unwrap();
+    let mut config = ccr_sync::SyncFoldersConfig::default();
+    config.webdav.url = "https://fixture.invalid/".into();
+    config.webdav.username = "fixture-user".into();
+    config.webdav.password = "private-fixture-password".into();
+    for (name, enabled) in [("enabled", true), ("disabled", false)] {
+        let mut folder = ccr_sync::SyncFolder::builder()
+            .name(name)
+            .local_path(root.path().join(name).to_str().unwrap())
+            .remote_path(format!("/{name}"))
+            .build()
+            .unwrap();
+        folder.enabled = enabled;
+        config.folders.push(folder);
+    }
+    let mut value: toml::Value = toml::from_str(&toml::to_string(&config).unwrap()).unwrap();
+    value
+        .as_table_mut()
+        .unwrap()
+        .insert("future".into(), 42.into());
+    value["webdav"]
+        .as_table_mut()
+        .unwrap()
+        .insert("extension".into(), "preserved".into());
+    std::fs::write(&path, toml::to_string(&value).unwrap()).unwrap();
+    std::fs::write(&legacy, b"legacy-private-fixture-password").unwrap();
+    let (handle, view) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(
+            WindowOptions {
+                window_bounds: Some(WindowBounds::Windowed(gpui_kit::Bounds::centered(
+                    None,
+                    size(px(1280.), px(1200.)),
+                    cx,
+                ))),
+                ..Default::default()
+            },
+            cx,
+            |window, cx| cx.new(|cx| SyncView::new(services(&owner, root.path()), window, cx)),
+        )
+        .unwrap()
+    });
+    view.update(cx, |this, cx| this.refresh(cx));
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        view.read(cx).snapshot.is_some()
+    })
+    .await;
+    for action in ["sync-push-all", "sync-pull-all"] {
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.click(action, cx);
+            window.render_frame(cx);
+            assert!(window.find("sync-management-confirmation").visible());
+            window.click("sync-management-cancel", cx);
+            window.render_frame(cx);
+            assert!(!view.read(cx).operation.busy);
+            window.click(action, cx);
+            window.render_frame(cx);
+            window.click("sync-management-confirm", cx);
+        })
+        .unwrap();
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+            !view.read(cx).operation.busy
+        })
+        .await;
+        let state = cx.read(|cx| view.read(cx).operation.clone());
+        let Some(Ok(SyncOutcome::Batch(rows))) = &state.result else {
+            panic!("expected per-folder result")
+        };
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].name, "enabled");
+        assert_eq!(rows[0].result, Err(SyncError::FixtureNetwork));
+    }
+    for attempt in 0..3 {
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.click("sync-disconnect", cx);
+        })
+        .unwrap();
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+            view.read(cx).management_confirmation.is_some()
+        })
+        .await;
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            assert!(!labels(window).contains("private-fixture-password"));
+            if attempt == 0 {
+                window.click("sync-management-cancel", cx);
+            } else {
+                if attempt == 1 {
+                    value["future"] = 43.into();
+                    std::fs::write(&path, toml::to_string(&value).unwrap()).unwrap();
+                }
+                window.click("sync-management-confirm", cx);
+            }
+        })
+        .unwrap();
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+            !view.read(cx).operation.busy && !view.read(cx).busy
+        })
+        .await;
+        if attempt < 2 {
+            assert_eq!(
+                std::fs::read(&legacy).unwrap(),
+                b"legacy-private-fixture-password"
+            );
+            let stored: toml::Value =
+                toml::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+            assert_eq!(
+                stored["webdav"]["password"].as_str(),
+                Some("private-fixture-password")
+            );
+            if attempt == 1 {
+                cx.read(|cx| {
+                    assert_eq!(
+                        view.read(cx).operation.result,
+                        Some(Err(SyncError::Conflict))
+                    )
+                });
+                view.update(cx, |this, cx| this.refresh(cx));
+                cx.wait_for(handle, Duration::from_secs(10), |_, cx| !view.read(cx).busy)
+                    .await;
+            }
+        }
+    }
+    assert!(!legacy.exists());
+    let stored: toml::Value = toml::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    assert_eq!(stored["future"].as_integer(), Some(43));
+    assert_eq!(stored["folders"], value["folders"]);
+    assert_eq!(stored["webdav"]["extension"].as_str(), Some("preserved"));
+    assert_eq!(stored["webdav"]["url"].as_str(), Some(""));
+    assert_eq!(stored["webdav"]["password"].as_str(), Some(""));
+    assert_eq!(stored["webdav"]["enabled"].as_bool(), Some(false));
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        let Some(SyncSnapshot::Present(local)) = &view.read(cx).snapshot else {
+            panic!("expected refreshed projection")
+        };
+        assert!(!local.password_present && !local.username_present && !local.webdav_enabled);
+        assert!(labels(window).contains("WebDAV account disconnected."));
+        window.remove_window();
+    })
+    .unwrap();
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
 async fn saved_settings_and_operation_results_survive_leaving_the_view(cx: &mut TestAppContext) {
     cx.executor().allow_parking();
     let root = tempfile::tempdir().unwrap();

@@ -29,11 +29,15 @@ pub enum SyncError {
     Operation,
     Interrupted,
     LegacyFolders,
+    LegacyRemaining,
 }
 
 impl SyncError {
     pub fn message(self) -> &'static str {
         match self {
+            Self::LegacyRemaining => {
+                "Canonical WebDAV credentials were cleared, but legacy cleanup did not finish. Read the configuration and disconnect again."
+            }
             Self::AssetPassphrase => "An operation passphrase is required for sensitive assets.",
             Self::AssetLegacy => {
                 "Plaintext v1 import requires explicit permission. Remote data has not been re-encrypted."

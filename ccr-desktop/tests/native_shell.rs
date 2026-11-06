@@ -718,6 +718,38 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
         &home.join(".grok/config.toml"),
         "[models]\ndefault = \"grok-3\"\n",
     );
+    let scope = "https://auth.x.ai::fixture-client";
+    let grok_auth = home.join(".grok/auth.json");
+    write_fixture(
+        &grok_auth,
+        &serde_json::json!({(scope): {
+            "auth_mode": "oidc",
+            "oidc_issuer": "https://auth.x.ai",
+            "oidc_client_id": "fixture-client",
+            "key": secret,
+            "user_id": "synthetic-grok-user",
+            "create_time": "2026-01-01T00:00:00Z"
+        }})
+        .to_string(),
+    );
+    let captured = ccr_cli::application::platform_roots::PlatformRoots::fixture(
+        &root
+            .path()
+            .join("desktop-platform-fixture")
+            .canonicalize()
+            .unwrap_or_else(|error| panic!("fixture root: {error}")),
+    )
+    .unwrap_or_else(|error| panic!("captured roots: {error}"));
+    let grok = ccr_cli::services::GrokAuthService::from_roots(captured);
+    let revision = grok
+        .read_snapshot()
+        .unwrap_or_else(|error| panic!("fixture Grok state: {error}"))
+        .revision;
+    grok.save_current("grok-fixture-only", scope, &revision, false)
+        .unwrap_or_else(|error| panic!("fixture Grok account: {error}"));
+    // A saved fixture account must be visible even without runtime credentials.
+    std::fs::remove_file(&grok_auth)
+        .unwrap_or_else(|error| panic!("clear fixture runtime: {error}"));
     write_fixture(
         &home.join(".config/opencode/opencode.json"),
         &format!(
@@ -818,7 +850,12 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
         window.render_frame(cx);
         let text = page_labels(window);
         assert!(window.find("page-grok").visible());
-        assert!(text.contains("Saved Grok accounts were not read from demo data."));
+        assert!(text.contains("No runtime credential was detected."));
+        assert_eq!(
+            window.find("platform-account-grok-fixture-only").label(),
+            Some("grok-fixture-only")
+        );
+        assert!(!text.contains("No saved accounts."));
         assert!(!text.contains("logged in"));
         assert!(!text.contains(secret));
         window.click("nav-opencode", cx);

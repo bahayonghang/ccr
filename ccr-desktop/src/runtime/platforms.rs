@@ -10,12 +10,18 @@ use ccr_core::core::{BackupPolicy, LockManager};
 use serde_json::Value;
 use std::sync::Arc;
 
+mod accounts;
+mod providers;
+mod quota;
+pub use quota::QuotaRow;
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Surface {
     Settings,
     Tui,
     Auth,
     Providers,
+    Models,
     LegacySettings,
 }
 #[derive(Clone, Copy)]
@@ -39,7 +45,7 @@ pub const DESCRIPTORS: &[Descriptor] = &[
         name: "Codex",
         settings: true,
         auth: true,
-        providers: false,
+        providers: true,
     },
     Descriptor {
         platform: Platform::Grok,
@@ -125,8 +131,6 @@ pub enum CredentialState {
     NotDetected,
     Detected,
     Invalid,
-    /// Demo roots must not query the machine Grok account store.
-    MachineStoreUnchecked,
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ProviderReport {
@@ -152,11 +156,20 @@ pub struct PlatformSession {
     pub fields: Vec<FieldFact>,
     pub credential: CredentialState,
     pub runtime_auth_present: Option<bool>,
+    pub auth_revision: accounts::Revision,
 }
 pub enum AccountAction {
     Save,
+    SaveFrom(String),
     Switch,
     Delete,
+    Off,
+    Rename(String),
+    ApiKey {
+        key: String,
+        base_url: Option<String>,
+    },
+    Import(String),
 }
 pub enum Command {
     Read(Surface),
@@ -173,6 +186,10 @@ pub enum Command {
         id: String,
         patch: Option<String>,
     },
+    Quota {
+        session: Arc<PlatformSession>,
+        account: Option<String>,
+    },
     Account {
         session: Arc<PlatformSession>,
         name: String,
@@ -181,6 +198,7 @@ pub enum Command {
 }
 pub enum ResultValue {
     Loaded(Arc<PlatformSession>),
+    Quotas(Vec<QuotaRow>),
     Saved(SaveOutcome),
     AccountChanged { warning: bool },
 }
@@ -235,6 +253,16 @@ fn document(
         (Platform::Claude, Surface::Settings | Surface::Auth) => {
             (roots.claude.settings_file.clone(), None, Format::Json)
         }
+        (Platform::Codex, Surface::Models) => (
+            roots.home.join(".ccr/platforms/codex/custom-models.toml"),
+            None,
+            Format::Toml,
+        ),
+        (Platform::Codex, Surface::Providers) => (
+            roots.codex_store.join("model_providers.json"),
+            None,
+            Format::Json,
+        ),
         (Platform::Codex, Surface::Settings | Surface::Auth) => {
             (roots.codex_runtime.join("config.toml"), None, Format::Toml)
         }
@@ -248,7 +276,7 @@ fn document(
         ),
         (Platform::OpenCode, Surface::Tui) => (
             roots.home.join(".config/opencode/tui.json"),
-            None,
+            Some(roots.home.join(".opencode/keybindings.json")),
             Format::Json,
         ),
         (Platform::Gemini, Surface::LegacySettings) => (
@@ -277,9 +305,22 @@ fn document(
 fn file_label(platform: Platform, surface: Surface, snapshot: &Snapshot) -> &'static str {
     match (platform, surface) {
         (Platform::Claude, _) => "settings.json",
+        (Platform::Codex, Surface::Providers) => "model_providers.json",
+        (Platform::Codex, Surface::Models) => "custom-models.toml",
         (Platform::Codex, _) => "config.toml",
         (Platform::Grok, _) => "config.toml",
-        (Platform::OpenCode, Surface::Tui) => "tui.json",
+        (Platform::OpenCode, Surface::Tui) => {
+            if snapshot.exists
+                && snapshot
+                    .source
+                    .file_name()
+                    .is_some_and(|name| name == "keybindings.json")
+            {
+                "legacy keybindings.json → tui.json"
+            } else {
+                "tui.json"
+            }
+        }
         (Platform::OpenCode, _) => {
             if snapshot.exists
                 && snapshot.source.file_name().and_then(|name| name.to_str()) == Some("config.json")
@@ -355,13 +396,16 @@ fn project_fields(
         return (FileState::Missing, Vec::new());
     }
     let format = match (platform, surface) {
+        (Platform::Codex, Surface::Providers) => Format::Json,
         (Platform::Codex | Platform::Grok, _) => Format::Toml,
         _ => Format::Json,
     };
     if platform_settings::validate(format, &snapshot.content).is_err() {
         return (FileState::Invalid, Vec::new());
     }
-    if platform == Platform::Gemini {
+    if platform == Platform::Gemini
+        || (platform == Platform::Codex && surface == Surface::Providers)
+    {
         return (FileState::Present, Vec::new());
     }
     let mut fields = Vec::new();
@@ -535,21 +579,8 @@ fn project_auth(roots: &PlatformRoots, platform: Platform, surface: Surface) -> 
                 Err(_) => AuthProjection::unreadable(),
             }
         }
-        Platform::Grok if roots.fixture => {
-            let present = roots.grok_runtime.join("auth.json").try_exists().ok();
-            AuthProjection {
-                credential: if present.is_none() {
-                    CredentialState::Unreadable
-                } else {
-                    CredentialState::MachineStoreUnchecked
-                },
-                accounts: Vec::new(),
-                runtime_auth_present: present,
-                signed_in: false,
-            }
-        }
         Platform::Grok => {
-            match ccr_cli::services::grok_auth_service::GrokAuthService::new().read_snapshot() {
+            match ccr_cli::services::GrokAuthService::from_roots(roots.clone()).read_snapshot() {
                 Ok(state) => {
                     let mut accounts = Vec::new();
                     for account in &state.accounts {
@@ -638,11 +669,65 @@ fn read(
 ) -> Result<ResultValue, PlatformError> {
     let roots = roots(source)?;
     let document = document(&roots, platform, surface)?;
-    let snapshot = document.read().map_err(settings_error)?;
-    let (file_state, fields) = project_fields(platform, surface, &snapshot);
+    let mut snapshot = document.read().map_err(settings_error)?;
+    if platform == Platform::OpenCode
+        && surface == Surface::Tui
+        && snapshot.exists
+        && snapshot.source != document.path()
+    {
+        let keybinds: Value =
+            serde_json::from_str(&snapshot.content).map_err(|_| PlatformError::Invalid)?;
+        // Same read projection as Tauri. Keep the legacy source/token and the
+        // missing primary token: Document guards BOTH before writing tui.json.
+        snapshot.content = serde_json::to_string_pretty(&serde_json::json!({"keybinds":keybinds}))
+            .map_err(|_| PlatformError::Invalid)?;
+    }
+    let (file_state, mut fields) = project_fields(platform, surface, &snapshot);
+    if platform == Platform::Grok && surface == Surface::Auth {
+        let state = ccr_cli::services::GrokAuthService::from_roots(roots.clone())
+            .read_snapshot()
+            .map_err(domain_error)?;
+        for source in state.sources {
+            if let Some(value) = safe_scalar(&source.scope) {
+                fields.push(FieldFact {
+                    key: "oauth_source",
+                    value,
+                });
+            }
+        }
+    }
+    if platform == Platform::Codex && surface == Surface::Models {
+        let custom = if snapshot.exists {
+            toml::from_str::<platform_settings::codex::CustomModelsFile>(&snapshot.content)
+                .map_err(|_| PlatformError::Invalid)?
+                .models
+        } else {
+            Vec::new()
+        };
+        fields = platform_settings::codex::merge_models(
+            &platform_settings::codex::sanitize_custom_models(custom),
+        )
+        .into_iter()
+        .filter_map(|model| {
+            safe_scalar(&model).map(|value| FieldFact {
+                key: "model",
+                value,
+            })
+        })
+        .collect();
+    }
     let auth = project_auth(&roots, platform, surface);
     let (provider_report, provider_ids) =
-        project_providers(platform, surface, file_state, &snapshot);
+        if platform == Platform::Codex && surface == Surface::Providers {
+            providers::project(&roots)?
+        } else {
+            project_providers(platform, surface, file_state, &snapshot)
+        };
+    let auth_revision = if surface == Surface::Auth {
+        accounts::capture(&roots, platform, &auth.accounts)?
+    } else {
+        accounts::Revision::default()
+    };
     let file_label = file_label(platform, surface, &snapshot);
     Ok(ResultValue::Loaded(Arc::new(PlatformSession {
         roots,
@@ -659,6 +744,7 @@ fn read(
         fields,
         credential: auth.credential,
         runtime_auth_present: auth.runtime_auth_present,
+        auth_revision,
     })))
 }
 fn grok_managed_guard(session: &PlatformSession, content: &str) -> Result<(), PlatformError> {
@@ -717,7 +803,8 @@ fn execute(
         Command::Patch { session, .. }
         | Command::Source { session, .. }
         | Command::Provider { session, .. }
-        | Command::Account { session, .. } => session,
+        | Command::Account { session, .. }
+        | Command::Quota { session, .. } => session,
         Command::Read(_) => return Err(PlatformError::Invalid),
     };
     if session.platform != platform {
@@ -740,7 +827,12 @@ fn execute(
                         &session.snapshot,
                         &patch,
                     ),
-                    Platform::Claude | Platform::OpenCode => platform_settings::json::save_patch(
+                    Platform::Claude => platform_settings::json::save_claude_patch(
+                        &session.document,
+                        &session.snapshot,
+                        &patch,
+                    ),
+                    Platform::OpenCode => platform_settings::json::save_patch(
                         &session.document,
                         &session.snapshot,
                         &patch,
@@ -757,6 +849,15 @@ fn execute(
                 if platform == Platform::Grok {
                     grok_managed_guard(session, content)?;
                 }
+                if platform == Platform::Claude {
+                    return platform_settings::json::save_claude_source(
+                        &session.document,
+                        &session.snapshot,
+                        content,
+                    )
+                    .map(ResultValue::Saved)
+                    .map_err(settings_error);
+                }
                 Ok(ResultValue::Saved(
                     session
                         .document
@@ -765,6 +866,9 @@ fn execute(
                 ))
             }
             Command::Provider { session, id, patch } => {
+                if platform == Platform::Codex {
+                    return providers::apply(session, id, patch.as_deref());
+                }
                 if platform != Platform::OpenCode || session.surface != Surface::Providers {
                     return Err(PlatformError::Unsupported);
                 }
@@ -788,48 +892,8 @@ fn execute(
                 session,
                 name,
                 action,
-            } => {
-                if session.surface != Surface::Auth {
-                    return Err(PlatformError::Invalid);
-                }
-                let mut warning = false;
-                match platform {
-                    Platform::Claude => {
-                        let service = session.roots.claude_auth();
-                        match action {
-                            AccountAction::Save => {
-                                service
-                                    .save_current(name, None, false)
-                                    .map_err(domain_error)?;
-                            }
-                            AccountAction::Switch => {
-                                let outcome = service.switch_account(name).map_err(domain_error)?;
-                                warning = !outcome.warnings.is_empty()
-                                    || !outcome.remaining_suppressors.is_empty();
-                            }
-                            AccountAction::Delete => {
-                                service.delete_account(name).map_err(domain_error)?
-                            }
-                        }
-                    }
-                    Platform::Codex => {
-                        let service = session.roots.codex_auth();
-                        match action {
-                            AccountAction::Save => service
-                                .save_current(name, None, false)
-                                .map_err(domain_error)?,
-                            AccountAction::Switch => {
-                                service.switch_account(name).map_err(domain_error)?
-                            }
-                            AccountAction::Delete => {
-                                service.delete_account(name).map_err(domain_error)?
-                            }
-                        }
-                    }
-                    _ => return Err(PlatformError::Unsupported),
-                }
-                Ok(ResultValue::AccountChanged { warning })
-            }
+            } => accounts::apply(session, name, action),
+            Command::Quota { session, account } => quota::fetch(session, account.as_deref()),
             Command::Read(_) => Err(PlatformError::Invalid),
         })())
     })
@@ -948,6 +1012,368 @@ impl Services {
 mod tests {
     use super::*;
     use std::sync::Arc;
+
+    #[test]
+    fn grok_captured_accounts_preserve_rotated_credentials_before_logout() {
+        let temp = tempfile::tempdir().unwrap();
+        let source = fixture_source(&temp.path().canonicalize().unwrap());
+        let roots = roots(&source).unwrap();
+        std::fs::create_dir_all(&roots.grok_runtime).unwrap();
+        let path = roots.grok_runtime.join("auth.json");
+        let document = |key: &str| {
+            serde_json::json!({"https://auth.x.ai::client":{"auth_mode":"oidc","oidc_issuer":"https://auth.x.ai","oidc_client_id":"client","key":key,"user_id":"fixture-user","create_time":"2026-01-01T00:00:00Z"}}).to_string()
+        };
+        std::fs::write(&path, document("old-synthetic-token")).unwrap();
+        let apply = |session, action| {
+            execute(
+                &source,
+                Platform::Grok,
+                Command::Account {
+                    session,
+                    name: "fixture".into(),
+                    action,
+                },
+            )
+        };
+        apply(
+            loaded(&source, Platform::Grok, Surface::Auth),
+            AccountAction::SaveFrom("https://auth.x.ai::client".into()),
+        )
+        .unwrap();
+        let stale = loaded(&source, Platform::Grok, Surface::Auth);
+        std::fs::write(&path, document("rotated-synthetic-token")).unwrap();
+        assert!(apply(stale, AccountAction::Off).is_err());
+        assert!(path.exists());
+        apply(
+            loaded(&source, Platform::Grok, Surface::Auth),
+            AccountAction::Off,
+        )
+        .unwrap();
+        assert!(!path.exists());
+        apply(
+            loaded(&source, Platform::Grok, Surface::Auth),
+            AccountAction::Switch,
+        )
+        .unwrap();
+        let saved = std::fs::read_to_string(&path).unwrap();
+        assert!(saved.contains("rotated-synthetic-token"));
+        assert!(!saved.contains("old-synthetic-token"));
+        let session = loaded(&source, Platform::Grok, Surface::Auth);
+        assert!(!format!("{:?}", session.fields).contains("synthetic-token"));
+        assert!(session.fields.iter().any(|f| f.key == "oauth_source"));
+        apply(session, AccountAction::Delete).unwrap();
+        assert!(
+            loaded(&source, Platform::Grok, Surface::Auth)
+                .accounts
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn codex_fixture_quotas_refuse_network_and_catalog_uses_shared_models() {
+        let temp = tempfile::tempdir().unwrap();
+        let source = fixture_source(temp.path());
+        let session = loaded(&source, Platform::Codex, Surface::Auth);
+        for account in [None, Some("default".into()), Some("fixture".into())] {
+            assert!(matches!(
+                execute(
+                    &source,
+                    Platform::Codex,
+                    Command::Quota {
+                        session: session.clone(),
+                        account
+                    }
+                ),
+                Err(PlatformError::Unsupported)
+            ));
+        }
+        let session = loaded(&source, Platform::Codex, Surface::Models);
+        assert_eq!(
+            session
+                .fields
+                .iter()
+                .map(|f| f.value.clone())
+                .collect::<Vec<_>>(),
+            platform_settings::codex::builtin_models()
+        );
+        assert!(!session.document.path().exists());
+        std::fs::create_dir_all(session.document.path().parent().unwrap()).unwrap();
+        std::fs::write(
+            session.document.path(),
+            "models = [' custom-fixture ', 'gpt-5.6-sol', 'custom-fixture', '']\n",
+        )
+        .unwrap();
+        let session = loaded(&source, Platform::Codex, Surface::Models);
+        assert_eq!(session.fields.last().unwrap().value, "custom-fixture");
+        assert_eq!(
+            session.fields.len(),
+            platform_settings::codex::BUILTIN_MODELS.len() + 1
+        );
+    }
+
+    #[test]
+    fn codex_account_management_keeps_runtime_and_saved_accounts_distinct() {
+        let temp = tempfile::tempdir().unwrap();
+        let source = fixture_source(temp.path());
+        let session = loaded(&source, Platform::Codex, Surface::Auth);
+        let roots = session.roots.clone();
+        let apply = |session, name: &str, action| {
+            execute(
+                &source,
+                Platform::Codex,
+                Command::Account {
+                    session,
+                    name: name.into(),
+                    action,
+                },
+            )
+            .unwrap()
+        };
+        assert!(matches!(
+            apply(
+                session.clone(),
+                "first",
+                AccountAction::ApiKey {
+                    key: "synthetic-platform-key".into(),
+                    base_url: None
+                }
+            ),
+            ResultValue::AccountChanged { .. }
+        ));
+        assert!(!roots.codex_runtime.join("auth.json").exists());
+        assert!(matches!(
+            apply(session, "first", AccountAction::Delete),
+            ResultValue::Saved(SaveOutcome::Conflict)
+        ));
+        let session = loaded(&source, Platform::Codex, Surface::Auth);
+        assert_eq!(session.accounts[0].name, "first");
+        apply(session, "first", AccountAction::Rename("renamed".into()));
+        apply(
+            loaded(&source, Platform::Codex, Surface::Auth),
+            "renamed",
+            AccountAction::Switch,
+        );
+        assert!(roots.codex_runtime.join("auth.json").exists());
+        apply(
+            loaded(&source, Platform::Codex, Surface::Auth),
+            "",
+            AccountAction::Off,
+        );
+        assert!(!roots.codex_runtime.join("auth.json").exists());
+        assert!(roots.codex_store.join("auth/renamed.json").exists());
+        let session = loaded(&source, Platform::Codex, Surface::Auth);
+        let stale = session.clone();
+        std::fs::write(
+            roots.codex_runtime.join("auth.json"),
+            r#"{"OPENAI_API_KEY":"external-change"}"#,
+        )
+        .unwrap();
+        assert!(matches!(
+            apply(stale, "renamed", AccountAction::Delete),
+            ResultValue::Saved(SaveOutcome::Conflict)
+        ));
+        assert!(roots.codex_store.join("auth/renamed.json").exists());
+        assert!(!format!("{:?}", session.fields).contains("synthetic-platform-key"));
+    }
+
+    #[test]
+    fn codex_provider_library_preserves_keys_and_rejects_stale_save_and_delete() {
+        let temp = tempfile::tempdir().unwrap();
+        let source = fixture_source(&temp.path().canonicalize().unwrap());
+        let session = loaded(&source, Platform::Codex, Surface::Providers);
+        let apply = |session, patch: Option<&str>| {
+            execute(
+                &source,
+                Platform::Codex,
+                Command::Provider {
+                    session,
+                    id: "fixture-provider".into(),
+                    patch: patch.map(str::to_string),
+                },
+            )
+            .unwrap()
+        };
+        assert!(matches!(
+            apply(
+                session.clone(),
+                Some(
+                    r#"{"name":"Fixture","base_url":"https://example.invalid/v1","api_key":"provider-secret-sentinel"}"#
+                )
+            ),
+            ResultValue::AccountChanged { .. }
+        ));
+        assert!(matches!(
+            apply(session, None),
+            ResultValue::Saved(SaveOutcome::Conflict)
+        ));
+        let session = loaded(&source, Platform::Codex, Surface::Providers);
+        assert_eq!(session.provider_ids, vec!["fixture-provider"]);
+        assert!(session.fields.is_empty());
+        let roots = session.roots.clone();
+        apply(
+            session.clone(),
+            Some(r#"{"name":"Renamed","base_url":"https://example.invalid/v2","api_key":""}"#),
+        );
+        assert!(matches!(
+            apply(
+                session,
+                Some(r#"{"name":"Stale","base_url":"https://example.invalid/v3"}"#)
+            ),
+            ResultValue::Saved(SaveOutcome::Conflict)
+        ));
+        let store = ccr_codex::services::CodexModelProviderStoreService::from_parts(
+            &roots.codex_store,
+            &roots.locks,
+        )
+        .load()
+        .unwrap();
+        assert_eq!(store.providers[0].name, "Renamed");
+        assert_eq!(
+            store.providers[0].api_keys[0].api_key,
+            "provider-secret-sentinel"
+        );
+        apply(loaded(&source, Platform::Codex, Surface::Providers), None);
+        assert!(
+            loaded(&source, Platform::Codex, Surface::Providers)
+                .provider_ids
+                .is_empty()
+        );
+    }
+    #[test]
+    fn claude_hooks_and_statusline_keep_the_settings_contract_in_both_edit_modes() {
+        let root = tempfile::tempdir().unwrap();
+        let source = fixture_source(root.path());
+        let session = loaded(&source, Platform::Claude, Surface::Settings);
+        let original = r#"{"extension":{"keep":7},"statusLine":{"type":"command","command":"echo fixture"},"statusline":{"legacy":true},"hooks":{"PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"echo fixture"}]}]}}"#;
+        assert!(matches!(
+            execute(
+                &source,
+                Platform::Claude,
+                Command::Source {
+                    session,
+                    content: original.into()
+                }
+            )
+            .unwrap(),
+            ResultValue::Saved(SaveOutcome::Saved { .. })
+        ));
+        let session = loaded(&source, Platform::Claude, Surface::Settings);
+        let path = session.document.path().to_path_buf();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), original);
+        assert!(matches!(
+            execute(
+                &source,
+                Platform::Claude,
+                Command::Patch {
+                    session: session.clone(),
+                    content: r#"{"hooks":"invalid"}"#.into()
+                }
+            ),
+            Err(PlatformError::Invalid)
+        ));
+        assert!(matches!(
+            execute(
+                &source,
+                Platform::Claude,
+                Command::Source {
+                    session: session.clone(),
+                    content: r#"{"hooks":1}"#.into()
+                }
+            ),
+            Err(PlatformError::Invalid)
+        ));
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), original);
+        assert!(matches!(
+            execute(
+                &source,
+                Platform::Claude,
+                Command::Patch {
+                    session,
+                    content: r#"{"statusLine":{"padding":2}}"#.into()
+                }
+            )
+            .unwrap(),
+            ResultValue::Saved(SaveOutcome::Saved { .. })
+        ));
+        let saved: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        assert_eq!(saved["extension"]["keep"], 7);
+        assert_eq!(saved["statusline"]["legacy"], true);
+        assert_eq!(saved["statusLine"]["command"], "echo fixture");
+        assert_eq!(
+            saved["hooks"]["PreToolUse"][0]["hooks"][0]["command"],
+            "echo fixture"
+        );
+    }
+
+    #[test]
+    fn opencode_legacy_keybindings_project_into_tui_and_guard_both_original_sources() {
+        let root = tempfile::tempdir().unwrap();
+        let source = fixture_source(root.path());
+        let paths = roots(&source).unwrap();
+        let legacy = paths.home.join(".opencode/keybindings.json");
+        let canonical = paths.home.join(".config/opencode/tui.json");
+        std::fs::create_dir_all(legacy.parent().unwrap()).unwrap();
+        std::fs::write(&legacy, r#"{"leader":"ctrl+x"}"#).unwrap();
+        let first = loaded(&source, Platform::OpenCode, Surface::Tui);
+        let projected: Value = serde_json::from_str(&first.snapshot.content).unwrap();
+        assert_eq!(projected["keybinds"]["leader"], "ctrl+x");
+        assert_eq!(first.snapshot.source, legacy);
+        assert_eq!(first.file_label, "legacy keybindings.json → tui.json");
+        let patch = r#"{"theme":"dark"}"#;
+        std::fs::write(&legacy, r#"{"leader":"ctrl+y","extension":"kept"}"#).unwrap();
+        assert!(matches!(
+            execute(
+                &source,
+                Platform::OpenCode,
+                Command::Patch {
+                    session: first,
+                    content: patch.into()
+                }
+            )
+            .unwrap(),
+            ResultValue::Saved(SaveOutcome::Conflict)
+        ));
+        assert!(!canonical.exists());
+        let second = loaded(&source, Platform::OpenCode, Surface::Tui);
+        std::fs::create_dir_all(canonical.parent().unwrap()).unwrap();
+        std::fs::write(&canonical, r#"{"theme":"external"}"#).unwrap();
+        assert!(matches!(
+            execute(
+                &source,
+                Platform::OpenCode,
+                Command::Patch {
+                    session: second,
+                    content: patch.into()
+                }
+            )
+            .unwrap(),
+            ResultValue::Saved(SaveOutcome::Conflict)
+        ));
+        assert_eq!(
+            std::fs::read_to_string(&canonical).unwrap(),
+            r#"{"theme":"external"}"#
+        );
+        std::fs::remove_file(&canonical).unwrap();
+        let legacy_before = std::fs::read(&legacy).unwrap();
+        let session = loaded(&source, Platform::OpenCode, Surface::Tui);
+        assert!(matches!(
+            execute(
+                &source,
+                Platform::OpenCode,
+                Command::Patch {
+                    session,
+                    content: patch.into()
+                }
+            )
+            .unwrap(),
+            ResultValue::Saved(SaveOutcome::Saved { .. })
+        ));
+        let saved: Value = serde_json::from_slice(&std::fs::read(&canonical).unwrap()).unwrap();
+        assert_eq!(saved["theme"], "dark");
+        assert_eq!(saved["keybinds"]["leader"], "ctrl+y");
+        assert_eq!(saved["keybinds"]["extension"], "kept");
+        assert_eq!(std::fs::read(&legacy).unwrap(), legacy_before);
+    }
     #[test]
     fn explicit_fixture_read_and_two_native_clients_preserve_unknown_fields() {
         let temp = tempfile::tempdir().unwrap();
@@ -1186,10 +1612,7 @@ mod tests {
         )
         .unwrap();
         let grok_session = loaded(&source, Platform::Grok, Surface::Settings);
-        assert_eq!(
-            grok_session.credential,
-            CredentialState::MachineStoreUnchecked
-        );
+        assert_eq!(grok_session.credential, CredentialState::NotDetected);
         assert_eq!(grok_session.runtime_auth_present, Some(false));
         assert!(!grok_session.signed_in);
         assert!(grok_session.accounts.is_empty());

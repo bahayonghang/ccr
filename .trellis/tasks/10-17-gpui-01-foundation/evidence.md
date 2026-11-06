@@ -172,3 +172,9 @@ Host is Windows. No macOS compiler, sysroot, or machine log was found under this
 `rustc -vV` 和 `rustup target list --installed` 均退出 0；host 和唯一 installed target 仍为 `x86_64-pc-windows-msvc`。没有 macOS 编译/运行命令或机器收据，AC1.5 保持未完成。性能 `not_run`，相对指标 `not_comparable`；历史 baseline JSON、样本和截图未改。只修改当前任务文档，任务仍 `in_progress`，未提交、未归档。
 
 本轮 [独立 check](research/check-continuation-20261105.md) 已按当前 owning source 复核路径/行号，并收紧 WSL 缓存探测的表述；文档、引用、任务状态与差异检查退出 0。前序 09 产品候选 `0bf9ba48` 的 desktop-fmt/lint/test 及根 `just ci` 均退出 0，属于 09 的收据；本轮 01 无产品改动，未重跑，也不将其作为 macOS 或性能验收证据。当前文档切片可提交，01 仍不能归档。
+
+## 2026-11-06 中断续作最终整合
+
+本次续作完成最终 desktop 三门禁、完整 just ci 与当前源码便携包（均 exit=0），双二进制/CRC/manifest 哈希复核通过。未运行 doctor/WSL，未启动新包 GUI。Windows 新增面板采用既有1 MiB低栈/隔离锁守卫，不能替代原生 IME、性能或其他 OS。macOS AC1.5 与其他未满足 AC 保持开放，任务不归档。
+
+完整状态、初始失败/修复、最终CI与包哈希见父任务 `research/resume-summary-20261106.md` 和 `research/resume-check-20261106.md`；旧原生收据不覆盖本批新操作。

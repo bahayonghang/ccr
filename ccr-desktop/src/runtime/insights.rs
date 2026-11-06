@@ -1,5 +1,8 @@
 //! Typed, explicit-path insights reads through the application-owned bounded executor.
+pub mod import;
+pub mod observer;
 pub mod policies;
+pub mod session_operations;
 use super::Services;
 use ccr_app::{
     runtime::{AdmissionError, Completion, EnvironmentId, RequestKey, TaskSubscription},
@@ -32,8 +35,8 @@ pub struct InsightsPaths {
 }
 
 /// Resolve the same llmusage and CCR archive locations the installed tools already use.
-/// Either database file is enough. This function does not create directories or databases,
-/// and the missing file stays unread.
+/// Capture paths even before the first import. This function does not create directories
+/// or databases, and opening the page never starts an import.
 pub fn local_insights_paths() -> Option<InsightsPaths> {
     let usage = ccr_usage::AppPaths::discover().ok()?;
     let home = std::env::var_os("USERPROFILE")
@@ -45,14 +48,14 @@ pub fn local_insights_paths() -> Option<InsightsPaths> {
         .or_else(|| std::env::var_os("CCR_ROOT").filter(|value| !value.is_empty()))
         .map(PathBuf::from)
         .unwrap_or_else(|| home.join(".ccr"));
-    insights_paths_if_present(
-        usage.root_dir,
-        &usage.db_path,
-        ccr_root.join("analytics").join("usage.db"),
-        home,
-    )
+    Some(InsightsPaths {
+        usage_root: usage.root_dir,
+        archive_db: ccr_root.join("analytics").join("usage.db"),
+        provider_home: home,
+    })
 }
 
+#[cfg(test)]
 pub(crate) fn insights_paths_if_present(
     usage_root: PathBuf,
     usage_db: &Path,
@@ -338,6 +341,7 @@ pub struct InsightsRequests {
     paths: Option<InsightsPaths>,
     archive: Arc<Mutex<Option<DbPool>>>,
     refresh: Arc<Mutex<RefreshStatus>>,
+    session_operations: Arc<session_operations::Owner>,
 }
 impl InsightsRequests {
     /// Capture configuration only. No filesystem work until admitted on a worker.
@@ -347,6 +351,7 @@ impl InsightsRequests {
             paths: services.insights_paths(),
             archive: Default::default(),
             refresh: Arc::new(Mutex::new(RefreshStatus::Idle)),
+            session_operations: Default::default(),
         }
     }
     pub fn configured(&self) -> bool {

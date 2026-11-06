@@ -387,23 +387,14 @@ fn message(code: &str, chinese: bool) -> &'static str {
         (_, true) => "SSH 操作失败。请检查保存的主机、信任、连接和文件权限；没有使用本地数据。",
     }
 }
-impl Render for RemoteView {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        if self.host_form_pending
-            && let Some(form) = self.host_form.clone()
-        {
-            self.host_form(form, window, cx);
-        }
-        if self.message == Some("ssh_document_ready") {
-            self.restore(window, cx);
-            self.message = None;
-        }
-        let chinese = crate::locales::is_chinese(cx);
-        let mut root = div()
-            .flex()
-            .flex_col()
-            .gap(px(theme::CONTROL_GAP))
-            .child(text(cx, "SSH environments", "SSH 环境"));
+// Keep debug renderer frames bounded: GPUI builders are large values, and
+// a single function reserves stack slots for every conditional branch.
+impl RemoteView {
+    fn render_host_controls(
+        &self,
+        mut root: gpui_kit::Div,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::Div {
         let local_busy = self.busy;
         root = root.child(semantics::button(
             Button::new("ssh-local")
@@ -470,6 +461,9 @@ impl Render for RemoteView {
             false,
             cx,
         ));
+        root
+    }
+    fn render_host_form(&self, mut root: gpui_kit::Div, cx: &mut Context<Self>) -> gpui_kit::Div {
         if self.host_form.is_some() {
             root=root.child(text(cx,"New hosts use an SSH agent. Editing keeps an existing identity-file setting. Passwords are unsupported.","新主机使用 SSH agent；编辑时保留已有身份文件设置。不支持密码认证。"));
             for (index, (en, zh)) in [
@@ -510,229 +504,287 @@ impl Render for RemoteView {
                 cx,
             ));
         }
-        if let Some(host) = self.selected.clone() {
-            let edit_host = host.clone();
-            root = root.child(semantics::button(
-                Button::new("ssh-edit-host")
-                    .label(text(cx, "Edit host", "编辑主机"))
-                    .ghost()
-                    .on_click(cx.listener(move |this, _, _, cx| {
-                        this.start(SshAction::HostDetails(edit_host.id.clone()), cx)
-                    })),
-                self.busy,
-                false,
+        root
+    }
+    fn render_selected_controls(
+        &self,
+        mut root: gpui_kit::Div,
+        host: &Host,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::Div {
+        let edit_host = host.clone();
+        root = root.child(semantics::button(
+            Button::new("ssh-edit-host")
+                .label(text(cx, "Edit host", "编辑主机"))
+                .ghost()
+                .on_click(cx.listener(move |this, _, _, cx| {
+                    this.start(SshAction::HostDetails(edit_host.id.clone()), cx)
+                })),
+            self.busy,
+            false,
+            cx,
+        ));
+        root = root.child(semantics::button(
+            Button::new("ssh-delete-host")
+                .label(text(cx, "Delete host", "删除主机"))
+                .ghost()
+                .on_click(cx.listener(|this, _, _, cx| {
+                    this.delete_confirmation = true;
+                    cx.notify();
+                })),
+            self.busy,
+            false,
+            cx,
+        ));
+        if self.delete_confirmation {
+            let deleted = host.clone();
+            root = root.child(text(
                 cx,
+                "Delete this saved host? Remote files are retained.",
+                "删除此保存的主机？远程文件将保留。",
             ));
             root = root.child(semantics::button(
-                Button::new("ssh-delete-host")
-                    .label(text(cx, "Delete host", "删除主机"))
+                Button::new("ssh-cancel-delete")
+                    .label(text(cx, "Cancel", "取消"))
                     .ghost()
                     .on_click(cx.listener(|this, _, _, cx| {
-                        this.delete_confirmation = true;
+                        this.delete_confirmation = false;
                         cx.notify();
                     })),
                 self.busy,
                 false,
                 cx,
             ));
-            if self.delete_confirmation {
-                let deleted = host.clone();
-                root = root.child(text(
-                    cx,
-                    "Delete this saved host? Remote files are retained.",
-                    "删除此保存的主机？远程文件将保留。",
-                ));
-                root = root.child(semantics::button(
-                    Button::new("ssh-cancel-delete")
-                        .label(text(cx, "Cancel", "取消"))
-                        .ghost()
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            this.delete_confirmation = false;
-                            cx.notify();
-                        })),
-                    self.busy,
-                    false,
-                    cx,
-                ));
-                root = root.child(semantics::button(
-                    Button::new("ssh-confirm-delete")
-                        .label(text(cx, "Confirm deletion", "确认删除"))
-                        .on_click(cx.listener(move |this, _, _, cx| {
-                            this.start(SshAction::DeleteHost(deleted.id.clone()), cx)
-                        })),
-                    self.busy,
-                    false,
-                    cx,
-                ));
-            }
-            root = root.child(if self.connected {
-                text(cx, "Connected", "已连接")
-            } else {
-                text(cx, "Selected · Not connected", "已选择 · 未连接")
-            });
-            for (id, en, zh, probe) in [
-                ("ssh-probe", "Inspect host key", "检查主机密钥", true),
-                ("ssh-connect", "Connect", "连接", false),
-            ] {
-                let host = host.clone();
-                root = root.child(semantics::button(
-                    Button::new(id)
-                        .label(text(cx, en, zh))
-                        .ghost()
-                        .on_click(cx.listener(move |this, _, _, cx| {
-                            this.start(
-                                if probe {
-                                    SshAction::Probe(host.id.clone())
-                                } else {
-                                    SshAction::Connect(host.id.clone())
-                                },
-                                cx,
-                            )
-                        })),
-                    self.busy,
-                    false,
-                    cx,
-                ));
-            }
-            if let Some(probe) = self.probe.clone() {
+            root = root.child(semantics::button(
+                Button::new("ssh-confirm-delete")
+                    .label(text(cx, "Confirm deletion", "确认删除"))
+                    .on_click(cx.listener(move |this, _, _, cx| {
+                        this.start(SshAction::DeleteHost(deleted.id.clone()), cx)
+                    })),
+                self.busy,
+                false,
+                cx,
+            ));
+        }
+        root
+    }
+    fn render_connection(
+        &self,
+        mut root: gpui_kit::Div,
+        host: &Host,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::Div {
+        root = root.child(if self.connected {
+            text(cx, "Connected", "已连接")
+        } else {
+            text(cx, "Selected · Not connected", "已选择 · 未连接")
+        });
+        for (id, en, zh, probe) in [
+            ("ssh-probe", "Inspect host key", "检查主机密钥", true),
+            ("ssh-connect", "Connect", "连接", false),
+        ] {
+            let host = host.clone();
+            root = root.child(semantics::button(
+                Button::new(id)
+                    .label(text(cx, en, zh))
+                    .ghost()
+                    .on_click(cx.listener(move |this, _, _, cx| {
+                        this.start(
+                            if probe {
+                                SshAction::Probe(host.id.clone())
+                            } else {
+                                SshAction::Connect(host.id.clone())
+                            },
+                            cx,
+                        )
+                    })),
+                self.busy,
+                false,
+                cx,
+            ));
+        }
+        if let Some(probe) = self.probe.clone() {
+            root = root.child(format!(
+                "{}:{} · {}",
+                probe.host, probe.port, probe.fingerprint
+            ));
+            if let Some(stored) = probe.stored_fingerprint {
                 root = root.child(format!(
-                    "{}:{} · {}",
-                    probe.host, probe.port, probe.fingerprint
+                    "{}: {}",
+                    text(cx, "Previously saved", "之前保存"),
+                    stored
                 ));
-                if let Some(stored) = probe.stored_fingerprint {
-                    root = root.child(format!(
-                        "{}: {}",
-                        text(cx, "Previously saved", "之前保存"),
-                        stored
-                    ));
-                }
-                root = root.child(text(
+            }
+            root = root.child(text(
                     cx,
                     "The connection was closed for trust review. Verify this fingerprint through a separate trusted channel before saving it, then reconnect.",
                     "连接已断开以重新检查信任。保存前请通过独立可信渠道核对指纹，然后重新连接。",
                 ));
-                root = root.child(semantics::button(
-                    Button::new("ssh-confirm-trust")
-                        .label(text(cx, "Trust this host key", "信任此主机密钥"))
-                        .on_click(cx.listener(move |this, _, _, cx| {
-                            this.start(SshAction::Confirm(probe.challenge_id.clone()), cx)
-                        })),
-                    self.busy,
-                    false,
-                    cx,
-                ));
-                root = root.child(semantics::button(
-                    Button::new("ssh-reject-trust")
-                        .label(text(cx, "Cancel", "取消"))
-                        .ghost()
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            this.probe = None;
-                            cx.notify();
-                        })),
-                    self.busy,
-                    false,
-                    cx,
-                ));
-            }
-            root=root.child(text(cx,"Remote source files may contain credentials. Load only when you intend to view plaintext. Other pages are Local-only in this release.","远程源文件可能包含凭据。仅在需要查看明文时读取；当前版本的其他页面仅支持本地环境。"));
-            for (index, file) in ConfigFile::ALL.into_iter().enumerate() {
-                root = root.child(semantics::button(
-                    Button::new(SharedString::from(format!("ssh-file-{index}")))
-                        .label(file.path())
-                        .ghost()
-                        .on_click(cx.listener(move |this, _, window, cx| {
-                            this.select_file(file, window, cx)
-                        })),
-                    self.busy,
-                    false,
-                    cx,
-                ));
-            }
-            root = root.child(format!(
-                "{}: {}",
-                text(cx, "Selected file", "选中文件"),
-                self.file.path()
-            ));
-            let draft = self.drafts.get(&(host.id.clone(), self.file.path()));
             root = root.child(semantics::button(
-                Button::new("ssh-read")
-                    .label(text(cx, "Load remote plaintext", "读取远程明文"))
+                Button::new("ssh-confirm-trust")
+                    .label(text(cx, "Trust this host key", "信任此主机密钥"))
+                    .on_click(cx.listener(move |this, _, _, cx| {
+                        this.start(SshAction::Confirm(probe.challenge_id.clone()), cx)
+                    })),
+                self.busy,
+                false,
+                cx,
+            ));
+            root = root.child(semantics::button(
+                Button::new("ssh-reject-trust")
+                    .label(text(cx, "Cancel", "取消"))
                     .ghost()
-                    .on_click(cx.listener(|this, _, _, cx| this.read(cx))),
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.probe = None;
+                        cx.notify();
+                    })),
+                self.busy,
+                false,
+                cx,
+            ));
+        }
+        root
+    }
+    fn render_document(
+        &self,
+        mut root: gpui_kit::Div,
+        host: &Host,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::Div {
+        root=root.child(text(cx,"Remote source files may contain credentials. Load only when you intend to view plaintext. Other pages are Local-only in this release.","远程源文件可能包含凭据。仅在需要查看明文时读取；当前版本的其他页面仅支持本地环境。"));
+        for (index, file) in ConfigFile::ALL.into_iter().enumerate() {
+            root = root.child(semantics::button(
+                Button::new(SharedString::from(format!("ssh-file-{index}")))
+                    .label(file.path())
+                    .ghost()
+                    .on_click(
+                        cx.listener(move |this, _, window, cx| this.select_file(file, window, cx)),
+                    ),
+                self.busy,
+                false,
+                cx,
+            ));
+        }
+        root = root.child(format!(
+            "{}: {}",
+            text(cx, "Selected file", "选中文件"),
+            self.file.path()
+        ));
+        let draft = self.drafts.get(&(host.id.clone(), self.file.path()));
+        root = root.child(semantics::button(
+            Button::new("ssh-read")
+                .label(text(cx, "Load remote plaintext", "读取远程明文"))
+                .ghost()
+                .on_click(cx.listener(|this, _, _, cx| this.read(cx))),
+            self.busy || !self.connected,
+            false,
+            cx,
+        ));
+        if draft.is_some() {
+            root = root.child(
+                Textarea::new(&self.editor)
+                    .accessibility_id("ssh-document")
+                    .aria_label(text(cx, "Remote configuration source", "远程配置源文件"))
+                    .h(px(200.))
+                    .readonly(self.busy),
+            );
+            root = root.child(semantics::button(
+                Button::new("ssh-save")
+                    .label(text(cx, "Save with remote backup", "备份后保存到远程"))
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.save_confirmation = true;
+                        cx.notify();
+                    })),
                 self.busy || !self.connected,
                 false,
                 cx,
             ));
-            if draft.is_some() {
-                root = root.child(
-                    Textarea::new(&self.editor)
-                        .accessibility_id("ssh-document")
-                        .aria_label(text(cx, "Remote configuration source", "远程配置源文件"))
-                        .h(px(200.))
-                        .readonly(self.busy),
-                );
-                root = root.child(semantics::button(
-                    Button::new("ssh-save")
-                        .label(text(cx, "Save with remote backup", "备份后保存到远程"))
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            this.save_confirmation = true;
-                            cx.notify();
-                        })),
-                    self.busy || !self.connected,
-                    false,
-                    cx,
-                ));
-            }
-            if self.read_confirmation {
-                root = root.child(text(
-                    cx,
-                    "Reloading will replace this unsaved draft with remote content.",
-                    "重新读取会用远程内容替换当前未保存草稿。",
-                ));
-                root = root.child(semantics::button(
-                    Button::new("ssh-cancel-reload")
-                        .label(text(cx, "Keep draft", "保留草稿"))
-                        .ghost()
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            this.read_confirmation = false;
-                            cx.notify();
-                        })),
-                    false,
-                    false,
-                    cx,
-                ));
-                root = root.child(semantics::button(
-                    Button::new("ssh-confirm-reload")
-                        .label(text(cx, "Discard draft and reload", "放弃草稿并重新读取"))
-                        .on_click(cx.listener(|this, _, _, cx| this.load_document(cx))),
-                    false,
-                    false,
-                    cx,
-                ));
-            }
-            if self.save_confirmation {
-                root=root.child(text(cx,"Replace this remote file after checking its loaded revision? A remote backup is required before replacement.","检查读取时的版本并替换此远程文件？替换前必须成功创建远程备份。"));
-                root = root.child(semantics::button(
-                    Button::new("ssh-cancel-save")
-                        .label(text(cx, "Cancel", "取消"))
-                        .ghost()
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            this.save_confirmation = false;
-                            cx.notify();
-                        })),
-                    false,
-                    false,
-                    cx,
-                ));
-                root = root.child(semantics::button(
-                    Button::new("ssh-confirm-save")
-                        .label(text(cx, "Confirm remote save", "确认远程保存"))
-                        .on_click(cx.listener(|this, _, _, cx| this.save(cx))),
-                    false,
-                    false,
-                    cx,
-                ));
-            }
+        }
+        root
+    }
+    fn render_document_confirmation(
+        &self,
+        mut root: gpui_kit::Div,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::Div {
+        if self.read_confirmation {
+            root = root.child(text(
+                cx,
+                "Reloading will replace this unsaved draft with remote content.",
+                "重新读取会用远程内容替换当前未保存草稿。",
+            ));
+            root = root.child(semantics::button(
+                Button::new("ssh-cancel-reload")
+                    .label(text(cx, "Keep draft", "保留草稿"))
+                    .ghost()
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.read_confirmation = false;
+                        cx.notify();
+                    })),
+                false,
+                false,
+                cx,
+            ));
+            root = root.child(semantics::button(
+                Button::new("ssh-confirm-reload")
+                    .label(text(cx, "Discard draft and reload", "放弃草稿并重新读取"))
+                    .on_click(cx.listener(|this, _, _, cx| this.load_document(cx))),
+                false,
+                false,
+                cx,
+            ));
+        }
+        if self.save_confirmation {
+            root=root.child(text(cx,"Replace this remote file after checking its loaded revision? A remote backup is required before replacement.","检查读取时的版本并替换此远程文件？替换前必须成功创建远程备份。"));
+            root = root.child(semantics::button(
+                Button::new("ssh-cancel-save")
+                    .label(text(cx, "Cancel", "取消"))
+                    .ghost()
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.save_confirmation = false;
+                        cx.notify();
+                    })),
+                false,
+                false,
+                cx,
+            ));
+            root = root.child(semantics::button(
+                Button::new("ssh-confirm-save")
+                    .label(text(cx, "Confirm remote save", "确认远程保存"))
+                    .on_click(cx.listener(|this, _, _, cx| this.save(cx))),
+                false,
+                false,
+                cx,
+            ));
+        }
+        root
+    }
+}
+
+impl Render for RemoteView {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        if self.host_form_pending
+            && let Some(form) = self.host_form.clone()
+        {
+            self.host_form(form, window, cx);
+        }
+        if self.message == Some("ssh_document_ready") {
+            self.restore(window, cx);
+            self.message = None;
+        }
+        let chinese = crate::locales::is_chinese(cx);
+        let mut root = div()
+            .flex()
+            .flex_col()
+            .gap(px(theme::CONTROL_GAP))
+            .child(text(cx, "SSH environments", "SSH 环境"));
+        root = self.render_host_controls(root, cx);
+        root = self.render_host_form(root, cx);
+        if let Some(host) = &self.selected {
+            root = self.render_selected_controls(root, host, cx);
+            root = self.render_connection(root, host, cx);
+            root = self.render_document(root, host, cx);
+            root = self.render_document_confirmation(root, cx);
         }
         if self.busy {
             root = root.child(semantics::button(
@@ -886,6 +938,7 @@ mod tests {
             .await;
         cx.update_window(handle, |_, window, cx| {
             assert!(view.read(cx).connected);
+            assert!(root.path().join("ssh.locks").is_dir());
             window.render_frame(cx);
             window.click("ssh-read", cx);
         })

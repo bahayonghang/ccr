@@ -41,3 +41,9 @@
 - 实施验证：Python 入口全集 14 tests 退出 0；增加 sidecar 后 package 窄回归 2 项退出 0。独立 check 补齐构建前 sidecar 与 GPUI release 链接逃逸拒绝，最终 package 窄回归 3 项及七文件 `git diff --check` 均退出 0；未修改的 argv 与其余回归复用前序结果。根 `just version-check` 退出 0。
 - 真实 release 构建/打包仍待集中执行，未认领产物或原生验收。不运行 doctor/WSL，不扩建性能测量基础设施，不以 Windows 产物关闭 AC1.5。
 - 沙箱重映射 LOCALAPPDATA 会令 mbx shim 状态与实际 PATH 不一致，校验保持 fail closed。仅验证进程使用 `rustup which cargo` 已定位的真实工具链 bin，Git Bash 目录仍置首；不改全局 PATH、HOME、USERPROFILE 或工具配置。
+
+## 2026-11-06 实际工程与 Windows 子集收据
+
+- `just desktop-build-debug` 与 `just desktop-package` 均 exit=0，未签名便携 ZIP 包含同版本双二进制、许可证和哈希清单；包内 GPUI 已使用显式 fixture 启动，主题/语言/MCP 保存恢复及运行合成任务时确认退出通过。
+- 原生 debug Settings 曾触发主线程栈溢出；按既有 UI 自然区块拆小渲染函数，不增大产品栈。低栈回归及重新构建后的 Windows 13 入口实际打开通过，debug/release 均正常 exit=0。
+- 完整哈希、截图、门禁和边界见父任务 `research/final-core-20261106.md`。这不是 IME、三平台或性能基线收据；macOS AC1.5、性能 not_run/not_comparable 保持，任务不归档。

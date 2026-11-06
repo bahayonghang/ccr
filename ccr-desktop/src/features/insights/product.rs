@@ -20,6 +20,7 @@ use gpui_kit::{
 
 pub(super) fn sessions(
     view: &mut InsightsView,
+    window: &mut gpui_kit::Window,
     cx: &mut Context<InsightsView>,
 ) -> impl IntoElement {
     let running = matches!(view.requests.refresh_status(), RefreshStatus::Running(_));
@@ -36,10 +37,15 @@ pub(super) fn sessions(
         .child(header(view, running, cx))
         .child(status_line(view, cx))
         .child(providers(view, cx));
-    if matches!(view.snapshot.as_deref(), Some(InsightsSnapshot::Detail(_))) {
-        return root.child(transcript(view, cx));
+    if view.session_confirmation_pending() {
+        return root.child(view.render_session_operations(window, cx));
     }
-    root.child(search(view, cx)).child(session_list(view, cx))
+    if matches!(view.snapshot.as_deref(), Some(InsightsSnapshot::Detail(_))) {
+        return root.child(transcript(view, window, cx));
+    }
+    root.child(view.render_session_operations(window, cx))
+        .child(search(view, cx))
+        .child(session_list(view, cx))
 }
 
 fn header(_view: &InsightsView, running: bool, cx: &mut Context<InsightsView>) -> impl IntoElement {
@@ -379,7 +385,12 @@ fn session_list(view: &mut InsightsView, cx: &mut Context<InsightsView>) -> impl
     .into_any_element()
 }
 
-fn transcript(view: &InsightsView, cx: &mut Context<InsightsView>) -> impl IntoElement {
+fn transcript(
+    view: &mut InsightsView,
+    window: &mut gpui_kit::Window,
+    cx: &mut Context<InsightsView>,
+) -> impl IntoElement {
+    let operations = view.render_session_operations(window, cx);
     let Some(InsightsSnapshot::Detail(detail)) = view.snapshot.as_deref() else {
         return div();
     };
@@ -422,6 +433,7 @@ fn transcript(view: &InsightsView, cx: &mut Context<InsightsView>) -> impl IntoE
         .gap(px(theme::CONTROL_GAP))
         .flex_1()
         .min_h_0()
+        .child(operations)
         .child(
             div()
                 .flex()

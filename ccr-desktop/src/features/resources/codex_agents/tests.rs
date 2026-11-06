@@ -153,6 +153,13 @@ async fn native_create_conflict_and_detached_result_preserve_agent_draft(cx: &mu
         );
     })
     .unwrap();
+    cx.update_window(handle, |_, window, cx| {
+        window.click("codex-agents-sources", cx);
+        window.render_frame(cx);
+        assert!(view.read(cx).sources_mode);
+        assert!(window.find("codex-agent-source-add").visible());
+    })
+    .unwrap();
     assert!(std::fs::read_to_string(path).unwrap().contains("External"));
     cx.update_window(handle, |_, window, _| window.remove_window())
         .unwrap();

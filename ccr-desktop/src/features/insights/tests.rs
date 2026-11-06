@@ -29,6 +29,139 @@ fn services(owner: &RuntimeOwner, root: &std::path::Path) -> Services {
         provider_home: root.join("home"),
     })
 }
+
+#[gpui_kit::test]
+async fn import_controls_reject_fixture_then_reattach_and_cancel_retained_work(
+    cx: &mut TestAppContext,
+) {
+    use crate::runtime::insights::import::Status;
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap();
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(root.path().join("llmusage")).unwrap();
+    std::fs::create_dir_all(root.path().join("home")).unwrap();
+    let services = services(&owner, root.path());
+    let requests = InsightsRequests::new(&services);
+    let (handle, view) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| InsightsView::new(services, window, cx))
+        })
+        .unwrap()
+    });
+    cx.update_window(handle, |_, _, cx| {
+        view.update(cx, |this, cx| this.open_product(InsightsPage::Usage, cx))
+    })
+    .unwrap();
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("insights-import", cx);
+        window.render_frame(cx);
+        assert_eq!(
+            view.read(cx).import_error,
+            Some(crate::runtime::insights::import::Failure::FixtureDisabled)
+        );
+    })
+    .unwrap();
+    assert_eq!(requests.import_snapshot().status, Status::Idle);
+    requests.fixture_import(true);
+    cx.update_window(handle, |_, window, cx| window.click("insights-import", cx))
+        .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, _| {
+        requests.import_snapshot().status == Status::Running
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("insights-policies-tab", cx);
+        window.render_frame(cx);
+        window.click("insights-usage", cx);
+        window.render_frame(cx);
+        window.click("insights-import-cancel", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, _| {
+        requests.import_snapshot().status == Status::Cancelled
+    })
+    .await;
+    cx.run_until_parked();
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(window.try_find("insights-import-status").is_some());
+        window.remove_window();
+    })
+    .unwrap();
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+async fn shell_usage_exposes_policy_writes_without_a_usage_database(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap();
+    let executor = owner.handle();
+    let root = tempfile::tempdir().unwrap();
+    let (handle, _) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| crate::shell::Shell::new(services(&owner, root.path()), window, cx))
+        })
+        .unwrap()
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("nav-usage", cx);
+        assert_eq!(
+            window.find("insights-policies-tab").label(),
+            Some("Budget and pricing")
+        );
+        window.click("insights-policies-tab", cx);
+        assert!(window.try_find("insights-policies").is_some());
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, _| {
+        executor.active_tasks() == 0
+    })
+    .await;
+    cx.run_until_parked();
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        let draft = gpui_kit::base::test_support::snapshots(window)
+            .into_iter()
+            .find(|node| node.label() == Some("Budget patch or pricing JSON"))
+            .unwrap()
+            .path()
+            .last()
+            .unwrap()
+            .clone();
+        window.click(draft, cx);
+        window.press("ctrl-a", cx);
+        window.input(r#"{"dailyLimit":17.25}"#, cx);
+        window.click("policy-save-budget", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, _| {
+        executor.active_tasks() == 0
+    })
+    .await;
+    let budget = root.path().join("home/.claude/budget.toml");
+    assert_eq!(
+        ccr_store::BudgetManager::new(budget)
+            .unwrap()
+            .get_config()
+            .daily_limit,
+        Some(17.25)
+    );
+    cx.update_window(handle, |_, window, cx| {
+        window.click("insights-usage", cx);
+        assert!(window.try_find("insights-policies").is_none());
+        assert!(window.try_find("insights-refresh").is_some());
+        window.remove_window();
+    })
+    .unwrap();
+    assert!(!root.path().join("llmusage").exists());
+    assert!(!root.path().join("archive.db").exists());
+    owner.shutdown();
+}
 #[gpui_kit::test]
 async fn rendered_usage_controls_read_fixture_filters_and_keep_exact_costs(
     cx: &mut TestAppContext,

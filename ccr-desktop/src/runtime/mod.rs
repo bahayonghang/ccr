@@ -147,9 +147,12 @@ pub struct Services {
     pub(super) platform_oauth: Arc<ccr_cli::application::codex_oauth::NativeSession>,
     pub(super) command_jobs: Arc<ccr_app::jobs::commands::CommandJobs>,
     pub(super) install: Arc<install::InstallOwner>,
+    pub(super) platform_file_operations: Arc<resources::platform_files::FileOperations>,
     pub(super) codex_agent_operations: Arc<resources::codex_agents::AgentOperations>,
     pub(super) checkin_operations: Arc<checkin::CheckinOperations>,
     pub(super) sync_operations: Arc<sync::SyncOperations>,
+    pub(super) usage_import: Arc<insights::import::ImportOwner>,
+    pub(super) observer: Arc<insights::observer::Owner>,
     pub(super) ssh: Arc<std::sync::OnceLock<Arc<ccr_app::environments::ssh::Workspace>>>,
 }
 
@@ -164,7 +167,10 @@ impl Services {
             command_jobs: Default::default(),
             install: Default::default(),
             sync_operations: Default::default(),
+            usage_import: Default::default(),
+            observer: Default::default(),
             checkin_operations: Default::default(),
+            platform_file_operations: Default::default(),
             codex_agent_operations: Default::default(),
             ssh: Default::default(),
         }

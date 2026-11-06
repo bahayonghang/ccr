@@ -28,11 +28,28 @@ use gpui_kit::{
 };
 use std::sync::Arc;
 
+fn open_authorization_url(raw: &str, cx: &gpui_kit::App) -> bool {
+    let Ok(url) = ccr_app::jobs::process::ProcessGateway::validate_oauth_url(raw) else {
+        return false;
+    };
+    // The shared allowlist also supports callback URLs. This button opens only
+    // the provider authorization endpoint, never the local callback listener.
+    if url.scheme() != "https" {
+        return false;
+    }
+    cx.open_url(url.as_str());
+    true
+}
+
 #[derive(Clone, Copy)]
 enum Decision {
     Source,
     DeleteAccount,
     DeleteProvider,
+    AuthOff,
+    RenameAccount,
+    AddApiKey,
+    ImportAccounts,
 }
 pub struct PlatformsView {
     services: Services,
@@ -51,6 +68,7 @@ pub struct PlatformsView {
     pending_content: Option<String>,
     decision: Option<Decision>,
     decision_name: String,
+    decision_content: String,
     decision_generation: u64,
     decision_entry_pending: bool,
     return_focus: Option<FocusHandle>,
@@ -61,6 +79,7 @@ pub struct PlatformsView {
     oauth_status: Option<NativeStatus>,
     oauth_control_busy: bool,
     oauth_url: Entity<InputState>,
+    quotas: Vec<crate::runtime::platforms::QuotaRow>,
 }
 impl PlatformsView {
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
@@ -81,6 +100,7 @@ impl PlatformsView {
             pending_content: None,
             decision: None,
             decision_name: String::new(),
+            decision_content: String::new(),
             decision_generation: 0,
             decision_entry_pending: false,
             return_focus: None,
@@ -91,6 +111,7 @@ impl PlatformsView {
             oauth_status: None,
             oauth_control_busy: false,
             oauth_url: cx.new(|cx| InputState::new(window, cx)),
+            quotas: Vec::new(),
         }
     }
     pub fn focus_main(&self, window: &mut Window, cx: &mut Context<Self>) {
@@ -120,9 +141,11 @@ impl PlatformsView {
         self.decision = None;
         self.decision_entry_pending = false;
         self.decision_name.clear();
+        self.decision_content.clear();
         self.return_focus = None;
         self.busy = false;
         self.message = None;
+        self.quotas.clear();
         self.name
             .update(cx, |state, cx| state.set_value("", window, cx));
         self.content
@@ -175,7 +198,14 @@ impl PlatformsView {
         };
         self.gate.replace(key.clone());
         self.busy = true;
-        self.message = None;
+        self.message = matches!(&command, Command::Quota { .. }).then(|| {
+            text(
+                cx,
+                "Fetching quota. Credential refresh and history writes remain owned by CCR.",
+                "正在查询配额。凭据刷新和历史写入由 CCR 管理。",
+            )
+            .to_string()
+        });
         match self.services.platform_request(key.clone(), command) {
             Ok(mut subscription) => self.task = Some(cx.spawn(async move |weak, cx| {
                 while let Some(event) = subscription.next().await {
@@ -184,6 +214,10 @@ impl PlatformsView {
                             if !this.gate.accepts(&key) { return; }
                             this.busy = false;
                             match result.as_ref() {
+                                Completion::Success(ResultValue::Quotas(rows)) => {
+                                    this.quotas = rows.clone();
+                                    this.message = rows.is_empty().then(||text(cx,"No saved accounts to query.","没有可查询的已保存账户。").to_string());
+                                }
                                 Completion::Success(ResultValue::Loaded(session)) => {
                                     this.session = Some(session.clone());
                                     if this.source_mode { this.pending_content = Some(session.snapshot.content.clone()); }
@@ -213,6 +247,44 @@ impl PlatformsView {
             })),
             Err(_) => { self.busy = false; self.message = Some("Queue busy or application shutting down. Retry. / 队列繁忙或应用正在退出".into()); }
         }
+        cx.notify();
+    }
+    fn choose_opencode_theme(
+        &mut self,
+        theme: &'static str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.busy
+            || self.source_mode
+            || self.platform != Platform::OpenCode
+            || self.surface != Surface::Tui
+        {
+            return;
+        }
+        let raw = self.content.read(cx).value().to_string();
+        let value = if raw.trim().is_empty() {
+            Ok(serde_json::json!({}))
+        } else {
+            serde_json::from_str::<serde_json::Value>(&raw)
+        };
+        let Ok(serde_json::Value::Object(mut patch)) = value else {
+            self.message = Some(
+                text(
+                    cx,
+                    "Fix the JSON object draft before choosing a theme.",
+                    "请先修正 JSON 对象草稿，再选择主题。",
+                )
+                .into(),
+            );
+            cx.notify();
+            return;
+        };
+        patch.insert("theme".into(), serde_json::Value::String(theme.into()));
+        self.content.update(cx, |input, cx| {
+            input.set_value(serde_json::Value::Object(patch).to_string(), window, cx)
+        });
+        self.message = None;
         cx.notify();
     }
     fn save(&mut self, cx: &mut Context<Self>) {
@@ -301,6 +373,39 @@ impl PlatformsView {
         }
         cx.notify();
     }
+    fn open_oauth_browser(&mut self, cx: &mut Context<Self>) {
+        let current = self.services.platform_oauth_status();
+        let current = current.filter(|status| {
+            self.platform == Platform::Codex
+                && self.surface == Surface::Auth
+                && !self.services.is_fixture()
+                && !status.fixture
+                && status.phase == NativePhase::Waiting
+                && self
+                    .oauth_status
+                    .as_ref()
+                    .is_some_and(|shown| shown.login_id == status.login_id)
+        });
+        self.message = Some(
+            if current
+                .is_some_and(|status| open_authorization_url(status.authorization_url.expose(), cx))
+            {
+                text(
+                    cx,
+                    "Browser open requested. Authorization and account commit are not complete.",
+                    "已请求在浏览器打开授权页。授权与账户提交尚未完成。",
+                )
+            } else {
+                text(
+                    cx,
+                    "Browser open refused: no current live authorization URL is available.",
+                    "无可用的当前真实授权链接，已拒绝打开浏览器。",
+                )
+            }
+            .into(),
+        );
+        cx.notify();
+    }
     fn control_oauth(&mut self, complete: bool, cx: &mut Context<Self>) {
         let Some(status) = &self.oauth_status else {
             return;
@@ -374,6 +479,7 @@ impl PlatformsView {
         }
         self.decision = Some(decision);
         self.decision_name = self.name.read(cx).value().to_string();
+        self.decision_content = self.content.read(cx).value().to_string();
         self.decision_generation += 1;
         self.decision_entry_pending = true;
         self.return_focus = window.focused(cx);
@@ -382,6 +488,7 @@ impl PlatformsView {
     fn dismiss(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.decision = None;
         self.decision_entry_pending = false;
+        self.decision_content.clear();
         if let Some(focus) = self.return_focus.take() {
             window.focus(&focus, cx);
         }
@@ -390,6 +497,7 @@ impl PlatformsView {
     fn confirm(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let decision = self.decision;
         let name = self.decision_name.clone();
+        let content = self.decision_content.clone();
         self.dismiss(window, cx);
         match decision {
             Some(Decision::Source) => {
@@ -417,6 +525,72 @@ impl PlatformsView {
                             session,
                             id: name,
                             patch: None,
+                        },
+                        cx,
+                    );
+                }
+            }
+            Some(
+                Decision::AuthOff
+                | Decision::RenameAccount
+                | Decision::AddApiKey
+                | Decision::ImportAccounts,
+            ) => {
+                let action = match decision {
+                    Some(Decision::AuthOff) => AccountAction::Off,
+                    Some(Decision::RenameAccount) => AccountAction::Rename(content.trim().into()),
+                    Some(Decision::ImportAccounts) => AccountAction::Import(content),
+                    Some(Decision::AddApiKey) => {
+                        let parsed = serde_json::from_str::<serde_json::Value>(&content).ok();
+                        let valid =
+                            parsed
+                                .as_ref()
+                                .and_then(|v| v.as_object())
+                                .is_some_and(|object| {
+                                    object
+                                        .keys()
+                                        .all(|key| matches!(key.as_str(), "api_key" | "base_url"))
+                                        && object
+                                            .get("api_key")
+                                            .and_then(|value| value.as_str())
+                                            .is_some_and(|key| !key.trim().is_empty())
+                                        && object.get("base_url").is_none_or(|value| {
+                                            value.is_null() || value.is_string()
+                                        })
+                                });
+                        if !valid {
+                            self.message = Some(
+                                text(
+                                    cx,
+                                    "Invalid API account JSON. Draft retained.",
+                                    "API 账户 JSON 无效，保留草稿。",
+                                )
+                                .into(),
+                            );
+                            cx.notify();
+                            return;
+                        }
+                        let key = parsed
+                            .as_ref()
+                            .and_then(|v| v.get("api_key"))
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string();
+                        let base_url = parsed
+                            .as_ref()
+                            .and_then(|v| v.get("base_url"))
+                            .and_then(|v| v.as_str())
+                            .map(str::to_string);
+                        AccountAction::ApiKey { key, base_url }
+                    }
+                    _ => return,
+                };
+                if let Some(session) = self.session.clone() {
+                    self.request(
+                        Command::Account {
+                            session,
+                            name,
+                            action,
                         },
                         cx,
                     );
@@ -490,11 +664,17 @@ fn local_projection(session: &PlatformSession, cx: &gpui_kit::App) -> impl IntoE
                 .aria_label(auth.clone())
                 .child(auth),
         );
-    for field in &session.fields {
+    for (index, field) in session.fields.iter().enumerate() {
         let label = format!("{}: {}", field.key, field.value);
         block = block.child(
             div()
-                .id(SharedString::from(format!("platform-field-{}", field.key)))
+                .id(SharedString::from(if session.surface == Surface::Models {
+                    format!("platform-model-{index}")
+                } else if field.key == "oauth_source" {
+                    format!("platform-oauth-source-{index}")
+                } else {
+                    format!("platform-field-{}", field.key)
+                }))
                 .test_support()
                 .h(px(theme::ROW_HEIGHT))
                 .flex()
@@ -553,7 +733,6 @@ fn local_projection(session: &PlatformSession, cx: &gpui_kit::App) -> impl IntoE
 }
 
 fn auth_status(cx: &gpui_kit::App, session: &PlatformSession) -> String {
-    let chinese = is_chinese(cx);
     match session.credential {
         CredentialState::PlatformUnsupported => text(
             cx,
@@ -597,18 +776,6 @@ fn auth_status(cx: &gpui_kit::App, session: &PlatformSession) -> String {
             "运行凭据无效。不声称登录成功。",
         )
         .to_string(),
-        CredentialState::MachineStoreUnchecked => match (session.runtime_auth_present, chinese) {
-            (Some(true), false) => {
-                "Demo runtime auth.json is present. Saved accounts were not read, and file presence is not login.".to_string()
-            }
-            (Some(true), true) => {
-                "演示运行 auth.json 存在。没有读取已保存账户，文件存在也不等于已登录。".to_string()
-            }
-            (_, false) => {
-                "Saved Grok accounts were not read from demo data. Runtime auth.json was not found.".to_string()
-            }
-            (_, true) => "没有从演示数据读取已保存的 Grok 账户。未找到运行 auth.json。".to_string(),
-        },
     }
 }
 
@@ -651,9 +818,7 @@ fn show_saved_accounts(session: &PlatformSession) -> bool {
     if !session.accounts.is_empty() {
         return !matches!(
             session.credential,
-            CredentialState::PlatformUnsupported
-                | CredentialState::Unreadable
-                | CredentialState::MachineStoreUnchecked
+            CredentialState::PlatformUnsupported | CredentialState::Unreadable
         );
     }
     matches!(
@@ -662,6 +827,449 @@ fn show_saved_accounts(session: &PlatformSession) -> bool {
     )
 }
 
+// Bound debug builder temporaries without changing the native thread stack.
+impl PlatformsView {
+    #[inline(never)]
+    fn render_decision(
+        &mut self,
+        mut root: gpui_kit::Stateful<gpui_kit::Div>,
+        cx: &mut Context<Self>,
+        window: &mut Window,
+    ) -> gpui_kit::Stateful<gpui_kit::Div> {
+        if let Some(decision) = self.decision {
+            if std::mem::take(&mut self.decision_entry_pending) {
+                let generation = self.decision_generation;
+                let view = cx.weak_entity();
+                window.on_next_frame(move |window, cx| {
+                    let _ = view.update(cx, |this, cx| {
+                        if this.decision.is_some() && this.decision_generation == generation {
+                            window.focus(&this.confirmation_focus, cx);
+                            window.focus_next(cx);
+                        }
+                    });
+                });
+            }
+            let message = match decision {
+                Decision::Source => text(cx,"Open plaintext source in this scoped editor? It may contain credentials.","打开可能含明文凭据的临时源编辑区？").to_string(),
+                Decision::DeleteAccount => text(cx,"Delete the selected saved account? This does not log out the runtime.","删除所选已保存账户？这不会退出运行账户。").to_string(),
+                Decision::DeleteProvider => text(cx,"Delete the selected provider? Other providers remain unchanged.","删除所选供应商？保留其他供应商。").to_string(),
+                Decision::AuthOff => text(cx,"Clear runtime authentication? Saved accounts and the selected profile stay unchanged. Active profiles or environment credentials may still provide authentication.","清除运行认证？保留已保存账户和当前配置。活动配置或环境凭据仍可能提供认证。").to_string(),
+                Decision::RenameAccount => text(cx,"Rename this saved account to the name entered in the draft? Existing names are never overwritten.","将此保存账户重命名为草稿中的名称？不覆盖已有账户。").to_string(),
+                Decision::AddApiKey => text(cx,"Save the entered API key as a new account? It will not switch the runtime account.","将输入的 API 密钥保存为新账户？不会切换运行账户。").to_string(),
+                Decision::ImportAccounts => text(cx,"Merge the entered authentication JSON? Existing names are preserved and the runtime account stays unchanged.","合并输入的认证 JSON？保留已有名称，不切换运行账户。").to_string(),
+            };
+            root = root
+                .child(
+                    div()
+                        .id("platform-confirmation")
+                        .test_support()
+                        .role(gpui_kit::Role::AlertDialog)
+                        .aria_label(text(
+                            cx,
+                            "Confirm sensitive platform action",
+                            "确认敏感平台操作",
+                        ))
+                        .child(ui_line(cx, &message)),
+                )
+                .child(
+                    div()
+                        .tab_group()
+                        .tab_stop(false)
+                        .flex()
+                        .gap(px(theme::CONTROL_GAP))
+                        .child(semantics::button(
+                            Button::new("platform-decision-cancel")
+                                .label(text(cx, "Cancel", "取消"))
+                                .ghost()
+                                .on_click(
+                                    cx.listener(|this, _, window, cx| this.dismiss(window, cx)),
+                                ),
+                            false,
+                            false,
+                            cx,
+                        ))
+                        .child(semantics::button(
+                            Button::new("platform-decision-confirm")
+                                .label(text(cx, "Confirm", "确认"))
+                                .on_click(
+                                    cx.listener(|this, _, window, cx| this.confirm(window, cx)),
+                                ),
+                            false,
+                            false,
+                            cx,
+                        ))
+                        .focus_trap("platform-decision-trap", &self.confirmation_focus),
+                );
+        }
+
+        root
+    }
+
+    #[inline(never)]
+    fn render_oauth(
+        &mut self,
+        mut root: gpui_kit::Stateful<gpui_kit::Div>,
+        blocked: bool,
+        cx: &mut Context<Self>,
+        oauth_active: bool,
+    ) -> gpui_kit::Stateful<gpui_kit::Div> {
+        if self.platform == Platform::Codex {
+            let phase = self.oauth_status.as_ref().map(|status| status.phase);
+            root = root.child(div().flex().flex_wrap().gap(px(theme::CONTROL_GAP))
+                        .child(semantics::button(Button::new("platform-oauth-start")
+                            .label(text(cx, "Start OAuth", "开始 OAuth"))
+                            .on_click(cx.listener(|this, _, _, cx| this.start_oauth(cx))),
+                            blocked || self.oauth_control_busy, false, cx))
+                        .child(semantics::button(Button::new("platform-oauth-cancel")
+                            .label(text(cx, "Cancel OAuth", "取消 OAuth")).ghost()
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                if this.oauth_status.as_ref().is_some_and(|status| status.phase == NativePhase::CleanupFailed) { this.control_oauth(false, cx); }
+                                else { this.services.platform_oauth_cancel(); this.message = Some("Cancellation requested; waiting for listener/secret cleanup or an already started commit. / 已请求取消，等待清理或已开始的账户提交。".into()); cx.notify(); }
+                            })),
+                            (!oauth_active && phase != Some(NativePhase::CleanupFailed)) || self.oauth_control_busy, false, cx)));
+            if let Some(status) = &self.oauth_status {
+                root = root.child(ui_line(cx, if status.fixture {
+                            "Isolated fixture: external authorization and token exchange disabled. Callback reception never proves authentication. / 隔离 fixture：禁用外部授权与令牌交换，收到回调不等于认证成功。"
+                        } else { "Authorization URL stays in this scoped session. After callback, explicitly complete account commit. / 授权链接仅保留在本会话，收到回调后请显式完成账户提交。" }))
+                        .child(Input::new(&self.oauth_url).readonly(true).aria_label(text(cx, "Scoped OAuth authorization URL", "临时 OAuth 授权链接")))
+                        .child(semantics::button(Button::new("platform-oauth-browser")
+                            .label(text(cx,"Open authorization in browser","在浏览器中打开授权页")).ghost()
+                            .on_click(cx.listener(|this,_,_,cx|this.open_oauth_browser(cx))),
+                            status.fixture || self.services.is_fixture() || phase != Some(NativePhase::Waiting) || self.oauth_control_busy,false,cx))
+                        .child(Textarea::new(&self.content).h(px(72.)).readonly(self.oauth_control_busy)
+                            .aria_label(text(cx, "Paste OAuth callback URL", "粘贴 OAuth 回调地址")))
+                        .child(div().flex().flex_wrap().gap(px(theme::CONTROL_GAP))
+                            .child(semantics::button(Button::new("platform-oauth-callback")
+                                .label(text(cx, "Submit callback", "提交回调")).ghost()
+                                .on_click(cx.listener(|this, _, _, cx| this.control_oauth(false, cx))),
+                                !oauth_active || self.oauth_control_busy || phase != Some(NativePhase::Waiting), false, cx))
+                            .child(semantics::button(Button::new("platform-oauth-complete")
+                                .label(text(cx, "Complete account commit", "完成账户提交"))
+                                .on_click(cx.listener(|this, _, _, cx| this.control_oauth(true, cx))),
+                                !oauth_active || self.oauth_control_busy || phase != Some(NativePhase::Callback), self.oauth_control_busy, cx)));
+            }
+        }
+
+        root
+    }
+
+    #[inline(never)]
+    fn render_accounts(
+        &mut self,
+        mut root: gpui_kit::Stateful<gpui_kit::Div>,
+        blocked: bool,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::Stateful<gpui_kit::Div> {
+        {
+            root = root
+                .child(Input::new(&self.name).aria_label(text(cx, "Account name", "账户名")))
+                .child(
+                    div()
+                        .flex()
+                        .gap(px(theme::CONTROL_GAP))
+                        .child(semantics::button(
+                            Button::new("platform-account-save")
+                                .label(text(cx, "Save runtime as account", "保存运行账户"))
+                                .on_click(cx.listener(|this, _, _, cx| {
+                                    let action = if this.platform == Platform::Grok {
+                                        AccountAction::SaveFrom(
+                                            this.content.read(cx).value().trim().into(),
+                                        )
+                                    } else {
+                                        AccountAction::Save
+                                    };
+                                    this.account(action, cx)
+                                })),
+                            blocked,
+                            false,
+                            cx,
+                        ))
+                        .child(semantics::button(
+                            Button::new("platform-account-switch")
+                                .label(text(cx, "Switch account", "切换账户"))
+                                .ghost()
+                                .on_click(cx.listener(|this, _, _, cx| {
+                                    this.account(AccountAction::Switch, cx)
+                                })),
+                            blocked,
+                            false,
+                            cx,
+                        ))
+                        .child(semantics::button(
+                            Button::new("platform-account-delete")
+                                .label(text(cx, "Delete saved account", "删除保存账户"))
+                                .ghost()
+                                .on_click(cx.listener(|this, _, window, cx| {
+                                    this.decide(Decision::DeleteAccount, window, cx)
+                                })),
+                            blocked,
+                            false,
+                            cx,
+                        )),
+                );
+        }
+
+        if matches!(
+            self.platform,
+            Platform::Claude | Platform::Codex | Platform::Grok
+        ) {
+            root = root.child(semantics::button(
+                Button::new("platform-auth-off")
+                    .label(text(cx, "Clear runtime authentication", "清除运行认证"))
+                    .ghost()
+                    .on_click(cx.listener(|this, _, window, cx| {
+                        this.decide(Decision::AuthOff, window, cx)
+                    })),
+                blocked,
+                false,
+                cx,
+            ));
+        }
+        if self.platform == Platform::Grok {
+            root = root.child(text(cx,"To save a Grok account, enter its official OAuth source scope below (issuer::client). Saved accounts use the existing rotation-preservation policy.","保存 Grok 账户时，在下方输入官方 OAuth 来源范围（issuer::client）。保存账户沿用现有轮换凭据保留策略。"))
+                .child(Textarea::new(&self.content).aria_label(text(cx,"Grok OAuth source scope","Grok OAuth 来源范围")).h(px(80.)).readonly(blocked));
+        }
+        if self.platform == Platform::Codex {
+            root = self.render_codex_accounts(root, blocked, cx);
+        }
+        root
+    }
+
+    #[inline(never)]
+    fn render_codex_accounts(
+        &mut self,
+        mut root: gpui_kit::Stateful<gpui_kit::Div>,
+        blocked: bool,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::Stateful<gpui_kit::Div> {
+        root = root.child(text(cx,"For rename, enter the new name below. For an API account, enter JSON with api_key and optional base_url. Import accepts auth.json or an account export. Credentials are never prefilled.","重命名时在下方输入新名称。API 账户输入含 api_key 和可选 base_url 的 JSON。导入接受 auth.json 或账户导出。不会预填凭据。"))
+            .child(Textarea::new(&self.content).accessibility_id("platform-account-content").aria_label(text(cx,"Account operation draft","账户操作草稿")).h(px(120.)).readonly(blocked));
+        let mut actions = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
+        for (id, en, zh, decision) in [
+            (
+                "platform-account-rename",
+                "Rename account",
+                "重命名账户",
+                Decision::RenameAccount,
+            ),
+            (
+                "platform-account-api-key",
+                "Add API account",
+                "添加 API 账户",
+                Decision::AddApiKey,
+            ),
+            (
+                "platform-account-import",
+                "Import accounts",
+                "导入账户",
+                Decision::ImportAccounts,
+            ),
+        ] {
+            actions = actions.child(semantics::button(
+                Button::new(id).label(text(cx, en, zh)).ghost().on_click(
+                    cx.listener(move |this, _, window, cx| this.decide(decision, window, cx)),
+                ),
+                blocked,
+                false,
+                cx,
+            ));
+        }
+        root = root.child(actions);
+        self.render_quotas(root, blocked, cx)
+    }
+
+    #[inline(never)]
+    fn render_quotas(
+        &mut self,
+        mut root: gpui_kit::Stateful<gpui_kit::Div>,
+        blocked: bool,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::Stateful<gpui_kit::Div> {
+        root = root.child(text(cx,"Quota fetch contacts the provider and may refresh saved credentials and quota history. Demo mode disables this action.","配额查询会连接供应方，并可能刷新已保存凭据和配额历史。演示模式禁用此操作。"));
+        let mut actions = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
+        for (id, en, zh, mode) in [
+            (
+                "platform-quota-selected",
+                "Fetch selected quota",
+                "查询所选配额",
+                0,
+            ),
+            (
+                "platform-quota-current",
+                "Fetch runtime quota",
+                "查询运行账户配额",
+                1,
+            ),
+            (
+                "platform-quota-all",
+                "Fetch all saved quotas",
+                "查询所有保存账户配额",
+                2,
+            ),
+        ] {
+            actions = actions.child(semantics::button(
+                Button::new(id)
+                    .label(text(cx, en, zh))
+                    .ghost()
+                    .on_click(cx.listener(move |this, _, _, cx| {
+                        if let Some(session) = this.session.clone() {
+                            let account = match mode {
+                                0 => Some(this.name.read(cx).value().trim().to_string()),
+                                1 => Some("default".into()),
+                                _ => None,
+                            };
+                            this.request(Command::Quota { session, account }, cx);
+                        }
+                    })),
+                blocked || self.services.is_fixture(),
+                false,
+                cx,
+            ));
+        }
+        root = root.child(actions);
+        for row in &self.quotas {
+            let missing = text(cx, "unavailable", "不可用");
+            let hourly = row
+                .hourly
+                .map(|v| format!("{v}%"))
+                .unwrap_or_else(|| missing.into());
+            let weekly = row
+                .weekly
+                .map(|v| format!("{v}%"))
+                .unwrap_or_else(|| missing.into());
+            let status = if row.failed {
+                text(
+                    cx,
+                    "Quota unavailable; inspect the existing CCR diagnosis.",
+                    "配额不可用，请检查现有 CCR 诊断。",
+                )
+            } else if row.history_warning {
+                text(
+                    cx,
+                    "Quota fetched; history persistence needs attention.",
+                    "配额已取得，历史持久化需要检查。",
+                )
+            } else {
+                text(cx, "Quota fetched", "已取得配额")
+            };
+            root = root.child(
+                div()
+                    .child(format!("{} · {} · {}", row.account, status, row.fetched_at))
+                    .child(format!(
+                        "{}: {hourly} · {}: {weekly}",
+                        text(cx, "Primary window remaining", "主窗口剩余"),
+                        text(cx, "Weekly window remaining", "周窗口剩余")
+                    )),
+            );
+        }
+        root
+    }
+
+    #[inline(never)]
+    fn render_editor(
+        &mut self,
+        mut root: gpui_kit::Stateful<gpui_kit::Div>,
+        blocked: bool,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::Stateful<gpui_kit::Div> {
+        root = root.child(text(cx, "Only entered dirty keys are patched. Unknown siblings survive. Source editing uses the original loaded revision; conflicts retain the draft. JSON null clearing is unsupported here.", "仅提交输入的变更字段，保留未知字段。源编辑使用原始读取版本，冲突保留草稿。此处 JSON 不支持 null 清除。"));
+        if self.platform == Platform::Codex && self.surface == Surface::Providers {
+            root = root.child(text(cx,"Provider library: enter an ID, then JSON with name, base_url, optional website_url/api_key_url and api_key/api_key_name. Omitted or blank keys preserve saved credentials. This library does not switch the active runtime provider.","供应商库：输入标识及包含 name、base_url 的 JSON，可选 website_url/api_key_url 和 api_key/api_key_name。省略或留空密钥会保留已保存凭据。此库不会切换运行供应商。"));
+        }
+        if self.surface == Surface::Providers {
+            root = root
+                .child(Input::new(&self.name).aria_label(text(cx, "Provider ID", "供应商标识")))
+                .child(semantics::button(
+                    Button::new("platform-provider-delete")
+                        .label(text(cx, "Delete provider", "删除供应商"))
+                        .ghost()
+                        .on_click(cx.listener(|this, _, window, cx| {
+                            this.decide(Decision::DeleteProvider, window, cx)
+                        })),
+                    blocked,
+                    false,
+                    cx,
+                ));
+        } else if !self.source_mode {
+            root =
+                root.child(semantics::button(
+                    Button::new("platform-source-open")
+                        .label(text(
+                            cx,
+                            "Open scoped plaintext source",
+                            "打开临时明文源文件",
+                        ))
+                        .ghost()
+                        .on_click(cx.listener(|this, _, window, cx| {
+                            this.decide(Decision::Source, window, cx)
+                        })),
+                    blocked,
+                    false,
+                    cx,
+                ));
+        }
+        if self.platform == Platform::OpenCode && self.surface == Surface::Tui && !self.source_mode
+        {
+            let mut catalog = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
+            for (index, &(id, name, _)) in ccr_app::resources::platform_files::opencode::THEMES
+                .iter()
+                .enumerate()
+            {
+                catalog = catalog.child(semantics::button(
+                    Button::new(("opencode-theme", index))
+                        .label(name)
+                        .ghost()
+                        .on_click(cx.listener(move |this, _, window, cx| {
+                            this.choose_opencode_theme(id, window, cx)
+                        })),
+                    blocked,
+                    false,
+                    cx,
+                ));
+            }
+            root = root.child(
+                div()
+                    .child(text(
+                        cx,
+                        "OpenCode TUI theme — choose, then save the draft",
+                        "OpenCode TUI 主题：选择后保存草稿",
+                    ))
+                    .child(catalog),
+            );
+        }
+        let can_patch = self.platform != Platform::Grok || self.source_mode;
+        root = root
+            .child(
+                Textarea::new(&self.content)
+                    .accessibility_id("platform-content")
+                    .aria_label(if self.source_mode {
+                        text(cx, "Plaintext settings source", "明文设置源文件")
+                    } else {
+                        text(cx, "Dirty settings JSON object", "变更设置 JSON 对象")
+                    })
+                    .h(px(180.))
+                    .readonly(blocked || !can_patch),
+            )
+            .child(semantics::button(
+                Button::new("platform-save")
+                    .label(if self.source_mode {
+                        text(
+                            cx,
+                            "Save source with original revision",
+                            "按原始版本保存源文件",
+                        )
+                    } else {
+                        text(cx, "Save dirty patch", "保存变更字段")
+                    })
+                    .on_click(cx.listener(|this, _, _, cx| this.save(cx))),
+                blocked || !can_patch,
+                self.busy,
+                cx,
+            ));
+
+        root
+    }
+}
 impl Render for PlatformsView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         if let Some(content) = self.pending_content.take() {
@@ -760,6 +1368,13 @@ impl Render for PlatformsView {
                 descriptor.is_some_and(|value| value.providers),
             ),
             (
+                "platform-models",
+                Surface::Models,
+                "Models",
+                "模型目录",
+                self.platform == Platform::Codex,
+            ),
+            (
                 "platform-tui",
                 Surface::Tui,
                 "TUI",
@@ -796,63 +1411,7 @@ impl Render for PlatformsView {
             ));
         }
         root = root.child(surfaces);
-        if let Some(decision) = self.decision {
-            if std::mem::take(&mut self.decision_entry_pending) {
-                let generation = self.decision_generation;
-                let view = cx.weak_entity();
-                window.on_next_frame(move |window, cx| {
-                    let _ = view.update(cx, |this, cx| {
-                        if this.decision.is_some() && this.decision_generation == generation {
-                            window.focus(&this.confirmation_focus, cx);
-                            window.focus_next(cx);
-                        }
-                    });
-                });
-            }
-            let message = match decision { Decision::Source => "Open plaintext source in this scoped editor? It may contain credentials. Do not include it in logs or screenshots. / 打开可能含明文凭据的临时源编辑区？请勿记录或截图。".to_owned(), Decision::DeleteAccount => format!("Delete saved account {}? This removes the saved snapshot, not an official logout. / 删除保存账户，不等于官方退出登录。", self.decision_name), Decision::DeleteProvider => format!("Delete OpenCode provider {}? Other providers remain unchanged. / 删除此供应商，保留其他供应商。", self.decision_name) };
-            root = root
-                .child(
-                    div()
-                        .id("platform-confirmation")
-                        .test_support()
-                        .role(gpui_kit::Role::AlertDialog)
-                        .aria_label(text(
-                            cx,
-                            "Confirm sensitive platform action",
-                            "确认敏感平台操作",
-                        ))
-                        .child(ui_line(cx, &message)),
-                )
-                .child(
-                    div()
-                        .tab_group()
-                        .tab_stop(false)
-                        .flex()
-                        .gap(px(theme::CONTROL_GAP))
-                        .child(semantics::button(
-                            Button::new("platform-decision-cancel")
-                                .label(text(cx, "Cancel", "取消"))
-                                .ghost()
-                                .on_click(
-                                    cx.listener(|this, _, window, cx| this.dismiss(window, cx)),
-                                ),
-                            false,
-                            false,
-                            cx,
-                        ))
-                        .child(semantics::button(
-                            Button::new("platform-decision-confirm")
-                                .label(text(cx, "Confirm", "确认"))
-                                .on_click(
-                                    cx.listener(|this, _, window, cx| this.confirm(window, cx)),
-                                ),
-                            false,
-                            false,
-                            cx,
-                        ))
-                        .focus_trap("platform-decision-trap", &self.confirmation_focus),
-                );
-        }
+        root = self.render_decision(root, cx, window);
         root = root.child(
             div()
                 .flex()
@@ -883,149 +1442,12 @@ impl Render for PlatformsView {
         if let Some(session) = &self.session {
             root = root.child(local_projection(session, cx));
             if self.surface == Surface::Auth {
-                if self.platform == Platform::Codex {
-                    let phase = self.oauth_status.as_ref().map(|status| status.phase);
-                    root = root.child(div().flex().flex_wrap().gap(px(theme::CONTROL_GAP))
-                        .child(semantics::button(Button::new("platform-oauth-start")
-                            .label(text(cx, "Start OAuth", "开始 OAuth"))
-                            .on_click(cx.listener(|this, _, _, cx| this.start_oauth(cx))),
-                            blocked || self.oauth_control_busy, false, cx))
-                        .child(semantics::button(Button::new("platform-oauth-cancel")
-                            .label(text(cx, "Cancel OAuth", "取消 OAuth")).ghost()
-                            .on_click(cx.listener(|this, _, _, cx| {
-                                if this.oauth_status.as_ref().is_some_and(|status| status.phase == NativePhase::CleanupFailed) { this.control_oauth(false, cx); }
-                                else { this.services.platform_oauth_cancel(); this.message = Some("Cancellation requested; waiting for listener/secret cleanup or an already started commit. / 已请求取消，等待清理或已开始的账户提交。".into()); cx.notify(); }
-                            })),
-                            (!oauth_active && phase != Some(NativePhase::CleanupFailed)) || self.oauth_control_busy, false, cx)));
-                    if let Some(status) = &self.oauth_status {
-                        root = root.child(ui_line(cx, if status.fixture {
-                            "Isolated fixture: external authorization and token exchange disabled. Callback reception never proves authentication. / 隔离 fixture：禁用外部授权与令牌交换，收到回调不等于认证成功。"
-                        } else { "Authorization URL stays in this scoped session. After callback, explicitly complete account commit. / 授权链接仅保留在本会话，收到回调后请显式完成账户提交。" }))
-                        .child(Input::new(&self.oauth_url).readonly(true).aria_label(text(cx, "Scoped OAuth authorization URL", "临时 OAuth 授权链接")))
-                        .child(Textarea::new(&self.content).h(px(72.)).readonly(self.oauth_control_busy)
-                            .aria_label(text(cx, "Paste OAuth callback URL", "粘贴 OAuth 回调地址")))
-                        .child(div().flex().flex_wrap().gap(px(theme::CONTROL_GAP))
-                            .child(semantics::button(Button::new("platform-oauth-callback")
-                                .label(text(cx, "Submit callback", "提交回调")).ghost()
-                                .on_click(cx.listener(|this, _, _, cx| this.control_oauth(false, cx))),
-                                !oauth_active || self.oauth_control_busy || phase != Some(NativePhase::Waiting), false, cx))
-                            .child(semantics::button(Button::new("platform-oauth-complete")
-                                .label(text(cx, "Complete account commit", "完成账户提交"))
-                                .on_click(cx.listener(|this, _, _, cx| this.control_oauth(true, cx))),
-                                !oauth_active || self.oauth_control_busy || phase != Some(NativePhase::Callback), self.oauth_control_busy, cx)));
-                    }
-                }
-                if self.platform != Platform::Grok {
-                    root = root
-                        .child(Input::new(&self.name).aria_label(text(
-                            cx,
-                            "Account name",
-                            "账户名",
-                        )))
-                        .child(
-                            div()
-                                .flex()
-                                .gap(px(theme::CONTROL_GAP))
-                                .child(semantics::button(
-                                    Button::new("platform-account-save")
-                                        .label(text(cx, "Save runtime as account", "保存运行账户"))
-                                        .on_click(cx.listener(|this, _, _, cx| {
-                                            this.account(AccountAction::Save, cx)
-                                        })),
-                                    blocked,
-                                    false,
-                                    cx,
-                                ))
-                                .child(semantics::button(
-                                    Button::new("platform-account-switch")
-                                        .label(text(cx, "Switch account", "切换账户"))
-                                        .ghost()
-                                        .on_click(cx.listener(|this, _, _, cx| {
-                                            this.account(AccountAction::Switch, cx)
-                                        })),
-                                    blocked,
-                                    false,
-                                    cx,
-                                ))
-                                .child(semantics::button(
-                                    Button::new("platform-account-delete")
-                                        .label(text(cx, "Delete saved account", "删除保存账户"))
-                                        .ghost()
-                                        .on_click(cx.listener(|this, _, window, cx| {
-                                            this.decide(Decision::DeleteAccount, window, cx)
-                                        })),
-                                    blocked,
-                                    false,
-                                    cx,
-                                )),
-                        );
-                }
+                root = self.render_oauth(root, blocked, cx, oauth_active);
+                root = self.render_accounts(root, blocked, cx);
+            } else if self.surface == Surface::Models {
+                root = root.child(text(cx,"Local built-in and custom model catalog. This list does not establish provider availability.","本地内置与自定义模型目录。此列表不代表供应方可用性。"));
             } else if self.platform != Platform::Gemini {
-                root = root.child(text(cx, "Only entered dirty keys are patched. Unknown siblings survive. Source editing uses the original loaded revision; conflicts retain the draft. JSON null clearing is unsupported here.", "仅提交输入的变更字段，保留未知字段。源编辑使用原始读取版本，冲突保留草稿。此处 JSON 不支持 null 清除。"));
-                if self.surface == Surface::Providers {
-                    root = root
-                        .child(Input::new(&self.name).aria_label(text(
-                            cx,
-                            "Provider ID",
-                            "供应商标识",
-                        )))
-                        .child(semantics::button(
-                            Button::new("platform-provider-delete")
-                                .label(text(cx, "Delete provider", "删除供应商"))
-                                .ghost()
-                                .on_click(cx.listener(|this, _, window, cx| {
-                                    this.decide(Decision::DeleteProvider, window, cx)
-                                })),
-                            blocked,
-                            false,
-                            cx,
-                        ));
-                } else if !self.source_mode {
-                    root = root.child(semantics::button(
-                        Button::new("platform-source-open")
-                            .label(text(
-                                cx,
-                                "Open scoped plaintext source",
-                                "打开临时明文源文件",
-                            ))
-                            .ghost()
-                            .on_click(cx.listener(|this, _, window, cx| {
-                                this.decide(Decision::Source, window, cx)
-                            })),
-                        blocked,
-                        false,
-                        cx,
-                    ));
-                }
-                let can_patch = self.platform != Platform::Grok || self.source_mode;
-                root = root
-                    .child(
-                        Textarea::new(&self.content)
-                            .accessibility_id("platform-content")
-                            .aria_label(if self.source_mode {
-                                text(cx, "Plaintext settings source", "明文设置源文件")
-                            } else {
-                                text(cx, "Dirty settings JSON object", "变更设置 JSON 对象")
-                            })
-                            .h(px(180.))
-                            .readonly(blocked || !can_patch),
-                    )
-                    .child(semantics::button(
-                        Button::new("platform-save")
-                            .label(if self.source_mode {
-                                text(
-                                    cx,
-                                    "Save source with original revision",
-                                    "按原始版本保存源文件",
-                                )
-                            } else {
-                                text(cx, "Save dirty patch", "保存变更字段")
-                            })
-                            .on_click(cx.listener(|this, _, _, cx| this.save(cx))),
-                        blocked || !can_patch,
-                        self.busy,
-                        cx,
-                    ));
+                root = self.render_editor(root, blocked, cx);
             }
         } else if self.busy {
             root = root.child(text(

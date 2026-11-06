@@ -123,13 +123,13 @@ fixture 窗口明确标注“演示数据”，慢读取额外标注“受控慢
 just desktop-dev --fixture-profiles <absolute-fixture>/profiles.toml --fixture-registry <absolute-fixture>/config.toml --insights-usage-root <absolute-usage-root> --insights-archive-db <absolute-archive.db> --insights-provider-home <absolute-provider-home>
 ```
 
-缺少用量数据库时显示明确错误，不伪造零值或自动同步。读取与会话正文均经有界后台运行时；离开页面清除临时正文并拒绝过期结果。此入口不执行真实 quota、登录或同步请求。
+缺少用量数据库时显示明确错误，不伪造零值或自动同步。读取与会话正文均经有界后台运行时；离开页面清除临时正文并拒绝过期结果。打开页面不自动启动用量导入、配额刷新或登录；这些操作需要明确触发，fixture 仍拒绝真实主机导入和外部服务。
 
 原生观测 fixture 的三个路径须原样使用生成的 `fixture.json` 字段；不要重新拼接或移除 Windows `\\?\` 前缀，否则会改变来源身份。
 
 指令文件入口已接入四个平台的固定用户文件，使用原始修订令牌保存、冲突保留草稿、离页清空临时明文。MCP 管理支持 Claude 用户/项目、Codex 和 Antigravity 的新增、编辑和删除，保存固定来源与原始版本，省略的凭据不被覆盖。OpenCode MCP 使用平台源文件编辑器；旧 Claude settings MCP 只读。
 
-同步页支持 WebDAV 设置、文件夹管理及连接测试、推送和拉取，复用现有同步服务和备份事务。普通文件夹按既有明文合同传输，界面提示内容范围；固定敏感资产已接通现有 v2 加密与备份，v1 明文仅在显式确认后导入本地。签到页提供服务商/账户管理、签到、余额和记录，凭据通过现有加密 owner 保存。任务离页后继续由应用持有，返回恢复结果；浏览器 WAF 登录与 CDK 入口仍未支持。
+同步页支持 WebDAV 设置、文件夹管理及连接测试、推送和拉取，复用现有同步服务和备份事务。普通文件夹按既有明文合同传输，界面提示内容范围；固定敏感资产已接通现有 v2 加密与备份，v1 明文仅在显式确认后导入本地。签到页提供服务商/账户管理、签到、余额和记录，凭据通过现有加密 owner 保存。任务离页后继续由应用持有，返回恢复结果；已接显式 CDK 充值、手工 WAF 管理/校验、记录筛选与账户月度数据；内嵌浏览器 WAF 登录仍受 WebView 依赖限制。
 
 命令工作台支持前台/后台执行、help、请求取消和自动恢复观察；安装入口复用现有领域服务。fixture 模式只运行标明的合成子进程，默认拒绝同步、签到与 SSH 的真实网络。上述源码与 fixture 验证不能替代真实 sidecar、外部服务或原生操作验收。
 
@@ -144,3 +144,9 @@ just desktop-dev --fixture-profiles <absolute-fixture>/profiles.toml --fixture-r
 按钮保留 Kit 自身语义节点/动作，应用在同一节点补 disabled/busy 标记；禁用文字仍使用可读的语义色。只对实际可编辑输入使用原编辑器，未复制或改写 IME。Kit observation snapshot 在 synthetic callback 前采样，public debug tree 不导出 disabled/busy，均不能代替原生 UIA/screen-reader 状态验证。
 
 资源页提供 Claude 文件与 settings 集合管理、Codex 本地与来源 agents，以及填充指令草稿的模板。MCP 支持单项预设和兼容源复制，秘密保留在后端会话中。窗口偏好在同一窗口恢复、观察并于关闭前保存；系统直接退出与托盘限制不因此解除。
+
+OpenCode 与 Antigravity 资源使用原有全局/项目目录；插件/扩展只提供既有只读清单。Usage 页可直接进入预算与定价，无须先建立用量数据库。签到导入预检当前密钥与原版本，配置导出不等于包含历史和额外账户设置的全库备份。
+
+Usage 提供已安装 llmusage CLI 的显式导入、进度和取消；离页后任务继续由应用持有。Claude 观测与订阅设置使用独立 CCR 主库，打开页面不建库，首次明确保存可初始化；订阅设置不依赖用量数据库。Sessions 提供 Codex Markdown 导出预览/复制、克隆与可恢复回收；回收使用现有 CLI 的 `ccr codex sessions restore` 恢复机制。
+
+平台页补充认证关闭、Codex 账户重命名/API key/导入、模型供应商库、模型目录与配额查询。Grok 关闭认证保留原服务的轮换凭据保存语义；配额查询可能刷新凭据并保存观测结果，离页不冒充取消。同步页可解绑 WebDAV、批量传输已启用文件夹并分别显示结果和下载备份；保护备份可能仍保存旧凭据。这些源码与 fixture/headless 覆盖不等于新增功能已取得原生或真实外部服务验收。

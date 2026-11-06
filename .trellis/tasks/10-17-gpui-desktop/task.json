@@ -45,6 +45,21 @@
     "previous_execution_state": "paused_by_user",
     "resumed_at": "2026-10-27T07:51:27.288701+00:00",
     "last_checkpoint": {
+      "date": "2026-11-06",
+      "report": ".trellis/tasks/10-17-gpui-desktop/research/resume-summary-20261106.md",
+      "acceptance": "open",
+      "baseline_commit": "e8329cd86df7e7aca48c7f5b7d2d2e6c11f87e6c",
+      "gates": {
+        "desktop_fmt_check": 0,
+        "desktop_lint": 0,
+        "desktop_test": 0,
+        "just_ci": 0,
+        "desktop_package": 0
+      },
+      "native_acceptance": "not_run_for_new_operations",
+      "computer_use_calls": 0
+    },
+    "checkpoint_before_resume_20261106": {
       "date": "2026-11-05",
       "report": ".trellis/tasks/10-17-gpui-desktop/research/open-acceptance-20261105.md",
       "acceptance": "open",

@@ -1,6 +1,7 @@
 //! Existing fixed instruction files, with a scoped plaintext edit session.
 pub mod claude_files;
 pub mod codex_agents;
+pub mod platform_files;
 pub mod templates;
 use crate::{
     locales::{service_error, text},
@@ -32,6 +33,8 @@ enum Decision {
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum ResourceSurface {
+    OpenCode,
+    Antigravity,
     Instructions,
     Claude,
     Codex,
@@ -58,6 +61,10 @@ pub struct ResourcesView {
     decision_return: Option<FocusHandle>,
     editor_return: Option<FocusHandle>,
     surface: ResourceSurface,
+    opencode: Entity<platform_files::PlatformFilesView>,
+    antigravity: Entity<platform_files::PlatformFilesView>,
+    _opencode_observation: Subscription,
+    _antigravity_observation: Subscription,
     claude: Entity<claude_files::ClaudeResourcesView>,
     codex: Entity<codex_agents::CodexAgentsView>,
     _claude_observation: Subscription,
@@ -69,6 +76,24 @@ pub struct ResourcesView {
 }
 impl ResourcesView {
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
+        let opencode = cx.new(|cx| {
+            platform_files::PlatformFilesView::new(
+                services.clone(),
+                crate::runtime::resources::platform_files::Kind::OpenCodeAgent,
+                window,
+                cx,
+            )
+        });
+        let antigravity = cx.new(|cx| {
+            platform_files::PlatformFilesView::new(
+                services.clone(),
+                crate::runtime::resources::platform_files::Kind::AntigravityCommand,
+                window,
+                cx,
+            )
+        });
+        let opencode_observation = cx.observe(&opencode, |_, _, cx| cx.notify());
+        let antigravity_observation = cx.observe(&antigravity, |_, _, cx| cx.notify());
         let claude =
             cx.new(|cx| claude_files::ClaudeResourcesView::new(services.clone(), window, cx));
         let codex = cx.new(|cx| codex_agents::CodexAgentsView::new(services.clone(), window, cx));
@@ -105,6 +130,10 @@ impl ResourcesView {
             decision_return: None,
             editor_return: None,
             surface: ResourceSurface::Instructions,
+            opencode,
+            antigravity,
+            _opencode_observation: opencode_observation,
+            _antigravity_observation: antigravity_observation,
             claude,
             codex,
             _claude_observation: claude_observation,
@@ -118,6 +147,16 @@ impl ResourcesView {
     pub fn focus_main(&self, window: &mut Window, cx: &mut Context<Self>) {
         if self.templates_open {
             self.templates
+                .update(cx, |view, cx| view.focus_main(window, cx));
+            return;
+        }
+        if self.surface == ResourceSurface::OpenCode {
+            self.opencode
+                .update(cx, |view, cx| view.focus_main(window, cx));
+            return;
+        }
+        if self.surface == ResourceSurface::Antigravity {
+            self.antigravity
                 .update(cx, |view, cx| view.focus_main(window, cx));
             return;
         }
@@ -140,6 +179,14 @@ impl ResourcesView {
     }
     pub fn load(&mut self, cx: &mut Context<Self>) {
         match self.surface {
+            ResourceSurface::OpenCode => {
+                self.opencode.update(cx, |view, cx| view.load(cx));
+                return;
+            }
+            ResourceSurface::Antigravity => {
+                self.antigravity.update(cx, |view, cx| view.load(cx));
+                return;
+            }
             ResourceSurface::Claude => {
                 self.claude.update(cx, |view, cx| view.load(cx));
                 return;
@@ -166,6 +213,9 @@ impl ResourcesView {
         self.templates.update(cx, |view, cx| view.leave(window, cx));
         self.templates_open = false;
         self.template_cleanup = false;
+        self.opencode.update(cx, |view, cx| view.leave(window, cx));
+        self.antigravity
+            .update(cx, |view, cx| view.leave(window, cx));
         self.claude.update(cx, |view, cx| view.leave(window, cx));
         self.codex.update(cx, |view, cx| view.suspend(window, cx));
         self.surface = ResourceSurface::Instructions;
@@ -191,6 +241,8 @@ impl ResourcesView {
             || self.session.is_some()
             || self.decision.is_some()
             || match self.surface {
+                ResourceSurface::OpenCode => self.opencode.read(cx).blocks_switch(),
+                ResourceSurface::Antigravity => self.antigravity.read(cx).blocks_switch(),
                 ResourceSurface::Claude => self.claude.read(cx).blocks_switch(),
                 ResourceSurface::Codex => self.codex.read(cx).blocks_switch(),
                 ResourceSurface::Instructions => false,
@@ -393,6 +445,16 @@ impl Render for ResourcesView {
                 cx,
             ));
         let extension = match self.platform {
+            Platform::OpenCode => Some((
+                ResourceSurface::OpenCode,
+                "resource-opencode",
+                text(cx, "Agents and commands", "代理与命令"),
+            )),
+            Platform::Gemini => Some((
+                ResourceSurface::Antigravity,
+                "resource-antigravity",
+                text(cx, "Commands and extensions", "命令与扩展"),
+            )),
             Platform::Claude => Some((
                 ResourceSurface::Claude,
                 "resource-claude",
@@ -418,6 +480,12 @@ impl Render for ResourcesView {
         }
         root = root.child(surfaces);
         match self.surface {
+            ResourceSurface::OpenCode => {
+                return root.child(div().flex_1().min_h_0().child(self.opencode.clone()));
+            }
+            ResourceSurface::Antigravity => {
+                return root.child(div().flex_1().min_h_0().child(self.antigravity.clone()));
+            }
             ResourceSurface::Claude => {
                 return root.child(div().flex_1().min_h_0().child(self.claude.clone()));
             }

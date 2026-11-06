@@ -1,6 +1,7 @@
 //! Fixed resource targets on captured roots, using the shared guarded writer.
 pub mod claude_files;
 pub mod codex_agents;
+pub mod platform_files;
 pub mod templates;
 use super::{ConfigSource, Services};
 use ccr_app::{

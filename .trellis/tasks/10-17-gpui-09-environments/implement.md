@@ -58,3 +58,16 @@
 - P2 由 01 承接可修的开发参数/本地打包入口；父任务对照当前业务源码修补只读页面缺失的操作闭环，不重开已归档任务做纯审计。
 - SSH 产品代码允许实施，但验证不连接真实 SSH、不打开远程套接字、不运行 keyscan、不读用户密码/身份文件。WSL/doctor/发行版探测完全不运行；fixture 使用显式隔离路径，不改全局 HOME/USERPROFILE。
 - 每批 implement → 独立 check → 必要规范同步 → 本地 `git commit -F`；只提交本轮文件，不 push/amend。最窄回归后集中 desktop-fmt-check/lint/test，最终一次 `just ci`（Git Bash 路径前置）。不以 headless 通过替代原生证据；未满足的 AC 和任务状态保持开放。
+
+## 2026-11-06 已实现与验收边界
+
+- 0404fa2a 接通真实产品 Local/SSH 来源、主机记录/指纹挑战/会话连接与固定平台配置读写；显式 Local-only 拒绝避免错误读写。合成 transport 验证通过，未连接真实 SSH 或读取身份文件。
+- e8329cd8 接通同一窗口 bounds/maximized 恢复与保存；最终退出保存受同一运行时生命周期管理。默认关闭确认、可配置直接退出、设置/菜单/快捷键入口一致；不会把系统直接 App::quit 说成可 veto。
+- 窗口状态、运行任务与环境隔离 fixture/headless 通过；真实 SSH、三平台 shell、托盘/恢复、玻璃材质和 DPI 矩阵没有因此通过。WSL 与 DPI 按用户延期，托盘/系统直接退出受现有依赖公开能力限制。
+- 当前没有实际 watcher，不新增假 watcher 或假清理收据。9.1–9.6 继续开放；后续原生收据仅标记实际覆盖的操作。
+
+### Windows 原生子集（2026-11-06）
+
+- 显式 fixture 原生窗口实际覆盖全部 13 入口、预算/MCP/OpenCode 写入、关闭取消保留 MCP 草稿与原确认、Ctrl+Q 统一确认与正常退出。
+- 便携 release 重启恢复 dark/zh 与 MCP 保存内容；合成后台任务运行时确认退出，应用 exit=0，stderr 为空，无本轮父子 GPUI 进程残留。没有执行真实 CCR 业务命令。
+- 见父任务 `research/final-core-20261106.md` 的哈希、截图和日志。真实 SSH 环境切换/读写及三平台 shell 尚无收据，不能由以上 Windows Local 子集关闭整项 9.1–9.6。

@@ -85,3 +85,24 @@ redirect 合并到目标功能而保留可发现性；布局根由 shell 所有�
 Codex source-agent 安装/同步归资源任务；quota/session/usage 归 Insights；tray snapshot 归桌面集成。
 ui_state 收藏/最近项归 shell；events 订阅机制归共享 runtime；update_ccr 与 WAF 处理归 jobs。
 预算、定价、converter、output styles、statusline、builtin/system prompts 不能因没有显著导航而被丢弃。
+
+### 最后业务接合批次（2026-11-06，待最终收据）
+
+- OpenCode/Antigravity 的资源页面复用真实文件格式与目录，不用 raw settings 冒领动态文件。仅有 Tauri 列表能力的插件/扩展保持只读。
+- 签到配置导出对应既有 `export_checkin_data`/`export_checkin_config` 同一 schema；它不是包含额外账户配置与历史的全库备份。统计导出单独核对，浏览器 WAF 登录不能由手工 cookie 管理替代验收。
+- 预算/定价需要从 Shell 的 Usage 入口实际可达，且不能要求先存在用量数据库；已存在的独立组件测试不代表产品接通。
+- Claude statusline/hooks 与 settings 源编辑器归并，路径及类型验证必须与共享 owner 一致；只保留 typed 验证，原 JSON 的未知字段继续保留。
+
+本节是实际接合范围说明，最终状态由本批代码检查和原生收据更新，不勾选整域完成。
+
+### 中断续作接合（2026-11-06）
+
+`resume-summary-20261106.md` 汇总引用聊天的实际起点与本轮收尾；JSON 本次更新 33 项明确核对的命令映射，状态仍为 `implemented_partial_pending_native_acceptance`，保留旧记录及未核对项，不用数量推导完成比例。
+
+- 平台：认证关闭、Codex 账户与模型供应商库、原有模型目录和显式配额查询。Grok 使用捕获根目录及保留轮换凭据的原服务；配额并非无副作用纯读取。
+- 同步：canonical/legacy 原版本绑定的 WebDAV 解绑，以及已启用文件夹的批量推拉/逐项结果。
+- 用量：已安装 CLI 的显式本地导入、应用持有的状态与取消；自定义 provider home 拒绝，按提供方细分的旧导入命令归并为默认本地全量操作，不宣称所有参数逐项等价。
+- 会话：对已索引的 Codex 原来源导出 Markdown/复制、克隆、可恢复回收；回收有现有 CLI 恢复途径，不冒领导出任意文件保存或旧永久删除合同。
+- 观测：Claude 用量/工具统计与订阅管理，主库与 archive 分开；工具采集接显式导入，共享既有 JSONL/repository owner，不新增 watcher。
+
+新增操作的 fixture/headless 收据分见 `resume-{platforms,sync,usage,sessions,observer}-20261106.md`。旧 Windows 原生候选不覆盖这些新操作。稳定部分及最终完整检查见 `resume-check-20261106.md`；集中门禁与提交结果以 summary 为准。父任务、01、09 及原生/跨平台/性能归档硬门保持开放。

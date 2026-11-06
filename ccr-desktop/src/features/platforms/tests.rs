@@ -12,6 +12,107 @@ use gpui_kit::{
     WindowOptions,
 };
 
+#[gpui_kit::test]
+async fn codex_api_account_requires_confirmation_and_clears_plaintext_after_commit(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
+    let source = crate::runtime::ConfigSource::Fixture {
+        profiles: root.path().join("profiles.toml"),
+        registry: root.path().join("registry.toml"),
+        delay: std::time::Duration::ZERO,
+    };
+    let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+    let services = Services::new(owner.handle(), source);
+    let (handle, view) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| {
+                let mut view = PlatformsView::new(services, window, cx);
+                view.platform = Platform::Codex;
+                view.surface = Surface::Auth;
+                view.load(cx);
+                view
+            })
+        })
+        .unwrap_or_else(|_| panic!("window"))
+    });
+    cx.wait_for(handle, std::time::Duration::from_secs(10), |_, cx| {
+        view.read(cx).session.is_some()
+    })
+    .await;
+    let path = cx.update(|cx| {
+        view.read(cx)
+            .session
+            .as_ref()
+            .unwrap_or_else(|| panic!("session"))
+            .roots
+            .codex_store
+            .join("auth/ui-account.json")
+    });
+    cx.update_window(handle, |_, window, cx| {
+        view.read(cx)
+            .name
+            .clone()
+            .update(cx, |input, cx| input.set_value("ui-account", window, cx));
+        view.read(cx).content.clone().update(cx, |input, cx| {
+            input.set_value(r#"{"api_key":"ui-secret-sentinel"}"#, window, cx)
+        });
+        window.render_frame(cx);
+        window.click("platform-account-api-key", cx);
+        window.render_frame(cx);
+        assert!(!path.exists());
+        window.click("platform-decision-cancel", cx);
+        assert!(!path.exists());
+        assert!(
+            view.read(cx)
+                .content
+                .read(cx)
+                .value()
+                .contains("ui-secret-sentinel")
+        );
+        window.render_frame(cx);
+        window.click("platform-account-api-key", cx);
+        window.render_frame(cx);
+        window.click("platform-decision-confirm", cx);
+    })
+    .unwrap_or_else(|_| panic!("confirm"));
+    cx.wait_for(handle, std::time::Duration::from_secs(10), |_, cx| {
+        !view.read(cx).busy
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(path.exists());
+        assert!(view.read(cx).content.read(cx).value().is_empty());
+        assert!(view.read(cx).decision_content.is_empty());
+        assert!(view.read(cx).session.is_none());
+        window.remove_window();
+    })
+    .unwrap_or_else(|_| panic!("saved"));
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+fn oauth_browser_uses_the_shared_allowlist_without_opening_callbacks_or_unsafe_urls(
+    cx: &mut TestAppContext,
+) {
+    for rejected in [
+        "file:///tmp/fixture",
+        "javascript:alert(1)",
+        "https://auth.openai.com.invalid/oauth/authorize",
+        "https://user@auth.openai.com/oauth/authorize",
+        "http://localhost:1455/auth/callback",
+    ] {
+        cx.update(|cx| assert!(!open_authorization_url(rejected, cx)));
+        assert!(cx.opened_url().is_none());
+    }
+    let authorize = "https://auth.openai.com/oauth/authorize?state=isolated-fixture";
+    cx.update(|cx| assert!(open_authorization_url(authorize, cx)));
+    assert_eq!(cx.opened_url().as_deref(), Some(authorize));
+}
+
 struct DecisionHost {
     view: Entity<PlatformsView>,
     outside: FocusHandle,
@@ -63,6 +164,7 @@ fn confirmation_enters_after_callback_before_draw(cx: &mut TestAppContext) {
         fields: Vec::new(),
         credential: crate::runtime::platforms::CredentialState::NotDetected,
         runtime_auth_present: None,
+        auth_revision: Default::default(),
     });
     let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
     let services = Services::new(
@@ -203,6 +305,7 @@ async fn oauth_cancel_joins_fixture_cleanup_and_clears_callback_draft(cx: &mut T
         fields: Vec::new(),
         credential: crate::runtime::platforms::CredentialState::NotDetected,
         runtime_auth_present: None,
+        auth_revision: Default::default(),
     });
     let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
     let services = Services::new(
@@ -307,6 +410,7 @@ fn source_requires_acknowledgement_and_close_clears_secret_and_response_identity
         fields: Vec::new(),
         credential: crate::runtime::platforms::CredentialState::NotDetected,
         runtime_auth_present: None,
+        auth_revision: Default::default(),
     });
     let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
     let services = Services::new(
@@ -359,5 +463,92 @@ fn source_requires_acknowledgement_and_close_clears_secret_and_response_identity
         assert!(!view.source_mode);
     })
     .unwrap_or_else(|_| panic!("interaction"));
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+async fn opencode_theme_catalog_updates_real_draft_and_preserves_other_fields(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
+    let roots = PlatformRoots::fixture(root.path()).unwrap_or_else(|_| panic!("roots"));
+    let path = roots.home.join(".config/opencode/tui.json");
+    std::fs::create_dir_all(path.parent().unwrap_or_else(|| panic!("parent")))
+        .unwrap_or_else(|_| panic!("mkdir"));
+    std::fs::write(&path, r#"{"theme":"dark","unknown":true}"#).unwrap_or_else(|_| panic!("write"));
+    let document = Document::new(
+        path.clone(),
+        None,
+        BackupPolicy::None,
+        Some(root.path().join("locks")),
+        Format::Json,
+    );
+    let snapshot = document.read().unwrap_or_else(|_| panic!("read"));
+    let session = Arc::new(PlatformSession {
+        roots,
+        document,
+        snapshot,
+        accounts: Vec::new(),
+        signed_in: false,
+        provider_ids: Vec::new(),
+        provider_report: ProviderReport::Unsupported,
+        surface: Surface::Tui,
+        platform: Platform::OpenCode,
+        file_state: FileState::Present,
+        file_label: "tui.json",
+        fields: Vec::new(),
+        credential: CredentialState::NotDetected,
+        runtime_auth_present: None,
+        auth_revision: Default::default(),
+    });
+    let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+    let services = Services::new(
+        owner.handle(),
+        crate::runtime::ConfigSource::Fixture {
+            profiles: root.path().join("profiles.toml"),
+            registry: root.path().join("registry.toml"),
+            delay: std::time::Duration::ZERO,
+        },
+    );
+    let (handle, view) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| {
+                let mut view = PlatformsView::new(services, window, cx);
+                view.platform = Platform::OpenCode;
+                view.surface = Surface::Tui;
+                view.session = Some(session);
+                view.content.update(cx, |input, cx| {
+                    input.set_value(r#"{"mouse":false}"#, window, cx)
+                });
+                view
+            })
+        })
+        .unwrap_or_else(|_| panic!("window"))
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click(("opencode-theme", 5usize), cx);
+        let patch: serde_json::Value =
+            serde_json::from_str(&view.read(cx).content.read(cx).value())
+                .unwrap_or_else(|_| panic!("patch"));
+        assert_eq!(patch["theme"], "dracula");
+        assert_eq!(patch["mouse"], false);
+        view.update(cx, |v, cx| v.save(cx));
+    })
+    .unwrap_or_else(|_| panic!("select"));
+    cx.wait_for(handle, std::time::Duration::from_secs(10), |_, cx| {
+        !view.read(cx).busy
+    })
+    .await;
+    let saved: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&path).unwrap_or_else(|_| panic!("saved")))
+            .unwrap_or_else(|_| panic!("json"));
+    assert_eq!(saved["theme"], "dracula");
+    assert_eq!(saved["mouse"], false);
+    assert_eq!(saved["unknown"], true);
+    cx.update_window(handle, |_, window, _| window.remove_window())
+        .unwrap_or_else(|_| panic!("close"));
     owner.shutdown();
 }

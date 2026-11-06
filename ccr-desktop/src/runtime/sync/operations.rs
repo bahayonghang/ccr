@@ -1,10 +1,12 @@
 mod assets;
+mod management;
 use super::*;
 pub use assets::{AssetDirection, AssetRequest, AssetResult, AssetRow};
 use ccr_app::platform_settings::{Document, Format, SaveOutcome};
 use ccr_app::runtime::Completion;
 use ccr_core::{Secret, core::BackupPolicy};
 use ccr_sync::{SyncConfig, SyncService};
+pub use management::FolderResult;
 use std::sync::{Arc, Mutex};
 use tokio::sync::watch;
 
@@ -45,6 +47,17 @@ pub enum FolderChange {
 }
 
 pub enum Operation {
+    PrepareClear {
+        revision: String,
+    },
+    Clear {
+        revision: String,
+        session: Arc<ccr_sync::sync::clear::ClearSession>,
+    },
+    Batch {
+        revision: String,
+        upload: bool,
+    },
     Assets(AssetRequest),
     AssetInventory {
         revision: String,
@@ -70,6 +83,10 @@ pub enum Operation {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OperationKind {
+    PrepareClear,
+    Clear,
+    BatchPush,
+    BatchPull,
     Assets,
     AssetInventory,
     Save,
@@ -82,6 +99,15 @@ pub enum OperationKind {
 impl Operation {
     fn kind(&self) -> OperationKind {
         match self {
+            Self::PrepareClear { .. } => OperationKind::PrepareClear,
+            Self::Clear { .. } => OperationKind::Clear,
+            Self::Batch { upload, .. } => {
+                if *upload {
+                    OperationKind::BatchPush
+                } else {
+                    OperationKind::BatchPull
+                }
+            }
             Self::Assets(_) => OperationKind::Assets,
             Self::AssetInventory { .. } => OperationKind::AssetInventory,
             Self::Save(_) => OperationKind::Save,
@@ -95,6 +121,9 @@ impl Operation {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SyncOutcome {
+    ClearPrepared(Arc<ccr_sync::sync::clear::ClearSession>),
+    Cleared,
+    Batch(Vec<FolderResult>),
     Assets(Vec<AssetResult>),
     AssetInventory(Vec<AssetRow>),
     Saved,
@@ -426,6 +455,13 @@ async fn execute(
     loopback: bool,
 ) -> Result<SyncOutcome, SyncError> {
     let operation = match operation {
+        Operation::PrepareClear { revision } => return management::prepare(source, &revision),
+        Operation::Clear { revision, session } => {
+            return management::clear(source, &revision, &session);
+        }
+        Operation::Batch { revision, upload } => {
+            return management::batch(source, &revision, upload, loopback).await;
+        }
         Operation::Assets(request) => return assets::transfer(source, request, loopback).await,
         Operation::AssetInventory { revision, probe } => {
             return assets::inventory(source, &revision, probe, loopback).await;
@@ -442,7 +478,10 @@ async fn execute(
         Operation::Push { revision, folder } | Operation::Pull { revision, folder } => {
             (revision, Some(*folder))
         }
-        Operation::Save(_)
+        Operation::PrepareClear { .. }
+        | Operation::Clear { .. }
+        | Operation::Batch { .. }
+        | Operation::Save(_)
         | Operation::Folder { .. }
         | Operation::Assets(_)
         | Operation::AssetInventory { .. } => return Err(SyncError::Invalid),

@@ -595,10 +595,14 @@
       "risk": "network_mutation",
       "handler_path": "super::sync::sync_push",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Sync enabled-folder bulk upload/download with per-folder result/backup; two-source versioned WebDAV disconnect retains folders/unknown fields/protected backups",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-sync-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261029": {
         "command": "sync_push",
@@ -619,10 +623,14 @@
       "risk": "network_mutation",
       "handler_path": "super::sync::sync_pull",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Sync enabled-folder bulk upload/download with per-folder result/backup; two-source versioned WebDAV disconnect retains folders/unknown fields/protected backups",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-sync-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261029": {
         "command": "sync_pull",
@@ -1044,10 +1052,14 @@
       "risk": "destructive",
       "handler_path": "super::sync::clear_webdav_config",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Sync enabled-folder bulk upload/download with per-folder result/backup; two-source versioned WebDAV disconnect retains folders/unknown fields/protected backups",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-sync-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261029": {
         "command": "clear_webdav_config",
@@ -1728,10 +1740,14 @@
       "risk": "read_only",
       "handler_path": "super::claude::claude_get_statusline",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Claude Settings and accounts → Settings → Open scoped plaintext source → Save source with original revision; same ClaudeRuntimePaths.settings_file, typed validation preserves original JSON unknown fields; merged source editor, no dedicated form",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261029": {
         "id": "claude_get_statusline",
@@ -1758,10 +1774,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::claude::claude_update_statusline",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Claude Settings and accounts → Settings → Open scoped plaintext source → Save source with original revision; same ClaudeRuntimePaths.settings_file, typed validation preserves original JSON unknown fields; merged source editor, no dedicated form",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261029": {
         "id": "claude_update_statusline",
@@ -1788,10 +1808,14 @@
       "risk": "read_only",
       "handler_path": "super::claude::claude_list_hooks",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Claude Settings and accounts → Settings → Open scoped plaintext source → Save source with original revision; same ClaudeRuntimePaths.settings_file, typed validation preserves original JSON unknown fields; merged source editor, no dedicated form",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261029": {
         "id": "claude_list_hooks",
@@ -1818,10 +1842,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::claude::claude_update_hooks",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Claude Settings and accounts → Settings → Open scoped plaintext source → Save source with original revision; same ClaudeRuntimePaths.settings_file, typed validation preserves original JSON unknown fields; merged source editor, no dedicated form",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261029": {
         "id": "claude_update_hooks",
@@ -1848,10 +1876,14 @@
       "risk": "read_only",
       "handler_path": "super::claude::claude_get_budgets",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Usage → Budgets and pricing → existing policies owner; independent of usage database existence; explicit fixture roots or Local defaults only",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261028": {
         "command": "claude_get_budgets",
@@ -1873,10 +1905,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::claude::claude_update_budgets",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Usage → Budgets and pricing → existing policies owner; independent of usage database existence; explicit fixture roots or Local defaults only",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261028": {
         "command": "claude_update_budgets",
@@ -2288,10 +2324,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::claude::claude_auth_off",
       "owner": "gpui-05-platforms",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Platforms authentication controls -> captured shared auth owners; explicit confirmations, source revision and preserved rotated credentials",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-platforms-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "id": "claude_auth_off",
@@ -2332,10 +2372,14 @@
       "risk": "read_only",
       "handler_path": "super::codex::codex_list_models",
       "owner": "gpui-05-platforms",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Platforms Codex provider library/model catalog -> shared versioned store and existing builtin/custom catalog; omitted credentials preserved",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-platforms-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "id": "codex_list_models",
@@ -3306,10 +3350,14 @@
       "risk": "read_only",
       "handler_path": "super::codex::codex_export_session",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Selected indexed Codex session -> opaque provider source validation -> Markdown preview/copy, confirmed-version clone or recoverable manifest-backed trash; native trash intentionally preserves CLI recovery instead of legacy permanent deletion",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-sessions-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "command": "codex_export_session",
@@ -3331,10 +3379,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_clone_session",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Selected indexed Codex session -> opaque provider source validation -> Markdown preview/copy, confirmed-version clone or recoverable manifest-backed trash; native trash intentionally preserves CLI recovery instead of legacy permanent deletion",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-sessions-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "command": "codex_clone_session",
@@ -3356,10 +3408,14 @@
       "risk": "destructive",
       "handler_path": "super::codex::codex_delete_session",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Selected indexed Codex session -> opaque provider source validation -> Markdown preview/copy, confirmed-version clone or recoverable manifest-backed trash; native trash intentionally preserves CLI recovery instead of legacy permanent deletion",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-sessions-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "command": "codex_delete_session",
@@ -3467,10 +3523,14 @@
       "risk": "read_only",
       "handler_path": "super::codex::codex_get_all_quotas",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Platforms Codex explicit current/selected/all quota refresh -> captured CodexQuotaService, retained job; fixture rejects live network",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-platforms-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "command": "codex_get_all_quotas",
@@ -3492,10 +3552,14 @@
       "risk": "read_only",
       "handler_path": "super::codex::codex_get_quota",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Platforms Codex explicit current/selected/all quota refresh -> captured CodexQuotaService, retained job; fixture rejects live network",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-platforms-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "command": "codex_get_quota",
@@ -3573,10 +3637,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_auth_off",
       "owner": "gpui-05-platforms",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Platforms authentication controls -> captured shared auth owners; explicit confirmations, source revision and preserved rotated credentials",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-platforms-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "id": "codex_auth_off",
@@ -3682,10 +3750,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_rename_auth",
       "owner": "gpui-05-platforms",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Platforms authentication controls -> captured shared auth owners; explicit confirmations, source revision and preserved rotated credentials",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-platforms-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "id": "codex_rename_auth",
@@ -3986,10 +4058,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_open_external_url",
       "owner": "gpui-05-platforms",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Codex OAuth → Open authorization in browser → existing URL allowlist; fixture rejects external browser requests",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261028": {
         "id": "codex_open_external_url",
@@ -4011,10 +4087,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_import_auth_payload",
       "owner": "gpui-05-platforms",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Platforms authentication controls -> captured shared auth owners; explicit confirmations, source revision and preserved rotated credentials",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-platforms-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "id": "codex_import_auth_payload",
@@ -4036,10 +4116,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_import_auth_from_local",
       "owner": "gpui-05-platforms",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Platforms authentication controls -> captured shared auth owners; explicit confirmations, source revision and preserved rotated credentials",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-platforms-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "id": "codex_import_auth_from_local",
@@ -4061,10 +4145,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_add_auth_with_api_key",
       "owner": "gpui-05-platforms",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Platforms authentication controls -> captured shared auth owners; explicit confirmations, source revision and preserved rotated credentials",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-platforms-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "id": "codex_add_auth_with_api_key",
@@ -4086,10 +4174,14 @@
       "risk": "read_only",
       "handler_path": "super::codex::codex_list_model_providers",
       "owner": "gpui-05-platforms",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Platforms Codex provider library/model catalog -> shared versioned store and existing builtin/custom catalog; omitted credentials preserved",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-platforms-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "id": "codex_list_model_providers",
@@ -4132,10 +4224,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::codex::codex_save_model_provider",
       "owner": "gpui-05-platforms",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Platforms Codex provider library/model catalog -> shared versioned store and existing builtin/custom catalog; omitted credentials preserved",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-platforms-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "id": "codex_save_model_provider",
@@ -4178,10 +4274,14 @@
       "risk": "destructive",
       "handler_path": "super::codex::codex_delete_model_provider",
       "owner": "gpui-05-platforms",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Platforms Codex provider library/model catalog -> shared versioned store and existing builtin/custom catalog; omitted credentials preserved",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-platforms-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "id": "codex_delete_model_provider",
@@ -4408,10 +4508,14 @@
       "risk": "read_only",
       "handler_path": "super::gemini::gemini_list_slash_commands",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Antigravity Resources → PlatformFilesView → .gemini commands TOML; extensions are read-only manifests",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261029": {
         "id": "gemini_list_slash_commands",
@@ -4438,10 +4542,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::gemini::gemini_add_slash_command",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Antigravity Resources → PlatformFilesView → .gemini commands TOML; extensions are read-only manifests",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261029": {
         "id": "gemini_add_slash_command",
@@ -4468,10 +4576,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::gemini::gemini_update_slash_command",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Antigravity Resources → PlatformFilesView → .gemini commands TOML; extensions are read-only manifests",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261029": {
         "id": "gemini_update_slash_command",
@@ -4498,10 +4610,14 @@
       "risk": "destructive",
       "handler_path": "super::gemini::gemini_delete_slash_command",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Antigravity Resources → PlatformFilesView → .gemini commands TOML; extensions are read-only manifests",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261029": {
         "id": "gemini_delete_slash_command",
@@ -4528,10 +4644,14 @@
       "risk": "read_only",
       "handler_path": "super::gemini::gemini_list_extensions",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Antigravity Resources → PlatformFilesView → .gemini commands TOML; extensions are read-only manifests",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261029": {
         "id": "gemini_list_extensions",
@@ -4719,10 +4839,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::grok::grok_auth_off",
       "owner": "gpui-05-platforms",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Platforms authentication controls -> captured shared auth owners; explicit confirmations, source revision and preserved rotated credentials",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-platforms-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "id": "grok_auth_off",
@@ -4972,10 +5096,14 @@
       "risk": "read_only",
       "handler_path": "super::opencode::opencode_get_tui_settings",
       "owner": "gpui-05-platforms",
-      "status": "implemented_pending_full_acceptance",
-      "native_action": "Platforms > Settings/TUI dirty JSON leaf patch; Gemini retained as Advanced Antigravity source action",
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "OpenCode Settings/TUI → existing source editor, thirteen-theme draft selection, legacy keybindings projection and original-source conflict checks",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261028": {
         "id": "opencode_get_tui_settings",
@@ -4995,7 +5123,13 @@
           "typed field widgets and environment transport parity open",
           "current-source native per-platform acceptance NOT_RUN"
         ]
-      }
+      },
+      "historical_native_actions": [
+        {
+          "task": "prior-to-final-core-20261106",
+          "action": "Platforms > Settings/TUI dirty JSON leaf patch; Gemini retained as Advanced Antigravity source action"
+        }
+      ]
     },
     {
       "id": "opencode_update_tui_settings",
@@ -5004,10 +5138,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::opencode::opencode_update_tui_settings",
       "owner": "gpui-05-platforms",
-      "status": "implemented_pending_full_acceptance",
-      "native_action": "Platforms > Settings/TUI dirty JSON leaf patch; Gemini retained as Advanced Antigravity source action",
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "OpenCode Settings/TUI → existing source editor, thirteen-theme draft selection, legacy keybindings projection and original-source conflict checks",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261028": {
         "id": "opencode_update_tui_settings",
@@ -5027,7 +5165,13 @@
           "typed field widgets and environment transport parity open",
           "current-source native per-platform acceptance NOT_RUN"
         ]
-      }
+      },
+      "historical_native_actions": [
+        {
+          "task": "prior-to-final-core-20261106",
+          "action": "Platforms > Settings/TUI dirty JSON leaf patch; Gemini retained as Advanced Antigravity source action"
+        }
+      ]
     },
     {
       "id": "opencode_get_keybindings",
@@ -5036,10 +5180,14 @@
       "risk": "read_only",
       "handler_path": "super::opencode::opencode_get_keybindings",
       "owner": "gpui-05-platforms",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "OpenCode Settings/TUI → existing source editor, thirteen-theme draft selection, legacy keybindings projection and original-source conflict checks",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261028": {
         "id": "opencode_get_keybindings",
@@ -5061,10 +5209,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::opencode::opencode_update_keybindings",
       "owner": "gpui-05-platforms",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "OpenCode Settings/TUI → existing source editor, thirteen-theme draft selection, legacy keybindings projection and original-source conflict checks",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261028": {
         "id": "opencode_update_keybindings",
@@ -5086,10 +5238,14 @@
       "risk": "read_only",
       "handler_path": "super::opencode::opencode_list_themes",
       "owner": "gpui-05-platforms",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "OpenCode Settings/TUI → existing source editor, thirteen-theme draft selection, legacy keybindings projection and original-source conflict checks",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-05-platforms/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261028": {
         "id": "opencode_list_themes",
@@ -5111,10 +5267,14 @@
       "risk": "read_only",
       "handler_path": "super::opencode::opencode_list_agents",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "OpenCode Resources → PlatformFilesView → shared captured platform_files; plugins are metadata-only/read-only",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261029": {
         "id": "opencode_list_agents",
@@ -5141,10 +5301,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::opencode::opencode_add_agent",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "OpenCode Resources → PlatformFilesView → shared captured platform_files; plugins are metadata-only/read-only",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261029": {
         "id": "opencode_add_agent",
@@ -5171,10 +5335,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::opencode::opencode_update_agent",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "OpenCode Resources → PlatformFilesView → shared captured platform_files; plugins are metadata-only/read-only",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261029": {
         "id": "opencode_update_agent",
@@ -5201,10 +5369,14 @@
       "risk": "destructive",
       "handler_path": "super::opencode::opencode_delete_agent",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "OpenCode Resources → PlatformFilesView → shared captured platform_files; plugins are metadata-only/read-only",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261029": {
         "id": "opencode_delete_agent",
@@ -5231,10 +5403,14 @@
       "risk": "read_only",
       "handler_path": "super::opencode::opencode_list_commands",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "OpenCode Resources → PlatformFilesView → shared captured platform_files; plugins are metadata-only/read-only",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261029": {
         "id": "opencode_list_commands",
@@ -5261,10 +5437,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::opencode::opencode_add_command",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "OpenCode Resources → PlatformFilesView → shared captured platform_files; plugins are metadata-only/read-only",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261029": {
         "id": "opencode_add_command",
@@ -5291,10 +5471,14 @@
       "risk": "secret_mutation",
       "handler_path": "super::opencode::opencode_update_command",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "OpenCode Resources → PlatformFilesView → shared captured platform_files; plugins are metadata-only/read-only",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261029": {
         "id": "opencode_update_command",
@@ -5321,10 +5505,14 @@
       "risk": "destructive",
       "handler_path": "super::opencode::opencode_delete_command",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "OpenCode Resources → PlatformFilesView → shared captured platform_files; plugins are metadata-only/read-only",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261029": {
         "id": "opencode_delete_command",
@@ -5351,10 +5539,14 @@
       "risk": "read_only",
       "handler_path": "super::opencode::opencode_list_local_plugins",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "OpenCode Resources → PlatformFilesView → shared captured platform_files; plugins are metadata-only/read-only",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261029": {
         "id": "opencode_list_local_plugins",
@@ -5497,10 +5689,14 @@
       "risk": "network_mutation",
       "handler_path": "super::checkin::test_provider_connection",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Check-ins → Account tools → captured operations → existing ccr-checkin service/database owner; confirmed mutations, real record filters/month dashboard, manual WAF and explicit CDK; native tests selected account through CheckinService (old command was config-only success)",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Shared/loopback/headless risk regressions passed; real services and native per-command acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "test_provider_connection",
@@ -5637,10 +5833,14 @@
       "risk": "destructive",
       "handler_path": "super::checkin::batch_delete_accounts",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Check-ins → Account tools → captured operations → existing ccr-checkin service/database owner; confirmed mutations, real record filters/month dashboard, manual WAF and explicit CDK",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Shared/loopback/headless risk regressions passed; real services and native per-command acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "batch_delete_accounts",
@@ -5690,10 +5890,14 @@
       "risk": "network_mutation",
       "handler_path": "super::checkin::batch_checkin",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Check-ins → Account tools → captured operations → existing ccr-checkin service/database owner; confirmed mutations, real record filters/month dashboard, manual WAF and explicit CDK",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Shared/loopback/headless risk regressions passed; real services and native per-command acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "batch_checkin",
@@ -5763,13 +5967,17 @@
       "handler_path": "super::checkin::get_checkin_records",
       "owner": "gpui-08-jobs",
       "status": "implemented_partial_pending_native_acceptance",
-      "native_action": "CheckinView -> retained operations -> captured ccr-checkin managers",
+      "native_action": "Check-ins → Account tools → captured operations → existing ccr-checkin service/database owner; confirmed mutations, real record filters/month dashboard, manual WAF and explicit CDK",
       "verification": {
         "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
         "core_continuation_20261106": {
           "scope": "Provider/account CRUD, builtin providers, per-account check-in/balance/records. Captured DB/crypto, encrypted credentials. Batch/export/browser WAF/CDK remain separate.",
           "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
           "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        },
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Shared/loopback/headless risk regressions passed; real services and native per-command acceptance pending."
         }
       },
       "execution_20261029": {
@@ -5782,7 +5990,13 @@
         "tests": [],
         "native": "NOT_RUN",
         "acceptance": "OPEN"
-      }
+      },
+      "historical_native_actions": [
+        {
+          "task": "prior-to-final-core-20261106",
+          "action": "CheckinView -> retained operations -> captured ccr-checkin managers"
+        }
+      ]
     },
     {
       "id": "get_balance",
@@ -5820,10 +6034,14 @@
       "risk": "read_only",
       "handler_path": "super::checkin::get_balance_history",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Check-ins → Account tools → captured operations → existing ccr-checkin service/database owner; confirmed mutations, real record filters/month dashboard, manual WAF and explicit CDK",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Shared/loopback/headless risk regressions passed; real services and native per-command acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "get_balance_history",
@@ -5844,10 +6062,14 @@
       "risk": "read_only",
       "handler_path": "super::checkin::get_balance_stats",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Check-ins → Account tools → captured operations → existing ccr-checkin service/database owner; confirmed mutations, real record filters/month dashboard, manual WAF and explicit CDK; native groups balances by currency, no cross-currency sum/payload equivalence claim",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Shared/loopback/headless risk regressions passed; real services and native per-command acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "get_balance_stats",
@@ -5868,10 +6090,14 @@
       "risk": "read_only",
       "handler_path": "super::checkin::export_checkin_data",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Check-ins → Account tools → captured operations → existing ccr-checkin service/database owner; confirmed mutations, real record filters/month dashboard, manual WAF and explicit CDK; same existing configuration schema, encrypted device-key credentials, not a full backup",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Shared/loopback/headless risk regressions passed; real services and native per-command acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "export_checkin_data",
@@ -5892,10 +6118,14 @@
       "risk": "read_only",
       "handler_path": "super::checkin::export_checkin_stats",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Check-ins → Account tools → captured operations → existing ccr-checkin service/database owner; confirmed mutations, real record filters/month dashboard, manual WAF and explicit CDK",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Shared/loopback/headless risk regressions passed; real services and native per-command acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "export_checkin_stats",
@@ -5916,10 +6146,14 @@
       "risk": "network_mutation",
       "handler_path": "super::checkin::execute_cdk_recharge",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Check-ins → Account tools → captured operations → existing ccr-checkin service/database owner; confirmed mutations, real record filters/month dashboard, manual WAF and explicit CDK",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Shared/loopback/headless risk regressions passed; real services and native per-command acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "execute_cdk_recharge",
@@ -5940,10 +6174,14 @@
       "risk": "read_only",
       "handler_path": "super::checkin::get_cdk_history",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Check-ins → Account tools → captured operations → existing ccr-checkin service/database owner; confirmed mutations, real record filters/month dashboard, manual WAF and explicit CDK; merged into check-in records as in original owner, not a separate recharge ledger",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Shared/loopback/headless risk regressions passed; real services and native per-command acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "get_cdk_history",
@@ -5964,10 +6202,14 @@
       "risk": "read_only",
       "handler_path": "super::checkin::list_waf_cookies",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Check-ins → Account tools → captured operations → existing ccr-checkin service/database owner; confirmed mutations, real record filters/month dashboard, manual WAF and explicit CDK",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Shared/loopback/headless risk regressions passed; real services and native per-command acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "list_waf_cookies",
@@ -5988,10 +6230,14 @@
       "risk": "network_mutation",
       "handler_path": "super::checkin::add_waf_cookie",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Check-ins → Account tools → captured operations → existing ccr-checkin service/database owner; confirmed mutations, real record filters/month dashboard, manual WAF and explicit CDK",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Shared/loopback/headless risk regressions passed; real services and native per-command acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "add_waf_cookie",
@@ -6012,10 +6258,14 @@
       "risk": "destructive",
       "handler_path": "super::checkin::delete_waf_cookie",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Check-ins → Account tools → captured operations → existing ccr-checkin service/database owner; confirmed mutations, real record filters/month dashboard, manual WAF and explicit CDK",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Shared/loopback/headless risk regressions passed; real services and native per-command acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "delete_waf_cookie",
@@ -6220,10 +6470,14 @@
       "risk": "read_only",
       "handler_path": "super::waf::get_waf_cookie_status",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Check-ins → Account tools → captured operations → existing ccr-checkin service/database owner; confirmed mutations, real record filters/month dashboard, manual WAF and explicit CDK",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Shared/loopback/headless risk regressions passed; real services and native per-command acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "get_waf_cookie_status",
@@ -6244,10 +6498,14 @@
       "risk": "read_only",
       "handler_path": "super::waf::validate_waf_cookie_for_account",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Check-ins → Account tools → captured operations → existing ccr-checkin service/database owner; confirmed mutations, real record filters/month dashboard, manual WAF and explicit CDK",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Shared/loopback/headless risk regressions passed; real services and native per-command acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "validate_waf_cookie_for_account",
@@ -6855,10 +7113,14 @@
       "risk": "local_mutation",
       "handler_path": "super::pricing::set_pricing",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Usage → Budgets and pricing → existing policies owner; independent of usage database existence; explicit fixture roots or Local defaults only",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261028": {
         "command": "set_pricing",
@@ -6880,10 +7142,14 @@
       "risk": "read_only",
       "handler_path": "super::pricing::get_pricing_list",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Usage → Budgets and pricing → existing policies owner; independent of usage database existence; explicit fixture roots or Local defaults only",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261028": {
         "command": "get_pricing_list",
@@ -6905,10 +7171,14 @@
       "risk": "destructive",
       "handler_path": "super::pricing::remove_pricing",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Usage → Budgets and pricing → existing policies owner; independent of usage database existence; explicit fixture roots or Local defaults only",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261028": {
         "command": "remove_pricing",
@@ -6930,10 +7200,14 @@
       "risk": "destructive",
       "handler_path": "super::pricing::reset_pricing",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Usage → Budgets and pricing → existing policies owner; independent of usage database existence; explicit fixture roots or Local defaults only",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Implemented; final batch check/native evidence recorded separately, no blanket acceptance."
+        }
       },
       "execution_20261028": {
         "command": "reset_pricing",
@@ -8027,10 +8301,14 @@
       "risk": "local_mutation",
       "handler_path": "super::usage::start_usage_import_job_v2",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Usage explicit default-local installed llmusage import/status/cancel -> shared CLI owner; custom provider-home and production fixture scan rejected; source-specific imports remain consolidated into the all-local action",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-usage-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "command": "start_usage_import_job_v2",
@@ -8052,10 +8330,14 @@
       "risk": "read_only",
       "handler_path": "super::usage::get_usage_import_job_status_v2",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Usage explicit default-local installed llmusage import/status/cancel -> shared CLI owner; custom provider-home and production fixture scan rejected; source-specific imports remain consolidated into the all-local action",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-usage-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "command": "get_usage_import_job_status_v2",
@@ -8077,10 +8359,14 @@
       "risk": "local_mutation",
       "handler_path": "super::usage::cancel_usage_import_job_v2",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Usage explicit default-local installed llmusage import/status/cancel -> shared CLI owner; custom provider-home and production fixture scan rejected; source-specific imports remain consolidated into the all-local action",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-usage-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "command": "cancel_usage_import_job_v2",
@@ -8102,10 +8388,14 @@
       "risk": "local_mutation",
       "handler_path": "super::usage::import_usage_v2",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Usage explicit default-local installed llmusage import/status/cancel -> shared CLI owner; custom provider-home and production fixture scan rejected; source-specific imports remain consolidated into the all-local action",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-usage-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "command": "import_usage_v2",
@@ -8127,10 +8417,14 @@
       "risk": "local_mutation",
       "handler_path": "super::usage::import_all_usage_v2",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Usage explicit default-local installed llmusage import/status/cancel -> shared CLI owner; custom provider-home and production fixture scan rejected; source-specific imports remain consolidated into the all-local action",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-usage-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "command": "import_all_usage_v2",
@@ -8538,10 +8832,14 @@
       "risk": "read_only",
       "handler_path": "super::checkin::export_checkin_config",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Check-ins → Account tools → captured operations → existing ccr-checkin service/database owner; confirmed mutations, real record filters/month dashboard, manual WAF and explicit CDK; same existing configuration schema, encrypted device-key credentials, not a full backup",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Shared/loopback/headless risk regressions passed; real services and native per-command acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "export_checkin_config",
@@ -8562,10 +8860,14 @@
       "risk": "read_only",
       "handler_path": "super::checkin::preview_checkin_import",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Check-ins → Account tools → captured operations → existing ccr-checkin service/database owner; confirmed mutations, real record filters/month dashboard, manual WAF and explicit CDK",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Shared/loopback/headless risk regressions passed; real services and native per-command acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "preview_checkin_import",
@@ -8586,10 +8888,14 @@
       "risk": "network_mutation",
       "handler_path": "super::checkin::import_checkin_config",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Check-ins → Account tools → captured operations → existing ccr-checkin service/database owner; confirmed mutations, real record filters/month dashboard, manual WAF and explicit CDK",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Shared/loopback/headless risk regressions passed; real services and native per-command acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "import_checkin_config",
@@ -8610,10 +8916,14 @@
       "risk": "read_only",
       "handler_path": "super::checkin::get_account_dashboard",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Check-ins → Account tools → captured operations → existing ccr-checkin service/database owner; confirmed mutations, real record filters/month dashboard, manual WAF and explicit CDK",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "final_core_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/final-core-20261106.md",
+          "result": "Shared/loopback/headless risk regressions passed; real services and native per-command acceptance pending."
+        }
       },
       "execution_20261029": {
         "command": "get_account_dashboard",
@@ -9133,10 +9443,14 @@
       "risk": "read_only",
       "handler_path": "super::claude_observer::claude_observer_get_insight",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Usage Claude Observer -> shared dashboard/tool/subscription owner; captured main DB separate from archive, explicit first Save, transactional original-value check; report failures remain independent",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-observer-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "command": "claude_observer_get_insight",
@@ -9158,10 +9472,14 @@
       "risk": "read_only",
       "handler_path": "super::claude_observer::claude_observer_daily_trend",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Usage Claude Observer -> shared dashboard/tool/subscription owner; captured main DB separate from archive, explicit first Save, transactional original-value check; report failures remain independent",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-observer-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "command": "claude_observer_daily_trend",
@@ -9183,10 +9501,14 @@
       "risk": "read_only",
       "handler_path": "super::claude_observer::claude_observer_cost_breakdown",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Usage Claude Observer -> shared dashboard/tool/subscription owner; captured main DB separate from archive, explicit first Save, transactional original-value check; report failures remain independent",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-observer-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "command": "claude_observer_cost_breakdown",
@@ -9208,10 +9530,14 @@
       "risk": "read_only",
       "handler_path": "super::claude_observer::claude_observer_cache_stats",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Usage Claude Observer -> shared dashboard/tool/subscription owner; captured main DB separate from archive, explicit first Save, transactional original-value check; report failures remain independent",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-observer-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "command": "claude_observer_cache_stats",
@@ -9233,10 +9559,14 @@
       "risk": "read_only",
       "handler_path": "super::claude_observer::claude_observer_top_sessions",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Usage Claude Observer -> shared dashboard/tool/subscription owner; captured main DB separate from archive, explicit first Save, transactional original-value check; report failures remain independent",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-observer-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "command": "claude_observer_top_sessions",
@@ -9258,10 +9588,14 @@
       "risk": "read_only",
       "handler_path": "super::claude_observer::claude_observer_tool_heatmap",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Usage Claude Observer -> shared dashboard/tool/subscription owner; captured main DB separate from archive, explicit first Save, transactional original-value check; report failures remain independent",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-observer-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "command": "claude_observer_tool_heatmap",
@@ -9283,10 +9617,14 @@
       "risk": "read_only",
       "handler_path": "super::claude_observer::claude_observer_top_tools",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Usage Claude Observer -> shared dashboard/tool/subscription owner; captured main DB separate from archive, explicit first Save, transactional original-value check; report failures remain independent",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-observer-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "command": "claude_observer_top_tools",
@@ -9308,10 +9646,14 @@
       "risk": "read_only",
       "handler_path": "super::claude_observer::claude_observer_subscription_get",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Usage Claude Observer -> shared dashboard/tool/subscription owner; captured main DB separate from archive, explicit first Save, transactional original-value check; report failures remain independent",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-observer-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "command": "claude_observer_subscription_get",
@@ -9333,10 +9675,14 @@
       "risk": "local_mutation",
       "handler_path": "super::claude_observer::claude_observer_subscription_set",
       "owner": "gpui-07-insights",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Usage Claude Observer -> shared dashboard/tool/subscription owner; captured main DB separate from archive, explicit first Save, transactional original-value check; report failures remain independent",
       "verification": {
-        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json"
+        "continuation_20261028": ".trellis/tasks/10-17-gpui-07-insights/research/command-status-20261028.json",
+        "continuation_20261106": {
+          "evidence": ".trellis/tasks/10-17-gpui-desktop/research/resume-observer-20261106.md",
+          "result": "Source/fixture/headless checkpoint; final integration result in resume-summary-20261106.md. No new native or real external-service receipt is claimed."
+        }
       },
       "execution_20261028": {
         "command": "claude_observer_subscription_set",
@@ -10399,6 +10745,8 @@
         "UNIMPLEMENTED_NATIVE": 54
       }
     },
-    "note_20261105": "Only02 formally completed. Commands recover subscriptions; foreground/help and native llmusage install source/headless checkpoints integrated. Full native/sidecar/install/sync/checkin/OS/performance acceptance remains open."
+    "note_20261105": "Only02 formally completed. Commands recover subscriptions; foreground/help and native llmusage install source/headless checkpoints integrated. Full native/sidecar/install/sync/checkin/OS/performance acceptance remains open.",
+    "continuation_resume_20261106": ".trellis/tasks/10-17-gpui-desktop/research/resume-summary-20261106.md",
+    "note_resume_20261106": "Parent, 01 and 09 remain in_progress. Eight archived task directories are not a full migration acceptance rate. Updated operation entries remain partial/pending native acceptance; historical notes are preserved."
   }
 }

@@ -1,6 +1,7 @@
 //! Canonical sync settings and retained WebDAV operations.
 mod assets;
 mod folders;
+mod management;
 use crate::{
     locales::{is_chinese, service_error, text},
     runtime::{
@@ -48,6 +49,8 @@ pub struct SyncView {
     folder_delete: Option<FolderTarget>,
     selected: Option<usize>,
     confirmation: Option<OperationKind>,
+    management_confirmation: Option<management::Confirmation>,
+    management_focus: bool,
     operation: Arc<OperationState>,
     observation: Option<Task<()>>,
 }
@@ -70,6 +73,8 @@ impl SyncView {
             folder_delete: None,
             selected: None,
             confirmation: None,
+            management_confirmation: None,
+            management_focus: false,
             observation: None,
         }
     }
@@ -88,6 +93,7 @@ impl SyncView {
         self.editor = None;
         self.asset_editor = None;
         self.confirmation = None;
+        self.management_confirmation = None;
         self.folder_editor = None;
         self.folder_delete = None;
         cx.notify();
@@ -99,6 +105,7 @@ impl SyncView {
             return;
         }
         self.confirmation = None;
+        self.management_confirmation = None;
         self.asset_editor = None;
         self.folder_delete = None;
         self.folder_editor = None;
@@ -181,8 +188,21 @@ impl SyncView {
                     .update(cx, |this, cx| {
                         let saved = matches!(
                             state.result,
-                            Some(Ok(SyncOutcome::Saved | SyncOutcome::FolderSaved))
+                            Some(Ok(SyncOutcome::Saved
+                                | SyncOutcome::FolderSaved
+                                | SyncOutcome::Cleared))
+                                | Some(Err(SyncError::LegacyRemaining))
                         );
+                        if let Some(Ok(SyncOutcome::ClearPrepared(session))) = &state.result
+                            && let Some(revision) = this.revision()
+                        {
+                            this.management_confirmation = Some(management::Confirmation::Clear {
+                                revision,
+                                session: session.clone(),
+                                generation: this.generation,
+                            });
+                            this.management_focus = true;
+                        }
                         this.operation = state;
                         if saved {
                             this.editor = None;
@@ -216,6 +236,7 @@ impl SyncView {
             return;
         }
         self.confirmation = None;
+        self.management_confirmation = None;
         self.asset_editor = None;
         self.editor = Some(Editor {
             url: cx.new(|cx| InputState::new(window, cx)),
@@ -252,6 +273,7 @@ impl SyncView {
             .err()
             .map(SyncError::message);
         self.confirmation = None;
+        self.management_confirmation = None;
         self.folder_delete = None;
         self.observe(cx);
         cx.notify();
@@ -400,11 +422,16 @@ fn folder_label(cx: &App, folder: &SyncFolderRow) -> String {
 }
 
 impl Render for SyncView {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let mut root = div()
             .id("sync-page")
             .test_support()
             .track_focus(&self.focus)
+            .on_key_down(cx.listener(|this, event: &gpui_kit::KeyDownEvent, _, cx| {
+                if event.keystroke.key == "escape" && this.management_confirmation.take().is_some() {
+                    cx.stop_propagation(); cx.notify();
+                }
+            }))
             .tab_stop(false)
             .flex()
             .flex_col()
@@ -443,7 +470,7 @@ impl Render for SyncView {
                     })
                     .ghost()
                     .on_click(cx.listener(|this, _, _, cx| this.refresh(cx))),
-                self.busy || self.editor.is_some() || self.folder_editor.is_some() || self.operation.busy,
+                self.busy || self.editor.is_some() || self.folder_editor.is_some() || self.operation.busy || self.management_confirmation.is_some(),
                 self.busy,
                 cx,
             ));
@@ -470,6 +497,9 @@ impl Render for SyncView {
                     .aria_label(line)
                     .child(line),
             );
+        }
+        if self.management_confirmation.is_some() {
+            return root.child(self.render_management(window, cx));
         }
         if let Some(snapshot) = self.snapshot.clone() {
             match snapshot {
@@ -537,7 +567,8 @@ impl Render for SyncView {
                 }
             }
         }
-        root.child(self.render_folder_controls(cx))
+        root.child(self.render_management(window, cx))
+            .child(self.render_folder_controls(cx))
             .child(self.render_operations(cx))
             .child(self.render_assets(cx))
     }
@@ -551,6 +582,24 @@ impl SyncView {
             Some(text(cx, "Sync operation is running. It continues when you leave this page; closing waits for it to finish. Cancellation is unavailable during transfer.", "同步操作正在运行。离开页面后会继续，关闭应用将等待完成。传输期间不提供取消。").to_string())
         } else {
             self.operation.result.as_ref().map(|result| match result {
+                Ok(SyncOutcome::ClearPrepared(_)) => text(
+                    cx,
+                    "Disconnection is ready for confirmation.",
+                    "断开连接已准备就绪，等待确认。",
+                )
+                .to_string(),
+                Ok(SyncOutcome::Cleared) => text(
+                    cx,
+                    "WebDAV account disconnected. Folder definitions were kept.",
+                    "WebDAV 账户已断开，文件夹定义已保留。",
+                )
+                .to_string(),
+                Ok(SyncOutcome::Batch(results)) => format!(
+                    "{}: {}/{}",
+                    text(cx, "Folders completed", "文件夹已完成"),
+                    results.iter().filter(|r| r.result.is_ok()).count(),
+                    results.len()
+                ),
                 Ok(SyncOutcome::Assets(results)) => format!(
                     "{}: {}/{}",
                     text(cx, "Assets completed", "资产已完成"),
@@ -733,6 +782,11 @@ impl SyncView {
 
 fn sync_error(cx: &App, error: SyncError) -> &'static str {
     match error {
+        SyncError::LegacyRemaining => text(
+            cx,
+            error.message(),
+            "规范配置中的 WebDAV 凭据已清除，但旧版配置清理未完成。请重新读取配置后再次断开连接。",
+        ),
         SyncError::LegacyFolders => text(
             cx,
             error.message(),

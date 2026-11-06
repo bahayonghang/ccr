@@ -388,21 +388,361 @@ fn error(cx: &App, value: runtime::Error) -> &'static str {
         ),
     }
 }
-impl Render for CodexAgentsView {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        if let Some(value) = self.pending_text.take() {
-            self.editor
-                .update(cx, |state, cx| state.set_value(value, window, cx));
+// Keep debug builder temporaries in bounded frames on the native 1 MiB thread stack.
+impl CodexAgentsView {
+    #[inline(never)]
+    fn render_catalog(
+        &mut self,
+        mut root: gpui_kit::Stateful<gpui_kit::Div>,
+        locked: bool,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::Stateful<gpui_kit::Div> {
+        if let Some(catalog) = &self.catalog {
+            root = root
+                .child(format!(
+                    "{} · {}",
+                    redact_log_text(&catalog.source.repo_url),
+                    redact_log_text(&catalog.source.status)
+                ))
+                .child(
+                    Input::new(&self.name)
+                        .aria_label(text(
+                            cx,
+                            "Install name (blank uses agent name)",
+                            "安装名称（留空使用 Agent 名称）",
+                        ))
+                        .accessibility_id("codex-agent-install-name"),
+                );
+            for (index, agent) in catalog
+                .agents
+                .iter()
+                .skip(self.page * 100)
+                .take(100)
+                .enumerate()
+            {
+                let id = agent.id.clone();
+                let raw = agent.raw_toml.clone();
+                let replacement = id.clone();
+                root = root.child(
+                    div()
+                        .flex()
+                        .gap(px(theme::CONTROL_GAP))
+                        .child(redact_log_text(&agent.name))
+                        .child(semantics::button(
+                            Button::new(("codex-agent-preview", index))
+                                .label(text(cx, "Preview instructions", "预览指令"))
+                                .ghost()
+                                .on_click(cx.listener(move |this, _, _, cx| {
+                                    this.preview = Some(raw.clone());
+                                    cx.notify();
+                                })),
+                            locked,
+                            false,
+                            cx,
+                        ))
+                        .child(semantics::button(
+                            Button::new(("codex-agent-install", index))
+                                .label(text(cx, "Install", "安装"))
+                                .on_click(cx.listener(move |this, _, _, cx| {
+                                    this.confirmation = Some(Confirm::Install {
+                                        agent: id.clone(),
+                                        replace: false,
+                                    });
+                                    cx.notify();
+                                })),
+                            locked || agent.parse_error.is_some(),
+                            false,
+                            cx,
+                        ))
+                        .child(semantics::button(
+                            Button::new(("codex-agent-replace", index))
+                                .label(text(cx, "Replace tracked install", "替换已跟踪安装"))
+                                .ghost()
+                                .on_click(cx.listener(move |this, _, _, cx| {
+                                    this.confirmation = Some(Confirm::Install {
+                                        agent: replacement.clone(),
+                                        replace: true,
+                                    });
+                                    cx.notify();
+                                })),
+                            locked || agent.parse_error.is_some(),
+                            false,
+                            cx,
+                        )),
+                );
+            }
+            for (index, install) in catalog
+                .installs
+                .iter()
+                .skip(self.page * 100)
+                .take(100)
+                .enumerate()
+            {
+                let sync = install.id.clone();
+                let force = sync.clone();
+                let accept = sync.clone();
+                let untrack = sync.clone();
+                root = root.child(
+                    div()
+                        .flex()
+                        .flex_wrap()
+                        .gap(px(theme::CONTROL_GAP))
+                        .child(format!(
+                            "{} · {}",
+                            redact_log_text(&install.installed_name),
+                            redact_log_text(&install.status)
+                        ))
+                        .child(semantics::button(
+                            Button::new(("codex-agent-sync", index))
+                                .label(text(cx, "Sync install", "同步安装"))
+                                .on_click(cx.listener(move |this, _, _, cx| {
+                                    this.confirmation = Some(Confirm::Sync {
+                                        install: sync.clone(),
+                                        force: false,
+                                    });
+                                    cx.notify();
+                                })),
+                            locked,
+                            false,
+                            cx,
+                        ))
+                        .child(semantics::button(
+                            Button::new(("codex-agent-force", index))
+                                .label(text(cx, "Replace with upstream", "用上游替换"))
+                                .ghost()
+                                .on_click(cx.listener(move |this, _, _, cx| {
+                                    this.confirmation = Some(Confirm::Sync {
+                                        install: force.clone(),
+                                        force: true,
+                                    });
+                                    cx.notify();
+                                })),
+                            locked,
+                            false,
+                            cx,
+                        ))
+                        .child(semantics::button(
+                            Button::new(("codex-agent-accept", index))
+                                .label(text(cx, "Keep local changes", "保留本地修改"))
+                                .ghost()
+                                .on_click(cx.listener(move |this, _, _, cx| {
+                                    this.confirmation = Some(Confirm::AcceptLocal(accept.clone()));
+                                    cx.notify();
+                                })),
+                            locked,
+                            false,
+                            cx,
+                        ))
+                        .child(semantics::button(
+                            Button::new(("codex-agent-untrack", index))
+                                .label(text(cx, "Stop tracking", "停止跟踪"))
+                                .ghost()
+                                .on_click(cx.listener(move |this, _, _, cx| {
+                                    this.confirmation = Some(Confirm::Untrack(untrack.clone()));
+                                    cx.notify();
+                                })),
+                            locked,
+                            false,
+                            cx,
+                        )),
+                );
+            }
+            if catalog.agents.len() > 100 || catalog.installs.len() > 100 {
+                root = root.child(text(
+                    cx,
+                    "Showing up to 100 entries per page.",
+                    "每页显示最多 100 项。",
+                ));
+            }
         }
-        let locked = self.busy || self.operation.busy;
-        let mut root = div()
-            .id("codex-agents")
-            .track_focus(&self.focus)
-            .flex()
-            .flex_col()
-            .size_full()
-            .overflow_y_scroll()
-            .gap(px(theme::CONTROL_GAP));
+
+        root
+    }
+
+    #[inline(never)]
+    fn render_sources(
+        &mut self,
+        mut root: gpui_kit::Stateful<gpui_kit::Div>,
+        locked: bool,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::Stateful<gpui_kit::Div> {
+        root=root.child(text(cx,"Cached catalogs do not contact GitHub. Adding or refreshing a source and syncing an install contact GitHub. Review remote instructions before installing.","读取缓存目录不会连接 GitHub。添加或刷新源、同步安装会连接 GitHub。安装前请审阅远程指令。"))
+                .child(Input::new(&self.repo).aria_label(text(cx,"GitHub repository URL","GitHub 仓库 URL")).accessibility_id("codex-agent-repo"))
+                .child(semantics::button(Button::new("codex-agent-source-add").label(text(cx,"Add source","添加源")).on_click(cx.listener(|this,_,_,cx|{let url=this.repo.read(cx).value().to_string();this.selected_source=None;this.start(Mutation::Source(SourceAction::Add(url)),cx);})),locked,false,cx));
+        for (index, source) in self
+            .sources
+            .iter()
+            .skip(self.page * 100)
+            .take(100)
+            .enumerate()
+        {
+            let id = source.id.clone();
+            let refresh = id.clone();
+            let remove = id.clone();
+            root = root.child(
+                div()
+                    .flex()
+                    .gap(px(theme::CONTROL_GAP))
+                    .child(semantics::button(
+                        Button::new(("codex-agent-source", index))
+                            .label(format!(
+                                "{} · {}",
+                                redact_log_text(&source.repo_url),
+                                redact_log_text(&source.status)
+                            ))
+                            .ghost()
+                            .on_click(cx.listener(move |this, _, _, cx| {
+                                this.page = 0;
+                                this.selected_source = Some(id.clone());
+                                this.catalog = None;
+                                this.request(Read::Catalog(id.clone()), cx);
+                            })),
+                        locked,
+                        false,
+                        cx,
+                    ))
+                    .child(semantics::button(
+                        Button::new(("codex-agent-source-refresh", index))
+                            .label(text(cx, "Refresh source", "刷新源"))
+                            .on_click(cx.listener(move |this, _, _, cx| {
+                                this.selected_source = Some(refresh.clone());
+                                this.start(
+                                    Mutation::Source(SourceAction::Refresh(refresh.clone())),
+                                    cx,
+                                );
+                            })),
+                        locked,
+                        false,
+                        cx,
+                    ))
+                    .child(semantics::button(
+                        Button::new(("codex-agent-source-remove", index))
+                            .label(text(cx, "Remove source", "移除源"))
+                            .ghost()
+                            .on_click(cx.listener(move |this, _, _, cx| {
+                                this.confirmation = Some(Confirm::RemoveSource(remove.clone()));
+                                cx.notify();
+                            })),
+                        locked,
+                        false,
+                        cx,
+                    )),
+            );
+        }
+        root = self.render_catalog(root, locked, cx);
+        if let Some(preview) = &self.preview {
+            root = root
+                .child(div().id("codex-agent-preview-text").child(preview.clone()))
+                .child(semantics::button(
+                    Button::new("codex-agent-preview-close")
+                        .label(text(cx, "Close preview", "关闭预览"))
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            this.preview = None;
+                            cx.notify();
+                        })),
+                    false,
+                    false,
+                    cx,
+                ));
+        }
+
+        root
+    }
+
+    #[inline(never)]
+    fn render_local(
+        &mut self,
+        mut root: gpui_kit::Stateful<gpui_kit::Div>,
+        locked: bool,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::Stateful<gpui_kit::Div> {
+        root = root
+            .child(
+                div()
+                    .flex()
+                    .gap(px(theme::CONTROL_GAP))
+                    .child(semantics::button(
+                        Button::new("codex-agent-global")
+                            .label(text(cx, "Global scope", "全局范围"))
+                            .selected(self.scope == Scope::Global)
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.scope = Scope::Global;
+                                this.reload(cx);
+                            })),
+                        locked || self.editing,
+                        false,
+                        cx,
+                    ))
+                    .child(semantics::button(
+                        Button::new("codex-agent-project")
+                            .label(text(cx, "Use project directory", "使用项目目录"))
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.scope = Scope::Project(
+                                    this.project.read(cx).value().to_string().into(),
+                                );
+                                this.reload(cx);
+                            })),
+                        locked || self.editing,
+                        false,
+                        cx,
+                    )),
+            )
+            .child(
+                Input::new(&self.project)
+                    .aria_label(text(cx, "Absolute project directory", "项目绝对目录"))
+                    .accessibility_id("codex-agent-project-path"),
+            )
+            .child(semantics::button(
+                Button::new("codex-agent-new")
+                    .label(text(cx, "New agent", "新增 Agent"))
+                    .on_click(cx.listener(|this, _, window, cx| this.new_agent(window, cx))),
+                locked || self.editing,
+                false,
+                cx,
+            ));
+        if !self.editing {
+            for (index, agent) in self.rows.iter().skip(self.page * 100).take(100).enumerate() {
+                let id = agent.key.clone();
+                root = root.child(semantics::button(
+                    Button::new(("codex-agent-open", index))
+                        .label(format!(
+                            "{}{}",
+                            agent.name,
+                            if agent.malformed {
+                                text(cx, " (invalid TOML)", "（TOML 无效）")
+                            } else {
+                                ""
+                            }
+                        ))
+                        .ghost()
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            this.request(Read::Open(this.scope.clone(), id.clone()), cx)
+                        })),
+                    locked,
+                    false,
+                    cx,
+                ));
+            }
+            if self.rows.len() > 100 {
+                root = root.child(text(
+                    cx,
+                    "Showing up to 100 agents per page.",
+                    "每页显示最多 100 个 Agents。",
+                ));
+            }
+        }
+        root = self.render_editor(root, locked, cx);
+
+        root
+    }
+
+    #[inline(never)]
+    fn render_toolbar(
+        &mut self,
+        mut root: gpui_kit::Stateful<gpui_kit::Div>,
+        locked: bool,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::Stateful<gpui_kit::Div> {
         root = root.child(
             div()
                 .flex()
@@ -445,443 +785,17 @@ impl Render for CodexAgentsView {
                     cx,
                 )),
         );
-        if let Some(value) = self
-            .message
-            .or_else(|| self.operation.result.and_then(Result::err))
-        {
-            root = root.child(
-                div()
-                    .id("codex-agents-error")
-                    .test_support()
-                    .role(gpui_kit::Role::Status)
-                    .aria_label(error(cx, value))
-                    .child(error(cx, value)),
-            );
-        }
-        if self.operation.busy {
-            root=root.child(text(cx,"Operation continues when you leave this page. Active source requests cannot be cancelled.","离开页面后操作继续。进行中的源请求无法取消。"));
-        } else if self.operation.result.is_some_and(|r| r.is_ok()) {
-            root = root.child(div().id("codex-agents-result").test_support().child(text(
-                cx,
-                "Agent operation completed.",
-                "Agent 操作已完成。",
-            )));
-        }
-        if self.sources_mode {
-            root=root.child(text(cx,"Cached catalogs do not contact GitHub. Adding or refreshing a source and syncing an install contact GitHub. Review remote instructions before installing.","读取缓存目录不会连接 GitHub。添加或刷新源、同步安装会连接 GitHub。安装前请审阅远程指令。"))
-                .child(Input::new(&self.repo).aria_label(text(cx,"GitHub repository URL","GitHub 仓库 URL")).accessibility_id("codex-agent-repo"))
-                .child(semantics::button(Button::new("codex-agent-source-add").label(text(cx,"Add source","添加源")).on_click(cx.listener(|this,_,_,cx|{let url=this.repo.read(cx).value().to_string();this.selected_source=None;this.start(Mutation::Source(SourceAction::Add(url)),cx);})),locked,false,cx));
-            for (index, source) in self
-                .sources
-                .iter()
-                .skip(self.page * 100)
-                .take(100)
-                .enumerate()
-            {
-                let id = source.id.clone();
-                let refresh = id.clone();
-                let remove = id.clone();
-                root = root.child(
-                    div()
-                        .flex()
-                        .gap(px(theme::CONTROL_GAP))
-                        .child(semantics::button(
-                            Button::new(("codex-agent-source", index))
-                                .label(format!(
-                                    "{} · {}",
-                                    redact_log_text(&source.repo_url),
-                                    redact_log_text(&source.status)
-                                ))
-                                .ghost()
-                                .on_click(cx.listener(move |this, _, _, cx| {
-                                    this.page = 0;
-                                    this.selected_source = Some(id.clone());
-                                    this.catalog = None;
-                                    this.request(Read::Catalog(id.clone()), cx);
-                                })),
-                            locked,
-                            false,
-                            cx,
-                        ))
-                        .child(semantics::button(
-                            Button::new(("codex-agent-source-refresh", index))
-                                .label(text(cx, "Refresh source", "刷新源"))
-                                .on_click(cx.listener(move |this, _, _, cx| {
-                                    this.selected_source = Some(refresh.clone());
-                                    this.start(
-                                        Mutation::Source(SourceAction::Refresh(refresh.clone())),
-                                        cx,
-                                    );
-                                })),
-                            locked,
-                            false,
-                            cx,
-                        ))
-                        .child(semantics::button(
-                            Button::new(("codex-agent-source-remove", index))
-                                .label(text(cx, "Remove source", "移除源"))
-                                .ghost()
-                                .on_click(cx.listener(move |this, _, _, cx| {
-                                    this.confirmation = Some(Confirm::RemoveSource(remove.clone()));
-                                    cx.notify();
-                                })),
-                            locked,
-                            false,
-                            cx,
-                        )),
-                );
-            }
-            if let Some(catalog) = &self.catalog {
-                root = root
-                    .child(format!(
-                        "{} · {}",
-                        redact_log_text(&catalog.source.repo_url),
-                        redact_log_text(&catalog.source.status)
-                    ))
-                    .child(
-                        Input::new(&self.name)
-                            .aria_label(text(
-                                cx,
-                                "Install name (blank uses agent name)",
-                                "安装名称（留空使用 Agent 名称）",
-                            ))
-                            .accessibility_id("codex-agent-install-name"),
-                    );
-                for (index, agent) in catalog
-                    .agents
-                    .iter()
-                    .skip(self.page * 100)
-                    .take(100)
-                    .enumerate()
-                {
-                    let id = agent.id.clone();
-                    let raw = agent.raw_toml.clone();
-                    let replacement = id.clone();
-                    root = root.child(
-                        div()
-                            .flex()
-                            .gap(px(theme::CONTROL_GAP))
-                            .child(redact_log_text(&agent.name))
-                            .child(semantics::button(
-                                Button::new(("codex-agent-preview", index))
-                                    .label(text(cx, "Preview instructions", "预览指令"))
-                                    .ghost()
-                                    .on_click(cx.listener(move |this, _, _, cx| {
-                                        this.preview = Some(raw.clone());
-                                        cx.notify();
-                                    })),
-                                locked,
-                                false,
-                                cx,
-                            ))
-                            .child(semantics::button(
-                                Button::new(("codex-agent-install", index))
-                                    .label(text(cx, "Install", "安装"))
-                                    .on_click(cx.listener(move |this, _, _, cx| {
-                                        this.confirmation = Some(Confirm::Install {
-                                            agent: id.clone(),
-                                            replace: false,
-                                        });
-                                        cx.notify();
-                                    })),
-                                locked || agent.parse_error.is_some(),
-                                false,
-                                cx,
-                            ))
-                            .child(semantics::button(
-                                Button::new(("codex-agent-replace", index))
-                                    .label(text(cx, "Replace tracked install", "替换已跟踪安装"))
-                                    .ghost()
-                                    .on_click(cx.listener(move |this, _, _, cx| {
-                                        this.confirmation = Some(Confirm::Install {
-                                            agent: replacement.clone(),
-                                            replace: true,
-                                        });
-                                        cx.notify();
-                                    })),
-                                locked || agent.parse_error.is_some(),
-                                false,
-                                cx,
-                            )),
-                    );
-                }
-                for (index, install) in catalog
-                    .installs
-                    .iter()
-                    .skip(self.page * 100)
-                    .take(100)
-                    .enumerate()
-                {
-                    let sync = install.id.clone();
-                    let force = sync.clone();
-                    let accept = sync.clone();
-                    let untrack = sync.clone();
-                    root = root.child(
-                        div()
-                            .flex()
-                            .flex_wrap()
-                            .gap(px(theme::CONTROL_GAP))
-                            .child(format!(
-                                "{} · {}",
-                                redact_log_text(&install.installed_name),
-                                redact_log_text(&install.status)
-                            ))
-                            .child(semantics::button(
-                                Button::new(("codex-agent-sync", index))
-                                    .label(text(cx, "Sync install", "同步安装"))
-                                    .on_click(cx.listener(move |this, _, _, cx| {
-                                        this.confirmation = Some(Confirm::Sync {
-                                            install: sync.clone(),
-                                            force: false,
-                                        });
-                                        cx.notify();
-                                    })),
-                                locked,
-                                false,
-                                cx,
-                            ))
-                            .child(semantics::button(
-                                Button::new(("codex-agent-force", index))
-                                    .label(text(cx, "Replace with upstream", "用上游替换"))
-                                    .ghost()
-                                    .on_click(cx.listener(move |this, _, _, cx| {
-                                        this.confirmation = Some(Confirm::Sync {
-                                            install: force.clone(),
-                                            force: true,
-                                        });
-                                        cx.notify();
-                                    })),
-                                locked,
-                                false,
-                                cx,
-                            ))
-                            .child(semantics::button(
-                                Button::new(("codex-agent-accept", index))
-                                    .label(text(cx, "Keep local changes", "保留本地修改"))
-                                    .ghost()
-                                    .on_click(cx.listener(move |this, _, _, cx| {
-                                        this.confirmation =
-                                            Some(Confirm::AcceptLocal(accept.clone()));
-                                        cx.notify();
-                                    })),
-                                locked,
-                                false,
-                                cx,
-                            ))
-                            .child(semantics::button(
-                                Button::new(("codex-agent-untrack", index))
-                                    .label(text(cx, "Stop tracking", "停止跟踪"))
-                                    .ghost()
-                                    .on_click(cx.listener(move |this, _, _, cx| {
-                                        this.confirmation = Some(Confirm::Untrack(untrack.clone()));
-                                        cx.notify();
-                                    })),
-                                locked,
-                                false,
-                                cx,
-                            )),
-                    );
-                }
-                if catalog.agents.len() > 100 || catalog.installs.len() > 100 {
-                    root = root.child(text(
-                        cx,
-                        "Showing up to 100 entries per page.",
-                        "每页显示最多 100 项。",
-                    ));
-                }
-            }
-            if let Some(preview) = &self.preview {
-                root = root
-                    .child(div().id("codex-agent-preview-text").child(preview.clone()))
-                    .child(semantics::button(
-                        Button::new("codex-agent-preview-close")
-                            .label(text(cx, "Close preview", "关闭预览"))
-                            .on_click(cx.listener(|this, _, _, cx| {
-                                this.preview = None;
-                                cx.notify();
-                            })),
-                        false,
-                        false,
-                        cx,
-                    ));
-            }
-        } else {
-            root = root
-                .child(
-                    div()
-                        .flex()
-                        .gap(px(theme::CONTROL_GAP))
-                        .child(semantics::button(
-                            Button::new("codex-agent-global")
-                                .label(text(cx, "Global scope", "全局范围"))
-                                .selected(self.scope == Scope::Global)
-                                .on_click(cx.listener(|this, _, _, cx| {
-                                    this.scope = Scope::Global;
-                                    this.reload(cx);
-                                })),
-                            locked || self.editing,
-                            false,
-                            cx,
-                        ))
-                        .child(semantics::button(
-                            Button::new("codex-agent-project")
-                                .label(text(cx, "Use project directory", "使用项目目录"))
-                                .on_click(cx.listener(|this, _, _, cx| {
-                                    this.scope = Scope::Project(
-                                        this.project.read(cx).value().to_string().into(),
-                                    );
-                                    this.reload(cx);
-                                })),
-                            locked || self.editing,
-                            false,
-                            cx,
-                        )),
-                )
-                .child(
-                    Input::new(&self.project)
-                        .aria_label(text(cx, "Absolute project directory", "项目绝对目录"))
-                        .accessibility_id("codex-agent-project-path"),
-                )
-                .child(semantics::button(
-                    Button::new("codex-agent-new")
-                        .label(text(cx, "New agent", "新增 Agent"))
-                        .on_click(cx.listener(|this, _, window, cx| this.new_agent(window, cx))),
-                    locked || self.editing,
-                    false,
-                    cx,
-                ));
-            if !self.editing {
-                for (index, agent) in self.rows.iter().skip(self.page * 100).take(100).enumerate() {
-                    let id = agent.key.clone();
-                    root = root.child(semantics::button(
-                        Button::new(("codex-agent-open", index))
-                            .label(format!(
-                                "{}{}",
-                                agent.name,
-                                if agent.malformed {
-                                    text(cx, " (invalid TOML)", "（TOML 无效）")
-                                } else {
-                                    ""
-                                }
-                            ))
-                            .ghost()
-                            .on_click(cx.listener(move |this, _, _, cx| {
-                                this.request(Read::Open(this.scope.clone(), id.clone()), cx)
-                            })),
-                        locked,
-                        false,
-                        cx,
-                    ));
-                }
-                if self.rows.len() > 100 {
-                    root = root.child(text(
-                        cx,
-                        "Showing up to 100 agents per page.",
-                        "每页显示最多 100 个 Agents。",
-                    ));
-                }
-            }
-            if self.editing {
-                root = root
-                    .child(
-                        Input::new(&self.name)
-                            .aria_label(text(
-                                cx,
-                                "Name for creation, rename or copy",
-                                "新增、重命名或复制的名称",
-                            ))
-                            .accessibility_id("codex-agent-name"),
-                    )
-                    .child(Textarea::new(&self.editor).h(px(250.)))
-                    .child(
-                        div()
-                            .flex()
-                            .gap(px(theme::CONTROL_GAP))
-                            .child(semantics::button(
-                                Button::new("codex-agent-save")
-                                    .label(text(cx, "Save agent", "保存 Agent"))
-                                    .on_click(cx.listener(|this, _, _, cx| this.save(cx))),
-                                locked,
-                                false,
-                                cx,
-                            ))
-                            .child(semantics::button(
-                                Button::new("codex-agent-discard")
-                                    .label(text(cx, "Discard draft", "丢弃草稿"))
-                                    .ghost()
-                                    .on_click(cx.listener(|this, _, window, cx| {
-                                        this.editing = false;
-                                        this.session = None;
-                                        this.editor.update(cx, |s, cx| s.set_value("", window, cx));
-                                        cx.notify();
-                                    })),
-                                locked,
-                                false,
-                                cx,
-                            )),
-                    );
-                if self.session.is_some() {
-                    root = root.child(
-                        div()
-                            .flex()
-                            .gap(px(theme::CONTROL_GAP))
-                            .child(semantics::button(
-                                Button::new("codex-agent-rename")
-                                    .label(text(cx, "Rename saved agent", "重命名已存 Agent"))
-                                    .on_click(cx.listener(|this, _, _, cx| {
-                                        if let Some(session) = &this.session {
-                                            this.start(
-                                                Mutation::Rename {
-                                                    session: session.clone(),
-                                                    name: this.name.read(cx).value().to_string(),
-                                                },
-                                                cx,
-                                            );
-                                        }
-                                    })),
-                                locked,
-                                false,
-                                cx,
-                            ))
-                            .child(semantics::button(
-                                Button::new("codex-agent-copy")
-                                    .label(text(
-                                        cx,
-                                        "Copy saved agent to this scope",
-                                        "复制已存 Agent 到当前范围",
-                                    ))
-                                    .on_click(cx.listener(|this, _, _, cx| {
-                                        if let Some(session) = &this.session {
-                                            this.start(
-                                                Mutation::Copy {
-                                                    session: session.clone(),
-                                                    target: this.scope.clone(),
-                                                    name: this.name.read(cx).value().to_string(),
-                                                },
-                                                cx,
-                                            );
-                                        }
-                                    })),
-                                locked,
-                                false,
-                                cx,
-                            ))
-                            .child(semantics::button(
-                                Button::new("codex-agent-delete")
-                                    .label(text(cx, "Delete agent", "删除 Agent"))
-                                    .ghost()
-                                    .on_click(cx.listener(|this, _, _, cx| {
-                                        this.confirmation = Some(Confirm::Delete);
-                                        cx.notify();
-                                    })),
-                                locked,
-                                false,
-                                cx,
-                            )),
-                    );
-                }
-            }
-        }
+
+        root
+    }
+
+    #[inline(never)]
+    fn render_confirmation(
+        &mut self,
+        mut root: gpui_kit::Stateful<gpui_kit::Div>,
+        locked: bool,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::Stateful<gpui_kit::Div> {
         if let Some(action) = &self.confirmation {
             let warning = match action {
                 Confirm::Delete => text(cx, "Delete this agent file?", "删除此 Agent 文件？"),
@@ -943,6 +857,164 @@ impl Render for CodexAgentsView {
                     )),
             );
         }
+
+        root
+    }
+
+    #[inline(never)]
+    fn render_editor(
+        &mut self,
+        mut root: gpui_kit::Stateful<gpui_kit::Div>,
+        locked: bool,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::Stateful<gpui_kit::Div> {
+        if self.editing {
+            root = root
+                .child(
+                    Input::new(&self.name)
+                        .aria_label(text(
+                            cx,
+                            "Name for creation, rename or copy",
+                            "新增、重命名或复制的名称",
+                        ))
+                        .accessibility_id("codex-agent-name"),
+                )
+                .child(Textarea::new(&self.editor).h(px(250.)))
+                .child(
+                    div()
+                        .flex()
+                        .gap(px(theme::CONTROL_GAP))
+                        .child(semantics::button(
+                            Button::new("codex-agent-save")
+                                .label(text(cx, "Save agent", "保存 Agent"))
+                                .on_click(cx.listener(|this, _, _, cx| this.save(cx))),
+                            locked,
+                            false,
+                            cx,
+                        ))
+                        .child(semantics::button(
+                            Button::new("codex-agent-discard")
+                                .label(text(cx, "Discard draft", "丢弃草稿"))
+                                .ghost()
+                                .on_click(cx.listener(|this, _, window, cx| {
+                                    this.editing = false;
+                                    this.session = None;
+                                    this.editor.update(cx, |s, cx| s.set_value("", window, cx));
+                                    cx.notify();
+                                })),
+                            locked,
+                            false,
+                            cx,
+                        )),
+                );
+            if self.session.is_some() {
+                root = root.child(
+                    div()
+                        .flex()
+                        .gap(px(theme::CONTROL_GAP))
+                        .child(semantics::button(
+                            Button::new("codex-agent-rename")
+                                .label(text(cx, "Rename saved agent", "重命名已存 Agent"))
+                                .on_click(cx.listener(|this, _, _, cx| {
+                                    if let Some(session) = &this.session {
+                                        this.start(
+                                            Mutation::Rename {
+                                                session: session.clone(),
+                                                name: this.name.read(cx).value().to_string(),
+                                            },
+                                            cx,
+                                        );
+                                    }
+                                })),
+                            locked,
+                            false,
+                            cx,
+                        ))
+                        .child(semantics::button(
+                            Button::new("codex-agent-copy")
+                                .label(text(
+                                    cx,
+                                    "Copy saved agent to this scope",
+                                    "复制已存 Agent 到当前范围",
+                                ))
+                                .on_click(cx.listener(|this, _, _, cx| {
+                                    if let Some(session) = &this.session {
+                                        this.start(
+                                            Mutation::Copy {
+                                                session: session.clone(),
+                                                target: this.scope.clone(),
+                                                name: this.name.read(cx).value().to_string(),
+                                            },
+                                            cx,
+                                        );
+                                    }
+                                })),
+                            locked,
+                            false,
+                            cx,
+                        ))
+                        .child(semantics::button(
+                            Button::new("codex-agent-delete")
+                                .label(text(cx, "Delete agent", "删除 Agent"))
+                                .ghost()
+                                .on_click(cx.listener(|this, _, _, cx| {
+                                    this.confirmation = Some(Confirm::Delete);
+                                    cx.notify();
+                                })),
+                            locked,
+                            false,
+                            cx,
+                        )),
+                );
+            }
+        }
+        root
+    }
+}
+impl Render for CodexAgentsView {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        if let Some(value) = self.pending_text.take() {
+            self.editor
+                .update(cx, |state, cx| state.set_value(value, window, cx));
+        }
+        let locked = self.busy || self.operation.busy;
+        let mut root = div()
+            .id("codex-agents")
+            .track_focus(&self.focus)
+            .flex()
+            .flex_col()
+            .size_full()
+            .overflow_y_scroll()
+            .gap(px(theme::CONTROL_GAP));
+        root = self.render_toolbar(root, locked, cx);
+        if let Some(value) = self
+            .message
+            .or_else(|| self.operation.result.and_then(Result::err))
+        {
+            root = root.child(
+                div()
+                    .id("codex-agents-error")
+                    .test_support()
+                    .role(gpui_kit::Role::Status)
+                    .aria_label(error(cx, value))
+                    .child(error(cx, value)),
+            );
+        }
+        if self.operation.busy {
+            root=root.child(text(cx,"Operation continues when you leave this page. Active source requests cannot be cancelled.","离开页面后操作继续。进行中的源请求无法取消。"));
+        } else if self.operation.result.is_some_and(|r| r.is_ok()) {
+            root = root.child(div().id("codex-agents-result").test_support().child(text(
+                cx,
+                "Agent operation completed.",
+                "Agent 操作已完成。",
+            )));
+        }
+        root = if self.sources_mode {
+            self.render_sources(root, locked, cx)
+        } else {
+            self.render_local(root, locked, cx)
+        };
+        root = self.render_confirmation(root, locked, cx);
         let total = if self.sources_mode {
             self.catalog
                 .as_ref()
