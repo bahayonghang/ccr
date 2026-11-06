@@ -1,16 +1,10 @@
 # 🦀 CCR 项目 Justfile - 快速执行常用命令
 
-# 📖 使用指南
-# ────────────────────────────────────────────────────────
-# 查看命令：just --list 或 just help
-# 快速开发：just dev (检查+测试) 或 just watch (自动重编译)
-# 代码检查：just lint (格式+Clippy) 或 just ci (完整CI)
-# 构建程序：just build (Debug) 或 just release (优化版)
-# 运行程序：just run -- <参数> 或 just run-release -- <参数>
-# 本地安装：just install (安装到 ~/.cargo/bin)
-# 清理产物：just clean（构建产物）或 just clean-all（含 node_modules）
-# 前置要求：Rust工具链 (cargo, rustc)
-# 提示事项：修改二进制名需同步更新 BIN 变量
+# 查看命令：just 或 just help
+# 完整 recipe：just --list --unsorted
+# CLI：just dev / build / release / run -- <参数> / ci
+# GPUI：just gpui-dev / gpui-build / gpui-ci
+# 前置：Rust 工具链。修改二进制名需同步 BIN。
 
 # 二进制名称(与 Cargo.toml [[bin]] 保持一致)
 BIN := "ccr"
@@ -116,135 +110,42 @@ _warn-macos message:
 # 🎯 默认任务：显示帮助菜单
 default: help
 
-# 📋 显示所有可用任务
+# 📋 显示常用命令；完整 recipe 用 just --list --unsorted
 help:
     @just _help-{{os()}}
-    @just --list
+
+# just 的 recipe 每行都会新启一次 shell。Windows 前缀还要改代码页，逐行 Write-Host 会把帮助一行行刷出来。
+# 换行先压成单行里的 `n。多行 -Command 会被 PowerShell 按行拆开，仍然逐行启动。
+HELP_TEXT := '''
+   🦀 CCR
+   ───────────────────────────────────────────────────────
+   CLI       dev  build  test  release  run  ci  lint  fmt
+   GPUI      gpui-dev  gpui-build  gpui-ci
+             gpui-check  gpui-test  gpui-doctor  gpui-package
+   Tauri     tauri-dev  tauri-build  tauri-check  tauri-ci  tinstall
+   前端      frontend-check-quick  frontend-check  frontend-coverage
+   扩展      vscode-ci  vscode-build  vscode-test
+   质量      fmt-check  clippy  lint-strict  audit  version-check
+   清理      clean  clean-all
+
+   完整 recipe：just --list --unsorted
+'''
+lf := '
+'
+HELP_FLAT := replace(HELP_TEXT, lf, '`n')
+HELP_UNIX := replace(HELP_TEXT, lf, '\n')
 
 [private]
 _help-windows:
-    @Write-Host ""
-    @Write-Host "   🦀 CCR Justfile - 可用命令列表"
-    @Write-Host "   ────────────────────────────────────────────────────────"
-    @Write-Host "   💡 提示: just <命令> 执行，just --list 查看完整列表"
-    @Write-Host ""
-    @Write-Host "   🔧 版本相关命令（跨平台）："
-    @Write-Host "     • just version-sync   同步版本号（以根 Cargo.toml 为主）"
-    @Write-Host "                            → 更新 crates/ccr-types/Cargo.toml"
-    @Write-Host "                              和 crates/ccr-db/Cargo.toml"
-    @Write-Host "                              和 ccr-ui/package.json"
-    @Write-Host "                              和 ccr-ui/src-tauri/*"
-    @Write-Host "                              和 ccr-vscode/package.json"
-    @Write-Host "                            → Windows: 使用 version-sync.ps1"
-    @Write-Host "                            → Linux/macOS: 使用 version-sync.sh"
-    @Write-Host "     • just version-check  仅检查版本一致性（不修改文件）"
-    @Write-Host ""
-    @Write-Host "   🌐 前端检查命令："
-    @Write-Host "     • just frontend-typecheck  前端 TypeScript 类型检查"
-    @Write-Host "     • just frontend-lint       前端 Lint 检查"
-    @Write-Host "     • just frontend-build      前端构建"
-    @Write-Host "     • just docs-check          文档构建检查 (VitePress)"
-    @Write-Host "     • just frontend-check      前端完整检查（类型+Lint+构建+文档）"
-    @Write-Host "     • just frontend-check-quick 前端快速检查（类型+Lint）"
-    @Write-Host ""
-    @Write-Host "   🔒 安全审计命令："
-    @Write-Host "     • just audit               运行 cargo audit 安全审计"
-    @Write-Host ""
-    @Write-Host "   🎯 完整 CI 流程："
-    @Write-Host "     • just ci                  完整 CI 流程（对齐 GitHub Actions）"
-    @Write-Host "                                版本同步 → 格式检查 → Clippy"
-    @Write-Host "                                → 测试 → 构建 → 安全审计"
-    @Write-Host "                                → 前端完整检查"
-    @Write-Host ""
-    @Write-Host "   🧹 清理命令："
-    @Write-Host "     • just clean              清理构建产物（Cargo/Tauri target、dist、outputs）"
-    @Write-Host "     • just clean-all          上述内容 + node_modules"
-    @Write-Host ""
-    @Write-Host ""
+    @$text = "{{HELP_FLAT}}"; Write-Host ($text -replace '`n', [Environment]::NewLine)
 
 [private]
 _help-linux:
-    @printf '%s\n' ""
-    @printf '%s\n' "   🦀 CCR Justfile - 可用命令列表"
-    @printf '%s\n' "   ────────────────────────────────────────────────────────"
-    @printf '%s\n' "   💡 提示: just <命令> 执行，just --list 查看完整列表"
-    @printf '%s\n' ""
-    @printf '%s\n' "   🔧 版本相关命令（跨平台）："
-    @printf '%s\n' "     • just version-sync   同步版本号（以根 Cargo.toml 为主）"
-    @printf '%s\n' "                            → 更新 crates/ccr-types/Cargo.toml"
-    @printf '%s\n' "                              和 crates/ccr-db/Cargo.toml"
-    @printf '%s\n' "                              和 ccr-ui/package.json"
-    @printf '%s\n' "                              和 ccr-ui/src-tauri/*"
-    @printf '%s\n' "                              和 ccr-vscode/package.json"
-    @printf '%s\n' "                            → Windows: 使用 version-sync.ps1"
-    @printf '%s\n' "                            → Linux/macOS: 使用 version-sync.sh"
-    @printf '%s\n' "     • just version-check  仅检查版本一致性（不修改文件）"
-    @printf '%s\n' ""
-    @printf '%s\n' "   🌐 前端检查命令："
-    @printf '%s\n' "     • just frontend-typecheck  前端 TypeScript 类型检查"
-    @printf '%s\n' "     • just frontend-lint       前端 Lint 检查"
-    @printf '%s\n' "     • just frontend-build      前端构建"
-    @printf '%s\n' "     • just docs-check          文档构建检查 (VitePress)"
-    @printf '%s\n' "     • just frontend-check      前端完整检查（类型+Lint+构建+文档）"
-    @printf '%s\n' "     • just frontend-check-quick 前端快速检查（类型+Lint）"
-    @printf '%s\n' ""
-    @printf '%s\n' "   🔒 安全审计命令："
-    @printf '%s\n' "     • just audit               运行 cargo audit 安全审计"
-    @printf '%s\n' ""
-    @printf '%s\n' "   🎯 完整 CI 流程："
-    @printf '%s\n' "     • just ci                  完整 CI 流程（对齐 GitHub Actions）"
-    @printf '%s\n' "                                版本同步 → 格式检查 → Clippy"
-    @printf '%s\n' "                                → 测试 → 构建 → 安全审计"
-    @printf '%s\n' "                                → 前端完整检查"
-    @printf '%s\n' ""
-    @printf '%s\n' "   🧹 清理命令："
-    @printf '%s\n' "     • just clean              清理构建产物（Cargo/Tauri target、dist、outputs）"
-    @printf '%s\n' "     • just clean-all          上述内容 + node_modules"
-    @printf '%s\n' ""
-
-    @printf '\n'
+    @printf '%b\n' '{{HELP_UNIX}}'
 
 [private]
 _help-macos:
-    @printf '%s\n' ""
-    @printf '%s\n' "   🦀 CCR Justfile - 可用命令列表"
-    @printf '%s\n' "   ────────────────────────────────────────────────────────"
-    @printf '%s\n' "   💡 提示: just <命令> 执行，just --list 查看完整列表"
-    @printf '%s\n' ""
-    @printf '%s\n' "   🔧 版本相关命令（跨平台）："
-    @printf '%s\n' "     • just version-sync   同步版本号（以根 Cargo.toml 为主）"
-    @printf '%s\n' "                            → 更新 crates/ccr-types/Cargo.toml"
-    @printf '%s\n' "                              和 crates/ccr-db/Cargo.toml"
-    @printf '%s\n' "                              和 ccr-ui/package.json"
-    @printf '%s\n' "                              和 ccr-ui/src-tauri/*"
-    @printf '%s\n' "                              和 ccr-vscode/package.json"
-    @printf '%s\n' "                            → Windows: 使用 version-sync.ps1"
-    @printf '%s\n' "                            → Linux/macOS: 使用 version-sync.sh"
-    @printf '%s\n' "     • just version-check  仅检查版本一致性（不修改文件）"
-    @printf '%s\n' ""
-    @printf '%s\n' "   🌐 前端检查命令："
-    @printf '%s\n' "     • just frontend-typecheck  前端 TypeScript 类型检查"
-    @printf '%s\n' "     • just frontend-lint       前端 Lint 检查"
-    @printf '%s\n' "     • just frontend-build      前端构建"
-    @printf '%s\n' "     • just docs-check          文档构建检查 (VitePress)"
-    @printf '%s\n' "     • just frontend-check      前端完整检查（类型+Lint+构建+文档）"
-    @printf '%s\n' "     • just frontend-check-quick 前端快速检查（类型+Lint）"
-    @printf '%s\n' ""
-    @printf '%s\n' "   🔒 安全审计命令："
-    @printf '%s\n' "     • just audit               运行 cargo audit 安全审计"
-    @printf '%s\n' ""
-    @printf '%s\n' "   🎯 完整 CI 流程："
-    @printf '%s\n' "     • just ci                  完整 CI 流程（对齐 GitHub Actions）"
-    @printf '%s\n' "                                版本同步 → 格式检查 → Clippy"
-    @printf '%s\n' "                                → 测试 → 构建 → 安全审计"
-    @printf '%s\n' "                                → 前端完整检查"
-    @printf '%s\n' ""
-    @printf '%s\n' "   🧹 清理命令："
-    @printf '%s\n' "     • just clean              清理构建产物（Cargo/Tauri target、dist、outputs）"
-    @printf '%s\n' "     • just clean-all          上述内容 + node_modules"
-    @printf '%s\n' ""
-
-    @printf '\n'
+    @printf '%b\n' '{{HELP_UNIX}}'
 
 # ═══════════════════════════════════════════════════════════
 # 🏗️  构建命令
@@ -1913,50 +1814,85 @@ set script-interpreter := ["python"]
 [unix]
 set script-interpreter := ["python3"]
 
-desktop-help:
-    @just --justfile ccr-desktop/justfile desktop-help{{desktop_exit}}
-
-desktop-doctor:
-    @just --justfile ccr-desktop/justfile desktop-doctor{{desktop_exit}}
-
-[script]
+# 🖥️ GPUI：运行可见原生窗口，参数原样转发
 [positional-arguments]
-desktop-dev *args:
+[script]
+gpui-dev *args:
     import subprocess, sys
     sys.exit(subprocess.call(["just", "--justfile", "ccr-desktop/justfile", "desktop-dev", *sys.argv[1:]]))
 
-desktop-build:
-    @just --justfile ccr-desktop/justfile desktop-build{{desktop_exit}}
+# 🖥️ GPUI：release 构建
+gpui-build:
+    @just --justfile ccr-desktop/justfile desktop-build{{ desktop_exit }}
 
-desktop-package:
-    @just --justfile ccr-desktop/justfile desktop-package{{desktop_exit}}
+# 🖥️ GPUI：fmt-check → check → lint → test → release build
+gpui-ci:
+    @just --justfile ccr-desktop/justfile desktop-ci{{ desktop_exit }}
 
-desktop-build-debug:
-    @just --justfile ccr-desktop/justfile desktop-build-debug{{desktop_exit}}
+gpui-help:
+    @just --justfile ccr-desktop/justfile desktop-help{{ desktop_exit }}
 
-desktop-check:
-    @just --justfile ccr-desktop/justfile desktop-check{{desktop_exit}}
+gpui-doctor:
+    @just --justfile ccr-desktop/justfile desktop-doctor{{ desktop_exit }}
 
-desktop-fmt:
-    @just --justfile ccr-desktop/justfile desktop-fmt{{desktop_exit}}
+gpui-package:
+    @just --justfile ccr-desktop/justfile desktop-package{{ desktop_exit }}
 
-desktop-fmt-check:
-    @just --justfile ccr-desktop/justfile desktop-fmt-check{{desktop_exit}}
+gpui-build-debug:
+    @just --justfile ccr-desktop/justfile desktop-build-debug{{ desktop_exit }}
 
-desktop-lint:
-    @just --justfile ccr-desktop/justfile desktop-lint{{desktop_exit}}
+gpui-check:
+    @just --justfile ccr-desktop/justfile desktop-check{{ desktop_exit }}
 
-desktop-test:
-    @just --justfile ccr-desktop/justfile desktop-test{{desktop_exit}}
+gpui-fmt:
+    @just --justfile ccr-desktop/justfile desktop-fmt{{ desktop_exit }}
 
-desktop-test-ui:
-    @just --justfile ccr-desktop/justfile desktop-test-ui{{desktop_exit}}
+gpui-fmt-check:
+    @just --justfile ccr-desktop/justfile desktop-fmt-check{{ desktop_exit }}
 
-desktop-ci:
-    @just --justfile ccr-desktop/justfile desktop-ci{{desktop_exit}}
+gpui-lint:
+    @just --justfile ccr-desktop/justfile desktop-lint{{ desktop_exit }}
 
-desktop-audit:
-    @just --justfile ccr-desktop/justfile desktop-audit{{desktop_exit}}
+gpui-test:
+    @just --justfile ccr-desktop/justfile desktop-test{{ desktop_exit }}
 
-desktop-clean:
-    @just --justfile ccr-desktop/justfile desktop-clean{{desktop_exit}}
+gpui-test-ui:
+    @just --justfile ccr-desktop/justfile desktop-test-ui{{ desktop_exit }}
+
+gpui-audit:
+    @just --justfile ccr-desktop/justfile desktop-audit{{ desktop_exit }}
+
+gpui-clean:
+    @just --justfile ccr-desktop/justfile desktop-clean{{ desktop_exit }}
+
+# 旧入口保留，不再出现在 just --list
+[private]
+alias desktop-help := gpui-help
+[private]
+alias desktop-doctor := gpui-doctor
+[private]
+alias desktop-dev := gpui-dev
+[private]
+alias desktop-build := gpui-build
+[private]
+alias desktop-package := gpui-package
+[private]
+alias desktop-build-debug := gpui-build-debug
+[private]
+alias desktop-check := gpui-check
+[private]
+alias desktop-fmt := gpui-fmt
+[private]
+alias desktop-fmt-check := gpui-fmt-check
+[private]
+alias desktop-lint := gpui-lint
+[private]
+alias desktop-test := gpui-test
+[private]
+alias desktop-test-ui := gpui-test-ui
+[private]
+alias desktop-ci := gpui-ci
+[private]
+alias desktop-audit := gpui-audit
+[private]
+alias desktop-clean := gpui-clean

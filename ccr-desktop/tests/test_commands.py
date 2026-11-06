@@ -137,14 +137,16 @@ class CommandContract(unittest.TestCase):
                 mbx.chmod(0o755)
             args = ["--fixture-profiles", str(folder / "profile data/profiles.toml"),
                     "--fixture-registry", str(folder / "registry data/config.toml")]
-            result = subprocess.run(
-                ["just", "--justfile", str(ROOT.parent / "justfile"), "desktop-dev", *args],
-                env={**os.environ, "PATH": str(folder) + os.pathsep + os.environ["PATH"]},
-                capture_output=True, text=True,
-            )
-            self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
-            self.assertEqual(json.loads(captured.read_text()),
-                             ["run", "--locked", "--bin", "ccr-gpui", "--", *args])
+            for command in ("gpui-dev", "desktop-dev"):
+                with self.subTest(command=command):
+                    result = subprocess.run(
+                        ["just", "--justfile", str(ROOT.parent / "justfile"), command, *args],
+                        env={**os.environ, "PATH": str(folder) + os.pathsep + os.environ["PATH"]},
+                        capture_output=True, text=True,
+                    )
+                    self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
+                    self.assertEqual(json.loads(captured.read_text()),
+                                     ["run", "--locked", "--bin", "ccr-gpui", "--", *args])
 
     def test_cargo_without_mbx_is_preserved(self):
         for selected, mbx in (("ordinary-cargo", None), ("fixture-cargo.cmd", None)):
@@ -278,7 +280,7 @@ class CommandContract(unittest.TestCase):
             for command in ("dev", "build", "build-debug", "check", "lint", "test", "test-ui"):
                 with self.subTest(key=key, command=command):
                     result = subprocess.run(
-                        ["just", "--justfile", str(ROOT.parent / "justfile"), f"desktop-{command}"],
+                        ["just", "--justfile", str(ROOT.parent / "justfile"), f"gpui-{command}"],
                         env={**os.environ, key: str(ROOT.parent / "target")},
                         capture_output=True, text=True,
                     )
@@ -304,12 +306,14 @@ class CommandContract(unittest.TestCase):
                 mbx = folder / "mbx"
                 mbx.write_text(f"#!/bin/sh\nprintf '%s\\n' '{status}'\n")
                 mbx.chmod(0o755)
-            result = subprocess.run(
-                ["just", "--justfile", str(ROOT.parent / "justfile"), "desktop-build"],
-                env={**os.environ, "PATH": str(folder) + os.pathsep + os.environ["PATH"]},
-                capture_output=True, text=True,
-            )
-            self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
+            for command in ("gpui-build", "desktop-build"):
+                with self.subTest(command=command):
+                    result = subprocess.run(
+                        ["just", "--justfile", str(ROOT.parent / "justfile"), command],
+                        env={**os.environ, "PATH": str(folder) + os.pathsep + os.environ["PATH"]},
+                        capture_output=True, text=True,
+                    )
+                    self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
 
     def test_clean_rejects_foreign_workspace_and_target(self):
         with tempfile.TemporaryDirectory() as fixture:
@@ -333,14 +337,53 @@ class CommandContract(unittest.TestCase):
         )])
 
     def test_root_forwards_from_child_working_directory(self):
-        for command in ("build", "dev", "package", "check", "ci", "test-ui", "clean"):
-            result = subprocess.run(
-                ["just", "--justfile", str(ROOT.parent / "justfile"), "--dry-run", f"desktop-{command}"],
-                capture_output=True, text=True, check=True,
-            )
-            expected = ('"--justfile", "ccr-desktop/justfile", "desktop-dev"' if command == "dev"
-                        else f"--justfile ccr-desktop/justfile desktop-{command}")
-            self.assertIn(expected, result.stderr + result.stdout)
+        commands = ("help", "doctor", "dev", "build", "package", "build-debug", "check", "fmt",
+                    "fmt-check", "lint", "test", "test-ui", "ci", "audit", "clean")
+        listed = subprocess.run(
+            ["just", "--justfile", str(ROOT.parent / "justfile"), "--summary"],
+            capture_output=True, text=True, check=True,
+        ).stdout.split()
+        for command in commands:
+            with self.subTest(command=command):
+                self.assertIn(f"gpui-{command}", listed)
+                self.assertNotIn(f"desktop-{command}", listed)
+                forwarded = []
+                for prefix in ("gpui", "desktop"):
+                    result = subprocess.run(
+                        ["just", "--justfile", str(ROOT.parent / "justfile"), "--dry-run", f"{prefix}-{command}"],
+                        capture_output=True, text=True, check=True,
+                    )
+                    expected = ('"--justfile", "ccr-desktop/justfile", "desktop-dev"' if command == "dev"
+                                else f"--justfile ccr-desktop/justfile desktop-{command}")
+                    self.assertIn(expected, result.stderr + result.stdout)
+                    forwarded.append(result.stderr + result.stdout)
+                self.assertEqual(*forwarded)
+
+    def test_unix_help_expands_just_text_without_shell_variables(self):
+        bash = r"C:\Program Files\Git\bin\bash.exe" if os.name == "nt" else "bash"
+        env = {key: value for key, value in os.environ.items() if key != "HELP_FLAT"}
+        outputs = []
+        for platform in ("linux", "macos"):
+            with self.subTest(platform=platform):
+                rendered = subprocess.run(
+                    ["just", "--justfile", str(ROOT.parent / "justfile"), "--dry-run", f"_help-{platform}"],
+                    capture_output=True, text=True, encoding="utf-8", check=True,
+                )
+                command = rendered.stdout + rendered.stderr
+                parsed = subprocess.run([bash, "-n"], input=command, capture_output=True,
+                                        text=True, encoding="utf-8")
+                self.assertEqual(parsed.returncode, 0, parsed.stderr)
+                result = subprocess.run(
+                    [bash, "--noprofile", "--norc", "-c", command], env=env,
+                    capture_output=True, text=True, encoding="utf-8",
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn("GPUI      gpui-dev  gpui-build  gpui-ci", result.stdout)
+                self.assertIn("完整 recipe：just --list --unsorted", result.stdout)
+                self.assertGreater(len(result.stdout.splitlines()), 10)
+                outputs.append(result.stdout)
+        if len(outputs) == 2:
+            self.assertEqual(*outputs)
 
 
 if __name__ == "__main__":

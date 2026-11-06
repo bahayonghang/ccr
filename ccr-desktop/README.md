@@ -16,9 +16,9 @@ SFTP 不提供服务端原子 CAS，不能排除检查到 rename 之间的其他
 重新连接或改变信任后旧快照必须重读。选择 SSH 时其他 Local-only 页面明确不可用，不回落本地数据。
 WSL 接入延期，设置刷新不自动探测发行版。fixture 默认不允许 SSH 网络操作；真实 SSH 验收尚未运行。
 
-平台页已接入固定路径下的设置字段补丁、原始版本源码编辑、Claude/Codex 账户与 OpenCode 供应商操作。用量与会话页通过共享应用层读取 Home/Usage 和归档会话，保留精确数值、过滤、分页与 provider fidelity。Codex OAuth已接入共享控制器、手动回调和取消清理；真实账户成功与官方退出登录仍待完成验收。导入任务与 quota 请求尚未接入，不能将页面可见视作完整能力通过。
+平台页已接入固定路径下的设置字段补丁、原始版本源码编辑、Claude/Codex/Grok 账户与 OpenCode/Codex 供应商操作。用量与会话页通过共享应用层读取 Home/Usage 和归档会话，保留精确数值、过滤、分页与 provider fidelity。Codex OAuth 已接入共享控制器、手动回调和取消清理；用量导入已接入安装的 llmusage CLI、状态与取消，Codex quota 请求沿用现有服务并明确触发。fixture 拒绝真实导入及外部配额请求；真实认证、配额返回及新增操作的原生验收仍未完成，不能将页面可见视作完整能力通过。
 
-`just desktop-dev --probe` 保留 **01 原生输入探针**，仅使用内存状态，不读取个人配置。
+`just gpui-dev --probe` 保留 **01 原生输入探针**，仅使用内存状态，不读取个人配置。
 编译、headless interaction 与原生运行的证据分别记录在
 [01 evidence](../.trellis/tasks/10-17-gpui-01-foundation/evidence.md) 和
 [02 evidence](../.trellis/tasks/10-17-gpui-02-services/evidence.md)；外壳与配置集实施分别见 [03 evidence](../.trellis/tasks/10-17-gpui-03-shell/evidence.md) 和 [04 evidence](../.trellis/tasks/10-17-gpui-04-profiles/evidence.md)，未运行项不表示支持已验证。
@@ -28,37 +28,36 @@ WSL 接入延期，设置刷新不自动探测发行版。fixture 默认不允�
 在仓库根运行：
 
 ```text
-just desktop-help
-just desktop-doctor
-just desktop-dev
-just desktop-build-debug
-just desktop-build
-just desktop-package
-just desktop-ci
-just desktop-test-ui
-just desktop-audit
+just gpui-help
+just gpui-doctor
+just gpui-dev
+just gpui-build-debug
+just gpui-build
+just gpui-package
+just gpui-ci
+just gpui-test-ui
+just gpui-audit
 ```
 
-也可进入本目录运行同名命令。根只转发至子 justfile，确保 Cargo 从本目录加载
+也可进入本目录，将根命令的 `gpui-` 前缀替换为 `desktop-` 后运行，例如 `just desktop-dev`。根只转发至子 justfile，确保 Cargo 从本目录加载
 `.cargo/config.toml`。构建与测试使用 `--locked`；构建入口验证 Cargo metadata，
-拒绝将 target 重定向到根 CLI、Tauri 或其他目录的环境覆盖。`desktop-clean` 再次验证
-workspace / target 的绝对路径及链接目标，仅清理本目录 `target/`。
+拒绝将 target 重定向到根 CLI、Tauri 或其他目录的环境覆盖。`gpui-clean` 再次验证 workspace / target 的绝对路径及链接目标，仅清理本目录 `target/`。
 
 若官方状态与文件身份确认 PATH 中的 Cargo 是会自动迁移 target 的 mbx shim，
 桌面命令仅在子进程中选择当前项目的 rustup Cargo，并配对同一工具链的 rustc/rustdoc。
 这保留桌面本地 target，不修改全局 PATH 或 mbx 设置；普通 Cargo 继续原样使用。
 无法确定 shim 身份时明确失败，避免静默改用共享目录。边界与真实退出码由 Python 回归覆盖。
 
-`desktop-ci` 顺序执行 fmt-check、check、lint、默认并行 test、release build；
-不会隐式执行 fmt 或 version-sync 修复。`desktop-fmt` 是单独的显式修复命令。
+`gpui-ci` 顺序执行 fmt-check、check、lint、默认并行 test、release build；
+不会隐式执行 fmt 或 version-sync 修复。`gpui-fmt` 是单独的显式修复命令。
 
-`desktop-dev` 将参数作为独立 argv 转发，fixture 路径包含空格时应按当前 shell 的规则引用。
-`desktop-package` 生成当前主机的未签名便携 ZIP，输出到独立 `target/package/`。
+`gpui-dev` 将参数作为独立 argv 转发，fixture 路径包含空格时应按当前 shell 的规则引用。
+`gpui-package` 生成当前主机的未签名便携 ZIP，输出到独立 `target/package/`。
 它先在 `target/sidecar/` 构建同版本 CCR CLI，校验版本，再将 CLI SHA256 仅注入 GPUI
 release 编译子进程；包内并排提供两个可执行文件、LICENSE 和双文件哈希清单。
 这保留命令工作台的 release sidecar 身份校验，不依赖用户 PATH 中另一份 CCR。
 该命令不生成安装器、不签名、不发布，也不代表其他操作系统的构建或原生验收已通过。
-`desktop-test-ui` 使用 GPUI Kit 的真实控件和 headless window，不能替代操作系统
+`gpui-test-ui` 使用 GPUI Kit 的真实控件和 headless window，不能替代操作系统
 IME、屏幕阅读器、DPI 或原生截图验收。所有新入口在 Windows / Unix 都保留失败退出码。
 
 ## 平台先决条件
@@ -99,8 +98,8 @@ doctor 只读检查工具与 Cargo 路径；Windows 的链接器/SDK 由实际�
 `profiles.db`。读取本身不创建或迁移 catalog。执行明确的编辑/应用动作会修改这些测试 catalog；辅助运行目录、锁、历史与其他平台 catalog 均限制在 profiles 所在目录下的 `desktop-profile-fixture/`。传入 registry 路径始终原样用于 marker；不要把真实配置路径传作 fixture。同目录通用配置备份位于声明的 profiles 父目录，fixture 的清理入口只由该已声明目录内部绑定，保留原有深度与扩展名规则；运行、锁和历史路径不随清理根改变。
 
 ```text
-just desktop-dev --fixture-profiles <fixture>/profiles.toml --fixture-registry <fixture>/config.toml
-just desktop-dev --fixture-profiles <fixture>/profiles.toml --fixture-registry <fixture>/config.toml --fixture-read-delay-ms 3000
+just gpui-dev --fixture-profiles <fixture>/profiles.toml --fixture-registry <fixture>/config.toml
+just gpui-dev --fixture-profiles <fixture>/profiles.toml --fixture-registry <fixture>/config.toml --fixture-read-delay-ms 3000
 ```
 
 fixture 窗口明确标注“演示数据”，慢读取额外标注“受控慢读取”。延迟范围为 0 至 30000ms，
@@ -120,7 +119,7 @@ fixture 窗口明确标注“演示数据”，慢读取额外标注“受控慢
 观测域的独立数据根必须一次提供三个绝对路径：
 
 ```text
-just desktop-dev --fixture-profiles <absolute-fixture>/profiles.toml --fixture-registry <absolute-fixture>/config.toml --insights-usage-root <absolute-usage-root> --insights-archive-db <absolute-archive.db> --insights-provider-home <absolute-provider-home>
+just gpui-dev --fixture-profiles <absolute-fixture>/profiles.toml --fixture-registry <absolute-fixture>/config.toml --insights-usage-root <absolute-usage-root> --insights-archive-db <absolute-archive.db> --insights-provider-home <absolute-provider-home>
 ```
 
 缺少用量数据库时显示明确错误，不伪造零值或自动同步。读取与会话正文均经有界后台运行时；离开页面清除临时正文并拒绝过期结果。打开页面不自动启动用量导入、配额刷新或登录；这些操作需要明确触发，fixture 仍拒绝真实主机导入和外部服务。
