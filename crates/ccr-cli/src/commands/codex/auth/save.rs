@@ -6,7 +6,7 @@
 
 use crate::commands::common::print_next_steps;
 use crate::services::CodexAuthService;
-use ccr_core::core::error::Result;
+use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
 
 /// 💾 保存当前登录到指定名称
@@ -31,22 +31,24 @@ pub async fn save_command(name: &str, description: Option<String>, force: bool) 
         auth_state.status,
         crate::models::AuthStateStatus::Unsupported
     ) {
-        ColorOutput::error("当前凭据存储模式暂不支持 CCR 保存账号");
         ColorOutput::key_value("凭据存储", auth_state.store.as_str(), 2);
         ColorOutput::key_value("状态说明", &auth_state.reason, 2);
         ColorOutput::info("多账号管理需要将 cli_auth_credentials_store 切换为 file");
-        print_next_steps(&[
-            ("使用官方登录", "codex login"),
-            ("使用官方登出", "codex logout"),
-        ]);
-        return Ok(());
+        return Err(CcrError::ConfigError(
+            "当前凭据存储模式暂不支持 CCR 保存账号；请先确认凭据存储来源，再将 config.toml 顶层 cli_auth_credentials_store 设为 \"file\"".into(),
+        ));
     }
 
     // 检查是否已登录
-    if !service.is_logged_in() {
-        ColorOutput::error("未登录 Codex");
-        print_next_steps(&[("登录 Codex", "codex login")]);
-        return Ok(());
+    match auth_state.status {
+        crate::models::AuthStateStatus::Missing => {
+            print_next_steps(&[("登录 Codex", "codex login")]);
+            return Err(CcrError::ConfigError("未登录 Codex".into()));
+        }
+        crate::models::AuthStateStatus::Invalid => {
+            return Err(CcrError::ConfigError(auth_state.reason));
+        }
+        _ => {}
     }
 
     // 执行保存
@@ -71,8 +73,6 @@ pub async fn save_command(name: &str, description: Option<String>, force: bool) 
             print_next_steps(&[("查看账号", "ccr codex auth list")]);
         }
         Err(e) => {
-            ColorOutput::error(&format!("保存失败: {}", e));
-
             // 如果是因为账号已存在，提示使用 --force
             let err_msg = e.to_string();
             if err_msg.contains("已存在") {
@@ -82,6 +82,7 @@ pub async fn save_command(name: &str, description: Option<String>, force: bool) 
                     &format!("ccr codex auth save --force -- {name}"),
                 )]);
             }
+            return Err(e);
         }
     }
 

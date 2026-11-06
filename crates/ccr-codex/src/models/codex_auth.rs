@@ -197,10 +197,18 @@ pub enum CredentialStoreKind {
 
 impl CredentialStoreKind {
     pub fn from_config_value(value: Option<&str>) -> Self {
-        match value.unwrap_or("auto").to_ascii_lowercase().as_str() {
+        match value.unwrap_or("file").to_ascii_lowercase().as_str() {
             "file" => Self::File,
             "keyring" => Self::Keyring,
             _ => Self::Auto,
+        }
+    }
+
+    /// Preserve the distinction between an absent setting and an invalid TOML type.
+    pub fn from_toml_value(value: Option<&toml::Value>) -> Self {
+        match value {
+            None => Self::from_config_value(None),
+            Some(value) => Self::from_config_value(Some(value.as_str().unwrap_or(""))),
         }
     }
 
@@ -924,6 +932,46 @@ pub struct CodexQuotaError {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
+    #[test]
+    fn credential_store_defaults_to_file_without_enabling_unknown_values() {
+        use super::CredentialStoreKind;
+
+        assert_eq!(
+            CredentialStoreKind::from_config_value(None),
+            CredentialStoreKind::File
+        );
+        assert_eq!(
+            CredentialStoreKind::from_config_value(Some("file")),
+            CredentialStoreKind::File
+        );
+        assert_eq!(
+            CredentialStoreKind::from_config_value(Some("auto")),
+            CredentialStoreKind::Auto
+        );
+        assert_eq!(
+            CredentialStoreKind::from_config_value(Some("keyring")),
+            CredentialStoreKind::Keyring
+        );
+        assert_ne!(
+            CredentialStoreKind::from_config_value(Some("unknown")),
+            CredentialStoreKind::File
+        );
+        assert_eq!(
+            CredentialStoreKind::from_toml_value(None),
+            CredentialStoreKind::File
+        );
+        for value in [
+            toml::Value::Boolean(true),
+            toml::Value::Array(vec![]),
+            toml::Value::Table(toml::Table::new()),
+        ] {
+            assert_ne!(
+                CredentialStoreKind::from_toml_value(Some(&value)),
+                CredentialStoreKind::File
+            );
+        }
+    }
+
     #[test]
     fn p4_registry_and_account_extra_debug_redact_raw_values() {
         use super::*;

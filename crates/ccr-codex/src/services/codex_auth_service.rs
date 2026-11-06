@@ -218,8 +218,13 @@ impl CodexAuthService {
         let content = fs::read_to_string(path)
             .map_err(|e| CcrError::ConfigError(format!("读取 auth.json 失败: {}", e)))?;
 
-        serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(&content)
-            .map_err(|e| CcrError::ConfigError(format!("解析 auth.json 失败: {}", e)))
+        serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(&content).map_err(|e| {
+            CcrError::ConfigError(format!(
+                "解析 auth.json 失败（行 {}，列 {}）",
+                e.line(),
+                e.column()
+            ))
+        })
     }
 
     fn load_current_auth_documents(&self) -> Result<CurrentAuthDocuments> {
@@ -238,28 +243,44 @@ impl CodexAuthService {
     }
 
     /// 检测 Codex 凭据存储模式
-    fn detect_credential_store(&self) -> CredentialStoreKind {
+    fn detect_credential_store(&self) -> Result<CredentialStoreKind> {
         let config_path = self.codex_dir.join("config.toml");
-        if !config_path.exists() {
-            return CredentialStoreKind::Auto;
-        }
-
         let content = match fs::read_to_string(&config_path) {
             Ok(content) => content,
-            Err(_) => return CredentialStoreKind::Auto,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                return Ok(CredentialStoreKind::from_config_value(None));
+            }
+            Err(error) => {
+                return Err(CcrError::ConfigError(format!(
+                    "无法读取 Codex config.toml，请检查文件权限: {error}"
+                )));
+            }
         };
 
-        let parsed: toml::Value = match toml::from_str(&content) {
-            Ok(value) => value,
-            Err(_) => return CredentialStoreKind::Auto,
-        };
+        let parsed: toml::Value = toml::from_str(&content).map_err(|_| {
+            CcrError::ConfigError("Codex config.toml 格式无效，请修复 TOML 后重试".into())
+        })?;
 
         let store = parsed
             .as_table()
-            .and_then(|table| table.get("cli_auth_credentials_store"))
-            .and_then(|value| value.as_str());
+            .and_then(|table| table.get("cli_auth_credentials_store"));
+        if let Some(value) = store {
+            let Some(value) = value.as_str() else {
+                return Err(CcrError::ConfigError(
+                    "Codex config.toml 的 cli_auth_credentials_store 必须为字符串".into(),
+                ));
+            };
+            if !matches!(
+                value.to_ascii_lowercase().as_str(),
+                "file" | "keyring" | "auto"
+            ) {
+                return Err(CcrError::ConfigError(
+                    "Codex config.toml 的 cli_auth_credentials_store 不受 CCR 支持；可管理账号需要 file 模式".into(),
+                ));
+            }
+        }
 
-        CredentialStoreKind::from_config_value(store)
+        Ok(CredentialStoreKind::from_toml_value(store))
     }
 
     fn supports_managed_auth_accounts(store: CredentialStoreKind) -> bool {
@@ -275,7 +296,7 @@ impl CodexAuthService {
     }
 
     fn ensure_managed_auth_supported(&self, operation: &str) -> Result<CredentialStoreKind> {
-        let store = self.detect_credential_store();
+        let store = self.detect_credential_store()?;
         if Self::supports_managed_auth_accounts(store) {
             Ok(store)
         } else {
@@ -513,7 +534,20 @@ impl CodexAuthService {
 
     /// 获取当前认证状态快照
     pub fn get_auth_state(&self) -> AuthState {
-        let store = self.detect_credential_store();
+        let store = match self.detect_credential_store() {
+            Ok(store) => store,
+            Err(error) => {
+                return AuthState {
+                    intent: AuthIntent::NoAuth,
+                    store: CredentialStoreKind::Auto,
+                    status: AuthStateStatus::Invalid,
+                    reason: match error {
+                        CcrError::ConfigError(reason) => reason,
+                        error => error.to_string(),
+                    },
+                };
+            }
+        };
         if !Self::supports_managed_auth_accounts(store) {
             return AuthState {
                 intent: AuthIntent::NoAuth,
@@ -1193,7 +1227,7 @@ impl CodexAuthService {
     /// runtime 较新 → 写快照；快照较新且为 current_auth → 经 commit_plan（备份 + 原子写）写回 runtime；
     /// tokens 相同不写文件。非 file 凭据存储时不处理。
     pub fn sync_runtime_with_saved_account(&self) -> Result<RuntimeSyncOutcome> {
-        if !Self::supports_managed_auth_accounts(self.detect_credential_store()) {
+        if !Self::supports_managed_auth_accounts(self.detect_credential_store()?) {
             return Ok(RuntimeSyncOutcome::NoOp);
         }
 
@@ -1208,7 +1242,7 @@ impl CodexAuthService {
 
     /// Caller holds the runtime credential resource until synchronization completes.
     pub(crate) fn sync_runtime_with_saved_account_locked(&self) -> Result<RuntimeSyncOutcome> {
-        if !Self::supports_managed_auth_accounts(self.detect_credential_store()) {
+        if !Self::supports_managed_auth_accounts(self.detect_credential_store()?) {
             return Ok(RuntimeSyncOutcome::NoOp);
         }
 
@@ -3225,6 +3259,25 @@ saved_at = "2026-10-05T00:00:00Z"
             .unwrap_err()
             .to_string();
         assert!(err.contains("cli_auth_credentials_store"));
+    }
+
+    #[test]
+    fn save_current_rejects_invalid_store_configuration_before_snapshot_write() {
+        let (service, _ccr, codex) = create_test_service();
+        let config = codex.path().join("config.toml");
+        let auth = create_test_auth_json("store-config", "2026-01-08T03:09:53.894843900Z");
+        fs::write(codex.path().join("auth.json"), &auth).unwrap();
+        for value in ["true", "['file']", "'unknown'", "'private-sentinel"] {
+            fs::write(&config, format!("cli_auth_credentials_store = {value}\n")).unwrap();
+            assert_eq!(service.get_auth_state().status, AuthStateStatus::Invalid);
+            let error = service.save_current("khanh", None, false).unwrap_err();
+            assert!(!error.to_string().contains("private-sentinel"));
+            assert!(!service.account_auth_path("khanh").exists());
+            assert_eq!(
+                fs::read_to_string(codex.path().join("auth.json")).unwrap(),
+                auth
+            );
+        }
     }
 
     // ==================== 账号管理工作流测试 ====================

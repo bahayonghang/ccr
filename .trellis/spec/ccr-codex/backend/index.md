@@ -11,6 +11,7 @@
 | [Codex App-Server Cleanup](./codex-app-server-cleanup.md) | `ccr codex fix` process cleanup, managed daemon detection/restart, local runtime reconciliation/repair, and doctor contracts | Complete |
 | [Codex Provider Bearer Runtime](./codex-provider-bearer-runtime.md) | Provider bearer auth, DeepSeek root fields, secret writes, cleanup, and diagnosis | Complete |
 | [Test Fixtures](./test-fixtures.md)                       | Process-wide Codex and CCR env fixtures for tests                                    | Complete |
+| [Auth Credential Store](./auth-credential-store.md) | File defaults, invalid configuration admission, and CLI save failure contracts | Complete |
 
 ## Pre-Development Checklist
 
@@ -19,3 +20,4 @@
 - Read [Codex App-Server Cleanup](./codex-app-server-cleanup.md) before changing `CodexProcessService`, `ccr codex fix`, or the app-server matching / `codex doctor` invocation.
 - Read [Codex Provider Bearer Runtime](./codex-provider-bearer-runtime.md) before changing Codex provider bearer auth, managed root fields, config writes, or DeepSeek profile support.
 - Read [Test Fixtures](./test-fixtures.md) before adding tests that resolve Codex home, OpenCode home, or CCR env paths.
+- Read [Auth Credential Store](./auth-credential-store.md) before changing credential-store parsing/defaults or saved-account admission.

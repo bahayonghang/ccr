@@ -275,11 +275,11 @@ fn detect_codex_credential_store() -> Result<CredentialStoreKind> {
         return Ok(CredentialStoreKind::Auto);
     };
     let config_path = dir.join("config.toml");
-    if !config_path.exists() {
-        return Ok(CredentialStoreKind::Auto);
-    }
     let content = match std::fs::read_to_string(&config_path) {
         Ok(content) => content,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            return Ok(CredentialStoreKind::from_config_value(None));
+        }
         Err(_) => return Ok(CredentialStoreKind::Auto),
     };
     let parsed: toml::Value = match toml::from_str(&content) {
@@ -288,9 +288,8 @@ fn detect_codex_credential_store() -> Result<CredentialStoreKind> {
     };
     let store = parsed
         .as_table()
-        .and_then(|table| table.get("cli_auth_credentials_store"))
-        .and_then(|value| value.as_str());
-    Ok(CredentialStoreKind::from_config_value(store))
+        .and_then(|table| table.get("cli_auth_credentials_store"));
+    Ok(CredentialStoreKind::from_toml_value(store))
 }
 
 fn codex_auth_json_paths() -> Result<Vec<PathBuf>> {
@@ -487,6 +486,35 @@ mod tests {
             fs::create_dir_all(parent).unwrap();
         }
         fs::write(path, body).unwrap();
+    }
+
+    #[test]
+    fn codex_store_default_matches_file_and_invalid_types_remain_non_file() {
+        let home = TestHome::new();
+        let config = home.codex_dir().join("config.toml");
+        assert_eq!(
+            detect_codex_credential_store().unwrap(),
+            CredentialStoreKind::File
+        );
+        fs::write(&config, "model = 'test'\n").unwrap();
+        assert_eq!(
+            detect_codex_credential_store().unwrap(),
+            CredentialStoreKind::File
+        );
+        for value in [
+            "true",
+            "['file']",
+            "{ value = 'file' }",
+            "'unknown'",
+            "'auto'",
+            "'keyring'",
+        ] {
+            fs::write(&config, format!("cli_auth_credentials_store = {value}\n")).unwrap();
+            assert_ne!(
+                detect_codex_credential_store().unwrap(),
+                CredentialStoreKind::File
+            );
+        }
     }
 
     fn write_fake_logout_bin(dir: &Path, name: &str, marker: &Path, extra: &str) -> PathBuf {

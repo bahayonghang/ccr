@@ -176,6 +176,135 @@ fn codex_save_result_fields_and_suggestion_preserve_runtime() {
 }
 
 #[test]
+fn codex_save_file_login_without_explicit_store_preserves_runtime_and_registers_account() {
+    for config in [
+        None,
+        Some("model = 'test-model'\n"),
+        Some("cli_auth_credentials_store = 'file'\n"),
+    ] {
+        let f = Fixture::new();
+        match config {
+            Some(config) => f.write("codex/config.toml", config.as_bytes()),
+            None => fs::remove_file(f.0.path().join("codex/config.toml")).unwrap(),
+        }
+        f.codex_login(true);
+        let mut auth: Value = serde_json::from_slice(&f.read("codex/auth.json")).unwrap();
+        auth["extension"] = json!({"preserve": true});
+        f.write(
+            "codex/auth.json",
+            serde_json::to_vec(&auth).unwrap().as_slice(),
+        );
+        let before = f.read("codex/auth.json");
+        let output = f.run_success(&["codex", "auth", "save", "khanh"]);
+        assert!(text(&output.stdout).contains("已保存账号 khanh"));
+        assert!(output.stderr.is_empty());
+        assert_eq!(f.read("codex/auth.json"), before);
+        let saved: Value =
+            serde_json::from_slice(&f.read("ccr/platforms/codex/auth/khanh.json")).unwrap();
+        assert_eq!(saved, auth);
+        let registry: toml::Value =
+            toml::from_str(&text(&f.read("ccr/platforms/codex/auth_registry.toml"))).unwrap();
+        assert_eq!(
+            registry["accounts"]["khanh"]["account_id"].as_str(),
+            Some("acct-teacher")
+        );
+        assert_eq!(
+            fs::read_to_string(f.0.path().join("codex/config.toml"))
+                .ok()
+                .as_deref(),
+            config
+        );
+    }
+}
+
+#[test]
+fn codex_save_rejects_unsupported_or_invalid_config_without_credentials_or_writes() {
+    for config in [
+        "cli_auth_credentials_store = 'auto'\n",
+        "cli_auth_credentials_store = 'keyring'\n",
+        "cli_auth_credentials_store = 'unknown'\n",
+        "cli_auth_credentials_store = true\n",
+        "cli_auth_credentials_store = ['file']\n",
+        "cli_auth_credentials_store = { value = 'file' }\n",
+        "cli_auth_credentials_store = 'CLI_OUTPUT_SECRET_SENTINEL\n",
+    ] {
+        let f = Fixture::new();
+        f.codex_login(true);
+        f.write("codex/config.toml", config.as_bytes());
+        let before = f.read("codex/auth.json");
+        let output = f.run(&["codex", "auth", "save", "khanh"]);
+        assert!(!output.status.success(), "config accepted: {config}");
+        assert_eq!(
+            text(&output.stderr)
+                .lines()
+                .filter(|line| line.starts_with("错误:"))
+                .count(),
+            1
+        );
+        assert!(!text(&output.stdout).contains("codex logout"));
+        assert!(!text(&output.stdout).contains("成功:"));
+        assert_eq!(f.read("codex/auth.json"), before);
+        assert_eq!(text(&f.read("codex/config.toml")), config);
+        assert!(
+            !f.0.path()
+                .join("ccr/platforms/codex/auth/khanh.json")
+                .exists()
+        );
+        assert!(
+            !f.0.path()
+                .join("ccr/platforms/codex/auth_registry.toml")
+                .exists()
+        );
+    }
+}
+
+#[test]
+fn codex_save_unreadable_config_invalid_auth_and_write_errors_fail() {
+    let f = Fixture::new();
+    f.codex_login(true);
+    fs::remove_file(f.0.path().join("codex/config.toml")).unwrap();
+    fs::create_dir(f.0.path().join("codex/config.toml")).unwrap();
+    let unreadable = f.run(&["codex", "auth", "save", "khanh"]);
+    assert!(!unreadable.status.success());
+    assert!(text(&unreadable.stderr).contains("config.toml"));
+    assert!(
+        !f.0.path()
+            .join("ccr/platforms/codex/auth/khanh.json")
+            .exists()
+    );
+
+    let f = Fixture::new();
+    f.write("codex/auth.json", b"{invalid");
+    let invalid = f.run(&["codex", "auth", "save", "khanh"]);
+    assert!(!invalid.status.success());
+    assert!(text(&invalid.stderr).contains("auth.json"));
+    assert!(!text(&invalid.stderr).contains("未登录 Codex"));
+    assert!(
+        !f.0.path()
+            .join("ccr/platforms/codex/auth/khanh.json")
+            .exists()
+    );
+
+    f.write("codex/auth.json", b"\"CLI_OUTPUT_SECRET_SENTINEL\"");
+    let invalid_type = f.run(&["codex", "auth", "save", "khanh"]);
+    assert!(!invalid_type.status.success());
+    assert!(text(&invalid_type.stderr).contains("auth.json"));
+
+    let f = Fixture::new();
+    f.codex_login(true);
+    f.write("ccr/platforms/codex/auth", b"block-directory");
+    let blocked = f.run(&["codex", "auth", "save", "khanh"]);
+    assert!(!blocked.status.success());
+    assert_eq!(
+        text(&blocked.stderr)
+            .lines()
+            .filter(|line| line.starts_with("错误:"))
+            .count(),
+        1
+    );
+}
+
+#[test]
 fn codex_save_missing_fields_and_overwrite_command_handles_leading_hyphen() {
     for name in ["teacher", "-teacher"] {
         let f = Fixture::new();
@@ -186,8 +315,9 @@ fn codex_save_missing_fields_and_overwrite_command_handles_leading_hyphen() {
             format!("成功: 已保存账号 {name}\n\n下一步\n  查看账号\n    ccr codex auth list\n")
         );
         let snapshot = f.read(&format!("ccr/platforms/codex/auth/{name}.json"));
-        let duplicate = f.run_success(&["codex", "auth", "save", "--", name]);
-        assert!(text(&duplicate.stderr).starts_with("错误: 保存失败:"));
+        let duplicate = f.run(&["codex", "auth", "save", "--", name]);
+        assert!(!duplicate.status.success());
+        assert!(text(&duplicate.stderr).contains("已存在"));
         assert!(text(&duplicate.stdout).contains("覆盖会替换该账号已保存的凭据快照"));
         let command = format!("ccr codex auth save --force -- {name}");
         assert!(text(&duplicate.stdout).contains(&command));
@@ -201,10 +331,18 @@ fn codex_save_missing_fields_and_overwrite_command_handles_leading_hyphen() {
 }
 
 #[test]
-fn codex_unlogged_and_unsupported_keep_legacy_zero_exit_and_error_stream() {
+fn codex_unlogged_and_unsupported_fail_with_one_error() {
     let f = Fixture::new();
-    let unlogged = f.run_success(&["codex", "auth", "save", "teacher"]);
-    assert_eq!(text(&unlogged.stderr), "错误: 未登录 Codex\n");
+    let unlogged = f.run(&["codex", "auth", "save", "teacher"]);
+    assert!(!unlogged.status.success());
+    assert!(text(&unlogged.stderr).contains("未登录 Codex"));
+    assert_eq!(
+        text(&unlogged.stderr)
+            .lines()
+            .filter(|line| line.starts_with("错误:"))
+            .count(),
+        1
+    );
     assert_eq!(
         text(&unlogged.stdout),
         "\n下一步\n  登录 Codex\n    codex login\n"
@@ -213,7 +351,8 @@ fn codex_unlogged_and_unsupported_keep_legacy_zero_exit_and_error_stream() {
         "codex/config.toml",
         b"cli_auth_credentials_store = \"keyring\"\n",
     );
-    let unsupported = f.run_success(&["codex", "auth", "save", "teacher"]);
+    let unsupported = f.run(&["codex", "auth", "save", "teacher"]);
+    assert!(!unsupported.status.success());
     assert!(text(&unsupported.stderr).contains("暂不支持 CCR 保存账号"));
     let stdout = text(&unsupported.stdout);
     assert!(stdout.contains("  凭据存储: keyring"));

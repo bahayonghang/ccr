@@ -1234,10 +1234,7 @@ impl CodexPlatform {
                     // ChatGPT 登录模式：根据凭据存储策略决定 auth.json 处理方式
                     // 优先使用显式覆盖值，否则读取当前 config.toml 的设置
                     let effective_store = spec.credential_store_override.unwrap_or_else(|| {
-                        CredentialStoreKind::from_config_value(
-                            root.get("cli_auth_credentials_store")
-                                .and_then(|v| v.as_str()),
-                        )
+                        CredentialStoreKind::from_toml_value(root.get("cli_auth_credentials_store"))
                     });
                     match effective_store {
                         CredentialStoreKind::File => {
@@ -1510,9 +1507,8 @@ impl CodexPlatform {
         let config = self.config_manager.load_config()?;
         let auth = self.config_manager.load_auth()?;
         let root = config.as_table();
-        let credential_store = CredentialStoreKind::from_config_value(
-            root.and_then(|table| table.get("cli_auth_credentials_store"))
-                .and_then(toml::Value::as_str),
+        let credential_store = CredentialStoreKind::from_toml_value(
+            root.and_then(|table| table.get("cli_auth_credentials_store")),
         );
         let runtime_provider_id = root
             .and_then(|table| table.get("model_provider"))
@@ -1780,10 +1776,8 @@ impl CodexPlatform {
                 .and_then(toml::Value::as_bool)
                 == spec.network_access
             && spec.credential_store_override.is_none_or(|expected| {
-                CredentialStoreKind::from_config_value(
-                    root.get("cli_auth_credentials_store")
-                        .and_then(toml::Value::as_str),
-                ) == expected
+                CredentialStoreKind::from_toml_value(root.get("cli_auth_credentials_store"))
+                    == expected
             });
 
         if !common_matches || !Self::diagnostic_spec_matches_runtime(spec, config) {

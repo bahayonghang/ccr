@@ -422,9 +422,8 @@ impl CodexRuntimeService {
 fn detect_auth_store(config: &toml::Value) -> CredentialStoreKind {
     let store = config
         .as_table()
-        .and_then(|t| t.get("cli_auth_credentials_store"))
-        .and_then(|v| v.as_str());
-    CredentialStoreKind::from_config_value(store)
+        .and_then(|t| t.get("cli_auth_credentials_store"));
+    CredentialStoreKind::from_toml_value(store)
 }
 
 fn remove_if_exists(path: &Path) -> Result<()> {

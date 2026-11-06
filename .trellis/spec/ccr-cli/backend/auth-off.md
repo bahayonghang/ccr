@@ -34,6 +34,7 @@
 - Claude macOS: `needs_auth_off` is always true. Off spawns `claude auth logout`. Do not read or write Keychain.
 - Codex file: true when any directory from `CodexPlatform::login_prep_codex_dirs()` contains `auth.json`. Off deletes `auth.json` in every directory from that same list. Do not change `config.toml` or profile pointers.
 - Codex keyring/auto: `needs_auth_off` is always true. Off spawns `codex logout`.
+- Codex omitted credential-store setting or absent config defaults to file, matching the official CLI. Preserve non-string values as non-file when resolving the shared default; see [credential-store parsing](../../ccr-codex/backend/auth-credential-store.md).
 - Grok: true when `$GROK_HOME/auth.json` exists (default `~/.grok/auth.json`). Off may existence-read, secret-backup, and delete that file. `mcp_credentials.json` is never read, written, backed up, or validated.
 - File `changed`: true only if this run deleted at least one credential file. No file → success, `changed=false`, no backup, no spawn.
 - Native `changed`: true when this run spawned official logout and the process exited 0. Repeat runs may still report `changed=true`.

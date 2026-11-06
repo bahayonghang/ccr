@@ -104,6 +104,12 @@ not add credential reads, account checks, process checks, or network calls.
 An existing error branch that returns `Ok` keeps its exit behavior unless a
 separate task authorizes the business change.
 
+Codex `auth save` is an explicit exception: unsupported/invalid storage, missing
+or invalid auth, duplicate names, and persistence failures return errors to the
+dispatcher and nonzero process exits. Do not both print an error locally and
+return it for duplicate rendering. Preserve overwrite guidance; unsupported
+storage must not suggest logout. See the [credential-store contract](../../ccr-codex/backend/auth-credential-store.md).
+
 ## 4. Validation & Error Matrix
 
 | Condition | Required behavior |
