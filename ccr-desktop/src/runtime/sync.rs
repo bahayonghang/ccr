@@ -1,4 +1,9 @@
-//! Local canonical sync config. This reader never contacts WebDAV or writes a password.
+//! Canonical local sync configuration and application-owned WebDAV operations.
+mod operations;
+pub use operations::{
+    FolderChange, FolderPatch, Operation, OperationKind, OperationState, PasswordUpdate,
+    SettingsPatch, SyncOperations, SyncOutcome,
+};
 
 use std::path::{Path, PathBuf};
 
@@ -13,11 +18,31 @@ pub enum SyncError {
     Unsupported,
     Storage,
     Unreadable,
+    Invalid,
+    Conflict,
+    Busy,
+    FixtureNetwork,
+    Operation,
+    Interrupted,
+    LegacyFolders,
 }
 
 impl SyncError {
     pub fn message(self) -> &'static str {
         match self {
+            Self::LegacyFolders => {
+                "Legacy folder entries are read-only. Migrate them to the canonical folders schema with CCR before editing."
+            }
+            Self::Invalid => "Invalid WebDAV settings or unavailable folder.",
+            Self::Conflict => {
+                "Sync settings changed elsewhere. Read the configuration again before retrying."
+            }
+            Self::Busy => "A sync operation is already queued or running.",
+            Self::FixtureNetwork => "Remote sync is disabled for fixture data.",
+            Self::Operation => {
+                "WebDAV operation failed. Check the account, permissions and selected paths."
+            }
+            Self::Interrupted => "The sync worker stopped without a confirmed result.",
             Self::Unsupported => {
                 "Sync config is read only for the local environment. / 只在本地环境读取同步配置"
             }
@@ -40,6 +65,7 @@ pub enum SyncUrl {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SyncFolderRow {
+    pub identity: Option<String>,
     pub name: String,
     pub enabled: bool,
     pub local_path: String,
@@ -48,6 +74,7 @@ pub struct SyncFolderRow {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SyncLocal {
+    pub revision: String,
     pub webdav_enabled: bool,
     pub url: SyncUrl,
     pub username_present: bool,
@@ -83,6 +110,9 @@ fn host_only(url: &str) -> Option<String> {
 
 fn folder_row(folder: &ccr_sync::SyncFolder) -> SyncFolderRow {
     SyncFolderRow {
+        identity: Some(ccr_core::core::content_version_token(
+            folder.name.as_bytes(),
+        )),
         name: redact_log_text(&folder.name),
         enabled: folder.enabled,
         local_path: redact_log_text(&folder.local_path),
@@ -90,7 +120,7 @@ fn folder_row(folder: &ccr_sync::SyncFolder) -> SyncFolderRow {
     }
 }
 
-fn project(config: SyncFoldersConfig) -> SyncLocal {
+fn project(config: SyncFoldersConfig, revision: String) -> SyncLocal {
     let password_present = !config.webdav.password.is_empty();
     let username_present = !config.webdav.username.trim().is_empty();
     let url = if config.webdav.url.trim().is_empty() {
@@ -102,6 +132,7 @@ fn project(config: SyncFoldersConfig) -> SyncLocal {
     };
     let folders = config.folders.iter().map(folder_row).collect();
     SyncLocal {
+        revision,
         webdav_enabled: config.webdav.enabled,
         url,
         username_present,
@@ -134,6 +165,7 @@ fn folder_from_value(value: &toml::Value) -> Result<SyncFolderRow, SyncError> {
         Some(item) => item.as_bool().ok_or(SyncError::Unreadable)?,
     };
     Ok(SyncFolderRow {
+        identity: None,
         name: text("name")?,
         enabled,
         local_path: text("local_path")?,
@@ -142,12 +174,15 @@ fn folder_from_value(value: &toml::Value) -> Result<SyncFolderRow, SyncError> {
 }
 
 pub(crate) fn read_file(path: &Path) -> Result<SyncSnapshot, SyncError> {
-    if !path.is_file() {
+    if !path.exists() {
         return Ok(SyncSnapshot::Absent);
     }
     let text = std::fs::read_to_string(path).map_err(|_| SyncError::Unreadable)?;
     let config: SyncFoldersConfig = toml::from_str(&text).map_err(|_| SyncError::Unreadable)?;
-    let mut local = project(config);
+    let mut local = project(
+        config,
+        ccr_core::core::content_version_token(text.as_bytes()),
+    );
     if local.folders.is_empty() {
         local.folders = legacy_folders(&text)?;
     }

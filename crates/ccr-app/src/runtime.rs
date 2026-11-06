@@ -134,7 +134,19 @@ pub struct TaskSubscription<T, E> {
     cancel_on_drop: bool,
     terminal_delivered: bool,
 }
+/// Cancellation request independent of the receiving view task.
+#[derive(Clone)]
+pub struct CancellationHandle(CancellationToken);
+impl CancellationHandle {
+    pub fn request_cancel(&self) {
+        self.0.cancel();
+    }
+}
 impl<T, E> TaskSubscription<T, E> {
+    pub fn cancellation_handle(&self) -> CancellationHandle {
+        CancellationHandle(self.state.cancel.clone())
+    }
+
     pub fn key(&self) -> &RequestKey {
         &self.key
     }

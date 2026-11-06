@@ -6,6 +6,7 @@ pub mod install;
 pub mod jobs;
 pub mod mcp;
 pub mod platforms;
+pub mod preferences;
 pub mod profiles;
 pub mod resources;
 pub mod sync;
@@ -146,6 +147,9 @@ pub struct Services {
     pub(super) platform_oauth: Arc<ccr_cli::application::codex_oauth::NativeSession>,
     pub(super) command_jobs: Arc<ccr_app::jobs::commands::CommandJobs>,
     pub(super) install: Arc<install::InstallOwner>,
+    pub(super) checkin_operations: Arc<checkin::CheckinOperations>,
+    pub(super) sync_operations: Arc<sync::SyncOperations>,
+    pub(super) ssh: Arc<std::sync::OnceLock<Arc<ccr_app::environments::ssh::Workspace>>>,
 }
 
 impl Services {
@@ -158,6 +162,9 @@ impl Services {
             platform_oauth: Default::default(),
             command_jobs: Default::default(),
             install: Default::default(),
+            sync_operations: Default::default(),
+            checkin_operations: Default::default(),
+            ssh: Default::default(),
         }
     }
     pub fn with_insights_paths(mut self, paths: insights::InsightsPaths) -> Self {

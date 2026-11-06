@@ -62,6 +62,21 @@ enum PullIoFailpoint {
 }
 
 impl SyncService {
+    /// Explicit loopback-only HTTP fixture transport; production keeps HTTPS policy.
+    #[cfg(feature = "test-support")]
+    pub async fn new_for_test_loopback(config: &SyncConfig) -> Result<Self> {
+        use reqwest_dav::re_exports::url::Host;
+        let url = validate_webdav_url(&config.webdav_url, true)?;
+        if !url.host().is_some_and(|host| match host {
+            Host::Domain(domain) => domain.eq_ignore_ascii_case("localhost"),
+            Host::Ipv4(address) => address.is_loopback(),
+            Host::Ipv6(address) => address.is_loopback(),
+        }) {
+            return Err(CcrError::SyncError("sync_fixture_loopback_required".into()));
+        }
+        Self::new_with_limits_and_policy(config, SyncLimits::default(), true).await
+    }
+
     /// 🏗️ 从配置创建同步服务
     ///
     /// # 参数

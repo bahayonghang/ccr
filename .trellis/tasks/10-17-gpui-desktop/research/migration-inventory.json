@@ -763,10 +763,15 @@
       "risk": "network_mutation",
       "handler_path": "super::sync::sync_push_folder",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "SyncView -> retained sync operations -> ccr-sync",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Canonical WebDAV settings and named folder CRUD/test/push/pull with original revision. Ordinary plaintext folders; encrypted assets/top-level transfer remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "sync_push_folder",
@@ -787,10 +792,15 @@
       "risk": "network_mutation",
       "handler_path": "super::sync::sync_pull_folder",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "SyncView -> retained sync operations -> ccr-sync",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Canonical WebDAV settings and named folder CRUD/test/push/pull with original revision. Ordinary plaintext folders; encrypted assets/top-level transfer remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "sync_pull_folder",
@@ -811,10 +821,15 @@
       "risk": "read_only",
       "handler_path": "super::sync::sync_status",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "SyncView -> retained sync operations -> ccr-sync",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Canonical WebDAV settings and named folder CRUD/test/push/pull with original revision. Ordinary plaintext folders; encrypted assets/top-level transfer remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "sync_status",
@@ -835,10 +850,15 @@
       "risk": "read_only",
       "handler_path": "super::sync::list_sync_folders",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "SyncView -> retained sync operations -> ccr-sync",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Canonical WebDAV settings and named folder CRUD/test/push/pull with original revision. Ordinary plaintext folders; encrypted assets/top-level transfer remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "list_sync_folders",
@@ -859,10 +879,15 @@
       "risk": "network_mutation",
       "handler_path": "super::sync::add_sync_folder",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "SyncView -> retained sync operations -> ccr-sync",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Canonical WebDAV settings and named folder CRUD/test/push/pull with original revision. Ordinary plaintext folders; encrypted assets/top-level transfer remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "add_sync_folder",
@@ -883,10 +908,15 @@
       "risk": "network_mutation",
       "handler_path": "super::sync::update_sync_folder",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "SyncView -> retained sync operations -> ccr-sync",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Canonical WebDAV settings and named folder CRUD/test/push/pull with original revision. Ordinary plaintext folders; encrypted assets/top-level transfer remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "update_sync_folder",
@@ -907,10 +937,15 @@
       "risk": "destructive",
       "handler_path": "super::sync::delete_sync_folder",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "SyncView -> retained sync operations -> ccr-sync",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Canonical WebDAV settings and named folder CRUD/test/push/pull with original revision. Ordinary plaintext folders; encrypted assets/top-level transfer remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "delete_sync_folder",
@@ -931,10 +966,15 @@
       "risk": "network_mutation",
       "handler_path": "super::sync::set_webdav_config",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "SyncView -> retained sync operations -> ccr-sync",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Canonical WebDAV settings and named folder CRUD/test/push/pull with original revision. Ordinary plaintext folders; encrypted assets/top-level transfer remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "set_webdav_config",
@@ -955,10 +995,15 @@
       "risk": "network_mutation",
       "handler_path": "super::sync::test_webdav_config",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "SyncView -> retained sync operations -> ccr-sync",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Canonical WebDAV settings and named folder CRUD/test/push/pull with original revision. Ordinary plaintext folders; encrypted assets/top-level transfer remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "test_webdav_config",
@@ -5196,10 +5241,15 @@
       "risk": "read_only",
       "handler_path": "super::checkin::list_providers",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "CheckinView -> retained operations -> captured ccr-checkin managers",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Provider/account CRUD, builtin providers, per-account check-in/balance/records. Captured DB/crypto, encrypted credentials. Batch/export/browser WAF/CDK remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "list_providers",
@@ -5220,10 +5270,15 @@
       "risk": "network_mutation",
       "handler_path": "super::checkin::add_provider",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "CheckinView -> retained operations -> captured ccr-checkin managers",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Provider/account CRUD, builtin providers, per-account check-in/balance/records. Captured DB/crypto, encrypted credentials. Batch/export/browser WAF/CDK remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "add_provider",
@@ -5244,10 +5299,15 @@
       "risk": "network_mutation",
       "handler_path": "super::checkin::update_provider",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "CheckinView -> retained operations -> captured ccr-checkin managers",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Provider/account CRUD, builtin providers, per-account check-in/balance/records. Captured DB/crypto, encrypted credentials. Batch/export/browser WAF/CDK remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "update_provider",
@@ -5268,10 +5328,15 @@
       "risk": "destructive",
       "handler_path": "super::checkin::delete_provider",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "CheckinView -> retained operations -> captured ccr-checkin managers",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Provider/account CRUD, builtin providers, per-account check-in/balance/records. Captured DB/crypto, encrypted credentials. Batch/export/browser WAF/CDK remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "delete_provider",
@@ -5316,10 +5381,15 @@
       "risk": "read_only",
       "handler_path": "super::checkin::list_accounts",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "CheckinView -> retained operations -> captured ccr-checkin managers",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Provider/account CRUD, builtin providers, per-account check-in/balance/records. Captured DB/crypto, encrypted credentials. Batch/export/browser WAF/CDK remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "list_accounts",
@@ -5340,10 +5410,15 @@
       "risk": "network_mutation",
       "handler_path": "super::checkin::add_account",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "CheckinView -> retained operations -> captured ccr-checkin managers",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Provider/account CRUD, builtin providers, per-account check-in/balance/records. Captured DB/crypto, encrypted credentials. Batch/export/browser WAF/CDK remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "add_account",
@@ -5364,10 +5439,15 @@
       "risk": "network_mutation",
       "handler_path": "super::checkin::update_account",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "CheckinView -> retained operations -> captured ccr-checkin managers",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Provider/account CRUD, builtin providers, per-account check-in/balance/records. Captured DB/crypto, encrypted credentials. Batch/export/browser WAF/CDK remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "update_account",
@@ -5388,10 +5468,15 @@
       "risk": "destructive",
       "handler_path": "super::checkin::delete_account",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "CheckinView -> retained operations -> captured ccr-checkin managers",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Provider/account CRUD, builtin providers, per-account check-in/balance/records. Captured DB/crypto, encrypted credentials. Batch/export/browser WAF/CDK remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "delete_account",
@@ -5436,10 +5521,15 @@
       "risk": "network_mutation",
       "handler_path": "super::checkin::execute_checkin",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "CheckinView -> retained operations -> captured ccr-checkin managers",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Provider/account CRUD, builtin providers, per-account check-in/balance/records. Captured DB/crypto, encrypted credentials. Batch/export/browser WAF/CDK remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "execute_checkin",
@@ -5532,10 +5622,15 @@
       "risk": "read_only",
       "handler_path": "super::checkin::get_checkin_records",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "CheckinView -> retained operations -> captured ccr-checkin managers",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Provider/account CRUD, builtin providers, per-account check-in/balance/records. Captured DB/crypto, encrypted credentials. Batch/export/browser WAF/CDK remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "get_checkin_records",
@@ -5556,10 +5651,15 @@
       "risk": "read_only",
       "handler_path": "super::checkin::get_balance",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "CheckinView -> retained operations -> captured ccr-checkin managers",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Provider/account CRUD, builtin providers, per-account check-in/balance/records. Captured DB/crypto, encrypted credentials. Batch/export/browser WAF/CDK remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "get_balance",
@@ -6052,10 +6152,15 @@
       "risk": "read_only",
       "handler_path": "super::unified_mcp::unified_list_mcp_servers",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "McpView editor -> mcp_edit_request -> shared Claude policy/mcp_document",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Claude user/project, Codex and Antigravity CRUD. OpenCode uses platform source editor, legacy Claude settings read-only; source/scope/revision fixed. Not all-target parity.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "id": "unified_list_mcp_servers",
@@ -6082,10 +6187,15 @@
       "risk": "secret_mutation",
       "handler_path": "super::unified_mcp::unified_add_mcp_server",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "McpView editor -> mcp_edit_request -> shared Claude policy/mcp_document",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Claude user/project, Codex and Antigravity CRUD. OpenCode uses platform source editor, legacy Claude settings read-only; source/scope/revision fixed. Not all-target parity.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "id": "unified_add_mcp_server",
@@ -6112,10 +6222,15 @@
       "risk": "secret_mutation",
       "handler_path": "super::unified_mcp::unified_update_mcp_server",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "McpView editor -> mcp_edit_request -> shared Claude policy/mcp_document",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Claude user/project, Codex and Antigravity CRUD. OpenCode uses platform source editor, legacy Claude settings read-only; source/scope/revision fixed. Not all-target parity.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "id": "unified_update_mcp_server",
@@ -6142,10 +6257,15 @@
       "risk": "destructive",
       "handler_path": "super::unified_mcp::unified_delete_mcp_server",
       "owner": "gpui-06-resources",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "McpView editor -> mcp_edit_request -> shared Claude policy/mcp_document",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Claude user/project, Codex and Antigravity CRUD. OpenCode uses platform source editor, legacy Claude settings read-only; source/scope/revision fixed. Not all-target parity.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "id": "unified_delete_mcp_server",
@@ -6290,9 +6410,15 @@
       "risk": "read_only",
       "handler_path": "super::ssh::ssh_list_hosts",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "RemoteView -> Services::ssh_action -> shared SSH Workspace",
+      "verification": {
+        "core_continuation_20261106": {
+          "scope": "Saved host/agent-auth/fingerprint/nonce-session/four fixed SFTP config files; real SSH and native switch not_run. No CLI or key discovery claim.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
+      }
     },
     {
       "id": "ssh_add_host",
@@ -6301,9 +6427,15 @@
       "risk": "network_mutation",
       "handler_path": "super::ssh::ssh_add_host",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "RemoteView -> Services::ssh_action -> shared SSH Workspace",
+      "verification": {
+        "core_continuation_20261106": {
+          "scope": "Saved host/agent-auth/fingerprint/nonce-session/four fixed SFTP config files; real SSH and native switch not_run. No CLI or key discovery claim.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
+      }
     },
     {
       "id": "ssh_connect",
@@ -6312,9 +6444,15 @@
       "risk": "network_mutation",
       "handler_path": "super::ssh::ssh_connect",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "RemoteView -> Services::ssh_action -> shared SSH Workspace",
+      "verification": {
+        "core_continuation_20261106": {
+          "scope": "Saved host/agent-auth/fingerprint/nonce-session/four fixed SFTP config files; real SSH and native switch not_run. No CLI or key discovery claim.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
+      }
     },
     {
       "id": "ssh_reconnect",
@@ -6323,9 +6461,15 @@
       "risk": "network_mutation",
       "handler_path": "super::ssh::ssh_reconnect",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "RemoteView -> Services::ssh_action -> shared SSH Workspace",
+      "verification": {
+        "core_continuation_20261106": {
+          "scope": "Saved host/agent-auth/fingerprint/nonce-session/four fixed SFTP config files; real SSH and native switch not_run. No CLI or key discovery claim.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
+      }
     },
     {
       "id": "ssh_disconnect",
@@ -6334,9 +6478,15 @@
       "risk": "network_mutation",
       "handler_path": "super::ssh::ssh_disconnect",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "RemoteView -> Services::ssh_action -> shared SSH Workspace",
+      "verification": {
+        "core_continuation_20261106": {
+          "scope": "Saved host/agent-auth/fingerprint/nonce-session/four fixed SFTP config files; real SSH and native switch not_run. No CLI or key discovery claim.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
+      }
     },
     {
       "id": "ssh_get_connection_state",
@@ -6345,9 +6495,15 @@
       "risk": "read_only",
       "handler_path": "super::ssh::ssh_get_connection_state",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "RemoteView -> Services::ssh_action -> shared SSH Workspace",
+      "verification": {
+        "core_continuation_20261106": {
+          "scope": "Saved host/agent-auth/fingerprint/nonce-session/four fixed SFTP config files; real SSH and native switch not_run. No CLI or key discovery claim.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
+      }
     },
     {
       "id": "ssh_probe_host_fingerprint",
@@ -6356,9 +6512,15 @@
       "risk": "read_only",
       "handler_path": "super::ssh::ssh_probe_host_fingerprint",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "RemoteView -> Services::ssh_action -> shared SSH Workspace",
+      "verification": {
+        "core_continuation_20261106": {
+          "scope": "Saved host/agent-auth/fingerprint/nonce-session/four fixed SFTP config files; real SSH and native switch not_run. No CLI or key discovery claim.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
+      }
     },
     {
       "id": "ssh_confirm_host_fingerprint",
@@ -6367,9 +6529,15 @@
       "risk": "network_mutation",
       "handler_path": "super::ssh::ssh_confirm_host_fingerprint",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "RemoteView -> Services::ssh_action -> shared SSH Workspace",
+      "verification": {
+        "core_continuation_20261106": {
+          "scope": "Saved host/agent-auth/fingerprint/nonce-session/four fixed SFTP config files; real SSH and native switch not_run. No CLI or key discovery claim.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
+      }
     },
     {
       "id": "ssh_read_config",
@@ -6378,9 +6546,15 @@
       "risk": "read_only",
       "handler_path": "super::ssh::ssh_read_config",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "RemoteView -> Services::ssh_action -> shared SSH Workspace",
+      "verification": {
+        "core_continuation_20261106": {
+          "scope": "Saved host/agent-auth/fingerprint/nonce-session/four fixed SFTP config files; real SSH and native switch not_run. No CLI or key discovery claim.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
+      }
     },
     {
       "id": "ssh_write_config",
@@ -6389,9 +6563,15 @@
       "risk": "network_mutation",
       "handler_path": "super::ssh::ssh_write_config",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "RemoteView -> Services::ssh_action -> shared SSH Workspace",
+      "verification": {
+        "core_continuation_20261106": {
+          "scope": "Saved host/agent-auth/fingerprint/nonce-session/four fixed SFTP config files; real SSH and native switch not_run. No CLI or key discovery claim.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
+      }
     },
     {
       "id": "ssh_detect_cli",
@@ -8104,10 +8284,15 @@
       "risk": "read_only",
       "handler_path": "super::checkin::list_builtin_providers",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "CheckinView -> retained operations -> captured ccr-checkin managers",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Provider/account CRUD, builtin providers, per-account check-in/balance/records. Captured DB/crypto, encrypted credentials. Batch/export/browser WAF/CDK remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "list_builtin_providers",
@@ -8128,10 +8313,15 @@
       "risk": "network_mutation",
       "handler_path": "super::checkin::add_builtin_provider",
       "owner": "gpui-08-jobs",
-      "status": "planned",
-      "native_action": null,
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "CheckinView -> retained operations -> captured ccr-checkin managers",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-08-jobs/research/command-status-20261028.json",
+        "core_continuation_20261106": {
+          "scope": "Provider/account CRUD, builtin providers, per-account check-in/balance/records. Captured DB/crypto, encrypted credentials. Batch/export/browser WAF/CDK remain separate.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
       },
       "execution_20261029": {
         "command": "add_builtin_provider",
@@ -8291,9 +8481,15 @@
       "risk": "read_only",
       "handler_path": "super::config::get_skip_exit_confirm",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Shell preferences / guarded Quit -> independent GPUI preference owner",
+      "verification": {
+        "core_continuation_20261106": {
+          "scope": "Theme/language/confirm_quit; Settings/menu/Ctrl-Cmd-Q share guard. Default confirms idle; system direct App::quit has no veto.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
+      }
     },
     {
       "id": "set_skip_exit_confirm",
@@ -8302,9 +8498,15 @@
       "risk": "local_mutation",
       "handler_path": "super::config::set_skip_exit_confirm",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Shell preferences / guarded Quit -> independent GPUI preference owner",
+      "verification": {
+        "core_continuation_20261106": {
+          "scope": "Theme/language/confirm_quit; Settings/menu/Ctrl-Cmd-Q share guard. Default confirms idle; system direct App::quit has no veto.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
+      }
     },
     {
       "id": "shell_get_preferences",
@@ -8313,9 +8515,15 @@
       "risk": "read_only",
       "handler_path": "super::shell::shell_get_preferences",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Shell preferences / guarded Quit -> independent GPUI preference owner",
+      "verification": {
+        "core_continuation_20261106": {
+          "scope": "Theme/language/confirm_quit; Settings/menu/Ctrl-Cmd-Q share guard. Default confirms idle; system direct App::quit has no veto.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
+      }
     },
     {
       "id": "shell_set_preferences",
@@ -8324,9 +8532,15 @@
       "risk": "process_execution",
       "handler_path": "super::shell::shell_set_preferences",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Shell preferences / guarded Quit -> independent GPUI preference owner",
+      "verification": {
+        "core_continuation_20261106": {
+          "scope": "Theme/language/confirm_quit; Settings/menu/Ctrl-Cmd-Q share guard. Default confirms idle; system direct App::quit has no veto.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
+      }
     },
     {
       "id": "shell_show_main_window",
@@ -8346,9 +8560,15 @@
       "risk": "process_execution",
       "handler_path": "super::shell::shell_request_quit",
       "owner": "gpui-09-environments",
-      "status": "planned",
-      "native_action": null,
-      "verification": null
+      "status": "implemented_partial_pending_native_acceptance",
+      "native_action": "Shell preferences / guarded Quit -> independent GPUI preference owner",
+      "verification": {
+        "core_continuation_20261106": {
+          "scope": "Theme/language/confirm_quit; Settings/menu/Ctrl-Cmd-Q share guard. Default confirms idle; system direct App::quit has no veto.",
+          "evidence": ".trellis/tasks/10-17-gpui-09-environments/evidence.md",
+          "result": "Source integrated; batch gates recorded in evidence; native/external acceptance remains open."
+        }
+      }
     },
     {
       "id": "shell_begin_tray_panel_drag",

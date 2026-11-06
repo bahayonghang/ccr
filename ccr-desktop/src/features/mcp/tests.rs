@@ -53,6 +53,29 @@ fn labels(window: &gpui_kit::Window) -> String {
         .join("\n")
 }
 
+// Textarea exposes its accessibility label on the inner Input. Its native
+// accessibility_id is not a GPUI ElementId, so drive the actual input node.
+fn patch_id(window: &gpui_kit::Window) -> gpui_kit::ElementId {
+    gpui_kit::base::test_support::snapshots(window)
+        .into_iter()
+        .find(|node| node.label() == Some("MCP JSON patch"))
+        .unwrap()
+        .path()
+        .last()
+        .unwrap()
+        .clone()
+}
+async fn wait_for_editor(cx: &mut TestAppContext, handle: gpui_kit::AnyWindowHandle) {
+    cx.wait_for(handle, Duration::from_secs(5), |window, _| {
+        window
+            .try_find("mcp-editor-save")
+            .is_some_and(|node| node.disabled() != Some(true))
+    })
+    .await;
+    // Rendering the enabled Input updates its engine and queues a notification.
+    // Drain that update before exercising native pointer and keyboard handlers.
+    cx.run_until_parked();
+}
 fn write_entries(root: &std::path::Path) {
     let home = root.join(FIXTURE_DIR).join("home");
     fs::create_dir_all(home.join(".claude")).unwrap();
@@ -206,5 +229,142 @@ async fn mcp_page_with_no_files_stays_empty(cx: &mut TestAppContext) {
         window.remove_window();
     })
     .unwrap();
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+async fn mcp_native_actions_write_confirm_and_keep_conflicting_drafts(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let handle = open(cx, &owner, root.path());
+    let path = root.path().join(FIXTURE_DIR).join("home/.claude.json");
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("nav-mcp-manager", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(5), |window, _| {
+        window.try_find("mcp-empty").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("mcp-add", cx);
+        window.click("mcp-open-editor", cx);
+    })
+    .unwrap();
+    wait_for_editor(cx, handle).await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("mcp-name", cx);
+        window.input("native-server", cx);
+        window.click(patch_id(window), cx);
+        window.press("ctrl-a", cx);
+        window.input(
+            r#"{"command":"fixture-tool","env":{"TOKEN":"mcp-write-secret"},"extension":7}"#,
+            cx,
+        );
+        assert_eq!(window.find("mcp-name").value(), Some("native-server"));
+        assert_eq!(
+            window.find(patch_id(window)).value(),
+            Some(r#"{"command":"fixture-tool","env":{"TOKEN":"mcp-write-secret"},"extension":7}"#)
+        );
+        window.click("mcp-editor-save", cx);
+        assert!(!path.exists(), "preparing confirmation must not write");
+        window.click("mcp-confirm-cancel", cx);
+        assert!(
+            window
+                .find(patch_id(window))
+                .value()
+                .unwrap()
+                .contains("mcp-write-secret")
+        );
+        window.click("mcp-editor-save", cx);
+        window.click("mcp-confirm-save", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(5), |window, _| {
+        window.try_find("mcp-entry-0").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        assert!(!labels(window).contains("mcp-write-secret"));
+        window.click("mcp-entry-0", cx);
+        window.click("mcp-edit", cx);
+    })
+    .unwrap();
+    wait_for_editor(cx, handle).await;
+    let mut external: serde_json::Value =
+        serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    external["external"] = serde_json::json!(true);
+    fs::write(&path, serde_json::to_vec(&external).unwrap()).unwrap();
+    cx.update_window(handle, |_, window, cx| {
+        assert_eq!(
+            window.find(patch_id(window)).value(),
+            Some("{}"),
+            "existing secrets must not populate patch controls"
+        );
+        window.click(patch_id(window), cx);
+        window.press("ctrl-a", cx);
+        window.input(r#"{"disabled":true}"#, cx);
+        window.click("mcp-editor-save", cx);
+        window.click("mcp-confirm-save", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(5), |window, _| {
+        labels(window).contains("The source changed.")
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        assert_eq!(
+            window.find(patch_id(window)).value(),
+            Some(r#"{"disabled":true}"#)
+        );
+        window.click("mcp-editor-close", cx);
+    })
+    .unwrap();
+    cx.run_until_parked();
+    cx.update_window(handle, |_, window, cx| window.click("mcp-edit", cx))
+        .unwrap();
+    wait_for_editor(cx, handle).await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click(patch_id(window), cx);
+        window.press("ctrl-a", cx);
+        window.input(r#"{"disabled":true}"#, cx);
+        window.click("mcp-editor-save", cx);
+        window.click("mcp-confirm-save", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(5), |window, _| {
+        window.try_find("mcp-entry-0").is_some()
+    })
+    .await;
+    let saved: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    assert_eq!(
+        saved["mcpServers"]["native-server"]["env"]["TOKEN"],
+        "mcp-write-secret"
+    );
+    assert_eq!(saved["mcpServers"]["native-server"]["extension"], 7);
+    assert_eq!(saved["mcpServers"]["native-server"]["disabled"], true);
+    assert_eq!(saved["external"], true);
+    cx.update_window(handle, |_, window, cx| {
+        window.click("mcp-entry-0", cx);
+        window.click("mcp-delete", cx);
+    })
+    .unwrap();
+    wait_for_editor(cx, handle).await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("mcp-editor-save", cx);
+        window.click("mcp-confirm-save", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(5), |window, _| {
+        window.try_find("mcp-empty").is_some()
+    })
+    .await;
+    let saved: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    assert!(saved["mcpServers"].as_object().unwrap().is_empty());
+    assert_eq!(saved["external"], true);
+    cx.update_window(handle, |_, window, _| window.remove_window())
+        .unwrap();
     owner.shutdown();
 }

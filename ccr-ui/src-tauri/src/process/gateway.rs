@@ -36,13 +36,6 @@ impl ProcessGateway {
     ) -> Result<CappedProcessOutput, String> {
         SharedGateway::execute_with_context(descriptor, &sidecar_context(), args).await
     }
-    pub async fn execute_command(
-        command: Command,
-        descriptor: &ProcessDescriptor,
-        stdin: Option<Vec<u8>>,
-    ) -> Result<CappedProcessOutput, String> {
-        SharedGateway::execute_command(command, descriptor, stdin).await
-    }
     pub fn open_oauth_url(raw_url: &str) -> Result<(), String> {
         SharedGateway::open_oauth_url(raw_url)
     }

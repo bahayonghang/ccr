@@ -25,45 +25,54 @@ pub type Result<T> = std::result::Result<T, ProviderError>;
 
 /// 提供商管理器
 /// 使用 SQLite 统一存储
-pub struct ProviderManager;
+pub struct ProviderManager {
+    db: database::DbAccess,
+}
 
 impl ProviderManager {
     /// 创建新的提供商管理器
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        Self
+        Self::with_db(database::DbAccess::Global)
+    }
+
+    /// Use the same explicit database as the caller.
+    pub fn with_db(db: database::DbAccess) -> Self {
+        Self { db }
     }
 
     /// 获取所有提供商
     pub fn list(&self) -> Result<ProvidersResponse> {
-        let providers = database::with_connection(checkin_repo::get_all_providers)?;
+        let providers = self.db.with_connection(checkin_repo::get_all_providers)?;
         let total = providers.len();
         Ok(ProvidersResponse { providers, total })
     }
 
     /// 根据 ID 获取提供商
     pub fn get(&self, id: &str) -> Result<CheckinProvider> {
-        database::with_connection(|conn| checkin_repo::get_provider_by_id(conn, id))?
+        self.db
+            .with_connection(|conn| checkin_repo::get_provider_by_id(conn, id))?
             .ok_or_else(|| ProviderError::NotFound(id.to_string()))
     }
 
     /// 根据名称获取提供商
     #[allow(dead_code)]
     pub fn get_by_name(&self, name: &str) -> Result<Option<CheckinProvider>> {
-        let providers = database::with_connection(checkin_repo::get_all_providers)?;
+        let providers = self.db.with_connection(checkin_repo::get_all_providers)?;
         Ok(providers.into_iter().find(|p| p.name == name))
     }
 
     /// 创建提供商
     pub fn create(&self, request: CreateProviderRequest) -> Result<CheckinProvider> {
         // 检查名称是否已存在
-        let existing = database::with_connection(checkin_repo::get_all_providers)?;
+        let existing = self.db.with_connection(checkin_repo::get_all_providers)?;
         if existing.iter().any(|p| p.name == request.name) {
             return Err(ProviderError::AlreadyExists(request.name));
         }
 
         let provider = request.into_provider();
-        database::with_connection(|conn| checkin_repo::insert_provider(conn, &provider))?;
+        self.db
+            .with_connection(|conn| checkin_repo::insert_provider(conn, &provider))?;
 
         tracing::info!("Created provider: {} ({})", provider.name, provider.id);
         Ok(provider)
@@ -76,7 +85,7 @@ impl ProviderManager {
 
         // 检查新名称是否与其他提供商冲突
         if let Some(ref new_name) = request.name {
-            let existing = database::with_connection(checkin_repo::get_all_providers)?;
+            let existing = self.db.with_connection(checkin_repo::get_all_providers)?;
             if existing.iter().any(|p| p.id != id && &p.name == new_name) {
                 return Err(ProviderError::AlreadyExists(new_name.clone()));
             }
@@ -109,7 +118,8 @@ impl ProviderManager {
         }
         provider.updated_at = Some(Utc::now());
 
-        database::with_connection(|conn| checkin_repo::update_provider(conn, &provider))?;
+        self.db
+            .with_connection(|conn| checkin_repo::update_provider(conn, &provider))?;
 
         tracing::info!("Updated provider: {} ({})", provider.name, provider.id);
         Ok(provider)
@@ -121,7 +131,9 @@ impl ProviderManager {
             return Err(ProviderError::HasAccounts(id.to_string()));
         }
 
-        let deleted = database::with_connection(|conn| checkin_repo::delete_provider(conn, id))?;
+        let deleted = self
+            .db
+            .with_connection(|conn| checkin_repo::delete_provider(conn, id))?;
 
         if !deleted {
             return Err(ProviderError::NotFound(id.to_string()));
@@ -137,7 +149,7 @@ impl ProviderManager {
         providers_to_import: Vec<CheckinProvider>,
         overwrite: bool,
     ) -> Result<(usize, usize)> {
-        let existing = database::with_connection(checkin_repo::get_all_providers)?;
+        let existing = self.db.with_connection(checkin_repo::get_all_providers)?;
         let mut imported = 0;
         let mut skipped = 0;
 
@@ -148,7 +160,7 @@ impl ProviderManager {
 
             if exists {
                 if overwrite {
-                    database::with_connection(|conn| {
+                    self.db.with_connection(|conn| {
                         checkin_repo::update_provider(conn, &new_provider)
                     })?;
                     imported += 1;
@@ -156,9 +168,8 @@ impl ProviderManager {
                     skipped += 1;
                 }
             } else {
-                database::with_connection(|conn| {
-                    checkin_repo::insert_provider(conn, &new_provider)
-                })?;
+                self.db
+                    .with_connection(|conn| checkin_repo::insert_provider(conn, &new_provider))?;
                 imported += 1;
             }
         }
@@ -168,7 +179,7 @@ impl ProviderManager {
 
     /// 加载所有提供商（兼容旧 API）
     pub fn load_all(&self) -> Result<Vec<CheckinProvider>> {
-        let providers = database::with_connection(checkin_repo::get_all_providers)?;
+        let providers = self.db.with_connection(checkin_repo::get_all_providers)?;
         Ok(providers)
     }
 
@@ -177,7 +188,7 @@ impl ProviderManager {
     pub fn backfill_builtin_ids(&self) -> Result<usize> {
         use super::builtin_providers::get_builtin_providers;
 
-        let providers = database::with_connection(checkin_repo::get_all_providers)?;
+        let providers = self.db.with_connection(checkin_repo::get_all_providers)?;
         let builtins = get_builtin_providers();
         let mut updated = 0;
 
@@ -188,7 +199,7 @@ impl ProviderManager {
             });
 
             if let Some(builtin) = matched {
-                let written = database::with_connection(|conn| {
+                let written = self.db.with_connection(|conn| {
                     checkin_repo::set_provider_builtin_id_if_missing(
                         conn,
                         &provider.id,

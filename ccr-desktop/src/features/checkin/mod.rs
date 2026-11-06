@@ -1,4 +1,9 @@
 //! Saved check-in accounts. Balances appear only when a local row stores them.
+mod operations;
+use crate::runtime::checkin::OperationState;
+use operations::{Confirmation, Editor};
+use std::sync::Arc;
+
 use crate::{
     locales::{is_chinese, service_error, text},
     runtime::{
@@ -29,11 +34,21 @@ pub struct CheckinView {
     busy: bool,
     message: Option<&'static str>,
     focus: FocusHandle,
+    operation: Arc<OperationState>,
+    observation: Option<Task<()>>,
+    editor: Option<Editor>,
+    confirmation: Option<Confirmation>,
+    catalog: bool,
 }
 
 impl CheckinView {
     pub fn new(services: Services, _window: &mut Window, cx: &mut Context<Self>) -> Self {
         Self {
+            operation: services.checkin_operation_state(),
+            observation: None,
+            editor: None,
+            confirmation: None,
+            catalog: false,
             services,
             snapshot: None,
             selected: None,
@@ -53,6 +68,9 @@ impl CheckinView {
 
     pub fn suspend(&mut self, cx: &mut Context<Self>) {
         self.task = None;
+        self.observation = None;
+        self.editor = None;
+        self.confirmation = None;
         self.gate.clear();
         self.generation += 1;
         self.busy = false;
@@ -60,6 +78,7 @@ impl CheckinView {
     }
 
     pub fn refresh(&mut self, cx: &mut Context<Self>) {
+        self.observe(cx);
         if self.busy {
             return;
         }
@@ -81,7 +100,6 @@ impl CheckinView {
         self.busy = true;
         self.message = None;
         self.snapshot = None;
-        self.selected = None;
         match self.services.checkin_request(key.clone()) {
             Ok(mut subscription) => {
                 self.task = Some(cx.spawn(async move |weak, cx| {
@@ -125,9 +143,12 @@ impl CheckinView {
 
     fn accept(&mut self, snapshot: CheckinSnapshot) {
         let selected = match &snapshot {
-            CheckinSnapshot::Accounts(accounts) => {
-                accounts.first().map(|account| account.id.clone())
-            }
+            CheckinSnapshot::Accounts(accounts) => self
+                .selected
+                .as_ref()
+                .filter(|id| accounts.iter().any(|a| &a.id == *id))
+                .cloned()
+                .or_else(|| accounts.first().map(|account| account.id.clone())),
             CheckinSnapshot::NoDatabase => None,
         };
         self.snapshot = Some(snapshot);
@@ -216,8 +237,8 @@ fn detail_lines(cx: &App, account: &CheckinAccountRow) -> Vec<String> {
     lines.push(
         text(
             cx,
-            "This page does not contact the provider or change the account.",
-            "此页不联系提供商，也不修改账户。",
+            "Reading this page does not contact the provider. Use the actions to check in or refresh balance.",
+            "读取此页不会联系提供商。使用操作按钮执行签到或刷新余额。",
         )
         .to_string(),
     );
@@ -250,8 +271,8 @@ impl Render for CheckinView {
             .child({
                 let intro = text(
                     cx,
-                    "Reads saved check-in accounts from the local database. It does not create a database, write accounts, contact providers, or fill in a missing balance.",
-                    "读取本地数据库里已保存的签到账户。不会创建数据库、写入账户、联系提供商，也不会把缺失的余额填成数字。",
+                    "Reading this page does not create a database or contact providers. Management and account actions write to the local check-in store.",
+                    "读取此页不会创建数据库或联系提供商。管理及账户操作会写入本地签到存储。",
                 );
                 div()
                     .id("checkin-intro")
@@ -299,8 +320,8 @@ impl Render for CheckinView {
                 CheckinSnapshot::NoDatabase => {
                     let empty = text(
                         cx,
-                        "No local check-in database was found. This page does not create one.",
-                        "没有找到本地签到数据库。此页不会创建它。",
+                        "No local check-in database was found. Use management to create providers and accounts.",
+                        "没有找到本地签到数据库。使用管理入口新增提供商和账户。",
                     );
                     root = root.child(
                         div()
@@ -373,7 +394,7 @@ impl Render for CheckinView {
                 }
             }
         }
-        root
+        root.child(self.render_operations(cx))
     }
 }
 

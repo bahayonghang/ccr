@@ -1,14 +1,16 @@
-//! Local MCP catalog. Reads existing files and does not invent servers or status.
+//! Source-aware local MCP management; server process status is not inferred.
+mod editor;
 use crate::{
     locales::{is_chinese, service_error, text},
     runtime::{
         Services,
-        mcp::{McpCatalog, McpEntry, McpScope, McpSource, McpSourceState},
+        mcp::{McpCatalog, McpEntry, McpScope, McpSource, McpSourceState, McpTarget},
     },
     shell::semantics,
     theme,
 };
 use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent};
+use editor::{EditMode, EditorEvent, McpEditor};
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
     Selectable,
@@ -23,6 +25,11 @@ use gpui_kit::{
 pub struct McpView {
     services: Services,
     filter: Entity<InputState>,
+    project: Entity<InputState>,
+    create_source: usize,
+    show_sources: bool,
+    editor: Option<Entity<McpEditor>>,
+    editor_events: Option<Subscription>,
     _filter: Subscription,
     catalog: Option<McpCatalog>,
     selected: Option<String>,
@@ -45,6 +52,11 @@ impl McpView {
         Self {
             services,
             filter,
+            project: cx.new(|cx| InputState::new(window, cx)),
+            create_source: 0,
+            show_sources: false,
+            editor: None,
+            editor_events: None,
             _filter: subscription,
             catalog: None,
             selected: None,
@@ -63,6 +75,8 @@ impl McpView {
     }
 
     pub fn suspend(&mut self, cx: &mut Context<Self>) {
+        self.editor = None;
+        self.editor_events = None;
         self.task = None;
         self.gate.clear();
         self.generation += 1;
@@ -97,7 +111,13 @@ impl McpView {
         self.message = None;
         self.catalog = None;
         self.selected = None;
-        match self.services.mcp_request(key.clone()) {
+        let project = self.project.read(cx).value().trim().to_string();
+        let project = if project.is_empty() {
+            None
+        } else {
+            Some(std::path::PathBuf::from(project))
+        };
+        match self.services.mcp_project_request(key.clone(), project) {
             Ok(mut subscription) => {
                 self.task = Some(cx.spawn(async move |weak, cx| {
                     while let Some(event) = subscription.next().await {
@@ -138,6 +158,58 @@ impl McpView {
             }
         }
         cx.notify();
+    }
+
+    fn start_editor(
+        &mut self,
+        target: McpTarget,
+        mode: EditMode,
+        name: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.busy {
+            return;
+        }
+        self.generation += 1;
+        let key = RequestKey {
+            environment: EnvironmentId::Local(
+                if self.services.is_fixture() {
+                    "fixture"
+                } else {
+                    "local"
+                }
+                .into(),
+            ),
+            platform: Platform::Claude,
+            generation: self.generation,
+            request_id: self.generation,
+        };
+        let editor =
+            cx.new(|cx| McpEditor::new(self.services.clone(), key, target, mode, name, window, cx));
+        self.editor_events = Some(cx.subscribe(&editor, |this, _, event, cx| {
+            this.editor = None;
+            this.editor_events = None;
+            if matches!(event, EditorEvent::Saved) {
+                this.request(cx);
+            }
+            cx.notify();
+        }));
+        self.show_sources = false;
+        self.editor = Some(editor);
+        cx.notify();
+    }
+
+    fn add(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let project = std::path::PathBuf::from(self.project.read(cx).value().trim());
+        let target = match self.create_source {
+            1 => McpTarget::ClaudeLocal(project),
+            2 => McpTarget::ClaudeProject(project),
+            3 => McpTarget::Codex,
+            4 => McpTarget::Antigravity,
+            _ => McpTarget::ClaudeUser,
+        };
+        self.start_editor(target, EditMode::Add, "", window, cx);
     }
 
     fn visible(&self, cx: &App) -> Vec<McpEntry> {
@@ -215,8 +287,8 @@ fn note_line(cx: &App, source: McpSource, state: McpSourceState) -> String {
             .to_string(),
             McpSource::OpenCode => text(
                 cx,
-                "OpenCode MCP is not read by this page.",
-                "此页不读取 OpenCode MCP。",
+                "OpenCode MCP is not read by this page. Use the OpenCode settings source editor.",
+                "此页不读取 OpenCode MCP，请使用 OpenCode 设置源码编辑器。",
             )
             .to_string(),
             McpSource::Grok => text(
@@ -362,8 +434,8 @@ impl Render for McpView {
             )
             .child(text(
                 cx,
-                "Reads MCP entries stored in local files. It does not add, remove, or report whether a server is running. Environment values, headers, arguments, URLs, and tokens stay in the file.",
-                "读取已经写在本地文件里的 MCP 条目。不会新增、删除，也不会报告服务器是否在运行。环境变量、请求头、参数、URL 和令牌仍留在文件中。",
+                "Manage MCP entries in their selected local source and scope. Existing secret values stay out of the list and patch editor. This page does not start servers or infer process status.",
+                "管理所选本地来源与作用域中的 MCP 条目。已有密钥不会出现在列表或补丁编辑器中。此页不会启动服务器或推断进程状态。",
             ))
             .child(
                 div()
@@ -377,6 +449,8 @@ impl Render for McpView {
                                 .aria_label(text(cx, "Filter MCP entries by name", "按名称筛选 MCP 条目")),
                         ),
                     )
+                    .child(semantics::button(Button::new("mcp-add").label(text(cx,"Add server and select source","添加服务器与选择来源")).ghost()
+                        .on_click(cx.listener(|this,_,_,cx|{this.show_sources = !this.show_sources;cx.notify();})),self.busy||self.editor.is_some(),false,cx))
                     .child(semantics::button(
                         Button::new("mcp-read")
                             .label(if self.busy {
@@ -386,11 +460,52 @@ impl Render for McpView {
                             })
                             .ghost()
                             .on_click(cx.listener(|this, _, _, cx| this.refresh(cx))),
-                        self.busy,
+                        self.busy || self.editor.is_some(),
                         self.busy,
                         cx,
                     )),
             );
+        if let Some(editor) = &self.editor {
+            return root.child(editor.clone());
+        }
+        if self.show_sources {
+            let mut targets = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
+            for (index, id, en, zh) in [
+                (0, "mcp-source-user", "Claude user", "Claude 用户"),
+                (
+                    1,
+                    "mcp-source-local",
+                    "Claude local project",
+                    "Claude 项目本地",
+                ),
+                (
+                    2,
+                    "mcp-source-project",
+                    "Claude project file",
+                    "Claude 项目文件",
+                ),
+                (3, "mcp-source-codex", "Codex", "Codex"),
+                (4, "mcp-source-antigravity", "Antigravity", "Antigravity"),
+            ] {
+                targets = targets.child(semantics::button(
+                    Button::new(id)
+                        .label(text(cx, en, zh))
+                        .ghost()
+                        .selected(self.create_source == index)
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            this.create_source = index;
+                            cx.notify();
+                        })),
+                    self.busy,
+                    false,
+                    cx,
+                ));
+            }
+            root = root.child(targets)
+            .child(Input::new(&self.project).id("mcp-project-root").aria_label(text(cx,"Absolute project directory (optional)","项目绝对路径（可选）")))
+            .child(text(cx,"A project directory is required for Claude local/project scope. Read local files to include its .mcp.json. User scope applies across projects.","Claude 项目本地与项目文件作用域需要项目目录。读取本地文件时会包含其 .mcp.json。用户作用域适用于所有项目。"))
+            .child(semantics::button(Button::new("mcp-open-editor").label(text(cx,"Add server to selected source","向所选来源添加服务器")).primary().on_click(cx.listener(|this,_,window,cx|this.add(window,cx))),self.busy,false,cx));
+        }
         if self.busy {
             root = root.child(
                 div()
@@ -501,6 +616,55 @@ impl Render for McpView {
                     .gap(px(theme::CONTROL_GAP));
                 for line in lines {
                     detail = detail.child(line);
+                }
+                match McpTarget::for_entry(entry) {
+                    Ok(target) => {
+                        let edit_target = target.clone();
+                        let edit_name = entry.name.clone();
+                        let delete_name = entry.name.clone();
+                        detail = detail.child(
+                            div()
+                                .flex()
+                                .gap(px(theme::CONTROL_GAP))
+                                .child(semantics::button(
+                                    Button::new("mcp-edit")
+                                        .label(text(cx, "Edit server", "编辑服务器"))
+                                        .ghost()
+                                        .on_click(cx.listener(move |this, _, window, cx| {
+                                            this.start_editor(
+                                                edit_target.clone(),
+                                                EditMode::Edit,
+                                                &edit_name,
+                                                window,
+                                                cx,
+                                            )
+                                        })),
+                                    self.busy,
+                                    false,
+                                    cx,
+                                ))
+                                .child(semantics::button(
+                                    Button::new("mcp-delete")
+                                        .label(text(cx, "Delete server", "删除服务器"))
+                                        .ghost()
+                                        .on_click(cx.listener(move |this, _, window, cx| {
+                                            this.start_editor(
+                                                target.clone(),
+                                                EditMode::Delete,
+                                                &delete_name,
+                                                window,
+                                                cx,
+                                            )
+                                        })),
+                                    self.busy,
+                                    false,
+                                    cx,
+                                )),
+                        );
+                    }
+                    Err(_) => {
+                        detail = detail.child(text(cx,"This legacy source is read-only here. Manage it through the platform settings source editor; new Claude entries use explicit user/local/project scope.","此旧版来源在这里为只读。请通过平台设置源码编辑器管理；新的 Claude 条目使用明确的用户、项目本地或项目文件作用域。"));
+                    }
                 }
                 root = root.child(detail);
             }

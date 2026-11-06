@@ -6,7 +6,7 @@
 
 ### 1. Scope / Trigger
 
-- Applies when changing `ccr-ui/src-tauri/src/ssh/`, `platform/ssh.rs`, SSH Tauri commands, or their frontend DTOs.
+- Applies when changing `crates/ccr-app/src/environments/ssh_security.rs`, the native `ssh::Workspace`, `ccr-ui/src-tauri/src/ssh/`, `platform/ssh.rs`, SSH Tauri commands, or their frontend DTOs. Tauri re-exports the shared security owner; do not create a second trust or path validator.
 - The renderer may request a probe and approve an opaque challenge. It never owns executable arguments, trusted fingerprints, or known-hosts content.
 - Config files use system OpenSSH SFTP. Fixed CLI detection and the nonce handshake are the only remote shell commands.
 

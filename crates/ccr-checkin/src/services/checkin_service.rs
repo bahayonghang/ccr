@@ -62,6 +62,7 @@ pub struct WafCookieValidationResult {
 
 /// 签到服务
 pub struct CheckinService {
+    db: ccr_db::database::DbAccess,
     /// 签到数据目录
     checkin_dir: PathBuf,
     /// HTTP 客户端
@@ -638,6 +639,7 @@ impl CheckinService {
             .expect("Failed to create HTTP client");
 
         Self {
+            db: ccr_db::database::DbAccess::Global,
             checkin_dir,
             client,
             proxy_url,
@@ -648,9 +650,32 @@ impl CheckinService {
     pub fn with_client(checkin_dir: PathBuf, client: Client) -> Self {
         let proxy_url = get_proxy_settings().map(|(_, url)| url);
         Self {
+            db: ccr_db::database::DbAccess::Global,
             checkin_dir,
             client,
             proxy_url,
+        }
+    }
+
+    /// Retain the production HTTP policy while capturing an explicit database.
+    pub fn with_db(checkin_dir: PathBuf, db: ccr_db::database::DbAccess) -> Self {
+        let mut service = Self::new(checkin_dir);
+        service.db = db;
+        service
+    }
+
+    /// Embedded callers supply both storage and their HTTP client. This constructor
+    /// does not discover system proxy settings or initialize the global database.
+    pub fn with_db_and_client(
+        checkin_dir: PathBuf,
+        db: ccr_db::database::DbAccess,
+        client: Client,
+    ) -> Self {
+        Self {
+            checkin_dir,
+            db,
+            client,
+            proxy_url: None,
         }
     }
 
@@ -663,7 +688,7 @@ impl CheckinService {
     }
 
     fn get_cached_waf_cookies(&self, provider_id: &str) -> Result<Option<HashMap<String, String>>> {
-        let manager = WafCookieManager::new();
+        let manager = WafCookieManager::with_db(self.db.clone());
         manager
             .get_valid(provider_id)
             .map_err(|e| CheckinServiceError::Balance(e.to_string()))
@@ -675,7 +700,7 @@ impl CheckinService {
     }
 
     fn get_cached_cf_cookies(&self, provider_id: &str) -> Result<Option<HashMap<String, String>>> {
-        let manager = WafCookieManager::new();
+        let manager = WafCookieManager::with_db(self.db.clone());
         manager
             .get_valid(&Self::cf_cache_key(provider_id))
             .map_err(|e| CheckinServiceError::Balance(e.to_string()))
@@ -731,9 +756,9 @@ impl CheckinService {
 
     /// 执行单个账号签到
     pub async fn checkin(&self, account_id: &str) -> Result<CheckinExecutionResult> {
-        let provider_manager = ProviderManager::new();
-        let account_manager = AccountManager::new(&self.checkin_dir);
-        let record_manager = RecordManager::new();
+        let provider_manager = ProviderManager::with_db(self.db.clone());
+        let account_manager = AccountManager::with_db(&self.checkin_dir, self.db.clone());
+        let record_manager = RecordManager::with_db(self.db.clone());
         let crypto = CryptoManager::new(&self.checkin_dir)
             .map_err(|e| CheckinServiceError::Crypto(e.to_string()))?;
 
@@ -1185,9 +1210,9 @@ impl CheckinService {
 
     /// 查询账号余额
     pub async fn query_balance(&self, account_id: &str) -> Result<BalanceSnapshot> {
-        let provider_manager = ProviderManager::new();
-        let account_manager = AccountManager::new(&self.checkin_dir);
-        let balance_manager = BalanceManager::new();
+        let provider_manager = ProviderManager::with_db(self.db.clone());
+        let account_manager = AccountManager::with_db(&self.checkin_dir, self.db.clone());
+        let balance_manager = BalanceManager::with_db(self.db.clone());
         let crypto = CryptoManager::new(&self.checkin_dir)
             .map_err(|e| CheckinServiceError::Crypto(e.to_string()))?;
 
@@ -1420,9 +1445,11 @@ impl CheckinService {
                 let client = self.client.clone();
                 let checkin_dir = self.checkin_dir.clone();
                 let proxy_url = self.proxy_url.clone();
+                let db = self.db.clone();
                 async move {
                     let _permit = sem.acquire().await.expect("semaphore closed");
                     let svc = CheckinService {
+                        db,
                         checkin_dir,
                         client,
                         proxy_url,
@@ -1450,7 +1477,7 @@ impl CheckinService {
 
     /// 签到所有启用的账号
     pub async fn checkin_all(&self) -> Vec<CheckinExecutionResult> {
-        let account_manager = AccountManager::new(&self.checkin_dir);
+        let account_manager = AccountManager::with_db(&self.checkin_dir, self.db.clone());
 
         let enabled_accounts = match account_manager.get_enabled_accounts() {
             Ok(accounts) => accounts,
@@ -1471,7 +1498,7 @@ impl CheckinService {
         account_id: &str,
         limit: Option<usize>,
     ) -> Result<CheckinRecordsResponse> {
-        let record_manager = RecordManager::new();
+        let record_manager = RecordManager::with_db(self.db.clone());
         record_manager
             .get_by_account(account_id, limit)
             .map_err(|e| CheckinServiceError::Record(e.to_string()))
@@ -1480,7 +1507,7 @@ impl CheckinService {
     /// 获取所有签到记录
     #[allow(dead_code)]
     pub fn get_all_records(&self, limit: Option<usize>) -> Result<CheckinRecordsResponse> {
-        let record_manager = RecordManager::new();
+        let record_manager = RecordManager::with_db(self.db.clone());
         record_manager
             .get_all(limit)
             .map_err(|e| CheckinServiceError::Record(e.to_string()))
@@ -1492,7 +1519,7 @@ impl CheckinService {
         account_id: &str,
         limit: Option<usize>,
     ) -> Result<BalanceHistoryResponse> {
-        let balance_manager = BalanceManager::new();
+        let balance_manager = BalanceManager::with_db(self.db.clone());
         balance_manager
             .get_history(account_id, limit)
             .map_err(|e| CheckinServiceError::Balance(e.to_string()))
@@ -1501,7 +1528,7 @@ impl CheckinService {
     /// 获取账号最新余额
     #[allow(dead_code)]
     pub fn get_latest_balance(&self, account_id: &str) -> Result<Option<BalanceSnapshot>> {
-        let balance_manager = BalanceManager::new();
+        let balance_manager = BalanceManager::with_db(self.db.clone());
         balance_manager
             .get_latest(account_id)
             .map_err(|e| CheckinServiceError::Balance(e.to_string()))
@@ -1515,9 +1542,9 @@ impl CheckinService {
         month: u32,
         days: u32,
     ) -> Result<CheckinAccountDashboardResponse> {
-        let account_manager = AccountManager::new(&self.checkin_dir);
-        let provider_manager = ProviderManager::new();
-        let balance_manager = BalanceManager::new();
+        let account_manager = AccountManager::with_db(&self.checkin_dir, self.db.clone());
+        let provider_manager = ProviderManager::with_db(self.db.clone());
+        let balance_manager = BalanceManager::with_db(self.db.clone());
 
         let account = account_manager
             .get(account_id)
@@ -1551,7 +1578,7 @@ impl CheckinService {
             .map_err(|e| CheckinServiceError::Balance(e.to_string()))?;
 
         // 先取签到记录作为「是否签到 / 奖励金额」的主源；没有记录的账号则全部依赖余额差兜底。
-        let record_manager = RecordManager::new();
+        let record_manager = RecordManager::with_db(self.db.clone());
         let record_resp = record_manager
             .get_by_account(account_id, None)
             .map_err(|e| CheckinServiceError::Record(e.to_string()))?;
@@ -1572,8 +1599,8 @@ impl CheckinService {
 
     /// 获取今日签到统计
     pub fn get_today_stats(&self) -> Result<TodayCheckinStats> {
-        let account_manager = AccountManager::new(&self.checkin_dir);
-        let record_manager = RecordManager::new();
+        let account_manager = AccountManager::with_db(&self.checkin_dir, self.db.clone());
+        let record_manager = RecordManager::with_db(self.db.clone());
 
         let all_accounts = account_manager
             .load_all()
@@ -1596,8 +1623,8 @@ impl CheckinService {
 
     /// 测试账号连接
     pub async fn test_connection(&self, account_id: &str) -> Result<bool> {
-        let provider_manager = ProviderManager::new();
-        let account_manager = AccountManager::new(&self.checkin_dir);
+        let provider_manager = ProviderManager::with_db(self.db.clone());
+        let account_manager = AccountManager::with_db(&self.checkin_dir, self.db.clone());
         let crypto = CryptoManager::new(&self.checkin_dir)
             .map_err(|e| CheckinServiceError::Crypto(e.to_string()))?;
 
@@ -1649,8 +1676,8 @@ impl CheckinService {
         &self,
         account_id: &str,
     ) -> Result<WafCookieValidationResult> {
-        let provider_manager = ProviderManager::new();
-        let account_manager = AccountManager::new(&self.checkin_dir);
+        let provider_manager = ProviderManager::with_db(self.db.clone());
+        let account_manager = AccountManager::with_db(&self.checkin_dir, self.db.clone());
         let crypto = CryptoManager::new(&self.checkin_dir)
             .map_err(|e| CheckinServiceError::Crypto(e.to_string()))?;
 

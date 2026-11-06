@@ -15,7 +15,7 @@ use ccr_app::environments::{
 use ccr_app::runtime::{
     Completion, EnvironmentId, Platform, RequestKey, RuntimeHandle, RuntimeOwner, TaskEvent,
 };
-use gpui_kit::test::TestWindowExt;
+use gpui_kit::test::{TestAppContextExt, TestWindowExt};
 use gpui_kit::{AppContext, TestAppContext, WindowBounds, WindowOptions, px, size};
 use std::time::Duration;
 
@@ -51,7 +51,7 @@ fn ssh_line_prints_names_only() {
     assert_eq!(line, "Saved SSH host names: lab.");
     assert_eq!(
         ssh_line(false, &SshNames::NotConnected),
-        "No SSH host list is loaded in this desktop shell."
+        "Manage saved SSH hosts in SSH environments below."
     );
     assert_eq!(
         ssh_line(false, &SshNames::Unreadable),
@@ -230,18 +230,28 @@ async fn settings_shows_the_local_desktop_without_a_sample_distro(cx: &mut TestA
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-settings", cx);
+    })
+    .unwrap_or_else(|error| panic!("{error}"));
+    cx.wait_for(handle, Duration::from_secs(5), |window, _| {
+        window
+            .try_find("language-zh")
+            .is_some_and(|button| button.disabled() != Some(true))
+    })
+    .await;
+    cx.run_until_parked();
+    cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         let os = ccr_app::environments::host_os_name();
         let text = labels(window);
         assert!(text.contains(&local_line(false, os)));
         if cfg!(windows) {
-            assert!(text.contains("WSL was not queried for demo data."));
+            assert!(text.contains("WSL discovery was not run."));
             assert!(text.contains("Hide and restore are unsupported on Windows."));
         } else {
             assert!(text.contains("WSL is not available on this operating system."));
             assert!(text.contains("Hide and restore were not run on this operating system."));
         }
-        assert!(text.contains("No SSH host list is loaded in this desktop shell."));
+        assert!(text.contains("Manage saved SSH hosts in SSH environments below."));
         assert!(text.contains(ssh_trust_line(false)));
         assert!(!text.to_lowercase().contains("connected"));
         assert!(!text.to_lowercase().contains("trusted"));
@@ -275,6 +285,13 @@ async fn settings_shows_the_local_desktop_without_a_sample_distro(cx: &mut TestA
         assert!(!text.to_lowercase().contains("blur"));
         assert!(window.try_find("env-hide-action").is_none());
         window.click("language-zh", cx);
+        assert!(
+            matches!(
+                cx.global::<crate::locales::Language>(),
+                crate::locales::Language::Chinese
+            ),
+            "The rendered language button did not update the language owner"
+        );
         window.render_frame(cx);
         let chinese = labels(window);
         assert!(chinese.contains(&local_line(true, os)));
@@ -378,7 +395,7 @@ fn leaving_settings_suspends_the_in_flight_environment_read(cx: &mut TestAppCont
         let text = labels(window);
         assert!(text.contains("Checking WSL."));
         assert!(text.contains("Checking saved SSH host names."));
-        assert!(!text.contains("WSL was not queried for demo data."));
+        assert!(!text.contains("WSL discovery was not run."));
         assert!(!text.contains("正在检查 WSL。"));
         assert!(!text.contains(" / "));
         assert!(!text.contains("Home insights"));
@@ -403,10 +420,10 @@ fn leaving_settings_suspends_the_in_flight_environment_read(cx: &mut TestAppCont
         let left = labels(window);
         assert!(!left.contains("Checking WSL."));
         assert!(!left.contains("Checking saved SSH host names."));
-        assert!(!left.contains("WSL was not queried for demo data."));
+        assert!(!left.contains("WSL discovery was not run."));
         assert!(!left.contains(ssh_trust_line(false)));
         assert!(!left.contains("Saved SSH host names:"));
-        assert!(!left.contains("No SSH host list is loaded"));
+        assert!(!left.contains("Manage saved SSH hosts"));
         assert!(!left.contains(" / "));
         assert!(!left.contains("Home insights"));
         assert!(!left.contains("Apply / refresh"));
@@ -425,9 +442,9 @@ fn leaving_settings_suspends_the_in_flight_environment_read(cx: &mut TestAppCont
         assert!(window.try_find("env-wsl").is_none());
         let left = labels(window);
         assert!(!left.contains("Checking WSL."));
-        assert!(!left.contains("WSL was not queried for demo data."));
+        assert!(!left.contains("WSL discovery was not run."));
         assert!(!left.contains(ssh_trust_line(false)));
-        assert!(!left.contains("No SSH host list is loaded"));
+        assert!(!left.contains("Manage saved SSH hosts"));
         window.remove_window();
     })
     .unwrap_or_else(|error| panic!("{error}"));
@@ -492,7 +509,7 @@ fn stale_environment_terminal_does_not_replace_the_visible_report(cx: &mut TestA
         assert!(!text.contains("after-suspend"));
         assert!(!text.contains("stale-generation"));
         assert!(!text.contains("after-second-suspend"));
-        assert!(!text.contains("No SSH host list is loaded"));
+        assert!(!text.contains("Manage saved SSH hosts"));
         assert!(!text.contains("Checking WSL."));
         assert!(!text.contains(" / "));
     })
@@ -507,7 +524,7 @@ fn stale_environment_terminal_does_not_replace_the_visible_report(cx: &mut TestA
         assert!(!text.contains("after-suspend"));
         assert!(!text.contains("stale-generation"));
         assert!(!text.contains("after-second-suspend"));
-        assert!(!text.contains("No SSH host list is loaded"));
+        assert!(!text.contains("Manage saved SSH hosts"));
         assert!(!text.contains("docker-desktop"));
         assert!(!text.contains("Ubuntu"));
         view.update(cx, |this, _cx| {
@@ -752,7 +769,7 @@ fn switching_environment_keeps_cache_draft_and_job_apart(cx: &mut TestAppContext
         });
         window.render_frame(cx);
         let local = labels(window);
-        assert!(local.contains("No SSH host list is loaded in this desktop shell."));
+        assert!(local.contains("Manage saved SSH hosts in SSH environments below."));
         assert!(local.contains(&draft_line(false, "local-draft")));
         assert!(local.contains(&job_line(false, "local-job")));
         assert!(!local.contains(local_only_line(false)));
@@ -813,7 +830,7 @@ fn switching_environment_keeps_cache_draft_and_job_apart(cx: &mut TestAppContext
         assert!(remote.contains(local_only_line(false)));
         assert!(remote.contains(&draft_line(false, "ssh-draft")));
         assert!(remote.contains(&job_line(false, "ssh-job")));
-        assert!(!remote.contains("No SSH host list is loaded"));
+        assert!(!remote.contains("Manage saved SSH hosts"));
         assert!(!remote.contains("local-draft"));
         assert!(!remote.contains("local-job"));
         assert!(!remote.contains("local-secret"));
@@ -836,7 +853,7 @@ fn switching_environment_keeps_cache_draft_and_job_apart(cx: &mut TestAppContext
         });
         window.render_frame(cx);
         let restored = labels(window);
-        assert!(restored.contains("No SSH host list is loaded in this desktop shell."));
+        assert!(restored.contains("Manage saved SSH hosts in SSH environments below."));
         assert!(restored.contains(&draft_line(false, "local-draft")));
         assert!(restored.contains(&job_line(false, "local-job")));
         assert!(!restored.contains("ssh-draft"));

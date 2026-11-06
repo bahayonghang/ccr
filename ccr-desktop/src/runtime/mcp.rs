@@ -1,6 +1,9 @@
 //! Local MCP entries projected from configuration files the desktop already reads.
-//! This is not a new writer: add, remove, install, and process status stay unread.
+//! Native mutations reuse source-bound shared policy and original-revision writes.
 //! Environment values, headers, arguments, URLs, and tokens are not copied out.
+
+mod editor;
+pub use editor::{McpEditSession, McpTarget};
 
 use super::{ConfigSource, Services};
 use ccr_app::{
@@ -91,7 +94,13 @@ pub struct McpCatalog {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum McpError {
     Unsupported,
+    UnsupportedSource,
     Storage,
+    Invalid,
+    Scope,
+    Conflict,
+    Duplicate,
+    Missing,
 }
 
 impl McpError {
@@ -100,7 +109,25 @@ impl McpError {
             Self::Unsupported => {
                 "MCP files are read only for the local environment. / 只在本地环境读取 MCP 文件"
             }
-            Self::Storage => "Cannot resolve local configuration roots. / 无法定位本地配置根目录",
+            Self::Storage => "Cannot read or save this MCP source. / 无法读取或保存此 MCP 来源",
+            Self::UnsupportedSource => {
+                "This source has no compatible MCP writer. Use the platform source editor. / 此来源尚无兼容 MCP 写入入口，请使用平台源码编辑器"
+            }
+            Self::Invalid => {
+                "Invalid MCP patch. Use a JSON object with a command or URL and correctly typed fields. / MCP 补丁无效，请使用含命令或 URL 且字段类型正确的 JSON 对象"
+            }
+            Self::Scope => {
+                "Choose an existing absolute project directory. / 请选择已存在的绝对项目目录"
+            }
+            Self::Conflict => {
+                "The source changed. Your draft is retained. Close and reopen the editor before retrying. / 来源已被修改，草稿已保留；请关闭并重新打开编辑器后重试"
+            }
+            Self::Duplicate => {
+                "This name already exists in the selected source and scope. / 此名称已存在于所选来源与作用域"
+            }
+            Self::Missing => {
+                "This entry no longer exists in the selected source and scope. / 所选来源与作用域中已不存在此条目"
+            }
         }
     }
 }
@@ -418,6 +445,33 @@ pub(crate) fn read_catalog(
     Ok(McpCatalog { entries, notes })
 }
 
+fn read_catalog_for_project(
+    source: &ConfigSource,
+    environment: &EnvironmentId,
+    project: Option<PathBuf>,
+) -> Result<McpCatalog, McpError> {
+    let mut catalog = read_catalog(source, environment)?;
+    if let Some(project) = project {
+        let project = editor::project_path(source, &project)?;
+        let scope = McpScope::Project(project.to_string_lossy().into_owned());
+        let (mut entries, state) = load_entries(&project.join(".mcp.json"), |content| {
+            top_level_json(content, McpSource::ProjectFile)
+        });
+        for entry in &mut entries {
+            entry.scope = scope.clone();
+        }
+        catalog.entries.extend(entries);
+        if let Some(note) = catalog
+            .notes
+            .iter_mut()
+            .find(|note| note.source == McpSource::ProjectFile)
+        {
+            note.state = state;
+        }
+    }
+    Ok(catalog)
+}
+
 fn scope_sort(scope: &McpScope) -> &str {
     match scope {
         McpScope::User => "",
@@ -426,6 +480,18 @@ fn scope_sort(scope: &McpScope) -> &str {
 }
 
 impl Services {
+    pub fn mcp_project_request(
+        &self,
+        key: RequestKey,
+        project: Option<PathBuf>,
+    ) -> Result<TaskSubscription<McpCatalog, McpError>, AdmissionError> {
+        let source = self.source.clone();
+        let environment = key.environment.clone();
+        self.executor.read(key, move |_, _| {
+            read_catalog_for_project(&source, &environment, project)
+        })
+    }
+
     pub fn mcp_request(
         &self,
         key: RequestKey,

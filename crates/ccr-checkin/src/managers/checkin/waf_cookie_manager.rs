@@ -45,23 +45,32 @@ pub type Result<T> = std::result::Result<T, WafCookieError>;
 
 /// WAF Cookies 缓存管理器
 /// 使用 SQLite 统一存储
-pub struct WafCookieManager;
+pub struct WafCookieManager {
+    db: database::DbAccess,
+}
 
 impl WafCookieManager {
     /// 创建新的 WAF Cookies 管理器
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        Self
+        Self::with_db(database::DbAccess::Global)
+    }
+
+    /// Use the same explicit database as the caller.
+    pub fn with_db(db: database::DbAccess) -> Self {
+        Self { db }
     }
 
     /// 获取有效的 WAF cookies（未命中或已过期则返回 None）
     pub fn get_valid(&self, provider_id: &str) -> Result<Option<HashMap<String, String>>> {
         // 清理过期的 cookies
-        let _ = database::with_connection(checkin_repo::delete_expired_waf_cookies);
+        let _ = self
+            .db
+            .with_connection(checkin_repo::delete_expired_waf_cookies);
 
-        let cookies_json = database::with_connection(|conn| {
-            checkin_repo::get_valid_waf_cookies(conn, provider_id)
-        })?;
+        let cookies_json = self
+            .db
+            .with_connection(|conn| checkin_repo::get_valid_waf_cookies(conn, provider_id))?;
 
         match cookies_json {
             Some(json) => {
@@ -175,7 +184,9 @@ impl WafCookieManager {
     /// 保存 WAF cookies（默认缓存 24 小时）
     pub fn save(&self, provider_id: &str, cookies: HashMap<String, String>) -> Result<()> {
         // 清理过期的 cookies
-        let _ = database::with_connection(checkin_repo::delete_expired_waf_cookies);
+        let _ = self
+            .db
+            .with_connection(checkin_repo::delete_expired_waf_cookies);
 
         let cookies_json = serde_json::to_string(&cookies)
             .map_err(|e| WafCookieError::ParseError(e.to_string()))?;
@@ -183,7 +194,7 @@ impl WafCookieManager {
         let fetched_at = Utc::now();
         let expires_at = fetched_at + Duration::hours(DEFAULT_CACHE_HOURS);
 
-        database::with_connection(|conn| {
+        self.db.with_connection(|conn| {
             checkin_repo::upsert_waf_cookies(
                 conn,
                 provider_id,
@@ -200,7 +211,7 @@ impl WafCookieManager {
     /// 删除某个 provider 的缓存
     #[allow(dead_code)]
     pub fn delete(&self, provider_id: &str) -> Result<bool> {
-        let deleted = database::with_connection(|conn| {
+        let deleted = self.db.with_connection(|conn| {
             checkin_repo::delete_waf_cookies_by_provider(conn, provider_id)
         })?;
         Ok(deleted)

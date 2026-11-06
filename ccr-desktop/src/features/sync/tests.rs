@@ -1,4 +1,4 @@
-//! Rendered local sync page. No WebDAV client call and no password write.
+//! Rendered sync controls use isolated canonical configuration files.
 #![allow(clippy::unwrap_used)]
 use super::*;
 use crate::runtime::ConfigSource;
@@ -7,6 +7,85 @@ use ccr_app::runtime::RuntimeOwner;
 use gpui_kit::test::{TestAppContextExt, TestWindowExt};
 use gpui_kit::{AppContext, TestAppContext, WindowBounds, WindowOptions, px, size};
 use std::time::Duration;
+
+#[gpui_kit::test]
+async fn saved_settings_and_operation_results_survive_leaving_the_view(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let services = services(&owner, root.path());
+    let retained = services.clone();
+    let (handle, view) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(
+            WindowOptions {
+                window_bounds: Some(WindowBounds::Windowed(gpui_kit::Bounds::centered(
+                    None,
+                    size(px(1280.), px(1200.)),
+                    cx,
+                ))),
+                ..Default::default()
+            },
+            cx,
+            |window, cx| cx.new(|cx| SyncView::new(services, window, cx)),
+        )
+        .unwrap()
+    });
+    view.update(cx, |this, cx| this.refresh(cx));
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        view.read(cx).snapshot.is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("sync-edit", cx);
+        window.render_frame(cx);
+        assert!(window.find("sync-editor").visible());
+        let editor = view.read(cx).editor.as_ref().unwrap();
+        let url = editor.url.clone();
+        let username = editor.username.clone();
+        url.update(cx, |state, cx| {
+            state.set_value("https://dav.example.test/", window, cx)
+        });
+        username.update(cx, |state, cx| state.set_value("fixture-user", window, cx));
+        window.click("sync-save", cx);
+        view.update(cx, |this, cx| this.suspend(cx));
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, _| {
+        !retained.sync_operation_state().busy
+    })
+    .await;
+    view.update(cx, |this, cx| this.refresh(cx));
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        matches!(view.read(cx).snapshot, Some(SyncSnapshot::Present(_)))
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(labels(window).contains("WebDAV settings saved."));
+        assert!(view.read(cx).editor.is_none());
+        assert!(matches!(
+            retained.sync_operation_state().result,
+            Some(Ok(SyncOutcome::Saved))
+        ));
+        window.click("sync-test", cx);
+        view.update(cx, |this, cx| this.suspend(cx));
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, _| {
+        !retained.sync_operation_state().busy
+    })
+    .await;
+    view.update(cx, |this, cx| this.refresh(cx));
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(labels(window).contains("Remote sync is disabled for fixture data."));
+        window.remove_window();
+    })
+    .unwrap();
+    owner.shutdown();
+}
 
 fn services(owner: &RuntimeOwner, root: &std::path::Path) -> Services {
     Services::new(
@@ -97,7 +176,7 @@ enabled = true
 url = "https://sync-user-sentinel:sync-password-sentinel@dav.example.test/dav/"
 username = "sync-user-sentinel"
 password = "sync-password-sentinel"
-[[folder]]
+[[folders]]
 name = "claude-fixture"
 local_path = "~/.claude"
 remote_path = "/ccr-sync/claude"
@@ -131,6 +210,12 @@ enabled = true
         assert!(!text.contains("Home insights"));
         assert!(!text.contains("Apply / refresh"));
         assert!(!text.contains(" / "));
+        window.click("sync-pull", cx);
+        window.render_frame(cx);
+        assert!(window.find("sync-confirmation").visible());
+        window.click("sync-read", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("sync-confirmation").is_none());
         window.remove_window();
     })
     .unwrap();

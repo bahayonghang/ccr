@@ -1,4 +1,4 @@
-//! Local execution environment, WSL probe, and SSH host names.
+pub mod remote;
 use crate::{
     locales::{is_chinese, text},
     runtime::{self, Services},
@@ -241,9 +241,9 @@ pub(crate) fn wsl_line(chinese: bool, probe: &WslProbe) -> String {
         }
         WslProbe::NotQueried => {
             if chinese {
-                "演示数据未查询 WSL。".to_string()
+                "未运行 WSL 探测。".to_string()
             } else {
-                "WSL was not queried for demo data.".to_string()
+                "WSL discovery was not run.".to_string()
             }
         }
         WslProbe::Unavailable => {
@@ -332,9 +332,9 @@ pub(crate) fn ssh_line(chinese: bool, names: &SshNames) -> String {
     match names {
         SshNames::NotConnected => {
             if chinese {
-                "此桌面壳没有加载 SSH 主机列表。".to_string()
+                "在下方 SSH 环境中管理已保存的主机。".to_string()
             } else {
-                "No SSH host list is loaded in this desktop shell.".to_string()
+                "Manage saved SSH hosts in SSH environments below.".to_string()
             }
         }
         SshNames::Unreadable => {

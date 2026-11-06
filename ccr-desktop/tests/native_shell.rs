@@ -8,7 +8,31 @@ use ccr_gpui::{
 use gpui_kit::component::{Theme, ThemeMode};
 use gpui_kit::test::{TestAppContextExt, TestWindowExt};
 use gpui_kit::{AppContext, TestAppContext, WindowOptions};
-use std::time::Duration;
+use std::time::{Duration, Instant};
+
+fn wait_for_preferences(cx: &mut TestAppContext, handle: gpui_kit::AnyWindowHandle) {
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("nav-settings", cx);
+    })
+    .unwrap_or_else(|error| panic!("preferences: {error}"));
+    let deadline = Instant::now() + Duration::from_secs(10);
+    loop {
+        cx.run_until_parked();
+        let ready = cx
+            .update_window(handle, |_, window, cx| {
+                window.render_frame(cx);
+                window.find("theme-dark").disabled() != Some(true)
+            })
+            .unwrap_or_else(|error| panic!("preferences: {error}"));
+        if ready {
+            break;
+        }
+        assert!(Instant::now() < deadline, "preferences startup timed out");
+        cx.executor().advance_clock(Duration::from_millis(10));
+        std::thread::yield_now();
+    }
+}
 
 #[gpui_kit::test]
 fn actual_theme_controls_keep_base_component_palette_and_language_in_sync(cx: &mut TestAppContext) {
@@ -35,6 +59,7 @@ fn actual_theme_controls_keep_base_component_palette_and_language_in_sync(cx: &m
         })
         .unwrap_or_else(|e| panic!("window: {e}"))
     });
+    wait_for_preferences(cx, handle);
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-claude-code", cx);
@@ -220,6 +245,7 @@ fn opaque_surface_quads_preserve_the_paper_corners(cx: &mut TestAppContext) {
         )
         .unwrap_or_else(|e| panic!("window: {e}"))
     });
+    wait_for_preferences(cx, handle);
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         for mode in ["theme-light", "theme-dark"] {

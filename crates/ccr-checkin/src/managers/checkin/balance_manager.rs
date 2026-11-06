@@ -22,23 +22,31 @@ pub type Result<T> = std::result::Result<T, BalanceError>;
 
 /// 余额管理器
 /// 使用 SQLite 统一存储
-pub struct BalanceManager;
+pub struct BalanceManager {
+    db: database::DbAccess,
+}
 
 impl BalanceManager {
     /// 创建新的余额管理器
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        Self
+        Self::with_db(database::DbAccess::Global)
+    }
+
+    /// Use the same explicit database as the caller.
+    pub fn with_db(db: database::DbAccess) -> Self {
+        Self { db }
     }
 
     /// 添加余额快照 (自动清理旧数据)
     pub fn add(&self, snapshot: BalanceSnapshot) -> Result<BalanceSnapshot> {
-        database::with_connection(|conn| checkin_repo::insert_balance(conn, &snapshot))?;
+        self.db
+            .with_connection(|conn| checkin_repo::insert_balance(conn, &snapshot))?;
 
         // 清理超过 90 天的旧数据
-        let cleaned = database::with_connection(|conn| {
-            checkin_repo::delete_old_balances(conn, RETENTION_DAYS)
-        })?;
+        let cleaned = self
+            .db
+            .with_connection(|conn| checkin_repo::delete_old_balances(conn, RETENTION_DAYS))?;
 
         if cleaned > 0 {
             tracing::info!(
@@ -59,14 +67,17 @@ impl BalanceManager {
     /// 获取账号最新余额
     #[allow(dead_code)]
     pub fn get_latest(&self, account_id: &str) -> Result<Option<BalanceSnapshot>> {
-        let balance =
-            database::with_connection(|conn| checkin_repo::get_latest_balance(conn, account_id))?;
+        let balance = self
+            .db
+            .with_connection(|conn| checkin_repo::get_latest_balance(conn, account_id))?;
         Ok(balance)
     }
 
     /// 获取所有账号的最新余额快照映射
     pub fn get_latest_map(&self) -> Result<HashMap<String, BalanceSnapshot>> {
-        let balances = database::with_connection(checkin_repo::get_latest_balances_for_all)?;
+        let balances = self
+            .db
+            .with_connection(checkin_repo::get_latest_balances_for_all)?;
 
         let latest_map: HashMap<String, BalanceSnapshot> = balances
             .into_iter()
@@ -78,9 +89,9 @@ impl BalanceManager {
 
     /// 获取账号所有余额快照（按时间升序）
     pub fn list_by_account(&self, account_id: &str) -> Result<Vec<BalanceSnapshot>> {
-        let mut balances = database::with_connection(|conn| {
-            checkin_repo::get_balance_history(conn, account_id, 1000)
-        })?;
+        let mut balances = self
+            .db
+            .with_connection(|conn| checkin_repo::get_balance_history(conn, account_id, 1000))?;
 
         // Sort ascending by time (repo returns DESC)
         balances.sort_by_key(|balance| balance.recorded_at);
@@ -94,9 +105,9 @@ impl BalanceManager {
         limit: Option<usize>,
     ) -> Result<BalanceHistoryResponse> {
         let limit = limit.unwrap_or(1000);
-        let account_balances = database::with_connection(|conn| {
-            checkin_repo::get_balance_history(conn, account_id, limit)
-        })?;
+        let account_balances = self
+            .db
+            .with_connection(|conn| checkin_repo::get_balance_history(conn, account_id, limit))?;
 
         let total = account_balances.len();
 
@@ -123,9 +134,9 @@ impl BalanceManager {
 
     /// 删除账号的所有余额记录
     pub fn delete_by_account(&self, account_id: &str) -> Result<usize> {
-        let deleted = database::with_connection(|conn| {
-            checkin_repo::delete_balances_by_account(conn, account_id)
-        })?;
+        let deleted = self
+            .db
+            .with_connection(|conn| checkin_repo::delete_balances_by_account(conn, account_id))?;
 
         if deleted > 0 {
             tracing::info!(
@@ -141,9 +152,9 @@ impl BalanceManager {
     /// 手动触发数据清理
     #[allow(dead_code)]
     pub fn cleanup_old_data(&self) -> Result<usize> {
-        let cleaned = database::with_connection(|conn| {
-            checkin_repo::delete_old_balances(conn, RETENTION_DAYS)
-        })?;
+        let cleaned = self
+            .db
+            .with_connection(|conn| checkin_repo::delete_old_balances(conn, RETENTION_DAYS))?;
 
         if cleaned > 0 {
             tracing::info!("Manual cleanup: removed {} old balance snapshots", cleaned);

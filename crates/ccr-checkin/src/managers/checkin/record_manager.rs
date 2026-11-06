@@ -22,18 +22,26 @@ pub type Result<T> = std::result::Result<T, RecordError>;
 
 /// 签到记录管理器
 /// 使用 SQLite 统一存储
-pub struct RecordManager;
+pub struct RecordManager {
+    db: database::DbAccess,
+}
 
 impl RecordManager {
     /// 创建新的签到记录管理器
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        Self
+        Self::with_db(database::DbAccess::Global)
+    }
+
+    /// Use the same explicit database as the caller.
+    pub fn with_db(db: database::DbAccess) -> Self {
+        Self { db }
     }
 
     /// 添加签到记录
     pub fn add(&self, record: CheckinRecord) -> Result<CheckinRecord> {
-        database::with_connection(|conn| checkin_repo::insert_record(conn, &record))?;
+        self.db
+            .with_connection(|conn| checkin_repo::insert_record(conn, &record))?;
         tracing::debug!("Added checkin record for account: {}", record.account_id);
         Ok(record)
     }
@@ -41,7 +49,9 @@ impl RecordManager {
     /// 获取所有签到记录（原始数据）
     #[allow(dead_code)]
     pub fn get_all_raw(&self) -> Result<Vec<CheckinRecord>> {
-        let records = database::with_connection(|conn| checkin_repo::get_all_records(conn, 1000))?;
+        let records = self
+            .db
+            .with_connection(|conn| checkin_repo::get_all_records(conn, 1000))?;
         Ok(records)
     }
 
@@ -55,7 +65,7 @@ impl RecordManager {
         page: usize,
         page_size: usize,
     ) -> Result<(Vec<CheckinRecord>, usize)> {
-        let (records, total) = database::with_connection(|conn| {
+        let (records, total) = self.db.with_connection(|conn| {
             checkin_repo::get_records_paginated(conn, status, account_id, page, page_size)
         })?;
         Ok((records, total))
@@ -72,7 +82,7 @@ impl RecordManager {
         page: usize,
         page_size: usize,
     ) -> Result<(Vec<CheckinRecord>, usize)> {
-        let (records, total) = database::with_connection(|conn| {
+        let (records, total) = self.db.with_connection(|conn| {
             checkin_repo::get_records_paginated_advanced(
                 conn,
                 status,
@@ -94,7 +104,7 @@ impl RecordManager {
         provider_id: Option<&str>,
         keyword: Option<&str>,
     ) -> Result<Vec<CheckinRecord>> {
-        let records = database::with_connection(|conn| {
+        let records = self.db.with_connection(|conn| {
             checkin_repo::get_records_filtered_advanced(
                 conn,
                 status,
@@ -109,15 +119,17 @@ impl RecordManager {
     /// 获取账号今日签到记录
     #[allow(dead_code)]
     pub fn get_today_record(&self, account_id: &str) -> Result<Option<CheckinRecord>> {
-        let records =
-            database::with_connection(|conn| checkin_repo::get_today_records(conn, account_id))?;
+        let records = self
+            .db
+            .with_connection(|conn| checkin_repo::get_today_records(conn, account_id))?;
         Ok(records.into_iter().next())
     }
 
     /// 检查账号今日是否已成功签到
     pub fn has_checked_in_today(&self, account_id: &str) -> Result<bool> {
-        let records =
-            database::with_connection(|conn| checkin_repo::get_today_records(conn, account_id))?;
+        let records = self
+            .db
+            .with_connection(|conn| checkin_repo::get_today_records(conn, account_id))?;
 
         Ok(records.iter().any(|r| {
             r.status == CheckinStatus::Success || r.status == CheckinStatus::AlreadyCheckedIn
@@ -132,7 +144,7 @@ impl RecordManager {
         limit: Option<usize>,
     ) -> Result<CheckinRecordsResponse> {
         let limit = limit.unwrap_or(100);
-        let records = database::with_connection(|conn| {
+        let records = self.db.with_connection(|conn| {
             checkin_repo::get_records_by_account(conn, account_id, limit)
         })?;
 
@@ -149,7 +161,9 @@ impl RecordManager {
     #[allow(dead_code)]
     pub fn get_all(&self, limit: Option<usize>) -> Result<CheckinRecordsResponse> {
         let limit = limit.unwrap_or(100);
-        let records = database::with_connection(|conn| checkin_repo::get_all_records(conn, limit))?;
+        let records = self
+            .db
+            .with_connection(|conn| checkin_repo::get_all_records(conn, limit))?;
 
         let total = records.len();
         let record_infos: Vec<CheckinRecordInfo> = records.into_iter().map(|r| r.into()).collect();
@@ -162,9 +176,9 @@ impl RecordManager {
 
     /// 获取今日签到统计
     pub fn get_today_stats(&self, account_ids: &[String]) -> Result<TodayStats> {
-        let (checked_in, failed) = database::with_connection(|conn| {
-            checkin_repo::get_today_status_counts(conn, account_ids)
-        })?;
+        let (checked_in, failed) = self
+            .db
+            .with_connection(|conn| checkin_repo::get_today_status_counts(conn, account_ids))?;
 
         Ok(TodayStats {
             total: account_ids.len(),
@@ -176,9 +190,9 @@ impl RecordManager {
 
     /// 删除账号的所有签到记录
     pub fn delete_by_account(&self, account_id: &str) -> Result<usize> {
-        let deleted = database::with_connection(|conn| {
-            checkin_repo::delete_records_by_account(conn, account_id)
-        })?;
+        let deleted = self
+            .db
+            .with_connection(|conn| checkin_repo::delete_records_by_account(conn, account_id))?;
 
         if deleted > 0 {
             tracing::info!(
@@ -199,7 +213,7 @@ impl RecordManager {
         let cutoff = Utc::now() - Duration::days(90);
         let cutoff_str = cutoff.to_rfc3339();
 
-        let deleted = database::with_connection(|conn| {
+        let deleted = self.db.with_connection(|conn| {
             conn.execute(
                 "DELETE FROM checkin_records WHERE checked_in_at < ?1",
                 rusqlite::params![cutoff_str],

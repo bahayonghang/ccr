@@ -5,18 +5,58 @@ use gpui_kit::component::{
     button::{Button, ButtonVariants},
     dialog::{Cancel, DialogAction, DialogClose, DialogFooter},
 };
-use gpui_kit::{App, InteractiveElement, KeyBinding, ParentElement, Styled, Window, div};
+use gpui_kit::{
+    App, AppContext, InteractiveElement, KeyBinding, ParentElement, Styled, Window, div,
+};
 use std::{cell::Cell, rc::Rc};
 
-pub(super) fn install(window: &Window, cx: &mut App) {
+gpui_kit::actions!(ccr, [Quit]);
+
+#[derive(Clone)]
+pub(super) struct CloseGuard {
+    pending: Rc<Cell<bool>>,
+    pub confirm: Rc<Cell<bool>>,
+}
+
+pub(super) fn install(window: &Window, cx: &mut App) -> CloseGuard {
     // Kit's Dialog Enter binding otherwise confirms even while Cancel is focused.
     cx.bind_keys([KeyBinding::new("enter", Cancel, Some("CcrQuitCancel"))]);
-    let pending = Rc::new(Cell::new(false));
-    window.on_window_should_close(cx, move |window, cx| {
-        if pending.replace(true) {
+    cx.bind_keys([KeyBinding::new("secondary-q", Quit, None)]);
+    cx.set_menus(vec![gpui_kit::Menu::new("CCR").items([
+        gpui_kit::MenuItem::action(text(cx, "Quit CCR", "退出 CCR"), Quit),
+    ])]);
+    let guard = CloseGuard {
+        pending: Rc::new(Cell::new(false)),
+        confirm: Rc::new(Cell::new(true)),
+    };
+    let window_guard = guard.clone();
+    window.on_window_should_close(cx, move |window, cx| window_guard.should_close(window, cx));
+    let action_guard = guard.clone();
+    let handle = window.window_handle();
+    cx.on_action(move |_: &Quit, cx| {
+        let guard = action_guard.clone();
+        cx.defer(move |cx| {
+            let _ = cx.update_window(handle, |_, window, cx| guard.request(window, cx));
+        });
+    });
+    guard
+}
+
+impl CloseGuard {
+    pub fn request(&self, window: &mut Window, cx: &mut App) {
+        if self.should_close(window, cx) {
+            window.remove_window();
+        }
+    }
+
+    fn should_close(&self, window: &mut Window, cx: &mut App) -> bool {
+        if !self.confirm.get() {
+            return true;
+        }
+        if self.pending.replace(true) {
             return false;
         }
-        let pending = pending.clone();
+        let pending = self.pending.clone();
         let opening = Rc::new(Cell::new(true));
         let initial_focus = Cell::new(true);
         let quit_focus = cx.focus_handle();
@@ -74,5 +114,5 @@ pub(super) fn install(window: &Window, cx: &mut App) {
                 })
         });
         false
-    });
+    }
 }

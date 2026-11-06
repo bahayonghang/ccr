@@ -2,6 +2,9 @@
 //! Opening this reader does not create a database, import accounts, call a provider,
 //! or change the database.
 
+mod operations;
+pub use operations::*;
+
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::time::Duration;

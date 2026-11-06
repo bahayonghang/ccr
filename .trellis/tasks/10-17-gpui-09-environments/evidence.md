@@ -147,3 +147,28 @@ GPUI 夹具在 SSH 环境状态下经 `EnvironmentView::plan_connection` 验证�
 这些是 rendered/headless 回归，最终运行时 shutdown 在测试中显式调用；不等于真实用户关闭 OS 原生窗口，不证明托盘、watcher、macOS/Linux、远程环境或 glass。9.1–9.6 仍未整项通过；尺寸/DPI 继续延后，未归档、未提交。
 
 独立 [关闭确认检查](research/check-close-confirmation-20261105.md) 的 fmt、all-target lint/type-check、close 窄测均退出 0；产品未再变动，完整 suite 沿用上列同切片收据。检查明确边界为主 Shell 的 should-close callback，Probe、启动失败退出及绕过该 callback 的 application-level Quit 未由本切片覆盖；不声称全部退出入口均已确认。
+
+## 2026-11-06 核心功能连续实施（进行中）
+
+基线为干净 `dev@7473927b`；复用当前工作区和既有任务，未新建 worktree 或任务。工程批次已独立检查并本地提交 `13b29f95`，之后继续环境、生命周期和父台账的实际业务缺口。
+
+- SSH：已接保存主机 CRUD、明确的 Local/SSH 选择、指纹 challenge/确认、nonce 连接、取消及断开；固定平台源文件经 SFTP 读取和写前版本检查/远程备份保存。文档绑定 session，草稿按 host/file 归属，Local-only 页面阻止跨环境操作。完整独立检查和最新门禁尚待完成，真实 SSH 与原生切换未运行。
+- 生命周期：主题/语言/退出确认使用独立 GPUI 偏好文件；菜单、设置按钮与快捷键共用窗口 guard。独立 check 修复相对 fixture 路径拒绝后，close_tests 3/3、preferences 3/3、native_shell 8/8 退出 0。系统直接 App::quit 缺公开 veto hook，不宣称覆盖。
+- Settings 不自动运行 WSL；fixture 有 SSH 数据库时仍拒绝真实网络，rendered 测试通过显式内存 transport 运行同一 action/runtime 链。未连接真实 SSH、未运行 keyscan/doctor/发行版探测、未读用户密码或身份文件。
+- 01 的 macOS 编译和原生跨平台收据仍缺；托盘/Windows 隐藏恢复仍受锁定 GPUI 能力限制；尺寸/DPI 仍 user-deferred。所有任务与未满足 AC 保持开放。
+
+此段是中间检查点，不代表最终三门禁、完整 CI、原生系统操作或整项迁移通过；最终结果在后续段落明确记录。
+
+### 核心操作批次检查点
+
+现已接通 SSH 主机/信任/连接与四平台配置文件、独立主题/语言/退出偏好、MCP 服务 CRUD、WebDAV 设置与文件夹 CRUD/测试/推拉、服务商/账户 CRUD 与签到/余额/记录。共享 SSH 安全和 MCP 策略由 Tauri/GPUI 共用；Tauri 签名及载荷保持。父功能台账更新 41 个明确命令映射，全部保留 partial/pending-native 状态，不把整个模块视作完成。
+
+独立 check 完整审查并修复信任探测后旧 session 权限、取消上传清理错误、旧确认目标、fixture 路径隔离等边界。集中检查中还修正 Settings 区块 flex 压缩造成的实际点击遮挡；MCP 测试等待内层输入引擎通知，关闭测试等待 Kit 使用真实墙钟的滑入动画完成，再执行一次真实取消点击。后者原本在并行 suite 间歇失败，已捕获 `cancel dialog dismissal` 阶段；没有扩大 10 秒等待、重复点击、串行测试或弱化断言。普通 sandbox 的 loopback/Windows 加密限制与产品缺陷分开记录，最终隔离 fixture 测试使用已授权本机权限。
+
+- `just desktop-fmt-check`、`just desktop-lint` 退出 0。
+- 完整 `just desktop-test` 退出 0：库 120、native_shell 8、native_ui 2、runtime_shutdown 2 通过（闭合 helper 1 ignored）；默认并行与 `--skip export_bindings` 保持。最终日志 `outputs/desktop/core-completion-20261106/desktop-test-complete.log`。
+- 共享 `ccr-app --lib`：106 passed / 2 ignored；`ccr-checkin`：88 passed；均为 locked/offline、默认并行。未改动部分沿用本批已取得结果。
+- Tauri 仅有 bin target；`cargo check --locked --offline --bin ccr-desktop` 退出 0，随后移除提取导致的无调用薄包装。没有启动 Tauri 或执行环境探测。
+- CCR release 侧车在 `ccr-desktop/target/sidecar` 实际构建退出 0；完整便携 ZIP 与新候选原生验收尚未运行。
+
+完整 `just ci` 留待后续资源/窗口状态批次最终整合执行一次。当前核心操作源码与 fixture/headless 已交付，真实 SSH、原生环境切换、外部 WebDAV/签到、macOS/Linux 和系统直接退出仍未获原生收据。WSL 与尺寸/DPI 保持 user-deferred，托盘/Windows 隐藏恢复受当前依赖限制。三个任务及全部未满足 AC 继续 in_progress；接着实施动态资源、source-agent、MCP 预设与窗口状态，不以本检查点结束整项请求。

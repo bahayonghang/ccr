@@ -323,10 +323,24 @@ impl ProcessGateway {
     }
 
     pub async fn execute_command(
-        mut command: Command,
+        command: Command,
         descriptor: &ProcessDescriptor,
         stdin: Option<Vec<u8>>,
     ) -> Result<CappedProcessOutput, String> {
+        Self::execute_command_cancellable(command, descriptor, stdin, CancellationToken::new())
+            .await
+    }
+
+    /// Cancellation completes only after process-tree cleanup and pipe joins.
+    pub async fn execute_command_cancellable(
+        mut command: Command,
+        descriptor: &ProcessDescriptor,
+        stdin: Option<Vec<u8>>,
+        cancellation: CancellationToken,
+    ) -> Result<CappedProcessOutput, String> {
+        if cancellation.is_cancelled() {
+            return Err("process_cancelled".into());
+        }
         command
             .stdin(if stdin.is_some() {
                 Stdio::piped()
@@ -336,7 +350,6 @@ impl ProcessGateway {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
-        let cancellation = CancellationToken::new();
         let mut child = Self::spawn(command, descriptor, cancellation.clone(), Vec::new())?;
         let stdout = child
             .take_stdout()
@@ -380,6 +393,9 @@ impl ProcessGateway {
                 child.terminate_tree(TERMINATION_GRACE).await
             }
             _ = limit_reached.cancelled() => {
+                child.terminate_tree(TERMINATION_GRACE).await
+            }
+            _ = cancellation.cancelled() => {
                 child.terminate_tree(TERMINATION_GRACE).await
             }
         }

@@ -8,6 +8,9 @@ description = "CCR WebDAV sync domain and folder registry"
 license = "MIT"
 repository = "https://github.com/bahayonghang/ccr"
 
+[features]
+test-support = []
+
 [dependencies]
 aes-gcm = { workspace = true }
 argon2 = { workspace = true }

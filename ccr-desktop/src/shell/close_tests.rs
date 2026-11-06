@@ -15,6 +15,7 @@ use std::{
 fn wait_for(
     cx: &mut TestAppContext,
     handle: gpui_kit::AnyWindowHandle,
+    stage: &str,
     mut predicate: impl FnMut(&mut gpui_kit::Window) -> bool,
 ) {
     let deadline = Instant::now() + Duration::from_secs(10);
@@ -31,11 +32,142 @@ fn wait_for(
         }
         assert!(
             Instant::now() < deadline,
-            "rendered fixture setup timed out"
+            "rendered fixture setup timed out: {stage}"
         );
         cx.executor().advance_clock(Duration::from_millis(10));
         std::thread::yield_now();
     }
+}
+
+#[gpui_kit::test]
+fn quit_action_and_saved_preferences_share_the_window_close_policy(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let (root, source) = fixture();
+    let owner = RuntimeOwner::new().unwrap();
+    cx.update(gpui_kit::init);
+    for reopened in [false, true] {
+        let (handle, shell) = cx.update(|cx| {
+            gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+                cx.new(|cx| Shell::new(Services::new(owner.handle(), source.clone()), window, cx))
+            })
+            .unwrap()
+        });
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.click("nav-settings", cx);
+        })
+        .unwrap();
+        wait_for(
+            cx,
+            handle,
+            if reopened {
+                "reopened preferences load"
+            } else {
+                "initial preferences load"
+            },
+            |window| window.find("theme-dark").disabled() != Some(true),
+        );
+        if !reopened {
+            cx.update_window(handle, |_, window, cx| {
+                window.dispatch_action(Box::new(super::close::Quit), cx);
+            })
+            .unwrap();
+            cx.run_until_parked();
+            cx.update_window(handle, |_, window, cx| {
+                window.render_frame(cx);
+                assert!(window.try_find("dialog").is_some());
+            })
+            .unwrap();
+            // click() samples a position once, then draws between pointer
+            // events. The sliding button must settle first: the kit's one-shot
+            // animation uses wall time, not the test executor's virtual clock.
+            let mounted_at = Instant::now();
+            wait_for(cx, handle, "quit dialog entrance settled", |window| {
+                mounted_at.elapsed() >= *gpui_kit::component::dialog::ANIMATION_DURATION
+                    && window.find("cancel").visible()
+            });
+            cx.update_window(handle, |_, window, cx| {
+                window.simulate_next_frame(cx);
+                window.render_frame(cx);
+                window.click("cancel", cx);
+            })
+            .unwrap();
+            // Drain the deferred close before clicking the underlying settings.
+            wait_for(cx, handle, "cancel dialog dismissal", |window| {
+                window.try_find("dialog").is_none()
+            });
+            cx.update_window(handle, |_, window, cx| {
+                // Rapid preference changes are immediate and serialize on disk.
+                window.click("theme-dark", cx);
+                assert_eq!(
+                    gpui_kit::component::Theme::global(cx).mode,
+                    gpui_kit::component::ThemeMode::Dark,
+                    "the theme click must reach the preference control"
+                );
+                window.click("language-zh", cx);
+                assert!(matches!(
+                    cx.global::<crate::locales::Language>(),
+                    crate::locales::Language::Chinese
+                ));
+                window.click("close-direct", cx);
+                window.render_frame(cx);
+                assert_eq!(
+                    window.find("close-direct").checked(),
+                    Some(true),
+                    "the direct-close click must change the rendered policy"
+                );
+                assert_eq!(
+                    shell.read(cx).preferences_generation,
+                    3,
+                    "all three clicks must submit their preference snapshots"
+                );
+            })
+            .unwrap();
+            wait_for(cx, handle, "three preference writes complete", |window| {
+                assert!(
+                    window.try_find("preferences-retry").is_none(),
+                    "preference persistence failed"
+                );
+                window.find("preferences-reveal").disabled() != Some(true)
+            });
+            let value: serde_json::Value = serde_json::from_slice(
+                &std::fs::read(root.path().join("desktop-gpui/preferences.json")).unwrap(),
+            )
+            .unwrap();
+            assert_eq!(value["theme"], "dark");
+            assert_eq!(value["language"], "zh");
+            assert_eq!(value["confirm_quit"], false);
+        } else {
+            cx.update_window(handle, |_, window, cx| {
+                assert_eq!(
+                    gpui_kit::component::Theme::global(cx).mode,
+                    gpui_kit::component::ThemeMode::Dark
+                );
+                assert_eq!(window.find("nav-settings").label(), Some("设置"));
+                assert_eq!(window.find("close-direct").label(), Some("直接退出"));
+            })
+            .unwrap();
+            let mut visual = VisualTestContext::from_window(handle, cx);
+            assert!(
+                visual.simulate_close(),
+                "saved direct-close policy must admit OS close"
+            );
+        }
+        cx.update_window(handle, |_, window, cx| {
+            window.press(
+                if cfg!(target_os = "macos") {
+                    "cmd-q"
+                } else {
+                    "ctrl-q"
+                },
+                cx,
+            );
+        })
+        .unwrap();
+        cx.run_until_parked();
+        assert!(cx.update_window(handle, |_, _, _| ()).is_err());
+    }
+    owner.shutdown();
 }
 
 #[gpui_kit::test]
@@ -71,6 +203,14 @@ fn close_request_requires_confirmation_and_cancel_preserves_window(cx: &mut Test
                 },
             )
             .unwrap()
+        });
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.click("nav-settings", cx);
+        })
+        .unwrap();
+        wait_for(cx, handle, "close policy preferences load", |window| {
+            window.find("theme-dark").disabled() != Some(true)
         });
         let mut visual = VisualTestContext::from_window(handle, cx);
         visual.update(|_, cx| cx.set_global(language));
@@ -207,14 +347,17 @@ fn cancelling_close_preserves_nested_profile_confirmation_draft_and_running_job(
         window.click("nav-claude-code", cx);
     })
     .unwrap();
-    wait_for(cx, handle, |window| {
-        window.try_find("configuration:alpha").is_some() && executor.active_tasks() == 0
-    });
+    wait_for(
+        cx,
+        handle,
+        "profile rows loaded and worker idle",
+        |window| window.try_find("configuration:alpha").is_some() && executor.active_tasks() == 0,
+    );
     cx.update_window(handle, |_, window, cx| {
         window.click("configuration:alpha", cx)
     })
     .unwrap();
-    wait_for(cx, handle, |window| {
+    wait_for(cx, handle, "profile edit enabled", |window| {
         // Kit snapshots expose Some(true) for disabled and None when cleared.
         // Successful editor input below additionally proves input acceptance.
         window.find("profile-edit").disabled() != Some(true)

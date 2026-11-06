@@ -18,6 +18,8 @@ name = "ccr-gpui"
 path = "src/main.rs"
 
 [dependencies]
+ccr-checkin = { path = "../crates/ccr-checkin" }
+reqwest = { version = "=0.13.5", default-features = false }
 ccr-app = { path = "../crates/ccr-app" }
 ccr-config = { path = "../crates/ccr-config" }
 ccr-cli = { path = "../crates/ccr-cli" }
@@ -36,6 +38,8 @@ ccr-core = { path = "../crates/ccr-core" }
 gpui-kit = { version = "=0.7.3", default-features = false, features = ["component", "assets"] }
 
 [dev-dependencies]
+ccr-sync = { path = "../crates/ccr-sync", features = ["test-support"] }
+ccr-app = { path = "../crates/ccr-app", features = ["test-fixtures"] }
 ccr-cli = { path = "../crates/ccr-cli", features = ["test-support"] }
 ccr-usage = { path = "../crates/ccr-usage", features = ["test-fixtures"] }
 tempfile = "=3.27.0"

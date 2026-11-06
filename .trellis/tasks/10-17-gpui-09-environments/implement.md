@@ -49,3 +49,12 @@
 - 默认取消；Escape、取消按钮与其 Enter 保留草稿、原域确认、焦点和运行任务。重复关闭不叠框，首帧 root Enter 安全取消；旧 opening 的延迟回调不能重抢焦点。明确激活退出后移除窗口，继续既有 quit observer 与事件循环外最终 owner join。
 - 先失败复现，再运行 rendered/headless 窄回归与根三门禁；具体结果见 [关闭确认收据](research/close-confirmation-20261105.md)。主会话同步 shared-desktop-services 规范。
 - 9.4 仍开放：本轮不是原生 OS 用户关闭实机收据；其他 9.1–9.6、WSL/SSH、托盘、其他平台、glass 与延后的尺寸/DPI 状态保持。
+
+## 2026-11-05 核心功能连续实施
+
+- 用户明确复用 `dev` 当前工作区及现有任务，基线 `7473927b`，工作区干净；不新建任务或 worktree。此前关闭确认与 SSH 拒绝决策不重复实施。
+- P0：共享既有 SSH 信任/传输 owner，接入已保存主机、连接/断开、实际远程文件读写及环境选择；全局远程状态必须挡住 Local-only 业务与旧确认，缓存、草稿、异步结果按环境归属。不能以名称或纯决策 `Ok` 宣称连接成功。
+- P1：独立 GPUI 偏好持久化、默认安全的关闭策略、产品退出入口与已有关闭 guard 衔接；系统级不可拦截退出、托盘和隐藏恢复能力据实际依赖标明限制。
+- P2 由 01 承接可修的开发参数/本地打包入口；父任务对照当前业务源码修补只读页面缺失的操作闭环，不重开已归档任务做纯审计。
+- SSH 产品代码允许实施，但验证不连接真实 SSH、不打开远程套接字、不运行 keyscan、不读用户密码/身份文件。WSL/doctor/发行版探测完全不运行；fixture 使用显式隔离路径，不改全局 HOME/USERPROFILE。
+- 每批 implement → 独立 check → 必要规范同步 → 本地 `git commit -F`；只提交本轮文件，不 push/amend。最窄回归后集中 desktop-fmt-check/lint/test，最终一次 `just ci`（Git Bash 路径前置）。不以 headless 通过替代原生证据；未满足的 AC 和任务状态保持开放。

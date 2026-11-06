@@ -7,7 +7,14 @@ license = "MIT"
 publish = false
 description = "Framework-independent application orchestration for CCR desktop clients"
 
+[features]
+test-fixtures = []
+
 [dependencies]
+base64 = { workspace = true }
+dirs = { workspace = true }
+tempfile = { workspace = true }
+rusqlite = { workspace = true }
 ccr-config = { path = "../ccr-config" }
 ccr-core = { path = "../ccr-core" }
 ccr-db = { path = "../ccr-db" }

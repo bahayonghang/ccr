@@ -8,3 +8,6 @@ pub mod resources;
 pub mod runtime;
 pub mod sessions;
 pub mod usage;
+
+pub mod claude_mcp;
+pub mod mcp_document;

@@ -1,4 +1,6 @@
 //! Local process, WSL probe, and saved SSH host labels for desktop shells.
+pub mod ssh;
+pub mod ssh_security;
 mod ssh_session;
 mod ssh_trust;
 mod surface;

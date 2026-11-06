@@ -3,6 +3,7 @@ mod close;
 #[cfg(test)]
 mod close_tests;
 mod command_state;
+mod preferences;
 pub(crate) mod semantics;
 use crate::{
     app::ConfigurationApp,
@@ -86,10 +87,20 @@ pub struct Shell {
     sync: Entity<crate::features::sync::SyncView>,
     overview: Entity<crate::features::overview::OverviewView>,
     environments: Entity<crate::features::environments::EnvironmentView>,
+    remote: Entity<crate::features::environments::remote::RemoteView>,
+    _remote_observation: Subscription,
     destination: Destination,
     lens: Lens,
     focused_nav: usize,
     preference: Preference,
+    close_guard: close::CloseGuard,
+    preferences_requests: crate::runtime::preferences::PreferencesRequests,
+    preferences_task: Option<gpui_kit::Task<()>>,
+    preferences_busy: bool,
+    preferences_loaded: bool,
+    preferences_failed: bool,
+    preferences_generation: u64,
+    reveal_preferences_after_save: bool,
     fixture: bool,
     slow_fixture: bool,
     navigation_focus: FocusHandle,
@@ -101,7 +112,7 @@ pub struct Shell {
 
 impl Shell {
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
-        close::install(window, cx);
+        let close_guard = close::install(window, cx);
         cx.set_global(Language::English);
         theme::apply(Preference::Light, window, cx);
         let appearance = cx.observe_window_appearance(window, |this, window, cx| {
@@ -115,7 +126,13 @@ impl Shell {
                 this.focus_main(window, cx);
             }
         });
-        let shell = Self {
+        let remote = cx.new(|cx| {
+            crate::features::environments::remote::RemoteView::new(services.clone(), window, cx)
+        });
+        let remote_observation = cx.observe(&remote, |_, _, cx| cx.notify());
+        let mut shell = Self {
+            remote,
+            _remote_observation: remote_observation,
             configurations: cx.new(|cx| ConfigurationApp::new(services.clone(), window, cx)),
             commands: cx.new(|cx| CommandState::new(&services, window, cx)),
             converter: cx
@@ -145,6 +162,14 @@ impl Shell {
             lens: Lens::Primary,
             focused_nav: 0,
             preference: Preference::Light,
+            close_guard,
+            preferences_requests: crate::runtime::preferences::PreferencesRequests::new(&services),
+            preferences_task: None,
+            preferences_busy: false,
+            preferences_loaded: false,
+            preferences_failed: false,
+            preferences_generation: 0,
+            reveal_preferences_after_save: false,
             fixture: services.is_fixture(),
             slow_fixture: services.is_slow_fixture(),
             navigation_focus: cx.focus_handle().tab_stop(false),
@@ -153,6 +178,7 @@ impl Shell {
             _appearance: appearance,
             _activation: activation,
         };
+        shell.load_preferences(window, cx);
         shell.overview.update(cx, |view, cx| view.refresh(cx));
         shell
     }
@@ -231,7 +257,9 @@ impl Shell {
         }
         self.destination = destination;
         self.lens = lens;
-        self.park(window, cx);
+        if !self.remote.read(cx).is_remote() {
+            self.park(window, cx);
+        }
         self.activate(window, cx);
         // Button clicks refuse focus, so a ring already on Overview stays
         // there and reads as the selected route. Walk the sidebar tab order
@@ -268,6 +296,12 @@ impl Shell {
     }
 
     fn activate(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.destination == Destination::Settings {
+            self.remote.update(cx, |view, cx| view.refresh(cx));
+        }
+        if self.remote.read(cx).is_remote() {
+            return;
+        }
         match self.lens {
             Lens::Converter => {}
             Lens::Favorites => self.commands.update(cx, |view, cx| view.open(false, cx)),
@@ -343,6 +377,11 @@ impl Shell {
     }
 
     fn focus_main(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.remote.read(cx).is_remote() {
+            window.focus(&self.main_focus, cx);
+            window.focus_next(cx);
+            return;
+        }
         match self.lens {
             Lens::Favorites | Lens::Recent => {
                 self.commands
@@ -424,48 +463,18 @@ impl Shell {
         cx.notify();
     }
 
-    fn choose_theme(
-        &mut self,
-        preference: Preference,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        self.preference = preference;
-        theme::apply(preference, window, cx);
-        cx.notify();
-    }
-
     fn settings(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        let mut choices = div().flex().gap(px(theme::CONTROL_GAP));
-        for (id, preference, en, zh) in [
-            ("theme-system", Preference::System, "System", "跟随系统"),
-            ("theme-light", Preference::Light, "Light", "浅色"),
-            ("theme-dark", Preference::Dark, "Dark", "深色"),
-        ] {
-            choices = choices.child(semantics::button(
-                Button::new(id)
-                    .label(text(cx, en, zh))
-                    .ghost()
-                    .selected(self.preference == preference)
-                    .toggled(self.preference == preference)
-                    .on_click(cx.listener(move |this, _, window, cx| {
-                        this.choose_theme(preference, window, cx)
-                    })),
-                false,
-                false,
-                cx,
-            ));
-        }
-        let language = cx.global::<Language>();
-        div().id("settings-body").size_full().overflow_y_scroll().flex().flex_col().p(px(theme::CONTENT_PADDING)).gap(px(theme::SECTION_GAP))
-            .child(div().text_size(px(theme::TITLE_SIZE)).font_weight(gpui_kit::FontWeight::SEMIBOLD).child(text(cx,"Appearance and language","外观与语言")))
-            .child(text(cx,"Theme","主题")).child(choices)
-            .child(text(cx,"Language","语言"))
-            .child(div().flex().gap(px(theme::CONTROL_GAP))
-                .child(semantics::button(Button::new("language-en").label("English").ghost().selected(*language==Language::English).toggled(*language==Language::English).on_click(cx.listener(|_,_,_,cx|{cx.set_global(Language::English);cx.refresh_windows();})),false,false,cx))
-                .child(semantics::button(Button::new("language-zh").label("中文").ghost().selected(*language==Language::Chinese).toggled(*language==Language::Chinese).on_click(cx.listener(|_,_,_,cx|{cx.set_global(Language::Chinese);cx.refresh_windows();})),false,false,cx)))
-            .child(div().text_color(cx.theme().muted_foreground).child(text(cx,"Preferences apply to this window session. Keyboard actions are immediate; decorative motion is disabled.","设置在当前窗口会话内生效。键盘操作即时响应，装饰动画已关闭。")))
-            .child(self.environments.clone())
+        div()
+            .id("settings-body")
+            .size_full()
+            .overflow_y_scroll()
+            .flex()
+            .flex_col()
+            .p(px(theme::CONTENT_PADDING))
+            .gap(px(theme::SECTION_GAP))
+            .child(div().flex_shrink_0().child(self.preference_controls(cx)))
+            .child(div().flex_shrink_0().child(self.environments.clone()))
+            .child(div().flex_shrink_0().child(self.remote.clone()))
     }
 
     fn nav_button(
@@ -533,6 +542,9 @@ impl Shell {
     }
 
     fn toolbar(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
+        if self.remote.read(cx).is_remote() {
+            return None;
+        }
         let items: Vec<(&str, Lens, &str, &str)> = match self.destination {
             Destination::ClaudeCode | Destination::Codex => vec![
                 ("tool-profiles", Lens::Primary, "Profiles", "配置列表"),
@@ -608,6 +620,13 @@ impl Shell {
     }
 
     fn body(&self, cx: &mut Context<Self>) -> AnyElement {
+        if self.remote.read(cx).is_remote() && self.destination != Destination::Settings {
+            return div().p(px(theme::CONTENT_PADDING)).flex().flex_col().gap(px(theme::CONTROL_GAP))
+                .child(self.remote.read(cx).status())
+                .child(text(cx,"This page uses local CCR services and is unavailable in SSH environments. Open Settings to edit remote configuration over SFTP or return to Local.","此页面依赖本地 CCR 服务，在 SSH 环境不可用。请打开设置，通过 SFTP 编辑远程配置，或返回本地环境。"))
+                .child(semantics::button(Button::new("remote-open-settings").label(text(cx,"Open environment settings","打开环境设置")).ghost().on_click(cx.listener(|this,_,window,cx|this.go(Destination::Settings,Lens::Primary,window,cx))),false,false,cx)).into_any_element();
+        }
+
         match self.lens {
             Lens::Converter => self.converter.clone().into_any_element(),
             Lens::Favorites | Lens::Recent => self.commands.clone().into_any_element(),
@@ -775,7 +794,10 @@ impl Render for Shell {
             page = page.child(tools);
         }
         let content = page.child(div().flex_1().min_h_0().child(body));
-        let status = if self.slow_fixture {
+        let remote_status = self.remote.read(cx).status();
+        let status = if self.remote.read(cx).is_remote() {
+            remote_status.as_str()
+        } else if self.slow_fixture {
             text(
                 cx,
                 "Local · Demo data · Controlled slow read",
@@ -850,7 +872,7 @@ impl Render for Shell {
                     .focus(|style| style.border_color(cx.theme().ring))
                     .text_size(px(theme::META_SIZE))
                     .text_color(cx.theme().muted_foreground)
-                    .child(status),
+                    .child(status.to_string()),
             );
         div()
             .id("ccr-shell")

@@ -40,6 +40,28 @@ pub fn list_host_names(conn: &Connection) -> Result<Vec<String>, rusqlite::Error
         .collect())
 }
 
+/// Opens the saved-host store without legacy imports or resolving a user home.
+/// A read never creates a database. Explicit host edits initialize owner schemas.
+pub fn open_host_store(path: &std::path::Path, write: bool) -> Result<Connection, String> {
+    if write && let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|_| "ssh_database_unavailable".to_string())?;
+    }
+    let flags = if write {
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_WRITE | rusqlite::OpenFlags::SQLITE_OPEN_CREATE
+    } else {
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY
+    };
+    let conn = Connection::open_with_flags(path, flags)
+        .map_err(|_| "ssh_database_unavailable".to_string())?;
+    if write {
+        super::super::migrations::run_initial_migration(&conn)
+            .map_err(|_| "ssh_database_unavailable".to_string())?;
+        super::super::migrations::run_migration_v6(&conn)
+            .map_err(|_| "ssh_database_unavailable".to_string())?;
+    }
+    Ok(conn)
+}
+
 pub fn list_hosts(conn: &Connection) -> Result<Vec<SshHost>, rusqlite::Error> {
     let mut stmt = conn.prepare(
         "SELECT id, name, host, port, username, identity_file, remote_home, created_at, updated_at, last_connected_at

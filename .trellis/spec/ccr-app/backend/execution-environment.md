@@ -4,7 +4,7 @@
 
 Applies when changing `crates/ccr-app/src/environments/` or the GPUI settings consumer in `ccr-desktop/src/features/environments/` and `ccr-desktop/src/runtime/environments.rs`.
 
-This is the pure decision layer. It does not replace `.trellis/spec/ccr/backend/ssh-security.md`. Tauri SSH command signatures, payloads, and the live OpenSSH probe stay on that contract. Do not describe `boundary_before_connect` as a completed socket connection, and do not describe `plan_wsl_file` as a WSL file read or write.
+The original decision helpers remain pure. The separate `ssh::Workspace` owns saved-host sessions and SFTP operations, using the extracted `ssh_security` contract also re-exported by Tauri. This does not replace `.trellis/spec/ccr/backend/ssh-security.md` or change Tauri command payloads. Do not describe `boundary_before_connect` as a completed socket connection, and do not describe `plan_wsl_file` as a WSL file read or write.
 
 ## 2. Signatures
 
@@ -33,7 +33,15 @@ Reconnect also refuses absent or blank current key material even when `process_t
 
 Error text is the static code only. It must not contain a host, fingerprint, password, identity path, or `ssh-keyscan`.
 
-`EnvironmentSurface` stores cache, draft, and job labels per `EnvironmentId`. `switch` hides the previous slot and bumps generation. `visible` returns only the active slot. `accepts` requires the same environment, generation, and `ResponseGate`. The settings page still starts on the local environment. There is no shell environment switcher and no live WSL/SSH session switch in this slice.
+`EnvironmentSurface` stores cache, draft, and job labels per `EnvironmentId`. `switch` hides the previous slot and bumps generation. `visible` returns only the active slot. `accepts` requires the same environment, generation, and `ResponseGate`. These helper tests alone are not product environment-switch evidence.
+
+The native Settings `RemoteView` manages saved hosts and explicit Local/SSH selection. Selection is not connection success: only the strict OpenSSH nonce handshake activates the session. Remote source drafts belong to `(host ID, fixed config file)` and each loaded `Document` carries an opaque session identity. Reconnect invalidates old write authority even for the same host ID. Remote selection blocks Local-only page loads and actions; it never substitutes Local data. Existing Local jobs remain owned by their original runtime, not relabeled as remote work.
+
+Host CRUD reuses `ccr-db::ssh_repo`; only explicit host writes may initialize its storage schema, with no legacy personal-data import. New hosts use SSH agent authentication; editing preserves existing backend identity settings without reading identity bytes. Trust confirmation consumes an opaque backend challenge and retains strict known-host checking. Probing or confirming a key invalidates the previous connection and requires another nonce handshake; changing known-host trust must never leave an old session or document authorized. `ssh_security` is the single shared owner for target/path validation, challenges, fingerprints, known-host persistence and strict argv.
+
+SFTP saves validate JSON/TOML, check the freshly downloaded version against the loaded snapshot, require a remote backup, then upload to a UUID sibling and rename. This is **pre-save version checking**, not server-side atomic CAS: another client can write between comparison and rename. A reconnect or session replacement rejects stale documents. A failed or cancelled rename whose outcome cannot be established reports `ssh_write_outcome_unknown`, never fabricated cancellation success. Transport failures invalidate the active connection; remote drafts remain available for recovery.
+
+Fixture launches reject SSH network operations even when their isolated database has host rows. Rendered tests explicitly inject a memory transport into the same native action/runtime path. Production Settings refresh disables automatic WSL discovery while WSL remains user-deferred; it does not invent a distribution. Real SSH, OS window interaction and cross-platform acceptance require separate receipts.
 
 `runtime::environments::load` calls `admit_local_only` before `inspect`. A WSL or SSH key returns `local_only_environment` and does not run the local read. `read_local_source` runs the closure only when caller and owner are the same `EnvironmentId::Local` name. Another local name, WSL, or SSH returns `local_only_environment` and does not call the closure.
 

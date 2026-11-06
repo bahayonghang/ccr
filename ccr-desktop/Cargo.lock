@@ -964,22 +964,49 @@ name = "ccr-app"
 version = "7.5.0"
 dependencies = [
  "async-channel",
+ "base64 0.23.1",
  "ccr-config",
  "ccr-core",
  "ccr-db",
  "ccr-store",
  "ccr-usage",
  "chrono",
+ "dirs 6.0.0",
  "reqwest",
+ "rusqlite",
  "serde",
  "serde_json",
  "sha2 0.11.1",
+ "tempfile",
  "tokio",
  "tokio-util",
  "toml 1.1.8+spec-1.1.0",
  "tracing",
  "uuid",
  "walkdir",
+]
+
+[[package]]
+name = "ccr-checkin"
+version = "7.5.0"
+dependencies = [
+ "aes-gcm",
+ "base64 0.23.1",
+ "ccr-core",
+ "ccr-db",
+ "ccr-types",
+ "chrono",
+ "dirs 6.0.0",
+ "futures",
+ "once_cell",
+ "reqwest",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -1140,6 +1167,7 @@ name = "ccr-gpui"
 version = "7.5.0"
 dependencies = [
  "ccr-app",
+ "ccr-checkin",
  "ccr-cli",
  "ccr-codex",
  "ccr-config",
@@ -1151,6 +1179,7 @@ dependencies = [
  "chrono",
  "dirs 6.0.0",
  "gpui-kit",
+ "reqwest",
  "rusqlite",
  "serde_json",
  "tempfile",

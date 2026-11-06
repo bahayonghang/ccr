@@ -561,24 +561,17 @@ fn read_json_config(path: &PathBuf) -> Result<Value, String> {
     }
     let content = fs::read_to_string(path).map_err(|e| format!("Read config: {e}"))?;
 
-    if path.extension().and_then(|e| e.to_str()) == Some("toml") {
-        let toml_val: toml::Value =
-            toml::from_str(&content).map_err(|e| format!("Parse TOML: {e}"))?;
-        return serde_json::to_value(toml_val).map_err(|e| format!("Convert TOML: {e}"));
-    }
-
-    serde_json::from_str(&content).map_err(|e| format!("Parse JSON: {e}"))
+    ccr_app::mcp_document::parse(
+        &content,
+        path.extension().and_then(|e| e.to_str()) == Some("toml"),
+    )
 }
 
 fn write_json_config(path: &PathBuf, config: &Value, secret: bool) -> Result<(), String> {
-    let content = if path.extension().and_then(|e| e.to_str()) == Some("toml") {
-        let toml_val: toml::Value =
-            serde_json::from_value(config.clone()).map_err(|e| format!("Convert to TOML: {e}"))?;
-        toml::to_string_pretty(&toml_val).map_err(|e| format!("Serialize TOML: {e}"))?
-    } else {
-        serde_json::to_string_pretty(config).map_err(|e| format!("Serialize JSON: {e}"))?
-    };
-
+    let content = ccr_app::mcp_document::serialize(
+        config,
+        path.extension().and_then(|e| e.to_str()) == Some("toml"),
+    )?;
     AtomicWriter::new(path)
         .secret(secret)
         .write_string(&content)
