@@ -453,3 +453,64 @@ async fn missing_archive_is_unindexed_and_creates_nothing(cx: &mut gpui_kit::Tes
     assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
     owner.shutdown();
 }
+
+#[test]
+fn usage_latency_samples_only_successful_opened_report_body_and_keeps_captured_owners_isolated() {
+    let owner = RuntimeOwner::new().unwrap();
+    let first = tempfile::tempdir().unwrap();
+    let second = tempfile::tempdir().unwrap();
+    create_projection_db(&first.path().join("llmusage"));
+    create_projection_db(&second.path().join("llmusage"));
+    let selected = services(&owner, first.path());
+    let other = services(&owner, second.path());
+    let requests = InsightsRequests::new(&selected);
+    let snapshot = |services: &Services| services.usage_report_latency.lock().unwrap().snapshot();
+    assert_eq!(snapshot(&selected).p95_ms, None);
+    assert_eq!(snapshot(&other).sample_count, 0);
+    requests
+        .read(InsightsQuery::Usage(QueryFilter::default()))
+        .unwrap();
+    assert_eq!(snapshot(&selected).sample_count, 1);
+    assert!(snapshot(&selected).p95_ms.unwrap().is_finite());
+    assert_eq!(snapshot(&other).sample_count, 0);
+    // Queries other than the successful report body never enter this cohort.
+    requests
+        .read(InsightsQuery::Logs {
+            filter: QueryFilter::default(),
+            cursor: None,
+        })
+        .unwrap();
+    let invalid = QueryFilter {
+        since: NaiveDate::from_ymd_opt(2000, 1, 2),
+        until: NaiveDate::from_ymd_opt(2000, 1, 1),
+        ..Default::default()
+    };
+    assert!(requests.read(InsightsQuery::Usage(invalid)).is_err());
+    assert_eq!(snapshot(&selected).sample_count, 1);
+    let unchanged = selected
+        .clone()
+        .with_insights_paths(selected.insights_paths().unwrap());
+    assert!(Arc::ptr_eq(
+        &selected.usage_report_latency,
+        &unchanged.usage_report_latency
+    ));
+    let rebound = selected
+        .clone()
+        .with_insights_paths(other.insights_paths().unwrap());
+    assert!(!Arc::ptr_eq(
+        &selected.usage_report_latency,
+        &rebound.usage_report_latency
+    ));
+    assert_eq!(snapshot(&rebound).sample_count, 0);
+    let absent = tempfile::tempdir().unwrap();
+    let missing = services(&owner, absent.path());
+    assert!(
+        InsightsRequests::new(&missing)
+            .read(InsightsQuery::Usage(QueryFilter::default()))
+            .is_err()
+    );
+    assert_eq!(snapshot(&missing).sample_count, 0);
+    assert!(!absent.path().join("llmusage").exists());
+    assert_eq!(snapshot(&selected.clone()).sample_count, 1);
+    owner.shutdown();
+}

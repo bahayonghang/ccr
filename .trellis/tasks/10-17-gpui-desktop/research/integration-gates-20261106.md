@@ -58,3 +58,13 @@
 - 该S2候选ZIP另存至 `outputs/desktop/s2-20261106/ccr-gpui-7.5.0-windows-amd64.zip`，副本hash一致，供后续指标批次重新打包后仍能核对本次收据。
 - 原生交互/截图仍为用户延期；本机浏览器mock组件的键盘/焦点证据和截图超时见benchmark-s2-ui-20261106.md，均不作为原生或60秒性能样本。父任务/01/09继续in_progress，不归档。
 - 随后新的完整 `just ci` **退出0**，耗时 **12:40.348**，日志 `outputs/desktop/integration-20261106-ci-s2-rerun1.log`：版本、格式、OMP/harness、严格Clippy、workspace check/test、release、audit、governance、Tauri、frontend/audit/coverage、VSCode全部通过；Tauri行为 **334/0/5**。新增文件暂存后另跑 `just copilot-check` **退出0**（6805 tracked files），补足只扫描tracked files的检查覆盖。最终Root/Tauri生产源码冻结；晚到的精确计数/前端恢复测试均在所属gate消费前固定，最后唯一共享源修改是保持严格Applied预期的Debug断言。原首次warning根因仍未知，不因这次通过而宣称修复。
+
+## 原生指标：当前最终候选
+
+- 基线fc093e78；新增真实Usage页面成功报表body耗时窗口/样本数/p95与零I/O SSH持有会话投影。独立check见runtime-metrics-check-20261106.md；未把Tauri-specific缓存/密码/状态Map或不同p95 cohort硬凑为同义字段。四个system_prompts旧映射经当前owner核对后更新，历史checkpoint保留，没有重写既有资源功能。
+- 新的 `just gpui-fmt-check`、`just gpui-lint`、完整 `just gpui-test` **全部退出0**，日志 `outputs/desktop/integration-20261106-gpui-{fmt-check,lint,test}-metrics.log`。Python16、AccessKit3、lib **235/0/4ignored**、native_shell **9/0/1**、native_ui **2/0/0**、shutdown **2/0/1**、doc0；中央 **27个实际1MiB+毒化锁子进程** 全通过，覆盖实际新增指标的空/0/样本数、开页不采样与隐藏不轮询。共享latency2/SSH1、native窄2及strict的更细覆盖见owner收据，不累计重复测试数。
+- Root/Tauri生产源码在此次完整CI前冻结；native其后只完成独立workspace的文案/采样边界/直接测试后也冻结。新的完整 `just ci` 与包含该批代码的最终portable包由主会话另行取得，不复用S2候选结果。
+- 当前最终 `just gpui-package` **退出0**，日志 `outputs/desktop/integration-20261106-gpui-metrics-package.log`，未启动GPUI。独立重读同版本portable ZIP验证四个成员、unsigned/version和两个可执行文件hash均匹配；最新 `ccr-desktop/target/package/ccr-gpui-7.5.0-windows-amd64.zip` 为26,721,421字节，ZIP SHA256 `2fc930f0a4287114cd3517375f186e6caf61c1f8ed9d5662aa2613ec04e0e2f4`，GPUI `bdbba5307d852f4e2b939bae3937cdd6a86db65e3564c83331b15ef66f778bb8`，sidecar仍 `54091b3607f00a300b55f7d597825f86c7d0797482df5464fcdddd0e3ec58e5c`。此前S2候选在单独outputs副本中保留，不能用旧hash校验此新包。
+- 新增三个research文件暂存后 `just copilot-check` **退出0**（6808 tracked files），日志 `outputs/desktop/integration-20261106-metrics-staged-copilot.log`，无新增术语或资产豁免。
+- 当前最终完整 `just ci` **退出0**，耗时 **14:35.338**，日志 `outputs/desktop/integration-20261106-ci-metrics.log`；全部16阶段通过。Root ccr-app **200/0/4ignored**，Tauri行为 **334/0/5**、绑定单独生成门禁通过，前端smoke/coverage各 **172文件/944测试**、i18n4564及build/docs/audit、VSCode CI均通过。该轮覆盖最终共享指标源码，没有用S2候选的旧CI替代。首次S2轮profile warning仍只记录为未复现/原因未识别，保留严格断言和Debug，未因最终绿色改称已修。
+- 当前能在授权环境执行的这批产品实现与集中门禁已闭合；原生交互/截图、真实进程创建/OS呈现/action-ready与60秒性能样本、其他OS验收仍未取得；托盘/隐藏恢复、真实玻璃、WAF内嵌流程保留锁定栈/既定无WebView边界，WSL/DPI延期。父任务/01/09仍in_progress，不满足归档AND，不运行finish/archive。

@@ -8,6 +8,9 @@ The original decision helpers remain pure. The separate `ssh::Workspace` owns sa
 
 ## 2. Signatures
 
+- `ssh::Workspace::retained_session_count() -> usize` reads only the optional-session lock, returns0/1, and does not construct/inspect a host.
+
+
 - `plan_wsl_file(intent: WslFileIntent, distro: Option<&str>, linux_path: &str) -> WslFileTarget`
 - `resolve_wsl_file(distro, linux_path)` is `plan_wsl_file(WslFileIntent::Read, ...)`
 - `WslFileIntent::{Detect, Read, Write}`
@@ -22,6 +25,9 @@ The original decision helpers remain pure. The separate `ssh::Workspace` owns sa
 - Static codes: `ssh_cancelled`, `ssh_auth_unsupported`, `ssh_host_key_untrusted`, `ssh_host_key_mismatch`, `ssh_not_connected`, `local_only_environment`
 
 ## 3. Contracts
+
+Native Monitoring observes an already captured Workspace's retained session capability without any IO. No owner means0; one stored Session means1 even when lookup authority is unavailable. This is not a live socket/reachability probe or Tauri's remembered SSH-state/password map. Do not scan identities or initialize Workspace/host storage to supply this metric. `retained_session_metrics_observe_only_memory_and_follow_real_owner_transitions` proves0/1/disconnect0 with poisoned transport/removed lookup authority.
+
 
 `plan_wsl_file` does not spawn `wsl.exe`, does not create a distribution, and does not open the path. Detect, read, and write use the same rule. A missing distro, a blank distro, a drive letter, a UNC path, or a `..` segment returns `Unavailable`. A usable distro name plus an absolute POSIX path returns `Remote` with that distro and that POSIX path. `Unavailable` and `Remote` never contain a Windows drive or UNC path.
 

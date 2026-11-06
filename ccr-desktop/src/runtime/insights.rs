@@ -28,7 +28,7 @@ use std::{
 
 /// Explicit roots captured before the window opens. Production resolves the installed
 /// llmusage and CCR archive files once; it does not create them. Fixture launches stay empty.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct InsightsPaths {
     pub usage_root: PathBuf,
     pub archive_db: PathBuf,
@@ -508,14 +508,22 @@ impl InsightsRequests {
                             .map(InsightsSnapshot::Home)
                             .map_err(|_| InsightsError::Archive)
                     }
-                    InsightsQuery::Usage(filter) => read_dashboard_at(
-                        &dashboard,
-                        &filter,
-                        Some(366),
-                        self.services.benchmark_clock().map(|(as_of, _)| as_of),
-                    )
-                    .map(InsightsSnapshot::Usage)
-                    .map_err(Into::into),
+                    InsightsQuery::Usage(filter) => {
+                        // Cohort: successful report body after DB open. Excludes
+                        // admission/queue, open_dashboard, failures, join and UI.
+                        let as_of = self.services.benchmark_clock().map(|(as_of, _)| as_of);
+                        let started = std::time::Instant::now();
+                        let report = read_dashboard_at(&dashboard, &filter, Some(366), as_of);
+                        let elapsed = started.elapsed();
+                        if report.is_ok() {
+                            self.services
+                                .usage_report_latency
+                                .lock()
+                                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                                .record(elapsed);
+                        }
+                        report.map(InsightsSnapshot::Usage).map_err(Into::into)
+                    }
                     InsightsQuery::Logs { filter, cursor } => dashboard
                         .logs(&LogsQuery {
                             filter,

@@ -274,6 +274,42 @@ impl MonitoringView {
                     text(cx, "Evicted events", "已淘汰事件"),
                     metrics.evicted_entries
                 ));
+            let latency = metrics.usage_report_latency;
+            let p95 = latency
+                .p95_ms
+                .map(|value| format!("{value:.3} ms"))
+                .unwrap_or_else(|| text(cx, "Unavailable", "不可用").into());
+            let latency_label = format!(
+                "{}: {p95} · {}: {} / 2048",
+                text(cx, "Usage page read p95", "Usage 页面读取 p95（成功样本）"),
+                text(cx, "Retained samples", "留存样本"),
+                latency.sample_count
+            );
+            let ssh_label = format!(
+                "{}: {} / 1 · {}",
+                text(cx, "Retained SSH sessions", "持有的 SSH 会话"),
+                metrics.retained_ssh_sessions,
+                text(
+                    cx,
+                    "Sessions retained by this app; availability is not verified",
+                    "本应用保留的会话，不代表连接可用"
+                )
+            );
+            line = line
+                .child(
+                    div()
+                        .id("monitoring-usage-latency")
+                        .test_support()
+                        .aria_label(latency_label.clone())
+                        .child(latency_label),
+                )
+                .child(
+                    div()
+                        .id("monitoring-ssh-retained")
+                        .test_support()
+                        .aria_label(ssh_label.clone())
+                        .child(ssh_label),
+                );
         } else {
             line = line.child(text(
                 cx,
@@ -282,7 +318,7 @@ impl MonitoringView {
             ));
         }
         line.child(div().text_size(px(theme::META_SIZE)).text_color(cx.theme().muted_foreground)
-            .child(text(cx,"Command and database p95 latency are unavailable: this runtime has no measured latency histogram.","命令与数据库 p95 延迟不可用：当前运行时尚未采集耗时分布。"))).into_any_element()
+            .child(text(cx,"The latest at most 2048 successful Usage page reports, with the database already open. Excludes Home/Workbench, database opening, queueing, rendering and failed reads. These samples do not establish benchmark performance.","最近最多 2048 次成功的 Usage 页面报表处理（DB 已打开），不含 Home/Workbench、开库、排队、渲染与失败读取；这些样本不证明性能基准达标。"))).into_any_element()
     }
     fn row(&self, entry: &MonitoringEntry, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
         let id = entry.id.clone();

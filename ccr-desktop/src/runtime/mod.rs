@@ -195,6 +195,7 @@ pub struct Services {
     source: ConfigSource,
     ui_state_cache: ui_state::ManagerCache,
     insights_paths: Option<insights::InsightsPaths>,
+    pub(super) usage_report_latency: Arc<std::sync::Mutex<ccr_app::monitoring::LatencyWindow>>,
     pub(super) platform_oauth: Arc<ccr_cli::application::codex_oauth::NativeSession>,
     pub(super) command_jobs: Arc<ccr_app::jobs::commands::CommandJobs>,
     pub(super) install: Arc<install::InstallOwner>,
@@ -217,6 +218,7 @@ impl Services {
             source,
             ui_state_cache: Default::default(),
             insights_paths: None,
+            usage_report_latency: Default::default(),
             platform_oauth: Default::default(),
             command_jobs: Default::default(),
             install: Default::default(),
@@ -233,7 +235,11 @@ impl Services {
         }
     }
     pub fn with_insights_paths(mut self, paths: insights::InsightsPaths) -> Self {
+        let previous = self.insights_paths();
         self.insights_paths = Some(paths);
+        if previous != self.insights_paths() {
+            self.usage_report_latency = Default::default();
+        }
         self
     }
     pub fn insights_paths(&self) -> Option<insights::InsightsPaths> {

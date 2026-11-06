@@ -42,8 +42,9 @@ HEAD998dd9f已包含Benchmark/System Info/Codex diagnostics/SSH detect/账户凭
 | 账户原值编辑 | 只回填所选账户，普通Session/API用户字段；全部Cookies JSON为显式高级入口 | unknown Cookie保留、masked inputs、cancel/leave清除、nonce+account门；缺钥typed提示，metadata仍可保存 | checkin17/domain10；缺钥生成风险红→绿；独立check | user-deferred |
 | Benchmark数据/时钟 | 两端显式模式、共同文件校验、UTC默认报表窗口，旧Fixture/Local语义保留 | WAL/journal/links/闰秒早拒绝；不改Date或elapsed；实际启动校验成本计入 | 两端真实S0/S1/S2读回、前端90、strict检查；最终原生全量分页读回1通过；性能非可比PASS | 未采样 |
 | S2持续日志源 | 两端Monitoring内显式Start/status/cancel；真实monitoring/ring/持久化owner | 只允许validated Benchmark/S2、每进程一次；128队列、skip-on-overrun、分阶段ACK、单调revision；离页保留、实际join后终态 | 新source/adapter/IPC/确认消费者及独立检查收据见performance-s2-implementation与performance-s2-check；集中门禁单独记录 | user-deferred；未采集实际60秒原生性能样本 |
+| 原生运行指标 | Monitoring显示Usage页面成功读取p95/留存样本数、已持有SSH会话0/1 | 最多2048个当前捕获来源样本，实Instant，只测已开DB后的成功报表body；无样本非0；SSH只读既有owner不探测、不等同TCP存活 | runtime-metrics-implementation/check收据；Tauri缓存/密码cache与记忆状态map无同义native字段，不造缓存或0求齐 | user-deferred；这是有限服务观测，不是全应用/SQL/基准达标p95 |
 
-本扩展批次完整 `gpui-fmt-check/lint/test` 已通过：lib228、native_shell9、native_ui2、runtime_shutdown2，26个实际1MiB/毒化锁子进程通过。共享改动后的最终Root CI和交付包另行取得，不复用HEAD65a5fe1f旧CI。S2持续日志源尚在独立工程批次。
+HEADfc093e78的S2批次已通过完整GPUI三门禁（lib233、shell9、UI2、shutdown2，27个实际1MiB子进程）、根完整CI（12:40.348）和未签名portable package。后续原生运行指标增量重新取得自己的集中门禁，不复用S2候选验证新源码；完整收据见integration-gates-20261106.md。
 
 ## 尚未获得或需后续闭合的证据
 
@@ -63,4 +64,5 @@ HEAD998dd9f已包含Benchmark/System Info/Codex diagnostics/SSH detect/账户凭
 
 - Antigravity 的通用 `configs/agents.ts` / `configs/plugins.ts` 虽然连接了表单函数，实际 `src/api/domains/gemini.ts:170,201` 返回空清单，178–198 / 209–229 的 mutation safe-stubs 返回不支持；handler registry 没有对应业务命令。`commands/gemini.rs:338–347` 只提供扩展目录清单。因此兼容路由不是待迁移的后端CRUD，不向原生settings发明新数组。扩展manifest只读语义继续保留。
 - Codex Slash Commands 页面本身是兼容快捷入口（Sessions/Agents/MCP），没有可管理命令；Skills 页面本身是迁移到独立SkillPort的检测/打开入口。旧路由数量不表示这些存在另一套待重建的CRUD。
+- 四个system_prompts条目的20261029 partial/Claude rules omission是历史checkpoint。当前固定指令文件仍由共享PromptFileSpec/原值或缺失token写入；Claude规则由独立typed资源owner和可发现的Rules入口列表/编辑/创建，已有实际fixture控件写入/取消收据。Tauri的system_prompts_get/save/create本来也只接受固定ID。已补当前四条映射，保留历史字段；不把待原生验收误称未实现或完整通过。
 - 本轮全部72条旧planned命令和76条route已逐项source reconciliation，保留历史字段；`partial` / `unsupported` / `user_deferred` 不记成完成。用户随后明确选择“稍后再做原生验证”，本轮后续native交互继续not_run，字体请求/解析日志与短暂可见侧栏不代表Claude工作台交互验收。

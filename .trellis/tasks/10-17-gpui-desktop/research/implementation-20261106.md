@@ -59,3 +59,9 @@
 - 原生确认改为独立review、safe Cancel、挂载后armed及generation门；Tauri重连的same-revision错误恢复与历史over-budget终态文案也由独立检查闭合，不削弱revision或来源守卫。
 - cfg(test)短源及生产60秒合同的主动取消adapter测试属于source/headless覆盖；没有把它们当成60秒原生吞吐、OS呈现或跨客户端性能样本。原生窗口仍user-deferred，父任务/01/09保持in_progress。
 - 最终集中门禁、交付包与本地提交以integration-gates-20261106.md及git log为准，不复用旧HEAD门禁。
+
+## 原生运行指标批次
+
+- S2已本地提交fc093e78，完整CI与GPUI三门禁/package退出0。继续补齐独立的运行指标来源：原生Usage页面已开DB后成功报表body的real Instant耗时，最多2048样本、nearest-rank p95与实际留存样本数；无样本None，真实0保留。不同捕获根隔离，克隆共享，开页不为采样新增读取/隐藏不轮询。
+- SSH仅投影既有Workspace持有的会话0/1，不初始化owner、不读身份或发起网络，也不称连接可用。Tauri Moka/password cache和remembered-state map是不同实现事实，不为数字对齐引入新缓存。实现与独立检查见runtime-metrics-implementation/check-20261106.md，最终门禁另行记录。
+- 同步校正四个system_prompts旧checkpoint映射：当前Claude rules已有typed资源列表/编辑/创建及入口，固定指令文件仍保留原共享writer/备份/CAS；历史20261029字段保留，不重复实现已存在功能。

@@ -50,6 +50,8 @@ pub struct Metrics {
     pub retained_payload_bytes: usize,
     pub evicted_entries: usize,
     pub process_rss_bytes: Option<u64>,
+    pub usage_report_latency: ccr_app::monitoring::LatencySnapshot,
+    pub retained_ssh_sessions: usize,
 }
 #[derive(Clone, Debug)]
 pub struct Report {
@@ -185,6 +187,8 @@ impl Owner {
         source: &ConfigSource,
         query: &MonitoringFeedQuery,
         active_tasks: usize,
+        usage_report_latency: ccr_app::monitoring::LatencySnapshot,
+        retained_ssh_sessions: usize,
     ) -> Report {
         #[cfg(test)]
         self.reads
@@ -240,6 +244,8 @@ impl Owner {
                 retained_payload_bytes,
                 evicted_entries,
                 process_rss_bytes: ccr_app::monitoring::current_process_rss_bytes(),
+                usage_report_latency,
+                retained_ssh_sessions,
             },
         }
     }
@@ -325,10 +331,21 @@ impl Requests {
             if !matches!(key.environment, EnvironmentId::Local(_)) {
                 return Err(Error::LocalOnly);
             }
+            let usage_report_latency = services
+                .usage_report_latency
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .snapshot();
+            let retained_ssh_sessions = services
+                .ssh
+                .get()
+                .map_or(0, |owner| owner.retained_session_count());
             Ok(Arc::new(services.monitoring.read(
                 &services.source,
                 &query,
                 services.executor.active_tasks(),
+                usage_report_latency,
+                retained_ssh_sessions,
             )))
         })
     }

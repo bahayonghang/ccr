@@ -466,10 +466,17 @@
       "risk": "read_only",
       "handler_path": "super::system_prompts::system_prompts_list",
       "owner": "gpui-06-resources",
-      "status": "partial_source_checkpoint_pending_full_acceptance",
-      "native_action": "Resources > platform > Refresh: fixed supported file metadata via bounded read",
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Resources fixed instruction files plus Rules and Claude resources entry; platform-scoped captured metadata and actual Claude rules list",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "resources_implementation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source": "ccr-desktop/src/runtime/resources.rs and runtime/resources/claude_files.rs; features/resources/claude_files.rs",
+          "source_assessment": "The old 20261029 Claude-rules omission is historical: the current captured Claude resource owner lists/edits/creates real home-relative rules and has a discoverable Rules entry. Fixed instruction files still use shared PromptFileSpec and original/absence-token guarded writes. Tauri system_prompts_get/save/create also admit fixed IDs rather than arbitrary rule paths.",
+          "verification": "Existing source/fixture/control review and fc093e78 integrated GPUI/Root gates; no current native-interaction or cross-platform acceptance claim",
+          "native": "user_deferred; historical execution_20261029 remaining fields are preserved as their original checkpoint"
+        }
       },
       "execution_20261029": {
         "id": "system_prompts_list",
@@ -502,10 +509,17 @@
       "risk": "read_only",
       "handler_path": "super::system_prompts::system_prompts_get",
       "owner": "gpui-06-resources",
-      "status": "partial_source_checkpoint_pending_full_acceptance",
-      "native_action": "Resources > fixed file > plaintext acknowledgement: original-token scoped editor",
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Resources fixed instruction-file editor via shared bounded read; Claude rules have their explicit resource editor",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "resources_implementation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source": "ccr-desktop/src/runtime/resources.rs and runtime/resources/claude_files.rs; features/resources/claude_files.rs",
+          "source_assessment": "The old 20261029 Claude-rules omission is historical: the current captured Claude resource owner lists/edits/creates real home-relative rules and has a discoverable Rules entry. Fixed instruction files still use shared PromptFileSpec and original/absence-token guarded writes. Tauri system_prompts_get/save/create also admit fixed IDs rather than arbitrary rule paths.",
+          "verification": "Existing source/fixture/control review and fc093e78 integrated GPUI/Root gates; no current native-interaction or cross-platform acceptance claim",
+          "native": "user_deferred; historical execution_20261029 remaining fields are preserved as their original checkpoint"
+        }
       },
       "execution_20261029": {
         "id": "system_prompts_get",
@@ -537,10 +551,17 @@
       "risk": "local_mutation",
       "handler_path": "super::system_prompts::system_prompts_save",
       "owner": "gpui-06-resources",
-      "status": "partial_source_checkpoint_pending_full_acceptance",
-      "native_action": "Resources > Save original revision: guarded write with retained draft on conflict",
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Resources original-revision Save through shared guarded writer; conflict retains draft, secret acknowledgement and backup policy preserved",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "resources_implementation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source": "ccr-desktop/src/runtime/resources.rs and runtime/resources/claude_files.rs; features/resources/claude_files.rs",
+          "source_assessment": "The old 20261029 Claude-rules omission is historical: the current captured Claude resource owner lists/edits/creates real home-relative rules and has a discoverable Rules entry. Fixed instruction files still use shared PromptFileSpec and original/absence-token guarded writes. Tauri system_prompts_get/save/create also admit fixed IDs rather than arbitrary rule paths.",
+          "verification": "Existing source/fixture/control review and fc093e78 integrated GPUI/Root gates; no current native-interaction or cross-platform acceptance claim",
+          "native": "user_deferred; historical execution_20261029 remaining fields are preserved as their original checkpoint"
+        }
       },
       "execution_20261029": {
         "id": "system_prompts_save",
@@ -572,10 +593,17 @@
       "risk": "local_mutation",
       "handler_path": "super::system_prompts::system_prompts_create",
       "owner": "gpui-06-resources",
-      "status": "partial_source_checkpoint_pending_full_acceptance",
-      "native_action": "Resources > missing fixed file > Create empty file: absence-token guarded create",
+      "status": "implemented_pending_native_acceptance",
+      "native_action": "Resources missing fixed file Create via absence-token guarded owner; Claude rule creation through its typed resource review",
       "verification": {
-        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json"
+        "continuation_20261029": ".trellis/tasks/10-17-gpui-06-resources/research/command-map-20261028.json",
+        "resources_implementation_20261106": {
+          "report": "research/platform-parity-20261106.md",
+          "source": "ccr-desktop/src/runtime/resources.rs and runtime/resources/claude_files.rs; features/resources/claude_files.rs",
+          "source_assessment": "The old 20261029 Claude-rules omission is historical: the current captured Claude resource owner lists/edits/creates real home-relative rules and has a discoverable Rules entry. Fixed instruction files still use shared PromptFileSpec and original/absence-token guarded writes. Tauri system_prompts_get/save/create also admit fixed IDs rather than arbitrary rule paths.",
+          "verification": "Existing source/fixture/control review and fc093e78 integrated GPUI/Root gates; no current native-interaction or cross-platform acceptance claim",
+          "native": "user_deferred; historical execution_20261029 remaining fields are preserved as their original checkpoint"
+        }
       },
       "execution_20261029": {
         "id": "system_prompts_create",
@@ -6986,14 +7014,23 @@
       "risk": "read_only",
       "handler_path": "super::system::get_runtime_metrics",
       "owner": "gpui-02-services",
-      "status": "partial_native_consumer",
-      "native_action": "Global monitoring native consumer pending",
+      "status": "implemented_scoped_native_metrics_pending_acceptance",
+      "native_action": "Monitoring explicit refresh: tracked operations, retained ring/bytes/evictions, optional current RSS, successful Usage-page read p95/sample count and retained SSH sessions",
       "verification": {
         "reconciliation_20261106": {
           "source_baseline": "90131cd6",
           "report": "research/platform-parity-20261106.md",
           "source_assessment": "Native reports actual tracked-task count, ring count/bytes/evictions and optional current-process RSS. Unmeasured p95 and Tauri-specific cache/SSH counters are not fabricated; full metric parity remains partial.",
           "native": "user_deferred_this_session; no current interaction receipt"
+        },
+        "metrics_implementation_20261106": {
+          "source_baseline": "fc093e78",
+          "report": "research/runtime-metrics-implementation-20261106.md",
+          "independent_check": "research/runtime-metrics-check-20261106.md",
+          "latency": "Current captured Services owns at most 2048 successful native Usage-page report-body observations, DB already open; real Instant; nearest-rank p95 and retained sample count; no queue/open/failure/join/UI samples or all-app/SQL/benchmark percentile claim",
+          "ssh": "Read only the already initialized shared Workspace session Option: retained logical authority 0/1, not active sockets or Tauri remembered-state-map length; metric reads do not initialize/probe/connect",
+          "tauri_specific": "Moka stored query-result entries and password-cache count have no equivalent native owner; do not invent caches or infer zeros for those fields. Existing Tauri usage-handler/db-service p95 cohorts remain unchanged and are not comparable to this native cohort",
+          "acceptance": "Implementation/source and controlled headless checks are separate from the final aggregate receipt; native interaction/performance remain user-deferred/not_comparable"
         }
       },
       "execution_owner": "gpui-07-insights",

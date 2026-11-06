@@ -193,7 +193,7 @@ GPUI/Kit value builders can reserve hundreds of KiB of debug stack per large ren
 
 - Global monitoring is separate from Claude Observer. Its app-owned feed captures the main UI DB (fixture `observer.db`), never the usage archive or a fallback global pool. Connection-bound repository methods own SQL and conversion. Native strict decoding rejects malformed rows and timestamps; established Tauri tolerant decoding is preserved independently.
 - Lifecycle owners emit only fixed event labels after actual outcomes. The native memory feed is bounded to 500 entries and 512 KiB of UTF-8 payload; sanitize and bound display fields before memory/persistence, omit arbitrary metadata and correlation payloads, and cap merged visible output independently. Failed persistence retains memory events and explicit error state. Opening monitoring does not create/migrate storage.
-- Monitoring shows tracked tasks and actual optional current-process RSS. Unmeasured latency percentiles are unavailable. Refresh is explicit, late generations are rejected, and suspend drops the subscription with no hidden timer. Tests use captured main/archive fixtures, malformed storage rows/time, secret redaction, bounds and actual view transitions.
+- Monitoring shows tracked tasks, actual optional current-process RSS, a bounded successful Usage-page report-read p95 with retained sample count, and retained SSH session authority0/1. Other latency cohorts remain unavailable. Refresh is explicit, late generations are rejected, and suspend drops the subscription with no hidden timer. Tests use captured main/archive fixtures, malformed storage rows/time, secret redaction, bounds and actual view transitions.
 - Native host system information is a separate explicit read in the existing Monitoring page. The bounded-worker adapter uses the pinned sysinfo kernel owner, refreshing only CPU and memory; do not use new_all/refresh_all or enumerate processes for this request. CPU usage is the mean of reported logical CPU usages after two refreshes separated by at least MINIMUM_CPU_UPDATE_INTERVAL, matching the Tauri calculation. Preserve raw memory/swap bytes and optional missing fields; display GiB accurately and keep host RAM distinct from process RSS. Missing/zero capacity has no invented used percentage; the logical CPU count is not a physical-core count. Show the UTC observation time and actual CPU observation interval, never label that interval as command latency/p95. Reject non-Local requests and Services::is_fixture() (including Benchmark) before any host probe. Construction, feed refresh and hidden views do not sample the host; suspend cancels the read subscription, clears facts and rejects late generations. Tests use synthetic DTOs only for readable units/busy/stale/suspend controls, and verify actual fixture/benchmark/remote refusal without inspecting real hardware.
 
 - Claude Observer keeps its databases distinct: usage reports come from the read-only `ccr-usage` dashboard; tools/subscription settings come from the captured CCR main UI database, never the session archive. Native and Tauri share state-free projection/subscription policy; framework DTOs and binding paths remain Tauri-owned.
@@ -290,3 +290,52 @@ Changes to `benchmark/s2.rs`, its retained desktop adapters, source admission or
 ### 7. Wrong vs Correct
 
 Wrong: force_flush returned remaining_buffered=0, so mark committed and shutdown DB. Correct: harvest this run's terminal tickets, join inflight work/final IO, detach scope under pop lock, then publish immutable terminal and allow DB shutdown.
+
+
+## Scenario: native Usage read latency and retained SSH metrics
+
+### 1. Scope / Trigger
+
+`monitoring::LatencyWindow`, native Services/Insights/Monitoring observation, and `ssh::Workspace::retained_session_count`. Tauri's legacy command/db-query p95, Moka cache and remembered SSH/password maps retain their distinct meanings and wire shape.
+
+### 2. Signatures
+
+- `LatencyWindow::{record(Duration), snapshot() -> LatencySnapshot}`; fixed `CAPACITY=2048`.
+- `LatencySnapshot {sample_count:usize,p95_ms:Option<f64>}`: count is current retained window size, never total lifetime successes.
+- `Workspace::retained_session_count() -> usize`: lock-only0/1 optional-session projection.
+- Native Metrics adds usage_report_latency and retained_ssh_sessions; no IPC or new SQL API.
+
+### 3. Contracts
+
+- Observe only native `InsightsQuery::Usage`, with real Instant immediately around existing `usage::read::read_dashboard_at` after `open_dashboard` succeeds. Record only Ok results. Freeze elapsed before acquiring the statistics lock. Exclude opening DB, queue/admission, worker join, UI/render and failed reads; Home/Workbench/Logs/Sessions are not this cohort.
+- Keep at most2048 completed duration samples, evict oldest, calculate nearest rank ceil(n*.95)-1. Empty ->None/count0; real zero ->Some(0)/count1. This is neither all-application/statement latency nor qualified performance/budget evidence.
+- One window belongs to captured Services. Clones share that owner. `with_insights_paths` compares effective paths before/after override and resets only when actual captured paths change; unchanged paths or an override ignored by Benchmark cannot silently discard history. No dynamic registry/global metric singleton.
+- Monitoring only snapshots these owners; it cannot trigger Usage reads to obtain samples. Existing explicit refresh/generation/suspend behavior stays. Hidden pages do not poll or start host observations.
+- SSH metric reads only already captured Services.ssh.get(), then the Workspace session lock. Uninitialized ->actual0 retained sessions without owner construction, host lookup, filesystem, key scan, identity read, process or socket. A held1 is app authority, not TCP/reachability or Tauri's remembered-state-map size.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required observation |
+| --- | --- |
+| No successful Usage-page report / DB open failure / invalid report / other query | No new sample; empty remainsNone |
+| Completed successful report later discarded/cancelled by UI | Record once: service actually completed |
+| Same effective captured paths / Services clone | Preserve/share window |
+| Changed effective captured paths | New empty window; old owner's samples unchanged |
+| No SSH Workspace / cleared/disconnected session |0 without creating/probing |
+| Existing retained session with lookup disabled/poisoned transport |1 without IO; disconnect ->0 |
+
+### 5. Good / Base / Bad Cases
+
+Good: manual Usage read adds one real duration; later Monitoring displays the retained sample count and p95. Base: opening Monitoring with a real readable Usage fixture leaves the window empty; hidden suspension adds no samples. Bad: recording failed reads, including stats-lock delay, counting Workbench as this cohort, mapping no samples to0, or probing SSH to make a count.
+
+### 6. Tests Required
+
+- `latency_empty_zero_and_nearest_rank_are_distinct`, `latency_window_evicts_oldest_and_counts_only_retained_samples`: None/0, nearest-rank and rolling2048 retention.
+- `usage_latency_samples_only_successful_opened_report_body_and_keeps_captured_owners_isolated`: actual owned fixture read, invalid/missing/Logs exclusion, clone sharing and effective root reset.
+- `retained_session_metrics_observe_only_memory_and_follow_real_owner_transitions`: synthetic real connect, database authority removed, panic-on-transport read guard, then disconnect0.
+- `monitoring_projects_latency_and_retained_ssh_without_initializing_or_probing`: same native captured snapshot path for empty/zero and injected synthetic session0/1.
+- Existing `monitoring_filters_real_main_events_and_suspension_detaches_without_polling` now also verifies accessible None/0/sample count with a readable Usage fixture and hidden no-poll; run its existing central Windows1MiB child.
+
+### 7. Wrong vs Correct
+
+Wrong: time from request submission and call it SQL p95, or create/connect Workspace to count sessions. Correct: freeze the completed successful Usage service-body duration into its captured2048 window; snapshot existing memory authority only and label both scopes precisely.

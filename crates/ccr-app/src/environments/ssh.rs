@@ -278,6 +278,15 @@ impl Workspace {
     fn clear(&self) {
         *self.session.lock().unwrap_or_else(|p| p.into_inner()) = None;
     }
+    /// Held logical session authority, not TCP liveness. No lookup or transport.
+    pub fn retained_session_count(&self) -> usize {
+        usize::from(
+            self.session
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .is_some(),
+        )
+    }
     pub fn connected(&self, id: &str) -> bool {
         self.current(id).is_ok()
     }
@@ -672,6 +681,39 @@ mod tests {
             .await
             .unwrap();
         owner.connect(id, cancel).await.unwrap();
+    }
+    #[tokio::test]
+    async fn retained_session_metrics_observe_only_memory_and_follow_real_owner_transitions() {
+        struct NoTransport;
+        impl Transport for NoTransport {
+            fn run<'a>(
+                &'a self,
+                _: tokio::process::Command,
+                _: ProcessDescriptor,
+                _: Option<Vec<u8>>,
+                _: CancellationToken,
+            ) -> RunFuture<'a> {
+                panic!("metrics must never invoke transport");
+            }
+        }
+        let (_root, mut owner, _transport) = fixture();
+        assert_eq!(owner.retained_session_count(), 0);
+        assert!(
+            owner
+                .connect("one", CancellationToken::new())
+                .await
+                .is_err()
+        );
+        assert_eq!(owner.retained_session_count(), 0);
+        connect(&owner, "one").await;
+        // Removing lookup authority and poisoning transport must not change the
+        // existing retained capability or turn a metric read into another probe.
+        owner.database = None;
+        owner.transport = Arc::new(NoTransport);
+        assert_eq!(owner.retained_session_count(), 1);
+        assert_eq!(owner.retained_session_count(), 1);
+        owner.disconnect().await;
+        assert_eq!(owner.retained_session_count(), 0);
     }
     #[tokio::test]
     async fn untrusted_changed_and_cancelled_connections_never_become_active() {

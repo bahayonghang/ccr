@@ -38,7 +38,15 @@ async fn monitoring_filters_real_main_events_and_suspension_detaches_without_pol
         ),
     );
     let owner = RuntimeOwner::new().unwrap();
-    let services = Services::new(owner.handle(), source);
+    let paths = ccr_usage::fixtures::create_projection_db(&root.path().join("llmusage"));
+    let services = Services::new(owner.handle(), source).with_insights_paths(
+        crate::runtime::insights::InsightsPaths {
+            usage_root: paths.root_dir,
+            archive_db: root.path().join("archive.db"),
+            provider_home: root.path().join("home"),
+        },
+    );
+    let latency = services.usage_report_latency.clone();
     let monitor = services.monitoring.clone();
     let (handle, view) = cx.update(|cx| {
         gpui_kit::init(cx);
@@ -64,6 +72,18 @@ async fn monitoring_filters_real_main_events_and_suspension_detaches_without_pol
             .join("\n");
         assert!(!labels.contains("fixture-secret-sentinel"));
         assert!(window.try_find("global-monitoring").is_some());
+        assert!(labels.contains("0 / 2048"));
+        assert!(labels.contains("Unavailable") || labels.contains("不可用"));
+        assert_eq!(latency.lock().unwrap().snapshot().sample_count, 0);
+        assert_eq!(
+            view.read(cx)
+                .report
+                .as_ref()
+                .unwrap()
+                .metrics
+                .retained_ssh_sessions,
+            0
+        );
         window.click("monitoring-level-error", cx);
     })
     .unwrap();
@@ -80,6 +100,21 @@ async fn monitoring_filters_real_main_events_and_suspension_detaches_without_pol
         );
         window.render_frame(cx);
         assert!(window.try_find("monitoring-detail").is_some());
+        latency.lock().unwrap().record(Duration::ZERO);
+        view.update(cx, |this, cx| this.refresh(cx));
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| !view.read(cx).busy)
+        .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        let labels = gpui_kit::base::test_support::snapshots(window)
+            .into_iter()
+            .filter_map(|node| node.label().map(str::to_string))
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(labels.contains("0.000 ms"));
+        assert!(labels.contains("1 / 2048"));
         view.update(cx, |this, cx| {
             this.refresh(cx);
             this.suspend(cx);
@@ -102,6 +137,7 @@ async fn monitoring_filters_real_main_events_and_suspension_detaches_without_pol
         .timer(Duration::from_millis(250))
         .await;
     assert_eq!(monitor.read_count(), reads);
+    assert_eq!(latency.lock().unwrap().snapshot().sample_count, 1);
     owner.shutdown();
 }
 

@@ -43,12 +43,24 @@ fn main_storage_is_distinct_from_archive_and_missing_reads_never_create_it() {
         ),
     );
     let owner = Owner::default();
-    let absent = owner.read(&source, &MonitoringFeedQuery::default(), 0);
+    let absent = owner.read(
+        &source,
+        &MonitoringFeedQuery::default(),
+        0,
+        Default::default(),
+        0,
+    );
     assert_eq!(absent.storage, Err(Error::Missing));
     assert!(absent.entries.is_empty());
     assert!(!root.path().join("observer.db").exists());
     owner.terminal(&source, "commands", "command.completed", false);
-    let absent = owner.read(&source, &MonitoringFeedQuery::default(), 0);
+    let absent = owner.read(
+        &source,
+        &MonitoringFeedQuery::default(),
+        0,
+        Default::default(),
+        0,
+    );
     assert_eq!(absent.last_write, Some(Err(Error::Missing)));
     assert_eq!(absent.entries.len(), 1);
     assert!(!root.path().join("observer.db").exists());
@@ -63,7 +75,13 @@ fn main_storage_is_distinct_from_archive_and_missing_reads_never_create_it() {
             "legacy record",
         ),
     );
-    let present = owner.read(&source, &MonitoringFeedQuery::default(), 7);
+    let present = owner.read(
+        &source,
+        &MonitoringFeedQuery::default(),
+        7,
+        Default::default(),
+        0,
+    );
     assert_eq!(present.storage, Ok(()));
     assert_eq!(present.entries.len(), 2);
     assert!(
@@ -81,11 +99,19 @@ fn main_storage_is_distinct_from_archive_and_missing_reads_never_create_it() {
             channel: Some("tools".into()),
         },
         7,
+        Default::default(),
+        0,
     );
     assert_eq!(persisted.entries.len(), 1);
     assert_eq!(persisted.metrics.active_tasks, 7);
     assert_eq!(persisted.last_write, Some(Ok(())));
-    let reopened = Owner::default().read(&source, &MonitoringFeedQuery::default(), 0);
+    let reopened = Owner::default().read(
+        &source,
+        &MonitoringFeedQuery::default(),
+        0,
+        Default::default(),
+        0,
+    );
     assert!(
         reopened
             .entries
@@ -154,6 +180,8 @@ fn bounded_feed_redacts_before_storage_and_reports_decode_errors() {
             ..Default::default()
         },
         0,
+        Default::default(),
+        0,
     );
     assert!(report.metrics.retained_entries <= ENTRY_LIMIT);
     assert!(report.metrics.retained_payload_bytes <= PAYLOAD_LIMIT);
@@ -161,7 +189,13 @@ fn bounded_feed_redacts_before_storage_and_reports_decode_errors() {
     let conn = connection(&root.path().join("observer.db"), true).unwrap();
     conn.execute("UPDATE log_entries SET message = x'01'", [])
         .unwrap();
-    let report = owner.read(&source, &MonitoringFeedQuery::default(), 0);
+    let report = owner.read(
+        &source,
+        &MonitoringFeedQuery::default(),
+        0,
+        Default::default(),
+        0,
+    );
     assert_eq!(report.storage, Err(Error::Storage));
     assert!(!report.entries.is_empty()); // actual in-memory events survive the storage error
     conn.execute(
@@ -169,7 +203,13 @@ fn bounded_feed_redacts_before_storage_and_reports_decode_errors() {
         [],
     )
     .unwrap();
-    let report = owner.read(&source, &MonitoringFeedQuery::default(), 0);
+    let report = owner.read(
+        &source,
+        &MonitoringFeedQuery::default(),
+        0,
+        Default::default(),
+        0,
+    );
     assert_eq!(report.storage, Err(Error::Storage));
     assert!(!report.entries.is_empty());
 }
@@ -229,4 +269,95 @@ fn ordinary_push_evictions_are_scoped_and_final_detach_freezes_counter() {
         owner.terminal(&source, "ordinary", "ordinary", false);
     }
     assert_eq!(owner.eviction_delta(false), 0);
+}
+
+#[gpui_kit::test]
+async fn monitoring_projects_latency_and_retained_ssh_without_initializing_or_probing(
+    cx: &mut gpui_kit::TestAppContext,
+) {
+    use ccr_app::environments::ssh::{HostInput, Workspace};
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    let runtime = RuntimeOwner::new().unwrap();
+    let services = Services::new(runtime.handle(), source(root.path()));
+    async fn read(services: &Services) -> Arc<Report> {
+        let mut task = Requests::new(services)
+            .refresh(
+                key(EnvironmentId::Local("metrics".into())),
+                Default::default(),
+            )
+            .unwrap();
+        while let Some(event) = task.next().await {
+            if let TaskEvent::Terminal(value) = event {
+                if let Completion::Success(report) = value.as_ref() {
+                    return report.clone();
+                }
+                panic!("monitoring failed");
+            }
+        }
+        panic!("missing terminal");
+    }
+    let empty = read(&services).await;
+    assert_eq!(empty.metrics.usage_report_latency.p95_ms, None);
+    assert_eq!(empty.metrics.retained_ssh_sessions, 0);
+    assert!(services.ssh.get().is_none());
+    assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
+    let (ssh, transport) = Workspace::fixture(
+        root.path().join("ssh.db"),
+        root.path().join("ssh/known_hosts"),
+    );
+    let ssh = Arc::new(ssh);
+    let setup = ssh.clone();
+    let mut task = services
+        .executor
+        .read(
+            key(EnvironmentId::Local("fixture-setup".into())),
+            move |_, _| {
+                tokio::runtime::Handle::current().block_on(async move {
+                    let host = setup
+                        .save_host(HostInput {
+                            id: None,
+                            name: "synthetic".into(),
+                            host: "metrics.invalid".into(),
+                            port: 22,
+                            user: "fixture".into(),
+                            remote_home: "/fixture".into(),
+                        })
+                        .await?;
+                    let probe = setup.probe(&host.id, Default::default()).await?;
+                    setup
+                        .confirm(&probe.challenge_id, Default::default())
+                        .await?;
+                    setup.connect(&host.id, Default::default()).await?;
+                    Ok::<_, &'static str>(host)
+                })
+            },
+        )
+        .unwrap();
+    let host = loop {
+        if let Some(TaskEvent::Terminal(result)) = task.next().await {
+            if let Completion::Success(host) = result.as_ref() {
+                break host.clone();
+            }
+            panic!("fixture setup failed");
+        }
+    };
+    let cli_before = transport.cli_requests();
+    let batches_before = transport.batches();
+    assert!(services.ssh.set(ssh.clone()).is_ok());
+    services
+        .usage_report_latency
+        .lock()
+        .unwrap()
+        .record(Duration::ZERO);
+    let report = read(&services).await;
+    assert_eq!(report.metrics.usage_report_latency.sample_count, 1);
+    assert_eq!(report.metrics.usage_report_latency.p95_ms, Some(0.0));
+    assert_eq!(report.metrics.retained_ssh_sessions, 1);
+    assert!(ssh.connected(&host.id));
+    assert_eq!(transport.cli_requests(), cli_before);
+    assert_eq!(transport.batches(), batches_before);
+    ssh.disconnect().await;
+    assert_eq!(read(&services).await.metrics.retained_ssh_sessions, 0);
+    runtime.shutdown();
 }
