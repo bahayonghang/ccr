@@ -2,6 +2,17 @@
 
 > Contracts for Codex history visibility repair and recoverable session trash.
 
+## Native reviewed trash restoration
+
+- `CodexSessionTrashService::prepare_restores` returns metadata and opaque `CodexSessionRestorePlan` proofs captured from the explicit Codex home. `restore_versioned` accepts that plan, holds the same trash resource lock as native trash, and returns false for a stale home/manifest/payload without restoring it.
+- GUI listing uses `list_restore_candidates`, never `prepare_restores`: candidates bind home and manifest bytes but do not open/hash rollout bodies. Check cancellation before enumeration/each entry and during bounded manifest reads; return no list on cancellation. One unreadable/oversized rollout cannot prevent other metadata from being listed.
+- Only explicit Review calls `prepare_restore(candidate, cancelled)`. Revalidate the original candidate, read/hash only its selected bounded payload, then recheck the original manifest; a changed manifest must not silently acquire fresh authority. Runtime confirmation holds a distinct private-plan `PreparedRestore` only after the matching generation/decision completes. Cancel/leave drops that read; an admitted restore remains app-owned. Commit reads only the selected manifest and exact versioned payload, without scanning other trash entries.
+- Native manifest and rollout reads share the existing 64 MiB session-operation budget. The checked rollout bytes are the bytes written; do not validate a token and subsequently reread an unchecked payload. Legacy `restore_sessions` retains its streaming copy behavior and has no new native payload cap.
+- Native absolute-path/reparse checks belong to the reviewed restore branch only. Preserve the existing CLI `--codex-home` relative-path behavior in legacy `restore_sessions`; do not apply native-only validation before choosing the branch.
+- Reject linked/reparse ancestors in native home, trash, rollout, index and destination paths. Existing rollout files and index session IDs stop restoration. Native rollout creation and index append use guarded CAS with private permissions. An index conflict preserves the concurrent index and removes only the exact rollout just created by this restore.
+- Mtime, index, cache invalidation or trash cleanup failure can occur after a source write. Adapters report partial failure, retain the trash where possible, and never claim rollback. A completed source restore with a failed CCR archive refresh is a distinct partial result.
+- Native archive refresh uses the same captured provider registry without environment overrides. Trash list and confirmation state contain metadata and opaque tokens, never transcript plaintext.
+
 ## Scenario: sync-history session index repair
 
 ### 1. Scope / Trigger

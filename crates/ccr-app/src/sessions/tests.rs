@@ -42,6 +42,141 @@ fn refresh_skips_unchanged_sources_and_reconciles_missing_without_modifying_prov
     assert_eq!(page.items.len(), 1);
     assert_eq!(page.items[0].source_state.as_str(), "missing");
 }
+
+#[test]
+fn refresh_reactivates_restored_bytes_and_mtime_without_reviving_absent_deleted_sources() {
+    let temp = tempfile::tempdir().unwrap();
+    let archive = pool(temp.path());
+    let root = temp.path().join(".pi/agent/sessions/project");
+    std::fs::create_dir_all(&root).unwrap();
+    let source = root.join("restored.jsonl");
+    let absent = root.join("absent.jsonl");
+    let content = "{\"type\":\"message\",\"message\":{\"role\":\"user\",\"content\":\"restorable fixture\"}}\n";
+    for path in [&source, &absent] {
+        std::fs::write(path, content).unwrap();
+    }
+    let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+        .without_environment_overrides();
+    assert_eq!(
+        refresh::refresh_archive_with_registry(&archive, &registry)
+            .unwrap()
+            .total
+            .parsed,
+        2
+    );
+    let original_mtime = std::fs::metadata(&source).unwrap().modified().unwrap();
+    let held = temp.path().join("trash-restored");
+    std::fs::rename(&source, &held).unwrap();
+    std::fs::remove_file(&absent).unwrap();
+    let conn = archive.get().unwrap();
+    let rows = usage_repo::get_all_agent_session_archive_sources(&conn).unwrap();
+    for row in &rows {
+        usage_repo::mark_session_archive_deleted_by_path(&conn, &row.platform, &row.file_path)
+            .unwrap();
+    }
+    drop(conn);
+    refresh::refresh_archive_with_registry(&archive, &registry).unwrap();
+    std::fs::rename(&held, &source).unwrap();
+    assert_eq!(
+        std::fs::metadata(&source).unwrap().modified().unwrap(),
+        original_mtime
+    );
+    let restored = refresh::refresh_archive_with_registry(&archive, &registry).unwrap();
+    assert_eq!(restored.total.parsed, 1);
+    let page = list_sessions(&archive, SessionListRequest::default()).unwrap();
+    assert_eq!(
+        page.items
+            .iter()
+            .filter(|row| row.source_state == UsageSourceState::Live)
+            .count(),
+        1
+    );
+    assert_eq!(
+        page.items
+            .iter()
+            .filter(|row| row.source_state == UsageSourceState::DeletedByUser)
+            .count(),
+        1
+    );
+    assert_eq!(
+        refresh::refresh_archive_with_registry(&archive, &registry)
+            .unwrap()
+            .total
+            .unchanged,
+        1
+    );
+    // The same cache rule applies to a temporarily missing, non-deleted file.
+    std::fs::rename(&source, &held).unwrap();
+    refresh::refresh_archive_with_registry(&archive, &registry).unwrap();
+    std::fs::rename(&held, &source).unwrap();
+    assert_eq!(
+        refresh::refresh_archive_with_registry(&archive, &registry)
+            .unwrap()
+            .total
+            .parsed,
+        1
+    );
+}
+
+#[test]
+fn refresh_reactivates_deleted_sqlite_members_before_skipping_unchanged_containers() {
+    let temp = tempfile::tempdir().unwrap();
+    let archive = pool(temp.path());
+    let root = temp.path().join(".local/share/opencode");
+    std::fs::create_dir_all(&root).unwrap();
+    let source = root.join("opencode.db");
+    let conn = rusqlite::Connection::open(&source).unwrap();
+    conn.execute_batch("CREATE TABLE session(id TEXT PRIMARY KEY, title TEXT, directory TEXT, time_created INTEGER, time_updated INTEGER); CREATE TABLE message(id TEXT PRIMARY KEY, session_id TEXT, data TEXT, time_created INTEGER); CREATE TABLE part(id TEXT PRIMARY KEY, session_id TEXT, message_id TEXT, data TEXT, time_created INTEGER); INSERT INTO session VALUES('s1','Fixture one','/fixture',1000,2000); INSERT INTO session VALUES('s2','Fixture two','/fixture',1000,2000);").unwrap();
+    drop(conn);
+    let registry = AgentSessionProviderRegistry::new(temp.path().to_path_buf())
+        .without_environment_overrides();
+    assert_eq!(
+        refresh::refresh_archive_with_registry(&archive, &registry)
+            .unwrap()
+            .total
+            .parsed,
+        2
+    );
+    assert_eq!(
+        refresh::refresh_archive_with_registry(&archive, &registry)
+            .unwrap()
+            .total
+            .unchanged,
+        2
+    );
+    let before = std::fs::read(&source).unwrap();
+    let conn = archive.get().unwrap();
+    let rows = usage_repo::get_all_agent_session_archive_sources(&conn).unwrap();
+    usage_repo::mark_session_archive_deleted_by_path(&conn, "opencode", &rows[0].file_path)
+        .unwrap();
+    let marked = usage_repo::get_agent_session_archive_source(&conn, &rows[0].archive_id)
+        .unwrap()
+        .unwrap();
+    assert_eq!(marked.source_state, UsageSourceState::DeletedByUser);
+    drop(conn);
+    assert_eq!(
+        refresh::refresh_archive_with_registry(&archive, &registry)
+            .unwrap()
+            .total
+            .parsed,
+        2
+    );
+    assert!(
+        list_sessions(&archive, SessionListRequest::default())
+            .unwrap()
+            .items
+            .iter()
+            .all(|row| row.source_state == UsageSourceState::Live)
+    );
+    assert_eq!(
+        refresh::refresh_archive_with_registry(&archive, &registry)
+            .unwrap()
+            .total
+            .unchanged,
+        2
+    );
+    assert_eq!(std::fs::read(&source).unwrap(), before);
+}
 fn seed(pool: &DbPool, source: &Path, agent: &str, fidelity: &str, index: usize) -> String {
     let now = DateTime::parse_from_rfc3339("2026-09-24T12:00:00Z")
         .unwrap()

@@ -214,6 +214,7 @@ pub struct AgentSessionArchiveSource {
     pub source_member_id: String,
     pub source_fidelity: String,
     pub source_stat_hash: Option<String>,
+    pub source_state: UsageSourceState,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1074,7 +1075,7 @@ pub fn get_agent_session_archive_source(
 ) -> Result<Option<AgentSessionArchiveSource>, rusqlite::Error> {
     conn.query_row(
         "SELECT archive_id, platform, source_variant, source_kind, file_path,
-                source_member_id, source_fidelity, source_stat_hash
+                source_member_id, source_fidelity, source_stat_hash, source_state
          FROM usage_session_archive WHERE archive_id = ?1",
         [archive_id],
         |row| {
@@ -1087,6 +1088,7 @@ pub fn get_agent_session_archive_source(
                 source_member_id: row.get(5)?,
                 source_fidelity: row.get(6)?,
                 source_stat_hash: row.get(7)?,
+                source_state: UsageSourceState::from_raw(&row.get::<_, String>(8)?),
             })
         },
     )
@@ -1098,7 +1100,7 @@ pub fn get_all_agent_session_archive_sources(
 ) -> Result<Vec<AgentSessionArchiveSource>, rusqlite::Error> {
     let mut stmt = conn.prepare(
         "SELECT archive_id, platform, source_variant, source_kind, file_path,
-                source_member_id, source_fidelity, source_stat_hash
+                source_member_id, source_fidelity, source_stat_hash, source_state
          FROM usage_session_archive",
     )?;
     let rows = stmt.query_map([], |row| {
@@ -1111,6 +1113,7 @@ pub fn get_all_agent_session_archive_sources(
             source_member_id: row.get(5)?,
             source_fidelity: row.get(6)?,
             source_stat_hash: row.get(7)?,
+            source_state: UsageSourceState::from_raw(&row.get::<_, String>(8)?),
         })
     })?;
     rows.collect()

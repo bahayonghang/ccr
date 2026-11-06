@@ -53,6 +53,29 @@ pub struct CodexSessionTrashService {
     codex_home: PathBuf,
 }
 
+/// A reviewed trash identity. Tokens stay opaque so callers cannot substitute a
+/// different home, manifest or transcript after displaying the confirmation.
+#[derive(Debug, Clone)]
+pub struct CodexSessionRestorePlan {
+    pub record: CodexTrashedSessionRecord,
+    codex_home: PathBuf,
+    manifest_version: String,
+    rollout_version: String,
+}
+
+/// Metadata-only list authority; the rollout is opened only on explicit review.
+#[derive(Debug, Clone)]
+pub struct CodexSessionRestoreCandidate {
+    record: CodexTrashedSessionRecord,
+    codex_home: PathBuf,
+    manifest_version: String,
+}
+impl CodexSessionRestoreCandidate {
+    pub fn record(&self) -> &CodexTrashedSessionRecord {
+        &self.record
+    }
+}
+
 #[derive(Debug, Clone)]
 struct ActiveSessionSnapshot {
     session_id: String,
@@ -85,6 +108,7 @@ struct TrashEntry {
     dir: PathBuf,
     rollout_path: PathBuf,
     manifest: TrashedSessionManifest,
+    manifest_version: String,
 }
 
 #[derive(Debug, Clone)]
@@ -233,6 +257,184 @@ impl CodexSessionTrashService {
         }))
     }
 
+    pub fn prepare_restores(&self) -> Result<Vec<CodexSessionRestorePlan>> {
+        let mut plans = Vec::new();
+        reject_linked_path(&self.trash_root())?;
+        for entry in self.load_trash_entries_impl(true)? {
+            reject_linked_path(&entry.manifest.original_codex_home)?;
+            let same_home = entry.manifest.original_codex_home == self.codex_home
+                || entry.manifest.original_codex_home.canonicalize()?
+                    == self.codex_home.canonicalize()?;
+            if entry.manifest.version != 1 || !same_home {
+                return Err(CcrError::ValidationError(
+                    "Trash home or format changed".into(),
+                ));
+            }
+            plans.push(CodexSessionRestorePlan {
+                record: trash_entry_record(&entry),
+                codex_home: self.codex_home.clone(),
+                manifest_version: entry.manifest_version.clone(),
+                rollout_version: trash_file_version(&entry.rollout_path)?,
+            });
+        }
+        plans.sort_by(|a, b| b.record.deleted_at.cmp(&a.record.deleted_at));
+        Ok(plans)
+    }
+
+    /// None means cooperative cancellation; no rollout bodies are opened.
+    pub fn list_restore_candidates(
+        &self,
+        cancelled: impl Fn() -> bool,
+    ) -> Result<Option<Vec<CodexSessionRestoreCandidate>>> {
+        if cancelled() {
+            return Ok(None);
+        }
+        let root = self.trash_root();
+        reject_linked_path(&root)?;
+        if !root.exists() {
+            return Ok(Some(Vec::new()));
+        }
+        let mut candidates = Vec::new();
+        for entry in fs::read_dir(&root)? {
+            if cancelled() {
+                return Ok(None);
+            }
+            let entry = entry?;
+            if !entry.file_type()?.is_dir() {
+                continue;
+            }
+            let Some(entry) = self.load_native_trash_entry(&entry.path(), &cancelled)? else {
+                if cancelled() {
+                    return Ok(None);
+                }
+                continue;
+            };
+            if cancelled() {
+                return Ok(None);
+            }
+            reject_linked_path(&entry.manifest.original_codex_home)?;
+            let same_home = entry.manifest.original_codex_home == self.codex_home
+                || entry.manifest.original_codex_home.canonicalize()?
+                    == self.codex_home.canonicalize()?;
+            if entry.manifest.version != 1 || !same_home {
+                return Err(CcrError::ValidationError(
+                    "Trash home or format changed".into(),
+                ));
+            }
+            candidates.push(CodexSessionRestoreCandidate {
+                record: trash_entry_record(&entry),
+                codex_home: self.codex_home.clone(),
+                manifest_version: entry.manifest_version,
+            });
+        }
+        if cancelled() {
+            return Ok(None);
+        }
+        candidates.sort_by(|a, b| b.record.deleted_at.cmp(&a.record.deleted_at));
+        if cancelled() {
+            return Ok(None);
+        }
+        Ok(Some(candidates))
+    }
+
+    /// A newer manifest never acquires the old candidate's review authority.
+    pub fn prepare_restore(
+        &self,
+        candidate: &CodexSessionRestoreCandidate,
+        cancelled: impl Fn() -> bool,
+    ) -> Result<Option<CodexSessionRestorePlan>> {
+        if cancelled() || candidate.codex_home != self.codex_home {
+            return Ok(None);
+        }
+        let Some(entry) = self.load_native_trash_entry(&candidate.record.trash_dir, &cancelled)?
+        else {
+            return Ok(None);
+        };
+        if trash_entry_record(&entry) != candidate.record
+            || entry.manifest_version != candidate.manifest_version
+        {
+            return Ok(None);
+        }
+        let Some(bytes) = read_trash_file_cancelled(&entry.rollout_path, &cancelled)? else {
+            return Ok(None);
+        };
+        let Some(current) = self.load_native_trash_entry(&entry.dir, &cancelled)? else {
+            return Ok(None);
+        };
+        if current.manifest_version != candidate.manifest_version
+            || trash_entry_record(&current) != candidate.record
+        {
+            return Ok(None);
+        }
+        Ok(Some(CodexSessionRestorePlan {
+            record: candidate.record.clone(),
+            codex_home: self.codex_home.clone(),
+            manifest_version: candidate.manifest_version.clone(),
+            rollout_version: ccr_core::core::guarded_write::content_version_token(&bytes),
+        }))
+    }
+
+    fn load_native_trash_entry(
+        &self,
+        dir: &Path,
+        cancelled: &impl Fn() -> bool,
+    ) -> Result<Option<TrashEntry>> {
+        if cancelled() {
+            return Ok(None);
+        }
+        if dir.parent() != Some(self.trash_root().as_path()) {
+            return Err(CcrError::ValidationError("Invalid trash identity".into()));
+        }
+        let path = dir.join(MANIFEST_FILE_NAME);
+        reject_linked_path(&path)?;
+        if !path.exists() {
+            return Ok(None);
+        }
+        let Some(content) = read_trash_file_cancelled(&path, cancelled)? else {
+            return Ok(None);
+        };
+        let manifest = serde_json::from_slice(&content)
+            .map_err(|_| CcrError::ConfigError("Invalid trash manifest".into()))?;
+        Ok(Some(TrashEntry {
+            dir: dir.to_path_buf(),
+            rollout_path: dir.join(ROLLOUT_FILE_NAME),
+            manifest,
+            manifest_version: ccr_core::core::guarded_write::content_version_token(&content),
+        }))
+    }
+
+    /// Restore only the exact manifest and payload reviewed by the caller.
+    /// A stale decision returns false without changing either active or trash data.
+    pub fn restore_versioned(&self, plan: &CodexSessionRestorePlan) -> Result<bool> {
+        use ccr_core::core::{LockManager, guarded_write::content_version_token};
+        if plan.codex_home != self.codex_home {
+            return Ok(false);
+        }
+        reject_linked_path(&self.trash_root())?;
+        let manager = LockManager::with_default_path()?;
+        let resource = format!(
+            "codex_session_trash_{}",
+            content_version_token(self.codex_home.to_string_lossy().as_bytes())
+        );
+        let _guard = manager.lock_resource(&resource, std::time::Duration::from_secs(10))?;
+        let Some(entry) = self.load_native_trash_entry(&plan.record.trash_dir, &|| false)? else {
+            return Ok(false);
+        };
+        if trash_entry_record(&entry) != plan.record
+            || entry.manifest_version != plan.manifest_version
+        {
+            return Ok(false);
+        }
+        reject_linked_path(&self.resolve_restore_target(&entry.manifest)?)?;
+        reject_linked_path(&self.codex_home.join(SESSION_INDEX_FILE))?;
+        if !self.restore_trash_entry_versioned(&entry, Some(&plan.rollout_version))? {
+            return Ok(false);
+        }
+        super::codex_session_service::CodexSessionService::new(self.codex_home.clone())
+            .invalidate_inventory_cache()?;
+        Ok(true)
+    }
+
     pub fn restore_sessions<I, S>(&self, session_ids: I) -> Result<CodexSessionRestoreSummary>
     where
         I: IntoIterator<Item = S>,
@@ -350,6 +552,9 @@ impl CodexSessionTrashService {
             dir: entry_dir,
             rollout_path: rollout_target,
             manifest,
+            manifest_version: ccr_core::core::guarded_write::content_version_token(
+                manifest_text.as_bytes(),
+            ),
         })
     }
 
@@ -389,6 +594,14 @@ impl CodexSessionTrashService {
     }
 
     fn restore_trash_entry(&self, entry: &TrashEntry) -> Result<()> {
+        self.restore_trash_entry_versioned(entry, None).map(|_| ())
+    }
+
+    fn restore_trash_entry_versioned(
+        &self,
+        entry: &TrashEntry,
+        expected: Option<&str>,
+    ) -> Result<bool> {
         if !entry.rollout_path.exists() {
             return Err(CcrError::ResourceNotFound(format!(
                 "Trashed rollout file not found: {}",
@@ -418,7 +631,33 @@ impl CodexSessionTrashService {
         if let Some(parent) = target_path.parent() {
             fs::create_dir_all(parent)?;
         }
-        fs::copy(&entry.rollout_path, &target_path)?;
+        use ccr_core::core::guarded_write::{
+            VersionedWriteOutcome, WriteOptions, write_guarded_versioned,
+        };
+        if let Some(expected) = expected {
+            reject_linked_path(&entry.rollout_path)?;
+            reject_linked_path(&target_path)?;
+            let bytes = read_trash_file(&entry.rollout_path)?;
+            if ccr_core::core::guarded_write::content_version_token(&bytes) != expected {
+                return Ok(false);
+            }
+            if write_guarded_versioned(
+                &target_path,
+                &bytes,
+                "",
+                &WriteOptions {
+                    secret: true,
+                    ..Default::default()
+                },
+            )? != VersionedWriteOutcome::Written
+            {
+                return Err(CcrError::ValidationError(
+                    "Restore target already exists".into(),
+                ));
+            }
+        } else {
+            fs::copy(&entry.rollout_path, &target_path)?;
+        }
         let mtime = FileTime::from_unix_time(
             entry.manifest.rollout_modified_unix_secs,
             entry.manifest.rollout_modified_nanos,
@@ -429,10 +668,18 @@ impl CodexSessionTrashService {
         let restore_result = self.append_session_index_entry(
             index_snapshot.content.as_deref(),
             entry.manifest.session_index_entry.as_ref(),
+            expected.is_some(),
         );
         if let Err(err) = restore_result {
-            let _ = fs::remove_file(&target_path);
-            self.restore_session_index_snapshot(&index_snapshot)?;
+            if let Some(expected) = expected {
+                // A concurrent external index edit is preserved. Remove only
+                // our exact rollout, never another writer's replacement.
+                use ccr_core::core::guarded_write::delete_guarded_versioned;
+                let _ = delete_guarded_versioned(&target_path, expected)?;
+            } else {
+                let _ = fs::remove_file(&target_path);
+                self.restore_session_index_snapshot(&index_snapshot)?;
+            }
             return Err(err);
         }
 
@@ -443,7 +690,7 @@ impl CodexSessionTrashService {
                 err
             )));
         }
-        Ok(())
+        Ok(true)
     }
 
     fn resolve_restore_target(&self, manifest: &TrashedSessionManifest) -> Result<PathBuf> {
@@ -455,6 +702,7 @@ impl CodexSessionTrashService {
         &self,
         original_content: Option<&str>,
         entry: Option<&JsonValue>,
+        versioned: bool,
     ) -> Result<()> {
         let entry = entry
             .ok_or_else(|| CcrError::ConfigError("废纸篓清单缺少 session_index 条目".into()))?;
@@ -469,10 +717,33 @@ impl CodexSessionTrashService {
             .map(str::to_string)
             .collect::<Vec<_>>();
         lines.push(serialized);
-        write_text_atomic(
-            &self.codex_home.join(SESSION_INDEX_FILE),
-            &format!("{}\n", lines.join("\n")),
-        )
+        let path = self.codex_home.join(SESSION_INDEX_FILE);
+        let content = format!("{}\n", lines.join("\n"));
+        if versioned {
+            use ccr_core::core::guarded_write::{
+                VersionedWriteOutcome, WriteOptions, content_version_token, write_guarded_versioned,
+            };
+            let expected = original_content
+                .map(|text| content_version_token(text.as_bytes()))
+                .unwrap_or_default();
+            if write_guarded_versioned(
+                &path,
+                content.as_bytes(),
+                &expected,
+                &WriteOptions {
+                    secret: true,
+                    ..Default::default()
+                },
+            )? != VersionedWriteOutcome::Written
+            {
+                return Err(CcrError::ValidationError(
+                    "Session index changed during restore".into(),
+                ));
+            }
+            Ok(())
+        } else {
+            write_text_atomic(&path, &content)
+        }
     }
 
     fn read_session_index_snapshot(&self) -> Result<SessionIndexSnapshot> {
@@ -525,6 +796,10 @@ impl CodexSessionTrashService {
     }
 
     fn load_trash_entries(&self) -> Result<Vec<TrashEntry>> {
+        self.load_trash_entries_impl(false)
+    }
+
+    fn load_trash_entries_impl(&self, bounded: bool) -> Result<Vec<TrashEntry>> {
         let root = self.trash_root();
         if !root.exists() {
             return Ok(Vec::new());
@@ -541,9 +816,13 @@ impl CodexSessionTrashService {
             if !manifest_path.exists() {
                 continue;
             }
-            let content = fs::read_to_string(&manifest_path)?;
+            let content = if bounded {
+                read_trash_file(&manifest_path)?
+            } else {
+                fs::read(&manifest_path)?
+            };
             let manifest: TrashedSessionManifest =
-                serde_json::from_str(&content).map_err(|err| {
+                serde_json::from_slice(&content).map_err(|err| {
                     CcrError::ConfigError(format!(
                         "解析会话废纸篓清单失败 ({}): {}",
                         manifest_path.display(),
@@ -554,10 +833,58 @@ impl CodexSessionTrashService {
                 dir,
                 rollout_path: entry.path().join(ROLLOUT_FILE_NAME),
                 manifest,
+                manifest_version: ccr_core::core::guarded_write::content_version_token(&content),
             });
         }
         Ok(entries)
     }
+}
+
+fn read_trash_file(path: &Path) -> Result<Vec<u8>> {
+    read_trash_file_cancelled(path, &|| false)?
+        .ok_or_else(|| CcrError::ValidationError("Trash read cancelled".into()))
+}
+
+fn read_trash_file_cancelled(
+    path: &Path,
+    cancelled: &impl Fn() -> bool,
+) -> Result<Option<Vec<u8>>> {
+    use std::io::Read;
+    if cancelled() {
+        return Ok(None);
+    }
+    reject_linked_path(path)?;
+    if !fs::metadata(path)?.is_file() {
+        return Err(CcrError::ValidationError(
+            "Trash input must be a regular file".into(),
+        ));
+    }
+    const LIMIT: u64 = super::codex_session_service::NATIVE_SESSION_LIMIT;
+    let mut bytes = Vec::new();
+    let mut file = File::open(path)?.take(LIMIT + 1);
+    let mut chunk = [0u8; 64 * 1024];
+    loop {
+        if cancelled() {
+            return Ok(None);
+        }
+        let count = file.read(&mut chunk)?;
+        if count == 0 {
+            break;
+        }
+        bytes.extend_from_slice(&chunk[..count]);
+    }
+    if bytes.len() as u64 > LIMIT {
+        return Err(CcrError::ValidationError(
+            "Trash file exceeds restore limit".into(),
+        ));
+    }
+    Ok(Some(bytes))
+}
+
+fn trash_file_version(path: &Path) -> Result<String> {
+    Ok(ccr_core::core::guarded_write::content_version_token(
+        &read_trash_file(path)?,
+    ))
 }
 
 pub(super) fn reject_linked_path(path: &Path) -> Result<()> {
@@ -868,7 +1195,10 @@ mod tests {
         let current = reader.source_version(&rollout).unwrap();
         assert_eq!(apply(&current).unwrap().trashed_session_count, 1);
         assert!(!rollout.exists());
-        service.restore_sessions(["thread-versioned"]).unwrap();
+        ccr_core::core::LockManager::with_scoped_directory(&root.path().join("locks"), || {
+            service.restore_sessions(["thread-versioned"])
+        })
+        .unwrap();
         assert_eq!(fs::read(&rollout).unwrap(), changed);
     }
 
@@ -930,7 +1260,11 @@ mod tests {
         service.trash_sessions(["thread-restore-one"]).unwrap();
         assert!(!rollout.exists());
 
-        let summary = service.restore_sessions(["thread-restore-one"]).unwrap();
+        let summary =
+            ccr_core::core::LockManager::with_scoped_directory(&_dir.path().join("locks"), || {
+                service.restore_sessions(["thread-restore-one"])
+            })
+            .unwrap();
 
         assert_eq!(summary.restored_session_count, 1);
         assert!(rollout.exists());
@@ -956,6 +1290,161 @@ mod tests {
 
         assert!(err.to_string().contains("rollout"));
         assert_eq!(service.list_trashed_sessions().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn legacy_restore_accepts_an_explicit_relative_codex_home() {
+        let working = std::env::current_dir().unwrap();
+        let root = tempfile::tempdir_in(&working).unwrap();
+        let relative = root.path().strip_prefix(&working).unwrap().join("codex");
+        let service = CodexSessionTrashService::with_codex_home(&relative);
+        let rollout = relative.join("sessions/2026/11/06/rollout-relative.jsonl");
+        fs::create_dir_all(rollout.parent().unwrap()).unwrap();
+        write_rollout(&rollout, "thread-relative", "/fixture");
+        let original = fs::read(&rollout).unwrap();
+        ccr_core::core::LockManager::with_scoped_directory(&root.path().join("locks"), || {
+            service.trash_sessions(["thread-relative"])?;
+            assert!(!rollout.exists());
+            service.restore_sessions(["thread-relative"])
+        })
+        .unwrap();
+        assert_eq!(fs::read(&rollout).unwrap(), original);
+        assert!(service.list_trashed_sessions().unwrap().is_empty());
+        assert!(
+            service.prepare_restores().is_err(),
+            "native home remains absolute-only"
+        );
+    }
+
+    #[test]
+    fn candidate_listing_never_opens_payload_and_review_keeps_manifest_authority() {
+        let (service, _dir) = create_service();
+        let selected = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-selected.jsonl");
+        let unavailable = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-unavailable.jsonl");
+        write_rollout(&selected, "selected", "/fixture");
+        write_rollout(&unavailable, "unavailable", "/fixture");
+        service.trash_sessions(["selected", "unavailable"]).unwrap();
+        let records = service.list_trashed_sessions().unwrap();
+        let unavailable = records
+            .iter()
+            .find(|row| row.session_id == "unavailable")
+            .unwrap()
+            .trash_dir
+            .join(ROLLOUT_FILE_NAME);
+        fs::remove_file(&unavailable).unwrap();
+        fs::create_dir(&unavailable).unwrap(); // Opening/reading this as a payload fails.
+        let candidates = service.list_restore_candidates(|| false).unwrap().unwrap();
+        assert_eq!(candidates.len(), 2);
+        let candidate = candidates
+            .iter()
+            .find(|item| item.record().session_id == "selected")
+            .unwrap();
+        assert!(
+            service
+                .prepare_restore(candidate, || false)
+                .unwrap()
+                .is_some()
+        );
+        let other = candidates
+            .iter()
+            .find(|item| item.record().session_id == "unavailable")
+            .unwrap();
+        assert!(service.prepare_restore(other, || false).is_err());
+        let manifest = candidate.record().trash_dir.join(MANIFEST_FILE_NAME);
+        let original = fs::read(&manifest).unwrap();
+        let mut changed = original.clone();
+        changed.push(b' ');
+        fs::write(&manifest, changed).unwrap(); // Same parsed metadata, different reviewed bytes.
+        assert!(
+            service
+                .prepare_restore(candidate, || false)
+                .unwrap()
+                .is_none()
+        );
+        fs::write(&manifest, original).unwrap();
+        let payload = candidate.record().trash_dir.join(ROLLOUT_FILE_NAME);
+        File::options()
+            .write(true)
+            .open(payload)
+            .unwrap()
+            .set_len(super::super::codex_session_service::NATIVE_SESSION_LIMIT + 1)
+            .unwrap();
+        assert_eq!(
+            service
+                .list_restore_candidates(|| false)
+                .unwrap()
+                .unwrap()
+                .len(),
+            2
+        );
+        assert!(service.prepare_restore(candidate, || false).is_err());
+        let checks = std::cell::Cell::new(0);
+        assert!(
+            service
+                .prepare_restore(candidate, || {
+                    let n = checks.get();
+                    checks.set(n + 1);
+                    n >= 20
+                })
+                .unwrap()
+                .is_none()
+        );
+        assert!(
+            checks.get() <= 21,
+            "cancelled bounded read must stop before scanning the oversized body"
+        );
+        assert!(!selected.exists());
+    }
+
+    #[test]
+    fn cancelled_candidate_enumeration_stops_before_opening_invalid_manifests() {
+        let (service, _dir) = create_service();
+        for index in 0..100 {
+            let dir = service.trash_root().join(index.to_string());
+            fs::create_dir_all(&dir).unwrap();
+            fs::write(
+                dir.join(MANIFEST_FILE_NAME),
+                b"invalid manifest must not be read after cancellation",
+            )
+            .unwrap();
+        }
+        let checks = std::cell::Cell::new(0);
+        let listed = service
+            .list_restore_candidates(|| {
+                let n = checks.get();
+                checks.set(n + 1);
+                n > 0
+            })
+            .unwrap();
+        assert!(listed.is_none());
+        assert_eq!(checks.get(), 2);
+        assert_eq!(fs::read_dir(service.trash_root()).unwrap().count(), 100);
+    }
+
+    #[test]
+    fn legacy_restore_keeps_streaming_large_rollouts_while_native_review_is_bounded() {
+        let (service, _dir) = create_service();
+        let rollout = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-large.jsonl");
+        write_rollout(&rollout, "thread-large", "/fixture");
+        let length = super::super::codex_session_service::NATIVE_SESSION_LIMIT + 1;
+        File::options()
+            .write(true)
+            .open(&rollout)
+            .unwrap()
+            .set_len(length)
+            .unwrap();
+        service.trash_sessions(["thread-large"]).unwrap();
+        assert!(service.prepare_restores().is_err());
+        assert!(!rollout.exists());
+        service.restore_sessions(["thread-large"]).unwrap();
+        assert_eq!(fs::metadata(rollout).unwrap().len(), length);
+        assert!(service.list_trashed_sessions().unwrap().is_empty());
     }
 
     #[test]

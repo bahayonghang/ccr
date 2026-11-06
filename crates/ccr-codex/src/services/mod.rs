@@ -45,8 +45,8 @@ pub use codex_session_service::{
     CodexSessionSummary,
 };
 pub use codex_session_trash_service::{
-    CodexSessionRestoreSummary, CodexSessionTrashService, CodexSessionTrashSummary,
-    CodexTrashedSessionRecord,
+    CodexSessionRestoreCandidate, CodexSessionRestorePlan, CodexSessionRestoreSummary,
+    CodexSessionTrashService, CodexSessionTrashSummary, CodexTrashedSessionRecord,
 };
 pub use codex_usage_estimation::{
     CodexAuthUsageSnapshot, CodexCapacityEstimate, CodexCostStatus, CodexCostSummary,

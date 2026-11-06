@@ -28,12 +28,12 @@ pub use services::{
     CodexJointEstimate, CodexModelProviderStoreService, CodexOAuthTokenService,
     CodexProcessDiscoveryIssue, CodexProcessService, CodexQuotaService, CodexRegistryStore,
     CodexRollingUsage, CodexRuntimeCommitPlan, CodexRuntimeService, CodexSessionDetail,
-    CodexSessionExport, CodexSessionMessage, CodexSessionRestoreSummary, CodexSessionService,
-    CodexSessionSummary, CodexSessionTrashService, CodexSessionTrashSummary, CodexSignalFailure,
-    CodexSignalStage, CodexTrashedSessionRecord, CodexUsageDetails, CodexUsageEstimationService,
-    CodexUsageRecord, CodexUsageScope, CodexUsageService, CodexUsageStats, DaemonRestartOutcome,
-    DaemonStopOutcome, OAuthRepairOutcome, TerminationKind, restart_codex_daemon,
-    stop_codex_daemon,
+    CodexSessionExport, CodexSessionMessage, CodexSessionRestoreCandidate, CodexSessionRestorePlan,
+    CodexSessionRestoreSummary, CodexSessionService, CodexSessionSummary, CodexSessionTrashService,
+    CodexSessionTrashSummary, CodexSignalFailure, CodexSignalStage, CodexTrashedSessionRecord,
+    CodexUsageDetails, CodexUsageEstimationService, CodexUsageRecord, CodexUsageScope,
+    CodexUsageService, CodexUsageStats, DaemonRestartOutcome, DaemonStopOutcome,
+    OAuthRepairOutcome, TerminationKind, restart_codex_daemon, stop_codex_daemon,
 };
 
 #[cfg(test)]

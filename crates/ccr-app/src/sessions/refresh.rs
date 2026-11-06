@@ -76,6 +76,13 @@ pub fn refresh_archive_with_registry(
             )
         })
         .collect();
+    // Restored rollouts retain their original mtime and bytes. An unchanged
+    // fingerprint alone cannot turn a missing/deleted projection back to live.
+    let non_live_containers = archive_map
+        .values()
+        .filter(|row| row.source_state != UsageSourceState::Live)
+        .map(|row| (row.platform.clone(), row.file_path.clone()))
+        .collect::<HashSet<_>>();
     drop(conn);
     let mut report = RefreshReport {
         total: RefreshCounters::default(),
@@ -100,9 +107,11 @@ pub fn refresh_archive_with_registry(
             let Ok(container_hash) = registry.container_fingerprint(&container) else {
                 continue;
             };
-            if !state_map.get(&state_key).is_some_and(|state| {
-                state.source_stat_hash == container_hash && state.last_error_code.is_none()
-            }) {
+            if non_live_containers.contains(&(agent.as_str().to_string(), path.clone()))
+                || !state_map.get(&state_key).is_some_and(|state| {
+                    state.source_stat_hash == container_hash && state.last_error_code.is_none()
+                })
+            {
                 continue;
             }
             let archived_members = archive_map
@@ -165,7 +174,18 @@ pub fn refresh_archive_with_registry(
                 path.to_string_lossy().to_string(),
                 kind.as_str().to_string(),
             );
-            if state_map.get(&state_key).is_some_and(|state| {
+            if !non_live_containers.contains(&(
+                agent.as_str().to_string(),
+                path.to_string_lossy().to_string(),
+            )) && members.iter().all(|source| {
+                archive_map
+                    .get(&(
+                        agent.as_str().to_string(),
+                        source.physical_path.to_string_lossy().to_string(),
+                        source.member_id.clone().unwrap_or_default(),
+                    ))
+                    .is_some_and(|row| row.source_state == UsageSourceState::Live)
+            }) && state_map.get(&state_key).is_some_and(|state| {
                 state.source_stat_hash == container_hash && state.last_error_code.is_none()
             }) {
                 counters.unchanged += members.len() as u64;
@@ -188,6 +208,7 @@ pub fn refresh_archive_with_registry(
                 );
                 if archive_map
                     .get(&identity)
+                    .filter(|row| row.source_state == UsageSourceState::Live)
                     .and_then(|row| row.source_stat_hash.as_deref())
                     == Some(fingerprint.as_str())
                 {

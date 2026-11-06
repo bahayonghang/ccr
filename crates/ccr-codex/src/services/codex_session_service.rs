@@ -18,6 +18,7 @@ use uuid::Uuid;
 const DEFAULT_DETAIL_MESSAGE_LIMIT: usize = 120;
 const DEFAULT_EXPORT_MESSAGE_LIMIT: usize = 200;
 const PREVIEW_MAX_CHARS: usize = 160;
+pub(super) const NATIVE_SESSION_LIMIT: u64 = 64 * 1024 * 1024;
 const SESSION_INVENTORY_CACHE_VERSION: u32 = 3;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -391,12 +392,11 @@ impl CodexSessionService {
     fn read_source_snapshot(&self, file_path: &Path) -> Result<(PathBuf, Vec<u8>)> {
         super::codex_session_trash_service::reject_linked_path(file_path)?;
         let resolved = self.resolve_session_path(file_path)?;
-        const LIMIT: u64 = 64 * 1024 * 1024;
         let mut bytes = Vec::new();
         File::open(&resolved)?
-            .take(LIMIT + 1)
+            .take(NATIVE_SESSION_LIMIT + 1)
             .read_to_end(&mut bytes)?;
-        if bytes.len() as u64 > LIMIT {
+        if bytes.len() as u64 > NATIVE_SESSION_LIMIT {
             return Err(CcrError::ValidationError(
                 "Session exceeds the native operation limit".into(),
             ));
