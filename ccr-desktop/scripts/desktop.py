@@ -2,12 +2,15 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 from pathlib import Path
 import platform
 import shutil
 import subprocess
 import sys
+import tempfile
+import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -153,12 +156,107 @@ def doctor() -> int:
     return int(failed)
 
 
+def built_executable(result: subprocess.CompletedProcess, name: str, target: Path) -> Path:
+    executable = None
+    for line in result.stdout.splitlines():
+        event = json.loads(line)
+        if (event.get("reason") == "compiler-artifact"
+                and event.get("target", {}).get("name") == name
+                and event.get("executable")):
+            executable = Path(event["executable"])
+    expected = target / "release" / (f"{name}.exe" if os.name == "nt" else name)
+    if executable is None or executable.resolve() != expected.absolute() or not executable.is_file():
+        raise ValueError("No native release executable produced; cross-target packaging is unsupported")
+    return executable
+
+
+def file_sha256(path: Path) -> str:
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def package() -> int:
+    """Build a matching CLI and bind its hash into the portable desktop."""
+    info = metadata()
+    target = isolated_target(info)
+    cargo = resolve_cargo()
+    version = next(item["version"] for item in info["packages"] if item["name"] == "ccr-gpui")
+    sidecar_target = target / "sidecar"
+    for build_path in (sidecar_target, sidecar_target / "release", target / "release"):
+        if build_path.resolve() != build_path.absolute():
+            raise ValueError("Refusing non-isolated package build directory")
+    result = subprocess.run(
+        [cargo, "build", "--manifest-path", str(ROOT.parent / "Cargo.toml"),
+         "--locked", "--release", "--package", "ccr", "--bin", "ccr",
+         "--target-dir", str(sidecar_target), "--message-format=json-render-diagnostics"],
+        cwd=ROOT.parent, env=cargo_environment(cargo), stdout=subprocess.PIPE, text=True,
+    )
+    if result.returncode:
+        return result.returncode
+    sidecar = built_executable(result, "ccr", sidecar_target)
+    # Clap exits on --version before logging, migration, or command dispatch.
+    probe = subprocess.run([str(sidecar), "--version"], capture_output=True, text=True, timeout=5)
+    if probe.returncode or probe.stdout.strip() != f"ccr {version}":
+        raise ValueError("The built CCR sidecar version does not match the desktop")
+    sidecar_hash = file_sha256(sidecar)
+    build_env = cargo_environment(cargo)
+    build_env = dict(os.environ if build_env is None else build_env)
+    build_env["CCR_SIDECAR_SHA256"] = sidecar_hash
+    result = subprocess.run(
+        [cargo, "build", "--locked", "--release", "--bin", "ccr-gpui",
+         "--message-format=json-render-diagnostics"],
+        cwd=ROOT, env=build_env, stdout=subprocess.PIPE, text=True,
+    )
+    if result.returncode:
+        return result.returncode
+    executable = built_executable(result, "ccr-gpui", target)
+    label = f"ccr-gpui-{version}-{platform.system().lower()}-{platform.machine().lower()}"
+    if any(char not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-_" for char in label):
+        raise ValueError("Invalid package version or host label")
+    destination = target / "package"
+    if destination.resolve() != destination.absolute():
+        raise ValueError("Refusing non-isolated package directory")
+    destination.mkdir(exist_ok=True)
+    digest = file_sha256(executable)
+    manifest = {
+        "version": version,
+        "platform": platform.system(),
+        "architecture": platform.machine(),
+        "format": "portable",
+        "signed": False,
+        "executable": executable.name,
+        "sha256": digest,
+        "sidecar": {"executable": sidecar.name, "version": version, "sha256": sidecar_hash},
+    }
+    archive = destination / f"{label}.zip"
+    with tempfile.NamedTemporaryFile(dir=destination, suffix=".zip", delete=False) as temporary:
+        staging = Path(temporary.name)
+    try:
+        with zipfile.ZipFile(staging, "w", zipfile.ZIP_DEFLATED) as output:
+            output.write(executable, executable.name)
+            output.write(sidecar, sidecar.name)
+            output.write(ROOT.parent / "LICENSE", "LICENSE")
+            output.writestr("manifest.json", json.dumps(manifest, indent=2) + "\n")
+        with zipfile.ZipFile(staging) as output:
+            for name, expected_hash in ((executable.name, digest), (sidecar.name, sidecar_hash)):
+                with output.open(name) as stream:
+                    if hashlib.file_digest(stream, "sha256").hexdigest() != expected_hash:
+                        raise ValueError("Build output changed while packaging; retry the package build")
+        staging.replace(archive)
+    finally:
+        staging.unlink(missing_ok=True)
+    print(f"Unsigned portable package: {archive}")
+    return 0
+
+
 def main() -> int:
     if sys.argv[1:] == ["verify"]:
         print(f"Verified workspace-local target: {isolated_target(metadata())}")
         return 0
     if sys.argv[1:] == ["doctor"]:
         return doctor()
+    if sys.argv[1:] == ["package"]:
+        return package()
     if sys.argv[1:] == ["clean"]:
         target = isolated_target(metadata())
         print(f"Verified workspace-local target: {target}")
@@ -175,7 +273,7 @@ def main() -> int:
             print("Verified mbx shim bypass; matching toolchain preserves workspace-local target", flush=True)
         return subprocess.run([cargo, *sys.argv[2:]], cwd=ROOT,
                               env=env).returncode
-    print("Usage: desktop.py verify|doctor|clean|cargo <args>", file=sys.stderr)
+    print("Usage: desktop.py verify|doctor|clean|package|cargo <args>", file=sys.stderr)
     return 2
 
 

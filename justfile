@@ -1908,6 +1908,10 @@ alias vs-c := vscode-ci
 
 # Independent GPUI desktop workspace. just enters the child justfile directory.
 desktop_exit := if os() == "windows" { "; exit $LASTEXITCODE" } else { "" }
+[windows]
+set script-interpreter := ["python"]
+[unix]
+set script-interpreter := ["python3"]
 
 desktop-help:
     @just --justfile ccr-desktop/justfile desktop-help{{desktop_exit}}
@@ -1915,11 +1919,17 @@ desktop-help:
 desktop-doctor:
     @just --justfile ccr-desktop/justfile desktop-doctor{{desktop_exit}}
 
+[script]
+[positional-arguments]
 desktop-dev *args:
-    @just --justfile ccr-desktop/justfile desktop-dev {{args}}{{desktop_exit}}
+    import subprocess, sys
+    sys.exit(subprocess.call(["just", "--justfile", "ccr-desktop/justfile", "desktop-dev", *sys.argv[1:]]))
 
 desktop-build:
     @just --justfile ccr-desktop/justfile desktop-build{{desktop_exit}}
+
+desktop-package:
+    @just --justfile ccr-desktop/justfile desktop-package{{desktop_exit}}
 
 desktop-build-debug:
     @just --justfile ccr-desktop/justfile desktop-build-debug{{desktop_exit}}

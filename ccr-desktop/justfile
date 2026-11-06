@@ -1,6 +1,10 @@
 set windows-shell := ["pwsh.exe", "-NoLogo", "-NoProfile", "-Command", "$OutputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8;"]
 native_exit := if os() == "windows" { "; exit $LASTEXITCODE" } else { "" }
 python := if os() == "windows" { "python" } else { "python3" }
+[windows]
+set script-interpreter := ["python"]
+[unix]
+set script-interpreter := ["python3"]
 
 default: desktop-help
 
@@ -10,13 +14,19 @@ desktop-help:
 desktop-doctor:
     {{python}} scripts/desktop.py doctor{{native_exit}}
 
+[script]
+[positional-arguments]
 desktop-dev *args:
-    {{python}} scripts/desktop.py verify{{native_exit}}
-    {{python}} scripts/desktop.py cargo run --locked --bin ccr-gpui -- {{args}}{{native_exit}}
+    import subprocess, sys
+    sys.exit(subprocess.call([sys.executable, "scripts/desktop.py", "cargo", "run", "--locked", "--bin", "ccr-gpui", "--", *sys.argv[1:]]))
 
 desktop-build:
     {{python}} scripts/desktop.py verify{{native_exit}}
     {{python}} scripts/desktop.py cargo build --locked --release --bin ccr-gpui{{native_exit}}
+
+# Unsigned portable archive for this host; never an installer or a publish action.
+desktop-package:
+    {{python}} scripts/desktop.py package{{native_exit}}
 
 desktop-build-debug:
     {{python}} scripts/desktop.py verify{{native_exit}}

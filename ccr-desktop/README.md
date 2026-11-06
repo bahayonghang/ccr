@@ -27,6 +27,7 @@ just desktop-doctor
 just desktop-dev
 just desktop-build-debug
 just desktop-build
+just desktop-package
 just desktop-ci
 just desktop-test-ui
 just desktop-audit
@@ -44,6 +45,13 @@ workspace / target 的绝对路径及链接目标，仅清理本目录 `target/`
 
 `desktop-ci` 顺序执行 fmt-check、check、lint、默认并行 test、release build；
 不会隐式执行 fmt 或 version-sync 修复。`desktop-fmt` 是单独的显式修复命令。
+
+`desktop-dev` 将参数作为独立 argv 转发，fixture 路径包含空格时应按当前 shell 的规则引用。
+`desktop-package` 生成当前主机的未签名便携 ZIP，输出到独立 `target/package/`。
+它先在 `target/sidecar/` 构建同版本 CCR CLI，校验版本，再将 CLI SHA256 仅注入 GPUI
+release 编译子进程；包内并排提供两个可执行文件、LICENSE 和双文件哈希清单。
+这保留命令工作台的 release sidecar 身份校验，不依赖用户 PATH 中另一份 CCR。
+该命令不生成安装器、不签名、不发布，也不代表其他操作系统的构建或原生验收已通过。
 `desktop-test-ui` 使用 GPUI Kit 的真实控件和 headless window，不能替代操作系统
 IME、屏幕阅读器、DPI 或原生截图验收。所有新入口在 Windows / Unix 都保留失败退出码。
 

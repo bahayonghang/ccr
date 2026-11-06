@@ -6,8 +6,10 @@ import os
 from contextlib import redirect_stdout
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
+import zipfile
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,6 +19,133 @@ spec.loader.exec_module(desktop)
 
 
 class CommandContract(unittest.TestCase):
+    def test_package_rejects_redirected_build_paths_before_building(self):
+        with tempfile.TemporaryDirectory() as fixture:
+            target = Path(fixture) / "target"
+            info = {"packages": [{"name": "ccr-gpui", "version": "1.2.3"}]}
+            resolve = Path.resolve
+            for redirected in (target / "sidecar", target / "sidecar/release", target / "release"):
+                with (
+                    self.subTest(redirected=redirected),
+                    mock.patch.object(desktop, "metadata", return_value=info),
+                    mock.patch.object(desktop, "isolated_target", return_value=target),
+                    mock.patch.object(desktop, "resolve_cargo", return_value="fixture-cargo"),
+                    mock.patch.object(Path, "resolve", autospec=True,
+                                      side_effect=lambda path, *args, **kwargs:
+                                      Path(fixture) / "external" if path == redirected
+                                      else resolve(path, *args, **kwargs)),
+                    mock.patch.object(desktop.subprocess, "run") as run,
+                ):
+                    with self.assertRaisesRegex(ValueError, "non-isolated package build"):
+                        desktop.package()
+                    run.assert_not_called()
+
+    def test_package_contains_only_the_built_binary_license_and_manifest(self):
+        with tempfile.TemporaryDirectory() as fixture:
+            root = Path(fixture) / "desktop"
+            target = root / "target"
+            binary = target / "release" / ("ccr-gpui.exe" if os.name == "nt" else "ccr-gpui")
+            binary.parent.mkdir(parents=True)
+            binary.write_bytes(b"fixture binary")
+            sidecar = target / "sidecar" / "release" / ("ccr.exe" if os.name == "nt" else "ccr")
+            sidecar.parent.mkdir(parents=True)
+            sidecar.write_bytes(b"fixture sidecar")
+            (root.parent / "LICENSE").write_text("fixture license")
+            (binary.parent / "private.txt").write_text("must not ship")
+            info = {"workspace_root": str(ROOT), "target_directory": str(ROOT / "target"),
+                    "packages": [{"name": "ccr-gpui", "version": "1.2.3"}]}
+            event = json.dumps({"reason": "compiler-artifact", "target": {"name": "ccr-gpui"},
+                                "executable": str(binary)})
+            sidecar_event = json.dumps({"reason": "compiler-artifact", "target": {"name": "ccr"},
+                                       "executable": str(sidecar)})
+            def build_result(command, **kwargs):
+                if command[-1] == "--version":
+                    return subprocess.CompletedProcess(command, 0, "ccr 1.2.3\n")
+                return subprocess.CompletedProcess(command, 0, sidecar_event if "--package" in command else event)
+            with (
+                mock.patch.object(desktop, "ROOT", root),
+                mock.patch.object(desktop, "metadata", return_value=info),
+                mock.patch.object(desktop, "isolated_target", return_value=target),
+                mock.patch.object(desktop, "resolve_cargo", return_value="fixture-cargo"),
+                mock.patch.object(desktop.platform, "system", return_value="Windows"),
+                mock.patch.object(desktop.platform, "machine", return_value="AMD64"),
+                mock.patch.object(desktop.subprocess, "run", side_effect=build_result) as run,
+                mock.patch.dict(os.environ, {"CCR_SIDECAR_SHA256": "untrusted-parent-value"}),
+                redirect_stdout(io.StringIO()),
+            ):
+                self.assertEqual(desktop.package(), 0)
+                self.assertIn("--locked", run.call_args.args[0])
+                self.assertIn("--target-dir", run.call_args_list[0].args[0])
+                self.assertEqual(run.call_args.kwargs["env"]["CCR_SIDECAR_SHA256"],
+                                 desktop.hashlib.sha256(b"fixture sidecar").hexdigest())
+                self.assertEqual(os.environ["CCR_SIDECAR_SHA256"], "untrusted-parent-value")
+                archive = next((target / "package").glob("*.zip"))
+                original = archive.read_bytes()
+                with zipfile.ZipFile(archive) as output:
+                    self.assertEqual(set(output.namelist()), {binary.name, sidecar.name, "LICENSE", "manifest.json"})
+                    self.assertEqual(output.read(binary.name), b"fixture binary")
+                    self.assertEqual(output.read(sidecar.name), b"fixture sidecar")
+                    manifest = json.loads(output.read("manifest.json"))
+                    self.assertEqual(manifest["sha256"], desktop.hashlib.sha256(b"fixture binary").hexdigest())
+                    self.assertFalse(manifest["signed"])
+                    self.assertEqual(manifest["sidecar"]["sha256"],
+                                     desktop.hashlib.sha256(b"fixture sidecar").hexdigest())
+                run.side_effect = None
+                run.return_value = subprocess.CompletedProcess([], 23, "")
+                self.assertEqual(desktop.package(), 23)
+                self.assertEqual(archive.read_bytes(), original)
+                foreign = {**json.loads(event), "executable": str(root / "foreign.exe")}
+                run.side_effect = [subprocess.CompletedProcess([], 0, sidecar_event),
+                                   subprocess.CompletedProcess([], 0, "ccr 1.2.3\n"),
+                                   subprocess.CompletedProcess([], 0, json.dumps(foreign))]
+                with self.assertRaisesRegex(ValueError, "No native release"):
+                    desktop.package()
+                run.side_effect = [subprocess.CompletedProcess([], 0, sidecar_event),
+                                   subprocess.CompletedProcess([], 0, "ccr 1.2.30\n")]
+                with self.assertRaisesRegex(ValueError, "version does not match"):
+                    desktop.package()
+
+    def test_dev_preserves_argument_boundaries_through_both_justfiles(self):
+        with tempfile.TemporaryDirectory() as fixture:
+            folder = Path(fixture)
+            captured = folder / "arguments.json"
+            helper = folder / "cargo.py"
+            data = {"workspace_root": str(ROOT), "target_directory": str(ROOT / "target")}
+            helper.write_text(
+                "import json, pathlib, sys\n"
+                f"metadata = {data!r}\n"
+                "if sys.argv[1] == 'metadata':\n"
+                "    print(json.dumps(metadata))\n"
+                "else:\n"
+                f"    pathlib.Path({str(captured)!r}).write_text(json.dumps(sys.argv[1:]))\n"
+                "    sys.exit(23)\n",
+                encoding="utf-8",
+            )
+            shim = folder / "identified-shim"
+            shim.touch()
+            status = f"mbx setup is installed and current: {shim}"
+            if os.name == "nt":
+                (folder / "cargo.cmd").write_text(f'@echo off\n"{sys.executable}" "{helper}" %*\n')
+                (folder / "mbx.cmd").write_text(f'@echo off\necho {status}\n')
+            else:
+                import shlex
+                cargo = folder / "cargo"
+                cargo.write_text(f'#!/bin/sh\nexec {shlex.quote(sys.executable)} {shlex.quote(str(helper))} "$@"\n')
+                cargo.chmod(0o755)
+                mbx = folder / "mbx"
+                mbx.write_text(f"#!/bin/sh\nprintf '%s\\n' {shlex.quote(status)}\n")
+                mbx.chmod(0o755)
+            args = ["--fixture-profiles", str(folder / "profile data/profiles.toml"),
+                    "--fixture-registry", str(folder / "registry data/config.toml")]
+            result = subprocess.run(
+                ["just", "--justfile", str(ROOT.parent / "justfile"), "desktop-dev", *args],
+                env={**os.environ, "PATH": str(folder) + os.pathsep + os.environ["PATH"]},
+                capture_output=True, text=True,
+            )
+            self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
+            self.assertEqual(json.loads(captured.read_text()),
+                             ["run", "--locked", "--bin", "ccr-gpui", "--", *args])
+
     def test_cargo_without_mbx_is_preserved(self):
         for selected, mbx in (("ordinary-cargo", None), ("fixture-cargo.cmd", None)):
             with (
@@ -204,12 +333,14 @@ class CommandContract(unittest.TestCase):
         )])
 
     def test_root_forwards_from_child_working_directory(self):
-        for command in ("build", "dev", "check", "ci", "test-ui", "clean"):
+        for command in ("build", "dev", "package", "check", "ci", "test-ui", "clean"):
             result = subprocess.run(
                 ["just", "--justfile", str(ROOT.parent / "justfile"), "--dry-run", f"desktop-{command}"],
                 capture_output=True, text=True, check=True,
             )
-            self.assertIn(f"--justfile ccr-desktop/justfile desktop-{command}", result.stderr + result.stdout)
+            expected = ('"--justfile", "ccr-desktop/justfile", "desktop-dev"' if command == "dev"
+                        else f"--justfile ccr-desktop/justfile desktop-{command}")
+            self.assertIn(expected, result.stderr + result.stdout)
 
 
 if __name__ == "__main__":
