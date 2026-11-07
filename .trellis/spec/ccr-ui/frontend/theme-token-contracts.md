@@ -5,6 +5,40 @@
 > Coordination: the executable guards referenced here are the current smoke suite; `08-22-test-contract-rebuild`
 > extends them to the full 19-document contract set (this document is co-owned with that task per its Notes).
 
+## Native GPUI companion (2026-11-07)
+
+The CSS contracts below apply to `ccr-ui`. The independent GPUI client owns
+its design in `ccr-desktop/DESIGN.md` and its only token layer in
+`ccr-desktop/src/theme.rs`; do not introduce CSS variables or a second theme owner there.
+
+- `theme::hairline(mode)` is a decorative alpha separator; controls still use
+  `Palette::control` / Kit `input` for a meaningful boundary.
+- `theme::PANEL_RADIUS` is 12px. Inputs stay 8px; the outer sheet stays 20px.
+- `theme::tab_colors(mode)` and `shell::semantics::tab(button, selected, disabled, cx)`
+  own persistent segmented selection. Apply `tab` after the ordinary button
+  decorator so pill rounding does not overwrite the segmented shape.
+- Pass the same disabled condition as the button decorator; selected styles
+  must preserve disabled colors rather than make a busy selector look enabled.
+- Do not rely solely on `Button::ghost().selected(true)` for selection:
+  Kit uses `secondary_active`, which previously matched the opaque sheet and
+  made the selected state disappear. Keep toggled accessibility state and
+  keyboard/focus behavior alongside the visible selected fill, ink and border.
+- Validate both theme palettes with native token contrast tests and rendered
+  selector switching/focus tests (`desktop-test`, `desktop-test-ui`). These
+  checks do not establish native pixels, OS accessibility or visual acceptance.
+- Overview exact-value rows use GPUI `.focus(...)` for the reserved 2px ring.
+  `.focus_visible(...)` additionally gates on last-input Keyboard; a MouseMove
+  can hide the ring while logical/UIA focus remains. Preserve the row's visible
+  focus independently of that modality and verify it on the actual build in
+  light/dark. Headless focus/bounds assertions do not prove painted borders.
+- Selector builder additions can enlarge debug render stack frames even on
+  branches that return early. Windows UI threads have 1 MiB; the unchanged
+  `features::environments::tests::environment_views_fit_native_windows_stack_with_isolated_locks`
+  guard runs 27 core flows at that size with poisoned ambient locks. Isolate
+  overflowing builder blocks in private helpers and recheck the exact failing
+  child plus the full guard; do not raise `RUST_MIN_STACK`, skip children or
+  rely on the larger default test stack.
+
 ## Current palette and material world (2026-10-26)
 
 - Approved task `10-26-ccr-ui-airy-glass` replaces the former market-terminal appearance with the `style:airy-glass` CCR adaptation. See `ccr-ui/DESIGN.md` for the four solid reading palettes and parent task `design.md` for the frozen behavior boundaries.

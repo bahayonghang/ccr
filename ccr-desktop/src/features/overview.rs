@@ -9,10 +9,13 @@ use ccr_app::runtime::{
     AdmissionError, Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent,
 };
 use gpui_kit::base::TestSupportExt;
-use gpui_kit::component::{ActiveTheme, Icon, IconName, button::Button, tooltip::Tooltip};
+use gpui_kit::component::{
+    ActiveTheme, Icon, IconName, Selectable, button::Button, tooltip::Tooltip,
+};
 use gpui_kit::{
-    Context, FocusHandle, InteractiveElement, IntoElement, ParentElement, Render, SharedString,
-    StatefulInteractiveElement, Styled, Task, Window, div, prelude::FluentBuilder, px,
+    Context, FocusHandle, InteractiveElement, IntoElement, ParentElement, Render, ScrollHandle,
+    SharedString, StatefulInteractiveElement, Styled, Subscription, Task, Window, div,
+    prelude::FluentBuilder, px,
 };
 
 const MISSING: &str = "No local usage source is configured. / 尚未配置本机用量来源。";
@@ -36,6 +39,10 @@ pub struct OverviewView {
     gate: ResponseGate,
     task: Option<Task<()>>,
     pending: Option<OverviewLink>,
+    show_exact: bool,
+    scroll: ScrollHandle,
+    exact_scroll: ScrollHandle,
+    exact_rows: Vec<(FocusHandle, Subscription)>,
     focus: FocusHandle,
 }
 
@@ -53,6 +60,10 @@ impl OverviewView {
             gate: ResponseGate::default(),
             task: None,
             pending: None,
+            show_exact: false,
+            scroll: ScrollHandle::new(),
+            exact_scroll: ScrollHandle::new(),
+            exact_rows: Vec::new(),
             focus: cx.focus_handle(),
         }
     }
@@ -203,16 +214,40 @@ impl OverviewView {
 
 impl Render for OverviewView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let day_count = self.report.as_ref().map_or(0, |report| report.days.len());
+        self.exact_rows.truncate(day_count);
+        while self.exact_rows.len() < day_count {
+            let index = self.exact_rows.len();
+            let focus = cx.focus_handle().tab_stop(true);
+            let subscription = cx.on_focus(&focus, window, move |this, _, cx| {
+                // The table header is the first direct child. Reveal the row in
+                // the table, then reveal the table viewport in the page scroll.
+                this.exact_scroll.scroll_to_item(index + 1);
+                let table = this.exact_scroll.bounds();
+                let page = this.scroll.bounds();
+                let mut offset = this.scroll.offset();
+                if table.top() < page.top() {
+                    offset.y += page.top() - table.top();
+                } else if table.bottom() > page.bottom() {
+                    offset.y += page.bottom() - table.bottom();
+                }
+                this.scroll.set_offset(offset);
+                cx.notify();
+            });
+            self.exact_rows.push((focus, subscription));
+        }
         let report = self.report.as_deref();
         let stacked = window.viewport_size().width < px(theme::NARROW_WIDTH);
         let mut root = div()
             .id("overview-root")
+            .test_support()
             .track_focus(&self.focus)
             .tab_stop(false)
             .size_full()
             .flex()
             .flex_col()
             .overflow_y_scroll()
+            .track_scroll(&self.scroll)
             .p(px(theme::CONTENT_PADDING))
             .gap(px(theme::SECTION_GAP))
             .child(self.header(cx));
@@ -229,6 +264,7 @@ impl Render for OverviewView {
                 .child(self.usage_panel(report, stacked, cx))
                 .child(self.actions(stacked, cx)),
         )
+        .child(self.insights_rail(report, cx))
     }
 }
 
@@ -307,21 +343,23 @@ impl OverviewView {
 
     fn platforms(&self, report: &WorkbenchReport, cx: &mut Context<Self>) -> impl IntoElement {
         let mut band = div()
+            .id("overview-platform-band")
             .w_full()
             .flex_shrink_0()
             .flex()
-            .flex_wrap()
             .bg(cx.theme().background)
-            .rounded(px(theme::INPUT_RADIUS))
+            .rounded(px(theme::PANEL_RADIUS))
             .border_1()
             .border_color(cx.theme().border)
-            .overflow_hidden();
+            .overflow_x_scroll();
         for (index, platform) in report.platforms.iter().enumerate() {
             let ink = theme::platform_color(&platform.id, cx.theme().mode);
             band = band.child(
                 div()
+                    .relative()
                     .min_w(px(158.))
                     .flex_1()
+                    .flex_shrink_0()
                     .flex()
                     .flex_col()
                     .gap(px(theme::CONTROL_GAP))
@@ -331,13 +369,22 @@ impl OverviewView {
                     })
                     .child(
                         div()
+                            .absolute()
+                            .top_0()
+                            .left_0()
+                            .right_0()
+                            .h(px(2.))
+                            .bg(ink),
+                    )
+                    .child(
+                        div()
                             .flex()
                             .items_center()
                             .gap(px(theme::CONTROL_GAP))
-                            .child(div().w(px(7.)).h(px(7.)).rounded_full().bg(ink))
                             .child(
                                 div()
-                                    .font_weight(gpui_kit::FontWeight::SEMIBOLD)
+                                    .text_size(px(theme::META_SIZE))
+                                    .text_color(cx.theme().muted_foreground)
                                     .child(platform_title(&platform.id)),
                             ),
                     )
@@ -350,6 +397,7 @@ impl OverviewView {
                     .child(
                         div()
                             .flex()
+                            .flex_col()
                             .gap(px(theme::CONTROL_GAP))
                             .child(count_metric(
                                 format!("{}-requests", platform.id),
@@ -443,7 +491,7 @@ impl OverviewView {
             .bg(cx.theme().background)
             .border_1()
             .border_color(cx.theme().border)
-            .rounded(px(theme::INPUT_RADIUS))
+            .rounded(px(theme::PANEL_RADIUS))
             .child(
                 div()
                     .flex()
@@ -500,7 +548,7 @@ impl OverviewView {
         panel = panel.child(
             div()
                 .flex()
-                .flex_wrap()
+                .flex_col()
                 .gap(px(theme::CONTROL_GAP))
                 .child(count_metric(
                     "total-requests".into(),
@@ -553,9 +601,22 @@ impl OverviewView {
                     .justify_between()
                     .gap(px(theme::CONTROL_GAP))
                     .child(text(cx, "Daily requests", "逐日请求"))
-                    .child(legend(report, cx)),
+                    .child(legend(report, cx))
+                    .child(semantics::button(
+                        Button::new("overview-exact-toggle")
+                            .label(text(cx, "Exact values", "精确数值"))
+                            .selected(self.show_exact)
+                            .toggled(self.show_exact)
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.show_exact = !this.show_exact;
+                                cx.notify();
+                            })),
+                        false,
+                        false,
+                        cx,
+                    )),
             );
-        if max > 0 {
+        if !report.days.is_empty() {
             let mut bars = div()
                 .relative()
                 .flex()
@@ -564,7 +625,7 @@ impl OverviewView {
                 .border_b_1()
                 .border_color(cx.theme().border)
                 .gap(px(if report.days.len() > 30 { 1. } else { 3. }));
-            for fraction in [0.0, 0.5] {
+            for fraction in [0.25, 0.5, 0.75] {
                 bars = bars.child(
                     div()
                         .absolute()
@@ -575,7 +636,7 @@ impl OverviewView {
                 );
             }
             for day in &report.days {
-                bars = bars.child(day_stack(day, max, cx));
+                bars = bars.child(day_stack(day, max.max(1), cx));
             }
             // Match the plot's equal-width day slots. Long windows label the
             // midpoint of each bucket so the outer dates fit inside the plot.
@@ -616,22 +677,170 @@ impl OverviewView {
                     }),
             );
         }
-        chart.when(report.other_requests > 0, |el| {
-            el.child(
+        chart
+            .when(self.show_exact, |el| el.child(self.exact_table(report, cx)))
+            .when(report.other_requests > 0, |el| {
+                el.child(
+                    div()
+                        .text_size(px(theme::META_SIZE))
+                        .text_color(cx.theme().muted_foreground)
+                        .child(format!(
+                            "{} {}",
+                            grouped(report.other_requests),
+                            text(
+                                cx,
+                                "requests included in the total have no bar in this chart.",
+                                "条请求计入总数，未画入此图。"
+                            )
+                        )),
+                )
+            })
+    }
+
+    fn exact_table(&self, report: &WorkbenchReport, cx: &Context<Self>) -> impl IntoElement {
+        let mut table = div()
+            .id("overview-exact-table")
+            .test_support()
+            .role(gpui_kit::Role::Table)
+            .aria_label(text(
+                cx,
+                "Daily requests by chart source",
+                "图表来源逐日请求",
+            ))
+            .max_h(px(240.))
+            .overflow_x_scroll()
+            .overflow_y_scroll()
+            .track_scroll(&self.exact_scroll);
+        let mut header = div().flex().min_w(px(640.)).py(px(4.));
+        for (index, label) in [
+            text(cx, "Date", "日期"),
+            "Claude Code",
+            "Codex",
+            "Antigravity",
+            "OpenCode",
+            text(cx, "Chart total", "图中合计"),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            header = header.child(
                 div()
+                    .flex_1()
+                    .min_w_0()
                     .text_size(px(theme::META_SIZE))
-                    .text_color(cx.theme().muted_foreground)
-                    .child(format!(
-                        "{} {}",
-                        grouped(report.other_requests),
-                        text(
-                            cx,
-                            "requests included in the total have no bar in this chart.",
-                            "条请求计入总数，未画入此图。"
-                        )
-                    )),
+                    .when(index > 0, |cell| cell.text_right())
+                    .child(label),
+            );
+        }
+        table = table.child(header);
+        if report.days.is_empty() {
+            table = table.child(div().text_color(cx.theme().muted_foreground).child(text(
+                cx,
+                "Daily breakdown unavailable",
+                "逐日明细不可用",
+            )));
+        }
+        for (index, day) in report.days.iter().enumerate() {
+            let values = day_values(day);
+            let total: i64 = values.iter().sum();
+            let description = format!(
+                "{}: Claude Code {}; Codex {}; Antigravity {}; OpenCode {}; {} {}",
+                day.label,
+                grouped(values[0]),
+                grouped(values[1]),
+                grouped(values[2]),
+                grouped(values[3]),
+                text(cx, "Chart total", "图中合计"),
+                grouped(total),
+            );
+            let mut row = div()
+                .id(SharedString::from(format!("overview-exact-{}", day.label)))
+                .test_support()
+                .role(gpui_kit::Role::Row)
+                .aria_label(description.clone())
+                .aria_value(description)
+                .track_focus(&self.exact_rows[index].0)
+                .tab_stop(true)
+                .flex()
+                .min_w(px(640.))
+                .py(px(4.))
+                .border_2()
+                .border_color(gpui_kit::transparent_black())
+                .focus(|style| style.border_color(cx.theme().ring))
+                .font_family(cx.theme().mono_font_family.clone());
+            for (index, value) in std::iter::once(day.label.clone())
+                .chain(values.into_iter().chain([total]).map(grouped))
+                .enumerate()
+            {
+                row = row.child(
+                    div()
+                        .flex_1()
+                        .min_w_0()
+                        .when(index > 0, |cell| cell.text_right())
+                        .child(value),
+                );
+            }
+            table = table.child(row);
+        }
+        table
+    }
+
+    fn insights_rail(
+        &self,
+        report: Option<&WorkbenchReport>,
+        cx: &Context<Self>,
+    ) -> impl IntoElement {
+        let mut rail = div()
+            .id("overview-insights")
+            .flex_shrink_0()
+            .border_t_1()
+            .border_color(cx.theme().border)
+            .pt(px(theme::SECTION_GAP))
+            .flex()
+            .flex_col()
+            .gap(px(theme::CONTROL_GAP))
+            .child(heading(text(cx, "Report coverage", "报告覆盖范围")));
+        let Some(report) = report else {
+            return rail.child(div().text_color(cx.theme().muted_foreground).child(text(
+                cx,
+                "Read local usage to inspect source and archive coverage.",
+                "读取本机用量后，可查看来源与归档覆盖范围。",
+            )));
+        };
+        let active = report
+            .days
+            .iter()
+            .filter(|day| day_values(day).iter().any(|v| *v > 0))
+            .count();
+        let coverage = if report.days.is_empty() {
+            text(cx, "Daily breakdown unavailable", "逐日明细不可用").to_string()
+        } else if is_chinese(cx) {
+            format!(
+                "图表的四个来源在 {} 个日历日中有 {active} 个活跃日；其他来源不计入活跃日。",
+                report.days.len()
             )
-        })
+        } else {
+            format!(
+                "The four chart sources were active on {active} of {} calendar days; other sources are excluded from active days.",
+                report.days.len()
+            )
+        };
+        rail = rail.child(
+            div()
+                .text_color(cx.theme().muted_foreground)
+                .child(coverage),
+        );
+        if matches!(
+            report.session_scope,
+            SessionScope::Unindexed | SessionScope::Unavailable
+        ) {
+            rail = rail.child(div().text_color(cx.theme().muted_foreground).child(text(
+                cx,
+                "Session archive coverage is unknown. Browse sessions to inspect the archive.",
+                "会话归档覆盖范围未知，可浏览会话检查归档。",
+            )));
+        }
+        rail
     }
 
     fn actions(&self, stacked: bool, cx: &mut Context<Self>) -> impl IntoElement {
@@ -644,7 +853,7 @@ impl OverviewView {
             .bg(cx.theme().background)
             .border_1()
             .border_color(cx.theme().border)
-            .rounded(px(theme::INPUT_RADIUS))
+            .rounded(px(theme::PANEL_RADIUS))
             .child(heading(text(cx, "Next actions", "下一步")));
         for (id, label, link, icon) in [
             (
@@ -680,8 +889,8 @@ impl OverviewView {
                     .px(px(theme::CONTROL_GAP))
                     .h(px(theme::ROW_HEIGHT))
                     .rounded(px(theme::SELECTION_RADIUS))
-                    .border_1()
-                    .border_color(cx.theme().border)
+                    .border_2()
+                    .border_color(gpui_kit::transparent_black())
                     .hover(|style| style.bg(cx.theme().sidebar))
                     .focus_visible(|style| style.border_color(cx.theme().ring))
                     .child(
@@ -695,8 +904,7 @@ impl OverviewView {
                                     .size(px(16.))
                                     .text_color(cx.theme().muted_foreground),
                             )
-                            .child(div().flex_1().child(label))
-                            .child("›"),
+                            .child(div().flex_1().child(label)),
                     )
                     .on_click(cx.listener(move |this, _, _, cx| this.open(link, cx))),
             );
@@ -735,8 +943,9 @@ fn metric(
         .flex_1()
         .min_w_0()
         .flex()
-        .flex_col()
-        .gap(px(2.))
+        .items_center()
+        .justify_between()
+        .gap(px(theme::CONTROL_GAP))
         .child(
             div()
                 .text_size(px(theme::META_SIZE))
@@ -753,6 +962,7 @@ fn metric(
                 .font_family(cx.theme().mono_font_family.clone())
                 .font_weight(gpui_kit::FontWeight::MEDIUM)
                 .text_size(px(size))
+                .text_right()
                 .child(short)
                 .tooltip(move |window, cx| Tooltip::new(description.clone()).build(window, cx)),
         )
@@ -828,7 +1038,7 @@ fn sparkline(
         .border_b_1()
         .border_color(cx.theme().border);
     if max == 0 {
-        return row.child(
+        return row.border_dashed().child(
             div()
                 .pb(px(3.))
                 .text_size(px(theme::META_SIZE))
@@ -847,12 +1057,16 @@ fn sparkline(
         } else {
             (*value as f32 / max as f32 * 32.).max(1.)
         };
-        row = row.child(div().flex_1().min_w_0().h(px(height)).bg(ink));
+        row = row.child(div().flex_1().min_w_0().h(px(height)).bg(if *value == max {
+            ink
+        } else {
+            gpui_kit::Hsla::from(gpui_kit::rgb(theme::palette(cx.theme().mode).subtle))
+        }));
     }
     row
 }
 
-const CHART_HEIGHT: f32 = 144.;
+const CHART_HEIGHT: f32 = 180.;
 const SERIES: [&str; 4] = ["claude", "codex", "antigravity", "opencode"];
 
 fn day_values(day: &WorkbenchDay) -> [i64; 4] {
@@ -875,13 +1089,41 @@ fn day_stack(day: &WorkbenchDay, max: i64, cx: &Context<OverviewView>) -> impl I
         grouped(values.iter().sum()),
         text(cx, "requests", "请求")
     );
-    for (id, value) in SERIES.into_iter().zip(values).rev() {
-        if value > 0 {
-            column = column.child(
+    if values.iter().all(|value| *value == 0) {
+        return column
+            .child(
                 div()
                     .w_full()
-                    .h(px((value as f32 / max as f32 * CHART_HEIGHT).max(1.)))
-                    .bg(theme::platform_color(id, cx.theme().mode)),
+                    .border_b_1()
+                    .border_dashed()
+                    .border_color(cx.theme().border),
+            )
+            .tooltip(move |window, cx| Tooltip::new(detail.clone()).build(window, cx));
+    }
+    for (id, value) in SERIES.into_iter().zip(values).rev() {
+        if value > 0 {
+            let segment_detail = format!(
+                "{} · {}: {} {}",
+                day.label,
+                platform_title(id),
+                grouped(value),
+                text(cx, "requests", "请求")
+            );
+            column = column.child(
+                div()
+                    .id(SharedString::from(format!(
+                        "overview-day-{}-{id}",
+                        day.label
+                    )))
+                    .w_full()
+                    // Keep one pixel of ink below the one-pixel surface gap.
+                    .h(px((value as f32 / max as f32 * CHART_HEIGHT).max(2.)))
+                    .border_t_1()
+                    .border_color(cx.theme().background)
+                    .bg(theme::platform_color(id, cx.theme().mode))
+                    .tooltip(move |window, cx| {
+                        Tooltip::new(segment_detail.clone()).build(window, cx)
+                    }),
             );
         }
     }
@@ -949,11 +1191,22 @@ mod tests {
         });
         let (handle, view) = cx.update(|cx| {
             gpui_kit::init(cx);
-            gpui_kit::open_window(WindowOptions::default(), cx, |_, cx| {
-                cx.new(|cx| OverviewView::new(services, cx))
-            })
+            gpui_kit::open_window(
+                WindowOptions {
+                    window_bounds: Some(gpui_kit::WindowBounds::Windowed(gpui_kit::Bounds::new(
+                        gpui_kit::point(px(0.), px(0.)),
+                        gpui_kit::size(px(1280.), px(800.)),
+                    ))),
+                    ..WindowOptions::default()
+                },
+                cx,
+                |_, cx| cx.new(|cx| OverviewView::new(services, cx)),
+            )
             .unwrap_or_else(|e| panic!("overview window: {e}"))
         });
+        cx.update_window(handle, |_, window, _| window.activate_window())
+            .unwrap_or_else(|e| panic!("activate overview: {e}"));
+        cx.run_until_parked();
         cx.update_window(handle, |_, window, cx| {
             view.update(cx, |this, cx| {
                 this.report = Some(Arc::new(WorkbenchReport {
@@ -999,6 +1252,113 @@ mod tests {
                 window.find("overview-total-cost").value(),
                 Some("Cost: Cost unavailable")
             );
+            assert!(window.try_find("overview-exact-table").is_none());
+            view.update(cx, |this, cx| this.focus_main(window, cx));
+            for _ in 0..6 {
+                window.render_frame(cx);
+                if window.find("overview-exact-toggle").focused() == Some(true) {
+                    break;
+                }
+                window.press("tab", cx);
+            }
+            assert_eq!(window.find("overview-exact-toggle").focused(), Some(true));
+            window.press("enter", cx);
+            assert!(window.try_find("overview-exact-table").is_some());
+            window.press("tab", cx);
+            assert_eq!(window.find("overview-exact-11-06").focused(), Some(true));
+            assert_eq!(
+                window.find("overview-exact-11-06").value(),
+                Some("11-06: Claude Code 0; Codex 2; Antigravity 0; OpenCode 0; Chart total 2"),
+            );
+            window.press("shift-tab", cx);
+            assert_eq!(window.find("overview-exact-toggle").focused(), Some(true));
+            window.press("enter", cx);
+            assert!(window.try_find("overview-exact-table").is_none());
+        })
+        .unwrap_or_else(|e| panic!("overview exact values: {e}"));
+        let seeded = cx.update(|cx| {
+            view.read(cx)
+                .report
+                .clone()
+                .unwrap_or_else(|| panic!("seeded report"))
+        });
+        for day_count in [30_u16, 90] {
+            let start = chrono::NaiveDate::from_ymd_opt(2026, 8, 1)
+                .unwrap_or_else(|| panic!("fixture date"));
+            cx.update_window(handle, |_, window, cx| {
+                view.update(cx, |this, cx| {
+                    let mut report = seeded.as_ref().clone();
+                    report.window_days = day_count;
+                    report.days = (0..day_count)
+                        .map(|index| WorkbenchDay {
+                            label: (start + chrono::Duration::days(i64::from(index)))
+                                .format("%m-%d")
+                                .to_string(),
+                            claude: 0,
+                            codex: 1,
+                            antigravity: 0,
+                            opencode: 0,
+                        })
+                        .collect();
+                    this.report = Some(Arc::new(report));
+                    this.scroll.set_offset(Default::default());
+                    this.exact_scroll.set_offset(Default::default());
+                    cx.notify();
+                });
+                window.render_frame(cx);
+                view.update(cx, |this, cx| this.focus_main(window, cx));
+                for _ in 0..6 {
+                    window.render_frame(cx);
+                    if window.find("overview-exact-toggle").focused() == Some(true) {
+                        break;
+                    }
+                    window.press("tab", cx);
+                }
+                assert_eq!(window.find("overview-exact-toggle").focused(), Some(true));
+                window.press("enter", cx);
+            })
+            .unwrap_or_else(|e| panic!("long report: {e}"));
+            for (index, key) in (0..day_count)
+                .map(|index| (index, "tab"))
+                .chain((0..day_count - 1).rev().map(|index| (index, "shift-tab")))
+            {
+                cx.update_window(handle, |_, window, cx| {
+                    window.press(key, cx);
+                    // Focus observers run after paint; render their requested
+                    // scroll before checking the focused row's visible bounds.
+                    window.render_frame(cx);
+                    let id = format!(
+                        "overview-exact-{}",
+                        (start + chrono::Duration::days(i64::from(index))).format("%m-%d")
+                    );
+                    let row = window.find(SharedString::from(id.clone()));
+                    assert_eq!(row.focused(), Some(true), "{day_count}D {key}: {id}");
+                    let row = row.bounds();
+                    let table = window.find("overview-exact-table").bounds();
+                    let page = window.find("overview-root").bounds();
+                    assert!(
+                        row.top() >= table.top().max(page.top())
+                            && row.bottom() <= table.bottom().min(page.bottom()),
+                        "{day_count}D {key}: {id} {row:?} outside table {table:?} / page {page:?}",
+                    );
+                })
+                .unwrap_or_else(|e| panic!("exact row reveal: {e}"));
+            }
+            cx.update_window(handle, |_, window, cx| {
+                window.press("shift-tab", cx);
+                assert_eq!(window.find("overview-exact-toggle").focused(), Some(true));
+                window.press("enter", cx);
+                assert!(window.try_find("overview-exact-table").is_none());
+            })
+            .unwrap_or_else(|e| panic!("close long report: {e}"));
+        }
+        cx.update_window(handle, |_, window, cx| {
+            view.update(cx, |this, cx| {
+                this.report = Some(seeded);
+                this.scroll.set_offset(Default::default());
+                cx.notify();
+            });
+            window.render_frame(cx);
             for (scope, description) in [
                 (SessionScope::Unindexed, "Sessions: Archive not indexed"),
                 (

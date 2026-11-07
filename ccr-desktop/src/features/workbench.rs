@@ -383,20 +383,48 @@ impl WorkbenchView {
         match &self.usage {
             Some(Ok(snapshot)) => {
                 if let InsightsSnapshot::Usage(usage) = snapshot.as_ref() {
-                    section = section.child(
-                        div()
-                            .id("workbench-usage-totals")
-                            .test_support()
-                            .font_family(cx.theme().mono_font_family.clone())
-                            .text_size(px(theme::TITLE_SIZE))
-                            .child(format!(
-                                "{} {}    {} tokens    ${:.4}",
-                                usage.overview.total_events,
-                                text(cx, "requests", "请求"),
-                                usage.overview.total.total_tokens,
-                                usage.overview.total_cost_usd
-                            )),
-                    );
+                    let mut totals = div()
+                        .id("workbench-usage-totals")
+                        .test_support()
+                        .flex()
+                        .flex_col()
+                        .gap(px(theme::NAV_ROW_GAP));
+                    for (label, value) in [
+                        (
+                            text(cx, "Requests", "请求"),
+                            crate::features::overview::grouped(usage.overview.total_events),
+                        ),
+                        (
+                            "Tokens",
+                            crate::features::overview::grouped(usage.overview.total.total_tokens),
+                        ),
+                        (
+                            text(cx, "Recorded cost (USD)", "记录费用（USD）"),
+                            format!("${:.4}", usage.overview.total_cost_usd),
+                        ),
+                    ] {
+                        totals = totals.child(
+                            div()
+                                .flex()
+                                .items_center()
+                                .gap(px(theme::SECTION_GAP))
+                                .child(
+                                    div()
+                                        .flex_1()
+                                        .text_size(px(theme::META_SIZE))
+                                        .text_color(cx.theme().muted_foreground)
+                                        .child(label),
+                                )
+                                .child(
+                                    div()
+                                        .font_family(cx.theme().mono_font_family.clone())
+                                        .text_size(px(theme::TITLE_SIZE))
+                                        .text_right()
+                                        .child(value),
+                                ),
+                        );
+                    }
+                    section = section.child(totals);
                     let maximum = usage
                         .trends
                         .iter()
@@ -432,12 +460,18 @@ impl WorkbenchView {
                                                 .w(gpui_kit::relative(
                                                     row.request_count as f32 / maximum,
                                                 ))
-                                                .bg(cx.theme().primary),
+                                                .bg(theme::platform_color(
+                                                    source(self.platform)
+                                                        .map(SourceKind::as_str)
+                                                        .unwrap_or(""),
+                                                    cx.theme().mode,
+                                                )),
                                         ),
                                 )
                                 .child(
                                     div()
                                         .w(px(theme::DAILY_VALUE_WIDTH))
+                                        .text_right()
                                         .font_family(cx.theme().mono_font_family.clone())
                                         .text_size(px(theme::META_SIZE))
                                         .child(format!(

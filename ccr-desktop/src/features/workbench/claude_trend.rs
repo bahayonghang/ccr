@@ -118,7 +118,7 @@ impl FeeTrend {
             height * ((high / scale - fee / scale) / (high / scale - low / scale)) as f32
         };
         let muted = cx.theme().muted_foreground;
-        let stroke = cx.theme().primary;
+        let stroke = theme::platform_color("claude", cx.theme().mode);
         Grid::new()
             .y(ticks.iter().map(|&v| px(y(v))))
             .stroke(cx.theme().border)
@@ -175,7 +175,7 @@ impl WorkbenchView {
             .flex_col()
             .gap(px(theme::CONTROL_GAP))
             .p(px(theme::SECTION_GAP))
-            .rounded(px(theme::INPUT_RADIUS))
+            .rounded(px(theme::PANEL_RADIUS))
             .bg(cx.theme().background)
             .border_1()
             .border_color(cx.theme().border)

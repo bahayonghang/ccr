@@ -14,7 +14,7 @@ impl WorkbenchView {
             .flex_col()
             .gap(px(theme::CONTROL_GAP))
             .bg(cx.theme().background)
-            .rounded(px(theme::INPUT_RADIUS))
+            .rounded(px(theme::PANEL_RADIUS))
             .border_1()
             .border_color(cx.theme().border)
             .p(px(theme::SECTION_GAP))
@@ -234,7 +234,7 @@ impl WorkbenchView {
             .flex_wrap()
             .border_1()
             .border_color(cx.theme().border)
-            .rounded(px(theme::INPUT_RADIUS))
+            .rounded(px(theme::PANEL_RADIUS))
             .bg(cx.theme().background)
             .overflow_hidden();
         for (id, label, key, detail) in [
