@@ -1,0 +1,32 @@
+{
+  "id": "gpui-airy-glass-polish",
+  "name": "gpui-airy-glass-polish",
+  "title": "GPUI 轻盈玻璃工作台视觉细节优化",
+  "description": "对照 ccr-ui/DESIGN.md 与 ccr-desktop/DESIGN.md 审计 GPUI 外壳与页面视觉细节，修复品牌图标缺失、tab 选中态不可见、overview 签名组件与共享 token 层偏差，逐页对齐 Tauri 工作台层级。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "lyh",
+  "assignee": "lyh",
+  "createdAt": "2026-11-07",
+  "completedAt": "2026-11-07",
+  "branch": "dev",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": "dacaca40676df0b96797bb665bcc47284b3eb57b",
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "2026-11-07 用户在核心原生验收通过后明确授权中文分批提交并归档；不推送、不补尺寸/DPI矩阵。代码提交43d1b9e、dacaca40；完整与针对性检查、原生范围及最新exe哈希见research/native-core-acceptance-20261107.md。历史未运行矩阵、Alt-Tab、系统读屏/IME和其他OS不记通过。",
+  "meta": {
+    "work_commits": [
+      "43d1b9e79f750f57d6f5193ebbc76276c214581e",
+      "dacaca40676df0b96797bb665bcc47284b3eb57b"
+    ],
+    "closure_scope": "用户授权以源码、自动化及指定核心原生验收收口；尺寸/DPI及历史扩展矩阵不追加"
+  }
+}

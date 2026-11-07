@@ -1,0 +1,5 @@
+{"file": "ccr-desktop/DESIGN.md", "reason": "GPUI 唯一设计根：token 角色、shapes、组件合同与原生 QA 边界"}
+{"file": "ccr-ui/DESIGN.md", "reason": "共享 airy-glass 语言与签名组件规则的对齐参照"}
+{"file": ".trellis/tasks/archive/2026-11/11-07-gpui-airy-glass-polish/research/visual-audit.md", "reason": "全部视觉差距的 file:line 证据与 judged checklist 结论"}
+{"file": ".trellis/spec/ccr-ui/frontend/brand-asset-pipeline.md", "reason": "真实品牌 PNG/SVG carrier 与 ICO 来源合同，禁止另画替代图标"}
+{"file": ".trellis/tasks/archive/2026-11/11-07-gpui-airy-glass-polish/research/native-capabilities.md", "reason": "已锁定 GPUI 的资产、图标资源、虚线和横滚实现能力"}
