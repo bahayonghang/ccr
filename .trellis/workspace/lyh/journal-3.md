@@ -696,3 +696,29 @@ ccr project init 现在默认勾选五项平台并要求输入用户名，-y 使
 
 - 用户恢复原生验收后，对当前binary进行少量核心交互/截图；真实process-create/OS-present/action-ready与60秒性能样本、其他OS验收仍未取得。
 - 托盘/隐藏恢复、真实玻璃及WAF内嵌流程仍受锁定栈/无WebView边界限制；WSL/DPI延期。不满足父任务归档AND，不执行finish/archive，不push。
+
+
+## Session 141: GPUI 侧边栏、总览与设置原生验收
+<!-- trellis-session: v=2 fp=e1087b4e27e4bca0 -->
+
+**Date**: 2026-11-06
+**Task**: GPUI 侧边栏、总览与设置原生验收
+**Branch**: `dev`
+
+### Summary
+
+完成共享导航、用量总览和分区设置，在 Windows 原生窗口验证焦点、统计口径与偏好重启恢复。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9d926549` | feat(GPUI): ✨ 优化侧边栏、总览与设置 |
+
+### Testing
+
+- [OK] desktop-fmt-check、desktop-lint、desktop-test-ui、desktop-test 均通过。
+
+### Status
+
+[OK] **Completed**
