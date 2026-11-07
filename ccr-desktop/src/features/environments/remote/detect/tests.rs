@@ -249,7 +249,13 @@ async fn connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigat
     cx.update_window(handle, |_, window, cx| {
         window.click("nav-dashboard", cx);
         assert!(window.try_find("ssh-cli-claude").is_none());
-        window.click("nav-settings", cx);
+        window.click("remote-open-settings", cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert_eq!(
+            window.find("settings-nav-environment").checked(),
+            Some(true)
+        );
         assert!(window.try_find("ssh-cli-claude").is_none());
         assert!(
             window

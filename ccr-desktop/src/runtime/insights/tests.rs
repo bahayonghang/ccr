@@ -340,6 +340,11 @@ async fn workbench_reads_seeded_usage_and_does_not_invent_sessions(
     assert_eq!(codex.requests, 2);
     assert_eq!(claude.requests, 0);
     assert!(!archive.exists());
+    let empty_archive = database::create_pool(&archive, None).unwrap();
+    database::migrations::run_all_migrations(&empty_archive.get().unwrap(), root.path()).unwrap();
+    let unindexed = requests.read_workbench(7).unwrap();
+    assert_eq!(unindexed.session_scope, SessionScope::Unindexed);
+    assert_eq!(unindexed.session_count, None);
     owner.shutdown();
 }
 

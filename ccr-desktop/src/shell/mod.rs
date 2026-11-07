@@ -6,6 +6,7 @@ mod command_state;
 mod platform_navigation;
 mod preferences;
 pub(crate) mod semantics;
+mod settings;
 pub(crate) mod window_state;
 use crate::{
     app::ConfigurationApp,
@@ -108,7 +109,7 @@ pub struct Shell {
     _remote_observation: Subscription,
     destination: Destination,
     lens: Lens,
-    focused_nav: usize,
+    settings_nav: settings::Navigation,
     preference: Preference,
     close_guard: close::CloseGuard,
     preferences_requests: crate::runtime::preferences::PreferencesRequests,
@@ -223,7 +224,7 @@ impl Shell {
             }),
             destination: Destination::Dashboard,
             lens: Lens::Primary,
-            focused_nav: 0,
+            settings_nav: settings::Navigation::new(cx),
             preference: Preference::Light,
             close_guard,
             preferences_requests: crate::runtime::preferences::PreferencesRequests::new(&services),
@@ -316,12 +317,6 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if let Some(index) = Self::nav_items()
-            .iter()
-            .position(|item| item.1 == destination)
-        {
-            self.focused_nav = index;
-        }
         if self.destination == destination && self.lens == lens {
             return;
         }
@@ -335,21 +330,7 @@ impl Shell {
             self.park(window, cx);
         }
         self.activate(window, cx);
-        // Button clicks refuse focus, so a ring already on Overview stays
-        // there and reads as the selected route. Walk the sidebar tab order
-        // onto the destination while that ring is still inside the sidebar.
-        if self.navigation_focus.contains_focused(window, cx) {
-            self.focus_sidebar_item(self.focused_nav, window, cx);
-        }
         cx.notify();
-    }
-
-    fn focus_sidebar_item(&self, index: usize, window: &mut Window, cx: &mut Context<Self>) {
-        window.focus(&self.navigation_focus, cx);
-        window.focus_next(cx);
-        for _ in 0..index {
-            window.focus_next(cx);
-        }
     }
 
     fn park(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -620,26 +601,11 @@ impl Shell {
             0 => {
                 window.focus(&self.navigation_focus, cx);
                 window.focus_next(cx);
-                self.focused_nav = 0;
             }
             1 => self.focus_main(window, cx),
             _ => window.focus(&self.status_focus, cx),
         }
         cx.notify();
-    }
-
-    fn settings(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        div()
-            .id("settings-body")
-            .size_full()
-            .overflow_y_scroll()
-            .flex()
-            .flex_col()
-            .p(px(theme::CONTENT_PADDING))
-            .gap(px(theme::SECTION_GAP))
-            .child(div().flex_shrink_0().child(self.preference_controls(cx)))
-            .child(div().flex_shrink_0().child(self.environments.clone()))
-            .child(div().flex_shrink_0().child(self.remote.clone()))
     }
 
     fn nav_button(
@@ -651,8 +617,70 @@ impl Shell {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let selected = self.destination == destination;
-        let mut button = Button::new(id)
+        let colors = cx.theme();
+        let settings = destination == Destination::Settings;
+        let selection = colors.sidebar.blend(colors.primary.opacity(0.14));
+        let hover =
+            colors
+                .sidebar
+                .blend(colors.primary.opacity(if selected { 0.18 } else { 0.07 }));
+        let pressed = colors.sidebar.blend(colors.primary.opacity(0.22));
+        let ink = destination
+            .platform()
+            .map(|p| theme::platform_color(p.short_name(), colors.mode))
+            .unwrap_or(colors.sidebar_foreground);
+        let mut copy = div()
+            .flex_1()
+            .min_w_0()
+            .flex()
+            .flex_col()
+            .gap(px(3.))
+            .child(div().text_ellipsis().child(text(cx, en, zh)));
+        if settings {
+            let mode = if colors.mode.is_dark() {
+                text(cx, "Dark", "深色")
+            } else {
+                text(cx, "Light", "浅色")
+            };
+            let summary = format!("{mode} · {}", text(cx, "English", "中文"));
+            copy = copy.child(
+                div()
+                    .id("nav-settings-summary")
+                    .test_support()
+                    .aria_label(summary.clone())
+                    .text_size(px(theme::META_SIZE))
+                    .font_weight(gpui_kit::FontWeight::NORMAL)
+                    .text_color(colors.muted_foreground)
+                    .child(summary),
+            );
+        }
+        gpui_kit::base::Button::new(id)
             .accessibility_label(text(cx, en, zh))
+            .aria_toggled(if selected {
+                gpui_kit::accesskit::Toggled::True
+            } else {
+                gpui_kit::accesskit::Toggled::False
+            })
+            .w_full()
+            .flex_shrink_0()
+            .h(px(if settings { 50. } else { theme::NAV_ROW_HEIGHT }))
+            .px(px(theme::CONTROL_GAP))
+            .rounded(px(theme::INPUT_RADIUS))
+            .border_2()
+            .border_color(gpui_kit::transparent_black())
+            .bg(if selected {
+                selection
+            } else {
+                gpui_kit::transparent_black()
+            })
+            .font_weight(if selected {
+                gpui_kit::FontWeight::SEMIBOLD
+            } else {
+                gpui_kit::FontWeight::NORMAL
+            })
+            .hover(|style| style.bg(hover))
+            .active(|style| style.bg(pressed))
+            .focus_visible(|style| style.border_color(colors.ring))
             .child(
                 div()
                     .w_full()
@@ -662,25 +690,14 @@ impl Shell {
                     .gap(px(theme::CONTROL_GAP))
                     .child(
                         gpui_kit::component::Icon::new(destination.icon())
-                            .size(px(theme::NAV_ICON_SIZE)),
+                            .size(px(theme::NAV_ICON_SIZE))
+                            .text_color(ink),
                     )
-                    .child(div().min_w_0().text_ellipsis().child(text(cx, en, zh))),
+                    .child(copy),
             )
-            .ghost()
-            .selected(selected)
-            .toggled(selected)
-            .w_full()
-            .h(px(theme::NAV_ROW_HEIGHT))
-            .rounded(px(theme::INPUT_RADIUS))
             .on_click(cx.listener(move |this, _, window, cx| {
                 this.go(destination, Lens::Primary, window, cx)
-            }));
-        if selected {
-            button = button
-                .font_weight(gpui_kit::FontWeight::SEMIBOLD)
-                .bg(cx.theme().list_active);
-        }
-        semantics::button(button, false, false, cx)
+            }))
     }
 
     fn lens_button(
@@ -714,12 +731,14 @@ impl Shell {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         div()
-            .pt(px(theme::NAV_ROW_GAP))
+            .pt(px(theme::NAV_PADDING))
+            .px(px(theme::CONTROL_GAP))
             .line_height(gpui_kit::relative(1.))
             .flex()
             .items_center()
             .gap(px(theme::CONTROL_GAP))
             .text_size(px(theme::META_SIZE))
+            .font_weight(gpui_kit::FontWeight::MEDIUM)
             .text_color(cx.theme().muted_foreground)
             .child(text(cx, en, zh))
             .child(div().flex_1().h(px(1.)).bg(cx.theme().border))
@@ -819,7 +838,7 @@ impl Shell {
             return div().p(px(theme::CONTENT_PADDING)).flex().flex_col().gap(px(theme::CONTROL_GAP))
                 .child(self.remote.read(cx).status())
                 .child(text(cx,"This page uses local CCR services and is unavailable in SSH environments. Open Settings to edit remote configuration over SFTP or return to Local.","此页面依赖本地 CCR 服务，在 SSH 环境不可用。请打开设置，通过 SFTP 编辑远程配置，或返回本地环境。"))
-                .child(semantics::button(Button::new("remote-open-settings").label(text(cx,"Open environment settings","打开环境设置")).ghost().on_click(cx.listener(|this,_,window,cx|this.go(Destination::Settings,Lens::Primary,window,cx))),false,false,cx)).into_any_element();
+                .child(semantics::button(Button::new("remote-open-settings").label(text(cx,"Open environment settings","打开环境设置")).ghost().on_click(cx.listener(|this,_,window,cx|this.open_environment_settings(window,cx))),false,false,cx)).into_any_element();
         }
 
         match self.lens {
@@ -907,28 +926,20 @@ impl Render for Shell {
             .tab_stop(false)
             .on_key_down(
                 cx.listener(|this, event: &gpui_kit::KeyDownEvent, window, cx| {
-                    let count = Self::nav_items().len();
                     match event.keystroke.key.as_str() {
                         "down" => {
-                            this.focused_nav = (this.focused_nav + 1) % count;
                             window.focus_next(cx);
                             if !this.navigation_focus.contains_focused(window, cx) {
                                 window.focus(&this.navigation_focus, cx);
                                 window.focus_next(cx);
-                                this.focused_nav = 0;
                             }
                         }
                         "up" => {
-                            this.focused_nav = (this.focused_nav + count - 1) % count;
                             window.focus_prev(cx);
                             if !this.navigation_focus.contains_focused(window, cx) {
                                 window.focus(&this.main_focus, cx);
                                 window.focus_prev(cx);
                             }
-                        }
-                        "enter" => {
-                            let destination = Self::nav_items()[this.focused_nav].1;
-                            this.go(destination, Lens::Primary, window, cx);
                         }
                         _ => return,
                     }
@@ -991,13 +1002,14 @@ impl Render for Shell {
         }
         navigation = navigation.child(routes);
         for (id, destination, en, zh) in pinned.iter().copied() {
-            navigation = navigation.child(div().flex_shrink_0().child(self.nav_button(
-                id,
-                destination,
-                en,
-                zh,
-                cx,
-            )));
+            navigation = navigation.child(
+                div()
+                    .flex_shrink_0()
+                    .border_t_1()
+                    .border_color(cx.theme().sidebar_border)
+                    .pt(px(theme::NAV_ROW_GAP))
+                    .child(self.nav_button(id, destination, en, zh, cx)),
+            );
         }
         navigation = navigation.child(
             div()
@@ -1034,14 +1046,14 @@ impl Render for Shell {
         } else if self.overview.read(cx).requests_configured() {
             text(
                 cx,
-                "Local · Usage database connected",
-                "本地 · 已连接用量库",
+                "Local · Usage source configured",
+                "本地 · 已配置用量来源",
             )
         } else {
             text(
                 cx,
-                "Local · Usage database not ready",
-                "本地 · 用量库未就绪",
+                "Local · No usage source configured",
+                "本地 · 未配置用量来源",
             )
         };
         let workspace = div()

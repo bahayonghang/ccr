@@ -143,6 +143,7 @@ impl From<UsageError> for InsightsError {
 pub enum SessionScope {
     Window,
     AllHistory,
+    Unindexed,
     Unavailable,
 }
 
@@ -626,7 +627,7 @@ impl InsightsRequests {
             return (false, None, SessionScope::Unavailable);
         };
         if !snapshot.sessions_indexed {
-            return (false, None, SessionScope::Unavailable);
+            return (false, None, SessionScope::Unindexed);
         }
         if days == 7 {
             (

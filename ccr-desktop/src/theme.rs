@@ -156,6 +156,19 @@ pub fn field(mode: ThemeMode) -> Background {
     )
 }
 
+/// Platform identity ink shared by navigation icons and usage series.
+pub fn platform_color(id: &str, mode: ThemeMode) -> Hsla {
+    let (light, dark) = match id {
+        "claude" => (0xa15840, 0xe3987b),
+        "codex" => (0x547458, 0x89bd91),
+        "grok" => (0x726985, 0xb9abd7),
+        "antigravity" | "gemini" => (0x617081, 0xa9c1dc),
+        "opencode" => (0x735f52, 0xc9b6a8),
+        _ => return rgb(palette(mode).muted).into(),
+    };
+    rgb(if mode.is_dark() { dark } else { light }).into()
+}
+
 pub struct Sheet {
     pub background: Hsla,
     pub inset: Pixels,

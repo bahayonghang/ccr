@@ -67,8 +67,36 @@ fn actual_theme_controls_keep_base_component_palette_and_language_in_sync(cx: &m
         window.click("configuration-filter", cx);
         window.input("retained query", cx);
         window.click("nav-settings", cx);
+        window.press("f6", cx);
+        assert_eq!(window.find("settings-nav-appearance").focused(), Some(true));
+        window.press("tab", cx);
+        window.press("enter", cx);
+        assert_eq!(window.find("settings-nav-language").checked(), Some(true));
+        window.press("tab", cx);
+        assert_eq!(window.find("language-en").focused(), Some(true));
+        for (nav, first_option) in [
+            ("settings-nav-language", "language-en"),
+            ("settings-nav-workbench", "close-confirm"),
+            ("settings-nav-environment", "env-notify"),
+            ("settings-nav-appearance", "theme-light"),
+        ] {
+            window.click(nav, cx);
+            assert_eq!(window.find(nav).checked(), Some(true));
+            window.press("tab", cx);
+            assert_eq!(window.find(first_option).focused(), Some(true), "{nav}");
+            let option = window.find(first_option).bounds();
+            assert!(
+                option.top() >= window.find("settings-nav-environment").bounds().bottom()
+                    && option.bottom() <= window.find("shell-status").bounds().top(),
+                "{nav} leaves its focused option outside the settings content: {option:?}"
+            );
+        }
         window.click("theme-dark", cx);
         assert_eq!(Theme::global(cx).mode, ThemeMode::Dark);
+        assert_eq!(
+            window.find("nav-settings-summary").label(),
+            Some("Dark · English")
+        );
         assert_eq!(
             Theme::global(cx).colors.background,
             gpui_kit::Hsla::from(gpui_kit::rgb(0x1d292c))
@@ -93,8 +121,19 @@ fn actual_theme_controls_keep_base_component_palette_and_language_in_sync(cx: &m
         );
         window.click("language-zh", cx);
         assert!(matches!(cx.global::<Language>(), Language::Chinese));
+        assert_eq!(
+            window.find("nav-settings-summary").label(),
+            Some("浅色 · 中文")
+        );
         assert_eq!(window.find("nav-dashboard").label(), Some("运行概览"));
         assert_eq!(window.find("theme-system").label(), Some("跟随系统"));
+        assert_eq!(window.find("language-zh").checked(), Some(true));
+        assert!(
+            window
+                .find("settings-summary")
+                .label()
+                .is_some_and(|label| label.ends_with("浅色  ·  中文"))
+        );
         window.click("language-en", cx);
         assert_eq!(window.find("nav-dashboard").label(), Some("Overview"));
         window.click("theme-system", cx);
@@ -369,8 +408,8 @@ fn overview_states_missing_usage_without_sample_numbers(cx: &mut TestAppContext)
             .unwrap_or_default()
             .to_string();
         assert!(
-            status.contains("sample numbers"),
-            "overview should say it has no sample numbers: {status}"
+            status.contains("No local usage source"),
+            "missing source must be distinct from a zero-usage report: {status}"
         );
         assert_eq!(window.find("nav-dashboard").label(), Some("Overview"));
         let text = gpui_kit::base::test_support::snapshots(window)
@@ -515,11 +554,23 @@ fn workbench_navigation_exposes_thirteen_destinations(cx: &mut TestAppContext) {
         window.press("f6", cx);
         window.press("f6", cx);
         assert_eq!(window.find("nav-dashboard").focused(), Some(true));
+        window.press("up", cx);
+        assert_eq!(window.find("nav-settings").focused(), Some(true));
+        assert_eq!(window.find("nav-claude-code").checked(), Some(true));
+        window.press("down", cx);
+        assert_eq!(window.find("nav-dashboard").focused(), Some(true));
         window.press("down", cx);
         assert_eq!(window.find("nav-agent-sessions").focused(), Some(true));
+        assert_eq!(window.find("nav-claude-code").checked(), Some(true));
+        assert_eq!(window.find("nav-agent-sessions").checked(), Some(false));
         window.press("enter", cx);
         assert!(window.find("page-agent-sessions").visible());
         assert_eq!(window.find("nav-agent-sessions").checked(), Some(true));
+        window.press("tab", cx);
+        assert_eq!(window.find("nav-mcp-manager").focused(), Some(true));
+        assert_eq!(window.find("nav-agent-sessions").checked(), Some(true));
+        window.press("enter", cx);
+        assert!(window.find("page-mcp-manager").visible());
         window.click("nav-claude-code", cx);
         window.click("tool-profiles", cx);
         window.click("configuration-filter", cx);

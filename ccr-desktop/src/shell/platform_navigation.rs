@@ -38,9 +38,9 @@ pub(super) fn link_lens(link: Link) -> Lens {
     }
 }
 
-impl Shell {
-    pub(super) fn platform(&self) -> Option<Platform> {
-        match self.destination {
+impl Destination {
+    pub(super) fn platform(self) -> Option<Platform> {
+        match self {
             Destination::ClaudeCode => Some(Platform::Claude),
             Destination::Codex => Some(Platform::Codex),
             Destination::Grok => Some(Platform::Grok),
@@ -48,6 +48,12 @@ impl Shell {
             Destination::OpenCode => Some(Platform::OpenCode),
             _ => None,
         }
+    }
+}
+
+impl Shell {
+    pub(super) fn platform(&self) -> Option<Platform> {
+        self.destination.platform()
     }
     pub(super) fn platform_toolbar(&self, cx: &mut Context<Self>) -> AnyElement {
         let platform = self.platform().unwrap_or(Platform::Claude);

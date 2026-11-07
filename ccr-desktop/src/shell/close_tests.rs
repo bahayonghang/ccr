@@ -318,6 +318,67 @@ async fn window_bounds_are_saved_before_close_and_restored_by_the_launch_path(
 }
 
 #[gpui_kit::test]
+fn preference_retry_recovers_the_failed_read_or_write(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let (root, source) = fixture();
+    let path = root.path().join("desktop-gpui/preferences.json");
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(&path, b"{broken").unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let (handle, _) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| Shell::new(Services::new(owner.handle(), source), window, cx))
+        })
+        .unwrap()
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("nav-settings", cx);
+    })
+    .unwrap();
+    wait_for(cx, handle, "failed load", |w| {
+        w.try_find("preferences-retry").is_some()
+    });
+    let saved_light = br#"{"version":1,"theme":"light","language":"en","confirm_quit":true}"#;
+    std::fs::write(&path, saved_light).unwrap();
+    cx.update_window(handle, |_, window, cx| {
+        assert_eq!(
+            window.find("preferences-retry").label(),
+            Some("Reload preferences")
+        );
+        window.click("preferences-retry", cx);
+    })
+    .unwrap();
+    wait_for(cx, handle, "reload", |w| {
+        w.find("theme-dark").disabled() != Some(true)
+    });
+    std::fs::write(&path, b"{broken").unwrap();
+    cx.update_window(handle, |_, window, cx| window.click("theme-dark", cx))
+        .unwrap();
+    wait_for(cx, handle, "failed save", |w| {
+        w.try_find("preferences-retry").is_some()
+    });
+    assert_eq!(std::fs::read(&path).unwrap(), b"{broken");
+    std::fs::write(&path, saved_light).unwrap();
+    cx.update_window(handle, |_, window, cx| {
+        assert_eq!(window.find("preferences-retry").label(), Some("Retry save"));
+        assert_eq!(window.find("theme-dark").checked(), Some(true));
+        window.click("preferences-retry", cx);
+    })
+    .unwrap();
+    wait_for(cx, handle, "retry write", |w| {
+        w.find("preferences-reveal").disabled() != Some(true)
+    });
+    let persisted: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+    assert_eq!(persisted["theme"], "dark");
+    cx.update_window(handle, |_, window, _| window.remove_window())
+        .unwrap();
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
 async fn corrupt_launch_preferences_remain_visible_and_are_not_replaced_on_quit(
     cx: &mut TestAppContext,
 ) {

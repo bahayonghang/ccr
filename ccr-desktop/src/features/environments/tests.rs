@@ -359,6 +359,7 @@ async fn settings_shows_the_local_desktop_without_a_sample_distro(cx: &mut TestA
         assert!(!chinese.to_lowercase().contains("connected"));
         assert!(!chinese.to_lowercase().contains("trusted"));
         window.click("language-en", cx);
+        window.click("settings-nav-environment", cx);
         window.click("env-notify", cx);
         window.render_frame(cx);
         assert!(labels(window).contains("Notification request posted. Delivery is not confirmed."));

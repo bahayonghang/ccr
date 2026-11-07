@@ -1,0 +1,3 @@
+{"file":"ccr-desktop/DESIGN.md","reason":"原生主题、焦点与视觉验收边界"}
+{"file":".trellis/spec/ccr-ui/frontend/dashboard-presentation-contracts.md","reason":"Tauri 总览数据和状态表达参照"}
+{"file":".trellis/spec/ccr-app/backend/index.md","reason":"共享桌面服务、响应归属与按需阅读的原生契约入口"}
