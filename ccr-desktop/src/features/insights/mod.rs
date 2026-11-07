@@ -152,6 +152,9 @@ impl InsightsView {
     pub fn focus_main(&self, window: &mut Window, cx: &mut Context<Self>) {
         window.focus(&self.focus, cx);
     }
+    pub fn select_daily_report(&mut self) {
+        self.section = Section::Trends;
+    }
     pub fn suspend(&mut self, cx: &mut Context<Self>) {
         self.capabilities.update(cx, |this, cx| this.suspend(cx));
         self.policies.update(cx, |this, cx| this.suspend(cx));
@@ -1012,19 +1015,26 @@ impl Render for InsightsView {
             && let Some(index) =
                 (0..count).find(|&index| self.row_key(index) == self.selected.as_deref())
         {
+            let lines: Vec<_> = self
+                .details(index)
+                .iter()
+                .map(|line| localized_line(cx, line))
+                .collect();
+            let mut detail = div().id("insights-exact-detail").test_support();
+            if self.page == InsightsPage::Usage && self.section == Section::Trends {
+                let description = lines.join(" · ");
+                detail = detail
+                    .role(gpui_kit::Role::Label)
+                    .aria_label(description.clone())
+                    .aria_value(description);
+            }
             root = root.child(
-                div()
-                    .id("insights-exact-detail")
-                    .test_support()
+                detail
                     .h(px(160.))
                     .overflow_y_scroll()
                     .bg(cx.theme().secondary)
                     .p(px(theme::CONTROL_GAP))
-                    .children(
-                        self.details(index)
-                            .into_iter()
-                            .map(|line| div().child(localized_line(cx, &line))),
-                    ),
+                    .children(lines.into_iter().map(|line| div().child(line))),
             );
         }
         let mut paging = div().flex().gap(px(theme::CONTROL_GAP));

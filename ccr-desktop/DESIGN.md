@@ -145,11 +145,13 @@ Common Claude collection forms keep their save/review controls above the
 variable-height fields. Confirm/cancel stay visible inside the editor rather
 than falling beneath a tall form's clipped viewport.
 
-The workbench uses a ruled current-state section, a compact usage reading line,
-bounded daily bars with exact textual values and a short management list. It
-does not repeat the global overview or replace full editors with JSON output.
-Native screenshots and keyboard checks cover this composition at the current
-default window; the deferred size/DPI matrix remains deferred.
+The Claude Code home starts with profile and local credential status, then
+shows today's, this month's and all-time recorded costs. A calendar-spaced
+line shows daily USD cost for the last 30 days, with gaps for missing dates.
+The report action opens Claude's daily rows for keyboard access to exact
+amounts. Subscription settings sit beside the report action. The platform
+tabs give access to the other tools. Other platform homes retain the ruled
+status section, compact usage summary, daily bars and management links.
 
 - **按钮**：normal 用 primary/secondary 或透明次按钮；hover 提升一个中性色阶；focus 显示 2px 环；pointer pressed 可瞬时 scale(0.96) 并在 100ms 内复原，hitbox 不变；keyboard activation 仅即时状态反馈，无动画。disabled 不触发，loading 保持宽度且有文字状态，error 配相邻说明。
 - **输入**：14px 文本、8px 角、border-control；focus/invalid 分别使用 focus/danger 与文字。支持组合输入、选区、复制粘贴、撤销与系统编辑键。密码遮蔽默认开启，明文不得进入截图或日志。

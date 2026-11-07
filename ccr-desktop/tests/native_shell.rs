@@ -634,6 +634,13 @@ fn page_labels(window: &gpui_kit::Window) -> String {
         .join("\n")
 }
 
+// The shell consumes workbench navigation requests on the next platform frame.
+fn open_workbench_action(window: &mut gpui_kit::Window, id: &'static str, cx: &mut gpui_kit::App) {
+    window.click(id, cx);
+    window.simulate_next_frame(cx);
+    window.render_frame(cx);
+}
+
 /// Explicit QA preparation only. The supplied new directory must be beneath
 /// this checkout's outputs/desktop; no user roots or existing fixture are read.
 #[test]
@@ -822,8 +829,19 @@ async fn platform_workbench_is_default_and_scoped_navigation_keeps_platform(
             "tool-files",
             "tool-platform-usage",
             "tool-subscription",
+            "tool-platform-sessions",
         ] {
             assert!(window.find(id).visible(), "missing scoped link {id}");
+        }
+        for id in [
+            "workbench-files",
+            "workbench-mcp",
+            "workbench-agents",
+            "workbench-plugins",
+            "workbench-commands",
+            "workbench-sessions",
+        ] {
+            assert!(window.try_find(id).is_none(), "duplicate home link {id}");
         }
     })
     .unwrap_or_else(|e| panic!("default: {e}"));
@@ -835,10 +853,20 @@ async fn platform_workbench_is_default_and_scoped_navigation_keeps_platform(
     })
     .await;
     cx.update_window(handle, |_, window, cx| {
+        for (action, tab) in [
+            ("workbench-auth", "tool-auth"),
+            ("workbench-observer", "tool-subscription"),
+        ] {
+            open_workbench_action(window, action, cx);
+            assert_eq!(window.find(tab).checked(), Some(true), "{action}");
+            window.click("tool-home", cx);
+            assert!(window.find("platform-workbench").visible());
+        }
         window.click("tool-agents", cx);
         assert!(window.find("page-claude-code").visible());
         assert!(window.try_find("claude-resource-agents").is_some());
-        window.click("tool-profiles", cx);
+        window.click("tool-home", cx);
+        open_workbench_action(window, "workbench-profiles", cx);
     })
     .unwrap_or_else(|e| panic!("scoped agents: {e}"));
     cx.wait_for(handle, Duration::from_secs(10), |window, _| {
@@ -849,6 +877,7 @@ async fn platform_workbench_is_default_and_scoped_navigation_keeps_platform(
         window.click("nav-codex", cx);
         assert!(window.find("platform-workbench").visible());
         assert_eq!(window.find("workbench-title").label(), Some("Codex"));
+        assert!(window.try_find("claude-cost-month").is_none());
         assert!(!page_labels(window).contains("claude-workbench"));
         window.click("tool-platform-usage", cx);
         assert!(window.find("page-codex").visible());
@@ -862,6 +891,167 @@ async fn platform_workbench_is_default_and_scoped_navigation_keeps_platform(
         window.remove_window();
     })
     .unwrap_or_else(|e| panic!("platform isolation: {e}"));
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+async fn platform_workbench_claude_partial_costs_recover_and_link_to_daily_report(
+    cx: &mut TestAppContext,
+) {
+    use ccr_gpui::runtime::insights::InsightsPaths;
+    use ccr_usage::fixtures::{SeedBucket, create_projection_db, seed_bucket};
+    use chrono::{Datelike, Local, Utc};
+
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
+    let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
+    let today = Local::now().date_naive();
+    let paths = InsightsPaths {
+        usage_root: root.path().join("usage"),
+        archive_db: root.path().join("archive.db"),
+        provider_home: root.path().join("home"),
+    };
+    let db = create_projection_db(&paths.usage_root);
+    let conn = rusqlite::Connection::open(db.db_path).unwrap_or_else(|e| panic!("usage: {e}"));
+    for (days_ago, source, cost) in [
+        (45, "claude", 8.0),
+        (1, "claude", 2.75),
+        (0, "claude", 0.0),
+        (0, "codex", 99.0),
+    ] {
+        let day = today - chrono::Duration::days(days_ago);
+        let noon = day
+            .and_hms_opt(12, 0, 0)
+            .and_then(|time| time.and_local_timezone(Local).earliest())
+            .unwrap_or_else(|| panic!("local noon"));
+        seed_bucket(
+            &conn,
+            &SeedBucket {
+                source: source.into(),
+                hour_start: noon
+                    .with_timezone(&Utc)
+                    .format("%Y-%m-%dT%H:%M:%SZ")
+                    .to_string(),
+                cost_with_cache_usd: cost,
+                ..Default::default()
+            },
+        );
+    }
+    drop(conn);
+    let source = ConfigSource::Fixture {
+        registry: root.path().join("registry.toml"),
+        profiles: root.path().join("profiles.toml"),
+        delay: Duration::ZERO,
+    };
+    let profile = "Claude 平台开发环境 · west coast integration workspace · shared team project · 复杂配置名称";
+    seed_catalog(&source, ccr_config::Platform::Claude, profile, true);
+    let services = Services::new(owner.handle(), source).with_insights_paths(paths);
+    let (handle, _) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| Shell::new(services, window, cx))
+        })
+        .unwrap_or_else(|e| panic!("window: {e}"))
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("nav-claude-code", cx);
+    })
+    .unwrap_or_else(|e| panic!("workbench: {e}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("workbench-claude-trend-plot").is_some()
+            && window.try_find("claude-subscription").is_some_and(|node| {
+                node.label()
+                    .is_some_and(|s| s == "Subscription not configured")
+            })
+    })
+    .await;
+    cx.update_window(handle, |_, window, _| {
+        let current = window.find("workbench-current-profile");
+        assert!(current.label().is_some_and(|label| label.contains(profile)));
+        assert!(current.bounds().right() <= window.find("platform-workbench").bounds().right());
+        assert!(window.find("workbench-refresh").visible());
+        let totals = window.find("workbench-usage-totals");
+        assert_eq!(
+            totals.label(),
+            Some("Last 30 days · 4 requests · 200 tokens · $2.7500")
+        );
+        assert_eq!(
+            window.find("claude-cost-today").label(),
+            Some("Today · Unavailable")
+        );
+    })
+    .unwrap_or_else(|e| panic!("partial report: {e}"));
+
+    drop(
+        ccr_db::database::create_app_pool_at(&root.path().join("observer.db"), root.path())
+            .unwrap_or_else(|e| panic!("observer: {e}")),
+    );
+    cx.update_window(handle, |_, window, cx| {
+        window.click("workbench-refresh", cx)
+    })
+    .unwrap_or_else(|e| panic!("refresh: {e}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window
+            .try_find("claude-cost-total")
+            .is_some_and(|node| node.label().is_some_and(|s| s.contains("10.75")))
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        for (id, amount) in [
+            ("claude-cost-today", "$0.00"),
+            (
+                "claude-cost-month",
+                if today.day() == 1 { "$0.00" } else { "$2.75" },
+            ),
+        ] {
+            let metric = window.find(id);
+            assert!(
+                metric.label().is_some_and(|s| s.contains(amount)),
+                "{metric:?}"
+            );
+        }
+        window.click("nav-claude-code", cx);
+        window.press("f6", cx);
+        for _ in 0..5 {
+            if window.find("workbench-usage").focused() == Some(true) {
+                break;
+            }
+            window.press("tab", cx);
+        }
+        assert_eq!(window.find("workbench-usage").focused(), Some(true));
+        window.press("enter", cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert_eq!(window.find("insights-filter-0").value(), Some("claude"));
+        assert_eq!(window.find("insights-section-Daily").checked(), Some(true));
+    })
+    .unwrap_or_else(|e| panic!("metrics/report: {e}"));
+    let date = (today - chrono::Duration::days(1)).to_string();
+    let row = gpui_kit::SharedString::from(format!("insights-row:{date}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find(row.clone()).is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        assert_eq!(window.find("insights-list-focus").focused(), Some(true));
+        window.press("down", cx);
+        window.press("down", cx);
+        assert_eq!(window.find(row).selected(), Some(true));
+        window.press("enter", cx);
+        let details = window.find("insights-exact-detail");
+        assert!(details.visible());
+        assert!(
+            details
+                .label()
+                .is_some_and(|s| s.contains(&date) && s.contains("USD 2.75")),
+            "{details:?}"
+        );
+        window.click("tool-home", cx);
+        assert!(window.find("platform-workbench").visible());
+        window.remove_window();
+    })
+    .unwrap_or_else(|e| panic!("keyboard daily detail: {e}"));
     owner.shutdown();
 }
 

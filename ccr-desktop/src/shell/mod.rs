@@ -887,7 +887,17 @@ impl Render for Shell {
                 let _ = shell.update(cx, |this, cx| {
                     if let Some(link) = this.workbench.update(cx, |view, _| view.take_pending()) {
                         let lens = platform_navigation::link_lens(link);
+                        let open_daily =
+                            lens == Lens::Usage && this.destination == Destination::ClaudeCode;
+                        if open_daily {
+                            this.insights
+                                .update(cx, |view, _| view.select_daily_report());
+                        }
                         this.go(this.destination, lens, window, cx);
+                        if open_daily {
+                            this.insights
+                                .update(cx, |view, cx| view.focus_main(window, cx));
+                        }
                     }
                 });
             });

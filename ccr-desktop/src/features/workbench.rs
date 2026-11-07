@@ -21,10 +21,12 @@ use gpui_kit::component::{
 };
 use gpui_kit::{
     Context, FocusHandle, InteractiveElement, IntoElement, ParentElement, Render,
-    StatefulInteractiveElement, Styled, Task, Window, div, px,
+    StatefulInteractiveElement, Styled, Task, Window, div, prelude::FluentBuilder, px,
 };
 use std::sync::Arc;
 
+mod claude;
+mod claude_trend;
 mod grok;
 mod rolling;
 
@@ -83,6 +85,7 @@ pub struct WorkbenchView {
     profiles: Option<Result<Arc<Vec<ConfigRow>>, &'static str>>,
     credential: Option<Result<CredentialState, &'static str>>,
     facts: Vec<(String, String)>,
+    usage_until: chrono::NaiveDate,
     usage: Option<Result<Arc<InsightsSnapshot>, &'static str>>,
     observer: Option<crate::runtime::insights::observer::Report>,
     observer_error: Option<&'static str>,
@@ -94,6 +97,7 @@ impl WorkbenchView {
     pub fn new(services: Services, cx: &mut Context<Self>) -> Self {
         Self {
             requests: InsightsRequests::new(&services),
+            usage_until: services.report_clock().date(),
             services,
             platform: Platform::Claude,
             generation: 0,
@@ -160,13 +164,20 @@ impl WorkbenchView {
         let settings = self
             .services
             .platform_request(key("settings"), Command::Read(surface));
-        let today = chrono::Local::now().date_naive();
+        let clock = if platform == Platform::Claude {
+            self.requests.report_clock()
+        } else {
+            ccr_app::usage::report_clock::ReportClock::live()
+        };
+        let (since, until) = clock.window(30);
+        self.usage_until = until;
         let usage = self.requests.load(
             key("usage"),
             InsightsQuery::Usage(QueryFilter {
                 source: source(platform),
-                since: Some(today - chrono::Duration::days(29)),
-                until: Some(today),
+                since: Some(since),
+                until: Some(until),
+                timezone: clock.timezone,
                 ..Default::default()
             }),
         );
@@ -257,6 +268,8 @@ impl WorkbenchView {
         semantics::button(
             if primary {
                 button.primary()
+            } else if self.platform == Platform::Claude {
+                button
             } else {
                 button.ghost()
             },
@@ -266,16 +279,8 @@ impl WorkbenchView {
         )
         .into_any_element()
     }
-    fn current(&self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
-        let mut section = div()
-            .flex()
-            .flex_col()
-            .gap(px(theme::CONTROL_GAP))
-            .py(px(theme::SECTION_GAP))
-            .border_t_1()
-            .border_b_1()
-            .border_color(cx.theme().border);
-        let profile = match &self.profiles {
+    fn current_profile(&self, cx: &Context<Self>) -> gpui_kit::AnyElement {
+        let profile: String = match &self.profiles {
             Some(Ok(rows)) => rows
                 .iter()
                 .find(|row| row.is_current)
@@ -291,15 +296,20 @@ impl WorkbenchView {
             }
             _ => text(cx, "Local platform settings", "本地平台设置").into(),
         };
-        section = section.child(
-            div()
-                .id("workbench-current-profile")
-                .test_support()
-                .aria_label(profile.clone())
-                .text_size(px(theme::SECTION_TITLE_SIZE))
-                .font_weight(gpui_kit::FontWeight::SEMIBOLD)
-                .child(profile),
-        );
+        div()
+            .id("workbench-current-profile")
+            .test_support()
+            .role(gpui_kit::Role::Label)
+            .aria_label(profile.clone())
+            .aria_value(profile.clone())
+            .min_w_0()
+            .max_w_full()
+            .text_size(px(theme::SECTION_TITLE_SIZE))
+            .font_weight(gpui_kit::FontWeight::SEMIBOLD)
+            .child(profile)
+            .into_any_element()
+    }
+    fn credential_status(&self, cx: &Context<Self>) -> gpui_kit::AnyElement {
         let credential = match &self.credential {
             None => text(
                 cx,
@@ -333,14 +343,30 @@ impl WorkbenchView {
                 ),
             },
         };
-        section = section.child(
-            div()
-                .id("workbench-credential")
-                .test_support()
-                .aria_label(credential)
-                .text_color(cx.theme().muted_foreground)
-                .child(credential),
-        );
+        div()
+            .id("workbench-credential")
+            .test_support()
+            .role(gpui_kit::Role::Status)
+            .aria_label(credential)
+            .aria_value(credential)
+            .min_w_0()
+            .max_w_full()
+            .text_color(cx.theme().muted_foreground)
+            .child(credential)
+            .into_any_element()
+    }
+    fn current(&self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
+        let mut section = div()
+            .flex()
+            .flex_col()
+            .gap(px(theme::CONTROL_GAP))
+            .py(px(theme::SECTION_GAP))
+            .border_t_1()
+            .border_b_1()
+            .border_color(cx.theme().border);
+        section = section
+            .child(self.current_profile(cx))
+            .child(self.credential_status(cx));
         for (key, value) in self.facts.iter().take(4) {
             section = section.child(
                 div()
@@ -445,65 +471,6 @@ impl WorkbenchView {
                 section = section.child(text(cx, "Reading platform usage…", "正在读取平台用量…"))
             }
         }
-        if let Some(report) = &self.observer {
-            if let Ok(insight) = &report.insight {
-                let amount = |key: &str| {
-                    insight
-                        .get(key)
-                        .and_then(serde_json::Value::as_f64)
-                        .map(|value| format!("${value:.4}"))
-                        .unwrap_or_else(|| "—".into())
-                };
-                section = section.child(div().id("workbench-claude-insight").test_support().child(
-                    format!(
-                        "{} {}    {} {}    {} {}",
-                        text(cx, "Today", "今日"),
-                        amount("today_value_usd"),
-                        text(cx, "This month", "本月"),
-                        amount("month_value_usd"),
-                        text(cx, "All history", "全部历史"),
-                        amount("total_value_usd")
-                    ),
-                ));
-            } else {
-                section=section.child(text(cx,"Claude historical insight unavailable. The local usage report above is independent.","Claude 历史洞察不可用；上方本地用量报告独立读取。"));
-            }
-            let subscription = match &report.subscription {
-                Ok(Some(value)) => format!(
-                    "{}: {} / {} / ${:.2} {}",
-                    text(cx, "Saved subscription", "已保存订阅"),
-                    value.mode,
-                    value.plan,
-                    value.monthly_usd,
-                    text(cx, "per month", "每月")
-                ),
-                Ok(None) => text(
-                    cx,
-                    "No subscription settings stored. Open subscription settings to configure.",
-                    "尚无订阅设置。可打开订阅设置进行配置。",
-                )
-                .into(),
-                Err(_) => text(cx, "Subscription settings unavailable.", "订阅设置不可用。").into(),
-            };
-            section = section.child(
-                div()
-                    .text_size(px(theme::META_SIZE))
-                    .text_color(cx.theme().muted_foreground)
-                    .child(subscription),
-            );
-        } else if self.platform == Platform::Claude {
-            section = section.child(
-                self.observer_error
-                    .map(|error| service_error(cx, error))
-                    .unwrap_or_else(|| {
-                        text(
-                            cx,
-                            "Reading Claude insight and subscription…",
-                            "正在读取 Claude 洞察和订阅…",
-                        )
-                    }),
-            );
-        }
         section.into_any_element()
     }
 }
@@ -514,14 +481,22 @@ impl Render for WorkbenchView {
             self.platform,
             Platform::Claude | Platform::Codex | Platform::Grok
         );
-        let mut actions = div().flex().gap(px(theme::CONTROL_GAP));
+        let mut actions = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
         if profiles {
             actions = actions
                 .child(self.button(
                     "workbench-auth",
                     Link::Auth,
-                    "Authentication",
-                    "认证",
+                    if self.platform == Platform::Claude {
+                        "Open authentication"
+                    } else {
+                        "Authentication"
+                    },
+                    if self.platform == Platform::Claude {
+                        "打开认证"
+                    } else {
+                        "认证"
+                    },
                     true,
                     cx,
                 ))
@@ -542,6 +517,56 @@ impl Render for WorkbenchView {
                 true,
                 cx,
             ));
+        }
+        let page = div()
+            .id("platform-workbench")
+            .test_support()
+            .track_focus(&self.focus)
+            .tab_stop(false)
+            .size_full()
+            .overflow_y_scroll()
+            .flex()
+            .flex_col()
+            .p(px(theme::CONTENT_PADDING))
+            .gap(px(theme::SECTION_GAP))
+            .child(
+                div()
+                    .flex()
+                    .flex_wrap()
+                    .justify_between()
+                    .items_start()
+                    .gap(px(theme::SECTION_GAP))
+                    .child(
+                        div()
+                            .flex()
+                            .flex_col()
+                            .gap(px(theme::CONTROL_GAP))
+                            .child(
+                                div()
+                                    .id("workbench-title")
+                                    .test_support()
+                                    .aria_label(name(self.platform))
+                                    .role(gpui_kit::Role::Heading)
+                                    .aria_level(1)
+                                    .text_size(px(theme::TITLE_SIZE))
+                                    .font_weight(gpui_kit::FontWeight::SEMIBOLD)
+                                    .child(name(self.platform)),
+                            )
+                            .when(self.platform != Platform::Claude, |heading| {
+                                heading.child(text(
+                                    cx,
+                                    "Local platform workbench",
+                                    "本地平台工作台",
+                                ))
+                            }),
+                    )
+                    .child(actions),
+            );
+        if self.platform == Platform::Claude {
+            return page
+                .child(self.claude_status(cx))
+                .child(self.claude_insights(cx))
+                .child(self.claude_trend(cx));
         }
         let mut management = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
         for (id, link, en, zh) in [
@@ -566,22 +591,7 @@ impl Render for WorkbenchView {
             }
             management = management.child(self.button(id, link, en, zh, false, cx));
         }
-        if self.platform == Platform::Claude {
-            for (id, link, en, zh) in [
-                ("workbench-agents", Link::Agents, "Agents", "Agents"),
-                ("workbench-plugins", Link::Plugins, "Plugins", "Plugins"),
-                ("workbench-commands", Link::Commands, "Commands", "Commands"),
-                (
-                    "workbench-observer",
-                    Link::Observer,
-                    "Subscription and tools",
-                    "订阅与工具",
-                ),
-            ] {
-                management = management.child(self.button(id, link, en, zh, false, cx));
-            }
-        }
-        if matches!(self.platform, Platform::Claude | Platform::Codex) {
+        if self.platform == Platform::Codex {
             management = management.child(self.button(
                 "workbench-sessions",
                 Link::Sessions,
@@ -593,44 +603,7 @@ impl Render for WorkbenchView {
         }
         let rolling = (self.platform == Platform::Codex).then(|| self.rolling_usage(cx));
         let grok = (self.platform == Platform::Grok).then(|| self.grok_overview(cx));
-        div()
-            .id("platform-workbench")
-            .test_support()
-            .track_focus(&self.focus)
-            .tab_stop(false)
-            .size_full()
-            .overflow_y_scroll()
-            .flex()
-            .flex_col()
-            .p(px(theme::CONTENT_PADDING))
-            .gap(px(theme::SECTION_GAP))
-            .child(
-                div()
-                    .flex()
-                    .justify_between()
-                    .items_start()
-                    .gap(px(theme::SECTION_GAP))
-                    .child(
-                        div()
-                            .flex()
-                            .flex_col()
-                            .gap(px(theme::CONTROL_GAP))
-                            .child(
-                                div()
-                                    .id("workbench-title")
-                                    .test_support()
-                                    .aria_label(name(self.platform))
-                                    .role(gpui_kit::Role::Heading)
-                                    .aria_level(1)
-                                    .text_size(px(theme::TITLE_SIZE))
-                                    .font_weight(gpui_kit::FontWeight::SEMIBOLD)
-                                    .child(name(self.platform)),
-                            )
-                            .child(text(cx, "Local platform workbench", "本地平台工作台")),
-                    )
-                    .child(actions),
-            )
-            .child(self.current(cx))
+        page.child(self.current(cx))
             .children(grok)
             .children(rolling)
             .child(self.usage(cx))

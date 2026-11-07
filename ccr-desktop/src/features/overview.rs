@@ -789,7 +789,7 @@ fn platform_title(id: &str) -> String {
     .to_string()
 }
 
-fn grouped(value: i64) -> String {
+pub(super) fn grouped(value: i64) -> String {
     let digits = value.unsigned_abs().to_string();
     let mut reversed = String::new();
     for (index, ch) in digits.chars().rev().enumerate() {
@@ -805,7 +805,7 @@ fn grouped(value: i64) -> String {
     text
 }
 
-fn format_usd(value: f64) -> String {
+pub(super) fn format_usd(value: f64) -> String {
     if value.abs() >= 100.0 {
         format!("${value:.2}")
     } else {
