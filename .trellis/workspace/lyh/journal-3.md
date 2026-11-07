@@ -744,3 +744,112 @@ ccr project init 现在默认勾选五项平台并要求输入用户名，-y 使
 ### Status
 
 [OK] **Completed**
+
+
+## Session 143: GPUI airy-glass 源码实施与回归收口
+<!-- trellis-session: v=2 fp=1e2a4668e2b0f1c1 -->
+
+**Date**: 2026-11-07
+**Task**: GPUI airy-glass 源码实施与回归收口
+**Branch**: `dev`
+
+### Summary
+
+复用 11-07-gpui-airy-glass-polish，完成源码与自动门禁；原生视觉 AC 未运行，任务保留 in_progress，未归档、未提交、未推送。
+
+### Main Changes
+
+- 接入品牌 PNG/Windows ICO、共享 Tab/禁用样式、12px 面板与独立状态栏时钟。
+- 完善 Overview 平台带、图表、精确值表和 30/90 日键盘滚动；对齐工作台与局部工具行。
+- 独立审查修复微小图段、费用精度及新增 builder 引发的 1 MiB 栈溢出；保留全部栈/断言约束。
+
+### Git Commits
+
+本轮源码实施尚未提交。
+
+### Testing
+
+- [OK] desktop-ci exit 0：库 241 passed、4 ignored；Shell 10 passed、1 ignored；UI 2 passed；shutdown 2 passed、1 ignored。
+- [OK] 单独 desktop-test-ui、根 version-check、fmt-check、diff-check 通过；Windows release 图标六帧与正式源逐字节相同。
+
+### Status
+
+[OK] 源码与自动化批次完成；任务仍为 **in_progress**，原生视觉 AC 未满足，不归档。
+
+### Next Steps
+
+- 原生像素、图标实际显示与系统交互未运行；不要把源码门禁记成视觉完成。
+- 先核对工作树与 research/integration-20261107.md；代码尚未提交，完整原生 AC 满足前不归档。
+
+
+## Session 144: GPUI 核心原生验收与可见焦点修复
+<!-- trellis-session: v=2 fp=58b1637386b4c883 -->
+
+**Date**: 2026-11-07
+**Task**: GPUI 核心原生验收与可见焦点修复
+**Branch**: `dev`
+
+### Summary
+
+按用户范围验证最新 GPUI 的图标、Tab 和 Overview 精确值表；发现并修复行焦点边框，重建后 light/dark 实看通过，未做尺寸或 DPI 矩阵。窗口保留 Light/English 的 Overview。
+
+### Main Changes
+
+- 通过真实 Windows 操作和截图确认侧栏/标题栏/任务栏图标、light/dark 全局 Tab 与平台 Profiles 选中态。
+- 精确值表真实数据、展开/滚动/自动回显/反向返回/收起通过；仅将精确行 focus_visible 改为 focus，保留2px边框与原键盘/数据协议。
+
+### Git Commits
+
+本轮原生验收与一行焦点修复尚未提交。
+
+### Testing
+
+- [OK] Overview30/90日几何回归1passed82.04s；desktop-fmt-check、desktop-lint、desktop-test-ui通过（Shell10、UI2）。
+- [OK] desktop-build exit0，4m22s；新SHA e206adfad79b564366a831a2cd262636d9a7632534f6d44763a0f13a5b64aa79。新构建 light/dark 行焦点与键盘收起原生复验、独立图片复核通过。
+
+### Status
+
+[OK] **本轮核心原生验收通过**；任务仍 in_progress，未提交或归档，不泛化为历史全矩阵通过。
+
+### Next Steps
+
+- 本轮核心原生验收已通过，收据 research/native-core-acceptance-20261107.md；尺寸/DPI矩阵按用户要求不做，不追加。
+- 代码未提交/推送/归档；旧完整desktop-ci收据仍对应修复前构建，本次一行修复有针对性回归和新release证据。
+
+
+## Session 145: GPUI 中文分批提交与任务归档
+<!-- trellis-session: v=2 fp=3b9d3aab853ca579 -->
+
+**Date**: 2026-11-07
+**Task**: GPUI 中文分批提交与任务归档
+**Branch**: `dev`
+
+### Summary
+
+按用户明确授权完成本轮 GPUI 中文分批本地提交、验收记录更新和 Trellis 归档；不推送，不补做尺寸或 DPI 矩阵。
+
+### Main Changes
+
+- 共享品牌/导航/工具行与 Overview/工作台分别提交；对应已通过的源码、自动化和核心原生验收收据。
+- 任务归档至 .trellis/tasks/archive/2026-11/11-07-gpui-airy-glass-polish，status=completed；更新3处JSONL自引用并清除活动指针。
+- 保留旧构建完整CI与一行焦点修复后针对性/原生复验的区别；未运行项不记通过，截图及运行产物不提交。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `43d1b9e79f750f57d6f5193ebbc76276c214581e` | feat(GPUI): ✨ 完善品牌与共享导航外壳 |
+| `dacaca40676df0b96797bb665bcc47284b3eb57b` | feat(GPUI): ✨ 优化总览图表与精确值交互 |
+
+### Testing
+
+- [OK] git diff --check、各批暂存检查与本地提交校验通过；归档后的5条implement/4条check上下文验证通过。
+- [OK] 既有完整desktop-ci与最终focused/lint/UI/release及核心原生验收通过；本收尾未重复不相关测试或矩阵。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 本轮任务已完成并归档；不执行推送，不追加尺寸/DPI矩阵。
