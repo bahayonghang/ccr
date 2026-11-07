@@ -129,6 +129,20 @@ fn rendered_catalog_blocks_typed_only_commands_and_invalid_draft_never_starts(
     });
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
+        view.update(cx, |this, cx| {
+            this.busy = true;
+            cx.notify();
+        });
+        window.render_frame(cx);
+        window.click("job-command-list", cx);
+        assert_eq!(view.read(cx).selected, "status");
+        assert_eq!(window.find("job-command-status").checked(), Some(true));
+        assert_eq!(window.find("job-command-list").checked(), Some(false));
+        view.update(cx, |this, cx| {
+            this.busy = false;
+            cx.notify();
+        });
+        window.render_frame(cx);
         window.click("job-command-delete", cx);
         assert_eq!(
             view.read(cx).selected,
@@ -241,6 +255,15 @@ fn command_catalog_lists_real_entries_and_rejects_unavailable_commands(cx: &mut 
         assert!(!text.contains("Home insights"));
         assert!(!text.contains("Apply / refresh"));
         assert!(!text.contains(" / "));
+        assert_eq!(window.find("job-command-status").checked(), Some(true));
+        assert_eq!(window.find("job-command-list").checked(), Some(false));
+        window.click("job-command-list", cx);
+        window.render_frame(cx);
+        assert_eq!(view.read(cx).selected, "list");
+        assert_eq!(window.find("job-command-list").checked(), Some(true));
+        assert_eq!(window.find("job-command-status").checked(), Some(false));
+        window.click("job-command-status", cx);
+        window.render_frame(cx);
         window.click("job-command-delete", cx);
         window.render_frame(cx);
         assert_eq!(view.read(cx).selected, "status");

@@ -7,6 +7,7 @@ mod platform_navigation;
 mod preferences;
 pub(crate) mod semantics;
 mod settings;
+mod status;
 pub(crate) mod window_state;
 use crate::{
     app::ConfigurationApp,
@@ -19,7 +20,7 @@ use ccr_app::runtime::Platform;
 use command_state::CommandState;
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
-    ActiveTheme, Selectable,
+    ActiveTheme,
     button::{Button, ButtonVariants},
 };
 use gpui_kit::{
@@ -125,6 +126,8 @@ pub struct Shell {
     reveal_preferences_after_save: bool,
     fixture: bool,
     slow_fixture: bool,
+    brand: std::sync::Arc<gpui_kit::Image>,
+    clock: Entity<status::Clock>,
     navigation_focus: FocusHandle,
     main_focus: FocusHandle,
     status_focus: FocusHandle,
@@ -240,6 +243,11 @@ impl Shell {
             reveal_preferences_after_save: false,
             fixture: services.is_fixture(),
             slow_fixture: services.is_slow_fixture(),
+            brand: std::sync::Arc::new(gpui_kit::Image::from_bytes(
+                gpui_kit::ImageFormat::Png,
+                include_bytes!("../../../ccr-ui/public/icons/icon.png").to_vec(),
+            )),
+            clock: cx.new(status::Clock::new),
             navigation_focus: cx.focus_handle().tab_stop(false),
             main_focus: cx.focus_handle().tab_stop(false),
             status_focus: cx.focus_handle(),
@@ -667,7 +675,11 @@ impl Shell {
             .px(px(theme::CONTROL_GAP))
             .rounded(px(theme::INPUT_RADIUS))
             .border_2()
-            .border_color(gpui_kit::transparent_black())
+            .border_color(if selected {
+                colors.primary.opacity(0.24)
+            } else {
+                gpui_kit::transparent_black()
+            })
             .bg(if selected {
                 selection
             } else {
@@ -709,16 +721,16 @@ impl Shell {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let destination = self.destination;
-        semantics::button(
-            Button::new(id)
-                .label(text(cx, en, zh))
-                .ghost()
-                .selected(self.lens == lens)
-                .toggled(self.lens == lens)
-                .on_click(
+        semantics::tab(
+            semantics::button(
+                Button::new(id).label(text(cx, en, zh)).ghost().on_click(
                     cx.listener(move |this, _, window, cx| this.go(destination, lens, window, cx)),
                 ),
-            false,
+                false,
+                false,
+                cx,
+            ),
+            self.lens == lens,
             false,
             cx,
         )
@@ -824,13 +836,25 @@ impl Shell {
         let mut row = div()
             .flex()
             .flex_wrap()
-            .gap(px(theme::CONTROL_GAP))
-            .px(px(theme::CONTENT_PADDING))
-            .pt(px(theme::CONTROL_GAP));
+            .gap(px(2.))
+            .p(px(2.))
+            .rounded(px(theme::INPUT_RADIUS))
+            .border_1()
+            .border_color(theme::tab_colors(cx.theme().mode).border)
+            .bg(theme::tab_colors(cx.theme().mode).background);
         for (id, lens, en, zh) in items {
             row = row.child(self.lens_button(id, lens, en, zh, cx));
         }
-        Some(row.into_any_element())
+        Some(
+            div()
+                .flex_shrink_0()
+                .px(px(theme::CONTENT_PADDING))
+                .py(px(theme::CONTROL_GAP))
+                .border_b_1()
+                .border_color(cx.theme().border)
+                .child(row)
+                .into_any_element(),
+        )
     }
 
     fn body(&self, cx: &mut Context<Self>) -> AnyElement {
@@ -971,23 +995,38 @@ impl Render for Shell {
                     .h(px(theme::NAV_BRAND_HEIGHT))
                     .line_height(gpui_kit::relative(1.3))
                     .flex()
-                    .flex_col()
-                    .justify_center()
+                    .items_center()
+                    .gap(px(theme::CONTROL_GAP))
                     .child(
                         div()
-                            .text_size(px(16.))
-                            .font_weight(gpui_kit::FontWeight::SEMIBOLD)
-                            .child("CCR"),
+                            .id("brand-mark")
+                            .test_support()
+                            .role(gpui_kit::Role::Image)
+                            .aria_label("CCR")
+                            .size(px(28.))
+                            .flex_shrink_0()
+                            .child(gpui_kit::img(self.brand.clone()).size_full()),
                     )
                     .child(
                         div()
-                            .text_color(cx.theme().muted_foreground)
-                            .text_size(px(theme::META_SIZE))
-                            .child(if self.fixture {
-                                text(cx, "Demo data", "演示数据")
-                            } else {
-                                text(cx, "Workbench", "运行工作台")
-                            }),
+                            .flex()
+                            .flex_col()
+                            .child(
+                                div()
+                                    .text_size(px(16.))
+                                    .font_weight(gpui_kit::FontWeight::SEMIBOLD)
+                                    .child("CCR"),
+                            )
+                            .child(
+                                div()
+                                    .text_color(cx.theme().muted_foreground)
+                                    .text_size(px(theme::META_SIZE))
+                                    .child(if self.fixture {
+                                        text(cx, "Demo data", "演示数据")
+                                    } else {
+                                        text(cx, "Workbench", "运行工作台")
+                                    }),
+                            ),
                     ),
             );
         let items = Self::nav_items();
@@ -1120,7 +1159,7 @@ impl Render for Shell {
                     .focus(|style| style.border_color(cx.theme().ring))
                     .text_size(px(theme::META_SIZE))
                     .text_color(cx.theme().muted_foreground)
-                    .child(status.to_string()),
+                    .child(self.status_contents(status, cx)),
             );
         div()
             .id("ccr-shell")

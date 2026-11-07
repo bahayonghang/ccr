@@ -49,6 +49,7 @@ typography:
 rounded:
   sm: 4px
   md: 8px
+  panel: 12px
   pill: 9999px
   surface: 20px
 spacing:
@@ -72,6 +73,8 @@ spacing:
 主操作、链接和焦点使用绿色（light #156f4e / dark #85d5b1），有独立对比文字色；明确输出使用紫色（light #6d4bd6 / dark #b9a4f4）。选中背景保持克制的实色阶，平台身份为小图标与文字，不给整个页面染色。success/warning/danger 仅表示真实状态，始终配文字或图标。上涨/下降不是成功/失败，不默认使用红绿。
 
 reading 是列表/输入的实色工作区，base 是侧栏底色，elevated 是纸面降级色，overlay 是实色弹层。使用色阶与空间分区，border-subtle 仅装饰分隔；需要表达控件边界时必须用 border-control。焦点使用 2px focus 环和 2px 间隔。
+
+装饰 hairline 使用 border-subtle 的 light 24% / dark 35% alpha；需要辨识的输入与 tab 边界仍使用不透明 border-control。分段工具行使用 elevated 容器、surface 选中面、primary 选中文字和 6px 选项角，避免 ghost 的 selected 与纸面同色。选中文字对选中面至少 4.5:1，控件边界对相邻工作面至少 3:1。
 
 普通文字、辅助文字、状态文字与其允许背景达到 4.5:1，焦点与关键控件边界达到 3:1。禁用文字保留可读对比度，通过禁用交互、图标与语义状态降低强调，不统一透明化整组内容。来源中的绿色/橙色已调暗以满足浅色正文对比度。
 
@@ -109,7 +112,7 @@ GPUI 的 overflow mask 为矩形，不能用父纸面圆角假定子背景会被
 
 ## Shapes
 
-主/次按钮均 pill，输入 8px，列表可选背景 4px，纸面 20px（仅外层，密集工作面保持原角度）。图标使用一个集合，优先 Kit 的 Lucide 资源，实际依赖/资源开销在构建时记录。主操作不使用 emoji 图标。
+主/次按钮均 pill，输入 8px，列表可选背景 4px，内容面板 12px，纸面 20px（仅外层）。分段 tab 使用 6px 角。图标使用一个集合，优先 Kit 的 Lucide 资源；品牌独立复用仓库生成的蓝色 CCR mark，不重绘或染色。实际依赖/资源开销在构建时记录。主操作不使用 emoji 图标。
 
 保留克制与柔和控件；数据列表不用 pill 包每一项。只有语义独立的弹层使用 8px 外角。
 
@@ -121,8 +124,14 @@ The sidebar keeps all 13 destinations. Each 32px row has one 16px Lucide icon,
 an 8px gap and a left-aligned label; all icons share one alignment column.
 Group headings use the 12px muted role and a hairline, with a 4px top gap.
 The rail has 12px padding and 4px row gaps. Settings stays pinned
-above a 12px version line. Selection uses the existing opaque overlay and
+above a 12px version line. Selection uses a primary tint and thin primary border with
 semibold text; hover and keyboard focus remain distinct.
+
+The brand row embeds the generated app PNG with its original colors and alpha;
+the Windows executable embeds the matching existing ICO as resource ID 1.
+The status bar keeps the actual environment/source label, a matching state dot,
+four numbered route shortcuts and a local HH:mm clock refreshed every 30 seconds.
+The source dot means configured, never connected or successfully read.
 
 Platform destinations open a workbench, with Profiles as a separate context
 tab. The first reading line names the captured local profile, credential
@@ -160,6 +169,7 @@ status section, compact usage summary, daily bars and management links.
 - **任务反馈**：queued/running/cancel_requested/terminal 状态可见。页内进度文本与可恢复错误优先，toast 不作为唯一结果渠道。取消请求不得立即写“已取消”。
 - **确认**：只用于不可逆/敏感操作的业务确认，列明对象和后果；普通导航与展开不用弹窗。确认区域挂载后将初始焦点转入真实决策按钮，即使此前焦点在侧栏；取消或离页后的延迟回调不得重新抢焦点。Tab/Shift+Tab 留在决定子树，Esc 返回安全状态，焦点回到触发者。测试须覆盖从外部焦点真实打开的路径，不能手动把焦点塞进确认框后声称初始转移通过。
 - **图表**：有明确问题才显示；趋势用线、比较用条形。高度 160 至 240px，图例与 exact-value table 可达；低对比色必须有表格/文字通道。数据更新不播放入场动画。
+- **精确值行焦点**：Overview 精确值表的真实行焦点始终显示预留的 2px ring 边框，跟随逻辑 focus，不由最后一次输入模态隐藏。Tab/Shift+Tab 同时 reveal 表格与外层页面中的当前行；UIA focused 或 headless bounds 通过不能替代原生可见边框验收。
 - **状态**：empty 说明原因并给已有下一步；loading 保留布局；error 显示可重试原因；unsupported 与未接入明确区分。演示 fixture 必须带“演示数据”标识，生产无伪造数字。
 
 ## Do's and Don'ts

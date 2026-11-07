@@ -3,6 +3,7 @@ use crate::{
     locales::{is_chinese, service_error, text},
     runtime::{Services, jobs::CommandRequests},
     shell::semantics,
+    theme,
 };
 use ccr_app::{
     jobs::{
@@ -327,24 +328,37 @@ fn job_state(cx: &App, snapshot: &Snapshot) -> String {
 impl Render for JobsView {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let summary = catalog_summary(cx, self.catalog.len());
-        let mut commands = div().flex().flex_wrap().gap_1();
+        let mut commands = div()
+            .flex()
+            .flex_wrap()
+            .gap_1()
+            .p(px(theme::NAV_ROW_GAP))
+            .rounded(px(theme::INPUT_RADIUS))
+            .bg(theme::tab_colors(cx.theme().mode).background)
+            .border_b_1()
+            .border_color(theme::hairline(cx.theme().mode));
         for entry in &self.catalog {
             let command = entry.name;
             let label = command_label(cx, entry);
             let executable = entry.executable;
             let enabled = executable && !self.busy;
-            commands = commands.child(semantics::button(
-                Button::new(SharedString::from(format!("job-command-{command}")))
-                    .label(label)
-                    .ghost()
-                    .on_click(cx.listener(move |this, _, _, cx| {
-                        if !this.busy && executable {
-                            this.selected = command.into();
-                            cx.notify();
-                        }
-                    })),
+            commands = commands.child(semantics::tab(
+                semantics::button(
+                    Button::new(SharedString::from(format!("job-command-{command}")))
+                        .label(label)
+                        .ghost()
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            if !this.busy && executable {
+                                this.selected = command.into();
+                                cx.notify();
+                            }
+                        })),
+                    !enabled,
+                    false,
+                    cx,
+                ),
+                self.selected == command,
                 !enabled,
-                false,
                 cx,
             ));
         }

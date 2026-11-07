@@ -568,42 +568,19 @@ impl InsightsView {
     }
 }
 
-impl Render for InsightsView {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        if self.surface == Surface::Sessions {
-            return product::sessions(self, window, cx).into_any_element();
-        }
-        let mut root = div()
-            .id("insights-root")
-            .test_support()
-            .size_full()
+impl InsightsView {
+    // Keep selector builder temporaries out of the large render frame;
+    // Windows native UI threads have a 1 MiB stack.
+    fn product_tabs(&self, cx: &mut Context<Self>) -> gpui_kit::Div {
+        let mut tabs = div()
             .flex()
-            .flex_col()
-            .min_h_0()
+            .flex_wrap()
             .gap(px(theme::CONTROL_GAP))
-            .p(px(theme::SECTION_GAP))
-            .bg(cx.theme().background)
-            .rounded_tr(px(theme::SHEET_CONTENT_RADIUS));
-        let mut tabs = div().flex().gap(px(theme::CONTROL_GAP));
-        if self.surface == Surface::Usage {
-            root = root
-                .child(
-                    div()
-                        .text_size(px(theme::TITLE_SIZE))
-                        .font_weight(gpui_kit::FontWeight::SEMIBOLD)
-                        .child(text(cx, "Usage", "用量")),
-                )
-                .child(
-                    div()
-                        .text_size(px(theme::META_SIZE))
-                        .text_color(cx.theme().muted_foreground)
-                        .child(text(
-                            cx,
-                            "Figures already stored in the local usage database.",
-                            "这些数字来自本机用量库，没有示例填充。",
-                        )),
-                );
-        }
+            .p(px(theme::NAV_ROW_GAP))
+            .rounded(px(theme::INPUT_RADIUS))
+            .bg(theme::tab_colors(cx.theme().mode).background)
+            .border_b_1()
+            .border_color(theme::hairline(cx.theme().mode));
         if matches!(self.surface, Surface::Workbench | Surface::Usage) {
             for (page, id, en, zh) in [
                 (InsightsPage::Usage, "insights-usage", "Usage", "用量"),
@@ -645,17 +622,114 @@ impl Render for InsightsView {
                 if self.surface == Surface::Usage && page == InsightsPage::Sessions {
                     continue;
                 }
-                tabs = tabs.child(semantics::button(
-                    Button::new(id)
-                        .label(text(cx, en, zh))
-                        .ghost()
-                        .toggled(self.page == page)
-                        .on_click(cx.listener(move |this, _, _, cx| this.set_page(page, cx))),
-                    false,
+                tabs = tabs.child(semantics::tab(
+                    semantics::button(
+                        Button::new(id)
+                            .label(text(cx, en, zh))
+                            .ghost()
+                            .on_click(cx.listener(move |this, _, _, cx| this.set_page(page, cx))),
+                        false,
+                        false,
+                        cx,
+                    ),
+                    self.page == page,
                     false,
                     cx,
                 ));
             }
+        }
+        tabs
+    }
+
+    fn usage_sections(&self, cx: &mut Context<Self>) -> gpui_kit::Div {
+        let mut sections = div()
+            .flex()
+            .flex_wrap()
+            .gap(px(theme::CONTROL_GAP))
+            .p(px(theme::NAV_ROW_GAP))
+            .rounded(px(theme::INPUT_RADIUS))
+            .bg(theme::tab_colors(cx.theme().mode).background)
+            .border_b_1()
+            .border_color(theme::hairline(cx.theme().mode));
+        for (section, en, zh) in Section::ALL {
+            sections = sections.child(semantics::tab(
+                semantics::button(
+                    Button::new(SharedString::from(format!("insights-section-{en}")))
+                        .label(text(cx, en, zh))
+                        .ghost()
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            this.section = section;
+                            this.refresh(cx);
+                        })),
+                    self.loading,
+                    false,
+                    cx,
+                ),
+                self.section == section,
+                self.loading,
+                cx,
+            ));
+        }
+        sections = sections.child(semantics::tab(
+            semantics::button(
+                Button::new("insights-timezone")
+                    .label(if self.utc {
+                        "UTC"
+                    } else {
+                        text(cx, "Local", "本地")
+                    })
+                    .ghost()
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.utc = !this.utc;
+                        this.refresh(cx);
+                    })),
+                self.loading,
+                false,
+                cx,
+            ),
+            self.utc,
+            self.loading,
+            cx,
+        ));
+        sections
+    }
+}
+
+impl Render for InsightsView {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        if self.surface == Surface::Sessions {
+            return product::sessions(self, window, cx).into_any_element();
+        }
+        let mut root = div()
+            .id("insights-root")
+            .test_support()
+            .size_full()
+            .flex()
+            .flex_col()
+            .min_h_0()
+            .gap(px(theme::CONTROL_GAP))
+            .p(px(theme::SECTION_GAP))
+            .bg(cx.theme().background)
+            .rounded_tr(px(theme::SHEET_CONTENT_RADIUS));
+        let mut tabs = self.product_tabs(cx);
+        if self.surface == Surface::Usage {
+            root = root
+                .child(
+                    div()
+                        .text_size(px(theme::TITLE_SIZE))
+                        .font_weight(gpui_kit::FontWeight::SEMIBOLD)
+                        .child(text(cx, "Usage", "用量")),
+                )
+                .child(
+                    div()
+                        .text_size(px(theme::META_SIZE))
+                        .text_color(cx.theme().muted_foreground)
+                        .child(text(
+                            cx,
+                            "Figures already stored in the local usage database.",
+                            "这些数字来自本机用量库，没有示例填充。",
+                        )),
+                );
         }
         if self.page == InsightsPage::Capabilities {
             return root
@@ -811,39 +885,7 @@ impl Render for InsightsView {
             root = root.child(filters);
         }
         if self.page == InsightsPage::Usage {
-            let mut sections = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
-            for (section, en, zh) in Section::ALL {
-                sections = sections.child(semantics::button(
-                    Button::new(SharedString::from(format!("insights-section-{en}")))
-                        .label(text(cx, en, zh))
-                        .ghost()
-                        .toggled(self.section == section)
-                        .on_click(cx.listener(move |this, _, _, cx| {
-                            this.section = section;
-                            this.refresh(cx);
-                        })),
-                    self.loading,
-                    false,
-                    cx,
-                ));
-            }
-            sections = sections.child(semantics::button(
-                Button::new("insights-timezone")
-                    .label(if self.utc {
-                        "UTC"
-                    } else {
-                        text(cx, "Local", "本地")
-                    })
-                    .ghost()
-                    .on_click(cx.listener(|this, _, _, cx| {
-                        this.utc = !this.utc;
-                        this.refresh(cx);
-                    })),
-                self.loading,
-                false,
-                cx,
-            ));
-            root=root.child(sections).child(div().text_size(px(theme::META_SIZE)).child(text(cx,"Source IDs: claude, codex, opencode, antigravity, kimi_code, pi, grok, zcode, deepseek_harness. Inclusive dates in selected reporting zone.","来源为九个规范 ID；日期按所选报告时区包含首尾日。")));
+            root=root.child(self.usage_sections(cx)).child(div().text_size(px(theme::META_SIZE)).child(text(cx,"Source IDs: claude, codex, opencode, antigravity, kimi_code, pi, grok, zcode, deepseek_harness. Inclusive dates in selected reporting zone.","来源为九个规范 ID；日期按所选报告时区包含首尾日。")));
         }
         if self.page == InsightsPage::Home {
             root=root.child(div().text_size(px(theme::META_SIZE)).child(text(cx,"All-history usage and indexed sessions; seven-day windows use the local reporting date. Usage filters do not affect this join.","全历史用量与已索引会话；七日窗口按本地报告日期。用量筛选不影响此联合报告。")));

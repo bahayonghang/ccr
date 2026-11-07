@@ -143,3 +143,21 @@ Cargo/rustc 1.98.0 with its bin directory prepended only in the child process;
 `outputs/desktop/profiles/services/toolchain.json` records exact paths/versions.
 Desktop verification continues through its normal project-local Cargo resolver.
 MSRV 1.95 and final native acceptance remain separate checks recorded in task04.
+
+
+## Windows brand resource compilation — 2026-11-07
+
+`embed-resource = =3.0.12` is now a direct build dependency. The exact package,
+checksum, and transitive graph were already locked through GPUI; only the
+`ccr-gpui` dependency edge is added, with no package upgrades or new resolver
+run. The build script invokes it only for Windows, reusing the installed
+Windows SDK resource compiler. Resource failure stops the build. Other target
+builds keep their existing icon behavior.
+
+The executable embeds the repository's existing `ccr-ui/src-tauri/icons/icon.ico`
+as resource ID 1 (`assets/ccr.ico`, identical SHA-256 recorded in task research).
+The sidebar embeds `ccr-ui/public/icons/icon.png` directly at compile time;
+it adds no image/network library or runtime asset lookup. These are existing
+MIT repository brand outputs; the canonical input/generator ownership stays
+with `branding/icon-source.png` and `ccr-ui/scripts/generate_icons.py`.
+Native taskbar/window appearance remains separate from build evidence.

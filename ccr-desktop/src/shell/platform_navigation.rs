@@ -123,7 +123,16 @@ impl Shell {
             items.push(("tool-platform-sessions", Lens::Sessions, "Sessions", "会话"));
         }
         items.push(("tool-platform-usage", Lens::Usage, "Usage", "用量"));
-        let mut row = div().flex().flex_wrap().gap(px(theme::NAV_ROW_GAP));
+        let tabs = theme::tab_colors(cx.theme().mode);
+        let mut row = div()
+            .flex()
+            .flex_wrap()
+            .gap(px(2.))
+            .p(px(2.))
+            .rounded(px(theme::INPUT_RADIUS))
+            .border_1()
+            .border_color(tabs.border)
+            .bg(tabs.background);
         for (id, lens, en, zh) in items {
             row = row.child(self.lens_button(id, lens, en, zh, cx));
         }

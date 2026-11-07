@@ -218,6 +218,35 @@ async fn rendered_usage_controls_read_fixture_filters_and_keep_exact_costs(
         assert!(view.read(cx).error.is_none());
         assert!(view.read(cx).summary().contains("100"));
         window.render_frame(cx);
+        assert!(view.read(cx).section == Section::Sources);
+        assert_eq!(
+            window.find("insights-section-Sources").checked(),
+            Some(true)
+        );
+        assert_eq!(window.find("insights-section-Daily").checked(), Some(false));
+        assert_eq!(
+            window.find("insights-section-Models").checked(),
+            Some(false)
+        );
+        window.click("insights-section-Daily", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        !view.read(cx).loading
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(view.read(cx).section == Section::Trends);
+        assert_eq!(
+            window.find("insights-section-Sources").checked(),
+            Some(false)
+        );
+        assert_eq!(window.find("insights-section-Daily").checked(), Some(true));
+        assert_eq!(
+            window.find("insights-section-Models").checked(),
+            Some(false)
+        );
         window.click("insights-section-Models", cx);
     })
     .unwrap();
@@ -227,6 +256,13 @@ async fn rendered_usage_controls_read_fixture_filters_and_keep_exact_costs(
     .await;
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
+        assert!(view.read(cx).section == Section::Models);
+        assert_eq!(
+            window.find("insights-section-Sources").checked(),
+            Some(false)
+        );
+        assert_eq!(window.find("insights-section-Daily").checked(), Some(false));
+        assert_eq!(window.find("insights-section-Models").checked(), Some(true));
         window.click("insights-row:gpt-5", cx);
         window.render_frame(cx);
         assert!(window.find("insights-exact-detail").visible());

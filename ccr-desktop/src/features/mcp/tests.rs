@@ -262,6 +262,9 @@ async fn preset_and_cross_source_copy_use_real_controls_and_keep_stored_credenti
         window.click("mcp-presets", cx);
         window.click("mcp-preset-fetch", cx);
         window.click("mcp-source-codex", cx);
+        window.render_frame(cx);
+        assert_eq!(window.find("mcp-source-codex").checked(), Some(true));
+        assert_eq!(window.find("mcp-source-user").checked(), Some(false));
         window.click("mcp-open-editor", cx);
     })
     .unwrap();

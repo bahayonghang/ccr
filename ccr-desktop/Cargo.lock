@@ -1186,6 +1186,7 @@ dependencies = [
  "ccr-usage",
  "chrono",
  "dirs 6.0.0",
+ "embed-resource",
  "gpui-kit",
  "reqwest",
  "rusqlite",

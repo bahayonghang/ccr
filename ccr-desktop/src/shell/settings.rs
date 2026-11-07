@@ -166,7 +166,7 @@ impl Shell {
                 .flex_col()
                 .p(px(theme::SECTION_GAP))
                 .gap(px(theme::SECTION_GAP))
-                .rounded(px(theme::INPUT_RADIUS))
+                .rounded(px(theme::PANEL_RADIUS))
                 .border_1()
                 .border_color(cx.theme().border)
                 .bg(cx.theme().background)

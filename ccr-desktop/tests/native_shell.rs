@@ -180,14 +180,40 @@ fn f6_tab_navigation_does_not_intercept_search_editing(cx: &mut TestAppContext) 
     });
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
+        for preference in [
+            ccr_gpui::theme::Preference::Dark,
+            ccr_gpui::theme::Preference::Light,
+        ] {
+            ccr_gpui::theme::apply(preference, window, cx);
+            window.render_frame(cx);
+            assert!(window.find("brand-mark").visible());
+            assert_eq!(window.find("tool-overview").checked(), Some(true));
+            assert_eq!(window.find("tool-monitoring").checked(), Some(false));
+            window.click("tool-monitoring", cx);
+            assert_eq!(window.find("tool-monitoring").checked(), Some(true));
+            assert_eq!(window.find("tool-overview").checked(), Some(false));
+            window.click("status-overview", cx);
+            assert_eq!(window.find("tool-overview").checked(), Some(true));
+            assert!(
+                window
+                    .find("status-clock")
+                    .label()
+                    .is_some_and(|value| { value.len() == 5 && value.as_bytes()[2] == b':' })
+            );
+        }
         window.click("nav-claude-code", cx);
         window.click("tool-profiles", cx);
+        assert_eq!(window.find("tool-profiles").checked(), Some(true));
+        assert_eq!(window.find("tool-home").checked(), Some(false));
         window.click("configuration-filter", cx);
         window.input("原生读取", cx);
         window.press("left", cx);
         window.press("backspace", cx);
         assert_eq!(window.find("configuration-filter").value(), Some("原生取"));
         window.press("f6", cx); // main -> status
+        assert_eq!(window.find("shell-status").focused(), Some(true));
+        window.press("tab", cx);
+        assert_eq!(window.find("status-overview").focused(), Some(true));
         window.press("f6", cx); // status -> navigation
         assert_eq!(window.find("nav-dashboard").focused(), Some(true));
         window.press("down", cx);
@@ -202,6 +228,11 @@ fn f6_tab_navigation_does_not_intercept_search_editing(cx: &mut TestAppContext) 
         assert_eq!(window.find("nav-agent-sessions").focused(), Some(true));
         window.press("shift-tab", cx);
         assert_eq!(window.find("nav-dashboard").focused(), Some(true));
+        window.click("status-usage", cx);
+        assert_eq!(window.find("nav-usage").checked(), Some(true));
+        assert_eq!(window.find("tool-report").checked(), Some(true));
+        window.click("status-commands", cx);
+        assert_eq!(window.find("nav-commands").checked(), Some(true));
         window.remove_window();
     })
     .unwrap_or_else(|e| panic!("interaction: {e}"));

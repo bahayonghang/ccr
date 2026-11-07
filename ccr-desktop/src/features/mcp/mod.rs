@@ -14,7 +14,7 @@ use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, Response
 use editor::{EditMode, EditorEvent, McpEditor};
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
-    Selectable,
+    ActiveTheme, Selectable,
     button::{Button, ButtonVariants},
     input::{Input, InputEvent, InputState},
 };
@@ -624,7 +624,15 @@ impl Render for McpView {
                 )
                 .to_string(),
             });
-            let mut targets = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
+            let mut targets = div()
+                .flex()
+                .flex_wrap()
+                .gap(px(theme::CONTROL_GAP))
+                .p(px(theme::NAV_ROW_GAP))
+                .rounded(px(theme::INPUT_RADIUS))
+                .bg(theme::tab_colors(cx.theme().mode).background)
+                .border_b_1()
+                .border_color(theme::hairline(cx.theme().mode));
             for (index, id, en, zh) in [
                 (0, "mcp-source-user", "Claude user", "Claude 用户"),
                 (
@@ -652,17 +660,21 @@ impl Render for McpView {
                 {
                     continue;
                 }
-                targets = targets.child(semantics::button(
-                    Button::new(id)
-                        .label(text(cx, en, zh))
-                        .ghost()
-                        .selected(self.create_source == index)
-                        .on_click(cx.listener(move |this, _, _, cx| {
-                            this.create_source = index;
-                            cx.notify();
-                        })),
+                targets = targets.child(semantics::tab(
+                    semantics::button(
+                        Button::new(id)
+                            .label(text(cx, en, zh))
+                            .ghost()
+                            .on_click(cx.listener(move |this, _, _, cx| {
+                                this.create_source = index;
+                                cx.notify();
+                            })),
+                        self.busy,
+                        false,
+                        cx,
+                    ),
+                    self.create_source == index,
                     self.busy,
-                    false,
                     cx,
                 ));
             }

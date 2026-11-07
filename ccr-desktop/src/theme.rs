@@ -19,6 +19,8 @@ pub const META_SIZE: f32 = 12.;
 pub const CONTROL_GAP: f32 = 8.;
 pub const SELECTION_RADIUS: f32 = 4.;
 pub const INPUT_RADIUS: f32 = 8.;
+pub const PANEL_RADIUS: f32 = 12.;
+pub const TAB_RADIUS: f32 = 6.;
 pub const PILL_RADIUS: f32 = 9999.;
 pub const SIDEBAR_WIDTH: f32 = 216.;
 pub const NARROW_SIDEBAR: f32 = 184.;
@@ -156,6 +158,30 @@ pub fn field(mode: ThemeMode) -> Background {
     )
 }
 
+/// Decorative separators only; control boundaries retain the opaque control role.
+pub fn hairline(mode: ThemeMode) -> Hsla {
+    Hsla::from(rgb(palette(mode).subtle)).opacity(if mode.is_dark() { 0.35 } else { 0.24 })
+}
+
+pub struct TabColors {
+    pub background: Hsla,
+    pub selected: Hsla,
+    pub foreground: Hsla,
+    pub selected_foreground: Hsla,
+    pub border: Hsla,
+}
+
+pub fn tab_colors(mode: ThemeMode) -> TabColors {
+    let p = palette(mode);
+    TabColors {
+        background: rgb(p.elevated).into(),
+        selected: rgb(p.surface).into(),
+        foreground: rgb(p.secondary_text).into(),
+        selected_foreground: rgb(p.primary).into(),
+        border: rgb(p.control).into(),
+    }
+}
+
 /// Platform identity ink shared by navigation icons and usage series.
 pub fn platform_color(id: &str, mode: ThemeMode) -> Hsla {
     let (light, dark) = match id {
@@ -256,7 +282,7 @@ fn apply_palette(cx: &mut App) {
         c.foreground = color(p.text);
         c.muted = color(p.neutral);
         c.muted_foreground = color(p.muted);
-        c.border = color(p.subtle);
+        c.border = hairline(theme.mode);
         c.input = color(p.control);
         c.ring = color(p.primary);
         c.caret = color(p.text);
@@ -269,12 +295,12 @@ fn apply_palette(cx: &mut App) {
         c.secondary = color(p.elevated);
         c.secondary_foreground = color(p.secondary_text);
         c.secondary_hover = color(p.neutral);
-        c.secondary_active = color(p.elevated);
+        c.secondary_active = color(p.overlay);
         c.accent = color(p.elevated);
         c.accent_foreground = color(p.text);
         c.sidebar = color(p.neutral);
         c.sidebar_foreground = color(p.text);
-        c.sidebar_border = color(p.subtle);
+        c.sidebar_border = hairline(theme.mode);
         c.sidebar_accent = color(p.elevated);
         c.sidebar_accent_foreground = color(p.text);
         c.sidebar_primary = color(p.primary);
@@ -304,9 +330,9 @@ fn apply_palette(cx: &mut App) {
         c.warning = color(p.warning);
         c.info = color(p.info);
         c.title_bar = color(p.surface);
-        c.title_bar_border = color(p.subtle);
+        c.title_bar_border = hairline(theme.mode);
         c.status_bar = color(p.surface);
-        c.status_bar_border = color(p.subtle);
+        c.status_bar_border = hairline(theme.mode);
     });
 }
 
@@ -383,6 +409,22 @@ mod tests {
             }
             assert_ne!(p.primary, p.success);
             assert_ne!(p.primary, p.output);
+        }
+    }
+
+    #[test]
+    fn segmented_controls_keep_visible_ink_and_boundaries_in_both_themes() {
+        for mode in [ThemeMode::Light, ThemeMode::Dark] {
+            let p = palette(mode);
+            assert!(contrast(p.primary, p.surface) >= 4.5);
+            assert!(contrast(p.secondary_text, p.elevated) >= 4.5);
+            for surface in [p.sheet, p.surface, p.elevated] {
+                assert!(contrast(p.control, surface) >= 3.);
+            }
+            assert_ne!(p.surface, p.sheet);
+            assert_ne!(p.overlay, p.sheet);
+            assert_eq!(hairline(mode).a, if mode.is_dark() { 0.35 } else { 0.24 });
+            assert_eq!(tab_colors(mode).border.a, 1.);
         }
     }
 }

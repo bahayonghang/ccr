@@ -50,6 +50,12 @@ Renderer signatures: `render_brand_master(variant: str)`, `render_brand_icon(siz
 - Lanczos can leave alpha=1 at a 16 px outer corner. Raster export explicitly clears all four corner pixels; ICO uses the exact prepared size frames instead of relying on Pillow to resize the large master again. Validate each embedded ICO frame, not just the default largest image.
 - Tauri `bundle.icon` includes both `icon.ico` and `icon.icns` alongside the existing PNG targets.
 - A second generator run without source changes must produce identical content hashes.
+- The GPUI consumer (`ccr-desktop`) reuses the existing generated app PNG for
+  full-color in-app branding and the generated `icon.ico` for Windows resource
+  ID 1. The SVG carrier contains a raster image: do not pass it through a
+  monochrome SVG mask or redraw it as a substitute. Record copy hashes when
+  taking a standalone ICO copy, and refresh that copy on brand changes. Building
+  an icon resource does not prove its taskbar/Alt-Tab appearance.
 
 ### 4. Validation & Error Matrix
 
@@ -94,6 +100,11 @@ Assertions:
 - assert raster outputs have transparent outer corners where required;
 - run generation twice and compare hashes of every owned source/output;
 - visually inspect at least 16/32 px and 512/1024 px samples.
+
+For GPUI consumer-only changes, verify source/copy hashes, run its independent
+`desktop-ci` gate and inspect the built Windows icon resource. Generator and
+Tauri checks above are required when their owned source/outputs change, rather
+than merely when the GPUI consumer reuses them.
 
 ### 7. Wrong vs Correct
 
