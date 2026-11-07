@@ -722,3 +722,25 @@ ccr project init 现在默认勾选五项平台并要求输入用户名，-y 使
 ### Status
 
 [OK] **Completed**
+
+
+## Session 142: GPUI Claude Code 工作台首页重构与原生验收
+<!-- trellis-session: v=2 fp=db6023781999cc19 -->
+
+**Date**: 2026-11-07
+**Task**: GPUI Claude Code 工作台首页重构与原生验收
+**Branch**: `dev`
+
+### Summary
+
+完成配置摘要、三段费用和 30 天费用曲线，验证逐日报告的键盘焦点与精确金额。在 Windows 原生窗口对照 Tauri 首页验收，桌面测试及格式、类型、Clippy 检查通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f0182cd7` | feat(GPUI): ✨ 重构 Claude Code 工作台首页 |
+
+### Status
+
+[OK] **Completed**
