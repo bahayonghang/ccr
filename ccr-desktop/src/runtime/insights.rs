@@ -9,15 +9,19 @@ use ccr_app::{
     runtime::{AdmissionError, Completion, EnvironmentId, RequestKey, TaskSubscription},
     sessions::{self, SessionDetail, SessionError, SessionListRequest, SessionPage},
     usage::{
-        home::{HomeInsightsSnapshot, assemble_home_insights},
+        home::{
+            HomeInsightsSnapshot, InsightsSessionCounts, assemble_home_insights,
+            merge_home_insights,
+        },
         read::{UsageSnapshot, read_dashboard_at},
+        report_clock::ReportClock,
     },
 };
 use ccr_db::database::{self, DbPool};
 use ccr_store::sessions::{AgentSessionProviderRegistry, AgentSessionProviderStatus};
 use ccr_usage::{
     AppPaths, HomeOverviewPlatformStats, HomeOverviewSeriesItem, LogsPage, LogsQuery, QueryFilter,
-    SourceKind, UsageError,
+    ReportTimezone, SourceKind, UsageError,
 };
 use chrono::{DateTime, NaiveDate, Utc};
 use std::{
@@ -160,6 +164,47 @@ pub struct WorkbenchReport {
     pub other_requests: i64,
     pub platforms: Vec<WorkbenchPlatform>,
     pub days: Vec<WorkbenchDay>,
+    /// Raw RFC3339 finish time of the last successful sync run.
+    pub last_sync_at: Option<String>,
+    /// `last_sync_at` in the report timezone, computed here so rendering stays pure.
+    pub freshness: SyncFreshness,
+    /// All-history activity; `None` only when the usage projection cannot be read.
+    pub activity: Option<HomeInsightsSnapshot>,
+}
+
+/// How current the imported usage is, in the report timezone.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SyncFreshness {
+    /// `MM-DD HH:mm`; `None` when no readable sync time is recorded.
+    pub local: Option<String>,
+    /// `MM-DD` of the last sync, the last day the report can contain.
+    pub date: Option<String>,
+    /// The last sync's local date precedes the report date, or no sync is known.
+    pub stale: bool,
+}
+
+impl SyncFreshness {
+    /// Convert a stored sync time for one report clock. A value that is not
+    /// RFC3339 has no known instant, so it carries no time and counts as stale.
+    pub fn at(last_sync_at: Option<&str>, clock: ReportClock) -> Self {
+        let Some(instant) = last_sync_at.and_then(|raw| DateTime::parse_from_rfc3339(raw).ok())
+        else {
+            return Self {
+                local: None,
+                date: None,
+                stale: true,
+            };
+        };
+        let local = match clock.timezone {
+            ReportTimezone::Utc => instant.naive_utc(),
+            ReportTimezone::Local => instant.with_timezone(&chrono::Local).naive_local(),
+        };
+        Self {
+            local: Some(local.format("%m-%d %H:%M").to_string()),
+            date: Some(local.format("%m-%d").to_string()),
+            stale: local.date() < clock.date(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -573,16 +618,20 @@ impl InsightsRequests {
             ..QueryFilter::default()
         };
         let home = dashboard.home_overview(&filter)?;
-        let cost_usd = match if self.services.benchmark_clock().is_some() {
+        let overview = if self.services.benchmark_clock().is_some() {
             dashboard.overview_at(&filter, clock.as_of)
         } else {
             dashboard.overview(&filter)
-        } {
-            Ok(payload) if payload.total_cost_usd.is_finite() => Some(payload.total_cost_usd),
-            _ => None,
-        };
-        let (sessions_indexed, session_count, session_scope) =
-            self.session_window(paths, &dashboard, clock, days);
+        }
+        .ok();
+        let cost_usd = overview
+            .as_ref()
+            .map(|payload| payload.total_cost_usd)
+            .filter(|cost| cost.is_finite());
+        let last_sync_at = overview.and_then(|payload| payload.last_sync_at);
+        let freshness = SyncFreshness::at(last_sync_at.as_deref(), clock);
+        let (activity, sessions_indexed, session_count, session_scope) =
+            self.activity_window(paths, &dashboard, clock, days);
         let series = dense_days(&home.series, since, as_of);
         let drawn_requests: i64 = series
             .iter()
@@ -600,48 +649,56 @@ impl InsightsRequests {
             other_requests: home.summary.total_requests.saturating_sub(drawn_requests),
             platforms: workbench_platforms(&home.by_platform, &series),
             days: series,
+            last_sync_at,
+            freshness,
+            activity,
         })
     }
 
-    fn session_window(
+    /// All-history activity plus the session reading for the selected window.
+    /// Each source degrades alone: without the usage projection there is no
+    /// activity, and without the archive the usage half stays while sessions
+    /// read as unavailable.
+    fn activity_window(
         &self,
         paths: &InsightsPaths,
         dashboard: &ccr_usage::Dashboard,
-        clock: ccr_app::usage::report_clock::ReportClock,
+        clock: ReportClock,
         days: u16,
-    ) -> (bool, Option<i64>, SessionScope) {
-        let as_of = clock.date();
+    ) -> (
+        Option<HomeInsightsSnapshot>,
+        bool,
+        Option<i64>,
+        SessionScope,
+    ) {
         let Ok(projected) = dashboard.insights(
             &QueryFilter {
                 timezone: clock.timezone,
                 ..Default::default()
             },
-            as_of,
+            clock.date(),
         ) else {
-            return (false, None, SessionScope::Unavailable);
+            return (None, false, None, SessionScope::Unavailable);
         };
-        let Ok(pool) = self.archive_pool(paths) else {
-            return (false, None, SessionScope::Unavailable);
-        };
-        let Ok(snapshot) = assemble_home_insights(projected, &pool, clock.as_of) else {
-            return (false, None, SessionScope::Unavailable);
+        // assemble 会消费投影；留一份给归档读取失败时的纯用量快照。
+        let assembled = self
+            .archive_pool(paths)
+            .ok()
+            .and_then(|pool| assemble_home_insights(projected.clone(), &pool, clock.as_of).ok());
+        let Some(snapshot) = assembled else {
+            let usage_only =
+                merge_home_insights(projected, InsightsSessionCounts::default(), clock.as_of);
+            return (Some(usage_only), false, None, SessionScope::Unavailable);
         };
         if !snapshot.sessions_indexed {
-            return (false, None, SessionScope::Unindexed);
+            return (Some(snapshot), false, None, SessionScope::Unindexed);
         }
-        if days == 7 {
-            (
-                true,
-                Some(snapshot.last_7_days.sessions),
-                SessionScope::Window,
-            )
+        let (count, scope) = if days == 7 {
+            (snapshot.last_7_days.sessions, SessionScope::Window)
         } else {
-            (
-                true,
-                Some(snapshot.totals.sessions),
-                SessionScope::AllHistory,
-            )
-        }
+            (snapshot.totals.sessions, SessionScope::AllHistory)
+        };
+        (Some(snapshot), true, Some(count), scope)
     }
 
     pub fn load(

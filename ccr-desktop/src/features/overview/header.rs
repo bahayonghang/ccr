@@ -1,9 +1,10 @@
 //! Heading row: title with the embedded lens, range capsule, refresh and status line.
-use super::OverviewView;
+use super::{Node, OverviewView};
 use crate::{
     locales::{is_chinese, service_error, text},
+    runtime::insights::WorkbenchReport,
     shell::{badge, page_header, semantics},
-    theme,
+    theme::{self, Tone},
 };
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
@@ -11,8 +12,8 @@ use gpui_kit::component::{
     button::{Button, ButtonVariants},
 };
 use gpui_kit::{
-    Context, InteractiveElement, IntoElement, ParentElement, StatefulInteractiveElement, Styled,
-    div, prelude::FluentBuilder, px,
+    App, Context, InteractiveElement, IntoElement, ParentElement, StatefulInteractiveElement,
+    Styled, div, prelude::FluentBuilder, px,
 };
 
 impl OverviewView {
@@ -46,6 +47,59 @@ impl OverviewView {
             ),
             None => window,
         }
+    }
+
+    /// `Last successful sync MM-DD HH:mm`, or why there is no time to show.
+    ///
+    /// llmusage 只记录“成功”的同步时间；失败的同步仍可能导入了部分数据，所以这里
+    /// 只陈述成功时间，不据此推断哪些日期“未导入”。
+    pub(super) fn sync_line(&self, report: &WorkbenchReport, cx: &App) -> String {
+        match (&report.freshness.local, &report.last_sync_at) {
+            (Some(local), _) if is_chinese(cx) => format!("上次成功同步 {local}{}", self.zone()),
+            (Some(local), _) => format!("Last successful sync {local}{}", self.zone()),
+            (None, Some(_)) => text(cx, "Sync time unreadable", "同步时间不可读").into(),
+            (None, None) => text(cx, "No successful sync recorded", "未记录成功同步").into(),
+        }
+    }
+
+    // 过期时圆点旁必须有文字说明它标记的是什么；无障碍标签同样写明。
+    fn last_sync(&self, cx: &App) -> Option<Node> {
+        let report = self.report.as_ref()?;
+        let line = self.sync_line(report, cx);
+        let stale = report.freshness.stale;
+        let description = if stale && report.freshness.local.is_some() {
+            format!(
+                "{line}{}",
+                text(
+                    cx,
+                    ". Newer usage may be missing until a sync succeeds",
+                    "。同步成功前，较新的用量可能缺失"
+                )
+            )
+        } else {
+            line.clone()
+        };
+        let row = div()
+            .id("overview-last-sync")
+            .test_support()
+            .role(gpui_kit::Role::Label)
+            .aria_label(description)
+            .flex()
+            .items_center()
+            .gap(px(theme::CONTROL_GAP))
+            .text_size(px(theme::META_SIZE))
+            .text_color(cx.theme().muted_foreground)
+            .child("·");
+        let row = if stale {
+            row.child(
+                badge::dot(theme::tone_colors(Tone::Warning, cx.theme().mode).ink)
+                    .id("overview-last-sync-stale")
+                    .test_support(),
+            )
+        } else {
+            row
+        };
+        Some(row.child(line))
     }
 
     pub(super) fn header(&self, cx: &mut Context<Self>) -> impl IntoElement {
@@ -126,6 +180,7 @@ impl OverviewView {
                             .text_color(ink)
                             .child(status),
                     )
+                    .children(self.last_sync(cx))
                     .when(self.fixture, |row| {
                         row.child(
                             div()

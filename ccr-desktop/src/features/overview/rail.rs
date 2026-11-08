@@ -1,5 +1,5 @@
-//! Right rail: next actions and the data source summary.
-use super::{Node, OverviewLink, OverviewView, chart::day_total, heading};
+//! Right rail: next actions, the seven-day comparison and the data source summary.
+use super::{Geometry, Node, OverviewLink, OverviewView, activity, chart::day_total, panel};
 use crate::{
     locales::{is_chinese, text},
     runtime::insights::{SessionScope, WorkbenchReport},
@@ -9,32 +9,45 @@ use crate::{
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{ActiveTheme, Icon, IconName};
 use gpui_kit::{
-    App, Context, InteractiveElement, IntoElement, ParentElement, Styled, div,
-    prelude::FluentBuilder, px,
+    App, Context, InteractiveElement, ParentElement, StatefulInteractiveElement, Styled, div, px,
 };
 
 impl OverviewView {
     pub(super) fn rail(
         &self,
         report: Option<&WorkbenchReport>,
-        stacked: bool,
+        geometry: Geometry,
         cx: &mut Context<Self>,
-    ) -> impl IntoElement {
-        let mut rail = div()
+    ) -> Node {
+        let rail = div()
             .id("overview-rail")
             .test_support()
-            .when(stacked, |el| el.w_full())
-            .when(!stacked, |el| {
-                el.w(px(theme::OVERVIEW_RAIL_WIDTH)).flex_shrink_0()
-            })
             .flex()
             .flex_col()
-            .p(px(theme::SECTION_GAP))
-            .bg(cx.theme().background)
-            .border_1()
-            .border_color(cx.theme().border)
-            .rounded(px(theme::PANEL_RADIUS))
-            .child(heading(text(cx, "Next actions", "下一步")));
+            .gap(px(theme::SECTION_GAP));
+        let rail = if geometry.stacked {
+            rail.w_full()
+        } else {
+            rail.w(px(geometry.rail_w)).flex_shrink_0()
+        };
+        let rail = rail.child(self.actions(cx));
+        // 对比来自报告：还没读到报告时不画，也不铺 0。
+        let rail = match report {
+            Some(report) => rail.child(activity::week_panel(report, cx)),
+            None => rail,
+        };
+        rail.child(self.data_source(report, cx))
+    }
+
+    fn actions(&self, cx: &mut Context<Self>) -> Node {
+        let mut actions = panel("overview-actions", cx)
+            .flex_shrink_0()
+            .gap(px(theme::CONTROL_GAP))
+            .child(badge::section_heading(
+                text(cx, "Next actions", "下一步"),
+                None,
+                cx,
+            ));
         for (id, label, link, icon) in [
             (
                 "overview-open-usage",
@@ -61,35 +74,28 @@ impl OverviewView {
                 IconName::SquareTerminal,
             ),
         ] {
-            rail = rail.child(
+            actions = actions.child(
                 action_row(id, label, icon, cx)
                     .on_click(cx.listener(move |this, _, _, cx| this.open(link, cx))),
             );
         }
-        rail.child(self.data_source(report, cx))
+        actions
     }
 
     /// Data source summary from state already in this view; no extra query.
+    /// This panel takes the column's spare height: readings stay at the top and
+    /// the coverage footer stays at the bottom.
     fn data_source(&self, report: Option<&WorkbenchReport>, cx: &App) -> Node {
         let configured = self.requests.configured();
-        let muted = cx.theme().muted_foreground;
-        let mut section = div()
-            .id("overview-insights")
-            .test_support()
-            .mt(px(theme::SECTION_GAP))
-            .pt(px(theme::SECTION_GAP))
-            .border_t_1()
-            .border_color(cx.theme().border)
-            .flex()
-            .flex_col()
+        let mut section = panel("overview-data-source", cx)
+            .flex_1()
             .gap(px(theme::CONTROL_GAP))
             .text_size(px(theme::META_SIZE))
-            .child(
-                div()
-                    .text_size(px(theme::BODY_SIZE))
-                    .font_weight(gpui_kit::FontWeight::SEMIBOLD)
-                    .child(text(cx, "Data source", "数据源")),
-            )
+            .child(badge::section_heading(
+                text(cx, "Data source", "数据源"),
+                None,
+                cx,
+            ))
             .child(
                 div()
                     .id("overview-source-state")
@@ -115,45 +121,95 @@ impl OverviewView {
                 "隔离演示",
             )));
         }
-        let Some(report) = report else {
-            return section.child(div().text_color(muted).child(text(
+        match report {
+            Some(report) => self.report_source(section, report, cx),
+            None => section.child(muted_line(
+                text(
+                    cx,
+                    "Read local usage to inspect source and archive coverage.",
+                    "读取本机用量后，可查看来源与归档覆盖范围。",
+                ),
                 cx,
-                "Read local usage to inspect source and archive coverage.",
-                "读取本机用量后，可查看来源与归档覆盖范围。",
-            )));
-        };
+            )),
+        }
+    }
+
+    fn report_source(&self, section: Node, report: &WorkbenchReport, cx: &App) -> Node {
         let zone = self.zone();
-        section = section.child(div().text_color(muted).child(if is_chinese(cx) {
-            format!("报告截至 {}{zone}", report.as_of)
+        let section = section
+            .child(muted_line(
+                if is_chinese(cx) {
+                    format!("报告截至 {}{zone}", report.as_of)
+                } else {
+                    format!("Report as of {}{zone}", report.as_of)
+                },
+                cx,
+            ))
+            .child(muted_line(self.sync_line(report, cx), cx));
+        // 成功同步已过期才提示较新用量可能缺失；没有成功记录时上一行已写明。
+        let section = if report.freshness.stale && report.freshness.local.is_some() {
+            section.child(stale_note(cx))
         } else {
-            format!("Report as of {}{zone}", report.as_of)
-        }));
-        let active = report.days.iter().filter(|day| day_total(day) > 0).count();
-        let coverage = if report.days.is_empty() {
-            text(cx, "Daily breakdown unavailable", "逐日明细不可用").to_string()
-        } else if is_chinese(cx) {
-            format!(
-                "图表的四个来源在 {} 个日历日中有 {active} 个活跃日；其他来源不计入活跃日。",
-                report.days.len()
-            )
-        } else {
-            format!(
-                "The four chart sources were active on {active} of {} calendar days; other sources are excluded from active days.",
-                report.days.len()
-            )
+            section
         };
-        section = section.child(div().text_color(muted).child(coverage));
-        if matches!(
-            report.session_scope,
-            SessionScope::Unindexed | SessionScope::Unavailable
-        ) {
-            section = section.child(div().text_color(muted).child(text(
+        section.child(source_footer(report, cx))
+    }
+}
+
+fn muted_line(line: impl Into<gpui_kit::SharedString>, cx: &App) -> gpui_kit::Div {
+    div()
+        .text_color(cx.theme().muted_foreground)
+        .child(line.into())
+}
+
+fn stale_note(cx: &App) -> Node {
+    let note = text(
+        cx,
+        "Newer usage may be missing until a sync succeeds",
+        "同步成功前，较新的用量可能缺失",
+    );
+    div()
+        .id("overview-source-stale")
+        .test_support()
+        .aria_label(note)
+        .text_color(cx.theme().muted_foreground)
+        .child(note)
+}
+
+// 脚注贴面板底部：吸收的高度只表现为读数与脚注之间的间距。
+fn source_footer(report: &WorkbenchReport, cx: &App) -> gpui_kit::Div {
+    let active = report.days.iter().filter(|day| day_total(day) > 0).count();
+    let coverage = if report.days.is_empty() {
+        text(cx, "Daily breakdown unavailable", "逐日明细不可用").to_string()
+    } else if is_chinese(cx) {
+        format!("图表来源在 {} 日中有 {active} 日活跃", report.days.len())
+    } else {
+        format!(
+            "Chart sources active on {active} of {} days",
+            report.days.len()
+        )
+    };
+    let footer = div()
+        .mt_auto()
+        .pt(px(theme::CONTROL_GAP))
+        .flex()
+        .flex_col()
+        .gap(px(theme::CONTROL_GAP))
+        .child(muted_line(coverage, cx));
+    if matches!(
+        report.session_scope,
+        SessionScope::Unindexed | SessionScope::Unavailable
+    ) {
+        footer.child(muted_line(
+            text(
                 cx,
                 "Session archive coverage is unknown. Browse sessions to inspect the archive.",
                 "会话归档覆盖范围未知，可浏览会话检查归档。",
-            )));
-        }
-        section
+            ),
+            cx,
+        ))
+    } else {
+        footer
     }
 }
 
@@ -165,7 +221,6 @@ fn action_row(
 ) -> gpui_kit::base::Button {
     gpui_kit::base::Button::new(id)
         .accessibility_label(label)
-        .mt(px(theme::CONTROL_GAP))
         .w_full()
         .px(px(theme::CONTROL_GAP))
         .h(px(theme::ROW_HEIGHT))

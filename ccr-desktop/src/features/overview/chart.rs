@@ -1,5 +1,5 @@
 //! Daily request chart, its legend and the folded exact-value table.
-use super::{Node, OverviewView, grouped, heading, platform_title};
+use super::{Node, OverviewView, grouped, heading, panel, platform_title};
 use crate::{
     locales::{is_chinese, text},
     runtime::insights::{WorkbenchDay, WorkbenchReport},
@@ -44,29 +44,18 @@ impl OverviewView {
         }
     }
 
+    /// The chart panel never stretches. Without a report it is the column's only
+    /// panel, so it takes the height difference with the rail.
     pub(super) fn usage_panel(
         &self,
         report: Option<&WorkbenchReport>,
         rows: &[ExactRow],
-        stacked: bool,
         cx: &mut Context<Self>,
-    ) -> impl IntoElement {
-        let panel = div()
-            .id("overview-usage")
-            .test_support()
-            .flex()
-            .flex_col()
-            .min_w_0()
-            .when(stacked, |el| el.w_full())
-            .when(!stacked, |el| el.flex_1())
-            .gap(px(theme::SECTION_GAP))
-            .p(px(theme::SECTION_GAP))
-            .bg(cx.theme().background)
-            .border_1()
-            .border_color(cx.theme().border)
-            .rounded(px(theme::PANEL_RADIUS));
+    ) -> Node {
+        let frame = panel("overview-usage", cx).min_w_0();
         let Some(report) = report else {
-            return panel
+            return frame
+                .flex_1()
                 .child(heading(text(cx, "Usage and cost", "用量与成本")))
                 .child(
                     div()
@@ -78,7 +67,7 @@ impl OverviewView {
                         }),
                 );
         };
-        panel.child(self.chart(report, rows, cx))
+        frame.flex_shrink_0().child(self.chart(report, rows, cx))
     }
 
     fn chart(
@@ -93,6 +82,7 @@ impl OverviewView {
         let max = visible.iter().map(day_total).max().unwrap_or(0);
         let mut title = div()
             .flex()
+            .flex_wrap()
             .items_center()
             .gap(px(theme::CONTROL_GAP))
             .child(heading(text(cx, "Daily requests", "逐日请求")));
@@ -111,6 +101,9 @@ impl OverviewView {
                     .text_color(cx.theme().muted_foreground)
                     .child(since),
             );
+        }
+        if let Some(date) = latest_record(&report.days) {
+            title = title.child(latest_suffix(date, cx));
         }
         let mut chart = div().flex().flex_col().gap(px(theme::CONTROL_GAP)).child(
             div()
@@ -404,9 +397,37 @@ fn bars(visible: &[WorkbenchDay], max: i64, cx: &App) -> gpui_kit::Div {
     bars
 }
 
+/// Label of the last day with records when the window ends in empty days.
+///
+/// 只陈述事实：末尾的空白可能是没有用量，也可能是同步失败后尚未导入，这里不推断原因。
+pub(super) fn latest_record(days: &[WorkbenchDay]) -> Option<&str> {
+    let last = days.iter().rposition(|day| day_total(day) > 0)?;
+    if last + 1 == days.len() {
+        return None;
+    }
+    days.get(last).map(|day| day.label.as_str())
+}
+
+fn latest_suffix(date: &str, cx: &App) -> Node {
+    let suffix = if is_chinese(cx) {
+        format!("· 最新记录 {date}")
+    } else {
+        format!("· latest record {date}")
+    };
+    div()
+        .id("overview-chart-latest")
+        .test_support()
+        .aria_label(suffix.clone())
+        .text_size(px(theme::META_SIZE))
+        .text_color(cx.theme().muted_foreground)
+        .child(suffix)
+}
+
 // 与绘图区等宽日槽对齐；长窗口标注每段中点，使两端日期落在绘图区内。
-fn ticks(visible: &[WorkbenchDay], cx: &App) -> gpui_kit::Div {
+fn ticks(visible: &[WorkbenchDay], cx: &App) -> Node {
     let mut ticks = div()
+        .id("overview-chart-axis")
+        .test_support()
         .flex()
         .gap(px(if visible.len() > 30 { 1. } else { 3. }))
         .text_size(px(theme::META_SIZE))

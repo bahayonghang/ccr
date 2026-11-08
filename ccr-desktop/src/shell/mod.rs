@@ -972,12 +972,7 @@ impl Render for Shell {
         }
         let mode = cx.theme().mode;
         let material = theme::material(mode, window.viewport_size());
-        let narrow = window.viewport_size().width < px(theme::NARROW_WIDTH);
-        let sidebar_width = if narrow {
-            theme::NARROW_SIDEBAR
-        } else {
-            theme::SIDEBAR_WIDTH
-        };
+        let sidebar_width = theme::sidebar_width(window.viewport_size().width);
         let mut navigation = div()
             .id("shell-navigation")
             .test_support()
@@ -1148,9 +1143,9 @@ impl Render for Shell {
             // sheet 材质：背后只有场景；侧栏位于左侧并列，因此左边不画亮边。
             .bg(material.sheet)
             .rounded_r(px(theme::SHEET_RADIUS))
-            .border_t_1()
-            .border_r_1()
-            .border_b_1()
+            .border_t(px(theme::SHEET_RIM))
+            .border_r(px(theme::SHEET_RIM))
+            .border_b(px(theme::SHEET_RIM))
             .border_color(material.highlight)
             .shadow(vec![material.rim.clone()])
             .child(

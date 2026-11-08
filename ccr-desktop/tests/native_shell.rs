@@ -499,6 +499,126 @@ fn overview_states_missing_usage_without_sample_numbers(cx: &mut TestAppContext)
     owner.shutdown();
 }
 
+/// Local noon on `day` as the UTC bucket time the usage projection reads back on `day`.
+fn local_noon_bucket(day: chrono::NaiveDate) -> String {
+    day.and_hms_opt(12, 0, 0)
+        .and_then(|noon| noon.and_local_timezone(chrono::Local).earliest())
+        .unwrap_or_else(|| panic!("local noon"))
+        .with_timezone(&chrono::Utc)
+        .format("%Y-%m-%dT%H:%M:%SZ")
+        .to_string()
+}
+
+#[gpui_kit::test]
+fn overview_layout_matches_the_real_shell_chrome(cx: &mut TestAppContext) {
+    use ccr_gpui::runtime::insights::InsightsPaths;
+    use ccr_usage::fixtures::{SeedBucket, create_projection_db, seed_bucket};
+    use chrono::Datelike;
+    use gpui_kit::{SharedString, px};
+
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
+    let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
+    let paths = create_projection_db(&root.path().join("llmusage"));
+    // 今天与窗口第一周的周一各一条记录：两格都带 id，可以量到网格两端。
+    let today = chrono::Local::now().date_naive();
+    let monday = today - chrono::Duration::days(i64::from(today.weekday().num_days_from_monday()));
+    let oldest = monday - chrono::Duration::weeks(52);
+    let conn = rusqlite::Connection::open(&paths.db_path).unwrap_or_else(|e| panic!("db: {e}"));
+    for day in [today, oldest] {
+        seed_bucket(
+            &conn,
+            &SeedBucket {
+                hour_start: local_noon_bucket(day),
+                ..Default::default()
+            },
+        );
+    }
+    drop(conn);
+    let newest_id = SharedString::from(format!("overview-heat-{today}"));
+    let oldest_id = SharedString::from(format!("overview-heat-{oldest}"));
+    cx.update(gpui_kit::init);
+    // 宽、高、主列宽、右栏宽、格子：与 Geometry 的公式和真实外壳同时一致。
+    for (width, height, main, rail, cell) in [
+        (1280., 800., 679., 280., 9.),
+        (2000., 1080., 1319., 360., 14.),
+        (1100., 800., 504., 280., 8.),
+        (960., 640., 743., 743., 10.),
+    ] {
+        let services = Services::new(
+            owner.handle(),
+            ConfigSource::Fixture {
+                profiles: root.path().join("profiles.toml"),
+                registry: root.path().join("config.toml"),
+                delay: Duration::ZERO,
+            },
+        )
+        .with_insights_paths(InsightsPaths {
+            usage_root: root.path().join("llmusage"),
+            archive_db: root.path().join("missing-archive"),
+            provider_home: root.path().join("home"),
+        });
+        let (handle, _) = cx.update(|cx| {
+            gpui_kit::open_window(
+                WindowOptions {
+                    window_bounds: Some(gpui_kit::WindowBounds::Windowed(gpui_kit::Bounds::new(
+                        gpui_kit::point(px(0.), px(0.)),
+                        gpui_kit::size(px(width), px(height)),
+                    ))),
+                    ..Default::default()
+                },
+                cx,
+                |window, cx| cx.new(|cx| Shell::new(services, window, cx)),
+            )
+            .unwrap_or_else(|e| panic!("window: {e}"))
+        });
+        let deadline = Instant::now() + Duration::from_secs(30);
+        loop {
+            cx.run_until_parked();
+            let ready = cx
+                .update_window(handle, |_, window, cx| {
+                    window.render_frame(cx);
+                    window.try_find(newest_id.clone()).is_some()
+                })
+                .unwrap_or_else(|e| panic!("overview: {e}"));
+            if ready {
+                break;
+            }
+            assert!(Instant::now() < deadline, "overview report timed out");
+            cx.executor().advance_clock(Duration::from_millis(10));
+            std::thread::yield_now();
+        }
+        cx.update_window(handle, |_, window, _| {
+            let main_box = window.find("overview-main").bounds();
+            let rail_box = window.find("overview-rail").bounds();
+            assert_eq!(main_box.size.width, px(main), "main at {width}");
+            assert_eq!(rail_box.size.width, px(rail), "rail at {width}");
+            let newest = window.find(newest_id.clone()).bounds();
+            assert_eq!(newest.size.width, px(cell), "cell at {width}");
+            let weeks = window.find("overview-heat-weeks").bounds();
+            let first = window.find(oldest_id.clone()).bounds();
+            // 格子撑不下时只在面板内横滚：默认露出最新一周，最旧一周滚到左侧之外，
+            // 主列宽度不受影响。放得下时两端都在视口内。
+            assert!(newest.right() <= weeks.right(), "{newest:?} vs {weeks:?}");
+            assert_eq!(first.left() < weeks.left(), width == 1100., "{first:?}");
+            assert!(
+                weeks.right() <= window.find("overview-activity").bounds().right(),
+                "{weeks:?}"
+            );
+            // 整页单列时右栏排到主列之下，宽窗时并排且等高。
+            if width < 1040. {
+                assert!(rail_box.top() >= main_box.bottom());
+            } else {
+                assert_eq!(rail_box.left(), main_box.right() + px(16.));
+                assert_eq!(rail_box.bottom(), main_box.bottom());
+            }
+            window.remove_window();
+        })
+        .unwrap_or_else(|e| panic!("overview layout: {e}"));
+    }
+    owner.shutdown();
+}
+
 #[gpui_kit::test]
 fn workbench_navigation_exposes_thirteen_destinations(cx: &mut TestAppContext) {
     cx.executor().allow_parking();

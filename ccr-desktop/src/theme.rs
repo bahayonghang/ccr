@@ -10,6 +10,7 @@ pub const WINDOW_HEIGHT: f32 = 800.;
 pub const MIN_WIDTH: f32 = 960.;
 pub const MIN_HEIGHT: f32 = 640.;
 pub const CONTENT_PADDING: f32 = 24.;
+pub const NARROW_CONTENT_PADDING: f32 = 16.;
 pub const SECTION_GAP: f32 = 16.;
 pub const BODY_SIZE: f32 = 14.;
 pub const TITLE_SIZE: f32 = 20.;
@@ -46,7 +47,6 @@ pub const OVERVIEW_CHART_HEIGHT: f32 = 216.;
 pub const CHART_BAR_RADIUS: f32 = 2.;
 /// 图表系列相对平台身份色的饱和度系数；身份色相不变，只降低饱和度。
 pub const CHART_SERIES_SATURATION: f32 = 0.72;
-pub const OVERVIEW_RAIL_WIDTH: f32 = 240.;
 pub const SPARK_CELL_MIN_WIDTH: f32 = 158.;
 pub const SPARK_HEIGHT: f32 = 34.;
 /// 非交互状态标签高度；4px 角矩形，与 pill 形状的筛选 chip 区分可点与不可点。
@@ -58,13 +58,19 @@ pub const EMPTY_ICON_SIZE: f32 = 24.;
 /// 两行列表行定高：Agent sessions 60px；MCP Manager 56px。
 pub const TWO_LINE_ROW_HEIGHT: f32 = 60.;
 pub const MCP_ROW_HEIGHT: f32 = 56.;
+/// 概览右栏占内容宽的比例；取 8 的倍数后限制在 MIN..=MAX。
+pub const OVERVIEW_RAIL_SHARE: f32 = 0.24;
 pub const OVERVIEW_RAIL_MIN: f32 = 280.;
 pub const OVERVIEW_RAIL_MAX: f32 = 360.;
 /// 热力图格子随主列宽度取值的上下界（窄于下界时在面板内横向滚动）。
 pub const HEATMAP_CELL_MIN: f32 = 8.;
 pub const HEATMAP_CELL_MAX: f32 = 14.;
 pub const HEATMAP_GAP: f32 = 2.;
+/// 星期标签列：12px 文字约 24px 宽，另留 4px 与网格的间距。
+pub const HEATMAP_LABEL_WIDTH: f32 = 28.;
 pub const DISTRIBUTION_HEIGHT: f32 = 160.;
+/// 排行行高：8 行时与分布面板大致等高，不用列表页的 36px。
+pub const OVERVIEW_LEADER_ROW_HEIGHT: f32 = 28.;
 
 /// Choose an installed sans family, rather than trusting the virtual system
 /// alias (which can resolve to a serif on Windows). No font file is bundled.
@@ -423,11 +429,37 @@ pub struct Material {
 
 pub const SCENE_INSET_MAX: f32 = 20.;
 
+/// Scene margin around the application frame at this viewport.
+pub fn scene_inset(viewport: Size<Pixels>) -> f32 {
+    let spare = (f32::from(viewport.width) - MIN_WIDTH)
+        .min(f32::from(viewport.height) - MIN_HEIGHT)
+        .max(0.);
+    // 保留原最小内容区；场景边距可收敛到 0。
+    (spare / 8.).clamp(0., SCENE_INSET_MAX)
+}
+
+/// Sidebar width at this viewport width.
+pub fn sidebar_width(viewport_width: Pixels) -> f32 {
+    if viewport_width < px(NARROW_WIDTH) {
+        NARROW_SIDEBAR
+    } else {
+        SIDEBAR_WIDTH
+    }
+}
+
+/// Page padding at this viewport width.
+pub fn content_padding(viewport_width: Pixels) -> f32 {
+    if viewport_width < px(NARROW_WIDTH) {
+        NARROW_CONTENT_PADDING
+    } else {
+        CONTENT_PADDING
+    }
+}
+
 pub fn material(mode: ThemeMode, viewport: Size<Pixels>) -> Material {
     let p = palette(mode);
     let m = p.material;
     let (width, height) = (f32::from(viewport.width), f32::from(viewport.height));
-    let spare = (width - MIN_WIDTH).min(height - MIN_HEIGHT).max(0.);
     // 光斑半径取视口短边的 0.35；圆盘半径 0.6、模糊 0.4，峰值柔和不出硬边。
     let reach = width.min(height).max(1.) * 0.35;
     let glow = |color: u32, (x, y): (f32, f32)| {
@@ -455,13 +487,14 @@ pub fn material(mode: ThemeMode, viewport: Size<Pixels>) -> Material {
             BoxShadow::new(px(0.), px(20.), black.opacity(m.shadow_alpha[0])).blur_radius(px(48.)),
             BoxShadow::new(px(0.), px(2.), black.opacity(m.shadow_alpha[1])).blur_radius(px(6.)),
         ],
-        // 保留原最小内容区；场景边距可收敛到 0。
-        inset: px((spare / 8.).clamp(0., SCENE_INSET_MAX)),
+        inset: px(scene_inset(viewport)),
     }
 }
 
 pub const SHEET_RADIUS: f32 = 20.;
-pub const SHEET_CONTENT_RADIUS: f32 = SHEET_RADIUS - 1.;
+/// 纸面上、右、下的亮边；左侧与侧栏并列，不画。
+pub const SHEET_RIM: f32 = 1.;
+pub const SHEET_CONTENT_RADIUS: f32 = SHEET_RADIUS - SHEET_RIM;
 
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
 pub enum Preference {

@@ -3,7 +3,9 @@
 use super::*;
 use crate::runtime::ConfigSource;
 use ccr_app::runtime::{Completion, Platform, RuntimeOwner, TaskEvent};
-use ccr_usage::fixtures::{SeedBucket, SeedEvent, create_projection_db, seed_bucket, seed_event};
+use ccr_usage::fixtures::{
+    SeedBucket, SeedEvent, create_projection_db, seed_bucket, seed_event, seed_run_log,
+};
 use std::time::Duration;
 
 fn key(environment: EnvironmentId) -> RequestKey {
@@ -327,6 +329,16 @@ async fn workbench_reads_seeded_usage_and_does_not_invent_sessions(
     assert!(!report.sessions_indexed);
     assert_eq!(report.session_count, None);
     assert_eq!(report.session_scope, SessionScope::Unavailable);
+    // 没有归档时用量部分照常：活动快照仍在，只是会话未知。
+    let activity = report.activity.as_ref().expect("usage-only activity");
+    assert!(!activity.sessions_indexed);
+    assert_eq!(activity.totals.requests, 2);
+    assert_eq!(activity.daily.len(), 1);
+    assert_eq!(activity.last_7_days.requests, 2);
+    // 没有同步记录：不写时刻，按过期处理。
+    assert_eq!(report.last_sync_at, None);
+    assert_eq!(report.freshness.local, None);
+    assert!(report.freshness.stale);
     let codex = report
         .platforms
         .iter()
@@ -345,6 +357,124 @@ async fn workbench_reads_seeded_usage_and_does_not_invent_sessions(
     let unindexed = requests.read_workbench(7).unwrap();
     assert_eq!(unindexed.session_scope, SessionScope::Unindexed);
     assert_eq!(unindexed.session_count, None);
+    let activity = unindexed.activity.expect("unindexed activity");
+    assert!(!activity.sessions_indexed);
+    assert_eq!(activity.totals.requests, 2);
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+async fn unreadable_archive_keeps_activity_and_only_sessions_degrade(
+    cx: &mut gpui_kit::TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let paths = create_projection_db(&root.path().join("llmusage"));
+    let pool = database::create_pool(&paths.db_path, None).unwrap();
+    let conn = pool.get().unwrap();
+    seed_bucket(
+        &conn,
+        &SeedBucket {
+            hour_start: hour_on_local_report_day(),
+            ..Default::default()
+        },
+    );
+    drop(conn);
+    drop(pool);
+    // 归档文件存在但不是数据库：无论连接池打不开还是查询失败，都要得到纯用量快照。
+    std::fs::write(root.path().join("archive.db"), b"not a database").unwrap();
+    let requests = InsightsRequests::new(&services(&owner, root.path()));
+    let report = requests.read_workbench(7).unwrap();
+    assert_eq!(report.session_scope, SessionScope::Unavailable);
+    assert_eq!(report.session_count, None);
+    assert!(!report.sessions_indexed);
+    let activity = report.activity.expect("activity survives the archive");
+    assert!(!activity.sessions_indexed);
+    assert_eq!(activity.totals.sessions, 0);
+    assert_eq!(activity.totals.requests, 2);
+    assert_eq!(activity.last_7_days.requests, 2);
+    assert!(activity.agents.iter().any(|agent| agent.source == "codex"));
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+async fn failed_usage_projection_yields_no_activity(cx: &mut gpui_kit::TestAppContext) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let paths = create_projection_db(&root.path().join("llmusage"));
+    let pool = database::create_pool(&paths.db_path, None).unwrap();
+    let dashboard = ccr_usage::open_dashboard(paths).unwrap();
+    // 打开后再删表：能力探测已通过，只有投影查询失败。
+    pool.get()
+        .unwrap()
+        .execute_batch("DROP TABLE usage_bucket_30m")
+        .unwrap();
+    let requests = InsightsRequests::new(&services(&owner, root.path()));
+    let paths = requests.paths.clone().unwrap();
+    let window = requests.activity_window(&paths, &dashboard, requests.report_clock(), 7);
+    assert_eq!(window, (None, false, None, SessionScope::Unavailable));
+    owner.shutdown();
+}
+
+#[test]
+fn sync_freshness_uses_the_report_timezone_and_marks_older_days_stale() {
+    let clock = ReportClock::fixed_utc(
+        DateTime::parse_from_rfc3339("2026-11-06T09:30:00Z")
+            .unwrap()
+            .with_timezone(&Utc),
+    );
+    assert_eq!(
+        SyncFreshness::at(Some("2026-11-06T02:04:00Z"), clock),
+        SyncFreshness {
+            local: Some("11-06 02:04".into()),
+            date: Some("11-06".into()),
+            stale: false,
+        }
+    );
+    assert_eq!(
+        SyncFreshness::at(Some("2026-11-05T23:59:00Z"), clock),
+        SyncFreshness {
+            local: Some("11-05 23:59".into()),
+            date: Some("11-05".into()),
+            stale: true,
+        }
+    );
+    // 带偏移的时间先换算到报告时区再比日期：+08:00 的 07:00 是 UTC 前一天 23:00。
+    let offset = SyncFreshness::at(Some("2026-11-06T07:00:00+08:00"), clock);
+    assert_eq!(offset.local.as_deref(), Some("11-05 23:00"));
+    assert!(offset.stale);
+    // 没有记录与读不出的记录都没有时刻可写，都算过期。
+    for missing in [None, Some("yesterday")] {
+        let freshness = SyncFreshness::at(missing, clock);
+        assert_eq!(freshness.local, None);
+        assert_eq!(freshness.date, None);
+        assert!(freshness.stale);
+    }
+}
+
+#[gpui_kit::test]
+async fn workbench_carries_the_last_sync_time_and_its_freshness(cx: &mut gpui_kit::TestAppContext) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let paths = create_projection_db(&root.path().join("llmusage"));
+    let pool = database::create_pool(&paths.db_path, None).unwrap();
+    let conn = pool.get().unwrap();
+    seed_bucket(&conn, &SeedBucket::default());
+    seed_run_log(&conn, "codex", "recent", "2020-01-02T03:04:00Z");
+    drop(conn);
+    drop(pool);
+    let requests = InsightsRequests::new(&services(&owner, root.path()));
+    let report = requests.read_workbench(7).unwrap();
+    assert_eq!(report.last_sync_at.as_deref(), Some("2020-01-02T03:04:00Z"));
+    assert_eq!(
+        report.freshness,
+        SyncFreshness::at(report.last_sync_at.as_deref(), requests.report_clock())
+    );
+    assert!(report.freshness.local.is_some());
+    assert!(report.freshness.stale);
     owner.shutdown();
 }
 
