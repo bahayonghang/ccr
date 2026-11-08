@@ -49,6 +49,22 @@ pub const CHART_SERIES_SATURATION: f32 = 0.72;
 pub const OVERVIEW_RAIL_WIDTH: f32 = 240.;
 pub const SPARK_CELL_MIN_WIDTH: f32 = 158.;
 pub const SPARK_HEIGHT: f32 = 34.;
+/// 非交互状态标签高度；4px 角矩形，与 pill 形状的筛选 chip 区分可点与不可点。
+pub const TAG_HEIGHT: f32 = 22.;
+pub const FILTER_CHIP_HEIGHT: f32 = 28.;
+pub const DOT_SIZE: f32 = 8.;
+pub const SEARCH_WIDTH: f32 = 300.;
+pub const EMPTY_ICON_SIZE: f32 = 24.;
+/// 两行列表行定高：Agent sessions 60px；MCP Manager 56px。
+pub const TWO_LINE_ROW_HEIGHT: f32 = 60.;
+pub const MCP_ROW_HEIGHT: f32 = 56.;
+pub const OVERVIEW_RAIL_MIN: f32 = 280.;
+pub const OVERVIEW_RAIL_MAX: f32 = 360.;
+/// 热力图格子随主列宽度取值的上下界（窄于下界时在面板内横向滚动）。
+pub const HEATMAP_CELL_MIN: f32 = 8.;
+pub const HEATMAP_CELL_MAX: f32 = 14.;
+pub const HEATMAP_GAP: f32 = 2.;
+pub const DISTRIBUTION_HEIGHT: f32 = 160.;
 
 /// Choose an installed sans family, rather than trusting the virtual system
 /// alias (which can resolve to a serif on Windows). No font file is bundled.
@@ -269,7 +285,8 @@ fn rim(mode: ThemeMode) -> BoxShadow {
     BoxShadow::new(px(0.), px(1.), alpha(palette(mode).material.highlight)).inset()
 }
 
-/// Platform identity ink shared by navigation icons and usage series.
+/// Platform identity ink shared by navigation icons, identity dots and usage
+/// series. Agents without an approved identity (such as omp) stay muted.
 pub fn platform_color(id: &str, mode: ThemeMode) -> Hsla {
     let (light, dark) = match id {
         "claude" => (0xa15840, 0xe3987b),
@@ -277,9 +294,82 @@ pub fn platform_color(id: &str, mode: ThemeMode) -> Hsla {
         "grok" => (0x726985, 0xb9abd7),
         "antigravity" | "gemini" => (0x617081, 0xa9c1dc),
         "opencode" => (0x735f52, 0xc9b6a8),
+        "kimi" => (0xa3467f, 0xd775ae),
+        "pi" => (0x7b56b0, 0xac88e7),
         _ => return rgb(palette(mode).muted).into(),
     };
     rgb(if mode.is_dark() { dark } else { light }).into()
+}
+
+/// Semantic tone of a status tag; colour always accompanies the tag's text.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Tone {
+    Neutral,
+    Success,
+    Warning,
+    Danger,
+    Info,
+}
+
+/// Opaque status-tag colours. Fill and edge are pre-composited over the reading
+/// surface, so a tag never adds a translucent layer to the material stack.
+#[derive(Clone, Copy)]
+pub struct ToneColors {
+    pub ink: Hsla,
+    pub fill: Hsla,
+    pub edge: Hsla,
+}
+
+pub fn tone_colors(tone: Tone, mode: ThemeMode) -> ToneColors {
+    let [ink, fill, edge] = tone_rgb(tone, mode).map(|color| Hsla::from(rgb(color)));
+    ToneColors { ink, fill, edge }
+}
+
+/// `[ink, fill, edge]`：fill/edge 是 ink 预合成到 reading 上的不透明色。
+fn tone_rgb(tone: Tone, mode: ThemeMode) -> [u32; 3] {
+    let p = palette(mode);
+    let ink = match tone {
+        Tone::Neutral => p.secondary_text,
+        Tone::Success => p.success,
+        Tone::Warning => p.warning,
+        Tone::Danger => p.danger,
+        Tone::Info => p.info,
+    };
+    // 标签不是控件，由文字识别状态；edge 只是同色相的装饰描边（与 hairline 同理），
+    // 不适用控件边界 3:1。描边过重会让标签读作可点击的描边按钮，削弱“直角标签不可点、
+    // pill 可点”的形状区分。
+    let (fill, edge) = if mode.is_dark() {
+        (0.18, 0.32)
+    } else {
+        (0.1, 0.24)
+    };
+    [ink, over(p.surface, ink, fill), over(p.surface, ink, edge)]
+}
+
+/// Activity heat-map cell: level 0 is a quiet neutral cell, levels 1 to 4 step
+/// up through the primary ink. Levels above 4 render as 4.
+pub fn heat_level(level: u8, mode: ThemeMode) -> Hsla {
+    rgb(heat_rgb(level, mode)).into()
+}
+
+fn heat_rgb(level: u8, mode: ThemeMode) -> u32 {
+    let p = palette(mode);
+    match level {
+        0 => p.neutral,
+        1 => over(p.surface, p.primary, 0.25),
+        2 => over(p.surface, p.primary, 0.45),
+        3 => over(p.surface, p.primary, 0.7),
+        _ => p.primary,
+    }
+}
+
+/// 在 sRGB 空间把 `ink` 以 `alpha` 叠到不透明 `base` 上（与合成对比度单测同一公式）。
+fn over(base: u32, ink: u32, alpha: f32) -> u32 {
+    [16, 8, 0].into_iter().fold(0, |mixed, shift| {
+        let channel = |color: u32| ((color >> shift) & 255) as f32;
+        let value = channel(base) * (1. - alpha) + channel(ink) * alpha;
+        mixed | ((value.round() as u32) << shift)
+    })
 }
 
 /// Chart series ink: the platform identity hue with reduced saturation, shared
@@ -658,6 +748,80 @@ mod tests {
             tabular_figures().tag_value_list(),
             &[("tnum".to_string(), 1)]
         );
+    }
+
+    #[test]
+    fn status_tones_keep_text_contrast_wherever_a_tag_is_placed() {
+        for mode in [ThemeMode::Light, ThemeMode::Dark] {
+            let p = palette(mode);
+            let reading = channels(p.surface);
+            for tone in [
+                Tone::Neutral,
+                Tone::Success,
+                Tone::Warning,
+                Tone::Danger,
+                Tone::Info,
+            ] {
+                let [ink, fill, edge] = tone_rgb(tone, mode).map(channels);
+                let label = format!("{tone:?} in {mode:?}");
+                // fill 不透明，标签放在阅读面或纸面上时文字都只落在 fill 上。
+                assert!(contrast(ink, fill) >= 4.5, "{label}: ink on fill");
+                // 描边是装饰：只要求比 fill 更清楚地勾出形状，不要求控件边界 3:1。
+                assert!(
+                    contrast(edge, reading) > contrast(fill, reading),
+                    "{label}: edge outlines the fill"
+                );
+                let colors = tone_colors(tone, mode);
+                assert_eq!(colors.fill.a, 1., "{label}: fill stays opaque");
+                assert_eq!(colors.edge.a, 1., "{label}: edge stays opaque");
+            }
+        }
+    }
+
+    #[test]
+    fn platform_identities_keep_graphic_contrast_and_omp_stays_muted() {
+        for mode in [ThemeMode::Light, ThemeMode::Dark] {
+            let p = palette(mode);
+            let reading = channels(p.surface);
+            let muted = Hsla::from(rgb(p.muted));
+            for id in [
+                "claude",
+                "codex",
+                "grok",
+                "antigravity",
+                "gemini",
+                "opencode",
+                "kimi",
+                "pi",
+            ] {
+                let identity = platform_color(id, mode);
+                assert_ne!(identity, muted, "{id} has its own identity");
+                let rgba = gpui_kit::Rgba::from(identity);
+                let ink = [rgba.r, rgba.g, rgba.b].map(|c| f64::from(c) * 255.);
+                assert!(contrast(ink, reading) >= 3., "{id} on reading surface");
+            }
+            assert_eq!(platform_color("omp", mode), muted);
+        }
+    }
+
+    #[test]
+    fn heat_levels_climb_from_a_quiet_zero_cell_to_a_legible_peak() {
+        for mode in [ThemeMode::Light, ThemeMode::Dark] {
+            let reading = channels(palette(mode).surface);
+            let ratios: Vec<f64> = (0..=4)
+                .map(|level| contrast(channels(heat_rgb(level, mode)), reading))
+                .collect();
+            assert!(ratios[0] < ratios[1], "zero cell is quieter: {ratios:?}");
+            assert!(
+                ratios[1..].windows(2).all(|pair| pair[0] < pair[1]),
+                "levels 1 to 4 strictly increase: {ratios:?}"
+            );
+            assert!(ratios[4] >= 3., "peak is legible: {ratios:?}");
+            assert_eq!(heat_rgb(9, mode), heat_rgb(4, mode), "levels clamp at 4");
+            for level in 0..=4 {
+                assert_eq!(heat_level(level, mode).a, 1., "cells stay opaque");
+            }
+        }
     }
 
     #[test]

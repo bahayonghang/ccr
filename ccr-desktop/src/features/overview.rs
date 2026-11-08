@@ -4,7 +4,7 @@ use crate::{
     runtime::insights::{
         InsightsRequests, SessionScope, WorkbenchDay, WorkbenchPlatform, WorkbenchReport,
     },
-    shell::{page_header, semantics},
+    shell::{badge, page_header, semantics},
     theme,
 };
 use ccr_app::runtime::{
@@ -357,7 +357,7 @@ impl OverviewView {
                     .flex_wrap()
                     .items_center()
                     .gap(px(theme::CONTROL_GAP))
-                    .child(status_dot(if self.error.is_some() {
+                    .child(badge::dot(if self.error.is_some() {
                         ink
                     } else if self.report.is_some() && !self.loading {
                         cx.theme().primary
@@ -897,7 +897,7 @@ impl OverviewView {
                     .flex()
                     .items_center()
                     .gap(px(theme::CONTROL_GAP))
-                    .child(status_dot(if configured {
+                    .child(badge::dot(if configured {
                         cx.theme().primary
                     } else {
                         cx.theme().input
@@ -962,15 +962,6 @@ fn heading(label: &'static str) -> gpui_kit::Div {
         .text_size(px(theme::SECTION_TITLE_SIZE))
         .font_weight(gpui_kit::FontWeight::SEMIBOLD)
         .child(label)
-}
-
-fn status_dot(color: gpui_kit::Hsla) -> gpui_kit::Div {
-    div()
-        .flex_shrink_0()
-        .w(px(7.))
-        .h(px(7.))
-        .rounded_full()
-        .bg(color)
 }
 
 fn action_row(

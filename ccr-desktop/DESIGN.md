@@ -45,6 +45,25 @@ colors:
   sheet-dark: "#172225DB"
   highlight-dark: "#FFFFFF14"
   tab-well-dark: "#10191B99"
+  info: "#245CB3"
+  info-dark: "#9BC4F5"
+  # 平台身份：只用于 8px 圆点、2px 细线与图表系列；omp 等未列来源回落 text-muted。
+  platform-claude: "#A15840"
+  platform-codex: "#547458"
+  platform-grok: "#726985"
+  platform-antigravity: "#617081"
+  platform-opencode: "#735F52"
+  platform-kimi: "#A3467F"
+  platform-pi: "#7B56B0"
+  platform-claude-dark: "#E3987B"
+  platform-codex-dark: "#89BD91"
+  platform-grok-dark: "#B9ABD7"
+  platform-antigravity-dark: "#A9C1DC"
+  platform-opencode-dark: "#C9B6A8"
+  platform-kimi-dark: "#D775AE"
+  platform-pi-dark: "#AC88E7"
+  # 状态标签与热力图由 ink/primary 按 alpha 预合成到 surface，结果不透明：
+  # 标签 fill light 10% / dark 18%，装饰 edge light 24% / dark 32%；热力图 1-4 档 25/45/70/100%。
 typography:
   h1:
     fontFamily: "platform-system"
@@ -106,6 +125,8 @@ reading 是列表/输入的实色工作区，chrome 是侧栏导轨的半透明�
 
 装饰 hairline 使用 border-subtle 的 light 24% / dark 35% alpha；需要辨识的输入与 tab 边界仍使用不透明 border-control。分段控件是内容宽度胶囊：tab-well 半透明凹槽容器加 1px highlight 亮边，选中项为浮起的实色 pill（light surface / dark overlay、轻阴影、primary semibold 文字），未选中项透明无边框；避免 ghost 的 selected 与纸面同色。选中文字对选中面至少 4.5:1；选中面与凹槽的色差很小，选中态由浮起阴影、主色文字、字重与 toggled 语义共同表达，不只靠颜色。
 
+状态语调（`theme::tone_colors`）共 neutral / success / warning / danger / info 五种，ink 分别取辅助文字与对应状态色。fill 是 ink 在 light 10% / dark 18%、edge 是 ink 在 light 24% / dark 32% 预合成到 reading 的不透明色，不构成额外半透明层，所以标签放在阅读面或纸面上文字都只落在 fill 上：ink 对 fill ≥4.5:1。标签不是控件，由文字识别状态，edge 与 hairline 同属装饰描边，不适用控件边界 3:1；描边加重会让标签读作可点击的描边按钮，削弱“直角标签不可点、pill 可点”的形状区分。平台身份色覆盖 claude / codex / grok / antigravity（gemini）/ opencode / kimi / pi，omp 及其他未列来源回落 muted；身份色只用于 8px 圆点、2px 细线与图表系列，不给面板染色。活动热力图（`theme::heat_level`）共 5 档：0 档是实色 neutral 格，1–4 档是 primary 以 25/45/70/100% 预合成到 reading 的不透明色，对 reading 的对比度逐档递增，第 4 档 ≥3:1。
+
 普通文字、辅助文字、状态文字与其允许背景达到 4.5:1，焦点与关键控件边界达到 3:1。半透明面按合成后颜色验收：在场景两端、中点、两个光斑峰值及叠加纸面阴影的最坏组合上分别合成后计算，正文 ≥12、辅助 ≥7、muted/主色/状态 ≥4.5、控件边界 ≥3。禁用文字保留可读对比度，通过禁用交互、图标与语义状态降低强调，不统一透明化整组内容。来源中的绿色/橙色已调暗以满足浅色正文对比度。
 
 ## Typography
@@ -136,7 +157,7 @@ Windows 用 Segoe UI Variable / Segoe UI，中文由 Microsoft YaHei UI 等系�
 3. **平台带**：只有存在逐日记录的平台单独成格（2px 身份色顶线、中性 sparkline、峰值身份色、请求/Token 读数）；无记录或无逐日明细的来源合并为一格“其他来源”，逐行写“名称 · 原因”，有总数时保留真实总数，不铺 0。窄宽横向滚动，不换行。
 4. **主列 + 右栏**：主列是逐日请求图与可展开的精确值表；右栏 240px，下一步操作之下接“数据源”小节（配置状态、报告截止、图表来源活跃日覆盖、会话归档未知说明），全部来自视图已有状态，不新增查询。两列等高（stretch），不留死区；窄宽时右栏堆到主列下方，不横向滚动整页。
 
-主列表与详情默认 3:2，列表至少 360px，详情至少 320px；空间不足时详情转为内容区内单页 drill-in，带明确返回操作，不把普通溢出塞进 modal。列表行 36px，表头 32px，表格独立滚动；不要让整个窗口横向滚动。分页与 virtualization 必须保留键盘选择和 stable ID。
+主列表与详情默认 3:2，列表至少 360px，详情至少 320px；空间不足时详情转为内容区内单页 drill-in，带明确返回操作，不把普通溢出塞进 modal。列表行单行 36px / 两行 56–60px，表头 32px，表格独立滚动；不要让整个窗口横向滚动。分页与 virtualization 必须保留键盘选择和 stable ID。
 
 ## Elevation & Depth
 
@@ -156,7 +177,7 @@ Windows 用 Segoe UI Variable / Segoe UI，中文由 Microsoft YaHei UI 等系�
 
 ## Shapes
 
-主/次按钮均 pill，输入 8px，列表可选背景 4px，内容面板 12px，框架 20px（仅外层，侧栏左角 + 纸面右角）。分段胶囊容器 20px 角（单行即 pill，换行时与内侧 pill 同心），内部选项均为 pill。图标使用一个集合，优先 Kit 的 Lucide 资源；品牌独立复用仓库生成的蓝色 CCR mark，不重绘或染色。实际依赖/资源开销在构建时记录。主操作不使用 emoji 图标。
+主/次按钮均 pill，输入 8px，列表可选背景 4px，内容面板 12px，框架 20px（仅外层，侧栏左角 + 纸面右角）。分段胶囊容器 20px 角（单行即 pill，换行时与内侧 pill 同心），内部选项均为 pill。形状区分可点与不可点：非交互的状态标签是 4px 角矩形，交互的筛选 chip 是 pill；虚线空态面板 8px。图标使用一个集合，优先 Kit 的 Lucide 资源；品牌独立复用仓库生成的蓝色 CCR mark，不重绘或染色。实际依赖/资源开销在构建时记录。主操作不使用 emoji 图标。
 
 保留克制与柔和控件；数据列表不用 pill 包每一项。只有语义独立的弹层使用 8px 外角。
 
@@ -243,6 +264,15 @@ status section, compact usage summary, daily bars and management links.
 - **图表**：有明确问题才显示；趋势用线、比较用条形。高度 160 至 240px（Overview 逐日图 216px），图例与 exact-value table 可达；低对比色必须有表格/文字通道。数据更新不播放入场动画。Overview 逐日图自动收紧到首个有数据日的前一天，标题旁标“since MM-DD / 自 MM-DD 起”，查询窗口仍写在页头状态行；整个窗口都没有记录时保留完整窗口的虚线基线。堆叠段仅最上段 2px 圆角，段间 1px 阅读面间隙；系列色是平台身份色相、饱和度 ×0.72（`theme::chart_series`），图例使用同一函数，对阅读面图形对比度 ≥3:1。
 - **精确值行焦点**：Overview 精确值表默认收起；展开后最新在上，每段连续全零日（含单日）折叠为一行“MM-DD – MM-DD · no records (N days)”/“MM-DD – MM-DD · N 日无记录”，折叠行与日期行同样可聚焦。焦点句柄与显示行按同一顺序一一对应，第 i 个显示行对应表格第 i+1 个子项（表头为第 0 项）。真实行焦点始终显示预留的 2px ring 边框，跟随逻辑 focus，不由最后一次输入模态隐藏。Tab/Shift+Tab 同时 reveal 表格与外层页面中的当前行；UIA focused 或 headless bounds 通过不能替代原生可见边框验收。
 - **状态**：empty 说明原因并给已有下一步；loading 保留布局；error 显示可重试原因；unsupported 与未接入明确区分。演示 fixture 必须带“演示数据”标识，生产无伪造数字。
+- **状态标签（`badge::tag`）**：不可交互的 4px 角矩形，22px 高，12/500，1px edge，单行不换行；颜色只来自 `theme::tone_colors` 的五种语调，不用 Kit 的 Tag/Badge。文字本身传达状态，颜色不单独表意。只在异常或需要强调的状态上出现，不给每个列表项都套标签。
+- **筛选 chip（`badge::filter_chip`）**：可交互的 28px pill，12/400，toggled 语义表达选中，并沿用 `semantics::button` 的 disabled 与 tab stop。未选：透明底加 hairline 边、辅助文字；选中：tab-selected 浮起面、轻阴影、primary semibold（600）；禁用：透明底、muted 文字、hairline 边，选中样式不得覆盖禁用色。不可选的来源由页面再加虚线边。点击后立即切换，无动画。
+- **身份圆点（`badge::dot` / `hollow_dot` / `identity`）**：8px 实心圆，圆点旁必须有名称或状态文字。`hollow_dot` 是 1px 描边空心圆，表示 missing / not-read。`identity` 是身份圆点加平台名，身份色范围见 Colors。
+- **搜索框（`badge::search_field`）**：前缀 16px muted 的 search 图标，必须有 placeholder，固定宽 300px（合同范围 280–320px），8px 角；窄容器内不超出父宽。id 与 aria 由调用方给定。
+- **工具栏**：一行，筛选在左、操作在右，空间不足时换行，不出现全宽按钮。
+- **两行列表行**：定高 56–60px（MCP 56、Agent sessions 60），放在 12px 实色阅读面板内，行间 hairline 分隔，hover/selection 用中性色阶与 4px 角，不缩放。第一行是名称，第二行是 meta，数字 tnum，超长省略并有 tooltip；异常才显示状态标签。
+- **来源健康条**：每个来源一个 chip：状态圆点、短名、读数。未读取用虚线边，Invalid/Unreadable 用 warning/danger 语调；完整原句作为 aria label 与 tooltip。窄宽在条内横向滚动，不换行撑高。
+- **虚线空态面板（`badge::empty_panel`）**：1px dashed border-subtle，8px 角，居中排列 24px muted 图标、14/500 原因、12px muted 说明和可选下一步。下一步由调用方传入真实可聚焦控件，面板不伪造动作。
+- **分区标题（`badge::section_heading`）**：16/600 标题，同基线 12px muted 口径文字（如“All history”“Last 53 weeks”），让读数范围一眼可知。
 
 ## Do's and Don'ts
 

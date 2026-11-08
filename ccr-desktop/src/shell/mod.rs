@@ -1,4 +1,5 @@
 //! Native capability shell: one workbench destination per sidebar entry.
+pub mod badge;
 mod close;
 #[cfg(test)]
 mod close_tests;
