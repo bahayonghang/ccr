@@ -853,3 +853,38 @@ ccr project init 现在默认勾选五项平台并要求输入用户名，-y 使
 ### Next Steps
 
 - 本轮任务已完成并归档；不执行推送，不追加尺寸/DPI矩阵。
+
+
+## Session 146: GPUI 轻盈毛玻璃提交与归档
+<!-- trellis-session: v=2 fp=e1a38300e05d5bd9 -->
+
+**Date**: 2026-11-07
+**Task**: GPUI 轻盈毛玻璃提交与归档
+**Branch**: `dev`
+
+### Summary
+
+材质、胶囊导航与概览重排无法按文件拆开，已作为一笔本地 feat 提交，并归档 11-07-gpui-airy-glass-material。未推送。
+
+### Main Changes
+
+- 重建半透明材质、胶囊导航与概览层级，并同步 DESIGN.md、README 与 theme token 合同
+- 任务归档至 .trellis/tasks/archive/2026-11/11-07-gpui-airy-glass-material；截图仍被 gitignore，未进入提交
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8ec3d0b87ff6fc85d1b07504192e839f890f3c7a` | feat(GPUI): ✨ 重建轻盈毛玻璃并重排概览 |
+
+### Testing
+
+- [OK] 本次提交前未重跑门禁；任务收据记录 desktop-ci 与 desktop-test-ui 退出码 0
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 未推送；尺寸与 DPI 矩阵仍未运行，不记通过

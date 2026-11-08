@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-3.md`
-- **Total Sessions**: 145
+- **Total Sessions**: 146
 - **Last Active**: 2026-11-07
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-3.md` | ~855 | Active |
+| `journal-3.md` | ~890 | Active |
 | `journal-2.md` | ~1982 | Archived |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
@@ -31,6 +31,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 146 | 2026-11-07 | GPUI 轻盈毛玻璃提交与归档 | `8ec3d0b87ff6fc85d1b07504192e839f890f3c7a` | `dev` |
 | 145 | 2026-11-07 | GPUI 中文分批提交与任务归档 | `43d1b9e79f750f57d6f5193ebbc76276c214581e`, `dacaca40676df0b96797bb665bcc47284b3eb57b` | `dev` |
 | 144 | 2026-11-07 | GPUI 核心原生验收与可见焦点修复 | - | `dev` |
 | 143 | 2026-11-07 | GPUI airy-glass 源码实施与回归收口 | - | `dev` |
