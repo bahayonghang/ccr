@@ -3,6 +3,7 @@ mod close;
 #[cfg(test)]
 mod close_tests;
 mod command_state;
+pub(crate) mod page_header;
 mod platform_navigation;
 mod preferences;
 pub(crate) mod semantics;
@@ -20,9 +21,10 @@ use ccr_app::runtime::Platform;
 use command_state::CommandState;
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
-    ActiveTheme,
+    ActiveTheme, IconNamed,
     button::{Button, ButtonVariants},
 };
+use gpui_kit::prelude::FluentBuilder;
 use gpui_kit::{
     AnyElement, AppContext, Context, Entity, FocusHandle, InteractiveElement, IntoElement,
     ParentElement, Render, StatefulInteractiveElement, Styled, Subscription, Window, div, px,
@@ -64,6 +66,9 @@ impl Destination {
         }
     }
 }
+
+/// One lens option: test id, lens, English and Chinese labels.
+type LensItem = (&'static str, Lens, &'static str, &'static str);
 
 /// In-page capability. These are not sidebar entries.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -128,6 +133,8 @@ pub struct Shell {
     slow_fixture: bool,
     brand: std::sync::Arc<gpui_kit::Image>,
     clock: Entity<status::Clock>,
+    /// 嵌入式目的地放进自己标题行的 lens 胶囊（外壳唯一拥有 lens 状态）。
+    lens_bar: Entity<page_header::LensBar>,
     navigation_focus: FocusHandle,
     main_focus: FocusHandle,
     status_focus: FocusHandle,
@@ -192,6 +199,8 @@ impl Shell {
         let window_bounds = cx.observe_window_bounds(window, |this, window, cx| {
             this.window_bounds_changed(window, cx);
         });
+        let weak_shell = cx.weak_entity();
+        let lens_bar = cx.new(|cx| page_header::LensBar::new(weak_shell, cx));
         let mut shell = Self {
             remote,
             _remote_observation: remote_observation,
@@ -248,12 +257,18 @@ impl Shell {
                 include_bytes!("../../../ccr-ui/public/icons/icon.png").to_vec(),
             )),
             clock: cx.new(status::Clock::new),
+            lens_bar,
             navigation_focus: cx.focus_handle().tab_stop(false),
             main_focus: cx.focus_handle().tab_stop(false),
             status_focus: cx.focus_handle(),
             _appearance: appearance,
             _activation: activation,
         };
+        let lens: gpui_kit::AnyView = shell.lens_bar.clone().into();
+        shell
+            .overview
+            .update(cx, |view, _| view.embed_lens(lens.clone()));
+        shell.monitoring.update(cx, |view, _| view.embed_lens(lens));
         match preferences {
             Some(preferences) => shell.accept_loaded_preferences(preferences, window, cx),
             None => shell.load_preferences(window, cx),
@@ -627,16 +642,21 @@ impl Shell {
         let selected = self.destination == destination;
         let colors = cx.theme();
         let settings = destination == Destination::Settings;
-        let selection = colors.sidebar.blend(colors.primary.opacity(0.14));
-        let hover =
-            colors
-                .sidebar
-                .blend(colors.primary.opacity(if selected { 0.18 } else { 0.07 }));
-        let pressed = colors.sidebar.blend(colors.primary.opacity(0.22));
-        let ink = destination
+        let nav = theme::nav_colors(colors.mode);
+        // 平台图标默认中性，hover / 选中时显示平台身份色；非平台图标选中时为主色。
+        let identity = destination
             .platform()
-            .map(|p| theme::platform_color(p.short_name(), colors.mode))
-            .unwrap_or(colors.sidebar_foreground);
+            .map(|p| theme::platform_color(p.short_name(), colors.mode));
+        let icon_ink = match (selected, identity) {
+            (true, Some(identity)) => identity,
+            (true, None) => colors.primary,
+            (false, _) => colors.muted_foreground,
+        };
+        let icon_hover = identity.unwrap_or(if selected {
+            colors.primary
+        } else {
+            colors.sidebar_foreground
+        });
         let mut copy = div()
             .flex_1()
             .min_w_0()
@@ -669,29 +689,33 @@ impl Shell {
             } else {
                 gpui_kit::accesskit::Toggled::False
             })
+            .group(id)
             .w_full()
             .flex_shrink_0()
             .h(px(if settings { 50. } else { theme::NAV_ROW_HEIGHT }))
             .px(px(theme::CONTROL_GAP))
-            .rounded(px(theme::INPUT_RADIUS))
+            .rounded(px(theme::PILL_RADIUS))
+            // 2px 透明边框只为键盘焦点环预留位置，选中态不画边框。
             .border_2()
-            .border_color(if selected {
-                colors.primary.opacity(0.24)
+            .border_color(gpui_kit::transparent_black())
+            .bg(if selected {
+                nav.selected
             } else {
                 gpui_kit::transparent_black()
             })
-            .bg(if selected {
-                selection
+            .when(selected, |el| el.shadow(vec![nav.rim.clone()]))
+            .text_color(if selected {
+                colors.primary
             } else {
-                gpui_kit::transparent_black()
+                colors.sidebar_foreground
             })
             .font_weight(if selected {
                 gpui_kit::FontWeight::SEMIBOLD
             } else {
                 gpui_kit::FontWeight::NORMAL
             })
-            .hover(|style| style.bg(hover))
-            .active(|style| style.bg(pressed))
+            .hover(|style| style.bg(if selected { nav.selected } else { nav.hover }))
+            .active(|style| style.bg(nav.pressed))
             .focus_visible(|style| style.border_color(colors.ring))
             .child(
                 div()
@@ -701,9 +725,12 @@ impl Shell {
                     .justify_start()
                     .gap(px(theme::CONTROL_GAP))
                     .child(
-                        gpui_kit::component::Icon::new(destination.icon())
+                        gpui_kit::svg()
+                            .path(destination.icon().path())
+                            .flex_shrink_0()
                             .size(px(theme::NAV_ICON_SIZE))
-                            .text_color(ink),
+                            .text_color(icon_ink)
+                            .group_hover(id, |style| style.text_color(icon_hover)),
                     )
                     .child(copy),
             )
@@ -742,8 +769,9 @@ impl Shell {
         zh: &'static str,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
+        // 与上一组间距 12px（8px + 列间距 4px），标题到首行 4px。
         div()
-            .pt(px(theme::NAV_PADDING))
+            .pt(px(theme::CONTROL_GAP))
             .px(px(theme::CONTROL_GAP))
             .line_height(gpui_kit::relative(1.))
             .flex()
@@ -756,6 +784,11 @@ impl Shell {
             .child(div().flex_1().h(px(1.)).bg(cx.theme().border))
     }
 
+    /// 嵌入式目的地：页面把外壳的 [`page_header::LensBar`] 放进自己的标题行。
+    fn embeds_lens(&self) -> bool {
+        self.destination == Destination::Dashboard
+    }
+
     fn toolbar(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
         if self.remote.read(cx).is_remote() {
             return None;
@@ -763,7 +796,22 @@ impl Shell {
         if self.platform().is_some() {
             return Some(self.platform_toolbar(cx));
         }
-        let items: Vec<(&str, Lens, &str, &str)> = match self.destination {
+        if self.embeds_lens() {
+            return None;
+        }
+        let mut capsule = page_header::capsule(cx);
+        for (id, lens, en, zh) in self.lens_items(cx)? {
+            capsule = capsule.child(self.lens_button(id, lens, en, zh, cx));
+        }
+        Some(page_header::row("lens-navigation", None, capsule, cx))
+    }
+
+    /// Non-platform lens options for the current destination.
+    fn lens_items(&self, cx: &gpui_kit::App) -> Option<Vec<LensItem>> {
+        if self.remote.read(cx).is_remote() || self.platform().is_some() {
+            return None;
+        }
+        Some(match self.destination {
             Destination::ClaudeCode | Destination::Codex => vec![
                 ("tool-profiles", Lens::Primary, "Profiles", "配置列表"),
                 (
@@ -832,29 +880,7 @@ impl Shell {
             | Destination::Checkin
             | Destination::Sync
             | Destination::Settings => return None,
-        };
-        let mut row = div()
-            .flex()
-            .flex_wrap()
-            .gap(px(2.))
-            .p(px(2.))
-            .rounded(px(theme::INPUT_RADIUS))
-            .border_1()
-            .border_color(theme::tab_colors(cx.theme().mode).border)
-            .bg(theme::tab_colors(cx.theme().mode).background);
-        for (id, lens, en, zh) in items {
-            row = row.child(self.lens_button(id, lens, en, zh, cx));
-        }
-        Some(
-            div()
-                .flex_shrink_0()
-                .px(px(theme::CONTENT_PADDING))
-                .py(px(theme::CONTROL_GAP))
-                .border_b_1()
-                .border_color(cx.theme().border)
-                .child(row)
-                .into_any_element(),
-        )
+        })
     }
 
     fn body(&self, cx: &mut Context<Self>) -> AnyElement {
@@ -944,7 +970,7 @@ impl Render for Shell {
             });
         }
         let mode = cx.theme().mode;
-        let sheet = theme::solid_sheet(mode, window.viewport_size());
+        let material = theme::material(mode, window.viewport_size());
         let narrow = window.viewport_size().width < px(theme::NARROW_WIDTH);
         let sidebar_width = if narrow {
             theme::NARROW_SIDEBAR
@@ -988,11 +1014,16 @@ impl Render for Shell {
             .flex_col()
             .p(px(theme::NAV_PADDING))
             .gap(px(theme::NAV_ROW_GAP))
-            .bg(cx.theme().sidebar)
-            .rounded_tl(px(theme::SHEET_CONTENT_RADIUS))
+            // chrome 导轨：与纸面并列（不嵌套），左侧 20px 外角，右侧亮边即分隔线。
+            .bg(material.chrome)
+            .rounded_l(px(theme::SHEET_RADIUS))
+            .border_1()
+            .border_color(material.highlight)
+            .shadow(vec![material.rim.clone()])
             .child(
                 div()
                     .h(px(theme::NAV_BRAND_HEIGHT))
+                    .mb(px(theme::CONTROL_GAP))
                     .line_height(gpui_kit::relative(1.3))
                     .flex()
                     .items_center()
@@ -1107,39 +1138,31 @@ impl Render for Shell {
         };
         let workspace = div()
             .id("application-sheet")
-            .size_full()
+            .flex_1()
+            .min_w_0()
+            .h_full()
             .flex()
             .flex_col()
             .overflow_hidden()
-            .bg(sheet.background)
-            .rounded(px(theme::SHEET_RADIUS))
-            .border_1()
-            .border_color(cx.theme().border)
-            .shadow(vec![sheet.shadow])
-            .text_color(cx.theme().foreground)
-            .font(theme::body_font(cx))
-            .text_size(px(theme::BODY_SIZE))
-            .on_key_down(
-                cx.listener(|this, event: &gpui_kit::KeyDownEvent, window, cx| {
-                    if event.keystroke.key == "f6" {
-                        this.region(event.keystroke.modifiers.shift, window, cx);
-                        cx.stop_propagation();
-                    }
-                }),
-            )
+            // sheet 材质：背后只有场景；侧栏位于左侧并列，因此左边不画亮边。
+            .bg(material.sheet)
+            .rounded_r(px(theme::SHEET_RADIUS))
+            .border_t_1()
+            .border_r_1()
+            .border_b_1()
+            .border_color(material.highlight)
+            .shadow(vec![material.rim.clone()])
             .child(
-                div().flex().flex_1().min_h_0().child(navigation).child(
-                    div()
-                        .id("shell-main")
-                        .role(gpui_kit::Role::Main)
-                        .aria_label(text(cx, "Workspace", "工作区"))
-                        .track_focus(&self.main_focus)
-                        .tab_stop(false)
-                        .flex_1()
-                        .min_w_0()
-                        .min_h_0()
-                        .child(content),
-                ),
+                div()
+                    .id("shell-main")
+                    .role(gpui_kit::Role::Main)
+                    .aria_label(text(cx, "Workspace", "工作区"))
+                    .track_focus(&self.main_focus)
+                    .tab_stop(false)
+                    .flex_1()
+                    .min_w_0()
+                    .min_h_0()
+                    .child(content),
             )
             .child(
                 div()
@@ -1161,11 +1184,43 @@ impl Render for Shell {
                     .text_color(cx.theme().muted_foreground)
                     .child(self.status_contents(status, cx)),
             );
+        let frame = div()
+            .id("application-frame")
+            .size_full()
+            .flex()
+            .rounded(px(theme::SHEET_RADIUS))
+            .shadow(material.shadow.to_vec())
+            .text_color(cx.theme().foreground)
+            .font(theme::body_font(cx))
+            .text_size(px(theme::BODY_SIZE))
+            .on_key_down(
+                cx.listener(|this, event: &gpui_kit::KeyDownEvent, window, cx| {
+                    if event.keystroke.key == "f6" {
+                        this.region(event.keystroke.modifiers.shift, window, cx);
+                        cx.stop_propagation();
+                    }
+                }),
+            )
+            .child(navigation)
+            .child(workspace);
         div()
             .id("ccr-shell")
+            .relative()
             .size_full()
-            .p(sheet.inset)
-            .bg(theme::field(mode))
-            .child(workspace)
+            .p(material.inset)
+            .bg(material.scene)
+            .children(material.glows.iter().map(scene_glow))
+            .child(frame)
     }
+}
+
+/// 静态柔光斑：透明圆加同色大模糊阴影；无 id/role，不进入无障碍树，也不接收指针。
+fn scene_glow(glow: &theme::Glow) -> gpui_kit::Div {
+    div()
+        .absolute()
+        .left(glow.origin.x)
+        .top(glow.origin.y)
+        .size(glow.diameter)
+        .rounded_full()
+        .shadow(vec![glow.shadow.clone()])
 }

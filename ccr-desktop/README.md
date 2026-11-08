@@ -81,7 +81,7 @@ doctor 只读检查工具与 Cargo 路径；Windows 的链接器/SDK 由实际�
 ## 设计与验证
 
 [DESIGN.md](DESIGN.md) 是已批准的 style:airy-glass 原生设计源；唯一 token 映射位于
-`src/theme.rs`。当前锁定图形栈使用实色降级，不宣称真实内景模糊通过。`src/shell/` 实现连续工作面、真实导航和状态。设置提供 System / Light / Dark 与中英文切换；主题、语言和退出确认保存在独立 `ccr/desktop-gpui/preferences.json`，主题调色板通过 Kit Theme 同步 Base，不建立第二主题 owner。
+`src/theme.rs`。侧栏与纸面是已知静态场景（渐变与两个静态光斑）上的半透明材质，成立条件见 `DESIGN.md` Elevation；阅读面保持实色，不使用窗口级 Mica/Blurred，也不宣称背景采样模糊。`src/shell/` 实现连续工作面、真实导航和状态。设置提供 System / Light / Dark 与中英文切换；主题、语言和退出确认保存在独立 `ccr/desktop-gpui/preferences.json`，主题调色板通过 Kit Theme 同步 Base，不建立第二主题 owner。
 
 默认关闭仍需确认；设置可明确选择直接退出。设置按钮、应用菜单与 Ctrl/Cmd+Q 复用同一确认和清理路径。
 直接调用平台应用退出的入口受锁定 GPUI 缺少公开 veto hook 限制，不能保证经过窗口确认。

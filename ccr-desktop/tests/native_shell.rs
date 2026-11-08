@@ -187,6 +187,14 @@ fn f6_tab_navigation_does_not_intercept_search_editing(cx: &mut TestAppContext) 
             ccr_gpui::theme::apply(preference, window, cx);
             window.render_frame(cx);
             assert!(window.find("brand-mark").visible());
+            // 嵌入式 lens：胶囊在页面唯一 h1 的同一行，外壳不再渲染上方的胶囊行。
+            assert!(window.try_find("lens-navigation").is_none());
+            let heading = window.find("overview-heading").bounds();
+            let lens = window.find("tool-overview").bounds();
+            assert!(
+                lens.top() < heading.bottom() && heading.top() < lens.bottom(),
+                "lens capsule is not on the Overview heading row: {lens:?} vs {heading:?}"
+            );
             assert_eq!(window.find("tool-overview").checked(), Some(true));
             assert_eq!(window.find("tool-monitoring").checked(), Some(false));
             window.click("tool-monitoring", cx);
@@ -201,6 +209,31 @@ fn f6_tab_navigation_does_not_intercept_search_editing(cx: &mut TestAppContext) 
                     .is_some_and(|value| { value.len() == 5 && value.as_bytes()[2] == b':' })
             );
         }
+        // 键盘激活：嵌入式胶囊随页面切换换父节点（Kit 按钮焦点状态按元素路径保存），
+        // 焦点必须回到刚激活的选项；恢复发生在新父节点绘制后的下一帧。
+        for _ in 0..40 {
+            if window.find("tool-monitoring").focused() == Some(true) {
+                break;
+            }
+            window.press("tab", cx);
+        }
+        assert_eq!(window.find("tool-monitoring").focused(), Some(true));
+        window.press("enter", cx);
+        assert_eq!(window.find("tool-monitoring").checked(), Some(true));
+        assert_eq!(window.simulate_next_frame(cx), 1);
+        window.render_frame(cx);
+        assert_eq!(
+            window.find("tool-monitoring").focused(),
+            Some(true),
+            "keyboard focus left the lens capsule after activation"
+        );
+        window.press("shift-tab", cx);
+        assert_eq!(window.find("tool-overview").focused(), Some(true));
+        window.press("space", cx);
+        assert_eq!(window.find("tool-overview").checked(), Some(true));
+        assert_eq!(window.simulate_next_frame(cx), 1);
+        window.render_frame(cx);
+        assert_eq!(window.find("tool-overview").focused(), Some(true));
         window.click("nav-claude-code", cx);
         window.click("tool-profiles", cx);
         assert_eq!(window.find("tool-profiles").checked(), Some(true));
@@ -345,13 +378,13 @@ fn opaque_surface_quads_preserve_the_paper_corners(cx: &mut TestAppContext) {
                 }
                 let quads = window.painted_quads();
                 let scale = window.scale_factor();
+                let material =
+                    ccr_gpui::theme::material(Theme::global(cx).mode, window.viewport_size());
+                let radius = ccr_gpui::theme::SHEET_RADIUS * scale;
                 let paper = quads
                     .iter()
                     .find(|quad| {
-                        quad.background
-                            == gpui_kit::Background::from(gpui_kit::rgb(
-                                ccr_gpui::theme::palette(Theme::global(cx).mode).sheet,
-                            ))
+                        quad.background == gpui_kit::Background::from(material.sheet)
                             && quad.bounds.size.width.as_f32() > 500. * scale
                             && quad.bounds.size.height.as_f32() > 100. * scale
                     })
@@ -359,22 +392,20 @@ fn opaque_surface_quads_preserve_the_paper_corners(cx: &mut TestAppContext) {
                 let sidebar = quads
                     .iter()
                     .find(|quad| {
-                        quad.background == gpui_kit::Background::from(Theme::global(cx).sidebar)
+                        quad.background == gpui_kit::Background::from(material.chrome)
                             && quad.bounds.size.height.as_f32() > 100. * scale
                     })
                     .unwrap_or_else(|| panic!("painted sidebar on {page}"));
+                // 侧栏 chrome 与纸面 sheet 并列（不嵌套玻璃），共同组成 20px 圆角框架。
+                assert!(material.sheet.a < 1. && material.chrome.a < 1.);
                 assert!(
-                    sidebar.corner_radii.top_left.as_f32() > 0.,
-                    "sidebar covers paper corner on {page}"
+                    sidebar.bounds.right().as_f32() <= paper.bounds.left().as_f32() + scale,
+                    "sidebar overlaps the translucent paper on {page}"
                 );
-                assert_eq!(
-                    paper.corner_radii.bottom_left.as_f32(),
-                    ccr_gpui::theme::SHEET_RADIUS * scale
-                );
-                assert_eq!(
-                    paper.corner_radii.bottom_right.as_f32(),
-                    ccr_gpui::theme::SHEET_RADIUS * scale
-                );
+                assert_eq!(sidebar.corner_radii.top_left.as_f32(), radius);
+                assert_eq!(sidebar.corner_radii.bottom_left.as_f32(), radius);
+                assert_eq!(paper.corner_radii.top_right.as_f32(), radius);
+                assert_eq!(paper.corner_radii.bottom_right.as_f32(), radius);
                 assert!(
                     !quads.iter().any(|quad| {
                         quad.background == gpui_kit::Background::from(Theme::global(cx).status_bar)
@@ -393,7 +424,8 @@ fn opaque_surface_quads_preserve_the_paper_corners(cx: &mut TestAppContext) {
                                 == gpui_kit::Background::from(Theme::global(cx).background)
                                 && quad.bounds.size.width.as_f32() > 500. * scale
                                 && quad.bounds.size.height.as_f32() > 100. * scale
-                                && quad.bounds.origin.x > paper.bounds.origin.x
+                                // 侧栏已移出纸面，阅读面从纸面左缘开始。
+                                && quad.bounds.origin.x >= paper.bounds.origin.x
                         })
                         .unwrap_or_else(|| panic!("painted configurations"));
                     assert!(reading.corner_radii.top_right.as_f32() > 0.);
@@ -513,9 +545,14 @@ fn workbench_navigation_exposes_thirteen_destinations(cx: &mut TestAppContext) {
             settings.size.height >= gpui_kit::px(24.),
             "settings dock is clipped: {settings:?}"
         );
+        // 状态区属于纸面列，侧栏列与之并列：两者不能相交，设置项也不能被侧栏裁切。
         assert!(
-            settings.bottom() <= status.top(),
+            settings.bottom() <= status.top() || settings.right() <= status.left(),
             "settings dock overlaps the status line: {settings:?} {status:?}"
+        );
+        assert!(
+            settings.bottom() <= window.find("shell-navigation").bounds().bottom(),
+            "settings dock is clipped by the navigation rail: {settings:?}"
         );
         for id in [
             "nav-overview",

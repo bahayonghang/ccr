@@ -572,15 +572,7 @@ impl InsightsView {
     // Keep selector builder temporaries out of the large render frame;
     // Windows native UI threads have a 1 MiB stack.
     fn product_tabs(&self, cx: &mut Context<Self>) -> gpui_kit::Div {
-        let mut tabs = div()
-            .flex()
-            .flex_wrap()
-            .gap(px(theme::CONTROL_GAP))
-            .p(px(theme::NAV_ROW_GAP))
-            .rounded(px(theme::INPUT_RADIUS))
-            .bg(theme::tab_colors(cx.theme().mode).background)
-            .border_b_1()
-            .border_color(theme::hairline(cx.theme().mode));
+        let mut tabs = crate::shell::page_header::capsule(cx);
         if matches!(self.surface, Surface::Workbench | Surface::Usage) {
             for (page, id, en, zh) in [
                 (InsightsPage::Usage, "insights-usage", "Usage", "用量"),
@@ -642,15 +634,7 @@ impl InsightsView {
     }
 
     fn usage_sections(&self, cx: &mut Context<Self>) -> gpui_kit::Div {
-        let mut sections = div()
-            .flex()
-            .flex_wrap()
-            .gap(px(theme::CONTROL_GAP))
-            .p(px(theme::NAV_ROW_GAP))
-            .rounded(px(theme::INPUT_RADIUS))
-            .bg(theme::tab_colors(cx.theme().mode).background)
-            .border_b_1()
-            .border_color(theme::hairline(cx.theme().mode));
+        let mut sections = crate::shell::page_header::capsule(cx);
         for (section, en, zh) in Section::ALL {
             sections = sections.child(semantics::tab(
                 semantics::button(

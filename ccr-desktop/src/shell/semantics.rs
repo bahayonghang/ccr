@@ -40,19 +40,22 @@ pub fn button(button: Button, disabled: bool, busy: bool, cx: &App) -> Button {
 
 /// Segmented options retain Kit keyboard/focus behavior but own their persistent
 /// selection colors rather than relying on the ghost variant's active palette.
+/// 选中项是浮起的实色 pill（轻阴影 + 主色 semibold），未选中项透明无边框；
+/// 禁用态保留不透明 control 边界与 muted 色，选中样式不得覆盖禁用色。
 pub fn tab(button: Button, selected: bool, disabled: bool, cx: &App) -> Button {
     let colors = crate::theme::tab_colors(cx.theme().mode);
-    button
+    let raised = selected && !disabled;
+    let button = button
         .selected(selected)
         .toggled(selected)
         .border_1()
-        .rounded(gpui_kit::px(crate::theme::TAB_RADIUS))
+        .rounded(gpui_kit::px(crate::theme::PILL_RADIUS))
         .bg(if disabled {
             cx.theme().muted
         } else if selected {
             colors.selected
         } else {
-            colors.background
+            gpui_kit::transparent_black()
         })
         .text_color(if disabled {
             cx.theme().muted_foreground
@@ -63,8 +66,6 @@ pub fn tab(button: Button, selected: bool, disabled: bool, cx: &App) -> Button {
         })
         .border_color(if disabled {
             cx.theme().input
-        } else if selected {
-            colors.border
         } else {
             gpui_kit::transparent_black()
         })
@@ -72,5 +73,10 @@ pub fn tab(button: Button, selected: bool, disabled: bool, cx: &App) -> Button {
             gpui_kit::FontWeight::SEMIBOLD
         } else {
             gpui_kit::FontWeight::NORMAL
-        })
+        });
+    if raised {
+        button.shadow(vec![colors.selected_shadow])
+    } else {
+        button
+    }
 }

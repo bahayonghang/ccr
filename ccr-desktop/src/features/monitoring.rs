@@ -37,6 +37,8 @@ pub struct MonitoringView {
     busy: bool,
     error: Option<&'static str>,
     focus: FocusHandle,
+    /// 外壳拥有的 lens 胶囊，嵌入标题行（同一行单一 h1）。
+    lens: Option<gpui_kit::AnyView>,
 }
 
 pub fn storage_error(error: Error, cx: &App) -> &'static str {
@@ -76,7 +78,11 @@ impl MonitoringView {
             busy: false,
             error: None,
             focus: cx.focus_handle().tab_stop(false),
+            lens: None,
         }
+    }
+    pub fn embed_lens(&mut self, lens: gpui_kit::AnyView) {
+        self.lens = Some(lens);
     }
     pub fn focus_main(&self, window: &mut Window, cx: &mut Context<Self>) {
         window.focus(&self.focus, cx);
@@ -464,11 +470,31 @@ impl MonitoringView {
         feed.into_any_element()
     }
 }
+impl MonitoringView {
+    // 标题与外壳 lens 胶囊同一行；无胶囊（独立测试）时只渲染标题。
+    fn heading(&self, cx: &App) -> gpui_kit::Div {
+        let mut row = div()
+            .flex()
+            .flex_wrap()
+            .items_center()
+            .gap(px(theme::SECTION_GAP))
+            .child(
+                div()
+                    .text_size(px(theme::TITLE_SIZE))
+                    .font_weight(gpui_kit::FontWeight::SEMIBOLD)
+                    .child(text(cx, "Global monitoring", "全局监控")),
+            );
+        if let Some(lens) = &self.lens {
+            row = row.child(lens.clone());
+        }
+        row
+    }
+}
 impl Render for MonitoringView {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let mut root = div().id("global-monitoring").test_support().track_focus(&self.focus).tab_stop(false)
             .flex().flex_col().size_full().overflow_y_scroll().p(px(theme::CONTENT_PADDING)).gap(px(theme::SECTION_GAP))
-            .child(div().text_size(px(theme::TITLE_SIZE)).font_weight(gpui_kit::FontWeight::SEMIBOLD).child(text(cx,"Global monitoring","全局监控")))
+            .child(self.heading(cx))
             .child(text(cx,"Captured main-database logs and this application's real lifecycle events. Refresh is explicit; hidden pages do not poll.","读取捕获的主数据库日志及本应用实际产生的生命周期事件。需要手动刷新，隐藏页面不轮询。"))
             .child(self.controls(cx)).child(self.metrics(cx)).child(self.system.clone());
         if let Some(view) = &self.benchmark {

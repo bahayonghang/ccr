@@ -14,9 +14,35 @@ its design in `ccr-desktop/DESIGN.md` and its only token layer in
 - `theme::hairline(mode)` is a decorative alpha separator; controls still use
   `Palette::control` / Kit `input` for a meaningful boundary.
 - `theme::PANEL_RADIUS` is 12px. Inputs stay 8px; the outer sheet stays 20px.
-- `theme::tab_colors(mode)` and `shell::semantics::tab(button, selected, disabled, cx)`
-  own persistent segmented selection. Apply `tab` after the ordinary button
-  decorator so pill rounding does not overwrite the segmented shape.
+- Material (2026-11-07, task `11-07-gpui-airy-glass-material`): `theme::Material`
+  replaces the former opaque `solid_sheet`. Translucency is valid only because
+  everything behind it is the app-painted static low-frequency scene (gradient +
+  two glows drawn as transparent circles with large same-color blur shadows;
+  GPUI 0.3.9 has no radial gradient or backdrop sampling). Three rules:
+  only the scene may sit behind translucent material; the sidebar chrome and the
+  sheet are siblings, never stacked; tables, inputs, popovers and code stay solid.
+  The nav selection pill and tab well are the only documented translucent layers
+  on top of chrome/sheet. Do not use OS Mica/Acrylic/`Blurred` as a substitute.
+- Contrast tests for translucent surfaces must assert on **composited** colors:
+  both field ends, the midpoint, each glow peak, and each again under the frame
+  shadow, in light and dark. Raise surface opacity rather than darkening ink when
+  a pair fails.
+- `theme::tab_colors(mode)` / `theme::tab_selected` and
+  `shell::semantics::tab(button, selected, disabled, cx)` own the capsule tabs:
+  translucent well + highlight rim, solid selected pill with a light shadow and
+  primary ink, unselected transparent without border. Apply `tab` after the
+  ordinary button decorator. `TAB_RADIUS`, `TOOLBAR_HEIGHT` and
+  `TabColors::border` no longer exist.
+- A lens bar moved between parents (shell row ↔ page heading via `LensBar` /
+  `embed_lens`) loses Kit button focus, which is keyed by tree position. Keep a
+  stable focus handle and restore it on the next frame only if the destination
+  and lens are unchanged; drive that frame with `simulate_next_frame` in tests.
+- Production code must not name `gpui_kit::base::test_support::*` types: the
+  library only gets `test-support` via dev-dependency unification, so tests,
+  `desktop-check` and `desktop-lint` pass while `desktop-build` fails. Use
+  `gpui_kit::base::ObservedElement<_>` for `.test_support()` return types, and
+  treat `desktop-ci` (which includes the release build) as the gate, not the
+  four sub-recipes alone.
 - Pass the same disabled condition as the button decorator; selected styles
   must preserve disabled colors rather than make a busy selector look enabled.
 - Do not rely solely on `Button::ghost().selected(true)` for selection:
@@ -31,6 +57,8 @@ its design in `ccr-desktop/DESIGN.md` and its only token layer in
   can hide the ring while logical/UIA focus remains. Preserve the row's visible
   focus independently of that modality and verify it on the actual build in
   light/dark. Headless focus/bounds assertions do not prove painted borders.
+  Rows are newest-first and consecutive all-zero days fold into one focusable
+  row; focus handles map to displayed rows, not report days.
 - Selector builder additions can enlarge debug render stack frames even on
   branches that return early. Windows UI threads have 1 MiB; the unchanged
   `features::environments::tests::environment_views_fit_native_windows_stack_with_isolated_locks`

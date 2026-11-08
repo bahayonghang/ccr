@@ -123,34 +123,16 @@ impl Shell {
             items.push(("tool-platform-sessions", Lens::Sessions, "Sessions", "会话"));
         }
         items.push(("tool-platform-usage", Lens::Usage, "Usage", "用量"));
-        let tabs = theme::tab_colors(cx.theme().mode);
-        let mut row = div()
-            .flex()
-            .flex_wrap()
-            .gap(px(2.))
-            .p(px(2.))
-            .rounded(px(theme::INPUT_RADIUS))
-            .border_1()
-            .border_color(tabs.border)
-            .bg(tabs.background);
+        let mut capsule = super::page_header::capsule(cx);
         for (id, lens, en, zh) in items {
-            row = row.child(self.lens_button(id, lens, en, zh, cx));
+            capsule = capsule.child(self.lens_button(id, lens, en, zh, cx));
         }
-        div()
-            .id("platform-context-navigation")
-            .test_support()
-            .flex_shrink_0()
-            .px(px(theme::CONTENT_PADDING))
-            .py(px(theme::CONTROL_GAP))
-            .border_b_1()
-            .border_color(cx.theme().border)
-            .child(
-                div()
-                    .text_size(px(theme::META_SIZE))
-                    .text_color(cx.theme().muted_foreground)
-                    .child(crate::features::workbench::name(platform)),
-            )
-            .child(row)
-            .into_any_element()
+        // 平台名只作为胶囊左侧的上下文标签；页面自己的标题保留在下方。
+        super::page_header::row(
+            "platform-context-navigation",
+            Some(crate::features::workbench::name(platform).into()),
+            capsule,
+            cx,
+        )
     }
 }
