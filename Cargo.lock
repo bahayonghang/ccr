@@ -651,6 +651,7 @@ dependencies = [
  "base64 0.23.1",
  "ccr-cli",
  "ccr-codex",
+ "ccr-config",
  "ccr-core",
  "ccr-usage",
  "chrono",

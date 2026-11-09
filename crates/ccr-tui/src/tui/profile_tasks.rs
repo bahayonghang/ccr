@@ -7,15 +7,19 @@ use std::sync::{Arc, mpsc};
 use ccr_cli::application::profile_activity::{
     ProfileActivityError, ProfileActivitySnapshot, load_profile_activity,
 };
+use ccr_cli::application::profile_edit::{EditProfileOutcome, edit_profile};
 use ccr_cli::application::profile_lifecycle::{ApplyProfileRequest, ProfileOutcome};
 use ccr_cli::application::{ProfileOffResult, profile_off_for_platform};
+use ccr_cli::managers::ConfigManager;
 use ccr_cli::models::{
     ClaudeRuntimeSummary, CodexRuntimeSummary, Platform, PlatformConfig, PlatformPaths,
     ProfileConfig,
 };
 use ccr_cli::platforms::{GrokActivationState, GrokPlatform, create_platform};
+use ccr_core::core::error::CcrError;
 use indexmap::IndexMap;
 
+use super::profile_edit::EditRequest;
 use super::runtime::AsyncTaskExecutor;
 
 pub(super) struct ReadIssue {
@@ -32,6 +36,10 @@ pub(super) struct ProfileSnapshot {
     pub grok_activation: Option<GrokActivationState>,
     pub runtime_error: Option<String>,
     pub activity: Option<std::result::Result<ProfileActivitySnapshot, ProfileActivityError>>,
+    /// `profiles.toml` path resolved while reading the snapshot. Renderers must not resolve it again.
+    pub profiles_path: String,
+    /// Catalog revision captured with the snapshot. `None` means the editor must ask for a reload.
+    pub revision: Option<String>,
 }
 
 pub(super) fn read_profiles(platform: Platform) -> std::result::Result<ProfileSnapshot, String> {
@@ -99,9 +107,12 @@ pub(super) fn read_instance_profiles(instance: &dyn PlatformConfig) -> ProfileSn
         })
     };
     let configs = instance.load_profiles().map_err(|error| ReadIssue {
-        locations: vec![profiles_path],
+        locations: vec![profiles_path.clone()],
         reason: error.to_string(),
     });
+    let revision = paths
+        .as_ref()
+        .and_then(|paths| catalog_revision(&paths.profiles_file));
     ProfileSnapshot {
         instance: None,
         configs,
@@ -111,6 +122,20 @@ pub(super) fn read_instance_profiles(instance: &dyn PlatformConfig) -> ProfileSn
         grok_activation: None,
         runtime_error: None,
         activity: None,
+        profiles_path,
+        revision,
+    }
+}
+
+fn catalog_revision(path: &std::path::Path) -> Option<String> {
+    match ConfigManager::new(path).snapshot() {
+        Ok(snapshot) => Some(snapshot.version),
+        Err(error) => {
+            if !matches!(error, CcrError::ConfigMissing(_)) {
+                tracing::warn!("Profile catalog revision unavailable: {error}");
+            }
+            None
+        }
     }
 }
 
@@ -118,6 +143,7 @@ pub(super) fn read_instance_profiles(instance: &dyn PlatformConfig) -> ProfileSn
 pub(super) enum MutationRequest {
     Apply(ApplyProfileRequest),
     Off(Platform),
+    Edit(Box<EditRequest>),
 }
 
 impl MutationRequest {
@@ -125,12 +151,14 @@ impl MutationRequest {
         match self {
             Self::Apply(request) => request.platform,
             Self::Off(platform) => *platform,
+            Self::Edit(request) => request.platform(),
         }
     }
     pub fn profile(&self) -> Option<&str> {
         match self {
             Self::Apply(request) => Some(&request.name),
             Self::Off(_) => None,
+            Self::Edit(request) => Some(request.name()),
         }
     }
 }
@@ -138,6 +166,7 @@ impl MutationRequest {
 pub(super) enum MutationOutcome {
     Applied(ProfileOutcome),
     Off(ProfileOffResult),
+    Edited(Box<EditProfileOutcome>),
 }
 
 pub(super) type ProfileLoader =
@@ -154,6 +183,8 @@ fn mutate(request: MutationRequest) -> std::result::Result<MutationOutcome, Stri
         MutationRequest::Off(platform) => {
             profile_off_for_platform(platform).map(MutationOutcome::Off)
         }
+        MutationRequest::Edit(request) => edit_profile(request.into_inner())
+            .map(|outcome| MutationOutcome::Edited(Box::new(outcome))),
     }
     .map_err(|error| error.to_string())
 }
@@ -360,6 +391,8 @@ mod tests {
             grok_activation: None,
             runtime_error: None,
             activity: Some(Ok(ProfileActivitySnapshot::default())),
+            profiles_path: "fixture/profiles.toml".to_string(),
+            revision: Some("rev-fixture".to_string()),
         }
     }
 
@@ -393,6 +426,80 @@ mod tests {
             assert!(Instant::now() < deadline, "fixture worker did not complete");
             std::thread::sleep(Duration::from_millis(1));
         }
+    }
+
+    #[test]
+    fn missing_catalog_has_no_revision_and_creates_nothing() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("profiles.toml");
+        assert!(catalog_revision(&path).is_none());
+        assert!(!path.exists());
+    }
+
+    #[test]
+    fn edit_outcome_is_consumed_once_and_a_second_writer_is_rejected() {
+        use ccr_cli::application::profile_edit::{EditProfileRequest, FieldEdit, SecretEdit};
+        use ccr_cli::models::ApplyPolicy;
+        use serde_json::json;
+        let request = MutationRequest::Edit(Box::new(EditRequest(EditProfileRequest {
+            platform: Platform::Codex,
+            name: "work".into(),
+            rename: None,
+            expected_revision: Some("rev-1".into()),
+            fields: vec![FieldEdit::Set {
+                field: "model".into(),
+                value: json!("gpt"),
+            }],
+            secret: SecretEdit::Keep,
+            apply: ApplyPolicy::IfCurrent,
+        })));
+        let mut tasks = ProfileTasks::with_backends(
+            AsyncTaskExecutor::from_current_or_test(),
+            Arc::new(|_| Ok(snapshot("work"))),
+            Arc::new(|request| {
+                let MutationRequest::Edit(edit) = request else {
+                    return Err("expected edit".into());
+                };
+                let inner = edit.into_inner();
+                Ok(MutationOutcome::Edited(Box::new(
+                    ccr_cli::application::profile_edit::EditProfileOutcome {
+                        platform: inner.platform,
+                        old_name: inner.name.clone(),
+                        new_name: inner.name,
+                        changed_fields: vec!["model".into()],
+                        reapplied: false,
+                        revision: Some("rev-2".into()),
+                        lifecycle: ccr_cli::application::profile_edit::EditLifecycle::Profile(
+                            ProfileOutcome {
+                                operation_id: "op".into(),
+                                platform: "codex".into(),
+                                profile: "work".into(),
+                                previous_profile: None,
+                                status: ProfileStatus::Applied,
+                                activation_committed: false,
+                                warnings: vec![],
+                                recovery_paths: vec![],
+                            },
+                        ),
+                        warnings: vec![],
+                    },
+                )))
+            }),
+        );
+        assert!(tasks.start_mutation(request.clone()));
+        assert!(!tasks.start_mutation(request));
+        let outcomes = drain_until(&mut tasks, |events| {
+            events
+                .iter()
+                .any(|event| matches!(event, ProfileCompletion::Mutation(_, Ok(_))))
+        });
+        assert!(matches!(
+            &outcomes[0],
+            ProfileCompletion::Mutation(
+                MutationRequest::Edit(_),
+                Ok(MutationOutcome::Edited(outcome))
+            ) if outcome.new_name == "work"
+        ));
     }
 
     #[test]

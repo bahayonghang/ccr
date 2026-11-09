@@ -21,6 +21,8 @@ pub enum ConfirmKind {
     ProfileOff,
     /// Log out the official session.
     AuthOff,
+    /// Save a profile edit. The frozen request lives beside the dialog.
+    Save,
 }
 
 /// Overlay variant for modal dialogs
@@ -123,6 +125,34 @@ impl Overlay {
                 subject: name,
                 kind: ConfirmKind::Apply,
             }
+        }
+    }
+
+    /// Profile edit. Default is cancel. Secrets are named, never printed.
+    pub fn confirm_profile_save(name: &str, changes: &[String], rewrites_runtime: bool) -> Self {
+        let mut message = vec![crate::tui_format!(
+            "Save changes to {name}:",
+            "保存对 {name} 的改动："
+        )];
+        if changes.is_empty() {
+            message.push(crate::tui_text!("No changed fields", "没有改动字段").to_string());
+        } else {
+            message.extend(changes.iter().cloned());
+        }
+        if rewrites_runtime {
+            message.push(
+                crate::tui_text!(
+                    "Saving rewrites the runtime file immediately.",
+                    "保存后会立即重写运行时文件。"
+                )
+                .to_string(),
+            );
+        }
+        Self::ConfirmGate {
+            title: crate::tui_text!("Confirm save", "确认保存").to_string(),
+            subject: name.to_string(),
+            message,
+            kind: ConfirmKind::Save,
         }
     }
 
@@ -395,7 +425,7 @@ pub fn render_overlay(f: &mut Frame, overlay: &Overlay) {
                     "Press y to confirm | o, n, or Esc to cancel",
                     "按 y 确认 | 按 o、n 或 Esc 取消"
                 ),
-                ConfirmKind::Apply | ConfirmKind::Switch => crate::tui_text!(
+                ConfirmKind::Apply | ConfirmKind::Switch | ConfirmKind::Save => crate::tui_text!(
                     "Press y to confirm | Enter, n, or Esc to cancel",
                     "按 y 确认 | 按 Enter、n 或 Esc 取消"
                 ),

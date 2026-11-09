@@ -1056,7 +1056,7 @@ impl CodexAuthApp {
                         self.perform_auth_off_with(codex_auth_off)?;
                         Ok(false)
                     }
-                    ConfirmKind::Apply | ConfirmKind::ProfileOff => Ok(false),
+                    ConfirmKind::Apply | ConfirmKind::ProfileOff | ConfirmKind::Save => Ok(false),
                 };
             }
             KeyCode::Char('n')

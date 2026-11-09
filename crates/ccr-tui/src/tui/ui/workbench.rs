@@ -1,4 +1,8 @@
 //! Shared Profile workbench. Every value comes from the cached App snapshot.
+use super::detail_layout::{
+    ConnectionSlot, layout_connection, plan_detail, ruler_line, spread_line, wrap_lines,
+};
+use super::stored_fields::{stored_field_lines, stored_fields_heading};
 use super::*;
 use ccr_cli::application::profile_activity::ProfileActivityAvailability;
 use ccr_cli::models::{ClaudeRuntimeMode, CodexRuntimeMode};
@@ -182,10 +186,13 @@ pub(super) fn render_table(f: &mut Frame, app: &mut App, area: Rect) {
         .enumerate()
         .map(|(index, profile)| {
             let selected = index == app.selected_index;
+            let editing = app.profile_editor.is_some();
             let config = app.current_tab().profile_configs.get(&profile.name);
             let disabled = config.is_some_and(|config| !config.is_enabled());
             let pending = app.profile_mutation_pending(platform, Some(&profile.name));
-            let style = if selected {
+            let style = if editing {
+                theme::muted_style()
+            } else if selected {
                 theme::selected_row_style()
             } else if profile.is_current {
                 theme::success_style()
@@ -229,14 +236,18 @@ pub(super) fn render_table(f: &mut Frame, app: &mut App, area: Rect) {
                 };
                 (
                     value,
-                    if selected {
+                    if editing {
+                        theme::muted_style()
+                    } else if selected {
                         theme::selected_row_style()
                     } else {
                         tone
                     },
                 )
             });
-            Row::new(cells).style(if selected {
+            Row::new(cells).style(if editing {
+                theme::muted_style()
+            } else if selected {
                 theme::selected_row_style()
             } else {
                 theme::primary_text_style()
@@ -304,15 +315,12 @@ fn last_used(app: &App, name: &str, now: DateTime<Utc>) -> (String, Style) {
             crate::tui_text!("Unavailable", "不可用"),
             theme::muted_style(),
         ),
-        Some(Ok(_)) => (
-            crate::tui_text!("No record", "无记录"),
-            theme::muted_style(),
-        ),
+        Some(Ok(_)) => ("—", theme::muted_style()),
     };
     (label.into(), style)
 }
 
-pub(super) fn render_runtime(f: &mut Frame, app: &App, area: Rect) {
+pub(super) fn render_runtime(f: &mut Frame, app: &App, area: Rect, labeled: bool) {
     let platform = app.current_platform();
     let (mode, mode_style, name, auth) = runtime_values(app);
     let model = name
@@ -332,7 +340,22 @@ pub(super) fn render_runtime(f: &mut Frame, app: &App, area: Rect) {
         .padding(Padding::horizontal(1));
     let inner = block.inner(area);
     f.render_widget(block, area);
-    if inner.height < 2 || inner.width < 86 {
+    if labeled {
+        if inner.height >= 1 && inner.width > 0 {
+            f.render_widget(
+                Paragraph::new(labeled_runtime_line(
+                    &mode,
+                    mode_style,
+                    &profile,
+                    theme::platform_style_for(platform),
+                    &auth,
+                    theme::secondary_text_style(),
+                    inner.width as usize,
+                )),
+                inner,
+            );
+        }
+    } else if inner.height < 2 || inner.width < 86 {
         let mode_width = mode.width().min(inner.width as usize);
         let remainder = inner.width as usize - mode_width;
         let auth_width = (remainder.saturating_sub(6) / 2).min(auth.width());
@@ -390,6 +413,72 @@ pub(super) fn render_runtime(f: &mut Frame, app: &App, area: Rect) {
             );
         }
     }
+}
+
+fn labeled_runtime_line(
+    mode: &str,
+    mode_style: Style,
+    profile: &str,
+    profile_style: Style,
+    auth: &str,
+    auth_style: Style,
+    width: usize,
+) -> Line<'static> {
+    let segments = [
+        (crate::tui_text!("Mode", "运行方式"), mode, mode_style),
+        (
+            crate::tui_text!("Current profile / model", "当前配置 / 模型"),
+            profile,
+            profile_style,
+        ),
+        (crate::tui_text!("Auth", "认证"), auth, auth_style),
+    ];
+    let separator = " │ ";
+    let separator_width = separator.width() * 2;
+    let label_widths: Vec<usize> = segments
+        .iter()
+        .map(|(label, _, _)| label.width().saturating_add(1))
+        .collect();
+    let labels_total: usize = label_widths.iter().sum();
+    let mut value_budget = width.saturating_sub(separator_width.saturating_add(labels_total));
+    let mut value_widths = [0usize; 3];
+    if width > 0 && labels_total.saturating_add(separator_width) >= width {
+        return Line::from(Span::styled(
+            truncate_text(
+                &format!(
+                    "{} {} │ {} {} │ {} {}",
+                    segments[0].0, mode, segments[1].0, profile, segments[2].0, auth
+                ),
+                width,
+            ),
+            theme::secondary_text_style(),
+        ));
+    }
+    for (index, (_, value, _)) in segments.iter().enumerate() {
+        let share = value_budget / (3 - index);
+        let grant = share.min(value.width());
+        value_widths[index] = grant;
+        value_budget -= grant;
+    }
+    for (index, (_, value, _)) in segments.iter().enumerate() {
+        if value.width() > value_widths[index] && value_budget > 0 {
+            let grant = value_budget.min(value.width() - value_widths[index]);
+            value_widths[index] += grant;
+            value_budget -= grant;
+        }
+    }
+    let mut spans = Vec::new();
+    for (index, (label, value, style)) in segments.into_iter().enumerate() {
+        if index > 0 {
+            spans.push(Span::styled(separator, theme::muted_style()));
+        }
+        spans.push(Span::styled(format!("{label} "), theme::muted_style()));
+        spans.push(Span::styled(
+            truncate_text(value, value_widths[index].max(1)),
+            style,
+        ));
+    }
+    Line::from(spans)
 }
 
 fn runtime_values(app: &App) -> (String, Style, Option<String>, String) {
@@ -532,41 +621,45 @@ fn runtime_values(app: &App) -> (String, Style, Option<String>, String) {
     }
 }
 
-/// Explicit cell wrapping means scroll extent and rendered lines cannot disagree.
-fn wrap_lines(lines: Vec<Line<'static>>, width: usize) -> Vec<Line<'static>> {
-    if width == 0 {
-        return Vec::new();
-    }
-    let mut out = Vec::new();
-    for line in lines {
-        let mut spans = Vec::new();
-        let mut used = 0;
-        for span in line.spans {
-            let mut text = String::new();
-            for ch in span.content.chars() {
-                let cells = ch.width().unwrap_or(0);
-                if ch == '\n' || used + cells > width {
-                    if !text.is_empty() {
-                        spans.push(Span::styled(std::mem::take(&mut text), span.style));
-                    }
-                    out.push(Line::from(std::mem::take(&mut spans)).style(line.style));
-                    used = 0;
-                    if ch == '\n' {
-                        continue;
-                    }
-                }
-                if cells <= width && !ch.is_control() {
-                    text.push(ch);
-                    used += cells;
-                }
-            }
-            if !text.is_empty() {
-                spans.push(Span::styled(text, span.style));
-            }
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ConnId {
+    Key(DetailKey),
+    Claude(ClaudeExtra),
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ClaudeExtra {
+    Opus,
+    Sonnet,
+    Haiku,
+    Fable,
+    Subagent,
+    Effort,
+    Timeout,
+    AutoCompact,
+}
+
+impl ClaudeExtra {
+    fn label(self) -> &'static str {
+        match self {
+            Self::Opus => "Opus",
+            Self::Sonnet => "Sonnet",
+            Self::Haiku => "Haiku",
+            Self::Fable => "Fable",
+            Self::Subagent => crate::tui_text!("Subagent", "子代理"),
+            Self::Effort => crate::tui_text!("Effort", "思考强度"),
+            Self::Timeout => crate::tui_text!("Timeout ms", "超时毫秒"),
+            Self::AutoCompact => crate::tui_text!("Auto compact", "自动压缩"),
         }
-        out.push(Line::from(spans).style(line.style));
     }
-    out
+}
+
+struct ConnField {
+    id: ConnId,
+    label: String,
+    value: String,
+    style: Style,
+    unset: bool,
 }
 
 fn connection_rows(
@@ -575,116 +668,167 @@ fn connection_rows(
     expanded: bool,
     width: usize,
 ) -> Vec<Line<'static>> {
+    layout_connection(&connection_slots(platform, config, expanded), width)
+}
+
+fn connection_slots(
+    platform: Platform,
+    config: &ProfileConfig,
+    expanded: bool,
+) -> Vec<ConnectionSlot> {
+    let fields = connection_fields(platform, config);
+    connection_schema(platform)
+        .into_iter()
+        .map(|id| {
+            let exclusive = matches!(id, ConnId::Key(DetailKey::BaseUrl | DetailKey::Token));
+            let found = fields.iter().find(|field| field.id == id);
+            let label = found
+                .map(|field| field.label.clone())
+                .unwrap_or_else(|| conn_label(id));
+            let value = match found {
+                Some(field) if expanded || !field.unset => Some((field.value.clone(), field.style)),
+                None if expanded => Some(("—".to_string(), theme::muted_style())),
+                _ => None,
+            };
+            ConnectionSlot {
+                label,
+                value,
+                exclusive,
+            }
+        })
+        .collect()
+}
+
+fn connection_schema(platform: Platform) -> Vec<ConnId> {
+    match platform {
+        Platform::Codex => vec![
+            ConnId::Key(DetailKey::Model),
+            ConnId::Key(DetailKey::ReasoningEffort),
+            ConnId::Key(DetailKey::Provider),
+            ConnId::Key(DetailKey::BaseUrl),
+            ConnId::Key(DetailKey::AuthMode),
+            ConnId::Key(DetailKey::AuthSource),
+            ConnId::Key(DetailKey::SmallFast),
+            ConnId::Key(DetailKey::Account),
+            ConnId::Key(DetailKey::ProviderType),
+            ConnId::Key(DetailKey::Token),
+            ConnId::Key(DetailKey::OpenAiLogin),
+            ConnId::Key(DetailKey::EnvKey),
+            ConnId::Key(DetailKey::WireApi),
+            ConnId::Key(DetailKey::RequiresOpenAi),
+        ],
+        Platform::Claude => vec![
+            ConnId::Key(DetailKey::Model),
+            ConnId::Key(DetailKey::Provider),
+            ConnId::Key(DetailKey::BaseUrl),
+            ConnId::Key(DetailKey::AuthMode),
+            ConnId::Key(DetailKey::AuthSource),
+            ConnId::Key(DetailKey::SmallFast),
+            ConnId::Key(DetailKey::Account),
+            ConnId::Key(DetailKey::Token),
+            ConnId::Key(DetailKey::ProviderType),
+            ConnId::Claude(ClaudeExtra::Opus),
+            ConnId::Claude(ClaudeExtra::Sonnet),
+            ConnId::Claude(ClaudeExtra::Haiku),
+            ConnId::Claude(ClaudeExtra::Fable),
+            ConnId::Claude(ClaudeExtra::Subagent),
+            ConnId::Claude(ClaudeExtra::Effort),
+            ConnId::Claude(ClaudeExtra::Timeout),
+            ConnId::Claude(ClaudeExtra::AutoCompact),
+        ],
+        Platform::Grok => vec![
+            ConnId::Key(DetailKey::Model),
+            ConnId::Key(DetailKey::Provider),
+            ConnId::Key(DetailKey::ReasoningEffort),
+            ConnId::Key(DetailKey::BaseUrl),
+            ConnId::Key(DetailKey::AuthMode),
+            ConnId::Key(DetailKey::ApiBackend),
+            ConnId::Key(DetailKey::ContextWindow),
+            ConnId::Key(DetailKey::BackendSearch),
+        ],
+        _ => vec![
+            ConnId::Key(DetailKey::Model),
+            ConnId::Key(DetailKey::BaseUrl),
+            ConnId::Key(DetailKey::Account),
+        ],
+    }
+}
+
+fn connection_fields(platform: Platform, config: &ProfileConfig) -> Vec<ConnField> {
     let details = match platform {
-        Platform::Codex => codex_profile_details("", config, false, None, false, expanded),
-        Platform::Claude => claude_profile_details("", config, false, None, false, expanded),
-        Platform::Grok => grok_profile_details("", config, false, false, expanded),
-        _ => generic_profile_details("", config, false, platform, false, expanded),
+        Platform::Codex => codex_profile_details("", config, false, None, false, false),
+        Platform::Claude => claude_profile_details("", config, false, None, false, false),
+        Platform::Grok => grok_profile_details("", config, false, false, false),
+        _ => generic_profile_details("", config, false, platform, false, false),
     };
-    let mut fields: Vec<_> = details
+    let mut fields = details
         .fields
         .into_iter()
         .filter(|field| {
             !matches!(
                 field.key,
                 DetailKey::Description | DetailKey::SwitchCount | DetailKey::Tags
-            ) && (expanded || !field.unset)
-        })
-        .collect();
-    fields.sort_by_key(|field| match field.key {
-        DetailKey::Model => 0,
-        DetailKey::ReasoningEffort => 1,
-        DetailKey::Provider => 2,
-        DetailKey::BaseUrl => 3,
-        DetailKey::AuthMode => 4,
-        DetailKey::AuthSource => 5,
-        _ => 6,
-    });
-    let mut rows: Vec<(String, String, Style)> = fields
-        .into_iter()
-        .map(|field| {
-            (
-                connection_label(field.key).into(),
-                field.value,
-                detail_tone_style(field.tone),
             )
         })
-        .collect();
+        .map(|field| ConnField {
+            id: ConnId::Key(field.key),
+            label: connection_label(field.key).to_string(),
+            value: field.value,
+            style: detail_tone_style(field.tone),
+            unset: field.unset,
+        })
+        .collect::<Vec<_>>();
     if platform == Platform::Claude {
-        for (label, value) in [
-            ("Opus", config.default_opus_model.as_deref()),
-            ("Sonnet", config.default_sonnet_model.as_deref()),
-            ("Haiku", config.default_haiku_model.as_deref()),
-            ("Fable", config.default_fable_model.as_deref()),
+        for (extra, value) in [
+            (ClaudeExtra::Opus, config.default_opus_model.as_deref()),
+            (ClaudeExtra::Sonnet, config.default_sonnet_model.as_deref()),
+            (ClaudeExtra::Haiku, config.default_haiku_model.as_deref()),
+            (ClaudeExtra::Fable, config.default_fable_model.as_deref()),
+            (ClaudeExtra::Subagent, config.subagent_model.as_deref()),
+            (ClaudeExtra::Effort, config.effort_level.as_deref()),
+            (ClaudeExtra::Timeout, config.api_timeout_ms.as_deref()),
             (
-                crate::tui_text!("Subagent", "子代理"),
-                config.subagent_model.as_deref(),
-            ),
-            (
-                crate::tui_text!("Effort", "思考强度"),
-                config.effort_level.as_deref(),
-            ),
-            (
-                crate::tui_text!("Timeout ms", "超时毫秒"),
-                config.api_timeout_ms.as_deref(),
-            ),
-            (
-                crate::tui_text!("Auto compact", "自动压缩"),
+                ClaudeExtra::AutoCompact,
                 config.claude_code_auto_compact_window.as_deref(),
             ),
         ] {
-            if let Some(value) = value.filter(|value| !value.trim().is_empty()) {
-                rows.push((label.into(), value.into(), theme::info_style()));
-            } else if expanded {
-                rows.push((label.into(), "—".into(), theme::muted_style()));
-            }
+            let trimmed = value.map(str::trim).filter(|value| !value.is_empty());
+            fields.push(ConnField {
+                id: ConnId::Claude(extra),
+                label: extra.label().to_string(),
+                value: trimmed.unwrap_or("—").to_string(),
+                style: if trimmed.is_some() {
+                    theme::info_style()
+                } else {
+                    theme::muted_style()
+                },
+                unset: trimmed.is_none(),
+            });
         }
     }
     if platform == Platform::Grok
         && let Some(provider) = config
             .provider
             .as_deref()
-            .filter(|value| !value.trim().is_empty())
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
     {
-        rows.insert(
-            1.min(rows.len()),
-            (
-                crate::tui_text!("Provider", "提供商").into(),
-                provider.into(),
-                theme::platform_style_for(platform),
-            ),
-        );
+        fields.push(ConnField {
+            id: ConnId::Key(DetailKey::Provider),
+            label: connection_label(DetailKey::Provider).to_string(),
+            value: provider.to_string(),
+            style: theme::platform_style_for(platform),
+            unset: false,
+        });
     }
-    let label_width = rows
-        .iter()
-        .map(|(label, _, _)| label.width())
-        .max()
-        .unwrap_or(0)
-        .saturating_add(2)
-        .min(width.saturating_sub(4).max(1));
-    let mut lines = Vec::new();
-    for (label, value, style) in rows {
-        let value_lines = wrap_lines(
-            vec![Line::from(Span::styled(value, style))],
-            width.saturating_sub(label_width).max(1),
-        );
-        for (index, value) in value_lines.into_iter().enumerate() {
-            let mut spans = vec![Span::styled(
-                if index == 0 {
-                    pad_text(
-                        &truncate_text(&label, label_width.saturating_sub(1)),
-                        label_width,
-                    )
-                } else {
-                    " ".repeat(label_width)
-                },
-                theme::secondary_text_style(),
-            )];
-            spans.extend(value.spans);
-            lines.push(Line::from(spans));
-        }
+    fields
+}
+
+fn conn_label(id: ConnId) -> String {
+    match id {
+        ConnId::Key(key) => connection_label(key).to_string(),
+        ConnId::Claude(extra) => extra.label().to_string(),
     }
-    lines
 }
 
 fn connection_label(key: DetailKey) -> &'static str {
@@ -710,17 +854,6 @@ fn connection_label(key: DetailKey) -> &'static str {
     }
 }
 
-fn section(lines: &mut Vec<Line<'static>>, title: String, width: usize, platform: Platform) {
-    lines.push(Line::styled(
-        "─".repeat(width),
-        Style::default().fg(theme::border()),
-    ));
-    lines.extend(wrap_lines(
-        vec![Line::styled(title, theme::platform_style_for(platform))],
-        width,
-    ));
-}
-
 fn token_bar(value: i64, max: i64, width: usize) -> String {
     if value <= 0 || max <= 0 {
         return " ".repeat(width);
@@ -743,27 +876,16 @@ fn usage_ledger(app: &App, provider: Option<&str>, width: usize) -> Vec<Line<'st
         Platform::Grok => SourceKind::Grok,
         _ => SourceKind::Claude,
     };
-    let mut lines = Vec::new();
-    section(
-        &mut lines,
-        crate::tui_text!("Provider usage", "提供商用量").into(),
-        width,
-        platform,
-    );
     let provider = provider.filter(|value| !value.trim().is_empty());
-    if let Some(provider) = provider {
-        lines.push(Line::styled(
-            format!("{provider} / {}", platform_name(platform)),
-            theme::secondary_text_style(),
-        ));
-    }
-    lines.push(Line::styled(
-        crate::tui_text!(
-            "All-time provider total · approx official-equivalent USD",
-            "提供商全时段总量 · 费用为官方等价美元估算"
+    let title = match provider {
+        Some(provider) => format!(
+            "{} · {provider} / {}",
+            crate::tui_text!("Usage", "用量"),
+            platform_name(platform)
         ),
-        theme::muted_style(),
-    ));
+        None => crate::tui_text!("Usage", "用量").to_string(),
+    };
+    let title_style = theme::platform_style_for(platform);
     let state = app.usage_app.as_ref().map(|engine| &engine.state);
     let row = if let (Some(provider), Some(UsageLoadState::Loaded(dataset))) = (provider, state) {
         dataset
@@ -799,9 +921,23 @@ fn usage_ledger(app: &App, provider: Option<&str>, width: usize) -> Vec<Line<'st
                 ),
             }
         };
-        lines.push(Line::styled(message, style));
-        return wrap_lines(lines, width);
+        return vec![ruler_line(
+            &title,
+            Some((&message, style)),
+            width,
+            title_style,
+        )];
     };
+    let mut lines = vec![
+        ruler_line(&title, None, width, title_style),
+        Line::styled(
+            crate::tui_text!(
+                "All-time provider total · approx official-equivalent USD",
+                "提供商全时段总量 · 费用为官方等价美元估算"
+            ),
+            theme::muted_style(),
+        ),
+    ];
     let metrics = [
         (
             crate::tui_text!("Requests", "请求"),
@@ -938,23 +1074,16 @@ fn usage_ledger(app: &App, provider: Option<&str>, width: usize) -> Vec<Line<'st
 }
 
 fn activity_lines(app: &App, name: &str, switches: u32, width: usize) -> Vec<Line<'static>> {
-    let mut lines = Vec::new();
-    section(
-        &mut lines,
-        crate::tui_format!(
-            "Recorded activations · {} switches",
-            "启用记录 · 切换 {} 次",
-            switches
-        ),
-        width,
-        app.current_platform(),
-    );
+    let platform = app.current_platform();
+    let title = crate::tui_format!("Activations · {switches}", "启用记录 · {switches} 次");
+    let title_style = theme::platform_style_for(platform);
+    let mut records = Vec::new();
     let mut has_records = false;
     if let Some(activity) = app.profile_activity(name) {
         let now = Utc::now();
         for (index, timestamp) in activity.recent_activations.iter().take(3).enumerate() {
             has_records = true;
-            lines.push(Line::from(vec![
+            records.push(Line::from(vec![
                 Span::styled(
                     pad_text(
                         if index == 0 {
@@ -979,7 +1108,7 @@ fn activity_lines(app: &App, name: &str, switches: u32, width: usize) -> Vec<Lin
             ]));
         }
         if activity.invalid_timestamps > 0 {
-            lines.push(Line::styled(
+            records.push(Line::styled(
                 crate::tui_text!(
                     "Partial history: invalid timestamps omitted",
                     "部分历史：已跳过无效时间"
@@ -992,7 +1121,7 @@ fn activity_lines(app: &App, name: &str, switches: u32, width: usize) -> Vec<Lin
             .iter()
             .any(|timestamp| *timestamp > now)
         {
-            lines.push(Line::styled(
+            records.push(Line::styled(
                 crate::tui_text!(
                     "Future timestamp; check the clock",
                     "时间在未来，请检查时钟"
@@ -1002,97 +1131,200 @@ fn activity_lines(app: &App, name: &str, switches: u32, width: usize) -> Vec<Lin
         }
     }
     if !has_records {
-        let (text, style) = match app.current_activity_snapshot() {
-            Some(Ok(snapshot))
-                if snapshot.availability == ProfileActivityAvailability::MissingDatabase =>
-            {
-                (
-                    crate::tui_text!("History database is not present", "尚无历史数据库").into(),
-                    theme::muted_style(),
-                )
-            }
-            Some(Ok(snapshot))
-                if snapshot.availability == ProfileActivityAvailability::MissingSchema =>
-            {
-                (
-                    crate::tui_text!("History schema unavailable", "历史表结构不可用").into(),
-                    theme::warning_style(),
-                )
-            }
-            Some(Err(_)) => (
-                crate::tui_text!(
-                    "History read failed; reload to retry",
-                    "历史读取失败，可重新加载"
-                )
-                .into(),
-                theme::error_style(),
-            ),
-            _ => last_used(app, name, Utc::now()),
-        };
-        lines.push(Line::styled(text, style));
+        let (text, style) = activity_empty_status(app, name);
+        return vec![ruler_line(&title, Some((&text, style)), width, title_style)];
     }
-    lines.push(Line::styled(
-        crate::tui_text!(
-            "Last used = successful CCR activation",
-            "上次使用按 CCR 成功启用记录统计"
+    let mut lines = vec![
+        ruler_line(&title, None, width, title_style),
+        Line::styled(
+            crate::tui_text!(
+                "Last used = successful CCR activation",
+                "上次使用按 CCR 成功启用记录统计"
+            ),
+            theme::muted_style(),
         ),
-        theme::muted_style(),
-    ));
+    ];
+    lines.extend(records);
     wrap_lines(lines, width)
 }
 
+fn activity_empty_status(app: &App, name: &str) -> (String, Style) {
+    match app.current_activity_snapshot() {
+        Some(Ok(snapshot))
+            if snapshot.availability == ProfileActivityAvailability::MissingDatabase =>
+        {
+            (
+                crate::tui_text!("History database is not present", "尚无历史数据库").into(),
+                theme::muted_style(),
+            )
+        }
+        Some(Ok(snapshot))
+            if snapshot.availability == ProfileActivityAvailability::MissingSchema =>
+        {
+            (
+                crate::tui_text!("History schema unavailable", "历史表结构不可用").into(),
+                theme::warning_style(),
+            )
+        }
+        Some(Err(_)) => (
+            crate::tui_text!(
+                "History read failed; reload to retry",
+                "历史读取失败，可重新加载"
+            )
+            .into(),
+            theme::error_style(),
+        ),
+        _ => {
+            let (text, style) = last_used(app, name, Utc::now());
+            if text == "—" {
+                (
+                    crate::tui_text!("No record", "无记录").into(),
+                    theme::muted_style(),
+                )
+            } else {
+                (text, style)
+            }
+        }
+    }
+}
+
+struct DetailContent {
+    fixed: Vec<Line<'static>>,
+    elastic_title: Option<Line<'static>>,
+    elastic_body: Vec<Line<'static>>,
+}
+
+#[cfg(test)]
 fn detail_lines(app: &App, width: usize) -> Vec<Line<'static>> {
+    let content = detail_content(app, width);
+    let mut lines = content.fixed;
+    if let Some(title) = content.elastic_title {
+        lines.push(title);
+        lines.extend(content.elastic_body);
+    }
+    lines
+}
+
+fn detail_content(app: &App, width: usize) -> DetailContent {
     let (Some(profile), Some(config)) = (app.selected_profile(), app.selected_profile_config())
     else {
-        return wrap_lines(profile_status_text(app), width);
+        return DetailContent {
+            fixed: wrap_lines(profile_status_text(app), width),
+            elastic_title: None,
+            elastic_body: Vec::new(),
+        };
     };
     let platform = app.current_platform();
-    let mut lines = vec![Line::from(vec![
-        Span::styled(
-            format!("{}  ", profile.name),
-            theme::platform_style_for(platform),
-        ),
-        Span::styled(
-            if profile.is_current {
-                crate::tui_text!("Current", "当前生效")
-            } else {
-                crate::tui_text!("Available", "可用")
-            },
-            if profile.is_current {
-                theme::success_style()
-            } else {
-                theme::secondary_text_style()
-            },
-        ),
-        Span::styled(
-            if config.is_enabled() {
-                crate::tui_text!(" / Enabled", " / 已启用")
-            } else {
-                crate::tui_text!(" / Disabled", " / 已禁用")
-            },
-            if config.is_enabled() {
-                theme::success_style()
-            } else {
-                theme::warning_style()
-            },
-        ),
-    ])];
-    if let Some(description) = config
-        .description
-        .as_deref()
-        .filter(|value| !value.trim().is_empty())
-    {
-        lines.push(Line::styled(
-            description.to_string(),
-            theme::secondary_text_style(),
-        ));
-    }
-    let tags = tags_field(config);
-    if !tags.unset {
-        lines.push(Line::styled(tags.value, theme::muted_style()));
-    }
-    if let Some(text) = last_apply_message(
+    let mut fixed = identity_lines(
+        app,
         &profile.name,
+        profile.is_current,
+        config,
+        platform,
+        width,
+    );
+    fixed.push(ruler_line(
+        crate::tui_text!("Connection", "连接"),
+        None,
+        width,
+        theme::platform_style_for(platform),
+    ));
+    fixed.extend(connection_rows(
+        platform,
+        config,
+        app.profile_details_expanded,
+        width,
+    ));
+    fixed.extend(usage_ledger(app, config.provider.as_deref(), width));
+    fixed.extend(activity_lines(
+        app,
+        &profile.name,
+        config.usage_count(),
+        width,
+    ));
+    if app.profile_details_expanded {
+        let (mode, style, name, auth) = runtime_values(app);
+        fixed.push(ruler_line(
+            crate::tui_text!("Current runtime", "当前生效"),
+            None,
+            width,
+            theme::platform_style_for(platform),
+        ));
+        fixed.push(Line::styled(mode, style));
+        if let Some(name) = name {
+            let model = app
+                .current_tab()
+                .profile_configs
+                .get(&name)
+                .and_then(|config| config.model.as_deref());
+            fixed.push(Line::styled(
+                model.map_or_else(|| name.clone(), |model| format!("{name} / {model}")),
+                theme::platform_style_for(platform),
+            ));
+        }
+        fixed.push(Line::styled(auth, theme::secondary_text_style()));
+        fixed = wrap_lines(fixed, width);
+    }
+    DetailContent {
+        fixed,
+        elastic_title: Some(ruler_line(
+            &stored_fields_heading(app.current_tab().profiles_path.as_deref()),
+            None,
+            width,
+            theme::platform_style_for(platform),
+        )),
+        elastic_body: stored_field_lines(platform, config, width),
+    }
+}
+
+fn identity_lines(
+    app: &App,
+    name: &str,
+    is_current: bool,
+    config: &ProfileConfig,
+    platform: Platform,
+    width: usize,
+) -> Vec<Line<'static>> {
+    let (status, status_style) = if !config.is_enabled() {
+        (
+            crate::tui_text!("× Disabled", "× 已禁用"),
+            theme::warning_style(),
+        )
+    } else if is_current {
+        (
+            crate::tui_text!("● Current", "● 当前"),
+            theme::success_style(),
+        )
+    } else {
+        (
+            crate::tui_text!("○ Inactive", "○ 未生效"),
+            theme::secondary_text_style(),
+        )
+    };
+    let mut lines = vec![
+        spread_line(
+            name,
+            theme::platform_style_for(platform).add_modifier(Modifier::BOLD),
+            status,
+            status_style,
+            width,
+        ),
+        spread_line(
+            config
+                .description
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .unwrap_or(""),
+            theme::secondary_text_style(),
+            &hash_tags(config),
+            theme::muted_style(),
+            width,
+        ),
+    ];
+    let mut notes = Vec::new();
+    if let Some(text) = last_apply_message(
+        name,
         app.last_applied
             .as_ref()
             .filter(|entry| entry.0 == format!("{} Profile", platform_name(platform))),
@@ -1108,16 +1340,16 @@ fn detail_lines(app: &App, width: usize) -> Vec<Line<'static>> {
         } else {
             detail_tone_style(DetailTone::Error)
         };
-        lines.push(Line::styled(text, style));
+        notes.push(Line::styled(text, style));
     }
-    if app.profile_mutation_pending(platform, Some(&profile.name)) {
-        lines.push(Line::styled(
+    if app.profile_mutation_pending(platform, Some(name)) {
+        notes.push(Line::styled(
             crate::tui_text!("Applying…", "正在应用…"),
             theme::warning_style(),
         ));
     }
     if app.current_profile_loading() {
-        lines.push(Line::styled(
+        notes.push(Line::styled(
             crate::tui_text!(
                 "Refreshing; showing previous snapshot",
                 "正在刷新，显示上次快照"
@@ -1126,50 +1358,31 @@ fn detail_lines(app: &App, width: usize) -> Vec<Line<'static>> {
         ));
     }
     if let Some(error) = app.current_profile_load_error() {
-        lines.push(Line::styled(error.to_string(), theme::error_style()));
+        notes.push(Line::styled(error.to_string(), theme::error_style()));
     }
     if let Some(error) = app
         .current_profile_status_error()
         .filter(|error| Some(*error) != app.current_profile_load_error())
     {
-        lines.push(Line::styled(error.to_string(), theme::error_style()));
+        notes.push(Line::styled(error.to_string(), theme::error_style()));
     }
-    lines.extend(connection_rows(
-        platform,
-        config,
-        app.profile_details_expanded,
-        width,
-    ));
-    lines.extend(usage_ledger(app, config.provider.as_deref(), width));
-    lines.extend(activity_lines(
-        app,
-        &profile.name,
-        config.usage_count(),
-        width,
-    ));
-    if app.profile_details_expanded {
-        let (mode, style, name, auth) = runtime_values(app);
-        section(
-            &mut lines,
-            crate::tui_text!("Current runtime", "当前生效").into(),
-            width,
-            platform,
-        );
-        lines.push(Line::styled(mode, style));
-        if let Some(name) = name {
-            let model = app
-                .current_tab()
-                .profile_configs
-                .get(&name)
-                .and_then(|config| config.model.as_deref());
-            lines.push(Line::styled(
-                model.map_or_else(|| name.clone(), |model| format!("{name} / {model}")),
-                theme::platform_style_for(platform),
-            ));
-        }
-        lines.push(Line::styled(auth, theme::secondary_text_style()));
-    }
-    wrap_lines(lines, width)
+    lines.extend(wrap_lines(notes, width));
+    lines
+}
+
+fn hash_tags(config: &ProfileConfig) -> String {
+    config
+        .tags
+        .as_ref()
+        .map(|tags| {
+            tags.iter()
+                .map(|tag| tag.trim())
+                .filter(|tag| !tag.is_empty())
+                .map(|tag| format!("#{tag}"))
+                .collect::<Vec<_>>()
+                .join(" ")
+        })
+        .unwrap_or_default()
 }
 
 pub(super) fn render_details(f: &mut Frame, app: &mut App, area: Rect) {
@@ -1180,26 +1393,27 @@ pub(super) fn render_details(f: &mut Frame, app: &mut App, area: Rect) {
         .title(crate::tui_text!(" Selected profile ", " 所选配置 "))
         .title_style(theme::platform_style_for(platform))
         .padding(Padding::horizontal(1));
-    let width = block.inner(area).width as usize;
-    let lines = detail_lines(app, width);
-    let height = area
-        .height
-        .min(u16::try_from(lines.len().saturating_add(2)).unwrap_or(u16::MAX));
-    let area = Rect::new(area.x, area.y, area.width, height);
     let inner = block.inner(area);
     app.detail_area.set(Some(inner));
-    let max_scroll = lines.len().saturating_sub(inner.height as usize);
-    let scroll = usize::from(app.profile_detail_scroll).min(max_scroll);
-    app.profile_detail_scroll = u16::try_from(scroll).unwrap_or(u16::MAX);
-    let block = if max_scroll > 0 {
+    let content = detail_content(app, inner.width as usize);
+    let plan = plan_detail(
+        inner,
+        content.fixed,
+        content.elastic_title,
+        content.elastic_body,
+        usize::from(app.profile_detail_scroll),
+    );
+    app.profile_detail_scroll = u16::try_from(plan.scroll).unwrap_or(u16::MAX);
+    let block = if plan.max_scroll > 0 && plan.total > 0 {
+        let end = (plan.scroll + plan.visible).min(plan.total);
         block.title_bottom(
             Line::styled(
                 crate::tui_format!(
                     " {}–{} / {} lines ",
                     " {}–{} / {} 行 ",
-                    scroll + 1,
-                    (scroll + inner.height as usize).min(lines.len()),
-                    lines.len()
+                    plan.scroll + 1,
+                    end.max(plan.scroll + 1),
+                    plan.total
                 ),
                 theme::muted_style(),
             )
@@ -1208,14 +1422,28 @@ pub(super) fn render_details(f: &mut Frame, app: &mut App, area: Rect) {
     } else {
         block
     };
-    f.render_widget(
-        Paragraph::new(lines)
-            .block(block)
-            .scroll((app.profile_detail_scroll, 0)),
-        area,
-    );
-    if max_scroll > 0 {
-        let mut state = ScrollbarState::new(max_scroll).position(scroll);
+    f.render_widget(block.clone(), area);
+    if let Some(split) = plan.split.clone() {
+        if split.fixed_rect.height > 0 {
+            f.render_widget(Paragraph::new(split.fixed), split.fixed_rect);
+        }
+        if split.title_rect.height > 0 {
+            f.render_widget(Paragraph::new(split.title), split.title_rect);
+        }
+        if split.body_rect.height > 0 {
+            f.render_widget(
+                Paragraph::new(split.body).scroll((app.profile_detail_scroll, 0)),
+                split.body_rect,
+            );
+        }
+    } else {
+        f.render_widget(
+            Paragraph::new(plan.whole).scroll((app.profile_detail_scroll, 0)),
+            inner,
+        );
+    }
+    if plan.max_scroll > 0 {
+        let mut state = ScrollbarState::new(plan.max_scroll).position(plan.scroll);
         f.render_stateful_widget(
             Scrollbar::new(ScrollbarOrientation::VerticalRight)
                 .begin_symbol(Some("↑"))
@@ -1363,6 +1591,8 @@ mod tests {
         row.breakdown.reasoning_output_tokens = 300_000;
         row.breakdown.total_tokens = 109_800_000;
         row.breakdown.cost_with_cache_usd = 32.60;
+        app.tabs[0].profiles_path =
+            Some(format!("fixture/{}/profiles.toml", platform.short_name()));
         let mut usage = UsageApp::with_loader(
             AsyncTaskExecutor::Disabled,
             Arc::new(|| panic!("render performed I/O")),
@@ -1589,13 +1819,41 @@ mod tests {
             let mut terminal = Terminal::new(TestBackend::new(60, 20))?;
             app.profile_detail_scroll = u16::MAX;
             terminal.draw(|frame| render_details(frame, &mut app, frame.area()))?;
+            let width = app.detail_area.get().ok_or("detail area missing")?.width as usize;
+            let lines = detail_lines(&app, width);
+            let tail = lines
+                .iter()
+                .rev()
+                .find_map(|line| {
+                    let text: String = line
+                        .spans
+                        .iter()
+                        .map(|span| span.content.as_ref())
+                        .collect();
+                    let trimmed = text.trim().to_string();
+                    (trimmed.chars().count() >= 4).then_some(trimmed)
+                })
+                .ok_or("detail has no final line")?;
+            let needle: String = tail.chars().take(12).collect();
             let buffer = terminal.backend().buffer();
             let rendered = buffer
                 .content
                 .iter()
                 .map(|cell| cell.symbol())
                 .collect::<String>();
-            assert!(rendered.contains("successful CCR activation"));
+            assert!(
+                rendered.contains(&needle),
+                "scrolled end dropped {needle}: {rendered}"
+            );
+            for secret in [
+                "fixture-secret-never-render-this",
+                "secret-user",
+                "secret-password",
+                "secret-query",
+                "secret-fragment",
+            ] {
+                assert!(!rendered.contains(secret), "{secret}");
+            }
         }
         Ok(())
     }
@@ -1743,6 +2001,307 @@ mod tests {
             }
         }
         crate::tui::i18n::set_language(TuiLanguage::English);
+        Ok(())
+    }
+
+    fn buffer_row(backend: &TestBackend, y: u16) -> String {
+        let width = backend.buffer().area.width;
+        (0..width)
+            .filter_map(|x| backend.buffer().cell((x, y)))
+            .map(|cell| cell.symbol())
+            .collect::<String>()
+            .trim_end()
+            .to_string()
+    }
+
+    fn row_containing(backend: &TestBackend, needle: &str) -> Option<u16> {
+        (0..backend.buffer().area.height).find(|y| buffer_row(backend, *y).contains(needle))
+    }
+
+    #[test]
+    fn full_height_rails_share_a_bottom_and_connection_titles_stay_put()
+    -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let mut bottoms = Vec::new();
+        for platform in [Platform::Grok, Platform::Claude] {
+            let mut app = fixture(platform);
+            if platform == Platform::Grok {
+                app.usage_app
+                    .as_mut()
+                    .ok_or("fixture usage engine missing")?
+                    .state = UsageLoadState::Empty;
+            }
+            let mut terminal = Terminal::new(TestBackend::new(160, 45))?;
+            terminal.draw(|frame| draw(frame, &mut app))?;
+            let list = app.list_area.get().ok_or("list geometry missing")?;
+            let detail = app.detail_area.get().ok_or("detail geometry missing")?;
+            assert_eq!(
+                list.bottom(),
+                detail.bottom(),
+                "{platform:?} rail bottoms diverged"
+            );
+            bottoms.push(detail.bottom());
+            let rendered = terminal
+                .backend()
+                .buffer()
+                .content
+                .iter()
+                .map(|cell| cell.symbol())
+                .collect::<String>();
+            assert!(rendered.contains("fixture/"));
+            assert!(!rendered.contains("fixture-secret-never-render-this"));
+        }
+        assert_eq!(bottoms[0], bottoms[1]);
+
+        let mut app = fixture(Platform::Claude);
+        let mut terminal = Terminal::new(TestBackend::new(160, 45))?;
+        terminal.draw(|frame| draw(frame, &mut app))?;
+        let with_usage = row_containing(terminal.backend(), "─ Connection")
+            .ok_or("connection title missing for the profile with usage")?;
+        let usage_title =
+            row_containing(terminal.backend(), "─ Usage").ok_or("usage title missing")?;
+        app.tabs[0]
+            .profile_configs
+            .get_mut("profile-02")
+            .ok_or("profile-02 missing")?
+            .provider = Some("unmatched-provider".into());
+        app.selected_profile_name = Some("profile-02".into());
+        app.selected_index = 2;
+        terminal.draw(|frame| draw(frame, &mut app))?;
+        let without_usage = row_containing(terminal.backend(), "─ Connection")
+            .ok_or("connection title missing for the profile without usage")?;
+        let usage_title_again = row_containing(terminal.backend(), "─ Usage")
+            .ok_or("usage title missing after selection change")?;
+        assert_eq!(with_usage, without_usage);
+        assert_eq!(usage_title, usage_title_again);
+        let empty_usage = row_containing(terminal.backend(), "No usage recorded")
+            .ok_or("empty usage status missing")?;
+        let empty_activity = row_containing(terminal.backend(), "No record")
+            .ok_or("empty activity status missing")?;
+        assert_eq!(empty_activity, empty_usage + 1);
+
+        app.selected_profile_name = Some("work".into());
+        app.selected_index = 1;
+        app.tabs[0]
+            .profile_configs
+            .get_mut("profile-03")
+            .ok_or("profile-03 missing")?
+            .description = None;
+        app.tabs[0]
+            .profile_configs
+            .get_mut("profile-03")
+            .ok_or("profile-03 missing")?
+            .tags = None;
+        app.tabs[0]
+            .profile_configs
+            .get_mut("profile-03")
+            .ok_or("profile-03 missing")?
+            .base_url = None;
+        terminal.draw(|frame| draw(frame, &mut app))?;
+        let described =
+            row_containing(terminal.backend(), "─ Connection").ok_or("connection title missing")?;
+        app.selected_profile_name = Some("profile-03".into());
+        app.selected_index = 3;
+        terminal.draw(|frame| draw(frame, &mut app))?;
+        let undescribed = row_containing(terminal.backend(), "─ Connection")
+            .ok_or("connection title missing for the undescribed profile")?;
+        assert_eq!(described, undescribed);
+        let selected = buffer_row(
+            terminal.backend(),
+            app.detail_area.get().ok_or("detail missing")?.y,
+        );
+        assert!(
+            selected.contains('○') || selected.contains("Inactive"),
+            "{selected}"
+        );
+        app.tabs[0]
+            .profile_configs
+            .get_mut("profile-03")
+            .ok_or("profile-03 missing")?
+            .enabled = Some(false);
+        terminal.draw(|frame| draw(frame, &mut app))?;
+        let disabled = buffer_row(
+            terminal.backend(),
+            app.detail_area.get().ok_or("detail missing")?.y,
+        );
+        assert!(disabled.contains('×'), "{disabled}");
+        assert!(disabled.contains("Disabled"), "{disabled}");
+        Ok(())
+    }
+
+    #[test]
+    fn connection_columns_follow_inner_width_and_keep_cjk_inside_the_cell()
+    -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let app = fixture(Platform::Grok);
+        let config = app.tabs[0]
+            .profile_configs
+            .get("work")
+            .ok_or("work profile missing")?;
+        let wide = connection_rows(Platform::Grok, config, false, 70);
+        assert!(wide.iter().any(|line| {
+            let text: String = line
+                .spans
+                .iter()
+                .map(|span| span.content.as_ref())
+                .collect();
+            text.contains("grok-example") && text.contains("example-provider")
+        }));
+        let narrow = connection_rows(Platform::Grok, config, false, 40);
+        assert!(narrow.iter().all(|line| {
+            let text: String = line
+                .spans
+                .iter()
+                .map(|span| span.content.as_ref())
+                .collect();
+            !(text.contains("grok-example") && text.contains("example-provider"))
+        }));
+        crate::tui::i18n::set_language(TuiLanguage::SimplifiedChinese);
+        let chinese = connection_rows(Platform::Grok, config, false, 70);
+        assert!(chinese.iter().all(|line| line.width() <= 70));
+        let joined = text(chinese);
+        assert!(joined.contains("模型"));
+        assert!(joined.contains("地址"));
+        crate::tui::i18n::set_language(TuiLanguage::English);
+        Ok(())
+    }
+
+    #[test]
+    fn stored_fields_scroll_independently_and_grok_omits_tokens()
+    -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let mut app = fixture(Platform::Grok);
+        let config = app.tabs[0]
+            .profile_configs
+            .get_mut("work")
+            .ok_or("work profile missing")?;
+        config.auth_token = Some(ccr_core::Secret::new("SENTINEL-TOKEN-do-not-render"));
+        config.platform_data.insert(
+            "api_key".into(),
+            serde_json::json!("SENTINEL-TOKEN-do-not-render"),
+        );
+        for index in 1..=30 {
+            config.platform_data.insert(
+                format!("zz-field-{index:02}"),
+                serde_json::json!(format!("value-{index:02}")),
+            );
+        }
+        let mut terminal = Terminal::new(TestBackend::new(100, 40))?;
+        app.profile_detail_scroll = u16::MAX;
+        terminal.draw(|frame| render_details(frame, &mut app, frame.area()))?;
+        let rendered = terminal
+            .backend()
+            .buffer()
+            .content
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect::<String>();
+        assert!(rendered.contains("work"), "{rendered}");
+        assert!(rendered.contains("zz-field-30"), "{rendered}");
+        assert!(!rendered.contains("zz-field-01"), "{rendered}");
+        assert!(
+            !rendered.contains("SENTINEL-TOKEN-do-not-render"),
+            "{rendered}"
+        );
+        assert!(!rendered.contains("api_key"), "{rendered}");
+        assert!(!rendered.contains("auth_token"), "{rendered}");
+        assert!(rendered.contains("Stored fields"));
+        assert!(app.profile_detail_scroll > 0);
+        Ok(())
+    }
+
+    #[test]
+    fn runtime_strip_is_one_labeled_row_outside_compact_and_last_used_uses_a_dash()
+    -> std::result::Result<(), Box<dyn std::error::Error>> {
+        for (width, height) in [(160u16, 45u16), (100, 30)] {
+            let mut app = fixture(Platform::Codex);
+            let mut terminal = Terminal::new(TestBackend::new(width, height))?;
+            terminal.draw(|frame| draw(frame, &mut app))?;
+            let title = row_containing(terminal.backend(), "Current runtime")
+                .ok_or("runtime title missing")?;
+            let content = buffer_row(terminal.backend(), title + 1);
+            assert!(content.contains("Mode "), "{width}x{height}: {content}");
+            assert!(content.contains("Profile active"), "{content}");
+            assert!(content.contains("production"), "{content}");
+            assert!(
+                content.contains("not logged in") || content.contains("未登录"),
+                "{content}"
+            );
+            assert_eq!(
+                terminal
+                    .backend()
+                    .buffer()
+                    .cell((0, title + 2))
+                    .map(|cell| cell.symbol()),
+                Some("╰"),
+                "runtime strip should be 3 rows at {width}x{height}"
+            );
+        }
+        let mut app = fixture(Platform::Codex);
+        let mut terminal = Terminal::new(TestBackend::new(80, 20))?;
+        terminal.draw(|frame| draw(frame, &mut app))?;
+        let title = row_containing(terminal.backend(), "Current runtime")
+            .ok_or("compact runtime title missing")?;
+        let content = buffer_row(terminal.backend(), title + 1);
+        assert!(content.contains("Profile active"), "{content}");
+        assert!(!content.contains("Mode "), "{content}");
+
+        let (label, style) = last_used(&app, "profile-02", Utc::now());
+        assert_eq!(label, "—");
+        assert_eq!(style, theme::muted_style());
+        app.tabs[0].activity = None;
+        let (loading, _) = last_used(&app, "profile-02", Utc::now());
+        assert_eq!(loading, "Loading…");
+        let now = Utc::now();
+        app.tabs[0].activity = Some(Ok(ProfileActivitySnapshot {
+            availability: ProfileActivityAvailability::Ready,
+            profiles: HashMap::from([(
+                "profile-02".into(),
+                ProfileActivity {
+                    recent_activations: vec![now + chrono::Duration::hours(1)],
+                    invalid_timestamps: 0,
+                },
+            )]),
+        }));
+        let (future, future_style) = last_used(&app, "profile-02", now);
+        assert!(future.starts_with('!'), "{future}");
+        assert_eq!(future_style, theme::warning_style());
+        Ok(())
+    }
+
+    #[test]
+    fn no_record_table_cell_is_a_muted_dash() -> std::result::Result<(), Box<dyn std::error::Error>>
+    {
+        let mut app = fixture(Platform::Codex);
+        let mut terminal = Terminal::new(TestBackend::new(160, 45))?;
+        terminal.draw(|frame| draw(frame, &mut app))?;
+        let header = row_containing(terminal.backend(), "Last used").ok_or("last used header")?;
+        let body = app.list_area.get().ok_or("list body missing")?;
+        let mut saw_dash = false;
+        for y in body.y..body.bottom() {
+            let row = buffer_row(terminal.backend(), y);
+            if !row.contains('—') {
+                continue;
+            }
+            saw_dash = true;
+            let dash = (body.x..body.right())
+                .find(|x| {
+                    terminal
+                        .backend()
+                        .buffer()
+                        .cell((*x, y))
+                        .is_some_and(|cell| cell.symbol() == "—")
+                })
+                .ok_or("dash cell missing")?;
+            let cell = terminal
+                .backend()
+                .buffer()
+                .cell((dash, y))
+                .ok_or("dash cell missing")?;
+            assert_eq!(cell.fg, theme::muted(), "{row}");
+        }
+        assert!(
+            saw_dash,
+            "expected a no-record dash below header row {header}"
+        );
+        let _ = header;
         Ok(())
     }
 

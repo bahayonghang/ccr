@@ -6,12 +6,14 @@ use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, KeyEventKind, Mo
 use std::time::{Duration, Instant};
 
 /// 🎯 事件类型
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Event {
     /// ⌨️ 键盘事件
     Key(KeyEvent),
     /// 🖱️ 鼠标事件
     Mouse(MouseEvent),
+    /// Bracketed paste. Consumed only while the profile editor is open.
+    Paste(String),
     /// 📐 窗口大小变化
     Resize,
     /// ⏱️ 定时刷新
@@ -59,6 +61,7 @@ impl EventHandler {
                 }
                 CrosstermEvent::Resize(_, _) => Ok(Event::Resize),
                 CrosstermEvent::Mouse(mouse) => Ok(Event::Mouse(mouse)),
+                CrosstermEvent::Paste(text) => Ok(Event::Paste(text)),
                 _ => Ok(Event::Tick),
             }
         } else {

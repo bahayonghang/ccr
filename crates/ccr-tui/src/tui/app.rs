@@ -23,6 +23,7 @@ use super::claude_auth::{ClaudeAuthActionRecord, ClaudeAuthApp};
 use super::codex_auth::CodexAuthApp;
 use super::grok_auth::GrokAuthApp;
 use super::pagination::{DEFAULT_PAGE_SIZE, page_for_index, page_slice, total_pages};
+use super::profile_edit::{EditRequest, EditorEvent, EditorOpen, ProfileEditor};
 use super::profile_tasks::{
     MutationOutcome, MutationRequest, ProfileCompletion, ProfileSnapshot, ProfileTasks, ReadIssue,
 };
@@ -70,6 +71,10 @@ pub struct PlatformTab {
     pub activity: Option<std::result::Result<ProfileActivitySnapshot, ProfileActivityError>>,
     /// 离开该 tab 时保存的选中快照；None = 从未访问过（per-tab 会话级记忆）
     pub saved_selection: Option<TabSelection>,
+    /// Legacy profiles.toml path captured with the profile snapshot. Layout code must not resolve it.
+    pub profiles_path: Option<String>,
+    /// Catalog revision from the latest snapshot. Missing means `e` must ask for a reload.
+    pub catalog_revision: Option<String>,
 }
 
 impl PlatformTab {
@@ -99,6 +104,8 @@ impl PlatformTab {
             runtime_error: None,
             activity: None,
             saved_selection: None,
+            profiles_path: None,
+            catalog_revision: None,
         }
     }
 
@@ -230,6 +237,8 @@ pub(crate) enum PendingProfileConfirm {
         /// Target platform
         platform: Platform,
     },
+    /// Save the edit request frozen when the dialog opened.
+    Save,
 }
 
 /// Main TUI application state
@@ -280,8 +289,16 @@ pub struct App {
     pub profile_detail_scroll: u16,
     /// Whether unset profile detail fields are expanded (default: collapsed summary)
     pub profile_details_expanded: bool,
-    /// Profile apply or deactivate waiting for `y`. Absent means keys act immediately.
+    /// Profile apply, deactivate, or save waiting for `y`. Absent means keys act immediately.
     pub(crate) pending_profile_confirm: Option<PendingProfileConfirm>,
+    /// Open profile editor. Background reads must not replace this draft.
+    pub(crate) profile_editor: Option<ProfileEditor>,
+    /// Draft kept while a save is in flight so a conflict can restore it.
+    pub(crate) profile_edit_suspended: Option<ProfileEditor>,
+    /// True after `y` until the edit outcome is consumed. The rail shows a saving state.
+    pub(crate) profile_edit_saving: bool,
+    /// Edit request captured when the save confirmation opened.
+    pub(crate) pending_edit_request: Option<EditRequest>,
     /// 异步后台任务执行器
     pub(crate) task_executor: AsyncTaskExecutor,
     pub(crate) profile_tasks: ProfileTasks,
@@ -476,6 +493,10 @@ impl App {
                 }
             }
         }
+        tab.profiles_path = Some(snapshot.profiles_path);
+        if snapshot.revision.is_some() {
+            tab.catalog_revision = snapshot.revision;
+        }
         tab.instance = snapshot.instance;
         tab.claude_runtime_summary = snapshot.claude_runtime.clone();
         tab.codex_runtime_summary = snapshot.codex_runtime.clone();
@@ -574,6 +595,7 @@ impl App {
                 ));
                 self.toasts.push(toast);
             }
+            Ok(MutationOutcome::Edited(outcome)) => self.finish_profile_edit(*outcome),
             Ok(MutationOutcome::Off(outcome)) => {
                 let toast = if !outcome.warnings.is_empty() {
                     Toast::warning(crate::tui_text!(
@@ -594,14 +616,19 @@ impl App {
                 self.toasts.push(toast);
             }
             Err(error) => {
-                if let Some(name) = request.profile() {
-                    self.last_applied = Some((label, name.to_string(), false, Some(error.clone())));
+                if matches!(request, MutationRequest::Edit(_)) {
+                    self.fail_profile_edit(&error);
+                } else {
+                    if let Some(name) = request.profile() {
+                        self.last_applied =
+                            Some((label, name.to_string(), false, Some(error.clone())));
+                    }
+                    self.toasts.push(Toast::error(crate::tui_format!(
+                        "Profile operation failed: {}",
+                        "配置操作失败：{}",
+                        error
+                    )));
                 }
-                self.toasts.push(Toast::error(crate::tui_format!(
-                    "Profile operation failed: {}",
-                    "配置操作失败：{}",
-                    error
-                )));
             }
         }
     }
@@ -786,6 +813,10 @@ impl App {
             profile_detail_scroll: 0,
             profile_details_expanded: false,
             pending_profile_confirm: None,
+            profile_editor: None,
+            profile_edit_suspended: None,
+            profile_edit_saving: false,
+            pending_edit_request: None,
             profile_tasks,
             task_executor,
         };
@@ -874,6 +905,7 @@ impl App {
             KeyCode::Char('o') | KeyCode::Char('O') => Action::ProfileOff,
             KeyCode::Char('x') => Action::ToggleDetailsExpanded,
             KeyCode::Char('r') => Action::Reload,
+            KeyCode::Char('e') | KeyCode::Char('E') => Action::EditSelected,
             _ => Action::Noop,
         }
     }
@@ -1014,6 +1046,7 @@ impl App {
                     "正在刷新配置"
                 )));
             }
+            Action::EditSelected => self.open_profile_editor(),
         }
         Ok(false)
     }
@@ -1129,6 +1162,7 @@ impl App {
         };
         if cancel {
             self.pending_profile_confirm = None;
+            self.pending_edit_request = None;
             self.toasts
                 .push(Toast::info(crate::tui_text!("Cancelled", "已取消")));
         }
@@ -1148,6 +1182,17 @@ impl App {
             }
             PendingProfileConfirm::Off { platform } => {
                 self.start_profile_mutation(MutationRequest::Off(platform));
+            }
+            PendingProfileConfirm::Save => {
+                let Some(request) = self.pending_edit_request.take() else {
+                    return;
+                };
+                self.profile_edit_suspended = self.profile_editor.take();
+                self.profile_edit_saving = true;
+                if !self.start_profile_mutation(MutationRequest::Edit(Box::new(request))) {
+                    self.profile_edit_saving = false;
+                    self.profile_editor = self.profile_edit_suspended.take();
+                }
             }
         }
     }
@@ -1170,6 +1215,7 @@ impl App {
         let platform = match self.pending_profile_confirm.as_ref()? {
             PendingProfileConfirm::Apply { platform, .. }
             | PendingProfileConfirm::Off { platform } => *platform,
+            PendingProfileConfirm::Save => self.current_platform(),
         };
         let label = match platform {
             Platform::Claude => "Claude",
@@ -1187,6 +1233,14 @@ impl App {
             ),
             PendingProfileConfirm::Off { .. } => {
                 crate::tui::overlay::Overlay::confirm_profile_off(label)
+            }
+            PendingProfileConfirm::Save => {
+                let editor = self.profile_editor.as_ref()?;
+                crate::tui::overlay::Overlay::confirm_profile_save(
+                    editor.original_name(),
+                    &editor.confirm_lines(),
+                    editor.is_current(),
+                )
             }
         })
     }
@@ -1253,6 +1307,161 @@ impl App {
             )));
             false
         }
+    }
+
+    fn open_profile_editor(&mut self) {
+        if self.tabs[self.active_tab].variant != TabVariant::Profile {
+            return;
+        }
+        if self.profile_tasks.mutation_active() {
+            self.profile_busy_toast();
+            return;
+        }
+        if self.pending_profile_confirm.is_some() {
+            self.toasts.push(Toast::warning(crate::tui_text!(
+                "Close the dialog before editing",
+                "请先关闭确认框再编辑"
+            )));
+            return;
+        }
+        let Some(name) = self.selected_profile().map(|profile| profile.name.clone()) else {
+            self.toasts.push(Toast::warning(crate::tui_text!(
+                "No profiles available",
+                "没有可用的配置"
+            )));
+            return;
+        };
+        let is_current = self
+            .selected_profile()
+            .is_some_and(|profile| profile.is_current);
+        let Some(revision) = self.tabs[self.active_tab].catalog_revision.clone() else {
+            self.toasts.push(Toast::warning(crate::tui_text!(
+                "Profile version is unknown. Press r to refresh.",
+                "配置版本未知，按 r 刷新"
+            )));
+            return;
+        };
+        let Some(config) = self.tabs[self.active_tab]
+            .profile_configs
+            .get(&name)
+            .cloned()
+        else {
+            self.toasts.push(Toast::warning(crate::tui_text!(
+                "No profiles available",
+                "没有可用的配置"
+            )));
+            return;
+        };
+        let platform = self.current_platform();
+        self.profile_editor = Some(ProfileEditor::open(EditorOpen {
+            platform,
+            name: &name,
+            config: &config,
+            is_current,
+            revision: &revision,
+        }));
+    }
+
+    fn handle_editor_session_key(&mut self, key: KeyEvent) -> Result<bool> {
+        if Self::is_language_switch_key(key) {
+            self.toggle_language();
+            return Ok(false);
+        }
+        if self.pending_profile_confirm.is_some() {
+            let key = if key.modifiers.contains(KeyModifiers::CONTROL)
+                && matches!(key.code, KeyCode::Char('c' | 'C'))
+            {
+                KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE)
+            } else {
+                key
+            };
+            return self.handle_profile_confirm_key(key);
+        }
+        let event = {
+            let Some(editor) = self.profile_editor.as_mut() else {
+                return Ok(false);
+            };
+            editor.handle_key(key)
+        };
+        match event {
+            EditorEvent::None => {}
+            EditorEvent::Cancel => self.profile_editor = None,
+            EditorEvent::Save => self.try_open_save_confirm(),
+        }
+        Ok(false)
+    }
+
+    fn try_open_save_confirm(&mut self) {
+        let names = self
+            .current_profiles()
+            .iter()
+            .map(|profile| profile.name.clone())
+            .collect::<Vec<_>>();
+        let Some(editor) = self.profile_editor.as_mut() else {
+            return;
+        };
+        if !editor.validate_with(|name| names.iter().any(|existing| existing == name)) {
+            return;
+        }
+        let Some(request) = editor.build_request() else {
+            editor.set_banner(crate::tui_text!("No changes to save", "没有要保存的改动"));
+            return;
+        };
+        self.pending_edit_request = Some(request);
+        self.pending_profile_confirm = Some(PendingProfileConfirm::Save);
+    }
+
+    fn finish_profile_edit(
+        &mut self,
+        outcome: ccr_cli::application::profile_edit::EditProfileOutcome,
+    ) {
+        self.profile_edit_saving = false;
+        if outcome.is_success() {
+            self.profile_edit_suspended = None;
+            self.selected_profile_name = Some(outcome.new_name.clone());
+            let message = edit_saved_message(&outcome);
+            self.toasts.push(if outcome.warnings.is_empty() {
+                Toast::success(message)
+            } else {
+                Toast::warning(message)
+            });
+            return;
+        }
+        if grok_edit_partial(&outcome) {
+            self.profile_edit_suspended = None;
+            self.selected_profile_name = Some(outcome.new_name.clone());
+            self.toasts
+                .push(Toast::warning(edit_failure_text(&outcome)));
+            return;
+        }
+        self.restore_editor(edit_failure_text(&outcome), false);
+    }
+
+    fn fail_profile_edit(&mut self, error: &str) {
+        self.profile_edit_saving = false;
+        let conflict = error.contains("版本冲突");
+        let message = if conflict {
+            crate::tui_text!(
+                "The profile file changed externally. Press Esc to close, then r to refresh before editing again.",
+                "配置已被外部修改：Esc 关闭后按 r 刷新再编辑"
+            )
+            .to_string()
+        } else {
+            crate::tui_format!("Save failed: {}", "保存失败：{}", error)
+        };
+        self.restore_editor(message, conflict);
+    }
+
+    fn restore_editor(&mut self, message: String, conflict: bool) {
+        if let Some(mut editor) = self.profile_edit_suspended.take() {
+            editor.set_banner(message.clone());
+            self.profile_editor = Some(editor);
+        }
+        self.toasts.push(if conflict {
+            Toast::warning(message)
+        } else {
+            Toast::error(message)
+        });
     }
 
     fn reload_profiles(&mut self) {
@@ -1507,6 +1716,9 @@ fn point_in_rect(area: Rect, row: u16, column: u16) -> bool {
 
 impl TuiApp for App {
     fn handle_key(&mut self, key: KeyEvent) -> Result<bool> {
+        if self.profile_editor.is_some() {
+            return self.handle_editor_session_key(key);
+        }
         // Ctrl+C always quits the entire TUI
         if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
             return self.dispatch(Action::Quit);
@@ -1526,6 +1738,15 @@ impl TuiApp for App {
         }
 
         if self.pending_profile_confirm.is_some() {
+            if matches!(key.code, KeyCode::Char('e' | 'E'))
+                && !key.modifiers.contains(KeyModifiers::CONTROL)
+            {
+                self.toasts.push(Toast::warning(crate::tui_text!(
+                    "Close the dialog before editing",
+                    "请先关闭确认框再编辑"
+                )));
+                return Ok(false);
+            }
             return self.handle_profile_confirm_key(key);
         }
 
@@ -1534,6 +1755,13 @@ impl TuiApp for App {
             && let Some(action) = Self::tab_key_action(key)
         {
             return self.dispatch(action);
+        }
+
+        if matches!(key.code, KeyCode::Char('e' | 'E'))
+            && !key.modifiers.contains(KeyModifiers::CONTROL)
+            && self.tabs[self.active_tab].variant != TabVariant::Profile
+        {
+            return Ok(false);
         }
 
         if self.is_claude_auth_tab() {
@@ -1577,6 +1805,9 @@ impl TuiApp for App {
             .as_ref()
             .is_some_and(GrokAuthApp::is_busy)
         {
+            return Ok(false);
+        }
+        if self.profile_editor.is_some() {
             return Ok(false);
         }
         if self.pending_profile_confirm.is_some() || self.auth_overlay_open() {
@@ -1714,8 +1945,79 @@ impl TuiApp for App {
         self.profile_tasks.ready_to_exit()
     }
 
+    fn handle_paste(&mut self, text: String) -> Result<bool> {
+        if self.pending_profile_confirm.is_none()
+            && let Some(editor) = self.profile_editor.as_mut()
+        {
+            editor.insert_paste(&text);
+        }
+        Ok(false)
+    }
+
     fn render(&mut self, frame: &mut Frame) {
         ui::draw(frame, self);
+    }
+}
+
+fn edit_saved_message(outcome: &ccr_cli::application::profile_edit::EditProfileOutcome) -> String {
+    if outcome.reapplied {
+        crate::tui_format!(
+            "Saved {} and rewrote the runtime",
+            "已保存 {} 并重新应用运行时",
+            outcome.new_name
+        )
+    } else {
+        crate::tui_format!("Saved {}", "已保存 {}", outcome.new_name)
+    }
+}
+
+fn grok_edit_partial(outcome: &ccr_cli::application::profile_edit::EditProfileOutcome) -> bool {
+    use ccr_cli::application::profile_edit::{EditLifecycle, GrokEditSummary};
+    matches!(
+        outcome.lifecycle,
+        EditLifecycle::Grok(
+            GrokEditSummary::UpdatedApplyFailed
+                | GrokEditSummary::RenameApplyFailed
+                | GrokEditSummary::RenameCleanupFailed
+        )
+    )
+}
+
+fn edit_failure_text(outcome: &ccr_cli::application::profile_edit::EditProfileOutcome) -> String {
+    use ccr_cli::application::profile_edit::{EditLifecycle, GrokEditSummary};
+    use ccr_cli::application::profile_lifecycle::ProfileStatus;
+    match &outcome.lifecycle {
+        EditLifecycle::Grok(GrokEditSummary::UpdatedApplyFailed) => crate::tui_text!(
+            "Profile saved, but rewriting the runtime failed",
+            "Profile 已保存，但重新应用运行时失败"
+        )
+        .to_string(),
+        EditLifecycle::Grok(GrokEditSummary::RenameApplyFailed) => crate::tui_text!(
+            "The renamed profile was saved, but rewriting the runtime failed",
+            "改名后的 profile 已保存，但重新应用运行时失败"
+        )
+        .to_string(),
+        EditLifecycle::Grok(GrokEditSummary::RenameCleanupFailed) => crate::tui_text!(
+            "The renamed profile was saved, but removing the old profile failed",
+            "改名后的 profile 已保存，但清理旧 profile 失败"
+        )
+        .to_string(),
+        EditLifecycle::Profile(profile) => match profile.status {
+            ProfileStatus::RecoveryRequired => crate::tui_text!(
+                "Re-apply failed and recovery is required; external changes were kept",
+                "重新应用失败，需要恢复；外部改动已保留"
+            )
+            .to_string(),
+            ProfileStatus::Unchanged => crate::tui_text!(
+                "Re-apply failed and the previous profile was restored",
+                "重新应用失败，已恢复先前的配置"
+            )
+            .to_string(),
+            ProfileStatus::Applied | ProfileStatus::AppliedWithWarning => {
+                crate::tui_text!("Save failed", "保存失败").to_string()
+            }
+        },
+        EditLifecycle::Grok(_) => crate::tui_text!("Save failed", "保存失败").to_string(),
     }
 }
 
@@ -1764,6 +2066,8 @@ mod tests {
             grok_activation: None,
             runtime_error: None,
             activity: Some(Ok(ProfileActivitySnapshot::default())),
+            profiles_path: "fixture/profiles.toml".to_string(),
+            revision: Some("rev-fixture".to_string()),
         }
     }
 
@@ -2351,6 +2655,46 @@ mod tests {
         KeyEvent::new(code, KeyModifiers::NONE)
     }
 
+    fn edited_outcome(
+        request: &ccr_cli::application::profile_edit::EditProfileRequest,
+        new_name: String,
+    ) -> ccr_cli::application::profile_edit::EditProfileOutcome {
+        use ccr_cli::application::profile_edit::{EditLifecycle, GrokEditSummary};
+        use ccr_cli::application::profile_lifecycle::{ProfileOutcome, ProfileStatus};
+        let lifecycle = if request.platform == Platform::Grok {
+            EditLifecycle::Grok(if new_name == request.name {
+                GrokEditSummary::Updated
+            } else {
+                GrokEditSummary::Renamed
+            })
+        } else {
+            EditLifecycle::Profile(ProfileOutcome {
+                operation_id: "edit".into(),
+                platform: request.platform.short_name().into(),
+                profile: new_name.clone(),
+                previous_profile: None,
+                status: ProfileStatus::Applied,
+                activation_committed: false,
+                warnings: vec![],
+                recovery_paths: vec![],
+            })
+        };
+        ccr_cli::application::profile_edit::EditProfileOutcome {
+            platform: request.platform,
+            old_name: request.name.clone(),
+            new_name,
+            changed_fields: request
+                .fields
+                .iter()
+                .map(|field| field.name().to_string())
+                .collect(),
+            reapplied: false,
+            revision: Some("rev-next".into()),
+            lifecycle,
+            warnings: vec![],
+        }
+    }
+
     fn install_profile_recorder(app: &mut App) -> Arc<std::sync::Mutex<Vec<MutationRequest>>> {
         use ccr_cli::application::ProfileOffResult;
         use ccr_cli::application::profile_lifecycle::{ProfileOutcome, ProfileStatus};
@@ -2384,6 +2728,16 @@ mod tests {
                         runtime_dirs: vec![],
                         removed_auth_paths: vec![],
                     })),
+                    MutationRequest::Edit(edit) => {
+                        let request = edit.into_inner();
+                        let new_name = request
+                            .rename
+                            .clone()
+                            .unwrap_or_else(|| request.name.clone());
+                        Ok(MutationOutcome::Edited(Box::new(edited_outcome(
+                            &request, new_name,
+                        ))))
+                    }
                 }
             }),
         );
@@ -2436,6 +2790,7 @@ mod tests {
                 assert_eq!(request.name, "profile-02");
             }
             MutationRequest::Off(_) => panic!("apply confirmation scheduled Off"),
+            MutationRequest::Edit(_) => panic!("apply confirmation scheduled Edit"),
         }
         pump_until(&mut app, |app| !app.profile_tasks.pending());
 
@@ -2656,6 +3011,8 @@ mod tests {
                 activity: None,
                 instance: None,
                 saved_selection: None,
+                profiles_path: None,
+                catalog_revision: None,
             }],
             active_tab: 0,
             selected_index,
@@ -2680,6 +3037,10 @@ mod tests {
             profile_detail_scroll: 0,
             profile_details_expanded: false,
             pending_profile_confirm: None,
+            profile_editor: None,
+            profile_edit_suspended: None,
+            profile_edit_saving: false,
+            pending_edit_request: None,
             profile_tasks: ProfileTasks::default(),
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
@@ -2703,6 +3064,8 @@ mod tests {
             activity: None,
             instance: None,
             saved_selection: None,
+            profiles_path: None,
+            catalog_revision: None,
         }
     }
 
@@ -2777,6 +3140,10 @@ mod tests {
             profile_detail_scroll: 0,
             profile_details_expanded: false,
             pending_profile_confirm: None,
+            profile_editor: None,
+            profile_edit_suspended: None,
+            profile_edit_saving: false,
+            pending_edit_request: None,
             profile_tasks: ProfileTasks::default(),
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
@@ -2813,6 +3180,8 @@ mod tests {
             activity: None,
             instance: None,
             saved_selection: None,
+            profiles_path: None,
+            catalog_revision: None,
         }
     }
 
@@ -2842,6 +3211,10 @@ mod tests {
             profile_detail_scroll: 0,
             profile_details_expanded: false,
             pending_profile_confirm: None,
+            profile_editor: None,
+            profile_edit_suspended: None,
+            profile_edit_saving: false,
+            pending_edit_request: None,
             profile_tasks: ProfileTasks::default(),
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
@@ -3088,6 +3461,10 @@ mod tests {
             profile_detail_scroll: 0,
             profile_details_expanded: false,
             pending_profile_confirm: None,
+            profile_editor: None,
+            profile_edit_suspended: None,
+            profile_edit_saving: false,
+            pending_edit_request: None,
             profile_tasks: ProfileTasks::default(),
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         };
@@ -3211,6 +3588,8 @@ mod tests {
                 activity: None,
                 instance: None,
                 saved_selection: None,
+                profiles_path: None,
+                catalog_revision: None,
             }],
             active_tab: 0,
             selected_index: 0,
@@ -3235,6 +3614,10 @@ mod tests {
             profile_detail_scroll: 0,
             profile_details_expanded: false,
             pending_profile_confirm: None,
+            profile_editor: None,
+            profile_edit_suspended: None,
+            profile_edit_saving: false,
+            pending_edit_request: None,
             profile_tasks: ProfileTasks::default(),
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         };
@@ -3266,6 +3649,8 @@ mod tests {
                     activity: None,
                     instance: None,
                     saved_selection: None,
+                    profiles_path: None,
+                    catalog_revision: None,
                 },
                 PlatformTab {
                     platform: Platform::Claude,
@@ -3284,6 +3669,8 @@ mod tests {
                     activity: None,
                     instance: None,
                     saved_selection: None,
+                    profiles_path: None,
+                    catalog_revision: None,
                 },
             ],
             active_tab: 0,
@@ -3309,6 +3696,10 @@ mod tests {
             profile_detail_scroll: 0,
             profile_details_expanded: false,
             pending_profile_confirm: None,
+            profile_editor: None,
+            profile_edit_suspended: None,
+            profile_edit_saving: false,
+            pending_edit_request: None,
             profile_tasks: ProfileTasks::default(),
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
@@ -3348,6 +3739,10 @@ mod tests {
             profile_detail_scroll: 0,
             profile_details_expanded: false,
             pending_profile_confirm: None,
+            profile_editor: None,
+            profile_edit_suspended: None,
+            profile_edit_saving: false,
+            pending_edit_request: None,
             profile_tasks: ProfileTasks::default(),
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
@@ -3378,6 +3773,8 @@ mod tests {
                     activity: None,
                     instance: None,
                     saved_selection: None,
+                    profiles_path: None,
+                    catalog_revision: None,
                 },
                 PlatformTab {
                     platform: Platform::Grok,
@@ -3396,6 +3793,8 @@ mod tests {
                     activity: None,
                     instance: None,
                     saved_selection: None,
+                    profiles_path: None,
+                    catalog_revision: None,
                 },
             ],
             active_tab: 0,
@@ -3421,6 +3820,10 @@ mod tests {
             profile_detail_scroll: 0,
             profile_details_expanded: false,
             pending_profile_confirm: None,
+            profile_editor: None,
+            profile_edit_suspended: None,
+            profile_edit_saving: false,
+            pending_edit_request: None,
             profile_tasks: ProfileTasks::default(),
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
@@ -3584,5 +3987,502 @@ mod tests {
         assert!(tab_data.current.is_ok());
         assert!(tab_data.claude_runtime.is_none());
         assert!(tab_data.codex_runtime.is_none());
+    }
+
+    fn editor_ready(platform: Platform, names: &[&str], current: &str) -> App {
+        let mut config = ProfileConfig::new();
+        config.description = Some("old-desc".into());
+        config.model = Some("old-model".into());
+        config
+            .platform_data
+            .insert("approval_policy".into(), serde_json::json!("never"));
+        config
+            .platform_data
+            .insert("untouched".into(), serde_json::json!("keep-me"));
+        let mut app = profile_navigation_app(names.len().max(1), 0, 0);
+        app.tabs[0].platform = platform;
+        app.tabs[0].profiles = names
+            .iter()
+            .map(|name| ProfileItem {
+                name: (*name).to_string(),
+                description: Some("old-desc".into()),
+                is_current: *name == current,
+            })
+            .collect();
+        app.tabs[0].profile_configs = names
+            .iter()
+            .map(|name| ((*name).to_string(), config.clone()))
+            .collect();
+        app.tabs[0].catalog_revision = Some("rev-1".into());
+        app.tabs[0].profile_loaded = true;
+        app.selected_index = names.iter().position(|name| *name == current).unwrap_or(0);
+        app.selected_profile_name = Some(current.to_string());
+        if names.len() > 1 {
+            let codex = empty_tab(Platform::Codex, TabVariant::Profile, "Codex Profile");
+            app.tabs.push(codex);
+        }
+        app
+    }
+
+    fn open_editor(app: &mut App) {
+        app.handle_key(plain_key(KeyCode::Char('e'))).unwrap();
+        assert!(app.profile_editor.is_some(), "editor should open");
+    }
+
+    fn focus_editor_key(app: &mut App, key: &str) {
+        for _ in 0..40 {
+            if app.profile_editor.as_ref().unwrap().focused_key() == key {
+                return;
+            }
+            app.handle_key(plain_key(KeyCode::Down)).unwrap();
+        }
+        panic!("editor field {key} not found");
+    }
+
+    fn draw_text(app: &mut App, width: u16, height: u16) -> String {
+        use ratatui::Terminal;
+        use ratatui::backend::TestBackend;
+        let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+        terminal
+            .draw(|frame| crate::tui::ui::draw(frame, app))
+            .unwrap();
+        let buffer = terminal.backend().buffer();
+        (0..buffer.area.height)
+            .map(|y| {
+                let mut line = String::new();
+                let mut x = 0;
+                while x < buffer.area.width {
+                    let Some(cell) = buffer.cell((x, y)) else {
+                        break;
+                    };
+                    let symbol = cell.symbol();
+                    line.push_str(symbol);
+                    let step = unicode_width::UnicodeWidthStr::width(symbol).max(1) as u16;
+                    x += step;
+                }
+                line.trim_end().to_string()
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    #[test]
+    fn edit_opens_only_for_a_ready_profile_and_locks_navigation() {
+        i18n::set_language(TuiLanguage::English);
+        let mut missing = editor_ready(Platform::Claude, &["work"], "work");
+        missing.tabs[0].catalog_revision = None;
+        missing.handle_key(plain_key(KeyCode::Char('e'))).unwrap();
+        assert!(missing.profile_editor.is_none());
+        assert!(missing.toasts.active().unwrap().message.contains("unknown"));
+
+        let mut app = editor_ready(Platform::Claude, &["work", "other"], "work");
+        open_editor(&mut app);
+        assert_eq!(app.profile_editor.as_ref().unwrap().revision(), "rev-1");
+        assert_eq!(app.active_tab, 0);
+        app.handle_key(plain_key(KeyCode::Tab)).unwrap();
+        assert_eq!(app.active_tab, 0);
+        assert_eq!(
+            app.profile_editor.as_ref().unwrap().focused_key(),
+            "description"
+        );
+        app.handle_key(KeyEvent::new(KeyCode::BackTab, KeyModifiers::NONE))
+            .unwrap();
+        assert_eq!(app.profile_editor.as_ref().unwrap().focused_key(), "name");
+        assert!(!app.handle_key(plain_key(KeyCode::Char('q'))).unwrap());
+        assert!(
+            app.profile_editor.as_ref().unwrap().fields()[0]
+                .text
+                .value()
+                .ends_with('q')
+        );
+        for key in ['r', 'o', 'x'] {
+            app.handle_key(plain_key(KeyCode::Char(key))).unwrap();
+        }
+        assert!(app.profile_editor.is_some());
+        assert_eq!(app.active_tab, 0);
+        app.header_area
+            .set(Some(ratatui::layout::Rect::new(0, 0, 80, 3)));
+        app.handle_mouse(MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Left),
+            column: 40,
+            row: 1,
+            modifiers: KeyModifiers::NONE,
+        })
+        .unwrap();
+        assert_eq!(app.active_tab, 0);
+        assert!(
+            !app.handle_key(KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL))
+                .unwrap()
+        );
+        assert!(app.profile_editor.is_some());
+        assert!(
+            !app.handle_key(KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL))
+                .unwrap()
+        );
+        assert!(app.profile_editor.is_none());
+
+        let mut auth = editor_ready(Platform::Claude, &["work"], "work");
+        auth.tabs[0].variant = TabVariant::ClaudeAuth;
+        auth.handle_key(plain_key(KeyCode::Char('e'))).unwrap();
+        assert!(auth.profile_editor.is_none());
+        assert!(auth.claude_auth_app.is_none());
+    }
+
+    #[test]
+    fn edit_save_sends_only_changed_fields_and_follows_a_rename() {
+        use ccr_cli::application::profile_edit::{FieldEdit, SecretEdit};
+        i18n::set_language(TuiLanguage::English);
+        for platform in [Platform::Claude, Platform::Codex, Platform::Grok] {
+            let mut app = editor_ready(platform, &["work"], "work");
+            let recorded = Arc::new(std::sync::Mutex::new(Vec::new()));
+            let log = Arc::clone(&recorded);
+            app.profile_tasks = ProfileTasks::with_backends(
+                app.task_executor.clone(),
+                Arc::new(|_| Ok(async_snapshot("work"))),
+                Arc::new(move |request| {
+                    log.lock().unwrap().push(request.clone());
+                    let MutationRequest::Edit(edit) = request else {
+                        return Err("edit expected".into());
+                    };
+                    let inner = edit.into_inner();
+                    Ok(MutationOutcome::Edited(Box::new(edited_outcome(
+                        &inner,
+                        inner.name.clone(),
+                    ))))
+                }),
+            );
+            open_editor(&mut app);
+            app.profile_editor
+                .as_mut()
+                .unwrap()
+                .set_text("description", "new-desc");
+            app.profile_editor
+                .as_mut()
+                .unwrap()
+                .set_text("model", "new-model");
+            app.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL))
+                .unwrap();
+            assert!(matches!(
+                app.pending_profile_confirm,
+                Some(PendingProfileConfirm::Save)
+            ));
+            assert!(!app.profile_tasks.mutation_active());
+            app.selected_index = 0;
+            app.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+            wait_for_recorded(&recorded, 1);
+            let MutationRequest::Edit(edit) = recorded.lock().unwrap()[0].clone() else {
+                panic!("edit request missing");
+            };
+            let request = edit.into_inner();
+            let names = request
+                .fields
+                .iter()
+                .map(FieldEdit::name)
+                .collect::<Vec<_>>();
+            assert_eq!(names, vec!["description", "model"], "{platform:?}");
+            assert!(matches!(request.secret, SecretEdit::Keep));
+            assert_eq!(request.expected_revision.as_deref(), Some("rev-1"));
+            assert_eq!(request.apply, ccr_cli::models::ApplyPolicy::IfCurrent);
+            assert!(!format!("{request:?}").contains("approval_policy"));
+            assert!(!format!("{request:?}").contains("untouched"));
+            pump_until(&mut app, |app| !app.profile_tasks.pending());
+        }
+
+        let mut app = editor_ready(Platform::Codex, &["work", "other"], "work");
+        let recorded = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = Arc::clone(&recorded);
+        app.profile_tasks = ProfileTasks::with_backends(
+            app.task_executor.clone(),
+            Arc::new(|_| Ok(async_snapshot("renamed"))),
+            Arc::new(move |request| {
+                log.lock().unwrap().push(request.clone());
+                let MutationRequest::Edit(edit) = request else {
+                    return Err("edit expected".into());
+                };
+                let inner = edit.into_inner();
+                Ok(MutationOutcome::Edited(Box::new(edited_outcome(
+                    &inner,
+                    "renamed".into(),
+                ))))
+            }),
+        );
+        open_editor(&mut app);
+        app.profile_editor
+            .as_mut()
+            .unwrap()
+            .set_text("name", "renamed");
+        app.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL))
+            .unwrap();
+        let confirm = draw_text(&mut app, 120, 30);
+        assert!(
+            confirm.contains("runtime") || confirm.contains("运行时"),
+            "{confirm}"
+        );
+        app.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+        wait_for_recorded(&recorded, 1);
+        pump_until(&mut app, |app| !app.profile_tasks.pending());
+        assert_eq!(app.selected_profile_name.as_deref(), Some("renamed"));
+        assert_eq!(app.selected_profile().unwrap().name, "renamed");
+
+        let mut collision = editor_ready(Platform::Claude, &["work", "other"], "work");
+        let recorded = Arc::new(std::sync::Mutex::new(Vec::new()));
+        collision.profile_tasks = ProfileTasks::with_backends(
+            collision.task_executor.clone(),
+            Arc::new(|_| Ok(async_snapshot("work"))),
+            Arc::new({
+                let recorded = Arc::clone(&recorded);
+                move |request| {
+                    recorded.lock().unwrap().push(request);
+                    Err("should not write".into())
+                }
+            }),
+        );
+        open_editor(&mut collision);
+        collision
+            .profile_editor
+            .as_mut()
+            .unwrap()
+            .set_text("name", "other");
+        collision
+            .handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL))
+            .unwrap();
+        assert!(collision.pending_profile_confirm.is_none());
+        assert!(recorded.lock().unwrap().is_empty());
+        assert!(collision.profile_editor.is_some());
+    }
+
+    #[test]
+    fn secret_edits_hide_the_sentinel_and_conflict_keeps_the_draft() {
+        use ccr_cli::application::profile_edit::SecretEdit;
+        const SENTINEL: &str = "CCR_EDITOR_SECRET_SENTINEL_9f3a";
+        i18n::set_language(TuiLanguage::English);
+        let mut grok = editor_ready(Platform::Grok, &["work"], "work");
+        grok.tabs[0]
+            .profile_configs
+            .get_mut("work")
+            .unwrap()
+            .auth_token = Some(ccr_core::Secret::new(SENTINEL));
+        grok.tabs[0]
+            .profile_configs
+            .get_mut("work")
+            .unwrap()
+            .platform_data
+            .insert("api_key".into(), serde_json::json!(SENTINEL));
+        open_editor(&mut grok);
+        let grok_buffer = draw_text(&mut grok, 160, 45);
+        assert!(!grok_buffer.contains(SENTINEL), "{grok_buffer}");
+        assert!(!grok_buffer.contains("‹已设置›"), "{grok_buffer}");
+
+        let mut app = editor_ready(Platform::Claude, &["work"], "work");
+        let recorded = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = Arc::clone(&recorded);
+        app.profile_tasks = ProfileTasks::with_backends(
+            app.task_executor.clone(),
+            Arc::new(|_| Ok(async_snapshot("work"))),
+            Arc::new(move |request| {
+                log.lock().unwrap().push(request.clone());
+                let MutationRequest::Edit(edit) = request else {
+                    return Err("edit expected".into());
+                };
+                let inner = edit.into_inner();
+                Ok(MutationOutcome::Edited(Box::new(edited_outcome(
+                    &inner,
+                    inner.name.clone(),
+                ))))
+            }),
+        );
+        open_editor(&mut app);
+        focus_editor_key(&mut app, "auth_token");
+        for ch in SENTINEL.chars() {
+            app.handle_key(plain_key(KeyCode::Char(ch))).unwrap();
+        }
+        let editing = draw_text(&mut app, 140, 40);
+        assert!(!editing.contains(SENTINEL), "{editing}");
+        assert!(editing.contains('•'), "{editing}");
+        app.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL))
+            .unwrap();
+        let confirm = draw_text(&mut app, 140, 40);
+        assert!(!confirm.contains(SENTINEL), "{confirm}");
+        assert!(
+            confirm.contains("replaced") || confirm.contains("已替换"),
+            "{confirm}"
+        );
+        app.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+        wait_for_recorded(&recorded, 1);
+        let MutationRequest::Edit(edit) = recorded.lock().unwrap()[0].clone() else {
+            panic!("missing edit");
+        };
+        let request = edit.into_inner();
+        match &request.secret {
+            SecretEdit::Replace(secret) => assert_eq!(secret.expose(), SENTINEL),
+            other => panic!("expected replace, got {other:?}"),
+        }
+        assert!(!format!("{request:?}").contains(SENTINEL));
+        pump_until(&mut app, |app| !app.profile_tasks.pending());
+        let toast = app.toasts.active().unwrap().message.clone();
+        assert!(!toast.contains(SENTINEL), "{toast}");
+
+        let mut clear = editor_ready(Platform::Claude, &["work"], "work");
+        open_editor(&mut clear);
+        focus_editor_key(&mut clear, "auth_token");
+        clear
+            .profile_editor
+            .as_mut()
+            .unwrap()
+            .mark_secret_clear("auth_token");
+        clear
+            .handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL))
+            .unwrap();
+        let clear_confirm = draw_text(&mut clear, 120, 30);
+        assert!(
+            clear_confirm.contains("will clear") || clear_confirm.contains("将清除"),
+            "{clear_confirm}"
+        );
+
+        let mut conflict = editor_ready(Platform::Codex, &["work"], "work");
+        conflict.profile_tasks = ProfileTasks::with_backends(
+            conflict.task_executor.clone(),
+            Arc::new(|_| Ok(async_snapshot("work"))),
+            Arc::new(|_| Err("配置版本冲突，请重新读取后重试".into())),
+        );
+        open_editor(&mut conflict);
+        conflict
+            .profile_editor
+            .as_mut()
+            .unwrap()
+            .set_text("description", "draft-survives");
+        conflict
+            .handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL))
+            .unwrap();
+        conflict.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+        pump_until(&mut conflict, |app| !app.profile_tasks.pending());
+        let editor = conflict.profile_editor.as_ref().unwrap();
+        assert_eq!(
+            editor
+                .fields()
+                .iter()
+                .find(|field| field.spec.key == "description")
+                .unwrap()
+                .text
+                .value(),
+            "draft-survives"
+        );
+        let banner = editor.banner().unwrap_or("");
+        let toast = conflict.toasts.active().unwrap().message.clone();
+        assert!(
+            banner.contains("changed externally") || toast.contains("changed externally"),
+            "{banner} {toast}"
+        );
+    }
+
+    #[test]
+    fn edit_refuses_to_open_during_a_write_and_grok_partial_failure_is_a_warning() {
+        use ccr_cli::application::profile_edit::{
+            EditLifecycle, EditProfileOutcome, GrokEditSummary,
+        };
+        use ccr_cli::application::profile_lifecycle::{ProfileOutcome, ProfileStatus};
+        i18n::set_language(TuiLanguage::SimplifiedChinese);
+        let (started_tx, started_rx) = std::sync::mpsc::channel();
+        let (release_tx, release_rx) = std::sync::mpsc::channel::<()>();
+        let release_rx = std::sync::Mutex::new(release_rx);
+        let mut busy = editor_ready(Platform::Claude, &["work"], "work");
+        busy.profile_tasks = ProfileTasks::with_backends(
+            busy.task_executor.clone(),
+            Arc::new(|_| Ok(async_snapshot("work"))),
+            Arc::new(move |request| {
+                started_tx.send(()).unwrap();
+                let _ = release_rx
+                    .lock()
+                    .unwrap()
+                    .recv_timeout(std::time::Duration::from_secs(5));
+                let MutationRequest::Apply(request) = request else {
+                    return Err("apply expected".into());
+                };
+                Ok(MutationOutcome::Applied(ProfileOutcome {
+                    operation_id: request.operation_id,
+                    platform: "claude".into(),
+                    profile: request.name,
+                    previous_profile: None,
+                    status: ProfileStatus::Applied,
+                    activation_committed: true,
+                    warnings: vec![],
+                    recovery_paths: vec![],
+                }))
+            }),
+        );
+        busy.handle_key(plain_key(KeyCode::Enter)).unwrap();
+        busy.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+        started_rx
+            .recv_timeout(std::time::Duration::from_secs(5))
+            .unwrap();
+        busy.handle_key(plain_key(KeyCode::Char('e'))).unwrap();
+        assert!(busy.profile_editor.is_none());
+        release_tx.send(()).unwrap();
+        pump_until(&mut busy, |app| !app.profile_tasks.pending());
+
+        let mut grok = editor_ready(Platform::Grok, &["work"], "work");
+        grok.profile_tasks = ProfileTasks::with_backends(
+            grok.task_executor.clone(),
+            Arc::new(|_| Ok(async_snapshot("renamed"))),
+            Arc::new(|request| {
+                let MutationRequest::Edit(edit) = request else {
+                    return Err("edit expected".into());
+                };
+                let inner = edit.into_inner();
+                Ok(MutationOutcome::Edited(Box::new(EditProfileOutcome {
+                    platform: Platform::Grok,
+                    old_name: inner.name.clone(),
+                    new_name: "renamed".into(),
+                    changed_fields: vec!["name".into()],
+                    reapplied: false,
+                    revision: Some("rev-2".into()),
+                    lifecycle: EditLifecycle::Grok(GrokEditSummary::RenameApplyFailed),
+                    warnings: vec![],
+                })))
+            }),
+        );
+        open_editor(&mut grok);
+        grok.profile_editor
+            .as_mut()
+            .unwrap()
+            .set_choice("credential", "keep");
+        grok.profile_editor
+            .as_mut()
+            .unwrap()
+            .set_text("name", "renamed");
+        grok.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL))
+            .unwrap();
+        grok.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+        pump_until(&mut grok, |app| !app.profile_tasks.pending());
+        assert!(grok.profile_editor.is_none());
+        let toast = grok.toasts.active().unwrap();
+        assert_eq!(toast.kind, crate::tui::toast::ToastKind::Warning);
+        assert!(
+            toast.message.contains("重新应用运行时失败"),
+            "{}",
+            toast.message
+        );
+        assert_eq!(grok.selected_profile_name.as_deref(), Some("renamed"));
+    }
+
+    #[test]
+    fn editor_paste_strips_newlines() {
+        let mut app = editor_ready(Platform::Claude, &["work"], "work");
+        open_editor(&mut app);
+        focus_editor_key(&mut app, "description");
+        app.handle_paste("AA\r\nBB\n".into()).unwrap();
+        let value = app
+            .profile_editor
+            .as_ref()
+            .unwrap()
+            .fields()
+            .iter()
+            .find(|field| field.spec.key == "description")
+            .unwrap()
+            .text
+            .value()
+            .to_string();
+        assert_eq!(value, "old-descAABB");
+        assert!(!value.contains('\n'));
     }
 }

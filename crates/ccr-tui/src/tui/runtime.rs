@@ -4,7 +4,10 @@
 use ccr_core::core::error::{CcrError, Result};
 use crossterm::{
     cursor::{MoveTo, Show},
-    event::{DisableMouseCapture, EnableMouseCapture, KeyCode, KeyModifiers},
+    event::{
+        DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture,
+        KeyCode, KeyModifiers,
+    },
     execute,
     terminal::{
         Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode,
@@ -155,6 +158,7 @@ struct TerminalSetupState {
     raw_mode_enabled: bool,
     alternate_screen_enabled: bool,
     mouse_capture_enabled: bool,
+    bracketed_paste_enabled: bool,
 }
 
 /// Contract for any TUI view — implement this to plug into the unified runtime.
@@ -187,6 +191,11 @@ pub trait TuiApp {
     /// Exit intent is independent of on_tick's redraw result.
     fn ready_to_exit(&self) -> bool {
         false
+    }
+
+    /// Bracketed paste. The default ignores it so views without an editor stay unchanged.
+    fn handle_paste(&mut self, _text: String) -> Result<bool> {
+        Ok(false)
     }
 
     /// Render the current state to the frame.
@@ -248,6 +257,10 @@ impl TerminalGuard {
             state.mouse_capture_enabled = true;
         }
 
+        if execute!(terminal.backend_mut(), EnableBracketedPaste).is_ok() {
+            state.bracketed_paste_enabled = true;
+        }
+
         if mode.clear_on_enter {
             terminal
                 .clear()
@@ -262,6 +275,11 @@ impl TerminalGuard {
         state: &mut TerminalSetupState,
         clear_on_exit: bool,
     ) {
+        if state.bracketed_paste_enabled {
+            let _ = execute!(writer, DisableBracketedPaste);
+            state.bracketed_paste_enabled = false;
+        }
+
         if state.mouse_capture_enabled {
             let _ = execute!(writer, DisableMouseCapture);
             state.mouse_capture_enabled = false;
@@ -369,6 +387,10 @@ fn process_event<A: TuiApp>(
         }
         Event::Resize => {
             effect.clear = true;
+            effect.redraw = true;
+        }
+        Event::Paste(text) => {
+            effect.exit = app.handle_paste(text)?;
             effect.redraw = true;
         }
         _ => {}
@@ -539,12 +561,20 @@ mod tests {
             raw_mode_enabled: false,
             alternate_screen_enabled: true,
             mouse_capture_enabled: true,
+            bracketed_paste_enabled: true,
         };
 
         TerminalGuard::restore_terminal(&mut buffer, &mut state, false);
 
         assert!(!state.alternate_screen_enabled);
         assert!(!state.mouse_capture_enabled);
+        assert!(!state.bracketed_paste_enabled);
+        assert!(
+            buffer
+                .windows(b"\x1b[?2004l".len())
+                .any(|window| window == b"\x1b[?2004l"),
+            "restore must disable bracketed paste"
+        );
         assert!(!buffer.is_empty());
     }
 
@@ -558,6 +588,12 @@ mod tests {
         assert!(!state.raw_mode_enabled);
         assert!(!state.alternate_screen_enabled);
         assert!(!state.mouse_capture_enabled);
+        assert!(!state.bracketed_paste_enabled);
+        assert!(
+            !buffer
+                .windows(b"\x1b[?2004l".len())
+                .any(|window| window == b"\x1b[?2004l")
+        );
         assert!(!buffer.is_empty());
     }
 }

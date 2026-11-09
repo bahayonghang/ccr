@@ -312,7 +312,7 @@ impl ClaudeAuthApp {
                         self.perform_auth_off_with(claude_auth_off)?;
                         Ok(false)
                     }
-                    ConfirmKind::Apply | ConfirmKind::ProfileOff => Ok(false),
+                    ConfirmKind::Apply | ConfirmKind::ProfileOff | ConfirmKind::Save => Ok(false),
                 };
             }
             KeyCode::Char('n')

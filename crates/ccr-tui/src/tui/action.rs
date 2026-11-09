@@ -36,4 +36,6 @@ pub enum Action {
     ProfileOff,
     /// Refresh data from disk
     Reload,
+    /// Open the profile editor for the selected profile
+    EditSelected,
 }

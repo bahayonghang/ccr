@@ -28,6 +28,8 @@ use ratatui::{
 };
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
+pub(crate) mod detail_layout;
+mod stored_fields;
 mod workbench;
 
 // ═══════════════════════════════════════════════════════════
@@ -42,6 +44,9 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     let area = f.area();
     let mode = theme::viewport_mode(area.width, area.height);
     app.detail_area.set(None);
+    let editing_stacked = matches!(app.current_tab().variant, TabVariant::Profile)
+        && app.profile_editor.is_some()
+        && mode != theme::ViewportMode::Wide;
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -50,15 +55,19 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
     render_header(f, app, chunks[0]);
 
-    let content_area = if matches!(app.current_tab().variant, TabVariant::Profile) {
-        let height = if mode == theme::ViewportMode::Compact {
-            3
-        } else {
-            4
-        };
+    let content_area = if editing_stacked {
+        chunks[1]
+    } else if matches!(app.current_tab().variant, TabVariant::Profile) {
+        // Profile runtime is one content row in every viewport. Compact keeps the
+        // unlabeled line; Standard and Wide add the three field labels.
         let runtime_chunks =
-            Layout::vertical([Constraint::Length(height), Constraint::Min(0)]).split(chunks[1]);
-        workbench::render_runtime(f, app, runtime_chunks[0]);
+            Layout::vertical([Constraint::Length(3), Constraint::Min(0)]).split(chunks[1]);
+        workbench::render_runtime(
+            f,
+            app,
+            runtime_chunks[0],
+            mode != theme::ViewportMode::Compact,
+        );
         runtime_chunks[1]
     } else if app.current_platform() == Platform::Codex && !app.is_grok_auth_tab() {
         let runtime_chunks = Layout::default()
@@ -143,6 +152,13 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                 app.grok_auth_error.as_deref(),
             );
         }
+    } else if editing_stacked {
+        app.header_area.set(Some(chunks[0]));
+        app.list_area.set(None);
+        if let Some(editor) = app.profile_editor.as_mut() {
+            super::profile_edit::ui::render_stacked(f, editor, content_area);
+        }
+        render_footer(f, app, chunks[2]);
     } else {
         app.header_area.set(Some(chunks[0]));
 
@@ -334,7 +350,7 @@ fn column_widths(area_width: u16) -> (usize, usize) {
 
 // 截断/填充一律按终端显示宽度计数 (CJK 为 2 列), 不能按字符数,
 // 否则含中文的单元格会溢出列宽被 ratatui 硬裁剪、省略号丢失。
-fn truncate_text(text: &str, width: usize) -> String {
+pub(crate) fn truncate_text(text: &str, width: usize) -> String {
     if width == 0 {
         return String::new();
     }
@@ -360,7 +376,7 @@ fn truncate_text(text: &str, width: usize) -> String {
     out
 }
 
-fn pad_text(text: &str, width: usize) -> String {
+pub(crate) fn pad_text(text: &str, width: usize) -> String {
     let text_width = text.width();
     if text_width >= width {
         return text.to_string();
@@ -584,6 +600,10 @@ fn render_profile_context_workspace(
     area: Rect,
     mode: theme::ViewportMode,
 ) {
+    if app.profile_editor.is_some() || app.profile_edit_saving {
+        render_profile_details(f, app, area, mode);
+        return;
+    }
     let status_visible = profile_status_message(app).is_some();
     let chunks = Layout::vertical([
         Constraint::Min(0),
@@ -597,6 +617,18 @@ fn render_profile_context_workspace(
 }
 
 fn render_profile_details(f: &mut Frame, app: &mut App, area: Rect, _mode: theme::ViewportMode) {
+    if app.profile_edit_saving {
+        super::profile_edit::ui::render_saving(f, area);
+        app.detail_area.set(Some(area));
+        return;
+    }
+    if app.profile_editor.is_some() {
+        if let Some(editor) = app.profile_editor.as_mut() {
+            super::profile_edit::ui::render_rail(f, editor, area);
+        }
+        app.detail_area.set(Some(area));
+        return;
+    }
     workbench::render_details(f, app, area);
 }
 
@@ -2066,7 +2098,14 @@ fn footer_text_for_width(app: &App, width: u16) -> String {
     }
 }
 
+/// Profile tabs show `e edit`. Widths under 90 columns drop it before `x` and `o`.
+const PROFILE_EDIT_HINT_ENABLED: bool = true;
+
 fn footer_hints_for_width(app: &App, width: u16) -> Vec<ShortcutHint<'static>> {
+    footer_hints(app, width, PROFILE_EDIT_HINT_ENABLED)
+}
+
+fn footer_hints(app: &App, width: u16, edit_hint: bool) -> Vec<ShortcutHint<'static>> {
     if app.pending_profile_confirm.is_some() {
         return vec![
             ShortcutHint::new("y", crate::tui_text!("confirm", "确认")),
@@ -2074,11 +2113,20 @@ fn footer_hints_for_width(app: &App, width: u16) -> Vec<ShortcutHint<'static>> {
         ];
     }
 
+    if app.profile_editor.is_some() {
+        return vec![
+            ShortcutHint::new("Tab", crate::tui_text!("field", "字段")),
+            ShortcutHint::new("←→", crate::tui_text!("model", "模型")),
+            ShortcutHint::new("Ctrl+S", crate::tui_text!("save", "保存")),
+            ShortcutHint::new("Esc", crate::tui_text!("cancel", "取消")),
+            ShortcutHint::new("Ctrl+D", crate::tui_text!("clear secret", "清除密钥")),
+        ];
+    }
+
     let is_profile = matches!(app.current_tab().variant, TabVariant::Profile);
 
     if width < 90 {
-        // 紧凑页脚单行会被右侧裁剪: spec 强制保留的 PgUp/PgDn 与 Ctrl+L 排在前面,
-        // 新标注 (x 未设置 / o 解绑 / q 退出) 在宽度不足时最后降级, 但绝不留下错误描述
+        // Required hints stay first. `e` is dropped before `x` and `o` when the line does not fit.
         let mut hints = vec![
             ShortcutHint::new("Tab", ""),
             ShortcutHint::new("↑↓", crate::tui_text!("select", "选择")),
@@ -2087,7 +2135,23 @@ fn footer_hints_for_width(app: &App, width: u16) -> Vec<ShortcutHint<'static>> {
             ShortcutHint::new("Ctrl+L", crate::tui_text!("lang", "语言")),
         ];
         if is_profile {
-            hints.push(ShortcutHint::new("x", crate::tui_text!("unset", "未设置")));
+            let edit = ShortcutHint::new("e", crate::tui_text!("edit", "编辑"));
+            let all_fields = ShortcutHint::new("x", crate::tui_text!("all fields", "全部字段"));
+            let deactivate = ShortcutHint::new("o", crate::tui_text!("deactivate", "解绑"));
+            let mut with_edit = hints.clone();
+            if edit_hint {
+                with_edit.push(edit);
+            }
+            with_edit.push(all_fields);
+            with_edit.push(deactivate);
+            with_edit.push(ShortcutHint::new("q", crate::tui_text!("quit", "退出")));
+            if !edit_hint || hints_width(&with_edit) <= usize::from(width) {
+                return with_edit;
+            }
+            hints.push(ShortcutHint::new(
+                "x",
+                crate::tui_text!("all fields", "全部字段"),
+            ));
             hints.push(ShortcutHint::new(
                 "o",
                 crate::tui_text!("deactivate", "解绑"),
@@ -2110,7 +2174,13 @@ fn footer_hints_for_width(app: &App, width: u16) -> Vec<ShortcutHint<'static>> {
         ShortcutHint::new("Enter/Space", crate::tui_text!("apply", "应用")),
     ]);
     if is_profile {
-        hints.push(ShortcutHint::new("x", crate::tui_text!("unset", "未设置")));
+        if edit_hint {
+            hints.push(ShortcutHint::new("e", crate::tui_text!("edit", "编辑")));
+        }
+        hints.push(ShortcutHint::new(
+            "x",
+            crate::tui_text!("all fields", "全部字段"),
+        ));
         hints.push(ShortcutHint::new(
             "o",
             crate::tui_text!("deactivate", "解绑"),
@@ -2122,6 +2192,22 @@ fn footer_hints_for_width(app: &App, width: u16) -> Vec<ShortcutHint<'static>> {
         ShortcutHint::new("q", crate::tui_text!("quit", "退出")),
     ]);
     hints
+}
+
+fn hints_width(hints: &[ShortcutHint<'_>]) -> usize {
+    hints.iter().enumerate().fold(0, |width, (index, hint)| {
+        let separator = if index == 0 {
+            0
+        } else {
+            UnicodeWidthStr::width("  │  ")
+        };
+        let label = if hint.label.is_empty() {
+            0
+        } else {
+            1 + UnicodeWidthStr::width(hint.label)
+        };
+        width + separator + UnicodeWidthStr::width(hint.key) + label
+    })
 }
 
 /// Render toast notification (replaces old status_message)
@@ -2213,6 +2299,8 @@ mod tests {
                 profile_loaded: true,
                 instance: None,
                 saved_selection: None,
+                profiles_path: None,
+                catalog_revision: None,
             }],
             active_tab: 0,
             selected_index: 0,
@@ -2237,6 +2325,10 @@ mod tests {
             profile_detail_scroll: 0,
             profile_details_expanded: false,
             pending_profile_confirm: None,
+            profile_editor: None,
+            profile_edit_suspended: None,
+            profile_edit_saving: false,
+            pending_edit_request: None,
             task_executor: crate::tui::runtime::AsyncTaskExecutor::from_current_or_test(),
             profile_tasks: Default::default(),
         }
@@ -2264,6 +2356,8 @@ mod tests {
             profile_loaded: true,
             instance: None,
             saved_selection: None,
+            profiles_path: None,
+            catalog_revision: None,
         }
     }
 
@@ -2371,7 +2465,8 @@ mod tests {
         app.tabs[0].variant = TabVariant::ClaudeAuth;
 
         assert!(!footer_text(&app).contains("o deactivate"));
-        assert!(!footer_text(&app).contains("x unset"));
+        assert!(!footer_text(&app).contains("x all fields"));
+        assert!(!footer_text(&app).contains("e edit"));
         assert!(!footer_text_for_width(&app, 80).contains(" o "));
     }
 
@@ -3528,10 +3623,10 @@ mod tests {
             "legend lives only in the list panel bottom title: {rendered}"
         );
 
-        // 原 Selection 面板预留的 5 行已还给列表 (header 3 + footer 3)
+        // Runtime strip is 3 rows, so the list body starts one row higher than the old 4-row strip.
         let list_area = app.list_area.get().expect("list area should be cached");
-        assert_eq!(list_area.y, 10);
-        assert_eq!(list_area.height, 18);
+        assert_eq!(list_area.y, 9);
+        assert_eq!(list_area.height, 19);
     }
 
     #[test]
@@ -4373,7 +4468,7 @@ mod tests {
     }
 
     #[test]
-    fn footer_hints_include_unset_toggle_on_profile_tabs() {
+    fn footer_hints_include_all_fields_toggle_on_profile_tabs() {
         let profile = ProfileItem {
             name: "default".to_string(),
             description: None,
@@ -4381,13 +4476,37 @@ mod tests {
         };
         let app = sample_profile_app(profile, ProfileConfig::new());
 
-        assert!(footer_text(&app).contains("x unset"));
+        assert!(footer_text(&app).contains("x all fields"));
+        assert!(footer_text(&app).contains("e edit"));
 
         // 紧凑分支: spec 强制保留的 PgUp/PgDn details 与 Ctrl+L language 不被挤掉
         let compact = footer_text_for_width(&app, 80);
-        assert!(compact.contains("x unset"), "{compact}");
+        assert!(compact.contains("x all fields"), "{compact}");
         assert!(compact.contains("PgUp/PgDn"), "{compact}");
         assert!(compact.contains("Ctrl+L"), "{compact}");
+        assert!(!compact.contains("e edit"), "{compact}");
+
+        let enabled = footer_hints(&app, u16::MAX, true);
+        let enabled_text = enabled
+            .iter()
+            .map(|hint| format!("{} {}", hint.key, hint.label))
+            .collect::<Vec<_>>()
+            .join("  │  ");
+        let edit_at = enabled_text.find("e edit").expect("wide footer shows edit");
+        let fields_at = enabled_text
+            .find("x all fields")
+            .expect("wide footer shows all fields");
+        assert!(edit_at < fields_at, "{enabled_text}");
+
+        let narrow = footer_hints(&app, 80, true);
+        let narrow_text = narrow
+            .iter()
+            .map(|hint| format!("{} {}", hint.key, hint.label))
+            .collect::<Vec<_>>()
+            .join("  │  ");
+        assert!(!narrow_text.contains("e edit"), "{narrow_text}");
+        assert!(narrow_text.contains("x all fields"), "{narrow_text}");
+        assert!(narrow_text.contains("o deactivate"), "{narrow_text}");
     }
 
     #[test]
@@ -4801,18 +4920,151 @@ mod tests {
                     usage_row(SourceKind::Codex, Some("anyrouter"), 77),
                 ]);
                 app.usage_app = Some(engine);
-                // 详情行较多,滚到底部确认 Usage 分组真实渲染进缓冲区
-                app.profile_detail_scroll = 500;
 
                 let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
-                terminal.draw(|frame| draw(frame, &mut app)).unwrap();
-
-                let rendered = buffer_text(terminal.backend());
+                let needle = crate::tui_text!("official-equivalent", "官方等价");
+                let mut found = false;
+                for scroll in [0u16, 8, 16, 24, 40] {
+                    app.profile_detail_scroll = scroll;
+                    terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+                    if buffer_text(terminal.backend()).contains(needle) {
+                        found = true;
+                        break;
+                    }
+                }
                 assert!(
-                    rendered.contains("successful CCR activation"),
-                    "{platform:?} {width}x{height}: {rendered}"
+                    found,
+                    "{platform:?} {width}x{height} did not render usage scope"
                 );
             }
         }
+    }
+
+    #[test]
+    fn profile_editor_wide_keeps_a_dim_list_and_shows_the_change() {
+        use crate::tui::profile_edit::{EditorOpen, ProfileEditor};
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
+        let profile = ProfileItem {
+            name: "zeta-profile".into(),
+            description: Some("old-desc".into()),
+            is_current: true,
+        };
+        let mut config = ProfileConfig::new();
+        config.description = Some("old-desc".into());
+        config.model = Some("old-model".into());
+        let mut app = sample_profile_app_for(Platform::Grok, profile, config.clone());
+        app.tabs[0].catalog_revision = Some("rev-1".into());
+        app.profile_editor = Some(ProfileEditor::open(EditorOpen {
+            platform: Platform::Grok,
+            name: "zeta-profile",
+            config: &config,
+            is_current: true,
+            revision: "rev-1",
+        }));
+        app.profile_editor
+            .as_mut()
+            .unwrap()
+            .set_text("description", "beta-desc");
+        let mut terminal = Terminal::new(TestBackend::new(160, 45)).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+        let text = buffer_text(terminal.backend());
+        assert!(text.contains("zeta-profile"), "{text}");
+        assert!(text.contains("old-desc"), "{text}");
+        assert!(text.contains("beta-desc"), "{text}");
+        assert!(text.contains('→'), "{text}");
+        let list = app.list_area.get().expect("wide editor keeps the list");
+        let buffer = terminal.backend().buffer();
+        let mut saw_muted = false;
+        for y in list.y..list.y + list.height {
+            for x in list.x..list.x + list.width {
+                let Some(cell) = buffer.cell((x, y)) else {
+                    continue;
+                };
+                if cell.symbol() == "z" {
+                    assert_eq!(cell.fg, theme::muted(), "list name should be dimmed");
+                    saw_muted = true;
+                }
+            }
+        }
+        assert!(saw_muted, "dimmed list did not render the profile name");
+    }
+
+    #[test]
+    fn profile_editor_standard_and_compact_scroll_to_the_last_field() {
+        use crate::tui::profile_edit::{EditorOpen, ProfileEditor};
+        use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+        for (language, last_label, size) in [
+            (
+                ccr_cli::managers::TuiLanguage::English,
+                "auto compact",
+                (100, 30),
+            ),
+            (
+                ccr_cli::managers::TuiLanguage::SimplifiedChinese,
+                "自动压缩",
+                (80, 24),
+            ),
+            (
+                ccr_cli::managers::TuiLanguage::English,
+                "auto compact",
+                (80, 24),
+            ),
+            (
+                ccr_cli::managers::TuiLanguage::SimplifiedChinese,
+                "自动压缩",
+                (100, 30),
+            ),
+        ] {
+            crate::tui::i18n::set_language(language);
+            let profile = ProfileItem {
+                name: "work".into(),
+                description: None,
+                is_current: false,
+            };
+            let config = ProfileConfig::new();
+            let mut app = sample_profile_app_for(Platform::Claude, profile, config.clone());
+            app.tabs[0].catalog_revision = Some("rev-1".into());
+            app.profile_editor = Some(ProfileEditor::open(EditorOpen {
+                platform: Platform::Claude,
+                name: "work",
+                config: &config,
+                is_current: false,
+                revision: "rev-1",
+            }));
+            for _ in 0..40 {
+                let editor = app.profile_editor.as_mut().unwrap();
+                if editor.focused_key() == "advanced" && !editor.advanced_open() {
+                    editor.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+                }
+                editor.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+            }
+            assert_eq!(
+                app.profile_editor.as_ref().unwrap().focused_key(),
+                "claude_code_auto_compact_window"
+            );
+            let mut terminal = Terminal::new(TestBackend::new(size.0, size.1)).unwrap();
+            terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+            let text = buffer_text(terminal.backend());
+            let flattened = text.replace(' ', "");
+            assert!(
+                text.contains(last_label) || flattened.contains(last_label),
+                "{language:?} {}x{} missing last field\n{text}",
+                size.0,
+                size.1
+            );
+            if size.1 <= 24 {
+                assert!(
+                    app.profile_editor.as_ref().unwrap().form_scroll() > 0,
+                    "{language:?} {}x{} did not scroll the form",
+                    size.0,
+                    size.1
+                );
+            }
+            assert!(
+                text.contains("Edit") || flattened.contains("编辑"),
+                "{text}"
+            );
+        }
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
     }
 }
