@@ -213,6 +213,25 @@ fn reorder_tabs(mut tabs: Vec<PlatformTab>, tab_order: &[TuiTabId]) -> Vec<Platf
     reordered
 }
 
+/// Profile write waiting for an explicit `y`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum PendingProfileConfirm {
+    /// Apply `name` on `platform`, captured when the dialog opened.
+    Apply {
+        /// Target platform
+        platform: Platform,
+        /// Target profile name
+        name: String,
+        /// Whether that profile was already current
+        is_current: bool,
+    },
+    /// Turn profile mode off on `platform`.
+    Off {
+        /// Target platform
+        platform: Platform,
+    },
+}
+
 /// Main TUI application state
 pub struct App {
     /// Dynamic list of platform tabs
@@ -261,6 +280,8 @@ pub struct App {
     pub profile_detail_scroll: u16,
     /// Whether unset profile detail fields are expanded (default: collapsed summary)
     pub profile_details_expanded: bool,
+    /// Profile apply or deactivate waiting for `y`. Absent means keys act immediately.
+    pub(crate) pending_profile_confirm: Option<PendingProfileConfirm>,
     /// 异步后台任务执行器
     pub(crate) task_executor: AsyncTaskExecutor,
     pub(crate) profile_tasks: ProfileTasks,
@@ -764,6 +785,7 @@ impl App {
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
             profile_details_expanded: false,
+            pending_profile_confirm: None,
             profile_tasks,
             task_executor,
         };
@@ -972,13 +994,13 @@ impl App {
                 self.scroll_profile_details(3);
             }
             Action::ApplySelected => {
-                self.apply_selected();
+                self.open_apply_confirm();
             }
             Action::ToggleDetailsExpanded => {
                 self.profile_details_expanded = !self.profile_details_expanded;
             }
             Action::ProfileOff => {
-                self.off_selected();
+                self.open_off_confirm();
             }
             Action::Reload => {
                 self.reload_profiles();
@@ -1050,6 +1072,128 @@ impl App {
         }
     }
 
+    fn open_apply_confirm(&mut self) -> bool {
+        if self.tabs[self.active_tab].variant != TabVariant::Profile {
+            return false;
+        }
+        if self.profile_tasks.mutation_active() {
+            self.profile_busy_toast();
+            return false;
+        }
+        let Some(selected) = self.selected_profile() else {
+            self.toasts.push(Toast::warning(crate::tui_text!(
+                "No profiles available",
+                "没有可用的配置"
+            )));
+            return false;
+        };
+        self.pending_profile_confirm = Some(PendingProfileConfirm::Apply {
+            platform: self.current_platform(),
+            name: selected.name.clone(),
+            is_current: selected.is_current,
+        });
+        true
+    }
+
+    fn open_off_confirm(&mut self) {
+        if self.tabs[self.active_tab].variant != TabVariant::Profile {
+            return;
+        }
+        if self.profile_tasks.mutation_active() {
+            self.profile_busy_toast();
+            return;
+        }
+        self.pending_profile_confirm = Some(PendingProfileConfirm::Off {
+            platform: self.current_platform(),
+        });
+    }
+
+    fn handle_profile_confirm_key(&mut self, key: KeyEvent) -> Result<bool> {
+        let cancel = match key.code {
+            KeyCode::Char('y') | KeyCode::Char('Y') => {
+                self.commit_profile_confirm();
+                return Ok(false);
+            }
+            KeyCode::Char('n')
+            | KeyCode::Char('N')
+            | KeyCode::Esc
+            | KeyCode::Enter
+            | KeyCode::Char(' ') => true,
+            KeyCode::Char('o') | KeyCode::Char('O') => {
+                matches!(
+                    self.pending_profile_confirm,
+                    Some(PendingProfileConfirm::Off { .. })
+                )
+            }
+            _ => false,
+        };
+        if cancel {
+            self.pending_profile_confirm = None;
+            self.toasts
+                .push(Toast::info(crate::tui_text!("Cancelled", "已取消")));
+        }
+        Ok(false)
+    }
+
+    fn commit_profile_confirm(&mut self) {
+        let Some(pending) = self.pending_profile_confirm.take() else {
+            return;
+        };
+        match pending {
+            PendingProfileConfirm::Apply { platform, name, .. } => {
+                let request = ccr_cli::application::profile_lifecycle::ApplyProfileRequest::new(
+                    platform, name,
+                );
+                self.start_profile_mutation(MutationRequest::Apply(request));
+            }
+            PendingProfileConfirm::Off { platform } => {
+                self.start_profile_mutation(MutationRequest::Off(platform));
+            }
+        }
+    }
+
+    fn auth_overlay_open(&self) -> bool {
+        if self.is_claude_auth_tab() {
+            self.claude_auth_app
+                .as_ref()
+                .is_some_and(|app| app.overlay.is_some())
+        } else if self.is_codex_auth_tab() {
+            self.codex_auth_app
+                .as_ref()
+                .is_some_and(|app| app.overlay.is_some())
+        } else {
+            false
+        }
+    }
+
+    pub(crate) fn profile_confirm_overlay(&self) -> Option<crate::tui::overlay::Overlay> {
+        let platform = match self.pending_profile_confirm.as_ref()? {
+            PendingProfileConfirm::Apply { platform, .. }
+            | PendingProfileConfirm::Off { platform } => *platform,
+        };
+        let label = match platform {
+            Platform::Claude => "Claude",
+            Platform::Codex => "Codex",
+            Platform::Grok => "Grok",
+            other => other.short_name(),
+        };
+        Some(match self.pending_profile_confirm.as_ref()? {
+            PendingProfileConfirm::Apply {
+                name, is_current, ..
+            } => crate::tui::overlay::Overlay::confirm_profile_apply(
+                label,
+                name.clone(),
+                *is_current,
+            ),
+            PendingProfileConfirm::Off { .. } => {
+                crate::tui::overlay::Overlay::confirm_profile_off(label)
+            }
+        })
+    }
+
+    /// Direct writer used by tests and the responsiveness benchmark.
+    /// The key path confirms first and must not call this, because it reads the cursor.
+    #[cfg(test)]
     fn apply_selected(&mut self) -> bool {
         if self.tabs[self.active_tab].variant != TabVariant::Profile {
             return false;
@@ -1072,6 +1216,8 @@ impl App {
         self.start_profile_mutation(MutationRequest::Apply(request))
     }
 
+    /// Direct Off writer used to prove a busy mutation rejects another Off.
+    #[cfg(test)]
     fn off_selected(&mut self) {
         if self.tabs[self.active_tab].variant == TabVariant::Profile {
             self.start_profile_mutation(MutationRequest::Off(self.current_platform()));
@@ -1379,7 +1525,14 @@ impl TuiApp for App {
             return Ok(false);
         }
 
-        if let Some(action) = Self::tab_key_action(key) {
+        if self.pending_profile_confirm.is_some() {
+            return self.handle_profile_confirm_key(key);
+        }
+
+        // 确认框打开时不换页。按键交给当前认证页自己消化。
+        if !self.auth_overlay_open()
+            && let Some(action) = Self::tab_key_action(key)
+        {
             return self.dispatch(action);
         }
 
@@ -1424,6 +1577,9 @@ impl TuiApp for App {
             .as_ref()
             .is_some_and(GrokAuthApp::is_busy)
         {
+            return Ok(false);
+        }
+        if self.pending_profile_confirm.is_some() || self.auth_overlay_open() {
             return Ok(false);
         }
         match mouse.kind {
@@ -1767,6 +1923,13 @@ mod tests {
             );
             stub_usage(&mut app);
             app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE))
+                .unwrap();
+            assert!(
+                app.pending_profile_confirm.is_some(),
+                "Enter opens confirmation before the writer starts"
+            );
+            assert!(!app.profile_tasks.mutation_active());
+            app.handle_key(KeyEvent::new(KeyCode::Char('y'), KeyModifiers::NONE))
                 .unwrap();
             let (platform, target, operation) = started_rx
                 .recv_timeout(std::time::Duration::from_secs(5))
@@ -2184,6 +2347,288 @@ mod tests {
         assert!(app.last_applied.is_none());
     }
 
+    fn plain_key(code: KeyCode) -> KeyEvent {
+        KeyEvent::new(code, KeyModifiers::NONE)
+    }
+
+    fn install_profile_recorder(app: &mut App) -> Arc<std::sync::Mutex<Vec<MutationRequest>>> {
+        use ccr_cli::application::ProfileOffResult;
+        use ccr_cli::application::profile_lifecycle::{ProfileOutcome, ProfileStatus};
+        let recorded = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let writer_log = Arc::clone(&recorded);
+        app.profile_tasks = ProfileTasks::with_backends(
+            app.task_executor.clone(),
+            Arc::new(|platform| Ok(async_snapshot(platform.short_name()))),
+            Arc::new(move |request| {
+                writer_log.lock().unwrap().push(request.clone());
+                match request {
+                    MutationRequest::Apply(request) => {
+                        Ok(MutationOutcome::Applied(ProfileOutcome {
+                            operation_id: request.operation_id,
+                            platform: request.platform.short_name().into(),
+                            profile: request.name,
+                            previous_profile: None,
+                            status: ProfileStatus::Applied,
+                            activation_committed: true,
+                            warnings: vec![],
+                            recovery_paths: vec![],
+                        }))
+                    }
+                    MutationRequest::Off(platform) => Ok(MutationOutcome::Off(ProfileOffResult {
+                        platform,
+                        previous_profile: None,
+                        changed: true,
+                        runtime_mode: "official_auth",
+                        auth_outcome: None,
+                        warnings: vec![],
+                        runtime_dirs: vec![],
+                        removed_auth_paths: vec![],
+                    })),
+                }
+            }),
+        );
+        recorded
+    }
+
+    fn wait_for_recorded(recorded: &std::sync::Mutex<Vec<MutationRequest>>, count: usize) {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        while recorded.lock().unwrap().len() < count {
+            assert!(
+                std::time::Instant::now() < deadline,
+                "profile writer did not record {count} request(s)"
+            );
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+    }
+
+    #[test]
+    fn profile_apply_and_off_confirm_before_the_writer_and_keep_the_opened_target() {
+        let mut app = profile_navigation_app(2, 0, 0);
+        let recorded = install_profile_recorder(&mut app);
+        stub_usage(&mut app);
+
+        for code in [KeyCode::Enter, KeyCode::Char(' ')] {
+            assert!(!app.handle_key(plain_key(code)).unwrap());
+            assert!(!app.profile_tasks.mutation_active());
+            match &app.pending_profile_confirm {
+                Some(PendingProfileConfirm::Apply {
+                    platform,
+                    name,
+                    is_current,
+                }) => {
+                    assert_eq!(*platform, Platform::Claude);
+                    assert_eq!(name, "profile-01");
+                    assert!(*is_current);
+                }
+                other => panic!("apply confirmation missing: {other:?}"),
+            }
+            app.pending_profile_confirm = None;
+        }
+
+        app.selected_index = 1;
+        app.handle_key(plain_key(KeyCode::Enter)).unwrap();
+        app.selected_index = 0;
+        assert!(!app.handle_key(plain_key(KeyCode::Char('y'))).unwrap());
+        wait_for_recorded(&recorded, 1);
+        match &recorded.lock().unwrap()[0] {
+            MutationRequest::Apply(request) => {
+                assert_eq!(request.platform, Platform::Claude);
+                assert_eq!(request.name, "profile-02");
+            }
+            MutationRequest::Off(_) => panic!("apply confirmation scheduled Off"),
+        }
+        pump_until(&mut app, |app| !app.profile_tasks.pending());
+
+        let mut app = profile_navigation_app(2, 0, 0);
+        let recorded = install_profile_recorder(&mut app);
+        stub_usage(&mut app);
+        for code in [
+            KeyCode::Char('n'),
+            KeyCode::Esc,
+            KeyCode::Enter,
+            KeyCode::Char(' '),
+        ] {
+            app.handle_key(plain_key(KeyCode::Enter)).unwrap();
+            assert!(matches!(
+                app.pending_profile_confirm,
+                Some(PendingProfileConfirm::Apply { .. })
+            ));
+            assert!(!app.handle_key(plain_key(code)).unwrap());
+            assert!(app.pending_profile_confirm.is_none());
+            assert!(!app.profile_tasks.mutation_active());
+        }
+        assert!(recorded.lock().unwrap().is_empty());
+
+        app.handle_key(plain_key(KeyCode::Enter)).unwrap();
+        app.handle_key(plain_key(KeyCode::Char('o'))).unwrap();
+        assert!(matches!(
+            app.pending_profile_confirm,
+            Some(PendingProfileConfirm::Apply { ref name, .. }) if name == "profile-01"
+        ));
+        assert!(recorded.lock().unwrap().is_empty());
+
+        app.pending_profile_confirm = None;
+        app.handle_key(plain_key(KeyCode::Char('o'))).unwrap();
+        assert!(matches!(
+            app.pending_profile_confirm,
+            Some(PendingProfileConfirm::Off {
+                platform: Platform::Claude
+            })
+        ));
+        assert!(!app.profile_tasks.mutation_active());
+        app.handle_key(plain_key(KeyCode::Char('o'))).unwrap();
+        assert!(app.pending_profile_confirm.is_none());
+        assert!(recorded.lock().unwrap().is_empty());
+
+        app.handle_key(plain_key(KeyCode::Char('o'))).unwrap();
+        app.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+        wait_for_recorded(&recorded, 1);
+        assert!(matches!(
+            recorded.lock().unwrap().last(),
+            Some(MutationRequest::Off(Platform::Claude))
+        ));
+    }
+
+    #[test]
+    fn profile_confirm_swallows_navigation_and_esc_does_not_quit() {
+        let mut app = app_with_profile_tabs(vec![
+            profile_tab(
+                Platform::Claude,
+                "Claude Profile",
+                &["alpha", "beta"],
+                Some("alpha"),
+            ),
+            profile_tab(Platform::Codex, "Codex Profile", &["work"], Some("work")),
+        ]);
+        let _recorded = install_profile_recorder(&mut app);
+        stub_usage(&mut app);
+        app.list_area.set(Some(Rect::new(0, 5, 40, 12)));
+        app.handle_key(plain_key(KeyCode::Enter)).unwrap();
+        let opened = app.pending_profile_confirm.clone();
+
+        for code in [
+            KeyCode::Down,
+            KeyCode::Char('j'),
+            KeyCode::Up,
+            KeyCode::Char('k'),
+            KeyCode::Char('q'),
+            KeyCode::Tab,
+            KeyCode::Char('x'),
+            KeyCode::Char('r'),
+        ] {
+            assert!(!app.handle_key(plain_key(code)).unwrap());
+            assert_eq!(app.active_tab, 0);
+            assert_eq!(app.selected_index, 0);
+            assert_eq!(app.pending_profile_confirm, opened);
+            assert!(!app.profile_tasks.mutation_active());
+        }
+        app.handle_mouse(MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Left),
+            column: 2,
+            row: 6,
+            modifiers: KeyModifiers::NONE,
+        })
+        .unwrap();
+        app.handle_mouse(MouseEvent {
+            kind: MouseEventKind::ScrollDown,
+            column: 2,
+            row: 6,
+            modifiers: KeyModifiers::NONE,
+        })
+        .unwrap();
+        assert_eq!(app.selected_index, 0);
+        assert_eq!(app.active_tab, 0);
+        assert_eq!(app.pending_profile_confirm, opened);
+
+        assert!(!app.handle_key(plain_key(KeyCode::Esc)).unwrap());
+        assert!(app.pending_profile_confirm.is_none());
+        assert!(app.handle_key(plain_key(KeyCode::Esc)).unwrap());
+    }
+
+    #[test]
+    fn profile_confirm_stays_closed_for_empty_list_and_busy_writer() {
+        let mut empty = profile_navigation_app(0, 0, 0);
+        let _recorded = install_profile_recorder(&mut empty);
+        empty.handle_key(plain_key(KeyCode::Enter)).unwrap();
+        assert!(empty.pending_profile_confirm.is_none());
+        assert!(!empty.profile_tasks.mutation_active());
+        assert_eq!(
+            empty.toasts.active().map(|toast| toast.kind),
+            Some(crate::tui::toast::ToastKind::Warning)
+        );
+
+        let (started_tx, started_rx) = std::sync::mpsc::channel();
+        let (release_tx, release_rx) = std::sync::mpsc::channel::<()>();
+        let release_rx = std::sync::Mutex::new(release_rx);
+        let mut busy = profile_navigation_app(1, 0, 0);
+        busy.profile_tasks = ProfileTasks::with_backends(
+            busy.task_executor.clone(),
+            Arc::new(|_| Ok(async_snapshot("profile-01"))),
+            Arc::new(move |request| {
+                started_tx.send(()).unwrap();
+                let _ = release_rx
+                    .lock()
+                    .unwrap()
+                    .recv_timeout(std::time::Duration::from_secs(5));
+                let MutationRequest::Apply(request) = request else {
+                    panic!("busy fixture only applies");
+                };
+                Ok(MutationOutcome::Applied(
+                    ccr_cli::application::profile_lifecycle::ProfileOutcome {
+                        operation_id: request.operation_id,
+                        platform: request.platform.short_name().into(),
+                        profile: request.name,
+                        previous_profile: None,
+                        status: ccr_cli::application::profile_lifecycle::ProfileStatus::Applied,
+                        activation_committed: true,
+                        warnings: vec![],
+                        recovery_paths: vec![],
+                    },
+                ))
+            }),
+        );
+        assert!(busy.apply_selected());
+        started_rx
+            .recv_timeout(std::time::Duration::from_secs(5))
+            .unwrap();
+        busy.handle_key(plain_key(KeyCode::Enter)).unwrap();
+        busy.handle_key(plain_key(KeyCode::Char('o'))).unwrap();
+        assert!(busy.pending_profile_confirm.is_none());
+        drop(release_tx);
+        pump_until(&mut busy, |app| !app.profile_tasks.mutation_active());
+    }
+
+    #[test]
+    fn current_profile_confirm_uses_reapply_copy() {
+        use crate::tui::overlay::ConfirmKind;
+        let previous = i18n::active_language();
+        i18n::set_language(TuiLanguage::English);
+        let mut app = profile_navigation_app(1, 0, 0);
+        app.handle_key(plain_key(KeyCode::Enter)).unwrap();
+        match app.profile_confirm_overlay() {
+            Some(crate::tui::overlay::Overlay::ConfirmGate {
+                title,
+                message,
+                kind,
+                ..
+            }) => {
+                assert_eq!(kind, ConfirmKind::Apply);
+                assert!(title.contains("re-apply"));
+                assert!(message.join("\n").contains("profile-01"));
+                assert!(!title.contains("deletion") && !message.join("\n").contains("删除"));
+            }
+            other => panic!("re-apply overlay missing: {other:?}"),
+        }
+        i18n::set_language(TuiLanguage::SimplifiedChinese);
+        match app.profile_confirm_overlay() {
+            Some(crate::tui::overlay::Overlay::ConfirmGate { title, .. }) => {
+                assert!(title.contains("重新应用"));
+            }
+            other => panic!("chinese re-apply overlay missing: {other:?}"),
+        }
+        i18n::set_language(previous);
+    }
+
     fn profile_navigation_app(count: usize, selected_index: usize, current_page: usize) -> App {
         let profiles = (1..=count)
             .map(|index| ProfileItem {
@@ -2234,6 +2679,7 @@ mod tests {
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
             profile_details_expanded: false,
+            pending_profile_confirm: None,
             profile_tasks: ProfileTasks::default(),
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
@@ -2330,6 +2776,7 @@ mod tests {
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
             profile_details_expanded: false,
+            pending_profile_confirm: None,
             profile_tasks: ProfileTasks::default(),
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
@@ -2394,6 +2841,7 @@ mod tests {
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
             profile_details_expanded: false,
+            pending_profile_confirm: None,
             profile_tasks: ProfileTasks::default(),
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
@@ -2639,6 +3087,7 @@ mod tests {
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
             profile_details_expanded: false,
+            pending_profile_confirm: None,
             profile_tasks: ProfileTasks::default(),
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         };
@@ -2785,6 +3234,7 @@ mod tests {
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
             profile_details_expanded: false,
+            pending_profile_confirm: None,
             profile_tasks: ProfileTasks::default(),
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         };
@@ -2858,6 +3308,7 @@ mod tests {
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
             profile_details_expanded: false,
+            pending_profile_confirm: None,
             profile_tasks: ProfileTasks::default(),
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
@@ -2896,6 +3347,7 @@ mod tests {
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
             profile_details_expanded: false,
+            pending_profile_confirm: None,
             profile_tasks: ProfileTasks::default(),
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
@@ -2968,6 +3420,7 @@ mod tests {
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
             profile_details_expanded: false,
+            pending_profile_confirm: None,
             profile_tasks: ProfileTasks::default(),
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }

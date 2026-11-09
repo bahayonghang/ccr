@@ -10,6 +10,19 @@ use ratatui::{
     widgets::{Block, Borders, Clear, Paragraph, Wrap},
 };
 
+/// Which guarded action a confirmation gate will run.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConfirmKind {
+    /// Apply the frozen profile.
+    Apply,
+    /// Switch the frozen official account.
+    Switch,
+    /// Turn profile mode off for the frozen platform.
+    ProfileOff,
+    /// Log out the official session.
+    AuthOff,
+}
+
 /// Overlay variant for modal dialogs
 #[derive(Debug, Clone)]
 pub enum Overlay {
@@ -44,6 +57,18 @@ pub enum Overlay {
         /// Input constraint hint
         hint: String,
     },
+    /// Default-cancel gate for profile apply, account switch, deactivate, and logout.
+    /// `y` reads `kind`; this variant must not share the delete handler.
+    ConfirmGate {
+        /// Dialog title
+        title: String,
+        /// Target name, when the action has one
+        subject: String,
+        /// Description lines
+        message: Vec<String>,
+        /// Action committed by `y`
+        kind: ConfirmKind,
+    },
     /// Restart-daemon confirmation dialog
     ConfirmRestartDaemon {
         /// Dialog title
@@ -65,6 +90,99 @@ impl Overlay {
                 crate::tui_text!("This action cannot be undone!", "此操作不可撤销！").to_string(),
             ],
             subject,
+        }
+    }
+
+    /// Profile apply. Re-applying the current profile still asks, because it rewrites runtime files.
+    pub fn confirm_profile_apply(
+        platform: &str,
+        name: impl Into<String>,
+        is_current: bool,
+    ) -> Self {
+        let name = name.into();
+        if is_current {
+            Self::ConfirmGate {
+                title: crate::tui_text!("Confirm re-apply", "确认重新应用").to_string(),
+                message: vec![crate::tui_format!(
+                    "{name} is already current. Re-applying rewrites the runtime files.",
+                    "{name} 已是当前配置。重新应用会再次写入运行时文件。"
+                )],
+                subject: name,
+                kind: ConfirmKind::Apply,
+            }
+        } else {
+            Self::ConfirmGate {
+                title: crate::tui_text!("Confirm profile switch", "确认切换配置").to_string(),
+                message: vec![
+                    crate::tui_format!("Target: {name}", "目标：{name}"),
+                    crate::tui_format!(
+                        "Apply this {platform} profile and stay in the TUI.",
+                        "将应用此 {platform} 配置，并留在 TUI。"
+                    ),
+                ],
+                subject: name,
+                kind: ConfirmKind::Apply,
+            }
+        }
+    }
+
+    /// Official account switch. Profile mode is turned off only after `y`.
+    pub fn confirm_account_switch(
+        platform: &str,
+        name: impl Into<String>,
+        running_processes: usize,
+    ) -> Self {
+        let name = name.into();
+        let mut message = vec![
+            crate::tui_format!("Account: {name}", "账号：{name}"),
+            crate::tui_format!(
+                "Switch the official {platform} session to this account. Profile mode turns off first.",
+                "将官方 {platform} 会话切换到此账号。会先关闭配置模式。"
+            ),
+        ];
+        if running_processes > 0 {
+            message.push(crate::tui_format!(
+                "{running_processes} {platform} processes are running.",
+                "检测到 {running_processes} 个 {platform} 进程正在运行。"
+            ));
+        }
+        Self::ConfirmGate {
+            title: crate::tui_text!("Confirm account switch", "确认切换账号").to_string(),
+            subject: name,
+            message,
+            kind: ConfirmKind::Switch,
+        }
+    }
+
+    /// Profile deactivate. Already-off still asks; the worker reports no change.
+    pub fn confirm_profile_off(platform: &str) -> Self {
+        Self::ConfirmGate {
+            title: crate::tui_text!("Confirm deactivate", "确认解绑").to_string(),
+            subject: platform.to_string(),
+            message: vec![
+                crate::tui_format!(
+                    "Turn off {platform} profile mode and clear CCR login leftovers.",
+                    "关闭 {platform} 配置模式，并清理 CCR 留下的登录现场。"
+                ),
+                crate::tui_text!("Press o again to cancel.", "再按 o 也会取消。").to_string(),
+            ],
+            kind: ConfirmKind::ProfileOff,
+        }
+    }
+
+    /// Official session logout. Does not read the real credential path before `y`.
+    pub fn confirm_auth_off(platform: &str) -> Self {
+        Self::ConfirmGate {
+            title: crate::tui_text!("Confirm logout", "确认退出登录").to_string(),
+            subject: platform.to_string(),
+            message: vec![
+                crate::tui_format!(
+                    "Remove the current official {platform} session.",
+                    "移除当前官方 {platform} 会话。"
+                ),
+                crate::tui_text!("Press o again to cancel.", "再按 o 也会取消。").to_string(),
+            ],
+            kind: ConfirmKind::AuthOff,
         }
     }
 
@@ -249,6 +367,49 @@ pub fn render_overlay(f: &mut Frame, overlay: &Overlay) {
                 area,
             );
         }
+        Overlay::ConfirmGate {
+            title,
+            message,
+            kind,
+            ..
+        } => {
+            let area = centered_rect(56, 34, full_area);
+            f.render_widget(Clear, area);
+
+            let mut lines = vec![
+                Line::from(""),
+                Line::from(Span::styled(
+                    title.as_str(),
+                    Style::default()
+                        .fg(theme::warning())
+                        .add_modifier(Modifier::BOLD),
+                )),
+                Line::from(""),
+            ];
+            for msg in message {
+                lines.push(Line::from(msg.as_str()));
+            }
+            lines.push(Line::from(""));
+            let hint = match kind {
+                ConfirmKind::ProfileOff | ConfirmKind::AuthOff => crate::tui_text!(
+                    "Press y to confirm | o, n, or Esc to cancel",
+                    "按 y 确认 | 按 o、n 或 Esc 取消"
+                ),
+                ConfirmKind::Apply | ConfirmKind::Switch => crate::tui_text!(
+                    "Press y to confirm | Enter, n, or Esc to cancel",
+                    "按 y 确认 | 按 Enter、n 或 Esc 取消"
+                ),
+            };
+            lines.push(Line::from(Span::styled(
+                hint,
+                Style::default().fg(theme::muted()),
+            )));
+
+            f.render_widget(
+                style_dialog(Paragraph::new(lines), title, theme::warning()),
+                area,
+            );
+        }
         Overlay::Input {
             title,
             prompt,
@@ -367,4 +528,92 @@ pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
             Constraint::Percentage((100 - percent_x) / 2),
         ])
         .split(popup_layout[1])[1]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ccr_cli::managers::TuiLanguage;
+    use ratatui::Terminal;
+    use ratatui::backend::TestBackend;
+
+    fn rendered(overlay: &Overlay) -> String {
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).expect("test terminal");
+        terminal
+            .draw(|frame| render_overlay(frame, overlay))
+            .expect("draw overlay");
+        let buffer = terminal.backend().buffer();
+        (0..buffer.area.height)
+            .map(|y| {
+                let mut line = String::new();
+                let mut x = 0;
+                while x < buffer.area.width {
+                    let Some(cell) = buffer.cell((x, y)) else {
+                        break;
+                    };
+                    let symbol = cell.symbol();
+                    line.push_str(symbol);
+                    let step = unicode_width::UnicodeWidthStr::width(symbol).max(1) as u16;
+                    x += step;
+                }
+                line.trim_end().to_string()
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    fn has_glyph_color(overlay: &Overlay, color: ratatui::style::Color) -> bool {
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).expect("test terminal");
+        terminal
+            .draw(|frame| render_overlay(frame, overlay))
+            .expect("draw overlay");
+        terminal
+            .backend()
+            .buffer()
+            .content
+            .iter()
+            .any(|cell| cell.fg == color && !cell.symbol().trim().is_empty())
+    }
+
+    #[test]
+    fn delete_confirm_keeps_deletion_copy() {
+        let previous = crate::tui::i18n::active_language();
+        crate::tui::i18n::set_language(TuiLanguage::SimplifiedChinese);
+        let overlay = Overlay::confirm_delete("work");
+        let text = rendered(&overlay);
+        assert!(text.contains("确认删除"), "{text}");
+        assert!(text.contains("work"), "{text}");
+        assert!(has_glyph_color(&overlay, theme::error()));
+        assert!(!has_glyph_color(&overlay, theme::warning()));
+        crate::tui::i18n::set_language(previous);
+    }
+
+    #[test]
+    fn profile_apply_gate_names_the_target_and_is_not_a_delete_dialog() {
+        let previous = crate::tui::i18n::active_language();
+        crate::tui::i18n::set_language(TuiLanguage::English);
+        let text = rendered(&Overlay::confirm_profile_apply(
+            "Claude",
+            "anyrouter3",
+            false,
+        ));
+        assert!(text.contains("anyrouter3"), "{text}");
+        assert!(text.contains("Confirm profile switch"), "{text}");
+        assert!(!text.contains("deletion"), "{text}");
+        assert!(!text.contains("删除"), "{text}");
+        assert!(has_glyph_color(
+            &Overlay::confirm_profile_apply("Claude", "anyrouter3", false),
+            theme::warning()
+        ));
+        crate::tui::i18n::set_language(TuiLanguage::SimplifiedChinese);
+        let chinese = rendered(&Overlay::confirm_profile_apply(
+            "Claude",
+            "anyrouter3",
+            true,
+        ));
+        assert!(chinese.contains("确认重新应用"), "{chinese}");
+        assert!(chinese.contains("anyrouter3"), "{chinese}");
+        assert!(!chinese.contains("删除"), "{chinese}");
+        crate::tui::i18n::set_language(previous);
+    }
 }

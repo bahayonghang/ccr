@@ -26,8 +26,14 @@ ccr grok auth
 | `Tab` | switch between available tabs |
 | `←` / `→` / `h` / `l` | paginate |
 | `↑` / `↓` / `j` / `k` | move selection |
-| `Enter` / `Space` | apply the selected profile and stay in the TUI (result shown in the Focus panel) |
-| `q` / `Esc` | quit |
+| `Enter` / `Space` | open apply confirmation. `y` writes and stays in the TUI. `Enter`, `Space`, `n`, or `Esc` cancels |
+| `o` | open deactivate confirmation. `y` turns profile mode off. `o`, `n`, or `Esc` cancels |
+| `y` | confirm the open dialog |
+| `q` / `Esc` | quit. While a confirmation is open, `Esc` only cancels it; the next `Esc` quits |
+
+Profile `Enter` / `Space` and `o` always confirm first, including re-applying the current profile. While that dialog is open, arrows, `Tab`, `q`, and the mouse do not change selection, tab, or quit.
+
+On Claude Auth and Codex Auth, `Enter` opens a confirmation only when the key would actually switch accounts. `o` opens logout confirmation. No switchable account, an already current account, a Codex virtual login, and a read-only registry still show the existing notice and do not open a switch dialog. After `y`, a successful Claude switch still leaves the TUI. A successful Codex switch still leaves the TUI, or opens the existing daemon-restart confirmation.
 
 The Grok Auth tab uses account actions: `s` saves, `Enter` opens switch confirmation, `d` deletes a saved entry, `o` logs out all runtime credentials, and `r` reloads. Confirmations default to cancel; press `y` to confirm. Saving is allowed while Grok runs. End the current Grok session yourself before switching, then use a new session. Navigation and exit wait for a pending operation to finish; language changes and resize remain available. See [`grok`](./grok.md).
 
@@ -50,7 +56,7 @@ The Grok Auth tab uses account actions: `s` saves, `Enter` opens switch confirma
 ccr
 # Tab to change platform
 # ↑↓ to select a profile
-# Enter/Space to apply and stay (press q or Esc to quit)
+# Enter/Space opens confirmation; y applies and stays (press q or Esc to quit)
 
 ccr grok auth
 # s saves the current account copy; Enter opens switch confirmation

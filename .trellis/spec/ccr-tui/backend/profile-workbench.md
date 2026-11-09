@@ -17,6 +17,7 @@ Changes to Codex, Claude or Grok Profile loading, mutations, table geometry, run
 
 - Construct the configured tab shell without synchronously loading every platform. Start the active Profile read first; initialize other Profile tabs on first visit. Selection/rendering use cached data only. Explicit reload and completed mutations refresh the affected platform.
 - Permit one mutation at a time, with the original platform/name/operation ID captured before scheduling. Execute the entire existing synchronous apply/off lifecycle in a blocking worker. Preserve committed warnings, recovery outcomes, backup, CAS and the thread-local journal.
+- Profile Apply (`Enter` / `Space`) and Profile Off (`o`) open a default-cancel confirmation before any writer starts. Schedule `MutationRequest` only after `y`. Freeze the Apply platform and profile name when the dialog opens; `y` must not read the cursor again. While that confirmation is open, repeated keys must not start another writer. Account switch and official logout stay with the Auth apps.
 - Read generations may discard obsolete snapshots; mutation outcomes are always consumed. Repeated action keys must not create another write. Profile browsing remains available while writing; entering Auth tabs is gated during a Profile mutation.
 - q, Esc and Ctrl+C defer exit until the mutation completes. `ready_to_exit` is separate from the redraw return value of `on_tick`. Drain completion channels after every event, including Ctrl+T, resize and ignored mouse motion. Pending work caps event polling at 50 ms; normal timer cadence remains 250 ms even under continuous input. Idle ticks do not force redraws.
 - Refresh initialized Auth runtime summaries from the new snapshot without resetting the selected account. A failed runtime refresh cannot leave a cached marker claiming a known effective activation. Grok uses its typed activation inspection, preserving drift and unsafe states.
@@ -35,6 +36,7 @@ Changes to Codex, Claude or Grok Profile loading, mutations, table geometry, run
 | Refresh races a mutation | Discard old read; consume mutation; refresh affected platform |
 | Reload fails with existing list | Keep browsing data and selection; show failure without claiming fresh current state |
 | Repeated Apply/Off | One writer and one operation identity |
+| Apply/Off key | Confirmation opens first; no writer until `y`; Apply keeps the name captured at open |
 | Quit while writing | Wait; consume final outcome; exit without another key |
 | Input continues without idle ticks | Completion and elapsed-time timers still advance |
 | Missing history / usage | Explicit unavailable or empty state, never fabricated zero timestamps |
@@ -57,6 +59,6 @@ Changes to Codex, Claude or Grok Profile loading, mutations, table geometry, run
 
 ## 7. Wrong vs Correct
 
-Wrong: synchronously load every platform on startup, invoke the lifecycle from the key handler, and check its channel only on idle ticks.
+Wrong: synchronously load every platform on startup, invoke the lifecycle from the Apply or Off key before confirmation, and check its channel only on idle ticks.
 
 Correct: start a bounded read for the active tab, schedule a complete captured mutation, pump results after every event, and render typed cached state with an independent deferred-exit check.

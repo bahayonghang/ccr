@@ -6,6 +6,7 @@ use super::claude_auth;
 use super::codex_auth;
 use super::footer::{ShortcutHint, shortcut_line};
 use super::grok_auth;
+use super::overlay::render_overlay;
 use super::theme;
 use super::toast::ToastKind;
 use super::usage::app::UsageLoadState;
@@ -147,6 +148,10 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
         render_profile_workspace(f, app, content_area, mode);
         render_footer(f, app, chunks[2]);
+    }
+
+    if let Some(overlay) = app.profile_confirm_overlay() {
+        render_overlay(f, &overlay);
     }
 }
 
@@ -2062,6 +2067,13 @@ fn footer_text_for_width(app: &App, width: u16) -> String {
 }
 
 fn footer_hints_for_width(app: &App, width: u16) -> Vec<ShortcutHint<'static>> {
+    if app.pending_profile_confirm.is_some() {
+        return vec![
+            ShortcutHint::new("y", crate::tui_text!("confirm", "确认")),
+            ShortcutHint::new("n/Esc", crate::tui_text!("cancel", "取消")),
+        ];
+    }
+
     let is_profile = matches!(app.current_tab().variant, TabVariant::Profile);
 
     if width < 90 {
@@ -2224,6 +2236,7 @@ mod tests {
             detail_area: Cell::new(None),
             profile_detail_scroll: 0,
             profile_details_expanded: false,
+            pending_profile_confirm: None,
             task_executor: crate::tui::runtime::AsyncTaskExecutor::from_current_or_test(),
             profile_tasks: Default::default(),
         }

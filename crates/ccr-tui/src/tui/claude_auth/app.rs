@@ -2,13 +2,13 @@
 // 管理 Claude 官方订阅账号快照的保存 / 切换 / 删除
 
 use crate::tui::CompletedAction;
-use crate::tui::overlay::Overlay;
+use crate::tui::overlay::{ConfirmKind, Overlay};
 use crate::tui::pagination::{
     DEFAULT_PAGE_SIZE, index_in_page, page_for_index, page_slice, total_pages,
 };
 use crate::tui::runtime::TuiApp;
 use crate::tui::toast::{Toast, ToastManager};
-use ccr_cli::application::{auth_off_for_platform, profile_off_for_platform};
+use ccr_cli::application::{AuthOffResult, auth_off_for_platform, profile_off_for_platform};
 use ccr_cli::models::{
     ClaudeAuthActionOutcome, ClaudeAuthRegistry, ClaudeAuthSourceObservation,
     ClaudeCurrentAuthInfo, ClaudeLoginState, ClaudeRuntimeMode, ClaudeRuntimeSummary, Platform,
@@ -22,6 +22,38 @@ use std::cell::Cell;
 use std::time::{Duration, Instant};
 
 const AUTH_SNAPSHOT_CACHE_TTL: Duration = Duration::from_secs(5);
+
+#[cfg(test)]
+thread_local! {
+    static CLAUDE_PROFILE_OFF_STUB: Cell<bool> = const { Cell::new(false) };
+    static CLAUDE_PROFILE_OFF_CALLS: Cell<u32> = const { Cell::new(0) };
+    static CLAUDE_AUTH_OFF_STUB: Cell<bool> = const { Cell::new(false) };
+    static CLAUDE_AUTH_OFF_CALLS: Cell<u32> = const { Cell::new(0) };
+}
+
+fn claude_profile_off() -> Result<()> {
+    #[cfg(test)]
+    if CLAUDE_PROFILE_OFF_STUB.with(Cell::get) {
+        CLAUDE_PROFILE_OFF_CALLS.with(|calls| calls.set(calls.get() + 1));
+        return Ok(());
+    }
+    profile_off_for_platform(Platform::Claude).map(|_| ())
+}
+
+fn claude_auth_off() -> Result<AuthOffResult> {
+    #[cfg(test)]
+    if CLAUDE_AUTH_OFF_STUB.with(Cell::get) {
+        CLAUDE_AUTH_OFF_CALLS.with(|calls| calls.set(calls.get() + 1));
+        return Ok(AuthOffResult {
+            platform: Platform::Claude,
+            changed: true,
+            path: ccr_cli::application::AuthOffPath::File,
+            profile_pointer: None,
+            warnings: Vec::new(),
+        });
+    }
+    auth_off_for_platform(Platform::Claude)
+}
 
 pub type ClaudeAuthActionRecord = (CompletedAction, String, bool, Option<String>, Vec<String>);
 
@@ -220,8 +252,8 @@ impl ClaudeAuthApp {
             KeyCode::Down | KeyCode::Char('j') => self.move_down(),
             KeyCode::PageUp | KeyCode::Char('h') => self.prev_page(),
             KeyCode::PageDown | KeyCode::Char('l') => self.next_page(),
-            KeyCode::Enter if self.switch_selected_account()? => {
-                return Ok(true);
+            KeyCode::Enter => {
+                self.begin_switch_confirm()?;
             }
             KeyCode::Char('s') => {
                 if self.current_info.is_some() {
@@ -244,29 +276,7 @@ impl ClaudeAuthApp {
                 }
             }
             KeyCode::Char('o') | KeyCode::Char('O') => {
-                match auth_off_for_platform(Platform::Claude) {
-                    Ok(result) => {
-                        if result.changed {
-                            self.toasts.push(Toast::success(crate::tui_text!(
-                                "Logged out of the official Claude session",
-                                "已登出 Claude 官方会话"
-                            )));
-                        } else {
-                            self.toasts.push(Toast::info(crate::tui_text!(
-                                "No official Claude session file to remove",
-                                "没有可删除的 Claude 官方会话文件"
-                            )));
-                        }
-                        self.reload_accounts()?;
-                    }
-                    Err(err) => {
-                        self.toasts.push(Toast::error(crate::tui_format!(
-                            "Claude auth off failed: {}",
-                            "Claude auth off 失败：{}",
-                            err
-                        )));
-                    }
-                }
+                self.overlay = Some(Overlay::confirm_auth_off("Claude"));
             }
             KeyCode::Char('r') => {
                 self.reload_accounts()?;
@@ -281,12 +291,79 @@ impl ClaudeAuthApp {
     }
 
     fn handle_overlay_key(&mut self, key: KeyEvent) -> Result<bool> {
-        let is_confirm = matches!(self.overlay, Some(Overlay::Confirm { .. }));
-        if is_confirm {
-            self.handle_confirm_key(key)
-        } else {
-            self.handle_input_key(key)
+        match &self.overlay {
+            Some(Overlay::Confirm { .. }) => self.handle_confirm_key(key),
+            Some(Overlay::ConfirmGate { .. }) => self.handle_gate_key(key),
+            _ => self.handle_input_key(key),
         }
+    }
+
+    fn handle_gate_key(&mut self, key: KeyEvent) -> Result<bool> {
+        let kind = match &self.overlay {
+            Some(Overlay::ConfirmGate { kind, .. }) => *kind,
+            _ => return Ok(false),
+        };
+        let cancel = match key.code {
+            KeyCode::Char('y') | KeyCode::Char('Y') => {
+                self.overlay = None;
+                return match kind {
+                    ConfirmKind::Switch => self.switch_selected_account(),
+                    ConfirmKind::AuthOff => {
+                        self.perform_auth_off_with(claude_auth_off)?;
+                        Ok(false)
+                    }
+                    ConfirmKind::Apply | ConfirmKind::ProfileOff => Ok(false),
+                };
+            }
+            KeyCode::Char('n')
+            | KeyCode::Char('N')
+            | KeyCode::Esc
+            | KeyCode::Enter
+            | KeyCode::Char(' ') => true,
+            KeyCode::Char('o') | KeyCode::Char('O') => kind == ConfirmKind::AuthOff,
+            _ => false,
+        };
+        if cancel {
+            self.overlay = None;
+            self.toasts
+                .push(Toast::info(crate::tui_text!("Cancelled", "已取消")));
+        }
+        Ok(false)
+    }
+
+    fn perform_auth_off_with(&mut self, off: impl FnOnce() -> Result<AuthOffResult>) -> Result<()> {
+        match off() {
+            Ok(result) => {
+                if result.changed {
+                    self.toasts.push(Toast::success(crate::tui_text!(
+                        "Logged out of the official Claude session",
+                        "已登出 Claude 官方会话"
+                    )));
+                } else {
+                    self.toasts.push(Toast::info(crate::tui_text!(
+                        "No official Claude session file to remove",
+                        "没有可删除的 Claude 官方会话文件"
+                    )));
+                }
+                self.reload_accounts()?;
+            }
+            Err(err) => {
+                self.toasts.push(Toast::error(crate::tui_format!(
+                    "Claude auth off failed: {}",
+                    "Claude auth off 失败：{}",
+                    err
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    fn begin_switch_confirm(&mut self) -> Result<()> {
+        let Some(account) = self.switch_ready()? else {
+            return Ok(());
+        };
+        self.overlay = Some(Overlay::confirm_account_switch("Claude", account.name, 0));
+        Ok(())
     }
 
     fn handle_confirm_key(&mut self, key: KeyEvent) -> Result<bool> {
@@ -436,13 +513,14 @@ impl ClaudeAuthApp {
         }
     }
 
-    fn switch_selected_account(&mut self) -> Result<bool> {
+    /// Returns the account when Enter should open a confirmation. Skip cases toast and return None.
+    fn switch_ready(&mut self) -> Result<Option<ClaudeAuthItem>> {
         let Some(account) = self.selected_account().cloned() else {
             self.toasts.push(Toast::warning(crate::tui_text!(
                 "No saved account is available to switch to",
                 "没有可切换的已保存账号"
             )));
-            return Ok(false);
+            return Ok(None);
         };
 
         if account.is_current {
@@ -450,7 +528,7 @@ impl ClaudeAuthApp {
                 "This official account is already active",
                 "已经是当前生效的官方账号"
             )));
-            return Ok(false);
+            return Ok(None);
         }
 
         let api_key_override_active = self
@@ -474,10 +552,18 @@ impl ClaudeAuthApp {
                 .to_string(),
             };
             self.toasts.push(Toast::info(message));
-            return Ok(false);
+            return Ok(None);
         }
 
-        if let Err(err) = profile_off_for_platform(Platform::Claude) {
+        Ok(Some(account))
+    }
+
+    fn switch_selected_account(&mut self) -> Result<bool> {
+        let Some(account) = self.switch_ready()? else {
+            return Ok(false);
+        };
+
+        if let Err(err) = claude_profile_off() {
             self.toasts.push(Toast::error(crate::tui_format!(
                 "Exit profile failed: {}",
                 "退出 Profile 失败：{}",
@@ -622,6 +708,8 @@ impl TuiApp for ClaudeAuthApp {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used)]
+
     use super::*;
     use ccr_cli::models::{
         ClaudeAuthConfidence, ClaudeAuthEvidence, ClaudeAuthOwnership, ClaudeAuthSourceKind,
@@ -794,5 +882,175 @@ mod tests {
             format_action_warnings(&outcome),
             vec!["diagnosis failed safely"]
         );
+    }
+
+    use crate::tui::runtime::TuiApp;
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    use std::cell::Cell;
+
+    fn plain_key(code: KeyCode) -> KeyEvent {
+        KeyEvent::new(code, KeyModifiers::NONE)
+    }
+
+    struct ClaudeStub {
+        profile_stub: bool,
+        auth_stub: bool,
+    }
+
+    impl ClaudeStub {
+        fn profile_off() -> Self {
+            let guard = Self {
+                profile_stub: CLAUDE_PROFILE_OFF_STUB.with(Cell::get),
+                auth_stub: CLAUDE_AUTH_OFF_STUB.with(Cell::get),
+            };
+            CLAUDE_PROFILE_OFF_STUB.with(|cell| cell.set(true));
+            CLAUDE_PROFILE_OFF_CALLS.with(|cell| cell.set(0));
+            guard
+        }
+
+        fn auth_off() -> Self {
+            let guard = Self {
+                profile_stub: CLAUDE_PROFILE_OFF_STUB.with(Cell::get),
+                auth_stub: CLAUDE_AUTH_OFF_STUB.with(Cell::get),
+            };
+            CLAUDE_AUTH_OFF_STUB.with(|cell| cell.set(true));
+            CLAUDE_AUTH_OFF_CALLS.with(|cell| cell.set(0));
+            guard
+        }
+
+        fn profile_calls(&self) -> u32 {
+            CLAUDE_PROFILE_OFF_CALLS.with(Cell::get)
+        }
+
+        fn auth_calls(&self) -> u32 {
+            CLAUDE_AUTH_OFF_CALLS.with(Cell::get)
+        }
+    }
+
+    impl Drop for ClaudeStub {
+        fn drop(&mut self) {
+            CLAUDE_PROFILE_OFF_STUB.with(|cell| cell.set(self.profile_stub));
+            CLAUDE_AUTH_OFF_STUB.with(|cell| cell.set(self.auth_stub));
+        }
+    }
+
+    fn isolated_claude_app(account: ClaudeAuthItem) -> (tempfile::TempDir, ClaudeAuthApp) {
+        let dir = tempfile::tempdir().expect("claude auth fixture");
+        let service = ClaudeAuthService::from_parts(
+            dir.path().join("ccr"),
+            dir.path().join("claude"),
+            dir.path().join("claude.json"),
+        )
+        .with_process_environment(false);
+        let mut app = navigation_app(vec![account], 0, 0);
+        app.service = service;
+        (dir, app)
+    }
+
+    #[test]
+    fn enter_opens_switch_confirmation_and_cancel_does_not_quit() {
+        let mut app = navigation_app(vec![navigation_account(1)], 0, 0);
+        assert!(!app.handle_key(plain_key(KeyCode::Enter)).unwrap());
+        assert!(!app.should_quit);
+        assert!(app.last_action.is_none());
+        match &app.overlay {
+            Some(Overlay::ConfirmGate {
+                kind: ConfirmKind::Switch,
+                subject,
+                ..
+            }) => assert_eq!(subject, "account-01"),
+            other => panic!("switch confirmation missing: {other:?}"),
+        }
+        app.handle_key(plain_key(KeyCode::Char('o'))).unwrap();
+        assert!(matches!(
+            app.overlay,
+            Some(Overlay::ConfirmGate {
+                kind: ConfirmKind::Switch,
+                ..
+            })
+        ));
+
+        for code in [
+            KeyCode::Char('n'),
+            KeyCode::Esc,
+            KeyCode::Enter,
+            KeyCode::Char(' '),
+        ] {
+            let mut app = navigation_app(vec![navigation_account(1)], 0, 0);
+            app.handle_key(plain_key(KeyCode::Enter)).unwrap();
+            assert!(!app.handle_key(plain_key(code)).unwrap());
+            assert!(app.overlay.is_none());
+            assert!(!app.should_quit);
+        }
+    }
+
+    #[test]
+    fn current_and_logged_in_accounts_do_not_open_switch_confirmation() {
+        let mut current = navigation_account(1);
+        current.is_current = true;
+        let mut app = navigation_app(vec![current], 0, 0);
+        app.handle_key(plain_key(KeyCode::Enter)).unwrap();
+        assert!(app.overlay.is_none());
+
+        let mut logged_in = navigation_account(1);
+        logged_in.is_logged_in = true;
+        let mut app = navigation_app(vec![logged_in], 0, 0);
+        app.handle_key(plain_key(KeyCode::Enter)).unwrap();
+        assert!(app.overlay.is_none());
+    }
+
+    #[test]
+    fn switch_confirmation_calls_profile_off_only_after_y() {
+        let stub = ClaudeStub::profile_off();
+        let (_dir, mut app) = isolated_claude_app(navigation_account(1));
+        app.handle_key(plain_key(KeyCode::Enter)).unwrap();
+        assert_eq!(stub.profile_calls(), 0);
+        app.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+        assert_eq!(stub.profile_calls(), 1);
+        assert!(!app.should_quit);
+        assert!(app.overlay.is_none());
+    }
+
+    #[test]
+    fn auth_off_confirmation_calls_logout_only_after_y() {
+        let stub = ClaudeStub::auth_off();
+        let (_dir, mut app) = isolated_claude_app(navigation_account(1));
+        app.handle_key(plain_key(KeyCode::Char('o'))).unwrap();
+        assert!(matches!(
+            app.overlay,
+            Some(Overlay::ConfirmGate {
+                kind: ConfirmKind::AuthOff,
+                ..
+            })
+        ));
+        assert_eq!(stub.auth_calls(), 0);
+        app.handle_key(plain_key(KeyCode::Char('n'))).unwrap();
+        assert_eq!(stub.auth_calls(), 0);
+        assert!(app.overlay.is_none());
+
+        app.handle_key(plain_key(KeyCode::Char('o'))).unwrap();
+        app.handle_key(plain_key(KeyCode::Char('o'))).unwrap();
+        assert!(app.overlay.is_none());
+        assert_eq!(stub.auth_calls(), 0);
+
+        app.handle_key(plain_key(KeyCode::Char('o'))).unwrap();
+        app.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+        assert_eq!(stub.auth_calls(), 1);
+        assert!(app.overlay.is_none());
+    }
+
+    #[test]
+    fn delete_confirmation_y_does_not_switch() {
+        let stub = ClaudeStub::profile_off();
+        let (_dir, mut app) = isolated_claude_app(navigation_account(1));
+        app.overlay = Some(Overlay::confirm_delete("account-01"));
+        app.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+        assert_eq!(stub.profile_calls(), 0);
+        assert!(app.overlay.is_none());
+        assert!(!app.should_quit);
+        assert!(matches!(
+            app.last_action,
+            Some((CompletedAction::Delete, _, false, _, _))
+        ));
     }
 }

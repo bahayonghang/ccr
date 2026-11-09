@@ -637,6 +637,10 @@ fn focus_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
 
 fn draw_footer_strip(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
     let hints = match &app.overlay {
+        Some(Overlay::ConfirmGate { .. }) => vec![
+            ShortcutHint::new("y", crate::tui_text!("confirm", "确认")),
+            ShortcutHint::new("n/Esc", crate::tui_text!("cancel", "取消")),
+        ],
         Some(Overlay::Confirm { .. }) => vec![
             ShortcutHint::new("y", crate::tui_text!("confirm delete", "确认删除")),
             ShortcutHint::new("n/Esc", crate::tui_text!("cancel", "取消")),

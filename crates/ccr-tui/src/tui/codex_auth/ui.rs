@@ -1899,6 +1899,9 @@ fn account_snapshot_lines(
 /// Draw help bar (overlay-aware)
 fn draw_help_bar(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     let help_text = match &app.overlay {
+        Some(Overlay::ConfirmGate { .. }) => {
+            crate::tui_text!("y confirm | n/Esc cancel", "y 确认 | n/Esc 取消")
+        }
         Some(Overlay::Confirm { .. }) => {
             crate::tui_text!("y confirm delete | n/Esc cancel", "y 确认删除 | n/Esc 取消")
         }
@@ -2084,24 +2087,33 @@ fn draw_account_snapshot_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
 }
 
 fn draw_footer_strip(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
-    let mut hints = vec![
-        ShortcutHint::new("Tab/Shift+Tab", crate::tui_text!("switch", "切换")),
-        ShortcutHint::new("↑↓/jk", crate::tui_text!("select", "选择")),
-        ShortcutHint::new("Enter", crate::tui_text!("switch", "切换")),
-        ShortcutHint::new("s", crate::tui_text!("save", "保存")),
-    ];
-    if app.toasts.active().is_none() {
-        hints.push(ShortcutHint::new("d", crate::tui_text!("delete", "删除")));
-    }
-    hints.extend([
-        ShortcutHint::new("b", crate::tui_text!("quota", "配额")),
-        ShortcutHint::new("r", crate::tui_text!("refresh", "刷新")),
-        ShortcutHint::new("Ctrl+L", crate::tui_text!("language", "语言")),
-        ShortcutHint::new("q", crate::tui_text!("quit", "退出")),
-    ]);
+    let confirming = matches!(app.overlay, Some(Overlay::ConfirmGate { .. }));
+    let mut hints = if confirming {
+        vec![
+            ShortcutHint::new("y", crate::tui_text!("confirm", "确认")),
+            ShortcutHint::new("n/Esc", crate::tui_text!("cancel", "取消")),
+        ]
+    } else {
+        let mut hints = vec![
+            ShortcutHint::new("Tab/Shift+Tab", crate::tui_text!("switch", "切换")),
+            ShortcutHint::new("↑↓/jk", crate::tui_text!("select", "选择")),
+            ShortcutHint::new("Enter", crate::tui_text!("switch", "切换")),
+            ShortcutHint::new("s", crate::tui_text!("save", "保存")),
+        ];
+        if app.toasts.active().is_none() {
+            hints.push(ShortcutHint::new("d", crate::tui_text!("delete", "删除")));
+        }
+        hints.extend([
+            ShortcutHint::new("b", crate::tui_text!("quota", "配额")),
+            ShortcutHint::new("r", crate::tui_text!("refresh", "刷新")),
+            ShortcutHint::new("Ctrl+L", crate::tui_text!("language", "语言")),
+            ShortcutHint::new("q", crate::tui_text!("quit", "退出")),
+        ]);
+        hints
+    };
 
     let compact = area.height <= 2 || area.width < 120;
-    if compact {
+    if compact && !confirming {
         hints = vec![
             ShortcutHint::new("q", crate::tui_text!("quit", "退出")),
             ShortcutHint::new("Ctrl+L", crate::tui_text!("language", "语言")),

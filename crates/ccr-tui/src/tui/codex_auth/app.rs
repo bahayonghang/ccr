@@ -2,11 +2,11 @@
 // Manages the Codex multi-account selector state
 
 use crate::tui::auth_refresh::{RefreshReason, RefreshSchedulerState, RefreshTask, RefreshTier};
-use crate::tui::overlay::Overlay;
+use crate::tui::overlay::{ConfirmKind, Overlay};
 use crate::tui::pagination::{
     DEFAULT_PAGE_SIZE, index_in_page, page_for_index, page_slice, total_pages,
 };
-use ccr_cli::application::{auth_off_for_platform, profile_off_for_platform};
+use ccr_cli::application::{AuthOffResult, auth_off_for_platform, profile_off_for_platform};
 use ccr_cli::models::{
     CodexAccountQuota, CodexAuthItem, CodexAuthRegistry, CodexRuntimeSummary, LoginState, Platform,
 };
@@ -32,6 +32,38 @@ use indexmap::IndexMap;
 use std::sync::Arc;
 
 const ACTIVATION_DELAY_TICKS: u32 = 4;
+
+#[cfg(test)]
+thread_local! {
+    static CODEX_PROFILE_OFF_STUB: Cell<bool> = const { Cell::new(false) };
+    static CODEX_PROFILE_OFF_CALLS: Cell<u32> = const { Cell::new(0) };
+    static CODEX_AUTH_OFF_STUB: Cell<bool> = const { Cell::new(false) };
+    static CODEX_AUTH_OFF_CALLS: Cell<u32> = const { Cell::new(0) };
+}
+
+fn codex_profile_off() -> Result<()> {
+    #[cfg(test)]
+    if CODEX_PROFILE_OFF_STUB.with(Cell::get) {
+        CODEX_PROFILE_OFF_CALLS.with(|calls| calls.set(calls.get() + 1));
+        return Ok(());
+    }
+    profile_off_for_platform(Platform::Codex).map(|_| ())
+}
+
+fn codex_auth_off() -> Result<AuthOffResult> {
+    #[cfg(test)]
+    if CODEX_AUTH_OFF_STUB.with(Cell::get) {
+        CODEX_AUTH_OFF_CALLS.with(|calls| calls.set(calls.get() + 1));
+        return Ok(AuthOffResult {
+            platform: Platform::Codex,
+            changed: true,
+            path: ccr_cli::application::AuthOffPath::File,
+            profile_pointer: None,
+            warnings: Vec::new(),
+        });
+    }
+    auth_off_for_platform(Platform::Codex)
+}
 const QUOTA_REFRESH_INTERVAL_TICKS: u32 = 4;
 const PREVIEW_TTL_SECS: i64 = 60;
 const CURRENT_RUNTIME_ACCOUNT_KEY: &str = "default";
@@ -887,8 +919,8 @@ impl CodexAuthApp {
             KeyCode::PageDown | KeyCode::Char('l') => {
                 self.next_page();
             }
-            KeyCode::Enter if self.switch_selected_account()? => {
-                return Ok(true);
+            KeyCode::Enter => {
+                self.begin_switch_confirm()?;
             }
             KeyCode::Char('s') => match &self.login_state {
                 LoginState::LoggedInUnsaved => {
@@ -987,32 +1019,7 @@ impl CodexAuthApp {
                 }
             }
             KeyCode::Char('o') | KeyCode::Char('O') => {
-                match auth_off_for_platform(Platform::Codex) {
-                    Ok(result) => {
-                        if result.changed {
-                            self.toasts.push(Toast::success(crate::tui_text!(
-                                "Logged out of the official Codex session",
-                                "已登出 Codex 官方会话"
-                            )));
-                        } else {
-                            self.toasts.push(Toast::info(crate::tui_text!(
-                                "No official Codex session file to remove",
-                                "没有可删除的 Codex 官方会话文件"
-                            )));
-                        }
-                        for warning in result.warnings {
-                            self.toasts.push(Toast::warning(warning));
-                        }
-                        let _ = self.reload_accounts();
-                    }
-                    Err(err) => {
-                        self.toasts.push(Toast::error(crate::tui_format!(
-                            "Codex auth off failed: {}",
-                            "Codex auth off 失败：{}",
-                            err
-                        )));
-                    }
-                }
+                self.overlay = Some(Overlay::confirm_auth_off("Codex"));
             }
             KeyCode::Char('b') => {
                 self.pending_quota_confirm = true;
@@ -1025,6 +1032,7 @@ impl CodexAuthApp {
     /// Dispatch overlay key events by variant
     fn handle_overlay_key(&mut self, key: KeyEvent) -> Result<bool> {
         match &self.overlay {
+            Some(Overlay::ConfirmGate { .. }) => self.handle_gate_key(key),
             Some(Overlay::Confirm { .. }) => self.handle_confirm_key(key),
             Some(Overlay::ConfirmRestartDaemon { .. }) => {
                 self.handle_daemon_restart_confirm_key(key)
@@ -1032,6 +1040,82 @@ impl CodexAuthApp {
             Some(Overlay::RenameInput { .. }) => self.handle_rename_input_key(key),
             _ => self.handle_input_key(key),
         }
+    }
+
+    fn handle_gate_key(&mut self, key: KeyEvent) -> Result<bool> {
+        let kind = match &self.overlay {
+            Some(Overlay::ConfirmGate { kind, .. }) => *kind,
+            _ => return Ok(false),
+        };
+        let cancel = match key.code {
+            KeyCode::Char('y') | KeyCode::Char('Y') => {
+                self.overlay = None;
+                return match kind {
+                    ConfirmKind::Switch => self.switch_selected_account(),
+                    ConfirmKind::AuthOff => {
+                        self.perform_auth_off_with(codex_auth_off)?;
+                        Ok(false)
+                    }
+                    ConfirmKind::Apply | ConfirmKind::ProfileOff => Ok(false),
+                };
+            }
+            KeyCode::Char('n')
+            | KeyCode::Char('N')
+            | KeyCode::Esc
+            | KeyCode::Enter
+            | KeyCode::Char(' ') => true,
+            KeyCode::Char('o') | KeyCode::Char('O') => kind == ConfirmKind::AuthOff,
+            _ => false,
+        };
+        if cancel {
+            self.overlay = None;
+            self.toasts
+                .push(Toast::info(crate::tui_text!("Cancelled", "已取消")));
+        }
+        Ok(false)
+    }
+
+    fn perform_auth_off_with(&mut self, off: impl FnOnce() -> Result<AuthOffResult>) -> Result<()> {
+        match off() {
+            Ok(result) => {
+                if result.changed {
+                    self.toasts.push(Toast::success(crate::tui_text!(
+                        "Logged out of the official Codex session",
+                        "已登出 Codex 官方会话"
+                    )));
+                } else {
+                    self.toasts.push(Toast::info(crate::tui_text!(
+                        "No official Codex session file to remove",
+                        "没有可删除的 Codex 官方会话文件"
+                    )));
+                }
+                for warning in result.warnings {
+                    self.toasts.push(Toast::warning(warning));
+                }
+                let _ = self.reload_accounts();
+            }
+            Err(err) => {
+                self.toasts.push(Toast::error(crate::tui_format!(
+                    "Codex auth off failed: {}",
+                    "Codex auth off 失败：{}",
+                    err
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    fn begin_switch_confirm(&mut self) -> Result<()> {
+        let Some(account) = self.prepare_switch()? else {
+            return Ok(());
+        };
+        let running = self.service.detect_codex_process().len();
+        self.overlay = Some(Overlay::confirm_account_switch(
+            "Codex",
+            account.name,
+            running,
+        ));
+        Ok(())
     }
 
     /// Handle confirm overlay keys
@@ -1340,41 +1424,48 @@ impl CodexAuthApp {
     /// Switch to selected account
     /// Returns true if switch succeeded and TUI should exit
     fn switch_selected_account(&mut self) -> Result<bool> {
-        self.switch_selected_account_with_profile_off(|| {
-            profile_off_for_platform(Platform::Codex).map(|_| ())
-        })
+        self.switch_selected_account_with_profile_off(codex_profile_off)
+    }
+
+    /// Skip cases toast and return None. Does not turn profile mode off or switch.
+    fn prepare_switch(&mut self) -> Result<Option<CodexAuthItem>> {
+        let Some(account) = self.selected_account().cloned() else {
+            return Ok(None);
+        };
+
+        if account.is_virtual {
+            self.toasts.push(Toast::info(crate::tui_text!(
+                "This is the current login; no switch is needed",
+                "这是当前登录，无需切换"
+            )));
+            return Ok(None);
+        }
+
+        if account.is_current {
+            self.toasts.push(Toast::info(crate::tui_text!(
+                "This account is already active",
+                "已经是当前账号"
+            )));
+            return Ok(None);
+        }
+
+        if let Err(error) = self.service.ensure_registry_writable() {
+            self.toasts.push(Toast::error(crate::tui_format!(
+                "Switch failed: {}",
+                "切换失败：{}",
+                localized_service_error(&error.to_string())
+            )));
+            return Ok(None);
+        }
+
+        Ok(Some(account))
     }
 
     fn switch_selected_account_with_profile_off(
         &mut self,
         profile_off: impl FnOnce() -> Result<()>,
     ) -> Result<bool> {
-        if let Some(account) = self.selected_account().cloned() {
-            if account.is_virtual {
-                self.toasts.push(Toast::info(crate::tui_text!(
-                    "This is the current login; no switch is needed",
-                    "这是当前登录，无需切换"
-                )));
-                return Ok(false);
-            }
-
-            if account.is_current {
-                self.toasts.push(Toast::info(crate::tui_text!(
-                    "This account is already active",
-                    "已经是当前账号"
-                )));
-                return Ok(false);
-            }
-
-            if let Err(error) = self.service.ensure_registry_writable() {
-                self.toasts.push(Toast::error(crate::tui_format!(
-                    "Switch failed: {}",
-                    "切换失败：{}",
-                    localized_service_error(&error.to_string())
-                )));
-                return Ok(false);
-            }
-
+        if let Some(account) = self.prepare_switch()? {
             // Detect running Codex processes
             let running = self.service.detect_codex_process();
             if !running.is_empty() {
@@ -1804,6 +1895,8 @@ impl TuiApp for CodexAuthApp {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used)]
+
     use super::*;
     use chrono::{Duration, TimeZone, Utc};
     use std::path::PathBuf;
@@ -1914,6 +2007,176 @@ mod tests {
             }
         }
         set_language(previous);
+    }
+
+    use crate::tui::runtime::TuiApp;
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    use std::cell::Cell;
+
+    fn plain_key(code: KeyCode) -> KeyEvent {
+        KeyEvent::new(code, KeyModifiers::NONE)
+    }
+
+    struct CodexStub {
+        profile_stub: bool,
+        auth_stub: bool,
+    }
+
+    impl CodexStub {
+        fn profile_off() -> Self {
+            let guard = Self {
+                profile_stub: CODEX_PROFILE_OFF_STUB.with(Cell::get),
+                auth_stub: CODEX_AUTH_OFF_STUB.with(Cell::get),
+            };
+            CODEX_PROFILE_OFF_STUB.with(|cell| cell.set(true));
+            CODEX_PROFILE_OFF_CALLS.with(|cell| cell.set(0));
+            guard
+        }
+
+        fn auth_off() -> Self {
+            let guard = Self {
+                profile_stub: CODEX_PROFILE_OFF_STUB.with(Cell::get),
+                auth_stub: CODEX_AUTH_OFF_STUB.with(Cell::get),
+            };
+            CODEX_AUTH_OFF_STUB.with(|cell| cell.set(true));
+            CODEX_AUTH_OFF_CALLS.with(|cell| cell.set(0));
+            guard
+        }
+
+        fn profile_calls(&self) -> u32 {
+            CODEX_PROFILE_OFF_CALLS.with(Cell::get)
+        }
+
+        fn auth_calls(&self) -> u32 {
+            CODEX_AUTH_OFF_CALLS.with(Cell::get)
+        }
+    }
+
+    impl Drop for CodexStub {
+        fn drop(&mut self) {
+            CODEX_PROFILE_OFF_STUB.with(|cell| cell.set(self.profile_stub));
+            CODEX_AUTH_OFF_STUB.with(|cell| cell.set(self.auth_stub));
+        }
+    }
+
+    fn switch_candidate() -> (tempfile::TempDir, CodexAuthApp) {
+        let (dir, mut app) = super::super::ui::tests::presentation_fixture();
+        app.accounts[0].is_current = false;
+        app.accounts[0].is_virtual = false;
+        (dir, app)
+    }
+
+    #[test]
+    fn enter_opens_switch_confirmation_without_writing_files() {
+        use std::fs;
+        let stub = CodexStub::profile_off();
+        let (_dir, mut app) = switch_candidate();
+        let (codex_dir, ccr_dir) = app.service.usage_paths();
+        fs::create_dir_all(&codex_dir).expect("fixture runtime directory");
+        fs::create_dir_all(&ccr_dir).expect("fixture CCR directory");
+        let runtime = codex_dir.join("auth.json");
+        let profile = ccr_dir.join("profiles.toml");
+        fs::write(&runtime, b"synthetic runtime credentials").expect("fixture runtime");
+        fs::write(&profile, b"synthetic active profile").expect("fixture profile");
+
+        assert!(!app.handle_key(plain_key(KeyCode::Enter)).unwrap());
+        assert_eq!(stub.profile_calls(), 0);
+        assert!(!app.should_quit);
+        assert!(app.last_action.is_none());
+        match &app.overlay {
+            Some(Overlay::ConfirmGate {
+                kind: ConfirmKind::Switch,
+                subject,
+                ..
+            }) => assert_eq!(subject, "codexcn"),
+            other => panic!("switch confirmation missing: {other:?}"),
+        }
+        app.handle_key(plain_key(KeyCode::Char('o'))).unwrap();
+        assert!(matches!(
+            &app.overlay,
+            Some(Overlay::ConfirmGate {
+                kind: ConfirmKind::Switch,
+                ..
+            })
+        ));
+        assert!(!app.handle_key(plain_key(KeyCode::Esc)).unwrap());
+        assert!(app.overlay.is_none());
+        assert_eq!(stub.profile_calls(), 0);
+        assert_eq!(
+            fs::read(&runtime).unwrap(),
+            b"synthetic runtime credentials"
+        );
+        assert_eq!(fs::read(&profile).unwrap(), b"synthetic active profile");
+    }
+
+    #[test]
+    fn switch_confirmation_calls_profile_off_only_after_y() {
+        let stub = CodexStub::profile_off();
+        let (_dir, mut app) = switch_candidate();
+        app.handle_key(plain_key(KeyCode::Enter)).unwrap();
+        assert_eq!(stub.profile_calls(), 0);
+        app.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+        assert_eq!(stub.profile_calls(), 1);
+        assert!(!app.should_quit);
+    }
+
+    #[test]
+    fn virtual_current_and_read_only_accounts_do_not_open_switch_confirmation() {
+        use std::fs;
+        let stub = CodexStub::profile_off();
+        let (_dir, mut virtual_login) = switch_candidate();
+        virtual_login.accounts[0].is_virtual = true;
+        virtual_login.handle_key(plain_key(KeyCode::Enter)).unwrap();
+        assert!(virtual_login.overlay.is_none());
+
+        let (_dir, mut current) = super::super::ui::tests::presentation_fixture();
+        current.accounts[0].is_current = true;
+        current.accounts[0].is_virtual = false;
+        current.handle_key(plain_key(KeyCode::Enter)).unwrap();
+        assert!(current.overlay.is_none());
+
+        let (_dir, mut read_only) = switch_candidate();
+        let (_, ccr_dir) = read_only.service.usage_paths();
+        fs::create_dir_all(&ccr_dir).unwrap();
+        fs::write(ccr_dir.join("auth_registry.toml"), "version = \"2.0\"\n").unwrap();
+        read_only.handle_key(plain_key(KeyCode::Enter)).unwrap();
+        assert!(read_only.overlay.is_none());
+        assert_eq!(stub.profile_calls(), 0);
+    }
+
+    #[test]
+    fn auth_off_confirmation_calls_logout_only_after_y() {
+        let stub = CodexStub::auth_off();
+        let (_dir, mut app) = switch_candidate();
+        app.handle_key(plain_key(KeyCode::Char('o'))).unwrap();
+        assert!(matches!(
+            app.overlay,
+            Some(Overlay::ConfirmGate {
+                kind: ConfirmKind::AuthOff,
+                ..
+            })
+        ));
+        assert_eq!(stub.auth_calls(), 0);
+        app.handle_key(plain_key(KeyCode::Char('o'))).unwrap();
+        assert!(app.overlay.is_none());
+        assert_eq!(stub.auth_calls(), 0);
+
+        app.handle_key(plain_key(KeyCode::Char('o'))).unwrap();
+        app.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+        assert_eq!(stub.auth_calls(), 1);
+        assert!(app.overlay.is_none());
+    }
+
+    #[test]
+    fn delete_confirmation_y_does_not_switch() {
+        let stub = CodexStub::profile_off();
+        let (_dir, mut app) = switch_candidate();
+        app.overlay = Some(Overlay::confirm_delete("codexcn"));
+        app.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+        assert_eq!(stub.profile_calls(), 0);
+        assert!(app.overlay.is_none());
+        assert!(!app.should_quit);
+        assert!(app.last_action.is_none());
     }
 
     #[test]
