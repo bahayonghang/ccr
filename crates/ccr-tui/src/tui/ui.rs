@@ -4941,6 +4941,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::unwrap_used)]
     fn profile_editor_wide_keeps_a_dim_list_and_shows_the_change() {
         use crate::tui::profile_edit::{EditorOpen, ProfileEditor};
         crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
@@ -4990,6 +4991,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::unwrap_used)]
     fn profile_editor_standard_and_compact_scroll_to_the_last_field() {
         use crate::tui::profile_edit::{EditorOpen, ProfileEditor};
         use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};

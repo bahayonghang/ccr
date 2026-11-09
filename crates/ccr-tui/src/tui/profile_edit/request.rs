@@ -472,6 +472,7 @@ fn clone_secret(secret: &SecretEdit) -> SecretEdit {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used)]
     use super::*;
     use crate::tui::profile_edit::field::load_fields;
     use ccr_cli::models::ProfileConfig;
