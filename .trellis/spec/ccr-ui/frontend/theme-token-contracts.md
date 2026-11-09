@@ -66,6 +66,36 @@ its design in `ccr-desktop/DESIGN.md` and its only token layer in
   overflowing builder blocks in private helpers and recheck the exact failing
   child plus the full guard; do not raise `RUST_MIN_STACK`, skip children or
   rely on the larger default test stack.
+- Status tags (2026-11-08, task `11-07-gpui-overview-sessions-mcp-redesign`):
+  `theme::Tone` (Neutral/Success/Warning/Danger/Info) and `tone_colors(tone, mode)`
+  own tag colours. Fill and edge are the ink pre-composited over the reading
+  surface (light 10%/24%, dark 18%/32%), so a tag stays opaque and never adds a
+  translucent layer to the material stack. Contract: ink on fill ≥4.5:1 for every
+  tone in both modes. The edge is decorative because a tag is not a control. It
+  only has to outline the fill more clearly than the fill itself
+  (`contrast(edge, reading) > contrast(fill, reading)`). Do not raise the edge
+  to the 3:1 control-boundary bar: a heavy outline makes a 4px tag read as an
+  outlined button and erases the shape split (4px rectangle means status, pill
+  means filter chip or button). Build tags, dots and filter chips through
+  `shell::badge` only. Kit `Tag`/`Badge` read Kit theme colours and radii from
+  outside `theme.rs`.
+- Heat map: `heat_level(level, mode)`. Level 0 is the neutral cell; levels 1–4
+  are primary over reading at 25/45/70/100%. Contrast against reading strictly
+  increases from level 0 to level 4, level 4 is ≥3:1, values above 4 clamp to 4,
+  and every cell is opaque. Bucket thresholds are linear-interpolated quartiles
+  of the non-zero days, the same algorithm the Tauri overview uses. They are not
+  fixed request counts.
+- Platform identity colours cover claude, codex, grok, antigravity/gemini,
+  opencode, kimi `(0xa3467f, 0xd775ae)` and pi `(0x7b56b0, 0xac88e7)`. Each needs
+  ≥3:1 graphic contrast on reading; omp stays `muted`. Guards:
+  `status_tones_keep_text_contrast_wherever_a_tag_is_placed`,
+  `heat_levels_climb_from_a_quiet_zero_cell_to_a_legible_peak`,
+  `platform_identities_keep_graphic_contrast_and_omp_stays_muted`.
+- Page geometry that depends on the content width (for example the Overview
+  rail and heat-map cell maths) derives it from `theme::sidebar_width`,
+  `scene_inset` and `content_padding`, the same helpers the shell lays out with.
+  A page must not keep its own copy of those constants: if it does, the computed
+  widths drift from the painted ones whenever the shell changes.
 
 ## Current palette and material world (2026-10-26)
 

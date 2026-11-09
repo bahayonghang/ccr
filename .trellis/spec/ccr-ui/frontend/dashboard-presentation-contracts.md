@@ -250,3 +250,47 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 - `compute_home_overview_marks_stale_empty_window_as_needs_import`
 - `compute_home_overview_joins_usage_series_and_marks_warm_bootstrap` stays warm when today has events
 
+
+## Scenario: GPUI Overview freshness and scope labels state facts only (2026-11-08)
+
+### 1. Scope / Trigger
+
+- Trigger: changing `ccr-desktop` `runtime::insights::{WorkbenchReport, SyncFreshness}`, `features/overview/{header,chart,rail,activity,insights}.rs`, or the Overview chapter of `ccr-desktop/DESIGN.md`.
+- Root cause it prevents: the first redesign said "not imported after 10-21" because the last *successful* llmusage sync was 10-21, while the chart showed real rows for 11-02 to 11-05. llmusage `last_sync_at` is `MAX(finished_at)` over `run_log` rows with `status='success'` and command `sync`/`hook-run`. A run that fails can still import rows, so the last successful sync is not the last day of data.
+
+### 2. Signatures
+
+- `WorkbenchReport { last_sync_at: Option<String>, freshness: SyncFreshness, activity: Option<HomeInsightsSnapshot>, session_scope, .. }`
+- `SyncFreshness::at(last_sync_at, clock) -> { local: Option<"MM-DD HH:mm">, stale }`. `stale` is true when the last successful sync's local date (in the report time zone) is before the report date, or when no sync time is readable.
+- `overview::chart::latest_record(days) -> Option<&str>`: the label of the last non-zero day, but only when later days in the window are empty.
+- `overview::activity::activity_scope(trend_start, chinese)`: `Last 53 weeks · since YYYY-MM-DD`.
+
+### 3. Contracts
+
+- Freshness copy states only what was recorded:
+  - `Last successful sync MM-DD HH:mm (zone)`;
+  - `No successful sync recorded`;
+  - `Sync time unreadable` when the stored value is not RFC3339.
+- When stale with a known time, the header warning dot carries text and an accessible label, and the data-source panel adds `Newer usage may be missing until a sync succeeds`. Never write "not imported after X", and never infer whether empty trailing days are idle or not imported.
+- The daily chart title appends `· latest record MM-DD` only when the window ends with empty days. A window with data through its last day gets no suffix.
+- Every module whose range differs from the page range names its range in a `badge::section_heading` scope or caption:
+  - Activity: `Last 53 weeks · since YYYY-MM-DD`, with the full date, because "since 11-03" would read as this month.
+  - Distribution and Leaders: `All history`. The hourly and weekday buckets accumulate every row up to `as_of`, not just the 53-week window.
+  - Week comparison: always `Last 7 / Prior 7 / Change`.
+- Activity summaries read only 53-week fields. They never mix in all-history totals.
+- An unreadable session archive degrades only the session readings. Activity is still built with `merge_home_insights(projected, InsightsSessionCounts::default(), as_of)`, and `SessionScope::Unavailable` renders as text (`Unavailable` / `Not indexed`), never as `0`.
+- A failed usage projection yields `activity: None`. The Overview then draws no insight modules. It does not zero-fill them.
+- Usage SQL stays in `crates/ccr-usage`. These modules reuse `HomeInsightsSnapshot` and add no SQL.
+
+### 4. Tests Required
+
+- `runtime/insights/tests.rs`:
+  - `sync_freshness_uses_the_report_timezone_and_marks_older_days_stale`
+  - `workbench_carries_the_last_sync_time_and_its_freshness`
+  - `unreadable_archive_keeps_activity_and_only_sessions_degrade`
+  - `failed_usage_projection_yields_no_activity`
+- `features/overview/tests.rs`:
+  - `freshness_is_stated_in_the_header_chart_and_data_source`
+  - `latest_record_names_the_last_active_day_only_before_trailing_gaps`
+  - `chinese_copy_keeps_scopes_and_freshness`
+  - `missing_projection_states_its_reason_and_draws_no_insights`
