@@ -87,7 +87,7 @@ sha2 = "0.11.0"
 
 # Database (direct access for AppState)
 r2d2 = "0.8"
-rusqlite = { version = "0.40.2", features = ["bundled"] }
+rusqlite = { version = "0.41.1", features = ["bundled"] }
 
 # Async trait support
 async-trait = "0.1.92"
@@ -125,6 +125,10 @@ winreg = "0.56.0"
 # SSH 远程支持（Phase C2，暂未启用：russh 0.57 的 rand_core 预发布版与 ccr-db 冲突）
 # russh = "0.57.1"
 # russh-sftp = "2.1.1"
+
+# Same patch as the root workspace: r2d2_sqlite 0.35.0 cannot select rusqlite 0.41.
+[patch.crates-io]
+r2d2_sqlite = { path = "../../third_party/r2d2-sqlite" }
 
 [dev-dependencies]
 ccr-cli = { path = "../../crates/ccr-cli", features = ["test-support"] }

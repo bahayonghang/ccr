@@ -71,7 +71,7 @@ dirs = "6.0.0"
 tempfile = "3.27.0"
 
 # Database
-rusqlite = { version = "0.40.2", features = ["bundled", "functions"] }
+rusqlite = { version = "0.41.1", features = ["bundled", "functions"] }
 r2d2 = "0.8"
 r2d2_sqlite = "0.35.0"
 
@@ -108,6 +108,12 @@ tower = { version = "0.5.3", default-features = false }
 tower-http = { version = "0.7.0", default-features = false, features = [
     "cors",
 ] }
+
+# r2d2_sqlite 0.35.0 still requires rusqlite 0.40, which keeps the vulnerable
+# libsqlite3-sys 0.38.2 (RUSTSEC-2026-0459). The path patch is upstream 0.35.0
+# with only that requirement moved to rusqlite 0.41.
+[patch.crates-io]
+r2d2_sqlite = { path = "third_party/r2d2-sqlite" }
 
 [profile.dev]
 opt-level = 0
