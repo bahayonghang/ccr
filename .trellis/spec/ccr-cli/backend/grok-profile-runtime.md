@@ -206,6 +206,26 @@ platform.validate_profile(&profile)?;
 The decoder preserves patch semantics; the domain validator retains the
 third-party required-model invariant.
 
+## Scenario: same-name re-apply
+
+### 1. Scope / Trigger
+
+- Trigger: `GrokPlatform::update_profile_versioned_with_policy` when the edited profile is already `Active`.
+- `update_profile_versioned` keeps `ApplyPolicy::IfRenamed` and does not re-apply a same-name edit.
+
+### 2. Contracts
+
+- `ApplyPolicy::IfCurrent` saves the profile, then calls `apply_profile_locked` for a same-name active edit. Apply failure returns `GrokProfileUpdateOutcome::UpdatedApplyFailed` and does not pretend the runtime changed. The catalog edit remains, matching `RenameApplyFailed`.
+- `ApplyPolicy::Never` does not rewrite `config.toml`. Renaming the active profile with `Never` is rejected before the catalog write.
+- Disabling an `Active` profile is rejected before the write for `IfCurrent` and `Never`.
+- After a successful destination apply, rename cleanup may delete the source even when both profiles share a runtime shape. The destination pointer is the activation authority. Ordinary `delete_profile` still fail-closes on runtime equality.
+
+### 3. Wrong vs Correct
+
+Wrong: treat `UpdatedApplyFailed` as a successful edit, or delete the source while the runtime still names it and the pointer has not moved.
+
+Correct: return `UpdatedApplyFailed` with the saved name, and delete the source only after the destination apply has moved the pointer.
+
 ## Scenario: Grok CLI Profile Surface
 
 ### 1. Scope / Trigger

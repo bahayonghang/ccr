@@ -36,6 +36,7 @@ Without a subcommand, TUI-enabled builds enter the Claude Auth tab. Calls withou
 | `ccr claude profile list` | list profiles; supports `--json` |
 | `ccr claude profile switch <name>` | apply a profile |
 | `ccr claude profile create <name>` | create a profile |
+| `ccr claude profile edit <name>` | change several fields, rename, or replace a secret |
 | `ccr claude profile set-field <name> <field>` | update or clear one field |
 | `ccr claude profile enable <name>` | enable a profile |
 | `ccr claude profile disable <name>` | disable a profile; the current item requires `--force` |
@@ -58,7 +59,22 @@ ccr claude profile current --json
 
 `create` also supports description, small-fast-model, provider, provider-type, account, repeated `--tag`, `--disabled`, and `--json`. Run `ccr help claude profile create` for the current complete option set.
 
-`set-field` accepts `--value`, array-oriented `--value-json`, or `--clear`; they are mutually exclusive.
+`set-field` accepts `--value`, array-oriented `--value-json`, or `--clear`; they are mutually exclusive. It uses the same write path as `edit`: a stale catalog revision is rejected, and editing the active profile re-applies the runtime.
+
+Edit several fields at once:
+
+```bash
+ccr claude profile edit work \
+  --description "Work profile" \
+  --model claude-sonnet-4-5 \
+  --base-url https://api.example.com \
+  --rename work-2026
+
+printf '%s' "$ANTHROPIC_AUTH_TOKEN" | ccr claude profile edit work --auth-token-stdin
+ccr claude profile edit work --no-apply --description "storage only"
+```
+
+`edit` renames with `--rename`, replaces tags with repeatable `--tag`, and changes enabled state with `--enable` / `--disable`. `--set field=value` and `--clear field` cover allowlisted fields. Secrets are read from stdin only; the command line has no secret value flag. `--expected-revision` rejects the write when the catalog revision differs. Disabling the active profile is rejected. `--json` reports field names, old and new names, the revision, and whether the runtime was re-applied. It does not include secrets.
 
 ## Auth Mode Boundary
 

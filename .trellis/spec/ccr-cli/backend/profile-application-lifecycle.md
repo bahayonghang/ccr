@@ -121,6 +121,27 @@ let current = create_platform(platform)?.get_current_profile()?;
 // Validate current, then call the T01 mutation. Do not call a lifecycle owner here.
 ```
 
+## Scenario: edit apply policy
+
+### 1. Scope / Trigger
+
+- Trigger: `ccr <platform> profile edit`, `set-field`, or another caller that must choose whether a same-name edit rewrites the active runtime.
+- Owner: `ProfileLifecycleContext::update_with_policy`. `update` and `update_profile` / `update_profile_versioned` keep [`ApplyPolicy::IfRenamed`].
+
+### 2. Contracts
+
+- `ApplyPolicy::IfCurrent` re-applies when the source profile is current, including a same-name edit. `ApplyPolicy::Never` does not rewrite runtime files. `ApplyPolicy::IfRenamed` re-applies only when renaming the current profile.
+- Disabling the current profile is rejected before the catalog write for `IfCurrent` and `Never`. `IfRenamed` keeps the historical rename-only rejection.
+- Re-apply uses the same journal as update. A failed guarded write restores the declared files or returns `recovery_required`. Post-commit history or usage failure stays `applied_with_warning`.
+- Usage count and activation history advance when re-apply commits. That matches "last used = CCR successfully enabled".
+- Tauri and desktop callers of the old update entry points do not gain same-name re-apply.
+
+### 3. Wrong vs Correct
+
+Wrong: save the field, then call a second `apply_profile` after releasing the journal.
+
+Correct: pass `ApplyPolicy::IfCurrent` into the same `update_with_policy` call that validates, writes, and compensates.
+
 ## Cross-crate behavioral fixtures
 
 Legacy cross-crate `profile_contract` fixtures use the explicit, ownership-marked `CCR_PROFILE_CONTRACT_ROOT` child-process seam. Tauri contract parents configure CCR keys on `Command`, preserve HOME/USERPROFILE, require the named child to pass and keep default parent test parallelism. See [Test Fixtures](./test-fixtures.md). Do not restore the old practice of mutating global HOME or serializing the whole suite.

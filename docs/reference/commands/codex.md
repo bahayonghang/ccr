@@ -38,11 +38,24 @@ ccr codex profile off
 - `switch <name>`
 - `off`
 - `create`
+- `edit`
 - `set-field`
 - `enable`
 - `disable`
 - `delete`
 - `open`
+
+`ccr codex profile edit <name>` 一次修改描述、模型、地址、标签和 `model_reasoning_effort`，也可以 `--rename`。密钥用 `--auth-token-stdin` 从标准输入读取。编辑当前生效的 profile 会重新应用运行时；`--no-apply` 只改存储。`--json` 不输出密钥。`set-field` 走同一写入路径，因此会校验 catalog 版本，并在编辑当前 profile 时重新应用运行时。
+
+```bash
+ccr codex profile edit work \
+  --description "Work" \
+  --model gpt-6.1-sol \
+  --base-url https://api.example.com \
+  --reasoning-effort high
+
+printf '%s' "$OPENAI_API_KEY" | ccr codex profile edit work --auth-token-stdin
+```
 
 ## `fix`
 

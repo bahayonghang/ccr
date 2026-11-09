@@ -68,7 +68,7 @@ pub enum PlatformAction {
     ///
     /// 非交互式修改 ~/.ccr/platforms/{platform}/profiles.toml
     /// 示例: ccr platform profile set-field claude work model --value claude-sonnet-4-5
-    ///       ccr platform profile create codex prod --model gpt-5-codex --provider OpenAI
+    ///       ccr platform profile create codex prod --model gpt-6.1-sol --provider OpenAI
     ///       ccr platform profile delete codex old --force
     #[command(hide = true)]
     Profile {

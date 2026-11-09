@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ 新功能
+
+- `ccr claude profile edit`、`ccr codex profile edit` 和 `ccr grok profile edit` 可一次修改多个字段、改名，或从标准输入替换密钥。编辑当前生效的 profile 会在同一次操作里重新应用运行时；`--no-apply` 只改存储。
+
+### 🔧 改进
+
+- `profile set-field` 改为走同一编辑用例。写入会校验 catalog 版本；编辑当前生效的 profile 会重新应用运行时。Grok 写入 `api_key` 时会移除 `env_key`，写入 `env_key` 时会移除 `api_key`。
+
 ---
 
 ## [7.5.1] - 2026-11-09

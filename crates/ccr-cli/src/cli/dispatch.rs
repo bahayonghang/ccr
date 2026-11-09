@@ -540,6 +540,9 @@ impl CommandDispatcher {
                 CodexProfileAction::SetField(args) => {
                     crate::commands::codex::profile::set_field_command(args.clone()).await
                 }
+                CodexProfileAction::Edit(args) => {
+                    crate::commands::codex::profile::edit_command(args.as_ref().clone()).await
+                }
                 CodexProfileAction::Enable(args) => {
                     crate::commands::codex::profile::enable_command(args.clone()).await
                 }
@@ -776,6 +779,9 @@ impl CommandDispatcher {
                 GrokProfileAction::SetField(args) => {
                     crate::commands::grok::profile::set_field_command(args.clone()).await
                 }
+                GrokProfileAction::Edit(args) => {
+                    crate::commands::grok::profile::edit_command(args.as_ref().clone()).await
+                }
                 GrokProfileAction::Enable(args) => {
                     crate::commands::grok::profile::enable_command(args.clone()).await
                 }
@@ -834,6 +840,9 @@ impl CommandDispatcher {
                 }
                 ClaudeProfileAction::SetField(args) => {
                     crate::commands::claude::profile::set_field_command(args.clone()).await
+                }
+                ClaudeProfileAction::Edit(args) => {
+                    crate::commands::claude::profile::edit_command(args.as_ref().clone()).await
                 }
                 ClaudeProfileAction::Enable(args) => {
                     crate::commands::claude::profile::enable_command(args.clone()).await

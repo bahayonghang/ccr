@@ -1,7 +1,7 @@
 //! Grok Build profile switching backed by `$GROK_HOME/config.toml`.
 
 use crate::managers::PlatformConfigManager;
-use crate::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
+use crate::models::{ApplyPolicy, Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 use ccr_config::platforms::base;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::{
@@ -177,6 +177,10 @@ pub enum GrokProfileUpdateOutcome {
         old_name: String,
         new_name: String,
     },
+    /// The catalog edit committed, but re-applying the same active profile failed.
+    UpdatedApplyFailed {
+        name: String,
+    },
 }
 
 /// The existing staged rename result, shared by real operations and adapter tests.
@@ -324,6 +328,30 @@ impl GrokPlatform {
         expected: Option<&str>,
         patch: impl FnOnce(&mut ProfileConfig) -> Result<()>,
     ) -> Result<GrokProfileUpdateOutcome> {
+        self.update_profile_versioned_with_policy(
+            name,
+            target,
+            expected,
+            ApplyPolicy::IfRenamed,
+            patch,
+        )
+    }
+
+    /// Same staged save as [`Self::update_profile_versioned`], plus an apply policy.
+    ///
+    /// [`ApplyPolicy::IfRenamed`] keeps the historical behavior: only an active
+    /// rename calls `apply_profile_locked`. [`ApplyPolicy::IfCurrent`] also
+    /// re-applies a same-name edit of the active profile and reports
+    /// [`GrokProfileUpdateOutcome::UpdatedApplyFailed`] when that apply fails.
+    /// [`ApplyPolicy::Never`] does not rewrite runtime files.
+    pub fn update_profile_versioned_with_policy(
+        &self,
+        name: &str,
+        target: &str,
+        expected: Option<&str>,
+        policy: ApplyPolicy,
+        patch: impl FnOnce(&mut ProfileConfig) -> Result<()>,
+    ) -> Result<GrokProfileUpdateOutcome> {
         let _operation = self.lock_profile_operation()?;
         let manager = ccr_config::ConfigManager::new(&self.paths.profiles_file);
         let _resource = manager.lock_mutation()?;
@@ -344,6 +372,21 @@ impl GrokPlatform {
         }
         patch(&mut profile)?;
         self.validate_profile(&profile)?;
+        let reject_disable = match policy {
+            // Historical staged rename did not reject a disabled target.
+            ApplyPolicy::IfRenamed => false,
+            ApplyPolicy::IfCurrent | ApplyPolicy::Never => was_active,
+        };
+        if reject_disable && !profile.is_enabled() {
+            return Err(CcrError::ValidationError(
+                "不能禁用当前生效的 profile".into(),
+            ));
+        }
+        if target != name && was_active && policy == ApplyPolicy::Never {
+            return Err(CcrError::ValidationError(
+                "当前生效的 Grok profile 改名需要重新应用运行时；请去掉 --no-apply".into(),
+            ));
+        }
         ccr_config::managers::config::CatalogTransaction::execute(
             manager.profiles_db(),
             |transaction| {
@@ -365,17 +408,24 @@ impl GrokPlatform {
             },
         )?;
         if target == name {
+            if was_active
+                && policy == ApplyPolicy::IfCurrent
+                && self.apply_profile_locked(name).is_err()
+            {
+                return Ok(GrokProfileUpdateOutcome::UpdatedApplyFailed { name: name.into() });
+            }
             return Ok(GrokProfileUpdateOutcome::Updated {
                 name: name.into(),
                 profile: Box::new(profile),
             });
         }
+        let apply_after_rename = was_active && policy != ApplyPolicy::Never;
         Ok(finish_grok_profile_rename(
             name.into(),
             target.into(),
-            was_active,
+            apply_after_rename,
             |target| self.apply_profile_locked(target),
-            |source| self.delete_profile_locked(source),
+            |source| self.delete_renamed_source_locked(source),
         ))
     }
 
@@ -397,6 +447,18 @@ impl GrokPlatform {
         })
     }
     fn delete_profile_locked(&self, name: &str) -> Result<()> {
+        self.delete_profile_locked_inner(name, false)
+    }
+
+    /// Delete a rename source after the destination has been applied.
+    ///
+    /// Two profiles can produce the same runtime when they share a description
+    /// and route. The destination pointer is then the activation authority.
+    fn delete_renamed_source_locked(&self, name: &str) -> Result<()> {
+        self.delete_profile_locked_inner(name, true)
+    }
+
+    fn delete_profile_locked_inner(&self, name: &str, pointer_owns_runtime: bool) -> Result<()> {
         let profiles = base::mutate_profiles_with_current(
             &self.paths.profiles_file,
             |profiles, current| {
@@ -416,7 +478,7 @@ impl GrokPlatform {
                     Some(profile) => self.runtime_matches_profile(name, profile)?,
                     None => false,
                 };
-                if active_by_intent || active_by_runtime {
+                if active_by_intent || (active_by_runtime && !pointer_owns_runtime) {
                     return Err(CcrError::ValidationError(format!(
                         "Grok profile '{name}' 当前处于激活状态，请先执行 off 或切换到其他 profile"
                     )));

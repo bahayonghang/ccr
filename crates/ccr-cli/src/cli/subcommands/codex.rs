@@ -5,8 +5,8 @@
 use clap::Subcommand;
 
 use super::profile_args::{
-    ProfileCreateActionArgs, ProfileDisableActionArgs, ProfileNameJsonActionArgs,
-    ProfileOffActionArgs, ProfileSetFieldActionArgs,
+    CodexProfileEditActionArgs, ProfileCreateActionArgs, ProfileDisableActionArgs,
+    ProfileNameJsonActionArgs, ProfileOffActionArgs, ProfileSetFieldActionArgs,
 };
 
 /// Codex 子命令
@@ -200,6 +200,9 @@ pub enum CodexProfileAction {
 
     /// Update one Codex profile field
     SetField(ProfileSetFieldActionArgs),
+
+    /// 一次修改多个字段、改名或替换密钥
+    Edit(Box<CodexProfileEditActionArgs>),
 
     /// Enable a Codex profile
     Enable(ProfileNameJsonActionArgs),

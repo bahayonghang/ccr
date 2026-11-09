@@ -49,6 +49,7 @@ A copy with missing identity metadata can be saved explicitly. Switching rejects
 | `ccr grok profile list` | list profiles; supports `--json` |
 | `ccr grok profile switch <name>` | apply a profile |
 | `ccr grok profile create <name>` | create a profile |
+| `ccr grok profile edit <name>` | change several fields, rename, or replace a secret |
 | `ccr grok profile set-field <name> <field>` | update or clear one field |
 | `ccr grok profile enable <name>` | enable a profile |
 | `ccr grok profile disable <name>` | disable a profile |
@@ -81,7 +82,22 @@ ccr grok profile switch relay
 ccr grok profile current --json
 ```
 
-`api_backend` accepts `chat_completions`, `responses`, or `messages`. `reasoning_effort` accepts Grok Build's canonical `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max` levels; other values are rejected. `set-field` supports `api_backend`, `api_key`, `env_key`, `context_window`, `supports_backend_search`, and `reasoning_effort`; use `--clear` to remove one:
+`api_backend` accepts `chat_completions`, `responses`, or `messages`. `reasoning_effort` accepts Grok Build's canonical `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max` levels; other values are rejected. `set-field` supports `api_backend`, `api_key`, `env_key`, `context_window`, `supports_backend_search`, and `reasoning_effort`; use `--clear` to remove one. It uses the same write path as `edit`: setting `api_key` removes `env_key`, setting `env_key` removes `api_key`, a stale catalog revision is rejected, and editing the active profile re-applies the runtime.
+
+```bash
+ccr grok profile edit relay \
+  --description "Relay" \
+  --model grok-example \
+  --base-url https://api.example.com/v1 \
+  --reasoning-effort high
+
+printf '%s' "$GROK_API_KEY" | ccr grok profile edit relay --api-key-stdin
+ccr grok profile edit relay --env-key GROK_RELAY_KEY
+```
+
+Secrets are read from stdin only. `--json` does not include them. `--no-apply` changes storage only. Disabling the active profile is rejected.
+
+Single-field `set-field` example:
 
 ```bash
 ccr grok profile set-field relay reasoning_effort --value high

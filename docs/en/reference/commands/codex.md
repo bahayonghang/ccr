@@ -38,11 +38,24 @@ ccr codex profile off
 - `switch <name>`
 - `off`
 - `create`
+- `edit`
 - `set-field`
 - `enable`
 - `disable`
 - `delete`
 - `open`
+
+`ccr codex profile edit <name>` changes the description, model, base URL, tags, and `model_reasoning_effort`, and can `--rename`. Read a secret with `--auth-token-stdin`. Editing the active profile re-applies the runtime; `--no-apply` changes storage only. `--json` does not include secrets. `set-field` uses the same write path, so it checks the catalog revision and re-applies the runtime when the edited profile is current.
+
+```bash
+ccr codex profile edit work \
+  --description "Work" \
+  --model gpt-6.1-sol \
+  --base-url https://api.example.com \
+  --reasoning-effort high
+
+printf '%s' "$OPENAI_API_KEY" | ccr codex profile edit work --auth-token-stdin
+```
 
 ## `fix`
 

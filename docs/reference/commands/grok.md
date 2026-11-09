@@ -49,6 +49,7 @@ ccr grok auth delete work --force
 | `ccr grok profile list` | 列出 profiles；支持 `--json` |
 | `ccr grok profile switch <name>` | 应用 profile |
 | `ccr grok profile create <name>` | 创建 profile |
+| `ccr grok profile edit <name>` | 一次修改多个字段、改名或替换密钥 |
 | `ccr grok profile set-field <name> <field>` | 更新或清空单个字段 |
 | `ccr grok profile enable <name>` | 启用 profile |
 | `ccr grok profile disable <name>` | 禁用 profile |
@@ -81,7 +82,22 @@ ccr grok profile switch relay
 ccr grok profile current --json
 ```
 
-`api_backend` 允许 `chat_completions`、`responses`、`messages`。`reasoning_effort` 接受 Grok Build 的规范等级 `none`、`minimal`、`low`、`medium`、`high`、`xhigh`、`max`；其他值会被拒绝。`set-field` 支持 `api_backend`、`api_key`、`env_key`、`context_window`、`supports_backend_search`、`reasoning_effort`，并可用 `--clear` 删除字段：
+`api_backend` 允许 `chat_completions`、`responses`、`messages`。`reasoning_effort` 接受 Grok Build 的规范等级 `none`、`minimal`、`low`、`medium`、`high`、`xhigh`、`max`；其他值会被拒绝。`set-field` 支持 `api_backend`、`api_key`、`env_key`、`context_window`、`supports_backend_search`、`reasoning_effort`，并可用 `--clear` 删除字段。它与 `edit` 使用同一写入路径：写入 `api_key` 会移除 `env_key`，写入 `env_key` 会移除 `api_key`；catalog 版本不符时拒绝写入；编辑当前生效的 profile 会重新应用运行时。
+
+```bash
+ccr grok profile edit relay \
+  --description "Relay" \
+  --model grok-example \
+  --base-url https://api.example.com/v1 \
+  --reasoning-effort high
+
+printf '%s' "$GROK_API_KEY" | ccr grok profile edit relay --api-key-stdin
+ccr grok profile edit relay --env-key GROK_RELAY_KEY
+```
+
+密钥只从标准输入读取。`--json` 不输出密钥。`--no-apply` 只改存储。把当前生效的 profile 设为禁用会被拒绝。
+
+`set-field` 的单字段示例：
 
 ```bash
 ccr grok profile set-field relay reasoning_effort --value high

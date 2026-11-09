@@ -5,6 +5,7 @@ pub mod platform_switch;
 pub mod profile_activity;
 #[cfg(any(test, feature = "test-support"))]
 pub mod profile_contract;
+pub mod profile_edit;
 pub mod profile_lifecycle;
 pub mod profile_off;
 pub mod profile_switch;

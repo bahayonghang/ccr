@@ -955,6 +955,288 @@ fn injected_first_create_markers_match_platform_and_existing_inactive_stays_inac
 }
 
 #[test]
+fn same_name_current_edit_reapplies_only_for_if_current() {
+    use crate::models::ApplyPolicy;
+    for platform in [Platform::Claude, Platform::Codex] {
+        let fixture = tempfile::tempdir().unwrap();
+        let context = context(fixture.path(), platform);
+        seed(&context);
+        assert!(
+            context
+                .apply(ApplyProfileRequest::new(platform, "old"))
+                .unwrap()
+                .activation_committed
+        );
+        let runtime = context.instance().get_settings_path();
+        let before = std::fs::read(&runtime).unwrap();
+        assert!(String::from_utf8_lossy(&before).contains("https://fixture.invalid"));
+        let revision = context.manager().snapshot().unwrap().version;
+        let legacy = context
+            .update_with_policy(
+                "old",
+                "old",
+                Some(&revision),
+                ApplyPolicy::IfRenamed,
+                |profile| {
+                    profile.description = Some("legacy description".into());
+                    Ok(())
+                },
+            )
+            .unwrap();
+        assert!(!legacy.activation_committed, "{platform}: {legacy:?}");
+        assert_eq!(std::fs::read(&runtime).unwrap(), before);
+        assert!(
+            context
+                .apply(ApplyProfileRequest::new(platform, "old"))
+                .unwrap()
+                .activation_committed,
+            "{platform}"
+        );
+
+        let revision = context.manager().snapshot().unwrap().version;
+        let applied = context
+            .update_with_policy(
+                "old",
+                "old",
+                Some(&revision),
+                ApplyPolicy::IfCurrent,
+                |profile| {
+                    profile.base_url = Some("https://edited.example".into());
+                    Ok(())
+                },
+            )
+            .unwrap();
+        assert!(applied.activation_committed, "{platform}: {applied:?}");
+        let runtime_text = std::fs::read_to_string(&runtime).unwrap();
+        assert!(
+            runtime_text.contains("https://edited.example"),
+            "{runtime_text}"
+        );
+
+        let before_disable = snapshot(&context);
+        let revision = context.manager().snapshot().unwrap().version;
+        let error = context
+            .update_with_policy(
+                "old",
+                "old",
+                Some(&revision),
+                ApplyPolicy::IfCurrent,
+                |profile| {
+                    profile.enabled = Some(false);
+                    Ok(())
+                },
+            )
+            .unwrap_err();
+        assert!(error.to_string().contains("不能禁用当前生效的 profile"));
+        assert_eq!(snapshot(&context), before_disable);
+        assert!(!format!("{error}").contains(SENTINEL));
+
+        let revision = context.manager().snapshot().unwrap().version;
+        let stored = context
+            .update_with_policy(
+                "old",
+                "old",
+                Some(&revision),
+                ApplyPolicy::Never,
+                |profile| {
+                    profile.base_url = Some("https://stored-only.example".into());
+                    Ok(())
+                },
+            )
+            .unwrap();
+        assert!(!stored.activation_committed);
+        let runtime_text = std::fs::read_to_string(&runtime).unwrap();
+        assert!(runtime_text.contains("https://edited.example"));
+        assert!(!runtime_text.contains("https://stored-only.example"));
+        assert_eq!(
+            context.instance().load_profiles().unwrap()["old"]
+                .base_url
+                .as_deref(),
+            Some("https://stored-only.example")
+        );
+    }
+}
+
+#[test]
+fn same_name_reapply_failure_restores_catalog_and_runtime() {
+    use crate::models::ApplyPolicy;
+    for platform in [Platform::Claude, Platform::Codex] {
+        let fixture = tempfile::tempdir().unwrap();
+        let context = context(fixture.path(), platform);
+        seed(&context);
+        assert!(
+            context
+                .apply(ApplyProfileRequest::new(platform, "old"))
+                .unwrap()
+                .activation_committed
+        );
+        let revision = context.manager().snapshot().unwrap().version;
+        context
+            .update_with_policy(
+                "old",
+                "old",
+                Some(&revision),
+                ApplyPolicy::IfCurrent,
+                |profile| {
+                    profile.base_url = Some("https://edited.example".into());
+                    Ok(())
+                },
+            )
+            .unwrap();
+        let before = snapshot(&context);
+        let revision = context.manager().snapshot().unwrap().version;
+        let _fault = fault::install(|path| {
+            if write_journal::contains(path) {
+                Err(CcrError::FileIoError("synthetic injected failure".into()))
+            } else {
+                Ok(())
+            }
+        });
+        let outcome = context
+            .update_with_policy(
+                "old",
+                "old",
+                Some(&revision),
+                ApplyPolicy::IfCurrent,
+                |profile| {
+                    profile.base_url = Some("https://failed.example".into());
+                    Ok(())
+                },
+            )
+            .unwrap();
+        assert_eq!(outcome.status, ProfileStatus::Unchanged, "{outcome:?}");
+        assert!(!outcome.activation_committed);
+        assert_eq!(snapshot(&context), before);
+        assert!(!format!("{outcome:?}").contains(SENTINEL));
+        assert_eq!(
+            context.instance().load_profiles().unwrap()["old"]
+                .base_url
+                .as_deref(),
+            Some("https://edited.example")
+        );
+    }
+}
+
+#[test]
+fn grok_same_name_if_current_reapplies_and_reports_apply_failure() {
+    use crate::models::ApplyPolicy;
+    use crate::platforms::grok::GrokProfileUpdateOutcome;
+    let fixture = tempfile::tempdir().unwrap();
+    let context = context(fixture.path(), Platform::Grok);
+    seed(&context);
+    assert!(
+        context
+            .apply(ApplyProfileRequest::new(Platform::Grok, "old"))
+            .unwrap()
+            .activation_committed
+    );
+    let platform = context.grok_platform().unwrap();
+    let runtime = platform.get_settings_path();
+    let revision = context.manager().snapshot().unwrap().version;
+    let outcome = context
+        .run(|| {
+            platform.update_profile_versioned_with_policy(
+                "old",
+                "old",
+                Some(&revision),
+                ApplyPolicy::IfCurrent,
+                |profile| {
+                    profile.base_url = Some("https://edited.example".into());
+                    Ok(())
+                },
+            )
+        })
+        .unwrap();
+    assert!(matches!(outcome, GrokProfileUpdateOutcome::Updated { .. }));
+    let runtime_text = std::fs::read_to_string(&runtime).unwrap();
+    assert!(
+        runtime_text.contains("https://edited.example"),
+        "{runtime_text}"
+    );
+    let before_disable = std::fs::read(&runtime).unwrap();
+    let revision = context.manager().snapshot().unwrap().version;
+    let error = context
+        .run(|| {
+            platform.update_profile_versioned_with_policy(
+                "old",
+                "old",
+                Some(&revision),
+                ApplyPolicy::IfCurrent,
+                |profile| {
+                    profile.enabled = Some(false);
+                    Ok(())
+                },
+            )
+        })
+        .err()
+        .expect("disabling the active Grok profile should fail");
+    assert!(error.to_string().contains("不能禁用当前生效的 profile"));
+    assert_eq!(std::fs::read(&runtime).unwrap(), before_disable);
+    assert!(platform.load_profiles().unwrap()["old"].is_enabled());
+
+    let revision = context.manager().snapshot().unwrap().version;
+    let before = std::fs::read(&runtime).unwrap();
+    context
+        .run(|| {
+            platform.update_profile_versioned("old", "old", Some(&revision), |profile| {
+                profile.base_url = Some("https://legacy.example".into());
+                Ok(())
+            })
+        })
+        .unwrap();
+    assert_eq!(std::fs::read(&runtime).unwrap(), before);
+    assert_eq!(
+        platform.load_profiles().unwrap()["old"].base_url.as_deref(),
+        Some("https://legacy.example")
+    );
+
+    assert!(
+        context
+            .apply(ApplyProfileRequest::new(Platform::Grok, "old"))
+            .unwrap()
+            .activation_committed
+    );
+    let revision = context.manager().snapshot().unwrap().version;
+    let runtime_for_fault = runtime.clone();
+    let _fault = fault::install(move |path| {
+        if path == runtime_for_fault {
+            Err(CcrError::FileIoError("fixture apply failure".into()))
+        } else {
+            Ok(())
+        }
+    });
+    let failed = context
+        .run(|| {
+            platform.update_profile_versioned_with_policy(
+                "old",
+                "old",
+                Some(&revision),
+                ApplyPolicy::IfCurrent,
+                |profile| {
+                    profile.base_url = Some("https://failed.example".into());
+                    Ok(())
+                },
+            )
+        })
+        .unwrap();
+    assert!(matches!(
+        failed,
+        GrokProfileUpdateOutcome::UpdatedApplyFailed { .. }
+    ));
+    assert_eq!(
+        platform.load_profiles().unwrap()["old"].base_url.as_deref(),
+        Some("https://failed.example")
+    );
+    assert!(
+        !std::fs::read_to_string(&runtime)
+            .unwrap()
+            .contains("https://failed.example")
+    );
+
+    drop(_fault);
+}
+
+#[test]
 fn injected_first_create_commit_failure_leaves_no_secret_or_catalog() {
     for platform in [Platform::Claude, Platform::Codex, Platform::Grok] {
         let fixture = tempfile::tempdir().unwrap();

@@ -5,8 +5,8 @@
 use clap::Subcommand;
 
 use super::profile_args::{
-    ProfileCreateActionArgs, ProfileDisableActionArgs, ProfileNameJsonActionArgs,
-    ProfileOffActionArgs, ProfileSetFieldActionArgs,
+    ProfileCreateActionArgs, ProfileDisableActionArgs, ProfileEditActionArgs,
+    ProfileNameJsonActionArgs, ProfileOffActionArgs, ProfileSetFieldActionArgs,
 };
 
 /// Claude 子命令
@@ -130,6 +130,9 @@ pub enum ClaudeProfileAction {
 
     /// Update one Claude profile field
     SetField(ProfileSetFieldActionArgs),
+
+    /// 一次修改多个字段、改名或替换密钥
+    Edit(Box<ProfileEditActionArgs>),
 
     /// Enable a Claude profile
     Enable(ProfileNameJsonActionArgs),

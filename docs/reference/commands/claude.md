@@ -36,6 +36,7 @@ ccr help claude profile
 | `ccr claude profile list` | 列出 profiles；支持 `--json` |
 | `ccr claude profile switch <name>` | 应用指定 profile |
 | `ccr claude profile create <name>` | 创建 profile |
+| `ccr claude profile edit <name>` | 一次修改多个字段、改名或替换密钥 |
 | `ccr claude profile set-field <name> <field>` | 更新或清空单个字段 |
 | `ccr claude profile enable <name>` | 启用 profile |
 | `ccr claude profile disable <name>` | 禁用 profile；当前项需要 `--force` |
@@ -58,7 +59,22 @@ ccr claude profile current --json
 
 `create` 还支持 description、small-fast-model、provider、provider-type、account、重复 `--tag`、`--disabled` 和 `--json`。用 `ccr help claude profile create` 查看当前完整选项。
 
-`set-field` 接受 `--value`、适用于数组的 `--value-json`，或 `--clear`；三者互斥。
+`set-field` 接受 `--value`、适用于数组的 `--value-json`，或 `--clear`；三者互斥。它与 `edit` 使用同一写入路径：catalog 版本不符时拒绝写入，编辑当前生效的 profile 会重新应用运行时。
+
+一次修改多个字段：
+
+```bash
+ccr claude profile edit work \
+  --description "Work profile" \
+  --model claude-sonnet-4-5 \
+  --base-url https://api.example.com \
+  --rename work-2026
+
+printf '%s' "$ANTHROPIC_AUTH_TOKEN" | ccr claude profile edit work --auth-token-stdin
+ccr claude profile edit work --no-apply --description "只改存储"
+```
+
+`edit` 用 `--rename` 改名，重复的 `--tag` 整体替换标签，`--enable` / `--disable` 改启用状态，`--set field=value` 与 `--clear field` 补充白名单字段。密钥只从标准输入读取，命令行不接受密钥原文。`--expected-revision` 与当前 catalog 不一致时拒绝写入。把当前生效的 profile 设为禁用会被拒绝。`--json` 只输出字段名、新旧名称、revision 和是否重新应用，不输出密钥。
 
 ## Auth Mode 边界
 

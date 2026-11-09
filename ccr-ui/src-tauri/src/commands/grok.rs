@@ -602,6 +602,11 @@ fn grok_update_response(
                         .into(),
             }
         }
+        GrokUpdateOutcome::UpdatedApplyFailed { name } => {
+            return Err(format!(
+                "Grok profile '{name}' 已保存，但重新应用运行时失败"
+            ));
+        }
     })
 }
 

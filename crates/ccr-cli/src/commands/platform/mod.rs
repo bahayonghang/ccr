@@ -17,6 +17,7 @@ mod init;
 mod list;
 mod profile;
 mod profile_card;
+mod profile_edit_cmd;
 mod profile_init;
 pub(crate) mod profile_open;
 mod switch;
@@ -34,6 +35,7 @@ pub use profile::{
     platform_profile_set_field_command,
 };
 pub use profile_card::print_status_card;
+pub use profile_edit_cmd::{ProfileEditCommand, platform_profile_edit_command, read_secret_text};
 pub use profile_init::platform_profile_init_command;
 pub use profile_open::{platform_profile_open_command, template_for};
 pub use switch::platform_switch_command;

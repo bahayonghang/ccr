@@ -514,6 +514,9 @@ fn execute(
                         GrokProfileUpdateOutcome::RenameCleanupFailed { .. } => {
                             "rename_cleanup_failed"
                         }
+                        GrokProfileUpdateOutcome::UpdatedApplyFailed { .. } => {
+                            "updated_apply_failed"
+                        }
                     };
                     return Ok(ProfileResult::GrokUpdate {
                         status,

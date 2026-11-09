@@ -1,14 +1,15 @@
 #![allow(clippy::unused_async)]
 
 use crate::application::profile_off_for_platform;
-use crate::cli::subcommands::grok::GrokProfileCreateActionArgs;
+use crate::cli::subcommands::grok::{GrokProfileCreateActionArgs, GrokProfileEditActionArgs};
 use crate::cli::subcommands::profile_args::{
     ProfileDisableActionArgs, ProfileNameJsonActionArgs, ProfileSetFieldActionArgs,
 };
 use crate::commands::common::new_utf8_table;
 use crate::commands::platform::{
-    PlatformProfileCreateArgs, platform_profile_create_command, platform_profile_delete_command,
-    platform_profile_disable_command, platform_profile_enable_command,
+    PlatformProfileCreateArgs, ProfileEditCommand, platform_profile_create_command,
+    platform_profile_delete_command, platform_profile_disable_command,
+    platform_profile_edit_command, platform_profile_enable_command,
     platform_profile_set_field_command,
 };
 use crate::commands::profile::switch_command_for_platform;
@@ -284,6 +285,17 @@ pub async fn set_field_command(args: ProfileSetFieldActionArgs) -> Result<()> {
         args.json,
     )
     .await
+}
+
+pub async fn edit_command(args: GrokProfileEditActionArgs) -> Result<()> {
+    let mut command = ProfileEditCommand::from_common("grok", args.common);
+    command.api_backend = args.api_backend;
+    command.api_key_stdin = args.api_key_stdin;
+    command.env_key = args.env_key;
+    command.context_window = args.context_window;
+    command.supports_backend_search = args.supports_backend_search;
+    command.reasoning_effort = args.reasoning_effort;
+    platform_profile_edit_command(command).await
 }
 
 pub async fn enable_command(args: ProfileNameJsonActionArgs) -> Result<()> {

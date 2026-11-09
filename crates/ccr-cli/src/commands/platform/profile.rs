@@ -2,24 +2,15 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::models::{Platform, PlatformConfig, ProfileConfig};
+use crate::application::profile_edit::{
+    self, EditProfileRequest, FieldEdit, SecretEdit, ensure_set_field_allowed, normalize_tags,
+};
+use crate::models::{ApplyPolicy, Platform, PlatformConfig, ProfileConfig};
 use crate::platforms::create_platform;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
 use serde::Serialize;
 use std::str::FromStr;
-
-const DEFAULT_EDITABLE_FIELDS: &[&str] = &[
-    "description",
-    "base_url",
-    "auth_token",
-    "model",
-    "small_fast_model",
-    "provider",
-    "provider_type",
-    "account",
-    "tags",
-];
 
 #[derive(Debug, Serialize)]
 struct PlatformProfileMutationOutput {
@@ -71,26 +62,6 @@ fn parse_platform(platform_name: &str) -> Result<Platform> {
     }
 }
 
-fn editable_fields(platform: Platform) -> &'static [&'static str] {
-    match platform {
-        Platform::Codex => ccr_codex::CodexPlatform::editable_fields(),
-        Platform::Claude => crate::platforms::ClaudePlatform::editable_fields(),
-        Platform::Grok => crate::platforms::GrokPlatform::editable_fields(),
-        _ => DEFAULT_EDITABLE_FIELDS,
-    }
-}
-
-fn ensure_field_allowed(platform: Platform, field: &str) -> Result<()> {
-    if editable_fields(platform).contains(&field) {
-        Ok(())
-    } else {
-        Err(CcrError::ValidationError(format!(
-            "平台 '{}' 不允许编辑字段 '{}'",
-            platform, field
-        )))
-    }
-}
-
 fn load_existing_profile(platform_impl: &dyn PlatformConfig, name: &str) -> Result<ProfileConfig> {
     let mut profiles = platform_impl.load_profiles()?;
     profiles
@@ -108,222 +79,6 @@ fn print_output(output: &PlatformProfileMutationOutput, json: bool) -> Result<()
     }
 
     ColorOutput::success(&output.message);
-    Ok(())
-}
-
-fn normalize_tags(tags: Vec<String>) -> Option<Vec<String>> {
-    let normalized = tags
-        .into_iter()
-        .map(|tag| tag.trim().to_string())
-        .filter(|tag| !tag.is_empty())
-        .collect::<Vec<_>>();
-
-    if normalized.is_empty() {
-        None
-    } else {
-        Some(normalized)
-    }
-}
-
-fn update_profile_field(
-    profile: &mut ProfileConfig,
-    field: &str,
-    value: Option<String>,
-    value_json: Option<String>,
-    clear: bool,
-) -> Result<()> {
-    match field {
-        "description" => profile.description = if clear { None } else { value },
-        "base_url" => profile.base_url = if clear { None } else { value },
-        "auth_token" => {
-            profile.auth_token = if clear {
-                None
-            } else {
-                value.map(ccr_core::Secret::new)
-            }
-        }
-        "api_key" => {
-            if clear {
-                profile.platform_data.shift_remove("api_key");
-            } else {
-                if value_json.is_some() {
-                    return Err(CcrError::ValidationError("api_key 需要非空字符串".into()));
-                }
-                let api_key = value
-                    .ok_or_else(|| CcrError::ValidationError("api_key 需要非空字符串".into()))?
-                    .trim()
-                    .to_string();
-                if api_key.is_empty() {
-                    return Err(CcrError::ValidationError("api_key 需要非空字符串".into()));
-                }
-                profile
-                    .platform_data
-                    .insert("api_key".to_string(), serde_json::Value::String(api_key));
-            }
-        }
-        "model" => profile.model = if clear { None } else { value },
-        "small_fast_model" => profile.small_fast_model = if clear { None } else { value },
-        "provider" => profile.provider = if clear { None } else { value },
-        "provider_type" => profile.provider_type = if clear { None } else { value },
-        "account" => profile.account = if clear { None } else { value },
-        "auth_mode" => {
-            if clear {
-                profile
-                    .platform_data
-                    .shift_remove(crate::platforms::ClaudePlatform::AUTH_MODE_FIELD);
-            } else {
-                let value = value
-                    .ok_or_else(|| CcrError::ValidationError("auth_mode 需要非空字符串".into()))?;
-                let trimmed = value.trim();
-                if trimmed.is_empty() {
-                    return Err(CcrError::ValidationError("auth_mode 不能为空字符串".into()));
-                }
-                profile.platform_data.insert(
-                    crate::platforms::ClaudePlatform::AUTH_MODE_FIELD.to_string(),
-                    serde_json::Value::String(trimmed.to_string()),
-                );
-            }
-        }
-        "api_backend" => {
-            if clear {
-                profile.platform_data.shift_remove("api_backend");
-            } else {
-                let backend = value
-                    .ok_or_else(|| CcrError::ValidationError("api_backend 需要非空字符串".into()))?
-                    .trim()
-                    .to_ascii_lowercase();
-                if !matches!(
-                    backend.as_str(),
-                    "chat_completions" | "responses" | "messages"
-                ) {
-                    return Err(CcrError::ValidationError(
-                        "api_backend 仅支持 chat_completions、responses 或 messages".into(),
-                    ));
-                }
-                profile.platform_data.insert(
-                    "api_backend".to_string(),
-                    serde_json::Value::String(backend),
-                );
-            }
-        }
-        "env_key" => {
-            if clear {
-                profile.platform_data.shift_remove("env_key");
-            } else {
-                if value_json.is_some() {
-                    return Err(CcrError::ValidationError(
-                        "env_key MVP 仅支持单个环境变量名，不接受数组".into(),
-                    ));
-                }
-                let env_key = value
-                    .ok_or_else(|| CcrError::ValidationError("env_key 需要非空字符串".into()))?
-                    .trim()
-                    .to_string();
-                if env_key.is_empty() || env_key.starts_with('[') || env_key.contains(',') {
-                    return Err(CcrError::ValidationError(
-                        "env_key MVP 仅支持单个环境变量名，不接受数组".into(),
-                    ));
-                }
-                profile
-                    .platform_data
-                    .insert("env_key".to_string(), serde_json::Value::String(env_key));
-            }
-        }
-        "context_window" => {
-            if clear {
-                profile.platform_data.shift_remove("context_window");
-            } else {
-                if value_json.is_some() {
-                    return Err(CcrError::ValidationError(
-                        "context_window 需为正整数".into(),
-                    ));
-                }
-                let context_window = value
-                    .as_deref()
-                    .and_then(|raw| raw.trim().parse::<u64>().ok())
-                    .filter(|value| *value > 0)
-                    .ok_or_else(|| CcrError::ValidationError("context_window 需为正整数".into()))?;
-                profile.platform_data.insert(
-                    "context_window".to_string(),
-                    serde_json::Value::Number(context_window.into()),
-                );
-            }
-        }
-        "supports_backend_search" => {
-            if clear {
-                profile
-                    .platform_data
-                    .shift_remove("supports_backend_search");
-            } else {
-                if value_json.is_some() {
-                    return Err(CcrError::ValidationError(
-                        "supports_backend_search 仅支持 true、false、1 或 0".into(),
-                    ));
-                }
-                let enabled = match value.as_deref().map(str::trim) {
-                    Some("true" | "1") => true,
-                    Some("false" | "0") => false,
-                    _ => {
-                        return Err(CcrError::ValidationError(
-                            "supports_backend_search 仅支持 true、false、1 或 0".into(),
-                        ));
-                    }
-                };
-                profile.platform_data.insert(
-                    "supports_backend_search".to_string(),
-                    serde_json::Value::Bool(enabled),
-                );
-            }
-        }
-        "reasoning_effort" => {
-            if clear {
-                profile.platform_data.shift_remove("reasoning_effort");
-            } else {
-                if value_json.is_some() {
-                    return Err(CcrError::ValidationError(
-                        "reasoning_effort 需要非空字符串".into(),
-                    ));
-                }
-                let value = value.ok_or_else(|| {
-                    CcrError::ValidationError("reasoning_effort 需要非空字符串".into())
-                })?;
-                let normalized =
-                    crate::platforms::GrokPlatform::normalize_reasoning_effort(&value)?;
-                profile.platform_data.insert(
-                    "reasoning_effort".to_string(),
-                    serde_json::Value::String(normalized),
-                );
-            }
-        }
-        "tags" => {
-            if clear {
-                profile.tags = None;
-            } else if let Some(raw_json) = value_json {
-                let tags: Vec<String> = serde_json::from_str(&raw_json).map_err(|e| {
-                    CcrError::ValidationError(format!(
-                        "tags 的 value-json 不是合法 JSON 数组: {}",
-                        e
-                    ))
-                })?;
-                profile.tags = normalize_tags(tags);
-            } else {
-                profile.tags = normalize_tags(
-                    value
-                        .unwrap_or_default()
-                        .split(',')
-                        .map(str::to_string)
-                        .collect(),
-                );
-            }
-        }
-        _ => {
-            return Err(CcrError::ValidationError(format!(
-                "不支持的字段 '{}'",
-                field
-            )));
-        }
-    }
-
     Ok(())
 }
 
@@ -442,6 +197,30 @@ pub async fn platform_profile_set_field_command(
     clear: bool,
     json: bool,
 ) -> Result<()> {
+    set_field_command_with_revision(
+        platform_name,
+        name,
+        field,
+        value,
+        value_json,
+        clear,
+        json,
+        None,
+    )
+    .await
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) async fn set_field_command_with_revision(
+    platform_name: &str,
+    name: &str,
+    field: &str,
+    value: Option<String>,
+    value_json: Option<String>,
+    clear: bool,
+    json: bool,
+    expected_revision: Option<String>,
+) -> Result<()> {
     if !clear && value.is_none() && value_json.is_none() {
         return Err(CcrError::ValidationError(
             "必须提供 --value / --value-json 或 --clear".into(),
@@ -449,12 +228,27 @@ pub async fn platform_profile_set_field_command(
     }
 
     let platform = parse_platform(platform_name)?;
-    ensure_field_allowed(platform, field)?;
-    let platform_impl = create_platform(platform)?;
-    let mut profile = load_existing_profile(platform_impl.as_ref(), name)?;
-    update_profile_field(&mut profile, field, value, value_json, clear)?;
-    platform_impl.save_profile(name, &profile)?;
+    ensure_set_field_allowed(platform, field)?;
+    let outcome = profile_edit::edit_profile(EditProfileRequest {
+        platform,
+        name: name.to_string(),
+        rename: None,
+        expected_revision,
+        fields: vec![FieldEdit::Legacy {
+            field: field.to_string(),
+            value,
+            value_json,
+            clear,
+        }],
+        secret: SecretEdit::Keep,
+        apply: ApplyPolicy::IfCurrent,
+    })?;
+    if !outcome.is_success() {
+        return Err(CcrError::ConfigError(outcome.failure_message().into()));
+    }
 
+    let platform_impl = create_platform(platform)?;
+    let profile = load_existing_profile(platform_impl.as_ref(), name)?;
     let output = PlatformProfileMutationOutput {
         ok: true,
         platform: platform_name.to_string(),
@@ -544,24 +338,7 @@ pub async fn platform_profile_delete_command(
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_update_profile_field_supports_tags_json() {
-        let mut profile = ProfileConfig::new();
-        update_profile_field(
-            &mut profile,
-            "tags",
-            None,
-            Some(r#"[" work ","team",""]"#.to_string()),
-            false,
-        )
-        .unwrap();
-
-        assert_eq!(
-            profile.tags,
-            Some(vec!["work".to_string(), "team".to_string()])
-        );
-    }
+    use crate::models::ProfileConfig;
 
     #[test]
     fn test_parse_platform_rejects_non_auth_profile_platforms() {
@@ -573,107 +350,47 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_update_profile_field_parses_grok_specific_values() {
-        let mut profile = ProfileConfig::new();
+    #[tokio::test]
+    async fn set_field_rejects_stale_revision_without_writing() {
+        let _home = crate::test_support::TestHome::new();
+        let platform = create_platform(Platform::Claude).unwrap();
+        let mut profile = ProfileConfig::new().with_model("model-old".into());
+        profile.description = Some("before".into());
+        platform.save_profile("work", &profile).unwrap();
+        let paths = crate::models::PlatformPaths::new(Platform::Claude).unwrap();
+        let manager = ccr_config::ConfigManager::new(&paths.profiles_file);
+        let revision = manager.snapshot().unwrap().version;
 
-        update_profile_field(
-            &mut profile,
-            "api_backend",
-            Some("MESSAGES".into()),
+        set_field_command_with_revision(
+            "claude",
+            "work",
+            "description",
+            Some("after".into()),
             None,
             false,
-        )
-        .unwrap();
-        update_profile_field(
-            &mut profile,
-            "api_key",
-            Some("INLINE_SECRET_SENTINEL".into()),
-            None,
             false,
-        )
-        .unwrap();
-        update_profile_field(
-            &mut profile,
-            "env_key",
-            Some("GROK_RELAY_KEY".into()),
             None,
-            false,
         )
-        .unwrap();
-        update_profile_field(
-            &mut profile,
-            "context_window",
-            Some("1000000".into()),
-            None,
-            false,
-        )
-        .unwrap();
-        update_profile_field(
-            &mut profile,
-            "supports_backend_search",
-            Some("1".into()),
-            None,
-            false,
-        )
-        .unwrap();
-        update_profile_field(
-            &mut profile,
-            "reasoning_effort",
-            Some(" HIGH ".into()),
-            None,
-            false,
-        )
+        .await
         .unwrap();
 
-        assert_eq!(profile.platform_data["api_backend"], "messages");
-        assert_eq!(profile.platform_data["api_key"], "INLINE_SECRET_SENTINEL");
-        assert_eq!(profile.platform_data["env_key"], "GROK_RELAY_KEY");
-        assert_eq!(profile.platform_data["context_window"], 1_000_000);
-        assert_eq!(profile.platform_data["supports_backend_search"], true);
-        assert_eq!(profile.platform_data["reasoning_effort"], "high");
-
-        for field in [
-            "api_backend",
-            "api_key",
-            "env_key",
-            "context_window",
-            "supports_backend_search",
-            "reasoning_effort",
-        ] {
-            update_profile_field(&mut profile, field, None, None, true).unwrap();
-            assert!(!profile.platform_data.contains_key(field));
-        }
-    }
-
-    #[test]
-    fn test_update_profile_field_rejects_invalid_grok_specific_values() {
-        let invalid = [
-            ("api_backend", Some("legacy".to_string()), None),
-            ("api_key", Some("  ".to_string()), None),
-            ("context_window", Some("0".to_string()), None),
-            ("supports_backend_search", Some("maybe".to_string()), None),
-            ("env_key", None, Some(r#"["A","B"]"#.to_string())),
-            ("reasoning_effort", Some("  ".to_string()), None),
-            (
-                "reasoning_effort",
-                Some("model-specific-option".to_string()),
-                None,
-            ),
-            ("reasoning_effort", None, Some(r#""high""#.to_string())),
-        ];
-
-        for (field, value, value_json) in invalid {
-            let error =
-                update_profile_field(&mut ProfileConfig::new(), field, value, value_json, false)
-                    .unwrap_err();
-            assert!(matches!(error, CcrError::ValidationError(_)));
-        }
-    }
-
-    #[test]
-    fn test_ensure_field_allowed_rejects_codex_base_url() {
-        let err = ensure_field_allowed(Platform::Codex, "base_url").unwrap_err();
-        assert!(err.to_string().contains("不允许编辑字段"));
+        let error = set_field_command_with_revision(
+            "claude",
+            "work",
+            "description",
+            Some("stale".into()),
+            None,
+            false,
+            false,
+            Some(revision),
+        )
+        .await
+        .unwrap_err();
+        assert!(error.to_string().contains("配置版本冲突"));
+        let stored = create_platform(Platform::Claude)
+            .unwrap()
+            .load_profiles()
+            .unwrap();
+        assert_eq!(stored["work"].description.as_deref(), Some("after"));
     }
 }

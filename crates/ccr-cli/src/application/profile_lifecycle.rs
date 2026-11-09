@@ -4,7 +4,7 @@
 use crate::managers::{
     HistoryEntry, HistoryManager, OperationDetails, OperationResult, OperationType,
 };
-use crate::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
+use crate::models::{ApplyPolicy, Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 use crate::platforms::create_platform;
 use ccr_config::{
     CatalogTransaction, ConfigManager, increment_usage_count, load_applied_operation,
@@ -341,10 +341,40 @@ impl ProfileLifecycleContext {
         expected_version: Option<&str>,
         patch: impl FnOnce(&mut ProfileConfig) -> Result<()>,
     ) -> Result<ProfileOutcome> {
+        self.update_with_policy(
+            name,
+            target,
+            expected_version,
+            ApplyPolicy::IfRenamed,
+            patch,
+        )
+    }
+
+    /// Update with an explicit runtime apply policy.
+    ///
+    /// [`ApplyPolicy::IfRenamed`] is the historical update/rename behavior.
+    /// [`ApplyPolicy::IfCurrent`] also re-applies a same-name edit of the
+    /// current profile. [`ApplyPolicy::Never`] leaves runtime files unchanged.
+    pub fn update_with_policy(
+        &self,
+        name: &str,
+        target: &str,
+        expected_version: Option<&str>,
+        policy: ApplyPolicy,
+        patch: impl FnOnce(&mut ProfileConfig) -> Result<()>,
+    ) -> Result<ProfileOutcome> {
         self.run(|| {
             let _operation = self.operation_lock()?;
             self.with_instance(|instance| {
-                update_with_context(self, instance, name, target, expected_version, patch)
+                update_with_context(
+                    self,
+                    instance,
+                    name,
+                    target,
+                    expected_version,
+                    policy,
+                    patch,
+                )
             })
         })
     }
@@ -823,6 +853,7 @@ fn update_with_context(
     name: &str,
     target: &str,
     expected_version: Option<&str>,
+    policy: ApplyPolicy,
     patch: impl FnOnce(&mut ProfileConfig) -> Result<()>,
 ) -> Result<ProfileOutcome> {
     let platform = context.platform();
@@ -848,11 +879,21 @@ fn update_with_context(
     }
     patch(&mut profile)?;
     instance.validate_profile(&profile)?;
-    let active = target != name && instance.get_current_profile()?.as_deref() == Some(name);
-    if active && !profile.is_enabled() {
-        return Err(CcrError::ValidationError(
-            "Active profile cannot be disabled during rename".into(),
-        ));
+    let is_current = instance.get_current_profile()?.as_deref() == Some(name);
+    let active = match policy {
+        ApplyPolicy::IfCurrent => is_current,
+        ApplyPolicy::Never => false,
+        ApplyPolicy::IfRenamed => target != name && is_current,
+    };
+    let reject_disable = match policy {
+        ApplyPolicy::IfRenamed => active,
+        ApplyPolicy::IfCurrent | ApplyPolicy::Never => is_current,
+    };
+    if reject_disable && !profile.is_enabled() {
+        return Err(CcrError::ValidationError(match policy {
+            ApplyPolicy::IfRenamed => "Active profile cannot be disabled during rename".into(),
+            ApplyPolicy::IfCurrent | ApplyPolicy::Never => "不能禁用当前生效的 profile".into(),
+        }));
     }
     let request = ApplyProfileRequest::new(platform, target);
     execute(

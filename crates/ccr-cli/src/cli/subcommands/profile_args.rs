@@ -69,6 +69,59 @@ pub struct ProfileDisableActionArgs {
 }
 
 #[derive(Args, Debug, Clone)]
+pub struct ProfileEditActionArgs {
+    /// Profile 名称
+    pub name: String,
+    /// 改名后的新名称
+    #[arg(long)]
+    pub rename: Option<String>,
+    #[arg(long)]
+    pub description: Option<String>,
+    #[arg(long)]
+    pub model: Option<String>,
+    #[arg(long = "base-url")]
+    pub base_url: Option<String>,
+    #[arg(long)]
+    pub provider: Option<String>,
+    /// 整体替换标签，可重复
+    #[arg(long = "tag")]
+    pub tags: Vec<String>,
+    #[arg(long, conflicts_with = "disable")]
+    pub enable: bool,
+    #[arg(long, conflicts_with = "enable")]
+    pub disable: bool,
+    /// 补充字段赋值，形式为 field=value，可重复
+    #[arg(long = "set", value_name = "FIELD=VALUE")]
+    pub set: Vec<String>,
+    /// 清空字段，可重复
+    #[arg(long = "clear", value_name = "FIELD")]
+    pub clear: Vec<String>,
+    /// 从标准输入读取密钥，避免进入 shell 历史
+    #[arg(long = "auth-token-stdin", conflicts_with = "clear_auth_token")]
+    pub auth_token_stdin: bool,
+    /// 清除已保存的密钥
+    #[arg(long = "clear-auth-token", conflicts_with = "auth_token_stdin")]
+    pub clear_auth_token: bool,
+    /// 仅当 catalog 仍是这个 revision 时写入
+    #[arg(long = "expected-revision")]
+    pub expected_revision: Option<String>,
+    /// 只修改存储，不重新应用当前生效的运行时
+    #[arg(long = "no-apply")]
+    pub no_apply: bool,
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct CodexProfileEditActionArgs {
+    #[command(flatten)]
+    pub common: ProfileEditActionArgs,
+    /// Codex model_reasoning_effort
+    #[arg(long = "reasoning-effort")]
+    pub reasoning_effort: Option<String>,
+}
+
+#[derive(Args, Debug, Clone)]
 pub struct ProfileOffActionArgs {
     #[arg(long)]
     pub json: bool,

@@ -3,8 +3,8 @@
 use clap::{Args, Subcommand};
 
 use super::profile_args::{
-    ProfileDisableActionArgs, ProfileNameJsonActionArgs, ProfileOffActionArgs,
-    ProfileSetFieldActionArgs,
+    ProfileDisableActionArgs, ProfileEditActionArgs, ProfileNameJsonActionArgs,
+    ProfileOffActionArgs, ProfileSetFieldActionArgs,
 };
 
 #[derive(Subcommand)]
@@ -121,6 +121,9 @@ pub enum GrokProfileAction {
     /// Update one Grok profile field
     SetField(ProfileSetFieldActionArgs),
 
+    /// 一次修改多个字段、改名或替换密钥
+    Edit(Box<GrokProfileEditActionArgs>),
+
     /// Enable a Grok profile
     Enable(ProfileNameJsonActionArgs),
 
@@ -176,4 +179,32 @@ pub struct GrokProfileCreateActionArgs {
     pub disabled: bool,
     #[arg(long)]
     pub json: bool,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct GrokProfileEditActionArgs {
+    #[command(flatten)]
+    pub common: ProfileEditActionArgs,
+    #[arg(long = "api-backend")]
+    pub api_backend: Option<String>,
+    #[arg(
+        long = "api-key-stdin",
+        conflicts_with_all = ["auth_token_stdin", "env_key", "clear_auth_token"]
+    )]
+    pub api_key_stdin: bool,
+    #[arg(
+        long = "env-key",
+        conflicts_with_all = ["api_key_stdin", "auth_token_stdin", "clear_auth_token"]
+    )]
+    pub env_key: Option<String>,
+    #[arg(long = "context-window")]
+    pub context_window: Option<u64>,
+    #[arg(
+        long = "supports-backend-search",
+        num_args = 0..=1,
+        default_missing_value = "true"
+    )]
+    pub supports_backend_search: Option<bool>,
+    #[arg(long = "reasoning-effort")]
+    pub reasoning_effort: Option<String>,
 }
