@@ -397,61 +397,7 @@ impl Render for McpEditor {
             .child(self.title.clone())
             .child(text(cx, "The selected source and scope stay fixed until this editor closes. Existing secret values are not loaded. Only submitted fields change; omitted fields are retained. Leaving discards the draft; a save already started continues.", "编辑器关闭前，所选来源与作用域保持固定。已有密钥不会载入。仅修改提交的字段，省略字段保持不变。离开会丢弃草稿；已开始的保存会继续。"))
             .child(Input::new(&self.name).id("mcp-name").aria_label(text(cx,"Server name","服务器名称")).disabled(!self.mode.creates() || self.busy || self.pending.is_some()));
-        if matches!(self.mode, EditMode::Copy(_)) {
-            root = root.child(text(cx,"Copy the selected server, including stored environment values and supported HTTP headers, into this source. Stored values stay hidden. Existing entries are never overwritten; use a different name if needed.","将所选服务器连同已保存的环境变量与支持的 HTTP 请求头复制到此来源。已保存的值保持隐藏。不会覆盖已有条目；如有重名，请使用其他名称。"));
-        } else if self.mode != EditMode::Delete {
-            root = root.child(semantics::button(
-                Button::new("mcp-editor-advanced")
-                    .label(text(cx, "Advanced JSON patch", "高级 JSON 补丁"))
-                    .ghost()
-                    .on_click(cx.listener(|this, _, window, cx| {
-                        if !this.advanced {
-                            match this
-                                .form
-                                .patch(&this.patch.read(cx).value(), cx)
-                                .and_then(|v| {
-                                    serde_json::to_string(&v)
-                                        .map_err(|_| McpError::Invalid.message())
-                                }) {
-                                Ok(value) => this
-                                    .patch
-                                    .update(cx, |state, cx| state.set_value(value, window, cx)),
-                                Err(error) => {
-                                    this.message = Some(error);
-                                    cx.notify();
-                                    return;
-                                }
-                            }
-                        } else if let Err(error) =
-                            this.form.resume(&this.patch.read(cx).value(), window, cx)
-                        {
-                            this.message = Some(error);
-                            cx.notify();
-                            return;
-                        }
-                        this.advanced = !this.advanced;
-                        cx.notify();
-                    })),
-                self.busy || self.pending.is_some(),
-                false,
-                cx,
-            ));
-            if self.advanced {
-                root = root
-                    .child(text(
-                        cx,
-                        "JSON patch. null removes a field; Claude uses its existing patch rules.",
-                        "JSON 补丁。null 删除字段；Claude 沿用既有补丁规则。",
-                    ))
-                    .child(
-                        Textarea::new(&self.patch)
-                            .accessibility_id("mcp-patch")
-                            .aria_label(text(cx, "MCP JSON patch", "MCP JSON 补丁"))
-                            .disabled(self.busy || self.pending.is_some())
-                            .h(px(180.)),
-                    );
-            }
-        }
+        // 确认与保存控件放在补丁文本区等可变高度内容之前，pane 变窄时仍在视口内。
         if let Some(message) = self.message {
             root = root.child(
                 div()
@@ -509,6 +455,61 @@ impl Render for McpEditor {
                         cx,
                     )),
             );
+        }
+        if matches!(self.mode, EditMode::Copy(_)) {
+            root = root.child(text(cx,"Copy the selected server, including stored environment values and supported HTTP headers, into this source. Stored values stay hidden. Existing entries are never overwritten; use a different name if needed.","将所选服务器连同已保存的环境变量与支持的 HTTP 请求头复制到此来源。已保存的值保持隐藏。不会覆盖已有条目；如有重名，请使用其他名称。"));
+        } else if self.mode != EditMode::Delete {
+            root = root.child(semantics::button(
+                Button::new("mcp-editor-advanced")
+                    .label(text(cx, "Advanced JSON patch", "高级 JSON 补丁"))
+                    .ghost()
+                    .on_click(cx.listener(|this, _, window, cx| {
+                        if !this.advanced {
+                            match this
+                                .form
+                                .patch(&this.patch.read(cx).value(), cx)
+                                .and_then(|v| {
+                                    serde_json::to_string(&v)
+                                        .map_err(|_| McpError::Invalid.message())
+                                }) {
+                                Ok(value) => this
+                                    .patch
+                                    .update(cx, |state, cx| state.set_value(value, window, cx)),
+                                Err(error) => {
+                                    this.message = Some(error);
+                                    cx.notify();
+                                    return;
+                                }
+                            }
+                        } else if let Err(error) =
+                            this.form.resume(&this.patch.read(cx).value(), window, cx)
+                        {
+                            this.message = Some(error);
+                            cx.notify();
+                            return;
+                        }
+                        this.advanced = !this.advanced;
+                        cx.notify();
+                    })),
+                self.busy || self.pending.is_some(),
+                false,
+                cx,
+            ));
+            if self.advanced {
+                root = root
+                    .child(text(
+                        cx,
+                        "JSON patch. null removes a field; Claude uses its existing patch rules.",
+                        "JSON 补丁。null 删除字段；Claude 沿用既有补丁规则。",
+                    ))
+                    .child(
+                        Textarea::new(&self.patch)
+                            .accessibility_id("mcp-patch")
+                            .aria_label(text(cx, "MCP JSON patch", "MCP JSON 补丁"))
+                            .disabled(self.busy || self.pending.is_some())
+                            .h(px(180.)),
+                    );
+            }
         }
         if !self.advanced && !matches!(self.mode, EditMode::Copy(_) | EditMode::Delete) {
             root = root.child(self.form.render(self.busy || self.pending.is_some(), cx));

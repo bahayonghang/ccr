@@ -8,19 +8,19 @@ use crate::{
             McpError, McpTarget,
         },
     },
-    shell::semantics,
+    shell::{badge, semantics},
     theme,
 };
 use ccr_app::runtime::{Completion, RequestKey, TaskEvent};
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
-    ActiveTheme, FocusTrapElement, Selectable,
+    ActiveTheme, FocusTrapElement, IconName,
     button::{Button, ButtonVariants},
     input::{Input, InputState},
 };
 use gpui_kit::{
-    App, AppContext, Context, Entity, EventEmitter, FocusHandle, InteractiveElement, IntoElement,
-    ParentElement, Render, SharedString, StatefulInteractiveElement, Styled, Task,
+    App, AppContext, Context, Div, Entity, EventEmitter, FocusHandle, InteractiveElement,
+    IntoElement, ParentElement, Render, SharedString, StatefulInteractiveElement, Styled, Task,
     UniformListScrollHandle, Window, div, px, uniform_list,
 };
 use std::{sync::Arc, time::Duration};
@@ -289,52 +289,38 @@ impl McpBatch {
     }
     fn setup(&self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
         let mut root = div().flex().flex_col().gap(px(theme::CONTROL_GAP));
+        // 两种模式是互斥的分段选项：胶囊 + tab 语义，选中态由 toggled 报告。
         root = root.child(
-            div()
-                .flex()
-                .gap(px(theme::CONTROL_GAP))
-                .child(semantics::button(
-                    Button::new("mcp-batch-mode-preset")
-                        .label(text(cx, "Install a preset", "安装预设"))
-                        .ghost()
-                        .selected(!self.sync)
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            this.sync = false;
-                            cx.notify();
-                        })),
-                    self.busy,
+            crate::shell::page_header::capsule(cx)
+                .child(mode_tab(
+                    "mcp-batch-mode-preset",
+                    text(cx, "Install a preset", "安装预设"),
                     false,
+                    self,
                     cx,
                 ))
-                .child(semantics::button(
-                    Button::new("mcp-batch-mode-sync")
-                        .label(text(cx, "Sync every source entry", "同步来源全部条目"))
-                        .ghost()
-                        .selected(self.sync)
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            this.sync = true;
-                            cx.notify();
-                        })),
-                    self.busy,
-                    false,
+                .child(mode_tab(
+                    "mcp-batch-mode-sync",
+                    text(cx, "Sync every source entry", "同步来源全部条目"),
+                    true,
+                    self,
                     cx,
                 )),
         );
         if self.sync {
             root = root.child(text(cx, "Source (user scope)", "来源（用户作用域）"));
-            let mut sources = div().flex().gap(px(theme::CONTROL_GAP));
+            // pane 最窄 320px：选项行允许换行，不横向溢出。
+            let mut sources = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
             for index in 0..3 {
-                sources = sources.child(semantics::button(
+                sources = sources.child(badge::filter_chip(
                     Button::new(SharedString::from(format!("mcp-batch-source-{index}")))
                         .label(target_label(cx, &target(index)))
-                        .ghost()
-                        .selected(self.source == index)
                         .on_click(cx.listener(move |this, _, _, cx| {
                             this.source = index;
                             cx.notify();
                         })),
+                    self.source == index,
                     self.busy,
-                    false,
                     cx,
                 ));
             }
@@ -343,17 +329,16 @@ impl McpBatch {
             let mut presets = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
             for preset in ccr_skills::get_builtin_presets() {
                 let id = preset.id.clone();
-                presets = presets.child(semantics::button(
+                let pressed = self.preset == id;
+                presets = presets.child(badge::filter_chip(
                     Button::new(SharedString::from(format!("mcp-batch-preset-{id}")))
                         .label(preset.name)
-                        .ghost()
-                        .selected(self.preset == id)
                         .on_click(cx.listener(move |this, _, _, cx| {
                             this.preset = id.clone();
                             cx.notify();
                         })),
+                    pressed,
                     self.busy,
-                    false,
                     cx,
                 ));
             }
@@ -377,44 +362,108 @@ impl McpBatch {
             }
         }
         root = root.child(text(cx, "Destinations", "目标"));
-        let mut targets = div().flex().gap(px(theme::CONTROL_GAP));
+        let mut targets = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
         for index in 0..3 {
             if self.sync && self.source == index {
                 continue;
             }
-            targets = targets.child(semantics::button(
+            targets = targets.child(badge::filter_chip(
                 Button::new(SharedString::from(format!("mcp-batch-target-{index}")))
                     .label(target_label(cx, &target(index)))
-                    .ghost()
-                    .selected(self.targets[index])
                     .on_click(cx.listener(move |this, _, _, cx| {
                         this.targets[index] = !this.targets[index];
                         cx.notify();
                     })),
+                self.targets[index],
                 self.busy,
-                false,
                 cx,
             ));
         }
-        root = root.child(targets).child(semantics::button(
-            Button::new("mcp-batch-replace")
-                .label(text(
+        root = root.child(targets).child(
+            badge::filter_chip(
+                Button::new("mcp-batch-replace")
+                    .label(text(cx, "Replace existing entries", "替换已有条目"))
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.replace = !this.replace;
+                        cx.notify();
+                    })),
+                self.replace,
+                self.busy,
+                cx,
+            )
+            .self_start(),
+        );
+        // 按钮标签单行不换行：后果说明拆成下方的 muted 辅助句，窄 pane 不溢出。
+        root.child(
+            div()
+                .text_size(px(theme::META_SIZE))
+                .text_color(cx.theme().muted_foreground)
+                .child(text(
                     cx,
-                    "Replace existing entries (including custom options)",
-                    "替换已有条目（包括自定义选项）",
-                ))
+                    "Replacing also removes that entry's custom options.",
+                    "替换会同时移除该条目的自定义选项。",
+                )),
+        )
+        .into_any_element()
+    }
+}
+impl McpBatch {
+    /// 标题与“返回 MCP 列表”同一行：分栏 pane 较矮时，退出操作不落到折叠线以下。
+    fn heading(&self, cx: &mut Context<Self>) -> Div {
+        let row = div()
+            .flex()
+            .flex_wrap()
+            .items_center()
+            .justify_between()
+            .gap(px(theme::CONTROL_GAP))
+            .child(
+                div()
+                    .min_w_0()
+                    .text_size(px(theme::SECTION_TITLE_SIZE))
+                    .font_weight(gpui_kit::FontWeight::SEMIBOLD)
+                    .child(text(cx, "MCP batch operations", "MCP 批量操作")),
+            );
+        // 确认区挂载时只保留确认区自己的返回，焦点陷阱之外不再放第二个出口。
+        if self.session.is_some() {
+            return row;
+        }
+        row.child(semantics::button(
+            Button::new("mcp-batch-close")
+                .icon(IconName::ArrowLeft)
+                .label(text(cx, "Back to MCP list", "返回 MCP 列表"))
                 .ghost()
-                .selected(self.replace)
-                .on_click(cx.listener(|this, _, _, cx| {
-                    this.replace = !this.replace;
-                    cx.notify();
-                })),
+                .on_click(cx.listener(|_, _, _, cx| cx.emit(Closed))),
             self.busy,
             false,
             cx,
-        ));
-        root.into_any_element()
+        ))
     }
+}
+// 选项构建放在独立函数中，避免增大 render 栈帧（Windows UI 线程只有 1 MiB）。
+fn mode_tab(
+    id: &'static str,
+    label: &'static str,
+    sync: bool,
+    batch: &McpBatch,
+    cx: &mut Context<McpBatch>,
+) -> Button {
+    semantics::tab(
+        semantics::button(
+            Button::new(id)
+                .label(label)
+                .ghost()
+                .on_click(cx.listener(move |this, _, _, cx| {
+                    this.sync = sync;
+                    cx.notify();
+                })),
+            batch.busy,
+            false,
+            cx,
+        ),
+        batch.sync == sync,
+        batch.busy,
+        cx,
+    )
 }
 impl Render for McpBatch {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
@@ -423,8 +472,8 @@ impl Render for McpBatch {
             .as_ref()
             .is_some_and(|operation| operation.snapshot().running);
         let mut root=div().id("mcp-batch").test_support().track_focus(&self.focus).tab_stop(false).flex().flex_col().gap(px(theme::CONTROL_GAP))
-            .child(div().text_size(px(theme::TITLE_SIZE)).child(text(cx,"MCP batch operations","MCP 批量操作")))
-            .child(text(cx,"Review each destination before writing. Entries with unsupported options remain unchanged. Each destination commits once; successful destinations remain saved if another fails. No server process starts.","写入前逐项检查目标。含不兼容选项的条目保持原样。每个目标一次提交；其他目标失败不会回滚已保存的目标。不会启动服务器进程。"));
+            .child(self.heading(cx))
+            .child(div().text_size(px(theme::META_SIZE)).text_color(cx.theme().muted_foreground).child(text(cx,"Review each destination before writing. Entries with unsupported options remain unchanged. Each destination commits once; successful destinations remain saved if another fails. No server process starts.","写入前逐项检查目标。含不兼容选项的条目保持原样。每个目标一次提交；其他目标失败不会回滚已保存的目标。不会启动服务器进程。")));
         if let Some(message) = self.message {
             root = root.child(
                 div()
@@ -434,15 +483,13 @@ impl Render for McpBatch {
                     .child(service_error(cx, message)),
             );
         }
-        if self.session.is_none() && self.operation.is_none() {
-            root = root.child(self.setup(cx));
-        }
         if self.operation.is_none() {
             root = root.child(
                 div()
                     .id("mcp-batch-review-actions")
                     .track_focus(&self.review_focus)
                     .tab_stop(false)
+                    .flex()
                     .child(semantics::button(
                         Button::new("mcp-batch-review")
                             .label(text(cx, "Review batch", "检查批量更改"))
@@ -455,6 +502,50 @@ impl Render for McpBatch {
             );
         }
         let rows = self.rows();
+        // 决策控件（检查、确认、结果状态）在设置选项与逐行列表之前：分栏 pane 较矮时，
+        // 主按钮与焦点所在的确认按钮不落到折叠线以下。
+        if self.session.is_some() {
+            if self.enter_confirmation {
+                self.enter_confirmation = false;
+                let request_id = self.key.request_id;
+                let weak = cx.weak_entity();
+                window.on_next_frame(move |window, cx| {
+                    let _ = weak.update(cx, |this, cx| {
+                        if this.session.is_some() && this.key.request_id == request_id {
+                            window.focus(&this.confirmation, cx);
+                            window.focus_next(cx);
+                        }
+                    });
+                });
+            }
+            let can_save = rows.iter().any(|row| row.outcome == BatchOutcome::Pending);
+            let confirmation=div().id("mcp-batch-confirmation").test_support().on_key_down(cx.listener(|this,event:&gpui_kit::KeyDownEvent,window,cx|{if event.keystroke.key=="escape"{this.dismiss(window,cx);cx.stop_propagation();}})).flex().flex_col().gap(px(theme::CONTROL_GAP))
+                .child(text(cx,"Confirm these Add/Replace actions? Replace discards all existing options for that entry. Unsupported and duplicate entries are skipped; credentials are copied without displaying them.","确认这些新增/替换操作？替换会移除该条目的所有旧选项。不兼容与重名条目将跳过；凭据会复制但不会显示。"))
+                .child(div().flex().gap(px(theme::CONTROL_GAP))
+                    .child(semantics::button(Button::new("mcp-batch-back").label(text(cx,"Keep editing","继续编辑")).ghost().on_click(cx.listener(|this,_,window,cx|{this.dismiss(window,cx);})),false,false,cx))
+                    .child(semantics::button(Button::new("mcp-batch-confirm").label(text(cx,"Confirm batch writes","确认批量写入")).primary().on_click(cx.listener(|this,_,window,cx|this.save(window,cx))),!can_save,false,cx)).focus_trap("mcp-batch-trap",&self.confirmation));
+            root = root.child(confirmation);
+        } else if self.operation.is_some() {
+            root=root.child(div().id("mcp-batch-operation-status").test_support().role(gpui_kit::Role::Status).child(if running{text(cx,"Writing reviewed destinations. Leaving this page does not cancel committed work.","正在写入已检查的目标。离页不会取消已开始的操作。")}else{text(cx,"Batch finished. Check every row; a failed destination does not undo saved destinations.","批量操作已结束。请检查每行结果；失败目标不会回滚已保存目标。") }));
+            root = root.child(
+                semantics::button(
+                    Button::new("mcp-batch-new")
+                        .label(text(cx, "Review another batch", "检查另一批更改"))
+                        .ghost()
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            this.operation = None;
+                            cx.notify();
+                        })),
+                    running,
+                    false,
+                    cx,
+                )
+                .self_start(),
+            );
+        }
+        if self.session.is_none() && self.operation.is_none() {
+            root = root.child(self.setup(cx));
+        }
         if self.session.is_some() || self.operation.is_some() {
             let saved = rows
                 .iter()
@@ -510,53 +601,6 @@ impl Render for McpBatch {
                     );
                 }
             }
-        }
-        if self.session.is_some() {
-            if self.enter_confirmation {
-                self.enter_confirmation = false;
-                let request_id = self.key.request_id;
-                let weak = cx.weak_entity();
-                window.on_next_frame(move |window, cx| {
-                    let _ = weak.update(cx, |this, cx| {
-                        if this.session.is_some() && this.key.request_id == request_id {
-                            window.focus(&this.confirmation, cx);
-                            window.focus_next(cx);
-                        }
-                    });
-                });
-            }
-            let can_save = rows.iter().any(|row| row.outcome == BatchOutcome::Pending);
-            let confirmation=div().id("mcp-batch-confirmation").test_support().on_key_down(cx.listener(|this,event:&gpui_kit::KeyDownEvent,window,cx|{if event.keystroke.key=="escape"{this.dismiss(window,cx);cx.stop_propagation();}})).flex().flex_col().gap(px(theme::CONTROL_GAP))
-                .child(text(cx,"Confirm these Add/Replace actions? Replace discards all existing options for that entry. Unsupported and duplicate entries are skipped; credentials are copied without displaying them.","确认这些新增/替换操作？替换会移除该条目的所有旧选项。不兼容与重名条目将跳过；凭据会复制但不会显示。"))
-                .child(div().flex().gap(px(theme::CONTROL_GAP))
-                    .child(semantics::button(Button::new("mcp-batch-back").label(text(cx,"Keep editing","继续编辑")).ghost().on_click(cx.listener(|this,_,window,cx|{this.dismiss(window,cx);})),false,false,cx))
-                    .child(semantics::button(Button::new("mcp-batch-confirm").label(text(cx,"Confirm batch writes","确认批量写入")).primary().on_click(cx.listener(|this,_,window,cx|this.save(window,cx))),!can_save,false,cx)).focus_trap("mcp-batch-trap",&self.confirmation));
-            root = root.child(confirmation);
-        } else {
-            if self.operation.is_some() {
-                root=root.child(div().id("mcp-batch-operation-status").test_support().role(gpui_kit::Role::Status).child(if running{text(cx,"Writing reviewed destinations. Leaving this page does not cancel committed work.","正在写入已检查的目标。离页不会取消已开始的操作。")}else{text(cx,"Batch finished. Check every row; a failed destination does not undo saved destinations.","批量操作已结束。请检查每行结果；失败目标不会回滚已保存目标。") }));
-                root = root.child(semantics::button(
-                    Button::new("mcp-batch-new")
-                        .label(text(cx, "Review another batch", "检查另一批更改"))
-                        .ghost()
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            this.operation = None;
-                            cx.notify();
-                        })),
-                    running,
-                    false,
-                    cx,
-                ));
-            }
-            root = root.child(semantics::button(
-                Button::new("mcp-batch-close")
-                    .label(text(cx, "Back to MCP list", "返回 MCP 列表"))
-                    .ghost()
-                    .on_click(cx.listener(|_, _, _, cx| cx.emit(Closed))),
-                self.busy,
-                false,
-                cx,
-            ));
         }
         root.text_color(cx.theme().foreground)
     }

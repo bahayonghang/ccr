@@ -29,6 +29,9 @@ pub const SIDEBAR_WIDTH: f32 = 216.;
 pub const NARROW_SIDEBAR: f32 = 184.;
 pub const NARROW_WIDTH: f32 = 1040.;
 pub const SPLIT_WIDTH: f32 = 1200.;
+/// 列表/详情并排时的最小宽度（DESIGN.md Layout：列表 ≥360、详情 ≥320）。
+pub const LIST_MIN_WIDTH: f32 = 360.;
+pub const DETAIL_MIN_WIDTH: f32 = 320.;
 pub const STATUS_HEIGHT: f32 = 28.;
 pub const NAV_ICON_SIZE: f32 = 16.;
 pub const NAV_ROW_GAP: f32 = 4.;

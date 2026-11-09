@@ -269,7 +269,13 @@ impl Shell {
         shell
             .overview
             .update(cx, |view, _| view.embed_lens(lens.clone()));
-        shell.monitoring.update(cx, |view, _| view.embed_lens(lens));
+        shell
+            .monitoring
+            .update(cx, |view, _| view.embed_lens(lens.clone()));
+        shell
+            .mcp
+            .update(cx, |view, _| view.embed_lens(lens.clone()));
+        shell.converter.update(cx, |view, _| view.embed_lens(lens));
         match preferences {
             Some(preferences) => shell.accept_loaded_preferences(preferences, window, cx),
             None => shell.load_preferences(window, cx),
@@ -786,8 +792,13 @@ impl Shell {
     }
 
     /// 嵌入式目的地：页面把外壳的 [`page_header::LensBar`] 放进自己的标题行。
+    /// MCP 管理的两个 lens（MCP 管理 / 配置转换）都有嵌入槽；Claude 工作台复用
+    /// 的 MCP 视图是平台目的地，仍由平台工具栏承载 tab。
     fn embeds_lens(&self) -> bool {
-        self.destination == Destination::Dashboard
+        matches!(
+            self.destination,
+            Destination::Dashboard | Destination::McpManager
+        )
     }
 
     fn toolbar(&self, cx: &mut Context<Self>) -> Option<AnyElement> {

@@ -313,6 +313,88 @@ fn navigation_clears_converter_plaintext_and_acknowledgement(cx: &mut TestAppCon
     owner.shutdown();
 }
 
+fn same_row(window: &gpui_kit::Window, left: &'static str, right: &'static str) {
+    let (a, b) = (window.find(left).bounds(), window.find(right).bounds());
+    assert!(
+        a.top() < b.bottom() && b.top() < a.bottom(),
+        "{left} {a:?} and {right} {b:?} are not on one row"
+    );
+}
+
+/// MCP 管理与配置转换嵌入同一个 lens 胶囊：胶囊在各自 h1 的同一行，
+/// 键盘激活换页后焦点回到刚激活的选项。
+#[gpui_kit::test]
+fn mcp_manager_and_converter_embed_the_lens_on_their_heading_row(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
+    let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
+    let (handle, _) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| {
+                Shell::new(
+                    Services::new(
+                        owner.handle(),
+                        ConfigSource::Fixture {
+                            profiles: root.path().join("profiles.toml"),
+                            registry: root.path().join("registry.toml"),
+                            delay: Duration::ZERO,
+                        },
+                    ),
+                    window,
+                    cx,
+                )
+            })
+        })
+        .unwrap_or_else(|e| panic!("window: {e}"))
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("nav-mcp-manager", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("lens-navigation").is_none());
+        assert_eq!(
+            window.find("mcp-heading").role(),
+            Some(gpui_kit::Role::Heading)
+        );
+        same_row(window, "mcp-heading", "tool-mcp");
+        assert_eq!(window.find("tool-mcp").checked(), Some(true));
+        for _ in 0..40 {
+            if window.find("tool-converter").focused() == Some(true) {
+                break;
+            }
+            window.press("tab", cx);
+        }
+        assert_eq!(window.find("tool-converter").focused(), Some(true));
+        window.press("enter", cx);
+        assert_eq!(window.find("tool-converter").checked(), Some(true));
+        assert_eq!(window.simulate_next_frame(cx), 1);
+        window.render_frame(cx);
+        assert_eq!(
+            window.find("tool-converter").focused(),
+            Some(true),
+            "keyboard focus left the lens capsule after activation"
+        );
+        assert!(window.try_find("lens-navigation").is_none());
+        assert_eq!(
+            window.find("converter-heading").role(),
+            Some(gpui_kit::Role::Heading)
+        );
+        same_row(window, "converter-heading", "tool-converter");
+        window.press("shift-tab", cx);
+        assert_eq!(window.find("tool-mcp").focused(), Some(true));
+        window.press("space", cx);
+        assert_eq!(window.find("tool-mcp").checked(), Some(true));
+        assert_eq!(window.simulate_next_frame(cx), 1);
+        window.render_frame(cx);
+        assert_eq!(window.find("tool-mcp").focused(), Some(true));
+        same_row(window, "mcp-heading", "tool-mcp");
+        window.remove_window();
+    })
+    .unwrap_or_else(|e| panic!("embedded lens: {e}"));
+    owner.shutdown();
+}
+
 #[gpui_kit::test]
 fn opaque_surface_quads_preserve_the_paper_corners(cx: &mut TestAppContext) {
     cx.executor().allow_parking();

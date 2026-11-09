@@ -1,8 +1,9 @@
 //! Shared lens header: a content-width segmented capsule, never a full-width bar.
 //!
 //! 两种挂载方式，都只有一个 h1：
-//! - 嵌入式（运行概览 / 全局监控）：外壳拥有 [`LensBar`] 视图，页面把它放进自己的
-//!   标题行，标题与胶囊同一行；选中状态在渲染时从外壳读取，点击回到外壳 `go`。
+//! - 嵌入式（运行概览 / 全局监控、MCP 管理 / 配置转换）：外壳拥有 [`LensBar`] 视图，
+//!   页面把它放进自己的标题行，标题与胶囊同一行；选中状态在渲染时从外壳读取，
+//!   点击回到外壳 `go`。
 //! - 上下文行（其余 lens 目的地）：页面承载多个 lens 实体或多达十项的平台 tab，
 //!   外壳在页面上方渲染“可选平台名 + 胶囊”，页面自己的标题紧随其下。
 use super::{Destination, Lens, Shell, semantics};

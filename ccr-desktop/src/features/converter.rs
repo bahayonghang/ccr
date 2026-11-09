@@ -5,14 +5,15 @@ use ccr_db::{
     models::converter::{CliType, ConverterRequest},
     services::converter_service::ConfigConverter,
 };
+use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
     ActiveTheme,
     button::{Button, ButtonVariants},
     input::{Textarea, TextareaState},
 };
 use gpui_kit::{
-    AppContext, Context, Entity, Focusable, InteractiveElement, IntoElement, ParentElement, Render,
-    StatefulInteractiveElement, Styled, Task, Window, div, px,
+    AnyView, App, AppContext, Context, Div, Entity, Focusable, InteractiveElement, IntoElement,
+    ParentElement, Render, StatefulInteractiveElement, Styled, Task, Window, div, px,
 };
 pub struct Converter {
     services: Services,
@@ -25,6 +26,8 @@ pub struct Converter {
     generation: u64,
     busy: bool,
     message: Option<String>,
+    /// 外壳的 lens 胶囊，渲染在标题同一行。
+    lens: Option<AnyView>,
 }
 impl Converter {
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
@@ -39,7 +42,12 @@ impl Converter {
             generation: 0,
             busy: false,
             message: None,
+            lens: None,
         }
+    }
+    /// Renders the shell's lens capsule in this page's heading row.
+    pub fn embed_lens(&mut self, lens: AnyView) {
+        self.lens = Some(lens);
     }
     pub fn focus_main(&self, window: &mut Window, cx: &mut Context<Self>) {
         window.focus(&self.input.read(cx).focus_handle(cx), cx);
@@ -96,15 +104,39 @@ impl Converter {
         cx.notify();
     }
 }
+impl Converter {
+    // 唯一 h1 与外壳 lens 胶囊同一行；无胶囊（独立测试）时只渲染标题。
+    fn heading(&self, cx: &App) -> Div {
+        let row = div()
+            .flex()
+            .flex_wrap()
+            .items_center()
+            .gap(px(theme::SECTION_GAP))
+            .child(
+                div()
+                    .id("converter-heading")
+                    .test_support()
+                    .role(gpui_kit::Role::Heading)
+                    .aria_level(1)
+                    .text_size(px(theme::TITLE_SIZE))
+                    .font_weight(gpui_kit::FontWeight::SEMIBOLD)
+                    .child(text(cx, "Configuration converter", "配置转换")),
+            );
+        match &self.lens {
+            Some(lens) => row.child(lens.clone()),
+            None => row,
+        }
+    }
+}
 impl Render for Converter {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         if let Some(output) = self.pending.take() {
             self.output
                 .update(cx, |state, cx| state.set_value(output, window, cx));
         }
-        let mut root=div().flex().flex_col().size_full().p(px(theme::CONTENT_PADDING)).gap(px(theme::SECTION_GAP)).child(div().text_size(px(theme::TITLE_SIZE)).child(text(cx,"Configuration converter","配置转换"))).child(div().text_color(cx.theme().muted_foreground).child(text(cx,"Claude Code JSON ↔ Codex TOML. Preview only; generated text is never applied or executed. Gemini and Qwen are not supported by the existing converter.","Claude Code JSON ↔ Codex TOML，仅预览，不写入或执行。现有转换器不支持 Gemini 和 Qwen。")));
+        let mut root=div().flex().flex_col().size_full().p(px(theme::CONTENT_PADDING)).gap(px(theme::SECTION_GAP)).child(self.heading(cx)).child(div().text_color(cx.theme().muted_foreground).child(text(cx,"Claude Code JSON ↔ Codex TOML. Preview only; generated text is never applied or executed. Gemini and Qwen are not supported by the existing converter.","Claude Code JSON ↔ Codex TOML，仅预览，不写入或执行。现有转换器不支持 Gemini 和 Qwen。")));
         if !self.acknowledged {
-            return root.child(text(cx,"Input and output may contain plaintext credentials. They remain in this window session. Do not include them in screenshots.","输入和输出可能包含明文凭据，仅保留在当前窗口会话内，请勿截图。" )).child(semantics::button(Button::new("converter-acknowledge").label(text(cx,"Open scoped converter","打开临时转换区")).on_click(cx.listener(|this,_,window,cx|{this.acknowledged=true;this.focus_main(window,cx);cx.notify();})),false,false,cx));
+            return root.child(text(cx,"Input and output may contain plaintext credentials. They remain in this window session. Do not include them in screenshots.","输入和输出可能包含明文凭据，仅保留在当前窗口会话内，请勿截图。" )).child(semantics::button(Button::new("converter-acknowledge").label(text(cx,"Open scoped converter","打开临时转换区")).on_click(cx.listener(|this,_,window,cx|{this.acknowledged=true;this.focus_main(window,cx);cx.notify();})),false,false,cx).self_start());
         }
         root = root
             .child(

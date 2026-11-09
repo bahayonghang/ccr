@@ -170,6 +170,39 @@ Windows 用 Segoe UI Variable / Segoe UI，中文由 Microsoft YaHei UI 等系�
 
 主列表与详情默认 3:2，列表至少 360px，详情至少 320px；空间不足时详情转为内容区内单页 drill-in，带明确返回操作，不把普通溢出塞进 modal。列表行单行 36px / 两行 56–60px，表头 32px，表格独立滚动；不要让整个窗口横向滚动。分页与 virtualization 必须保留键盘选择和 stable ID。
 
+MCP 管理页自上而下：
+
+1. **页头一行**：左侧是唯一 h1“MCP 管理”和外壳 lens 胶囊（MCP Manager / Configuration converter）；右侧是“重新读取”（ghost，refresh-cw）和“添加服务器”（primary，plus），空间不足时整组换行。下一行是 12px muted 描述，只写一句。Claude 工作台复用的 MCP 视图不带胶囊，平台 tab 仍由外壳上下文行承载。
+2. **工具栏**：左侧是 `badge::search_field`，placeholder 写“Search name or command / 搜索名称或命令”，按名称或命令做不区分大小写的子串匹配；其后是平台胶囊“All n | Claude Code n | Codex n | Antigravity n”。右侧是“预设”（star）和“批量与同步”（gallery-vertical-end）两个 ghost 按钮。平台计数在搜索之前按 catalog 计算，只列有条目的平台，项目文件来源计入 Claude Code。平台胶囊与搜索取交集，两者都过滤掉全部条目时，用虚线空态说明，并给出“清除搜索与平台”。平台作用域下不显示平台胶囊。
+3. **来源健康条**：每个来源文件一个不可交互的 22px、4px 角 chip，内容是“指示符 + 短名 · 读数”。完整原句同时作为 aria label 和 tooltip；窄宽时在条内横向滚动。
+   - 有条目：success 实心圆点加条目数。
+   - 空：muted 实心圆点加“none”。
+   - 未找到：空心圆点。
+   - 未读取：空心圆点加虚线边；Grok 写“not listed”。
+   - Invalid：triangle-alert，warning 语调；Unreadable：circle-alert，danger 语调。
+4. **主体**：窗口宽度 ≥ `SPLIT_WIDTH`（1200）时，列表与 pane 按 3:2 并排，间距 16，列表 ≥ `LIST_MIN_WIDTH`（360），pane ≥ `DETAIL_MIN_WIDTH`（320）。外层列只负责尺寸，不带内边距和描边，实色阅读面板放在列内并填满它。原因是 flex 基准为 0 时，taffy 会把条目自身的 padding + border 抬进基准，比例就不再是 3:2。
+   - catalog 没有条目时，宽窗也只放列表列的空态面板，不并排第二块空面板。
+   - pane 的内容按优先级决定：批量 > 编辑器 > 来源选择 > 预设 > 选中详情 > 空态。宽窗未选中时，pane 是虚线空态，汇总 catalog 读到的条数。不自动选中第一项；筛选让选中项不可见时，详情随之消失。
+   - 窄窗 drill-in：pane 有内容时只渲染 pane，否则只渲染列表。进入 pane 后，焦点在下一帧移到 pane 的第一个控件。详情顶部有“返回列表”，返回后焦点回到原来的行。预设与来源选择用标题旁的“取消”，编辑器与批量用各自的关闭按钮。离页或重新读取后，延迟的焦点回调不再执行。
+5. **列表行**：56px 两行（`MCP_ROW_HEIGHT`），左侧 16px 传输图标：square-terminal 表示 stdio，globe 表示只有 URL。
+   - 第一行：14/500 名称，单行省略并带 tooltip；右侧是平台身份圆点加平台名。
+   - 第二行：12px muted。先是命令（mono，省略并带 tooltip），只有 URL 时写“URL set (hidden)”；再接作用域“User”或“Project · 末段目录名”，完整项目键放在 tooltip。参数不显示。
+   - 标签只在异常时出现：Disabled 表示 `disabled = true` 或 `enabled = false`，warning 语调，带 ban 图标；Read-only 表示这里不能写入的旧来源，neutral 语调，带 eye 图标。
+   - 行的 aria label 是“平台 · 名称 [· disabled in the file] · 作用域 · 传输 [· read-only here]”。
+6. **详情**：
+   - 头部：40px 方块（primary 10% 底）里放传输图标；眉题是“平台 · 来源文件 · 作用域”（12 muted）；名称 20/600。
+   - 操作行：“复制到…”、“编辑”、“删除”，删除用 danger 文字，可换行。只读来源不给操作，只显示 eye 图标和一句说明。
+   - 键值网格：标签在上，值在下；两列，窄时单列。字段依次是 Transport、Source、Command（mono，占整行，因为常是长路径；放在半宽单元格里会折成多行，把后续字段挤到折叠线以下）、URL（Set (hidden) / Not set）、Arguments（Set (hidden) / Not set）、Scope（项目键用 mono 并占整行）、State。State 写文件里 disabled / enabled 的原文，只有原文用 mono；未设置时用正文字体写“文件中未设置”。
+7. **pane 内的其他内容**：
+   - 预设行 56px：名称加一行描述和标签，单行省略，tooltip 补全；需要密钥时，用 warning 标签写出环境变量名。
+   - 来源选择：“目标来源”和“项目目录”都有可见字段标签；项目目录输入框的 placeholder 是“Absolute path (optional) / 绝对路径（可选）”。
+   - 批量：两种模式是 `semantics::tab` 胶囊。预设、来源、目标和“替换已有条目”都是 `badge::filter_chip`，未选中时也有 hairline 边，不能看起来像正文；选项行可换行。顶部说明是 12px muted 辅助句；替换开关的后果写在下方一句 muted 辅助文字里。“返回 MCP 列表”放在批量标题行右侧，较矮的分栏 pane 里也不会落到折叠线以下；确认区挂载时不显示它，返回由确认区的“继续编辑”承担。
+   - 决策控件放在可变高度内容之前。编辑器的确认与保存，放在补丁文本区和表单之前；批量的“检查批量更改”、确认区与结果状态，放在设置选项和逐行列表之前。这样在 1280×800 的分栏 pane 里，主按钮和确认区的初始焦点都在视口内。
+8. **诚实与掩码**：
+   - 本页不启动服务器，也不推断进程状态，不出现 Running / Connected 一类徽章。计数只来自 catalog，未读取与不列出的来源照实写。
+   - URL 值、args 值、env/header 的键名和值，不出现在列表、详情、aria label、tooltip 或快照里。
+   - 编辑器补丁初值是 `{}`。URL、env/header 值输入框和批量凭据输入框保持 masked，批量凭据保存后清空。跨源复制得到的草稿不带凭据。
+
 ## Elevation & Depth
 
 材质是**已知静态场景上的半透明分层材质**。纸面背后的像素全部由本应用绘制，且只有低频内容：160deg 两色线性渐变场，以及两个静态柔光斑（GPUI 无 radial gradient，用透明圆形加同色大模糊阴影绘制）。对这种平滑内容再做高斯模糊，结果与原图的差异低于 8-bit 量化误差，所以 alpha<1 的面直接合成到场景上，像素上等价于 backdrop blur；这不需要背景采样 API，也不是“假玻璃开关”。成立条件在代码评审时强制执行：
@@ -213,17 +246,21 @@ Context tabs (lenses) render as a content-width segmented capsule, without a
 full-width bar, bottom border or fixed 48px height. There is exactly one h1
 per page, mounted in one of two ways:
 
-- **Embedded (Dashboard: Overview and Monitoring).** The shell owns the lens
+- **Embedded (Dashboard: Overview and Monitoring; MCP Manager: MCP Manager
+  and Configuration converter).** The shell owns the lens
   state and a small `page_header::LensBar` view; it hands that view to the
   page once, and the page renders it inside its own heading row, so the title
   and the capsule share one line. The bar reads the shell's current
   destination/lens at render time and calls the shell's `go` on click, so
   keyboard order, `toggled` state, focus ring and test ids (`tool-overview`,
-  `tool-monitoring`) are unchanged. The shell renders no row above the page.
+  `tool-monitoring`, `tool-mcp`, `tool-converter`) are unchanged. The shell
+  renders no row above the page.
   Switching lens moves the capsule to another page, and Kit keeps button focus
   per element path, so the bar owns a stable focus anchor: after a keyboard
   activation it returns focus to the activated option on the next frame, only
-  while the shell still shows that destination and lens.
+  while the shell still shows that destination and lens. The Claude workbench
+  reuses the MCP view under `tool-platform-mcp`; there the view renders no
+  capsule and the shell keeps the context row with the platform tabs.
 - **Context row (all other lens destinations).** Those pages host several lens
   entities or up to ten platform tabs, so the shell still renders the capsule
   above the page, carrying only the platform name as a muted context label for

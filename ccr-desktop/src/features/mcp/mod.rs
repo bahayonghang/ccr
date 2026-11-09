@@ -1,27 +1,33 @@
 //! Source-aware local MCP management; server process status is not inferred.
 mod batch;
 mod editor;
+mod header;
+mod list;
+mod pane;
+mod sources;
 use crate::{
-    locales::{is_chinese, service_error, text},
+    locales::{is_chinese, text},
     runtime::{
         Services,
         mcp::{McpCatalog, McpEntry, McpScope, McpSource, McpSourceState, McpTarget},
     },
-    shell::semantics,
     theme,
 };
 use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent};
 use editor::{EditMode, EditorEvent, McpEditor};
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
-    Selectable,
-    button::{Button, ButtonVariants},
-    input::{Input, InputEvent, InputState},
+    ActiveTheme,
+    input::{InputEvent, InputState},
 };
 use gpui_kit::{
-    App, AppContext, Context, Entity, FocusHandle, InteractiveElement, IntoElement, ParentElement,
-    Render, SharedString, StatefulInteractiveElement, Styled, Subscription, Task, Window, div, px,
+    AnyView, App, AppContext, Context, Div, Entity, FocusHandle, Focusable, InteractiveElement,
+    IntoElement, ParentElement, Render, Stateful, StatefulInteractiveElement, Styled, Subscription,
+    Task, Window, div, px,
 };
+
+/// A test-observable stateful div; plain `Stateful<Div>` outside tests.
+type Node = gpui_kit::base::ObservedElement<Stateful<Div>>;
 
 pub struct McpView {
     services: Services,
@@ -45,12 +51,83 @@ pub struct McpView {
     busy: bool,
     message: Option<&'static str>,
     focus: FocusHandle,
+    /// 窄窗 drill-in 时把焦点移入 pane 的锚点。
+    pane_focus: FocusHandle,
     platform_scope: Option<Platform>,
+    /// 工具栏平台胶囊的选择；`None` 表示全部平台。
+    family: Option<Family>,
+    /// 外壳的 lens 胶囊；只在全局 MCP 管理页的标题行渲染。
+    lens: Option<AnyView>,
+    /// 列表面板的焦点锚点：窄窗返回列表后把焦点还给原来的行。
+    list_focus: FocusHandle,
+    /// 输入框 placeholder 当前对应的语言（是否中文），语言切换后同步一次。
+    placeholder_chinese: bool,
+}
+
+/// Platform group of a source that can hold entries; drives the toolbar capsule.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Family {
+    Claude,
+    Codex,
+    Antigravity,
+}
+
+impl Family {
+    const ALL: [Self; 3] = [Self::Claude, Self::Codex, Self::Antigravity];
+
+    /// OpenCode 与 Grok 从不产生条目，因此没有分组。
+    fn of(source: McpSource) -> Option<Self> {
+        match source {
+            McpSource::ClaudeState | McpSource::ClaudeSettings | McpSource::ProjectFile => {
+                Some(Self::Claude)
+            }
+            McpSource::CodexConfig => Some(Self::Codex),
+            McpSource::AntigravityConfig => Some(Self::Antigravity),
+            McpSource::OpenCode | McpSource::Grok => None,
+        }
+    }
+
+    /// 平台身份色与测试 id 共用的短 id。
+    fn id(self) -> &'static str {
+        match self {
+            Self::Claude => "claude",
+            Self::Codex => "codex",
+            Self::Antigravity => "antigravity",
+        }
+    }
+
+    fn name(self) -> &'static str {
+        match self {
+            Self::Claude => "Claude Code",
+            Self::Codex => "Codex",
+            Self::Antigravity => "Antigravity",
+        }
+    }
+}
+
+/// What the side pane shows. One value replaces the old chain of early returns.
+///
+/// 优先级：batch > editor > source picker > presets > 选中详情 > Empty。
+enum Pane {
+    Empty,
+    Detail(McpEntry),
+    Editor(Entity<McpEditor>),
+    Presets,
+    SourcePicker,
+    Batch(Entity<batch::McpBatch>),
+}
+
+fn filter_placeholder(cx: &App) -> &'static str {
+    text(cx, "Search name or command", "搜索名称或命令")
+}
+
+fn project_placeholder(cx: &App) -> &'static str {
+    text(cx, "Absolute path (optional)", "绝对路径（可选）")
 }
 
 impl McpView {
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let filter = cx.new(|cx| InputState::new(window, cx));
+        let filter = cx.new(|cx| InputState::new(window, cx).placeholder(filter_placeholder(cx)));
         let subscription = cx.subscribe(&filter, |_, _, event, cx| {
             if matches!(event, InputEvent::Change) {
                 cx.notify();
@@ -59,7 +136,7 @@ impl McpView {
         Self {
             services,
             filter,
-            project: cx.new(|cx| InputState::new(window, cx)),
+            project: cx.new(|cx| InputState::new(window, cx).placeholder(project_placeholder(cx))),
             create_source: 0,
             create_mode: EditMode::Add,
             show_presets: false,
@@ -78,13 +155,23 @@ impl McpView {
             busy: false,
             message: None,
             focus: cx.focus_handle().tab_stop(false),
+            pane_focus: cx.focus_handle().tab_stop(false),
+            list_focus: cx.focus_handle().tab_stop(false),
             platform_scope: None,
+            family: None,
+            lens: None,
+            placeholder_chinese: is_chinese(cx),
         }
     }
 
+    /// Renders the shell's lens capsule in the heading row of the global page.
+    pub fn embed_lens(&mut self, lens: AnyView) {
+        self.lens = Some(lens);
+    }
+
     pub fn focus_main(&self, window: &mut Window, cx: &mut Context<Self>) {
-        window.focus(&self.focus, cx);
-        window.focus_next(cx);
+        // 主区入口仍是搜索框：标题行新增的 lens 与页头操作不抢第一焦点。
+        window.focus(&self.filter.read(cx).focus_handle(cx), cx);
     }
 
     pub fn suspend(&mut self, cx: &mut Context<Self>) {
@@ -112,6 +199,8 @@ impl McpView {
     pub fn open_platform(&mut self, platform: Platform, cx: &mut Context<Self>) {
         self.detach_batch(cx);
         self.platform_scope = Some(platform);
+        // 平台作用域不渲染平台胶囊，旧的胶囊选择不能继续隐藏条目。
+        self.family = None;
         self.create_source = match platform {
             Platform::Codex => 3,
             Platform::Gemini => 4,
@@ -173,6 +262,7 @@ impl McpView {
         self.show_sources = false;
         self.show_presets = false;
         self.batch = Some(batch);
+        self.reveal_pane(window, cx);
         cx.notify();
     }
 
@@ -221,6 +311,10 @@ impl McpView {
                                 match result.as_ref() {
                                     Completion::Success(catalog) => {
                                         this.catalog = Some(catalog.clone());
+                                        // 平台的最后一个条目被删除后，胶囊回到全部。
+                                        if this.active_family().is_none() {
+                                            this.family = None;
+                                        }
                                     }
                                     Completion::Failed(error) | Completion::CleanupFailed(error) => {
                                         this.message = Some(error.message());
@@ -289,6 +383,7 @@ impl McpView {
         self.show_sources = false;
         self.show_presets = false;
         self.editor = Some(editor);
+        self.reveal_pane(window, cx);
         cx.notify();
     }
 
@@ -309,28 +404,225 @@ impl McpView {
         self.start_editor(target, self.create_mode.clone(), &name, window, cx);
     }
 
-    fn visible(&self, cx: &App) -> Vec<McpEntry> {
-        let Some(catalog) = &self.catalog else {
-            return Vec::new();
-        };
-        let filter = self.filter.read(cx).value().trim().to_lowercase();
-        catalog
-            .entries
+    /// Opens the destination picker for a new, preset-based or copied server.
+    fn open_sources(&mut self, mode: EditMode, window: &mut Window, cx: &mut Context<Self>) {
+        self.create_mode = mode;
+        self.show_presets = false;
+        self.show_sources = true;
+        self.reveal_pane(window, cx);
+        cx.notify();
+    }
+
+    fn open_presets(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.create_mode = EditMode::Add;
+        self.show_sources = false;
+        self.show_presets = true;
+        self.reveal_pane(window, cx);
+        cx.notify();
+    }
+
+    /// 关闭预设或来源选择；保留选中条目，pane 回到详情或空态。
+    fn close_picker(&mut self, cx: &mut Context<Self>) {
+        self.create_mode = EditMode::Add;
+        self.show_sources = false;
+        self.show_presets = false;
+        cx.notify();
+    }
+
+    /// pane 标题里的取消：回到选中条目的详情；没有选中时焦点回到搜索框。
+    fn cancel_picker(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.close_picker(cx);
+        if self.selected.is_some() {
+            self.reveal_pane(window, cx);
+        } else {
+            window.focus(&self.filter.read(cx).focus_handle(cx), cx);
+        }
+    }
+
+    fn select(&mut self, id: String, window: &mut Window, cx: &mut Context<Self>) {
+        self.selected = Some(id);
+        self.close_picker(cx);
+        self.reveal_pane(window, cx);
+    }
+
+    /// 窄窗从 pane 返回列表：清空选中；下一帧列表重新出现后，焦点回到原来的行，
+    /// 没有原行（预设、来源选择）时回到搜索框。
+    fn back_to_list(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let row = self.selected.as_deref().and_then(|selected| {
+            self.visible(cx)
+                .iter()
+                .position(|entry| entry.id() == selected)
+        });
+        self.selected = None;
+        self.close_picker(cx);
+        let (view, generation) = (cx.weak_entity(), self.generation);
+        window.on_next_frame(move |window, cx| {
+            let _ = view.update(cx, |this, cx| {
+                // 离页（suspend）或重新读取后，延迟回调不再抢焦点。
+                if this.generation != generation {
+                    return;
+                }
+                match row {
+                    Some(row) => {
+                        window.focus(&this.list_focus, cx);
+                        for _ in 0..=row {
+                            window.focus_next(cx);
+                        }
+                    }
+                    None => window.focus(&this.filter.read(cx).focus_handle(cx), cx),
+                }
+            });
+        });
+    }
+
+    /// 窄窗 drill-in：pane 在下一帧取代列表后，把焦点移到 pane 的第一个控件。
+    fn reveal_pane(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if window.viewport_size().width >= px(theme::SPLIT_WIDTH) {
+            return;
+        }
+        let (view, generation) = (cx.weak_entity(), self.generation);
+        window.on_next_frame(move |window, cx| {
+            let _ = view.update(cx, |this, cx| {
+                if this.generation != generation {
+                    return;
+                }
+                window.focus(&this.pane_focus, cx);
+                window.focus_next(cx);
+            });
+        });
+    }
+
+    fn sync_placeholders(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let chinese = is_chinese(cx);
+        if self.placeholder_chinese == chinese {
+            return;
+        }
+        self.placeholder_chinese = chinese;
+        let (filter, project) = (filter_placeholder(cx), project_placeholder(cx));
+        self.filter
+            .update(cx, |state, cx| state.set_placeholder(filter, window, cx));
+        self.project
+            .update(cx, |state, cx| state.set_placeholder(project, window, cx));
+    }
+
+    /// Entries inside the platform scope, before the capsule and search apply.
+    fn scoped(&self) -> impl Iterator<Item = &McpEntry> {
+        self.catalog
             .iter()
-            .filter(|entry| self.source_in_scope(entry.source))
-            .filter(|entry| filter.is_empty() || entry.name.to_lowercase().contains(&filter))
+            .flat_map(|catalog| catalog.entries.iter())
+            .filter(move |entry| self.source_in_scope(entry.source))
+    }
+
+    /// Per-platform counts from the catalog, before search; empty platforms are omitted.
+    fn family_counts(&self) -> Vec<(Family, usize)> {
+        Family::ALL
+            .into_iter()
+            .map(|family| {
+                let count = self
+                    .scoped()
+                    .filter(|entry| Family::of(entry.source) == Some(family))
+                    .count();
+                (family, count)
+            })
+            .filter(|(_, count)| *count > 0)
+            .collect()
+    }
+
+    /// 胶囊选择只在全局页且该平台仍有条目时生效，否则视为全部。
+    fn active_family(&self) -> Option<Family> {
+        let family = self.family?;
+        if self.platform_scope.is_some() {
+            return None;
+        }
+        self.scoped()
+            .any(|entry| Family::of(entry.source) == Some(family))
+            .then_some(family)
+    }
+
+    fn visible(&self, cx: &App) -> Vec<McpEntry> {
+        let filter = self.filter.read(cx).value().trim().to_lowercase();
+        let family = self.active_family();
+        self.scoped()
+            .filter(|entry| family.is_none_or(|family| Family::of(entry.source) == Some(family)))
+            .filter(|entry| {
+                filter.is_empty()
+                    || entry.name.to_lowercase().contains(&filter)
+                    || entry
+                        .command
+                        .as_deref()
+                        .is_some_and(|command| command.to_lowercase().contains(&filter))
+            })
             .cloned()
             .collect()
     }
+
+    fn pane(&self, visible: &[McpEntry]) -> Pane {
+        if let Some(batch) = &self.batch {
+            return Pane::Batch(batch.clone());
+        }
+        if let Some(editor) = &self.editor {
+            return Pane::Editor(editor.clone());
+        }
+        if self.show_sources {
+            return Pane::SourcePicker;
+        }
+        if self.show_presets {
+            return Pane::Presets;
+        }
+        // 不自动选中第一项：筛选掉选中条目后详情消失，回到空态。
+        match self
+            .selected
+            .as_deref()
+            .and_then(|selected| visible.iter().find(|entry| entry.id() == selected))
+        {
+            Some(entry) => Pane::Detail(entry.clone()),
+            None => Pane::Empty,
+        }
+    }
+
+    /// 宽窗列表与 pane 3:2 并排；窄窗 pane 有内容时只渲染 pane（drill-in），否则只渲染列表。
+    fn body(&self, split: bool, visible: &[McpEntry], pane: Pane, cx: &mut Context<Self>) -> Node {
+        let body = div()
+            .id("mcp-body")
+            .test_support()
+            .flex_1()
+            .min_h_0()
+            .flex()
+            .gap(px(theme::SECTION_GAP));
+        let empty = matches!(pane, Pane::Empty);
+        // 没有可选条目时，宽窗也只放列表列（空态面板占满），不并排第二块空面板。
+        let beside = split && (!empty || self.scoped().next().is_some());
+        if beside {
+            body.flex_row()
+                .child(self.list_panel(visible, true, cx))
+                .child(self.pane_panel(pane, true, cx))
+        } else if empty {
+            body.flex_col().child(self.list_panel(visible, false, cx))
+        } else {
+            body.flex_col().child(self.pane_panel(pane, false, cx))
+        }
+    }
 }
 
+/// 实色阅读面板：列表与 pane 共用同一描边、圆角与独立纵向滚动。
+fn reading_panel(id: &'static str, cx: &App) -> Node {
+    div()
+        .id(id)
+        .test_support()
+        .min_h_0()
+        .flex()
+        .flex_col()
+        .overflow_y_scroll()
+        .bg(cx.theme().background)
+        .border_1()
+        .border_color(cx.theme().border)
+        .rounded(px(theme::PANEL_RADIUS))
+}
+
+/// 平台名在中英文下相同；Claude 项目 .mcp.json 也属于 Claude Code。
 fn platform_name(source: McpSource) -> (&'static str, &'static str) {
-    match source {
-        McpSource::ClaudeState | McpSource::ClaudeSettings => ("Claude Code", "Claude Code"),
-        McpSource::CodexConfig => ("Codex", "Codex"),
-        McpSource::AntigravityConfig => ("Antigravity", "Antigravity"),
-        McpSource::ProjectFile | McpSource::OpenCode | McpSource::Grok => ("MCP", "MCP"),
-    }
+    let name = Family::of(source).map_or("MCP", Family::name);
+    (name, name)
 }
 
 fn source_title(source: McpSource) -> (&'static str, &'static str) {
@@ -507,359 +799,30 @@ fn flag_line(cx: &App, entry: &McpEntry) -> String {
 }
 
 impl Render for McpView {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        self.sync_placeholders(window, cx);
+        let width = window.viewport_size().width;
+        let split = width >= px(theme::SPLIT_WIDTH);
         let visible = self.visible(cx);
-        let mut root = div()
+        let pane = self.pane(&visible);
+        let root = div()
             .id("mcp-manager")
             .test_support()
             .track_focus(&self.focus)
             .tab_stop(false)
+            .size_full()
+            .min_h_0()
             .flex()
             .flex_col()
-            .size_full()
-            .overflow_y_scroll()
-            .p(px(theme::CONTENT_PADDING))
+            .p(px(theme::content_padding(width)))
             .gap(px(theme::SECTION_GAP))
-            .child(
-                div()
-                    .id("mcp-heading")
-                    .test_support()
-                    .role(gpui_kit::Role::Heading)
-                    .aria_level(1)
-                    .text_size(px(theme::TITLE_SIZE))
-                    .font_weight(gpui_kit::FontWeight::SEMIBOLD)
-                    .child(text(cx, "MCP Manager", "MCP 管理")),
-            )
-            .child(text(
-                cx,
-                "Manage MCP entries in their selected local source and scope. Existing secret values stay out of the list and patch editor. This page does not start servers or infer process status.",
-                "管理所选本地来源与作用域中的 MCP 条目。已有密钥不会出现在列表或补丁编辑器中。此页不会启动服务器或推断进程状态。",
-            ))
-            .child(
-                div()
-                    .flex()
-                    .items_center()
-                    .gap(px(theme::CONTROL_GAP))
-                    .child(
-                        div().flex_1().child(
-                            Input::new(&self.filter)
-                                .id("mcp-filter")
-                                .aria_label(text(cx, "Filter MCP entries by name", "按名称筛选 MCP 条目")),
-                        ),
-                    )
-                    .child(semantics::button(Button::new("mcp-add").label(text(cx,"Add server and select source","添加服务器与选择来源")).ghost()
-                        .on_click(cx.listener(|this,_,_,cx|{this.create_mode=EditMode::Add;this.show_presets=false;this.show_sources = !this.show_sources;cx.notify();})),self.busy||self.editor.is_some()||self.batch.is_some(),false,cx))
-                    .child(semantics::button(Button::new("mcp-presets").label(text(cx,"Built-in presets","内置预设")).ghost()
-                        .on_click(cx.listener(|this,_,_,cx|{this.show_sources=false;this.create_mode=EditMode::Add;this.show_presets = !this.show_presets;cx.notify();})),self.busy||self.editor.is_some()||self.batch.is_some(),false,cx))
-                    .child(semantics::button(
-                        Button::new("mcp-read")
-                            .label(if self.busy {
-                                text(cx, "Reading", "读取中")
-                            } else {
-                                text(cx, "Read local files", "读取本地文件")
-                            })
-                            .ghost()
-                            .on_click(cx.listener(|this, _, _, cx| this.refresh(cx))),
-                        self.busy || self.editor.is_some() || self.batch.is_some(),
-                        self.busy,
-                        cx,
-                    )),
-            );
-        if let Some(batch) = &self.batch {
-            return root.child(batch.clone());
-        }
-        root = root.child(semantics::button(
-            Button::new("mcp-batch-open")
-                .label(text(
-                    cx,
-                    "Batch presets and synchronization",
-                    "批量预设与同步",
-                ))
-                .ghost()
-                .on_click(cx.listener(|this, _, window, cx| this.open_batch(window, cx))),
-            self.busy || self.editor.is_some(),
-            false,
-            cx,
-        ));
-        if let Some(editor) = &self.editor {
-            return root.child(editor.clone());
-        }
-        if self.show_presets {
-            let mut presets = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
-            for preset in ccr_skills::get_builtin_presets() {
-                let id = preset.id.clone();
-                presets = presets.child(semantics::button(
-                    Button::new(format!("mcp-preset-{id}"))
-                        .label(preset.name)
-                        .ghost()
-                        .on_click(cx.listener(move |this, _, _, cx| {
-                            this.create_mode = EditMode::Preset(id.clone());
-                            this.show_presets = false;
-                            this.show_sources = true;
-                            cx.notify();
-                        })),
-                    false,
-                    false,
-                    cx,
-                ));
-            }
-            root = root.child(text(cx,"Choose a template, then a destination. Review commands and fill required credentials before confirming. This does not install or start a server.","先选择模板，再选择目标。确认前请检查命令并填写所需凭据。此操作不会安装或启动服务器。" )).child(presets);
-        }
-        if self.show_sources {
-            root = root.child(match &self.create_mode {
-                EditMode::Preset(id) => format!("{}: {id}", text(cx, "Preset", "预设")),
-                EditMode::Copy(entry) => {
-                    let (en, zh) = source_title(entry.source);
-                    format!(
-                        "{}: {} · {}",
-                        text(cx, "Copy from", "复制来源"),
-                        text(cx, en, zh),
-                        entry.name
-                    )
-                }
-                _ => text(
-                    cx,
-                    "Choose the source for the new server.",
-                    "选择新服务器的来源。",
-                )
-                .to_string(),
-            });
-            let mut targets = crate::shell::page_header::capsule(cx);
-            for (index, id, en, zh) in [
-                (0, "mcp-source-user", "Claude user", "Claude 用户"),
-                (
-                    1,
-                    "mcp-source-local",
-                    "Claude local project",
-                    "Claude 项目本地",
-                ),
-                (
-                    2,
-                    "mcp-source-project",
-                    "Claude project file",
-                    "Claude 项目文件",
-                ),
-                (3, "mcp-source-codex", "Codex", "Codex"),
-                (4, "mcp-source-antigravity", "Antigravity", "Antigravity"),
-            ] {
-                if self.platform_scope.is_some()
-                    && !match self.platform_scope {
-                        Some(Platform::Claude) => index <= 2,
-                        Some(Platform::Codex) => index == 3,
-                        Some(Platform::Gemini) => index == 4,
-                        _ => false,
-                    }
-                {
-                    continue;
-                }
-                targets = targets.child(semantics::tab(
-                    semantics::button(
-                        Button::new(id)
-                            .label(text(cx, en, zh))
-                            .ghost()
-                            .on_click(cx.listener(move |this, _, _, cx| {
-                                this.create_source = index;
-                                cx.notify();
-                            })),
-                        self.busy,
-                        false,
-                        cx,
-                    ),
-                    self.create_source == index,
-                    self.busy,
-                    cx,
-                ));
-            }
-            root = root.child(targets)
-            .child(Input::new(&self.project).id("mcp-project-root").aria_label(text(cx,"Absolute project directory (optional)","项目绝对路径（可选）")))
-            .child(text(cx,"A project directory is required for Claude local/project scope. Read local files to include its .mcp.json. User scope applies across projects.","Claude 项目本地与项目文件作用域需要项目目录。读取本地文件时会包含其 .mcp.json。用户作用域适用于所有项目。"))
-            .child(semantics::button(Button::new("mcp-open-editor").label(text(cx,"Add server to selected source","向所选来源添加服务器")).primary().on_click(cx.listener(|this,_,window,cx|this.add(window,cx))),self.busy,false,cx));
-        }
-        if self.busy {
-            root = root.child(
-                div()
-                    .id("mcp-status")
-                    .test_support()
-                    .role(gpui_kit::Role::Status)
-                    .child(text(
-                        cx,
-                        "Reading local MCP files.",
-                        "正在读取本地 MCP 文件。",
-                    )),
-            );
-        }
-        if let Some(message) = self.message {
-            root = root.child(
-                div()
-                    .id("mcp-status")
-                    .test_support()
-                    .role(gpui_kit::Role::Status)
-                    .child(service_error(cx, message)),
-            );
-        }
-        if let Some(catalog) = self.catalog.clone() {
-            let mut sources = div()
-                .id("mcp-sources")
-                .test_support()
-                .flex()
-                .flex_col()
-                .gap(px(theme::CONTROL_GAP));
-            for (index, item) in catalog.notes.iter().enumerate() {
-                if !self.source_in_scope(item.source) {
-                    continue;
-                }
-                let line = note_line(cx, item.source, item.state);
-                sources = sources.child(
-                    div()
-                        .id(SharedString::from(format!("mcp-source-{index}")))
-                        .test_support()
-                        .aria_label(SharedString::from(line.clone()))
-                        .child(line),
-                );
-            }
-            root = root.child(sources);
-            if catalog.entries.is_empty() {
-                let empty = text(
-                    cx,
-                    "No MCP entries were found in the files this page reads.",
-                    "此页读取的文件里没有 MCP 条目。",
-                );
-                root = root.child(
-                    div()
-                        .id("mcp-empty")
-                        .test_support()
-                        .aria_label(empty)
-                        .child(empty),
-                );
-            } else if visible.is_empty() {
-                root = root.child(div().id("mcp-filter-empty").test_support().child(text(
-                    cx,
-                    "No MCP entries match this filter.",
-                    "没有 MCP 条目匹配这个筛选。",
-                )));
-            } else {
-                for (index, entry) in visible.iter().enumerate() {
-                    let entry_id = entry.id();
-                    let selected = self.selected.as_deref() == Some(entry_id.as_str());
-                    let (platform_en, platform_zh) = platform_name(entry.source);
-                    let label = if entry.disabled == Some(true) {
-                        format!(
-                            "{} · {}{}",
-                            text(cx, platform_en, platform_zh),
-                            entry.name,
-                            text(cx, " · disabled in the file", " · 文件中已禁用")
-                        )
-                    } else {
-                        format!("{} · {}", text(cx, platform_en, platform_zh), entry.name)
-                    };
-                    let clicked = entry_id.clone();
-                    root = root.child(
-                        div().h(px(theme::ROW_HEIGHT)).flex().items_center().child(
-                            semantics::button(
-                                Button::new(format!("mcp-entry-{index}"))
-                                    .label(label)
-                                    .ghost()
-                                    .selected(selected)
-                                    .on_click(cx.listener(move |this, _, _, cx| {
-                                        this.selected = Some(clicked.clone());
-                                        this.show_sources = false;
-                                        this.show_presets = false;
-                                        this.create_mode = EditMode::Add;
-                                        cx.notify();
-                                    })),
-                                false,
-                                false,
-                                cx,
-                            ),
-                        ),
-                    );
-                }
-            }
-            if let Some(selected) = self.selected.clone()
-                && let Some(entry) = visible.iter().find(|entry| entry.id() == selected)
-            {
-                let (platform_en, platform_zh) = platform_name(entry.source);
-                let (source_en, source_zh) = source_title(entry.source);
-                let lines = detail_lines(cx, entry, platform_en, platform_zh, source_en, source_zh);
-                let summary = lines.join(" ");
-                let mut detail = div()
-                    .id("mcp-detail")
-                    .test_support()
-                    .aria_label(SharedString::from(summary))
-                    .flex()
-                    .flex_col()
-                    .gap(px(theme::CONTROL_GAP));
-                match McpTarget::for_entry(entry) {
-                    Ok(target) => {
-                        let edit_target = target.clone();
-                        let edit_name = entry.name.clone();
-                        let delete_name = entry.name.clone();
-                        let copy_entry = entry.clone();
-                        detail = detail.child(
-                            div()
-                                .flex()
-                                .gap(px(theme::CONTROL_GAP))
-                                .child(semantics::button(
-                                    Button::new("mcp-copy")
-                                        .label(text(cx, "Copy to another source", "复制到其他来源"))
-                                        .ghost()
-                                        .on_click(cx.listener(move |this, _, _, cx| {
-                                            this.create_mode = EditMode::Copy(copy_entry.clone());
-                                            this.show_sources = true;
-                                            this.show_presets = false;
-                                            cx.notify();
-                                        })),
-                                    self.busy,
-                                    false,
-                                    cx,
-                                ))
-                                .child(semantics::button(
-                                    Button::new("mcp-edit")
-                                        .label(text(cx, "Edit server", "编辑服务器"))
-                                        .ghost()
-                                        .on_click(cx.listener(move |this, _, window, cx| {
-                                            this.start_editor(
-                                                edit_target.clone(),
-                                                EditMode::Edit,
-                                                &edit_name,
-                                                window,
-                                                cx,
-                                            )
-                                        })),
-                                    self.busy,
-                                    false,
-                                    cx,
-                                ))
-                                .child(semantics::button(
-                                    Button::new("mcp-delete")
-                                        .label(text(cx, "Delete server", "删除服务器"))
-                                        .ghost()
-                                        .on_click(cx.listener(move |this, _, window, cx| {
-                                            this.start_editor(
-                                                target.clone(),
-                                                EditMode::Delete,
-                                                &delete_name,
-                                                window,
-                                                cx,
-                                            )
-                                        })),
-                                    self.busy,
-                                    false,
-                                    cx,
-                                )),
-                        );
-                    }
-                    Err(_) => {
-                        detail = detail.child(text(cx,"This legacy source is read-only here. Manage it through the platform settings source editor; new Claude entries use explicit user/local/project scope.","此旧版来源在这里为只读。请通过平台设置源码编辑器管理；新的 Claude 条目使用明确的用户、项目本地或项目文件作用域。"));
-                    }
-                }
-                for line in lines {
-                    detail = detail.child(line);
-                }
-                root = root.child(detail);
-            }
-        }
-        root
+            .child(self.header(cx))
+            .child(self.toolbar(cx));
+        let root = match self.sources(cx) {
+            Some(sources) => root.child(sources),
+            None => root,
+        };
+        root.child(self.body(split, &visible, pane, cx))
     }
 }
 

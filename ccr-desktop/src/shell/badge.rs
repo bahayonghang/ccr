@@ -22,12 +22,34 @@ pub fn tag(
     tone: Tone,
     cx: &App,
 ) -> Stateful<Div> {
-    let colors = theme::tone_colors(tone, cx.theme().mode);
     let label = label.into();
+    tag_frame(id, label.clone(), tone, cx).child(label)
+}
+
+/// A status tag whose label follows a 12px glyph in the same tone, such as a
+/// ban sign before "Disabled". The text still carries the state on its own.
+pub fn icon_tag(
+    id: impl Into<ElementId>,
+    icon: IconName,
+    label: impl Into<SharedString>,
+    tone: Tone,
+    cx: &App,
+) -> Stateful<Div> {
+    let label = label.into();
+    let ink = theme::tone_colors(tone, cx.theme().mode).ink;
+    tag_frame(id, label.clone(), tone, cx)
+        .gap(px(theme::SELECTION_RADIUS))
+        .child(Icon::new(icon).size(px(theme::META_SIZE)).text_color(ink))
+        .child(label)
+}
+
+// 标签外框：语调色、尺寸与无障碍标签；内容由调用方追加。
+fn tag_frame(id: impl Into<ElementId>, label: SharedString, tone: Tone, cx: &App) -> Stateful<Div> {
+    let colors = theme::tone_colors(tone, cx.theme().mode);
     div()
         .id(id)
         .role(Role::Label)
-        .aria_label(label.clone())
+        .aria_label(label)
         .flex_shrink_0()
         .h(px(theme::TAG_HEIGHT))
         .flex()
@@ -41,7 +63,6 @@ pub fn tag(
         .text_size(px(theme::META_SIZE))
         .font_weight(FontWeight::MEDIUM)
         .whitespace_nowrap()
-        .child(label)
 }
 
 /// A solid 8px dot. Always sits beside text that names what it marks.
@@ -255,6 +276,10 @@ mod tests {
                 .items_start()
                 .gap(px(theme::CONTROL_GAP))
                 .child(tag("tag-partial", "Partial", Tone::Warning, cx).test_support())
+                .child(
+                    icon_tag("tag-disabled", IconName::Ban, "Disabled", Tone::Warning, cx)
+                        .test_support(),
+                )
                 .child(filter_chip(chip("chip-on", "Claude"), true, false, cx))
                 .child(filter_chip(
                     chip("chip-off", "Codex").on_click(count(&clicks.off)),
@@ -313,6 +338,12 @@ mod tests {
             assert_eq!(tag.role(), Some(Role::Label));
             assert_eq!(tag.label(), Some("Partial"));
             assert_eq!(tag.bounds().size.height, px(theme::TAG_HEIGHT));
+            // 带图标的标签保持同一高度与标签语义，图标不进入无障碍名称。
+            let icon = window.find("tag-disabled");
+            assert_eq!(icon.role(), Some(Role::Label));
+            assert_eq!(icon.label(), Some("Disabled"));
+            assert_eq!(icon.bounds().size.height, px(theme::TAG_HEIGHT));
+            assert!(icon.bounds().size.width > tag.bounds().size.width);
             window.remove_window();
         })
         .unwrap();
