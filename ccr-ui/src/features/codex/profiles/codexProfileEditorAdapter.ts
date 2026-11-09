@@ -23,7 +23,17 @@ import {
 export type CodexEditorForm = CodexProfileEditorForm & { model: string }
 
 const AUTH_MODES: readonly CodexProfileAuthMode[] = [...AVAILABLE_AUTH_MODES, ...DEPRECATED_AUTH_MODES]
-const MODEL_CATALOG = ['gpt-5.6-sol', 'gpt-5.6-high', 'gpt-5.6-mini'] as const
+const MODEL_CATALOG = [
+  'gpt-6.1-sol',
+  'gpt-6-astra',
+  'gpt-6.1-terra',
+  'gpt-6-sol',
+  'gpt-6-luna',
+  'gpt-5.6-sol',
+  'gpt-5.6-terra',
+  'gpt-5.6-luna',
+] as const
+const DEFAULT_CODEX_MODEL = MODEL_CATALOG[0]
 
 const resolvedModelOf = (form: CodexEditorForm): string => {
   const selection = resolveModelSelection(form.model, [...MODEL_CATALOG])
@@ -58,7 +68,7 @@ const errorOf = (error: unknown): ProfileWriteOutcome => ({
 })
 
 export const codexProfileEditorAdapter: ProfileEditorAdapter<CodexEditorForm, CodexProfile> = {
-  createEmpty: () => ({ ...createCodexProfileEditorForm(), model: '' }),
+  createEmpty: () => ({ ...createCodexProfileEditorForm(), model: DEFAULT_CODEX_MODEL }),
   fromRecord: (record) => ({
     ...codexProfileToEditorForm(record),
     model: record.model ?? '',

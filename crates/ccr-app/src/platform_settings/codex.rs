@@ -5,8 +5,21 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use std::collections::HashMap;
 
-/// Existing desktop catalog; this is a local configured list, not a remote capability claim.
-pub const BUILTIN_MODELS: &[&str] = &["gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.6-sol"];
+/// Default Codex model. The first builtin entry stays this id.
+pub const DEFAULT_MODEL: &str = "gpt-6.1-sol";
+
+/// Local configured catalog, not a remote capability claim. Older ids stay so
+/// existing profiles are still recognized as builtins.
+pub const BUILTIN_MODELS: &[&str] = &[
+    DEFAULT_MODEL,
+    "gpt-6-astra",
+    "gpt-6.1-terra",
+    "gpt-6-sol",
+    "gpt-6-luna",
+    "gpt-5.6-sol",
+    "gpt-5.6-terra",
+    "gpt-5.6-luna",
+];
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CustomModelsFile {

@@ -778,9 +778,14 @@ mod tests {
         assert_eq!(
             builtin_models,
             vec![
-                "gpt-5.6-luna".to_string(),
-                "gpt-5.6-terra".to_string(),
+                "gpt-6.1-sol".to_string(),
+                "gpt-6-astra".to_string(),
+                "gpt-6.1-terra".to_string(),
+                "gpt-6-sol".to_string(),
+                "gpt-6-luna".to_string(),
                 "gpt-5.6-sol".to_string(),
+                "gpt-5.6-terra".to_string(),
+                "gpt-5.6-luna".to_string(),
             ]
         );
 
@@ -797,9 +802,14 @@ mod tests {
         assert_eq!(
             merge_codex_models(&custom_models),
             vec![
-                "gpt-5.6-luna".to_string(),
-                "gpt-5.6-terra".to_string(),
+                "gpt-6.1-sol".to_string(),
+                "gpt-6-astra".to_string(),
+                "gpt-6.1-terra".to_string(),
+                "gpt-6-sol".to_string(),
+                "gpt-6-luna".to_string(),
                 "gpt-5.6-sol".to_string(),
+                "gpt-5.6-terra".to_string(),
+                "gpt-5.6-luna".to_string(),
                 "gpt-5.4".to_string(),
                 "relay/custom-model".to_string(),
             ]
