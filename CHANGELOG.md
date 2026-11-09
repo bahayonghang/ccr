@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [7.5.1] - 2026-11-09
+
+### ✨ 新功能
+
+- TUI 在应用或重新应用 profile、解绑，以及 Claude / Codex 账号切换和退出登录前弹出确认。默认取消，只有 `y` 会写入。再按一次 `Enter` / `Space` 或 `o` 会取消对应确认。Grok Auth 仍使用原来的确认框。
+
+---
+
 ## [7.5.0] - 2026-10-17
 
 ### ✨ 新功能
