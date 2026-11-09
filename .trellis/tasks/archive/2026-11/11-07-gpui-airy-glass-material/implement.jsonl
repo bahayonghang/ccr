@@ -1,5 +1,0 @@
-{"file": "ccr-desktop/DESIGN.md", "reason": "GPUI 设计合同，需先改 Elevation/材质章节"}
-{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "主题 token 与对比度合同"}
-{"file": ".trellis/tasks/archive/2026-11/11-07-gpui-airy-glass-polish/research/native-capabilities.md", "reason": "上一轮 GPUI 原生能力探针（dashed/overflow_x/pill/brand）"}
-{"file": ".trellis/tasks/archive/2026-11/11-07-gpui-airy-glass-polish/prd.md", "reason": "上一轮已交付内容与保留合同（精确值行焦点等）"}
-{"file": ".trellis/spec/ccr-ui/frontend/dashboard-presentation-contracts.md", "reason": "首页读数/图表/空态呈现合同"}

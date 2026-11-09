@@ -1,9 +1,0 @@
-{"file":".trellis/spec/ccr-codex/backend/index.md","reason":"Codex guidelines routing"}
-{"file":".trellis/spec/ccr-codex/backend/backend-guidelines.md","reason":"Auth safety and domain owner"}
-{"file":".trellis/spec/ccr-codex/backend/test-fixtures.md","reason":"Isolated auth fixture tests"}
-{"file":".trellis/spec/ccr-cli/backend/backend-guidelines.md","reason":"CLI errors and command boundaries"}
-{"file":".trellis/spec/ccr-cli/backend/cli-output-presentation.md","reason":"Output and intentional save exit behavior change"}
-{"file":".trellis/spec/ccr-cli/backend/test-fixtures.md","reason":"CLI fixture isolation"}
-{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Shared default callsite audit"}
-{"file": ".trellis/spec/ccr-codex/backend/auth-credential-store.md", "reason": "Credential-store safety and regression acceptance"}
-{"file": ".trellis/tasks/archive/2026-11/11-05-codex-auth-save-default-store/research/implementation-evidence.md", "reason": "Recorded red-green and synthetic binary verification"}

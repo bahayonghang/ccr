@@ -1,4 +1,0 @@
-{"file": "ccr-desktop/DESIGN.md", "reason": "验收对照合同：对比度、选中/焦点态、诚实空态、原生验证边界"}
-{"file": "ccr-ui/DESIGN.md", "reason": "签名组件与 Do/Don't 清单，跨框架一致性检查"}
-{"file": ".trellis/tasks/archive/2026-11/11-07-gpui-airy-glass-polish/research/visual-audit.md", "reason": "审计基线：逐条核对修复覆盖"}
-{"file": ".trellis/spec/ccr-ui/frontend/brand-asset-pipeline.md", "reason": "检查品牌资产复用与跨平台生成来源，避免单色 SVG mask 冒充原色品牌"}

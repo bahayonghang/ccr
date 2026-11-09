@@ -1,0 +1,41 @@
+{
+  "recorded_at_utc": "2026-09-30T05:35:14.045817+00:00",
+  "commit": "30cbeddf730ed01b312c3396ba7b8691853be859",
+  "archive_command": [
+    "git",
+    "-c",
+    "core.autocrlf=false",
+    "archive",
+    "--format=tar",
+    "30cbeddf730ed01b312c3396ba7b8691853be859",
+    "--",
+    ".gitignore",
+    ".omp/extensions/trellis/index.ts",
+    "scripts/trellis/omp-context.test.ts"
+  ],
+  "archive_sha256": "cd1a81ad0cb0ceda999579985c3df8732c3780c168c5fc889fd35969c62a1e2c",
+  "bun_version": "1.4.2",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "paths": [
+    ".gitignore",
+    ".omp/extensions/trellis/index.ts",
+    "scripts/trellis/omp-context.test.ts"
+  ],
+  "source_sha256": {
+    ".gitignore": "1f6533d4010e053708df5a95bca34e23c26f921f832ceb34ec6e8a76be76f3ae",
+    ".omp/extensions/trellis/index.ts": "a9ef13beb1bb7214e2ada5cb43fea596065ab296b68a8da171220a77840c5851",
+    "scripts/trellis/omp-context.test.ts": "427ff9c29ccccaf94554eece9eff042d5201a087c49b500d947139aba275da1b"
+  },
+  "preparation_note": "Default core.autocrlf=true made git archive emit CRLF and failed the initial blob-byte equality assertion before tests ran. Repeating archive with command-local core.autocrlf=false emits exact committed blobs; no repository or global configuration was changed.",
+  "boundary": "Fresh temporary directory populated only by the three file blobs from the named git commit. No ignored files, personal Trellis state, installed OMP runtime or native-client validation.",
+  "test_command": [
+    "bun",
+    "test",
+    "scripts/trellis/omp-context.test.ts"
+  ],
+  "exit_code": 0,
+  "seconds": 0.262,
+  "log": "committed-source-fixture.log",
+  "log_sha256": "eb923151084064c34c7a0e0e9b2b2050464bf3963bb0565e5faa8418fddac4f2",
+  "output": "bun test v1.4.2 (744846f84)\n\nscripts\\trellis\\omp-context.test.ts:\n(pass) OMP Trellis buildTaskContext > main and each role receive prd/design/implement markers [27.77ms]\n(pass) OMP Trellis buildTaskContext > jsonl files stay isolated by role [21.65ms]\n(pass) OMP Trellis buildTaskContext > lightweight task without design/implement still reads PRD [2.56ms]\n(pass) OMP Trellis buildTaskContext > missing task files do not crash session_start [2.43ms]\n(pass) OMP Trellis buildTaskContext > out-of-trust jsonl paths stay rejected [8.49ms]\n(pass) OMP Trellis buildTaskContext > legacy info.md remains available to every role [21.34ms]\n(pass) OMP Trellis buildTaskContext > design and implementation edits refresh the existing session cache [24.41ms]\n(pass) OMP Trellis buildTaskContext > artifact and referenced-file symlinks cannot read outside trusted roots [8.92ms]\n(pass) OMP Trellis buildTaskContext > explicit trusted roots permit artifact and manifest symlinks [10.95ms]\n(pass) OMP Trellis buildTaskContext > artifact and file caps truncate on complete UTF-8 characters [8.77ms]\n(pass) OMP Trellis buildTaskContext > total context cap emits a required-read notice without oversized content [5.92ms]\n(pass) OMP Trellis buildTaskContext > a cap smaller than the wrapper emits no malformed payload [4.18ms]\n(pass) OMP Trellis buildTaskContext > binary and malformed UTF-8 artifacts stay omitted [6.69ms]\n(pass) OMP Trellis buildTaskContext > oversized manifests are omitted before parsing their entries [11.78ms]\n\n 14 pass\n 0 fail\n 99 expect() calls\nRan 14 tests across 1 file. [210.00ms]\n"
+}

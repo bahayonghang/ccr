@@ -1,9 +1,0 @@
-{"file":".trellis/spec/ccr/backend/dependency-governance.md","reason":"独立 workspace 与既有依赖/CI 契约"}
-{"file":".trellis/spec/ccr/backend/desktop-command-policy.md","reason":"原生入口不能绕过既有操作策略"}
-{"file":".trellis/tasks/10-17-gpui-desktop/research/architecture.md","reason":"仓库复用边界与依赖来源"}
-{"file":".trellis/tasks/10-17-gpui-desktop/research/performance.md","reason":"可量化性能验收"}
-{"file":".trellis/tasks/10-17-gpui-desktop/research/feature-matrix.md","reason":"完整迁移范围与逐命令所有权"}
-{"file":"ccr-desktop/DESIGN.md","reason":"现有原生设计与行为约束；视觉增量以 airy-glass-plan.md 为准，03 实施时先同步此规范"}
-{"file":".trellis/tasks/10-17-gpui-desktop/research/airy-glass-plan.md","reason":"本次轻盈玻璃增量目标、材质降级、任务所有权与验收，保留暂停及延期边界"}
-{"file":"ccr-ui/DESIGN.md","reason":"Tauri 已落地的轻盈玻璃视觉参照；原生 API 和验证必须独立"}
-{"file":".trellis/tasks/10-17-gpui-desktop/research/next-session-implementation-prompt-20261106.md","reason":"用户最新侧栏重设计与平台功能/展示对等授权、剩余任务及核心验证交接"}

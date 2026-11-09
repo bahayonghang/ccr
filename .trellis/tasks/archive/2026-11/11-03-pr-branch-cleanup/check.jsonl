@@ -1,7 +1,0 @@
-{"file": ".trellis/spec/ccr/backend/dependency-governance.md", "reason": "核对 monthly 六条映射、SHA pin 和审计没有被跳过"}
-{"file": ".trellis/spec/ccr-cli/backend/clean-storage.md", "reason": "符号链接修复不得放宽清理范围"}
-{"file": ".trellis/spec/ccr-cli/backend/grok-profile-runtime.md", "reason": "并发 init 修复不得削弱幂等断言"}
-{"file": ".trellis/spec/ccr-cli/backend/cli-output-presentation.md", "reason": "预览文案修复要保留中性输出合同"}
-{"file": ".trellis/spec/ccr-config/backend/profile-repository.md", "reason": "权限断言修复不得改成跳过 secret mode"}
-{"file": ".trellis/spec/ccr-vscode/frontend/extension-surface-contracts.md", "reason": "VS Code 类型升级要符合扩展表面合同"}
-{"file": ".trellis/tasks/11-03-pr-branch-cleanup/research/pr-inventory.md", "reason": "按清单核对 PR 去向和剩余分支"}

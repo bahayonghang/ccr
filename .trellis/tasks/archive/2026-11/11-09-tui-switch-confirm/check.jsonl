@@ -1,3 +1,0 @@
-{"file": ".trellis/spec/ccr-tui/backend/profile-workbench.md", "reason": "验收 mutation 闸门、冻结目标和单 writer"}
-{"file": ".trellis/spec/ccr-tui/backend/backend-guidelines.md", "reason": "验收双语文案、夹具隔离和渲染测试"}
-{"file": ".trellis/tasks/11-09-tui-switch-confirm/research/switch-paths.md", "reason": "对照现有按键，确认没有误改 Grok 和删除"}

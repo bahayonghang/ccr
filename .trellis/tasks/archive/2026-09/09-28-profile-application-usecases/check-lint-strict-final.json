@@ -1,8 +1,0 @@
-{
-  "command": [
-    "just",
-    "lint-strict"
-  ],
-  "exit_code": 0,
-  "seconds": 16.88
-}

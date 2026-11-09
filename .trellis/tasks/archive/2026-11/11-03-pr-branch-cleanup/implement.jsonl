@@ -1,8 +1,0 @@
-{"file": ".trellis/spec/ccr/backend/dependency-governance.md", "reason": "Dependabot 间隔、Action SHA、cargo audit 必须升级而不是忽略"}
-{"file": ".trellis/spec/ccr-cli/backend/clean-storage.md", "reason": "clean storage 符号链接测试的 clippy 修复不能改变删除合同"}
-{"file": ".trellis/spec/ccr-cli/backend/grok-profile-runtime.md", "reason": "并发 grok profile init 失败时保持幂等合同"}
-{"file": ".trellis/spec/ccr-cli/backend/cli-output-presentation.md", "reason": "planfiles 预览缺少扫描目录行"}
-{"file": ".trellis/spec/ccr-config/backend/profile-repository.md", "reason": "no-op mutation 必须维持 secret 文件权限且不替换文件"}
-{"file": ".trellis/spec/ccr-core/backend/managed-process.md", "reason": "macOS 进程树测试只在复现后才能改"}
-{"file": ".trellis/spec/ccr-vscode/frontend/extension-surface-contracts.md", "reason": "@types/vscode 升级不能无故抬高 engines"}
-{"file": ".trellis/tasks/11-03-pr-branch-cleanup/research/pr-inventory.md", "reason": "PR 分组、基线失败和脏工作区约束"}

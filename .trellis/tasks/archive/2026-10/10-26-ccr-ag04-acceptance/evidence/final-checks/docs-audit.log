@@ -1,2 +1,0 @@
-$ node ./scripts/audit-docs.mjs
-ccr-ui docs audit passed
