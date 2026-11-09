@@ -3,9 +3,9 @@ mod capabilities;
 mod import;
 mod observer;
 mod policies;
-mod product;
 mod rows;
 mod session_operations;
+mod sessions;
 use crate::{
     locales::{is_chinese, localized_line, service_error, text},
     runtime::{
@@ -682,7 +682,7 @@ impl InsightsView {
 impl Render for InsightsView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         if self.surface == Surface::Sessions {
-            return product::sessions(self, window, cx).into_any_element();
+            return sessions::sessions(self, window, cx).into_any_element();
         }
         let mut root = div()
             .id("insights-root")
