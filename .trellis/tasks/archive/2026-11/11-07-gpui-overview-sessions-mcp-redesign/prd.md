@@ -157,3 +157,7 @@
 ## 续作检查点
 
 §5.1 实现与规格已提交 `a145abba`，完整 desktop-ci 及最终错误状态增量回归通过，详见 `research/integration.md`。Overview 原生 ≤24px 测量、完整主题/尺寸/中文截图矩阵仍未完成，故对应验收不勾选且任务不归档。新截图独立复核发现本地报告没有显式时区后缀；源码审计确认是既有展示缺口，时间换算正确，另记在 `research/native-visual.md`，不扩展本轮 A–F 修复。
+
+## User-requested archive — 2026-11-09
+
+The user explicitly requested committing all changes and archiving this task. The earlier in-progress/do-not-archive notes are historical and superseded by that instruction. Implementation and the recorded desktop gates passed. The unchecked native theme/size/Chinese matrix, calibrated gap measurements and other native acceptance remain **UNVERIFIED**; archival does not turn them into passes. Preserve the unchecked acceptance items and remaining gaps for future work. No push.

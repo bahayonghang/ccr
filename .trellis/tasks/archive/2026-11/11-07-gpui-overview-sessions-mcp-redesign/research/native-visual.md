@@ -100,3 +100,7 @@ These remain the handoff's out-of-scope list, not newly accepted behavior:
 ## Next acceptance step
 
 Capture the final release at the requested logical dimensions with a stable target window and run the remaining native checklist. Use the existing `research/tools/capture.ps1` procedure in a later authorized native session, or provide those screenshots for comparison. Do not archive on the strength of the headless gate or these three uncontrolled-size captures alone.
+
+## User-requested archive — 2026-11-09
+
+The user explicitly requested committing all changes and archiving this task. The earlier in-progress/do-not-archive notes are historical and superseded by that instruction. Implementation and the recorded desktop gates passed. The unchecked native theme/size/Chinese matrix, calibrated gap measurements and other native acceptance remain **UNVERIFIED**; archival does not turn them into passes. Preserve the unchecked acceptance items and remaining gaps for future work. No push.

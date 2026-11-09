@@ -37,3 +37,7 @@ Release executable SHA-256: `CFFF57EB9FDA0C94263D91FC01F8BB984108641423BCD3806AB
 The final release launched after the user requested reopening when the first Computer Use application approval timed out. Three light/en wide-page screenshots were saved. Capture normalized its image dimensions and was interrupted by user input/foreground changes; the exact logical dimensions and the requested theme/size matrix were **not verified**. See `native-visual.md`. The task remains `in_progress`, with no archive and no push.
 
 The temporary theme/geometry preference preparation was restored byte-for-byte before the successful reopen: original and restored SHA-256 both `5a72f2dd62026dd21d86ea210454255007265db4045cc161135dad4958c5b7f0`. Subsequent user window changes were not overwritten.
+
+## User-requested archive — 2026-11-09
+
+The user explicitly requested committing all changes and archiving this task. The earlier in-progress/do-not-archive notes are historical and superseded by that instruction. Implementation and the recorded desktop gates passed. The unchecked native theme/size/Chinese matrix, calibrated gap measurements and other native acceptance remain **UNVERIFIED**; archival does not turn them into passes. Preserve the unchecked acceptance items and remaining gaps for future work. No push.

@@ -3,7 +3,7 @@
   "name": "gpui-overview-sessions-mcp-redesign",
   "title": "GPUI Overview 填充与会话/MCP 配置页重设计",
   "description": "参考 Tauri 版重排 GPUI Overview 消除大片空白，并重设计 Agent sessions 与 MCP Manager 的徽章、样式与排版",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -11,7 +11,7 @@
   "creator": "lyh",
   "assignee": "lyh",
   "createdAt": "2026-11-07",
-  "completedAt": null,
+  "completedAt": "2026-11-09",
   "branch": "dev",
   "base_branch": "main",
   "worktree_path": null,
@@ -21,6 +21,13 @@
   "children": [],
   "parent": null,
   "relatedFiles": [],
-  "notes": "Handoff §5.1 A–F implemented and checked. desktop-ci exit 0; final error-state regression passed. Native light/en wide screenshots only, logical dimensions unverified; full theme/size/Chinese matrix and calibrated gap measurements pending. Keep in_progress; do not archive or push. See research/integration.md and native-visual.md.",
-  "meta": {}
+  "notes": "Archived at user request on 2026-11-09. Implementation A-F and desktop-ci passed; native light/en wide captures only. Full theme/size/Chinese matrix, calibrated Overview gap measurements and other native acceptance remain UNVERIFIED. Archive is administrative closure, not evidence that those checks passed. See research/integration.md and native-visual.md. No push.",
+  "meta": {
+    "archive_disposition": {
+      "requested_by": "user",
+      "date": "2026-11-09",
+      "native_acceptance": "partial_unverified",
+      "unchecked_acceptance_preserved": true
+    }
+  }
 }

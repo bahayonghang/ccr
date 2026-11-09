@@ -99,3 +99,7 @@ just desktop-fmt-check && just desktop-lint && just desktop-test && just desktop
 - [ ] 完成原生尺寸/主题矩阵、校准 Overview 空白测量及中文/最小窗复核后再归档。窗口输入/前台变化使本轮自动化不稳定，未用旧截图代替新验收。
 
 状态仍为 `in_progress`。这是实现检查点，不是完整原生验收完成。
+
+## User-requested archive — 2026-11-09
+
+The user explicitly requested committing all changes and archiving this task. The earlier in-progress/do-not-archive notes are historical and superseded by that instruction. Implementation and the recorded desktop gates passed. The unchecked native theme/size/Chinese matrix, calibrated gap measurements and other native acceptance remain **UNVERIFIED**; archival does not turn them into passes. Preserve the unchecked acceptance items and remaining gaps for future work. No push.

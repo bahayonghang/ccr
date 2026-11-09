@@ -244,3 +244,7 @@ List them as remaining gaps in `native-visual.md` and in the final report.
 The handoff above is the original baseline. §5.1 A–F was implemented in local commit `a145abba`; desktop-ci passed (339s) and the final failed-read regression passed. Authoritative continuation receipts are in the existing task `research/integration.md`, `check-continuation.md`, `native-visual.md` and `native-fresh-review.md`.
 
 The native release was reopened at the user’s request. Three light/en wide-page captures were obtained, but exact logical sizes were not verified and concurrent user/foreground activity prevented a reliable matrix. The task remains `in_progress`; do not archive or mark the remaining native checkboxes passed. Resume with the controlled light/dark × 2000×1080/1280×800, minimum-size and Chinese captures and calibrated Overview gap measurements. No push was made.
+
+## User-requested archive — 2026-11-09
+
+Archived at the user’s explicit request to `.trellis/tasks/archive/2026-11/11-07-gpui-overview-sessions-mcp-redesign/`. Earlier in-progress instructions above are historical. Native acceptance remains partial/unverified; see the archived `research/integration.md` and `research/native-visual.md`. Source fixes are `a145abba`, earlier receipts `46795fe8`; no push.
