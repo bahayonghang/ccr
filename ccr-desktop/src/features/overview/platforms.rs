@@ -192,7 +192,7 @@ fn sparkline(values: &[i64], ink: gpui_kit::Hsla, cx: &App) -> gpui_kit::Div {
         // 只有有逐日记录的平台才单独成格；此分支仅作防御，绘制虚线空基线。
         return row.border_dashed();
     }
-    let subtle = gpui_kit::Hsla::from(gpui_kit::rgb(theme::palette(cx.theme().mode).subtle));
+    let subtle = theme::sparkline_neutral(cx.theme().mode);
     let mut row = row.gap(px(if values.len() > 30 { 0. } else { 1. }));
     for value in values {
         let height = if *value == 0 {

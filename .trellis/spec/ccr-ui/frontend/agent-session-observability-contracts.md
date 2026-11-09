@@ -140,14 +140,28 @@ useQuery({ queryKey: agentSessionKeys.detail(environmentId, archiveId), enabled:
   - A refresh or a filter change drops the slot and its in-flight request.
   - A late response for a stale selection is discarded by the detail gate.
 - **Search:** Enter queries at once; typing debounces for 300ms with a generation token, and an expired token does nothing.
+- Search placeholder and accessible label both name title, session ID and path,
+  matching the backend query. Failed/cancelled list reads retain the last
+  successful provider availability so active filters remain visible, while the
+  list body shows the failure instead of stale rows. The Codex trash action is
+  absent when Codex is `NotInstalled`. Guard:
+  `failed_list_read_keeps_provider_filters_and_codex_trash_visibility`.
 - Fidelity copy: `Full record / 完整记录`, `Partial / 部分`, `Locked / 锁定`.
 - **Layout:**
   - Window ≥ `SPLIT_WIDTH`: the list and the pane split 3:2. The outer columns only size the area; the solid panels sit inside them.
   - Narrower windows drill in. Focus moves to the pane on the next frame and returns to the original row on "Back to list". Delayed focus callbacks are guarded by generation.
+  - Below `SPLIT_WIDTH`, provider chips stay in one horizontally scrolling row.
+    The page count shares the filter row; the list top is <45% of a 960×640
+    window height. The two capsule groups are named Record completeness and
+    Source state, with All records / All sources as their first choices.
 - `insights-filter-6` stays visible and clickable while the trash is open, at every width. Esc from the restore review returns focus there. Trash decisions (the restore confirmation) render above the long row list.
 - **Row text:**
   - Rows show one-line titles with an ellipsis and a tooltip.
   - The metadata segment (agent · variant · counts) never shrinks; only the path truncates.
+  - The identity dot aligns with the title line. Transcript role names use muted
+    ink and localized User/Assistant/Tool/System labels; unknown roles retain
+    their source text. Messages are blocks separated by hairlines, and the
+    loaded/total message counts and tool count share one summary line.
 - Leaving the page clears transcript and export plaintext and cancels in-flight work.
 
 ### 4. Tests Required

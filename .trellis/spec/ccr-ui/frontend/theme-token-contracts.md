@@ -96,6 +96,22 @@ its design in `ccr-desktop/DESIGN.md` and its only token layer in
   `scene_inset` and `content_padding`, the same helpers the shell lays out with.
   A page must not keep its own copy of those constants: if it does, the computed
   widths drift from the painted ones whenever the shell changes.
+- MCP and Sessions split columns own only the 3:2 size, with no padding or
+  border. Their list reading panels hug short content and cap long content at
+  the column height (`min_h_0`, internal vertical scrolling). Unselected panes
+  and empty trash also hug content; real details/editors/transcripts fill the
+  pane. Do not put unconditional `flex_1` on a shared reading-panel builder.
+  Guards: `many_mcp_entries_scroll_inside_the_content_sized_panel`,
+  `many_session_rows_scroll_inside_the_content_sized_panel`, and the existing
+  split-window tests assert the short/long/empty geometries.
+- Header/toolbar ghost actions use `semantics::ghost_button(button, disabled,
+  busy, cx)`: disabled keeps transparent fill/border, muted ink, disabled/busy
+  accessibility state and no tab stop. The global `semantics::button` keeps its
+  existing filled disabled treatment. Guard:
+  `disabled_ghost_button_keeps_its_disabled_semantics`.
+- Overview neutral sparkline bars use `theme::sparkline_neutral(mode)` with
+  graphic contrast ≥3:1 against reading in both themes; do not use a low-alpha
+  decorative hairline color for data marks.
 
 ## Current palette and material world (2026-10-26)
 

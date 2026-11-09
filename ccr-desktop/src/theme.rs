@@ -125,6 +125,11 @@ pub struct MaterialTokens {
     pub shadow_alpha: [f32; 2],
 }
 
+/// Neutral non-peak sparkline bars retain graphic contrast on the reading surface.
+pub fn sparkline_neutral(mode: ThemeMode) -> Hsla {
+    rgb(palette(mode).muted).into()
+}
+
 /// App-specific roles stay here; Kit reading/input/popover roles remain opaque.
 #[derive(Clone, Copy)]
 pub struct Palette {
@@ -786,6 +791,15 @@ mod tests {
             tabular_figures().tag_value_list(),
             &[("tnum".to_string(), 1)]
         );
+    }
+
+    #[test]
+    fn neutral_sparkline_bars_keep_graphic_contrast_on_reading_surface() {
+        for mode in [ThemeMode::Light, ThemeMode::Dark] {
+            let rgba = gpui_kit::Rgba::from(sparkline_neutral(mode));
+            let ink = [rgba.r, rgba.g, rgba.b].map(|c| f64::from(c) * 255.);
+            assert!(contrast(ink, channels(palette(mode).surface)) >= 3.);
+        }
     }
 
     #[test]

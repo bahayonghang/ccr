@@ -271,7 +271,7 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
   - `Last successful sync MM-DD HH:mm (zone)`;
   - `No successful sync recorded`;
   - `Sync time unreadable` when the stored value is not RFC3339.
-- When stale with a known time, the header warning dot carries text and an accessible label, and the data-source panel adds `Newer usage may be missing until a sync succeeds`. Never write "not imported after X", and never infer whether empty trailing days are idle or not imported.
+- When stale with a known time, the header warning dot carries the same explanation in its tooltip and accessible label, and the data-source panel adds `Newer usage may be missing until a sync succeeds`. With no successful sync recorded, show only the dot and `No successful sync recorded`, without the missing-usage note. Never write "not imported after X", and never infer whether empty trailing days are idle or not imported.
 - The daily chart title appends `· latest record MM-DD` only when the window ends with empty days. A window with data through its last day gets no suffix.
 - Every module whose range differs from the page range names its range in a `badge::section_heading` scope or caption:
   - Activity: `Last 53 weeks · since YYYY-MM-DD`, with the full date, because "since 11-03" would read as this month.

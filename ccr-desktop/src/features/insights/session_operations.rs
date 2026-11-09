@@ -37,6 +37,13 @@ impl InsightsView {
     pub(super) fn session_trash_loaded(&self) -> bool {
         self.session_ops.trash.is_some()
     }
+
+    pub(super) fn session_trash_empty(&self) -> bool {
+        self.session_ops
+            .trash
+            .as_ref()
+            .is_some_and(|items| items.is_empty())
+    }
     #[cfg(test)]
     pub(super) fn session_restore_pending(&self) -> bool {
         self.session_ops.restore.is_some()

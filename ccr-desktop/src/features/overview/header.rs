@@ -8,8 +8,9 @@ use crate::{
 };
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
-    ActiveTheme,
+    ActiveTheme, IconName,
     button::{Button, ButtonVariants},
+    tooltip::Tooltip,
 };
 use gpui_kit::{
     App, Context, InteractiveElement, IntoElement, ParentElement, StatefulInteractiveElement,
@@ -83,7 +84,7 @@ impl OverviewView {
             .id("overview-last-sync")
             .test_support()
             .role(gpui_kit::Role::Label)
-            .aria_label(description)
+            .aria_label(description.clone())
             .flex()
             .items_center()
             .gap(px(theme::CONTROL_GAP))
@@ -94,6 +95,7 @@ impl OverviewView {
             row.child(
                 badge::dot(theme::tone_colors(Tone::Warning, cx.theme().mode).ink)
                     .id("overview-last-sync-stale")
+                    .tooltip(move |window, cx| Tooltip::new(description.clone()).build(window, cx))
                     .test_support(),
             )
         } else {
@@ -147,8 +149,9 @@ impl OverviewView {
                             .items_center()
                             .gap(px(theme::CONTROL_GAP))
                             .child(self.windows(cx))
-                            .child(semantics::button(
+                            .child(semantics::ghost_button(
                                 Button::new("overview-refresh")
+                                    .icon(IconName::RefreshCw)
                                     .label(text(cx, "Refresh", "刷新用量"))
                                     .on_click(cx.listener(|this, _, _, cx| this.refresh(cx))),
                                 self.loading || !self.requests.configured(),

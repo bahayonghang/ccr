@@ -36,6 +36,7 @@ impl McpView {
                 .into_any_element();
         }
         let panel = reading_panel("mcp-pane", cx)
+            .flex_1()
             .track_focus(&self.pane_focus)
             .tab_stop(false)
             .p(px(theme::SECTION_GAP))
@@ -133,7 +134,6 @@ impl McpView {
             .gap(px(theme::CONTROL_GAP))
             .child(semantics::button(
                 Button::new("mcp-copy")
-                    .icon(IconName::Copy)
                     .label(text(cx, "Copy to…", "复制到…"))
                     .tooltip(text(cx, "Copy to another source", "复制到其他来源"))
                     .ghost()

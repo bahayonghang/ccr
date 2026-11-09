@@ -326,6 +326,12 @@ impl McpBatch {
             }
             root = root.child(sources);
         } else {
+            root = root.child(
+                div()
+                    .text_size(px(theme::META_SIZE))
+                    .text_color(cx.theme().muted_foreground)
+                    .child(text(cx, "Preset", "预设")),
+            );
             let mut presets = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
             for preset in ccr_skills::get_builtin_presets() {
                 let id = preset.id.clone();
@@ -379,20 +385,28 @@ impl McpBatch {
                 cx,
             ));
         }
-        root = root.child(targets).child(
-            badge::filter_chip(
-                Button::new("mcp-batch-replace")
-                    .label(text(cx, "Replace existing entries", "替换已有条目"))
-                    .on_click(cx.listener(|this, _, _, cx| {
-                        this.replace = !this.replace;
-                        cx.notify();
-                    })),
-                self.replace,
-                self.busy,
-                cx,
+        root = root
+            .child(targets)
+            .child(
+                div()
+                    .text_size(px(theme::META_SIZE))
+                    .text_color(cx.theme().muted_foreground)
+                    .child(text(cx, "Options", "选项")),
             )
-            .self_start(),
-        );
+            .child(
+                badge::filter_chip(
+                    Button::new("mcp-batch-replace")
+                        .label(text(cx, "Replace existing entries", "替换已有条目"))
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            this.replace = !this.replace;
+                            cx.notify();
+                        })),
+                    self.replace,
+                    self.busy,
+                    cx,
+                )
+                .self_start(),
+            );
         // 按钮标签单行不换行：后果说明拆成下方的 muted 辅助句，窄 pane 不溢出。
         root.child(
             div()

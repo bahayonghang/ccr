@@ -22,7 +22,11 @@ use gpui_kit::{
 };
 
 fn placeholder(cx: &App) -> &'static str {
-    text(cx, "Search session titles", "搜索会话标题")
+    text(
+        cx,
+        "Search title, session ID or path",
+        "搜索标题、会话 ID 或路径",
+    )
 }
 
 /// 语言切换后同步一次搜索框 placeholder。
@@ -42,18 +46,18 @@ pub(super) fn sync_placeholder(
 
 /// Search, fidelity and source-state on the left; the page count on the right.
 pub(super) fn toolbar(view: &InsightsView, cx: &mut Context<InsightsView>) -> AnyElement {
+    let search = badge::search_field(
+        Input::new(&view.fields[6])
+            .id("insights-filter-6")
+            .aria_label(placeholder(cx)),
+        cx,
+    );
     let filters = div()
         .min_w_0()
         .flex()
         .flex_wrap()
         .items_center()
         .gap(px(theme::CONTROL_GAP))
-        .child(badge::search_field(
-            Input::new(&view.fields[6])
-                .id("insights-filter-6")
-                .aria_label(text(cx, "Session title search", "会话标题搜索")),
-            cx,
-        ))
         .child(choice_capsule(
             "session-fidelity",
             &state::FIDELITIES,
@@ -75,10 +79,19 @@ pub(super) fn toolbar(view: &InsightsView, cx: &mut Context<InsightsView>) -> An
         .flex()
         .flex_wrap()
         .items_center()
-        .justify_between()
         .gap(px(theme::CONTROL_GAP))
-        .child(filters)
-        .child(page_count(view, cx))
+        .child(search)
+        .child(
+            div()
+                .min_w_0()
+                .flex()
+                .flex_1()
+                .items_center()
+                .justify_between()
+                .gap(px(theme::CONTROL_GAP))
+                .child(filters)
+                .child(page_count(view, cx)),
+        )
         .into_any_element()
 }
 
@@ -95,12 +108,21 @@ fn choice_capsule(
     current: Option<&'static str>,
     choice: Choice,
     cx: &mut Context<InsightsView>,
-) -> Div {
+) -> gpui_kit::Stateful<Div> {
+    let (en, zh, group_en, group_zh) = match choice {
+        Choice::Fidelity => (
+            "All records",
+            "全部记录",
+            "Record completeness",
+            "记录完整度",
+        ),
+        Choice::SourceState => ("All sources", "全部来源", "Source state", "来源状态"),
+    };
     let mut capsule = page_header::capsule(cx).self_center().child(choice_tab(
         prefix,
         "all",
-        "All",
-        "全部",
+        en,
+        zh,
         None,
         current.is_none(),
         choice,
@@ -118,7 +140,11 @@ fn choice_capsule(
             cx,
         ));
     }
-    capsule
+    div()
+        .id(prefix)
+        .role(Role::Group)
+        .aria_label(text(cx, group_en, group_zh))
+        .child(capsule)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -155,6 +181,8 @@ fn choice_tab(
 fn page_count(view: &InsightsView, cx: &mut Context<InsightsView>) -> AnyElement {
     let line = if view.loading {
         text(cx, "Reading the archive…", "正在读取归档…").to_string()
+    } else if view.error.is_some() {
+        String::new()
     } else {
         match view.snapshot.as_deref() {
             Some(InsightsSnapshot::Sessions {
@@ -176,6 +204,7 @@ fn page_count(view: &InsightsView, cx: &mut Context<InsightsView>) -> AnyElement
     div()
         .id("session-page-count")
         .test_support()
+        .aria_label(line.clone())
         .flex_shrink_0()
         .text_size(px(theme::META_SIZE))
         .text_color(cx.theme().muted_foreground)
@@ -190,13 +219,17 @@ pub(super) fn list_column(
     beside: bool,
     cx: &mut Context<InsightsView>,
 ) -> AnyElement {
-    let panel = match view.snapshot.as_deref() {
-        Some(InsightsSnapshot::Sessions {
-            indexed: true,
-            page,
-            ..
-        }) if !page.items.is_empty() => rows(view, cx),
-        _ => list_state(view, cx),
+    let panel = if view.error.is_some() {
+        list_state(view, cx)
+    } else {
+        match view.snapshot.as_deref() {
+            Some(InsightsSnapshot::Sessions {
+                indexed: true,
+                page,
+                ..
+            }) if !page.items.is_empty() => rows(view, cx),
+            _ => list_state(view, cx),
+        }
     };
     column_size(panel, beside, 3., theme::LIST_MIN_WIDTH).into_any_element()
 }
@@ -213,7 +246,6 @@ fn list_state(view: &InsightsView, cx: &mut Context<InsightsView>) -> AnyElement
             cx,
         )
         .test_support()
-        .flex_1()
         .into_any_element();
     }
     match view.snapshot.as_deref() {
@@ -240,7 +272,6 @@ fn list_state(view: &InsightsView, cx: &mut Context<InsightsView>) -> AnyElement
                 cx,
             )
             .test_support()
-            .flex_1()
             .into_any_element()
         }
         Some(InsightsSnapshot::Sessions { .. }) => {
@@ -280,7 +311,6 @@ fn list_state(view: &InsightsView, cx: &mut Context<InsightsView>) -> AnyElement
                 cx,
             )
             .test_support()
-            .flex_1()
             .into_any_element()
         }
         _ => reading_panel("session-list", cx)
@@ -317,8 +347,10 @@ fn rows(view: &mut InsightsView, cx: &mut Context<InsightsView>) -> AnyElement {
         }),
     )
     .track_scroll(&view.scroll)
+    .test_support()
     .flex_1()
     .min_h_0();
+    let desired_height = count as f32 * theme::TWO_LINE_ROW_HEIGHT + 2. * theme::SELECTION_RADIUS;
     let listbox = div()
         .id("session-listbox")
         .test_support()
@@ -326,7 +358,7 @@ fn rows(view: &mut InsightsView, cx: &mut Context<InsightsView>) -> AnyElement {
         .tab_stop(true)
         .role(Role::ListBox)
         .aria_label(text(cx, "Indexed sessions", "已索引会话"))
-        .flex_1()
+        .h(px(desired_height))
         .min_h_0()
         .flex()
         .flex_col()
@@ -391,8 +423,9 @@ fn paging(view: &InsightsView, cx: &mut Context<InsightsView>) -> Option<AnyElem
         ));
     }
     if older {
-        bar = bar.child(semantics::button(
+        bar = bar.child(semantics::ghost_button(
             Button::new("insights-next")
+                .icon(IconName::ChevronRight)
                 .label(text(cx, "Older sessions", "更早的会话"))
                 .ghost()
                 .small()
@@ -479,7 +512,12 @@ fn session_row(
         } else {
             gpui_kit::transparent_black()
         })
-        .child(badge::dot(theme::platform_color(&row.platform, mode)))
+        .child(
+            div()
+                .self_start()
+                .mt(px(13.))
+                .child(badge::dot(theme::platform_color(&row.platform, mode))),
+        )
         .child(
             div()
                 .flex_1()

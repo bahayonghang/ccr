@@ -218,7 +218,7 @@ impl McpView {
 /// 列宽：并排时按 3:2 分配剩余宽度并保留最小宽；单列时占满整列。
 ///
 /// 列本身不带内边距与描边：flex 基准为 0 时，taffy 会把基准抬到条目自身的
-/// padding + border，比例只作用在剩余宽度上；面板放在列内并填满它。
+/// padding + border，比例只作用在剩余宽度上；面板按内容或 pane 类型决定高度。
 pub(super) fn column_size(panel: Node, beside: bool, share: f32, min: f32) -> Div {
     let column = div().min_h_0().flex().flex_col();
     let column = if beside {
@@ -230,7 +230,7 @@ pub(super) fn column_size(panel: Node, beside: bool, share: f32, min: f32) -> Di
     } else {
         column.flex_1().w_full()
     };
-    column.child(panel.flex_1())
+    column.child(panel)
 }
 
 fn entry_row(

@@ -8,7 +8,7 @@ use crate::{
 };
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
-    ActiveTheme, Icon, IconName,
+    ActiveTheme, IconName,
     button::{Button, ButtonVariants},
 };
 use gpui_kit::{
@@ -31,54 +31,33 @@ pub(super) fn header(view: &InsightsView, cx: &mut Context<InsightsView>) -> Any
         .into_any_element()
 }
 
-// 图标方块 + h1 + 一行描述。
+// h1 与其他页面共用内容左缘。
 fn title(cx: &mut Context<InsightsView>) -> Div {
-    let square = div()
-        .flex_shrink_0()
-        .size(px(40.))
-        .flex()
-        .items_center()
-        .justify_center()
-        .rounded(px(theme::INPUT_RADIUS))
-        .bg(cx.theme().primary.opacity(0.1))
-        .child(
-            Icon::new(IconName::BookOpen)
-                .size(px(theme::NAV_ICON_SIZE + 4.))
-                .text_color(cx.theme().primary),
-        );
     div()
         .min_w_0()
         .flex()
-        .items_center()
-        .gap(px(theme::CONTROL_GAP + 4.))
-        .child(square)
+        .flex_col()
+        .gap(px(2.))
         .child(
             div()
-                .min_w_0()
-                .flex()
-                .flex_col()
-                .gap(px(2.))
-                .child(
-                    div()
-                        .id("session-title")
-                        .test_support()
-                        .role(Role::Heading)
-                        .aria_level(1)
-                        .aria_label(text(cx, "Agent sessions", "Agent 会话"))
-                        .text_size(px(theme::TITLE_SIZE))
-                        .font_weight(FontWeight::SEMIBOLD)
-                        .child(text(cx, "Agent sessions", "Agent 会话")),
-                )
-                .child(
-                    div()
-                        .text_size(px(theme::META_SIZE))
-                        .text_color(cx.theme().muted_foreground)
-                        .child(text(
-                            cx,
-                            "Indexed summaries from this computer. Refresh reads local transcripts and does not invent sessions.",
-                            "这里是本机索引出的会话摘要。刷新会读取本地记录，不会编造会话。",
-                        )),
-                ),
+                .id("session-title")
+                .test_support()
+                .role(Role::Heading)
+                .aria_level(1)
+                .aria_label(text(cx, "Agent sessions", "Agent 会话"))
+                .text_size(px(theme::TITLE_SIZE))
+                .font_weight(FontWeight::SEMIBOLD)
+                .child(text(cx, "Agent sessions", "Agent 会话")),
+        )
+        .child(
+            div()
+                .text_size(px(theme::META_SIZE))
+                .text_color(cx.theme().muted_foreground)
+                .child(text(
+                    cx,
+                    "Indexed summaries from this computer.",
+                    "本机索引出的会话摘要。",
+                )),
         )
 }
 
@@ -93,22 +72,29 @@ fn actions(view: &InsightsView, cx: &mut Context<InsightsView>) -> Div {
         Some(tag) => row.child(tag),
         None => row,
     };
+    let show_trash = matches!(view.snapshot.as_deref(), Some(crate::features::insights::InsightsSnapshot::Sessions { statuses, .. })
+        if statuses.iter().any(|status| status.agent == ccr_store::sessions::AgentSessionAgentId::Codex
+            && status.availability != ccr_store::sessions::ProviderAvailability::NotInstalled));
+    let row = if show_trash {
+        row.child(semantics::ghost_button(
+            Button::new("session-open-trash")
+                .icon(IconName::Inbox)
+                .label(text(cx, "CCR trash", "CCR 废纸篓"))
+                .tooltip(text(
+                    cx,
+                    "Open or re-read recoverable Codex sessions",
+                    "打开或重新读取可恢复的 Codex 会话",
+                ))
+                .ghost()
+                .on_click(cx.listener(|this, _, _, cx| this.open_session_trash(cx))),
+            view.session_ops_active(),
+            false,
+            cx,
+        ))
+    } else {
+        row
+    };
     row.child(semantics::button(
-        Button::new("session-open-trash")
-            .icon(IconName::Inbox)
-            .label(text(cx, "CCR trash", "CCR 废纸篓"))
-            .tooltip(text(
-                cx,
-                "Open or re-read recoverable Codex sessions",
-                "打开或重新读取可恢复的 Codex 会话",
-            ))
-            .ghost()
-            .on_click(cx.listener(|this, _, _, cx| this.open_session_trash(cx))),
-        view.session_ops_active(),
-        false,
-        cx,
-    ))
-    .child(semantics::button(
         Button::new("insights-index-refresh")
             .icon(IconName::RefreshCw)
             .label(if running {

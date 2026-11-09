@@ -49,7 +49,7 @@ pub(super) fn sessions(
     let root = if drilled {
         root
     } else {
-        root.child(providers::providers(view, cx))
+        root.child(providers::providers(view, !split, cx))
             .child(list::toolbar(view, cx))
     };
     let root = match view.render_session_feedback(cx) {
@@ -110,16 +110,17 @@ fn body(
 }
 
 fn has_rows(view: &InsightsView) -> bool {
-    matches!(
-        view.snapshot.as_deref(),
-        Some(InsightsSnapshot::Sessions { page, indexed: true, .. }) if !page.items.is_empty()
-    )
+    view.error.is_none()
+        && matches!(
+            view.snapshot.as_deref(),
+            Some(InsightsSnapshot::Sessions { page, indexed: true, .. }) if !page.items.is_empty()
+        )
 }
 
 /// 列宽：并排时按份额分配剩余宽度并保留最小宽；单列时占满整列。
 ///
 /// 列本身不带内边距与描边：flex 基准为 0 时，taffy 会把基准抬到条目自身的
-/// padding + border，比例就不再是 3:2。面板放在列内并填满它。
+/// padding + border，比例就不再是 3:2。面板按内容或 pane 类型决定高度。
 fn column_size(panel: AnyElement, beside: bool, share: f32, min: f32) -> Div {
     let column = div().min_h_0().flex().flex_col();
     let column = if beside {
@@ -139,7 +140,6 @@ fn reading_panel(id: &'static str, cx: &App) -> gpui_kit::base::ObservedElement<
     div()
         .id(id)
         .test_support()
-        .flex_1()
         .min_h_0()
         .flex()
         .flex_col()

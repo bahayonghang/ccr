@@ -69,7 +69,7 @@ impl OverviewView {
             ),
             (
                 "overview-open-install",
-                text(cx, "Install llmusage", "安装 llmusage"),
+                text(cx, "Install or update llmusage", "安装或更新 llmusage"),
                 OverviewLink::Install,
                 IconName::SquareTerminal,
             ),

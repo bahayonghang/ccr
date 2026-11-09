@@ -30,7 +30,11 @@ pub(super) fn agent_name(agent: AgentSessionAgentId) -> &'static str {
     }
 }
 
-pub(super) fn providers(view: &InsightsView, cx: &mut Context<InsightsView>) -> AnyElement {
+pub(super) fn providers(
+    view: &InsightsView,
+    narrow: bool,
+    cx: &mut Context<InsightsView>,
+) -> AnyElement {
     // 平台作用域锁定提供方：不渲染 chip，只写一行说明。
     if let Some(agent) = view.locked_agent() {
         let line = text(cx, "Showing {name} sessions", "只显示 {name} 会话")
@@ -56,9 +60,13 @@ pub(super) fn providers(view: &InsightsView, cx: &mut Context<InsightsView>) -> 
         .aria_label(text(cx, "Session providers", "会话提供方"))
         .flex_shrink_0()
         .flex()
-        .flex_wrap()
         .items_center()
         .gap(px(theme::CONTROL_GAP));
+    if narrow {
+        row = row.overflow_x_scroll();
+    } else {
+        row = row.flex_wrap();
+    }
     for status in statuses {
         let pressed = view.agents.contains(&status.agent);
         row = row.child(provider_chip(status, pressed, cx));

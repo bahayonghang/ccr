@@ -626,6 +626,15 @@ async fn wide_windows_split_three_to_two_and_narrow_windows_drill_in(cx: &mut Te
             // 未选中时空态 pane 与详情 pane 用同一列宽规则。
             let list = window.find("mcp-list").bounds();
             let empty = window.find("mcp-pane-empty").bounds();
+            let body = window.find("mcp-body").bounds();
+            assert!(
+                list.bottom() + px(48.) < body.bottom(),
+                "few rows must hug content"
+            );
+            assert!(
+                empty.bottom() < body.bottom(),
+                "empty pane must hug content"
+            );
             let ratio = f32::from(list.size.width) / f32::from(empty.size.width);
             assert!((ratio - 1.5).abs() < 0.01, "list/empty pane ratio {ratio}");
             window.click("mcp-entry-1", cx);
@@ -1084,5 +1093,48 @@ async fn mcp_native_actions_write_confirm_and_keep_conflicting_drafts(cx: &mut T
     assert_eq!(saved["external"], true);
     cx.update_window(handle, |_, window, _| window.remove_window())
         .unwrap();
+    owner.shutdown();
+}
+
+/// 长列表在列内滚动，阅读面不超过主体底部。
+#[gpui_kit::test]
+async fn many_mcp_entries_scroll_inside_the_content_sized_panel(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    write_entries(root.path());
+    let entries: serde_json::Map<String, serde_json::Value> = (0..100)
+        .map(|i| {
+            (
+                format!("server-{i:03}"),
+                serde_json::json!({"command": "fixture-command"}),
+            )
+        })
+        .collect();
+    fs::write(
+        root.path().join(FIXTURE_DIR).join("home/.claude.json"),
+        serde_json::json!({"mcpServers": entries}).to_string(),
+    )
+    .unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let handle = open_at(cx, &owner, root.path(), 2000., 1080.);
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("nav-mcp-manager", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(5), |window, _| {
+        window.try_find("mcp-entry-99").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        let list = window.find("mcp-list").bounds();
+        let body = window.find("mcp-body").bounds();
+        assert!(list.bottom() <= body.bottom());
+        assert!(list.size.height < px(100. * theme::MCP_ROW_HEIGHT));
+        assert!(window.find("mcp-pane-empty").bounds().bottom() < body.bottom());
+        window.remove_window();
+    })
+    .unwrap();
     owner.shutdown();
 }

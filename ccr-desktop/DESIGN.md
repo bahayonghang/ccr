@@ -152,7 +152,7 @@ Windows 用 Segoe UI Variable / Segoe UI，中文由 Microsoft YaHei UI 等系�
 
 运行概览自上而下：
 
-1. **页头一行**：唯一 h1“运行概览” + 外壳 lens 胶囊（Overview / Monitoring）在左，整页作用的 7D/30D/90D 范围胶囊与刷新在右；其下一行状态（来源 · 查询窗口 · 截止日期与时区，演示数据另标），并写新鲜度 `Last successful sync MM-DD HH:mm / 上次成功同步 MM-DD HH:mm`（报告时区）。llmusage 只记录成功的同步；失败的同步仍可能导入部分数据，所以只陈述成功时间，不据此推断哪些日期“未导入”。最后一次成功同步的本地日期早于报告截止日，或没有成功记录（写“未记录成功同步”）时算过期，文字旁加 warning 圆点，并说明“同步成功前，较新的用量可能缺失”。
+1. **页头一行**：唯一 h1“运行概览” + 外壳 lens 胶囊（Overview / Monitoring）在左，整页作用的 7D/30D/90D 范围胶囊与刷新在右；其下一行状态（来源 · 查询窗口 · 截止日期与时区，演示数据另标），并写新鲜度 `Last successful sync MM-DD HH:mm / 上次成功同步 MM-DD HH:mm`（报告时区）。llmusage 只记录成功的同步；失败的同步仍可能导入部分数据，所以只陈述成功时间，不据此推断哪些日期“未导入”。最后一次成功同步的本地日期早于报告截止日，或没有成功记录（写“未记录成功同步”）时算过期，文字旁加 warning 圆点，有成功记录时说明“同步成功前，较新的用量可能缺失”；无成功记录时只显示圆点和“未记录成功同步”。圆点 tooltip 使用对应的新鲜度说明。刷新为 refresh-cw 图标加文字的 ghost 按钮；安装动作写“安装或更新 llmusage”。平台 sparkline 非峰值柱使用 muted ink，对阅读面对比度 ≥3:1。
 2. **KPI 带**：一张实色面板内 4 栏，以 hairline 分隔，不做同形卡片墙。成本为主读数（32/600），请求、Token、会话为 24/500；12px muted 标签在上，12px 说明在下，只用已有数据（窗口天数、全历史）；派生的“日均 = 总量 ÷ 窗口天数”必须标“日均 / avg”。成本不可用显示“–”与原因，会话未索引/不可用显示文字状态（16px）与原因。窄宽（< 1040）改为 2×2。
 3. **平台带**：只有存在逐日记录的平台单独成格（2px 身份色顶线、中性 sparkline、峰值身份色、请求/Token 读数）；无记录或无逐日明细的来源合并为一格“其他来源”，逐行写“名称 · 原因”，有总数时保留真实总数，不铺 0。窄宽横向滚动，不换行。
 4. **主列 + 右栏**：右栏宽 = 内容宽 × 24%，取 8 的倍数后限制在 280–360px，主列占其余宽度。主列依次是逐日请求图（含可展开的精确值表，图表面板不伸展）与活动面板；右栏依次是下一步操作、近 7 日对比、数据源（配置状态、报告截止、上次同步、过期说明、图表来源活跃日覆盖）。等高规则：两列 stretch，每列只有最后一个面板吸收多余高度（活动 / 数据源）：活动面板的内容块垂直居中，数据源内容顶对齐、脚注贴底，吸收的高度只表现为面板内部间距，不形成死区。全部来自同一次报告，不新增查询。
@@ -180,7 +180,7 @@ MCP 管理页自上而下：
    - 未找到：空心圆点。
    - 未读取：空心圆点加虚线边；Grok 写“not listed”。
    - Invalid：triangle-alert，warning 语调；Unreadable：circle-alert，danger 语调。
-4. **主体**：窗口宽度 ≥ `SPLIT_WIDTH`（1200）时，列表与 pane 按 3:2 并排，间距 16，列表 ≥ `LIST_MIN_WIDTH`（360），pane ≥ `DETAIL_MIN_WIDTH`（320）。外层列只负责尺寸，不带内边距和描边，实色阅读面板放在列内并填满它。原因是 flex 基准为 0 时，taffy 会把条目自身的 padding + border 抬进基准，比例就不再是 3:2。
+4. **主体**：窗口宽度 ≥ `SPLIT_WIDTH`（1200）时，列表与 pane 按 3:2 并排，间距 16，列表 ≥ `LIST_MIN_WIDTH`（360），pane ≥ `DETAIL_MIN_WIDTH`（320）。外层列只负责尺寸，不带内边距和描边，实色阅读面板放在列内；列表与空态按内容收紧，超过可用高度时面板内滚动，实际详情继续填满。原因是 flex 基准为 0 时，taffy 会把条目自身的 padding + border 抬进基准，比例就不再是 3:2。
    - catalog 没有条目时，宽窗也只放列表列的空态面板，不并排第二块空面板。
    - pane 的内容按优先级决定：批量 > 编辑器 > 来源选择 > 预设 > 选中详情 > 空态。宽窗未选中时，pane 是虚线空态，汇总 catalog 读到的条数。不自动选中第一项；筛选让选中项不可见时，详情随之消失。
    - 窄窗 drill-in：pane 有内容时只渲染 pane，否则只渲染列表。进入 pane 后，焦点在下一帧移到 pane 的第一个控件。详情顶部有“返回列表”，返回后焦点回到原来的行。预设与来源选择用标题旁的“取消”，编辑器与批量用各自的关闭按钮。离页或重新读取后，延迟的焦点回调不再执行。
@@ -191,12 +191,12 @@ MCP 管理页自上而下：
    - 行的 aria label 是“平台 · 名称 [· disabled in the file] · 作用域 · 传输 [· read-only here]”。
 6. **详情**：
    - 头部：40px 方块（primary 10% 底）里放传输图标；眉题是“平台 · 来源文件 · 作用域”（12 muted）；名称 20/600。
-   - 操作行：“复制到…”、“编辑”、“删除”，删除用 danger 文字，可换行。只读来源不给操作，只显示 eye 图标和一句说明。
+   - 操作行：“复制到…”、“编辑”、“删除”统一无图标，删除用 danger 文字，可换行。只读来源不给操作，只显示 eye 图标和一句说明。
    - 键值网格：标签在上，值在下；两列，窄时单列。字段依次是 Transport、Source、Command（mono，占整行，因为常是长路径；放在半宽单元格里会折成多行，把后续字段挤到折叠线以下）、URL（Set (hidden) / Not set）、Arguments（Set (hidden) / Not set）、Scope（项目键用 mono 并占整行）、State。State 写文件里 disabled / enabled 的原文，只有原文用 mono；未设置时用正文字体写“文件中未设置”。
 7. **pane 内的其他内容**：
    - 预设行 56px：名称加一行描述和标签，单行省略，tooltip 补全；需要密钥时，用 warning 标签写出环境变量名。
    - 来源选择：“目标来源”和“项目目录”都有可见字段标签；项目目录输入框的 placeholder 是“Absolute path (optional) / 绝对路径（可选）”。
-   - 批量：两种模式是 `semantics::tab` 胶囊。预设、来源、目标和“替换已有条目”都是 `badge::filter_chip`，未选中时也有 hairline 边，不能看起来像正文；选项行可换行。顶部说明是 12px muted 辅助句；替换开关的后果写在下方一句 muted 辅助文字里。“返回 MCP 列表”放在批量标题行右侧，较矮的分栏 pane 里也不会落到折叠线以下；确认区挂载时不显示它，返回由确认区的“继续编辑”承担。
+   - 批量：两种模式是 `semantics::tab` 胶囊。预设、来源、目标和“替换已有条目”都是 `badge::filter_chip`，未选中时有 control border；预设组上方显示 12px muted“预设”，替换开关归入“选项”组。选项行可换行。顶部说明是 12px muted 辅助句；替换开关的后果写在下方一句 muted 辅助文字里。“返回 MCP 列表”放在批量标题行右侧，较矮的分栏 pane 里也不会落到折叠线以下；确认区挂载时不显示它，返回由确认区的“继续编辑”承担。
    - 决策控件放在可变高度内容之前。编辑器的确认与保存，放在补丁文本区和表单之前；批量的“检查批量更改”、确认区与结果状态，放在设置选项和逐行列表之前。这样在 1280×800 的分栏 pane 里，主按钮和确认区的初始焦点都在视口内。
 8. **诚实与掩码**：
    - 本页不启动服务器，也不推断进程状态，不出现 Running / Connected 一类徽章。计数只来自 catalog，未读取与不列出的来源照实写。
@@ -205,19 +205,19 @@ MCP 管理页自上而下：
 
 Agent 会话页自上而下：
 
-1. **页头一行**：左侧是 40px 方块（primary 10% 底）里的 book-open 图标，旁边是唯一 h1“Agent 会话 / Agent sessions”和一句 12px muted 描述。右侧依次是索引状态标签、“CCR 废纸篓”（ghost，inbox）和“刷新索引”（primary，refresh-cw）。两颗按钮都是默认尺寸、图标加文字，与 MCP 管理页页头一致；空间不足时整组换行。
+1. **页头一行**：左侧直接是唯一 h1“Agent 会话 / Agent sessions”和一句 12px muted 描述。右侧依次是索引状态标签、“CCR 废纸篓”（仅 Codex 不是 NotInstalled 时显示；ghost，inbox）和“刷新索引”（primary，refresh-cw）。两颗按钮都是默认尺寸、图标加文字，与 MCP 管理页页头一致；空间不足时整组换行。
    - 索引状态标签是 `badge::tag`，带 `role=Status`。Running 用 info 语调，写“Indexing…”；Finished 用 success 语调，写“Indexed · parsed X / upserted Y”；Failed 和 Interrupted 用 danger 语调，并写出原因。Idle 不显示标签。
-2. **提供方 chip**：每个会话家族一个 `badge::filter_chip`，可多选，可换行。没有选中任何 chip 时表示全部提供方。chip 内容是“指示符 + 名称 · 读数”，完整句子同时作为 aria label：
+2. **提供方 chip**：每个会话家族一个 `badge::filter_chip`，可多选；窗口宽度低于 1200 时单行横向滚动，宽窗可换行。最近一次成功读取的提供方状态保留到下一次成功读取，列表失败不隐藏筛选。没有选中任何 chip 时表示全部提供方。chip 内容是“指示符 + 名称 · 读数”，完整句子同时作为 aria label：
    - Available：平台身份圆点，读数是来源数（tnum），比如“Codex · 3 sources”。
    - NoData：muted 实心圆点，写“no files”。可选。
    - NotInstalled：空心圆点加虚线边，写“not installed”。disabled。
    - Error：circle-alert，danger 语调，写“unreadable”；tooltip 是提供方报告的 `error_category`，不含路径或正文。disabled。
    - 平台作用域（Claude / Codex 工作台的会话 tab）锁定为该家族，不渲染 chip，改为一行 muted 文字“Showing Claude sessions / 只显示 Claude 会话”。
-3. **工具栏**：左侧是 `badge::search_field`，placeholder 写“Search session titles / 搜索会话标题”；其后是两组互斥的 `semantics::tab` 胶囊：记录完整度“All | Full record | Partial | Locked”（全部 | 完整记录 | 部分 | 锁定），来源状态“All | Live | Missing | Deleted”（全部 | 现存 | 缺失 | 已删除）。右侧是 tnum 的本页计数，写“100 on this page · older available”；列表请求在途时改写“Reading the archive…”。
+3. **工具栏**：左侧是 `badge::search_field`，placeholder 与 aria label 写“Search title, session ID or path / 搜索标题、会话 ID 或路径”；其后是两组互斥的 `semantics::tab` 胶囊：记录完整度“All records | Full record | Partial | Locked”（全部记录 | 完整记录 | 部分 | 锁定），来源状态“All sources | Live | Missing | Deleted”（全部来源 | 现存 | 缺失 | 已删除），两组有对应的 aria group label。与筛选胶囊共享一行的是 tnum 的本页计数，写“100 on this page · older available”；列表请求在途时改写“Reading the archive…”。
    - 搜索按 Enter 立即查询；输入后防抖 300ms 再查询，每次输入让旧的防抖 token 过期，过期 token 到期后不执行。
    - 筛选变化（chip、胶囊、搜索）回到第一页，并关闭已打开的会话。
 4. **操作反馈**：导出、克隆、移入或恢复的运行、失败与结果，在工具栏下方以一组 12px 文字陈述，带 `role=Status`。失败用 danger 墨色。空闲且没有结果时不渲染。
-5. **主体**：窗口宽度 ≥ `SPLIT_WIDTH`（1200）时，列表与 pane 按 3:2 并排，间距 16，列表 ≥ `LIST_MIN_WIDTH`（360），pane ≥ `DETAIL_MIN_WIDTH`（320）。外层列只负责尺寸，不带内边距和描边，实色阅读面板放在列内并填满它，原因同 MCP 管理页。1280×800 下列表约 576px、pane 约 384px。
+5. **主体**：窗口宽度 ≥ `SPLIT_WIDTH`（1200）时，列表与 pane 按 3:2 并排，间距 16，列表 ≥ `LIST_MIN_WIDTH`（360），pane ≥ `DETAIL_MIN_WIDTH`（320）。外层列只负责尺寸，不带内边距和描边，实色阅读面板放在列内，列表与空态按内容收紧、长列表限制在列高内，实际内容 pane 填满，原因同 MCP 管理页。1280×800 下列表约 576px、pane 约 384px。
    - pane 的内容按优先级决定：废纸篓 > 打开的会话 > 空态。宽窗未打开会话时，pane 是虚线空态，只汇总本页列出的行数。不自动打开第一行。
    - 没有可列出的会话、也没有打开的内容时，宽窗只放列表列，不并排一块空 pane。
    - 窄窗：打开会话时只保留页头和 pane（drill-in），不渲染提供方 chip 和工具栏，pane 顶部是“返回列表”；返回后 chip 和工具栏恢复。焦点在下一帧移到 pane 的第一个控件，返回后焦点回到列表，选中行不变。离页、刷新或又打开别的会话后，延迟的焦点回调不再执行。
@@ -229,10 +229,10 @@ Agent 会话页自上而下：
    - 底部翻页条：有 `next_cursor` 时显示 `insights-next`“Older sessions / 更早的会话”；不在第一页时显示“Newest sessions / 最新的会话”。两者都不适用时不渲染翻页条。翻页保留已打开的会话。
    - 没有行时用虚线空态陈述原因：读取失败写原因；未索引给出“刷新索引”；筛选无匹配写“这不代表提供方没有会话”，并在有筛选时给出“清除搜索与筛选”。不铺 0。
 7. **会话 pane**：
-   - 头部：16/600 标题，单行省略并带 tooltip；下面是 mono session id 和“平台 · 变体” neutral 标签，再下一行只写“N messages · N tools”，非完整记录时追加完整度，不重复平台与变体。Codex 活跃会话的“导出 Markdown / 克隆会话 / 移入 CCR 废纸篓”放在头部右侧，可换行；其他提供方不给操作。
+   - 头部：16/600 标题，单行省略并带 tooltip；下面是 mono session id 和“平台 · 变体” neutral 标签，消息数在消息列表之前统一写“X of Y messages shown · Z tools / 显示 X / Y 条消息 · Z 次工具”，不重复平台与变体。Codex 活跃会话的“导出 Markdown / 克隆会话 / 移入 CCR 废纸篓”放在头部右侧，可换行；其他提供方不给操作。
    - 完整度为 partial 或 locked 时，在头部下方显示 warning 语调的提示条（triangle-alert），说明只读到一部分或记录不可读。
    - 决策控件放在可变高度内容之前：克隆与移入的确认区、导出预览（保存与复制）、本页消息数与“Earlier messages / 更早的消息”，都放在消息列表之前。
-   - 消息卡：头部依次是角色图标（user、bot；工具等其他角色用 square-terminal）、角色名、mono 工具名，右侧是时间，没有时间时写 `#序号`；归档截断时用 warning 墨色写“Clipped in archive / 归档中已截断”。
+   - 消息块以 hairline 分隔，不嵌套带边框卡片；角色名使用 muted 墨色并本地化为用户/助手/工具/系统，未知角色保留原文。头部依次是角色图标（user、bot；工具等其他角色用 square-terminal）、角色名、mono 工具名，右侧是时间，没有时间时写 `#序号`；归档截断时用 warning 墨色写“Clipped in archive / 归档中已截断”。
 8. **CCR 废纸篓**：由页头“CCR 废纸篓”打开或重新读取，宽窗占据 pane。面板标题“CCR trash (Codex)”，右侧是 `session-trash-close`“关闭”；关闭后 pane 回到打开的会话或空态。
    - 恢复确认放在翻页与行之前；确认区挂载后，初始焦点进入“取消”，Tab 留在决定子树，Esc 返回并把焦点还给触发者（例如搜索框）。确认区挂载时，下面的行与翻页都 disabled。
    - 每页 6 行，行之间用 hairline。空废纸篓用虚线空态。
@@ -351,7 +351,7 @@ status section, compact usage summary, daily bars and management links.
 - **精确值行焦点**：Overview 精确值表默认收起；展开后最新在上，每段连续全零日（含单日）折叠为一行“MM-DD – MM-DD · no records (N days)”/“MM-DD – MM-DD · N 日无记录”，折叠行与日期行同样可聚焦。焦点句柄与显示行按同一顺序一一对应，第 i 个显示行对应表格第 i+1 个子项（表头为第 0 项）。真实行焦点始终显示预留的 2px ring 边框，跟随逻辑 focus，不由最后一次输入模态隐藏。Tab/Shift+Tab 同时 reveal 表格与外层页面中的当前行；UIA focused 或 headless bounds 通过不能替代原生可见边框验收。
 - **状态**：empty 说明原因并给已有下一步；loading 保留布局；error 显示可重试原因；unsupported 与未接入明确区分。演示 fixture 必须带“演示数据”标识，生产无伪造数字。
 - **状态标签（`badge::tag`）**：不可交互的 4px 角矩形，22px 高，12/500，1px edge，单行不换行；颜色只来自 `theme::tone_colors` 的五种语调，不用 Kit 的 Tag/Badge。文字本身传达状态，颜色不单独表意。只在异常或需要强调的状态上出现，不给每个列表项都套标签。
-- **筛选 chip（`badge::filter_chip`）**：可交互的 28px pill，12/400，toggled 语义表达选中，并沿用 `semantics::button` 的 disabled 与 tab stop。未选：透明底加 hairline 边、辅助文字；选中：tab-selected 浮起面、轻阴影、primary semibold（600）；禁用：透明底、muted 文字、hairline 边，选中样式不得覆盖禁用色。不可选的来源由页面再加虚线边。点击后立即切换，无动画。
+- **筛选 chip（`badge::filter_chip`）**：可交互的 28px pill，12/400，toggled 语义表达选中，并沿用 `semantics::button` 的 disabled 与 tab stop。未选：透明底加 control border、辅助文字；选中：tab-selected 浮起面、轻阴影、primary semibold（600）；禁用：透明底、muted 文字、hairline 边，选中样式不得覆盖禁用色。不可选的来源由页面再加虚线边。点击后立即切换，无动画。
 - **身份圆点（`badge::dot` / `hollow_dot` / `identity`）**：8px 实心圆，圆点旁必须有名称或状态文字。`hollow_dot` 是 1px 描边空心圆，表示 missing / not-read。`identity` 是身份圆点加平台名，身份色范围见 Colors。
 - **搜索框（`badge::search_field`）**：前缀 16px muted 的 search 图标，必须有 placeholder，固定宽 300px（合同范围 280–320px），8px 角；窄容器内不超出父宽。id 与 aria 由调用方给定。
 - **工具栏**：一行，筛选在左、操作在右，空间不足时换行，不出现全宽按钮。
@@ -414,3 +414,7 @@ status section, compact usage summary, daily bars and management links.
 ## 2026-10-27 视觉增量能力与证据边界
 
 唯一 theme.rs 映射 light/dark 的 field、sheet/base/reading/overlay、主次辅助文字、action、output 与状态角色。材质能力研究见 `.trellis/tasks/archive/2026-11/10-17-gpui-03-shell/research/airy-glass-capabilities.md`；2026-11-07 起由 `.trellis/tasks/11-07-gpui-airy-glass-material/design.md` 的“已知静态场景”论证取代实色降级，`theme::Material` 是材质唯一来源，合成对比度单测覆盖 light/dark 全部承载文字的半透明面。单测与 headless 绘制断言不等于原生像素验收。历史原生证据仍对应原构建，新增配色、焦点、弹层和核心业务需新构建实测；S1/S2、UIA/IME、macOS/Linux 与用户延期矩阵继续分别记录。
+
+### 本轮三页复核补充合同
+
+MCP 与会话的列表阅读面按内容收紧，超出列高时在面板内滚动；列保持 3:2，无 padding 或 border。未选详情与空废纸篓按内容收紧，背景在下方透出；真实详情、转录和非空废纸篓填满并独立滚动。MCP 与会话页头、工具栏的 ghost 禁用态透明且 muted。MCP 详情的复制、编辑、删除统一不用图标。会话工具栏搜索匹配标题、会话 ID 或路径；分段组标注“记录完整度”“来源状态”，首项为“全部记录”“全部来源”；本页计数与筛选胶囊共享一行。身份点对齐标题行。更早会话为带 ChevronRight 的 ghost 按钮。转录使用 hairline 分隔块，角色以 muted 墨色本地化（用户/助手/工具/系统），未知角色保留原文；计数合并为“显示 X / Y 条消息 · Z 次工具”，更早消息按钮紧随其后。

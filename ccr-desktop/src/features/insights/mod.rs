@@ -476,15 +476,21 @@ impl InsightsView {
                                     }
                                     Completion::Failed(error)
                                     | Completion::CleanupFailed(error) => {
-                                        this.snapshot = None;
+                                        if this.surface != Surface::Sessions {
+                                            this.snapshot = None;
+                                        }
                                         this.error = Some(error.message())
                                     }
                                     Completion::Cancelled => {
-                                        this.snapshot = None;
+                                        if this.surface != Surface::Sessions {
+                                            this.snapshot = None;
+                                        }
                                         this.error = Some("Read cancelled / 已取消读取")
                                     }
                                     Completion::WorkerFailed => {
-                                        this.snapshot = None;
+                                        if this.surface != Surface::Sessions {
+                                            this.snapshot = None;
+                                        }
                                         this.error = Some(
                                             "Read worker stopped. Retry. / 读取线程已停止，请重试",
                                         )

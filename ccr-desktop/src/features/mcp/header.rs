@@ -76,7 +76,7 @@ impl McpView {
             .flex()
             .items_center()
             .gap(px(theme::CONTROL_GAP))
-            .child(semantics::button(
+            .child(semantics::ghost_button(
                 Button::new("mcp-read")
                     .icon(IconName::RefreshCw)
                     .label(if self.busy {
@@ -148,7 +148,7 @@ impl McpView {
             .flex()
             .items_center()
             .gap(px(theme::CONTROL_GAP))
-            .child(semantics::button(
+            .child(semantics::ghost_button(
                 Button::new("mcp-presets")
                     .icon(IconName::Star)
                     .label(text(cx, "Presets", "预设"))
@@ -158,7 +158,7 @@ impl McpView {
                 false,
                 cx,
             ))
-            .child(semantics::button(
+            .child(semantics::ghost_button(
                 Button::new("mcp-batch-open")
                     .icon(IconName::GalleryVerticalEnd)
                     .label(text(cx, "Batch & sync", "批量与同步"))

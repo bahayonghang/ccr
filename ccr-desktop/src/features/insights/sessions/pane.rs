@@ -2,12 +2,7 @@
 //!
 //! 优先级：废纸篓 > 详情 > 空态。决策控件（确认、导出、更早的消息）放在可变高度的
 //! 消息列表之前，保证分栏 pane 里主按钮与初始焦点在视口内。
-use super::{
-    column_size,
-    list::{counts_line, fidelity_label, session_title},
-    providers::agent_name,
-    reading_panel,
-};
+use super::{column_size, list::session_title, providers::agent_name, reading_panel};
 use crate::features::insights::InsightsView;
 use crate::{
     locales::{service_error, text},
@@ -34,7 +29,13 @@ pub(super) fn pane_column(
 ) -> AnyElement {
     let panel = if view.session_ops_trash_open() {
         let trash = view.render_session_trash(window, cx);
-        pane_panel(view, cx).child(trash).into_any_element()
+        let panel = pane_panel(view, cx);
+        let panel = if view.session_trash_empty() {
+            panel.flex_none().flex_shrink(1.)
+        } else {
+            panel
+        };
+        panel.child(trash).into_any_element()
     } else if view.detail.archive_id.is_some() {
         detail(view, beside, window, cx)
     } else {
@@ -48,6 +49,7 @@ fn pane_panel(
     cx: &App,
 ) -> gpui_kit::base::ObservedElement<gpui_kit::Stateful<Div>> {
     reading_panel("session-pane", cx)
+        .flex_1()
         .track_focus(&view.session_pane_focus)
         .tab_stop(false)
         .overflow_y_scroll()
@@ -78,7 +80,6 @@ fn empty_pane(view: &InsightsView, cx: &mut Context<InsightsView>) -> AnyElement
         cx,
     )
     .test_support()
-    .flex_1()
     .into_any_element()
 }
 
@@ -155,7 +156,7 @@ fn detail_heading(view: &mut InsightsView, cx: &mut Context<InsightsView>) -> An
         ident = ident
             .child(badge::tag("session-detail-variant", variant, Tone::Neutral, cx).test_support());
     }
-    let mut text_block = div()
+    let text_block = div()
         .flex_1()
         .min_w_0()
         .flex()
@@ -175,19 +176,6 @@ fn detail_heading(view: &mut InsightsView, cx: &mut Context<InsightsView>) -> An
                 .child(title),
         )
         .child(ident);
-    if let Some(row) = &row {
-        let counts = detail_counts(row, cx);
-        text_block = text_block.child(
-            div()
-                .id("session-detail-counts")
-                .test_support()
-                .aria_label(counts.clone())
-                .text_size(px(theme::META_SIZE))
-                .text_color(cx.theme().muted_foreground)
-                .font_features(theme::tabular_figures())
-                .child(counts),
-        );
-    }
     let heading = div()
         .id("session-detail-heading")
         .test_support()
@@ -277,11 +265,25 @@ fn read_state(view: &InsightsView, cx: &mut Context<InsightsView>) -> AnyElement
         return row.into_any_element();
     };
     let count = detail.page.messages.len();
-    let row = row.child(if crate::locales::is_chinese(cx) {
-        format!("本页 {count} 条消息")
+    let total = view
+        .detail
+        .row
+        .as_ref()
+        .map_or(count as u64, |row| row.message_count as u64);
+    let tools = view.detail.row.as_ref().map_or(0, |row| row.tool_use_count);
+    let counts = if crate::locales::is_chinese(cx) {
+        format!("显示 {count} / {total} 条消息 · {tools} 次工具")
     } else {
-        format!("{count} messages on this page")
-    });
+        format!("{count} of {total} messages shown · {tools} tools")
+    };
+    let row = row.child(
+        div()
+            .id("session-detail-counts")
+            .test_support()
+            .aria_label(counts.clone())
+            .font_features(theme::tabular_figures())
+            .child(counts),
+    );
     if !detail.page.has_older {
         return row.into_any_element();
     }
@@ -308,7 +310,15 @@ fn transcript(view: &InsightsView, cx: &mut Context<InsightsView>) -> AnyElement
         .flex()
         .flex_col()
         .gap(px(theme::CONTROL_GAP));
-    for message in &detail.page.messages {
+    for (index, message) in detail.page.messages.iter().enumerate() {
+        if index > 0 {
+            messages = messages.child(
+                div()
+                    .flex_shrink_0()
+                    .h(px(1.))
+                    .bg(theme::hairline(cx.theme().mode)),
+            );
+        }
         messages = messages.child(message_card(message, cx));
     }
     messages.into_any_element()
@@ -322,10 +332,13 @@ fn message_card(message: &AgentSessionMessage, cx: &App) -> AnyElement {
         "assistant" => IconName::Bot,
         _ => IconName::SquareTerminal,
     };
-    let ink = if message.role == "assistant" {
-        gpui_kit::Hsla::from(gpui_kit::rgb(theme::palette(colors.mode).output))
-    } else {
-        colors.primary
+    let ink = colors.muted_foreground;
+    let role = match message.role.as_str() {
+        "user" => text(cx, "User", "用户"),
+        "assistant" => text(cx, "Assistant", "助手"),
+        "tool" => text(cx, "Tool", "工具"),
+        "system" => text(cx, "System", "系统"),
+        other => other,
     };
     let when = message
         .timestamp
@@ -345,7 +358,7 @@ fn message_card(message: &AgentSessionMessage, cx: &App) -> AnyElement {
                 .size(px(theme::META_SIZE + 2.))
                 .text_color(ink),
         )
-        .child(div().text_color(ink).child(message.role.clone()));
+        .child(div().text_color(ink).child(role.to_string()));
     if let Some(tool) = &message.tool_name {
         head = head.child(
             div()
@@ -374,10 +387,7 @@ fn message_card(message: &AgentSessionMessage, cx: &App) -> AnyElement {
     );
     div()
         .flex_shrink_0()
-        .p(px(theme::CONTROL_GAP + 4.))
-        .rounded(px(theme::INPUT_RADIUS))
-        .border_1()
-        .border_color(theme::hairline(colors.mode))
+        .py(px(theme::CONTROL_GAP + 4.))
         .flex()
         .flex_col()
         .gap(px(theme::SELECTION_RADIUS + 2.))
@@ -388,17 +398,4 @@ fn message_card(message: &AgentSessionMessage, cx: &App) -> AnyElement {
                 .child(message.content.clone()),
         )
         .into_any_element()
-}
-
-/// `60 messages · 40 tools`, then the record fidelity when it is not full. The
-/// agent and variant already sit in the tag beside the session id.
-fn detail_counts(
-    row: &ccr_db::database::repositories::usage_repo::AgentSessionArchiveRow,
-    cx: &App,
-) -> String {
-    let counts = counts_line(row, cx);
-    match row.source_fidelity.as_str() {
-        "full" => counts,
-        value => format!("{counts} · {}", fidelity_label(value, cx)),
-    }
 }

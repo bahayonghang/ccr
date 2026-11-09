@@ -584,6 +584,12 @@ async fn wide_windows_keep_the_list_beside_the_opened_session(cx: &mut TestAppCo
             // 未打开会话：空态 pane 与列表同一列宽规则。
             let list = window.find("session-list").bounds();
             let empty = window.find("session-pane-empty").bounds();
+            let body = window.find("session-body").bounds();
+            assert!(list.bottom() < body.bottom(), "few rows must hug content");
+            assert!(
+                empty.bottom() < body.bottom(),
+                "empty pane must hug content"
+            );
             let ratio = f32::from(list.size.width) / f32::from(empty.size.width);
             assert!((ratio - 1.5).abs() < 0.01, "list/empty ratio {ratio}");
             window.click(row.clone(), cx);
@@ -662,6 +668,10 @@ async fn narrow_windows_drill_in_and_return_to_the_list(cx: &mut TestAppContext)
     .await;
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
+        assert!(
+            window.find("session-cards").bounds().top() < px(640. * 0.45),
+            "first row must be above 45% height"
+        );
         assert!(window.try_find("session-pane").is_none());
         assert!(window.try_find("session-pane-empty").is_none());
         window.click(row.clone(), cx);
@@ -799,5 +809,85 @@ async fn trash_decisions_stay_above_the_long_list_in_the_split_pane(cx: &mut Tes
         })
         .unwrap();
     }
+    owner.shutdown();
+}
+
+/// 读取失败后保留最近提供方状态，筛选仍可操作，但不冒充已刷新列表。
+#[gpui_kit::test]
+async fn failed_list_read_keeps_provider_filters_and_codex_trash_visibility(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap();
+    let root = tempfile::tempdir().unwrap();
+    std::fs::write(root.path().join("archive.db"), b"invalid sqlite fixture").unwrap();
+    let (handle, view) = open_view(cx, empty_services(&owner, root.path()), 1280., 800.);
+    view.update(cx, |this, cx| {
+        inject(this, vec![row(0, "Fixture")], statuses(), None);
+        this.agents.insert(AgentSessionAgentId::Codex);
+        this.submit(cx);
+    });
+    cx.wait_for(handle, Duration::from_secs(5), |_, cx| {
+        !view.read(cx).loading
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(view.read(cx).error.is_some());
+        assert_eq!(window.find("session-page-count").label(), Some(""));
+        assert_eq!(window.find("session-provider-codex").checked(), Some(true));
+        assert!(window.find("session-list-empty").visible());
+        assert!(window.try_find("session-cards").is_none());
+        assert!(window.try_find("session-pane-empty").is_none());
+        assert!(window.find("session-open-trash").visible());
+        view.update(cx, |this, cx| {
+            inject(
+                this,
+                vec![row(0, "Fixture")],
+                vec![status(
+                    AgentSessionAgentId::Codex,
+                    ProviderAvailability::NotInstalled,
+                    0,
+                    None,
+                )],
+                None,
+            );
+            this.error = None;
+            cx.notify();
+        });
+        window.render_frame(cx);
+        assert!(window.try_find("session-open-trash").is_none());
+        window.remove_window();
+    })
+    .unwrap();
+    owner.shutdown();
+}
+
+/// 多行时列表被可用高度约束，分页栏仍位于面板内。
+#[gpui_kit::test]
+fn many_session_rows_scroll_inside_the_content_sized_panel(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap();
+    let root = tempfile::tempdir().unwrap();
+    let (handle, view) = open_view(cx, empty_services(&owner, root.path()), 2000., 1080.);
+    view.update(cx, |this, cx| {
+        inject(
+            this,
+            (0..100).map(|i| row(i, "Fixture")).collect(),
+            statuses(),
+            Some("cursor".into()),
+        );
+        cx.notify();
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        let list = window.find("session-list").bounds();
+        let body = window.find("session-body").bounds();
+        assert!(list.bottom() <= body.bottom());
+        assert!(list.size.height < px(100. * theme::TWO_LINE_ROW_HEIGHT));
+        assert!(window.find("session-paging").bounds().bottom() <= list.bottom());
+        window.remove_window();
+    })
+    .unwrap();
     owner.shutdown();
 }
