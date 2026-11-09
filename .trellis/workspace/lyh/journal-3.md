@@ -924,3 +924,39 @@ ccr project init 现在默认勾选五项平台并要求输入用户名，-y 使
 ### Next Steps
 
 - 任务仍 in_progress：补齐受控原生主题/尺寸/中文矩阵和 Overview ≤24px 测量后再归档。
+
+
+## Session 148: 按用户要求归档 GPUI 三页任务
+<!-- trellis-session: v=2 fp=8ff7d8506da90a03 -->
+
+**Date**: 2026-11-09
+**Task**: 按用户要求归档 GPUI 三页任务
+**Branch**: `dev`
+
+### Summary
+
+按用户明确要求归档全部已提交工作；原生验收未完成项继续保留为 UNVERIFIED，未推送。
+
+### Main Changes
+
+- 任务归档至 .trellis/tasks/archive/2026-11/11-07-gpui-overview-sessions-mcp-redesign，清除活动任务绑定。
+- 交接与归档说明区分行政收尾和原生验收，不勾选未运行的验收项。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a145abba166eef4828efdaeba8bccf2b7783cf0f` | fix(GPUI): 🐛 收紧三页留白并统一次要按钮与会话细节 |
+| `46795fe857b2beb5ae6821ff1156bace621547ef` | docs(GPUI): 📝 记录三页修复验证及待补原生验收 |
+
+### Testing
+
+- [OK] 本轮仅修改归档元数据与文档，git diff --check 通过；沿用已记录的 desktop-ci 与最终聚焦回归收据，未重复运行代码门禁。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 原生主题/尺寸/中文矩阵与校准空白测量仍未验证，需要时另行继续。
