@@ -66,7 +66,7 @@ pub(super) fn providers(view: &InsightsView, cx: &mut Context<InsightsView>) -> 
     row.into_any_element()
 }
 
-/// `(selectable, short state, full sentence)` for one provider status.
+/// `(selectable, short state)` for one provider status.
 fn reading(status: &AgentSessionProviderStatus, cx: &App) -> (bool, String) {
     match status.availability {
         ProviderAvailability::Available => {

@@ -303,7 +303,8 @@ pub fn platform_color(id: &str, mode: ThemeMode) -> Hsla {
         "grok" => (0x726985, 0xb9abd7),
         "antigravity" | "gemini" => (0x617081, 0xa9c1dc),
         "opencode" => (0x735f52, 0xc9b6a8),
-        "kimi" => (0xa3467f, 0xd775ae),
+        // 会话家族 id 是 kimi，用量来源 id 是 kimi_code（概览平台带与图表系列）。
+        "kimi" | "kimi_code" => (0xa3467f, 0xd775ae),
         "pi" => (0x7b56b0, 0xac88e7),
         _ => return rgb(palette(mode).muted).into(),
     };
@@ -329,6 +330,7 @@ pub struct ToneColors {
     pub edge: Hsla,
 }
 
+/// Ink, fill and edge of one status tone in this theme mode.
 pub fn tone_colors(tone: Tone, mode: ThemeMode) -> ToneColors {
     let [ink, fill, edge] = tone_rgb(tone, mode).map(|color| Hsla::from(rgb(color)));
     ToneColors { ink, fill, edge }
@@ -828,6 +830,7 @@ mod tests {
                 "gemini",
                 "opencode",
                 "kimi",
+                "kimi_code",
                 "pi",
             ] {
                 let identity = platform_color(id, mode);

@@ -125,7 +125,7 @@ reading 是列表/输入的实色工作区，chrome 是侧栏导轨的半透明�
 
 装饰 hairline 使用 border-subtle 的 light 24% / dark 35% alpha；需要辨识的输入与 tab 边界仍使用不透明 border-control。分段控件是内容宽度胶囊：tab-well 半透明凹槽容器加 1px highlight 亮边，选中项为浮起的实色 pill（light surface / dark overlay、轻阴影、primary semibold 文字），未选中项透明无边框；避免 ghost 的 selected 与纸面同色。选中文字对选中面至少 4.5:1；选中面与凹槽的色差很小，选中态由浮起阴影、主色文字、字重与 toggled 语义共同表达，不只靠颜色。
 
-状态语调（`theme::tone_colors`）共 neutral / success / warning / danger / info 五种，ink 分别取辅助文字与对应状态色。fill 是 ink 在 light 10% / dark 18%、edge 是 ink 在 light 24% / dark 32% 预合成到 reading 的不透明色，不构成额外半透明层，所以标签放在阅读面或纸面上文字都只落在 fill 上：ink 对 fill ≥4.5:1。标签不是控件，由文字识别状态，edge 与 hairline 同属装饰描边，不适用控件边界 3:1；描边加重会让标签读作可点击的描边按钮，削弱“直角标签不可点、pill 可点”的形状区分。平台身份色覆盖 claude / codex / grok / antigravity（gemini）/ opencode / kimi / pi，omp 及其他未列来源回落 muted；身份色只用于 8px 圆点、2px 细线与图表系列，不给面板染色。活动热力图（`theme::heat_level`）共 5 档：0 档是实色 neutral 格，1–4 档是 primary 以 25/45/70/100% 预合成到 reading 的不透明色，对 reading 的对比度逐档递增，第 4 档 ≥3:1。
+状态语调（`theme::tone_colors`）共 neutral / success / warning / danger / info 五种，ink 分别取辅助文字与对应状态色。fill 是 ink 在 light 10% / dark 18%、edge 是 ink 在 light 24% / dark 32% 预合成到 reading 的不透明色，不构成额外半透明层，所以标签放在阅读面或纸面上文字都只落在 fill 上：ink 对 fill ≥4.5:1。标签不是控件，由文字识别状态，edge 与 hairline 同属装饰描边，不适用控件边界 3:1；描边加重会让标签读作可点击的描边按钮，削弱“直角标签不可点、pill 可点”的形状区分。平台身份色覆盖 claude / codex / grok / antigravity（gemini）/ opencode / kimi（kimi_code）/ pi，omp 及其他未列来源回落 muted；身份色只用于 8px 圆点、2px 细线与图表系列，不给面板染色。活动热力图（`theme::heat_level`）共 5 档：0 档是实色 neutral 格，1–4 档是 primary 以 25/45/70/100% 预合成到 reading 的不透明色，对 reading 的对比度逐档递增，第 4 档 ≥3:1。
 
 普通文字、辅助文字、状态文字与其允许背景达到 4.5:1，焦点与关键控件边界达到 3:1。半透明面按合成后颜色验收：在场景两端、中点、两个光斑峰值及叠加纸面阴影的最坏组合上分别合成后计算，正文 ≥12、辅助 ≥7、muted/主色/状态 ≥4.5、控件边界 ≥3。禁用文字保留可读对比度，通过禁用交互、图标与语义状态降低强调，不统一透明化整组内容。来源中的绿色/橙色已调暗以满足浅色正文对比度。
 

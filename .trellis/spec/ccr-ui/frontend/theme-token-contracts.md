@@ -86,7 +86,7 @@ its design in `ccr-desktop/DESIGN.md` and its only token layer in
   of the non-zero days, the same algorithm the Tauri overview uses. They are not
   fixed request counts.
 - Platform identity colours cover claude, codex, grok, antigravity/gemini,
-  opencode, kimi `(0xa3467f, 0xd775ae)` and pi `(0x7b56b0, 0xac88e7)`. Each needs
+  opencode, kimi/kimi_code `(0xa3467f, 0xd775ae)` and pi `(0x7b56b0, 0xac88e7)`. Each needs
   ≥3:1 graphic contrast on reading; omp stays `muted`. Guards:
   `status_tones_keep_text_contrast_wherever_a_tag_is_placed`,
   `heat_levels_climb_from_a_quiet_zero_cell_to_a_legible_peak`,
