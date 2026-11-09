@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/ccr-tui/backend/index.md", "reason": "TUI spec 入口与开发前清单"}
+{"file": ".trellis/spec/ccr-tui/backend/backend-guidelines.md", "reason": "状态与渲染分离，测试不读用户主目录"}
+{"file": ".trellis/spec/ccr-tui/backend/profile-workbench.md", "reason": "Profile mutation 必须在确认后调度，并保留冻结目标"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "复用 overlay 渲染，不要做第三套对话框"}
+{"file": ".trellis/tasks/11-09-tui-switch-confirm/research/switch-paths.md", "reason": "按键路径、旧否决和不能复用删除确认的证据"}
