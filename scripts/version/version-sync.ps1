@@ -147,17 +147,53 @@ function Set-JsonVersion {
         [string]$NewVersion
     )
 
-    # 优先使用 jq 进行原地更新，保留原有格式
+    # 优先使用 jq 原地更新。不能把 jq 接进 PowerShell 管道再 Out-File -NoNewline：
+    # 管道会按行拆开原生命令输出，-NoNewline 拼回去时会丢掉全部换行。
     if (Get-Command jq -ErrorAction SilentlyContinue) {
         $tmp = [System.IO.Path]::GetTempFileName()
+        $proc = $null
         try {
-            jq --arg ver $NewVersion '.version = $ver' $Path | Out-File -FilePath $tmp -Encoding UTF8 -NoNewline
-            Move-Item -Path $tmp -Destination $Path -Force
+            $resolved = (Resolve-Path -LiteralPath $Path).Path
+            $psi = [System.Diagnostics.ProcessStartInfo]::new()
+            $psi.FileName = (Get-Command jq).Source
+            # Arguments 字符串兼容 Windows PowerShell 5.1（没有 ArgumentList）。
+            $psi.Arguments = "--arg ver `"$NewVersion`" `".version = `$ver`" `"$resolved`""
+            $psi.RedirectStandardOutput = $true
+            $psi.RedirectStandardError = $true
+            $psi.UseShellExecute = $false
+            $psi.CreateNoWindow = $true
+            $utf8 = [System.Text.UTF8Encoding]::new($false)
+            $psi.StandardOutputEncoding = $utf8
+            $psi.StandardErrorEncoding = $utf8
+            $proc = [System.Diagnostics.Process]::new()
+            $proc.StartInfo = $psi
+            if (-not $proc.Start()) {
+                throw "无法启动 jq"
+            }
+            $stdout = $proc.StandardOutput.ReadToEnd()
+            $stderr = $proc.StandardError.ReadToEnd()
+            $proc.WaitForExit()
+            if ($proc.ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace($stdout)) {
+                throw "jq 退出码 $($proc.ExitCode): $stderr"
+            }
+            $original = [System.IO.File]::ReadAllText($Path)
+            $newline = if ($original.Contains("`r`n")) { "`r`n" } else { "`n" }
+            $text = $stdout -replace "`r`n", "`n" -replace "`n", $newline
+            if (-not $text.EndsWith($newline)) {
+                $text += $newline
+            }
+            [System.IO.File]::WriteAllText($tmp, $text, $utf8)
+            Move-Item -LiteralPath $tmp -Destination $Path -Force
         }
         catch {
-            Remove-Item -Path $tmp -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
             Write-Error "❌ jq 更新 $Path 失败: $_"
             exit 1
+        }
+        finally {
+            if ($null -ne $proc) {
+                $proc.Dispose()
+            }
         }
     }
     else {

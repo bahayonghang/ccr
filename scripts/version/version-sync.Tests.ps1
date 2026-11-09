@@ -189,18 +189,37 @@ edition = "2021"
 }
 
 Describe "JSON 更新功能测试 (CORR-001 修复验证)" {
-    It "使用 jq 更新 JSON 应保留格式" {
-        $jsonPath = "$root/ccr-ui/package.json"
-        $original = Get-Content $jsonPath -Raw
-        
-        # 如果有 jq，验证 jq 路径
-        if (Get-Command jq -ErrorAction SilentlyContinue) {
-            $tmp = [System.IO.Path]::GetTempFileName()
-            jq '.version = "2.0.0"' $jsonPath | Out-File $tmp -Encoding UTF8 -NoNewline
-            Move-Item $tmp $jsonPath -Force
-            
-            $newContent = Get-Content $jsonPath -Raw
-            $newContent | Should -Match '"version": "2.0.0"'
+    It "使用 jq 更新 JSON 应保留换行" {
+        if (-not (Get-Command jq -ErrorAction SilentlyContinue)) {
+            Set-ItResult -Skipped -Because "jq 未安装"
+            return
         }
+
+        @'
+{
+  "name": "ccr-ui",
+  "version": "0.9.0",
+  "private": true
+}
+'@ | Set-Content -Path "$root/ccr-ui/package.json" -Encoding UTF8
+
+        @'
+{
+  "name": "ccr-vscode",
+  "version": "1.2.3",
+  "publisher": "ccr"
+}
+'@ | Set-Content -Path "$root/ccr-vscode/package.json" -Encoding UTF8
+
+        $beforeLines = @(Get-Content -LiteralPath "$root/ccr-ui/package.json").Count
+        $scriptPath = Join-Path $root "scripts\version\version-sync.ps1"
+        Copy-Item "$RootDir/scripts/version/version-sync.ps1" $scriptPath -Force
+        & (Get-Process -Id $PID).Path -NoLogo -NoProfile -File $scriptPath 2>&1 | Out-Null
+        $LASTEXITCODE | Should -Be 0
+
+        $lines = @(Get-Content -LiteralPath "$root/ccr-ui/package.json")
+        $lines.Count | Should -Be $beforeLines
+        $lines[2] | Should -Be '  "version": "1.2.3",'
+        $lines[3] | Should -Be '  "private": true'
     }
 }
