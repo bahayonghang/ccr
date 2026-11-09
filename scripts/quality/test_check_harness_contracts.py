@@ -16,7 +16,6 @@ SHARED_FILES = (
     "docs/agents/harnesses.md",
     "docs/en/agents/harnesses.md",
     ".github/skills/ccr-gate-recovery/SKILL.md",
-    ".trellis/workflow.md",
 )
 PAGES = SHARED_FILES[2:4]
 SKILL = SHARED_FILES[4]
@@ -197,7 +196,7 @@ class HarnessContractTests(unittest.TestCase):
             (PAGES[0], "批准实施之后", "审批前"),
             (PAGES[1], "After approval, as an executing role", "Before approval, as an executing role"),
             (SKILL, "After approval, implement", "Before approval, implement"),
-            (".trellis/workflow.md", "Task creation approval is not implementation approval", "Task creation approval grants implementation approval"),
+            ("AGENTS.md", "Task creation approval is not implementation approval", "Task creation approval grants implementation approval"),
         ):
             with self.subTest(path=path):
                 self.replace(path, old, new)

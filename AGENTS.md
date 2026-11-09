@@ -61,6 +61,7 @@ Shared skill sources are tracked under `.github/skills/`; several also apply to 
 These rules apply to Claude Code, Codex, Grok Build, Kimi Code, and OMP.
 - Root and Tauri Rust tests use default parallelism with `--skip export_bindings`. The separate binding-generation gate owns exports.
 - A read-only reviewer inspects the approved scope. Run checks and write task evidence only when authorized. The Trellis check role may write and self-fix after implementation approval.
+- Task creation approval is not implementation approval.
 - Strong-model review owns root cause, security, permission boundaries, and final acceptance. Lower-cost execution follows fixed files, acceptance criteria, and commands. Model choice does not change permissions.
 - Distinguish repository-delivered files, locally generated integration, and verified native loading. A fresh checkout needs the matching Trellis integration and a separate client loading/trust check.
 - Keep repair commands (`just fmt`, `just version-sync`) separate from validation. Preserve required coverage thresholds, default parallelism, and hosted context names.

@@ -11,7 +11,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 HARNESS_PAGES = ("docs/agents/harnesses.md", "docs/en/agents/harnesses.md")
 GATE_SKILL = ".github/skills/ccr-gate-recovery/SKILL.md"
-SHARED_FILES = ("AGENTS.md", "CLAUDE.md", *HARNESS_PAGES, GATE_SKILL, ".trellis/workflow.md")
+SHARED_FILES = ("AGENTS.md", "CLAUDE.md", *HARNESS_PAGES, GATE_SKILL)
 TOOLS = ("Claude Code", "Codex", "Grok Build", "Kimi Code", "OMP")
 PRE_APPROVAL = re.compile(r"before\b[^.;|。\n]{0,50}\bapprov(?:al|es|ed)\b|pre-approval|(?:审批|批准)(?:实施)?前", re.I)
 POST_APPROVAL = re.compile(r"after\b[^.;|。\n]{0,50}\bapprov(?:al|es|ed)\b|批准(?:实施)?(?:之)?后", re.I)
@@ -154,6 +154,7 @@ def check_contracts(root: Path) -> list[str]:
         text = texts["AGENTS.md"]
         check = re.search(r"trellis[ -]check[^.\n]*", text, re.I)
         require("read-only reviewer" in text.lower() and check is not None and bool(POST_APPROVAL.search(check.group())) and not PRE_APPROVAL.search(check.group()) and "may write" in check.group().lower() and "self-fix" in check.group().lower(), "HC006", "AGENTS.md", "separate read-only review from post-approval writable Trellis check")
+        require(bool(re.search(r"task creation approval[^.\n]*not[^.\n]*implementation approval", text, re.I)), "HC006", "AGENTS.md", "task creation must not grant implementation approval")
         require(all(word in text.lower() for word in ("fresh checkout", "generated", "native", "trust", "separate")), "HC007", "AGENTS.md", "retain the fresh-checkout and native evidence boundary")
         repair = next((line for line in text.splitlines() if "\x60just fmt\x60" in line and "\x60just version-sync\x60" in line), "")
         require(all(word in repair.lower() for word in ("repair", "separate", "validation")), "HC008", "AGENTS.md", "keep repair separate from validation")
@@ -164,8 +165,6 @@ def check_contracts(root: Path) -> list[str]:
     if "CLAUDE.md" in texts:
         repair = next((line for line in texts["CLAUDE.md"].splitlines() if "\x60just fmt\x60" in line and "\x60just version-sync\x60" in line), "")
         require("repair" in repair.lower() and "modify" in repair.lower(), "HC008", "CLAUDE.md", "describe the side effects of repair commands")
-    if ".trellis/workflow.md" in texts:
-        require(bool(re.search(r"task creation approval[^.\n]*not[^.\n]*implementation approval", texts[".trellis/workflow.md"], re.I)), "HC006", ".trellis/workflow.md", "task creation must not grant implementation approval")
     return failures
 
 
