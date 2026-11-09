@@ -960,3 +960,39 @@ ccr project init 现在默认勾选五项平台并要求输入用户名，-y 使
 ### Next Steps
 
 - 原生主题/尺寸/中文矩阵与校准空白测量仍未验证，需要时另行继续。
+
+
+## Session 149: TUI 切换确认与 7.5.1
+<!-- trellis-session: v=2 fp=ecb4124c0e632377 -->
+
+**Date**: 2026-11-09
+**Task**: TUI 切换确认与 7.5.1
+**Branch**: `dev`
+
+### Summary
+
+为 TUI 的 profile 应用、解绑以及 Claude/Codex 账号切换和退出登录增加默认取消的确认，修复 Windows 版本同步把 JSON 折成一行的问题，并将版本升至 7.5.1。
+
+### Main Changes
+
+- TUI 只有按 y 才写入；再按一次 Enter、Space 或 o 会取消
+- version-sync.ps1 直接捕获 jq 输出并恢复原换行
+- workspace 版本从 7.5.0 升到 7.5.1
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `5c725aa7cb59de16d98c21912188f436d16009ec` | feat(TUI): ✨ 为 profile 与账号切换增加确认 |
+| `70556ba329b84a798b4aa02ca4c589b997ec324e` | fix(版本同步): 🐛 保留 jq 更新后的 JSON 换行 |
+| `4b68ddfe469b0ad9ba36c0d5ce8462c4a47f6b75` | chore(release): 🔧 将版本升至 7.5.1 |
+
+### Testing
+
+- [OK] just ci 全绿
+- [OK] 用户手动测试通过
+- [OK] Pester version-sync.Tests.ps1 通过
+
+### Status
+
+[OK] **Completed**
