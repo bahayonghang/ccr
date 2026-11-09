@@ -1,0 +1,11 @@
+{"file": "ccr-desktop/DESIGN.md", "reason": "GPUI 设计合同：先改此文件再改 theme.rs 与视图；组件/版式/对比度规则"}
+{"file": ".trellis/spec/ccr-ui/frontend/theme-token-contracts.md", "reason": "GPUI 原生 token、材质合成对比度合同（Tone/heat 新增规则落点）"}
+{"file": ".trellis/spec/ccr-ui/frontend/dashboard-presentation-contracts.md", "reason": "首页诚实呈现：不铺零、会话未索引、空窗口与过期同步"}
+{"file": ".trellis/spec/ccr-ui/frontend/agent-session-observability-contracts.md", "reason": "Agent 会话提供方状态与筛选合同"}
+{"file": ".trellis/spec/ccr-app/backend/shared-desktop-services.md", "reason": "MCP 掩码、跨源复制、批量与编辑器确认合同（:51-81）"}
+{"file": ".trellis/tasks/11-07-gpui-overview-sessions-mcp-redesign/research/overview.md", "reason": "Overview 空白根因、数据可用性、测试 id 清单"}
+{"file": ".trellis/tasks/11-07-gpui-overview-sessions-mcp-redesign/research/agent-sessions.md", "reason": "Agent sessions 现状、可用数据、焦点/废纸篓测试契约"}
+{"file": ".trellis/tasks/11-07-gpui-overview-sessions-mcp-redesign/research/mcp-manager.md", "reason": "MCP 现状、掩码契约清单 §4.4、测试 id 与排序依赖"}
+{"file": ".trellis/tasks/archive/2026-11/11-07-gpui-airy-glass-polish/research/native-capabilities.md", "reason": "GPUI 原生能力：dashed、overflow_x、pill、自定义图标限制"}
+{"file": ".trellis/tasks/archive/2026-11/11-07-gpui-airy-glass-material/design.md", "reason": "上一轮材质与 lens 嵌入设计，embed_lens 迁移方法"}
+{"file": ".trellis/tasks/11-07-gpui-overview-sessions-mcp-redesign/research/contracts.md", "reason": "必须保留的合同与测试 id 原文摘要（两份调研超过注入上限，此文件保证合同节完整注入）"}

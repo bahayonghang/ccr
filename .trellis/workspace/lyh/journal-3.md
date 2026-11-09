@@ -888,3 +888,39 @@ ccr project init 现在默认勾选五项平台并要求输入用户名，-y 使
 ### Next Steps
 
 - 未推送；尺寸与 DPI 矩阵仍未运行，不记通过
+
+
+## Session 147: GPUI 三页修复与原生验收检查点
+<!-- trellis-session: v=2 fp=fc5ce94a2168940d -->
+
+**Date**: 2026-11-09
+**Task**: GPUI 三页修复与原生验收检查点
+**Branch**: `dev`
+
+### Summary
+
+完成 handoff A–F 并通过完整 desktop-ci；原生矩阵未完成，任务保持 in_progress，未归档未推送。
+
+### Main Changes
+
+- 收紧 MCP/会话列表和空态，统一次要按钮与会话细节，同步 DESIGN 和三个规格。
+- 独立源码复核修复失败读取残留计数；原生截图复核保留既有时区标签缺口。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a145abba166eef4828efdaeba8bccf2b7783cf0f` | fix(GPUI): 🐛 收紧三页留白并统一次要按钮与会话细节 |
+
+### Testing
+
+- [OK] desktop-ci exit 0，339.03 秒；lib294、shell12、UI2、shutdown2、Python16、AccessKit3 通过。
+- [OK] 最终 fmt/lint 与 failed-list 聚焦回归 1/1 通过；三页 light/en 非受控宽窗截图完成。
+
+### Status
+
+[IN_PROGRESS] **Implementation checked; native acceptance pending**
+
+### Next Steps
+
+- 任务仍 in_progress：补齐受控原生主题/尺寸/中文矩阵和 Overview ≤24px 测量后再归档。
