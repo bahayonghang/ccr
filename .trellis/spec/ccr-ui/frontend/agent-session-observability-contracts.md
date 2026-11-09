@@ -105,3 +105,66 @@ useQuery({ queryKey: ['agent-sessions', archiveId] })
 agentSessionsApi.agentSessionsGetDetail({ archive_id: archiveId, before_cursor: before, limit: 200 })
 useQuery({ queryKey: agentSessionKeys.detail(environmentId, archiveId), enabled: localEnvironment })
 ```
+
+## Scenario: GPUI Agent sessions page (2026-11-08)
+
+### 1. Scope / Trigger
+
+- Trigger: changing `ccr-desktop/src/features/insights/sessions/*`, the Sessions branch of `features/insights/mod.rs`, or the "Agent 会话页" section of `ccr-desktop/DESIGN.md`.
+- The Workbench and Usage renderers keep their single-snapshot path. Only `Surface::Sessions` uses the list + detail slot split.
+
+### 2. Signatures
+
+- `SessionDetailSlot`. The list and the detail each have their own `ResponseGate` + generation, with RequestKey environments `insights-explicit` and `insights-detail`.
+- Filter values sent in `SessionListRequest`:
+  - `agents`: multi-select, empty means all;
+  - `fidelity`: `full|partial|locked`, `None` means all;
+  - `source_state`: `live|missing|deleted_by_user`, `None` means all.
+- `ccr_app::sessions::list_sessions` validates these values and rejects anything else with `InvalidFilter`.
+
+### 3. Contracts
+
+- Provider chip state mapping:
+
+| availability | chip | selectable |
+| --- | --- | --- |
+| Available | identity dot + name + `n sources` | yes |
+| NoData | muted dot + name + `no files` | yes |
+| NotInstalled | dashed edge + hollow dot + `not installed` | no (disabled) |
+| Error | circle-alert (danger) + `unreadable`; tooltip shows `error_category` | no (disabled) |
+
+- Under a platform scope (`open_platform`), `agents` is locked to that platform. No chips render; one line ("Showing Claude sessions") takes their place.
+- **Detail slot:**
+  - Selecting a row loads the detail and keeps the list snapshot.
+  - Paging the list keeps the detail.
+  - A refresh or a filter change drops the slot and its in-flight request.
+  - A late response for a stale selection is discarded by the detail gate.
+- **Search:** Enter queries at once; typing debounces for 300ms with a generation token, and an expired token does nothing.
+- Fidelity copy: `Full record / 完整记录`, `Partial / 部分`, `Locked / 锁定`.
+- **Layout:**
+  - Window ≥ `SPLIT_WIDTH`: the list and the pane split 3:2. The outer columns only size the area; the solid panels sit inside them.
+  - Narrower windows drill in. Focus moves to the pane on the next frame and returns to the original row on "Back to list". Delayed focus callbacks are guarded by generation.
+- `insights-filter-6` stays visible and clickable while the trash is open, at every width. Esc from the restore review returns focus there. Trash decisions (the restore confirmation) render above the long row list.
+- **Row text:**
+  - Rows show one-line titles with an ellipsis and a tooltip.
+  - The metadata segment (agent · variant · counts) never shrinks; only the path truncates.
+- Leaving the page clears transcript and export plaintext and cancels in-flight work.
+
+### 4. Tests Required
+
+- `features/insights/sessions/tests.rs`:
+  - `provider_chips_toggle_several_agents_into_the_request`
+  - `not_installed_and_unreadable_provider_chips_cannot_be_selected`
+  - `platform_scope_locks_the_provider_and_states_it_in_one_line`
+  - `long_titles_stay_on_one_line_inside_the_row`
+  - `paging_bar_follows_the_next_cursor_and_the_first_page`
+  - `search_typing_waits_for_the_debounce_and_enter_reads_at_once`
+  - `detail_slot_keeps_only_the_latest_selection_and_list_changes_drop_it`
+  - `wide_windows_keep_the_list_beside_the_opened_session`
+  - `narrow_windows_drill_in_and_return_to_the_list`
+  - `trash_decisions_stay_above_the_long_list_in_the_split_pane`
+- `session_operations` tests:
+  - `selected_codex_controls_export_cancel_and_clear_plaintext` (the Esc focus contract)
+  - `session_trash_pagination_bounds_large_collections_and_keeps_controls_reachable`
+  - `leaving_sessions_clears_transcript_and_export_plaintext`
+  - `open_trash_keeps_the_search_field_visible_and_clickable`
