@@ -1,39 +1,72 @@
-use crate::features::insights::{InsightsSnapshot, InsightsView};
+//! Heading row: icon and title on the left; index status, CCR trash and refresh on the right.
+use crate::features::insights::InsightsView;
 use crate::{
     locales::{is_chinese, service_error, text},
     runtime::insights::RefreshStatus,
-    shell::semantics,
-    theme,
+    shell::{badge, semantics},
+    theme::{self, Tone},
 };
 use gpui_kit::base::TestSupportExt;
-use gpui_kit::component::{ActiveTheme, button::Button};
+use gpui_kit::component::{
+    ActiveTheme, Icon, IconName,
+    button::{Button, ButtonVariants},
+};
 use gpui_kit::{
-    Context, InteractiveElement, IntoElement, ParentElement, StatefulInteractiveElement, Styled,
-    div, px,
+    AnyElement, Context, Div, FontWeight, InteractiveElement, IntoElement, ParentElement, Role,
+    StatefulInteractiveElement, Styled, div, px,
 };
 
-pub(super) fn header(
-    _view: &InsightsView,
-    running: bool,
-    cx: &mut Context<InsightsView>,
-) -> impl IntoElement {
+pub(super) fn header(view: &InsightsView, cx: &mut Context<InsightsView>) -> AnyElement {
     div()
+        .id("session-header")
+        .test_support()
+        .flex_shrink_0()
         .flex()
-        .justify_between()
+        .flex_wrap()
         .items_start()
+        .justify_between()
         .gap(px(theme::SECTION_GAP))
+        .child(title(cx))
+        .child(actions(view, cx))
+        .into_any_element()
+}
+
+// 图标方块 + h1 + 一行描述。
+fn title(cx: &mut Context<InsightsView>) -> Div {
+    let square = div()
+        .flex_shrink_0()
+        .size(px(40.))
+        .flex()
+        .items_center()
+        .justify_center()
+        .rounded(px(theme::INPUT_RADIUS))
+        .bg(cx.theme().primary.opacity(0.1))
+        .child(
+            Icon::new(IconName::BookOpen)
+                .size(px(theme::NAV_ICON_SIZE + 4.))
+                .text_color(cx.theme().primary),
+        );
+    div()
+        .min_w_0()
+        .flex()
+        .items_center()
+        .gap(px(theme::CONTROL_GAP + 4.))
+        .child(square)
         .child(
             div()
+                .min_w_0()
                 .flex()
                 .flex_col()
-                .gap(px(theme::CONTROL_GAP))
+                .gap(px(2.))
                 .child(
                     div()
                         .id("session-title")
                         .test_support()
+                        .role(Role::Heading)
+                        .aria_level(1)
                         .aria_label(text(cx, "Agent sessions", "Agent 会话"))
                         .text_size(px(theme::TITLE_SIZE))
-                        .font_weight(gpui_kit::FontWeight::SEMIBOLD)
+                        .font_weight(FontWeight::SEMIBOLD)
                         .child(text(cx, "Agent sessions", "Agent 会话")),
                 )
                 .child(
@@ -47,98 +80,81 @@ pub(super) fn header(
                         )),
                 ),
         )
-        .child(semantics::button(
-            Button::new("insights-index-refresh")
-                .label(if running {
-                    text(cx, "Indexing", "正在索引")
-                } else {
-                    text(cx, "Refresh index", "刷新索引")
-                })
-                .on_click(cx.listener(|this, _, _, cx| this.start_archive_refresh(cx))),
-            running,
-            running,
-            cx,
-        ))
 }
 
-pub(super) fn status_line(view: &InsightsView, cx: &mut Context<InsightsView>) -> impl IntoElement {
-    let message = if view.loading {
-        text(cx, "Reading the archive.", "正在读取归档。").to_string()
-    } else if let Some(error) = view.error {
-        service_error(cx, error).to_string()
-    } else {
-        match view.requests.refresh_status() {
-            RefreshStatus::Running(_) => text(
-                cx,
-                "Indexing local transcripts. Summaries already stored stay listed.",
-                "正在索引本机记录。已经写入的摘要仍会列出。",
-            )
-            .to_string(),
-            RefreshStatus::Failed(_, error) => service_error(cx, error.message()).to_string(),
-            RefreshStatus::Interrupted(_) => text(
-                cx,
-                "Indexing stopped before a result. Refresh to try again.",
-                "索引中断了，还没有结果。可以再刷新一次。",
-            )
-            .to_string(),
-            RefreshStatus::Finished(_, report) => {
-                let not_indexed = matches!(
-                    view.snapshot.as_deref(),
-                    Some(InsightsSnapshot::Sessions { indexed: false, .. }) | None
-                );
-                if not_indexed {
-                    text(
-                        cx,
-                        "Indexing finished. Sessions are not indexed.",
-                        "索引结束了。会话尚未索引。",
-                    )
-                    .to_string()
-                } else if is_chinese(cx) {
-                    format!(
-                        "索引已结束：发现 {}，写入 {}",
-                        report.total.discovered, report.total.upserted
-                    )
-                } else {
-                    format!(
-                        "Index finished: discovered {}, written {}",
-                        report.total.discovered, report.total.upserted
-                    )
-                }
-            }
-            RefreshStatus::Idle => match view.snapshot.as_deref() {
-                Some(InsightsSnapshot::Sessions { indexed: false, .. }) => {
-                    text(cx, "Sessions are not indexed.", "会话尚未索引。").to_string()
-                }
-                Some(InsightsSnapshot::Sessions { page, .. }) if page.items.is_empty() => text(
-                    cx,
-                    "No indexed sessions match this page.",
-                    "这一页没有匹配的已索引会话。",
-                )
-                .to_string(),
-                Some(InsightsSnapshot::Sessions { page, .. }) => {
-                    let count = page.items.len();
-                    if page.next_cursor.is_some() {
-                        if is_chinese(cx) {
-                            format!("本页 {count} 条已索引会话，还有更早的。")
-                        } else {
-                            format!("{count} indexed sessions on this page. Older ones follow.")
-                        }
-                    } else if is_chinese(cx) {
-                        format!("{count} 条已索引会话。")
-                    } else {
-                        format!("{count} indexed sessions.")
-                    }
-                }
-                _ => text(cx, "The archive has not been read.", "还没有读取归档。").to_string(),
-            },
-        }
+fn actions(view: &InsightsView, cx: &mut Context<InsightsView>) -> Div {
+    let running = matches!(view.requests.refresh_status(), RefreshStatus::Running(_));
+    let row = div()
+        .flex()
+        .flex_wrap()
+        .items_center()
+        .gap(px(theme::CONTROL_GAP));
+    let row = match status_tag(view, cx) {
+        Some(tag) => row.child(tag),
+        None => row,
     };
-    div()
-        .id("session-status")
-        .test_support()
-        .role(gpui_kit::Role::Status)
-        .aria_label(message.clone())
-        .text_size(px(theme::META_SIZE))
-        .text_color(cx.theme().muted_foreground)
-        .child(message)
+    row.child(semantics::button(
+        Button::new("session-open-trash")
+            .icon(IconName::Inbox)
+            .label(text(cx, "CCR trash", "CCR 废纸篓"))
+            .tooltip(text(
+                cx,
+                "Open or re-read recoverable Codex sessions",
+                "打开或重新读取可恢复的 Codex 会话",
+            ))
+            .ghost()
+            .on_click(cx.listener(|this, _, _, cx| this.open_session_trash(cx))),
+        view.session_ops_active(),
+        false,
+        cx,
+    ))
+    .child(semantics::button(
+        Button::new("insights-index-refresh")
+            .icon(IconName::RefreshCw)
+            .label(if running {
+                text(cx, "Indexing", "正在索引")
+            } else {
+                text(cx, "Refresh index", "刷新索引")
+            })
+            .primary()
+            .on_click(cx.listener(|this, _, _, cx| this.start_archive_refresh(cx))),
+        running,
+        running,
+        cx,
+    ))
+}
+
+/// Index refresh state as a tag; Idle shows none. The tag keeps `role=Status`.
+fn status_tag(view: &InsightsView, cx: &mut Context<InsightsView>) -> Option<AnyElement> {
+    let (label, tone) = match view.requests.refresh_status() {
+        RefreshStatus::Idle => return None,
+        RefreshStatus::Running(_) => (text(cx, "Indexing…", "正在索引…").to_string(), Tone::Info),
+        RefreshStatus::Finished(_, report) => (
+            if is_chinese(cx) {
+                format!(
+                    "已索引 · 解析 {} / 写入 {}",
+                    report.total.parsed, report.total.upserted
+                )
+            } else {
+                format!(
+                    "Indexed · parsed {} / upserted {}",
+                    report.total.parsed, report.total.upserted
+                )
+            },
+            Tone::Success,
+        ),
+        RefreshStatus::Failed(_, error) => {
+            (service_error(cx, error.message()).to_string(), Tone::Danger)
+        }
+        RefreshStatus::Interrupted(_) => (
+            text(cx, "Indexing stopped before a result", "索引中断，没有结果").to_string(),
+            Tone::Danger,
+        ),
+    };
+    Some(
+        badge::tag("session-status", label, tone, cx)
+            .role(Role::Status)
+            .test_support()
+            .into_any_element(),
+    )
 }

@@ -29,13 +29,14 @@ use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
     ActiveTheme,
     button::{Button, ButtonVariants},
-    input::{Input, InputState},
+    input::{Input, InputEvent, InputState},
 };
 use gpui_kit::{
     AppContext, Context, Entity, FocusHandle, InteractiveElement, IntoElement, ParentElement,
-    Render, SharedString, StatefulInteractiveElement, Styled, Task, UniformListScrollHandle,
-    Window, div, px, uniform_list,
+    Render, SharedString, StatefulInteractiveElement, Styled, Subscription, Task,
+    UniformListScrollHandle, Window, div, px, uniform_list,
 };
+use std::collections::BTreeSet;
 use std::sync::Arc;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -104,6 +105,23 @@ pub struct InsightsView {
     before: Option<u32>,
     focus: FocusHandle,
     scroll: UniformListScrollHandle,
+    /// Sessions surface only: the opened session, read beside the list snapshot.
+    detail: sessions::SessionDetailSlot,
+    /// Provider filter; empty means every provider. A platform scope locks it.
+    agents: BTreeSet<AgentSessionAgentId>,
+    /// `full` / `partial` / `locked`; `None` means all.
+    fidelity: Option<&'static str>,
+    /// `live` / `missing` / `deleted_by_user`; `None` means all.
+    source_state: Option<&'static str>,
+    /// 搜索防抖的 token；每次输入或离页都前进，过期的定时器到期后不执行。
+    search_generation: u64,
+    search_task: Option<Task<()>>,
+    _search: Subscription,
+    /// 会话列表（listbox）与详情 pane 的焦点锚点，用于窄窗 drill-in 与返回。
+    session_list_focus: FocusHandle,
+    session_pane_focus: FocusHandle,
+    /// 搜索框 placeholder 当前对应的语言（是否中文）；语言切换后同步一次。
+    search_placeholder_chinese: Option<bool>,
     #[cfg(test)]
     rendered_rows: usize,
 }
@@ -114,6 +132,15 @@ impl InsightsView {
         let policies = cx.new(|cx| policies::PoliciesView::new(requests.clone(), window, cx));
         let observer = cx.new(|cx| observer::ObserverView::new(requests.clone(), window, cx));
         let capabilities = cx.new(|cx| capabilities::CapabilitiesView::new(requests.clone(), cx));
+        let fields: Vec<Entity<InputState>> = (0..8)
+            .map(|_| cx.new(|cx| InputState::new(window, cx)))
+            .collect();
+        // 会话搜索：Enter 立即查询，输入变化后防抖查询；只作用于 Sessions 产品面。
+        let search = cx.subscribe(&fields[6], |this, _, event: &InputEvent, cx| match event {
+            InputEvent::Change => this.schedule_session_search(cx),
+            InputEvent::PressEnter { .. } => this.search_sessions_now(cx),
+            _ => {}
+        });
         Self {
             error: (!requests.configured()).then_some(InsightsError::Unconfigured.message()),
             requests,
@@ -125,9 +152,7 @@ impl InsightsView {
             platform_scope: None,
             section: Section::Sources,
             snapshot: None,
-            fields: (0..8)
-                .map(|_| cx.new(|cx| InputState::new(window, cx)))
-                .collect(),
+            fields,
             utc,
             generation: 0,
             gate: ResponseGate::default(),
@@ -145,6 +170,16 @@ impl InsightsView {
             before: None,
             focus: cx.focus_handle(),
             scroll: UniformListScrollHandle::new(),
+            detail: Default::default(),
+            agents: BTreeSet::new(),
+            fidelity: None,
+            source_state: None,
+            search_generation: 0,
+            search_task: None,
+            _search: search,
+            session_list_focus: cx.focus_handle(),
+            session_pane_focus: cx.focus_handle().tab_stop(false),
+            search_placeholder_chinese: None,
             #[cfg(test)]
             rendered_rows: 0,
         }
@@ -173,6 +208,13 @@ impl InsightsView {
         self.detail_open = false;
         self.cursor = None;
         self.before = None;
+        // 离页清掉详情明文、在途详情请求与未到期的搜索防抖。
+        self.detail = sessions::SessionDetailSlot {
+            generation: self.detail.generation + 1,
+            ..Default::default()
+        };
+        self.search_task = None;
+        self.search_generation += 1;
         cx.notify();
     }
     pub fn open_product(&mut self, page: InsightsPage, cx: &mut Context<Self>) {
@@ -213,6 +255,7 @@ impl InsightsView {
             };
             self.fields[7].update(cx, |state, cx| state.set_value(family, window, cx));
         }
+        self.reset_session_filters();
         self.open_product(page, cx);
     }
     pub fn open_global(&mut self, page: InsightsPage, window: &mut Window, cx: &mut Context<Self>) {
@@ -220,6 +263,7 @@ impl InsightsView {
         for field in &self.fields {
             field.update(cx, |state, cx| state.set_value("", window, cx));
         }
+        self.reset_session_filters();
         self.open_product(page, cx);
     }
 
@@ -256,6 +300,9 @@ impl InsightsView {
         self.cursor = None;
         self.before = None;
         self.archive_id = None;
+        if self.surface == Surface::Sessions {
+            self.reset_session_detail();
+        }
         self.submit(cx);
     }
     fn start_archive_refresh(&mut self, cx: &mut Context<Self>) {
@@ -274,7 +321,7 @@ impl InsightsView {
                         if let TaskEvent::Terminal(_) = event {
                             let _ = weak.update(cx, |this, cx| {
                                 if this.page == InsightsPage::Sessions
-                                    && this.archive_id.is_none()
+                                    && this.opened_session().is_none()
                                     && this.generation == generation
                                 {
                                     this.refresh(cx);
@@ -349,6 +396,9 @@ impl InsightsView {
                     InsightsQuery::Usage(filter)
                 })
             }
+            InsightsPage::Sessions if self.surface == Surface::Sessions => {
+                Ok(InsightsQuery::Sessions(self.session_list_request(cx)?))
+            }
             InsightsPage::Sessions => {
                 if let Some(archive_id) = &self.archive_id {
                     return Ok(InsightsQuery::Detail {
@@ -376,12 +426,21 @@ impl InsightsView {
         }
     }
     fn submit(&mut self, cx: &mut Context<Self>) {
-        self.clear_session_draft();
+        // Sessions 产品面：列表请求不碰详情槽与会话操作；旧页保留到新页到达，
+        // 避免防抖搜索时整列闪空。其他产品面维持单 snapshot 路径。
+        let sessions = self.surface == Surface::Sessions;
+        if !sessions {
+            self.clear_session_draft();
+            self.snapshot = None;
+        }
         self.task = None;
         self.gate.clear();
         self.generation += 1;
-        self.snapshot = None;
-        self.selected = None;
+        self.selected = if sessions {
+            self.detail.archive_id.clone()
+        } else {
+            None
+        };
         self.detail_open = false;
         self.error = None;
         let query = match self.query(cx) {
@@ -417,12 +476,15 @@ impl InsightsView {
                                     }
                                     Completion::Failed(error)
                                     | Completion::CleanupFailed(error) => {
+                                        this.snapshot = None;
                                         this.error = Some(error.message())
                                     }
                                     Completion::Cancelled => {
+                                        this.snapshot = None;
                                         this.error = Some("Read cancelled / 已取消读取")
                                     }
                                     Completion::WorkerFailed => {
+                                        this.snapshot = None;
                                         this.error = Some(
                                             "Read worker stopped. Retry. / 读取线程已停止，请重试",
                                         )
@@ -447,6 +509,17 @@ impl InsightsView {
         cx.notify();
     }
     fn next(&mut self, cx: &mut Context<Self>) {
+        // Sessions 产品面的“更早的会话”只翻列表，详情槽保留；详情翻页另走
+        // `older_session_messages`。
+        if self.surface == Surface::Sessions {
+            if let Some(InsightsSnapshot::Sessions { page, .. }) = self.snapshot.as_deref()
+                && let Some(cursor) = page.next_cursor.clone()
+            {
+                self.cursor = Some(cursor);
+                self.submit(cx);
+            }
+            return;
+        }
         match self.snapshot.as_deref() {
             Some(InsightsSnapshot::Logs(page)) => {
                 let Some(cursor) = page.next_cursor.clone() else {
@@ -471,6 +544,21 @@ impl InsightsView {
         self.submit(cx);
     }
     fn select(&mut self, index: usize, cx: &mut Context<Self>) {
+        if self.surface == Surface::Sessions {
+            // 打开详情：列表快照保留，详情进入独立的槽。
+            let Some(InsightsSnapshot::Sessions { page, .. }) = self.snapshot.as_deref() else {
+                return;
+            };
+            let Some(row) = page.items.get(index).cloned() else {
+                return;
+            };
+            self.selected = Some(row.archive_id.clone());
+            self.detail.archive_id = Some(row.archive_id.clone());
+            self.detail.row = Some(row);
+            self.detail.before = None;
+            self.submit_detail(cx);
+            return;
+        }
         if let Some(InsightsSnapshot::Sessions { page, .. }) = self.snapshot.as_deref() {
             self.archive_id = Some(page.items[index].archive_id.clone());
             self.before = None;

@@ -292,6 +292,11 @@ impl Shell {
         self.environments.read(cx).probe()
     }
 
+    #[cfg(test)]
+    pub(crate) fn insights_view(&self) -> Entity<crate::features::insights::InsightsView> {
+        self.insights.clone()
+    }
+
     fn nav_items() -> [(&'static str, Destination, &'static str, &'static str); 13] {
         [
             (

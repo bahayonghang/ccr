@@ -203,6 +203,44 @@ MCP 管理页自上而下：
    - URL 值、args 值、env/header 的键名和值，不出现在列表、详情、aria label、tooltip 或快照里。
    - 编辑器补丁初值是 `{}`。URL、env/header 值输入框和批量凭据输入框保持 masked，批量凭据保存后清空。跨源复制得到的草稿不带凭据。
 
+Agent 会话页自上而下：
+
+1. **页头一行**：左侧是 40px 方块（primary 10% 底）里的 book-open 图标，旁边是唯一 h1“Agent 会话 / Agent sessions”和一句 12px muted 描述。右侧依次是索引状态标签、“CCR 废纸篓”（ghost，inbox）和“刷新索引”（primary，refresh-cw）。两颗按钮都是默认尺寸、图标加文字，与 MCP 管理页页头一致；空间不足时整组换行。
+   - 索引状态标签是 `badge::tag`，带 `role=Status`。Running 用 info 语调，写“Indexing…”；Finished 用 success 语调，写“Indexed · parsed X / upserted Y”；Failed 和 Interrupted 用 danger 语调，并写出原因。Idle 不显示标签。
+2. **提供方 chip**：每个会话家族一个 `badge::filter_chip`，可多选，可换行。没有选中任何 chip 时表示全部提供方。chip 内容是“指示符 + 名称 · 读数”，完整句子同时作为 aria label：
+   - Available：平台身份圆点，读数是来源数（tnum），比如“Codex · 3 sources”。
+   - NoData：muted 实心圆点，写“no files”。可选。
+   - NotInstalled：空心圆点加虚线边，写“not installed”。disabled。
+   - Error：circle-alert，danger 语调，写“unreadable”；tooltip 是提供方报告的 `error_category`，不含路径或正文。disabled。
+   - 平台作用域（Claude / Codex 工作台的会话 tab）锁定为该家族，不渲染 chip，改为一行 muted 文字“Showing Claude sessions / 只显示 Claude 会话”。
+3. **工具栏**：左侧是 `badge::search_field`，placeholder 写“Search session titles / 搜索会话标题”；其后是两组互斥的 `semantics::tab` 胶囊：记录完整度“All | Full record | Partial | Locked”（全部 | 完整记录 | 部分 | 锁定），来源状态“All | Live | Missing | Deleted”（全部 | 现存 | 缺失 | 已删除）。右侧是 tnum 的本页计数，写“100 on this page · older available”；列表请求在途时改写“Reading the archive…”。
+   - 搜索按 Enter 立即查询；输入后防抖 300ms 再查询，每次输入让旧的防抖 token 过期，过期 token 到期后不执行。
+   - 筛选变化（chip、胶囊、搜索）回到第一页，并关闭已打开的会话。
+4. **操作反馈**：导出、克隆、移入或恢复的运行、失败与结果，在工具栏下方以一组 12px 文字陈述，带 `role=Status`。失败用 danger 墨色。空闲且没有结果时不渲染。
+5. **主体**：窗口宽度 ≥ `SPLIT_WIDTH`（1200）时，列表与 pane 按 3:2 并排，间距 16，列表 ≥ `LIST_MIN_WIDTH`（360），pane ≥ `DETAIL_MIN_WIDTH`（320）。外层列只负责尺寸，不带内边距和描边，实色阅读面板放在列内并填满它，原因同 MCP 管理页。1280×800 下列表约 576px、pane 约 384px。
+   - pane 的内容按优先级决定：废纸篓 > 打开的会话 > 空态。宽窗未打开会话时，pane 是虚线空态，只汇总本页列出的行数。不自动打开第一行。
+   - 没有可列出的会话、也没有打开的内容时，宽窗只放列表列，不并排一块空 pane。
+   - 窄窗：打开会话时只保留页头和 pane（drill-in），不渲染提供方 chip 和工具栏，pane 顶部是“返回列表”；返回后 chip 和工具栏恢复。焦点在下一帧移到 pane 的第一个控件，返回后焦点回到列表，选中行不变。离页、刷新或又打开别的会话后，延迟的焦点回调不再执行。
+   - 窄窗打开废纸篓时，废纸篓按内容高度排在列表上方，列表保留 320px，整页纵向滚动。搜索框在工具栏里，废纸篓打开时宽窗与窄窗都可见、可点。
+6. **列表**：`uniform_list` 放在 12px 实色面板内，行高 60px（`TWO_LINE_ROW_HEIGHT`），行底 hairline。列表容器是 `role=ListBox`，获得焦点后上下键移动选中，Enter 打开；点击直接打开。行是 `role=ListBoxOption`，带 `aria_selected`、位置与总数；行 id 仍是 `insights-row:{archive_id}`。
+   - 第一行：平台身份圆点；14/500 标题，单行省略并带 tooltip（无标题时用 session id）；右侧 12px tnum 更新时间 `MM-DD HH:mm`。
+   - 第二行：12px muted。“平台 · 变体 · N messages · N tools”（无工具调用时省略工具数）不收缩、不省略；其后的“· 项目路径”是唯一可伸缩的部分（mono，单行省略，带 tooltip），摘要放不下时路径整段让出。
+   - 标签只在异常时出现：Partial / Locked 用 warning 语调，未知完整度用 neutral 语调；来源 Missing 用 warning，Deleted 用 neutral。完整记录与现存来源不加标签。
+   - 底部翻页条：有 `next_cursor` 时显示 `insights-next`“Older sessions / 更早的会话”；不在第一页时显示“Newest sessions / 最新的会话”。两者都不适用时不渲染翻页条。翻页保留已打开的会话。
+   - 没有行时用虚线空态陈述原因：读取失败写原因；未索引给出“刷新索引”；筛选无匹配写“这不代表提供方没有会话”，并在有筛选时给出“清除搜索与筛选”。不铺 0。
+7. **会话 pane**：
+   - 头部：16/600 标题，单行省略并带 tooltip；下面是 mono session id 和“平台 · 变体” neutral 标签，再下一行只写“N messages · N tools”，非完整记录时追加完整度，不重复平台与变体。Codex 活跃会话的“导出 Markdown / 克隆会话 / 移入 CCR 废纸篓”放在头部右侧，可换行；其他提供方不给操作。
+   - 完整度为 partial 或 locked 时，在头部下方显示 warning 语调的提示条（triangle-alert），说明只读到一部分或记录不可读。
+   - 决策控件放在可变高度内容之前：克隆与移入的确认区、导出预览（保存与复制）、本页消息数与“Earlier messages / 更早的消息”，都放在消息列表之前。
+   - 消息卡：头部依次是角色图标（user、bot；工具等其他角色用 square-terminal）、角色名、mono 工具名，右侧是时间，没有时间时写 `#序号`；归档截断时用 warning 墨色写“Clipped in archive / 归档中已截断”。
+8. **CCR 废纸篓**：由页头“CCR 废纸篓”打开或重新读取，宽窗占据 pane。面板标题“CCR trash (Codex)”，右侧是 `session-trash-close`“关闭”；关闭后 pane 回到打开的会话或空态。
+   - 恢复确认放在翻页与行之前；确认区挂载后，初始焦点进入“取消”，Tab 留在决定子树，Esc 返回并把焦点还给触发者（例如搜索框）。确认区挂载时，下面的行与翻页都 disabled。
+   - 每页 6 行，行之间用 hairline。空废纸篓用虚线空态。
+9. **诚实与掩码**：
+   - 只陈述索引给出的数据：不编造会话数，不显示 Running 一类推断出的进程状态；完整度只用索引里的 full / partial / locked。
+   - 会话正文只在 pane 内渲染，不进入 aria label、tooltip 或日志。离页时清除正文、导出预览、在途列表与详情请求和搜索防抖。
+   - 列表与详情是两条请求，`RequestKey.environment` 分别为 `insights-explicit` 与 `insights-detail`，各自带 gate 与 generation：快速连续打开两行时只显示后一行；列表刷新或筛选变化会丢弃在途的详情请求。Workbench 渲染器与用量页仍走单 snapshot 路径。
+
 ## Elevation & Depth
 
 材质是**已知静态场景上的半透明分层材质**。纸面背后的像素全部由本应用绘制，且只有低频内容：160deg 两色线性渐变场，以及两个静态柔光斑（GPUI 无 radial gradient，用透明圆形加同色大模糊阴影绘制）。对这种平滑内容再做高斯模糊，结果与原图的差异低于 8-bit 量化误差，所以 alpha<1 的面直接合成到场景上，像素上等价于 backdrop blur；这不需要背景采样 API，也不是“假玻璃开关”。成立条件在代码评审时强制执行：
