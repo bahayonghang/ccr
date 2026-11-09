@@ -201,7 +201,6 @@ fn report_fixture(activity: Option<HomeInsightsSnapshot>) -> WorkbenchReport {
         last_sync_at: Some("2026-11-06T02:04:00Z".into()),
         freshness: SyncFreshness {
             local: Some("11-06 02:04".into()),
-            date: Some("11-06".into()),
             stale: false,
         },
         activity,
@@ -599,7 +598,6 @@ fn freshness_is_stated_in_the_header_chart_and_data_source(cx: &mut TestAppConte
                 last_sync_at: Some("2026-11-05T14:34:00Z".into()),
                 freshness: SyncFreshness {
                     local: Some("11-05 14:34".into()),
-                    date: Some("11-05".into()),
                     stale: true,
                 },
                 ..report_fixture(None)
@@ -634,7 +632,6 @@ fn freshness_is_stated_in_the_header_chart_and_data_source(cx: &mut TestAppConte
             last_sync_at: raw.map(Into::into),
             freshness: SyncFreshness {
                 local: None,
-                date: None,
                 stale: true,
             },
             ..report_fixture(None)
@@ -696,7 +693,6 @@ fn chinese_copy_keeps_scopes_and_freshness(cx: &mut TestAppContext) {
             WorkbenchReport {
                 freshness: SyncFreshness {
                     local: Some("11-05 14:34".into()),
-                    date: Some("11-05".into()),
                     stale: true,
                 },
                 ..report_fixture(Some(activity_fixture()))
@@ -970,7 +966,6 @@ async fn overview_ranges_hide_stale_totals_and_preserve_exact_metrics(cx: &mut T
                 last_sync_at: None,
                 freshness: SyncFreshness {
                     local: None,
-                    date: None,
                     stale: true,
                 },
                 activity: None,

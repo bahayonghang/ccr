@@ -429,7 +429,6 @@ fn sync_freshness_uses_the_report_timezone_and_marks_older_days_stale() {
         SyncFreshness::at(Some("2026-11-06T02:04:00Z"), clock),
         SyncFreshness {
             local: Some("11-06 02:04".into()),
-            date: Some("11-06".into()),
             stale: false,
         }
     );
@@ -437,7 +436,6 @@ fn sync_freshness_uses_the_report_timezone_and_marks_older_days_stale() {
         SyncFreshness::at(Some("2026-11-05T23:59:00Z"), clock),
         SyncFreshness {
             local: Some("11-05 23:59".into()),
-            date: Some("11-05".into()),
             stale: true,
         }
     );
@@ -449,7 +447,6 @@ fn sync_freshness_uses_the_report_timezone_and_marks_older_days_stale() {
     for missing in [None, Some("yesterday")] {
         let freshness = SyncFreshness::at(missing, clock);
         assert_eq!(freshness.local, None);
-        assert_eq!(freshness.date, None);
         assert!(freshness.stale);
     }
 }

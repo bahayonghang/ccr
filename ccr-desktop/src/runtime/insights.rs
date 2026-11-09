@@ -177,8 +177,6 @@ pub struct WorkbenchReport {
 pub struct SyncFreshness {
     /// `MM-DD HH:mm`; `None` when no readable sync time is recorded.
     pub local: Option<String>,
-    /// `MM-DD` of the last sync, the last day the report can contain.
-    pub date: Option<String>,
     /// The last sync's local date precedes the report date, or no sync is known.
     pub stale: bool,
 }
@@ -191,7 +189,6 @@ impl SyncFreshness {
         else {
             return Self {
                 local: None,
-                date: None,
                 stale: true,
             };
         };
@@ -201,7 +198,6 @@ impl SyncFreshness {
         };
         Self {
             local: Some(local.format("%m-%d %H:%M").to_string()),
-            date: Some(local.format("%m-%d").to_string()),
             stale: local.date() < clock.date(),
         }
     }
