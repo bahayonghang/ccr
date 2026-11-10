@@ -996,3 +996,71 @@ ccr project init 现在默认勾选五项平台并要求输入用户名，-y 使
 ### Status
 
 [OK] **Completed**
+
+
+## Session 150: Wayfinder 建图：GPUI Claude Code 页面重设计
+<!-- trellis-session: v=2 fp=0e194a928110897a -->
+
+**Date**: 2026-11-09
+**Task**: Wayfinder 建图：GPUI Claude Code 页面重设计
+**Branch**: `dev`
+
+### Summary
+
+为 GPUI Claude Code 页面重设计建立 wayfinder 地图 #138：11 张子票 #139-#149（原生 sub-issue 与 blocked-by），首批可做 5 张；不需要设计决策的合同违例另开 #150；研究票 #141、#142 已由后台子代理完成并关闭，结论已记入地图。
+
+### Main Changes
+
+- GitHub：新建 wayfinder:map/research/prototype/grilling/task 与 ready-for-agent 标签；地图 #138 及第一条问题分析评论；子票 #139-#149；修复 issue #150
+- 发现：只要 CCR 数据库存在，observer.rs:177 就把 subscription::read 的结果包成 Some，未保存设置时 auto/team/200 默认值被当成用户设置显示，已写入 #150 第 6 项
+- 研究结论：#142 判定今日为零是同步滞后、全部历史等于近 30 天是数据只覆盖 30 天、0 个项目是缺陷；#141 列出现有投影能支撑的模块，以及要在 `crates/ccr-usage` 新增的会话聚合与工具聚合查询。研究文件在未合并的 `research/claude-workbench-data`、`research/claude-workbench-readings` 分支
+- 用量管线缺陷另开 bug（needs-triage，不进地图）：#151 新鲜度漏算 sync --rebuild（评论补了全局 last_sync_at 不分来源）、#152 项目未归属显示成 0、#153 工具与会话费用列恒为假 0、#154 工具热力图按 UTC 分桶等时间口径问题
+
+### Git Commits
+
+(No commits - planning session)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 研究结论已追加到地图；#145 工作台内容取舍只差 #139 一个前置
+- 继续走地图：/wayfinder https://github.com/bahayonghang/ccr/issues/138 ，先做 #139 信息架构
+- #150 可独立实施，不依赖地图
+
+
+## Session 151: Wayfinder：Claude Code 页面信息架构定案
+<!-- trellis-session: v=2 fp=000a02824cfb1412 -->
+
+**Date**: 2026-11-10
+**Task**: Wayfinder：Claude Code 页面信息架构定案
+**Branch**: `dev`
+
+### Summary
+
+地图 #138 的第一张讨论票 #139 定案并关闭：Claude Code 页面 12 个 tab 收成 9 个，分 1+3 组（工作台 │ 配置方案·账户·设置 │ MCP·指令·扩展 │ 用量·会话）；页面钉住平台、tab 与内容一致、页头不放与 tab 重复的按钮；「订阅与工具」去掉，订阅设置挪到工作台；规则同样用于其他平台。
+
+### Main Changes
+
+- GitHub：#139 结论评论并关闭；地图 Decisions so far 追加一行，Notes 指向术语表；#144、#145、#149 正文按结论更新；#140 加评论
+- 新建 ccr-desktop/CONTEXT.md 术语表（平台目的地、平台 tab、工作台、配置方案、账户、设置、配置来源、指令、扩展、子代理、斜杠命令、插件、Agent 会话、记录费用、订阅设置）
+- 发现：Claude 的 Agents、斜杠命令、插件三页写 settings.json 的 agents、slashCommands、plugins 键，官方设置索引没有这三个键；已开研究票 #155 交后台核实，阻塞 #149
+- #155 研究结论（已关闭并记入地图）：三类条目全部无效，Claude Code 从不读取这三个键；真实机制是 agents/*.md、commands/*.md 与 skills、插件市场加 enabledPlugins；规则和输出样式写入有效但只覆盖用户级。#149 正文已加「扩展」的前置问题。研究文件在未合并的 `research/claude-resource-collections` 分支
+- 另开 bug #156：规则、输出样式和用户级 CLAUDE.md 不跟随 CLAUDE_CONFIG_DIR（needs-triage，不进地图）
+
+### Git Commits
+
+(No commits - planning session)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- #149 现在只差 #143 截图基线一个前置
+- 本地还留着 #155 研究代理的 worktree（`.claude/worktrees/agent-a9e2b849ee4428a97`），分支已推送，确认后再清理
+- 继续走地图：/wayfinder https://github.com/bahayonghang/ccr/issues/138 ，当前可做 #140、#143、#144、#145
+- ccr-desktop/CONTEXT.md 尚未提交，提交后地图里对术语表的引用才对其他会话可见
