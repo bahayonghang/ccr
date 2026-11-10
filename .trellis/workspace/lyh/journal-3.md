@@ -1061,6 +1061,5 @@ ccr project init 现在默认勾选五项平台并要求输入用户名，-y 使
 ### Next Steps
 
 - #149 现在只差 #143 截图基线一个前置
-- 本地还留着 #155 研究代理的 worktree（`.claude/worktrees/agent-a9e2b849ee4428a97`），分支已推送，确认后再清理
 - 继续走地图：/wayfinder https://github.com/bahayonghang/ccr/issues/138 ，当前可做 #140、#143、#144、#145
-- ccr-desktop/CONTEXT.md 尚未提交，提交后地图里对术语表的引用才对其他会话可见
+- ccr-desktop/CONTEXT.md 与 journal 已提交到本地 dev，尚未 push；push 后其他机器才能看到术语表
