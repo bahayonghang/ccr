@@ -7,7 +7,7 @@ pub enum ProjectAction {
     /// Interactive mode checks Claude Code, Codex, Cursor, Oh My Pi, and Grok by
     /// default, then asks for a developer name. `ccr -y project init` reads
     /// `git config user.name` and runs `trellis init` with those five flags and
-    /// `--yes`. `.agents/`, `.claude/`, `.codex/`, and `ref/` are merged into
-    /// `.gitignore`.
+    /// `--yes`. `.agents/`, `.claude/`, `.codex/`, `.cursor/`, `.omp/`, `.grok/`,
+    /// and `ref/` are merged into `.gitignore`.
     Init,
 }

@@ -81,10 +81,15 @@ Trellis 最低文件就绪后：
 .agents/
 .claude/
 .codex/
+.cursor/
+.omp/
+.grok/
 ref/
 ```
 
-四条规则都已存在时不会重写 `.gitignore`。即使忽略规则已经完整，缺失的 `ref/` 目录仍会创建。新增或更新使用原子写入，重复执行不会重复追加规则。
+这些规则不随本次勾选变化。`.cursor/`、`.omp/`、`.grok/` 对应 Cursor、Oh My Pi 和 Grok 的本地目录；`.agents/` 是 Codex 共用目录。`.trellis/` 属于要提交的工作流，不在忽略列表中。
+
+七条规则都已存在时不会重写 `.gitignore`。即使忽略规则已经完整，缺失的 `ref/` 目录仍会创建。新增或更新使用原子写入，重复执行不会重复追加规则。旧的四条规则文件在再次运行时会补上 `.cursor/`、`.omp/` 和 `.grok/`。
 
 ## 失败与重试
 

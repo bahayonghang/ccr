@@ -81,10 +81,15 @@ CCR then preserves existing content, comments, ordering, and LF/CRLF line ending
 .agents/
 .claude/
 .codex/
+.cursor/
+.omp/
+.grok/
 ref/
 ```
 
-When all four rules already exist, the file is not rewritten. A missing `ref/` directory is still created when the ignore rules are already complete. Updates use an atomic write, and repeated runs do not duplicate rules.
+The rules do not follow the platforms selected in this run. `.cursor/`, `.omp/`, and `.grok/` are the local directories for Cursor, Oh My Pi, and Grok. `.agents/` is the shared Codex directory. `.trellis/` stays tracked because it holds the workflow that should be committed.
+
+When all seven rules already exist, the file is not rewritten. A missing `ref/` directory is still created when the ignore rules are already complete. Updates use an atomic write, and repeated runs do not duplicate rules. A file that only has the older four rules gains `.cursor/`, `.omp/`, and `.grok/` on the next run.
 
 ## Failures And Retry
 

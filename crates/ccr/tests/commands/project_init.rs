@@ -8,7 +8,7 @@ use tempfile::TempDir;
 
 const GIT_USER: &str = "fake-git-user";
 const TRELLIS_ARGS: &str = "|init -u fake-git-user --claude --codex --cursor --omp --grok --yes";
-const GITIGNORE_RULES: &str = ".agents/\n.claude/\n.codex/\nref/\n";
+const GITIGNORE_RULES: &str = ".agents/\n.claude/\n.codex/\n.cursor/\n.omp/\n.grok/\nref/\n";
 const SKIP_GITIGNORE_WRITE: &str = ".gitignore 已包含全部项目忽略规则，跳过写入";
 const READY_SUMMARY: &str = "Git、Trellis、Agent 忽略规则和 ref/ 均已就绪";
 
@@ -344,7 +344,7 @@ fn preserves_existing_gitignore_and_does_not_rewrite_when_complete() {
     assert_success(&first);
     assert_eq!(
         fs::read_to_string(&gitignore).unwrap(),
-        "target/\n.agents/\n.claude/\n.codex/\nref/\n"
+        "target/\n.agents/\n.claude/\n.codex/\n.cursor/\n.omp/\n.grok/\nref/\n"
     );
     assert!(fixture.project.join("ref").is_dir());
 
@@ -430,11 +430,33 @@ fn ref_file_conflict_fails_after_trellis_without_gitignore_write() {
 }
 
 #[test]
+fn appends_cursor_omp_and_grok_to_legacy_gitignore() {
+    let fixture = ProjectInitFixture::new();
+    fixture.install_tools();
+    let gitignore = fixture.project.join(".gitignore");
+    fs::write(&gitignore, ".agents/\n.claude/\n.codex/\nref/\n").unwrap();
+
+    let output = fixture.run(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
+
+    assert_success(&output);
+    assert_eq!(
+        fs::read_to_string(&gitignore).unwrap(),
+        ".agents/\n.claude/\n.codex/\nref/\n.cursor/\n.omp/\n.grok/\n"
+    );
+    assert!(!stdout(&output).contains(SKIP_GITIGNORE_WRITE));
+}
+
+#[test]
 fn complete_gitignore_still_creates_missing_ref_directory() {
     let fixture = ProjectInitFixture::new();
     fixture.install_tools();
     let gitignore = fixture.project.join(".gitignore");
-    let original = "notes\n.agents/\n.claude/\n.codex/\nref/\n";
+    let original = "notes\n.agents/\n.claude/\n.codex/\n.cursor/\n.omp/\n.grok/\nref/\n";
     fs::write(&gitignore, original).unwrap();
     let fixed_time = FileTime::from_unix_time(1_700_000_000, 0);
     filetime::set_file_mtime(&gitignore, fixed_time).unwrap();

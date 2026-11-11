@@ -89,7 +89,7 @@ const PROJECT_AFTER_LONG_HELP: &str = "\
   1. 检测 Git 工作树；必要时运行 git init
   2. 选择平台并确定开发者用户名
   3. 在当前目录运行 trellis init
-  4. 创建被忽略的 ref/，并向 .gitignore 合并 .agents/、.claude/、.codex/、ref/
+  4. 创建被忽略的 ref/，并向 .gitignore 合并 .agents/、.claude/、.codex/、.cursor/、.omp/、.grok/、ref/
 
 边界:
   - 必须预先安装 git 和 trellis
@@ -101,7 +101,7 @@ const PROJECT_AFTER_LONG_HELP: &str = "\
 const PROJECT_INIT_LONG_ABOUT: &str = "\
 初始化当前工作目录的项目工作流。
 
-Git 成功后，交互模式默认勾选 Claude Code、Codex、Cursor、Oh My Pi 和 Grok，可以取消任意项，然后手动输入开发者用户名。ccr -y project init 不询问，改用这五项和 git config user.name。随后继承当前终端运行 trellis init，创建被忽略的 ref/，并以原子写入把 .agents/、.claude/、.codex/ 和 ref/ 合并进当前目录的 .gitignore。已有内容和换行风格会保留。";
+Git 成功后，交互模式默认勾选 Claude Code、Codex、Cursor、Oh My Pi 和 Grok，可以取消任意项，然后手动输入开发者用户名。ccr -y project init 不询问，改用这五项和 git config user.name。随后继承当前终端运行 trellis init，创建被忽略的 ref/，并以原子写入把 .agents/、.claude/、.codex/、.cursor/、.omp/、.grok/ 和 ref/ 合并进当前目录的 .gitignore。已有内容和换行风格会保留。";
 
 const PROJECT_INIT_AFTER_LONG_HELP: &str = "\
 用法:
