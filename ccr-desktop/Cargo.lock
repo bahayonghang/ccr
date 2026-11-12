@@ -961,7 +961,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-app"
-version = "7.5.0"
+version = "7.5.1"
 dependencies = [
  "async-channel",
  "base64 0.23.1",
@@ -994,7 +994,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-checkin"
-version = "7.5.0"
+version = "7.5.1"
 dependencies = [
  "aes-gcm",
  "base64 0.23.1",
@@ -1017,7 +1017,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-cli"
-version = "7.5.0"
+version = "7.5.1"
 dependencies = [
  "anyhow",
  "base64 0.23.1",
@@ -1066,7 +1066,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-codex"
-version = "7.5.0"
+version = "7.5.1"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -1094,7 +1094,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-config"
-version = "7.5.0"
+version = "7.5.1"
 dependencies = [
  "ccr-core",
  "ccr-types",
@@ -1111,7 +1111,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-core"
-version = "7.5.0"
+version = "7.5.1"
 dependencies = [
  "anyhow",
  "blake3",
@@ -1139,7 +1139,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-db"
-version = "7.5.0"
+version = "7.5.1"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -1170,7 +1170,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-gpui"
-version = "7.5.0"
+version = "7.5.1"
 dependencies = [
  "ccr-app",
  "ccr-checkin",
@@ -1200,7 +1200,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-skills"
-version = "7.5.0"
+version = "7.5.1"
 dependencies = [
  "blake3",
  "ccr-config",
@@ -1218,7 +1218,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-store"
-version = "7.5.0"
+version = "7.5.1"
 dependencies = [
  "blake3",
  "ccr-config",
@@ -1241,7 +1241,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-sync"
-version = "7.5.0"
+version = "7.5.1"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -1262,7 +1262,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-types"
-version = "7.5.0"
+version = "7.5.1"
 dependencies = [
  "chrono",
  "serde",
@@ -1272,7 +1272,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-usage"
-version = "7.5.0"
+version = "7.5.1"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -4633,9 +4633,9 @@ dependencies = [
 
 [[package]]
 name = "libsqlite3-sys"
-version = "0.38.2"
+version = "0.39.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1d20bef17f513b9b3004532233187769cd072d790971f4e4da0e346eb6401e8"
+checksum = "14a5f01b87b92705d07b433c06f96cbc764637d81a0bffb5734ce17cf0f9a2b3"
 dependencies = [
  "cc",
  "pkg-config",
@@ -6345,8 +6345,6 @@ dependencies = [
 [[package]]
 name = "r2d2_sqlite"
 version = "0.35.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d362d41ad1f9a278dd971842c63c0fc7ae2e01bccbfbbc8c9a4689a46fa7051f"
 dependencies = [
  "r2d2",
  "rusqlite",
@@ -6843,9 +6841,9 @@ dependencies = [
 
 [[package]]
 name = "rusqlite"
-version = "0.40.2"
+version = "0.41.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23f2a97da3e3873c73cb2a2e71b35c40ff95e0b1eefa8d72d8499a6928c3b5b3"
+checksum = "da9bba6f3506135e120a6586df05be18b48d18896600646a4bec8f993d91a594"
 dependencies = [
  "bitflags 2.13.2",
  "fallible-iterator",
