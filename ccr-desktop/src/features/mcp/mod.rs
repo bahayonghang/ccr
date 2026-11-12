@@ -194,11 +194,13 @@ impl McpView {
     pub fn open_global(&mut self, cx: &mut Context<Self>) {
         self.detach_batch(cx);
         self.platform_scope = None;
+        self.services = self.services.clone().scoped(None);
         self.refresh(cx);
     }
     pub fn open_platform(&mut self, platform: Platform, cx: &mut Context<Self>) {
         self.detach_batch(cx);
         self.platform_scope = Some(platform);
+        self.services = self.services.clone().scoped(Some(platform));
         // 平台作用域不渲染平台胶囊，旧的胶囊选择不能继续隐藏条目。
         self.family = None;
         self.create_source = match platform {
@@ -231,6 +233,9 @@ impl McpView {
     }
 
     fn open_batch(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.platform_scope.is_some() {
+            return;
+        }
         self.generation += 1;
         let key = RequestKey {
             environment: EnvironmentId::Local(
@@ -388,6 +393,9 @@ impl McpView {
     }
 
     fn add(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if !self.allows_destination(self.create_source) {
+            return;
+        }
         let project = std::path::PathBuf::from(self.project.read(cx).value().trim());
         let target = match self.create_source {
             1 => McpTarget::ClaudeLocal(project),
@@ -402,6 +410,16 @@ impl McpView {
             _ => String::new(),
         };
         self.start_editor(target, self.create_mode.clone(), &name, window, cx);
+    }
+
+    fn allows_destination(&self, index: usize) -> bool {
+        match self.platform_scope {
+            None => index <= 4,
+            Some(Platform::Claude) => index <= 2,
+            Some(Platform::Codex) => index == 3,
+            Some(Platform::Gemini) => index == 4,
+            _ => false,
+        }
     }
 
     /// Opens the destination picker for a new, preset-based or copied server.

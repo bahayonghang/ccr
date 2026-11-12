@@ -108,17 +108,13 @@ impl WorkbenchView {
                 "{}: {mode}",
                 text(cx, "Profile credential source", "配置凭据来源")
             ))
-            .child(
-                div()
-                    .font_family(cx.theme().mono_font_family.clone())
-                    .child(format!(
-                        "{}: {} / {} {}",
-                        text(cx, "Enabled profiles", "已启用配置"),
-                        report.profiles_enabled,
-                        report.profiles_total,
-                        text(cx, "total", "总计")
-                    )),
-            )
+            .child(div().font_features(theme::tabular_figures()).child(format!(
+                "{}: {} / {} {}",
+                text(cx, "Enabled profiles", "已启用配置"),
+                report.profiles_enabled,
+                report.profiles_total,
+                text(cx, "total", "总计")
+            )))
             .child(if report.config_exists {
                 text(cx, "Runtime configuration file exists", "运行配置文件存在")
             } else {

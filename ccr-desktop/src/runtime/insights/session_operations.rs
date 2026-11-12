@@ -83,6 +83,9 @@ impl Drop for Pending {
 }
 impl InsightsRequests {
     fn prepare_session(&self, archive_id: &str) -> Result<Arc<Prepared>, Failure> {
+        if !self.codex_actions_allowed() {
+            return Err(Failure::Unsupported);
+        }
         let paths = self.paths.as_ref().ok_or(Failure::Storage)?;
         let pool = self.archive_pool(paths).map_err(|_| Failure::Storage)?;
         let registry = AgentSessionProviderRegistry::new(paths.provider_home.clone())
@@ -161,6 +164,9 @@ impl InsightsRequests {
         key: RequestKey,
         work: impl FnOnce() -> Result<Outcome, Failure> + Send + 'static,
     ) -> Result<(), Failure> {
+        if !self.codex_actions_allowed() {
+            return Err(Failure::Unsupported);
+        }
         if !matches!(key.environment, EnvironmentId::Local(_)) {
             return Err(Failure::LocalOnly);
         }
@@ -206,6 +212,9 @@ impl InsightsRequests {
         prepared: &Prepared,
         action: Action,
     ) -> Result<Outcome, Failure> {
+        if !self.codex_actions_allowed() {
+            return Err(Failure::Unsupported);
+        }
         let current = self.prepare_session(&prepared.archive_id)?;
         if current.path != prepared.path
             || current.codex_home != prepared.codex_home

@@ -47,7 +47,7 @@ pub(super) fn list(service: &ccr_app::config::ConfigReadService) -> Result<Vec<s
                 provider_type: row.provider_type,
                 account: row.account,
                 tags: row.tags,
-                usage_count: row.usage_count,
+                usage_count: row.usage_count.unwrap_or_default(),
                 enabled: row.enabled,
             })
             .collect()

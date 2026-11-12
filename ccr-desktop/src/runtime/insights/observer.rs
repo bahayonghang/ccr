@@ -129,6 +129,17 @@ fn existing(paths: &Paths) -> Result<bool, Error> {
         Err(_) => Err(Error::Storage),
     }
 }
+
+pub(super) fn read_subscription(
+    owner: &Owner,
+    source: &ConfigSource,
+) -> Result<Option<SubscriptionDto>, Error> {
+    let paths = owner.paths(source)?;
+    if !existing(&paths)? {
+        return Ok(None);
+    }
+    subscription::read_saved(&connection(&paths, false)?).map_err(|_| Error::Storage)
+}
 fn usage(
     paths: Option<&InsightsPaths>,
     days: i64,
@@ -174,15 +185,13 @@ fn read(
             });
         }
     };
-    let subscription = subscription::read(&conn)
-        .map(Some)
-        .map_err(|_| Error::Storage);
+    let subscription = subscription::read_saved(&conn).map_err(|_| Error::Storage);
     let tools = (|| {
         Ok(json!({
-        // The legacy wire projection has a compatibility tokens=0 placeholder.
-        // Native reports omit unsupported token/model fields rather than presenting them as facts.
+        // Tool events do not provide session token/model fields.
         "sessions": shared::top_sessions_with_clock(&conn, Some(20), Some(if calls { "calls" } else { "cost" }),clock).map_err(|_| Error::Storage)?.into_iter().map(|row| json!({"session_id":row.session_id,"project_path":row.project_path,"cost_usd":row.cost_usd,"tool_call_count":row.tool_call_count})).collect::<Vec<_>>(),
             "heatmap": shared::tool_heatmap_with_clock(&conn, Some(days),clock).map_err(|_| Error::Storage)?,
+            "timezone": if clock.timezone == ccr_usage::ReportTimezone::Utc { "utc" } else { "local" },
             "tools": shared::top_tools_with_clock(&conn, Some(days), Some(20),clock).map_err(|_| Error::Storage)?,
         }))
     })();
@@ -250,9 +259,6 @@ fn save(
     }
     let paths = owner.paths(source)?;
     let present = existing(&paths)?;
-    if expected.is_none() && present {
-        return Err(Error::Conflict);
-    }
     if expected.is_some() && !present {
         return Err(Error::Conflict);
     }
@@ -260,7 +266,7 @@ fn save(
         initialize(&paths, source)?;
     }
     let conn = connection(&paths, true)?;
-    match subscription::save_if_current(&conn, &expected.unwrap_or_default(), &proposed)
+    match subscription::save_saved_if_current(&conn, expected.as_ref(), &proposed)
         .map_err(|_| Error::Storage)?
     {
         subscription::SaveOutcome::Saved(saved) => Ok(saved),

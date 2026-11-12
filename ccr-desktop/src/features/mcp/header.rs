@@ -11,6 +11,7 @@ use gpui_kit::component::{
     button::{Button, ButtonVariants},
     input::Input,
 };
+use gpui_kit::prelude::FluentBuilder;
 use gpui_kit::{
     Context, Div, InteractiveElement, ParentElement, SharedString, StatefulInteractiveElement,
     Styled, div, px,
@@ -25,16 +26,18 @@ impl McpView {
             .flex_wrap()
             .items_center()
             .gap(px(theme::SECTION_GAP))
-            .child(
-                div()
-                    .id("mcp-heading")
-                    .test_support()
-                    .role(gpui_kit::Role::Heading)
-                    .aria_level(1)
-                    .text_size(px(theme::TITLE_SIZE))
-                    .font_weight(gpui_kit::FontWeight::SEMIBOLD)
-                    .child(text(cx, "MCP Manager", "MCP 管理")),
-            );
+            .when(self.platform_scope.is_none(), |title| {
+                title.child(
+                    div()
+                        .id("mcp-heading")
+                        .test_support()
+                        .role(gpui_kit::Role::Heading)
+                        .aria_level(1)
+                        .text_size(px(theme::TITLE_SIZE))
+                        .font_weight(gpui_kit::FontWeight::SEMIBOLD)
+                        .child(text(cx, "MCP Manager", "MCP 管理")),
+                )
+            });
         // Claude 工作台复用本视图时不带胶囊，平台 tab 仍由外壳工具栏承载。
         if self.platform_scope.is_none()
             && let Some(lens) = &self.lens
@@ -158,16 +161,18 @@ impl McpView {
                 false,
                 cx,
             ))
-            .child(semantics::ghost_button(
-                Button::new("mcp-batch-open")
-                    .icon(IconName::GalleryVerticalEnd)
-                    .label(text(cx, "Batch & sync", "批量与同步"))
-                    .ghost()
-                    .on_click(cx.listener(|this, _, window, cx| this.open_batch(window, cx))),
-                locked,
-                false,
-                cx,
-            ))
+            .when(self.platform_scope.is_none(), |row| {
+                row.child(semantics::ghost_button(
+                    Button::new("mcp-batch-open")
+                        .icon(IconName::GalleryVerticalEnd)
+                        .label(text(cx, "Batch & sync", "批量与同步"))
+                        .ghost()
+                        .on_click(cx.listener(|this, _, window, cx| this.open_batch(window, cx))),
+                    locked,
+                    false,
+                    cx,
+                ))
+            })
     }
 
     /// `All n | Claude Code n | …`; counts come from the catalog before search.

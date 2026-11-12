@@ -8,7 +8,7 @@ export const makeInsights = (
 ): HomeInsightsResponse => ({
   as_of: '2026-09-24',
   first_date: '2026-09-01',
-  totals: { requests: 120, tokens: 50_000, sessions: 12, agents: 2, projects: 1, active_days: 3 },
+  totals: { requests: 120, tokens: 50_000, sessions: 12, agents: 2, projects: 1, active_days: 3, project_attribution_complete: true },
   sessions_indexed: true,
   last_7_days: { requests: 73, sessions: 5, active_days: 3 },
   previous_7_days: { requests: 60, sessions: 5, active_days: 1 },

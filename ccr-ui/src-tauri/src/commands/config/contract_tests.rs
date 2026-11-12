@@ -95,7 +95,8 @@ async fn actual_list_handler_matches_shared_native_projection_and_revision() {
             "version": row.version, "name": row.name, "description": row.description,
             "base_url": row.base_url, "auth_token": row.auth_token,
             "is_current": row.is_current, "is_default": row.is_default,
-            "usage_count": row.usage_count, "enabled": row.enabled,
+            // Native preserves unknown; the existing Tauri wire keeps its zero default.
+            "usage_count": row.usage_count.unwrap_or_default(), "enabled": row.enabled,
             "model": row.model, "small_fast_model": row.small_fast_model,
             "provider": row.provider, "provider_type": row.provider_type,
             "account": row.account, "tags": row.tags,

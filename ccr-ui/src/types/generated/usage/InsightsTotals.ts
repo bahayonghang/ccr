@@ -11,7 +11,7 @@ agents: number,
 /**
  * Distinct non-empty project hashes.
  */
-projects: number,
+projects: number, project_attribution_complete: boolean,
 /**
  * Local days with at least one request.
  */

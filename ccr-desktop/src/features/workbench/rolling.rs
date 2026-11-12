@@ -74,7 +74,7 @@ impl WorkbenchView {
             );
             rows = rows.child(
                 div()
-                    .font_family(cx.theme().mono_font_family.clone())
+                    .font_features(theme::tabular_figures())
                     .text_size(px(theme::BODY_SIZE))
                     .child(value),
             );

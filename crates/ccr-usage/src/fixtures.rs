@@ -330,6 +330,35 @@ mod tests {
     };
 
     #[test]
+    fn freshness_includes_successful_rebuild_and_excludes_failed_imports() {
+        let temp = tempfile::TempDir::new().expect("fixture");
+        let paths = create_projection_db(temp.path());
+        let conn = Connection::open(&paths.db_path).expect("open");
+        for (command, status, at) in [
+            ("sync", "success", "2026-07-01T10:00:00Z"),
+            ("sync --rebuild", "success", "2026-07-02T10:00:00Z"),
+            ("sync --rebuild", "failed", "2026-07-03T10:00:00Z"),
+        ] {
+            conn.execute(
+                "INSERT INTO run_log(command,status,finished_at) VALUES (?1,?2,?3)",
+                params![command, status, at],
+            )
+            .expect("insert");
+        }
+        drop(conn);
+        let dashboard = Dashboard::open(paths).expect("dashboard");
+        for source in [None, Some(SourceKind::Claude), Some(SourceKind::Codex)] {
+            let result = dashboard
+                .overview(&QueryFilter {
+                    source,
+                    ..Default::default()
+                })
+                .expect("overview");
+            assert_eq!(result.last_sync_at.as_deref(), Some("2026-07-02T10:00:00Z"));
+        }
+    }
+
+    #[test]
     fn fixture_schema_supports_every_db_backed_feature_and_overview_query() {
         let temp = tempfile::TempDir::new().expect("temp dir should be created");
         let paths = create_projection_db(temp.path());

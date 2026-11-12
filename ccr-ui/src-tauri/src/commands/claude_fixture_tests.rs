@@ -1,5 +1,77 @@
 #![allow(clippy::unwrap_used)]
 use super::*;
+use std::path::PathBuf;
+
+#[tokio::test]
+async fn output_styles_follow_config_dir_without_touching_default_home() {
+    const TEST: &str = "commands::claude::fixture_tests::output_styles_follow_config_dir_without_touching_default_home";
+    let Some(root) = std::env::var_os("CCR_TEST_OUTPUT_STYLES_ROOT") else {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().canonicalize().unwrap();
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", TEST, "--nocapture"])
+            .env("CCR_TEST_OUTPUT_STYLES_ROOT", &root)
+            .env("CLAUDE_CONFIG_DIR", root.join("custom-claude"))
+            .env("CCR_BACKUP_DIR", root.join("backups"))
+            .env("CCR_LOCK_DIR", root.join("locks"))
+            .env("HOME", root.join("home"))
+            .env("USERPROFILE", root.join("home"))
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "stdout={} stderr={}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(String::from_utf8_lossy(&output.stdout).contains("1 passed"));
+        return;
+    };
+    let root = PathBuf::from(root);
+    let styles = root.join("custom-claude/output-styles");
+    let default_styles = root.join("home/.claude/output-styles");
+    std::fs::create_dir_all(&styles).unwrap();
+    std::fs::create_dir_all(&default_styles).unwrap();
+    let original = b"default home must remain byte-identical";
+    std::fs::write(default_styles.join("ambient.md"), original).unwrap();
+    std::fs::write(styles.join("custom.md"), b"custom style").unwrap();
+    std::fs::write(styles.join("kept.md"), b"omitted style retained").unwrap();
+    let value: Value = claude_get_output_styles().await.unwrap().into();
+    assert!(
+        value["styles"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|style| style["name"] == "custom")
+    );
+    assert!(
+        !value["styles"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|style| style["name"] == "ambient")
+    );
+    claude_update_output_styles(
+        json!([{"name":"custom","content":"changed style"}])
+            .try_into()
+            .unwrap(),
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        std::fs::read(styles.join("custom.md")).unwrap(),
+        b"changed style"
+    );
+    assert_eq!(
+        std::fs::read(styles.join("kept.md")).unwrap(),
+        b"omitted style retained"
+    );
+    assert_eq!(
+        std::fs::read(default_styles.join("ambient.md")).unwrap(),
+        original
+    );
+    assert!(!default_styles.join("custom.md").exists());
+}
 
 fn isolated_layout(test: &str) -> Option<Arc<crate::fixture::FixtureLayout>> {
     if let Some(root) = std::env::var_os("CCR_TAURI_LOCK_TEST_ROOT") {
@@ -36,6 +108,45 @@ fn isolated_layout(test: &str) -> Option<Arc<crate::fixture::FixtureLayout>> {
         b"ordinary file, never a lock directory"
     );
     None
+}
+
+#[tokio::test]
+async fn captured_output_styles_ignore_ambient_roots_and_locks() {
+    let Some(layout) = isolated_layout(
+        "commands::claude::fixture_tests::captured_output_styles_ignore_ambient_roots_and_locks",
+    ) else {
+        return;
+    };
+    let styles = layout.roots.claude.config_dir.join("output-styles");
+    std::fs::create_dir_all(&styles).unwrap();
+    std::fs::write(styles.join("fixture.md"), b"captured style").unwrap();
+    assert!(
+        claude_get_output_styles()
+            .await
+            .unwrap_err()
+            .contains("fixture_capability_unavailable")
+    );
+    let store = output_styles_store().unwrap();
+    let styles_read = ccr_app::resources::claude_files::list_output_styles(&store).unwrap();
+    assert!(styles_read.iter().any(|style| style.name == "fixture"));
+    ccr_app::resources::claude_files::save_output_styles(
+        &store,
+        &[ccr_app::resources::claude_files::OutputStyle {
+            name: "fixture".into(),
+            content: "changed captured style".into(),
+        }],
+    )
+    .unwrap();
+    assert_eq!(
+        std::fs::read(styles.join("fixture.md")).unwrap(),
+        b"changed captured style"
+    );
+    assert!(
+        std::fs::read_dir(&layout.roots.locks)
+            .unwrap()
+            .next()
+            .is_some()
+    );
 }
 
 #[tokio::test]

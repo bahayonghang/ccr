@@ -19,6 +19,8 @@ pub struct InsightsTotals {
     pub agents: i64,
     /// Distinct non-empty project hashes.
     pub projects: i64,
+    #[serde(default)]
+    pub project_attribution_complete: bool,
     /// Local days with at least one request.
     pub active_days: i64,
 }
@@ -163,6 +165,7 @@ pub fn merge_home_insights(
             sessions: total_sessions,
             agents: usage.agents,
             projects: usage.project_count,
+            project_attribution_complete: usage.project_attribution_complete,
             active_days: usage.active_days,
         },
         sessions_indexed: sessions.indexed,

@@ -74,6 +74,8 @@ fn environment_views_fit_native_windows_stack_with_isolated_locks() {
         "features::checkin::credentials::tests::selected_credentials_fill_masked_editor_and_stale_results_are_discarded",
         "features::checkin::credentials::tests::missing_key_editor_requires_recovery_but_keeps_metadata_savable",
         "runtime::checkin::operations::credentials::tests::empty_fixture_transfer_keeps_crypto_creation_and_locks_captured",
+        "features::workbench::claude::tests::claude_snapshot_subscription_drafts_and_leave_remain_scoped",
+        "features::profiles::tests::rendered_edit_save_conflict_cancel_and_delete_confirmation",
         "features::workbench::rolling::tests::codex_rolling_action_distinguishes_missing_and_empty_sessions",
         "features::resources::claude_files::tests::shell_claude_resources_write_confirm_conflict_and_keep_private_fields",
         "features::platforms::forms::tests::ordinary_settings_forms_write_dirty_fields_keep_conflicts_and_clear",

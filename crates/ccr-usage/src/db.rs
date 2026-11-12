@@ -20,6 +20,9 @@ use crate::{
     timezone::{ResolvedZone, parse_stored_timestamp, register_functions},
 };
 
+// 与 llmusage store/run_log::USAGE_IMPORT_COMMANDS 对齐；升级 CLI 时一并核对。
+const USAGE_IMPORT_COMMANDS: [&str; 3] = ["sync", "sync --rebuild", "hook-run"];
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum ReportTimezone {
     #[default]
@@ -349,12 +352,12 @@ impl Dashboard {
         let freshness = self.conn.query_row(
             r#"
             SELECT
-                MAX(CASE WHEN command IN ('sync', 'hook-run') THEN finished_at END),
+                MAX(CASE WHEN command IN (?1, ?2, ?3) THEN finished_at END),
                 MAX(CASE WHEN command = 'export html' THEN finished_at END)
             FROM run_log
             WHERE status = 'success'
             "#,
-            [],
+            USAGE_IMPORT_COMMANDS,
             |row| Ok((row.get(0)?, row.get(1)?)),
         );
         let (last_sync_at, last_export_at) = freshness.unwrap_or_else(|error| {
@@ -542,6 +545,23 @@ impl Dashboard {
             );
         }
         Ok(rows)
+    }
+
+    /// Whether every matching usage bucket has a project identity. Empty input is complete.
+    pub fn project_attribution_complete(&self, filter: &QueryFilter) -> Result<bool, UsageError> {
+        self.ensure_feature_for_filter(FeatureKey::ProjectBreakdown, filter)?;
+        let zone = self.zone(filter.timezone);
+        let mut missing = filter.bucket_filter(None, &zone, self.schema_version())?;
+        missing.push_raw("COALESCE(project_hash, '') = ''");
+        let sql = format!(
+            "SELECT NOT EXISTS(SELECT 1 FROM usage_bucket_30m {})",
+            missing.where_sql()
+        );
+        Ok(self
+            .conn
+            .query_row(&sql, params_from_iter(missing.param_refs()), |row| {
+                row.get(0)
+            })?)
     }
 
     pub fn project_breakdown(
@@ -980,9 +1000,8 @@ impl Dashboard {
             })?
             .collect::<rusqlite::Result<Vec<_>>>()?;
 
-        // Q3：项目榜；项目总数取本榜行数，两者共用非空 project_hash 谓词。
-        let mut project_filter = filter.bucket_filter(None, &zone, schema_version)?;
-        project_filter.push_raw("project_hash <> ''");
+        // Q3：保留未归属分组以判断覆盖率，返回项目榜前移除该组。
+        let project_filter = filter.bucket_filter(None, &zone, schema_version)?;
         let project_sql = format!(
             r#"
             SELECT
@@ -998,9 +1017,9 @@ impl Dashboard {
             project_filter.where_sql()
         );
         let mut stmt = self.conn.prepare(&project_sql)?;
-        let projects = stmt
+        let mut projects = stmt
             .query_map(params_from_iter(project_filter.param_refs()), |row| {
-                let key: String = row.get(0)?;
+                let key = row.get::<_, Option<String>>(0)?.unwrap_or_default();
                 let label = row
                     .get::<_, Option<String>>(1)?
                     .and_then(non_empty)
@@ -1014,7 +1033,16 @@ impl Dashboard {
             })?
             .collect::<rusqlite::Result<Vec<_>>>()?;
 
-        build_payload(aggregate, &zone, as_of, projects, models)
+        let project_attribution_complete = projects.iter().all(|project| !project.key.is_empty());
+        projects.retain(|project| !project.key.is_empty());
+        build_payload(
+            aggregate,
+            &zone,
+            as_of,
+            projects,
+            models,
+            project_attribution_complete,
+        )
     }
 }
 

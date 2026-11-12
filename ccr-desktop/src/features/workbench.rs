@@ -21,7 +21,7 @@ use gpui_kit::component::{
 };
 use gpui_kit::{
     Context, FocusHandle, InteractiveElement, IntoElement, ParentElement, Render,
-    StatefulInteractiveElement, Styled, Task, Window, div, prelude::FluentBuilder, px,
+    StatefulInteractiveElement, Styled, Task, Window, div, px,
 };
 use std::sync::Arc;
 
@@ -87,8 +87,23 @@ pub struct WorkbenchView {
     facts: Vec<(String, String)>,
     usage_until: chrono::NaiveDate,
     usage: Option<Result<Arc<InsightsSnapshot>, &'static str>>,
-    observer: Option<crate::runtime::insights::observer::Report>,
-    observer_error: Option<&'static str>,
+    claude_report:
+        Option<Result<Arc<crate::runtime::insights::claude_workbench::Report>, &'static str>>,
+    claude_task: Option<Task<()>>,
+    subscription_fields: Option<Vec<gpui_kit::Entity<gpui_kit::component::input::InputState>>>,
+    subscription_task: Option<Task<()>>,
+    subscription_state: Option<
+        Result<
+            Option<ccr_app::usage::observer::subscription::SubscriptionDto>,
+            crate::runtime::insights::observer::Error,
+        >,
+    >,
+    subscription_message: Option<String>,
+    /// 保存冲突后存储版本已过期；重读前不允许再次提交，避免用旧 revision 覆盖新值。
+    subscription_stale: bool,
+    /// 键盘激活的日期条：在同面板给出可见读数，日期信息不再只能靠 hover 获取。
+    trend_highlight: Option<(chrono::NaiveDate, f64)>,
+    exact_costs: bool,
     pending: Option<Link>,
     focus: FocusHandle,
 }
@@ -110,8 +125,15 @@ impl WorkbenchView {
             credential: None,
             facts: Vec::new(),
             usage: None,
-            observer: None,
-            observer_error: None,
+            claude_report: None,
+            claude_task: None,
+            subscription_fields: None,
+            subscription_task: None,
+            subscription_state: None,
+            subscription_message: None,
+            subscription_stale: false,
+            trend_highlight: None,
+            exact_costs: false,
             pending: None,
             focus: cx.focus_handle().tab_stop(false),
         }
@@ -122,6 +144,14 @@ impl WorkbenchView {
     }
     pub fn suspend(&mut self, cx: &mut Context<Self>) {
         self.task = None;
+        self.claude_task = None;
+        self.subscription_task = None;
+        self.subscription_fields = None;
+        self.subscription_stale = false;
+        self.trend_highlight = None;
+        self.subscription_state = None;
+        self.subscription_message = None;
+        self.claude_report = None;
         self.rolling_task = None;
         self.rolling = None;
         self.grok = None;
@@ -141,8 +171,6 @@ impl WorkbenchView {
         self.profiles = None;
         self.credential = None;
         self.usage = None;
-        self.observer = None;
-        self.observer_error = None;
         self.facts.clear();
         let generation = self.generation;
         let key = |id: &str| RequestKey {
@@ -169,20 +197,23 @@ impl WorkbenchView {
         } else {
             ccr_app::usage::report_clock::ReportClock::live()
         };
+        if platform == Platform::Claude {
+            self.load_claude(clock, cx);
+        }
         let (since, until) = clock.window(30);
         self.usage_until = until;
-        let usage = self.requests.load(
-            key("usage"),
-            InsightsQuery::Usage(QueryFilter {
-                source: source(platform),
-                since: Some(since),
-                until: Some(until),
-                timezone: clock.timezone,
-                ..Default::default()
-            }),
-        );
-        let observer = (platform == Platform::Claude)
-            .then(|| self.requests.observer_read(key("observer"), 30, false));
+        let usage = (platform != Platform::Claude).then(|| {
+            self.requests.load(
+                key("usage"),
+                InsightsQuery::Usage(QueryFilter {
+                    source: source(platform),
+                    since: Some(since),
+                    until: Some(until),
+                    timezone: clock.timezone,
+                    ..Default::default()
+                }),
+            )
+        });
         let grok = (platform == Platform::Grok).then(|| self.services.grok_overview(key("grok")));
         self.task = Some(cx.spawn(async move |weak, cx| {
             if let Some(request) = grok {
@@ -226,6 +257,7 @@ impl WorkbenchView {
                 } }, Err(_) => (Err("Read queue busy. Retry. / 读取队列繁忙，请重试"), Vec::new())
             };
             let _ = weak.update(cx, |this, cx| { if this.generation == generation { this.credential = Some(credential); this.facts = facts; cx.notify(); } });
+            if let Some(usage)=usage {
             let result = match usage {
                 Ok(mut sub) => loop { match sub.next().await {
                     Some(TaskEvent::Terminal(value)) => break match value.as_ref() {
@@ -236,48 +268,9 @@ impl WorkbenchView {
                 } }, Err(_) => Err("Read queue busy. Retry. / 读取队列繁忙，请重试")
             };
             let _ = weak.update(cx, |this, cx| { if this.generation == generation { this.usage = Some(result); cx.notify(); } });
-            if let Some(observer) = observer {
-                let result = match observer {
-                    Ok(mut sub) => loop { match sub.next().await {
-                        Some(TaskEvent::Terminal(value)) => break match value.as_ref() {
-                            Completion::Success(report) => Ok(report.clone()),
-                            _ => Err("Claude insight and subscription read failed. Retry. / Claude 洞察和订阅读取失败，请重试"),
-                        }, Some(_) => {}, None => break Err("Claude insight read interrupted. Retry. / Claude 洞察读取中断，请重试")
-                    } }, Err(_) => Err("Read queue busy. Retry. / 读取队列繁忙，请重试")
-                };
-                let _ = weak.update(cx,|this,cx| { if this.generation==generation { match result { Ok(report)=>this.observer=Some(report),Err(error)=>this.observer_error=Some(error) }; cx.notify(); } });
             }
         }));
         cx.notify();
-    }
-    fn button(
-        &self,
-        id: &'static str,
-        link: Link,
-        en: &'static str,
-        zh: &'static str,
-        primary: bool,
-        cx: &mut Context<Self>,
-    ) -> gpui_kit::AnyElement {
-        let button = Button::new(id)
-            .label(text(cx, en, zh))
-            .on_click(cx.listener(move |this, _, _, cx| {
-                this.pending = Some(link);
-                cx.notify();
-            }));
-        semantics::button(
-            if primary {
-                button.primary()
-            } else if self.platform == Platform::Claude {
-                button
-            } else {
-                button.ghost()
-            },
-            false,
-            false,
-            cx,
-        )
-        .into_any_element()
     }
     fn current_profile(&self, cx: &Context<Self>) -> gpui_kit::AnyElement {
         let profile: String = match &self.profiles {
@@ -400,7 +393,7 @@ impl WorkbenchView {
                         ),
                         (
                             text(cx, "Recorded cost (USD)", "记录费用（USD）"),
-                            format!("${:.4}", usage.overview.total_cost_usd),
+                            claude::format_recorded_cost(usage.overview.total_cost_usd),
                         ),
                     ] {
                         totals = totals.child(
@@ -417,7 +410,7 @@ impl WorkbenchView {
                                 )
                                 .child(
                                     div()
-                                        .font_family(cx.theme().mono_font_family.clone())
+                                        .font_features(theme::tabular_figures())
                                         .text_size(px(theme::TITLE_SIZE))
                                         .text_right()
                                         .child(value),
@@ -472,11 +465,12 @@ impl WorkbenchView {
                                     div()
                                         .w(px(theme::DAILY_VALUE_WIDTH))
                                         .text_right()
-                                        .font_family(cx.theme().mono_font_family.clone())
+                                        .font_features(theme::tabular_figures())
                                         .text_size(px(theme::META_SIZE))
                                         .child(format!(
-                                            "{} / ${:.2}",
-                                            row.request_count, row.cost_usd
+                                            "{} / {}",
+                                            row.request_count,
+                                            claude::format_recorded_cost(row.cost_usd)
                                         )),
                                 ),
                         );
@@ -510,48 +504,7 @@ impl WorkbenchView {
 }
 
 impl Render for WorkbenchView {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let profiles = matches!(
-            self.platform,
-            Platform::Claude | Platform::Codex | Platform::Grok
-        );
-        let mut actions = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
-        if profiles {
-            actions = actions
-                .child(self.button(
-                    "workbench-auth",
-                    Link::Auth,
-                    if self.platform == Platform::Claude {
-                        "Open authentication"
-                    } else {
-                        "Authentication"
-                    },
-                    if self.platform == Platform::Claude {
-                        "打开认证"
-                    } else {
-                        "认证"
-                    },
-                    true,
-                    cx,
-                ))
-                .child(self.button(
-                    "workbench-profiles",
-                    Link::Profiles,
-                    "Manage Profiles",
-                    "管理 Profiles",
-                    false,
-                    cx,
-                ));
-        } else {
-            actions = actions.child(self.button(
-                "workbench-settings",
-                Link::Settings,
-                "Open settings",
-                "打开设置",
-                true,
-                cx,
-            ));
-        }
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let page = div()
             .id("platform-workbench")
             .test_support()
@@ -562,78 +515,12 @@ impl Render for WorkbenchView {
             .flex()
             .flex_col()
             .p(px(theme::CONTENT_PADDING))
-            .gap(px(theme::SECTION_GAP))
-            .child(
-                div()
-                    .flex()
-                    .flex_wrap()
-                    .justify_between()
-                    .items_start()
-                    .gap(px(theme::SECTION_GAP))
-                    .child(
-                        div()
-                            .flex()
-                            .flex_col()
-                            .gap(px(theme::CONTROL_GAP))
-                            .child(
-                                div()
-                                    .id("workbench-title")
-                                    .test_support()
-                                    .aria_label(name(self.platform))
-                                    .role(gpui_kit::Role::Heading)
-                                    .aria_level(1)
-                                    .text_size(px(theme::TITLE_SIZE))
-                                    .font_weight(gpui_kit::FontWeight::SEMIBOLD)
-                                    .child(name(self.platform)),
-                            )
-                            .when(self.platform != Platform::Claude, |heading| {
-                                heading.child(text(
-                                    cx,
-                                    "Local platform workbench",
-                                    "本地平台工作台",
-                                ))
-                            }),
-                    )
-                    .child(actions),
-            );
+            .gap(px(theme::SECTION_GAP));
         if self.platform == Platform::Claude {
             return page
                 .child(self.claude_status(cx))
-                .child(self.claude_insights(cx))
-                .child(self.claude_trend(cx));
-        }
-        let mut management = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
-        for (id, link, en, zh) in [
-            ("workbench-mcp", Link::Mcp, "MCP", "MCP"),
-            (
-                "workbench-files",
-                Link::Files,
-                "Instruction files",
-                "指令文件",
-            ),
-            (
-                "workbench-usage",
-                Link::Usage,
-                "Full usage report",
-                "完整用量报告",
-            ),
-        ] {
-            if (self.platform == Platform::Grok && matches!(link, Link::Files | Link::Mcp))
-                || (self.platform == Platform::OpenCode && matches!(link, Link::Mcp))
-            {
-                continue;
-            }
-            management = management.child(self.button(id, link, en, zh, false, cx));
-        }
-        if self.platform == Platform::Codex {
-            management = management.child(self.button(
-                "workbench-sessions",
-                Link::Sessions,
-                "Sessions",
-                "会话",
-                false,
-                cx,
-            ));
+                .child(self.claude_insights(window, cx))
+                .child(self.claude_columns(window, cx));
         }
         let rolling = (self.platform == Platform::Codex).then(|| self.rolling_usage(cx));
         let grok = (self.platform == Platform::Grok).then(|| self.grok_overview(cx));
@@ -641,15 +528,9 @@ impl Render for WorkbenchView {
             .children(grok)
             .children(rolling)
             .child(self.usage(cx))
-            .child(
-                div()
-                    .border_t_1()
-                    .border_color(cx.theme().border)
-                    .pt(px(theme::SECTION_GAP))
-                    .child(management),
-            )
-            .child(semantics::button(
+            .child(semantics::ghost_button(
                 Button::new("workbench-refresh")
+                    .icon(gpui_kit::component::IconName::RefreshCw)
                     .label(text(cx, "Refresh status", "刷新状态"))
                     .ghost()
                     .on_click(cx.listener(|this, _, _, cx| this.open(this.platform, cx))),

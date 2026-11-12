@@ -114,6 +114,9 @@ fn prepare(
     if !matches!(environment, EnvironmentId::Local(_)) {
         return Err(McpError::Unsupported);
     }
+    if services.platform_scope.is_some() {
+        return Err(McpError::UnsupportedSource);
+    }
     if targets.is_empty()
         || targets
             .iter()
@@ -234,6 +237,7 @@ impl Services {
         let finalizer = operation.clone();
         let environment = key.environment.clone();
         let config = self.source.clone();
+        let scope = self.platform_scope;
         let subscription = self.executor.job_with_finalizer(
             key,
             move |cancel, _| {
@@ -245,7 +249,7 @@ impl Services {
                         continue;
                     }
                     let result = (|| {
-                        if session.environment != environment {
+                        if scope.is_some() || session.environment != environment {
                             return Err(McpError::Unsupported);
                         }
                         if let Some(source) = &session.source {
@@ -338,6 +342,86 @@ mod tests {
         tokio::task::spawn_blocking(move || owner.shutdown())
             .await
             .unwrap();
+    }
+
+    #[tokio::test]
+    async fn platform_authority_rejects_forged_batch_and_global_plan_without_writes() {
+        let owner = RuntimeOwner::new().unwrap();
+        let root = tempfile::tempdir().unwrap();
+        let services = services(&owner, root.path());
+        edit(&services, McpTarget::ClaudeUser)
+            .save(
+                &key().environment,
+                "one",
+                EntryMutation::Add(json!({"command":"synthetic"})),
+            )
+            .unwrap();
+        let scoped = services.clone().scoped(Some(Platform::Claude));
+        assert!(matches!(
+            prepare(
+                &scoped,
+                key().environment.clone(),
+                BatchInput::Sync {
+                    source: McpTarget::ClaudeUser
+                },
+                vec![McpTarget::Codex],
+                false
+            ),
+            Err(McpError::UnsupportedSource)
+        ));
+        let plan = prepare(
+            &services,
+            key().environment.clone(),
+            BatchInput::Sync {
+                source: McpTarget::ClaudeUser,
+            },
+            vec![McpTarget::Codex],
+            false,
+        )
+        .unwrap();
+        let mut forged = key();
+        forged.platform = Platform::Codex;
+        let result = finished(
+            scoped
+                .mcp_batch_save_request(forged, Arc::new(plan))
+                .unwrap(),
+        )
+        .await;
+        assert!(
+            result
+                .rows
+                .iter()
+                .all(|row| row.outcome == BatchOutcome::Failed(McpError::Unsupported))
+        );
+        assert!(
+            edit(&services, McpTarget::Codex)
+                .entries_for_copy()
+                .unwrap()
+                .is_empty()
+        );
+        let plan = prepare(
+            &services,
+            key().environment.clone(),
+            BatchInput::Sync {
+                source: McpTarget::ClaudeUser,
+            },
+            vec![McpTarget::Codex],
+            false,
+        )
+        .unwrap();
+        let result = finished(
+            services
+                .mcp_batch_save_request(key(), Arc::new(plan))
+                .unwrap(),
+        )
+        .await;
+        assert!(
+            result
+                .rows
+                .iter()
+                .all(|row| row.outcome == BatchOutcome::Saved)
+        );
+        shutdown(owner).await;
     }
 
     #[tokio::test]

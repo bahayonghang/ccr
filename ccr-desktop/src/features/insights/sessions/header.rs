@@ -11,6 +11,7 @@ use gpui_kit::component::{
     ActiveTheme, IconName,
     button::{Button, ButtonVariants},
 };
+use gpui_kit::prelude::FluentBuilder;
 use gpui_kit::{
     AnyElement, Context, Div, FontWeight, InteractiveElement, IntoElement, ParentElement, Role,
     StatefulInteractiveElement, Styled, div, px,
@@ -26,7 +27,7 @@ pub(super) fn header(view: &InsightsView, cx: &mut Context<InsightsView>) -> Any
         .items_start()
         .justify_between()
         .gap(px(theme::SECTION_GAP))
-        .child(title(cx))
+        .when(view.platform_scope.is_none(), |row| row.child(title(cx)))
         .child(actions(view, cx))
         .into_any_element()
 }
@@ -72,7 +73,10 @@ fn actions(view: &InsightsView, cx: &mut Context<InsightsView>) -> Div {
         Some(tag) => row.child(tag),
         None => row,
     };
-    let show_trash = matches!(view.snapshot.as_deref(), Some(crate::features::insights::InsightsSnapshot::Sessions { statuses, .. })
+    let show_trash = view
+        .platform_scope
+        .is_none_or(|platform| platform == ccr_app::runtime::Platform::Codex)
+        && matches!(view.snapshot.as_deref(), Some(crate::features::insights::InsightsSnapshot::Sessions { statuses, .. })
         if statuses.iter().any(|status| status.agent == ccr_store::sessions::AgentSessionAgentId::Codex
             && status.availability != ccr_store::sessions::ProviderAvailability::NotInstalled));
     let row = if show_trash {

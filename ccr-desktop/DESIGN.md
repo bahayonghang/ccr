@@ -172,7 +172,7 @@ Windows 用 Segoe UI Variable / Segoe UI，中文由 Microsoft YaHei UI 等系�
 
 MCP 管理页自上而下：
 
-1. **页头一行**：左侧是唯一 h1“MCP 管理”和外壳 lens 胶囊（MCP Manager / Configuration converter）；右侧是“重新读取”（ghost，refresh-cw）和“添加服务器”（primary，plus），空间不足时整组换行。下一行是 12px muted 描述，只写一句。Claude 工作台复用的 MCP 视图不带胶囊，平台 tab 仍由外壳上下文行承载。
+1. **页头一行**：左侧是唯一 h1“MCP 管理”和外壳 lens 胶囊（MCP Manager / Configuration converter）；右侧是“重新读取”（ghost，refresh-cw）和“添加服务器”（primary，plus），空间不足时整组换行。下一行是 12px muted 描述，只写一句。平台内 MCP 不带全局胶囊，平台 tab 与唯一 h1 由外壳承载。
 2. **工具栏**：左侧是 `badge::search_field`，placeholder 写“Search name or command / 搜索名称或命令”，按名称或命令做不区分大小写的子串匹配；其后是平台胶囊“All n | Claude Code n | Codex n | Antigravity n”。右侧是“预设”（star）和“批量与同步”（gallery-vertical-end）两个 ghost 按钮。平台计数在搜索之前按 catalog 计算，只列有条目的平台，项目文件来源计入 Claude Code。平台胶囊与搜索取交集，两者都过滤掉全部条目时，用虚线空态说明，并给出“清除搜索与平台”。平台作用域下不显示平台胶囊。
 3. **来源健康条**：每个来源文件一个不可交互的 22px、4px 角 chip，内容是“指示符 + 短名 · 读数”。完整原句同时作为 aria label 和 tooltip；窄宽时在条内横向滚动。
    - 有条目：success 实心圆点加条目数。
@@ -296,15 +296,22 @@ per page, mounted in one of two ways:
   Switching lens moves the capsule to another page, and Kit keeps button focus
   per element path, so the bar owns a stable focus anchor: after a keyboard
   activation it returns focus to the activated option on the next frame, only
-  while the shell still shows that destination and lens. The Claude workbench
-  reuses the MCP view under `tool-platform-mcp`; there the view renders no
-  capsule and the shell keeps the context row with the platform tabs.
-- **Context row (all other lens destinations).** Those pages host several lens
-  entities or up to ten platform tabs, so the shell still renders the capsule
-  above the page, carrying only the platform name as a muted context label for
-  platform destinations; the page's own heading follows directly below. A
-  destination moves to the embedded form by giving every page it hosts an
-  `embed_lens` slot in its heading row and adding it to `Shell::embeds_lens`.
+  while the shell still shows that destination and lens.
+- **Platform destinations.** No capsule. The page header renders grouped text
+  tabs (Workbench │ Profiles · Accounts · Settings │ MCP · Instructions ·
+  Extensions │ Usage · Sessions), the single h1 is the current tab name and the
+  platform appears only as small muted context text. There is no cross-platform
+  selector and no second platform row; classification lives in toolbar filters.
+  The shell renders no row above the page. Group spacing is 16px with a
+  decorative hairline, group names are accessible names only, and narrow
+  windows scroll inside the tab row, revealing the selected tab, never wrapping
+  or shrinking type.
+- **Context row (remaining lens destinations).** Those pages host several lens
+  entities, so the shell still renders the capsule above the page with the
+  platform name as a muted context label; the page's own heading follows
+  directly below. A destination moves to the embedded form by giving every page
+  it hosts an `embed_lens` slot in its heading row and adding it to
+  `Shell::embeds_lens`.
 
 The brand row embeds the generated app PNG with its original colors and alpha;
 the Windows executable embeds the matching existing ICO as resource ID 1.
@@ -312,16 +319,13 @@ The status bar keeps the actual environment/source label, a matching state dot,
 four numbered route shortcuts and a local HH:mm clock refreshed every 30 seconds.
 The source dot means configured, never connected or successfully read.
 
-Platform destinations open a workbench, with Profiles as a separate context
-tab. The first reading line names the captured local profile, credential
-observation and source; credential detection must never claim a remote login.
-Claude offers direct context tabs for authentication, MCP, Agents, Plugins,
-Commands, instruction files, settings and usage/subscription. Other platforms
-expose only their actual capabilities. Context tabs retain the platform name
-while the existing feature entity performs the operation. Summaries use the
-same captured services and read-only usage projections as full feature pages.
-Usage periods, local timezone and cost basis are explicit. Missing databases,
-unreadable sources and unknown counts show a reason, never sample zeroes.
+平台目的地固定捕获的平台与环境。唯一 h1 为当前 tab 名，平台作为小号上下文；页头只含当前页动作。导航是按任务分组的文字 tab，选中项使用 reading pill、primary 文字与 toggled 语义，组间 16px 与装饰 hairline，组名只作无障碍名称。
+
+Claude 为：工作台 │ 配置方案·账户·设置 │ MCP·指令·扩展 │ 用量·会话。其他平台按已定能力表出场，不生成不支持的页面。大于 1600 逻辑宽嵌入标题行，否则放标题下一行；窄窗单行局部横滚，选中项自动 reveal，有可见溢出提示。没有跨平台选择或第二排平台导航，分类进入工具栏筛选。
+
+同一页不重复放与 tab 相同的导航按钮。状态所需下一步只在该状态旁出现一次。保持 Tab/方向键顺序、F6、真实焦点恢复与异步 generation；导航换行位置不改变实体所有者。嵌入 MCP/用量/会话在命令层重验平台作用域，全局能力不被共享布局改动删除。
+
+延迟导航焦点恢复须匹配导航代次、本地环境及当前 tab；用户已把焦点移到其他控件时不再恢复。离页后再返回同一 tab 也不能让旧代次回调生效。
 
 Codex has a separate local rolling-usage reading for five hours, seven days
 and all history, with an explicit UTC observation time. It is not account
@@ -333,13 +337,45 @@ Common Claude collection forms keep their save/review controls above the
 variable-height fields. Confirm/cancel stay visible inside the editor rather
 than falling beneath a tall form's clipped viewport.
 
-The Claude Code home starts with profile and local credential status, then
-shows today's, this month's and all-time recorded costs. A calendar-spaced
-line shows daily USD cost for the last 30 days, with gaps for missing dates.
-The report action opens Claude's daily rows for keyboard access to exact
-amounts. Subscription settings sit beside the report action. The platform
-tabs give access to the other tools. Other platform homes retain the ruled
-status section, compact usage summary, daily bars and management links.
+### Claude Code workbench
+
+工作台依次呈现接入事实、费用口径、费用 KPI、近 30 天趋势与模型/订阅、Token 与缓存。状态仅陈述捕获的当前运行方案、安全端点主机、模型、认证与凭据观测，不把文件发现说成网络可用。
+
+费用为记录的 API 价目估算，非账单；今日、本月截至今日、已导入全部历史各标窗口，历史给出已知起点。无今日行写“尚无已导入记录”，真实零与未知不同。同步时间明确是否全局，最新记录日独立，不推断数据完整。默认订阅不能冒充已保存设置。
+
+本月主读数 32/600，其余数值 24/500，缺失状态 16px，系统 UI 字体与 tnum。三栏实色 KPI 带用 hairline 分隔，不单独染本月背景；小于 1040 时两列、第三格跨两列。金额统一格式，非零小额保留阈值与精确值通道。
+
+宽窗主列加右栏，右栏为内容宽 24%，按 8px 对齐并限制 280 至 360px，列间 16px。主列为费用图与缓存，右栏为模型费用与订阅。小于 1200 单列顺序为状态、KPI、趋势、模型、订阅、缓存。内容按实际高度排布并可纵滚，不用空白面板拉伸填屏。
+
+逐日费用用 216px 柱图，保留日历位置与缺口；不补零，不跨缺口连线。`theme::chart_series` 提供颜色，图形对比至少 3:1，精确值表可在同面板展开，hover 与键盘焦点均可读。缓存使用同窗数据，输出包含推理且不重复加算；命中率是 token 比率，分母零显示不可计算。
+
+只有明确保存的订阅模式与有效正月费显示订阅价值比：本月截至今日记录费用除以整月月费，不按天折算，不称回本或实付节省。设置在原位展开，保存取消在字段之前，保留 CAS、失败草稿与离页清理。项目费用、工具费用和会话效率不在本轮首页。
+
+订阅摘要只有 subscription 模式显示套餐与月费；模式和已知套餐使用既有中英文文案，未知值保留原文。其他平台首页的费用摘要同样使用两位小数、真实零 `$0.00` 与非零小额 `<$0.01`；精确费用仍由既有明细通道提供。各平台首页刷新和配置页返回、刷新使用 ghost 禁用语义，刷新带 RefreshCw 图标。
+
+全局概览与用量页的成功同步时间明确标“任意来源”，不冒充当前筛选平台的新鲜度。概览项目榜和独立 Claude 观测页区分空数据、项目未归属与部分归属；不将缺失归属显示成 0 个项目。工具和已观测会话的缺失费用写“未记录”，真实零保持零；默认会话按调用数排列。热力图标明本地时间或 UTC，并按每条事件发生时的报告时区分桶。
+
+### Profiles 工作面
+
+统一配置方案列表，取消双模式。当前运行方案、列表选中项、方案集合是不同对象。所选项应用为主，编辑/复制为次，删除为 danger；禁用项明确“启用并应用”。“解除当前方案”放在当前状态旁，影响当前运行方案，保留保存项，不承诺恢复官方登录。
+
+工具栏左侧 300px search_field 与基础筛选/排序，右侧新建与次级管理，空间不足换行。60px 两行虚拟列表，名称/当前/禁用在首行，安全端点/模型/认证/标签在次行；当前圆点与选中背景分开。必要省略有安全 tooltip；未知不补零。
+
+宽窗列表详情 3:2，外列无 padding/border；实色列表和未选空态内容收紧，长列表限高内滚动。不自动选第一行。详情动作在键值网格之前，凭据默认掩码，完整内容需独立确认。小于 1200 进入详情后隐藏列表与工具栏，返回恢复选择、滚动、筛选与焦点。
+
+空集合与筛选无匹配分别陈述；名称、安全端点、模型、供应商、标签或启用状态的筛选不改变集合事实。筛掉选中项同时清除详情与动作目标；清除筛选恢复列表，不自动选择或应用方案。
+
+单项编辑在 pane，集合 TOML/导入/高级补丁用整页工作区。保存/确认/取消在可变字段前且滚动可达。字段只按真实平台能力出现；空凭据保留旧值，明确清除才清除。只提交 dirty keys，保留未知兄弟；CAS 失败留草稿，不能强制覆盖新版本。
+
+导入先预览冲突，同名默认保留；整组替换先备份再确认，提交重验 revision 与当前项保护。编辑、导入、恢复均不自动应用；反馈写“已保存，运行配置未更新”。明文不进 aria/tooltip/日志，实际离页清空；有未保存草稿先确认去留。
+
+敏感确认初始焦点到取消，双向 Tab 留在决定子树，Esc 还给触发者，底层行不可交互。晚回包与焦点回调按环境、平台、目标和 generation 校验。
+
+### 资源与能力边界
+
+账户、设置、指令局部重排，按对象、来源和实际作用域陈述。Claude 扩展新清单首期只读真实元数据，旧无效数组保留并标注，不自动迁移、删除、安装或执行。其他平台已有真实文件能力保留原 owner，不因共用外观降级或扩权。
+
+发现、空结果、不可读、未接入、客户端加载未验证分别呈现。安装元数据或配置引用不等于运行加载。只读发现不隐式联网；无项目根不假装扫描了项目。生产 render 不读文件/SQLite、不创建 runtime 或进程，仍由共享服务后台提供有界快照。
 
 - **按钮**：normal 用 primary/secondary 或透明次按钮；hover 提升一个中性色阶；focus 显示 2px 环；pointer pressed 可瞬时 scale(0.96) 并在 100ms 内复原，hitbox 不变；keyboard activation 仅即时状态反馈，无动画。disabled 不触发，loading 保持宽度且有文字状态，error 配相邻说明。
 - **输入**：14px 文本、8px 角、border-control；focus/invalid 分别使用 focus/danger 与文字。支持组合输入、选区、复制粘贴、撤销与系统编辑键。密码遮蔽默认开启，明文不得进入截图或日志。
@@ -418,3 +454,7 @@ status section, compact usage summary, daily bars and management links.
 ### 本轮三页复核补充合同
 
 MCP 与会话的列表阅读面按内容收紧，超出列高时在面板内滚动；列保持 3:2，无 padding 或 border。未选详情与空废纸篓按内容收紧，背景在下方透出；真实详情、转录和非空废纸篓填满并独立滚动。MCP 与会话页头、工具栏的 ghost 禁用态透明且 muted。MCP 详情的复制、编辑、删除统一不用图标。会话工具栏搜索匹配标题、会话 ID 或路径；分段组标注“记录完整度”“来源状态”，首项为“全部记录”“全部来源”；本页计数与筛选胶囊共享一行。身份点对齐标题行。更早会话为带 ChevronRight 的 ghost 按钮。转录使用 hairline 分隔块，角色以 muted 墨色本地化（用户/助手/工具/系统），未知角色保留原文；计数合并为“显示 X / Y 条消息 · Z 次工具”，更早消息按钮紧随其后。
+
+## #161 实施与证据边界（2026-11-10）
+
+上述为批准的生产设计合同；当前工作区已进入实现，完成情况逐项记录在 `.trellis/research/gpui-claude-redesign-161-implementation.md`。不能把本合同更新、cargo check 或旧构建截图记为重设计已验收。四个指定 release 原生场景须逐项实测。MSVC 链接器已恢复，测试与 release 构建可运行；原生截图只对应各自记录的构建。

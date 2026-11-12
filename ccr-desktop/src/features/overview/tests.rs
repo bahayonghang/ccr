@@ -112,6 +112,7 @@ fn activity_fixture() -> HomeInsightsSnapshot {
             sessions: 5,
             agents: 2,
             projects: 2,
+            project_attribution_complete: true,
             active_days: 6,
         },
         sessions_indexed: true,
@@ -582,7 +583,7 @@ fn freshness_is_stated_in_the_header_chart_and_data_source(cx: &mut TestAppConte
         show(&view, report_fixture(None), window, cx);
         assert_eq!(
             window.find("overview-last-sync").label(),
-            Some("Last successful sync 11-06 02:04")
+            Some("Last successful sync (any source) 11-06 02:04")
         );
         for id in ["overview-last-sync-stale", "overview-source-stale"] {
             assert!(window.try_find(id).is_none(), "fresh report shows {id}");
@@ -608,7 +609,7 @@ fn freshness_is_stated_in_the_header_chart_and_data_source(cx: &mut TestAppConte
         assert_eq!(
             window.find("overview-last-sync").label(),
             Some(
-                "Last successful sync 11-05 14:34. Newer usage may be missing until a sync succeeds"
+                "Last successful sync (any source) 11-05 14:34. Newer usage may be missing until a sync succeeds"
             )
         );
         assert!(window.find("overview-last-sync-stale").visible());
@@ -639,14 +640,14 @@ fn freshness_is_stated_in_the_header_chart_and_data_source(cx: &mut TestAppConte
         show(&view, unknown(None), window, cx);
         assert_eq!(
             window.find("overview-last-sync").label(),
-            Some("No successful sync recorded")
+            Some("No successful sync recorded (any source)")
         );
         assert!(window.find("overview-last-sync-stale").visible());
         assert!(window.try_find("overview-source-stale").is_none());
         show(&view, unknown(Some("yesterday")), window, cx);
         assert_eq!(
             window.find("overview-last-sync").label(),
-            Some("Sync time unreadable")
+            Some("Sync time unreadable (any source)")
         );
         window.remove_window();
     })
@@ -702,7 +703,7 @@ fn chinese_copy_keeps_scopes_and_freshness(cx: &mut TestAppContext) {
         );
         assert_eq!(
             window.find("overview-last-sync").label(),
-            Some("上次成功同步 11-05 14:34。同步成功前，较新的用量可能缺失")
+            Some("上次成功同步（任意来源）11-05 14:34。同步成功前，较新的用量可能缺失")
         );
         assert_eq!(
             window.find("overview-chart-latest").label(),
@@ -896,6 +897,16 @@ fn distribution_and_leader_tabs_switch_in_place(cx: &mut TestAppContext) {
             Some("No requests recorded · All history")
         );
         assert!(window.try_find("overview-dist-bars").is_none());
+        let mut unattributed = activity_fixture();
+        unattributed.projects.clear();
+        unattributed.totals.projects = 0;
+        unattributed.totals.project_attribution_complete = false;
+        show(&view, report_fixture(Some(unattributed)), window, cx);
+        window.click("overview-leaders-projects", cx);
+        assert_eq!(
+            window.find("overview-leaders-empty").label(),
+            Some("No attributed projects")
+        );
         window.remove_window();
     })
     .unwrap_or_else(|e| panic!("tabs: {e}"));

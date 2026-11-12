@@ -40,6 +40,8 @@ pub struct OverviewPayload {
     pub last_24h_events: i64,
     pub total_cost_usd: f64,
     pub cache_efficiency: f64,
+    /// Latest successful sync, sync --rebuild or hook-run across all sources.
+    /// The run log has no source attribution; this is independent of the usage filter.
     pub last_sync_at: Option<String>,
     pub last_export_at: Option<String>,
 }

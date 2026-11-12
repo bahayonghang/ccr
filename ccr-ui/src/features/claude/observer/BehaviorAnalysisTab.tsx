@@ -18,8 +18,8 @@ interface BehaviorAnalysisTabProps {
 const cardClass =
   'min-w-0 rounded-[1.1rem] border border-[color:var(--surface-card-border)] bg-[var(--surface-card-bg)] p-4 shadow-[var(--surface-card-shadow)]'
 
-function costPerTool(row: SessionRow): number {
-  if (row.tool_call_count <= 0) return 0
+function costPerTool(row: SessionRow): number | null {
+  if (row.cost_usd === null || row.tool_call_count <= 0) return null
   return row.cost_usd / row.tool_call_count
 }
 
@@ -47,6 +47,9 @@ export function BehaviorAnalysisTab({
   const sessionRows = useMemo(() => sessions.slice(0, 10), [sessions])
   const empty = t('claudeCode.observer.empty.noTrend')
   const hasHeatmap = heatmap.length > 0
+  const costLabel = (value: number | null) => value === null
+    ? t('claudeCode.observer.behavior.notRecorded')
+    : formatUsd(value)
 
   return (
     <div className="grid gap-3.5" data-testid="claude-observer-behavior">
@@ -57,7 +60,9 @@ export function BehaviorAnalysisTab({
         <article className={cardClass}>
           <header className="mb-3 grid gap-0.5">
             <p className="text-sm font-semibold text-text-primary">{t('claudeCode.observer.chart.toolHeatmap')}</p>
-            <p className="text-xs leading-5 text-text-secondary">{t('claudeCode.observer.chart.toolHeatmapSub')}</p>
+            <p className="text-xs leading-5 text-text-secondary">
+              {t('claudeCode.observer.chart.toolHeatmapSub')} · {heatmap[0]?.timezone === 'utc' ? 'UTC' : t('claudeCode.observer.chart.localTime')}
+            </p>
           </header>
           <div className="relative h-65 min-w-0">
             {hasHeatmap && shouldRenderChart ? (
@@ -115,11 +120,11 @@ export function BehaviorAnalysisTab({
                     <td className="border-b border-border-default/15 px-3 py-2 text-text-primary" title={row.project_path ?? ''}>
                       {shortenPath(row.project_path ?? '—', 36)}
                     </td>
-                    <td className="border-b border-border-default/15 px-3 py-2 text-right tabular-nums">{formatUsd(row.cost_usd)}</td>
+                    <td className="border-b border-border-default/15 px-3 py-2 text-right tabular-nums">{costLabel(row.cost_usd)}</td>
                     <td className="border-b border-border-default/15 px-3 py-2 text-right tabular-nums">
                       {row.tool_call_count.toLocaleString()}
                     </td>
-                    <td className="border-b border-border-default/15 px-3 py-2 text-right tabular-nums">{formatUsd(costPerTool(row))}</td>
+                    <td className="border-b border-border-default/15 px-3 py-2 text-right tabular-nums">{costLabel(costPerTool(row))}</td>
                   </tr>
                 ))}
               </tbody>

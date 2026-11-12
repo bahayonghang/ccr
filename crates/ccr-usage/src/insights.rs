@@ -96,6 +96,8 @@ pub struct InsightsPayload {
     pub agents: i64,
     /// Distinct non-empty project hashes; equals `projects.len()`.
     pub project_count: i64,
+    /// False if any matching bucket has no project identity; the count is then partial.
+    pub project_attribution_complete: bool,
     /// Local days with at least one request.
     pub active_days: i64,
     pub last_7_days: InsightsUsageWindow,
@@ -315,6 +317,7 @@ pub(crate) fn build_payload(
     as_of: NaiveDate,
     projects: Vec<InsightsTally>,
     models: Vec<InsightsTally>,
+    project_attribution_complete: bool,
 ) -> Result<InsightsPayload, UsageError> {
     let start = trend_start(as_of);
     let last_7_days = usage_window(&aggregate.daily, zone, as_of - Duration::days(6), as_of)?;
@@ -378,6 +381,7 @@ pub(crate) fn build_payload(
         tokens: aggregate.tokens,
         agents: sources.len() as i64,
         project_count: projects.len() as i64,
+        project_attribution_complete,
         active_days: aggregate.daily.len() as i64,
         last_7_days,
         previous_7_days,
@@ -435,6 +439,7 @@ mod tests {
             as_of,
             Vec::new(),
             Vec::new(),
+            true,
         )
         .expect("payload should build")
     }

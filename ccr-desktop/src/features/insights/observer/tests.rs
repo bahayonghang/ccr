@@ -22,13 +22,13 @@ fn observer_renders_tables_by_default_and_keeps_raw_projection_advanced(cx: &mut
         },
     );
     let requests = InsightsRequests::new(&services);
-    let report = Report {
+    let mut report = Report {
         insight: Err(Error::Missing),
         usage: Ok(
             serde_json::json!({"daily":[{"date":"2026-11-06","cost_usd":1.25,"input_tokens":10,"output_tokens":4,"cache_read_tokens":3}],"models":[],"projects":[]}),
         ),
         tools: Ok(
-            serde_json::json!({"tools":[{"tool_name":"Read","call_count":7,"cost_usd":0.25}],"sessions":[],"heatmap":[]}),
+            serde_json::json!({"tools":[{"tool_name":"Read","call_count":7,"cost_usd":null},{"tool_name":"Bash","call_count":1,"cost_usd":0.0}],"sessions":[],"heatmap":[],"timezone":"utc"}),
         ),
         subscription: Ok(None),
     };
@@ -39,12 +39,38 @@ fn observer_renders_tables_by_default_and_keeps_raw_projection_advanced(cx: &mut
         })
         .unwrap()
     });
+    for (count, complete, expected) in [
+        (0, true, "0"),
+        (0, false, "Projects unattributed"),
+        (2, false, "2 · Attributed projects (partial coverage)"),
+        (2, true, "2"),
+    ] {
+        report.insight =
+            Ok(serde_json::json!({"total_projects":count,"project_attribution_complete":complete}));
+        view.update(cx, |view, cx| view.receive(&report, cx));
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            assert_eq!(
+                window.find("observer-total-total_projects").label(),
+                Some(expected)
+            );
+        })
+        .unwrap();
+    }
+    report.insight = Err(Error::Missing);
     view.update(cx, |view, cx| view.receive(&report, cx));
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         assert!(window.find("observer-structured-report").visible());
         assert!(window.find("observer-daily").visible());
         assert!(window.try_find("observer-tools").is_some());
+        let cells = gpui_kit::base::test_support::snapshots(window);
+        assert!(
+            cells
+                .iter()
+                .any(|node| node.label() == Some("Not recorded"))
+        );
+        assert!(cells.iter().any(|node| node.label() == Some("0.0")));
         let raw_present = |window: &Window| {
             gpui_kit::base::test_support::snapshots(window)
                 .iter()

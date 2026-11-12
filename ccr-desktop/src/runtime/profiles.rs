@@ -126,15 +126,24 @@ pub enum ProfileCommand {
     SaveSource {
         content: String,
         revision: String,
-        force: bool,
     },
     Export {
         secrets: bool,
+    },
+    SaveExport {
+        content: String,
+        destination: std::path::PathBuf,
     },
     Import {
         content: String,
         replace: bool,
     },
+    PreviewImport {
+        content: String,
+        overwrite: std::collections::BTreeSet<String>,
+        replace: bool,
+    },
+    CommitImport(Arc<ccr_app::config::import::Preview>),
     Backups,
     Restore {
         leaf: String,
@@ -145,6 +154,7 @@ pub enum ProfileCommand {
 }
 /// Plaintext results are scoped to the current editor entity and never logged.
 pub enum ProfileResult {
+    ImportPreview(Arc<ccr_app::config::import::Preview>),
     Outcome(ProfileOutcome),
     GrokUpdate {
         status: &'static str,
@@ -257,7 +267,18 @@ fn rows(context: &ProfileLifecycleContext, filter: &str) -> Result<Vec<ConfigRow
         let filter = filter.to_lowercase();
         Ok(profiles
             .into_iter()
-            .filter(|(name, _)| name.to_lowercase().contains(&filter))
+            .filter(|(name, profile)| {
+                name.to_lowercase().contains(&filter)
+                    || profile
+                        .model
+                        .as_deref()
+                        .is_some_and(|model| model.to_lowercase().contains(&filter))
+                    || profile.base_url.as_deref().is_some_and(|url| {
+                        ccr_cli::platforms::GrokPlatform::safe_base_url_for_display(url)
+                            .to_lowercase()
+                            .contains(&filter)
+                    })
+            })
             .map(|(name, profile)| ConfigRow {
                 version: snapshot.version.clone(),
                 is_current: current.as_deref() == Some(name.as_str()),
@@ -282,12 +303,17 @@ fn rows(context: &ProfileLifecycleContext, filter: &str) -> Result<Vec<ConfigRow
                     })
                     .unwrap_or_default(),
                 model: profile.model,
+                auth_mode: profile
+                    .platform_data
+                    .get("auth_mode")
+                    .and_then(serde_json::Value::as_str)
+                    .map(str::to_owned),
                 small_fast_model: profile.small_fast_model,
                 provider: profile.provider,
                 provider_type: profile.provider_type,
                 account: profile.account,
                 tags: profile.tags,
-                usage_count: u64::from(profile.usage_count.unwrap_or_default()),
+                usage_count: profile.usage_count.map(u64::from),
                 enabled: profile.enabled.unwrap_or(true),
             })
             .collect())
@@ -295,6 +321,15 @@ fn rows(context: &ProfileLifecycleContext, filter: &str) -> Result<Vec<ConfigRow
 }
 
 impl Services {
+    pub fn profile_export_directory(&self) -> Option<std::path::PathBuf> {
+        match &self.source {
+            ConfigSource::Fixture { profiles, .. } => {
+                profiles.parent().map(std::path::Path::to_path_buf)
+            }
+            ConfigSource::Benchmark(layout) => Some(layout.root.clone()),
+            ConfigSource::Local => dirs::home_dir(),
+        }
+    }
     pub fn profile_rows(
         &self,
         key: RequestKey,
@@ -396,6 +431,8 @@ fn execute(
                     | ProfileCommand::GenericDelete { .. }
                     | ProfileCommand::GenericValidate
                     | ProfileCommand::Import { .. }
+                    | ProfileCommand::PreviewImport { .. }
+                    | ProfileCommand::CommitImport(_)
                     | ProfileCommand::Duplicate { .. }
                     | ProfileCommand::Backups
                     | ProfileCommand::Restore { .. }
@@ -422,6 +459,20 @@ fn execute(
         let manager = context.manager();
         let service = ConfigService::new(Arc::new(context.manager()));
         match command {
+            ProfileCommand::SaveExport {content,destination}=>{
+                if cleanup_root!=context.paths().root && !destination.parent().and_then(|path|path.canonicalize().ok()).is_some_and(|path|path.starts_with(cleanup_root)){return Err(CcrError::ValidationError("Export outside fixture".into()));}
+                if !source::save_export(&destination,&content)?{return Err(CcrError::ValidationError("配置版本冲突，请重新读取后重试".into()));}
+                return Ok(ProfileResult::Done("Export file saved; runtime configuration unchanged / 导出文件已保存，运行配置未更新".into()));
+            }
+            ProfileCommand::PreviewImport { content, overwrite, replace } => {
+                return ccr_app::config::import::preview(context.paths(), &content, &overwrite, replace)
+                    .map(|preview| ProfileResult::ImportPreview(Arc::new(preview)));
+            }
+            ProfileCommand::CommitImport(preview) => {
+                let _lock = context.operation_lock()?;
+                let current = context.instance().get_current_profile()?;
+                return ccr_app::config::import::commit(context.paths(), &preview, current.as_deref()).map(ProfileResult::SourceSave);
+            }
             ProfileCommand::GrokDelete { name, force } => return grok_delete(context, name, force),
             ProfileCommand::GenericCreate { name, patch } => {
                 let patch = mutations::parse_patch(&patch_value(&patch)?)?;
@@ -450,7 +501,7 @@ fn execute(
                         &guard,
                     )?;
                 } else {
-                    let outcome = context.update(&name, &target, Some(&revision), |profile| {
+                    let outcome = context.update_with_policy(&name, &target, Some(&revision), ccr_cli::models::ApplyPolicy::Never, |profile| {
                         let section = patch
                             .apply(&ccr_config::platforms::base::profile_to_section(profile)?)?;
                         if context.instance().get_current_profile()?.as_deref()
@@ -493,10 +544,11 @@ fn execute(
                 if context.platform() == Platform::Grok {
                     let _application = context.operation_lock()?;
                     use ccr_cli::platforms::grok::GrokProfileUpdateOutcome;
-                    let outcome = context.grok_platform()?.update_profile_versioned(
+                    let outcome = context.grok_platform()?.update_profile_versioned_with_policy(
                         &name,
                         &target,
                         Some(&revision),
+                        ccr_cli::models::ApplyPolicy::Never,
                         |profile| {
                             ccr_app::config::profile_patch::grok::patch(
                                 profile,
@@ -524,7 +576,7 @@ fn execute(
                         new_name: target,
                     });
                 }
-                let outcome = context.update(&name, &target, Some(&revision), |profile| {
+                let outcome = context.update_with_policy(&name, &target, Some(&revision), ccr_cli::models::ApplyPolicy::Never, |profile| {
                     let value = patch_value(&patch)?;
                     let result = match context.platform() {
                         Platform::Claude => {
@@ -551,6 +603,12 @@ fn execute(
                     return grok_delete(context, name, false);
                 }
                 let _guard = context.operation_lock()?;
+                // 删除当前运行方案会静默换掉运行配置；按合同必须先解除当前方案。
+                if context.instance().get_current_profile()?.as_deref() == Some(name.as_str()) {
+                    return Err(CcrError::ValidationError(
+                        "active_config_cannot_be_deleted".into(),
+                    ));
+                }
                 context.instance().delete_profile(&name)?;
             }
             ProfileCommand::Apply { name, enable } => {
@@ -598,12 +656,20 @@ fn execute(
                     ));
                 }
                 lines.insert(0, format!("Valid: {valid}; invalid: {invalid}"));
+                lines.push(
+                    "Local fields only; this does not prove the endpoint or credentials work."
+                        .into(),
+                );
                 return Ok(ProfileResult::Lines(lines));
             }
             ProfileCommand::GenericValidate => {
                 let report = service.validate_all()?;
                 let mut lines = vec![format!("Valid: {}; invalid: {}", report.valid_count, report.invalid_count)];
                 lines.extend(report.results.into_iter().map(|(name, valid, _)| format!("{name}: {}", if valid { "valid" } else { "invalid; check fields" })));
+                lines.push(
+                    "Local fields only; this does not prove the endpoint or credentials work."
+                        .into(),
+                );
                 return Ok(ProfileResult::Lines(lines));
             }
             ProfileCommand::Source => {
@@ -621,20 +687,10 @@ fn execute(
                 let content=toml::to_string_pretty(section).map_err(|_|CcrError::ConfigError("Cannot serialize selected profile".into()))?;
                 return Ok(ProfileResult::Text(format!("# Selected profile: {name}\n# Catalog revision: {}\n{content}",snapshot.version)));
             }
-            ProfileCommand::SaveSource {
-                content,
-                revision,
-                force,
-            } => {
-                let current = context.instance().get_current_profile()?;
-                return source::save(
-                    context.paths(),
-                    current.as_deref(),
-                    &content,
-                    &revision,
-                    force,
-                )
-                .map(ProfileResult::SourceSave);
+            ProfileCommand::SaveSource {content,revision} => {
+                let _lock=context.operation_lock()?;
+                let current=context.instance().get_current_profile()?;
+                return source::save_without_activation(context.paths(), current.as_deref(), &content, &revision).map(ProfileResult::SourceSave);
             }
             ProfileCommand::Export { secrets } => {
                 return if secrets {
@@ -645,19 +701,8 @@ fn execute(
                 .map(ProfileResult::Text);
             }
             ProfileCommand::Import { content, replace } => {
-                let result = service.import_config(
-                    &content,
-                    if replace {
-                        ccr_config::ImportMode::Replace
-                    } else {
-                        ccr_config::ImportMode::Merge
-                    },
-                    true,
-                )?;
-                return Ok(ProfileResult::Done(format!(
-                    "Imported: {}; updated: {}; skipped: {}",
-                    result.added, result.updated, result.skipped
-                )));
+                return ccr_app::config::import::preview(context.paths(), &content, &Default::default(), replace)
+                    .map(|preview| ProfileResult::ImportPreview(Arc::new(preview)));
             }
             ProfileCommand::Backups => {
                 return Ok(ProfileResult::Lines(
@@ -673,7 +718,9 @@ fn execute(
             ProfileCommand::Restore { leaf } => {
                 let path =
                     backups::resolve_managed_restore_path(&context.paths().profiles_file, &leaf)?;
-                backups::restore(&service, &path)?;
+                let _lock=context.operation_lock()?;
+                let current=context.instance().get_current_profile()?;
+                return backups::restore_without_activation(context.paths(), current.as_deref(), &path).map(ProfileResult::SourceSave);
             }
             ProfileCommand::CleanBackups => {
                 let result = backups::clean(cleanup_root);
@@ -1103,7 +1150,6 @@ pub(crate) mod tests {
                 ProfileCommand::SaveSource {
                     content: source.content,
                     revision: "stale-token".into(),
-                    force: true
                 }
             ),
             Ok(ProfileResult::SourceSave(SourceSaveOutcome::Conflict))
@@ -1124,6 +1170,144 @@ pub(crate) mod tests {
         assert!(rows(&context, "").is_err());
         assert!(!root.path().join("absent").exists());
     }
+    #[test]
+    fn saving_current_profile_preserves_runtime_credentials_and_unknown_catalog_fields() {
+        let (_root, source) = fixture();
+        let context = context(&source, Platform::Claude).unwrap_or_else(|_| panic!("context"));
+        execute(
+            &context,
+            &context.paths().root,
+            ProfileCommand::Apply {
+                name: "alpha".into(),
+                enable: false,
+            },
+        )
+        .unwrap_or_else(|_| panic!("apply"));
+        let runtime = context.instance().get_settings_path();
+        let before = std::fs::read(&runtime).unwrap_or_else(|_| panic!("runtime"));
+        let revision = context
+            .manager()
+            .snapshot()
+            .unwrap_or_else(|_| panic!("revision"))
+            .version;
+        let mut patch = ConfigPatch::default();
+        merge_patch_json(
+            &mut patch,
+            r#"{"description":"saved draft","model":"new-catalog-only-model"}"#,
+        )
+        .unwrap_or_else(|_| panic!("patch"));
+        execute(
+            &context,
+            &context.paths().root,
+            ProfileCommand::Save {
+                name: "alpha".into(),
+                target: "alpha".into(),
+                revision,
+                patch,
+            },
+        )
+        .unwrap_or_else(|_| panic!("save"));
+        assert_eq!(
+            std::fs::read(&runtime).unwrap_or_else(|_| panic!("runtime")),
+            before
+        );
+        let catalog = context
+            .manager()
+            .canonical_toml()
+            .unwrap_or_else(|_| panic!("catalog"))
+            .unwrap_or_else(|| panic!("catalog missing"))
+            .0;
+        assert!(catalog.contains("new-catalog-only-model"));
+        assert!(catalog.contains("unknown_native"));
+        assert!(catalog.contains("sk-native-profile-secret-sentinel"));
+        let original = source::read(context.paths()).unwrap_or_else(|_| panic!("source"));
+        let mut document =
+            toml::from_str::<toml::Value>(&original.content).unwrap_or_else(|_| panic!("document"));
+        document["current_config"] = "beta".into();
+        let content = toml::to_string_pretty(&document).unwrap_or_else(|_| panic!("serialize"));
+        assert!(matches!(
+            execute(
+                &context,
+                &context.paths().root,
+                ProfileCommand::SaveSource {
+                    content: content.clone(),
+                    revision: original.token
+                }
+            ),
+            Ok(ProfileResult::SourceSave(SourceSaveOutcome::Saved { .. }))
+        ));
+        assert_eq!(
+            context
+                .instance()
+                .get_current_profile()
+                .unwrap_or_else(|_| panic!("current"))
+                .as_deref(),
+            Some("alpha")
+        );
+        let backup = context
+            .paths()
+            .profiles_file
+            .with_extension("toml.reviewed.bak");
+        std::fs::write(&backup, content).unwrap_or_else(|_| panic!("backup"));
+        let leaf = backup
+            .file_name()
+            .unwrap_or_else(|| panic!("leaf"))
+            .to_string_lossy()
+            .into_owned();
+        assert!(matches!(
+            execute(
+                &context,
+                &context.paths().root,
+                ProfileCommand::Restore { leaf: leaf.clone() }
+            ),
+            Ok(ProfileResult::SourceSave(SourceSaveOutcome::Saved { .. }))
+        ));
+        assert_eq!(
+            context
+                .instance()
+                .get_current_profile()
+                .unwrap_or_else(|_| panic!("current"))
+                .as_deref(),
+            Some("alpha")
+        );
+        let before_catalog = source::read(context.paths()).unwrap_or_else(|_| panic!("catalog"));
+        std::fs::write(&backup, "[beta]\nmodel='beta'\n").unwrap_or_else(|_| panic!("backup"));
+        assert!(matches!(
+            execute(
+                &context,
+                &context.paths().root,
+                ProfileCommand::Restore { leaf }
+            ),
+            Ok(ProfileResult::SourceSave(
+                SourceSaveOutcome::ActivationConflict { .. }
+            ))
+        ));
+        assert!(matches!(
+            execute(
+                &context,
+                &context.paths().root,
+                ProfileCommand::SaveSource {
+                    content: "[beta]\nmodel='beta'\n".into(),
+                    revision: before_catalog.token.clone()
+                }
+            ),
+            Ok(ProfileResult::SourceSave(
+                SourceSaveOutcome::ActivationConflict { .. }
+            ))
+        ));
+        assert_eq!(
+            source::read(context.paths())
+                .unwrap_or_else(|_| panic!("catalog"))
+                .token,
+            before_catalog.token
+        );
+        assert_eq!(
+            std::fs::read(context.instance().get_settings_path())
+                .unwrap_or_else(|_| panic!("runtime")),
+            before
+        );
+    }
+
     #[test]
     fn native_apply_off_duplicate_restore_and_validation_use_domain_owner() {
         let (_root, source) = fixture();
@@ -1199,6 +1383,56 @@ pub(crate) mod tests {
                 .sections
                 .contains_key("duplicate")
         );
+        // 当前运行方案必须能挡住删除，并且不留下任何写入。
+        execute(
+            &context,
+            &context.paths().root,
+            ProfileCommand::Apply {
+                name: "beta".into(),
+                enable: false,
+            },
+        )
+        .unwrap_or_else(|_| panic!("apply beta"));
+        let before = context
+            .manager()
+            .snapshot()
+            .unwrap_or_else(|_| panic!("read"))
+            .version;
+        let refused = execute(
+            &context,
+            &context.paths().root,
+            ProfileCommand::Delete {
+                name: "beta".into(),
+            },
+        );
+        assert!(
+            matches!(&refused, Err(CcrError::ValidationError(message)) if message == "active_config_cannot_be_deleted"),
+            "deleting the current profile must be refused"
+        );
+        assert_eq!(
+            context
+                .instance()
+                .get_current_profile()
+                .unwrap_or_else(|_| panic!("current"))
+                .as_deref(),
+            Some("beta")
+        );
+        assert!(
+            context
+                .manager()
+                .load()
+                .unwrap_or_else(|_| panic!("read"))
+                .sections
+                .contains_key("beta")
+        );
+        assert_eq!(
+            context
+                .manager()
+                .snapshot()
+                .unwrap_or_else(|_| panic!("read"))
+                .version,
+            before
+        );
         assert!(
             execute(
                 &context,
@@ -1230,7 +1464,7 @@ pub(crate) mod tests {
             .validate_all()
             .unwrap_or_else(|_| panic!("generic validation"));
         assert!(
-            matches!(execute(&context, &context.paths().root, ProfileCommand::GenericValidate), Ok(ProfileResult::Lines(lines)) if lines[0] == format!("Valid: {}; invalid: {}", expected.valid_count, expected.invalid_count) && lines.len() == expected.results.len() + 1)
+            matches!(execute(&context, &context.paths().root, ProfileCommand::GenericValidate), Ok(ProfileResult::Lines(lines)) if lines[0] == format!("Valid: {}; invalid: {}", expected.valid_count, expected.invalid_count) && lines.len() == expected.results.len() + 2)
         );
         let mut patch = ConfigPatch::default();
         merge_patch_json(&mut patch, "{\"enabled\":false}").unwrap_or_else(|_| panic!("patch"));

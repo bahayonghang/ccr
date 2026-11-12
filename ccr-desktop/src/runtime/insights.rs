@@ -1,5 +1,6 @@
 //! Typed, explicit-path insights reads through the application-owned bounded executor.
 pub mod capabilities;
+pub mod claude_workbench;
 pub mod import;
 pub mod observer;
 pub mod policies;
@@ -387,6 +388,16 @@ pub struct InsightsRequests {
     session_operations: Arc<session_operations::Owner>,
 }
 impl InsightsRequests {
+    pub fn scoped(mut self, platform: Option<ccr_app::runtime::Platform>) -> Self {
+        self.services = self.services.scoped(platform);
+        self
+    }
+
+    pub(super) fn codex_actions_allowed(&self) -> bool {
+        self.services
+            .platform_scope
+            .is_none_or(|platform| platform == ccr_app::runtime::Platform::Codex)
+    }
     /// Capture configuration only. No filesystem work until admitted on a worker.
     pub fn new(services: &Services) -> Self {
         Self {
@@ -520,6 +531,30 @@ impl InsightsRequests {
         Ok(pool)
     }
     fn read(&self, query: InsightsQuery) -> Result<InsightsSnapshot, InsightsError> {
+        if let Some(platform) = self.services.platform_scope {
+            let source =
+                SourceKind::parse_id(platform.short_name()).ok_or(InsightsError::Unsupported)?;
+            match &query {
+                InsightsQuery::Usage(filter) | InsightsQuery::Logs { filter, .. }
+                    if filter.source == Some(source) => {}
+                InsightsQuery::Sessions(request)
+                    if request.agents.as_ref().is_some_and(|agents| {
+                        agents.len() == 1
+                            && matches!(
+                                (platform, agents[0]),
+                                (
+                                    ccr_app::runtime::Platform::Claude,
+                                    ccr_store::sessions::AgentSessionAgentId::Claude
+                                ) | (
+                                    ccr_app::runtime::Platform::Codex,
+                                    ccr_store::sessions::AgentSessionAgentId::Codex
+                                )
+                            )
+                    }) => {}
+                InsightsQuery::Detail { .. } => {}
+                _ => return Err(InsightsError::Unsupported),
+            }
+        }
         let paths = self.paths.as_ref().ok_or(InsightsError::Unconfigured)?;
         match query {
             InsightsQuery::Sessions(request) => self.read_sessions(paths, request),
@@ -527,6 +562,23 @@ impl InsightsRequests {
                 let pool = self.archive_pool(paths)?;
                 let registry = AgentSessionProviderRegistry::new(paths.provider_home.clone())
                     .without_environment_overrides();
+                if let Some(platform) = self.services.platform_scope {
+                    let (source, _) =
+                        sessions::resolve_source_with_registry(&pool, &registry, &archive_id)
+                            .map_err(InsightsError::Session)?;
+                    let expected = match platform {
+                        ccr_app::runtime::Platform::Claude => {
+                            ccr_store::sessions::AgentSessionAgentId::Claude
+                        }
+                        ccr_app::runtime::Platform::Codex => {
+                            ccr_store::sessions::AgentSessionAgentId::Codex
+                        }
+                        _ => return Err(InsightsError::Unsupported),
+                    };
+                    if source.agent != expected {
+                        return Err(InsightsError::Unsupported);
+                    }
+                }
                 sessions::get_detail_with_registry(&pool, &registry, &archive_id, before, Some(100))
                     .map(InsightsSnapshot::Detail)
                     .map_err(InsightsError::Session)

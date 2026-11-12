@@ -6,6 +6,7 @@ use ccr_core::Result;
 use std::path::PathBuf;
 
 pub mod backups;
+pub mod import;
 pub mod mutations;
 pub mod profile_patch;
 pub mod source;
@@ -22,6 +23,7 @@ pub struct ConfigRow {
     pub base_url: String,
     pub auth_token: String,
     pub model: Option<String>,
+    pub auth_mode: Option<String>,
     pub small_fast_model: Option<String>,
     pub is_current: bool,
     pub is_default: bool,
@@ -29,7 +31,7 @@ pub struct ConfigRow {
     pub provider_type: Option<String>,
     pub account: Option<String>,
     pub tags: Option<Vec<String>>,
-    pub usage_count: u64,
+    pub usage_count: Option<u64>,
     pub enabled: bool,
 }
 
@@ -77,6 +79,11 @@ impl ConfigReadService {
                     .map(ToString::to_string)
                     .unwrap_or_default(),
                 model: section.model.clone(),
+                auth_mode: section
+                    .other
+                    .get("auth_mode")
+                    .and_then(toml::Value::as_str)
+                    .map(str::to_owned),
                 small_fast_model: section.small_fast_model.clone(),
                 is_current: current.as_deref() == Some(name.as_str()),
                 is_default: name == &config.default_config,
@@ -87,7 +94,7 @@ impl ConfigReadService {
                     .map(|kind| kind.to_string_value().to_string()),
                 account: section.account.clone(),
                 tags: section.tags.clone(),
-                usage_count: u64::from(section.usage_count()),
+                usage_count: section.usage_count.map(u64::from),
                 enabled: section.is_enabled(),
             })
             .collect())

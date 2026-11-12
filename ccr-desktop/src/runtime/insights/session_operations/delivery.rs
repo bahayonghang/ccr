@@ -47,6 +47,9 @@ impl InsightsRequests {
         &self,
         cancelled: impl Fn() -> bool,
     ) -> Result<Vec<TrashItem>, Failure> {
+        if !self.codex_actions_allowed() {
+            return Err(Failure::Unsupported);
+        }
         let home = self
             .paths
             .as_ref()
@@ -90,6 +93,9 @@ impl InsightsRequests {
         item: TrashItem,
         cancelled: impl Fn() -> bool,
     ) -> Result<Arc<PreparedRestore>, Failure> {
+        if !self.codex_actions_allowed() {
+            return Err(Failure::Unsupported);
+        }
         let paths = self.paths.as_ref().ok_or(Failure::Storage)?;
         if item.codex_home != paths.provider_home.join(".codex") {
             return Err(Failure::Conflict);
@@ -108,10 +114,16 @@ impl InsightsRequests {
         key: RequestKey,
         prepared: Arc<PreparedRestore>,
     ) -> Result<(), Failure> {
+        if !self.codex_actions_allowed() {
+            return Err(Failure::Unsupported);
+        }
         let requests = self.clone();
         self.start_session_work(key, move || requests.restore_session(&prepared))
     }
     pub(super) fn restore_session(&self, prepared: &PreparedRestore) -> Result<Outcome, Failure> {
+        if !self.codex_actions_allowed() {
+            return Err(Failure::Unsupported);
+        }
         let item = &prepared.item;
         let paths = self.paths.as_ref().ok_or(Failure::Storage)?;
         if item.codex_home != paths.provider_home.join(".codex") {

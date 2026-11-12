@@ -14,6 +14,7 @@ use ccr_app::{
 };
 use gpui_kit::component::input::{InputState, TextareaState};
 use gpui_kit::{AppContext, Context, Entity, FocusHandle, Focusable, Task, Window};
+use std::sync::Arc;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Mode {
@@ -24,6 +25,14 @@ enum Mode {
     Import,
     Restore,
     Output,
+}
+/// 输出面板的内容来源：文案必须与真正产生它的操作一致。
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum OutputKind {
+    None,
+    Export,
+    PlaintextView,
+    Lines,
 }
 #[derive(Clone, Copy)]
 enum Action {
@@ -36,11 +45,11 @@ enum Action {
     Validate,
     Source,
     Inspect,
-    ForceSource,
     Export,
     ExportSecrets,
     Import,
     ImportReplace,
+    ImportCommit,
     Backups,
     Restore,
     RestoreExecute,
@@ -51,6 +60,8 @@ enum Action {
     Environment,
     ShellEnvironment,
     GrokForceDelete,
+    /// 放弃未保存草稿（Esc / 取消返回触发）。
+    DiscardDraft,
 }
 struct Confirmation {
     generation: u64,
@@ -72,9 +83,13 @@ pub struct ProfileTools {
     content: Entity<TextareaState>,
     revision: String,
     advanced: bool,
-    activation_conflict: bool,
     can_off: Option<bool>,
     generic: bool,
+    pub(super) embedded: bool,
+    management: bool,
+    import_preview: Option<Arc<ccr_app::config::import::Preview>>,
+    output_kind: OutputKind,
+    import_overwrite: std::collections::BTreeSet<String>,
     clear_sensitive: bool,
     base_url: Entity<InputState>,
     auth_mode: Entity<InputState>,
@@ -97,6 +112,41 @@ pub struct ProfileTools {
     grok_force_delete: Option<String>,
 }
 impl ProfileTools {
+    fn save_output(&mut self, cx: &mut Context<Self>) {
+        if self.mode != Mode::Output || self.busy {
+            return;
+        }
+        let Some(directory) = self.services.profile_export_directory() else {
+            return;
+        };
+        let dialog = cx.prompt_for_new_path(&directory, Some("ccr-profiles.toml"));
+        self.request += 1;
+        let generation = self.request;
+        let platform = self.platform;
+        self.task=Some(cx.spawn(async move|weak,cx|{let selected=dialog.await;let _=weak.update(cx,|this,cx|{
+            if this.request!=generation || this.platform!=platform || this.mode!=Mode::Output{return;}
+            match selected{Ok(Ok(Some(destination)))=>this.submit(ProfileCommand::SaveExport{content:this.content.read(cx).value().to_string(),destination},cx),Ok(Ok(None))=>{},_=>{this.message=Some("Save dialog unavailable; temporary output retained / 保存对话框不可用，临时输出保留".into());cx.notify();}}
+        });}));
+    }
+    pub fn has_dirty_draft(&self, cx: &gpui_kit::App) -> bool {
+        match self.mode {
+            Mode::Edit => {
+                self.original.as_ref().is_none_or(|row| {
+                    self.name.read(cx).value().as_str() != row.name
+                        || self.description.read(cx).value().as_str() != row.description
+                        || self.model.read(cx).value().as_str()
+                            != row.model.as_deref().unwrap_or_default()
+                }) || !self.credential.read(cx).text().to_string().is_empty()
+                    || !self.base_url.read(cx).value().is_empty()
+                    || !self.auth_mode.read(cx).value().is_empty()
+                    || (self.advanced && self.content.read(cx).value().as_str() != "{}")
+            }
+            Mode::Source | Mode::Import | Mode::Duplicate => {
+                !self.content.read(cx).value().is_empty() || !self.name.read(cx).value().is_empty()
+            }
+            _ => false,
+        }
+    }
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
         Self {
             services,
@@ -111,9 +161,13 @@ impl ProfileTools {
             content: cx.new(|cx| TextareaState::new(window, cx)),
             revision: String::new(),
             advanced: false,
-            activation_conflict: false,
             can_off: None,
             generic: false,
+            embedded: false,
+            management: false,
+            import_preview: None,
+            output_kind: OutputKind::None,
+            import_overwrite: Default::default(),
             clear_sensitive: false,
             base_url: cx.new(|cx| InputState::new(window, cx)),
             auth_mode: cx.new(|cx| InputState::new(window, cx)),
@@ -139,8 +193,36 @@ impl ProfileTools {
     pub fn busy(&self) -> bool {
         self.busy
     }
+    /// 选中的行是否就是当前运行方案。
+    pub fn target_is_current(&self) -> bool {
+        self.target.as_ref().is_some_and(|row| row.is_current)
+    }
+    pub fn can_detach(&self) -> bool {
+        self.can_off == Some(true) && !self.busy
+    }
     pub fn expanded(&self) -> bool {
         self.mode != Mode::Closed || self.confirmation.is_some()
+    }
+    pub fn collection_workspace(&self) -> bool {
+        self.expanded()
+            && (self.original.is_none()
+                || !matches!(self.mode, Mode::Edit | Mode::Duplicate | Mode::Closed)
+                || self.advanced)
+    }
+
+    pub fn new_profile(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.act(Action::Create, window, cx);
+    }
+    pub fn set_management(&mut self, management: bool, cx: &mut Context<Self>) {
+        self.management = management;
+        cx.notify();
+    }
+
+    pub fn apply_selected(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.act(Action::Apply, window, cx);
+    }
+    pub fn detach_current(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.act(Action::Off, window, cx);
     }
     /// Dropping this subscription detaches an application-owned write; it never
     /// cancels a committed operation. A late response cannot reopen plaintext.
@@ -154,6 +236,28 @@ impl ProfileTools {
         self.grok_force_delete = None;
         self.return_focus = None;
         self.close(window, cx);
+    }
+    /// Esc / 取消返回的统一入口：有未保存草稿时先确认，避免静默丢弃。
+    pub fn request_close(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.busy || self.confirmation.is_some() {
+            return;
+        }
+        if !self.has_dirty_draft(cx) {
+            self.close(window, cx);
+            return;
+        }
+        self.confirmation = Some(Confirmation {
+            generation: self.request,
+            entry_pending: true,
+            action: Action::DiscardDraft,
+            return_focus: window.focused(cx),
+            subject: self
+                .target
+                .as_ref()
+                .map(|row| row.name.clone())
+                .unwrap_or_default(),
+        });
+        cx.notify();
     }
     pub fn set_target(&mut self, target: Option<ConfigRow>, cx: &mut Context<Self>) {
         if !self.expanded() {
@@ -197,12 +301,13 @@ impl ProfileTools {
             self.failed = false;
             self.draft_conflict = false;
         }
+        self.import_preview = None;
+        self.import_overwrite.clear();
         self.mode = Mode::Closed;
         self.confirmation = None;
         self.original = None;
         self.revision.clear();
         self.advanced = false;
-        self.activation_conflict = false;
         self.pending_content = None;
         self.source_location = None;
         for input in [
@@ -223,7 +328,7 @@ impl ProfileTools {
         cx.notify();
     }
     fn act(&mut self, action: Action, window: &mut Window, cx: &mut Context<Self>) {
-        if self.busy {
+        if self.busy || (matches!(action, Action::Off) && !self.can_detach()) {
             return;
         }
         if self.mode == Mode::Closed {
@@ -281,16 +386,25 @@ impl ProfileTools {
                 });
                 window.focus(&self.name.read(cx).focus_handle(cx), cx);
             }
+            Action::ImportReplace => {
+                self.submit(
+                    ProfileCommand::PreviewImport {
+                        content: self.content.read(cx).value().to_string(),
+                        overwrite: self.import_overwrite.clone(),
+                        replace: true,
+                    },
+                    cx,
+                );
+            }
             Action::Delete
             | Action::Off
             | Action::Source
             | Action::Inspect
-            | Action::ForceSource
             | Action::ExportSecrets
             | Action::Clean
             | Action::ClearHistory
             | Action::Import
-            | Action::ImportReplace
+            | Action::ImportCommit
             | Action::Restore
             | Action::RestoreExecute
             | Action::Advanced
@@ -327,17 +441,31 @@ impl ProfileTools {
                     );
                 }
             }
-            Action::Validate => self.submit(
-                if self.generic {
-                    ProfileCommand::GenericValidate
-                } else {
-                    ProfileCommand::Validate
-                },
-                cx,
-            ),
-            Action::Export => self.submit(ProfileCommand::Export { secrets: false }, cx),
-            Action::Backups => self.submit(ProfileCommand::Backups, cx),
-            Action::History => self.submit(ProfileCommand::History, cx),
+            Action::Validate => {
+                self.output_kind = OutputKind::Lines;
+                self.submit(
+                    if self.generic {
+                        ProfileCommand::GenericValidate
+                    } else {
+                        ProfileCommand::Validate
+                    },
+                    cx,
+                )
+            }
+            Action::Export => {
+                self.output_kind = OutputKind::Export;
+                self.submit(ProfileCommand::Export { secrets: false }, cx)
+            }
+            Action::Backups => {
+                self.output_kind = OutputKind::Lines;
+                self.submit(ProfileCommand::Backups, cx)
+            }
+            Action::History => {
+                self.output_kind = OutputKind::Lines;
+                self.submit(ProfileCommand::History, cx)
+            }
+            // 只由 request_close 设置并在 confirm 中处理，这里不产生任何动作。
+            Action::DiscardDraft => {}
         }
         cx.notify();
     }
@@ -346,6 +474,7 @@ impl ProfileTools {
             return;
         };
         match confirm.action {
+            Action::DiscardDraft => self.close(window, cx),
             Action::Delete => {
                 if self.target.is_some() {
                     self.submit(
@@ -383,39 +512,37 @@ impl ProfileTools {
                 self.mode = Mode::Source;
                 self.submit(ProfileCommand::Source, cx)
             }
-            Action::Inspect => self.submit(
-                ProfileCommand::Inspect {
-                    name: confirm.subject.clone(),
-                },
-                cx,
-            ),
-            Action::ForceSource => self.submit(
-                ProfileCommand::SaveSource {
-                    content: self.content.read(cx).value().to_string(),
-                    revision: self.revision.clone(),
-                    force: true,
-                },
-                cx,
-            ),
+            Action::Inspect => {
+                self.output_kind = OutputKind::PlaintextView;
+                self.submit(
+                    ProfileCommand::Inspect {
+                        name: confirm.subject.clone(),
+                    },
+                    cx,
+                )
+            }
             Action::Advanced => {
                 self.advanced = true;
                 self.content
                     .update(cx, |state, cx| state.set_value("{}", window, cx));
             }
-            Action::ImportReplace => self.submit(
-                ProfileCommand::Import {
-                    content: self.content.read(cx).value().to_string(),
-                    replace: true,
-                },
-                cx,
-            ),
+            Action::ImportCommit => {
+                if let Some(preview) = self.import_preview.clone()
+                    && preview.matches_input(&self.content.read(cx).value())
+                {
+                    self.submit(ProfileCommand::CommitImport(preview), cx);
+                }
+            }
             Action::RestoreExecute => self.submit(
                 ProfileCommand::Restore {
                     leaf: confirm.subject.clone(),
                 },
                 cx,
             ),
-            Action::ExportSecrets => self.submit(ProfileCommand::Export { secrets: true }, cx),
+            Action::ExportSecrets => {
+                self.output_kind = OutputKind::Export;
+                self.submit(ProfileCommand::Export { secrets: true }, cx)
+            }
             Action::Clean => self.submit(ProfileCommand::CleanBackups, cx),
             Action::ClearHistory => self.submit(ProfileCommand::ClearHistory, cx),
             Action::Import => {
@@ -539,10 +666,10 @@ impl ProfileTools {
             Mode::Source => ProfileCommand::SaveSource {
                 content: self.content.read(cx).value().to_string(),
                 revision: self.revision.clone(),
-                force: false,
             },
-            Mode::Import => ProfileCommand::Import {
+            Mode::Import => ProfileCommand::PreviewImport {
                 content: self.content.read(cx).value().to_string(),
+                overwrite: self.import_overwrite.clone(),
                 replace: false,
             },
             Mode::Restore => {
@@ -573,7 +700,8 @@ impl ProfileTools {
             request_id: self.request,
         };
         self.gate.replace(key.clone());
-        self.busy = true;
+        // A status read must not freeze list selection or arrow navigation.
+        self.busy = !is_status;
         // 状态刷新不能抹掉已提交操作的持久警告或恢复结果。
         if !is_status {
             self.message = None;
@@ -671,15 +799,40 @@ impl ProfileTools {
             }
             ProfileResult::Outcome(outcome) => {
                 use ccr_cli::application::profile_lifecycle::ProfileStatus;
-                let warnings = format!("{:?}", outcome.warnings);
                 let status = outcome.message();
                 // Status copy has no Chinese half, so the whole sentence stays English.
+                let warnings = if outcome.warnings.is_empty() {
+                    String::new()
+                } else {
+                    format!(" · warnings: {:?}", outcome.warnings)
+                };
                 let recovery = if outcome.recovery_paths.is_empty() {
                     String::new()
                 } else {
                     " · Inspect recovery records before retrying".to_string()
                 };
-                self.message = Some(format!("{status} · warnings: {warnings}{recovery}"));
+                self.message = Some(format!("{status}{warnings}{recovery}"));
+                let feedback = outcome_feedback(
+                    outcome.status,
+                    outcome.activation_committed,
+                    matches!(self.mode, Mode::Edit | Mode::Duplicate),
+                );
+                match feedback {
+                    OutcomeFeedback::SavedNotApplied => {
+                        self.message = Some(
+                            "Saved; runtime configuration unchanged / 已保存，运行配置未更新"
+                                .into(),
+                        );
+                    }
+                    OutcomeFeedback::SaveRolledBack => {
+                        // 没有写入任何东西：留在编辑态，草稿与原始 revision 都不动。
+                        self.message = Some(
+                            "Save failed; previous files were restored and the draft is kept / 保存失败，已恢复原文件，草稿保留"
+                                .into(),
+                        );
+                    }
+                    OutcomeFeedback::Lifecycle => {}
+                }
                 if matches!(
                     outcome.status,
                     ProfileStatus::Applied | ProfileStatus::AppliedWithWarning
@@ -689,9 +842,16 @@ impl ProfileTools {
                     self.original = None;
                     self.clear_sensitive = true;
                 } else {
-                    self.failed = !outcome.activation_committed;
+                    self.failed = feedback == OutcomeFeedback::SaveRolledBack
+                        || (!outcome.activation_committed
+                            && outcome.status != ProfileStatus::Unchanged);
                 }
                 self.refresh_version += 1;
+            }
+            ProfileResult::ImportPreview(preview) => {
+                self.import_preview = Some(preview.clone());
+                self.mode = Mode::Import;
+                self.message = Some("Review added and conflicting names; matching names are kept by default. / 请审阅新增与同名方案；同名默认保留。".into());
             }
             ProfileResult::Status { can_off } => self.can_off = Some(*can_off),
             ProfileResult::Done(message) => {
@@ -704,11 +864,19 @@ impl ProfileTools {
             ProfileResult::Text(content) => {
                 self.mode = Mode::Output;
                 let value = content.clone();
-                self.message = Some("Export ready in scoped output / 导出已就绪".into());
+                // 只有导出才是“导出已就绪”；明文视图只是临时输出，尚未保存。
+                self.message = Some(match self.output_kind {
+                    OutputKind::PlaintextView => {
+                        "Scoped plaintext view; nothing is saved until you choose a file / 临时明文视图，尚未保存，需显式选择文件"
+                    }
+                    _ => "Export ready in scoped output / 导出已就绪",
+                }
+                .into());
                 self.set_content(value, cx);
             }
             ProfileResult::Lines(lines) => {
                 self.mode = Mode::Output;
+                self.message = None;
                 self.set_content(lines.join("\n"), cx);
             }
             ProfileResult::Source {
@@ -727,7 +895,6 @@ impl ProfileTools {
                     }
                 ));
                 self.revision = revision.clone();
-                self.activation_conflict = false;
                 self.mode = Mode::Source;
                 self.set_content(content.clone(), cx);
             }
@@ -735,22 +902,20 @@ impl ProfileTools {
                 self.mode = Mode::Closed;
                 self.clear_sensitive = true;
                 self.refresh_version += 1;
-                self.message = Some("Catalog saved / 配置目录已保存".into());
+                self.message =
+                    Some("Saved; runtime configuration unchanged / 已保存，运行配置未更新".into());
             }
             ProfileResult::SourceSave(SourceSaveOutcome::Conflict) => {
-                self.activation_conflict = false;
                 self.failed = true;
                 self.draft_conflict = true;
                 self.message = Some(ProfileError::Conflict.message().into());
             }
             ProfileResult::SourceSave(SourceSaveOutcome::ActivationConflict { .. }) => {
-                self.activation_conflict = true;
                 self.failed = true;
                 self.draft_conflict = true;
-                self.message=Some("Active profile would be removed. Cancel or restore it in the source before saving. / 源码将移除当前配置，请取消或保留当前配置后保存".into());
+                self.message=Some("Current profile would be removed. Keep it in the document or detach it first. / 文档将移除当前方案；请保留该方案，或先解除当前方案。".into());
             }
             ProfileResult::SourceSave(SourceSaveOutcome::Invalid { kind, position, .. }) => {
-                self.activation_conflict = false;
                 self.failed = true;
                 let place = position
                     .map(|(line, column)| {
@@ -774,8 +939,63 @@ impl ProfileTools {
     }
 }
 
+/// 保存/应用结果的界面归类。纯函数，便于脱离窗口验证。
+#[derive(Debug, PartialEq, Eq)]
+enum OutcomeFeedback {
+    /// 草稿已落库且未触碰运行配置。
+    SavedNotApplied,
+    /// 事务失败并已回滚：保存没有发生，草稿必须保留。
+    SaveRolledBack,
+    /// 其余情况沿用生命周期自带文案。
+    Lifecycle,
+}
+
+fn outcome_feedback(
+    status: ccr_cli::application::profile_lifecycle::ProfileStatus,
+    activation_committed: bool,
+    editing: bool,
+) -> OutcomeFeedback {
+    use ccr_cli::application::profile_lifecycle::ProfileStatus;
+    // 保存走 ApplyPolicy::Never：成功是 Applied + 未激活；Unchanged + 未激活是事务失败后的回滚。
+    match (editing, status, activation_committed) {
+        (true, ProfileStatus::Applied, false) => OutcomeFeedback::SavedNotApplied,
+        (true, ProfileStatus::Unchanged, false) => OutcomeFeedback::SaveRolledBack,
+        _ => OutcomeFeedback::Lifecycle,
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn save_feedback_matches_what_the_lifecycle_actually_did() {
+        use super::{OutcomeFeedback, outcome_feedback};
+        use ccr_cli::application::profile_lifecycle::ProfileStatus;
+        // 成功保存：生命周期返回 Applied 且未激活。
+        assert_eq!(
+            outcome_feedback(ProfileStatus::Applied, false, true),
+            OutcomeFeedback::SavedNotApplied
+        );
+        // 事务失败后干净回滚：不能报“已保存”，草稿要留下。
+        assert_eq!(
+            outcome_feedback(ProfileStatus::Unchanged, false, true),
+            OutcomeFeedback::SaveRolledBack
+        );
+        // 应用路径不借用保存文案。
+        assert_eq!(
+            outcome_feedback(ProfileStatus::Applied, true, false),
+            OutcomeFeedback::Lifecycle
+        );
+        assert_eq!(
+            outcome_feedback(ProfileStatus::Unchanged, true, false),
+            OutcomeFeedback::Lifecycle
+        );
+        // 带告警的保存保留生命周期的告警文案，不被“已保存”盖掉。
+        assert_eq!(
+            outcome_feedback(ProfileStatus::AppliedWithWarning, false, true),
+            OutcomeFeedback::Lifecycle
+        );
+    }
+
     use super::*;
     use crate::runtime::{
         ConfigSource,
@@ -868,28 +1088,19 @@ mod tests {
         });
         cx.update_window(handle, |_, window, cx| {
             window.render_frame(cx);
-            for (policy, decisions) in [
-                (
-                    "profile-policy-configurations",
-                    &[
-                        "profile-delete",
-                        "profile-import",
-                        "profile-restore",
-                        "profile-clean-backups",
-                        "profile-clear-history",
-                    ][..],
-                ),
-                (
-                    "profile-policy-profiles",
-                    &[
-                        "profile-delete",
-                        "profile-source",
-                        "profile-inspect",
-                        "profile-export-secrets",
-                    ][..],
-                ),
-            ] {
-                window.click(policy, cx);
+            assert!(window.try_find("profile-policy-configurations").is_none());
+            assert!(window.try_find("profile-policy-profiles").is_none());
+            assert!(window.try_find("profile-clean-backups").is_none());
+            assert!(window.try_find("profile-clear-history").is_none());
+            for decisions in [&[
+                "profile-delete",
+                "profile-import",
+                "profile-restore",
+                "profile-source",
+                "profile-inspect",
+                "profile-export-secrets",
+            ][..]]
+            {
                 for id in decisions {
                     let outside = host.read(cx).outside.clone();
                     window.focus(&outside, cx);
@@ -1246,7 +1457,31 @@ mod tests {
                 window.find("profile-description").value(),
                 Some("Unconfirmed draft")
             );
+            // 草稿仍未保存：取消返回必须先确认，不能静默丢弃。
             window.click("profile-editor-cancel", cx);
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
+            assert!(view.read(cx).confirmation.is_some());
+            assert!(
+                window
+                    .find("profile-confirmation")
+                    .label()
+                    .unwrap_or_default()
+                    .contains("Discard the unsaved draft"),
+                "cancel on a dirty draft must ask before discarding"
+            );
+            window.press("escape", cx);
+            assert!(view.read(cx).confirmation.is_none());
+            assert_eq!(
+                window.find("profile-description").value(),
+                Some("Unconfirmed draft"),
+                "declining the discard keeps the draft"
+            );
+            window.click("profile-editor-cancel", cx);
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
+            window.click("profile-confirm", cx);
+            assert!(view.read(cx).mode == Mode::Closed);
             view.update(cx, |view, cx| {
                 view.generic = true;
                 cx.notify();
@@ -1256,7 +1491,7 @@ mod tests {
             window.click("profile-confirm", cx);
             window.click("profile-name", cx);
             window.input("profiles.toml.fixture.bak", cx);
-            window.press("tab", cx);
+            window.press("shift-tab", cx);
             assert_eq!(window.find("profile-save").focused(), Some(true));
             window.press("enter", cx);
             window.simulate_next_frame(cx);
@@ -1486,6 +1721,18 @@ mod tests {
                 Some("Retained draft")
             );
             window.click("profile-editor-cancel", cx);
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
+            assert!(
+                view.read(cx).confirmation.is_some(),
+                "cancel on a dirty draft must ask before discarding"
+            );
+            assert_eq!(
+                window.find("profile-description").value(),
+                Some("Retained draft"),
+                "the draft survives until the discard is confirmed"
+            );
+            window.click("profile-confirm", cx);
             assert!(
                 view.read(cx).message.is_none(),
                 "discarded draft has no retained-draft status"
@@ -1589,6 +1836,13 @@ mod tests {
                 "a source CAS refusal must retain the original source draft"
             );
             window.click("profile-editor-cancel", cx);
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
+            assert!(
+                view.read(cx).confirmation.is_some(),
+                "cancel with a retained source draft must ask before discarding"
+            );
+            window.click("profile-confirm", cx);
             assert!(view.read(cx).message.is_none());
             assert!(!view.read(cx).failed);
             view.update(cx, |view, cx| view.submit(ProfileCommand::Status, cx));

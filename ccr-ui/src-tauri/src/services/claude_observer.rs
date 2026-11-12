@@ -22,6 +22,7 @@ pub struct InsightDto {
     pub total_sessions: i64,
     #[ts(as = "f64")]
     pub total_projects: i64,
+    pub project_attribution_complete: bool,
     pub subscription: subscription::SubscriptionDto,
     /// 当 mode=subscription 时，month_value_usd / monthly_usd；否则 None
     pub roi: Option<f64>,
@@ -75,9 +76,9 @@ pub struct SessionRow {
     pub session_id: String,
     pub project_path: Option<String>,
     pub model: Option<String>,
-    pub cost_usd: f64,
-    #[ts(as = "f64")]
-    pub tokens: i64,
+    pub cost_usd: Option<f64>,
+    #[ts(as = "Option<f64>")]
+    pub tokens: Option<i64>,
     #[ts(as = "f64")]
     pub tool_call_count: i64,
     pub started_at: Option<String>,
@@ -95,6 +96,7 @@ pub struct HeatmapCell {
     pub hour: i64,
     #[ts(as = "f64")]
     pub count: i64,
+    pub timezone: String,
 }
 
 impl From<claude_tool_calls_repo::HeatmapCell> for HeatmapCell {
@@ -103,6 +105,7 @@ impl From<claude_tool_calls_repo::HeatmapCell> for HeatmapCell {
             dow: cell.dow,
             hour: cell.hour,
             count: cell.count,
+            timezone: "utc".into(),
         }
     }
 }
@@ -114,7 +117,7 @@ pub struct TopToolRow {
     pub tool_name: String,
     #[ts(as = "f64")]
     pub call_count: i64,
-    pub cost_usd: f64,
+    pub cost_usd: Option<f64>,
 }
 
 impl From<claude_tool_calls_repo::TopToolRow> for TopToolRow {
@@ -190,6 +193,7 @@ impl From<shared::InsightDto> for InsightDto {
             month_tokens: value.month_tokens,
             total_sessions: value.total_sessions,
             total_projects: value.total_projects,
+            project_attribution_complete: value.project_attribution_complete,
             subscription: value.subscription.into(),
             roi: value.roi,
             pricing_version: pricing::pricing_version().to_string(),
@@ -248,6 +252,7 @@ impl From<shared::HeatmapCell> for HeatmapCell {
             dow: value.dow,
             hour: value.hour,
             count: value.count,
+            timezone: value.timezone.into(),
         }
     }
 }
@@ -418,7 +423,7 @@ mod service_tests {
         let tools = top_tools(&pool, None, None).expect("top_tools should succeed");
         assert_eq!(tools[0].tool_name, "Bash");
         assert_eq!(tools[0].call_count, 2);
-        assert!((tools[0].cost_usd - 0.30).abs() < 1e-9);
+        assert!((tools[0].cost_usd.unwrap() - 0.30).abs() < 1e-9);
 
         let limited = top_tools(&pool, None, Some(1)).unwrap();
         assert_eq!(limited.len(), 1);
@@ -434,11 +439,11 @@ mod service_tests {
         seed_tool_call(&pool, "s2", 2, "Read", 0.10);
         seed_tool_call(&pool, "s2", 3, "Read", 0.10);
 
-        let by_cost = top_sessions(&pool, None, None).expect("top_sessions should succeed");
+        let by_cost = top_sessions(&pool, None, Some("cost")).expect("top_sessions should succeed");
         assert_eq!(by_cost[0].session_id, "s1");
-        assert!((by_cost[0].cost_usd - 0.50).abs() < 1e-9);
-        // wire 契约：model/started_at 现阶段恒为空，tokens 恒 0
-        assert_eq!(by_cost[0].tokens, 0);
+        assert!((by_cost[0].cost_usd.unwrap() - 0.50).abs() < 1e-9);
+        // Tool events do not provide session model, token totals or start time.
+        assert_eq!(by_cost[0].tokens, None);
         assert!(by_cost[0].model.is_none());
 
         let by_calls = top_sessions(&pool, None, Some("calls")).unwrap();

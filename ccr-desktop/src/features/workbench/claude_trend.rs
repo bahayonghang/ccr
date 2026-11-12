@@ -1,326 +1,222 @@
-//! Calendar-spaced fee trend for the Claude home.
+//! Calendar-spaced bars. Missing dates remain gaps; every observed bar is keyboard reachable.
+use super::claude::format_exact_usd;
+#[cfg(test)]
+use super::claude::format_recorded_cost;
 use super::*;
-use ccr_usage::DailyTrendDto;
 use chrono::{Duration, NaiveDate};
-use gpui_kit::base::plot::{
-    AxisLabelSide, AxisText, Curve, Grid, PlotAxis, axis_gutter, label::measure_text_width,
-    shape::Line,
-};
-use gpui_kit::{App, Bounds, Pixels, SharedString, TextAlign, canvas, point, size};
+use gpui_kit::component::tooltip::Tooltip;
+use gpui_kit::prelude::FluentBuilder;
+use gpui_kit::{App, SharedString};
 
-const DAYS: usize = 30;
-const PLOT_HEIGHT: f32 = 194.;
-
-struct FeeTrend {
-    start: NaiveDate,
-    points: Vec<(usize, f64)>,
+fn calendar(until: NaiveDate, rows: &[ccr_usage::DailyTrendDto]) -> Vec<(NaiveDate, Option<f64>)> {
+    (0..30)
+        .map(|index| {
+            let date = until - Duration::days(29 - index);
+            let value = rows
+                .iter()
+                .find(|row| row.date == date.to_string())
+                .map(|row| row.cost_usd);
+            (date, value)
+        })
+        .collect()
 }
-
-impl FeeTrend {
-    fn from_rows(until: NaiveDate, rows: &[DailyTrendDto]) -> Self {
-        let start = until - Duration::days(DAYS as i64 - 1);
-        let mut days = [None; DAYS];
-        for row in rows {
-            let Ok(date) = NaiveDate::parse_from_str(&row.date, "%Y-%m-%d") else {
-                continue;
-            };
-            let day = (date - start).num_days();
-            if (0..DAYS as i64).contains(&day) && row.cost_usd.is_finite() {
-                days[day as usize] = Some(row.cost_usd);
-            }
-        }
-        Self {
-            start,
-            points: days
-                .into_iter()
-                .enumerate()
-                .filter_map(|(day, fee)| Some((day, fee?)))
-                .collect(),
-        }
-    }
-
-    // The Kit LineChart positions consecutive data by index. Use its underlying Line
-    // per uninterrupted run so a missing day is neither a zero nor a connecting line.
-    fn runs(&self) -> impl Iterator<Item = &[(usize, f64)]> {
-        self.points.chunk_by(|a, b| b.0 == a.0 + 1)
-    }
-
-    fn cost_ticks(&self) -> Vec<f64> {
-        let (low, high) = self
-            .points
-            .iter()
-            .fold((0.0_f64, 0.0_f64), |(low, high), &(_, fee)| {
-                (low.min(fee), high.max(fee))
-            });
-        // Round to 1, 2 or 5 times a power of ten, like the Tauri cost axis.
-        if low == high {
-            return vec![0., 0.5, 1.];
-        }
-        let target = high / 3. - low / 3.;
-        let base = 10_f64.powf(target.log10().floor());
-        let step = [1., 2., 5., 10.]
-            .into_iter()
-            .map(|n| base * n)
-            .find(|n| *n >= target)
-            .unwrap_or(target);
-        let first = (low / step).floor();
-        let last = (high / step).ceil();
-        if !(first * step).is_finite() || !(last * step).is_finite() {
-            // At the limits of SQLite REAL a nice tick can exceed the finite range.
-            return vec![low, high];
-        }
-        (first as i32..=last as i32)
-            .map(|i| f64::from(i) * step)
-            .collect()
-    }
-
-    fn paint(&self, bounds: Bounds<Pixels>, window: &mut Window, cx: &mut App) {
-        let ticks = self.cost_ticks();
-        let low = ticks[0];
-        let high = ticks[ticks.len() - 1];
-        let labels: Vec<SharedString> = ticks
-            .iter()
-            .copied()
-            .map(|value| {
-                if value != 0. && !(0.0001..1.0e7).contains(&value.abs()) {
-                    format!("${value:.2e}").into()
-                } else {
-                    format!("${value:.4}")
-                        .trim_end_matches('0')
-                        .trim_end_matches('.')
-                        .to_owned()
-                        .into()
-                }
-            })
-            .collect();
-        let font_size = px(theme::META_SIZE);
-        let gutter = labels
-            .iter()
-            .map(|label| measure_text_width(label, font_size, window))
-            .fold(0., f32::max)
-            + 10.;
-        let plot = Bounds::new(
-            bounds.origin + point(px(gutter), px(8.)),
-            size(
-                bounds.size.width - px(gutter + 4.),
-                bounds.size.height - px(8. + axis_gutter(font_size)),
-            ),
-        );
-        let width = plot.size.width.as_f32();
-        let height = plot.size.height.as_f32();
-        if width <= 0. || height <= 0. {
-            return;
-        }
-
-        let x = move |day: usize| width * day as f32 / (DAYS - 1) as f32;
-        let scale = low.abs().max(high.abs());
-        let y = move |fee: f64| {
-            height * ((high / scale - fee / scale) / (high / scale - low / scale)) as f32
-        };
-        let muted = cx.theme().muted_foreground;
-        let stroke = theme::platform_color("claude", cx.theme().mode);
-        Grid::new()
-            .y(ticks.iter().map(|&v| px(y(v))))
-            .stroke(cx.theme().border)
-            .paint(&plot, window);
-        PlotAxis::new()
-            .stroke(cx.theme().border)
-            .x(px(height))
-            .x_label([0, 7, 14, 21, DAYS - 1].map(|day| {
-                let date = self.start + Duration::days(day as i64);
-                let align = match day {
-                    0 => TextAlign::Left,
-                    n if n == DAYS - 1 => TextAlign::Right,
-                    _ => TextAlign::Center,
-                };
-                AxisText::new(date.format("%m-%d").to_string(), px(x(day)), muted)
-                    .align(align)
-                    .font_size(font_size)
-            }))
-            .y(px(0.))
-            .y_label_side(AxisLabelSide::Start)
-            .y_label(labels.into_iter().zip(ticks).map(|(label, fee)| {
-                AxisText::new(label, px(y(fee)), muted)
-                    .align(TextAlign::Right)
-                    .font_size(font_size)
-            }))
-            .paint(&plot, window, cx);
-        for run in self.runs() {
-            Line::new()
-                .data(run.iter().copied())
-                .x(move |p| Some(x(p.0)))
-                .y(move |p| Some(y(p.1)))
-                .curve(Curve::Linear)
-                .stroke_width(2.)
-                .stroke(stroke)
-                .dot()
-                .dot_size(4.)
-                .dot_fill(stroke)
-                .paint(&plot, window);
-        }
-    }
+fn exact_fee(date: NaiveDate, value: f64, cx: &App) -> String {
+    format!(
+        "{date}: {} USD · {}",
+        format_exact_usd(value),
+        text(cx, "recorded API estimate", "API 价目估算记录")
+    )
 }
-
 impl WorkbenchView {
     pub(super) fn claude_trend(&self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
-        let title = text(
-            cx,
-            "Daily recorded cost · last 30 days (USD)",
-            "近 30 天每日记录费用（USD）",
-        );
-        let section = div()
-            .id("workbench-claude-trend")
-            .test_support()
-            .flex()
-            .flex_col()
-            .gap(px(theme::CONTROL_GAP))
-            .p(px(theme::SECTION_GAP))
-            .rounded(px(theme::PANEL_RADIUS))
-            .bg(cx.theme().background)
-            .border_1()
-            .border_color(cx.theme().border)
-            .child(
-                div()
-                    .id("workbench-claude-trend-title")
-                    .role(gpui_kit::Role::Heading)
-                    .aria_level(3)
-                    .aria_label(title)
-                    .text_size(px(theme::SECTION_TITLE_SIZE))
-                    .font_weight(gpui_kit::FontWeight::SEMIBOLD)
-                    .child(title),
-            );
-        let state = match self.usage.as_ref() {
-            Some(Ok(report)) => match report.as_ref() {
-                InsightsSnapshot::Usage(report) => {
-                    let trend = FeeTrend::from_rows(self.usage_until, &report.trends);
-                    if !trend.points.is_empty() {
-                        let range = format!(
-                            "{} · {} – {}",
-                            text(cx, "llmusage · Reporting period", "llmusage · 统计周期"),
-                            trend.start,
-                            self.usage_until
-                        );
-                        return section
-                            .child(
-                                div()
-                                    .text_size(px(theme::META_SIZE))
-                                    .text_color(cx.theme().muted_foreground)
-                                    .child(range.clone()),
-                            )
-                            .child(
-                                div()
-                                    .id("workbench-claude-trend-plot")
-                                    .test_support()
-                                    .role(gpui_kit::Role::Image)
-                                    .aria_label(format!(
-                                        "{title}. {range}. {}: {}",
-                                        text(cx, "Days with records", "有记录的天数"),
-                                        trend.points.len()
-                                    ))
-                                    .w_full()
-                                    .h(px(PLOT_HEIGHT))
-                                    .child(
-                                        canvas(
-                                            |_, _, _| {},
-                                            move |bounds, _, window, cx| {
-                                                trend.paint(bounds, window, cx)
-                                            },
-                                        )
-                                        .size_full(),
-                                    ),
-                            )
-                            .into_any_element();
-                    }
-                    text(
-                        cx,
-                        "No daily costs recorded in this period.",
-                        "此时段没有逐日费用记录。",
-                    )
+        let mut section=div().id("workbench-claude-trend").test_support().flex_shrink_0().min_w_0().flex().flex_col().gap(px(8.))
+            .p(px(16.)).bg(cx.theme().background).rounded(px(theme::PANEL_RADIUS)).border_1().border_color(theme::hairline(cx.theme().mode))
+            .child(div().text_size(px(16.)).font_weight(gpui_kit::FontWeight::SEMIBOLD).child(text(cx,"Daily recorded cost · 30 days (USD)","每日记录费用 · 30 天（USD）")))
+            .child(div().text_size(px(12.)).text_color(cx.theme().muted_foreground).child(text(cx,"Missing dates are gaps. Tab to a recorded day, then press Enter for its exact estimate in the panel; hover shows the same line.","缺失日留空。Tab 到有记录的日期后按 Enter，可在本面板读到该日精确估算；hover 显示同一行。")));
+        if let Some(usage) = self.claude_usage() {
+            let days = calendar(self.usage_until, &usage.recent.trends);
+            let maximum = days
+                .iter()
+                .filter_map(|(_, v)| *v)
+                .fold(0_f64, f64::max)
+                .max(0.01);
+            let mut bars = div()
+                .id("workbench-claude-trend-plot")
+                .test_support()
+                .w_full()
+                .h(px(216.))
+                .flex()
+                .items_end()
+                .gap(px(3.));
+            for (index, (date, value)) in days.iter().copied().enumerate() {
+                let mut slot = div()
+                    .flex_1()
+                    .min_w_0()
+                    .h_full()
+                    .flex()
+                    .flex_col()
+                    .justify_end();
+                if let Some(value) = value {
+                    let description = exact_fee(date, value, cx);
+                    let tip: SharedString = description.clone().into();
+                    let bar = div()
+                        .id(SharedString::from(format!("claude-cost-bar-{index}")))
+                        .test_support()
+                        .role(gpui_kit::Role::Button)
+                        .aria_label(description)
+                        .tab_stop(true)
+                        .w_full()
+                        .h(px((value / maximum * 180.) as f32).max(px(3.)))
+                        .bg(theme::chart_series("claude", cx.theme().mode))
+                        .border_2()
+                        .border_color(gpui_kit::transparent_black())
+                        .focus(|style| style.border_color(cx.theme().ring))
+                        .tooltip(move |window, cx| Tooltip::new(tip.clone()).build(window, cx))
+                        .on_key_down(cx.listener(
+                            move |this, event: &gpui_kit::KeyDownEvent, _, cx| {
+                                if matches!(event.keystroke.key.as_str(), "enter" | "space") {
+                                    this.trend_highlight = Some((date, value));
+                                    this.exact_costs = true;
+                                    cx.notify();
+                                    cx.stop_propagation();
+                                }
+                            },
+                        ))
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            this.trend_highlight = Some((date, value));
+                            this.exact_costs = true;
+                            cx.notify();
+                        }));
+                    slot = slot.child(bar);
                 }
-                _ => text(cx, "Daily costs unavailable.", "逐日费用不可用。"),
-            },
-            Some(Err(error)) => service_error(cx, error),
-            None => text(cx, "Reading daily costs…", "正在读取逐日费用…"),
-        };
-        section
-            .child(
+                bars = bars.child(slot);
+            }
+            section = section.child(bars).child(
                 div()
-                    .id("workbench-claude-trend-status")
-                    .role(gpui_kit::Role::Status)
-                    .aria_label(state)
-                    .text_color(cx.theme().muted_foreground)
-                    .child(state),
-            )
-            .into_any_element()
+                    .flex()
+                    .justify_between()
+                    .text_size(px(12.))
+                    .child(days[0].0.to_string())
+                    .child(days[29].0.to_string()),
+            );
+            // 可见读数：键盘激活（或点击）某天后，日期、金额与口径同时出现在本行，不再只靠 tooltip。
+            if let Some((date, value)) = self.trend_highlight {
+                let description = exact_fee(date, value, cx);
+                section = section.child(
+                    div()
+                        .id("workbench-claude-trend-readout")
+                        .test_support()
+                        .role(gpui_kit::Role::Status)
+                        .aria_label(description.clone())
+                        .text_size(px(12.))
+                        .border_1()
+                        .rounded(px(theme::PANEL_RADIUS))
+                        .border_color(theme::hairline(cx.theme().mode))
+                        .p(px(8.))
+                        .child(description),
+                );
+            }
+            section = section.child(semantics::ghost_button(
+                Button::new("claude-cost-exact-toggle")
+                    .label(text(
+                        cx,
+                        "Exact values (days and all models)",
+                        "精确值（逐日及全部模型）",
+                    ))
+                    .ghost()
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.exact_costs = !this.exact_costs;
+                        cx.notify();
+                    })),
+                false,
+                false,
+                cx,
+            ));
+            if self.exact_costs {
+                let mut table = div()
+                    .id("claude-cost-exact-table")
+                    .test_support()
+                    .max_h(px(240.))
+                    .overflow_y_scroll()
+                    .flex()
+                    .flex_col()
+                    .gap(px(4.))
+                    .font_features(theme::tabular_figures());
+                for (date, value) in days {
+                    if let Some(value) = value {
+                        let highlighted = self.trend_highlight.is_some_and(|(day, _)| day == date);
+                        table = table.child(
+                            div()
+                                .text_size(px(12.))
+                                .when(highlighted, |row| {
+                                    row.bg(theme::chart_series("claude", cx.theme().mode))
+                                        .text_color(cx.theme().background)
+                                        .rounded(px(4.))
+                                        .px(px(4.))
+                                })
+                                .child(exact_fee(date, value, cx)),
+                        );
+                    }
+                }
+                for (label, overview) in [
+                    (text(cx, "Today", "今日"), &usage.today),
+                    (text(cx, "Month to date", "本月截至今日"), &usage.month),
+                    (
+                        text(cx, "All imported history", "全部已导入历史"),
+                        &usage.history,
+                    ),
+                ] {
+                    table = table.child(div().text_size(px(12.)).child(
+                        if overview.bucket_count == 0 {
+                            format!(
+                                "{label}: {}",
+                                text(cx, "No imported records", "尚无已导入记录")
+                            )
+                        } else {
+                            format!("{label}: {}", format_exact_usd(overview.total_cost_usd))
+                        },
+                    ));
+                }
+                section = section.child(table);
+            }
+            if usage.recent.trends.is_empty() {
+                section = section.child(text(
+                    cx,
+                    "No imported records in this window",
+                    "此窗口尚无已导入记录",
+                ));
+            }
+        } else {
+            section = section.child(text(
+                cx,
+                "Daily recorded costs unavailable",
+                "逐日记录费用不可用",
+            ));
+        }
+        section.into_any_element()
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn daily(date: NaiveDate, requests: i64, cost_usd: f64) -> DailyTrendDto {
-        DailyTrendDto {
-            date: date.to_string(),
-            request_count: requests,
+    #[test]
+    fn calendar_preserves_missing_days_and_measured_zero() {
+        let until = NaiveDate::from_ymd_opt(2026, 11, 10).unwrap_or_default();
+        let row = ccr_usage::DailyTrendDto {
+            date: until.to_string(),
+            request_count: 1,
             total_tokens: 0,
             input_tokens: 0,
             output_tokens: 0,
             reasoning_output_tokens: 0,
             cache_read_tokens: 0,
             cache_creation_tokens: 0,
-            cost_usd,
-        }
-    }
-
-    #[test]
-    fn trend_keeps_calendar_positions_cost_and_gaps_across_the_entire_query() {
-        let start = NaiveDate::from_ymd_opt(2026, 10, 9).unwrap_or_default();
-        let date = |day| start + Duration::days(day);
-        let mut rows: Vec<_> = (0..15)
-            .map(|day| daily(date(day), 100 - day, day as f64))
-            .collect();
-        rows.extend([
-            daily(date(29), 1, 72.),
-            daily(date(-1), 1, 99.),
-            daily(date(30), 1, 99.),
-        ]);
-        let trend = FeeTrend::from_rows(date(29), &rows);
-        let runs: Vec<_> = trend.runs().collect();
-        assert_eq!(trend.start, start);
-        assert_eq!(runs.len(), 2);
-        assert_eq!(runs[0].len(), 15);
-        assert_eq!(runs[0][0], (0, 0.));
-        assert_eq!(runs[0][14], (14, 14.));
-        assert_eq!(runs[1], [(29, 72.)]);
-    }
-
-    #[test]
-    fn trend_distinguishes_empty_window_from_isolated_zero() {
-        let end = NaiveDate::from_ymd_opt(2026, 11, 7).unwrap_or_default();
-        assert!(FeeTrend::from_rows(end, &[]).points.is_empty());
-        let trend = FeeTrend::from_rows(end, &[daily(end - Duration::days(8), 5, 0.)]);
-        assert_eq!(trend.points, [(21, 0.)]);
-    }
-
-    #[test]
-    fn cost_axis_is_bounded_for_finite_recorded_amounts() {
-        let date = NaiveDate::from_ymd_opt(2026, 11, 7).unwrap_or_default();
-        for (low, high) in [
-            (0., 143.5663),
-            (0., f64::from_bits(1)),
-            (0., f64::MAX),
-            (f64::MIN, f64::MAX),
-        ] {
-            let ticks = FeeTrend {
-                start: date,
-                points: vec![(0, low), (1, high)],
-            }
-            .cost_ticks();
-            assert!((2..=6).contains(&ticks.len()));
-            assert!(ticks.iter().all(|v| v.is_finite()));
-            assert!(ticks.windows(2).all(|v| v[0] < v[1]));
-            assert!(ticks[0] <= low && ticks[ticks.len() - 1] >= high);
-        }
+            cost_usd: 0.,
+        };
+        let days = calendar(until, &[row]);
+        assert_eq!(days.len(), 30);
+        assert_eq!(days[0].1, None);
+        assert_eq!(days[29].1, Some(0.));
+        assert_eq!(format_recorded_cost(0.004), "<$0.01");
     }
 }

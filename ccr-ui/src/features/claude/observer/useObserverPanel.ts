@@ -66,7 +66,7 @@ export function useObserverPanel() {
   const projectQuery = useClaudeObserverCostBreakdown('project', 30, 10)
   const modelQuery = useClaudeObserverCostBreakdown('model', 30, 10)
   const cacheQuery = useClaudeObserverCacheStats()
-  const sessionQuery = useClaudeObserverTopSessions(10, 'cost')
+  const sessionQuery = useClaudeObserverTopSessions(10, 'calls')
   const heatmapQuery = useClaudeObserverToolHeatmap(30)
   const toolsQuery = useClaudeObserverTopTools(30, 10)
   const subscriptionQuery = useClaudeObserverSubscription()

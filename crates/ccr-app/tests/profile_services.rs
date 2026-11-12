@@ -6,6 +6,183 @@ use ccr_core::core::lock::LockManager;
 use serde_json::json;
 use std::{fs, path::Path, sync::Arc};
 
+#[test]
+fn catalog_edit_and_restore_preserve_activation_and_current_item() {
+    let temp = tempfile::tempdir().unwrap();
+    let paths = paths(temp.path());
+    LockManager::with_scoped_directory(&temp.path().join("locks"), || {
+        let content = "default_config='B'\ncurrent_config='B'\n[A]\nmodel='a'\nunknown='preserved'\n[B]\nmodel='b'\n";
+        let saved=source::save_without_activation(&paths, Some("A"), content, "")?;
+        assert!(matches!(saved, source::SourceSaveOutcome::Saved { .. }),"{saved:?}");
+        let actual=source::read(&paths)?;
+        assert_eq!(toml::from_str::<toml::Value>(&actual.content).unwrap()["current_config"].as_str(),Some("A"));
+        assert_eq!(ConfigManager::new(&paths.profiles_file).load()?.current_config,"A");
+        let before = source::read(&paths)?;
+        assert!(before.content.contains("preserved"));
+        assert!(matches!(
+            source::save_without_activation(&paths, Some("A"), "[B]\nmodel='b'\n", &before.token)?,
+            source::SourceSaveOutcome::ActivationConflict { .. }
+        ));
+        assert_eq!(source::read(&paths)?.token, before.token);
+        assert!(matches!(
+            source::save_without_activation(&paths, Some("A"), content, "stale")?,
+            source::SourceSaveOutcome::Conflict
+        ));
+        let backup = paths.platform_dir.join("profiles.toml.reviewed.bak");
+        fs::write(&backup, content)?;
+        assert!(matches!(
+            backups::restore_without_activation(&paths, Some("A"), &backup)?,
+            source::SourceSaveOutcome::Saved { .. }
+        ));
+        assert_eq!(
+            ConfigManager::new(&paths.profiles_file)
+                .load()?
+                .current_config,
+            "A"
+        );
+        fs::write(&backup, "[B]\nmodel='only-b'\n")?;
+        let before = source::read(&paths)?;
+        assert!(matches!(
+            backups::restore_without_activation(&paths, Some("A"), &backup)?,
+            source::SourceSaveOutcome::ActivationConflict { .. }
+        ));
+        assert_eq!(source::read(&paths)?.token, before.token);
+        Ok(())
+    })
+    .unwrap();
+}
+
+#[test]
+fn reviewed_import_keeps_matching_names_rejects_stale_revision_and_protects_current() {
+    let temp = tempfile::tempdir().unwrap();
+    let paths = paths(temp.path());
+    LockManager::with_scoped_directory(&temp.path().join("locks"), || {
+        assert!(matches!(
+            source::save(
+                &paths,
+                None,
+                "[A]\nmodel='old'\ncustom='preserved'\n[B]\nmodel='b'\n",
+                "",
+                false
+            )
+            .unwrap(),
+            source::SourceSaveOutcome::Saved { .. }
+        ));
+        let plan = ccr_app::config::import::preview(
+            &paths,
+            "[A]\nmodel='incoming'\n[C]\nmodel='c'\n",
+            &Default::default(),
+            false,
+        )
+        .unwrap();
+        assert_eq!(plan.added, vec!["C"]);
+        assert_eq!(plan.conflicts, vec!["A"]);
+        assert!(matches!(
+            ccr_app::config::import::commit(&paths, &plan, Some("A")).unwrap(),
+            source::SourceSaveOutcome::Saved { .. }
+        ));
+        let saved = source::read(&paths).unwrap();
+        assert!(saved.content.contains("preserved"));
+        assert!(saved.content.contains("old"));
+        assert!(!saved.content.contains("incoming"));
+        assert!(matches!(
+            ccr_app::config::import::commit(&paths, &plan, Some("A")).unwrap(),
+            source::SourceSaveOutcome::Conflict
+        ));
+        let mut overwrite = std::collections::BTreeSet::new();
+        overwrite.insert("A".into());
+        let plan =
+            ccr_app::config::import::preview(&paths, "[A]\nmodel='incoming'\n", &overwrite, false)
+                .unwrap();
+        assert!(matches!(
+            ccr_app::config::import::commit(&paths, &plan, Some("A")).unwrap(),
+            source::SourceSaveOutcome::Saved { .. }
+        ));
+        let plan =
+            ccr_app::config::import::preview(&paths, "[C]\nmodel='c'\n", &Default::default(), true)
+                .unwrap();
+        assert!(matches!(
+            ccr_app::config::import::commit(&paths, &plan, Some("A")).unwrap(),
+            source::SourceSaveOutcome::ActivationConflict { .. }
+        ));
+        Ok(())
+    })
+    .unwrap();
+}
+
+#[test]
+fn replacement_preview_lists_removals_and_leaves_no_backup_behind() {
+    let temp = tempfile::tempdir().unwrap();
+    let paths = paths(temp.path());
+    LockManager::with_scoped_directory(&temp.path().join("locks"), || {
+        source::save(
+            &paths,
+            None,
+            "[A]
+model='old'
+[B]
+model='b'
+",
+            "",
+            false,
+        )
+        .unwrap();
+        // 备份与配置文件同目录，命名形如 .ccs_config.toml.*.bak。
+        let backup_count = |paths: &PlatformPaths| {
+            std::fs::read_dir(paths.profiles_file.parent().unwrap())
+                .map(|entries| {
+                    entries
+                        .filter_map(|entry| entry.ok())
+                        .filter(|entry| entry.file_name().to_string_lossy().ends_with(".bak"))
+                        .count()
+                })
+                .unwrap_or(0)
+        };
+        let backups_before = backup_count(&paths);
+        // 预览可以点很多次；未提交的预览不能留下备份文件。
+        for _ in 0..3 {
+            let plan = ccr_app::config::import::preview(
+                &paths,
+                "[A]
+model='new'
+",
+                &Default::default(),
+                true,
+            )
+            .unwrap();
+            assert_eq!(plan.removed, vec!["B".to_string()]);
+            assert!(plan.added.is_empty());
+        }
+        let backups_after = backup_count(&paths);
+        assert_eq!(
+            backups_after, backups_before,
+            "an uncommitted replacement preview must not write backups"
+        );
+        // 提交时才备份，并且移除列表与结果一致。
+        let plan = ccr_app::config::import::preview(
+            &paths,
+            "[A]
+model='new'
+",
+            &Default::default(),
+            true,
+        )
+        .unwrap();
+        assert!(matches!(
+            ccr_app::config::import::commit(&paths, &plan, Some("A")).unwrap(),
+            source::SourceSaveOutcome::Saved { .. }
+        ));
+        let stored = source::read(&paths).unwrap();
+        assert!(!stored.content.contains("[B]"));
+        assert!(
+            backup_count(&paths) > backups_after,
+            "commit must back up the preimage"
+        );
+        Ok::<(), ccr_core::CcrError>(())
+    })
+    .unwrap();
+}
+
 fn paths(root: &Path) -> PlatformPaths {
     PlatformPaths {
         root: root.into(),
@@ -346,6 +523,20 @@ fn native_advanced_fields_match_dedicated_patch_capabilities() {
     );
     // This stricter native gate must not change existing Tauri unknown-field behavior.
     assert!(profile_patch::claude::build(&json!({"legacy_unknown":true})).is_ok());
+}
+
+#[test]
+fn explicit_export_creates_only_new_absolute_files() {
+    let root = tempfile::tempdir().unwrap();
+    let file = root.path().join("export.toml");
+    assert!(ccr_app::config::source::save_export(&file, "credential = 'fixture'").unwrap());
+    let before = fs::read(&file).unwrap();
+    assert!(!ccr_app::config::source::save_export(&file, "replacement").unwrap());
+    assert_eq!(fs::read(&file).unwrap(), before);
+    assert!(ccr_app::config::source::save_export(Path::new("relative.toml"), "x").is_err());
+    assert!(
+        ccr_app::config::source::save_export(&root.path().join("../escape.toml"), "x").is_err()
+    );
 }
 
 /// Evidence tool, invoked directly from its prebuilt test executable while CU runs.

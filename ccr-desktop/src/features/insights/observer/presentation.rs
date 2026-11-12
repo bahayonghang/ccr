@@ -98,9 +98,14 @@ fn table(
             .border_t_1()
             .border_color(cx.theme().border);
         for (key, _) in columns {
-            let value = cell(row.get(*key));
+            let value = if *key == "cost_usd" && row.get(*key).is_none_or(Value::is_null) {
+                text(cx, "Not recorded", "未记录").to_string()
+            } else {
+                cell(row.get(*key))
+            };
             let mut cell = div()
                 .id(SharedString::from(format!("cell-{key}")))
+                .test_support()
                 .role(gpui_kit::Role::Cell)
                 .aria_label(value.clone())
                 .flex_1()
@@ -149,6 +154,28 @@ pub(super) fn report(view: &ObserverView, cx: &mut Context<ObserverView>) -> gpu
                 ("total_projects", "Projects", "项目"),
                 ("roi", "Monthly value / subscription", "本月费用 / 订阅费"),
             ] {
+                let display = if key == "total_projects"
+                    && value
+                        .get("project_attribution_complete")
+                        .and_then(Value::as_bool)
+                        != Some(true)
+                {
+                    let count = value.get(key).and_then(Value::as_i64).unwrap_or(0);
+                    if count == 0 {
+                        text(cx, "Projects unattributed", "项目未归属").to_string()
+                    } else {
+                        format!(
+                            "{count} · {}",
+                            text(
+                                cx,
+                                "Attributed projects (partial coverage)",
+                                "已归属项目（部分记录未归属）"
+                            )
+                        )
+                    }
+                } else {
+                    cell(value.get(key))
+                };
                 totals = totals.child(
                     div()
                         .flex()
@@ -161,8 +188,11 @@ pub(super) fn report(view: &ObserverView, cx: &mut Context<ObserverView>) -> gpu
                         )
                         .child(
                             div()
+                                .id(SharedString::from(format!("observer-total-{key}")))
+                                .test_support()
+                                .aria_label(display.clone())
                                 .font_family(cx.theme().mono_font_family.clone())
-                                .child(cell(value.get(key))),
+                                .child(display),
                         ),
                 );
             }
@@ -242,7 +272,23 @@ pub(super) fn report(view: &ObserverView, cx: &mut Context<ObserverView>) -> gpu
             ));
             root = root.child(table(
                 "observer-tool-heatmap",
-                text(cx, "Calls by weekday and hour", "星期与小时调用分布"),
+                match value.get("timezone").and_then(Value::as_str) {
+                    Some("utc") => text(
+                        cx,
+                        "Calls by weekday and hour · UTC",
+                        "星期与小时调用分布 · UTC",
+                    ),
+                    Some("local") => text(
+                        cx,
+                        "Calls by weekday and hour · local time",
+                        "星期与小时调用分布 · 本地时间",
+                    ),
+                    _ => text(
+                        cx,
+                        "Calls by weekday and hour · time zone unavailable",
+                        "星期与小时调用分布 · 时区不可用",
+                    ),
+                },
                 value.get("heatmap"),
                 &[
                     ("dow", text(cx, "Weekday (0 = Sunday)", "星期（0 为周日）")),

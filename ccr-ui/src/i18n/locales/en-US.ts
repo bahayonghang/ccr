@@ -660,6 +660,8 @@ export default {
       unindexedTitle: 'Sessions not indexed',
       unindexedNotice: 'The session archive is not indexed, so session counts show —. Index sessions on the Usage page.',
       weekStart: 'Week of',
+      projectsUnattributedNotice: 'Projects unattributed: imported usage has no project identity.',
+      projectsPartialNotice: 'Some usage has no project attribution. Counts and rankings include attributed projects only.',
       weekTotal: 'Week total',
       totals: {
         ariaLabel: 'Insights totals',
@@ -1050,6 +1052,8 @@ export default {
         totalValue: 'API value total',
         monthValueDetail: 'vs {monthly}/mo subscription, ROI {roi}',
         totalValueDetail: '{sessions} sessions · {projects} projects',
+        totalValuePartialDetail: '{sessions} sessions · {projects} attributed projects (partial coverage)',
+        totalValueUnattributedDetail: '{sessions} sessions · projects unattributed',
         tokensUnit: 'tokens',
         cacheHitRate: 'Cache hit rate',
         cacheHitRateDetail: 'cache_read / (input + cache_read)',
@@ -1069,6 +1073,7 @@ export default {
         dailyTokens30Sub: 'Stacked: input / output / cache_read / cache_write.',
         toolHeatmap: 'Tool call heatmap',
         toolHeatmapSub: 'Last 30 days, day-of-week × hour.',
+        localTime: 'Local time',
         preparingHeatmap: 'Preparing heatmap…',
         topTools: 'Top tools',
         topToolsSub: 'Sorted by call count, top 10.',
@@ -1103,8 +1108,9 @@ export default {
       behavior: {
         sourceNote:
           'Counted by tool-call events; source differs from the 30-minute aggregation used above.',
-        efficiencyTitle: 'Session efficiency',
-        efficiencySub: 'Top 10 sessions by cost and tool-call count.',
+        efficiencyTitle: 'Observed tool sessions',
+        efficiencySub: 'Top 10 sessions by tool-call count. Unrecorded costs remain unknown.',
+        notRecorded: 'Not recorded',
         colSession: 'Session',
         colProject: 'Project',
         colCost: 'Cost',

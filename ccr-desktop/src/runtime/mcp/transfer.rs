@@ -187,9 +187,17 @@ impl Services {
         source: McpEntry,
         target: McpTarget,
     ) -> Result<TaskSubscription<Arc<McpCopySession>, McpError>, AdmissionError> {
+        let scope = self.platform_scope;
         let config = self.source.clone();
         let environment = key.environment.clone();
         self.executor.read(key, move |_, _| {
+            if scope.is_some_and(|platform| {
+                target.platform() != platform
+                    || !McpTarget::for_entry(&source)
+                        .is_ok_and(|source| source.platform() == platform)
+            }) {
+                return Err(McpError::UnsupportedSource);
+            }
             let source_session =
                 editor::begin(&config, &environment, McpTarget::for_entry(&source)?)?;
             let entry = portable_entry(source_session.entry_for_copy(&source.name)?, &target)?;
@@ -208,11 +216,17 @@ impl Services {
         session: Arc<McpCopySession>,
         name: String,
     ) -> Result<TaskSubscription<(), McpError>, AdmissionError> {
+        let scope = self.platform_scope;
         let environment = key.environment.clone();
         let source = self.source.clone();
         self.executor.job(key, move |cancel, _| {
             if cancel.is_cancelled() {
                 return Completion::Cancelled;
+            }
+            if scope.is_some_and(|platform| {
+                session.source.platform != platform || session.target.platform != platform
+            }) {
+                return Completion::Failed(McpError::UnsupportedSource);
             }
             match session
                 .source

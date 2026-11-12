@@ -15,7 +15,7 @@ use crate::{
 use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent};
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
-    FocusTrapElement,
+    ActiveTheme, FocusTrapElement,
     button::{Button, ButtonVariants},
     input::{Textarea, TextareaState},
 };
@@ -33,6 +33,7 @@ enum Decision {
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum ResourceSurface {
+    ClaudeExtensions,
     OpenCode,
     Antigravity,
     Instructions,
@@ -44,6 +45,8 @@ pub struct ResourcesView {
     services: Services,
     platform: Platform,
     rows: Vec<PromptRow>,
+    extension_sources: Vec<ccr_app::resources::claude_extensions::Source>,
+    pinned: bool,
     session: Option<Arc<PromptSession>>,
     editor: Entity<TextareaState>,
     pending_content: Option<String>,
@@ -113,6 +116,8 @@ impl ResourcesView {
             services,
             platform: Platform::Claude,
             rows: Vec::new(),
+            extension_sources: Vec::new(),
+            pinned: false,
             session: None,
             editor: cx.new(|cx| TextareaState::new(window, cx)),
             pending_content: None,
@@ -179,6 +184,10 @@ impl ResourcesView {
     }
     pub fn load(&mut self, cx: &mut Context<Self>) {
         match self.surface {
+            ResourceSurface::ClaudeExtensions => {
+                self.request(ResourceCommand::ListClaudeExtensions, cx);
+                return;
+            }
             ResourceSurface::OpenCode => {
                 self.opencode.update(cx, |view, cx| view.load(cx));
                 return;
@@ -206,6 +215,7 @@ impl ResourcesView {
         cx: &mut Context<Self>,
     ) {
         self.leave(window, cx);
+        self.pinned = true;
         self.platform = platform;
         self.load(cx);
     }
@@ -229,11 +239,12 @@ impl ResourcesView {
     ) {
         self.leave(window, cx);
         self.platform = platform;
+        self.pinned = true;
         self.surface = match platform {
             Platform::Codex => ResourceSurface::Codex,
             Platform::Gemini => ResourceSurface::Antigravity,
             Platform::OpenCode => ResourceSurface::OpenCode,
-            _ => ResourceSurface::Claude,
+            _ => ResourceSurface::ClaudeExtensions,
         };
         self.load(cx);
     }
@@ -273,7 +284,7 @@ impl ResourcesView {
                 ResourceSurface::Antigravity => self.antigravity.read(cx).blocks_switch(),
                 ResourceSurface::Claude => self.claude.read(cx).blocks_switch(),
                 ResourceSurface::Codex => self.codex.read(cx).blocks_switch(),
-                ResourceSurface::Instructions => false,
+                ResourceSurface::Instructions | ResourceSurface::ClaudeExtensions => false,
             }
     }
     fn select_surface(
@@ -327,6 +338,7 @@ impl ResourcesView {
                             if !this.gate.accepts(&key) { return; }
                             this.busy = false;
                             match result.as_ref() {
+                                Completion::Success(ResourceResult::Extensions(sources)) => this.extension_sources=sources.clone(),
                                 Completion::Success(ResourceResult::Prompts(rows)) => this.rows = rows.clone(),
                                 Completion::Success(ResourceResult::Opened(session)) => {
                                     this.pending_content = Some(session.snapshot.content.clone());
@@ -432,7 +444,7 @@ impl Render for ResourcesView {
             .on_key_down(cx.listener(|this, event: &gpui_kit::KeyDownEvent, window, cx| {
                 if event.keystroke.key == "escape" && this.decision.is_some() { this.dismiss(window, cx); cx.stop_propagation(); }
             }))
-            .child(div().flex_shrink_0().text_size(px(theme::TITLE_SIZE)).child(if self.surface == ResourceSurface::Instructions { text(cx, "User instruction files", "用户指令文件") } else { text(cx, "Platform resources", "平台资源") }))
+
             .child(div().flex_shrink_0().child(text(cx, "Local resources, original revision and managed backup. Remote environments do not fall back to Local.", "本地资源、原始版本与托管备份。远程环境不会回退本地。")));
         let mut platforms = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
         for (platform, name) in [
@@ -455,7 +467,9 @@ impl Render for ResourcesView {
                 cx,
             ));
         }
-        root = root.child(platforms.flex_shrink_0());
+        if !self.pinned {
+            root = root.child(platforms.flex_shrink_0());
+        }
         let mut surfaces = div()
             .flex()
             .flex_wrap()
@@ -472,32 +486,31 @@ impl Render for ResourcesView {
                 false,
                 cx,
             ));
-        let extension = match self.platform {
-            Platform::OpenCode => Some((
-                ResourceSurface::OpenCode,
-                "resource-opencode",
-                text(cx, "Agents and commands", "代理与命令"),
-            )),
-            Platform::Gemini => Some((
-                ResourceSurface::Antigravity,
-                "resource-antigravity",
-                text(cx, "Commands and extensions", "命令与扩展"),
-            )),
-            Platform::Claude => Some((
-                ResourceSurface::Claude,
-                "resource-claude",
-                text(cx, "Rules and Claude resources", "规则与 Claude 资源"),
-            )),
-            Platform::Codex => Some((
-                ResourceSurface::Codex,
-                "resource-codex-agents",
-                text(cx, "Agents and sources", "代理与来源"),
-            )),
-            _ => None,
-        };
-        if let Some((surface, id, label)) = extension {
+        if !self.pinned {
+            let (surface, id, label) = match self.platform {
+                Platform::OpenCode => (
+                    ResourceSurface::OpenCode,
+                    "resource-opencode",
+                    "OpenCode files",
+                ),
+                Platform::Gemini => (
+                    ResourceSurface::Antigravity,
+                    "resource-antigravity",
+                    "Antigravity compatibility files",
+                ),
+                Platform::Codex => (
+                    ResourceSurface::Codex,
+                    "resource-codex-agents",
+                    "Codex agents and sources",
+                ),
+                _ => (
+                    ResourceSurface::Claude,
+                    "resource-claude",
+                    "Claude rules and output styles",
+                ),
+            };
             surfaces =
-                surfaces.child(semantics::button(
+                surfaces.child(semantics::ghost_button(
                     Button::new(id).label(label).ghost().on_click(cx.listener(
                         move |this, _, window, cx| this.select_surface(surface, window, cx),
                     )),
@@ -505,9 +518,133 @@ impl Render for ResourcesView {
                     false,
                     cx,
                 ));
+            root = root.child(surfaces);
+        } else if matches!(
+            self.surface,
+            ResourceSurface::Instructions | ResourceSurface::Claude
+        ) && self.platform == Platform::Claude
+        {
+            root = root.child(
+                div()
+                    .flex()
+                    .flex_wrap()
+                    .gap(px(8.))
+                    .child(semantics::ghost_button(
+                        Button::new("claude-instructions-files")
+                            .label(text(cx, "Instruction files", "指令文件"))
+                            .ghost()
+                            .on_click(cx.listener(|this, _, window, cx| {
+                                this.select_surface(ResourceSurface::Instructions, window, cx)
+                            })),
+                        switch_blocked,
+                        false,
+                        cx,
+                    ))
+                    .child(semantics::ghost_button(
+                        Button::new("claude-instructions-rules")
+                            .label(text(cx, "Rules", "规则"))
+                            .ghost()
+                            .on_click(cx.listener(|this, _, window, cx| {
+                                this.open_claude(
+                                    crate::runtime::resources::claude_files::Kind::Rules,
+                                    window,
+                                    cx,
+                                )
+                            })),
+                        switch_blocked,
+                        false,
+                        cx,
+                    ))
+                    .child(semantics::ghost_button(
+                        Button::new("claude-instructions-output-styles")
+                            .label(text(cx, "Output styles", "输出样式"))
+                            .ghost()
+                            .on_click(cx.listener(|this, _, window, cx| {
+                                this.open_claude(
+                                    crate::runtime::resources::claude_files::Kind::OutputStyles,
+                                    window,
+                                    cx,
+                                )
+                            })),
+                        switch_blocked,
+                        false,
+                        cx,
+                    )),
+            );
         }
-        root = root.child(surfaces);
         match self.surface {
+            ResourceSurface::ClaudeExtensions => {
+                root=root.child(div().text_size(px(12.)).child(text(cx,"Read-only user metadata. Discovery does not verify client loading; no installation, network or execution. Legacy CCR arrays are preserved and are not read by Claude.","用户级元数据只读清单。发现不证明客户端已加载；不安装、不联网、不执行。旧 CCR 数组保留，Claude 不读取。")));
+                for (index, source) in self.extension_sources.iter().enumerate() {
+                    let state = match source.state {
+                        ccr_app::resources::claude_extensions::State::Discovered => text(
+                            cx,
+                            "Discovered; client loading unverified",
+                            "已发现；客户端加载未验证",
+                        ),
+                        ccr_app::resources::claude_extensions::State::Empty => {
+                            text(cx, "No entries discovered", "未发现条目")
+                        }
+                        ccr_app::resources::claude_extensions::State::Missing => {
+                            text(cx, "Source not found", "来源未找到")
+                        }
+                        ccr_app::resources::claude_extensions::State::NotConnected => {
+                            text(cx, "Not connected", "未接入")
+                        }
+                        ccr_app::resources::claude_extensions::State::Invalid => {
+                            text(cx, "Invalid manifest", "清单格式无效")
+                        }
+                        ccr_app::resources::claude_extensions::State::Limit => {
+                            text(cx, "Source exceeds scan limit", "来源超出扫描限额")
+                        }
+                        ccr_app::resources::claude_extensions::State::Unreadable => {
+                            text(cx, "Source unreadable", "来源不可读")
+                        }
+                        ccr_app::resources::claude_extensions::State::Unsafe => {
+                            text(cx, "Unsafe source path refused", "来源路径不安全，已拒绝")
+                        }
+                    };
+                    let mut list = div()
+                        .id(format!("claude-extension-source-{index}"))
+                        .test_support()
+                        .flex_shrink_0()
+                        .flex()
+                        .flex_col()
+                        .gap(px(8.))
+                        .p(px(16.))
+                        .bg(cx.theme().background)
+                        .rounded(px(12.))
+                        .child(format!(
+                            "{}: {state}",
+                            match source.label {
+                                "Subagents" => text(cx, "Subagents · user", "子代理 · 用户级"),
+                                "Skills" => text(cx, "Skills · user", "技能 · 用户级"),
+                                "Legacy slash commands" =>
+                                    text(cx, "Legacy slash commands · user", "旧斜杠命令 · 用户级"),
+                                "Plugins (installation registry)" => text(
+                                    cx,
+                                    "Plugins · installation registry",
+                                    "插件 · 安装登记清单"
+                                ),
+                                "Project scope (no project selected)" => text(
+                                    cx,
+                                    "Project scope (no project selected)",
+                                    "项目范围（未选择项目）"
+                                ),
+                                _ => text(
+                                    cx,
+                                    "Legacy CCR entries — Claude does not read these arrays",
+                                    "旧版 CCR 条目 — Claude 不读取这些数组"
+                                ),
+                            }
+                        ));
+                    for name in &source.names {
+                        list = list.child(div().text_size(px(12.)).child(name.clone()));
+                    }
+                    root = root.child(list);
+                }
+                return root.overflow_y_scroll();
+            }
             ResourceSurface::OpenCode => {
                 return root.child(div().flex_1().min_h_0().child(self.opencode.clone()));
             }

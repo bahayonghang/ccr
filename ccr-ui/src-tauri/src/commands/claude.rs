@@ -4,7 +4,6 @@
 //! 所有读写操作直接访问 ~/.claude/settings.json（通过 ccr::SettingsManager）和
 //! ~/.claude.json（内联实现 ClaudeConfigManager 逻辑）。
 
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use serde::Serialize;
@@ -214,27 +213,21 @@ mod fixture_tests;
 
 // ── Output Styles directory ──
 
-fn output_styles_dir() -> std::io::Result<PathBuf> {
-    let home = std::env::var("HOME")
-        .or_else(|_| std::env::var("USERPROFILE"))
-        .map_err(|_| {
-            std::io::Error::new(std::io::ErrorKind::NotFound, "HOME/USERPROFILE not set")
-        })?;
-    Ok(PathBuf::from(home).join(".claude").join("output-styles"))
-}
-
 fn output_styles_store() -> Result<ccr_app::resources::claude_files::Store, String> {
-    let directory = output_styles_dir().map_err(|error| error.to_string())?;
-    let root = directory
-        .parent()
-        .ok_or_else(|| "output_style_path_invalid".to_string())?;
-    let paths = PlatformPaths::new(Platform::Claude).map_err(|error| error.to_string())?;
-    let locks =
-        ccr_core::core::LockManager::with_default_path().map_err(|error| error.to_string())?;
+    let (paths, locks) = match crate::fixture::current() {
+        Some(layout) => (layout.roots.claude.clone(), layout.roots.locks.clone()),
+        None => {
+            let paths =
+                ccr_config::ClaudeRuntimePaths::from_env().map_err(|error| error.to_string())?;
+            let locks = ccr_core::core::LockManager::with_default_path()
+                .map_err(|error| error.to_string())?;
+            (paths, locks.lock_dir().to_path_buf())
+        }
+    };
     Ok(ccr_app::resources::claude_files::Store::new(
-        root.to_path_buf(),
+        paths.config_dir,
         paths.backups_dir.join("output-styles"),
-        locks.lock_dir().to_path_buf(),
+        locks,
     ))
 }
 

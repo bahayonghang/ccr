@@ -4,6 +4,31 @@ use crate::runtime::ConfigSource;
 use ccr_app::runtime::{Platform, RuntimeOwner};
 use std::time::Duration;
 
+#[test]
+fn captured_non_codex_scope_rejects_trash_and_prepared_commands_without_side_effects() {
+    let (root, owner, services, path, id) = fixture();
+    let global = InsightsRequests::new(&services);
+    let prepared = global.prepare_session(&id).unwrap();
+    let claude = global.clone().scoped(Some(Platform::Claude));
+    let before = std::fs::read(&path).unwrap();
+    assert!(matches!(
+        claude.read_session_trash(),
+        Err(Failure::Unsupported)
+    ));
+    assert!(matches!(
+        claude.prepare_session(&id),
+        Err(Failure::Unsupported)
+    ));
+    assert!(matches!(
+        claude.run_session_operation(&prepared, Action::Trash),
+        Err(Failure::Unsupported)
+    ));
+    assert_eq!(std::fs::read(&path).unwrap(), before);
+    assert!(!root.path().join("home/.codex/.ccr-trash").exists());
+    assert!(global.read_session_trash().unwrap().is_empty());
+    owner.shutdown();
+}
+
 pub(crate) fn fixture() -> (tempfile::TempDir, RuntimeOwner, Services, PathBuf, String) {
     let root = tempfile::tempdir().unwrap();
     let home = root.path().join("home");

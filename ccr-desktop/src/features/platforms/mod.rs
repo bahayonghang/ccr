@@ -25,6 +25,7 @@ use gpui_kit::component::{
     button::{Button, ButtonVariants},
     input::{Input, InputState, Textarea, TextareaState},
 };
+use gpui_kit::prelude::FluentBuilder;
 use gpui_kit::{
     AppContext, Context, Entity, FocusHandle, Focusable, InteractiveElement, IntoElement,
     ParentElement, Render, SharedString, StatefulInteractiveElement, Styled, Task, Window, div, px,
@@ -1485,7 +1486,9 @@ impl Render for PlatformsView {
                     }
                 }),
             )
-            .child(div().text_size(px(theme::TITLE_SIZE)).child(title))
+            .when(!self.pinned, |root| {
+                root.child(div().text_size(px(theme::TITLE_SIZE)).child(title))
+            })
             .child(tabs);
         let mut surfaces = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
         let descriptor = DESCRIPTORS
@@ -1556,7 +1559,33 @@ impl Render for PlatformsView {
                 cx,
             ));
         }
-        root = root.child(surfaces);
+        if !self.pinned {
+            root = root.child(surfaces);
+        } else if self.platform == Platform::OpenCode {
+            // 平台 tab 已覆盖设置与供应商，但 OpenCode 的 tui.json 没有对应 tab：
+            // 嵌入时保留一个子入口，避免这次布局改动删掉已有能力。
+            let mut tui = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
+            for (id, surface, en, zh) in [
+                ("platform-tui", Surface::Tui, "TUI", "终端界面"),
+                ("platform-settings", Surface::Settings, "Settings", "设置"),
+            ] {
+                if self.surface == surface {
+                    continue;
+                }
+                tui = tui.child(semantics::button(
+                    Button::new(id)
+                        .label(text(cx, en, zh))
+                        .ghost()
+                        .on_click(cx.listener(move |this, _, window, cx| {
+                            this.select(this.platform, surface, window, cx)
+                        })),
+                    blocked,
+                    false,
+                    cx,
+                ));
+            }
+            root = root.child(tui);
+        }
         if matches!(
             self.platform,
             Platform::Claude | Platform::Codex | Platform::Grok

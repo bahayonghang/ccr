@@ -55,84 +55,68 @@ impl Shell {
     pub(super) fn platform(&self) -> Option<Platform> {
         self.destination.platform()
     }
-    pub(super) fn platform_toolbar(&self, cx: &mut Context<Self>) -> AnyElement {
-        let platform = self.platform().unwrap_or(Platform::Claude);
-        let mut items = vec![("tool-home", Lens::Primary, "Workbench", "工作台")];
-        if matches!(
-            platform,
-            Platform::Claude | Platform::Codex | Platform::Grok
-        ) {
-            items.push(("tool-profiles", Lens::Profiles, "Profiles", "Profiles"));
-            items.push(("tool-auth", Lens::Auth, "Authentication", "认证"));
+    pub(super) fn platform_items(&self) -> Vec<LensItem> {
+        platform_items(self.platform().unwrap_or(Platform::Claude))
+    }
+}
+
+pub(super) fn platform_items(platform: Platform) -> Vec<LensItem> {
+    let mut items = vec![("tool-home", Lens::Primary, "Workbench", "工作台")];
+    if matches!(
+        platform,
+        Platform::Claude | Platform::Codex | Platform::Grok
+    ) {
+        items.extend([
+            ("tool-profiles", Lens::Profiles, "Profiles", "配置方案"),
+            ("tool-auth", Lens::Auth, "Accounts", "账户"),
+        ]);
+    }
+    items.push(("tool-settings", Lens::Accounts, "Settings", "设置"));
+    if matches!(platform, Platform::Codex | Platform::OpenCode) {
+        items.push(("tool-providers", Lens::Providers, "Providers", "供应商"));
+    }
+    if platform == Platform::Codex {
+        items.push(("tool-models", Lens::Models, "Models", "模型"));
+    }
+    if !matches!(platform, Platform::Grok | Platform::OpenCode) {
+        items.push(("tool-platform-mcp", Lens::Mcp, "MCP", "MCP"));
+    }
+    if platform != Platform::Grok {
+        items.extend([
+            ("tool-files", Lens::Files, "Instructions", "指令"),
+            ("tool-extensions", Lens::Extensions, "Extensions", "扩展"),
+        ]);
+    }
+    items.push(("tool-platform-usage", Lens::Usage, "Usage", "用量"));
+    if matches!(platform, Platform::Claude | Platform::Codex) {
+        items.push(("tool-platform-sessions", Lens::Sessions, "Sessions", "会话"));
+    }
+    items
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn approved_navigation_has_exact_platform_capabilities_and_ids() {
+        for (platform, count) in [
+            (Platform::Claude, 9),
+            (Platform::Codex, 11),
+            (Platform::Grok, 5),
+            (Platform::Gemini, 6),
+            (Platform::OpenCode, 6),
+        ] {
+            let items = platform_items(platform);
+            assert_eq!(items.len(), count);
+            assert!(items.iter().any(|item| item.0 == "tool-settings"));
+            assert!(!items.iter().any(|item| matches!(
+                item.0,
+                "tool-accounts"
+                    | "tool-agents"
+                    | "tool-plugins"
+                    | "tool-subscription"
+                    | "tool-slash-commands"
+            )));
         }
-        items.push((
-            "tool-accounts",
-            Lens::Accounts,
-            "Settings and sources",
-            "设置与来源",
-        ));
-        if matches!(platform, Platform::Codex | Platform::OpenCode) {
-            items.push(("tool-providers", Lens::Providers, "Providers", "供应商"));
-        }
-        if platform == Platform::Codex {
-            items.push(("tool-models", Lens::Models, "Models", "模型"));
-        }
-        if !matches!(platform, Platform::Grok | Platform::OpenCode) {
-            items.push(("tool-platform-mcp", Lens::Mcp, "MCP", "MCP"));
-        }
-        if platform != Platform::Grok {
-            items.push(("tool-files", Lens::Files, "Instruction files", "指令文件"));
-        }
-        match platform {
-            Platform::Codex => items.push((
-                "tool-extensions",
-                Lens::Extensions,
-                "Agents and sources",
-                "代理与来源",
-            )),
-            Platform::OpenCode => items.push((
-                "tool-extensions",
-                Lens::Extensions,
-                "Agents and plugins",
-                "代理与插件",
-            )),
-            Platform::Gemini => {
-                items.push(("tool-extensions", Lens::Extensions, "Commands", "Commands"))
-            }
-            _ => {}
-        }
-        if platform == Platform::Claude {
-            items.extend([
-                ("tool-agents", Lens::Agents, "Agents", "Agents"),
-                ("tool-plugins", Lens::Plugins, "Plugins", "Plugins"),
-                (
-                    "tool-slash-commands",
-                    Lens::SlashCommands,
-                    "Commands",
-                    "Commands",
-                ),
-                (
-                    "tool-subscription",
-                    Lens::Observer,
-                    "Subscription and tools",
-                    "订阅与工具",
-                ),
-            ]);
-        }
-        if matches!(platform, Platform::Claude | Platform::Codex) {
-            items.push(("tool-platform-sessions", Lens::Sessions, "Sessions", "会话"));
-        }
-        items.push(("tool-platform-usage", Lens::Usage, "Usage", "用量"));
-        let mut capsule = super::page_header::capsule(cx);
-        for (id, lens, en, zh) in items {
-            capsule = capsule.child(self.lens_button(id, lens, en, zh, cx));
-        }
-        // 平台名只作为胶囊左侧的上下文标签；页面自己的标题保留在下方。
-        super::page_header::row(
-            "platform-context-navigation",
-            Some(crate::features::workbench::name(platform).into()),
-            capsule,
-            cx,
-        )
     }
 }

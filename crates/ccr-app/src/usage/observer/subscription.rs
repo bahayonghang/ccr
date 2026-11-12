@@ -56,6 +56,52 @@ pub enum SaveOutcome {
     Conflict,
 }
 
+/// Missing keys are distinct from explicitly saved defaults; storage errors propagate.
+pub fn read_saved(conn: &Connection) -> Result<Option<SubscriptionDto>, rusqlite::Error> {
+    let tx = conn.unchecked_transaction()?;
+    let value = read_saved_keys(&tx)?;
+    tx.commit()?;
+    Ok(value)
+}
+
+fn read_saved_keys(conn: &Connection) -> Result<Option<SubscriptionDto>, rusqlite::Error> {
+    let values = [
+        user_settings_repo::get(conn, KEY_MODE)?,
+        user_settings_repo::get(conn, KEY_PLAN)?,
+        user_settings_repo::get(conn, KEY_MONTHLY)?,
+    ];
+    if values.iter().all(Option::is_none) {
+        return Ok(None);
+    }
+    if values.iter().any(Option::is_none) {
+        return Err(rusqlite::Error::InvalidQuery);
+    }
+    if !values[2]
+        .as_deref()
+        .and_then(|raw| raw.parse::<f64>().ok())
+        .is_some_and(|value| value.is_finite() && value >= 0.)
+    {
+        return Err(rusqlite::Error::InvalidQuery);
+    }
+    Ok(Some(read(conn)?))
+}
+
+/// Atomically compare saved presence and values before updating all subscription keys.
+pub fn save_saved_if_current(
+    conn: &Connection,
+    expected: Option<&SubscriptionDto>,
+    proposed: &SubscriptionDto,
+) -> Result<SaveOutcome, rusqlite::Error> {
+    let tx = rusqlite::Transaction::new_unchecked(conn, rusqlite::TransactionBehavior::Immediate)?;
+    let current = read_saved_keys(&tx)?;
+    if current.as_ref() != expected {
+        return Ok(SaveOutcome::Conflict);
+    }
+    let saved = set(&tx, &proposed.mode, &proposed.plan, proposed.monthly_usd)?;
+    tx.commit()?;
+    Ok(SaveOutcome::Saved(saved))
+}
+
 /// Compare and update all three keys under the same writer transaction.
 pub fn save_if_current(
     conn: &Connection,
@@ -164,6 +210,35 @@ mod tests {
         run_initial_migration(&conn).unwrap();
         run_migration_v14(&conn).unwrap();
         conn
+    }
+
+    #[test]
+    fn saved_presence_distinguishes_defaults_and_preserves_cas() {
+        let conn = fresh_conn();
+        let defaults = SubscriptionDto::default();
+        assert_eq!(read_saved(&conn).unwrap(), None);
+        assert_eq!(
+            save_saved_if_current(&conn, None, &defaults).unwrap(),
+            SaveOutcome::Saved(defaults.clone())
+        );
+        assert_eq!(read_saved(&conn).unwrap(), Some(defaults.clone()));
+        assert_eq!(
+            save_saved_if_current(&conn, None, &defaults).unwrap(),
+            SaveOutcome::Conflict
+        );
+        let mut changed = defaults.clone();
+        changed.monthly_usd = 99.0;
+        assert_eq!(
+            save_saved_if_current(&conn, Some(&defaults), &changed).unwrap(),
+            SaveOutcome::Saved(changed.clone())
+        );
+        assert_eq!(
+            save_saved_if_current(&conn, Some(&defaults), &defaults).unwrap(),
+            SaveOutcome::Conflict
+        );
+        assert_eq!(read_saved(&conn).unwrap(), Some(changed));
+        let broken = Connection::open_in_memory().unwrap();
+        assert!(read_saved(&broken).is_err());
     }
 
     #[test]

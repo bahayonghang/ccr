@@ -3,7 +3,7 @@ use crate::{
     features::profiles::ProfileTools,
     locales::{is_chinese, service_error, text},
     runtime::Services,
-    shell::semantics,
+    shell::{badge, semantics},
     theme,
 };
 use ccr_app::{
@@ -29,6 +29,12 @@ use std::sync::Arc;
 pub struct ConfigurationApp {
     services: Services,
     rows: Arc<Vec<ConfigRow>>,
+    all_rows: Arc<Vec<ConfigRow>>,
+    provider_filter: Option<String>,
+    tag_filter: Option<String>,
+    enabled_filter: Option<bool>,
+    sort_usage: bool,
+    management: bool,
     selected: Option<String>,
     detail_open: bool,
     gate: ResponseGate,
@@ -37,6 +43,7 @@ pub struct ConfigurationApp {
     loading: bool,
     error: Option<&'static str>,
     search: Entity<InputState>,
+    search_text: String,
     _search_subscription: Subscription,
     list_focus: FocusHandle,
     detail_focus: FocusHandle,
@@ -51,17 +58,33 @@ pub struct ConfigurationApp {
 }
 
 impl ConfigurationApp {
+    pub fn has_dirty_draft(&self, cx: &gpui_kit::App) -> bool {
+        self.tools.read(cx).has_dirty_draft(cx)
+    }
     pub fn read_generation(&self) -> u64 {
         self.generation
     }
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let search = cx.new(|cx| InputState::new(window, cx));
+        let search = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(text(
+                cx,
+                "Search name, endpoint or model",
+                "搜索名称、端点或模型",
+            ))
+        });
         let subscription = cx.subscribe(&search, |this, _, event, cx| {
             if matches!(event, InputEvent::Change) {
-                this.refresh(cx);
+                this.search_text = this.search.read(cx).value().to_lowercase();
+                this.refilter();
+                this.sync_target(cx);
+                cx.notify();
             }
         });
-        let tools = cx.new(|cx| ProfileTools::new(services.clone(), window, cx));
+        let tools = cx.new(|cx| {
+            let mut tools = ProfileTools::new(services.clone(), window, cx);
+            tools.embedded = true;
+            tools
+        });
         let tools_subscription = cx.observe(&tools, |this, tools, cx| {
             let version = tools.read(cx).refresh_version;
             if this.tools_version != version {
@@ -73,6 +96,12 @@ impl ConfigurationApp {
         let mut this = Self {
             services,
             rows: Arc::new(Vec::new()),
+            all_rows: Arc::new(Vec::new()),
+            provider_filter: None,
+            tag_filter: None,
+            enabled_filter: None,
+            sort_usage: false,
+            management: false,
             selected: None,
             detail_open: false,
             gate: ResponseGate::default(),
@@ -81,6 +110,7 @@ impl ConfigurationApp {
             loading: false,
             error: None,
             search,
+            search_text: String::new(),
             _search_subscription: subscription,
             list_focus: cx.focus_handle(),
             detail_focus: cx.focus_handle().tab_stop(false),
@@ -108,6 +138,7 @@ impl ConfigurationApp {
     }
     pub fn leave(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.suspend(cx);
+        self.management = false;
         self.tools.update(cx, |tools, cx| tools.leave(window, cx));
     }
     /// Shell destinations own the platform choice, so the in-view switcher stays hidden.
@@ -121,6 +152,10 @@ impl ConfigurationApp {
         if self.platform == platform {
             self.refresh(cx);
         } else {
+            self.provider_filter = None;
+            self.tag_filter = None;
+            self.enabled_filter = None;
+            self.sort_usage = false;
             self.platform(platform, window, cx);
         }
     }
@@ -146,10 +181,7 @@ impl ConfigurationApp {
         // Drop the previous platform's rows before the next catalog returns.
         self.rows = Arc::new(Vec::new());
         self.detail_open = false;
-        match self
-            .services
-            .profile_rows(key.clone(), self.search.read(cx).value().to_string())
-        {
+        match self.services.profile_rows(key.clone(), String::new()) {
             Ok(mut subscription) => {
                 self.read_task = Some(cx.spawn(async move |weak, cx| {
                     while let Some(event) = subscription.next().await {
@@ -198,7 +230,49 @@ impl ConfigurationApp {
         cx.notify();
     }
     fn accept_rows(&mut self, rows: Arc<Vec<ConfigRow>>) {
-        self.rows = rows;
+        self.all_rows = rows;
+        self.refilter();
+    }
+
+    fn refilter(&mut self) {
+        let mut rows =
+            self.all_rows
+                .iter()
+                .filter(|row| {
+                    (row.name.to_lowercase().contains(&self.search_text)
+                        || row.base_url.to_lowercase().contains(&self.search_text)
+                        || row
+                            .model
+                            .as_deref()
+                            .is_some_and(|model| model.to_lowercase().contains(&self.search_text)))
+                        && self
+                            .provider_filter
+                            .as_ref()
+                            .is_none_or(|provider| row.provider.as_ref() == Some(provider))
+                        && self.tag_filter.as_ref().is_none_or(|tag| {
+                            row.tags.as_ref().is_some_and(|tags| tags.contains(tag))
+                        })
+                        && self
+                            .enabled_filter
+                            .is_none_or(|enabled| row.enabled == enabled)
+                })
+                .cloned()
+                .collect::<Vec<_>>();
+        if self.sort_usage {
+            rows.sort_by(|a, b| {
+                b.usage_count
+                    .cmp(&a.usage_count)
+                    .then_with(|| a.name.cmp(&b.name))
+            });
+        } else {
+            rows.sort_by(|a, b| {
+                a.name
+                    .to_lowercase()
+                    .cmp(&b.name.to_lowercase())
+                    .then_with(|| a.name.cmp(&b.name))
+            });
+        }
+        self.rows = Arc::new(rows);
         if !self
             .rows
             .iter()
@@ -209,7 +283,7 @@ impl ConfigurationApp {
         }
     }
     fn select_offset(&mut self, down: bool, cx: &mut Context<Self>) {
-        if self.rows.is_empty() {
+        if self.rows.is_empty() || self.tools.read(cx).expanded() || self.tools.read(cx).busy() {
             return;
         }
         let current = self
@@ -241,6 +315,7 @@ impl ConfigurationApp {
             .update(cx, |tools, cx| tools.set_platform(platform, window, cx))
         {
             self.platform = platform;
+            self.all_rows = Arc::new(Vec::new());
             self.selected = None;
             self.detail_open = false;
             self.refresh(cx);
@@ -251,6 +326,241 @@ impl ConfigurationApp {
         window.focus(&self.list_focus, cx);
         cx.notify();
     }
+
+    fn catalog_controls(&self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
+        let blocked = self.tools.read(cx).expanded() || self.tools.read(cx).busy();
+        let mut controls = div()
+            .flex_shrink_0()
+            .flex()
+            .flex_wrap()
+            .items_center()
+            .gap(px(8.));
+        controls = controls.child(semantics::ghost_button(
+            Button::new("configuration-filter-clear")
+                .label(text(cx, "Clear filters", "清除筛选"))
+                .ghost()
+                .on_click(cx.listener(|this, _, window, cx| {
+                    this.provider_filter = None;
+                    this.tag_filter = None;
+                    this.enabled_filter = None;
+                    this.search_text.clear();
+                    this.search
+                        .update(cx, |state, cx| state.set_value("", window, cx));
+                    this.refilter();
+                    this.sync_target(cx);
+                    cx.notify();
+                })),
+            blocked,
+            false,
+            cx,
+        ));
+        let current = self
+            .all_rows
+            .iter()
+            .find(|row| row.is_current)
+            .map(|row| row.name.as_str())
+            .unwrap_or(text(cx, "None observed", "未观测到"));
+        controls = controls
+            .child(div().text_size(px(12.)).child(format!(
+                "{}: {current}",
+                text(cx, "Current runtime profile", "当前运行方案")
+            )))
+            .child(semantics::ghost_button(
+                Button::new("profile-off")
+                    .label(text(cx, "Detach current profile", "解除当前方案"))
+                    .ghost()
+                    .on_click(cx.listener(|this, _, window, cx| {
+                        this.tools
+                            .update(cx, |tools, cx| tools.detach_current(window, cx))
+                    })),
+                blocked || !self.tools.read(cx).can_detach(),
+                false,
+                cx,
+            ))
+            .child(semantics::ghost_button(
+                Button::new("configuration-manage")
+                    .label(if self.management {
+                        text(cx, "Back to list", "返回列表")
+                    } else {
+                        text(cx, "Manage catalog", "管理方案集合")
+                    })
+                    .ghost()
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.management = !this.management;
+                        this.tools
+                            .update(cx, |tools, cx| tools.set_management(this.management, cx));
+                        cx.notify();
+                    })),
+                blocked,
+                false,
+                cx,
+            ));
+        for (enabled, id, en, zh) in [
+            (None, "configuration-enabled-all", "All states", "全部状态"),
+            (
+                Some(true),
+                "configuration-enabled-only",
+                "Enabled",
+                "已启用",
+            ),
+            (
+                Some(false),
+                "configuration-disabled-only",
+                "Disabled",
+                "已禁用",
+            ),
+        ] {
+            controls = controls.child(badge::filter_chip(
+                Button::new(id)
+                    .label(text(cx, en, zh))
+                    .ghost()
+                    .on_click(cx.listener(move |this, _, _, cx| {
+                        this.enabled_filter = enabled;
+                        this.refilter();
+                        this.sync_target(cx);
+                        cx.notify();
+                    })),
+                self.enabled_filter == enabled,
+                blocked,
+                cx,
+            ));
+        }
+        controls = controls.child(semantics::ghost_button(
+            Button::new("configuration-sort-usage")
+                .label(if self.sort_usage {
+                    text(cx, "Sort: observed uses", "排序：已观测使用次数")
+                } else {
+                    text(cx, "Sort: name", "排序：名称")
+                })
+                .ghost()
+                .on_click(cx.listener(|this, _, _, cx| {
+                    this.sort_usage = !this.sort_usage;
+                    this.refilter();
+                    this.sync_target(cx);
+                    cx.notify();
+                })),
+            blocked,
+            false,
+            cx,
+        ));
+        let providers = self
+            .all_rows
+            .iter()
+            .filter_map(|row| row.provider.clone())
+            .collect::<std::collections::BTreeSet<_>>();
+        let tags = self
+            .all_rows
+            .iter()
+            .flat_map(|row| row.tags.clone().unwrap_or_default())
+            .collect::<std::collections::BTreeSet<_>>();
+        for (index, provider) in providers.into_iter().enumerate() {
+            let selected = self.provider_filter.as_ref() == Some(&provider);
+            controls = controls.child(badge::filter_chip(
+                Button::new(format!("configuration-provider-{index}"))
+                    .label(provider.clone())
+                    .ghost()
+                    .on_click(cx.listener(move |this, _, _, cx| {
+                        this.provider_filter = if this.provider_filter.as_ref() == Some(&provider) {
+                            None
+                        } else {
+                            Some(provider.clone())
+                        };
+                        this.refilter();
+                        this.sync_target(cx);
+                        cx.notify();
+                    })),
+                selected,
+                blocked,
+                cx,
+            ));
+        }
+        for (index, tag) in tags.into_iter().enumerate() {
+            let selected = self.tag_filter.as_ref() == Some(&tag);
+            controls = controls.child(badge::filter_chip(
+                Button::new(format!("configuration-tag-{index}"))
+                    .label(tag.clone())
+                    .ghost()
+                    .on_click(cx.listener(move |this, _, _, cx| {
+                        this.tag_filter = if this.tag_filter.as_ref() == Some(&tag) {
+                            None
+                        } else {
+                            Some(tag.clone())
+                        };
+                        this.refilter();
+                        this.sync_target(cx);
+                        cx.notify();
+                    })),
+                selected,
+                blocked,
+                cx,
+            ));
+        }
+        controls.into_any_element()
+    }
+}
+
+fn profile_details(row: &ConfigRow, cx: &gpui_kit::App) -> gpui_kit::Div {
+    let unknown = text(cx, "Unknown", "未知");
+    let mut grid = div().grid().grid_cols(2).gap(px(12.));
+    for (label, value) in [
+        (
+            text(cx, "Endpoint", "端点"),
+            if row.base_url.is_empty() {
+                unknown.into()
+            } else {
+                row.base_url.clone()
+            },
+        ),
+        (
+            text(cx, "Model", "模型"),
+            row.model.clone().unwrap_or_else(|| unknown.into()),
+        ),
+        (
+            text(cx, "Authentication", "认证方式"),
+            row.auth_mode.clone().unwrap_or_else(|| unknown.into()),
+        ),
+        (
+            text(cx, "Provider", "供应商"),
+            row.provider.clone().unwrap_or_else(|| unknown.into()),
+        ),
+        (
+            text(cx, "Tags", "标签"),
+            row.tags
+                .as_ref()
+                .map(|tags| tags.join(", "))
+                .unwrap_or_else(|| unknown.into()),
+        ),
+        (
+            text(cx, "Observed uses", "已观测使用次数"),
+            row.usage_count
+                .map(|count| count.to_string())
+                .unwrap_or_else(|| unknown.into()),
+        ),
+    ] {
+        grid = grid.child(
+            div()
+                .min_w_0()
+                .child(
+                    div()
+                        .text_size(px(12.))
+                        .text_color(cx.theme().muted_foreground)
+                        .child(label),
+                )
+                .child(value),
+        );
+    }
+    let credential = if row.auth_token.is_empty() {
+        text(cx, "Not set", "未设置")
+    } else {
+        row.auth_token.as_str()
+    };
+    grid.child(
+        div()
+            .id("configuration-credential")
+            .test_support()
+            .aria_label(format!("{}: {credential}", text(cx, "Credential", "凭据")))
+            .child(format!("{}: {credential}", text(cx, "Credential", "凭据"))),
+    )
 }
 
 impl Render for ConfigurationApp {
@@ -298,6 +608,11 @@ impl Render for ConfigurationApp {
                                 gpui_kit::AccessibleAction::Click,
                                 move |_, window, cx| {
                                     let _ = weak.update(cx, |this, cx| {
+                                        if this.tools.read(cx).expanded()
+                                            || this.tools.read(cx).busy()
+                                        {
+                                            return;
+                                        }
                                         this.selected = Some(selected_name.clone());
                                         this.sync_target(cx);
                                         this.detail_open = true;
@@ -313,7 +628,7 @@ impl Render for ConfigurationApp {
                                     });
                                 },
                             )
-                            .h(px(theme::ROW_HEIGHT))
+                            .h(px(60.))
                             .w_full()
                             .px(px(theme::CONTROL_GAP))
                             .flex()
@@ -323,6 +638,9 @@ impl Render for ConfigurationApp {
                             .rounded(px(theme::SELECTION_RADIUS))
                             .hover(|style| style.bg(cx.theme().muted))
                             .on_click(cx.listener(move |this, _, window, cx| {
+                                if this.tools.read(cx).expanded() || this.tools.read(cx).busy() {
+                                    return;
+                                }
                                 this.selected = Some(name.clone());
                                 this.sync_target(cx);
                                 this.detail_open = true;
@@ -336,11 +654,63 @@ impl Render for ConfigurationApp {
                                 );
                                 cx.notify();
                             }))
-                            .child(div().flex_1().overflow_hidden().child(row.name.clone()))
                             .child(
                                 div()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .flex()
+                                    .flex_col()
+                                    .gap(px(4.))
+                                    .child(
+                                        div()
+                                            .id(format!("configuration-name:{}", row.name))
+                                            .truncate()
+                                            .tooltip({
+                                                let name = row.name.clone();
+                                                move |window, cx| {
+                                                    gpui_kit::component::tooltip::Tooltip::new(
+                                                        name.clone(),
+                                                    )
+                                                    .build(window, cx)
+                                                }
+                                            })
+                                            .child(row.name.clone()),
+                                    )
+                                    .child(
+                                        div()
+                                            .truncate()
+                                            .text_size(px(12.))
+                                            .text_color(muted)
+                                            .child(format!(
+                                                "{} · {} · {} · {}",
+                                                row.base_url,
+                                                row.model.as_deref().unwrap_or(text(
+                                                    cx,
+                                                    "Unknown model",
+                                                    "模型未知"
+                                                )),
+                                                row.auth_mode.as_deref().unwrap_or(text(
+                                                    cx,
+                                                    "Unknown auth",
+                                                    "认证未知"
+                                                )),
+                                                row.tags
+                                                    .as_ref()
+                                                    .map(|tags| tags.join(", "))
+                                                    .unwrap_or_default()
+                                            )),
+                                    ),
+                            )
+                            .child(
+                                div()
+                                    .flex()
+                                    .items_center()
+                                    .gap(px(theme::CONTROL_GAP))
                                     .text_size(px(theme::META_SIZE))
                                     .text_color(muted)
+                                    .when(row.is_current, |status| {
+                                        status.child(badge::dot(cx.theme().primary))
+                                    })
                                     .child(if row.is_current {
                                         text(cx, "Current", "当前")
                                     } else if !row.enabled {
@@ -351,6 +721,24 @@ impl Render for ConfigurationApp {
                             );
                         if is_selected {
                             item = item.aria_active_descendant();
+                            item = item.child(semantics::button(
+                                Button::new(format!("configuration-apply:{}", row.name))
+                                    .label(if row.enabled {
+                                        text(cx, "Apply", "应用")
+                                    } else {
+                                        text(cx, "Enable and apply", "启用并应用")
+                                    })
+                                    .primary()
+                                    .on_click(cx.listener(|this, _, window, cx| {
+                                        cx.stop_propagation();
+                                        this.tools.update(cx, |tools, cx| {
+                                            tools.apply_selected(window, cx)
+                                        });
+                                    })),
+                                this.tools.read(cx).expanded() || this.tools.read(cx).busy(),
+                                false,
+                                cx,
+                            ));
                         }
                         item.into_any_element()
                     })
@@ -358,14 +746,15 @@ impl Render for ConfigurationApp {
             }),
         )
         .track_scroll(&self.scroll)
-        .flex_1()
-        .size_full();
+        .h(px((count as f32 * 60.).max(60.)))
+        .max_h_full()
+        .w_full();
         let status = if self.loading {
             text(cx, "Reading catalog", "正在读取配置").into()
         } else if let Some(error) = self.error {
             service_error(cx, error).to_string()
         } else if self.rows.is_empty() {
-            if self.search.read(cx).value().trim().is_empty() {
+            if self.all_rows.is_empty() {
                 text(cx, "This catalog has no profiles", "这个目录里没有配置").into()
             } else {
                 text(cx, "No profiles match this filter", "没有符合筛选的配置").into()
@@ -391,7 +780,10 @@ impl Render for ConfigurationApp {
             .min_h_0()
             .min_w_0()
             .gap(px(theme::SECTION_GAP));
-        if split || !show_detail {
+        if (split || !show_detail)
+            && !self.management
+            && !self.tools.read(cx).collection_workspace()
+        {
             body = body.child(
                 div()
                     .id("list-focus")
@@ -418,17 +810,20 @@ impl Render for ConfigurationApp {
                             cx.stop_propagation();
                         },
                     ))
-                    .flex_1()
+                    .flex_grow(3.)
+                    .flex_basis(px(0.))
+                    // 合同：宽窗列表至少 360px；窄窗走 drill-in，不靠 min_w_0 解除下限。
+                    .min_w(px(360.))
                     .min_h_0()
-                    .min_w_0()
-                    .border_1()
-                    .border_color(cx.theme().input)
                     .focus(|style| style.border_color(cx.theme().ring))
                     .rounded(px(theme::SELECTION_RADIUS))
                     .child(list),
             );
         }
-        if show_detail && let Some(row) = detail {
+        if !self.management
+            && !self.tools.read(cx).collection_workspace()
+            && let Some(row) = detail
+        {
             body = body.child(
                 div()
                     .id("configuration-detail")
@@ -436,54 +831,33 @@ impl Render for ConfigurationApp {
                     .aria_label(text(cx, "Profile details", "配置详情"))
                     .track_focus(&self.detail_focus)
                     .tab_stop(false)
-                    .flex_1()
-                    .min_w_0()
+                    .flex_grow(2.)
+                    .flex_basis(px(0.))
+                    // 合同：宽窗详情至少 320px。
+                    .min_w(px(320.))
+                    .min_h_0()
                     .flex()
                     .flex_col()
                     .gap(px(theme::SECTION_GAP))
-                    .child(semantics::button(
-                        Button::new("configuration-back")
-                            .label(text(cx, "Back to profiles", "返回配置列表"))
-                            .ghost()
-                            .on_click(cx.listener(|this, _, window, cx| this.back(window, cx))),
-                        false,
-                        false,
-                        cx,
-                    ))
-                    .child(
-                        div()
-                            .text_size(px(theme::TITLE_SIZE))
-                            .font_weight(gpui_kit::FontWeight::SEMIBOLD)
-                            .child(row.name.clone()),
-                    )
-                    .child(div().text_color(muted).child(row.description.clone()))
-                    .child(div().child(format!(
-                        "{}: {}",
-                        text(cx, "Endpoint", "端点"),
-                        if row.base_url.is_empty() {
-                            text(cx, "Not set", "未设置")
-                        } else {
-                            row.base_url.as_str()
-                        }
-                    )))
-                    .child(div().child(format!(
-                                "{}: {}",
-                                text(cx, "Model", "模型"),
-                                row.model
-                                    .as_deref()
-                                    .unwrap_or(text(cx, "Not set", "未设置"))
-                            )))
-                    .child({
-                        let credential = if row.auth_token.is_empty() {
-                            text(cx, "Not set", "未设置")
-                        } else {
-                            row.auth_token.as_str()
-                        };
-                        div()
-                            .id("configuration-credential")
-                            .test_support()
-                            .aria_label(format!("{}: {credential}", text(cx, "Credential", "凭据")))
-                            .child(format!("{}: {credential}", text(cx, "Credential", "凭据")))
+                    .child(self.tools.clone())
+                    .when(!self.tools.read(cx).expanded(), |pane| {
+                        pane.child(semantics::ghost_button(
+                            Button::new("configuration-back")
+                                .label(text(cx, "Back to profiles", "返回配置列表"))
+                                .ghost()
+                                .on_click(cx.listener(|this, _, window, cx| this.back(window, cx))),
+                            false,
+                            false,
+                            cx,
+                        ))
+                        .child(
+                            div()
+                                .text_size(px(theme::TITLE_SIZE))
+                                .font_weight(gpui_kit::FontWeight::SEMIBOLD)
+                                .child(row.name.clone()),
+                        )
+                        .child(div().text_color(muted).child(row.description.clone()))
+                        .child(profile_details(row, cx))
                     })
                     .on_key_down(cx.listener(
                         |this, event: &gpui_kit::KeyDownEvent, window, cx| {
@@ -495,6 +869,34 @@ impl Render for ConfigurationApp {
                     )),
             );
         }
+        if split
+            && detail.is_none()
+            && !self.rows.is_empty()
+            && !self.management
+            && !self.tools.read(cx).collection_workspace()
+        {
+            body = body.child(
+                div()
+                    .flex_grow(2.)
+                    .flex_shrink(1.)
+                    .flex_basis(px(0.))
+                    .min_w(px(320.))
+                    .self_start()
+                    .child(badge::empty_panel(
+                        "configuration-empty-detail",
+                        gpui_kit::component::IconName::Eye,
+                        text(cx, "Select a profile", "选择一个方案"),
+                        text(
+                            cx,
+                            "Selection shows details; it does not apply the profile.",
+                            "选择仅显示详情，不会应用方案。",
+                        ),
+                        None,
+                        cx,
+                    )),
+            );
+        }
+        let show_toolbar = split || !show_detail;
         let (title_en, title_zh) = if self.pinned {
             match self.platform {
                 Platform::Codex => ("Codex", "Codex"),
@@ -515,49 +917,60 @@ impl Render for ConfigurationApp {
             .rounded_tr(px(theme::SHEET_CONTENT_RADIUS))
             .text_color(cx.theme().foreground)
             .text_size(px(theme::BODY_SIZE))
-            .child(
-                div()
-                    .id("configuration-heading")
-                    .role(gpui_kit::Role::Heading)
-                    .aria_label(text(cx, title_en, title_zh))
-                    .aria_level(1)
-                    .text_size(px(theme::TITLE_SIZE))
-                    .font_weight(gpui_kit::FontWeight::SEMIBOLD)
-                    .child(text(cx, title_en, title_zh)),
-            )
+            .when(!self.pinned, |root| {
+                root.child(
+                    div()
+                        .id("configuration-heading")
+                        .role(gpui_kit::Role::Heading)
+                        .aria_label(text(cx, title_en, title_zh))
+                        .aria_level(1)
+                        .text_size(px(theme::TITLE_SIZE))
+                        .font_weight(gpui_kit::FontWeight::SEMIBOLD)
+                        .child(text(cx, title_en, title_zh)),
+                )
+            })
             .child(div().text_color(muted).child(text(
                 cx,
                 "Local profile catalog · Changes use domain validation and backups",
                 "本地配置目录 · 修改遵循领域校验和备份规则",
             )))
-            .child(
-                div()
-                    .flex()
-                    .items_center()
-                    .gap(px(theme::CONTROL_GAP))
-                    .child(
-                        div().flex_1().child(
+            .when(show_toolbar, |root| {
+                root.child(
+                    div()
+                        .flex()
+                        .items_center()
+                        .gap(px(theme::CONTROL_GAP))
+                        .child(badge::search_field(
                             Input::new(&self.search)
+                                .disabled(
+                                    self.tools.read(cx).expanded() || self.tools.read(cx).busy(),
+                                )
                                 .id("configuration-filter")
-                                .aria_label(text(cx, "Filter profiles by name", "按名称筛选配置")),
-                        ),
-                    )
-                    .child(semantics::button(
-                        Button::new("configuration-refresh")
-                            .label(if self.loading {
-                                text(cx, "Reading", "读取中")
-                            } else if self.error.is_some() {
-                                text(cx, "Retry", "重试")
-                            } else {
-                                text(cx, "Refresh", "刷新")
-                            })
-                            .ghost()
-                            .on_click(cx.listener(|this, _, _, cx| this.refresh(cx))),
-                        self.loading,
-                        self.loading,
-                        cx,
-                    )),
-            )
+                                .aria_label(text(
+                                    cx,
+                                    "Search name, endpoint or model",
+                                    "搜索名称、端点或模型",
+                                )),
+                            cx,
+                        ))
+                        .child(semantics::ghost_button(
+                            Button::new("configuration-refresh")
+                                .icon(gpui_kit::component::IconName::RefreshCw)
+                                .label(if self.loading {
+                                    text(cx, "Reading", "读取中")
+                                } else if self.error.is_some() {
+                                    text(cx, "Retry", "重试")
+                                } else {
+                                    text(cx, "Refresh", "刷新")
+                                })
+                                .ghost()
+                                .on_click(cx.listener(|this, _, _, cx| this.refresh(cx))),
+                            self.loading,
+                            self.loading,
+                            cx,
+                        )),
+                )
+            })
             .child(
                 div()
                     .id("configuration-status")
@@ -621,12 +1034,28 @@ impl Render for ConfigurationApp {
                         )),
                 )
             })
-            .child(self.tools.clone())
-            .child(if self.tools.read(cx).expanded() {
-                div().into_any_element()
-            } else {
-                body.into_any_element()
+            .when(show_toolbar, |root| {
+                root.child(semantics::button(
+                    Button::new("profile-create")
+                        .label(text(cx, "New profile", "新建方案"))
+                        .primary()
+                        .on_click(cx.listener(|this, _, window, cx| {
+                            this.tools
+                                .update(cx, |tools, cx| tools.new_profile(window, cx))
+                        })),
+                    self.tools.read(cx).expanded() || self.tools.read(cx).busy(),
+                    false,
+                    cx,
+                ))
+                .child(self.catalog_controls(cx))
             })
+            .child(
+                if self.management || self.tools.read(cx).collection_workspace() {
+                    self.tools.clone().into_any_element()
+                } else {
+                    body.into_any_element()
+                },
+            )
     }
 }
 
@@ -646,6 +1075,7 @@ mod tests {
             base_url: "https://fixture.invalid".into(),
             auth_token: "***".into(),
             model: None,
+            auth_mode: None,
             small_fast_model: None,
             is_current: index == 0,
             is_default: false,
@@ -653,9 +1083,90 @@ mod tests {
             provider_type: None,
             account: None,
             tags: None,
-            usage_count: 0,
+            usage_count: None,
             enabled: true,
         }
+    }
+    #[gpui_kit::test]
+    fn catalog_filters_recover_and_narrow_back_preserves_selection(cx: &mut TestAppContext) {
+        cx.executor().allow_parking();
+        let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
+        let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
+        let (handle, view) = cx.update(|cx| {
+            gpui_kit::init(cx);
+            gpui_kit::open_window(
+                WindowOptions {
+                    window_bounds: Some(gpui_kit::WindowBounds::Windowed(gpui_kit::Bounds::new(
+                        gpui_kit::point(px(0.), px(0.)),
+                        gpui_kit::size(px(960.), px(640.)),
+                    ))),
+                    ..Default::default()
+                },
+                cx,
+                |window, cx| {
+                    cx.new(|cx| {
+                        let mut view = ConfigurationApp::new(
+                            Services::new(
+                                owner.handle(),
+                                ConfigSource::Fixture {
+                                    profiles: root.path().join("missing.toml"),
+                                    registry: root.path().join("registry.toml"),
+                                    delay: Duration::ZERO,
+                                },
+                            ),
+                            window,
+                            cx,
+                        );
+                        view.suspend(cx);
+                        view.pinned = true;
+                        let mut a = row(0);
+                        a.provider = Some("provider-a".into());
+                        a.tags = Some(vec!["tag-a".into()]);
+                        let mut b = row(1);
+                        b.provider = Some("provider-b".into());
+                        b.tags = Some(vec!["tag-b".into()]);
+                        b.enabled = false;
+                        view.accept_rows(Arc::new(vec![a, b]));
+                        view
+                    })
+                },
+            )
+            .unwrap_or_else(|e| panic!("window: {e}"))
+        });
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.click("configuration-provider-1", cx);
+            window.click("configuration-tag-1", cx);
+            window.click("configuration-disabled-only", cx);
+            window.click("configuration:profile-00001", cx);
+            assert!(window.try_find("configuration-filter").is_none());
+            assert!(window.try_find("list-focus").is_none());
+            window.click("configuration-back", cx);
+            assert_eq!(view.read(cx).selected.as_deref(), Some("profile-00001"));
+            assert_eq!(view.read(cx).provider_filter.as_deref(), Some("provider-b"));
+            assert_eq!(view.read(cx).tag_filter.as_deref(), Some("tag-b"));
+            assert_eq!(window.find("list-focus").focused(), Some(true));
+            window.click("configuration-enabled-only", cx);
+            assert_eq!(
+                window.find("configuration-status").label(),
+                Some("No profiles match this filter")
+            );
+            assert!(view.read(cx).selected.is_none());
+            assert!(
+                window
+                    .try_find("configuration-apply:profile-00001")
+                    .is_none()
+            );
+            window.click("configuration-filter-clear", cx);
+            assert_eq!(
+                window.find("configuration-status").label(),
+                Some("2 profiles")
+            );
+            assert!(view.read(cx).selected.is_none());
+            window.remove_window();
+        })
+        .unwrap_or_else(|e| panic!("filter recovery: {e}"));
+        owner.shutdown();
     }
     #[gpui_kit::test]
     fn virtual_rows_keyboard_detail_back_and_stable_selection(cx: &mut TestAppContext) {
@@ -727,7 +1238,7 @@ mod tests {
                 Some("profile-00001"),
                 "identity follows domain name, not the old index"
             );
-            window.press("up", cx);
+            window.press("down", cx);
             assert_eq!(view.read(cx).selected.as_deref(), Some("profile-00020"));
             window.remove_window();
         })

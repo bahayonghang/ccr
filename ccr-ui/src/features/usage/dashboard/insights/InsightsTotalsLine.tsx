@@ -52,6 +52,11 @@ export function InsightsTotalsLine({ data, notice = false }: InsightsTotalsLineP
           </div>
         ))}
       </dl>
+      {data && data.totals.requests > 0 && !data.totals.project_attribution_complete ? (
+        <p className="insights-notice">{t(data.totals.projects > 0
+          ? 'dashboard.insights.projectsPartialNotice'
+          : 'dashboard.insights.projectsUnattributedNotice')}</p>
+      ) : null}
       {data && notice ? (
         <p className="insights-notice">
           <SIcon name="Info" size="w-3.5 h-3.5" className="insights-notice__dot" />

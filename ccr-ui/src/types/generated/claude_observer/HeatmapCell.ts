@@ -11,4 +11,4 @@ dow: number,
 /**
  * 0..23
  */
-hour: number, count: number, };
+hour: number, count: number, timezone: string, };

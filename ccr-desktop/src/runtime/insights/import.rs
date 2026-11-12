@@ -234,6 +234,12 @@ impl InsightsRequests {
         key: RequestKey,
         mut options: Options,
     ) -> Result<(), Failure> {
+        if let Some(platform) = self.services.platform_scope {
+            let source = SourceKind::parse_id(platform.short_name()).ok_or(Failure::SourceRoot)?;
+            if options.source != Some(source) {
+                return Err(Failure::SourceRoot);
+            }
+        }
         if self.services.source.is_benchmark() {
             return Err(Failure::FixtureDisabled);
         }

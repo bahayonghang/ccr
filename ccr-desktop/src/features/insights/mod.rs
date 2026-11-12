@@ -241,6 +241,7 @@ impl InsightsView {
         cx: &mut Context<Self>,
     ) {
         self.platform_scope = Some(platform);
+        self.requests = self.requests.clone().scoped(Some(platform));
         for field in &self.fields {
             field.update(cx, |state, cx| state.set_value("", window, cx));
         }
@@ -260,6 +261,7 @@ impl InsightsView {
     }
     pub fn open_global(&mut self, page: InsightsPage, window: &mut Window, cx: &mut Context<Self>) {
         self.platform_scope = None;
+        self.requests = self.requests.clone().scoped(None);
         for field in &self.fields {
             field.update(cx, |state, cx| state.set_value("", window, cx));
         }
@@ -622,7 +624,7 @@ impl InsightsView {
         };
         if is_chinese(cx) {
             format!(
-                "请求 {} · 令牌 {} · 美元 {} · 最近同步 {} · {}",
+                "请求 {} · 令牌 {} · 美元 {} · 最近成功同步（任意来源）{} · {}",
                 report.overview.total_events,
                 report.overview.total.total_tokens,
                 report.overview.total_cost_usd,
@@ -631,7 +633,7 @@ impl InsightsView {
             )
         } else {
             format!(
-                "Requests {} · Tokens {} · USD {} · Last sync {} · {}",
+                "Requests {} · Tokens {} · USD {} · Last successful sync (any source) {} · {}",
                 report.overview.total_events,
                 report.overview.total.total_tokens,
                 report.overview.total_cost_usd,
@@ -695,7 +697,16 @@ impl InsightsView {
                     "Claude 观测",
                 ),
             ] {
-                if self.platform_scope.is_some() && page == InsightsPage::Policies {
+                if self.platform_scope.is_some()
+                    && matches!(
+                        page,
+                        InsightsPage::Policies
+                            | InsightsPage::Capabilities
+                            | InsightsPage::Observer
+                            | InsightsPage::Usage
+                            | InsightsPage::Sessions
+                    )
+                {
                     continue;
                 }
                 if self
@@ -790,7 +801,8 @@ impl Render for InsightsView {
             .bg(cx.theme().background)
             .rounded_tr(px(theme::SHEET_CONTENT_RADIUS));
         let mut tabs = self.product_tabs(cx);
-        if self.surface == Surface::Usage {
+        // 平台内嵌时页头已提供唯一 h1，这里不再重复标题。
+        if self.surface == Surface::Usage && self.platform_scope.is_none() {
             root = root
                 .child(
                     div()

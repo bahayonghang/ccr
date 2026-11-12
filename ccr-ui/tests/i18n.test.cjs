@@ -317,7 +317,7 @@ function extractLocaleMessages(content, fileName) {
   return messages;
 }
 
-const EXPECTED_LEAF_COUNT = 4564;
+const EXPECTED_LEAF_COUNT = 4570;
 
 /**
  * Calculate overlap percentage between two arrays

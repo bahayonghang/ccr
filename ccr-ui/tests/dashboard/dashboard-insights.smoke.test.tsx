@@ -19,7 +19,7 @@ vi.mock('@/features/usage/queries', async (importOriginal) => {
   return { ...actual, useHomeInsights }
 })
 
-const emptyTotals = { requests: 0, tokens: 0, sessions: 0, agents: 0, projects: 0, active_days: 0 }
+const emptyTotals = { requests: 0, tokens: 0, sessions: 0, agents: 0, projects: 0, active_days: 0, project_attribution_complete: true }
 const onImport = vi.fn()
 
 const renderInsights = (data: HomeInsightsResponse | null, isNativeRuntime = true) => {
@@ -40,6 +40,15 @@ beforeEach(() => {
 })
 
 describe('dashboard insights: empty states', () => {
+  it('shows project attribution instead of a fabricated zero', () => {
+    const data = makeInsights()
+    data.totals.projects = 0
+    data.totals.project_attribution_complete = false
+    data.projects = []
+    renderInsights(data)
+    expect(screen.getByText('dashboard.insights.projectsUnattributedNotice')).toBeTruthy()
+    expect(document.querySelectorAll('.insights-totals__value')[4]?.textContent).toBe('—')
+  })
   it('web preview makes no call and shows the preview notice', () => {
     renderInsights(null, false)
     expect(useHomeInsights).toHaveBeenCalledWith({ enabled: false })

@@ -84,6 +84,9 @@ export function InsightsLeaderboards({ data }: { data: HomeInsightsResponse }) {
           />
         </div>
       </header>
+      {dimension === 'projects' && !data.totals.project_attribution_complete ? (
+        <p className="insights-caption">{t('dashboard.insights.projectsPartialNotice')}</p>
+      ) : null}
       {rows.length === 0 ? (
         <p className="insights-caption">{t('dashboard.insights.leaderboard.empty')}</p>
       ) : (

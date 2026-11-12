@@ -41,6 +41,7 @@ fn wait_for(
 
 fn wait_closed(cx: &mut TestAppContext, handle: gpui_kit::AnyWindowHandle) {
     let deadline = Instant::now() + Duration::from_secs(10);
+    let mut last_tick = Instant::now();
     loop {
         cx.run_until_parked();
         if cx.update_window(handle, |_, _, _| ()).is_err() {
@@ -50,7 +51,10 @@ fn wait_closed(cx: &mut TestAppContext, handle: gpui_kit::AnyWindowHandle) {
             Instant::now() < deadline,
             "final preference write did not close the window"
         );
-        cx.executor().advance_clock(Duration::from_millis(10));
+        // 实际文件写入由 Tokio worker 执行；不能让忙等次数提前耗尽两秒排队预算。
+        let now = Instant::now();
+        cx.executor().advance_clock(now - last_tick);
+        last_tick = now;
         std::thread::yield_now();
     }
 }

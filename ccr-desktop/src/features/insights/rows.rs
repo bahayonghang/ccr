@@ -375,7 +375,7 @@ impl InsightsView {
                 }
             ),
             Some(InsightsSnapshot::Usage(r)) => format!(
-                "Requests {} · Tokens {} · USD {} · Last sync {} · {}",
+                "Requests {} · Tokens {} · USD {} · Last successful sync (any source) {} · {}",
                 r.overview.total_events,
                 r.overview.total.total_tokens,
                 r.overview.total_cost_usd,

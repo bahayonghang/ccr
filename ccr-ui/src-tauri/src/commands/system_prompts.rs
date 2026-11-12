@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use ccr_app::resources::system_prompts::{
     PromptFileSpec, PromptLocation, augment_file_result, augment_save_result, file_description,
-    list_claude_rules, normalize_platform, platform_specs, prompt_spec, resolve_from_home,
+    list_claude_rules_in, normalize_platform, platform_specs, prompt_spec, resolve_from_home,
 };
 use ccr_config::{Platform, PlatformPaths};
 use serde_json::{Value, json};
@@ -16,12 +16,22 @@ use super::opencode::opencode_config_dir;
 use super::settings_raw::{ensure_local_env, read_raw_file, write_raw_file_versioned};
 use super::wire::OpenJsonValueDto;
 
+// Claude Code 设置 CLAUDE_CONFIG_DIR 后不再读主目录下的 .claude，这里跟随同一配置根。
+fn claude_config_dir() -> Result<PathBuf, String> {
+    ccr_config::ClaudeRuntimePaths::from_env()
+        .map(|paths| paths.config_dir)
+        .map_err(|error| error.to_string())
+}
+
 fn resolve_prompt_path(spec: &PromptFileSpec) -> Result<PathBuf, String> {
-    if spec.location == PromptLocation::OpenCode {
-        return Ok(opencode_config_dir()?.join(spec.filename));
+    match spec.location {
+        PromptLocation::OpenCode => Ok(opencode_config_dir()?.join(spec.filename)),
+        PromptLocation::Claude => Ok(claude_config_dir()?.join(spec.filename)),
+        PromptLocation::Codex | PromptLocation::Gemini => {
+            let home = dirs::home_dir().ok_or_else(|| "无法获取用户主目录".to_string())?;
+            Ok(resolve_from_home(spec, &home))
+        }
     }
-    let home = dirs::home_dir().ok_or_else(|| "无法获取用户主目录".to_string())?;
-    Ok(resolve_from_home(spec, &home))
 }
 
 fn backup_dir(spec: &PromptFileSpec) -> Result<PathBuf, String> {
@@ -48,7 +58,21 @@ fn list_for_home(platform: &str, home: &Path) -> Result<Value, String> {
         .map(|spec| file_description(spec, &resolve_from_home(spec, home)))
         .collect();
     let rules = if normalize_platform(platform) == Some("claude") {
-        list_claude_rules(home)
+        list_claude_rules_in(&home.join(".claude"))
+    } else {
+        Vec::new()
+    };
+    Ok(json!({ "status": "ok", "files": files, "rules": rules }))
+}
+
+// 命令与测试共用同一条本地解析路径，避免列表与读写各自拼根目录。
+fn list_local(normalized: &'static str) -> Result<Value, String> {
+    let files: Vec<_> = platform_specs(normalized)?
+        .into_iter()
+        .map(|spec| resolve_prompt_path(spec).map(|path| file_description(spec, &path)))
+        .collect::<Result<_, _>>()?;
+    let rules = if normalized == "claude" {
+        list_claude_rules_in(&claude_config_dir()?)
     } else {
         Vec::new()
     };
@@ -76,27 +100,10 @@ pub async fn system_prompts_list(
     }
     let normalized = normalize_platform(&platform)
         .ok_or_else(|| format!("不支持的系统提示词平台: {platform}"))?;
-    let specs = platform_specs(normalized)?;
-    let resolved: Vec<_> = specs
-        .iter()
-        .map(|spec| resolve_prompt_path(spec).map(|path| (*spec, path)))
-        .collect::<Result<_, _>>()?;
-    let home = dirs::home_dir().ok_or_else(|| "无法获取用户主目录".to_string())?;
-    tokio::task::spawn_blocking(move || -> Result<Value, String> {
-        let files: Vec<_> = resolved
-            .iter()
-            .map(|(spec, path)| file_description(spec, path))
-            .collect();
-        let rules = if normalized == "claude" {
-            list_claude_rules(&home)
-        } else {
-            Vec::new()
-        };
-        Ok(json!({ "status": "ok", "files": files, "rules": rules }))
-    })
-    .await
-    .map_err(|error| format!("列出系统提示词后台任务失败: {error}"))??
-    .try_into()
+    tokio::task::spawn_blocking(move || list_local(normalized))
+        .await
+        .map_err(|error| format!("列出系统提示词后台任务失败: {error}"))??
+        .try_into()
 }
 
 #[ccr_tauri_command_macros::command]
@@ -181,6 +188,73 @@ mod tests {
             let spec = prompt_spec(platform, id).unwrap();
             assert!(resolve_from_home(spec, home).ends_with(suffix));
         }
+    }
+
+    // 环境变量是进程级状态：在独立子进程里设置，不污染并行测试。
+    #[test]
+    fn claude_memory_and_rules_follow_config_dir_without_touching_default_home() {
+        const TEST: &str = "commands::system_prompts::tests::claude_memory_and_rules_follow_config_dir_without_touching_default_home";
+        let Some(root) = std::env::var_os("CCR_TEST_SYSTEM_PROMPTS_ROOT") else {
+            let temp = tempdir().unwrap();
+            let root = temp.path().canonicalize().unwrap();
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", TEST, "--nocapture"])
+                .env("CCR_TEST_SYSTEM_PROMPTS_ROOT", &root)
+                .env("CLAUDE_CONFIG_DIR", root.join("custom-claude"))
+                .env("HOME", root.join("home"))
+                .env("USERPROFILE", root.join("home"))
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "stdout={} stderr={}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+            assert!(String::from_utf8_lossy(&output.stdout).contains("1 passed"));
+            return;
+        };
+        let root = PathBuf::from(root);
+        let custom = root.join("custom-claude");
+        let default_claude = root.join("home/.claude");
+        fs::create_dir_all(custom.join("rules")).unwrap();
+        fs::create_dir_all(default_claude.join("rules")).unwrap();
+        let original = b"default home must remain byte-identical";
+        fs::write(default_claude.join("CLAUDE.md"), original).unwrap();
+        fs::write(default_claude.join("rules/ambient.md"), original).unwrap();
+        fs::write(custom.join("rules/custom.md"), "custom rule").unwrap();
+
+        let spec = prompt_spec("claude", "claude-user-memory").unwrap();
+        let path = resolve_prompt_path(spec).unwrap();
+        assert_eq!(path, custom.join("CLAUDE.md"));
+
+        let listed = list_local("claude").unwrap();
+        assert_eq!(listed["files"][0]["exists"], false);
+        let rules = listed["rules"].as_array().unwrap();
+        assert_eq!(rules.len(), 1);
+        assert_eq!(rules[0]["name"], "custom.md");
+
+        let backups = root.join("backups");
+        let created = save_prompt_file(spec, &path, &backups, "# Memory\n", "").unwrap();
+        assert_eq!(created["status"], "saved");
+        assert_eq!(
+            fs::read_to_string(custom.join("CLAUDE.md")).unwrap(),
+            "# Memory\n"
+        );
+        assert_eq!(list_local("claude").unwrap()["files"][0]["exists"], true);
+        assert_eq!(
+            fs::read(default_claude.join("CLAUDE.md")).unwrap(),
+            original
+        );
+        assert_eq!(
+            fs::read(default_claude.join("rules/ambient.md")).unwrap(),
+            original
+        );
+
+        // 其他平台仍按主目录解析，不受 Claude 配置目录影响。
+        let codex = resolve_prompt_path(prompt_spec("codex", "codex-agents").unwrap()).unwrap();
+        assert!(codex.ends_with(".codex/AGENTS.md"));
+        assert!(!codex.starts_with(&custom));
     }
 
     #[test]

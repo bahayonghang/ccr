@@ -49,7 +49,7 @@ export const buildTotals = (data: Insights): TotalsItem[] => {
     { key: 'tokens', value: usage(totals.tokens), unindexed: false },
     { key: 'requests', value: usage(totals.requests), unindexed: false },
     { key: 'agents', value: usage(totals.agents), unindexed: false },
-    { key: 'projects', value: usage(totals.projects), unindexed: false },
+    { key: 'projects', value: totals.project_attribution_complete || totals.projects > 0 ? usage(totals.projects) : null, unindexed: false },
     { key: 'activeDays', value: usage(totals.active_days), unindexed: false },
   ]
 }

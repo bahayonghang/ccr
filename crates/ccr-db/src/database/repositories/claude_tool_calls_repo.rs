@@ -8,7 +8,7 @@
 // 注意：duration_ms 和 cost_usd 在当前版本可能为 NULL（来源 jsonl 不一定带
 //       足够字段去推断），前端必须能容忍。
 
-use chrono::Utc;
+use chrono::{Datelike, TimeZone, Timelike, Utc};
 use rusqlite::{Connection, params, params_from_iter};
 
 /// All-history distinct sessions with recorded Claude tool calls.
@@ -33,22 +33,19 @@ pub struct ToolCallRow {
     pub project_path: Option<String>,
 }
 
-// Preserve the legacy live filter exactly; fixed reports also exclude future rows.
+// All callers use an inclusive instant window, independent of timestamp spelling.
 fn report_window(days: i64, as_of: Option<chrono::DateTime<Utc>>) -> (&'static str, Vec<String>) {
-    match (days > 0, as_of) {
-        (true, Some(at)) => (
+    let at = as_of.unwrap_or_else(Utc::now);
+    if days > 0 {
+        (
             "WHERE julianday(ts) BETWEEN julianday(?2, ?1) AND julianday(?2)",
             vec![format!("-{days} days"), at.to_rfc3339()],
-        ),
-        (false, Some(at)) => (
+        )
+    } else {
+        (
             "WHERE julianday(ts) <= julianday(?1)",
             vec![at.to_rfc3339()],
-        ),
-        (true, None) => (
-            "WHERE ts >= datetime('now', ?1)",
-            vec![format!("-{days} days")],
-        ),
-        (false, None) => ("", vec![]),
+        )
     }
 }
 
@@ -65,7 +62,7 @@ pub struct HeatmapCell {
 pub struct TopToolRow {
     pub tool_name: String,
     pub call_count: i64,
-    pub cost_usd: f64,
+    pub cost_usd: Option<f64>,
 }
 
 /// $/tool 效率排行行
@@ -76,8 +73,8 @@ pub struct EfficiencyRow {
     pub call_count: i64,
     pub success_count: i64,
     pub failure_count: i64,
-    pub cost_usd: f64,
-    pub cost_per_tool: f64,
+    pub cost_usd: Option<f64>,
+    pub cost_per_tool: Option<f64>,
 }
 
 /// jsonl 文件解析进度（增量游标）
@@ -115,7 +112,25 @@ pub fn record_ingested_file(
     mtime_ns: i64,
     offset: i64,
 ) -> Result<usize, rusqlite::Error> {
+    record_ingested_file_with_skips(conn, rows, &[], file_path, mtime_ns, offset)
+}
+
+/// Remove only explicitly rejected event positions in the same file/cursor transaction.
+pub fn record_ingested_file_with_skips(
+    conn: &mut Connection,
+    rows: &[ToolCallRow],
+    skipped: &[(String, i64)],
+    file_path: &str,
+    mtime_ns: i64,
+    offset: i64,
+) -> Result<usize, rusqlite::Error> {
     let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+    for (session, seq) in skipped {
+        tx.execute(
+            "DELETE FROM claude_tool_calls WHERE session_id = ?1 AND seq = ?2",
+            params![session, seq],
+        )?;
+    }
     let inserted = upsert_rows(&tx, rows)?;
     upsert_ingest_state(&tx, file_path, mtime_ns, offset)?;
     tx.commit()?;
@@ -225,25 +240,44 @@ fn heatmap_with_clock(
     days: i64,
     as_of: Option<chrono::DateTime<Utc>>,
 ) -> Result<Vec<HeatmapCell>, rusqlite::Error> {
-    let (where_sql, params_vec) = report_window(days, as_of);
+    heatmap_in_timezone_at(conn, days, as_of.unwrap_or_else(Utc::now), &Utc)
+}
+
+/// Convert each event in its historical report zone before weekday/hour grouping.
+pub fn heatmap_in_timezone_at<Tz: TimeZone>(
+    conn: &Connection,
+    days: i64,
+    as_of: chrono::DateTime<Utc>,
+    timezone: &Tz,
+) -> Result<Vec<HeatmapCell>, rusqlite::Error> {
+    let (where_sql, params_vec) = report_window(days, Some(as_of));
     let sql = format!(
-        "SELECT CAST(strftime('%w', ts) AS INTEGER) AS dow,
-                CAST(strftime('%H', ts) AS INTEGER) AS hour,
-                COUNT(*) AS cnt
+        "SELECT ts, COUNT(*)
          FROM claude_tool_calls
          {where_sql}
-         GROUP BY dow, hour
-         ORDER BY dow ASC, hour ASC"
+         GROUP BY ts"
     );
     let mut stmt = conn.prepare(&sql)?;
     let rows = stmt.query_map(params_from_iter(params_vec.iter()), |row| {
-        Ok(HeatmapCell {
-            dow: row.get(0)?,
-            hour: row.get(1)?,
-            count: row.get(2)?,
-        })
+        Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
     })?;
-    rows.collect()
+    let mut bins = std::collections::BTreeMap::<(i64, i64), i64>::new();
+    for row in rows {
+        let (timestamp, count) = row?;
+        if let Ok(instant) = chrono::DateTime::parse_from_rfc3339(&timestamp) {
+            let local = instant.with_timezone(timezone);
+            *bins
+                .entry((
+                    i64::from(local.weekday().num_days_from_sunday()),
+                    i64::from(local.hour()),
+                ))
+                .or_default() += count;
+        }
+    }
+    Ok(bins
+        .into_iter()
+        .map(|((dow, hour), count)| HeatmapCell { dow, hour, count })
+        .collect())
 }
 
 /// Top tools 按调用次数排序，附带累计成本（如已知）
@@ -271,11 +305,12 @@ fn top_tools_with_clock(
 ) -> Result<Vec<TopToolRow>, rusqlite::Error> {
     let (where_sql, params_vec) = report_window(days, as_of);
     let sql = format!(
-        "SELECT tool_name, COUNT(*) AS cnt, COALESCE(SUM(cost_usd), 0.0) AS cost
+        "SELECT tool_name, COUNT(*) AS cnt,
+                CASE WHEN COUNT(cost_usd) = COUNT(*) THEN SUM(cost_usd) END AS cost
          FROM claude_tool_calls
          {where_sql}
          GROUP BY tool_name
-         ORDER BY cnt DESC
+         ORDER BY cnt DESC, tool_name ASC
          LIMIT {limit}"
     );
     let mut stmt = conn.prepare(&sql)?;
@@ -316,21 +351,66 @@ fn efficiency_sessions_with_clock(
     limit: i64,
     as_of: Option<chrono::DateTime<Utc>>,
 ) -> Result<Vec<EfficiencyRow>, rusqlite::Error> {
+    session_rows(
+        conn,
+        days,
+        Some(min_cost_usd),
+        limit,
+        as_of,
+        "cpt DESC, session_id ASC",
+    )
+}
+
+/// Observed tool sessions, including unpriced sessions. The limit follows the chosen order.
+pub fn observed_sessions_at(
+    conn: &Connection,
+    days: i64,
+    limit: i64,
+    by_cost: bool,
+    as_of: chrono::DateTime<Utc>,
+) -> Result<Vec<EfficiencyRow>, rusqlite::Error> {
+    session_rows(
+        conn,
+        days,
+        None,
+        limit,
+        Some(as_of),
+        if by_cost {
+            "cost DESC, calls DESC, session_id ASC"
+        } else {
+            "calls DESC, session_id ASC"
+        },
+    )
+}
+
+fn session_rows(
+    conn: &Connection,
+    days: i64,
+    min_cost_usd: Option<f64>,
+    limit: i64,
+    as_of: Option<chrono::DateTime<Utc>>,
+    order: &str,
+) -> Result<Vec<EfficiencyRow>, rusqlite::Error> {
     let (where_sql, mut params_vec) = report_window(days, as_of);
-    params_vec.push(format!("{min_cost_usd}"));
+    let having = if let Some(min_cost) = min_cost_usd {
+        params_vec.push(min_cost.to_string());
+        "HAVING cost >= CAST(? AS REAL)"
+    } else {
+        ""
+    };
     let sql = format!(
         "SELECT session_id,
                 MAX(project_path) AS project_path,
                 COUNT(*) AS calls,
                 SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) AS oks,
                 SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) AS fails,
-                COALESCE(SUM(cost_usd), 0.0) AS cost,
-                CASE WHEN COUNT(*) > 0 THEN COALESCE(SUM(cost_usd), 0.0) / COUNT(*) ELSE 0.0 END AS cpt
+                CASE WHEN COUNT(cost_usd) = COUNT(*) THEN SUM(cost_usd) END AS cost,
+                CASE WHEN COUNT(cost_usd) = COUNT(*) THEN SUM(cost_usd) / COUNT(*) END AS cpt
          FROM claude_tool_calls
          {where_sql}
          GROUP BY session_id
-         HAVING cost >= CAST(? AS REAL)
-         ORDER BY cpt DESC
+         {having}
+         ORDER BY {order}
          LIMIT {limit}"
     );
     let mut stmt = conn.prepare(&sql)?;
@@ -380,6 +460,78 @@ mod tests {
             cost_usd: Some(cost),
             project_path: Some("/repo".to_string()),
         }
+    }
+
+    #[test]
+    fn heatmap_uses_the_event_report_zone_across_day_boundaries() {
+        let mut conn = fresh_conn();
+        let mut row = sample_row("s", 1, "Read", true, 0.0);
+        row.ts = "2026-11-08T23:30:00Z".into();
+        upsert_batch(&mut conn, &[row]).unwrap();
+        let as_of = chrono::DateTime::parse_from_rfc3339("2026-11-09T12:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        let zone = chrono::FixedOffset::east_opt(9 * 3600).unwrap();
+        let local = heatmap_in_timezone_at(&conn, 1, as_of, &zone).unwrap();
+        assert_eq!((local[0].dow, local[0].hour, local[0].count), (1, 8, 1));
+        let utc = heatmap_at(&conn, 1, as_of).unwrap();
+        assert_eq!((utc[0].dow, utc[0].hour), (0, 23));
+    }
+
+    #[test]
+    fn missing_cost_stays_unknown_including_partially_priced_groups() {
+        let mut conn = fresh_conn();
+        let mut missing = sample_row("unknown", 1, "Read", true, 0.0);
+        missing.cost_usd = None;
+        let mut partial = missing.clone();
+        partial.session_id = "partial".into();
+        partial.tool_name = "Edit".into();
+        upsert_batch(
+            &mut conn,
+            &[
+                missing,
+                partial,
+                sample_row("partial", 2, "Edit", true, 0.5),
+                sample_row("free", 1, "Bash", true, 0.0),
+            ],
+        )
+        .unwrap();
+        let tools = top_tools(&conn, 0, 10).unwrap();
+        for name in ["Read", "Edit"] {
+            let row = tools.iter().find(|row| row.tool_name == name).unwrap();
+            assert!(serde_json::to_value(row).unwrap()["cost_usd"].is_null());
+        }
+        let free = tools.iter().find(|row| row.tool_name == "Bash").unwrap();
+        assert_eq!(serde_json::to_value(free).unwrap()["cost_usd"], 0.0);
+        let sessions = observed_sessions_at(&conn, 0, 1, false, Utc::now()).unwrap();
+        assert_eq!(sessions[0].session_id, "partial");
+        assert_eq!(sessions[0].cost_usd, None);
+        assert_eq!(sessions[0].cost_per_tool, None);
+        let priced = observed_sessions_at(&conn, 0, 1, true, Utc::now()).unwrap();
+        assert_eq!(priced[0].session_id, "free");
+        assert_eq!(priced[0].cost_usd, Some(0.0));
+    }
+
+    #[test]
+    fn live_window_excludes_early_cutoff_day_and_future_rows() {
+        let mut conn = fresh_conn();
+        let now = Utc::now();
+        let cutoff = now - chrono::Duration::days(1);
+        let rows = [
+            cutoff - chrono::Duration::seconds(1),
+            now,
+            now + chrono::Duration::days(1),
+        ]
+        .into_iter()
+        .enumerate()
+        .map(|(index, ts)| {
+            let mut row = sample_row(&format!("s{index}"), 1, "Read", true, 0.5);
+            row.ts = ts.to_rfc3339();
+            row
+        })
+        .collect::<Vec<_>>();
+        upsert_batch(&mut conn, &rows).unwrap();
+        assert_eq!(top_tools(&conn, 1, 10).unwrap()[0].call_count, 1);
     }
 
     #[test]

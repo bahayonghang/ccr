@@ -68,8 +68,84 @@ pub fn export(profiles_file: &Path, include_secrets: bool) -> Result<String> {
         .ok_or_else(|| CcrError::ConfigError("Failed to read profiles catalog".into()))
 }
 
-/// `force` acknowledges removal of the active profile; it never bypasses CAS.
-/// Call inside the platform's synchronous operation context when one is needed.
+/// Save an explicitly selected export to a new file with secret-file permissions.
+/// Existing files and linked paths are never overwritten by temporary-output delivery.
+pub fn save_export(destination: &Path, content: &str) -> Result<bool> {
+    if !destination.is_absolute()
+        || destination
+            .components()
+            .any(|part| matches!(part, std::path::Component::ParentDir))
+    {
+        return Err(CcrError::ValidationError(
+            "Invalid export destination".into(),
+        ));
+    }
+    for path in destination.ancestors() {
+        match std::fs::symlink_metadata(path) {
+            Ok(meta) => {
+                #[cfg(windows)]
+                {
+                    use std::os::windows::fs::MetadataExt;
+                    if meta.file_attributes() & 0x400 != 0 {
+                        return Err(CcrError::ValidationError(
+                            "Linked export destination".into(),
+                        ));
+                    }
+                }
+                if meta.file_type().is_symlink() {
+                    return Err(CcrError::ValidationError(
+                        "Linked export destination".into(),
+                    ));
+                }
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(CcrError::IoError(error)),
+        }
+    }
+    use ccr_core::core::{
+        VersionedWriteOutcome,
+        guarded_write::{WriteOptions, write_guarded_versioned},
+    };
+    Ok(matches!(
+        write_guarded_versioned(
+            destination,
+            content.as_bytes(),
+            "",
+            &WriteOptions {
+                secret: true,
+                ..Default::default()
+            }
+        )?,
+        VersionedWriteOutcome::Written
+    ))
+}
+
+/// Save a catalog without changing activation or allowing removal of the current item.
+/// The caller holds its platform application lock; unknown fields and CAS are retained.
+pub fn save_without_activation(
+    paths: &PlatformPaths,
+    current: Option<&str>,
+    content: &str,
+    token: &str,
+) -> Result<SourceSaveOutcome> {
+    let Ok(mut document) = toml::from_str::<toml::Value>(content) else {
+        return save(paths, current, content, token, false);
+    };
+    let Ok(parsed) = ccr_config::platforms::base::parse_config_from_str(content) else {
+        return save(paths, current, content, token, false);
+    };
+    if let Some(table) = document.as_table_mut() {
+        table.insert("current_config".into(), current.unwrap_or_default().into());
+        table
+            .entry("default_config")
+            .or_insert(parsed.default_config.into());
+    }
+    let normalized = toml::to_string_pretty(&document)
+        .map_err(|_| CcrError::ConfigError("Cannot serialize profiles catalog".into()))?;
+    save(paths, current, &normalized, token, false)
+}
+
+/// Legacy callers may explicitly acknowledge activation removal; CAS still applies.
 pub fn save(
     paths: &PlatformPaths,
     current_profile: Option<&str>,

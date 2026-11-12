@@ -21,6 +21,7 @@ pub struct InsightDto {
     pub month_tokens: i64,
     pub total_sessions: i64,
     pub total_projects: i64,
+    pub project_attribution_complete: bool,
     pub subscription: subscription::SubscriptionDto,
     /// 当 mode=subscription 时，month_value_usd / monthly_usd；否则 None
     pub roi: Option<f64>,
@@ -58,8 +59,8 @@ pub struct SessionRow {
     pub session_id: String,
     pub project_path: Option<String>,
     pub model: Option<String>,
-    pub cost_usd: f64,
-    pub tokens: i64,
+    pub cost_usd: Option<f64>,
+    pub tokens: Option<i64>,
     pub tool_call_count: i64,
     pub started_at: Option<String>,
 }
@@ -72,6 +73,7 @@ pub struct HeatmapCell {
     /// 0..23
     pub hour: i64,
     pub count: i64,
+    pub timezone: &'static str,
 }
 
 impl From<claude_tool_calls_repo::HeatmapCell> for HeatmapCell {
@@ -80,6 +82,7 @@ impl From<claude_tool_calls_repo::HeatmapCell> for HeatmapCell {
             dow: cell.dow,
             hour: cell.hour,
             count: cell.count,
+            timezone: "utc",
         }
     }
 }
@@ -89,7 +92,7 @@ impl From<claude_tool_calls_repo::HeatmapCell> for HeatmapCell {
 pub struct TopToolRow {
     pub tool_name: String,
     pub call_count: i64,
-    pub cost_usd: f64,
+    pub cost_usd: Option<f64>,
 }
 
 impl From<claude_tool_calls_repo::TopToolRow> for TopToolRow {
@@ -183,6 +186,9 @@ pub fn insight_with_clock(
         .project_breakdown(&filter)
         .map_err(|e| format!("Project breakdown error: {e}"))?;
     let total_projects = projects.len() as i64;
+    let project_attribution_complete = dashboard
+        .project_attribution_complete(&filter)
+        .map_err(|e| format!("Project attribution error: {e}"))?;
 
     /* 步骤3：从 ccr-db 取 session 总数（用 claude_tool_calls 的 distinct session_id） */
     let total_sessions = claude_tool_calls_repo::session_count(conn)
@@ -214,6 +220,7 @@ pub fn insight_with_clock(
         month_tokens: total_tokens_month,
         total_sessions,
         total_projects,
+        project_attribution_complete,
         subscription: sub,
         roi,
     })
@@ -440,30 +447,18 @@ pub fn top_sessions_with_clock(
     clock: ReportClock,
 ) -> Result<Vec<SessionRow>, String> {
     let limit = limit.unwrap_or(10).clamp(1, 200);
-    let by_calls = matches!(by, Some("calls"));
+    let by_cost = matches!(by, Some("cost"));
     debug!(
         "[claude_observer] top_sessions: limit={}, by={:?}",
         limit, by
     );
 
-    // 用 efficiency_sessions 拉全量，再按需重排
-    let mut rows = (if clock.timezone == ccr_usage::ReportTimezone::Utc {
-        claude_tool_calls_repo::efficiency_sessions_at(conn, 30, 0.0, 1000, clock.as_of)
-    } else {
-        claude_tool_calls_repo::efficiency_sessions(conn, 30, 0.0, 1000)
-    })
-    .map_err(|e| {
-        let err = format!("Efficiency query error: {e}");
-        tracing::error!("[claude_observer] {}", err);
-        err
-    })?;
-    if by_calls {
-        // 用 sort_by_key 替换 sort_by 的 (a,b) 反向比较，clippy 偏好
-        rows.sort_by_key(|r| std::cmp::Reverse(r.call_count));
-    } else {
-        // f64 不实现 Ord，必须沿用 sort_by + total_cmp
-        rows.sort_by(|a, b| b.cost_usd.total_cmp(&a.cost_usd));
-    }
+    let rows = claude_tool_calls_repo::observed_sessions_at(conn, 30, limit, by_cost, clock.as_of)
+        .map_err(|e| {
+            let err = format!("Efficiency query error: {e}");
+            tracing::error!("[claude_observer] {}", err);
+            err
+        })?;
     let out: Vec<SessionRow> = rows
         .into_iter()
         .take(limit as usize)
@@ -472,7 +467,7 @@ pub fn top_sessions_with_clock(
             project_path: r.project_path,
             model: None,
             cost_usd: r.cost_usd,
-            tokens: 0,
+            tokens: None,
             tool_call_count: r.call_count,
             started_at: None,
         })
@@ -507,7 +502,7 @@ pub fn tool_heatmap_with_clock(
     let result = (if clock.timezone == ccr_usage::ReportTimezone::Utc {
         claude_tool_calls_repo::heatmap_at(conn, days, clock.as_of)
     } else {
-        claude_tool_calls_repo::heatmap(conn, days)
+        claude_tool_calls_repo::heatmap_in_timezone_at(conn, days, clock.as_of, &chrono::Local)
     })
     .map_err(|e| {
         let err = format!("Heatmap query error: {e}");
@@ -523,7 +518,18 @@ pub fn tool_heatmap_with_clock(
         tracing::warn!("[claude_observer] tool_heatmap returned empty (ccr-db may be empty)");
     }
 
-    Ok(result.into_iter().map(HeatmapCell::from).collect())
+    Ok(result
+        .into_iter()
+        .map(|cell| {
+            let mut cell = HeatmapCell::from(cell);
+            cell.timezone = if clock.timezone == ccr_usage::ReportTimezone::Utc {
+                "utc"
+            } else {
+                "local"
+            };
+            cell
+        })
+        .collect())
 }
 
 /// Top tools 排行（默认 30 天 / 15 条）。
@@ -547,16 +553,12 @@ pub fn top_tools_with_clock(
         days, limit
     );
 
-    let result = (if clock.timezone == ccr_usage::ReportTimezone::Utc {
-        claude_tool_calls_repo::top_tools_at(conn, days, limit, clock.as_of)
-    } else {
-        claude_tool_calls_repo::top_tools(conn, days, limit)
-    })
-    .map_err(|e| {
-        let err = format!("Top tools query error: {e}");
-        tracing::error!("[claude_observer] {}", err);
-        err
-    })?;
+    let result =
+        claude_tool_calls_repo::top_tools_at(conn, days, limit, clock.as_of).map_err(|e| {
+            let err = format!("Top tools query error: {e}");
+            tracing::error!("[claude_observer] {}", err);
+            err
+        })?;
 
     debug!("[claude_observer] top_tools result: {} tools", result.len());
     if result.is_empty() {
@@ -571,6 +573,69 @@ pub fn top_tools_with_clock(
 mod clock_tests {
     use super::*;
     use ccr_usage::fixtures::{SeedBucket, create_projection_db, seed_bucket};
+    #[test]
+    fn project_attribution_distinguishes_empty_unattributed_partial_and_complete() {
+        for (hashes, complete, expected_count) in [
+            (vec![], true, 0),
+            (vec![""], false, 0),
+            (vec!["", "project-a"], false, 1),
+            (vec!["project-a", "project-a"], true, 1),
+        ] {
+            let root = tempfile::tempdir().unwrap();
+            let paths = create_projection_db(&root.path().join("usage"));
+            let usage = rusqlite::Connection::open(&paths.db_path).unwrap();
+            for (index, hash) in hashes.into_iter().enumerate() {
+                seed_bucket(
+                    &usage,
+                    &SeedBucket {
+                        source: "claude".into(),
+                        project_hash: hash.into(),
+                        hour_start: format!("2026-11-10T{index:02}:00:00Z"),
+                        ..Default::default()
+                    },
+                );
+            }
+            seed_bucket(
+                &usage,
+                &SeedBucket {
+                    source: "codex".into(),
+                    project_hash: "".into(),
+                    ..Default::default()
+                },
+            );
+            drop(usage);
+            let pool = ccr_db::database::create_app_pool_at(
+                &root.path().join("observer.db"),
+                &root.path().join("empty-home"),
+            )
+            .unwrap();
+            let clock = ReportClock::fixed_utc(
+                chrono::DateTime::parse_from_rfc3339("2026-11-10T12:00:00Z")
+                    .unwrap()
+                    .with_timezone(&chrono::Utc),
+            );
+            let insight = insight_with_clock(&paths, &pool.get().unwrap(), clock).unwrap();
+            assert_eq!(insight.total_projects, expected_count);
+            let value = serde_json::to_value(insight).unwrap();
+            assert_eq!(value["project_attribution_complete"], complete);
+            let dashboard = ccr_usage::open_dashboard(paths).unwrap();
+            let snapshot = dashboard
+                .insights(
+                    &ccr_usage::QueryFilter {
+                        source: Some(ccr_usage::SourceKind::Claude),
+                        timezone: ccr_usage::ReportTimezone::Utc,
+                        ..Default::default()
+                    },
+                    clock.date(),
+                )
+                .unwrap();
+            assert_eq!(snapshot.project_count, expected_count);
+            assert_eq!(
+                serde_json::to_value(snapshot).unwrap()["project_attribution_complete"],
+                complete
+            );
+        }
+    }
     #[test]
     fn observer_defaults_use_fixed_utc_today_month_and_days() {
         let root = tempfile::tempdir().unwrap();

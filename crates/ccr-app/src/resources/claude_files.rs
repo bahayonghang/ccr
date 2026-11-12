@@ -18,12 +18,18 @@ const MAX_FILES: usize = 1000;
 pub enum Kind {
     Rule,
     OutputStyle,
+    Agent,
+    Skill,
+    SlashCommand,
 }
 impl Kind {
     pub fn directory(self) -> &'static str {
         match self {
             Self::Rule => "rules",
             Self::OutputStyle => "output-styles",
+            Self::Agent => "agents",
+            Self::Skill => "skills",
+            Self::SlashCommand => "commands",
         }
     }
 }

@@ -18,6 +18,7 @@ use gpui_kit::component::{
     input::Input,
     tooltip::Tooltip,
 };
+use gpui_kit::prelude::FluentBuilder;
 use gpui_kit::{
     AnyElement, App, Context, Div, FontWeight, InteractiveElement, IntoElement, ParentElement,
     SharedString, StatefulInteractiveElement, Styled, div, px, relative,
@@ -132,18 +133,20 @@ impl McpView {
             .flex_wrap()
             .items_center()
             .gap(px(theme::CONTROL_GAP))
-            .child(semantics::button(
-                Button::new("mcp-copy")
-                    .label(text(cx, "Copy to…", "复制到…"))
-                    .tooltip(text(cx, "Copy to another source", "复制到其他来源"))
-                    .ghost()
-                    .on_click(cx.listener(move |this, _, window, cx| {
-                        this.open_sources(EditMode::Copy(copy.clone()), window, cx)
-                    })),
-                self.busy,
-                false,
-                cx,
-            ))
+            .when(self.platform_scope.is_none(), |row| {
+                row.child(semantics::button(
+                    Button::new("mcp-copy")
+                        .label(text(cx, "Copy to…", "复制到…"))
+                        .tooltip(text(cx, "Copy to another source", "复制到其他来源"))
+                        .ghost()
+                        .on_click(cx.listener(move |this, _, window, cx| {
+                            this.open_sources(EditMode::Copy(copy.clone()), window, cx)
+                        })),
+                    self.busy,
+                    false,
+                    cx,
+                ))
+            })
             .child(semantics::button(
                 Button::new("mcp-edit")
                     .label(text(cx, "Edit", "编辑"))
@@ -301,14 +304,7 @@ impl McpView {
             (3, "mcp-source-codex", "Codex", "Codex"),
             (4, "mcp-source-antigravity", "Antigravity", "Antigravity"),
         ] {
-            let allowed = match self.platform_scope {
-                None => true,
-                Some(ccr_app::runtime::Platform::Claude) => index <= 2,
-                Some(ccr_app::runtime::Platform::Codex) => index == 3,
-                Some(ccr_app::runtime::Platform::Gemini) => index == 4,
-                _ => false,
-            };
-            if allowed {
+            if self.allows_destination(index) {
                 targets = targets.child(destination_tab(
                     index,
                     id,
@@ -366,6 +362,9 @@ fn destination_tab(
                 .label(label)
                 .ghost()
                 .on_click(cx.listener(move |this, _, _, cx| {
+                    if !this.allows_destination(index) || this.busy {
+                        return;
+                    }
                     this.create_source = index;
                     cx.notify();
                 })),

@@ -366,6 +366,9 @@ impl Render for ClaudeResourcesView {
             ("claude-resource-commands", Kind::SlashCommands),
             ("claude-resource-plugins", Kind::Plugins),
         ] {
+            if self.kind.is_file() && !kind.is_file() {
+                continue;
+            }
             kinds = kinds.child(semantics::button(
                 Button::new(id)
                     .label(title(kind, cx))

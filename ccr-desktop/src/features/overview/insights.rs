@@ -126,22 +126,39 @@ impl OverviewView {
                 |this| this.leaders = Leaders::Agents,
                 cx,
             ));
-        let frame = panel("overview-leaders", cx).min_w_0().child(panel_header(
+        let mut frame = panel("overview-leaders", cx).min_w_0().child(panel_header(
             text(cx, "Leaders", "排行"),
             Some(text(cx, "All history", "全历史")),
             tabs,
             cx,
         ));
         let rows = leader_rows(activity, selected);
+        if selected == Leaders::Projects && !activity.totals.project_attribution_complete {
+            frame = frame.child(caption_line(
+                text(
+                    cx,
+                    "Some usage has no project attribution; only attributed projects are listed.",
+                    "部分用量未归属项目；仅列出已归属的项目。",
+                )
+                .to_string(),
+                cx,
+            ));
+        }
         let Some(top) = rows.first().map(|row| row.requests) else {
+            let empty =
+                if selected == Leaders::Projects && !activity.totals.project_attribution_complete {
+                    text(cx, "No attributed projects", "无已归属项目")
+                } else {
+                    text(cx, "No records", "暂无记录")
+                };
             return frame.child(
                 div()
                     .id("overview-leaders-empty")
                     .test_support()
                     .role(Role::Label)
-                    .aria_label(text(cx, "No records", "暂无记录"))
+                    .aria_label(empty)
                     .text_color(cx.theme().muted_foreground)
-                    .child(text(cx, "No records", "暂无记录")),
+                    .child(empty),
             );
         };
         let mut list = div()

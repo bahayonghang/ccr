@@ -18,7 +18,7 @@ use rusqlite::Connection;
 use tracing::{debug, info, warn};
 use walkdir::WalkDir;
 
-use super::jsonl::{ParsedToolEvent, ToolEventKind, parse_line};
+use super::jsonl::{ParsedToolEvent, ToolEventKind, parse_line_with_status};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Cancelled;
@@ -26,12 +26,18 @@ pub struct Cancelled;
 const MAX_FILE_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_LINE_BYTES: u64 = 1024 * 1024;
 
+enum ScannedEvent {
+    Tool(ParsedToolEvent),
+    SkippedUse(String),
+}
+
 /// 增量 ingest 报告
 #[derive(Debug, Clone, Default, serde::Serialize)]
 pub struct IngestReport {
     pub files_scanned: usize,
     pub files_changed: usize,
     pub calls_inserted: usize,
+    pub skipped_invalid_timestamps: usize,
     pub errors: Vec<String>,
 }
 
@@ -88,9 +94,10 @@ pub fn ingest_incremental_at(
             return Err(Cancelled);
         }
         match result {
-            Ok(Some((rows_pushed, _ev_count))) => {
+            Ok(Some((rows_pushed, skipped_invalid_timestamps))) => {
                 report.files_changed += 1;
                 report.calls_inserted += rows_pushed;
+                report.skipped_invalid_timestamps += skipped_invalid_timestamps;
             }
             Ok(None) => {
                 debug!("[claude_observer] 文件未变更, 跳过: {}", path.display());
@@ -119,7 +126,7 @@ pub fn ingest_incremental_at(
     Ok(report)
 }
 
-/// 重读受限的已变文件：返回 Some((upserted_rows, parsed_events))，未变更返回 None
+/// 重读受限的已变文件：返回 Some((upserted_rows, skipped_invalid_timestamps))，未变更返回 None
 fn ingest_single_file(
     conn: &mut Connection,
     path: &Path,
@@ -148,7 +155,8 @@ fn ingest_single_file(
     }
     let mut reader = BufReader::new(file);
     let project_hint = derive_project_path_hint(path);
-    let mut events: Vec<ParsedToolEvent> = Vec::new();
+    let mut events = Vec::new();
+    let mut skipped_invalid_timestamps = 0;
     let mut consumed_bytes = 0_u64;
     loop {
         if cancelled() {
@@ -178,7 +186,15 @@ fn ingest_single_file(
         // Invalid JSON may be an incomplete append. Keep the prior cursor for retry.
         serde_json::from_str::<serde_json::Value>(trimmed)
             .map_err(|_| "observer_invalid_json".to_string())?;
-        events.extend(parse_line(trimmed, project_hint.as_deref()));
+        match parse_line_with_status(trimmed, project_hint.as_deref()) {
+            Ok(parsed) => events.extend(parsed.into_iter().map(ScannedEvent::Tool)),
+            Err(invalid) => {
+                skipped_invalid_timestamps += 1;
+                for _ in 0..invalid.tool_use_count {
+                    events.push(ScannedEvent::SkippedUse(invalid.session_id.clone()));
+                }
+            }
+        }
     }
     if file_mtime_ns(path)? != mtime_ns || consumed_bytes != file_len {
         return Err("observer_file_changed_during_scan".into());
@@ -188,23 +204,24 @@ fn ingest_single_file(
     }
 
     /* 步骤D：把解析事件转成 ToolCallRow，tool_result 走回填路径 */
-    let rows = build_rows(&events);
-    let upserted = claude_tool_calls_repo::record_ingested_file(
+    let (rows, skipped) = build_rows(&events);
+    let upserted = claude_tool_calls_repo::record_ingested_file_with_skips(
         conn,
         &rows,
+        &skipped,
         &path.to_string_lossy(),
         mtime_ns,
         consumed_bytes as i64,
     )
     .map_err(|e| format!("commit ingested file: {e}"))?;
 
-    Ok(Some((upserted, events.len())))
+    Ok(Some((upserted, skipped_invalid_timestamps)))
 }
 
 /// 把解析事件折叠成 ToolCallRow：
 /// - ToolUse → 一行新数据
 /// - ToolResult → 更新已有行的 success 字段（依赖 upsert_batch 的 COALESCE ON CONFLICT）
-fn build_rows(events: &[ParsedToolEvent]) -> Vec<ToolCallRow> {
+fn build_rows(events: &[ScannedEvent]) -> (Vec<ToolCallRow>, Vec<(String, i64)>) {
     /* ====================================================================
      * 步骤1：把 tool_use 行编号成 (session_id, seq)
      * ====================================================================
@@ -217,8 +234,18 @@ fn build_rows(events: &[ParsedToolEvent]) -> Vec<ToolCallRow> {
     let mut id_to_pos: HashMap<String, (String, i64)> = HashMap::new();
 
     let mut rows: Vec<ToolCallRow> = Vec::new();
+    let mut skipped = Vec::new();
 
     for ev in events {
+        let ev = match ev {
+            ScannedEvent::Tool(event) => event,
+            ScannedEvent::SkippedUse(session) => {
+                let counter = seq_counter.entry(session.clone()).or_insert(0);
+                *counter += 1;
+                skipped.push((session.clone(), *counter));
+                continue;
+            }
+        };
         match ev.kind {
             ToolEventKind::ToolUse => {
                 let seq = {
@@ -254,7 +281,7 @@ fn build_rows(events: &[ParsedToolEvent]) -> Vec<ToolCallRow> {
         }
     }
 
-    rows
+    (rows, skipped)
 }
 
 /// 从 `~/.claude/projects/<encoded-cwd>/<session>.jsonl` 路径反推项目目录字符串。
@@ -325,6 +352,67 @@ mod tests {
     }
 
     #[test]
+    fn ingest_counts_invalid_timestamp_lines_without_writing_fabricated_calls() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("timestamps.jsonl");
+        let event = |timestamp: Option<&str>, id: &str| {
+            let mut value = serde_json::json!({"type":"assistant","sessionId":"s","message":{"content":[{"type":"tool_use","id":id,"name":"Read"}]}});
+            if let Some(timestamp) = timestamp {
+                value["timestamp"] = timestamp.into();
+            }
+            value.to_string()
+        };
+        std::fs::write(
+            &path,
+            [
+                event(None, "missing"),
+                event(Some("invalid"), "invalid"),
+                event(Some("2026-11-10T12:00:00Z"), "valid"),
+            ]
+            .join("\n"),
+        )
+        .unwrap();
+        let mut conn = fresh_conn();
+        let old = (1..=3)
+            .map(|seq| ToolCallRow {
+                session_id: "s".into(),
+                seq,
+                ts: "2026-11-10T12:00:00Z".into(),
+                tool_name: "Read".into(),
+                success: None,
+                duration_ms: None,
+                cost_usd: None,
+                project_path: None,
+            })
+            .collect::<Vec<_>>();
+        claude_tool_calls_repo::upsert_batch(&mut conn, &old).unwrap();
+        conn.execute_batch("CREATE TRIGGER refuse_cursor BEFORE INSERT ON claude_tool_calls_ingest_state BEGIN SELECT RAISE(ABORT,'injected'); END;").unwrap();
+        assert_eq!(
+            ingest_incremental_at(&mut conn, root.path(), || false)
+                .unwrap()
+                .errors
+                .len(),
+            1
+        );
+        assert_eq!(claude_tool_calls_repo::total_count(&conn).unwrap(), 3);
+        conn.execute_batch("DROP TRIGGER refuse_cursor").unwrap();
+        let report = ingest_incremental_at(&mut conn, root.path(), || false).unwrap();
+        assert_eq!(report.skipped_invalid_timestamps, 2);
+        assert_eq!(report.calls_inserted, 1);
+        assert!(report.errors.is_empty());
+        let tools = claude_tool_calls_repo::top_tools(&conn, 0, 10).unwrap();
+        assert_eq!(tools[0].call_count, 1);
+        assert_eq!(tools[0].cost_usd, None);
+        let seq: i64 = conn
+            .query_row("SELECT seq FROM claude_tool_calls", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(
+            seq, 3,
+            "skipped events must not renumber a later valid call"
+        );
+    }
+
+    #[test]
     fn a_growing_file_cannot_bypass_the_total_read_limit() {
         let root = tempfile::tempdir().unwrap();
         let path = root.path().join("growing.jsonl");
@@ -376,7 +464,13 @@ mod tests {
                 dedup_key: "tu_1".into(),
             },
         ];
-        let rows = build_rows(&events);
+        let (rows, skipped) = build_rows(
+            &events
+                .into_iter()
+                .map(ScannedEvent::Tool)
+                .collect::<Vec<_>>(),
+        );
+        assert!(skipped.is_empty());
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0].tool_name, "Bash");
         assert_eq!(rows[0].success, Some(false));

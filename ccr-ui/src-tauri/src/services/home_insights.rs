@@ -29,6 +29,8 @@ pub struct InsightsTotals {
     /// Distinct non-empty project hashes.
     #[ts(as = "f64")]
     pub projects: i64,
+    #[serde(default)]
+    pub project_attribution_complete: bool,
     /// Local days with at least one request.
     #[ts(as = "f64")]
     pub active_days: i64,
@@ -126,6 +128,7 @@ impl From<ccr_app::usage::home::InsightsTotals> for InsightsTotals {
             sessions: v.sessions,
             agents: v.agents,
             projects: v.projects,
+            project_attribution_complete: v.project_attribution_complete,
             active_days: v.active_days,
         }
     }

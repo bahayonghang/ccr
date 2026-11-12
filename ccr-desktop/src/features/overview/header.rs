@@ -50,16 +50,28 @@ impl OverviewView {
         }
     }
 
-    /// `Last successful sync MM-DD HH:mm`, or why there is no time to show.
+    /// Last successful import from any source, or why there is no time to show.
     ///
     /// llmusage 只记录“成功”的同步时间；失败的同步仍可能导入了部分数据，所以这里
     /// 只陈述成功时间，不据此推断哪些日期“未导入”。
     pub(super) fn sync_line(&self, report: &WorkbenchReport, cx: &App) -> String {
         match (&report.freshness.local, &report.last_sync_at) {
-            (Some(local), _) if is_chinese(cx) => format!("上次成功同步 {local}{}", self.zone()),
-            (Some(local), _) => format!("Last successful sync {local}{}", self.zone()),
-            (None, Some(_)) => text(cx, "Sync time unreadable", "同步时间不可读").into(),
-            (None, None) => text(cx, "No successful sync recorded", "未记录成功同步").into(),
+            (Some(local), _) if is_chinese(cx) => {
+                format!("上次成功同步（任意来源）{local}{}", self.zone())
+            }
+            (Some(local), _) => format!("Last successful sync (any source) {local}{}", self.zone()),
+            (None, Some(_)) => text(
+                cx,
+                "Sync time unreadable (any source)",
+                "同步时间不可读（任意来源）",
+            )
+            .into(),
+            (None, None) => text(
+                cx,
+                "No successful sync recorded (any source)",
+                "未记录成功同步（任意来源）",
+            )
+            .into(),
         }
     }
 

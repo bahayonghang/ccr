@@ -150,6 +150,12 @@ impl InsightsView {
     }
     /// Opens or re-reads CCR trash; the panel takes the pane until it is closed.
     pub(in crate::features::insights) fn open_session_trash(&mut self, cx: &mut Context<Self>) {
+        if self
+            .platform_scope
+            .is_some_and(|platform| platform != Platform::Codex)
+        {
+            return;
+        }
         self.load_session_trash(cx);
     }
     /// The CCR trash panel: title and close, the restore decision, then the pages.

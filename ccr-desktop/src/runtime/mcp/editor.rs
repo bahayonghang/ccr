@@ -24,6 +24,14 @@ pub enum McpTarget {
 }
 
 impl McpTarget {
+    pub(super) fn platform(&self) -> ccr_app::runtime::Platform {
+        use ccr_app::runtime::Platform;
+        match self {
+            Self::Codex => Platform::Codex,
+            Self::Antigravity => Platform::Gemini,
+            _ => Platform::Claude,
+        }
+    }
     pub fn for_entry(entry: &McpEntry) -> Result<Self, McpError> {
         match (&entry.source, &entry.scope) {
             (McpSource::ClaudeState, McpScope::User) => Ok(Self::ClaudeUser),
@@ -49,6 +57,7 @@ pub(super) enum EditDocument {
 }
 
 pub struct McpEditSession {
+    pub(super) platform: ccr_app::runtime::Platform,
     pub(super) environment: EnvironmentId,
     pub(super) document: EditDocument,
     benchmark_root: Option<PathBuf>,
@@ -87,6 +96,7 @@ pub(super) fn begin(
         return Err(McpError::Unsupported);
     }
     let roots = roots(source)?;
+    let platform = target.platform();
     let document = match target {
         McpTarget::ClaudeUser | McpTarget::ClaudeLocal(_) | McpTarget::ClaudeProject(_) => {
             let (scope, project_root) = match target {
@@ -141,6 +151,7 @@ pub(super) fn begin(
         }
     };
     Ok(McpEditSession {
+        platform,
         environment: environment.clone(),
         document,
         benchmark_root: source.benchmark().map(|layout| layout.root.clone()),
@@ -284,9 +295,13 @@ impl Services {
         key: RequestKey,
         target: McpTarget,
     ) -> Result<TaskSubscription<Arc<McpEditSession>, McpError>, AdmissionError> {
+        let scope = self.platform_scope;
         let source = self.source.clone();
         let environment = key.environment.clone();
         self.executor.read(key, move |_, _| {
+            if scope.is_some_and(|platform| platform != target.platform()) {
+                return Err(McpError::UnsupportedSource);
+            }
             begin(&source, &environment, target).map(Arc::new)
         })
     }
@@ -298,11 +313,15 @@ impl Services {
         name: String,
         mutation: EntryMutation,
     ) -> Result<TaskSubscription<(), McpError>, AdmissionError> {
+        let scope = self.platform_scope;
         let environment = key.environment.clone();
         let source = self.source.clone();
         self.executor.job(key, move |cancel, _| {
             if cancel.is_cancelled() {
                 return Completion::Cancelled;
+            }
+            if scope.is_some_and(|platform| platform != session.platform) {
+                return Completion::Failed(McpError::UnsupportedSource);
             }
             match session
                 .check_source(&source)

@@ -3,4 +3,4 @@
 /**
  * Top tools 行（wire 版，映射自 `claude_tool_calls_repo::TopToolRow`）
  */
-export type TopToolRow = { tool_name: string, call_count: number, cost_usd: number, };
+export type TopToolRow = { tool_name: string, call_count: number, cost_usd: number | null, };

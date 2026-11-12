@@ -164,10 +164,9 @@ fn execute(source: &ConfigSource, key: &RequestKey, command: Command) -> Result<
         return Ok(Outcome::Committed);
     }
     let roots = roots(source).map_err(|_| Error::Storage)?;
-    // Rules and output styles retain their current Tauri home-relative source;
-    // settings collections honor the existing runtime settings path overrides.
+    // 所有 Claude 用户资源共享捕获的配置根；settings 文件覆盖不改变资源根。
     let store = files::Store::new(
-        roots.home.join(".claude"),
+        roots.claude.config_dir.clone(),
         roots.ccr.join("backups/claude-resources"),
         roots.locks.clone(),
     );

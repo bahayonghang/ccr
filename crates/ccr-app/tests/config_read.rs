@@ -160,7 +160,7 @@ fn config_list_keeps_revision_order_mask_defaults_and_registry_fallback_without_
         rows[0].tags.as_deref(),
         Some(["one".to_string(), "two".to_string()].as_slice())
     );
-    assert_eq!(rows[0].usage_count, 7);
+    assert_eq!(rows[0].usage_count, Some(7));
     assert!(!rows[0].enabled);
     assert!(rows[0].is_default && !rows[0].is_current);
     assert!(rows[1].is_current && !rows[1].is_default);

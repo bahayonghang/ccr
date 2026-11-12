@@ -622,3 +622,76 @@ async fn opencode_theme_catalog_updates_real_draft_and_preserves_other_fields(
         .unwrap_or_else(|_| panic!("close"));
     owner.shutdown();
 }
+
+#[gpui_kit::test]
+fn embedded_opencode_keeps_a_reachable_tui_document_entry(cx: &mut TestAppContext) {
+    let root = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
+    let roots = PlatformRoots::fixture(root.path()).unwrap_or_else(|_| panic!("roots"));
+    let path = roots.home.join(".config/opencode/tui.json");
+    std::fs::create_dir_all(path.parent().unwrap_or_else(|| panic!("parent")))
+        .unwrap_or_else(|_| panic!("mkdir"));
+    std::fs::write(&path, r#"{"theme":"dark"}"#).unwrap_or_else(|_| panic!("write"));
+    let document = Document::new(
+        path.clone(),
+        None,
+        BackupPolicy::None,
+        Some(root.path().join("locks")),
+        Format::Json,
+    );
+    let snapshot = document.read().unwrap_or_else(|_| panic!("read"));
+    let session = Arc::new(PlatformSession {
+        roots,
+        document,
+        snapshot,
+        accounts: Vec::new(),
+        signed_in: false,
+        provider_ids: Vec::new(),
+        provider_report: ProviderReport::Unsupported,
+        surface: Surface::Settings,
+        platform: Platform::OpenCode,
+        file_state: FileState::Present,
+        file_label: "settings.json",
+        fields: Vec::new(),
+        credential: CredentialState::NotDetected,
+        runtime_auth_present: None,
+        auth_revision: Default::default(),
+    });
+    let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+    let services = Services::new(
+        owner.handle(),
+        crate::runtime::ConfigSource::Fixture {
+            profiles: root.path().join("profiles.toml"),
+            registry: root.path().join("registry.toml"),
+            delay: std::time::Duration::ZERO,
+        },
+    );
+    let (handle, view) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| {
+                let mut view = PlatformsView::new(services, window, cx);
+                // 外壳总是以 pinned 打开平台目的地，这正是隐藏 surfaces 行的条件。
+                view.open(Platform::OpenCode, Surface::Settings, window, cx);
+                view.session = Some(session);
+                // 这里只验证布局与入口可达；正在进行的读取请求会让按钮保持禁用。
+                view.busy = false;
+                view
+            })
+        })
+        .unwrap_or_else(|_| panic!("window"))
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        // tui.json 没有对应的平台 tab，嵌入后必须仍然可达。
+        assert!(
+            window.try_find("platform-tui").is_some(),
+            "embedded OpenCode settings must keep the TUI document entry"
+        );
+        window.click("platform-tui", cx);
+        assert!(matches!(view.read(cx).surface, Surface::Tui));
+    })
+    .unwrap_or_else(|_| panic!("embedded tui entry"));
+    cx.update_window(handle, |_, window, _| window.remove_window())
+        .unwrap_or_else(|_| panic!("close"));
+    owner.shutdown();
+}

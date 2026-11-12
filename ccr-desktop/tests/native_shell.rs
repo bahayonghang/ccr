@@ -904,13 +904,6 @@ fn page_labels(window: &gpui_kit::Window) -> String {
         .join("\n")
 }
 
-// The shell consumes workbench navigation requests on the next platform frame.
-fn open_workbench_action(window: &mut gpui_kit::Window, id: &'static str, cx: &mut gpui_kit::App) {
-    window.click(id, cx);
-    window.simulate_next_frame(cx);
-    window.render_frame(cx);
-}
-
 /// Explicit QA preparation only. The supplied new directory must be beneath
 /// this checkout's outputs/desktop; no user roots or existing fixture are read.
 #[test]
@@ -996,6 +989,29 @@ fn prepare_native_workbench_fixture() {
         let roots =
             ccr_cli::application::platform_roots::PlatformRoots::fixture(&root.join(directory))
                 .unwrap_or_else(|_| panic!("captured roots"));
+        for (relative, content) in [
+            (
+                "agents/reviewer.md",
+                "---\nname: reviewer\ndescription: Synthetic local reviewer\n---\nNever execute this fixture.",
+            ),
+            (
+                "skills/demo/SKILL.md",
+                "---\nname: demo\ndescription: Synthetic skill\nversion: 1.0.0\n---\nNever execute this fixture.",
+            ),
+            (
+                "commands/review.md",
+                "Synthetic legacy command; never execute.",
+            ),
+            (
+                "plugins/installed_plugins.json",
+                r#"{"version":2,"plugins":{"demo@fixture":[{"version":"1.0.0","scope":"user"}]}}"#,
+            ),
+        ] {
+            let path = roots.claude.config_dir.join(relative);
+            std::fs::create_dir_all(path.parent().unwrap_or_else(|| panic!("fixture parent")))
+                .unwrap_or_else(|e| panic!("fixture directory: {e}"));
+            std::fs::write(path, content).unwrap_or_else(|e| panic!("fixture metadata: {e}"));
+        }
         save(
             roots.claude.settings_file,
             r#"{"model":"demo-sonnet","agents":[{"name":"reviewer","model":"demo-sonnet","tools":[]}],"plugins":[{"id":"demo-plugin","name":"demo-plugin","version":"0.0.0","enabled":false}],"slashCommands":[{"name":"review","description":"Synthetic command","command":"fixture-do-not-run"}],"mcpServers":{"demo-files":{"command":"fixture-do-not-run"}}}"#,
@@ -1017,6 +1033,33 @@ fn prepare_native_workbench_fixture() {
             Format::Json,
         );
     }
+    let paths = ccr_usage::fixtures::create_projection_db(&root.join("usage"));
+    let conn = rusqlite::Connection::open(&paths.db_path)
+        .unwrap_or_else(|e| panic!("fixture database: {e}"));
+    let today = chrono::Local::now().date_naive();
+    for day in 0..30 {
+        if day % 7 == 3 {
+            continue;
+        }
+        let date = today - chrono::Duration::days(day);
+        ccr_usage::fixtures::seed_bucket(
+            &conn,
+            &ccr_usage::fixtures::SeedBucket {
+                source: "claude".into(),
+                provider_label: "Synthetic provider".into(),
+                model: format!("demo-model-{}", day % 7),
+                hour_start: format!("{date}T12:00:00Z"),
+                cost_with_cache_usd: if day == 0 {
+                    0.004
+                } else {
+                    (day % 6) as f64 * 0.37
+                },
+                ..Default::default()
+            },
+        );
+    }
+    ccr_usage::fixtures::seed_run_log(&conn, "claude", "recent", &chrono::Utc::now().to_rfc3339());
+    drop(conn);
     let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
     let services = Services::new(owner.handle(), source);
     let requests = ccr_gpui::runtime::insights::InsightsRequests::new(&services);
@@ -1050,6 +1093,76 @@ fn prepare_native_workbench_fixture() {
     }
     owner.shutdown();
     std::fs::write(root.join("fixture.json"),serde_json::to_string_pretty(&serde_json::json!({"demo":true,"profiles":root.join("profiles.toml"),"registry":root.join("registry.toml"),"observer_db":root.join("observer.db")})).unwrap_or_else(|e|panic!("manifest: {e}"))).unwrap_or_else(|e|panic!("manifest: {e}"));
+}
+
+#[gpui_kit::test]
+fn narrow_codex_navigation_reveals_each_keyboard_selection(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
+    let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
+    let source = ConfigSource::Fixture {
+        profiles: root.path().join("missing.toml"),
+        registry: root.path().join("registry.toml"),
+        delay: Duration::ZERO,
+    };
+    let (handle, _) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(
+            WindowOptions {
+                window_bounds: Some(gpui_kit::WindowBounds::Windowed(gpui_kit::Bounds::new(
+                    gpui_kit::point(gpui_kit::px(0.), gpui_kit::px(0.)),
+                    gpui_kit::size(gpui_kit::px(960.), gpui_kit::px(640.)),
+                ))),
+                ..Default::default()
+            },
+            cx,
+            |window, cx| cx.new(|cx| Shell::new(Services::new(owner.handle(), source), window, cx)),
+        )
+        .unwrap_or_else(|e| panic!("window: {e}"))
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("nav-codex", cx);
+        for _ in 0..128 {
+            if window.find("tool-home").focused() == Some(true) {
+                break;
+            }
+            window.press("tab", cx);
+        }
+        for (id, title) in [
+            ("tool-home", "Workbench"),
+            ("tool-profiles", "Profiles"),
+            ("tool-auth", "Accounts"),
+            ("tool-settings", "Settings"),
+            ("tool-providers", "Providers"),
+            ("tool-models", "Models"),
+            ("tool-platform-mcp", "MCP"),
+            ("tool-files", "Instructions"),
+            ("tool-extensions", "Extensions"),
+            ("tool-platform-usage", "Usage"),
+            ("tool-platform-sessions", "Sessions"),
+        ] {
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
+            let tab = window.find(id);
+            let navigation = window.find("platform-tab-scroll").bounds();
+            assert_eq!(tab.focused(), Some(true), "{id}");
+            assert_eq!(window.find("platform-tab-heading").label(), Some(title));
+            assert!(
+                tab.bounds().left() >= navigation.left() - gpui_kit::px(1.)
+                    && tab.bounds().right() <= navigation.right() + gpui_kit::px(1.),
+                "selected tab clipped: {id}: {:?} in {navigation:?}",
+                tab.bounds()
+            );
+            window.press("right", cx);
+        }
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert_eq!(window.find("tool-home").focused(), Some(true));
+        window.remove_window();
+    })
+    .unwrap_or_else(|e| panic!("Codex navigation: {e}"));
+    owner.shutdown();
 }
 
 #[gpui_kit::test]
@@ -1088,17 +1201,18 @@ async fn platform_workbench_is_default_and_scoped_navigation_keeps_platform(
         window.click("nav-claude-code", cx);
         assert!(window.find("platform-workbench").visible());
         assert!(window.try_find("configuration-filter").is_none());
-        assert_eq!(window.find("workbench-title").label(), Some("Claude Code"));
+        assert_eq!(
+            window.find("platform-tab-heading").label(),
+            Some("Workbench")
+        );
         for id in [
             "tool-profiles",
             "tool-auth",
             "tool-platform-mcp",
-            "tool-agents",
-            "tool-plugins",
-            "tool-slash-commands",
+            "tool-extensions",
+            "tool-settings",
             "tool-files",
             "tool-platform-usage",
-            "tool-subscription",
             "tool-platform-sessions",
         ] {
             assert!(window.find(id).visible(), "missing scoped link {id}");
@@ -1123,20 +1237,12 @@ async fn platform_workbench_is_default_and_scoped_navigation_keeps_platform(
     })
     .await;
     cx.update_window(handle, |_, window, cx| {
-        for (action, tab) in [
-            ("workbench-auth", "tool-auth"),
-            ("workbench-observer", "tool-subscription"),
-        ] {
-            open_workbench_action(window, action, cx);
-            assert_eq!(window.find(tab).checked(), Some(true), "{action}");
-            window.click("tool-home", cx);
-            assert!(window.find("platform-workbench").visible());
-        }
-        window.click("tool-agents", cx);
+        window.click("tool-auth", cx);
+        assert_eq!(window.find("tool-auth").checked(), Some(true));
+        window.click("tool-extensions", cx);
         assert!(window.find("page-claude-code").visible());
-        assert!(window.try_find("claude-resource-agents").is_some());
-        window.click("tool-home", cx);
-        open_workbench_action(window, "workbench-profiles", cx);
+        assert!(window.try_find("claude-resource-agents").is_none());
+        window.click("tool-profiles", cx);
     })
     .unwrap_or_else(|e| panic!("scoped agents: {e}"));
     cx.wait_for(handle, Duration::from_secs(10), |window, _| {
@@ -1146,7 +1252,10 @@ async fn platform_workbench_is_default_and_scoped_navigation_keeps_platform(
     cx.update_window(handle, |_, window, cx| {
         window.click("nav-codex", cx);
         assert!(window.find("platform-workbench").visible());
-        assert_eq!(window.find("workbench-title").label(), Some("Codex"));
+        assert_eq!(
+            window.find("platform-tab-heading").label(),
+            Some("Workbench")
+        );
         assert!(window.try_find("claude-cost-month").is_none());
         assert!(!page_labels(window).contains("claude-workbench"));
         window.click("tool-platform-usage", cx);
@@ -1230,10 +1339,9 @@ async fn platform_workbench_claude_partial_costs_recover_and_link_to_daily_repor
     .unwrap_or_else(|e| panic!("workbench: {e}"));
     cx.wait_for(handle, Duration::from_secs(10), |window, _| {
         window.try_find("workbench-claude-trend-plot").is_some()
-            && window.try_find("claude-subscription").is_some_and(|node| {
-                node.label()
-                    .is_some_and(|s| s == "Subscription not configured")
-            })
+            && window
+                .try_find("claude-subscription")
+                .is_some_and(|node| node.label().is_some_and(|s| s == "Not configured"))
     })
     .await;
     cx.update_window(handle, |_, window, _| {
@@ -1241,14 +1349,17 @@ async fn platform_workbench_claude_partial_costs_recover_and_link_to_daily_repor
         assert!(current.label().is_some_and(|label| label.contains(profile)));
         assert!(current.bounds().right() <= window.find("platform-workbench").bounds().right());
         assert!(window.find("workbench-refresh").visible());
-        let totals = window.find("workbench-usage-totals");
-        assert_eq!(
-            totals.label(),
-            Some("Last 30 days · 4 requests · 200 tokens · $2.7500")
+        assert!(
+            window
+                .find("claude-cost-today")
+                .label()
+                .is_some_and(|label| label.contains("$0.00"))
         );
-        assert_eq!(
-            window.find("claude-cost-today").label(),
-            Some("Today · Unavailable")
+        assert!(
+            window
+                .find("claude-cost-total")
+                .label()
+                .is_some_and(|label| label.contains("$10.75"))
         );
     })
     .unwrap_or_else(|e| panic!("partial report: {e}"));
@@ -1281,47 +1392,16 @@ async fn platform_workbench_claude_partial_costs_recover_and_link_to_daily_repor
                 "{metric:?}"
             );
         }
-        window.click("nav-claude-code", cx);
-        window.press("f6", cx);
-        for _ in 0..5 {
-            if window.find("workbench-usage").focused() == Some(true) {
-                break;
-            }
-            window.press("tab", cx);
-        }
-        assert_eq!(window.find("workbench-usage").focused(), Some(true));
-        window.press("enter", cx);
-        window.simulate_next_frame(cx);
-        window.render_frame(cx);
+        window.click("claude-cost-exact-toggle", cx);
+        assert!(window.find("claude-cost-exact-table").visible());
+        assert!(window.try_find("workbench-usage").is_none());
+        window.click("tool-platform-usage", cx);
         assert_eq!(window.find("insights-filter-0").value(), Some("claude"));
-        assert_eq!(window.find("insights-section-Daily").checked(), Some(true));
-    })
-    .unwrap_or_else(|e| panic!("metrics/report: {e}"));
-    let date = (today - chrono::Duration::days(1)).to_string();
-    let row = gpui_kit::SharedString::from(format!("insights-row:{date}"));
-    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
-        window.try_find(row.clone()).is_some()
-    })
-    .await;
-    cx.update_window(handle, |_, window, cx| {
-        assert_eq!(window.find("insights-list-focus").focused(), Some(true));
-        window.press("down", cx);
-        window.press("down", cx);
-        assert_eq!(window.find(row).selected(), Some(true));
-        window.press("enter", cx);
-        let details = window.find("insights-exact-detail");
-        assert!(details.visible());
-        assert!(
-            details
-                .label()
-                .is_some_and(|s| s.contains(&date) && s.contains("USD 2.75")),
-            "{details:?}"
-        );
         window.click("tool-home", cx);
         assert!(window.find("platform-workbench").visible());
         window.remove_window();
     })
-    .unwrap_or_else(|e| panic!("keyboard daily detail: {e}"));
+    .unwrap_or_else(|e| panic!("metrics/report: {e}"));
     owner.shutdown();
 }
 
@@ -1613,7 +1693,7 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
         window.render_frame(cx);
         assert!(window.find("page-claude-code").visible());
         assert!(!page_labels(window).contains("model: sonnet"));
-        window.click("tool-accounts", cx);
+        window.click("tool-settings", cx);
     })
     .unwrap_or_else(|e| panic!("claude accounts: {e}"));
     loaded(cx, handle).await;
@@ -1656,7 +1736,7 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
         private_projection(window, secret, &["gpt-5", "grok-3", "opencode-model"]);
         window.click("nav-codex", cx);
         window.click("tool-profiles", cx);
-        window.click("tool-accounts", cx);
+        window.click("tool-settings", cx);
     })
     .unwrap_or_else(|e| panic!("codex accounts: {e}"));
     loaded(cx, handle).await;
@@ -1694,7 +1774,7 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
         private_projection(window, secret, &["sonnet", "grok-3", "opencode-model"]);
         window.click("nav-grok", cx);
         window.click("tool-profiles", cx);
-        window.click("tool-accounts", cx);
+        window.click("tool-settings", cx);
     })
     .unwrap_or_else(|e| panic!("grok accounts: {e}"));
     loaded(cx, handle).await;
@@ -1736,7 +1816,7 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
         assert!(!text.contains(secret));
         private_projection(window, secret, &["sonnet", "gpt-5", "opencode-model"]);
         window.click("nav-opencode", cx);
-        window.click("tool-accounts", cx);
+        window.click("tool-settings", cx);
     })
     .unwrap_or_else(|e| panic!("opencode: {e}"));
     loaded(cx, handle).await;
@@ -1765,7 +1845,7 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
         assert!(!text.contains("apiKey"));
         private_projection(window, secret, &["sonnet", "gpt-5", "grok-3"]);
         window.click("nav-antigravity", cx);
-        window.click("tool-accounts", cx);
+        window.click("tool-settings", cx);
     })
     .unwrap_or_else(|e| panic!("antigravity: {e}"));
     loaded(cx, handle).await;
@@ -1812,4 +1892,173 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
         !grok_auth.exists(),
         "observing a saved account must not create runtime credentials"
     );
+}
+
+#[gpui_kit::test]
+async fn selected_profile_is_independent_from_running_profile_and_dirty_navigation(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
+    let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
+    let source = ConfigSource::Fixture {
+        profiles: root.path().join("profiles.toml"),
+        registry: root.path().join("registry.toml"),
+        delay: Duration::ZERO,
+    };
+    seed_catalog(&source, ccr_config::Platform::Claude, "A", true);
+    let context =
+        context(&source, ccr_config::Platform::Claude).unwrap_or_else(|_| panic!("context"));
+    context
+        .run(|| {
+            let mut config = context.manager().load()?;
+            let row = config.sections["A"].clone();
+            config.sections.insert("B".into(), row);
+            context.manager().save(&config)
+        })
+        .unwrap_or_else(|_| panic!("catalog"));
+    let revision = context
+        .manager()
+        .snapshot()
+        .unwrap_or_else(|_| panic!("revision"))
+        .version;
+    let (handle, _) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| Shell::new(Services::new(owner.handle(), source), window, cx))
+        })
+        .unwrap_or_else(|e| panic!("window: {e}"))
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("nav-claude-code", cx);
+        window.click("tool-profiles", cx);
+    })
+    .unwrap_or_else(|_| panic!("profiles"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("configuration:B").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| window.click("configuration:B", cx))
+        .unwrap_or_else(|_| panic!("select"));
+    assert_eq!(
+        context
+            .instance()
+            .get_current_profile()
+            .unwrap_or_else(|_| panic!("current"))
+            .as_deref(),
+        Some("A")
+    );
+    assert_eq!(
+        context
+            .manager()
+            .snapshot()
+            .unwrap_or_else(|_| panic!("revision"))
+            .version,
+        revision
+    );
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window
+            .try_find("profile-off")
+            .is_some_and(|node| node.disabled() != Some(true))
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("profile-off", cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert_eq!(window.find("profile-confirm-cancel").focused(), Some(true));
+        window.click("profile-confirm", cx);
+    })
+    .unwrap_or_else(|_| panic!("detach"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window
+            .try_find("configuration:A")
+            .is_some_and(|row| row.label() == Some("A"))
+            && owner.handle().active_tasks() == 0
+            && context
+                .instance()
+                .get_current_profile()
+                .ok()
+                .flatten()
+                .is_none()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| window.click("configuration:B", cx))
+        .unwrap_or_else(|_| panic!("select B"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window
+            .try_find("profile-apply")
+            .is_some_and(|node| node.disabled() != Some(true))
+            && owner.handle().active_tasks() == 0
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("configuration-apply:B", cx)
+    })
+    .unwrap_or_else(|_| panic!("apply B"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window
+            .try_find("configuration:B")
+            .is_some_and(|row| row.label() == Some("B, current"))
+    })
+    .await;
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window
+            .try_find("profile-edit")
+            .is_some_and(|node| node.disabled() != Some(true))
+            && owner.handle().active_tasks() == 0
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("profile-edit", cx);
+    })
+    .unwrap_or_else(|_| panic!("edit"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("profile-description").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("profile-description", cx);
+        window.press("ctrl-a", cx);
+        window.input("Unsaved isolated draft", cx);
+        for _ in 0..64 {
+            if window.find("tool-files").focused() == Some(true) {
+                break;
+            }
+            window.press("shift-tab", cx);
+        }
+        assert_eq!(window.find("tool-files").focused(), Some(true));
+        window.press("enter", cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert_eq!(
+            window.find("profile-navigation-cancel").focused(),
+            Some(true)
+        );
+        window.press("tab", cx);
+        assert_eq!(
+            window.find("profile-navigation-discard").focused(),
+            Some(true)
+        );
+        window.press("shift-tab", cx);
+        assert_eq!(
+            window.find("profile-navigation-cancel").focused(),
+            Some(true)
+        );
+        window.press("escape", cx);
+        assert_eq!(window.find("tool-files").focused(), Some(true));
+        assert_eq!(
+            window.find("profile-description").value(),
+            Some("Unsaved isolated draft")
+        );
+        window.click("tool-files", cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        window.click("profile-navigation-discard", cx);
+        assert!(window.try_find("profile-description").is_none());
+        window.remove_window();
+    })
+    .unwrap_or_else(|_| panic!("draft navigation"));
+    owner.shutdown();
 }

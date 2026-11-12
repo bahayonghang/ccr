@@ -62,6 +62,6 @@ fn broken_existing_storage_is_not_a_default_subscription_or_setup_state() {
             None,
             SubscriptionDto::default()
         ),
-        Err(Error::Conflict)
+        Err(Error::Storage)
     );
 }

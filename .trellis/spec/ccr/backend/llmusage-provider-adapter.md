@@ -472,3 +472,13 @@ let key = SourceKind::parse_id(&platform.platform)
     .unwrap_or_else(|| platform.platform.clone());
 row_for(&mut rows, key).sessions += platform.session_count.max(0);
 ```
+
+## Successful import freshness
+
+`ccr-usage` includes successful `sync`, `sync --rebuild`, and `hook-run` run-log entries in global import freshness. Failed entries never advance it. This is global import evidence, not proof that a particular platform is complete. The Claude Workbench separately displays its latest observed record date. Regression fixtures cover successful rebuild after normal sync and a later failed rebuild.
+
+The run log has no source attribution. Filtering usage to Claude or Codex does not filter this timestamp; native Overview and Usage name it as the last successful sync from any source.
+
+## Project attribution completeness
+
+`InsightsPayload` and shared Home totals keep the existing attributed-project count and add `project_attribution_complete`. Empty usage is complete with count zero; usage with an empty or NULL project hash is incomplete. Mixed usage retains the count/list of attributed projects and marks partial coverage. No project count or path is inferred from sessions or a missing upstream cwd. Observer applies the same completeness query to its Claude-only usage filter; Home computes it with its existing project grouping, without another scan. Both native and Tauri distinguish unassigned projects from a real zero and qualify partial lists. The all-unattributed state must not say there are zero projects.

@@ -62,23 +62,52 @@ struct JsonlLineRaw {
 /// - 多个 tool_use / tool_result 块在同一行时按数组顺序展开。
 /// - `project_path_hint` 用于在 JSONL 缺 `cwd` 时回退（例如从文件路径反推）。
 pub fn parse_line(line: &str, project_path_hint: Option<&str>) -> Vec<ParsedToolEvent> {
+    parse_line_with_status(line, project_path_hint).unwrap_or_default()
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InvalidTimestamp {
+    pub session_id: String,
+    pub tool_use_count: usize,
+}
+
+/// Preserve the skip reason for the scanner report without inventing an event time.
+pub fn parse_line_with_status(
+    line: &str,
+    project_path_hint: Option<&str>,
+) -> Result<Vec<ParsedToolEvent>, InvalidTimestamp> {
     /* ====================================================================
      * 步骤1：JSON 解析与共享字段抽取
      * ====================================================================
      */
     let Ok(raw) = serde_json::from_str::<JsonlLineRaw>(line) else {
-        return Vec::new();
+        return Ok(Vec::new());
     };
     let session_id = match raw.session_id.clone() {
         Some(sid) if !sid.is_empty() => sid,
-        _ => return Vec::new(),
+        _ => return Ok(Vec::new()),
     };
+    let has_tools = match raw.type_.as_deref() {
+        Some("assistant") => !extract_tool_uses(&raw.rest).is_empty(),
+        Some("user") => !extract_tool_results(&raw.rest).is_empty(),
+        _ => false,
+    };
+    if !has_tools {
+        return Ok(Vec::new());
+    }
     let ts = raw
         .timestamp
         .as_deref()
         .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
         .map(|t| t.with_timezone(&Utc))
-        .unwrap_or_else(Utc::now);
+        .ok_or_else(|| InvalidTimestamp {
+            session_id: session_id.clone(),
+            tool_use_count: if raw.type_.as_deref() == Some("assistant") {
+                extract_tool_uses(&raw.rest).len()
+            } else {
+                0
+            },
+        })?;
     let project_path = raw
         .cwd
         .clone()
@@ -143,7 +172,7 @@ pub fn parse_line(line: &str, project_path_hint: Option<&str>) -> Vec<ParsedTool
         }
         _ => {}
     }
-    out
+    Ok(out)
 }
 
 /// 从 assistant 行的 `message.content[]` 中筛出 type=tool_use 的块
@@ -208,6 +237,17 @@ fn hex_encode_short(bytes: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn missing_or_invalid_timestamps_do_not_become_scan_time() {
+        for timestamp in [None, Some("invalid"), Some("")] {
+            let mut line = serde_json::json!({"type":"assistant","sessionId":"s","message":{"content":[{"type":"tool_use","id":"t","name":"Read"}]}});
+            if let Some(timestamp) = timestamp {
+                line["timestamp"] = timestamp.into();
+            }
+            assert!(parse_line(&line.to_string(), None).is_empty());
+        }
+    }
 
     #[test]
     fn assistant_line_emits_tool_use_events() {

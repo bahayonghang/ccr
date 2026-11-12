@@ -52,6 +52,7 @@ pub struct PromptSession {
     platform: Platform,
 }
 pub enum ResourceCommand {
+    ListClaudeExtensions,
     ListPrompts,
     OpenPrompt(&'static str),
     SavePrompt {
@@ -63,6 +64,7 @@ pub enum ResourceCommand {
     },
 }
 pub enum ResourceResult {
+    Extensions(Vec<ccr_app::resources::claude_extensions::Source>),
     Prompts(Vec<PromptRow>),
     Opened(Arc<PromptSession>),
     Saved { conflict: bool, size_warning: bool },
@@ -99,12 +101,30 @@ fn execute(
     let specs = system_prompts::platform_specs(key.platform.short_name())
         .map_err(|_| ResourceError::Unsupported)?;
     match command {
+        ResourceCommand::ListClaudeExtensions => {
+            if key.platform != Platform::Claude {
+                return Err(ResourceError::Unsupported);
+            }
+            let roots = roots(source)?;
+            Ok(ResourceResult::Extensions(
+                ccr_app::resources::claude_extensions::discover(
+                    &roots.claude.config_dir,
+                    &roots.claude.settings_file,
+                    &roots.ccr.join("backups/claude-resources"),
+                    &roots.locks,
+                ),
+            ))
+        }
         ResourceCommand::ListPrompts => {
             let roots = roots(source)?;
             let rows = specs
                 .into_iter()
                 .map(|spec| {
-                    let path = system_prompts::resolve_from_home(spec, &roots.home);
+                    let path = system_prompts::resolve_with_claude_root(
+                        spec,
+                        &roots.home,
+                        &roots.claude.config_dir,
+                    );
                     let description = system_prompts::file_description(spec, &path);
                     PromptRow {
                         id: spec.id,
@@ -123,7 +143,11 @@ fn execute(
                 .find(|spec| spec.id == id)
                 .ok_or(ResourceError::Invalid)?;
             let roots = roots(source)?;
-            let path = system_prompts::resolve_from_home(&spec, &roots.home);
+            let path = system_prompts::resolve_with_claude_root(
+                &spec,
+                &roots.home,
+                &roots.claude.config_dir,
+            );
             let snapshot =
                 platform_settings::read_text(&path).map_err(|_| ResourceError::Storage)?;
             Ok(ResourceResult::Opened(Arc::new(PromptSession {
@@ -169,7 +193,11 @@ fn save(
     if key.environment != session.environment || key.platform != session.platform {
         return Err(ResourceError::Invalid);
     }
-    let fixed_path = system_prompts::resolve_from_home(&session.spec, &session.roots.home);
+    let fixed_path = system_prompts::resolve_with_claude_root(
+        &session.spec,
+        &session.roots.home,
+        &session.roots.claude.config_dir,
+    );
     if fixed_path != session.snapshot.source {
         return Err(ResourceError::Invalid);
     }
@@ -202,7 +230,9 @@ impl Services {
         let run_key = key.clone();
         if matches!(
             command,
-            ResourceCommand::ListPrompts | ResourceCommand::OpenPrompt(_)
+            ResourceCommand::ListPrompts
+                | ResourceCommand::OpenPrompt(_)
+                | ResourceCommand::ListClaudeExtensions
         ) {
             self.executor
                 .read(key, move |_, _| execute(&source, &run_key, command))

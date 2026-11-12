@@ -193,6 +193,7 @@ impl LaunchMode {
 pub struct Services {
     pub executor: RuntimeHandle,
     source: ConfigSource,
+    pub(super) platform_scope: Option<ccr_app::runtime::Platform>,
     ui_state_cache: ui_state::ManagerCache,
     insights_paths: Option<insights::InsightsPaths>,
     pub(super) usage_report_latency: Arc<std::sync::Mutex<ccr_app::monitoring::LatencyWindow>>,
@@ -212,10 +213,16 @@ pub struct Services {
 }
 
 impl Services {
+    /// Capture the destination separately from caller-supplied response identity.
+    pub fn scoped(mut self, platform: Option<Platform>) -> Self {
+        self.platform_scope = platform;
+        self
+    }
     pub fn new(executor: RuntimeHandle, source: ConfigSource) -> Self {
         Self {
             executor,
             source,
+            platform_scope: None,
             ui_state_cache: Default::default(),
             insights_paths: None,
             usage_report_latency: Default::default(),

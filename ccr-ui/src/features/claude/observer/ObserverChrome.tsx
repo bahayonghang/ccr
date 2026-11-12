@@ -109,6 +109,13 @@ function monthDetailText(insight: InsightDto | undefined, subscription: Subscrip
   return `${formatTokens(insight?.month_tokens ?? 0)} ${t('claudeCode.observer.metric.tokensUnit')}`
 }
 
+function projectDetailKey(insight: InsightDto | undefined) {
+  if (insight?.project_attribution_complete) return 'claudeCode.observer.metric.totalValueDetail'
+  return (insight?.total_projects ?? 0) > 0
+    ? 'claudeCode.observer.metric.totalValuePartialDetail'
+    : 'claudeCode.observer.metric.totalValueUnattributedDetail'
+}
+
 export function ObserverHeroGrid({
   insight,
   subscription,
@@ -134,7 +141,7 @@ export function ObserverHeroGrid({
       <HeroCard
         label={t('claudeCode.observer.metric.totalValue')}
         value={formatInsightUsd(insight?.total_value_usd ?? 0)}
-        detail={t('claudeCode.observer.metric.totalValueDetail', {
+        detail={t(projectDetailKey(insight), {
           sessions: insight?.total_sessions ?? 0,
           projects: insight?.total_projects ?? 0,
         })}

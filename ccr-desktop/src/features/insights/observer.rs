@@ -83,7 +83,7 @@ impl ObserverView {
             expected: None,
             available: false,
             days: 30,
-            calls: false,
+            calls: true,
             generation: 0,
             task: None,
             observer: None,

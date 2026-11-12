@@ -2,12 +2,37 @@
 
 ## 1. Scope / Trigger
 
-Applies to `ccr-app::config::{mutations, source, backups, profile_patch}` and
+Applies to `ccr-app::config::{mutations, source, import, backups, profile_patch}` and
 their Tauri/native consumers. These modules contain actual extracted adapter
 policy. Catalog SQL, persistence, normalization, auth and process safety remain
 with the existing domain owners. ccr-app has no ccr-cli/Tauri/GPUI dependency.
 
 ## 2. Signatures
+
+- `config::ConfigRow::usage_count` is optional: missing observations remain unknown.
+  The native projection also retains the recorded auth mode; a consumer must not
+  infer successful network access from catalog or credential presence.
+- `config::import::{preview, commit}` owns reviewed catalog imports. Matching
+  names are retained unless explicitly selected. `preview` is read-only: it may
+  be called repeatedly and writes no backup and no catalog file, and it reports
+  `removed` for names a full replacement would drop. The preimage backup
+  happens in `commit`, before the catalog write. Commit checks the original
+  revision and actual current-profile protection; neither UI confirmation nor a
+  stale plan bypasses CAS.
+- Native profile saves use `ApplyPolicy::Never`; save/import/restore do not
+  activate runtime credentials. Report that runtime configuration is unchanged.
+- `source::save_without_activation` and `backups::restore_without_activation`
+  bind catalog writes to the actual running marker under the native platform
+  application lock. Imports use the same policy. A document/backup cannot forge
+  a switch or remove the current item; detach first. Native delete refuses the
+  current profile at the command layer (`active_config_cannot_be_deleted`) and
+  the page disables that action; it never silently moves the running marker.
+  Profile extras and revision
+  checks remain intact. Native no longer exposes source force-removal; the
+  legacy shared `source::save(..., force)` and restore APIs remain compatible.
+- `source::save_export` delivers an explicit file-save intent to a new absolute,
+  unlinked destination using secret-file permissions. Temporary output is not a
+  saved file. Existing files and parent traversal are rejected without replacement.
 
 - `mutations::parse_patch(&serde_json::Value) -> Result<ConfigPatch>` implements
   the generic configuration editor's historical ten-field protocol.

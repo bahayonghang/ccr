@@ -71,6 +71,14 @@ describe('insights presentation: top N and other', () => {
 })
 
 describe('insights presentation: 7-day change', () => {
+  it('keeps unattributed projects unknown and marks partial counts separately', () => {
+    for (const [projects, complete, expected] of [[0, false, null], [0, true, 0], [2, false, 2], [2, true, 2]] as const) {
+      const data = makeInsights()
+      data.totals.projects = projects
+      data.totals.project_attribution_complete = complete
+      expect(buildTotals(data).find((row) => row.key === 'projects')?.value).toBe(expected)
+    }
+  })
   it('formats percent, flat, new, and none', () => {
     expect(formatChange(percentChange(73, 60), t)).toBe('+21.7%')
     expect(formatChange(percentChange(47, 57), t)).toBe('−17.5%')
@@ -84,7 +92,7 @@ describe('insights presentation: 7-day change', () => {
     expect(formatChange(rows[2].change, t)).toBe('dashboard.insights.compare.dayDelta(+2)')
     const sessionsOnly = buildWeekCompare(
       makeInsights({
-        totals: { requests: 0, tokens: 0, sessions: 4, agents: 0, projects: 0, active_days: 0 },
+        totals: { requests: 0, tokens: 0, sessions: 4, agents: 0, projects: 0, active_days: 0, project_attribution_complete: true },
       })
     )
     expect(sessionsOnly.map((row) => row.last)).toEqual([5, null, null])
@@ -133,7 +141,7 @@ describe('insights presentation: heatmap and streak', () => {
     expect(
       buildStreakCaption(
         makeInsights({
-          totals: { requests: 0, tokens: 0, sessions: 0, agents: 0, projects: 0, active_days: 0 },
+          totals: { requests: 0, tokens: 0, sessions: 0, agents: 0, projects: 0, active_days: 0, project_attribution_complete: true },
         })
       )
     ).toEqual([])
@@ -168,7 +176,7 @@ describe('insights presentation: leaderboard', () => {
     expect(
       defaultLeaderMetric(
         makeInsights({
-          totals: { requests: 0, tokens: 0, sessions: 3, agents: 0, projects: 0, active_days: 0 },
+          totals: { requests: 0, tokens: 0, sessions: 3, agents: 0, projects: 0, active_days: 0, project_attribution_complete: true },
         })
       )
     ).toBe('sessions')

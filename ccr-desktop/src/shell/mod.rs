@@ -4,6 +4,7 @@ mod close;
 #[cfg(test)]
 mod close_tests;
 mod command_state;
+mod navigation_guard;
 pub(crate) mod page_header;
 mod platform_navigation;
 mod preferences;
@@ -138,6 +139,9 @@ pub struct Shell {
     lens_bar: Entity<page_header::LensBar>,
     navigation_focus: FocusHandle,
     main_focus: FocusHandle,
+    navigation_decision: Option<navigation_guard::Decision>,
+    navigation_generation: u64,
+    leave_focus: FocusHandle,
     status_focus: FocusHandle,
     _appearance: Subscription,
     _activation: Subscription,
@@ -259,6 +263,9 @@ impl Shell {
             )),
             clock: cx.new(status::Clock::new),
             lens_bar,
+            navigation_decision: None,
+            navigation_generation: 0,
+            leave_focus: cx.focus_handle().tab_stop(false),
             navigation_focus: cx.focus_handle().tab_stop(false),
             main_focus: cx.focus_handle().tab_stop(false),
             status_focus: cx.focus_handle(),
@@ -353,6 +360,18 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         if self.destination == destination && self.lens == lens {
+            return;
+        }
+        self.navigation_generation += 1;
+        if self.lens == Lens::Profiles && self.configurations.read(cx).has_dirty_draft(cx) {
+            self.navigation_decision = Some(navigation_guard::Decision {
+                destination,
+                lens,
+                generation: self.navigation_generation,
+                enter: true,
+                return_focus: window.focused(cx),
+            });
+            cx.notify();
             return;
         }
         if self.destination == Destination::Settings && destination != Destination::Settings {
@@ -797,8 +816,8 @@ impl Shell {
     }
 
     /// 嵌入式目的地：页面把外壳的 [`page_header::LensBar`] 放进自己的标题行。
-    /// MCP 管理的两个 lens（MCP 管理 / 配置转换）都有嵌入槽；Claude 工作台复用
-    /// 的 MCP 视图是平台目的地，仍由平台工具栏承载 tab。
+    /// MCP 管理的两个 lens（MCP 管理 / 配置转换）都有嵌入槽；平台目的地不在此列，
+    /// 它们由页头按任务分组渲染自己的文字 tab。
     fn embeds_lens(&self) -> bool {
         matches!(
             self.destination,
@@ -811,7 +830,7 @@ impl Shell {
             return None;
         }
         if self.platform().is_some() {
-            return Some(self.platform_toolbar(cx));
+            return Some(self.lens_bar.clone().into_any_element());
         }
         if self.embeds_lens() {
             return None;
@@ -825,7 +844,10 @@ impl Shell {
 
     /// Non-platform lens options for the current destination.
     fn lens_items(&self, cx: &gpui_kit::App) -> Option<Vec<LensItem>> {
-        if self.remote.read(cx).is_remote() || self.platform().is_some() {
+        if self.platform().is_some() {
+            return Some(self.platform_items());
+        }
+        if self.remote.read(cx).is_remote() {
             return None;
         }
         Some(match self.destination {
@@ -1112,7 +1134,11 @@ impl Render for Shell {
                 .child(format!("CCR {}", env!("CARGO_PKG_VERSION"))),
         );
         let tools = self.toolbar(cx);
-        let body = self.body(cx);
+        let body = if self.navigation_decision.is_some() {
+            self.confirm_navigation(window, cx)
+        } else {
+            self.body(cx)
+        };
         let mut page = div()
             .id(self.destination.page_id())
             .test_support()

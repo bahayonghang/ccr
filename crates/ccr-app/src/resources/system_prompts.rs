@@ -95,6 +95,15 @@ pub fn resolve_from_home(spec: &PromptFileSpec, home: &Path) -> PathBuf {
     }
 }
 
+/// Resolve with the adapter's captured Claude configuration root.
+pub fn resolve_with_claude_root(spec: &PromptFileSpec, home: &Path, claude: &Path) -> PathBuf {
+    if spec.location == PromptLocation::Claude {
+        claude.join(spec.filename)
+    } else {
+        resolve_from_home(spec, home)
+    }
+}
+
 fn timestamp_millis(path: &Path) -> Option<u64> {
     fs::metadata(path)
         .ok()?
@@ -120,8 +129,12 @@ pub fn file_description(spec: &PromptFileSpec, path: &Path) -> Value {
 }
 
 pub fn list_claude_rules(home: &Path) -> Vec<Value> {
-    let rules_dir = home.join(".claude").join("rules");
-    let Ok(entries) = fs::read_dir(rules_dir) else {
+    list_claude_rules_in(&home.join(".claude"))
+}
+
+/// List rule files under the adapter's captured Claude configuration root.
+pub fn list_claude_rules_in(claude: &Path) -> Vec<Value> {
+    let Ok(entries) = fs::read_dir(claude.join("rules")) else {
         return Vec::new();
     };
     let mut rules: Vec<_> = entries
@@ -203,6 +216,31 @@ mod tests {
     use super::*;
 
     #[test]
+    fn captured_claude_root_overrides_only_claude_memory() {
+        let root = tempfile::tempdir().unwrap();
+        let home = root.path().join("home");
+        let claude = root.path().join("custom-claude");
+        assert_eq!(
+            resolve_with_claude_root(
+                prompt_spec("claude", "claude-user-memory").unwrap(),
+                &home,
+                &claude
+            ),
+            claude.join("CLAUDE.md")
+        );
+        assert_eq!(
+            resolve_with_claude_root(
+                prompt_spec("codex", "codex-agents").unwrap(),
+                &home,
+                &claude
+            ),
+            home.join(".codex/AGENTS.md")
+        );
+        assert!(!home.exists());
+        assert!(!claude.exists());
+    }
+
+    #[test]
     fn fixed_registry_missing_reads_and_sorted_rules_do_not_create_targets() {
         let root = tempfile::tempdir().unwrap();
         for (platform, id, relative) in [
@@ -228,6 +266,20 @@ mod tests {
         assert_eq!(listed.len(), 2);
         assert_eq!(listed[0]["name"], "a.md");
         assert_eq!(listed[1]["name"], "z.md");
+    }
+
+    #[test]
+    fn captured_claude_root_rules_ignore_default_home_rules() {
+        let root = tempfile::tempdir().unwrap();
+        let claude = root.path().join("custom-claude");
+        fs::create_dir_all(claude.join("rules")).unwrap();
+        fs::create_dir_all(root.path().join(".claude/rules")).unwrap();
+        fs::write(claude.join("rules/custom.md"), "custom").unwrap();
+        fs::write(root.path().join(".claude/rules/ambient.md"), "ambient").unwrap();
+        let listed = list_claude_rules_in(&claude);
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0]["name"], "custom.md");
+        assert!(list_claude_rules_in(&root.path().join("missing")).is_empty());
     }
 
     #[test]

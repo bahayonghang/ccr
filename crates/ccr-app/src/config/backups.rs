@@ -54,6 +54,23 @@ pub fn restore(service: &ConfigService, backup_path: &Path) -> Result<()> {
     service.restore_config_from_backup(&config)
 }
 
+/// Reviewed native restore keeps the actual running marker and never applies credentials.
+/// The caller holds its platform application lock; CAS also protects external writers.
+pub fn restore_without_activation(
+    paths: &ccr_config::PlatformPaths,
+    current: Option<&str>,
+    backup: &Path,
+) -> Result<super::source::SourceSaveOutcome> {
+    let content = std::fs::read_to_string(backup)?;
+    // Keep the existing parser's credential-free validation errors.
+    parse_config_from_str(&content)?;
+    let original = super::source::read(paths)?;
+    if original.exists {
+        ccr_config::ConfigManager::new(&paths.profiles_file).backup(Some("pre_restore"))?;
+    }
+    super::source::save_without_activation(paths, current, &content, &original.token)
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BackupCleanup {
     pub root_exists: bool,
