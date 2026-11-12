@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-3.md`
-- **Total Sessions**: 151
-- **Last Active**: 2026-11-10
+- **Total Sessions**: 170
+- **Last Active**: 2026-11-11
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-3.md` | ~1063 | Active |
+| `journal-3.md` | ~1669 | Active |
 | `journal-2.md` | ~1982 | Archived |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
@@ -31,6 +31,25 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 170 | 2026-11-11 | 原生通道定位与全仓未关闭票复核修复 | - | `dev` |
+| 169 | 2026-11-11 | 全仓七票生产续做与原生验收阻塞 | - | `dev` |
+| 168 | 2026-11-10 | GPUI Claude #161：补齐延迟导航焦点守卫与1.95验证 | - | `dev` |
+| 167 | 2026-11-10 | GPUI Claude #161 续做：安全审计清障与最终门禁通过 | - | `dev` |
+| 166 | 2026-11-10 | GPUI Claude #161 生产实施与验收阻塞 | - | `dev` |
+| 165 | 2026-11-10 | Wayfinder：确认后发布最终PRD并关闭地图 | - | `dev` |
+| 164 | 2026-11-10 | Wayfinder：全部决策收口与PRD草稿待审阅 | - | `dev` |
+| 163 | 2026-11-10 | Wayfinder：实施分期与验收矩阵定案 | - | `dev` |
+| 162 | 2026-11-10 | Wayfinder：扩展真实来源清单与旧条目处置定案 | - | `dev` |
+| 161 | 2026-11-10 | Wayfinder：共享组件的其他平台最小适配定案 | - | `dev` |
+| 160 | 2026-11-10 | Wayfinder：MCP、用量与会话嵌入规则定案 | - | `dev` |
+| 159 | 2026-11-10 | Wayfinder：旧 tab 审计与改造深度定案 | - | `dev` |
+| 158 | 2026-11-10 | Wayfinder：Profiles 编辑态的形态定案 | - | `dev` |
+| 157 | 2026-11-10 | Wayfinder：Profiles 列表、详情与工具栏定案 | - | `dev` |
+| 156 | 2026-11-10 | Wayfinder：工作台布局与图表形态定案 | - | `dev` |
+| 155 | 2026-11-10 | Wayfinder：工作台内容取舍定案 | - | `dev` |
+| 154 | 2026-11-10 | Wayfinder：平台导航与页头形态定案 | - | `dev` |
+| 153 | 2026-11-10 | Wayfinder：配置方案领域模型定案 | - | `dev` |
+| 152 | 2026-11-10 | Wayfinder：Claude Code 原生截图基线完成 | - | `dev` |
 | 151 | 2026-11-10 | Wayfinder：Claude Code 页面信息架构定案 | - | `dev` |
 | 150 | 2026-11-09 | Wayfinder 建图：GPUI Claude Code 页面重设计 | - | `dev` |
 | 149 | 2026-11-09 | TUI 切换确认与 7.5.1 | `5c725aa7cb59de16d98c21912188f436d16009ec`, `70556ba329b84a798b4aa02ca4c589b997ec324e`, `4b68ddfe469b0ad9ba36c0d5ce8462c4a47f6b75` | `dev` |

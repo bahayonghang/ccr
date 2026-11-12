@@ -1063,3 +1063,607 @@ ccr project init 现在默认勾选五项平台并要求输入用户名，-y 使
 - #149 现在只差 #143 截图基线一个前置
 - 继续走地图：/wayfinder https://github.com/bahayonghang/ccr/issues/138 ，当前可做 #140、#143、#144、#145
 - ccr-desktop/CONTEXT.md 与 journal 已提交到本地 dev，尚未 push；push 后其他机器才能看到术语表
+
+
+## Session 152: Wayfinder：Claude Code 原生截图基线完成
+<!-- trellis-session: v=2 fp=7d89cb80d7c27374 -->
+
+**Date**: 2026-11-10
+**Task**: Wayfinder：Claude Code 原生截图基线完成
+**Branch**: `dev`
+
+### Summary
+
+截图任务已结案，18/18 张改前截图仅存本地忽略目录；地图与下游旧 tab 审计已更新。尚未开始重设计实施。
+
+### Main Changes
+
+- GitHub #143 结论评论并关闭；#138 Decisions so far 追加基线；#149 标明截图前置已完成。
+- 本地 ccr-desktop/outputs/claude-code-redesign/before/manifest.json 记录 18 张尺寸与 SHA-256；源码 HEAD 4696c36c，构建含工作区原有未提交的独立桌面依赖改动，二进制与上一轮副本哈希一致。
+- 无新增术语，ccr-desktop/CONTEXT.md 未修改；既有 Cargo.toml/Cargo.lock 改动保留。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] just desktop-build 通过；18 张逐张核对 tab、主题、语言和尺寸；补采 4 张均 PrintWindow；preferences.json 与采集前备份逐字节一致。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 按顺序进入 Profiles 的领域模型与动作归类（#140），调用 grilling 与 domain-modeling，逐轮等待维护者选择；不实施重设计，不处理 #150–#156 修复票。
+
+
+## Session 153: Wayfinder：配置方案领域模型定案
+<!-- trellis-session: v=2 fp=bed9beef87400b4d -->
+
+**Date**: 2026-11-10
+**Task**: Wayfinder：配置方案领域模型定案
+**Branch**: `dev`
+
+### Summary
+
+Profiles 的领域模型与动作归类已结案；前五轮逐项确认，维护者追加授权后续推荐直接采用。仅决策，尚未实施。
+
+### Main Changes
+
+- #140 结案，#138 地图与 #147/#148 下游同步；术语新增方案集合、解除当前方案、操作记录。
+- 统一列表，区分所选项、当前运行状态和集合维护；导入同名默认保留，导入恢复不自动应用；高级明文确认，固定与命令面板延后。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 既有只读源码核实支持作用域；git diff --check 通过；未运行产品测试（未改产品代码）。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 按顺序进入平台导航与页头形态，生成演示原型；最终 PRD 草稿先审阅，不发布。
+
+
+## Session 154: Wayfinder：平台导航与页头形态定案
+<!-- trellis-session: v=2 fp=49e30836fd44a55e -->
+
+**Date**: 2026-11-10
+**Task**: Wayfinder：平台导航与页头形态定案
+**Branch**: `dev`
+
+### Summary
+
+采用分组文字 tab 与浮起选中 pill；宽窗嵌入标题行，常规窗导航独立单行，窄窗仅导航横滚；平台固定、唯一 h1 随 tab，组名仅作无障碍标签。 产品决策，未实施；依据维护者后续推荐直接采用的授权。
+
+### Main Changes
+
+- GitHub 决策票 https://github.com/bahayonghang/ccr/issues/144 已结案；地图与受影响下游已更新。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 仅记录实际完成的原型/源码核实；不是 GPUI 原生验收。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 按地图继续剩余票，最终 PRD 草稿先审阅再发布。
+
+
+## Session 155: Wayfinder：工作台内容取舍定案
+<!-- trellis-session: v=2 fp=d3899502a77389ef -->
+
+**Date**: 2026-11-10
+**Task**: Wayfinder：工作台内容取舍定案
+**Branch**: `dev`
+
+### Summary
+
+首屏保留接入事实、三种记录费用口径、30 天费用图、模型费用和 Token/缓存；订阅需明确保存才显示价值比，工具/项目费用与会话效率不进入首屏。 产品决策，未实施；依据维护者后续推荐直接采用的授权。
+
+### Main Changes
+
+- GitHub 决策票 https://github.com/bahayonghang/ccr/issues/145 已结案；地图与受影响下游已更新。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 仅记录实际完成的原型/源码核实；不是 GPUI 原生验收。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 按地图继续剩余票，最终 PRD 草稿先审阅再发布。
+
+
+## Session 156: Wayfinder：工作台布局与图表形态定案
+<!-- trellis-session: v=2 fp=c5be32e826674232 -->
+
+**Date**: 2026-11-10
+**Task**: Wayfinder：工作台布局与图表形态定案
+**Branch**: `dev`
+
+### Summary
+
+采用主列＋280–360px 右栏；逐日费用柱图高 216px，缺失日留缺口且有精确值；KPI 系统字体 tnum，窄窗堆叠，内容不靠空面板拉伸填屏。 产品决策，未实施；依据维护者后续推荐直接采用的授权。
+
+### Main Changes
+
+- GitHub 决策票 https://github.com/bahayonghang/ccr/issues/146 已结案；地图与受影响下游已更新。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 仅记录实际完成的原型/源码核实；不是 GPUI 原生验收。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 按地图继续剩余票，最终 PRD 草稿先审阅再发布。
+
+
+## Session 157: Wayfinder：Profiles 列表、详情与工具栏定案
+<!-- trellis-session: v=2 fp=3c04900a3b9f0492 -->
+
+**Date**: 2026-11-10
+**Task**: Wayfinder：Profiles 列表、详情与工具栏定案
+**Branch**: `dev`
+
+### Summary
+
+采用 3:2 两行列表＋掩码详情，当前与选中分离；搜索300px、筛选与管理分主次，窄窗 drill-in 隐藏工具栏，保留基础筛选排序，不新增固定轨道。 产品决策，未实施；依据维护者后续推荐直接采用的授权。
+
+### Main Changes
+
+- GitHub 决策票 https://github.com/bahayonghang/ccr/issues/147 已结案；地图与受影响下游已更新。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 仅记录实际完成的原型/源码核实；不是 GPUI 原生验收。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 按地图继续剩余票，最终 PRD 草稿先审阅再发布。
+
+
+## Session 158: Wayfinder：Profiles 编辑态的形态定案
+<!-- trellis-session: v=2 fp=edd594759a3640e8 -->
+
+**Date**: 2026-11-10
+**Task**: Wayfinder：Profiles 编辑态的形态定案
+**Branch**: `dev`
+
+### Summary
+
+采用单项 pane＋集合整页的混合编辑；保存取消置前，缺省不改凭据，冲突保留草稿；导入预览默认保留同名，敏感确认先聚焦取消并约束焦点。 产品决策，未实施；依据维护者后续推荐直接采用的授权。
+
+### Main Changes
+
+- GitHub 决策票 https://github.com/bahayonghang/ccr/issues/148 已结案；地图与受影响下游已更新。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 仅记录实际完成的原型/源码核实；不是 GPUI 原生验收。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 按地图继续剩余票，最终 PRD 草稿先审阅再发布。
+
+
+## Session 159: Wayfinder：旧 tab 审计与改造深度定案
+<!-- trellis-session: v=2 fp=ad9b956c1aa25d85 -->
+
+**Date**: 2026-11-10
+**Task**: Wayfinder：旧 tab 审计与改造深度定案
+**Branch**: `dev`
+
+### Summary
+
+账户、设置、指令做局部重排并收紧平台/来源范围；扩展需真实来源模型的深度重设计，另票首期只读；旧无效数组保留，不自动迁移或删除。 产品决策，未实施；依据维护者后续推荐直接采用的授权。
+
+### Main Changes
+
+- GitHub 决策票 https://github.com/bahayonghang/ccr/issues/149 已结案；地图与受影响下游已更新。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 仅记录实际完成的原型/源码核实；不是 GPUI 原生验收。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 按地图继续剩余票，最终 PRD 草稿先审阅再发布。
+
+
+## Session 160: Wayfinder：MCP、用量与会话嵌入规则定案
+<!-- trellis-session: v=2 fp=89e8e1c39086d497 -->
+
+**Date**: 2026-11-10
+**Task**: Wayfinder：MCP、用量与会话嵌入规则定案
+**Branch**: `dev`
+
+### Summary
+
+平台上下文落实到显示和命令入口；MCP跨平台批量仅全局，废纸篓仅全局或Codex，用量固定source，既有gate保持。仅决策，未修复现有作用域逃逸。
+
+### Main Changes
+
+- #157 已结案，地图及 #158/#159 已同步；首次地图读取临时失败后只补齐缺失步骤，未重复发结论。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 只读核对已有作用域与gate；未操作真实数据。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 继续其他平台适配与扩展清单，再汇编分期和PRD草稿。
+
+
+## Session 161: Wayfinder：共享组件的其他平台最小适配定案
+<!-- trellis-session: v=2 fp=05b7ba14f041b7b9 -->
+
+**Date**: 2026-11-10
+**Task**: Wayfinder：共享组件的其他平台最小适配定案
+**Branch**: `dev`
+
+### Summary
+
+其他平台仅继承导航、页头与列表/编辑合同，按实际能力显示tab和动作；保留各自首页数据口径与认证差异，不复制Claude订阅，不把文件发现写成客户端已加载。 产品决策，未实施；依据维护者后续推荐直接采用的授权。
+
+### Main Changes
+
+- GitHub 决策票 https://github.com/bahayonghang/ccr/issues/158 已结案；地图与受影响下游已更新。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 仅记录实际完成的原型/源码核实；不是 GPUI 原生验收。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 按地图继续剩余票，最终 PRD 草稿先审阅再发布。
+
+
+## Session 162: Wayfinder：扩展真实来源清单与旧条目处置定案
+<!-- trellis-session: v=2 fp=33e0c38fd56908f3 -->
+
+**Date**: 2026-11-10
+**Task**: Wayfinder：扩展真实来源清单与旧条目处置定案
+**Branch**: `dev`
+
+### Summary
+
+Claude新扩展页首期真实来源只读，子代理/技能与命令/插件按来源和能力分类；旧数组保留；其他平台真实文件能力保留，客户端加载未验证明确标注。 产品决策，未实施；依据维护者后续推荐直接采用的授权。
+
+### Main Changes
+
+- GitHub 决策票 https://github.com/bahayonghang/ccr/issues/160 已结案；地图与受影响下游已更新。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 仅记录实际完成的原型/源码核实；不是 GPUI 原生验收。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 按地图继续剩余票，最终 PRD 草稿先审阅再发布。
+
+
+## Session 163: Wayfinder：实施分期与验收矩阵定案
+<!-- trellis-session: v=2 fp=ea6fd70ae39a699d -->
+
+**Date**: 2026-11-10
+**Task**: Wayfinder：实施分期与验收矩阵定案
+**Branch**: `dev`
+
+### Summary
+
+按前置核对→导航与作用域→数据意图→工作台→方案与旧tab→扩展→原生验收分期；只测直接受影响行为，四个代表场景，原生与跨平台未运行不记通过；PRD草稿先审阅。 产品决策，未实施；依据维护者后续推荐直接采用的授权。
+
+### Main Changes
+
+- GitHub 决策票 https://github.com/bahayonghang/ccr/issues/159 已结案；地图与受影响下游已更新。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 仅记录实际完成的原型/源码核实；不是 GPUI 原生验收。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 按地图继续剩余票，最终 PRD 草稿先审阅再发布。
+
+
+## Session 164: Wayfinder：全部决策收口与PRD草稿待审阅
+<!-- trellis-session: v=2 fp=02418a461ede3ec7 -->
+
+**Date**: 2026-11-10
+**Task**: Wayfinder：全部决策收口与PRD草稿待审阅
+**Branch**: `dev`
+
+### Summary
+
+地图 #138 共16张子票已全部closed，PRD和DESIGN局部改写草稿、4组演示原型已完成；地图仍open，等维护者审阅后再发布最终PRD issue并关闭。未实施生产代码，未push。
+
+### Main Changes
+
+- 本地交付：ccr-desktop/outputs/claude-code-redesign/PRD-draft.md、DESIGN-draft.md、prototype.html、navigation-144.html、workbench-146.html、profiles-147.html、editor-148.html、delivery-manifest.json。全部忽略、不上传。
+- 地图Notes记追加授权和草稿状态，Not yet specified已清空问题并标注等待审阅；新增决策票157/158/159/160均挂原生sub-issue和dependencies后结案。
+- 发现平台MCP跨平台batch与非Codex废纸篓入口逃逸，记入嵌入规则及实施必修，未修复；其他平台现有真实文件能力不一刀切降级。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 18/18原生改前截图；最终24次HTML无头渲染无整页/内容区横溢出、无JS错误；核心演示交互检查通过；4个交付快照默认页通过；PRD/DESIGN标点检查通过；git diff --check通过。原生重设计验收/持久化/客户端加载/IME/读屏/性能与实施后CI均未运行。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 先让维护者审阅PRD-draft.md和DESIGN-draft.md；确认后创建最终PRD issue、回链地图并关闭。实施是后续工作，不能以已关闭决策票冒充实现完成。
+
+
+## Session 165: Wayfinder：确认后发布最终PRD并关闭地图
+<!-- trellis-session: v=2 fp=be8893fb85a2b050 -->
+
+**Date**: 2026-11-10
+**Task**: Wayfinder：确认后发布最终PRD并关闭地图
+**Branch**: `dev`
+
+### Summary
+
+维护者确认草稿后，已发布最终PRD #161（含DESIGN局部改写附录），核对远端正文一致，回链并关闭地图 #138。16张子票全部closed。仅规格交付，生产实施与原生验收仍待后续。
+
+### Main Changes
+
+- 正式规格：https://github.com/bahayonghang/ccr/issues/161；设计地图：https://github.com/bahayonghang/ccr/issues/138 已completed。未上传真实截图，未push。
+- 本地新增 ccr-desktop/outputs/claude-code-redesign/PRD-final.md、DESIGN-approved.md；delivery-manifest.json 更新发布链接、批准与关闭状态、文件哈希。原审阅草稿保留为历史快照。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 发布后重新获取issue，正文与待发布内容逐字一致且包含DESIGN附录；最终文档标点检查通过。生产代码未改，未额外运行CI。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 后续实施按PRD #161分期开展；不能把地图关闭解释为生产实现或原生验收通过。
+
+
+## Session 166: GPUI Claude #161 生产实施与验收阻塞
+<!-- trellis-session: v=2 fp=25345e2e71f0daf2 -->
+
+**Date**: 2026-11-10
+**Task**: GPUI Claude #161 生产实施与验收阻塞
+**Branch**: `dev`
+
+### Summary
+
+P0–P5 生产实现及相关回归完成；配置保存、导入、恢复保留真实当前项且不应用。最终 desktop-ci 通过并构建新 release；Tauri、前端、覆盖率、治理和 VSCode 检查通过。just ci 在未改动的既有 openssl 审计失败；四场原生验收因 Computer Use native pipe os error 2，完成一次有界恢复仍不可用，均 not_run。P6 与 #161 未验收完成，无 commit/push/上传/关票；保留原有工作区改动。
+Topics: [.trellis/research/gpui-claude-redesign-161-implementation.md](../../research/gpui-claude-redesign-161-implementation.md)
+
+### Git Commits
+
+（生产实施已落地，本次未提交）
+
+### Status
+
+[PARTIAL] **未验收完成** — 原生四场 not_run；既有依赖审计阻塞，#161 本会话未关闭。
+
+
+## Session 167: GPUI Claude #161 续做：安全审计清障与最终门禁通过
+<!-- trellis-session: v=2 fp=b8daf3148677e36e -->
+
+**Date**: 2026-11-10
+**Task**: GPUI Claude #161 续做：安全审计清障与最终门禁通过
+**Branch**: `dev`
+
+### Summary
+
+补齐配置筛选空态与当前标记，新增窄窗筛选返回及 Codex 11 tab 回归，修复关闭测试虚拟时钟竞争。最小更新根/Tauri OpenSSL 两节点，审计和最终 just ci、desktop-ci 均通过，新 release 哈希 7aae2507…c3edb3。原生四场仍因 native pipe os error 2（一次有界恢复无效）全部 not_run，#161/P6 未验收完成。原工作区保留，无 commit/push/发布/上传。
+Topics: [.trellis/research/gpui-claude-redesign-161-implementation.md](../../research/gpui-claude-redesign-161-implementation.md)
+
+### Git Commits
+
+（生产续做，未提交）
+
+### Testing
+
+- [OK] just desktop-test-ui；just desktop-ci：302 lib、14 shell、2 input 及新 release 通过；just ci：16 阶段全部通过。
+
+### Status
+
+[PARTIAL] **未验收完成** — 自动门禁通过，四场原生 not_run；#161 保持打开。
+
+### Next Steps
+
+- Computer Use 恢复后，用新 release 和隔离夹具完成四场原生，实测外窗/客户区/DPI并保留本地截图；全部满足前不关闭 #161。
+
+
+## Session 168: GPUI Claude #161：补齐延迟导航焦点守卫与1.95验证
+<!-- trellis-session: v=2 fp=588dcedf7a656d96 -->
+
+**Date**: 2026-11-10
+**Task**: GPUI Claude #161：补齐延迟导航焦点守卫与1.95验证
+**Branch**: `dev`
+
+### Summary
+
+补齐导航代次在激活时捕获、用户焦点变化及离页返回后的过期恢复拒绝，实时焦点回归三种顺序通过。Rust 1.95 根/Tauri/GPUI 全 target 编译通过；最终 desktop-ci 与 just ci 均通过，lib 303 passed。新 release cb1ae935…c2352a66。当前原生工具经一次有界恢复仍 os error 2，四场 not_run，#161 仍未验收完成。保留继承工作区，无提交/推送/上传。
+Topics: [.trellis/research/gpui-claude-redesign-161-implementation.md](../../research/gpui-claude-redesign-161-implementation.md)
+
+### Git Commits
+
+（生产续做，未提交）
+
+### Testing
+
+- [OK] 实时 FocusHandle 红绿回归；最终 desktop-test-ui、desktop-ci、just ci；Rust 1.95 三处 --locked check 全通过。
+
+### Status
+
+[PARTIAL] **未验收完成** — 实现与自动门禁通过，四场原生 not_run；#161 保持打开。
+
+### Next Steps
+
+- 原生工具恢复后，用 cb1ae935…c2352a66 候选及隔离夹具完成四场指定原生验收；全部满足前不关闭 #161。
+
+
+## Session 169: 全仓七票生产续做与原生验收阻塞
+<!-- trellis-session: v=2 fp=69f2776d975c8490 -->
+
+**Date**: 2026-11-11
+**Task**: 全仓七票生产续做与原生验收阻塞
+**Branch**: `dev`
+
+### Summary
+
+补齐项目归属、未知费用、工具事件时间、配置目录、全局新鲜度与 DESIGN 漏项；最终自动门禁全绿，四场原生仍未运行，七票保持 open。
+Topics: [.trellis/research/gpui-claude-redesign-161-implementation.md](../../research/gpui-claude-redesign-161-implementation.md), [.trellis/spec/ccr-app/backend/shared-desktop-services.md](../../spec/ccr-app/backend/shared-desktop-services.md), [.trellis/spec/ccr/backend/llmusage-provider-adapter.md](../../spec/ccr/backend/llmusage-provider-adapter.md)
+
+### Main Changes
+
+- 共享服务、GPUI 和 Tauri 保持一致；保留既有工作区与默认不提交/推送约束。
+
+### Git Commits
+
+（生产续做，未提交）
+
+### Testing
+
+- [OK] just desktop-test-ui、just desktop-ci、just ci 最终均 exit 0；三处 Rust 1.95 locked check 通过。
+
+### Status
+
+[PARTIAL] **未验收完成** — 生产修复与最终自动门禁通过，四场原生仍 not_run；七票保持 open。
+
+### Next Steps
+
+- 恢复 Computer Use 原生桥，使用新 release 与隔离夹具完成规定四场原生验收，再判断实现票关闭条件。
+
+
+## Session 170: 原生通道定位与全仓未关闭票复核修复
+<!-- trellis-session: v=2 fp=46d3271c13ed395e -->
+
+**Date**: 2026-11-11
+**Task**: 原生通道定位与全仓未关闭票复核修复
+**Branch**: `dev`
+
+### Summary
+
+Session summary was not supplied.
+Topics: [.trellis/research/gpui-claude-redesign-161-implementation.md](../../research/gpui-claude-redesign-161-implementation.md)
+
+### Main Changes
+
+- 定位 Computer Use os error 2 为宿主桌面应用未运行导致命名管道缺失（配置写死的管道名来自重启前实例），不是仓库缺陷；按用户指示不再用该通道验证
+- 修复生产缺陷：Tauri 用户级 CLAUDE.md 与规则列表跟随 CLAUDE_CONFIG_DIR；订阅保存冲突保留草稿并重读后再提交；图表键盘激活给出可见读数行；配置方案保存反馈按 Applied/Unchanged 分流、禁止删除当前运行方案、脏草稿离页先确认；替换预览不再写备份并列出将被移除的方案
+- 补齐合同项：分组 tab 16px、嵌入用量页去重标题、嵌入 OpenCode 保留 TUI 入口、列表/详情最小宽度、溢出提示可读名称、扩展状态标签与旧数组缺失写法、校验与解除当前方案文案
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 根 just ci 16 阶段全绿（14m43s）；just desktop-ci exit 0（305 lib/14 shell/2 input/2 shutdown + release 构建）
+- [OK] ccr-app/ccr-config/ccr-cli 与 Tauri 337+2 通过；新增回归覆盖配置目录、保存反馈、删除当前项、替换预览、图表读数、嵌入 TUI 入口
+- [OK] 原生四场仍 not_run，无截图、外窗、客户区与 DPI 观测
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 所有修复仍在工作区：未 commit/push，任何票都不能按已交付关闭；需要用户决定是否提交与推送
+- 未完成范围：账户/设置局部重排、遗留不可达 ID 清理、PRD 8.3 夹具清单缺口；原生验收需用户在 Codex 侧或豁免下决策
