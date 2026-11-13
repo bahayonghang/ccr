@@ -321,7 +321,17 @@ The source dot means configured, never connected or successfully read.
 
 平台目的地固定捕获的平台与环境。唯一 h1 为当前 tab 名，平台作为小号上下文；页头只含当前页动作。导航是按任务分组的文字 tab，选中项使用 reading pill、primary 文字与 toggled 语义，组间 16px 与装饰 hairline，组名只作无障碍名称。
 
-Claude 为：工作台 │ 配置方案·账户·设置 │ MCP·指令·扩展 │ 用量·会话。其他平台按已定能力表出场，不生成不支持的页面。大于 1600 逻辑宽嵌入标题行，否则放标题下一行；窄窗单行局部横滚，选中项自动 reveal，有可见溢出提示。没有跨平台选择或第二排平台导航，分类进入工具栏筛选。
+组名「连接与设置」「定制」「活动」只作无障碍名称，页面不另画组标题。各平台只列出自己有的 tab，顺序固定：
+
+- Claude：工作台 │ 配置方案·账户·设置 │ MCP·指令·扩展 │ 用量·会话
+- Codex：工作台 │ 配置方案·账户·设置·供应商·模型 │ MCP·指令·扩展 │ 用量·会话
+- Grok：工作台 │ 配置方案·账户·设置 │ 用量
+- Antigravity：工作台 │ 设置 │ MCP·指令·扩展 │ 用量
+- OpenCode：工作台 │ 设置·供应商 │ 指令·扩展 │ 用量
+
+平台 tab 的稳定 id 以 `platform_items` 为准：账户是 `tool-auth`，指令是 `tool-files`，设置是 `tool-settings`。`tool-accounts`、`tool-agents`、`tool-plugins`、`tool-slash-commands`、`tool-subscription` 不是平台 tab id。来源：Claude 会话 `fce481ba-17bb-4131-87d1-a167a8434b19` 第 45 轮，用户回复「按推荐」确认了该轮 Q9 与 Q11；`ccr-desktop/src/shell/platform_navigation.rs` 的 `platform_items` 与同文件测试已按此实现。
+
+大于 1600 逻辑宽嵌入标题行，否则放标题下一行；窄窗单行局部横滚，选中项自动 reveal，有可见溢出提示。没有跨平台选择或第二排平台导航，分类进入工具栏筛选。
 
 同一页不重复放与 tab 相同的导航按钮。状态所需下一步只在该状态旁出现一次。保持 Tab/方向键顺序、F6、真实焦点恢复与异步 generation；导航换行位置不改变实体所有者。嵌入 MCP/用量/会话在命令层重验平台作用域，全局能力不被共享布局改动删除。
 
