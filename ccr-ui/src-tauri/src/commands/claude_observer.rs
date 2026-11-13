@@ -76,7 +76,7 @@ pub async fn claude_observer_cache_stats(
 
 /// 按 cost 或工具调用密度排序的 Top sessions（来自 claude_tool_calls 维度）
 ///
-/// `by` ∈ `cost | calls`，默认 cost。30 天窗口。
+/// `by` ∈ `cost | calls`，默认 calls。30 天窗口；未记录费用为 null，按 cost 排序时排在最后。
 #[ccr_tauri_command_macros::command]
 pub async fn claude_observer_top_sessions(
     state: State<'_, AppState>,

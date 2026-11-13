@@ -432,7 +432,8 @@ pub fn cache_stats(llmusage: &ccr_usage::AppPaths) -> Result<CacheStatsDto, Stri
     })
 }
 
-/// 按 cost 或工具调用密度排序的 Top sessions（`by ∈ cost | calls`，默认 cost，30 天窗口）。
+/// 按 cost 或工具调用密度排序的 Top sessions（`by ∈ cost | calls`，默认 calls，30 天窗口）。
+/// 未记录费用保持 `None`；按 cost 排序时未记录费用的会话排在已知费用之后。
 pub fn top_sessions(
     conn: &rusqlite::Connection,
     limit: Option<i64>,
@@ -635,6 +636,59 @@ mod clock_tests {
                 complete
             );
         }
+    }
+    #[test]
+    fn observed_sessions_keep_unknown_cost_and_default_to_call_order() {
+        let root = tempfile::tempdir().unwrap();
+        let pool = ccr_db::database::create_app_pool_at(
+            &root.path().join("observer.db"),
+            &root.path().join("empty-home"),
+        )
+        .unwrap();
+        let clock = ReportClock::fixed_utc(
+            chrono::DateTime::parse_from_rfc3339("2026-11-10T12:00:00Z")
+                .unwrap()
+                .with_timezone(&chrono::Utc),
+        );
+        // unknown：3 次调用全部未计价；free：1 次调用真实零费用
+        let row = |session: &str, seq: i64, tool: &str, cost: Option<f64>| {
+            claude_tool_calls_repo::ToolCallRow {
+                session_id: session.into(),
+                seq,
+                ts: "2026-11-10T08:00:00Z".into(),
+                tool_name: tool.into(),
+                success: Some(true),
+                duration_ms: None,
+                cost_usd: cost,
+                project_path: None,
+            }
+        };
+        claude_tool_calls_repo::upsert_batch(
+            &mut pool.get().unwrap(),
+            &[
+                row("unknown", 1, "Read", None),
+                row("unknown", 2, "Read", None),
+                row("unknown", 3, "Edit", None),
+                row("free", 1, "Bash", Some(0.0)),
+            ],
+        )
+        .unwrap();
+        let conn = pool.get().unwrap();
+        let by_calls = top_sessions_with_clock(&conn, None, None, clock).unwrap();
+        assert_eq!(by_calls[0].session_id, "unknown");
+        let value = serde_json::to_value(&by_calls[0]).unwrap();
+        for key in ["cost_usd", "tokens", "model", "started_at"] {
+            assert!(value[key].is_null(), "{key} should stay unknown");
+        }
+        let by_cost = top_sessions_with_clock(&conn, None, Some("cost"), clock).unwrap();
+        assert_eq!(by_cost[0].session_id, "free");
+        assert_eq!(serde_json::to_value(&by_cost[0]).unwrap()["cost_usd"], 0.0);
+        assert_eq!(by_cost[1].cost_usd, None);
+        let tools = top_tools_with_clock(&conn, Some(30), None, clock).unwrap();
+        let read = tools.iter().find(|tool| tool.tool_name == "Read").unwrap();
+        assert!(serde_json::to_value(read).unwrap()["cost_usd"].is_null());
+        let bash = tools.iter().find(|tool| tool.tool_name == "Bash").unwrap();
+        assert_eq!(bash.cost_usd, Some(0.0));
     }
     #[test]
     fn observer_defaults_use_fixed_utc_today_month_and_days() {

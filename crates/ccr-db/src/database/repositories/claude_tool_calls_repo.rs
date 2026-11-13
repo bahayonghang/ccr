@@ -510,6 +510,15 @@ mod tests {
         let priced = observed_sessions_at(&conn, 0, 1, true, Utc::now()).unwrap();
         assert_eq!(priced[0].session_id, "free");
         assert_eq!(priced[0].cost_usd, Some(0.0));
+        // 按费用排序时未知费用排在已知费用之后，而不是被当成 0 挤掉真实零
+        let by_cost = observed_sessions_at(&conn, 0, 10, true, Utc::now()).unwrap();
+        assert_eq!(by_cost[0].session_id, "free");
+        assert!(by_cost[1..].iter().all(|row| row.cost_usd.is_none()));
+        // $/工具 排行只收已完整计价的会话；未知费用不会以 0 进入排行
+        let efficiency = efficiency_sessions(&conn, 0, 0.0, 10).unwrap();
+        assert_eq!(efficiency.len(), 1);
+        assert_eq!(efficiency[0].session_id, "free");
+        assert_eq!(efficiency[0].cost_per_tool, Some(0.0));
     }
 
     #[test]

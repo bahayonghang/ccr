@@ -81,9 +81,39 @@ fn observer_renders_tables_by_default_and_keeps_raw_projection_advanced(cx: &mut
         assert!(raw_present(window));
         window.click("observer-advanced", cx);
         assert!(!raw_present(window));
-        window.remove_window();
     })
     .unwrap();
+    // 已观测会话表：未记录费用与真实零分开显示；工具表留空，标签只能来自会话表
+    report.tools = Ok(serde_json::json!({
+        "tools": [],
+        "sessions": [
+            {"session_id":"unknown","project_path":null,"cost_usd":null,"tool_call_count":7},
+            {"session_id":"free","project_path":null,"cost_usd":0.0,"tool_call_count":1}
+        ],
+        "heatmap": [],
+        "timezone": "utc"
+    }));
+    for (language, unknown) in [
+        (crate::locales::Language::English, "Not recorded"),
+        (crate::locales::Language::Chinese, "未记录"),
+    ] {
+        cx.update(|cx| cx.set_global(language));
+        view.update(cx, |view, cx| view.receive(&report, cx));
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            assert!(window.try_find("observer-tools").is_none());
+            assert!(window.find("observer-sessions").visible());
+            let labels = gpui_kit::base::test_support::snapshots(window)
+                .iter()
+                .filter_map(|node| node.label().map(str::to_owned))
+                .collect::<Vec<_>>();
+            assert_eq!(labels.iter().filter(|label| *label == unknown).count(), 1);
+            assert_eq!(labels.iter().filter(|label| *label == "0.0").count(), 1);
+        })
+        .unwrap();
+    }
+    cx.update_window(handle, |_, window, _| window.remove_window())
+        .unwrap();
     owner.shutdown();
 }
 

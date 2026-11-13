@@ -445,13 +445,16 @@ mod service_tests {
         // Tool events do not provide session model, token totals or start time.
         assert_eq!(by_cost[0].tokens, None);
         assert!(by_cost[0].model.is_none());
+        assert!(by_cost[0].started_at.is_none());
 
         let by_calls = top_sessions(&pool, None, Some("calls")).unwrap();
         assert_eq!(by_calls[0].session_id, "s2");
         assert_eq!(by_calls[0].tool_call_count, 3);
 
+        // 未指定 by 时按调用数排序，不再默认按费用
         let limited = top_sessions(&pool, Some(1), None).unwrap();
         assert_eq!(limited.len(), 1);
+        assert_eq!(limited[0].session_id, "s2");
     }
 
     #[test]
