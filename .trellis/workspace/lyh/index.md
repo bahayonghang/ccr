@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-3.md`
-- **Total Sessions**: 170
+- **Total Sessions**: 172
 - **Last Active**: 2026-11-11
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-3.md` | ~1669 | Active |
+| `journal-3.md` | ~1714 | Active |
 | `journal-2.md` | ~1982 | Archived |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
@@ -31,6 +31,8 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 172 | 2026-11-11 | Record GPUI platform tab order from Claude sessions | - | `dev` |
+| 171 | 2026-11-11 | Organize project-init ignore rules from sessions | - | `dev` |
 | 170 | 2026-11-11 | 原生通道定位与全仓未关闭票复核修复 | - | `dev` |
 | 169 | 2026-11-11 | 全仓七票生产续做与原生验收阻塞 | - | `dev` |
 | 168 | 2026-11-10 | GPUI Claude #161：补齐延迟导航焦点守卫与1.95验证 | - | `dev` |

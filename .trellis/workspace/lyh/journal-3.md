@@ -1667,3 +1667,48 @@ Topics: [.trellis/research/gpui-claude-redesign-161-implementation.md](../../res
 
 - 所有修复仍在工作区：未 commit/push，任何票都不能按已交付关闭；需要用户决定是否提交与推送
 - 未完成范围：账户/设置局部重排、遗留不可达 ID 清理、PRD 8.3 夹具清单缺口；原生验收需用户在 Codex 侧或豁免下决策
+
+
+## Session 171: Organize project-init ignore rules from sessions
+<!-- trellis-session: v=2 fp=b9cc721adefeb6c5 -->
+
+**Date**: 2026-11-11
+**Task**: Organize project-init ignore rules from sessions
+**Branch**: `dev`
+
+### Summary
+
+Updated the ccr project init ignore contract from seven implemented rules. Source is Grok session 01a1c998-2fde-7572-910a-b5d6808135e4; code and bilingual docs already matched. Claude, Codex, and Pi histories were only sampled. Grok raw history is not parsed by mini-trellis mem.
+Topics: [.trellis/spec/ccr-cli/backend/backend-guidelines.md](../../spec/ccr-cli/backend/backend-guidelines.md)
+
+### Git Commits
+
+(No commits - planning session)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Next batch needs a named session list. 183 native ccr sessions and 28 Grok transcripts are still unread.
+
+
+## Session 172: Record GPUI platform tab order from Claude sessions
+<!-- trellis-session: v=2 fp=05d976189a75c18b -->
+
+**Date**: 2026-11-11
+**Task**: Record GPUI platform tab order from Claude sessions
+**Branch**: `dev`
+
+### Summary
+
+Wrote the confirmed five-platform tab order and stable tab ids into ccr-desktop/DESIGN.md. Source is Claude fce481ba-17bb-4131-87d1-a167a8434b19 turn 45. The recorder cannot link ccr-desktop/DESIGN.md as a topic. The other three selected Claude sessions added no new product rule.
+
+### Git Commits
+
+(No commits - planning session)
+
+### Status
+
+[OK] **Completed**
